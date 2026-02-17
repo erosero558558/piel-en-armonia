@@ -1,35 +1,39 @@
 /**
- * ADMIN PANEL - Piel en Armonía
- * Panel de administración para gestionar citas, callbacks y reseñas
+ * ADMIN PANEL - Piel en Armonia
+ * Server-backed admin with session auth.
  */
 
-// ========================================
-// CONFIGURACIÓN
-// ========================================
-const ADMIN_PASSWORD = 'admin123'; // En producción, usar hash
+const AUTH_ENDPOINT = '/admin-auth.php';
+const API_ENDPOINT = '/api.php';
 
-// ========================================
-// TOAST NOTIFICATIONS
-// ========================================
+let currentAppointments = [];
+let currentCallbacks = [];
+let currentReviews = [];
+let currentAvailability = {};
+let selectedDate = null;
+let currentMonth = new Date();
+
 function showToast(message, type = 'info', title = '') {
     const container = document.getElementById('toastContainer');
+    if (!container) return;
+
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    
+
     const icons = {
         success: 'fa-check-circle',
         error: 'fa-times-circle',
         warning: 'fa-exclamation-circle',
         info: 'fa-info-circle'
     };
-    
+
     const titles = {
-        success: title || 'Éxito',
+        success: title || 'Exito',
         error: title || 'Error',
         warning: title || 'Advertencia',
-        info: title || 'Información'
+        info: title || 'Informacion'
     };
-    
+
     toast.innerHTML = `
         <i class="fas ${icons[type]} toast-icon"></i>
         <div class="toast-content">
@@ -41,10 +45,8 @@ function showToast(message, type = 'info', title = '') {
         </button>
         <div class="toast-progress"></div>
     `;
-    
+
     container.appendChild(toast);
-    
-    // Auto-remove after 5 seconds
     setTimeout(() => {
         if (toast.parentElement) {
             toast.style.animation = 'slideIn 0.3s ease reverse';
@@ -53,263 +55,163 @@ function showToast(message, type = 'info', title = '') {
     }, 5000);
 }
 
-// ========================================
-// AUTHENTICATION
-// ========================================
-function checkAuth() {
-    const isLoggedIn = sessionStorage.getItem('adminLoggedIn');
-    if (isLoggedIn === 'true') {
-        showDashboard();
-    } else {
-        showLogin();
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = String(text ?? '');
+    return div.innerHTML;
+}
+
+function normalizeCallbackStatus(status) {
+    const normalized = String(status || '').toLowerCase().trim();
+    if (normalized === 'pending') return 'pendiente';
+    if (normalized === 'contacted') return 'contactado';
+    return normalized === 'contactado' ? 'contactado' : 'pendiente';
+}
+
+function buildQuery(resource) {
+    const params = new URLSearchParams();
+    params.set('resource', resource);
+    return `${API_ENDPOINT}?${params.toString()}`;
+}
+
+async function requestJson(url, options = {}) {
+    const init = {
+        method: options.method || 'GET',
+        headers: {
+            Accept: 'application/json'
+        }
+    };
+
+    if (options.body !== undefined) {
+        init.headers['Content-Type'] = 'application/json';
+        init.body = JSON.stringify(options.body);
+    }
+
+    const response = await fetch(url, init);
+    const responseText = await response.text();
+
+    let payload = {};
+    try {
+        payload = responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+        throw new Error('Respuesta no valida del servidor');
+    }
+
+    if (!response.ok || payload.ok === false) {
+        throw new Error(payload.error || `HTTP ${response.status}`);
+    }
+
+    return payload;
+}
+
+async function apiRequest(resource, options = {}) {
+    return requestJson(buildQuery(resource), options);
+}
+
+async function authRequest(action, options = {}) {
+    return requestJson(`${AUTH_ENDPOINT}?action=${encodeURIComponent(action)}`, options);
+}
+
+function getLocalData(key, fallback) {
+    try {
+        const value = JSON.parse(localStorage.getItem(key) || 'null');
+        return value === null ? fallback : value;
+    } catch (error) {
+        return fallback;
+    }
+}
+
+function loadFallbackState() {
+    currentAppointments = getLocalData('appointments', []);
+    currentCallbacks = getLocalData('callbacks', []).map(c => ({
+        ...c,
+        status: normalizeCallbackStatus(c.status)
+    }));
+    currentReviews = getLocalData('reviews', []);
+    currentAvailability = getLocalData('availability', {});
+}
+
+async function refreshData() {
+    try {
+        const payload = await apiRequest('data');
+        const data = payload.data || {};
+        currentAppointments = Array.isArray(data.appointments) ? data.appointments : [];
+        currentCallbacks = Array.isArray(data.callbacks) ? data.callbacks.map(c => ({
+            ...c,
+            status: normalizeCallbackStatus(c.status)
+        })) : [];
+        currentReviews = Array.isArray(data.reviews) ? data.reviews : [];
+        currentAvailability = data.availability && typeof data.availability === 'object' ? data.availability : {};
+    } catch (error) {
+        loadFallbackState();
+        showToast('No se pudo conectar al backend. Usando datos locales.', 'warning');
     }
 }
 
 function showLogin() {
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('adminDashboard').style.display = 'none';
+    const loginScreen = document.getElementById('loginScreen');
+    const dashboard = document.getElementById('adminDashboard');
+    if (loginScreen) loginScreen.style.display = 'flex';
+    if (dashboard) dashboard.style.display = 'none';
 }
 
-function showDashboard() {
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('adminDashboard').style.display = 'flex';
+async function showDashboard() {
+    const loginScreen = document.getElementById('loginScreen');
+    const dashboard = document.getElementById('adminDashboard');
+    if (loginScreen) loginScreen.style.display = 'none';
+    if (dashboard) dashboard.style.display = 'flex';
     updateDate();
+    await refreshData();
     loadDashboardData();
+    renderCurrentSection();
 }
 
-function logout() {
-    sessionStorage.removeItem('adminLoggedIn');
-    showToast('Sesión cerrada correctamente', 'info');
-    setTimeout(() => {
-        location.reload();
-    }, 1000);
-}
-
-// Login form
-document.addEventListener('DOMContentLoaded', function() {
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const password = document.getElementById('adminPassword').value;
-            
-            if (password === ADMIN_PASSWORD) {
-                sessionStorage.setItem('adminLoggedIn', 'true');
-                showToast('Bienvenido al panel de administración', 'success');
-                showDashboard();
-            } else {
-                showToast('Contraseña incorrecta', 'error');
-            }
-        });
+async function checkAuth() {
+    try {
+        const payload = await authRequest('status');
+        if (payload.authenticated) {
+            await showDashboard();
+        } else {
+            showLogin();
+        }
+    } catch (error) {
+        showLogin();
+        showToast('No se pudo verificar la sesion', 'warning');
     }
-    
-    checkAuth();
-});
+}
 
-// ========================================
-// NAVIGATION
-// ========================================
-document.addEventListener('DOMContentLoaded', function() {
-    const navItems = document.querySelectorAll('.nav-item');
-    
-    navItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            const section = this.dataset.section;
-            
-            // Update active nav
-            navItems.forEach(nav => nav.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Show section
-            document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
-            document.getElementById(section).classList.add('active');
-            
-            // Update title
-            const titles = {
-                dashboard: 'Dashboard',
-                appointments: 'Citas',
-                callbacks: 'Callbacks',
-                reviews: 'Reseñas',
-                availability: 'Disponibilidad'
-            };
-            document.getElementById('pageTitle').textContent = titles[section];
-            
-            // Load section data
-            if (section === 'appointments') loadAppointments();
-            if (section === 'callbacks') loadCallbacks();
-            if (section === 'reviews') loadReviews();
-            if (section === 'availability') initAvailabilityCalendar();
-        });
-    });
-});
+async function logout() {
+    try {
+        await authRequest('logout', { method: 'POST' });
+    } catch (error) {
+        // Continue with local logout UI.
+    }
+    showToast('Sesion cerrada correctamente', 'info');
+    setTimeout(() => window.location.reload(), 800);
+}
 
-// ========================================
-// DASHBOARD
-// ========================================
 function updateDate() {
     const dateEl = document.getElementById('currentDate');
+    if (!dateEl) return;
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     dateEl.textContent = new Date().toLocaleDateString('es-EC', options);
 }
 
-function loadDashboardData() {
-    const appointments = JSON.parse(localStorage.getItem('appointments') || '[]');
-    const callbacks = JSON.parse(localStorage.getItem('callbacks') || '[]');
-    const reviews = JSON.parse(localStorage.getItem('reviews') || '[]');
-    
-    // Total appointments
-    document.getElementById('totalAppointments').textContent = appointments.length;
-    
-    // Today's appointments
-    const today = new Date().toISOString().split('T')[0];
-    const todayAppointments = appointments.filter(a => a.date === today && a.status !== 'cancelled');
-    document.getElementById('todayAppointments').textContent = todayAppointments.length;
-    
-    // Pending callbacks
-    const pendingCallbacks = callbacks.filter(c => c.status === 'pendiente');
-    document.getElementById('pendingCallbacks').textContent = pendingCallbacks.length;
-    
-    // Average rating
-    let avgRating = 0;
-    if (reviews.length > 0) {
-        avgRating = (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1);
-    }
-    document.getElementById('avgRating').textContent = avgRating;
-    
-    // Update badges
-    document.getElementById('appointmentsBadge').textContent = appointments.filter(a => a.status === 'confirmed').length;
-    document.getElementById('callbacksBadge').textContent = pendingCallbacks.length;
-    document.getElementById('reviewsBadge').textContent = reviews.length;
-    
-    // Load today's appointments list
-    const todayList = document.getElementById('todayAppointmentsList');
-    if (todayAppointments.length === 0) {
-        todayList.innerHTML = '<p class="empty-message">No hay citas para hoy</p>';
-    } else {
-        todayList.innerHTML = todayAppointments.map(a => `
-            <div class="upcoming-item">
-                <div class="upcoming-time">
-                    <span class="time">${a.time}</span>
-                </div>
-                <div class="upcoming-info">
-                    <span class="name">${a.name}</span>
-                    <span class="service">${getServiceName(a.service)}</span>
-                </div>
-                <div class="upcoming-actions">
-                    <a href="tel:${a.phone}" class="btn-icon" title="Llamar">
-                        <i class="fas fa-phone"></i>
-                    </a>
-                    <a href="https://wa.me/${a.phone.replace(/\D/g, '')}" target="_blank" class="btn-icon" title="WhatsApp">
-                        <i class="fab fa-whatsapp"></i>
-                    </a>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    // Load recent callbacks
-    const callbacksList = document.getElementById('recentCallbacksList');
-    const recentCallbacks = callbacks.slice(-5).reverse();
-    if (recentCallbacks.length === 0) {
-        callbacksList.innerHTML = '<p class="empty-message">No hay callbacks pendientes</p>';
-    } else {
-        callbacksList.innerHTML = recentCallbacks.map(c => `
-            <div class="upcoming-item">
-                <div class="upcoming-info">
-                    <span class="name">${c.telefono}</span>
-                    <span class="service">${getPreferenceText(c.preferencia)}</span>
-                </div>
-                <div class="upcoming-actions">
-                    <a href="tel:${c.telefono}" class="btn-icon" title="Llamar">
-                        <i class="fas fa-phone"></i>
-                    </a>
-                </div>
-            </div>
-        `).join('');
-    }
-}
-
 function getServiceName(service) {
     const names = {
-        consulta: 'Consulta Dermatológica',
-        telefono: 'Consulta Telefónica',
+        consulta: 'Consulta Dermatologica',
+        telefono: 'Consulta Telefonica',
         video: 'Video Consulta',
-        laser: 'Tratamiento Láser',
+        laser: 'Tratamiento Laser',
         rejuvenecimiento: 'Rejuvenecimiento'
     };
     return names[service] || service;
 }
 
-function getPreferenceText(pref) {
-    const texts = {
-        ahora: 'Lo antes posible',
-        '15min': 'En 15 minutos',
-        '30min': 'En 30 minutos',
-        '1hora': 'En 1 hora'
-    };
-    return texts[pref] || pref;
-}
-
-// ========================================
-// APPOINTMENTS
-// ========================================
-let currentAppointments = [];
-
-function loadAppointments() {
-    currentAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
-    renderAppointments(currentAppointments);
-}
-
-function renderAppointments(appointments) {
-    const tbody = document.getElementById('appointmentsTableBody');
-    
-    if (appointments.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="8" class="empty-message">No hay citas registradas</td>
-            </tr>
-        `;
-        return;
-    }
-    
-    tbody.innerHTML = appointments.map(a => `
-        <tr>
-            <td>
-                <strong>${a.name}</strong><br>
-                <small>${a.email}</small>
-            </td>
-            <td>${getServiceName(a.service)}</td>
-            <td>${getDoctorName(a.doctor)}</td>
-            <td>${formatDate(a.date)}</td>
-            <td>${a.time}</td>
-            <td>${a.price}</td>
-            <td>
-                <span class="status-badge status-${a.status || 'confirmed'}">
-                    ${getStatusText(a.status || 'confirmed')}
-                </span>
-            </td>
-            <td>
-                <div class="table-actions">
-                    <a href="tel:${a.phone}" class="btn-icon" title="Llamar">
-                        <i class="fas fa-phone"></i>
-                    </a>
-                    <a href="https://wa.me/${a.phone.replace(/\D/g, '')}" target="_blank" class="btn-icon" title="WhatsApp">
-                        <i class="fab fa-whatsapp"></i>
-                    </a>
-                    <button class="btn-icon danger" onclick="cancelAppointment(${a.id})" title="Cancelar">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `).join('');
-}
-
 function getDoctorName(doctor) {
     const names = {
         rosero: 'Dr. Rosero',
-        narvaez: 'Dra. Narváez',
+        narvaez: 'Dra. Narvaez',
         indiferente: 'Cualquiera'
     };
     return names[doctor] || doctor;
@@ -325,20 +227,164 @@ function getStatusText(status) {
     return texts[status] || status;
 }
 
+function getPreferenceText(pref) {
+    const texts = {
+        ahora: 'Lo antes posible',
+        '15min': 'En 15 minutos',
+        '30min': 'En 30 minutos',
+        '1hora': 'En 1 hora'
+    };
+    return texts[pref] || pref;
+}
+
 function formatDate(dateStr) {
     const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return dateStr;
     return date.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function loadDashboardData() {
+    document.getElementById('totalAppointments').textContent = currentAppointments.length;
+
+    const today = new Date().toISOString().split('T')[0];
+    const todayAppointments = currentAppointments.filter(a => a.date === today && a.status !== 'cancelled');
+    document.getElementById('todayAppointments').textContent = todayAppointments.length;
+
+    const pendingCallbacks = currentCallbacks.filter(c => normalizeCallbackStatus(c.status) === 'pendiente');
+    document.getElementById('pendingCallbacks').textContent = pendingCallbacks.length;
+
+    let avgRating = 0;
+    if (currentReviews.length > 0) {
+        avgRating = (currentReviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / currentReviews.length).toFixed(1);
+    }
+    document.getElementById('avgRating').textContent = avgRating;
+
+    document.getElementById('appointmentsBadge').textContent = currentAppointments.filter(a => (a.status || 'confirmed') === 'confirmed').length;
+    document.getElementById('callbacksBadge').textContent = pendingCallbacks.length;
+    document.getElementById('reviewsBadge').textContent = currentReviews.length;
+
+    const todayList = document.getElementById('todayAppointmentsList');
+    if (todayAppointments.length === 0) {
+        todayList.innerHTML = '<p class="empty-message">No hay citas para hoy</p>';
+    } else {
+        todayList.innerHTML = todayAppointments.map(a => `
+            <div class="upcoming-item">
+                <div class="upcoming-time">
+                    <span class="time">${escapeHtml(a.time)}</span>
+                </div>
+                <div class="upcoming-info">
+                    <span class="name">${escapeHtml(a.name)}</span>
+                    <span class="service">${escapeHtml(getServiceName(a.service))}</span>
+                </div>
+                <div class="upcoming-actions">
+                    <a href="tel:${escapeHtml(a.phone)}" class="btn-icon" title="Llamar">
+                        <i class="fas fa-phone"></i>
+                    </a>
+                    <a href="https://wa.me/${escapeHtml(String(a.phone || '').replace(/\\D/g, ''))}" target="_blank" class="btn-icon" title="WhatsApp">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    const callbacksList = document.getElementById('recentCallbacksList');
+    const recentCallbacks = currentCallbacks.slice(-5).reverse();
+    if (recentCallbacks.length === 0) {
+        callbacksList.innerHTML = '<p class="empty-message">No hay callbacks pendientes</p>';
+    } else {
+        callbacksList.innerHTML = recentCallbacks.map(c => `
+            <div class="upcoming-item">
+                <div class="upcoming-info">
+                    <span class="name">${escapeHtml(c.telefono)}</span>
+                    <span class="service">${escapeHtml(getPreferenceText(c.preferencia))}</span>
+                </div>
+                <div class="upcoming-actions">
+                    <a href="tel:${escapeHtml(c.telefono)}" class="btn-icon" title="Llamar">
+                        <i class="fas fa-phone"></i>
+                    </a>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
+function renderCurrentSection() {
+    const activeItem = document.querySelector('.nav-item.active');
+    const section = activeItem?.dataset.section || 'dashboard';
+    if (section === 'appointments') loadAppointments();
+    if (section === 'callbacks') loadCallbacks();
+    if (section === 'reviews') loadReviews();
+    if (section === 'availability') initAvailabilityCalendar();
+}
+
+function loadAppointments() {
+    renderAppointments(currentAppointments);
+}
+
+function renderAppointments(appointments) {
+    const tbody = document.getElementById('appointmentsTableBody');
+    if (!tbody) return;
+
+    if (appointments.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-message">No hay citas registradas</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = appointments.map(a => `
+        <tr>
+            <td>
+                <strong>${escapeHtml(a.name)}</strong><br>
+                <small>${escapeHtml(a.email)}</small>
+            </td>
+            <td>${escapeHtml(getServiceName(a.service))}</td>
+            <td>${escapeHtml(getDoctorName(a.doctor))}</td>
+            <td>${escapeHtml(formatDate(a.date))}</td>
+            <td>${escapeHtml(a.time)}</td>
+            <td>${escapeHtml(a.price || '$0.00')}</td>
+            <td>
+                <span class="status-badge status-${escapeHtml(a.status || 'confirmed')}">
+                    ${escapeHtml(getStatusText(a.status || 'confirmed'))}
+                </span>
+            </td>
+            <td>
+                <div class="table-actions">
+                    <a href="tel:${escapeHtml(a.phone)}" class="btn-icon" title="Llamar">
+                        <i class="fas fa-phone"></i>
+                    </a>
+                    <a href="https://wa.me/${escapeHtml(String(a.phone || '').replace(/\\D/g, ''))}" target="_blank" class="btn-icon" title="WhatsApp">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
+                    <button class="btn-icon danger" onclick="cancelAppointment(${Number(a.id) || 0})" title="Cancelar">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function getWeekRange() {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(now.getDate() - now.getDay());
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return {
+        start: start.toISOString().split('T')[0],
+        end: end.toISOString().split('T')[0]
+    };
 }
 
 function filterAppointments() {
     const filter = document.getElementById('appointmentFilter').value;
     let filtered = [...currentAppointments];
-    
+
     const today = new Date().toISOString().split('T')[0];
     const currentWeek = getWeekRange();
-    const currentMonth = new Date().getMonth();
-    
-    switch(filter) {
+    const currentMonthNumber = new Date().getMonth();
+
+    switch (filter) {
         case 'today':
             filtered = filtered.filter(a => a.date === today);
             break;
@@ -346,187 +392,187 @@ function filterAppointments() {
             filtered = filtered.filter(a => a.date >= currentWeek.start && a.date <= currentWeek.end);
             break;
         case 'month':
-            filtered = filtered.filter(a => new Date(a.date).getMonth() === currentMonth);
+            filtered = filtered.filter(a => new Date(a.date).getMonth() === currentMonthNumber);
             break;
         case 'confirmed':
         case 'cancelled':
             filtered = filtered.filter(a => (a.status || 'confirmed') === filter);
             break;
+        default:
+            break;
     }
-    
-    renderAppointments(filtered);
-}
 
-function getWeekRange() {
-    const now = new Date();
-    const start = new Date(now.setDate(now.getDate() - now.getDay()));
-    const end = new Date(now.setDate(now.getDate() + 6));
-    return {
-        start: start.toISOString().split('T')[0],
-        end: end.toISOString().split('T')[0]
-    };
+    renderAppointments(filtered);
 }
 
 function searchAppointments() {
     const search = document.getElementById('searchAppointments').value.toLowerCase();
-    const filtered = currentAppointments.filter(a => 
-        a.name.toLowerCase().includes(search) ||
-        a.email.toLowerCase().includes(search) ||
-        a.phone.includes(search)
+    const filtered = currentAppointments.filter(a =>
+        String(a.name || '').toLowerCase().includes(search) ||
+        String(a.email || '').toLowerCase().includes(search) ||
+        String(a.phone || '').includes(search)
     );
     renderAppointments(filtered);
 }
 
-function cancelAppointment(id) {
-    if (!confirm('¿Estás seguro de cancelar esta cita?')) return;
-    
-    let appointments = JSON.parse(localStorage.getItem('appointments') || '[]');
-    const index = appointments.findIndex(a => a.id === id);
-    
-    if (index !== -1) {
-        appointments[index].status = 'cancelled';
-        localStorage.setItem('appointments', JSON.stringify(appointments));
-        showToast('Cita cancelada correctamente', 'success');
+async function cancelAppointment(id) {
+    if (!confirm('¿Estas seguro de cancelar esta cita?')) return;
+    if (!id) {
+        showToast('Id de cita invalido', 'error');
+        return;
+    }
+    try {
+        await apiRequest('appointments', {
+            method: 'PATCH',
+            body: { id: id, status: 'cancelled' }
+        });
+        await refreshData();
         loadAppointments();
         loadDashboardData();
+        showToast('Cita cancelada correctamente', 'success');
+    } catch (error) {
+        showToast(`No se pudo cancelar la cita: ${error.message}`, 'error');
     }
 }
 
-// ========================================
-// CALLBACKS
-// ========================================
 function loadCallbacks() {
-    const callbacks = JSON.parse(localStorage.getItem('callbacks') || '[]');
-    renderCallbacks(callbacks);
+    renderCallbacks(currentCallbacks);
 }
 
 function renderCallbacks(callbacks) {
     const grid = document.getElementById('callbacksGrid');
-    
+    if (!grid) return;
+
     if (callbacks.length === 0) {
         grid.innerHTML = '<p class="empty-message">No hay callbacks registrados</p>';
         return;
     }
-    
-    grid.innerHTML = callbacks.map(c => `
-        <div class="callback-card ${c.status}">
-            <div class="callback-header">
-                <span class="callback-phone">${c.telefono}</span>
-                <span class="status-badge status-${c.status}">
-                    ${c.status === 'pendiente' ? 'Pendiente' : 'Contactado'}
+
+    grid.innerHTML = callbacks.map(c => {
+        const status = normalizeCallbackStatus(c.status);
+        const callbackId = Number(c.id) || 0;
+        const markArg = callbackId > 0 ? callbackId : JSON.stringify(String(c.fecha || ''));
+        return `
+            <div class="callback-card ${status}">
+                <div class="callback-header">
+                    <span class="callback-phone">${escapeHtml(c.telefono)}</span>
+                    <span class="status-badge status-${status}">
+                        ${status === 'pendiente' ? 'Pendiente' : 'Contactado'}
+                    </span>
+                </div>
+                <span class="callback-preference">
+                    <i class="fas fa-clock"></i>
+                    ${escapeHtml(getPreferenceText(c.preferencia))}
                 </span>
+                <p class="callback-time">
+                    <i class="fas fa-calendar"></i>
+                    ${escapeHtml(new Date(c.fecha).toLocaleString('es-EC'))}
+                </p>
+                <div class="callback-actions">
+                    <a href="tel:${escapeHtml(c.telefono)}" class="btn btn-phone btn-sm">
+                        <i class="fas fa-phone"></i>
+                        Llamar
+                    </a>
+                    ${status === 'pendiente' ? `
+                        <button class="btn btn-primary btn-sm" onclick='markContacted(${markArg})'>
+                            <i class="fas fa-check"></i>
+                            Marcar contactado
+                        </button>
+                    ` : ''}
+                </div>
             </div>
-            <span class="callback-preference">
-                <i class="fas fa-clock"></i>
-                ${getPreferenceText(c.preferencia)}
-            </span>
-            <p class="callback-time">
-                <i class="fas fa-calendar"></i>
-                ${new Date(c.fecha).toLocaleString('es-EC')}
-            </p>
-            <div class="callback-actions">
-                <a href="tel:${c.telefono}" class="btn btn-phone btn-sm">
-                    <i class="fas fa-phone"></i>
-                    Llamar
-                </a>
-                ${c.status === 'pendiente' ? `
-                    <button class="btn btn-primary btn-sm" onclick="markContacted('${c.fecha}')">
-                        <i class="fas fa-check"></i>
-                        Marcar contactado
-                    </button>
-                ` : ''}
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function filterCallbacks() {
     const filter = document.getElementById('callbackFilter').value;
-    let callbacks = JSON.parse(localStorage.getItem('callbacks') || '[]');
-    
-    if (filter !== 'all') {
-        callbacks = callbacks.filter(c => c.status === filter);
+    let callbacks = [...currentCallbacks];
+
+    if (filter === 'pending') {
+        callbacks = callbacks.filter(c => normalizeCallbackStatus(c.status) === 'pendiente');
+    } else if (filter === 'contacted') {
+        callbacks = callbacks.filter(c => normalizeCallbackStatus(c.status) === 'contactado');
     }
-    
+
     renderCallbacks(callbacks);
 }
 
-function markContacted(fecha) {
-    let callbacks = JSON.parse(localStorage.getItem('callbacks') || '[]');
-    const callback = callbacks.find(c => c.fecha === fecha);
-    
-    if (callback) {
-        callback.status = 'contactado';
-        localStorage.setItem('callbacks', JSON.stringify(callbacks));
-        showToast('Marcado como contactado', 'success');
+async function markContacted(identifier) {
+    let callback = currentCallbacks.find(c => Number(c.id) === Number(identifier));
+    if (!callback) {
+        callback = currentCallbacks.find(c => c.fecha === identifier);
+    }
+    if (!callback) {
+        showToast('Callback no encontrado', 'error');
+        return;
+    }
+
+    try {
+        if (callback.id) {
+            await apiRequest('callbacks', {
+                method: 'PATCH',
+                body: { id: Number(callback.id), status: 'contactado' }
+            });
+        } else {
+            callback.status = 'contactado';
+            await apiRequest('import', {
+                method: 'POST',
+                body: {
+                    appointments: currentAppointments,
+                    callbacks: currentCallbacks,
+                    reviews: currentReviews,
+                    availability: currentAvailability
+                }
+            });
+        }
+        await refreshData();
         loadCallbacks();
         loadDashboardData();
+        showToast('Marcado como contactado', 'success');
+    } catch (error) {
+        showToast(`No se pudo actualizar callback: ${error.message}`, 'error');
     }
 }
 
-// ========================================
-// REVIEWS
-// ========================================
 function loadReviews() {
-    const reviews = JSON.parse(localStorage.getItem('reviews') || '[]');
-    
-    // Update stats
-    const avgRating = reviews.length > 0 
-        ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+    const avgRating = currentReviews.length > 0
+        ? (currentReviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / currentReviews.length).toFixed(1)
         : '0.0';
-    
+
     document.getElementById('adminAvgRating').textContent = avgRating;
-    document.getElementById('totalReviewsCount').textContent = `${reviews.length} reseñas`;
-    
-    // Update stars
+    document.getElementById('totalReviewsCount').textContent = `${currentReviews.length} reseñas`;
+
     const starsContainer = document.getElementById('adminRatingStars');
-    const fullStars = Math.floor(avgRating);
-    const hasHalf = avgRating % 1 >= 0.5;
-    
-    let starsHtml = '';
-    for (let i = 0; i < 5; i++) {
-        if (i < fullStars) {
-            starsHtml += '<i class="fas fa-star"></i>';
-        } else if (i === fullStars && hasHalf) {
-            starsHtml += '<i class="fas fa-star-half-alt"></i>';
-        } else {
-            starsHtml += '<i class="far fa-star"></i>';
-        }
+    const fullStars = Math.floor(Number(avgRating));
+    starsContainer.innerHTML = '';
+    for (let i = 1; i <= 5; i += 1) {
+        const star = document.createElement('i');
+        star.className = i <= fullStars ? 'fas fa-star' : 'far fa-star';
+        starsContainer.appendChild(star);
     }
-    starsContainer.innerHTML = starsHtml;
-    
-    // Render reviews
+
     const grid = document.getElementById('reviewsGrid');
-    if (reviews.length === 0) {
+    if (currentReviews.length === 0) {
         grid.innerHTML = '<p class="empty-message">No hay reseñas registradas</p>';
         return;
     }
-    
-    grid.innerHTML = reviews.map(r => `
-        <div class="review-card-admin">
-            <div class="review-header">
-                <div class="review-avatar">${r.name.split(' ').map(n => n[0]).join('').toUpperCase()}</div>
-                <div>
-                    <div style="font-weight: 600;">${r.name}</div>
-                    <div class="review-stars" style="color: #ffb800; font-size: 0.8rem;">
-                        ${Array(5).fill(0).map((_, i) => 
-                            `<i class="${i < r.rating ? 'fas' : 'far'} fa-star"></i>`
-                        ).join('')}
-                    </div>
-                </div>
-                ${r.verified ? '<i class="fas fa-check-circle verified" style="color: var(--color-phone); margin-left: auto;"></i>' : ''}
-            </div>
-            <p class="review-text">${r.text}</p>
-            <span class="review-date-admin">${new Date(r.date).toLocaleDateString('es-EC')}</span>
-        </div>
-    `).join('');
-}
 
-// ========================================
-// AVAILABILITY CALENDAR
-// ========================================
-let currentMonth = new Date();
-let selectedDate = null;
+    grid.innerHTML = currentReviews
+        .slice()
+        .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
+        .map(r => `
+            <div class="review-card-admin">
+                <div class="review-header-admin">
+                    <strong>${escapeHtml(r.name || 'Paciente')}</strong>
+                    ${r.verified ? '<i class="fas fa-check-circle verified" style="color: var(--color-phone); margin-left: auto;"></i>' : ''}
+                </div>
+                <div class="review-rating">${'★'.repeat(Number(r.rating) || 0)}${'☆'.repeat(5 - (Number(r.rating) || 0))}</div>
+                <p>${escapeHtml(r.text || '')}</p>
+                <small>${escapeHtml(new Date(r.date).toLocaleDateString('es-EC'))}</small>
+            </div>
+        `).join('');
+}
 
 function initAvailabilityCalendar() {
     renderAvailabilityCalendar();
@@ -535,58 +581,56 @@ function initAvailabilityCalendar() {
 function renderAvailabilityCalendar() {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
-    
-    // Update header
-    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-                       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    document.getElementById('calendarMonth').textContent = `${monthNames[month]} ${year}`;
-    
-    // Get availability data
-    const availability = JSON.parse(localStorage.getItem('availability') || '{}');
-    
-    // Generate calendar
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const daysInPrevMonth = new Date(year, month, 0).getDate();
-    
-    const calendar = document.getElementById('availabilityCalendar');
-    let html = '';
-    
-    // Day headers
-    const dayHeaders = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-    dayHeaders.forEach(day => {
-        html += `<div class="calendar-day-header">${day}</div>`;
+
+    document.getElementById('calendarMonth').textContent = new Date(year, month).toLocaleDateString('es-EC', {
+        month: 'long',
+        year: 'numeric'
     });
-    
-    // Previous month days
-    for (let i = firstDay - 1; i >= 0; i--) {
-        html += `<div class="calendar-day other-month">${daysInPrevMonth - i}</div>`;
+
+    const calendar = document.getElementById('availabilityCalendar');
+    calendar.innerHTML = '';
+
+    const weekDays = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+    weekDays.forEach(day => {
+        const dayEl = document.createElement('div');
+        dayEl.className = 'calendar-day-header';
+        dayEl.textContent = day;
+        calendar.appendChild(dayEl);
+    });
+
+    for (let i = firstDay - 1; i >= 0; i -= 1) {
+        const day = daysInPrevMonth - i;
+        const dayEl = document.createElement('div');
+        dayEl.className = 'calendar-day other-month';
+        dayEl.textContent = day;
+        calendar.appendChild(dayEl);
     }
-    
-    // Current month days
-    const today = new Date().toISOString().split('T')[0];
-    for (let day = 1; day <= daysInMonth; day++) {
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const isToday = dateStr === today;
-        const isSelected = dateStr === selectedDate;
-        const hasSlots = availability[dateStr] && availability[dateStr].length > 0;
-        
-        html += `
-            <div class="calendar-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${hasSlots ? 'has-slots' : ''}"
-                 onclick="selectDate('${dateStr}')"
-                 style="position: relative;">
-                ${day}
-            </div>
-        `;
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+        const date = new Date(year, month, day);
+        const dateStr = date.toISOString().split('T')[0];
+        const dayEl = document.createElement('div');
+        dayEl.className = 'calendar-day';
+        dayEl.textContent = day;
+
+        if (selectedDate === dateStr) dayEl.classList.add('selected');
+        if (currentAvailability[dateStr] && currentAvailability[dateStr].length > 0) dayEl.classList.add('has-slots');
+
+        dayEl.onclick = () => selectDate(dateStr);
+        calendar.appendChild(dayEl);
     }
-    
-    // Next month days
-    const remainingDays = 42 - (firstDay + daysInMonth);
-    for (let day = 1; day <= remainingDays; day++) {
-        html += `<div class="calendar-day other-month">${day}</div>`;
+
+    const rendered = firstDay + daysInMonth;
+    const remaining = 42 - rendered;
+    for (let day = 1; day <= remaining; day += 1) {
+        const dayEl = document.createElement('div');
+        dayEl.className = 'calendar-day other-month';
+        dayEl.textContent = day;
+        calendar.appendChild(dayEl);
     }
-    
-    calendar.innerHTML = html;
 }
 
 function changeMonth(delta) {
@@ -597,38 +641,30 @@ function changeMonth(delta) {
 function selectDate(dateStr) {
     selectedDate = dateStr;
     renderAvailabilityCalendar();
-    
-    // Update selected date display
     const date = new Date(dateStr);
     document.getElementById('selectedDate').textContent = date.toLocaleDateString('es-EC', {
         weekday: 'long',
-        year: 'numeric',
+        day: 'numeric',
         month: 'long',
-        day: 'numeric'
+        year: 'numeric'
     });
-    
-    // Show add slot form
     document.getElementById('addSlotForm').style.display = 'block';
-    
-    // Load time slots
     loadTimeSlots(dateStr);
 }
 
 function loadTimeSlots(dateStr) {
-    const availability = JSON.parse(localStorage.getItem('availability') || '{}');
-    const slots = availability[dateStr] || [];
-    
+    const slots = currentAvailability[dateStr] || [];
     const list = document.getElementById('timeSlotsList');
     if (slots.length === 0) {
         list.innerHTML = '<p class="empty-message">No hay horarios configurados</p>';
         return;
     }
-    
-    list.innerHTML = slots.sort().map(time => `
+
+    list.innerHTML = slots.slice().sort().map(time => `
         <div class="time-slot-item">
-            <span class="time">${time}</span>
+            <span class="time">${escapeHtml(time)}</span>
             <div class="slot-actions">
-                <button class="btn-icon danger" onclick="removeTimeSlot('${dateStr}', '${time}')">
+                <button class="btn-icon danger" onclick="removeTimeSlot('${escapeHtml(dateStr)}', '${escapeHtml(time)}')">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -636,57 +672,67 @@ function loadTimeSlots(dateStr) {
     `).join('');
 }
 
-function addTimeSlot() {
+async function saveAvailability() {
+    await apiRequest('availability', {
+        method: 'POST',
+        body: { availability: currentAvailability }
+    });
+}
+
+async function addTimeSlot() {
     if (!selectedDate) {
         showToast('Selecciona una fecha primero', 'warning');
         return;
     }
-    
     const time = document.getElementById('newSlotTime').value;
     if (!time) {
         showToast('Ingresa un horario', 'warning');
         return;
     }
-    
-    const availability = JSON.parse(localStorage.getItem('availability') || '{}');
-    if (!availability[selectedDate]) {
-        availability[selectedDate] = [];
+
+    if (!currentAvailability[selectedDate]) {
+        currentAvailability[selectedDate] = [];
     }
-    
-    if (!availability[selectedDate].includes(time)) {
-        availability[selectedDate].push(time);
-        localStorage.setItem('availability', JSON.stringify(availability));
-        showToast('Horario agregado', 'success');
-        document.getElementById('newSlotTime').value = '';
+
+    if (currentAvailability[selectedDate].includes(time)) {
+        showToast('Este horario ya existe', 'warning');
+        return;
+    }
+
+    try {
+        currentAvailability[selectedDate].push(time);
+        await saveAvailability();
         loadTimeSlots(selectedDate);
         renderAvailabilityCalendar();
-    } else {
-        showToast('Este horario ya existe', 'warning');
+        document.getElementById('newSlotTime').value = '';
+        showToast('Horario agregado', 'success');
+    } catch (error) {
+        showToast(`No se pudo guardar el horario: ${error.message}`, 'error');
     }
 }
 
-function removeTimeSlot(dateStr, time) {
-    const availability = JSON.parse(localStorage.getItem('availability') || '{}');
-    availability[dateStr] = availability[dateStr].filter(t => t !== time);
-    localStorage.setItem('availability', JSON.stringify(availability));
-    showToast('Horario eliminado', 'success');
-    loadTimeSlots(dateStr);
-    renderAvailabilityCalendar();
+async function removeTimeSlot(dateStr, time) {
+    try {
+        currentAvailability[dateStr] = (currentAvailability[dateStr] || []).filter(t => t !== time);
+        await saveAvailability();
+        loadTimeSlots(dateStr);
+        renderAvailabilityCalendar();
+        showToast('Horario eliminado', 'success');
+    } catch (error) {
+        showToast(`No se pudo eliminar el horario: ${error.message}`, 'error');
+    }
 }
 
-// ========================================
-// EXPORT DATA
-// ========================================
 function exportData() {
     const data = {
-        appointments: JSON.parse(localStorage.getItem('appointments') || '[]'),
-        callbacks: JSON.parse(localStorage.getItem('callbacks') || '[]'),
-        reviews: JSON.parse(localStorage.getItem('reviews') || '[]'),
-        availability: JSON.parse(localStorage.getItem('availability') || '{}'),
+        appointments: currentAppointments,
+        callbacks: currentCallbacks,
+        reviews: currentReviews,
+        availability: currentAvailability,
         exportDate: new Date().toISOString()
     };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -695,29 +741,59 @@ function exportData() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
     showToast('Datos exportados correctamente', 'success');
 }
 
-// ========================================
-// CONFIGURACIÓN DEL CHATBOT
-// ========================================
-function toggleAIMode() {
-    const currentMode = localStorage.getItem('forceAI') === 'true';
-    const newMode = !currentMode;
-    localStorage.setItem('forceAI', newMode.toString());
-    
-    if (newMode) {
-        showToast('Modo IA real ACTIVADO. El chatbot intentará usar Kimi API.', 'info');
-    } else {
-        showToast('Modo IA real DESACTIVADO. Usando respuestas locales.', 'info');
-    }
+function renderSection(section) {
+    const titles = {
+        dashboard: 'Dashboard',
+        appointments: 'Citas',
+        callbacks: 'Callbacks',
+        reviews: 'Reseñas',
+        availability: 'Disponibilidad'
+    };
+    document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
+
+    document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+    const sectionEl = document.getElementById(section);
+    if (sectionEl) sectionEl.classList.add('active');
+
+    if (section === 'dashboard') loadDashboardData();
+    if (section === 'appointments') loadAppointments();
+    if (section === 'callbacks') loadCallbacks();
+    if (section === 'reviews') loadReviews();
+    if (section === 'availability') initAvailabilityCalendar();
 }
 
-// ========================================
-// INITIALIZE
-// ========================================
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔧 Panel de Administración - Piel en Armonía');
-    console.log('📊 Contraseña: admin123');
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const password = document.getElementById('adminPassword').value;
+            try {
+                await authRequest('login', {
+                    method: 'POST',
+                    body: { password: password }
+                });
+                showToast('Bienvenido al panel de administracion', 'success');
+                await showDashboard();
+            } catch (error) {
+                showToast('Contraseña incorrecta', 'error');
+            }
+        });
+    }
+
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', async function(e) {
+            e.preventDefault();
+            navItems.forEach(nav => nav.classList.remove('active'));
+            this.classList.add('active');
+            await refreshData();
+            renderSection(this.dataset.section);
+        });
+    });
+
+    checkAuth();
 });

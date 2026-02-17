@@ -62,6 +62,13 @@ function showToast(message, type = 'info', title = '') {
     }, 5000);
 }
 
+const DEBUG = false;
+function debugLog(...args) {
+    if (DEBUG) {
+        console.log(...args);
+    }
+}
+
 // ========================================
 // TRANSLATIONS
 // ========================================
@@ -168,7 +175,7 @@ const translations = {
         appointment_title: "Reserva tu Cita",
         appointment_desc: "Agenda tu consulta de forma rápida y sencilla. Selecciona el tipo de servicio, el doctor de tu preferencia y la fecha que más te convenga.",
         benefit_1: "Confirmación inmediata",
-        benefit_2: "Pago seguro",
+        benefit_2: "Confirmación de pago asistida",
         benefit_3: "Reprogramación gratuita",
         form_title: "Nueva Cita",
         label_service: "Tipo de Consulta",
@@ -208,9 +215,9 @@ const translations = {
         label_transfer_ref: "Número de referencia",
         cash_info: "Paga directamente en el consultorio el día de tu cita.",
         payment_total: "Total a pagar:",
-        btn_pay: "Pagar Ahora",
+        btn_pay: "Confirmar Reserva",
         success_title: "¡Cita Confirmada!",
-        success_desc: "Hemos enviado los detalles de tu cita a tu email.",
+        success_desc: "Tu cita fue registrada correctamente.",
         btn_done: "Entendido",
         video_modal_title: "Elige cómo quieres hacer la videollamada:",
         video_jitsi: "Jitsi Meet (Recomendado)",
@@ -328,7 +335,7 @@ const translations = {
         appointment_title: "Book Your Appointment",
         appointment_desc: "Schedule your consultation quickly and easily. Select the type of service, preferred doctor, and the date that suits you best.",
         benefit_1: "Immediate confirmation",
-        benefit_2: "Secure payment",
+        benefit_2: "Assisted payment confirmation",
         benefit_3: "Free rescheduling",
         form_title: "New Appointment",
         label_service: "Type of Consultation",
@@ -368,9 +375,9 @@ const translations = {
         label_transfer_ref: "Reference number",
         cash_info: "Pay directly at the clinic on the day of your appointment.",
         payment_total: "Total to pay:",
-        btn_pay: "Pay Now",
+        btn_pay: "Confirm Booking",
         success_title: "Appointment Confirmed!",
-        success_desc: "We have sent the details of your appointment to your email.",
+        success_desc: "Your appointment was registered successfully.",
         btn_done: "Got it",
         video_modal_title: "Choose how you want to make the video call:",
         video_jitsi: "Jitsi Meet (Recommended)",
@@ -389,6 +396,240 @@ const translations = {
 };
 
 let currentLang = localStorage.getItem('language') || 'es';
+const API_ENDPOINT = '/api.php';
+const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
+let currentAppointment = null;
+let availabilityCache = {};
+let reviewsCache = [];
+const LOCAL_FALLBACK_ENABLED = window.location.protocol === 'file:';
+
+function storageGetJSON(key, fallback) {
+    try {
+        const value = JSON.parse(localStorage.getItem(key) || 'null');
+        return value === null ? fallback : value;
+    } catch (error) {
+        return fallback;
+    }
+}
+
+function storageSetJSON(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+        // Ignore storage quota errors.
+    }
+}
+
+async function apiRequest(resource, options = {}) {
+    const method = options.method || 'GET';
+    const query = new URLSearchParams({ resource: resource });
+    if (options.query && typeof options.query === 'object') {
+        Object.entries(options.query).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== '') {
+                query.set(key, String(value));
+            }
+        });
+    }
+    const url = `${API_ENDPOINT}?${query.toString()}`;
+    const requestInit = {
+        method: method,
+        headers: {
+            'Accept': 'application/json'
+        }
+    };
+
+    if (options.body !== undefined) {
+        requestInit.headers['Content-Type'] = 'application/json';
+        requestInit.body = JSON.stringify(options.body);
+    }
+
+    const response = await fetch(url, requestInit);
+    const responseText = await response.text();
+
+    let payload = {};
+    try {
+        payload = responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+        throw new Error('Respuesta del servidor no es JSON valido');
+    }
+
+    if (!response.ok || payload.ok === false) {
+        const message = payload.error || `HTTP ${response.status}`;
+        throw new Error(message);
+    }
+
+    return payload;
+}
+
+async function loadAvailabilityData() {
+    try {
+        const payload = await apiRequest('availability');
+        availabilityCache = payload.data || {};
+        storageSetJSON('availability', availabilityCache);
+    } catch (error) {
+        availabilityCache = storageGetJSON('availability', {});
+    }
+    return availabilityCache;
+}
+
+async function getBookedSlots(date) {
+    try {
+        const payload = await apiRequest('booked-slots', {
+            query: { date: date }
+        });
+        return Array.isArray(payload.data) ? payload.data : [];
+    } catch (error) {
+        if (!LOCAL_FALLBACK_ENABLED) {
+            throw error;
+        }
+        const appointments = storageGetJSON('appointments', []);
+        return appointments
+            .filter(a => a.date === date && a.status !== 'cancelled')
+            .map(a => a.time);
+    }
+}
+
+async function createAppointmentRecord(appointment) {
+    try {
+        const payload = await apiRequest('appointments', {
+            method: 'POST',
+            body: appointment
+        });
+        const localAppointments = storageGetJSON('appointments', []);
+        localAppointments.push(payload.data);
+        storageSetJSON('appointments', localAppointments);
+        return {
+            appointment: payload.data,
+            emailSent: payload.emailSent === true
+        };
+    } catch (error) {
+        if (!LOCAL_FALLBACK_ENABLED) {
+            throw error;
+        }
+        const localAppointments = storageGetJSON('appointments', []);
+        const fallback = {
+            ...appointment,
+            id: Date.now(),
+            status: 'confirmed',
+            dateBooked: new Date().toISOString(),
+            paymentStatus: appointment.paymentStatus || 'pending'
+        };
+        localAppointments.push(fallback);
+        storageSetJSON('appointments', localAppointments);
+        return {
+            appointment: fallback,
+            emailSent: false
+        };
+    }
+}
+
+async function createCallbackRecord(callback) {
+    try {
+        await apiRequest('callbacks', {
+            method: 'POST',
+            body: callback
+        });
+    } catch (error) {
+        if (!LOCAL_FALLBACK_ENABLED) {
+            throw error;
+        }
+        const callbacks = storageGetJSON('callbacks', []);
+        callbacks.push(callback);
+        storageSetJSON('callbacks', callbacks);
+    }
+}
+
+async function createReviewRecord(review) {
+    try {
+        const payload = await apiRequest('reviews', {
+            method: 'POST',
+            body: review
+        });
+        return payload.data;
+    } catch (error) {
+        if (!LOCAL_FALLBACK_ENABLED) {
+            throw error;
+        }
+        const localReviews = storageGetJSON('reviews', []);
+        localReviews.unshift(review);
+        storageSetJSON('reviews', localReviews);
+        return review;
+    }
+}
+
+async function loadPublicReviews() {
+    try {
+        const payload = await apiRequest('reviews');
+        reviewsCache = Array.isArray(payload.data) ? payload.data : [];
+    } catch (error) {
+        reviewsCache = storageGetJSON('reviews', []);
+    }
+    renderPublicReviews(reviewsCache);
+}
+
+function getInitials(name) {
+    const parts = String(name || 'Paciente')
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2);
+    if (parts.length === 0) return 'PA';
+    return parts.map(part => part[0].toUpperCase()).join('');
+}
+
+function getRelativeDateLabel(dateText) {
+    const date = new Date(dateText);
+    if (Number.isNaN(date.getTime())) {
+        return currentLang === 'es' ? 'Reciente' : 'Recent';
+    }
+    const now = new Date();
+    const days = Math.max(0, Math.floor((now - date) / (1000 * 60 * 60 * 24)));
+    if (currentLang === 'es') {
+        if (days <= 1) return 'Hoy';
+        if (days < 7) return `Hace ${days} d${days === 1 ? 'ia' : 'ias'}`;
+        if (days < 30) return `Hace ${Math.floor(days / 7)} semana(s)`;
+        return date.toLocaleDateString('es-EC');
+    }
+    if (days <= 1) return 'Today';
+    if (days < 7) return `${days} day(s) ago`;
+    if (days < 30) return `${Math.floor(days / 7)} week(s) ago`;
+    return date.toLocaleDateString('en-US');
+}
+
+function renderStars(rating) {
+    const value = Math.max(1, Math.min(5, Number(rating) || 0));
+    let html = '';
+    for (let i = 1; i <= 5; i += 1) {
+        html += `<i class="${i <= value ? 'fas' : 'far'} fa-star"></i>`;
+    }
+    return html;
+}
+
+function renderPublicReviews(reviews) {
+    const grid = document.querySelector('.reviews-grid');
+    if (!grid || !Array.isArray(reviews) || reviews.length === 0) return;
+
+    const topReviews = reviews.slice(0, 6);
+    grid.innerHTML = topReviews.map(review => `
+        <div class="review-card">
+            <div class="review-header">
+                <div class="review-avatar">${escapeHtml(getInitials(review.name))}</div>
+                <div class="review-meta">
+                    <h4>${escapeHtml(review.name || (currentLang === 'es' ? 'Paciente' : 'Patient'))}</h4>
+                    <div class="review-stars">${renderStars(review.rating)}</div>
+                </div>
+            </div>
+            <p class="review-text">"${escapeHtml(review.text || '')}"</p>
+            <span class="review-date">${getRelativeDateLabel(review.date)}</span>
+        </div>
+    `).join('');
+
+    const countLabel = document.querySelector('.rating-count');
+    if (countLabel) {
+        countLabel.textContent = currentLang === 'es'
+            ? `${reviews.length} reseñas verificadas`
+            : `${reviews.length} verified reviews`;
+    }
+}
 
 function changeLanguage(lang) {
     currentLang = lang;
@@ -410,6 +651,10 @@ function changeLanguage(lang) {
             }
         }
     });
+
+    if (reviewsCache.length > 0) {
+        renderPublicReviews(reviewsCache);
+    }
 }
 
 // ========================================
@@ -522,16 +767,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const totalEl = document.getElementById('totalPrice');
     const dateInput = document.querySelector('input[name="date"]');
     const timeSelect = document.querySelector('select[name="time"]');
-    
-    // Price calculation
+    const appointmentForm = document.getElementById('appointmentForm');
+
+    if (!serviceSelect || !priceSummary || !subtotalEl || !ivaEl || !totalEl || !appointmentForm) {
+        return;
+    }
+
     serviceSelect.addEventListener('change', function() {
         const selected = this.options[this.selectedIndex];
         const price = parseFloat(selected.dataset.price) || 0;
-        
+
         if (price > 0) {
             const iva = price * 0.12;
             const total = price + iva;
-            
             subtotalEl.textContent = `$${price.toFixed(2)}`;
             ivaEl.textContent = `$${iva.toFixed(2)}`;
             totalEl.textContent = `$${total.toFixed(2)}`;
@@ -539,67 +787,51 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             priceSummary.style.display = 'none';
         }
-        
-        // Update available times based on availability
-        updateAvailableTimes();
+
+        updateAvailableTimes().catch(() => undefined);
     });
-    
-    // Date change - update available times
+
     if (dateInput) {
         dateInput.min = new Date().toISOString().split('T')[0];
-        dateInput.addEventListener('change', updateAvailableTimes);
+        dateInput.addEventListener('change', () => updateAvailableTimes().catch(() => undefined));
     }
-    
-    // Update available times based on admin availability
-    function updateAvailableTimes() {
+
+    async function updateAvailableTimes() {
         const selectedDate = dateInput?.value;
         if (!selectedDate || !timeSelect) return;
-        
-        const availability = JSON.parse(localStorage.getItem('availability') || '{}');
-        const appointments = JSON.parse(localStorage.getItem('appointments') || '[]');
-        
-        // Get available slots for this date
-        const availableSlots = availability[selectedDate] || ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
-        
-        // Get booked slots
-        const bookedSlots = appointments
-            .filter(a => a.date === selectedDate && a.status !== 'cancelled')
-            .map(a => a.time);
-        
-        // Filter out booked slots
+
+        const availability = await loadAvailabilityData();
+        const bookedSlots = await getBookedSlots(selectedDate);
+        const availableSlots = availability[selectedDate] || DEFAULT_TIME_SLOTS;
         const freeSlots = availableSlots.filter(slot => !bookedSlots.includes(slot));
-        
-        // Update time select
+
         const currentValue = timeSelect.value;
         timeSelect.innerHTML = '<option value="">Hora</option>';
-        
+
         if (freeSlots.length === 0) {
             timeSelect.innerHTML += '<option value="" disabled>No hay horarios disponibles</option>';
             showToast('No hay horarios disponibles para esta fecha', 'warning');
-        } else {
-            freeSlots.forEach(time => {
-                const option = document.createElement('option');
-                option.value = time;
-                option.textContent = time;
-                if (time === currentValue) option.selected = true;
-                timeSelect.appendChild(option);
-            });
+            return;
         }
+
+        freeSlots.forEach(time => {
+            const option = document.createElement('option');
+            option.value = time;
+            option.textContent = time;
+            if (time === currentValue) option.selected = true;
+            timeSelect.appendChild(option);
+        });
     }
-    
-    // Appointment form submission
-    const appointmentForm = document.getElementById('appointmentForm');
-    if (appointmentForm) {
-        appointmentForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalContent = submitBtn.innerHTML;
-            
-            // Loading state
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
-            
+
+    appointmentForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalContent = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+
+        try {
             const formData = new FormData(this);
             const appointment = {
                 service: formData.get('service'),
@@ -611,41 +843,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 phone: formData.get('phone'),
                 price: totalEl.textContent
             };
-            
-            // Validate slot is still available
-            const appointments = JSON.parse(localStorage.getItem('appointments') || '[]');
-            const isSlotTaken = appointments.some(a => 
-                a.date === appointment.date && 
-                a.time === appointment.time && 
-                a.status !== 'cancelled'
-            );
-            
-            if (isSlotTaken) {
+
+            const bookedSlots = await getBookedSlots(appointment.date);
+            if (bookedSlots.includes(appointment.time)) {
                 showToast('Este horario ya fue reservado. Por favor selecciona otro.', 'error');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalContent;
-                updateAvailableTimes();
+                await updateAvailableTimes();
                 return;
             }
-            
-            localStorage.setItem('currentAppointment', JSON.stringify(appointment));
-            
-            // Restore button
+
+            currentAppointment = appointment;
+            openPaymentModal(appointment);
+        } catch (error) {
+            showToast(error?.message || 'No se pudo preparar la reserva. Intenta nuevamente.', 'error');
+        } finally {
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalContent;
-            
-            openPaymentModal();
-        });
-    }
+        }
+    });
+
+    loadAvailabilityData()
+        .then(() => updateAvailableTimes().catch(() => undefined))
+        .catch(() => undefined);
 });
 
 // ========================================
 // PAYMENT MODAL
 // ========================================
-function openPaymentModal() {
+function openPaymentModal(appointmentData) {
     const modal = document.getElementById('paymentModal');
-    const appointment = JSON.parse(localStorage.getItem('currentAppointment') || '{}');
-    
+    if (appointmentData) {
+        currentAppointment = appointmentData;
+    }
+    const appointment = currentAppointment || {};
+
     document.getElementById('paymentTotal').textContent = appointment.price || '$0.00';
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -655,6 +885,17 @@ function closePaymentModal() {
     const modal = document.getElementById('paymentModal');
     modal.classList.remove('active');
     document.body.style.overflow = '';
+}
+
+function getActivePaymentMethod() {
+    const activeMethod = document.querySelector('.payment-method.active');
+    return activeMethod?.dataset.method || 'cash';
+}
+
+function getPaymentStatusByMethod(method) {
+    if (method === 'card') return 'pending_gateway';
+    if (method === 'transfer') return 'pending_transfer';
+    return 'pending_cash';
 }
 
 // Payment method selection
@@ -674,46 +915,70 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-function processPayment() {
+async function processPayment() {
     const btn = document.querySelector('#paymentModal .btn-primary');
+    if (!btn) return;
+
     const originalContent = btn.innerHTML;
-    
-    // Loading state
+
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
-    
-    setTimeout(() => {
+
+    try {
+        if (!currentAppointment) {
+            showToast('Primero completa el formulario de cita.', 'warning');
+            return;
+        }
+
+        const paymentMethod = getActivePaymentMethod();
+        const payload = {
+            ...currentAppointment,
+            paymentMethod: paymentMethod,
+            paymentStatus: getPaymentStatusByMethod(paymentMethod),
+            status: 'confirmed'
+        };
+
+        const result = await createAppointmentRecord(payload);
+        currentAppointment = result.appointment;
+
         closePaymentModal();
-        showSuccessModal();
-        
-        // Restore button
+        showSuccessModal(result.emailSent === true);
+        showToast('Cita registrada correctamente.', 'success');
+
+        const form = document.getElementById('appointmentForm');
+        if (form) form.reset();
+
+        const summary = document.getElementById('priceSummary');
+        if (summary) summary.style.display = 'none';
+    } catch (error) {
+        const message = error?.message || 'No se pudo registrar la cita. Intenta nuevamente.';
+        showToast(message, 'error');
+    } finally {
         btn.disabled = false;
         btn.innerHTML = originalContent;
-        
-        // Save appointment to history
-        const appointment = JSON.parse(localStorage.getItem('currentAppointment') || '{}');
-        let history = JSON.parse(localStorage.getItem('appointments') || '[]');
-        appointment.id = Date.now();
-        appointment.status = 'confirmed';
-        appointment.dateBooked = new Date().toISOString();
-        history.push(appointment);
-        localStorage.setItem('appointments', JSON.stringify(history));
-        
-        showToast('Cita reservada correctamente', 'success');
-        
-        // Reset form
-        document.getElementById('appointmentForm').reset();
-        document.getElementById('priceSummary').style.display = 'none';
-    }, 1500);
+    }
 }
 
 // ========================================
 // SUCCESS MODAL
 // ========================================
-function showSuccessModal() {
+function showSuccessModal(emailSent = false) {
     const modal = document.getElementById('successModal');
-    const appointment = JSON.parse(localStorage.getItem('currentAppointment') || '{}');
+    const appointment = currentAppointment || {};
     const detailsDiv = document.getElementById('appointmentDetails');
+    const successDesc = modal.querySelector('[data-i18n="success_desc"]');
+
+    if (successDesc) {
+        if (emailSent) {
+            successDesc.textContent = currentLang === 'es'
+                ? 'Enviamos un correo de confirmacion con los detalles de tu cita.'
+                : 'A confirmation email with your appointment details was sent.';
+        } else {
+            successDesc.textContent = currentLang === 'es'
+                ? 'Tu cita fue registrada. Te contactaremos para confirmar detalles.'
+                : 'Your appointment was saved. We will contact you to confirm details.';
+        }
+    }
     
     // Generate Google Calendar link
     const startDate = new Date(`${appointment.date}T${appointment.time}`);
@@ -726,10 +991,11 @@ function showSuccessModal() {
     
     detailsDiv.innerHTML = `
         <div style="background: #f5f5f7; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: left;">
-            <p style="margin-bottom: 8px;"><strong>${currentLang === 'es' ? 'Doctor:' : 'Doctor:'}</strong> ${getDoctorName(appointment.doctor)}</p>
-            <p style="margin-bottom: 8px;"><strong>${currentLang === 'es' ? 'Fecha:' : 'Date:'}</strong> ${appointment.date}</p>
-            <p style="margin-bottom: 8px;"><strong>${currentLang === 'es' ? 'Hora:' : 'Time:'}</strong> ${appointment.time}</p>
-            <p><strong>${currentLang === 'es' ? 'Total:' : 'Total:'}</strong> ${appointment.price}</p>
+            <p style="margin-bottom: 8px;"><strong>${currentLang === 'es' ? 'Doctor:' : 'Doctor:'}</strong> ${escapeHtml(getDoctorName(appointment.doctor))}</p>
+            <p style="margin-bottom: 8px;"><strong>${currentLang === 'es' ? 'Fecha:' : 'Date:'}</strong> ${escapeHtml(appointment.date || '-')}</p>
+            <p style="margin-bottom: 8px;"><strong>${currentLang === 'es' ? 'Hora:' : 'Time:'}</strong> ${escapeHtml(appointment.time || '-')}</p>
+            <p style="margin-bottom: 8px;"><strong>${currentLang === 'es' ? 'Pago:' : 'Payment:'}</strong> ${escapeHtml(appointment.paymentStatus || 'pending')}</p>
+            <p><strong>${currentLang === 'es' ? 'Total:' : 'Total:'}</strong> ${escapeHtml(appointment.price || '$0.00')}</p>
         </div>
         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
             <a href="${googleCalendarUrl}" target="_blank" class="btn btn-secondary" style="flex: 1;">
@@ -747,7 +1013,7 @@ function showSuccessModal() {
 function getDoctorName(doctor) {
     const names = {
         rosero: 'Dr. Javier Rosero',
-        narvaez: 'Dra. Carolina Narváez',
+        narvaez: 'Dra. Carolina Narvaez',
         indiferente: 'Primera disponible'
     };
     return names[doctor] || doctor;
@@ -756,9 +1022,9 @@ function getDoctorName(doctor) {
 function generateGoogleCalendarUrl(appointment, startDate, endDate) {
     const formatDate = (date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     
-    const title = encodeURIComponent(`Cita - Piel en Armonía`);
+    const title = encodeURIComponent(`Cita - Piel en Armonia`);
     const details = encodeURIComponent(`Servicio: ${getServiceName(appointment.service)}\nDoctor: ${getDoctorName(appointment.doctor)}\nPrecio: ${appointment.price}`);
-    const location = encodeURIComponent('Valparaíso 13-183 y Sodiro, Quito, Ecuador');
+    const location = encodeURIComponent('Valparaiso 13-183 y Sodiro, Quito, Ecuador');
     
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${formatDate(startDate)}/${formatDate(endDate)}&details=${details}&location=${location}`;
 }
@@ -768,13 +1034,13 @@ function generateICS(appointment, startDate, endDate) {
     
     return `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//Piel en Armonía//Consulta//ES
+PRODID:-//Piel en Armonia//Consulta//ES
 BEGIN:VEVENT
 DTSTART:${formatICSDate(startDate)}
 DTEND:${formatICSDate(endDate)}
-SUMMARY:Cita - Piel en Armonía
+SUMMARY:Cita - Piel en Armonia
 DESCRIPTION:Servicio: ${getServiceName(appointment.service)}\\nDoctor: ${getDoctorName(appointment.doctor)}\\nPrecio: ${appointment.price}
-LOCATION:Valparaíso 13-183 y Sodiro, Quito, Ecuador
+LOCATION:Valparaiso 13-183 y Sodiro, Quito, Ecuador
 END:VEVENT
 END:VCALENDAR`;
 }
@@ -802,7 +1068,7 @@ function closeSuccessModal() {
 document.addEventListener('DOMContentLoaded', function() {
     const callbackForm = document.getElementById('callbackForm');
     if (callbackForm) {
-        callbackForm.addEventListener('submit', function(e) {
+        callbackForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const submitBtn = this.querySelector('button[type="submit"]');
@@ -814,29 +1080,33 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const formData = new FormData(this);
             const callback = {
+                id: Date.now(),
                 telefono: formData.get('telefono'),
                 preferencia: formData.get('preferencia'),
                 fecha: new Date().toISOString(),
                 status: 'pendiente'
             };
             
-            let callbacks = JSON.parse(localStorage.getItem('callbacks') || '[]');
-            callbacks.push(callback);
-            localStorage.setItem('callbacks', JSON.stringify(callbacks));
-            
-            // Show toast
-            showToast(
-                currentLang === 'es' 
-                    ? '¡Solicitud enviada! El doctor te llamará pronto.' 
-                    : 'Request sent! The doctor will call you soon.',
-                'success'
-            );
-            
-            // Restore button
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalContent;
-            
-            this.reset();
+            try {
+                await createCallbackRecord(callback);
+                showToast(
+                    currentLang === 'es'
+                        ? 'Solicitud enviada. Te llamaremos pronto.'
+                        : 'Request sent. We will call you soon.',
+                    'success'
+                );
+                this.reset();
+            } catch (error) {
+                showToast(
+                    currentLang === 'es'
+                        ? 'No se pudo enviar tu solicitud. Intenta de nuevo.'
+                        : 'We could not send your request. Try again.',
+                    'error'
+                );
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalContent;
+            }
         });
     }
 });
@@ -868,7 +1138,7 @@ document.addEventListener('click', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
     const stars = document.querySelectorAll('.star-rating i');
     let selectedRating = 0;
-    
+
     stars.forEach((star, index) => {
         star.addEventListener('click', () => {
             selectedRating = index + 1;
@@ -879,38 +1149,38 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
-    
-    // Review form
+
     const reviewForm = document.getElementById('reviewForm');
-    if (reviewForm) {
-        reviewForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            if (selectedRating === 0) {
-                alert(currentLang === 'es' ? 'Por favor selecciona una calificación' : 'Please select a rating');
-                return;
-            }
-            
-            const formData = new FormData(this);
-            const review = {
-                name: formData.get('reviewerName'),
-                rating: selectedRating,
-                text: formData.get('reviewText'),
-                date: new Date().toISOString(),
-                verified: true
-            };
-            
-            let reviews = JSON.parse(localStorage.getItem('reviews') || '[]');
-            reviews.unshift(review);
-            localStorage.setItem('reviews', JSON.stringify(reviews));
-            
+    if (!reviewForm) return;
+
+    reviewForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        if (selectedRating === 0) {
+            alert(currentLang === 'es' ? 'Por favor selecciona una calificacion' : 'Please select a rating');
+            return;
+        }
+
+        const formData = new FormData(this);
+        const review = {
+            id: Date.now(),
+            name: formData.get('reviewerName'),
+            rating: selectedRating,
+            text: formData.get('reviewText'),
+            date: new Date().toISOString(),
+            verified: true
+        };
+
+        try {
+            const savedReview = await createReviewRecord(review);
+            reviewsCache = [savedReview, ...reviewsCache.filter(item => item.id !== savedReview.id)];
+            renderPublicReviews(reviewsCache);
+
             showToast(
-                currentLang === 'es' 
-                    ? '¡Gracias por tu reseña!' 
-                    : 'Thank you for your review!',
+                currentLang === 'es' ? 'Gracias por tu rese?a.' : 'Thank you for your review.',
                 'success'
             );
-            
+
             closeReviewModal();
             this.reset();
             selectedRating = 0;
@@ -918,11 +1188,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 s.classList.remove('active', 'fas');
                 s.classList.add('far');
             });
-        });
-    }
+        } catch (error) {
+            showToast(
+                currentLang === 'es'
+                    ? 'No pudimos guardar tu rese?a. Intenta nuevamente.'
+                    : 'We could not save your review. Try again.',
+                'error'
+            );
+        }
+    });
 });
 
-// ========================================
 // MODAL CLOSE HANDLERS
 // ========================================
 document.addEventListener('DOMContentLoaded', function() {
@@ -1019,8 +1295,7 @@ let conversationContext = [];
 
 // CONFIGURACIÓN KIMI API
 const KIMI_CONFIG = {
-    apiKey: 'sk-kimi-lMIpVZxWGocfNOqaKO68Ws54Gi2lBuiFHkyBRA7VlCDWVeW0PWUAup1fUucHjHLZ',
-    apiUrl: '/figo-chat.php',
+    apiUrl: '/proxy.php',
     model: 'moonshot-v1-8k',
     maxTokens: 1000,
     temperature: 0.7
@@ -1029,27 +1304,15 @@ const KIMI_CONFIG = {
 // Funcion simple para detectar si usar IA real
 function shouldUseRealAI() {
     if (localStorage.getItem('forceAI') === 'true') {
-        console.log('Modo IA forzado');
         return true;
     }
     
     var protocol = window.location.protocol;
-    var hostname = window.location.hostname;
-    
-    console.log('Protocolo: ' + protocol);
-    console.log('Hostname: ' + hostname);
     
     if (protocol === 'file:') {
-        console.log('Modo archivo - Sin IA');
         return false;
     }
-    
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        console.log('Localhost - Sin IA');
-        return false;
-    }
-    
-    console.log('Servidor real - Con IA');
+
     return true;
 }
 
@@ -1109,7 +1372,7 @@ function toggleChatbot() {
             // Verificar si estamos usando IA real
             const usandoIA = shouldUseRealAI();
             
-            console.log('🤖 Estado del chatbot:', usandoIA ? 'IA REAL' : 'Respuestas locales');
+            debugLog('🤖 Estado del chatbot:', usandoIA ? 'IA REAL' : 'Respuestas locales');
             
             var welcomeMsg;
             
@@ -1175,14 +1438,7 @@ async function sendChatMessage() {
     
     addUserMessage(message);
     input.value = '';
-    
-    // Verificar si hay API key configurada
-    if (!KIMI_CONFIG.apiKey || KIMI_CONFIG.apiKey === '') {
-        showApiKeyModal();
-        return;
-    }
-    
-    // Procesar con Kimi AI
+
     await processWithKimi(message);
 }
 
@@ -1200,12 +1456,7 @@ function sendQuickMessage(type) {
     
     const message = messages[type] || type;
     addUserMessage(message);
-    
-    if (!KIMI_CONFIG.apiKey || KIMI_CONFIG.apiKey === '') {
-        showApiKeyModal();
-        return;
-    }
-    
+
     processWithKimi(message);
 }
 
@@ -1239,7 +1490,7 @@ function addBotMessage(html, showOfflineLabel = false) {
     if (lastMessage) {
         const lastContent = lastMessage.querySelector('.message-content');
         if (lastContent && lastContent.innerHTML === html) {
-            console.log('⚠️ Mensaje duplicado detectado, no se muestra');
+            debugLog('⚠️ Mensaje duplicado detectado, no se muestra');
             return;
         }
     }
@@ -1302,7 +1553,7 @@ function escapeHtml(text) {
 let isProcessingMessage = false; // Evitar duplicados
 async function processWithKimi(message) {
     if (isProcessingMessage) {
-        console.log('⏳ Ya procesando, ignorando duplicado');
+        debugLog('⏳ Ya procesando, ignorando duplicado');
         return;
     }
     isProcessingMessage = true;
@@ -1311,14 +1562,14 @@ async function processWithKimi(message) {
     
     // Siempre usar modo offline primero (más rápido y confiable)
     // El modo offline ahora tiene respuestas muy completas
-    console.log('📝 Procesando mensaje:', message);
+    debugLog('📝 Procesando mensaje:', message);
     
     try {
         if (shouldUseRealAI()) {
-            console.log('🤖 Intentando usar IA real...');
+            debugLog('🤖 Intentando usar IA real...');
             await tryRealAI(message);
         } else {
-            console.log('💬 Usando respuestas locales (modo offline)');
+            debugLog('💬 Usando respuestas locales (modo offline)');
             setTimeout(() => {
                 removeTypingIndicator();
                 processLocalResponse(message, false);
@@ -1352,15 +1603,14 @@ async function tryRealAI(message) {
         ];
         
         const payload = {
-            api_key: KIMI_CONFIG.apiKey,
             model: KIMI_CONFIG.model,
             messages: messages,
             max_tokens: KIMI_CONFIG.maxTokens,
             temperature: KIMI_CONFIG.temperature
         };
         
-        console.log('🚀 Enviando a:', KIMI_CONFIG.apiUrl);
-        console.log('📊 Contexto actual:', conversationContext.length, 'mensajes');
+        debugLog('🚀 Enviando a:', KIMI_CONFIG.apiUrl);
+        debugLog('📊 Contexto actual:', conversationContext.length, 'mensajes');
         
         const response = await fetch(KIMI_CONFIG.apiUrl + '?t=' + Date.now(), {
             method: 'POST',
@@ -1372,14 +1622,14 @@ async function tryRealAI(message) {
             body: JSON.stringify(payload)
         });
         
-        console.log('📡 Status:', response.status);
+        debugLog('📡 Status:', response.status);
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
         
         const responseText = await response.text();
-        console.log('📄 Respuesta cruda:', responseText.substring(0, 500));
+        debugLog('📄 Respuesta cruda:', responseText.substring(0, 500));
         
         let data;
         try {
@@ -1395,7 +1645,7 @@ async function tryRealAI(message) {
         }
         
         const botResponse = data.choices[0].message.content;
-        console.log('✅ Respuesta recibida:', botResponse.substring(0, 100) + '...');
+        debugLog('✅ Respuesta recibida:', botResponse.substring(0, 100) + '...');
         
         // Evitar duplicados: verificar si el último mensaje ya es del asistente con el mismo contenido
         const lastMsg = conversationContext[conversationContext.length - 1];
@@ -1405,18 +1655,20 @@ async function tryRealAI(message) {
         
         removeTypingIndicator();
         addBotMessage(formatMarkdown(botResponse), false);
-        console.log('💬 Mensaje mostrado en chat');
+        debugLog('💬 Mensaje mostrado en chat');
         
     } catch (error) {
         console.error('❌ Error con Kimi API:', error);
         removeTypingIndicator();
         
         // Mostrar error específico
-        if (error.message.includes('Failed to fetch')) {
+        if (error.message.includes('HTTP 503')) {
+            showProxySetupHelp();
+        } else if (error.message.includes('Failed to fetch')) {
             addBotMessage(`<div style="color: #ff3b30;">
                 <strong>Error de conexión:</strong><br>
                 No se pudo conectar con el servidor.<br>
-                Verifica que <code>figo-chat.php</code> exista.
+                Verifica que <code>proxy.php</code> exista.
             </div>`, true);
         } else {
             processLocalResponse(message, false);
@@ -1626,156 +1878,93 @@ function formatMarkdown(text) {
 }
 
 // ========================================
-// CONFIGURACIÓN DE API KEY
+// UTILIDADES DEL CHATBOT
 // ========================================
-function showApiKeyModal() {
+function showProxySetupHelp() {
     const html = `
         <div class="chat-suggestions" style="margin-top: 12px;">
             <p style="color: #ff9500; margin-bottom: 12px;">
                 <i class="fas fa-exclamation-triangle"></i>
-                Para usar el chatbot inteligente, necesitas configurar tu API key de Moonshot AI.
+                El asistente IA no esta configurado en el servidor.
             </p>
-            <button class="chat-suggestion-btn" onclick="showApiKeyInput()">
-                <i class="fas fa-key"></i> Configurar API Key
-            </button>
-            <button class="chat-suggestion-btn" onclick="window.open('https://platform.moonshot.cn/','_blank')">
-                <i class="fas fa-external-link-alt"></i> Obtener API Key
-            </button>
             <button class="chat-suggestion-btn" onclick="window.open('https://wa.me/593982453672','_blank')">
                 <i class="fab fa-whatsapp"></i> Hablar por WhatsApp
             </button>
         </div>
     `;
-    addBotMessage(html);
+    addBotMessage(html, true);
 }
 
-function showApiKeyInput() {
-    const apiKey = prompt('Ingresa tu API Key de Moonshot AI (Kimi):\n\nObtén tu API key en: https://platform.moonshot.cn/');
-    
-    if (apiKey && apiKey.trim()) {
-        localStorage.setItem('kimiApiKey', apiKey.trim());
-        KIMI_CONFIG.apiKey = apiKey.trim();
-        showToast('API Key configurada correctamente', 'success');
-        addBotMessage('¡Perfecto! API Key configurada. ¿En qué puedo ayudarte?');
-    }
-}
-
-// Función para limpiar contexto cada cierto tiempo
 function resetConversation() {
     conversationContext = [];
     localStorage.removeItem('chatHistory');
     chatHistory = [];
-    showToast('Conversación reiniciada', 'info');
+    showToast('Conversacion reiniciada', 'info');
 }
 
-// Mostrar notificación después de 30 segundos en la página
 setTimeout(() => {
-    if (!chatbotOpen && chatHistory.length === 0) {
-        document.getElementById('chatNotification').style.display = 'flex';
+    const notification = document.getElementById('chatNotification');
+    if (notification && !chatbotOpen && chatHistory.length === 0) {
+        notification.style.display = 'flex';
     }
 }, 30000);
 
-// ========================================
-// DETECTAR SI SE EJECUTA DESDE FILE://
-// ========================================
 function checkServerEnvironment() {
     if (window.location.protocol === 'file:') {
-        console.warn('⚠️ Ejecutando desde archivo local (file://)');
-        console.warn('El chatbot con Kimi AI requiere un servidor web.');
-        console.warn('Ver SERVIDOR-LOCAL.md para instrucciones.');
-        
-        // Mostrar mensaje en la consola del navegador
         setTimeout(() => {
-            showToast('Para usar el chatbot con IA, necesitas un servidor web. Ver SERVIDOR-LOCAL.md', 'warning', 'Servidor requerido');
+            showToast('Para usar funciones online, abre el sitio en un servidor local. Ver SERVIDOR-LOCAL.md', 'warning', 'Servidor requerido');
         }, 2000);
-        
         return false;
     }
     return true;
 }
 
-// ========================================
-// FORZAR MODO IA (para debugging)
-// ========================================
 function forzarModoIA() {
-    KIMI_CONFIG._useRealAI = true;
-    console.log('🤖 Modo IA forzado manualmente');
+    localStorage.setItem('forceAI', 'true');
     showToast('Modo IA activado manualmente', 'success');
-    
-    // Recargar mensaje de bienvenida
+
     if (chatHistory.length > 0) {
-        addBotMessage('<strong>✅ Modo IA activado</strong><br>Ahora estoy usando inteligencia artificial real. ¿En qué puedo ayudarte?');
+        addBotMessage('<strong>Modo IA activado</strong><br>Intentare usar inteligencia artificial real en los proximos mensajes.');
     }
 }
 
-// ========================================
-// MOSTRAR INFO DE DEBUG
-// ========================================
 function mostrarInfoDebug() {
-    var usaIA = shouldUseRealAI();
-    var protocolo = window.location.protocol;
-    var hostname = window.location.hostname;
-    var forzado = localStorage.getItem('forceAI') === 'true';
-    
-    var msg = '<strong>Informacion del sistema:</strong><br><br>';
+    const usaIA = shouldUseRealAI();
+    const protocolo = window.location.protocol;
+    const hostname = window.location.hostname;
+    const forzado = localStorage.getItem('forceAI') === 'true';
+
+    let msg = '<strong>Informacion del sistema:</strong><br><br>';
     msg += 'Protocolo: ' + protocolo + '<br>';
     msg += 'Hostname: ' + hostname + '<br>';
     msg += 'Usa IA: ' + (usaIA ? 'SI' : 'NO') + '<br>';
     msg += 'Forzado: ' + (forzado ? 'SI' : 'NO') + '<br><br>';
-    
-    if (!usaIA) {
-        msg += 'Para activar IA, escribe: forzar ia';
-    } else {
-        msg += 'IA activada correctamente';
-    }
-    
+    msg += 'Proxy: ' + KIMI_CONFIG.apiUrl;
+
     addBotMessage(msg);
 }
 
-// ========================================
-// VERIFICAR PROXY (TEST)
-// ========================================
 async function testProxyConnection() {
     try {
-        console.log('🧪 Probando conexión con proxy...');
         const response = await fetch(KIMI_CONFIG.apiUrl, {
             method: 'GET',
-            headers: {
-                'Accept': 'application/json'
-            }
+            headers: { 'Accept': 'application/json' }
         });
-        
-        if (response.ok) {
-            const data = await response.json();
-            console.log('✅ Proxy funcionando:', data);
-            return true;
-        } else {
-            console.error('❌ Proxy respondió con error:', response.status);
-            return false;
-        }
+        return response.ok;
     } catch (error) {
-        console.error('❌ No se pudo conectar con proxy:', error);
         return false;
     }
 }
 
-// ========================================
-// INITIALIZE
-// ========================================
 document.addEventListener('DOMContentLoaded', function() {
-    // Set initial language
     changeLanguage(currentLang);
-    
-    // Verificar entorno
     const isServer = checkServerEnvironment();
-    
-    console.log('🩺 Piel en Armonía - Loaded');
-    console.log('📞 Phone: +593 98 245 3672');
-    console.log('💬 WhatsApp: wa.me/593982453672');
-    console.log('🤖 Chatbot: Ready');
-    
+
+    loadAvailabilityData().catch(() => undefined);
+    loadPublicReviews().catch(() => undefined);
+
     if (!isServer) {
-        console.log('⚠️ Chatbot en modo offline (funciona con respuestas locales)');
+        console.warn('Chatbot en modo offline: abre el sitio desde servidor para usar IA real.');
     }
 });
 

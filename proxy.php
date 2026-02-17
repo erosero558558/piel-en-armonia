@@ -1,136 +1,132 @@
 <?php
+declare(strict_types=1);
+
 /**
- * PROXY PARA KIMI API (Moonshot AI)
- * 
- * Este archivo actúa como intermediario entre el frontend y la API de Kimi,
- * solucionando problemas de CORS.
- * 
- * Coloca este archivo en tu servidor web (requiere PHP 7.4+)
+ * Proxy for Moonshot/Kimi API.
+ * Expected environment variable:
+ * - KIMI_API_KEY
  */
 
-// Configuración de errores (deshabilitado en producción)
 error_reporting(0);
-ini_set('display_errors', 0);
+ini_set('display_errors', '0');
 
-// Configuración de CORS - Permitir solo desde pielarmonia.com
-$allowed_origins = [
+$allowedOrigins = [
     'https://pielarmonia.com',
     'https://www.pielarmonia.com',
     'http://pielarmonia.com',
-    'http://localhost', // Para desarrollo local
+    'http://localhost',
     'http://127.0.0.1'
 ];
 
-$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+$origin = isset($_SERVER['HTTP_ORIGIN']) ? (string) $_SERVER['HTTP_ORIGIN'] : '';
+$allowedOrigin = 'https://pielarmonia.com';
 
-if (in_array($origin, $allowed_origins)) {
-    header('Access-Control-Allow-Origin: ' . $origin);
-} else {
-    header('Access-Control-Allow-Origin: https://pielarmonia.com');
+foreach ($allowedOrigins as $candidate) {
+    if (stripos($origin, $candidate) === 0) {
+        $allowedOrigin = $origin;
+        break;
+    }
 }
+
+header('Access-Control-Allow-Origin: ' . $allowedOrigin);
 header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json; charset=utf-8');
 
-// Manejar peticiones OPTIONS (preflight CORS)
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
+    http_response_code(204);
     exit();
 }
 
-// Endpoint de test
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+$apiKey = getenv('KIMI_API_KEY');
+if (!is_string($apiKey) || trim($apiKey) === '') {
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'KIMI_API_KEY no configurada',
+            'php_version' => phpversion(),
+            'curl_enabled' => function_exists('curl_init'),
+            'timestamp' => gmdate('c')
+        ], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+
+    http_response_code(503);
+    echo json_encode([
+        'error' => 'Servicio no configurado',
+        'details' => 'Define KIMI_API_KEY en el servidor'
+    ], JSON_UNESCAPED_UNICODE);
+    exit();
+}
+
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
     echo json_encode([
         'status' => 'ok',
         'message' => 'Proxy funcionando correctamente',
         'php_version' => phpversion(),
         'curl_enabled' => function_exists('curl_init'),
-        'timestamp' => date('Y-m-d H:i:s')
-    ]);
+        'timestamp' => gmdate('c')
+    ], JSON_UNESCAPED_UNICODE);
     exit();
 }
 
-// Solo aceptar POST para la API
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
     http_response_code(405);
-    echo json_encode(['error' => 'Método no permitido. Usa POST para la API o GET para test.']);
+    echo json_encode(['error' => 'Metodo no permitido'], JSON_UNESCAPED_UNICODE);
     exit();
 }
 
-// Leer el cuerpo de la petición
-$input = file_get_contents('php://input');
-$data = json_decode($input, true);
-
-// Validar datos recibidos
-if (!$data || !isset($data['messages']) || !is_array($data['messages'])) {
+$raw = file_get_contents('php://input');
+$data = json_decode($raw ?? '', true);
+if (!is_array($data) || !isset($data['messages']) || !is_array($data['messages'])) {
     http_response_code(400);
-    echo json_encode(['error' => 'Datos inválidos. Se requiere "messages".']);
+    echo json_encode(['error' => 'Datos invalidos. Se requiere "messages".'], JSON_UNESCAPED_UNICODE);
     exit();
 }
-
-// API Key de Kimi - Hardcodeada (más seguro)
-$apiKey = 'sk-kimi-lMIpVZxWGocfNOqaKO68Ws54Gi2lBuiFHkyBRA7VlCDWVeW0PWUAup1fUucHjHLZ';
-
-// Si quieres usar la key del frontend (menos seguro), descomenta:
-// $apiKey = isset($data['api_key']) ? trim($data['api_key']) : $apiKey;
-
-// Configuración de la petición a Kimi
-$kimiUrl = 'https://api.moonshot.cn/v1/chat/completions';
 
 $payload = [
-    'model' => isset($data['model']) ? $data['model'] : 'moonshot-v1-8k',
+    'model' => isset($data['model']) ? (string) $data['model'] : 'moonshot-v1-8k',
     'messages' => $data['messages'],
-    'max_tokens' => isset($data['max_tokens']) ? intval($data['max_tokens']) : 1000,
-    'temperature' => isset($data['temperature']) ? floatval($data['temperature']) : 0.7
+    'max_tokens' => isset($data['max_tokens']) ? (int) $data['max_tokens'] : 1000,
+    'temperature' => isset($data['temperature']) ? (float) $data['temperature'] : 0.7
 ];
 
-// Inicializar cURL
-$ch = curl_init($kimiUrl);
-
-$headers = [
-    'Content-Type: application/json',
-    'Authorization: Bearer ' . $apiKey
-];
-
-
-
+$ch = curl_init('https://api.moonshot.cn/v1/chat/completions');
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_POST => true,
-    CURLOPT_POSTFIELDS => json_encode($payload),
-    CURLOPT_HTTPHEADER => $headers,
+    CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE),
+    CURLOPT_HTTPHEADER => [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . trim($apiKey)
+    ],
     CURLOPT_TIMEOUT => 30,
     CURLOPT_SSL_VERIFYPEER => true,
-    CURLOPT_FOLLOWLOCATION => true
+    CURLOPT_FOLLOWLOCATION => false
 ]);
 
-// Ejecutar petición
 $response = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $error = curl_error($ch);
-
 curl_close($ch);
 
-// Separar headers del body (porque CURLOPT_HEADER está activo)
-$headerSize = strpos($response, "\r\n\r\n");
-if ($headerSize !== false) {
-    $body = substr($response, $headerSize + 4);
-} else {
-    $body = $response;
-}
-
-
-
-// Manejar errores de cURL
-if ($error) {
-    http_response_code(500);
+if ($error !== '') {
+    http_response_code(502);
     echo json_encode([
-        'error' => 'Error de conexión con Kimi API',
+        'error' => 'Error de conexion con Kimi API',
         'details' => $error
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
     exit();
 }
 
-// Devolver respuesta de Kimi al cliente
-http_response_code($httpCode);
-echo $body;
+if ($response === false || $response === '') {
+    http_response_code(502);
+    echo json_encode([
+        'error' => 'Respuesta vacia desde Kimi API'
+    ], JSON_UNESCAPED_UNICODE);
+    exit();
+}
+
+http_response_code($httpCode > 0 ? $httpCode : 200);
+echo $response;
+
