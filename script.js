@@ -1020,7 +1020,7 @@ let conversationContext = [];
 // CONFIGURACIÓN KIMI API
 const KIMI_CONFIG = {
     apiKey: 'sk-kimi-lMIpVZxWGocfNOqaKO68Ws54Gi2lBuiFHkyBRA7VlCDWVeW0PWUAup1fUucHjHLZ',
-    apiUrl: 'proxy.php',
+    apiUrl: '/figo-chat.php',
     model: 'moonshot-v1-8k',
     maxTokens: 1000,
     temperature: 0.7
@@ -1419,7 +1419,7 @@ async function tryRealAI(message) {
                 <strong>Error de conexión:</strong><br>
                 No se pudo conectar con el servidor proxy.<br><br>
                 Verifica que:<br>
-                1. El archivo <code>proxy.php</code> existe en la carpeta<br>
+                1. El archivo <code>figo-chat.php</code> existe en la carpeta<br>
                 2. Tu servidor tiene PHP habilitado<br>
                 3. La URL sea correcta: ${KIMI_CONFIG.apiUrl}
             </div>`, true);
