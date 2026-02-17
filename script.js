@@ -1287,16 +1287,16 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 });
 
 // ========================================
-// CHATBOT CON KIMI AI (MOONSHOT AI)
+// CHATBOT CON FIGO
 // ========================================
 let chatbotOpen = false;
 let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
 let conversationContext = [];
 
-// CONFIGURACIÓN KIMI API
+// CONFIGURACIÓN DE CHAT
 const KIMI_CONFIG = {
-    apiUrl: '/proxy.php',
-    model: 'moonshot-v1-8k',
+    apiUrl: '/figo-chat.php',
+    model: 'figo-assistant',
     maxTokens: 1000,
     temperature: 0.7
 };
@@ -1316,7 +1316,7 @@ function shouldUseRealAI() {
     return true;
 }
 
-// Contexto del sistema para Kimi
+// Contexto del sistema para el asistente
 const SYSTEM_PROMPT = `Eres el Dr. Virtual, asistente inteligente de la clínica dermatológica "Piel en Armonía" en Quito, Ecuador.
 
 INFORMACIÓN DE LA CLÍNICA:
@@ -1548,7 +1548,7 @@ function escapeHtml(text) {
 }
 
 // ========================================
-// INTEGRACIÓN CON KIMI API
+// INTEGRACIÓN CON BOT DEL SERVIDOR
 // ========================================
 let isProcessingMessage = false; // Evitar duplicados
 async function processWithKimi(message) {
@@ -1566,7 +1566,7 @@ async function processWithKimi(message) {
     
     try {
         if (shouldUseRealAI()) {
-            debugLog('🤖 Intentando usar IA real...');
+            debugLog('🤖 Consultando bot del servidor...');
             await tryRealAI(message);
         } else {
             debugLog('💬 Usando respuestas locales (modo offline)');
@@ -1658,17 +1658,17 @@ async function tryRealAI(message) {
         debugLog('💬 Mensaje mostrado en chat');
         
     } catch (error) {
-        console.error('❌ Error con Kimi API:', error);
+        console.error('❌ Error con bot del servidor:', error);
         removeTypingIndicator();
         
         // Mostrar error específico
         if (error.message.includes('HTTP 503')) {
-            showProxySetupHelp();
+            showBotServerHelp();
         } else if (error.message.includes('Failed to fetch')) {
             addBotMessage(`<div style="color: #ff3b30;">
                 <strong>Error de conexión:</strong><br>
                 No se pudo conectar con el servidor.<br>
-                Verifica que <code>proxy.php</code> exista.
+                Verifica que <code>figo-chat.php</code> exista.
             </div>`, true);
         } else {
             processLocalResponse(message, false);
@@ -1880,13 +1880,14 @@ function formatMarkdown(text) {
 // ========================================
 // UTILIDADES DEL CHATBOT
 // ========================================
-function showProxySetupHelp() {
+function showBotServerHelp() {
     const html = `
         <div class="chat-suggestions" style="margin-top: 12px;">
             <p style="color: #ff9500; margin-bottom: 12px;">
                 <i class="fas fa-exclamation-triangle"></i>
-                El asistente IA no esta configurado en el servidor.
+                El bot Figo no esta disponible en este momento.
             </p>
+            <p style="margin-bottom: 12px;">Verifica que <code>figo-chat.php</code> esté activo en el servidor.</p>
             <button class="chat-suggestion-btn" onclick="window.open('https://wa.me/593982453672','_blank')">
                 <i class="fab fa-whatsapp"></i> Hablar por WhatsApp
             </button>
@@ -1939,7 +1940,7 @@ function mostrarInfoDebug() {
     msg += 'Hostname: ' + hostname + '<br>';
     msg += 'Usa IA: ' + (usaIA ? 'SI' : 'NO') + '<br>';
     msg += 'Forzado: ' + (forzado ? 'SI' : 'NO') + '<br><br>';
-    msg += 'Proxy: ' + KIMI_CONFIG.apiUrl;
+    msg += 'Endpoint: ' + KIMI_CONFIG.apiUrl;
 
     addBotMessage(msg);
 }

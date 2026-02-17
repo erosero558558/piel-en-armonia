@@ -11,16 +11,18 @@ Sube estos archivos a la raiz del hosting (`public_html` o equivalente):
 - `admin.html`
 - `admin.css`
 - `admin.js`
-- `proxy.php`
 - `api.php`
-- `admin-auth.php`
 - `api-lib.php`
+- `admin-auth.php`
 - carpeta `data/` (con permisos de escritura)
+
+Notas:
+- El frontend ahora consume `figo-chat.php` para el chatbot IA.
+- Si ya existe `figo-chat.php` en tu servidor, mantenlo publicado.
 
 ## Requisitos de servidor
 
 - PHP 7.4 o superior
-- `curl` habilitado (para `proxy.php`)
 - Sesiones PHP habilitadas (para `admin-auth.php`)
 - Permisos de escritura para la carpeta `data/`
 
@@ -28,7 +30,6 @@ Sube estos archivos a la raiz del hosting (`public_html` o equivalente):
 
 Configura estas variables en tu hosting:
 
-- `KIMI_API_KEY` (obligatoria para IA real en el chatbot)
 - `PIELARMONIA_ADMIN_PASSWORD` (obligatoria para login admin)
 - `PIELARMONIA_ADMIN_PASSWORD_HASH` (opcional, tiene prioridad)
 - `PIELARMONIA_EMAIL_FROM` (opcional, para correos de confirmacion)
@@ -38,11 +39,11 @@ Configura estas variables en tu hosting:
 1. Salud API:
 - `https://pielarmonia.com/api.php?resource=health`
 
-2. Proxy:
-- `https://pielarmonia.com/proxy.php`
-
-3. Admin auth status:
+2. Admin auth status:
 - `https://pielarmonia.com/admin-auth.php?action=status`
+
+3. Bot Figo:
+- `https://pielarmonia.com/figo-chat.php`
 
 4. Sitio:
 - `https://pielarmonia.com/index.html`
@@ -52,8 +53,8 @@ Configura estas variables en tu hosting:
 
 ## Notas importantes
 
-- El chatbot ahora usa `proxy.php` (ya no `figo-chat.php`).
+- El chatbot del sitio usa `figo-chat.php`.
 - Los datos de citas, callbacks, reseñas y disponibilidad se guardan en backend (`data/store.json`).
-- Si no configuras `KIMI_API_KEY`, el chatbot sigue funcionando con respuestas offline.
+- Si `figo-chat.php` falla, el chatbot mantiene fallback local para no romper UX.
 - Para entorno local, revisa `SERVIDOR-LOCAL.md`.
 

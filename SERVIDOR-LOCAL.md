@@ -1,11 +1,11 @@
 # Servidor Local
 
-Para probar la web con backend (API + admin + proxy) no uses `file://`.
+Para probar la web con backend (API + admin) no uses `file://`.
 
 ## Requisitos
 
 - PHP 7.4 o superior
-- Extensión `curl` habilitada
+- endpoint local de chatbot en `figo-chat.php` (si quieres IA real en local)
 
 ## Iniciar en local
 
@@ -20,19 +20,17 @@ Luego abre:
 - Sitio: `http://localhost:8000/index.html`
 - Admin: `http://localhost:8000/admin.html`
 - API health: `http://localhost:8000/api.php?resource=health`
-- Proxy test: `http://localhost:8000/proxy.php`
+- Bot endpoint: `http://localhost:8000/figo-chat.php`
 
 ## Variables de entorno recomendadas
 
-- `KIMI_API_KEY`: API key de Moonshot/Kimi para chatbot IA.
 - `PIELARMONIA_ADMIN_PASSWORD`: contraseña del panel admin.
-- `PIELARMONIA_ADMIN_PASSWORD_HASH`: hash de contraseña (opcional, tiene prioridad sobre la contraseña en texto).
-- `PIELARMONIA_EMAIL_FROM`: remitente para correos de confirmación.
+- `PIELARMONIA_ADMIN_PASSWORD_HASH`: hash de contraseña (opcional, prioridad sobre la contraseña en texto).
+- `PIELARMONIA_EMAIL_FROM`: remitente para correos de confirmacion.
 
 ## Ejemplo en PowerShell (sesión actual)
 
 ```powershell
-$env:KIMI_API_KEY = "sk-..."
 $env:PIELARMONIA_ADMIN_PASSWORD = "tu-clave-segura"
 php -S localhost:8000
 ```
