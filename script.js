@@ -1778,3 +1778,78 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('⚠️ Chatbot en modo offline (funciona con respuestas locales)');
     }
 });
+
+// ========================================
+// ANIMACIONES APPLE - SCROLL
+// ========================================
+
+// Animación de elementos al hacer scroll
+function initScrollAnimations() {
+    const observerOptions = {
+        root: null,
+        rootMargin: '0px 0px -100px 0px',
+        threshold: 0.1
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
+    
+    // Observar elementos
+    document.querySelectorAll('.service-card, .team-card, .section-header, .telemedicine-card, .review-card').forEach(el => {
+        el.classList.add('animate-on-scroll');
+        observer.observe(el);
+    });
+}
+
+// Efecto parallax suave en el hero
+function initParallax() {
+    const heroImage = document.querySelector('.hero-image-container');
+    if (!heroImage) return;
+    
+    let ticking = false;
+    
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            window.requestAnimationFrame(() => {
+                const scrolled = window.pageYOffset;
+                const rate = scrolled * 0.3;
+                heroImage.style.transform = `translateY(calc(-50% + ${rate}px))`;
+                ticking = false;
+            });
+            ticking = true;
+        }
+    }, { passive: true });
+}
+
+// Navbar efecto al hacer scroll
+function initNavbarScroll() {
+    const nav = document.querySelector('.nav');
+    if (!nav) return;
+    
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 50) {
+            nav.classList.add('scrolled');
+        } else {
+            nav.classList.remove('scrolled');
+        }
+    }, { passive: true });
+}
+
+// Inicializar animaciones cuando el DOM esté listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        initScrollAnimations();
+        initParallax();
+        initNavbarScroll();
+    });
+} else {
+    initScrollAnimations();
+    initParallax();
+    initNavbarScroll();
+}
