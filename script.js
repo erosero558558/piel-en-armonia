@@ -1224,8 +1224,11 @@ function addUserMessage(text) {
     chatHistory.push({ type: 'user', text, time: new Date().toISOString() });
     localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
     
-    // Agregar al contexto de conversación
-    conversationContext.push({ role: 'user', content: text });
+    // Agregar al contexto de conversación (evitar duplicados)
+    const lastMsg = conversationContext[conversationContext.length - 1];
+    if (!lastMsg || lastMsg.role !== 'user' || lastMsg.content !== text) {
+        conversationContext.push({ role: 'user', content: text });
+    }
 }
 
 function addBotMessage(html, showOfflineLabel = false) {
@@ -1322,6 +1325,7 @@ async function tryRealAI(message) {
         };
         
         console.log('🚀 Enviando a:', KIMI_CONFIG.apiUrl);
+        console.log('📊 Contexto actual:', conversationContext.length, 'mensajes');
         
         const response = await fetch(KIMI_CONFIG.apiUrl + '?t=' + Date.now(), {
             method: 'POST',
@@ -1358,7 +1362,11 @@ async function tryRealAI(message) {
         const botResponse = data.choices[0].message.content;
         console.log('✅ Respuesta recibida:', botResponse.substring(0, 100) + '...');
         
-        conversationContext.push({ role: 'assistant', content: botResponse });
+        // Evitar duplicados: verificar si el último mensaje ya es del asistente con el mismo contenido
+        const lastMsg = conversationContext[conversationContext.length - 1];
+        if (!lastMsg || lastMsg.role !== 'assistant' || lastMsg.content !== botResponse) {
+            conversationContext.push({ role: 'assistant', content: botResponse });
+        }
         
         removeTypingIndicator();
         addBotMessage(formatMarkdown(botResponse), false);
