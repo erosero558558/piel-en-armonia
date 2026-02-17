@@ -1019,7 +1019,7 @@ let conversationContext = [];
 
 // CONFIGURACIÓN KIMI API
 const KIMI_CONFIG = {
-    apiKey: 'sk-kimi-TnFawV0TNOCtwksuNbsA52gasgfNdicpNqO2nfGWH8p4z6tg8W5oFX8RIIMwbvld',
+    apiKey: 'sk-kimi-lMIpVZxWGocfNOqaKO68Ws54Gi2lBuiFHkyBRA7VlCDWVeW0PWUAup1fUucHjHLZ',
     apiUrl: 'proxy.php',
     model: 'moonshot-v1-8k',
     maxTokens: 1000,
