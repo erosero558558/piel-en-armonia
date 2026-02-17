@@ -8,12 +8,26 @@
  * Coloca este archivo en tu servidor web (requiere PHP 7.4+)
  */
 
-// Habilitar reporte de errores para debug (quitar en producción)
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// Deshabilitar reporte de errores en producción
+error_reporting(0);
+ini_set('display_errors', 0);
 
-// Configuración de CORS - Permitir acceso desde cualquier origen (en producción, especifica tu dominio)
-header('Access-Control-Allow-Origin: *');
+// Configuración de CORS - Permitir solo desde pielarmonia.com
+$allowed_origins = [
+    'https://pielarmonia.com',
+    'https://www.pielarmonia.com',
+    'http://pielarmonia.com',
+    'http://localhost', // Para desarrollo local
+    'http://127.0.0.1'
+];
+
+$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+
+if (in_array($origin, $allowed_origins)) {
+    header('Access-Control-Allow-Origin: ' . $origin);
+} else {
+    header('Access-Control-Allow-Origin: https://pielarmonia.com');
+}
 header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json; charset=utf-8');
