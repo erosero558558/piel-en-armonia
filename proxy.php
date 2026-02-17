@@ -8,11 +8,9 @@
  * Coloca este archivo en tu servidor web (requiere PHP 7.4+)
  */
 
-// Habilitar logs temporalmente para debug
-error_reporting(E_ALL);
+// Configuración de errores (deshabilitado en producción)
+error_reporting(0);
 ini_set('display_errors', 0);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/proxy-error.log');
 
 // Configuración de CORS - Permitir solo desde pielarmonia.com
 $allowed_origins = [
@@ -70,18 +68,11 @@ if (!$data || !isset($data['messages']) || !is_array($data['messages'])) {
     exit();
 }
 
-// API Key de Kimi - Limpiar espacios
-$apiKey = isset($data['api_key']) ? trim($data['api_key']) : '';
+// API Key de Kimi - Hardcodeada (más seguro)
+$apiKey = 'sk-kimi-lMIpVZxWGocfNOqaKO68Ws54Gi2lBuiFHkyBRA7VlCDWVeW0PWUAup1fUucHjHLZ';
 
-// DEBUG: Log para verificar (quitar en producción)
-error_log('API Key recibida (primeros 20 chars): ' . substr($apiKey, 0, 20) . '...');
-error_log('API Key length: ' . strlen($apiKey));
-
-if (empty($apiKey)) {
-    http_response_code(401);
-    echo json_encode(['error' => 'API key requerida', 'debug' => 'Key vacía o no recibida']);
-    exit();
-}
+// Si quieres usar la key del frontend (menos seguro), descomenta:
+// $apiKey = isset($data['api_key']) ? trim($data['api_key']) : $apiKey;
 
 // Configuración de la petición a Kimi
 $kimiUrl = 'https://api.moonshot.cn/v1/chat/completions';
@@ -101,8 +92,7 @@ $headers = [
     'Authorization: Bearer ' . $apiKey
 ];
 
-// DEBUG
-error_log('Headers a enviar: ' . json_encode($headers));
+
 
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
@@ -111,8 +101,7 @@ curl_setopt_array($ch, [
     CURLOPT_HTTPHEADER => $headers,
     CURLOPT_TIMEOUT => 30,
     CURLOPT_SSL_VERIFYPEER => true,
-    CURLOPT_FOLLOWLOCATION => true,
-    CURLOPT_HEADER => true  // Incluir headers en respuesta para debug
+    CURLOPT_FOLLOWLOCATION => true
 ]);
 
 // Ejecutar petición
@@ -130,9 +119,7 @@ if ($headerSize !== false) {
     $body = $response;
 }
 
-// DEBUG
-error_log('Respuesta HTTP de Kimi: ' . $httpCode);
-error_log('Respuesta body (primeros 200 chars): ' . substr($body, 0, 200));
+
 
 // Manejar errores de cURL
 if ($error) {
