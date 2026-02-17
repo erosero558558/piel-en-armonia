@@ -8,9 +8,11 @@
  * Coloca este archivo en tu servidor web (requiere PHP 7.4+)
  */
 
-// Deshabilitar reporte de errores en producción
-error_reporting(0);
+// Habilitar logs temporalmente para debug
+error_reporting(E_ALL);
 ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/proxy-error.log');
 
 // Configuración de CORS - Permitir solo desde pielarmonia.com
 $allowed_origins = [
@@ -68,13 +70,16 @@ if (!$data || !isset($data['messages']) || !is_array($data['messages'])) {
     exit();
 }
 
-// API Key de Kimi (puedes hardcodearla aquí o enviarla desde el frontend)
-// NOTA: En producción, es más seguro guardarla aquí que en el frontend
-$apiKey = isset($data['api_key']) ? $data['api_key'] : '';
+// API Key de Kimi - Limpiar espacios
+$apiKey = isset($data['api_key']) ? trim($data['api_key']) : '';
+
+// DEBUG: Log para verificar (quitar en producción)
+error_log('API Key recibida (primeros 20 chars): ' . substr($apiKey, 0, 20) . '...');
+error_log('API Key length: ' . strlen($apiKey));
 
 if (empty($apiKey)) {
     http_response_code(401);
-    echo json_encode(['error' => 'API key requerida']);
+    echo json_encode(['error' => 'API key requerida', 'debug' => 'Key vacía o no recibida']);
     exit();
 }
 
@@ -91,17 +96,23 @@ $payload = [
 // Inicializar cURL
 $ch = curl_init($kimiUrl);
 
+$headers = [
+    'Content-Type: application/json',
+    'Authorization: Bearer ' . $apiKey
+];
+
+// DEBUG
+error_log('Headers a enviar: ' . json_encode($headers));
+
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_POST => true,
     CURLOPT_POSTFIELDS => json_encode($payload),
-    CURLOPT_HTTPHEADER => [
-        'Content-Type: application/json',
-        'Authorization: Bearer ' . $apiKey
-    ],
+    CURLOPT_HTTPHEADER => $headers,
     CURLOPT_TIMEOUT => 30,
     CURLOPT_SSL_VERIFYPEER => true,
-    CURLOPT_FOLLOWLOCATION => true
+    CURLOPT_FOLLOWLOCATION => true,
+    CURLOPT_HEADER => true  // Incluir headers en respuesta para debug
 ]);
 
 // Ejecutar petición
@@ -110,6 +121,18 @@ $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $error = curl_error($ch);
 
 curl_close($ch);
+
+// Separar headers del body (porque CURLOPT_HEADER está activo)
+$headerSize = strpos($response, "\r\n\r\n");
+if ($headerSize !== false) {
+    $body = substr($response, $headerSize + 4);
+} else {
+    $body = $response;
+}
+
+// DEBUG
+error_log('Respuesta HTTP de Kimi: ' . $httpCode);
+error_log('Respuesta body (primeros 200 chars): ' . substr($body, 0, 200));
 
 // Manejar errores de cURL
 if ($error) {
@@ -123,4 +146,4 @@ if ($error) {
 
 // Devolver respuesta de Kimi al cliente
 http_response_code($httpCode);
-echo $response;
+echo $body;
