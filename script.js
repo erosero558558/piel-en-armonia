@@ -1233,6 +1233,17 @@ function addUserMessage(text) {
 
 function addBotMessage(html, showOfflineLabel = false) {
     const messagesContainer = document.getElementById('chatMessages');
+    
+    // Verificar si el último mensaje es idéntico (evitar duplicados en UI)
+    const lastMessage = messagesContainer.querySelector('.chat-message.bot:last-child');
+    if (lastMessage) {
+        const lastContent = lastMessage.querySelector('.message-content');
+        if (lastContent && lastContent.innerHTML === html) {
+            console.log('⚠️ Mensaje duplicado detectado, no se muestra');
+            return;
+        }
+    }
+    
     const messageDiv = document.createElement('div');
     messageDiv.className = 'chat-message bot';
     
@@ -1310,6 +1321,16 @@ async function processWithKimi(message) {
 
 async function tryRealAI(message) {
     try {
+        // Limpiar duplicados del contexto antes de enviar
+        const uniqueContext = [];
+        for (const msg of conversationContext) {
+            const last = uniqueContext[uniqueContext.length - 1];
+            if (!last || last.role !== msg.role || last.content !== msg.content) {
+                uniqueContext.push(msg);
+            }
+        }
+        conversationContext = uniqueContext;
+        
         // Preparar mensajes para la API
         const messages = [
             { role: 'system', content: SYSTEM_PROMPT },
