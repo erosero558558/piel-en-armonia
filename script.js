@@ -1584,6 +1584,145 @@ async function processWithKimi(message) {
     }
 }
 
+function normalizeIntentText(text) {
+    if (!text) return '';
+
+    return text
+        .toString()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+}
+
+function isPaymentIntent(text) {
+    const normalized = normalizeIntentText(text);
+    return /(pago|pagar|metodo de pago|tarjeta|transferencia|efectivo|deposito|comprobante|referencia|factura|visa|mastercard)/.test(normalized);
+}
+
+function isHighValueClinicIntent(text) {
+    const normalized = normalizeIntentText(text);
+    return isPaymentIntent(normalized) || /(cita|agendar|reservar|turno|hora|precio|cuanto cuesta|valor|tarifa|costo|servicio|tratamiento)/.test(normalized);
+}
+
+function isGenericAssistantReply(text) {
+    const normalized = normalizeIntentText(text);
+    if (!normalized) return true;
+
+    const genericPatterns = [
+        /gracias por tu mensaje/,
+        /soy figo/,
+        /asistente virtual/,
+        /modo offline/,
+        /te sugiero/,
+        /para informacion mas detallada/,
+        /escribenos por whatsapp/,
+        /visita estas secciones/,
+        /hay algo mas en lo que pueda orientarte/
+    ];
+
+    let matches = 0;
+    for (const pattern of genericPatterns) {
+        if (pattern.test(normalized)) matches += 1;
+    }
+
+    return matches >= 2;
+}
+
+function shouldRefineWithFigo(userMessage, botResponse) {
+    return isHighValueClinicIntent(userMessage) && isGenericAssistantReply(botResponse);
+}
+
+const FIGO_EXPERT_PROMPT = `MODO FIGO PRO:
+- Responde con pasos claros y accionables, no con texto general.
+- Si preguntan por pagos, explica el flujo real del sitio: reservar cita -> modal de pago -> metodo (tarjeta/transferencia/efectivo) -> confirmacion.
+- Si faltan datos para ayudar mejor, haz una sola pregunta de seguimiento concreta.
+- Mantente enfocado en Piel en Armonia (servicios, precios, citas, pagos, ubicacion y contacto).
+- Evita decir "modo offline" salvo que realmente no haya conexion con el servidor.`;
+
+function buildAppointmentContextSummary() {
+    if (!currentAppointment) return 'sin cita activa';
+
+    const parts = [];
+    if (currentAppointment.service) parts.push(`servicio=${currentAppointment.service}`);
+    if (currentAppointment.doctor) parts.push(`doctor=${currentAppointment.doctor}`);
+    if (currentAppointment.date) parts.push(`fecha=${currentAppointment.date}`);
+    if (currentAppointment.time) parts.push(`hora=${currentAppointment.time}`);
+    if (currentAppointment.price) parts.push(`precio=${currentAppointment.price}`);
+
+    return parts.length ? parts.join(', ') : 'sin datos relevantes';
+}
+
+function getChatRuntimeContext() {
+    const section = window.location.hash || '#inicio';
+    const paymentModalOpen = !!document.getElementById('paymentModal')?.classList.contains('active');
+    const appointmentSummary = buildAppointmentContextSummary();
+
+    return `CONTEXTO WEB EN TIEMPO REAL:
+- Seccion actual: ${section}
+- Modal de pago abierto: ${paymentModalOpen ? 'si' : 'no'}
+- Cita en progreso: ${appointmentSummary}
+
+FLUJO DE PAGO REAL DEL SITIO:
+1) El paciente completa el formulario de cita.
+2) Se abre el modal de pago automaticamente.
+3) Puede elegir tarjeta, transferencia o efectivo.
+4) Al confirmar, la cita se registra y el equipo valida por WhatsApp.`;
+}
+
+function buildFigoMessages() {
+    return [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: FIGO_EXPERT_PROMPT },
+        { role: 'system', content: getChatRuntimeContext() },
+        ...conversationContext.slice(-10)
+    ];
+}
+
+async function requestFigoCompletion(messages, overrides = {}, debugLabel = 'principal') {
+    const payload = {
+        model: KIMI_CONFIG.model,
+        messages: messages,
+        max_tokens: KIMI_CONFIG.maxTokens,
+        temperature: KIMI_CONFIG.temperature,
+        ...overrides
+    };
+
+    const response = await fetch(KIMI_CONFIG.apiUrl + '?t=' + Date.now(), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    debugLog(`📡 Status (${debugLabel}):`, response.status);
+
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+
+    const responseText = await response.text();
+    debugLog(`📄 Respuesta cruda (${debugLabel}):`, responseText.substring(0, 500));
+
+    let data;
+    try {
+        data = JSON.parse(responseText);
+    } catch (e) {
+        console.error('❌ Error parseando JSON:', e);
+        throw new Error('Respuesta no es JSON valido');
+    }
+
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        console.error('❌ Estructura invalida:', data);
+        throw new Error('Respuesta invalida');
+    }
+
+    return data.choices[0].message.content;
+}
+
 async function tryRealAI(message) {
     try {
         // Limpiar duplicados del contexto antes de enviar
@@ -1597,55 +1736,49 @@ async function tryRealAI(message) {
         conversationContext = uniqueContext;
         
         // Preparar mensajes para la API
-        const messages = [
-            { role: 'system', content: SYSTEM_PROMPT },
-            ...conversationContext.slice(-10)
-        ];
-        
-        const payload = {
-            model: KIMI_CONFIG.model,
-            messages: messages,
-            max_tokens: KIMI_CONFIG.maxTokens,
-            temperature: KIMI_CONFIG.temperature
-        };
+        const messages = buildFigoMessages();
         
         debugLog('🚀 Enviando a:', KIMI_CONFIG.apiUrl);
         debugLog('📊 Contexto actual:', conversationContext.length, 'mensajes');
-        
-        const response = await fetch(KIMI_CONFIG.apiUrl + '?t=' + Date.now(), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Cache-Control': 'no-cache'
-            },
-            body: JSON.stringify(payload)
-        });
-        
-        debugLog('📡 Status:', response.status);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-        
-        const responseText = await response.text();
-        debugLog('📄 Respuesta cruda:', responseText.substring(0, 500));
-        
-        let data;
-        try {
-            data = JSON.parse(responseText);
-        } catch (e) {
-            console.error('❌ Error parseando JSON:', e);
-            throw new Error('Respuesta no es JSON válido');
-        }
-        
-        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-            console.error('❌ Estructura inválida:', data);
-            throw new Error('Respuesta inválida');
-        }
-        
-        const botResponse = data.choices[0].message.content;
+        let botResponse = await requestFigoCompletion(messages, {}, 'principal');
         debugLog('✅ Respuesta recibida:', botResponse.substring(0, 100) + '...');
+
+        if (shouldRefineWithFigo(message, botResponse)) {
+            debugLog('⚠️ Respuesta generica detectada, solicitando precision adicional a Figo');
+
+            const precisionPrompt = `Tu respuesta anterior fue demasiado general.
+Responde con informacion especifica para la web de Piel en Armonia.
+Incluye pasos concretos y el siguiente paso recomendado para el paciente.
+Pregunta original del paciente: "${message}"`;
+
+            const refinedMessages = [
+                ...messages,
+                { role: 'assistant', content: botResponse },
+                { role: 'user', content: precisionPrompt }
+            ];
+
+            try {
+                const refinedResponse = await requestFigoCompletion(
+                    refinedMessages,
+                    { temperature: 0.3 },
+                    'refinada'
+                );
+
+                if (refinedResponse && !isGenericAssistantReply(refinedResponse)) {
+                    botResponse = refinedResponse;
+                    debugLog('✅ Respuesta refinada aplicada');
+                }
+            } catch (refineError) {
+                console.warn('⚠️ No se pudo refinar con Figo:', refineError);
+            }
+
+            if (isGenericAssistantReply(botResponse)) {
+                debugLog('⚠️ Respuesta sigue generica, usando fallback local especializado');
+                removeTypingIndicator();
+                processLocalResponse(message, false);
+                return;
+            }
+        }
         
         // Evitar duplicados: verificar si el último mensaje ya es del asistente con el mismo contenido
         const lastMsg = conversationContext[conversationContext.length - 1];
@@ -1681,15 +1814,16 @@ async function tryRealAI(message) {
 // ========================================
 function processLocalResponse(message, isOffline = true) {
     const lowerMsg = message.toLowerCase();
+    const normalizedMsg = normalizeIntentText(message);
     
     // Comando especial: forzar IA
-    if (/forzar ia|activar ia|modo ia|usar ia/.test(lowerMsg)) {
+    if (/forzar ia|activar ia|modo ia|usar ia/.test(normalizedMsg)) {
         forzarModoIA();
         return;
     }
     
     // Comando especial: debug info
-    if (/debug|info sistema|informacion tecnica/.test(lowerMsg)) {
+    if (/debug|info sistema|informacion tecnica/.test(normalizedMsg)) {
         mostrarInfoDebug();
         return;
     }
@@ -1741,6 +1875,25 @@ function processLocalResponse(message, isOffline = true) {
         response += '• Laser: $150<br>';
         response += '• Rejuvenecimiento: $120<br><br>';
         response += 'Para presupuesto preciso, agenda una consulta.';
+    }
+    // PAGOS
+    else if (isPaymentIntent(normalizedMsg)) {
+        response = `Asi puedes realizar tu pago en la web:<br><br>
+<strong>1) Reserva tu cita</strong><br>
+Ve a <a href="#citas" onclick="minimizeChatbot()">Reservar Cita</a>, completa tus datos y selecciona fecha/hora.<br><br>
+
+<strong>2) Abre el modulo de pago</strong><br>
+Al enviar el formulario se abre la ventana de pago automaticamente.<br><br>
+
+<strong>3) Elige metodo de pago</strong><br>
+• <strong>Tarjeta:</strong> ingresa numero, fecha de vencimiento, CVV y nombre.<br>
+• <strong>Transferencia:</strong> realiza la transferencia y coloca el numero de referencia.<br>
+• <strong>Efectivo:</strong> dejas la reserva registrada y pagas en consultorio.<br><br>
+
+<strong>4) Confirmacion</strong><br>
+Tu cita queda registrada y te contactamos para confirmar detalles por WhatsApp: <a href="https://wa.me/593982453672" target="_blank">+593 98 245 3672</a>.<br><br>
+
+Si quieres, te guio paso a paso segun el metodo que prefieras.`;
     }
     // CITAS
     else if (/cita|agendar|reservar|turno|hora/.test(lowerMsg)) {
@@ -1845,7 +1998,11 @@ Si tienes más dudas, no dudes en escribirme. También puedes contactarnos direc
     }
     // RESPUESTA POR DEFECTO
     else {
-        response = `Entiendo tu consulta. Como estoy en modo offline, te sugiero:
+        const intro = isOffline
+            ? 'Entiendo tu consulta. Como estoy en modo offline, te sugiero:'
+            : 'Entiendo tu consulta. Te comparto las opciones mas utiles:';
+
+        response = `${intro}
 
 <strong>Para información más detallada:</strong>
 📱 <a href="https://wa.me/593982453672" target="_blank">Escríbenos por WhatsApp</a>
