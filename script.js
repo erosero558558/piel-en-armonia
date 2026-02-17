@@ -1321,114 +1321,63 @@ async function tryRealAI(message) {
             temperature: KIMI_CONFIG.temperature
         };
         
-        const response = await fetch(KIMI_CONFIG.apiUrl, {
+        console.log('🚀 Enviando a:', KIMI_CONFIG.apiUrl);
+        
+        const response = await fetch(KIMI_CONFIG.apiUrl + '?t=' + Date.now(), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'Cache-Control': 'no-cache'
             },
             body: JSON.stringify(payload)
         });
+        
+        console.log('📡 Status:', response.status);
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
         
-        const data = await response.json();
+        const responseText = await response.text();
+        console.log('📄 Respuesta cruda:', responseText.substring(0, 500));
+        
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (e) {
+            console.error('❌ Error parseando JSON:', e);
+            throw new Error('Respuesta no es JSON válido');
+        }
         
         if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            console.error('❌ Estructura inválida:', data);
             throw new Error('Respuesta inválida');
         }
         
         const botResponse = data.choices[0].message.content;
+        console.log('✅ Respuesta recibida:', botResponse.substring(0, 100) + '...');
+        
         conversationContext.push({ role: 'assistant', content: botResponse });
         
         removeTypingIndicator();
         addBotMessage(formatMarkdown(botResponse), false);
-        
-    } catch (error) {
-        console.log('⚠️ IA real no disponible, usando respuestas locales');
-        removeTypingIndicator();
-        processLocalResponse(message, false);
-    }
-    
-    try {
-        // Preparar mensajes para la API
-        const messages = [
-            { role: 'system', content: SYSTEM_PROMPT },
-            ...conversationContext.slice(-10) // Mantener últimos 10 mensajes de contexto
-        ];
-        
-        console.log('Enviando petición a:', KIMI_CONFIG.apiUrl);
-        
-        // Preparar payload para el proxy
-        const payload = {
-            api_key: KIMI_CONFIG.apiKey,
-            model: KIMI_CONFIG.model,
-            messages: messages,
-            max_tokens: KIMI_CONFIG.maxTokens,
-            temperature: KIMI_CONFIG.temperature
-        };
-        
-        console.log('Enviando payload:', JSON.stringify(payload, null, 2));
-        
-        const response = await fetch(KIMI_CONFIG.apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-        
-        console.log('Respuesta HTTP:', response.status);
-        
-        if (!response.ok) {
-            const errorData = await response.text();
-            console.error('Error de API:', errorData);
-            throw new Error(`Error HTTP ${response.status}: ${errorData}`);
-        }
-        
-        const data = await response.json();
-        console.log('Respuesta Kimi:', data);
-        
-        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-            throw new Error('Respuesta inválida de la API');
-        }
-        
-        const botResponse = data.choices[0].message.content;
-        
-        // Agregar respuesta al contexto
-        conversationContext.push({ role: 'assistant', content: botResponse });
-        
-        removeTypingIndicator();
-        
-        // Convertir markdown simple a HTML
-        const htmlResponse = formatMarkdown(botResponse);
-        addBotMessage(htmlResponse, false); // false = modo online (IA real)
+        console.log('💬 Mensaje mostrado en chat');
         
     } catch (error) {
         console.error('❌ Error con Kimi API:', error);
-        console.error('Tipo de error:', error.name);
-        console.error('Mensaje:', error.message);
         removeTypingIndicator();
         
-        // Mostrar error específico al usuario
+        // Mostrar error específico
         if (error.message.includes('Failed to fetch')) {
             addBotMessage(`<div style="color: #ff3b30;">
                 <strong>Error de conexión:</strong><br>
-                No se pudo conectar con el servidor proxy.<br><br>
-                Verifica que:<br>
-                1. El archivo <code>figo-chat.php</code> existe en la carpeta<br>
-                2. Tu servidor tiene PHP habilitado<br>
-                3. La URL sea correcta: ${KIMI_CONFIG.apiUrl}
+                No se pudo conectar con el servidor.<br>
+                Verifica que <code>figo-chat.php</code> exista.
             </div>`, true);
+        } else {
+            processLocalResponse(message, false);
         }
-        
-        // Usar modo offline como fallback
-        setTimeout(() => {
-            processLocalResponse(message, true);
-        }, 2000);
     }
 }
 
