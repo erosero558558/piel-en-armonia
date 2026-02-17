@@ -1299,23 +1299,37 @@ function escapeHtml(text) {
 // ========================================
 // INTEGRACIÓN CON KIMI API
 // ========================================
+let isProcessingMessage = false; // Evitar duplicados
 async function processWithKimi(message) {
+    if (isProcessingMessage) {
+        console.log('⏳ Ya procesando, ignorando duplicado');
+        return;
+    }
+    isProcessingMessage = true;
+    
     showTypingIndicator();
     
     // Siempre usar modo offline primero (más rápido y confiable)
     // El modo offline ahora tiene respuestas muy completas
     console.log('📝 Procesando mensaje:', message);
     
-    // Intentar usar IA real solo si estamos en servidor real
-    if (shouldUseRealAI()) {
-        console.log('🤖 Intentando usar IA real...');
-        await tryRealAI(message);
-    } else {
-        console.log('💬 Usando respuestas locales (modo offline)');
-        setTimeout(() => {
-            removeTypingIndicator();
-            processLocalResponse(message, false); // false = no mostrar indicador de offline
-        }, 600);
+    try {
+        if (shouldUseRealAI()) {
+            console.log('🤖 Intentando usar IA real...');
+            await tryRealAI(message);
+        } else {
+            console.log('💬 Usando respuestas locales (modo offline)');
+            setTimeout(() => {
+                removeTypingIndicator();
+                processLocalResponse(message, false);
+            }, 600);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        removeTypingIndicator();
+        processLocalResponse(message, false);
+    } finally {
+        isProcessingMessage = false;
     }
 }
 
