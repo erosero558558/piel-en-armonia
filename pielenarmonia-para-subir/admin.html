@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Piel en Armonía</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="admin-body">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-box">
+            <div class="login-logo">
+                <i class="fas fa-spa"></i>
+                <h1>Panel de Administración</h1>
+                <p>Piel en Armonía</p>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="adminPassword" placeholder="Ingrese contraseña" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Ingresar
+                </button>
+            </form>
+            <p class="login-hint">Contraseña por defecto: admin123</p>
+            <a href="index.html" class="back-link">
+                <i class="fas fa-arrow-left"></i>
+                Volver al sitio
+            </a>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="admin-dashboard" style="display: none;">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-spa"></i>
+                <span>Piel en Armonía</span>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#dashboard" class="nav-item active" data-section="dashboard">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#appointments" class="nav-item" data-section="appointments">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Citas</span>
+                    <span class="badge" id="appointmentsBadge">0</span>
+                </a>
+                <a href="#callbacks" class="nav-item" data-section="callbacks">
+                    <i class="fas fa-phone-alt"></i>
+                    <span>Callbacks</span>
+                    <span class="badge" id="callbacksBadge">0</span>
+                </a>
+                <a href="#reviews" class="nav-item" data-section="reviews">
+                    <i class="fas fa-star"></i>
+                    <span>Reseñas</span>
+                    <span class="badge" id="reviewsBadge">0</span>
+                </a>
+                <a href="#availability" class="nav-item" data-section="availability">
+                    <i class="fas fa-clock"></i>
+                    <span>Disponibilidad</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <button onclick="logout()" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Cerrar Sesión</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="admin-main">
+            <!-- Header -->
+            <header class="admin-header">
+                <h2 id="pageTitle">Dashboard</h2>
+                <div class="header-actions">
+                    <span class="current-date" id="currentDate"></span>
+                    <button class="btn btn-secondary btn-sm" onclick="exportData()">
+                        <i class="fas fa-download"></i>
+                        Exportar Datos
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="admin-section active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="totalAppointments">0</span>
+                            <span class="stat-label">Citas Totales</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-calendar-day"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="todayAppointments">0</span>
+                            <span class="stat-label">Citas Hoy</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-phone-alt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="pendingCallbacks">0</span>
+                            <span class="stat-label">Callbacks Pendientes</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="avgRating">0.0</span>
+                            <span class="stat-label">Rating Promedio</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3><i class="fas fa-calendar-day"></i> Citas de Hoy</h3>
+                        <div class="upcoming-list" id="todayAppointmentsList">
+                            <p class="empty-message">No hay citas para hoy</p>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3><i class="fas fa-phone-alt"></i> Callbacks Recientes</h3>
+                        <div class="upcoming-list" id="recentCallbacksList">
+                            <p class="empty-message">No hay callbacks pendientes</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Appointments Section -->
+            <section id="appointments" class="admin-section">
+                <div class="section-toolbar">
+                    <div class="filter-group">
+                        <select id="appointmentFilter" onchange="filterAppointments()">
+                            <option value="all">Todas las citas</option>
+                            <option value="today">Hoy</option>
+                            <option value="week">Esta semana</option>
+                            <option value="month">Este mes</option>
+                            <option value="confirmed">Confirmadas</option>
+                            <option value="cancelled">Canceladas</option>
+                        </select>
+                    </div>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchAppointments" placeholder="Buscar paciente..." onkeyup="searchAppointments()">
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table" id="appointmentsTable">
+                        <thead>
+                            <tr>
+                                <th>Paciente</th>
+                                <th>Servicio</th>
+                                <th>Doctor</th>
+                                <th>Fecha</th>
+                                <th>Hora</th>
+                                <th>Precio</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="appointmentsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Callbacks Section -->
+            <section id="callbacks" class="admin-section">
+                <div class="section-toolbar">
+                    <div class="filter-group">
+                        <select id="callbackFilter" onchange="filterCallbacks()">
+                            <option value="all">Todos</option>
+                            <option value="pending">Pendientes</option>
+                            <option value="contacted">Contactados</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="callbacks-grid" id="callbacksGrid">
+                </div>
+            </section>
+
+            <!-- Reviews Section -->
+            <section id="reviews" class="admin-section">
+                <div class="reviews-stats">
+                    <div class="rating-summary">
+                        <span class="big-rating" id="adminAvgRating">4.9</span>
+                        <div class="rating-stars" id="adminRatingStars">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <span class="total-reviews" id="totalReviewsCount">0 reseñas</span>
+                    </div>
+                </div>
+
+                <div class="reviews-grid-admin" id="reviewsGrid">
+                </div>
+            </section>
+
+            <!-- Availability Section -->
+            <section id="availability" class="admin-section">
+                <div class="availability-container">
+                    <div class="availability-calendar">
+                        <h3>Configurar Horarios Disponibles</h3>
+                        <div class="calendar-header">
+                            <button onclick="changeMonth(-1)" class="btn-icon">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span id="calendarMonth">Enero 2024</span>
+                            <button onclick="changeMonth(1)" class="btn-icon">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <div class="calendar-grid" id="availabilityCalendar">
+                        </div>
+                    </div>
+
+                    <div class="time-slots-config">
+                        <h3>Horarios del Día</h3>
+                        <p class="selected-date" id="selectedDate">Selecciona una fecha</p>
+                        
+                        <div class="time-slots-list" id="timeSlotsList">
+                            <p class="empty-message">Selecciona una fecha para ver los horarios</p>
+                        </div>
+
+                        <div class="add-slot-form" id="addSlotForm" style="display: none;">
+                            <h4>Agregar Horario</h4>
+                            <div class="form-row">
+                                <input type="time" id="newSlotTime" required>
+                                <button onclick="addTimeSlot()" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

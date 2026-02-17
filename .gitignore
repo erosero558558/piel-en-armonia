@@ -1,0 +1,39 @@
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos de editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos de prueba y temporales
+test-*.html
+test-*.php
+debug.php
+diagnostico.html
+info.php
+
+# Archivos comprimidos
+*.zip
+*.tar.gz
+*.rar
+
+# Carpetas de distribución
+para-subir/
+para-subir/*
+vultr-setup/
+vultr-setup/*
+
+# Logs
+*.log
+
+# Node modules (si los hubiera)
+node_modules/
+
+# Archivos de configuración local
+.env
+config.local.php

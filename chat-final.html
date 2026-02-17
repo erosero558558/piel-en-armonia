@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piel en Armonia - Chat</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f5f7; }
+        
+        /* Boton flotante */
+        .chat-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: #0071e3;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 9999;
+        }
+        
+        /* Ventana del chat */
+        .chat-window {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 350px;
+            height: 500px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 9999;
+        }
+        
+        .chat-window.active { display: flex; }
+        
+        /* Header */
+        .chat-header {
+            background: #0071e3;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .chat-header img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: white;
+        }
+        
+        .chat-header h3 { font-size: 16px; }
+        .chat-header p { font-size: 12px; opacity: 0.9; }
+        
+        /* Mensajes */
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f9f9f9;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .message.bot {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            margin-right: auto;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .message.user {
+            background: #0071e3;
+            color: white;
+            border-bottom-right-radius: 4px;
+            margin-left: auto;
+        }
+        
+        /* Input */
+        .chat-input {
+            display: flex;
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #eee;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            outline: none;
+            font-size: 14px;
+        }
+        
+        .chat-input button {
+            background: #0071e3;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin-left: 10px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        /* Sugerencias */
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px 20px;
+            background: white;
+            border-top: 1px solid #eee;
+        }
+        
+        .suggestion-btn {
+            background: #f0f0f0;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #333;
+        }
+        
+        .suggestion-btn:hover {
+            background: #0071e3;
+            color: white;
+        }
+        
+        /* Indicador de escritura */
+        .typing {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+        }
+        
+        .typing span {
+            width: 8px;
+            height: 8px;
+            background: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        
+        .typing span:nth-child(2) { animation-delay: 0.2s; }
+        .typing span:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typing {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Boton flotante -->
+    <button class="chat-btn" onclick="toggleChat()">💬</button>
+    
+    <!-- Ventana de chat -->
+    <div class="chat-window" id="chatWindow">
+        <div class="chat-header">
+            <div style="font-size: 30px;">👨‍⚕️</div>
+            <div>
+                <h3>Dr. Virtual</h3>
+                <p>Piel en Armonia</p>
+            </div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                Hola! Soy el asistente de Piel en Armonia. Te puedo ayudar con:<br><br>
+                • Servicios y precios<br>
+                • Agendar citas<br>
+                • Ubicacion y horarios<br>
+                • Informacion de contacto
+            </div>
+        </div>
+        
+        <div class="suggestions">
+            <button class="suggestion-btn" onclick="sendQuick('Precios')">💰 Precios</button>
+            <button class="suggestion-btn" onclick="sendQuick('Cita')">📅 Cita</button>
+            <button class="suggestion-btn" onclick="sendQuick('Ubicacion')">📍 Ubicacion</button>
+        </div>
+        
+        <div class="chat-input">
+            <input type="text" id="userInput" placeholder="Escribe tu mensaje..." onkeypress="if(event.key==='Enter')sendMessage()">
+            <button onclick="sendMessage()">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        // Base de conocimiento
+        const knowledge = {
+            'hola': 'Hola! Como puedo ayudarte hoy?',
+            'buenos dias': 'Buenos dias! En que puedo ayudarte?',
+            'buenas tardes': 'Buenas tardes! En que puedo ayudarte?',
+            
+            'precio': 'Nuestros precios:<br><br>💰 Consulta presencial: $40<br>📞 Consulta telefonica: $25<br>💻 Video consulta: $30<br>✨ Laser: desde $150<br>🎯 Tratamiento acne: desde $80<br>🌟 Rejuvenecimiento: desde $120',
+            'costo': 'Nuestros precios:<br><br>💰 Consulta presencial: $40<br>📞 Consulta telefonica: $25<br>💻 Video consulta: $30<br>✨ Laser: desde $150<br>🎯 Tratamiento acne: desde $80<br>🌟 Rejuvenecimiento: desde $120',
+            'cuanto': 'Nuestros precios:<br><br>💰 Consulta presencial: $40<br>📞 Consulta telefonica: $25<br>💻 Video consulta: $30<br>✨ Laser: desde $150<br>🎯 Tratamiento acne: desde $80<br>🌟 Rejuvenecimiento: desde $120',
+            
+            'cita': 'Puedes agendar tu cita por:<br><br>📱 WhatsApp: +593 98 245 3672<br>📞 Telefono: +593 98 245 3672<br>🌐 Web: Completa el formulario en nuestra pagina<br><br>Horario: Lun-Vie 9:00-18:00, Sab 9:00-13:00',
+            'agendar': 'Puedes agendar tu cita por:<br><br>📱 WhatsApp: +593 98 245 3672<br>📞 Telefono: +593 98 245 3672<br>🌐 Web: Completa el formulario en nuestra pagina<br><br>Horario: Lun-Vie 9:00-18:00, Sab 9:00-13:00',
+            'reservar': 'Puedes agendar tu cita por:<br><br>📱 WhatsApp: +593 98 245 3672<br>📞 Telefono: +593 98 245 3672<br>🌐 Web: Completa el formulario en nuestra pagina<br><br>Horario: Lun-Vie 9:00-18:00, Sab 9:00-13:00',
+            'turno': 'Puedes agendar tu cita por:<br><br>📱 WhatsApp: +593 98 245 3672<br>📞 Telefono: +593 98 245 3672<br>🌐 Web: Completa el formulario en nuestra pagina<br><br>Horario: Lun-Vie 9:00-18:00, Sab 9:00-13:00',
+            
+            'ubicacion': '📍 Nos encontramos en:<br>Valparaiso 13-183 y Sodiro<br>Quito, Ecuador<br><br>🕐 Horario:<br>Lunes-Viernes: 9:00 - 18:00<br>Sabados: 9:00 - 13:00<br><br>🅿️ Estacionamiento privado disponible',
+            'donde': '📍 Nos encontramos en:<br>Valparaiso 13-183 y Sodiro<br>Quito, Ecuador<br><br>🕐 Horario:<br>Lunes-Viernes: 9:00 - 18:00<br>Sabados: 9:00 - 13:00<br><br>🅿️ Estacionamiento privado disponible',
+            'direccion': '📍 Nos encontramos en:<br>Valparaiso 13-183 y Sodiro<br>Quito, Ecuador<br><br>🕐 Horario:<br>Lunes-Viernes: 9:00 - 18:00<br>Sabados: 9:00 - 13:00<br><br>🅿️ Estacionamiento privado disponible',
+            'ubicacion': '📍 Nos encontramos en:<br>Valparaiso 13-183 y Sodiro<br>Quito, Ecuador<br><br>🕐 Horario:<br>Lunes-Viernes: 9:00 - 18:00<br>Sabados: 9:00 - 13:00<br><br>🅿️ Estacionamiento privado disponible',
+            
+            'servicio': 'Ofrecemos:<br><br>🩺 Consultas dermatologicas<br>💉 Tratamiento de acne<br>✨ Laser dermatologico<br>🌟 Rejuvenecimiento facial<br>🔍 Deteccion de cancer de piel<br>📱 Telemedicina',
+            'tratamiento': 'Ofrecemos:<br><br>🩺 Consultas dermatologicas<br>💉 Tratamiento de acne<br>✨ Laser dermatologico<br>🌟 Rejuvenecimiento facial<br>🔍 Deteccion de cancer de piel<br>📱 Telemedicina',
+            
+            'acne': 'Tratamiento de acne:<br><br>✅ Evaluacion personalizada<br>✅ Tratamientos topicos<br>✅ Medicacion oral (si necesario)<br>✅ Peelings quimicos<br>✅ Laser para cicatrices<br><br>💰 Primera consulta: $40<br>📱 WhatsApp: +593 98 245 3672',
+            
+            'laser': 'Tratamientos Laser:<br><br>✨ Eliminacion de lesiones vasculares<br>✨ Tratamiento de manchas<br>✨ Rejuvenecimiento facial<br>✨ Cicatrices de acne<br><br>💰 Desde $150<br>📅 Requiere evaluacion previa<br>📱 WhatsApp: +593 98 245 3672',
+            
+            'doctor': 'Nuestros especialistas:<br><br>👨‍⚕️ Dr. Javier Rosero<br>Dermatologo Clinico<br><br>👩‍⚕️ Dra. Carolina Narvaez<br>Dermatologa Estetica<br><br>📱 WhatsApp: +593 98 245 3672',
+            'medico': 'Nuestros especialistas:<br><br>👨‍⚕️ Dr. Javier Rosero<br>Dermatologo Clinico<br><br>👩‍⚕️ Dra. Carolina Narvaez<br>Dermatologa Estetica<br><br>📱 WhatsApp: +593 98 245 3672',
+            
+            'contacto': '📞 Contactanos:<br><br>📱 WhatsApp: +593 98 245 3672<br>📞 Telefono: +593 98 245 3672<br>📍 Valparaiso 13-183 y Sodiro, Quito<br><br>🕐 Horario:<br>Lun-Vie: 9:00-18:00<br>Sab: 9:00-13:00',
+            'whatsapp': '📱 WhatsApp: +593 98 245 3672<br><br>Escríbenos para agendar tu cita o resolver tus dudas.',
+            'telefono': '📞 Telefono: +593 98 245 3672<br><br>Llámanos para agendar tu cita.',
+            
+            'horario': '🕐 Horario de atencion:<br><br>Lunes a Viernes: 9:00 - 18:00<br>Sabados: 9:00 - 13:00<br>Domingos: Cerrado',
+            'hora': '🕐 Horario de atencion:<br><br>Lunes a Viernes: 9:00 - 18:00<br>Sabados: 9:00 - 13:00<br>Domingos: Cerrado',
+            
+            'gracias': 'De nada! 😊 Si tienes mas dudas, aqui estoy para ayudarte.',
+            'adios': 'Hasta luego! Que tengas un excelente dia. 👋'
+        };
+        
+        function toggleChat() {
+            document.getElementById('chatWindow').classList.toggle('active');
+        }
+        
+        function addMessage(text, isUser) {
+            var div = document.createElement('div');
+            div.className = 'message ' + (isUser ? 'user' : 'bot');
+            div.innerHTML = text;
+            document.getElementById('chatMessages').appendChild(div);
+            document.getElementById('chatMessages').scrollTop = 100000;
+        }
+        
+        function showTyping() {
+            var div = document.createElement('div');
+            div.id = 'typing';
+            div.className = 'message bot typing';
+            div.innerHTML = '<span></span><span></span><span></span>';
+            document.getElementById('chatMessages').appendChild(div);
+            document.getElementById('chatMessages').scrollTop = 100000;
+        }
+        
+        function hideTyping() {
+            var el = document.getElementById('typing');
+            if (el) el.remove();
+        }
+        
+        function getResponse(text) {
+            var lower = text.toLowerCase().trim();
+            
+            // Buscar coincidencia exacta
+            if (knowledge[lower]) {
+                return knowledge[lower];
+            }
+            
+            // Buscar palabras clave
+            for (var key in knowledge) {
+                if (lower.indexOf(key) !== -1) {
+                    return knowledge[key];
+                }
+            }
+            
+            // Respuesta por defecto
+            return 'Para mas informacion, contactanos:<br><br>📱 WhatsApp: +593 98 245 3672<br>📞 Telefono: +593 98 245 3672<br><br>O revisa nuestra pagina web para ver todos los servicios.';
+        }
+        
+        function sendMessage() {
+            var input = document.getElementById('userInput');
+            var text = input.value.trim();
+            if (!text) return;
+            
+            addMessage(text, true);
+            input.value = '';
+            
+            showTyping();
+            
+            setTimeout(function() {
+                hideTyping();
+                var response = getResponse(text);
+                addMessage(response, false);
+            }, 500 + Math.random() * 500);
+        }
+        
+        function sendQuick(text) {
+            document.getElementById('userInput').value = text;
+            sendMessage();
+        }
+    </script>
+</body>
+</html>

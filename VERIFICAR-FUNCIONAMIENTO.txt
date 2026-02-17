@@ -1,0 +1,32 @@
+========================================
+✅ TODO LISTO PARA FUNCIONAR
+========================================
+
+API KEY ACTUALIZADA:
+--------------------
+sk-kimi-lMIpVZxWGocfNOqaKO68Ws54Gi2lBuiFHkyBRA7VlCDWVeW0PWUAup1fUucHjHLZ
+
+ARCHIVOS ACTUALIZADOS:
+----------------------
+1. script-simple.js - ✅ API key actualizada
+2. test-ia.html - ✅ API key actualizada
+3. proxy.php - ✅ Ya estaba correcto
+
+PASOS FINALES:
+--------------
+1. Sube script-simple.js a tu hosting (sobrescribe el anterior)
+2. Abre: https://tudominio.42web.io/test-ia.html
+3. Haz clic en "Probar IA"
+4. Debe decir: "✅ IA FUNCIONANDO!"
+5. Luego abre tu sitio principal y prueba el chatbot
+
+PRUEBA EN EL CHATBOT:
+---------------------
+Escribe: "Cual es la capital de Francia?"
+Si responde "Paris" -> ✅ IA REAL FUNCIONANDO
+
+Si responde sobre dermatologia -> ❌ Avisame
+
+========================================
+ESTO YA DEBE FUNCIONAR
+========================================

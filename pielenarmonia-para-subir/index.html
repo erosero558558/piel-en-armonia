@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piel en Armonía - Dermatología Especializada</title>
+    <meta name="description" content="Dermatología especializada en Quito. Dr. Javier Rosero y Dra. Carolina Narváez. Consulta presencial, online y telemedicina.">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Language Selector -->
+    <div class="language-bar">
+        <div class="language-options">
+            <button class="lang-btn active" data-lang="es" onclick="changeLanguage('es')">ES</button>
+            <button class="lang-btn" data-lang="en" onclick="changeLanguage('en')">EN</button>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav" id="nav">
+        <div class="nav-content">
+            <a href="#" class="nav-logo">
+                <i class="fas fa-spa"></i>
+                <span data-i18n="brand">Piel en Armonía</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#inicio" data-i18n="nav_home">Inicio</a></li>
+                <li><a href="#servicios" data-i18n="nav_services">Servicios</a></li>
+                <li><a href="#telemedicina" data-i18n="nav_telemedicine">Telemedicina</a></li>
+                <li><a href="#equipo" data-i18n="nav_team">Equipo</a></li>
+                <li><a href="#galeria" data-i18n="nav_gallery">Resultados</a></li>
+                <li><a href="#consultorio" data-i18n="nav_clinic">Consultorio</a></li>
+                <li><a href="#resenas" data-i18n="nav_reviews">Reseñas</a></li>
+            </ul>
+            <div class="nav-actions">
+                <a href="#citas" class="nav-cta" data-i18n="nav_book">Reservar Cita</a>
+            </div>
+            <button class="nav-mobile-toggle" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <button class="mobile-close" onclick="toggleMobileMenu()">
+            <i class="fas fa-times"></i>
+        </button>
+        <a href="#inicio" onclick="toggleMobileMenu()" data-i18n="nav_home">Inicio</a>
+        <a href="#servicios" onclick="toggleMobileMenu()" data-i18n="nav_services">Servicios</a>
+        <a href="#telemedicina" onclick="toggleMobileMenu()" data-i18n="nav_telemedicine">Telemedicina</a>
+        <a href="#equipo" onclick="toggleMobileMenu()" data-i18n="nav_team">Equipo</a>
+        <a href="#galeria" onclick="toggleMobileMenu()" data-i18n="nav_gallery">Resultados</a>
+        <a href="#consultorio" onclick="toggleMobileMenu()" data-i18n="nav_clinic">Consultorio</a>
+        <a href="#citas" onclick="toggleMobileMenu()" class="mobile-cta" data-i18n="nav_book">Reservar Cita</a>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero" id="inicio">
+        <div class="hero-content">
+            <h1 class="hero-title">
+                <span class="gradient-text" data-i18n="hero_title1">Tu piel.</span>
+                <span data-i18n="hero_title2">En las mejores manos.</span>
+            </h1>
+            <p class="hero-subtitle" data-i18n="hero_subtitle">
+                Dermatología especializada con tecnología de vanguardia. Tratamientos personalizados para que tu piel luzca saludable y radiante.
+            </p>
+            <div class="hero-actions">
+                <a href="#citas" class="btn btn-primary" data-i18n="hero_cta_primary">Reservar Consulta</a>
+                <a href="#telemedicina" class="btn btn-secondary" data-i18n="hero_cta_secondary">Consulta Online</a>
+            </div>
+            
+            <!-- Quick Contact Bar -->
+            <div class="hero-contact-bar">
+                <a href="tel:+593982453672" class="contact-chip">
+                    <i class="fas fa-phone"></i>
+                    <span>+593 98 245 3672</span>
+                </a>
+                <a href="https://wa.me/593982453672" target="_blank" class="contact-chip whatsapp">
+                    <i class="fab fa-whatsapp"></i>
+                    <span>WhatsApp</span>
+                </a>
+            </div>
+        </div>
+        <div class="hero-image">
+            <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1200&h=800&fit=crop" alt="Dermatología moderna">
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section class="section section-gray" id="servicios">
+        <div class="section-header">
+            <h2 class="section-title" data-i18n="services_title">Nuestros Servicios</h2>
+            <p class="section-subtitle" data-i18n="services_subtitle">Tratamientos dermatológicos de excelencia</p>
+        </div>
+        <div class="services-grid">
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-stethoscope"></i>
+                </div>
+                <h3 data-i18n="service_consulta">Consulta Dermatológica</h3>
+                <p data-i18n="service_consulta_desc">Evaluación completa de tu piel con diagnóstico preciso y plan de tratamiento personalizado.</p>
+                <span class="service-price">$40</span>
+            </div>
+            <div class="service-card featured">
+                <div class="service-badge" data-i18n="badge_popular">Popular</div>
+                <div class="service-icon">
+                    <i class="fas fa-video"></i>
+                </div>
+                <h3 data-i18n="service_telemedicina">Telemedicina</h3>
+                <p data-i18n="service_telemedicina_desc">Consulta médica desde la comodidad de tu hogar por teléfono o videollamada.</p>
+                <span class="service-price">$25 - $30</span>
+            </div>
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h3 data-i18n="service_laser">Láser Dermatológico</h3>
+                <p data-i18n="service_laser_desc">Tratamientos con láser de última generación para diversas afecciones de la piel.</p>
+                <span class="service-price" data-i18n="price_from">Desde $150</span>
+            </div>
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                </div>
+                <h3 data-i18n="service_rejuvenation">Rejuvenecimiento</h3>
+                <p data-i18n="service_rejuvenation_desc">Tratamientos estéticos para recuperar la juventud y luminosidad de tu piel.</p>
+                <span class="service-price" data-i18n="price_from">Desde $120</span>
+            </div>
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-shield-virus"></i>
+                </div>
+                <h3 data-i18n="service_acne">Tratamiento de Acné</h3>
+                <p data-i18n="service_acne_desc">Soluciones efectivas para controlar y eliminar el acné en todas sus formas.</p>
+                <span class="service-price" data-i18n="price_from">Desde $80</span>
+            </div>
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="fas fa-microscope"></i>
+                </div>
+                <h3 data-i18n="service_cancer">Detección de Cáncer de Piel</h3>
+                <p data-i18n="service_cancer_desc">Examen dermatoscópico completo para detección temprana de lesiones sospechosas.</p>
+                <span class="service-price" data-i18n="price_from">Desde $70</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Telemedicine Section -->
+    <section class="section section-light" id="telemedicina">
+        <div class="section-header">
+            <h2 class="section-title" data-i18n="telemedicine_title">Consulta desde cualquier lugar</h2>
+            <p class="section-subtitle" data-i18n="telemedicine_subtitle">Tres formas simples de conectarte con tu dermatólogo</p>
+        </div>
+        
+        <div class="telemedicine-options">
+            <!-- Phone Call -->
+            <div class="tele-card">
+                <div class="tele-icon phone">
+                    <i class="fas fa-phone-alt"></i>
+                </div>
+                <h3 data-i18n="tele_phone_title">Llamada Telefónica</h3>
+                <p data-i18n="tele_phone_desc">La forma más fácil. Toca el botón y habla directamente con el doctor desde tu teléfono.</p>
+                <ul class="tele-features">
+                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature1">Funciona en cualquier celular</span></li>
+                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature2">Sin internet necesario</span></li>
+                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature3">Perfecto para adultos mayores</span></li>
+                </ul>
+                <div class="tele-price">$25</div>
+                <a href="tel:+593982453672" class="btn btn-phone">
+                    <i class="fas fa-phone"></i>
+                    <span data-i18n="btn_call">Llamar Ahora</span>
+                </a>
+            </div>
+            
+            <!-- WhatsApp -->
+            <div class="tele-card featured">
+                <div class="tele-badge" data-i18n="badge_recommended">Recomendado</div>
+                <div class="tele-icon whatsapp">
+                    <i class="fab fa-whatsapp"></i>
+                </div>
+                <h3 data-i18n="tele_whatsapp_title">WhatsApp Video</h3>
+                <p data-i18n="tele_whatsapp_desc">Videollamada por WhatsApp. Si ya tienes WhatsApp instalado, es la opción más cómoda.</p>
+                <ul class="tele-features">
+                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature4">Videollamada HD</span></li>
+                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature5">Envía fotos de tu piel</span></li>
+                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature6">Chat incluido</span></li>
+                </ul>
+                <div class="tele-price">$30</div>
+                <a href="https://wa.me/593982453672?text=Hola%20doctor,%20solicito%20una%20videoconsulta" target="_blank" class="btn btn-whatsapp">
+                    <i class="fab fa-whatsapp"></i>
+                    <span data-i18n="btn_whatsapp">Abrir WhatsApp</span>
+                </a>
+            </div>
+            
+            <!-- Web Video -->
+            <div class="tele-card">
+                <div class="tele-icon video">
+                    <i class="fas fa-video"></i>
+                </div>
+                <h3 data-i18n="tele_web_title">Video desde Navegador</h3>
+                <p data-i18n="tele_web_desc">Sin instalar nada. Solo abre el enlace y permite acceso a tu cámara. Funciona en computadora o celular.</p>
+                <ul class="tele-features">
+                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature7">Sin apps ni registro</span></li>
+                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature8">Pantalla más grande</span></li>
+                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature9">Ideal para compartir pantalla</span></li>
+                </ul>
+                <div class="tele-price">$30</div>
+                <button class="btn btn-video" onclick="startWebVideo()">
+                    <i class="fas fa-video"></i>
+                    <span data-i18n="btn_video">Iniciar Video</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Callback Form -->
+        <div class="callback-box">
+            <div class="callback-content">
+                <div class="callback-icon">
+                    <i class="fas fa-headset"></i>
+                </div>
+                <h3 data-i18n="callback_title">¿Prefieres que te llamemos?</h3>
+                <p data-i18n="callback_desc">Déjanos tu número y el doctor te llamará en los próximos minutos.</p>
+                <form id="callbackForm" class="callback-form">
+                    <input type="tel" name="telefono" placeholder="+593 98 000 0000" required>
+                    <select name="preferencia" required>
+                        <option value="" data-i18n="callback_when">¿Cuándo prefieres?</option>
+                        <option value="ahora" data-i18n="callback_now">Lo antes posible</option>
+                        <option value="15min" data-i18n="callback_15min">En 15 minutos</option>
+                        <option value="30min" data-i18n="callback_30min">En 30 minutos</option>
+                        <option value="1hora" data-i18n="callback_1hour">En 1 hora</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i>
+                        <span data-i18n="btn_request">Solicitar Llamada</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Team Section -->
+    <section class="section section-dark" id="equipo">
+        <div class="section-header">
+            <h2 class="section-title" data-i18n="team_title">Nuestro Equipo</h2>
+            <p class="section-subtitle" data-i18n="team_subtitle">Especialistas dedicados al cuidado de tu piel</p>
+        </div>
+        <div class="team-grid">
+            <div class="team-card">
+                <div class="team-image">
+                    <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=500&h=600&fit=crop" alt="Dr. Javier Rosero">
+                    <div class="team-overlay">
+                        <div class="team-actions">
+                            <a href="tel:+593982453672" class="team-btn" title="Llamar">
+                                <i class="fas fa-phone"></i>
+                            </a>
+                            <a href="https://wa.me/593982453672?text=Hola%20Dr.%20Rosero" target="_blank" class="team-btn" title="WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="team-info">
+                    <h3>Dr. Javier Rosero</h3>
+                    <p class="team-role" data-i18n="role_dermatologo">Dermatólogo Clínico</p>
+                    <p class="team-desc" data-i18n="desc_rosero">15 años de experiencia en dermatología clínica y quirúrgica. Especialista en detección temprana de cáncer de piel.</p>
+                    <span class="team-status available">
+                        <i class="fas fa-circle"></i>
+                        <span data-i18n="status_available">Disponible hoy</span>
+                    </span>
+                </div>
+            </div>
+            
+            <div class="team-card">
+                <div class="team-image">
+                    <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=500&h=600&fit=crop" alt="Dra. Carolina Narváez">
+                    <div class="team-overlay">
+                        <div class="team-actions">
+                            <a href="tel:+593982453672" class="team-btn" title="Llamar">
+                                <i class="fas fa-phone"></i>
+                            </a>
+                            <a href="https://wa.me/593982453672?text=Hola%20Dra.%20Narváez" target="_blank" class="team-btn" title="WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="team-info">
+                    <h3>Dra. Carolina Narváez</h3>
+                    <p class="team-role" data-i18n="role_estetica">Dermatóloga Estética</p>
+                    <p class="team-desc" data-i18n="desc_narvaez">Especialista en rejuvenecimiento facial, láser dermatológico y tratamientos estéticos no invasivos.</p>
+                    <span class="team-status available">
+                        <i class="fas fa-circle"></i>
+                        <span data-i18n="status_available">Disponible hoy</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section class="section section-light" id="galeria">
+        <div class="section-header">
+            <h2 class="section-title" data-i18n="gallery_title">Resultados que hablan por sí solos</h2>
+            <p class="section-subtitle" data-i18n="gallery_subtitle">Transformaciones reales de nuestros pacientes</p>
+        </div>
+        
+        <!-- Gallery Filter -->
+        <div class="gallery-filter">
+            <button class="filter-btn active" data-filter="all" data-i18n="filter_all">Todos</button>
+            <button class="filter-btn" data-filter="acne" data-i18n="filter_acne">Acné</button>
+            <button class="filter-btn" data-filter="rejuvenecimiento" data-i18n="filter_rejuvenation">Rejuvenecimiento</button>
+            <button class="filter-btn" data-filter="laser" data-i18n="filter_laser">Láser</button>
+            <button class="filter-btn" data-filter="manchas" data-i18n="filter_spots">Manchas</button>
+        </div>
+        
+        <div class="gallery-grid">
+            <div class="gallery-item" data-category="acne">
+                <div class="ba-slider">
+                    <div class="ba-after" style="background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);">
+                        <span class="ba-label" data-i18n="label_after">Después</span>
+                    </div>
+                    <div class="ba-before" style="background: linear-gradient(135deg, #ff7043 0%, #d84315 100%);">
+                        <span class="ba-label" data-i18n="label_before">Antes</span>
+                    </div>
+                    <div class="ba-handle"></div>
+                </div>
+                <div class="gallery-info">
+                    <h4 data-i18n="case_acne">Tratamiento de Acné Severo</h4>
+                    <p data-i18n="case_acne_desc">6 meses de tratamiento combinado</p>
+                </div>
+            </div>
+            
+            <div class="gallery-item" data-category="rejuvenecimiento">
+                <div class="ba-slider">
+                    <div class="ba-after" style="background: linear-gradient(135deg, #81c784 0%, #4caf50 100%);">
+                        <span class="ba-label" data-i18n="label_after">Después</span>
+                    </div>
+                    <div class="ba-before" style="background: linear-gradient(135deg, #bcaaa4 0%, #8d6e63 100%);">
+                        <span class="ba-label" data-i18n="label_before">Antes</span>
+                    </div>
+                    <div class="ba-handle"></div>
+                </div>
+                <div class="gallery-info">
+                    <h4 data-i18n="case_rejuvenation">Rejuvenecimiento Facial</h4>
+                    <p data-i18n="case_rejuvenation_desc">Láser + peelings químicos</p>
+                </div>
+            </div>
+            
+            <div class="gallery-item" data-category="laser">
+                <div class="ba-slider">
+                    <div class="ba-after" style="background: linear-gradient(135deg, #64b5f6 0%, #1976d2 100%);">
+                        <span class="ba-label" data-i18n="label_after">Después</span>
+                    </div>
+                    <div class="ba-before" style="background: linear-gradient(135deg, #90a4ae 0%, #546e7a 100%);">
+                        <span class="ba-label" data-i18n="label_before">Antes</span>
+                    </div>
+                    <div class="ba-handle"></div>
+                </div>
+                <div class="gallery-info">
+                    <h4 data-i18n="case_laser">Tratamiento Láser</h4>
+                    <p data-i18n="case_laser_desc">Eliminación de lesiones vasculares</p>
+                </div>
+            </div>
+            
+            <div class="gallery-item" data-category="manchas">
+                <div class="ba-slider">
+                    <div class="ba-after" style="background: linear-gradient(135deg, #fff176 0%, #fdd835 100%);">
+                        <span class="ba-label" data-i18n="label_after">Después</span>
+                    </div>
+                    <div class="ba-before" style="background: linear-gradient(135deg, #a1887f 0%, #6d4c41 100%);">
+                        <span class="ba-label" data-i18n="label_before">Antes</span>
+                    </div>
+                    <div class="ba-handle"></div>
+                </div>
+                <div class="gallery-info">
+                    <h4 data-i18n="case_spots">Eliminación de Manchas</h4>
+                    <p data-i18n="case_spots_desc">Tratamiento despigmentante</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Clinic Location Section -->
+    <section class="section section-gray" id="consultorio">
+        <div class="clinic-container">
+            <div class="clinic-info">
+                <h2 class="section-title" data-i18n="clinic_title">Nuestro Consultorio</h2>
+                <p class="clinic-desc" data-i18n="clinic_desc">
+                    Ubicados en el corazón de Quito, contamos con instalaciones modernas y equipamiento de última generación para brindarte la mejor atención.
+                </p>
+                
+                <div class="clinic-details">
+                    <div class="clinic-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <div>
+                            <strong data-i18n="clinic_address_label">Dirección</strong>
+                            <p>Valparaíso 13-183 y Sodiro, Quito, Ecuador</p>
+                        </div>
+                    </div>
+                    <div class="clinic-item">
+                        <i class="fas fa-clock"></i>
+                        <div>
+                            <strong data-i18n="clinic_hours_label">Horario de Atención</strong>
+                            <p data-i18n="clinic_hours">Lunes - Viernes: 9:00 - 18:00<br>Sábados: 9:00 - 13:00</p>
+                        </div>
+                    </div>
+                    <div class="clinic-item">
+                        <i class="fas fa-phone"></i>
+                        <div>
+                            <strong data-i18n="clinic_phone_label">Teléfono</strong>
+                            <p>+593 98 245 3672</p>
+                        </div>
+                    </div>
+                    <div class="clinic-item">
+                        <i class="fas fa-parking"></i>
+                        <div>
+                            <strong data-i18n="clinic_parking_label">Estacionamiento</strong>
+                            <p data-i18n="clinic_parking">Estacionamiento privado disponible</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <a href="https://maps.google.com/?q=-0.212374,-78.486501" target="_blank" class="btn btn-primary">
+                    <i class="fas fa-directions"></i>
+                    <span data-i18n="btn_directions">Cómo llegar</span>
+                </a>
+            </div>
+            
+            <div class="clinic-map">
+                <iframe 
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3989.792!2d-78.486501!3d-0.212374!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMMKwMTInNDQuNSJTIDc4wrAyOScxMS40Ilc!5e0!3m2!1ses!2sec!4v1234567890"
+                    width="100%" 
+                    height="100%" 
+                    style="border:0; border-radius: 24px;" 
+                    allowfullscreen="" 
+                    loading="lazy" 
+                    referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
+            </div>
+        </div>
+    </section>
+
+    <!-- Reviews Section -->
+    <section class="section section-light" id="resenas">
+        <div class="section-header">
+            <h2 class="section-title" data-i18n="reviews_title">Lo que dicen nuestros pacientes</h2>
+            <div class="rating-header">
+                <span class="rating-number">4.9</span>
+                <div class="rating-stars">
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star-half-alt"></i>
+                </div>
+                <span class="rating-count" data-i18n="reviews_count">500+ consultas atendidas</span>
+            </div>
+        </div>
+        
+        <div class="reviews-grid">
+            <div class="review-card">
+                <div class="review-header">
+                    <div class="review-avatar">ML</div>
+                    <div class="review-meta">
+                        <h4>María L.</h4>
+                        <div class="review-stars">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                    </div>
+                    <i class="fas fa-check-circle verified"></i>
+                </div>
+                <p class="review-text" data-i18n="review_1">"Soy señora de 78 años y pude llamar al doctor sin problemas. Muy amable y profesional. Me resolvió todas mis dudas sobre mi piel."</p>
+                <span class="review-date">Hace 2 días</span>
+            </div>
+            
+            <div class="review-card">
+                <div class="review-header">
+                    <div class="review-avatar">CR</div>
+                    <div class="review-meta">
+                        <h4>Carlos R.</h4>
+                        <div class="review-stars">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                    </div>
+                    <i class="fas fa-check-circle verified"></i>
+                </div>
+                <p class="review-text" data-i18n="review_2">"La videollamada por WhatsApp fue súper fácil. No tuve que instalar nada nuevo. El doctor fue muy paciente y me explicó todo detalladamente."</p>
+                <span class="review-date">Hace 5 días</span>
+            </div>
+            
+            <div class="review-card">
+                <div class="review-header">
+                    <div class="review-avatar">AP</div>
+                    <div class="review-meta">
+                        <h4>Ana P.</h4>
+                        <div class="review-stars">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                    </div>
+                    <i class="fas fa-check-circle verified"></i>
+                </div>
+                <p class="review-text" data-i18n="review_3">"Solicité que me llamaran y en 10 minutos el doctor me contactó. Excelente servicio. Mi acné ha mejorado notablemente."</p>
+                <span class="review-date">Hace 1 semana</span>
+            </div>
+        </div>
+        
+        <div class="reviews-actions">
+            <button class="btn btn-secondary" onclick="openReviewModal()">
+                <i class="fas fa-pen"></i>
+                <span data-i18n="btn_write_review">Escribir Reseña</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- Appointment Section -->
+    <section class="section section-dark" id="citas">
+        <div class="appointment-container">
+            <div class="appointment-info">
+                <h2 class="section-title" data-i18n="appointment_title">Reserva tu Cita</h2>
+                <p class="appointment-desc" data-i18n="appointment_desc">
+                    Agenda tu consulta de forma rápida y sencilla. Selecciona el tipo de servicio, el doctor de tu preferencia y la fecha que más te convenga.
+                </p>
+                
+                <div class="appointment-benefits">
+                    <div class="benefit-item">
+                        <i class="fas fa-calendar-check"></i>
+                        <span data-i18n="benefit_1">Confirmación inmediata</span>
+                    </div>
+                    <div class="benefit-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <span data-i18n="benefit_2">Pago seguro</span>
+                    </div>
+                    <div class="benefit-item">
+                        <i class="fas fa-sync"></i>
+                        <span data-i18n="benefit_3">Reprogramación gratuita</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="appointment-form-container">
+                <form id="appointmentForm" class="appointment-form">
+                    <h3 data-i18n="form_title">Nueva Cita</h3>
+                    
+                    <div class="form-group">
+                        <label data-i18n="label_service">Tipo de Consulta</label>
+                        <select name="service" id="serviceSelect" required>
+                            <option value="" data-i18n="select_service">Selecciona un servicio</option>
+                            <option value="consulta" data-price="40" data-i18n="opt_consulta">Consulta Dermatológica - $40</option>
+                            <option value="telefono" data-price="25" data-i18n="opt_telefono">Consulta Telefónica - $25</option>
+                            <option value="video" data-price="30" data-i18n="opt_video">Video Consulta - $30</option>
+                            <option value="laser" data-price="150" data-i18n="opt_laser">Tratamiento Láser - desde $150</option>
+                            <option value="rejuvenecimiento" data-price="120" data-i18n="opt_rejuvenation">Rejuvenecimiento - desde $120</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label data-i18n="label_doctor">Doctor</label>
+                        <select name="doctor" required>
+                            <option value="" data-i18n="select_doctor">Selecciona un doctor</option>
+                            <option value="rosero" data-i18n="opt_rosero">Dr. Javier Rosero - Dermatólogo Clínico</option>
+                            <option value="narvaez" data-i18n="opt_narvaez">Dra. Carolina Narváez - Dermatóloga Estética</option>
+                            <option value="indiferente" data-i18n="opt_any">Primera disponible</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label data-i18n="label_date">Fecha</label>
+                            <input type="date" name="date" required>
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="label_time">Hora</label>
+                            <select name="time" required>
+                                <option value="" data-i18n="select_time">Hora</option>
+                                <option value="09:00">09:00</option>
+                                <option value="10:00">10:00</option>
+                                <option value="11:00">11:00</option>
+                                <option value="12:00">12:00</option>
+                                <option value="15:00">15:00</option>
+                                <option value="16:00">16:00</option>
+                                <option value="17:00">17:00</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label data-i18n="label_name">Nombre completo</label>
+                        <input type="text" name="name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label data-i18n="label_email">Email</label>
+                        <input type="email" name="email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label data-i18n="label_phone">Teléfono</label>
+                        <input type="tel" name="phone" required>
+                    </div>
+                    
+                    <div class="price-summary" id="priceSummary" style="display: none;">
+                        <div class="price-row">
+                            <span data-i18n="summary_subtotal">Subtotal</span>
+                            <span id="subtotalPrice">$0.00</span>
+                        </div>
+                        <div class="price-row">
+                            <span data-i18n="summary_iva">IVA (12%)</span>
+                            <span id="ivaPrice">$0.00</span>
+                        </div>
+                        <div class="price-row total">
+                            <span data-i18n="summary_total">Total</span>
+                            <span id="totalPrice">$0.00</span>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-calendar-check"></i>
+                        <span data-i18n="btn_continue">Continuar al Pago</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <i class="fas fa-spa"></i>
+                <span>Piel en Armonía</span>
+            </div>
+            <p class="footer-tagline" data-i18n="footer_tagline">Dermatología especializada en Quito</p>
+            
+            <div class="footer-links">
+                <a href="#servicios" data-i18n="nav_services">Servicios</a>
+                <a href="#telemedicina" data-i18n="nav_telemedicine">Telemedicina</a>
+                <a href="#equipo" data-i18n="nav_team">Equipo</a>
+                <a href="#galeria" data-i18n="nav_gallery">Resultados</a>
+                <a href="#consultorio" data-i18n="nav_clinic">Consultorio</a>
+                <a href="#citas" data-i18n="nav_book">Reservar</a>
+            </div>
+            
+            <div class="footer-contact">
+                <a href="tel:+593982453672">
+                    <i class="fas fa-phone"></i>
+                    +593 98 245 3672
+                </a>
+                <a href="https://wa.me/593982453672" target="_blank">
+                    <i class="fab fa-whatsapp"></i>
+                    WhatsApp
+                </a>
+            </div>
+            
+            <div class="footer-social">
+                <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 Piel en Armonía. <span data-i18n="footer_rights">Todos los derechos reservados.</span></p>
+        </div>
+    </footer>
+
+    <!-- Video Options Modal -->
+    <div class="modal" id="videoModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeVideoModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <h3 data-i18n="video_modal_title">Elige cómo quieres hacer la videollamada:</h3>
+            
+            <a href="https://meet.jit.si/PielEnArmonia-Consulta" target="_blank" class="video-option">
+                <div class="video-option-icon" style="background: #1a73e8;">
+                    <i class="fas fa-video"></i>
+                </div>
+                <div class="video-option-info">
+                    <h4 data-i18n="video_jitsi">Jitsi Meet (Recomendado)</h4>
+                    <p data-i18n="video_jitsi_desc">Sin registro. Funciona en cualquier navegador.</p>
+                </div>
+                <i class="fas fa-external-link-alt"></i>
+            </a>
+            
+            <a href="https://wa.me/593982453672?text=Hola%20doctor,%20solicito%20videoconsulta" target="_blank" class="video-option">
+                <div class="video-option-icon" style="background: #25d366;">
+                    <i class="fab fa-whatsapp"></i>
+                </div>
+                <div class="video-option-info">
+                    <h4 data-i18n="video_whatsapp">WhatsApp Video</h4>
+                    <p data-i18n="video_whatsapp_desc">Usa la app de WhatsApp que ya tienes.</p>
+                </div>
+                <i class="fas fa-external-link-alt"></i>
+            </a>
+            
+            <div class="video-tip">
+                <i class="fas fa-info-circle"></i>
+                <p data-i18n="video_tip">Después de abrir la videollamada, comparte el enlace o ID con el doctor por WhatsApp.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div class="modal" id="paymentModal">
+        <div class="modal-content payment-modal">
+            <button class="modal-close" onclick="closePaymentModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <h3 data-i18n="payment_title">Método de Pago</h3>
+            
+            <div class="payment-methods">
+                <div class="payment-method active" data-method="card">
+                    <i class="fas fa-credit-card"></i>
+                    <span data-i18n="pay_card">Tarjeta</span>
+                </div>
+                <div class="payment-method" data-method="transfer">
+                    <i class="fas fa-university"></i>
+                    <span data-i18n="pay_transfer">Transferencia</span>
+                </div>
+                <div class="payment-method" data-method="cash">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span data-i18n="pay_cash">Efectivo</span>
+                </div>
+            </div>
+            
+            <div class="payment-details" id="paymentDetails">
+                <!-- Card Payment -->
+                <div class="payment-form card-form">
+                    <div class="form-group">
+                        <label data-i18n="label_card_number">Número de tarjeta</label>
+                        <input type="text" placeholder="0000 0000 0000 0000">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label data-i18n="label_expiry">Vencimiento</label>
+                            <input type="text" placeholder="MM/AA">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="label_cvv">CVV</label>
+                            <input type="text" placeholder="123">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="label_card_name">Nombre en la tarjeta</label>
+                        <input type="text">
+                    </div>
+                </div>
+                
+                <!-- Transfer Payment -->
+                <div class="payment-form transfer-form" style="display: none;">
+                    <div class="bank-info">
+                        <p><strong data-i18n="bank_name">Banco Pichincha</strong></p>
+                        <p data-i18n="bank_account">Cuenta de Ahorros: 1234567890</p>
+                        <p data-i18n="bank_owner">Titular: Dra. Cecilio Caiza e hijas</p>
+                        <p data-i18n="bank_ruc">RUC: 1234567890001</p>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="label_transfer_ref">Número de referencia</label>
+                        <input type="text" placeholder="Ej: 123456">
+                    </div>
+                </div>
+                
+                <!-- Cash Payment -->
+                <div class="payment-form cash-form" style="display: none;">
+                    <p data-i18n="cash_info">Paga directamente en el consultorio el día de tu cita.</p>
+                </div>
+            </div>
+            
+            <div class="payment-summary">
+                <div class="payment-total">
+                    <span data-i18n="payment_total">Total a pagar:</span>
+                    <span id="paymentTotal">$0.00</span>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary btn-full" onclick="processPayment()">
+                <i class="fas fa-lock"></i>
+                <span data-i18n="btn_pay">Pagar Ahora</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal" id="successModal">
+        <div class="modal-content success-content">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h3 data-i18n="success_title">¡Cita Confirmada!</h3>
+            <p data-i18n="success_desc">Hemos enviado los detalles de tu cita a tu email.</p>
+            <div id="appointmentDetails"></div>
+            <button class="btn btn-primary" onclick="closeSuccessModal()">
+                <span data-i18n="btn_done">Entendido</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Chatbot Widget -->
+    <div class="chatbot-widget" id="chatbotWidget">
+        <button class="chatbot-toggle" onclick="toggleChatbot()" aria-label="Abrir chat">
+            <i class="fas fa-comments"></i>
+            <span class="chatbot-notification" id="chatNotification">1</span>
+        </button>
+        
+        <div class="chatbot-container" id="chatbotContainer">
+            <div class="chatbot-header">
+                <div class="chatbot-avatar">
+                    <i class="fas fa-user-md"></i>
+                </div>
+                <div class="chatbot-info">
+                    <h4>Dr. Virtual</h4>
+                    <span class="chatbot-status">
+                        <i class="fas fa-circle"></i>
+                        En línea
+                    </span>
+                </div>
+                <div class="chatbot-actions">
+                    <button onclick="minimizeChatbot()" aria-label="Minimizar">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <button onclick="toggleChatbot()" aria-label="Cerrar">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="chatbot-messages" id="chatMessages">
+                <div class="chat-message bot">
+                    <div class="message-avatar">
+                        <i class="fas fa-user-md"></i>
+                    </div>
+                    <div class="message-content">
+                        <p>¡Hola! Soy el asistente virtual de <strong>Piel en Armonía</strong>. 🩺</p>
+                        <p>¿En qué puedo ayudarte hoy?</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chatbot-quick-options" id="quickOptions">
+                <button onclick="sendQuickMessage('services')">Ver servicios</button>
+                <button onclick="sendQuickMessage('appointment')">Agendar cita</button>
+                <button onclick="sendQuickMessage('prices')">Consultar precios</button>
+                <button onclick="sendQuickMessage('human')">Hablar con humano</button>
+            </div>
+            
+            <div class="chatbot-input-area">
+                <input type="text" id="chatInput" placeholder="Escribe tu mensaje..." onkeypress="handleChatKeypress(event)">
+                <button onclick="sendChatMessage()" aria-label="Enviar">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Modal -->
+    <div class="modal" id="reviewModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeReviewModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <h3 data-i18n="review_modal_title">Escribe tu Reseña</h3>
+            <form id="reviewForm">
+                <div class="form-group">
+                    <label data-i18n="label_your_name">Tu nombre</label>
+                    <input type="text" name="reviewerName" required>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="label_rating">Calificación</label>
+                    <div class="star-rating">
+                        <i class="far fa-star" data-rating="1"></i>
+                        <i class="far fa-star" data-rating="2"></i>
+                        <i class="far fa-star" data-rating="3"></i>
+                        <i class="far fa-star" data-rating="4"></i>
+                        <i class="far fa-star" data-rating="5"></i>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="label_review">Tu experiencia</label>
+                    <textarea name="reviewText" rows="4" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">
+                    <span data-i18n="btn_submit_review">Publicar Reseña</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script-simple.js"></script>
+</body>
+</html>

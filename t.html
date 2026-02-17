@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Chat</title>
+</head>
+<body style="padding:20px;font-family:Arial;">
+    <h2>Chat Bot</h2>
+    <div id="chat" style="border:1px solid #ccc;height:300px;overflow:auto;padding:10px;margin-bottom:10px;"></div>
+    <input id="msg" type="text" style="width:70%;padding:8px;" placeholder="Escribe...">
+    <button onclick="send()" style="padding:8px 15px;">Enviar</button>
+
+<script>
+// Configuracion
+var API_KEY = 'sk-kimi-lMIpVZxWGocfNOqaKO68Ws54Gi2lBuiFHkyBRA7VlCDWVeW0PWUAup1fUucHjHLZ';
+
+function log(text) {
+    var chat = document.getElementById('chat');
+    chat.innerHTML += '<div style="margin:5px 0;">' + text + '</div>';
+    chat.scrollTop = chat.scrollHeight;
+}
+
+function send() {
+    var input = document.getElementById('msg');
+    var text = input.value.trim();
+    if (!text) return;
+    
+    log('<b style="color:blue;">Tu:</b> ' + text);
+    input.value = '';
+    log('<i>Cargando...</i>');
+    
+    // Intentar directo a Kimi (probablemente falle por CORS)
+    fetch('https://api.moonshot.cn/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + API_KEY
+        },
+        body: JSON.stringify({
+            model: 'moonshot-v1-8k',
+            messages: [
+                {role: 'system', content: 'Eres util.'},
+                {role: 'user', content: text}
+            ]
+        })
+    })
+    .then(function(r) {
+        return r.json().then(function(data) {
+            // Quitar "Cargando..."
+            var chat = document.getElementById('chat');
+            var divs = chat.getElementsByTagName('div');
+            for (var i = divs.length - 1; i >= 0; i--) {
+                if (divs[i].innerHTML === '<i>Cargando...</i>') {
+                    divs[i].remove();
+                    break;
+                }
+            }
+            
+            if (data.choices && data.choices[0]) {
+                log('<b>Bot:</b> ' + data.choices[0].message.content.replace(/\n/g, '<br>'));
+            } else if (data.error) {
+                log('<b style="color:red;">Error: ' + data.error.message + '</b>');
+                // Si falla CORS, usar respuesta local
+                respuestaLocal(text);
+            } else {
+                log('<b style="color:red;">Error inesperado</b>');
+                respuestaLocal(text);
+            }
+        });
+    })
+    .catch(function(e) {
+        // Quitar "Cargando..."
+        var chat = document.getElementById('chat');
+        var divs = chat.getElementsByTagName('div');
+        for (var i = divs.length - 1; i >= 0; i--) {
+            if (divs[i].innerHTML === '<i>Cargando...</i>') {
+                divs[i].remove();
+                break;
+            }
+        }
+        
+        log('<b style="color:red;">Error de conexion (CORS). Usando modo offline.</b>');
+        respuestaLocal(text);
+    });
+}
+
+function respuestaLocal(text) {
+    var m = text.toLowerCase();
+    var r = '';
+    
+    if (m.indexOf('hola') !== -1) r = 'Hola! Como puedo ayudarte?';
+    else if (m.indexOf('precio') !== -1) r = 'Precios: Consulta $40, Telefonica $25, Video $30, Laser desde $150.';
+    else if (m.indexOf('cita') !== -1) r = 'Agenda al WhatsApp: +593 98 245 3672';
+    else if (m.indexOf('ubicacion') !== -1) r = 'Valparaiso 13-183 y Sodiro, Quito. Horario: Lun-Vie 9-18, Sab 9-13.';
+    else r = 'Para mas informacion, contactanos al +593 98 245 3672 o por WhatsApp.';
+    
+    log('<b>Bot:</b> ' + r);
+}
+
+log('<b>Bot:</b> Hola! Escribe tu mensaje...');
+</script>
+</body>
+</html>
