@@ -9,6 +9,7 @@ Sube estos archivos a la raiz del hosting (`public_html` o equivalente):
 - `styles-deferred.css`
 - `script.js`
 - `chat-engine.js`
+- `booking-engine.js`
 - `translations-en.js`
 - `terminos.html`
 - `privacidad.html`
@@ -35,6 +36,7 @@ Sube estos archivos a la raiz del hosting (`public_html` o equivalente):
 Notas:
 - El frontend ahora consume `figo-chat.php` para el chatbot IA.
 - El motor pesado del chat se carga en diferido desde `chat-engine.js`.
+- El flujo de reserva/pago se carga en diferido desde `booking-engine.js`.
 - El CSS se divide en `styles.css` (critico) y `styles-deferred.css` (diferido).
 - Las traducciones EN se cargan bajo demanda desde `translations-en.js`.
 - Si ya existe `figo-chat.php` en tu servidor, mantenlo publicado.

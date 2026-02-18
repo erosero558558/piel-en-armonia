@@ -10,6 +10,7 @@ Fecha de ejecucion sugerida: completar al desplegar.
 - `styles-deferred.css`
 - `script.js`
 - `chat-engine.js`
+- `booking-engine.js`
 - `translations-en.js`
 - `terminos.html`
 - `privacidad.html`

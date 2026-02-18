@@ -1,5 +1,5 @@
 window.PIEL_EN_TRANSLATIONS = {
-        brand: "Piel en ArmonÃ­a",
+        brand: "Piel en Armonía",
         nav_home: "Home",
         nav_services: "Services",
         nav_telemedicine: "Telemedicine",
@@ -137,7 +137,7 @@ window.PIEL_EN_TRANSLATIONS = {
         label_doctor: "Doctor",
         select_doctor: "Select a doctor",
         opt_rosero: "Dr. Javier Rosero - Clinical Dermatologist",
-        opt_narvaez: "Dr. Carolina NarvÃ¡ez - Aesthetic Dermatologist",
+        opt_narvaez: "Dr. Carolina Narváez - Aesthetic Dermatologist",
         opt_any: "First available",
         label_date: "Date",
         label_time: "Time",

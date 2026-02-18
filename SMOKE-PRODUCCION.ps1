@@ -51,6 +51,19 @@ $translationsEnAssetUrl = if ($translationsEnVersion -ne '') {
     "$base/translations-en.js"
 }
 
+$bookingEngineVersion = ''
+if (Test-Path 'script.js') {
+    $bookingEngineMatch = [regex]::Match($scriptLocalRaw, "booking-engine\.js\?v=([a-zA-Z0-9._-]+)")
+    if ($bookingEngineMatch.Success) {
+        $bookingEngineVersion = $bookingEngineMatch.Groups[1].Value
+    }
+}
+$bookingEngineAssetUrl = if ($bookingEngineVersion -ne '') {
+    "$base/booking-engine.js?v=$bookingEngineVersion"
+} else {
+    "$base/booking-engine.js"
+}
+
 function Invoke-Check {
     param(
         [string]$Name,
@@ -205,6 +218,7 @@ $results += Invoke-Check -Name 'Figo backend GET' -Url "$base/figo-backend.php"
 $results += Invoke-Check -Name 'Chat engine asset' -Url $chatEngineAssetUrl
 $results += Invoke-Check -Name 'Deferred styles asset' -Url $deferredStylesAssetUrl
 $results += Invoke-Check -Name 'EN translations asset' -Url $translationsEnAssetUrl
+$results += Invoke-Check -Name 'Booking engine asset' -Url $bookingEngineAssetUrl
 
 if ($TestFigoPost) {
     $figoPayload = @{
@@ -234,6 +248,7 @@ $expectedStatusByName = @{
     'Chat engine asset' = 200
     'Deferred styles asset' = 200
     'EN translations asset' = 200
+    'Booking engine asset' = 200
 }
 if ($TestFigoPost) {
     $expectedStatusByName['Figo chat POST'] = 200

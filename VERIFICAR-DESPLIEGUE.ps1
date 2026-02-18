@@ -192,6 +192,17 @@ $translationsEnRemoteUrl = if ($translationsEnVersion -ne '') {
     "$base/translations-en.js"
 }
 
+$bookingEngineVersion = ''
+$bookingEngineMatch = [regex]::Match($localScriptTextForRefs, "booking-engine\.js\?v=([a-zA-Z0-9._-]+)")
+if ($bookingEngineMatch.Success) {
+    $bookingEngineVersion = $bookingEngineMatch.Groups[1].Value
+}
+$bookingEngineRemoteUrl = if ($bookingEngineVersion -ne '') {
+    "$base/booking-engine.js?v=$bookingEngineVersion"
+} else {
+    "$base/booking-engine.js"
+}
+
 if ([regex]::IsMatch($remoteIndexRaw, '\son[a-z]+\s*=', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
     Write-Host "[FAIL] index remoto contiene event handlers inline (on*)"
     $results += [PSCustomObject]@{
@@ -271,6 +282,11 @@ $checks = @(
         Name = 'translations-en.js'
         LocalPath = 'translations-en.js'
         RemoteUrl = $translationsEnRemoteUrl
+    },
+    [PSCustomObject]@{
+        Name = 'booking-engine.js'
+        LocalPath = 'booking-engine.js'
+        RemoteUrl = $bookingEngineRemoteUrl
     }
 )
 foreach ($item in $checks) {
