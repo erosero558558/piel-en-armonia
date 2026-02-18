@@ -658,11 +658,11 @@ async function loadAvailabilityData() {
     return availabilityCache;
 }
 
-async function getBookedSlots(date) {
+async function getBookedSlots(date, doctor = '') {
     try {
-        const payload = await apiRequest('booked-slots', {
-            query: { date: date }
-        });
+        const query = { date: date };
+        if (doctor) query.doctor = doctor;
+        const payload = await apiRequest('booked-slots', { query });
         return Array.isArray(payload.data) ? payload.data : [];
     } catch (error) {
         if (!LOCAL_FALLBACK_ENABLED) {
@@ -670,7 +670,14 @@ async function getBookedSlots(date) {
         }
         const appointments = storageGetJSON('appointments', []);
         return appointments
-            .filter(a => a.date === date && a.status !== 'cancelled')
+            .filter(a => {
+                if (a.date !== date || a.status === 'cancelled') return false;
+                if (doctor && doctor !== 'indiferente') {
+                    const aDoc = a.doctor || '';
+                    if (aDoc && aDoc !== 'indiferente' && aDoc !== doctor) return false;
+                }
+                return true;
+            })
             .map(a => a.time);
     }
 }
@@ -981,6 +988,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const totalEl = document.getElementById('totalPrice');
     const dateInput = document.querySelector('input[name="date"]');
     const timeSelect = document.querySelector('select[name="time"]');
+    const doctorSelect = document.querySelector('select[name="doctor"]');
     const appointmentForm = document.getElementById('appointmentForm');
 
     if (!serviceSelect || !priceSummary || !subtotalEl || !ivaEl || !totalEl || !appointmentForm) {
@@ -1010,12 +1018,17 @@ document.addEventListener('DOMContentLoaded', function() {
         dateInput.addEventListener('change', () => updateAvailableTimes().catch(() => undefined));
     }
 
+    if (doctorSelect) {
+        doctorSelect.addEventListener('change', () => updateAvailableTimes().catch(() => undefined));
+    }
+
     async function updateAvailableTimes() {
         const selectedDate = dateInput?.value;
         if (!selectedDate || !timeSelect) return;
 
+        const selectedDoctor = doctorSelect?.value || '';
         const availability = await loadAvailabilityData();
-        const bookedSlots = await getBookedSlots(selectedDate);
+        const bookedSlots = await getBookedSlots(selectedDate, selectedDoctor);
         const availableSlots = availability[selectedDate] || DEFAULT_TIME_SLOTS;
         const freeSlots = availableSlots.filter(slot => !bookedSlots.includes(slot));
 
@@ -1058,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 price: totalEl.textContent
             };
 
-            const bookedSlots = await getBookedSlots(appointment.date);
+            const bookedSlots = await getBookedSlots(appointment.date, appointment.doctor);
             if (bookedSlots.includes(appointment.time)) {
                 showToast('Este horario ya fue reservado. Por favor selecciona otro.', 'error');
                 await updateAvailableTimes();
@@ -2222,7 +2235,7 @@ async function processChatBookingStep(userInput) {
             showTypingIndicator();
             try {
                 const availability = await loadAvailabilityData();
-                const booked = await getBookedSlots(input);
+                const booked = await getBookedSlots(input, chatBooking.doctor || '');
                 let allSlots = availability[input] && availability[input].length > 0
                     ? availability[input]
                     : ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
