@@ -1749,141 +1749,128 @@ async function processPayment() {
 }
 
 // ========================================
-// SUCCESS MODAL
+// SUCCESS MODAL (DEFERRED MODULE)
 // ========================================
-function showSuccessModal(emailSent = false) {
-    const modal = document.getElementById('successModal');
-    const appointment = currentAppointment || {};
-    const detailsDiv = document.getElementById('appointmentDetails');
-    const successDesc = modal.querySelector('[data-i18n="success_desc"]');
+const SUCCESS_MODAL_ENGINE_URL = '/success-modal-engine.js?v=figo-success-modal-20260218-phase1';
+let successModalEnginePromise = null;
 
-    if (successDesc) {
-        if (emailSent) {
-            successDesc.textContent = currentLang === 'es'
-                ? 'Enviamos un correo de confirmacion con los detalles de tu cita.'
-                : 'A confirmation email with your appointment details was sent.';
-        } else {
-            successDesc.textContent = currentLang === 'es'
-                ? 'Tu cita fue registrada. Te contactaremos para confirmar detalles.'
-                : 'Your appointment was saved. We will contact you to confirm details.';
-        }
+function getSuccessModalEngineDeps() {
+    return {
+        getCurrentLang: () => currentLang,
+        getCurrentAppointment: () => currentAppointment,
+        getClinicAddress: () => CLINIC_ADDRESS,
+        escapeHtml
+    };
+}
+
+function loadSuccessModalEngine() {
+    if (window.PielSuccessModalEngine && typeof window.PielSuccessModalEngine.init === 'function') {
+        window.PielSuccessModalEngine.init(getSuccessModalEngineDeps());
+        return Promise.resolve(window.PielSuccessModalEngine);
     }
-    
-    // Generate Google Calendar link
-    const startDate = new Date(`${appointment.date}T${appointment.time}`);
-    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour duration
-    
-    const googleCalendarUrl = generateGoogleCalendarUrl(appointment, startDate, endDate);
-    const icsContent = generateICS(appointment, startDate, endDate);
-    const icsBlob = new Blob([icsContent], { type: 'text/calendar' });
-    const icsUrl = URL.createObjectURL(icsBlob);
-    
-    detailsDiv.innerHTML = `
-        <div style="background: #f5f5f7; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: left;">
-            <p style="margin-bottom: 8px;"><strong>${currentLang === 'es' ? 'Doctor:' : 'Doctor:'}</strong> ${escapeHtml(getDoctorName(appointment.doctor))}</p>
-            <p style="margin-bottom: 8px;"><strong>${currentLang === 'es' ? 'Fecha:' : 'Date:'}</strong> ${escapeHtml(appointment.date || '-')}</p>
-            <p style="margin-bottom: 8px;"><strong>${currentLang === 'es' ? 'Hora:' : 'Time:'}</strong> ${escapeHtml(appointment.time || '-')}</p>
-            <p style="margin-bottom: 8px;"><strong>${currentLang === 'es' ? 'Pago:' : 'Payment:'}</strong> ${escapeHtml(getPaymentMethodLabel(appointment.paymentMethod))} - ${escapeHtml(getPaymentStatusLabel(appointment.paymentStatus))}</p>
-            <p><strong>${currentLang === 'es' ? 'Total:' : 'Total:'}</strong> ${escapeHtml(appointment.price || '$0.00')}</p>
-        </div>
-        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-            <a href="${googleCalendarUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex: 1;">
-                <i class="fab fa-google"></i> Google Calendar
-            </a>
-            <a href="${icsUrl}" download="cita-piel-en-armonia.ics" class="btn btn-secondary" style="flex: 1;">
-                <i class="fas fa-calendar-alt"></i> Outlook/Apple
-            </a>
-        </div>
-    `;
-    
-    modal.classList.add('active');
+
+    if (successModalEnginePromise) {
+        return successModalEnginePromise;
+    }
+
+    successModalEnginePromise = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-success-modal-engine="true"]');
+        if (existing) {
+            existing.addEventListener('load', () => {
+                if (window.PielSuccessModalEngine && typeof window.PielSuccessModalEngine.init === 'function') {
+                    window.PielSuccessModalEngine.init(getSuccessModalEngineDeps());
+                    resolve(window.PielSuccessModalEngine);
+                    return;
+                }
+                reject(new Error('success-modal-engine loaded without API'));
+            }, { once: true });
+            existing.addEventListener('error', () => reject(new Error('No se pudo cargar success-modal-engine.js')), { once: true });
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = SUCCESS_MODAL_ENGINE_URL;
+        script.async = true;
+        script.defer = true;
+        script.dataset.successModalEngine = 'true';
+        script.onload = () => {
+            if (window.PielSuccessModalEngine && typeof window.PielSuccessModalEngine.init === 'function') {
+                window.PielSuccessModalEngine.init(getSuccessModalEngineDeps());
+                resolve(window.PielSuccessModalEngine);
+                return;
+            }
+            reject(new Error('success-modal-engine loaded without API'));
+        };
+        script.onerror = () => reject(new Error('No se pudo cargar success-modal-engine.js'));
+        document.head.appendChild(script);
+    }).catch((error) => {
+        successModalEnginePromise = null;
+        debugLog('Success modal engine load failed:', error);
+        throw error;
+    });
+
+    return successModalEnginePromise;
 }
 
-function getDoctorName(doctor) {
-    const names = {
-        rosero: 'Dr. Javier Rosero',
-        narvaez: 'Dra. Carolina Narváez',
-        indiferente: 'Primera disponible'
+function initSuccessModalEngineWarmup() {
+    let warmed = false;
+    const warmup = () => {
+        if (warmed || window.location.protocol === 'file:') {
+            return;
+        }
+        warmed = true;
+        loadSuccessModalEngine().catch(() => {
+            warmed = false;
+        });
     };
-    return names[doctor] || doctor;
-}
 
-function getPaymentMethodLabel(method) {
-    const map = {
-        card: currentLang === 'es' ? 'Tarjeta' : 'Card',
-        transfer: currentLang === 'es' ? 'Transferencia' : 'Transfer',
-        cash: currentLang === 'es' ? 'Efectivo' : 'Cash',
-        unpaid: currentLang === 'es' ? 'Pendiente' : 'Pending'
+    const bindWarmup = (selector, eventName, passive = true) => {
+        const element = document.querySelector(selector);
+        if (!element) {
+            return;
+        }
+        element.addEventListener(eventName, warmup, { once: true, passive });
     };
-    const key = String(method || '').toLowerCase();
-    return map[key] || (method || map.unpaid);
+
+    bindWarmup('#appointmentForm button[type="submit"]', 'pointerdown');
+    bindWarmup('#appointmentForm button[type="submit"]', 'focus', false);
+    bindWarmup('.payment-method', 'pointerdown');
+
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const isConstrainedNetwork = !!(connection && (
+        connection.saveData === true
+        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
+    ));
+
+    if (isConstrainedNetwork) {
+        return;
+    }
+
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(warmup, { timeout: 2800 });
+    } else {
+        setTimeout(warmup, 1600);
+    }
 }
 
-function getPaymentStatusLabel(status) {
-    const es = {
-        paid: 'Pagado',
-        pending_cash: 'Pago en consultorio',
-        pending_transfer_review: 'Comprobante en validacion',
-        pending_transfer: 'Transferencia pendiente',
-        pending_gateway: 'Procesando pago',
-        pending: 'Pendiente',
-        failed: 'Fallido'
-    };
-    const en = {
-        paid: 'Paid',
-        pending_cash: 'Pay at clinic',
-        pending_transfer_review: 'Proof under review',
-        pending_transfer: 'Transfer pending',
-        pending_gateway: 'Processing payment',
-        pending: 'Pending',
-        failed: 'Failed'
-    };
-    const key = String(status || '').toLowerCase();
-    const map = currentLang === 'es' ? es : en;
-    return map[key] || (status || map.pending);
-}
-
-function generateGoogleCalendarUrl(appointment, startDate, endDate) {
-    const formatDate = (date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    
-    const title = encodeURIComponent(`Cita - Piel en Armonía`);
-    const details = encodeURIComponent(`Servicio: ${getServiceName(appointment.service)}\nDoctor: ${getDoctorName(appointment.doctor)}\nPrecio: ${appointment.price}`);
-    const location = encodeURIComponent(CLINIC_ADDRESS);
-    
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${formatDate(startDate)}/${formatDate(endDate)}&details=${details}&location=${location}`;
-}
-
-function generateICS(appointment, startDate, endDate) {
-    const formatICSDate = (date) => date.toISOString().replace(/[-:]/g, '').split('.')[0];
-    
-    return `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Piel en Armonía//Consulta//ES
-BEGIN:VEVENT
-DTSTART:${formatICSDate(startDate)}
-DTEND:${formatICSDate(endDate)}
-SUMMARY:Cita - Piel en Armonía
-DESCRIPTION:Servicio: ${getServiceName(appointment.service)}\\nDoctor: ${getDoctorName(appointment.doctor)}\\nPrecio: ${appointment.price}
-LOCATION:${CLINIC_ADDRESS}
-END:VEVENT
-END:VCALENDAR`;
-}
-
-function getServiceName(service) {
-    const names = {
-        consulta: 'Consulta Dermatológica',
-        telefono: 'Consulta Telefónica',
-        video: 'Video Consulta',
-        laser: 'Tratamiento Láser',
-        rejuvenecimiento: 'Rejuvenecimiento'
-    };
-    return names[service] || service;
+function showSuccessModal(emailSent = false) {
+    loadSuccessModalEngine().then((engine) => {
+        engine.showSuccessModal(emailSent);
+    }).catch(() => {
+        showToast('No se pudo abrir la confirmacion de cita.', 'error');
+    });
 }
 
 function closeSuccessModal() {
     const modal = document.getElementById('successModal');
-    modal.classList.remove('active');
+    if (modal) {
+        modal.classList.remove('active');
+    }
     document.body.style.overflow = '';
+
+    loadSuccessModalEngine().then((engine) => {
+        engine.closeSuccessModal();
+    }).catch(() => undefined);
 }
 
 // ========================================
@@ -2675,6 +2662,13 @@ function finalizeChatBooking() {
     return loadChatBookingEngine().then((engine) => engine.finalizeChatBooking());
 }
 
+function isChatBookingActive() {
+    if (window.PielChatBookingEngine && typeof window.PielChatBookingEngine.isActive === 'function') {
+        return window.PielChatBookingEngine.isActive();
+    }
+    return false;
+}
+
 // ========================================
 // INTEGRACION CON BOT DEL SERVIDOR (DEFERRED)
 // ========================================
@@ -3027,6 +3021,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initChatBookingEngineWarmup();
     initUiEffectsWarmup();
     initRescheduleEngineWarmup();
+    initSuccessModalEngineWarmup();
     const chatInput = document.getElementById('chatInput');
     if (chatInput) {
         chatInput.addEventListener('keypress', handleChatKeypress);

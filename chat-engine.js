@@ -13,7 +13,7 @@ async function processWithKimi(message) {
     }
 
     // Si hay un booking en curso, desviar al flujo conversacional
-    if (chatBooking !== null) {
+    if (typeof isChatBookingActive === 'function' && isChatBookingActive()) {
         await processChatBookingStep(message);
         return;
     }

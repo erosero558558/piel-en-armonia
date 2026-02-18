@@ -467,8 +467,13 @@
         return window.PielChatBookingEngine;
     }
 
+    function isActive() {
+        return chatBooking !== null;
+    }
+
     window.PielChatBookingEngine = {
         init,
+        isActive,
         startChatBooking,
         cancelChatBooking,
         handleChatBookingSelection,

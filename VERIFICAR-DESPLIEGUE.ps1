@@ -331,6 +331,17 @@ $chatBookingEngineRemoteUrl = if ($chatBookingEngineVersion -ne '') {
     "$base/chat-booking-engine.js"
 }
 
+$successModalEngineVersion = ''
+$successModalEngineMatch = [regex]::Match($localScriptTextForRefs, "success-modal-engine\.js\?v=([a-zA-Z0-9._-]+)")
+if ($successModalEngineMatch.Success) {
+    $successModalEngineVersion = $successModalEngineMatch.Groups[1].Value
+}
+$successModalEngineRemoteUrl = if ($successModalEngineVersion -ne '') {
+    "$base/success-modal-engine.js?v=$successModalEngineVersion"
+} else {
+    "$base/success-modal-engine.js"
+}
+
 if ([regex]::IsMatch($remoteIndexRaw, '\son[a-z]+\s*=', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
     Write-Host "[FAIL] index remoto contiene event handlers inline (on*)"
     $results += [PSCustomObject]@{
@@ -440,6 +451,11 @@ $checks = @(
         Name = 'chat-booking-engine.js'
         LocalPath = 'chat-booking-engine.js'
         RemoteUrl = $chatBookingEngineRemoteUrl
+    },
+    [PSCustomObject]@{
+        Name = 'success-modal-engine.js'
+        LocalPath = 'success-modal-engine.js'
+        RemoteUrl = $successModalEngineRemoteUrl
     }
 )
 foreach ($item in $checks) {
