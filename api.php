@@ -13,6 +13,11 @@ function api_elapsed_ms(float $startedAt): int
 
 function api_resolve_figo_endpoint_for_health(): string
 {
+    static $resolved = null;
+    if (is_string($resolved)) {
+        return $resolved;
+    }
+
     $envCandidates = [
         getenv('FIGO_CHAT_ENDPOINT'),
         getenv('FIGO_CHAT_URL'),
@@ -29,7 +34,8 @@ function api_resolve_figo_endpoint_for_health(): string
 
     foreach ($envCandidates as $candidate) {
         if (is_string($candidate) && trim($candidate) !== '') {
-            return trim($candidate);
+            $resolved = trim($candidate);
+            return $resolved;
         }
     }
 
@@ -42,6 +48,8 @@ function api_resolve_figo_endpoint_for_health(): string
     $configCandidates[] = data_dir_path() . DIRECTORY_SEPARATOR . 'figo-config.json';
     $configCandidates[] = __DIR__ . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'figo-config.json';
     $configCandidates[] = __DIR__ . DIRECTORY_SEPARATOR . 'figo-config.json';
+
+    $configCandidates = array_values(array_unique($configCandidates));
 
     foreach ($configCandidates as $path) {
         if (!is_string($path) || $path === '' || !is_file($path)) {
@@ -62,12 +70,14 @@ function api_resolve_figo_endpoint_for_health(): string
         ];
         foreach ($fileCandidates as $candidate) {
             if (is_string($candidate) && trim($candidate) !== '') {
-                return trim($candidate);
+                $resolved = trim($candidate);
+                return $resolved;
             }
         }
     }
 
-    return '';
+    $resolved = '';
+    return $resolved;
 }
 
 function api_is_figo_recursive_config(string $endpoint): bool
