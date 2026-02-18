@@ -1,12 +1,12 @@
 /**
- * PIEL EN ARMONÍA - Apple Design
+ * PIEL EN ARMONï¿½A - Apple Design
  * Todas las funcionalidades integradas
  * 
  * Incluye:
  * - Toast notifications
  * - Loading states
  * - Exportar a calendario
- * - Validación de disponibilidad
+ * - Validaciï¿½n de disponibilidad
  */
 
 // ========================================
@@ -33,10 +33,10 @@ function showToast(message, type = 'info', title = '') {
     };
     
     const titles = {
-        success: title || 'Éxito',
+        success: title || 'ï¿½xito',
         error: title || 'Error',
         warning: title || 'Advertencia',
-        info: title || 'Información'
+        info: title || 'Informaciï¿½n'
     };
     
     // Escapar mensaje para prevenir XSS
@@ -192,6 +192,19 @@ function bindWarmupTarget(selector, eventName, handler, passive = true) {
     return true;
 }
 
+function createOnceTask(task) {
+    let executed = false;
+
+    return function runOnce() {
+        if (executed) {
+            return;
+        }
+
+        executed = true;
+        task();
+    };
+}
+
 function createWarmupRunner(loadFn, options = {}) {
     const markWarmOnSuccess = options.markWarmOnSuccess === true;
     let warmed = false;
@@ -250,7 +263,23 @@ function observeOnceWhenVisible(element, onVisible, options = {}) {
     return true;
 }
 
+function withDeferredModule(loader, onReady) {
+    return Promise.resolve()
+        .then(() => loader())
+        .then((module) => onReady(module));
+}
+
+function runDeferredModule(loader, onReady, onError) {
+    return withDeferredModule(loader, onReady).catch((error) => {
+        if (typeof onError === 'function') {
+            return onError(error);
+        }
+        return undefined;
+    });
+}
+
 const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260218-deferred2';
+
 let deferredStylesheetPromise = null;
 let deferredStylesheetInitDone = false;
 
@@ -438,7 +467,7 @@ const DEFAULT_PUBLIC_REVIEWS = [
         id: 'google-jose-gancino',
         name: 'Jose Gancino',
         rating: 5,
-        text: 'Buena atención solo falta los números de la oficina y horarios de atención.',
+        text: 'Buena atenciï¿½n solo falta los nï¿½meros de la oficina y horarios de atenciï¿½n.',
         date: '2025-10-01T10:00:00-05:00',
         verified: true
     },
@@ -446,7 +475,7 @@ const DEFAULT_PUBLIC_REVIEWS = [
         id: 'google-jacqueline-ruiz-torres',
         name: 'Jacqueline Ruiz Torres',
         rating: 5,
-        text: 'Exelente atención y económico ðŸ™ðŸ¤—ðŸ‘Œ',
+        text: 'Exelente atenciï¿½n y econï¿½mico ðŸ™ðŸ¤—ðŸ‘Œ',
         date: '2025-04-15T10:00:00-05:00',
         verified: true
     },
@@ -1668,12 +1697,14 @@ function initBookingUiWarmup() {
 // PAYMENT MODAL
 // ========================================
 function openPaymentModal(appointmentData) {
-    loadBookingEngine().then(engine => {
-        engine.openPaymentModal(appointmentData);
-    }).catch(error => {
-        debugLog('openPaymentModal fallback error:', error);
-        showToast('No se pudo abrir el modulo de pago.', 'error');
-    });
+    runDeferredModule(
+        loadBookingEngine,
+        (engine) => engine.openPaymentModal(appointmentData),
+        (error) => {
+            debugLog('openPaymentModal fallback error:', error);
+            showToast('No se pudo abrir el modulo de pago.', 'error');
+        }
+    );
 }
 
 function closePaymentModal(options = {}) {
@@ -1705,13 +1736,14 @@ function getActivePaymentMethod() {
 }
 
 async function processPayment() {
-    try {
-        const engine = await loadBookingEngine();
-        return engine.processPayment();
-    } catch (error) {
-        debugLog('processPayment error:', error);
-        showToast('No se pudo procesar el pago en este momento.', 'error');
-    }
+    return runDeferredModule(
+        loadBookingEngine,
+        (engine) => engine.processPayment(),
+        (error) => {
+            debugLog('processPayment error:', error);
+            showToast('No se pudo procesar el pago en este momento.', 'error');
+        }
+    );
 }
 
 // ========================================
@@ -1756,11 +1788,13 @@ function initSuccessModalEngineWarmup() {
 }
 
 function showSuccessModal(emailSent = false) {
-    loadSuccessModalEngine().then((engine) => {
-        engine.showSuccessModal(emailSent);
-    }).catch(() => {
-        showToast('No se pudo abrir la confirmacion de cita.', 'error');
-    });
+    runDeferredModule(
+        loadSuccessModalEngine,
+        (engine) => engine.showSuccessModal(emailSent),
+        () => {
+            showToast('No se pudo abrir la confirmacion de cita.', 'error');
+        }
+    );
 }
 
 function closeSuccessModal() {
@@ -1770,9 +1804,7 @@ function closeSuccessModal() {
     }
     document.body.style.overflow = '';
 
-    loadSuccessModalEngine().then((engine) => {
-        engine.closeSuccessModal();
-    }).catch(() => undefined);
+    runDeferredModule(loadSuccessModalEngine, (engine) => engine.closeSuccessModal());
 }
 
 // ========================================
@@ -1834,15 +1866,17 @@ function initEngagementFormsEngineWarmup() {
 }
 
 function openReviewModal() {
-    loadEngagementFormsEngine().then((engine) => {
-        engine.openReviewModal();
-    }).catch(() => {
-        const modal = document.getElementById('reviewModal');
-        if (modal) {
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
+    runDeferredModule(
+        loadEngagementFormsEngine,
+        (engine) => engine.openReviewModal(),
+        () => {
+            const modal = document.getElementById('reviewModal');
+            if (modal) {
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
         }
-    });
+    );
 }
 
 function closeReviewModal() {
@@ -1852,9 +1886,7 @@ function closeReviewModal() {
     }
     document.body.style.overflow = '';
 
-    loadEngagementFormsEngine().then((engine) => {
-        engine.closeReviewModal();
-    }).catch(() => undefined);
+    runDeferredModule(loadEngagementFormsEngine, (engine) => engine.closeReviewModal());
 }
 
 // MODAL CLOSE HANDLERS (DEFERRED MODULE)
@@ -1957,7 +1989,7 @@ let chatHistory = (function() {
 })();
 let conversationContext = [];
 
-// CONFIGURACIÓN DE CHAT
+// CONFIGURACIï¿½N DE CHAT
 const KIMI_CONFIG = {
     apiUrl: '/figo-chat.php',
     model: 'figo-assistant',
@@ -1981,46 +2013,46 @@ function shouldUseRealAI() {
 }
 
 // Contexto del sistema para el asistente
-const SYSTEM_PROMPT = `Eres el Dr. Virtual, asistente inteligente de la clínica dermatológica "Piel en Armonía" en Quito, Ecuador.
+const SYSTEM_PROMPT = `Eres el Dr. Virtual, asistente inteligente de la clï¿½nica dermatolï¿½gica "Piel en Armonï¿½a" en Quito, Ecuador.
 
-INFORMACIÓN DE LA CLÍNICA:
-- Nombre: Piel en Armonía
-- Doctores: Dr. Javier Rosero (Dermatólogo Clínico) y Dra. Carolina Narváez (Dermatóloga Estética)
-- Dirección: ${CLINIC_ADDRESS}
-- Teléfono/WhatsApp: +593 98 245 3672
+INFORMACIï¿½N DE LA CLï¿½NICA:
+- Nombre: Piel en Armonï¿½a
+- Doctores: Dr. Javier Rosero (Dermatï¿½logo Clï¿½nico) y Dra. Carolina Narvï¿½ez (Dermatï¿½loga Estï¿½tica)
+- Direcciï¿½n: ${CLINIC_ADDRESS}
+- Telï¿½fono/WhatsApp: +593 98 245 3672
 - Contacto Dra. Carolina: ${DOCTOR_CAROLINA_PHONE} | ${DOCTOR_CAROLINA_EMAIL}
-- Horario: Lunes-Viernes 9:00-18:00, Sábados 9:00-13:00
+- Horario: Lunes-Viernes 9:00-18:00, Sï¿½bados 9:00-13:00
 - Estacionamiento privado disponible
 
 SERVICIOS Y PRECIOS:
-- Consulta Dermatológica: $40 (incluye IVA)
-- Consulta Telefónica: $25
+- Consulta Dermatolï¿½gica: $40 (incluye IVA)
+- Consulta Telefï¿½nica: $25
 - Video Consulta: $30
-- Tratamiento Láser: desde $150
+- Tratamiento Lï¿½ser: desde $150
 - Rejuvenecimiento: desde $120
-- Tratamiento de Acné: desde $80
-- Detección de Cáncer de Piel: desde $70
+- Tratamiento de Acnï¿½: desde $80
+- Detecciï¿½n de Cï¿½ncer de Piel: desde $70
 
 OPCIONES DE CONSULTA ONLINE:
-1. Llamada telefónica: tel:+593982453672
+1. Llamada telefï¿½nica: tel:+593982453672
 2. WhatsApp Video: https://wa.me/593982453672
 3. Video Web (Jitsi): https://meet.jit.si/PielEnArmonia-Consulta
 
 INSTRUCCIONES:
-- Sé profesional, amable y empático
-- Responde en español (o en el idioma que use el paciente)
-- Si el paciente tiene síntomas graves o emergencias, recomienda acudir a urgencias
-- Para agendar citas, dirige al formulario web, WhatsApp o llamada telefónica
-- Si no sabes algo específico, ofrece transferir al doctor real
-- No hagas diagnósticos médicos definitivos, solo orientación general
+- Sï¿½ profesional, amable y empï¿½tico
+- Responde en espaï¿½ol (o en el idioma que use el paciente)
+- Si el paciente tiene sï¿½ntomas graves o emergencias, recomienda acudir a urgencias
+- Para agendar citas, dirige al formulario web, WhatsApp o llamada telefï¿½nica
+- Si no sabes algo especï¿½fico, ofrece transferir al doctor real
+- No hagas diagnï¿½sticos mï¿½dicos definitivos, solo orientaciï¿½n general
 - Usa emojis ocasionalmente para ser amigable
-- Mantén respuestas concisas pero informativas
+- Mantï¿½n respuestas concisas pero informativas
 
 Tu objetivo es ayudar a los pacientes a:
-1. Conocer los servicios de la clínica
+1. Conocer los servicios de la clï¿½nica
 2. Entender los precios
 3. Agendar citas
-4. Resolver dudas básicas sobre dermatología
+4. Resolver dudas bï¿½sicas sobre dermatologï¿½a
 5. Conectar con un doctor real cuando sea necesario`;
 
 function toggleChatbot() {
@@ -2048,23 +2080,23 @@ function toggleChatbot() {
             var welcomeMsg;
             
             if (usandoIA) {
-                welcomeMsg = '¡Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonía</strong>.<br><br>';
+                welcomeMsg = 'ï¿½Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonï¿½a</strong>.<br><br>';
                 welcomeMsg += '<strong>Conectado con Inteligencia Artificial</strong><br><br>';
-                welcomeMsg += 'Puedo ayudarte con información detallada sobre:<br>';
-                welcomeMsg += '• Nuestros servicios dermatologicos<br>';
-                welcomeMsg += '• Precios de consultas y tratamientos<br>';
-                welcomeMsg += '• Agendar citas presenciales o online<br>';
-                welcomeMsg += '• Ubicacion y horarios de atencion<br>';
-                welcomeMsg += '• Resolver tus dudas sobre cuidado de la piel<br><br>';
-                welcomeMsg += '¿En que puedo ayudarte hoy?';
+                welcomeMsg += 'Puedo ayudarte con informaciï¿½n detallada sobre:<br>';
+                welcomeMsg += 'ï¿½ Nuestros servicios dermatologicos<br>';
+                welcomeMsg += 'ï¿½ Precios de consultas y tratamientos<br>';
+                welcomeMsg += 'ï¿½ Agendar citas presenciales o online<br>';
+                welcomeMsg += 'ï¿½ Ubicacion y horarios de atencion<br>';
+                welcomeMsg += 'ï¿½ Resolver tus dudas sobre cuidado de la piel<br><br>';
+                welcomeMsg += 'ï¿½En que puedo ayudarte hoy?';
             } else {
-                welcomeMsg = '¡Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonía</strong>.<br><br>';
-                welcomeMsg += 'Puedo ayudarte con información sobre:<br>';
-                welcomeMsg += '• Nuestros servicios dermatologicos<br>';
-                welcomeMsg += '• Precios de consultas y tratamientos<br>';
-                welcomeMsg += '• Agendar citas presenciales o online<br>';
-                welcomeMsg += '• Ubicacion y horarios de atencion<br><br>';
-                welcomeMsg += '¿En que puedo ayudarte hoy?';
+                welcomeMsg = 'ï¿½Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonï¿½a</strong>.<br><br>';
+                welcomeMsg += 'Puedo ayudarte con informaciï¿½n sobre:<br>';
+                welcomeMsg += 'ï¿½ Nuestros servicios dermatologicos<br>';
+                welcomeMsg += 'ï¿½ Precios de consultas y tratamientos<br>';
+                welcomeMsg += 'ï¿½ Agendar citas presenciales o online<br>';
+                welcomeMsg += 'ï¿½ Ubicacion y horarios de atencion<br><br>';
+                welcomeMsg += 'ï¿½En que puedo ayudarte hoy?';
             }
             
             addBotMessage(welcomeMsg);
@@ -2121,13 +2153,13 @@ function sendQuickMessage(type) {
     }
 
     const messages = {
-        services: '¿Qué servicios ofrecen?',
-        prices: '¿Cuáles son los precios?',
-        telemedicine: '¿Cómo funciona la consulta online?',
+        services: 'ï¿½Quï¿½ servicios ofrecen?',
+        prices: 'ï¿½Cuï¿½les son los precios?',
+        telemedicine: 'ï¿½Cï¿½mo funciona la consulta online?',
         human: 'Quiero hablar con un doctor real',
-        acne: 'Tengo problemas de acné',
-        laser: 'Información sobre tratamientos láser',
-        location: '¿Dónde están ubicados?'
+        acne: 'Tengo problemas de acnï¿½',
+        laser: 'Informaciï¿½n sobre tratamientos lï¿½ser',
+        location: 'ï¿½Dï¿½nde estï¿½n ubicados?'
     };
 
     const message = messages[type] || type;
@@ -2150,7 +2182,7 @@ function addUserMessage(text) {
     chatHistory.push({ type: 'user', text, time: new Date().toISOString() });
     try { localStorage.setItem('chatHistory', JSON.stringify(chatHistory)); } catch(e) {}
 
-    // Agregar al contexto de conversación (evitar duplicados)
+    // Agregar al contexto de conversaciï¿½n (evitar duplicados)
     const lastMsg = conversationContext[conversationContext.length - 1];
     if (!lastMsg || lastMsg.role !== 'user' || lastMsg.content !== text) {
         conversationContext.push({ role: 'user', content: text });
@@ -2227,7 +2259,7 @@ function addBotMessage(html, showOfflineLabel = false) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'chat-message bot';
     
-    // Solo mostrar indicador offline si se solicita explícitamente (para debug)
+    // Solo mostrar indicador offline si se solicita explï¿½citamente (para debug)
     const offlineIndicator = showOfflineLabel ? 
         `<div style="font-size: 0.7rem; color: #86868b; margin-bottom: 4px; opacity: 0.7;">
             <i class="fas fa-robot"></i> Asistente Virtual
@@ -2406,27 +2438,33 @@ function initChatBookingEngineWarmup() {
 }
 
 function startChatBooking() {
-    loadChatBookingEngine().then((engine) => {
-        engine.startChatBooking();
-    }).catch(() => {
-        addBotMessage('No pude iniciar la reserva por chat. Puedes continuar desde <a href="#citas" data-action="minimize-chat">el formulario</a>.');
-    });
+    runDeferredModule(
+        loadChatBookingEngine,
+        (engine) => engine.startChatBooking(),
+        () => {
+            addBotMessage('No pude iniciar la reserva por chat. Puedes continuar desde <a href="#citas" data-action="minimize-chat">el formulario</a>.');
+        }
+    );
 }
 
 function cancelChatBooking() {
-    loadChatBookingEngine().then((engine) => {
-        engine.cancelChatBooking();
-    }).catch(() => {
-        addBotMessage('No se pudo cancelar la reserva en este momento.');
-    });
+    runDeferredModule(
+        loadChatBookingEngine,
+        (engine) => engine.cancelChatBooking(),
+        () => {
+            addBotMessage('No se pudo cancelar la reserva en este momento.');
+        }
+    );
 }
 
 function handleChatBookingSelection(value) {
-    loadChatBookingEngine().then((engine) => {
-        engine.handleChatBookingSelection(value);
-    }).catch(() => {
-        addBotMessage('No pude procesar esa opcion. Intenta nuevamente.');
-    });
+    runDeferredModule(
+        loadChatBookingEngine,
+        (engine) => engine.handleChatBookingSelection(value),
+        () => {
+            addBotMessage('No pude procesar esa opcion. Intenta nuevamente.');
+        }
+    );
 }
 
 function handleChatDateSelect(value) {
@@ -2434,19 +2472,21 @@ function handleChatDateSelect(value) {
         return;
     }
 
-    loadChatBookingEngine().then((engine) => {
-        engine.handleChatDateSelect(value);
-    }).catch(() => {
-        addBotMessage('No pude procesar esa fecha. Intenta nuevamente.');
-    });
+    runDeferredModule(
+        loadChatBookingEngine,
+        (engine) => engine.handleChatDateSelect(value),
+        () => {
+            addBotMessage('No pude procesar esa fecha. Intenta nuevamente.');
+        }
+    );
 }
 
 function processChatBookingStep(userInput) {
-    return loadChatBookingEngine().then((engine) => engine.processChatBookingStep(userInput));
+    return withDeferredModule(loadChatBookingEngine, (engine) => engine.processChatBookingStep(userInput));
 }
 
 function finalizeChatBooking() {
-    return loadChatBookingEngine().then((engine) => engine.finalizeChatBooking());
+    return withDeferredModule(loadChatBookingEngine, (engine) => engine.finalizeChatBooking());
 }
 
 function isChatBookingActive() {
@@ -2517,30 +2557,31 @@ function initUiEffectsWarmup() {
     });
 }
 async function processWithKimi(message) {
-    try {
-        const engine = await loadFigoChatEngine();
-        return engine.processWithKimi(message);
-    } catch (error) {
-        console.error('Error cargando motor de chat:', error);
-        removeTypingIndicator();
-        addBotMessage('No se pudo iniciar el asistente en este momento. Intenta de nuevo o escríbenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.', false);
-    }
+    return runDeferredModule(
+        loadFigoChatEngine,
+        (engine) => engine.processWithKimi(message),
+        (error) => {
+            console.error('Error cargando motor de chat:', error);
+            removeTypingIndicator();
+            addBotMessage('No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.', false);
+        }
+    );
 }
 
 function resetConversation() {
-    loadFigoChatEngine().then(engine => engine.resetConversation()).catch(() => {
+    runDeferredModule(loadFigoChatEngine, (engine) => engine.resetConversation(), () => {
         showToast('No se pudo reiniciar la conversacion.', 'warning');
     });
 }
 
 function forzarModoIA() {
-    loadFigoChatEngine().then(engine => engine.forzarModoIA()).catch(() => {
+    runDeferredModule(loadFigoChatEngine, (engine) => engine.forzarModoIA(), () => {
         showToast('No se pudo activar modo IA.', 'warning');
     });
 }
 
 function mostrarInfoDebug() {
-    loadFigoChatEngine().then(engine => engine.mostrarInfoDebug()).catch(() => {
+    runDeferredModule(loadFigoChatEngine, (engine) => engine.mostrarInfoDebug(), () => {
         showToast('No se pudo mostrar informacion de debug.', 'warning');
     });
 }
@@ -2562,7 +2603,7 @@ setTimeout(() => {
     }
 }, 30000);
 // ========================================
-// REPROGRAMACIÓN ONLINE
+// REPROGRAMACION ONLINE
 // ========================================
 const RESCHEDULE_ENGINE_URL = '/reschedule-engine.js?v=figo-reschedule-20260218-phase4';
 
@@ -2599,20 +2640,21 @@ function initRescheduleEngineWarmup() {
         return;
     }
 
-    loadRescheduleEngine()
-        .then((engine) => engine.checkRescheduleParam())
-        .catch(() => {
+    runDeferredModule(
+        loadRescheduleEngine,
+        (engine) => engine.checkRescheduleParam(),
+        () => {
             showToast(currentLang === 'es' ? 'No se pudo cargar la reprogramacion.' : 'Unable to load reschedule flow.', 'error');
-        });
+        }
+    );
 }
 
 async function checkRescheduleParam() {
-    const engine = await loadRescheduleEngine();
-    return engine.checkRescheduleParam();
+    return withDeferredModule(loadRescheduleEngine, (engine) => engine.checkRescheduleParam());
 }
 
 function openRescheduleModal(appt) {
-    loadRescheduleEngine().then((engine) => engine.openRescheduleModal(appt)).catch(() => undefined);
+    runDeferredModule(loadRescheduleEngine, (engine) => engine.openRescheduleModal(appt));
 }
 
 function closeRescheduleModal() {
@@ -2621,49 +2663,63 @@ function closeRescheduleModal() {
         modal.classList.remove('active');
     }
 
-    loadRescheduleEngine().then((engine) => engine.closeRescheduleModal()).catch(() => undefined);
+    runDeferredModule(loadRescheduleEngine, (engine) => engine.closeRescheduleModal());
 }
 
 function loadRescheduleSlots() {
-    return loadRescheduleEngine().then((engine) => engine.loadRescheduleSlots()).catch(() => undefined);
+    return runDeferredModule(loadRescheduleEngine, (engine) => engine.loadRescheduleSlots());
 }
 
 function submitReschedule() {
-    loadRescheduleEngine().then((engine) => engine.submitReschedule()).catch(() => {
+    runDeferredModule(loadRescheduleEngine, (engine) => engine.submitReschedule(), () => {
         showToast(currentLang === 'es' ? 'No se pudo reprogramar en este momento.' : 'Unable to reschedule right now.', 'error');
     });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     initDeferredStylesheetLoading();
-    initEnglishBundleWarmup();
-    initBookingEngineWarmup();
-    initBookingUiWarmup();
     initThemeMode();
     changeLanguage(currentLang);
     initCookieBanner();
     initGA4();
     initBookingFunnelObserver();
     initDeferredSectionPrefetch();
-    initGalleryInteractionsWarmup();
-    initChatEngineWarmup();
-    initChatBookingEngineWarmup();
-    initUiEffectsWarmup();
-    initRescheduleEngineWarmup();
-    initSuccessModalEngineWarmup();
-    initEngagementFormsEngineWarmup();
-    initModalUxEngineWarmup();
+
+    const initDeferredWarmups = createOnceTask(() => {
+        initEnglishBundleWarmup();
+        initBookingEngineWarmup();
+        initBookingUiWarmup();
+        initGalleryInteractionsWarmup();
+        initChatEngineWarmup();
+        initChatBookingEngineWarmup();
+        initUiEffectsWarmup();
+        initRescheduleEngineWarmup();
+        initSuccessModalEngineWarmup();
+        initEngagementFormsEngineWarmup();
+        initModalUxEngineWarmup();
+    });
+
+    window.addEventListener('pointerdown', initDeferredWarmups, { once: true, passive: true });
+    window.addEventListener('keydown', initDeferredWarmups, { once: true });
+
+    scheduleDeferredTask(initDeferredWarmups, {
+        idleTimeout: 1100,
+        fallbackDelay: 320,
+        skipOnConstrained: false,
+        constrainedDelay: 900
+    });
+
     const chatInput = document.getElementById('chatInput');
     if (chatInput) {
         chatInput.addEventListener('keypress', handleChatKeypress);
     }
+
     window.addEventListener('pagehide', () => {
         maybeTrackCheckoutAbandon('page_hide');
     });
-    const isServer = checkServerEnvironment();
 
+    const isServer = checkServerEnvironment();
     if (!isServer) {
         console.warn('Chatbot en modo offline: abre el sitio desde servidor para usar IA real.');
     }
 });
-
