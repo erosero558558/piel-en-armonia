@@ -679,6 +679,32 @@ function truncate_field(string $value, int $maxLength): string
     return mb_strlen($value) > $maxLength ? mb_substr($value, 0, $maxLength) : $value;
 }
 
+function normalize_string_list(mixed $value, int $maxItems = 5, int $maxLength = 300): array
+{
+    if (!is_array($value)) {
+        return [];
+    }
+
+    $result = [];
+    foreach ($value as $item) {
+        if (!is_scalar($item)) {
+            continue;
+        }
+
+        $text = truncate_field(trim((string) $item), $maxLength);
+        if ($text === '') {
+            continue;
+        }
+
+        $result[] = $text;
+        if (count($result) >= $maxItems) {
+            break;
+        }
+    }
+
+    return $result;
+}
+
 function normalize_review(array $review): array
 {
     $rating = isset($review['rating']) ? (int) $review['rating'] : 0;
@@ -767,6 +793,19 @@ function normalize_appointment(array $appointment): array
         $paymentStatus = 'pending';
     }
 
+    $privacyConsent = isset($appointment['privacyConsent']) ? parse_bool($appointment['privacyConsent']) : false;
+    $privacyConsentAtDefault = $privacyConsent ? local_date('c') : '';
+    $casePhotoNames = normalize_string_list($appointment['casePhotoNames'] ?? [], 3, 200);
+    $casePhotoUrls = normalize_string_list($appointment['casePhotoUrls'] ?? [], 3, 500);
+    $casePhotoPaths = normalize_string_list($appointment['casePhotoPaths'] ?? [], 3, 500);
+    $casePhotoCount = isset($appointment['casePhotoCount']) ? (int) $appointment['casePhotoCount'] : count($casePhotoUrls);
+    if ($casePhotoCount < 0) {
+        $casePhotoCount = 0;
+    }
+    if ($casePhotoCount > 3) {
+        $casePhotoCount = 3;
+    }
+
     return [
         'id' => isset($appointment['id']) ? (int) $appointment['id'] : (int) round(microtime(true) * 1000),
         'service' => truncate_field($service, 50),
@@ -776,6 +815,15 @@ function normalize_appointment(array $appointment): array
         'name' => truncate_field(trim((string) ($appointment['name'] ?? '')), 150),
         'email' => truncate_field(trim((string) ($appointment['email'] ?? '')), 254),
         'phone' => truncate_field(sanitize_phone((string) ($appointment['phone'] ?? '')), 20),
+        'reason' => truncate_field(trim((string) ($appointment['reason'] ?? '')), 1000),
+        'affectedArea' => truncate_field(trim((string) ($appointment['affectedArea'] ?? '')), 100),
+        'evolutionTime' => truncate_field(trim((string) ($appointment['evolutionTime'] ?? '')), 100),
+        'privacyConsent' => $privacyConsent,
+        'privacyConsentAt' => truncate_field(trim((string) ($appointment['privacyConsentAt'] ?? $privacyConsentAtDefault)), 30),
+        'casePhotoCount' => $casePhotoCount,
+        'casePhotoNames' => $casePhotoNames,
+        'casePhotoUrls' => $casePhotoUrls,
+        'casePhotoPaths' => $casePhotoPaths,
         'price' => get_service_total_price($service),
         'status' => map_appointment_status((string) ($appointment['status'] ?? 'confirmed')),
         'paymentMethod' => $paymentMethod,
@@ -867,6 +915,10 @@ function maybe_send_admin_notification(array $appointment): bool
     $body .= "Paciente: " . ($appointment['name'] ?? '-') . "\n";
     $body .= "Email: " . ($appointment['email'] ?? '-') . "\n";
     $body .= "Telefono: " . ($appointment['phone'] ?? '-') . "\n";
+    $body .= "Motivo: " . ($appointment['reason'] ?? '-') . "\n";
+    $body .= "Zona: " . ($appointment['affectedArea'] ?? '-') . "\n";
+    $body .= "Evolucion: " . ($appointment['evolutionTime'] ?? '-') . "\n";
+    $body .= "Consentimiento datos: " . ((isset($appointment['privacyConsent']) && $appointment['privacyConsent']) ? 'si' : 'no') . "\n";
     $body .= "Servicio: " . ($appointment['service'] ?? '-') . "\n";
     $body .= "Doctor: " . ($appointment['doctor'] ?? '-') . "\n";
     $body .= "Fecha: " . ($appointment['date'] ?? '-') . "\n";
@@ -874,6 +926,16 @@ function maybe_send_admin_notification(array $appointment): bool
     $body .= "Precio: " . ($appointment['price'] ?? '-') . "\n";
     $body .= "Metodo de pago: " . ($appointment['paymentMethod'] ?? '-') . "\n";
     $body .= "Estado de pago: " . ($appointment['paymentStatus'] ?? '-') . "\n";
+    $body .= "Fotos adjuntas: " . (int) ($appointment['casePhotoCount'] ?? 0) . "\n";
+    if (isset($appointment['casePhotoUrls']) && is_array($appointment['casePhotoUrls']) && count($appointment['casePhotoUrls']) > 0) {
+        $body .= "URLs de fotos:\n";
+        foreach ($appointment['casePhotoUrls'] as $photoUrl) {
+            $url = trim((string) $photoUrl);
+            if ($url !== '') {
+                $body .= "- " . $url . "\n";
+            }
+        }
+    }
     $body .= "\nFecha de registro: " . local_date('d/m/Y H:i') . "\n";
 
     $from = getenv('PIELARMONIA_EMAIL_FROM');

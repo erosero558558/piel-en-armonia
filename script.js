@@ -2728,6 +2728,7 @@ async function finalizeChatBooking() {
         name: chatBooking.name,
         email: chatBooking.email,
         phone: chatBooking.phone,
+        privacyConsent: true,
         price: chatBooking.price
     };
 
