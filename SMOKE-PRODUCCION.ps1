@@ -11,6 +11,43 @@ $ErrorActionPreference = 'Stop'
 $base = $Domain.TrimEnd('/')
 $tmpFile = Join-Path $env:TEMP 'pielarmonia-smoke-body.tmp'
 
+function Get-RefFromIndex {
+    param(
+        [string]$IndexHtml,
+        [string]$Pattern
+    )
+
+    $match = [regex]::Match($IndexHtml, $Pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    if (-not $match.Success) {
+        return ''
+    }
+    return $match.Groups[1].Value
+}
+
+function Get-Url {
+    param(
+        [string]$Base,
+        [string]$Ref
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Ref)) {
+        return ''
+    }
+    if ($Ref.StartsWith('http://') -or $Ref.StartsWith('https://')) {
+        return $Ref
+    }
+    if ($Ref.StartsWith('/')) {
+        return "$Base$Ref"
+    }
+    return "$Base/$Ref"
+}
+
+$indexLocalRaw = if (Test-Path 'index.html') { Get-Content -Path 'index.html' -Raw } else { '' }
+$localScriptRef = Get-RefFromIndex -IndexHtml $indexLocalRaw -Pattern '<script\s+src="([^"]*script\.js[^"]*)"'
+$localStyleRef = Get-RefFromIndex -IndexHtml $indexLocalRaw -Pattern '<link\s+rel="stylesheet"\s+href="([^"]*styles\.css[^"]*)"'
+$appScriptAssetUrl = if ($localScriptRef -ne '') { Get-Url -Base $base -Ref $localScriptRef } else { "$base/script.js" }
+$criticalCssAssetUrl = if ($localStyleRef -ne '') { Get-Url -Base $base -Ref $localStyleRef } else { "$base/styles.css" }
+
 $chatEngineVersion = ''
 if (Test-Path 'script.js') {
     $scriptLocalRaw = Get-Content -Path 'script.js' -Raw
@@ -219,6 +256,8 @@ $results += Invoke-Check -Name 'Chat engine asset' -Url $chatEngineAssetUrl
 $results += Invoke-Check -Name 'Deferred styles asset' -Url $deferredStylesAssetUrl
 $results += Invoke-Check -Name 'EN translations asset' -Url $translationsEnAssetUrl
 $results += Invoke-Check -Name 'Booking engine asset' -Url $bookingEngineAssetUrl
+$results += Invoke-Check -Name 'App script asset' -Url $appScriptAssetUrl
+$results += Invoke-Check -Name 'Critical CSS asset' -Url $criticalCssAssetUrl
 
 if ($TestFigoPost) {
     $figoPayload = @{
@@ -249,6 +288,8 @@ $expectedStatusByName = @{
     'Deferred styles asset' = 200
     'EN translations asset' = 200
     'Booking engine asset' = 200
+    'App script asset' = 200
+    'Critical CSS asset' = 200
 }
 if ($TestFigoPost) {
     $expectedStatusByName['Figo chat POST'] = 200
@@ -275,6 +316,42 @@ try {
     }
 } catch {
     Write-Host "[FAIL] No se pudieron validar headers de seguridad en Home"
+    $contractFailures += 1
+}
+
+try {
+    $assetHeaderChecks = @(
+        @{ Name = 'App script asset'; Url = $appScriptAssetUrl },
+        @{ Name = 'Critical CSS asset'; Url = $criticalCssAssetUrl }
+    )
+    foreach ($assetCheck in $assetHeaderChecks) {
+        $assetResp = Invoke-WebRequest -Uri $assetCheck.Url -Method GET -TimeoutSec 20 -UseBasicParsing -Headers @{
+            'Cache-Control' = 'no-cache'
+            'User-Agent' = 'PielArmoniaSmoke/1.0'
+        }
+        $cacheHeader = [string]$assetResp.Headers['Cache-Control']
+        if ([string]::IsNullOrWhiteSpace($cacheHeader) -or $cacheHeader -notmatch 'max-age') {
+            Write-Host "[FAIL] $($assetCheck.Name) sin Cache-Control con max-age"
+            $contractFailures += 1
+        }
+    }
+} catch {
+    Write-Host "[FAIL] No se pudieron validar headers de cache para assets estaticos"
+    $contractFailures += 1
+}
+
+try {
+    $apiHeaderResp = Invoke-WebRequest -Uri "$base/api.php?resource=health" -Method GET -TimeoutSec 20 -UseBasicParsing -Headers @{
+        'Cache-Control' = 'no-cache'
+        'User-Agent' = 'PielArmoniaSmoke/1.0'
+    }
+    $apiCacheHeader = [string]$apiHeaderResp.Headers['Cache-Control']
+    if ([string]::IsNullOrWhiteSpace($apiCacheHeader) -or $apiCacheHeader -notmatch 'no-store|no-cache') {
+        Write-Host "[FAIL] Health API sin politica no-store/no-cache"
+        $contractFailures += 1
+    }
+} catch {
+    Write-Host "[FAIL] No se pudo validar Cache-Control de Health API"
     $contractFailures += 1
 }
 

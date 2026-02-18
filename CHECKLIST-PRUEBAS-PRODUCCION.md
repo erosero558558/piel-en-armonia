@@ -181,6 +181,10 @@ Fecha de ejecucion sugerida: completar al desplegar.
 - `X-Content-Type-Options`
 - `Referrer-Policy`
 
+7. Verifica politica de cache:
+- assets estaticos versionados (`script.js`, `styles.css`, `chat-engine.js`, `booking-engine.js`) deben incluir `Cache-Control` con `max-age`.
+- `api.php?resource=health` debe incluir `Cache-Control` con `no-store`/`no-cache`.
+
 ## 9. Prueba de regresion rapida (5 min)
 
 Opcional automatizado (PowerShell):

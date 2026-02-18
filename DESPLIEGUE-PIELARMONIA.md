@@ -39,6 +39,7 @@ Notas:
 - El flujo de reserva/pago se carga en diferido desde `booking-engine.js`.
 - El CSS se divide en `styles.css` (critico) y `styles-deferred.css` (diferido).
 - Las traducciones EN se cargan bajo demanda desde `translations-en.js`.
+- `.htaccess` ahora aplica Brotli/gzip y politicas de cache: estaticos con `max-age`, API critica con `no-store`.
 - Si ya existe `figo-chat.php` en tu servidor, mantenlo publicado.
 - `proxy.php` queda deshabilitado por seguridad (retorna 410).
 

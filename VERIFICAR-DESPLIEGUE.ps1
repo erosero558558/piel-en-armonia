@@ -157,6 +157,75 @@ try {
 
 $remoteScriptRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern '<script\s+src="([^"]*script\.js[^"]*)"'
 $remoteStyleRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern '<link\s+rel="stylesheet"\s+href="([^"]*styles\.css[^"]*)"'
+$appScriptRemoteUrl = Get-Url -Base $base -Ref $localScriptRef
+$criticalCssRemoteUrl = Get-Url -Base $base -Ref $localStyleRef
+
+try {
+    $assetHeaderChecks = @(
+        @{ Name = 'app-script'; Url = $appScriptRemoteUrl },
+        @{ Name = 'critical-css'; Url = $criticalCssRemoteUrl }
+    )
+    foreach ($assetCheck in $assetHeaderChecks) {
+        if ([string]::IsNullOrWhiteSpace($assetCheck.Url)) {
+            continue
+        }
+        $assetResp = Invoke-WebRequest -Uri $assetCheck.Url -Method GET -TimeoutSec 30 -UseBasicParsing -Headers @{
+            'Cache-Control' = 'no-cache'
+            'User-Agent' = 'PielArmoniaDeployCheck/1.0'
+        }
+        $cacheHeader = [string]$assetResp.Headers['Cache-Control']
+        if ([string]::IsNullOrWhiteSpace($cacheHeader) -or $cacheHeader -notmatch 'max-age') {
+            Write-Host "[FAIL] asset sin Cache-Control con max-age: $($assetCheck.Name)"
+            $results += [PSCustomObject]@{
+                Asset = "cache-header:$($assetCheck.Name)"
+                Match = $false
+                LocalHash = 'max-age'
+                RemoteHash = if ($cacheHeader) { $cacheHeader } else { 'missing' }
+                RemoteUrl = $assetCheck.Url
+            }
+        } else {
+            Write-Host "[OK]  cache header correcto en: $($assetCheck.Name)"
+        }
+    }
+} catch {
+    Write-Host "[FAIL] No se pudieron validar headers de cache de assets"
+    $results += [PSCustomObject]@{
+        Asset = 'cache-header:assets'
+        Match = $false
+        LocalHash = 'max-age'
+        RemoteHash = ''
+        RemoteUrl = "$base/"
+    }
+}
+
+try {
+    $healthHeaderResp = Invoke-WebRequest -Uri "$base/api.php?resource=health" -Method GET -TimeoutSec 30 -UseBasicParsing -Headers @{
+        'Cache-Control' = 'no-cache'
+        'User-Agent' = 'PielArmoniaDeployCheck/1.0'
+    }
+    $healthCacheHeader = [string]$healthHeaderResp.Headers['Cache-Control']
+    if ([string]::IsNullOrWhiteSpace($healthCacheHeader) -or $healthCacheHeader -notmatch 'no-store|no-cache') {
+        Write-Host "[FAIL] Health API sin no-store/no-cache"
+        $results += [PSCustomObject]@{
+            Asset = 'cache-header:health-api'
+            Match = $false
+            LocalHash = 'no-store'
+            RemoteHash = if ($healthCacheHeader) { $healthCacheHeader } else { 'missing' }
+            RemoteUrl = "$base/api.php?resource=health"
+        }
+    } else {
+        Write-Host "[OK]  cache header no-store/no-cache en Health API"
+    }
+} catch {
+    Write-Host "[FAIL] No se pudo validar Cache-Control de Health API"
+    $results += [PSCustomObject]@{
+        Asset = 'cache-header:health-api'
+        Match = $false
+        LocalHash = 'no-store'
+        RemoteHash = ''
+        RemoteUrl = "$base/api.php?resource=health"
+    }
+}
 
 $localScriptTextForRefs = Get-Content -Path 'script.js' -Raw
 $chatEngineVersion = ''
