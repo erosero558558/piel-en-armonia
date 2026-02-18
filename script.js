@@ -579,6 +579,8 @@ let currentAppointment = null;
 let availabilityCache = {};
 let reviewsCache = [];
 let paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
+let paymentConfigLoaded = false;
+let paymentConfigLoadedAt = 0;
 let stripeClient = null;
 let stripeElements = null;
 let stripeCardElement = null;
@@ -777,6 +779,11 @@ async function apiRequest(resource, options = {}) {
 }
 
 async function loadPaymentConfig() {
+    const now = Date.now();
+    if (paymentConfigLoaded && (now - paymentConfigLoadedAt) < 5 * 60 * 1000) {
+        return paymentConfig;
+    }
+
     try {
         const payload = await apiRequest('payment-config');
         paymentConfig = {
@@ -788,6 +795,8 @@ async function loadPaymentConfig() {
     } catch (error) {
         paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
     }
+    paymentConfigLoaded = true;
+    paymentConfigLoadedAt = now;
     return paymentConfig;
 }
 
@@ -2109,21 +2118,25 @@ document.addEventListener('DOMContentLoaded', function() {
 // SMOOTH SCROLL
 // ========================================
 const nav = document.querySelector('.nav');
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function(e) {
-        const href = this.getAttribute('href');
-        if (href !== '#') {
-            e.preventDefault();
-            const target = document.querySelector(href);
-            if (target) {
-                const navHeight = nav ? nav.offsetHeight : 0;
-                const targetPosition = target.offsetTop - navHeight - 20;
-                window.scrollTo({
-                    top: targetPosition,
-                    behavior: 'smooth'
-                });
-            }
-        }
+document.addEventListener('click', function(e) {
+    const targetEl = e.target instanceof Element ? e.target : null;
+    if (!targetEl) return;
+
+    const anchor = targetEl.closest('a[href^="#"]');
+    if (!anchor) return;
+
+    const href = anchor.getAttribute('href');
+    if (!href || href === '#') return;
+
+    const target = document.querySelector(href);
+    if (!target) return;
+
+    e.preventDefault();
+    const navHeight = nav ? nav.offsetHeight : 0;
+    const targetPosition = target.offsetTop - navHeight - 20;
+    window.scrollTo({
+        top: targetPosition,
+        behavior: 'smooth'
     });
 });
 
@@ -3399,6 +3412,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Animación de elementos al hacer scroll
 function initScrollAnimations() {
+    const targets = document.querySelectorAll('.service-card, .team-card, .section-header, .tele-card, .review-card');
+    if (!targets.length) return;
+
+    const shouldSkipObserver = window.innerWidth < 900
+        || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+    if (shouldSkipObserver) {
+        targets.forEach(el => el.classList.add('visible'));
+        return;
+    }
+
     const observerOptions = {
         root: null,
         rootMargin: '0px 0px -100px 0px',
@@ -3415,7 +3439,7 @@ function initScrollAnimations() {
     }, observerOptions);
     
     // Observar elementos
-    document.querySelectorAll('.service-card, .team-card, .section-header, .telemedicine-card, .review-card').forEach(el => {
+    targets.forEach(el => {
         el.classList.add('animate-on-scroll');
         observer.observe(el);
     });
