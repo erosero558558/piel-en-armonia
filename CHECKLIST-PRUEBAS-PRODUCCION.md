@@ -7,6 +7,11 @@ Fecha de ejecucion sugerida: completar al desplegar.
 1. Verifica que existan estos archivos en produccion:
 - `index.html`
 - `script.js`
+- `terminos.html`
+- `privacidad.html`
+- `cookies.html`
+- `aviso-medico.html`
+- `legal.css`
 - `admin.html`
 - `admin.js`
 - `api.php`
@@ -20,8 +25,10 @@ Fecha de ejecucion sugerida: completar al desplegar.
 2. Verifica variables de entorno:
 - `PIELARMONIA_ADMIN_PASSWORD`
 - opcional: `PIELARMONIA_ADMIN_PASSWORD_HASH`
+- opcional: `PIELARMONIA_ADMIN_EMAIL` (para alertas de nuevas citas)
 - opcional: `PIELARMONIA_EMAIL_FROM`
 - opcional: `PIELARMONIA_DATA_DIR`
+- opcional: `PIELARMONIA_DATA_ENCRYPTION_KEY` (cifrado de `store.json`)
 - `PIELARMONIA_STRIPE_PUBLISHABLE_KEY`
 - `PIELARMONIA_STRIPE_SECRET_KEY`
 - opcional: `PIELARMONIA_PAYMENT_CURRENCY` (default `USD`)
@@ -114,7 +121,7 @@ Fecha de ejecucion sugerida: completar al desplegar.
 
 1. Verifica `figo-chat.php`:
 - URL: `https://TU_DOMINIO/figo-chat.php`
-- Esperado: responde JSON (GET o POST válido).
+- Esperado: responde JSON y muestra `configured`, `degradedMode`, `endpointHost`.
 
 2. Chatbot en sitio:
 - Pregunta: `hola`
@@ -137,7 +144,16 @@ Fecha de ejecucion sugerida: completar al desplegar.
 3. Verifica backups automaticos:
 - tras crear o editar una cita/callback/reseña, debe existir al menos un archivo en `data/backups/`.
 
+4. Verifica auditoria:
+- revisa que se cree/actualice `data/audit.log` con eventos de acceso/login.
+
+5. Verifica cifrado en reposo (si activaste `PIELARMONIA_DATA_ENCRYPTION_KEY`):
+- `data/store.json` debe iniciar con prefijo `ENCv1:`.
+
 ## 9. Prueba de regresion rapida (5 min)
+
+Opcional automatizado (PowerShell):
+- `.\SMOKE-PRODUCCION.ps1 -Domain "https://TU_DOMINIO" -TestFigoPost`
 
 1. Home carga sin errores.
 2. Menu y scroll funcionan.

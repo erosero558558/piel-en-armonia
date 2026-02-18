@@ -229,9 +229,8 @@ const translations = {
         label_cvv: "CVV",
         label_card_name: "Nombre en la tarjeta",
         bank_name: "Banco Pichincha",
-        bank_account: "Cuenta de Ahorros: 1234567890",
-        bank_owner: "Titular: Dra. Cecilio Caiza e hijas",
-        bank_ruc: "RUC: 1234567890001",
+        bank_account: "Cuenta de Ahorros: 2200160272",
+        bank_owner: "Titular: Rosero Caiza Javier Alejandro",
         label_transfer_ref: "Número de referencia",
         cash_info: "Paga directamente en el consultorio el día de tu cita.",
         payment_total: "Total a pagar:",
@@ -416,9 +415,8 @@ const translations = {
         label_cvv: "CVV",
         label_card_name: "Name on card",
         bank_name: "Banco Pichincha",
-        bank_account: "Savings Account: 1234567890",
-        bank_owner: "Holder: Dra. Cecilio Caiza e hijas",
-        bank_ruc: "RUC: 1234567890001",
+        bank_account: "Savings Account: 2200160272",
+        bank_owner: "Holder: Rosero Caiza Javier Alejandro",
         label_transfer_ref: "Reference number",
         cash_info: "Pay directly at the clinic on the day of your appointment.",
         payment_total: "Total to pay:",
@@ -1006,8 +1004,13 @@ function changeLanguage(lang) {
 // ========================================
 // MOBILE MENU
 // ========================================
-function toggleMobileMenu() {
+function toggleMobileMenu(forceClose) {
     const menu = document.getElementById('mobileMenu');
+    if (forceClose === false) {
+        menu.classList.remove('active');
+        document.body.style.overflow = '';
+        return;
+    }
     menu.classList.toggle('active');
     document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : '';
 }

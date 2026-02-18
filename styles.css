@@ -3735,7 +3735,7 @@ textarea:focus {
 
 .footer-content {
     display: grid;
-    grid-template-columns: 1.3fr 1fr 1fr;
+    grid-template-columns: 1.2fr 1fr 1fr 1.2fr;
     gap: 24px;
     align-items: start;
 }
@@ -3759,14 +3759,16 @@ textarea:focus {
 }
 
 .footer-links,
-.footer-contact {
+.footer-contact,
+.footer-legal {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
 .footer-links a,
-.footer-contact a {
+.footer-contact a,
+.footer-legal a {
     color: #c8d8ef;
     text-decoration: none;
     font-weight: 600;
@@ -3774,7 +3776,8 @@ textarea:focus {
 }
 
 .footer-links a:hover,
-.footer-contact a:hover {
+.footer-contact a:hover,
+.footer-legal a:hover {
     color: #ffffff;
 }
 
@@ -4277,6 +4280,16 @@ textarea:focus {
     color: #156fcb;
 }
 
+.chatbot-disclaimer {
+    margin: 0;
+    padding: 8px 12px;
+    border-top: 1px solid #e2ebf6;
+    background: #f5f9ff;
+    color: #4d6688;
+    font-size: 0.74rem;
+    line-height: 1.4;
+}
+
 .chatbot-input-area {
     border-top: 1px solid #dde7f4;
     background: #fff;
@@ -4336,6 +4349,59 @@ textarea:focus {
     border-color: #bad4f2;
     background: #f1f7ff;
     color: #126ec8;
+}
+
+.cookie-banner {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    z-index: 2500;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid #c8d8ee;
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 16px;
+    padding: 12px 14px;
+    box-shadow: 0 14px 30px rgba(8, 22, 40, 0.2);
+}
+
+.cookie-banner.active {
+    display: flex;
+}
+
+.cookie-text {
+    margin: 0;
+    color: #294565;
+    font-size: 0.84rem;
+    line-height: 1.4;
+}
+
+.cookie-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.cookie-btn {
+    min-height: 38px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+}
+
+.cookie-link {
+    color: #0f75df;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+.cookie-link:hover {
+    text-decoration: underline;
 }
 
 .toast-container {
@@ -4702,7 +4768,8 @@ html[data-theme='dark'] .chatbot-quick-options,
 html[data-theme='dark'] .chatbot-input-area,
 html[data-theme='dark'] .chat-message.bot .message-content,
 html[data-theme='dark'] .typing-indicator,
-html[data-theme='dark'] .message-avatar {
+html[data-theme='dark'] .message-avatar,
+html[data-theme='dark'] .chatbot-disclaimer {
     background: rgba(13, 24, 41, 0.96);
     border-color: rgba(126, 161, 210, 0.35);
     color: #d4e6ff;
@@ -4736,6 +4803,19 @@ html[data-theme='dark'] .quick-dock-item:hover {
     background: rgba(35, 57, 88, 0.84);
     border-color: rgba(126, 161, 210, 0.42);
     color: #ffffff;
+}
+
+html[data-theme='dark'] .cookie-banner {
+    border-color: rgba(126, 161, 210, 0.45);
+    background: rgba(11, 20, 35, 0.96);
+}
+
+html[data-theme='dark'] .cookie-text {
+    color: #cfe2ff;
+}
+
+html[data-theme='dark'] .cookie-link {
+    color: #84bfff;
 }
 
 html[data-theme='dark'] .toast {
@@ -4921,6 +5001,18 @@ html[data-theme='dark'] .toast-message {
         min-width: 0;
         flex: 1;
         font-size: 0.74rem;
+    }
+
+    .cookie-banner {
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .cookie-actions {
+        justify-content: space-between;
     }
 
     .modal {

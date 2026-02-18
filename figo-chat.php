@@ -124,6 +124,35 @@ function figo_first_non_empty(array $values): string
     return '';
 }
 
+function figo_endpoint_diagnostics(string $endpoint): array
+{
+    if ($endpoint === '') {
+        return [
+            'configured' => false,
+            'endpointHost' => '',
+            'endpointScheme' => '',
+            'endpointPath' => ''
+        ];
+    }
+
+    $parts = @parse_url($endpoint);
+    if (!is_array($parts)) {
+        return [
+            'configured' => true,
+            'endpointHost' => '',
+            'endpointScheme' => '',
+            'endpointPath' => ''
+        ];
+    }
+
+    return [
+        'configured' => true,
+        'endpointHost' => isset($parts['host']) ? (string) $parts['host'] : '',
+        'endpointScheme' => isset($parts['scheme']) ? (string) $parts['scheme'] : '',
+        'endpointPath' => isset($parts['path']) ? (string) $parts['path'] : ''
+    ];
+}
+
 function figo_build_fallback_completion(string $model, array $messages): array
 {
     $lastUser = '';
@@ -218,14 +247,27 @@ $endpoint = figo_first_non_empty([
     $fileConfig['apiUrl'] ?? null,
     $fileConfig['url'] ?? null
 ]);
+$endpointDiagnostics = figo_endpoint_diagnostics($endpoint);
+$configSource = isset($fileConfig['__source']) && is_string($fileConfig['__source'])
+    ? basename((string) $fileConfig['__source'])
+    : 'environment';
 
 if ($method === 'GET') {
+    audit_log_event('figo.status', [
+        'configured' => $endpointDiagnostics['configured'],
+        'degradedMode' => figo_degraded_mode_enabled(),
+        'endpointHost' => $endpointDiagnostics['endpointHost']
+    ]);
     json_response([
         'ok' => true,
         'service' => 'figo-chat',
-        'configured' => $endpoint !== '',
+        'configured' => $endpointDiagnostics['configured'],
         'degradedMode' => figo_degraded_mode_enabled(),
         'hasFileConfig' => isset($fileConfig['__source']),
+        'configSource' => $configSource,
+        'endpointHost' => $endpointDiagnostics['endpointHost'],
+        'endpointScheme' => $endpointDiagnostics['endpointScheme'],
+        'endpointPath' => $endpointDiagnostics['endpointPath'],
         'timestamp' => gmdate('c')
     ]);
 }
@@ -246,6 +288,9 @@ $messages = isset($payload['messages']) && is_array($payload['messages'])
     : [];
 
 if ($messages === []) {
+    audit_log_event('figo.invalid_request', [
+        'reason' => 'messages_required'
+    ]);
     json_response([
         'ok' => false,
         'error' => 'messages es obligatorio'
@@ -352,6 +397,9 @@ if ($timeout > 45) {
 }
 
 if ($endpoint === '') {
+    audit_log_event('figo.fallback', [
+        'reason' => 'endpoint_missing'
+    ]);
     $fallback = figo_build_fallback_completion($model, $messages);
     $fallback['configured'] = false;
     $fallback['degraded'] = true;
@@ -402,6 +450,9 @@ curl_close($ch);
 
 if (!is_string($rawResponse)) {
     error_log('Piel en Armonia figo-chat: fallo conexion cURL (codigo: ' . $curlErr . ')');
+    audit_log_event('figo.upstream_error', [
+        'reason' => 'curl_failed'
+    ]);
     if (figo_degraded_mode_enabled()) {
         $fallback = figo_build_fallback_completion($model, $messages);
         $fallback['configured'] = true;
@@ -418,6 +469,10 @@ if (!is_string($rawResponse)) {
 
 if ($httpCode >= 400) {
     error_log('Piel en Armonia figo-chat: upstream devolvio HTTP ' . $httpCode);
+    audit_log_event('figo.upstream_error', [
+        'reason' => 'http_error',
+        'status' => $httpCode
+    ]);
     if (figo_degraded_mode_enabled()) {
         $fallback = figo_build_fallback_completion($model, $messages);
         $fallback['configured'] = true;
@@ -449,6 +504,11 @@ try {
     $id = 'figo-' . substr(md5((string) microtime(true)), 0, 16);
 }
 
+audit_log_event('figo.success', [
+    'degraded' => false,
+    'endpointHost' => $endpointDiagnostics['endpointHost']
+]);
+
 json_response([
     'id' => $id,
     'object' => 'chat.completion',
@@ -461,5 +521,5 @@ json_response([
             'content' => $content
         ],
         'finish_reason' => 'stop'
-    ]]
+        ]]
 ]);

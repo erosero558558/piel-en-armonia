@@ -91,6 +91,11 @@
                         <i class="fas fa-download"></i>
                         Exportar Datos
                     </button>
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('importFileInput').click()">
+                        <i class="fas fa-upload"></i>
+                        Importar Datos
+                    </button>
+                    <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importData(this)">
                 </div>
             </header>
 
@@ -162,6 +167,7 @@
                             <option value="month">Este mes</option>
                             <option value="confirmed">Confirmadas</option>
                             <option value="cancelled">Canceladas</option>
+                            <option value="pending_transfer">Transferencias por validar</option>
                         </select>
                     </div>
                     <div class="search-box">

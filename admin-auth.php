@@ -46,6 +46,9 @@ $action = isset($_GET['action']) ? (string) $_GET['action'] : '';
 
 if ($method === 'GET' && $action === 'status') {
     $isAuth = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
+    audit_log_event('admin.status', [
+        'authenticated' => $isAuth
+    ]);
     $resp = ['ok' => true, 'authenticated' => $isAuth];
     if ($isAuth) {
         $resp['csrfToken'] = generate_csrf_token();
@@ -54,6 +57,8 @@ if ($method === 'GET' && $action === 'status') {
 }
 
 if ($method === 'POST' && $action === 'login') {
+    require_rate_limit('admin-login', 5, 300);
+
     $payload = require_json_body();
     $password = isset($payload['password']) ? (string) $payload['password'] : '';
     if ($password === '') {
@@ -64,6 +69,9 @@ if ($method === 'POST' && $action === 'login') {
     }
 
     if (!verify_admin_password($password)) {
+        audit_log_event('admin.login_failed', [
+            'reason' => 'invalid_credentials'
+        ]);
         json_response([
             'ok' => false,
             'error' => 'Credenciales inválidas'
@@ -72,6 +80,9 @@ if ($method === 'POST' && $action === 'login') {
 
     session_regenerate_id(true);
     $_SESSION['admin_logged_in'] = true;
+    audit_log_event('admin.login_success', [
+        'authenticated' => true
+    ]);
 
     json_response([
         'ok' => true,
@@ -81,6 +92,9 @@ if ($method === 'POST' && $action === 'login') {
 }
 
 if ($method === 'POST' && $action === 'logout') {
+    audit_log_event('admin.logout', [
+        'authenticated' => false
+    ]);
     destroy_secure_session();
 
     json_response([

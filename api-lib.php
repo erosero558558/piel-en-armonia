@@ -71,6 +71,140 @@ function backup_dir_path(): string
     return data_dir_path() . DIRECTORY_SEPARATOR . 'backups';
 }
 
+function audit_log_file_path(): string
+{
+    return data_dir_path() . DIRECTORY_SEPARATOR . 'audit.log';
+}
+
+function data_encryption_key(): string
+{
+    static $resolved = null;
+    if (is_string($resolved)) {
+        return $resolved;
+    }
+
+    $candidates = [
+        getenv('PIELARMONIA_DATA_ENCRYPTION_KEY'),
+        getenv('PIELARMONIA_DATA_KEY')
+    ];
+
+    $raw = '';
+    foreach ($candidates as $candidate) {
+        if (is_string($candidate) && trim($candidate) !== '') {
+            $raw = trim($candidate);
+            break;
+        }
+    }
+
+    if ($raw === '') {
+        $resolved = '';
+        return $resolved;
+    }
+
+    if (strpos($raw, 'base64:') === 0) {
+        $decoded = base64_decode(substr($raw, 7), true);
+        if (is_string($decoded) && $decoded !== '') {
+            $raw = $decoded;
+        }
+    }
+
+    if (strlen($raw) !== 32) {
+        $raw = hash('sha256', $raw, true);
+    }
+
+    $resolved = substr($raw, 0, 32);
+    return $resolved;
+}
+
+function data_encrypt_payload(string $plain): string
+{
+    $key = data_encryption_key();
+    if ($key === '') {
+        return $plain;
+    }
+
+    if (!function_exists('openssl_encrypt')) {
+        error_log('Piel en Armonia: openssl_encrypt no disponible para cifrado de datos');
+        return '';
+    }
+
+    try {
+        $iv = random_bytes(12);
+    } catch (Throwable $e) {
+        error_log('Piel en Armonia: no se pudo generar IV para cifrado de datos');
+        return '';
+    }
+
+    $tag = '';
+    $cipher = openssl_encrypt($plain, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
+    if (!is_string($cipher) || $cipher === '' || !is_string($tag) || $tag === '') {
+        error_log('Piel en Armonia: fallo al cifrar store.json');
+        return '';
+    }
+
+    return 'ENCv1:' . base64_encode($iv . $tag . $cipher);
+}
+
+function data_decrypt_payload(string $raw): string
+{
+    if (substr($raw, 0, 6) !== 'ENCv1:') {
+        return $raw;
+    }
+
+    $key = data_encryption_key();
+    if ($key === '') {
+        error_log('Piel en Armonia: store cifrado pero no hay PIELARMONIA_DATA_ENCRYPTION_KEY');
+        return '';
+    }
+
+    if (!function_exists('openssl_decrypt')) {
+        error_log('Piel en Armonia: openssl_decrypt no disponible para descifrado de datos');
+        return '';
+    }
+
+    $encoded = substr($raw, 6);
+    $packed = base64_decode($encoded, true);
+    if (!is_string($packed) || strlen($packed) <= 28) {
+        error_log('Piel en Armonia: payload cifrado invalido');
+        return '';
+    }
+
+    $iv = substr($packed, 0, 12);
+    $tag = substr($packed, 12, 16);
+    $cipher = substr($packed, 28);
+    $plain = openssl_decrypt($cipher, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
+    if (!is_string($plain)) {
+        error_log('Piel en Armonia: fallo al descifrar store.json');
+        return '';
+    }
+
+    return $plain;
+}
+
+function audit_log_event(string $event, array $details = []): void
+{
+    $line = [
+        'ts' => local_date('c'),
+        'event' => $event,
+        'ip' => (string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown'),
+        'actor' => (session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['admin_logged_in'])) ? 'admin' : 'public',
+        'path' => (string) ($_SERVER['REQUEST_URI'] ?? ''),
+        'details' => $details
+    ];
+
+    $encoded = json_encode($line, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if (!is_string($encoded) || $encoded === '') {
+        return;
+    }
+
+    $dir = data_dir_path();
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+    ensure_data_htaccess($dir);
+    @file_put_contents(audit_log_file_path(), $encoded . PHP_EOL, FILE_APPEND | LOCK_EX);
+}
+
 function json_response(array $payload, int $status = 200): void
 {
     http_response_code($status);
@@ -218,6 +352,18 @@ function create_store_backup_locked($fp): void
     prune_backup_files();
 }
 
+function ensure_data_htaccess(string $dir): void
+{
+    $htaccess = $dir . DIRECTORY_SEPARATOR . '.htaccess';
+    if (file_exists($htaccess)) {
+        return;
+    }
+    $rules = "# Bloquear acceso publico a datos sensibles\n";
+    $rules .= "Order deny,allow\nDeny from all\n";
+    $rules .= "<IfModule mod_authz_core.c>\n  Require all denied\n</IfModule>\n";
+    @file_put_contents($htaccess, $rules, LOCK_EX);
+}
+
 function ensure_data_file(): bool
 {
     $dataDir = data_dir_path();
@@ -227,6 +373,8 @@ function ensure_data_file(): bool
         error_log('Piel en Armonia: no se pudo crear el directorio de datos: ' . $dataDir);
         return false;
     }
+
+    ensure_data_htaccess($dataDir);
 
     if (!file_exists($dataFile)) {
         $seed = [
@@ -238,7 +386,8 @@ function ensure_data_file(): bool
             'updatedAt' => local_date('c')
         ];
         $seedEncoded = json_encode($seed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        if ($seedEncoded === false || @file_put_contents($dataFile, $seedEncoded, LOCK_EX) === false) {
+        $payloadToWrite = is_string($seedEncoded) ? data_encrypt_payload($seedEncoded) : '';
+        if ($payloadToWrite === '' || @file_put_contents($dataFile, $payloadToWrite, LOCK_EX) === false) {
             error_log('Piel en Armonia: no se pudo inicializar store.json en ' . $dataFile);
             return false;
         }
@@ -270,7 +419,25 @@ function read_store(): array
         ];
     }
 
-    $data = json_decode($raw, true);
+    $rawText = (string) $raw;
+    $decodedRaw = data_decrypt_payload($rawText);
+    if ($decodedRaw === '') {
+        if (substr($rawText, 0, 6) === 'ENCv1:') {
+            json_response([
+                'ok' => false,
+                'error' => 'No se pudo descifrar la base de datos. Verifica PIELARMONIA_DATA_ENCRYPTION_KEY'
+            ], 500);
+        }
+        return [
+            'appointments' => [],
+            'callbacks' => [],
+            'reviews' => [],
+            'availability' => [],
+            'updatedAt' => local_date('c')
+        ];
+    }
+
+    $data = json_decode($decodedRaw, true);
     if (!is_array($data)) {
         return [
             'appointments' => [],
@@ -328,7 +495,8 @@ function write_store(array $store): void
         ftruncate($fp, 0);
         rewind($fp);
         $encoded = json_encode($store, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        if ($encoded === false || fwrite($fp, $encoded) === false) {
+        $payloadToWrite = is_string($encoded) ? data_encrypt_payload($encoded) : '';
+        if ($payloadToWrite === '' || fwrite($fp, $payloadToWrite) === false) {
             json_response([
                 'ok' => false,
                 'error' => 'No se pudo guardar la información'
@@ -684,10 +852,12 @@ function maybe_send_appointment_email(array $appointment): bool
 function maybe_send_admin_notification(array $appointment): bool
 {
     $adminEmail = getenv('PIELARMONIA_ADMIN_EMAIL');
-    if (!is_string($adminEmail) || $adminEmail === '') {
+    if (!is_string($adminEmail) || trim($adminEmail) === '') {
         $adminEmail = 'javier.rosero94@gmail.com';
     }
+    $adminEmail = trim((string) $adminEmail);
     if (!filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+        error_log('Piel en Armonia: PIELARMONIA_ADMIN_EMAIL invalido');
         return false;
     }
 
@@ -715,6 +885,69 @@ function maybe_send_admin_notification(array $appointment): bool
     $sent = @mail($adminEmail, $subject, $body, $headers);
     if (!$sent) {
         error_log('Piel en Armonia: fallo al enviar notificacion al admin ' . $adminEmail);
+    }
+    return $sent;
+}
+
+function maybe_send_cancellation_email(array $appointment): bool
+{
+    $to = trim((string) ($appointment['email'] ?? ''));
+    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+
+    $clinicName = 'Piel en Armonía';
+    $subject = 'Cita cancelada - ' . $clinicName;
+    $message = "Hola " . ($appointment['name'] ?? 'paciente') . ",\n\n";
+    $message .= "Tu cita ha sido cancelada.\n\n";
+    $message .= "Detalles de la cita cancelada:\n";
+    $message .= "Servicio: " . ($appointment['service'] ?? '-') . "\n";
+    $message .= "Doctor: " . ($appointment['doctor'] ?? '-') . "\n";
+    $message .= "Fecha: " . ($appointment['date'] ?? '-') . "\n";
+    $message .= "Hora: " . ($appointment['time'] ?? '-') . "\n\n";
+    $message .= "Si deseas reprogramar, visita https://pielarmonia.com/#citas o escribenos por WhatsApp: +593 98 245 3672.\n\n";
+    $message .= "Gracias por confiar en nosotros.";
+
+    $from = getenv('PIELARMONIA_EMAIL_FROM');
+    if (!is_string($from) || $from === '') {
+        $from = 'no-reply@pielarmonia.com';
+    }
+    $headers = "From: {$from}\r\nContent-Type: text/plain; charset=UTF-8";
+
+    $sent = @mail($to, $subject, $message, $headers);
+    if (!$sent) {
+        error_log('Piel en Armonia: fallo al enviar email de cancelacion a ' . $to);
+    }
+    return $sent;
+}
+
+function maybe_send_callback_admin_notification(array $callback): bool
+{
+    $adminEmail = getenv('PIELARMONIA_ADMIN_EMAIL');
+    if (!is_string($adminEmail) || $adminEmail === '') {
+        return false;
+    }
+    if (!filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+
+    $clinicName = 'Piel en Armonía';
+    $subject = 'Nueva solicitud de llamada - ' . $clinicName;
+    $body = "Un paciente solicita que le llamen:\n\n";
+    $body .= "Telefono: " . ($callback['telefono'] ?? '-') . "\n";
+    $body .= "Preferencia: " . ($callback['preferencia'] ?? '-') . "\n";
+    $body .= "Fecha de solicitud: " . local_date('d/m/Y H:i') . "\n\n";
+    $body .= "Por favor contactar lo antes posible.";
+
+    $from = getenv('PIELARMONIA_EMAIL_FROM');
+    if (!is_string($from) || $from === '') {
+        $from = 'no-reply@pielarmonia.com';
+    }
+    $headers = "From: {$from}\r\nContent-Type: text/plain; charset=UTF-8";
+
+    $sent = @mail($adminEmail, $subject, $body, $headers);
+    if (!$sent) {
+        error_log('Piel en Armonia: fallo al enviar notificacion de callback al admin');
     }
     return $sent;
 }

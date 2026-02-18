@@ -40,8 +40,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-start_secure_session();
-
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $resource = isset($_GET['resource']) ? (string) $_GET['resource'] : '';
 $action = isset($_GET['action']) ? (string) $_GET['action'] : '';
@@ -52,6 +50,11 @@ if ($resource === '' && $action !== '') {
 
 if ($resource === 'health') {
     $storageReady = ensure_data_file();
+    audit_log_event('api.health', [
+        'method' => $method,
+        'resource' => $resource,
+        'storageReady' => $storageReady
+    ]);
     json_response([
         'ok' => true,
         'status' => 'ok',
@@ -60,30 +63,38 @@ if ($resource === 'health') {
     ]);
 }
 
-$isAdmin = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
-if (!$isAdmin) {
-    $publicEndpoints = [
-        ['method' => 'GET', 'resource' => 'payment-config'],
-        ['method' => 'GET', 'resource' => 'availability'],
-        ['method' => 'GET', 'resource' => 'reviews'],
-        ['method' => 'GET', 'resource' => 'booked-slots'],
-        ['method' => 'POST', 'resource' => 'payment-intent'],
-        ['method' => 'POST', 'resource' => 'payment-verify'],
-        ['method' => 'POST', 'resource' => 'transfer-proof'],
-        ['method' => 'POST', 'resource' => 'appointments'],
-        ['method' => 'POST', 'resource' => 'callbacks'],
-        ['method' => 'POST', 'resource' => 'reviews'],
-    ];
+$publicEndpoints = [
+    ['method' => 'GET', 'resource' => 'payment-config'],
+    ['method' => 'GET', 'resource' => 'availability'],
+    ['method' => 'GET', 'resource' => 'reviews'],
+    ['method' => 'GET', 'resource' => 'booked-slots'],
+    ['method' => 'POST', 'resource' => 'payment-intent'],
+    ['method' => 'POST', 'resource' => 'payment-verify'],
+    ['method' => 'POST', 'resource' => 'transfer-proof'],
+    ['method' => 'POST', 'resource' => 'stripe-webhook'],
+    ['method' => 'POST', 'resource' => 'appointments'],
+    ['method' => 'POST', 'resource' => 'callbacks'],
+    ['method' => 'POST', 'resource' => 'reviews'],
+];
 
-    $isPublic = false;
-    foreach ($publicEndpoints as $endpoint) {
-        if ($endpoint['method'] === $method && $endpoint['resource'] === $resource) {
-            $isPublic = true;
-            break;
-        }
+$isPublic = false;
+foreach ($publicEndpoints as $endpoint) {
+    if ($endpoint['method'] === $method && $endpoint['resource'] === $resource) {
+        $isPublic = true;
+        break;
     }
+}
 
-    if (!$isPublic) {
+$isAdmin = false;
+if (!$isPublic) {
+    start_secure_session();
+    $isAdmin = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
+    if (!$isAdmin) {
+        audit_log_event('api.unauthorized', [
+            'method' => $method,
+            'resource' => $resource,
+            'reason' => 'admin_required'
+        ]);
         json_response([
             'ok' => false,
             'error' => 'No autorizado'
@@ -91,9 +102,15 @@ if (!$isAdmin) {
     }
 }
 
+audit_log_event('api.access', [
+    'method' => $method,
+    'resource' => $resource,
+    'scope' => $isAdmin ? 'admin' : 'public'
+]);
+
 // CSRF: validar token en mutaciones autenticadas (no publicas)
 if (in_array($method, ['POST', 'PUT', 'PATCH'], true) && $isAdmin) {
-    $publicMutations = ['appointments', 'callbacks', 'reviews', 'payment-intent', 'payment-verify', 'transfer-proof'];
+    $publicMutations = ['appointments', 'callbacks', 'reviews', 'payment-intent', 'payment-verify', 'transfer-proof', 'stripe-webhook'];
     if (!in_array($resource, $publicMutations, true)) {
         require_csrf();
     }
@@ -231,6 +248,13 @@ if ($method === 'POST' && $resource === 'payment-intent') {
         ], 400);
     }
 
+    if ($appointment['date'] < local_date('Y-m-d')) {
+        json_response([
+            'ok' => false,
+            'error' => 'No se puede agendar en una fecha pasada'
+        ], 400);
+    }
+
     if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $appointment['doctor'])) {
         json_response([
             'ok' => false,
@@ -340,6 +364,86 @@ if ($method === 'POST' && $resource === 'transfer-proof') {
     ], 201);
 }
 
+if ($method === 'POST' && $resource === 'stripe-webhook') {
+    $webhookSecret = payment_stripe_webhook_secret();
+    if ($webhookSecret === '') {
+        json_response(['ok' => false, 'error' => 'Webhook no configurado'], 503);
+    }
+
+    $rawBody = file_get_contents('php://input');
+    if (!is_string($rawBody) || $rawBody === '') {
+        json_response(['ok' => false, 'error' => 'Cuerpo vacio'], 400);
+    }
+
+    $sigHeader = isset($_SERVER['HTTP_STRIPE_SIGNATURE']) ? (string) $_SERVER['HTTP_STRIPE_SIGNATURE'] : '';
+    if ($sigHeader === '') {
+        json_response(['ok' => false, 'error' => 'Sin firma'], 400);
+    }
+
+    try {
+        $event = stripe_verify_webhook_signature($rawBody, $sigHeader, $webhookSecret);
+    } catch (RuntimeException $e) {
+        audit_log_event('stripe.webhook_signature_failed', ['error' => $e->getMessage()]);
+        json_response(['ok' => false, 'error' => $e->getMessage()], 400);
+    }
+
+    $eventType = (string) ($event['type'] ?? '');
+    audit_log_event('stripe.webhook_received', ['type' => $eventType]);
+
+    if ($eventType === 'payment_intent.succeeded') {
+        $intentData = isset($event['data']['object']) && is_array($event['data']['object']) ? $event['data']['object'] : [];
+        $intentId = (string) ($intentData['id'] ?? '');
+
+        if ($intentId !== '') {
+            $webhookStore = read_store();
+            $updated = false;
+            foreach ($webhookStore['appointments'] as &$appt) {
+                $existingIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
+                if ($existingIntent !== '' && hash_equals($existingIntent, $intentId)) {
+                    if (($appt['paymentStatus'] ?? '') !== 'paid') {
+                        $appt['paymentStatus'] = 'paid';
+                        $appt['paymentPaidAt'] = local_date('c');
+                        $updated = true;
+                    }
+                    break;
+                }
+            }
+            unset($appt);
+            if ($updated) {
+                write_store($webhookStore);
+                audit_log_event('stripe.webhook_payment_confirmed', ['intentId' => $intentId]);
+            }
+        }
+    }
+
+    if ($eventType === 'payment_intent.payment_failed') {
+        $intentData = isset($event['data']['object']) && is_array($event['data']['object']) ? $event['data']['object'] : [];
+        $intentId = (string) ($intentData['id'] ?? '');
+
+        if ($intentId !== '') {
+            $webhookStore = read_store();
+            $updated = false;
+            foreach ($webhookStore['appointments'] as &$appt) {
+                $existingIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
+                if ($existingIntent !== '' && hash_equals($existingIntent, $intentId)) {
+                    if (!in_array($appt['paymentStatus'] ?? '', ['paid', 'failed'], true)) {
+                        $appt['paymentStatus'] = 'failed';
+                        $updated = true;
+                    }
+                    break;
+                }
+            }
+            unset($appt);
+            if ($updated) {
+                write_store($webhookStore);
+                audit_log_event('stripe.webhook_payment_failed', ['intentId' => $intentId]);
+            }
+        }
+    }
+
+    json_response(['ok' => true, 'received' => true]);
+}
+
 if ($method === 'POST' && $resource === 'appointments') {
     require_rate_limit('appointments', 5, 60);
     $payload = require_json_body();
@@ -370,6 +474,13 @@ if ($method === 'POST' && $resource === 'appointments') {
         json_response([
             'ok' => false,
             'error' => 'Fecha y hora son obligatorias'
+        ], 400);
+    }
+
+    if ($appointment['date'] < local_date('Y-m-d')) {
+        json_response([
+            'ok' => false,
+            'error' => 'No se puede agendar en una fecha pasada'
         ], 400);
     }
 
@@ -529,6 +640,21 @@ if ($method === 'POST' && $resource === 'appointments') {
         $appointment['paymentStatus'] = 'pending';
     }
 
+    // Si el doctor es "indiferente", asignar al primer doctor con slot libre
+    if ($appointment['doctor'] === 'indiferente' || $appointment['doctor'] === '') {
+        $doctors = ['rosero', 'narvaez'];
+        $assigned = '';
+        foreach ($doctors as $candidate) {
+            if (!appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $candidate)) {
+                $assigned = $candidate;
+                break;
+            }
+        }
+        if ($assigned !== '') {
+            $appointment['doctorAssigned'] = $assigned;
+        }
+    }
+
     $store['appointments'][] = $appointment;
     write_store($store);
 
@@ -599,6 +725,17 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') 
         ], 404);
     }
     write_store($store);
+
+    // Enviar email de cancelación al paciente si se canceló la cita
+    if (isset($payload['status']) && map_appointment_status((string) $payload['status']) === 'cancelled') {
+        foreach ($store['appointments'] as $apptNotify) {
+            if ((int) ($apptNotify['id'] ?? 0) === $id) {
+                maybe_send_cancellation_email($apptNotify);
+                break;
+            }
+        }
+    }
+
     json_response([
         'ok' => true
     ]);
@@ -625,6 +762,7 @@ if ($method === 'POST' && $resource === 'callbacks') {
 
     $store['callbacks'][] = $callback;
     write_store($store);
+    maybe_send_callback_admin_notification($callback);
     json_response([
         'ok' => true,
         'data' => $callback

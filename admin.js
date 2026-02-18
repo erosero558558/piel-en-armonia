@@ -299,7 +299,11 @@ function loadDashboardData() {
     }
     document.getElementById('avgRating').textContent = avgRating;
 
-    document.getElementById('appointmentsBadge').textContent = currentAppointments.filter(a => (a.status || 'confirmed') === 'confirmed').length;
+    const pendingTransfers = currentAppointments.filter(a => a.paymentStatus === 'pending_transfer_review').length;
+    const confirmedCount = currentAppointments.filter(a => (a.status || 'confirmed') === 'confirmed').length;
+    document.getElementById('appointmentsBadge').textContent = pendingTransfers > 0
+        ? `${confirmedCount} (${pendingTransfers} por validar)`
+        : confirmedCount;
     document.getElementById('callbacksBadge').textContent = pendingCallbacks.length;
     document.getElementById('reviewsBadge').textContent = currentReviews.length;
 
@@ -371,14 +375,20 @@ function renderAppointments(appointments) {
         return;
     }
 
-    tbody.innerHTML = appointments.map(a => `
+    const sorted = [...appointments].sort((a, b) => {
+        const dateA = (a.date || '') + ' ' + (a.time || '');
+        const dateB = (b.date || '') + ' ' + (b.time || '');
+        return dateB.localeCompare(dateA);
+    });
+
+    tbody.innerHTML = sorted.map(a => `
         <tr>
             <td>
                 <strong>${escapeHtml(a.name)}</strong><br>
                 <small>${escapeHtml(a.email)}</small>
             </td>
             <td>${escapeHtml(getServiceName(a.service))}</td>
-            <td>${escapeHtml(getDoctorName(a.doctor))}</td>
+            <td>${escapeHtml(getDoctorName(a.doctor))}${a.doctorAssigned ? '<br><small>Asignado: ' + escapeHtml(getDoctorName(a.doctorAssigned)) + '</small>' : ''}</td>
             <td>${escapeHtml(formatDate(a.date))}</td>
             <td>${escapeHtml(a.time)}</td>
             <td>
@@ -394,6 +404,14 @@ function renderAppointments(appointments) {
             </td>
             <td>
                 <div class="table-actions">
+                    ${(a.paymentStatus === 'pending_transfer_review' ? `
+                    <button class="btn-icon success" onclick="approveTransfer(${Number(a.id) || 0})" title="Aprobar transferencia">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button class="btn-icon danger" onclick="rejectTransfer(${Number(a.id) || 0})" title="Rechazar transferencia">
+                        <i class="fas fa-ban"></i>
+                    </button>
+                    ` : '')}
                     <a href="tel:${escapeHtml(a.phone)}" class="btn-icon" title="Llamar">
                         <i class="fas fa-phone"></i>
                     </a>
@@ -443,6 +461,9 @@ function filterAppointments() {
         case 'cancelled':
             filtered = filtered.filter(a => (a.status || 'confirmed') === filter);
             break;
+        case 'pending_transfer':
+            filtered = filtered.filter(a => a.paymentStatus === 'pending_transfer_review');
+            break;
         default:
             break;
     }
@@ -477,6 +498,40 @@ async function cancelAppointment(id) {
         showToast('Cita cancelada correctamente', 'success');
     } catch (error) {
         showToast(`No se pudo cancelar la cita: ${error.message}`, 'error');
+    }
+}
+
+async function approveTransfer(id) {
+    if (!confirm('¿Aprobar el comprobante de transferencia de esta cita?')) return;
+    if (!id) { showToast('Id de cita invalido', 'error'); return; }
+    try {
+        await apiRequest('appointments', {
+            method: 'PATCH',
+            body: { id: id, paymentStatus: 'paid', paymentPaidAt: new Date().toISOString() }
+        });
+        await refreshData();
+        loadAppointments();
+        loadDashboardData();
+        showToast('Transferencia aprobada', 'success');
+    } catch (error) {
+        showToast(`No se pudo aprobar: ${error.message}`, 'error');
+    }
+}
+
+async function rejectTransfer(id) {
+    if (!confirm('¿Rechazar el comprobante de transferencia? La cita quedará como pago fallido.')) return;
+    if (!id) { showToast('Id de cita invalido', 'error'); return; }
+    try {
+        await apiRequest('appointments', {
+            method: 'PATCH',
+            body: { id: id, paymentStatus: 'failed' }
+        });
+        await refreshData();
+        loadAppointments();
+        loadDashboardData();
+        showToast('Transferencia rechazada', 'warning');
+    } catch (error) {
+        showToast(`No se pudo rechazar: ${error.message}`, 'error');
     }
 }
 
@@ -778,6 +833,44 @@ function exportData() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showToast('Datos exportados correctamente', 'success');
+}
+
+async function importData(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    input.value = '';
+
+    if (!confirm('Esto reemplazara TODOS los datos actuales (citas, callbacks, resenas y disponibilidad) con los del archivo seleccionado.\n\n¿Deseas continuar?')) {
+        return;
+    }
+
+    try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+
+        if (!data || typeof data !== 'object') {
+            throw new Error('El archivo no contiene datos validos');
+        }
+
+        const payload = {
+            appointments: Array.isArray(data.appointments) ? data.appointments : [],
+            callbacks: Array.isArray(data.callbacks) ? data.callbacks : [],
+            reviews: Array.isArray(data.reviews) ? data.reviews : [],
+            availability: data.availability && typeof data.availability === 'object' ? data.availability : {}
+        };
+
+        await apiRequest('import', {
+            method: 'POST',
+            body: payload
+        });
+
+        await refreshData();
+        const activeItem = document.querySelector('.nav-item.active');
+        renderSection(activeItem?.dataset.section || 'dashboard');
+        showToast(`Datos importados: ${payload.appointments.length} citas, ${payload.callbacks.length} callbacks, ${payload.reviews.length} resenas`, 'success');
+    } catch (error) {
+        showToast(`Error al importar: ${error.message}`, 'error');
+    }
 }
 
 function renderSection(section) {

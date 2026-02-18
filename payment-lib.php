@@ -27,9 +27,59 @@ function payment_stripe_publishable_key(): string
     return is_string($raw) ? trim($raw) : '';
 }
 
+function payment_stripe_webhook_secret(): string
+{
+    $raw = getenv('PIELARMONIA_STRIPE_WEBHOOK_SECRET');
+    return is_string($raw) ? trim($raw) : '';
+}
+
 function payment_gateway_enabled(): bool
 {
     return payment_stripe_secret_key() !== '' && payment_stripe_publishable_key() !== '';
+}
+
+function stripe_verify_webhook_signature(string $payload, string $sigHeader, string $secret): array
+{
+    $elements = explode(',', $sigHeader);
+    $timestamp = '';
+    $signatures = [];
+    foreach ($elements as $el) {
+        $el = trim($el);
+        if (strpos($el, 't=') === 0) {
+            $timestamp = substr($el, 2);
+        } elseif (strpos($el, 'v1=') === 0) {
+            $signatures[] = substr($el, 3);
+        }
+    }
+
+    if ($timestamp === '' || count($signatures) === 0) {
+        throw new RuntimeException('Firma de webhook invalida.');
+    }
+
+    $tolerance = 300; // 5 minutos
+    if (abs(time() - (int) $timestamp) > $tolerance) {
+        throw new RuntimeException('Webhook timestamp fuera de tolerancia.');
+    }
+
+    $signedPayload = $timestamp . '.' . $payload;
+    $expectedSig = hash_hmac('sha256', $signedPayload, $secret);
+
+    $valid = false;
+    foreach ($signatures as $sig) {
+        if (hash_equals($expectedSig, $sig)) {
+            $valid = true;
+            break;
+        }
+    }
+    if (!$valid) {
+        throw new RuntimeException('Firma de webhook no coincide.');
+    }
+
+    $event = json_decode($payload, true);
+    if (!is_array($event)) {
+        throw new RuntimeException('Payload de webhook invalido.');
+    }
+    return $event;
 }
 
 function payment_expected_amount_cents(string $service): int
@@ -62,7 +112,7 @@ function stripe_request(string $method, string $path, array $fields = [], string
     $url = 'https://api.stripe.com/v1' . $path;
     $headers = [
         'Authorization: Bearer ' . $secret,
-        'Stripe-Version: 2023-10-16'
+        'Stripe-Version: 2025-04-30.basil'
     ];
     if ($idempotencyKey !== '') {
         $headers[] = 'Idempotency-Key: ' . $idempotencyKey;
