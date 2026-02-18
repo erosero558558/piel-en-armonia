@@ -3569,8 +3569,9 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
 }
 
 .metric-card-reviews .rating-count {
-    color: inherit;
-    opacity: 0.88;
+    color: #587093;
+    font-size: 0.86rem;
+    font-weight: 600;
 }
 
 .reviews-grid {
@@ -3669,7 +3670,7 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
 
 .benefit-item {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
     border-radius: 12px;
     border: 1px solid rgba(160, 185, 221, 0.3);
@@ -3681,6 +3682,33 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
 
 .benefit-item i {
     color: #91d2ff;
+    margin-top: 2px;
+}
+
+.benefit-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.benefit-link {
+    color: #a9ddff;
+    font-size: 0.79rem;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    max-width: 38ch;
+}
+
+.benefit-link:hover {
+    color: #d8efff;
+}
+
+.benefit-note {
+    color: rgba(224, 236, 255, 0.86);
+    font-size: 0.75rem;
+    line-height: 1.35;
+    max-width: 38ch;
 }
 
 .appointment-form-container {

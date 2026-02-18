@@ -163,12 +163,12 @@ const translations = {
         case_spots: "Eliminación de Manchas",
         case_spots_desc: "Tratamiento despigmentante",
         results_note_consent: "Casos reales publicados con consentimiento informado del paciente.",
-        results_note_variability: "Los resultados pueden variar segun el diagnostico, adherencia y tipo de piel.",
+        results_note_variability: "Los resultados pueden variar seg\u00fan el diagn\u00f3stico, adherencia y tipo de piel.",
         results_note_timeline: "El tiempo mostrado en cada caso corresponde al proceso real del paciente.",
         showcase_eyebrow: "Dermatología avanzada",
         showcase_title: "Tecnología que transforma tu piel.",
-        showcase_desc: "Combinamos ciencia y experiencia para ofrecerte los tratamientos más efectivos y personalizados del mercado.",
-        showcase_diag_eyebrow: "Diagnóstico",
+        showcase_desc: "Combinamos ciencia y experiencia para ofrecerte los tratamientos m\u00e1s efectivos y personalizados del mercado.",
+        showcase_diag_eyebrow: "Diagn\u00f3stico",
         showcase_diag_title: "Precisión en cada detalle.",
         showcase_diag_desc: "Dermatoscopia digital y evaluación integral para un diagnóstico certero desde la primera consulta.",
         showcase_clinic_eyebrow: "Instalaciones",
@@ -199,7 +199,10 @@ const translations = {
         appointment_desc: "Agenda tu consulta de forma rápida y sencilla. Selecciona el tipo de servicio, el doctor de tu preferencia y la fecha que más te convenga.",
         benefit_1: "Confirmación inmediata",
         benefit_2: "Confirmación de pago asistida",
-        benefit_3: "Reprogramación gratuita",
+        benefit_3: "Reprogramaci\u00f3n gratuita",
+        
+        benefit_3_link: "Ver pol\u00edtica de reprogramaci\u00f3n y cancelaci\u00f3n",
+        benefit_3_note: "Cambios sin costo hasta 24h antes. Sujeto a disponibilidad.",
         form_title: "Nueva Cita",
         label_service: "Tipo de Consulta",
         select_service: "Selecciona un servicio",
@@ -219,7 +222,7 @@ const translations = {
         label_name: "Nombre completo",
         label_email: "Email",
         label_reason: "Motivo de consulta (opcional)",
-        placeholder_reason: "Ej: acne inflamatorio en mejillas, picazon o manchas recientes",
+        placeholder_reason: "Ej: acn\u00e9 inflamatorio en mejillas, picaz\u00f3n o manchas recientes",
         label_area: "Zona de la piel (opcional)",
         select_area: "Selecciona una zona",
         area_face: "Rostro",
@@ -229,19 +232,21 @@ const translations = {
         area_arms: "Brazos y manos",
         area_legs: "Piernas y pies",
         area_other: "Otra zona",
-        label_evolution: "Tiempo de evolucion (opcional)",
+        label_evolution: "Tiempo de evoluci\u00f3n (opcional)",
         select_evolution: "Selecciona un tiempo",
         evolution_1w: "Menos de 1 semana",
         evolution_1m: "1 a 4 semanas",
         evolution_3m: "1 a 3 meses",
         evolution_12m: "3 a 12 meses",
-        evolution_year: "Mas de 1 ano",
+        evolution_year: "M\u00e1s de 1 a\u00f1o",
         label_case_photos: "Fotos de apoyo (opcional, max 3)",
         case_photos_help: "Puedes subir hasta 3 fotos (max 5 MB c/u) para orientar mejor la primera consulta.",
-        privacy_consent_label: "Acepto el tratamiento de mis datos para gestionar la cita y evaluacion medica inicial.",
-        privacy_images_note: "Las imagenes y datos de contacto se usan solo con fines asistenciales internos y se resguardan de forma confidencial.",
-        privacy_link_label: "Ver politica de privacidad",
+        privacy_consent_label: "Acepto el tratamiento de mis datos para gestionar la cita y evaluaci\u00f3n m\u00e9dica inicial.",
+        privacy_images_note: "Las im\u00e1genes y datos de contacto se usan solo con fines asistenciales internos y se resguardan de forma confidencial.",
+        privacy_link_label: "Ver pol\u00edtica de privacidad",
         label_phone: "Teléfono",
+        
+        placeholder_phone: "+593 9XXXXXXXX",
         summary_subtotal: "Subtotal",
         summary_iva: "IVA (12%)",
         summary_total: "Total",
@@ -257,12 +262,12 @@ const translations = {
         bank_name: "Banco Pichincha",
         bank_account: "Cuenta de Ahorros: 2200160272",
         bank_owner: "Titular: Rosero Caiza Javier Alejandro",
-        label_transfer_ref: "Número de referencia",
+        label_transfer_ref: "N\u00famero de referencia",
         cash_info: "Paga directamente en el consultorio el día de tu cita.",
         payment_total: "Total a pagar:",
-        payment_trust_ssl: "Conexión segura SSL/TLS",
+        payment_trust_ssl: "Conexi\u00f3n segura SSL/TLS",
         payment_trust_stripe: "Cobro protegido con Stripe",
-        payment_trust_invoice: "Facturación y soporte por WhatsApp",
+        payment_trust_invoice: "Facturaci\u00f3n y soporte por WhatsApp",
         payment_faq_title: "Preguntas frecuentes de pago",
         payment_faq_refund_q: "Reembolsos y cancelaciones",
         payment_faq_refund_a: "Si cancelas con anticipación, coordinamos reembolso o saldo a favor según el caso clínico y términos vigentes.",
@@ -276,6 +281,11 @@ const translations = {
         success_title: "¡Cita Confirmada!",
         success_desc: "Tu cita fue registrada correctamente.",
         btn_done: "Entendido",
+        reschedule_title: "Reprogramar Cita",
+        reschedule_new_date: "Nueva fecha",
+        reschedule_new_time: "Nuevo horario",
+        reschedule_select_time: "Selecciona un horario",
+        reschedule_confirm: "Confirmar reprogramación",
         video_modal_title: "Elige cómo quieres hacer la videollamada:",
         video_jitsi: "Jitsi Meet (Recomendado)",
         video_jitsi_desc: "Sin registro. Funciona en cualquier navegador.",
@@ -425,6 +435,9 @@ const translations = {
         benefit_1: "Immediate confirmation",
         benefit_2: "Assisted payment confirmation",
         benefit_3: "Free rescheduling",
+        
+        benefit_3_link: "View rescheduling and cancellation policy",
+        benefit_3_note: "Free changes up to 24h before. Subject to availability.",
         form_title: "New Appointment",
         label_service: "Type of Consultation",
         select_service: "Select a service",
@@ -467,6 +480,7 @@ const translations = {
         privacy_images_note: "Images and contact data are used only for internal care purposes and handled confidentially.",
         privacy_link_label: "View privacy policy",
         label_phone: "Phone",
+        placeholder_phone: "+593 9XXXXXXXX",
         summary_subtotal: "Subtotal",
         summary_iva: "VAT (12%)",
         summary_total: "Total",
@@ -501,6 +515,11 @@ const translations = {
         success_title: "Appointment Confirmed!",
         success_desc: "Your appointment was registered successfully.",
         btn_done: "Got it",
+        reschedule_title: "Reschedule Appointment",
+        reschedule_new_date: "New date",
+        reschedule_new_time: "New time",
+        reschedule_select_time: "Select a time",
+        reschedule_confirm: "Confirm reschedule",
         video_modal_title: "Choose how you want to make the video call:",
         video_jitsi: "Jitsi Meet (Recommended)",
         video_jitsi_desc: "No registration. Works in any browser.",
@@ -922,7 +941,7 @@ function validateCasePhotoFiles(files) {
         if (!validByMime && !validByExt) {
             throw new Error(
                 currentLang === 'es'
-                    ? 'Solo se permiten imagenes JPG, PNG o WEBP.'
+                    ? 'Solo se permiten im\u00e1genes JPG, PNG o WEBP.'
                     : 'Only JPG, PNG or WEBP images are allowed.'
             );
         }
@@ -1179,24 +1198,27 @@ function renderPublicReviews(reviews) {
     `;
     }).join('');
 
-    // Actualizar promedio dinámico
-    const ratingNumber = document.querySelector('.rating-number');
-    if (ratingNumber && reviews.length > 0) {
+    // Actualizar promedio dinamico en hero + seccion de resenas
+    if (reviews.length > 0) {
         const avg = reviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / reviews.length;
-        ratingNumber.textContent = avg.toFixed(1);
+        const starsHtml = renderStars(Math.round(avg));
 
-        const starsContainer = document.querySelector('.rating-stars');
-        if (starsContainer) {
-            starsContainer.innerHTML = renderStars(Math.round(avg));
-        }
+        document.querySelectorAll('.rating-number').forEach(el => {
+            el.textContent = avg.toFixed(1);
+        });
+
+        document.querySelectorAll('.rating-stars').forEach(el => {
+            el.innerHTML = starsHtml;
+        });
     }
 
-    const countLabel = document.querySelector('.rating-count');
-    if (countLabel) {
-        countLabel.textContent = currentLang === 'es'
-            ? `${reviews.length} reseñas verificadas`
-            : `${reviews.length} verified reviews`;
-    }
+    const countText = currentLang === 'es'
+        ? `${reviews.length} rese\u00f1as verificadas`
+        : `${reviews.length} verified reviews`;
+
+    document.querySelectorAll('.rating-count').forEach(el => {
+        el.textContent = countText;
+    });
 }
 
 function changeLanguage(lang) {
@@ -1339,6 +1361,31 @@ document.addEventListener('DOMContentLoaded', function() {
 // ========================================
 // APPOINTMENT FORM & PRICING
 // ========================================
+function normalizeEcuadorPhone(rawValue) {
+    const raw = String(rawValue || '').trim();
+    if (raw === '') return '';
+
+    const digits = raw.replace(/\D/g, '');
+
+    if (digits.startsWith('593') && digits.length >= 12) {
+        return `+${digits}`;
+    }
+
+    if (digits.startsWith('09') && digits.length === 10) {
+        return `+593${digits.slice(1)}`;
+    }
+
+    if (digits.startsWith('9') && digits.length === 9) {
+        return `+593${digits}`;
+    }
+
+    if (raw.startsWith('+')) {
+        return `+${raw.slice(1).replace(/\D/g, '')}`;
+    }
+
+    return raw;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const serviceSelect = document.getElementById('serviceSelect');
     const priceSummary = document.getElementById('priceSummary');
@@ -1348,6 +1395,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateInput = document.querySelector('input[name="date"]');
     const timeSelect = document.querySelector('select[name="time"]');
     const doctorSelect = document.querySelector('select[name="doctor"]');
+    const phoneInput = document.querySelector('input[name="phone"]');
     const appointmentForm = document.getElementById('appointmentForm');
 
     if (!serviceSelect || !priceSummary || !subtotalEl || !ivaEl || !totalEl || !appointmentForm) {
@@ -1379,6 +1427,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (doctorSelect) {
         doctorSelect.addEventListener('change', () => updateAvailableTimes().catch(() => undefined));
+    }
+
+    if (phoneInput) {
+        phoneInput.addEventListener('blur', () => {
+            const normalized = normalizeEcuadorPhone(phoneInput.value);
+            if (normalized !== '') {
+                phoneInput.value = normalized;
+            }
+        });
     }
 
     async function updateAvailableTimes() {
@@ -1431,6 +1488,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 );
             }
 
+            const normalizedPhone = normalizeEcuadorPhone(formData.get('phone'));
+
             const appointment = {
                 service: formData.get('service'),
                 doctor: formData.get('doctor'),
@@ -1438,7 +1497,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 time: formData.get('time'),
                 name: formData.get('name'),
                 email: formData.get('email'),
-                phone: formData.get('phone'),
+                phone: normalizedPhone,
                 reason: formData.get('reason') || '',
                 affectedArea: formData.get('affectedArea') || '',
                 evolutionTime: formData.get('evolutionTime') || '',
@@ -3237,7 +3296,7 @@ Al enviar el formulario se abre la ventana de pago automaticamente.<br><br>
 <strong>4) Confirmacion</strong><br>
 Tu cita queda registrada y te contactamos para confirmar detalles por WhatsApp: <a href="https://wa.me/593982453672" target="_blank">+593 98 245 3672</a>.<br><br>
 
-Si quieres, te guio paso a paso segun el metodo que prefieras.`;
+Si quieres, te guio paso a paso seg\u00fan el m\u00e9todo que prefieras.`;
     }
     // CITAS - iniciar booking conversacional
     else if (/cita|agendar|reservar|turno|hora/.test(lowerMsg)) {
@@ -3265,7 +3324,7 @@ Si quieres, te guio paso a paso segun el metodo que prefieras.`;
         response += '• Rejuvenecimiento facial<br>';
         response += '• Cicatrices de acne<br><br>';
         response += 'Precio: Desde $150<br><br>';
-        response += 'Se requiere consulta de evaluacion previa.<br>';
+        response += 'Se requiere consulta de evaluaci\u00f3n previa.<br>';
         response += '¿Deseas agendar?';
     }
     // UBICACION
@@ -3412,11 +3471,144 @@ function mostrarInfoDebug() {
     addBotMessage(msg);
 }
 
+// ========================================
+// REPROGRAMACIÓN ONLINE
+// ========================================
+let _rescheduleToken = '';
+let _rescheduleAppt = null;
+
+async function checkRescheduleParam() {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('reschedule');
+    if (!token) return;
+    _rescheduleToken = token;
+    try {
+        const resp = await apiRequest('reschedule', { query: { token } });
+        if (resp.ok && resp.data) {
+            _rescheduleAppt = resp.data;
+            openRescheduleModal(resp.data);
+        } else {
+            showToast(resp.error || 'Enlace de reprogramación inválido.', 'error');
+        }
+    } catch (err) {
+        showToast('No se pudo cargar la cita. Verifica el enlace.', 'error');
+    }
+}
+
+function openRescheduleModal(appt) {
+    const modal = document.getElementById('rescheduleModal');
+    if (!modal) return;
+    const info = document.getElementById('rescheduleInfo');
+    if (info) {
+        const doctorLabel = appt.doctor === 'rosero' ? 'Dr. Javier Rosero' :
+            appt.doctor === 'narvaez' ? 'Dra. Carolina Narváez' : appt.doctor;
+        info.innerHTML =
+            '<p><strong>' + (currentLang === 'es' ? 'Paciente' : 'Patient') + ':</strong> ' + escapeHTML(appt.name) + '</p>' +
+            '<p><strong>' + (currentLang === 'es' ? 'Servicio' : 'Service') + ':</strong> ' + escapeHTML(appt.service) + '</p>' +
+            '<p><strong>' + (currentLang === 'es' ? 'Doctor' : 'Doctor') + ':</strong> ' + escapeHTML(doctorLabel) + '</p>' +
+            '<p><strong>' + (currentLang === 'es' ? 'Fecha actual' : 'Current date') + ':</strong> ' + escapeHTML(appt.date) + ' ' + escapeHTML(appt.time) + '</p>';
+    }
+    const dateInput = document.getElementById('rescheduleDate');
+    if (dateInput) {
+        dateInput.min = new Date().toISOString().split('T')[0];
+        dateInput.value = '';
+        dateInput.addEventListener('change', loadRescheduleSlots);
+    }
+    document.getElementById('rescheduleTime').innerHTML = '<option value="">' + (currentLang === 'es' ? 'Selecciona un horario' : 'Select a time') + '</option>';
+    document.getElementById('rescheduleError').style.display = 'none';
+    modal.classList.add('active');
+}
+
+function closeRescheduleModal() {
+    const modal = document.getElementById('rescheduleModal');
+    if (modal) modal.classList.remove('active');
+    // limpiar parámetro de URL
+    if (window.history.replaceState) {
+        const url = new URL(window.location);
+        url.searchParams.delete('reschedule');
+        window.history.replaceState({}, '', url);
+    }
+}
+
+async function loadRescheduleSlots() {
+    const dateInput = document.getElementById('rescheduleDate');
+    const timeSelect = document.getElementById('rescheduleTime');
+    if (!dateInput || !timeSelect || !_rescheduleAppt) return;
+
+    const selectedDate = dateInput.value;
+    if (!selectedDate) return;
+
+    timeSelect.innerHTML = '<option value="">' + (currentLang === 'es' ? 'Cargando...' : 'Loading...') + '</option>';
+
+    try {
+        const availability = await loadAvailabilityData();
+        const daySlots = availability[selectedDate] || DEFAULT_TIME_SLOTS;
+        const booked = await getBookedSlots(selectedDate, _rescheduleAppt.doctor || '');
+
+        const freeSlots = daySlots.filter(s => !booked.includes(s));
+        timeSelect.innerHTML = '<option value="">' + (currentLang === 'es' ? 'Selecciona un horario' : 'Select a time') + '</option>';
+        freeSlots.forEach(slot => {
+            const opt = document.createElement('option');
+            opt.value = slot;
+            opt.textContent = slot;
+            timeSelect.appendChild(opt);
+        });
+
+        if (freeSlots.length === 0) {
+            timeSelect.innerHTML = '<option value="">' + (currentLang === 'es' ? 'Sin horarios disponibles' : 'No slots available') + '</option>';
+        }
+    } catch (err) {
+        timeSelect.innerHTML = '<option value="">' + (currentLang === 'es' ? 'Error al cargar horarios' : 'Error loading slots') + '</option>';
+    }
+}
+
+async function submitReschedule() {
+    const dateInput = document.getElementById('rescheduleDate');
+    const timeSelect = document.getElementById('rescheduleTime');
+    const errorDiv = document.getElementById('rescheduleError');
+    const btn = document.getElementById('rescheduleSubmitBtn');
+    if (!dateInput || !timeSelect) return;
+
+    const newDate = dateInput.value;
+    const newTime = timeSelect.value;
+    errorDiv.style.display = 'none';
+
+    if (!newDate || !newTime) {
+        errorDiv.textContent = currentLang === 'es' ? 'Selecciona fecha y horario.' : 'Select date and time.';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = currentLang === 'es' ? 'Reprogramando...' : 'Rescheduling...';
+
+    try {
+        const resp = await apiRequest('reschedule', {
+            method: 'PATCH',
+            body: { token: _rescheduleToken, date: newDate, time: newTime }
+        });
+        if (resp.ok) {
+            closeRescheduleModal();
+            showToast(currentLang === 'es' ? '¡Cita reprogramada exitosamente!' : 'Appointment rescheduled successfully!', 'success');
+        } else {
+            errorDiv.textContent = resp.error || 'Error al reprogramar.';
+            errorDiv.style.display = 'block';
+        }
+    } catch (err) {
+        errorDiv.textContent = currentLang === 'es' ? 'Error de conexión. Inténtalo de nuevo.' : 'Connection error. Try again.';
+        errorDiv.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = currentLang === 'es' ? 'Confirmar reprogramación' : 'Confirm reschedule';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     initThemeMode();
     changeLanguage(currentLang);
     initCookieBanner();
     initGA4();
+    checkRescheduleParam();
     const isServer = checkServerEnvironment();
 
     if (!isServer) {

@@ -842,7 +842,11 @@ function normalize_appointment(array $appointment): array
         'transferProofUrl' => truncate_field(trim((string) ($appointment['transferProofUrl'] ?? '')), 300),
         'transferProofName' => truncate_field(trim((string) ($appointment['transferProofName'] ?? '')), 200),
         'transferProofMime' => truncate_field(trim((string) ($appointment['transferProofMime'] ?? '')), 50),
-        'dateBooked' => isset($appointment['dateBooked']) ? (string) $appointment['dateBooked'] : local_date('c')
+        'dateBooked' => isset($appointment['dateBooked']) ? (string) $appointment['dateBooked'] : local_date('c'),
+        'rescheduleToken' => isset($appointment['rescheduleToken']) && $appointment['rescheduleToken'] !== ''
+            ? (string) $appointment['rescheduleToken']
+            : bin2hex(random_bytes(16)),
+        'reminderSentAt' => truncate_field(trim((string) ($appointment['reminderSentAt'] ?? '')), 30)
     ];
 }
 
@@ -1086,6 +1090,13 @@ function maybe_send_appointment_email(array $appointment): bool
     $message .= "Fecha: " . ($appointment['date'] ?? '-') . "\n";
     $message .= "Hora: " . ($appointment['time'] ?? '-') . "\n";
     $message .= "Estado de pago: " . ($appointment['paymentStatus'] ?? 'pending') . "\n\n";
+
+    $token = $appointment['rescheduleToken'] ?? '';
+    if ($token !== '') {
+        $message .= "Si necesitas reprogramar tu cita, usa este enlace:\n";
+        $message .= "https://pielarmonia.com/?reschedule=" . $token . "\n\n";
+    }
+
     $message .= "Gracias por confiar en nosotros.";
 
     return send_mail($to, $subject, $message);
@@ -1176,4 +1187,61 @@ function maybe_send_callback_admin_notification(array $callback): bool
     $body .= "Por favor contactar lo antes posible.";
 
     return send_mail($adminEmail, $subject, $body);
+}
+
+function maybe_send_reminder_email(array $appointment): bool
+{
+    $to = trim((string) ($appointment['email'] ?? ''));
+    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+
+    $clinicName = 'Piel en Armonía';
+    $subject = 'Recordatorio de cita - ' . $clinicName;
+    $body = "Hola " . ($appointment['name'] ?? 'paciente') . ",\n\n";
+    $body .= "Te recordamos que tienes una cita programada para mañana.\n\n";
+    $body .= "Servicio: " . ($appointment['service'] ?? '-') . "\n";
+    $body .= "Doctor: " . ($appointment['doctor'] ?? '-') . "\n";
+    $body .= "Fecha: " . ($appointment['date'] ?? '-') . "\n";
+    $body .= "Hora: " . ($appointment['time'] ?? '-') . "\n\n";
+
+    $token = $appointment['rescheduleToken'] ?? '';
+    if ($token !== '') {
+        $body .= "Si necesitas reprogramar, usa este enlace:\n";
+        $body .= "https://pielarmonia.com/?reschedule=" . $token . "\n\n";
+    }
+
+    $body .= "Te esperamos. ¡Gracias por confiar en nosotros!\n";
+    $body .= "- Equipo Piel en Armonía\n";
+    $body .= "WhatsApp: +593 98 245 3672";
+
+    return send_mail($to, $subject, $body);
+}
+
+function maybe_send_reschedule_email(array $appointment): bool
+{
+    $to = trim((string) ($appointment['email'] ?? ''));
+    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+
+    $clinicName = 'Piel en Armonía';
+    $subject = 'Cita reprogramada - ' . $clinicName;
+    $body = "Hola " . ($appointment['name'] ?? 'paciente') . ",\n\n";
+    $body .= "Tu cita ha sido reprogramada exitosamente.\n\n";
+    $body .= "Servicio: " . ($appointment['service'] ?? '-') . "\n";
+    $body .= "Doctor: " . ($appointment['doctor'] ?? '-') . "\n";
+    $body .= "Nueva fecha: " . ($appointment['date'] ?? '-') . "\n";
+    $body .= "Nueva hora: " . ($appointment['time'] ?? '-') . "\n\n";
+
+    $token = $appointment['rescheduleToken'] ?? '';
+    if ($token !== '') {
+        $body .= "Si necesitas reprogramar de nuevo:\n";
+        $body .= "https://pielarmonia.com/?reschedule=" . $token . "\n\n";
+    }
+
+    $body .= "Te esperamos. ¡Gracias por confiar en nosotros!\n";
+    $body .= "- Equipo Piel en Armonía";
+
+    return send_mail($to, $subject, $body);
 }

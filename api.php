@@ -75,6 +75,8 @@ $publicEndpoints = [
     ['method' => 'POST', 'resource' => 'appointments'],
     ['method' => 'POST', 'resource' => 'callbacks'],
     ['method' => 'POST', 'resource' => 'reviews'],
+    ['method' => 'GET', 'resource' => 'reschedule'],
+    ['method' => 'PATCH', 'resource' => 'reschedule'],
 ];
 
 $isPublic = false;
@@ -860,6 +862,98 @@ if ($method === 'POST' && $resource === 'import') {
     json_response([
         'ok' => true
     ]);
+}
+
+// ── Reprogramación pública (por token) ──────────────────
+if ($method === 'GET' && $resource === 'reschedule') {
+    $token = trim((string) ($_GET['token'] ?? ''));
+    if ($token === '' || strlen($token) < 16) {
+        json_response(['ok' => false, 'error' => 'Token inválido'], 400);
+    }
+
+    $found = null;
+    foreach ($store['appointments'] as $appt) {
+        if (($appt['rescheduleToken'] ?? '') === $token && ($appt['status'] ?? '') !== 'cancelled') {
+            $found = $appt;
+            break;
+        }
+    }
+
+    if (!$found) {
+        json_response(['ok' => false, 'error' => 'Cita no encontrada o cancelada'], 404);
+    }
+
+    json_response([
+        'ok' => true,
+        'data' => [
+            'id' => $found['id'],
+            'service' => $found['service'] ?? '',
+            'doctor' => $found['doctor'] ?? '',
+            'date' => $found['date'] ?? '',
+            'time' => $found['time'] ?? '',
+            'name' => $found['name'] ?? '',
+            'status' => $found['status'] ?? ''
+        ]
+    ]);
+}
+
+if ($method === 'PATCH' && $resource === 'reschedule') {
+    require_rate_limit('reschedule', 5, 60);
+    $payload = require_json_body();
+    $token = trim((string) ($payload['token'] ?? ''));
+    $newDate = trim((string) ($payload['date'] ?? ''));
+    $newTime = trim((string) ($payload['time'] ?? ''));
+
+    if ($token === '' || strlen($token) < 16) {
+        json_response(['ok' => false, 'error' => 'Token inválido'], 400);
+    }
+    if ($newDate === '' || $newTime === '') {
+        json_response(['ok' => false, 'error' => 'Fecha y hora son obligatorias'], 400);
+    }
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $newDate)) {
+        json_response(['ok' => false, 'error' => 'Formato de fecha inválido'], 400);
+    }
+    if (strtotime($newDate) < strtotime(date('Y-m-d'))) {
+        json_response(['ok' => false, 'error' => 'No puedes reprogramar a una fecha pasada'], 400);
+    }
+
+    $found = false;
+    foreach ($store['appointments'] as &$appt) {
+        if (($appt['rescheduleToken'] ?? '') !== $token) {
+            continue;
+        }
+        if (($appt['status'] ?? '') === 'cancelled') {
+            json_response(['ok' => false, 'error' => 'Esta cita fue cancelada'], 400);
+        }
+
+        $doctor = $appt['doctor'] ?? '';
+        $excludeId = (int) ($appt['id'] ?? 0);
+        if (appointment_slot_taken($store['appointments'], $newDate, $newTime, $excludeId, $doctor)) {
+            json_response(['ok' => false, 'error' => 'El horario seleccionado ya no está disponible'], 409);
+        }
+
+        $appt['date'] = $newDate;
+        $appt['time'] = $newTime;
+        $appt['reminderSentAt'] = '';
+        $found = true;
+
+        write_store($store);
+        maybe_send_reschedule_email($appt);
+
+        json_response([
+            'ok' => true,
+            'data' => [
+                'id' => $appt['id'],
+                'date' => $newDate,
+                'time' => $newTime
+            ]
+        ]);
+    }
+    unset($appt);
+
+    if (!$found) {
+        json_response(['ok' => false, 'error' => 'Cita no encontrada'], 404);
+    }
 }
 
 json_response([

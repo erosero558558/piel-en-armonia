@@ -5,6 +5,11 @@ env.php
 data/
 uploads/
 
+# Node / Tests
+node_modules/
+test-results/
+playwright-report/
+
 # Sistema
 .DS_Store
 Thumbs.db

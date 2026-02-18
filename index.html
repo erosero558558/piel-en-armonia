@@ -98,7 +98,7 @@
       ]
     }
     </script>
-    <link rel="stylesheet" href="styles.css?v=ui-20260218-mobile6">
+    <link rel="stylesheet" href="styles.css?v=ui-20260218-mobile8">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -238,7 +238,7 @@
             <div class="showcase-hero-content">
                 <p class="showcase-eyebrow" data-i18n="showcase_eyebrow">Dermatología avanzada</p>
                 <h2 class="showcase-hero-title" data-i18n="showcase_title">Tecnología que transforma tu piel.</h2>
-                <p class="showcase-hero-desc" data-i18n="showcase_desc">Combinamos ciencia y experiencia para ofrecerte los tratamientos mas efectivos y personalizados del mercado.</p>
+                <p class="showcase-hero-desc" data-i18n="showcase_desc">Combinamos ciencia y experiencia para ofrecerte los tratamientos más efectivos y personalizados del mercado.</p>
             </div>
         </div>
 
@@ -246,10 +246,10 @@
         <div class="showcase-grid">
             <div class="showcase-card">
                 <div class="showcase-card-image">
-                    <img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&h=600&fit=crop&q=80" alt="Diagnostico dermatologico preciso" loading="lazy" decoding="async">
+                    <img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&h=600&fit=crop&q=80" alt="Diagnóstico dermatológico preciso" loading="lazy" decoding="async">
                 </div>
                 <div class="showcase-card-body">
-                    <p class="showcase-eyebrow" data-i18n="showcase_diag_eyebrow">Diagnostico</p>
+                    <p class="showcase-eyebrow" data-i18n="showcase_diag_eyebrow">Diagnóstico</p>
                     <h3 data-i18n="showcase_diag_title">Precisión en cada detalle.</h3>
                     <p data-i18n="showcase_diag_desc">Dermatoscopia digital y evaluación integral para un diagnóstico certero desde la primera consulta.</p>
                 </div>
@@ -616,7 +616,7 @@
             </div>
             <div class="trust-note">
                 <i class="fas fa-flask"></i>
-                <p data-i18n="results_note_variability">Los resultados pueden variar segun el diagnostico, adherencia y tipo de piel.</p>
+                <p data-i18n="results_note_variability">Los resultados pueden variar según el diagnóstico, adherencia y tipo de piel.</p>
             </div>
             <div class="trust-note">
                 <i class="fas fa-clock"></i>
@@ -806,7 +806,11 @@
                     </div>
                     <div class="benefit-item">
                         <i class="fas fa-sync"></i>
-                        <span data-i18n="benefit_3">Reprogramación gratuita</span>
+                        <div class="benefit-copy">
+                            <span data-i18n="benefit_3">Reprogramación gratuita</span>
+                            <a href="terminos.html#cancelaciones-reprogramacion" target="_blank" rel="noopener noreferrer" class="benefit-link" data-i18n="benefit_3_link">Ver política de reprogramación y cancelación</a>
+                            <small class="benefit-note" data-i18n="benefit_3_note">Cambios sin costo hasta 24h antes. Sujeto a disponibilidad.</small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -869,7 +873,7 @@
                     
                     <div class="form-group">
                         <label data-i18n="label_phone">Teléfono</label>
-                        <input type="tel" name="phone" required>
+                        <input type="tel" name="phone" required inputmode="tel" autocomplete="tel" data-i18n="placeholder_phone" placeholder="+593 9XXXXXXXX">
                     </div>
 
                     <div class="form-group">
@@ -892,14 +896,14 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label data-i18n="label_evolution">Tiempo de evolucion (opcional)</label>
+                            <label data-i18n="label_evolution">Tiempo de evolución (opcional)</label>
                             <select name="evolutionTime">
                                 <option value="" data-i18n="select_evolution">Selecciona un tiempo</option>
                                 <option value="menos_1_semana" data-i18n="evolution_1w">Menos de 1 semana</option>
                                 <option value="1_4_semanas" data-i18n="evolution_1m">1 a 4 semanas</option>
                                 <option value="1_3_meses" data-i18n="evolution_3m">1 a 3 meses</option>
                                 <option value="3_12_meses" data-i18n="evolution_12m">3 a 12 meses</option>
-                                <option value="mas_1_ano" data-i18n="evolution_year">Mas de 1 ano</option>
+                                <option value="mas_1_ano" data-i18n="evolution_year">Más de 1 año</option>
                             </select>
                         </div>
                     </div>
@@ -913,11 +917,11 @@
                     <div class="form-consent">
                         <label class="checkbox-line">
                             <input type="checkbox" name="privacyConsent" required>
-                            <span data-i18n="privacy_consent_label">Acepto el tratamiento de mis datos para gestionar la cita y evaluacion medica inicial.</span>
+                            <span data-i18n="privacy_consent_label">Acepto el tratamiento de mis datos para gestionar la cita y evaluación médica inicial.</span>
                         </label>
                         <p class="form-privacy-note">
-                            <span data-i18n="privacy_images_note">Las imagenes y datos de contacto se usan solo con fines asistenciales internos y se resguardan de forma confidencial.</span>
-                            <a href="privacidad.html" target="_blank" rel="noopener noreferrer" data-i18n="privacy_link_label">Ver politica de privacidad</a>
+                            <span data-i18n="privacy_images_note">Las imágenes y datos de contacto se usan solo con fines asistenciales internos y se resguardan de forma confidencial.</span>
+                            <a href="privacidad.html" target="_blank" rel="noopener noreferrer" data-i18n="privacy_link_label">Ver política de privacidad</a>
                         </p>
                     </div>
                     
@@ -1155,6 +1159,29 @@
             <div id="appointmentDetails"></div>
             <button class="btn btn-primary" onclick="closeSuccessModal()">
                 <span data-i18n="btn_done">Entendido</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Reschedule Modal -->
+    <div class="modal" id="rescheduleModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeRescheduleModal()">&times;</button>
+            <h3 data-i18n="reschedule_title">Reprogramar Cita</h3>
+            <div id="rescheduleInfo"></div>
+            <div class="form-group">
+                <label data-i18n="reschedule_new_date">Nueva fecha</label>
+                <input type="date" id="rescheduleDate" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label data-i18n="reschedule_new_time">Nuevo horario</label>
+                <select id="rescheduleTime" class="form-control">
+                    <option value="" data-i18n="reschedule_select_time">Selecciona un horario</option>
+                </select>
+            </div>
+            <div id="rescheduleError" class="form-error" style="display:none;"></div>
+            <button class="btn btn-primary" id="rescheduleSubmitBtn" onclick="submitReschedule()">
+                <span data-i18n="reschedule_confirm">Confirmar reprogramación</span>
             </button>
         </div>
     </div>

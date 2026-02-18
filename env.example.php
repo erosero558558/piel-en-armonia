@@ -26,3 +26,6 @@
 
 // ── Chatbot (Figo) ───────────────────────────────────
 // putenv('PIELARMONIA_FIGO_ENDPOINT=https://...');
+
+// ── Cron (recordatorios automáticos) ────────────────
+// putenv('PIELARMONIA_CRON_SECRET=un_token_secreto_largo');
