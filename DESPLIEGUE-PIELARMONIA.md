@@ -21,6 +21,9 @@ Sube estos archivos a la raiz del hosting (`public_html` o equivalente):
 - `admin-auth.php`
 - `figo-chat.php`
 - carpeta `data/` (con permisos de escritura)
+- `SMOKE-PRODUCCION.ps1`
+- `VERIFICAR-DESPLIEGUE.ps1`
+- `BENCH-API-PRODUCCION.ps1`
 
 Notas:
 - El frontend ahora consume `figo-chat.php` para el chatbot IA.
@@ -71,18 +74,26 @@ Ejemplo de `data/figo-config.json`:
 
 1. Salud API:
 - `https://pielarmonia.com/api.php?resource=health`
+- Validar campos nuevos: `timingMs`, `version`, `dataDirWritable`, `storeEncrypted`, `figoConfigured`, `figoRecursiveConfig`.
 
 2. Admin auth status:
 - `https://pielarmonia.com/admin-auth.php?action=status`
 
 3. Bot Figo:
 - `https://pielarmonia.com/figo-chat.php`
+- Validar diagnostico: `mode`, `recursiveConfigDetected`, `upstreamReachable`.
 
 4. Sitio:
 - `https://pielarmonia.com/index.html`
 
 5. Panel:
 - `https://pielarmonia.com/admin.html`
+
+6. Verificacion de paridad de despliegue:
+- `.\VERIFICAR-DESPLIEGUE.ps1 -Domain "https://pielarmonia.com" -RunSmoke`
+
+7. Bench de latencia (p95):
+- `.\BENCH-API-PRODUCCION.ps1 -Domain "https://pielarmonia.com" -Runs 25 -IncludeFigoPost`
 
 ## Notas importantes
 

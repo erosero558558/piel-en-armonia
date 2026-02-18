@@ -43,7 +43,13 @@ Fecha de ejecucion sugerida: completar al desplegar.
 
 3. Verifica endpoint de salud:
 - URL: `https://TU_DOMINIO/api.php?resource=health`
-- Esperado: JSON con `"ok": true`
+- Esperado: JSON con `"ok": true` y campos:
+  - `timingMs`
+  - `version`
+  - `dataDirWritable`
+  - `storeEncrypted`
+  - `figoConfigured`
+  - `figoRecursiveConfig`
 
 ## 2. Pruebas del panel admin
 
@@ -121,7 +127,7 @@ Fecha de ejecucion sugerida: completar al desplegar.
 
 1. Verifica `figo-chat.php`:
 - URL: `https://TU_DOMINIO/figo-chat.php`
-- Esperado: responde JSON y muestra `configured`, `degradedMode`, `endpointHost`.
+- Esperado: responde JSON y muestra `configured`, `degradedMode`, `endpointHost`, `mode`, `recursiveConfigDetected`, `upstreamReachable`.
 
 2. Chatbot en sitio:
 - Pregunta: `hola`
@@ -154,6 +160,8 @@ Fecha de ejecucion sugerida: completar al desplegar.
 
 Opcional automatizado (PowerShell):
 - `.\SMOKE-PRODUCCION.ps1 -Domain "https://TU_DOMINIO" -TestFigoPost`
+- `.\VERIFICAR-DESPLIEGUE.ps1 -Domain "https://TU_DOMINIO" -RunSmoke`
+- `.\BENCH-API-PRODUCCION.ps1 -Domain "https://TU_DOMINIO" -Runs 25 -IncludeFigoPost`
 
 1. Home carga sin errores.
 2. Menu y scroll funcionan.

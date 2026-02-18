@@ -15,6 +15,8 @@ const DATA_DIR = __DIR__ . DIRECTORY_SEPARATOR . 'data';
 const DATA_FILE = DATA_DIR . DIRECTORY_SEPARATOR . 'store.json';
 const BACKUP_DIR = DATA_DIR . DIRECTORY_SEPARATOR . 'backups';
 const MAX_STORE_BACKUPS = 30;
+const STORE_LOCK_TIMEOUT_MS = 1800;
+const STORE_LOCK_RETRY_DELAY_US = 25000;
 const ADMIN_PASSWORD_ENV = 'PIELARMONIA_ADMIN_PASSWORD';
 const ADMIN_PASSWORD_HASH_ENV = 'PIELARMONIA_ADMIN_PASSWORD_HASH';
 const APP_TIMEZONE = 'America/Guayaquil';
@@ -25,6 +27,53 @@ date_default_timezone_set(APP_TIMEZONE);
 function local_date(string $format): string
 {
     return date($format);
+}
+
+function app_runtime_version(): string
+{
+    static $resolved = null;
+    if (is_string($resolved) && $resolved !== '') {
+        return $resolved;
+    }
+
+    $candidates = [
+        getenv('PIELARMONIA_APP_VERSION'),
+        getenv('APP_VERSION')
+    ];
+
+    foreach ($candidates as $candidate) {
+        if (is_string($candidate) && trim($candidate) !== '') {
+            $resolved = trim($candidate);
+            return $resolved;
+        }
+    }
+
+    $versionSources = [
+        __DIR__ . DIRECTORY_SEPARATOR . 'index.html',
+        __DIR__ . DIRECTORY_SEPARATOR . 'script.js',
+        __DIR__ . DIRECTORY_SEPARATOR . 'styles.css',
+        __DIR__ . DIRECTORY_SEPARATOR . 'api.php',
+        __DIR__ . DIRECTORY_SEPARATOR . 'figo-chat.php'
+    ];
+
+    $latestMtime = 0;
+    foreach ($versionSources as $source) {
+        if (!is_file($source)) {
+            continue;
+        }
+        $mtime = @filemtime($source);
+        if (is_int($mtime) && $mtime > $latestMtime) {
+            $latestMtime = $mtime;
+        }
+    }
+
+    if ($latestMtime > 0) {
+        $resolved = gmdate('YmdHis', $latestMtime);
+    } else {
+        $resolved = 'dev';
+    }
+
+    return $resolved;
 }
 
 function data_dir_path(): string
@@ -70,6 +119,40 @@ function data_dir_path(): string
 function data_file_path(): string
 {
     return data_dir_path() . DIRECTORY_SEPARATOR . 'store.json';
+}
+
+function data_dir_writable(): bool
+{
+    $dir = data_dir_path();
+
+    if (!is_dir($dir)) {
+        if (!@mkdir($dir, 0775, true) && !is_dir($dir)) {
+            return false;
+        }
+    }
+
+    return @is_writable($dir);
+}
+
+function store_file_is_encrypted(): bool
+{
+    $path = data_file_path();
+    if (!is_file($path)) {
+        return false;
+    }
+
+    $fp = @fopen($path, 'rb');
+    if ($fp === false) {
+        return false;
+    }
+
+    try {
+        $prefix = fread($fp, 6);
+    } finally {
+        fclose($fp);
+    }
+
+    return is_string($prefix) && $prefix === 'ENCv1:';
 }
 
 function backup_dir_path(): string
@@ -487,13 +570,18 @@ function write_store(array $store): void
         ], 500);
     }
 
+    $lockAcquired = false;
     try {
-        if (!flock($fp, LOCK_EX)) {
+        $lockTimeoutMs = STORE_LOCK_TIMEOUT_MS;
+        if (!acquire_store_lock($fp, $lockTimeoutMs)) {
+            header('Retry-After: 1');
             json_response([
                 'ok' => false,
-                'error' => 'No se pudo bloquear el archivo de datos'
-            ], 500);
+                'error' => 'El sistema esta ocupado. Intenta nuevamente en unos segundos',
+                'retryAfterMs' => $lockTimeoutMs
+            ], 503);
         }
+        $lockAcquired = true;
 
         // Backup del estado anterior antes de sobrescribir.
         create_store_backup_locked($fp);
@@ -509,10 +597,31 @@ function write_store(array $store): void
             ], 500);
         }
         fflush($fp);
-        flock($fp, LOCK_UN);
     } finally {
+        if ($lockAcquired) {
+            flock($fp, LOCK_UN);
+        }
         fclose($fp);
     }
+}
+
+function acquire_store_lock($fp, int $timeoutMs = STORE_LOCK_TIMEOUT_MS): bool
+{
+    if (!is_resource($fp)) {
+        return false;
+    }
+
+    $timeoutMs = max(100, $timeoutMs);
+    $deadline = microtime(true) + ($timeoutMs / 1000);
+
+    do {
+        if (flock($fp, LOCK_EX | LOCK_NB)) {
+            return true;
+        }
+        usleep(STORE_LOCK_RETRY_DELAY_US);
+    } while (microtime(true) < $deadline);
+
+    return false;
 }
 
 function sanitize_phone(string $phone): string

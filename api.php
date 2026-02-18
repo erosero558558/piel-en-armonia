@@ -4,6 +4,117 @@ declare(strict_types=1);
 require_once __DIR__ . '/api-lib.php';
 require_once __DIR__ . '/payment-lib.php';
 
+$requestStartedAt = microtime(true);
+
+function api_elapsed_ms(float $startedAt): int
+{
+    return (int) round((microtime(true) - $startedAt) * 1000);
+}
+
+function api_resolve_figo_endpoint_for_health(): string
+{
+    $envCandidates = [
+        getenv('FIGO_CHAT_ENDPOINT'),
+        getenv('FIGO_CHAT_URL'),
+        getenv('FIGO_CHAT_API_URL'),
+        getenv('FIGO_ENDPOINT'),
+        getenv('FIGO_URL'),
+        getenv('CLAWBOT_ENDPOINT'),
+        getenv('CLAWBOT_URL'),
+        getenv('CHATBOT_ENDPOINT'),
+        getenv('CHATBOT_URL'),
+        getenv('BOT_ENDPOINT'),
+        getenv('PIELARMONIA_FIGO_ENDPOINT')
+    ];
+
+    foreach ($envCandidates as $candidate) {
+        if (is_string($candidate) && trim($candidate) !== '') {
+            return trim($candidate);
+        }
+    }
+
+    $configCandidates = [];
+    $customPath = getenv('FIGO_CHAT_CONFIG_PATH');
+    if (is_string($customPath) && trim($customPath) !== '') {
+        $configCandidates[] = trim($customPath);
+    }
+
+    $configCandidates[] = data_dir_path() . DIRECTORY_SEPARATOR . 'figo-config.json';
+    $configCandidates[] = __DIR__ . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'figo-config.json';
+    $configCandidates[] = __DIR__ . DIRECTORY_SEPARATOR . 'figo-config.json';
+
+    foreach ($configCandidates as $path) {
+        if (!is_string($path) || $path === '' || !is_file($path)) {
+            continue;
+        }
+        $raw = @file_get_contents($path);
+        if (!is_string($raw) || trim($raw) === '') {
+            continue;
+        }
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            continue;
+        }
+        $fileCandidates = [
+            $decoded['endpoint'] ?? null,
+            $decoded['apiUrl'] ?? null,
+            $decoded['url'] ?? null
+        ];
+        foreach ($fileCandidates as $candidate) {
+            if (is_string($candidate) && trim($candidate) !== '') {
+                return trim($candidate);
+            }
+        }
+    }
+
+    return '';
+}
+
+function api_is_figo_recursive_config(string $endpoint): bool
+{
+    $endpoint = trim($endpoint);
+    if ($endpoint === '') {
+        return false;
+    }
+
+    $parts = @parse_url($endpoint);
+    if (!is_array($parts)) {
+        return false;
+    }
+
+    $endpointHost = strtolower((string) ($parts['host'] ?? ''));
+    $endpointPath = strtolower((string) ($parts['path'] ?? ''));
+    $currentHost = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+
+    $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/api.php');
+    $requestPath = strtolower((string) parse_url($requestUri, PHP_URL_PATH));
+    if ($requestPath === '') {
+        $requestPath = '/api.php';
+    }
+
+    if ($endpointHost === '' || $currentHost === '') {
+        return false;
+    }
+
+    // Permite comparacion robusta entre host directo y variante www.
+    $normalizedEndpointHost = preg_replace('/^www\./', '', $endpointHost);
+    $normalizedCurrentHost = preg_replace('/^www\./', '', $currentHost);
+
+    if ($normalizedEndpointHost !== $normalizedCurrentHost) {
+        return false;
+    }
+
+    if ($endpointPath === '') {
+        return false;
+    }
+
+    if ($endpointPath === $requestPath) {
+        return true;
+    }
+
+    return $endpointPath === '/figo-chat.php';
+}
+
 $requestOrigin = isset($_SERVER['HTTP_ORIGIN']) ? trim((string) $_SERVER['HTTP_ORIGIN']) : '';
 $allowedOrigin = getenv('PIELARMONIA_ALLOWED_ORIGIN');
 $allowedList = [];
@@ -48,17 +159,43 @@ if ($resource === '' && $action !== '') {
     $resource = $action;
 }
 
+register_shutdown_function(static function () use ($requestStartedAt, $method, $resource): void {
+    $elapsed = api_elapsed_ms($requestStartedAt);
+    if ($elapsed < 2000) {
+        return;
+    }
+    audit_log_event('api.slow', [
+        'method' => $method,
+        'resource' => $resource,
+        'timingMs' => $elapsed
+    ]);
+});
+
 if ($resource === 'health') {
     $storageReady = ensure_data_file();
+    $figoEndpoint = api_resolve_figo_endpoint_for_health();
+    $figoConfigured = $figoEndpoint !== '';
+    $figoRecursive = api_is_figo_recursive_config($figoEndpoint);
+    $timingMs = api_elapsed_ms($requestStartedAt);
     audit_log_event('api.health', [
         'method' => $method,
         'resource' => $resource,
-        'storageReady' => $storageReady
+        'storageReady' => $storageReady,
+        'timingMs' => $timingMs,
+        'version' => app_runtime_version(),
+        'figoConfigured' => $figoConfigured,
+        'figoRecursiveConfig' => $figoRecursive
     ]);
     json_response([
         'ok' => true,
         'status' => 'ok',
         'storageReady' => $storageReady,
+        'timingMs' => $timingMs,
+        'version' => app_runtime_version(),
+        'dataDirWritable' => data_dir_writable(),
+        'storeEncrypted' => store_file_is_encrypted(),
+        'figoConfigured' => $figoConfigured,
+        'figoRecursiveConfig' => $figoRecursive,
         'timestamp' => local_date('c')
     ]);
 }

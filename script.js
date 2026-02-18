@@ -559,6 +559,21 @@ const MAX_CASE_PHOTOS = 3;
 const MAX_CASE_PHOTO_BYTES = 5 * 1024 * 1024;
 const CASE_PHOTO_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
+const API_REQUEST_TIMEOUT_MS = 9000;
+const API_RETRY_BASE_DELAY_MS = 450;
+const API_DEFAULT_RETRIES = 1;
+const API_SLOW_NOTICE_MS = 1200;
+const API_SLOW_NOTICE_COOLDOWN_MS = 25000;
+let apiSlowNoticeLastAt = 0;
+let bookingViewTracked = false;
+let chatStartedTracked = false;
+let checkoutSession = {
+    active: false,
+    completed: false,
+    startedAt: 0,
+    service: '',
+    doctor: ''
+};
 const DEFAULT_PUBLIC_REVIEWS = [
     {
         id: 'google-jose-gancino',
@@ -693,6 +708,101 @@ function setCookieConsent(status) {
     }
 }
 
+function trackEvent(eventName, params = {}) {
+    if (!eventName || typeof eventName !== 'string') {
+        return;
+    }
+
+    const payload = {
+        event_category: 'conversion',
+        ...params
+    };
+
+    if (typeof window.gtag === 'function') {
+        window.gtag('event', eventName, payload);
+        return;
+    }
+
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+        event: eventName,
+        ...payload
+    });
+}
+
+function markBookingViewed(source = 'unknown') {
+    if (bookingViewTracked) {
+        return;
+    }
+    bookingViewTracked = true;
+    trackEvent('view_booking', {
+        source
+    });
+}
+
+function initBookingFunnelObserver() {
+    const bookingSection = document.getElementById('citas');
+    if (!bookingSection) {
+        return;
+    }
+
+    if (!('IntersectionObserver' in window)) {
+        markBookingViewed('fallback_no_observer');
+        return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+                markBookingViewed('observer');
+                observer.disconnect();
+            }
+        });
+    }, { threshold: 0.35 });
+
+    observer.observe(bookingSection);
+}
+
+function startCheckoutSession(appointment) {
+    checkoutSession = {
+        active: true,
+        completed: false,
+        startedAt: Date.now(),
+        service: appointment?.service || '',
+        doctor: appointment?.doctor || ''
+    };
+}
+
+function completeCheckoutSession(method) {
+    if (!checkoutSession.active) {
+        return;
+    }
+    checkoutSession.completed = true;
+    trackEvent('booking_confirmed', {
+        payment_method: method || 'unknown',
+        service: checkoutSession.service || '',
+        doctor: checkoutSession.doctor || ''
+    });
+}
+
+function maybeTrackCheckoutAbandon() {
+    if (!checkoutSession.active || checkoutSession.completed) {
+        return;
+    }
+
+    const startedAt = checkoutSession.startedAt || Date.now();
+    const elapsedSec = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+    trackEvent('checkout_abandon', {
+        service: checkoutSession.service || '',
+        doctor: checkoutSession.doctor || '',
+        elapsed_sec: elapsedSec
+    });
+}
+
+function waitMs(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function initGA4() {
     if (window._ga4Loaded) return;
     if (getCookieConsent() !== 'accepted') return;
@@ -729,6 +839,7 @@ function initCookieBanner() {
             banner.classList.remove('active');
             showToast(currentLang === 'es' ? 'Preferencias de cookies guardadas.' : 'Cookie preferences saved.', 'success');
             initGA4();
+            trackEvent('cookie_consent_update', { status: 'accepted' });
         });
     }
 
@@ -737,6 +848,7 @@ function initCookieBanner() {
             setCookieConsent('rejected');
             banner.classList.remove('active');
             showToast(currentLang === 'es' ? 'Solo se mantendran cookies esenciales.' : 'Only essential cookies will be kept.', 'info');
+            trackEvent('cookie_consent_update', { status: 'rejected' });
         });
     }
 }
@@ -773,7 +885,7 @@ function storageSetJSON(key, value) {
 }
 
 async function apiRequest(resource, options = {}) {
-    const method = options.method || 'GET';
+    const method = String(options.method || 'GET').toUpperCase();
     const query = new URLSearchParams({ resource: resource });
     if (options.query && typeof options.query === 'object') {
         Object.entries(options.query).forEach(([key, value]) => {
@@ -796,22 +908,108 @@ async function apiRequest(resource, options = {}) {
         requestInit.body = JSON.stringify(options.body);
     }
 
-    const response = await fetch(url, requestInit);
-    const responseText = await response.text();
+    const timeoutMs = Number.isFinite(options.timeoutMs) ? Math.max(1500, Number(options.timeoutMs)) : API_REQUEST_TIMEOUT_MS;
+    const maxRetries = Number.isInteger(options.retries)
+        ? Math.max(0, Number(options.retries))
+        : (method === 'GET' ? API_DEFAULT_RETRIES : 0);
 
-    let payload = {};
-    try {
-        payload = responseText ? JSON.parse(responseText) : {};
-    } catch (error) {
-        throw new Error('Respuesta del servidor no es JSON valido');
+    const shouldShowSlowNotice = options.silentSlowNotice !== true;
+    const retryableStatusCodes = new Set([408, 425, 429, 500, 502, 503, 504]);
+
+    function makeApiError(message, status = 0, retryable = false, code = '') {
+        const error = new Error(message);
+        error.status = status;
+        error.retryable = retryable;
+        error.code = code;
+        return error;
     }
 
-    if (!response.ok || payload.ok === false) {
-        const message = payload.error || `HTTP ${response.status}`;
-        throw new Error(message);
+    let lastError = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        let slowNoticeTimer = null;
+
+        if (shouldShowSlowNotice) {
+            slowNoticeTimer = setTimeout(() => {
+                const now = Date.now();
+                if ((now - apiSlowNoticeLastAt) > API_SLOW_NOTICE_COOLDOWN_MS) {
+                    apiSlowNoticeLastAt = now;
+                    showToast(
+                        currentLang === 'es'
+                            ? 'Conectando con el servidor...'
+                            : 'Connecting to server...',
+                        'info'
+                    );
+                }
+            }, API_SLOW_NOTICE_MS);
+        }
+
+        try {
+            const response = await fetch(url, {
+                ...requestInit,
+                signal: controller.signal
+            });
+
+            const responseText = await response.text();
+            let payload = {};
+            try {
+                payload = responseText ? JSON.parse(responseText) : {};
+            } catch (error) {
+                throw makeApiError('Respuesta del servidor no es JSON valido', response.status, false, 'invalid_json');
+            }
+
+            if (!response.ok || payload.ok === false) {
+                const message = payload.error || `HTTP ${response.status}`;
+                throw makeApiError(message, response.status, retryableStatusCodes.has(response.status), 'http_error');
+            }
+
+            return payload;
+        } catch (error) {
+            const normalizedError = (() => {
+                if (error && error.name === 'AbortError') {
+                    return makeApiError(
+                        currentLang === 'es'
+                            ? 'Tiempo de espera agotado con el servidor'
+                            : 'Server request timed out',
+                        0,
+                        true,
+                        'timeout'
+                    );
+                }
+
+                if (error instanceof Error) {
+                    if (typeof error.retryable !== 'boolean') {
+                        error.retryable = false;
+                    }
+                    if (typeof error.status !== 'number') {
+                        error.status = 0;
+                    }
+                    return error;
+                }
+
+                return makeApiError('Error de conexion con el servidor', 0, true, 'network_error');
+            })();
+
+            lastError = normalizedError;
+
+            const canRetry = attempt < maxRetries && normalizedError.retryable === true;
+            if (!canRetry) {
+                throw normalizedError;
+            }
+
+            const retryDelay = API_RETRY_BASE_DELAY_MS * (attempt + 1);
+            await waitMs(retryDelay);
+        } finally {
+            clearTimeout(timeoutId);
+            if (slowNoticeTimer !== null) {
+                clearTimeout(slowNoticeTimer);
+            }
+        }
     }
 
-    return payload;
+    throw lastError || new Error('No se pudo completar la solicitud');
 }
 
 async function loadPaymentConfig() {
@@ -886,13 +1084,32 @@ async function uploadTransferProof(file) {
     formData.append('proof', file);
 
     const query = new URLSearchParams({ resource: 'transfer-proof' });
-    const response = await fetch(`${API_ENDPOINT}?${query.toString()}`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        body: formData
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
 
-    const text = await response.text();
+    let response;
+    let text = '';
+    try {
+        response = await fetch(`${API_ENDPOINT}?${query.toString()}`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: formData,
+            signal: controller.signal
+        });
+        text = await response.text();
+    } catch (error) {
+        if (error && error.name === 'AbortError') {
+            throw new Error(
+                currentLang === 'es'
+                    ? 'Tiempo de espera agotado al subir el comprobante'
+                    : 'Upload timed out while sending proof file'
+            );
+        }
+        throw error;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+
     let payload = {};
     try {
         payload = text ? JSON.parse(text) : {};
@@ -1507,6 +1724,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 price: totalEl.textContent
             };
 
+            markBookingViewed('form_submit');
+
             const bookedSlots = await getBookedSlots(appointment.date, appointment.doctor);
             if (bookedSlots.includes(appointment.time)) {
                 showToast('Este horario ya fue reservado. Por favor selecciona otro.', 'error');
@@ -1515,6 +1734,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             currentAppointment = appointment;
+            startCheckoutSession(appointment);
+            trackEvent('start_checkout', {
+                service: appointment.service || '',
+                doctor: appointment.doctor || '',
+                checkout_entry: 'booking_form'
+            });
             openPaymentModal(appointment);
         } catch (error) {
             showToast(error?.message || 'No se pudo preparar la reserva. Intenta nuevamente.', 'error');
@@ -1536,6 +1761,9 @@ function openPaymentModal(appointmentData) {
         currentAppointment = appointmentData;
     }
     const appointment = currentAppointment || {};
+    if (!checkoutSession.active || !checkoutSession.startedAt) {
+        startCheckoutSession(appointment);
+    }
 
     document.getElementById('paymentTotal').textContent = appointment.price || '$0.00';
     clearPaymentError();
@@ -1552,8 +1780,13 @@ function openPaymentModal(appointmentData) {
     refreshCardPaymentAvailability().catch(() => undefined);
 }
 
-function closePaymentModal() {
+function closePaymentModal(options = {}) {
+    const skipAbandonTrack = options && options.skipAbandonTrack === true;
     const modal = document.getElementById('paymentModal');
+    if (!skipAbandonTrack) {
+        maybeTrackCheckoutAbandon();
+    }
+    checkoutSession.active = false;
     modal.classList.remove('active');
     document.body.style.overflow = '';
     clearPaymentError();
@@ -1731,6 +1964,12 @@ async function processCardPaymentFlow() {
         throw new Error('No pudimos verificar el pago. Intenta nuevamente.');
     }
 
+    trackEvent('payment_success', {
+        payment_method: 'card',
+        payment_provider: 'stripe',
+        payment_intent_id: paymentIntent.id
+    });
+
     const payload = {
         ...appointmentPayload,
         paymentMethod: 'card',
@@ -1809,6 +2048,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 form.style.display = 'block';
             }
             clearPaymentError();
+            trackEvent('payment_method_selected', {
+                payment_method: methodType || 'unknown'
+            });
 
             if (methodType === 'card') {
                 refreshCardPaymentAvailability().catch(error => {
@@ -1859,7 +2101,8 @@ async function processPayment() {
 
         currentAppointment = result.appointment;
 
-        closePaymentModal();
+        completeCheckoutSession(paymentMethod);
+        closePaymentModal({ skipAbandonTrack: true });
         showSuccessModal(result.emailSent === true);
         showToast(
             paymentMethod === 'card'
@@ -1929,7 +2172,7 @@ function showSuccessModal(emailSent = false) {
             <p><strong>${currentLang === 'es' ? 'Total:' : 'Total:'}</strong> ${escapeHtml(appointment.price || '$0.00')}</p>
         </div>
         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-            <a href="${googleCalendarUrl}" target="_blank" class="btn btn-secondary" style="flex: 1;">
+            <a href="${googleCalendarUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex: 1;">
                 <i class="fab fa-google"></i> Google Calendar
             </a>
             <a href="${icsUrl}" download="cita-piel-en-armonia.ics" class="btn btn-secondary" style="flex: 1;">
@@ -2095,6 +2338,10 @@ function closeReviewModal() {
 // Close modal when clicking outside
 document.addEventListener('click', function(e) {
     if (e.target.classList.contains('modal') && e.target.classList.contains('active')) {
+        if (e.target.id === 'paymentModal') {
+            closePaymentModal();
+            return;
+        }
         e.target.classList.remove('active');
         document.body.style.overflow = '';
     }
@@ -2172,6 +2419,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', function(e) {
             if (e.target === this) {
+                if (this.id === 'paymentModal') {
+                    closePaymentModal();
+                    return;
+                }
                 this.classList.remove('active');
                 document.body.style.overflow = '';
             }
@@ -2182,6 +2433,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             document.querySelectorAll('.modal').forEach(modal => {
+                if (modal.id === 'paymentModal' && modal.classList.contains('active')) {
+                    closePaymentModal();
+                    return;
+                }
                 modal.classList.remove('active');
             });
             document.body.style.overflow = '';
@@ -2213,6 +2468,21 @@ document.addEventListener('click', function(e) {
     window.scrollTo({
         top: targetPosition,
         behavior: 'smooth'
+    });
+});
+
+document.addEventListener('click', function(e) {
+    const targetEl = e.target instanceof Element ? e.target : null;
+    if (!targetEl) return;
+
+    const waLink = targetEl.closest('a[href*="wa.me"], a[href*="api.whatsapp.com"]');
+    if (!waLink) return;
+
+    const inChatContext = !!waLink.closest('#chatbotContainer') || !!waLink.closest('#chatbotWidget');
+    if (!inChatContext) return;
+
+    trackEvent('chat_handoff_whatsapp', {
+        source: 'chatbot'
     });
 });
 
@@ -2308,6 +2578,12 @@ function toggleChatbot() {
         container.classList.add('active');
         document.getElementById('chatNotification').style.display = 'none';
         scrollToBottom();
+        if (!chatStartedTracked) {
+            chatStartedTracked = true;
+            trackEvent('chat_started', {
+                source: 'widget'
+            });
+        }
         
         // Si es la primera vez, mostrar mensaje inicial
         if (chatHistory.length === 0) {
@@ -2824,6 +3100,16 @@ async function finalizeChatBooking() {
         price: chatBooking.price
     };
 
+    startCheckoutSession(appointment);
+    trackEvent('start_checkout', {
+        service: appointment.service || '',
+        doctor: appointment.doctor || '',
+        checkout_entry: 'chatbot'
+    });
+    trackEvent('payment_method_selected', {
+        payment_method: chatBooking.paymentMethod || 'unknown'
+    });
+
     if (chatBooking.paymentMethod === 'cash') {
         showTypingIndicator();
         try {
@@ -2836,6 +3122,7 @@ async function finalizeChatBooking() {
             const result = await createAppointmentRecord(payload);
             removeTypingIndicator();
             currentAppointment = result.appointment;
+            completeCheckoutSession('cash');
 
             let msg = '<strong>¡Cita agendada con exito!</strong><br><br>';
             msg += 'Tu cita ha sido registrada. ';
@@ -3093,19 +3380,25 @@ async function requestFigoCompletion(messages, overrides = {}, debugLabel = 'pri
 
     debugLog(`📡 Status (${debugLabel}):`, response.status);
 
-    if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-    }
-
     const responseText = await response.text();
     debugLog(`📄 Respuesta cruda (${debugLabel}):`, responseText.substring(0, 500));
 
-    let data;
+    let data = {};
     try {
-        data = JSON.parse(responseText);
+        data = responseText ? JSON.parse(responseText) : {};
     } catch (e) {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
         console.error('❌ Error parseando JSON:', e);
         throw new Error('Respuesta no es JSON valido');
+    }
+
+    if (!response.ok || data.ok === false) {
+        const reasonHint = data && typeof data.reason === 'string' && data.reason
+            ? ` (${data.reason})`
+            : '';
+        throw new Error(`HTTP ${response.status}${reasonHint}`);
     }
 
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
@@ -3113,7 +3406,15 @@ async function requestFigoCompletion(messages, overrides = {}, debugLabel = 'pri
         throw new Error('Respuesta invalida');
     }
 
-    return data.choices[0].message.content;
+    return {
+        content: data.choices[0].message.content || '',
+        mode: typeof data.mode === 'string' ? data.mode : '',
+        source: typeof data.source === 'string' ? data.source : '',
+        reason: typeof data.reason === 'string' ? data.reason : '',
+        configured: data.configured !== false,
+        recursiveConfigDetected: data.recursiveConfigDetected === true,
+        upstreamStatus: Number.isFinite(data.upstreamStatus) ? Number(data.upstreamStatus) : 0
+    };
 }
 
 async function tryRealAI(message) {
@@ -3133,10 +3434,18 @@ async function tryRealAI(message) {
         
         debugLog('🚀 Enviando a:', KIMI_CONFIG.apiUrl);
         debugLog('📊 Contexto actual:', conversationContext.length, 'mensajes');
-        let botResponse = await requestFigoCompletion(messages, {}, 'principal');
-        debugLog('✅ Respuesta recibida:', botResponse.substring(0, 100) + '...');
+        const primaryReply = await requestFigoCompletion(messages, {}, 'principal');
+        let botResponse = String(primaryReply.content || '').trim();
+        if (!botResponse) {
+            throw new Error('Respuesta vacia del backend de chat');
+        }
+        debugLog('Respuesta recibida:', botResponse.substring(0, 100) + '...');
+        if (primaryReply.mode === 'degraded' || primaryReply.source === 'fallback') {
+            debugLog('Figo en modo degradado:', primaryReply.reason || 'sin motivo');
+        }
 
-        if (shouldRefineWithFigo(message, botResponse)) {
+        const canRefine = primaryReply.mode === 'live' && primaryReply.source !== 'fallback';
+        if (canRefine && shouldRefineWithFigo(message, botResponse)) {
             debugLog('⚠️ Respuesta generica detectada, solicitando precision adicional a Figo');
 
             const precisionPrompt = `Tu respuesta anterior fue demasiado general.
@@ -3157,8 +3466,9 @@ Pregunta original del paciente: "${message}"`;
                     'refinada'
                 );
 
-                if (refinedResponse && !isGenericAssistantReply(refinedResponse)) {
-                    botResponse = refinedResponse;
+                const refinedText = String(refinedResponse?.content || '').trim();
+                if (refinedText && !isGenericAssistantReply(refinedText)) {
+                    botResponse = refinedText;
                     debugLog('✅ Respuesta refinada aplicada');
                 }
             } catch (refineError) {
@@ -3608,6 +3918,7 @@ document.addEventListener('DOMContentLoaded', function() {
     changeLanguage(currentLang);
     initCookieBanner();
     initGA4();
+    initBookingFunnelObserver();
     checkRescheduleParam();
     const isServer = checkServerEnvironment();
 
@@ -3726,4 +4037,5 @@ if (document.readyState === 'loading') {
     initNavbarScroll();
     initDeferredVisualEffects();
 }
+
 
