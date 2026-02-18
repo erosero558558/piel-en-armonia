@@ -83,18 +83,35 @@ function data_dir_path(): string
         return $resolvedDir;
     }
 
-    $candidates = [];
+    $checkList = [];
 
+    // 1. Env variable (highest priority)
     $envDir = getenv('PIELARMONIA_DATA_DIR');
     if (is_string($envDir) && trim($envDir) !== '') {
-        $candidates[] = trim($envDir);
+        $checkList[] = trim($envDir);
     }
 
-    $candidates[] = DATA_DIR;
-    $candidates[] = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data';
-    $candidates[] = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'pielarmonia-data';
+    // 2. Preferred candidates
+    // Prefer data outside webroot (../data) over inside (./data)
+    $checkList[] = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data';
+    $checkList[] = DATA_DIR;
+    $checkList[] = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'pielarmonia-data';
 
-    foreach ($candidates as $candidate) {
+    // First pass: Check for existing data to prevent data loss
+    foreach ($checkList as $candidate) {
+        $candidate = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, (string) $candidate), DIRECTORY_SEPARATOR);
+        if ($candidate === '') {
+            continue;
+        }
+        // If store.json exists here, use this directory
+        if (@file_exists($candidate . DIRECTORY_SEPARATOR . 'store.json') && @is_writable($candidate)) {
+            $resolvedDir = $candidate;
+            return $resolvedDir;
+        }
+    }
+
+    // Second pass: Find first writable directory for new install or fallback
+    foreach ($checkList as $candidate) {
         $candidate = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, (string) $candidate), DIRECTORY_SEPARATOR);
         if ($candidate === '') {
             continue;
