@@ -19,6 +19,10 @@ Fecha de ejecucion sugerida: completar al desplegar.
 - `PIELARMONIA_ADMIN_PASSWORD`
 - opcional: `PIELARMONIA_ADMIN_PASSWORD_HASH`
 - opcional: `PIELARMONIA_EMAIL_FROM`
+- `FIGO_CHAT_ENDPOINT`
+- opcional: `FIGO_CHAT_TOKEN`
+- opcional: `FIGO_CHAT_APIKEY_HEADER`
+- opcional: `FIGO_CHAT_APIKEY`
 
 3. Verifica endpoint de salud:
 - URL: `https://TU_DOMINIO/api.php?resource=health`
