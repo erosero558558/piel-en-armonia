@@ -127,6 +127,19 @@ $bookingUiAssetUrl = if ($bookingUiVersion -ne '') {
     "$base/booking-ui.js"
 }
 
+$chatBookingEngineVersion = ''
+if (Test-Path 'script.js') {
+    $chatBookingEngineMatch = [regex]::Match($scriptLocalRaw, "chat-booking-engine\.js\?v=([a-zA-Z0-9._-]+)")
+    if ($chatBookingEngineMatch.Success) {
+        $chatBookingEngineVersion = $chatBookingEngineMatch.Groups[1].Value
+    }
+}
+$chatBookingEngineAssetUrl = if ($chatBookingEngineVersion -ne '') {
+    "$base/chat-booking-engine.js?v=$chatBookingEngineVersion"
+} else {
+    "$base/chat-booking-engine.js"
+}
+
 $uiEffectsVersion = ''
 if (Test-Path 'script.js') {
     $uiEffectsMatch = [regex]::Match($scriptLocalRaw, "ui-effects\.js\?v=([a-zA-Z0-9._-]+)")
@@ -309,6 +322,7 @@ $results += Invoke-Check -Name 'Deferred styles asset' -Url $deferredStylesAsset
 $results += Invoke-Check -Name 'EN translations asset' -Url $translationsEnAssetUrl
 $results += Invoke-Check -Name 'Booking engine asset' -Url $bookingEngineAssetUrl
 $results += Invoke-Check -Name 'Booking UI asset' -Url $bookingUiAssetUrl
+$results += Invoke-Check -Name 'Chat booking engine asset' -Url $chatBookingEngineAssetUrl
 $results += Invoke-Check -Name 'Reschedule engine asset' -Url $rescheduleEngineAssetUrl
 $results += Invoke-Check -Name 'UI effects asset' -Url $uiEffectsAssetUrl
 $results += Invoke-Check -Name 'Gallery interactions asset' -Url $galleryInteractionsAssetUrl
@@ -345,6 +359,7 @@ $expectedStatusByName = @{
     'EN translations asset' = 200
     'Booking engine asset' = 200
     'Booking UI asset' = 200
+    'Chat booking engine asset' = 200
     'Reschedule engine asset' = 200
     'UI effects asset' = 200
     'Gallery interactions asset' = 200
@@ -384,6 +399,7 @@ try {
         @{ Name = 'App script asset'; Url = $appScriptAssetUrl },
         @{ Name = 'Critical CSS asset'; Url = $criticalCssAssetUrl },
         @{ Name = 'Booking UI asset'; Url = $bookingUiAssetUrl },
+        @{ Name = 'Chat booking engine asset'; Url = $chatBookingEngineAssetUrl },
         @{ Name = 'Reschedule engine asset'; Url = $rescheduleEngineAssetUrl },
         @{ Name = 'UI effects asset'; Url = $uiEffectsAssetUrl },
         @{ Name = 'Gallery interactions asset'; Url = $galleryInteractionsAssetUrl }

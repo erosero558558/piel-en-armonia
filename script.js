@@ -2511,320 +2511,168 @@ function escapeHtml(text) {
 }
 
 // ========================================
-// BOOKING CONVERSACIONAL DESDE CHATBOT
+// BOOKING CONVERSACIONAL DESDE CHATBOT (DEFERRED MODULE)
 // ========================================
-let chatBooking = null;
+const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260218-phase1';
+let chatBookingEnginePromise = null;
 
-const CHAT_SERVICES = [
-    { key: 'consulta', label: 'Consulta Presencial', price: '$44.80' },
-    { key: 'telefono', label: 'Consulta Telefonica', price: '$28.00' },
-    { key: 'video', label: 'Video Consulta', price: '$33.60' },
-    { key: 'laser', label: 'Tratamiento Laser', price: '$168.00' },
-    { key: 'rejuvenecimiento', label: 'Rejuvenecimiento', price: '$134.40' }
-];
-
-const CHAT_DOCTORS = [
-    { key: 'rosero', label: 'Dr. Javier Rosero' },
-    { key: 'narvaez', label: 'Dra. Carolina Narváez' },
-    { key: 'indiferente', label: 'Cualquiera' }
-];
-
-function startChatBooking() {
-    chatBooking = { step: 'service' };
-    let msg = 'Vamos a agendar tu cita paso a paso.<br><br>';
-    msg += '<strong>Paso 1/7:</strong> ¿Que servicio necesitas?<br><br>';
-    msg += '<div class="chat-suggestions">';
-    CHAT_SERVICES.forEach(s => {
-        msg += `<button class="chat-suggestion-btn" data-action="chat-booking" data-value="${s.key}">${escapeHtml(s.label)} (${s.price})</button>`;
-    });
-    msg += '</div>';
-    addBotMessage(msg);
+function getChatBookingEngineDeps() {
+    return {
+        addBotMessage,
+        addUserMessage,
+        showTypingIndicator,
+        removeTypingIndicator,
+        loadAvailabilityData,
+        getBookedSlots,
+        startCheckoutSession,
+        completeCheckoutSession,
+        createAppointmentRecord,
+        showToast,
+        trackEvent,
+        escapeHtml,
+        minimizeChatbot,
+        openPaymentModal,
+        getCurrentLang: () => currentLang,
+        setCurrentAppointment: (appointment) => {
+            currentAppointment = appointment;
+        }
+    };
 }
 
-function cancelChatBooking() {
-    chatBooking = null;
-    addBotMessage('Reserva cancelada. Si necesitas algo mas, estoy aqui para ayudarte.');
-}
-
-function handleChatBookingSelection(value) {
-    addUserMessage(value);
-    processChatBookingStep(value);
-}
-
-function handleChatDateSelect(value) {
-    if (value) {
-        addUserMessage(value);
-        processChatBookingStep(value);
+function loadChatBookingEngine() {
+    if (window.PielChatBookingEngine && typeof window.PielChatBookingEngine.init === 'function') {
+        window.PielChatBookingEngine.init(getChatBookingEngineDeps());
+        return Promise.resolve(window.PielChatBookingEngine);
     }
+
+    if (chatBookingEnginePromise) {
+        return chatBookingEnginePromise;
+    }
+
+    chatBookingEnginePromise = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-chat-booking-engine="true"]');
+        if (existing) {
+            existing.addEventListener('load', () => {
+                if (window.PielChatBookingEngine && typeof window.PielChatBookingEngine.init === 'function') {
+                    window.PielChatBookingEngine.init(getChatBookingEngineDeps());
+                    resolve(window.PielChatBookingEngine);
+                    return;
+                }
+                reject(new Error('chat-booking-engine loaded without API'));
+            }, { once: true });
+            existing.addEventListener('error', () => reject(new Error('No se pudo cargar chat-booking-engine.js')), { once: true });
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = CHAT_BOOKING_ENGINE_URL;
+        script.async = true;
+        script.defer = true;
+        script.dataset.chatBookingEngine = 'true';
+        script.onload = () => {
+            if (window.PielChatBookingEngine && typeof window.PielChatBookingEngine.init === 'function') {
+                window.PielChatBookingEngine.init(getChatBookingEngineDeps());
+                resolve(window.PielChatBookingEngine);
+                return;
+            }
+            reject(new Error('chat-booking-engine loaded without API'));
+        };
+        script.onerror = () => reject(new Error('No se pudo cargar chat-booking-engine.js'));
+        document.head.appendChild(script);
+    }).catch((error) => {
+        chatBookingEnginePromise = null;
+        debugLog('Chat booking engine load failed:', error);
+        throw error;
+    });
+
+    return chatBookingEnginePromise;
 }
 
-async function processChatBookingStep(userInput) {
-    if (!chatBooking) return;
-    const input = userInput.trim();
+function initChatBookingEngineWarmup() {
+    let warmed = false;
+    const warmup = () => {
+        if (warmed || window.location.protocol === 'file:') {
+            return;
+        }
+        warmed = true;
+        loadChatBookingEngine().catch(() => {
+            warmed = false;
+        });
+    };
 
-    if (/cancelar|salir|no quiero/i.test(input)) {
-        cancelChatBooking();
+    const bindWarmup = (selector, eventName, passive = true) => {
+        const element = document.querySelector(selector);
+        if (!element) {
+            return;
+        }
+        element.addEventListener(eventName, warmup, { once: true, passive });
+    };
+
+    bindWarmup('#chatbotWidget .chatbot-toggle', 'mouseenter');
+    bindWarmup('#chatbotWidget .chatbot-toggle', 'touchstart');
+    bindWarmup('#quickOptions [data-action="quick-message"][data-value="appointment"]', 'mouseenter');
+    bindWarmup('#quickOptions [data-action="quick-message"][data-value="appointment"]', 'touchstart');
+    bindWarmup('#chatInput', 'focus', false);
+
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const isConstrainedNetwork = !!(connection && (
+        connection.saveData === true
+        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
+    ));
+
+    if (isConstrainedNetwork) {
         return;
     }
 
-    switch (chatBooking.step) {
-        case 'service': {
-            const service = CHAT_SERVICES.find(s => s.key === input || s.label.toLowerCase() === input.toLowerCase());
-            if (!service) {
-                addBotMessage('Por favor selecciona un servicio valido de las opciones.');
-                return;
-            }
-            chatBooking.service = service.key;
-            chatBooking.serviceLabel = service.label;
-            chatBooking.price = service.price;
-            chatBooking.step = 'doctor';
-
-            let msg = `Servicio: <strong>${escapeHtml(service.label)}</strong> (${service.price})<br><br>`;
-            msg += '<strong>Paso 2/7:</strong> ¿Con que doctor prefieres?<br><br>';
-            msg += '<div class="chat-suggestions">';
-            CHAT_DOCTORS.forEach(d => {
-                msg += `<button class="chat-suggestion-btn" data-action="chat-booking" data-value="${d.key}">${escapeHtml(d.label)}</button>`;
-            });
-            msg += '</div>';
-            addBotMessage(msg);
-            break;
-        }
-
-        case 'doctor': {
-            const doctor = CHAT_DOCTORS.find(d => d.key === input || d.label.toLowerCase() === input.toLowerCase());
-            if (!doctor) {
-                addBotMessage('Por favor selecciona un doctor de las opciones.');
-                return;
-            }
-            chatBooking.doctor = doctor.key;
-            chatBooking.doctorLabel = doctor.label;
-            chatBooking.step = 'date';
-
-            const today = new Date().toISOString().split('T')[0];
-            let msg = `Doctor: <strong>${escapeHtml(doctor.label)}</strong><br><br>`;
-            msg += '<strong>Paso 3/7:</strong> ¿Que fecha prefieres?<br><br>';
-            msg += `<input type="date" id="chatDateInput" min="${today}" `;
-            msg += `data-action="chat-date-select" `;
-            msg += `style="padding: 10px 14px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 1rem; width: 100%; max-width: 220px; cursor: pointer;">`;
-            addBotMessage(msg);
-            break;
-        }
-
-        case 'date': {
-            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-            if (!dateRegex.test(input)) {
-                addBotMessage('Por favor selecciona una fecha valida (usa el calendario).');
-                return;
-            }
-            const selectedDate = new Date(input + 'T12:00:00');
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            if (selectedDate < today) {
-                addBotMessage('La fecha debe ser hoy o en el futuro. Selecciona otra fecha.');
-                return;
-            }
-            chatBooking.date = input;
-            chatBooking.step = 'time';
-
-            showTypingIndicator();
-            try {
-                const availability = await loadAvailabilityData();
-                const booked = await getBookedSlots(input, chatBooking.doctor || '');
-                let allSlots = availability[input] && availability[input].length > 0
-                    ? availability[input]
-                    : ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
-                const freeSlots = allSlots.filter(s => !booked.includes(s)).sort();
-
-                removeTypingIndicator();
-
-                if (freeSlots.length === 0) {
-                    addBotMessage('No hay horarios disponibles para esa fecha. Por favor elige otra.<br><br>' +
-                        `<input type="date" id="chatDateInput" min="${new Date().toISOString().split('T')[0]}" ` +
-                        `data-action="chat-date-select" ` +
-                        `style="padding: 10px 14px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 1rem; width: 100%; max-width: 220px;">`);
-                    chatBooking.step = 'date';
-                    return;
-                }
-
-                const dateLabel = selectedDate.toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long' });
-                let msg = `Fecha: <strong>${escapeHtml(dateLabel)}</strong><br><br>`;
-                msg += '<strong>Paso 4/7:</strong> Horarios disponibles:<br><br>';
-                msg += '<div class="chat-suggestions">';
-                freeSlots.forEach(time => {
-                    msg += `<button class="chat-suggestion-btn" data-action="chat-booking" data-value="${time}">${time}</button>`;
-                });
-                msg += '</div>';
-                addBotMessage(msg);
-            } catch (err) {
-                removeTypingIndicator();
-                addBotMessage('No pude consultar los horarios. Intenta de nuevo.');
-                chatBooking.step = 'date';
-            }
-            break;
-        }
-
-        case 'time': {
-            if (!/^\d{2}:\d{2}$/.test(input)) {
-                addBotMessage('Por favor selecciona un horario valido de las opciones.');
-                return;
-            }
-            chatBooking.time = input;
-            chatBooking.step = 'name';
-            addBotMessage(`Hora: <strong>${escapeHtml(input)}</strong><br><br><strong>Paso 5/7:</strong> ¿Cual es tu nombre completo?`);
-            break;
-        }
-
-        case 'name': {
-            if (input.length < 2) {
-                addBotMessage('El nombre debe tener al menos 2 caracteres.');
-                return;
-            }
-            chatBooking.name = input;
-            chatBooking.step = 'email';
-            addBotMessage(`Nombre: <strong>${escapeHtml(input)}</strong><br><br><strong>Paso 6/7:</strong> ¿Cual es tu email?`);
-            break;
-        }
-
-        case 'email': {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(input)) {
-                addBotMessage('El formato del email no es valido. Ejemplo: nombre@correo.com');
-                return;
-            }
-            chatBooking.email = input;
-            chatBooking.step = 'phone';
-            addBotMessage(`Email: <strong>${escapeHtml(input)}</strong><br><br><strong>Paso 7/7:</strong> ¿Cual es tu numero de telefono?`);
-            break;
-        }
-
-        case 'phone': {
-            const digits = input.replace(/\D/g, '');
-            if (digits.length < 7 || digits.length > 15) {
-                addBotMessage('El telefono debe tener entre 7 y 15 digitos.');
-                return;
-            }
-            chatBooking.phone = input;
-            chatBooking.step = 'payment';
-
-            let msg = `Telefono: <strong>${escapeHtml(input)}</strong><br><br>`;
-            msg += '<strong>Resumen de tu cita:</strong><br>';
-            msg += `• Servicio: ${escapeHtml(chatBooking.serviceLabel)} (${chatBooking.price})<br>`;
-            msg += `• Doctor: ${escapeHtml(chatBooking.doctorLabel)}<br>`;
-            msg += `• Fecha: ${escapeHtml(chatBooking.date)}<br>`;
-            msg += `• Hora: ${escapeHtml(chatBooking.time)}<br>`;
-            msg += `• Nombre: ${escapeHtml(chatBooking.name)}<br>`;
-            msg += `• Email: ${escapeHtml(chatBooking.email)}<br>`;
-            msg += `• Telefono: ${escapeHtml(chatBooking.phone)}<br><br>`;
-            msg += '¿Como deseas pagar?<br><br>';
-            msg += '<div class="chat-suggestions">';
-            msg += '<button class="chat-suggestion-btn" data-action="chat-booking" data-value="efectivo"><i class="fas fa-money-bill-wave"></i> Efectivo</button>';
-            msg += '<button class="chat-suggestion-btn" data-action="chat-booking" data-value="tarjeta"><i class="fas fa-credit-card"></i> Tarjeta</button>';
-            msg += '<button class="chat-suggestion-btn" data-action="chat-booking" data-value="transferencia"><i class="fas fa-university"></i> Transferencia</button>';
-            msg += '</div>';
-            addBotMessage(msg);
-            break;
-        }
-
-        case 'payment': {
-            const paymentMap = {
-                'efectivo': 'cash', 'cash': 'cash',
-                'tarjeta': 'card', 'card': 'card',
-                'transferencia': 'transfer', 'transfer': 'transfer'
-            };
-            const method = paymentMap[input.toLowerCase()];
-            if (!method) {
-                addBotMessage('Elige un metodo de pago: Efectivo, Tarjeta o Transferencia.');
-                return;
-            }
-
-            chatBooking.paymentMethod = method;
-            chatBooking.step = 'confirm';
-            await finalizeChatBooking();
-            break;
-        }
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(warmup, { timeout: 2600 });
+    } else {
+        setTimeout(warmup, 1700);
     }
 }
 
-async function finalizeChatBooking() {
-    if (!chatBooking) return;
-
-    const appointment = {
-        service: chatBooking.service,
-        doctor: chatBooking.doctor,
-        date: chatBooking.date,
-        time: chatBooking.time,
-        name: chatBooking.name,
-        email: chatBooking.email,
-        phone: chatBooking.phone,
-        privacyConsent: true,
-        price: chatBooking.price
-    };
-
-    startCheckoutSession(appointment);
-    trackEvent('start_checkout', {
-        service: appointment.service || '',
-        doctor: appointment.doctor || '',
-        checkout_entry: 'chatbot'
+function startChatBooking() {
+    loadChatBookingEngine().then((engine) => {
+        engine.startChatBooking();
+    }).catch(() => {
+        addBotMessage('No pude iniciar la reserva por chat. Puedes continuar desde <a href="#citas" data-action="minimize-chat">el formulario</a>.');
     });
-    trackEvent('payment_method_selected', {
-        payment_method: chatBooking.paymentMethod || 'unknown'
+}
+
+function cancelChatBooking() {
+    loadChatBookingEngine().then((engine) => {
+        engine.cancelChatBooking();
+    }).catch(() => {
+        addBotMessage('No se pudo cancelar la reserva en este momento.');
     });
+}
 
-    if (chatBooking.paymentMethod === 'cash') {
-        showTypingIndicator();
-        try {
-            const payload = {
-                ...appointment,
-                paymentMethod: 'cash',
-                paymentStatus: 'pending_cash',
-                status: 'confirmed'
-            };
-            const result = await createAppointmentRecord(payload);
-            removeTypingIndicator();
-            currentAppointment = result.appointment;
-            completeCheckoutSession('cash');
+function handleChatBookingSelection(value) {
+    loadChatBookingEngine().then((engine) => {
+        engine.handleChatBookingSelection(value);
+    }).catch(() => {
+        addBotMessage('No pude procesar esa opcion. Intenta nuevamente.');
+    });
+}
 
-            let msg = '<strong>¡Cita agendada con exito!</strong><br><br>';
-            msg += 'Tu cita ha sido registrada. ';
-            if (result.emailSent) {
-                msg += 'Te enviamos un correo de confirmacion.<br><br>';
-            } else {
-                msg += 'Te contactaremos para confirmar detalles.<br><br>';
-            }
-            msg += `• Servicio: ${escapeHtml(chatBooking.serviceLabel)}<br>`;
-            msg += `• Doctor: ${escapeHtml(chatBooking.doctorLabel)}<br>`;
-            msg += `• Fecha: ${escapeHtml(chatBooking.date)}<br>`;
-            msg += `• Hora: ${escapeHtml(chatBooking.time)}<br>`;
-            msg += `• Pago: En consultorio<br><br>`;
-            msg += 'Recuerda llegar 10 minutos antes de tu cita.';
-            addBotMessage(msg);
-            showToast('Cita agendada correctamente desde el asistente.', 'success');
-            chatBooking = null;
-        } catch (err) {
-            removeTypingIndicator();
-            addBotMessage(`No se pudo registrar la cita: ${escapeHtml(err.message || 'Error desconocido')}. Intenta de nuevo o agenda desde <a href="#citas" data-action="minimize-chat">el formulario</a>.`);
-            chatBooking.step = 'payment';
-        }
-    } else {
-        // Tarjeta o transferencia: abrir modal de pago existente
-        currentAppointment = appointment;
-        const method = chatBooking.paymentMethod;
-        chatBooking = null;
-
-        addBotMessage(`Abriendo el modulo de pago por <strong>${method === 'card' ? 'tarjeta' : 'transferencia'}</strong>...<br>Completa el pago en la ventana que se abrira.`);
-
-        setTimeout(() => {
-            minimizeChatbot();
-            openPaymentModal(appointment);
-            // Activar la tab correcta del modal de pago
-            setTimeout(() => {
-                const methodEl = document.querySelector(`.payment-method[data-method="${method}"]`);
-                if (methodEl && !methodEl.classList.contains('disabled')) {
-                    methodEl.click();
-                }
-            }, 300);
-        }, 800);
+function handleChatDateSelect(value) {
+    if (!value) {
+        return;
     }
+
+    loadChatBookingEngine().then((engine) => {
+        engine.handleChatDateSelect(value);
+    }).catch(() => {
+        addBotMessage('No pude procesar esa fecha. Intenta nuevamente.');
+    });
+}
+
+function processChatBookingStep(userInput) {
+    return loadChatBookingEngine().then((engine) => engine.processChatBookingStep(userInput));
+}
+
+function finalizeChatBooking() {
+    return loadChatBookingEngine().then((engine) => engine.finalizeChatBooking());
 }
 
 // ========================================
@@ -3176,6 +3024,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initDeferredSectionPrefetch();
     initGalleryInteractionsWarmup();
     initChatEngineWarmup();
+    initChatBookingEngineWarmup();
     initUiEffectsWarmup();
     initRescheduleEngineWarmup();
     const chatInput = document.getElementById('chatInput');
