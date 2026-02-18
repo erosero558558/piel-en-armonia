@@ -215,6 +215,41 @@ function createWarmupRunner(loadFn, options = {}) {
     };
 }
 
+function observeOnceWhenVisible(element, onVisible, options = {}) {
+    const {
+        threshold = 0.05,
+        rootMargin = '0px',
+        onNoObserver
+    } = options;
+
+    if (!element) {
+        return false;
+    }
+
+    if (!('IntersectionObserver' in window)) {
+        if (typeof onNoObserver === 'function') {
+            onNoObserver();
+        }
+        return false;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (!entry.isIntersecting) {
+                return;
+            }
+            onVisible(entry);
+            observer.disconnect();
+        });
+    }, {
+        threshold,
+        rootMargin
+    });
+
+    observer.observe(element);
+    return true;
+}
+
 const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260218-deferred2';
 let deferredStylesheetPromise = null;
 let deferredStylesheetInitDone = false;
@@ -673,23 +708,16 @@ function initBookingFunnelObserver() {
         return;
     }
 
-    if (!('IntersectionObserver' in window)) {
-        markBookingViewed('fallback_no_observer');
-        prefetchAvailabilityData('fallback_no_observer');
-        return;
-    }
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-                markBookingViewed('observer');
-                prefetchAvailabilityData('booking_section_visible');
-                observer.disconnect();
-            }
-        });
-    }, { threshold: 0.35 });
-
-    observer.observe(bookingSection);
+    observeOnceWhenVisible(bookingSection, () => {
+        markBookingViewed('observer');
+        prefetchAvailabilityData('booking_section_visible');
+    }, {
+        threshold: 0.35,
+        onNoObserver: () => {
+            markBookingViewed('fallback_no_observer');
+            prefetchAvailabilityData('fallback_no_observer');
+        }
+    });
 }
 
 function initDeferredSectionPrefetch() {
@@ -698,22 +726,15 @@ function initDeferredSectionPrefetch() {
         return;
     }
 
-    if (!('IntersectionObserver' in window)) {
-        prefetchReviewsData('fallback_no_observer');
-        return;
-    }
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-            if (!entry.isIntersecting) {
-                return;
-            }
-            prefetchReviewsData('reviews_section_visible');
-            observer.disconnect();
-        });
-    }, { threshold: 0.2, rootMargin: '120px 0px' });
-
-    observer.observe(reviewsSection);
+    observeOnceWhenVisible(reviewsSection, () => {
+        prefetchReviewsData('reviews_section_visible');
+    }, {
+        threshold: 0.2,
+        rootMargin: '120px 0px',
+        onNoObserver: () => {
+            prefetchReviewsData('fallback_no_observer');
+        }
+    });
 }
 
 function startCheckoutSession(appointment) {
@@ -1555,21 +1576,11 @@ function initGalleryInteractionsWarmup() {
     const warmup = createWarmupRunner(() => loadGalleryInteractions());
 
     const gallerySection = document.getElementById('galeria');
-    if (gallerySection && 'IntersectionObserver' in window) {
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach((entry) => {
-                if (!entry.isIntersecting) {
-                    return;
-                }
-                warmup();
-                observer.disconnect();
-            });
-        }, { threshold: 0.05, rootMargin: '320px 0px' });
-
-        observer.observe(gallerySection);
-    } else if (gallerySection) {
-        warmup();
-    }
+    observeOnceWhenVisible(gallerySection, warmup, {
+        threshold: 0.05,
+        rootMargin: '320px 0px',
+        onNoObserver: warmup
+    });
 
     const firstFilterBtn = document.querySelector('.filter-btn');
     if (firstFilterBtn) {
@@ -1630,20 +1641,11 @@ function initBookingUiWarmup() {
     const warmup = createWarmupRunner(() => loadBookingUi());
 
     const bookingSection = document.getElementById('citas');
-    if (bookingSection && 'IntersectionObserver' in window) {
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach((entry) => {
-                if (!entry.isIntersecting) {
-                    return;
-                }
-                warmup();
-                observer.disconnect();
-            });
-        }, { threshold: 0.05, rootMargin: '320px 0px' });
-        observer.observe(bookingSection);
-    } else if (bookingSection) {
-        warmup();
-    }
+    observeOnceWhenVisible(bookingSection, warmup, {
+        threshold: 0.05,
+        rootMargin: '320px 0px',
+        onNoObserver: warmup
+    });
 
     const appointmentForm = document.getElementById('appointmentForm');
     if (appointmentForm) {
@@ -1819,18 +1821,11 @@ function initEngagementFormsEngineWarmup() {
     }
 
     const reviewSection = document.getElementById('resenas');
-    if (reviewSection && 'IntersectionObserver' in window) {
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach((entry) => {
-                if (!entry.isIntersecting) {
-                    return;
-                }
-                warmup();
-                observer.disconnect();
-            });
-        }, { threshold: 0.05, rootMargin: '280px 0px' });
-        observer.observe(reviewSection);
-    }
+    observeOnceWhenVisible(reviewSection, warmup, {
+        threshold: 0.05,
+        rootMargin: '280px 0px',
+        onNoObserver: warmup
+    });
 
     scheduleDeferredTask(warmup, {
         idleTimeout: 2600,
