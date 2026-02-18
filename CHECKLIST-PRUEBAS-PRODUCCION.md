@@ -128,6 +128,8 @@ Fecha de ejecucion sugerida: completar al desplegar.
 1. Verifica `figo-chat.php`:
 - URL: `https://TU_DOMINIO/figo-chat.php`
 - Esperado: responde JSON y muestra `configured`, `degradedMode`, `endpointHost`, `mode`, `recursiveConfigDetected`, `upstreamReachable`.
+- Crítico: `recursiveConfigDetected` debe ser `false` y `mode` debe ser `live` (salvo mantenimiento controlado).
+- Si aparece `recursiveConfigDetected=true`, revisa `FIGO_CHAT_ENDPOINT`: no puede apuntar al mismo `/figo-chat.php`.
 
 2. Chatbot en sitio:
 - Pregunta: `hola`
@@ -162,6 +164,8 @@ Opcional automatizado (PowerShell):
 - `.\SMOKE-PRODUCCION.ps1 -Domain "https://TU_DOMINIO" -TestFigoPost`
 - `.\VERIFICAR-DESPLIEGUE.ps1 -Domain "https://TU_DOMINIO" -RunSmoke`
 - `.\BENCH-API-PRODUCCION.ps1 -Domain "https://TU_DOMINIO" -Runs 25 -IncludeFigoPost`
+- Si estas en mantenimiento y aceptas chat degradado temporalmente:
+  - `.\SMOKE-PRODUCCION.ps1 -Domain "https://TU_DOMINIO" -TestFigoPost -AllowDegradedFigo -AllowRecursiveFigo`
 
 1. Home carga sin errores.
 2. Menu y scroll funcionan.

@@ -25,7 +25,11 @@
 // putenv('PIELARMONIA_ALLOWED_ORIGIN=https://pielarmonia.com');
 
 // ── Chatbot (Figo) ───────────────────────────────────
-// putenv('PIELARMONIA_FIGO_ENDPOINT=https://...');
+// IMPORTANTE: no apuntar al propio /figo-chat.php (genera recursión).
+// Usa el endpoint HTTP real del backend de Clawbot/Figo.
+// putenv('FIGO_CHAT_ENDPOINT=https://TU_BACKEND_FIGO/chat');
+// putenv('FIGO_CHAT_TOKEN=TOKEN_ROTADO_DESDE_BOTFATHER');
+// putenv('FIGO_CHAT_DEGRADED_MODE=true');
 
 // ── Cron (recordatorios automáticos) ────────────────
 // putenv('PIELARMONIA_CRON_SECRET=un_token_secreto_largo');

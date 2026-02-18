@@ -58,6 +58,8 @@ Importante:
 - Para notificaciones por email al administrador, configura `PIELARMONIA_ADMIN_EMAIL`.
 - Para cifrado de datos en reposo, configura `PIELARMONIA_DATA_ENCRYPTION_KEY` (32 bytes o texto que se deriva a SHA-256).
 - Si no puedes usar variables de entorno, tambien puedes crear `data/figo-config.json`.
+- `FIGO_CHAT_ENDPOINT` NO debe ser `https://pielarmonia.com/figo-chat.php` ni ninguna URL que apunte al mismo proxy.
+  Debe apuntar al backend real de Clawbot/Figo (upstream).
 
 Ejemplo de `data/figo-config.json`:
 ```json
@@ -91,6 +93,8 @@ Ejemplo de `data/figo-config.json`:
 
 6. Verificacion de paridad de despliegue:
 - `.\VERIFICAR-DESPLIEGUE.ps1 -Domain "https://pielarmonia.com" -RunSmoke`
+- Si estas en ventana de mantenimiento y aceptas modo degradado temporal:
+  - `.\VERIFICAR-DESPLIEGUE.ps1 -Domain "https://pielarmonia.com" -RunSmoke -AllowDegradedFigo -AllowRecursiveFigo`
 
 7. Bench de latencia (p95):
 - `.\BENCH-API-PRODUCCION.ps1 -Domain "https://pielarmonia.com" -Runs 25 -IncludeFigoPost`

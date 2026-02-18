@@ -3279,10 +3279,13 @@ function isGenericAssistantReply(text) {
         /asistente virtual/,
         /modo offline/,
         /te sugiero/,
-        /para información más detallada/,
+        /para informacion mas detallada/,
         /escribenos por whatsapp/,
         /visita estas secciones/,
-        /hay algo mas en lo que pueda orientarte/
+        /hay algo mas en lo que pueda orientarte/,
+        /estoy teniendo problemas tecnicos/,
+        /contactanos directamente por whatsapp/,
+        /te atenderemos personalmente/
     ];
 
     let matches = 0;
@@ -3294,7 +3297,7 @@ function isGenericAssistantReply(text) {
 }
 
 function shouldRefineWithFigo(userMessage, botResponse) {
-    return isHighValueClinicIntent(userMessage) && isGenericAssistantReply(botResponse);
+    return isGenericAssistantReply(botResponse);
 }
 
 const FIGO_EXPERT_PROMPT = `MODO FIGO PRO:

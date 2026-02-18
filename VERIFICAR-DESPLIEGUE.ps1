@@ -1,6 +1,9 @@
 param(
     [string]$Domain = 'https://pielarmonia.com',
-    [switch]$RunSmoke
+    [switch]$RunSmoke,
+    [switch]$AllowDegradedFigo,
+    [switch]$AllowRecursiveFigo,
+    [int]$MaxHealthTimingMs = 2000
 )
 
 $ErrorActionPreference = 'Stop'
@@ -63,25 +66,20 @@ function Get-LocalSha256 {
 function Invoke-JsonGet {
     param([string]$Url)
 
-    $tmp = New-TemporaryFile
     try {
-        $statusRaw = curl.exe -sS -L --max-time 30 --connect-timeout 8 -o $tmp -w '%{http_code}' $Url
-        if ($LASTEXITCODE -ne 0) {
-            throw "No se pudo consultar $Url"
+        $resp = Invoke-WebRequest -Uri $Url -Method GET -TimeoutSec 30 -UseBasicParsing -Headers @{
+            'Cache-Control' = 'no-cache'
+            'User-Agent' = 'PielArmoniaDeployCheck/1.0'
         }
 
-        $status = 0
-        if ($statusRaw -match '^\d{3}$') {
-            $status = [int]$statusRaw
-        }
-
-        $body = Get-Content -Path $tmp -Raw
+        $status = [int]$resp.StatusCode
+        $body = [string]$resp.Content
         if ($status -lt 200 -or $status -ge 300) {
             throw "HTTP $status en $Url"
         }
 
         try {
-            $json = $body | ConvertFrom-Json -Depth 20
+            $json = $body | ConvertFrom-Json
         } catch {
             throw "La respuesta de $Url no es JSON valido"
         }
@@ -91,8 +89,8 @@ function Invoke-JsonGet {
             Body = $body
             Json = $json
         }
-    } finally {
-        Remove-Item -Force -ErrorAction SilentlyContinue $tmp
+    } catch {
+        throw
     }
 }
 
@@ -101,32 +99,81 @@ Write-Host "Dominio: $base"
 Write-Host "Fecha: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 
 $indexRaw = Get-Content -Path 'index.html' -Raw
-$scriptRef = Get-RefFromIndex -IndexHtml $indexRaw -Pattern '<script\s+src="([^"]*script\.js[^"]*)"'
-$styleRef = Get-RefFromIndex -IndexHtml $indexRaw -Pattern '<link\s+rel="stylesheet"\s+href="([^"]*styles\.css[^"]*)"'
+$localScriptRef = Get-RefFromIndex -IndexHtml $indexRaw -Pattern '<script\s+src="([^"]*script\.js[^"]*)"'
+$localStyleRef = Get-RefFromIndex -IndexHtml $indexRaw -Pattern '<link\s+rel="stylesheet"\s+href="([^"]*styles\.css[^"]*)"'
 
-if ($scriptRef -eq '' -or $styleRef -eq '') {
+if ($localScriptRef -eq '' -or $localStyleRef -eq '') {
     throw 'No se pudieron detectar referencias versionadas de script.js/styles.css en index.html'
+}
+
+$remoteIndexTmp = New-TemporaryFile
+try {
+    curl.exe -sS -L --max-time 30 --connect-timeout 8 -o $remoteIndexTmp "$base/" | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "No se pudo descargar $base/"
+    }
+    $remoteIndexRaw = Get-Content -Path $remoteIndexTmp -Raw
+} finally {
+    Remove-Item -Force -ErrorAction SilentlyContinue $remoteIndexTmp
+}
+
+$remoteScriptRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern '<script\s+src="([^"]*script\.js[^"]*)"'
+$remoteStyleRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern '<link\s+rel="stylesheet"\s+href="([^"]*styles\.css[^"]*)"'
+
+$results = @()
+if ($remoteScriptRef -eq '' -or $remoteStyleRef -eq '') {
+    Write-Host "[FAIL] No se pudieron detectar referencias de assets en index remoto"
+    $results += [PSCustomObject]@{
+        Asset = 'index-asset-refs'
+        Match = $false
+        LocalHash = ''
+        RemoteHash = ''
+        RemoteUrl = "$base/"
+    }
+} else {
+    if ($remoteScriptRef -eq $localScriptRef) {
+        Write-Host "[OK]  index remoto usa misma referencia de script.js"
+    } else {
+        Write-Host "[FAIL] index remoto script.js diferente"
+        Write-Host "       Local : $localScriptRef"
+        Write-Host "       Remote: $remoteScriptRef"
+        $results += [PSCustomObject]@{
+            Asset = 'index-ref:script.js'
+            Match = $false
+            LocalHash = $localScriptRef
+            RemoteHash = $remoteScriptRef
+            RemoteUrl = "$base/"
+        }
+    }
+
+    if ($remoteStyleRef -eq $localStyleRef) {
+        Write-Host "[OK]  index remoto usa misma referencia de styles.css"
+    } else {
+        Write-Host "[FAIL] index remoto styles.css diferente"
+        Write-Host "       Local : $localStyleRef"
+        Write-Host "       Remote: $remoteStyleRef"
+        $results += [PSCustomObject]@{
+            Asset = 'index-ref:styles.css'
+            Match = $false
+            LocalHash = $localStyleRef
+            RemoteHash = $remoteStyleRef
+            RemoteUrl = "$base/"
+        }
+    }
 }
 
 $checks = @(
     [PSCustomObject]@{
-        Name = 'index.html'
-        LocalPath = 'index.html'
-        RemoteUrl = "$base/"
-    },
-    [PSCustomObject]@{
         Name = 'styles.css'
         LocalPath = 'styles.css'
-        RemoteUrl = (Get-Url -Base $base -Ref $styleRef)
+        RemoteUrl = (Get-Url -Base $base -Ref $localStyleRef)
     },
     [PSCustomObject]@{
         Name = 'script.js'
         LocalPath = 'script.js'
-        RemoteUrl = (Get-Url -Base $base -Ref $scriptRef)
+        RemoteUrl = (Get-Url -Base $base -Ref $localScriptRef)
     }
 )
-
-$results = @()
 foreach ($item in $checks) {
     $localHash = Get-LocalSha256 -Path $item.LocalPath
     $remoteHash = Get-RemoteSha256 -Url $item.RemoteUrl
@@ -153,7 +200,7 @@ $results | ForEach-Object {
 
 $scriptRemoteTmp = New-TemporaryFile
 try {
-    curl.exe -sS -L --max-time 30 --connect-timeout 8 -o $scriptRemoteTmp (Get-Url -Base $base -Ref $scriptRef) | Out-Null
+    curl.exe -sS -L --max-time 30 --connect-timeout 8 -o $scriptRemoteTmp (Get-Url -Base $base -Ref $localScriptRef) | Out-Null
     $remoteScriptText = Get-Content -Path $scriptRemoteTmp -Raw
 } finally {
     Remove-Item -Force -ErrorAction SilentlyContinue $scriptRemoteTmp
@@ -175,7 +222,7 @@ foreach ($token in $ga4Checks) {
             Match = $false
             LocalHash = ''
             RemoteHash = ''
-            RemoteUrl = (Get-Url -Base $base -Ref $scriptRef)
+            RemoteUrl = (Get-Url -Base $base -Ref $localScriptRef)
         }
     }
 }
@@ -196,6 +243,42 @@ try {
                 RemoteHash = ''
                 RemoteUrl = $healthUrl
             }
+        }
+    }
+
+    $healthTimingMs = 0
+    try {
+        $healthTimingMs = [int]($healthResp.Json.timingMs)
+    } catch {
+        $healthTimingMs = 0
+    }
+    if ($healthTimingMs -gt $MaxHealthTimingMs) {
+        Write-Host "[FAIL] health timingMs alto: $healthTimingMs ms (max $MaxHealthTimingMs ms)"
+        $results += [PSCustomObject]@{
+            Asset = 'health-timingMs'
+            Match = $false
+            LocalHash = "$MaxHealthTimingMs"
+            RemoteHash = "$healthTimingMs"
+            RemoteUrl = $healthUrl
+        }
+    } else {
+        Write-Host "[OK]  health timingMs dentro de umbral ($healthTimingMs ms)"
+    }
+
+    $healthRecursive = $false
+    try {
+        $healthRecursive = [bool]($healthResp.Json.figoRecursiveConfig)
+    } catch {
+        $healthRecursive = $false
+    }
+    if ($healthRecursive -and -not $AllowRecursiveFigo) {
+        Write-Host "[FAIL] health reporta figoRecursiveConfig=true"
+        $results += [PSCustomObject]@{
+            Asset = 'health-figoRecursiveConfig'
+            Match = $false
+            LocalHash = 'false'
+            RemoteHash = 'true'
+            RemoteUrl = $healthUrl
         }
     }
 } catch {
@@ -227,6 +310,59 @@ try {
             }
         }
     }
+
+    $figoMode = ''
+    try {
+        $figoMode = [string]($figoResp.Json.mode)
+    } catch {
+        $figoMode = ''
+    }
+    if (-not $AllowDegradedFigo -and $figoMode -ne 'live') {
+        Write-Host "[FAIL] figo-status mode=$figoMode (se esperaba live)"
+        $results += [PSCustomObject]@{
+            Asset = 'figo-mode'
+            Match = $false
+            LocalHash = 'live'
+            RemoteHash = $figoMode
+            RemoteUrl = $figoUrl
+        }
+    } else {
+        Write-Host "[OK]  figo-status mode=$figoMode"
+    }
+
+    $figoRecursive = $false
+    try {
+        $figoRecursive = [bool]($figoResp.Json.recursiveConfigDetected)
+    } catch {
+        $figoRecursive = $false
+    }
+    if ($figoRecursive -and -not $AllowRecursiveFigo) {
+        Write-Host "[FAIL] figo-status recursiveConfigDetected=true"
+        $results += [PSCustomObject]@{
+            Asset = 'figo-recursive'
+            Match = $false
+            LocalHash = 'false'
+            RemoteHash = 'true'
+            RemoteUrl = $figoUrl
+        }
+    }
+
+    $upstreamReachable = $true
+    try {
+        $upstreamReachable = [bool]($figoResp.Json.upstreamReachable)
+    } catch {
+        $upstreamReachable = $false
+    }
+    if (-not $AllowDegradedFigo -and -not $upstreamReachable) {
+        Write-Host "[FAIL] figo-status upstreamReachable=false"
+        $results += [PSCustomObject]@{
+            Asset = 'figo-upstreamReachable'
+            Match = $false
+            LocalHash = 'true'
+            RemoteHash = 'false'
+            RemoteUrl = $figoUrl
+        }
+    }
 } catch {
     Write-Host "[FAIL] No se pudo validar figo-chat.php GET: $($_.Exception.Message)"
     $results += [PSCustomObject]@{
@@ -241,7 +377,7 @@ try {
 if ($RunSmoke) {
     Write-Host ""
     Write-Host "Ejecutando smoke..."
-    & .\SMOKE-PRODUCCION.ps1 -Domain $base -TestFigoPost
+    & .\SMOKE-PRODUCCION.ps1 -Domain $base -TestFigoPost -AllowDegradedFigo:$AllowDegradedFigo -AllowRecursiveFigo:$AllowRecursiveFigo
 }
 
 $failed = ($results | Where-Object { -not $_.Match }).Count
