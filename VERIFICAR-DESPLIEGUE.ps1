@@ -181,6 +181,17 @@ $deferredStylesRemoteUrl = if ($deferredStylesVersion -ne '') {
     "$base/styles-deferred.css"
 }
 
+$translationsEnVersion = ''
+$translationsEnMatch = [regex]::Match($localScriptTextForRefs, "translations-en\.js\?v=([a-zA-Z0-9._-]+)")
+if ($translationsEnMatch.Success) {
+    $translationsEnVersion = $translationsEnMatch.Groups[1].Value
+}
+$translationsEnRemoteUrl = if ($translationsEnVersion -ne '') {
+    "$base/translations-en.js?v=$translationsEnVersion"
+} else {
+    "$base/translations-en.js"
+}
+
 if ([regex]::IsMatch($remoteIndexRaw, '\son[a-z]+\s*=', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
     Write-Host "[FAIL] index remoto contiene event handlers inline (on*)"
     $results += [PSCustomObject]@{
@@ -255,6 +266,11 @@ $checks = @(
         Name = 'styles-deferred.css'
         LocalPath = 'styles-deferred.css'
         RemoteUrl = $deferredStylesRemoteUrl
+    },
+    [PSCustomObject]@{
+        Name = 'translations-en.js'
+        LocalPath = 'translations-en.js'
+        RemoteUrl = $translationsEnRemoteUrl
     }
 )
 foreach ($item in $checks) {
