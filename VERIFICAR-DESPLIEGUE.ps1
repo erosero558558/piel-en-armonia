@@ -164,6 +164,7 @@ try {
     $assetHeaderChecks = @(
         @{ Name = 'app-script'; Url = $appScriptRemoteUrl },
         @{ Name = 'critical-css'; Url = $criticalCssRemoteUrl },
+        @{ Name = 'reschedule-engine'; Url = $rescheduleEngineRemoteUrl },
         @{ Name = 'ui-effects'; Url = $uiEffectsRemoteUrl },
         @{ Name = 'gallery-interactions'; Url = $galleryInteractionsRemoteUrl }
     )
@@ -296,6 +297,17 @@ $galleryInteractionsRemoteUrl = if ($galleryInteractionsVersion -ne '') {
     "$base/gallery-interactions.js"
 }
 
+$rescheduleEngineVersion = ''
+$rescheduleEngineMatch = [regex]::Match($localScriptTextForRefs, "reschedule-engine\.js\?v=([a-zA-Z0-9._-]+)")
+if ($rescheduleEngineMatch.Success) {
+    $rescheduleEngineVersion = $rescheduleEngineMatch.Groups[1].Value
+}
+$rescheduleEngineRemoteUrl = if ($rescheduleEngineVersion -ne '') {
+    "$base/reschedule-engine.js?v=$rescheduleEngineVersion"
+} else {
+    "$base/reschedule-engine.js"
+}
+
 if ([regex]::IsMatch($remoteIndexRaw, '\son[a-z]+\s*=', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
     Write-Host "[FAIL] index remoto contiene event handlers inline (on*)"
     $results += [PSCustomObject]@{
@@ -390,6 +402,11 @@ $checks = @(
         Name = 'gallery-interactions.js'
         LocalPath = 'gallery-interactions.js'
         RemoteUrl = $galleryInteractionsRemoteUrl
+    },
+    [PSCustomObject]@{
+        Name = 'reschedule-engine.js'
+        LocalPath = 'reschedule-engine.js'
+        RemoteUrl = $rescheduleEngineRemoteUrl
     }
 )
 foreach ($item in $checks) {

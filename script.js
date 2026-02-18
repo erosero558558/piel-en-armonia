@@ -3107,137 +3107,110 @@ setTimeout(() => {
 // ========================================
 // REPROGRAMACIÓN ONLINE
 // ========================================
-let _rescheduleToken = '';
-let _rescheduleAppt = null;
+const RESCHEDULE_ENGINE_URL = '/reschedule-engine.js?v=figo-reschedule-20260218-phase4';
+let rescheduleEnginePromise = null;
+
+function getRescheduleEngineDeps() {
+    return {
+        apiRequest,
+        loadAvailabilityData,
+        getBookedSlots,
+        invalidateBookedSlotsCache,
+        showToast,
+        escapeHtml,
+        getCurrentLang: () => currentLang,
+        getDefaultTimeSlots: () => DEFAULT_TIME_SLOTS.slice()
+    };
+}
+
+function loadRescheduleEngine() {
+    if (window.PielRescheduleEngine && typeof window.PielRescheduleEngine.init === 'function') {
+        window.PielRescheduleEngine.init(getRescheduleEngineDeps());
+        return Promise.resolve(window.PielRescheduleEngine);
+    }
+
+    if (rescheduleEnginePromise) {
+        return rescheduleEnginePromise;
+    }
+
+    rescheduleEnginePromise = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-reschedule-engine="true"]');
+        if (existing) {
+            existing.addEventListener('load', () => {
+                if (window.PielRescheduleEngine && typeof window.PielRescheduleEngine.init === 'function') {
+                    window.PielRescheduleEngine.init(getRescheduleEngineDeps());
+                    resolve(window.PielRescheduleEngine);
+                    return;
+                }
+                reject(new Error('reschedule-engine loaded without API'));
+            }, { once: true });
+            existing.addEventListener('error', () => reject(new Error('No se pudo cargar reschedule-engine.js')), { once: true });
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = RESCHEDULE_ENGINE_URL;
+        script.async = true;
+        script.defer = true;
+        script.dataset.rescheduleEngine = 'true';
+        script.onload = () => {
+            if (window.PielRescheduleEngine && typeof window.PielRescheduleEngine.init === 'function') {
+                window.PielRescheduleEngine.init(getRescheduleEngineDeps());
+                resolve(window.PielRescheduleEngine);
+                return;
+            }
+            reject(new Error('reschedule-engine loaded without API'));
+        };
+        script.onerror = () => reject(new Error('No se pudo cargar reschedule-engine.js'));
+        document.head.appendChild(script);
+    }).catch((error) => {
+        rescheduleEnginePromise = null;
+        debugLog('Reschedule engine load failed:', error);
+        throw error;
+    });
+
+    return rescheduleEnginePromise;
+}
+
+function initRescheduleEngineWarmup() {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('reschedule')) {
+        return;
+    }
+
+    loadRescheduleEngine()
+        .then((engine) => engine.checkRescheduleParam())
+        .catch(() => {
+            showToast(currentLang === 'es' ? 'No se pudo cargar la reprogramacion.' : 'Unable to load reschedule flow.', 'error');
+        });
+}
 
 async function checkRescheduleParam() {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('reschedule');
-    if (!token) return;
-    _rescheduleToken = token;
-    try {
-        const resp = await apiRequest('reschedule', { query: { token } });
-        if (resp.ok && resp.data) {
-            _rescheduleAppt = resp.data;
-            openRescheduleModal(resp.data);
-        } else {
-            showToast(resp.error || 'Enlace de reprogramación inválido.', 'error');
-        }
-    } catch (err) {
-        showToast('No se pudo cargar la cita. Verifica el enlace.', 'error');
-    }
+    const engine = await loadRescheduleEngine();
+    return engine.checkRescheduleParam();
 }
 
 function openRescheduleModal(appt) {
-    const modal = document.getElementById('rescheduleModal');
-    if (!modal) return;
-    const info = document.getElementById('rescheduleInfo');
-    if (info) {
-        const doctorLabel = appt.doctor === 'rosero' ? 'Dr. Javier Rosero' :
-            appt.doctor === 'narvaez' ? 'Dra. Carolina Narváez' : appt.doctor;
-        info.innerHTML =
-            '<p><strong>' + (currentLang === 'es' ? 'Paciente' : 'Patient') + ':</strong> ' + escapeHTML(appt.name) + '</p>' +
-            '<p><strong>' + (currentLang === 'es' ? 'Servicio' : 'Service') + ':</strong> ' + escapeHTML(appt.service) + '</p>' +
-            '<p><strong>' + (currentLang === 'es' ? 'Doctor' : 'Doctor') + ':</strong> ' + escapeHTML(doctorLabel) + '</p>' +
-            '<p><strong>' + (currentLang === 'es' ? 'Fecha actual' : 'Current date') + ':</strong> ' + escapeHTML(appt.date) + ' ' + escapeHTML(appt.time) + '</p>';
-    }
-    const dateInput = document.getElementById('rescheduleDate');
-    if (dateInput) {
-        dateInput.min = new Date().toISOString().split('T')[0];
-        dateInput.value = '';
-        dateInput.addEventListener('change', loadRescheduleSlots);
-    }
-    document.getElementById('rescheduleTime').innerHTML = '<option value="">' + (currentLang === 'es' ? 'Selecciona un horario' : 'Select a time') + '</option>';
-    document.getElementById('rescheduleError').style.display = 'none';
-    modal.classList.add('active');
+    loadRescheduleEngine().then((engine) => engine.openRescheduleModal(appt)).catch(() => undefined);
 }
 
 function closeRescheduleModal() {
     const modal = document.getElementById('rescheduleModal');
-    if (modal) modal.classList.remove('active');
-    // limpiar parámetro de URL
-    if (window.history.replaceState) {
-        const url = new URL(window.location);
-        url.searchParams.delete('reschedule');
-        window.history.replaceState({}, '', url);
+    if (modal) {
+        modal.classList.remove('active');
     }
+
+    loadRescheduleEngine().then((engine) => engine.closeRescheduleModal()).catch(() => undefined);
 }
 
-async function loadRescheduleSlots() {
-    const dateInput = document.getElementById('rescheduleDate');
-    const timeSelect = document.getElementById('rescheduleTime');
-    if (!dateInput || !timeSelect || !_rescheduleAppt) return;
-
-    const selectedDate = dateInput.value;
-    if (!selectedDate) return;
-
-    timeSelect.innerHTML = '<option value="">' + (currentLang === 'es' ? 'Cargando...' : 'Loading...') + '</option>';
-
-    try {
-        const availability = await loadAvailabilityData();
-        const daySlots = availability[selectedDate] || DEFAULT_TIME_SLOTS;
-        const booked = await getBookedSlots(selectedDate, _rescheduleAppt.doctor || '');
-
-        const freeSlots = daySlots.filter(s => !booked.includes(s));
-        timeSelect.innerHTML = '<option value="">' + (currentLang === 'es' ? 'Selecciona un horario' : 'Select a time') + '</option>';
-        freeSlots.forEach(slot => {
-            const opt = document.createElement('option');
-            opt.value = slot;
-            opt.textContent = slot;
-            timeSelect.appendChild(opt);
-        });
-
-        if (freeSlots.length === 0) {
-            timeSelect.innerHTML = '<option value="">' + (currentLang === 'es' ? 'Sin horarios disponibles' : 'No slots available') + '</option>';
-        }
-    } catch (err) {
-        timeSelect.innerHTML = '<option value="">' + (currentLang === 'es' ? 'Error al cargar horarios' : 'Error loading slots') + '</option>';
-    }
+function loadRescheduleSlots() {
+    return loadRescheduleEngine().then((engine) => engine.loadRescheduleSlots()).catch(() => undefined);
 }
 
-async function submitReschedule() {
-    const dateInput = document.getElementById('rescheduleDate');
-    const timeSelect = document.getElementById('rescheduleTime');
-    const errorDiv = document.getElementById('rescheduleError');
-    const btn = document.getElementById('rescheduleSubmitBtn');
-    if (!dateInput || !timeSelect) return;
-
-    const newDate = dateInput.value;
-    const newTime = timeSelect.value;
-    errorDiv.style.display = 'none';
-
-    if (!newDate || !newTime) {
-        errorDiv.textContent = currentLang === 'es' ? 'Selecciona fecha y horario.' : 'Select date and time.';
-        errorDiv.style.display = 'block';
-        return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = currentLang === 'es' ? 'Reprogramando...' : 'Rescheduling...';
-
-    try {
-        const resp = await apiRequest('reschedule', {
-            method: 'PATCH',
-            body: { token: _rescheduleToken, date: newDate, time: newTime }
-        });
-        if (resp.ok) {
-            const oldDate = _rescheduleAppt?.date || '';
-            const doctor = _rescheduleAppt?.doctor || '';
-            invalidateBookedSlotsCache(oldDate, doctor);
-            invalidateBookedSlotsCache(newDate, doctor);
-            closeRescheduleModal();
-            showToast(currentLang === 'es' ? '¡Cita reprogramada exitosamente!' : 'Appointment rescheduled successfully!', 'success');
-        } else {
-            errorDiv.textContent = resp.error || 'Error al reprogramar.';
-            errorDiv.style.display = 'block';
-        }
-    } catch (err) {
-        errorDiv.textContent = currentLang === 'es' ? 'Error de conexión. Inténtalo de nuevo.' : 'Connection error. Try again.';
-        errorDiv.style.display = 'block';
-    } finally {
-        btn.disabled = false;
-        btn.textContent = currentLang === 'es' ? 'Confirmar reprogramación' : 'Confirm reschedule';
-    }
+function submitReschedule() {
+    loadRescheduleEngine().then((engine) => engine.submitReschedule()).catch(() => {
+        showToast(currentLang === 'es' ? 'No se pudo reprogramar en este momento.' : 'Unable to reschedule right now.', 'error');
+    });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -3253,7 +3226,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initGalleryInteractionsWarmup();
     initChatEngineWarmup();
     initUiEffectsWarmup();
-    checkRescheduleParam();
+    initRescheduleEngineWarmup();
     const chatInput = document.getElementById('chatInput');
     if (chatInput) {
         chatInput.addEventListener('keypress', handleChatKeypress);
