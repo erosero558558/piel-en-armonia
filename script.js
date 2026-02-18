@@ -412,6 +412,7 @@ let availabilityCache = {};
 let reviewsCache = [];
 const LOCAL_FALLBACK_ENABLED = window.location.protocol === 'file:';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+let themeTransitionTimer = null;
 
 if (!VALID_THEME_MODES.has(currentThemeMode)) {
     currentThemeMode = 'system';
@@ -439,6 +440,22 @@ function updateThemeButtons() {
     });
 }
 
+function animateThemeTransition() {
+    if (!document.body) return;
+
+    if (themeTransitionTimer) {
+        clearTimeout(themeTransitionTimer);
+    }
+
+    document.body.classList.remove('theme-transition');
+    void document.body.offsetWidth;
+    document.body.classList.add('theme-transition');
+
+    themeTransitionTimer = setTimeout(() => {
+        document.body.classList.remove('theme-transition');
+    }, 320);
+}
+
 function setThemeMode(mode) {
     if (!VALID_THEME_MODES.has(mode)) {
         return;
@@ -446,6 +463,7 @@ function setThemeMode(mode) {
 
     currentThemeMode = mode;
     localStorage.setItem(THEME_STORAGE_KEY, mode);
+    animateThemeTransition();
     applyThemeMode(mode);
     updateThemeButtons();
 }

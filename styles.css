@@ -2517,6 +2517,10 @@ a {
 
 .theme-btn,
 .lang-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     border-radius: 999px;
     border: 1px solid transparent;
     color: #6d7b93;
@@ -2529,6 +2533,24 @@ a {
     transition: all var(--ui-ease);
 }
 
+.theme-btn i {
+    font-size: 0.72rem;
+    opacity: 0.86;
+    transition: transform var(--ui-ease), opacity var(--ui-ease), color var(--ui-ease);
+}
+
+.theme-btn[data-theme-mode='light'] i {
+    color: #e9a402;
+}
+
+.theme-btn[data-theme-mode='dark'] i {
+    color: #7f97ff;
+}
+
+.theme-btn[data-theme-mode='system'] i {
+    color: #2ea8ff;
+}
+
 .theme-btn.active,
 .theme-btn:hover,
 .lang-btn.active,
@@ -2536,6 +2558,23 @@ a {
     color: var(--ui-ink);
     border-color: #cfdaeb;
     background: rgba(255, 255, 255, 0.8);
+}
+
+.theme-btn.active i {
+    opacity: 1;
+    transform: scale(1.08);
+}
+
+html[data-theme='dark'] .theme-btn[data-theme-mode='light'] i {
+    color: #ffd06f;
+}
+
+html[data-theme='dark'] .theme-btn[data-theme-mode='dark'] i {
+    color: #b9c6ff;
+}
+
+html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
+    color: #8fdaff;
 }
 
 .nav {
@@ -2791,6 +2830,7 @@ a {
     display: grid;
     align-items: center;
     overflow: hidden;
+    background: linear-gradient(120deg, #0c1729 0%, #122541 55%, #0d1d34 100%);
 }
 
 .hero::before {
@@ -2798,7 +2838,7 @@ a {
     position: absolute;
     inset: 0;
     background:
-        linear-gradient(120deg, rgba(9, 17, 31, 0.64) 12%, rgba(9, 17, 31, 0.15) 62%, rgba(9, 17, 31, 0.54) 100%),
+        linear-gradient(120deg, rgba(8, 14, 25, 0.78) 10%, rgba(11, 20, 36, 0.5) 58%, rgba(7, 14, 25, 0.74) 100%),
         radial-gradient(circle at 8% 14%, rgba(53, 173, 255, 0.42) 0%, transparent 32%),
         radial-gradient(circle at 92% 84%, rgba(26, 200, 132, 0.28) 0%, transparent 34%);
     z-index: 0;
@@ -2815,7 +2855,8 @@ a {
     height: 100%;
     object-fit: cover;
     object-position: 72% center;
-    filter: saturate(0.8) contrast(1.04);
+    opacity: 0.78;
+    filter: saturate(0.92) contrast(1.08) brightness(0.82);
     transform: scale(1.03);
 }
 
@@ -2837,6 +2878,7 @@ a {
     color: #f8fbff;
     letter-spacing: -0.03em;
     max-width: 760px;
+    text-shadow: 0 6px 26px rgba(8, 18, 34, 0.45);
 }
 
 .hero-title span {
@@ -2858,7 +2900,8 @@ a {
     max-width: 640px;
     font-size: clamp(1.03rem, 2vw, 1.25rem);
     line-height: 1.66;
-    color: rgba(240, 246, 255, 0.9);
+    color: rgba(236, 245, 255, 0.94);
+    text-shadow: 0 3px 16px rgba(7, 15, 28, 0.4);
 }
 
 .hero-actions {
@@ -2886,9 +2929,9 @@ a {
     gap: 8px;
     padding: 10px 14px;
     border-radius: 999px;
-    border: 1px solid rgba(220, 234, 253, 0.28);
-    background: rgba(255, 255, 255, 0.14);
-    color: #eaf3ff;
+    border: 1px solid rgba(186, 213, 246, 0.42);
+    background: rgba(8, 21, 38, 0.46);
+    color: #f0f7ff;
     text-decoration: none;
     font-weight: 600;
     transition: all var(--ui-ease);
@@ -2897,12 +2940,12 @@ a {
 
 .contact-chip:hover {
     transform: translateY(-2px);
-    border-color: rgba(238, 246, 255, 0.45);
-    background: rgba(255, 255, 255, 0.22);
+    border-color: rgba(211, 228, 250, 0.7);
+    background: rgba(13, 29, 50, 0.62);
 }
 
 .contact-chip.whatsapp {
-    color: #d7fcea;
+    color: #ddffef;
 }
 
 .hero-metrics {
@@ -2914,10 +2957,10 @@ a {
 }
 
 .metric-card {
-    border: 1px solid rgba(217, 232, 252, 0.3);
+    border: 1px solid rgba(182, 207, 240, 0.4);
     border-radius: 16px;
     padding: 14px 16px;
-    background: rgba(255, 255, 255, 0.13);
+    background: rgba(11, 24, 43, 0.5);
     backdrop-filter: blur(8px);
     display: flex;
     flex-direction: column;
@@ -2925,13 +2968,13 @@ a {
 }
 
 .metric-card strong {
-    color: #f4f9ff;
+    color: #f5fbff;
     font-size: 1.04rem;
     font-weight: 700;
 }
 
 .metric-card span {
-    color: rgba(225, 238, 255, 0.86);
+    color: rgba(214, 230, 252, 0.92);
     font-size: 0.86rem;
 }
 
@@ -4367,6 +4410,19 @@ textarea:focus {
 *:focus-visible {
     outline: 3px solid rgba(43, 144, 255, 0.34);
     outline-offset: 2px;
+}
+
+body.theme-transition,
+body.theme-transition *,
+body.theme-transition *::before,
+body.theme-transition *::after {
+    transition:
+        background-color 260ms ease,
+        color 260ms ease,
+        border-color 260ms ease,
+        box-shadow 260ms ease,
+        fill 260ms ease,
+        stroke 260ms ease !important;
 }
 
 html[data-theme='light'] {
