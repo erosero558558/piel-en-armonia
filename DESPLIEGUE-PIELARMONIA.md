@@ -19,6 +19,7 @@ Sube estos archivos a la raiz del hosting (`public_html` o equivalente):
 Notas:
 - El frontend ahora consume `figo-chat.php` para el chatbot IA.
 - Si ya existe `figo-chat.php` en tu servidor, mantenlo publicado.
+- `proxy.php` queda deshabilitado por seguridad (retorna 410).
 
 ## Requisitos de servidor
 
@@ -33,6 +34,10 @@ Configura estas variables en tu hosting:
 - `PIELARMONIA_ADMIN_PASSWORD` (obligatoria para login admin)
 - `PIELARMONIA_ADMIN_PASSWORD_HASH` (opcional, tiene prioridad)
 - `PIELARMONIA_EMAIL_FROM` (opcional, para correos de confirmacion)
+
+Importante:
+- Ya no existe fallback `admin123`, incluso en local.
+- Debes configurar `PIELARMONIA_ADMIN_PASSWORD` o `PIELARMONIA_ADMIN_PASSWORD_HASH`.
 
 ## Verificaciones rapidas
 
@@ -57,4 +62,3 @@ Configura estas variables en tu hosting:
 - Los datos de citas, callbacks, reseñas y disponibilidad se guardan en backend (`data/store.json`).
 - Si `figo-chat.php` falla, el chatbot mantiene fallback local para no romper UX.
 - Para entorno local, revisa `SERVIDOR-LOCAL.md`.
-

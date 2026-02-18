@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-session_start();
+start_secure_session();
 
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $action = isset($_GET['action']) ? (string) $_GET['action'] : '';
@@ -49,12 +49,7 @@ if ($method === 'POST' && $action === 'login') {
 }
 
 if ($method === 'POST' && $action === 'logout') {
-    $_SESSION = [];
-    if (ini_get('session.use_cookies')) {
-        $params = session_get_cookie_params();
-        setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], (bool) $params['secure'], (bool) $params['httponly']);
-    }
-    session_destroy();
+    destroy_secure_session();
 
     json_response([
         'ok' => true,
@@ -66,4 +61,3 @@ json_response([
     'ok' => false,
     'error' => 'Acción no soportada'
 ], 404);
-

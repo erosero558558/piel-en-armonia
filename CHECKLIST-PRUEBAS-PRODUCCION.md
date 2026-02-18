@@ -95,11 +95,15 @@ Fecha de ejecucion sugerida: completar al desplegar.
 
 1. Busca en codigo desplegado:
 - no debe existir `sk-...` hardcodeado.
-- no debe existir `admin123` visible en pantalla de produccion.
+- no debe existir `admin123` como fallback.
+- `proxy.php` debe responder `410` (deshabilitado).
 
 2. Verifica admin sin sesion:
 - abre `admin.html` en incognito.
 - esperado: solicita login.
+
+3. Verifica backups automaticos:
+- tras crear o editar una cita/callback/reseña, debe existir al menos un archivo en `data/backups/`.
 
 ## 9. Prueba de regresion rapida (5 min)
 
@@ -119,4 +123,3 @@ Fecha de ejecucion sugerida: completar al desplegar.
 - `figo-chat.php`
 3. Revisa permisos de `data/`.
 4. Verifica variables de entorno.
-

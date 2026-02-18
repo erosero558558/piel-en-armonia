@@ -7,9 +7,10 @@ declare(strict_types=1);
 
 const DATA_DIR = __DIR__ . DIRECTORY_SEPARATOR . 'data';
 const DATA_FILE = DATA_DIR . DIRECTORY_SEPARATOR . 'store.json';
+const BACKUP_DIR = DATA_DIR . DIRECTORY_SEPARATOR . 'backups';
+const MAX_STORE_BACKUPS = 30;
 const ADMIN_PASSWORD_ENV = 'PIELARMONIA_ADMIN_PASSWORD';
 const ADMIN_PASSWORD_HASH_ENV = 'PIELARMONIA_ADMIN_PASSWORD_HASH';
-const DEFAULT_ADMIN_PASSWORD = 'admin123';
 
 function json_response(array $payload, int $status = 200): void
 {
@@ -17,6 +18,137 @@ function json_response(array $payload, int $status = 200): void
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit();
+}
+
+function is_https_request(): bool
+{
+    if (isset($_SERVER['HTTPS'])) {
+        $https = strtolower((string) $_SERVER['HTTPS']);
+        if ($https === 'on' || $https === '1') {
+            return true;
+        }
+    }
+
+    if (isset($_SERVER['SERVER_PORT']) && (string) $_SERVER['SERVER_PORT'] === '443') {
+        return true;
+    }
+
+    if (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+        return strtolower((string) $_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https';
+    }
+
+    return false;
+}
+
+function start_secure_session(): void
+{
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        return;
+    }
+
+    $secure = is_https_request();
+
+    ini_set('session.use_only_cookies', '1');
+    ini_set('session.use_strict_mode', '1');
+    ini_set('session.cookie_httponly', '1');
+    ini_set('session.cookie_secure', $secure ? '1' : '0');
+
+    if (PHP_VERSION_ID >= 70300) {
+        session_set_cookie_params([
+            'lifetime' => 0,
+            'path' => '/',
+            'domain' => '',
+            'secure' => $secure,
+            'httponly' => true,
+            'samesite' => 'Strict'
+        ]);
+    } else {
+        ini_set('session.cookie_samesite', 'Strict');
+        session_set_cookie_params(0, '/; samesite=Strict', '', $secure, true);
+    }
+
+    session_start();
+}
+
+function destroy_secure_session(): void
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return;
+    }
+
+    $_SESSION = [];
+
+    if (ini_get('session.use_cookies')) {
+        $params = session_get_cookie_params();
+        if (PHP_VERSION_ID >= 70300) {
+            setcookie(session_name(), '', [
+                'expires' => time() - 42000,
+                'path' => $params['path'] ?? '/',
+                'domain' => $params['domain'] ?? '',
+                'secure' => (bool) ($params['secure'] ?? false),
+                'httponly' => (bool) ($params['httponly'] ?? true),
+                'samesite' => 'Strict'
+            ]);
+        } else {
+            setcookie(session_name(), '', time() - 42000, ($params['path'] ?? '/') . '; samesite=Strict', $params['domain'] ?? '', (bool) ($params['secure'] ?? false), (bool) ($params['httponly'] ?? true));
+        }
+    }
+
+    session_destroy();
+}
+
+function ensure_backup_dir(): bool
+{
+    if (is_dir(BACKUP_DIR)) {
+        return true;
+    }
+    return mkdir(BACKUP_DIR, 0775, true) || is_dir(BACKUP_DIR);
+}
+
+function prune_backup_files(): void
+{
+    $files = glob(BACKUP_DIR . DIRECTORY_SEPARATOR . 'store-*.json');
+    if (!is_array($files) || count($files) <= MAX_STORE_BACKUPS) {
+        return;
+    }
+
+    sort($files, SORT_STRING);
+    $toDelete = array_slice($files, 0, count($files) - MAX_STORE_BACKUPS);
+    foreach ($toDelete as $file) {
+        @unlink($file);
+    }
+}
+
+function create_store_backup_locked($fp): void
+{
+    if (!is_resource($fp)) {
+        return;
+    }
+
+    if (!ensure_backup_dir()) {
+        error_log('Piel en Armonia: no se pudo crear el directorio de backups');
+        return;
+    }
+
+    rewind($fp);
+    $current = stream_get_contents($fp);
+    if (!is_string($current) || trim($current) === '') {
+        return;
+    }
+
+    try {
+        $suffix = bin2hex(random_bytes(3));
+    } catch (Throwable $e) {
+        $suffix = substr(md5((string) microtime(true)), 0, 6);
+    }
+
+    $filename = BACKUP_DIR . DIRECTORY_SEPARATOR . 'store-' . gmdate('Ymd-His') . '-' . $suffix . '.json';
+    if (@file_put_contents($filename, $current, LOCK_EX) === false) {
+        error_log('Piel en Armonia: no se pudo guardar backup de store.json');
+        return;
+    }
+
+    prune_backup_files();
 }
 
 function ensure_data_file(): void
@@ -37,7 +169,13 @@ function ensure_data_file(): void
             'createdAt' => gmdate('c'),
             'updatedAt' => gmdate('c')
         ];
-        file_put_contents(DATA_FILE, json_encode($seed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $seedEncoded = json_encode($seed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($seedEncoded === false || file_put_contents(DATA_FILE, $seedEncoded, LOCK_EX) === false) {
+            json_response([
+                'ok' => false,
+                'error' => 'No se pudo inicializar el archivo de datos'
+            ], 500);
+        }
     }
 }
 
@@ -100,6 +238,9 @@ function write_store(array $store): void
                 'error' => 'No se pudo bloquear el archivo de datos'
             ], 500);
         }
+
+        // Backup del estado anterior antes de sobrescribir.
+        create_store_backup_locked($fp);
 
         ftruncate($fp, 0);
         rewind($fp);
@@ -169,16 +310,6 @@ function map_appointment_status(string $status): string
         : 'confirmed';
 }
 
-function is_local_environment(): bool
-{
-    $host = isset($_SERVER['HTTP_HOST']) ? strtolower((string) $_SERVER['HTTP_HOST']) : '';
-    $serverName = isset($_SERVER['SERVER_NAME']) ? strtolower((string) $_SERVER['SERVER_NAME']) : '';
-    return str_contains($host, 'localhost')
-        || str_contains($host, '127.0.0.1')
-        || str_contains($serverName, 'localhost')
-        || str_contains($serverName, '127.0.0.1');
-}
-
 function verify_admin_password(string $password): bool
 {
     $hash = getenv(ADMIN_PASSWORD_HASH_ENV);
@@ -189,10 +320,6 @@ function verify_admin_password(string $password): bool
     $plain = getenv(ADMIN_PASSWORD_ENV);
     if (is_string($plain) && $plain !== '') {
         return hash_equals($plain, $password);
-    }
-
-    if (is_local_environment()) {
-        return hash_equals(DEFAULT_ADMIN_PASSWORD, $password);
     }
 
     return false;

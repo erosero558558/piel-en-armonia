@@ -1645,6 +1645,16 @@ async function processWithKimi(message) {
     isProcessingMessage = true;
     
     showTypingIndicator();
+
+    if (isOutOfScopeIntent(message)) {
+        removeTypingIndicator();
+        addBotMessage(`Puedo ayudarte con temas de <strong>Piel en Armonia</strong> (servicios, precios, citas, pagos, horarios y ubicacion).<br><br>Si deseas, te ayudo ahora con:<br>- <a href="#servicios" onclick="minimizeChatbot()">Servicios y tratamientos</a><br>- <a href="#citas" onclick="minimizeChatbot()">Reservar cita</a><br>- <a href="https://wa.me/593982453672" target="_blank">WhatsApp directo</a>`, false);
+        isProcessingMessage = false;
+        return;
+        addBotMessage(`Puedo ayudarte con temas de <strong>Piel en Armonia</strong> (servicios, precios, citas, pagos, horarios y ubicacion).<br><br>Si deseas, te ayudo ahora con:<br>â€¢ <a href="#servicios" onclick="minimizeChatbot()">Servicios y tratamientos</a><br>â€¢ <a href="#citas" onclick="minimizeChatbot()">Reservar cita</a><br>â€¢ <a href="https://wa.me/593982453672" target="_blank">WhatsApp directo</a>`, false);
+        isProcessingMessage = false;
+        return;
+    }
     
     // Siempre usar modo offline primero (más rápido y confiable)
     // El modo offline ahora tiene respuestas muy completas
@@ -1691,6 +1701,29 @@ function isHighValueClinicIntent(text) {
     return isPaymentIntent(normalized) || /(cita|agendar|reservar|turno|hora|precio|cuanto cuesta|valor|tarifa|costo|servicio|tratamiento)/.test(normalized);
 }
 
+function isClinicScopeIntent(text) {
+    const normalized = normalizeIntentText(text);
+    if (!normalized) return true;
+
+    const clinicScopePattern = /(piel|dermat|acne|grano|espinilla|mancha|lesion|consulta|cita|agendar|reservar|turno|doctor|dra|dr|rosero|narvaez|quito|ubicacion|direccion|horario|precio|costo|tarifa|pago|pagar|transferencia|efectivo|tarjeta|whatsapp|telefono|telemedicina|video|laser|rejuvenecimiento|cancer|consultorio|servicio|tratamiento)/;
+    return clinicScopePattern.test(normalized);
+}
+
+function isOutOfScopeIntent(text) {
+    const normalized = normalizeIntentText(text);
+    if (!normalized) return false;
+
+    if (/^(hola|buenos dias|buenas tardes|buenas noches|hi|hello|gracias|adios|bye|ok|vale)$/.test(normalized)) {
+        return false;
+    }
+
+    if (isClinicScopeIntent(normalized)) {
+        return false;
+    }
+
+    return /(capital|presidente|deporte|futbol|partido|clima|temperatura|noticia|historia|geografia|matematica|programacion|codigo|traduce|traducir|pelicula|musica|bitcoin|criptomoneda|politica)/.test(normalized);
+}
+
 function isGenericAssistantReply(text) {
     const normalized = normalizeIntentText(text);
     if (!normalized) return true;
@@ -1724,6 +1757,7 @@ const FIGO_EXPERT_PROMPT = `MODO FIGO PRO:
 - Si preguntan por pagos, explica el flujo real del sitio: reservar cita -> modal de pago -> metodo (tarjeta/transferencia/efectivo) -> confirmacion.
 - Si faltan datos para ayudar mejor, haz una sola pregunta de seguimiento concreta.
 - Mantente enfocado en Piel en Armonia (servicios, precios, citas, pagos, ubicacion y contacto).
+- Si preguntan temas fuera de la clinica (capitales, noticias, deportes o cultura general), explica que solo atiendes temas de Piel en Armonia y redirige a servicios/citas.
 - Evita decir "modo offline" salvo que realmente no haya conexion con el servidor.`;
 
 function buildAppointmentContextSummary() {
@@ -1925,6 +1959,25 @@ function processLocalResponse(message, isOffline = true) {
         response += '<strong>Citas:</strong> Como agendar<br>';
         response += '<strong>Ubicacion:</strong> Direccion y horarios<br>';
         response += '<strong>Contacto:</strong> WhatsApp y telefono';
+    }
+    // FUERA DE ALCANCE
+    else if (isOutOfScopeIntent(normalizedMsg)) {
+        response = `Puedo ayudarte solo con temas de <strong>Piel en Armonia</strong>.<br><br>
+Puedes consultarme sobre:<br>
+- Servicios y tratamientos dermatologicos<br>
+- Precios y formas de pago<br>
+- Agenda de citas y horarios<br>
+- Ubicacion y contacto<br><br>
+Si quieres, te llevo directo a <a href="#citas" onclick="minimizeChatbot()">Reservar Cita</a> o te conecto por <a href="https://wa.me/593982453672" target="_blank">WhatsApp</a>.`;
+        addBotMessage(response, isOffline);
+        return;
+        response = `Puedo ayudarte solo con temas de <strong>Piel en Armonia</strong>.<br><br>
+Puedes consultarme sobre:<br>
+â€¢ Servicios y tratamientos dermatologicos<br>
+â€¢ Precios y formas de pago<br>
+â€¢ Agenda de citas y horarios<br>
+â€¢ Ubicacion y contacto<br><br>
+Si quieres, te llevo directo a <a href="#citas" onclick="minimizeChatbot()">Reservar Cita</a> o te conecto por <a href="https://wa.me/593982453672" target="_blank">WhatsApp</a>.`;
     }
     // SALUDO
     else if (/hola|buenos dias|buenas tardes|buenas noches|hey|hi|hello/.test(lowerMsg)) {

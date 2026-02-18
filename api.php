@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-session_start();
+start_secure_session();
 
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $resource = isset($_GET['resource']) ? (string) $_GET['resource'] : '';
@@ -24,8 +24,7 @@ if ($resource === 'health') {
     json_response([
         'ok' => true,
         'status' => 'ok',
-        'timestamp' => gmdate('c'),
-        'storage' => DATA_FILE
+        'timestamp' => gmdate('c')
     ]);
 }
 

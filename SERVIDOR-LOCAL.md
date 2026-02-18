@@ -22,11 +22,14 @@ Luego abre:
 - API health: `http://localhost:8000/api.php?resource=health`
 - Bot endpoint: `http://localhost:8000/figo-chat.php`
 
-## Variables de entorno recomendadas
+## Variables de entorno requeridas para login admin
 
 - `PIELARMONIA_ADMIN_PASSWORD`: contraseña del panel admin.
 - `PIELARMONIA_ADMIN_PASSWORD_HASH`: hash de contraseña (opcional, prioridad sobre la contraseña en texto).
 - `PIELARMONIA_EMAIL_FROM`: remitente para correos de confirmacion.
+
+Nota:
+- Ya no existe fallback `admin123`. Debes definir una de las dos variables de contraseña.
 
 ## Ejemplo en PowerShell (sesión actual)
 
@@ -34,4 +37,3 @@ Luego abre:
 $env:PIELARMONIA_ADMIN_PASSWORD = "tu-clave-segura"
 php -S localhost:8000
 ```
-
