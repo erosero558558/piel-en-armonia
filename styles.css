@@ -35,6 +35,8 @@
 
 html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
 }
 
 body {
@@ -1248,7 +1250,8 @@ body {
 /* ========================================
    REVIEWS
    ======================================== */
-.rating-header {
+.rating-header,
+.reviews-summary {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3509,7 +3512,8 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
     display: block;
 }
 
-.rating-header {
+.rating-header,
+.reviews-summary {
     margin-top: 14px;
     display: inline-flex;
     align-items: center;
@@ -3536,6 +3540,37 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
     color: #587093;
     font-size: 0.86rem;
     font-weight: 600;
+}
+
+.metric-card-reviews {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.metric-card-reviews .reviews-summary {
+    margin-top: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    gap: 7px;
+}
+
+.metric-card-reviews .rating-number {
+    font-size: 1.18rem;
+    line-height: 1;
+    color: inherit;
+}
+
+.metric-card-reviews .rating-stars {
+    gap: 1px;
+    font-size: 0.76rem;
+}
+
+.metric-card-reviews .rating-count {
+    color: inherit;
+    opacity: 0.88;
 }
 
 .reviews-grid {
@@ -4842,9 +4877,15 @@ html[data-theme='dark'] .filter-btn {
 
 html[data-theme='dark'] .clinic-item,
 html[data-theme='dark'] .price-summary,
-html[data-theme='dark'] .rating-header {
+html[data-theme='dark'] .rating-header,
+html[data-theme='dark'] .reviews-summary {
     background: rgba(19, 33, 54, 0.9);
     border-color: rgba(121, 157, 209, 0.38);
+}
+
+html[data-theme='dark'] .metric-card-reviews .reviews-summary {
+    background: transparent;
+    border-color: transparent;
 }
 
 html[data-theme='dark'] .price-row {
@@ -5937,6 +5978,8 @@ html[data-theme='dark'] .showcase-eyebrow {
     .footer-bottom,
     .hero-content {
         width: calc(100% - 24px);
+        margin-left: auto;
+        margin-right: auto;
     }
 
     .nav {
@@ -5992,6 +6035,10 @@ html[data-theme='dark'] .showcase-eyebrow {
 
     .hero-content {
         gap: 16px;
+        align-items: center;
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
     }
 
     .hero-title {
@@ -6007,24 +6054,28 @@ html[data-theme='dark'] .showcase-eyebrow {
     }
 
     .hero-actions {
-        display: grid;
-        grid-template-columns: 1fr;
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
         gap: 10px;
+        margin-left: auto;
+        margin-right: auto;
     }
 
     .hero-actions .btn {
-        width: 100%;
         min-height: 50px;
     }
 
     .hero-contact-bar {
-        display: grid;
-        grid-template-columns: 1fr;
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
         gap: 8px;
+        margin-left: auto;
+        margin-right: auto;
     }
 
     .contact-chip {
-        width: 100%;
         min-height: 46px;
         justify-content: center;
         font-size: 0.92rem;
@@ -6033,7 +6084,10 @@ html[data-theme='dark'] .showcase-eyebrow {
     .hero-metrics {
         grid-template-columns: 1fr;
         gap: 10px;
-        max-width: none;
+        width: min(100%, 620px);
+        max-width: 620px;
+        margin-left: auto;
+        margin-right: auto;
     }
 
     .metric-card {
@@ -6050,6 +6104,8 @@ html[data-theme='dark'] .showcase-eyebrow {
         width: calc(100% - 24px);
         border-radius: 20px;
         margin-bottom: 24px;
+        margin-left: auto;
+        margin-right: auto;
     }
 
     .showcase-hero-image {
@@ -6174,7 +6230,67 @@ html[data-theme='dark'] .showcase-eyebrow {
     }
 
     .footer {
+        --footer-meta-size: clamp(0.9rem, 2vw, 0.98rem);
+        --footer-link-size: clamp(1rem, 2.2vw, 1.08rem);
         padding-bottom: 110px;
+    }
+
+    .footer-content {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+        gap: 14px;
+    }
+
+    .footer-content > * {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .footer-brand {
+        justify-content: center;
+        font-size: clamp(1.2rem, 3.6vw, 1.4rem);
+    }
+
+    .footer-tagline {
+        margin-top: 0;
+        font-size: var(--footer-link-size);
+    }
+
+    .footer-privacy-note {
+        margin-top: 0;
+        max-width: 36ch;
+        font-size: var(--footer-meta-size);
+    }
+
+    .footer-links,
+    .footer-legal,
+    .footer-contact {
+        width: 100%;
+        align-items: center;
+        text-align: center;
+        gap: 10px;
+    }
+
+    .footer-links a,
+    .footer-legal a,
+    .footer-contact a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: auto;
+        max-width: 100%;
+        margin: 0 auto;
+        text-align: center;
+        line-height: 1.35;
+        font-size: var(--footer-link-size);
+        overflow-wrap: anywhere;
+    }
+
+    .footer-bottom {
+        font-size: var(--footer-meta-size);
+        text-align: center;
     }
 }
 
@@ -6239,6 +6355,26 @@ html[data-theme='dark'] .showcase-eyebrow {
         font-size: 0.94rem;
     }
 
+    .hero-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        width: min(100%, 320px);
+    }
+
+    .hero-actions .btn {
+        width: 100%;
+    }
+
+    .hero-contact-bar {
+        display: grid;
+        grid-template-columns: 1fr;
+        width: min(100%, 320px);
+    }
+
+    .contact-chip {
+        width: 100%;
+    }
+
     .section {
         padding: 64px 0;
     }
@@ -6295,6 +6431,16 @@ html[data-theme='dark'] .showcase-eyebrow {
     }
 
     .footer {
+        --footer-meta-size: clamp(0.86rem, 3.8vw, 0.94rem);
+        --footer-link-size: clamp(0.98rem, 4.4vw, 1.04rem);
         padding-bottom: 122px;
+    }
+
+    .footer-content {
+        gap: 12px;
+    }
+
+    .footer-brand {
+        font-size: clamp(1.08rem, 5vw, 1.24rem);
     }
 }

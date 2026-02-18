@@ -674,6 +674,22 @@ function setCookieConsent(status) {
     }
 }
 
+function initGA4() {
+    if (window._ga4Loaded) return;
+    if (getCookieConsent() !== 'accepted') return;
+    window._ga4Loaded = true;
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://www.googletagmanager.com/gtag/js?id=G-GYY8PE5M8W';
+    document.head.appendChild(s);
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    window.gtag = gtag;
+    gtag('js', new Date());
+    gtag('consent', 'update', { analytics_storage: 'granted' });
+    gtag('config', 'G-GYY8PE5M8W');
+}
+
 function initCookieBanner() {
     const banner = document.getElementById('cookieBanner');
     if (!banner) return;
@@ -693,6 +709,7 @@ function initCookieBanner() {
             setCookieConsent('accepted');
             banner.classList.remove('active');
             showToast(currentLang === 'es' ? 'Preferencias de cookies guardadas.' : 'Cookie preferences saved.', 'success');
+            initGA4();
         });
     }
 
@@ -3399,6 +3416,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initThemeMode();
     changeLanguage(currentLang);
     initCookieBanner();
+    initGA4();
     const isServer = checkServerEnvironment();
 
     if (!isServer) {
