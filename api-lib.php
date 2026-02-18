@@ -468,6 +468,7 @@ function ensure_data_file(): bool
     if (!file_exists($dataFile)) {
         $seed = [
             'appointments' => [],
+            'idx_appointments_date' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
@@ -485,11 +486,24 @@ function ensure_data_file(): bool
     return true;
 }
 
+function rebuild_appointment_index(array $appointments): array
+{
+    $index = [];
+    foreach ($appointments as $key => $appt) {
+        $date = (string) ($appt['date'] ?? '');
+        if ($date !== '') {
+            $index[$date][] = $key;
+        }
+    }
+    return $index;
+}
+
 function read_store(): array
 {
     if (!ensure_data_file()) {
         return [
             'appointments' => [],
+            'idx_appointments_date' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
@@ -501,6 +515,7 @@ function read_store(): array
     if ($raw === false || $raw === '') {
         return [
             'appointments' => [],
+            'idx_appointments_date' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
@@ -519,6 +534,7 @@ function read_store(): array
         }
         return [
             'appointments' => [],
+            'idx_appointments_date' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
@@ -530,6 +546,7 @@ function read_store(): array
     if (!is_array($data)) {
         return [
             'appointments' => [],
+            'idx_appointments_date' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
@@ -538,6 +555,12 @@ function read_store(): array
     }
 
     $data['appointments'] = isset($data['appointments']) && is_array($data['appointments']) ? $data['appointments'] : [];
+
+    // Lazy migration: build index if missing
+    if (!isset($data['idx_appointments_date']) || !is_array($data['idx_appointments_date'])) {
+        $data['idx_appointments_date'] = rebuild_appointment_index($data['appointments']);
+    }
+
     $data['callbacks'] = isset($data['callbacks']) && is_array($data['callbacks']) ? $data['callbacks'] : [];
     $data['reviews'] = isset($data['reviews']) && is_array($data['reviews']) ? $data['reviews'] : [];
     $data['availability'] = isset($data['availability']) && is_array($data['availability']) ? $data['availability'] : [];
@@ -557,6 +580,10 @@ function write_store(array $store): void
     }
 
     $store['appointments'] = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
+
+    // Always rebuild index before saving to ensure consistency
+    $store['idx_appointments_date'] = rebuild_appointment_index($store['appointments']);
+
     $store['callbacks'] = isset($store['callbacks']) && is_array($store['callbacks']) ? $store['callbacks'] : [];
     $store['reviews'] = isset($store['reviews']) && is_array($store['reviews']) ? $store['reviews'] : [];
     $store['availability'] = isset($store['availability']) && is_array($store['availability']) ? $store['availability'] : [];
@@ -959,8 +986,48 @@ function normalize_appointment(array $appointment): array
     ];
 }
 
-function appointment_slot_taken(array $appointments, string $date, string $time, ?int $excludeId = null, string $doctor = ''): bool
+function appointment_slot_taken(array $appointments, string $date, string $time, ?int $excludeId = null, string $doctor = '', ?array $index = null): bool
 {
+    // Use index if available for O(1) lookup
+    if ($index !== null) {
+        if (isset($index[$date])) {
+            $candidates = $index[$date];
+            foreach ($candidates as $key) {
+                if (!isset($appointments[$key])) {
+                    continue;
+                }
+                $appt = $appointments[$key];
+
+                // Duplicate logic check from linear scan
+                $id = isset($appt['id']) ? (int) $appt['id'] : null;
+                if ($excludeId !== null && $id === $excludeId) {
+                    continue;
+                }
+                $status = map_appointment_status((string) ($appt['status'] ?? 'confirmed'));
+                if ($status === 'cancelled') {
+                    continue;
+                }
+                // Date is already matched by index lookup, but double check doesn't hurt
+                if ((string) ($appt['date'] ?? '') !== $date) {
+                    continue;
+                }
+                if ((string) ($appt['time'] ?? '') !== $time) {
+                    continue;
+                }
+                if ($doctor !== '' && $doctor !== 'indiferente') {
+                    $apptDoctor = (string) ($appt['doctor'] ?? '');
+                    if ($apptDoctor !== '' && $apptDoctor !== 'indiferente' && $apptDoctor !== $doctor) {
+                        continue;
+                    }
+                }
+                return true;
+            }
+        }
+        // If date not in index or no candidate matched, it's free.
+        return false;
+    }
+
+    // Fallback to linear scan
     foreach ($appointments as $appt) {
         $id = isset($appt['id']) ? (int) $appt['id'] : null;
         if ($excludeId !== null && $id === $excludeId) {

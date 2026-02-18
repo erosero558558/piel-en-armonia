@@ -307,7 +307,21 @@ if ($method === 'GET' && $resource === 'booked-slots') {
     $doctor = isset($_GET['doctor']) ? trim((string) $_GET['doctor']) : '';
 
     $slots = [];
-    foreach ($store['appointments'] as $appointment) {
+    $index = $store['idx_appointments_date'] ?? null;
+    $candidates = [];
+
+    if ($index !== null && isset($index[$date])) {
+        foreach ($index[$date] as $key) {
+            if (isset($store['appointments'][$key])) {
+                $candidates[] = $store['appointments'][$key];
+            }
+        }
+    } elseif ($index === null) {
+        // Fallback if index missing
+        $candidates = $store['appointments'];
+    }
+
+    foreach ($candidates as $appointment) {
         $status = map_appointment_status((string) ($appointment['status'] ?? 'confirmed'));
         if ($status === 'cancelled') {
             continue;
@@ -401,7 +415,7 @@ if ($method === 'POST' && $resource === 'payment-intent') {
         ], 400);
     }
 
-    if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $appointment['doctor'])) {
+    if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $appointment['doctor'], $store['idx_appointments_date'] ?? null)) {
         json_response([
             'ok' => false,
             'error' => 'Ese horario ya fue reservado'
@@ -798,7 +812,7 @@ if ($method === 'POST' && $resource === 'appointments') {
         $doctors = ['rosero', 'narvaez'];
         $assigned = '';
         foreach ($doctors as $candidate) {
-            if (!appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $candidate)) {
+            if (!appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $candidate, $store['idx_appointments_date'] ?? null)) {
                 $assigned = $candidate;
                 break;
             }
@@ -1065,7 +1079,7 @@ if ($method === 'PATCH' && $resource === 'reschedule') {
 
         $doctor = $appt['doctor'] ?? '';
         $excludeId = (int) ($appt['id'] ?? 0);
-        if (appointment_slot_taken($store['appointments'], $newDate, $newTime, $excludeId, $doctor)) {
+        if (appointment_slot_taken($store['appointments'], $newDate, $newTime, $excludeId, $doctor, $store['idx_appointments_date'] ?? null)) {
             json_response(['ok' => false, 'error' => 'El horario seleccionado ya no está disponible'], 409);
         }
 
