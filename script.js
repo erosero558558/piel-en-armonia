@@ -1913,7 +1913,7 @@ Pregunta original del paciente: "${message}"`;
         
         // Mostrar error específico
         if (error.message.includes('HTTP 503')) {
-            showBotServerHelp();
+            processLocalResponse(message, false);
         } else if (error.message.includes('Failed to fetch')) {
             addBotMessage(`<div style="color: #ff3b30;">
                 <strong>Error de conexión:</strong><br>

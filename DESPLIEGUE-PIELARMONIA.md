@@ -43,7 +43,18 @@ Configura estas variables en tu hosting:
 Importante:
 - Ya no existe fallback `admin123`, incluso en local.
 - Debes configurar `PIELARMONIA_ADMIN_PASSWORD` o `PIELARMONIA_ADMIN_PASSWORD_HASH`.
-- Si `FIGO_CHAT_ENDPOINT` no esta definido, `figo-chat.php` responde `503`.
+- Si no puedes usar variables de entorno, tambien puedes crear `data/figo-config.json`.
+
+Ejemplo de `data/figo-config.json`:
+```json
+{
+  "endpoint": "https://TU_BACKEND_FIGO/chat",
+  "token": "TOKEN_OPCIONAL",
+  "apiKeyHeader": "X-API-Key",
+  "apiKey": "APIKEY_OPCIONAL",
+  "timeout": 20
+}
+```
 
 ## Verificaciones rapidas
 

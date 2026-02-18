@@ -1,0 +1,8 @@
+{
+  "endpoint": "https://TU_BACKEND_FIGO/chat",
+  "token": "TOKEN_BEARER_OPCIONAL",
+  "apiKeyHeader": "X-API-Key",
+  "apiKey": "APIKEY_OPCIONAL",
+  "timeout": 20
+}
+

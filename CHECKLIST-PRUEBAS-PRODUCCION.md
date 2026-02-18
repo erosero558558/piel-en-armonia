@@ -23,6 +23,7 @@ Fecha de ejecucion sugerida: completar al desplegar.
 - opcional: `FIGO_CHAT_TOKEN`
 - opcional: `FIGO_CHAT_APIKEY_HEADER`
 - opcional: `FIGO_CHAT_APIKEY`
+- alternativa: `data/figo-config.json` con `endpoint`
 
 3. Verifica endpoint de salud:
 - URL: `https://TU_DOMINIO/api.php?resource=health`

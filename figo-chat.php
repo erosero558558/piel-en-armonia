@@ -69,6 +69,71 @@ function figo_extract_text(array $decoded, string $raw): string
     return trim($raw);
 }
 
+function figo_read_file_config(): array
+{
+    $path = DATA_DIR . DIRECTORY_SEPARATOR . 'figo-config.json';
+    if (!is_file($path)) {
+        return [];
+    }
+
+    $raw = @file_get_contents($path);
+    if (!is_string($raw) || trim($raw) === '') {
+        return [];
+    }
+
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+function figo_first_non_empty(array $values): string
+{
+    foreach ($values as $value) {
+        if (is_string($value) && trim($value) !== '') {
+            return trim($value);
+        }
+    }
+    return '';
+}
+
+function figo_build_fallback_completion(string $model, array $messages): array
+{
+    $lastUser = '';
+    for ($i = count($messages) - 1; $i >= 0; $i--) {
+        $msg = $messages[$i] ?? null;
+        if (is_array($msg) && (($msg['role'] ?? '') === 'user') && is_string($msg['content'] ?? null)) {
+            $lastUser = trim((string) $msg['content']);
+            break;
+        }
+    }
+
+    if ($lastUser === '') {
+        $lastUser = 'consulta general';
+    }
+
+    $content = "Puedo ayudarte con Piel en Armonia. Sobre \"{$lastUser}\", te guio paso a paso en servicios, citas o pagos. Si prefieres atencion inmediata: WhatsApp +593 98 245 3672.";
+
+    try {
+        $id = 'figo-fallback-' . bin2hex(random_bytes(8));
+    } catch (Throwable $e) {
+        $id = 'figo-fallback-' . substr(md5((string) microtime(true)), 0, 16);
+    }
+
+    return [
+        'id' => $id,
+        'object' => 'chat.completion',
+        'created' => time(),
+        'model' => $model,
+        'choices' => [[
+            'index' => 0,
+            'message' => [
+                'role' => 'assistant',
+                'content' => $content
+            ],
+            'finish_reason' => 'stop'
+        ]]
+    ];
+}
+
 figo_apply_cors();
 
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
@@ -78,8 +143,17 @@ if ($method === 'OPTIONS') {
 }
 
 header('Content-Type: application/json; charset=utf-8');
+$fileConfig = figo_read_file_config();
 
-$endpoint = trim((string) getenv('FIGO_CHAT_ENDPOINT'));
+$endpoint = figo_first_non_empty([
+    getenv('FIGO_CHAT_ENDPOINT'),
+    getenv('FIGO_ENDPOINT'),
+    getenv('CLAWBOT_ENDPOINT'),
+    getenv('CHATBOT_ENDPOINT'),
+    getenv('PIELARMONIA_FIGO_ENDPOINT'),
+    $fileConfig['endpoint'] ?? null,
+    $fileConfig['url'] ?? null
+]);
 
 if ($method === 'GET') {
     json_response([
@@ -95,14 +169,6 @@ if ($method !== 'POST') {
         'ok' => false,
         'error' => 'Metodo no permitido'
     ], 405);
-}
-
-if ($endpoint === '') {
-    json_response([
-        'ok' => false,
-        'error' => 'Figo backend no configurado',
-        'hint' => 'Define FIGO_CHAT_ENDPOINT en el servidor'
-    ], 503);
 }
 
 $payload = require_json_body();
@@ -161,20 +227,48 @@ $headers = [
     'Accept: application/json'
 ];
 
-$authToken = trim((string) getenv('FIGO_CHAT_TOKEN'));
+$authToken = figo_first_non_empty([
+    getenv('FIGO_CHAT_TOKEN'),
+    getenv('FIGO_TOKEN'),
+    getenv('CLAWBOT_TOKEN'),
+    $fileConfig['token'] ?? null
+]);
 if ($authToken !== '') {
     $headers[] = 'Authorization: Bearer ' . $authToken;
 }
 
-$apiKey = trim((string) getenv('FIGO_CHAT_APIKEY'));
-$apiKeyHeader = trim((string) getenv('FIGO_CHAT_APIKEY_HEADER'));
+$apiKey = figo_first_non_empty([
+    getenv('FIGO_CHAT_APIKEY'),
+    getenv('FIGO_APIKEY'),
+    getenv('CLAWBOT_APIKEY'),
+    $fileConfig['apiKey'] ?? null
+]);
+$apiKeyHeader = figo_first_non_empty([
+    getenv('FIGO_CHAT_APIKEY_HEADER'),
+    getenv('FIGO_APIKEY_HEADER'),
+    getenv('CLAWBOT_APIKEY_HEADER'),
+    $fileConfig['apiKeyHeader'] ?? null
+]);
 if ($apiKey !== '' && $apiKeyHeader !== '') {
     $headers[] = $apiKeyHeader . ': ' . $apiKey;
 }
 
-$timeout = (int) getenv('FIGO_CHAT_TIMEOUT_SECONDS');
+$timeout = (int) figo_first_non_empty([
+    getenv('FIGO_CHAT_TIMEOUT_SECONDS'),
+    getenv('FIGO_TIMEOUT_SECONDS'),
+    getenv('CLAWBOT_TIMEOUT_SECONDS'),
+    isset($fileConfig['timeout']) ? (string) $fileConfig['timeout'] : ''
+]);
 if ($timeout <= 0) {
     $timeout = 20;
+}
+
+if ($endpoint === '') {
+    $fallback = figo_build_fallback_completion($model, $messages);
+    $fallback['configured'] = false;
+    $fallback['degraded'] = true;
+    $fallback['hint'] = 'Configura FIGO_CHAT_ENDPOINT o data/figo-config.json';
+    json_response($fallback);
 }
 
 $ch = curl_init($endpoint);
@@ -201,20 +295,21 @@ curl_close($ch);
 
 if (!is_string($rawResponse)) {
     error_log('Piel en Armonia figo-chat cURL error: ' . $curlErr);
-    json_response([
-        'ok' => false,
-        'error' => 'No se pudo conectar con el bot Figo'
-    ], 502);
+    $fallback = figo_build_fallback_completion($model, $messages);
+    $fallback['configured'] = true;
+    $fallback['degraded'] = true;
+    $fallback['error'] = 'No se pudo conectar con el backend Figo';
+    json_response($fallback);
 }
 
 if ($httpCode >= 400) {
     $snippet = trim(substr($rawResponse, 0, 240));
     error_log('Piel en Armonia figo-chat upstream status ' . $httpCode . ': ' . $snippet);
-    json_response([
-        'ok' => false,
-        'error' => 'El bot Figo devolvio un error',
-        'status' => $httpCode
-    ], 503);
+    $fallback = figo_build_fallback_completion($model, $messages);
+    $fallback['configured'] = true;
+    $fallback['degraded'] = true;
+    $fallback['upstreamStatus'] = $httpCode;
+    json_response($fallback);
 }
 
 $decoded = json_decode($rawResponse, true);
@@ -247,4 +342,3 @@ json_response([
         'finish_reason' => 'stop'
     ]]
 ]);
-
