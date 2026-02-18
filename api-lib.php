@@ -5,6 +5,12 @@ declare(strict_types=1);
  * Shared helpers for lightweight JSON API persistence.
  */
 
+// Autoloader de Composer (para PHPMailer y otras dependencias)
+$autoloadFile = __DIR__ . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
+if (is_file($autoloadFile)) {
+    require_once $autoloadFile;
+}
+
 // Cargar variables de entorno si existe env.php
 $envFile = __DIR__ . DIRECTORY_SEPARATOR . 'env.php';
 if (is_file($envFile)) {
@@ -1019,143 +1025,46 @@ function smtp_send_mail(string $to, string $subject, string $body): bool
         return false;
     }
 
-    $from = $cfg['from'] !== '' ? $cfg['from'] : $cfg['user'];
-    $fromName = $cfg['from_name'];
-
-    $socket = @fsockopen($cfg['host'], $cfg['port'], $errno, $errstr, 10);
-    if (!$socket) {
-        error_log("Piel en Armonía SMTP: no se pudo conectar a {$cfg['host']}:{$cfg['port']} - {$errstr}");
+    // Verificar si PHPMailer está disponible
+    if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+        error_log('Piel en Armonía: PHPMailer no encontrado. Ejecuta "composer install".');
         return false;
     }
-    stream_set_timeout($socket, 15);
 
-    $log = [];
-
-    $readLine = static function () use ($socket, &$log): string {
-        $response = '';
-        while (($line = fgets($socket, 512)) !== false) {
-            $response .= $line;
-            if (isset($line[3]) && $line[3] === ' ') {
-                break;
-            }
-        }
-        $log[] = 'S: ' . trim($response);
-        return $response;
-    };
-
-    $sendCmd = static function (string $cmd) use ($socket, $readLine, &$log): string {
-        $log[] = 'C: ' . trim($cmd);
-        fwrite($socket, $cmd . "\r\n");
-        return $readLine();
-    };
+    $mail = new PHPMailer\PHPMailer\PHPMailer(true);
 
     try {
-        // Greeting
-        $greeting = $readLine();
-        if (strpos($greeting, '220') !== 0) {
-            error_log('Piel en Armonía SMTP: saludo inesperado: ' . trim($greeting));
-            fclose($socket);
-            return false;
-        }
+        // Configuración del servidor
+        $mail->isSMTP();
+        $mail->Host       = $cfg['host'];
+        $mail->SMTPAuth   = true;
+        $mail->Username   = $cfg['user'];
+        $mail->Password   = $cfg['pass'];
+        // STARTTLS explícito como en la implementación original (puerto 587)
+        $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = $cfg['port'];
+        $mail->CharSet    = 'UTF-8';
 
-        // EHLO
-        $sendCmd('EHLO pielarmonia.com');
+        // Remitente y destinatario
+        $from = $cfg['from'] !== '' ? $cfg['from'] : $cfg['user'];
+        $fromName = $cfg['from_name'];
 
-        // STARTTLS
-        $tlsResp = $sendCmd('STARTTLS');
-        if (strpos($tlsResp, '220') !== 0) {
-            error_log('Piel en Armonía SMTP: STARTTLS falló: ' . trim($tlsResp));
-            fclose($socket);
-            return false;
-        }
+        $mail->setFrom($from, $fromName);
+        $mail->addAddress($to);
 
-        $cryptoOk = stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT | STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT);
-        if (!$cryptoOk) {
-            error_log('Piel en Armonía SMTP: fallo al habilitar TLS');
-            fclose($socket);
-            return false;
-        }
+        // Contenido
+        $mail->isHTML(false);
+        $mail->Subject = $subject;
+        $mail->Body    = $body;
 
-        // Re-EHLO after TLS
-        $sendCmd('EHLO pielarmonia.com');
-
-        // AUTH LOGIN
-        $authResp = $sendCmd('AUTH LOGIN');
-        if (strpos($authResp, '334') !== 0) {
-            error_log('Piel en Armonía SMTP: AUTH LOGIN no aceptado: ' . trim($authResp));
-            fclose($socket);
-            return false;
-        }
-
-        $userResp = $sendCmd(base64_encode($cfg['user']));
-        if (strpos($userResp, '334') !== 0) {
-            error_log('Piel en Armonía SMTP: usuario rechazado');
-            fclose($socket);
-            return false;
-        }
-
-        $passResp = $sendCmd(base64_encode($cfg['pass']));
-        if (strpos($passResp, '235') !== 0) {
-            error_log('Piel en Armonía SMTP: autenticación falló - verifica contraseña de aplicación');
-            fclose($socket);
-            return false;
-        }
-
-        // MAIL FROM
-        $fromResp = $sendCmd("MAIL FROM:<{$from}>");
-        if (strpos($fromResp, '250') !== 0) {
-            error_log('Piel en Armonía SMTP: MAIL FROM rechazado: ' . trim($fromResp));
-            fclose($socket);
-            return false;
-        }
-
-        // RCPT TO
-        $rcptResp = $sendCmd("RCPT TO:<{$to}>");
-        if (strpos($rcptResp, '250') !== 0) {
-            error_log('Piel en Armonía SMTP: RCPT TO rechazado: ' . trim($rcptResp));
-            fclose($socket);
-            return false;
-        }
-
-        // DATA
-        $dataResp = $sendCmd('DATA');
-        if (strpos($dataResp, '354') !== 0) {
-            error_log('Piel en Armonía SMTP: DATA rechazado: ' . trim($dataResp));
-            fclose($socket);
-            return false;
-        }
-
-        // Construir mensaje
-        $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
-        $encodedFrom = '=?UTF-8?B?' . base64_encode($fromName) . '?= <' . $from . '>';
-        $messageId = '<' . bin2hex(random_bytes(16)) . '@pielarmonia.com>';
-
-        $headers = "From: {$encodedFrom}\r\n";
-        $headers .= "To: {$to}\r\n";
-        $headers .= "Subject: {$encodedSubject}\r\n";
-        $headers .= "MIME-Version: 1.0\r\n";
-        $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
-        $headers .= "Content-Transfer-Encoding: base64\r\n";
-        $headers .= "Message-ID: {$messageId}\r\n";
-        $headers .= "Date: " . date('r') . "\r\n";
-
-        $encodedBody = chunk_split(base64_encode($body), 76, "\r\n");
-        $fullMessage = $headers . "\r\n" . $encodedBody . "\r\n.";
-
-        $endResp = $sendCmd($fullMessage);
-        if (strpos($endResp, '250') !== 0) {
-            error_log('Piel en Armonía SMTP: mensaje no aceptado: ' . trim($endResp));
-            fclose($socket);
-            return false;
-        }
-
-        $sendCmd('QUIT');
-        fclose($socket);
+        $mail->send();
         return true;
 
+    } catch (PHPMailer\PHPMailer\Exception $e) {
+        error_log("Piel en Armonía SMTP: Error al enviar - {$mail->ErrorInfo}");
+        return false;
     } catch (Throwable $e) {
-        error_log('Piel en Armonía SMTP: excepción - ' . $e->getMessage());
-        @fclose($socket);
+        error_log("Piel en Armonía SMTP: Excepción general - {$e->getMessage()}");
         return false;
     }
 }
