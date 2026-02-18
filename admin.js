@@ -41,7 +41,7 @@ function showToast(message, type = 'info', title = '') {
             <div class="toast-title">${escapeHtml(titles[type])}</div>
             <div class="toast-message">${escapeHtml(message)}</div>
         </div>
-        <button class="toast-close" onclick="this.parentElement.remove()">
+        <button type="button" class="toast-close" data-action="close-toast">
             <i class="fas fa-times"></i>
         </button>
         <div class="toast-progress"></div>
@@ -405,10 +405,10 @@ function renderAppointments(appointments) {
             <td>
                 <div class="table-actions">
                     ${(a.paymentStatus === 'pending_transfer_review' ? `
-                    <button class="btn-icon success" onclick="approveTransfer(${Number(a.id) || 0})" title="Aprobar transferencia">
+                    <button type="button" class="btn-icon success" data-action="approve-transfer" data-id="${Number(a.id) || 0}" title="Aprobar transferencia">
                         <i class="fas fa-check"></i>
                     </button>
-                    <button class="btn-icon danger" onclick="rejectTransfer(${Number(a.id) || 0})" title="Rechazar transferencia">
+                    <button type="button" class="btn-icon danger" data-action="reject-transfer" data-id="${Number(a.id) || 0}" title="Rechazar transferencia">
                         <i class="fas fa-ban"></i>
                     </button>
                     ` : '')}
@@ -418,7 +418,7 @@ function renderAppointments(appointments) {
                     <a href="https://wa.me/${escapeHtml(String(a.phone || '').replace(/\\D/g, ''))}" target="_blank" class="btn-icon" title="WhatsApp">
                         <i class="fab fa-whatsapp"></i>
                     </a>
-                    <button class="btn-icon danger" onclick="cancelAppointment(${Number(a.id) || 0})" title="Cancelar">
+                    <button type="button" class="btn-icon danger" data-action="cancel-appointment" data-id="${Number(a.id) || 0}" title="Cancelar">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -551,7 +551,7 @@ function renderCallbacks(callbacks) {
     grid.innerHTML = callbacks.map(c => {
         const status = normalizeCallbackStatus(c.status);
         const callbackId = Number(c.id) || 0;
-        const markArg = callbackId > 0 ? callbackId : JSON.stringify(String(c.fecha || ''));
+        const callbackDateKey = encodeURIComponent(String(c.fecha || ''));
         return `
             <div class="callback-card ${status}">
                 <div class="callback-header">
@@ -574,7 +574,7 @@ function renderCallbacks(callbacks) {
                         Llamar
                     </a>
                     ${status === 'pendiente' ? `
-                        <button class="btn btn-primary btn-sm" onclick='markContacted(${markArg})'>
+                        <button type="button" class="btn btn-primary btn-sm" data-action="mark-contacted" data-callback-id="${callbackId}" data-callback-date="${callbackDateKey}">
                             <i class="fas fa-check"></i>
                             Marcar contactado
                         </button>
@@ -598,11 +598,18 @@ function filterCallbacks() {
     renderCallbacks(callbacks);
 }
 
-async function markContacted(identifier) {
-    let callback = currentCallbacks.find(c => Number(c.id) === Number(identifier));
-    if (!callback) {
-        callback = currentCallbacks.find(c => c.fecha === identifier);
+async function markContacted(callbackId, callbackDate = '') {
+    let callback = null;
+    const normalizedId = Number(callbackId);
+    if (normalizedId > 0) {
+        callback = currentCallbacks.find(c => Number(c.id) === normalizedId);
     }
+
+    const decodedDate = callbackDate ? decodeURIComponent(callbackDate) : '';
+    if (!callback && decodedDate) {
+        callback = currentCallbacks.find(c => c.fecha === decodedDate);
+    }
+
     if (!callback) {
         showToast('Callback no encontrado', 'error');
         return;
@@ -710,7 +717,7 @@ function renderAvailabilityCalendar() {
         if (selectedDate === dateStr) dayEl.classList.add('selected');
         if (currentAvailability[dateStr] && currentAvailability[dateStr].length > 0) dayEl.classList.add('has-slots');
 
-        dayEl.onclick = () => selectDate(dateStr);
+        dayEl.addEventListener('click', () => selectDate(dateStr));
         calendar.appendChild(dayEl);
     }
 
@@ -751,11 +758,13 @@ function loadTimeSlots(dateStr) {
         return;
     }
 
+    const encodedDate = encodeURIComponent(String(dateStr || ''));
+
     list.innerHTML = slots.slice().sort().map(time => `
         <div class="time-slot-item">
             <span class="time">${escapeHtml(time)}</span>
             <div class="slot-actions">
-                <button class="btn-icon danger" onclick="removeTimeSlot('${escapeHtml(dateStr)}', '${escapeHtml(time)}')">
+                <button type="button" class="btn-icon danger" data-action="remove-time-slot" data-date="${encodedDate}" data-time="${encodeURIComponent(String(time || ''))}">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -895,6 +904,70 @@ function renderSection(section) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', async function(e) {
+        const actionEl = e.target.closest('[data-action]');
+        if (!actionEl) return;
+
+        const action = actionEl.dataset.action;
+        switch (action) {
+            case 'close-toast': {
+                const toast = actionEl.closest('.toast');
+                if (toast) toast.remove();
+                break;
+            }
+            case 'logout':
+                e.preventDefault();
+                await logout();
+                break;
+            case 'export-data':
+                e.preventDefault();
+                exportData();
+                break;
+            case 'open-import-file': {
+                e.preventDefault();
+                const importInput = document.getElementById('importFileInput');
+                if (importInput) importInput.click();
+                break;
+            }
+            case 'change-month':
+                e.preventDefault();
+                changeMonth(Number(actionEl.dataset.delta || 0));
+                break;
+            case 'add-time-slot':
+                e.preventDefault();
+                await addTimeSlot();
+                break;
+            case 'approve-transfer':
+                e.preventDefault();
+                await approveTransfer(Number(actionEl.dataset.id || 0));
+                break;
+            case 'reject-transfer':
+                e.preventDefault();
+                await rejectTransfer(Number(actionEl.dataset.id || 0));
+                break;
+            case 'cancel-appointment':
+                e.preventDefault();
+                await cancelAppointment(Number(actionEl.dataset.id || 0));
+                break;
+            case 'mark-contacted':
+                e.preventDefault();
+                await markContacted(
+                    Number(actionEl.dataset.callbackId || 0),
+                    actionEl.dataset.callbackDate || ''
+                );
+                break;
+            case 'remove-time-slot':
+                e.preventDefault();
+                await removeTimeSlot(
+                    decodeURIComponent(actionEl.dataset.date || ''),
+                    decodeURIComponent(actionEl.dataset.time || '')
+                );
+                break;
+            default:
+                break;
+        }
+    });
+
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', async function(e) {
@@ -924,6 +997,28 @@ document.addEventListener('DOMContentLoaded', function() {
             renderSection(this.dataset.section);
         });
     });
+
+    const appointmentFilter = document.getElementById('appointmentFilter');
+    if (appointmentFilter) {
+        appointmentFilter.addEventListener('change', filterAppointments);
+    }
+
+    const searchInput = document.getElementById('searchAppointments');
+    if (searchInput) {
+        searchInput.addEventListener('input', searchAppointments);
+    }
+
+    const callbackFilter = document.getElementById('callbackFilter');
+    if (callbackFilter) {
+        callbackFilter.addEventListener('change', filterCallbacks);
+    }
+
+    const importFileInput = document.getElementById('importFileInput');
+    if (importFileInput) {
+        importFileInput.addEventListener('change', function() {
+            importData(importFileInput);
+        });
+    }
 
     checkAuth();
 });

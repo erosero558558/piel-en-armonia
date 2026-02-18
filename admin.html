@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data:; connect-src 'self'; form-action 'self';">
     <title>Panel de Administración - Piel en Armonía</title>
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="stylesheet" href="styles.css">
@@ -73,7 +74,7 @@
             </nav>
             
             <div class="sidebar-footer">
-                <button onclick="logout()" class="logout-btn">
+                <button type="button" class="logout-btn" data-action="logout">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>Cerrar Sesión</span>
                 </button>
@@ -87,15 +88,15 @@
                 <h2 id="pageTitle">Dashboard</h2>
                 <div class="header-actions">
                     <span class="current-date" id="currentDate"></span>
-                    <button class="btn btn-secondary btn-sm" onclick="exportData()">
+                    <button type="button" class="btn btn-secondary btn-sm" data-action="export-data">
                         <i class="fas fa-download"></i>
                         Exportar Datos
                     </button>
-                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('importFileInput').click()">
+                    <button type="button" class="btn btn-secondary btn-sm" data-action="open-import-file">
                         <i class="fas fa-upload"></i>
                         Importar Datos
                     </button>
-                    <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importData(this)">
+                    <input type="file" id="importFileInput" accept=".json" style="display:none">
                 </div>
             </header>
 
@@ -160,7 +161,7 @@
             <section id="appointments" class="admin-section">
                 <div class="section-toolbar">
                     <div class="filter-group">
-                        <select id="appointmentFilter" onchange="filterAppointments()">
+                        <select id="appointmentFilter">
                             <option value="all">Todas las citas</option>
                             <option value="today">Hoy</option>
                             <option value="week">Esta semana</option>
@@ -172,7 +173,7 @@
                     </div>
                     <div class="search-box">
                         <i class="fas fa-search"></i>
-                        <input type="text" id="searchAppointments" placeholder="Buscar paciente..." onkeyup="searchAppointments()">
+                        <input type="text" id="searchAppointments" placeholder="Buscar paciente...">
                     </div>
                 </div>
 
@@ -200,7 +201,7 @@
             <section id="callbacks" class="admin-section">
                 <div class="section-toolbar">
                     <div class="filter-group">
-                        <select id="callbackFilter" onchange="filterCallbacks()">
+                        <select id="callbackFilter">
                             <option value="all">Todos</option>
                             <option value="pending">Pendientes</option>
                             <option value="contacted">Contactados</option>
@@ -238,11 +239,11 @@
                     <div class="availability-calendar">
                         <h3>Configurar Horarios Disponibles</h3>
                         <div class="calendar-header">
-                            <button onclick="changeMonth(-1)" class="btn-icon">
+                            <button type="button" class="btn-icon" data-action="change-month" data-delta="-1">
                                 <i class="fas fa-chevron-left"></i>
                             </button>
                             <span id="calendarMonth">Enero 2024</span>
-                            <button onclick="changeMonth(1)" class="btn-icon">
+                            <button type="button" class="btn-icon" data-action="change-month" data-delta="1">
                                 <i class="fas fa-chevron-right"></i>
                             </button>
                         </div>
@@ -262,7 +263,7 @@
                             <h4>Agregar Horario</h4>
                             <div class="form-row">
                                 <input type="time" id="newSlotTime" required>
-                                <button onclick="addTimeSlot()" class="btn btn-primary btn-sm">
+                                <button type="button" class="btn btn-primary btn-sm" data-action="add-time-slot">
                                     <i class="fas fa-plus"></i>
                                 </button>
                             </div>
