@@ -153,6 +153,19 @@ $successModalEngineAssetUrl = if ($successModalEngineVersion -ne '') {
     "$base/success-modal-engine.js"
 }
 
+$engagementFormsEngineVersion = ''
+if (Test-Path 'script.js') {
+    $engagementFormsEngineMatch = [regex]::Match($scriptLocalRaw, "engagement-forms-engine\.js\?v=([a-zA-Z0-9._-]+)")
+    if ($engagementFormsEngineMatch.Success) {
+        $engagementFormsEngineVersion = $engagementFormsEngineMatch.Groups[1].Value
+    }
+}
+$engagementFormsEngineAssetUrl = if ($engagementFormsEngineVersion -ne '') {
+    "$base/engagement-forms-engine.js?v=$engagementFormsEngineVersion"
+} else {
+    "$base/engagement-forms-engine.js"
+}
+
 $uiEffectsVersion = ''
 if (Test-Path 'script.js') {
     $uiEffectsMatch = [regex]::Match($scriptLocalRaw, "ui-effects\.js\?v=([a-zA-Z0-9._-]+)")
@@ -337,6 +350,7 @@ $results += Invoke-Check -Name 'Booking engine asset' -Url $bookingEngineAssetUr
 $results += Invoke-Check -Name 'Booking UI asset' -Url $bookingUiAssetUrl
 $results += Invoke-Check -Name 'Chat booking engine asset' -Url $chatBookingEngineAssetUrl
 $results += Invoke-Check -Name 'Success modal engine asset' -Url $successModalEngineAssetUrl
+$results += Invoke-Check -Name 'Engagement forms engine asset' -Url $engagementFormsEngineAssetUrl
 $results += Invoke-Check -Name 'Reschedule engine asset' -Url $rescheduleEngineAssetUrl
 $results += Invoke-Check -Name 'UI effects asset' -Url $uiEffectsAssetUrl
 $results += Invoke-Check -Name 'Gallery interactions asset' -Url $galleryInteractionsAssetUrl
@@ -375,6 +389,7 @@ $expectedStatusByName = @{
     'Booking UI asset' = 200
     'Chat booking engine asset' = 200
     'Success modal engine asset' = 200
+    'Engagement forms engine asset' = 200
     'Reschedule engine asset' = 200
     'UI effects asset' = 200
     'Gallery interactions asset' = 200
@@ -416,6 +431,7 @@ try {
         @{ Name = 'Booking UI asset'; Url = $bookingUiAssetUrl },
         @{ Name = 'Chat booking engine asset'; Url = $chatBookingEngineAssetUrl },
         @{ Name = 'Success modal engine asset'; Url = $successModalEngineAssetUrl },
+        @{ Name = 'Engagement forms engine asset'; Url = $engagementFormsEngineAssetUrl },
         @{ Name = 'Reschedule engine asset'; Url = $rescheduleEngineAssetUrl },
         @{ Name = 'UI effects asset'; Url = $uiEffectsAssetUrl },
         @{ Name = 'Gallery interactions asset'; Url = $galleryInteractionsAssetUrl }

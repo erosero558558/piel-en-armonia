@@ -342,6 +342,17 @@ $successModalEngineRemoteUrl = if ($successModalEngineVersion -ne '') {
     "$base/success-modal-engine.js"
 }
 
+$engagementFormsEngineVersion = ''
+$engagementFormsEngineMatch = [regex]::Match($localScriptTextForRefs, "engagement-forms-engine\.js\?v=([a-zA-Z0-9._-]+)")
+if ($engagementFormsEngineMatch.Success) {
+    $engagementFormsEngineVersion = $engagementFormsEngineMatch.Groups[1].Value
+}
+$engagementFormsEngineRemoteUrl = if ($engagementFormsEngineVersion -ne '') {
+    "$base/engagement-forms-engine.js?v=$engagementFormsEngineVersion"
+} else {
+    "$base/engagement-forms-engine.js"
+}
+
 if ([regex]::IsMatch($remoteIndexRaw, '\son[a-z]+\s*=', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
     Write-Host "[FAIL] index remoto contiene event handlers inline (on*)"
     $results += [PSCustomObject]@{
@@ -456,6 +467,11 @@ $checks = @(
         Name = 'success-modal-engine.js'
         LocalPath = 'success-modal-engine.js'
         RemoteUrl = $successModalEngineRemoteUrl
+    },
+    [PSCustomObject]@{
+        Name = 'engagement-forms-engine.js'
+        LocalPath = 'engagement-forms-engine.js'
+        RemoteUrl = $engagementFormsEngineRemoteUrl
     }
 )
 foreach ($item in $checks) {

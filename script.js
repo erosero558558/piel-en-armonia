@@ -1874,145 +1874,157 @@ function closeSuccessModal() {
 }
 
 // ========================================
-// CALLBACK FORM
+// CALLBACK + REVIEW FORMS (DEFERRED MODULE)
 // ========================================
-document.addEventListener('DOMContentLoaded', function() {
-    const callbackForm = document.getElementById('callbackForm');
-    if (callbackForm) {
-        callbackForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalContent = submitBtn.innerHTML;
-            
-            // Loading state
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
-            
-            const formData = new FormData(this);
-            const callback = {
-                id: Date.now(),
-                telefono: formData.get('telefono'),
-                preferencia: formData.get('preferencia'),
-                fecha: new Date().toISOString(),
-                status: 'pendiente'
-            };
-            
-            try {
-                await createCallbackRecord(callback);
-                showToast(
-                    currentLang === 'es'
-                        ? 'Solicitud enviada. Te llamaremos pronto.'
-                        : 'Request sent. We will call you soon.',
-                    'success'
-                );
-                this.reset();
-            } catch (error) {
-                showToast(
-                    currentLang === 'es'
-                        ? 'No se pudo enviar tu solicitud. Intenta de nuevo.'
-                        : 'We could not send your request. Try again.',
-                    'error'
-                );
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalContent;
-            }
-        });
-    }
-});
+const ENGAGEMENT_FORMS_ENGINE_URL = '/engagement-forms-engine.js?v=figo-engagement-20260218-phase1';
+let engagementFormsEnginePromise = null;
 
-// ========================================
-// REVIEW MODAL
-// ========================================
+function getEngagementFormsEngineDeps() {
+    return {
+        createCallbackRecord,
+        createReviewRecord,
+        renderPublicReviews,
+        showToast,
+        getCurrentLang: () => currentLang,
+        getReviewsCache: () => Array.isArray(reviewsCache) ? reviewsCache.slice() : [],
+        setReviewsCache: (items) => {
+            reviewsCache = Array.isArray(items) ? items.slice() : [];
+        }
+    };
+}
+
+function loadEngagementFormsEngine() {
+    if (window.PielEngagementFormsEngine && typeof window.PielEngagementFormsEngine.init === 'function') {
+        window.PielEngagementFormsEngine.init(getEngagementFormsEngineDeps());
+        return Promise.resolve(window.PielEngagementFormsEngine);
+    }
+
+    if (engagementFormsEnginePromise) {
+        return engagementFormsEnginePromise;
+    }
+
+    engagementFormsEnginePromise = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-engagement-forms-engine="true"]');
+        if (existing) {
+            existing.addEventListener('load', () => {
+                if (window.PielEngagementFormsEngine && typeof window.PielEngagementFormsEngine.init === 'function') {
+                    window.PielEngagementFormsEngine.init(getEngagementFormsEngineDeps());
+                    resolve(window.PielEngagementFormsEngine);
+                    return;
+                }
+                reject(new Error('engagement-forms-engine loaded without API'));
+            }, { once: true });
+            existing.addEventListener('error', () => reject(new Error('No se pudo cargar engagement-forms-engine.js')), { once: true });
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = ENGAGEMENT_FORMS_ENGINE_URL;
+        script.async = true;
+        script.defer = true;
+        script.dataset.engagementFormsEngine = 'true';
+        script.onload = () => {
+            if (window.PielEngagementFormsEngine && typeof window.PielEngagementFormsEngine.init === 'function') {
+                window.PielEngagementFormsEngine.init(getEngagementFormsEngineDeps());
+                resolve(window.PielEngagementFormsEngine);
+                return;
+            }
+            reject(new Error('engagement-forms-engine loaded without API'));
+        };
+        script.onerror = () => reject(new Error('No se pudo cargar engagement-forms-engine.js'));
+        document.head.appendChild(script);
+    }).catch((error) => {
+        engagementFormsEnginePromise = null;
+        debugLog('Engagement forms engine load failed:', error);
+        throw error;
+    });
+
+    return engagementFormsEnginePromise;
+}
+
+function initEngagementFormsEngineWarmup() {
+    let warmed = false;
+    const warmup = () => {
+        if (warmed || window.location.protocol === 'file:') {
+            return;
+        }
+        warmed = true;
+        loadEngagementFormsEngine().catch(() => {
+            warmed = false;
+        });
+    };
+
+    const bindWarmup = (selector, eventName, passive = true) => {
+        const element = document.querySelector(selector);
+        if (!element) {
+            return;
+        }
+        element.addEventListener(eventName, warmup, { once: true, passive });
+    };
+
+    bindWarmup('#callbackForm', 'focusin', false);
+    bindWarmup('#callbackForm', 'pointerdown');
+    bindWarmup('#resenas [data-action="open-review-modal"]', 'mouseenter');
+    bindWarmup('#resenas [data-action="open-review-modal"]', 'touchstart');
+
+    if (document.getElementById('callbackForm')) {
+        setTimeout(warmup, 120);
+    }
+
+    const reviewSection = document.getElementById('resenas');
+    if (reviewSection && 'IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) {
+                    return;
+                }
+                warmup();
+                observer.disconnect();
+            });
+        }, { threshold: 0.05, rootMargin: '280px 0px' });
+        observer.observe(reviewSection);
+    }
+
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const isConstrainedNetwork = !!(connection && (
+        connection.saveData === true
+        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
+    ));
+
+    if (isConstrainedNetwork) {
+        return;
+    }
+
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(warmup, { timeout: 2600 });
+    } else {
+        setTimeout(warmup, 1500);
+    }
+}
+
 function openReviewModal() {
-    const modal = document.getElementById('reviewModal');
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    loadEngagementFormsEngine().then((engine) => {
+        engine.openReviewModal();
+    }).catch(() => {
+        const modal = document.getElementById('reviewModal');
+        if (modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    });
 }
 
 function closeReviewModal() {
     const modal = document.getElementById('reviewModal');
-    modal.classList.remove('active');
-    document.body.style.overflow = '';
-}
-
-// Close modal when clicking outside
-document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('modal') && e.target.classList.contains('active')) {
-        if (e.target.id === 'paymentModal') {
-            closePaymentModal();
-            return;
-        }
-        e.target.classList.remove('active');
-        document.body.style.overflow = '';
+    if (modal) {
+        modal.classList.remove('active');
     }
-});
+    document.body.style.overflow = '';
 
-// Star rating
-document.addEventListener('DOMContentLoaded', function() {
-    const stars = document.querySelectorAll('.star-rating i');
-    let selectedRating = 0;
-
-    stars.forEach((star, index) => {
-        star.addEventListener('click', () => {
-            selectedRating = index + 1;
-            stars.forEach((s, i) => {
-                s.classList.toggle('active', i < selectedRating);
-                s.classList.toggle('far', i >= selectedRating);
-                s.classList.toggle('fas', i < selectedRating);
-            });
-        });
-    });
-
-    const reviewForm = document.getElementById('reviewForm');
-    if (!reviewForm) return;
-
-    reviewForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-
-        if (selectedRating === 0) {
-            alert(currentLang === 'es' ? 'Por favor selecciona una calificacion' : 'Please select a rating');
-            return;
-        }
-
-        const formData = new FormData(this);
-        const review = {
-            id: Date.now(),
-            name: formData.get('reviewerName'),
-            rating: selectedRating,
-            text: formData.get('reviewText'),
-            date: new Date().toISOString(),
-            verified: true
-        };
-
-        try {
-            const savedReview = await createReviewRecord(review);
-            reviewsCache = [savedReview, ...reviewsCache.filter(item => item.id !== savedReview.id)];
-            renderPublicReviews(reviewsCache);
-
-            showToast(
-                currentLang === 'es' ? 'Gracias por tu reseña.' : 'Thank you for your review.',
-                'success'
-            );
-
-            closeReviewModal();
-            this.reset();
-            selectedRating = 0;
-            stars.forEach(s => {
-                s.classList.remove('active', 'fas');
-                s.classList.add('far');
-            });
-        } catch (error) {
-            showToast(
-                currentLang === 'es'
-                    ? 'No pudimos guardar tu reseña. Intenta nuevamente.'
-                    : 'We could not save your review. Try again.',
-                'error'
-            );
-        }
-    });
-});
+    loadEngagementFormsEngine().then((engine) => {
+        engine.closeReviewModal();
+    }).catch(() => undefined);
+}
 
 // MODAL CLOSE HANDLERS
 // ========================================
@@ -3022,6 +3034,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initUiEffectsWarmup();
     initRescheduleEngineWarmup();
     initSuccessModalEngineWarmup();
+    initEngagementFormsEngineWarmup();
     const chatInput = document.getElementById('chatInput');
     if (chatInput) {
         chatInput.addEventListener('keypress', handleChatKeypress);
