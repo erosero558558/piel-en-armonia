@@ -1651,13 +1651,10 @@ async function processWithKimi(message) {
         addBotMessage(`Puedo ayudarte con temas de <strong>Piel en Armonia</strong> (servicios, precios, citas, pagos, horarios y ubicacion).<br><br>Si deseas, te ayudo ahora con:<br>- <a href="#servicios" onclick="minimizeChatbot()">Servicios y tratamientos</a><br>- <a href="#citas" onclick="minimizeChatbot()">Reservar cita</a><br>- <a href="https://wa.me/593982453672" target="_blank">WhatsApp directo</a>`, false);
         isProcessingMessage = false;
         return;
-        addBotMessage(`Puedo ayudarte con temas de <strong>Piel en Armonia</strong> (servicios, precios, citas, pagos, horarios y ubicacion).<br><br>Si deseas, te ayudo ahora con:<br>â€¢ <a href="#servicios" onclick="minimizeChatbot()">Servicios y tratamientos</a><br>â€¢ <a href="#citas" onclick="minimizeChatbot()">Reservar cita</a><br>â€¢ <a href="https://wa.me/593982453672" target="_blank">WhatsApp directo</a>`, false);
-        isProcessingMessage = false;
-        return;
     }
     
-    // Siempre usar modo offline primero (más rápido y confiable)
-    // El modo offline ahora tiene respuestas muy completas
+    // Prioriza IA real cuando el servidor esta disponible.
+    // Si falla la conexion, usa fallback local para no romper la experiencia.
     debugLog('📝 Procesando mensaje:', message);
     
     try {
@@ -1971,13 +1968,6 @@ Puedes consultarme sobre:<br>
 Si quieres, te llevo directo a <a href="#citas" onclick="minimizeChatbot()">Reservar Cita</a> o te conecto por <a href="https://wa.me/593982453672" target="_blank">WhatsApp</a>.`;
         addBotMessage(response, isOffline);
         return;
-        response = `Puedo ayudarte solo con temas de <strong>Piel en Armonia</strong>.<br><br>
-Puedes consultarme sobre:<br>
-â€¢ Servicios y tratamientos dermatologicos<br>
-â€¢ Precios y formas de pago<br>
-â€¢ Agenda de citas y horarios<br>
-â€¢ Ubicacion y contacto<br><br>
-Si quieres, te llevo directo a <a href="#citas" onclick="minimizeChatbot()">Reservar Cita</a> o te conecto por <a href="https://wa.me/593982453672" target="_blank">WhatsApp</a>.`;
     }
     // SALUDO
     else if (/hola|buenos dias|buenas tardes|buenas noches|hey|hi|hello/.test(lowerMsg)) {
