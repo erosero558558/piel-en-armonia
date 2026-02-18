@@ -1,5 +1,5 @@
 /**
- * ADMIN PANEL - Piel en Armonia
+ * ADMIN PANEL - Piel en Armonía
  * Server-backed admin with session auth.
  */
 
@@ -12,6 +12,7 @@ let currentReviews = [];
 let currentAvailability = {};
 let selectedDate = null;
 let currentMonth = new Date();
+let csrfToken = '';
 
 function showToast(message, type = 'info', title = '') {
     const container = document.getElementById('toastContainer');
@@ -31,14 +32,14 @@ function showToast(message, type = 'info', title = '') {
         success: title || 'Exito',
         error: title || 'Error',
         warning: title || 'Advertencia',
-        info: title || 'Informacion'
+        info: title || 'Información'
     };
 
     toast.innerHTML = `
         <i class="fas ${icons[type]} toast-icon"></i>
         <div class="toast-content">
-            <div class="toast-title">${titles[type]}</div>
-            <div class="toast-message">${message}</div>
+            <div class="toast-title">${escapeHtml(titles[type])}</div>
+            <div class="toast-message">${escapeHtml(message)}</div>
         </div>
         <button class="toast-close" onclick="this.parentElement.remove()">
             <i class="fas fa-times"></i>
@@ -77,10 +78,15 @@ function buildQuery(resource) {
 async function requestJson(url, options = {}) {
     const init = {
         method: options.method || 'GET',
+        credentials: 'same-origin',
         headers: {
             Accept: 'application/json'
         }
     };
+
+    if (csrfToken && options.method && options.method !== 'GET') {
+        init.headers['X-CSRF-Token'] = csrfToken;
+    }
 
     if (options.body !== undefined) {
         init.headers['Content-Type'] = 'application/json';
@@ -170,6 +176,7 @@ async function checkAuth() {
     try {
         const payload = await authRequest('status');
         if (payload.authenticated) {
+            if (payload.csrfToken) csrfToken = payload.csrfToken;
             await showDashboard();
         } else {
             showLogin();
@@ -200,7 +207,7 @@ function updateDate() {
 function getServiceName(service) {
     const names = {
         consulta: 'Consulta Dermatologica',
-        telefono: 'Consulta Telefonica',
+        telefono: 'Consulta Telefónica',
         video: 'Video Consulta',
         laser: 'Tratamiento Laser',
         rejuvenecimiento: 'Rejuvenecimiento'
@@ -772,10 +779,11 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             const password = document.getElementById('adminPassword').value;
             try {
-                await authRequest('login', {
+                const loginResult = await authRequest('login', {
                     method: 'POST',
                     body: { password: password }
                 });
+                if (loginResult.csrfToken) csrfToken = loginResult.csrfToken;
                 showToast('Bienvenido al panel de administracion', 'success');
                 await showDashboard();
             } catch (error) {

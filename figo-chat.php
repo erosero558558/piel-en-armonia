@@ -69,20 +69,55 @@ function figo_extract_text(array $decoded, string $raw): string
     return trim($raw);
 }
 
+function figo_config_paths(): array
+{
+    $paths = [];
+
+    $envPath = getenv('FIGO_CHAT_CONFIG_PATH');
+    if (is_string($envPath) && trim($envPath) !== '') {
+        $paths[] = trim($envPath);
+    }
+
+    $paths[] = data_dir_path() . DIRECTORY_SEPARATOR . 'figo-config.json';
+    $paths[] = __DIR__ . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'figo-config.json';
+    $paths[] = __DIR__ . DIRECTORY_SEPARATOR . 'figo-config.json';
+
+    $normalized = [];
+    foreach ($paths as $path) {
+        $path = trim((string) $path);
+        if ($path === '') {
+            continue;
+        }
+
+        $path = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path);
+        if (!in_array($path, $normalized, true)) {
+            $normalized[] = $path;
+        }
+    }
+
+    return $normalized;
+}
+
 function figo_read_file_config(): array
 {
-    $path = data_dir_path() . DIRECTORY_SEPARATOR . 'figo-config.json';
-    if (!is_file($path)) {
-        return [];
+    foreach (figo_config_paths() as $path) {
+        if (!is_file($path)) {
+            continue;
+        }
+
+        $raw = @file_get_contents($path);
+        if (!is_string($raw) || trim($raw) === '') {
+            continue;
+        }
+
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) {
+            $decoded['__source'] = $path;
+            return $decoded;
+        }
     }
 
-    $raw = @file_get_contents($path);
-    if (!is_string($raw) || trim($raw) === '') {
-        return [];
-    }
-
-    $decoded = json_decode($raw, true);
-    return is_array($decoded) ? $decoded : [];
+    return [];
 }
 
 function figo_first_non_empty(array $values): string
@@ -110,7 +145,23 @@ function figo_build_fallback_completion(string $model, array $messages): array
         $lastUser = 'consulta general';
     }
 
-    $content = "Puedo ayudarte con Piel en Armonia. Sobre \"{$lastUser}\", te guio paso a paso en servicios, citas o pagos. Si prefieres atencion inmediata: WhatsApp +593 98 245 3672.";
+    $normalized = strtolower($lastUser);
+    $isPayment = preg_match('/pago|pagar|tarjeta|transferencia|efectivo|factura|comprobante/', $normalized) === 1;
+    $isBooking = preg_match('/cita|agendar|reservar|turno|hora/', $normalized) === 1;
+    $isPricing = preg_match('/precio|costo|valor|tarifa|cuanto cuesta/', $normalized) === 1;
+    $isOutOfScope = preg_match('/capital|presidente|noticia|deporte|futbol|clima|bitcoin|politica/', $normalized) === 1;
+
+    if ($isOutOfScope) {
+        $content = 'Puedo ayudarte solo con temas de Piel en Armonía (servicios, precios, citas, pagos y ubicación). Si quieres, te guio ahora mismo para reservar tu cita o elegir tratamiento.';
+    } elseif ($isPayment) {
+        $content = "Para pagar en la web:\n1) Completa el formulario de Reservar Cita.\n2) Se abre el modulo de pago.\n3) Elige tarjeta, transferencia o efectivo.\n4) Confirma y te validamos por WhatsApp (+593 98 245 3672).\n\nSi quieres, te guio segun el metodo que prefieras.";
+    } elseif ($isBooking) {
+        $content = "Para agendar:\n1) Abre Reservar Cita.\n2) Elige servicio, doctor, fecha y hora.\n3) Completa tus datos.\n4) Confirma pago y reserva.\n\nTambien puedes agendar por WhatsApp: https://wa.me/593982453672";
+    } elseif ($isPricing) {
+        $content = "Precios base:\n- Consulta dermatologica: $40\n- Consulta telefonica: $25\n- Video consulta: $30\n- Acne: desde $80\n- Laser: desde $150\n- Rejuvenecimiento: desde $120\n\nSi me dices tu caso, te recomiendo el siguiente paso.";
+    } else {
+        $content = "Puedo ayudarte con Piel en Armonía. Sobre \"{$lastUser}\", te guio paso a paso en servicios, citas o pagos. Si prefieres atención inmediata: WhatsApp +593 98 245 3672.";
+    }
 
     try {
         $id = 'figo-fallback-' . bin2hex(random_bytes(8));
@@ -137,8 +188,9 @@ function figo_build_fallback_completion(string $model, array $messages): array
 function figo_degraded_mode_enabled(): bool
 {
     $raw = getenv('FIGO_CHAT_DEGRADED_MODE');
-    if (!is_string($raw)) {
-        return false;
+    if (!is_string($raw) || trim($raw) === '') {
+        // Default seguro: evita errores duros en frontend cuando falta configuracion.
+        return true;
     }
 
     $value = strtolower(trim($raw));
@@ -158,11 +210,18 @@ $fileConfig = figo_read_file_config();
 
 $endpoint = figo_first_non_empty([
     getenv('FIGO_CHAT_ENDPOINT'),
+    getenv('FIGO_CHAT_URL'),
+    getenv('FIGO_CHAT_API_URL'),
     getenv('FIGO_ENDPOINT'),
+    getenv('FIGO_URL'),
     getenv('CLAWBOT_ENDPOINT'),
+    getenv('CLAWBOT_URL'),
     getenv('CHATBOT_ENDPOINT'),
+    getenv('CHATBOT_URL'),
+    getenv('BOT_ENDPOINT'),
     getenv('PIELARMONIA_FIGO_ENDPOINT'),
     $fileConfig['endpoint'] ?? null,
+    $fileConfig['apiUrl'] ?? null,
     $fileConfig['url'] ?? null
 ]);
 
@@ -171,6 +230,8 @@ if ($method === 'GET') {
         'ok' => true,
         'service' => 'figo-chat',
         'configured' => $endpoint !== '',
+        'degradedMode' => figo_degraded_mode_enabled(),
+        'hasFileConfig' => isset($fileConfig['__source']),
         'timestamp' => gmdate('c')
     ]);
 }
@@ -240,8 +301,11 @@ $headers = [
 
 $authToken = figo_first_non_empty([
     getenv('FIGO_CHAT_TOKEN'),
+    getenv('FIGO_CHAT_BEARER_TOKEN'),
     getenv('FIGO_TOKEN'),
+    getenv('FIGO_BEARER_TOKEN'),
     getenv('CLAWBOT_TOKEN'),
+    getenv('CHATBOT_TOKEN'),
     $fileConfig['token'] ?? null
 ]);
 if ($authToken !== '') {
@@ -250,14 +314,24 @@ if ($authToken !== '') {
 
 $apiKey = figo_first_non_empty([
     getenv('FIGO_CHAT_APIKEY'),
+    getenv('FIGO_CHAT_API_KEY'),
     getenv('FIGO_APIKEY'),
+    getenv('FIGO_API_KEY'),
     getenv('CLAWBOT_APIKEY'),
+    getenv('CLAWBOT_API_KEY'),
+    getenv('CHATBOT_APIKEY'),
+    getenv('CHATBOT_API_KEY'),
     $fileConfig['apiKey'] ?? null
 ]);
 $apiKeyHeader = figo_first_non_empty([
     getenv('FIGO_CHAT_APIKEY_HEADER'),
+    getenv('FIGO_CHAT_API_KEY_HEADER'),
     getenv('FIGO_APIKEY_HEADER'),
+    getenv('FIGO_API_KEY_HEADER'),
     getenv('CLAWBOT_APIKEY_HEADER'),
+    getenv('CLAWBOT_API_KEY_HEADER'),
+    getenv('CHATBOT_APIKEY_HEADER'),
+    getenv('CHATBOT_API_KEY_HEADER'),
     $fileConfig['apiKeyHeader'] ?? null
 ]);
 if ($apiKey !== '' && $apiKeyHeader !== '') {
@@ -275,19 +349,11 @@ if ($timeout <= 0) {
 }
 
 if ($endpoint === '') {
-    if (figo_degraded_mode_enabled()) {
-        $fallback = figo_build_fallback_completion($model, $messages);
-        $fallback['configured'] = false;
-        $fallback['degraded'] = true;
-        $fallback['hint'] = 'Configura FIGO_CHAT_ENDPOINT o data/figo-config.json';
-        json_response($fallback);
-    }
-
-    json_response([
-        'ok' => false,
-        'error' => 'Figo backend no configurado',
-        'hint' => 'Define FIGO_CHAT_ENDPOINT o data/figo-config.json'
-    ], 503);
+    $fallback = figo_build_fallback_completion($model, $messages);
+    $fallback['configured'] = false;
+    $fallback['degraded'] = true;
+    $fallback['hint'] = 'Configura FIGO_CHAT_ENDPOINT o figo-config.json';
+    json_response($fallback);
 }
 
 $curlAvailable = function_exists('curl_init') && function_exists('curl_setopt_array') && function_exists('curl_exec');

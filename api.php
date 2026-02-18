@@ -3,8 +3,15 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
 
+$allowedOrigin = getenv('PIELARMONIA_ALLOWED_ORIGIN');
+if (is_string($allowedOrigin) && $allowedOrigin !== '') {
+    header('Access-Control-Allow-Origin: ' . $allowedOrigin);
+} else {
+    header('Access-Control-Allow-Origin: ' . (isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*'));
+}
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
+header('Access-Control-Allow-Credentials: true');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit();
@@ -21,10 +28,12 @@ if ($resource === '' && $action !== '') {
 }
 
 if ($resource === 'health') {
+    $storageReady = ensure_data_file();
     json_response([
         'ok' => true,
         'status' => 'ok',
-        'timestamp' => gmdate('c')
+        'storageReady' => $storageReady,
+        'timestamp' => local_date('c')
     ]);
 }
 
@@ -52,6 +61,14 @@ if ($requiresAuth && !isset($_SESSION['admin_logged_in'])) {
             'ok' => false,
             'error' => 'No autorizado'
         ], 401);
+    }
+}
+
+// CSRF: validar token en mutaciones autenticadas (no publicas)
+if (in_array($method, ['POST', 'PUT', 'PATCH'], true) && isset($_SESSION['admin_logged_in'])) {
+    $publicMutations = ['appointments', 'callbacks', 'reviews'];
+    if (!in_array($resource, $publicMutations, true) || $requiresAuth) {
+        require_csrf();
     }
 }
 
@@ -129,6 +146,7 @@ if ($method === 'GET' && $resource === 'booked-slots') {
 }
 
 if ($method === 'POST' && $resource === 'appointments') {
+    require_rate_limit('appointments', 5, 60);
     $payload = require_json_body();
     $appointment = normalize_appointment($payload);
 
@@ -139,10 +157,35 @@ if ($method === 'POST' && $resource === 'appointments') {
         ], 400);
     }
 
+    if (!validate_email($appointment['email'])) {
+        json_response([
+            'ok' => false,
+            'error' => 'El formato del email no es válido'
+        ], 400);
+    }
+
+    if (!validate_phone($appointment['phone'])) {
+        json_response([
+            'ok' => false,
+            'error' => 'El formato del teléfono no es válido'
+        ], 400);
+    }
+
     if ($appointment['date'] === '' || $appointment['time'] === '') {
         json_response([
             'ok' => false,
             'error' => 'Fecha y hora son obligatorias'
+        ], 400);
+    }
+
+    // Validar que el horario exista en la disponibilidad configurada
+    $availableSlots = isset($store['availability'][$appointment['date']]) && is_array($store['availability'][$appointment['date']])
+        ? $store['availability'][$appointment['date']]
+        : [];
+    if (count($availableSlots) > 0 && !in_array($appointment['time'], $availableSlots, true)) {
+        json_response([
+            'ok' => false,
+            'error' => 'Ese horario no está disponible para la fecha seleccionada'
         ], 400);
     }
 
@@ -171,7 +214,7 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') 
     if ($id <= 0) {
         json_response([
             'ok' => false,
-            'error' => 'Id inválido'
+            'error' => 'Identificador inválido'
         ], 400);
     }
     $found = false;
@@ -204,6 +247,7 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') 
 }
 
 if ($method === 'POST' && $resource === 'callbacks') {
+    require_rate_limit('callbacks', 5, 60);
     $payload = require_json_body();
     $callback = normalize_callback($payload);
 
@@ -211,6 +255,13 @@ if ($method === 'POST' && $resource === 'callbacks') {
         json_response([
             'ok' => false,
             'error' => 'Teléfono obligatorio'
+        ], 400);
+    }
+
+    if (!validate_phone($callback['telefono'])) {
+        json_response([
+            'ok' => false,
+            'error' => 'El formato del teléfono no es válido'
         ], 400);
     }
 
@@ -228,7 +279,7 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'callbacks') {
     if ($id <= 0) {
         json_response([
             'ok' => false,
-            'error' => 'Id inválido'
+            'error' => 'Identificador inválido'
         ], 400);
     }
     $found = false;
@@ -255,6 +306,7 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'callbacks') {
 }
 
 if ($method === 'POST' && $resource === 'reviews') {
+    require_rate_limit('reviews', 3, 60);
     $payload = require_json_body();
     $review = normalize_review($payload);
     if ($review['name'] === '' || $review['text'] === '') {

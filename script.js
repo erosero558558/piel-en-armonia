@@ -947,9 +947,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    loadAvailabilityData()
-        .then(() => updateAvailableTimes().catch(() => undefined))
-        .catch(() => undefined);
+    // Carga de disponibilidad diferida: se consulta cuando el usuario elige fecha/servicio.
 });
 
 // ========================================
@@ -1108,7 +1106,7 @@ function getDoctorName(doctor) {
 function generateGoogleCalendarUrl(appointment, startDate, endDate) {
     const formatDate = (date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     
-    const title = encodeURIComponent(`Cita - Piel en Armonia`);
+    const title = encodeURIComponent(`Cita - Piel en Armonía`);
     const details = encodeURIComponent(`Servicio: ${getServiceName(appointment.service)}\nDoctor: ${getDoctorName(appointment.doctor)}\nPrecio: ${appointment.price}`);
     const location = encodeURIComponent('Valparaiso 13-183 y Sodiro, Quito, Ecuador');
     
@@ -1120,11 +1118,11 @@ function generateICS(appointment, startDate, endDate) {
     
     return `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//Piel en Armonia//Consulta//ES
+PRODID:-//Piel en Armonía//Consulta//ES
 BEGIN:VEVENT
 DTSTART:${formatICSDate(startDate)}
 DTEND:${formatICSDate(endDate)}
-SUMMARY:Cita - Piel en Armonia
+SUMMARY:Cita - Piel en Armonía
 DESCRIPTION:Servicio: ${getServiceName(appointment.service)}\\nDoctor: ${getDoctorName(appointment.doctor)}\\nPrecio: ${appointment.price}
 LOCATION:Valparaiso 13-183 y Sodiro, Quito, Ecuador
 END:VEVENT
@@ -1463,9 +1461,9 @@ function toggleChatbot() {
             var welcomeMsg;
             
             if (usandoIA) {
-                welcomeMsg = '¡Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
+                welcomeMsg = '¡Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonía</strong>.<br><br>';
                 welcomeMsg += '<strong>Conectado con Inteligencia Artificial</strong><br><br>';
-                welcomeMsg += 'Puedo ayudarte con informacion detallada sobre:<br>';
+                welcomeMsg += 'Puedo ayudarte con información detallada sobre:<br>';
                 welcomeMsg += '• Nuestros servicios dermatologicos<br>';
                 welcomeMsg += '• Precios de consultas y tratamientos<br>';
                 welcomeMsg += '• Agendar citas presenciales o online<br>';
@@ -1473,8 +1471,8 @@ function toggleChatbot() {
                 welcomeMsg += '• Resolver tus dudas sobre cuidado de la piel<br><br>';
                 welcomeMsg += '¿En que puedo ayudarte hoy?';
             } else {
-                welcomeMsg = '¡Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
-                welcomeMsg += 'Puedo ayudarte con informacion sobre:<br>';
+                welcomeMsg = '¡Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonía</strong>.<br><br>';
+                welcomeMsg += 'Puedo ayudarte con información sobre:<br>';
                 welcomeMsg += '• Nuestros servicios dermatologicos<br>';
                 welcomeMsg += '• Precios de consultas y tratamientos<br>';
                 welcomeMsg += '• Agendar citas presenciales o online<br>';
@@ -1648,7 +1646,7 @@ async function processWithKimi(message) {
 
     if (isOutOfScopeIntent(message)) {
         removeTypingIndicator();
-        addBotMessage(`Puedo ayudarte con temas de <strong>Piel en Armonia</strong> (servicios, precios, citas, pagos, horarios y ubicacion).<br><br>Si deseas, te ayudo ahora con:<br>- <a href="#servicios" onclick="minimizeChatbot()">Servicios y tratamientos</a><br>- <a href="#citas" onclick="minimizeChatbot()">Reservar cita</a><br>- <a href="https://wa.me/593982453672" target="_blank">WhatsApp directo</a>`, false);
+        addBotMessage(`Puedo ayudarte con temas de <strong>Piel en Armonía</strong> (servicios, precios, citas, pagos, horarios y ubicación).<br><br>Si deseas, te ayudo ahora con:<br>- <a href="#servicios" onclick="minimizeChatbot()">Servicios y tratamientos</a><br>- <a href="#citas" onclick="minimizeChatbot()">Reservar cita</a><br>- <a href="https://wa.me/593982453672" target="_blank">WhatsApp directo</a>`, false);
         isProcessingMessage = false;
         return;
     }
@@ -1702,7 +1700,7 @@ function isClinicScopeIntent(text) {
     const normalized = normalizeIntentText(text);
     if (!normalized) return true;
 
-    const clinicScopePattern = /(piel|dermat|acne|grano|espinilla|mancha|lesion|consulta|cita|agendar|reservar|turno|doctor|dra|dr|rosero|narvaez|quito|ubicacion|direccion|horario|precio|costo|tarifa|pago|pagar|transferencia|efectivo|tarjeta|whatsapp|telefono|telemedicina|video|laser|rejuvenecimiento|cancer|consultorio|servicio|tratamiento)/;
+    const clinicScopePattern = /(piel|dermat|acne|grano|espinilla|mancha|lesion|consulta|cita|agendar|reservar|turno|doctor|dra|dr|rosero|narvaez|quito|ubicación|dirección|horario|precio|costo|tarifa|pago|pagar|transferencia|efectivo|tarjeta|whatsapp|teléfono|telemedicina|video|laser|rejuvenecimiento|cancer|consultorio|servicio|tratamiento)/;
     return clinicScopePattern.test(normalized);
 }
 
@@ -1727,11 +1725,12 @@ function isGenericAssistantReply(text) {
 
     const genericPatterns = [
         /gracias por tu mensaje/,
+        /puedo ayudarte con piel en armonia/,
         /soy figo/,
         /asistente virtual/,
         /modo offline/,
         /te sugiero/,
-        /para informacion mas detallada/,
+        /para información más detallada/,
         /escribenos por whatsapp/,
         /visita estas secciones/,
         /hay algo mas en lo que pueda orientarte/
@@ -1753,8 +1752,8 @@ const FIGO_EXPERT_PROMPT = `MODO FIGO PRO:
 - Responde con pasos claros y accionables, no con texto general.
 - Si preguntan por pagos, explica el flujo real del sitio: reservar cita -> modal de pago -> metodo (tarjeta/transferencia/efectivo) -> confirmacion.
 - Si faltan datos para ayudar mejor, haz una sola pregunta de seguimiento concreta.
-- Mantente enfocado en Piel en Armonia (servicios, precios, citas, pagos, ubicacion y contacto).
-- Si preguntan temas fuera de la clinica (capitales, noticias, deportes o cultura general), explica que solo atiendes temas de Piel en Armonia y redirige a servicios/citas.
+- Mantente enfocado en Piel en Armonía (servicios, precios, citas, pagos, ubicación y contacto).
+- Si preguntan temas fuera de la clínica (capitales, noticias, deportes o cultura general), explica que solo atiendes temas de Piel en Armonía y redirige a servicios/citas.
 - Evita decir "modo offline" salvo que realmente no haya conexion con el servidor.`;
 
 function buildAppointmentContextSummary() {
@@ -1864,7 +1863,7 @@ async function tryRealAI(message) {
             debugLog('⚠️ Respuesta generica detectada, solicitando precision adicional a Figo');
 
             const precisionPrompt = `Tu respuesta anterior fue demasiado general.
-Responde con informacion especifica para la web de Piel en Armonia.
+Responde con información específica para la web de Piel en Armonía.
 Incluye pasos concretos y el siguiente paso recomendado para el paciente.
 Pregunta original del paciente: "${message}"`;
 
@@ -1915,11 +1914,7 @@ Pregunta original del paciente: "${message}"`;
         if (error.message.includes('HTTP 503')) {
             processLocalResponse(message, false);
         } else if (error.message.includes('Failed to fetch')) {
-            addBotMessage(`<div style="color: #ff3b30;">
-                <strong>Error de conexión:</strong><br>
-                No se pudo conectar con el servidor.<br>
-                Verifica que <code>figo-chat.php</code> exista.
-            </div>`, true);
+            processLocalResponse(message, false);
         } else {
             processLocalResponse(message, false);
         }
@@ -1940,7 +1935,7 @@ function processLocalResponse(message, isOffline = true) {
     }
     
     // Comando especial: debug info
-    if (/debug|info sistema|informacion tecnica/.test(normalizedMsg)) {
+    if (/debug|info sistema|información técnica/.test(normalizedMsg)) {
         mostrarInfoDebug();
         return;
     }
@@ -1951,15 +1946,15 @@ function processLocalResponse(message, isOffline = true) {
     // AYUDA / MENU
     if (/ayuda|help|menu|opciones|que puedes hacer/.test(lowerMsg)) {
         response = 'Opciones disponibles:<br><br>';
-        response += '<strong>Servicios:</strong> Informacion sobre consultas<br>';
+        response += '<strong>Servicios:</strong> Información sobre consultas<br>';
         response += '<strong>Precios:</strong> Tarifas de servicios<br>';
         response += '<strong>Citas:</strong> Como agendar<br>';
-        response += '<strong>Ubicacion:</strong> Direccion y horarios<br>';
-        response += '<strong>Contacto:</strong> WhatsApp y telefono';
+        response += '<strong>Ubicación:</strong> Dirección y horarios<br>';
+        response += '<strong>Contacto:</strong> WhatsApp y teléfono';
     }
     // FUERA DE ALCANCE
     else if (isOutOfScopeIntent(normalizedMsg)) {
-        response = `Puedo ayudarte solo con temas de <strong>Piel en Armonia</strong>.<br><br>
+        response = `Puedo ayudarte solo con temas de <strong>Piel en Armonía</strong>.<br><br>
 Puedes consultarme sobre:<br>
 - Servicios y tratamientos dermatologicos<br>
 - Precios y formas de pago<br>
@@ -1971,7 +1966,7 @@ Si quieres, te llevo directo a <a href="#citas" onclick="minimizeChatbot()">Rese
     }
     // SALUDO
     else if (/hola|buenos dias|buenas tardes|buenas noches|hey|hi|hello/.test(lowerMsg)) {
-        response = '¡Hola! Soy el asistente de <strong>Piel en Armonia</strong>.<br><br>';
+        response = '¡Hola! Soy el asistente de <strong>Piel en Armonía</strong>.<br><br>';
         response += 'Puedo ayudarte con:<br>';
         response += '• Servicios dermatologicos<br>';
         response += '• Precios de tratamientos<br>';
@@ -1990,7 +1985,7 @@ Si quieres, te llevo directo a <a href="#citas" onclick="minimizeChatbot()">Rese
         response += '• Acne: desde $80<br>';
         response += '• Laser: desde $150<br>';
         response += '• Rejuvenecimiento: desde $120<br>';
-        response += '• Deteccion de cancer de piel: desde $70';
+        response += '• Detección de cáncer de piel: desde $70';
     }
     // PRECIOS
     else if (/precio|cuanto cuesta|valor|tarifa|costo/.test(lowerMsg)) {
@@ -2066,7 +2061,7 @@ Sábados: 9:00 - 13:00`;
         response += '¿Deseas agendar?';
     }
     // UBICACION
-    else if (/donde|ubicacion|direccion|lugar|mapa|quito/.test(lowerMsg)) {
+    else if (/donde|ubicación|dirección|lugar|mapa|quito/.test(lowerMsg)) {
         response = '<strong>Ubicacion:</strong><br>';
         response += 'Valparaiso 13-183 y Sodiro<br>';
         response += 'Quito, Ecuador<br><br>';
@@ -2221,7 +2216,7 @@ function mostrarInfoDebug() {
     const hostname = window.location.hostname;
     const forzado = localStorage.getItem('forceAI') === 'true';
 
-    let msg = '<strong>Informacion del sistema:</strong><br><br>';
+    let msg = '<strong>Información del sistema:</strong><br><br>';
     msg += 'Protocolo: ' + protocolo + '<br>';
     msg += 'Hostname: ' + hostname + '<br>';
     msg += 'Usa IA: ' + (usaIA ? 'SI' : 'NO') + '<br>';
@@ -2248,8 +2243,7 @@ document.addEventListener('DOMContentLoaded', function() {
     changeLanguage(currentLang);
     const isServer = checkServerEnvironment();
 
-    loadAvailabilityData().catch(() => undefined);
-    loadPublicReviews().catch(() => undefined);
+    // Evitar llamadas iniciales innecesarias al backend durante la carga.
 
     if (!isServer) {
         console.warn('Chatbot en modo offline: abre el sitio desde servidor para usar IA real.');

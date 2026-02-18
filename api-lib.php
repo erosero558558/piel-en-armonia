@@ -11,6 +11,15 @@ const BACKUP_DIR = DATA_DIR . DIRECTORY_SEPARATOR . 'backups';
 const MAX_STORE_BACKUPS = 30;
 const ADMIN_PASSWORD_ENV = 'PIELARMONIA_ADMIN_PASSWORD';
 const ADMIN_PASSWORD_HASH_ENV = 'PIELARMONIA_ADMIN_PASSWORD_HASH';
+const APP_TIMEZONE = 'America/Guayaquil';
+const SESSION_TIMEOUT = 1800; // 30 minutos de inactividad
+
+date_default_timezone_set(APP_TIMEZONE);
+
+function local_date(string $format): string
+{
+    return date($format);
+}
 
 function data_dir_path(): string
 {
@@ -36,13 +45,13 @@ function data_dir_path(): string
             continue;
         }
 
-        if (!is_dir($candidate)) {
-            if (!@mkdir($candidate, 0775, true) && !is_dir($candidate)) {
+        if (!@is_dir($candidate)) {
+            if (!@mkdir($candidate, 0775, true) && !@is_dir($candidate)) {
                 continue;
             }
         }
 
-        if (is_writable($candidate)) {
+        if (@is_writable($candidate)) {
             $resolvedDir = $candidate;
             return $resolvedDir;
         }
@@ -118,6 +127,13 @@ function start_secure_session(): void
     }
 
     session_start();
+
+    // Expirar sesion por inactividad
+    if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > SESSION_TIMEOUT) {
+        destroy_secure_session();
+        start_secure_session();
+    }
+    $_SESSION['last_activity'] = time();
 }
 
 function destroy_secure_session(): void
@@ -193,7 +209,7 @@ function create_store_backup_locked($fp): void
         $suffix = substr(md5((string) microtime(true)), 0, 6);
     }
 
-    $filename = backup_dir_path() . DIRECTORY_SEPARATOR . 'store-' . gmdate('Ymd-His') . '-' . $suffix . '.json';
+    $filename = backup_dir_path() . DIRECTORY_SEPARATOR . 'store-' . local_date('Ymd-His') . '-' . $suffix . '.json';
     if (@file_put_contents($filename, $current, LOCK_EX) === false) {
         error_log('Piel en Armonia: no se pudo guardar backup de store.json');
         return;
@@ -218,8 +234,8 @@ function ensure_data_file(): bool
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
-            'createdAt' => gmdate('c'),
-            'updatedAt' => gmdate('c')
+            'createdAt' => local_date('c'),
+            'updatedAt' => local_date('c')
         ];
         $seedEncoded = json_encode($seed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($seedEncoded === false || @file_put_contents($dataFile, $seedEncoded, LOCK_EX) === false) {
@@ -239,7 +255,7 @@ function read_store(): array
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
-            'updatedAt' => gmdate('c')
+            'updatedAt' => local_date('c')
         ];
     }
 
@@ -250,7 +266,7 @@ function read_store(): array
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
-            'updatedAt' => gmdate('c')
+            'updatedAt' => local_date('c')
         ];
     }
 
@@ -261,7 +277,7 @@ function read_store(): array
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
-            'updatedAt' => gmdate('c')
+            'updatedAt' => local_date('c')
         ];
     }
 
@@ -269,7 +285,7 @@ function read_store(): array
     $data['callbacks'] = isset($data['callbacks']) && is_array($data['callbacks']) ? $data['callbacks'] : [];
     $data['reviews'] = isset($data['reviews']) && is_array($data['reviews']) ? $data['reviews'] : [];
     $data['availability'] = isset($data['availability']) && is_array($data['availability']) ? $data['availability'] : [];
-    $data['updatedAt'] = isset($data['updatedAt']) ? (string) $data['updatedAt'] : gmdate('c');
+    $data['updatedAt'] = isset($data['updatedAt']) ? (string) $data['updatedAt'] : local_date('c');
 
     return $data;
 }
@@ -288,7 +304,7 @@ function write_store(array $store): void
     $store['callbacks'] = isset($store['callbacks']) && is_array($store['callbacks']) ? $store['callbacks'] : [];
     $store['reviews'] = isset($store['reviews']) && is_array($store['reviews']) ? $store['reviews'] : [];
     $store['availability'] = isset($store['availability']) && is_array($store['availability']) ? $store['availability'] : [];
-    $store['updatedAt'] = gmdate('c');
+    $store['updatedAt'] = local_date('c');
 
     $fp = @fopen(data_file_path(), 'c+');
     if ($fp === false) {
@@ -330,6 +346,17 @@ function sanitize_phone(string $phone): string
     return trim($phone);
 }
 
+function validate_email(string $email): bool
+{
+    return $email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+}
+
+function validate_phone(string $phone): bool
+{
+    $digits = preg_replace('/\D/', '', $phone);
+    return is_string($digits) && strlen($digits) >= 7 && strlen($digits) <= 15;
+}
+
 function require_json_body(): array
 {
     $raw = file_get_contents('php://input');
@@ -337,7 +364,7 @@ function require_json_body(): array
     if (!is_array($data)) {
         json_response([
             'ok' => false,
-            'error' => 'JSON inválido'
+            'error' => 'El JSON enviado no es válido'
         ], 400);
     }
     return $data;
@@ -377,6 +404,80 @@ function map_appointment_status(string $status): string
         : 'confirmed';
 }
 
+function generate_csrf_token(): string
+{
+    if (!isset($_SESSION['csrf_token']) || $_SESSION['csrf_token'] === '') {
+        try {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        } catch (Throwable $e) {
+            $_SESSION['csrf_token'] = bin2hex((string) microtime(true) . (string) mt_rand());
+        }
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function verify_csrf_token(): bool
+{
+    $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    if ($token === '' || !isset($_SESSION['csrf_token']) || $_SESSION['csrf_token'] === '') {
+        return false;
+    }
+    return hash_equals($_SESSION['csrf_token'], (string) $token);
+}
+
+function require_csrf(): void
+{
+    if (!verify_csrf_token()) {
+        json_response([
+            'ok' => false,
+            'error' => 'Token CSRF inválido o ausente'
+        ], 403);
+    }
+}
+
+function check_rate_limit(string $action, int $maxRequests = 10, int $windowSeconds = 60): bool
+{
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $key = md5($ip . ':' . $action);
+    $rateDir = data_dir_path() . DIRECTORY_SEPARATOR . 'ratelimit';
+
+    if (!@is_dir($rateDir)) {
+        @mkdir($rateDir, 0775, true);
+    }
+
+    $file = $rateDir . DIRECTORY_SEPARATOR . $key . '.json';
+    $now = time();
+    $entries = [];
+
+    if (file_exists($file)) {
+        $raw = @file_get_contents($file);
+        $entries = is_string($raw) ? (json_decode($raw, true) ?? []) : [];
+    }
+
+    // Filtrar entradas dentro de la ventana de tiempo
+    $entries = array_values(array_filter($entries, static function (int $ts) use ($now, $windowSeconds): bool {
+        return ($now - $ts) < $windowSeconds;
+    }));
+
+    if (count($entries) >= $maxRequests) {
+        return false;
+    }
+
+    $entries[] = $now;
+    @file_put_contents($file, json_encode($entries), LOCK_EX);
+    return true;
+}
+
+function require_rate_limit(string $action, int $maxRequests = 10, int $windowSeconds = 60): void
+{
+    if (!check_rate_limit($action, $maxRequests, $windowSeconds)) {
+        json_response([
+            'ok' => false,
+            'error' => 'Demasiadas solicitudes. Intenta de nuevo en unos minutos.'
+        ], 429);
+    }
+}
+
 function verify_admin_password(string $password): bool
 {
     $hash = getenv(ADMIN_PASSWORD_HASH_ENV);
@@ -406,7 +507,7 @@ function normalize_review(array $review): array
         'name' => isset($review['name']) ? trim((string) $review['name']) : '',
         'rating' => $rating,
         'text' => isset($review['text']) ? trim((string) $review['text']) : '',
-        'date' => isset($review['date']) ? (string) $review['date'] : gmdate('c'),
+        'date' => isset($review['date']) ? (string) $review['date'] : local_date('c'),
         'verified' => isset($review['verified']) ? parse_bool($review['verified']) : true
     ];
 }
@@ -417,7 +518,7 @@ function normalize_callback(array $callback): array
         'id' => isset($callback['id']) ? (int) $callback['id'] : (int) round(microtime(true) * 1000),
         'telefono' => sanitize_phone((string) ($callback['telefono'] ?? '')),
         'preferencia' => (string) ($callback['preferencia'] ?? ''),
-        'fecha' => isset($callback['fecha']) ? (string) $callback['fecha'] : gmdate('c'),
+        'fecha' => isset($callback['fecha']) ? (string) $callback['fecha'] : local_date('c'),
         'status' => map_callback_status((string) ($callback['status'] ?? 'pendiente'))
     ];
 }
@@ -437,7 +538,7 @@ function normalize_appointment(array $appointment): array
         'status' => map_appointment_status((string) ($appointment['status'] ?? 'confirmed')),
         'paymentMethod' => isset($appointment['paymentMethod']) ? (string) $appointment['paymentMethod'] : 'unpaid',
         'paymentStatus' => isset($appointment['paymentStatus']) ? (string) $appointment['paymentStatus'] : 'pending',
-        'dateBooked' => isset($appointment['dateBooked']) ? (string) $appointment['dateBooked'] : gmdate('c')
+        'dateBooked' => isset($appointment['dateBooked']) ? (string) $appointment['dateBooked'] : local_date('c')
     ];
 }
 
@@ -465,7 +566,7 @@ function maybe_send_appointment_email(array $appointment): bool
         return false;
     }
 
-    $clinicName = 'Piel en Armonia';
+    $clinicName = 'Piel en Armonía';
     $subject = 'Confirmacion de cita - ' . $clinicName;
     $message = "Hola " . ($appointment['name'] ?? 'paciente') . ",\n\n";
     $message .= "Tu cita fue registrada correctamente.\n";
@@ -478,9 +579,14 @@ function maybe_send_appointment_email(array $appointment): bool
 
     $from = getenv('PIELARMONIA_EMAIL_FROM');
     if (!is_string($from) || $from === '') {
+        error_log('Piel en Armonia: PIELARMONIA_EMAIL_FROM no configurado, usando fallback no-reply@pielarmonia.com');
         $from = 'no-reply@pielarmonia.com';
     }
     $headers = "From: {$from}\r\nContent-Type: text/plain; charset=UTF-8";
 
-    return @mail($to, $subject, $message, $headers);
+    $sent = mail($to, $subject, $message, $headers);
+    if (!$sent) {
+        error_log('Piel en Armonia: fallo al enviar email de confirmación a ' . $to);
+    }
+    return $sent;
 }

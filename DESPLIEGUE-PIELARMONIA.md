@@ -34,7 +34,7 @@ Configura estas variables en tu hosting:
 
 - `PIELARMONIA_ADMIN_PASSWORD` (obligatoria para login admin)
 - `PIELARMONIA_ADMIN_PASSWORD_HASH` (opcional, tiene prioridad)
-- `PIELARMONIA_EMAIL_FROM` (opcional, para correos de confirmacion)
+- `PIELARMONIA_EMAIL_FROM` (opcional, para correos de confirmación)
 - `PIELARMONIA_DATA_DIR` (opcional, para forzar ruta de datos si `public_html/data` no tiene permisos)
 - `FIGO_CHAT_ENDPOINT` (obligatoria para conectar el chatbot real)
 - `FIGO_CHAT_TOKEN` (opcional, token Bearer para backend Figo)
