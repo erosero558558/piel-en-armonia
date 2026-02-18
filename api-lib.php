@@ -21,6 +21,13 @@ const ADMIN_PASSWORD_ENV = 'PIELARMONIA_ADMIN_PASSWORD';
 const ADMIN_PASSWORD_HASH_ENV = 'PIELARMONIA_ADMIN_PASSWORD_HASH';
 const APP_TIMEZONE = 'America/Guayaquil';
 const SESSION_TIMEOUT = 1800; // 30 minutos de inactividad
+const SERVICE_PRICES = [
+    'consulta' => 40.00,
+    'telefono' => 25.00,
+    'video' => 30.00,
+    'laser' => 150.00,
+    'rejuvenecimiento' => 120.00
+];
 
 date_default_timezone_set(APP_TIMEZONE);
 
@@ -873,14 +880,7 @@ function get_vat_rate(): float
 
 function get_service_price_amount(string $service): float
 {
-    $prices = [
-        'consulta' => 40.00,
-        'telefono' => 25.00,
-        'video' => 30.00,
-        'laser' => 150.00,
-        'rejuvenecimiento' => 120.00
-    ];
-    return isset($prices[$service]) ? (float) $prices[$service] : 0.0;
+    return isset(SERVICE_PRICES[$service]) ? (float) SERVICE_PRICES[$service] : 0.0;
 }
 
 function get_service_price(string $service): string
