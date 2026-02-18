@@ -2502,9 +2502,20 @@ a {
     width: min(1200px, calc(100% - 40px));
     margin: 0 auto;
     padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 10px;
 }
 
+.theme-options,
+.lang-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.theme-btn,
 .lang-btn {
     border-radius: 999px;
     border: 1px solid transparent;
@@ -2513,8 +2524,13 @@ a {
     font-weight: 700;
     letter-spacing: 0.04em;
     padding: 4px 10px;
+    background: transparent;
+    cursor: pointer;
+    transition: all var(--ui-ease);
 }
 
+.theme-btn.active,
+.theme-btn:hover,
 .lang-btn.active,
 .lang-btn:hover {
     color: var(--ui-ink);
@@ -4353,6 +4369,283 @@ textarea:focus {
     outline-offset: 2px;
 }
 
+html[data-theme='light'] {
+    color-scheme: light;
+}
+
+html[data-theme='dark'] {
+    color-scheme: dark;
+}
+
+html[data-theme='dark'] body {
+    color: #e8effc;
+    background:
+        radial-gradient(1200px 500px at -10% -10%, rgba(44, 136, 255, 0.2), transparent 62%),
+        radial-gradient(1200px 540px at 110% -8%, rgba(34, 191, 135, 0.16), transparent 66%),
+        #0a1321;
+}
+
+html[data-theme='dark'] body::before {
+    background-image:
+        linear-gradient(to right, rgba(188, 213, 248, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(188, 213, 248, 0.05) 1px, transparent 1px);
+}
+
+html[data-theme='dark'] .language-bar {
+    background: rgba(9, 16, 28, 0.86);
+    border-bottom-color: rgba(138, 169, 214, 0.26);
+}
+
+html[data-theme='dark'] .theme-btn,
+html[data-theme='dark'] .lang-btn {
+    color: #b7cae8;
+}
+
+html[data-theme='dark'] .theme-btn.active,
+html[data-theme='dark'] .theme-btn:hover,
+html[data-theme='dark'] .lang-btn.active,
+html[data-theme='dark'] .lang-btn:hover {
+    color: #eef5ff;
+    border-color: rgba(132, 169, 221, 0.55);
+    background: rgba(31, 52, 82, 0.8);
+}
+
+html[data-theme='dark'] .nav {
+    border-color: rgba(122, 155, 206, 0.32);
+    background: rgba(9, 16, 29, 0.84);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.46);
+}
+
+html[data-theme='dark'] .nav.scrolled {
+    background: rgba(9, 16, 29, 0.93);
+}
+
+html[data-theme='dark'] .nav-logo,
+html[data-theme='dark'] .nav-links a {
+    color: #dbe7fa;
+}
+
+html[data-theme='dark'] .nav-links a:hover {
+    color: #ffffff;
+}
+
+html[data-theme='dark'] .nav-mobile-toggle,
+html[data-theme='dark'] .mobile-close {
+    background: #101d32;
+    border-color: rgba(129, 162, 210, 0.4);
+    color: #d9e7fb;
+}
+
+html[data-theme='dark'] .mobile-menu {
+    background: rgba(11, 20, 35, 0.96);
+    border-color: rgba(128, 162, 212, 0.38);
+}
+
+html[data-theme='dark'] .mobile-menu a {
+    color: #dbe9ff;
+}
+
+html[data-theme='dark'] .mobile-menu a:hover {
+    background: rgba(34, 56, 86, 0.78);
+}
+
+html[data-theme='dark'] .section-gray {
+    background:
+        radial-gradient(560px 260px at 12% 0%, rgba(69, 143, 255, 0.2), transparent 70%),
+        linear-gradient(180deg, #0d182b 0%, #0c1627 100%);
+}
+
+html[data-theme='dark'] .section-light {
+    background: transparent;
+}
+
+html[data-theme='dark'] .section-title {
+    color: #f0f6ff;
+}
+
+html[data-theme='dark'] .section-subtitle {
+    color: #abc1e2;
+}
+
+html[data-theme='dark'] .service-card,
+html[data-theme='dark'] .tele-card,
+html[data-theme='dark'] .team-card,
+html[data-theme='dark'] .gallery-item,
+html[data-theme='dark'] .clinic-info,
+html[data-theme='dark'] .review-card,
+html[data-theme='dark'] .appointment-form-container {
+    background: rgba(15, 26, 44, 0.9);
+    border-color: rgba(122, 156, 207, 0.35);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme='dark'] .service-card h3,
+html[data-theme='dark'] .tele-card h3,
+html[data-theme='dark'] .team-info h3,
+html[data-theme='dark'] .gallery-info h4,
+html[data-theme='dark'] .rating-number,
+html[data-theme='dark'] .review-meta h4,
+html[data-theme='dark'] .clinic-item strong,
+html[data-theme='dark'] .appointment-form h3 {
+    color: #e9f1ff;
+}
+
+html[data-theme='dark'] .service-card p,
+html[data-theme='dark'] .tele-card p,
+html[data-theme='dark'] .team-desc,
+html[data-theme='dark'] .gallery-info p,
+html[data-theme='dark'] .rating-count,
+html[data-theme='dark'] .review-text,
+html[data-theme='dark'] .clinic-desc,
+html[data-theme='dark'] .clinic-item p,
+html[data-theme='dark'] .review-date {
+    color: #aac1e2;
+}
+
+html[data-theme='dark'] .service-price,
+html[data-theme='dark'] .tele-badge,
+html[data-theme='dark'] .service-badge {
+    background: rgba(40, 73, 114, 0.62);
+    color: #cce1ff;
+}
+
+html[data-theme='dark'] .tele-features li {
+    color: #c4d8f7;
+}
+
+html[data-theme='dark'] .tele-price,
+html[data-theme='dark'] .team-role,
+html[data-theme='dark'] .clinic-item i,
+html[data-theme='dark'] .filter-btn.active,
+html[data-theme='dark'] .filter-btn:hover {
+    color: #89c8ff;
+}
+
+html[data-theme='dark'] .filter-btn {
+    background: rgba(18, 31, 52, 0.8);
+    border-color: rgba(122, 156, 207, 0.45);
+    color: #c8dbf8;
+}
+
+html[data-theme='dark'] .clinic-item,
+html[data-theme='dark'] .price-summary,
+html[data-theme='dark'] .rating-header {
+    background: rgba(19, 33, 54, 0.9);
+    border-color: rgba(121, 157, 209, 0.38);
+}
+
+html[data-theme='dark'] .price-row {
+    color: #bfd3f3;
+}
+
+html[data-theme='dark'] .price-row.total {
+    color: #e8f1ff;
+    border-top-color: rgba(139, 169, 216, 0.5);
+}
+
+html[data-theme='dark'] .appointment-info {
+    border-color: rgba(126, 161, 210, 0.45);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+html[data-theme='dark'] input,
+html[data-theme='dark'] select,
+html[data-theme='dark'] textarea {
+    background: rgba(14, 28, 47, 0.88);
+    border-color: rgba(125, 158, 207, 0.42);
+    color: #e4efff;
+}
+
+html[data-theme='dark'] input:focus,
+html[data-theme='dark'] select:focus,
+html[data-theme='dark'] textarea:focus {
+    background: rgba(12, 24, 41, 0.96);
+    border-color: #67b4ff;
+    box-shadow: 0 0 0 4px rgba(53, 154, 255, 0.25);
+}
+
+html[data-theme='dark'] .modal {
+    background: rgba(4, 9, 17, 0.76);
+}
+
+html[data-theme='dark'] .modal-content,
+html[data-theme='dark'] .video-option,
+html[data-theme='dark'] .payment-form,
+html[data-theme='dark'] .bank-info,
+html[data-theme='dark'] .video-tip,
+html[data-theme='dark'] .payment-method {
+    background: rgba(13, 24, 41, 0.96);
+    border-color: rgba(126, 161, 210, 0.38);
+    color: #dce9ff;
+}
+
+html[data-theme='dark'] .modal-close,
+html[data-theme='dark'] .chatbot-input-area button {
+    background: rgba(23, 39, 63, 0.92);
+    border-color: rgba(127, 162, 213, 0.38);
+    color: #cde2ff;
+}
+
+html[data-theme='dark'] .payment-method.active {
+    background: rgba(17, 55, 93, 0.9);
+    border-color: rgba(94, 174, 255, 0.75);
+    color: #d4e9ff;
+}
+
+html[data-theme='dark'] .chatbot-container,
+html[data-theme='dark'] .chatbot-quick-options,
+html[data-theme='dark'] .chatbot-input-area,
+html[data-theme='dark'] .chat-message.bot .message-content,
+html[data-theme='dark'] .typing-indicator,
+html[data-theme='dark'] .message-avatar {
+    background: rgba(13, 24, 41, 0.96);
+    border-color: rgba(126, 161, 210, 0.35);
+    color: #d4e6ff;
+}
+
+html[data-theme='dark'] .chatbot-messages {
+    background: linear-gradient(180deg, #0f1c30 0%, #0b1525 100%);
+}
+
+html[data-theme='dark'] .chatbot-quick-options button,
+html[data-theme='dark'] .chat-suggestion-btn {
+    background: rgba(20, 36, 59, 0.95);
+    border-color: rgba(126, 161, 210, 0.45);
+    color: #d0e3ff;
+}
+
+html[data-theme='dark'] .chatbot-input-area input {
+    background: rgba(13, 26, 44, 0.92);
+}
+
+html[data-theme='dark'] .quick-dock {
+    background: rgba(11, 20, 35, 0.9);
+    border-color: rgba(127, 162, 212, 0.42);
+}
+
+html[data-theme='dark'] .quick-dock-item {
+    color: #d2e5ff;
+}
+
+html[data-theme='dark'] .quick-dock-item:hover {
+    background: rgba(35, 57, 88, 0.84);
+    border-color: rgba(126, 161, 210, 0.42);
+    color: #ffffff;
+}
+
+html[data-theme='dark'] .toast {
+    background: rgba(12, 23, 39, 0.98);
+    border-color: rgba(126, 161, 210, 0.4);
+}
+
+html[data-theme='dark'] .toast-title {
+    color: #e5f0ff;
+}
+
+html[data-theme='dark'] .toast-message {
+    color: #bad0ef;
+}
+
 @media (max-width: 1140px) {
     .nav-content {
         padding: 0 20px;
@@ -4443,6 +4736,31 @@ textarea:focus {
 
     .language-bar {
         height: 34px;
+    }
+
+    .language-options {
+        width: calc(100% - 12px);
+        gap: 6px;
+    }
+
+    .theme-options {
+        flex: 1;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .theme-options::-webkit-scrollbar {
+        display: none;
+    }
+
+    .lang-switch {
+        flex-shrink: 0;
+    }
+
+    .theme-btn,
+    .lang-btn {
+        font-size: 0.7rem;
+        padding: 3px 8px;
     }
 
     .nav {

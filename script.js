@@ -83,6 +83,9 @@ const translations = {
         nav_clinic: "Consultorio",
         nav_reviews: "Reseñas",
         nav_book: "Reservar Cita",
+        theme_light: "Claro",
+        theme_dark: "Oscuro",
+        theme_system: "Sistema",
         hero_title1: "Tu piel.",
         hero_title2: "En las mejores manos.",
         hero_subtitle: "Dermatología especializada con tecnología de vanguardia. Tratamientos personalizados para que tu piel luzca saludable y radiante.",
@@ -243,6 +246,9 @@ const translations = {
         nav_clinic: "Clinic",
         nav_reviews: "Reviews",
         nav_book: "Book Appointment",
+        theme_light: "Light",
+        theme_dark: "Dark",
+        theme_system: "System",
         hero_title1: "Your skin.",
         hero_title2: "In the best hands.",
         hero_subtitle: "Specialized dermatology with cutting-edge technology. Personalized treatments for healthy, radiant skin.",
@@ -396,12 +402,74 @@ const translations = {
 };
 
 let currentLang = localStorage.getItem('language') || 'es';
+const THEME_STORAGE_KEY = 'themeMode';
+const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
+let currentThemeMode = localStorage.getItem(THEME_STORAGE_KEY) || 'system';
 const API_ENDPOINT = '/api.php';
 const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
 let currentAppointment = null;
 let availabilityCache = {};
 let reviewsCache = [];
 const LOCAL_FALLBACK_ENABLED = window.location.protocol === 'file:';
+const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+if (!VALID_THEME_MODES.has(currentThemeMode)) {
+    currentThemeMode = 'system';
+}
+
+function resolveThemeMode(mode = currentThemeMode) {
+    if (mode === 'system') {
+        if (systemThemeQuery && systemThemeQuery.matches) {
+            return 'dark';
+        }
+        return 'light';
+    }
+    return mode;
+}
+
+function applyThemeMode(mode = currentThemeMode) {
+    const resolvedTheme = resolveThemeMode(mode);
+    document.documentElement.setAttribute('data-theme-mode', mode);
+    document.documentElement.setAttribute('data-theme', resolvedTheme);
+}
+
+function updateThemeButtons() {
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.themeMode === currentThemeMode);
+    });
+}
+
+function setThemeMode(mode) {
+    if (!VALID_THEME_MODES.has(mode)) {
+        return;
+    }
+
+    currentThemeMode = mode;
+    localStorage.setItem(THEME_STORAGE_KEY, mode);
+    applyThemeMode(mode);
+    updateThemeButtons();
+}
+
+function initThemeMode() {
+    const storedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'system';
+    currentThemeMode = VALID_THEME_MODES.has(storedTheme) ? storedTheme : 'system';
+    applyThemeMode(currentThemeMode);
+    updateThemeButtons();
+}
+
+function handleSystemThemeChange() {
+    if (currentThemeMode === 'system') {
+        applyThemeMode('system');
+    }
+}
+
+if (systemThemeQuery) {
+    if (typeof systemThemeQuery.addEventListener === 'function') {
+        systemThemeQuery.addEventListener('change', handleSystemThemeChange);
+    } else if (typeof systemThemeQuery.addListener === 'function') {
+        systemThemeQuery.addListener(handleSystemThemeChange);
+    }
+}
 
 function storageGetJSON(key, fallback) {
     try {
@@ -2115,6 +2183,7 @@ async function testProxyConnection() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    initThemeMode();
     changeLanguage(currentLang);
     const isServer = checkServerEnvironment();
 
