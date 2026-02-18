@@ -3922,6 +3922,37 @@ textarea:focus {
     padding: 14px;
 }
 
+.payment-method.disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    filter: grayscale(0.25);
+}
+
+.stripe-card-element {
+    border: 1px solid #d2deef;
+    background: #fff;
+    border-radius: 10px;
+    min-height: 44px;
+    padding: 11px 12px;
+}
+
+.payment-help {
+    display: block;
+    margin-top: 7px;
+    color: #5e7594;
+    font-size: 0.82rem;
+}
+
+.payment-error {
+    margin-top: 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(209, 67, 67, 0.35);
+    background: rgba(209, 67, 67, 0.08);
+    color: #b23a3a;
+    font-weight: 600;
+    padding: 10px 12px;
+}
+
 .bank-info {
     margin-bottom: 12px;
     border-radius: 12px;
@@ -4649,6 +4680,21 @@ html[data-theme='dark'] .payment-method.active {
     background: rgba(17, 55, 93, 0.9);
     border-color: rgba(94, 174, 255, 0.75);
     color: #d4e9ff;
+}
+
+html[data-theme='dark'] .stripe-card-element {
+    background: rgba(7, 16, 29, 0.95);
+    border-color: rgba(123, 160, 213, 0.45);
+}
+
+html[data-theme='dark'] .payment-help {
+    color: #b6cceb;
+}
+
+html[data-theme='dark'] .payment-error {
+    border-color: rgba(255, 117, 117, 0.4);
+    background: rgba(159, 44, 44, 0.22);
+    color: #ffd1d1;
 }
 
 html[data-theme='dark'] .chatbot-container,

@@ -717,7 +717,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2025 Piel en Armonía. <span data-i18n="footer_rights">Todos los derechos reservados.</span></p>
+            <p>&copy; 2026 Piel en Armonía. <span data-i18n="footer_rights">Todos los derechos reservados.</span></p>
         </div>
     </footer>
 
@@ -785,25 +785,16 @@
                 <!-- Card Payment -->
                 <div class="payment-form card-form">
                     <div class="form-group">
-                        <label data-i18n="label_card_number">Número de tarjeta</label>
-                        <input type="text" placeholder="0000 0000 0000 0000">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label data-i18n="label_expiry">Vencimiento</label>
-                            <input type="text" placeholder="MM/AA">
-                        </div>
-                        <div class="form-group">
-                            <label data-i18n="label_cvv">CVV</label>
-                            <input type="text" placeholder="123">
-                        </div>
+                        <label data-i18n="label_card_name">Nombre en la tarjeta</label>
+                        <input type="text" id="cardholderName" autocomplete="cc-name" placeholder="Nombre del titular">
                     </div>
                     <div class="form-group">
-                        <label data-i18n="label_card_name">Nombre en la tarjeta</label>
-                        <input type="text">
+                        <label data-i18n="label_card_number">Datos de tarjeta</label>
+                        <div id="stripeCardElement" class="stripe-card-element"></div>
+                        <small class="payment-help">Tus datos se procesan de forma segura con Stripe.</small>
                     </div>
                 </div>
-                
+
                 <!-- Transfer Payment -->
                 <div class="payment-form transfer-form" style="display: none;">
                     <div class="bank-info">
@@ -813,8 +804,13 @@
                         <p data-i18n="bank_ruc">RUC: 1234567890001</p>
                     </div>
                     <div class="form-group">
-                        <label data-i18n="label_transfer_ref">Número de referencia</label>
-                        <input type="text" placeholder="Ej: 123456">
+                        <label data-i18n="label_transfer_ref">Numero de referencia</label>
+                        <input type="text" id="transferReference" placeholder="Ej: 123456">
+                    </div>
+                    <div class="form-group">
+                        <label>Comprobante (JPG, PNG, WEBP o PDF)</label>
+                        <input type="file" id="transferProofFile" accept=".jpg,.jpeg,.png,.webp,.pdf">
+                        <small id="transferProofFileName" class="payment-help"></small>
                     </div>
                 </div>
                 
@@ -830,6 +826,7 @@
                     <span id="paymentTotal">$0.00</span>
                 </div>
             </div>
+            <div id="paymentError" class="payment-error" style="display: none;"></div>
             
             <button class="btn btn-primary btn-full" onclick="processPayment()">
                 <i class="fas fa-lock"></i>
@@ -958,6 +955,7 @@
         </div>
     </div>
 
-    <script src="script.js?v=figo-20260218-scopefix7"></script>
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="script.js?v=figo-20260218-payments1"></script>
 </body>
 </html>

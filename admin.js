@@ -234,6 +234,31 @@ function getStatusText(status) {
     return texts[status] || status;
 }
 
+function getPaymentMethodText(method) {
+    const normalized = String(method || '').toLowerCase().trim();
+    const texts = {
+        card: 'Tarjeta',
+        transfer: 'Transferencia',
+        cash: 'Efectivo',
+        unpaid: 'Sin definir'
+    };
+    return texts[normalized] || (method || 'Sin definir');
+}
+
+function getPaymentStatusText(status) {
+    const normalized = String(status || '').toLowerCase().trim();
+    const texts = {
+        paid: 'Pagado',
+        pending_cash: 'Pago en consultorio',
+        pending_transfer: 'Transferencia pendiente',
+        pending_transfer_review: 'Comprobante por validar',
+        pending_gateway: 'Pago en proceso',
+        pending: 'Pendiente',
+        failed: 'Pago fallido'
+    };
+    return texts[normalized] || (status || 'Pendiente');
+}
+
 function getPreferenceText(pref) {
     const texts = {
         ahora: 'Lo antes posible',
@@ -248,6 +273,14 @@ function formatDate(dateStr) {
     const date = new Date(dateStr);
     if (Number.isNaN(date.getTime())) return dateStr;
     return date.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function sanitizePublicHref(url) {
+    const value = String(url || '').trim();
+    if (value === '') return '';
+    if (value.startsWith('/')) return value;
+    if (/^https?:\/\//i.test(value)) return value;
+    return '';
 }
 
 function loadDashboardData() {
@@ -348,7 +381,12 @@ function renderAppointments(appointments) {
             <td>${escapeHtml(getDoctorName(a.doctor))}</td>
             <td>${escapeHtml(formatDate(a.date))}</td>
             <td>${escapeHtml(a.time)}</td>
-            <td>${escapeHtml(a.price || '$0.00')}</td>
+            <td>
+                <strong>${escapeHtml(a.price || '$0.00')}</strong><br>
+                <small>${escapeHtml(getPaymentMethodText(a.paymentMethod))} - ${escapeHtml(getPaymentStatusText(a.paymentStatus))}</small>
+                ${(a.transferReference ? `<br><small>Ref: ${escapeHtml(a.transferReference)}</small>` : '')}
+                ${(sanitizePublicHref(a.transferProofUrl) ? `<br><a href="${escapeHtml(sanitizePublicHref(a.transferProofUrl))}" target="_blank" rel="noopener noreferrer">Ver comprobante</a>` : '')}
+            </td>
             <td>
                 <span class="status-badge status-${escapeHtml(a.status || 'confirmed')}">
                     ${escapeHtml(getStatusText(a.status || 'confirmed'))}
@@ -516,23 +554,14 @@ async function markContacted(identifier) {
     }
 
     try {
-        if (callback.id) {
-            await apiRequest('callbacks', {
-                method: 'PATCH',
-                body: { id: Number(callback.id), status: 'contactado' }
-            });
-        } else {
-            callback.status = 'contactado';
-            await apiRequest('import', {
-                method: 'POST',
-                body: {
-                    appointments: currentAppointments,
-                    callbacks: currentCallbacks,
-                    reviews: currentReviews,
-                    availability: currentAvailability
-                }
-            });
+        const callbackId = callback.id || Date.now();
+        if (!callback.id) {
+            callback.id = callbackId;
         }
+        await apiRequest('callbacks', {
+            method: 'PATCH',
+            body: { id: Number(callbackId), status: 'contactado' }
+        });
         await refreshData();
         loadCallbacks();
         loadDashboardData();

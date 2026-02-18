@@ -465,6 +465,19 @@ function check_rate_limit(string $action, int $maxRequests = 10, int $windowSeco
 
     $entries[] = $now;
     @file_put_contents($file, json_encode($entries), LOCK_EX);
+
+    // Limpieza periódica: eliminar archivos de rate limit con más de 1 hora sin modificación
+    if (mt_rand(1, 50) === 1) {
+        $allFiles = @glob($rateDir . DIRECTORY_SEPARATOR . '*.json');
+        if (is_array($allFiles)) {
+            foreach ($allFiles as $f) {
+                if (($now - (int) @filemtime($f)) > 3600) {
+                    @unlink($f);
+                }
+            }
+        }
+    }
+
     return true;
 }
 
@@ -493,6 +506,11 @@ function verify_admin_password(string $password): bool
     return false;
 }
 
+function truncate_field(string $value, int $maxLength): string
+{
+    return mb_strlen($value) > $maxLength ? mb_substr($value, 0, $maxLength) : $value;
+}
+
 function normalize_review(array $review): array
 {
     $rating = isset($review['rating']) ? (int) $review['rating'] : 0;
@@ -504,9 +522,9 @@ function normalize_review(array $review): array
     }
     return [
         'id' => isset($review['id']) ? (int) $review['id'] : (int) round(microtime(true) * 1000),
-        'name' => isset($review['name']) ? trim((string) $review['name']) : '',
+        'name' => truncate_field(isset($review['name']) ? trim((string) $review['name']) : '', 100),
         'rating' => $rating,
-        'text' => isset($review['text']) ? trim((string) $review['text']) : '',
+        'text' => truncate_field(isset($review['text']) ? trim((string) $review['text']) : '', 2000),
         'date' => isset($review['date']) ? (string) $review['date'] : local_date('c'),
         'verified' => isset($review['verified']) ? parse_bool($review['verified']) : true
     ];
@@ -516,41 +534,92 @@ function normalize_callback(array $callback): array
 {
     return [
         'id' => isset($callback['id']) ? (int) $callback['id'] : (int) round(microtime(true) * 1000),
-        'telefono' => sanitize_phone((string) ($callback['telefono'] ?? '')),
-        'preferencia' => (string) ($callback['preferencia'] ?? ''),
+        'telefono' => truncate_field(sanitize_phone((string) ($callback['telefono'] ?? '')), 20),
+        'preferencia' => truncate_field((string) ($callback['preferencia'] ?? ''), 200),
         'fecha' => isset($callback['fecha']) ? (string) $callback['fecha'] : local_date('c'),
         'status' => map_callback_status((string) ($callback['status'] ?? 'pendiente'))
     ];
 }
 
-function get_service_price(string $service): string
+function get_vat_rate(): float
+{
+    $raw = getenv('PIELARMONIA_VAT_RATE');
+    if (!is_string($raw) || trim($raw) === '') {
+        return 0.12;
+    }
+
+    $rate = (float) trim($raw);
+    if ($rate > 1.0 && $rate <= 100.0) {
+        $rate = $rate / 100.0;
+    }
+
+    if ($rate < 0.0) {
+        return 0.0;
+    }
+    if ($rate > 1.0) {
+        return 1.0;
+    }
+    return $rate;
+}
+
+function get_service_price_amount(string $service): float
 {
     $prices = [
-        'consulta' => '$40.00',
-        'telefono' => '$25.00',
-        'video' => '$30.00',
-        'laser' => '$150.00',
-        'rejuvenecimiento' => '$120.00'
+        'consulta' => 40.00,
+        'telefono' => 25.00,
+        'video' => 30.00,
+        'laser' => 150.00,
+        'rejuvenecimiento' => 120.00
     ];
-    return $prices[$service] ?? '$0.00';
+    return isset($prices[$service]) ? (float) $prices[$service] : 0.0;
+}
+
+function get_service_price(string $service): string
+{
+    return '$' . number_format(get_service_price_amount($service), 2, '.', '');
+}
+
+function get_service_total_price(string $service): string
+{
+    $subtotal = get_service_price_amount($service);
+    $total = $subtotal + ($subtotal * get_vat_rate());
+    return '$' . number_format($total, 2, '.', '');
 }
 
 function normalize_appointment(array $appointment): array
 {
     $service = (string) ($appointment['service'] ?? '');
+    $paymentMethod = strtolower(trim((string) ($appointment['paymentMethod'] ?? 'unpaid')));
+    if (!in_array($paymentMethod, ['card', 'transfer', 'cash', 'unpaid'], true)) {
+        $paymentMethod = 'unpaid';
+    }
+
+    $paymentStatus = trim((string) ($appointment['paymentStatus'] ?? 'pending'));
+    if ($paymentStatus === '') {
+        $paymentStatus = 'pending';
+    }
+
     return [
         'id' => isset($appointment['id']) ? (int) $appointment['id'] : (int) round(microtime(true) * 1000),
-        'service' => $service,
-        'doctor' => (string) ($appointment['doctor'] ?? ''),
-        'date' => (string) ($appointment['date'] ?? ''),
-        'time' => (string) ($appointment['time'] ?? ''),
-        'name' => trim((string) ($appointment['name'] ?? '')),
-        'email' => trim((string) ($appointment['email'] ?? '')),
-        'phone' => sanitize_phone((string) ($appointment['phone'] ?? '')),
-        'price' => get_service_price($service),
+        'service' => truncate_field($service, 50),
+        'doctor' => truncate_field((string) ($appointment['doctor'] ?? ''), 100),
+        'date' => truncate_field((string) ($appointment['date'] ?? ''), 20),
+        'time' => truncate_field((string) ($appointment['time'] ?? ''), 10),
+        'name' => truncate_field(trim((string) ($appointment['name'] ?? '')), 150),
+        'email' => truncate_field(trim((string) ($appointment['email'] ?? '')), 254),
+        'phone' => truncate_field(sanitize_phone((string) ($appointment['phone'] ?? '')), 20),
+        'price' => get_service_total_price($service),
         'status' => map_appointment_status((string) ($appointment['status'] ?? 'confirmed')),
-        'paymentMethod' => isset($appointment['paymentMethod']) ? (string) $appointment['paymentMethod'] : 'unpaid',
-        'paymentStatus' => isset($appointment['paymentStatus']) ? (string) $appointment['paymentStatus'] : 'pending',
+        'paymentMethod' => $paymentMethod,
+        'paymentStatus' => $paymentStatus,
+        'paymentProvider' => truncate_field(trim((string) ($appointment['paymentProvider'] ?? '')), 50),
+        'paymentIntentId' => truncate_field(trim((string) ($appointment['paymentIntentId'] ?? '')), 100),
+        'paymentPaidAt' => truncate_field(trim((string) ($appointment['paymentPaidAt'] ?? '')), 30),
+        'transferReference' => truncate_field(trim((string) ($appointment['transferReference'] ?? '')), 100),
+        'transferProofPath' => truncate_field(trim((string) ($appointment['transferProofPath'] ?? '')), 300),
+        'transferProofUrl' => truncate_field(trim((string) ($appointment['transferProofUrl'] ?? '')), 300),
+        'transferProofName' => truncate_field(trim((string) ($appointment['transferProofName'] ?? '')), 200),
+        'transferProofMime' => truncate_field(trim((string) ($appointment['transferProofMime'] ?? '')), 50),
         'dateBooked' => isset($appointment['dateBooked']) ? (string) $appointment['dateBooked'] : local_date('c')
     ];
 }

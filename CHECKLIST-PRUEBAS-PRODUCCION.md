@@ -11,7 +11,9 @@ Fecha de ejecucion sugerida: completar al desplegar.
 - `admin.js`
 - `api.php`
 - `api-lib.php`
+- `payment-lib.php`
 - `admin-auth.php`
+- carpeta `uploads/transfer-proofs/` con permisos de escritura
 - carpeta `data/` con permisos de escritura
 - `figo-chat.php` disponible en el servidor
 
@@ -20,6 +22,11 @@ Fecha de ejecucion sugerida: completar al desplegar.
 - opcional: `PIELARMONIA_ADMIN_PASSWORD_HASH`
 - opcional: `PIELARMONIA_EMAIL_FROM`
 - opcional: `PIELARMONIA_DATA_DIR`
+- `PIELARMONIA_STRIPE_PUBLISHABLE_KEY`
+- `PIELARMONIA_STRIPE_SECRET_KEY`
+- opcional: `PIELARMONIA_PAYMENT_CURRENCY` (default `USD`)
+- opcional: `PIELARMONIA_TRANSFER_UPLOAD_DIR`
+- opcional: `PIELARMONIA_TRANSFER_PUBLIC_BASE_URL`
 - `FIGO_CHAT_ENDPOINT`
 - opcional: `FIGO_CHAT_TOKEN`
 - opcional: `FIGO_CHAT_APIKEY_HEADER`
@@ -55,6 +62,24 @@ Fecha de ejecucion sugerida: completar al desplegar.
 - Esperado: mensaje `Cita registrada correctamente` y modal con detalle.
 5. Vuelve al admin > `Citas`:
 - Esperado: la nueva cita aparece en tabla.
+
+## 3.1 Pago con tarjeta real
+
+1. En modal de pago, elige `Tarjeta`.
+2. Ingresa titular y completa tarjeta en el formulario de Stripe.
+3. Confirma pago.
+- Esperado: mensaje `Pago aprobado y cita registrada`.
+4. En admin > `Citas`:
+- Esperado: `Pago` en estado `Pagado` con metodo `Tarjeta`.
+
+## 3.2 Pago por transferencia + comprobante
+
+1. En modal de pago, elige `Transferencia`.
+2. Ingresa referencia y adjunta comprobante (JPG/PNG/WEBP/PDF).
+3. Confirma reserva.
+- Esperado: cita creada con estado de pago `Comprobante por validar`.
+4. En admin > `Citas`:
+- Esperado: visible `Ref` y link `Ver comprobante`.
 
 ## 4. Validacion de disponibilidad
 

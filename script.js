@@ -39,11 +39,13 @@ function showToast(message, type = 'info', title = '') {
         info: title || 'Información'
     };
     
+    // Escapar mensaje para prevenir XSS
+    const safeMsg = String(message).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     toast.innerHTML = `
         <i class="fas ${icons[type]} toast-icon"></i>
         <div class="toast-content">
             <div class="toast-title">${titles[type]}</div>
-            <div class="toast-message">${message}</div>
+            <div class="toast-message">${safeMsg}</div>
         </div>
         <button class="toast-close" onclick="this.parentElement.remove()">
             <i class="fas fa-times"></i>
@@ -410,6 +412,11 @@ const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00'
 let currentAppointment = null;
 let availabilityCache = {};
 let reviewsCache = [];
+let paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
+let stripeClient = null;
+let stripeElements = null;
+let stripeCardElement = null;
+let stripeMounted = false;
 const LOCAL_FALLBACK_ENABLED = window.location.protocol === 'file:';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let themeTransitionTimer = null;
@@ -548,6 +555,62 @@ async function apiRequest(resource, options = {}) {
     return payload;
 }
 
+async function loadPaymentConfig() {
+    try {
+        const payload = await apiRequest('payment-config');
+        paymentConfig = {
+            enabled: payload.enabled === true,
+            provider: payload.provider || 'stripe',
+            publishableKey: payload.publishableKey || '',
+            currency: payload.currency || 'USD'
+        };
+    } catch (error) {
+        paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
+    }
+    return paymentConfig;
+}
+
+async function createPaymentIntent(appointment) {
+    const payload = await apiRequest('payment-intent', {
+        method: 'POST',
+        body: appointment
+    });
+    return payload;
+}
+
+async function verifyPaymentIntent(paymentIntentId) {
+    return apiRequest('payment-verify', {
+        method: 'POST',
+        body: { paymentIntentId }
+    });
+}
+
+async function uploadTransferProof(file) {
+    const formData = new FormData();
+    formData.append('proof', file);
+
+    const query = new URLSearchParams({ resource: 'transfer-proof' });
+    const response = await fetch(`${API_ENDPOINT}?${query.toString()}`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: formData
+    });
+
+    const text = await response.text();
+    let payload = {};
+    try {
+        payload = text ? JSON.parse(text) : {};
+    } catch (error) {
+        throw new Error('No se pudo interpretar la respuesta de subida');
+    }
+
+    if (!response.ok || payload.ok === false) {
+        throw new Error(payload.error || `HTTP ${response.status}`);
+    }
+
+    return payload.data || {};
+}
+
 async function loadAvailabilityData() {
     try {
         const payload = await apiRequest('availability');
@@ -576,7 +639,8 @@ async function getBookedSlots(date) {
     }
 }
 
-async function createAppointmentRecord(appointment) {
+async function createAppointmentRecord(appointment, options = {}) {
+    const allowLocalFallback = options.allowLocalFallback !== false;
     try {
         const payload = await apiRequest('appointments', {
             method: 'POST',
@@ -590,7 +654,7 @@ async function createAppointmentRecord(appointment) {
             emailSent: payload.emailSent === true
         };
     } catch (error) {
-        if (!LOCAL_FALLBACK_ENABLED) {
+        if (!LOCAL_FALLBACK_ENABLED || !allowLocalFallback) {
             throw error;
         }
         const localAppointments = storageGetJSON('appointments', []);
@@ -728,13 +792,16 @@ function changeLanguage(lang) {
     });
     
     // Update all elements with data-i18n
+    const htmlAllowedKeys = ['clinic_hours'];
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.dataset.i18n;
         if (translations[lang][key]) {
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
                 el.placeholder = translations[lang][key];
-            } else {
+            } else if (htmlAllowedKeys.includes(key)) {
                 el.innerHTML = translations[lang][key];
+            } else {
+                el.textContent = translations[lang][key];
             }
         }
     });
@@ -962,14 +1029,25 @@ function openPaymentModal(appointmentData) {
     const appointment = currentAppointment || {};
 
     document.getElementById('paymentTotal').textContent = appointment.price || '$0.00';
+    clearPaymentError();
+    resetTransferProofState();
+    const cardNameInput = document.getElementById('cardholderName');
+    if (cardNameInput && appointment.name) {
+        cardNameInput.value = appointment.name;
+    }
+    if (stripeCardElement && typeof stripeCardElement.clear === 'function') {
+        stripeCardElement.clear();
+    }
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
+    refreshCardPaymentAvailability().catch(() => undefined);
 }
 
 function closePaymentModal() {
     const modal = document.getElementById('paymentModal');
     modal.classList.remove('active');
     document.body.style.overflow = '';
+    clearPaymentError();
 }
 
 function getActivePaymentMethod() {
@@ -977,27 +1055,249 @@ function getActivePaymentMethod() {
     return activeMethod?.dataset.method || 'cash';
 }
 
-function getPaymentStatusByMethod(method) {
-    if (method === 'card') return 'pending_gateway';
-    if (method === 'transfer') return 'pending_transfer';
-    return 'pending_cash';
+function setPaymentError(message) {
+    const errorEl = document.getElementById('paymentError');
+    if (!errorEl) return;
+    if (!message) {
+        errorEl.textContent = '';
+        errorEl.style.display = 'none';
+        return;
+    }
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+}
+
+function clearPaymentError() {
+    setPaymentError('');
+}
+
+function resetTransferProofState() {
+    const refInput = document.getElementById('transferReference');
+    if (refInput) refInput.value = '';
+
+    const proofInput = document.getElementById('transferProofFile');
+    if (proofInput) proofInput.value = '';
+
+    const fileNameEl = document.getElementById('transferProofFileName');
+    if (fileNameEl) fileNameEl.textContent = '';
+}
+
+function updateTransferProofFileName() {
+    const input = document.getElementById('transferProofFile');
+    const fileNameEl = document.getElementById('transferProofFileName');
+    if (!input || !fileNameEl) return;
+    const file = input.files && input.files[0] ? input.files[0] : null;
+    fileNameEl.textContent = file ? file.name : '';
+}
+
+function setCardMethodEnabled(enabled) {
+    const cardMethod = document.querySelector('.payment-method[data-method="card"]');
+    if (!cardMethod) return;
+
+    cardMethod.classList.toggle('disabled', !enabled);
+    cardMethod.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+    cardMethod.title = enabled
+        ? ''
+        : 'Pago con tarjeta temporalmente no disponible';
+
+    if (!enabled && cardMethod.classList.contains('active')) {
+        const transferMethod = document.querySelector('.payment-method[data-method="transfer"]');
+        const cashMethod = document.querySelector('.payment-method[data-method="cash"]');
+        const fallback = transferMethod || cashMethod;
+        if (fallback) {
+            fallback.click();
+        }
+    }
+}
+
+async function refreshCardPaymentAvailability() {
+    const config = await loadPaymentConfig();
+    const enabled = config.enabled === true && typeof window.Stripe === 'function';
+    setCardMethodEnabled(enabled);
+
+    if (!enabled) {
+        return false;
+    }
+
+    await mountStripeCardElement();
+    return true;
+}
+
+async function mountStripeCardElement() {
+    if (!paymentConfig.enabled || typeof window.Stripe !== 'function') {
+        return;
+    }
+    if (!paymentConfig.publishableKey) {
+        return;
+    }
+
+    if (!stripeClient) {
+        stripeClient = window.Stripe(paymentConfig.publishableKey);
+        stripeElements = stripeClient.elements();
+    }
+
+    if (!stripeElements) {
+        throw new Error('No se pudo inicializar el formulario de tarjeta');
+    }
+
+    if (!stripeCardElement) {
+        stripeCardElement = stripeElements.create('card', {
+            hidePostalCode: true,
+            style: {
+                base: {
+                    color: '#1d1d1f',
+                    fontFamily: '"Plus Jakarta Sans", "Helvetica Neue", Arial, sans-serif',
+                    fontSize: '16px',
+                    '::placeholder': {
+                        color: '#9aa6b2'
+                    }
+                },
+                invalid: {
+                    color: '#d14343'
+                }
+            }
+        });
+    }
+
+    if (!stripeMounted) {
+        stripeCardElement.mount('#stripeCardElement');
+        stripeMounted = true;
+    }
+}
+
+async function processCardPaymentFlow() {
+    const cardAvailable = await refreshCardPaymentAvailability();
+    if (!cardAvailable) {
+        throw new Error('Pago con tarjeta no disponible en este momento.');
+    }
+    if (!stripeClient || !stripeCardElement) {
+        throw new Error('No se pudo inicializar el formulario de tarjeta.');
+    }
+
+    const cardholderName = (document.getElementById('cardholderName')?.value || '').trim();
+    if (cardholderName.length < 3) {
+        throw new Error('Ingresa el nombre del titular de la tarjeta.');
+    }
+
+    const intent = await createPaymentIntent(currentAppointment);
+    if (!intent.clientSecret || !intent.paymentIntentId) {
+        throw new Error('No se pudo iniciar el cobro con tarjeta.');
+    }
+
+    const result = await stripeClient.confirmCardPayment(intent.clientSecret, {
+        payment_method: {
+            card: stripeCardElement,
+            billing_details: {
+                name: cardholderName,
+                email: currentAppointment.email || undefined,
+                phone: currentAppointment.phone || undefined
+            }
+        }
+    });
+
+    if (result.error) {
+        throw new Error(result.error.message || 'No se pudo completar el pago con tarjeta.');
+    }
+
+    const paymentIntent = result.paymentIntent;
+    if (!paymentIntent || paymentIntent.status !== 'succeeded') {
+        throw new Error('El pago no fue confirmado por la pasarela.');
+    }
+
+    const verification = await verifyPaymentIntent(paymentIntent.id);
+    if (!verification.paid) {
+        throw new Error('No pudimos verificar el pago. Intenta nuevamente.');
+    }
+
+    const payload = {
+        ...currentAppointment,
+        paymentMethod: 'card',
+        paymentStatus: 'paid',
+        paymentProvider: 'stripe',
+        paymentIntentId: paymentIntent.id,
+        status: 'confirmed'
+    };
+
+    return createAppointmentRecord(payload, { allowLocalFallback: false });
+}
+
+async function processTransferPaymentFlow() {
+    const transferReference = (document.getElementById('transferReference')?.value || '').trim();
+    if (transferReference.length < 3) {
+        throw new Error('Ingresa el numero de referencia de la transferencia.');
+    }
+
+    const proofInput = document.getElementById('transferProofFile');
+    const proofFile = proofInput?.files && proofInput.files[0] ? proofInput.files[0] : null;
+    if (!proofFile) {
+        throw new Error('Adjunta el comprobante de transferencia.');
+    }
+    if (proofFile.size > 5 * 1024 * 1024) {
+        throw new Error('El comprobante supera el limite de 5 MB.');
+    }
+
+    const upload = await uploadTransferProof(proofFile);
+    const payload = {
+        ...currentAppointment,
+        paymentMethod: 'transfer',
+        paymentStatus: 'pending_transfer_review',
+        transferReference,
+        transferProofPath: upload.transferProofPath || '',
+        transferProofUrl: upload.transferProofUrl || '',
+        transferProofName: upload.transferProofName || '',
+        transferProofMime: upload.transferProofMime || '',
+        status: 'confirmed'
+    };
+
+    return createAppointmentRecord(payload, { allowLocalFallback: false });
+}
+
+async function processCashPaymentFlow() {
+    const payload = {
+        ...currentAppointment,
+        paymentMethod: 'cash',
+        paymentStatus: 'pending_cash',
+        status: 'confirmed'
+    };
+
+    return createAppointmentRecord(payload);
 }
 
 // Payment method selection
 document.addEventListener('DOMContentLoaded', function() {
     const paymentMethods = document.querySelectorAll('.payment-method');
     const paymentForms = document.querySelectorAll('.payment-form');
-    
+
     paymentMethods.forEach(method => {
         method.addEventListener('click', () => {
+            if (method.classList.contains('disabled')) {
+                showToast('Pago con tarjeta no disponible por el momento.', 'warning');
+                return;
+            }
+
             paymentMethods.forEach(m => m.classList.remove('active'));
             method.classList.add('active');
-            
+
             const methodType = method.dataset.method;
             paymentForms.forEach(form => form.style.display = 'none');
-            document.querySelector(`.${methodType}-form`).style.display = 'block';
+            const form = document.querySelector(`.${methodType}-form`);
+            if (form) {
+                form.style.display = 'block';
+            }
+            clearPaymentError();
+
+            if (methodType === 'card') {
+                mountStripeCardElement().catch(error => {
+                    setPaymentError(error?.message || 'No se pudo cargar el formulario de tarjeta');
+                });
+            }
         });
     });
+
+    const transferProofInput = document.getElementById('transferProofFile');
+    if (transferProofInput) {
+        transferProofInput.addEventListener('change', updateTransferProofFileName);
+    }
 });
 
 let isPaymentProcessing = false;
@@ -1009,6 +1309,7 @@ async function processPayment() {
     if (!btn) { isPaymentProcessing = false; return; }
 
     const originalContent = btn.innerHTML;
+    let paymentMethodUsed = 'cash';
 
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
@@ -1020,19 +1321,28 @@ async function processPayment() {
         }
 
         const paymentMethod = getActivePaymentMethod();
-        const payload = {
-            ...currentAppointment,
-            paymentMethod: paymentMethod,
-            paymentStatus: getPaymentStatusByMethod(paymentMethod),
-            status: 'confirmed'
-        };
+        paymentMethodUsed = paymentMethod;
+        clearPaymentError();
 
-        const result = await createAppointmentRecord(payload);
+        let result;
+        if (paymentMethod === 'card') {
+            result = await processCardPaymentFlow();
+        } else if (paymentMethod === 'transfer') {
+            result = await processTransferPaymentFlow();
+        } else {
+            result = await processCashPaymentFlow();
+        }
+
         currentAppointment = result.appointment;
 
         closePaymentModal();
         showSuccessModal(result.emailSent === true);
-        showToast('Cita registrada correctamente.', 'success');
+        showToast(
+            paymentMethod === 'card'
+                ? 'Pago aprobado y cita registrada.'
+                : 'Cita registrada correctamente.',
+            'success'
+        );
 
         const form = document.getElementById('appointmentForm');
         if (form) form.reset();
@@ -1040,7 +1350,14 @@ async function processPayment() {
         const summary = document.getElementById('priceSummary');
         if (summary) summary.style.display = 'none';
     } catch (error) {
-        const message = error?.message || 'No se pudo registrar la cita. Intenta nuevamente.';
+        let message = error?.message || 'No se pudo registrar la cita. Intenta nuevamente.';
+        if (
+            paymentMethodUsed === 'card'
+            && /horario ya fue reservado/i.test(message)
+        ) {
+            message = 'El pago fue aprobado, pero el horario acaba de ocuparse. Escribenos por WhatsApp para resolverlo de inmediato: +593 98 245 3672.';
+        }
+        setPaymentError(message);
         showToast(message, 'error');
     } finally {
         btn.disabled = false;
@@ -1084,7 +1401,7 @@ function showSuccessModal(emailSent = false) {
             <p style="margin-bottom: 8px;"><strong>${currentLang === 'es' ? 'Doctor:' : 'Doctor:'}</strong> ${escapeHtml(getDoctorName(appointment.doctor))}</p>
             <p style="margin-bottom: 8px;"><strong>${currentLang === 'es' ? 'Fecha:' : 'Date:'}</strong> ${escapeHtml(appointment.date || '-')}</p>
             <p style="margin-bottom: 8px;"><strong>${currentLang === 'es' ? 'Hora:' : 'Time:'}</strong> ${escapeHtml(appointment.time || '-')}</p>
-            <p style="margin-bottom: 8px;"><strong>${currentLang === 'es' ? 'Pago:' : 'Payment:'}</strong> ${escapeHtml(appointment.paymentStatus || 'pending')}</p>
+            <p style="margin-bottom: 8px;"><strong>${currentLang === 'es' ? 'Pago:' : 'Payment:'}</strong> ${escapeHtml(getPaymentMethodLabel(appointment.paymentMethod))} - ${escapeHtml(getPaymentStatusLabel(appointment.paymentStatus))}</p>
             <p><strong>${currentLang === 'es' ? 'Total:' : 'Total:'}</strong> ${escapeHtml(appointment.price || '$0.00')}</p>
         </div>
         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
@@ -1107,6 +1424,41 @@ function getDoctorName(doctor) {
         indiferente: 'Primera disponible'
     };
     return names[doctor] || doctor;
+}
+
+function getPaymentMethodLabel(method) {
+    const map = {
+        card: currentLang === 'es' ? 'Tarjeta' : 'Card',
+        transfer: currentLang === 'es' ? 'Transferencia' : 'Transfer',
+        cash: currentLang === 'es' ? 'Efectivo' : 'Cash',
+        unpaid: currentLang === 'es' ? 'Pendiente' : 'Pending'
+    };
+    const key = String(method || '').toLowerCase();
+    return map[key] || (method || map.unpaid);
+}
+
+function getPaymentStatusLabel(status) {
+    const es = {
+        paid: 'Pagado',
+        pending_cash: 'Pago en consultorio',
+        pending_transfer_review: 'Comprobante en validacion',
+        pending_transfer: 'Transferencia pendiente',
+        pending_gateway: 'Procesando pago',
+        pending: 'Pendiente',
+        failed: 'Fallido'
+    };
+    const en = {
+        paid: 'Paid',
+        pending_cash: 'Pay at clinic',
+        pending_transfer_review: 'Proof under review',
+        pending_transfer: 'Transfer pending',
+        pending_gateway: 'Processing payment',
+        pending: 'Pending',
+        failed: 'Failed'
+    };
+    const key = String(status || '').toLowerCase();
+    const map = currentLang === 'es' ? es : en;
+    return map[key] || (status || map.pending);
 }
 
 function generateGoogleCalendarUrl(appointment, startDate, endDate) {
@@ -1267,7 +1619,7 @@ document.addEventListener('DOMContentLoaded', function() {
             renderPublicReviews(reviewsCache);
 
             showToast(
-                currentLang === 'es' ? 'Gracias por tu rese?a.' : 'Thank you for your review.',
+                currentLang === 'es' ? 'Gracias por tu reseña.' : 'Thank you for your review.',
                 'success'
             );
 
@@ -1281,7 +1633,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             showToast(
                 currentLang === 'es'
-                    ? 'No pudimos guardar tu rese?a. Intenta nuevamente.'
+                    ? 'No pudimos guardar tu reseña. Intenta nuevamente.'
                     : 'We could not save your review. Try again.',
                 'error'
             );
@@ -2296,6 +2648,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const isServer = checkServerEnvironment();
 
     // Evitar llamadas iniciales innecesarias al backend durante la carga.
+    if (isServer) {
+        loadPaymentConfig()
+            .then(() => refreshCardPaymentAvailability())
+            .catch(() => undefined);
+    }
 
     if (!isServer) {
         console.warn('Chatbot en modo offline: abre el sitio desde servidor para usar IA real.');
