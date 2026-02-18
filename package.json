@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "test": "npx playwright test",
+    "test:php": "php tests/test_api_lib.php",
     "test:headed": "npx playwright test --headed",
     "test:ui": "npx playwright test --ui"
   },
