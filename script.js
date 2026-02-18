@@ -149,6 +149,72 @@ function loadDeferredModule(options) {
     return promise;
 }
 
+function isConstrainedNetworkConnection() {
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    return !!(connection && (
+        connection.saveData === true
+        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
+    ));
+}
+
+function scheduleDeferredTask(task, options = {}) {
+    const {
+        idleTimeout = 2000,
+        fallbackDelay = 1200,
+        skipOnConstrained = true,
+        constrainedDelay = fallbackDelay
+    } = options;
+
+    if (isConstrainedNetworkConnection()) {
+        if (skipOnConstrained) {
+            return false;
+        }
+        setTimeout(task, constrainedDelay);
+        return true;
+    }
+
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(task, { timeout: idleTimeout });
+    } else {
+        setTimeout(task, fallbackDelay);
+    }
+
+    return true;
+}
+
+function bindWarmupTarget(selector, eventName, handler, passive = true) {
+    const element = document.querySelector(selector);
+    if (!element) {
+        return false;
+    }
+
+    element.addEventListener(eventName, handler, { once: true, passive });
+    return true;
+}
+
+function createWarmupRunner(loadFn, options = {}) {
+    const markWarmOnSuccess = options.markWarmOnSuccess === true;
+    let warmed = false;
+
+    return function warmup() {
+        if (warmed || window.location.protocol === 'file:') {
+            return;
+        }
+
+        if (markWarmOnSuccess) {
+            Promise.resolve(loadFn()).then(() => {
+                warmed = true;
+            }).catch(() => undefined);
+            return;
+        }
+
+        warmed = true;
+        Promise.resolve(loadFn()).catch(() => {
+            warmed = false;
+        });
+    };
+}
+
 const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260218-deferred2';
 let deferredStylesheetPromise = null;
 let deferredStylesheetInitDone = false;
@@ -190,23 +256,12 @@ function initDeferredStylesheetLoading() {
         loadDeferredStylesheet().catch(() => undefined);
     };
 
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    const constrainedNetwork = !!(connection && (
-        connection.saveData === true
-        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
-    ));
-
-    if (constrainedNetwork) {
-        setTimeout(startLoad, 900);
-        return;
-    }
-
-    if (typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(startLoad, { timeout: 1200 });
-        return;
-    }
-
-    setTimeout(startLoad, 160);
+    scheduleDeferredTask(startLoad, {
+        idleTimeout: 1200,
+        fallbackDelay: 160,
+        skipOnConstrained: false,
+        constrainedDelay: 900
+    });
 }
 
 // ========================================
@@ -438,15 +493,7 @@ function loadBookingEngine() {
 }
 
 function initBookingEngineWarmup() {
-    let warmed = false;
-    const warmup = () => {
-        if (warmed || window.location.protocol === 'file:') {
-            return;
-        }
-        loadBookingEngine().then(() => {
-            warmed = true;
-        }).catch(() => undefined);
-    };
+    const warmup = createWarmupRunner(() => loadBookingEngine(), { markWarmOnSuccess: true });
 
     const selectors = [
         '.nav-cta[href="#citas"]',
@@ -454,29 +501,16 @@ function initBookingEngineWarmup() {
         '.hero-actions a[href="#citas"]'
     ];
 
-    selectors.forEach(selector => {
-        const element = document.querySelector(selector);
-        if (!element) return;
-        element.addEventListener('mouseenter', warmup, { once: true, passive: true });
-        element.addEventListener('focus', warmup, { once: true });
-        element.addEventListener('touchstart', warmup, { once: true, passive: true });
+    selectors.forEach((selector) => {
+        bindWarmupTarget(selector, 'mouseenter', warmup);
+        bindWarmupTarget(selector, 'focus', warmup, false);
+        bindWarmupTarget(selector, 'touchstart', warmup);
     });
 
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    const constrainedNetwork = !!(connection && (
-        connection.saveData === true
-        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
-    ));
-
-    if (constrainedNetwork) {
-        return;
-    }
-
-    if (typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(warmup, { timeout: 2500 });
-    } else {
-        setTimeout(warmup, 1100);
-    }
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 2500,
+        fallbackDelay: 1100
+    });
 }
 
 if (!VALID_THEME_MODES.has(currentThemeMode)) {
@@ -1518,16 +1552,7 @@ function loadGalleryInteractions() {
 }
 
 function initGalleryInteractionsWarmup() {
-    let warmed = false;
-    const warmup = () => {
-        if (warmed || window.location.protocol === 'file:') {
-            return;
-        }
-        warmed = true;
-        loadGalleryInteractions().catch(() => {
-            warmed = false;
-        });
-    };
+    const warmup = createWarmupRunner(() => loadGalleryInteractions());
 
     const gallerySection = document.getElementById('galeria');
     if (gallerySection && 'IntersectionObserver' in window) {
@@ -1556,21 +1581,10 @@ function initGalleryInteractionsWarmup() {
         return;
     }
 
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    const isConstrainedNetwork = !!(connection && (
-        connection.saveData === true
-        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
-    ));
-
-    if (isConstrainedNetwork) {
-        return;
-    }
-
-    if (typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(warmup, { timeout: 2500 });
-    } else {
-        setTimeout(warmup, 1500);
-    }
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 2500,
+        fallbackDelay: 1500
+    });
 }
 
 // ========================================
@@ -1613,16 +1627,7 @@ function loadBookingUi() {
 }
 
 function initBookingUiWarmup() {
-    let warmed = false;
-    const warmup = () => {
-        if (warmed || window.location.protocol === 'file:') {
-            return;
-        }
-        warmed = true;
-        loadBookingUi().catch(() => {
-            warmed = false;
-        });
-    };
+    const warmup = createWarmupRunner(() => loadBookingUi());
 
     const bookingSection = document.getElementById('citas');
     if (bookingSection && 'IntersectionObserver' in window) {
@@ -1651,21 +1656,10 @@ function initBookingUiWarmup() {
         return;
     }
 
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    const isConstrainedNetwork = !!(connection && (
-        connection.saveData === true
-        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
-    ));
-
-    if (isConstrainedNetwork) {
-        return;
-    }
-
-    if (typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(warmup, { timeout: 1800 });
-    } else {
-        setTimeout(warmup, 1100);
-    }
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 1800,
+        fallbackDelay: 1100
+    });
 }
 
 // ========================================
@@ -1747,44 +1741,16 @@ function loadSuccessModalEngine() {
 }
 
 function initSuccessModalEngineWarmup() {
-    let warmed = false;
-    const warmup = () => {
-        if (warmed || window.location.protocol === 'file:') {
-            return;
-        }
-        warmed = true;
-        loadSuccessModalEngine().catch(() => {
-            warmed = false;
-        });
-    };
+    const warmup = createWarmupRunner(() => loadSuccessModalEngine());
 
-    const bindWarmup = (selector, eventName, passive = true) => {
-        const element = document.querySelector(selector);
-        if (!element) {
-            return;
-        }
-        element.addEventListener(eventName, warmup, { once: true, passive });
-    };
+    bindWarmupTarget('#appointmentForm button[type="submit"]', 'pointerdown', warmup);
+    bindWarmupTarget('#appointmentForm button[type="submit"]', 'focus', warmup, false);
+    bindWarmupTarget('.payment-method', 'pointerdown', warmup);
 
-    bindWarmup('#appointmentForm button[type="submit"]', 'pointerdown');
-    bindWarmup('#appointmentForm button[type="submit"]', 'focus', false);
-    bindWarmup('.payment-method', 'pointerdown');
-
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    const isConstrainedNetwork = !!(connection && (
-        connection.saveData === true
-        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
-    ));
-
-    if (isConstrainedNetwork) {
-        return;
-    }
-
-    if (typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(warmup, { timeout: 2800 });
-    } else {
-        setTimeout(warmup, 1600);
-    }
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 2800,
+        fallbackDelay: 1600
+    });
 }
 
 function showSuccessModal(emailSent = false) {
@@ -1841,29 +1807,12 @@ function loadEngagementFormsEngine() {
 }
 
 function initEngagementFormsEngineWarmup() {
-    let warmed = false;
-    const warmup = () => {
-        if (warmed || window.location.protocol === 'file:') {
-            return;
-        }
-        warmed = true;
-        loadEngagementFormsEngine().catch(() => {
-            warmed = false;
-        });
-    };
+    const warmup = createWarmupRunner(() => loadEngagementFormsEngine());
 
-    const bindWarmup = (selector, eventName, passive = true) => {
-        const element = document.querySelector(selector);
-        if (!element) {
-            return;
-        }
-        element.addEventListener(eventName, warmup, { once: true, passive });
-    };
-
-    bindWarmup('#callbackForm', 'focusin', false);
-    bindWarmup('#callbackForm', 'pointerdown');
-    bindWarmup('#resenas [data-action="open-review-modal"]', 'mouseenter');
-    bindWarmup('#resenas [data-action="open-review-modal"]', 'touchstart');
+    bindWarmupTarget('#callbackForm', 'focusin', warmup, false);
+    bindWarmupTarget('#callbackForm', 'pointerdown', warmup);
+    bindWarmupTarget('#resenas [data-action="open-review-modal"]', 'mouseenter', warmup);
+    bindWarmupTarget('#resenas [data-action="open-review-modal"]', 'touchstart', warmup);
 
     if (document.getElementById('callbackForm')) {
         setTimeout(warmup, 120);
@@ -1883,21 +1832,10 @@ function initEngagementFormsEngineWarmup() {
         observer.observe(reviewSection);
     }
 
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    const isConstrainedNetwork = !!(connection && (
-        connection.saveData === true
-        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
-    ));
-
-    if (isConstrainedNetwork) {
-        return;
-    }
-
-    if (typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(warmup, { timeout: 2600 });
-    } else {
-        setTimeout(warmup, 1500);
-    }
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 2600,
+        fallbackDelay: 1500
+    });
 }
 
 function openReviewModal() {
@@ -1950,47 +1888,19 @@ function loadModalUxEngine() {
 }
 
 function initModalUxEngineWarmup() {
-    let warmed = false;
-    const warmup = () => {
-        if (warmed || window.location.protocol === 'file:') {
-            return;
-        }
-        warmed = true;
-        loadModalUxEngine().catch(() => {
-            warmed = false;
-        });
-    };
+    const warmup = createWarmupRunner(() => loadModalUxEngine());
 
-    const bindWarmup = (selector, eventName, passive = true) => {
-        const element = document.querySelector(selector);
-        if (!element) {
-            return;
-        }
-        element.addEventListener(eventName, warmup, { once: true, passive });
-    };
-
-    bindWarmup('.modal', 'pointerdown');
-    bindWarmup('.modal-close', 'pointerdown');
+    bindWarmupTarget('.modal', 'pointerdown', warmup);
+    bindWarmupTarget('.modal-close', 'pointerdown', warmup);
 
     if (document.querySelector('.modal')) {
         setTimeout(warmup, 180);
     }
 
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    const isConstrainedNetwork = !!(connection && (
-        connection.saveData === true
-        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
-    ));
-
-    if (isConstrainedNetwork) {
-        return;
-    }
-
-    if (typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(warmup, { timeout: 2200 });
-    } else {
-        setTimeout(warmup, 1200);
-    }
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 2200,
+        fallbackDelay: 1200
+    });
 }
 
 // ========================================
@@ -2486,46 +2396,18 @@ function loadChatBookingEngine() {
 }
 
 function initChatBookingEngineWarmup() {
-    let warmed = false;
-    const warmup = () => {
-        if (warmed || window.location.protocol === 'file:') {
-            return;
-        }
-        warmed = true;
-        loadChatBookingEngine().catch(() => {
-            warmed = false;
-        });
-    };
+    const warmup = createWarmupRunner(() => loadChatBookingEngine());
 
-    const bindWarmup = (selector, eventName, passive = true) => {
-        const element = document.querySelector(selector);
-        if (!element) {
-            return;
-        }
-        element.addEventListener(eventName, warmup, { once: true, passive });
-    };
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
+    bindWarmupTarget('#quickOptions [data-action="quick-message"][data-value="appointment"]', 'mouseenter', warmup);
+    bindWarmupTarget('#quickOptions [data-action="quick-message"][data-value="appointment"]', 'touchstart', warmup);
+    bindWarmupTarget('#chatInput', 'focus', warmup, false);
 
-    bindWarmup('#chatbotWidget .chatbot-toggle', 'mouseenter');
-    bindWarmup('#chatbotWidget .chatbot-toggle', 'touchstart');
-    bindWarmup('#quickOptions [data-action="quick-message"][data-value="appointment"]', 'mouseenter');
-    bindWarmup('#quickOptions [data-action="quick-message"][data-value="appointment"]', 'touchstart');
-    bindWarmup('#chatInput', 'focus', false);
-
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    const isConstrainedNetwork = !!(connection && (
-        connection.saveData === true
-        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
-    ));
-
-    if (isConstrainedNetwork) {
-        return;
-    }
-
-    if (typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(warmup, { timeout: 2600 });
-    } else {
-        setTimeout(warmup, 1700);
-    }
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 2600,
+        fallbackDelay: 1700
+    });
 }
 
 function startChatBooking() {
@@ -2596,45 +2478,16 @@ function loadFigoChatEngine() {
 }
 
 function initChatEngineWarmup() {
-    let warmed = false;
-    const markWarmed = () => {
-        warmed = true;
-    };
-    const warmup = () => {
-        if (warmed || window.location.protocol === 'file:') {
-            return;
-        }
-        loadFigoChatEngine().then(markWarmed).catch(() => undefined);
-    };
+    const warmup = createWarmupRunner(() => loadFigoChatEngine(), { markWarmOnSuccess: true });
 
-    const bindWarmup = (selector, eventName) => {
-        const element = document.querySelector(selector);
-        if (!element) {
-            return;
-        }
-        element.addEventListener(eventName, warmup, { once: true, passive: true });
-    };
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
+    bindWarmupTarget('#chatInput', 'focus', warmup);
 
-    bindWarmup('#chatbotWidget .chatbot-toggle', 'mouseenter');
-    bindWarmup('#chatbotWidget .chatbot-toggle', 'touchstart');
-    bindWarmup('#chatInput', 'focus');
-
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    const isConstrainedNetwork = !!(connection && (
-        connection.saveData === true
-        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
-    ));
-
-    if (isConstrainedNetwork) {
-        return;
-    }
-
-    const idleWarmup = () => warmup();
-    if (typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(idleWarmup, { timeout: 7000 });
-    } else {
-        setTimeout(idleWarmup, 7000);
-    }
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 7000,
+        fallbackDelay: 7000
+    });
 }
 
 const UI_EFFECTS_URL = '/ui-effects.js?v=figo-ui-20260218-phase4';
@@ -2654,42 +2507,19 @@ function loadUiEffects() {
 }
 
 function initUiEffectsWarmup() {
-    let warmed = false;
-    const warmup = () => {
-        if (warmed || window.location.protocol === 'file:') {
-            return;
-        }
-        warmed = true;
-        loadUiEffects().catch(() => {
-            warmed = false;
-        });
-    };
+    const warmup = createWarmupRunner(() => loadUiEffects());
 
-    const nav = document.querySelector('.nav');
-    if (nav) {
-        nav.addEventListener('mouseenter', warmup, { once: true, passive: true });
-        nav.addEventListener('touchstart', warmup, { once: true, passive: true });
-    }
+    bindWarmupTarget('.nav', 'mouseenter', warmup);
+    bindWarmupTarget('.nav', 'touchstart', warmup);
 
     const triggerOnce = () => warmup();
     window.addEventListener('scroll', triggerOnce, { once: true, passive: true });
     window.addEventListener('pointerdown', triggerOnce, { once: true, passive: true });
 
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    const isConstrainedNetwork = !!(connection && (
-        connection.saveData === true
-        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
-    ));
-
-    if (isConstrainedNetwork) {
-        return;
-    }
-
-    if (typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(warmup, { timeout: 1800 });
-    } else {
-        setTimeout(warmup, 1200);
-    }
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 1800,
+        fallbackDelay: 1200
+    });
 }
 async function processWithKimi(message) {
     try {
