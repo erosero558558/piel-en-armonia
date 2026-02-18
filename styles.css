@@ -5064,6 +5064,16 @@ html[data-theme='dark'] .metric-card span {
     color: #d2d2d7;
 }
 
+/* FIX: Hero content en modo oscuro */
+html[data-theme='dark'] .hero-content {
+    background: rgba(17, 24, 39, 0.85);
+    backdrop-filter: blur(20px);
+}
+
+html[data-theme='dark'] .hero-title span:not(.gradient-text) {
+    color: #f5f5f7;
+}
+
 @media (max-width: 900px) {
     .hero-bg-image {
         opacity: 0.22;
