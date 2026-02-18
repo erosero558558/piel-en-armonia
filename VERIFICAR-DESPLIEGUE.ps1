@@ -3,6 +3,7 @@ param(
     [switch]$RunSmoke,
     [switch]$AllowDegradedFigo,
     [switch]$AllowRecursiveFigo,
+    [switch]$RequireWebhookSecret,
     [int]$MaxHealthTimingMs = 2000
 )
 
@@ -374,10 +375,68 @@ try {
     }
 }
 
+$figoBackendUrl = "$base/figo-backend.php"
+try {
+    $figoBackendResp = Invoke-JsonGet -Url $figoBackendUrl
+    $figoBackendRequired = @('service', 'mode', 'provider', 'telegramConfigured', 'webhookSecretConfigured')
+    foreach ($field in $figoBackendRequired) {
+        if ($null -ne $figoBackendResp.Json.PSObject.Properties[$field]) {
+            Write-Host "[OK]  figo-backend incluye: $field"
+        } else {
+            Write-Host "[FAIL] figo-backend NO incluye: $field"
+            $results += [PSCustomObject]@{
+                Asset = "figo-backend-field:$field"
+                Match = $false
+                LocalHash = ''
+                RemoteHash = ''
+                RemoteUrl = $figoBackendUrl
+            }
+        }
+    }
+
+    $serviceName = [string]$figoBackendResp.Json.service
+    if ($serviceName -ne 'figo-backend') {
+        Write-Host "[FAIL] figo-backend service invalido: $serviceName"
+        $results += [PSCustomObject]@{
+            Asset = 'figo-backend-service'
+            Match = $false
+            LocalHash = 'figo-backend'
+            RemoteHash = $serviceName
+            RemoteUrl = $figoBackendUrl
+        }
+    }
+
+    $webhookSecretConfigured = $false
+    try {
+        $webhookSecretConfigured = [bool]($figoBackendResp.Json.webhookSecretConfigured)
+    } catch {
+        $webhookSecretConfigured = $false
+    }
+    if ($RequireWebhookSecret -and -not $webhookSecretConfigured) {
+        Write-Host "[FAIL] figo-backend webhookSecretConfigured=false"
+        $results += [PSCustomObject]@{
+            Asset = 'figo-backend-webhookSecretConfigured'
+            Match = $false
+            LocalHash = 'true'
+            RemoteHash = 'false'
+            RemoteUrl = $figoBackendUrl
+        }
+    }
+} catch {
+    Write-Host "[FAIL] No se pudo validar figo-backend.php GET: $($_.Exception.Message)"
+    $results += [PSCustomObject]@{
+        Asset = "figo-backend-endpoint"
+        Match = $false
+        LocalHash = ''
+        RemoteHash = ''
+        RemoteUrl = $figoBackendUrl
+    }
+}
+
 if ($RunSmoke) {
     Write-Host ""
     Write-Host "Ejecutando smoke..."
-    & .\SMOKE-PRODUCCION.ps1 -Domain $base -TestFigoPost -AllowDegradedFigo:$AllowDegradedFigo -AllowRecursiveFigo:$AllowRecursiveFigo
+    & .\SMOKE-PRODUCCION.ps1 -Domain $base -TestFigoPost -AllowDegradedFigo:$AllowDegradedFigo -AllowRecursiveFigo:$AllowRecursiveFigo -RequireWebhookSecret:$RequireWebhookSecret
 }
 
 $failed = ($results | Where-Object { -not $_.Match }).Count

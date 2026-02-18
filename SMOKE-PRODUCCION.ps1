@@ -3,6 +3,7 @@ param(
     [switch]$TestFigoPost,
     [switch]$AllowDegradedFigo,
     [switch]$AllowRecursiveFigo,
+    [switch]$RequireWebhookSecret,
     [int]$MaxHealthTimingMs = 2000
 )
 
@@ -160,6 +161,7 @@ $results += Invoke-Check -Name 'Reviews API' -Url "$base/api.php?resource=review
 $results += Invoke-Check -Name 'Availability API' -Url "$base/api.php?resource=availability"
 $results += Invoke-Check -Name 'Admin auth status' -Url "$base/admin-auth.php?action=status"
 $results += Invoke-Check -Name 'Figo chat GET' -Url "$base/figo-chat.php"
+$results += Invoke-Check -Name 'Figo backend GET' -Url "$base/figo-backend.php"
 
 if ($TestFigoPost) {
     $figoPayload = @{
@@ -185,6 +187,7 @@ $expectedStatusByName = @{
     'Availability API' = 200
     'Admin auth status' = 200
     'Figo chat GET' = 200
+    'Figo backend GET' = 200
 }
 if ($TestFigoPost) {
     $expectedStatusByName['Figo chat POST'] = 200
@@ -287,6 +290,32 @@ if ($null -ne $figoPostResult -and $figoPostResult.Ok) {
         }
     } catch {
         Write-Host "[FAIL] Figo chat POST no devolvio JSON valido"
+        $contractFailures += 1
+    }
+}
+
+$figoBackendGetResult = $results | Where-Object { $_.Name -eq 'Figo backend GET' } | Select-Object -First 1
+if ($null -ne $figoBackendGetResult -and $figoBackendGetResult.Ok) {
+    try {
+        $figoBackendJson = $figoBackendGetResult.Body | ConvertFrom-Json
+        foreach ($field in @('service', 'mode', 'provider', 'telegramConfigured', 'webhookSecretConfigured')) {
+            if ($null -eq $figoBackendJson.PSObject.Properties[$field]) {
+                Write-Host "[FAIL] Figo backend GET sin campo requerido: $field"
+                $contractFailures += 1
+            }
+        }
+
+        if ([string]$figoBackendJson.service -ne 'figo-backend') {
+            Write-Host "[FAIL] Figo backend GET service invalido: $($figoBackendJson.service)"
+            $contractFailures += 1
+        }
+
+        if ($RequireWebhookSecret -and -not [bool]$figoBackendJson.webhookSecretConfigured) {
+            Write-Host "[FAIL] Figo backend GET webhookSecretConfigured=false"
+            $contractFailures += 1
+        }
+    } catch {
+        Write-Host "[FAIL] Figo backend GET no devolvio JSON valido"
         $contractFailures += 1
     }
 }
