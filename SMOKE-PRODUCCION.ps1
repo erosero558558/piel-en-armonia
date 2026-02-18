@@ -25,6 +25,19 @@ $chatEngineAssetUrl = if ($chatEngineVersion -ne '') {
     "$base/chat-engine.js"
 }
 
+$deferredStylesVersion = ''
+if (Test-Path 'script.js') {
+    $deferredStylesMatch = [regex]::Match($scriptLocalRaw, "styles-deferred\.css\?v=([a-zA-Z0-9._-]+)")
+    if ($deferredStylesMatch.Success) {
+        $deferredStylesVersion = $deferredStylesMatch.Groups[1].Value
+    }
+}
+$deferredStylesAssetUrl = if ($deferredStylesVersion -ne '') {
+    "$base/styles-deferred.css?v=$deferredStylesVersion"
+} else {
+    "$base/styles-deferred.css"
+}
+
 function Invoke-Check {
     param(
         [string]$Name,
@@ -177,6 +190,7 @@ $results += Invoke-Check -Name 'Admin auth status' -Url "$base/admin-auth.php?ac
 $results += Invoke-Check -Name 'Figo chat GET' -Url "$base/figo-chat.php"
 $results += Invoke-Check -Name 'Figo backend GET' -Url "$base/figo-backend.php"
 $results += Invoke-Check -Name 'Chat engine asset' -Url $chatEngineAssetUrl
+$results += Invoke-Check -Name 'Deferred styles asset' -Url $deferredStylesAssetUrl
 
 if ($TestFigoPost) {
     $figoPayload = @{
@@ -204,6 +218,7 @@ $expectedStatusByName = @{
     'Figo chat GET' = 200
     'Figo backend GET' = 200
     'Chat engine asset' = 200
+    'Deferred styles asset' = 200
 }
 if ($TestFigoPost) {
     $expectedStatusByName['Figo chat POST'] = 200

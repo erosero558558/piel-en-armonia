@@ -170,6 +170,17 @@ $chatEngineRemoteUrl = if ($chatEngineVersion -ne '') {
     "$base/chat-engine.js"
 }
 
+$deferredStylesVersion = ''
+$deferredStylesMatch = [regex]::Match($localScriptTextForRefs, "styles-deferred\.css\?v=([a-zA-Z0-9._-]+)")
+if ($deferredStylesMatch.Success) {
+    $deferredStylesVersion = $deferredStylesMatch.Groups[1].Value
+}
+$deferredStylesRemoteUrl = if ($deferredStylesVersion -ne '') {
+    "$base/styles-deferred.css?v=$deferredStylesVersion"
+} else {
+    "$base/styles-deferred.css"
+}
+
 if ([regex]::IsMatch($remoteIndexRaw, '\son[a-z]+\s*=', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
     Write-Host "[FAIL] index remoto contiene event handlers inline (on*)"
     $results += [PSCustomObject]@{
@@ -239,6 +250,11 @@ $checks = @(
         Name = 'chat-engine.js'
         LocalPath = 'chat-engine.js'
         RemoteUrl = $chatEngineRemoteUrl
+    },
+    [PSCustomObject]@{
+        Name = 'styles-deferred.css'
+        LocalPath = 'styles-deferred.css'
+        RemoteUrl = $deferredStylesRemoteUrl
     }
 )
 foreach ($item in $checks) {

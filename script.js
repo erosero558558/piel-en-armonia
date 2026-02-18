@@ -71,6 +71,66 @@ function debugLog(...args) {
     }
 }
 
+const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260218-deferred1';
+let deferredStylesheetPromise = null;
+let deferredStylesheetInitDone = false;
+
+function loadDeferredStylesheet() {
+    if (document.querySelector('link[data-deferred-stylesheet="true"]')) {
+        return Promise.resolve(true);
+    }
+
+    if (deferredStylesheetPromise) {
+        return deferredStylesheetPromise;
+    }
+
+    deferredStylesheetPromise = new Promise((resolve, reject) => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = DEFERRED_STYLESHEET_URL;
+        link.dataset.deferredStylesheet = 'true';
+        link.onload = () => resolve(true);
+        link.onerror = () => reject(new Error('No se pudo cargar styles-deferred.css'));
+        document.head.appendChild(link);
+    }).catch((error) => {
+        deferredStylesheetPromise = null;
+        debugLog('Deferred stylesheet load failed:', error);
+        throw error;
+    });
+
+    return deferredStylesheetPromise;
+}
+
+function initDeferredStylesheetLoading() {
+    if (deferredStylesheetInitDone || window.location.protocol === 'file:') {
+        return;
+    }
+
+    deferredStylesheetInitDone = true;
+
+    const startLoad = () => {
+        loadDeferredStylesheet().catch(() => undefined);
+    };
+
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const constrainedNetwork = !!(connection && (
+        connection.saveData === true
+        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
+    ));
+
+    if (constrainedNetwork) {
+        setTimeout(startLoad, 900);
+        return;
+    }
+
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(startLoad, { timeout: 1200 });
+        return;
+    }
+
+    setTimeout(startLoad, 160);
+}
+
 // ========================================
 // TRANSLATIONS
 // ========================================
@@ -3683,6 +3743,7 @@ async function submitReschedule() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    initDeferredStylesheetLoading();
     initThemeMode();
     changeLanguage(currentLang);
     initCookieBanner();
