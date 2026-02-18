@@ -21,6 +21,7 @@ Fecha de ejecucion sugerida: completar al desplegar.
 - carpeta `uploads/transfer-proofs/` con permisos de escritura
 - carpeta `data/` con permisos de escritura
 - `figo-chat.php` disponible en el servidor
+- `figo-backend.php` disponible en el servidor (si usas backend local)
 
 2. Verifica variables de entorno:
 - `PIELARMONIA_ADMIN_PASSWORD`
@@ -39,6 +40,9 @@ Fecha de ejecucion sugerida: completar al desplegar.
 - opcional: `FIGO_CHAT_APIKEY_HEADER`
 - opcional: `FIGO_CHAT_APIKEY`
 - opcional: `FIGO_CHAT_DEGRADED_MODE`
+- opcional: `FIGO_TELEGRAM_BOT_TOKEN`
+- opcional: `FIGO_TELEGRAM_CHAT_ID`
+- recomendado: `FIGO_TELEGRAM_WEBHOOK_SECRET`
 - alternativa: `data/figo-config.json` con `endpoint`
 
 3. Verifica endpoint de salud:
@@ -134,6 +138,15 @@ Fecha de ejecucion sugerida: completar al desplegar.
 2. Chatbot en sitio:
 - Pregunta: `hola`
 - Esperado: respuesta valida del bot, sin errores de endpoint.
+
+2.1 Si usas backend local Telegram (`figo-backend.php`):
+- URL: `https://TU_DOMINIO/figo-backend.php`
+- Esperado GET: `ok=true`.
+- Esperado POST: respuesta en formato `chat.completion` con contenido util.
+
+2.2 Webhook Telegram:
+- Configura webhook hacia `https://TU_DOMINIO/figo-backend.php`.
+- En `getWebhookInfo`, `url` debe coincidir y `last_error_message` debe estar vacio.
 
 3. Si `figo-chat.php` falla temporalmente:
 - Esperado: chatbot sigue funcionando con fallback local (sin romper UI).

@@ -30,6 +30,11 @@
 // putenv('FIGO_CHAT_ENDPOINT=https://TU_BACKEND_FIGO/chat');
 // putenv('FIGO_CHAT_TOKEN=TOKEN_ROTADO_DESDE_BOTFATHER');
 // putenv('FIGO_CHAT_DEGRADED_MODE=true');
+// Si usas backend local (figo-backend.php) con puente Telegram:
+// putenv('FIGO_CHAT_ENDPOINT=https://pielarmonia.com/figo-backend.php');
+// putenv('FIGO_TELEGRAM_BOT_TOKEN=TOKEN_BOTFATHER_ROTADO');
+// putenv('FIGO_TELEGRAM_CHAT_ID=TU_CHAT_ID_TELEGRAM');
+// putenv('FIGO_TELEGRAM_WEBHOOK_SECRET=TOKEN_SECRETO_WEBHOOK');
 
 // ── Cron (recordatorios automáticos) ────────────────
 // putenv('PIELARMONIA_CRON_SECRET=un_token_secreto_largo');

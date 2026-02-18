@@ -20,10 +20,12 @@ Sube estos archivos a la raiz del hosting (`public_html` o equivalente):
 - `api-lib.php`
 - `admin-auth.php`
 - `figo-chat.php`
+- `figo-backend.php`
 - carpeta `data/` (con permisos de escritura)
 - `SMOKE-PRODUCCION.ps1`
 - `VERIFICAR-DESPLIEGUE.ps1`
 - `BENCH-API-PRODUCCION.ps1`
+- `CONFIGURAR-TELEGRAM-WEBHOOK.ps1`
 
 Notas:
 - El frontend ahora consume `figo-chat.php` para el chatbot IA.
@@ -51,6 +53,9 @@ Configura estas variables en tu hosting:
 - `FIGO_CHAT_APIKEY_HEADER` y `FIGO_CHAT_APIKEY` (opcionales, si tu backend usa API key custom)
 - `FIGO_CHAT_TIMEOUT_SECONDS` (opcional, default 20)
 - `FIGO_CHAT_DEGRADED_MODE` (opcional: `true` para devolver respuesta de emergencia desde backend)
+- `FIGO_TELEGRAM_BOT_TOKEN` (opcional, para puente/notificación Telegram en `figo-backend.php`)
+- `FIGO_TELEGRAM_CHAT_ID` (opcional, chat destino para notificaciones Telegram)
+- `FIGO_TELEGRAM_WEBHOOK_SECRET` (recomendado, valida peticiones webhook de Telegram)
 
 Importante:
 - Ya no existe fallback `admin123`, incluso en local.
@@ -84,6 +89,14 @@ Ejemplo de `data/figo-config.json`:
 3. Bot Figo:
 - `https://pielarmonia.com/figo-chat.php`
 - Validar diagnostico: `mode`, `recursiveConfigDetected`, `upstreamReachable`.
+
+3.1 Backend Figo local (opcional):
+- `https://pielarmonia.com/figo-backend.php`
+- Debe responder JSON con `ok: true` en GET.
+
+3.2 Configurar webhook Telegram (si quieres que @figo64_bot responda con el mismo motor):
+- `.\CONFIGURAR-TELEGRAM-WEBHOOK.ps1 -BotToken "TOKEN_ROTADO" -WebhookUrl "https://pielarmonia.com/figo-backend.php"`
+- Guarda el secret mostrado por el script en `FIGO_TELEGRAM_WEBHOOK_SECRET`.
 
 4. Sitio:
 - `https://pielarmonia.com/index.html`

@@ -63,6 +63,36 @@ function figo_extract_text(array $decoded, string $raw): string
     return trim($raw);
 }
 
+function figo_is_upstream_technical_fallback(string $content): bool
+{
+    $normalized = strtolower(trim($content));
+    if ($normalized === '') {
+        return false;
+    }
+
+    if (function_exists('iconv')) {
+        $ascii = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $normalized);
+        if (is_string($ascii) && $ascii !== '') {
+            $normalized = $ascii;
+        }
+    }
+
+    $signals = [
+        'estoy teniendo problemas tecnicos',
+        'contactanos directamente por whatsapp',
+        'te atenderemos personalmente'
+    ];
+
+    $matches = 0;
+    foreach ($signals as $signal) {
+        if (strpos($normalized, $signal) !== false) {
+            $matches++;
+        }
+    }
+
+    return $matches >= 2;
+}
+
 function figo_config_paths(): array
 {
     $paths = [];
@@ -679,6 +709,24 @@ if (!is_array($decoded)) {
 }
 
 $content = figo_extract_text($decoded, $rawResponse);
+if (figo_is_upstream_technical_fallback($content)) {
+    audit_log_event('figo.fallback', [
+        'reason' => 'upstream_technical_fallback',
+        'endpointHost' => $endpointDiagnostics['endpointHost']
+    ]);
+
+    $fallback = figo_finalize_completion(
+        figo_build_fallback_completion($model, $messages),
+        'degraded',
+        'fallback',
+        'upstream_technical_fallback',
+        true,
+        false,
+        $httpCode
+    );
+    $fallback['degraded'] = true;
+    json_response($fallback);
+}
 if ($content === '') {
     $content = 'En este momento no pude generar una respuesta. ¿Deseas que te conecte por WhatsApp?';
 }
@@ -708,3 +756,4 @@ json_response(figo_finalize_completion([
         'finish_reason' => 'stop'
         ]]
 ], 'live', 'upstream', '', true, false, $httpCode));
+
