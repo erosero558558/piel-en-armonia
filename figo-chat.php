@@ -379,7 +379,15 @@ $endpoint = figo_first_non_empty([
 ]);
 $endpointDiagnostics = figo_endpoint_diagnostics($endpoint);
 $recursiveConfigDetected = figo_is_recursive_endpoint($endpoint);
-$upstreamReachable = figo_probe_upstream($endpoint, 3);
+
+// OPTIMIZATION: Only probe upstream for diagnostics (GET), not for every message (POST).
+// For POST, we assume it's reachable and let the actual request handle failures.
+$upstreamReachable = null;
+$requestMethod = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+if ($requestMethod === 'GET') {
+    $upstreamReachable = figo_probe_upstream($endpoint, 3);
+}
+
 $diagnosticMode = (!$endpointDiagnostics['configured'] || $recursiveConfigDetected || $upstreamReachable === false)
     ? 'degraded'
     : 'live';
