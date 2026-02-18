@@ -48,6 +48,15 @@ function app_runtime_version(): string
         }
     }
 
+    $cacheFile = __DIR__ . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'app_version.txt';
+    if (is_file($cacheFile) && (time() - @filemtime($cacheFile)) < 3600) {
+        $cached = @file_get_contents($cacheFile);
+        if (is_string($cached) && trim($cached) !== '') {
+            $resolved = trim($cached);
+            return $resolved;
+        }
+    }
+
     $versionSources = [
         __DIR__ . DIRECTORY_SEPARATOR . 'index.html',
         __DIR__ . DIRECTORY_SEPARATOR . 'script.js',
@@ -72,6 +81,8 @@ function app_runtime_version(): string
     } else {
         $resolved = 'dev';
     }
+
+    @file_put_contents($cacheFile, $resolved, LOCK_EX);
 
     return $resolved;
 }
