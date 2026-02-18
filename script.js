@@ -162,6 +162,21 @@ const translations = {
         case_laser_desc: "Eliminación de lesiones vasculares",
         case_spots: "Eliminación de Manchas",
         case_spots_desc: "Tratamiento despigmentante",
+        showcase_eyebrow: "Dermatología avanzada",
+        showcase_title: "Tecnología que transforma tu piel.",
+        showcase_desc: "Combinamos ciencia y experiencia para ofrecerte los tratamientos más efectivos y personalizados del mercado.",
+        showcase_diag_eyebrow: "Diagnóstico",
+        showcase_diag_title: "Precisión en cada detalle.",
+        showcase_diag_desc: "Dermatoscopia digital y evaluación integral para un diagnóstico certero desde la primera consulta.",
+        showcase_clinic_eyebrow: "Instalaciones",
+        showcase_clinic_title: "Espacios pensados para ti.",
+        showcase_clinic_desc: "Un ambiente moderno, limpio y acogedor, equipado con la última tecnología en tratamientos dermatológicos.",
+        showcase_treat_eyebrow: "Tratamientos",
+        showcase_treat_title: "Resultados visibles desde la primera sesión.",
+        showcase_treat_desc: "Cada tratamiento es personalizado. Utilizamos protocolos basados en evidencia científica para garantizar los mejores resultados para tu tipo de piel.",
+        stat_satisfaction: "Satisfacción",
+        stat_years: "Años de experiencia",
+        stat_patients: "Pacientes atendidos",
         clinic_title: "Nuestro Consultorio",
         clinic_desc: "Ubicados en el corazón de Quito, contamos con instalaciones modernas y equipamiento de última generación para brindarte la mejor atención.",
         clinic_address_label: "Dirección",
@@ -235,6 +250,15 @@ const translations = {
         label_rating: "Calificación",
         label_review: "Tu experiencia",
         btn_submit_review: "Publicar Reseña",
+        legal_terms: "Terminos y Condiciones",
+        legal_privacy: "Politica de Privacidad",
+        legal_cookies: "Politica de Cookies",
+        legal_disclaimer: "Aviso de Responsabilidad Medica",
+        chat_disclaimer: "Este asistente ofrece orientacion general y no reemplaza una consulta medica profesional.",
+        cookie_banner_text: "Usamos cookies esenciales para seguridad y funcionamiento. Puedes aceptar o rechazar cookies opcionales.",
+        cookie_reject: "Rechazar",
+        cookie_accept: "Aceptar",
+        cookie_more: "Mas informacion",
         footer_tagline: "Dermatología especializada en Quito",
         footer_rights: "Todos los derechos reservados."
     },
@@ -325,6 +349,21 @@ const translations = {
         case_laser_desc: "Removal of vascular lesions",
         case_spots: "Spot Removal",
         case_spots_desc: "Depigmenting treatment",
+        showcase_eyebrow: "Advanced Dermatology",
+        showcase_title: "Technology that transforms your skin.",
+        showcase_desc: "We combine science and experience to offer you the most effective and personalized treatments on the market.",
+        showcase_diag_eyebrow: "Diagnosis",
+        showcase_diag_title: "Precision in every detail.",
+        showcase_diag_desc: "Digital dermatoscopy and comprehensive evaluation for an accurate diagnosis from the first consultation.",
+        showcase_clinic_eyebrow: "Facilities",
+        showcase_clinic_title: "Spaces designed for you.",
+        showcase_clinic_desc: "A modern, clean and welcoming environment, equipped with the latest technology in dermatological treatments.",
+        showcase_treat_eyebrow: "Treatments",
+        showcase_treat_title: "Visible results from the first session.",
+        showcase_treat_desc: "Each treatment is personalized. We use evidence-based protocols to guarantee the best results for your skin type.",
+        stat_satisfaction: "Satisfaction",
+        stat_years: "Years of experience",
+        stat_patients: "Patients treated",
         clinic_title: "Our Clinic",
         clinic_desc: "Located in the heart of Quito, we have modern facilities and state-of-the-art equipment to provide you with the best care.",
         clinic_address_label: "Address",
@@ -398,6 +437,15 @@ const translations = {
         label_rating: "Rating",
         label_review: "Your experience",
         btn_submit_review: "Submit Review",
+        legal_terms: "Terms and Conditions",
+        legal_privacy: "Privacy Policy",
+        legal_cookies: "Cookie Policy",
+        legal_disclaimer: "Medical Liability Notice",
+        chat_disclaimer: "This assistant provides general guidance and does not replace a professional medical consultation.",
+        cookie_banner_text: "We use essential cookies for security and operation. You can accept or reject optional cookies.",
+        cookie_reject: "Reject",
+        cookie_accept: "Accept",
+        cookie_more: "More information",
         footer_tagline: "Specialized dermatology in Quito",
         footer_rights: "All rights reserved."
     }
@@ -410,6 +458,9 @@ let currentThemeMode = localStorage.getItem(THEME_STORAGE_KEY) || 'system';
 const API_ENDPOINT = '/api.php';
 const CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
 const CLINIC_MAP_URL = 'https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D';
+const DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
+const DOCTOR_CAROLINA_EMAIL = 'caro93narvaez@gmail.com';
+const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
 const DEFAULT_PUBLIC_REVIEWS = [
     {
         id: 'google-jose-gancino',
@@ -431,7 +482,7 @@ const DEFAULT_PUBLIC_REVIEWS = [
         id: 'google-cris-lema',
         name: 'Cris Lema',
         rating: 5,
-        text: 'Reseña de 5 estrellas en Google.',
+        text: '',
         date: '2025-10-10T10:00:00-05:00',
         verified: true
     },
@@ -439,7 +490,7 @@ const DEFAULT_PUBLIC_REVIEWS = [
         id: 'google-camila-escobar',
         name: 'Camila Escobar',
         rating: 5,
-        text: 'Reseña de 5 estrellas en Google.',
+        text: '',
         date: '2025-02-01T10:00:00-05:00',
         verified: true
     }
@@ -516,6 +567,60 @@ function initThemeMode() {
     currentThemeMode = VALID_THEME_MODES.has(storedTheme) ? storedTheme : 'system';
     applyThemeMode(currentThemeMode);
     updateThemeButtons();
+}
+
+function getCookieConsent() {
+    try {
+        const raw = localStorage.getItem(COOKIE_CONSENT_KEY);
+        if (!raw) return '';
+        const parsed = JSON.parse(raw);
+        return typeof parsed?.status === 'string' ? parsed.status : '';
+    } catch (error) {
+        return '';
+    }
+}
+
+function setCookieConsent(status) {
+    const normalized = status === 'accepted' ? 'accepted' : 'rejected';
+    try {
+        localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({
+            status: normalized,
+            at: new Date().toISOString()
+        }));
+    } catch (error) {
+        // noop
+    }
+}
+
+function initCookieBanner() {
+    const banner = document.getElementById('cookieBanner');
+    if (!banner) return;
+
+    const consent = getCookieConsent();
+    if (consent === 'accepted' || consent === 'rejected') {
+        banner.classList.remove('active');
+    } else {
+        banner.classList.add('active');
+    }
+
+    const acceptBtn = document.getElementById('cookieAcceptBtn');
+    const rejectBtn = document.getElementById('cookieRejectBtn');
+
+    if (acceptBtn) {
+        acceptBtn.addEventListener('click', () => {
+            setCookieConsent('accepted');
+            banner.classList.remove('active');
+            showToast(currentLang === 'es' ? 'Preferencias de cookies guardadas.' : 'Cookie preferences saved.', 'success');
+        });
+    }
+
+    if (rejectBtn) {
+        rejectBtn.addEventListener('click', () => {
+            setCookieConsent('rejected');
+            banner.classList.remove('active');
+            showToast(currentLang === 'es' ? 'Solo se mantendran cookies esenciales.' : 'Only essential cookies will be kept.', 'info');
+        });
+    }
 }
 
 function handleSystemThemeChange() {
@@ -759,8 +864,9 @@ function mergePublicReviews(inputReviews) {
         if (!review || typeof review !== 'object') return;
         const name = String(review.name || '').trim().toLowerCase();
         const text = String(review.text || '').trim().toLowerCase();
-        const signature = `${name}|${text}`;
-        if (!name || !text || seen.has(signature)) return;
+        const date = String(review.date || '').trim();
+        const signature = `${name}|${text}|${date}`;
+        if (!name || seen.has(signature)) return;
         seen.add(signature);
         merged.push(review);
     };
@@ -827,7 +933,12 @@ function renderPublicReviews(reviews) {
     if (!grid || !Array.isArray(reviews) || reviews.length === 0) return;
 
     const topReviews = reviews.slice(0, 6);
-    grid.innerHTML = topReviews.map(review => `
+    grid.innerHTML = topReviews.map(review => {
+        const text = String(review.text || '').trim();
+        const textHtml = text !== ''
+            ? `<p class="review-text">"${escapeHtml(text)}"</p>`
+            : '';
+        return `
         <div class="review-card">
             <div class="review-header">
                 <div class="review-avatar">${escapeHtml(getInitials(review.name))}</div>
@@ -836,10 +947,23 @@ function renderPublicReviews(reviews) {
                     <div class="review-stars">${renderStars(review.rating)}</div>
                 </div>
             </div>
-            <p class="review-text">"${escapeHtml(review.text || '')}"</p>
+            ${textHtml}
             <span class="review-date">${getRelativeDateLabel(review.date)}</span>
         </div>
-    `).join('');
+    `;
+    }).join('');
+
+    // Actualizar promedio dinámico
+    const ratingNumber = document.querySelector('.rating-number');
+    if (ratingNumber && reviews.length > 0) {
+        const avg = reviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / reviews.length;
+        ratingNumber.textContent = avg.toFixed(1);
+
+        const starsContainer = document.querySelector('.rating-stars');
+        if (starsContainer) {
+            starsContainer.innerHTML = renderStars(Math.round(avg));
+        }
+    }
 
     const countLabel = document.querySelector('.rating-count');
     if (countLabel) {
@@ -852,7 +976,8 @@ function renderPublicReviews(reviews) {
 function changeLanguage(lang) {
     currentLang = lang;
     localStorage.setItem('language', lang);
-    
+    document.documentElement.lang = lang;
+
     // Update buttons
     document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.lang === lang);
@@ -964,11 +1089,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Touch support
-        handle.addEventListener('touchstart', () => isDragging = true);
+        handle.addEventListener('touchstart', (e) => { isDragging = true; e.preventDefault(); }, { passive: false });
         document.addEventListener('touchend', () => isDragging = false);
         document.addEventListener('touchmove', (e) => {
-            if (isDragging) updateSlider(e.touches[0].clientX);
-        });
+            if (isDragging) {
+                e.preventDefault();
+                updateSlider(e.touches[0].clientX);
+            }
+        }, { passive: false });
         
         // Click to move
         slider.addEventListener('click', (e) => {
@@ -1850,6 +1978,7 @@ INFORMACIÓN DE LA CLÍNICA:
 - Doctores: Dr. Javier Rosero (Dermatólogo Clínico) y Dra. Carolina Narváez (Dermatóloga Estética)
 - Dirección: ${CLINIC_ADDRESS}
 - Teléfono/WhatsApp: +593 98 245 3672
+- Contacto Dra. Carolina: ${DOCTOR_CAROLINA_PHONE} | ${DOCTOR_CAROLINA_EMAIL}
 - Horario: Lunes-Viernes 9:00-18:00, Sábados 9:00-13:00
 - Estacionamiento privado disponible
 
@@ -1927,13 +2056,13 @@ function toggleChatbot() {
             // Sugerir opciones rapidas
             setTimeout(function() {
                 var quickOptions = '<div class="chat-suggestions">';
-                quickOptions += '<button class="chat-suggestion-btn" onclick="sendQuickMessage(\'services\')">';
+                quickOptions += '<button class="chat-suggestion-btn" data-action="quick-message" data-value="services">';
                 quickOptions += '<i class="fas fa-stethoscope"></i> Ver servicios';
                 quickOptions += '</button>';
-                quickOptions += '<button class="chat-suggestion-btn" onclick="sendQuickMessage(\'appointment\')">';
+                quickOptions += '<button class="chat-suggestion-btn" data-action="quick-message" data-value="appointment">';
                 quickOptions += '<i class="fas fa-calendar-check"></i> Agendar cita';
                 quickOptions += '</button>';
-                quickOptions += '<button class="chat-suggestion-btn" onclick="sendQuickMessage(\'prices\')">';
+                quickOptions += '<button class="chat-suggestion-btn" data-action="quick-message" data-value="prices">';
                 quickOptions += '<i class="fas fa-tag"></i> Consultar precios';
                 quickOptions += '</button>';
                 quickOptions += '</div>';
@@ -2015,23 +2144,32 @@ function addUserMessage(text) {
 function sanitizeBotHtml(html) {
     const allowed = ['b', 'strong', 'i', 'em', 'br', 'p', 'ul', 'ol', 'li', 'a', 'div', 'button', 'input', 'span', 'small'];
     const allowedAttrs = {
-        'a': ['href', 'target', 'onclick', 'rel'],
-        'button': ['class', 'onclick'],
+        'a': ['href', 'target', 'rel'],
+        'button': ['class', 'data-action'],
         'div': ['class', 'style'],
-        'input': ['type', 'id', 'min', 'onchange', 'style', 'value'],
+        'input': ['type', 'id', 'min', 'style', 'value'],
         'i': ['class'],
         'span': ['class', 'style'],
         'small': ['class']
     };
+
+    // Convertir onclick inline a data-action antes de sanitizar
+    const safeHtml = html
+        .replace(/onclick="handleChatBookingSelection\('([^']+)'\)"/g, 'data-action="chat-booking" data-value="$1"')
+        .replace(/onclick="sendQuickMessage\('([^']+)'\)"/g, 'data-action="quick-message" data-value="$1"')
+        .replace(/onclick="handleChatDateSelect\(this\.value\)"/g, 'data-action="chat-date-select"')
+        .replace(/onclick="minimizeChatbot\(\)"/g, 'data-action="minimize-chat"')
+        .replace(/onclick="startChatBooking\(\)"/g, 'data-action="start-booking"');
+
     const div = document.createElement('div');
-    div.innerHTML = html;
+    div.innerHTML = safeHtml;
     div.querySelectorAll('script, style, iframe, object, embed').forEach(el => el.remove());
     div.querySelectorAll('*').forEach(el => {
         const tag = el.tagName.toLowerCase();
         if (!allowed.includes(tag)) {
             el.replaceWith(document.createTextNode(el.textContent));
         } else {
-            const keep = allowedAttrs[tag] || [];
+            const keep = [...(allowedAttrs[tag] || []), 'data-action', 'data-value'];
             Array.from(el.attributes).forEach(attr => {
                 if (!keep.includes(attr.name)) {
                     el.removeAttribute(attr.name);
@@ -2045,6 +2183,12 @@ function sanitizeBotHtml(html) {
                     el.setAttribute('rel', 'noopener noreferrer');
                 }
             }
+            // Eliminar cualquier atributo on* que haya pasado
+            Array.from(el.attributes).forEach(attr => {
+                if (attr.name.startsWith('on')) {
+                    el.removeAttribute(attr.name);
+                }
+            });
         }
     });
     return div.innerHTML;
@@ -2084,6 +2228,33 @@ function addBotMessage(html, showOfflineLabel = false) {
     chatHistory.push({ type: 'bot', text: safeHtml, time: new Date().toISOString() });
     try { localStorage.setItem('chatHistory', JSON.stringify(chatHistory)); } catch(e) {}
 }
+
+// Delegated event handler for sanitized chat actions (replaces inline onclick)
+document.addEventListener('click', function(e) {
+    const actionEl = e.target.closest('[data-action]');
+    if (!actionEl) return;
+    const action = actionEl.getAttribute('data-action');
+    const value = actionEl.getAttribute('data-value') || '';
+    switch (action) {
+        case 'chat-booking':
+            handleChatBookingSelection(value);
+            break;
+        case 'quick-message':
+            sendQuickMessage(value);
+            break;
+        case 'minimize-chat':
+            minimizeChatbot();
+            break;
+        case 'start-booking':
+            startChatBooking();
+            break;
+    }
+});
+document.addEventListener('change', function(e) {
+    if (e.target.closest('[data-action="chat-date-select"]')) {
+        handleChatDateSelect(e.target.value);
+    }
+});
 
 function showTypingIndicator() {
     const messagesContainer = document.getElementById('chatMessages');
@@ -2141,7 +2312,7 @@ function startChatBooking() {
     msg += '<strong>Paso 1/7:</strong> ¿Que servicio necesitas?<br><br>';
     msg += '<div class="chat-suggestions">';
     CHAT_SERVICES.forEach(s => {
-        msg += `<button class="chat-suggestion-btn" onclick="handleChatBookingSelection('${s.key}')">${escapeHtml(s.label)} (${s.price})</button>`;
+        msg += `<button class="chat-suggestion-btn" data-action="chat-booking" data-value="${s.key}">${escapeHtml(s.label)} (${s.price})</button>`;
     });
     msg += '</div>';
     addBotMessage(msg);
@@ -2189,7 +2360,7 @@ async function processChatBookingStep(userInput) {
             msg += '<strong>Paso 2/7:</strong> ¿Con que doctor prefieres?<br><br>';
             msg += '<div class="chat-suggestions">';
             CHAT_DOCTORS.forEach(d => {
-                msg += `<button class="chat-suggestion-btn" onclick="handleChatBookingSelection('${d.key}')">${escapeHtml(d.label)}</button>`;
+                msg += `<button class="chat-suggestion-btn" data-action="chat-booking" data-value="${d.key}">${escapeHtml(d.label)}</button>`;
             });
             msg += '</div>';
             addBotMessage(msg);
@@ -2210,7 +2381,7 @@ async function processChatBookingStep(userInput) {
             let msg = `Doctor: <strong>${escapeHtml(doctor.label)}</strong><br><br>`;
             msg += '<strong>Paso 3/7:</strong> ¿Que fecha prefieres?<br><br>';
             msg += `<input type="date" id="chatDateInput" min="${today}" `;
-            msg += `onchange="handleChatDateSelect(this.value)" `;
+            msg += `data-action="chat-date-select" `;
             msg += `style="padding: 10px 14px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 1rem; width: 100%; max-width: 220px; cursor: pointer;">`;
             addBotMessage(msg);
             break;
@@ -2246,7 +2417,7 @@ async function processChatBookingStep(userInput) {
                 if (freeSlots.length === 0) {
                     addBotMessage('No hay horarios disponibles para esa fecha. Por favor elige otra.<br><br>' +
                         `<input type="date" id="chatDateInput" min="${new Date().toISOString().split('T')[0]}" ` +
-                        `onchange="handleChatDateSelect(this.value)" ` +
+                        `data-action="chat-date-select" ` +
                         `style="padding: 10px 14px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 1rem; width: 100%; max-width: 220px;">`);
                     chatBooking.step = 'date';
                     return;
@@ -2257,7 +2428,7 @@ async function processChatBookingStep(userInput) {
                 msg += '<strong>Paso 4/7:</strong> Horarios disponibles:<br><br>';
                 msg += '<div class="chat-suggestions">';
                 freeSlots.forEach(time => {
-                    msg += `<button class="chat-suggestion-btn" onclick="handleChatBookingSelection('${time}')">${time}</button>`;
+                    msg += `<button class="chat-suggestion-btn" data-action="chat-booking" data-value="${time}">${time}</button>`;
                 });
                 msg += '</div>';
                 addBotMessage(msg);
@@ -2323,9 +2494,9 @@ async function processChatBookingStep(userInput) {
             msg += `• Telefono: ${escapeHtml(chatBooking.phone)}<br><br>`;
             msg += '¿Como deseas pagar?<br><br>';
             msg += '<div class="chat-suggestions">';
-            msg += '<button class="chat-suggestion-btn" onclick="handleChatBookingSelection(\'efectivo\')"><i class="fas fa-money-bill-wave"></i> Efectivo</button>';
-            msg += '<button class="chat-suggestion-btn" onclick="handleChatBookingSelection(\'tarjeta\')"><i class="fas fa-credit-card"></i> Tarjeta</button>';
-            msg += '<button class="chat-suggestion-btn" onclick="handleChatBookingSelection(\'transferencia\')"><i class="fas fa-university"></i> Transferencia</button>';
+            msg += '<button class="chat-suggestion-btn" data-action="chat-booking" data-value="efectivo"><i class="fas fa-money-bill-wave"></i> Efectivo</button>';
+            msg += '<button class="chat-suggestion-btn" data-action="chat-booking" data-value="tarjeta"><i class="fas fa-credit-card"></i> Tarjeta</button>';
+            msg += '<button class="chat-suggestion-btn" data-action="chat-booking" data-value="transferencia"><i class="fas fa-university"></i> Transferencia</button>';
             msg += '</div>';
             addBotMessage(msg);
             break;
@@ -2396,7 +2567,7 @@ async function finalizeChatBooking() {
             chatBooking = null;
         } catch (err) {
             removeTypingIndicator();
-            addBotMessage(`No se pudo registrar la cita: ${escapeHtml(err.message || 'Error desconocido')}. Intenta de nuevo o agenda desde <a href="#citas" onclick="minimizeChatbot()">el formulario</a>.`);
+            addBotMessage(`No se pudo registrar la cita: ${escapeHtml(err.message || 'Error desconocido')}. Intenta de nuevo o agenda desde <a href="#citas" data-action="minimize-chat">el formulario</a>.`);
             chatBooking.step = 'payment';
         }
     } else {
@@ -2449,7 +2620,7 @@ async function processWithKimi(message) {
 
     if (isOutOfScopeIntent(message)) {
         removeTypingIndicator();
-        addBotMessage(`Puedo ayudarte con temas de <strong>Piel en Armonía</strong> (servicios, precios, citas, pagos, horarios y ubicación).<br><br>Si deseas, te ayudo ahora con:<br>- <a href="#servicios" onclick="minimizeChatbot()">Servicios y tratamientos</a><br>- <a href="#citas" onclick="minimizeChatbot()">Reservar cita</a><br>- <a href="https://wa.me/593982453672" target="_blank">WhatsApp directo</a>`, false);
+        addBotMessage(`Puedo ayudarte con temas de <strong>Piel en Armonía</strong> (servicios, precios, citas, pagos, horarios y ubicación).<br><br>Si deseas, te ayudo ahora con:<br>- <a href="#servicios" data-action="minimize-chat">Servicios y tratamientos</a><br>- <a href="#citas" data-action="minimize-chat">Reservar cita</a><br>- <a href="https://wa.me/593982453672" target="_blank">WhatsApp directo</a>`, false);
         isProcessingMessage = false;
         return;
     }
@@ -2780,7 +2951,7 @@ Puedes consultarme sobre:<br>
 - Precios y formas de pago<br>
 - Agenda de citas y horarios<br>
 - Ubicacion y contacto<br><br>
-Si quieres, te llevo directo a <a href="#citas" onclick="minimizeChatbot()">Reservar Cita</a> o te conecto por <a href="https://wa.me/593982453672" target="_blank">WhatsApp</a>.`;
+Si quieres, te llevo directo a <a href="#citas" data-action="minimize-chat">Reservar Cita</a> o te conecto por <a href="https://wa.me/593982453672" target="_blank">WhatsApp</a>.`;
         addBotMessage(response, isOffline);
         return;
     }
@@ -2824,7 +2995,7 @@ Si quieres, te llevo directo a <a href="#citas" onclick="minimizeChatbot()">Rese
     else if (isPaymentIntent(normalizedMsg)) {
         response = `Asi puedes realizar tu pago en la web:<br><br>
 <strong>1) Reserva tu cita</strong><br>
-Ve a <a href="#citas" onclick="minimizeChatbot()">Reservar Cita</a>, completa tus datos y selecciona fecha/hora.<br><br>
+Ve a <a href="#citas" data-action="minimize-chat">Reservar Cita</a>, completa tus datos y selecciona fecha/hora.<br><br>
 
 <strong>2) Abre el modulo de pago</strong><br>
 Al enviar el formulario se abre la ventana de pago automaticamente.<br><br>
@@ -2892,6 +3063,7 @@ Especialista en detección temprana de cáncer de piel
 <strong>👩‍⚕️ Dra. Carolina Narváez</strong>
 Dermatóloga Estética
 Especialista en rejuvenecimiento facial y láser
+Contacto directo: ${DOCTOR_CAROLINA_PHONE} | ${DOCTOR_CAROLINA_EMAIL}
 
 Ambos están disponibles para consulta presencial y online.
 
@@ -2936,8 +3108,8 @@ Si tienes más dudas, no dudes en escribirme. También puedes contactarnos direc
 2) <strong>Reservar cita</strong><br>
 3) <strong>Pagos</strong><br><br>
 Tambien puedes ir directo:<br>
-- <a href="#servicios" onclick="minimizeChatbot()">Servicios</a><br>
-- <a href="#citas" onclick="minimizeChatbot()">Reservar Cita</a><br>
+- <a href="#servicios" data-action="minimize-chat">Servicios</a><br>
+- <a href="#citas" data-action="minimize-chat">Reservar Cita</a><br>
 - <a href="https://wa.me/593982453672" target="_blank">WhatsApp +593 98 245 3672</a>`;
     }
     
@@ -2962,22 +3134,6 @@ function formatMarkdown(text) {
 // ========================================
 // UTILIDADES DEL CHATBOT
 // ========================================
-function showBotServerHelp() {
-    const html = `
-        <div class="chat-suggestions" style="margin-top: 12px;">
-            <p style="color: #0a84ff; margin-bottom: 12px;">
-                <i class="fas fa-comments"></i>
-                Estoy aqui para ayudarte ahora mismo.
-            </p>
-            <p style="margin-bottom: 12px;">Si deseas atencion inmediata, abre WhatsApp.</p>
-            <button class="chat-suggestion-btn" onclick="window.open('https://wa.me/593982453672','_blank')">
-                <i class="fab fa-whatsapp"></i> Hablar por WhatsApp
-            </button>
-        </div>
-    `;
-    addBotMessage(html, true);
-}
-
 function resetConversation() {
     conversationContext = [];
     localStorage.removeItem('chatHistory');
@@ -3027,21 +3183,10 @@ function mostrarInfoDebug() {
     addBotMessage(msg);
 }
 
-async function testProxyConnection() {
-    try {
-        const response = await fetch(KIMI_CONFIG.apiUrl, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' }
-        });
-        return response.ok;
-    } catch (error) {
-        return false;
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function() {
     initThemeMode();
     changeLanguage(currentLang);
+    initCookieBanner();
     const isServer = checkServerEnvironment();
 
     // Evitar llamadas iniciales innecesarias al backend durante la carga.
