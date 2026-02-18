@@ -519,6 +519,7 @@ async function apiRequest(resource, options = {}) {
     const url = `${API_ENDPOINT}?${query.toString()}`;
     const requestInit = {
         method: method,
+        credentials: 'same-origin',
         headers: {
             'Accept': 'application/json'
         }
@@ -999,9 +1000,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+let isPaymentProcessing = false;
 async function processPayment() {
+    if (isPaymentProcessing) return;
+    isPaymentProcessing = true;
+
     const btn = document.querySelector('#paymentModal .btn-primary');
-    if (!btn) return;
+    if (!btn) { isPaymentProcessing = false; return; }
 
     const originalContent = btn.innerHTML;
 
@@ -1040,6 +1045,7 @@ async function processPayment() {
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalContent;
+        isPaymentProcessing = false;
     }
 }
 
@@ -1374,7 +1380,18 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 // CHATBOT CON FIGO
 // ========================================
 let chatbotOpen = false;
-let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+let chatHistory = (function() {
+    try {
+        const raw = localStorage.getItem('chatHistory');
+        const saved = raw ? JSON.parse(raw) : [];
+        const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+        const valid = saved.filter(m => m.time && new Date(m.time).getTime() > cutoff);
+        if (valid.length !== saved.length) {
+            try { localStorage.setItem('chatHistory', JSON.stringify(valid)); } catch(e) {}
+        }
+        return valid;
+    } catch(e) { return []; }
+})();
 let conversationContext = [];
 
 // CONFIGURACIÓN DE CHAT
@@ -1554,11 +1571,10 @@ function addUserMessage(text) {
     `;
     messagesContainer.appendChild(messageDiv);
     scrollToBottom();
-    
-    // Guardar en historial
+
     chatHistory.push({ type: 'user', text, time: new Date().toISOString() });
-    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-    
+    try { localStorage.setItem('chatHistory', JSON.stringify(chatHistory)); } catch(e) {}
+
     // Agregar al contexto de conversación (evitar duplicados)
     const lastMsg = conversationContext[conversationContext.length - 1];
     if (!lastMsg || lastMsg.role !== 'user' || lastMsg.content !== text) {
@@ -1566,14 +1582,41 @@ function addUserMessage(text) {
     }
 }
 
+function sanitizeBotHtml(html) {
+    const allowed = ['b', 'strong', 'i', 'em', 'br', 'p', 'ul', 'ol', 'li', 'a'];
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    div.querySelectorAll('script, style, iframe, object, embed').forEach(el => el.remove());
+    div.querySelectorAll('*').forEach(el => {
+        if (!allowed.includes(el.tagName.toLowerCase())) {
+            el.replaceWith(document.createTextNode(el.textContent));
+        } else {
+            Array.from(el.attributes).forEach(attr => {
+                if (el.tagName === 'A' && ['href', 'target', 'onclick'].includes(attr.name)) return;
+                el.removeAttribute(attr.name);
+            });
+            if (el.tagName === 'A') {
+                const href = el.getAttribute('href') || '';
+                if (!/^https?:\/\/|^#/.test(href)) el.removeAttribute('href');
+                if (href.startsWith('http')) {
+                    el.setAttribute('target', '_blank');
+                    el.setAttribute('rel', 'noopener noreferrer');
+                }
+            }
+        }
+    });
+    return div.innerHTML;
+}
+
 function addBotMessage(html, showOfflineLabel = false) {
     const messagesContainer = document.getElementById('chatMessages');
-    
-    // Verificar si el último mensaje es idéntico (evitar duplicados en UI)
+    const safeHtml = sanitizeBotHtml(html);
+
+    // Verificar si el ultimo mensaje es identico (evitar duplicados en UI)
     const lastMessage = messagesContainer.querySelector('.chat-message.bot:last-child');
     if (lastMessage) {
         const lastContent = lastMessage.querySelector('.message-content');
-        if (lastContent && lastContent.innerHTML === html) {
+        if (lastContent && lastContent.innerHTML === safeHtml) {
             debugLog('⚠️ Mensaje duplicado detectado, no se muestra');
             return;
         }
@@ -1590,14 +1633,14 @@ function addBotMessage(html, showOfflineLabel = false) {
     
     messageDiv.innerHTML = `
         <div class="message-avatar"><i class="fas fa-user-md"></i></div>
-        <div class="message-content">${offlineIndicator}${html}</div>
+        <div class="message-content">${offlineIndicator}${safeHtml}</div>
     `;
     messagesContainer.appendChild(messageDiv);
     scrollToBottom();
     
     // Guardar en historial
-    chatHistory.push({ type: 'bot', text: html, time: new Date().toISOString() });
-    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+    chatHistory.push({ type: 'bot', text: safeHtml, time: new Date().toISOString() });
+    try { localStorage.setItem('chatHistory', JSON.stringify(chatHistory)); } catch(e) {}
 }
 
 function showTypingIndicator() {
@@ -1804,15 +1847,30 @@ async function requestFigoCompletion(messages, overrides = {}, debugLabel = 'pri
         ...overrides
     };
 
-    const response = await fetch(KIMI_CONFIG.apiUrl + '?t=' + Date.now(), {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Cache-Control': 'no-cache'
-        },
-        body: JSON.stringify(payload)
-    });
+    const controller = new AbortController();
+    const timeoutMs = 9000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    let response;
+    try {
+        response = await fetch(KIMI_CONFIG.apiUrl + '?t=' + Date.now(), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Cache-Control': 'no-cache'
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal
+        });
+    } catch (error) {
+        if (error && error.name === 'AbortError') {
+            throw new Error('TIMEOUT');
+        }
+        throw error;
+    } finally {
+        clearTimeout(timeoutId);
+    }
 
     debugLog(`📡 Status (${debugLabel}):`, response.status);
 
@@ -1912,6 +1970,8 @@ Pregunta original del paciente: "${message}"`;
         
         // Mostrar error específico
         if (error.message.includes('HTTP 503')) {
+            processLocalResponse(message, false);
+        } else if (error.message.includes('TIMEOUT')) {
             processLocalResponse(message, false);
         } else if (error.message.includes('Failed to fetch')) {
             processLocalResponse(message, false);
@@ -2122,22 +2182,14 @@ Si tienes más dudas, no dudes en escribirme. También puedes contactarnos direc
     }
     // RESPUESTA POR DEFECTO
     else {
-        const intro = isOffline
-            ? 'Entiendo tu consulta. Como estoy en modo offline, te sugiero:'
-            : 'Entiendo tu consulta. Te comparto las opciones mas utiles:';
-
-        response = `${intro}
-
-<strong>Para información más detallada:</strong>
-📱 <a href="https://wa.me/593982453672" target="_blank">Escríbenos por WhatsApp</a>
-📞 <a href="tel:+593982453672">Llámanos: +593 98 245 3672</a>
-
-<strong>O visita estas secciones:</strong>
-• <a href="#servicios" onclick="minimizeChatbot()">Servicios</a> - Ver todos los tratamientos
-• <a href="#citas" onclick="minimizeChatbot()">Reservar Cita</a> - Agenda tu consulta
-• <a href="#consultorio" onclick="minimizeChatbot()">Ubicación</a> - Cómo llegar
-
-¿Hay algo más en lo que pueda orientarte?`;
+        response = `Puedo ayudarte mejor si eliges una opcion:<br><br>
+1) <strong>Servicios y precios</strong><br>
+2) <strong>Reservar cita</strong><br>
+3) <strong>Pagos</strong><br><br>
+Tambien puedes ir directo:<br>
+- <a href="#servicios" onclick="minimizeChatbot()">Servicios</a><br>
+- <a href="#citas" onclick="minimizeChatbot()">Reservar Cita</a><br>
+- <a href="https://wa.me/593982453672" target="_blank">WhatsApp +593 98 245 3672</a>`;
     }
     
     addBotMessage(response, isOffline);
@@ -2164,11 +2216,11 @@ function formatMarkdown(text) {
 function showBotServerHelp() {
     const html = `
         <div class="chat-suggestions" style="margin-top: 12px;">
-            <p style="color: #ff9500; margin-bottom: 12px;">
-                <i class="fas fa-exclamation-triangle"></i>
-                El bot Figo no esta disponible en este momento.
+            <p style="color: #0a84ff; margin-bottom: 12px;">
+                <i class="fas fa-comments"></i>
+                Estoy aqui para ayudarte ahora mismo.
             </p>
-            <p style="margin-bottom: 12px;">Verifica que <code>figo-chat.php</code> esté activo en el servidor.</p>
+            <p style="margin-bottom: 12px;">Si deseas atencion inmediata, abre WhatsApp.</p>
             <button class="chat-suggestion-btn" onclick="window.open('https://wa.me/593982453672','_blank')">
                 <i class="fab fa-whatsapp"></i> Hablar por WhatsApp
             </button>
@@ -2324,3 +2376,4 @@ if (document.readyState === 'loading') {
     initParallax();
     initNavbarScroll();
 }
+

@@ -523,18 +523,31 @@ function normalize_callback(array $callback): array
     ];
 }
 
+function get_service_price(string $service): string
+{
+    $prices = [
+        'consulta' => '$40.00',
+        'telefono' => '$25.00',
+        'video' => '$30.00',
+        'laser' => '$150.00',
+        'rejuvenecimiento' => '$120.00'
+    ];
+    return $prices[$service] ?? '$0.00';
+}
+
 function normalize_appointment(array $appointment): array
 {
+    $service = (string) ($appointment['service'] ?? '');
     return [
         'id' => isset($appointment['id']) ? (int) $appointment['id'] : (int) round(microtime(true) * 1000),
-        'service' => (string) ($appointment['service'] ?? ''),
+        'service' => $service,
         'doctor' => (string) ($appointment['doctor'] ?? ''),
         'date' => (string) ($appointment['date'] ?? ''),
         'time' => (string) ($appointment['time'] ?? ''),
         'name' => trim((string) ($appointment['name'] ?? '')),
         'email' => trim((string) ($appointment['email'] ?? '')),
         'phone' => sanitize_phone((string) ($appointment['phone'] ?? '')),
-        'price' => (string) ($appointment['price'] ?? '$0.00'),
+        'price' => get_service_price($service),
         'status' => map_appointment_status((string) ($appointment['status'] ?? 'confirmed')),
         'paymentMethod' => isset($appointment['paymentMethod']) ? (string) $appointment['paymentMethod'] : 'unpaid',
         'paymentStatus' => isset($appointment['paymentStatus']) ? (string) $appointment['paymentStatus'] : 'pending',

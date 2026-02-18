@@ -30,12 +30,6 @@ function figo_apply_cors(): void
         }
     }
 
-    $host = isset($_SERVER['HTTP_HOST']) ? trim((string) $_SERVER['HTTP_HOST']) : '';
-    if ($host !== '') {
-        $scheme = is_https_request() ? 'https' : 'http';
-        $allowed[] = $scheme . '://' . $host;
-    }
-
     $allowed[] = 'https://pielarmonia.com';
     $allowed[] = 'https://www.pielarmonia.com';
     $allowed = array_values(array_unique(array_filter($allowed)));
@@ -243,6 +237,9 @@ if ($method !== 'POST') {
     ], 405);
 }
 
+start_secure_session();
+require_rate_limit('figo-chat', 15, 60);
+
 $payload = require_json_body();
 $messages = isset($payload['messages']) && is_array($payload['messages'])
     ? $payload['messages']
@@ -345,7 +342,13 @@ $timeout = (int) figo_first_non_empty([
     isset($fileConfig['timeout']) ? (string) $fileConfig['timeout'] : ''
 ]);
 if ($timeout <= 0) {
-    $timeout = 20;
+    $timeout = 12;
+}
+if ($timeout < 5) {
+    $timeout = 5;
+}
+if ($timeout > 45) {
+    $timeout = 45;
 }
 
 if ($endpoint === '') {
@@ -386,7 +389,10 @@ curl_setopt_array($ch, [
     CURLOPT_HTTPHEADER => $headers,
     CURLOPT_POSTFIELDS => $encodedPayload,
     CURLOPT_TIMEOUT => $timeout,
-    CURLOPT_CONNECTTIMEOUT => 10
+    CURLOPT_CONNECTTIMEOUT => 10,
+    CURLOPT_SSL_VERIFYPEER => true,
+    CURLOPT_SSL_VERIFYHOST => 2,
+    CURLOPT_MAXFILESIZE => 1048576 // 1 MB limite de respuesta
 ]);
 
 $rawResponse = curl_exec($ch);
@@ -395,7 +401,7 @@ $curlErr = curl_error($ch);
 curl_close($ch);
 
 if (!is_string($rawResponse)) {
-    error_log('Piel en Armonia figo-chat cURL error: ' . $curlErr);
+    error_log('Piel en Armonia figo-chat: fallo conexion cURL (codigo: ' . $curlErr . ')');
     if (figo_degraded_mode_enabled()) {
         $fallback = figo_build_fallback_completion($model, $messages);
         $fallback['configured'] = true;
@@ -411,8 +417,7 @@ if (!is_string($rawResponse)) {
 }
 
 if ($httpCode >= 400) {
-    $snippet = trim(substr($rawResponse, 0, 240));
-    error_log('Piel en Armonia figo-chat upstream status ' . $httpCode . ': ' . $snippet);
+    error_log('Piel en Armonia figo-chat: upstream devolvio HTTP ' . $httpCode);
     if (figo_degraded_mode_enabled()) {
         $fallback = figo_build_fallback_completion($model, $messages);
         $fallback['configured'] = true;
