@@ -2026,38 +2026,110 @@ function closeReviewModal() {
     }).catch(() => undefined);
 }
 
-// MODAL CLOSE HANDLERS
+// MODAL CLOSE HANDLERS (DEFERRED MODULE)
 // ========================================
-document.addEventListener('DOMContentLoaded', function() {
-    // Close on backdrop click
-    document.querySelectorAll('.modal').forEach(modal => {
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                if (this.id === 'paymentModal') {
-                    closePaymentModal();
+const MODAL_UX_ENGINE_URL = '/modal-ux-engine.js?v=figo-modal-ux-20260218-phase1';
+let modalUxEnginePromise = null;
+
+function getModalUxEngineDeps() {
+    return {
+        closePaymentModal,
+        toggleMobileMenu
+    };
+}
+
+function loadModalUxEngine() {
+    if (window.PielModalUxEngine && typeof window.PielModalUxEngine.init === 'function') {
+        window.PielModalUxEngine.init(getModalUxEngineDeps());
+        return Promise.resolve(window.PielModalUxEngine);
+    }
+
+    if (modalUxEnginePromise) {
+        return modalUxEnginePromise;
+    }
+
+    modalUxEnginePromise = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-modal-ux-engine="true"]');
+        if (existing) {
+            existing.addEventListener('load', () => {
+                if (window.PielModalUxEngine && typeof window.PielModalUxEngine.init === 'function') {
+                    window.PielModalUxEngine.init(getModalUxEngineDeps());
+                    resolve(window.PielModalUxEngine);
                     return;
                 }
-                this.classList.remove('active');
-                document.body.style.overflow = '';
-            }
-        });
-    });
-    
-    // Close on Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            document.querySelectorAll('.modal').forEach(modal => {
-                if (modal.id === 'paymentModal' && modal.classList.contains('active')) {
-                    closePaymentModal();
-                    return;
-                }
-                modal.classList.remove('active');
-            });
-            document.body.style.overflow = '';
-            toggleMobileMenu(false);
+                reject(new Error('modal-ux-engine loaded without API'));
+            }, { once: true });
+            existing.addEventListener('error', () => reject(new Error('No se pudo cargar modal-ux-engine.js')), { once: true });
+            return;
         }
+
+        const script = document.createElement('script');
+        script.src = MODAL_UX_ENGINE_URL;
+        script.async = true;
+        script.defer = true;
+        script.dataset.modalUxEngine = 'true';
+        script.onload = () => {
+            if (window.PielModalUxEngine && typeof window.PielModalUxEngine.init === 'function') {
+                window.PielModalUxEngine.init(getModalUxEngineDeps());
+                resolve(window.PielModalUxEngine);
+                return;
+            }
+            reject(new Error('modal-ux-engine loaded without API'));
+        };
+        script.onerror = () => reject(new Error('No se pudo cargar modal-ux-engine.js'));
+        document.head.appendChild(script);
+    }).catch((error) => {
+        modalUxEnginePromise = null;
+        debugLog('Modal UX engine load failed:', error);
+        throw error;
     });
-});
+
+    return modalUxEnginePromise;
+}
+
+function initModalUxEngineWarmup() {
+    let warmed = false;
+    const warmup = () => {
+        if (warmed || window.location.protocol === 'file:') {
+            return;
+        }
+        warmed = true;
+        loadModalUxEngine().catch(() => {
+            warmed = false;
+        });
+    };
+
+    const bindWarmup = (selector, eventName, passive = true) => {
+        const element = document.querySelector(selector);
+        if (!element) {
+            return;
+        }
+        element.addEventListener(eventName, warmup, { once: true, passive });
+    };
+
+    bindWarmup('.modal', 'pointerdown');
+    bindWarmup('.modal-close', 'pointerdown');
+
+    if (document.querySelector('.modal')) {
+        setTimeout(warmup, 180);
+    }
+
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const isConstrainedNetwork = !!(connection && (
+        connection.saveData === true
+        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
+    ));
+
+    if (isConstrainedNetwork) {
+        return;
+    }
+
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(warmup, { timeout: 2200 });
+    } else {
+        setTimeout(warmup, 1200);
+    }
+}
 
 // ========================================
 // SMOOTH SCROLL
@@ -3035,6 +3107,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initRescheduleEngineWarmup();
     initSuccessModalEngineWarmup();
     initEngagementFormsEngineWarmup();
+    initModalUxEngineWarmup();
     const chatInput = document.getElementById('chatInput');
     if (chatInput) {
         chatInput.addEventListener('keypress', handleChatKeypress);

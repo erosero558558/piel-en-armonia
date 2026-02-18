@@ -166,6 +166,19 @@ $engagementFormsEngineAssetUrl = if ($engagementFormsEngineVersion -ne '') {
     "$base/engagement-forms-engine.js"
 }
 
+$modalUxEngineVersion = ''
+if (Test-Path 'script.js') {
+    $modalUxEngineMatch = [regex]::Match($scriptLocalRaw, "modal-ux-engine\.js\?v=([a-zA-Z0-9._-]+)")
+    if ($modalUxEngineMatch.Success) {
+        $modalUxEngineVersion = $modalUxEngineMatch.Groups[1].Value
+    }
+}
+$modalUxEngineAssetUrl = if ($modalUxEngineVersion -ne '') {
+    "$base/modal-ux-engine.js?v=$modalUxEngineVersion"
+} else {
+    "$base/modal-ux-engine.js"
+}
+
 $uiEffectsVersion = ''
 if (Test-Path 'script.js') {
     $uiEffectsMatch = [regex]::Match($scriptLocalRaw, "ui-effects\.js\?v=([a-zA-Z0-9._-]+)")
@@ -351,6 +364,7 @@ $results += Invoke-Check -Name 'Booking UI asset' -Url $bookingUiAssetUrl
 $results += Invoke-Check -Name 'Chat booking engine asset' -Url $chatBookingEngineAssetUrl
 $results += Invoke-Check -Name 'Success modal engine asset' -Url $successModalEngineAssetUrl
 $results += Invoke-Check -Name 'Engagement forms engine asset' -Url $engagementFormsEngineAssetUrl
+$results += Invoke-Check -Name 'Modal UX engine asset' -Url $modalUxEngineAssetUrl
 $results += Invoke-Check -Name 'Reschedule engine asset' -Url $rescheduleEngineAssetUrl
 $results += Invoke-Check -Name 'UI effects asset' -Url $uiEffectsAssetUrl
 $results += Invoke-Check -Name 'Gallery interactions asset' -Url $galleryInteractionsAssetUrl
@@ -390,6 +404,7 @@ $expectedStatusByName = @{
     'Chat booking engine asset' = 200
     'Success modal engine asset' = 200
     'Engagement forms engine asset' = 200
+    'Modal UX engine asset' = 200
     'Reschedule engine asset' = 200
     'UI effects asset' = 200
     'Gallery interactions asset' = 200
@@ -432,6 +447,7 @@ try {
         @{ Name = 'Chat booking engine asset'; Url = $chatBookingEngineAssetUrl },
         @{ Name = 'Success modal engine asset'; Url = $successModalEngineAssetUrl },
         @{ Name = 'Engagement forms engine asset'; Url = $engagementFormsEngineAssetUrl },
+        @{ Name = 'Modal UX engine asset'; Url = $modalUxEngineAssetUrl },
         @{ Name = 'Reschedule engine asset'; Url = $rescheduleEngineAssetUrl },
         @{ Name = 'UI effects asset'; Url = $uiEffectsAssetUrl },
         @{ Name = 'Gallery interactions asset'; Url = $galleryInteractionsAssetUrl }
