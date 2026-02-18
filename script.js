@@ -260,18 +260,18 @@ const translations = {
         label_transfer_ref: "Número de referencia",
         cash_info: "Paga directamente en el consultorio el día de tu cita.",
         payment_total: "Total a pagar:",
-        payment_trust_ssl: "Conexion segura SSL/TLS",
+        payment_trust_ssl: "Conexión segura SSL/TLS",
         payment_trust_stripe: "Cobro protegido con Stripe",
-        payment_trust_invoice: "Facturacion y soporte por WhatsApp",
+        payment_trust_invoice: "Facturación y soporte por WhatsApp",
         payment_faq_title: "Preguntas frecuentes de pago",
         payment_faq_refund_q: "Reembolsos y cancelaciones",
-        payment_faq_refund_a: "Si cancelas con anticipacion, coordinamos reembolso o saldo a favor segun el caso clinico y terminos vigentes.",
-        payment_faq_reschedule_q: "Reprogramacion de citas",
+        payment_faq_refund_a: "Si cancelas con anticipación, coordinamos reembolso o saldo a favor según el caso clínico y términos vigentes.",
+        payment_faq_reschedule_q: "Reprogramación de citas",
         payment_faq_reschedule_a: "Puedes reprogramar sin costo en horarios disponibles. Si ya pagaste, tu pago se mantiene para la nueva fecha.",
-        payment_faq_billing_q: "Facturacion",
-        payment_faq_billing_a: "Emitimos comprobante/factura con los datos enviados en la reserva. Si necesitas ajuste, escribenos por WhatsApp.",
-        payment_faq_include_q: "Que incluye cada servicio",
-        payment_faq_include_a: "Cada servicio indica valor base y tipo de atencion. Si requiere procedimientos adicionales, se informa antes de confirmar.",
+        payment_faq_billing_q: "Facturación",
+        payment_faq_billing_a: "Emitimos comprobante/factura con los datos enviados en la reserva. Si necesitas ajuste, escríbenos por WhatsApp.",
+        payment_faq_include_q: "Qué incluye cada servicio",
+        payment_faq_include_a: "Cada servicio indica valor base y tipo de atención. Si requiere procedimientos adicionales, se informa antes de confirmar.",
         btn_pay: "Confirmar Reserva",
         success_title: "¡Cita Confirmada!",
         success_desc: "Tu cita fue registrada correctamente.",
@@ -287,16 +287,16 @@ const translations = {
         label_rating: "Calificación",
         label_review: "Tu experiencia",
         btn_submit_review: "Publicar Reseña",
-        legal_terms: "Terminos y Condiciones",
-        legal_privacy: "Politica de Privacidad",
-        legal_cookies: "Politica de Cookies",
-        legal_disclaimer: "Aviso de Responsabilidad Medica",
+        legal_terms: "Términos y Condiciones",
+        legal_privacy: "Política de Privacidad",
+        legal_cookies: "Política de Cookies",
+        legal_disclaimer: "Aviso de Responsabilidad Médica",
         chat_disclaimer: "Este asistente ofrece orientacion general y no reemplaza una consulta medica profesional.",
         cookie_banner_text: "Usamos cookies esenciales para seguridad y funcionamiento. Puedes aceptar o rechazar cookies opcionales.",
         cookie_reject: "Rechazar",
         cookie_accept: "Aceptar",
-        cookie_more: "Mas informacion",
-        footer_privacy_note: "Si compartes fotos por web o WhatsApp, se usan solo para orientacion clinica y gestion de tu cita.",
+        cookie_more: "Más información",
+        footer_privacy_note: "Si compartes fotos por web o WhatsApp, se usan solo para orientación clínica y gestión de tu cita.",
         footer_tagline: "Dermatología especializada en Quito",
         footer_rights: "Todos los derechos reservados."
     },
@@ -583,6 +583,7 @@ let stripeClient = null;
 let stripeElements = null;
 let stripeCardElement = null;
 let stripeMounted = false;
+let stripeSdkPromise = null;
 const LOCAL_FALLBACK_ENABLED = window.location.protocol === 'file:';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let themeTransitionTimer = null;
@@ -788,6 +789,36 @@ async function loadPaymentConfig() {
         paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
     }
     return paymentConfig;
+}
+
+async function loadStripeSdk() {
+    if (typeof window.Stripe === 'function') {
+        return true;
+    }
+
+    if (stripeSdkPromise) {
+        return stripeSdkPromise;
+    }
+
+    stripeSdkPromise = new Promise((resolve, reject) => {
+        const existingScript = document.querySelector('script[data-stripe-sdk="true"]');
+        if (existingScript) {
+            existingScript.addEventListener('load', () => resolve(true), { once: true });
+            existingScript.addEventListener('error', () => reject(new Error('No se pudo cargar Stripe SDK')), { once: true });
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://js.stripe.com/v3/';
+        script.async = true;
+        script.defer = true;
+        script.dataset.stripeSdk = 'true';
+        script.onload = () => resolve(true);
+        script.onerror = () => reject(new Error('No se pudo cargar Stripe SDK'));
+        document.head.appendChild(script);
+    });
+
+    return stripeSdkPromise;
 }
 
 async function createPaymentIntent(appointment) {
@@ -1505,9 +1536,21 @@ function setCardMethodEnabled(enabled) {
 
 async function refreshCardPaymentAvailability() {
     const config = await loadPaymentConfig();
-    const enabled = config.enabled === true && typeof window.Stripe === 'function';
-    setCardMethodEnabled(enabled);
+    const gatewayEnabled = config.enabled === true && String(config.provider || '').toLowerCase() === 'stripe';
+    if (!gatewayEnabled) {
+        setCardMethodEnabled(false);
+        return false;
+    }
 
+    try {
+        await loadStripeSdk();
+    } catch (error) {
+        setCardMethodEnabled(false);
+        return false;
+    }
+
+    const enabled = typeof window.Stripe === 'function';
+    setCardMethodEnabled(enabled);
     if (!enabled) {
         return false;
     }
@@ -1683,7 +1726,7 @@ document.addEventListener('DOMContentLoaded', function() {
             clearPaymentError();
 
             if (methodType === 'card') {
-                mountStripeCardElement().catch(error => {
+                refreshCardPaymentAvailability().catch(error => {
                     setPaymentError(error?.message || 'No se pudo cargar el formulario de tarjeta');
                 });
             }
@@ -1816,7 +1859,7 @@ function showSuccessModal(emailSent = false) {
 function getDoctorName(doctor) {
     const names = {
         rosero: 'Dr. Javier Rosero',
-        narvaez: 'Dra. Carolina Narvaez',
+        narvaez: 'Dra. Carolina Narváez',
         indiferente: 'Primera disponible'
     };
     return names[doctor] || doctor;
@@ -2063,49 +2106,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ========================================
-// SCROLL ANIMATIONS
-// ========================================
-document.addEventListener('DOMContentLoaded', function() {
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-    
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('active');
-            }
-        });
-    }, observerOptions);
-    
-    document.querySelectorAll('.service-card, .tele-card, .team-card, .gallery-item, .review-card').forEach(el => {
-        el.classList.add('reveal');
-        observer.observe(el);
-    });
-});
-
-// ========================================
-// NAVBAR SCROLL
-// ========================================
-let lastScroll = 0;
-const nav = document.querySelector('.nav');
-
-window.addEventListener('scroll', () => {
-    const currentScroll = window.pageYOffset;
-    
-    if (currentScroll > 100) {
-        nav.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.08)';
-    } else {
-        nav.style.boxShadow = 'none';
-    }
-    
-    lastScroll = currentScroll;
-});
-
-// ========================================
 // SMOOTH SCROLL
 // ========================================
+const nav = document.querySelector('.nav');
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function(e) {
         const href = this.getAttribute('href');
@@ -2113,7 +2116,7 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             e.preventDefault();
             const target = document.querySelector(href);
             if (target) {
-                const navHeight = nav.offsetHeight;
+                const navHeight = nav ? nav.offsetHeight : 0;
                 const targetPosition = target.offsetTop - navHeight - 20;
                 window.scrollTo({
                     top: targetPosition,
@@ -2497,7 +2500,7 @@ const CHAT_SERVICES = [
 
 const CHAT_DOCTORS = [
     { key: 'rosero', label: 'Dr. Javier Rosero' },
-    { key: 'narvaez', label: 'Dra. Carolina Narvaez' },
+    { key: 'narvaez', label: 'Dra. Carolina Narváez' },
     { key: 'indiferente', label: 'Cualquiera' }
 ];
 
@@ -3385,13 +3388,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initCookieBanner();
     const isServer = checkServerEnvironment();
 
-    // Evitar llamadas iniciales innecesarias al backend durante la carga.
-    if (isServer) {
-        loadPaymentConfig()
-            .then(() => refreshCardPaymentAvailability())
-            .catch(() => undefined);
-    }
-
     if (!isServer) {
         console.warn('Chatbot en modo offline: abre el sitio desde servidor para usar IA real.');
     }
@@ -3429,6 +3425,8 @@ function initScrollAnimations() {
 function initParallax() {
     const heroImage = document.querySelector('.hero-image-container');
     if (!heroImage) return;
+    if (window.innerWidth < 1100) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     
     let ticking = false;
     
@@ -3436,7 +3434,7 @@ function initParallax() {
         if (!ticking) {
             window.requestAnimationFrame(() => {
                 const scrolled = window.pageYOffset;
-                const rate = scrolled * 0.3;
+                const rate = Math.min(80, scrolled * 0.12);
                 heroImage.style.transform = `translateY(calc(-50% + ${rate}px))`;
                 ticking = false;
             });
@@ -3449,26 +3447,49 @@ function initParallax() {
 function initNavbarScroll() {
     const nav = document.querySelector('.nav');
     if (!nav) return;
-    
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 50) {
-            nav.classList.add('scrolled');
-        } else {
-            nav.classList.remove('scrolled');
+
+    let ticking = false;
+    let isScrolled = false;
+
+    const applyScrollState = () => {
+        const shouldBeScrolled = window.scrollY > 50;
+        if (shouldBeScrolled !== isScrolled) {
+            nav.classList.toggle('scrolled', shouldBeScrolled);
+            isScrolled = shouldBeScrolled;
         }
+        ticking = false;
+    };
+
+    window.addEventListener('scroll', () => {
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(applyScrollState);
     }, { passive: true });
+
+    applyScrollState();
 }
 
 // Inicializar animaciones cuando el DOM esté listo
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+function initDeferredVisualEffects() {
+    const run = () => {
         initScrollAnimations();
         initParallax();
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(run, { timeout: 1200 });
+    } else {
+        setTimeout(run, 180);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
         initNavbarScroll();
+        initDeferredVisualEffects();
     });
 } else {
-    initScrollAnimations();
-    initParallax();
     initNavbarScroll();
+    initDeferredVisualEffects();
 }
 

@@ -477,6 +477,13 @@ if ($method === 'POST' && $resource === 'appointments') {
         ], 400);
     }
 
+    if (!isset($appointment['privacyConsent']) || $appointment['privacyConsent'] !== true) {
+        json_response([
+            'ok' => false,
+            'error' => 'Debes aceptar el tratamiento de datos para reservar la cita'
+        ], 400);
+    }
+
     if ($appointment['date'] === '' || $appointment['time'] === '') {
         json_response([
             'ok' => false,

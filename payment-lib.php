@@ -191,7 +191,7 @@ function stripe_create_payment_intent(array $appointment, string $idempotencyKey
         'amount' => (string) $amountCents,
         'currency' => strtolower(payment_currency()),
         'automatic_payment_methods' => ['enabled' => 'true'],
-        'description' => 'Reserva de cita - Piel en Armonia',
+        'description' => 'Reserva de cita - Piel en Armonía',
         'metadata' => $metadata,
     ];
     if ($email !== '') {

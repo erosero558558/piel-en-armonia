@@ -218,7 +218,7 @@ function getServiceName(service) {
 function getDoctorName(doctor) {
     const names = {
         rosero: 'Dr. Rosero',
-        narvaez: 'Dra. Narvaez',
+        narvaez: 'Dra. Narváez',
         indiferente: 'Cualquiera'
     };
     return names[doctor] || doctor;

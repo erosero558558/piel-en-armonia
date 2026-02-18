@@ -1,0 +1,10 @@
+# Configuración sensible
+env.php
+
+# Datos locales
+data/
+uploads/
+
+# Sistema
+.DS_Store
+Thumbs.db

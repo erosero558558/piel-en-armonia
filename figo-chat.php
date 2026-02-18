@@ -177,11 +177,11 @@ function figo_build_fallback_completion(string $model, array $messages): array
     if ($isOutOfScope) {
         $content = 'Puedo ayudarte solo con temas de Piel en Armonía (servicios, precios, citas, pagos y ubicación). Si quieres, te guio ahora mismo para reservar tu cita o elegir tratamiento.';
     } elseif ($isPayment) {
-        $content = "Para pagar en la web:\n1) Completa el formulario de Reservar Cita.\n2) Se abre el modulo de pago.\n3) Elige tarjeta, transferencia o efectivo.\n4) Confirma y te validamos por WhatsApp (+593 98 245 3672).\n\nSi quieres, te guio segun el metodo que prefieras.";
+        $content = "Para pagar en la web:\n1) Completa el formulario de Reservar Cita.\n2) Se abre el módulo de pago.\n3) Elige tarjeta, transferencia o efectivo.\n4) Confirma y te validamos por WhatsApp (+593 98 245 3672).\n\nSi quieres, te guío según el método que prefieras.";
     } elseif ($isBooking) {
-        $content = "Para agendar:\n1) Abre Reservar Cita.\n2) Elige servicio, doctor, fecha y hora.\n3) Completa tus datos.\n4) Confirma pago y reserva.\n\nTambien puedes agendar por WhatsApp: https://wa.me/593982453672";
+        $content = "Para agendar:\n1) Abre Reservar Cita.\n2) Elige servicio, doctor, fecha y hora.\n3) Completa tus datos.\n4) Confirma pago y reserva.\n\nTambién puedes agendar por WhatsApp: https://wa.me/593982453672";
     } elseif ($isPricing) {
-        $content = "Precios base:\n- Consulta dermatologica: $40\n- Consulta telefonica: $25\n- Video consulta: $30\n- Acne: desde $80\n- Laser: desde $150\n- Rejuvenecimiento: desde $120\n\nSi me dices tu caso, te recomiendo el siguiente paso.";
+        $content = "Precios base:\n- Consulta dermatológica: $40\n- Consulta telefónica: $25\n- Video consulta: $30\n- Acné: desde $80\n- Láser: desde $150\n- Rejuvenecimiento: desde $120\n\nSi me dices tu caso, te recomiendo el siguiente paso.";
     } else {
         $content = "Puedo ayudarte con Piel en Armonía. Sobre \"{$lastUser}\", te guio paso a paso en servicios, citas o pagos. Si prefieres atención inmediata: WhatsApp +593 98 245 3672.";
     }
@@ -449,7 +449,7 @@ $curlErr = curl_error($ch);
 curl_close($ch);
 
 if (!is_string($rawResponse)) {
-    error_log('Piel en Armonia figo-chat: fallo conexion cURL (codigo: ' . $curlErr . ')');
+    error_log('Piel en Armonía figo-chat: fallo conexion cURL (codigo: ' . $curlErr . ')');
     audit_log_event('figo.upstream_error', [
         'reason' => 'curl_failed'
     ]);
@@ -468,7 +468,7 @@ if (!is_string($rawResponse)) {
 }
 
 if ($httpCode >= 400) {
-    error_log('Piel en Armonia figo-chat: upstream devolvio HTTP ' . $httpCode);
+    error_log('Piel en Armonía figo-chat: upstream devolvio HTTP ' . $httpCode);
     audit_log_event('figo.upstream_error', [
         'reason' => 'http_error',
         'status' => $httpCode
