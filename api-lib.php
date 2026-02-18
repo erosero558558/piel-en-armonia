@@ -1354,3 +1354,93 @@ function maybe_send_reschedule_email(array $appointment): bool
 
     return send_mail($to, $subject, $body);
 }
+
+/**
+ * Applies CORS headers based on environment configuration and request origin.
+ *
+ * @param array $methods Allowed HTTP methods.
+ * @param array $headers Allowed HTTP headers.
+ * @param bool $credentials Whether to allow credentials (cookies, auth headers).
+ */
+function api_apply_cors(array $methods = ['GET', 'POST', 'OPTIONS'], array $headers = ['Content-Type', 'Authorization', 'X-CSRF-Token'], bool $credentials = true): void
+{
+    // Ensure methods are unique and uppercase
+    $methods = array_unique(array_map('strtoupper', $methods));
+
+    // Ensure headers are unique
+    $headers = array_unique($headers);
+
+    // Default headers for preflight requests
+    header('Access-Control-Allow-Methods: ' . implode(', ', $methods));
+    header('Access-Control-Allow-Headers: ' . implode(', ', $headers));
+
+    // Set max age for preflight cache (e.g., 24 hours) to reduce OPTIONS requests
+    // However, figo endpoints use 'Cache-Control: no-store' which might conflict if we set Access-Control-Max-Age here?
+    // The previous implementation did NOT set Access-Control-Max-Age, so we will skip it to match behavior,
+    // although adding it is usually good practice.
+
+    $origin = isset($_SERVER['HTTP_ORIGIN']) ? trim((string) $_SERVER['HTTP_ORIGIN']) : '';
+    if ($origin === '') {
+        return;
+    }
+
+    $allowed = [];
+
+    // 1. From PIELARMONIA_ALLOWED_ORIGIN (singular)
+    $envOrigin = getenv('PIELARMONIA_ALLOWED_ORIGIN');
+    if (is_string($envOrigin) && trim($envOrigin) !== '') {
+        foreach (explode(',', $envOrigin) as $item) {
+            $item = trim($item);
+            if ($item !== '') {
+                $allowed[] = rtrim($item, '/');
+            }
+        }
+    }
+
+    // 2. From PIELARMONIA_ALLOWED_ORIGINS (plural)
+    $envOrigins = getenv('PIELARMONIA_ALLOWED_ORIGINS');
+    if (is_string($envOrigins) && trim($envOrigins) !== '') {
+        foreach (explode(',', $envOrigins) as $item) {
+            $item = trim($item);
+            if ($item !== '') {
+                $allowed[] = rtrim($item, '/');
+            }
+        }
+    }
+
+    // 3. Hardcoded defaults
+    $allowed[] = 'https://pielarmonia.com';
+    $allowed[] = 'https://www.pielarmonia.com';
+
+    // 4. Current Host (dynamic)
+    $host = isset($_SERVER['HTTP_HOST']) ? trim((string) $_SERVER['HTTP_HOST']) : '';
+    if ($host !== '') {
+        $scheme = is_https_request() ? 'https' : 'http';
+        $allowed[] = $scheme . '://' . $host;
+    }
+
+    $allowed = array_values(array_unique($allowed));
+    $normalizedOrigin = rtrim($origin, '/');
+
+    $matched = false;
+    foreach ($allowed as $allowedOrigin) {
+        if (strcasecmp($normalizedOrigin, $allowedOrigin) === 0) {
+            $matched = true;
+            break;
+        }
+    }
+
+    if ($matched) {
+        header('Access-Control-Allow-Origin: ' . $origin);
+        header('Vary: Origin');
+        if ($credentials) {
+            header('Access-Control-Allow-Credentials: true');
+        }
+    }
+
+    // Handle OPTIONS request
+    if (isset($_SERVER['REQUEST_METHOD']) && strtoupper($_SERVER['REQUEST_METHOD']) === 'OPTIONS') {
+        http_response_code(204);
+        exit();
+    }
+}

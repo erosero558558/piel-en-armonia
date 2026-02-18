@@ -8,42 +8,6 @@ require_once __DIR__ . '/api-lib.php';
  * Frontend -> /figo-chat.php -> configured Figo backend.
  */
 
-function figo_apply_cors(): void
-{
-    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization');
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-
-    $origin = isset($_SERVER['HTTP_ORIGIN']) ? trim((string) $_SERVER['HTTP_ORIGIN']) : '';
-    if ($origin === '') {
-        return;
-    }
-
-    $allowed = [];
-    $rawAllowed = getenv('PIELARMONIA_ALLOWED_ORIGINS');
-    if (is_string($rawAllowed) && trim($rawAllowed) !== '') {
-        foreach (explode(',', $rawAllowed) as $item) {
-            $item = trim($item);
-            if ($item !== '') {
-                $allowed[] = rtrim($item, '/');
-            }
-        }
-    }
-
-    $allowed[] = 'https://pielarmonia.com';
-    $allowed[] = 'https://www.pielarmonia.com';
-    $allowed = array_values(array_unique(array_filter($allowed)));
-
-    $normalizedOrigin = rtrim($origin, '/');
-    foreach ($allowed as $allowedOrigin) {
-        if (strcasecmp($normalizedOrigin, $allowedOrigin) === 0) {
-            header('Access-Control-Allow-Origin: ' . $origin);
-            header('Vary: Origin');
-            return;
-        }
-    }
-}
-
 function figo_extract_text(array $decoded, string $raw): string
 {
     if (isset($decoded['choices'][0]['message']['content']) && is_string($decoded['choices'][0]['message']['content'])) {
@@ -350,13 +314,10 @@ function figo_degraded_mode_enabled(): bool
     return in_array($value, ['1', 'true', 'yes', 'on'], true);
 }
 
-figo_apply_cors();
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+api_apply_cors(['GET', 'POST', 'OPTIONS'], ['Content-Type', 'Authorization'], true);
 
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
-if ($method === 'OPTIONS') {
-    http_response_code(204);
-    exit();
-}
 
 header('Content-Type: application/json; charset=utf-8');
 $fileConfig = figo_read_file_config();

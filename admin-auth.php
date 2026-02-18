@@ -3,41 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
 
-$requestOrigin = isset($_SERVER['HTTP_ORIGIN']) ? trim((string) $_SERVER['HTTP_ORIGIN']) : '';
-$allowedOrigin = getenv('PIELARMONIA_ALLOWED_ORIGIN');
-$allowedList = [];
-if (is_string($allowedOrigin) && trim($allowedOrigin) !== '') {
-    foreach (explode(',', $allowedOrigin) as $origin) {
-        $origin = trim((string) $origin);
-        if ($origin !== '') {
-            $allowedList[] = rtrim($origin, '/');
-        }
-    }
-}
-
-$host = isset($_SERVER['HTTP_HOST']) ? trim((string) $_SERVER['HTTP_HOST']) : '';
-if ($host !== '') {
-    $allowedList[] = (is_https_request() ? 'https' : 'http') . '://' . $host;
-}
-
-$allowedList = array_values(array_unique(array_filter($allowedList)));
-if ($requestOrigin !== '') {
-    $normalizedOrigin = rtrim($requestOrigin, '/');
-    foreach ($allowedList as $origin) {
-        if (strcasecmp($normalizedOrigin, $origin) === 0) {
-            header('Access-Control-Allow-Origin: ' . $requestOrigin);
-            header('Access-Control-Allow-Credentials: true');
-            header('Vary: Origin');
-            break;
-        }
-    }
-}
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(204);
-    exit();
-}
+api_apply_cors(['GET', 'POST', 'OPTIONS'], ['Content-Type', 'X-CSRF-Token'], true);
 
 start_secure_session();
 
