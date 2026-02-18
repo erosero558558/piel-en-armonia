@@ -728,30 +728,70 @@ function check_rate_limit(string $action, int $maxRequests = 10, int $windowSeco
         @mkdir($rateDir, 0775, true);
     }
 
-    $file = $rateDir . DIRECTORY_SEPARATOR . $key . '.json';
+    $file = $rateDir . DIRECTORY_SEPARATOR . $key . '.bin';
     $now = time();
     $entries = [];
 
-    if (file_exists($file)) {
-        $raw = @file_get_contents($file);
-        $entries = is_string($raw) ? (json_decode($raw, true) ?? []) : [];
+    $fp = @fopen($file, 'c+');
+    if (!$fp) {
+        return true;
+    }
+
+    if (!flock($fp, LOCK_EX)) {
+        fclose($fp);
+        return true;
+    }
+
+    $fstat = fstat($fp);
+    $size = $fstat['size'];
+
+    if ($size > 0) {
+        $bin = fread($fp, $size);
+        if (is_string($bin) && strlen($bin) > 0) {
+            $unpacked = @unpack('N*', $bin);
+            if (is_array($unpacked)) {
+                $entries = array_values($unpacked);
+            }
+        }
     }
 
     // Filtrar entradas dentro de la ventana de tiempo
-    $entries = array_values(array_filter($entries, static function (int $ts) use ($now, $windowSeconds): bool {
-        return ($now - $ts) < $windowSeconds;
-    }));
+    $validEntries = [];
+    foreach ($entries as $ts) {
+        if (($now - $ts) < $windowSeconds) {
+            $validEntries[] = $ts;
+        }
+    }
 
-    if (count($entries) >= $maxRequests) {
+    if (count($validEntries) >= $maxRequests) {
+        flock($fp, LOCK_UN);
+        fclose($fp);
         return false;
     }
 
-    $entries[] = $now;
-    @file_put_contents($file, json_encode($entries), LOCK_EX);
+    $validEntries[] = $now;
+
+    ftruncate($fp, 0);
+    rewind($fp);
+    if (!empty($validEntries)) {
+        $packed = pack('N*', ...$validEntries);
+        fwrite($fp, $packed);
+    }
+    fflush($fp);
+
+    flock($fp, LOCK_UN);
+    fclose($fp);
 
     // Limpieza periódica: eliminar archivos de rate limit con más de 1 hora sin modificación
     if (mt_rand(1, 50) === 1) {
-        $allFiles = @glob($rateDir . DIRECTORY_SEPARATOR . '*.json');
+        $allFiles = @glob($rateDir . DIRECTORY_SEPARATOR . '*.{bin,json}', GLOB_BRACE);
+        if ($allFiles === false) {
+            $allFiles = array_merge(
+                (array) @glob($rateDir . DIRECTORY_SEPARATOR . '*.bin'),
+                (array) @glob($rateDir . DIRECTORY_SEPARATOR . '*.json')
+            );
+        }
+
         if (is_array($allFiles)) {
             foreach ($allFiles as $f) {
                 if (($now - (int) @filemtime($f)) > 3600) {
