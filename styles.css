@@ -5079,3 +5079,51 @@ html[data-theme='dark'] .hero-title span:not(.gradient-text) {
         opacity: 0.22;
     }
 }
+
+/* ========================================
+   HERO CONFLICT RESET (elimina estilos legacy)
+   ======================================== */
+.hero {
+    border-radius: 0;
+}
+
+.hero-content {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    margin-bottom: 0;
+}
+
+.hero-image-container {
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: none;
+    transform: none;
+    opacity: 1;
+    pointer-events: none;
+}
+
+.hero-bg-image {
+    border-radius: 0;
+    mask-image: none;
+    -webkit-mask-image: none;
+}
+
+.hero-title,
+.hero-subtitle,
+.hero-actions,
+.hero-contact-bar,
+.hero-metrics {
+    opacity: 1;
+}
+
+html[data-theme='dark'] .hero-content {
+    background: transparent;
+    box-shadow: none;
+}
