@@ -1568,185 +1568,135 @@ function initGalleryInteractionsWarmup() {
 }
 
 // ========================================
-// APPOINTMENT FORM & PRICING
+// APPOINTMENT FORM (DEFERRED MODULE)
 // ========================================
-function normalizeEcuadorPhone(rawValue) {
-    const raw = String(rawValue || '').trim();
-    if (raw === '') return '';
+const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260218-phase4';
+let bookingUiPromise = null;
 
-    const digits = raw.replace(/\D/g, '');
-
-    if (digits.startsWith('593') && digits.length >= 12) {
-        return `+${digits}`;
-    }
-
-    if (digits.startsWith('09') && digits.length === 10) {
-        return `+593${digits.slice(1)}`;
-    }
-
-    if (digits.startsWith('9') && digits.length === 9) {
-        return `+593${digits}`;
-    }
-
-    if (raw.startsWith('+')) {
-        return `+${raw.slice(1).replace(/\D/g, '')}`;
-    }
-
-    return raw;
+function getBookingUiDeps() {
+    return {
+        loadAvailabilityData,
+        getBookedSlots,
+        showToast,
+        getCurrentLang: () => currentLang,
+        getDefaultTimeSlots: () => DEFAULT_TIME_SLOTS.slice(),
+        getCasePhotoFiles,
+        validateCasePhotoFiles,
+        markBookingViewed,
+        startCheckoutSession,
+        trackEvent,
+        normalizeAnalyticsLabel,
+        openPaymentModal,
+        setCurrentAppointment: (appointment) => {
+            currentAppointment = appointment;
+        }
+    };
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const serviceSelect = document.getElementById('serviceSelect');
-    const priceSummary = document.getElementById('priceSummary');
-    const subtotalEl = document.getElementById('subtotalPrice');
-    const ivaEl = document.getElementById('ivaPrice');
-    const totalEl = document.getElementById('totalPrice');
-    const dateInput = document.querySelector('input[name="date"]');
-    const timeSelect = document.querySelector('select[name="time"]');
-    const doctorSelect = document.querySelector('select[name="doctor"]');
-    const phoneInput = document.querySelector('input[name="phone"]');
-    const appointmentForm = document.getElementById('appointmentForm');
-
-    if (!serviceSelect || !priceSummary || !subtotalEl || !ivaEl || !totalEl || !appointmentForm) {
-        return;
+function loadBookingUi() {
+    if (window.PielBookingUi && typeof window.PielBookingUi.init === 'function') {
+        window.PielBookingUi.init(getBookingUiDeps());
+        return Promise.resolve(window.PielBookingUi);
     }
 
-    serviceSelect.addEventListener('change', function() {
-        const selected = this.options[this.selectedIndex];
-        const price = parseFloat(selected.dataset.price) || 0;
-
-        if (price > 0) {
-            const iva = price * 0.12;
-            const total = price + iva;
-            subtotalEl.textContent = `$${price.toFixed(2)}`;
-            ivaEl.textContent = `$${iva.toFixed(2)}`;
-            totalEl.textContent = `$${total.toFixed(2)}`;
-            priceSummary.style.display = 'block';
-        } else {
-            priceSummary.style.display = 'none';
-        }
-
-        updateAvailableTimes().catch(() => undefined);
-    });
-
-    if (dateInput) {
-        dateInput.min = new Date().toISOString().split('T')[0];
-        dateInput.addEventListener('change', () => updateAvailableTimes().catch(() => undefined));
+    if (bookingUiPromise) {
+        return bookingUiPromise;
     }
 
-    if (doctorSelect) {
-        doctorSelect.addEventListener('change', () => updateAvailableTimes().catch(() => undefined));
-    }
-
-    if (phoneInput) {
-        phoneInput.addEventListener('blur', () => {
-            const normalized = normalizeEcuadorPhone(phoneInput.value);
-            if (normalized !== '') {
-                phoneInput.value = normalized;
-            }
-        });
-    }
-
-    async function updateAvailableTimes() {
-        const selectedDate = dateInput?.value;
-        if (!selectedDate || !timeSelect) return;
-
-        const selectedDoctor = doctorSelect?.value || '';
-        const availability = await loadAvailabilityData();
-        const bookedSlots = await getBookedSlots(selectedDate, selectedDoctor);
-        const availableSlots = availability[selectedDate] || DEFAULT_TIME_SLOTS;
-        const freeSlots = availableSlots.filter(slot => !bookedSlots.includes(slot));
-
-        const currentValue = timeSelect.value;
-        timeSelect.innerHTML = '<option value="">Hora</option>';
-
-        if (freeSlots.length === 0) {
-            timeSelect.innerHTML += '<option value="" disabled>No hay horarios disponibles</option>';
-            showToast('No hay horarios disponibles para esta fecha', 'warning');
+    bookingUiPromise = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-booking-ui="true"]');
+        if (existing) {
+            existing.addEventListener('load', () => {
+                if (window.PielBookingUi && typeof window.PielBookingUi.init === 'function') {
+                    window.PielBookingUi.init(getBookingUiDeps());
+                    resolve(window.PielBookingUi);
+                    return;
+                }
+                reject(new Error('booking-ui loaded without API'));
+            }, { once: true });
+            existing.addEventListener('error', () => reject(new Error('No se pudo cargar booking-ui.js')), { once: true });
             return;
         }
 
-        freeSlots.forEach(time => {
-            const option = document.createElement('option');
-            option.value = time;
-            option.textContent = time;
-            if (time === currentValue) option.selected = true;
-            timeSelect.appendChild(option);
-        });
-    }
-
-    appointmentForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-
-        const submitBtn = this.querySelector('button[type="submit"]');
-        const originalContent = submitBtn.innerHTML;
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
-
-        try {
-            const formData = new FormData(this);
-            const casePhotoFiles = getCasePhotoFiles(this);
-            validateCasePhotoFiles(casePhotoFiles);
-            const privacyConsent = formData.get('privacyConsent') === 'on';
-
-            if (!privacyConsent) {
-                throw new Error(
-                    currentLang === 'es'
-                        ? 'Debes aceptar el tratamiento de datos para continuar.'
-                        : 'You must accept data processing to continue.'
-                );
-            }
-
-            const normalizedPhone = normalizeEcuadorPhone(formData.get('phone'));
-
-            const appointment = {
-                service: formData.get('service'),
-                doctor: formData.get('doctor'),
-                date: formData.get('date'),
-                time: formData.get('time'),
-                name: formData.get('name'),
-                email: formData.get('email'),
-                phone: normalizedPhone,
-                reason: formData.get('reason') || '',
-                affectedArea: formData.get('affectedArea') || '',
-                evolutionTime: formData.get('evolutionTime') || '',
-                privacyConsent,
-                casePhotoFiles,
-                casePhotoUploads: [],
-                price: totalEl.textContent
-            };
-
-            markBookingViewed('form_submit');
-
-            const bookedSlots = await getBookedSlots(appointment.date, appointment.doctor);
-            if (bookedSlots.includes(appointment.time)) {
-                showToast('Este horario ya fue reservado. Por favor selecciona otro.', 'error');
-                await updateAvailableTimes();
+        const script = document.createElement('script');
+        script.src = BOOKING_UI_URL;
+        script.async = true;
+        script.defer = true;
+        script.dataset.bookingUi = 'true';
+        script.onload = () => {
+            if (window.PielBookingUi && typeof window.PielBookingUi.init === 'function') {
+                window.PielBookingUi.init(getBookingUiDeps());
+                resolve(window.PielBookingUi);
                 return;
             }
-
-            currentAppointment = appointment;
-            startCheckoutSession(appointment);
-            trackEvent('start_checkout', {
-                service: appointment.service || '',
-                doctor: appointment.doctor || '',
-                checkout_entry: 'booking_form'
-            });
-            openPaymentModal(appointment);
-        } catch (error) {
-            trackEvent('booking_error', {
-                stage: 'booking_form',
-                error_code: normalizeAnalyticsLabel(error?.code || error?.message, 'booking_prepare_failed')
-            });
-            showToast(error?.message || 'No se pudo preparar la reserva. Intenta nuevamente.', 'error');
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalContent;
-        }
+            reject(new Error('booking-ui loaded without API'));
+        };
+        script.onerror = () => reject(new Error('No se pudo cargar booking-ui.js'));
+        document.head.appendChild(script);
+    }).catch((error) => {
+        bookingUiPromise = null;
+        debugLog('Booking UI load failed:', error);
+        throw error;
     });
 
-    // Carga de disponibilidad diferida: se consulta cuando el usuario elige fecha/servicio.
-});
+    return bookingUiPromise;
+}
+
+function initBookingUiWarmup() {
+    let warmed = false;
+    const warmup = () => {
+        if (warmed || window.location.protocol === 'file:') {
+            return;
+        }
+        warmed = true;
+        loadBookingUi().catch(() => {
+            warmed = false;
+        });
+    };
+
+    const bookingSection = document.getElementById('citas');
+    if (bookingSection && 'IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) {
+                    return;
+                }
+                warmup();
+                observer.disconnect();
+            });
+        }, { threshold: 0.05, rootMargin: '320px 0px' });
+        observer.observe(bookingSection);
+    } else if (bookingSection) {
+        warmup();
+    }
+
+    const appointmentForm = document.getElementById('appointmentForm');
+    if (appointmentForm) {
+        appointmentForm.addEventListener('focusin', warmup, { once: true });
+        appointmentForm.addEventListener('pointerdown', warmup, { once: true, passive: true });
+        setTimeout(warmup, 120);
+    }
+
+    if (!bookingSection && !appointmentForm) {
+        return;
+    }
+
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const isConstrainedNetwork = !!(connection && (
+        connection.saveData === true
+        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
+    ));
+
+    if (isConstrainedNetwork) {
+        return;
+    }
+
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(warmup, { timeout: 1800 });
+    } else {
+        setTimeout(warmup, 1100);
+    }
+}
 
 // ========================================
 // PAYMENT MODAL
@@ -3217,6 +3167,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initDeferredStylesheetLoading();
     initEnglishBundleWarmup();
     initBookingEngineWarmup();
+    initBookingUiWarmup();
     initThemeMode();
     changeLanguage(currentLang);
     initCookieBanner();

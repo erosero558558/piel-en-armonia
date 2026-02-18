@@ -164,6 +164,7 @@ try {
     $assetHeaderChecks = @(
         @{ Name = 'app-script'; Url = $appScriptRemoteUrl },
         @{ Name = 'critical-css'; Url = $criticalCssRemoteUrl },
+        @{ Name = 'booking-ui'; Url = $bookingUiRemoteUrl },
         @{ Name = 'reschedule-engine'; Url = $rescheduleEngineRemoteUrl },
         @{ Name = 'ui-effects'; Url = $uiEffectsRemoteUrl },
         @{ Name = 'gallery-interactions'; Url = $galleryInteractionsRemoteUrl }
@@ -308,6 +309,17 @@ $rescheduleEngineRemoteUrl = if ($rescheduleEngineVersion -ne '') {
     "$base/reschedule-engine.js"
 }
 
+$bookingUiVersion = ''
+$bookingUiMatch = [regex]::Match($localScriptTextForRefs, "booking-ui\.js\?v=([a-zA-Z0-9._-]+)")
+if ($bookingUiMatch.Success) {
+    $bookingUiVersion = $bookingUiMatch.Groups[1].Value
+}
+$bookingUiRemoteUrl = if ($bookingUiVersion -ne '') {
+    "$base/booking-ui.js?v=$bookingUiVersion"
+} else {
+    "$base/booking-ui.js"
+}
+
 if ([regex]::IsMatch($remoteIndexRaw, '\son[a-z]+\s*=', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
     Write-Host "[FAIL] index remoto contiene event handlers inline (on*)"
     $results += [PSCustomObject]@{
@@ -407,6 +419,11 @@ $checks = @(
         Name = 'reschedule-engine.js'
         LocalPath = 'reschedule-engine.js'
         RemoteUrl = $rescheduleEngineRemoteUrl
+    },
+    [PSCustomObject]@{
+        Name = 'booking-ui.js'
+        LocalPath = 'booking-ui.js'
+        RemoteUrl = $bookingUiRemoteUrl
     }
 )
 foreach ($item in $checks) {
