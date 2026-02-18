@@ -1028,10 +1028,11 @@ async function loadPaymentConfig() {
             enabled: payload.enabled === true,
             provider: payload.provider || 'stripe',
             publishableKey: payload.publishableKey || '',
-            currency: payload.currency || 'USD'
+            currency: payload.currency || 'USD',
+            turnstileSiteKey: payload.turnstileSiteKey || ''
         };
     } catch (error) {
-        paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
+        paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD', turnstileSiteKey: '' };
     }
     paymentConfigLoaded = true;
     paymentConfigLoadedAt = now;
@@ -1648,7 +1649,8 @@ function getBookingUiDeps() {
         openPaymentModal,
         setCurrentAppointment: (appointment) => {
             currentAppointment = appointment;
-        }
+        },
+        loadPaymentConfig
     };
 }
 

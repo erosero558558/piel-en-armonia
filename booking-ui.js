@@ -60,6 +60,39 @@
 
         initialized = true;
 
+        if (typeof deps.loadPaymentConfig === 'function') {
+            deps.loadPaymentConfig().then(config => {
+                if (config && config.turnstileSiteKey) {
+                    injectTurnstile(config.turnstileSiteKey);
+                }
+            }).catch(() => {});
+        }
+
+        function injectTurnstile(siteKey) {
+            if (appointmentForm.querySelector('.cf-turnstile')) return;
+
+            const script = document.createElement('script');
+            script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+
+            const container = document.createElement('div');
+            container.className = 'cf-turnstile';
+            container.dataset.sitekey = siteKey;
+
+            const submitBtn = appointmentForm.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'form-group';
+                wrapper.style.marginTop = '1rem';
+                wrapper.style.display = 'flex';
+                wrapper.style.justifyContent = 'center';
+                wrapper.appendChild(container);
+                appointmentForm.insertBefore(wrapper, submitBtn);
+            }
+        }
+
         async function updateAvailableTimes() {
             const selectedDate = dateInput ? dateInput.value : '';
             if (!selectedDate || !timeSelect) return;
@@ -148,10 +181,12 @@
                 }
 
                 const normalizedPhone = normalizeEcuadorPhone(formData.get('phone'));
+                const captchaToken = formData.get('cf-turnstile-response') || '';
 
                 const appointment = {
                     service: formData.get('service'),
                     doctor: formData.get('doctor'),
+                    captchaToken,
                     date: formData.get('date'),
                     time: formData.get('time'),
                     name: formData.get('name'),

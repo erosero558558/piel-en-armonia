@@ -342,7 +342,8 @@ if ($method === 'GET' && $resource === 'payment-config') {
         'provider' => 'stripe',
         'enabled' => payment_gateway_enabled(),
         'publishableKey' => payment_stripe_publishable_key(),
-        'currency' => payment_currency()
+        'currency' => payment_currency(),
+        'turnstileSiteKey' => turnstile_site_key()
     ]);
 }
 
@@ -593,6 +594,17 @@ if ($method === 'POST' && $resource === 'stripe-webhook') {
 if ($method === 'POST' && $resource === 'appointments') {
     require_rate_limit('appointments', 5, 60);
     $payload = require_json_body();
+
+    if (turnstile_secret_key() !== '') {
+        $captchaToken = (string) ($payload['captchaToken'] ?? '');
+        if (!verify_turnstile_token($captchaToken)) {
+            json_response([
+                'ok' => false,
+                'error' => 'Verificación CAPTCHA fallida. Por favor intenta nuevamente.'
+            ], 400);
+        }
+    }
+
     $appointment = normalize_appointment($payload);
 
     if ($appointment['name'] === '' || $appointment['email'] === '' || $appointment['phone'] === '') {
