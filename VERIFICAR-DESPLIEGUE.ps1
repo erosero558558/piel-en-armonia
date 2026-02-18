@@ -163,7 +163,9 @@ $criticalCssRemoteUrl = Get-Url -Base $base -Ref $localStyleRef
 try {
     $assetHeaderChecks = @(
         @{ Name = 'app-script'; Url = $appScriptRemoteUrl },
-        @{ Name = 'critical-css'; Url = $criticalCssRemoteUrl }
+        @{ Name = 'critical-css'; Url = $criticalCssRemoteUrl },
+        @{ Name = 'ui-effects'; Url = $uiEffectsRemoteUrl },
+        @{ Name = 'gallery-interactions'; Url = $galleryInteractionsRemoteUrl }
     )
     foreach ($assetCheck in $assetHeaderChecks) {
         if ([string]::IsNullOrWhiteSpace($assetCheck.Url)) {
@@ -272,6 +274,28 @@ $bookingEngineRemoteUrl = if ($bookingEngineVersion -ne '') {
     "$base/booking-engine.js"
 }
 
+$uiEffectsVersion = ''
+$uiEffectsMatch = [regex]::Match($localScriptTextForRefs, "ui-effects\.js\?v=([a-zA-Z0-9._-]+)")
+if ($uiEffectsMatch.Success) {
+    $uiEffectsVersion = $uiEffectsMatch.Groups[1].Value
+}
+$uiEffectsRemoteUrl = if ($uiEffectsVersion -ne '') {
+    "$base/ui-effects.js?v=$uiEffectsVersion"
+} else {
+    "$base/ui-effects.js"
+}
+
+$galleryInteractionsVersion = ''
+$galleryInteractionsMatch = [regex]::Match($localScriptTextForRefs, "gallery-interactions\.js\?v=([a-zA-Z0-9._-]+)")
+if ($galleryInteractionsMatch.Success) {
+    $galleryInteractionsVersion = $galleryInteractionsMatch.Groups[1].Value
+}
+$galleryInteractionsRemoteUrl = if ($galleryInteractionsVersion -ne '') {
+    "$base/gallery-interactions.js?v=$galleryInteractionsVersion"
+} else {
+    "$base/gallery-interactions.js"
+}
+
 if ([regex]::IsMatch($remoteIndexRaw, '\son[a-z]+\s*=', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
     Write-Host "[FAIL] index remoto contiene event handlers inline (on*)"
     $results += [PSCustomObject]@{
@@ -356,6 +380,16 @@ $checks = @(
         Name = 'booking-engine.js'
         LocalPath = 'booking-engine.js'
         RemoteUrl = $bookingEngineRemoteUrl
+    },
+    [PSCustomObject]@{
+        Name = 'ui-effects.js'
+        LocalPath = 'ui-effects.js'
+        RemoteUrl = $uiEffectsRemoteUrl
+    },
+    [PSCustomObject]@{
+        Name = 'gallery-interactions.js'
+        LocalPath = 'gallery-interactions.js'
+        RemoteUrl = $galleryInteractionsRemoteUrl
     }
 )
 foreach ($item in $checks) {

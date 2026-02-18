@@ -101,6 +101,32 @@ $bookingEngineAssetUrl = if ($bookingEngineVersion -ne '') {
     "$base/booking-engine.js"
 }
 
+$uiEffectsVersion = ''
+if (Test-Path 'script.js') {
+    $uiEffectsMatch = [regex]::Match($scriptLocalRaw, "ui-effects\.js\?v=([a-zA-Z0-9._-]+)")
+    if ($uiEffectsMatch.Success) {
+        $uiEffectsVersion = $uiEffectsMatch.Groups[1].Value
+    }
+}
+$uiEffectsAssetUrl = if ($uiEffectsVersion -ne '') {
+    "$base/ui-effects.js?v=$uiEffectsVersion"
+} else {
+    "$base/ui-effects.js"
+}
+
+$galleryInteractionsVersion = ''
+if (Test-Path 'script.js') {
+    $galleryInteractionsMatch = [regex]::Match($scriptLocalRaw, "gallery-interactions\.js\?v=([a-zA-Z0-9._-]+)")
+    if ($galleryInteractionsMatch.Success) {
+        $galleryInteractionsVersion = $galleryInteractionsMatch.Groups[1].Value
+    }
+}
+$galleryInteractionsAssetUrl = if ($galleryInteractionsVersion -ne '') {
+    "$base/gallery-interactions.js?v=$galleryInteractionsVersion"
+} else {
+    "$base/gallery-interactions.js"
+}
+
 function Invoke-Check {
     param(
         [string]$Name,
@@ -256,6 +282,8 @@ $results += Invoke-Check -Name 'Chat engine asset' -Url $chatEngineAssetUrl
 $results += Invoke-Check -Name 'Deferred styles asset' -Url $deferredStylesAssetUrl
 $results += Invoke-Check -Name 'EN translations asset' -Url $translationsEnAssetUrl
 $results += Invoke-Check -Name 'Booking engine asset' -Url $bookingEngineAssetUrl
+$results += Invoke-Check -Name 'UI effects asset' -Url $uiEffectsAssetUrl
+$results += Invoke-Check -Name 'Gallery interactions asset' -Url $galleryInteractionsAssetUrl
 $results += Invoke-Check -Name 'App script asset' -Url $appScriptAssetUrl
 $results += Invoke-Check -Name 'Critical CSS asset' -Url $criticalCssAssetUrl
 
@@ -288,6 +316,8 @@ $expectedStatusByName = @{
     'Deferred styles asset' = 200
     'EN translations asset' = 200
     'Booking engine asset' = 200
+    'UI effects asset' = 200
+    'Gallery interactions asset' = 200
     'App script asset' = 200
     'Critical CSS asset' = 200
 }
@@ -322,7 +352,9 @@ try {
 try {
     $assetHeaderChecks = @(
         @{ Name = 'App script asset'; Url = $appScriptAssetUrl },
-        @{ Name = 'Critical CSS asset'; Url = $criticalCssAssetUrl }
+        @{ Name = 'Critical CSS asset'; Url = $criticalCssAssetUrl },
+        @{ Name = 'UI effects asset'; Url = $uiEffectsAssetUrl },
+        @{ Name = 'Gallery interactions asset'; Url = $galleryInteractionsAssetUrl }
     )
     foreach ($assetCheck in $assetHeaderChecks) {
         $assetResp = Invoke-WebRequest -Uri $assetCheck.Url -Method GET -TimeoutSec 20 -UseBasicParsing -Headers @{

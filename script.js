@@ -1,12 +1,12 @@
-﻿/**
- * PIEL EN ARMONÍA - Apple Design
+/**
+ * PIEL EN ARMON�A - Apple Design
  * Todas las funcionalidades integradas
  * 
  * Incluye:
  * - Toast notifications
  * - Loading states
  * - Exportar a calendario
- * - Validación de disponibilidad
+ * - Validaci�n de disponibilidad
  */
 
 // ========================================
@@ -33,10 +33,10 @@ function showToast(message, type = 'info', title = '') {
     };
     
     const titles = {
-        success: title || 'Éxito',
+        success: title || '�xito',
         error: title || 'Error',
         warning: title || 'Advertencia',
-        info: title || 'Información'
+        info: title || 'Informaci�n'
     };
     
     // Escapar mensaje para prevenir XSS
@@ -134,244 +134,35 @@ function initDeferredStylesheetLoading() {
 // ========================================
 // TRANSLATIONS
 // ========================================
+const I18N_HTML_ALLOWED_KEYS = new Set(['clinic_hours']);
 const translations = {
-    es: {
-        brand: "Piel en Armonía",
-        nav_home: "Inicio",
-        nav_services: "Servicios",
-        nav_telemedicine: "Telemedicina",
-        nav_team: "Equipo",
-        nav_gallery: "Resultados",
-        nav_clinic: "Consultorio",
-        nav_reviews: "Reseñas",
-        nav_book: "Reservar Cita",
-        theme_light: "Claro",
-        theme_dark: "Oscuro",
-        theme_system: "Sistema",
-        hero_title1: "Tu piel.",
-        hero_title2: "En las mejores manos.",
-        hero_subtitle: "Dermatología especializada con tecnología de vanguardia. Tratamientos personalizados para que tu piel luzca saludable y radiante.",
-        hero_cta_primary: "Reservar Consulta",
-        hero_cta_secondary: "Consulta Online",
-        services_title: "Nuestros Servicios",
-        services_subtitle: "Tratamientos dermatológicos de excelencia",
-        service_consulta: "Consulta Dermatológica",
-        service_consulta_desc: "Evaluación completa de tu piel con diagnóstico preciso y plan de tratamiento personalizado.",
-        service_telemedicina: "Telemedicina",
-        service_telemedicina_desc: "Consulta médica desde la comodidad de tu hogar por teléfono o videollamada.",
-        service_laser: "Láser Dermatológico",
-        service_laser_desc: "Tratamientos con láser de última generación para diversas afecciones de la piel.",
-        service_rejuvenation: "Rejuvenecimiento",
-        service_rejuvenation_desc: "Tratamientos estéticos para recuperar la juventud y luminosidad de tu piel.",
-        service_acne: "Tratamiento de Acné",
-        service_acne_desc: "Soluciones efectivas para controlar y eliminar el acné en todas sus formas.",
-        service_cancer: "Detección de Cáncer de Piel",
-        service_cancer_desc: "Examen dermatoscópico completo para detección temprana de lesiones sospechosas.",
-        badge_popular: "Popular",
-        price_from: "Desde",
-        telemedicine_title: "Consulta desde cualquier lugar",
-        telemedicine_subtitle: "Tres formas simples de conectarte con tu dermatólogo",
-        tele_phone_title: "Llamada Telefónica",
-        tele_phone_desc: "La forma más fácil. Toca el botón y habla directamente con el doctor desde tu teléfono.",
-        tele_feature1: "Funciona en cualquier celular",
-        tele_feature2: "Sin internet necesario",
-        tele_feature3: "Perfecto para adultos mayores",
-        tele_whatsapp_title: "WhatsApp Video",
-        tele_whatsapp_desc: "Videollamada por WhatsApp. Si ya tienes WhatsApp instalado, es la opción más cómoda.",
-        tele_feature4: "Videollamada HD",
-        tele_feature5: "Envía fotos de tu piel",
-        tele_feature6: "Chat incluido",
-        tele_web_title: "Video desde Navegador",
-        tele_web_desc: "Sin instalar nada. Solo abre el enlace y permite acceso a tu cámara. Funciona en computadora o celular.",
-        tele_feature7: "Sin apps ni registro",
-        tele_feature8: "Pantalla más grande",
-        tele_feature9: "Ideal para compartir pantalla",
-        btn_call: "Llamar Ahora",
-        btn_whatsapp: "Abrir WhatsApp",
-        btn_video: "Iniciar Video",
-        callback_title: "¿Prefieres que te llamemos?",
-        callback_desc: "Déjanos tu número y el doctor te llamará en los próximos minutos.",
-        callback_when: "¿Cuándo prefieres?",
-        callback_now: "Lo antes posible",
-        callback_15min: "En 15 minutos",
-        callback_30min: "En 30 minutos",
-        callback_1hour: "En 1 hora",
-        btn_request: "Solicitar Llamada",
-        badge_recommended: "Recomendado",
-        team_title: "Nuestro Equipo",
-        team_subtitle: "Especialistas dedicados al cuidado de tu piel",
-        role_dermatologo: "Dermatólogo Clínico",
-        role_estetica: "Dermatóloga Estética",
-        desc_rosero: "15 años de experiencia en dermatología clínica y quirúrgica. Especialista en detección temprana de cáncer de piel.",
-        desc_narvaez: "Especialista en rejuvenecimiento facial, láser dermatológico y tratamientos estéticos no invasivos.",
-        status_available: "Disponible hoy",
-        gallery_title: "Resultados que hablan por sí solos",
-        gallery_subtitle: "Transformaciones reales de nuestros pacientes",
-        filter_all: "Todos",
-        filter_acne: "Acné",
-        filter_rejuvenation: "Rejuvenecimiento",
-        filter_laser: "Láser",
-        filter_spots: "Manchas",
-        label_before: "Antes",
-        label_after: "Después",
-        case_acne: "Tratamiento de Acné Severo",
-        case_acne_desc: "6 meses de tratamiento combinado",
-        case_rejuvenation: "Rejuvenecimiento Facial",
-        case_rejuvenation_desc: "Láser + peelings químicos",
-        case_laser: "Tratamiento Láser",
-        case_laser_desc: "Eliminación de lesiones vasculares",
-        case_spots: "Eliminación de Manchas",
-        case_spots_desc: "Tratamiento despigmentante",
-        results_note_consent: "Casos reales publicados con consentimiento informado del paciente.",
-        results_note_variability: "Los resultados pueden variar seg\u00fan el diagn\u00f3stico, adherencia y tipo de piel.",
-        results_note_timeline: "El tiempo mostrado en cada caso corresponde al proceso real del paciente.",
-        showcase_eyebrow: "Dermatología avanzada",
-        showcase_title: "Tecnología que transforma tu piel.",
-        showcase_desc: "Combinamos ciencia y experiencia para ofrecerte los tratamientos m\u00e1s efectivos y personalizados del mercado.",
-        showcase_diag_eyebrow: "Diagn\u00f3stico",
-        showcase_diag_title: "Precisión en cada detalle.",
-        showcase_diag_desc: "Dermatoscopia digital y evaluación integral para un diagnóstico certero desde la primera consulta.",
-        showcase_clinic_eyebrow: "Instalaciones",
-        showcase_clinic_title: "Espacios pensados para ti.",
-        showcase_clinic_desc: "Un ambiente moderno, limpio y acogedor, equipado con la última tecnología en tratamientos dermatológicos.",
-        showcase_treat_eyebrow: "Tratamientos",
-        showcase_treat_title: "Resultados visibles desde la primera sesión.",
-        showcase_treat_desc: "Cada tratamiento es personalizado. Utilizamos protocolos basados en evidencia científica para garantizar los mejores resultados para tu tipo de piel.",
-        stat_satisfaction: "Satisfacción",
-        stat_years: "Años de experiencia",
-        stat_patients: "Pacientes atendidos",
-        clinic_title: "Nuestro Consultorio",
-        clinic_desc: "Ubicados en el corazón de Quito, contamos con instalaciones modernas y equipamiento de última generación para brindarte la mejor atención.",
-        clinic_address_label: "Dirección",
-        clinic_hours_label: "Horario de Atención",
-        clinic_hours: "Lunes - Viernes: 9:00 - 18:00<br>Sábados: 9:00 - 13:00",
-        clinic_phone_label: "Teléfono",
-        clinic_parking_label: "Estacionamiento",
-        clinic_parking: "Estacionamiento privado disponible",
-        btn_directions: "Cómo llegar",
-        reviews_title: "Lo que dicen nuestros pacientes",
-        reviews_count: "Reseñas verificadas",
-        review_1: "\"Soy señora de 78 años y pude llamar al doctor sin problemas. Muy amable y profesional. Me resolvió todas mis dudas sobre mi piel.\"",
-        review_2: "\"La videollamada por WhatsApp fue súper fácil. No tuve que instalar nada nuevo. El doctor fue muy paciente y me explicó todo detalladamente.\"",
-        review_3: "\"Solicité que me llamaran y en 10 minutos el doctor me contactó. Excelente servicio. Mi acné ha mejorado notablemente.\"",
-        btn_write_review: "Escribir Reseña",
-        appointment_title: "Reserva tu Cita",
-        appointment_desc: "Agenda tu consulta de forma rápida y sencilla. Selecciona el tipo de servicio, el doctor de tu preferencia y la fecha que más te convenga.",
-        benefit_1: "Confirmación inmediata",
-        benefit_2: "Confirmación de pago asistida",
-        benefit_3: "Reprogramaci\u00f3n gratuita",
-        
-        benefit_3_link: "Ver pol\u00edtica de reprogramaci\u00f3n y cancelaci\u00f3n",
-        benefit_3_note: "Cambios sin costo hasta 24h antes. Sujeto a disponibilidad.",
-        form_title: "Nueva Cita",
-        label_service: "Tipo de Consulta",
-        select_service: "Selecciona un servicio",
-        opt_consulta: "Consulta Dermatológica - $40",
-        opt_telefono: "Consulta Telefónica - $25",
-        opt_video: "Video Consulta - $30",
-        opt_laser: "Tratamiento Láser - desde $150",
-        opt_rejuvenation: "Rejuvenecimiento - desde $120",
-        label_doctor: "Doctor",
-        select_doctor: "Selecciona un doctor",
-        opt_rosero: "Dr. Javier Rosero - Dermatólogo Clínico",
-        opt_narvaez: "Dra. Carolina Narváez - Dermatóloga Estética",
-        opt_any: "Primera disponible",
-        label_date: "Fecha",
-        label_time: "Hora",
-        select_time: "Hora",
-        label_name: "Nombre completo",
-        label_email: "Email",
-        label_reason: "Motivo de consulta (opcional)",
-        placeholder_reason: "Ej: acn\u00e9 inflamatorio en mejillas, picaz\u00f3n o manchas recientes",
-        label_area: "Zona de la piel (opcional)",
-        select_area: "Selecciona una zona",
-        area_face: "Rostro",
-        area_neck: "Cuello",
-        area_scalp: "Cuero cabelludo",
-        area_torso: "Tronco",
-        area_arms: "Brazos y manos",
-        area_legs: "Piernas y pies",
-        area_other: "Otra zona",
-        label_evolution: "Tiempo de evoluci\u00f3n (opcional)",
-        select_evolution: "Selecciona un tiempo",
-        evolution_1w: "Menos de 1 semana",
-        evolution_1m: "1 a 4 semanas",
-        evolution_3m: "1 a 3 meses",
-        evolution_12m: "3 a 12 meses",
-        evolution_year: "M\u00e1s de 1 a\u00f1o",
-        label_case_photos: "Fotos de apoyo (opcional, max 3)",
-        case_photos_help: "Puedes subir hasta 3 fotos (max 5 MB c/u) para orientar mejor la primera consulta.",
-        privacy_consent_label: "Acepto el tratamiento de mis datos para gestionar la cita y evaluaci\u00f3n m\u00e9dica inicial.",
-        privacy_images_note: "Las im\u00e1genes y datos de contacto se usan solo con fines asistenciales internos y se resguardan de forma confidencial.",
-        privacy_link_label: "Ver pol\u00edtica de privacidad",
-        label_phone: "Teléfono",
-        
-        placeholder_phone: "+593 9XXXXXXXX",
-        summary_subtotal: "Subtotal",
-        summary_iva: "IVA (12%)",
-        summary_total: "Total",
-        btn_continue: "Continuar al Pago",
-        payment_title: "Método de Pago",
-        pay_card: "Tarjeta",
-        pay_transfer: "Transferencia",
-        pay_cash: "Efectivo",
-        label_card_number: "Número de tarjeta",
-        label_expiry: "Vencimiento",
-        label_cvv: "CVV",
-        label_card_name: "Nombre en la tarjeta",
-        bank_name: "Banco Pichincha",
-        bank_account: "Cuenta de Ahorros: 2200160272",
-        bank_owner: "Titular: Rosero Caiza Javier Alejandro",
-        label_transfer_ref: "N\u00famero de referencia",
-        cash_info: "Paga directamente en el consultorio el día de tu cita.",
-        payment_total: "Total a pagar:",
-        payment_trust_ssl: "Conexi\u00f3n segura SSL/TLS",
-        payment_trust_stripe: "Cobro protegido con Stripe",
-        payment_trust_invoice: "Facturaci\u00f3n y soporte por WhatsApp",
-        payment_faq_title: "Preguntas frecuentes de pago",
-        payment_faq_refund_q: "Reembolsos y cancelaciones",
-        payment_faq_refund_a: "Si cancelas con anticipación, coordinamos reembolso o saldo a favor según el caso clínico y términos vigentes.",
-        payment_faq_reschedule_q: "Reprogramación de citas",
-        payment_faq_reschedule_a: "Puedes reprogramar sin costo en horarios disponibles. Si ya pagaste, tu pago se mantiene para la nueva fecha.",
-        payment_faq_billing_q: "Facturación",
-        payment_faq_billing_a: "Emitimos comprobante/factura con los datos enviados en la reserva. Si necesitas ajuste, escríbenos por WhatsApp.",
-        payment_faq_include_q: "Qué incluye cada servicio",
-        payment_faq_include_a: "Cada servicio indica valor base y tipo de atención. Si requiere procedimientos adicionales, se informa antes de confirmar.",
-        btn_pay: "Confirmar Reserva",
-        success_title: "¡Cita Confirmada!",
-        success_desc: "Tu cita fue registrada correctamente.",
-        btn_done: "Entendido",
-        reschedule_title: "Reprogramar Cita",
-        reschedule_new_date: "Nueva fecha",
-        reschedule_new_time: "Nuevo horario",
-        reschedule_select_time: "Selecciona un horario",
-        reschedule_confirm: "Confirmar reprogramación",
-        video_modal_title: "Elige cómo quieres hacer la videollamada:",
-        video_jitsi: "Jitsi Meet (Recomendado)",
-        video_jitsi_desc: "Sin registro. Funciona en cualquier navegador.",
-        video_whatsapp: "WhatsApp Video",
-        video_whatsapp_desc: "Usa la app de WhatsApp que ya tienes.",
-        video_tip: "Después de abrir la videollamada, comparte el enlace o ID con el doctor por WhatsApp.",
-        review_modal_title: "Escribe tu Reseña",
-        label_your_name: "Tu nombre",
-        label_rating: "Calificación",
-        label_review: "Tu experiencia",
-        btn_submit_review: "Publicar Reseña",
-        legal_terms: "Términos y Condiciones",
-        legal_privacy: "Política de Privacidad",
-        legal_cookies: "Política de Cookies",
-        legal_disclaimer: "Aviso de Responsabilidad Médica",
-        chat_disclaimer: "Este asistente ofrece orientacion general y no reemplaza una consulta medica profesional.",
-        cookie_banner_text: "Usamos cookies esenciales para seguridad y funcionamiento. Puedes aceptar o rechazar cookies opcionales.",
-        cookie_reject: "Rechazar",
-        cookie_accept: "Aceptar",
-        cookie_more: "Más información",
-        footer_privacy_note: "Si compartes fotos por web o WhatsApp, se usan solo para orientación clínica y gestión de tu cita.",
-        footer_tagline: "Dermatología especializada en Quito",
-        footer_rights: "Todos los derechos reservados."
-    },
+    es: null,
     en: null
 };
+
+function captureSpanishTranslationsFromDom() {
+    const bundle = {};
+    document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = String(el.dataset.i18n || '').trim();
+        if (!key) {
+            return;
+        }
+
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            bundle[key] = el.placeholder || '';
+            return;
+        }
+
+        if (I18N_HTML_ALLOWED_KEYS.has(key)) {
+            bundle[key] = el.innerHTML || '';
+            return;
+        }
+
+        bundle[key] = el.textContent || '';
+    });
+
+    return bundle;
+}
 
 const EN_TRANSLATIONS_URL = '/translations-en.js?v=ui-20260218-i18n-en1';
 let enTranslationsPromise = null;
@@ -467,8 +258,6 @@ let bookingViewTracked = false;
 let chatStartedTracked = false;
 let availabilityPrefetched = false;
 let reviewsPrefetched = false;
-let galleryFiltersInitialized = false;
-let beforeAfterInitialized = false;
 let checkoutSession = {
     active: false,
     completed: false,
@@ -481,7 +270,7 @@ const DEFAULT_PUBLIC_REVIEWS = [
         id: 'google-jose-gancino',
         name: 'Jose Gancino',
         rating: 5,
-        text: 'Buena atención solo falta los números de la oficina y horarios de atención.',
+        text: 'Buena atenci�n solo falta los n�meros de la oficina y horarios de atenci�n.',
         date: '2025-10-01T10:00:00-05:00',
         verified: true
     },
@@ -489,7 +278,7 @@ const DEFAULT_PUBLIC_REVIEWS = [
         id: 'google-jacqueline-ruiz-torres',
         name: 'Jacqueline Ruiz Torres',
         rating: 5,
-        text: 'Exelente atención y económico ðŸ™ðŸ¤—ðŸ‘Œ',
+        text: 'Exelente atenci�n y econ�mico 🙏🤗👌',
         date: '2025-04-15T10:00:00-05:00',
         verified: true
     },
@@ -1600,6 +1389,10 @@ async function changeLanguage(lang) {
     localStorage.setItem('language', nextLang);
     document.documentElement.lang = nextLang;
 
+    if (!translations.es || typeof translations.es !== 'object') {
+        translations.es = captureSpanishTranslationsFromDom();
+    }
+
     if (nextLang === 'en' && !translations.en) {
         try {
             await ensureEnglishTranslations();
@@ -1608,7 +1401,7 @@ async function changeLanguage(lang) {
         }
     }
 
-    const langPack = translations[nextLang] || translations.es;
+    const langPack = translations[nextLang] || translations.es || {};
 
     // Update buttons
     document.querySelectorAll('.lang-btn').forEach(btn => {
@@ -1616,13 +1409,12 @@ async function changeLanguage(lang) {
     });
     
     // Update all elements with data-i18n
-    const htmlAllowedKeys = ['clinic_hours'];
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.dataset.i18n;
-        if (langPack[key]) {
+        if (Object.prototype.hasOwnProperty.call(langPack, key)) {
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
                 el.placeholder = langPack[key];
-            } else if (htmlAllowedKeys.includes(key)) {
+            } else if (I18N_HTML_ALLOWED_KEYS.has(key)) {
                 el.innerHTML = langPack[key];
             } else {
                 el.textContent = langPack[key];
@@ -1665,127 +1457,114 @@ function closeVideoModal() {
 }
 
 // ========================================
-// GALLERY FILTER
+// GALLERY INTERACTIONS (DEFERRED MODULE)
 // ========================================
-function initGalleryFilter() {
-    if (galleryFiltersInitialized) {
-        return;
-    }
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    const galleryItems = document.querySelectorAll('.gallery-item');
-    if (filterBtns.length === 0 || galleryItems.length === 0) {
-        return;
-    }
-    galleryFiltersInitialized = true;
-    
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            // Update active button
-            filterBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            const filter = btn.dataset.filter;
-            
-            // Filter items
-            galleryItems.forEach(item => {
-                if (filter === 'all' || item.dataset.category === filter) {
-                    item.style.display = 'block';
-                    setTimeout(() => {
-                        item.style.opacity = '1';
-                        item.style.transform = 'scale(1)';
-                    }, 10);
-                } else {
-                    item.style.opacity = '0';
-                    item.style.transform = 'scale(0.9)';
-                    setTimeout(() => {
-                        item.style.display = 'none';
-                    }, 300);
-                }
-            });
-        });
-    });
-}
+const GALLERY_INTERACTIONS_URL = '/gallery-interactions.js?v=figo-gallery-20260218-phase4';
+let galleryInteractionsPromise = null;
 
-// ========================================
-// BEFORE/AFTER SLIDER
-// ========================================
-function initBeforeAfterSlider() {
-    if (beforeAfterInitialized) {
-        return;
+function loadGalleryInteractions() {
+    if (window.PielGalleryInteractions && typeof window.PielGalleryInteractions.init === 'function') {
+        window.PielGalleryInteractions.init();
+        return Promise.resolve(window.PielGalleryInteractions);
     }
-    const sliders = document.querySelectorAll('.ba-slider');
-    if (sliders.length === 0) {
-        return;
+
+    if (galleryInteractionsPromise) {
+        return galleryInteractionsPromise;
     }
-    beforeAfterInitialized = true;
-    
-    sliders.forEach(slider => {
-        const handle = slider.querySelector('.ba-handle');
-        const after = slider.querySelector('.ba-after');
-        if (!handle || !after) {
+
+    galleryInteractionsPromise = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-gallery-interactions="true"]');
+        if (existing) {
+            existing.addEventListener('load', () => {
+                if (window.PielGalleryInteractions && typeof window.PielGalleryInteractions.init === 'function') {
+                    window.PielGalleryInteractions.init();
+                    resolve(window.PielGalleryInteractions);
+                    return;
+                }
+                reject(new Error('gallery-interactions loaded without API'));
+            }, { once: true });
+            existing.addEventListener('error', () => reject(new Error('No se pudo cargar gallery-interactions.js')), { once: true });
             return;
         }
-        let isDragging = false;
-        
-        const updateSlider = (x) => {
-            const rect = slider.getBoundingClientRect();
-            let percent = ((x - rect.left) / rect.width) * 100;
-            percent = Math.max(0, Math.min(100, percent));
-            
-            after.style.clipPath = `inset(0 ${100 - percent}% 0 0)`;
-            handle.style.left = `${percent}%`;
-        };
-        
-        handle.addEventListener('mousedown', () => isDragging = true);
-        document.addEventListener('mouseup', () => isDragging = false);
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging) updateSlider(e.clientX);
-        });
-        
-        // Touch support
-        handle.addEventListener('touchstart', (e) => { isDragging = true; e.preventDefault(); }, { passive: false });
-        document.addEventListener('touchend', () => isDragging = false);
-        document.addEventListener('touchmove', (e) => {
-            if (isDragging) {
-                e.preventDefault();
-                updateSlider(e.touches[0].clientX);
-            }
-        }, { passive: false });
-        
-        // Click to move
-        slider.addEventListener('click', (e) => {
-            if (e.target !== handle) updateSlider(e.clientX);
-        });
-    });
-}
 
-function initDeferredGalleryInteractions() {
-    const gallerySection = document.getElementById('galeria');
-    if (!gallerySection) {
-        return;
-    }
-
-    const initAll = () => {
-        initGalleryFilter();
-        initBeforeAfterSlider();
-    };
-
-    if (!('IntersectionObserver' in window)) {
-        initAll();
-        return;
-    }
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-            if (!entry.isIntersecting) {
+        const script = document.createElement('script');
+        script.src = GALLERY_INTERACTIONS_URL;
+        script.async = true;
+        script.defer = true;
+        script.dataset.galleryInteractions = 'true';
+        script.onload = () => {
+            if (window.PielGalleryInteractions && typeof window.PielGalleryInteractions.init === 'function') {
+                window.PielGalleryInteractions.init();
+                resolve(window.PielGalleryInteractions);
                 return;
             }
-            initAll();
-            observer.disconnect();
-        });
-    }, { threshold: 0.15, rootMargin: '200px 0px' });
+            reject(new Error('gallery-interactions loaded without API'));
+        };
+        script.onerror = () => reject(new Error('No se pudo cargar gallery-interactions.js'));
+        document.head.appendChild(script);
+    }).catch((error) => {
+        galleryInteractionsPromise = null;
+        debugLog('Gallery interactions load failed:', error);
+        throw error;
+    });
 
-    observer.observe(gallerySection);
+    return galleryInteractionsPromise;
+}
+
+function initGalleryInteractionsWarmup() {
+    let warmed = false;
+    const warmup = () => {
+        if (warmed || window.location.protocol === 'file:') {
+            return;
+        }
+        warmed = true;
+        loadGalleryInteractions().catch(() => {
+            warmed = false;
+        });
+    };
+
+    const gallerySection = document.getElementById('galeria');
+    if (gallerySection && 'IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) {
+                    return;
+                }
+                warmup();
+                observer.disconnect();
+            });
+        }, { threshold: 0.05, rootMargin: '320px 0px' });
+
+        observer.observe(gallerySection);
+    } else if (gallerySection) {
+        warmup();
+    }
+
+    const firstFilterBtn = document.querySelector('.filter-btn');
+    if (firstFilterBtn) {
+        firstFilterBtn.addEventListener('mouseenter', warmup, { once: true, passive: true });
+        firstFilterBtn.addEventListener('touchstart', warmup, { once: true, passive: true });
+    }
+
+    if (!gallerySection && !firstFilterBtn) {
+        return;
+    }
+
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const isConstrainedNetwork = !!(connection && (
+        connection.saveData === true
+        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
+    ));
+
+    if (isConstrainedNetwork) {
+        return;
+    }
+
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(warmup, { timeout: 2500 });
+    } else {
+        setTimeout(warmup, 1500);
+    }
 }
 
 // ========================================
@@ -2073,7 +1852,7 @@ function showSuccessModal(emailSent = false) {
 function getDoctorName(doctor) {
     const names = {
         rosero: 'Dr. Javier Rosero',
-        narvaez: 'Dra. Carolina Narváez',
+        narvaez: 'Dra. Carolina Narv�ez',
         indiferente: 'Primera disponible'
     };
     return names[doctor] || doctor;
@@ -2117,7 +1896,7 @@ function getPaymentStatusLabel(status) {
 function generateGoogleCalendarUrl(appointment, startDate, endDate) {
     const formatDate = (date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     
-    const title = encodeURIComponent(`Cita - Piel en Armonía`);
+    const title = encodeURIComponent(`Cita - Piel en Armon�a`);
     const details = encodeURIComponent(`Servicio: ${getServiceName(appointment.service)}\nDoctor: ${getDoctorName(appointment.doctor)}\nPrecio: ${appointment.price}`);
     const location = encodeURIComponent(CLINIC_ADDRESS);
     
@@ -2129,11 +1908,11 @@ function generateICS(appointment, startDate, endDate) {
     
     return `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//Piel en Armonía//Consulta//ES
+PRODID:-//Piel en Armon�a//Consulta//ES
 BEGIN:VEVENT
 DTSTART:${formatICSDate(startDate)}
 DTEND:${formatICSDate(endDate)}
-SUMMARY:Cita - Piel en Armonía
+SUMMARY:Cita - Piel en Armon�a
 DESCRIPTION:Servicio: ${getServiceName(appointment.service)}\\nDoctor: ${getDoctorName(appointment.doctor)}\\nPrecio: ${appointment.price}
 LOCATION:${CLINIC_ADDRESS}
 END:VEVENT
@@ -2142,10 +1921,10 @@ END:VCALENDAR`;
 
 function getServiceName(service) {
     const names = {
-        consulta: 'Consulta Dermatológica',
-        telefono: 'Consulta Telefónica',
+        consulta: 'Consulta Dermatol�gica',
+        telefono: 'Consulta Telef�nica',
         video: 'Video Consulta',
-        laser: 'Tratamiento Láser',
+        laser: 'Tratamiento L�ser',
         rejuvenecimiento: 'Rejuvenecimiento'
     };
     return names[service] || service;
@@ -2276,7 +2055,7 @@ document.addEventListener('DOMContentLoaded', function() {
             renderPublicReviews(reviewsCache);
 
             showToast(
-                currentLang === 'es' ? 'Gracias por tu reseña.' : 'Thank you for your review.',
+                currentLang === 'es' ? 'Gracias por tu rese�a.' : 'Thank you for your review.',
                 'success'
             );
 
@@ -2290,7 +2069,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             showToast(
                 currentLang === 'es'
-                    ? 'No pudimos guardar tu reseña. Intenta nuevamente.'
+                    ? 'No pudimos guardar tu rese�a. Intenta nuevamente.'
                     : 'We could not save your review. Try again.',
                 'error'
             );
@@ -2390,7 +2169,7 @@ let chatHistory = (function() {
 })();
 let conversationContext = [];
 
-// CONFIGURACIÓN DE CHAT
+// CONFIGURACI�N DE CHAT
 const KIMI_CONFIG = {
     apiUrl: '/figo-chat.php',
     model: 'figo-assistant',
@@ -2414,46 +2193,46 @@ function shouldUseRealAI() {
 }
 
 // Contexto del sistema para el asistente
-const SYSTEM_PROMPT = `Eres el Dr. Virtual, asistente inteligente de la clínica dermatológica "Piel en Armonía" en Quito, Ecuador.
+const SYSTEM_PROMPT = `Eres el Dr. Virtual, asistente inteligente de la cl�nica dermatol�gica "Piel en Armon�a" en Quito, Ecuador.
 
-INFORMACIÓN DE LA CLÍNICA:
-- Nombre: Piel en Armonía
-- Doctores: Dr. Javier Rosero (Dermatólogo Clínico) y Dra. Carolina Narváez (Dermatóloga Estética)
-- Dirección: ${CLINIC_ADDRESS}
-- Teléfono/WhatsApp: +593 98 245 3672
+INFORMACI�N DE LA CL�NICA:
+- Nombre: Piel en Armon�a
+- Doctores: Dr. Javier Rosero (Dermat�logo Cl�nico) y Dra. Carolina Narv�ez (Dermat�loga Est�tica)
+- Direcci�n: ${CLINIC_ADDRESS}
+- Tel�fono/WhatsApp: +593 98 245 3672
 - Contacto Dra. Carolina: ${DOCTOR_CAROLINA_PHONE} | ${DOCTOR_CAROLINA_EMAIL}
-- Horario: Lunes-Viernes 9:00-18:00, Sábados 9:00-13:00
+- Horario: Lunes-Viernes 9:00-18:00, S�bados 9:00-13:00
 - Estacionamiento privado disponible
 
 SERVICIOS Y PRECIOS:
-- Consulta Dermatológica: $40 (incluye IVA)
-- Consulta Telefónica: $25
+- Consulta Dermatol�gica: $40 (incluye IVA)
+- Consulta Telef�nica: $25
 - Video Consulta: $30
-- Tratamiento Láser: desde $150
+- Tratamiento L�ser: desde $150
 - Rejuvenecimiento: desde $120
-- Tratamiento de Acné: desde $80
-- Detección de Cáncer de Piel: desde $70
+- Tratamiento de Acn�: desde $80
+- Detecci�n de C�ncer de Piel: desde $70
 
 OPCIONES DE CONSULTA ONLINE:
-1. Llamada telefónica: tel:+593982453672
+1. Llamada telef�nica: tel:+593982453672
 2. WhatsApp Video: https://wa.me/593982453672
 3. Video Web (Jitsi): https://meet.jit.si/PielEnArmonia-Consulta
 
 INSTRUCCIONES:
-- Sé profesional, amable y empático
-- Responde en español (o en el idioma que use el paciente)
-- Si el paciente tiene síntomas graves o emergencias, recomienda acudir a urgencias
-- Para agendar citas, dirige al formulario web, WhatsApp o llamada telefónica
-- Si no sabes algo específico, ofrece transferir al doctor real
-- No hagas diagnósticos médicos definitivos, solo orientación general
+- S� profesional, amable y emp�tico
+- Responde en espa�ol (o en el idioma que use el paciente)
+- Si el paciente tiene s�ntomas graves o emergencias, recomienda acudir a urgencias
+- Para agendar citas, dirige al formulario web, WhatsApp o llamada telef�nica
+- Si no sabes algo espec�fico, ofrece transferir al doctor real
+- No hagas diagn�sticos m�dicos definitivos, solo orientaci�n general
 - Usa emojis ocasionalmente para ser amigable
-- Mantén respuestas concisas pero informativas
+- Mant�n respuestas concisas pero informativas
 
 Tu objetivo es ayudar a los pacientes a:
-1. Conocer los servicios de la clínica
+1. Conocer los servicios de la cl�nica
 2. Entender los precios
 3. Agendar citas
-4. Resolver dudas básicas sobre dermatología
+4. Resolver dudas b�sicas sobre dermatolog�a
 5. Conectar con un doctor real cuando sea necesario`;
 
 function toggleChatbot() {
@@ -2476,28 +2255,28 @@ function toggleChatbot() {
             // Verificar si estamos usando IA real
             const usandoIA = shouldUseRealAI();
             
-            debugLog('🤖 Estado del chatbot:', usandoIA ? 'IA REAL' : 'Respuestas locales');
+            debugLog('?? Estado del chatbot:', usandoIA ? 'IA REAL' : 'Respuestas locales');
             
             var welcomeMsg;
             
             if (usandoIA) {
-                welcomeMsg = '¡Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonía</strong>.<br><br>';
+                welcomeMsg = '�Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armon�a</strong>.<br><br>';
                 welcomeMsg += '<strong>Conectado con Inteligencia Artificial</strong><br><br>';
-                welcomeMsg += 'Puedo ayudarte con información detallada sobre:<br>';
-                welcomeMsg += '• Nuestros servicios dermatologicos<br>';
-                welcomeMsg += '• Precios de consultas y tratamientos<br>';
-                welcomeMsg += '• Agendar citas presenciales o online<br>';
-                welcomeMsg += '• Ubicacion y horarios de atencion<br>';
-                welcomeMsg += '• Resolver tus dudas sobre cuidado de la piel<br><br>';
-                welcomeMsg += '¿En que puedo ayudarte hoy?';
+                welcomeMsg += 'Puedo ayudarte con informaci�n detallada sobre:<br>';
+                welcomeMsg += '� Nuestros servicios dermatologicos<br>';
+                welcomeMsg += '� Precios de consultas y tratamientos<br>';
+                welcomeMsg += '� Agendar citas presenciales o online<br>';
+                welcomeMsg += '� Ubicacion y horarios de atencion<br>';
+                welcomeMsg += '� Resolver tus dudas sobre cuidado de la piel<br><br>';
+                welcomeMsg += '�En que puedo ayudarte hoy?';
             } else {
-                welcomeMsg = '¡Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonía</strong>.<br><br>';
-                welcomeMsg += 'Puedo ayudarte con información sobre:<br>';
-                welcomeMsg += '• Nuestros servicios dermatologicos<br>';
-                welcomeMsg += '• Precios de consultas y tratamientos<br>';
-                welcomeMsg += '• Agendar citas presenciales o online<br>';
-                welcomeMsg += '• Ubicacion y horarios de atencion<br><br>';
-                welcomeMsg += '¿En que puedo ayudarte hoy?';
+                welcomeMsg = '�Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armon�a</strong>.<br><br>';
+                welcomeMsg += 'Puedo ayudarte con informaci�n sobre:<br>';
+                welcomeMsg += '� Nuestros servicios dermatologicos<br>';
+                welcomeMsg += '� Precios de consultas y tratamientos<br>';
+                welcomeMsg += '� Agendar citas presenciales o online<br>';
+                welcomeMsg += '� Ubicacion y horarios de atencion<br><br>';
+                welcomeMsg += '�En que puedo ayudarte hoy?';
             }
             
             addBotMessage(welcomeMsg);
@@ -2554,13 +2333,13 @@ function sendQuickMessage(type) {
     }
 
     const messages = {
-        services: '¿Qué servicios ofrecen?',
-        prices: '¿Cuáles son los precios?',
-        telemedicine: '¿Cómo funciona la consulta online?',
+        services: '�Qu� servicios ofrecen?',
+        prices: '�Cu�les son los precios?',
+        telemedicine: '�C�mo funciona la consulta online?',
         human: 'Quiero hablar con un doctor real',
-        acne: 'Tengo problemas de acné',
-        laser: 'Información sobre tratamientos láser',
-        location: '¿Dónde están ubicados?'
+        acne: 'Tengo problemas de acn�',
+        laser: 'Informaci�n sobre tratamientos l�ser',
+        location: '�D�nde est�n ubicados?'
     };
 
     const message = messages[type] || type;
@@ -2583,7 +2362,7 @@ function addUserMessage(text) {
     chatHistory.push({ type: 'user', text, time: new Date().toISOString() });
     try { localStorage.setItem('chatHistory', JSON.stringify(chatHistory)); } catch(e) {}
 
-    // Agregar al contexto de conversación (evitar duplicados)
+    // Agregar al contexto de conversaci�n (evitar duplicados)
     const lastMsg = conversationContext[conversationContext.length - 1];
     if (!lastMsg || lastMsg.role !== 'user' || lastMsg.content !== text) {
         conversationContext.push({ role: 'user', content: text });
@@ -2652,7 +2431,7 @@ function addBotMessage(html, showOfflineLabel = false) {
     if (lastMessage) {
         const lastContent = lastMessage.querySelector('.message-content');
         if (lastContent && lastContent.innerHTML === safeHtml) {
-            debugLog('âš ï¸ Mensaje duplicado detectado, no se muestra');
+            debugLog('⚠️ Mensaje duplicado detectado, no se muestra');
             return;
         }
     }
@@ -2660,7 +2439,7 @@ function addBotMessage(html, showOfflineLabel = false) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'chat-message bot';
     
-    // Solo mostrar indicador offline si se solicita explícitamente (para debug)
+    // Solo mostrar indicador offline si se solicita expl�citamente (para debug)
     const offlineIndicator = showOfflineLabel ? 
         `<div style="font-size: 0.7rem; color: #86868b; margin-bottom: 4px; opacity: 0.7;">
             <i class="fas fa-robot"></i> Asistente Virtual
@@ -2796,14 +2575,14 @@ const CHAT_SERVICES = [
 
 const CHAT_DOCTORS = [
     { key: 'rosero', label: 'Dr. Javier Rosero' },
-    { key: 'narvaez', label: 'Dra. Carolina Narváez' },
+    { key: 'narvaez', label: 'Dra. Carolina Narv�ez' },
     { key: 'indiferente', label: 'Cualquiera' }
 ];
 
 function startChatBooking() {
     chatBooking = { step: 'service' };
     let msg = 'Vamos a agendar tu cita paso a paso.<br><br>';
-    msg += '<strong>Paso 1/7:</strong> ¿Que servicio necesitas?<br><br>';
+    msg += '<strong>Paso 1/7:</strong> �Que servicio necesitas?<br><br>';
     msg += '<div class="chat-suggestions">';
     CHAT_SERVICES.forEach(s => {
         msg += `<button class="chat-suggestion-btn" data-action="chat-booking" data-value="${s.key}">${escapeHtml(s.label)} (${s.price})</button>`;
@@ -2851,7 +2630,7 @@ async function processChatBookingStep(userInput) {
             chatBooking.step = 'doctor';
 
             let msg = `Servicio: <strong>${escapeHtml(service.label)}</strong> (${service.price})<br><br>`;
-            msg += '<strong>Paso 2/7:</strong> ¿Con que doctor prefieres?<br><br>';
+            msg += '<strong>Paso 2/7:</strong> �Con que doctor prefieres?<br><br>';
             msg += '<div class="chat-suggestions">';
             CHAT_DOCTORS.forEach(d => {
                 msg += `<button class="chat-suggestion-btn" data-action="chat-booking" data-value="${d.key}">${escapeHtml(d.label)}</button>`;
@@ -2873,7 +2652,7 @@ async function processChatBookingStep(userInput) {
 
             const today = new Date().toISOString().split('T')[0];
             let msg = `Doctor: <strong>${escapeHtml(doctor.label)}</strong><br><br>`;
-            msg += '<strong>Paso 3/7:</strong> ¿Que fecha prefieres?<br><br>';
+            msg += '<strong>Paso 3/7:</strong> �Que fecha prefieres?<br><br>';
             msg += `<input type="date" id="chatDateInput" min="${today}" `;
             msg += `data-action="chat-date-select" `;
             msg += `style="padding: 10px 14px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 1rem; width: 100%; max-width: 220px; cursor: pointer;">`;
@@ -2941,7 +2720,7 @@ async function processChatBookingStep(userInput) {
             }
             chatBooking.time = input;
             chatBooking.step = 'name';
-            addBotMessage(`Hora: <strong>${escapeHtml(input)}</strong><br><br><strong>Paso 5/7:</strong> ¿Cual es tu nombre completo?`);
+            addBotMessage(`Hora: <strong>${escapeHtml(input)}</strong><br><br><strong>Paso 5/7:</strong> �Cual es tu nombre completo?`);
             break;
         }
 
@@ -2952,7 +2731,7 @@ async function processChatBookingStep(userInput) {
             }
             chatBooking.name = input;
             chatBooking.step = 'email';
-            addBotMessage(`Nombre: <strong>${escapeHtml(input)}</strong><br><br><strong>Paso 6/7:</strong> ¿Cual es tu email?`);
+            addBotMessage(`Nombre: <strong>${escapeHtml(input)}</strong><br><br><strong>Paso 6/7:</strong> �Cual es tu email?`);
             break;
         }
 
@@ -2964,7 +2743,7 @@ async function processChatBookingStep(userInput) {
             }
             chatBooking.email = input;
             chatBooking.step = 'phone';
-            addBotMessage(`Email: <strong>${escapeHtml(input)}</strong><br><br><strong>Paso 7/7:</strong> ¿Cual es tu numero de telefono?`);
+            addBotMessage(`Email: <strong>${escapeHtml(input)}</strong><br><br><strong>Paso 7/7:</strong> �Cual es tu numero de telefono?`);
             break;
         }
 
@@ -2979,14 +2758,14 @@ async function processChatBookingStep(userInput) {
 
             let msg = `Telefono: <strong>${escapeHtml(input)}</strong><br><br>`;
             msg += '<strong>Resumen de tu cita:</strong><br>';
-            msg += `• Servicio: ${escapeHtml(chatBooking.serviceLabel)} (${chatBooking.price})<br>`;
-            msg += `• Doctor: ${escapeHtml(chatBooking.doctorLabel)}<br>`;
-            msg += `• Fecha: ${escapeHtml(chatBooking.date)}<br>`;
-            msg += `• Hora: ${escapeHtml(chatBooking.time)}<br>`;
-            msg += `• Nombre: ${escapeHtml(chatBooking.name)}<br>`;
-            msg += `• Email: ${escapeHtml(chatBooking.email)}<br>`;
-            msg += `• Telefono: ${escapeHtml(chatBooking.phone)}<br><br>`;
-            msg += '¿Como deseas pagar?<br><br>';
+            msg += `� Servicio: ${escapeHtml(chatBooking.serviceLabel)} (${chatBooking.price})<br>`;
+            msg += `� Doctor: ${escapeHtml(chatBooking.doctorLabel)}<br>`;
+            msg += `� Fecha: ${escapeHtml(chatBooking.date)}<br>`;
+            msg += `� Hora: ${escapeHtml(chatBooking.time)}<br>`;
+            msg += `� Nombre: ${escapeHtml(chatBooking.name)}<br>`;
+            msg += `� Email: ${escapeHtml(chatBooking.email)}<br>`;
+            msg += `� Telefono: ${escapeHtml(chatBooking.phone)}<br><br>`;
+            msg += '�Como deseas pagar?<br><br>';
             msg += '<div class="chat-suggestions">';
             msg += '<button class="chat-suggestion-btn" data-action="chat-booking" data-value="efectivo"><i class="fas fa-money-bill-wave"></i> Efectivo</button>';
             msg += '<button class="chat-suggestion-btn" data-action="chat-booking" data-value="tarjeta"><i class="fas fa-credit-card"></i> Tarjeta</button>';
@@ -3055,18 +2834,18 @@ async function finalizeChatBooking() {
             currentAppointment = result.appointment;
             completeCheckoutSession('cash');
 
-            let msg = '<strong>¡Cita agendada con exito!</strong><br><br>';
+            let msg = '<strong>�Cita agendada con exito!</strong><br><br>';
             msg += 'Tu cita ha sido registrada. ';
             if (result.emailSent) {
                 msg += 'Te enviamos un correo de confirmacion.<br><br>';
             } else {
                 msg += 'Te contactaremos para confirmar detalles.<br><br>';
             }
-            msg += `• Servicio: ${escapeHtml(chatBooking.serviceLabel)}<br>`;
-            msg += `• Doctor: ${escapeHtml(chatBooking.doctorLabel)}<br>`;
-            msg += `• Fecha: ${escapeHtml(chatBooking.date)}<br>`;
-            msg += `• Hora: ${escapeHtml(chatBooking.time)}<br>`;
-            msg += `• Pago: En consultorio<br><br>`;
+            msg += `� Servicio: ${escapeHtml(chatBooking.serviceLabel)}<br>`;
+            msg += `� Doctor: ${escapeHtml(chatBooking.doctorLabel)}<br>`;
+            msg += `� Fecha: ${escapeHtml(chatBooking.date)}<br>`;
+            msg += `� Hora: ${escapeHtml(chatBooking.time)}<br>`;
+            msg += `� Pago: En consultorio<br><br>`;
             msg += 'Recuerda llegar 10 minutos antes de tu cita.';
             addBotMessage(msg);
             showToast('Cita agendada correctamente desde el asistente.', 'success');
@@ -3190,6 +2969,96 @@ function initChatEngineWarmup() {
     }
 }
 
+const UI_EFFECTS_URL = '/ui-effects.js?v=figo-ui-20260218-phase4';
+let uiEffectsPromise = null;
+
+function loadUiEffects() {
+    if (window.PielUiEffects && typeof window.PielUiEffects.init === 'function') {
+        window.PielUiEffects.init();
+        return Promise.resolve(window.PielUiEffects);
+    }
+
+    if (uiEffectsPromise) {
+        return uiEffectsPromise;
+    }
+
+    uiEffectsPromise = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-ui-effects="true"]');
+        if (existing) {
+            existing.addEventListener('load', () => {
+                if (window.PielUiEffects && typeof window.PielUiEffects.init === 'function') {
+                    window.PielUiEffects.init();
+                    resolve(window.PielUiEffects);
+                    return;
+                }
+                reject(new Error('ui-effects loaded without API'));
+            }, { once: true });
+            existing.addEventListener('error', () => reject(new Error('No se pudo cargar ui-effects.js')), { once: true });
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = UI_EFFECTS_URL;
+        script.async = true;
+        script.defer = true;
+        script.dataset.uiEffects = 'true';
+        script.onload = () => {
+            if (window.PielUiEffects && typeof window.PielUiEffects.init === 'function') {
+                window.PielUiEffects.init();
+                resolve(window.PielUiEffects);
+                return;
+            }
+            reject(new Error('ui-effects loaded without API'));
+        };
+        script.onerror = () => reject(new Error('No se pudo cargar ui-effects.js'));
+        document.head.appendChild(script);
+    }).catch((error) => {
+        uiEffectsPromise = null;
+        debugLog('UI effects load failed:', error);
+        throw error;
+    });
+
+    return uiEffectsPromise;
+}
+
+function initUiEffectsWarmup() {
+    let warmed = false;
+    const warmup = () => {
+        if (warmed || window.location.protocol === 'file:') {
+            return;
+        }
+        warmed = true;
+        loadUiEffects().catch(() => {
+            warmed = false;
+        });
+    };
+
+    const nav = document.querySelector('.nav');
+    if (nav) {
+        nav.addEventListener('mouseenter', warmup, { once: true, passive: true });
+        nav.addEventListener('touchstart', warmup, { once: true, passive: true });
+    }
+
+    const triggerOnce = () => warmup();
+    window.addEventListener('scroll', triggerOnce, { once: true, passive: true });
+    window.addEventListener('pointerdown', triggerOnce, { once: true, passive: true });
+
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const isConstrainedNetwork = !!(connection && (
+        connection.saveData === true
+        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
+    ));
+
+    if (isConstrainedNetwork) {
+        return;
+    }
+
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(warmup, { timeout: 1800 });
+    } else {
+        setTimeout(warmup, 1200);
+    }
+}
 async function processWithKimi(message) {
     try {
         const engine = await loadFigoChatEngine();
@@ -3197,7 +3066,7 @@ async function processWithKimi(message) {
     } catch (error) {
         console.error('Error cargando motor de chat:', error);
         removeTypingIndicator();
-        addBotMessage('No se pudo iniciar el asistente en este momento. Intenta de nuevo o escríbenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.', false);
+        addBotMessage('No se pudo iniciar el asistente en este momento. Intenta de nuevo o escr�benos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.', false);
     }
 }
 
@@ -3236,7 +3105,7 @@ setTimeout(() => {
     }
 }, 30000);
 // ========================================
-// REPROGRAMACIÓN ONLINE
+// REPROGRAMACI�N ONLINE
 // ========================================
 let _rescheduleToken = '';
 let _rescheduleAppt = null;
@@ -3252,7 +3121,7 @@ async function checkRescheduleParam() {
             _rescheduleAppt = resp.data;
             openRescheduleModal(resp.data);
         } else {
-            showToast(resp.error || 'Enlace de reprogramación inválido.', 'error');
+            showToast(resp.error || 'Enlace de reprogramaci�n inv�lido.', 'error');
         }
     } catch (err) {
         showToast('No se pudo cargar la cita. Verifica el enlace.', 'error');
@@ -3265,7 +3134,7 @@ function openRescheduleModal(appt) {
     const info = document.getElementById('rescheduleInfo');
     if (info) {
         const doctorLabel = appt.doctor === 'rosero' ? 'Dr. Javier Rosero' :
-            appt.doctor === 'narvaez' ? 'Dra. Carolina Narváez' : appt.doctor;
+            appt.doctor === 'narvaez' ? 'Dra. Carolina Narv�ez' : appt.doctor;
         info.innerHTML =
             '<p><strong>' + (currentLang === 'es' ? 'Paciente' : 'Patient') + ':</strong> ' + escapeHTML(appt.name) + '</p>' +
             '<p><strong>' + (currentLang === 'es' ? 'Servicio' : 'Service') + ':</strong> ' + escapeHTML(appt.service) + '</p>' +
@@ -3286,7 +3155,7 @@ function openRescheduleModal(appt) {
 function closeRescheduleModal() {
     const modal = document.getElementById('rescheduleModal');
     if (modal) modal.classList.remove('active');
-    // limpiar parámetro de URL
+    // limpiar par�metro de URL
     if (window.history.replaceState) {
         const url = new URL(window.location);
         url.searchParams.delete('reschedule');
@@ -3357,17 +3226,17 @@ async function submitReschedule() {
             invalidateBookedSlotsCache(oldDate, doctor);
             invalidateBookedSlotsCache(newDate, doctor);
             closeRescheduleModal();
-            showToast(currentLang === 'es' ? '¡Cita reprogramada exitosamente!' : 'Appointment rescheduled successfully!', 'success');
+            showToast(currentLang === 'es' ? '�Cita reprogramada exitosamente!' : 'Appointment rescheduled successfully!', 'success');
         } else {
             errorDiv.textContent = resp.error || 'Error al reprogramar.';
             errorDiv.style.display = 'block';
         }
     } catch (err) {
-        errorDiv.textContent = currentLang === 'es' ? 'Error de conexión. Inténtalo de nuevo.' : 'Connection error. Try again.';
+        errorDiv.textContent = currentLang === 'es' ? 'Error de conexi�n. Int�ntalo de nuevo.' : 'Connection error. Try again.';
         errorDiv.style.display = 'block';
     } finally {
         btn.disabled = false;
-        btn.textContent = currentLang === 'es' ? 'Confirmar reprogramación' : 'Confirm reschedule';
+        btn.textContent = currentLang === 'es' ? 'Confirmar reprogramaci�n' : 'Confirm reschedule';
     }
 }
 
@@ -3381,8 +3250,9 @@ document.addEventListener('DOMContentLoaded', function() {
     initGA4();
     initBookingFunnelObserver();
     initDeferredSectionPrefetch();
-    initDeferredGalleryInteractions();
+    initGalleryInteractionsWarmup();
     initChatEngineWarmup();
+    initUiEffectsWarmup();
     checkRescheduleParam();
     const chatInput = document.getElementById('chatInput');
     if (chatInput) {
@@ -3397,116 +3267,4 @@ document.addEventListener('DOMContentLoaded', function() {
         console.warn('Chatbot en modo offline: abre el sitio desde servidor para usar IA real.');
     }
 });
-
-// ========================================
-// ANIMACIONES APPLE - SCROLL
-// ========================================
-
-// Animación de elementos al hacer scroll
-function initScrollAnimations() {
-    const targets = document.querySelectorAll('.service-card, .team-card, .section-header, .tele-card, .review-card');
-    if (!targets.length) return;
-
-    const shouldSkipObserver = window.innerWidth < 900
-        || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-
-    if (shouldSkipObserver) {
-        targets.forEach(el => el.classList.add('visible'));
-        return;
-    }
-
-    const observerOptions = {
-        root: null,
-        rootMargin: '0px 0px -100px 0px',
-        threshold: 0.1
-    };
-    
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-                observer.unobserve(entry.target);
-            }
-        });
-    }, observerOptions);
-    
-    // Observar elementos
-    targets.forEach(el => {
-        el.classList.add('animate-on-scroll');
-        observer.observe(el);
-    });
-}
-
-// Efecto parallax suave en el hero
-function initParallax() {
-    const heroImage = document.querySelector('.hero-image-container');
-    if (!heroImage) return;
-    if (window.innerWidth < 1100) return;
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    
-    let ticking = false;
-    
-    window.addEventListener('scroll', () => {
-        if (!ticking) {
-            window.requestAnimationFrame(() => {
-                const scrolled = window.pageYOffset;
-                const rate = Math.min(80, scrolled * 0.12);
-                heroImage.style.transform = `translateY(calc(-50% + ${rate}px))`;
-                ticking = false;
-            });
-            ticking = true;
-        }
-    }, { passive: true });
-}
-
-// Navbar efecto al hacer scroll
-function initNavbarScroll() {
-    const nav = document.querySelector('.nav');
-    if (!nav) return;
-
-    let ticking = false;
-    let isScrolled = false;
-
-    const applyScrollState = () => {
-        const shouldBeScrolled = window.scrollY > 50;
-        if (shouldBeScrolled !== isScrolled) {
-            nav.classList.toggle('scrolled', shouldBeScrolled);
-            isScrolled = shouldBeScrolled;
-        }
-        ticking = false;
-    };
-
-    window.addEventListener('scroll', () => {
-        if (ticking) return;
-        ticking = true;
-        window.requestAnimationFrame(applyScrollState);
-    }, { passive: true });
-
-    applyScrollState();
-}
-
-// Inicializar animaciones cuando el DOM esté listo
-function initDeferredVisualEffects() {
-    const run = () => {
-        initScrollAnimations();
-        initParallax();
-    };
-
-    if (typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(run, { timeout: 1200 });
-    } else {
-        setTimeout(run, 180);
-    }
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        initNavbarScroll();
-        initDeferredVisualEffects();
-    });
-} else {
-    initNavbarScroll();
-    initDeferredVisualEffects();
-}
-
 
