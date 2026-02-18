@@ -162,6 +162,9 @@ const translations = {
         case_laser_desc: "Eliminación de lesiones vasculares",
         case_spots: "Eliminación de Manchas",
         case_spots_desc: "Tratamiento despigmentante",
+        results_note_consent: "Casos reales publicados con consentimiento informado del paciente.",
+        results_note_variability: "Los resultados pueden variar segun el diagnostico, adherencia y tipo de piel.",
+        results_note_timeline: "El tiempo mostrado en cada caso corresponde al proceso real del paciente.",
         showcase_eyebrow: "Dermatología avanzada",
         showcase_title: "Tecnología que transforma tu piel.",
         showcase_desc: "Combinamos ciencia y experiencia para ofrecerte los tratamientos más efectivos y personalizados del mercado.",
@@ -215,6 +218,29 @@ const translations = {
         select_time: "Hora",
         label_name: "Nombre completo",
         label_email: "Email",
+        label_reason: "Motivo de consulta (opcional)",
+        placeholder_reason: "Ej: acne inflamatorio en mejillas, picazon o manchas recientes",
+        label_area: "Zona de la piel (opcional)",
+        select_area: "Selecciona una zona",
+        area_face: "Rostro",
+        area_neck: "Cuello",
+        area_scalp: "Cuero cabelludo",
+        area_torso: "Tronco",
+        area_arms: "Brazos y manos",
+        area_legs: "Piernas y pies",
+        area_other: "Otra zona",
+        label_evolution: "Tiempo de evolucion (opcional)",
+        select_evolution: "Selecciona un tiempo",
+        evolution_1w: "Menos de 1 semana",
+        evolution_1m: "1 a 4 semanas",
+        evolution_3m: "1 a 3 meses",
+        evolution_12m: "3 a 12 meses",
+        evolution_year: "Mas de 1 ano",
+        label_case_photos: "Fotos de apoyo (opcional, max 3)",
+        case_photos_help: "Puedes subir hasta 3 fotos (max 5 MB c/u) para orientar mejor la primera consulta.",
+        privacy_consent_label: "Acepto el tratamiento de mis datos para gestionar la cita y evaluacion medica inicial.",
+        privacy_images_note: "Las imagenes y datos de contacto se usan solo con fines asistenciales internos y se resguardan de forma confidencial.",
+        privacy_link_label: "Ver politica de privacidad",
         label_phone: "Teléfono",
         summary_subtotal: "Subtotal",
         summary_iva: "IVA (12%)",
@@ -234,6 +260,18 @@ const translations = {
         label_transfer_ref: "Número de referencia",
         cash_info: "Paga directamente en el consultorio el día de tu cita.",
         payment_total: "Total a pagar:",
+        payment_trust_ssl: "Conexion segura SSL/TLS",
+        payment_trust_stripe: "Cobro protegido con Stripe",
+        payment_trust_invoice: "Facturacion y soporte por WhatsApp",
+        payment_faq_title: "Preguntas frecuentes de pago",
+        payment_faq_refund_q: "Reembolsos y cancelaciones",
+        payment_faq_refund_a: "Si cancelas con anticipacion, coordinamos reembolso o saldo a favor segun el caso clinico y terminos vigentes.",
+        payment_faq_reschedule_q: "Reprogramacion de citas",
+        payment_faq_reschedule_a: "Puedes reprogramar sin costo en horarios disponibles. Si ya pagaste, tu pago se mantiene para la nueva fecha.",
+        payment_faq_billing_q: "Facturacion",
+        payment_faq_billing_a: "Emitimos comprobante/factura con los datos enviados en la reserva. Si necesitas ajuste, escribenos por WhatsApp.",
+        payment_faq_include_q: "Que incluye cada servicio",
+        payment_faq_include_a: "Cada servicio indica valor base y tipo de atencion. Si requiere procedimientos adicionales, se informa antes de confirmar.",
         btn_pay: "Confirmar Reserva",
         success_title: "¡Cita Confirmada!",
         success_desc: "Tu cita fue registrada correctamente.",
@@ -258,6 +296,7 @@ const translations = {
         cookie_reject: "Rechazar",
         cookie_accept: "Aceptar",
         cookie_more: "Mas informacion",
+        footer_privacy_note: "Si compartes fotos por web o WhatsApp, se usan solo para orientacion clinica y gestion de tu cita.",
         footer_tagline: "Dermatología especializada en Quito",
         footer_rights: "Todos los derechos reservados."
     },
@@ -348,6 +387,9 @@ const translations = {
         case_laser_desc: "Removal of vascular lesions",
         case_spots: "Spot Removal",
         case_spots_desc: "Depigmenting treatment",
+        results_note_consent: "Real cases published with informed patient consent.",
+        results_note_variability: "Results may vary based on diagnosis, adherence, and skin type.",
+        results_note_timeline: "The timeline shown in each case reflects the real patient process.",
         showcase_eyebrow: "Advanced Dermatology",
         showcase_title: "Technology that transforms your skin.",
         showcase_desc: "We combine science and experience to offer you the most effective and personalized treatments on the market.",
@@ -401,6 +443,29 @@ const translations = {
         select_time: "Time",
         label_name: "Full name",
         label_email: "Email",
+        label_reason: "Reason for consultation (optional)",
+        placeholder_reason: "Example: inflammatory acne on cheeks, itching, or recent spots",
+        label_area: "Skin area (optional)",
+        select_area: "Select an area",
+        area_face: "Face",
+        area_neck: "Neck",
+        area_scalp: "Scalp",
+        area_torso: "Torso",
+        area_arms: "Arms and hands",
+        area_legs: "Legs and feet",
+        area_other: "Other area",
+        label_evolution: "Progress time (optional)",
+        select_evolution: "Select duration",
+        evolution_1w: "Less than 1 week",
+        evolution_1m: "1 to 4 weeks",
+        evolution_3m: "1 to 3 months",
+        evolution_12m: "3 to 12 months",
+        evolution_year: "More than 1 year",
+        label_case_photos: "Support photos (optional, max 3)",
+        case_photos_help: "Upload up to 3 photos (max 5 MB each) to improve the first consultation.",
+        privacy_consent_label: "I accept data processing to manage my appointment and initial medical evaluation.",
+        privacy_images_note: "Images and contact data are used only for internal care purposes and handled confidentially.",
+        privacy_link_label: "View privacy policy",
         label_phone: "Phone",
         summary_subtotal: "Subtotal",
         summary_iva: "VAT (12%)",
@@ -420,6 +485,18 @@ const translations = {
         label_transfer_ref: "Reference number",
         cash_info: "Pay directly at the clinic on the day of your appointment.",
         payment_total: "Total to pay:",
+        payment_trust_ssl: "Secure SSL/TLS connection",
+        payment_trust_stripe: "Protected checkout with Stripe",
+        payment_trust_invoice: "Billing and support via WhatsApp",
+        payment_faq_title: "Payment FAQ",
+        payment_faq_refund_q: "Refunds and cancellations",
+        payment_faq_refund_a: "If you cancel in advance, we coordinate a refund or credit based on your case and current terms.",
+        payment_faq_reschedule_q: "Rescheduling appointments",
+        payment_faq_reschedule_a: "You can reschedule at no cost for available times. If you already paid, your payment remains valid.",
+        payment_faq_billing_q: "Billing",
+        payment_faq_billing_a: "We issue receipt/invoice with the booking data. If you need changes, contact us on WhatsApp.",
+        payment_faq_include_q: "What each service includes",
+        payment_faq_include_a: "Each service shows a base price and care type. If extra procedures are needed, we inform you before confirmation.",
         btn_pay: "Confirm Booking",
         success_title: "Appointment Confirmed!",
         success_desc: "Your appointment was registered successfully.",
@@ -444,6 +521,7 @@ const translations = {
         cookie_reject: "Reject",
         cookie_accept: "Accept",
         cookie_more: "More information",
+        footer_privacy_note: "If you share photos by web or WhatsApp, they are used only for clinical guidance and appointment management.",
         footer_tagline: "Specialized dermatology in Quito",
         footer_rights: "All rights reserved."
     }
@@ -458,6 +536,9 @@ const CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
 const CLINIC_MAP_URL = 'https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D';
 const DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
 const DOCTOR_CAROLINA_EMAIL = 'caro93narvaez@gmail.com';
+const MAX_CASE_PHOTOS = 3;
+const MAX_CASE_PHOTO_BYTES = 5 * 1024 * 1024;
+const CASE_PHOTO_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
 const DEFAULT_PUBLIC_REVIEWS = [
     {
@@ -748,6 +829,96 @@ async function uploadTransferProof(file) {
     }
 
     return payload.data || {};
+}
+
+function getCasePhotoFiles(formElement) {
+    const input = formElement?.querySelector('#casePhotos');
+    if (!input || !input.files) return [];
+    return Array.from(input.files);
+}
+
+function validateCasePhotoFiles(files) {
+    if (!Array.isArray(files) || files.length === 0) return;
+
+    if (files.length > MAX_CASE_PHOTOS) {
+        throw new Error(
+            currentLang === 'es'
+                ? `Puedes subir maximo ${MAX_CASE_PHOTOS} fotos.`
+                : `You can upload up to ${MAX_CASE_PHOTOS} photos.`
+        );
+    }
+
+    for (const file of files) {
+        if (!file) continue;
+
+        if (file.size > MAX_CASE_PHOTO_BYTES) {
+            throw new Error(
+                currentLang === 'es'
+                    ? `Cada foto debe pesar maximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
+                    : `Each photo must be at most ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
+            );
+        }
+
+        const mime = String(file.type || '').toLowerCase();
+        const validByMime = CASE_PHOTO_ALLOWED_TYPES.has(mime);
+        const validByExt = /\.(jpe?g|png|webp)$/i.test(String(file.name || ''));
+        if (!validByMime && !validByExt) {
+            throw new Error(
+                currentLang === 'es'
+                    ? 'Solo se permiten imagenes JPG, PNG o WEBP.'
+                    : 'Only JPG, PNG or WEBP images are allowed.'
+            );
+        }
+    }
+}
+
+async function ensureCasePhotosUploaded(appointment) {
+    const files = Array.isArray(appointment?.casePhotoFiles) ? appointment.casePhotoFiles : [];
+    if (files.length === 0) {
+        return { names: [], urls: [], paths: [] };
+    }
+
+    if (Array.isArray(appointment.casePhotoUploads) && appointment.casePhotoUploads.length > 0) {
+        return {
+            names: appointment.casePhotoUploads.map(item => String(item.name || '')).filter(Boolean),
+            urls: appointment.casePhotoUploads.map(item => String(item.url || '')).filter(Boolean),
+            paths: appointment.casePhotoUploads.map(item => String(item.path || '')).filter(Boolean)
+        };
+    }
+
+    const uploads = [];
+    for (const file of files) {
+        const uploaded = await uploadTransferProof(file);
+        uploads.push({
+            name: uploaded.transferProofName || file.name || '',
+            url: uploaded.transferProofUrl || '',
+            path: uploaded.transferProofPath || ''
+        });
+    }
+    appointment.casePhotoUploads = uploads;
+
+    return {
+        names: uploads.map(item => String(item.name || '')).filter(Boolean),
+        urls: uploads.map(item => String(item.url || '')).filter(Boolean),
+        paths: uploads.map(item => String(item.path || '')).filter(Boolean)
+    };
+}
+
+function stripTransientAppointmentFields(appointment) {
+    const payload = { ...appointment };
+    delete payload.casePhotoFiles;
+    delete payload.casePhotoUploads;
+    return payload;
+}
+
+async function buildAppointmentPayload(appointment) {
+    const payload = stripTransientAppointmentFields(appointment || {});
+    const uploadedPhotos = await ensureCasePhotosUploaded(appointment || {});
+    payload.casePhotoCount = uploadedPhotos.urls.length;
+    payload.casePhotoNames = uploadedPhotos.names;
+    payload.casePhotoUrls = uploadedPhotos.urls;
+    payload.casePhotoPaths = uploadedPhotos.paths;
+    return payload;
 }
 
 async function loadAvailabilityData() {
@@ -1191,6 +1362,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             const formData = new FormData(this);
+            const casePhotoFiles = getCasePhotoFiles(this);
+            validateCasePhotoFiles(casePhotoFiles);
+            const privacyConsent = formData.get('privacyConsent') === 'on';
+
+            if (!privacyConsent) {
+                throw new Error(
+                    currentLang === 'es'
+                        ? 'Debes aceptar el tratamiento de datos para continuar.'
+                        : 'You must accept data processing to continue.'
+                );
+            }
+
             const appointment = {
                 service: formData.get('service'),
                 doctor: formData.get('doctor'),
@@ -1199,6 +1382,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 name: formData.get('name'),
                 email: formData.get('email'),
                 phone: formData.get('phone'),
+                reason: formData.get('reason') || '',
+                affectedArea: formData.get('affectedArea') || '',
+                evolutionTime: formData.get('evolutionTime') || '',
+                privacyConsent,
+                casePhotoFiles,
+                casePhotoUploads: [],
                 price: totalEl.textContent
             };
 
@@ -1383,7 +1572,8 @@ async function processCardPaymentFlow() {
         throw new Error('Ingresa el nombre del titular de la tarjeta.');
     }
 
-    const intent = await createPaymentIntent(currentAppointment);
+    const appointmentPayload = await buildAppointmentPayload(currentAppointment);
+    const intent = await createPaymentIntent(stripTransientAppointmentFields(currentAppointment));
     if (!intent.clientSecret || !intent.paymentIntentId) {
         throw new Error('No se pudo iniciar el cobro con tarjeta.');
     }
@@ -1414,7 +1604,7 @@ async function processCardPaymentFlow() {
     }
 
     const payload = {
-        ...currentAppointment,
+        ...appointmentPayload,
         paymentMethod: 'card',
         paymentStatus: 'paid',
         paymentProvider: 'stripe',
@@ -1441,8 +1631,9 @@ async function processTransferPaymentFlow() {
     }
 
     const upload = await uploadTransferProof(proofFile);
+    const appointmentPayload = await buildAppointmentPayload(currentAppointment);
     const payload = {
-        ...currentAppointment,
+        ...appointmentPayload,
         paymentMethod: 'transfer',
         paymentStatus: 'pending_transfer_review',
         transferReference,
@@ -1457,8 +1648,9 @@ async function processTransferPaymentFlow() {
 }
 
 async function processCashPaymentFlow() {
+    const appointmentPayload = await buildAppointmentPayload(currentAppointment);
     const payload = {
-        ...currentAppointment,
+        ...appointmentPayload,
         paymentMethod: 'cash',
         paymentStatus: 'pending_cash',
         status: 'confirmed'
