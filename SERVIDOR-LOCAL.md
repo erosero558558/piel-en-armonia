@@ -27,6 +27,7 @@ Luego abre:
 - `PIELARMONIA_ADMIN_PASSWORD`: contraseña del panel admin.
 - `PIELARMONIA_ADMIN_PASSWORD_HASH`: hash de contraseña (opcional, prioridad sobre la contraseña en texto).
 - `PIELARMONIA_EMAIL_FROM`: remitente para correos de confirmacion.
+- `PIELARMONIA_DATA_DIR`: ruta local de datos (opcional).
 - `FIGO_CHAT_ENDPOINT`: URL del backend real de Figo (si quieres IA real).
 - `FIGO_CHAT_TOKEN`: token Bearer opcional para autenticar contra Figo.
 

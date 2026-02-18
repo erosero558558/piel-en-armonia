@@ -35,10 +35,12 @@ Configura estas variables en tu hosting:
 - `PIELARMONIA_ADMIN_PASSWORD` (obligatoria para login admin)
 - `PIELARMONIA_ADMIN_PASSWORD_HASH` (opcional, tiene prioridad)
 - `PIELARMONIA_EMAIL_FROM` (opcional, para correos de confirmacion)
+- `PIELARMONIA_DATA_DIR` (opcional, para forzar ruta de datos si `public_html/data` no tiene permisos)
 - `FIGO_CHAT_ENDPOINT` (obligatoria para conectar el chatbot real)
 - `FIGO_CHAT_TOKEN` (opcional, token Bearer para backend Figo)
 - `FIGO_CHAT_APIKEY_HEADER` y `FIGO_CHAT_APIKEY` (opcionales, si tu backend usa API key custom)
 - `FIGO_CHAT_TIMEOUT_SECONDS` (opcional, default 20)
+- `FIGO_CHAT_DEGRADED_MODE` (opcional: `true` para devolver respuesta de emergencia desde backend)
 
 Importante:
 - Ya no existe fallback `admin123`, incluso en local.

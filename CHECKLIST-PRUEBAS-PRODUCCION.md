@@ -19,10 +19,12 @@ Fecha de ejecucion sugerida: completar al desplegar.
 - `PIELARMONIA_ADMIN_PASSWORD`
 - opcional: `PIELARMONIA_ADMIN_PASSWORD_HASH`
 - opcional: `PIELARMONIA_EMAIL_FROM`
+- opcional: `PIELARMONIA_DATA_DIR`
 - `FIGO_CHAT_ENDPOINT`
 - opcional: `FIGO_CHAT_TOKEN`
 - opcional: `FIGO_CHAT_APIKEY_HEADER`
 - opcional: `FIGO_CHAT_APIKEY`
+- opcional: `FIGO_CHAT_DEGRADED_MODE`
 - alternativa: `data/figo-config.json` con `endpoint`
 
 3. Verifica endpoint de salud:

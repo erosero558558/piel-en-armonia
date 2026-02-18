@@ -12,6 +12,56 @@ const MAX_STORE_BACKUPS = 30;
 const ADMIN_PASSWORD_ENV = 'PIELARMONIA_ADMIN_PASSWORD';
 const ADMIN_PASSWORD_HASH_ENV = 'PIELARMONIA_ADMIN_PASSWORD_HASH';
 
+function data_dir_path(): string
+{
+    static $resolvedDir = null;
+    if (is_string($resolvedDir) && $resolvedDir !== '') {
+        return $resolvedDir;
+    }
+
+    $candidates = [];
+
+    $envDir = getenv('PIELARMONIA_DATA_DIR');
+    if (is_string($envDir) && trim($envDir) !== '') {
+        $candidates[] = trim($envDir);
+    }
+
+    $candidates[] = DATA_DIR;
+    $candidates[] = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data';
+    $candidates[] = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'pielarmonia-data';
+
+    foreach ($candidates as $candidate) {
+        $candidate = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, (string) $candidate), DIRECTORY_SEPARATOR);
+        if ($candidate === '') {
+            continue;
+        }
+
+        if (!is_dir($candidate)) {
+            if (!@mkdir($candidate, 0775, true) && !is_dir($candidate)) {
+                continue;
+            }
+        }
+
+        if (is_writable($candidate)) {
+            $resolvedDir = $candidate;
+            return $resolvedDir;
+        }
+    }
+
+    $resolvedDir = DATA_DIR;
+    return $resolvedDir;
+}
+
+function data_file_path(): string
+{
+    return data_dir_path() . DIRECTORY_SEPARATOR . 'store.json';
+}
+
+function backup_dir_path(): string
+{
+    return data_dir_path() . DIRECTORY_SEPARATOR . 'backups';
+}
+
 function json_response(array $payload, int $status = 200): void
 {
     http_response_code($status);
@@ -99,15 +149,16 @@ function destroy_secure_session(): void
 
 function ensure_backup_dir(): bool
 {
-    if (is_dir(BACKUP_DIR)) {
+    $backupDir = backup_dir_path();
+    if (is_dir($backupDir)) {
         return true;
     }
-    return mkdir(BACKUP_DIR, 0775, true) || is_dir(BACKUP_DIR);
+    return @mkdir($backupDir, 0775, true) || is_dir($backupDir);
 }
 
 function prune_backup_files(): void
 {
-    $files = glob(BACKUP_DIR . DIRECTORY_SEPARATOR . 'store-*.json');
+    $files = glob(backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.json');
     if (!is_array($files) || count($files) <= MAX_STORE_BACKUPS) {
         return;
     }
@@ -142,7 +193,7 @@ function create_store_backup_locked($fp): void
         $suffix = substr(md5((string) microtime(true)), 0, 6);
     }
 
-    $filename = BACKUP_DIR . DIRECTORY_SEPARATOR . 'store-' . gmdate('Ymd-His') . '-' . $suffix . '.json';
+    $filename = backup_dir_path() . DIRECTORY_SEPARATOR . 'store-' . gmdate('Ymd-His') . '-' . $suffix . '.json';
     if (@file_put_contents($filename, $current, LOCK_EX) === false) {
         error_log('Piel en Armonia: no se pudo guardar backup de store.json');
         return;
@@ -151,16 +202,17 @@ function create_store_backup_locked($fp): void
     prune_backup_files();
 }
 
-function ensure_data_file(): void
+function ensure_data_file(): bool
 {
-    if (!is_dir(DATA_DIR) && !mkdir(DATA_DIR, 0775, true) && !is_dir(DATA_DIR)) {
-        json_response([
-            'ok' => false,
-            'error' => 'No se pudo crear el directorio de datos'
-        ], 500);
+    $dataDir = data_dir_path();
+    $dataFile = data_file_path();
+
+    if (!is_dir($dataDir) && !@mkdir($dataDir, 0775, true) && !is_dir($dataDir)) {
+        error_log('Piel en Armonia: no se pudo crear el directorio de datos: ' . $dataDir);
+        return false;
     }
 
-    if (!file_exists(DATA_FILE)) {
+    if (!file_exists($dataFile)) {
         $seed = [
             'appointments' => [],
             'callbacks' => [],
@@ -170,19 +222,28 @@ function ensure_data_file(): void
             'updatedAt' => gmdate('c')
         ];
         $seedEncoded = json_encode($seed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        if ($seedEncoded === false || file_put_contents(DATA_FILE, $seedEncoded, LOCK_EX) === false) {
-            json_response([
-                'ok' => false,
-                'error' => 'No se pudo inicializar el archivo de datos'
-            ], 500);
+        if ($seedEncoded === false || @file_put_contents($dataFile, $seedEncoded, LOCK_EX) === false) {
+            error_log('Piel en Armonia: no se pudo inicializar store.json en ' . $dataFile);
+            return false;
         }
     }
+
+    return true;
 }
 
 function read_store(): array
 {
-    ensure_data_file();
-    $raw = file_get_contents(DATA_FILE);
+    if (!ensure_data_file()) {
+        return [
+            'appointments' => [],
+            'callbacks' => [],
+            'reviews' => [],
+            'availability' => [],
+            'updatedAt' => gmdate('c')
+        ];
+    }
+
+    $raw = @file_get_contents(data_file_path());
     if ($raw === false || $raw === '') {
         return [
             'appointments' => [],
@@ -215,7 +276,13 @@ function read_store(): array
 
 function write_store(array $store): void
 {
-    ensure_data_file();
+    if (!ensure_data_file()) {
+        json_response([
+            'ok' => false,
+            'error' => 'No hay permisos de escritura para los datos',
+            'path' => data_file_path()
+        ], 500);
+    }
 
     $store['appointments'] = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
     $store['callbacks'] = isset($store['callbacks']) && is_array($store['callbacks']) ? $store['callbacks'] : [];
@@ -223,7 +290,7 @@ function write_store(array $store): void
     $store['availability'] = isset($store['availability']) && is_array($store['availability']) ? $store['availability'] : [];
     $store['updatedAt'] = gmdate('c');
 
-    $fp = fopen(DATA_FILE, 'c+');
+    $fp = @fopen(data_file_path(), 'c+');
     if ($fp === false) {
         json_response([
             'ok' => false,

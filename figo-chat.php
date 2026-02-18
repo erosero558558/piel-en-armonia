@@ -71,7 +71,7 @@ function figo_extract_text(array $decoded, string $raw): string
 
 function figo_read_file_config(): array
 {
-    $path = DATA_DIR . DIRECTORY_SEPARATOR . 'figo-config.json';
+    $path = data_dir_path() . DIRECTORY_SEPARATOR . 'figo-config.json';
     if (!is_file($path)) {
         return [];
     }
@@ -132,6 +132,17 @@ function figo_build_fallback_completion(string $model, array $messages): array
             'finish_reason' => 'stop'
         ]]
     ];
+}
+
+function figo_degraded_mode_enabled(): bool
+{
+    $raw = getenv('FIGO_CHAT_DEGRADED_MODE');
+    if (!is_string($raw)) {
+        return false;
+    }
+
+    $value = strtolower(trim($raw));
+    return in_array($value, ['1', 'true', 'yes', 'on'], true);
 }
 
 figo_apply_cors();
@@ -264,11 +275,35 @@ if ($timeout <= 0) {
 }
 
 if ($endpoint === '') {
-    $fallback = figo_build_fallback_completion($model, $messages);
-    $fallback['configured'] = false;
-    $fallback['degraded'] = true;
-    $fallback['hint'] = 'Configura FIGO_CHAT_ENDPOINT o data/figo-config.json';
-    json_response($fallback);
+    if (figo_degraded_mode_enabled()) {
+        $fallback = figo_build_fallback_completion($model, $messages);
+        $fallback['configured'] = false;
+        $fallback['degraded'] = true;
+        $fallback['hint'] = 'Configura FIGO_CHAT_ENDPOINT o data/figo-config.json';
+        json_response($fallback);
+    }
+
+    json_response([
+        'ok' => false,
+        'error' => 'Figo backend no configurado',
+        'hint' => 'Define FIGO_CHAT_ENDPOINT o data/figo-config.json'
+    ], 503);
+}
+
+$curlAvailable = function_exists('curl_init') && function_exists('curl_setopt_array') && function_exists('curl_exec');
+if (!$curlAvailable) {
+    if (figo_degraded_mode_enabled()) {
+        $fallback = figo_build_fallback_completion($model, $messages);
+        $fallback['configured'] = true;
+        $fallback['degraded'] = true;
+        $fallback['error'] = 'cURL no disponible en el servidor';
+        json_response($fallback);
+    }
+
+    json_response([
+        'ok' => false,
+        'error' => 'cURL no disponible en el servidor'
+    ], 503);
 }
 
 $ch = curl_init($endpoint);
@@ -295,21 +330,36 @@ curl_close($ch);
 
 if (!is_string($rawResponse)) {
     error_log('Piel en Armonia figo-chat cURL error: ' . $curlErr);
-    $fallback = figo_build_fallback_completion($model, $messages);
-    $fallback['configured'] = true;
-    $fallback['degraded'] = true;
-    $fallback['error'] = 'No se pudo conectar con el backend Figo';
-    json_response($fallback);
+    if (figo_degraded_mode_enabled()) {
+        $fallback = figo_build_fallback_completion($model, $messages);
+        $fallback['configured'] = true;
+        $fallback['degraded'] = true;
+        $fallback['error'] = 'No se pudo conectar con el backend Figo';
+        json_response($fallback);
+    }
+
+    json_response([
+        'ok' => false,
+        'error' => 'No se pudo conectar con el backend Figo'
+    ], 503);
 }
 
 if ($httpCode >= 400) {
     $snippet = trim(substr($rawResponse, 0, 240));
     error_log('Piel en Armonia figo-chat upstream status ' . $httpCode . ': ' . $snippet);
-    $fallback = figo_build_fallback_completion($model, $messages);
-    $fallback['configured'] = true;
-    $fallback['degraded'] = true;
-    $fallback['upstreamStatus'] = $httpCode;
-    json_response($fallback);
+    if (figo_degraded_mode_enabled()) {
+        $fallback = figo_build_fallback_completion($model, $messages);
+        $fallback['configured'] = true;
+        $fallback['degraded'] = true;
+        $fallback['upstreamStatus'] = $httpCode;
+        json_response($fallback);
+    }
+
+    json_response([
+        'ok' => false,
+        'error' => 'El bot Figo devolvio un error',
+        'status' => $httpCode
+    ], 503);
 }
 
 $decoded = json_decode($rawResponse, true);
