@@ -11,6 +11,20 @@ $ErrorActionPreference = 'Stop'
 $base = $Domain.TrimEnd('/')
 $tmpFile = Join-Path $env:TEMP 'pielarmonia-smoke-body.tmp'
 
+$chatEngineVersion = ''
+if (Test-Path 'script.js') {
+    $scriptLocalRaw = Get-Content -Path 'script.js' -Raw
+    $chatEngineMatch = [regex]::Match($scriptLocalRaw, "chat-engine\.js\?v=([a-zA-Z0-9._-]+)")
+    if ($chatEngineMatch.Success) {
+        $chatEngineVersion = $chatEngineMatch.Groups[1].Value
+    }
+}
+$chatEngineAssetUrl = if ($chatEngineVersion -ne '') {
+    "$base/chat-engine.js?v=$chatEngineVersion"
+} else {
+    "$base/chat-engine.js"
+}
+
 function Invoke-Check {
     param(
         [string]$Name,
@@ -162,6 +176,7 @@ $results += Invoke-Check -Name 'Availability API' -Url "$base/api.php?resource=a
 $results += Invoke-Check -Name 'Admin auth status' -Url "$base/admin-auth.php?action=status"
 $results += Invoke-Check -Name 'Figo chat GET' -Url "$base/figo-chat.php"
 $results += Invoke-Check -Name 'Figo backend GET' -Url "$base/figo-backend.php"
+$results += Invoke-Check -Name 'Chat engine asset' -Url $chatEngineAssetUrl
 
 if ($TestFigoPost) {
     $figoPayload = @{
@@ -188,6 +203,7 @@ $expectedStatusByName = @{
     'Admin auth status' = 200
     'Figo chat GET' = 200
     'Figo backend GET' = 200
+    'Chat engine asset' = 200
 }
 if ($TestFigoPost) {
     $expectedStatusByName['Figo chat POST'] = 200

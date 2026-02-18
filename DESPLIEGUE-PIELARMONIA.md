@@ -7,6 +7,7 @@ Sube estos archivos a la raiz del hosting (`public_html` o equivalente):
 - `index.html`
 - `styles.css`
 - `script.js`
+- `chat-engine.js`
 - `terminos.html`
 - `privacidad.html`
 - `cookies.html`
@@ -31,6 +32,7 @@ Sube estos archivos a la raiz del hosting (`public_html` o equivalente):
 
 Notas:
 - El frontend ahora consume `figo-chat.php` para el chatbot IA.
+- El motor pesado del chat se carga en diferido desde `chat-engine.js`.
 - Si ya existe `figo-chat.php` en tu servidor, mantenlo publicado.
 - `proxy.php` queda deshabilitado por seguridad (retorna 410).
 

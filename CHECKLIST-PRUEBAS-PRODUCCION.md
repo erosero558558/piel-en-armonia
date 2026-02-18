@@ -7,6 +7,7 @@ Fecha de ejecucion sugerida: completar al desplegar.
 1. Verifica que existan estos archivos en produccion:
 - `index.html`
 - `script.js`
+- `chat-engine.js`
 - `terminos.html`
 - `privacidad.html`
 - `cookies.html`

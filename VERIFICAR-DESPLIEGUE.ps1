@@ -158,6 +158,18 @@ try {
 $remoteScriptRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern '<script\s+src="([^"]*script\.js[^"]*)"'
 $remoteStyleRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern '<link\s+rel="stylesheet"\s+href="([^"]*styles\.css[^"]*)"'
 
+$localScriptTextForRefs = Get-Content -Path 'script.js' -Raw
+$chatEngineVersion = ''
+$chatEngineMatch = [regex]::Match($localScriptTextForRefs, "chat-engine\.js\?v=([a-zA-Z0-9._-]+)")
+if ($chatEngineMatch.Success) {
+    $chatEngineVersion = $chatEngineMatch.Groups[1].Value
+}
+$chatEngineRemoteUrl = if ($chatEngineVersion -ne '') {
+    "$base/chat-engine.js?v=$chatEngineVersion"
+} else {
+    "$base/chat-engine.js"
+}
+
 if ([regex]::IsMatch($remoteIndexRaw, '\son[a-z]+\s*=', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
     Write-Host "[FAIL] index remoto contiene event handlers inline (on*)"
     $results += [PSCustomObject]@{
@@ -222,6 +234,11 @@ $checks = @(
         Name = 'script.js'
         LocalPath = 'script.js'
         RemoteUrl = (Get-Url -Base $base -Ref $localScriptRef)
+    },
+    [PSCustomObject]@{
+        Name = 'chat-engine.js'
+        LocalPath = 'chat-engine.js'
+        RemoteUrl = $chatEngineRemoteUrl
     }
 )
 foreach ($item in $checks) {
