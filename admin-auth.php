@@ -57,7 +57,7 @@ if ($method === 'GET' && $action === 'status') {
 }
 
 if ($method === 'POST' && $action === 'login') {
-    require_rate_limit('admin-login', 5, 300);
+    require_rate_limit('admin-login');
 
     $payload = require_json_body();
     $password = isset($payload['password']) ? (string) $payload['password'] : '';

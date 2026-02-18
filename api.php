@@ -347,7 +347,7 @@ if ($method === 'GET' && $resource === 'payment-config') {
 }
 
 if ($method === 'POST' && $resource === 'payment-intent') {
-    require_rate_limit('payment-intent', 8, 60);
+    require_rate_limit('payment-intent');
 
     if (!payment_gateway_enabled()) {
         json_response([
@@ -438,7 +438,7 @@ if ($method === 'POST' && $resource === 'payment-intent') {
 }
 
 if ($method === 'POST' && $resource === 'payment-verify') {
-    require_rate_limit('payment-verify', 12, 60);
+    require_rate_limit('payment-verify');
 
     if (!payment_gateway_enabled()) {
         json_response([
@@ -480,7 +480,7 @@ if ($method === 'POST' && $resource === 'payment-verify') {
 }
 
 if ($method === 'POST' && $resource === 'transfer-proof') {
-    require_rate_limit('transfer-proof', 6, 60);
+    require_rate_limit('transfer-proof');
 
     if (!isset($_FILES['proof']) || !is_array($_FILES['proof'])) {
         json_response([
@@ -591,7 +591,7 @@ if ($method === 'POST' && $resource === 'stripe-webhook') {
 }
 
 if ($method === 'POST' && $resource === 'appointments') {
-    require_rate_limit('appointments', 5, 60);
+    require_rate_limit('appointments');
     $payload = require_json_body();
     $appointment = normalize_appointment($payload);
 
@@ -895,7 +895,7 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') 
 }
 
 if ($method === 'POST' && $resource === 'callbacks') {
-    require_rate_limit('callbacks', 5, 60);
+    require_rate_limit('callbacks');
     $payload = require_json_body();
     $callback = normalize_callback($payload);
 
@@ -955,7 +955,7 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'callbacks') {
 }
 
 if ($method === 'POST' && $resource === 'reviews') {
-    require_rate_limit('reviews', 3, 60);
+    require_rate_limit('reviews');
     $payload = require_json_body();
     $review = normalize_review($payload);
     if ($review['name'] === '' || $review['text'] === '') {
@@ -1035,7 +1035,7 @@ if ($method === 'GET' && $resource === 'reschedule') {
 }
 
 if ($method === 'PATCH' && $resource === 'reschedule') {
-    require_rate_limit('reschedule', 5, 60);
+    require_rate_limit('reschedule');
     $payload = require_json_body();
     $token = trim((string) ($payload['token'] ?? ''));
     $newDate = trim((string) ($payload['date'] ?? ''));
