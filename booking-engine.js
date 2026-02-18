@@ -340,7 +340,7 @@
             throw new Error('El comprobante supera el limite de 5 MB.');
         }
 
-        const upload = await requireFn('uploadTransferProof')(proofFile);
+        const upload = await requireFn('uploadTransferProof')(proofFile, { retries: 2 });
         const appointmentPayload = await requireFn('buildAppointmentPayload')(getCurrentAppointment());
         const payload = {
             ...appointmentPayload,

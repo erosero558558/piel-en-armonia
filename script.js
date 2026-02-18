@@ -1,12 +1,12 @@
 /**
- * PIEL EN ARMON�A - Apple Design
+ * PIEL EN ARMONIA - Apple Design
  * Todas las funcionalidades integradas
  * 
  * Incluye:
  * - Toast notifications
  * - Loading states
  * - Exportar a calendario
- * - Validaci�n de disponibilidad
+ * - Validacion de disponibilidad
  */
 
 // ========================================
@@ -33,10 +33,10 @@ function showToast(message, type = 'info', title = '') {
     };
     
     const titles = {
-        success: title || '�xito',
+        success: title || 'Exito',
         error: title || 'Error',
         warning: title || 'Advertencia',
-        info: title || 'Informaci�n'
+        info: title || 'Informacion'
     };
     
     // Escapar mensaje para prevenir XSS
@@ -441,6 +441,7 @@ const DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
 const DOCTOR_CAROLINA_EMAIL = 'caro93narvaez@gmail.com';
 const MAX_CASE_PHOTOS = 3;
 const MAX_CASE_PHOTO_BYTES = 5 * 1024 * 1024;
+const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 const CASE_PHOTO_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
 const API_REQUEST_TIMEOUT_MS = 9000;
@@ -469,7 +470,7 @@ const DEFAULT_PUBLIC_REVIEWS = [
         id: 'google-jose-gancino',
         name: 'Jose Gancino',
         rating: 5,
-        text: 'Buena atenci�n solo falta los n�meros de la oficina y horarios de atenci�n.',
+        text: 'Buena atencion, solo faltan los numeros de la oficina y horarios de atencion.',
         date: '2025-10-01T10:00:00-05:00',
         verified: true
     },
@@ -477,7 +478,7 @@ const DEFAULT_PUBLIC_REVIEWS = [
         id: 'google-jacqueline-ruiz-torres',
         name: 'Jacqueline Ruiz Torres',
         rating: 5,
-        text: 'Exelente atenci�n y econ�mico 🙏🤗👌',
+        text: 'Excelente atencion y economico.',
         date: '2025-04-15T10:00:00-05:00',
         verified: true
     },
@@ -513,7 +514,7 @@ const LOCAL_FALLBACK_ENABLED = window.location.protocol === 'file:';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let themeTransitionTimer = null;
 
-const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2';
+const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2';
 
 function getBookingEngineDeps() {
     return {
@@ -882,6 +883,16 @@ function initCookieBanner() {
             trackEvent('cookie_consent_update', { status: 'rejected' });
         });
     }
+}
+
+function disablePlaceholderExternalLinks() {
+    document.querySelectorAll('a[href^="URL_"]').forEach((anchor) => {
+        anchor.removeAttribute('href');
+        anchor.setAttribute('aria-disabled', 'true');
+        anchor.classList.add('is-disabled-link');
+        anchor.style.pointerEvents = 'none';
+        anchor.style.opacity = '0.45';
+    });
 }
 
 function handleSystemThemeChange() {
@@ -1306,15 +1317,26 @@ async function ensureCasePhotosUploaded(appointment) {
         };
     }
 
-    const uploads = [];
-    for (const file of files) {
-        const uploaded = await uploadTransferProof(file);
-        uploads.push({
-            name: uploaded.transferProofName || file.name || '',
-            url: uploaded.transferProofUrl || '',
-            path: uploaded.transferProofPath || ''
-        });
-    }
+    const uploads = new Array(files.length);
+    const workerCount = Math.max(1, Math.min(CASE_PHOTO_UPLOAD_CONCURRENCY, files.length));
+    let cursor = 0;
+
+    // Limita concurrencia para no saturar red/servidor durante la reserva.
+    const uploadWorker = async () => {
+        while (cursor < files.length) {
+            const index = cursor;
+            cursor += 1;
+            const file = files[index];
+            const uploaded = await uploadTransferProof(file, { retries: 2 });
+            uploads[index] = {
+                name: uploaded.transferProofName || file.name || '',
+                url: uploaded.transferProofUrl || '',
+                path: uploaded.transferProofPath || ''
+            };
+        }
+    };
+
+    await Promise.all(Array.from({ length: workerCount }, () => uploadWorker()));
     appointment.casePhotoUploads = uploads;
 
     return {
@@ -2122,7 +2144,7 @@ let chatHistory = (function() {
 })();
 let conversationContext = [];
 
-// CONFIGURACI�N DE CHAT
+// CONFIGURACION DE CHAT
 const KIMI_CONFIG = {
     apiUrl: '/figo-chat.php',
     model: 'figo-assistant',
@@ -2146,46 +2168,46 @@ function shouldUseRealAI() {
 }
 
 // Contexto del sistema para el asistente
-const SYSTEM_PROMPT = `Eres el Dr. Virtual, asistente inteligente de la cl�nica dermatol�gica "Piel en Armon�a" en Quito, Ecuador.
+const SYSTEM_PROMPT = `Eres el Dr. Virtual, asistente inteligente de la clinica dermatologica "Piel en Armonia" en Quito, Ecuador.
 
-INFORMACI�N DE LA CL�NICA:
-- Nombre: Piel en Armon�a
-- Doctores: Dr. Javier Rosero (Dermat�logo Cl�nico) y Dra. Carolina Narv�ez (Dermat�loga Est�tica)
-- Direcci�n: ${CLINIC_ADDRESS}
-- Tel�fono/WhatsApp: +593 98 245 3672
+INFORMACION DE LA CLINICA:
+- Nombre: Piel en Armonia
+- Doctores: Dr. Javier Rosero (Dermatologo Clinico) y Dra. Carolina Narvaez (Dermatologa Estetica)
+- Direccion: ${CLINIC_ADDRESS}
+- Telefono/WhatsApp: +593 98 245 3672
 - Contacto Dra. Carolina: ${DOCTOR_CAROLINA_PHONE} | ${DOCTOR_CAROLINA_EMAIL}
-- Horario: Lunes-Viernes 9:00-18:00, S�bados 9:00-13:00
+- Horario: Lunes-Viernes 9:00-18:00, Sabados 9:00-13:00
 - Estacionamiento privado disponible
 
 SERVICIOS Y PRECIOS:
-- Consulta Dermatol�gica: $40 (incluye IVA)
-- Consulta Telef�nica: $25
+- Consulta Dermatologica: $40 (incluye IVA)
+- Consulta Telefonica: $25
 - Video Consulta: $30
-- Tratamiento L�ser: desde $150
+- Tratamiento Laser: desde $150
 - Rejuvenecimiento: desde $120
-- Tratamiento de Acn�: desde $80
-- Detecci�n de C�ncer de Piel: desde $70
+- Tratamiento de Acne: desde $80
+- Deteccion de Cancer de Piel: desde $70
 
 OPCIONES DE CONSULTA ONLINE:
-1. Llamada telef�nica: tel:+593982453672
+1. Llamada telefonica: tel:+593982453672
 2. WhatsApp Video: https://wa.me/593982453672
 3. Video Web (Jitsi): https://meet.jit.si/PielEnArmonia-Consulta
 
 INSTRUCCIONES:
-- S� profesional, amable y emp�tico
-- Responde en espa�ol (o en el idioma que use el paciente)
-- Si el paciente tiene s�ntomas graves o emergencias, recomienda acudir a urgencias
-- Para agendar citas, dirige al formulario web, WhatsApp o llamada telef�nica
-- Si no sabes algo espec�fico, ofrece transferir al doctor real
-- No hagas diagn�sticos m�dicos definitivos, solo orientaci�n general
+- Se profesional, amable y empatico
+- Responde en espanol (o en el idioma que use el paciente)
+- Si el paciente tiene sintomas graves o emergencias, recomienda acudir a urgencias
+- Para agendar citas, dirige al formulario web, WhatsApp o llamada telefonica
+- Si no sabes algo especifico, ofrece transferir al doctor real
+- No hagas diagnosticos medicos definitivos, solo orientacion general
 - Usa emojis ocasionalmente para ser amigable
-- Mant�n respuestas concisas pero informativas
+- Manten respuestas concisas pero informativas
 
 Tu objetivo es ayudar a los pacientes a:
-1. Conocer los servicios de la cl�nica
+1. Conocer los servicios de la clinica
 2. Entender los precios
 3. Agendar citas
-4. Resolver dudas b�sicas sobre dermatolog�a
+4. Resolver dudas basicas sobre dermatologia
 5. Conectar con un doctor real cuando sea necesario`;
 
 function toggleChatbot() {
@@ -2208,30 +2230,30 @@ function toggleChatbot() {
             // Verificar si estamos usando IA real
             const usandoIA = shouldUseRealAI();
             
-            debugLog('?? Estado del chatbot:', usandoIA ? 'IA REAL' : 'Respuestas locales');
+            debugLog('Estado del chatbot:', usandoIA ? 'IA REAL' : 'Respuestas locales');
             
             var welcomeMsg;
             
             if (usandoIA) {
-                welcomeMsg = '�Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armon�a</strong>.<br><br>';
+                welcomeMsg = 'Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
                 welcomeMsg += '<strong>Conectado con Inteligencia Artificial</strong><br><br>';
-                welcomeMsg += 'Puedo ayudarte con informaci�n detallada sobre:<br>';
-                welcomeMsg += '� Nuestros servicios dermatologicos<br>';
-                welcomeMsg += '� Precios de consultas y tratamientos<br>';
-                welcomeMsg += '� Agendar citas presenciales o online<br>';
-                welcomeMsg += '� Ubicacion y horarios de atencion<br>';
-                welcomeMsg += '� Resolver tus dudas sobre cuidado de la piel<br><br>';
-                welcomeMsg += '�En que puedo ayudarte hoy?';
+                welcomeMsg += 'Puedo ayudarte con informacion detallada sobre:<br>';
+                welcomeMsg += '- Nuestros servicios dermatologicos<br>';
+                welcomeMsg += '- Precios de consultas y tratamientos<br>';
+                welcomeMsg += '- Agendar citas presenciales o online<br>';
+                welcomeMsg += '- Ubicacion y horarios de atencion<br>';
+                welcomeMsg += '- Resolver tus dudas sobre cuidado de la piel<br><br>';
+                welcomeMsg += 'En que puedo ayudarte hoy?';
             } else {
-                welcomeMsg = '�Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armon�a</strong>.<br><br>';
-                welcomeMsg += 'Puedo ayudarte con informaci�n sobre:<br>';
-                welcomeMsg += '� Nuestros servicios dermatologicos<br>';
-                welcomeMsg += '� Precios de consultas y tratamientos<br>';
-                welcomeMsg += '� Agendar citas presenciales o online<br>';
-                welcomeMsg += '� Ubicacion y horarios de atencion<br><br>';
-                welcomeMsg += '�En que puedo ayudarte hoy?';
+                welcomeMsg = 'Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
+                welcomeMsg += 'Puedo ayudarte con informacion sobre:<br>';
+                welcomeMsg += '- Nuestros servicios dermatologicos<br>';
+                welcomeMsg += '- Precios de consultas y tratamientos<br>';
+                welcomeMsg += '- Agendar citas presenciales o online<br>';
+                welcomeMsg += '- Ubicacion y horarios de atencion<br><br>';
+                welcomeMsg += 'En que puedo ayudarte hoy?';
             }
-            
+
             addBotMessage(welcomeMsg);
             
             // Sugerir opciones rapidas
@@ -2286,13 +2308,13 @@ function sendQuickMessage(type) {
     }
 
     const messages = {
-        services: '�Qu� servicios ofrecen?',
-        prices: '�Cu�les son los precios?',
-        telemedicine: '�C�mo funciona la consulta online?',
+        services: 'Que servicios ofrecen?',
+        prices: 'Cuales son los precios?',
+        telemedicine: 'Como funciona la consulta online?',
         human: 'Quiero hablar con un doctor real',
-        acne: 'Tengo problemas de acn�',
-        laser: 'Informaci�n sobre tratamientos l�ser',
-        location: '�D�nde est�n ubicados?'
+        acne: 'Tengo problemas de acne',
+        laser: 'Informacion sobre tratamientos laser',
+        location: 'Donde estan ubicados?'
     };
 
     const message = messages[type] || type;
@@ -2315,7 +2337,7 @@ function addUserMessage(text) {
     chatHistory.push({ type: 'user', text, time: new Date().toISOString() });
     try { localStorage.setItem('chatHistory', JSON.stringify(chatHistory)); } catch(e) {}
 
-    // Agregar al contexto de conversaci�n (evitar duplicados)
+    // Agregar al contexto de conversacion (evitar duplicados)
     const lastMsg = conversationContext[conversationContext.length - 1];
     if (!lastMsg || lastMsg.role !== 'user' || lastMsg.content !== text) {
         conversationContext.push({ role: 'user', content: text });
@@ -2392,7 +2414,7 @@ function addBotMessage(html, showOfflineLabel = false) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'chat-message bot';
     
-    // Solo mostrar indicador offline si se solicita expl�citamente (para debug)
+    // Solo mostrar indicador offline si se solicita explicitamente (para debug)
     const offlineIndicator = showOfflineLabel ? 
         `<div style="font-size: 0.7rem; color: #86868b; margin-bottom: 4px; opacity: 0.7;">
             <i class="fas fa-robot"></i> Asistente Virtual
@@ -2636,7 +2658,7 @@ function isChatBookingActive() {
 function loadFigoChatEngine() {
     return loadDeferredModule({
         cacheKey: 'figo-chat-engine',
-        src: '/chat-engine.js?v=figo-chat-20260218-phase2',
+        src: '/chat-engine.js?v=figo-chat-20260218-phase2-linkrel1-textclean1',
         scriptDataAttribute: 'data-figo-chat-engine',
         resolveModule: () => window.FigoChatEngine,
         isModuleReady: (module) => !!module,
@@ -2810,6 +2832,7 @@ function submitReschedule() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    disablePlaceholderExternalLinks();
     initDeferredStylesheetLoading();
     initThemeMode();
     changeLanguage(currentLang);

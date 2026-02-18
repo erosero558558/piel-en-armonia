@@ -324,7 +324,7 @@ function loadDashboardData() {
                     <a href="tel:${escapeHtml(a.phone)}" class="btn-icon" title="Llamar">
                         <i class="fas fa-phone"></i>
                     </a>
-                    <a href="https://wa.me/${escapeHtml(String(a.phone || '').replace(/\\D/g, ''))}" target="_blank" class="btn-icon" title="WhatsApp">
+                    <a href="https://wa.me/${escapeHtml(String(a.phone || '').replace(/\\D/g, ''))}" target="_blank" rel="noopener noreferrer" class="btn-icon" title="WhatsApp">
                         <i class="fab fa-whatsapp"></i>
                     </a>
                 </div>
@@ -415,7 +415,7 @@ function renderAppointments(appointments) {
                     <a href="tel:${escapeHtml(a.phone)}" class="btn-icon" title="Llamar">
                         <i class="fas fa-phone"></i>
                     </a>
-                    <a href="https://wa.me/${escapeHtml(String(a.phone || '').replace(/\\D/g, ''))}" target="_blank" class="btn-icon" title="WhatsApp">
+                    <a href="https://wa.me/${escapeHtml(String(a.phone || '').replace(/\\D/g, ''))}" target="_blank" rel="noopener noreferrer" class="btn-icon" title="WhatsApp">
                         <i class="fab fa-whatsapp"></i>
                     </a>
                     <button type="button" class="btn-icon danger" data-action="cancel-appointment" data-id="${Number(a.id) || 0}" title="Cancelar">

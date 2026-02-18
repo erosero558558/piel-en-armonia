@@ -8,7 +8,7 @@
 let isProcessingMessage = false; // Evitar duplicados
 async function processWithKimi(message) {
     if (isProcessingMessage) {
-        debugLog('â³ Ya procesando, ignorando duplicado');
+        debugLog('Ya procesando, ignorando duplicado');
         return;
     }
 
@@ -30,14 +30,14 @@ async function processWithKimi(message) {
 
     if (isOutOfScopeIntent(message)) {
         removeTypingIndicator();
-        addBotMessage(`Puedo ayudarte con temas de <strong>Piel en Armonía</strong> (servicios, precios, citas, pagos, horarios y ubicación).<br><br>Si deseas, te ayudo ahora con:<br>- <a href="#servicios" data-action="minimize-chat">Servicios y tratamientos</a><br>- <a href="#citas" data-action="minimize-chat">Reservar cita</a><br>- <a href="https://wa.me/593982453672" target="_blank">WhatsApp directo</a>`, false);
+        addBotMessage(`Puedo ayudarte con temas de <strong>Piel en Armonía</strong> (servicios, precios, citas, pagos, horarios y ubicación).<br><br>Si deseas, te ayudo ahora con:<br>- <a href="#servicios" data-action="minimize-chat">Servicios y tratamientos</a><br>- <a href="#citas" data-action="minimize-chat">Reservar cita</a><br>- <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">WhatsApp directo</a>`, false);
         isProcessingMessage = false;
         return;
     }
     
     // Prioriza IA real cuando el servidor esta disponible.
     // Si falla la conexion, usa fallback local para no romper la experiencia.
-    debugLog('ðŸ“ Procesando mensaje:', message);
+    debugLog('Procesando mensaje:', message);
     
     try {
         if (shouldUseRealAI()) {
@@ -228,7 +228,7 @@ async function requestFigoCompletion(messages, overrides = {}, debugLabel = 'pri
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        console.error('âŒ Error parseando JSON:', e);
+        console.error('Error parseando JSON:', e);
         throw new Error('Respuesta no es JSON valido');
     }
 
@@ -240,7 +240,7 @@ async function requestFigoCompletion(messages, overrides = {}, debugLabel = 'pri
     }
 
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-        console.error('âŒ Estructura invalida:', data);
+        console.error('Estructura invalida:', data);
         throw new Error('Respuesta invalida');
     }
 
@@ -284,7 +284,7 @@ async function tryRealAI(message) {
 
         const canRefine = primaryReply.mode === 'live' && primaryReply.source !== 'fallback';
         if (canRefine && shouldRefineWithFigo(message, botResponse)) {
-            debugLog('âš ï¸ Respuesta generica detectada, solicitando precision adicional a Figo');
+            debugLog('Respuesta generica detectada, solicitando precision adicional a Figo');
 
             const precisionPrompt = `Tu respuesta anterior fue demasiado general.
 Responde con información específica para la web de Piel en Armonía.
@@ -310,11 +310,11 @@ Pregunta original del paciente: "${message}"`;
                     debugLog('✅ Respuesta refinada aplicada');
                 }
             } catch (refineError) {
-                console.warn('âš ï¸ No se pudo refinar con Figo:', refineError);
+                console.warn('No se pudo refinar con Figo:', refineError);
             }
 
             if (isGenericAssistantReply(botResponse)) {
-                debugLog('âš ï¸ Respuesta sigue generica, usando fallback local especializado');
+                debugLog('Respuesta sigue generica, usando fallback local especializado');
                 removeTypingIndicator();
                 processLocalResponse(message, false);
                 return;
@@ -332,7 +332,7 @@ Pregunta original del paciente: "${message}"`;
         debugLog('💬 Mensaje mostrado en chat');
         
     } catch (error) {
-        console.error('âŒ Error con bot del servidor:', error);
+        console.error('Error con bot del servidor:', error);
         removeTypingIndicator();
         
         // Mostrar error específico
@@ -387,7 +387,7 @@ Puedes consultarme sobre:<br>
 - Precios y formas de pago<br>
 - Agenda de citas y horarios<br>
 - Ubicacion y contacto<br><br>
-Si quieres, te llevo directo a <a href="#citas" data-action="minimize-chat">Reservar Cita</a> o te conecto por <a href="https://wa.me/593982453672" target="_blank">WhatsApp</a>.`;
+Si quieres, te llevo directo a <a href="#citas" data-action="minimize-chat">Reservar Cita</a> o te conecto por <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">WhatsApp</a>.`;
         addBotMessage(response, isOffline);
         return;
     }
@@ -442,7 +442,7 @@ Al enviar el formulario se abre la ventana de pago automaticamente.<br><br>
 • <strong>Efectivo:</strong> dejas la reserva registrada y pagas en consultorio.<br><br>
 
 <strong>4) Confirmacion</strong><br>
-Tu cita queda registrada y te contactamos para confirmar detalles por WhatsApp: <a href="https://wa.me/593982453672" target="_blank">+593 98 245 3672</a>.<br><br>
+Tu cita queda registrada y te contactamos para confirmar detalles por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.<br><br>
 
 Si quieres, te guio paso a paso seg\u00fan el m\u00e9todo que prefieras.`;
     }
@@ -491,12 +491,12 @@ Si quieres, te guio paso a paso seg\u00fan el m\u00e9todo que prefieras.`;
     else if (/doctor|médico|medico|especialista|rosero|narvaez|dr|dra/.test(lowerMsg)) {
         response = `Contamos con dos excelentes especialistas:
 
-<strong>ðŸ‘¨â€âš•ï¸ Dr. Javier Rosero</strong>
+<strong>Dr. Javier Rosero</strong>
 Dermatólogo Clínico
 15 años de experiencia
 Especialista en detección temprana de cáncer de piel
 
-<strong>ðŸ‘©â€âš•ï¸ Dra. Carolina Narváez</strong>
+<strong>Dra. Carolina Narvaez</strong>
 Dermatóloga Estética
 Especialista en rejuvenecimiento facial y láser
 Contacto directo: ${DOCTOR_CAROLINA_PHONE} | ${DOCTOR_CAROLINA_EMAIL}
@@ -515,7 +515,7 @@ Ideal para consultas rápidas y seguimientos
 <strong>💬 2. WhatsApp Video - $30</strong>
 Videollamada por WhatsApp, muy fácil de usar
 
-<strong>ðŸ–¥ï¸ 3. Video Web (Jitsi) - $30</strong>
+<strong>3. Video Web (Jitsi) - $30</strong>
 No necesitas instalar nada, funciona en el navegador
 
 Todas incluyen:
@@ -546,7 +546,7 @@ Si tienes más dudas, no dudes en escribirme. También puedes contactarnos direc
 Tambien puedes ir directo:<br>
 - <a href="#servicios" data-action="minimize-chat">Servicios</a><br>
 - <a href="#citas" data-action="minimize-chat">Reservar Cita</a><br>
-- <a href="https://wa.me/593982453672" target="_blank">WhatsApp +593 98 245 3672</a>`;
+- <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">WhatsApp +593 98 245 3672</a>`;
     }
     
     addBotMessage(response, isOffline);
@@ -560,7 +560,7 @@ function formatMarkdown(text) {
         // Cursiva
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
         // Links
-        .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>')
+        .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
         // Saltos de línea
         .replace(/\n/g, '<br>');
     
