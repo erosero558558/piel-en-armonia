@@ -84,25 +84,144 @@ function figo_backend_last_user_message(array $messages): string
     return '';
 }
 
+function figo_backend_ai_endpoint(): string
+{
+    $candidates = [
+        getenv('FIGO_AI_ENDPOINT'),
+        getenv('FIGO_AI_URL'),
+    ];
+    foreach ($candidates as $candidate) {
+        if (is_string($candidate) && trim($candidate) !== '') {
+            return trim($candidate);
+        }
+    }
+    return '';
+}
+
+function figo_backend_ai_key(): string
+{
+    $candidates = [
+        getenv('FIGO_AI_API_KEY'),
+        getenv('FIGO_AI_KEY'),
+    ];
+    foreach ($candidates as $candidate) {
+        if (is_string($candidate) && trim($candidate) !== '') {
+            return trim($candidate);
+        }
+    }
+    return '';
+}
+
+function figo_backend_ai_model(): string
+{
+    $model = getenv('FIGO_AI_MODEL');
+    if (is_string($model) && trim($model) !== '') {
+        return trim($model);
+    }
+    return 'auto';
+}
+
+function figo_backend_ai_system_prompt(): string
+{
+    return "Eres Figo, asistente virtual amigable de la clinica dermatologica \"Piel en Armonia\" en Quito, Ecuador.\n"
+        . "Eres conversacional y natural. Puedes hablar de cualquier tema de forma amena, pero tu especialidad es la clinica.\n"
+        . "Cuando pregunten sobre la clinica, da informacion precisa:\n"
+        . "- Consulta presencial: \$40 | Telefonica: \$25 | Video: \$30\n"
+        . "- Acne: desde \$80 | Laser: desde \$150 | Rejuvenecimiento: desde \$120\n"
+        . "- Deteccion cancer de piel: desde \$70\n"
+        . "- Direccion: Av. Dr. Cecilio Caiza e Hijas N2-30 y Av. Amazonas, Quito\n"
+        . "- Horario: L-V 9:00-18:00, Sab 9:00-13:00\n"
+        . "- WhatsApp: +593 98 245 3672\n"
+        . "- Doctores: Dr. Javier Rosero (dermatologo clinico), Dra. Carolina Narvaez (estetica/laser)\n"
+        . "- Web: https://pielarmonia.com\n"
+        . "Responde en espanol. Se conciso (2-4 oraciones para temas generales, mas detalle para temas de la clinica).";
+}
+
+function figo_backend_ai_response(string $userMessage, array $contextMessages = []): ?string
+{
+    $endpoint = figo_backend_ai_endpoint();
+    if ($endpoint === '') {
+        return null;
+    }
+
+    $messages = [['role' => 'system', 'content' => figo_backend_ai_system_prompt()]];
+
+    if ($contextMessages !== []) {
+        foreach (array_slice($contextMessages, -10) as $msg) {
+            if (is_array($msg) && isset($msg['role'], $msg['content'])) {
+                $messages[] = ['role' => (string) $msg['role'], 'content' => (string) $msg['content']];
+            }
+        }
+    } else {
+        $messages[] = ['role' => 'user', 'content' => $userMessage];
+    }
+
+    $payload = json_encode([
+        'model' => figo_backend_ai_model(),
+        'messages' => $messages,
+        'max_tokens' => 500,
+        'temperature' => 0.7
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+    if (!is_string($payload)) {
+        return null;
+    }
+
+    $headers = ['Content-Type: application/json', 'Accept: application/json'];
+    $apiKey = figo_backend_ai_key();
+    if ($apiKey !== '') {
+        $headers[] = 'Authorization: Bearer ' . $apiKey;
+    }
+
+    $ch = curl_init($endpoint);
+    if ($ch === false) {
+        return null;
+    }
+
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_POSTFIELDS => $payload,
+        CURLOPT_TIMEOUT => 15,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2
+    ]);
+
+    $raw = curl_exec($ch);
+    $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if (!is_string($raw) || $status >= 400) {
+        return null;
+    }
+
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) {
+        return null;
+    }
+
+    if (isset($decoded['choices'][0]['message']['content']) && is_string($decoded['choices'][0]['message']['content'])) {
+        $content = trim($decoded['choices'][0]['message']['content']);
+        return $content !== '' ? $content : null;
+    }
+
+    foreach (['reply', 'response', 'text', 'answer', 'content'] as $key) {
+        if (isset($decoded[$key]) && is_string($decoded[$key]) && trim($decoded[$key]) !== '') {
+            return trim($decoded[$key]);
+        }
+    }
+
+    return null;
+}
+
 function figo_backend_answer(string $userMessage): string
 {
     $normalized = figo_backend_normalize_text($userMessage);
 
     if ($normalized === '') {
         return 'Hola, soy Figo de Piel en Armonia. Puedo ayudarte con servicios, precios, pagos y reservas. En que te ayudo?';
-    }
-
-    if (figo_backend_contains_any($normalized, [
-        '/\bcapital\b/',
-        '/\bpresidente\b/',
-        '/\bnoticias?\b/',
-        '/\bfutbol\b/',
-        '/\bdeporte\b/',
-        '/\bclima\b/',
-        '/\bbitcoin\b/',
-        '/\bpolitica\b/'
-    ])) {
-        return 'Puedo ayudarte solo con temas de Piel en Armonia: servicios, precios, reservas, pagos, horarios y ubicacion. Si quieres, te ayudo a reservar ahora mismo.';
     }
 
     if (figo_backend_contains_any($normalized, [
@@ -182,7 +301,9 @@ function figo_backend_answer(string $userMessage): string
             . "Telefono/WhatsApp: +593 98 245 3672.";
     }
 
-    return "Entiendo tu consulta sobre \"" . $userMessage . "\". Te ayudo en servicios, precios, pagos y reservas de Piel en Armonia. Quieres que avancemos con una cita?";
+    return "Gracias por escribirme. Soy Figo de Piel en Armonia y estoy para ayudarte.\n"
+        . "Puedo darte informacion sobre servicios dermatologicos, precios, citas, pagos, horarios y ubicacion.\n"
+        . "Si necesitas atencion directa: WhatsApp +593 98 245 3672.";
 }
 
 function figo_backend_telegram_token(): string
@@ -349,7 +470,10 @@ function figo_backend_handle_telegram_update(array $update, string $telegramToke
         json_response(['ok' => true, 'handled' => true]);
     }
 
-    $answer = figo_backend_answer($text);
+    $answer = figo_backend_ai_response($text);
+    if ($answer === null) {
+        $answer = figo_backend_answer($text);
+    }
     figo_backend_telegram_send_message($telegramToken, $chatId, $answer);
     json_response(['ok' => true, 'handled' => true]);
 }
@@ -370,11 +494,14 @@ $telegramChatId = figo_backend_telegram_chat_id();
 $telegramChatConfigured = $telegramChatId !== '';
 
 if ($method === 'GET') {
+    $aiEndpoint = figo_backend_ai_endpoint();
     json_response([
         'ok' => true,
         'service' => 'figo-backend',
-        'mode' => 'local',
-        'provider' => 'telegram_bridge',
+        'mode' => $aiEndpoint !== '' ? 'ai' : 'local',
+        'provider' => $aiEndpoint !== '' ? 'ai_enhanced' : 'pattern_matching',
+        'aiConfigured' => $aiEndpoint !== '',
+        'aiModel' => figo_backend_ai_model(),
         'telegramConfigured' => $telegramConfigured,
         'telegramChatConfigured' => $telegramChatConfigured,
         'webhookSecretConfigured' => figo_backend_telegram_webhook_secret() !== '',
@@ -411,7 +538,10 @@ $model = isset($payload['model']) && is_string($payload['model']) && trim($paylo
     : 'figo-assistant';
 
 $userMessage = figo_backend_last_user_message($messages);
-$content = figo_backend_answer($userMessage);
+$content = figo_backend_ai_response($userMessage, $messages);
+if ($content === null) {
+    $content = figo_backend_answer($userMessage);
+}
 
 if ($telegramConfigured && $telegramChatConfigured) {
     $telegramText = "Nuevo mensaje web (Piel en Armonia)\n"
@@ -440,7 +570,7 @@ json_response([
         ],
         'finish_reason' => 'stop'
     ]],
-    'provider' => 'telegram_bridge',
+    'provider' => figo_backend_ai_endpoint() !== '' ? 'ai_enhanced' : 'pattern_matching',
     'telegramConfigured' => $telegramConfigured,
     'telegramChatConfigured' => $telegramChatConfigured
 ]);

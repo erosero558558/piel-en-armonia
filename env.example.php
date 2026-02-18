@@ -36,5 +36,11 @@
 // putenv('FIGO_TELEGRAM_CHAT_ID=TU_CHAT_ID_TELEGRAM');
 // putenv('FIGO_TELEGRAM_WEBHOOK_SECRET=TOKEN_SECRETO_WEBHOOK');
 
+// ── IA para Figo (respuestas naturales) ──────────────
+// Endpoint OpenAI-compatible (Kimi, DeepSeek, OpenAI, Ollama, etc.)
+// putenv('FIGO_AI_ENDPOINT=https://api.moonshot.cn/v1/chat/completions');
+// putenv('FIGO_AI_API_KEY=tu_api_key');
+// putenv('FIGO_AI_MODEL=moonshot-v1-8k');
+
 // ── Cron (recordatorios automáticos) ────────────────
 // putenv('PIELARMONIA_CRON_SECRET=un_token_secreto_largo');
