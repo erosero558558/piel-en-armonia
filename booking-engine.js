@@ -204,8 +204,18 @@
 
         const appointment = getCurrentAppointment() || {};
         const checkout = requireFn('getCheckoutSession')();
+        let checkoutStartedNow = false;
         if (!checkout || !checkout.active || !checkout.startedAt) {
             requireFn('startCheckoutSession')(appointment);
+            checkoutStartedNow = true;
+        }
+
+        if (checkoutStartedNow) {
+            trackEvent('start_checkout', {
+                service: appointment.service || '',
+                doctor: appointment.doctor || '',
+                checkout_entry: 'web_form'
+            });
         }
 
         const paymentTotal = document.getElementById('paymentTotal');
@@ -384,6 +394,10 @@
             const paymentMethod = getActivePaymentMethod();
             paymentMethodUsed = paymentMethod;
             clearPaymentError();
+            trackEvent('payment_method_selected', {
+                payment_method: paymentMethod || 'unknown',
+                selection_source: 'submit'
+            });
 
             let result;
             if (paymentMethod === 'card') {

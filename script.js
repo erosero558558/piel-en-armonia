@@ -444,6 +444,7 @@ const MAX_CASE_PHOTO_BYTES = 5 * 1024 * 1024;
 const CASE_PHOTO_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
 const API_REQUEST_TIMEOUT_MS = 9000;
+const UPLOAD_REQUEST_TIMEOUT_MS = 16000;
 const API_RETRY_BASE_DELAY_MS = 450;
 const API_DEFAULT_RETRIES = 1;
 const API_SLOW_NOTICE_MS = 1200;
@@ -451,6 +452,7 @@ const API_SLOW_NOTICE_COOLDOWN_MS = 25000;
 const AVAILABILITY_CACHE_TTL_MS = 5 * 60 * 1000;
 const BOOKED_SLOTS_CACHE_TTL_MS = 45 * 1000;
 let apiSlowNoticeLastAt = 0;
+const apiInFlightGetRequests = new Map();
 let bookingViewTracked = false;
 let chatStartedTracked = false;
 let availabilityPrefetched = false;
@@ -511,7 +513,7 @@ const LOCAL_FALLBACK_ENABLED = window.location.protocol === 'file:';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let themeTransitionTimer = null;
 
-const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1';
+const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2';
 
 function getBookingEngineDeps() {
     return {
@@ -710,7 +712,7 @@ function prefetchAvailabilityData(source = 'unknown') {
         return;
     }
     availabilityPrefetched = true;
-    loadAvailabilityData().catch(() => {
+    loadAvailabilityData({ background: true }).catch(() => {
         availabilityPrefetched = false;
     });
     trackEvent('availability_prefetch', {
@@ -723,7 +725,7 @@ function prefetchReviewsData(source = 'unknown') {
         return;
     }
     reviewsPrefetched = true;
-    loadPublicReviews().catch(() => {
+    loadPublicReviews({ background: true }).catch(() => {
         reviewsPrefetched = false;
     });
     trackEvent('reviews_prefetch', {
@@ -805,6 +807,31 @@ function maybeTrackCheckoutAbandon(reason = 'unknown') {
 
 function waitMs(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getApiRetryDelayMs(attempt) {
+    const cappedAttempt = Math.max(0, Math.min(5, Number(attempt) || 0));
+    const jitter = Math.floor(Math.random() * 180);
+    return (API_RETRY_BASE_DELAY_MS * (2 ** cappedAttempt)) + jitter;
+}
+
+function isLikelyNetworkError(error) {
+    if (!error || typeof error !== 'object') {
+        return false;
+    }
+
+    const name = String(error.name || '').toLowerCase();
+    const message = String(error.message || '').toLowerCase();
+
+    if (name === 'typeerror') {
+        return true;
+    }
+
+    return message.includes('failed to fetch')
+        || message.includes('networkerror')
+        || message.includes('network request failed')
+        || message.includes('load failed')
+        || message.includes('fetch');
 }
 
 function initGA4() {
@@ -898,7 +925,8 @@ async function apiRequest(resource, options = {}) {
             }
         });
     }
-    const url = `${API_ENDPOINT}?${query.toString()}`;
+
+    const url = API_ENDPOINT + '?' + query.toString();
     const requestInit = {
         method: method,
         credentials: 'same-origin',
@@ -917,8 +945,9 @@ async function apiRequest(resource, options = {}) {
         ? Math.max(0, Number(options.retries))
         : (method === 'GET' ? API_DEFAULT_RETRIES : 0);
 
-    const shouldShowSlowNotice = options.silentSlowNotice !== true;
+    const shouldShowSlowNotice = options.silentSlowNotice !== true && options.background !== true;
     const retryableStatusCodes = new Set([408, 425, 429, 500, 502, 503, 504]);
+    const dedupeGet = method === 'GET' && options.dedupe !== false;
 
     function makeApiError(message, status = 0, retryable = false, code = '') {
         const error = new Error(message);
@@ -928,92 +957,128 @@ async function apiRequest(resource, options = {}) {
         return error;
     }
 
-    let lastError = null;
+    const execute = async () => {
+        let lastError = null;
 
-    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-        let slowNoticeTimer = null;
+        for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            let slowNoticeTimer = null;
 
-        if (shouldShowSlowNotice) {
-            slowNoticeTimer = setTimeout(() => {
-                const now = Date.now();
-                if ((now - apiSlowNoticeLastAt) > API_SLOW_NOTICE_COOLDOWN_MS) {
-                    apiSlowNoticeLastAt = now;
-                    showToast(
-                        currentLang === 'es'
-                            ? 'Conectando con el servidor...'
-                            : 'Connecting to server...',
-                        'info'
-                    );
-                }
-            }, API_SLOW_NOTICE_MS);
-        }
+            if (shouldShowSlowNotice) {
+                slowNoticeTimer = setTimeout(() => {
+                    const now = Date.now();
+                    if ((now - apiSlowNoticeLastAt) > API_SLOW_NOTICE_COOLDOWN_MS) {
+                        apiSlowNoticeLastAt = now;
+                        showToast(
+                            currentLang === 'es'
+                                ? 'Conectando con el servidor...'
+                                : 'Connecting to server...',
+                            'info'
+                        );
+                    }
+                }, API_SLOW_NOTICE_MS);
+            }
 
-        try {
-            const response = await fetch(url, {
-                ...requestInit,
-                signal: controller.signal
-            });
-
-            const responseText = await response.text();
-            let payload = {};
             try {
-                payload = responseText ? JSON.parse(responseText) : {};
-            } catch (error) {
-                throw makeApiError('Respuesta del servidor no es JSON valido', response.status, false, 'invalid_json');
-            }
+                const response = await fetch(url, {
+                    ...requestInit,
+                    signal: controller.signal
+                });
 
-            if (!response.ok || payload.ok === false) {
-                const message = payload.error || `HTTP ${response.status}`;
-                throw makeApiError(message, response.status, retryableStatusCodes.has(response.status), 'http_error');
-            }
-
-            return payload;
-        } catch (error) {
-            const normalizedError = (() => {
-                if (error && error.name === 'AbortError') {
-                    return makeApiError(
-                        currentLang === 'es'
-                            ? 'Tiempo de espera agotado con el servidor'
-                            : 'Server request timed out',
-                        0,
-                        true,
-                        'timeout'
+                const responseText = await response.text();
+                let payload = {};
+                try {
+                    payload = responseText ? JSON.parse(responseText) : {};
+                } catch (error) {
+                    throw makeApiError(
+                        'Respuesta del servidor no es JSON valido',
+                        response.status,
+                        retryableStatusCodes.has(response.status),
+                        'invalid_json'
                     );
                 }
 
-                if (error instanceof Error) {
-                    if (typeof error.retryable !== 'boolean') {
-                        error.retryable = false;
-                    }
-                    if (typeof error.status !== 'number') {
-                        error.status = 0;
-                    }
-                    return error;
+                if (!response.ok || payload.ok === false) {
+                    const message = payload.error || ('HTTP ' + response.status);
+                    throw makeApiError(message, response.status, retryableStatusCodes.has(response.status), 'http_error');
                 }
 
-                return makeApiError('Error de conexion con el servidor', 0, true, 'network_error');
-            })();
+                return payload;
+            } catch (error) {
+                const normalizedError = (() => {
+                    if (error && error.name === 'AbortError') {
+                        return makeApiError(
+                            currentLang === 'es'
+                                ? 'Tiempo de espera agotado con el servidor'
+                                : 'Server request timed out',
+                            0,
+                            true,
+                            'timeout'
+                        );
+                    }
 
-            lastError = normalizedError;
+                    if (isLikelyNetworkError(error)) {
+                        return makeApiError(
+                            currentLang === 'es'
+                                ? 'No se pudo conectar con el servidor'
+                                : 'Could not connect to server',
+                            0,
+                            true,
+                            'network_error'
+                        );
+                    }
 
-            const canRetry = attempt < maxRetries && normalizedError.retryable === true;
-            if (!canRetry) {
-                throw normalizedError;
-            }
+                    if (error instanceof Error) {
+                        if (typeof error.retryable !== 'boolean') {
+                            error.retryable = false;
+                        }
+                        if (typeof error.status !== 'number') {
+                            error.status = 0;
+                        }
+                        if (typeof error.code !== 'string' || !error.code) {
+                            error.code = 'api_error';
+                        }
+                        return error;
+                    }
 
-            const retryDelay = API_RETRY_BASE_DELAY_MS * (attempt + 1);
-            await waitMs(retryDelay);
-        } finally {
-            clearTimeout(timeoutId);
-            if (slowNoticeTimer !== null) {
-                clearTimeout(slowNoticeTimer);
+                    return makeApiError('Error de conexion con el servidor', 0, true, 'network_error');
+                })();
+
+                lastError = normalizedError;
+
+                const canRetry = attempt < maxRetries && normalizedError.retryable === true;
+                if (!canRetry) {
+                    throw normalizedError;
+                }
+
+                const retryDelay = getApiRetryDelayMs(attempt);
+                await waitMs(retryDelay);
+            } finally {
+                clearTimeout(timeoutId);
+                if (slowNoticeTimer !== null) {
+                    clearTimeout(slowNoticeTimer);
+                }
             }
         }
+
+        throw lastError || new Error('No se pudo completar la solicitud');
+    };
+
+    if (!dedupeGet) {
+        return execute();
     }
 
-    throw lastError || new Error('No se pudo completar la solicitud');
+    if (apiInFlightGetRequests.has(url)) {
+        return apiInFlightGetRequests.get(url);
+    }
+
+    const inFlight = execute().finally(() => {
+        apiInFlightGetRequests.delete(url);
+    });
+
+    apiInFlightGetRequests.set(url, inFlight);
+    return inFlight;
 }
 
 async function loadPaymentConfig() {
@@ -1083,49 +1148,107 @@ async function verifyPaymentIntent(paymentIntentId) {
     });
 }
 
-async function uploadTransferProof(file) {
+async function uploadTransferProof(file, options = {}) {
     const formData = new FormData();
     formData.append('proof', file);
 
     const query = new URLSearchParams({ resource: 'transfer-proof' });
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
+    const url = `${API_ENDPOINT}?${query.toString()}`;
+    const timeoutMs = Number.isFinite(options.timeoutMs)
+        ? Math.max(3000, Number(options.timeoutMs))
+        : UPLOAD_REQUEST_TIMEOUT_MS;
+    const maxRetries = Number.isInteger(options.retries)
+        ? Math.max(0, Number(options.retries))
+        : 1;
+    const retryableStatusCodes = new Set([408, 425, 429, 500, 502, 503, 504]);
 
-    let response;
-    let text = '';
-    try {
-        response = await fetch(`${API_ENDPOINT}?${query.toString()}`, {
-            method: 'POST',
-            credentials: 'same-origin',
-            body: formData,
-            signal: controller.signal
-        });
-        text = await response.text();
-    } catch (error) {
-        if (error && error.name === 'AbortError') {
-            throw new Error(
-                currentLang === 'es'
-                    ? 'Tiempo de espera agotado al subir el comprobante'
-                    : 'Upload timed out while sending proof file'
-            );
+    let lastError = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: formData,
+                signal: controller.signal
+            });
+
+            const text = await response.text();
+            let payload = {};
+            try {
+                payload = text ? JSON.parse(text) : {};
+            } catch (error) {
+                const parseError = new Error('No se pudo interpretar la respuesta de subida');
+                parseError.retryable = retryableStatusCodes.has(response.status);
+                parseError.status = response.status;
+                throw parseError;
+            }
+
+            if (!response.ok || payload.ok === false) {
+                const httpError = new Error(payload.error || `HTTP ${response.status}`);
+                httpError.retryable = retryableStatusCodes.has(response.status);
+                httpError.status = response.status;
+                throw httpError;
+            }
+
+            return payload.data || {};
+        } catch (error) {
+            const normalizedError = (() => {
+                if (error && error.name === 'AbortError') {
+                    const timeoutError = new Error(
+                        currentLang === 'es'
+                            ? 'Tiempo de espera agotado al subir el comprobante'
+                            : 'Upload timed out while sending proof file'
+                    );
+                    timeoutError.retryable = true;
+                    timeoutError.code = 'timeout';
+                    return timeoutError;
+                }
+
+                if (isLikelyNetworkError(error)) {
+                    const networkError = new Error(
+                        currentLang === 'es'
+                            ? 'No se pudo conectar con el servidor al subir el comprobante'
+                            : 'Could not connect to server while uploading proof'
+                    );
+                    networkError.retryable = true;
+                    networkError.code = 'network_error';
+                    return networkError;
+                }
+
+                if (error instanceof Error) {
+                    if (typeof error.retryable !== 'boolean') {
+                        error.retryable = false;
+                    }
+                    return error;
+                }
+
+                const fallbackError = new Error(
+                    currentLang === 'es'
+                        ? 'No se pudo subir el comprobante'
+                        : 'Unable to upload proof'
+                );
+                fallbackError.retryable = true;
+                fallbackError.code = 'upload_error';
+                return fallbackError;
+            })();
+
+            lastError = normalizedError;
+            const canRetry = attempt < maxRetries && normalizedError.retryable === true;
+            if (!canRetry) {
+                throw normalizedError;
+            }
+
+            await waitMs(getApiRetryDelayMs(attempt));
+        } finally {
+            clearTimeout(timeoutId);
         }
-        throw error;
-    } finally {
-        clearTimeout(timeoutId);
     }
 
-    let payload = {};
-    try {
-        payload = text ? JSON.parse(text) : {};
-    } catch (error) {
-        throw new Error('No se pudo interpretar la respuesta de subida');
-    }
-
-    if (!response.ok || payload.ok === false) {
-        throw new Error(payload.error || `HTTP ${response.status}`);
-    }
-
-    return payload.data || {};
+    throw lastError || new Error('No se pudo subir el comprobante');
 }
 
 function getCasePhotoFiles(formElement) {
@@ -1242,6 +1365,7 @@ function invalidateBookedSlotsCache(date = '', doctor = '') {
 
 async function loadAvailabilityData(options = {}) {
     const forceRefresh = options && options.forceRefresh === true;
+    const background = options && options.background === true;
     const now = Date.now();
 
     if (!forceRefresh && availabilityCacheLoadedAt > 0 && (now - availabilityCacheLoadedAt) < AVAILABILITY_CACHE_TTL_MS) {
@@ -1254,7 +1378,10 @@ async function loadAvailabilityData(options = {}) {
 
     availabilityCachePromise = (async () => {
         try {
-            const payload = await apiRequest('availability');
+            const payload = await apiRequest('availability', {
+                background,
+                silentSlowNotice: background
+            });
             availabilityCache = payload.data || {};
             availabilityCacheLoadedAt = Date.now();
             storageSetJSON('availability', availabilityCache);
@@ -1412,15 +1539,21 @@ function mergePublicReviews(inputReviews) {
     return merged;
 }
 
-async function loadPublicReviews() {
+async function loadPublicReviews(options = {}) {
+    const background = options && options.background === true;
+
     try {
-        const payload = await apiRequest('reviews');
+        const payload = await apiRequest('reviews', {
+            background,
+            silentSlowNotice: background
+        });
         const fetchedReviews = Array.isArray(payload.data) ? payload.data : [];
         reviewsCache = mergePublicReviews(fetchedReviews);
     } catch (error) {
         const localReviews = storageGetJSON('reviews', []);
         reviewsCache = mergePublicReviews(localReviews);
     }
+
     renderPublicReviews(reviewsCache);
 }
 
