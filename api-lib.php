@@ -672,3 +672,41 @@ function maybe_send_appointment_email(array $appointment): bool
     }
     return $sent;
 }
+
+function maybe_send_admin_notification(array $appointment): bool
+{
+    $adminEmail = getenv('PIELARMONIA_ADMIN_EMAIL');
+    if (!is_string($adminEmail) || $adminEmail === '') {
+        $adminEmail = 'javier.rosero94@gmail.com';
+    }
+    if (!filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+
+    $clinicName = 'Piel en Armonía';
+    $subject = 'Nueva cita agendada - ' . $clinicName;
+    $body = "Se ha agendado una nueva cita:\n\n";
+    $body .= "Paciente: " . ($appointment['name'] ?? '-') . "\n";
+    $body .= "Email: " . ($appointment['email'] ?? '-') . "\n";
+    $body .= "Telefono: " . ($appointment['phone'] ?? '-') . "\n";
+    $body .= "Servicio: " . ($appointment['service'] ?? '-') . "\n";
+    $body .= "Doctor: " . ($appointment['doctor'] ?? '-') . "\n";
+    $body .= "Fecha: " . ($appointment['date'] ?? '-') . "\n";
+    $body .= "Hora: " . ($appointment['time'] ?? '-') . "\n";
+    $body .= "Precio: " . ($appointment['price'] ?? '-') . "\n";
+    $body .= "Metodo de pago: " . ($appointment['paymentMethod'] ?? '-') . "\n";
+    $body .= "Estado de pago: " . ($appointment['paymentStatus'] ?? '-') . "\n";
+    $body .= "\nFecha de registro: " . local_date('d/m/Y H:i') . "\n";
+
+    $from = getenv('PIELARMONIA_EMAIL_FROM');
+    if (!is_string($from) || $from === '') {
+        $from = 'no-reply@pielarmonia.com';
+    }
+    $headers = "From: {$from}\r\nContent-Type: text/plain; charset=UTF-8";
+
+    $sent = @mail($adminEmail, $subject, $body, $headers);
+    if (!$sent) {
+        error_log('Piel en Armonia: fallo al enviar notificacion al admin ' . $adminEmail);
+    }
+    return $sent;
+}

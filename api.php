@@ -525,6 +525,7 @@ if ($method === 'POST' && $resource === 'appointments') {
     write_store($store);
 
     $emailSent = maybe_send_appointment_email($appointment);
+    maybe_send_admin_notification($appointment);
 
     json_response([
         'ok' => true,

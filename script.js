@@ -172,7 +172,7 @@ const translations = {
         clinic_parking: "Estacionamiento privado disponible",
         btn_directions: "Cómo llegar",
         reviews_title: "Lo que dicen nuestros pacientes",
-        reviews_count: "500+ consultas atendidas",
+        reviews_count: "Reseñas verificadas",
         review_1: "\"Soy señora de 78 años y pude llamar al doctor sin problemas. Muy amable y profesional. Me resolvió todas mis dudas sobre mi piel.\"",
         review_2: "\"La videollamada por WhatsApp fue súper fácil. No tuve que instalar nada nuevo. El doctor fue muy paciente y me explicó todo detalladamente.\"",
         review_3: "\"Solicité que me llamaran y en 10 minutos el doctor me contactó. Excelente servicio. Mi acné ha mejorado notablemente.\"",
@@ -335,7 +335,7 @@ const translations = {
         clinic_parking: "Private parking available",
         btn_directions: "Get Directions",
         reviews_title: "What our patients say",
-        reviews_count: "500+ consultations attended",
+        reviews_count: "Verified reviews",
         review_1: "\"I'm a 78-year-old lady and I was able to call the doctor without problems. Very kind and professional. He solved all my doubts about my skin.\"",
         review_2: "\"The WhatsApp video call was super easy. I didn't have to install anything new. The doctor was very patient and explained everything in detail.\"",
         review_3: "\"I requested a call back and the doctor contacted me in 10 minutes. Excellent service. My acne has improved noticeably.\"",
@@ -408,6 +408,42 @@ const THEME_STORAGE_KEY = 'themeMode';
 const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
 let currentThemeMode = localStorage.getItem(THEME_STORAGE_KEY) || 'system';
 const API_ENDPOINT = '/api.php';
+const CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
+const CLINIC_MAP_URL = 'https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D';
+const DEFAULT_PUBLIC_REVIEWS = [
+    {
+        id: 'google-jose-gancino',
+        name: 'Jose Gancino',
+        rating: 5,
+        text: 'Buena atención solo falta los números de la oficina y horarios de atención.',
+        date: '2025-10-01T10:00:00-05:00',
+        verified: true
+    },
+    {
+        id: 'google-jacqueline-ruiz-torres',
+        name: 'Jacqueline Ruiz Torres',
+        rating: 5,
+        text: 'Exelente atención y económico 🙏🤗👌',
+        date: '2025-04-15T10:00:00-05:00',
+        verified: true
+    },
+    {
+        id: 'google-cris-lema',
+        name: 'Cris Lema',
+        rating: 5,
+        text: 'Reseña de 5 estrellas en Google.',
+        date: '2025-10-10T10:00:00-05:00',
+        verified: true
+    },
+    {
+        id: 'google-camila-escobar',
+        name: 'Camila Escobar',
+        rating: 5,
+        text: 'Reseña de 5 estrellas en Google.',
+        date: '2025-02-01T10:00:00-05:00',
+        verified: true
+    }
+];
 const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
 let currentAppointment = null;
 let availabilityCache = {};
@@ -708,12 +744,36 @@ async function createReviewRecord(review) {
     }
 }
 
+function mergePublicReviews(inputReviews) {
+    const merged = [];
+    const seen = new Set();
+
+    const addReview = (review) => {
+        if (!review || typeof review !== 'object') return;
+        const name = String(review.name || '').trim().toLowerCase();
+        const text = String(review.text || '').trim().toLowerCase();
+        const signature = `${name}|${text}`;
+        if (!name || !text || seen.has(signature)) return;
+        seen.add(signature);
+        merged.push(review);
+    };
+
+    DEFAULT_PUBLIC_REVIEWS.forEach(addReview);
+    if (Array.isArray(inputReviews)) {
+        inputReviews.forEach(addReview);
+    }
+
+    return merged;
+}
+
 async function loadPublicReviews() {
     try {
         const payload = await apiRequest('reviews');
-        reviewsCache = Array.isArray(payload.data) ? payload.data : [];
+        const fetchedReviews = Array.isArray(payload.data) ? payload.data : [];
+        reviewsCache = mergePublicReviews(fetchedReviews);
     } catch (error) {
-        reviewsCache = storageGetJSON('reviews', []);
+        const localReviews = storageGetJSON('reviews', []);
+        reviewsCache = mergePublicReviews(localReviews);
     }
     renderPublicReviews(reviewsCache);
 }
@@ -1466,7 +1526,7 @@ function generateGoogleCalendarUrl(appointment, startDate, endDate) {
     
     const title = encodeURIComponent(`Cita - Piel en Armonía`);
     const details = encodeURIComponent(`Servicio: ${getServiceName(appointment.service)}\nDoctor: ${getDoctorName(appointment.doctor)}\nPrecio: ${appointment.price}`);
-    const location = encodeURIComponent('Valparaiso 13-183 y Sodiro, Quito, Ecuador');
+    const location = encodeURIComponent(CLINIC_ADDRESS);
     
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${formatDate(startDate)}/${formatDate(endDate)}&details=${details}&location=${location}`;
 }
@@ -1482,7 +1542,7 @@ DTSTART:${formatICSDate(startDate)}
 DTEND:${formatICSDate(endDate)}
 SUMMARY:Cita - Piel en Armonía
 DESCRIPTION:Servicio: ${getServiceName(appointment.service)}\\nDoctor: ${getDoctorName(appointment.doctor)}\\nPrecio: ${appointment.price}
-LOCATION:Valparaiso 13-183 y Sodiro, Quito, Ecuador
+LOCATION:${CLINIC_ADDRESS}
 END:VEVENT
 END:VCALENDAR`;
 }
@@ -1775,7 +1835,7 @@ const SYSTEM_PROMPT = `Eres el Dr. Virtual, asistente inteligente de la clínica
 INFORMACIÓN DE LA CLÍNICA:
 - Nombre: Piel en Armonía
 - Doctores: Dr. Javier Rosero (Dermatólogo Clínico) y Dra. Carolina Narváez (Dermatóloga Estética)
-- Dirección: Valparaíso 13-183 y Sodiro, Quito, Ecuador
+- Dirección: ${CLINIC_ADDRESS}
 - Teléfono/WhatsApp: +593 98 245 3672
 - Horario: Lunes-Viernes 9:00-18:00, Sábados 9:00-13:00
 - Estacionamiento privado disponible
@@ -1896,9 +1956,14 @@ async function sendChatMessage() {
 }
 
 function sendQuickMessage(type) {
+    if (type === 'appointment') {
+        addUserMessage('Quiero agendar una cita');
+        startChatBooking();
+        return;
+    }
+
     const messages = {
         services: '¿Qué servicios ofrecen?',
-        appointment: 'Quiero agendar una cita',
         prices: '¿Cuáles son los precios?',
         telemedicine: '¿Cómo funciona la consulta online?',
         human: 'Quiero hablar con un doctor real',
@@ -1906,7 +1971,7 @@ function sendQuickMessage(type) {
         laser: 'Información sobre tratamientos láser',
         location: '¿Dónde están ubicados?'
     };
-    
+
     const message = messages[type] || type;
     addUserMessage(message);
 
@@ -1935,19 +2000,31 @@ function addUserMessage(text) {
 }
 
 function sanitizeBotHtml(html) {
-    const allowed = ['b', 'strong', 'i', 'em', 'br', 'p', 'ul', 'ol', 'li', 'a'];
+    const allowed = ['b', 'strong', 'i', 'em', 'br', 'p', 'ul', 'ol', 'li', 'a', 'div', 'button', 'input', 'span', 'small'];
+    const allowedAttrs = {
+        'a': ['href', 'target', 'onclick', 'rel'],
+        'button': ['class', 'onclick'],
+        'div': ['class', 'style'],
+        'input': ['type', 'id', 'min', 'onchange', 'style', 'value'],
+        'i': ['class'],
+        'span': ['class', 'style'],
+        'small': ['class']
+    };
     const div = document.createElement('div');
     div.innerHTML = html;
     div.querySelectorAll('script, style, iframe, object, embed').forEach(el => el.remove());
     div.querySelectorAll('*').forEach(el => {
-        if (!allowed.includes(el.tagName.toLowerCase())) {
+        const tag = el.tagName.toLowerCase();
+        if (!allowed.includes(tag)) {
             el.replaceWith(document.createTextNode(el.textContent));
         } else {
+            const keep = allowedAttrs[tag] || [];
             Array.from(el.attributes).forEach(attr => {
-                if (el.tagName === 'A' && ['href', 'target', 'onclick'].includes(attr.name)) return;
-                el.removeAttribute(attr.name);
+                if (!keep.includes(attr.name)) {
+                    el.removeAttribute(attr.name);
+                }
             });
-            if (el.tagName === 'A') {
+            if (tag === 'a') {
                 const href = el.getAttribute('href') || '';
                 if (!/^https?:\/\/|^#/.test(href)) el.removeAttribute('href');
                 if (href.startsWith('http')) {
@@ -2027,6 +2104,311 @@ function escapeHtml(text) {
 }
 
 // ========================================
+// BOOKING CONVERSACIONAL DESDE CHATBOT
+// ========================================
+let chatBooking = null;
+
+const CHAT_SERVICES = [
+    { key: 'consulta', label: 'Consulta Presencial', price: '$44.80' },
+    { key: 'telefono', label: 'Consulta Telefonica', price: '$28.00' },
+    { key: 'video', label: 'Video Consulta', price: '$33.60' },
+    { key: 'laser', label: 'Tratamiento Laser', price: '$168.00' },
+    { key: 'rejuvenecimiento', label: 'Rejuvenecimiento', price: '$134.40' }
+];
+
+const CHAT_DOCTORS = [
+    { key: 'rosero', label: 'Dr. Javier Rosero' },
+    { key: 'narvaez', label: 'Dra. Carolina Narvaez' },
+    { key: 'indiferente', label: 'Cualquiera' }
+];
+
+function startChatBooking() {
+    chatBooking = { step: 'service' };
+    let msg = 'Vamos a agendar tu cita paso a paso.<br><br>';
+    msg += '<strong>Paso 1/7:</strong> ¿Que servicio necesitas?<br><br>';
+    msg += '<div class="chat-suggestions">';
+    CHAT_SERVICES.forEach(s => {
+        msg += `<button class="chat-suggestion-btn" onclick="handleChatBookingSelection('${s.key}')">${escapeHtml(s.label)} (${s.price})</button>`;
+    });
+    msg += '</div>';
+    addBotMessage(msg);
+}
+
+function cancelChatBooking() {
+    chatBooking = null;
+    addBotMessage('Reserva cancelada. Si necesitas algo mas, estoy aqui para ayudarte.');
+}
+
+function handleChatBookingSelection(value) {
+    addUserMessage(value);
+    processChatBookingStep(value);
+}
+
+function handleChatDateSelect(value) {
+    if (value) {
+        addUserMessage(value);
+        processChatBookingStep(value);
+    }
+}
+
+async function processChatBookingStep(userInput) {
+    if (!chatBooking) return;
+    const input = userInput.trim();
+
+    if (/cancelar|salir|no quiero/i.test(input)) {
+        cancelChatBooking();
+        return;
+    }
+
+    switch (chatBooking.step) {
+        case 'service': {
+            const service = CHAT_SERVICES.find(s => s.key === input || s.label.toLowerCase() === input.toLowerCase());
+            if (!service) {
+                addBotMessage('Por favor selecciona un servicio valido de las opciones.');
+                return;
+            }
+            chatBooking.service = service.key;
+            chatBooking.serviceLabel = service.label;
+            chatBooking.price = service.price;
+            chatBooking.step = 'doctor';
+
+            let msg = `Servicio: <strong>${escapeHtml(service.label)}</strong> (${service.price})<br><br>`;
+            msg += '<strong>Paso 2/7:</strong> ¿Con que doctor prefieres?<br><br>';
+            msg += '<div class="chat-suggestions">';
+            CHAT_DOCTORS.forEach(d => {
+                msg += `<button class="chat-suggestion-btn" onclick="handleChatBookingSelection('${d.key}')">${escapeHtml(d.label)}</button>`;
+            });
+            msg += '</div>';
+            addBotMessage(msg);
+            break;
+        }
+
+        case 'doctor': {
+            const doctor = CHAT_DOCTORS.find(d => d.key === input || d.label.toLowerCase() === input.toLowerCase());
+            if (!doctor) {
+                addBotMessage('Por favor selecciona un doctor de las opciones.');
+                return;
+            }
+            chatBooking.doctor = doctor.key;
+            chatBooking.doctorLabel = doctor.label;
+            chatBooking.step = 'date';
+
+            const today = new Date().toISOString().split('T')[0];
+            let msg = `Doctor: <strong>${escapeHtml(doctor.label)}</strong><br><br>`;
+            msg += '<strong>Paso 3/7:</strong> ¿Que fecha prefieres?<br><br>';
+            msg += `<input type="date" id="chatDateInput" min="${today}" `;
+            msg += `onchange="handleChatDateSelect(this.value)" `;
+            msg += `style="padding: 10px 14px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 1rem; width: 100%; max-width: 220px; cursor: pointer;">`;
+            addBotMessage(msg);
+            break;
+        }
+
+        case 'date': {
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (!dateRegex.test(input)) {
+                addBotMessage('Por favor selecciona una fecha valida (usa el calendario).');
+                return;
+            }
+            const selectedDate = new Date(input + 'T12:00:00');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (selectedDate < today) {
+                addBotMessage('La fecha debe ser hoy o en el futuro. Selecciona otra fecha.');
+                return;
+            }
+            chatBooking.date = input;
+            chatBooking.step = 'time';
+
+            showTypingIndicator();
+            try {
+                const availability = await loadAvailabilityData();
+                const booked = await getBookedSlots(input);
+                let allSlots = availability[input] && availability[input].length > 0
+                    ? availability[input]
+                    : ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
+                const freeSlots = allSlots.filter(s => !booked.includes(s)).sort();
+
+                removeTypingIndicator();
+
+                if (freeSlots.length === 0) {
+                    addBotMessage('No hay horarios disponibles para esa fecha. Por favor elige otra.<br><br>' +
+                        `<input type="date" id="chatDateInput" min="${new Date().toISOString().split('T')[0]}" ` +
+                        `onchange="handleChatDateSelect(this.value)" ` +
+                        `style="padding: 10px 14px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 1rem; width: 100%; max-width: 220px;">`);
+                    chatBooking.step = 'date';
+                    return;
+                }
+
+                const dateLabel = selectedDate.toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long' });
+                let msg = `Fecha: <strong>${escapeHtml(dateLabel)}</strong><br><br>`;
+                msg += '<strong>Paso 4/7:</strong> Horarios disponibles:<br><br>';
+                msg += '<div class="chat-suggestions">';
+                freeSlots.forEach(time => {
+                    msg += `<button class="chat-suggestion-btn" onclick="handleChatBookingSelection('${time}')">${time}</button>`;
+                });
+                msg += '</div>';
+                addBotMessage(msg);
+            } catch (err) {
+                removeTypingIndicator();
+                addBotMessage('No pude consultar los horarios. Intenta de nuevo.');
+                chatBooking.step = 'date';
+            }
+            break;
+        }
+
+        case 'time': {
+            if (!/^\d{2}:\d{2}$/.test(input)) {
+                addBotMessage('Por favor selecciona un horario valido de las opciones.');
+                return;
+            }
+            chatBooking.time = input;
+            chatBooking.step = 'name';
+            addBotMessage(`Hora: <strong>${escapeHtml(input)}</strong><br><br><strong>Paso 5/7:</strong> ¿Cual es tu nombre completo?`);
+            break;
+        }
+
+        case 'name': {
+            if (input.length < 2) {
+                addBotMessage('El nombre debe tener al menos 2 caracteres.');
+                return;
+            }
+            chatBooking.name = input;
+            chatBooking.step = 'email';
+            addBotMessage(`Nombre: <strong>${escapeHtml(input)}</strong><br><br><strong>Paso 6/7:</strong> ¿Cual es tu email?`);
+            break;
+        }
+
+        case 'email': {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(input)) {
+                addBotMessage('El formato del email no es valido. Ejemplo: nombre@correo.com');
+                return;
+            }
+            chatBooking.email = input;
+            chatBooking.step = 'phone';
+            addBotMessage(`Email: <strong>${escapeHtml(input)}</strong><br><br><strong>Paso 7/7:</strong> ¿Cual es tu numero de telefono?`);
+            break;
+        }
+
+        case 'phone': {
+            const digits = input.replace(/\D/g, '');
+            if (digits.length < 7 || digits.length > 15) {
+                addBotMessage('El telefono debe tener entre 7 y 15 digitos.');
+                return;
+            }
+            chatBooking.phone = input;
+            chatBooking.step = 'payment';
+
+            let msg = `Telefono: <strong>${escapeHtml(input)}</strong><br><br>`;
+            msg += '<strong>Resumen de tu cita:</strong><br>';
+            msg += `• Servicio: ${escapeHtml(chatBooking.serviceLabel)} (${chatBooking.price})<br>`;
+            msg += `• Doctor: ${escapeHtml(chatBooking.doctorLabel)}<br>`;
+            msg += `• Fecha: ${escapeHtml(chatBooking.date)}<br>`;
+            msg += `• Hora: ${escapeHtml(chatBooking.time)}<br>`;
+            msg += `• Nombre: ${escapeHtml(chatBooking.name)}<br>`;
+            msg += `• Email: ${escapeHtml(chatBooking.email)}<br>`;
+            msg += `• Telefono: ${escapeHtml(chatBooking.phone)}<br><br>`;
+            msg += '¿Como deseas pagar?<br><br>';
+            msg += '<div class="chat-suggestions">';
+            msg += '<button class="chat-suggestion-btn" onclick="handleChatBookingSelection(\'efectivo\')"><i class="fas fa-money-bill-wave"></i> Efectivo</button>';
+            msg += '<button class="chat-suggestion-btn" onclick="handleChatBookingSelection(\'tarjeta\')"><i class="fas fa-credit-card"></i> Tarjeta</button>';
+            msg += '<button class="chat-suggestion-btn" onclick="handleChatBookingSelection(\'transferencia\')"><i class="fas fa-university"></i> Transferencia</button>';
+            msg += '</div>';
+            addBotMessage(msg);
+            break;
+        }
+
+        case 'payment': {
+            const paymentMap = {
+                'efectivo': 'cash', 'cash': 'cash',
+                'tarjeta': 'card', 'card': 'card',
+                'transferencia': 'transfer', 'transfer': 'transfer'
+            };
+            const method = paymentMap[input.toLowerCase()];
+            if (!method) {
+                addBotMessage('Elige un metodo de pago: Efectivo, Tarjeta o Transferencia.');
+                return;
+            }
+
+            chatBooking.paymentMethod = method;
+            chatBooking.step = 'confirm';
+            await finalizeChatBooking();
+            break;
+        }
+    }
+}
+
+async function finalizeChatBooking() {
+    if (!chatBooking) return;
+
+    const appointment = {
+        service: chatBooking.service,
+        doctor: chatBooking.doctor,
+        date: chatBooking.date,
+        time: chatBooking.time,
+        name: chatBooking.name,
+        email: chatBooking.email,
+        phone: chatBooking.phone,
+        price: chatBooking.price
+    };
+
+    if (chatBooking.paymentMethod === 'cash') {
+        showTypingIndicator();
+        try {
+            const payload = {
+                ...appointment,
+                paymentMethod: 'cash',
+                paymentStatus: 'pending_cash',
+                status: 'confirmed'
+            };
+            const result = await createAppointmentRecord(payload);
+            removeTypingIndicator();
+            currentAppointment = result.appointment;
+
+            let msg = '<strong>¡Cita agendada con exito!</strong><br><br>';
+            msg += 'Tu cita ha sido registrada. ';
+            if (result.emailSent) {
+                msg += 'Te enviamos un correo de confirmacion.<br><br>';
+            } else {
+                msg += 'Te contactaremos para confirmar detalles.<br><br>';
+            }
+            msg += `• Servicio: ${escapeHtml(chatBooking.serviceLabel)}<br>`;
+            msg += `• Doctor: ${escapeHtml(chatBooking.doctorLabel)}<br>`;
+            msg += `• Fecha: ${escapeHtml(chatBooking.date)}<br>`;
+            msg += `• Hora: ${escapeHtml(chatBooking.time)}<br>`;
+            msg += `• Pago: En consultorio<br><br>`;
+            msg += 'Recuerda llegar 10 minutos antes de tu cita.';
+            addBotMessage(msg);
+            showToast('Cita agendada correctamente desde el asistente.', 'success');
+            chatBooking = null;
+        } catch (err) {
+            removeTypingIndicator();
+            addBotMessage(`No se pudo registrar la cita: ${escapeHtml(err.message || 'Error desconocido')}. Intenta de nuevo o agenda desde <a href="#citas" onclick="minimizeChatbot()">el formulario</a>.`);
+            chatBooking.step = 'payment';
+        }
+    } else {
+        // Tarjeta o transferencia: abrir modal de pago existente
+        currentAppointment = appointment;
+        const method = chatBooking.paymentMethod;
+        chatBooking = null;
+
+        addBotMessage(`Abriendo el modulo de pago por <strong>${method === 'card' ? 'tarjeta' : 'transferencia'}</strong>...<br>Completa el pago en la ventana que se abrira.`);
+
+        setTimeout(() => {
+            minimizeChatbot();
+            openPaymentModal(appointment);
+            // Activar la tab correcta del modal de pago
+            setTimeout(() => {
+                const methodEl = document.querySelector(`.payment-method[data-method="${method}"]`);
+                if (methodEl && !methodEl.classList.contains('disabled')) {
+                    methodEl.click();
+                }
+            }, 300);
+        }, 800);
+    }
+}
+
+// ========================================
 // INTEGRACIÓN CON BOT DEL SERVIDOR
 // ========================================
 let isProcessingMessage = false; // Evitar duplicados
@@ -2035,8 +2417,21 @@ async function processWithKimi(message) {
         debugLog('⏳ Ya procesando, ignorando duplicado');
         return;
     }
+
+    // Si hay un booking en curso, desviar al flujo conversacional
+    if (chatBooking !== null) {
+        await processChatBookingStep(message);
+        return;
+    }
+
+    // Detectar intención de agendar cita para iniciar booking conversacional
+    if (/cita|agendar|reservar|turno|quiero una consulta|necesito cita/i.test(message)) {
+        startChatBooking();
+        return;
+    }
+
     isProcessingMessage = true;
-    
+
     showTypingIndicator();
 
     if (isOutOfScopeIntent(message)) {
@@ -2431,22 +2826,10 @@ Tu cita queda registrada y te contactamos para confirmar detalles por WhatsApp: 
 
 Si quieres, te guio paso a paso segun el metodo que prefieras.`;
     }
-    // CITAS
+    // CITAS - iniciar booking conversacional
     else if (/cita|agendar|reservar|turno|hora/.test(lowerMsg)) {
-        response = `Puedes agendar tu cita de estas formas:
-
-<strong>🌐 Online (recomendado):</strong>
-Haz clic en "Reservar Cita" en el menú superior
-
-<strong>📱 WhatsApp:</strong>
-<a href="https://wa.me/593982453672?text=Hola,+quiero+agendar+una+cita" target="_blank">+593 98 245 3672</a>
-
-<strong>📞 Teléfono:</strong>
-<a href="tel:+593982453672">+593 98 245 3672</a>
-
-<strong>Horario de atención:</strong>
-Lunes a Viernes: 9:00 - 18:00
-Sábados: 9:00 - 13:00`;
+        startChatBooking();
+        return;
     }
     // ACNÉ
     else if (/acne|grano|espinilla|barro/.test(lowerMsg)) {
@@ -2475,12 +2858,13 @@ Sábados: 9:00 - 13:00`;
     // UBICACION
     else if (/donde|ubicación|dirección|lugar|mapa|quito/.test(lowerMsg)) {
         response = '<strong>Ubicacion:</strong><br>';
-        response += 'Valparaiso 13-183 y Sodiro<br>';
-        response += 'Quito, Ecuador<br><br>';
+        response += `${CLINIC_ADDRESS}<br>`;
+        response += '<br>';
         response += '<strong>Horario:</strong><br>';
         response += 'Lunes - Viernes: 9:00 - 18:00<br>';
         response += 'Sabados: 9:00 - 13:00<br><br>';
         response += '<strong>Estacionamiento:</strong> Privado disponible<br><br>';
+        response += `<strong>Mapa:</strong> <a href="${CLINIC_MAP_URL}" target="_blank" rel="noopener noreferrer">Abrir en Google Maps</a><br>`;
         response += '<strong>Contacto:</strong> +593 98 245 3672';
     }
     // DOCTORES
