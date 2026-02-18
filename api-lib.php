@@ -487,25 +487,33 @@ function ensure_data_file(): bool
 
 function read_store(): array
 {
+    static $cache = null;
+
+    if ($cache !== null) {
+        return $cache;
+    }
+
     if (!ensure_data_file()) {
-        return [
+        $cache = [
             'appointments' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
             'updatedAt' => local_date('c')
         ];
+        return $cache;
     }
 
     $raw = @file_get_contents(data_file_path());
     if ($raw === false || $raw === '') {
-        return [
+        $cache = [
             'appointments' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
             'updatedAt' => local_date('c')
         ];
+        return $cache;
     }
 
     $rawText = (string) $raw;
@@ -517,24 +525,26 @@ function read_store(): array
                 'error' => 'No se pudo descifrar la base de datos. Verifica PIELARMONIA_DATA_ENCRYPTION_KEY'
             ], 500);
         }
-        return [
+        $cache = [
             'appointments' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
             'updatedAt' => local_date('c')
         ];
+        return $cache;
     }
 
     $data = json_decode($decodedRaw, true);
     if (!is_array($data)) {
-        return [
+        $cache = [
             'appointments' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
             'updatedAt' => local_date('c')
         ];
+        return $cache;
     }
 
     $data['appointments'] = isset($data['appointments']) && is_array($data['appointments']) ? $data['appointments'] : [];
@@ -543,7 +553,8 @@ function read_store(): array
     $data['availability'] = isset($data['availability']) && is_array($data['availability']) ? $data['availability'] : [];
     $data['updatedAt'] = isset($data['updatedAt']) ? (string) $data['updatedAt'] : local_date('c');
 
-    return $data;
+    $cache = $data;
+    return $cache;
 }
 
 function write_store(array $store): void
