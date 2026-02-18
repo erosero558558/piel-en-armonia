@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://images.unsplash.com https://www.google-analytics.com data:; frame-src https://js.stripe.com https://www.google.com; connect-src 'self' https://api.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://images.unsplash.com https://www.google-analytics.com https://*.stripe.com data:; frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; connect-src 'self' https://api.stripe.com https://m.stripe.network https://r.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com; worker-src 'self' blob:; form-action 'self';">
     <title>Piel en Armonía | Dermatología Especializada en Quito</title>
     <meta name="description" content="Clínica dermatológica en Quito. Dr. Javier Rosero y Dra. Carolina Narváez. Consulta presencial, online y telemedicina con pagos seguros.">
     <meta name="robots" content="index, follow, max-image-preview:large">
@@ -113,22 +113,22 @@
     <div class="language-bar">
         <div class="language-options">
             <div class="theme-options" role="group" aria-label="Modo de tema">
-                <button class="theme-btn" data-theme-mode="light" onclick="setThemeMode('light')" aria-label="Modo claro">
+                <button type="button" class="theme-btn" data-theme-mode="light" data-action="set-theme" data-value="light" aria-label="Modo claro">
                     <i class="fas fa-sun" aria-hidden="true"></i>
                     <span data-i18n="theme_light">Claro</span>
                 </button>
-                <button class="theme-btn" data-theme-mode="dark" onclick="setThemeMode('dark')" aria-label="Modo oscuro">
+                <button type="button" class="theme-btn" data-theme-mode="dark" data-action="set-theme" data-value="dark" aria-label="Modo oscuro">
                     <i class="fas fa-moon" aria-hidden="true"></i>
                     <span data-i18n="theme_dark">Oscuro</span>
                 </button>
-                <button class="theme-btn active" data-theme-mode="system" onclick="setThemeMode('system')" aria-label="Modo sistema">
+                <button type="button" class="theme-btn active" data-theme-mode="system" data-action="set-theme" data-value="system" aria-label="Modo sistema">
                     <i class="fas fa-circle-half-stroke" aria-hidden="true"></i>
                     <span data-i18n="theme_system">Sistema</span>
                 </button>
             </div>
             <div class="lang-switch" role="group" aria-label="Idioma">
-                <button class="lang-btn active" data-lang="es" onclick="changeLanguage('es')">ES</button>
-                <button class="lang-btn" data-lang="en" onclick="changeLanguage('en')">EN</button>
+                <button type="button" class="lang-btn active" data-lang="es" data-action="set-language" data-value="es">ES</button>
+                <button type="button" class="lang-btn" data-lang="en" data-action="set-language" data-value="en">EN</button>
             </div>
         </div>
     </div>
@@ -152,7 +152,7 @@
             <div class="nav-actions">
                 <a href="#citas" class="nav-cta" data-i18n="nav_book">Reservar Cita</a>
             </div>
-            <button class="nav-mobile-toggle" onclick="toggleMobileMenu()">
+            <button type="button" class="nav-mobile-toggle" data-action="toggle-mobile-menu">
                 <i class="fas fa-bars"></i>
             </button>
         </div>
@@ -160,16 +160,16 @@
 
     <!-- Mobile Menu -->
     <div class="mobile-menu" id="mobileMenu">
-        <button class="mobile-close" onclick="toggleMobileMenu()">
+        <button type="button" class="mobile-close" data-action="toggle-mobile-menu">
             <i class="fas fa-times"></i>
         </button>
-        <a href="#inicio" onclick="toggleMobileMenu()" data-i18n="nav_home">Inicio</a>
-        <a href="#servicios" onclick="toggleMobileMenu()" data-i18n="nav_services">Servicios</a>
-        <a href="#telemedicina" onclick="toggleMobileMenu()" data-i18n="nav_telemedicine">Telemedicina</a>
-        <a href="#equipo" onclick="toggleMobileMenu()" data-i18n="nav_team">Equipo</a>
-        <a href="#galeria" onclick="toggleMobileMenu()" data-i18n="nav_gallery">Resultados</a>
-        <a href="#consultorio" onclick="toggleMobileMenu()" data-i18n="nav_clinic">Consultorio</a>
-        <a href="#citas" onclick="toggleMobileMenu()" class="mobile-cta" data-i18n="nav_book">Reservar Cita</a>
+        <a href="#inicio" data-action="toggle-mobile-menu" data-i18n="nav_home">Inicio</a>
+        <a href="#servicios" data-action="toggle-mobile-menu" data-i18n="nav_services">Servicios</a>
+        <a href="#telemedicina" data-action="toggle-mobile-menu" data-i18n="nav_telemedicine">Telemedicina</a>
+        <a href="#equipo" data-action="toggle-mobile-menu" data-i18n="nav_team">Equipo</a>
+        <a href="#galeria" data-action="toggle-mobile-menu" data-i18n="nav_gallery">Resultados</a>
+        <a href="#consultorio" data-action="toggle-mobile-menu" data-i18n="nav_clinic">Consultorio</a>
+        <a href="#citas" data-action="toggle-mobile-menu" class="mobile-cta" data-i18n="nav_book">Reservar Cita</a>
     </div>
 
     <!-- Hero Section -->
@@ -233,7 +233,7 @@
         <!-- Feature 1: Full-width hero image block -->
         <div class="showcase-hero">
             <div class="showcase-hero-image">
-                <img src="https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=1400&h=700&fit=crop&q=80" alt="Cuidado profesional de la piel" loading="lazy" decoding="async">
+                <img src="https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=1400&h=700&fit=crop&q=80" alt="Cuidado profesional de la piel" loading="lazy" decoding="async" fetchpriority="low">
             </div>
             <div class="showcase-hero-content">
                 <p class="showcase-eyebrow" data-i18n="showcase_eyebrow">Dermatología avanzada</p>
@@ -246,7 +246,7 @@
         <div class="showcase-grid">
             <div class="showcase-card">
                 <div class="showcase-card-image">
-                    <img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&h=600&fit=crop&q=80" alt="Diagnóstico dermatológico preciso" loading="lazy" decoding="async">
+                    <img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&h=600&fit=crop&q=80" alt="Diagnóstico dermatológico preciso" loading="lazy" decoding="async" fetchpriority="low">
                 </div>
                 <div class="showcase-card-body">
                     <p class="showcase-eyebrow" data-i18n="showcase_diag_eyebrow">Diagnóstico</p>
@@ -256,7 +256,7 @@
             </div>
             <div class="showcase-card">
                 <div class="showcase-card-image">
-                    <img src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=800&h=600&fit=crop&q=80" alt="Consultorio moderno Piel en Armonía" loading="lazy" decoding="async">
+                    <img src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=800&h=600&fit=crop&q=80" alt="Consultorio moderno Piel en Armonía" loading="lazy" decoding="async" fetchpriority="low">
                 </div>
                 <div class="showcase-card-body">
                     <p class="showcase-eyebrow" data-i18n="showcase_clinic_eyebrow">Instalaciones</p>
@@ -269,7 +269,7 @@
         <!-- Feature 2: Split image+text block -->
         <div class="showcase-split">
             <div class="showcase-split-image">
-                <img src="https://images.unsplash.com/photo-1598524374912-6b0b0a5b2fb9?w=900&h=700&fit=crop&q=80" alt="Tratamiento facial profesional" loading="lazy" decoding="async">
+                <img src="https://images.unsplash.com/photo-1598524374912-6b0b0a5b2fb9?w=900&h=700&fit=crop&q=80" alt="Tratamiento facial profesional" loading="lazy" decoding="async" fetchpriority="low">
             </div>
             <div class="showcase-split-content">
                 <p class="showcase-eyebrow" data-i18n="showcase_treat_eyebrow">Tratamientos</p>
@@ -302,7 +302,7 @@
         <div class="services-grid">
             <div class="service-card">
                 <div class="service-card-img">
-                    <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=240&fit=crop&q=80" alt="Consulta dermatológica" loading="lazy" decoding="async">
+                    <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=240&fit=crop&q=80" alt="Consulta dermatológica" loading="lazy" decoding="async" fetchpriority="low">
                 </div>
                 <div class="service-icon">
                     <i class="fas fa-stethoscope"></i>
@@ -314,7 +314,7 @@
             <div class="service-card featured">
                 <div class="service-badge" data-i18n="badge_popular">Popular</div>
                 <div class="service-card-img">
-                    <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&h=240&fit=crop&q=80" alt="Telemedicina" loading="lazy" decoding="async">
+                    <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&h=240&fit=crop&q=80" alt="Telemedicina" loading="lazy" decoding="async" fetchpriority="low">
                 </div>
                 <div class="service-icon">
                     <i class="fas fa-video"></i>
@@ -325,7 +325,7 @@
             </div>
             <div class="service-card">
                 <div class="service-card-img">
-                    <img src="https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&h=240&fit=crop&q=80" alt="Laser dermatologico" loading="lazy" decoding="async">
+                    <img src="https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&h=240&fit=crop&q=80" alt="Laser dermatologico" loading="lazy" decoding="async" fetchpriority="low">
                 </div>
                 <div class="service-icon">
                     <i class="fas fa-bolt"></i>
@@ -336,7 +336,7 @@
             </div>
             <div class="service-card">
                 <div class="service-card-img">
-                    <img src="https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?w=400&h=240&fit=crop&q=80" alt="Rejuvenecimiento facial" loading="lazy" decoding="async">
+                    <img src="https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?w=400&h=240&fit=crop&q=80" alt="Rejuvenecimiento facial" loading="lazy" decoding="async" fetchpriority="low">
                 </div>
                 <div class="service-icon">
                     <i class="fas fa-wand-magic-sparkles"></i>
@@ -347,7 +347,7 @@
             </div>
             <div class="service-card">
                 <div class="service-card-img">
-                    <img src="https://images.unsplash.com/photo-1590439471364-192aa70c0b53?w=400&h=240&fit=crop&q=80" alt="Tratamiento de acne" loading="lazy" decoding="async">
+                    <img src="https://images.unsplash.com/photo-1590439471364-192aa70c0b53?w=400&h=240&fit=crop&q=80" alt="Tratamiento de acne" loading="lazy" decoding="async" fetchpriority="low">
                 </div>
                 <div class="service-icon">
                     <i class="fas fa-shield-virus"></i>
@@ -358,7 +358,7 @@
             </div>
             <div class="service-card">
                 <div class="service-card-img">
-                    <img src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=400&h=240&fit=crop&q=80" alt="Deteccion de cancer de piel" loading="lazy" decoding="async">
+                    <img src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=400&h=240&fit=crop&q=80" alt="Deteccion de cancer de piel" loading="lazy" decoding="async" fetchpriority="low">
                 </div>
                 <div class="service-icon">
                     <i class="fas fa-microscope"></i>
@@ -430,7 +430,7 @@
                     <li><i class="fas fa-check"></i> <span data-i18n="tele_feature9">Ideal para compartir pantalla</span></li>
                 </ul>
                 <div class="tele-price">$30</div>
-                <button class="btn btn-video" onclick="startWebVideo()">
+                <button type="button" class="btn btn-video" data-action="start-web-video">
                     <i class="fas fa-video"></i>
                     <span data-i18n="btn_video">Iniciar Video</span>
                 </button>
@@ -472,7 +472,7 @@
         <div class="team-grid">
             <div class="team-card">
                 <div class="team-image">
-                    <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=500&h=600&fit=crop" alt="Dr. Javier Rosero" loading="lazy" decoding="async">
+                    <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=500&h=600&fit=crop" alt="Dr. Javier Rosero" loading="lazy" decoding="async" fetchpriority="low">
                     <div class="team-overlay">
                         <div class="team-actions">
                             <a href="tel:+593982453672" class="team-btn" title="Llamar">
@@ -500,7 +500,7 @@
             
             <div class="team-card">
                 <div class="team-image">
-                    <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=500&h=600&fit=crop" alt="Dra. Carolina Narváez" loading="lazy" decoding="async">
+                    <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=500&h=600&fit=crop" alt="Dra. Carolina Narváez" loading="lazy" decoding="async" fetchpriority="low">
                     <div class="team-overlay">
                         <div class="team-actions">
                             <a href="tel:+593987866885" class="team-btn" title="Llamar">
@@ -779,7 +779,7 @@
         </div>
         
         <div class="reviews-actions">
-            <button class="btn btn-secondary" onclick="openReviewModal()">
+            <button type="button" class="btn btn-secondary" data-action="open-review-modal">
                 <i class="fas fa-pen"></i>
                 <span data-i18n="btn_write_review">Escribir Reseña</span>
             </button>
@@ -1014,7 +1014,7 @@
     <!-- Video Options Modal -->
     <div class="modal" id="videoModal">
         <div class="modal-content">
-            <button class="modal-close" onclick="closeVideoModal()">
+            <button type="button" class="modal-close" data-action="close-video-modal">
                 <i class="fas fa-times"></i>
             </button>
             <h3 data-i18n="video_modal_title">Elige cómo quieres hacer la videollamada:</h3>
@@ -1051,7 +1051,7 @@
     <!-- Payment Modal -->
     <div class="modal" id="paymentModal">
         <div class="modal-content payment-modal">
-            <button class="modal-close" onclick="closePaymentModal()">
+            <button type="button" class="modal-close" data-action="close-payment-modal">
                 <i class="fas fa-times"></i>
             </button>
             <h3 data-i18n="payment_title">Método de Pago</h3>
@@ -1141,7 +1141,7 @@
             </div>
             <div id="paymentError" class="payment-error" style="display: none;"></div>
             
-            <button class="btn btn-primary btn-full" onclick="processPayment()">
+            <button type="button" class="btn btn-primary btn-full" data-action="process-payment">
                 <i class="fas fa-lock"></i>
                 <span data-i18n="btn_pay">Confirmar Reserva</span>
             </button>
@@ -1157,7 +1157,7 @@
             <h3 data-i18n="success_title">¡Cita Confirmada!</h3>
             <p data-i18n="success_desc">Tu cita fue registrada correctamente.</p>
             <div id="appointmentDetails"></div>
-            <button class="btn btn-primary" onclick="closeSuccessModal()">
+            <button type="button" class="btn btn-primary" data-action="close-success-modal">
                 <span data-i18n="btn_done">Entendido</span>
             </button>
         </div>
@@ -1166,7 +1166,7 @@
     <!-- Reschedule Modal -->
     <div class="modal" id="rescheduleModal">
         <div class="modal-content">
-            <button class="modal-close" onclick="closeRescheduleModal()">&times;</button>
+            <button type="button" class="modal-close" data-action="close-reschedule-modal">&times;</button>
             <h3 data-i18n="reschedule_title">Reprogramar Cita</h3>
             <div id="rescheduleInfo"></div>
             <div class="form-group">
@@ -1180,7 +1180,7 @@
                 </select>
             </div>
             <div id="rescheduleError" class="form-error" style="display:none;"></div>
-            <button class="btn btn-primary" id="rescheduleSubmitBtn" onclick="submitReschedule()">
+            <button type="button" class="btn btn-primary" id="rescheduleSubmitBtn" data-action="submit-reschedule">
                 <span data-i18n="reschedule_confirm">Confirmar reprogramación</span>
             </button>
         </div>
@@ -1188,7 +1188,7 @@
 
     <!-- Chatbot Widget -->
     <div class="chatbot-widget" id="chatbotWidget">
-        <button class="chatbot-toggle" onclick="toggleChatbot()" aria-label="Abrir chat">
+        <button type="button" class="chatbot-toggle" data-action="toggle-chatbot" aria-label="Abrir chat">
             <i class="fas fa-comments"></i>
             <span class="chatbot-notification" id="chatNotification">1</span>
         </button>
@@ -1206,10 +1206,10 @@
                     </span>
                 </div>
                 <div class="chatbot-actions">
-                    <button onclick="minimizeChatbot()" aria-label="Minimizar">
+                    <button type="button" data-action="minimize-chat" aria-label="Minimizar">
                         <i class="fas fa-minus"></i>
                     </button>
-                    <button onclick="toggleChatbot()" aria-label="Cerrar">
+                    <button type="button" data-action="toggle-chatbot" aria-label="Cerrar">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -1228,10 +1228,10 @@
             </div>
             
             <div class="chatbot-quick-options" id="quickOptions">
-                <button onclick="sendQuickMessage('services')">Ver servicios</button>
-                <button onclick="sendQuickMessage('appointment')">Agendar cita</button>
-                <button onclick="sendQuickMessage('prices')">Consultar precios</button>
-                <button onclick="sendQuickMessage('human')">Hablar con humano</button>
+                <button type="button" data-action="quick-message" data-value="services">Ver servicios</button>
+                <button type="button" data-action="quick-message" data-value="appointment">Agendar cita</button>
+                <button type="button" data-action="quick-message" data-value="prices">Consultar precios</button>
+                <button type="button" data-action="quick-message" data-value="human">Hablar con humano</button>
             </div>
 
             <p class="chatbot-disclaimer" data-i18n="chat_disclaimer">
@@ -1239,8 +1239,8 @@
             </p>
             
             <div class="chatbot-input-area">
-                <input type="text" id="chatInput" placeholder="Escribe tu mensaje..." onkeypress="handleChatKeypress(event)">
-                <button onclick="sendChatMessage()" aria-label="Enviar">
+                <input type="text" id="chatInput" placeholder="Escribe tu mensaje...">
+                <button type="button" data-action="send-chat-message" aria-label="Enviar">
                     <i class="fas fa-paper-plane"></i>
                 </button>
             </div>
@@ -1265,7 +1265,7 @@
     <!-- Review Modal -->
     <div class="modal" id="reviewModal">
         <div class="modal-content">
-            <button class="modal-close" onclick="closeReviewModal()">
+            <button type="button" class="modal-close" data-action="close-review-modal">
                 <i class="fas fa-times"></i>
             </button>
             <h3 data-i18n="review_modal_title">Escribe tu Reseña</h3>
@@ -1306,6 +1306,7 @@
             <a href="cookies.html" class="cookie-link" data-i18n="cookie_more">Más información</a>
         </div>
     </div>
-    <script src="script.js?v=figo-20260218-phase0"></script>
+    <script src="script.js?v=figo-20260218-phase1"></script>
 </body>
 </html>
+

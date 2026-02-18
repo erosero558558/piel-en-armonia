@@ -171,12 +171,18 @@ Fecha de ejecucion sugerida: completar al desplegar.
 5. Verifica cifrado en reposo (si activaste `PIELARMONIA_DATA_ENCRYPTION_KEY`):
 - `data/store.json` debe iniciar con prefijo `ENCv1:`.
 
+6. Verifica cabeceras HTTP de seguridad en Home:
+- `Content-Security-Policy`
+- `X-Content-Type-Options`
+- `Referrer-Policy`
+
 ## 9. Prueba de regresion rapida (5 min)
 
 Opcional automatizado (PowerShell):
 - `.\SMOKE-PRODUCCION.ps1 -Domain "https://TU_DOMINIO" -TestFigoPost`
 - `.\VERIFICAR-DESPLIEGUE.ps1 -Domain "https://TU_DOMINIO" -RunSmoke`
 - `.\BENCH-API-PRODUCCION.ps1 -Domain "https://TU_DOMINIO" -Runs 25 -IncludeFigoPost`
+- `.\GATE-POSTDEPLOY.ps1 -Domain "https://TU_DOMINIO" -RequireWebhookSecret`
 - Si estas en mantenimiento y aceptas chat degradado temporalmente:
   - `.\SMOKE-PRODUCCION.ps1 -Domain "https://TU_DOMINIO" -TestFigoPost -AllowDegradedFigo -AllowRecursiveFigo`
 

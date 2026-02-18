@@ -201,6 +201,22 @@ foreach ($result in $results) {
     }
 }
 
+try {
+    $homeHeaderResp = Invoke-WebRequest -Uri "$base/" -Method GET -TimeoutSec 20 -UseBasicParsing -Headers @{
+        'Accept' = 'text/html'
+        'User-Agent' = 'PielArmoniaSmoke/1.0'
+    }
+    foreach ($headerName in @('Content-Security-Policy', 'X-Content-Type-Options', 'Referrer-Policy')) {
+        if ($null -eq $homeHeaderResp.Headers[$headerName]) {
+            Write-Host "[FAIL] Home sin header de seguridad: $headerName"
+            $contractFailures += 1
+        }
+    }
+} catch {
+    Write-Host "[FAIL] No se pudieron validar headers de seguridad en Home"
+    $contractFailures += 1
+}
+
 $healthResult = $results | Where-Object { $_.Name -eq 'Health API' } | Select-Object -First 1
 if ($null -ne $healthResult -and $healthResult.Ok) {
     try {

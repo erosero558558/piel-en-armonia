@@ -21,10 +21,12 @@ Sube estos archivos a la raiz del hosting (`public_html` o equivalente):
 - `admin-auth.php`
 - `figo-chat.php`
 - `figo-backend.php`
+- `.htaccess`
 - carpeta `data/` (con permisos de escritura)
 - `SMOKE-PRODUCCION.ps1`
 - `VERIFICAR-DESPLIEGUE.ps1`
 - `BENCH-API-PRODUCCION.ps1`
+- `GATE-POSTDEPLOY.ps1`
 - `CONFIGURAR-TELEGRAM-WEBHOOK.ps1`
 
 Notas:
@@ -111,6 +113,9 @@ Ejemplo de `data/figo-config.json`:
 
 7. Bench de latencia (p95):
 - `.\BENCH-API-PRODUCCION.ps1 -Domain "https://pielarmonia.com" -Runs 25 -IncludeFigoPost`
+
+8. Gate completo post-deploy (recomendado):
+- `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireWebhookSecret`
 
 ## Notas importantes
 

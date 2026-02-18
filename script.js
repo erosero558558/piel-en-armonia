@@ -47,7 +47,7 @@ function showToast(message, type = 'info', title = '') {
             <div class="toast-title">${titles[type]}</div>
             <div class="toast-message">${safeMsg}</div>
         </div>
-        <button class="toast-close" onclick="this.parentElement.remove()">
+        <button type="button" class="toast-close" data-action="toast-close">
             <i class="fas fa-times"></i>
         </button>
         <div class="toast-progress"></div>
@@ -564,9 +564,15 @@ const API_RETRY_BASE_DELAY_MS = 450;
 const API_DEFAULT_RETRIES = 1;
 const API_SLOW_NOTICE_MS = 1200;
 const API_SLOW_NOTICE_COOLDOWN_MS = 25000;
+const AVAILABILITY_CACHE_TTL_MS = 5 * 60 * 1000;
+const BOOKED_SLOTS_CACHE_TTL_MS = 45 * 1000;
 let apiSlowNoticeLastAt = 0;
 let bookingViewTracked = false;
 let chatStartedTracked = false;
+let availabilityPrefetched = false;
+let reviewsPrefetched = false;
+let galleryFiltersInitialized = false;
+let beforeAfterInitialized = false;
 let checkoutSession = {
     active: false,
     completed: false,
@@ -611,6 +617,9 @@ const DEFAULT_PUBLIC_REVIEWS = [
 const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
 let currentAppointment = null;
 let availabilityCache = {};
+let availabilityCacheLoadedAt = 0;
+let availabilityCachePromise = null;
+const bookedSlotsCache = new Map();
 let reviewsCache = [];
 let paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
 let paymentConfigLoaded = false;
@@ -730,12 +739,50 @@ function trackEvent(eventName, params = {}) {
     });
 }
 
+function normalizeAnalyticsLabel(value, fallback = 'unknown') {
+    if (value === null || value === undefined) {
+        return fallback;
+    }
+    const normalized = String(value)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 64);
+    return normalized || fallback;
+}
+
 function markBookingViewed(source = 'unknown') {
     if (bookingViewTracked) {
         return;
     }
     bookingViewTracked = true;
     trackEvent('view_booking', {
+        source
+    });
+}
+
+function prefetchAvailabilityData(source = 'unknown') {
+    if (availabilityPrefetched) {
+        return;
+    }
+    availabilityPrefetched = true;
+    loadAvailabilityData().catch(() => {
+        availabilityPrefetched = false;
+    });
+    trackEvent('availability_prefetch', {
+        source
+    });
+}
+
+function prefetchReviewsData(source = 'unknown') {
+    if (reviewsPrefetched) {
+        return;
+    }
+    reviewsPrefetched = true;
+    loadPublicReviews().catch(() => {
+        reviewsPrefetched = false;
+    });
+    trackEvent('reviews_prefetch', {
         source
     });
 }
@@ -748,6 +795,7 @@ function initBookingFunnelObserver() {
 
     if (!('IntersectionObserver' in window)) {
         markBookingViewed('fallback_no_observer');
+        prefetchAvailabilityData('fallback_no_observer');
         return;
     }
 
@@ -755,12 +803,37 @@ function initBookingFunnelObserver() {
         entries.forEach((entry) => {
             if (entry.isIntersecting) {
                 markBookingViewed('observer');
+                prefetchAvailabilityData('booking_section_visible');
                 observer.disconnect();
             }
         });
     }, { threshold: 0.35 });
 
     observer.observe(bookingSection);
+}
+
+function initDeferredSectionPrefetch() {
+    const reviewsSection = document.getElementById('resenas');
+    if (!reviewsSection) {
+        return;
+    }
+
+    if (!('IntersectionObserver' in window)) {
+        prefetchReviewsData('fallback_no_observer');
+        return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (!entry.isIntersecting) {
+                return;
+            }
+            prefetchReviewsData('reviews_section_visible');
+            observer.disconnect();
+        });
+    }, { threshold: 0.2, rootMargin: '120px 0px' });
+
+    observer.observe(reviewsSection);
 }
 
 function startCheckoutSession(appointment) {
@@ -785,7 +858,7 @@ function completeCheckoutSession(method) {
     });
 }
 
-function maybeTrackCheckoutAbandon() {
+function maybeTrackCheckoutAbandon(reason = 'unknown') {
     if (!checkoutSession.active || checkoutSession.completed) {
         return;
     }
@@ -795,7 +868,8 @@ function maybeTrackCheckoutAbandon() {
     trackEvent('checkout_abandon', {
         service: checkoutSession.service || '',
         doctor: checkoutSession.doctor || '',
-        elapsed_sec: elapsedSec
+        elapsed_sec: elapsedSec,
+        reason: normalizeAnalyticsLabel(reason, 'unknown')
     });
 }
 
@@ -1214,29 +1288,85 @@ async function buildAppointmentPayload(appointment) {
     return payload;
 }
 
-async function loadAvailabilityData() {
-    try {
-        const payload = await apiRequest('availability');
-        availabilityCache = payload.data || {};
-        storageSetJSON('availability', availabilityCache);
-    } catch (error) {
-        availabilityCache = storageGetJSON('availability', {});
+function getBookedSlotsCacheKey(date, doctor = '') {
+    return `${String(date || '')}::${String(doctor || '')}`;
+}
+
+function invalidateBookedSlotsCache(date = '', doctor = '') {
+    const targetDate = String(date || '').trim();
+    const targetDoctor = String(doctor || '').trim();
+    if (!targetDate) {
+        bookedSlotsCache.clear();
+        return;
     }
-    return availabilityCache;
+
+    for (const key of bookedSlotsCache.keys()) {
+        if (!key.startsWith(`${targetDate}::`)) {
+            continue;
+        }
+        if (targetDoctor === '' || key === getBookedSlotsCacheKey(targetDate, targetDoctor)) {
+            bookedSlotsCache.delete(key);
+        }
+    }
+}
+
+async function loadAvailabilityData(options = {}) {
+    const forceRefresh = options && options.forceRefresh === true;
+    const now = Date.now();
+
+    if (!forceRefresh && availabilityCacheLoadedAt > 0 && (now - availabilityCacheLoadedAt) < AVAILABILITY_CACHE_TTL_MS) {
+        return availabilityCache;
+    }
+
+    if (!forceRefresh && availabilityCachePromise) {
+        return availabilityCachePromise;
+    }
+
+    availabilityCachePromise = (async () => {
+        try {
+            const payload = await apiRequest('availability');
+            availabilityCache = payload.data || {};
+            availabilityCacheLoadedAt = Date.now();
+            storageSetJSON('availability', availabilityCache);
+        } catch (error) {
+            availabilityCache = storageGetJSON('availability', {});
+            if (availabilityCache && typeof availabilityCache === 'object' && Object.keys(availabilityCache).length > 0) {
+                availabilityCacheLoadedAt = Date.now();
+            }
+        } finally {
+            availabilityCachePromise = null;
+        }
+
+        return availabilityCache;
+    })();
+
+    return availabilityCachePromise;
 }
 
 async function getBookedSlots(date, doctor = '') {
+    const cacheKey = getBookedSlotsCacheKey(date, doctor);
+    const now = Date.now();
+    const cachedEntry = bookedSlotsCache.get(cacheKey);
+    if (cachedEntry && (now - cachedEntry.at) < BOOKED_SLOTS_CACHE_TTL_MS) {
+        return cachedEntry.slots;
+    }
+
     try {
         const query = { date: date };
         if (doctor) query.doctor = doctor;
         const payload = await apiRequest('booked-slots', { query });
-        return Array.isArray(payload.data) ? payload.data : [];
+        const slots = Array.isArray(payload.data) ? payload.data : [];
+        bookedSlotsCache.set(cacheKey, {
+            slots,
+            at: now
+        });
+        return slots;
     } catch (error) {
         if (!LOCAL_FALLBACK_ENABLED) {
             throw error;
         }
         const appointments = storageGetJSON('appointments', []);
-        return appointments
+        const slots = appointments
             .filter(a => {
                 if (a.date !== date || a.status === 'cancelled') return false;
                 if (doctor && doctor !== 'indiferente') {
@@ -1246,6 +1376,11 @@ async function getBookedSlots(date, doctor = '') {
                 return true;
             })
             .map(a => a.time);
+        bookedSlotsCache.set(cacheKey, {
+            slots,
+            at: now
+        });
+        return slots;
     }
 }
 
@@ -1259,6 +1394,11 @@ async function createAppointmentRecord(appointment, options = {}) {
         const localAppointments = storageGetJSON('appointments', []);
         localAppointments.push(payload.data);
         storageSetJSON('appointments', localAppointments);
+        if (payload && payload.data) {
+            invalidateBookedSlotsCache(payload.data.date || appointment?.date || '', payload.data.doctor || appointment?.doctor || '');
+        } else {
+            invalidateBookedSlotsCache(appointment?.date || '', appointment?.doctor || '');
+        }
         return {
             appointment: payload.data,
             emailSent: payload.emailSent === true
@@ -1277,6 +1417,7 @@ async function createAppointmentRecord(appointment, options = {}) {
         };
         localAppointments.push(fallback);
         storageSetJSON('appointments', localAppointments);
+        invalidateBookedSlotsCache(fallback.date || appointment?.date || '', fallback.doctor || appointment?.doctor || '');
         return {
             appointment: fallback,
             emailSent: false
@@ -1500,9 +1641,16 @@ function closeVideoModal() {
 // ========================================
 // GALLERY FILTER
 // ========================================
-document.addEventListener('DOMContentLoaded', function() {
+function initGalleryFilter() {
+    if (galleryFiltersInitialized) {
+        return;
+    }
     const filterBtns = document.querySelectorAll('.filter-btn');
     const galleryItems = document.querySelectorAll('.gallery-item');
+    if (filterBtns.length === 0 || galleryItems.length === 0) {
+        return;
+    }
+    galleryFiltersInitialized = true;
     
     filterBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1530,17 +1678,27 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
-});
+}
 
 // ========================================
 // BEFORE/AFTER SLIDER
 // ========================================
-document.addEventListener('DOMContentLoaded', function() {
+function initBeforeAfterSlider() {
+    if (beforeAfterInitialized) {
+        return;
+    }
     const sliders = document.querySelectorAll('.ba-slider');
+    if (sliders.length === 0) {
+        return;
+    }
+    beforeAfterInitialized = true;
     
     sliders.forEach(slider => {
         const handle = slider.querySelector('.ba-handle');
         const after = slider.querySelector('.ba-after');
+        if (!handle || !after) {
+            return;
+        }
         let isDragging = false;
         
         const updateSlider = (x) => {
@@ -1573,7 +1731,36 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.target !== handle) updateSlider(e.clientX);
         });
     });
-});
+}
+
+function initDeferredGalleryInteractions() {
+    const gallerySection = document.getElementById('galeria');
+    if (!gallerySection) {
+        return;
+    }
+
+    const initAll = () => {
+        initGalleryFilter();
+        initBeforeAfterSlider();
+    };
+
+    if (!('IntersectionObserver' in window)) {
+        initAll();
+        return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (!entry.isIntersecting) {
+                return;
+            }
+            initAll();
+            observer.disconnect();
+        });
+    }, { threshold: 0.15, rootMargin: '200px 0px' });
+
+    observer.observe(gallerySection);
+}
 
 // ========================================
 // APPOINTMENT FORM & PRICING
@@ -1742,6 +1929,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             openPaymentModal(appointment);
         } catch (error) {
+            trackEvent('booking_error', {
+                stage: 'booking_form',
+                error_code: normalizeAnalyticsLabel(error?.code || error?.message, 'booking_prepare_failed')
+            });
             showToast(error?.message || 'No se pudo preparar la reserva. Intenta nuevamente.', 'error');
         } finally {
             submitBtn.disabled = false;
@@ -1782,9 +1973,10 @@ function openPaymentModal(appointmentData) {
 
 function closePaymentModal(options = {}) {
     const skipAbandonTrack = options && options.skipAbandonTrack === true;
+    const abandonReason = options && typeof options.reason === 'string' ? options.reason : 'modal_close';
     const modal = document.getElementById('paymentModal');
     if (!skipAbandonTrack) {
-        maybeTrackCheckoutAbandon();
+        maybeTrackCheckoutAbandon(abandonReason);
     }
     checkoutSession.active = false;
     modal.classList.remove('active');
@@ -2124,6 +2316,11 @@ async function processPayment() {
         ) {
             message = 'El pago fue aprobado, pero el horario acaba de ocuparse. Escribenos por WhatsApp para resolverlo de inmediato: +593 98 245 3672.';
         }
+        trackEvent('checkout_error', {
+            stage: 'payment_submit',
+            payment_method: paymentMethodUsed || getActivePaymentMethod(),
+            error_code: normalizeAnalyticsLabel(error?.code || message, 'payment_failed')
+        });
         setPaymentError(message);
         showToast(message, 'error');
     } finally {
@@ -2799,6 +2996,51 @@ document.addEventListener('click', function(e) {
     const action = actionEl.getAttribute('data-action');
     const value = actionEl.getAttribute('data-value') || '';
     switch (action) {
+        case 'toast-close':
+            actionEl.closest('.toast')?.remove();
+            break;
+        case 'set-theme':
+            setThemeMode(value || 'system');
+            break;
+        case 'set-language':
+            changeLanguage(value || 'es');
+            break;
+        case 'toggle-mobile-menu':
+            toggleMobileMenu();
+            break;
+        case 'start-web-video':
+            startWebVideo();
+            break;
+        case 'open-review-modal':
+            openReviewModal();
+            break;
+        case 'close-review-modal':
+            closeReviewModal();
+            break;
+        case 'close-video-modal':
+            closeVideoModal();
+            break;
+        case 'close-payment-modal':
+            closePaymentModal();
+            break;
+        case 'process-payment':
+            processPayment();
+            break;
+        case 'close-success-modal':
+            closeSuccessModal();
+            break;
+        case 'close-reschedule-modal':
+            closeRescheduleModal();
+            break;
+        case 'submit-reschedule':
+            submitReschedule();
+            break;
+        case 'toggle-chatbot':
+            toggleChatbot();
+            break;
+        case 'send-chat-message':
+            sendChatMessage();
+            break;
         case 'chat-booking':
             handleChatBookingSelection(value);
             break;
@@ -3901,6 +4143,10 @@ async function submitReschedule() {
             body: { token: _rescheduleToken, date: newDate, time: newTime }
         });
         if (resp.ok) {
+            const oldDate = _rescheduleAppt?.date || '';
+            const doctor = _rescheduleAppt?.doctor || '';
+            invalidateBookedSlotsCache(oldDate, doctor);
+            invalidateBookedSlotsCache(newDate, doctor);
             closeRescheduleModal();
             showToast(currentLang === 'es' ? '¡Cita reprogramada exitosamente!' : 'Appointment rescheduled successfully!', 'success');
         } else {
@@ -3922,7 +4168,16 @@ document.addEventListener('DOMContentLoaded', function() {
     initCookieBanner();
     initGA4();
     initBookingFunnelObserver();
+    initDeferredSectionPrefetch();
+    initDeferredGalleryInteractions();
     checkRescheduleParam();
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) {
+        chatInput.addEventListener('keypress', handleChatKeypress);
+    }
+    window.addEventListener('pagehide', () => {
+        maybeTrackCheckoutAbandon('page_hide');
+    });
     const isServer = checkServerEnvironment();
 
     if (!isServer) {

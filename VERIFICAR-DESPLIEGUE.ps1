@@ -118,10 +118,59 @@ try {
     Remove-Item -Force -ErrorAction SilentlyContinue $remoteIndexTmp
 }
 
+$results = @()
+
+try {
+    $homeResp = Invoke-WebRequest -Uri "$base/" -Method GET -TimeoutSec 30 -UseBasicParsing -Headers @{
+        'Cache-Control' = 'no-cache'
+        'User-Agent' = 'PielArmoniaDeployCheck/1.0'
+    }
+    $requiredSecurityHeaders = @(
+        'Content-Security-Policy',
+        'X-Content-Type-Options',
+        'Referrer-Policy'
+    )
+    foreach ($headerName in $requiredSecurityHeaders) {
+        if ($null -ne $homeResp.Headers[$headerName]) {
+            Write-Host "[OK]  header presente: $headerName"
+        } else {
+            Write-Host "[FAIL] header ausente: $headerName"
+            $results += [PSCustomObject]@{
+                Asset = "header:$headerName"
+                Match = $false
+                LocalHash = 'required'
+                RemoteHash = 'missing'
+                RemoteUrl = "$base/"
+            }
+        }
+    }
+} catch {
+    Write-Host "[FAIL] No se pudieron validar headers de seguridad: $($_.Exception.Message)"
+    $results += [PSCustomObject]@{
+        Asset = 'headers:security'
+        Match = $false
+        LocalHash = ''
+        RemoteHash = ''
+        RemoteUrl = "$base/"
+    }
+}
+
 $remoteScriptRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern '<script\s+src="([^"]*script\.js[^"]*)"'
 $remoteStyleRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern '<link\s+rel="stylesheet"\s+href="([^"]*styles\.css[^"]*)"'
 
-$results = @()
+if ([regex]::IsMatch($remoteIndexRaw, '\son[a-z]+\s*=', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+    Write-Host "[FAIL] index remoto contiene event handlers inline (on*)"
+    $results += [PSCustomObject]@{
+        Asset = 'index-inline-handlers'
+        Match = $false
+        LocalHash = 'none'
+        RemoteHash = 'found'
+        RemoteUrl = "$base/"
+    }
+} else {
+    Write-Host "[OK]  index remoto sin handlers inline (on*)"
+}
+
 if ($remoteScriptRef -eq '' -or $remoteStyleRef -eq '') {
     Write-Host "[FAIL] No se pudieron detectar referencias de assets en index remoto"
     $results += [PSCustomObject]@{
@@ -208,18 +257,18 @@ try {
 }
 
 $ga4Checks = @(
-    'function initGA4',
-    "initGA4();",
-    "trackEvent('start_checkout'"
+    @{ Name = 'function initGA4'; Pattern = 'function\s+initGA4' },
+    @{ Name = 'initGA4()'; Pattern = 'initGA4\(\)' },
+    @{ Name = 'trackEvent(start_checkout)'; Pattern = "trackEvent\(\s*['""]start_checkout['""]" }
 )
 
-foreach ($token in $ga4Checks) {
-    if ($remoteScriptText -like "*$token*") {
-        Write-Host "[OK]  script remoto contiene: $token"
+foreach ($check in $ga4Checks) {
+    if ([regex]::IsMatch($remoteScriptText, $check.Pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+        Write-Host "[OK]  script remoto contiene: $($check.Name)"
     } else {
-        Write-Host "[FAIL] script remoto NO contiene: $token"
+        Write-Host "[FAIL] script remoto NO contiene: $($check.Name)"
         $results += [PSCustomObject]@{
-            Asset = "script-token:$token"
+            Asset = "script-token:$($check.Name)"
             Match = $false
             LocalHash = ''
             RemoteHash = ''

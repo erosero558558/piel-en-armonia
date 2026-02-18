@@ -2,14 +2,14 @@
 const { test, expect } = require('@playwright/test');
 
 const legalPages = [
-  { path: '/terminos.html', title: /Términos/, heading: 'Términos y Condiciones' },
-  { path: '/privacidad.html', title: /Privacidad/, heading: 'Política de Privacidad' },
-  { path: '/cookies.html', title: /Cookies/, heading: 'Política de Cookies' },
-  { path: '/aviso-medico.html', title: /Aviso.*Médic/, heading: 'Aviso de Responsabilidad Médica' },
+  { path: '/terminos.html', title: /Términos|Terms/, heading: /Términos y Condiciones|Terms (and|&) Conditions/ },
+  { path: '/privacidad.html', title: /Privacidad|Privacy/, heading: /Política de Privacidad|Privacy Policy/ },
+  { path: '/cookies.html', title: /Cookies|Cookie/, heading: /Política de Cookies|Cookie Policy/ },
+  { path: '/aviso-medico.html', title: /Aviso.*Médic|Medical Disclaimer/, heading: /Aviso de Responsabilidad Médica|Medical Disclaimer/ },
 ];
 
 for (const lp of legalPages) {
-  test.describe(lp.heading, () => {
+  test.describe(`Página legal: ${lp.path}`, () => {
     test(`carga ${lp.path} correctamente`, async ({ page }) => {
       await page.goto(lp.path);
       await expect(page).toHaveTitle(lp.title);
@@ -18,7 +18,7 @@ for (const lp of legalPages) {
     test(`muestra encabezado en ${lp.path}`, async ({ page }) => {
       await page.goto(lp.path);
       const h1 = page.locator('h1').first();
-      await expect(h1).toContainText(lp.heading);
+      await expect(h1).toHaveText(lp.heading);
     });
 
     test(`tiene enlace de regreso en ${lp.path}`, async ({ page }) => {
