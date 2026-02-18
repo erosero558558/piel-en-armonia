@@ -724,11 +724,15 @@ function check_rate_limit(string $action, int $maxRequests = 10, int $windowSeco
     $key = md5($ip . ':' . $action);
     $rateDir = data_dir_path() . DIRECTORY_SEPARATOR . 'ratelimit';
 
-    if (!@is_dir($rateDir)) {
-        @mkdir($rateDir, 0775, true);
+    // Sharding: usar los primeros 2 caracteres del hash para distribuir archivos en subdirectorios
+    $shard = substr($key, 0, 2);
+    $shardDir = $rateDir . DIRECTORY_SEPARATOR . $shard;
+
+    if (!@is_dir($shardDir)) {
+        @mkdir($shardDir, 0775, true);
     }
 
-    $file = $rateDir . DIRECTORY_SEPARATOR . $key . '.json';
+    $file = $shardDir . DIRECTORY_SEPARATOR . $key . '.json';
     $now = time();
     $entries = [];
 
@@ -750,8 +754,12 @@ function check_rate_limit(string $action, int $maxRequests = 10, int $windowSeco
     @file_put_contents($file, json_encode($entries), LOCK_EX);
 
     // Limpieza periódica: eliminar archivos de rate limit con más de 1 hora sin modificación
+    // Optimizacion: Solo limpiar un shard aleatorio (1/256 del total) para evitar scanear todo el directorio
     if (mt_rand(1, 50) === 1) {
-        $allFiles = @glob($rateDir . DIRECTORY_SEPARATOR . '*.json');
+        $randomShard = sprintf('%02x', mt_rand(0, 255));
+        $targetDir = $rateDir . DIRECTORY_SEPARATOR . $randomShard;
+
+        $allFiles = @glob($targetDir . DIRECTORY_SEPARATOR . '*.json');
         if (is_array($allFiles)) {
             foreach ($allFiles as $f) {
                 if (($now - (int) @filemtime($f)) > 3600) {
