@@ -361,7 +361,6 @@ const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 const CASE_PHOTO_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
 const CONSENT_ENGINE_URL = '/consent-engine.js?v=figo-consent-20260219-phase1';
-let chatStartedTracked = false;
 const ANALYTICS_ENGINE_URL = '/analytics-engine.js?v=figo-analytics-20260219-phase1';
 let checkoutSessionFallback = {
     active: false,
@@ -1447,6 +1446,7 @@ const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
 const CHAT_HISTORY_MAX_ITEMS = 50;
 const CHAT_CONTEXT_MAX_ITEMS = 24;
 const CHAT_UI_ENGINE_URL = '/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1';
+const CHAT_WIDGET_ENGINE_URL = '/chat-widget-engine.js?v=figo-chat-widget-20260219-phase1';
 const ACTION_ROUTER_ENGINE_URL = '/action-router-engine.js?v=figo-action-router-20260219-phase1';
 
 function getChatUiEngineDeps() {
@@ -1478,6 +1478,51 @@ function loadChatUiEngine() {
 
 function initChatUiEngineWarmup() {
     const warmup = createWarmupRunner(() => loadChatUiEngine(), { markWarmOnSuccess: true });
+
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
+    bindWarmupTarget('#chatInput', 'focus', warmup, false);
+
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 2600,
+        fallbackDelay: 1300
+    });
+}
+
+function getChatWidgetEngineDeps() {
+    return {
+        getChatbotOpen: () => chatbotOpen,
+        setChatbotOpen: (isOpen) => {
+            chatbotOpen = isOpen === true;
+        },
+        getChatHistoryLength: () => chatHistory.length,
+        warmChatUi: () => runDeferredModule(loadChatUiEngine, () => undefined),
+        scrollToBottom,
+        trackEvent,
+        debugLog,
+        addBotMessage,
+        addUserMessage,
+        processWithKimi,
+        startChatBooking
+    };
+}
+
+function loadChatWidgetEngine() {
+    return loadDeferredModule({
+        cacheKey: 'chat-widget-engine',
+        src: CHAT_WIDGET_ENGINE_URL,
+        scriptDataAttribute: 'data-chat-widget-engine',
+        resolveModule: () => window.PielChatWidgetEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getChatWidgetEngineDeps()),
+        missingApiError: 'chat-widget-engine loaded without API',
+        loadError: 'No se pudo cargar chat-widget-engine.js',
+        logLabel: 'Chat widget engine'
+    });
+}
+
+function initChatWidgetEngineWarmup() {
+    const warmup = createWarmupRunner(() => loadChatWidgetEngine(), { markWarmOnSuccess: true });
 
     bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
     bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
