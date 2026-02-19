@@ -344,8 +344,8 @@ function figo_degraded_mode_enabled(): bool
 {
     $raw = getenv('FIGO_CHAT_DEGRADED_MODE');
     if (!is_string($raw) || trim($raw) === '') {
-        // Default seguro: evita errores duros en frontend cuando falta configuracion.
-        return true;
+        // Default estricto: evita degradado silencioso cuando el backend IA falla.
+        return false;
     }
 
     $value = strtolower(trim($raw));
