@@ -501,6 +501,7 @@ function initEnglishBundleWarmup() {
 const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2-stateclass1';
 const BOOKING_MEDIA_ENGINE_URL = '/booking-media-engine.js?v=figo-booking-media-20260219-phase1';
 const PAYMENT_GATEWAY_ENGINE_URL = '/payment-gateway-engine.js?v=figo-payment-gateway-20260219-phase1';
+const NAVIGATION_ENGINE_URL = '/navigation-engine.js?v=figo-navigation-20260219-phase1';
 let stripeSdkFallbackPromise = null;
 
 function getPaymentGatewayEngineDeps() {
@@ -1412,30 +1413,75 @@ async function changeLanguage(lang) {
 // ========================================
 // MOBILE MENU
 // ========================================
+function getNavigationEngineDeps() {
+    return {};
+}
+
+const loadNavigationEngine = createEngineLoader({
+    cacheKey: 'navigation-engine',
+    src: NAVIGATION_ENGINE_URL,
+    scriptDataAttribute: 'data-navigation-engine',
+    resolveModule: () => window.PielNavigationEngine,
+    depsFactory: getNavigationEngineDeps,
+    missingApiError: 'navigation-engine loaded without API',
+    loadError: 'No se pudo cargar navigation-engine.js',
+    logLabel: 'Navigation engine'
+});
+
+function initNavigationEngineWarmup() {
+    const warmup = createWarmupRunner(() => loadNavigationEngine(), { markWarmOnSuccess: true });
+
+    bindWarmupTargetsBatch(warmup, [
+        { selector: '.mobile-menu-btn', eventName: 'pointerdown' },
+        { selector: '.mobile-menu-btn', eventName: 'touchstart' },
+        { selector: '.video-btn', eventName: 'pointerdown' }
+    ]);
+
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 2400,
+        fallbackDelay: 1200
+    });
+}
+
 function toggleMobileMenu(forceClose) {
-    const menu = document.getElementById('mobileMenu');
-    if (forceClose === false) {
-        menu.classList.remove('active');
-        document.body.style.overflow = '';
-        return;
-    }
-    menu.classList.toggle('active');
-    document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : '';
+    return runDeferredModule(loadNavigationEngine, (engine) => engine.toggleMobileMenu(forceClose), () => {
+        const menu = document.getElementById('mobileMenu');
+        if (!menu) {
+            return;
+        }
+        if (forceClose === false) {
+            menu.classList.remove('active');
+            document.body.style.overflow = '';
+            return;
+        }
+        menu.classList.toggle('active');
+        document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : '';
+    });
 }
 
 // ========================================
 // VIDEO MODAL
 // ========================================
 function startWebVideo() {
-    const modal = document.getElementById('videoModal');
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    return runDeferredModule(loadNavigationEngine, (engine) => engine.startWebVideo(), () => {
+        const modal = document.getElementById('videoModal');
+        if (!modal) {
+            return;
+        }
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    });
 }
 
 function closeVideoModal() {
-    const modal = document.getElementById('videoModal');
-    modal.classList.remove('active');
-    document.body.style.overflow = '';
+    return runDeferredModule(loadNavigationEngine, (engine) => engine.closeVideoModal(), () => {
+        const modal = document.getElementById('videoModal');
+        if (!modal) {
+            return;
+        }
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    });
 }
 
 // ========================================
