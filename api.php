@@ -25,65 +25,6 @@ function api_elapsed_ms(float $startedAt): int
     return (int) round((microtime(true) - $startedAt) * 1000);
 }
 
-function api_resolve_figo_endpoint_for_health(): string
-{
-    $envCandidates = [
-        getenv('FIGO_CHAT_ENDPOINT'),
-        getenv('FIGO_CHAT_URL'),
-        getenv('FIGO_CHAT_API_URL'),
-        getenv('FIGO_ENDPOINT'),
-        getenv('FIGO_URL'),
-        getenv('CLAWBOT_ENDPOINT'),
-        getenv('CLAWBOT_URL'),
-        getenv('CHATBOT_ENDPOINT'),
-        getenv('CHATBOT_URL'),
-        getenv('BOT_ENDPOINT'),
-        getenv('PIELARMONIA_FIGO_ENDPOINT')
-    ];
-
-    foreach ($envCandidates as $candidate) {
-        if (is_string($candidate) && trim($candidate) !== '') {
-            return trim($candidate);
-        }
-    }
-
-    $configCandidates = [];
-    $customPath = getenv('FIGO_CHAT_CONFIG_PATH');
-    if (is_string($customPath) && trim($customPath) !== '') {
-        $configCandidates[] = trim($customPath);
-    }
-
-    $configCandidates[] = data_dir_path() . DIRECTORY_SEPARATOR . 'figo-config.json';
-    $configCandidates[] = __DIR__ . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'figo-config.json';
-    $configCandidates[] = __DIR__ . DIRECTORY_SEPARATOR . 'figo-config.json';
-
-    foreach ($configCandidates as $path) {
-        if (!is_string($path) || $path === '' || !is_file($path)) {
-            continue;
-        }
-        $raw = @file_get_contents($path);
-        if (!is_string($raw) || trim($raw) === '') {
-            continue;
-        }
-        $decoded = json_decode($raw, true);
-        if (!is_array($decoded)) {
-            continue;
-        }
-        $fileCandidates = [
-            $decoded['endpoint'] ?? null,
-            $decoded['apiUrl'] ?? null,
-            $decoded['url'] ?? null
-        ];
-        foreach ($fileCandidates as $candidate) {
-            if (is_string($candidate) && trim($candidate) !== '') {
-                return trim($candidate);
-            }
-        }
-    }
-
-    return '';
-}
-
 function api_is_figo_recursive_config(string $endpoint): bool
 {
     $endpoint = trim($endpoint);
@@ -187,7 +128,7 @@ register_shutdown_function(static function () use ($requestStartedAt, $method, $
 
 if ($resource === 'health') {
     $storageReady = ensure_data_file();
-    $figoEndpoint = api_resolve_figo_endpoint_for_health();
+    $figoEndpoint = get_figo_endpoint();
     $figoConfigured = $figoEndpoint !== '';
     $figoRecursive = api_is_figo_recursive_config($figoEndpoint);
     $timingMs = api_elapsed_ms($requestStartedAt);
