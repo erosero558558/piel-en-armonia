@@ -69,14 +69,20 @@ INFORMACIÓN DE LA CLÍNICA:
 - Horario: Lunes-Viernes 9:00-18:00, Sábados 9:00-13:00
 - Estacionamiento privado disponible
 
-SERVICIOS Y PRECIOS:
-- Consulta Dermatológica: $40 (incluye IVA)
-- Consulta Telefónica: $25
-- Video Consulta: $30
-- Tratamiento Láser: desde $150
-- Rejuvenecimiento: desde $120
-- Tratamiento de Acné: desde $80
-- Detección de Cáncer de Piel: desde $70
+SERVICIOS Y PRECIOS (con IVA incluido):
+- Consulta Dermatológica: $40.00 (IVA 0% - servicio de salud)
+- Consulta Telefónica: $25.00 (IVA 0%)
+- Video Consulta: $30.00 (IVA 0%)
+- Tratamiento Láser: desde $172.50 (Base $150 + IVA 15%)
+- Rejuvenecimiento: desde $138.00 (Base $120 + IVA 15%)
+- Tratamiento de Acné: desde $80.00 (IVA 0%)
+- Detección de Cáncer de Piel: desde $70.00 (IVA 0%)
+
+NOTAS IMPORTANTES:
+- Los servicios clínicos (salud) tienen IVA 0%
+- Los servicios estéticos y láser tienen IVA 15%
+- Servicios marcados con "desde" requieren valoración previa
+- Cupos solidarios disponibles para pacientes con limitaciones económicas
 
 OPCIONES DE CONSULTA ONLINE:
 1. Llamada telefónica: tel:+593982453672

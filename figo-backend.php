@@ -326,18 +326,18 @@ function figo_backend_probe_ai_endpoint(int $timeoutSeconds = 3): ?bool
 
 function figo_backend_ai_system_prompt(): string
 {
-    return "Eres Figo, asistente virtual amigable de la clinica dermatologica \"Piel en Armonia\" en Quito, Ecuador.\n"
-        . "Eres conversacional y natural. Puedes hablar de cualquier tema de forma amena, pero tu especialidad es la clinica.\n"
-        . "Cuando pregunten sobre la clinica, da informacion precisa:\n"
-        . "- Consulta presencial: \$40 | Telefonica: \$25 | Video: \$30\n"
-        . "- Acne: desde \$80 | Laser: desde \$150 | Rejuvenecimiento: desde \$120\n"
-        . "- Deteccion cancer de piel: desde \$70\n"
-        . "- Direccion: Av. Dr. Cecilio Caiza e Hijas N2-30 y Av. Amazonas, Quito\n"
-        . "- Horario: L-V 9:00-18:00, Sab 9:00-13:00\n"
+    return "Eres Figo, asistente virtual amigable de la clínica dermatológica \"Piel en Armonía\" en Quito, Ecuador.\n"
+        . "Eres conversacional y natural. Puedes hablar de cualquier tema de forma amena, pero tu especialidad es la clínica.\n"
+        . "Cuando pregunten sobre la clínica, da información precisa:\n"
+        . "- Consulta presencial: \$40 (IVA 0%) | Telefónica: \$25 (IVA 0%) | Video: \$30 (IVA 0%)\n"
+        . "- Acné: desde \$80 (IVA 0%) | Láser: desde \$172.50 (IVA 15% incl.) | Rejuvenecimiento: desde \$138 (IVA 15% incl.)\n"
+        . "- Detección cáncer de piel: desde \$70 (IVA 0%)\n"
+        . "- Dirección: Valparaíso 13-183 y Sodiro, Consultorio Dr. Celio Caiza, Quito\n"
+        . "- Horario: L-V 9:00-18:00, Sáb 9:00-13:00\n"
         . "- WhatsApp: +593 98 245 3672\n"
-        . "- Doctores: Dr. Javier Rosero (dermatologo clinico), Dra. Carolina Narvaez (estetica/laser)\n"
+        . "- Doctores: Dr. Javier Rosero (dermatólogo clínico), Dra. Carolina Narváez (estética/láser)\n"
         . "- Web: https://pielarmonia.com\n"
-        . "Responde en espanol. Se conciso (2-4 oraciones para temas generales, mas detalle para temas de la clinica).";
+        . "Responde en español. Sé conciso (2-4 oraciones para temas generales, más detalle para temas de la clínica).";
 }
 
 function figo_backend_extract_ai_content(array $decoded, string $raw): ?string
@@ -509,13 +509,13 @@ function figo_backend_answer(string $userMessage): string
         '/\bhacen\b/'
     ])) {
         return "Servicios principales:\n"
-            . "- Consulta Dermatologica: $40\n"
-            . "- Consulta Telefonica: $25\n"
-            . "- Video Consulta: $30\n"
-            . "- Tratamiento de Acne: desde $80\n"
-            . "- Rejuvenecimiento: desde $120\n"
-            . "- Laser Dermatologico: desde $150\n"
-            . "- Deteccion de Cancer de Piel: desde $70";
+            . "- Consulta Dermatológica: \$40 (IVA 0%)\n"
+            . "- Consulta Telefónica: \$25 (IVA 0%)\n"
+            . "- Video Consulta: \$30 (IVA 0%)\n"
+            . "- Tratamiento de Acné: desde \$80 (IVA 0%)\n"
+            . "- Rejuvenecimiento: desde \$138 (IVA 15% incl.)\n"
+            . "- Láser Dermatológico: desde \$172.50 (IVA 15% incl.)\n"
+            . "- Detección de Cáncer de Piel: desde \$70 (IVA 0%)";
     }
 
     if (figo_backend_contains_any($normalized, [
@@ -525,13 +525,13 @@ function figo_backend_answer(string $userMessage): string
         '/\btarifa\b/',
         '/\bcuanto\b/'
     ])) {
-        return "Precios base:\n"
-            . "- Consulta Dermatologica: $40\n"
-            . "- Consulta Telefonica: $25\n"
-            . "- Video Consulta: $30\n"
-            . "- Laser: desde $150\n"
-            . "- Rejuvenecimiento: desde $120\n"
-            . "- Acne: desde $80";
+        return "Precios (IVA incluido donde aplica):\n"
+            . "- Consulta Dermatológica: \$40 (IVA 0%)\n"
+            . "- Consulta Telefónica: \$25 (IVA 0%)\n"
+            . "- Video Consulta: \$30 (IVA 0%)\n"
+            . "- Láser: desde \$172.50 (IVA 15% incl.)\n"
+            . "- Rejuvenecimiento: desde \$138 (IVA 15% incl.)\n"
+            . "- Acné: desde \$80 (IVA 0%)";
     }
 
     if (figo_backend_contains_any($normalized, [
@@ -541,9 +541,9 @@ function figo_backend_answer(string $userMessage): string
         '/\bhorario\b/'
     ])) {
         return "Estamos en Quito, Ecuador.\n"
-            . "Direccion: Av. Dr. Cecilio Caiza e Hijas N2-30 y Av. Amazonas.\n"
-            . "Horario: Lunes a Viernes 09:00-18:00, Sabados 09:00-13:00.\n"
-            . "Telefono/WhatsApp: +593 98 245 3672.";
+            . "Dirección: Valparaíso 13-183 y Sodiro, Consultorio Dr. Celio Caiza.\n"
+            . "Horario: Lunes a Viernes 09:00-18:00, Sábados 09:00-13:00.\n"
+            . "Teléfono/WhatsApp: +593 98 245 3672.";
     }
 
     return "Gracias por escribirme. Soy Figo de Piel en Armonia y estoy para ayudarte.\n"
