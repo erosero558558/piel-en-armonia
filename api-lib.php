@@ -29,6 +29,30 @@ function local_date(string $format): string
     return date($format);
 }
 
+function env_value(string $key, string $default = ''): string
+{
+    $value = getenv($key);
+    if (!is_string($value) || trim($value) === '') {
+        return $default;
+    }
+    return trim($value);
+}
+
+function clinic_phone_display(): string
+{
+    return env_value('PIELARMONIA_CLINIC_PHONE', '+593 98 245 3672');
+}
+
+function clinic_whatsapp_display(): string
+{
+    return env_value('PIELARMONIA_WHATSAPP_PHONE', clinic_phone_display());
+}
+
+function clinic_address_display(): string
+{
+    return env_value('PIELARMONIA_CLINIC_ADDRESS', 'Valparaiso 13-183 y Sodiro, Quito, Ecuador');
+}
+
 function app_runtime_version(): string
 {
     static $resolved = null;
@@ -1275,7 +1299,7 @@ function maybe_send_appointment_email(array $appointment): bool
     $message .= "Estado de pago: " . $paymentStatus . "\n";
     $message .= "---\n\n";
     $message .= "Recuerda llegar 10 minutos antes de tu cita.\n";
-    $message .= "Direccion: Quito, Ecuador - Piel en Armonia\n\n";
+    $message .= "Direccion: " . clinic_address_display() . "\n\n";
 
     $token = $appointment['rescheduleToken'] ?? '';
     if ($token !== '') {
@@ -1285,7 +1309,7 @@ function maybe_send_appointment_email(array $appointment): bool
 
     $message .= "Gracias por confiar en nosotros.\n";
     $message .= $clinicName . "\n";
-    $message .= "Tel: (02) 123-4567";
+    $message .= "Telefono/WhatsApp: " . clinic_whatsapp_display();
 
     return send_mail($to, $subject, $message);
 }
@@ -1380,11 +1404,11 @@ function maybe_send_cancellation_email(array $appointment): bool
     $message = "Hola " . ($appointment['name'] ?? 'paciente') . ",\n\n";
     $message .= "Tu cita ha sido cancelada.\n\n";
     $message .= "Detalles de la cita cancelada:\n";
-    $message .= "Servicio: " . ($appointment['service'] ?? '-') . "\n";
-    $message .= "Doctor: " . ($appointment['doctor'] ?? '-') . "\n";
-    $message .= "Fecha: " . ($appointment['date'] ?? '-') . "\n";
+    $message .= "Servicio: " . get_service_label((string) ($appointment['service'] ?? '-')) . "\n";
+    $message .= "Doctor: " . get_doctor_label((string) ($appointment['doctor'] ?? '-')) . "\n";
+    $message .= "Fecha: " . format_date_label((string) ($appointment['date'] ?? '-')) . "\n";
     $message .= "Hora: " . ($appointment['time'] ?? '-') . "\n\n";
-    $message .= "Si deseas reprogramar, visita https://pielarmonia.com/#citas o escribenos por WhatsApp: +593 98 245 3672.\n\n";
+    $message .= "Si deseas reprogramar, visita https://pielarmonia.com/#citas o escribenos por WhatsApp: " . clinic_whatsapp_display() . ".\n\n";
     $message .= "Gracias por confiar en nosotros.";
 
     return send_mail($to, $subject, $message);
@@ -1422,9 +1446,9 @@ function maybe_send_reminder_email(array $appointment): bool
     $subject = 'Recordatorio de cita - ' . $clinicName;
     $body = "Hola " . ($appointment['name'] ?? 'paciente') . ",\n\n";
     $body .= "Te recordamos que tienes una cita programada para mañana.\n\n";
-    $body .= "Servicio: " . ($appointment['service'] ?? '-') . "\n";
-    $body .= "Doctor: " . ($appointment['doctor'] ?? '-') . "\n";
-    $body .= "Fecha: " . ($appointment['date'] ?? '-') . "\n";
+    $body .= "Servicio: " . get_service_label((string) ($appointment['service'] ?? '-')) . "\n";
+    $body .= "Doctor: " . get_doctor_label((string) ($appointment['doctor'] ?? '-')) . "\n";
+    $body .= "Fecha: " . format_date_label((string) ($appointment['date'] ?? '-')) . "\n";
     $body .= "Hora: " . ($appointment['time'] ?? '-') . "\n\n";
 
     $token = $appointment['rescheduleToken'] ?? '';
@@ -1435,7 +1459,7 @@ function maybe_send_reminder_email(array $appointment): bool
 
     $body .= "Te esperamos. ¡Gracias por confiar en nosotros!\n";
     $body .= "- Equipo Piel en Armonía\n";
-    $body .= "WhatsApp: +593 98 245 3672";
+    $body .= "WhatsApp: " . clinic_whatsapp_display();
 
     return send_mail($to, $subject, $body);
 }
@@ -1451,9 +1475,9 @@ function maybe_send_reschedule_email(array $appointment): bool
     $subject = 'Cita reprogramada - ' . $clinicName;
     $body = "Hola " . ($appointment['name'] ?? 'paciente') . ",\n\n";
     $body .= "Tu cita ha sido reprogramada exitosamente.\n\n";
-    $body .= "Servicio: " . ($appointment['service'] ?? '-') . "\n";
-    $body .= "Doctor: " . ($appointment['doctor'] ?? '-') . "\n";
-    $body .= "Nueva fecha: " . ($appointment['date'] ?? '-') . "\n";
+    $body .= "Servicio: " . get_service_label((string) ($appointment['service'] ?? '-')) . "\n";
+    $body .= "Doctor: " . get_doctor_label((string) ($appointment['doctor'] ?? '-')) . "\n";
+    $body .= "Nueva fecha: " . format_date_label((string) ($appointment['date'] ?? '-')) . "\n";
     $body .= "Nueva hora: " . ($appointment['time'] ?? '-') . "\n\n";
 
     $token = $appointment['rescheduleToken'] ?? '';
