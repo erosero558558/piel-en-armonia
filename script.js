@@ -344,109 +344,13 @@ function initDeferredStylesheetLoading() {
 // ========================================
 // TRANSLATIONS
 // ========================================
-const I18N_HTML_ALLOWED_KEYS = new Set(['clinic_hours']);
-const translations = {
-    es: null,
-    en: null
-};
-
-function captureSpanishTranslationsFromDom() {
-    const bundle = {};
-    document.querySelectorAll('[data-i18n]').forEach((el) => {
-        const key = String(el.dataset.i18n || '').trim();
-        if (!key) {
-            return;
-        }
-
-        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-            bundle[key] = el.placeholder || '';
-            return;
-        }
-
-        if (I18N_HTML_ALLOWED_KEYS.has(key)) {
-            bundle[key] = el.innerHTML || '';
-            return;
-        }
-
-        bundle[key] = el.textContent || '';
-    });
-
-    return bundle;
-}
-
-const EN_TRANSLATIONS_URL = '/translations-en.js?v=ui-20260218-i18n-en1';
-let enTranslationsPromise = null;
-
-function ensureEnglishTranslations() {
-    if (translations.en && typeof translations.en === 'object') {
-        return Promise.resolve(translations.en);
-    }
-
-    if (window.PIEL_EN_TRANSLATIONS && typeof window.PIEL_EN_TRANSLATIONS === 'object') {
-        translations.en = window.PIEL_EN_TRANSLATIONS;
-        return Promise.resolve(translations.en);
-    }
-
-    if (enTranslationsPromise) {
-        return enTranslationsPromise;
-    }
-
-    enTranslationsPromise = new Promise((resolve, reject) => {
-        const existing = document.querySelector('script[data-en-translations="true"]');
-        if (existing) {
-            existing.addEventListener('load', () => {
-                if (window.PIEL_EN_TRANSLATIONS && typeof window.PIEL_EN_TRANSLATIONS === 'object') {
-                    translations.en = window.PIEL_EN_TRANSLATIONS;
-                    resolve(translations.en);
-                    return;
-                }
-                reject(new Error('English translations loaded without payload'));
-            }, { once: true });
-            existing.addEventListener('error', () => reject(new Error('No se pudo cargar translations-en.js')), { once: true });
-            return;
-        }
-
-        const script = document.createElement('script');
-        script.src = EN_TRANSLATIONS_URL;
-        script.async = true;
-        script.defer = true;
-        script.dataset.enTranslations = 'true';
-        script.onload = () => {
-            if (window.PIEL_EN_TRANSLATIONS && typeof window.PIEL_EN_TRANSLATIONS === 'object') {
-                translations.en = window.PIEL_EN_TRANSLATIONS;
-                resolve(translations.en);
-                return;
-            }
-            reject(new Error('English translations loaded without payload'));
-        };
-        script.onerror = () => reject(new Error('No se pudo cargar translations-en.js'));
-        document.head.appendChild(script);
-    }).catch((error) => {
-        enTranslationsPromise = null;
-        debugLog('English translations load failed:', error);
-        throw error;
-    });
-
-    return enTranslationsPromise;
-}
-
-function initEnglishBundleWarmup() {
-    const warmup = () => {
-        ensureEnglishTranslations().catch(() => undefined);
-    };
-
-    const enBtn = document.querySelector('.lang-btn[data-lang="en"]');
-    if (enBtn) {
-        enBtn.addEventListener('mouseenter', warmup, { once: true, passive: true });
-        enBtn.addEventListener('touchstart', warmup, { once: true, passive: true });
-        enBtn.addEventListener('focus', warmup, { once: true });
-    }
-}
+const I18N_ENGINE_URL = '/i18n-engine.js?v=figo-i18n-20260219-phase1';
 
 let currentLang = localStorage.getItem('language') || 'es';
 const THEME_STORAGE_KEY = 'themeMode';
 const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
 let currentThemeMode = localStorage.getItem(THEME_STORAGE_KEY) || 'system';
+const THEME_ENGINE_URL = '/theme-engine.js?v=figo-theme-20260219-phase1';
 const CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
 const CLINIC_MAP_URL = 'https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D';
 const DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
@@ -474,8 +378,47 @@ let paymentConfigLoaded = false;
 let paymentConfigLoadedAt = 0;
 let stripeSdkPromise = null;
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
-let themeTransitionTimer = null;
 const DATA_ENGINE_URL = '/data-engine.js?v=figo-data-20260219-phase1';
+
+function getI18nEngineDeps() {
+    return {
+        getCurrentLang: () => currentLang,
+        setCurrentLang: (lang) => {
+            currentLang = lang === 'en' ? 'en' : 'es';
+        },
+        showToast,
+        getReviewsCache,
+        renderPublicReviews,
+        debugLog
+    };
+}
+
+function loadI18nEngine() {
+    return loadDeferredModule({
+        cacheKey: 'i18n-engine',
+        src: I18N_ENGINE_URL,
+        scriptDataAttribute: 'data-i18n-engine',
+        resolveModule: () => window.PielI18nEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getI18nEngineDeps()),
+        missingApiError: 'i18n-engine loaded without API',
+        loadError: 'No se pudo cargar i18n-engine.js',
+        logLabel: 'I18n engine'
+    });
+}
+
+function initEnglishBundleWarmup() {
+    const warmup = () => {
+        withDeferredModule(loadI18nEngine, (engine) => engine.ensureEnglishTranslations()).catch(() => undefined);
+    };
+
+    const enBtn = document.querySelector('.lang-btn[data-lang="en"]');
+    if (enBtn) {
+        enBtn.addEventListener('mouseenter', warmup, { once: true, passive: true });
+        enBtn.addEventListener('touchstart', warmup, { once: true, passive: true });
+        enBtn.addEventListener('focus', warmup, { once: true });
+    }
+}
 
 const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2-stateclass1';
 
@@ -547,61 +490,38 @@ if (!VALID_THEME_MODES.has(currentThemeMode)) {
     currentThemeMode = 'system';
 }
 
-function resolveThemeMode(mode = currentThemeMode) {
-    if (mode === 'system') {
-        if (systemThemeQuery && systemThemeQuery.matches) {
-            return 'dark';
-        }
-        return 'light';
-    }
-    return mode;
+function getThemeEngineDeps() {
+    return {
+        getCurrentThemeMode: () => currentThemeMode,
+        setCurrentThemeMode: (mode) => {
+            currentThemeMode = VALID_THEME_MODES.has(mode) ? mode : 'system';
+        },
+        themeStorageKey: THEME_STORAGE_KEY,
+        validThemeModes: Array.from(VALID_THEME_MODES),
+        getSystemThemeQuery: () => systemThemeQuery
+    };
 }
 
-function applyThemeMode(mode = currentThemeMode) {
-    const resolvedTheme = resolveThemeMode(mode);
-    document.documentElement.setAttribute('data-theme-mode', mode);
-    document.documentElement.setAttribute('data-theme', resolvedTheme);
-}
-
-function updateThemeButtons() {
-    document.querySelectorAll('.theme-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.themeMode === currentThemeMode);
+function loadThemeEngine() {
+    return loadDeferredModule({
+        cacheKey: 'theme-engine',
+        src: THEME_ENGINE_URL,
+        scriptDataAttribute: 'data-theme-engine',
+        resolveModule: () => window.PielThemeEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getThemeEngineDeps()),
+        missingApiError: 'theme-engine loaded without API',
+        loadError: 'No se pudo cargar theme-engine.js',
+        logLabel: 'Theme engine'
     });
 }
 
-function animateThemeTransition() {
-    if (!document.body) return;
-
-    if (themeTransitionTimer) {
-        clearTimeout(themeTransitionTimer);
-    }
-
-    document.body.classList.remove('theme-transition');
-    void document.body.offsetWidth;
-    document.body.classList.add('theme-transition');
-
-    themeTransitionTimer = setTimeout(() => {
-        document.body.classList.remove('theme-transition');
-    }, 320);
-}
-
 function setThemeMode(mode) {
-    if (!VALID_THEME_MODES.has(mode)) {
-        return;
-    }
-
-    currentThemeMode = mode;
-    localStorage.setItem(THEME_STORAGE_KEY, mode);
-    animateThemeTransition();
-    applyThemeMode(mode);
-    updateThemeButtons();
+    runDeferredModule(loadThemeEngine, (engine) => engine.setThemeMode(mode));
 }
 
 function initThemeMode() {
-    const storedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'system';
-    currentThemeMode = VALID_THEME_MODES.has(storedTheme) ? storedTheme : 'system';
-    applyThemeMode(currentThemeMode);
-    updateThemeButtons();
+    runDeferredModule(loadThemeEngine, (engine) => engine.initThemeMode());
 }
 
 function getCookieConsent() {
@@ -868,20 +788,6 @@ function disablePlaceholderExternalLinks() {
         anchor.setAttribute('aria-disabled', 'true');
         anchor.classList.add('is-disabled-link');
     });
-}
-
-function handleSystemThemeChange() {
-    if (currentThemeMode === 'system') {
-        applyThemeMode('system');
-    }
-}
-
-if (systemThemeQuery) {
-    if (typeof systemThemeQuery.addEventListener === 'function') {
-        systemThemeQuery.addEventListener('change', handleSystemThemeChange);
-    } else if (typeof systemThemeQuery.addListener === 'function') {
-        systemThemeQuery.addListener(handleSystemThemeChange);
-    }
 }
 
 function storageGetJSON(key, fallback) {
@@ -1170,48 +1076,7 @@ function initReviewsEngineWarmup() {
 }
 
 async function changeLanguage(lang) {
-    const nextLang = lang === 'en' ? 'en' : 'es';
-    currentLang = nextLang;
-    localStorage.setItem('language', nextLang);
-    document.documentElement.lang = nextLang;
-
-    if (!translations.es || typeof translations.es !== 'object') {
-        translations.es = captureSpanishTranslationsFromDom();
-    }
-
-    if (nextLang === 'en' && !translations.en) {
-        try {
-            await ensureEnglishTranslations();
-        } catch (error) {
-            showToast('No se pudo cargar el paquete de idioma EN. Se mantiene Espanol.', 'warning');
-        }
-    }
-
-    const langPack = translations[nextLang] || translations.es || {};
-
-    // Update buttons
-    document.querySelectorAll('.lang-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.lang === nextLang);
-    });
-    
-    // Update all elements with data-i18n
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.dataset.i18n;
-        if (Object.prototype.hasOwnProperty.call(langPack, key)) {
-            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                el.placeholder = langPack[key];
-            } else if (I18N_HTML_ALLOWED_KEYS.has(key)) {
-                el.innerHTML = langPack[key];
-            } else {
-                el.textContent = langPack[key];
-            }
-        }
-    });
-
-    const cachedReviews = getReviewsCache();
-    if (cachedReviews.length > 0) {
-        renderPublicReviews(cachedReviews);
-    }
+    return withDeferredModule(loadI18nEngine, (engine) => engine.changeLanguage(lang));
 }
 
 // ========================================
