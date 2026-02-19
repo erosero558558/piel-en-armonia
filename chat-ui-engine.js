@@ -25,23 +25,93 @@
         }
     }
 
-    function pruneChatHistory(entries) {
-        if (deps && typeof deps.pruneChatHistory === 'function') {
-            return deps.pruneChatHistory(entries);
+    function getConversationContext() {
+        if (deps && typeof deps.getConversationContext === 'function') {
+            const context = deps.getConversationContext();
+            return Array.isArray(context) ? context : [];
         }
-        return Array.isArray(entries) ? entries : [];
+        return [];
+    }
+
+    function setConversationContext(nextContext) {
+        if (deps && typeof deps.setConversationContext === 'function') {
+            deps.setConversationContext(nextContext);
+        }
+    }
+
+    function getHistoryStorageKey() {
+        if (deps && typeof deps.historyStorageKey === 'string' && deps.historyStorageKey) {
+            return deps.historyStorageKey;
+        }
+        return 'chatHistory';
+    }
+
+    function getHistoryTtlMs() {
+        const ttl = Number(deps && deps.historyTtlMs);
+        return Number.isFinite(ttl) && ttl > 0 ? ttl : (24 * 60 * 60 * 1000);
+    }
+
+    function getHistoryMaxItems() {
+        const max = Number(deps && deps.historyMaxItems);
+        return Number.isFinite(max) && max > 0 ? Math.floor(max) : 50;
+    }
+
+    function getContextMaxItems() {
+        const max = Number(deps && deps.contextMaxItems);
+        return Number.isFinite(max) && max > 0 ? Math.floor(max) : 24;
+    }
+
+    function pruneChatHistory(entries) {
+        if (!Array.isArray(entries) || entries.length === 0) {
+            return [];
+        }
+
+        const cutoff = Date.now() - getHistoryTtlMs();
+        const filtered = entries.filter((entry) => {
+            if (!entry || typeof entry !== 'object') {
+                return false;
+            }
+            const ts = entry.time ? new Date(entry.time).getTime() : Number.NaN;
+            return Number.isFinite(ts) && ts > cutoff;
+        });
+
+        const maxItems = getHistoryMaxItems();
+        if (filtered.length <= maxItems) {
+            return filtered;
+        }
+
+        return filtered.slice(-maxItems);
     }
 
     function persistChatHistory() {
-        if (deps && typeof deps.persistChatHistory === 'function') {
-            deps.persistChatHistory();
+        try {
+            localStorage.setItem(getHistoryStorageKey(), JSON.stringify(getChatHistory()));
+        } catch (error) {
+            // noop
         }
     }
 
     function appendConversationContext(role, content) {
-        if (deps && typeof deps.appendConversationContext === 'function') {
-            deps.appendConversationContext(role, content);
+        const normalizedRole = String(role || '').trim();
+        const normalizedContent = String(content || '').trim();
+        if (!normalizedRole || !normalizedContent) {
+            return;
         }
+
+        const context = getConversationContext().slice();
+        const last = context[context.length - 1];
+        if (last && last.role === normalizedRole && last.content === normalizedContent) {
+            return;
+        }
+
+        context.push({
+            role: normalizedRole,
+            content: normalizedContent
+        });
+
+        const maxItems = getContextMaxItems();
+        const nextContext = context.length > maxItems ? context.slice(-maxItems) : context;
+        setConversationContext(nextContext);
     }
 
     function debugLogSafe() {

@@ -1455,9 +1455,14 @@ function getChatUiEngineDeps() {
         setChatHistory: (nextHistory) => {
             chatHistory = Array.isArray(nextHistory) ? nextHistory : [];
         },
-        pruneChatHistory,
-        persistChatHistory,
-        appendConversationContext,
+        getConversationContext: () => conversationContext,
+        setConversationContext: (nextContext) => {
+            conversationContext = Array.isArray(nextContext) ? nextContext : [];
+        },
+        historyStorageKey: CHAT_HISTORY_STORAGE_KEY,
+        historyTtlMs: CHAT_HISTORY_TTL_MS,
+        historyMaxItems: CHAT_HISTORY_MAX_ITEMS,
+        contextMaxItems: CHAT_CONTEXT_MAX_ITEMS,
         debugLog
     };
 }
@@ -1578,60 +1583,25 @@ function initActionRouterEngine() {
     });
 }
 
-function pruneChatHistory(entries) {
-    if (!Array.isArray(entries) || entries.length === 0) {
-        return [];
-    }
-
-    const cutoff = Date.now() - CHAT_HISTORY_TTL_MS;
-    const filtered = entries.filter((entry) => {
-        if (!entry || typeof entry !== 'object') return false;
-        const ts = entry.time ? new Date(entry.time).getTime() : Number.NaN;
-        return Number.isFinite(ts) && ts > cutoff;
-    });
-
-    if (filtered.length <= CHAT_HISTORY_MAX_ITEMS) {
-        return filtered;
-    }
-
-    return filtered.slice(-CHAT_HISTORY_MAX_ITEMS);
-}
-
-function persistChatHistory() {
-    try {
-        localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(chatHistory));
-    } catch (error) {
-        // noop
-    }
-}
-
-function appendConversationContext(role, content) {
-    const normalizedRole = String(role || '').trim();
-    const normalizedContent = String(content || '').trim();
-    if (!normalizedRole || !normalizedContent) {
-        return;
-    }
-
-    const lastMsg = conversationContext[conversationContext.length - 1];
-    if (lastMsg && lastMsg.role === normalizedRole && lastMsg.content === normalizedContent) {
-        return;
-    }
-
-    conversationContext.push({
-        role: normalizedRole,
-        content: normalizedContent
-    });
-
-    if (conversationContext.length > CHAT_CONTEXT_MAX_ITEMS) {
-        conversationContext = conversationContext.slice(-CHAT_CONTEXT_MAX_ITEMS);
-    }
-}
-
-let chatHistory = (function() {
+let chatHistory = (function () {
     try {
         const raw = localStorage.getItem(CHAT_HISTORY_STORAGE_KEY);
         const saved = raw ? JSON.parse(raw) : [];
-        const valid = pruneChatHistory(saved);
+        if (!Array.isArray(saved) || saved.length === 0) {
+            return [];
+        }
+
+        const cutoff = Date.now() - CHAT_HISTORY_TTL_MS;
+        const filtered = saved.filter((entry) => {
+            if (!entry || typeof entry !== 'object') return false;
+            const ts = entry.time ? new Date(entry.time).getTime() : Number.NaN;
+            return Number.isFinite(ts) && ts > cutoff;
+        });
+
+        const valid = filtered.length <= CHAT_HISTORY_MAX_ITEMS
+            ? filtered
+            : filtered.slice(-CHAT_HISTORY_MAX_ITEMS);
+
         if (valid.length !== saved.length) {
             try {
                 localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(valid));
@@ -1646,133 +1616,71 @@ let chatHistory = (function() {
 })();
 let conversationContext = [];
 
-// Funcion simple para detectar si usar IA real
-function shouldUseRealAI() {
-    if (localStorage.getItem('forceAI') === 'true') {
-        return true;
-    }
-    
-    var protocol = window.location.protocol;
-    
-    if (protocol === 'file:') {
-        return false;
-    }
-
-    return true;
-}
-
 function toggleChatbot() {
-    const container = document.getElementById('chatbotContainer');
-    runDeferredModule(loadChatUiEngine, () => undefined);
-    chatbotOpen = !chatbotOpen;
-    
-    if (chatbotOpen) {
-        container.classList.add('active');
-        document.getElementById('chatNotification').style.display = 'none';
-        scrollToBottom();
-        if (!chatStartedTracked) {
-            chatStartedTracked = true;
-            trackEvent('chat_started', {
-                source: 'widget'
-            });
+    runDeferredModule(loadChatWidgetEngine, (engine) => engine.toggleChatbot(), () => {
+        const container = document.getElementById('chatbotContainer');
+        if (!container) {
+            return;
         }
-        
-        // Si es la primera vez, mostrar mensaje inicial
-        if (chatHistory.length === 0) {
-            // Verificar si estamos usando IA real
-            const usandoIA = shouldUseRealAI();
-            
-            debugLog('Estado del chatbot:', usandoIA ? 'IA REAL' : 'Respuestas locales');
-            
-            var welcomeMsg;
-            
-            if (usandoIA) {
-                welcomeMsg = 'Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
-                welcomeMsg += '<strong>Conectado con Inteligencia Artificial</strong><br><br>';
-                welcomeMsg += 'Puedo ayudarte con informacion detallada sobre:<br>';
-                welcomeMsg += '- Nuestros servicios dermatol\u00F3gicos<br>';
-                welcomeMsg += '- Precios de consultas y tratamientos<br>';
-                welcomeMsg += '- Agendar citas presenciales o online<br>';
-                welcomeMsg += '- Ubicacion y horarios de atencion<br>';
-                welcomeMsg += '- Resolver tus dudas sobre cuidado de la piel<br><br>';
-                welcomeMsg += 'En que puedo ayudarte hoy?';
-            } else {
-                welcomeMsg = 'Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
-                welcomeMsg += 'Puedo ayudarte con informacion sobre:<br>';
-                welcomeMsg += '- Nuestros servicios dermatol\u00F3gicos<br>';
-                welcomeMsg += '- Precios de consultas y tratamientos<br>';
-                welcomeMsg += '- Agendar citas presenciales o online<br>';
-                welcomeMsg += '- Ubicacion y horarios de atencion<br><br>';
-                welcomeMsg += 'En que puedo ayudarte hoy?';
-            }
-
-            addBotMessage(welcomeMsg);
-            
-            // Sugerir opciones rapidas
-            setTimeout(function() {
-                var quickOptions = '<div class="chat-suggestions">';
-                quickOptions += '<button class="chat-suggestion-btn" data-action="quick-message" data-value="services">';
-                quickOptions += '<i class="fas fa-stethoscope"></i> Ver servicios';
-                quickOptions += '</button>';
-                quickOptions += '<button class="chat-suggestion-btn" data-action="quick-message" data-value="appointment">';
-                quickOptions += '<i class="fas fa-calendar-check"></i> Agendar cita';
-                quickOptions += '</button>';
-                quickOptions += '<button class="chat-suggestion-btn" data-action="quick-message" data-value="prices">';
-                quickOptions += '<i class="fas fa-tag"></i> Consultar precios';
-                quickOptions += '</button>';
-                quickOptions += '</div>';
-                addBotMessage(quickOptions);
-            }, 500);
-        }
-    } else {
-        container.classList.remove('active');
-    }
+        chatbotOpen = !chatbotOpen;
+        container.classList.toggle('active', chatbotOpen);
+    });
 }
 
 function minimizeChatbot() {
-    document.getElementById('chatbotContainer').classList.remove('active');
-    chatbotOpen = false;
+    runDeferredModule(loadChatWidgetEngine, (engine) => engine.minimizeChatbot(), () => {
+        const container = document.getElementById('chatbotContainer');
+        if (container) {
+            container.classList.remove('active');
+        }
+        chatbotOpen = false;
+    });
 }
 
 function handleChatKeypress(event) {
-    if (event.key === 'Enter') {
-        sendChatMessage();
-    }
+    runDeferredModule(loadChatWidgetEngine, (engine) => engine.handleChatKeypress(event), () => {
+        if (event && event.key === 'Enter') {
+            sendChatMessage();
+        }
+    });
 }
 
 async function sendChatMessage() {
-    const input = document.getElementById('chatInput');
-    const message = input.value.trim();
-    
-    if (!message) return;
-    
-    await Promise.resolve(addUserMessage(message)).catch(() => undefined);
-    input.value = '';
-
-    await processWithKimi(message);
+    return runDeferredModule(loadChatWidgetEngine, (engine) => engine.sendChatMessage(), async () => {
+        const input = document.getElementById('chatInput');
+        if (!input) {
+            return;
+        }
+        const message = String(input.value || '').trim();
+        if (!message) {
+            return;
+        }
+        await Promise.resolve(addUserMessage(message)).catch(() => undefined);
+        input.value = '';
+        await processWithKimi(message);
+    });
 }
 
 function sendQuickMessage(type) {
-    if (type === 'appointment') {
-        addUserMessage('Quiero agendar una cita');
-        startChatBooking();
-        return;
-    }
-
-    const messages = {
-        services: 'Que servicios ofrecen?',
-        prices: 'Cuales son los precios?',
-        telemedicine: 'Como funciona la consulta online?',
-        human: 'Quiero hablar con un doctor real',
-        acne: 'Tengo problemas de acne',
-        laser: 'Informacion sobre tratamientos laser',
-        location: 'Donde estan ubicados?'
-    };
-
-    const message = messages[type] || type;
-    Promise.resolve(addUserMessage(message)).catch(() => undefined);
-
-    processWithKimi(message);
+    runDeferredModule(loadChatWidgetEngine, (engine) => engine.sendQuickMessage(type), () => {
+        if (type === 'appointment') {
+            Promise.resolve(addUserMessage('Quiero agendar una cita')).catch(() => undefined);
+            startChatBooking();
+            return;
+        }
+        const quickMessages = {
+            services: 'Que servicios ofrecen?',
+            prices: 'Cuales son los precios?',
+            telemedicine: 'Como funciona la consulta online?',
+            human: 'Quiero hablar con un doctor real',
+            acne: 'Tengo problemas de acne',
+            laser: 'Informacion sobre tratamientos laser',
+            location: 'Donde estan ubicados?'
+        };
+        const message = quickMessages[type] || type;
+        Promise.resolve(addUserMessage(message)).catch(() => undefined);
+        processWithKimi(message);
+    });
 }
 
 function addUserMessage(text) {
@@ -2085,6 +1993,7 @@ document.addEventListener('DOMContentLoaded', function() {
         initReviewsEngineWarmup();
         initGalleryInteractionsWarmup();
         initChatUiEngineWarmup();
+        initChatWidgetEngineWarmup();
         initChatEngineWarmup();
         initChatBookingEngineWarmup();
         initUiEffectsWarmup();
