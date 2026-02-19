@@ -1000,6 +1000,39 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
     font-size: 0.92rem;
 }
 
+.gallery-details {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    border-bottom: 1px dashed rgba(0,0,0,0.08);
+    padding-bottom: 4px;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #5c6f89;
+}
+
+.detail-value {
+    font-weight: 700;
+    color: #1d1d1f;
+    text-align: right;
+}
+
+.gallery-note {
+    font-size: 0.76rem !important;
+    color: #889bb5 !important;
+    margin-top: 10px;
+    font-style: italic;
+    line-height: 1.4;
+}
+
 .clinic-container {
     display: grid;
     grid-template-columns: 1.1fr 1fr;
@@ -2750,6 +2783,22 @@ html[data-theme='dark'] .toast-message {
         content-visibility: auto;
         contain-intrinsic-size: 900px;
     }
+}
+
+html[data-theme='dark'] .detail-row {
+    border-bottom-color: rgba(255,255,255,0.08);
+}
+
+html[data-theme='dark'] .detail-label {
+    color: #aac1e2;
+}
+
+html[data-theme='dark'] .detail-value {
+    color: #e9f1ff;
+}
+
+html[data-theme='dark'] .gallery-note {
+    color: #7b92b5 !important;
 }
 
 @media (max-width: 1140px) {
