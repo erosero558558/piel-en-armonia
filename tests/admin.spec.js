@@ -1,5 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { skipIfPhpRuntimeMissing } = require('./helpers/php-backend');
 
 test.describe('Panel de administración', () => {
   test('página admin carga correctamente', async ({ page }) => {
@@ -47,30 +48,36 @@ test.describe('Panel de administración', () => {
     }
   });
 
-  test('API health check funciona', async ({ request }) => {
-    const resp = await request.get('/api.php?resource=health');
-    expect(resp.ok()).toBeTruthy();
-    const body = await resp.json();
-    expect(body.ok).toBe(true);
-    expect(body.status).toBe('ok');
-  });
+  test.describe('API de administracion (requiere PHP)', () => {
+    test('API health check funciona', async ({ request }) => {
+      await skipIfPhpRuntimeMissing(test, request);
+      const resp = await request.get('/api.php?resource=health');
+      expect(resp.ok()).toBeTruthy();
+      const body = await resp.json();
+      expect(body.ok).toBe(true);
+      expect(body.status).toBe('ok');
+    });
 
-  test('API data sin auth devuelve 401', async ({ request }) => {
-    const resp = await request.get('/api.php?resource=data');
-    expect(resp.status()).toBe(401);
-  });
+    test('API data sin auth devuelve 401', async ({ request }) => {
+      await skipIfPhpRuntimeMissing(test, request);
+      const resp = await request.get('/api.php?resource=data');
+      expect(resp.status()).toBe(401);
+    });
 
-  test('API availability devuelve datos', async ({ request }) => {
-    const resp = await request.get('/api.php?resource=availability');
-    expect(resp.ok()).toBeTruthy();
-    const body = await resp.json();
-    expect(body.ok).toBe(true);
-  });
+    test('API availability devuelve datos', async ({ request }) => {
+      await skipIfPhpRuntimeMissing(test, request);
+      const resp = await request.get('/api.php?resource=availability');
+      expect(resp.ok()).toBeTruthy();
+      const body = await resp.json();
+      expect(body.ok).toBe(true);
+    });
 
-  test('API reviews devuelve datos', async ({ request }) => {
-    const resp = await request.get('/api.php?resource=reviews');
-    expect(resp.ok()).toBeTruthy();
-    const body = await resp.json();
-    expect(body.ok).toBe(true);
+    test('API reviews devuelve datos', async ({ request }) => {
+      await skipIfPhpRuntimeMissing(test, request);
+      const resp = await request.get('/api.php?resource=reviews');
+      expect(resp.ok()).toBeTruthy();
+      const body = await resp.json();
+      expect(body.ok).toBe(true);
+    });
   });
 });
