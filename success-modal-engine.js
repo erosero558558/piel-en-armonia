@@ -79,9 +79,9 @@
     function getServiceName(service) {
         const names = {
             consulta: 'Consulta Dermatologica',
-            telefono: 'Consulta Telefonica',
+            telefono: 'Consulta Telefónica',
             video: 'Video Consulta',
-            laser: 'Tratamiento Laser',
+            laser: 'Tratamiento Láser',
             rejuvenecimiento: 'Rejuvenecimiento'
         };
         return names[service] || service || '-';

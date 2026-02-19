@@ -1557,7 +1557,7 @@ function initGalleryInteractionsWarmup() {
 // ========================================
 // APPOINTMENT FORM (DEFERRED MODULE)
 // ========================================
-const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260219-phase4-stateclass3';
+const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260219-phase4-stateclass4';
 
 function getBookingUiDeps() {
     return {
@@ -1836,7 +1836,7 @@ function initModalUxEngineWarmup() {
 let chatbotOpen = false;
 const CHAT_STATE_ENGINE_URL = '/chat-state-engine.js?v=figo-chat-state-20260219-phase1';
 const CHAT_UI_ENGINE_URL = '/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1';
-const CHAT_WIDGET_ENGINE_URL = '/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification1';
+const CHAT_WIDGET_ENGINE_URL = '/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2';
 const ACTION_ROUTER_ENGINE_URL = '/action-router-engine.js?v=figo-action-router-20260219-phase1';
 
 function createChatStateFallback() {
@@ -2133,7 +2133,7 @@ function escapeHtml(text) {
 // ========================================
 // BOOKING CONVERSACIONAL DESDE CHATBOT (DEFERRED MODULE)
 // ========================================
-const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260219-phase2-inlinefix3';
+const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260219-phase2-inlinefix4';
 
 function getChatBookingEngineDeps() {
     return {
@@ -2297,7 +2297,7 @@ async function processWithKimi(message) {
 }
 
 runDeferredModule(loadChatWidgetEngine, (engine) => engine.scheduleInitialNotification(30000));
-const APP_BOOTSTRAP_ENGINE_URL = '/app-bootstrap-engine.js?v=figo-bootstrap-20260219-phase2-events7';
+const APP_BOOTSTRAP_ENGINE_URL = '/app-bootstrap-engine.js?v=figo-bootstrap-20260219-phase2-events8';
 // ========================================
 // REPROGRAMACION ONLINE
 // ========================================

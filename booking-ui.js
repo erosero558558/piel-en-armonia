@@ -59,6 +59,28 @@
         }
 
         initialized = true;
+        const completedSteps = new Set();
+
+        function trackBookingStep(step, payload = {}, options = {}) {
+            if (!deps || typeof deps.trackEvent !== 'function' || !step) {
+                return;
+            }
+
+            const once = options && options.once !== false;
+            if (once && completedSteps.has(step)) {
+                return;
+            }
+
+            if (once) {
+                completedSteps.add(step);
+            }
+
+            deps.trackEvent('booking_step_completed', {
+                step,
+                source: 'booking_form',
+                ...payload
+            });
+        }
 
         async function updateAvailableTimes() {
             const selectedDate = dateInput ? dateInput.value : '';
@@ -100,9 +122,10 @@
         serviceSelect.addEventListener('change', function () {
             const selected = this.options[this.selectedIndex];
             const price = parseFloat(selected.dataset.price) || 0;
+            const serviceValue = String(this.value || '').trim();
 
             if (price > 0) {
-                const iva = price * 0.12;
+                const iva = price * 0.15;
                 const total = price + iva;
                 subtotalEl.textContent = `$${price.toFixed(2)}`;
                 ivaEl.textContent = `$${iva.toFixed(2)}`;
@@ -112,16 +135,49 @@
                 priceSummary.classList.add('is-hidden');
             }
 
+            if (serviceValue !== '') {
+                trackBookingStep('service_selected', {
+                    service: serviceValue
+                });
+            }
+
             updateAvailableTimes().catch(() => undefined);
         });
 
         if (dateInput) {
             dateInput.min = new Date().toISOString().split('T')[0];
-            dateInput.addEventListener('change', () => updateAvailableTimes().catch(() => undefined));
+            dateInput.addEventListener('change', () => {
+                const dateValue = String(dateInput.value || '').trim();
+                if (dateValue !== '') {
+                    trackBookingStep('date_selected', {
+                        date: dateValue
+                    });
+                }
+                updateAvailableTimes().catch(() => undefined);
+            });
         }
 
         if (doctorSelect) {
-            doctorSelect.addEventListener('change', () => updateAvailableTimes().catch(() => undefined));
+            doctorSelect.addEventListener('change', () => {
+                const doctorValue = String(doctorSelect.value || '').trim();
+                if (doctorValue !== '') {
+                    trackBookingStep('doctor_selected', {
+                        doctor: doctorValue
+                    });
+                }
+                updateAvailableTimes().catch(() => undefined);
+            });
+        }
+
+        if (timeSelect) {
+            timeSelect.addEventListener('change', () => {
+                const timeValue = String(timeSelect.value || '').trim();
+                if (timeValue !== '') {
+                    trackBookingStep('time_selected', {
+                        time: timeValue
+                    });
+                }
+            });
         }
 
         if (phoneInput) {
@@ -135,6 +191,8 @@
 
         appointmentForm.addEventListener('submit', async function (e) {
             e.preventDefault();
+
+            trackBookingStep('form_submitted', {}, { once: false });
 
             const submitBtn = this.querySelector('button[type="submit"]');
             const originalContent = submitBtn ? submitBtn.innerHTML : '';

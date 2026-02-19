@@ -89,7 +89,7 @@ class FigoBrain
                 $priceOnline = get_service_total_price('video');
                 $priceAcne = get_service_total_price('acne'); // Base price logic
                 // Fallback manually if function returns 0 or default
-                if ($priceAcne === '$0.00') $priceAcne = '$89.60'; // Estimate with VAT
+                if ($priceAcne === '$0.00') $priceAcne = '$92.00'; // Estimate with 15% VAT
 
                 return "Nuestros precios referenciales (incluyen IVA):\n\n" .
                        "📋 **Consultas:**\n" .

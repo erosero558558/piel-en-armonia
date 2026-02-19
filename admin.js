@@ -206,10 +206,10 @@ function updateDate() {
 
 function getServiceName(service) {
     const names = {
-        consulta: 'Consulta Dermatologica',
+        consulta: 'Consulta Dermatológica',
         telefono: 'Consulta Telefónica',
         video: 'Video Consulta',
-        laser: 'Tratamiento Laser',
+        laser: 'Tratamiento Láser',
         rejuvenecimiento: 'Rejuvenecimiento'
     };
     return names[service] || service;

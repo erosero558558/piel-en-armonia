@@ -51,6 +51,37 @@
         });
     }
 
+    function resolveWhatsappSource(waLink) {
+        if (!waLink || !(waLink instanceof Element)) {
+            return 'unknown';
+        }
+
+        const chatContext = waLink.closest('#chatbotContainer, #chatbotWidget');
+        if (chatContext) {
+            return 'chatbot';
+        }
+
+        const section = waLink.closest('section[id], footer[id], footer, .quick-contact-dock');
+        if (!section) {
+            return 'unknown';
+        }
+
+        const sectionId = section.getAttribute('id') || '';
+        if (sectionId) {
+            return sectionId;
+        }
+
+        if (section.classList.contains('quick-contact-dock')) {
+            return 'quick_dock';
+        }
+
+        if (section.tagName && section.tagName.toLowerCase() === 'footer') {
+            return 'footer';
+        }
+
+        return 'unknown';
+    }
+
     function bindChatHandoffTracking() {
         document.addEventListener('click', (event) => {
             const targetEl = event.target instanceof Element ? event.target : null;
@@ -59,11 +90,16 @@
             const waLink = targetEl.closest('a[href*="wa.me"], a[href*="api.whatsapp.com"]');
             if (!waLink) return;
 
+            const source = resolveWhatsappSource(waLink);
+            callDep('trackEvent', 'whatsapp_click', {
+                source
+            });
+
             const inChatContext = !!waLink.closest('#chatbotContainer') || !!waLink.closest('#chatbotWidget');
             if (!inChatContext) return;
 
             callDep('trackEvent', 'chat_handoff_whatsapp', {
-                source: 'chatbot'
+                source
             });
         });
     }

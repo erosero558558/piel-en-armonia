@@ -129,8 +129,8 @@ function figo_backend_ai_system_prompt(): string
     return "Eres Figo, asistente virtual amigable de la clinica dermatologica \"Piel en Armonia\" en Quito, Ecuador.\n"
         . "Eres conversacional y natural. Puedes hablar de cualquier tema de forma amena, pero tu especialidad es la clinica.\n"
         . "Cuando pregunten sobre la clinica, da informacion precisa:\n"
-        . "- Consulta presencial: \$40 | Telefonica: \$25 | Video: \$30\n"
-        . "- Acne: desde \$80 | Laser: desde \$150 | Rejuvenecimiento: desde \$120\n"
+        . "- Consulta presencial: \$46 | Telefonica: \$28.75 | Video: \$34.50\n"
+        . "- Acne: desde \$80 | Laser: desde \$172.50 | Rejuvenecimiento: desde \$138\n"
         . "- Deteccion cancer de piel: desde \$70\n"
         . "- Direccion: Valparaiso 13-183 y Sodiro, Consultorio Dr. Celio Caiza, Quito (Frente al Colegio de las Mercedarias, a 2 cuadras de la Maternidad Isidro Ayora)\n"
         . "- Horario: L-V 9:00-18:00, Sab 9:00-13:00\n"
@@ -266,13 +266,13 @@ function figo_backend_answer(string $userMessage): string
         '/\bofrecen\b/',
         '/\bhacen\b/'
     ])) {
-        return "Servicios principales:\n"
-            . "- Consulta Dermatologica: $40\n"
-            . "- Consulta Telefonica: $25\n"
-            . "- Video Consulta: $30\n"
+        return "Servicios principales (precios con IVA 15%):\n"
+            . "- Consulta Dermatologica: $46\n"
+            . "- Consulta Telefonica: $28.75\n"
+            . "- Video Consulta: $34.50\n"
             . "- Tratamiento de Acne: desde $80\n"
-            . "- Rejuvenecimiento: desde $120\n"
-            . "- Laser Dermatologico: desde $150\n"
+            . "- Rejuvenecimiento: desde $138\n"
+            . "- Laser Dermatologico: desde $172.50\n"
             . "- Deteccion de Cancer de Piel: desde $70";
     }
 
@@ -283,12 +283,12 @@ function figo_backend_answer(string $userMessage): string
         '/\btarifa\b/',
         '/\bcuanto\b/'
     ])) {
-        return "Precios base:\n"
-            . "- Consulta Dermatologica: $40\n"
-            . "- Consulta Telefonica: $25\n"
-            . "- Video Consulta: $30\n"
-            . "- Laser: desde $150\n"
-            . "- Rejuvenecimiento: desde $120\n"
+        return "Precios (con IVA 15%):\n"
+            . "- Consulta Dermatologica: $46\n"
+            . "- Consulta Telefonica: $28.75\n"
+            . "- Video Consulta: $34.50\n"
+            . "- Laser: desde $172.50\n"
+            . "- Rejuvenecimiento: desde $138\n"
             . "- Acne: desde $80";
     }
 

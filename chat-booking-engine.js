@@ -6,11 +6,11 @@
 
     const FALLBACK_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
     const CHAT_SERVICES = [
-        { key: 'consulta', label: 'Consulta Presencial', price: '$44.80' },
-        { key: 'telefono', label: 'Consulta Telefonica', price: '$28.00' },
-        { key: 'video', label: 'Video Consulta', price: '$33.60' },
-        { key: 'laser', label: 'Tratamiento Laser', price: '$168.00' },
-        { key: 'rejuvenecimiento', label: 'Rejuvenecimiento', price: '$134.40' }
+        { key: 'consulta', label: 'Consulta Presencial', price: '$46.00' },
+        { key: 'telefono', label: 'Consulta Telefónica', price: '$28.75' },
+        { key: 'video', label: 'Video Consulta', price: '$34.50' },
+        { key: 'laser', label: 'Tratamiento Láser', price: '$172.50' },
+        { key: 'rejuvenecimiento', label: 'Rejuvenecimiento', price: '$138.00' }
     ];
     const CHAT_DOCTORS = [
         { key: 'rosero', label: 'Dr. Javier Rosero' },
@@ -59,8 +59,31 @@
         return value;
     }
 
+    function trackChatBookingStep(step, payload = {}, options = {}) {
+        if (!deps || typeof deps.trackEvent !== 'function' || !chatBooking || !step) {
+            return;
+        }
+
+        const once = options && options.once !== false;
+        if (once) {
+            if (!chatBooking.completedSteps) {
+                chatBooking.completedSteps = {};
+            }
+            if (chatBooking.completedSteps[step]) {
+                return;
+            }
+            chatBooking.completedSteps[step] = true;
+        }
+
+        deps.trackEvent('booking_step_completed', {
+            step,
+            source: 'chatbot',
+            ...payload
+        });
+    }
+
     function startChatBooking() {
-        chatBooking = { step: 'service' };
+        chatBooking = { step: 'service', completedSteps: {} };
         let msg = t(
             'Vamos a agendar tu cita paso a paso.<br><br><strong>Paso 1/7:</strong> ¿Que servicio necesitas?<br><br>',
             'Let us schedule your appointment step by step.<br><br><strong>Step 1/7:</strong> Which service do you need?<br><br>'
@@ -74,6 +97,13 @@
     }
 
     function cancelChatBooking() {
+        if (chatBooking && deps && typeof deps.trackEvent === 'function') {
+            deps.trackEvent('checkout_abandon', {
+                source: 'chatbot',
+                reason: 'chat_cancel',
+                step: chatBooking.step || 'unknown'
+            });
+        }
         chatBooking = null;
         addBotMessage(t(
             'Reserva cancelada. Si necesitas algo mas, estoy aqui para ayudarte.',
@@ -122,6 +152,9 @@
                 chatBooking.serviceLabel = service.label;
                 chatBooking.price = service.price;
                 chatBooking.step = 'doctor';
+                trackChatBookingStep('service_selected', {
+                    service: service.key
+                });
 
                 let msg = `${t('Servicio', 'Service')}: <strong>${escapeHtml(service.label)}</strong> (${service.price})<br><br>`;
                 msg += t('<strong>Paso 2/7:</strong> ¿Con que doctor prefieres?<br><br>', '<strong>Step 2/7:</strong> Which doctor do you prefer?<br><br>');
@@ -146,6 +179,9 @@
                 chatBooking.doctor = doctor.key;
                 chatBooking.doctorLabel = doctor.label;
                 chatBooking.step = 'date';
+                trackChatBookingStep('doctor_selected', {
+                    doctor: doctor.key
+                });
 
                 const today = new Date().toISOString().split('T')[0];
                 let msg = `${t('Doctor', 'Doctor')}: <strong>${escapeHtml(doctor.label)}</strong><br><br>`;
@@ -180,6 +216,9 @@
 
                 chatBooking.date = input;
                 chatBooking.step = 'time';
+                trackChatBookingStep('date_selected', {
+                    date: input
+                });
 
                 if (deps && typeof deps.showTypingIndicator === 'function') {
                     deps.showTypingIndicator();
@@ -259,6 +298,9 @@
                 }
                 chatBooking.time = input;
                 chatBooking.step = 'name';
+                trackChatBookingStep('time_selected', {
+                    time: input
+                });
                 addBotMessage(`${t('Hora', 'Time')}: <strong>${escapeHtml(input)}</strong><br><br>${t('<strong>Paso 5/7:</strong> ¿Cual es tu nombre completo?', '<strong>Step 5/7:</strong> What is your full name?')}`);
                 break;
             }
@@ -273,6 +315,7 @@
                 }
                 chatBooking.name = input;
                 chatBooking.step = 'email';
+                trackChatBookingStep('name_added');
                 addBotMessage(`${t('Nombre', 'Name')}: <strong>${escapeHtml(input)}</strong><br><br>${t('<strong>Paso 6/7:</strong> ¿Cual es tu email?', '<strong>Step 6/7:</strong> What is your email?')}`);
                 break;
             }
@@ -288,6 +331,7 @@
                 }
                 chatBooking.email = input;
                 chatBooking.step = 'phone';
+                trackChatBookingStep('email_added');
                 addBotMessage(`${t('Email', 'Email')}: <strong>${escapeHtml(input)}</strong><br><br>${t('<strong>Paso 7/7:</strong> ¿Cual es tu numero de telefono?', '<strong>Step 7/7:</strong> What is your phone number?')}`);
                 break;
             }
@@ -303,6 +347,7 @@
                 }
                 chatBooking.phone = input;
                 chatBooking.step = 'payment';
+                trackChatBookingStep('contact_info_completed');
 
                 let msg = `${t('Telefono', 'Phone')}: <strong>${escapeHtml(input)}</strong><br><br>`;
                 msg += `<strong>${t('Resumen de tu cita', 'Appointment summary')}:</strong><br>`;
@@ -343,6 +388,9 @@
 
                 chatBooking.paymentMethod = method;
                 chatBooking.step = 'confirm';
+                trackChatBookingStep('payment_method_selected', {
+                    payment_method: method
+                });
                 await finalizeChatBooking();
                 break;
             }

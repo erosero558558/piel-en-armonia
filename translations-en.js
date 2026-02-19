@@ -181,7 +181,7 @@ window.PIEL_EN_TRANSLATIONS = {
         label_phone: "Phone",
         placeholder_phone: "098 XXXXXXX",
         summary_subtotal: "Subtotal",
-        summary_iva: "VAT (12%)",
+        summary_iva: "VAT (15%)",
         summary_total: "Total",
         btn_continue: "Continue to Payment",
         payment_title: "Payment Method",

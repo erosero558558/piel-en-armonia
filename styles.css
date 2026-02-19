@@ -353,7 +353,7 @@ img {
     flex-direction: column;
     gap: 4px;
     padding: 14px;
-    -webkit-overflow-scrolling: touch;
+
 }
 
 .mobile-menu.active {
@@ -776,7 +776,7 @@ img {
     overflow-y: auto;
     padding: 12px;
     background: #f9fbff;
-    -webkit-overflow-scrolling: touch;
+
 }
 
 .chat-message {
@@ -976,7 +976,7 @@ img {
     box-shadow: var(--ui-shadow-lg);
     padding: 24px 20px;
     animation: fadeInUp 260ms ease-out;
-    -webkit-overflow-scrolling: touch;
+
 }
 
 .footer {

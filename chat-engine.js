@@ -72,7 +72,7 @@ async function processWithKimi(message) {
             }, 600);
         }
     } catch (error) {
-        console.error('Error:', error);
+        debugLog('Error:', error);
         removeTypingIndicator();
         processLocalResponse(message, false);
     } finally {
@@ -167,12 +167,12 @@ INFORMACION DE LA CLINICA:
 - Horario: Lunes-Viernes 9:00-18:00, Sabados 9:00-13:00
 - Estacionamiento privado disponible
 
-SERVICIOS Y PRECIOS (con IVA 12%):
-- Consulta Dermatológica: $44.80
-- Consulta Telefónica: $28
-- Video Consulta: $33.60
-- Tratamiento Láser: desde $168
-- Rejuvenecimiento: desde $134.40
+SERVICIOS Y PRECIOS (con IVA 15%):
+- Consulta Dermatológica: $46
+- Consulta Telefónica: $28.75
+- Video Consulta: $34.50
+- Tratamiento Láser: desde $172.50
+- Rejuvenecimiento: desde $138
 - Tratamiento de Acné: desde $80
 - Detección de Cáncer de Piel: desde $70
 
@@ -291,7 +291,7 @@ async function requestFigoCompletion(messages, overrides = {}, debugLabel = 'pri
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        console.error('Error parseando JSON:', e);
+        debugLog('Error parseando JSON:', e);
         throw new Error('Respuesta no es JSON valido');
     }
 
@@ -303,7 +303,7 @@ async function requestFigoCompletion(messages, overrides = {}, debugLabel = 'pri
     }
 
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-        console.error('Estructura invalida:', data);
+        debugLog('Estructura invalida:', data);
         throw new Error('Respuesta invalida');
     }
 
@@ -376,7 +376,7 @@ Pregunta original del paciente: "${message}"`;
                     debugLog('✅ Respuesta refinada aplicada');
                 }
             } catch (refineError) {
-                console.warn('No se pudo refinar con Figo:', refineError);
+                debugLog('No se pudo refinar con Figo:', refineError);
             }
 
             if (isGenericAssistantReply(botResponse)) {
@@ -401,7 +401,7 @@ Pregunta original del paciente: "${message}"`;
         debugLog('💬 Mensaje mostrado en chat');
         
     } catch (error) {
-        console.error('Error con bot del servidor:', error);
+        debugLog('Error con bot del servidor:', error);
         removeTypingIndicator();
         
         processLocalResponse(message, false);
@@ -465,26 +465,26 @@ Si quieres, te llevo directo a <a href="#citas" data-action="minimize-chat">Rese
     else if (/servicio|tratamiento|hacen|ofrecen|que hacen/.test(lowerMsg)) {
         response = 'Servicios dermatológicos:<br><br>';
         response += '<strong>Consultas:</strong><br>';
-        response += '• Presencial: $44.80<br>';
-        response += '• Telefónica: $28<br>';
-        response += '• Video: $33.60<br><br>';
+        response += '• Presencial: $46<br>';
+        response += '• Telefónica: $28.75<br>';
+        response += '• Video: $34.50<br><br>';
         response += '<strong>Tratamientos:</strong><br>';
         response += '• Acné: desde $80<br>';
-        response += '• Láser: desde $168<br>';
-        response += '• Rejuvenecimiento: desde $134.40<br>';
+        response += '• Láser: desde $172.50<br>';
+        response += '• Rejuvenecimiento: desde $138<br>';
         response += '• Detección de cáncer de piel: desde $70';
     }
     // PRECIOS
     else if (/precio|cuanto cuesta|valor|tarifa|costo/.test(lowerMsg)) {
-        response = 'Precios (incluyen IVA 12%):<br><br>';
+        response = 'Precios (incluyen IVA 15%):<br><br>';
         response += '<strong>Consultas:</strong><br>';
-        response += '• Presencial: $44.80<br>';
-        response += '• Telefónica: $28<br>';
-        response += '• Video: $33.60<br><br>';
+        response += '• Presencial: $46<br>';
+        response += '• Telefónica: $28.75<br>';
+        response += '• Video: $34.50<br><br>';
         response += '<strong>Tratamientos (desde):</strong><br>';
         response += '• Acné: $80<br>';
-        response += '• Láser: $168<br>';
-        response += '• Rejuvenecimiento: $134.40<br><br>';
+        response += '• Láser: $172.50<br>';
+        response += '• Rejuvenecimiento: $138<br><br>';
         response += 'Para presupuesto preciso, agenda una consulta.';
     }
     // PAGOS

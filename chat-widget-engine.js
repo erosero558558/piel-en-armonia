@@ -61,6 +61,17 @@
         }
     }
 
+    function ensureChatStartedTracked(source) {
+        if (chatStartedTracked) {
+            return;
+        }
+
+        chatStartedTracked = true;
+        trackEventSafe('chat_started', {
+            source: source || 'widget'
+        });
+    }
+
     function debugLogSafe(...args) {
         if (deps && typeof deps.debugLog === 'function') {
             deps.debugLog(...args);
@@ -166,10 +177,7 @@
 
         scrollToBottomSafe();
 
-        if (!chatStartedTracked) {
-            chatStartedTracked = true;
-            trackEventSafe('chat_started', { source: 'widget' });
-        }
+        ensureChatStartedTracked('widget_open');
 
         if (getChatHistoryLength() > 0) {
             return;
@@ -206,12 +214,16 @@
             return;
         }
 
+        ensureChatStartedTracked('first_message');
+
         await Promise.resolve(addUserMessageSafe(message)).catch(() => undefined);
         input.value = '';
         await Promise.resolve(processWithKimiSafe(message)).catch(() => undefined);
     }
 
     function sendQuickMessage(type) {
+        ensureChatStartedTracked('quick_message');
+
         if (type === 'appointment') {
             Promise.resolve(addUserMessageSafe('Quiero agendar una cita')).catch(() => undefined);
             startChatBookingSafe();

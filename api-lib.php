@@ -1011,7 +1011,7 @@ function get_vat_rate(): float
 {
     $raw = getenv('PIELARMONIA_VAT_RATE');
     if (!is_string($raw) || trim($raw) === '') {
-        return 0.12;
+        return 0.15;
     }
 
     $rate = (float) trim($raw);
@@ -1056,9 +1056,9 @@ function get_service_label(string $service): string
 {
     $labels = [
         'consulta' => 'Consulta Presencial',
-        'telefono' => 'Consulta Telefonica',
+        'telefono' => 'Consulta Telefónica',
         'video' => 'Video Consulta',
-        'laser' => 'Tratamiento Laser',
+        'laser' => 'Tratamiento Láser',
         'rejuvenecimiento' => 'Rejuvenecimiento'
     ];
     return $labels[$service] ?? $service;
@@ -1078,7 +1078,7 @@ function get_payment_method_label(string $method): string
 {
     $labels = [
         'cash' => 'Efectivo (en consultorio)',
-        'card' => 'Tarjeta de credito/debito',
+        'card' => 'Tarjeta de crédito/débito',
         'transfer' => 'Transferencia bancaria',
         'unpaid' => 'Pendiente'
     ];
@@ -1247,7 +1247,7 @@ function appointment_slot_taken(array $appointments, string $date, string $time,
 function maybe_send_appointment_email(array $appointment): bool
 {
     $to = trim((string) ($appointment['email'] ?? ''));
-    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+    if (!validate_email($to)) {
         return false;
     }
 
@@ -1329,7 +1329,7 @@ function maybe_send_admin_notification(array $appointment): bool
         $adminEmail = 'javier.rosero94@gmail.com';
     }
     $adminEmail = trim((string) $adminEmail);
-    if (!filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+    if (!validate_email($adminEmail)) {
         error_log('Piel en Armonía: PIELARMONIA_ADMIN_EMAIL invalido');
         return false;
     }
@@ -1422,7 +1422,7 @@ function maybe_send_admin_notification(array $appointment): bool
 function maybe_send_cancellation_email(array $appointment): bool
 {
     $to = trim((string) ($appointment['email'] ?? ''));
-    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+    if (!validate_email($to)) {
         return false;
     }
 
@@ -1447,7 +1447,7 @@ function maybe_send_callback_admin_notification(array $callback): bool
     if (!is_string($adminEmail) || $adminEmail === '') {
         return false;
     }
-    if (!filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+    if (!validate_email($adminEmail)) {
         return false;
     }
 
@@ -1465,7 +1465,7 @@ function maybe_send_callback_admin_notification(array $callback): bool
 function maybe_send_reminder_email(array $appointment): bool
 {
     $to = trim((string) ($appointment['email'] ?? ''));
-    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+    if (!validate_email($to)) {
         return false;
     }
 
@@ -1494,7 +1494,7 @@ function maybe_send_reminder_email(array $appointment): bool
 function maybe_send_reschedule_email(array $appointment): bool
 {
     $to = trim((string) ($appointment['email'] ?? ''));
-    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+    if (!validate_email($to)) {
         return false;
     }
 
