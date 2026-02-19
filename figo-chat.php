@@ -290,16 +290,62 @@ function figo_build_fallback_completion(string $model, array $messages): array
     return FigoBrain::process($messages);
 }
 
-function figo_degraded_mode_enabled(): bool
+function figo_parse_bool_value($raw): ?bool
 {
-    $raw = getenv('FIGO_CHAT_DEGRADED_MODE');
+    if (is_bool($raw)) {
+        return $raw;
+    }
+
+    if (is_int($raw) || is_float($raw)) {
+        if ((int) $raw === 1) {
+            return true;
+        }
+        if ((int) $raw === 0) {
+            return false;
+        }
+        return null;
+    }
+
     if (!is_string($raw) || trim($raw) === '') {
-        // Default seguro: evita errores duros en frontend cuando falta configuracion.
-        return true;
+        return null;
     }
 
     $value = strtolower(trim($raw));
-    return in_array($value, ['1', 'true', 'yes', 'on'], true);
+    if (in_array($value, ['1', 'true', 'yes', 'on'], true)) {
+        return true;
+    }
+    if (in_array($value, ['0', 'false', 'no', 'off'], true)) {
+        return false;
+    }
+
+    return null;
+}
+
+function figo_degraded_mode_enabled(
+    array $fileConfig = [],
+    bool $endpointConfigured = false,
+    bool $recursiveConfigDetected = false,
+    ?bool $upstreamReachable = null
+): bool
+{
+    $envMode = figo_parse_bool_value(getenv('FIGO_CHAT_DEGRADED_MODE'));
+    if ($envMode !== null) {
+        return $envMode;
+    }
+
+    if (array_key_exists('degradedMode', $fileConfig)) {
+        $fileMode = figo_parse_bool_value($fileConfig['degradedMode']);
+        if ($fileMode !== null) {
+            return $fileMode;
+        }
+    }
+
+    // Auto mode by default: if upstream is configured and healthy, do not degrade.
+    if ($endpointConfigured && !$recursiveConfigDetected && $upstreamReachable !== false) {
+        return false;
+    }
+
+    return true;
 }
 
 figo_apply_cors();
@@ -332,6 +378,12 @@ $endpoint = figo_first_non_empty([
 $endpointDiagnostics = figo_endpoint_diagnostics($endpoint);
 $recursiveConfigDetected = figo_is_recursive_endpoint($endpoint);
 $upstreamReachable = figo_probe_upstream($endpoint, 3);
+$degradedModeEnabled = figo_degraded_mode_enabled(
+    $fileConfig,
+    $endpointDiagnostics['configured'],
+    $recursiveConfigDetected,
+    $upstreamReachable
+);
 $diagnosticMode = (!$endpointDiagnostics['configured'] || $recursiveConfigDetected || $upstreamReachable === false)
     ? 'degraded'
     : 'live';
@@ -342,7 +394,7 @@ $configSource = isset($fileConfig['__source']) && is_string($fileConfig['__sourc
 if ($method === 'GET') {
     audit_log_event('figo.status', [
         'configured' => $endpointDiagnostics['configured'],
-        'degradedMode' => figo_degraded_mode_enabled(),
+        'degradedMode' => $degradedModeEnabled,
         'endpointHost' => $endpointDiagnostics['endpointHost'],
         'recursiveConfigDetected' => $recursiveConfigDetected,
         'upstreamReachable' => $upstreamReachable
@@ -352,7 +404,7 @@ if ($method === 'GET') {
         'service' => 'figo-chat',
         'mode' => $diagnosticMode,
         'configured' => $endpointDiagnostics['configured'],
-        'degradedMode' => figo_degraded_mode_enabled(),
+        'degradedMode' => $degradedModeEnabled,
         'hasFileConfig' => isset($fileConfig['__source']),
         'configSource' => $configSource,
         'endpointHost' => $endpointDiagnostics['endpointHost'],
@@ -521,7 +573,7 @@ if ($recursiveConfigDetected) {
         'endpointPath' => $endpointDiagnostics['endpointPath']
     ]);
 
-    if (figo_degraded_mode_enabled()) {
+    if ($degradedModeEnabled) {
         $fallback = figo_finalize_completion(
             figo_build_fallback_completion($model, $messages),
             'degraded',
@@ -546,7 +598,7 @@ if ($recursiveConfigDetected) {
 
 $curlAvailable = function_exists('curl_init') && function_exists('curl_setopt_array') && function_exists('curl_exec');
 if (!$curlAvailable) {
-    if (figo_degraded_mode_enabled()) {
+    if ($degradedModeEnabled) {
         $fallback = figo_finalize_completion(
             figo_build_fallback_completion($model, $messages),
             'degraded',
@@ -602,7 +654,7 @@ if (!is_string($rawResponse)) {
     audit_log_event('figo.upstream_error', [
         'reason' => 'curl_failed'
     ]);
-    if (figo_degraded_mode_enabled()) {
+    if ($degradedModeEnabled) {
         $fallback = figo_finalize_completion(
             figo_build_fallback_completion($model, $messages),
             'degraded',
@@ -631,7 +683,7 @@ if ($httpCode >= 400) {
         'reason' => 'http_error',
         'status' => $httpCode
     ]);
-    if (figo_degraded_mode_enabled()) {
+    if ($degradedModeEnabled) {
         $fallback = figo_finalize_completion(
             figo_build_fallback_completion($model, $messages),
             'degraded',

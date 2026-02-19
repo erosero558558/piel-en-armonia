@@ -87,7 +87,7 @@ Configura estas variables en tu hosting:
 - `FIGO_CHAT_TOKEN` (opcional, token Bearer para backend Figo)
 - `FIGO_CHAT_APIKEY_HEADER` y `FIGO_CHAT_APIKEY` (opcionales, si tu backend usa API key custom)
 - `FIGO_CHAT_TIMEOUT_SECONDS` (opcional, default 20)
-- `FIGO_CHAT_DEGRADED_MODE` (opcional: `true` para devolver respuesta de emergencia desde backend)
+- `FIGO_CHAT_DEGRADED_MODE` (opcional: `true` para forzar fallback; por defecto es auto y prioriza `live` cuando upstream esta sano)
 - `FIGO_TELEGRAM_BOT_TOKEN` (opcional, para puente/notificación Telegram en `figo-backend.php`)
 - `FIGO_TELEGRAM_CHAT_ID` (opcional, chat destino para notificaciones Telegram)
 - `FIGO_TELEGRAM_WEBHOOK_SECRET` (recomendado, valida peticiones webhook de Telegram)

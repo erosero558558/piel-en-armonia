@@ -29,6 +29,7 @@
 // Usa el endpoint HTTP real del backend de Clawbot/Figo.
 // putenv('FIGO_CHAT_ENDPOINT=https://TU_BACKEND_FIGO/chat');
 // putenv('FIGO_CHAT_TOKEN=TOKEN_ROTADO_DESDE_BOTFATHER');
+// Opcional: forzar fallback local cuando el backend falle. Por defecto es auto (live si upstream esta sano).
 // putenv('FIGO_CHAT_DEGRADED_MODE=true');
 // Si usas backend local (figo-backend.php) con puente Telegram:
 // putenv('FIGO_CHAT_ENDPOINT=https://pielarmonia.com/figo-backend.php');
