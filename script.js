@@ -360,6 +360,7 @@ const MAX_CASE_PHOTO_BYTES = 5 * 1024 * 1024;
 const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 const CASE_PHOTO_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
+const CONSENT_ENGINE_URL = '/consent-engine.js?v=figo-consent-20260219-phase1';
 let bookingViewTracked = false;
 let chatStartedTracked = false;
 let availabilityPrefetched = false;
@@ -524,7 +525,35 @@ function initThemeMode() {
     runDeferredModule(loadThemeEngine, (engine) => engine.initThemeMode());
 }
 
+function getConsentEngineDeps() {
+    return {
+        getCurrentLang: () => currentLang,
+        showToast,
+        trackEvent,
+        cookieConsentKey: COOKIE_CONSENT_KEY,
+        gaMeasurementId: 'G-GYY8PE5M8W'
+    };
+}
+
+function loadConsentEngine() {
+    return loadDeferredModule({
+        cacheKey: 'consent-engine',
+        src: CONSENT_ENGINE_URL,
+        scriptDataAttribute: 'data-consent-engine',
+        resolveModule: () => window.PielConsentEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getConsentEngineDeps()),
+        missingApiError: 'consent-engine loaded without API',
+        loadError: 'No se pudo cargar consent-engine.js',
+        logLabel: 'Consent engine'
+    });
+}
+
 function getCookieConsent() {
+    if (window.PielConsentEngine && typeof window.PielConsentEngine.getCookieConsent === 'function') {
+        return window.PielConsentEngine.getCookieConsent();
+    }
+
     try {
         const raw = localStorage.getItem(COOKIE_CONSENT_KEY);
         if (!raw) return '';
@@ -536,15 +565,17 @@ function getCookieConsent() {
 }
 
 function setCookieConsent(status) {
-    const normalized = status === 'accepted' ? 'accepted' : 'rejected';
-    try {
-        localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({
-            status: normalized,
-            at: new Date().toISOString()
-        }));
-    } catch (error) {
-        // noop
-    }
+    return runDeferredModule(loadConsentEngine, (engine) => engine.setCookieConsent(status), () => {
+        const normalized = status === 'accepted' ? 'accepted' : 'rejected';
+        try {
+            localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({
+                status: normalized,
+                at: new Date().toISOString()
+            }));
+        } catch (error) {
+            // noop
+        }
+    });
 }
 
 function trackEvent(eventName, params = {}) {
@@ -733,53 +764,11 @@ function initDataEngineWarmup() {
 }
 
 function initGA4() {
-    if (window._ga4Loaded) return;
-    if (getCookieConsent() !== 'accepted') return;
-    window._ga4Loaded = true;
-    var s = document.createElement('script');
-    s.async = true;
-    s.src = 'https://www.googletagmanager.com/gtag/js?id=G-GYY8PE5M8W';
-    document.head.appendChild(s);
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    window.gtag = gtag;
-    gtag('js', new Date());
-    gtag('consent', 'update', { analytics_storage: 'granted' });
-    gtag('config', 'G-GYY8PE5M8W');
+    runDeferredModule(loadConsentEngine, (engine) => engine.initGA4());
 }
 
 function initCookieBanner() {
-    const banner = document.getElementById('cookieBanner');
-    if (!banner) return;
-
-    const consent = getCookieConsent();
-    if (consent === 'accepted' || consent === 'rejected') {
-        banner.classList.remove('active');
-    } else {
-        banner.classList.add('active');
-    }
-
-    const acceptBtn = document.getElementById('cookieAcceptBtn');
-    const rejectBtn = document.getElementById('cookieRejectBtn');
-
-    if (acceptBtn) {
-        acceptBtn.addEventListener('click', () => {
-            setCookieConsent('accepted');
-            banner.classList.remove('active');
-            showToast(currentLang === 'es' ? 'Preferencias de cookies guardadas.' : 'Cookie preferences saved.', 'success');
-            initGA4();
-            trackEvent('cookie_consent_update', { status: 'accepted' });
-        });
-    }
-
-    if (rejectBtn) {
-        rejectBtn.addEventListener('click', () => {
-            setCookieConsent('rejected');
-            banner.classList.remove('active');
-            showToast(currentLang === 'es' ? 'Solo se mantendran cookies esenciales.' : 'Only essential cookies will be kept.', 'info');
-            trackEvent('cookie_consent_update', { status: 'rejected' });
-        });
-    }
+    runDeferredModule(loadConsentEngine, (engine) => engine.initCookieBanner());
 }
 
 function disablePlaceholderExternalLinks() {
