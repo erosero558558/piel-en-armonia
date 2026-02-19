@@ -23,7 +23,7 @@ import {
 import { trackEvent, normalizeAnalyticsLabel } from './analytics.js';
 import { showSuccessModal } from './success-modal.js';
 
-const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1';
+const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260219-mbfix1';
 const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260218-phase4';
 
 export function getCasePhotoFiles(formElement) {

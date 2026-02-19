@@ -146,7 +146,7 @@ function initEnglishBundleWarmup() {
     }
 }
 
-const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2-stateclass1-sync2';
+const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260219-mbfix1';
 
 function getBookingEngineDeps() {
     return {
@@ -1528,7 +1528,7 @@ function escapeHtml(text) {
 // ========================================
 // BOOKING CONVERSACIONAL DESDE CHATBOT (DEFERRED MODULE)
 // ========================================
-const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260219-phase2-inlinefix2-funnel2';
+const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1';
 
 function getChatBookingEngineDeps() {
     return {

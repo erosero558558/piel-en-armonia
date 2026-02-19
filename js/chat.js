@@ -11,7 +11,7 @@ import {
     createAppointmentRecord, openPaymentModal
 } from './booking.js';
 
-const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260218-phase1';
+const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1';
 
 // CHATBOT FUNCTIONS
 export function toggleChatbot() {
