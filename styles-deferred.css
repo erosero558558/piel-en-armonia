@@ -1333,6 +1333,13 @@ textarea:focus {
     padding: 12px 14px;
 }
 
+.price-hint {
+    font-size: 0.82rem;
+    color: #5f7493;
+    margin-top: 8px;
+    font-weight: 500;
+}
+
 .price-row {
     display: flex;
     justify-content: space-between;

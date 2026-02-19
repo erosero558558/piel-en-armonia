@@ -483,7 +483,7 @@
                     <i class="fas fa-headset"></i>
                 </div>
                 <h3 data-i18n="callback_title">¿Prefieres que te llamemos?</h3>
-                <p data-i18n="callback_desc">Déjanos tu número y el doctor te llamará en los próximos minutos.</p>
+                <p data-i18n="callback_desc">Te contactamos en breve (en horario de atención).</p>
                 <form id="callbackForm" class="callback-form">
                     <input type="tel" name="telefono" placeholder="+593 98 000 0000" required>
                     <select name="preferencia" required>
@@ -869,7 +869,7 @@
                         <label data-i18n="label_service">Tipo de Consulta</label>
                         <select name="service" id="serviceSelect" required>
                             <option value="" data-i18n="select_service">Selecciona un servicio</option>
-                            <option value="consulta" data-price="40" data-i18n="opt_consulta">Consulta Dermatológica - $40</option>
+                            <option value="consulta" data-price="40" data-i18n="opt_consulta" selected>Consulta Dermatológica - $40</option>
                             <option value="telefono" data-price="25" data-i18n="opt_telefono">Consulta Telefónica - $25</option>
                             <option value="video" data-price="30" data-i18n="opt_video">Video Consulta - $30</option>
                             <option value="laser" data-price="150" data-i18n="opt_laser">Tratamiento Láser - desde $150</option>
@@ -984,6 +984,7 @@
                             <span data-i18n="summary_total">Total</span>
                             <span id="totalPrice">$0.00</span>
                         </div>
+                        <p id="priceHint" class="price-hint is-hidden" data-i18n="price_hint">Selecciona un servicio para calcular el total.</p>
                     </div>
                     
                     <button type="submit" class="btn btn-primary btn-full">

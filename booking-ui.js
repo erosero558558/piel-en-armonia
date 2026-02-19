@@ -100,16 +100,20 @@
         serviceSelect.addEventListener('change', function () {
             const selected = this.options[this.selectedIndex];
             const price = parseFloat(selected.dataset.price) || 0;
+            const priceHint = document.getElementById('priceHint');
+
+            const iva = price * 0.12;
+            const total = price + iva;
+            subtotalEl.textContent = `$${price.toFixed(2)}`;
+            ivaEl.textContent = `$${iva.toFixed(2)}`;
+            totalEl.textContent = `$${total.toFixed(2)}`;
 
             if (price > 0) {
-                const iva = price * 0.12;
-                const total = price + iva;
-                subtotalEl.textContent = `$${price.toFixed(2)}`;
-                ivaEl.textContent = `$${iva.toFixed(2)}`;
-                totalEl.textContent = `$${total.toFixed(2)}`;
                 priceSummary.classList.remove('is-hidden');
+                if (priceHint) priceHint.classList.add('is-hidden');
             } else {
-                priceSummary.classList.add('is-hidden');
+                priceSummary.classList.remove('is-hidden');
+                if (priceHint) priceHint.classList.remove('is-hidden');
             }
 
             updateAvailableTimes().catch(() => undefined);
@@ -131,6 +135,10 @@
                     phoneInput.value = normalized;
                 }
             });
+        }
+
+        if (serviceSelect.value) {
+            serviceSelect.dispatchEvent(new Event('change'));
         }
 
         appointmentForm.addEventListener('submit', async function (e) {
