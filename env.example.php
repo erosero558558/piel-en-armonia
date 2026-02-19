@@ -49,3 +49,9 @@
 
 // ── Cron (recordatorios automáticos) ────────────────
 // putenv('PIELARMONIA_CRON_SECRET=un_token_secreto_largo');
+
+// ── Redis (Rate Limiting) ──────────────────────────
+// putenv('PIELARMONIA_REDIS_HOST=127.0.0.1');
+// putenv('PIELARMONIA_REDIS_PORT=6379');
+// putenv('PIELARMONIA_REDIS_PASSWORD=');
+// putenv('PIELARMONIA_REDIS_PREFIX=pielarmonia:');
