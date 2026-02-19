@@ -6,6 +6,20 @@ require_once __DIR__ . '/payment-lib.php';
 
 $requestStartedAt = microtime(true);
 
+set_exception_handler(static function (Throwable $e): void {
+    $code = ($e->getCode() >= 400 && $e->getCode() < 600) ? (int) $e->getCode() : 500;
+    if (!headers_sent()) {
+        http_response_code($code);
+        header('Content-Type: application/json; charset=utf-8');
+    }
+    error_log('Piel en Armonía API uncaught: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+    echo json_encode([
+        'ok' => false,
+        'error' => $e->getMessage() ?: 'Error interno del servidor'
+    ], JSON_UNESCAPED_UNICODE);
+    exit(1);
+});
+
 function api_elapsed_ms(float $startedAt): int
 {
     return (int) round((microtime(true) - $startedAt) * 1000);
@@ -342,13 +356,17 @@ if ($method === 'GET' && $resource === 'payment-config') {
         'provider' => 'stripe',
         'enabled' => payment_gateway_enabled(),
         'publishableKey' => payment_stripe_publishable_key(),
-        'currency' => payment_currency(),
-        'turnstileSiteKey' => turnstile_site_key()
+        'currency' => payment_currency()
     ]);
 }
 
 if ($method === 'POST' && $resource === 'payment-intent') {
     require_rate_limit('payment-intent', 8, 60);
+
+    $payload = require_json_body();
+    if (!captcha_verify_token((string)($payload['captchaToken'] ?? ''))) {
+        json_response(['ok' => false, 'error' => 'CAPTCHA invalido'], 400);
+    }
 
     if (!payment_gateway_enabled()) {
         json_response([
@@ -356,8 +374,6 @@ if ($method === 'POST' && $resource === 'payment-intent') {
             'error' => 'Pasarela de pago no configurada'
         ], 503);
     }
-
-    $payload = require_json_body();
     $appointment = normalize_appointment($payload);
 
     if ($appointment['service'] === '' || $appointment['name'] === '' || $appointment['email'] === '') {
@@ -595,14 +611,8 @@ if ($method === 'POST' && $resource === 'appointments') {
     require_rate_limit('appointments', 5, 60);
     $payload = require_json_body();
 
-    if (turnstile_secret_key() !== '') {
-        $captchaToken = (string) ($payload['captchaToken'] ?? '');
-        if (!verify_turnstile_token($captchaToken)) {
-            json_response([
-                'ok' => false,
-                'error' => 'Verificación CAPTCHA fallida. Por favor intenta nuevamente.'
-            ], 400);
-        }
+    if (!captcha_verify_token((string)($payload['captchaToken'] ?? ''))) {
+        json_response(['ok' => false, 'error' => 'CAPTCHA invalido'], 400);
     }
 
     $appointment = normalize_appointment($payload);
@@ -647,6 +657,19 @@ if ($method === 'POST' && $resource === 'appointments') {
             'ok' => false,
             'error' => 'No se puede agendar en una fecha pasada'
         ], 400);
+    }
+
+    // Si es hoy, la hora debe ser al menos 1 hora en el futuro
+    if ($appointment['date'] === local_date('Y-m-d')) {
+        $nowMinutes = (int) local_date('H') * 60 + (int) local_date('i');
+        $parts = explode(':', $appointment['time']);
+        $slotMinutes = (int) ($parts[0] ?? 0) * 60 + (int) ($parts[1] ?? 0);
+        if ($slotMinutes <= $nowMinutes + 60) {
+            json_response([
+                'ok' => false,
+                'error' => 'Ese horario ya pasó o es muy pronto. Selecciona una hora con al menos 1 hora de anticipación, o elige otra fecha.'
+            ], 400);
+        }
     }
 
     // Validar que el horario exista en la disponibilidad configurada
@@ -823,8 +846,17 @@ if ($method === 'POST' && $resource === 'appointments') {
     $store['appointments'][] = $appointment;
     write_store($store);
 
-    $emailSent = maybe_send_appointment_email($appointment);
-    maybe_send_admin_notification($appointment);
+    $emailSent = false;
+    try {
+        $emailSent = maybe_send_appointment_email($appointment);
+    } catch (Throwable $e) {
+        error_log('Piel en Armonía: fallo al enviar email de confirmación: ' . $e->getMessage());
+    }
+    try {
+        maybe_send_admin_notification($appointment);
+    } catch (Throwable $e) {
+        error_log('Piel en Armonía: fallo al enviar notificación admin: ' . $e->getMessage());
+    }
 
     json_response([
         'ok' => true,
@@ -895,7 +927,7 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') 
     if (isset($payload['status']) && map_appointment_status((string) $payload['status']) === 'cancelled') {
         foreach ($store['appointments'] as $apptNotify) {
             if ((int) ($apptNotify['id'] ?? 0) === $id) {
-                maybe_send_cancellation_email($apptNotify);
+                try { maybe_send_cancellation_email($apptNotify); } catch (Throwable $e) { error_log('Piel en Armonía: fallo email cancelación: ' . $e->getMessage()); }
                 break;
             }
         }
@@ -909,6 +941,11 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') 
 if ($method === 'POST' && $resource === 'callbacks') {
     require_rate_limit('callbacks', 5, 60);
     $payload = require_json_body();
+
+    if (!captcha_verify_token((string)($payload['captchaToken'] ?? ''))) {
+        json_response(['ok' => false, 'error' => 'CAPTCHA invalido'], 400);
+    }
+
     $callback = normalize_callback($payload);
 
     if ($callback['telefono'] === '') {
@@ -927,7 +964,7 @@ if ($method === 'POST' && $resource === 'callbacks') {
 
     $store['callbacks'][] = $callback;
     write_store($store);
-    maybe_send_callback_admin_notification($callback);
+    try { maybe_send_callback_admin_notification($callback); } catch (Throwable $e) { error_log('Piel en Armonía: fallo notificación callback: ' . $e->getMessage()); }
     json_response([
         'ok' => true,
         'data' => $callback
@@ -969,6 +1006,11 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'callbacks') {
 if ($method === 'POST' && $resource === 'reviews') {
     require_rate_limit('reviews', 3, 60);
     $payload = require_json_body();
+
+    if (!captcha_verify_token((string)($payload['captchaToken'] ?? ''))) {
+        json_response(['ok' => false, 'error' => 'CAPTCHA invalido'], 400);
+    }
+
     $review = normalize_review($payload);
     if ($review['name'] === '' || $review['text'] === '') {
         json_response([
@@ -1087,7 +1129,7 @@ if ($method === 'PATCH' && $resource === 'reschedule') {
         $found = true;
 
         write_store($store);
-        maybe_send_reschedule_email($appt);
+        try { maybe_send_reschedule_email($appt); } catch (Throwable $e) { error_log('Piel en Armonía: fallo email reagendar: ' . $e->getMessage()); }
 
         json_response([
             'ok' => true,

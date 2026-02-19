@@ -2,58 +2,44 @@
 declare(strict_types=1);
 
 use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
 
-function email_config(): array
-{
-    return [
-        'host' => (string) (getenv('PIELARMONIA_SMTP_HOST') ?: 'smtp.gmail.com'),
-        'port' => (int) (getenv('PIELARMONIA_SMTP_PORT') ?: 587),
-        'user' => (string) (getenv('PIELARMONIA_SMTP_USER') ?: ''),
-        'pass' => (string) (getenv('PIELARMONIA_SMTP_PASS') ?: ''),
-        'from' => (string) (getenv('PIELARMONIA_EMAIL_FROM') ?: ''),
-        'from_name' => 'Piel en Armonía',
-    ];
-}
+require_once dirname(__DIR__) . '/vendor/autoload.php';
 
-function email_enabled(): bool
+function email_send(string $to, string $subject, string $body, string $fromName = 'Piel en Armonía'): bool
 {
-    $cfg = email_config();
-    return $cfg['user'] !== '' && $cfg['pass'] !== '';
-}
-
-function email_send(string $to, string $subject, string $body): bool
-{
-    if (!email_enabled()) {
-        $from = getenv('PIELARMONIA_EMAIL_FROM') ?: 'no-reply@pielarmonia.com';
-        $headers = "From: Piel en Armonía <{$from}>\r\nContent-Type: text/plain; charset=UTF-8";
-        return mail($to, $subject, $body, $headers);
-    }
-
-    $cfg = email_config();
     $mail = new PHPMailer(true);
 
     try {
+        //Server settings
         $mail->isSMTP();
-        $mail->Host = $cfg['host'];
-        $mail->SMTPAuth = true;
-        $mail->Username = $cfg['user'];
-        $mail->Password = $cfg['pass'];
+        $mail->Host       = getenv('PIELARMONIA_SMTP_HOST') ?: 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = getenv('PIELARMONIA_SMTP_USER') ?: '';
+        $mail->Password   = getenv('PIELARMONIA_SMTP_PASS') ?: '';
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port = $cfg['port'];
-        $mail->CharSet = 'UTF-8';
+        $mail->Port       = (int) (getenv('PIELARMONIA_SMTP_PORT') ?: 587);
 
-        $from = $cfg['from'] ?: $cfg['user'];
-        $mail->setFrom($from, $cfg['from_name']);
+        //Recipients
+        $fromEmail = getenv('PIELARMONIA_EMAIL_FROM') ?: $mail->Username;
+        if (!$fromEmail) {
+             error_log('Piel en Armonía: No sender email configured (PIELARMONIA_EMAIL_FROM or SMTP_USER)');
+             return false;
+        }
+
+        $mail->setFrom($fromEmail, $fromName);
         $mail->addAddress($to);
 
+        //Content
+        $mail->isHTML(false);
         $mail->Subject = $subject;
-        $mail->Body = $body;
+        $mail->Body    = $body;
 
         $mail->send();
         return true;
     } catch (Exception $e) {
-        error_log('Piel en Armonía PHPMailer error: ' . $mail->ErrorInfo);
+        error_log("Message could not be sent. Mailer Error: {$mail->ErrorInfo}");
         return false;
     }
 }

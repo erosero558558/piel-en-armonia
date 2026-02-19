@@ -1,38 +1,38 @@
-(function () {
+(function(window) {
     'use strict';
-
     let deps = null;
+    let initialized = false;
     let siteKey = '';
     let scriptLoaded = false;
-    let scriptPromise = null;
+    let loadPromise = null;
 
     function init(inputDeps) {
+        if (initialized) return api;
         deps = inputDeps || {};
-        return window.PielCaptchaEngine;
-    }
+        // Try to find site key in meta or deps
+        siteKey = (deps.config && deps.config.recaptchaSiteKey) || '';
 
-    async function loadConfig() {
-        if (siteKey) return siteKey;
-        if (deps && typeof deps.apiRequest === 'function') {
-            try {
-                // Request config. This request must NOT require captcha itself.
-                const config = await deps.apiRequest('captcha-config', { background: true });
-                siteKey = config.siteKey || '';
-            } catch (e) {
-                console.warn('Captcha config failed', e);
-            }
+        // If not provided, try to find in DOM
+        if (!siteKey) {
+             const meta = document.querySelector('meta[name="recaptcha-site-key"]');
+             if (meta) siteKey = meta.content;
         }
-        return siteKey;
+
+        // Check if global PIELARMONIA_RECAPTCHA_KEY exists (injected by PHP)
+        if (!siteKey && window.PIELARMONIA_RECAPTCHA_KEY) {
+            siteKey = window.PIELARMONIA_RECAPTCHA_KEY;
+        }
+
+        initialized = true;
+        return api;
     }
 
-    async function loadScript() {
-        await loadConfig();
-        if (!siteKey) return false;
+    function loadScript() {
+        if (!siteKey) return Promise.resolve(false);
+        if (scriptLoaded) return Promise.resolve(true);
+        if (loadPromise) return loadPromise;
 
-        if (scriptLoaded) return true;
-        if (scriptPromise) return scriptPromise;
-
-        scriptPromise = new Promise((resolve, reject) => {
+        loadPromise = new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
             script.async = true;
@@ -42,38 +42,36 @@
                 resolve(true);
             };
             script.onerror = () => {
-                scriptPromise = null;
-                reject(new Error('Captcha script failed to load'));
+                console.warn('Failed to load reCAPTCHA');
+                resolve(false); // resolve false to not block app
             };
             document.head.appendChild(script);
         });
-
-        return scriptPromise;
+        return loadPromise;
     }
 
     async function getToken(action) {
-        try {
-            const loaded = await loadScript();
-            if (!loaded || !window.grecaptcha) return '';
+        if (!siteKey) return null;
+        await loadScript();
+        if (!window.grecaptcha) return null;
 
-            return new Promise((resolve) => {
-                window.grecaptcha.ready(() => {
-                    window.grecaptcha.execute(siteKey, { action: action })
-                        .then(token => resolve(token))
-                        .catch(err => {
-                            console.warn('Captcha execution failed', err);
-                            resolve('');
-                        });
-                });
+        return new Promise((resolve) => {
+            window.grecaptcha.ready(async () => {
+                try {
+                    const token = await window.grecaptcha.execute(siteKey, { action: action || 'submit' });
+                    resolve(token);
+                } catch (e) {
+                    console.error('reCAPTCHA execution failed', e);
+                    resolve(null);
+                }
             });
-        } catch (e) {
-            console.warn('Captcha error', e);
-            return '';
-        }
+        });
     }
 
-    window.PielCaptchaEngine = {
+    const api = {
         init,
         getToken
     };
-})();
+
+    window.PielCaptchaEngine = api;
+})(window);

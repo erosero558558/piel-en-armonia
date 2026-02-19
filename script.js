@@ -1,12 +1,12 @@
 /**
- * PIEL EN ARMON�A - Apple Design
+ * PIEL EN ARMONIA - Apple Design
  * Todas las funcionalidades integradas
  * 
  * Incluye:
  * - Toast notifications
  * - Loading states
  * - Exportar a calendario
- * - Validaci�n de disponibilidad
+ * - Validacion de disponibilidad
  */
 
 // ========================================
@@ -33,10 +33,10 @@ function showToast(message, type = 'info', title = '') {
     };
     
     const titles = {
-        success: title || '�xito',
+        success: title || 'Exito',
         error: title || 'Error',
         warning: title || 'Advertencia',
-        info: title || 'Informaci�n'
+        info: title || 'Informacion'
     };
     
     // Escapar mensaje para prevenir XSS
@@ -278,13 +278,24 @@ function runDeferredModule(loader, onReady, onError) {
     });
 }
 
-const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260218-deferred2';
+const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred12-cspinline1-stateclass1';
 
 let deferredStylesheetPromise = null;
 let deferredStylesheetInitDone = false;
 
+function resolveDeferredStylesheetUrl() {
+    const preload = document.querySelector('link[rel="preload"][as="style"][href*="styles-deferred.css"]');
+    if (preload) {
+        const href = preload.getAttribute('href');
+        if (href && href.trim() !== '') {
+            return href;
+        }
+    }
+    return DEFERRED_STYLESHEET_URL;
+}
+
 function loadDeferredStylesheet() {
-    if (document.querySelector('link[data-deferred-stylesheet="true"]')) {
+    if (document.querySelector('link[data-deferred-stylesheet="true"], link[rel="stylesheet"][href*="styles-deferred.css"]')) {
         return Promise.resolve(true);
     }
 
@@ -292,10 +303,12 @@ function loadDeferredStylesheet() {
         return deferredStylesheetPromise;
     }
 
+    const stylesheetUrl = resolveDeferredStylesheetUrl();
+
     deferredStylesheetPromise = new Promise((resolve, reject) => {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = DEFERRED_STYLESHEET_URL;
+        link.href = stylesheetUrl;
         link.dataset.deferredStylesheet = 'true';
         link.onload = () => resolve(true);
         link.onerror = () => reject(new Error('No se pudo cargar styles-deferred.css'));
@@ -331,95 +344,110 @@ function initDeferredStylesheetLoading() {
 // ========================================
 // TRANSLATIONS
 // ========================================
-const I18N_HTML_ALLOWED_KEYS = new Set(['clinic_hours']);
-const translations = {
-    es: null,
-    en: null
+const I18N_ENGINE_URL = '/i18n-engine.js?v=figo-i18n-20260219-phase1';
+const CAPTCHA_ENGINE_URL = '/captcha-engine.js?v=figo-captcha-20260219-phase1';
+const EMAIL_ENGINE_URL = '/email-engine.js?v=figo-email-20260219-phase1';
+
+let currentLang = localStorage.getItem('language') || 'es';
+const THEME_STORAGE_KEY = 'themeMode';
+const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
+let currentThemeMode = localStorage.getItem(THEME_STORAGE_KEY) || 'system';
+const THEME_ENGINE_URL = '/theme-engine.js?v=figo-theme-20260219-phase1';
+const CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
+const CLINIC_MAP_URL = 'https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D';
+const DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
+const DOCTOR_CAROLINA_EMAIL = 'caro93narvaez@gmail.com';
+const MAX_CASE_PHOTOS = 3;
+const MAX_CASE_PHOTO_BYTES = 5 * 1024 * 1024;
+const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
+const CASE_PHOTO_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
+const CONSENT_ENGINE_URL = '/consent-engine.js?v=figo-consent-20260219-phase1';
+const ANALYTICS_ENGINE_URL = '/analytics-engine.js?v=figo-analytics-20260219-phase1';
+let checkoutSessionFallback = {
+    active: false,
+    completed: false,
+    startedAt: 0,
+    service: '',
+    doctor: ''
 };
+const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
+let currentAppointment = null;
+let paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
+let paymentConfigLoaded = false;
+let paymentConfigLoadedAt = 0;
+let stripeSdkPromise = null;
+const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+const DATA_ENGINE_URL = '/data-engine.js?v=figo-data-20260219-phase1';
 
-function captureSpanishTranslationsFromDom() {
-    const bundle = {};
-    document.querySelectorAll('[data-i18n]').forEach((el) => {
-        const key = String(el.dataset.i18n || '').trim();
-        if (!key) {
-            return;
-        }
-
-        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-            bundle[key] = el.placeholder || '';
-            return;
-        }
-
-        if (I18N_HTML_ALLOWED_KEYS.has(key)) {
-            bundle[key] = el.innerHTML || '';
-            return;
-        }
-
-        bundle[key] = el.textContent || '';
-    });
-
-    return bundle;
+function getCaptchaEngineDeps() {
+    return {
+        config: {}
+    };
 }
 
-const EN_TRANSLATIONS_URL = '/translations-en.js?v=ui-20260218-i18n-en1';
-let enTranslationsPromise = null;
-
-function ensureEnglishTranslations() {
-    if (translations.en && typeof translations.en === 'object') {
-        return Promise.resolve(translations.en);
-    }
-
-    if (window.PIEL_EN_TRANSLATIONS && typeof window.PIEL_EN_TRANSLATIONS === 'object') {
-        translations.en = window.PIEL_EN_TRANSLATIONS;
-        return Promise.resolve(translations.en);
-    }
-
-    if (enTranslationsPromise) {
-        return enTranslationsPromise;
-    }
-
-    enTranslationsPromise = new Promise((resolve, reject) => {
-        const existing = document.querySelector('script[data-en-translations="true"]');
-        if (existing) {
-            existing.addEventListener('load', () => {
-                if (window.PIEL_EN_TRANSLATIONS && typeof window.PIEL_EN_TRANSLATIONS === 'object') {
-                    translations.en = window.PIEL_EN_TRANSLATIONS;
-                    resolve(translations.en);
-                    return;
-                }
-                reject(new Error('English translations loaded without payload'));
-            }, { once: true });
-            existing.addEventListener('error', () => reject(new Error('No se pudo cargar translations-en.js')), { once: true });
-            return;
-        }
-
-        const script = document.createElement('script');
-        script.src = EN_TRANSLATIONS_URL;
-        script.async = true;
-        script.defer = true;
-        script.dataset.enTranslations = 'true';
-        script.onload = () => {
-            if (window.PIEL_EN_TRANSLATIONS && typeof window.PIEL_EN_TRANSLATIONS === 'object') {
-                translations.en = window.PIEL_EN_TRANSLATIONS;
-                resolve(translations.en);
-                return;
-            }
-            reject(new Error('English translations loaded without payload'));
-        };
-        script.onerror = () => reject(new Error('No se pudo cargar translations-en.js'));
-        document.head.appendChild(script);
-    }).catch((error) => {
-        enTranslationsPromise = null;
-        debugLog('English translations load failed:', error);
-        throw error;
+function loadCaptchaEngine() {
+    return loadDeferredModule({
+        cacheKey: 'captcha-engine',
+        src: CAPTCHA_ENGINE_URL,
+        scriptDataAttribute: 'data-captcha-engine',
+        resolveModule: () => window.PielCaptchaEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getCaptchaEngineDeps()),
+        missingApiError: 'captcha-engine loaded without API',
+        loadError: 'No se pudo cargar captcha-engine.js',
+        logLabel: 'Captcha engine'
     });
+}
 
-    return enTranslationsPromise;
+function getCaptchaToken(action) {
+    return withDeferredModule(loadCaptchaEngine, (engine) => engine.getToken(action));
+}
+
+function loadEmailEngine() {
+    return loadDeferredModule({
+        cacheKey: 'email-engine',
+        src: EMAIL_ENGINE_URL,
+        scriptDataAttribute: 'data-email-engine',
+        resolveModule: () => window.PielEmailEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(),
+        missingApiError: 'email-engine loaded without API',
+        loadError: 'No se pudo cargar email-engine.js',
+        logLabel: 'Email engine'
+    });
+}
+
+function getI18nEngineDeps() {
+    return {
+        getCurrentLang: () => currentLang,
+        setCurrentLang: (lang) => {
+            currentLang = lang === 'en' ? 'en' : 'es';
+        },
+        showToast,
+        getReviewsCache,
+        renderPublicReviews,
+        debugLog
+    };
+}
+
+function loadI18nEngine() {
+    return loadDeferredModule({
+        cacheKey: 'i18n-engine',
+        src: I18N_ENGINE_URL,
+        scriptDataAttribute: 'data-i18n-engine',
+        resolveModule: () => window.PielI18nEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getI18nEngineDeps()),
+        missingApiError: 'i18n-engine loaded without API',
+        loadError: 'No se pudo cargar i18n-engine.js',
+        logLabel: 'I18n engine'
+    });
 }
 
 function initEnglishBundleWarmup() {
     const warmup = () => {
-        ensureEnglishTranslations().catch(() => undefined);
+        withDeferredModule(loadI18nEngine, (engine) => engine.ensureEnglishTranslations()).catch(() => undefined);
     };
 
     const enBtn = document.querySelector('.lang-btn[data-lang="en"]');
@@ -430,88 +458,7 @@ function initEnglishBundleWarmup() {
     }
 }
 
-let currentLang = localStorage.getItem('language') || 'es';
-const THEME_STORAGE_KEY = 'themeMode';
-const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
-let currentThemeMode = localStorage.getItem(THEME_STORAGE_KEY) || 'system';
-const API_ENDPOINT = '/api.php';
-const CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
-const CLINIC_MAP_URL = 'https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D';
-const DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
-const DOCTOR_CAROLINA_EMAIL = 'caro93narvaez@gmail.com';
-const MAX_CASE_PHOTOS = 3;
-const MAX_CASE_PHOTO_BYTES = 5 * 1024 * 1024;
-const CASE_PHOTO_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
-const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
-const API_REQUEST_TIMEOUT_MS = 9000;
-const API_RETRY_BASE_DELAY_MS = 450;
-const API_DEFAULT_RETRIES = 1;
-const API_SLOW_NOTICE_MS = 1200;
-const API_SLOW_NOTICE_COOLDOWN_MS = 25000;
-const AVAILABILITY_CACHE_TTL_MS = 5 * 60 * 1000;
-const BOOKED_SLOTS_CACHE_TTL_MS = 45 * 1000;
-let apiSlowNoticeLastAt = 0;
-let bookingViewTracked = false;
-let chatStartedTracked = false;
-let availabilityPrefetched = false;
-let reviewsPrefetched = false;
-let checkoutSession = {
-    active: false,
-    completed: false,
-    startedAt: 0,
-    service: '',
-    doctor: ''
-};
-const DEFAULT_PUBLIC_REVIEWS = [
-    {
-        id: 'google-jose-gancino',
-        name: 'Jose Gancino',
-        rating: 5,
-        text: 'Buena atenci�n solo falta los n�meros de la oficina y horarios de atenci�n.',
-        date: '2025-10-01T10:00:00-05:00',
-        verified: true
-    },
-    {
-        id: 'google-jacqueline-ruiz-torres',
-        name: 'Jacqueline Ruiz Torres',
-        rating: 5,
-        text: 'Exelente atenci�n y econ�mico 🙏🤗👌',
-        date: '2025-04-15T10:00:00-05:00',
-        verified: true
-    },
-    {
-        id: 'google-cris-lema',
-        name: 'Cris Lema',
-        rating: 5,
-        text: '',
-        date: '2025-10-10T10:00:00-05:00',
-        verified: true
-    },
-    {
-        id: 'google-camila-escobar',
-        name: 'Camila Escobar',
-        rating: 5,
-        text: '',
-        date: '2025-02-01T10:00:00-05:00',
-        verified: true
-    }
-];
-const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
-let currentAppointment = null;
-let availabilityCache = {};
-let availabilityCacheLoadedAt = 0;
-let availabilityCachePromise = null;
-const bookedSlotsCache = new Map();
-let reviewsCache = [];
-let paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
-let paymentConfigLoaded = false;
-let paymentConfigLoadedAt = 0;
-let stripeSdkPromise = null;
-const LOCAL_FALLBACK_ENABLED = window.location.protocol === 'file:';
-const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
-let themeTransitionTimer = null;
-
-const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1';
+const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2-stateclass1';
 
 function getBookingEngineDeps() {
     return {
@@ -520,10 +467,8 @@ function getBookingEngineDeps() {
         setCurrentAppointment: (appointment) => {
             currentAppointment = appointment;
         },
-        getCheckoutSession: () => checkoutSession,
-        setCheckoutSessionActive: (active) => {
-            checkoutSession.active = active === true;
-        },
+        getCheckoutSession,
+        setCheckoutSessionActive,
         startCheckoutSession,
         completeCheckoutSession,
         maybeTrackCheckoutAbandon,
@@ -538,7 +483,8 @@ function getBookingEngineDeps() {
         showSuccessModal,
         showToast,
         trackEvent,
-        normalizeAnalyticsLabel
+        normalizeAnalyticsLabel,
+        getCaptchaToken
     };
 }
 
@@ -581,64 +527,69 @@ if (!VALID_THEME_MODES.has(currentThemeMode)) {
     currentThemeMode = 'system';
 }
 
-function resolveThemeMode(mode = currentThemeMode) {
-    if (mode === 'system') {
-        if (systemThemeQuery && systemThemeQuery.matches) {
-            return 'dark';
-        }
-        return 'light';
-    }
-    return mode;
+function getThemeEngineDeps() {
+    return {
+        getCurrentThemeMode: () => currentThemeMode,
+        setCurrentThemeMode: (mode) => {
+            currentThemeMode = VALID_THEME_MODES.has(mode) ? mode : 'system';
+        },
+        themeStorageKey: THEME_STORAGE_KEY,
+        validThemeModes: Array.from(VALID_THEME_MODES),
+        getSystemThemeQuery: () => systemThemeQuery
+    };
 }
 
-function applyThemeMode(mode = currentThemeMode) {
-    const resolvedTheme = resolveThemeMode(mode);
-    document.documentElement.setAttribute('data-theme-mode', mode);
-    document.documentElement.setAttribute('data-theme', resolvedTheme);
-}
-
-function updateThemeButtons() {
-    document.querySelectorAll('.theme-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.themeMode === currentThemeMode);
+function loadThemeEngine() {
+    return loadDeferredModule({
+        cacheKey: 'theme-engine',
+        src: THEME_ENGINE_URL,
+        scriptDataAttribute: 'data-theme-engine',
+        resolveModule: () => window.PielThemeEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getThemeEngineDeps()),
+        missingApiError: 'theme-engine loaded without API',
+        loadError: 'No se pudo cargar theme-engine.js',
+        logLabel: 'Theme engine'
     });
 }
 
-function animateThemeTransition() {
-    if (!document.body) return;
-
-    if (themeTransitionTimer) {
-        clearTimeout(themeTransitionTimer);
-    }
-
-    document.body.classList.remove('theme-transition');
-    void document.body.offsetWidth;
-    document.body.classList.add('theme-transition');
-
-    themeTransitionTimer = setTimeout(() => {
-        document.body.classList.remove('theme-transition');
-    }, 320);
-}
-
 function setThemeMode(mode) {
-    if (!VALID_THEME_MODES.has(mode)) {
-        return;
-    }
-
-    currentThemeMode = mode;
-    localStorage.setItem(THEME_STORAGE_KEY, mode);
-    animateThemeTransition();
-    applyThemeMode(mode);
-    updateThemeButtons();
+    runDeferredModule(loadThemeEngine, (engine) => engine.setThemeMode(mode));
 }
 
 function initThemeMode() {
-    const storedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'system';
-    currentThemeMode = VALID_THEME_MODES.has(storedTheme) ? storedTheme : 'system';
-    applyThemeMode(currentThemeMode);
-    updateThemeButtons();
+    runDeferredModule(loadThemeEngine, (engine) => engine.initThemeMode());
+}
+
+function getConsentEngineDeps() {
+    return {
+        getCurrentLang: () => currentLang,
+        showToast,
+        trackEvent,
+        cookieConsentKey: COOKIE_CONSENT_KEY,
+        gaMeasurementId: 'G-GYY8PE5M8W'
+    };
+}
+
+function loadConsentEngine() {
+    return loadDeferredModule({
+        cacheKey: 'consent-engine',
+        src: CONSENT_ENGINE_URL,
+        scriptDataAttribute: 'data-consent-engine',
+        resolveModule: () => window.PielConsentEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getConsentEngineDeps()),
+        missingApiError: 'consent-engine loaded without API',
+        loadError: 'No se pudo cargar consent-engine.js',
+        logLabel: 'Consent engine'
+    });
 }
 
 function getCookieConsent() {
+    if (window.PielConsentEngine && typeof window.PielConsentEngine.getCookieConsent === 'function') {
+        return window.PielConsentEngine.getCookieConsent();
+    }
+
     try {
         const raw = localStorage.getItem(COOKIE_CONSENT_KEY);
         if (!raw) return '';
@@ -650,37 +601,43 @@ function getCookieConsent() {
 }
 
 function setCookieConsent(status) {
-    const normalized = status === 'accepted' ? 'accepted' : 'rejected';
-    try {
-        localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({
-            status: normalized,
-            at: new Date().toISOString()
-        }));
-    } catch (error) {
-        // noop
-    }
+    return runDeferredModule(loadConsentEngine, (engine) => engine.setCookieConsent(status), () => {
+        const normalized = status === 'accepted' ? 'accepted' : 'rejected';
+        try {
+            localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({
+                status: normalized,
+                at: new Date().toISOString()
+            }));
+        } catch (error) {
+            // noop
+        }
+    });
+}
+
+function getAnalyticsEngineDeps() {
+    return {
+        observeOnceWhenVisible,
+        loadAvailabilityData,
+        loadPublicReviews
+    };
+}
+
+function loadAnalyticsEngine() {
+    return loadDeferredModule({
+        cacheKey: 'analytics-engine',
+        src: ANALYTICS_ENGINE_URL,
+        scriptDataAttribute: 'data-analytics-engine',
+        resolveModule: () => window.PielAnalyticsEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getAnalyticsEngineDeps()),
+        missingApiError: 'analytics-engine loaded without API',
+        loadError: 'No se pudo cargar analytics-engine.js',
+        logLabel: 'Analytics engine'
+    });
 }
 
 function trackEvent(eventName, params = {}) {
-    if (!eventName || typeof eventName !== 'string') {
-        return;
-    }
-
-    const payload = {
-        event_category: 'conversion',
-        ...params
-    };
-
-    if (typeof window.gtag === 'function') {
-        window.gtag('event', eventName, payload);
-        return;
-    }
-
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({
-        event: eventName,
-        ...payload
-    });
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.trackEvent(eventName, params));
 }
 
 function normalizeAnalyticsLabel(value, fallback = 'unknown') {
@@ -696,179 +653,132 @@ function normalizeAnalyticsLabel(value, fallback = 'unknown') {
 }
 
 function markBookingViewed(source = 'unknown') {
-    if (bookingViewTracked) {
-        return;
-    }
-    bookingViewTracked = true;
-    trackEvent('view_booking', {
-        source
-    });
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.markBookingViewed(source));
 }
 
 function prefetchAvailabilityData(source = 'unknown') {
-    if (availabilityPrefetched) {
-        return;
-    }
-    availabilityPrefetched = true;
-    loadAvailabilityData().catch(() => {
-        availabilityPrefetched = false;
-    });
-    trackEvent('availability_prefetch', {
-        source
-    });
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.prefetchAvailabilityData(source));
 }
 
 function prefetchReviewsData(source = 'unknown') {
-    if (reviewsPrefetched) {
-        return;
-    }
-    reviewsPrefetched = true;
-    loadPublicReviews().catch(() => {
-        reviewsPrefetched = false;
-    });
-    trackEvent('reviews_prefetch', {
-        source
-    });
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.prefetchReviewsData(source));
 }
 
 function initBookingFunnelObserver() {
-    const bookingSection = document.getElementById('citas');
-    if (!bookingSection) {
-        return;
-    }
-
-    observeOnceWhenVisible(bookingSection, () => {
-        markBookingViewed('observer');
-        prefetchAvailabilityData('booking_section_visible');
-    }, {
-        threshold: 0.35,
-        onNoObserver: () => {
-            markBookingViewed('fallback_no_observer');
-            prefetchAvailabilityData('fallback_no_observer');
-        }
-    });
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.initBookingFunnelObserver());
 }
 
 function initDeferredSectionPrefetch() {
-    const reviewsSection = document.getElementById('resenas');
-    if (!reviewsSection) {
-        return;
-    }
-
-    observeOnceWhenVisible(reviewsSection, () => {
-        prefetchReviewsData('reviews_section_visible');
-    }, {
-        threshold: 0.2,
-        rootMargin: '120px 0px',
-        onNoObserver: () => {
-            prefetchReviewsData('fallback_no_observer');
-        }
-    });
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.initDeferredSectionPrefetch());
 }
 
 function startCheckoutSession(appointment) {
-    checkoutSession = {
+    checkoutSessionFallback = {
         active: true,
         completed: false,
         startedAt: Date.now(),
         service: appointment?.service || '',
         doctor: appointment?.doctor || ''
     };
+
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.startCheckoutSession(appointment));
+}
+
+function getCheckoutSession() {
+    if (window.PielAnalyticsEngine && typeof window.PielAnalyticsEngine.getCheckoutSession === 'function') {
+        const session = window.PielAnalyticsEngine.getCheckoutSession();
+        if (session && typeof session === 'object') {
+            checkoutSessionFallback = {
+                active: session.active === true,
+                completed: session.completed === true,
+                startedAt: Number(session.startedAt) || 0,
+                service: String(session.service || ''),
+                doctor: String(session.doctor || '')
+            };
+        }
+    }
+
+    return checkoutSessionFallback;
+}
+
+function setCheckoutSessionActive(active) {
+    checkoutSessionFallback.active = active === true;
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.setCheckoutSessionActive(active));
 }
 
 function completeCheckoutSession(method) {
-    if (!checkoutSession.active) {
+    if (!checkoutSessionFallback.active) {
         return;
     }
-    checkoutSession.completed = true;
-    trackEvent('booking_confirmed', {
-        payment_method: method || 'unknown',
-        service: checkoutSession.service || '',
-        doctor: checkoutSession.doctor || ''
-    });
+    checkoutSessionFallback.completed = true;
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.completeCheckoutSession(method));
 }
 
 function maybeTrackCheckoutAbandon(reason = 'unknown') {
-    if (!checkoutSession.active || checkoutSession.completed) {
+    if (!checkoutSessionFallback.active || checkoutSessionFallback.completed) {
         return;
     }
 
-    const startedAt = checkoutSession.startedAt || Date.now();
-    const elapsedSec = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
-    trackEvent('checkout_abandon', {
-        service: checkoutSession.service || '',
-        doctor: checkoutSession.doctor || '',
-        elapsed_sec: elapsedSec,
-        reason: normalizeAnalyticsLabel(reason, 'unknown')
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.maybeTrackCheckoutAbandon(reason));
+}
+
+function getDataEngineDeps() {
+    return {
+        getCurrentLang: () => currentLang,
+        showToast,
+        storageGetJSON,
+        storageSetJSON
+    };
+}
+
+function loadDataEngine() {
+    return loadDeferredModule({
+        cacheKey: 'data-engine',
+        src: DATA_ENGINE_URL,
+        scriptDataAttribute: 'data-data-engine',
+        resolveModule: () => window.PielDataEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getDataEngineDeps()),
+        missingApiError: 'data-engine loaded without API',
+        loadError: 'No se pudo cargar data-engine.js',
+        logLabel: 'Data engine'
     });
 }
 
-function waitMs(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+function initDataEngineWarmup() {
+    const warmup = createWarmupRunner(() => loadDataEngine(), { markWarmOnSuccess: true });
+
+    bindWarmupTarget('#appointmentForm', 'focusin', warmup, false);
+    bindWarmupTarget('#appointmentForm', 'pointerdown', warmup);
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'pointerdown', warmup);
+
+    const bookingSection = document.getElementById('citas');
+    observeOnceWhenVisible(bookingSection, warmup, {
+        threshold: 0.05,
+        rootMargin: '260px 0px',
+        onNoObserver: warmup
+    });
+
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 1800,
+        fallbackDelay: 900
+    });
 }
 
 function initGA4() {
-    if (window._ga4Loaded) return;
-    if (getCookieConsent() !== 'accepted') return;
-    window._ga4Loaded = true;
-    var s = document.createElement('script');
-    s.async = true;
-    s.src = 'https://www.googletagmanager.com/gtag/js?id=G-GYY8PE5M8W';
-    document.head.appendChild(s);
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    window.gtag = gtag;
-    gtag('js', new Date());
-    gtag('consent', 'update', { analytics_storage: 'granted' });
-    gtag('config', 'G-GYY8PE5M8W');
+    runDeferredModule(loadConsentEngine, (engine) => engine.initGA4());
 }
 
 function initCookieBanner() {
-    const banner = document.getElementById('cookieBanner');
-    if (!banner) return;
-
-    const consent = getCookieConsent();
-    if (consent === 'accepted' || consent === 'rejected') {
-        banner.classList.remove('active');
-    } else {
-        banner.classList.add('active');
-    }
-
-    const acceptBtn = document.getElementById('cookieAcceptBtn');
-    const rejectBtn = document.getElementById('cookieRejectBtn');
-
-    if (acceptBtn) {
-        acceptBtn.addEventListener('click', () => {
-            setCookieConsent('accepted');
-            banner.classList.remove('active');
-            showToast(currentLang === 'es' ? 'Preferencias de cookies guardadas.' : 'Cookie preferences saved.', 'success');
-            initGA4();
-            trackEvent('cookie_consent_update', { status: 'accepted' });
-        });
-    }
-
-    if (rejectBtn) {
-        rejectBtn.addEventListener('click', () => {
-            setCookieConsent('rejected');
-            banner.classList.remove('active');
-            showToast(currentLang === 'es' ? 'Solo se mantendran cookies esenciales.' : 'Only essential cookies will be kept.', 'info');
-            trackEvent('cookie_consent_update', { status: 'rejected' });
-        });
-    }
+    runDeferredModule(loadConsentEngine, (engine) => engine.initCookieBanner());
 }
 
-function handleSystemThemeChange() {
-    if (currentThemeMode === 'system') {
-        applyThemeMode('system');
-    }
-}
-
-if (systemThemeQuery) {
-    if (typeof systemThemeQuery.addEventListener === 'function') {
-        systemThemeQuery.addEventListener('change', handleSystemThemeChange);
-    } else if (typeof systemThemeQuery.addListener === 'function') {
-        systemThemeQuery.addListener(handleSystemThemeChange);
-    }
+function disablePlaceholderExternalLinks() {
+    document.querySelectorAll('a[href^="URL_"]').forEach((anchor) => {
+        anchor.removeAttribute('href');
+        anchor.setAttribute('aria-disabled', 'true');
+        anchor.classList.add('is-disabled-link');
+    });
 }
 
 function storageGetJSON(key, fallback) {
@@ -889,131 +799,7 @@ function storageSetJSON(key, value) {
 }
 
 async function apiRequest(resource, options = {}) {
-    const method = String(options.method || 'GET').toUpperCase();
-    const query = new URLSearchParams({ resource: resource });
-    if (options.query && typeof options.query === 'object') {
-        Object.entries(options.query).forEach(([key, value]) => {
-            if (value !== undefined && value !== null && value !== '') {
-                query.set(key, String(value));
-            }
-        });
-    }
-    const url = `${API_ENDPOINT}?${query.toString()}`;
-    const requestInit = {
-        method: method,
-        credentials: 'same-origin',
-        headers: {
-            'Accept': 'application/json'
-        }
-    };
-
-    if (options.body !== undefined) {
-        requestInit.headers['Content-Type'] = 'application/json';
-        requestInit.body = JSON.stringify(options.body);
-    }
-
-    const timeoutMs = Number.isFinite(options.timeoutMs) ? Math.max(1500, Number(options.timeoutMs)) : API_REQUEST_TIMEOUT_MS;
-    const maxRetries = Number.isInteger(options.retries)
-        ? Math.max(0, Number(options.retries))
-        : (method === 'GET' ? API_DEFAULT_RETRIES : 0);
-
-    const shouldShowSlowNotice = options.silentSlowNotice !== true;
-    const retryableStatusCodes = new Set([408, 425, 429, 500, 502, 503, 504]);
-
-    function makeApiError(message, status = 0, retryable = false, code = '') {
-        const error = new Error(message);
-        error.status = status;
-        error.retryable = retryable;
-        error.code = code;
-        return error;
-    }
-
-    let lastError = null;
-
-    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-        let slowNoticeTimer = null;
-
-        if (shouldShowSlowNotice) {
-            slowNoticeTimer = setTimeout(() => {
-                const now = Date.now();
-                if ((now - apiSlowNoticeLastAt) > API_SLOW_NOTICE_COOLDOWN_MS) {
-                    apiSlowNoticeLastAt = now;
-                    showToast(
-                        currentLang === 'es'
-                            ? 'Conectando con el servidor...'
-                            : 'Connecting to server...',
-                        'info'
-                    );
-                }
-            }, API_SLOW_NOTICE_MS);
-        }
-
-        try {
-            const response = await fetch(url, {
-                ...requestInit,
-                signal: controller.signal
-            });
-
-            const responseText = await response.text();
-            let payload = {};
-            try {
-                payload = responseText ? JSON.parse(responseText) : {};
-            } catch (error) {
-                throw makeApiError('Respuesta del servidor no es JSON valido', response.status, false, 'invalid_json');
-            }
-
-            if (!response.ok || payload.ok === false) {
-                const message = payload.error || `HTTP ${response.status}`;
-                throw makeApiError(message, response.status, retryableStatusCodes.has(response.status), 'http_error');
-            }
-
-            return payload;
-        } catch (error) {
-            const normalizedError = (() => {
-                if (error && error.name === 'AbortError') {
-                    return makeApiError(
-                        currentLang === 'es'
-                            ? 'Tiempo de espera agotado con el servidor'
-                            : 'Server request timed out',
-                        0,
-                        true,
-                        'timeout'
-                    );
-                }
-
-                if (error instanceof Error) {
-                    if (typeof error.retryable !== 'boolean') {
-                        error.retryable = false;
-                    }
-                    if (typeof error.status !== 'number') {
-                        error.status = 0;
-                    }
-                    return error;
-                }
-
-                return makeApiError('Error de conexion con el servidor', 0, true, 'network_error');
-            })();
-
-            lastError = normalizedError;
-
-            const canRetry = attempt < maxRetries && normalizedError.retryable === true;
-            if (!canRetry) {
-                throw normalizedError;
-            }
-
-            const retryDelay = API_RETRY_BASE_DELAY_MS * (attempt + 1);
-            await waitMs(retryDelay);
-        } finally {
-            clearTimeout(timeoutId);
-            if (slowNoticeTimer !== null) {
-                clearTimeout(slowNoticeTimer);
-            }
-        }
-    }
-
-    throw lastError || new Error('No se pudo completar la solicitud');
+    return withDeferredModule(loadDataEngine, (engine) => engine.apiRequest(resource, options));
 }
 
 async function loadPaymentConfig() {
@@ -1028,11 +814,10 @@ async function loadPaymentConfig() {
             enabled: payload.enabled === true,
             provider: payload.provider || 'stripe',
             publishableKey: payload.publishableKey || '',
-            currency: payload.currency || 'USD',
-            turnstileSiteKey: payload.turnstileSiteKey || ''
+            currency: payload.currency || 'USD'
         };
     } catch (error) {
-        paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD', turnstileSiteKey: '' };
+        paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
     }
     paymentConfigLoaded = true;
     paymentConfigLoadedAt = now;
@@ -1084,49 +869,8 @@ async function verifyPaymentIntent(paymentIntentId) {
     });
 }
 
-async function uploadTransferProof(file) {
-    const formData = new FormData();
-    formData.append('proof', file);
-
-    const query = new URLSearchParams({ resource: 'transfer-proof' });
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
-
-    let response;
-    let text = '';
-    try {
-        response = await fetch(`${API_ENDPOINT}?${query.toString()}`, {
-            method: 'POST',
-            credentials: 'same-origin',
-            body: formData,
-            signal: controller.signal
-        });
-        text = await response.text();
-    } catch (error) {
-        if (error && error.name === 'AbortError') {
-            throw new Error(
-                currentLang === 'es'
-                    ? 'Tiempo de espera agotado al subir el comprobante'
-                    : 'Upload timed out while sending proof file'
-            );
-        }
-        throw error;
-    } finally {
-        clearTimeout(timeoutId);
-    }
-
-    let payload = {};
-    try {
-        payload = text ? JSON.parse(text) : {};
-    } catch (error) {
-        throw new Error('No se pudo interpretar la respuesta de subida');
-    }
-
-    if (!response.ok || payload.ok === false) {
-        throw new Error(payload.error || `HTTP ${response.status}`);
-    }
-
-    return payload.data || {};
+async function uploadTransferProof(file, options = {}) {
+    return withDeferredModule(loadDataEngine, (engine) => engine.uploadTransferProof(file, options));
 }
 
 function getCasePhotoFiles(formElement) {
@@ -1141,7 +885,7 @@ function validateCasePhotoFiles(files) {
     if (files.length > MAX_CASE_PHOTOS) {
         throw new Error(
             currentLang === 'es'
-                ? `Puedes subir maximo ${MAX_CASE_PHOTOS} fotos.`
+                ? `Puedes subir m\u00E1ximo ${MAX_CASE_PHOTOS} fotos.`
                 : `You can upload up to ${MAX_CASE_PHOTOS} photos.`
         );
     }
@@ -1152,7 +896,7 @@ function validateCasePhotoFiles(files) {
         if (file.size > MAX_CASE_PHOTO_BYTES) {
             throw new Error(
                 currentLang === 'es'
-                    ? `Cada foto debe pesar maximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
+                    ? `Cada foto debe pesar m\u00E1ximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
                     : `Each photo must be at most ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
             );
         }
@@ -1184,15 +928,26 @@ async function ensureCasePhotosUploaded(appointment) {
         };
     }
 
-    const uploads = [];
-    for (const file of files) {
-        const uploaded = await uploadTransferProof(file);
-        uploads.push({
-            name: uploaded.transferProofName || file.name || '',
-            url: uploaded.transferProofUrl || '',
-            path: uploaded.transferProofPath || ''
-        });
-    }
+    const uploads = new Array(files.length);
+    const workerCount = Math.max(1, Math.min(CASE_PHOTO_UPLOAD_CONCURRENCY, files.length));
+    let cursor = 0;
+
+    // Limita concurrencia para no saturar red/servidor durante la reserva.
+    const uploadWorker = async () => {
+        while (cursor < files.length) {
+            const index = cursor;
+            cursor += 1;
+            const file = files[index];
+            const uploaded = await uploadTransferProof(file, { retries: 2 });
+            uploads[index] = {
+                name: uploaded.transferProofName || file.name || '',
+                url: uploaded.transferProofUrl || '',
+                path: uploaded.transferProofPath || ''
+            };
+        }
+    };
+
+    await Promise.all(Array.from({ length: workerCount }, () => uploadWorker()));
     appointment.casePhotoUploads = uploads;
 
     return {
@@ -1219,339 +974,100 @@ async function buildAppointmentPayload(appointment) {
     return payload;
 }
 
-function getBookedSlotsCacheKey(date, doctor = '') {
-    return `${String(date || '')}::${String(doctor || '')}`;
-}
-
 function invalidateBookedSlotsCache(date = '', doctor = '') {
-    const targetDate = String(date || '').trim();
-    const targetDoctor = String(doctor || '').trim();
-    if (!targetDate) {
-        bookedSlotsCache.clear();
+    if (window.PielDataEngine && typeof window.PielDataEngine.invalidateBookedSlotsCache === 'function') {
+        window.PielDataEngine.invalidateBookedSlotsCache(date, doctor);
         return;
     }
-
-    for (const key of bookedSlotsCache.keys()) {
-        if (!key.startsWith(`${targetDate}::`)) {
-            continue;
-        }
-        if (targetDoctor === '' || key === getBookedSlotsCacheKey(targetDate, targetDoctor)) {
-            bookedSlotsCache.delete(key);
-        }
-    }
+    runDeferredModule(loadDataEngine, (engine) => engine.invalidateBookedSlotsCache(date, doctor));
 }
 
 async function loadAvailabilityData(options = {}) {
-    const forceRefresh = options && options.forceRefresh === true;
-    const now = Date.now();
-
-    if (!forceRefresh && availabilityCacheLoadedAt > 0 && (now - availabilityCacheLoadedAt) < AVAILABILITY_CACHE_TTL_MS) {
-        return availabilityCache;
-    }
-
-    if (!forceRefresh && availabilityCachePromise) {
-        return availabilityCachePromise;
-    }
-
-    availabilityCachePromise = (async () => {
-        try {
-            const payload = await apiRequest('availability');
-            availabilityCache = payload.data || {};
-            availabilityCacheLoadedAt = Date.now();
-            storageSetJSON('availability', availabilityCache);
-        } catch (error) {
-            availabilityCache = storageGetJSON('availability', {});
-            if (availabilityCache && typeof availabilityCache === 'object' && Object.keys(availabilityCache).length > 0) {
-                availabilityCacheLoadedAt = Date.now();
-            }
-        } finally {
-            availabilityCachePromise = null;
-        }
-
-        return availabilityCache;
-    })();
-
-    return availabilityCachePromise;
+    return withDeferredModule(loadDataEngine, (engine) => engine.loadAvailabilityData(options));
 }
 
 async function getBookedSlots(date, doctor = '') {
-    const cacheKey = getBookedSlotsCacheKey(date, doctor);
-    const now = Date.now();
-    const cachedEntry = bookedSlotsCache.get(cacheKey);
-    if (cachedEntry && (now - cachedEntry.at) < BOOKED_SLOTS_CACHE_TTL_MS) {
-        return cachedEntry.slots;
-    }
-
-    try {
-        const query = { date: date };
-        if (doctor) query.doctor = doctor;
-        const payload = await apiRequest('booked-slots', { query });
-        const slots = Array.isArray(payload.data) ? payload.data : [];
-        bookedSlotsCache.set(cacheKey, {
-            slots,
-            at: now
-        });
-        return slots;
-    } catch (error) {
-        if (!LOCAL_FALLBACK_ENABLED) {
-            throw error;
-        }
-        const appointments = storageGetJSON('appointments', []);
-        const slots = appointments
-            .filter(a => {
-                if (a.date !== date || a.status === 'cancelled') return false;
-                if (doctor && doctor !== 'indiferente') {
-                    const aDoc = a.doctor || '';
-                    if (aDoc && aDoc !== 'indiferente' && aDoc !== doctor) return false;
-                }
-                return true;
-            })
-            .map(a => a.time);
-        bookedSlotsCache.set(cacheKey, {
-            slots,
-            at: now
-        });
-        return slots;
-    }
+    return withDeferredModule(loadDataEngine, (engine) => engine.getBookedSlots(date, doctor));
 }
 
 async function createAppointmentRecord(appointment, options = {}) {
-    const allowLocalFallback = options.allowLocalFallback !== false;
-    try {
-        const payload = await apiRequest('appointments', {
-            method: 'POST',
-            body: appointment
-        });
-        const localAppointments = storageGetJSON('appointments', []);
-        localAppointments.push(payload.data);
-        storageSetJSON('appointments', localAppointments);
-        if (payload && payload.data) {
-            invalidateBookedSlotsCache(payload.data.date || appointment?.date || '', payload.data.doctor || appointment?.doctor || '');
-        } else {
-            invalidateBookedSlotsCache(appointment?.date || '', appointment?.doctor || '');
-        }
-        return {
-            appointment: payload.data,
-            emailSent: payload.emailSent === true
-        };
-    } catch (error) {
-        if (!LOCAL_FALLBACK_ENABLED || !allowLocalFallback) {
-            throw error;
-        }
-        const localAppointments = storageGetJSON('appointments', []);
-        const fallback = {
-            ...appointment,
-            id: Date.now(),
-            status: 'confirmed',
-            dateBooked: new Date().toISOString(),
-            paymentStatus: appointment.paymentStatus || 'pending'
-        };
-        localAppointments.push(fallback);
-        storageSetJSON('appointments', localAppointments);
-        invalidateBookedSlotsCache(fallback.date || appointment?.date || '', fallback.doctor || appointment?.doctor || '');
-        return {
-            appointment: fallback,
-            emailSent: false
-        };
-    }
+    return withDeferredModule(loadDataEngine, (engine) => engine.createAppointmentRecord(appointment, options));
 }
 
 async function createCallbackRecord(callback) {
-    try {
-        await apiRequest('callbacks', {
-            method: 'POST',
-            body: callback
-        });
-    } catch (error) {
-        if (!LOCAL_FALLBACK_ENABLED) {
-            throw error;
-        }
-        const callbacks = storageGetJSON('callbacks', []);
-        callbacks.push(callback);
-        storageSetJSON('callbacks', callbacks);
-    }
+    return withDeferredModule(loadDataEngine, (engine) => engine.createCallbackRecord(callback));
 }
 
 async function createReviewRecord(review) {
-    try {
-        const payload = await apiRequest('reviews', {
-            method: 'POST',
-            body: review
-        });
-        return payload.data;
-    } catch (error) {
-        if (!LOCAL_FALLBACK_ENABLED) {
-            throw error;
-        }
-        const localReviews = storageGetJSON('reviews', []);
-        localReviews.unshift(review);
-        storageSetJSON('reviews', localReviews);
-        return review;
-    }
+    return withDeferredModule(loadDataEngine, (engine) => engine.createReviewRecord(review));
 }
 
-function mergePublicReviews(inputReviews) {
-    const merged = [];
-    const seen = new Set();
+const REVIEWS_ENGINE_URL = '/reviews-engine.js?v=figo-reviews-20260219-phase1';
 
-    const addReview = (review) => {
-        if (!review || typeof review !== 'object') return;
-        const name = String(review.name || '').trim().toLowerCase();
-        const text = String(review.text || '').trim().toLowerCase();
-        const date = String(review.date || '').trim();
-        const signature = `${name}|${text}|${date}`;
-        if (!name || seen.has(signature)) return;
-        seen.add(signature);
-        merged.push(review);
+function getReviewsEngineDeps() {
+    return {
+        apiRequest,
+        storageGetJSON,
+        escapeHtml,
+        getCurrentLang: () => currentLang
     };
-
-    DEFAULT_PUBLIC_REVIEWS.forEach(addReview);
-    if (Array.isArray(inputReviews)) {
-        inputReviews.forEach(addReview);
-    }
-
-    return merged;
 }
 
-async function loadPublicReviews() {
-    try {
-        const payload = await apiRequest('reviews');
-        const fetchedReviews = Array.isArray(payload.data) ? payload.data : [];
-        reviewsCache = mergePublicReviews(fetchedReviews);
-    } catch (error) {
-        const localReviews = storageGetJSON('reviews', []);
-        reviewsCache = mergePublicReviews(localReviews);
-    }
-    renderPublicReviews(reviewsCache);
+function loadReviewsEngine() {
+    return loadDeferredModule({
+        cacheKey: 'reviews-engine',
+        src: REVIEWS_ENGINE_URL,
+        scriptDataAttribute: 'data-reviews-engine',
+        resolveModule: () => window.PielReviewsEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getReviewsEngineDeps()),
+        missingApiError: 'reviews-engine loaded without API',
+        loadError: 'No se pudo cargar reviews-engine.js',
+        logLabel: 'Reviews engine'
+    });
 }
 
-function getInitials(name) {
-    const parts = String(name || 'Paciente')
-        .split(' ')
-        .filter(Boolean)
-        .slice(0, 2);
-    if (parts.length === 0) return 'PA';
-    return parts.map(part => part[0].toUpperCase()).join('');
+function getReviewsCache() {
+    if (window.PielReviewsEngine && typeof window.PielReviewsEngine.getCache === 'function') {
+        return window.PielReviewsEngine.getCache();
+    }
+    return [];
 }
 
-function getRelativeDateLabel(dateText) {
-    const date = new Date(dateText);
-    if (Number.isNaN(date.getTime())) {
-        return currentLang === 'es' ? 'Reciente' : 'Recent';
-    }
-    const now = new Date();
-    const days = Math.max(0, Math.floor((now - date) / (1000 * 60 * 60 * 24)));
-    if (currentLang === 'es') {
-        if (days <= 1) return 'Hoy';
-        if (days < 7) return `Hace ${days} d${days === 1 ? 'ia' : 'ias'}`;
-        if (days < 30) return `Hace ${Math.floor(days / 7)} semana(s)`;
-        return date.toLocaleDateString('es-EC');
-    }
-    if (days <= 1) return 'Today';
-    if (days < 7) return `${days} day(s) ago`;
-    if (days < 30) return `${Math.floor(days / 7)} week(s) ago`;
-    return date.toLocaleDateString('en-US');
-}
-
-function renderStars(rating) {
-    const value = Math.max(1, Math.min(5, Number(rating) || 0));
-    let html = '';
-    for (let i = 1; i <= 5; i += 1) {
-        html += `<i class="${i <= value ? 'fas' : 'far'} fa-star"></i>`;
-    }
-    return html;
+function setReviewsCache(items) {
+    runDeferredModule(loadReviewsEngine, (engine) => engine.setCache(items));
 }
 
 function renderPublicReviews(reviews) {
-    const grid = document.querySelector('.reviews-grid');
-    if (!grid || !Array.isArray(reviews) || reviews.length === 0) return;
+    runDeferredModule(loadReviewsEngine, (engine) => engine.renderPublicReviews(reviews));
+}
 
-    const topReviews = reviews.slice(0, 6);
-    grid.innerHTML = topReviews.map(review => {
-        const text = String(review.text || '').trim();
-        const textHtml = text !== ''
-            ? `<p class="review-text">"${escapeHtml(text)}"</p>`
-            : '';
-        return `
-        <div class="review-card">
-            <div class="review-header">
-                <div class="review-avatar">${escapeHtml(getInitials(review.name))}</div>
-                <div class="review-meta">
-                    <h4>${escapeHtml(review.name || (currentLang === 'es' ? 'Paciente' : 'Patient'))}</h4>
-                    <div class="review-stars">${renderStars(review.rating)}</div>
-                </div>
-            </div>
-            ${textHtml}
-            <span class="review-date">${getRelativeDateLabel(review.date)}</span>
-        </div>
-    `;
-    }).join('');
+function loadPublicReviews(options = {}) {
+    return withDeferredModule(loadReviewsEngine, (engine) => engine.loadPublicReviews(options));
+}
 
-    // Actualizar promedio dinamico en hero + seccion de resenas
-    if (reviews.length > 0) {
-        const avg = reviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / reviews.length;
-        const starsHtml = renderStars(Math.round(avg));
+function initReviewsEngineWarmup() {
+    const warmup = createWarmupRunner(() => loadReviewsEngine(), { markWarmOnSuccess: true });
 
-        document.querySelectorAll('.rating-number').forEach(el => {
-            el.textContent = avg.toFixed(1);
-        });
+    const reviewSection = document.getElementById('resenas');
+    observeOnceWhenVisible(reviewSection, warmup, {
+        threshold: 0.05,
+        rootMargin: '300px 0px',
+        onNoObserver: warmup
+    });
 
-        document.querySelectorAll('.rating-stars').forEach(el => {
-            el.innerHTML = starsHtml;
-        });
-    }
+    bindWarmupTarget('#resenas', 'mouseenter', warmup);
+    bindWarmupTarget('#resenas', 'touchstart', warmup);
+    bindWarmupTarget('#resenas [data-action="open-review-modal"]', 'focus', warmup, false);
 
-    const countText = currentLang === 'es'
-        ? `${reviews.length} rese\u00f1as verificadas`
-        : `${reviews.length} verified reviews`;
-
-    document.querySelectorAll('.rating-count').forEach(el => {
-        el.textContent = countText;
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 2200,
+        fallbackDelay: 1300
     });
 }
 
 async function changeLanguage(lang) {
-    const nextLang = lang === 'en' ? 'en' : 'es';
-    currentLang = nextLang;
-    localStorage.setItem('language', nextLang);
-    document.documentElement.lang = nextLang;
-
-    if (!translations.es || typeof translations.es !== 'object') {
-        translations.es = captureSpanishTranslationsFromDom();
-    }
-
-    if (nextLang === 'en' && !translations.en) {
-        try {
-            await ensureEnglishTranslations();
-        } catch (error) {
-            showToast('No se pudo cargar el paquete de idioma EN. Se mantiene Espanol.', 'warning');
-        }
-    }
-
-    const langPack = translations[nextLang] || translations.es || {};
-
-    // Update buttons
-    document.querySelectorAll('.lang-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.lang === nextLang);
-    });
-    
-    // Update all elements with data-i18n
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.dataset.i18n;
-        if (Object.prototype.hasOwnProperty.call(langPack, key)) {
-            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                el.placeholder = langPack[key];
-            } else if (I18N_HTML_ALLOWED_KEYS.has(key)) {
-                el.innerHTML = langPack[key];
-            } else {
-                el.textContent = langPack[key];
-            }
-        }
-    });
-
-    if (reviewsCache.length > 0) {
-        renderPublicReviews(reviewsCache);
-    }
+    return withDeferredModule(loadI18nEngine, (engine) => engine.changeLanguage(lang));
 }
 
 // ========================================
@@ -1631,7 +1147,7 @@ function initGalleryInteractionsWarmup() {
 // ========================================
 // APPOINTMENT FORM (DEFERRED MODULE)
 // ========================================
-const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260218-phase4';
+const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260218-phase4-stateclass1';
 
 function getBookingUiDeps() {
     return {
@@ -1649,8 +1165,7 @@ function getBookingUiDeps() {
         openPaymentModal,
         setCurrentAppointment: (appointment) => {
             currentAppointment = appointment;
-        },
-        loadPaymentConfig
+        }
     };
 }
 
@@ -1721,20 +1236,12 @@ function closePaymentModal(options = {}) {
         maybeTrackCheckoutAbandon(abandonReason);
     }
 
-    checkoutSession.active = false;
+    setCheckoutSessionActive(false);
     const modal = document.getElementById('paymentModal');
     if (modal) {
         modal.classList.remove('active');
     }
     document.body.style.overflow = '';
-}
-
-function getActivePaymentMethod() {
-    if (window.PielBookingEngine && typeof window.PielBookingEngine.getActivePaymentMethod === 'function') {
-        return window.PielBookingEngine.getActivePaymentMethod();
-    }
-    const activeMethod = document.querySelector('.payment-method.active');
-    return activeMethod?.dataset.method || 'cash';
 }
 
 async function processPayment() {
@@ -1751,7 +1258,7 @@ async function processPayment() {
 // ========================================
 // SUCCESS MODAL (DEFERRED MODULE)
 // ========================================
-const SUCCESS_MODAL_ENGINE_URL = '/success-modal-engine.js?v=figo-success-modal-20260218-phase1';
+const SUCCESS_MODAL_ENGINE_URL = '/success-modal-engine.js?v=figo-success-modal-20260218-phase1-inlineclass1';
 
 function getSuccessModalEngineDeps() {
     return {
@@ -1821,15 +1328,14 @@ function getEngagementFormsEngineDeps() {
         renderPublicReviews,
         showToast,
         getCurrentLang: () => currentLang,
-        getReviewsCache: () => Array.isArray(reviewsCache) ? reviewsCache.slice() : [],
-        setReviewsCache: (items) => {
-            reviewsCache = Array.isArray(items) ? items.slice() : [];
-        }
+        getReviewsCache,
+        setReviewsCache,
+        getCaptchaToken
     };
 }
 
 function loadEngagementFormsEngine() {
-    return loadDeferredModule({
+    return loadReviewsEngine().then(() => loadDeferredModule({
         cacheKey: 'engagement-forms-engine',
         src: ENGAGEMENT_FORMS_ENGINE_URL,
         scriptDataAttribute: 'data-engagement-forms-engine',
@@ -1839,7 +1345,7 @@ function loadEngagementFormsEngine() {
         missingApiError: 'engagement-forms-engine loaded without API',
         loadError: 'No se pudo cargar engagement-forms-engine.js',
         logLabel: 'Engagement forms engine'
-    });
+    }));
 }
 
 function initEngagementFormsEngineWarmup() {
@@ -1977,27 +1483,210 @@ document.addEventListener('click', function(e) {
 // CHATBOT CON FIGO
 // ========================================
 let chatbotOpen = false;
+const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
+const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
+const CHAT_HISTORY_MAX_ITEMS = 50;
+const CHAT_CONTEXT_MAX_ITEMS = 24;
+const CHAT_UI_ENGINE_URL = '/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1';
+const CHAT_WIDGET_ENGINE_URL = '/chat-widget-engine.js?v=figo-chat-widget-20260219-phase1';
+const ACTION_ROUTER_ENGINE_URL = '/action-router-engine.js?v=figo-action-router-20260219-phase1';
+
+function getChatUiEngineDeps() {
+    return {
+        getChatHistory: () => chatHistory,
+        setChatHistory: (nextHistory) => {
+            chatHistory = Array.isArray(nextHistory) ? nextHistory : [];
+        },
+        pruneChatHistory,
+        persistChatHistory,
+        appendConversationContext,
+        debugLog
+    };
+}
+
+function loadChatUiEngine() {
+    return loadDeferredModule({
+        cacheKey: 'chat-ui-engine',
+        src: CHAT_UI_ENGINE_URL,
+        scriptDataAttribute: 'data-chat-ui-engine',
+        resolveModule: () => window.PielChatUiEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getChatUiEngineDeps()),
+        missingApiError: 'chat-ui-engine loaded without API',
+        loadError: 'No se pudo cargar chat-ui-engine.js',
+        logLabel: 'Chat UI engine'
+    });
+}
+
+function initChatUiEngineWarmup() {
+    const warmup = createWarmupRunner(() => loadChatUiEngine(), { markWarmOnSuccess: true });
+
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
+    bindWarmupTarget('#chatInput', 'focus', warmup, false);
+
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 2600,
+        fallbackDelay: 1300
+    });
+}
+
+function getChatWidgetEngineDeps() {
+    return {
+        getChatbotOpen: () => chatbotOpen,
+        setChatbotOpen: (isOpen) => {
+            chatbotOpen = isOpen === true;
+        },
+        getChatHistoryLength: () => chatHistory.length,
+        warmChatUi: () => runDeferredModule(loadChatUiEngine, () => undefined),
+        scrollToBottom,
+        trackEvent,
+        debugLog,
+        addBotMessage,
+        addUserMessage,
+        processWithKimi,
+        startChatBooking
+    };
+}
+
+function loadChatWidgetEngine() {
+    return loadDeferredModule({
+        cacheKey: 'chat-widget-engine',
+        src: CHAT_WIDGET_ENGINE_URL,
+        scriptDataAttribute: 'data-chat-widget-engine',
+        resolveModule: () => window.PielChatWidgetEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getChatWidgetEngineDeps()),
+        missingApiError: 'chat-widget-engine loaded without API',
+        loadError: 'No se pudo cargar chat-widget-engine.js',
+        logLabel: 'Chat widget engine'
+    });
+}
+
+function initChatWidgetEngineWarmup() {
+    const warmup = createWarmupRunner(() => loadChatWidgetEngine(), { markWarmOnSuccess: true });
+
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
+    bindWarmupTarget('#chatInput', 'focus', warmup, false);
+
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 2600,
+        fallbackDelay: 1300
+    });
+}
+
+function getActionRouterEngineDeps() {
+    return {
+        setThemeMode,
+        changeLanguage,
+        toggleMobileMenu,
+        startWebVideo,
+        openReviewModal,
+        closeReviewModal,
+        closeVideoModal,
+        closePaymentModal,
+        processPayment,
+        closeSuccessModal,
+        closeRescheduleModal,
+        submitReschedule,
+        toggleChatbot,
+        sendChatMessage,
+        handleChatBookingSelection,
+        sendQuickMessage,
+        minimizeChatbot,
+        startChatBooking,
+        handleChatDateSelect
+    };
+}
+
+function loadActionRouterEngine() {
+    return loadDeferredModule({
+        cacheKey: 'action-router-engine',
+        src: ACTION_ROUTER_ENGINE_URL,
+        scriptDataAttribute: 'data-action-router-engine',
+        resolveModule: () => window.PielActionRouterEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getActionRouterEngineDeps()),
+        missingApiError: 'action-router-engine loaded without API',
+        loadError: 'No se pudo cargar action-router-engine.js',
+        logLabel: 'Action router engine'
+    });
+}
+
+function initActionRouterEngine() {
+    runDeferredModule(loadActionRouterEngine, () => undefined, (error) => {
+        debugLog('Action router load failed:', error);
+    });
+}
+
+function pruneChatHistory(entries) {
+    if (!Array.isArray(entries) || entries.length === 0) {
+        return [];
+    }
+
+    const cutoff = Date.now() - CHAT_HISTORY_TTL_MS;
+    const filtered = entries.filter((entry) => {
+        if (!entry || typeof entry !== 'object') return false;
+        const ts = entry.time ? new Date(entry.time).getTime() : Number.NaN;
+        return Number.isFinite(ts) && ts > cutoff;
+    });
+
+    if (filtered.length <= CHAT_HISTORY_MAX_ITEMS) {
+        return filtered;
+    }
+
+    return filtered.slice(-CHAT_HISTORY_MAX_ITEMS);
+}
+
+function persistChatHistory() {
+    try {
+        localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(chatHistory));
+    } catch (error) {
+        // noop
+    }
+}
+
+function appendConversationContext(role, content) {
+    const normalizedRole = String(role || '').trim();
+    const normalizedContent = String(content || '').trim();
+    if (!normalizedRole || !normalizedContent) {
+        return;
+    }
+
+    const lastMsg = conversationContext[conversationContext.length - 1];
+    if (lastMsg && lastMsg.role === normalizedRole && lastMsg.content === normalizedContent) {
+        return;
+    }
+
+    conversationContext.push({
+        role: normalizedRole,
+        content: normalizedContent
+    });
+
+    if (conversationContext.length > CHAT_CONTEXT_MAX_ITEMS) {
+        conversationContext = conversationContext.slice(-CHAT_CONTEXT_MAX_ITEMS);
+    }
+}
+
 let chatHistory = (function() {
     try {
-        const raw = localStorage.getItem('chatHistory');
+        const raw = localStorage.getItem(CHAT_HISTORY_STORAGE_KEY);
         const saved = raw ? JSON.parse(raw) : [];
-        const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-        const valid = saved.filter(m => m.time && new Date(m.time).getTime() > cutoff);
+        const valid = pruneChatHistory(saved);
         if (valid.length !== saved.length) {
-            try { localStorage.setItem('chatHistory', JSON.stringify(valid)); } catch(e) {}
+            try {
+                localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(valid));
+            } catch (error) {
+                // noop
+            }
         }
         return valid;
-    } catch(e) { return []; }
+    } catch (error) {
+        return [];
+    }
 })();
 let conversationContext = [];
-
-// CONFIGURACI�N DE CHAT
-const KIMI_CONFIG = {
-    apiUrl: '/figo-chat.php',
-    model: 'figo-assistant',
-    maxTokens: 1000,
-    temperature: 0.7
-};
 
 // Funcion simple para detectar si usar IA real
 function shouldUseRealAI() {
@@ -2014,51 +1703,9 @@ function shouldUseRealAI() {
     return true;
 }
 
-// Contexto del sistema para el asistente
-const SYSTEM_PROMPT = `Eres el Dr. Virtual, asistente inteligente de la cl�nica dermatol�gica "Piel en Armon�a" en Quito, Ecuador.
-
-INFORMACI�N DE LA CL�NICA:
-- Nombre: Piel en Armon�a
-- Doctores: Dr. Javier Rosero (Dermat�logo Cl�nico) y Dra. Carolina Narv�ez (Dermat�loga Est�tica)
-- Direcci�n: ${CLINIC_ADDRESS}
-- Tel�fono/WhatsApp: +593 98 245 3672
-- Contacto Dra. Carolina: ${DOCTOR_CAROLINA_PHONE} | ${DOCTOR_CAROLINA_EMAIL}
-- Horario: Lunes-Viernes 9:00-18:00, S�bados 9:00-13:00
-- Estacionamiento privado disponible
-
-SERVICIOS Y PRECIOS:
-- Consulta Dermatol�gica: $40 (incluye IVA)
-- Consulta Telef�nica: $25
-- Video Consulta: $30
-- Tratamiento L�ser: desde $150
-- Rejuvenecimiento: desde $120
-- Tratamiento de Acn�: desde $80
-- Detecci�n de C�ncer de Piel: desde $70
-
-OPCIONES DE CONSULTA ONLINE:
-1. Llamada telef�nica: tel:+593982453672
-2. WhatsApp Video: https://wa.me/593982453672
-3. Video Web (Jitsi): https://meet.jit.si/PielEnArmonia-Consulta
-
-INSTRUCCIONES:
-- S� profesional, amable y emp�tico
-- Responde en espa�ol (o en el idioma que use el paciente)
-- Si el paciente tiene s�ntomas graves o emergencias, recomienda acudir a urgencias
-- Para agendar citas, dirige al formulario web, WhatsApp o llamada telef�nica
-- Si no sabes algo espec�fico, ofrece transferir al doctor real
-- No hagas diagn�sticos m�dicos definitivos, solo orientaci�n general
-- Usa emojis ocasionalmente para ser amigable
-- Mant�n respuestas concisas pero informativas
-
-Tu objetivo es ayudar a los pacientes a:
-1. Conocer los servicios de la cl�nica
-2. Entender los precios
-3. Agendar citas
-4. Resolver dudas b�sicas sobre dermatolog�a
-5. Conectar con un doctor real cuando sea necesario`;
-
 function toggleChatbot() {
     const container = document.getElementById('chatbotContainer');
+    runDeferredModule(loadChatUiEngine, () => undefined);
     chatbotOpen = !chatbotOpen;
     
     if (chatbotOpen) {
@@ -2077,30 +1724,30 @@ function toggleChatbot() {
             // Verificar si estamos usando IA real
             const usandoIA = shouldUseRealAI();
             
-            debugLog('?? Estado del chatbot:', usandoIA ? 'IA REAL' : 'Respuestas locales');
+            debugLog('Estado del chatbot:', usandoIA ? 'IA REAL' : 'Respuestas locales');
             
             var welcomeMsg;
             
             if (usandoIA) {
-                welcomeMsg = '�Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armon�a</strong>.<br><br>';
+                welcomeMsg = 'Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
                 welcomeMsg += '<strong>Conectado con Inteligencia Artificial</strong><br><br>';
-                welcomeMsg += 'Puedo ayudarte con informaci�n detallada sobre:<br>';
-                welcomeMsg += '� Nuestros servicios dermatologicos<br>';
-                welcomeMsg += '� Precios de consultas y tratamientos<br>';
-                welcomeMsg += '� Agendar citas presenciales o online<br>';
-                welcomeMsg += '� Ubicacion y horarios de atencion<br>';
-                welcomeMsg += '� Resolver tus dudas sobre cuidado de la piel<br><br>';
-                welcomeMsg += '�En que puedo ayudarte hoy?';
+                welcomeMsg += 'Puedo ayudarte con informacion detallada sobre:<br>';
+                welcomeMsg += '- Nuestros servicios dermatol\u00F3gicos<br>';
+                welcomeMsg += '- Precios de consultas y tratamientos<br>';
+                welcomeMsg += '- Agendar citas presenciales o online<br>';
+                welcomeMsg += '- Ubicacion y horarios de atencion<br>';
+                welcomeMsg += '- Resolver tus dudas sobre cuidado de la piel<br><br>';
+                welcomeMsg += 'En que puedo ayudarte hoy?';
             } else {
-                welcomeMsg = '�Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armon�a</strong>.<br><br>';
-                welcomeMsg += 'Puedo ayudarte con informaci�n sobre:<br>';
-                welcomeMsg += '� Nuestros servicios dermatologicos<br>';
-                welcomeMsg += '� Precios de consultas y tratamientos<br>';
-                welcomeMsg += '� Agendar citas presenciales o online<br>';
-                welcomeMsg += '� Ubicacion y horarios de atencion<br><br>';
-                welcomeMsg += '�En que puedo ayudarte hoy?';
+                welcomeMsg = 'Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
+                welcomeMsg += 'Puedo ayudarte con informacion sobre:<br>';
+                welcomeMsg += '- Nuestros servicios dermatol\u00F3gicos<br>';
+                welcomeMsg += '- Precios de consultas y tratamientos<br>';
+                welcomeMsg += '- Agendar citas presenciales o online<br>';
+                welcomeMsg += '- Ubicacion y horarios de atencion<br><br>';
+                welcomeMsg += 'En que puedo ayudarte hoy?';
             }
-            
+
             addBotMessage(welcomeMsg);
             
             // Sugerir opciones rapidas
@@ -2141,7 +1788,7 @@ async function sendChatMessage() {
     
     if (!message) return;
     
-    addUserMessage(message);
+    await Promise.resolve(addUserMessage(message)).catch(() => undefined);
     input.value = '';
 
     await processWithKimi(message);
@@ -2155,228 +1802,51 @@ function sendQuickMessage(type) {
     }
 
     const messages = {
-        services: '�Qu� servicios ofrecen?',
-        prices: '�Cu�les son los precios?',
-        telemedicine: '�C�mo funciona la consulta online?',
+        services: 'Que servicios ofrecen?',
+        prices: 'Cuales son los precios?',
+        telemedicine: 'Como funciona la consulta online?',
         human: 'Quiero hablar con un doctor real',
-        acne: 'Tengo problemas de acn�',
-        laser: 'Informaci�n sobre tratamientos l�ser',
-        location: '�D�nde est�n ubicados?'
+        acne: 'Tengo problemas de acne',
+        laser: 'Informacion sobre tratamientos laser',
+        location: 'Donde estan ubicados?'
     };
 
     const message = messages[type] || type;
-    addUserMessage(message);
+    Promise.resolve(addUserMessage(message)).catch(() => undefined);
 
     processWithKimi(message);
 }
 
 function addUserMessage(text) {
-    const messagesContainer = document.getElementById('chatMessages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'chat-message user';
-    messageDiv.innerHTML = `
-        <div class="message-avatar"><i class="fas fa-user"></i></div>
-        <div class="message-content"><p>${escapeHtml(text)}</p></div>
-    `;
-    messagesContainer.appendChild(messageDiv);
-    scrollToBottom();
-
-    chatHistory.push({ type: 'user', text, time: new Date().toISOString() });
-    try { localStorage.setItem('chatHistory', JSON.stringify(chatHistory)); } catch(e) {}
-
-    // Agregar al contexto de conversaci�n (evitar duplicados)
-    const lastMsg = conversationContext[conversationContext.length - 1];
-    if (!lastMsg || lastMsg.role !== 'user' || lastMsg.content !== text) {
-        conversationContext.push({ role: 'user', content: text });
-    }
-}
-
-function sanitizeBotHtml(html) {
-    const allowed = ['b', 'strong', 'i', 'em', 'br', 'p', 'ul', 'ol', 'li', 'a', 'div', 'button', 'input', 'span', 'small'];
-    const allowedAttrs = {
-        'a': ['href', 'target', 'rel'],
-        'button': ['class', 'data-action'],
-        'div': ['class', 'style'],
-        'input': ['type', 'id', 'min', 'style', 'value'],
-        'i': ['class'],
-        'span': ['class', 'style'],
-        'small': ['class']
-    };
-
-    // Convertir onclick inline a data-action antes de sanitizar
-    const safeHtml = html
-        .replace(/onclick="handleChatBookingSelection\('([^']+)'\)"/g, 'data-action="chat-booking" data-value="$1"')
-        .replace(/onclick="sendQuickMessage\('([^']+)'\)"/g, 'data-action="quick-message" data-value="$1"')
-        .replace(/onclick="handleChatDateSelect\(this\.value\)"/g, 'data-action="chat-date-select"')
-        .replace(/onclick="minimizeChatbot\(\)"/g, 'data-action="minimize-chat"')
-        .replace(/onclick="startChatBooking\(\)"/g, 'data-action="start-booking"');
-
-    const div = document.createElement('div');
-    div.innerHTML = safeHtml;
-    div.querySelectorAll('script, style, iframe, object, embed').forEach(el => el.remove());
-    div.querySelectorAll('*').forEach(el => {
-        const tag = el.tagName.toLowerCase();
-        if (!allowed.includes(tag)) {
-            el.replaceWith(document.createTextNode(el.textContent));
-        } else {
-            const keep = [...(allowedAttrs[tag] || []), 'data-action', 'data-value'];
-            Array.from(el.attributes).forEach(attr => {
-                if (!keep.includes(attr.name)) {
-                    el.removeAttribute(attr.name);
-                }
-            });
-            if (tag === 'a') {
-                const href = el.getAttribute('href') || '';
-                if (!/^https?:\/\/|^#/.test(href)) el.removeAttribute('href');
-                if (href.startsWith('http')) {
-                    el.setAttribute('target', '_blank');
-                    el.setAttribute('rel', 'noopener noreferrer');
-                }
-            }
-            // Eliminar cualquier atributo on* que haya pasado
-            Array.from(el.attributes).forEach(attr => {
-                if (attr.name.startsWith('on')) {
-                    el.removeAttribute(attr.name);
-                }
-            });
-        }
-    });
-    return div.innerHTML;
+    return withDeferredModule(loadChatUiEngine, (engine) => engine.addUserMessage(text));
 }
 
 function addBotMessage(html, showOfflineLabel = false) {
-    const messagesContainer = document.getElementById('chatMessages');
-    const safeHtml = sanitizeBotHtml(html);
-
-    // Verificar si el ultimo mensaje es identico (evitar duplicados en UI)
-    const lastMessage = messagesContainer.querySelector('.chat-message.bot:last-child');
-    if (lastMessage) {
-        const lastContent = lastMessage.querySelector('.message-content');
-        if (lastContent && lastContent.innerHTML === safeHtml) {
-            debugLog('⚠️ Mensaje duplicado detectado, no se muestra');
-            return;
-        }
-    }
-    
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'chat-message bot';
-    
-    // Solo mostrar indicador offline si se solicita expl�citamente (para debug)
-    const offlineIndicator = showOfflineLabel ? 
-        `<div style="font-size: 0.7rem; color: #86868b; margin-bottom: 4px; opacity: 0.7;">
-            <i class="fas fa-robot"></i> Asistente Virtual
-        </div>` : '';
-    
-    messageDiv.innerHTML = `
-        <div class="message-avatar"><i class="fas fa-user-md"></i></div>
-        <div class="message-content">${offlineIndicator}${safeHtml}</div>
-    `;
-    messagesContainer.appendChild(messageDiv);
-    scrollToBottom();
-    
-    // Guardar en historial
-    chatHistory.push({ type: 'bot', text: safeHtml, time: new Date().toISOString() });
-    try { localStorage.setItem('chatHistory', JSON.stringify(chatHistory)); } catch(e) {}
+    return runDeferredModule(loadChatUiEngine, (engine) => engine.addBotMessage(html, showOfflineLabel));
 }
-
-// Delegated event handler for sanitized chat actions (replaces inline onclick)
-document.addEventListener('click', function(e) {
-    const actionEl = e.target.closest('[data-action]');
-    if (!actionEl) return;
-    const action = actionEl.getAttribute('data-action');
-    const value = actionEl.getAttribute('data-value') || '';
-    switch (action) {
-        case 'toast-close':
-            actionEl.closest('.toast')?.remove();
-            break;
-        case 'set-theme':
-            setThemeMode(value || 'system');
-            break;
-        case 'set-language':
-            changeLanguage(value || 'es');
-            break;
-        case 'toggle-mobile-menu':
-            toggleMobileMenu();
-            break;
-        case 'start-web-video':
-            startWebVideo();
-            break;
-        case 'open-review-modal':
-            openReviewModal();
-            break;
-        case 'close-review-modal':
-            closeReviewModal();
-            break;
-        case 'close-video-modal':
-            closeVideoModal();
-            break;
-        case 'close-payment-modal':
-            closePaymentModal();
-            break;
-        case 'process-payment':
-            processPayment();
-            break;
-        case 'close-success-modal':
-            closeSuccessModal();
-            break;
-        case 'close-reschedule-modal':
-            closeRescheduleModal();
-            break;
-        case 'submit-reschedule':
-            submitReschedule();
-            break;
-        case 'toggle-chatbot':
-            toggleChatbot();
-            break;
-        case 'send-chat-message':
-            sendChatMessage();
-            break;
-        case 'chat-booking':
-            handleChatBookingSelection(value);
-            break;
-        case 'quick-message':
-            sendQuickMessage(value);
-            break;
-        case 'minimize-chat':
-            minimizeChatbot();
-            break;
-        case 'start-booking':
-            startChatBooking();
-            break;
-    }
-});
-document.addEventListener('change', function(e) {
-    if (e.target.closest('[data-action="chat-date-select"]')) {
-        handleChatDateSelect(e.target.value);
-    }
-});
-
 function showTypingIndicator() {
-    const messagesContainer = document.getElementById('chatMessages');
-    const typingDiv = document.createElement('div');
-    typingDiv.className = 'chat-message bot typing';
-    typingDiv.id = 'typingIndicator';
-    typingDiv.innerHTML = `
-        <div class="message-avatar"><i class="fas fa-user-md"></i></div>
-        <div class="typing-indicator">
-            <span></span><span></span><span></span>
-        </div>
-    `;
-    messagesContainer.appendChild(typingDiv);
-    scrollToBottom();
+    runDeferredModule(loadChatUiEngine, (engine) => engine.showTypingIndicator());
 }
 
 function removeTypingIndicator() {
-    const typing = document.getElementById('typingIndicator');
-    if (typing) typing.remove();
+    runDeferredModule(loadChatUiEngine, (engine) => engine.removeTypingIndicator());
 }
 
 function scrollToBottom() {
+    if (window.PielChatUiEngine && typeof window.PielChatUiEngine.scrollToBottom === 'function') {
+        window.PielChatUiEngine.scrollToBottom();
+        return;
+    }
     const container = document.getElementById('chatMessages');
-    container.scrollTop = container.scrollHeight;
+    if (container) {
+        container.scrollTop = container.scrollHeight;
+    }
 }
 
 function escapeHtml(text) {
+    if (window.PielChatUiEngine && typeof window.PielChatUiEngine.escapeHtml === 'function') {
+        return window.PielChatUiEngine.escapeHtml(text);
+    }
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
@@ -2385,7 +1855,7 @@ function escapeHtml(text) {
 // ========================================
 // BOOKING CONVERSACIONAL DESDE CHATBOT (DEFERRED MODULE)
 // ========================================
-const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260218-phase1';
+const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260219-phase2-inlinefix1';
 
 function getChatBookingEngineDeps() {
     return {
@@ -2449,16 +1919,6 @@ function startChatBooking() {
     );
 }
 
-function cancelChatBooking() {
-    runDeferredModule(
-        loadChatBookingEngine,
-        (engine) => engine.cancelChatBooking(),
-        () => {
-            addBotMessage('No se pudo cancelar la reserva en este momento.');
-        }
-    );
-}
-
 function handleChatBookingSelection(value) {
     runDeferredModule(
         loadChatBookingEngine,
@@ -2505,7 +1965,7 @@ function isChatBookingActive() {
 function loadFigoChatEngine() {
     return loadDeferredModule({
         cacheKey: 'figo-chat-engine',
-        src: '/chat-engine.js?v=figo-chat-20260218-phase2',
+        src: '/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1',
         scriptDataAttribute: 'data-figo-chat-engine',
         resolveModule: () => window.FigoChatEngine,
         isModuleReady: (module) => !!module,
@@ -2570,24 +2030,6 @@ async function processWithKimi(message) {
     );
 }
 
-function resetConversation() {
-    runDeferredModule(loadFigoChatEngine, (engine) => engine.resetConversation(), () => {
-        showToast('No se pudo reiniciar la conversacion.', 'warning');
-    });
-}
-
-function forzarModoIA() {
-    runDeferredModule(loadFigoChatEngine, (engine) => engine.forzarModoIA(), () => {
-        showToast('No se pudo activar modo IA.', 'warning');
-    });
-}
-
-function mostrarInfoDebug() {
-    runDeferredModule(loadFigoChatEngine, (engine) => engine.mostrarInfoDebug(), () => {
-        showToast('No se pudo mostrar informacion de debug.', 'warning');
-    });
-}
-
 function checkServerEnvironment() {
     if (window.location.protocol === 'file:') {
         setTimeout(() => {
@@ -2607,7 +2049,7 @@ setTimeout(() => {
 // ========================================
 // REPROGRAMACION ONLINE
 // ========================================
-const RESCHEDULE_ENGINE_URL = '/reschedule-engine.js?v=figo-reschedule-20260218-phase4';
+const RESCHEDULE_ENGINE_URL = '/reschedule-engine.js?v=figo-reschedule-20260218-phase4-stateclass1';
 
 function getRescheduleEngineDeps() {
     return {
@@ -2651,14 +2093,6 @@ function initRescheduleEngineWarmup() {
     );
 }
 
-async function checkRescheduleParam() {
-    return withDeferredModule(loadRescheduleEngine, (engine) => engine.checkRescheduleParam());
-}
-
-function openRescheduleModal(appt) {
-    runDeferredModule(loadRescheduleEngine, (engine) => engine.openRescheduleModal(appt));
-}
-
 function closeRescheduleModal() {
     const modal = document.getElementById('rescheduleModal');
     if (modal) {
@@ -2668,10 +2102,6 @@ function closeRescheduleModal() {
     runDeferredModule(loadRescheduleEngine, (engine) => engine.closeRescheduleModal());
 }
 
-function loadRescheduleSlots() {
-    return runDeferredModule(loadRescheduleEngine, (engine) => engine.loadRescheduleSlots());
-}
-
 function submitReschedule() {
     runDeferredModule(loadRescheduleEngine, (engine) => engine.submitReschedule(), () => {
         showToast(currentLang === 'es' ? 'No se pudo reprogramar en este momento.' : 'Unable to reschedule right now.', 'error');
@@ -2679,6 +2109,8 @@ function submitReschedule() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    disablePlaceholderExternalLinks();
+    initActionRouterEngine();
     initDeferredStylesheetLoading();
     initThemeMode();
     changeLanguage(currentLang);
@@ -2689,9 +2121,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const initDeferredWarmups = createOnceTask(() => {
         initEnglishBundleWarmup();
+        initDataEngineWarmup();
         initBookingEngineWarmup();
         initBookingUiWarmup();
+        initReviewsEngineWarmup();
         initGalleryInteractionsWarmup();
+        initChatUiEngineWarmup();
         initChatEngineWarmup();
         initChatBookingEngineWarmup();
         initUiEffectsWarmup();
@@ -2725,3 +2160,4 @@ document.addEventListener('DOMContentLoaded', function() {
         console.warn('Chatbot en modo offline: abre el sitio desde servidor para usar IA real.');
     }
 });
+

@@ -11,13 +11,8 @@ if (is_file($envFile)) {
     require_once $envFile;
 }
 
-if (file_exists(__DIR__ . '/vendor/autoload.php')) {
-    require_once __DIR__ . '/vendor/autoload.php';
-}
-
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-use PHPMailer\PHPMailer\SMTP;
+require_once __DIR__ . '/lib/email.php';
+require_once __DIR__ . '/lib/captcha.php';
 
 const DATA_DIR = __DIR__ . DIRECTORY_SEPARATOR . 'data';
 const DATA_FILE = DATA_DIR . DIRECTORY_SEPARATOR . 'store.json';
@@ -362,57 +357,6 @@ function is_https_request(): bool
     }
 
     return false;
-}
-
-function turnstile_site_key(): string
-{
-    $key = getenv('PIELARMONIA_TURNSTILE_SITE_KEY');
-    return is_string($key) ? trim($key) : '';
-}
-
-function turnstile_secret_key(): string
-{
-    $key = getenv('PIELARMONIA_TURNSTILE_SECRET_KEY');
-    return is_string($key) ? trim($key) : '';
-}
-
-function verify_turnstile_token(string $token): bool
-{
-    $secret = turnstile_secret_key();
-    if ($secret === '') {
-        return true; // Si no hay clave secreta, no se valida (modo desarrollo/inseguro)
-    }
-
-    if ($token === '') {
-        return false;
-    }
-
-    $url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-    $data = [
-        'secret' => $secret,
-        'response' => $token,
-        'remoteip' => $_SERVER['REMOTE_ADDR'] ?? ''
-    ];
-
-    $options = [
-        'http' => [
-            'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
-            'method'  => 'POST',
-            'content' => http_build_query($data),
-            'timeout' => 5
-        ]
-    ];
-
-    $context  = stream_context_create($options);
-    $result = @file_get_contents($url, false, $context);
-
-    if ($result === false) {
-        error_log('Piel en Armonía: fallo al conectar con Turnstile verification');
-        return false; // Fall-closed
-    }
-
-    $json = json_decode($result, true);
-    return isset($json['success']) && $json['success'] === true;
 }
 
 function start_secure_session(): void
@@ -1161,126 +1105,13 @@ function smtp_enabled(): bool
     return $cfg['user'] !== '' && $cfg['pass'] !== '';
 }
 
-function turnstile_site_key(): string
-{
-    return env_value('PIELARMONIA_TURNSTILE_SITE_KEY', '');
-}
-
-function turnstile_secret_key(): string
-{
-    return env_value('PIELARMONIA_TURNSTILE_SECRET_KEY', '');
-}
-
-function verify_encryption_setup(): array
-{
-    $key = data_encryption_key();
-    if ($key === '') {
-        return ['ok' => false, 'error' => 'No hay clave de encriptación configurada'];
-    }
-
-    if (!function_exists('openssl_encrypt')) {
-        return ['ok' => false, 'error' => 'La extensión OpenSSL no está disponible'];
-    }
-
-    // Probar encriptacion y desencriptacion
-    $test = 'test-payload-' . time();
-    $encrypted = data_encrypt_payload($test);
-    if ($encrypted === '') {
-        return ['ok' => false, 'error' => 'Fallo al encriptar datos de prueba'];
-    }
-
-    $decrypted = data_decrypt_payload($encrypted);
-    if ($decrypted !== $test) {
-        return ['ok' => false, 'error' => 'Fallo al desencriptar datos de prueba'];
-    }
-
-    return ['ok' => true];
-}
-
-function verify_turnstile_token(string $token): bool
-{
-    $secret = turnstile_secret_key();
-    if ($secret === '') {
-        return true;
-    }
-
-    if ($token === '') {
-        return false;
-    }
-
-    $url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-    $data = [
-        'secret' => $secret,
-        'response' => $token,
-        'remoteip' => $_SERVER['REMOTE_ADDR'] ?? ''
-    ];
-
-    $options = [
-        'http' => [
-            'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
-            'method'  => 'POST',
-            'content' => http_build_query($data)
-        ]
-    ];
-
-    $context  = stream_context_create($options);
-    $result = @file_get_contents($url, false, $context);
-
-    if ($result === false) {
-        error_log('Piel en Armonía Turnstile: fallo al conectar con Cloudflare');
-        return false;
-    }
-
-    $json = json_decode($result, true);
-    return isset($json['success']) && $json['success'] === true;
-}
-
 /**
- * Envía email vía SMTP usando PHPMailer.
+ * Envía email vía SMTP con autenticación STARTTLS.
+ * Compatible con Gmail y cualquier servidor SMTP estándar.
  */
 function smtp_send_mail(string $to, string $subject, string $body): bool
 {
-    $cfg = smtp_config();
-
-    if ($cfg['user'] === '' || $cfg['pass'] === '') {
-        error_log('Piel en Armonía: SMTP no configurado (PIELARMONIA_SMTP_USER / PIELARMONIA_SMTP_PASS)');
-        return false;
-    }
-
-    $mail = new PHPMailer(true);
-
-    try {
-        // Server settings
-        $mail->isSMTP();
-        $mail->Host       = $cfg['host'];
-        $mail->SMTPAuth   = true;
-        $mail->Username   = $cfg['user'];
-        $mail->Password   = $cfg['pass'];
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = $cfg['port'];
-        $mail->CharSet    = 'UTF-8';
-
-        // Recipients
-        $from = $cfg['from'] !== '' ? $cfg['from'] : $cfg['user'];
-        $fromName = $cfg['from_name'];
-
-        $mail->setFrom($from, $fromName);
-        $mail->addAddress($to);
-
-        // Content
-        $mail->isHTML(false);
-        $mail->Subject = $subject;
-        $mail->Body    = $body;
-
-        $mail->send();
-        return true;
-    } catch (Exception $e) {
-        error_log("Piel en Armonía SMTP: Message could not be sent. Mailer Error: {$mail->ErrorInfo}");
-        return false;
-    } catch (Throwable $e) {
-        error_log("Piel en Armonía SMTP: Error inesperado: " . $e->getMessage());
-        return false;
-    }
+    return email_send($to, $subject, $body);
 }
 
 /**
