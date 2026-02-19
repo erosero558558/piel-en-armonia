@@ -56,12 +56,6 @@ function showToast(message, type = 'info', title = '') {
     }, 5000);
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = String(text ?? '');
-    return div.innerHTML;
-}
-
 function normalizeCallbackStatus(status) {
     const normalized = String(status || '').toLowerCase().trim();
     if (normalized === 'pending') return 'pendiente';
