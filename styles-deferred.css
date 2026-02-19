@@ -1399,6 +1399,38 @@ textarea:focus {
     font-weight: 800;
 }
 
+.price-includes-container {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e1eaf7;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.price-include-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.86rem;
+    color: #345276;
+    line-height: 1.4;
+}
+
+.price-include-item i {
+    margin-top: 3px;
+    color: #26b26b; /* Success green */
+    font-size: 0.8rem;
+}
+
+.price-include-item.exclude {
+    color: #5f748d;
+}
+
+.price-include-item.exclude i {
+    color: #7b94b3; /* Neutral/Info color */
+}
+
 .results-trust-notes {
     margin-top: 18px;
     display: grid;
@@ -2597,6 +2629,22 @@ html[data-theme='dark'] .price-row {
 html[data-theme='dark'] .price-row.total {
     color: #e8f1ff;
     border-top-color: rgba(139, 169, 216, 0.5);
+}
+
+html[data-theme='dark'] .price-includes-container {
+    border-top-color: rgba(139, 169, 216, 0.3);
+}
+
+html[data-theme='dark'] .price-include-item {
+    color: #c5d8f0;
+}
+
+html[data-theme='dark'] .price-include-item.exclude {
+    color: #9ab4d6;
+}
+
+html[data-theme='dark'] .price-include-item.exclude i {
+    color: #7a9cc5;
 }
 
 html[data-theme='dark'] .trust-note,

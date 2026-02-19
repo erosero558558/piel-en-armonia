@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://www.google-analytics.com https://*.stripe.com data:; frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; connect-src 'self' https://api.stripe.com https://m.stripe.network https://r.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com; worker-src 'self' blob:; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://www.google-analytics.com https://*.stripe.com data:; frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; connect-src 'self' https://api.stripe.com https://m.stripe.network https://r.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com; worker-src 'self' blob:; form-action 'self';">
     <title>Piel en Armonía | Dermatología Especializada en Quito</title>
     <meta name="description" content="Clínica dermatológica en Quito. Dr. Javier Rosero y Dra. Carolina Narváez. Consulta presencial, online y telemedicina con pagos seguros.">
     <meta name="robots" content="index, follow, max-image-preview:large">
@@ -43,7 +43,7 @@
           "currenciesAccepted": "USD",
           "address": {
             "@type": "PostalAddress",
-            "streetAddress": "Av. Dr. Cecilio Caiza e Hijas N2-30, Edificio Medicenter, Piso 3, Consultorio 302",
+            "streetAddress": "Valparaiso 13-183 y Sodiro, Consultorio Dr. Celio Caiza",
             "addressLocality": "Quito",
             "addressRegion": "Pichincha",
             "postalCode": "170517",
@@ -68,7 +68,7 @@
               "closes": "13:00"
             }
           ],
-          "hasMap": "https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D",
+          "hasMap": "https://www.google.com/maps/search/Valparaiso+13-183+y+Sodiro,+Quito,+Ecuador",
           "sameAs": [
             "https://wa.me/593982453672"
           ]
@@ -98,8 +98,8 @@
       ]
     }
     </script>
-    <link rel="stylesheet" href="styles.css?v=ui-20260218-critical1">
-    <link rel="preload" as="style" href="styles-deferred.css?v=ui-20260218-deferred2">
+    <link rel="stylesheet" href="styles.css?v=ui-20260219-critical2-mobiletypelock1-a11yfocus1-perfcv1">
+    <link rel="preload" as="style" href="styles-deferred.css?v=ui-20260219-deferred12-cspinline1-stateclass1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -314,16 +314,8 @@
             <h2 class="section-title" data-i18n="services_title">Nuestros Servicios</h2>
             <p class="section-subtitle" data-i18n="services_subtitle">Tratamientos dermatológicos de excelencia</p>
         </div>
-
-        <div class="tabs-container">
-            <button class="tab-btn active" data-filter="all" data-i18n="tab_all">Todos</button>
-            <button class="tab-btn" data-filter="clinical" data-i18n="tab_clinical">Clínico</button>
-            <button class="tab-btn" data-filter="aesthetic" data-i18n="tab_aesthetic">Estético</button>
-            <button class="tab-btn" data-filter="telemedicine" data-i18n="tab_telemedicine">Telemedicina</button>
-        </div>
-
         <div class="services-grid">
-            <div class="service-card" data-category="clinical">
+            <div class="service-card">
                 <div class="service-card-img">
                     <picture>
                         <source type="image/avif" srcset="images/optimized/service-consulta.avif">
@@ -338,7 +330,7 @@
                 <p data-i18n="service_consulta_desc">Evaluación completa de tu piel con diagnóstico preciso y plan de tratamiento personalizado.</p>
                 <span class="service-price">$40</span>
             </div>
-            <div class="service-card featured" data-category="telemedicine">
+            <div class="service-card featured">
                 <div class="service-badge" data-i18n="badge_popular">Popular</div>
                 <div class="service-card-img">
                     <picture>
@@ -354,12 +346,12 @@
                 <p data-i18n="service_telemedicina_desc">Consulta médica desde la comodidad de tu hogar por teléfono o videollamada.</p>
                 <span class="service-price">$25 - $30</span>
             </div>
-            <div class="service-card" data-category="aesthetic">
+            <div class="service-card">
                 <div class="service-card-img">
                     <picture>
                         <source type="image/avif" srcset="images/optimized/service-laser.avif">
                         <source type="image/webp" srcset="images/optimized/service-laser.webp">
-                        <img src="images/optimized/service-laser.jpg" alt="Laser dermatologico" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
+                        <img src="images/optimized/service-laser.jpg" alt="Láser dermatológico" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
                     </picture>
                 </div>
                 <div class="service-icon">
@@ -369,7 +361,7 @@
                 <p data-i18n="service_laser_desc">Tratamientos con láser de última generación para diversas afecciones de la piel.</p>
                 <span class="service-price" data-i18n="price_from">Desde $150</span>
             </div>
-            <div class="service-card" data-category="aesthetic">
+            <div class="service-card">
                 <div class="service-card-img">
                     <picture>
                         <source type="image/avif" srcset="images/optimized/service-rejuvenecimiento.avif">
@@ -384,7 +376,7 @@
                 <p data-i18n="service_rejuvenation_desc">Tratamientos estéticos para recuperar la juventud y luminosidad de tu piel.</p>
                 <span class="service-price" data-i18n="price_from">Desde $120</span>
             </div>
-            <div class="service-card" data-category="clinical">
+            <div class="service-card">
                 <div class="service-card-img">
                     <picture>
                         <source type="image/avif" srcset="images/optimized/service-acne.avif">
@@ -399,7 +391,7 @@
                 <p data-i18n="service_acne_desc">Soluciones efectivas para controlar y eliminar el acné en todas sus formas.</p>
                 <span class="service-price" data-i18n="price_from">Desde $80</span>
             </div>
-            <div class="service-card" data-category="clinical">
+            <div class="service-card">
                 <div class="service-card-img">
                     <picture>
                         <source type="image/avif" srcset="images/optimized/service-cancer.avif">
@@ -491,7 +483,7 @@
                     <i class="fas fa-headset"></i>
                 </div>
                 <h3 data-i18n="callback_title">¿Prefieres que te llamemos?</h3>
-                <p data-i18n="callback_desc">Te contactamos en breve (en horario de atención).</p>
+                <p data-i18n="callback_desc">Déjanos tu número y el doctor te llamará en los próximos minutos.</p>
                 <form id="callbackForm" class="callback-form">
                     <input type="tel" name="telefono" placeholder="+593 98 000 0000" required>
                     <select name="preferencia" required>
@@ -602,10 +594,10 @@
         <div class="gallery-grid">
             <div class="gallery-item" data-category="acne">
                 <div class="ba-slider">
-                    <div class="ba-after" style="background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);">
+                    <div class="ba-after ba-after-tone-1">
                         <span class="ba-label" data-i18n="label_after">Después</span>
                     </div>
-                    <div class="ba-before" style="background: linear-gradient(135deg, #ff7043 0%, #d84315 100%);">
+                    <div class="ba-before ba-before-tone-1">
                         <span class="ba-label" data-i18n="label_before">Antes</span>
                     </div>
                     <div class="ba-handle"></div>
@@ -618,10 +610,10 @@
             
             <div class="gallery-item" data-category="rejuvenecimiento">
                 <div class="ba-slider">
-                    <div class="ba-after" style="background: linear-gradient(135deg, #81c784 0%, #4caf50 100%);">
+                    <div class="ba-after ba-after-tone-2">
                         <span class="ba-label" data-i18n="label_after">Después</span>
                     </div>
-                    <div class="ba-before" style="background: linear-gradient(135deg, #bcaaa4 0%, #8d6e63 100%);">
+                    <div class="ba-before ba-before-tone-2">
                         <span class="ba-label" data-i18n="label_before">Antes</span>
                     </div>
                     <div class="ba-handle"></div>
@@ -634,10 +626,10 @@
             
             <div class="gallery-item" data-category="laser">
                 <div class="ba-slider">
-                    <div class="ba-after" style="background: linear-gradient(135deg, #64b5f6 0%, #1976d2 100%);">
+                    <div class="ba-after ba-after-tone-3">
                         <span class="ba-label" data-i18n="label_after">Después</span>
                     </div>
-                    <div class="ba-before" style="background: linear-gradient(135deg, #90a4ae 0%, #546e7a 100%);">
+                    <div class="ba-before ba-before-tone-3">
                         <span class="ba-label" data-i18n="label_before">Antes</span>
                     </div>
                     <div class="ba-handle"></div>
@@ -650,10 +642,10 @@
             
             <div class="gallery-item" data-category="manchas">
                 <div class="ba-slider">
-                    <div class="ba-after" style="background: linear-gradient(135deg, #fff176 0%, #fdd835 100%);">
+                    <div class="ba-after ba-after-tone-4">
                         <span class="ba-label" data-i18n="label_after">Después</span>
                     </div>
-                    <div class="ba-before" style="background: linear-gradient(135deg, #a1887f 0%, #6d4c41 100%);">
+                    <div class="ba-before ba-before-tone-4">
                         <span class="ba-label" data-i18n="label_before">Antes</span>
                     </div>
                     <div class="ba-handle"></div>
@@ -694,7 +686,7 @@
                         <i class="fas fa-map-marker-alt"></i>
                         <div>
                             <strong data-i18n="clinic_address_label">Dirección</strong>
-                            <p>Av. Dr. Cecilio Caiza e Hijas N2-30 y Av. Amazonas<br>Edificio Medicenter, Piso 3, Consultorio 302<br>La Mariscal (Cerca del Supermaxi 6 de Diciembre)<br>Quito, Ecuador</p>
+                            <p>Valparaiso 13-183 y Sodiro<br>Consultorio Dr. Celio Caiza<br>Referencia: Frente al Colegio de las Mercedarias, a 2 cuadras de la Maternidad Isidro Ayora<br>Quito, Ecuador</p>
                         </div>
                     </div>
                     <div class="clinic-item">
@@ -720,7 +712,7 @@
                     </div>
                 </div>
                 
-                <a href="https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+                <a href="https://www.google.com/maps/search/Valparaiso+13-183+y+Sodiro,+Quito,+Ecuador" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
                     <i class="fas fa-directions"></i>
                     <span data-i18n="btn_directions">Cómo llegar</span>
                 </a>
@@ -728,10 +720,9 @@
             
             <div class="clinic-map">
                 <iframe 
-                    src="https://www.google.com/maps?q=Dr.+Cecilio+Caiza+e+hijas,+Quito,+Ecuador&output=embed"
+                    src="https://www.google.com/maps?q=Valparaiso+13-183+y+Sodiro,+Quito,+Ecuador&output=embed"
                     width="100%" 
                     height="100%" 
-                    style="border:0; border-radius: 24px;" 
                     allowfullscreen="" 
                     loading="lazy" 
                     referrerpolicy="no-referrer-when-downgrade">
@@ -878,7 +869,7 @@
                         <label data-i18n="label_service">Tipo de Consulta</label>
                         <select name="service" id="serviceSelect" required>
                             <option value="" data-i18n="select_service">Selecciona un servicio</option>
-                            <option value="consulta" data-price="40" data-i18n="opt_consulta" selected>Consulta Dermatológica - $40</option>
+                            <option value="consulta" data-price="40" data-i18n="opt_consulta">Consulta Dermatológica - $40</option>
                             <option value="telefono" data-price="25" data-i18n="opt_telefono">Consulta Telefónica - $25</option>
                             <option value="video" data-price="30" data-i18n="opt_video">Video Consulta - $30</option>
                             <option value="laser" data-price="150" data-i18n="opt_laser">Tratamiento Láser - desde $150</option>
@@ -980,7 +971,7 @@
                         </p>
                     </div>
                     
-                    <div class="price-summary" id="priceSummary" style="display: none;">
+                    <div class="price-summary is-hidden" id="priceSummary">
                         <div class="price-row">
                             <span data-i18n="summary_subtotal">Subtotal</span>
                             <span id="subtotalPrice">$0.00</span>
@@ -993,7 +984,16 @@
                             <span data-i18n="summary_total">Total</span>
                             <span id="totalPrice">$0.00</span>
                         </div>
-                        <p id="priceHint" class="price-hint is-hidden" data-i18n="price_hint">Selecciona un servicio para calcular el total.</p>
+                        <div class="price-includes-container">
+                            <div class="price-include-item">
+                                <i class="fas fa-check-circle"></i>
+                                <span data-i18n="summary_includes">Incluye: evaluación + diagnóstico + plan</span>
+                            </div>
+                            <div class="price-include-item exclude">
+                                <i class="fas fa-info-circle"></i>
+                                <span data-i18n="summary_excludes">No incluye: procedimientos adicionales (se informan antes)</span>
+                            </div>
+                        </div>
                     </div>
                     
                     <button type="submit" class="btn btn-primary btn-full">
@@ -1076,7 +1076,7 @@
             <h3 data-i18n="video_modal_title">Elige cómo quieres hacer la videollamada:</h3>
             
             <a href="https://meet.jit.si/PielEnArmonia-Consulta" target="_blank" rel="noopener noreferrer" class="video-option">
-                <div class="video-option-icon" style="background: #1a73e8;">
+                <div class="video-option-icon video-option-icon-jitsi">
                     <i class="fas fa-video"></i>
                 </div>
                 <div class="video-option-info">
@@ -1087,7 +1087,7 @@
             </a>
             
             <a href="https://wa.me/593982453672?text=Hola%20doctor,%20solicito%20videoconsulta" target="_blank" rel="noopener noreferrer" class="video-option">
-                <div class="video-option-icon" style="background: #25d366;">
+                <div class="video-option-icon video-option-icon-whatsapp">
                     <i class="fab fa-whatsapp"></i>
                 </div>
                 <div class="video-option-info">
@@ -1142,7 +1142,7 @@
                 </div>
 
                 <!-- Transfer Payment -->
-                <div class="payment-form transfer-form" style="display: none;">
+                <div class="payment-form transfer-form is-hidden">
                     <div class="bank-info">
                         <p><strong data-i18n="bank_name">Banco Pichincha</strong></p>
                         <p data-i18n="bank_account">Cuenta de Ahorros: 2200160272</p>
@@ -1160,7 +1160,7 @@
                 </div>
                 
                 <!-- Cash Payment -->
-                <div class="payment-form cash-form" style="display: none;">
+                <div class="payment-form cash-form is-hidden">
                     <p data-i18n="cash_info">Paga directamente en el consultorio el día de tu cita.</p>
                 </div>
             </div>
@@ -1195,7 +1195,7 @@
                     <p data-i18n="payment_faq_include_a">Cada servicio indica valor base y tipo de atención. Si requiere procedimientos adicionales, se informa antes de confirmar.</p>
                 </details>
             </div>
-            <div id="paymentError" class="payment-error" style="display: none;"></div>
+            <div id="paymentError" class="payment-error is-hidden"></div>
             
             <button type="button" class="btn btn-primary btn-full" data-action="process-payment">
                 <i class="fas fa-lock"></i>
@@ -1235,7 +1235,7 @@
                     <option value="" data-i18n="reschedule_select_time">Selecciona un horario</option>
                 </select>
             </div>
-            <div id="rescheduleError" class="form-error" style="display:none;"></div>
+            <div id="rescheduleError" class="form-error is-hidden"></div>
             <button type="button" class="btn btn-primary" id="rescheduleSubmitBtn" data-action="submit-reschedule">
                 <span data-i18n="reschedule_confirm">Confirmar reprogramación</span>
             </button>
@@ -1255,10 +1255,10 @@
                     <i class="fas fa-user-md"></i>
                 </div>
                 <div class="chatbot-info">
-                    <h4>Figo</h4>
+                    <h4>Dr. Virtual</h4>
                     <span class="chatbot-status">
                         <i class="fas fa-circle"></i>
-                        Concierge Digital
+                        En línea
                     </span>
                 </div>
                 <div class="chatbot-actions">
@@ -1277,8 +1277,8 @@
                         <i class="fas fa-user-md"></i>
                     </div>
                     <div class="message-content">
-                        <p>¡Hola! Soy <strong>Figo</strong>, tu Concierge Digital en <strong>Piel en Armonía</strong>. 🤖✨</p>
-                        <p>¿En qué puedo servirte hoy?</p>
+                        <p>¡Hola! Soy el asistente virtual de <strong>Piel en Armonía</strong>. 🩺</p>
+                        <p>¿En qué puedo ayudarte hoy?</p>
                     </div>
                 </div>
             </div>
@@ -1362,7 +1362,6 @@
             <a href="cookies.html" class="cookie-link" data-i18n="cookie_more">Más información</a>
         </div>
     </div>
-    <script src="utils.js"></script>
-    <script src="script.js?v=figo-20260218-phase5-opt-i18n2-ui2-gallery1-reschedule1-bookingui1-chatbooking1-successmodal1-engagement1-modalux1-loaderconsolidation1-warmupconsolidation1-observerconsolidation1-wrapperconsolidation1-bootdefer1"></script>
+    <script src="script.js?v=figo-20260218-phase5-opt-i18n2-ui2-gallery1-reschedule1-bookingui1-chatbooking1-successmodal1-engagement1-modalux1-loaderconsolidation1-warmupconsolidation1-observerconsolidation1-wrapperconsolidation1-bootdefer1-apihardening1-uploadretry1-analytics2-uploadparallel1-transferretry2-linkrel1-textclean1-placeholderlinks1-a11yfocus1-deferredsync1-chathardening1-depuracionjs6-cspinline1-dataenginewrap1-chatui1-actionrouter1-i18nengine1-themeengine1-consentengine1-analyticsengine1"></script>
 </body>
 </html>
