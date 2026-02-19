@@ -6,6 +6,9 @@ declare(strict_types=1);
  * Chatbot traffic must use /figo-chat.php
  */
 
+require_once __DIR__ . '/api-lib.php';
+apply_security_headers(false);
+
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 

@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
 
+apply_security_headers(false);
+
 /**
  * Figo chat endpoint.
  * Frontend -> /figo-chat.php -> configured Figo backend.

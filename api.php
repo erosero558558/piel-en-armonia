@@ -4,6 +4,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/api-lib.php';
 require_once __DIR__ . '/payment-lib.php';
 
+apply_security_headers(false);
+
 $requestStartedAt = microtime(true);
 
 set_exception_handler(static function (Throwable $e): void {
