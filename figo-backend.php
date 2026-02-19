@@ -520,7 +520,7 @@ if ($method !== 'POST') {
     ], 405);
 }
 
-require_rate_limit('figo-backend', 30, 60);
+require_rate_limit('figo-backend');
 $payload = require_json_body();
 
 if (figo_backend_is_telegram_update($payload)) {

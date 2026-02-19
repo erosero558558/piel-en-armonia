@@ -427,7 +427,7 @@ if ($method !== 'POST') {
 }
 
 start_secure_session();
-require_rate_limit('figo-chat', 15, 60);
+require_rate_limit('figo-chat');
 
 $payload = require_json_body();
 $messages = isset($payload['messages']) && is_array($payload['messages'])

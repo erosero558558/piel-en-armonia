@@ -22,6 +22,20 @@ const ADMIN_PASSWORD_HASH_ENV = 'PIELARMONIA_ADMIN_PASSWORD_HASH';
 const APP_TIMEZONE = 'America/Guayaquil';
 const SESSION_TIMEOUT = 1800; // 30 minutos de inactividad
 
+const RATE_LIMIT_CONFIG = [
+    'admin-login' => [5, 300],
+    'figo-chat' => [15, 60],
+    'payment-intent' => [8, 60],
+    'payment-verify' => [12, 60],
+    'transfer-proof' => [6, 60],
+    'appointments' => [5, 60],
+    'callbacks' => [5, 60],
+    'reviews' => [3, 60],
+    'reschedule' => [5, 60],
+    'figo-backend' => [30, 60],
+    'default' => [10, 60]
+];
+
 date_default_timezone_set(APP_TIMEZONE);
 
 function local_date(string $format): string
@@ -823,8 +837,14 @@ function check_rate_limit(string $action, int $maxRequests = 10, int $windowSeco
     return true;
 }
 
-function require_rate_limit(string $action, int $maxRequests = 10, int $windowSeconds = 60): void
+function require_rate_limit(string $action, ?int $maxRequests = null, ?int $windowSeconds = null): void
 {
+    if ($maxRequests === null || $windowSeconds === null) {
+        $config = RATE_LIMIT_CONFIG[$action] ?? RATE_LIMIT_CONFIG['default'];
+        $maxRequests = $maxRequests ?? $config[0];
+        $windowSeconds = $windowSeconds ?? $config[1];
+    }
+
     if (!check_rate_limit($action, $maxRequests, $windowSeconds)) {
         json_response([
             'ok' => false,
