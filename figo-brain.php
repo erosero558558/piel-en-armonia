@@ -3,37 +3,98 @@ declare(strict_types=1);
 
 /**
  * FigoBrain: Local Intelligence for Piel en Armonía Chatbot.
- * Provides smart, context-aware responses without external AI.
+ * "El alma de la página web": Professional, Empathetic, and Precise.
  */
 
 class FigoBrain
 {
     private const INTENTS = [
-        'greeting' => ['hola', 'buenos dias', 'buenas tardes', 'buenas noches', 'hey', 'hi', 'hello', 'saludos'],
-        'pricing' => ['precio', 'cuanto cuesta', 'valor', 'tarifa', 'costo', 'presupuesto'],
-        'services' => ['servicios', 'tratamientos', 'que hacen', 'que ofrecen', 'procedimientos'],
-        'booking' => ['cita', 'agendar', 'reservar', 'turno', 'hora', 'quiero una consulta'],
-        'payment' => ['pago', 'pagar', 'tarjeta', 'transferencia', 'efectivo', 'deposito', 'factura', 'comprobante'],
-        'location' => ['donde', 'ubicacion', 'direccion', 'lugar', 'mapa', 'como llegar', 'quito'],
-        'hours' => ['horario', 'hora atencion', 'cuando atienden', 'abierto', 'cerrado'],
-        'doctors' => ['doctor', 'medico', 'especialista', 'rosero', 'narvaez', 'quien atiende'],
-        'acne' => ['acne', 'granos', 'espinillas', 'barros', 'manchas de acne', 'cicatrices'],
-        'laser' => ['laser', 'cicatrices', 'depilacion', 'manchas', 'vascular'],
-        'rejuvenation' => ['rejuvenecimiento', 'arrugas', 'botox', 'relleno', 'antiage', 'joven'],
-        'telemedicine' => ['online', 'virtual', 'video', 'remota', 'telemedicina', 'whatsapp', 'llamada'],
-        'cancellation' => ['cancelar', 'anular', 'no puedo ir'],
-        'rescheduling' => ['reprogramar', 'cambiar fecha', 'mover cita'],
-        'contact' => ['telefono', 'celular', 'whatsapp', 'correo', 'email', 'contacto'],
-        'thanks' => ['gracias', 'ok', 'listo', 'perfecto', 'excelente', 'muy amable']
+        'greeting' => [
+            'hola', 'buenos dias', 'buenas tardes', 'buenas noches', 'hey', 'hi', 'hello', 'saludos',
+            'que tal', 'como estas', 'buen dia', 'buenas'
+        ],
+        'identity' => [
+            'quien eres', 'eres un bot', 'eres ia', 'como te llamas', 'tu nombre', 'quien me atiende',
+            'hablo con una persona', 'eres real', 'sos real'
+        ],
+        'pricing' => [
+            'precio', 'cuanto cuesta', 'valor', 'tarifa', 'costo', 'presupuesto', 'cotizacion',
+            'cuanto vale', 'precios', 'honorarios', 'me cobra', 'cuanto sale', 'a como', 'cobran'
+        ],
+        'services' => [
+            'servicios', 'tratamientos', 'que hacen', 'que ofrecen', 'procedimientos', 'especialidades',
+            'que atienden', 'catalogo', 'portafolio', 'hacen'
+        ],
+        'booking' => [
+            'cita', 'agendar', 'reservar', 'turno', 'hora', 'quiero una consulta', 'sacar turno',
+            'pedir hora', 'consulta medica', 'quiero ir', 'disponibilidad', 'agenda', 'cuando hay turno'
+        ],
+        'payment' => [
+            'pago', 'pagar', 'tarjeta', 'transferencia', 'efectivo', 'deposito', 'factura', 'comprobante',
+            'metodos de pago', 'aceptan', 'forma de pago', 'visa', 'mastercard', 'banco'
+        ],
+        'location' => [
+            'donde', 'ubicacion', 'direccion', 'lugar', 'mapa', 'como llegar', 'quito', 'sector',
+            'calle', 'edificio', 'donde quedan', 'donde estan', 'local', 'consultorio'
+        ],
+        'hours' => [
+            'horario', 'hora atencion', 'cuando atienden', 'abierto', 'cerrado', 'dias', 'feriado',
+            'sabado', 'domingo', 'fin de semana', 'que hora'
+        ],
+        'doctors' => [
+            'doctor', 'medico', 'especialista', 'rosero', 'narvaez', 'quien atiende', 'dermatologo',
+            'profesional', 'experiencia', 'curriculum', 'javier', 'carolina'
+        ],
+        'acne' => [
+            'acne', 'granos', 'espinillas', 'barros', 'manchas de acne', 'cicatrices', 'puntos negros',
+            'comedones', 'brote', 'cara grasosa', 'piel grasa'
+        ],
+        'laser' => [
+            'laser', 'cicatrices', 'depilacion', 'manchas', 'vascular', 'co2', 'fraccionado',
+            'luz pulsada', 'ipl', 'marcas', 'quemaduras', 'lunares'
+        ],
+        'rejuvenation' => [
+            'rejuvenecimiento', 'arrugas', 'botox', 'relleno', 'antiage', 'joven', 'flacidez',
+            'surcos', 'patas de gallo', 'lineas de expresion', 'hialuronico', 'toxina', 'bioestimuladores'
+        ],
+        'telemedicine' => [
+            'online', 'virtual', 'video', 'remota', 'telemedicina', 'whatsapp', 'llamada',
+            'distancia', 'internet', 'videollamada', 'zoom'
+        ],
+        'cancellation' => [
+            'cancelar', 'anular', 'no puedo ir', 'suspender', 'dar de baja', 'borrar cita'
+        ],
+        'rescheduling' => [
+            'reprogramar', 'cambiar fecha', 'mover cita', 'postergar', 'otra fecha', 'cambiar hora', 'atrasar', 'adelantar'
+        ],
+        'contact' => [
+            'telefono', 'celular', 'whatsapp', 'correo', 'email', 'contacto', 'llamar', 'escribir',
+            'numero', 'mail', 'info'
+        ],
+        'thanks' => [
+            'gracias', 'ok', 'listo', 'perfecto', 'excelente', 'muy amable', 'chevere', 'grac', 'thanks', 'thank you'
+        ]
     ];
 
     public static function process(array $messages): array
     {
+        $history = array_reverse($messages);
         $lastUserMessage = '';
-        foreach (array_reverse($messages) as $msg) {
-            if (($msg['role'] ?? '') === 'user') {
-                $lastUserMessage = (string) ($msg['content'] ?? '');
-                break;
+        $previousUserMessage = '';
+        $lastAssistantMessage = '';
+
+        foreach ($history as $msg) {
+            $role = $msg['role'] ?? '';
+            $content = (string) ($msg['content'] ?? '');
+
+            if ($role === 'user') {
+                if ($lastUserMessage === '') {
+                    $lastUserMessage = $content;
+                } elseif ($previousUserMessage === '') {
+                    $previousUserMessage = $content;
+                }
+            } elseif ($role === 'assistant' && $lastAssistantMessage === '') {
+                $lastAssistantMessage = $content;
             }
         }
 
@@ -42,6 +103,17 @@ class FigoBrain
         }
 
         $intent = self::detectIntent($lastUserMessage);
+
+        // Context Awareness: If intent is weak or generic (like just a service name), check history.
+        if (in_array($intent, ['acne', 'laser', 'rejuvenation', 'telemedicine', 'services'])) {
+            $previousIntent = self::detectIntent($previousUserMessage);
+            if ($previousIntent === 'pricing') {
+                $intent = 'pricing_specific'; // Synthesize a combined intent
+            } elseif ($previousIntent === 'booking') {
+                $intent = 'booking'; // Assume they want to book this specific service
+            }
+        }
+
         $response = self::generateResponse($intent, $lastUserMessage);
 
         return self::buildResponse($response);
@@ -55,21 +127,24 @@ class FigoBrain
         foreach (self::INTENTS as $intent => $keywords) {
             $scores[$intent] = 0;
             foreach ($keywords as $keyword) {
-                if (strpos($normalized, $keyword) !== false) {
-                    $scores[$intent]++;
+                // Word boundary matching for precision (no 'hi' in 'hialuronico')
+                // Use \b to ensure we match whole words
+                if (preg_match('/\b' . preg_quote($keyword, '/') . '\b/', $normalized)) {
+                    $scores[$intent] += 1;
+                    // Boost exact matches or start-of-string matches slightly
+                    if ($normalized === $keyword || strpos($normalized, $keyword . ' ') === 0) {
+                        $scores[$intent] += 2;
+                    }
                 }
             }
         }
 
-        // Specific overrides for stronger intent signals
-        if (preg_match('/(agendar|reservar|cita)/', $normalized)) {
-            $scores['booking'] += 5;
-        }
-        if (preg_match('/(precio|costo|cuanto)/', $normalized)) {
+        // Semantic Boosters - Specific Phrasing Overrides
+        if (preg_match('/\b(cuanto|que)\s+(cuesta|sale|vale)\b/', $normalized)) {
             $scores['pricing'] += 3;
         }
-        if (strpos($normalized, 'horario') !== false) {
-            $scores['hours'] += 5;
+        if (preg_match('/\b(quiero|necesito)\s+(una\s+)?(cita|consulta|turno)\b/', $normalized)) {
+            $scores['booking'] += 3;
         }
 
         arsort($scores);
@@ -78,129 +153,177 @@ class FigoBrain
         return $scores[$bestIntent] > 0 ? $bestIntent : 'unknown';
     }
 
+    private static function getPrice(string $service, string $default): string
+    {
+        if (function_exists('get_service_total_price')) {
+            $price = get_service_total_price($service);
+            // Handle edge case where function returns "$0.00" for unknown or base price logic
+            if ($price !== '$0.00' && $price !== '$0') {
+                return $price;
+            }
+        }
+        return $default;
+    }
+
     private static function generateResponse(string $intent, string $message): string
     {
+        // Safe Dynamic Pricing Helpers
+        $pConsult = self::getPrice('consulta', '$44.80');
+        $pOnline = self::getPrice('video', '$33.60');
+        $pPhone = self::getPrice('telefono', '$28.00');
+        $pAcne = self::getPrice('acne', '$89.60 (aprox)');
+        $pLaser = self::getPrice('laser', '$168.00 (aprox)');
+        $pRejuv = self::getPrice('rejuvenecimiento', '$134.40 (aprox)');
+
         switch ($intent) {
             case 'greeting':
-                return "¡Hola! Soy Figo, tu asistente en Piel en Armonía. 😊\n\nPuedo ayudarte con:\n- Agendar citas\n- Consultar precios y servicios\n- Información de tratamientos (Acné, Láser, Rejuvenecimiento)\n- Ubicación y horarios\n\n¿Qué necesitas saber?";
+                return "¡Hola! Bienvenido a **Piel en Armonía**. 🌿\n\n" .
+                       "Soy Figo, tu asistente dermatológico virtual. Estoy aquí para ayudarte con:\n\n" .
+                       "📅 **Agendar Citas:** Presenciales y online.\n" .
+                       "💰 **Precios:** Consultas y tratamientos.\n" .
+                       "📍 **Ubicación:** Estamos en el sector La Carolina.\n" .
+                       "✨ **Información:** Acné, Láser, Rejuvenecimiento.\n\n" .
+                       "¿En qué puedo servirte hoy?";
+
+            case 'identity':
+                return "Soy **Figo**, la inteligencia artificial de Piel en Armonía. 🤖\n\n" .
+                       "Aunque soy un asistente virtual, mi objetivo es brindarte la misma calidez y profesionalismo que nuestro equipo médico.\n\n" .
+                       "Puedo ayudarte a agendar, darte precios o resolver dudas sobre nuestros servicios. ¿Qué necesitas?";
 
             case 'pricing':
-                $priceConsult = get_service_total_price('consulta');
-                $priceOnline = get_service_total_price('video');
-                $priceAcne = get_service_total_price('acne'); // Base price logic
-                // Fallback manually if function returns 0 or default
-                if ($priceAcne === '$0.00') $priceAcne = '$89.60'; // Estimate with VAT
-
-                return "Nuestros precios referenciales (incluyen IVA):\n\n" .
-                       "📋 **Consultas:**\n" .
-                       "- Presencial: {$priceConsult}\n" .
-                       "- Online (Video): {$priceOnline}\n" .
-                       "- Telefónica: " . get_service_total_price('telefono') . "\n\n" .
+            case 'pricing_specific':
+                return "Con gusto te informo nuestros valores referenciales (incluyen IVA): 🏷️\n\n" .
+                       "📋 **Consultas Médicas:**\n" .
+                       "- Presencial: **{$pConsult}**\n" .
+                       "- Videoconsulta: **{$pOnline}**\n" .
+                       "- Telefónica: **{$pPhone}**\n\n" .
                        "💉 **Tratamientos (desde):**\n" .
-                       "- Acné: {$priceAcne}\n" .
-                       "- Láser: " . get_service_total_price('laser') . "\n" .
-                       "- Rejuvenecimiento: " . get_service_total_price('rejuvenecimiento') . "\n\n" .
-                       "Para un presupuesto exacto, es necesaria una valoración médica. ¿Te gustaría agendar una cita?";
+                       "- Programa de Acné: **{$pAcne}**\n" .
+                       "- Láser CO2 / Cicatrices: **{$pLaser}**\n" .
+                       "- Rejuvenecimiento Facial: **{$pRejuv}**\n\n" .
+                       "💡 *Nota: Para tratamientos específicos, el valor exacto se determina previa valoración médica.*\n\n" .
+                       "¿Te gustaría agendar una cita de evaluación?";
 
             case 'services':
-                return "En Piel en Armonía ofrecemos una amplia gama de servicios dermatológicos:\n\n" .
-                       "✅ **Dermatología Clínica:** Acné, rosácea, manchas, alergias, detección de cáncer de piel.\n" .
-                       "✨ **Dermatología Estética:** Rejuvenecimiento, toxina botulínica, rellenos, láser CO2.\n" .
-                       "💻 **Telemedicina:** Consultas por videollamada o teléfono.\n\n" .
-                       "¿Te interesa algún tratamiento en específico?";
+                return "En **Piel en Armonía**, cuidamos la salud y belleza de tu piel con tecnología de punta. ✨\n\n" .
+                       "**Nuestras Especialidades:**\n" .
+                       "✅ **Dermatología Clínica:** Control de acné, manchas, rosácea, alergias y lunares.\n" .
+                       "✅ **Dermatología Estética:** Rejuvenecimiento, Toxina Botulínica (Botox), Ácido Hialurónico.\n" .
+                       "✅ **Láser Avanzado:** Tratamiento de cicatrices, rejuvenecimiento y lesiones vasculares.\n\n" .
+                       "¿Hay algún tratamiento en particular que te interese?";
 
             case 'booking':
-                return "¡Claro! Agendar tu cita es muy fácil y rápido.\n\n" .
-                       "Puedes hacerlo directamente aquí:\n" .
-                       "👉 [Reservar Cita Online](https://pielarmonia.com/#citas)\n\n" .
-                       "Solo elige el servicio, el doctor y el horario que prefieras. El sistema te guiará para realizar el pago y confirmar tu reserva al instante.";
+                return "¡Excelente decisión! Cuidar tu piel es invertir en ti. 💆‍♀️\n\n" .
+                       "Agendar es muy sencillo y seguro a través de nuestra web:\n\n" .
+                       "👉 **[Haz clic aquí para Reservar tu Cita](https://pielarmonia.com/#citas)**\n\n" .
+                       "El sistema te permitirá elegir:\n" .
+                       "1. El servicio (Presencial u Online).\n" .
+                       "2. El especialista de tu preferencia.\n" .
+                       "3. El día y la hora que mejor se adapte a ti.\n\n" .
+                       "¿Necesitas ayuda con el proceso?";
 
             case 'payment':
-                return "Para tu comodidad, aceptamos los siguientes métodos de pago en nuestra web:\n\n" .
-                       "💳 **Tarjeta de Crédito/Débito:** Visa o Mastercard.\n" .
-                       "🏦 **Transferencia Bancaria:** Te daremos los datos al finalizar la reserva.\n" .
-                       "💵 **Efectivo:** Puedes reservar y pagar el día de tu consulta (sujeto a confirmación).\n\n" .
-                       "Todo el proceso es seguro y rápido desde nuestra sección de [Reservar Cita](https://pielarmonia.com/#citas).";
+                return "Para tu facilidad, contamos con múltiples formas de pago seguras: 💳\n\n" .
+                       "🔹 **En la Web:** Puedes pagar al momento de reservar con Tarjeta de Crédito/Débito (Visa/Mastercard) o Transferencia Bancaria.\n" .
+                       "🔹 **En Consultorio:** Aceptamos efectivo y tarjetas.\n\n" .
+                       "Todo el proceso es transparente y recibirás tu comprobante automáticamente. ¿Deseas reservar ahora?";
 
             case 'location':
-                return "📍 **Ubicación:**\n" .
-                       "Estamos en Quito, Ecuador. Sector La Carolina.\n" .
-                       "Edificio Citimed, Consultorio 312.\n\n" .
-                       "🗺️ **Ver en Mapa:** [Google Maps](https://goo.gl/maps/pielarmonia)\n\n" .
-                       "Contamos con parqueadero para pacientes.";
+                return "📍 **Nuestra Ubicación:**\n\n" .
+                       "Nos encontramos en el corazón financiero de Quito:\n" .
+                       "**Edificio Citimed, Consultorio 312**\n" .
+                       "Av. Mariana de Jesús y Nuño de Valderrama (Frente al Hospital Metropolitano).\n\n" .
+                       "🚗 **Parqueadero:** El edificio cuenta con parqueadero público seguro para pacientes.\n\n" .
+                       "🗺️ **[Ver en Google Maps](https://goo.gl/maps/pielarmonia)**";
 
             case 'hours':
                 return "⏰ **Horarios de Atención:**\n\n" .
-                       "Lunes a Viernes: 09:00 - 18:00\n" .
-                       "Sábados: 09:00 - 13:00\n\n" .
-                       "Recuerda que atendemos previa cita. Puedes agendar la tuya [aquí](https://pielarmonia.com/#citas).";
+                       "Estamos disponibles para ti en los siguientes horarios:\n" .
+                       "🔹 **Lunes a Viernes:** 09:00 - 18:00\n" .
+                       "🔹 **Sábados:** 09:00 - 13:00\n\n" .
+                       "Recuerda que atendemos **previa cita** para brindarte una atención personalizada y sin esperas.";
 
             case 'doctors':
-                return "Contamos con especialistas de primer nivel:\n\n" .
-                       "👨‍⚕️ **Dr. Javier Rosero:** Dermatólogo Clínico, experto en cáncer de piel, cirugía dermatológica y acné.\n\n" .
-                       "👩‍⚕️ **Dra. Carolina Narváez:** Dermatóloga Estética, especialista en láser, rejuvenecimiento y armonización facial.\n\n" .
-                       "Ambos están listos para cuidar la salud de tu piel.";
+                return "Estás en las mejores manos. Nuestros especialistas son reconocidos por su experiencia y calidez humana: 👨‍⚕️👩‍⚕️\n\n" .
+                       "**Dr. Javier Rosero**\n" .
+                       "Dermatólogo Clínico y Cirujano Dermatólogo. Experto en patologías complejas, cáncer de piel y acné severo.\n\n" .
+                       "**Dra. Carolina Narváez**\n" .
+                       "Dermatóloga Estética. Especialista en armonización facial, láser y técnicas de rejuvenecimiento mínimamente invasivas.\n\n" .
+                       "Ambos están listos para escucharte.";
 
             case 'acne':
-                return "El acné es una de nuestras especialidades. Tratamos desde acné activo hasta cicatrices y secuelas.\n\n" .
-                       "🔹 **Tratamiento Integral:** Combinamos medicación, limpiezas y tecnología láser según tu caso.\n" .
-                       "🔹 **Resultados:** Buscamos controlar el brote y mejorar la textura de tu piel.\n\n" .
-                       "Te recomiendo agendar una **Consulta de Acné** para evaluar tu tipo de piel y diseñar tu plan.";
+                return "El acné tiene solución y nosotros sabemos cómo ayudarte. 🌟\n\n" .
+                       "Nuestro **Programa de Acné** es integral:\n" .
+                       "1. **Diagnóstico:** Identificamos la causa raíz (hormonal, bacteriana, etc.).\n" .
+                       "2. **Tratamiento:** Combinamos medicación dermatológica con limpiezas profundas.\n" .
+                       "3. **Tecnología:** Usamos láser para desinflamar y tratar secuelas.\n\n" .
+                       "Precio referencial desde: **{$pAcne}**.\n\n" .
+                       "¿Te gustaría agendar una valoración para iniciar tu cambio?";
 
             case 'laser':
-                return "Nuestra tecnología láser es ideal para:\n" .
-                       "- Rejuvenecimiento facial (Láser CO2)\n" .
-                       "- Eliminación de cicatrices de acné\n" .
-                       "- Manchas y lesiones vasculares\n" .
-                       "- Eliminación de lunares benignos\n\n" .
-                       "Es un procedimiento seguro y con excelentes resultados. ¿Quisieras más información sobre precios?";
+                return "Nuestra tecnología láser transforma tu piel. ✨\n\n" .
+                       "Es ideal para:\n" .
+                       "🔹 **Cicatrices de Acné:** Mejora la textura y profundidad.\n" .
+                       "🔹 **Rejuvenecimiento:** Estimula colágeno y tensa la piel.\n" .
+                       "🔹 **Manchas:** Unifica el tono de forma segura.\n\n" .
+                       "Precio referencial sesión láser: **{$pLaser}**.\n\n" .
+                       "Es necesario una evaluación previa para determinar el tipo de láser ideal para ti.";
 
             case 'rejuvenation':
-                return "Para rejuvenecimiento facial ofrecemos tratamientos personalizados:\n" .
-                       "- Toxina Botulínica (Botox) para líneas de expresión.\n" .
-                       "- Ácido Hialurónico para reposición de volumen.\n" .
-                       "- Bioestimuladores de colágeno.\n" .
-                       "- Láser CO2 Fraccionado.\n\n" .
-                       "Lo ideal es una valoración para indicarte qué tratamiento te dará los resultados más naturales y armónicos.";
+                return "El rejuvenecimiento en Piel en Armonía busca resultados **naturales y elegantes**. 🌸\n\n" .
+                       "Opciones personalizadas:\n" .
+                       "- **Toxina Botulínica (Botox):** Para suavizar líneas de expresión.\n" .
+                       "- **Ácido Hialurónico:** Para reposición de volumen e hidratación.\n" .
+                       "- **Bioestimuladores:** Para combatir la flacidez a largo plazo.\n\n" .
+                       "Precio referencial desde: **{$pRejuv}**.\n" .
+                       "La valoración médica es clave para indicarte el mejor tratamiento.";
 
             case 'telemedicine':
-                return "Si no puedes venir presencialmente, ¡te atendemos online!\n\n" .
-                       "📱 **Videoconsulta:** A través de WhatsApp o Zoom. Incluye evaluación, diagnóstico y receta digital. Precio: " . get_service_total_price('video') . "\n\n" .
-                       "📞 **Consulta Telefónica:** Para seguimientos o dudas puntuales. Precio: " . get_service_total_price('telefono') . "\n\n" .
-                       "Agenda tu cita online seleccionando la opción 'Videoconsulta'.";
+                return "¡La dermatología experta, donde estés! 🌍\n\n" .
+                       "Si no puedes venir al consultorio, agenda una **Videoconsulta**.\n" .
+                       "✅ Diagnóstico médico completo.\n" .
+                       "✅ Receta electrónica válida.\n" .
+                       "✅ Seguimiento por WhatsApp.\n\n" .
+                       "Precio: **{$pOnline}**.\n" .
+                       "Puedes agendarla directamente en nuestra web seleccionando 'Videoconsulta'.";
 
             case 'contact':
-                return "Puedes contactarnos directamente por:\n" .
-                       "📱 **WhatsApp:** [+593 98 245 3672](https://wa.me/593982453672)\n" .
+                return "Estamos siempre conectados contigo. 📱\n\n" .
+                       "💬 **WhatsApp Directo:** [+593 98 245 3672](https://wa.me/593982453672)\n" .
+                       "📞 **Teléfono:** 098 245 3672\n" .
                        "📧 **Email:** info@pielarmonia.com\n\n" .
-                       "Estamos atentos para responder tus dudas.";
+                       "Si tienes una duda urgente, escríbenos por WhatsApp para una respuesta más rápida.";
 
             case 'cancellation':
             case 'rescheduling':
-                return "Para cancelar o reprogramar tu cita, por favor revisa el correo de confirmación que recibiste.\n\n" .
-                       "Allí encontrarás un enlace directo para gestionar tu reserva. También puedes escribirnos por WhatsApp al +593 98 245 3672 para ayudarte manualmente.";
+                return "Entendemos que pueden surgir imprevistos. 🗓️\n\n" .
+                       "Para **reprogramar o cancelar**, revisa el correo de confirmación de tu cita; allí encontrarás un enlace directo para hacerlo en un clic.\n\n" .
+                       "Si tienes dificultades, por favor escríbenos por WhatsApp al +593 98 245 3672 y nuestro equipo te ayudará manualmente.";
 
             case 'thanks':
-                return "¡De nada! Ha sido un gusto ayudarte. Si tienes más preguntas, aquí estaré. ¡Que tengas un lindo día! ✨";
+                return "¡Gracias a ti por confiar en Piel en Armonía! 😊\n\n" .
+                       "Ha sido un placer asistirte. Si surge cualquier otra duda, aquí estaré. ¡Que tengas un día maravilloso! ✨";
 
             default:
-                // Fallback for unknown intent
-                return "Entiendo. Para darte la mejor información sobre ese tema, te sugiero que:\n\n" .
-                       "1. Mires nuestros [Servicios](https://pielarmonia.com/#servicios)\n" .
-                       "2. Agendes una [Cita de Valoración](https://pielarmonia.com/#citas)\n" .
-                       "3. Nos escribas por [WhatsApp](https://wa.me/593982453672) para atención personalizada.\n\n" .
-                       "¿Hay algo más puntual en lo que pueda guiarte? (Precios, Ubicación, Citas)";
+                // Fallback for unknown intent - Professional Guidance
+                return "Entiendo. Para poder brindarte la información más precisa sobre ese tema, lo mejor es que te conecte con nuestras opciones principales:\n\n" .
+                       "1. **[Ver Servicios y Precios](https://pielarmonia.com/#servicios)**\n" .
+                       "2. **[Agendar una Cita](https://pielarmonia.com/#citas)**\n" .
+                       "3. **[Hablar por WhatsApp](https://wa.me/593982453672)** para atención personalizada.\n\n" .
+                       "¿Te gustaría que te ayude con alguna de estas opciones? (Ej: 'Precios', 'Ubicación')";
         }
     }
 
     private static function normalize(string $text): string
     {
+        // Remove accents and lowercase
         $text = strtolower($text);
         $text = str_replace(
             ['á', 'é', 'í', 'ó', 'ú', 'ñ', 'ü'],
             ['a', 'e', 'i', 'o', 'u', 'n', 'u'],
             $text
         );
+        // Remove special chars but keep spaces and alphanumeric
         return preg_replace('/[^a-z0-9\s]/', '', $text);
     }
 
@@ -216,7 +339,7 @@ class FigoBrain
             'id' => $id,
             'object' => 'chat.completion',
             'created' => time(),
-            'model' => 'figo-brain-v1',
+            'model' => 'figo-brain-v2-pro',
             'choices' => [[
                 'index' => 0,
                 'message' => [
