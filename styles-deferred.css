@@ -1,17 +1,7 @@
-﻿@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.section > * {
-    animation: fadeInUp 0.6s ease-out;
-}
+﻿/* ========================================
+   DEFERRED STYLES - Below-fold sections
+   Variables defined in styles.css (critical)
+   ======================================== */
 
 /* Scroll animations */
 .reveal {
@@ -23,64 +13,6 @@
 .reveal.active {
     opacity: 1;
     transform: translateY(0);
-}
-
-/* ========================================
-   REDISENO 2026 - SISTEMA SIMPLE
-   ======================================== */
-:root {
-    --ui-ink: #0d1a2f;
-    --ui-ink-soft: #50607b;
-    --ui-bg: #f4f7fc;
-    --ui-surface: #ffffff;
-    --ui-surface-soft: #eef3fb;
-    --ui-border: #dbe4f3;
-    --ui-border-strong: #bfcee7;
-    --ui-accent: #0a84ff;
-    --ui-accent-2: #3aa0ff;
-    --ui-success: #25b16a;
-    --ui-dark: #0d1728;
-    --ui-dark-2: #17263d;
-    --ui-white: #ffffff;
-    --ui-radius-sm: 14px;
-    --ui-radius: 22px;
-    --ui-radius-lg: 30px;
-    --ui-shadow-sm: 0 8px 20px rgba(12, 25, 47, 0.08);
-    --ui-shadow-md: 0 18px 45px rgba(12, 25, 47, 0.14);
-    --ui-shadow-lg: 0 30px 80px rgba(8, 18, 36, 0.22);
-    --ui-ease: 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
-    --ui-ease-soft: 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
-}
-
-html {
-    scroll-padding-top: 122px;
-}
-
-body {
-    font-family: 'Plus Jakarta Sans', 'Segoe UI', Tahoma, sans-serif;
-    color: var(--ui-ink);
-    background:
-        radial-gradient(1400px 520px at -8% -10%, rgba(55, 138, 255, 0.14), transparent 60%),
-        radial-gradient(1400px 560px at 110% -6%, rgba(39, 194, 128, 0.12), transparent 64%),
-        var(--ui-bg);
-    min-height: 100vh;
-}
-
-body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    background-image:
-        linear-gradient(to right, rgba(12, 26, 47, 0.03) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(12, 26, 47, 0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.32) 14%, rgba(0, 0, 0, 0.14) 100%);
-    z-index: -1;
-}
-
-a {
-    color: inherit;
 }
 
 .language-bar {
@@ -2095,6 +2027,30 @@ textarea:focus {
     color: #156fcb;
 }
 
+.chat-date-input {
+    display: block;
+    width: min(100%, 220px);
+    margin-top: 8px;
+    min-height: 44px;
+    border-radius: 10px;
+    border: 1px solid #d2d2d7;
+    background: #ffffff;
+    color: #1d1d1f;
+    font-size: 1rem;
+    padding: 10px 14px;
+    cursor: pointer;
+}
+
+.chatbot-offline-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #7b8594;
+}
+
 .chatbot-disclaimer {
     margin: 0;
     padding: 8px 12px;
@@ -2658,6 +2614,16 @@ html[data-theme='dark'] .chat-suggestion-btn {
     color: #d0e3ff;
 }
 
+html[data-theme='dark'] .chat-date-input {
+    border-color: rgba(126, 161, 210, 0.45);
+    background: rgba(13, 26, 44, 0.92);
+    color: #d6e7ff;
+}
+
+html[data-theme='dark'] .chatbot-offline-badge {
+    color: #9eb2d1;
+}
+
 html[data-theme='dark'] .chatbot-input-area input {
     background: rgba(13, 26, 44, 0.92);
 }
@@ -2945,15 +2911,6 @@ html[data-theme='dark'] .toast-message {
 /* ========================================
    APPLE AIR VISUAL HOTFIX (LEGIBILIDAD)
    ======================================== */
-body {
-    background: #f5f5f7;
-    color: #1d1d1f;
-}
-
-body::before {
-    display: none;
-}
-
 .language-bar {
     background: rgba(255, 255, 255, 0.9);
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);

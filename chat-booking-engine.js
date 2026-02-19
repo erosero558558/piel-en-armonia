@@ -152,7 +152,7 @@
                 msg += t('<strong>Paso 3/7:</strong> ¿Que fecha prefieres?<br><br>', '<strong>Step 3/7:</strong> Which date do you prefer?<br><br>');
                 msg += `<input type="date" id="chatDateInput" min="${today}" `;
                 msg += 'data-action="chat-date-select" ';
-                msg += 'style="padding: 10px 14px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 1rem; width: 100%; max-width: 220px; cursor: pointer;">';
+                msg += 'class="chat-date-input">';
                 addBotMessage(msg);
                 break;
             }
@@ -207,7 +207,7 @@
                                 'No hay horarios disponibles para esa fecha. Por favor elige otra.<br><br>',
                                 'No times are available for that date. Please choose another one.<br><br>'
                             ) +
-                            `<input type="date" id="chatDateInput" min="${new Date().toISOString().split('T')[0]}" data-action="chat-date-select" style="padding: 10px 14px; border: 1px solid #d2d2d7; border-radius: 10px; font-size: 1rem; width: 100%; max-width: 220px;">`
+                            `<input type="date" id="chatDateInput" min="${new Date().toISOString().split('T')[0]}" data-action="chat-date-select" class="chat-date-input">`
                         );
                         chatBooking.step = 'date';
                         return;
@@ -297,13 +297,13 @@
 
                 let msg = `${t('Telefono', 'Phone')}: <strong>${escapeHtml(input)}</strong><br><br>`;
                 msg += `<strong>${t('Resumen de tu cita', 'Appointment summary')}:</strong><br>`;
-                msg += `• ${t('Servicio', 'Service')}: ${escapeHtml(chatBooking.serviceLabel)} (${chatBooking.price})<br>`;
-                msg += `• ${t('Doctor', 'Doctor')}: ${escapeHtml(chatBooking.doctorLabel)}<br>`;
-                msg += `• ${t('Fecha', 'Date')}: ${escapeHtml(chatBooking.date)}<br>`;
-                msg += `• ${t('Hora', 'Time')}: ${escapeHtml(chatBooking.time)}<br>`;
-                msg += `• ${t('Nombre', 'Name')}: ${escapeHtml(chatBooking.name)}<br>`;
-                msg += `• Email: ${escapeHtml(chatBooking.email)}<br>`;
-                msg += `• ${t('Telefono', 'Phone')}: ${escapeHtml(chatBooking.phone)}<br><br>`;
+                msg += `&bull; ${t('Servicio', 'Service')}: ${escapeHtml(chatBooking.serviceLabel)} (${chatBooking.price})<br>`;
+                msg += `&bull; ${t('Doctor', 'Doctor')}: ${escapeHtml(chatBooking.doctorLabel)}<br>`;
+                msg += `&bull; ${t('Fecha', 'Date')}: ${escapeHtml(chatBooking.date)}<br>`;
+                msg += `&bull; ${t('Hora', 'Time')}: ${escapeHtml(chatBooking.time)}<br>`;
+                msg += `&bull; ${t('Nombre', 'Name')}: ${escapeHtml(chatBooking.name)}<br>`;
+                msg += `&bull; Email: ${escapeHtml(chatBooking.email)}<br>`;
+                msg += `&bull; ${t('Telefono', 'Phone')}: ${escapeHtml(chatBooking.phone)}<br><br>`;
                 msg += `${t('¿Como deseas pagar?', 'How would you like to pay?')}<br><br>`;
                 msg += '<div class="chat-suggestions">';
                 msg += '<button class="chat-suggestion-btn" data-action="chat-booking" data-value="efectivo"><i class="fas fa-money-bill-wave"></i> Efectivo</button>';
@@ -402,11 +402,11 @@
                 } else {
                     msg += t('Te contactaremos para confirmar detalles.<br><br>', 'We will contact you to confirm details.<br><br>');
                 }
-                msg += `• ${t('Servicio', 'Service')}: ${escapeHtml(chatBooking.serviceLabel)}<br>`;
-                msg += `• ${t('Doctor', 'Doctor')}: ${escapeHtml(chatBooking.doctorLabel)}<br>`;
-                msg += `• ${t('Fecha', 'Date')}: ${escapeHtml(chatBooking.date)}<br>`;
-                msg += `• ${t('Hora', 'Time')}: ${escapeHtml(chatBooking.time)}<br>`;
-                msg += `• ${t('Pago', 'Payment')}: ${t('En consultorio', 'At clinic')}<br><br>`;
+                msg += `&bull; ${t('Servicio', 'Service')}: ${escapeHtml(chatBooking.serviceLabel)}<br>`;
+                msg += `&bull; ${t('Doctor', 'Doctor')}: ${escapeHtml(chatBooking.doctorLabel)}<br>`;
+                msg += `&bull; ${t('Fecha', 'Date')}: ${escapeHtml(chatBooking.date)}<br>`;
+                msg += `&bull; ${t('Hora', 'Time')}: ${escapeHtml(chatBooking.time)}<br>`;
+                msg += `&bull; ${t('Pago', 'Payment')}: ${t('En consultorio', 'At clinic')}<br><br>`;
                 msg += t('Recuerda llegar 10 minutos antes de tu cita.', 'Please arrive 10 minutes before your appointment.');
                 addBotMessage(msg);
 
@@ -482,3 +482,4 @@
         finalizeChatBooking
     };
 })();
+

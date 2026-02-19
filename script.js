@@ -278,13 +278,24 @@ function runDeferredModule(loader, onReady, onError) {
     });
 }
 
-const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260218-deferred2';
+const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred4-mobiletypelock1-a11yfocus1-chatsanitize1';
 
 let deferredStylesheetPromise = null;
 let deferredStylesheetInitDone = false;
 
+function resolveDeferredStylesheetUrl() {
+    const preload = document.querySelector('link[rel="preload"][as="style"][href*="styles-deferred.css"]');
+    if (preload) {
+        const href = preload.getAttribute('href');
+        if (href && href.trim() !== '') {
+            return href;
+        }
+    }
+    return DEFERRED_STYLESHEET_URL;
+}
+
 function loadDeferredStylesheet() {
-    if (document.querySelector('link[data-deferred-stylesheet="true"]')) {
+    if (document.querySelector('link[data-deferred-stylesheet="true"], link[rel="stylesheet"][href*="styles-deferred.css"]')) {
         return Promise.resolve(true);
     }
 
@@ -292,10 +303,12 @@ function loadDeferredStylesheet() {
         return deferredStylesheetPromise;
     }
 
+    const stylesheetUrl = resolveDeferredStylesheetUrl();
+
     deferredStylesheetPromise = new Promise((resolve, reject) => {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = DEFERRED_STYLESHEET_URL;
+        link.href = stylesheetUrl;
         link.dataset.deferredStylesheet = 'true';
         link.onload = () => resolve(true);
         link.onerror = () => reject(new Error('No se pudo cargar styles-deferred.css'));
@@ -2347,10 +2360,10 @@ function sanitizeBotHtml(html) {
     const allowedAttrs = {
         'a': ['href', 'target', 'rel'],
         'button': ['class', 'data-action'],
-        'div': ['class', 'style'],
-        'input': ['type', 'id', 'min', 'style', 'value'],
+        'div': ['class'],
+        'input': ['type', 'id', 'min', 'value', 'class'],
         'i': ['class'],
-        'span': ['class', 'style'],
+        'span': ['class'],
         'small': ['class']
     };
 
@@ -2413,8 +2426,8 @@ function addBotMessage(html, showOfflineLabel = false) {
     messageDiv.className = 'chat-message bot';
     
     // Solo mostrar indicador offline si se solicita explicitamente (para debug)
-    const offlineIndicator = showOfflineLabel ? 
-        `<div style="font-size: 0.7rem; color: #86868b; margin-bottom: 4px; opacity: 0.7;">
+    const offlineIndicator = showOfflineLabel ?
+        `<div class="chatbot-offline-badge">
             <i class="fas fa-robot"></i> Asistente Virtual
         </div>` : '';
     
@@ -2536,7 +2549,7 @@ function escapeHtml(text) {
 // ========================================
 // BOOKING CONVERSACIONAL DESDE CHATBOT (DEFERRED MODULE)
 // ========================================
-const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260218-phase1';
+const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260219-phase2-inlinefix1';
 
 function getChatBookingEngineDeps() {
     return {
