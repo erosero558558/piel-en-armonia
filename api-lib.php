@@ -332,7 +332,7 @@ function audit_log_event(string $event, array $details = []): void
     $line = [
         'ts' => local_date('c'),
         'event' => $event,
-        'ip' => (string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown'),
+        'ip' => get_client_ip(),
         'actor' => (session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['admin_logged_in'])) ? 'admin' : 'public',
         'path' => (string) ($_SERVER['REQUEST_URI'] ?? ''),
         'details' => $details
@@ -806,9 +806,35 @@ function require_csrf(): void
     }
 }
 
-function check_rate_limit(string $action, int $maxRequests = 10, int $windowSeconds = 60): bool
+function get_client_ip(): string
 {
     $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+
+    // Cloudflare
+    if (isset($_SERVER['HTTP_CF_CONNECTING_IP']) && filter_var($_SERVER['HTTP_CF_CONNECTING_IP'], FILTER_VALIDATE_IP)) {
+        return $_SERVER['HTTP_CF_CONNECTING_IP'];
+    }
+
+    // X-Forwarded-For
+    if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $forwarded = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+        $first = trim($forwarded[0]);
+        if (filter_var($first, FILTER_VALIDATE_IP)) {
+            return $first;
+        }
+    }
+
+    // Client-IP
+    if (isset($_SERVER['HTTP_CLIENT_IP']) && filter_var($_SERVER['HTTP_CLIENT_IP'], FILTER_VALIDATE_IP)) {
+        return $_SERVER['HTTP_CLIENT_IP'];
+    }
+
+    return $ip;
+}
+
+function check_rate_limit(string $action, int $maxRequests = 10, int $windowSeconds = 60): bool
+{
+    $ip = get_client_ip();
     $key = md5($ip . ':' . $action);
     $rateDir = data_dir_path() . DIRECTORY_SEPARATOR . 'ratelimit';
 
