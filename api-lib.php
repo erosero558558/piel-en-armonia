@@ -123,18 +123,35 @@ function data_dir_path(): string
         return $resolvedDir;
     }
 
-    $candidates = [];
+    $checkList = [];
 
+    // 1. Env variable (highest priority)
     $envDir = getenv('PIELARMONIA_DATA_DIR');
     if (is_string($envDir) && trim($envDir) !== '') {
-        $candidates[] = trim($envDir);
+        $checkList[] = trim($envDir);
     }
 
-    $candidates[] = DATA_DIR;
-    $candidates[] = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data';
-    $candidates[] = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'pielarmonia-data';
+    // 2. Preferred candidates
+    // Prefer data outside webroot (../data) over inside (./data)
+    $checkList[] = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data';
+    $checkList[] = DATA_DIR;
+    $checkList[] = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'pielarmonia-data';
 
-    foreach ($candidates as $candidate) {
+    // First pass: Check for existing data to prevent data loss
+    foreach ($checkList as $candidate) {
+        $candidate = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, (string) $candidate), DIRECTORY_SEPARATOR);
+        if ($candidate === '') {
+            continue;
+        }
+        // If store.json exists here, use this directory
+        if (@file_exists($candidate . DIRECTORY_SEPARATOR . 'store.json') && @is_writable($candidate)) {
+            $resolvedDir = $candidate;
+            return $resolvedDir;
+        }
+    }
+
+    // Second pass: Find first writable directory for new install or fallback
+    foreach ($checkList as $candidate) {
         $candidate = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, (string) $candidate), DIRECTORY_SEPARATOR);
         if ($candidate === '') {
             continue;
@@ -512,6 +529,7 @@ function ensure_data_file(): bool
     if (!file_exists($dataFile)) {
         $seed = [
             'appointments' => [],
+            'idx_appointments_date' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
@@ -529,11 +547,24 @@ function ensure_data_file(): bool
     return true;
 }
 
+function rebuild_appointment_index(array $appointments): array
+{
+    $index = [];
+    foreach ($appointments as $key => $appt) {
+        $date = (string) ($appt['date'] ?? '');
+        if ($date !== '') {
+            $index[$date][] = $key;
+        }
+    }
+    return $index;
+}
+
 function read_store(): array
 {
     if (!ensure_data_file()) {
         return [
             'appointments' => [],
+            'idx_appointments_date' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
@@ -545,6 +576,7 @@ function read_store(): array
     if ($raw === false || $raw === '') {
         return [
             'appointments' => [],
+            'idx_appointments_date' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
@@ -563,6 +595,7 @@ function read_store(): array
         }
         return [
             'appointments' => [],
+            'idx_appointments_date' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
@@ -574,6 +607,7 @@ function read_store(): array
     if (!is_array($data)) {
         return [
             'appointments' => [],
+            'idx_appointments_date' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
@@ -582,6 +616,12 @@ function read_store(): array
     }
 
     $data['appointments'] = isset($data['appointments']) && is_array($data['appointments']) ? $data['appointments'] : [];
+
+    // Lazy migration: build index if missing
+    if (!isset($data['idx_appointments_date']) || !is_array($data['idx_appointments_date'])) {
+        $data['idx_appointments_date'] = rebuild_appointment_index($data['appointments']);
+    }
+
     $data['callbacks'] = isset($data['callbacks']) && is_array($data['callbacks']) ? $data['callbacks'] : [];
     $data['reviews'] = isset($data['reviews']) && is_array($data['reviews']) ? $data['reviews'] : [];
     $data['availability'] = isset($data['availability']) && is_array($data['availability']) ? $data['availability'] : [];
@@ -601,6 +641,10 @@ function write_store(array $store): void
     }
 
     $store['appointments'] = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
+
+    // Always rebuild index before saving to ensure consistency
+    $store['idx_appointments_date'] = rebuild_appointment_index($store['appointments']);
+
     $store['callbacks'] = isset($store['callbacks']) && is_array($store['callbacks']) ? $store['callbacks'] : [];
     $store['reviews'] = isset($store['reviews']) && is_array($store['reviews']) ? $store['reviews'] : [];
     $store['availability'] = isset($store['availability']) && is_array($store['availability']) ? $store['availability'] : [];
@@ -772,30 +816,70 @@ function check_rate_limit(string $action, int $maxRequests = 10, int $windowSeco
         @mkdir($rateDir, 0775, true);
     }
 
-    $file = $rateDir . DIRECTORY_SEPARATOR . $key . '.json';
+    $file = $rateDir . DIRECTORY_SEPARATOR . $key . '.bin';
     $now = time();
     $entries = [];
 
-    if (file_exists($file)) {
-        $raw = @file_get_contents($file);
-        $entries = is_string($raw) ? (json_decode($raw, true) ?? []) : [];
+    $fp = @fopen($file, 'c+');
+    if (!$fp) {
+        return true;
+    }
+
+    if (!flock($fp, LOCK_EX)) {
+        fclose($fp);
+        return true;
+    }
+
+    $fstat = fstat($fp);
+    $size = $fstat['size'];
+
+    if ($size > 0) {
+        $bin = fread($fp, $size);
+        if (is_string($bin) && strlen($bin) > 0) {
+            $unpacked = @unpack('N*', $bin);
+            if (is_array($unpacked)) {
+                $entries = array_values($unpacked);
+            }
+        }
     }
 
     // Filtrar entradas dentro de la ventana de tiempo
-    $entries = array_values(array_filter($entries, static function (int $ts) use ($now, $windowSeconds): bool {
-        return ($now - $ts) < $windowSeconds;
-    }));
+    $validEntries = [];
+    foreach ($entries as $ts) {
+        if (($now - $ts) < $windowSeconds) {
+            $validEntries[] = $ts;
+        }
+    }
 
-    if (count($entries) >= $maxRequests) {
+    if (count($validEntries) >= $maxRequests) {
+        flock($fp, LOCK_UN);
+        fclose($fp);
         return false;
     }
 
-    $entries[] = $now;
-    @file_put_contents($file, json_encode($entries), LOCK_EX);
+    $validEntries[] = $now;
+
+    ftruncate($fp, 0);
+    rewind($fp);
+    if (!empty($validEntries)) {
+        $packed = pack('N*', ...$validEntries);
+        fwrite($fp, $packed);
+    }
+    fflush($fp);
+
+    flock($fp, LOCK_UN);
+    fclose($fp);
 
     // Limpieza periódica: eliminar archivos de rate limit con más de 1 hora sin modificación
     if (mt_rand(1, 50) === 1) {
-        $allFiles = @glob($rateDir . DIRECTORY_SEPARATOR . '*.json');
+        $allFiles = @glob($rateDir . DIRECTORY_SEPARATOR . '*.{bin,json}', GLOB_BRACE);
+        if ($allFiles === false) {
+            $allFiles = array_merge(
+                (array) @glob($rateDir . DIRECTORY_SEPARATOR . '*.bin'),
+                (array) @glob($rateDir . DIRECTORY_SEPARATOR . '*.json')
+            );
+        }
+
         if (is_array($allFiles)) {
             foreach ($allFiles as $f) {
                 if (($now - (int) @filemtime($f)) > 3600) {
@@ -1065,8 +1149,48 @@ function normalize_appointment(array $appointment): array
     ];
 }
 
-function appointment_slot_taken(array $appointments, string $date, string $time, ?int $excludeId = null, string $doctor = ''): bool
+function appointment_slot_taken(array $appointments, string $date, string $time, ?int $excludeId = null, string $doctor = '', ?array $index = null): bool
 {
+    // Use index if available for O(1) lookup
+    if ($index !== null) {
+        if (isset($index[$date])) {
+            $candidates = $index[$date];
+            foreach ($candidates as $key) {
+                if (!isset($appointments[$key])) {
+                    continue;
+                }
+                $appt = $appointments[$key];
+
+                // Duplicate logic check from linear scan
+                $id = isset($appt['id']) ? (int) $appt['id'] : null;
+                if ($excludeId !== null && $id === $excludeId) {
+                    continue;
+                }
+                $status = map_appointment_status((string) ($appt['status'] ?? 'confirmed'));
+                if ($status === 'cancelled') {
+                    continue;
+                }
+                // Date is already matched by index lookup, but double check doesn't hurt
+                if ((string) ($appt['date'] ?? '') !== $date) {
+                    continue;
+                }
+                if ((string) ($appt['time'] ?? '') !== $time) {
+                    continue;
+                }
+                if ($doctor !== '' && $doctor !== 'indiferente') {
+                    $apptDoctor = (string) ($appt['doctor'] ?? '');
+                    if ($apptDoctor !== '' && $apptDoctor !== 'indiferente' && $apptDoctor !== $doctor) {
+                        continue;
+                    }
+                }
+                return true;
+            }
+        }
+        // If date not in index or no candidate matched, it's free.
+        return false;
+    }
+
+    // Fallback to linear scan
     foreach ($appointments as $appt) {
         $id = isset($appt['id']) ? (int) $appt['id'] : null;
         if ($excludeId !== null && $id === $excludeId) {

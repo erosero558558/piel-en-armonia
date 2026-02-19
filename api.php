@@ -158,6 +158,11 @@ if ($requestOrigin !== '') {
         }
     }
 }
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Content-Security-Policy: default-src \'none\'; frame-ancestors \'none\'');
+header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -321,7 +326,21 @@ if ($method === 'GET' && $resource === 'booked-slots') {
     $doctor = isset($_GET['doctor']) ? trim((string) $_GET['doctor']) : '';
 
     $slots = [];
-    foreach ($store['appointments'] as $appointment) {
+    $index = $store['idx_appointments_date'] ?? null;
+    $candidates = [];
+
+    if ($index !== null && isset($index[$date])) {
+        foreach ($index[$date] as $key) {
+            if (isset($store['appointments'][$key])) {
+                $candidates[] = $store['appointments'][$key];
+            }
+        }
+    } elseif ($index === null) {
+        // Fallback if index missing
+        $candidates = $store['appointments'];
+    }
+
+    foreach ($candidates as $appointment) {
         $status = map_appointment_status((string) ($appointment['status'] ?? 'confirmed'));
         if ($status === 'cancelled') {
             continue;
@@ -427,7 +446,7 @@ if ($method === 'POST' && $resource === 'payment-intent') {
         ], 400);
     }
 
-    if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $appointment['doctor'])) {
+    if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $appointment['doctor'], $store['idx_appointments_date'] ?? null)) {
         json_response([
             'ok' => false,
             'error' => 'Ese horario ya fue reservado'
@@ -569,21 +588,58 @@ if ($method === 'POST' && $resource === 'stripe-webhook') {
         if ($intentId !== '') {
             $webhookStore = read_store();
             $updated = false;
-            foreach ($webhookStore['appointments'] as &$appt) {
+            $indexBuilt = false;
+
+            if (!isset($webhookStore['paymentIntentIndex'])) {
+                $webhookStore['paymentIntentIndex'] = [];
+                foreach ($webhookStore['appointments'] as $idx => $appt) {
+                    $idxIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
+                    if ($idxIntent !== '') {
+                        $webhookStore['paymentIntentIndex'][$idxIntent] = $idx;
+                    }
+                }
+                $indexBuilt = true;
+            }
+
+            $found = false;
+            $idx = isset($webhookStore['paymentIntentIndex'][$intentId]) ? (int) $webhookStore['paymentIntentIndex'][$intentId] : -1;
+
+            if ($idx >= 0 && isset($webhookStore['appointments'][$idx])) {
+                $appt = &$webhookStore['appointments'][$idx];
                 $existingIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
                 if ($existingIntent !== '' && hash_equals($existingIntent, $intentId)) {
+                    $found = true;
                     if (($appt['paymentStatus'] ?? '') !== 'paid') {
                         $appt['paymentStatus'] = 'paid';
                         $appt['paymentPaidAt'] = local_date('c');
                         $updated = true;
                     }
-                    break;
                 }
+                unset($appt);
             }
-            unset($appt);
-            if ($updated) {
+
+            if (!$found) {
+                foreach ($webhookStore['appointments'] as $idx => &$appt) {
+                    $existingIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
+                    if ($existingIntent !== '' && hash_equals($existingIntent, $intentId)) {
+                        $webhookStore['paymentIntentIndex'][$intentId] = $idx;
+                        $indexBuilt = true;
+                        if (($appt['paymentStatus'] ?? '') !== 'paid') {
+                            $appt['paymentStatus'] = 'paid';
+                            $appt['paymentPaidAt'] = local_date('c');
+                            $updated = true;
+                        }
+                        break;
+                    }
+                }
+                unset($appt);
+            }
+
+            if ($updated || $indexBuilt) {
                 write_store($webhookStore);
-                audit_log_event('stripe.webhook_payment_confirmed', ['intentId' => $intentId]);
+                if ($updated) {
+                    audit_log_event('stripe.webhook_payment_confirmed', ['intentId' => $intentId]);
+                }
             }
         }
     }
@@ -595,20 +651,56 @@ if ($method === 'POST' && $resource === 'stripe-webhook') {
         if ($intentId !== '') {
             $webhookStore = read_store();
             $updated = false;
-            foreach ($webhookStore['appointments'] as &$appt) {
+            $indexBuilt = false;
+
+            if (!isset($webhookStore['paymentIntentIndex'])) {
+                $webhookStore['paymentIntentIndex'] = [];
+                foreach ($webhookStore['appointments'] as $idx => $appt) {
+                    $idxIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
+                    if ($idxIntent !== '') {
+                        $webhookStore['paymentIntentIndex'][$idxIntent] = $idx;
+                    }
+                }
+                $indexBuilt = true;
+            }
+
+            $found = false;
+            $idx = isset($webhookStore['paymentIntentIndex'][$intentId]) ? (int) $webhookStore['paymentIntentIndex'][$intentId] : -1;
+
+            if ($idx >= 0 && isset($webhookStore['appointments'][$idx])) {
+                $appt = &$webhookStore['appointments'][$idx];
                 $existingIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
                 if ($existingIntent !== '' && hash_equals($existingIntent, $intentId)) {
+                    $found = true;
                     if (!in_array($appt['paymentStatus'] ?? '', ['paid', 'failed'], true)) {
                         $appt['paymentStatus'] = 'failed';
                         $updated = true;
                     }
-                    break;
                 }
+                unset($appt);
             }
-            unset($appt);
-            if ($updated) {
+
+            if (!$found) {
+                foreach ($webhookStore['appointments'] as $idx => &$appt) {
+                    $existingIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
+                    if ($existingIntent !== '' && hash_equals($existingIntent, $intentId)) {
+                        $webhookStore['paymentIntentIndex'][$intentId] = $idx;
+                        $indexBuilt = true;
+                        if (!in_array($appt['paymentStatus'] ?? '', ['paid', 'failed'], true)) {
+                            $appt['paymentStatus'] = 'failed';
+                            $updated = true;
+                        }
+                        break;
+                    }
+                }
+                unset($appt);
+            }
+
+            if ($updated || $indexBuilt) {
                 write_store($webhookStore);
-                audit_log_event('stripe.webhook_payment_failed', ['intentId' => $intentId]);
+                if ($updated) {
+                    audit_log_event('stripe.webhook_payment_failed', ['intentId' => $intentId]);
+                }
             }
         }
     }
@@ -843,7 +935,7 @@ if ($method === 'POST' && $resource === 'appointments') {
         $doctors = ['rosero', 'narvaez'];
         $assigned = '';
         foreach ($doctors as $candidate) {
-            if (!appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $candidate)) {
+            if (!appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $candidate, $store['idx_appointments_date'] ?? null)) {
                 $assigned = $candidate;
                 break;
             }
@@ -854,6 +946,15 @@ if ($method === 'POST' && $resource === 'appointments') {
     }
 
     $store['appointments'][] = $appointment;
+
+    if (isset($store['paymentIntentIndex'])) {
+        $intentId = trim((string) ($appointment['paymentIntentId'] ?? ''));
+        if ($intentId !== '') {
+            $idx = count($store['appointments']) - 1;
+            $store['paymentIntentIndex'][$intentId] = $idx;
+        }
+    }
+
     write_store($store);
 
     $emailSent = false;
@@ -885,7 +986,7 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') 
         ], 400);
     }
     $found = false;
-    foreach ($store['appointments'] as &$appt) {
+    foreach ($store['appointments'] as $idx => &$appt) {
         if ((int) ($appt['id'] ?? 0) !== $id) {
             continue;
         }
@@ -903,7 +1004,18 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') 
             $appt['paymentProvider'] = (string) $payload['paymentProvider'];
         }
         if (isset($payload['paymentIntentId'])) {
-            $appt['paymentIntentId'] = (string) $payload['paymentIntentId'];
+            $oldIntentId = trim((string) ($appt['paymentIntentId'] ?? ''));
+            $newIntentId = trim((string) $payload['paymentIntentId']);
+            $appt['paymentIntentId'] = $newIntentId;
+
+            if (isset($store['paymentIntentIndex'])) {
+                if ($oldIntentId !== '' && isset($store['paymentIntentIndex'][$oldIntentId])) {
+                    unset($store['paymentIntentIndex'][$oldIntentId]);
+                }
+                if ($newIntentId !== '') {
+                    $store['paymentIntentIndex'][$newIntentId] = $idx;
+                }
+            }
         }
         if (isset($payload['paymentPaidAt'])) {
             $appt['paymentPaidAt'] = (string) $payload['paymentPaidAt'];
@@ -1061,6 +1173,11 @@ if ($method === 'POST' && $resource === 'import') {
     $store['callbacks'] = isset($payload['callbacks']) && is_array($payload['callbacks']) ? $payload['callbacks'] : [];
     $store['reviews'] = isset($payload['reviews']) && is_array($payload['reviews']) ? $payload['reviews'] : [];
     $store['availability'] = isset($payload['availability']) && is_array($payload['availability']) ? $payload['availability'] : [];
+
+    if (isset($store['paymentIntentIndex'])) {
+        unset($store['paymentIntentIndex']);
+    }
+
     write_store($store);
     json_response([
         'ok' => true
@@ -1131,7 +1248,7 @@ if ($method === 'PATCH' && $resource === 'reschedule') {
 
         $doctor = $appt['doctor'] ?? '';
         $excludeId = (int) ($appt['id'] ?? 0);
-        if (appointment_slot_taken($store['appointments'], $newDate, $newTime, $excludeId, $doctor)) {
+        if (appointment_slot_taken($store['appointments'], $newDate, $newTime, $excludeId, $doctor, $store['idx_appointments_date'] ?? null)) {
             json_response(['ok' => false, 'error' => 'El horario seleccionado ya no está disponible'], 409);
         }
 
