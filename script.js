@@ -192,6 +192,26 @@ function bindWarmupTarget(selector, eventName, handler, passive = true) {
     return true;
 }
 
+function bindWarmupTargetsBatch(handler, bindings = []) {
+    if (typeof handler !== 'function' || !Array.isArray(bindings) || bindings.length === 0) {
+        return false;
+    }
+
+    let hasBoundTarget = false;
+    bindings.forEach((binding) => {
+        if (!binding || typeof binding.selector !== 'string' || typeof binding.eventName !== 'string') {
+            return;
+        }
+        const passive = binding.passive !== false;
+        const bound = bindWarmupTarget(binding.selector, binding.eventName, handler, passive);
+        if (bound) {
+            hasBoundTarget = true;
+        }
+    });
+
+    return hasBoundTarget;
+}
+
 function createOnceTask(task) {
     let executed = false;
 
@@ -276,6 +296,68 @@ function runDeferredModule(loader, onReady, onError) {
         }
         return undefined;
     });
+}
+
+function observeWarmupForSection(sectionElement, warmup, rootMargin = '0px', threshold = 0.05) {
+    return observeOnceWhenVisible(sectionElement, warmup, {
+        threshold,
+        rootMargin,
+        onNoObserver: warmup
+    });
+}
+
+function bindChatWarmupTriggers(warmup, options = {}) {
+    const includeQuickAppointment = options.includeQuickAppointment === true;
+    const focusPassive = options.focusPassive === true;
+    const bindings = [
+        { selector: '#chatbotWidget .chatbot-toggle', eventName: 'mouseenter' },
+        { selector: '#chatbotWidget .chatbot-toggle', eventName: 'touchstart' },
+        { selector: '#chatInput', eventName: 'focus', passive: focusPassive }
+    ];
+
+    if (includeQuickAppointment) {
+        bindings.splice(2, 0,
+            { selector: '#quickOptions [data-action="quick-message"][data-value="appointment"]', eventName: 'mouseenter' },
+            { selector: '#quickOptions [data-action="quick-message"][data-value="appointment"]', eventName: 'touchstart' }
+        );
+    }
+
+    return bindWarmupTargetsBatch(warmup, bindings);
+}
+
+function createEngineLoader(config = {}) {
+    const {
+        cacheKey,
+        src,
+        scriptDataAttribute,
+        resolveModule,
+        depsFactory,
+        onModuleReady,
+        isModuleReady = (module) => !!(module && typeof module.init === 'function'),
+        missingApiError = 'Deferred engine loaded without API',
+        loadError = 'No se pudo cargar el motor diferido',
+        logLabel = ''
+    } = config;
+
+    return function loadEngineModule() {
+        const initHandler = typeof onModuleReady === 'function'
+            ? onModuleReady
+            : (typeof depsFactory === 'function'
+                ? (module) => module.init(depsFactory())
+                : undefined);
+
+        return loadDeferredModule({
+            cacheKey,
+            src,
+            scriptDataAttribute,
+            resolveModule,
+            isModuleReady,
+            onModuleReady: initHandler,
+            missingApiError,
+            loadError,
+            logLabel
+        });
+    };
 }
 
 const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred12-cspinline1-stateclass1';
@@ -391,19 +473,16 @@ function getI18nEngineDeps() {
     };
 }
 
-function loadI18nEngine() {
-    return loadDeferredModule({
-        cacheKey: 'i18n-engine',
-        src: I18N_ENGINE_URL,
-        scriptDataAttribute: 'data-i18n-engine',
-        resolveModule: () => window.PielI18nEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getI18nEngineDeps()),
-        missingApiError: 'i18n-engine loaded without API',
-        loadError: 'No se pudo cargar i18n-engine.js',
-        logLabel: 'I18n engine'
-    });
-}
+const loadI18nEngine = createEngineLoader({
+    cacheKey: 'i18n-engine',
+    src: I18N_ENGINE_URL,
+    scriptDataAttribute: 'data-i18n-engine',
+    resolveModule: () => window.PielI18nEngine,
+    depsFactory: getI18nEngineDeps,
+    missingApiError: 'i18n-engine loaded without API',
+    loadError: 'No se pudo cargar i18n-engine.js',
+    logLabel: 'I18n engine'
+});
 
 function initEnglishBundleWarmup() {
     const warmup = () => {
@@ -447,19 +526,16 @@ function getBookingEngineDeps() {
     };
 }
 
-function loadBookingEngine() {
-    return loadDeferredModule({
-        cacheKey: 'booking-engine',
-        src: BOOKING_ENGINE_URL,
-        scriptDataAttribute: 'data-booking-engine',
-        resolveModule: () => window.PielBookingEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getBookingEngineDeps()),
-        missingApiError: 'Booking engine loaded without API',
-        loadError: 'No se pudo cargar booking-engine.js',
-        logLabel: 'Booking engine'
-    });
-}
+const loadBookingEngine = createEngineLoader({
+    cacheKey: 'booking-engine',
+    src: BOOKING_ENGINE_URL,
+    scriptDataAttribute: 'data-booking-engine',
+    resolveModule: () => window.PielBookingEngine,
+    depsFactory: getBookingEngineDeps,
+    missingApiError: 'Booking engine loaded without API',
+    loadError: 'No se pudo cargar booking-engine.js',
+    logLabel: 'Booking engine'
+});
 
 function initBookingEngineWarmup() {
     const warmup = createWarmupRunner(() => loadBookingEngine(), { markWarmOnSuccess: true });
@@ -470,11 +546,12 @@ function initBookingEngineWarmup() {
         '.hero-actions a[href="#citas"]'
     ];
 
-    selectors.forEach((selector) => {
-        bindWarmupTarget(selector, 'mouseenter', warmup);
-        bindWarmupTarget(selector, 'focus', warmup, false);
-        bindWarmupTarget(selector, 'touchstart', warmup);
-    });
+    const bindings = selectors.flatMap((selector) => ([
+        { selector, eventName: 'mouseenter' },
+        { selector, eventName: 'focus', passive: false },
+        { selector, eventName: 'touchstart' }
+    ]));
+    bindWarmupTargetsBatch(warmup, bindings);
 
     scheduleDeferredTask(warmup, {
         idleTimeout: 2500,
@@ -498,19 +575,16 @@ function getThemeEngineDeps() {
     };
 }
 
-function loadThemeEngine() {
-    return loadDeferredModule({
-        cacheKey: 'theme-engine',
-        src: THEME_ENGINE_URL,
-        scriptDataAttribute: 'data-theme-engine',
-        resolveModule: () => window.PielThemeEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getThemeEngineDeps()),
-        missingApiError: 'theme-engine loaded without API',
-        loadError: 'No se pudo cargar theme-engine.js',
-        logLabel: 'Theme engine'
-    });
-}
+const loadThemeEngine = createEngineLoader({
+    cacheKey: 'theme-engine',
+    src: THEME_ENGINE_URL,
+    scriptDataAttribute: 'data-theme-engine',
+    resolveModule: () => window.PielThemeEngine,
+    depsFactory: getThemeEngineDeps,
+    missingApiError: 'theme-engine loaded without API',
+    loadError: 'No se pudo cargar theme-engine.js',
+    logLabel: 'Theme engine'
+});
 
 function setThemeMode(mode) {
     runDeferredModule(loadThemeEngine, (engine) => engine.setThemeMode(mode));
@@ -530,19 +604,16 @@ function getConsentEngineDeps() {
     };
 }
 
-function loadConsentEngine() {
-    return loadDeferredModule({
-        cacheKey: 'consent-engine',
-        src: CONSENT_ENGINE_URL,
-        scriptDataAttribute: 'data-consent-engine',
-        resolveModule: () => window.PielConsentEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getConsentEngineDeps()),
-        missingApiError: 'consent-engine loaded without API',
-        loadError: 'No se pudo cargar consent-engine.js',
-        logLabel: 'Consent engine'
-    });
-}
+const loadConsentEngine = createEngineLoader({
+    cacheKey: 'consent-engine',
+    src: CONSENT_ENGINE_URL,
+    scriptDataAttribute: 'data-consent-engine',
+    resolveModule: () => window.PielConsentEngine,
+    depsFactory: getConsentEngineDeps,
+    missingApiError: 'consent-engine loaded without API',
+    loadError: 'No se pudo cargar consent-engine.js',
+    logLabel: 'Consent engine'
+});
 
 function getCookieConsent() {
     if (window.PielConsentEngine && typeof window.PielConsentEngine.getCookieConsent === 'function') {
@@ -581,19 +652,16 @@ function getAnalyticsEngineDeps() {
     };
 }
 
-function loadAnalyticsEngine() {
-    return loadDeferredModule({
-        cacheKey: 'analytics-engine',
-        src: ANALYTICS_ENGINE_URL,
-        scriptDataAttribute: 'data-analytics-engine',
-        resolveModule: () => window.PielAnalyticsEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getAnalyticsEngineDeps()),
-        missingApiError: 'analytics-engine loaded without API',
-        loadError: 'No se pudo cargar analytics-engine.js',
-        logLabel: 'Analytics engine'
-    });
-}
+const loadAnalyticsEngine = createEngineLoader({
+    cacheKey: 'analytics-engine',
+    src: ANALYTICS_ENGINE_URL,
+    scriptDataAttribute: 'data-analytics-engine',
+    resolveModule: () => window.PielAnalyticsEngine,
+    depsFactory: getAnalyticsEngineDeps,
+    missingApiError: 'analytics-engine loaded without API',
+    loadError: 'No se pudo cargar analytics-engine.js',
+    logLabel: 'Analytics engine'
+});
 
 function trackEvent(eventName, params = {}) {
     runDeferredModule(loadAnalyticsEngine, (engine) => engine.trackEvent(eventName, params));
@@ -690,33 +758,28 @@ function getDataEngineDeps() {
     };
 }
 
-function loadDataEngine() {
-    return loadDeferredModule({
-        cacheKey: 'data-engine',
-        src: DATA_ENGINE_URL,
-        scriptDataAttribute: 'data-data-engine',
-        resolveModule: () => window.PielDataEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getDataEngineDeps()),
-        missingApiError: 'data-engine loaded without API',
-        loadError: 'No se pudo cargar data-engine.js',
-        logLabel: 'Data engine'
-    });
-}
+const loadDataEngine = createEngineLoader({
+    cacheKey: 'data-engine',
+    src: DATA_ENGINE_URL,
+    scriptDataAttribute: 'data-data-engine',
+    resolveModule: () => window.PielDataEngine,
+    depsFactory: getDataEngineDeps,
+    missingApiError: 'data-engine loaded without API',
+    loadError: 'No se pudo cargar data-engine.js',
+    logLabel: 'Data engine'
+});
 
 function initDataEngineWarmup() {
     const warmup = createWarmupRunner(() => loadDataEngine(), { markWarmOnSuccess: true });
 
-    bindWarmupTarget('#appointmentForm', 'focusin', warmup, false);
-    bindWarmupTarget('#appointmentForm', 'pointerdown', warmup);
-    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'pointerdown', warmup);
+    bindWarmupTargetsBatch(warmup, [
+        { selector: '#appointmentForm', eventName: 'focusin', passive: false },
+        { selector: '#appointmentForm', eventName: 'pointerdown' },
+        { selector: '#chatbotWidget .chatbot-toggle', eventName: 'pointerdown' }
+    ]);
 
     const bookingSection = document.getElementById('citas');
-    observeOnceWhenVisible(bookingSection, warmup, {
-        threshold: 0.05,
-        rootMargin: '260px 0px',
-        onNoObserver: warmup
-    });
+    observeWarmupForSection(bookingSection, warmup, '260px 0px');
 
     scheduleDeferredTask(warmup, {
         idleTimeout: 1800,
@@ -972,19 +1035,16 @@ function getReviewsEngineDeps() {
     };
 }
 
-function loadReviewsEngine() {
-    return loadDeferredModule({
-        cacheKey: 'reviews-engine',
-        src: REVIEWS_ENGINE_URL,
-        scriptDataAttribute: 'data-reviews-engine',
-        resolveModule: () => window.PielReviewsEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getReviewsEngineDeps()),
-        missingApiError: 'reviews-engine loaded without API',
-        loadError: 'No se pudo cargar reviews-engine.js',
-        logLabel: 'Reviews engine'
-    });
-}
+const loadReviewsEngine = createEngineLoader({
+    cacheKey: 'reviews-engine',
+    src: REVIEWS_ENGINE_URL,
+    scriptDataAttribute: 'data-reviews-engine',
+    resolveModule: () => window.PielReviewsEngine,
+    depsFactory: getReviewsEngineDeps,
+    missingApiError: 'reviews-engine loaded without API',
+    loadError: 'No se pudo cargar reviews-engine.js',
+    logLabel: 'Reviews engine'
+});
 
 function getReviewsCache() {
     if (window.PielReviewsEngine && typeof window.PielReviewsEngine.getCache === 'function') {
@@ -1009,15 +1069,13 @@ function initReviewsEngineWarmup() {
     const warmup = createWarmupRunner(() => loadReviewsEngine(), { markWarmOnSuccess: true });
 
     const reviewSection = document.getElementById('resenas');
-    observeOnceWhenVisible(reviewSection, warmup, {
-        threshold: 0.05,
-        rootMargin: '300px 0px',
-        onNoObserver: warmup
-    });
+    observeWarmupForSection(reviewSection, warmup, '300px 0px');
 
-    bindWarmupTarget('#resenas', 'mouseenter', warmup);
-    bindWarmupTarget('#resenas', 'touchstart', warmup);
-    bindWarmupTarget('#resenas [data-action="open-review-modal"]', 'focus', warmup, false);
+    bindWarmupTargetsBatch(warmup, [
+        { selector: '#resenas', eventName: 'mouseenter' },
+        { selector: '#resenas', eventName: 'touchstart' },
+        { selector: '#resenas [data-action="open-review-modal"]', eventName: 'focus', passive: false }
+    ]);
 
     scheduleDeferredTask(warmup, {
         idleTimeout: 2200,
@@ -1063,29 +1121,22 @@ function closeVideoModal() {
 // ========================================
 const GALLERY_INTERACTIONS_URL = '/gallery-interactions.js?v=figo-gallery-20260218-phase4';
 
-function loadGalleryInteractions() {
-    return loadDeferredModule({
-        cacheKey: 'gallery-interactions',
-        src: GALLERY_INTERACTIONS_URL,
-        scriptDataAttribute: 'data-gallery-interactions',
-        resolveModule: () => window.PielGalleryInteractions,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(),
-        missingApiError: 'gallery-interactions loaded without API',
-        loadError: 'No se pudo cargar gallery-interactions.js',
-        logLabel: 'Gallery interactions'
-    });
-}
+const loadGalleryInteractions = createEngineLoader({
+    cacheKey: 'gallery-interactions',
+    src: GALLERY_INTERACTIONS_URL,
+    scriptDataAttribute: 'data-gallery-interactions',
+    resolveModule: () => window.PielGalleryInteractions,
+    onModuleReady: (module) => module.init(),
+    missingApiError: 'gallery-interactions loaded without API',
+    loadError: 'No se pudo cargar gallery-interactions.js',
+    logLabel: 'Gallery interactions'
+});
 
 function initGalleryInteractionsWarmup() {
     const warmup = createWarmupRunner(() => loadGalleryInteractions());
 
     const gallerySection = document.getElementById('galeria');
-    observeOnceWhenVisible(gallerySection, warmup, {
-        threshold: 0.05,
-        rootMargin: '320px 0px',
-        onNoObserver: warmup
-    });
+    observeWarmupForSection(gallerySection, warmup, '320px 0px');
 
     const firstFilterBtn = document.querySelector('.filter-btn');
     if (firstFilterBtn) {
@@ -1128,29 +1179,22 @@ function getBookingUiDeps() {
     };
 }
 
-function loadBookingUi() {
-    return loadDeferredModule({
-        cacheKey: 'booking-ui',
-        src: BOOKING_UI_URL,
-        scriptDataAttribute: 'data-booking-ui',
-        resolveModule: () => window.PielBookingUi,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getBookingUiDeps()),
-        missingApiError: 'booking-ui loaded without API',
-        loadError: 'No se pudo cargar booking-ui.js',
-        logLabel: 'Booking UI'
-    });
-}
+const loadBookingUi = createEngineLoader({
+    cacheKey: 'booking-ui',
+    src: BOOKING_UI_URL,
+    scriptDataAttribute: 'data-booking-ui',
+    resolveModule: () => window.PielBookingUi,
+    depsFactory: getBookingUiDeps,
+    missingApiError: 'booking-ui loaded without API',
+    loadError: 'No se pudo cargar booking-ui.js',
+    logLabel: 'Booking UI'
+});
 
 function initBookingUiWarmup() {
     const warmup = createWarmupRunner(() => loadBookingUi());
 
     const bookingSection = document.getElementById('citas');
-    observeOnceWhenVisible(bookingSection, warmup, {
-        threshold: 0.05,
-        rootMargin: '320px 0px',
-        onNoObserver: warmup
-    });
+    observeWarmupForSection(bookingSection, warmup, '320px 0px');
 
     const appointmentForm = document.getElementById('appointmentForm');
     if (appointmentForm) {
@@ -1228,19 +1272,16 @@ function getSuccessModalEngineDeps() {
     };
 }
 
-function loadSuccessModalEngine() {
-    return loadDeferredModule({
-        cacheKey: 'success-modal-engine',
-        src: SUCCESS_MODAL_ENGINE_URL,
-        scriptDataAttribute: 'data-success-modal-engine',
-        resolveModule: () => window.PielSuccessModalEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getSuccessModalEngineDeps()),
-        missingApiError: 'success-modal-engine loaded without API',
-        loadError: 'No se pudo cargar success-modal-engine.js',
-        logLabel: 'Success modal engine'
-    });
-}
+const loadSuccessModalEngine = createEngineLoader({
+    cacheKey: 'success-modal-engine',
+    src: SUCCESS_MODAL_ENGINE_URL,
+    scriptDataAttribute: 'data-success-modal-engine',
+    resolveModule: () => window.PielSuccessModalEngine,
+    depsFactory: getSuccessModalEngineDeps,
+    missingApiError: 'success-modal-engine loaded without API',
+    loadError: 'No se pudo cargar success-modal-engine.js',
+    logLabel: 'Success modal engine'
+});
 
 function initSuccessModalEngineWarmup() {
     const warmup = createWarmupRunner(() => loadSuccessModalEngine());
@@ -1292,18 +1333,19 @@ function getEngagementFormsEngineDeps() {
     };
 }
 
+const loadEngagementFormsModule = createEngineLoader({
+    cacheKey: 'engagement-forms-engine',
+    src: ENGAGEMENT_FORMS_ENGINE_URL,
+    scriptDataAttribute: 'data-engagement-forms-engine',
+    resolveModule: () => window.PielEngagementFormsEngine,
+    depsFactory: getEngagementFormsEngineDeps,
+    missingApiError: 'engagement-forms-engine loaded without API',
+    loadError: 'No se pudo cargar engagement-forms-engine.js',
+    logLabel: 'Engagement forms engine'
+});
+
 function loadEngagementFormsEngine() {
-    return loadReviewsEngine().then(() => loadDeferredModule({
-        cacheKey: 'engagement-forms-engine',
-        src: ENGAGEMENT_FORMS_ENGINE_URL,
-        scriptDataAttribute: 'data-engagement-forms-engine',
-        resolveModule: () => window.PielEngagementFormsEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getEngagementFormsEngineDeps()),
-        missingApiError: 'engagement-forms-engine loaded without API',
-        loadError: 'No se pudo cargar engagement-forms-engine.js',
-        logLabel: 'Engagement forms engine'
-    }));
+    return loadReviewsEngine().then(() => loadEngagementFormsModule());
 }
 
 function initEngagementFormsEngineWarmup() {
@@ -1366,19 +1408,16 @@ function getModalUxEngineDeps() {
     };
 }
 
-function loadModalUxEngine() {
-    return loadDeferredModule({
-        cacheKey: 'modal-ux-engine',
-        src: MODAL_UX_ENGINE_URL,
-        scriptDataAttribute: 'data-modal-ux-engine',
-        resolveModule: () => window.PielModalUxEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getModalUxEngineDeps()),
-        missingApiError: 'modal-ux-engine loaded without API',
-        loadError: 'No se pudo cargar modal-ux-engine.js',
-        logLabel: 'Modal UX engine'
-    });
-}
+const loadModalUxEngine = createEngineLoader({
+    cacheKey: 'modal-ux-engine',
+    src: MODAL_UX_ENGINE_URL,
+    scriptDataAttribute: 'data-modal-ux-engine',
+    resolveModule: () => window.PielModalUxEngine,
+    depsFactory: getModalUxEngineDeps,
+    missingApiError: 'modal-ux-engine loaded without API',
+    loadError: 'No se pudo cargar modal-ux-engine.js',
+    logLabel: 'Modal UX engine'
+});
 
 function initModalUxEngineWarmup() {
     const warmup = createWarmupRunner(() => loadModalUxEngine());
@@ -1467,19 +1506,16 @@ function getChatUiEngineDeps() {
     };
 }
 
-function loadChatUiEngine() {
-    return loadDeferredModule({
-        cacheKey: 'chat-ui-engine',
-        src: CHAT_UI_ENGINE_URL,
-        scriptDataAttribute: 'data-chat-ui-engine',
-        resolveModule: () => window.PielChatUiEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getChatUiEngineDeps()),
-        missingApiError: 'chat-ui-engine loaded without API',
-        loadError: 'No se pudo cargar chat-ui-engine.js',
-        logLabel: 'Chat UI engine'
-    });
-}
+const loadChatUiEngine = createEngineLoader({
+    cacheKey: 'chat-ui-engine',
+    src: CHAT_UI_ENGINE_URL,
+    scriptDataAttribute: 'data-chat-ui-engine',
+    resolveModule: () => window.PielChatUiEngine,
+    depsFactory: getChatUiEngineDeps,
+    missingApiError: 'chat-ui-engine loaded without API',
+    loadError: 'No se pudo cargar chat-ui-engine.js',
+    logLabel: 'Chat UI engine'
+});
 
 function initChatUiEngineWarmup() {
     const warmup = createWarmupRunner(() => loadChatUiEngine(), { markWarmOnSuccess: true });
@@ -1512,19 +1548,16 @@ function getChatWidgetEngineDeps() {
     };
 }
 
-function loadChatWidgetEngine() {
-    return loadDeferredModule({
-        cacheKey: 'chat-widget-engine',
-        src: CHAT_WIDGET_ENGINE_URL,
-        scriptDataAttribute: 'data-chat-widget-engine',
-        resolveModule: () => window.PielChatWidgetEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getChatWidgetEngineDeps()),
-        missingApiError: 'chat-widget-engine loaded without API',
-        loadError: 'No se pudo cargar chat-widget-engine.js',
-        logLabel: 'Chat widget engine'
-    });
-}
+const loadChatWidgetEngine = createEngineLoader({
+    cacheKey: 'chat-widget-engine',
+    src: CHAT_WIDGET_ENGINE_URL,
+    scriptDataAttribute: 'data-chat-widget-engine',
+    resolveModule: () => window.PielChatWidgetEngine,
+    depsFactory: getChatWidgetEngineDeps,
+    missingApiError: 'chat-widget-engine loaded without API',
+    loadError: 'No se pudo cargar chat-widget-engine.js',
+    logLabel: 'Chat widget engine'
+});
 
 function initChatWidgetEngineWarmup() {
     const warmup = createWarmupRunner(() => loadChatWidgetEngine(), { markWarmOnSuccess: true });
@@ -1563,19 +1596,16 @@ function getActionRouterEngineDeps() {
     };
 }
 
-function loadActionRouterEngine() {
-    return loadDeferredModule({
-        cacheKey: 'action-router-engine',
-        src: ACTION_ROUTER_ENGINE_URL,
-        scriptDataAttribute: 'data-action-router-engine',
-        resolveModule: () => window.PielActionRouterEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getActionRouterEngineDeps()),
-        missingApiError: 'action-router-engine loaded without API',
-        loadError: 'No se pudo cargar action-router-engine.js',
-        logLabel: 'Action router engine'
-    });
-}
+const loadActionRouterEngine = createEngineLoader({
+    cacheKey: 'action-router-engine',
+    src: ACTION_ROUTER_ENGINE_URL,
+    scriptDataAttribute: 'data-action-router-engine',
+    resolveModule: () => window.PielActionRouterEngine,
+    depsFactory: getActionRouterEngineDeps,
+    missingApiError: 'action-router-engine loaded without API',
+    loadError: 'No se pudo cargar action-router-engine.js',
+    logLabel: 'Action router engine'
+});
 
 function initActionRouterEngine() {
     runDeferredModule(loadActionRouterEngine, () => undefined, (error) => {
@@ -1683,10 +1713,6 @@ function sendQuickMessage(type) {
     });
 }
 
-function scheduleChatNotification() {
-    runDeferredModule(loadChatWidgetEngine, (engine) => engine.scheduleInitialNotification(30000));
-}
-
 function addUserMessage(text) {
     return withDeferredModule(loadChatUiEngine, (engine) => engine.addUserMessage(text));
 }
@@ -1750,19 +1776,16 @@ function getChatBookingEngineDeps() {
     };
 }
 
-function loadChatBookingEngine() {
-    return loadDeferredModule({
-        cacheKey: 'chat-booking-engine',
-        src: CHAT_BOOKING_ENGINE_URL,
-        scriptDataAttribute: 'data-chat-booking-engine',
-        resolveModule: () => window.PielChatBookingEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getChatBookingEngineDeps()),
-        missingApiError: 'chat-booking-engine loaded without API',
-        loadError: 'No se pudo cargar chat-booking-engine.js',
-        logLabel: 'Chat booking engine'
-    });
-}
+const loadChatBookingEngine = createEngineLoader({
+    cacheKey: 'chat-booking-engine',
+    src: CHAT_BOOKING_ENGINE_URL,
+    scriptDataAttribute: 'data-chat-booking-engine',
+    resolveModule: () => window.PielChatBookingEngine,
+    depsFactory: getChatBookingEngineDeps,
+    missingApiError: 'chat-booking-engine loaded without API',
+    loadError: 'No se pudo cargar chat-booking-engine.js',
+    logLabel: 'Chat booking engine'
+});
 
 function initChatBookingEngineWarmup() {
     const warmup = createWarmupRunner(() => loadChatBookingEngine());
@@ -1832,17 +1855,15 @@ function isChatBookingActive() {
 // INTEGRACION CON BOT DEL SERVIDOR (DEFERRED)
 // ========================================
 
-function loadFigoChatEngine() {
-    return loadDeferredModule({
-        cacheKey: 'figo-chat-engine',
-        src: '/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1',
-        scriptDataAttribute: 'data-figo-chat-engine',
-        resolveModule: () => window.FigoChatEngine,
-        isModuleReady: (module) => !!module,
-        missingApiError: 'Figo chat engine loaded without API',
-        loadError: 'No se pudo cargar chat-engine.js'
-    });
-}
+const loadFigoChatEngine = createEngineLoader({
+    cacheKey: 'figo-chat-engine',
+    src: '/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1',
+    scriptDataAttribute: 'data-figo-chat-engine',
+    resolveModule: () => window.FigoChatEngine,
+    isModuleReady: (module) => !!module,
+    missingApiError: 'Figo chat engine loaded without API',
+    loadError: 'No se pudo cargar chat-engine.js'
+});
 
 function initChatEngineWarmup() {
     const warmup = createWarmupRunner(() => loadFigoChatEngine(), { markWarmOnSuccess: true });
@@ -1859,19 +1880,16 @@ function initChatEngineWarmup() {
 
 const UI_EFFECTS_URL = '/ui-effects.js?v=figo-ui-20260218-phase4';
 
-function loadUiEffects() {
-    return loadDeferredModule({
-        cacheKey: 'ui-effects',
-        src: UI_EFFECTS_URL,
-        scriptDataAttribute: 'data-ui-effects',
-        resolveModule: () => window.PielUiEffects,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(),
-        missingApiError: 'ui-effects loaded without API',
-        loadError: 'No se pudo cargar ui-effects.js',
-        logLabel: 'UI effects'
-    });
-}
+const loadUiEffects = createEngineLoader({
+    cacheKey: 'ui-effects',
+    src: UI_EFFECTS_URL,
+    scriptDataAttribute: 'data-ui-effects',
+    resolveModule: () => window.PielUiEffects,
+    onModuleReady: (module) => module.init(),
+    missingApiError: 'ui-effects loaded without API',
+    loadError: 'No se pudo cargar ui-effects.js',
+    logLabel: 'UI effects'
+});
 
 function initUiEffectsWarmup() {
     const warmup = createWarmupRunner(() => loadUiEffects());
@@ -1900,17 +1918,8 @@ async function processWithKimi(message) {
     );
 }
 
-function checkServerEnvironment() {
-    if (window.location.protocol === 'file:') {
-        setTimeout(() => {
-            showToast('Para usar funciones online, abre el sitio en un servidor local. Ver SERVIDOR-LOCAL.md', 'warning', 'Servidor requerido');
-        }, 2000);
-        return false;
-    }
-    return true;
-}
-
-scheduleChatNotification();
+runDeferredModule(loadChatWidgetEngine, (engine) => engine.scheduleInitialNotification(30000));
+const APP_BOOTSTRAP_ENGINE_URL = '/app-bootstrap-engine.js?v=figo-bootstrap-20260219-phase1';
 // ========================================
 // REPROGRAMACION ONLINE
 // ========================================
@@ -1930,19 +1939,16 @@ function getRescheduleGatewayEngineDeps() {
     };
 }
 
-function loadRescheduleGatewayEngine() {
-    return loadDeferredModule({
-        cacheKey: 'reschedule-gateway-engine',
-        src: RESCHEDULE_GATEWAY_ENGINE_URL,
-        scriptDataAttribute: 'data-reschedule-gateway-engine',
-        resolveModule: () => window.PielRescheduleGatewayEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getRescheduleGatewayEngineDeps()),
-        missingApiError: 'reschedule-gateway-engine loaded without API',
-        loadError: 'No se pudo cargar reschedule-gateway-engine.js',
-        logLabel: 'Reschedule gateway engine'
-    });
-}
+const loadRescheduleGatewayEngine = createEngineLoader({
+    cacheKey: 'reschedule-gateway-engine',
+    src: RESCHEDULE_GATEWAY_ENGINE_URL,
+    scriptDataAttribute: 'data-reschedule-gateway-engine',
+    resolveModule: () => window.PielRescheduleGatewayEngine,
+    depsFactory: getRescheduleGatewayEngineDeps,
+    missingApiError: 'reschedule-gateway-engine loaded without API',
+    loadError: 'No se pudo cargar reschedule-gateway-engine.js',
+    logLabel: 'Reschedule gateway engine'
+});
 
 function initRescheduleEngineWarmup() {
     runDeferredModule(
@@ -1969,57 +1975,69 @@ function submitReschedule() {
     });
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    disablePlaceholderExternalLinks();
-    initActionRouterEngine();
-    initDeferredStylesheetLoading();
-    initThemeMode();
-    changeLanguage(currentLang);
-    initCookieBanner();
-    initGA4();
-    initBookingFunnelObserver();
-    initDeferredSectionPrefetch();
+function getAppBootstrapEngineDeps() {
+    return {
+        disablePlaceholderExternalLinks,
+        initActionRouterEngine,
+        initDeferredStylesheetLoading,
+        initThemeMode,
+        getCurrentLang: () => currentLang,
+        changeLanguage,
+        initCookieBanner,
+        initGA4,
+        initBookingFunnelObserver,
+        initDeferredSectionPrefetch,
+        createOnceTask,
+        scheduleDeferredTask,
+        initEnglishBundleWarmup,
+        initDataEngineWarmup,
+        initBookingEngineWarmup,
+        initBookingUiWarmup,
+        initReviewsEngineWarmup,
+        initGalleryInteractionsWarmup,
+        initChatUiEngineWarmup,
+        initChatWidgetEngineWarmup,
+        initChatEngineWarmup,
+        initChatBookingEngineWarmup,
+        initUiEffectsWarmup,
+        initRescheduleEngineWarmup,
+        initSuccessModalEngineWarmup,
+        initEngagementFormsEngineWarmup,
+        initModalUxEngineWarmup,
+        handleChatKeypress,
+        maybeTrackCheckoutAbandon,
+        showToast
+    };
+}
 
-    const initDeferredWarmups = createOnceTask(() => {
-        initEnglishBundleWarmup();
-        initDataEngineWarmup();
-        initBookingEngineWarmup();
-        initBookingUiWarmup();
-        initReviewsEngineWarmup();
-        initGalleryInteractionsWarmup();
-        initChatUiEngineWarmup();
-        initChatWidgetEngineWarmup();
-        initChatEngineWarmup();
-        initChatBookingEngineWarmup();
-        initUiEffectsWarmup();
-        initRescheduleEngineWarmup();
-        initSuccessModalEngineWarmup();
-        initEngagementFormsEngineWarmup();
-        initModalUxEngineWarmup();
-    });
-
-    window.addEventListener('pointerdown', initDeferredWarmups, { once: true, passive: true });
-    window.addEventListener('keydown', initDeferredWarmups, { once: true });
-
-    scheduleDeferredTask(initDeferredWarmups, {
-        idleTimeout: 1100,
-        fallbackDelay: 320,
-        skipOnConstrained: false,
-        constrainedDelay: 900
-    });
-
-    const chatInput = document.getElementById('chatInput');
-    if (chatInput) {
-        chatInput.addEventListener('keypress', handleChatKeypress);
-    }
-
-    window.addEventListener('pagehide', () => {
-        maybeTrackCheckoutAbandon('page_hide');
-    });
-
-    const isServer = checkServerEnvironment();
-    if (!isServer) {
-        console.warn('Chatbot en modo offline: abre el sitio desde servidor para usar IA real.');
-    }
+const loadAppBootstrapEngine = createEngineLoader({
+    cacheKey: 'app-bootstrap-engine',
+    src: APP_BOOTSTRAP_ENGINE_URL,
+    scriptDataAttribute: 'data-app-bootstrap-engine',
+    resolveModule: () => window.PielAppBootstrapEngine,
+    isModuleReady: (module) => !!(module && typeof module.init === 'function' && typeof module.start === 'function'),
+    depsFactory: getAppBootstrapEngineDeps,
+    missingApiError: 'app-bootstrap-engine loaded without API',
+    loadError: 'No se pudo cargar app-bootstrap-engine.js',
+    logLabel: 'App bootstrap engine'
 });
+
+function startAppBootstrap() {
+    runDeferredModule(loadAppBootstrapEngine, (engine) => engine.start(), () => {
+        const bindFallback = () => {
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.addEventListener('keypress', handleChatKeypress);
+            }
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bindFallback, { once: true });
+            return;
+        }
+        bindFallback();
+    });
+}
+
+startAppBootstrap();
 
