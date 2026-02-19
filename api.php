@@ -295,10 +295,16 @@ function api_validate_absolute_http_url(string $url, string $field): void
 function api_merge_figo_config(array $existing, array $payload): array
 {
     $next = $existing;
+    $endpointTouched = false;
+    $aiEndpointTouched = false;
 
     foreach (['endpoint', 'token', 'apiKeyHeader', 'apiKey'] as $key) {
         if (!array_key_exists($key, $payload)) {
             continue;
+        }
+
+        if ($key === 'endpoint') {
+            $endpointTouched = true;
         }
 
         $value = $payload[$key];
@@ -361,6 +367,10 @@ function api_merge_figo_config(array $existing, array $payload): array
                     continue;
                 }
 
+                if ($aiKey === 'endpoint') {
+                    $aiEndpointTouched = true;
+                }
+
                 $aiValue = $rawAi[$aiKey];
                 if ($aiValue === null) {
                     unset($aiNext[$aiKey]);
@@ -414,14 +424,14 @@ function api_merge_figo_config(array $existing, array $payload): array
         }
     }
 
-    if (isset($next['endpoint']) && is_string($next['endpoint'])) {
+    if ($endpointTouched && isset($next['endpoint']) && is_string($next['endpoint'])) {
         api_validate_absolute_http_url((string) $next['endpoint'], 'endpoint');
         if (api_is_figo_recursive_config((string) $next['endpoint'])) {
             throw new RuntimeException('endpoint no debe apuntar a /figo-chat.php', 400);
         }
     }
 
-    if (isset($next['ai']) && is_array($next['ai']) && isset($next['ai']['endpoint']) && is_string($next['ai']['endpoint'])) {
+    if ($aiEndpointTouched && isset($next['ai']) && is_array($next['ai']) && isset($next['ai']['endpoint']) && is_string($next['ai']['endpoint'])) {
         api_validate_absolute_http_url((string) $next['ai']['endpoint'], 'ai.endpoint');
     }
 
