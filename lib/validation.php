@@ -23,7 +23,7 @@ function validate_phone(string $phone): bool
     return is_string($digits) && strlen($digits) >= 7 && strlen($digits) <= 15;
 }
 
-function parse_bool(mixed $value): bool
+function parse_bool($value): bool
 {
     if (is_bool($value)) {
         return $value;
@@ -42,7 +42,7 @@ function truncate_field(string $value, int $maxLength): string
     return mb_strlen($value) > $maxLength ? mb_substr($value, 0, $maxLength) : $value;
 }
 
-function normalize_string_list(mixed $value, int $maxItems = 5, int $maxLength = 300): array
+function normalize_string_list($value, int $maxItems = 5, int $maxLength = 300): array
 {
     if (!is_array($value)) {
         return [];
