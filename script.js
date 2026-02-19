@@ -1286,9 +1286,11 @@ const loadSuccessModalEngine = createEngineLoader({
 function initSuccessModalEngineWarmup() {
     const warmup = createWarmupRunner(() => loadSuccessModalEngine());
 
-    bindWarmupTarget('#appointmentForm button[type="submit"]', 'pointerdown', warmup);
-    bindWarmupTarget('#appointmentForm button[type="submit"]', 'focus', warmup, false);
-    bindWarmupTarget('.payment-method', 'pointerdown', warmup);
+    bindWarmupTargetsBatch(warmup, [
+        { selector: '#appointmentForm button[type="submit"]', eventName: 'pointerdown' },
+        { selector: '#appointmentForm button[type="submit"]', eventName: 'focus', passive: false },
+        { selector: '.payment-method', eventName: 'pointerdown' }
+    ]);
 
     scheduleDeferredTask(warmup, {
         idleTimeout: 2800,
@@ -1351,21 +1353,19 @@ function loadEngagementFormsEngine() {
 function initEngagementFormsEngineWarmup() {
     const warmup = createWarmupRunner(() => loadEngagementFormsEngine());
 
-    bindWarmupTarget('#callbackForm', 'focusin', warmup, false);
-    bindWarmupTarget('#callbackForm', 'pointerdown', warmup);
-    bindWarmupTarget('#resenas [data-action="open-review-modal"]', 'mouseenter', warmup);
-    bindWarmupTarget('#resenas [data-action="open-review-modal"]', 'touchstart', warmup);
+    bindWarmupTargetsBatch(warmup, [
+        { selector: '#callbackForm', eventName: 'focusin', passive: false },
+        { selector: '#callbackForm', eventName: 'pointerdown' },
+        { selector: '#resenas [data-action="open-review-modal"]', eventName: 'mouseenter' },
+        { selector: '#resenas [data-action="open-review-modal"]', eventName: 'touchstart' }
+    ]);
 
     if (document.getElementById('callbackForm')) {
         setTimeout(warmup, 120);
     }
 
     const reviewSection = document.getElementById('resenas');
-    observeOnceWhenVisible(reviewSection, warmup, {
-        threshold: 0.05,
-        rootMargin: '280px 0px',
-        onNoObserver: warmup
-    });
+    observeWarmupForSection(reviewSection, warmup, '280px 0px');
 
     scheduleDeferredTask(warmup, {
         idleTimeout: 2600,
@@ -1422,8 +1422,10 @@ const loadModalUxEngine = createEngineLoader({
 function initModalUxEngineWarmup() {
     const warmup = createWarmupRunner(() => loadModalUxEngine());
 
-    bindWarmupTarget('.modal', 'pointerdown', warmup);
-    bindWarmupTarget('.modal-close', 'pointerdown', warmup);
+    bindWarmupTargetsBatch(warmup, [
+        { selector: '.modal', eventName: 'pointerdown' },
+        { selector: '.modal-close', eventName: 'pointerdown' }
+    ]);
 
     if (document.querySelector('.modal')) {
         setTimeout(warmup, 180);
@@ -1434,47 +1436,6 @@ function initModalUxEngineWarmup() {
         fallbackDelay: 1200
     });
 }
-
-// ========================================
-// SMOOTH SCROLL
-// ========================================
-const nav = document.querySelector('.nav');
-document.addEventListener('click', function(e) {
-    const targetEl = e.target instanceof Element ? e.target : null;
-    if (!targetEl) return;
-
-    const anchor = targetEl.closest('a[href^="#"]');
-    if (!anchor) return;
-
-    const href = anchor.getAttribute('href');
-    if (!href || href === '#') return;
-
-    const target = document.querySelector(href);
-    if (!target) return;
-
-    e.preventDefault();
-    const navHeight = nav ? nav.offsetHeight : 0;
-    const targetPosition = target.offsetTop - navHeight - 20;
-    window.scrollTo({
-        top: targetPosition,
-        behavior: 'smooth'
-    });
-});
-
-document.addEventListener('click', function(e) {
-    const targetEl = e.target instanceof Element ? e.target : null;
-    if (!targetEl) return;
-
-    const waLink = targetEl.closest('a[href*="wa.me"], a[href*="api.whatsapp.com"]');
-    if (!waLink) return;
-
-    const inChatContext = !!waLink.closest('#chatbotContainer') || !!waLink.closest('#chatbotWidget');
-    if (!inChatContext) return;
-
-    trackEvent('chat_handoff_whatsapp', {
-        source: 'chatbot'
-    });
-});
 
 // ========================================
 // CHATBOT CON FIGO
@@ -1519,10 +1480,7 @@ const loadChatUiEngine = createEngineLoader({
 
 function initChatUiEngineWarmup() {
     const warmup = createWarmupRunner(() => loadChatUiEngine(), { markWarmOnSuccess: true });
-
-    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
-    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
-    bindWarmupTarget('#chatInput', 'focus', warmup, false);
+    bindChatWarmupTriggers(warmup, { focusPassive: false });
 
     scheduleDeferredTask(warmup, {
         idleTimeout: 2600,
@@ -1561,10 +1519,7 @@ const loadChatWidgetEngine = createEngineLoader({
 
 function initChatWidgetEngineWarmup() {
     const warmup = createWarmupRunner(() => loadChatWidgetEngine(), { markWarmOnSuccess: true });
-
-    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
-    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
-    bindWarmupTarget('#chatInput', 'focus', warmup, false);
+    bindChatWarmupTriggers(warmup, { focusPassive: false });
 
     scheduleDeferredTask(warmup, {
         idleTimeout: 2600,
@@ -1789,12 +1744,10 @@ const loadChatBookingEngine = createEngineLoader({
 
 function initChatBookingEngineWarmup() {
     const warmup = createWarmupRunner(() => loadChatBookingEngine());
-
-    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
-    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
-    bindWarmupTarget('#quickOptions [data-action="quick-message"][data-value="appointment"]', 'mouseenter', warmup);
-    bindWarmupTarget('#quickOptions [data-action="quick-message"][data-value="appointment"]', 'touchstart', warmup);
-    bindWarmupTarget('#chatInput', 'focus', warmup, false);
+    bindChatWarmupTriggers(warmup, {
+        includeQuickAppointment: true,
+        focusPassive: false
+    });
 
     scheduleDeferredTask(warmup, {
         idleTimeout: 2600,
@@ -1867,10 +1820,7 @@ const loadFigoChatEngine = createEngineLoader({
 
 function initChatEngineWarmup() {
     const warmup = createWarmupRunner(() => loadFigoChatEngine(), { markWarmOnSuccess: true });
-
-    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
-    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
-    bindWarmupTarget('#chatInput', 'focus', warmup);
+    bindChatWarmupTriggers(warmup, { focusPassive: true });
 
     scheduleDeferredTask(warmup, {
         idleTimeout: 7000,
@@ -1893,9 +1843,10 @@ const loadUiEffects = createEngineLoader({
 
 function initUiEffectsWarmup() {
     const warmup = createWarmupRunner(() => loadUiEffects());
-
-    bindWarmupTarget('.nav', 'mouseenter', warmup);
-    bindWarmupTarget('.nav', 'touchstart', warmup);
+    bindWarmupTargetsBatch(warmup, [
+        { selector: '.nav', eventName: 'mouseenter' },
+        { selector: '.nav', eventName: 'touchstart' }
+    ]);
 
     const triggerOnce = () => warmup();
     window.addEventListener('scroll', triggerOnce, { once: true, passive: true });
@@ -1919,7 +1870,7 @@ async function processWithKimi(message) {
 }
 
 runDeferredModule(loadChatWidgetEngine, (engine) => engine.scheduleInitialNotification(30000));
-const APP_BOOTSTRAP_ENGINE_URL = '/app-bootstrap-engine.js?v=figo-bootstrap-20260219-phase1';
+const APP_BOOTSTRAP_ENGINE_URL = '/app-bootstrap-engine.js?v=figo-bootstrap-20260219-phase2-events1';
 // ========================================
 // REPROGRAMACION ONLINE
 // ========================================
@@ -2006,6 +1957,7 @@ function getAppBootstrapEngineDeps() {
         initModalUxEngineWarmup,
         handleChatKeypress,
         maybeTrackCheckoutAbandon,
+        trackEvent,
         showToast
     };
 }

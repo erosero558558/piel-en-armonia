@@ -25,6 +25,49 @@
         return fn.apply(null, args);
     }
 
+    function bindSmoothScroll() {
+        const nav = document.querySelector('.nav');
+
+        document.addEventListener('click', (event) => {
+            const targetEl = event.target instanceof Element ? event.target : null;
+            if (!targetEl) return;
+
+            const anchor = targetEl.closest('a[href^="#"]');
+            if (!anchor) return;
+
+            const href = anchor.getAttribute('href');
+            if (!href || href === '#') return;
+
+            const target = document.querySelector(href);
+            if (!target) return;
+
+            event.preventDefault();
+            const navHeight = nav ? nav.offsetHeight : 0;
+            const targetPosition = target.offsetTop - navHeight - 20;
+            window.scrollTo({
+                top: targetPosition,
+                behavior: 'smooth'
+            });
+        });
+    }
+
+    function bindChatHandoffTracking() {
+        document.addEventListener('click', (event) => {
+            const targetEl = event.target instanceof Element ? event.target : null;
+            if (!targetEl) return;
+
+            const waLink = targetEl.closest('a[href*="wa.me"], a[href*="api.whatsapp.com"]');
+            if (!waLink) return;
+
+            const inChatContext = !!waLink.closest('#chatbotContainer') || !!waLink.closest('#chatbotWidget');
+            if (!inChatContext) return;
+
+            callDep('trackEvent', 'chat_handoff_whatsapp', {
+                source: 'chatbot'
+            });
+        });
+    }
+
     function onReady() {
         callDep('disablePlaceholderExternalLinks');
         callDep('initActionRouterEngine');
@@ -37,6 +80,8 @@
         callDep('initGA4');
         callDep('initBookingFunnelObserver');
         callDep('initDeferredSectionPrefetch');
+        bindSmoothScroll();
+        bindChatHandoffTracking();
 
         const initDeferredWarmups = callDep('createOnceTask', () => {
             callDep('initEnglishBundleWarmup');
