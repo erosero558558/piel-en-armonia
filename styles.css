@@ -5,15 +5,15 @@
    ======================================== */
 
 :root {
-    --ui-ink: #1d1d1f;
-    --ui-ink-soft: #5f6673;
-    --ui-bg: #f5f5f7;
+    --ui-ink: #1e293b;
+    --ui-ink-soft: #64748b;
+    --ui-bg: #f8fafc;
     --ui-surface: #ffffff;
-    --ui-surface-soft: #eef3fb;
-    --ui-border: #d2d2d7;
-    --ui-border-strong: #bfcee7;
-    --ui-accent: #0a84ff;
-    --ui-accent-2: #3aa0ff;
+    --ui-surface-soft: #f1f5f9;
+    --ui-border: #e2e8f0;
+    --ui-border-strong: #cbd5e1;
+    --ui-accent: #0284c7;
+    --ui-accent-2: #38bdf8;
     --ui-success: #25b16a;
     --ui-dark: #0d1728;
     --ui-dark-2: #17263d;
@@ -53,7 +53,7 @@ body {
     line-height: 1.5;
     min-height: 100vh;
     overflow-x: hidden;
-    background: linear-gradient(180deg, #fbfbfd 0%, #f5f5f7 100%);
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
