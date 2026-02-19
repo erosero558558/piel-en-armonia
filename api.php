@@ -360,8 +360,20 @@ if ($method === 'GET' && $resource === 'payment-config') {
     ]);
 }
 
+if ($method === 'GET' && $resource === 'captcha-config') {
+    json_response([
+        'ok' => true,
+        'siteKey' => getenv('PIELARMONIA_RECAPTCHA_SITE_KEY') ?: ''
+    ]);
+}
+
 if ($method === 'POST' && $resource === 'payment-intent') {
     require_rate_limit('payment-intent', 8, 60);
+
+    $captchaToken = $_SERVER['HTTP_X_CAPTCHA_TOKEN'] ?? '';
+    if (!verify_captcha($captchaToken, 'payment_intent')) {
+        json_response(['ok' => false, 'error' => 'Verificación de seguridad fallida (captcha)'], 400);
+    }
 
     if (!payment_gateway_enabled()) {
         json_response([
@@ -606,6 +618,12 @@ if ($method === 'POST' && $resource === 'stripe-webhook') {
 
 if ($method === 'POST' && $resource === 'appointments') {
     require_rate_limit('appointments', 5, 60);
+
+    $captchaToken = $_SERVER['HTTP_X_CAPTCHA_TOKEN'] ?? '';
+    if (!verify_captcha($captchaToken, 'appointment')) {
+        json_response(['ok' => false, 'error' => 'Verificación de seguridad fallida (captcha)'], 400);
+    }
+
     $payload = require_json_body();
     $appointment = normalize_appointment($payload);
 
@@ -932,6 +950,12 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') 
 
 if ($method === 'POST' && $resource === 'callbacks') {
     require_rate_limit('callbacks', 5, 60);
+
+    $captchaToken = $_SERVER['HTTP_X_CAPTCHA_TOKEN'] ?? '';
+    if (!verify_captcha($captchaToken, 'callback')) {
+        json_response(['ok' => false, 'error' => 'Verificación de seguridad fallida (captcha)'], 400);
+    }
+
     $payload = require_json_body();
     $callback = normalize_callback($payload);
 
@@ -992,6 +1016,12 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'callbacks') {
 
 if ($method === 'POST' && $resource === 'reviews') {
     require_rate_limit('reviews', 3, 60);
+
+    $captchaToken = $_SERVER['HTTP_X_CAPTCHA_TOKEN'] ?? '';
+    if (!verify_captcha($captchaToken, 'review')) {
+        json_response(['ok' => false, 'error' => 'Verificación de seguridad fallida (captcha)'], 400);
+    }
+
     $payload = require_json_body();
     $review = normalize_review($payload);
     if ($review['name'] === '' || $review['text'] === '') {
