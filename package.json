@@ -3,10 +3,9 @@
   "private": true,
   "scripts": {
     "test": "npx playwright test",
-    "test:php": "php tests/api-lib_test.php",
     "test:headed": "npx playwright test --headed",
     "test:ui": "npx playwright test --ui",
-    "test:php": "php tests/test_appointment_slot_taken.php"
+    "test:php": "php tests/test_map_appointment_status.php"
   },
   "devDependencies": {
     "@playwright/test": "^1.50.0"
