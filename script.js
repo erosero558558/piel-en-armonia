@@ -362,13 +362,16 @@ const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 const CASE_PHOTO_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
 const CONSENT_ENGINE_URL = '/consent-engine.js?v=figo-consent-20260219-phase1';
-const ANALYTICS_ENGINE_URL = '/analytics-engine.js?v=figo-analytics-20260219-phase1';
+const ANALYTICS_ENGINE_URL = '/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1';
 let checkoutSessionFallback = {
     active: false,
     completed: false,
     startedAt: 0,
     service: '',
-    doctor: ''
+    doctor: '',
+    step: '',
+    entry: '',
+    paymentMethod: ''
 };
 const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
 let currentAppointment = null;
@@ -419,7 +422,7 @@ function initEnglishBundleWarmup() {
     }
 }
 
-const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2-stateclass1-sync1';
+const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2-stateclass1-sync2';
 
 function getBookingEngineDeps() {
     return {
@@ -431,6 +434,7 @@ function getBookingEngineDeps() {
         getCheckoutSession,
         setCheckoutSessionActive,
         startCheckoutSession,
+        setCheckoutStep,
         completeCheckoutSession,
         maybeTrackCheckoutAbandon,
         loadPaymentConfig,
@@ -632,16 +636,49 @@ function initDeferredSectionPrefetch() {
     runDeferredModule(loadAnalyticsEngine, (engine) => engine.initDeferredSectionPrefetch());
 }
 
-function startCheckoutSession(appointment) {
+function startCheckoutSession(appointment, metadata = {}) {
+    const checkoutEntry = normalizeAnalyticsLabel(
+        metadata && (metadata.checkoutEntry || metadata.entry),
+        'unknown'
+    );
+    const initialStep = normalizeAnalyticsLabel(
+        metadata && metadata.step,
+        'checkout_started'
+    );
+
     checkoutSessionFallback = {
         active: true,
         completed: false,
         startedAt: Date.now(),
         service: appointment?.service || '',
-        doctor: appointment?.doctor || ''
+        doctor: appointment?.doctor || '',
+        step: initialStep,
+        entry: checkoutEntry,
+        paymentMethod: ''
     };
 
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.startCheckoutSession(appointment));
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.startCheckoutSession(appointment, metadata));
+}
+
+function setCheckoutStep(step, metadata = {}) {
+    if (!checkoutSessionFallback.active || checkoutSessionFallback.completed) {
+        return;
+    }
+
+    checkoutSessionFallback.step = normalizeAnalyticsLabel(step, checkoutSessionFallback.step || 'unknown');
+    if (metadata && typeof metadata === 'object') {
+        if (metadata.paymentMethod) {
+            checkoutSessionFallback.paymentMethod = normalizeAnalyticsLabel(metadata.paymentMethod, 'unknown');
+        }
+        if (metadata.checkoutEntry || metadata.entry) {
+            checkoutSessionFallback.entry = normalizeAnalyticsLabel(
+                metadata.checkoutEntry || metadata.entry,
+                checkoutSessionFallback.entry || 'unknown'
+            );
+        }
+    }
+
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.setCheckoutStep(step, metadata));
 }
 
 function getCheckoutSession() {
@@ -653,7 +690,10 @@ function getCheckoutSession() {
                 completed: session.completed === true,
                 startedAt: Number(session.startedAt) || 0,
                 service: String(session.service || ''),
-                doctor: String(session.doctor || '')
+                doctor: String(session.doctor || ''),
+                step: String(session.step || ''),
+                entry: String(session.entry || ''),
+                paymentMethod: String(session.paymentMethod || '')
             };
         }
     }
@@ -671,6 +711,8 @@ function completeCheckoutSession(method) {
         return;
     }
     checkoutSessionFallback.completed = true;
+    checkoutSessionFallback.step = 'booking_confirmed';
+    checkoutSessionFallback.paymentMethod = normalizeAnalyticsLabel(method, checkoutSessionFallback.paymentMethod || 'unknown');
     runDeferredModule(loadAnalyticsEngine, (engine) => engine.completeCheckoutSession(method));
 }
 
@@ -1107,7 +1149,7 @@ function initGalleryInteractionsWarmup() {
 // ========================================
 // APPOINTMENT FORM (DEFERRED MODULE)
 // ========================================
-const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260219-phase4-stateclass2-funnel1-sync1';
+const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260219-phase4-stateclass2-funnel2';
 
 function getBookingUiDeps() {
     return {
@@ -1120,6 +1162,7 @@ function getBookingUiDeps() {
         validateCasePhotoFiles,
         markBookingViewed,
         startCheckoutSession,
+        setCheckoutStep,
         trackEvent,
         normalizeAnalyticsLabel,
         openPaymentModal,
@@ -1761,7 +1804,7 @@ function escapeHtml(text) {
 // ========================================
 // BOOKING CONVERSACIONAL DESDE CHATBOT (DEFERRED MODULE)
 // ========================================
-const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260219-phase2-inlinefix2-funnel1';
+const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260219-phase2-inlinefix2-funnel2';
 
 function getChatBookingEngineDeps() {
     return {
@@ -1772,6 +1815,7 @@ function getChatBookingEngineDeps() {
         loadAvailabilityData,
         getBookedSlots,
         startCheckoutSession,
+        setCheckoutStep,
         completeCheckoutSession,
         createAppointmentRecord,
         showToast,

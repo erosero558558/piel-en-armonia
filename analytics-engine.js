@@ -14,7 +14,10 @@
         completed: false,
         startedAt: 0,
         service: '',
-        doctor: ''
+        doctor: '',
+        step: '',
+        entry: '',
+        paymentMethod: ''
     };
 
     function init(inputDeps) {
@@ -167,14 +170,52 @@
         });
     }
 
-    function startCheckoutSession(appointment) {
+    function startCheckoutSession(appointment, metadata = {}) {
+        const checkoutEntry = normalizeAnalyticsLabel(
+            metadata && (metadata.checkoutEntry || metadata.entry),
+            'unknown'
+        );
+        const initialStep = normalizeAnalyticsLabel(
+            metadata && metadata.step,
+            'checkout_started'
+        );
+
         checkoutSession = {
             active: true,
             completed: false,
             startedAt: Date.now(),
             service: appointment && appointment.service ? appointment.service : '',
-            doctor: appointment && appointment.doctor ? appointment.doctor : ''
+            doctor: appointment && appointment.doctor ? appointment.doctor : '',
+            step: initialStep,
+            entry: checkoutEntry,
+            paymentMethod: ''
         };
+    }
+
+    function setCheckoutStep(step, metadata = {}) {
+        if (!checkoutSession.active || checkoutSession.completed) {
+            return;
+        }
+
+        checkoutSession.step = normalizeAnalyticsLabel(step, checkoutSession.step || 'unknown');
+
+        if (metadata && typeof metadata === 'object') {
+            if (metadata.service) {
+                checkoutSession.service = String(metadata.service);
+            }
+            if (metadata.doctor) {
+                checkoutSession.doctor = String(metadata.doctor);
+            }
+            if (metadata.paymentMethod) {
+                checkoutSession.paymentMethod = normalizeAnalyticsLabel(metadata.paymentMethod, 'unknown');
+            }
+            if (metadata.checkoutEntry || metadata.entry) {
+                checkoutSession.entry = normalizeAnalyticsLabel(
+                    metadata.checkoutEntry || metadata.entry,
+                    checkoutSession.entry || 'unknown'
+                );
+            }
+        }
     }
 
     function setCheckoutSessionActive(active) {
@@ -187,7 +228,10 @@
             completed: checkoutSession.completed === true,
             startedAt: Number(checkoutSession.startedAt) || 0,
             service: String(checkoutSession.service || ''),
-            doctor: String(checkoutSession.doctor || '')
+            doctor: String(checkoutSession.doctor || ''),
+            step: String(checkoutSession.step || ''),
+            entry: String(checkoutSession.entry || ''),
+            paymentMethod: String(checkoutSession.paymentMethod || '')
         };
     }
 
@@ -197,10 +241,14 @@
         }
 
         checkoutSession.completed = true;
+        checkoutSession.step = 'booking_confirmed';
+        checkoutSession.paymentMethod = normalizeAnalyticsLabel(method, checkoutSession.paymentMethod || 'unknown');
         trackEvent('booking_confirmed', {
             payment_method: method || 'unknown',
             service: checkoutSession.service || '',
-            doctor: checkoutSession.doctor || ''
+            doctor: checkoutSession.doctor || '',
+            checkout_step: checkoutSession.step || 'booking_confirmed',
+            checkout_entry: checkoutSession.entry || 'unknown'
         });
     }
 
@@ -214,8 +262,11 @@
         trackEvent('checkout_abandon', {
             service: checkoutSession.service || '',
             doctor: checkoutSession.doctor || '',
+            payment_method: checkoutSession.paymentMethod || 'unknown',
             elapsed_sec: elapsedSec,
-            reason: normalizeAnalyticsLabel(reason, 'unknown')
+            reason: normalizeAnalyticsLabel(reason, 'unknown'),
+            checkout_step: checkoutSession.step || 'unknown',
+            checkout_entry: checkoutSession.entry || 'unknown'
         });
     }
 
@@ -229,6 +280,7 @@
         initBookingFunnelObserver,
         initDeferredSectionPrefetch,
         startCheckoutSession,
+        setCheckoutStep,
         setCheckoutSessionActive,
         getCheckoutSession,
         completeCheckoutSession,

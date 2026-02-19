@@ -56,6 +56,14 @@
         requireFn('setCheckoutSessionActive')(active === true);
     }
 
+    function setCheckoutStep(step, payload = {}) {
+        try {
+            requireFn('setCheckoutStep')(step, payload || {});
+        } catch (_) {
+            // noop when analytics step tracking is unavailable
+        }
+    }
+
     function showToast(message, type) {
         requireFn('showToast')(message, type);
     }
@@ -226,9 +234,13 @@
 
         const appointment = getCurrentAppointment() || {};
         const checkout = requireFn('getCheckoutSession')();
+        const checkoutEntry = (checkout && checkout.entry) || appointment.checkoutEntry || 'unknown';
         let checkoutStartedNow = false;
         if (!checkout || !checkout.active || !checkout.startedAt) {
-            requireFn('startCheckoutSession')(appointment);
+            requireFn('startCheckoutSession')(appointment, {
+                checkoutEntry: checkoutEntry === 'unknown' ? 'web_form' : checkoutEntry,
+                step: 'payment_modal_open'
+            });
             checkoutStartedNow = true;
         }
 
@@ -236,9 +248,15 @@
             trackEvent('start_checkout', {
                 service: appointment.service || '',
                 doctor: appointment.doctor || '',
-                checkout_entry: 'web_form'
+                checkout_entry: checkoutEntry === 'unknown' ? 'web_form' : checkoutEntry
             });
         }
+
+        setCheckoutStep('payment_modal_open', {
+            checkoutEntry: checkoutEntry === 'unknown' ? 'web_form' : checkoutEntry,
+            service: appointment.service || '',
+            doctor: appointment.doctor || ''
+        });
 
         const paymentTotal = document.getElementById('paymentTotal');
         if (paymentTotal) {
@@ -271,6 +289,7 @@
         const modal = document.getElementById('paymentModal');
 
         if (!skipAbandonTrack) {
+            setCheckoutStep('payment_modal_closed');
             requireFn('maybeTrackCheckoutAbandon')(abandonReason);
         }
 
@@ -434,6 +453,12 @@
                 payment_method: paymentMethod || 'unknown',
                 selection_source: 'submit'
             });
+            setCheckoutStep('payment_method_selected', {
+                paymentMethod: paymentMethod || 'unknown'
+            });
+            setCheckoutStep('payment_processing', {
+                paymentMethod: paymentMethod || 'unknown'
+            });
 
             let result;
             if (paymentMethod === 'card') {
@@ -446,6 +471,9 @@
 
             setCurrentAppointment(result.appointment);
 
+            setCheckoutStep('booking_confirmed', {
+                paymentMethod: paymentMethod || 'unknown'
+            });
             requireFn('completeCheckoutSession')(paymentMethod);
             closePaymentModal({ skipAbandonTrack: true });
             requireFn('showSuccessModal')(result.emailSent === true);
@@ -474,6 +502,9 @@
                 stage: 'payment_submit',
                 payment_method: paymentMethodUsed || getActivePaymentMethod(),
                 error_code: normalizeAnalyticsLabel(error?.code || message, 'payment_failed')
+            });
+            setCheckoutStep('payment_error', {
+                paymentMethod: paymentMethodUsed || getActivePaymentMethod() || 'unknown'
             });
 
             setPaymentError(message);

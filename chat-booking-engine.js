@@ -84,6 +84,12 @@
 
     function startChatBooking() {
         chatBooking = { step: 'service', completedSteps: {} };
+        if (deps && typeof deps.trackEvent === 'function') {
+            deps.trackEvent('booking_step_completed', {
+                step: 'chat_booking_started',
+                source: 'chatbot'
+            });
+        }
         let msg = t(
             'Vamos a agendar tu cita paso a paso.<br><br><strong>Paso 1/7:</strong> ¿Que servicio necesitas?<br><br>',
             'Let us schedule your appointment step by step.<br><br><strong>Step 1/7:</strong> Which service do you need?<br><br>'
@@ -413,7 +419,10 @@
         };
 
         if (deps && typeof deps.startCheckoutSession === 'function') {
-            deps.startCheckoutSession(appointment);
+            deps.startCheckoutSession(appointment, {
+                checkoutEntry: 'chatbot',
+                step: 'chat_booking_validated'
+            });
         }
         if (deps && typeof deps.trackEvent === 'function') {
             deps.trackEvent('start_checkout', {
@@ -425,10 +434,24 @@
                 payment_method: chatBooking.paymentMethod || 'unknown'
             });
         }
+        if (deps && typeof deps.setCheckoutStep === 'function') {
+            deps.setCheckoutStep('payment_method_selected', {
+                checkoutEntry: 'chatbot',
+                paymentMethod: chatBooking.paymentMethod || 'unknown',
+                service: appointment.service || '',
+                doctor: appointment.doctor || ''
+            });
+        }
 
         if (chatBooking.paymentMethod === 'cash') {
             if (deps && typeof deps.showTypingIndicator === 'function') {
                 deps.showTypingIndicator();
+            }
+            if (deps && typeof deps.setCheckoutStep === 'function') {
+                deps.setCheckoutStep('payment_processing', {
+                    checkoutEntry: 'chatbot',
+                    paymentMethod: 'cash'
+                });
             }
 
             try {
@@ -450,6 +473,12 @@
                 }
                 if (deps && typeof deps.completeCheckoutSession === 'function') {
                     deps.completeCheckoutSession('cash');
+                }
+                if (deps && typeof deps.setCheckoutStep === 'function') {
+                    deps.setCheckoutStep('booking_confirmed', {
+                        checkoutEntry: 'chatbot',
+                        paymentMethod: 'cash'
+                    });
                 }
 
                 let msg = `<strong>${t('¡Cita agendada con exito!', 'Appointment booked successfully!')}</strong><br><br>`;
@@ -485,6 +514,12 @@
                         `Could not register your appointment: ${escapeHtml(error && error.message ? error.message : 'Unknown error')}. Try again or use the <a href="#citas" data-action="minimize-chat">booking form</a>.`
                     )
                 );
+                if (deps && typeof deps.setCheckoutStep === 'function') {
+                    deps.setCheckoutStep('payment_error', {
+                        checkoutEntry: 'chatbot',
+                        paymentMethod: 'cash'
+                    });
+                }
                 chatBooking.step = 'payment';
             }
             return;

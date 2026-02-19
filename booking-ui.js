@@ -3,6 +3,7 @@
 
     let deps = null;
     let initialized = false;
+    const completedFormSteps = Object.create(null);
 
     function getLang() {
         return deps && typeof deps.getCurrentLang === 'function' ? deps.getCurrentLang() : 'es';
@@ -35,6 +36,44 @@
         }
 
         return raw;
+    }
+
+    function trackFormStep(step, payload = {}, options = {}) {
+        if (!deps || typeof deps.trackEvent !== 'function' || !step) {
+            return;
+        }
+
+        const once = options && options.once !== false;
+        if (once && completedFormSteps[step]) {
+            return;
+        }
+
+        if (once) {
+            completedFormSteps[step] = true;
+        }
+
+        const stepPayload = {
+            step,
+            source: 'booking_form',
+            ...payload
+        };
+
+        deps.trackEvent('booking_step_completed', stepPayload);
+
+        if (typeof deps.setCheckoutStep === 'function') {
+            deps.setCheckoutStep(step, {
+                checkoutEntry: 'booking_form',
+                ...payload
+            });
+        }
+    }
+
+    function hasClinicalContext(formData) {
+        return !!(
+            (formData.get('reason') || '').trim()
+            || (formData.get('affectedArea') || '').trim()
+            || (formData.get('evolutionTime') || '').trim()
+        );
     }
 
     function init(inputDeps) {
@@ -116,16 +155,42 @@
                 if (priceHint) priceHint.classList.remove('is-hidden');
             }
 
+            if (this.value) {
+                trackFormStep('service_selected', {
+                    service: this.value
+                });
+            }
+
             updateAvailableTimes().catch(() => undefined);
         });
 
         if (dateInput) {
             dateInput.min = new Date().toISOString().split('T')[0];
-            dateInput.addEventListener('change', () => updateAvailableTimes().catch(() => undefined));
+            dateInput.addEventListener('change', () => {
+                if (dateInput.value) {
+                    trackFormStep('date_selected');
+                }
+                updateAvailableTimes().catch(() => undefined);
+            });
         }
 
         if (doctorSelect) {
-            doctorSelect.addEventListener('change', () => updateAvailableTimes().catch(() => undefined));
+            doctorSelect.addEventListener('change', () => {
+                if (doctorSelect.value) {
+                    trackFormStep('doctor_selected', {
+                        doctor: doctorSelect.value
+                    });
+                }
+                updateAvailableTimes().catch(() => undefined);
+            });
+        }
+
+        if (timeSelect) {
+            timeSelect.addEventListener('change', () => {
+                if (timeSelect.value) {
+                    trackFormStep('time_selected');
+                }
+            });
         }
 
         if (phoneInput) {
@@ -133,6 +198,60 @@
                 const normalized = normalizeEcuadorPhone(phoneInput.value);
                 if (normalized !== '') {
                     phoneInput.value = normalized;
+                }
+
+                const digits = normalized.replace(/\D/g, '');
+                if (digits.length >= 7 && digits.length <= 15) {
+                    trackFormStep('phone_added');
+                }
+            });
+        }
+
+        const nameInput = appointmentForm.querySelector('input[name="name"]');
+        if (nameInput) {
+            nameInput.addEventListener('blur', () => {
+                if ((nameInput.value || '').trim().length >= 2) {
+                    trackFormStep('name_added');
+                }
+            });
+        }
+
+        const emailInput = appointmentForm.querySelector('input[name="email"]');
+        if (emailInput) {
+            emailInput.addEventListener('blur', () => {
+                const email = (emailInput.value || '').trim();
+                if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    trackFormStep('email_added');
+                }
+            });
+        }
+
+        const reasonInput = appointmentForm.querySelector('textarea[name="reason"]');
+        const areaSelect = appointmentForm.querySelector('select[name="affectedArea"]');
+        const evolutionSelect = appointmentForm.querySelector('select[name="evolutionTime"]');
+        const maybeTrackClinicalContext = () => {
+            const reason = reasonInput ? (reasonInput.value || '').trim() : '';
+            const area = areaSelect ? (areaSelect.value || '').trim() : '';
+            const evolution = evolutionSelect ? (evolutionSelect.value || '').trim() : '';
+            if (reason || area || evolution) {
+                trackFormStep('clinical_context_added');
+            }
+        };
+        if (reasonInput) {
+            reasonInput.addEventListener('blur', maybeTrackClinicalContext);
+        }
+        if (areaSelect) {
+            areaSelect.addEventListener('change', maybeTrackClinicalContext);
+        }
+        if (evolutionSelect) {
+            evolutionSelect.addEventListener('change', maybeTrackClinicalContext);
+        }
+
+        const privacyConsentInput = appointmentForm.querySelector('input[name="privacyConsent"]');
+        if (privacyConsentInput) {
+            privacyConsentInput.addEventListener('change', () => {
+                if (privacyConsentInput.checked) {
+                    trackFormStep('privacy_consent_checked');
                 }
             });
         }
@@ -183,6 +302,35 @@
                     price: totalEl.textContent
                 };
 
+                trackFormStep('form_submitted', {}, { once: false });
+                if (appointment.service) {
+                    trackFormStep('service_selected', { service: appointment.service });
+                }
+                if (appointment.doctor) {
+                    trackFormStep('doctor_selected', { doctor: appointment.doctor });
+                }
+                if (appointment.date) {
+                    trackFormStep('date_selected');
+                }
+                if (appointment.time) {
+                    trackFormStep('time_selected');
+                }
+                if ((appointment.name || '').trim().length >= 2) {
+                    trackFormStep('name_added');
+                }
+                if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((appointment.email || '').trim())) {
+                    trackFormStep('email_added');
+                }
+                if ((appointment.phone || '').replace(/\D/g, '').length >= 7) {
+                    trackFormStep('phone_added');
+                }
+                if (privacyConsent) {
+                    trackFormStep('privacy_consent_checked');
+                }
+                if (hasClinicalContext(formData)) {
+                    trackFormStep('clinical_context_added');
+                }
+
                 deps.markBookingViewed('form_submit');
 
                 const bookedSlots = await deps.getBookedSlots(appointment.date, appointment.doctor);
@@ -196,7 +344,10 @@
                 }
 
                 deps.setCurrentAppointment(appointment);
-                deps.startCheckoutSession(appointment);
+                deps.startCheckoutSession(appointment, {
+                    checkoutEntry: 'booking_form',
+                    step: 'booking_form_validated'
+                });
                 deps.trackEvent('start_checkout', {
                     service: appointment.service || '',
                     doctor: appointment.doctor || '',
