@@ -168,7 +168,7 @@ window.PIEL_EN_TRANSLATIONS = {
         privacy_images_note: "Images and contact data are used only for internal care purposes and handled confidentially.",
         privacy_link_label: "View privacy policy",
         label_phone: "Phone",
-        placeholder_phone: "+593 9XXXXXXXX",
+        placeholder_phone: "098 XXXXXXX",
         summary_subtotal: "Subtotal",
         summary_iva: "VAT (12%)",
         summary_total: "Total",

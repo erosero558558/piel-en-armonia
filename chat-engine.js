@@ -162,8 +162,8 @@ INFORMACION DE LA CLINICA:
 - Nombre: Piel en Armonia
 - Doctores: Dr. Javier Rosero (Dermatologo Clinico) y Dra. Carolina Narvaez (Dermatologa Estetica)
 - Direccion: Dr. Cecilio Caiza e hijas, Quito, Ecuador
-- Telefono/WhatsApp: +593 98 245 3672
-- Contacto Dra. Carolina: +593 98 786 6885 | caro93narvaez@gmail.com
+- Telefono/WhatsApp: 098 245 3672
+- Contacto Dra. Carolina: 098 786 6885 | caro93narvaez@gmail.com
 - Horario: Lunes-Viernes 9:00-18:00, Sabados 9:00-13:00
 - Estacionamiento privado disponible
 
@@ -511,7 +511,7 @@ Al enviar el formulario se abre la ventana de pago automaticamente.<br><br>
 • <strong>Efectivo:</strong> dejas la reserva registrada y pagas en consultorio.<br><br>
 
 <strong>4) Confirmacion</strong><br>
-Tu cita queda registrada y te contactamos para confirmar detalles por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.<br><br>
+Tu cita queda registrada y te contactamos para confirmar detalles por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">098 245 3672</a>.<br><br>
 
 Si quieres, te guio paso a paso seg\u00fan el m\u00e9todo que prefieras.`;
     }
@@ -554,7 +554,7 @@ Si quieres, te guio paso a paso seg\u00fan el m\u00e9todo que prefieras.`;
         response += 'Sabados: 9:00 - 13:00<br><br>';
         response += '<strong>Estacionamiento:</strong> Privado disponible<br><br>';
         response += `<strong>Mapa:</strong> <a href="${CLINIC_MAP_URL}" target="_blank" rel="noopener noreferrer">Abrir en Google Maps</a><br>`;
-        response += '<strong>Contacto:</strong> +593 98 245 3672';
+        response += '<strong>Contacto:</strong> 098 245 3672';
     }
     // DOCTORES
     else if (/doctor|médico|medico|especialista|rosero|narvaez|dr|dra/.test(lowerMsg)) {
@@ -601,8 +601,8 @@ Todas incluyen:
 
 Si tienes más dudas, no dudes en escribirme. También puedes contactarnos directamente:
 
-📱 WhatsApp: +593 98 245 3672
-📞 Teléfono: +593 98 245 3672
+📱 WhatsApp: 098 245 3672
+📞 Teléfono: 098 245 3672
 
 ¡Que tengas un excelente día!`;
     }
@@ -615,7 +615,7 @@ Si tienes más dudas, no dudes en escribirme. También puedes contactarnos direc
 Tambien puedes ir directo:<br>
 - <a href="#servicios" data-action="minimize-chat">Servicios</a><br>
 - <a href="#citas" data-action="minimize-chat">Reservar Cita</a><br>
-- <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">WhatsApp +593 98 245 3672</a>`;
+- <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">WhatsApp 098 245 3672</a>`;
     }
     
     addBotMessage(response, isOffline);

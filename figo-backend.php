@@ -131,7 +131,7 @@ function figo_backend_ai_system_prompt(): string
         . "- Deteccion cancer de piel: desde \$70\n"
         . "- Direccion: Av. Dr. Cecilio Caiza e Hijas N2-30 y Av. Amazonas, Quito\n"
         . "- Horario: L-V 9:00-18:00, Sab 9:00-13:00\n"
-        . "- WhatsApp: +593 98 245 3672\n"
+        . "- WhatsApp: 098 245 3672\n"
         . "- Doctores: Dr. Javier Rosero (dermatologo clinico), Dra. Carolina Narvaez (estetica/laser)\n"
         . "- Web: https://pielarmonia.com\n"
         . "Responde en espanol. Se conciso (2-4 oraciones para temas generales, mas detalle para temas de la clinica).";
@@ -239,7 +239,7 @@ function figo_backend_answer(string $userMessage): string
             . "3) Elige tarjeta, transferencia o efectivo.\n"
             . "4) Confirma y la cita queda registrada.\n\n"
             . "Si eliges transferencia, sube comprobante y numero de referencia.\n"
-            . "Soporte inmediato: WhatsApp +593 98 245 3672.";
+            . "Soporte inmediato: WhatsApp 098 245 3672.";
     }
 
     if (figo_backend_contains_any($normalized, [
@@ -298,12 +298,12 @@ function figo_backend_answer(string $userMessage): string
         return "Estamos en Quito, Ecuador.\n"
             . "Direccion: Av. Dr. Cecilio Caiza e Hijas N2-30 y Av. Amazonas.\n"
             . "Horario: Lunes a Viernes 09:00-18:00, Sabados 09:00-13:00.\n"
-            . "Telefono/WhatsApp: +593 98 245 3672.";
+            . "Telefono/WhatsApp: 098 245 3672.";
     }
 
     return "Gracias por escribirme. Soy Figo de Piel en Armonia y estoy para ayudarte.\n"
         . "Puedo darte informacion sobre servicios dermatologicos, precios, citas, pagos, horarios y ubicacion.\n"
-        . "Si necesitas atencion directa: WhatsApp +593 98 245 3672.";
+        . "Si necesitas atencion directa: WhatsApp 098 245 3672.";
 }
 
 function figo_backend_telegram_token(): string

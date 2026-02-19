@@ -40,7 +40,7 @@ function env_value(string $key, string $default = ''): string
 
 function clinic_phone_display(): string
 {
-    return env_value('PIELARMONIA_CLINIC_PHONE', '+593 98 245 3672');
+    return env_value('PIELARMONIA_CLINIC_PHONE', '098 245 3672');
 }
 
 function clinic_whatsapp_display(): string
