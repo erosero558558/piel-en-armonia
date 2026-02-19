@@ -21,6 +21,7 @@ if (is_file($envFile)) {
 require_once __DIR__ . '/lib/common.php';
 require_once __DIR__ . '/lib/validation.php';
 require_once __DIR__ . '/lib/http.php';
+require_once __DIR__ . '/lib/security.php';
 require_once __DIR__ . '/lib/models.php';
 require_once __DIR__ . '/lib/business.php';
 require_once __DIR__ . '/lib/storage.php';
