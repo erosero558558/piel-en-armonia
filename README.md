@@ -1,0 +1,96 @@
+# Piel Armonía - Clínica Dermatológica y Estética
+
+Bienvenido al repositorio de Piel Armonía, el sitio web y sistema de gestión para la clínica dermatológica. Este proyecto incluye un sistema de reservas, un panel administrativo, integración con chatbot IA y más.
+
+## 📋 Características
+
+- **Sitio Web Moderno**: Diseño responsive con carga diferida de recursos (CSS/JS) para optimizar el rendimiento.
+- **Sistema de Reservas**: Motor de reservas (`booking-engine.js`) integrado.
+- **Panel Administrativo**: Interfaz para gestionar citas, configuraciones y ver métricas (`admin.html`, `admin.js`).
+- **Chatbot IA**: Integración con Figo/Clawbot para asistencia automatizada (`chat-engine.js`, `figo-chat.php`).
+- **API Backend**: Endpoints RESTful en PHP para manejar la lógica de negocio (`api.php`).
+- **Autenticación**: Sistema de login seguro para administradores (`admin-auth.php`).
+- **Test E2E**: Pruebas automatizadas con Playwright.
+
+## 🚀 Requisitos
+
+- **PHP 7.4** o superior.
+- **Node.js** (para ejecutar las pruebas con Playwright).
+- **Composer** (para dependencias de PHP, si aplica).
+
+## 🛠️ Instalación y Desarrollo Local
+
+Para ejecutar el proyecto en tu entorno local:
+
+1. **Clonar el repositorio**:
+   ```bash
+   git clone <url-del-repositorio>
+   cd pielarmonia
+   ```
+
+2. **Configurar Variables de Entorno**:
+   Para el funcionamiento del panel administrativo y otras características, necesitas configurar algunas variables de entorno. Puedes ver los detalles en [SERVIDOR-LOCAL.md](SERVIDOR-LOCAL.md).
+
+   Ejemplo básico en PowerShell:
+   ```powershell
+   $env:PIELARMONIA_ADMIN_PASSWORD = "tu-clave-segura"
+   ```
+
+3. **Iniciar el Servidor PHP**:
+   Utiliza el servidor integrado de PHP:
+   ```bash
+   php -S localhost:8000
+   ```
+
+4. **Acceder a la Aplicación**:
+   - Sitio Web: [http://localhost:8000](http://localhost:8000)
+   - Panel Admin: [http://localhost:8000/admin.html](http://localhost:8000/admin.html)
+   - Health Check: [http://localhost:8000/api.php?resource=health](http://localhost:8000/api.php?resource=health)
+
+## ⚙️ Configuración
+
+Las variables de entorno principales son:
+
+- `PIELARMONIA_ADMIN_PASSWORD`: Contraseña para el acceso administrativo.
+- `PIELARMONIA_ADMIN_EMAIL`: Email para notificaciones administrativas.
+- `FIGO_CHAT_ENDPOINT`: URL del backend del chatbot (si se usa).
+
+Para una lista completa y detalles sobre la configuración, consulta [SERVIDOR-LOCAL.md](SERVIDOR-LOCAL.md) y [DESPLIEGUE-PIELARMONIA.md](DESPLIEGUE-PIELARMONIA.md).
+
+## 🧪 Pruebas
+
+El proyecto utiliza Playwright para pruebas de extremo a extremo (E2E).
+
+1. **Instalar dependencias**:
+   ```bash
+   npm install
+   npx playwright install
+   ```
+
+2. **Ejecutar pruebas**:
+   ```bash
+   npm test
+   ```
+
+   Para ver la interfaz gráfica de las pruebas:
+   ```bash
+   npm run test:ui
+   ```
+
+## 📦 Despliegue
+
+Para instrucciones detalladas sobre cómo desplegar en producción, por favor revisa el archivo [DESPLIEGUE-PIELARMONIA.md](DESPLIEGUE-PIELARMONIA.md).
+
+## 📂 Estructura del Proyecto
+
+- `api.php`: Punto de entrada principal para la API.
+- `admin.html` / `admin.js`: Frontend del panel administrativo.
+- `index.html`: Página principal.
+- `booking-engine.js`: Lógica del sistema de reservas.
+- `chat-engine.js`: Lógica del cliente del chatbot.
+- `data/`: Directorio para almacenamiento de datos (JSON, logs).
+- `tests/`: Scripts de prueba adicionales.
+
+## 📄 Licencia
+
+Este proyecto es privado y propiedad de Piel Armonía.
