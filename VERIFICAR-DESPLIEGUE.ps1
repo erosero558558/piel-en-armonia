@@ -142,11 +142,16 @@ Write-Host "Dominio: $base"
 Write-Host "Fecha: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 
 $indexRaw = Get-Content -Path 'index.html' -Raw
-$localScriptRef = Get-RefFromIndex -IndexHtml $indexRaw -Pattern '<script\s+src="([^"]*script\.js[^"]*)"'
-$localStyleRef = Get-RefFromIndex -IndexHtml $indexRaw -Pattern '<link\s+rel="stylesheet"\s+href="([^"]*styles\.css[^"]*)"'
+$localScriptRef = Get-RefFromIndex -IndexHtml $indexRaw -Pattern '<script[^>]+src="([^"]*script\.js[^"]*)"'
+$localStyleRef = Get-RefFromIndex -IndexHtml $indexRaw -Pattern '<link[^>]+href="([^"]*styles\.css[^"]*)"'
+$localDeferredStyleRef = Get-RefFromIndex -IndexHtml $indexRaw -Pattern '<link[^>]+href="([^"]*styles-deferred\.css[^"]*)"'
+$localHasInlineCriticalCss = [regex]::IsMatch($indexRaw, '<style\b[^>]*>[\s\S]*?</style>', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
 
-if ($localScriptRef -eq '' -or $localStyleRef -eq '') {
-    throw 'No se pudieron detectar referencias versionadas de script.js/styles.css en index.html'
+if ($localScriptRef -eq '') {
+    throw 'No se pudo detectar referencia de script.js en index.html'
+}
+if ($localStyleRef -eq '' -and $localDeferredStyleRef -eq '' -and -not $localHasInlineCriticalCss) {
+    throw 'No se detecto CSS cargado desde index.html (styles.css, styles-deferred.css o inline)'
 }
 
 $remoteIndexTmp = New-TemporaryFile
@@ -207,16 +212,23 @@ try {
     }
 }
 
-$remoteScriptRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern '<script\s+src="([^"]*script\.js[^"]*)"'
-$remoteStyleRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern '<link\s+rel="stylesheet"\s+href="([^"]*styles\.css[^"]*)"'
+$remoteScriptRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern '<script[^>]+src="([^"]*script\.js[^"]*)"'
+$remoteStyleRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern '<link[^>]+href="([^"]*styles\.css[^"]*)"'
+$remoteDeferredStyleRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern '<link[^>]+href="([^"]*styles-deferred\.css[^"]*)"'
+$remoteHasInlineCriticalCss = [regex]::IsMatch($remoteIndexRaw, '<style\b[^>]*>[\s\S]*?</style>', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
 $appScriptRemoteUrl = Get-Url -Base $base -Ref $localScriptRef
 $criticalCssRemoteUrl = Get-Url -Base $base -Ref $localStyleRef
+$indexDeferredStylesRemoteUrl = Get-Url -Base $base -Ref $localDeferredStyleRef
 
 try {
     $assetHeaderChecks = @(
-        @{ Name = 'app-script'; Url = $appScriptRemoteUrl },
-        @{ Name = 'critical-css'; Url = $criticalCssRemoteUrl }
+        @{ Name = 'app-script'; Url = $appScriptRemoteUrl }
     )
+    if (-not [string]::IsNullOrWhiteSpace($criticalCssRemoteUrl)) {
+        $assetHeaderChecks += @{ Name = 'critical-css'; Url = $criticalCssRemoteUrl }
+    } elseif (-not [string]::IsNullOrWhiteSpace($indexDeferredStylesRemoteUrl)) {
+        $assetHeaderChecks += @{ Name = 'critical-css-fallback'; Url = $indexDeferredStylesRemoteUrl }
+    }
     foreach ($assetCheck in $assetHeaderChecks) {
         if ([string]::IsNullOrWhiteSpace($assetCheck.Url)) {
             continue
@@ -320,7 +332,9 @@ $deferredStylesMatch = [regex]::Match($localScriptTextForRefs, "styles-deferred\
 if ($deferredStylesMatch.Success) {
     $deferredStylesVersion = $deferredStylesMatch.Groups[1].Value
 }
-$deferredStylesRemoteUrl = if ($deferredStylesVersion -ne '') {
+$deferredStylesRemoteUrl = if ($indexDeferredStylesRemoteUrl -ne '') {
+    $indexDeferredStylesRemoteUrl
+} elseif ($deferredStylesVersion -ne '') {
     "$base/styles-deferred.css?v=$deferredStylesVersion"
 } else {
     "$base/styles-deferred.css"
@@ -516,32 +530,41 @@ if ([regex]::IsMatch([string]$remoteIndexRaw, '\son[a-z]+\s*=', [System.Text.Reg
     Write-Host "[OK]  index remoto sin handlers inline (on*)"
 }
 
-if ($remoteScriptRef -eq '' -or $remoteStyleRef -eq '') {
-    Write-Host "[FAIL] No se pudieron detectar referencias de assets en index remoto"
+if ($remoteScriptRef -eq '') {
+    Write-Host "[FAIL] No se pudo detectar referencia de script.js en index remoto"
     $results += [PSCustomObject]@{
-        Asset = 'index-asset-refs'
+        Asset = 'index-asset-refs:script'
         Match = $false
-        LocalHash = ''
-        RemoteHash = ''
+        LocalHash = $localScriptRef
+        RemoteHash = $remoteScriptRef
         RemoteUrl = "$base/"
     }
+} elseif ($remoteScriptRef -eq $localScriptRef) {
+    Write-Host "[OK]  index remoto usa misma referencia de script.js"
 } else {
-    if ($remoteScriptRef -eq $localScriptRef) {
-        Write-Host "[OK]  index remoto usa misma referencia de script.js"
-    } else {
-        Write-Host "[FAIL] index remoto script.js diferente"
-        Write-Host "       Local : $localScriptRef"
-        Write-Host "       Remote: $remoteScriptRef"
+    Write-Host "[FAIL] index remoto script.js diferente"
+    Write-Host "       Local : $localScriptRef"
+    Write-Host "       Remote: $remoteScriptRef"
+    $results += [PSCustomObject]@{
+        Asset = 'index-ref:script.js'
+        Match = $false
+        LocalHash = $localScriptRef
+        RemoteHash = $remoteScriptRef
+        RemoteUrl = "$base/"
+    }
+}
+
+if ($localStyleRef -ne '') {
+    if ($remoteStyleRef -eq '') {
+        Write-Host "[FAIL] index remoto sin referencia de styles.css"
         $results += [PSCustomObject]@{
-            Asset = 'index-ref:script.js'
+            Asset = 'index-asset-refs:styles.css'
             Match = $false
-            LocalHash = $localScriptRef
-            RemoteHash = $remoteScriptRef
+            LocalHash = $localStyleRef
+            RemoteHash = ''
             RemoteUrl = "$base/"
         }
-    }
-
-    if ($remoteStyleRef -eq $localStyleRef) {
+    } elseif ($remoteStyleRef -eq $localStyleRef) {
         Write-Host "[OK]  index remoto usa misma referencia de styles.css"
     } else {
         Write-Host "[FAIL] index remoto styles.css diferente"
@@ -555,14 +578,59 @@ if ($remoteScriptRef -eq '' -or $remoteStyleRef -eq '') {
             RemoteUrl = "$base/"
         }
     }
+} else {
+    if ($localHasInlineCriticalCss) {
+        if ($remoteHasInlineCriticalCss) {
+            Write-Host "[OK]  index remoto mantiene CSS critico inline"
+        } else {
+            Write-Host "[FAIL] index remoto no contiene CSS critico inline esperado"
+            $results += [PSCustomObject]@{
+                Asset = 'index-inline-critical-css'
+                Match = $false
+                LocalHash = 'present'
+                RemoteHash = 'missing'
+                RemoteUrl = "$base/"
+            }
+        }
+    }
+
+    if ($localDeferredStyleRef -ne '') {
+        if ($remoteDeferredStyleRef -eq '') {
+            Write-Host "[FAIL] index remoto sin referencia de styles-deferred.css"
+            $results += [PSCustomObject]@{
+                Asset = 'index-asset-refs:styles-deferred.css'
+                Match = $false
+                LocalHash = $localDeferredStyleRef
+                RemoteHash = ''
+                RemoteUrl = "$base/"
+            }
+        } elseif ($remoteDeferredStyleRef -eq $localDeferredStyleRef) {
+            Write-Host "[OK]  index remoto usa misma referencia de styles-deferred.css"
+        } else {
+            Write-Host "[FAIL] index remoto styles-deferred.css diferente"
+            Write-Host "       Local : $localDeferredStyleRef"
+            Write-Host "       Remote: $remoteDeferredStyleRef"
+            $results += [PSCustomObject]@{
+                Asset = 'index-ref:styles-deferred.css'
+                Match = $false
+                LocalHash = $localDeferredStyleRef
+                RemoteHash = $remoteDeferredStyleRef
+                RemoteUrl = "$base/"
+            }
+        }
+    }
 }
 
-$checks = @(
-    [PSCustomObject]@{
+$checks = @()
+if ($localStyleRef -ne '') {
+    $checks += [PSCustomObject]@{
         Name = 'styles.css'
         LocalPath = 'styles.css'
         RemoteUrl = (Get-Url -Base $base -Ref $localStyleRef)
-    },
+    }
+}
+
+$checks += @(
     [PSCustomObject]@{
         Name = 'script.js'
         LocalPath = 'script.js'
