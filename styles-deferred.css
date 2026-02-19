@@ -874,12 +874,16 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
 }
 
 .gallery-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 18px;
 }
 
 .gallery-item {
+    width: calc(50% - 9px);
+    flex-grow: 0;
+    flex-shrink: 0;
     border-radius: var(--ui-radius);
     overflow: hidden;
     border: 1px solid var(--ui-border);
@@ -3249,13 +3253,16 @@ html[data-theme='dark'] .showcase-eyebrow {
         flex-shrink: 0;
     }
 
-    .gallery-grid,
     .team-grid,
     .clinic-container,
     .appointment-container,
     .footer-content,
     .results-trust-notes {
         grid-template-columns: 1fr;
+    }
+
+    .gallery-item {
+        width: 100%;
     }
 
     .mobile-menu a {
