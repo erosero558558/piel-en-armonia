@@ -2724,180 +2724,6 @@ html[data-theme='dark'] .toast-message {
     }
 }
 
-@media (max-width: 900px) {
-    .nav-links,
-    .nav-actions {
-        display: none;
-    }
-
-    .nav-mobile-toggle {
-        display: grid;
-        place-items: center;
-    }
-
-    .hero {
-        min-height: auto;
-        padding: 152px 0 92px;
-    }
-
-    .hero-bg-image {
-        object-position: 72% center;
-    }
-
-    .hero-metrics {
-        grid-template-columns: 1fr;
-        max-width: 430px;
-    }
-
-    .clinic-container,
-    .appointment-container,
-    .footer-content {
-        grid-template-columns: 1fr;
-    }
-
-    .gallery-grid,
-    .team-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .results-trust-notes {
-        grid-template-columns: 1fr;
-    }
-
-    .section {
-        padding: 86px 0;
-    }
-
-    .quick-dock {
-        left: 50%;
-        transform: translateX(-50%);
-    }
-}
-
-@media (max-width: 640px) {
-    html {
-        scroll-padding-top: 104px;
-    }
-
-    .language-bar {
-        height: 34px;
-    }
-
-    .language-options {
-        width: calc(100% - 12px);
-        gap: 6px;
-    }
-
-    .theme-options {
-        flex: 1;
-        overflow-x: auto;
-        scrollbar-width: none;
-    }
-
-    .theme-options::-webkit-scrollbar {
-        display: none;
-    }
-
-    .lang-switch {
-        flex-shrink: 0;
-    }
-
-    .theme-btn,
-    .lang-btn {
-        font-size: 0.7rem;
-        padding: 3px 8px;
-    }
-
-    .nav {
-        top: 42px;
-        width: calc(100% - 14px);
-    }
-
-    .nav-content {
-        height: 58px;
-        padding: 0 14px;
-    }
-
-    .hero {
-        padding: 138px 0 78px;
-    }
-
-    .hero-title {
-        font-size: clamp(2rem, 11vw, 3rem);
-    }
-
-    .hero-subtitle {
-        font-size: 0.98rem;
-    }
-
-    .services-grid,
-    .telemedicine-options,
-    .reviews-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .chatbot-widget {
-        right: 12px;
-        bottom: 86px;
-    }
-
-    .chatbot-container {
-        right: -4px;
-        bottom: 72px;
-        width: min(390px, calc(100vw - 14px));
-        height: min(580px, calc(100vh - 120px));
-    }
-
-    .quick-dock {
-        left: 8px;
-        right: 8px;
-        transform: none;
-        justify-content: space-between;
-        gap: 6px;
-        padding: 6px;
-    }
-
-    .quick-dock-item {
-        min-width: 0;
-        flex: 1;
-        font-size: 0.74rem;
-    }
-
-    .cookie-banner {
-        left: 10px;
-        right: 10px;
-        bottom: 10px;
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .cookie-actions {
-        justify-content: space-between;
-    }
-
-    .modal {
-        padding: 10px;
-    }
-
-    .modal-content {
-        border-radius: 18px;
-        padding: 20px 14px;
-    }
-
-    .payment-methods {
-        grid-template-columns: 1fr;
-    }
-
-    .payment-trust-badges {
-        display: grid;
-        grid-template-columns: 1fr;
-    }
-
-    .trust-badge-item {
-        justify-content: center;
-    }
-}
-
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -3065,12 +2891,6 @@ html[data-theme='dark'] .metric-card span {
     color: #d2d2d7;
 }
 
-/* FIX: Hero content en modo oscuro */
-html[data-theme='dark'] .hero-content {
-    background: rgba(17, 24, 39, 0.85);
-    backdrop-filter: blur(20px);
-}
-
 html[data-theme='dark'] .hero-title span:not(.gradient-text) {
     color: #f5f5f7;
 }
@@ -3082,66 +2902,8 @@ html[data-theme='dark'] .hero-title span:not(.gradient-text) {
 }
 
 /* ========================================
-   HERO CONFLICT RESET (elimina estilos legacy)
-   ======================================== */
-.hero {
-    border-radius: 0;
-}
-
-.hero-content {
-    background: transparent;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    padding: 0;
-    border-radius: 0;
-    box-shadow: none;
-    margin-bottom: 0;
-}
-
-.hero-image-container {
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 100%;
-    max-width: none;
-    transform: none;
-    opacity: 1;
-    pointer-events: none;
-}
-
-.hero-bg-image {
-    border-radius: 0;
-    mask-image: none;
-    -webkit-mask-image: none;
-}
-
-.hero-title,
-.hero-subtitle,
-.hero-actions,
-.hero-contact-bar,
-.hero-metrics {
-    opacity: 1;
-}
-
-html[data-theme='dark'] .hero-content {
-    background: transparent;
-    box-shadow: none;
-}
-
-/* ========================================
    HERO FINAL OVERRIDES (LEGIBILIDAD)
    ======================================== */
-.hero-content {
-    background: transparent !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    padding: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    margin-bottom: 0 !important;
-}
-
 .hero-title span:not(.gradient-text) {
     color: inherit !important;
 }
@@ -3533,11 +3295,6 @@ html[data-theme='dark'] .showcase-eyebrow {
 /* ========================================
    MOBILE UX TUNING (FINAL OVERRIDES)
    ======================================== */
-:root {
-    --safe-top: env(safe-area-inset-top, 0px);
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
-}
-
 @media (max-width: 900px) {
     body {
         font-size: 16px;
@@ -3597,6 +3354,15 @@ html[data-theme='dark'] .showcase-eyebrow {
         flex-shrink: 0;
     }
 
+    .gallery-grid,
+    .team-grid,
+    .clinic-container,
+    .appointment-container,
+    .footer-content,
+    .results-trust-notes {
+        grid-template-columns: 1fr;
+    }
+
     .mobile-menu {
         top: calc(110px + var(--safe-top));
         left: 8px;
@@ -3617,6 +3383,10 @@ html[data-theme='dark'] .showcase-eyebrow {
     .hero {
         min-height: auto;
         padding: calc(138px + var(--safe-top)) 0 74px;
+    }
+
+    .hero-bg-image {
+        object-position: 72% center;
     }
 
     .hero-content {
@@ -3965,6 +3735,12 @@ html[data-theme='dark'] .showcase-eyebrow {
     .hero-subtitle {
         font-size: 0.98rem;
         max-width: 30ch;
+    }
+
+    .services-grid,
+    .telemedicine-options,
+    .reviews-grid {
+        grid-template-columns: 1fr;
     }
 
     .hero-actions {

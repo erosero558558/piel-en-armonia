@@ -278,7 +278,7 @@ function runDeferredModule(loader, onReady, onError) {
     });
 }
 
-const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred4-mobiletypelock1-a11yfocus1-chatsanitize1';
+const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred6-mobiletypelock1-a11yfocus1-chatsanitize1-depuracion2';
 
 let deferredStylesheetPromise = null;
 let deferredStylesheetInitDone = false;
