@@ -171,14 +171,14 @@ class FigoBrain
 
             case 'contact':
                 return "Puedes contactarnos directamente por:\n" .
-                       "📱 **WhatsApp:** [+593 98 245 3672](https://wa.me/593982453672)\n" .
+                       "📱 **WhatsApp:** [098 245 3672](https://wa.me/593982453672)\n" .
                        "📧 **Email:** info@pielarmonia.com\n\n" .
                        "Estamos atentos para responder tus dudas.";
 
             case 'cancellation':
             case 'rescheduling':
                 return "Para cancelar o reprogramar tu cita, por favor revisa el correo de confirmación que recibiste.\n\n" .
-                       "Allí encontrarás un enlace directo para gestionar tu reserva. También puedes escribirnos por WhatsApp al +593 98 245 3672 para ayudarte manualmente.";
+                       "Allí encontrarás un enlace directo para gestionar tu reserva. También puedes escribirnos por WhatsApp al 098 245 3672 para ayudarte manualmente.";
 
             case 'thanks':
                 return "¡De nada! Ha sido un gusto ayudarte. Si tienes más preguntas, aquí estaré. ¡Que tengas un lindo día! ✨";

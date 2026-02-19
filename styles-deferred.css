@@ -523,7 +523,7 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
     border: 1px solid var(--ui-border);
     background: rgba(255, 255, 255, 0.9);
     box-shadow: var(--ui-shadow-sm);
-    padding: 28px 24px;
+    padding: 32px 28px;
     transition: transform var(--ui-ease), box-shadow var(--ui-ease), border-color var(--ui-ease);
 }
 
@@ -594,7 +594,7 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
     border: 1px solid var(--ui-border);
     background: rgba(255, 255, 255, 0.95);
     box-shadow: var(--ui-shadow-sm);
-    padding: 26px 24px;
+    padding: 32px 28px;
     transition: transform var(--ui-ease), box-shadow var(--ui-ease);
 }
 
@@ -874,12 +874,16 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
 }
 
 .gallery-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 18px;
 }
 
 .gallery-item {
+    width: calc(50% - 9px);
+    flex-grow: 0;
+    flex-shrink: 0;
     border-radius: var(--ui-radius);
     overflow: hidden;
     border: 1px solid var(--ui-border);
@@ -998,6 +1002,39 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
 .gallery-info p {
     color: #5c6f89;
     font-size: 0.92rem;
+}
+
+.gallery-details {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    border-bottom: 1px dashed rgba(0,0,0,0.08);
+    padding-bottom: 4px;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #5c6f89;
+}
+
+.detail-value {
+    font-weight: 700;
+    color: #1d1d1f;
+    text-align: right;
+}
+
+.gallery-note {
+    font-size: 0.76rem !important;
+    color: #889bb5 !important;
+    margin-top: 10px;
+    font-style: italic;
+    line-height: 1.4;
 }
 
 .clinic-container {
@@ -1142,10 +1179,10 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
 
 .review-card {
     border-radius: var(--ui-radius);
-    border: 1px solid #d6e2f3;
+    border: 1px solid var(--ui-border);
     background: rgba(255, 255, 255, 0.94);
     box-shadow: var(--ui-shadow-sm);
-    padding: 22px 20px;
+    padding: 26px 24px;
 }
 
 .review-header {
@@ -1199,6 +1236,12 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
 .reviews-actions {
     margin-top: 24px;
     text-align: center;
+}
+
+.reviews-actions .btn {
+    min-height: 50px;
+    padding: 0 28px;
+    font-size: 1.05rem;
 }
 
 .appointment-container {
@@ -1440,7 +1483,7 @@ textarea:focus {
 
 .footer-content {
     display: grid;
-    grid-template-columns: 1.2fr 1fr 1fr 1.2fr;
+    grid-template-columns: 1.3fr 1fr 1.3fr;
     gap: 24px;
     align-items: start;
 }
@@ -1472,16 +1515,14 @@ textarea:focus {
 }
 
 .footer-links,
-.footer-contact,
-.footer-legal {
+.footer-contact {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
 .footer-links a,
-.footer-contact a,
-.footer-legal a {
+.footer-contact a {
     color: #c8d8ef;
     text-decoration: none;
     font-weight: 600;
@@ -1489,8 +1530,7 @@ textarea:focus {
 }
 
 .footer-links a:hover,
-.footer-contact a:hover,
-.footer-legal a:hover {
+.footer-contact a:hover {
     color: #ffffff;
 }
 
@@ -1512,11 +1552,42 @@ textarea:focus {
 
 .footer-bottom {
     margin-top: 24px;
-    padding-top: 14px;
+    padding-top: 18px;
     border-top: 1px solid rgba(177, 202, 233, 0.22);
     color: #9bb1cf;
     font-size: 0.86rem;
     text-align: center;
+}
+
+.footer-institutional {
+    text-align: center;
+    margin-bottom: 16px;
+    color: #aac0dd;
+}
+
+.footer-institutional p {
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.footer-legal-links {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 18px;
+}
+
+.footer-legal-links a {
+    color: #c8d8ef;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.86rem;
+    transition: color var(--ui-ease);
+}
+
+.footer-legal-links a:hover {
+    color: #ffffff;
 }
 
 .modal {
@@ -1545,6 +1616,7 @@ textarea:focus {
     box-shadow: var(--ui-shadow-lg);
     padding: 24px;
     position: relative;
+    -webkit-overflow-scrolling: touch;
 }
 
 .modal-close {
@@ -1956,6 +2028,7 @@ textarea:focus {
     overflow: auto;
     padding: 14px;
     background: linear-gradient(180deg, #f7faff 0%, #f2f6fd 100%);
+    -webkit-overflow-scrolling: touch;
 }
 
 .chat-message {
@@ -2326,7 +2399,7 @@ textarea:focus {
 .reveal {
     opacity: 0;
     transform: translateY(24px);
-    transition: opacity 700ms var(--ui-ease-soft), transform 700ms var(--ui-ease-soft);
+    transition: opacity 700ms var(--ui-curve-soft), transform 700ms var(--ui-curve-soft);
 }
 
 .reveal.active {
@@ -2337,7 +2410,7 @@ textarea:focus {
 .animate-on-scroll {
     opacity: 0;
     transform: translateY(20px);
-    transition: opacity 620ms var(--ui-ease), transform 620ms var(--ui-ease);
+    transition: opacity 620ms var(--ui-curve), transform 620ms var(--ui-curve);
 }
 
 .animate-on-scroll.visible {
@@ -2748,6 +2821,22 @@ html[data-theme='dark'] .toast-message {
         content-visibility: auto;
         contain-intrinsic-size: 900px;
     }
+}
+
+html[data-theme='dark'] .detail-row {
+    border-bottom-color: rgba(255,255,255,0.08);
+}
+
+html[data-theme='dark'] .detail-label {
+    color: #aac1e2;
+}
+
+html[data-theme='dark'] .detail-value {
+    color: #e9f1ff;
+}
+
+html[data-theme='dark'] .gallery-note {
+    color: #7b92b5 !important;
 }
 
 @media (max-width: 1140px) {
@@ -3170,13 +3259,16 @@ html[data-theme='dark'] .showcase-eyebrow {
         flex-shrink: 0;
     }
 
-    .gallery-grid,
     .team-grid,
     .clinic-container,
     .appointment-container,
     .footer-content,
     .results-trust-notes {
         grid-template-columns: 1fr;
+    }
+
+    .gallery-item {
+        width: 100%;
     }
 
     .mobile-menu a {
@@ -3441,5 +3533,233 @@ html[data-theme='dark'] .showcase-eyebrow {
 
     .footer-brand {
         font-size: clamp(1.08rem, 5vw, 1.24rem);
+    }
+}
+
+/* ========================================
+   NEW SECTIONS: Pathologies, Trajectory, Tips
+   ======================================== */
+
+/* Pathologies Section */
+.pathologies-container {
+    margin-top: 48px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: var(--ui-radius);
+    padding: 24px;
+    border: 1px solid rgba(199, 214, 235, 0.5);
+}
+
+.pathologies-title {
+    font-size: 1.15rem;
+    color: #1d3a5f; /* var(--ui-ink) aprox */
+    margin-bottom: 18px;
+    font-weight: 700;
+}
+
+.pathologies-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.pathology-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.94rem;
+    color: #4b607c; /* var(--ui-ink-soft) aprox */
+    background: #fff;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(199, 214, 235, 0.3);
+    transition: all var(--ui-ease);
+}
+
+.pathology-item:hover {
+    transform: translateY(-2px);
+    border-color: var(--ui-accent);
+    box-shadow: 0 4px 12px rgba(10, 132, 255, 0.1);
+}
+
+.pathology-item i {
+    color: var(--ui-accent);
+    font-size: 0.8rem;
+}
+
+/* Trajectory Section */
+.trajectory-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    width: min(1140px, calc(100% - 40px));
+    margin: 0 auto;
+}
+
+.trajectory-card {
+    background: #fff;
+    border-radius: var(--ui-radius);
+    padding: 32px 24px;
+    text-align: center;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: var(--ui-shadow-sm);
+    transition: transform var(--ui-ease);
+}
+
+.trajectory-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--ui-shadow-md);
+}
+
+.trajectory-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    display: grid;
+    place-items: center;
+    font-size: 1.5rem;
+}
+
+.trajectory-icon.media {
+    background: rgba(255, 99, 71, 0.1);
+    color: #ff6347;
+}
+
+.trajectory-icon.congress {
+    background: rgba(30, 144, 255, 0.1);
+    color: #1e90ff;
+}
+
+.trajectory-icon.science {
+    background: rgba(60, 179, 113, 0.1);
+    color: #3cb371;
+}
+
+.trajectory-card h3 {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    color: #1d3a5f;
+}
+
+.trajectory-card p {
+    font-size: 0.92rem;
+    color: #4b607c;
+    line-height: 1.5;
+}
+
+/* Tips Section */
+.tips-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    width: min(1140px, calc(100% - 40px));
+    margin: 0 auto;
+}
+
+.tip-card {
+    background: #fdfdfd;
+    border-radius: var(--ui-radius);
+    padding: 24px;
+    border: 1px solid rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: transform var(--ui-ease);
+}
+
+.tip-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--ui-shadow-md);
+}
+
+.tip-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    font-size: 1.2rem;
+}
+
+.tip-icon.sun {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.tip-icon.mole {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.tip-icon.water {
+    background: #d4edda;
+    color: #155724;
+}
+
+.tip-card h3 {
+    font-size: 1.05rem;
+    color: #1d3a5f;
+}
+
+.tip-card p {
+    font-size: 0.9rem;
+    color: #4b607c;
+    line-height: 1.5;
+}
+
+/* Dark Mode Overrides for New Sections */
+html[data-theme='dark'] .pathologies-container {
+    background: rgba(15, 26, 44, 0.6);
+    border-color: rgba(122, 156, 207, 0.2);
+}
+
+html[data-theme='dark'] .pathologies-title {
+    color: #f0f6ff;
+}
+
+html[data-theme='dark'] .pathology-item {
+    background: rgba(11, 20, 35, 0.8);
+    border-color: rgba(122, 156, 207, 0.25);
+    color: #dbe7fa;
+}
+
+html[data-theme='dark'] .pathology-item:hover {
+    border-color: #4dabf7;
+    background: rgba(19, 36, 60, 0.9);
+}
+
+html[data-theme='dark'] .trajectory-card,
+html[data-theme='dark'] .tip-card {
+    background: rgba(15, 26, 44, 0.9);
+    border-color: rgba(122, 156, 207, 0.3);
+}
+
+html[data-theme='dark'] .trajectory-card h3,
+html[data-theme='dark'] .tip-card h3 {
+    color: #f0f6ff;
+}
+
+html[data-theme='dark'] .trajectory-card p,
+html[data-theme='dark'] .tip-card p {
+    color: #aac1e2;
+}
+
+/* Mobile Responsiveness for New Sections */
+@media (max-width: 900px) {
+    .pathologies-grid,
+    .trajectory-grid,
+    .tips-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .pathologies-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .pathologies-grid {
+        grid-template-columns: 1fr;
     }
 }

@@ -444,7 +444,7 @@
                 paymentMethodUsed === 'card'
                 && /horario ya fue reservado/i.test(message)
             ) {
-                message = 'El pago fue aprobado, pero el horario acaba de ocuparse. Escribenos por WhatsApp para resolverlo de inmediato: +593 98 245 3672.';
+                message = 'El pago fue aprobado, pero el horario acaba de ocuparse. Escribenos por WhatsApp para resolverlo de inmediato: 098 245 3672.';
             }
 
             trackEvent('checkout_error', {
