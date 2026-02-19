@@ -206,18 +206,6 @@ function data_decrypt_payload(string $raw): string
     return $plain;
 }
 
-function ensure_data_htaccess(string $dir): void
-{
-    $htaccess = $dir . DIRECTORY_SEPARATOR . '.htaccess';
-    if (file_exists($htaccess)) {
-        return;
-    }
-    $rules = "# Bloquear acceso publico a datos sensibles\n";
-    $rules .= "Order deny,allow\nDeny from all\n";
-    $rules .= "<IfModule mod_authz_core.c>\n  Require all denied\n</IfModule>\n";
-    @file_put_contents($htaccess, $rules, LOCK_EX);
-}
-
 function audit_log_event(string $event, array $details = []): void
 {
     $line = [
@@ -297,6 +285,18 @@ function create_store_backup_locked($fp): void
     prune_backup_files();
 }
 
+function ensure_data_htaccess(string $dir): void
+{
+    $htaccess = $dir . DIRECTORY_SEPARATOR . '.htaccess';
+    if (file_exists($htaccess)) {
+        return;
+    }
+    $rules = "# Bloquear acceso publico a datos sensibles\n";
+    $rules .= "Order deny,allow\nDeny from all\n";
+    $rules .= "<IfModule mod_authz_core.c>\n  Require all denied\n</IfModule>\n";
+    @file_put_contents($htaccess, $rules, LOCK_EX);
+}
+
 function ensure_data_file(): bool
 {
     $dataDir = data_dir_path();
@@ -327,6 +327,22 @@ function ensure_data_file(): bool
     }
 
     return true;
+}
+
+function build_appointment_index(array $appointments): array
+{
+    $index = [];
+    foreach ($appointments as $i => $appt) {
+        $date = (string) ($appt['date'] ?? '');
+        if ($date === '') {
+            continue;
+        }
+        if (!isset($index[$date])) {
+            $index[$date] = [];
+        }
+        $index[$date][] = $i;
+    }
+    return $index;
 }
 
 function read_store(): array
@@ -387,26 +403,11 @@ function read_store(): array
     $data['availability'] = isset($data['availability']) && is_array($data['availability']) ? $data['availability'] : [];
     $data['updatedAt'] = isset($data['updatedAt']) ? (string) $data['updatedAt'] : local_date('c');
 
-    return $data;
-}
-
-function acquire_store_lock($fp, int $timeoutMs = STORE_LOCK_TIMEOUT_MS): bool
-{
-    if (!is_resource($fp)) {
-        return false;
+    if (!isset($data['idx_appointments_date']) || !is_array($data['idx_appointments_date'])) {
+        $data['idx_appointments_date'] = build_appointment_index($data['appointments']);
     }
 
-    $timeoutMs = max(100, $timeoutMs);
-    $deadline = microtime(true) + ($timeoutMs / 1000);
-
-    do {
-        if (flock($fp, LOCK_EX | LOCK_NB)) {
-            return true;
-        }
-        usleep(STORE_LOCK_RETRY_DELAY_US);
-    } while (microtime(true) < $deadline);
-
-    return false;
+    return $data;
 }
 
 function write_store(array $store): void
@@ -424,6 +425,9 @@ function write_store(array $store): void
     $store['reviews'] = isset($store['reviews']) && is_array($store['reviews']) ? $store['reviews'] : [];
     $store['availability'] = isset($store['availability']) && is_array($store['availability']) ? $store['availability'] : [];
     $store['updatedAt'] = local_date('c');
+
+    // Rebuild index before saving to ensure consistency
+    $store['idx_appointments_date'] = build_appointment_index($store['appointments']);
 
     $fp = @fopen(data_file_path(), 'c+');
     if ($fp === false) {
@@ -466,4 +470,23 @@ function write_store(array $store): void
         }
         fclose($fp);
     }
+}
+
+function acquire_store_lock($fp, int $timeoutMs = STORE_LOCK_TIMEOUT_MS): bool
+{
+    if (!is_resource($fp)) {
+        return false;
+    }
+
+    $timeoutMs = max(100, $timeoutMs);
+    $deadline = microtime(true) + ($timeoutMs / 1000);
+
+    do {
+        if (flock($fp, LOCK_EX | LOCK_NB)) {
+            return true;
+        }
+        usleep(STORE_LOCK_RETRY_DELAY_US);
+    } while (microtime(true) < $deadline);
+
+    return false;
 }

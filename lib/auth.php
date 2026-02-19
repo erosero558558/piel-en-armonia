@@ -5,6 +5,58 @@ declare(strict_types=1);
  * Session and authentication logic.
  */
 
+const ADMIN_PASSWORD_ENV = 'PIELARMONIA_ADMIN_PASSWORD';
+const ADMIN_PASSWORD_HASH_ENV = 'PIELARMONIA_ADMIN_PASSWORD_HASH';
+const APP_TIMEZONE = 'America/Guayaquil';
+const SESSION_TIMEOUT = 1800; // 30 minutos de inactividad
+
+function app_runtime_version(): string
+{
+    static $resolved = null;
+    if (is_string($resolved) && $resolved !== '') {
+        return $resolved;
+    }
+
+    $candidates = [
+        getenv('PIELARMONIA_APP_VERSION'),
+        getenv('APP_VERSION')
+    ];
+
+    foreach ($candidates as $candidate) {
+        if (is_string($candidate) && trim($candidate) !== '') {
+            $resolved = trim($candidate);
+            return $resolved;
+        }
+    }
+
+    $versionSources = [
+        __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'index.html',
+        __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'script.js',
+        __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'styles.css',
+        __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'api.php',
+        __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'figo-chat.php'
+    ];
+
+    $latestMtime = 0;
+    foreach ($versionSources as $source) {
+        if (!is_file($source)) {
+            continue;
+        }
+        $mtime = @filemtime($source);
+        if (is_int($mtime) && $mtime > $latestMtime) {
+            $latestMtime = $mtime;
+        }
+    }
+
+    if ($latestMtime > 0) {
+        $resolved = gmdate('YmdHis', $latestMtime);
+    } else {
+        $resolved = 'dev';
+    }
+
+    return $resolved;
+}
+
 function start_secure_session(): void
 {
     if (session_status() === PHP_SESSION_ACTIVE) {
