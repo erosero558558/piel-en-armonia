@@ -278,7 +278,7 @@ function runDeferredModule(loader, onReady, onError) {
     });
 }
 
-const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred10-mobiletypelock1-a11yfocus1-chatsanitize1-depuracion6';
+const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred11-mobiletypelock1-a11yfocus1-chatsanitize1-depuracion7';
 
 let deferredStylesheetPromise = null;
 let deferredStylesheetInitDone = false;
@@ -2147,14 +2147,6 @@ let chatHistory = (function() {
 })();
 let conversationContext = [];
 
-// CONFIGURACION DE CHAT
-const KIMI_CONFIG = {
-    apiUrl: '/figo-chat.php',
-    model: 'figo-assistant',
-    maxTokens: 1000,
-    temperature: 0.7
-};
-
 // Funcion simple para detectar si usar IA real
 function shouldUseRealAI() {
     if (localStorage.getItem('forceAI') === 'true') {
@@ -2169,49 +2161,6 @@ function shouldUseRealAI() {
 
     return true;
 }
-
-// Contexto del sistema para el asistente
-const SYSTEM_PROMPT = `Eres el Dr. Virtual, asistente inteligente de la clinica dermatologica "Piel en Armonia" en Quito, Ecuador.
-
-INFORMACION DE LA CLINICA:
-- Nombre: Piel en Armonia
-- Doctores: Dr. Javier Rosero (Dermatologo Clinico) y Dra. Carolina Narvaez (Dermatologa Estetica)
-- Direccion: ${CLINIC_ADDRESS}
-- Telefono/WhatsApp: +593 98 245 3672
-- Contacto Dra. Carolina: ${DOCTOR_CAROLINA_PHONE} | ${DOCTOR_CAROLINA_EMAIL}
-- Horario: Lunes-Viernes 9:00-18:00, Sabados 9:00-13:00
-- Estacionamiento privado disponible
-
-SERVICIOS Y PRECIOS:
-- Consulta Dermatologica: $40 (incluye IVA)
-- Consulta Telefonica: $25
-- Video Consulta: $30
-- Tratamiento Laser: desde $150
-- Rejuvenecimiento: desde $120
-- Tratamiento de Acne: desde $80
-- Deteccion de Cancer de Piel: desde $70
-
-OPCIONES DE CONSULTA ONLINE:
-1. Llamada telefonica: tel:+593982453672
-2. WhatsApp Video: https://wa.me/593982453672
-3. Video Web (Jitsi): https://meet.jit.si/PielEnArmonia-Consulta
-
-INSTRUCCIONES:
-- Se profesional, amable y empatico
-- Responde en espanol (o en el idioma que use el paciente)
-- Si el paciente tiene sintomas graves o emergencias, recomienda acudir a urgencias
-- Para agendar citas, dirige al formulario web, WhatsApp o llamada telefonica
-- Si no sabes algo especifico, ofrece transferir al doctor real
-- No hagas diagnosticos medicos definitivos, solo orientacion general
-- Usa emojis ocasionalmente para ser amigable
-- Manten respuestas concisas pero informativas
-
-Tu objetivo es ayudar a los pacientes a:
-1. Conocer los servicios de la clinica
-2. Entender los precios
-3. Agendar citas
-4. Resolver dudas basicas sobre dermatologia
-5. Conectar con un doctor real cuando sea necesario`;
 
 function toggleChatbot() {
     const container = document.getElementById('chatbotContainer');
@@ -2651,7 +2600,7 @@ function isChatBookingActive() {
 function loadFigoChatEngine() {
     return loadDeferredModule({
         cacheKey: 'figo-chat-engine',
-        src: '/chat-engine.js?v=figo-chat-20260218-phase2-linkrel1-textclean1',
+        src: '/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1',
         scriptDataAttribute: 'data-figo-chat-engine',
         resolveModule: () => window.FigoChatEngine,
         isModuleReady: (module) => !!module,
