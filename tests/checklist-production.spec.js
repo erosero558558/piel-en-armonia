@@ -2,6 +2,7 @@
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
+const { skipIfPhpRuntimeMissing } = require('./helpers/php-backend');
 
 const ADMIN_PASSWORD = process.env.PIELARMONIA_ADMIN_PASSWORD || 'admin123';
 
@@ -24,6 +25,7 @@ test.describe('Checklist de Pruebas en Producción', () => {
   });
 
   test('1. Pre-check de servidor - Variables de entorno y salud', async ({ request }) => {
+    await skipIfPhpRuntimeMissing(test, request);
     const response = await request.get('/api.php?resource=health');
     expect(response.ok()).toBeTruthy();
     const body = await response.json();
@@ -37,7 +39,8 @@ test.describe('Checklist de Pruebas en Producción', () => {
   });
 
   // 2. Pruebas del panel admin
-  test('2. Panel Admin - Login fallido', async ({ page }) => {
+  test('2. Panel Admin - Login fallido', async ({ page, request }) => {
+    await skipIfPhpRuntimeMissing(test, request);
     await page.goto('/admin.html');
     await expect(page).toHaveTitle(/Admin|Piel en Armonía/);
 
@@ -54,7 +57,8 @@ test.describe('Checklist de Pruebas en Producción', () => {
     await expect(page.locator('input[type="password"]')).toBeVisible();
   });
 
-  test('2. Panel Admin - Login exitoso y navegación', async ({ page }) => {
+  test('2. Panel Admin - Login exitoso y navegacion', async ({ page, request }) => {
+    await skipIfPhpRuntimeMissing(test, request);
     await page.goto('/admin.html');
 
     // Login correcto
@@ -149,6 +153,7 @@ test.describe('Checklist de Pruebas en Producción', () => {
 
   // 4. Validación de disponibilidad
   test('4. Disponibilidad - API responde', async ({ request }) => {
+    await skipIfPhpRuntimeMissing(test, request);
     const response = await request.get('/api.php?resource=availability');
     expect(response.ok()).toBeTruthy();
     const body = await response.json();
@@ -168,7 +173,8 @@ test.describe('Checklist de Pruebas en Producción', () => {
   });
 
   // 6. Flujo de reseñas
-  test('6. Reseñas - Carga correcta', async ({ page }) => {
+  test('6. Resenas - Carga correcta', async ({ page, request }) => {
+    await skipIfPhpRuntimeMissing(test, request);
     await page.goto('/index.html');
     // Verificar que la sección de reseñas existe
     const reviewsSection = page.locator('#reviews, .reviews-section');
@@ -177,12 +183,13 @@ test.describe('Checklist de Pruebas en Producción', () => {
     }
 
     // Verificar API de reseñas
-    const response = await page.request.get('/api.php?resource=reviews');
+    const response = await request.get('/api.php?resource=reviews');
     expect(response.ok()).toBeTruthy();
   });
 
   // 7. Chatbot Figo
   test('7. Chatbot Figo - API Health', async ({ request }) => {
+    await skipIfPhpRuntimeMissing(test, request);
     const response = await request.get('/figo-chat.php');
     // Puede devolver 405 Method Not Allowed si es GET, o JSON config
     // El checklist dice: "Esperado: responde JSON y muestra configured..."
@@ -202,6 +209,7 @@ test.describe('Checklist de Pruebas en Producción', () => {
 
   // 8. Seguridad básica
   test('8. Seguridad - Headers y acceso denegado', async ({ request }) => {
+    await skipIfPhpRuntimeMissing(test, request);
     // Verificar acceso denegado a directorios sensibles si es posible via HTTP
     const dataResp = await request.get('/data/');
     expect([403, 404]).toContain(dataResp.status()); // O 404, pero no 200 con listado
