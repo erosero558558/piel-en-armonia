@@ -1559,7 +1559,23 @@ function getActionRouterEngineDeps() {
         sendQuickMessage,
         minimizeChatbot,
         startChatBooking,
-        handleChatDateSelect
+        handleChatDateSelect,
+        selectService: (value) => {
+            const select = document.getElementById('serviceSelect');
+            if (select) {
+                select.value = value;
+                select.dispatchEvent(new Event('change'));
+                const appointmentSection = document.getElementById('citas');
+                if (appointmentSection) {
+                    const navHeight = document.querySelector('.nav')?.offsetHeight || 80;
+                    const targetPosition = appointmentSection.offsetTop - navHeight - 20;
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            }
+        }
     };
 }
 

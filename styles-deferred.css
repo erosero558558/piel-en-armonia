@@ -525,6 +525,9 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
     box-shadow: var(--ui-shadow-sm);
     padding: 28px 24px;
     transition: transform var(--ui-ease), box-shadow var(--ui-ease), border-color var(--ui-ease);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 }
 
 .service-card:hover {
@@ -569,18 +572,47 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
 .service-card p {
     color: var(--ui-ink-soft);
     line-height: 1.6;
-    margin-bottom: 14px;
+    margin-bottom: auto;
+    padding-bottom: 16px;
+}
+
+.service-tag {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: #f0f7ff;
+    color: #1a73e8;
+    margin-bottom: 12px;
 }
 
 .service-price {
     display: inline-flex;
-    align-items: center;
-    border-radius: 999px;
+    flex-direction: column;
+    align-items: flex-start;
+    border-radius: 12px;
     background: #edf5ff;
     color: #1e6dc4;
     font-weight: 700;
     font-size: 0.88rem;
-    padding: 7px 12px;
+    padding: 8px 14px;
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.price-note {
+    display: block;
+    font-size: 0.75rem;
+    color: #6e6e73;
+    font-weight: 400;
+    margin-top: 2px;
+}
+
+.btn-sm {
+    min-height: 38px;
+    padding: 0 16px;
+    font-size: 0.86rem;
 }
 
 .telemedicine-options {
@@ -2499,9 +2531,14 @@ html[data-theme='dark'] .review-date {
 
 html[data-theme='dark'] .service-price,
 html[data-theme='dark'] .tele-badge,
-html[data-theme='dark'] .service-badge {
+html[data-theme='dark'] .service-badge,
+html[data-theme='dark'] .service-tag {
     background: rgba(40, 73, 114, 0.62);
     color: #cce1ff;
+}
+
+html[data-theme='dark'] .price-note {
+    color: #aac1e2;
 }
 
 html[data-theme='dark'] .tele-features li {

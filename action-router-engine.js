@@ -98,6 +98,9 @@
             case 'start-booking':
                 callDep('startChatBooking');
                 break;
+            case 'select-service':
+                callDep('selectService', value);
+                break;
             default:
                 break;
         }

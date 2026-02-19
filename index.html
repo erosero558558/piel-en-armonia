@@ -311,8 +311,8 @@
     <!-- Services Section -->
     <section class="section section-gray" id="servicios">
         <div class="section-header">
-            <h2 class="section-title" data-i18n="services_title">Nuestros Servicios</h2>
-            <p class="section-subtitle" data-i18n="services_subtitle">Tratamientos dermatológicos de excelencia</p>
+            <h2 class="section-title" data-i18n="services_title">Servicios dermatológicos</h2>
+            <p class="section-subtitle" data-i18n="services_subtitle">Elige tu consulta o procedimiento. Te confirmamos indicación y plan en valoración médica.</p>
         </div>
         <div class="services-grid">
             <div class="service-card">
@@ -326,9 +326,11 @@
                 <div class="service-icon">
                     <i class="fas fa-stethoscope"></i>
                 </div>
+                <div class="service-tag">Clínico</div>
                 <h3 data-i18n="service_consulta">Consulta Dermatológica</h3>
                 <p data-i18n="service_consulta_desc">Evaluación completa de tu piel con diagnóstico preciso y plan de tratamiento personalizado.</p>
                 <span class="service-price">$40</span>
+                <a href="#citas" class="btn btn-secondary btn-sm btn-full" data-action="select-service" data-value="consulta">Reservar este servicio</a>
             </div>
             <div class="service-card featured">
                 <div class="service-badge" data-i18n="badge_popular">Popular</div>
@@ -342,9 +344,11 @@
                 <div class="service-icon">
                     <i class="fas fa-video"></i>
                 </div>
+                <div class="service-tag">Clínico</div>
                 <h3 data-i18n="service_telemedicina">Telemedicina</h3>
                 <p data-i18n="service_telemedicina_desc">Consulta médica desde la comodidad de tu hogar por teléfono o videollamada.</p>
                 <span class="service-price">$25 - $30</span>
+                <a href="#citas" class="btn btn-secondary btn-sm btn-full" data-action="select-service" data-value="video">Reservar este servicio</a>
             </div>
             <div class="service-card">
                 <div class="service-card-img">
@@ -357,9 +361,14 @@
                 <div class="service-icon">
                     <i class="fas fa-bolt"></i>
                 </div>
+                <div class="service-tag">Procedimiento</div>
                 <h3 data-i18n="service_laser">Láser Dermatológico</h3>
                 <p data-i18n="service_laser_desc">Tratamientos con láser de última generación para diversas afecciones de la piel.</p>
-                <span class="service-price" data-i18n="price_from">Desde $150</span>
+                <span class="service-price">
+                    <span data-i18n="price_from">Desde $150</span>
+                    <span class="price-note">Según evaluación</span>
+                </span>
+                <a href="#citas" class="btn btn-secondary btn-sm btn-full" data-action="select-service" data-value="laser">Reservar este servicio</a>
             </div>
             <div class="service-card">
                 <div class="service-card-img">
@@ -372,9 +381,14 @@
                 <div class="service-icon">
                     <i class="fas fa-wand-magic-sparkles"></i>
                 </div>
+                <div class="service-tag">Estético</div>
                 <h3 data-i18n="service_rejuvenation">Rejuvenecimiento</h3>
                 <p data-i18n="service_rejuvenation_desc">Tratamientos estéticos para recuperar la juventud y luminosidad de tu piel.</p>
-                <span class="service-price" data-i18n="price_from">Desde $120</span>
+                <span class="service-price">
+                    <span data-i18n="price_from">Desde $120</span>
+                    <span class="price-note">Según evaluación</span>
+                </span>
+                <a href="#citas" class="btn btn-secondary btn-sm btn-full" data-action="select-service" data-value="rejuvenecimiento">Reservar este servicio</a>
             </div>
             <div class="service-card">
                 <div class="service-card-img">
@@ -387,9 +401,14 @@
                 <div class="service-icon">
                     <i class="fas fa-shield-virus"></i>
                 </div>
+                <div class="service-tag">Clínico</div>
                 <h3 data-i18n="service_acne">Tratamiento de Acné</h3>
                 <p data-i18n="service_acne_desc">Soluciones efectivas para controlar y eliminar el acné en todas sus formas.</p>
-                <span class="service-price" data-i18n="price_from">Desde $80</span>
+                <span class="service-price">
+                    <span data-i18n="price_from">Desde $80</span>
+                    <span class="price-note">Según evaluación</span>
+                </span>
+                <a href="#citas" class="btn btn-secondary btn-sm btn-full" data-action="select-service" data-value="acne">Reservar este servicio</a>
             </div>
             <div class="service-card">
                 <div class="service-card-img">
@@ -402,9 +421,14 @@
                 <div class="service-icon">
                     <i class="fas fa-microscope"></i>
                 </div>
+                <div class="service-tag">Clínico</div>
                 <h3 data-i18n="service_cancer">Detección de Cáncer de Piel</h3>
                 <p data-i18n="service_cancer_desc">Examen dermatoscópico completo para detección temprana de lesiones sospechosas.</p>
-                <span class="service-price" data-i18n="price_from">Desde $70</span>
+                <span class="service-price">
+                    <span data-i18n="price_from">Desde $70</span>
+                    <span class="price-note">Según evaluación</span>
+                </span>
+                <a href="#citas" class="btn btn-secondary btn-sm btn-full" data-action="select-service" data-value="cancer">Reservar este servicio</a>
             </div>
         </div>
     </section>
@@ -874,6 +898,8 @@
                             <option value="video" data-price="30" data-i18n="opt_video">Video Consulta - $30</option>
                             <option value="laser" data-price="150" data-i18n="opt_laser">Tratamiento Láser - desde $150</option>
                             <option value="rejuvenecimiento" data-price="120" data-i18n="opt_rejuvenation">Rejuvenecimiento - desde $120</option>
+                            <option value="acne" data-price="80" data-i18n="opt_acne">Tratamiento de Acné - desde $80</option>
+                            <option value="cancer" data-price="70" data-i18n="opt_cancer">Detección de Cáncer - desde $70</option>
                         </select>
                     </div>
                     
