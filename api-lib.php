@@ -364,6 +364,57 @@ function is_https_request(): bool
     return false;
 }
 
+function turnstile_site_key(): string
+{
+    $key = getenv('PIELARMONIA_TURNSTILE_SITE_KEY');
+    return is_string($key) ? trim($key) : '';
+}
+
+function turnstile_secret_key(): string
+{
+    $key = getenv('PIELARMONIA_TURNSTILE_SECRET_KEY');
+    return is_string($key) ? trim($key) : '';
+}
+
+function verify_turnstile_token(string $token): bool
+{
+    $secret = turnstile_secret_key();
+    if ($secret === '') {
+        return true; // Si no hay clave secreta, no se valida (modo desarrollo/inseguro)
+    }
+
+    if ($token === '') {
+        return false;
+    }
+
+    $url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+    $data = [
+        'secret' => $secret,
+        'response' => $token,
+        'remoteip' => $_SERVER['REMOTE_ADDR'] ?? ''
+    ];
+
+    $options = [
+        'http' => [
+            'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+            'method'  => 'POST',
+            'content' => http_build_query($data),
+            'timeout' => 5
+        ]
+    ];
+
+    $context  = stream_context_create($options);
+    $result = @file_get_contents($url, false, $context);
+
+    if ($result === false) {
+        error_log('Piel en Armonía: fallo al conectar con Turnstile verification');
+        return false; // Fall-closed
+    }
+
+    $json = json_decode($result, true);
+    return isset($json['success']) && $json['success'] === true;
+}
+
 function start_secure_session(): void
 {
     if (session_status() === PHP_SESSION_ACTIVE) {

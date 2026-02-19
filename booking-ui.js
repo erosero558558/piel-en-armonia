@@ -59,45 +59,38 @@
         }
 
         initialized = true;
-        const completedSteps = new Set();
 
-        function trackBookingStep(step, payload = {}, options = {}) {
-            if (!deps || typeof deps.trackEvent !== 'function' || !step) {
-                return;
-            }
-
-            const once = options && options.once !== false;
-            if (once && completedSteps.has(step)) {
-                return;
-            }
-
-            if (once) {
-                completedSteps.add(step);
-            }
-
-            deps.trackEvent('booking_step_completed', {
-                step,
-                source: 'booking_form',
-                ...payload
-            });
+        if (typeof deps.loadPaymentConfig === 'function') {
+            deps.loadPaymentConfig().then(config => {
+                if (config && config.turnstileSiteKey) {
+                    injectTurnstile(config.turnstileSiteKey);
+                }
+            }).catch(() => {});
         }
 
-        if (typeof window.turnstile !== 'undefined' && deps.loadPaymentConfig) {
-            deps.loadPaymentConfig().then(function (config) {
-                if (config && config.turnstileSiteKey) {
-                    var widgetEl = document.getElementById('turnstile-widget');
-                    if (widgetEl) {
-                        try {
-                            window.turnstile.render('#turnstile-widget', {
-                                sitekey: config.turnstileSiteKey,
-                                theme: 'auto'
-                            });
-                        } catch (e) {
-                            console.error('Turnstile render failed', e);
-                        }
-                    }
-                }
-            }).catch(function () {});
+        function injectTurnstile(siteKey) {
+            if (appointmentForm.querySelector('.cf-turnstile')) return;
+
+            const script = document.createElement('script');
+            script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+
+            const container = document.createElement('div');
+            container.className = 'cf-turnstile';
+            container.dataset.sitekey = siteKey;
+
+            const submitBtn = appointmentForm.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'form-group';
+                wrapper.style.marginTop = '1rem';
+                wrapper.style.display = 'flex';
+                wrapper.style.justifyContent = 'center';
+                wrapper.appendChild(container);
+                appointmentForm.insertBefore(wrapper, submitBtn);
+            }
         }
 
         async function updateAvailableTimes() {
@@ -108,16 +101,7 @@
             const availability = await deps.loadAvailabilityData();
             const bookedSlots = await deps.getBookedSlots(selectedDate, selectedDoctor);
             const availableSlots = availability[selectedDate] || deps.getDefaultTimeSlots();
-            const isToday = selectedDate === new Date().toISOString().split('T')[0];
-            const nowMinutes = isToday ? new Date().getHours() * 60 + new Date().getMinutes() : -1;
-            const freeSlots = availableSlots.filter((slot) => {
-                if (bookedSlots.includes(slot)) return false;
-                if (isToday) {
-                    const [h, m] = slot.split(':').map(Number);
-                    if (h * 60 + m <= nowMinutes + 60) return false;
-                }
-                return true;
-            });
+            const freeSlots = availableSlots.filter((slot) => !bookedSlots.includes(slot));
 
             const currentValue = timeSelect.value;
             timeSelect.innerHTML = '<option value="">Hora</option>';
@@ -140,23 +124,16 @@
         serviceSelect.addEventListener('change', function () {
             const selected = this.options[this.selectedIndex];
             const price = parseFloat(selected.dataset.price) || 0;
-            const serviceValue = String(this.value || '').trim();
 
             if (price > 0) {
-                const iva = price * 0.15;
+                const iva = price * 0.12;
                 const total = price + iva;
                 subtotalEl.textContent = `$${price.toFixed(2)}`;
                 ivaEl.textContent = `$${iva.toFixed(2)}`;
                 totalEl.textContent = `$${total.toFixed(2)}`;
-                priceSummary.classList.remove('is-hidden');
+                priceSummary.style.display = 'block';
             } else {
-                priceSummary.classList.add('is-hidden');
-            }
-
-            if (serviceValue !== '') {
-                trackBookingStep('service_selected', {
-                    service: serviceValue
-                });
+                priceSummary.style.display = 'none';
             }
 
             updateAvailableTimes().catch(() => undefined);
@@ -164,38 +141,11 @@
 
         if (dateInput) {
             dateInput.min = new Date().toISOString().split('T')[0];
-            dateInput.addEventListener('change', () => {
-                const dateValue = String(dateInput.value || '').trim();
-                if (dateValue !== '') {
-                    trackBookingStep('date_selected', {
-                        date: dateValue
-                    });
-                }
-                updateAvailableTimes().catch(() => undefined);
-            });
+            dateInput.addEventListener('change', () => updateAvailableTimes().catch(() => undefined));
         }
 
         if (doctorSelect) {
-            doctorSelect.addEventListener('change', () => {
-                const doctorValue = String(doctorSelect.value || '').trim();
-                if (doctorValue !== '') {
-                    trackBookingStep('doctor_selected', {
-                        doctor: doctorValue
-                    });
-                }
-                updateAvailableTimes().catch(() => undefined);
-            });
-        }
-
-        if (timeSelect) {
-            timeSelect.addEventListener('change', () => {
-                const timeValue = String(timeSelect.value || '').trim();
-                if (timeValue !== '') {
-                    trackBookingStep('time_selected', {
-                        time: timeValue
-                    });
-                }
-            });
+            doctorSelect.addEventListener('change', () => updateAvailableTimes().catch(() => undefined));
         }
 
         if (phoneInput) {
@@ -209,8 +159,6 @@
 
         appointmentForm.addEventListener('submit', async function (e) {
             e.preventDefault();
-
-            trackBookingStep('form_submitted', {}, { once: false });
 
             const submitBtn = this.querySelector('button[type="submit"]');
             const originalContent = submitBtn ? submitBtn.innerHTML : '';
@@ -233,12 +181,12 @@
                 }
 
                 const normalizedPhone = normalizeEcuadorPhone(formData.get('phone'));
-                const turnstileToken = formData.get('cf-turnstile-response');
+                const captchaToken = formData.get('cf-turnstile-response') || '';
 
                 const appointment = {
                     service: formData.get('service'),
                     doctor: formData.get('doctor'),
-                    turnstileToken,
+                    captchaToken,
                     date: formData.get('date'),
                     time: formData.get('time'),
                     name: formData.get('name'),

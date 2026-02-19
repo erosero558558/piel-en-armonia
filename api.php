@@ -6,20 +6,6 @@ require_once __DIR__ . '/payment-lib.php';
 
 $requestStartedAt = microtime(true);
 
-set_exception_handler(static function (Throwable $e): void {
-    $code = ($e->getCode() >= 400 && $e->getCode() < 600) ? (int) $e->getCode() : 500;
-    if (!headers_sent()) {
-        http_response_code($code);
-        header('Content-Type: application/json; charset=utf-8');
-    }
-    error_log('Piel en Armonía API uncaught: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
-    echo json_encode([
-        'ok' => false,
-        'error' => $e->getMessage() ?: 'Error interno del servidor'
-    ], JSON_UNESCAPED_UNICODE);
-    exit(1);
-});
-
 function api_elapsed_ms(float $startedAt): int
 {
     return (int) round((microtime(true) - $startedAt) * 1000);
@@ -27,11 +13,6 @@ function api_elapsed_ms(float $startedAt): int
 
 function api_resolve_figo_endpoint_for_health(): string
 {
-    static $resolved = null;
-    if (is_string($resolved)) {
-        return $resolved;
-    }
-
     $envCandidates = [
         getenv('FIGO_CHAT_ENDPOINT'),
         getenv('FIGO_CHAT_URL'),
@@ -48,8 +29,7 @@ function api_resolve_figo_endpoint_for_health(): string
 
     foreach ($envCandidates as $candidate) {
         if (is_string($candidate) && trim($candidate) !== '') {
-            $resolved = trim($candidate);
-            return $resolved;
+            return trim($candidate);
         }
     }
 
@@ -63,16 +43,11 @@ function api_resolve_figo_endpoint_for_health(): string
     $configCandidates[] = __DIR__ . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'figo-config.json';
     $configCandidates[] = __DIR__ . DIRECTORY_SEPARATOR . 'figo-config.json';
 
-    $configCandidates = array_values(array_unique($configCandidates));
-
     foreach ($configCandidates as $path) {
         if (!is_string($path) || $path === '' || !is_file($path)) {
             continue;
         }
-        if (!is_readable($path)) {
-            continue;
-        }
-        $raw = file_get_contents($path);
+        $raw = @file_get_contents($path);
         if (!is_string($raw) || trim($raw) === '') {
             continue;
         }
@@ -87,14 +62,12 @@ function api_resolve_figo_endpoint_for_health(): string
         ];
         foreach ($fileCandidates as $candidate) {
             if (is_string($candidate) && trim($candidate) !== '') {
-                $resolved = trim($candidate);
-                return $resolved;
+                return trim($candidate);
             }
         }
     }
 
-    $resolved = '';
-    return $resolved;
+    return '';
 }
 
 function api_is_figo_recursive_config(string $endpoint): bool
@@ -171,11 +144,6 @@ if ($requestOrigin !== '') {
         }
     }
 }
-header('X-Content-Type-Options: nosniff');
-header('X-Frame-Options: DENY');
-header('Content-Security-Policy: default-src \'none\'; frame-ancestors \'none\'');
-header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
-header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -226,7 +194,6 @@ if ($resource === 'health') {
         'version' => app_runtime_version(),
         'dataDirWritable' => data_dir_writable(),
         'storeEncrypted' => store_file_is_encrypted(),
-        'encryptionVerified' => verify_encryption_setup(),
         'figoConfigured' => $figoConfigured,
         'figoRecursiveConfig' => $figoRecursive,
         'timestamp' => local_date('c')
@@ -340,21 +307,7 @@ if ($method === 'GET' && $resource === 'booked-slots') {
     $doctor = isset($_GET['doctor']) ? trim((string) $_GET['doctor']) : '';
 
     $slots = [];
-    $index = $store['idx_appointments_date'] ?? null;
-    $candidates = [];
-
-    if ($index !== null && isset($index[$date])) {
-        foreach ($index[$date] as $key) {
-            if (isset($store['appointments'][$key])) {
-                $candidates[] = $store['appointments'][$key];
-            }
-        }
-    } elseif ($index === null) {
-        // Fallback if index missing
-        $candidates = $store['appointments'];
-    }
-
-    foreach ($candidates as $appointment) {
+    foreach ($store['appointments'] as $appointment) {
         $status = map_appointment_status((string) ($appointment['status'] ?? 'confirmed'));
         if ($status === 'cancelled') {
             continue;
@@ -389,25 +342,13 @@ if ($method === 'GET' && $resource === 'payment-config') {
         'provider' => 'stripe',
         'enabled' => payment_gateway_enabled(),
         'publishableKey' => payment_stripe_publishable_key(),
-        'turnstileSiteKey' => turnstile_site_key(),
-        'currency' => payment_currency()
-    ]);
-}
-
-if ($method === 'GET' && $resource === 'captcha-config') {
-    json_response([
-        'ok' => true,
-        'siteKey' => getenv('PIELARMONIA_RECAPTCHA_SITE_KEY') ?: ''
+        'currency' => payment_currency(),
+        'turnstileSiteKey' => turnstile_site_key()
     ]);
 }
 
 if ($method === 'POST' && $resource === 'payment-intent') {
     require_rate_limit('payment-intent', 8, 60);
-
-    $captchaToken = $_SERVER['HTTP_X_CAPTCHA_TOKEN'] ?? '';
-    if (!verify_captcha($captchaToken, 'payment_intent')) {
-        json_response(['ok' => false, 'error' => 'Verificación de seguridad fallida (captcha)'], 400);
-    }
 
     if (!payment_gateway_enabled()) {
         json_response([
@@ -417,14 +358,6 @@ if ($method === 'POST' && $resource === 'payment-intent') {
     }
 
     $payload = require_json_body();
-
-    if (!verify_turnstile_token((string)($payload['turnstileToken'] ?? ''))) {
-        json_response([
-            'ok' => false,
-            'error' => 'Verificación de seguridad fallida (Captcha). Recarga la página.'
-        ], 403);
-    }
-
     $appointment = normalize_appointment($payload);
 
     if ($appointment['service'] === '' || $appointment['name'] === '' || $appointment['email'] === '') {
@@ -469,7 +402,7 @@ if ($method === 'POST' && $resource === 'payment-intent') {
         ], 400);
     }
 
-    if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $appointment['doctor'], $store['idx_appointments_date'] ?? null)) {
+    if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $appointment['doctor'])) {
         json_response([
             'ok' => false,
             'error' => 'Ese horario ya fue reservado'
@@ -611,58 +544,21 @@ if ($method === 'POST' && $resource === 'stripe-webhook') {
         if ($intentId !== '') {
             $webhookStore = read_store();
             $updated = false;
-            $indexBuilt = false;
-
-            if (!isset($webhookStore['paymentIntentIndex'])) {
-                $webhookStore['paymentIntentIndex'] = [];
-                foreach ($webhookStore['appointments'] as $idx => $appt) {
-                    $idxIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
-                    if ($idxIntent !== '') {
-                        $webhookStore['paymentIntentIndex'][$idxIntent] = $idx;
-                    }
-                }
-                $indexBuilt = true;
-            }
-
-            $found = false;
-            $idx = isset($webhookStore['paymentIntentIndex'][$intentId]) ? (int) $webhookStore['paymentIntentIndex'][$intentId] : -1;
-
-            if ($idx >= 0 && isset($webhookStore['appointments'][$idx])) {
-                $appt = &$webhookStore['appointments'][$idx];
+            foreach ($webhookStore['appointments'] as &$appt) {
                 $existingIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
                 if ($existingIntent !== '' && hash_equals($existingIntent, $intentId)) {
-                    $found = true;
                     if (($appt['paymentStatus'] ?? '') !== 'paid') {
                         $appt['paymentStatus'] = 'paid';
                         $appt['paymentPaidAt'] = local_date('c');
                         $updated = true;
                     }
+                    break;
                 }
-                unset($appt);
             }
-
-            if (!$found) {
-                foreach ($webhookStore['appointments'] as $idx => &$appt) {
-                    $existingIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
-                    if ($existingIntent !== '' && hash_equals($existingIntent, $intentId)) {
-                        $webhookStore['paymentIntentIndex'][$intentId] = $idx;
-                        $indexBuilt = true;
-                        if (($appt['paymentStatus'] ?? '') !== 'paid') {
-                            $appt['paymentStatus'] = 'paid';
-                            $appt['paymentPaidAt'] = local_date('c');
-                            $updated = true;
-                        }
-                        break;
-                    }
-                }
-                unset($appt);
-            }
-
-            if ($updated || $indexBuilt) {
+            unset($appt);
+            if ($updated) {
                 write_store($webhookStore);
-                if ($updated) {
-                    audit_log_event('stripe.webhook_payment_confirmed', ['intentId' => $intentId]);
-                }
+                audit_log_event('stripe.webhook_payment_confirmed', ['intentId' => $intentId]);
             }
         }
     }
@@ -674,56 +570,20 @@ if ($method === 'POST' && $resource === 'stripe-webhook') {
         if ($intentId !== '') {
             $webhookStore = read_store();
             $updated = false;
-            $indexBuilt = false;
-
-            if (!isset($webhookStore['paymentIntentIndex'])) {
-                $webhookStore['paymentIntentIndex'] = [];
-                foreach ($webhookStore['appointments'] as $idx => $appt) {
-                    $idxIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
-                    if ($idxIntent !== '') {
-                        $webhookStore['paymentIntentIndex'][$idxIntent] = $idx;
-                    }
-                }
-                $indexBuilt = true;
-            }
-
-            $found = false;
-            $idx = isset($webhookStore['paymentIntentIndex'][$intentId]) ? (int) $webhookStore['paymentIntentIndex'][$intentId] : -1;
-
-            if ($idx >= 0 && isset($webhookStore['appointments'][$idx])) {
-                $appt = &$webhookStore['appointments'][$idx];
+            foreach ($webhookStore['appointments'] as &$appt) {
                 $existingIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
                 if ($existingIntent !== '' && hash_equals($existingIntent, $intentId)) {
-                    $found = true;
                     if (!in_array($appt['paymentStatus'] ?? '', ['paid', 'failed'], true)) {
                         $appt['paymentStatus'] = 'failed';
                         $updated = true;
                     }
+                    break;
                 }
-                unset($appt);
             }
-
-            if (!$found) {
-                foreach ($webhookStore['appointments'] as $idx => &$appt) {
-                    $existingIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
-                    if ($existingIntent !== '' && hash_equals($existingIntent, $intentId)) {
-                        $webhookStore['paymentIntentIndex'][$intentId] = $idx;
-                        $indexBuilt = true;
-                        if (!in_array($appt['paymentStatus'] ?? '', ['paid', 'failed'], true)) {
-                            $appt['paymentStatus'] = 'failed';
-                            $updated = true;
-                        }
-                        break;
-                    }
-                }
-                unset($appt);
-            }
-
-            if ($updated || $indexBuilt) {
+            unset($appt);
+            if ($updated) {
                 write_store($webhookStore);
-                if ($updated) {
-                    audit_log_event('stripe.webhook_payment_failed', ['intentId' => $intentId]);
-                }
+                audit_log_event('stripe.webhook_payment_failed', ['intentId' => $intentId]);
             }
         }
     }
@@ -733,19 +593,16 @@ if ($method === 'POST' && $resource === 'stripe-webhook') {
 
 if ($method === 'POST' && $resource === 'appointments') {
     require_rate_limit('appointments', 5, 60);
-
-    $captchaToken = $_SERVER['HTTP_X_CAPTCHA_TOKEN'] ?? '';
-    if (!verify_captcha($captchaToken, 'appointment')) {
-        json_response(['ok' => false, 'error' => 'Verificación de seguridad fallida (captcha)'], 400);
-    }
-
     $payload = require_json_body();
 
-    if (!verify_turnstile_token((string)($payload['turnstileToken'] ?? ''))) {
-        json_response([
-            'ok' => false,
-            'error' => 'Verificación de seguridad fallida (Captcha). Recarga la página.'
-        ], 403);
+    if (turnstile_secret_key() !== '') {
+        $captchaToken = (string) ($payload['captchaToken'] ?? '');
+        if (!verify_turnstile_token($captchaToken)) {
+            json_response([
+                'ok' => false,
+                'error' => 'Verificación CAPTCHA fallida. Por favor intenta nuevamente.'
+            ], 400);
+        }
     }
 
     $appointment = normalize_appointment($payload);
@@ -790,19 +647,6 @@ if ($method === 'POST' && $resource === 'appointments') {
             'ok' => false,
             'error' => 'No se puede agendar en una fecha pasada'
         ], 400);
-    }
-
-    // Si es hoy, la hora debe ser al menos 1 hora en el futuro
-    if ($appointment['date'] === local_date('Y-m-d')) {
-        $nowMinutes = (int) local_date('H') * 60 + (int) local_date('i');
-        $parts = explode(':', $appointment['time']);
-        $slotMinutes = (int) ($parts[0] ?? 0) * 60 + (int) ($parts[1] ?? 0);
-        if ($slotMinutes <= $nowMinutes + 60) {
-            json_response([
-                'ok' => false,
-                'error' => 'Ese horario ya pasó o es muy pronto. Selecciona una hora con al menos 1 hora de anticipación, o elige otra fecha.'
-            ], 400);
-        }
     }
 
     // Validar que el horario exista en la disponibilidad configurada
@@ -966,7 +810,7 @@ if ($method === 'POST' && $resource === 'appointments') {
         $doctors = ['rosero', 'narvaez'];
         $assigned = '';
         foreach ($doctors as $candidate) {
-            if (!appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $candidate, $store['idx_appointments_date'] ?? null)) {
+            if (!appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $candidate)) {
                 $assigned = $candidate;
                 break;
             }
@@ -977,28 +821,10 @@ if ($method === 'POST' && $resource === 'appointments') {
     }
 
     $store['appointments'][] = $appointment;
-
-    if (isset($store['paymentIntentIndex'])) {
-        $intentId = trim((string) ($appointment['paymentIntentId'] ?? ''));
-        if ($intentId !== '') {
-            $idx = count($store['appointments']) - 1;
-            $store['paymentIntentIndex'][$intentId] = $idx;
-        }
-    }
-
     write_store($store);
 
-    $emailSent = false;
-    try {
-        $emailSent = maybe_send_appointment_email($appointment);
-    } catch (Throwable $e) {
-        error_log('Piel en Armonía: fallo al enviar email de confirmación: ' . $e->getMessage());
-    }
-    try {
-        maybe_send_admin_notification($appointment);
-    } catch (Throwable $e) {
-        error_log('Piel en Armonía: fallo al enviar notificación admin: ' . $e->getMessage());
-    }
+    $emailSent = maybe_send_appointment_email($appointment);
+    maybe_send_admin_notification($appointment);
 
     json_response([
         'ok' => true,
@@ -1017,7 +843,7 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') 
         ], 400);
     }
     $found = false;
-    foreach ($store['appointments'] as $idx => &$appt) {
+    foreach ($store['appointments'] as &$appt) {
         if ((int) ($appt['id'] ?? 0) !== $id) {
             continue;
         }
@@ -1035,18 +861,7 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') 
             $appt['paymentProvider'] = (string) $payload['paymentProvider'];
         }
         if (isset($payload['paymentIntentId'])) {
-            $oldIntentId = trim((string) ($appt['paymentIntentId'] ?? ''));
-            $newIntentId = trim((string) $payload['paymentIntentId']);
-            $appt['paymentIntentId'] = $newIntentId;
-
-            if (isset($store['paymentIntentIndex'])) {
-                if ($oldIntentId !== '' && isset($store['paymentIntentIndex'][$oldIntentId])) {
-                    unset($store['paymentIntentIndex'][$oldIntentId]);
-                }
-                if ($newIntentId !== '') {
-                    $store['paymentIntentIndex'][$newIntentId] = $idx;
-                }
-            }
+            $appt['paymentIntentId'] = (string) $payload['paymentIntentId'];
         }
         if (isset($payload['paymentPaidAt'])) {
             $appt['paymentPaidAt'] = (string) $payload['paymentPaidAt'];
@@ -1080,7 +895,7 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') 
     if (isset($payload['status']) && map_appointment_status((string) $payload['status']) === 'cancelled') {
         foreach ($store['appointments'] as $apptNotify) {
             if ((int) ($apptNotify['id'] ?? 0) === $id) {
-                try { maybe_send_cancellation_email($apptNotify); } catch (Throwable $e) { error_log('Piel en Armonía: fallo email cancelación: ' . $e->getMessage()); }
+                maybe_send_cancellation_email($apptNotify);
                 break;
             }
         }
@@ -1093,12 +908,6 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') 
 
 if ($method === 'POST' && $resource === 'callbacks') {
     require_rate_limit('callbacks', 5, 60);
-
-    $captchaToken = $_SERVER['HTTP_X_CAPTCHA_TOKEN'] ?? '';
-    if (!verify_captcha($captchaToken, 'callback')) {
-        json_response(['ok' => false, 'error' => 'Verificación de seguridad fallida (captcha)'], 400);
-    }
-
     $payload = require_json_body();
     $callback = normalize_callback($payload);
 
@@ -1118,7 +927,7 @@ if ($method === 'POST' && $resource === 'callbacks') {
 
     $store['callbacks'][] = $callback;
     write_store($store);
-    try { maybe_send_callback_admin_notification($callback); } catch (Throwable $e) { error_log('Piel en Armonía: fallo notificación callback: ' . $e->getMessage()); }
+    maybe_send_callback_admin_notification($callback);
     json_response([
         'ok' => true,
         'data' => $callback
@@ -1159,12 +968,6 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'callbacks') {
 
 if ($method === 'POST' && $resource === 'reviews') {
     require_rate_limit('reviews', 3, 60);
-
-    $captchaToken = $_SERVER['HTTP_X_CAPTCHA_TOKEN'] ?? '';
-    if (!verify_captcha($captchaToken, 'review')) {
-        json_response(['ok' => false, 'error' => 'Verificación de seguridad fallida (captcha)'], 400);
-    }
-
     $payload = require_json_body();
     $review = normalize_review($payload);
     if ($review['name'] === '' || $review['text'] === '') {
@@ -1204,11 +1007,6 @@ if ($method === 'POST' && $resource === 'import') {
     $store['callbacks'] = isset($payload['callbacks']) && is_array($payload['callbacks']) ? $payload['callbacks'] : [];
     $store['reviews'] = isset($payload['reviews']) && is_array($payload['reviews']) ? $payload['reviews'] : [];
     $store['availability'] = isset($payload['availability']) && is_array($payload['availability']) ? $payload['availability'] : [];
-
-    if (isset($store['paymentIntentIndex'])) {
-        unset($store['paymentIntentIndex']);
-    }
-
     write_store($store);
     json_response([
         'ok' => true
@@ -1264,7 +1062,7 @@ if ($method === 'PATCH' && $resource === 'reschedule') {
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $newDate)) {
         json_response(['ok' => false, 'error' => 'Formato de fecha inválido'], 400);
     }
-    if (strtotime($newDate) < strtotime(local_date('Y-m-d'))) {
+    if (strtotime($newDate) < strtotime(date('Y-m-d'))) {
         json_response(['ok' => false, 'error' => 'No puedes reprogramar a una fecha pasada'], 400);
     }
 
@@ -1279,7 +1077,7 @@ if ($method === 'PATCH' && $resource === 'reschedule') {
 
         $doctor = $appt['doctor'] ?? '';
         $excludeId = (int) ($appt['id'] ?? 0);
-        if (appointment_slot_taken($store['appointments'], $newDate, $newTime, $excludeId, $doctor, $store['idx_appointments_date'] ?? null)) {
+        if (appointment_slot_taken($store['appointments'], $newDate, $newTime, $excludeId, $doctor)) {
             json_response(['ok' => false, 'error' => 'El horario seleccionado ya no está disponible'], 409);
         }
 
@@ -1289,7 +1087,7 @@ if ($method === 'PATCH' && $resource === 'reschedule') {
         $found = true;
 
         write_store($store);
-        try { maybe_send_reschedule_email($appt); } catch (Throwable $e) { error_log('Piel en Armonía: fallo email reagendar: ' . $e->getMessage()); }
+        maybe_send_reschedule_email($appt);
 
         json_response([
             'ok' => true,

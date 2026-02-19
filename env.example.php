@@ -24,6 +24,10 @@
 // ── Orígenes permitidos (CORS) ────────────────────────
 // putenv('PIELARMONIA_ALLOWED_ORIGIN=https://pielarmonia.com');
 
+// ── CAPTCHA (Turnstile) ──────────────────────────────
+// putenv('PIELARMONIA_TURNSTILE_SITE_KEY=0x4AAAAAAABcDeFgHiJkLmNo');
+// putenv('PIELARMONIA_TURNSTILE_SECRET_KEY=0x4AAAAAAABcDeFgHiJkLmNoPqRsTuVwXyZ');
+
 // ── Chatbot (Figo) ───────────────────────────────────
 // IMPORTANTE: no apuntar al propio /figo-chat.php (genera recursión).
 // Usa el endpoint HTTP real del backend de Clawbot/Figo.
