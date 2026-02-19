@@ -8,6 +8,7 @@
  * - Exportar a calendario
  * - Validacion de disponibilidad
  */
+// build-sync: 20260219-sync1
 
 // ========================================
 // TOAST NOTIFICATIONS SYSTEM
@@ -278,7 +279,7 @@ function runDeferredModule(loader, onReady, onError) {
     });
 }
 
-const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred12-cspinline1-stateclass1';
+const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred12-cspinline1-stateclass1-sync1';
 
 let deferredStylesheetPromise = null;
 let deferredStylesheetInitDone = false;
@@ -344,7 +345,7 @@ function initDeferredStylesheetLoading() {
 // ========================================
 // TRANSLATIONS
 // ========================================
-const I18N_ENGINE_URL = '/i18n-engine.js?v=figo-i18n-20260219-phase1';
+const I18N_ENGINE_URL = '/i18n-engine.js?v=figo-i18n-20260219-phase1-sync1';
 
 let currentLang = localStorage.getItem('language') || 'es';
 const THEME_STORAGE_KEY = 'themeMode';
@@ -418,7 +419,7 @@ function initEnglishBundleWarmup() {
     }
 }
 
-const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2-stateclass1';
+const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2-stateclass1-sync1';
 
 function getBookingEngineDeps() {
     return {
@@ -1106,7 +1107,7 @@ function initGalleryInteractionsWarmup() {
 // ========================================
 // APPOINTMENT FORM (DEFERRED MODULE)
 // ========================================
-const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260219-phase4-stateclass2-funnel1';
+const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260219-phase4-stateclass2-funnel1-sync1';
 
 function getBookingUiDeps() {
     return {
@@ -1217,7 +1218,7 @@ async function processPayment() {
 // ========================================
 // SUCCESS MODAL (DEFERRED MODULE)
 // ========================================
-const SUCCESS_MODAL_ENGINE_URL = '/success-modal-engine.js?v=figo-success-modal-20260218-phase1-inlineclass1';
+const SUCCESS_MODAL_ENGINE_URL = '/success-modal-engine.js?v=figo-success-modal-20260218-phase1-inlineclass1-sync1';
 
 function getSuccessModalEngineDeps() {
     return {
@@ -1278,7 +1279,7 @@ function closeSuccessModal() {
 // ========================================
 // CALLBACK + REVIEW FORMS (DEFERRED MODULE)
 // ========================================
-const ENGAGEMENT_FORMS_ENGINE_URL = '/engagement-forms-engine.js?v=figo-engagement-20260218-phase1';
+const ENGAGEMENT_FORMS_ENGINE_URL = '/engagement-forms-engine.js?v=figo-engagement-20260218-phase1-sync1';
 
 function getEngagementFormsEngineDeps() {
     return {
@@ -1464,8 +1465,8 @@ const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
 const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
 const CHAT_HISTORY_MAX_ITEMS = 50;
 const CHAT_CONTEXT_MAX_ITEMS = 24;
-const CHAT_UI_ENGINE_URL = '/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1';
-const CHAT_WIDGET_ENGINE_URL = '/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1';
+const CHAT_UI_ENGINE_URL = '/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1';
+const CHAT_WIDGET_ENGINE_URL = '/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1';
 const ACTION_ROUTER_ENGINE_URL = '/action-router-engine.js?v=figo-action-router-20260219-phase1';
 
 function getChatUiEngineDeps() {
@@ -1870,7 +1871,7 @@ function isChatBookingActive() {
 function loadFigoChatEngine() {
     return loadDeferredModule({
         cacheKey: 'figo-chat-engine',
-        src: '/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1',
+        src: '/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1-sync1',
         scriptDataAttribute: 'data-figo-chat-engine',
         resolveModule: () => window.FigoChatEngine,
         isModuleReady: (module) => !!module,
@@ -1892,7 +1893,7 @@ function initChatEngineWarmup() {
     });
 }
 
-const UI_EFFECTS_URL = '/ui-effects.js?v=figo-ui-20260218-phase4';
+const UI_EFFECTS_URL = '/ui-effects.js?v=figo-ui-20260218-phase4-sync1';
 
 function loadUiEffects() {
     return loadDeferredModule({

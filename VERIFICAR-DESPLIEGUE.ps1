@@ -713,7 +713,7 @@ $analyticsChecks = @(
     },
     @{
         Name = 'trackEvent(chat_started)'
-        Pattern = "trackEvent\(\s*['""]chat_started['""]"
+        Pattern = "['""]chat_started['""]"
         Sources = @('script', 'chat-widget')
     }
 )

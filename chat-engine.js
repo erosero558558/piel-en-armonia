@@ -2,7 +2,9 @@
  * Figo chat engine (deferred-loaded).
  * Extracted from script.js to reduce initial parsing work.
  */
-(function () {// ========================================
+(function () {
+// build-sync: 20260219-sync1
+// ========================================
 // INTEGRACIÓN CON BOT DEL SERVIDOR
 // ========================================
 const KIMI_CONFIG = {

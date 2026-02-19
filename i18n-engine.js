@@ -4,10 +4,11 @@
  */
 (function () {
     'use strict';
+    // build-sync: 20260219-sync1
 
     let deps = null;
     const I18N_HTML_ALLOWED_KEYS = new Set(['clinic_hours']);
-    const EN_TRANSLATIONS_URL = '/translations-en.js?v=ui-20260219-i18n-en3';
+    const EN_TRANSLATIONS_URL = '/translations-en.js?v=ui-20260219-i18n-en3-sync1';
 
     const translations = {
         es: null,

@@ -1,3 +1,4 @@
+// build-sync: 20260219-sync1
 window.PIEL_EN_TRANSLATIONS = {
         brand: "Piel en Armonía",
         nav_home: "Home",
