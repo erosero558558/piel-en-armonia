@@ -5,6 +5,11 @@ declare(strict_types=1);
  * Validation and sanitization helpers.
  */
 
+function local_date(string $format): string
+{
+    return date($format);
+}
+
 function sanitize_phone(string $phone): string
 {
     return trim($phone);
@@ -37,10 +42,7 @@ function parse_bool(mixed $value): bool
 
 function truncate_field(string $value, int $maxLength): string
 {
-    if (function_exists('mb_strlen')) {
-        return mb_strlen($value) > $maxLength ? mb_substr($value, 0, $maxLength) : $value;
-    }
-    return strlen($value) > $maxLength ? substr($value, 0, $maxLength) : $value;
+    return mb_strlen($value) > $maxLength ? mb_substr($value, 0, $maxLength) : $value;
 }
 
 function normalize_string_list(mixed $value, int $maxItems = 5, int $maxLength = 300): array
