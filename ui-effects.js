@@ -7,8 +7,7 @@
         const targets = document.querySelectorAll('.service-card, .team-card, .section-header, .tele-card, .review-card');
         if (!targets.length) return;
 
-        const shouldSkipObserver = window.innerWidth < 900
-            || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        const shouldSkipObserver = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
         if (shouldSkipObserver) {
             targets.forEach((el) => el.classList.add('visible'));

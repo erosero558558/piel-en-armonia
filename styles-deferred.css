@@ -1545,6 +1545,7 @@ textarea:focus {
     box-shadow: var(--ui-shadow-lg);
     padding: 24px;
     position: relative;
+    -webkit-overflow-scrolling: touch;
 }
 
 .modal-close {
@@ -1956,6 +1957,7 @@ textarea:focus {
     overflow: auto;
     padding: 14px;
     background: linear-gradient(180deg, #f7faff 0%, #f2f6fd 100%);
+    -webkit-overflow-scrolling: touch;
 }
 
 .chat-message {
@@ -2326,7 +2328,7 @@ textarea:focus {
 .reveal {
     opacity: 0;
     transform: translateY(24px);
-    transition: opacity 700ms var(--ui-ease-soft), transform 700ms var(--ui-ease-soft);
+    transition: opacity 700ms var(--ui-curve-soft), transform 700ms var(--ui-curve-soft);
 }
 
 .reveal.active {
@@ -2337,7 +2339,7 @@ textarea:focus {
 .animate-on-scroll {
     opacity: 0;
     transform: translateY(20px);
-    transition: opacity 620ms var(--ui-ease), transform 620ms var(--ui-ease);
+    transition: opacity 620ms var(--ui-curve), transform 620ms var(--ui-curve);
 }
 
 .animate-on-scroll.visible {
