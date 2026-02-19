@@ -119,6 +119,16 @@
             }
         };
 
+        const protectedResources = new Set(['payment-intent', 'appointments', 'callbacks', 'reviews']);
+        if (protectedResources.has(resource) && deps && typeof deps.getCaptchaToken === 'function') {
+            try {
+                const token = await deps.getCaptchaToken(resource);
+                if (token) {
+                    requestInit.headers['X-Captcha-Token'] = token;
+                }
+            } catch (_) {}
+        }
+
         if (options.body !== undefined) {
             requestInit.headers['Content-Type'] = 'application/json';
             requestInit.body = JSON.stringify(options.body);
@@ -272,6 +282,13 @@
             : 1;
         const retryableStatusCodes = new Set([408, 425, 429, 500, 502, 503, 504]);
 
+        let captchaToken = '';
+        if (deps && typeof deps.getCaptchaToken === 'function') {
+            try {
+                captchaToken = await deps.getCaptchaToken('transfer_proof');
+            } catch (_) {}
+        }
+
         let lastError = null;
 
         for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
@@ -279,9 +296,15 @@
             const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
             try {
+                const headers = {};
+                if (captchaToken) {
+                    headers['X-Captcha-Token'] = captchaToken;
+                }
+
                 const response = await fetch(url, {
                     method: 'POST',
                     credentials: 'same-origin',
+                    headers: headers,
                     body: formData,
                     signal: controller.signal
                 });

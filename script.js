@@ -427,6 +427,8 @@ function initDeferredStylesheetLoading() {
 // TRANSLATIONS
 // ========================================
 const I18N_ENGINE_URL = '/i18n-engine.js?v=figo-i18n-20260219-phase1';
+const CAPTCHA_ENGINE_URL = '/captcha-engine.js?v=figo-captcha-20260219-phase1';
+const EMAIL_ENGINE_URL = '/email-engine.js?v=figo-email-20260219-phase1';
 
 let currentLang = localStorage.getItem('language') || 'es';
 const THEME_STORAGE_KEY = 'themeMode';
@@ -478,6 +480,33 @@ const loadI18nEngine = createEngineLoader({
     missingApiError: 'i18n-engine loaded without API',
     loadError: 'No se pudo cargar i18n-engine.js',
     logLabel: 'I18n engine'
+});
+
+function getCaptchaEngineDeps() {
+    return {
+        apiRequest
+    };
+}
+
+const loadCaptchaEngine = createEngineLoader({
+    cacheKey: 'captcha-engine',
+    src: CAPTCHA_ENGINE_URL,
+    scriptDataAttribute: 'data-captcha-engine',
+    resolveModule: () => window.PielCaptchaEngine,
+    depsFactory: getCaptchaEngineDeps,
+    missingApiError: 'captcha-engine loaded without API',
+    loadError: 'No se pudo cargar captcha-engine.js',
+    logLabel: 'Captcha engine'
+});
+
+const loadEmailEngine = createEngineLoader({
+    cacheKey: 'email-engine',
+    src: EMAIL_ENGINE_URL,
+    scriptDataAttribute: 'data-email-engine',
+    resolveModule: () => window.PielEmailEngine,
+    missingApiError: 'email-engine loaded without API',
+    loadError: 'No se pudo cargar email-engine.js',
+    logLabel: 'Email engine'
 });
 
 function initEnglishBundleWarmup() {
@@ -824,7 +853,10 @@ function getDataEngineDeps() {
         getCurrentLang: () => currentLang,
         showToast,
         storageGetJSON,
-        storageSetJSON
+        storageSetJSON,
+        getCaptchaToken: (action) => {
+            return runDeferredModule(loadCaptchaEngine, (engine) => engine.getToken(action), () => Promise.resolve(''));
+        }
     };
 }
 
