@@ -1,6 +1,7 @@
 {
     "require": {
         "phpmailer/phpmailer": "^7.0",
-        "predis/predis": "^3.4"
+        "predis/predis": "^3.4",
+        "sentry/sdk": "^4.0"
     }
 }
