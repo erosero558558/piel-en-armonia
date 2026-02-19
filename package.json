@@ -5,7 +5,8 @@
     "test": "npx playwright test",
     "test:php": "php tests/test_api_lib.php",
     "test:headed": "npx playwright test --headed",
-    "test:ui": "npx playwright test --ui"
+    "test:ui": "npx playwright test --ui",
+    "test:php": "php tests/test_validate_email.php"
   },
   "devDependencies": {
     "@playwright/test": "^1.50.0"
