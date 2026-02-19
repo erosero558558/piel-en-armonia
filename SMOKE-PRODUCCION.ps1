@@ -57,6 +57,8 @@ if (Test-Path 'script.js') {
         $chatEngineVersion = $chatEngineMatch.Groups[1].Value
     }
 }
+$i18nEngineLocalRaw = if (Test-Path 'i18n-engine.js') { Get-Content -Path 'i18n-engine.js' -Raw } else { '' }
+$rescheduleGatewayLocalRaw = if (Test-Path 'reschedule-gateway-engine.js') { Get-Content -Path 'reschedule-gateway-engine.js' -Raw } else { '' }
 $chatEngineAssetUrl = if ($chatEngineVersion -ne '') {
     "$base/chat-engine.js?v=$chatEngineVersion"
 } else {
@@ -77,11 +79,15 @@ $deferredStylesAssetUrl = if ($deferredStylesVersion -ne '') {
 }
 
 $translationsEnVersion = ''
-if (Test-Path 'script.js') {
-    $translationsEnMatch = [regex]::Match($scriptLocalRaw, "translations-en\.js\?v=([a-zA-Z0-9._-]+)")
-    if ($translationsEnMatch.Success) {
-        $translationsEnVersion = $translationsEnMatch.Groups[1].Value
+if ($i18nEngineLocalRaw -ne '') {
+    $translationsEnMatch = [regex]::Match($i18nEngineLocalRaw, "translations-en\.js\?v=([a-zA-Z0-9._-]+)")
+    if (-not $translationsEnMatch.Success -and (Test-Path 'script.js')) {
+        $translationsEnMatch = [regex]::Match($scriptLocalRaw, "translations-en\.js\?v=([a-zA-Z0-9._-]+)")
     }
+    if ($translationsEnMatch.Success) { $translationsEnVersion = $translationsEnMatch.Groups[1].Value }
+} elseif (Test-Path 'script.js') {
+    $translationsEnMatch = [regex]::Match($scriptLocalRaw, "translations-en\.js\?v=([a-zA-Z0-9._-]+)")
+    if ($translationsEnMatch.Success) { $translationsEnVersion = $translationsEnMatch.Groups[1].Value }
 }
 $translationsEnAssetUrl = if ($translationsEnVersion -ne '') {
     "$base/translations-en.js?v=$translationsEnVersion"
@@ -103,11 +109,15 @@ $bookingEngineAssetUrl = if ($bookingEngineVersion -ne '') {
 }
 
 $rescheduleEngineVersion = ''
-if (Test-Path 'script.js') {
-    $rescheduleEngineMatch = [regex]::Match($scriptLocalRaw, "reschedule-engine\.js\?v=([a-zA-Z0-9._-]+)")
-    if ($rescheduleEngineMatch.Success) {
-        $rescheduleEngineVersion = $rescheduleEngineMatch.Groups[1].Value
+if ($rescheduleGatewayLocalRaw -ne '') {
+    $rescheduleEngineMatch = [regex]::Match($rescheduleGatewayLocalRaw, "reschedule-engine\.js\?v=([a-zA-Z0-9._-]+)")
+    if (-not $rescheduleEngineMatch.Success -and (Test-Path 'script.js')) {
+        $rescheduleEngineMatch = [regex]::Match($scriptLocalRaw, "reschedule-engine\.js\?v=([a-zA-Z0-9._-]+)")
     }
+    if ($rescheduleEngineMatch.Success) { $rescheduleEngineVersion = $rescheduleEngineMatch.Groups[1].Value }
+} elseif (Test-Path 'script.js') {
+    $rescheduleEngineMatch = [regex]::Match($scriptLocalRaw, "reschedule-engine\.js\?v=([a-zA-Z0-9._-]+)")
+    if ($rescheduleEngineMatch.Success) { $rescheduleEngineVersion = $rescheduleEngineMatch.Groups[1].Value }
 }
 $rescheduleEngineAssetUrl = if ($rescheduleEngineVersion -ne '') {
     "$base/reschedule-engine.js?v=$rescheduleEngineVersion"

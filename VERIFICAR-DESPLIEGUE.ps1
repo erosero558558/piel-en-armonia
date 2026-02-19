@@ -276,6 +276,8 @@ try {
 }
 
 $localScriptTextForRefs = Get-Content -Path 'script.js' -Raw
+$localI18nEngineTextForRefs = if (Test-Path 'i18n-engine.js') { Get-Content -Path 'i18n-engine.js' -Raw } else { '' }
+$localRescheduleGatewayTextForRefs = if (Test-Path 'reschedule-gateway-engine.js') { Get-Content -Path 'reschedule-gateway-engine.js' -Raw } else { '' }
 $chatEngineVersion = ''
 $chatEngineMatch = [regex]::Match($localScriptTextForRefs, "chat-engine\.js\?v=([a-zA-Z0-9._-]+)")
 if ($chatEngineMatch.Success) {
@@ -299,7 +301,10 @@ $deferredStylesRemoteUrl = if ($deferredStylesVersion -ne '') {
 }
 
 $translationsEnVersion = ''
-$translationsEnMatch = [regex]::Match($localScriptTextForRefs, "translations-en\.js\?v=([a-zA-Z0-9._-]+)")
+$translationsEnMatch = [regex]::Match($localI18nEngineTextForRefs, "translations-en\.js\?v=([a-zA-Z0-9._-]+)")
+if (-not $translationsEnMatch.Success) {
+    $translationsEnMatch = [regex]::Match($localScriptTextForRefs, "translations-en\.js\?v=([a-zA-Z0-9._-]+)")
+}
 if ($translationsEnMatch.Success) {
     $translationsEnVersion = $translationsEnMatch.Groups[1].Value
 }
@@ -354,7 +359,10 @@ $galleryInteractionsRemoteUrl = if ($galleryInteractionsVersion -ne '') {
 }
 
 $rescheduleEngineVersion = ''
-$rescheduleEngineMatch = [regex]::Match($localScriptTextForRefs, "reschedule-engine\.js\?v=([a-zA-Z0-9._-]+)")
+$rescheduleEngineMatch = [regex]::Match($localRescheduleGatewayTextForRefs, "reschedule-engine\.js\?v=([a-zA-Z0-9._-]+)")
+if (-not $rescheduleEngineMatch.Success) {
+    $rescheduleEngineMatch = [regex]::Match($localScriptTextForRefs, "reschedule-engine\.js\?v=([a-zA-Z0-9._-]+)")
+}
 if ($rescheduleEngineMatch.Success) {
     $rescheduleEngineVersion = $rescheduleEngineMatch.Groups[1].Value
 }
