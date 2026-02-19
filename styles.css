@@ -108,6 +108,7 @@ img {
 
 .section-header,
 .services-grid,
+.services-carousel-wrapper,
 .telemedicine-options,
 .callback-box,
 .team-grid,
@@ -1163,6 +1164,7 @@ html[data-theme='dark'] .cookie-link {
 @media (max-width: 1140px) {
     .section-header,
     .services-grid,
+    .services-carousel-wrapper,
     .telemedicine-options,
     .callback-box,
     .team-grid,
@@ -1195,6 +1197,7 @@ html[data-theme='dark'] .cookie-link {
     .language-options,
     .section-header,
     .services-grid,
+    .services-carousel-wrapper,
     .telemedicine-options,
     .callback-box,
     .team-grid,

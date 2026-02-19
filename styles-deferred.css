@@ -511,10 +511,92 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
     font-size: 0.86rem;
 }
 
-.services-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 18px;
+.services-carousel-wrapper {
+    position: relative;
+}
+
+.services-carousel {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 20px;
+    padding: 10px 4px 24px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.services-carousel::-webkit-scrollbar {
+    display: none;
+}
+
+.services-carousel .service-card {
+    flex: 0 0 85%;
+    scroll-snap-align: center;
+}
+
+@media (min-width: 600px) {
+    .services-carousel .service-card {
+        flex: 0 0 45%;
+    }
+}
+
+@media (min-width: 900px) {
+    .services-carousel .service-card {
+        flex: 0 0 calc(33.333% - 14px);
+    }
+}
+
+.carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    color: var(--ui-accent);
+    font-size: 1.1rem;
+    transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.services-carousel-wrapper:hover .carousel-btn {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.carousel-btn:hover {
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+.carousel-btn.prev {
+    left: -24px;
+}
+
+.carousel-btn.next {
+    right: -24px;
+}
+
+@media (max-width: 900px) {
+    .carousel-btn {
+        opacity: 1;
+        pointer-events: auto;
+        width: 40px;
+        height: 40px;
+        font-size: 0.9rem;
+    }
+
+    .carousel-btn.prev { left: -10px; }
+    .carousel-btn.next { right: -10px; }
 }
 
 .service-card {
@@ -2547,6 +2629,13 @@ html[data-theme='dark'] .appointment-form-container {
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
 }
 
+html[data-theme='dark'] .carousel-btn {
+    background: #17263d;
+    border-color: rgba(122, 156, 207, 0.35);
+    color: #e9f1ff;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
 html[data-theme='dark'] .service-card h3,
 html[data-theme='dark'] .tele-card h3,
 html[data-theme='dark'] .team-info h3,
@@ -2840,7 +2929,6 @@ html[data-theme='dark'] .gallery-note {
 }
 
 @media (max-width: 1140px) {
-    .services-grid,
     .telemedicine-options,
     .reviews-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3491,7 +3579,6 @@ html[data-theme='dark'] .showcase-eyebrow {
 }
 
 @media (max-width: 640px) {
-    .services-grid,
     .telemedicine-options,
     .reviews-grid {
         grid-template-columns: 1fr;
