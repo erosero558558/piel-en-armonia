@@ -1,0 +1,85 @@
+[Thu Feb 19 03:09:57 2026] PHP 8.3.6 Development Server (http://localhost:8000) started
+[Thu Feb 19 03:10:09 2026] [::1]:39672 Accepted
+[Thu Feb 19 03:10:09 2026] [::1]:39672 [200]: GET /
+[Thu Feb 19 03:10:09 2026] [::1]:39672 Closing
+[Thu Feb 19 03:10:09 2026] [::1]:39676 Accepted
+[Thu Feb 19 03:10:09 2026] [::1]:39682 Accepted
+[Thu Feb 19 03:10:09 2026] [::1]:39692 Accepted
+[Thu Feb 19 03:10:09 2026] [::1]:39676 [200]: GET /styles.css?v=ui-20260219-critical2-mobiletypelock1-a11yfocus1-perfcv1
+[Thu Feb 19 03:10:09 2026] [::1]:39676 Closing
+[Thu Feb 19 03:10:09 2026] [::1]:39682 [200]: GET /styles-deferred.css?v=ui-20260219-deferred12-cspinline1-stateclass1
+[Thu Feb 19 03:10:09 2026] [::1]:39682 Closing
+[Thu Feb 19 03:10:09 2026] [::1]:39692 [200]: GET /hero-woman.jpg
+[Thu Feb 19 03:10:09 2026] [::1]:39692 Closing
+[Thu Feb 19 03:10:09 2026] [::1]:39708 Accepted
+[Thu Feb 19 03:10:09 2026] [::1]:39708 [200]: GET /script.js?v=figo-20260218-phase5-opt-i18n2-ui2-gallery1-reschedule1-bookingui1-chatbooking1-successmodal1-engagement1-modalux1-loaderconsolidation1-warmupconsolidation1-observerconsolidation1-wrapperconsolidation1-bootdefer1-apihardening1-uploadretry1-analytics2-uploadparallel1-transferretry2-linkrel1-textclean1-placeholderlinks1-a11yfocus1-deferredsync1-chathardening1-depuracionjs6-cspinline1-dataenginewrap1-chatui1-actionrouter1-i18nengine1-themeengine1-consentengine1-analyticsengine1-chatwidget1-chatui2-reschedulegateway1
+[Thu Feb 19 03:10:09 2026] [::1]:39708 Closing
+[Thu Feb 19 03:10:09 2026] [::1]:39710 Accepted
+[Thu Feb 19 03:10:09 2026] [::1]:39710 [200]: GET /chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification1
+[Thu Feb 19 03:10:09 2026] [::1]:39710 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39716 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39732 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39738 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39742 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39750 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39764 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39716 [200]: GET /images/optimized/showcase-hero.avif
+[Thu Feb 19 03:10:10 2026] [::1]:39732 [200]: GET /images/optimized/showcase-diagnostic.avif
+[Thu Feb 19 03:10:10 2026] [::1]:39738 [200]: GET /images/optimized/showcase-clinic.avif
+[Thu Feb 19 03:10:10 2026] [::1]:39742 [200]: GET /images/optimized/showcase-treatment.avif
+[Thu Feb 19 03:10:10 2026] [::1]:39750 [200]: GET /action-router-engine.js?v=figo-action-router-20260219-phase1
+[Thu Feb 19 03:10:10 2026] [::1]:39716 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39732 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39738 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39742 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39750 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39764 [200]: GET /theme-engine.js?v=figo-theme-20260219-phase1
+[Thu Feb 19 03:10:10 2026] [::1]:39764 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39778 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39786 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39790 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39778 [200]: GET /i18n-engine.js?v=figo-i18n-20260219-phase1
+[Thu Feb 19 03:10:10 2026] [::1]:39786 [200]: GET /consent-engine.js?v=figo-consent-20260219-phase1
+[Thu Feb 19 03:10:10 2026] [::1]:39778 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39790 [200]: GET /analytics-engine.js?v=figo-analytics-20260219-phase1
+[Thu Feb 19 03:10:10 2026] [::1]:39786 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39790 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39800 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39800 [200]: GET /reschedule-gateway-engine.js?v=figo-reschedule-gateway-20260219-phase1
+[Thu Feb 19 03:10:10 2026] [::1]:39800 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39802 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39802 [200]: GET /ui-effects.js?v=figo-ui-20260218-phase4
+[Thu Feb 19 03:10:10 2026] [::1]:39802 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39806 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39806 [200]: GET /booking-ui.js?v=figo-booking-ui-20260218-phase4-stateclass1
+[Thu Feb 19 03:10:10 2026] [::1]:39806 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39820 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39820 [200]: GET /reviews-engine.js?v=figo-reviews-20260219-phase1
+[Thu Feb 19 03:10:10 2026] [::1]:39820 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39836 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39836 [200]: GET /engagement-forms-engine.js?v=figo-engagement-20260218-phase1
+[Thu Feb 19 03:10:10 2026] [::1]:39836 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39840 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39850 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39866 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39876 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39880 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39840 [200]: GET /data-engine.js?v=figo-data-20260219-phase1
+[Thu Feb 19 03:10:10 2026] [::1]:39840 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39850 [200]: GET /booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2-stateclass1
+[Thu Feb 19 03:10:10 2026] [::1]:39850 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39886 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39866 [200]: GET /gallery-interactions.js?v=figo-gallery-20260218-phase4
+[Thu Feb 19 03:10:10 2026] [::1]:39876 [200]: GET /chat-ui-engine.js?v=figo-chat-ui-20260219-phase1
+[Thu Feb 19 03:10:10 2026] [::1]:39880 [200]: GET /chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1
+[Thu Feb 19 03:10:10 2026] [::1]:39866 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39876 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39880 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39890 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39886 [200]: GET /chat-booking-engine.js?v=figo-chat-booking-20260219-phase2-inlinefix1
+[Thu Feb 19 03:10:10 2026] [::1]:39900 Accepted
+[Thu Feb 19 03:10:10 2026] [::1]:39890 [200]: GET /success-modal-engine.js?v=figo-success-modal-20260218-phase1-inlineclass1
+[Thu Feb 19 03:10:10 2026] [::1]:39900 [200]: GET /modal-ux-engine.js?v=figo-modal-ux-20260218-phase1
+[Thu Feb 19 03:10:10 2026] [::1]:39886 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39890 Closing
+[Thu Feb 19 03:10:10 2026] [::1]:39900 Closing
