@@ -1216,45 +1216,37 @@ function initBookingUiWarmup() {
 // ========================================
 // PAYMENT MODAL
 // ========================================
+const UI_BRIDGE_ENGINE_URL = '/ui-bridge-engine.js?v=figo-ui-bridge-20260219-phase1';
+
 function openPaymentModal(appointmentData) {
     runDeferredModule(
-        loadBookingEngine,
+        loadUiBridgeEngine,
         (engine) => engine.openPaymentModal(appointmentData),
-        (error) => {
-            debugLog('openPaymentModal fallback error:', error);
+        () => {
             showToast('No se pudo abrir el modulo de pago.', 'error');
         }
     );
 }
 
 function closePaymentModal(options = {}) {
-    if (window.PielBookingEngine && typeof window.PielBookingEngine.closePaymentModal === 'function') {
-        window.PielBookingEngine.closePaymentModal(options);
-        return;
-    }
-
-    const skipAbandonTrack = options && options.skipAbandonTrack === true;
-    const abandonReason = options && typeof options.reason === 'string' ? options.reason : 'modal_close';
-    if (!skipAbandonTrack) {
-        maybeTrackCheckoutAbandon(abandonReason);
-    }
-
-    setCheckoutSessionActive(false);
-    const modal = document.getElementById('paymentModal');
-    if (modal) {
-        modal.classList.remove('active');
-    }
-    document.body.style.overflow = '';
+    runDeferredModule(
+        loadUiBridgeEngine,
+        (engine) => engine.closePaymentModal(options),
+        () => {
+            const modal = document.getElementById('paymentModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+            document.body.style.overflow = '';
+        }
+    );
 }
 
 async function processPayment() {
     return runDeferredModule(
-        loadBookingEngine,
+        loadUiBridgeEngine,
         (engine) => engine.processPayment(),
-        (error) => {
-            debugLog('processPayment error:', error);
-            showToast('No se pudo procesar el pago en este momento.', 'error');
-        }
+        () => showToast('No se pudo procesar el pago en este momento.', 'error')
     );
 }
 
@@ -1300,22 +1292,24 @@ function initSuccessModalEngineWarmup() {
 
 function showSuccessModal(emailSent = false) {
     runDeferredModule(
-        loadSuccessModalEngine,
+        loadUiBridgeEngine,
         (engine) => engine.showSuccessModal(emailSent),
-        () => {
-            showToast('No se pudo abrir la confirmacion de cita.', 'error');
-        }
+        () => showToast('No se pudo abrir la confirmacion de cita.', 'error')
     );
 }
 
 function closeSuccessModal() {
-    const modal = document.getElementById('successModal');
-    if (modal) {
-        modal.classList.remove('active');
-    }
-    document.body.style.overflow = '';
-
-    runDeferredModule(loadSuccessModalEngine, (engine) => engine.closeSuccessModal());
+    runDeferredModule(
+        loadUiBridgeEngine,
+        (engine) => engine.closeSuccessModal(),
+        () => {
+            const modal = document.getElementById('successModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+            document.body.style.overflow = '';
+        }
+    );
 }
 
 // ========================================
@@ -1375,7 +1369,7 @@ function initEngagementFormsEngineWarmup() {
 
 function openReviewModal() {
     runDeferredModule(
-        loadEngagementFormsEngine,
+        loadUiBridgeEngine,
         (engine) => engine.openReviewModal(),
         () => {
             const modal = document.getElementById('reviewModal');
@@ -1388,13 +1382,17 @@ function openReviewModal() {
 }
 
 function closeReviewModal() {
-    const modal = document.getElementById('reviewModal');
-    if (modal) {
-        modal.classList.remove('active');
-    }
-    document.body.style.overflow = '';
-
-    runDeferredModule(loadEngagementFormsEngine, (engine) => engine.closeReviewModal());
+    runDeferredModule(
+        loadUiBridgeEngine,
+        (engine) => engine.closeReviewModal(),
+        () => {
+            const modal = document.getElementById('reviewModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+            document.body.style.overflow = '';
+        }
+    );
 }
 
 // MODAL CLOSE HANDLERS (DEFERRED MODULE)
@@ -1901,6 +1899,32 @@ const loadRescheduleGatewayEngine = createEngineLoader({
     logLabel: 'Reschedule gateway engine'
 });
 
+function getUiBridgeEngineDeps() {
+    return {
+        runDeferredModule,
+        loadBookingEngine,
+        loadSuccessModalEngine,
+        loadEngagementFormsEngine,
+        loadRescheduleGatewayEngine,
+        maybeTrackCheckoutAbandon,
+        setCheckoutSessionActive,
+        showToast,
+        debugLog,
+        getCurrentLang: () => currentLang
+    };
+}
+
+const loadUiBridgeEngine = createEngineLoader({
+    cacheKey: 'ui-bridge-engine',
+    src: UI_BRIDGE_ENGINE_URL,
+    scriptDataAttribute: 'data-ui-bridge-engine',
+    resolveModule: () => window.PielUiBridgeEngine,
+    depsFactory: getUiBridgeEngineDeps,
+    missingApiError: 'ui-bridge-engine loaded without API',
+    loadError: 'No se pudo cargar ui-bridge-engine.js',
+    logLabel: 'UI bridge engine'
+});
+
 function initRescheduleEngineWarmup() {
     runDeferredModule(
         loadRescheduleGatewayEngine,
@@ -1912,18 +1936,24 @@ function initRescheduleEngineWarmup() {
 }
 
 function closeRescheduleModal() {
-    runDeferredModule(loadRescheduleGatewayEngine, (engine) => engine.closeRescheduleModal(), () => {
-        const modal = document.getElementById('rescheduleModal');
-        if (modal) {
-            modal.classList.remove('active');
+    runDeferredModule(
+        loadUiBridgeEngine,
+        (engine) => engine.closeRescheduleModal(),
+        () => {
+            const modal = document.getElementById('rescheduleModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
         }
-    });
+    );
 }
 
 function submitReschedule() {
-    runDeferredModule(loadRescheduleGatewayEngine, (engine) => engine.submitReschedule(), () => {
-        showToast(currentLang === 'es' ? 'No se pudo reprogramar en este momento.' : 'Unable to reschedule right now.', 'error');
-    });
+    runDeferredModule(
+        loadUiBridgeEngine,
+        (engine) => engine.submitReschedule(),
+        () => showToast(currentLang === 'es' ? 'No se pudo reprogramar en este momento.' : 'Unable to reschedule right now.', 'error')
+    );
 }
 
 function getAppBootstrapEngineDeps() {
