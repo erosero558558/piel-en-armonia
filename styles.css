@@ -26,6 +26,7 @@
     --ui-shadow-lg: 0 20px 54px rgba(9, 17, 31, 0.24);
     --ui-ease: 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
     --ui-ease-soft: 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    --ui-ease-sony: cubic-bezier(0.2, 0.8, 0.2, 1);
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -492,6 +493,8 @@ img {
     color: #1d1d1f;
     letter-spacing: -0.03em;
     max-width: 780px;
+    animation: fadeInUp 0.8s var(--ui-ease-sony) backwards;
+    animation-delay: 0.1s;
 }
 
 .hero-title span {
@@ -514,12 +517,16 @@ img {
     font-size: clamp(1rem, 2vw, 1.25rem);
     line-height: 1.62;
     color: #424245;
+    animation: fadeInUp 0.8s var(--ui-ease-sony) backwards;
+    animation-delay: 0.2s;
 }
 
 .hero-actions {
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
+    animation: fadeInUp 0.8s var(--ui-ease-sony) backwards;
+    animation-delay: 0.3s;
 }
 
 .hero-actions .btn {
@@ -533,6 +540,8 @@ img {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+    animation: fadeInUp 0.8s var(--ui-ease-sony) backwards;
+    animation-delay: 0.4s;
 }
 
 .contact-chip {
@@ -563,6 +572,8 @@ img {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
     width: min(100%, 820px);
+    animation: fadeInUp 0.8s var(--ui-ease-sony) backwards;
+    animation-delay: 0.5s;
 }
 
 .metric-card {

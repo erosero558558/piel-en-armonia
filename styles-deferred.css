@@ -531,8 +531,8 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
 }
 
 .service-card:hover {
-    transform: translateY(-6px);
-    box-shadow: var(--ui-shadow-md);
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.12);
     border-color: var(--ui-border-strong);
 }
 
@@ -789,7 +789,7 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
 }
 
 .team-card:hover {
-    transform: translateY(-6px);
+    transform: translateY(-6px) scale(1.02);
     box-shadow: 0 24px 52px rgba(10, 22, 42, 0.26);
 }
 
@@ -2369,7 +2369,7 @@ textarea:focus {
 .animate-on-scroll {
     opacity: 0;
     transform: translateY(20px);
-    transition: opacity 620ms var(--ui-ease), transform 620ms var(--ui-ease);
+    transition: opacity 0.8s var(--ui-ease-sony), transform 0.8s var(--ui-ease-sony);
 }
 
 .animate-on-scroll.visible {
@@ -2988,7 +2988,7 @@ html[data-theme='dark'] .contact-chip.whatsapp {
 }
 
 .showcase-card:hover {
-    transform: translateY(-6px);
+    transform: translateY(-6px) scale(1.02);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.14);
 }
 
