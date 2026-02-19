@@ -1,28 +1,71 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/common.php';
+require_once __DIR__ . '/validation.php';
+require_once __DIR__ . '/business.php';
+
 /**
  * Business logic and data models.
  */
 
-function map_callback_status(string $status): string
+function get_service_label(string $service): string
 {
-    $normalized = strtolower(trim($status));
-    if ($normalized === 'contacted') {
-        return 'contactado';
-    }
-    if ($normalized === 'pending') {
-        return 'pendiente';
-    }
-    return in_array($normalized, ['pendiente', 'contactado'], true) ? $normalized : 'pendiente';
+    $labels = [
+        'consulta' => 'Consulta Presencial',
+        'telefono' => 'Consulta Telefonica',
+        'video' => 'Video Consulta',
+        'laser' => 'Tratamiento Laser',
+        'rejuvenecimiento' => 'Rejuvenecimiento'
+    ];
+    return $labels[$service] ?? $service;
 }
 
-function map_appointment_status(string $status): string
+function get_doctor_label(string $doctor): string
 {
-    $normalized = strtolower(trim($status));
-    return in_array($normalized, ['confirmed', 'pending', 'cancelled', 'completed'], true)
-        ? $normalized
-        : 'confirmed';
+    $labels = [
+        'rosero' => 'Dr. Javier Rosero',
+        'narvaez' => 'Dra. Carolina Narvaez',
+        'indiferente' => 'Cualquiera disponible'
+    ];
+    return $labels[$doctor] ?? $doctor;
+}
+
+function get_payment_method_label(string $method): string
+{
+    $labels = [
+        'cash' => 'Efectivo (en consultorio)',
+        'card' => 'Tarjeta de credito/debito',
+        'transfer' => 'Transferencia bancaria',
+        'unpaid' => 'Pendiente'
+    ];
+    return $labels[$method] ?? $method;
+}
+
+function get_payment_status_label(string $status): string
+{
+    $labels = [
+        'paid' => 'Pagado',
+        'pending_cash' => 'Pendiente - pago en consultorio',
+        'pending_transfer_review' => 'Pendiente - verificando transferencia',
+        'pending' => 'Pendiente'
+    ];
+    return $labels[$status] ?? $status;
+}
+
+function format_date_label(string $date): string
+{
+    $ts = strtotime($date);
+    if ($ts === false) {
+        return $date;
+    }
+    $dias = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+    $meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    $dow = (int) date('w', $ts);
+    $day = (int) date('j', $ts);
+    $month = (int) date('n', $ts) - 1;
+    $year = date('Y', $ts);
+    return ucfirst($dias[$dow]) . ' ' . $day . ' de ' . $meses[$month] . ' de ' . $year;
 }
 
 function normalize_review(array $review): array

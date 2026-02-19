@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/common.php';
+require_once __DIR__ . '/validation.php';
+
 /**
  * Business Logic Helpers
  */
@@ -48,6 +51,22 @@ function get_service_total_price(string $service): string
     $subtotal = get_service_price_amount($service);
     $total = $subtotal + ($subtotal * get_vat_rate());
     return '$' . number_format($total, 2, '.', '');
+}
+
+function build_appointment_index(array $appointments): array
+{
+    $index = [];
+    foreach ($appointments as $i => $appt) {
+        $date = (string) ($appt['date'] ?? '');
+        if ($date === '') {
+            continue;
+        }
+        if (!isset($index[$date])) {
+            $index[$date] = [];
+        }
+        $index[$date][] = $i;
+    }
+    return $index;
 }
 
 function appointment_slot_taken(array $appointments, string $date, string $time, ?int $excludeId = null, string $doctor = '', ?array $index = null): bool

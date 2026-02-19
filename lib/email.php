@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/common.php';
+require_once __DIR__ . '/models.php';
+
 /**
  * Email sending logic.
  */
@@ -114,11 +117,17 @@ function maybe_send_appointment_email(array $appointment): bool
     $subject = 'Confirmacion de cita - ' . $clinicName;
     $message = "Hola " . ($appointment['name'] ?? 'paciente') . ",\n\n";
     $message .= "Tu cita fue registrada correctamente.\n";
-    $message .= "Servicio: " . ($appointment['service'] ?? '-') . "\n";
-    $message .= "Doctor: " . ($appointment['doctor'] ?? '-') . "\n";
-    $message .= "Fecha: " . ($appointment['date'] ?? '-') . "\n";
+
+    $serviceLabel = function_exists('get_service_label') ? get_service_label((string)($appointment['service'] ?? '')) : ($appointment['service'] ?? '-');
+    $doctorLabel = function_exists('get_doctor_label') ? get_doctor_label((string)($appointment['doctor'] ?? '')) : ($appointment['doctor'] ?? '-');
+    $dateLabel = function_exists('format_date_label') ? format_date_label((string)($appointment['date'] ?? '')) : ($appointment['date'] ?? '-');
+    $paymentStatusLabel = function_exists('get_payment_status_label') ? get_payment_status_label((string)($appointment['paymentStatus'] ?? 'pending')) : ($appointment['paymentStatus'] ?? 'pending');
+
+    $message .= "Servicio: " . $serviceLabel . "\n";
+    $message .= "Doctor: " . $doctorLabel . "\n";
+    $message .= "Fecha: " . $dateLabel . " (" . ($appointment['date'] ?? '') . ")\n";
     $message .= "Hora: " . ($appointment['time'] ?? '-') . "\n";
-    $message .= "Estado de pago: " . ($appointment['paymentStatus'] ?? 'pending') . "\n\n";
+    $message .= "Estado de pago: " . $paymentStatusLabel . "\n\n";
 
     $token = $appointment['rescheduleToken'] ?? '';
     if ($token !== '') {
@@ -143,6 +152,9 @@ function maybe_send_admin_notification(array $appointment): bool
         return false;
     }
 
+    $serviceLabel = function_exists('get_service_label') ? get_service_label((string)($appointment['service'] ?? '')) : ($appointment['service'] ?? '-');
+    $doctorLabel = function_exists('get_doctor_label') ? get_doctor_label((string)($appointment['doctor'] ?? '')) : ($appointment['doctor'] ?? '-');
+
     $clinicName = 'Piel en Armonía';
     $subject = 'Nueva cita agendada - ' . $clinicName;
     $body = "Se ha agendado una nueva cita:\n\n";
@@ -153,8 +165,8 @@ function maybe_send_admin_notification(array $appointment): bool
     $body .= "Zona: " . ($appointment['affectedArea'] ?? '-') . "\n";
     $body .= "Evolucion: " . ($appointment['evolutionTime'] ?? '-') . "\n";
     $body .= "Consentimiento datos: " . ((isset($appointment['privacyConsent']) && $appointment['privacyConsent']) ? 'si' : 'no') . "\n";
-    $body .= "Servicio: " . ($appointment['service'] ?? '-') . "\n";
-    $body .= "Doctor: " . ($appointment['doctor'] ?? '-') . "\n";
+    $body .= "Servicio: " . $serviceLabel . "\n";
+    $body .= "Doctor: " . $doctorLabel . "\n";
     $body .= "Fecha: " . ($appointment['date'] ?? '-') . "\n";
     $body .= "Hora: " . ($appointment['time'] ?? '-') . "\n";
     $body .= "Precio: " . ($appointment['price'] ?? '-') . "\n";
@@ -182,14 +194,18 @@ function maybe_send_cancellation_email(array $appointment): bool
         return false;
     }
 
+    $serviceLabel = function_exists('get_service_label') ? get_service_label((string)($appointment['service'] ?? '')) : ($appointment['service'] ?? '-');
+    $doctorLabel = function_exists('get_doctor_label') ? get_doctor_label((string)($appointment['doctor'] ?? '')) : ($appointment['doctor'] ?? '-');
+    $dateLabel = function_exists('format_date_label') ? format_date_label((string)($appointment['date'] ?? '')) : ($appointment['date'] ?? '-');
+
     $clinicName = 'Piel en Armonía';
     $subject = 'Cita cancelada - ' . $clinicName;
     $message = "Hola " . ($appointment['name'] ?? 'paciente') . ",\n\n";
     $message .= "Tu cita ha sido cancelada.\n\n";
     $message .= "Detalles de la cita cancelada:\n";
-    $message .= "Servicio: " . ($appointment['service'] ?? '-') . "\n";
-    $message .= "Doctor: " . ($appointment['doctor'] ?? '-') . "\n";
-    $message .= "Fecha: " . ($appointment['date'] ?? '-') . "\n";
+    $message .= "Servicio: " . $serviceLabel . "\n";
+    $message .= "Doctor: " . $doctorLabel . "\n";
+    $message .= "Fecha: " . $dateLabel . "\n";
     $message .= "Hora: " . ($appointment['time'] ?? '-') . "\n\n";
     $message .= "Si deseas reprogramar, visita https://pielarmonia.com/#citas o escribenos por WhatsApp: +593 98 245 3672.\n\n";
     $message .= "Gracias por confiar en nosotros.";
@@ -225,13 +241,17 @@ function maybe_send_reminder_email(array $appointment): bool
         return false;
     }
 
+    $serviceLabel = function_exists('get_service_label') ? get_service_label((string)($appointment['service'] ?? '')) : ($appointment['service'] ?? '-');
+    $doctorLabel = function_exists('get_doctor_label') ? get_doctor_label((string)($appointment['doctor'] ?? '')) : ($appointment['doctor'] ?? '-');
+    $dateLabel = function_exists('format_date_label') ? format_date_label((string)($appointment['date'] ?? '')) : ($appointment['date'] ?? '-');
+
     $clinicName = 'Piel en Armonía';
     $subject = 'Recordatorio de cita - ' . $clinicName;
     $body = "Hola " . ($appointment['name'] ?? 'paciente') . ",\n\n";
     $body .= "Te recordamos que tienes una cita programada para mañana.\n\n";
-    $body .= "Servicio: " . ($appointment['service'] ?? '-') . "\n";
-    $body .= "Doctor: " . ($appointment['doctor'] ?? '-') . "\n";
-    $body .= "Fecha: " . ($appointment['date'] ?? '-') . "\n";
+    $body .= "Servicio: " . $serviceLabel . "\n";
+    $body .= "Doctor: " . $doctorLabel . "\n";
+    $body .= "Fecha: " . $dateLabel . "\n";
     $body .= "Hora: " . ($appointment['time'] ?? '-') . "\n\n";
 
     $token = $appointment['rescheduleToken'] ?? '';
@@ -254,13 +274,17 @@ function maybe_send_reschedule_email(array $appointment): bool
         return false;
     }
 
+    $serviceLabel = function_exists('get_service_label') ? get_service_label((string)($appointment['service'] ?? '')) : ($appointment['service'] ?? '-');
+    $doctorLabel = function_exists('get_doctor_label') ? get_doctor_label((string)($appointment['doctor'] ?? '')) : ($appointment['doctor'] ?? '-');
+    $dateLabel = function_exists('format_date_label') ? format_date_label((string)($appointment['date'] ?? '')) : ($appointment['date'] ?? '-');
+
     $clinicName = 'Piel en Armonía';
     $subject = 'Cita reprogramada - ' . $clinicName;
     $body = "Hola " . ($appointment['name'] ?? 'paciente') . ",\n\n";
     $body .= "Tu cita ha sido reprogramada exitosamente.\n\n";
-    $body .= "Servicio: " . ($appointment['service'] ?? '-') . "\n";
-    $body .= "Doctor: " . ($appointment['doctor'] ?? '-') . "\n";
-    $body .= "Nueva fecha: " . ($appointment['date'] ?? '-') . "\n";
+    $body .= "Servicio: " . $serviceLabel . "\n";
+    $body .= "Doctor: " . $doctorLabel . "\n";
+    $body .= "Nueva fecha: " . $dateLabel . "\n";
     $body .= "Nueva hora: " . ($appointment['time'] ?? '-') . "\n\n";
 
     $token = $appointment['rescheduleToken'] ?? '';

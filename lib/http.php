@@ -79,10 +79,6 @@ function require_csrf(): void
 
 /**
  * Applies CORS headers based on environment configuration and request origin.
- *
- * @param array $methods Allowed HTTP methods.
- * @param array $headers Allowed HTTP headers.
- * @param bool $credentials Whether to allow credentials (cookies, auth headers).
  */
 function api_apply_cors(array $methods = ['GET', 'POST', 'OPTIONS'], array $headers = ['Content-Type', 'Authorization', 'X-CSRF-Token'], bool $credentials = true): void
 {
@@ -95,11 +91,6 @@ function api_apply_cors(array $methods = ['GET', 'POST', 'OPTIONS'], array $head
     // Default headers for preflight requests
     header('Access-Control-Allow-Methods: ' . implode(', ', $methods));
     header('Access-Control-Allow-Headers: ' . implode(', ', $headers));
-
-    // Set max age for preflight cache (e.g., 24 hours) to reduce OPTIONS requests
-    // However, figo endpoints use 'Cache-Control: no-store' which might conflict if we set Access-Control-Max-Age here?
-    // The previous implementation did NOT set Access-Control-Max-Age, so we will skip it to match behavior,
-    // although adding it is usually good practice.
 
     $origin = isset($_SERVER['HTTP_ORIGIN']) ? trim((string) $_SERVER['HTTP_ORIGIN']) : '';
     if ($origin === '') {
