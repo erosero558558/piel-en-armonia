@@ -43,7 +43,7 @@
                 s3_title: "3. Cancelaciones y reprogramaci\u00f3n",
                 s3_li1: "La reprogramaci\u00f3n sin costo aplica hasta 24 horas antes de la cita, sujeta a disponibilidad.",
                 s3_li2: "Cancelaciones de \u00faltimo momento o inasistencias pueden requerir revisi\u00f3n administrativa.",
-                s3_li3: "Para soporte inmediato: WhatsApp +593 98 245 3672.",
+                s3_li3: "Para soporte inmediato: WhatsApp 098 245 3672.",
                 s4_title: "4. Telemedicina y chatbot",
                 s4_li1: "La orientaci\u00f3n por chatbot y canales digitales no reemplaza una evaluaci\u00f3n m\u00e9dica presencial o por telemedicina cuando sea necesaria.",
                 s4_li2: "En emergencias, se debe acudir de inmediato a un servicio de urgencias.",
@@ -51,7 +51,7 @@
                 s5_p1: "La informaci\u00f3n del sitio es referencial y puede actualizarse sin previo aviso. La decisi\u00f3n cl\u00ednica final depende de una evaluaci\u00f3n profesional realizada por personal m\u00e9dico autorizado.",
                 s6_title: "6. Contacto legal",
                 s6_li1: "Dr. Javier Rosero: javier.rosero94@gmail.com",
-                s6_li2: "Dra. Carolina Narv\u00e1ez: caro93narvaez@gmail.com | +593 98 786 6885"
+                s6_li2: "Dra. Carolina Narv\u00e1ez: caro93narvaez@gmail.com | 098 786 6885"
             },
             en: {
                 page_title: "Terms and Conditions | Piel en Armonia",
@@ -67,7 +67,7 @@
                 s3_title: "3. Cancellations and rescheduling",
                 s3_li1: "Free rescheduling applies up to 24 hours before the appointment, subject to availability.",
                 s3_li2: "Last-minute cancellations or no-shows may require administrative review.",
-                s3_li3: "For immediate support: WhatsApp +593 98 245 3672.",
+                s3_li3: "For immediate support: WhatsApp 098 245 3672.",
                 s4_title: "4. Telemedicine and chatbot",
                 s4_li1: "Guidance provided through the chatbot and digital channels does not replace an in-person or telemedicine medical evaluation when required.",
                 s4_li2: "In emergencies, you must go immediately to an emergency care service.",
@@ -75,7 +75,7 @@
                 s5_p1: "Website information is for reference and may be updated without prior notice. Final clinical decisions depend on a professional evaluation performed by authorized medical staff.",
                 s6_title: "6. Legal contact",
                 s6_li1: "Dr. Javier Rosero: javier.rosero94@gmail.com",
-                s6_li2: "Dr. Carolina Narvaez: caro93narvaez@gmail.com | +593 98 786 6885"
+                s6_li2: "Dr. Carolina Narvaez: caro93narvaez@gmail.com | 098 786 6885"
             }
         },
         privacy: {
@@ -103,8 +103,8 @@
                 s5_p1: "El titular puede solicitar acceso, rectificaci\u00f3n, actualizaci\u00f3n, eliminaci\u00f3n y oposici\u00f3n al tratamiento de sus datos, conforme la normativa vigente.",
                 s6_title: "6. Contacto para privacidad",
                 s6_li1: "Dr. Javier Rosero: javier.rosero94@gmail.com",
-                s6_li2: "Dra. Carolina Narv\u00e1ez: caro93narvaez@gmail.com | +593 98 786 6885",
-                s6_li3: "WhatsApp de la cl\u00ednica: +593 98 245 3672",
+                s6_li2: "Dra. Carolina Narv\u00e1ez: caro93narvaez@gmail.com | 098 786 6885",
+                s6_li3: "WhatsApp de la cl\u00ednica: 098 245 3672",
                 note: "<strong>Importante:</strong> Ninguna medida t\u00e9cnica garantiza riesgo cero. Piel en Armon\u00eda mantiene un proceso continuo de mejora en seguridad y cumplimiento."
             },
             en: {
@@ -131,8 +131,8 @@
                 s5_p1: "Data subjects may request access, rectification, update, deletion, and objection to processing, in accordance with applicable law.",
                 s6_title: "6. Privacy contact",
                 s6_li1: "Dr. Javier Rosero: javier.rosero94@gmail.com",
-                s6_li2: "Dr. Carolina Narvaez: caro93narvaez@gmail.com | +593 98 786 6885",
-                s6_li3: "Clinic WhatsApp: +593 98 245 3672",
+                s6_li2: "Dr. Carolina Narvaez: caro93narvaez@gmail.com | 098 786 6885",
+                s6_li3: "Clinic WhatsApp: 098 245 3672",
                 note: "<strong>Important:</strong> No technical measure can guarantee zero risk. Piel en Armonia maintains an ongoing process to improve security and compliance."
             }
         },
@@ -189,8 +189,8 @@
                 note: "<strong>Nota:</strong> Referencias a marcos internacionales (como HIPAA) se usan como gu\u00eda de buenas pr\u00e1cticas y no implican certificaci\u00f3n autom\u00e1tica en todas las jurisdicciones.",
                 s5_title: "5. Contacto m\u00e9dico",
                 s5_li1: "Dr. Javier Rosero: javier.rosero94@gmail.com",
-                s5_li2: "Dra. Carolina Narv\u00e1ez: caro93narvaez@gmail.com | +593 98 786 6885",
-                s5_li3: "WhatsApp de la cl\u00ednica: +593 98 245 3672"
+                s5_li2: "Dra. Carolina Narv\u00e1ez: caro93narvaez@gmail.com | 098 786 6885",
+                s5_li3: "WhatsApp de la cl\u00ednica: 098 245 3672"
             },
             en: {
                 page_title: "Medical Disclaimer | Piel en Armonia",
@@ -208,8 +208,8 @@
                 note: "<strong>Note:</strong> References to international frameworks (such as HIPAA) are used as best-practice guidance and do not imply automatic certification in all jurisdictions.",
                 s5_title: "5. Medical contact",
                 s5_li1: "Dr. Javier Rosero: javier.rosero94@gmail.com",
-                s5_li2: "Dr. Carolina Narvaez: caro93narvaez@gmail.com | +593 98 786 6885",
-                s5_li3: "Clinic WhatsApp: +593 98 245 3672"
+                s5_li2: "Dr. Carolina Narvaez: caro93narvaez@gmail.com | 098 786 6885",
+                s5_li3: "Clinic WhatsApp: 098 245 3672"
             }
         }
     };

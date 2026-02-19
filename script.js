@@ -444,7 +444,7 @@ let currentThemeMode = readLocalStorageString(THEME_STORAGE_KEY, 'system');
 const THEME_ENGINE_URL = '/theme-engine.js?v=figo-theme-20260219-phase1';
 const CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
 const CLINIC_MAP_URL = 'https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D';
-const DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
+const DOCTOR_CAROLINA_PHONE = '098 786 6885';
 const DOCTOR_CAROLINA_EMAIL = 'caro93narvaez@gmail.com';
 const MAX_CASE_PHOTOS = 3;
 const MAX_CASE_PHOTO_BYTES = 5 * 1024 * 1024;
@@ -2259,7 +2259,7 @@ async function processWithKimi(message) {
         (error) => {
             console.error('Error cargando motor de chat:', error);
             removeTypingIndicator();
-            addBotMessage('No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.', false);
+            addBotMessage('No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">098 245 3672</a>.', false);
         }
     );
 }
