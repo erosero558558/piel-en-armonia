@@ -26,6 +26,8 @@
     --ui-shadow-lg: 0 20px 54px rgba(9, 17, 31, 0.24);
     --ui-ease: 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
     --ui-ease-soft: 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    --ui-curve: cubic-bezier(0.22, 0.61, 0.36, 1);
+    --ui-curve-soft: cubic-bezier(0.2, 0.7, 0.2, 1);
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -342,6 +344,7 @@ img {
     flex-direction: column;
     gap: 4px;
     padding: 14px;
+    -webkit-overflow-scrolling: touch;
 }
 
 .mobile-menu.active {
@@ -764,6 +767,7 @@ img {
     overflow-y: auto;
     padding: 12px;
     background: #f9fbff;
+    -webkit-overflow-scrolling: touch;
 }
 
 .chat-message {
@@ -963,6 +967,7 @@ img {
     box-shadow: var(--ui-shadow-lg);
     padding: 24px 20px;
     animation: fadeInUp 260ms ease-out;
+    -webkit-overflow-scrolling: touch;
 }
 
 .footer {
