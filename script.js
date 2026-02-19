@@ -455,6 +455,7 @@ const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00'
 let currentAppointment = null;
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 const DATA_ENGINE_URL = '/data-engine.js?v=figo-data-20260219-phase1';
+const DATA_GATEWAY_ENGINE_URL = '/data-gateway-engine.js?v=figo-data-gateway-20260219-phase1';
 
 function getI18nEngineDeps() {
     return {
@@ -839,6 +840,24 @@ const loadDataEngine = createEngineLoader({
     logLabel: 'Data engine'
 });
 
+function getDataGatewayEngineDeps() {
+    return {
+        loadDataEngine,
+        getDataEngine: () => window.PielDataEngine
+    };
+}
+
+const loadDataGatewayEngine = createEngineLoader({
+    cacheKey: 'data-gateway-engine',
+    src: DATA_GATEWAY_ENGINE_URL,
+    scriptDataAttribute: 'data-data-gateway-engine',
+    resolveModule: () => window.PielDataGatewayEngine,
+    depsFactory: getDataGatewayEngineDeps,
+    missingApiError: 'data-gateway-engine loaded without API',
+    loadError: 'No se pudo cargar data-gateway-engine.js',
+    logLabel: 'Data gateway engine'
+});
+
 function initDataEngineWarmup() {
     const warmup = createWarmupRunner(() => loadDataEngine(), { markWarmOnSuccess: true });
 
@@ -854,6 +873,21 @@ function initDataEngineWarmup() {
     scheduleDeferredTask(warmup, {
         idleTimeout: 1800,
         fallbackDelay: 900
+    });
+}
+
+function initDataGatewayEngineWarmup() {
+    const warmup = createWarmupRunner(() => loadDataGatewayEngine(), { markWarmOnSuccess: true });
+
+    bindWarmupTargetsBatch(warmup, [
+        { selector: '#appointmentForm', eventName: 'focusin', passive: false },
+        { selector: '#appointmentForm', eventName: 'pointerdown' },
+        { selector: '#chatbotWidget .chatbot-toggle', eventName: 'pointerdown' }
+    ]);
+
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 1900,
+        fallbackDelay: 950
     });
 }
 
@@ -890,8 +924,23 @@ function storageSetJSON(key, value) {
     }
 }
 
+function runDataGatewayAction(actionName, args = [], onError) {
+    return runDeferredModule(
+        loadDataGatewayEngine,
+        (engine) => {
+            if (!engine || typeof engine[actionName] !== 'function') {
+                throw new Error(`Data gateway action unavailable: ${actionName}`);
+            }
+            return engine[actionName].apply(engine, Array.isArray(args) ? args : []);
+        },
+        onError
+    );
+}
+
 async function apiRequest(resource, options = {}) {
-    return withDeferredModule(loadDataEngine, (engine) => engine.apiRequest(resource, options));
+    return runDataGatewayAction('apiRequest', [resource, options], () => {
+        return withDeferredModule(loadDataEngine, (dataEngine) => dataEngine.apiRequest(resource, options));
+    });
 }
 
 function getPaymentGatewayEngineApi() {
@@ -1010,7 +1059,9 @@ async function verifyPaymentIntent(paymentIntentId) {
 }
 
 async function uploadTransferProof(file, options = {}) {
-    return withDeferredModule(loadDataEngine, (engine) => engine.uploadTransferProof(file, options));
+    return runDataGatewayAction('uploadTransferProof', [file, options], () => {
+        return withDeferredModule(loadDataEngine, (dataEngine) => dataEngine.uploadTransferProof(file, options));
+    });
 }
 
 function getCasePhotoFiles(formElement) {
@@ -1127,31 +1178,43 @@ async function buildAppointmentPayload(appointment) {
 }
 
 function invalidateBookedSlotsCache(date = '', doctor = '') {
-    if (window.PielDataEngine && typeof window.PielDataEngine.invalidateBookedSlotsCache === 'function') {
-        window.PielDataEngine.invalidateBookedSlotsCache(date, doctor);
-        return;
-    }
-    runDeferredModule(loadDataEngine, (engine) => engine.invalidateBookedSlotsCache(date, doctor));
+    runDataGatewayAction('invalidateBookedSlotsCache', [date, doctor], () => {
+        if (window.PielDataEngine && typeof window.PielDataEngine.invalidateBookedSlotsCache === 'function') {
+            window.PielDataEngine.invalidateBookedSlotsCache(date, doctor);
+            return;
+        }
+        runDeferredModule(loadDataEngine, (dataEngine) => dataEngine.invalidateBookedSlotsCache(date, doctor));
+    });
 }
 
 async function loadAvailabilityData(options = {}) {
-    return withDeferredModule(loadDataEngine, (engine) => engine.loadAvailabilityData(options));
+    return runDataGatewayAction('loadAvailabilityData', [options], () => {
+        return withDeferredModule(loadDataEngine, (dataEngine) => dataEngine.loadAvailabilityData(options));
+    });
 }
 
 async function getBookedSlots(date, doctor = '') {
-    return withDeferredModule(loadDataEngine, (engine) => engine.getBookedSlots(date, doctor));
+    return runDataGatewayAction('getBookedSlots', [date, doctor], () => {
+        return withDeferredModule(loadDataEngine, (dataEngine) => dataEngine.getBookedSlots(date, doctor));
+    });
 }
 
 async function createAppointmentRecord(appointment, options = {}) {
-    return withDeferredModule(loadDataEngine, (engine) => engine.createAppointmentRecord(appointment, options));
+    return runDataGatewayAction('createAppointmentRecord', [appointment, options], () => {
+        return withDeferredModule(loadDataEngine, (dataEngine) => dataEngine.createAppointmentRecord(appointment, options));
+    });
 }
 
 async function createCallbackRecord(callback) {
-    return withDeferredModule(loadDataEngine, (engine) => engine.createCallbackRecord(callback));
+    return runDataGatewayAction('createCallbackRecord', [callback], () => {
+        return withDeferredModule(loadDataEngine, (dataEngine) => dataEngine.createCallbackRecord(callback));
+    });
 }
 
 async function createReviewRecord(review) {
-    return withDeferredModule(loadDataEngine, (engine) => engine.createReviewRecord(review));
+    return runDataGatewayAction('createReviewRecord', [review], () => {
+        return withDeferredModule(loadDataEngine, (dataEngine) => dataEngine.createReviewRecord(review));
+    });
 }
 
 const REVIEWS_ENGINE_URL = '/reviews-engine.js?v=figo-reviews-20260219-phase1';
@@ -2025,7 +2088,7 @@ async function processWithKimi(message) {
 }
 
 runDeferredModule(loadChatWidgetEngine, (engine) => engine.scheduleInitialNotification(30000));
-const APP_BOOTSTRAP_ENGINE_URL = '/app-bootstrap-engine.js?v=figo-bootstrap-20260219-phase2-events3';
+const APP_BOOTSTRAP_ENGINE_URL = '/app-bootstrap-engine.js?v=figo-bootstrap-20260219-phase2-events4';
 // ========================================
 // REPROGRAMACION ONLINE
 // ========================================
@@ -2123,6 +2186,7 @@ function getAppBootstrapEngineDeps() {
         scheduleDeferredTask,
         initEnglishBundleWarmup,
         initDataEngineWarmup,
+        initDataGatewayEngineWarmup,
         initBookingEngineWarmup,
         initBookingMediaEngineWarmup,
         initPaymentGatewayEngineWarmup,

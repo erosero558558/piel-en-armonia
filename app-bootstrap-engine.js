@@ -86,6 +86,7 @@
         const initDeferredWarmups = callDep('createOnceTask', () => {
             callDep('initEnglishBundleWarmup');
             callDep('initDataEngineWarmup');
+            callDep('initDataGatewayEngineWarmup');
             callDep('initBookingEngineWarmup');
             callDep('initBookingMediaEngineWarmup');
             callDep('initPaymentGatewayEngineWarmup');
