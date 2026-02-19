@@ -5,13 +5,20 @@
     "test": "npx playwright test",
     "test:headed": "npx playwright test --headed",
     "test:ui": "npx playwright test --ui",
-    "test:php": "php tests/test_api_lib.php",
+    "test:php": "bash tests/run-php-tests.sh",
+    "lint": "npm run lint:js && npm run lint:php",
+    "lint:js": "eslint .",
+    "lint:php": "find . -name '*.php' -not -path './vendor/*' -exec php -l {} \\;",
     "bundle:deploy": "powershell -NoProfile -ExecutionPolicy Bypass -File ./PREPARAR-PAQUETE-DESPLIEGUE.ps1 -IncludeTooling",
     "verify:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./VERIFICAR-DESPLIEGUE.ps1 -Domain https://pielarmonia.com",
     "smoke:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./SMOKE-PRODUCCION.ps1 -Domain https://pielarmonia.com -TestFigoPost",
     "gate:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./GATE-POSTDEPLOY.ps1 -Domain https://pielarmonia.com"
   },
   "devDependencies": {
-    "@playwright/test": "^1.50.0"
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.50.0",
+    "eslint": "^10.0.0",
+    "eslint-plugin-playwright": "^2.7.0",
+    "globals": "^17.3.0"
   }
 }
