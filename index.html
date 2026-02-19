@@ -412,67 +412,52 @@
     <!-- Telemedicine Section -->
     <section class="section section-light" id="telemedicina">
         <div class="section-header">
-            <h2 class="section-title" data-i18n="telemedicine_title">Consulta desde cualquier lugar</h2>
-            <p class="section-subtitle" data-i18n="telemedicine_subtitle">Tres formas simples de conectarte con tu dermatólogo</p>
+            <h2 class="section-title" data-i18n="telemedicine_title">Teledermatología: consulta online segura</h2>
+            <p class="section-subtitle" data-i18n="telemedicine_subtitle">Ideal para acné, dermatitis, manchas y controles. Te guiamos para fotos útiles y buena iluminación.</p>
         </div>
         
         <div class="telemedicine-options">
+            <!-- Web Video (Recommended) -->
+            <div class="tele-card featured">
+                <div class="tele-badge" data-i18n="badge_recommended">Recomendado</div>
+                <div class="tele-icon video">
+                    <i class="fas fa-video"></i>
+                </div>
+                <h3 data-i18n="tele_web_title">Videollamada desde navegador</h3>
+                <p data-i18n="tele_web_desc">Mejor calidad y privacidad. No necesitas instalar apps.</p>
+                <div class="tele-price">$30</div>
+                <button type="button" class="btn btn-video" data-action="start-web-video">
+                    <i class="fas fa-video"></i>
+                    <span data-i18n="btn_video">Elegir esta opción</span>
+                </button>
+            </div>
+
+            <!-- WhatsApp -->
+            <div class="tele-card">
+                <div class="tele-icon whatsapp">
+                    <i class="fab fa-whatsapp"></i>
+                </div>
+                <h3 data-i18n="tele_whatsapp_title">Videollamada por WhatsApp</h3>
+                <p data-i18n="tele_whatsapp_desc">Alternativa rápida si ya lo usas.</p>
+                <div class="tele-price">$30</div>
+                <a href="https://wa.me/593982453672?text=Hola%20doctor,%20solicito%20una%20videoconsulta" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp">
+                    <i class="fab fa-whatsapp"></i>
+                    <span data-i18n="btn_whatsapp">Usar WhatsApp</span>
+                </a>
+            </div>
+            
             <!-- Phone Call -->
             <div class="tele-card">
                 <div class="tele-icon phone">
                     <i class="fas fa-phone-alt"></i>
                 </div>
                 <h3 data-i18n="tele_phone_title">Llamada Telefónica</h3>
-                <p data-i18n="tele_phone_desc">La forma más fácil. Toca el botón y habla directamente con el doctor desde tu teléfono.</p>
-                <ul class="tele-features">
-                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature1">Funciona en cualquier celular</span></li>
-                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature2">Sin internet necesario</span></li>
-                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature3">Perfecto para adultos mayores</span></li>
-                </ul>
+                <p data-i18n="tele_phone_desc">Para seguimiento o dudas puntuales.</p>
                 <div class="tele-price">$25</div>
                 <a href="tel:+593982453672" class="btn btn-phone">
                     <i class="fas fa-phone"></i>
-                    <span data-i18n="btn_call">Llamar Ahora</span>
+                    <span data-i18n="btn_call">Solicitar llamada</span>
                 </a>
-            </div>
-            
-            <!-- WhatsApp -->
-            <div class="tele-card featured">
-                <div class="tele-badge" data-i18n="badge_recommended">Recomendado</div>
-                <div class="tele-icon whatsapp">
-                    <i class="fab fa-whatsapp"></i>
-                </div>
-                <h3 data-i18n="tele_whatsapp_title">WhatsApp Video</h3>
-                <p data-i18n="tele_whatsapp_desc">Videollamada por WhatsApp. Si ya tienes WhatsApp instalado, es la opción más cómoda.</p>
-                <ul class="tele-features">
-                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature4">Videollamada HD</span></li>
-                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature5">Envía fotos de tu piel</span></li>
-                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature6">Chat incluido</span></li>
-                </ul>
-                <div class="tele-price">$30</div>
-                <a href="https://wa.me/593982453672?text=Hola%20doctor,%20solicito%20una%20videoconsulta" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp">
-                    <i class="fab fa-whatsapp"></i>
-                    <span data-i18n="btn_whatsapp">Abrir WhatsApp</span>
-                </a>
-            </div>
-            
-            <!-- Web Video -->
-            <div class="tele-card">
-                <div class="tele-icon video">
-                    <i class="fas fa-video"></i>
-                </div>
-                <h3 data-i18n="tele_web_title">Video desde Navegador</h3>
-                <p data-i18n="tele_web_desc">Sin instalar nada. Solo abre el enlace y permite acceso a tu cámara. Funciona en computadora o celular.</p>
-                <ul class="tele-features">
-                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature7">Sin apps ni registro</span></li>
-                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature8">Pantalla más grande</span></li>
-                    <li><i class="fas fa-check"></i> <span data-i18n="tele_feature9">Ideal para compartir pantalla</span></li>
-                </ul>
-                <div class="tele-price">$30</div>
-                <button type="button" class="btn btn-video" data-action="start-web-video">
-                    <i class="fas fa-video"></i>
-                    <span data-i18n="btn_video">Iniciar Video</span>
-                </button>
             </div>
         </div>
         
