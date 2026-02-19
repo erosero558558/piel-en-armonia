@@ -314,8 +314,16 @@
             <h2 class="section-title" data-i18n="services_title">Nuestros Servicios</h2>
             <p class="section-subtitle" data-i18n="services_subtitle">Tratamientos dermatológicos de excelencia</p>
         </div>
+
+        <div class="tabs-container">
+            <button class="tab-btn active" data-filter="all" data-i18n="tab_all">Todos</button>
+            <button class="tab-btn" data-filter="clinical" data-i18n="tab_clinical">Clínico</button>
+            <button class="tab-btn" data-filter="aesthetic" data-i18n="tab_aesthetic">Estético</button>
+            <button class="tab-btn" data-filter="telemedicine" data-i18n="tab_telemedicine">Telemedicina</button>
+        </div>
+
         <div class="services-grid">
-            <div class="service-card">
+            <div class="service-card" data-category="clinical">
                 <div class="service-card-img">
                     <picture>
                         <source type="image/avif" srcset="images/optimized/service-consulta.avif">
@@ -330,7 +338,7 @@
                 <p data-i18n="service_consulta_desc">Evaluación completa de tu piel con diagnóstico preciso y plan de tratamiento personalizado.</p>
                 <span class="service-price">$40</span>
             </div>
-            <div class="service-card featured">
+            <div class="service-card featured" data-category="telemedicine">
                 <div class="service-badge" data-i18n="badge_popular">Popular</div>
                 <div class="service-card-img">
                     <picture>
@@ -346,7 +354,7 @@
                 <p data-i18n="service_telemedicina_desc">Consulta médica desde la comodidad de tu hogar por teléfono o videollamada.</p>
                 <span class="service-price">$25 - $30</span>
             </div>
-            <div class="service-card">
+            <div class="service-card" data-category="aesthetic">
                 <div class="service-card-img">
                     <picture>
                         <source type="image/avif" srcset="images/optimized/service-laser.avif">
@@ -361,7 +369,7 @@
                 <p data-i18n="service_laser_desc">Tratamientos con láser de última generación para diversas afecciones de la piel.</p>
                 <span class="service-price" data-i18n="price_from">Desde $150</span>
             </div>
-            <div class="service-card">
+            <div class="service-card" data-category="aesthetic">
                 <div class="service-card-img">
                     <picture>
                         <source type="image/avif" srcset="images/optimized/service-rejuvenecimiento.avif">
@@ -376,7 +384,7 @@
                 <p data-i18n="service_rejuvenation_desc">Tratamientos estéticos para recuperar la juventud y luminosidad de tu piel.</p>
                 <span class="service-price" data-i18n="price_from">Desde $120</span>
             </div>
-            <div class="service-card">
+            <div class="service-card" data-category="clinical">
                 <div class="service-card-img">
                     <picture>
                         <source type="image/avif" srcset="images/optimized/service-acne.avif">
@@ -391,7 +399,7 @@
                 <p data-i18n="service_acne_desc">Soluciones efectivas para controlar y eliminar el acné en todas sus formas.</p>
                 <span class="service-price" data-i18n="price_from">Desde $80</span>
             </div>
-            <div class="service-card">
+            <div class="service-card" data-category="clinical">
                 <div class="service-card-img">
                     <picture>
                         <source type="image/avif" srcset="images/optimized/service-cancer.avif">
