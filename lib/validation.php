@@ -37,9 +37,49 @@ function parse_bool($value): bool
     return false;
 }
 
+function text_length(string $value): int
+{
+    if (function_exists('mb_strlen')) {
+        return (int) mb_strlen($value, 'UTF-8');
+    }
+
+    $chars = @preg_split('//u', $value, -1, PREG_SPLIT_NO_EMPTY);
+    if (is_array($chars)) {
+        return count($chars);
+    }
+
+    return strlen($value);
+}
+
+function text_substring(string $value, int $start, int $length): string
+{
+    if ($length <= 0) {
+        return '';
+    }
+
+    if (function_exists('mb_substr')) {
+        $slice = mb_substr($value, $start, $length, 'UTF-8');
+        return is_string($slice) ? $slice : '';
+    }
+
+    $chars = @preg_split('//u', $value, -1, PREG_SPLIT_NO_EMPTY);
+    if (is_array($chars)) {
+        return implode('', array_slice($chars, $start, $length));
+    }
+
+    $slice = substr($value, $start, $length);
+    return is_string($slice) ? $slice : '';
+}
+
 function truncate_field(string $value, int $maxLength): string
 {
-    return mb_strlen($value) > $maxLength ? mb_substr($value, 0, $maxLength) : $value;
+    if ($maxLength <= 0) {
+        return '';
+    }
+
+    return text_length($value) > $maxLength
+        ? text_substring($value, 0, $maxLength)
+        : $value;
 }
 
 function normalize_string_list($value, int $maxItems = 5, int $maxLength = 300): array

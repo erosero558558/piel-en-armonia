@@ -13,6 +13,13 @@ function assert_equals($expected, $actual, $message) {
     }
 }
 
+function test_strlen(string $value): int {
+    if (function_exists('mb_strlen')) {
+        return (int) mb_strlen($value, 'UTF-8');
+    }
+    return strlen($value);
+}
+
 echo "Running normalize_callback tests...\n";
 
 // Test 1: Empty input
@@ -52,10 +59,10 @@ $res = normalize_callback([
     'preferencia' => $longPref
 ]);
 
-assert_equals(20, mb_strlen($res['telefono']), 'Phone should be truncated to 20 chars');
+assert_equals(20, test_strlen($res['telefono']), 'Phone should be truncated to 20 chars');
 assert_equals(substr($longPhone, 0, 20), $res['telefono'], 'Phone content match after truncation');
 
-assert_equals(200, mb_strlen($res['preferencia']), 'Preference should be truncated to 200 chars');
+assert_equals(200, test_strlen($res['preferencia']), 'Preference should be truncated to 200 chars');
 assert_equals(substr($longPref, 0, 200), $res['preferencia'], 'Preference content match after truncation');
 
 // Test 4: ID Preservation

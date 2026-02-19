@@ -30,6 +30,13 @@ function assert_equals($expected, $actual, $message = '') {
     }
 }
 
+function test_strlen(string $value): int {
+    if (function_exists('mb_strlen')) {
+        return (int) mb_strlen($value, 'UTF-8');
+    }
+    return strlen($value);
+}
+
 echo "Running tests for normalize_review...\n";
 
 // Test 1: Happy Path
@@ -90,7 +97,7 @@ run_test('Name truncation > 100 chars', function() {
     $longName = str_repeat('a', 105);
     $input = ['name' => $longName];
     $result = normalize_review($input);
-    assert_equals(100, mb_strlen($result['name']));
+    assert_equals(100, test_strlen($result['name']));
     assert_equals(substr($longName, 0, 100), $result['name']);
 });
 
@@ -99,7 +106,7 @@ run_test('Text truncation > 2000 chars', function() {
     $longText = str_repeat('b', 2005);
     $input = ['text' => $longText];
     $result = normalize_review($input);
-    assert_equals(2000, mb_strlen($result['text']));
+    assert_equals(2000, test_strlen($result['text']));
     assert_equals(substr($longText, 0, 2000), $result['text']);
 });
 
