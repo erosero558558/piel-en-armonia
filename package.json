@@ -3,15 +3,11 @@
   "private": true,
   "scripts": {
     "test": "npx playwright test",
-    "test:php": "php tests/test_validate_phone.php",
+    "test:php": "php tests/test_api_lib.php",
     "test:headed": "npx playwright test --headed",
-    "test:ui": "npx playwright test --ui",
-    "bundle:deploy": "powershell -NoProfile -ExecutionPolicy Bypass -File ./PREPARAR-PAQUETE-DESPLIEGUE.ps1 -IncludeTooling",
-    "verify:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./VERIFICAR-DESPLIEGUE.ps1 -Domain https://pielarmonia.com",
-    "smoke:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./SMOKE-PRODUCCION.ps1 -Domain https://pielarmonia.com -TestFigoPost",
-    "gate:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./GATE-POSTDEPLOY.ps1 -Domain https://pielarmonia.com"
+    "test:ui": "npx playwright test --ui"
   },
   "devDependencies": {
-    "@playwright/test": "^1.58.2"
+    "@playwright/test": "^1.50.0"
   }
 }
