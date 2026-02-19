@@ -3033,56 +3033,6 @@ html[data-theme='dark'] .contact-chip.whatsapp {
     transform: scale(1.06);
 }
 
-/* Responsive: Showcase */
-@media (max-width: 900px) {
-    .showcase-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .showcase-split {
-        grid-template-columns: 1fr;
-    }
-
-    .showcase-split-image {
-        min-height: 260px;
-    }
-
-    .showcase-split-content {
-        padding: 32px 24px;
-    }
-
-    .showcase-hero-content {
-        padding: 28px 24px;
-    }
-
-    .showcase-hero-image {
-        height: 320px;
-    }
-}
-
-@media (max-width: 640px) {
-    .showcase-hero-image {
-        height: 260px;
-    }
-
-    .showcase-card-image {
-        height: 200px;
-    }
-
-    .showcase-stats {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-
-    .showcase-stat {
-        padding: 12px;
-    }
-
-    .service-card-img {
-        height: 140px;
-    }
-}
-
 /* Dark mode: Showcase */
 html[data-theme='dark'] .showcase-card {
     background: rgba(15, 26, 44, 0.9);
@@ -3140,47 +3090,6 @@ html[data-theme='dark'] .showcase-eyebrow {
         font-size: 16px;
     }
 
-    html {
-        scroll-padding-top: 120px;
-    }
-
-    .language-options,
-    .section-header,
-    .services-grid,
-    .telemedicine-options,
-    .callback-box,
-    .team-grid,
-    .gallery-filter,
-    .gallery-grid,
-    .clinic-container,
-    .reviews-grid,
-    .reviews-actions,
-    .appointment-container,
-    .footer-content,
-    .footer-bottom,
-    .hero-content {
-        width: calc(100% - 24px);
-        margin-left: auto;
-        margin-right: auto;
-    }
-
-    .nav {
-        top: calc(42px + var(--safe-top));
-        width: calc(100% - 16px);
-        border-radius: 24px;
-    }
-
-    .nav-content {
-        height: 58px;
-        padding: 0 14px;
-        gap: 10px;
-    }
-
-    .nav-logo {
-        min-width: 0;
-        font-size: 1rem;
-    }
-
     .nav-logo span {
         max-width: 170px;
         white-space: nowrap;
@@ -3203,26 +3112,8 @@ html[data-theme='dark'] .showcase-eyebrow {
         grid-template-columns: 1fr;
     }
 
-    .mobile-menu {
-        top: calc(110px + var(--safe-top));
-        left: 8px;
-        right: 8px;
-        width: auto;
-        max-height: calc(100dvh - 128px - var(--safe-top));
-        overflow-y: auto;
-        padding: 12px 12px max(12px, var(--safe-bottom));
-        border-radius: 18px;
-    }
-
     .mobile-menu a {
-        font-size: 1rem;
-        line-height: 1.35;
         padding: 14px 14px;
-    }
-
-    .hero {
-        min-height: auto;
-        padding: calc(138px + var(--safe-top)) 0 74px;
     }
 
     .hero-bg-image {
@@ -3230,35 +3121,8 @@ html[data-theme='dark'] .showcase-eyebrow {
     }
 
     .hero-content {
-        gap: 16px;
-        align-items: center;
-        text-align: center;
         margin-left: auto;
         margin-right: auto;
-    }
-
-    .hero-title {
-        max-width: none;
-        font-size: clamp(2.05rem, 9vw, 3rem);
-        line-height: 1.05;
-        letter-spacing: -0.02em;
-    }
-
-    .hero-subtitle {
-        max-width: 33ch;
-        font-size: clamp(1rem, 2.6vw, 1.08rem);
-        line-height: 1.6;
-    }
-
-    .section-title {
-        font-size: clamp(1.72rem, 5.8vw, 2.25rem);
-        line-height: 1.12;
-    }
-
-    .section-subtitle {
-        font-size: clamp(0.98rem, 2.6vw, 1.06rem);
-        line-height: 1.58;
-        max-width: 38ch;
     }
 
     .hero-actions {
@@ -3287,27 +3151,6 @@ html[data-theme='dark'] .showcase-eyebrow {
         min-height: 46px;
         justify-content: center;
         font-size: 0.92rem;
-    }
-
-    .hero-metrics {
-        grid-template-columns: 1fr;
-        gap: 10px;
-        width: min(100%, 620px);
-        max-width: 620px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-
-    .metric-card {
-        padding: 12px 14px;
-    }
-
-    .metric-card strong {
-        font-size: 1.05rem;
-    }
-
-    .metric-card span {
-        font-size: 0.9rem;
     }
 
     .section {
@@ -3370,10 +3213,6 @@ html[data-theme='dark'] .showcase-eyebrow {
         min-height: 300px;
     }
 
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-
     .modal {
         align-items: flex-end;
         padding: 0;
@@ -3400,49 +3239,8 @@ html[data-theme='dark'] .showcase-eyebrow {
         justify-content: center;
     }
 
-    .chatbot-widget {
-        right: 12px;
-        bottom: calc(90px + var(--safe-bottom));
-    }
-
     .chatbot-toggle {
-        width: 56px;
-        height: 56px;
         font-size: 1.18rem;
-    }
-
-    .chatbot-container {
-        position: fixed;
-        left: 8px;
-        right: 8px;
-        width: auto;
-        height: min(70dvh, 560px);
-        bottom: calc(76px + var(--safe-bottom));
-        border-radius: 18px;
-    }
-
-    .quick-dock {
-        left: 8px;
-        right: 8px;
-        bottom: calc(8px + var(--safe-bottom));
-        transform: none;
-        justify-content: space-between;
-        gap: 6px;
-        padding: 6px;
-        border-radius: 16px;
-    }
-
-    .quick-dock-item {
-        min-width: 0;
-        flex: 1;
-        height: 42px;
-        font-size: 0.78rem;
-    }
-
-    .cookie-banner {
-        left: 8px;
-        right: 8px;
-        bottom: calc(8px + var(--safe-bottom));
     }
 
     .footer {

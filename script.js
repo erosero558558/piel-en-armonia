@@ -278,7 +278,7 @@ function runDeferredModule(loader, onReady, onError) {
     });
 }
 
-const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred9-mobiletypelock1-a11yfocus1-chatsanitize1-depuracion5';
+const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred10-mobiletypelock1-a11yfocus1-chatsanitize1-depuracion6';
 
 let deferredStylesheetPromise = null;
 let deferredStylesheetInitDone = false;
@@ -1893,14 +1893,6 @@ function closePaymentModal(options = {}) {
     document.body.style.overflow = '';
 }
 
-function getActivePaymentMethod() {
-    if (window.PielBookingEngine && typeof window.PielBookingEngine.getActivePaymentMethod === 'function') {
-        return window.PielBookingEngine.getActivePaymentMethod();
-    }
-    const activeMethod = document.querySelector('.payment-method.active');
-    return activeMethod?.dataset.method || 'cash';
-}
-
 async function processPayment() {
     return runDeferredModule(
         loadBookingEngine,
@@ -2613,16 +2605,6 @@ function startChatBooking() {
     );
 }
 
-function cancelChatBooking() {
-    runDeferredModule(
-        loadChatBookingEngine,
-        (engine) => engine.cancelChatBooking(),
-        () => {
-            addBotMessage('No se pudo cancelar la reserva en este momento.');
-        }
-    );
-}
-
 function handleChatBookingSelection(value) {
     runDeferredModule(
         loadChatBookingEngine,
@@ -2734,24 +2716,6 @@ async function processWithKimi(message) {
     );
 }
 
-function resetConversation() {
-    runDeferredModule(loadFigoChatEngine, (engine) => engine.resetConversation(), () => {
-        showToast('No se pudo reiniciar la conversacion.', 'warning');
-    });
-}
-
-function forzarModoIA() {
-    runDeferredModule(loadFigoChatEngine, (engine) => engine.forzarModoIA(), () => {
-        showToast('No se pudo activar modo IA.', 'warning');
-    });
-}
-
-function mostrarInfoDebug() {
-    runDeferredModule(loadFigoChatEngine, (engine) => engine.mostrarInfoDebug(), () => {
-        showToast('No se pudo mostrar informacion de debug.', 'warning');
-    });
-}
-
 function checkServerEnvironment() {
     if (window.location.protocol === 'file:') {
         setTimeout(() => {
@@ -2815,14 +2779,6 @@ function initRescheduleEngineWarmup() {
     );
 }
 
-async function checkRescheduleParam() {
-    return withDeferredModule(loadRescheduleEngine, (engine) => engine.checkRescheduleParam());
-}
-
-function openRescheduleModal(appt) {
-    runDeferredModule(loadRescheduleEngine, (engine) => engine.openRescheduleModal(appt));
-}
-
 function closeRescheduleModal() {
     const modal = document.getElementById('rescheduleModal');
     if (modal) {
@@ -2830,10 +2786,6 @@ function closeRescheduleModal() {
     }
 
     runDeferredModule(loadRescheduleEngine, (engine) => engine.closeRescheduleModal());
-}
-
-function loadRescheduleSlots() {
-    return runDeferredModule(loadRescheduleEngine, (engine) => engine.loadRescheduleSlots());
 }
 
 function submitReschedule() {
