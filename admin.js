@@ -157,15 +157,15 @@ async function refreshData() {
 function showLogin() {
     const loginScreen = document.getElementById('loginScreen');
     const dashboard = document.getElementById('adminDashboard');
-    if (loginScreen) loginScreen.style.display = 'flex';
-    if (dashboard) dashboard.style.display = 'none';
+    if (loginScreen) loginScreen.classList.remove('is-hidden');
+    if (dashboard) dashboard.classList.add('is-hidden');
 }
 
 async function showDashboard() {
     const loginScreen = document.getElementById('loginScreen');
     const dashboard = document.getElementById('adminDashboard');
-    if (loginScreen) loginScreen.style.display = 'none';
-    if (dashboard) dashboard.style.display = 'flex';
+    if (loginScreen) loginScreen.classList.add('is-hidden');
+    if (dashboard) dashboard.classList.remove('is-hidden');
     updateDate();
     await refreshData();
     loadDashboardData();
@@ -663,7 +663,7 @@ function loadReviews() {
             <div class="review-card-admin">
                 <div class="review-header-admin">
                     <strong>${escapeHtml(r.name || 'Paciente')}</strong>
-                    ${r.verified ? '<i class="fas fa-check-circle verified" style="color: var(--color-phone); margin-left: auto;"></i>' : ''}
+                    ${r.verified ? '<i class="fas fa-check-circle verified review-verified-icon"></i>' : ''}
                 </div>
                 <div class="review-rating">${'★'.repeat(Number(r.rating) || 0)}${'☆'.repeat(5 - (Number(r.rating) || 0))}</div>
                 <p>${escapeHtml(r.text || '')}</p>
@@ -746,7 +746,7 @@ function selectDate(dateStr) {
         month: 'long',
         year: 'numeric'
     });
-    document.getElementById('addSlotForm').style.display = 'block';
+    document.getElementById('addSlotForm').classList.remove('is-hidden');
     loadTimeSlots(dateStr);
 }
 

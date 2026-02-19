@@ -76,11 +76,11 @@
         if (!errorEl) return;
         if (!message) {
             errorEl.textContent = '';
-            errorEl.style.display = 'none';
+            errorEl.classList.add('is-hidden');
             return;
         }
         errorEl.textContent = message;
-        errorEl.style.display = 'block';
+        errorEl.classList.remove('is-hidden');
     }
 
     function resetTransferProofState() {
@@ -105,6 +105,18 @@
     function getActivePaymentMethod() {
         const activeMethod = document.querySelector('.payment-method.active');
         return activeMethod && activeMethod.dataset ? activeMethod.dataset.method || 'cash' : 'cash';
+    }
+
+    function syncPaymentForms(activeMethod) {
+        const methodType = String(activeMethod || getActivePaymentMethod() || 'cash');
+        const paymentForms = document.querySelectorAll('.payment-form');
+        paymentForms.forEach((form) => {
+            form.classList.add('is-hidden');
+        });
+        const target = document.querySelector(`.${methodType}-form`);
+        if (target) {
+            target.classList.remove('is-hidden');
+        }
     }
 
     function setCardMethodEnabled(enabled) {
@@ -237,6 +249,7 @@
 
         modal.classList.add('active');
         document.body.style.overflow = 'hidden';
+        syncPaymentForms(getActivePaymentMethod());
 
         bindPaymentListeners();
         refreshCardPaymentAvailability().catch(() => undefined);
@@ -424,7 +437,7 @@
             if (form) form.reset();
 
             const summary = document.getElementById('priceSummary');
-            if (summary) summary.style.display = 'none';
+            if (summary) summary.classList.add('is-hidden');
         } catch (error) {
             let message = error?.message || 'No se pudo registrar la cita. Intenta nuevamente.';
             if (
@@ -454,7 +467,6 @@
         listenersBound = true;
 
         const paymentMethods = document.querySelectorAll('.payment-method');
-        const paymentForms = document.querySelectorAll('.payment-form');
 
         paymentMethods.forEach(method => {
             method.addEventListener('click', () => {
@@ -467,13 +479,7 @@
                 method.classList.add('active');
 
                 const methodType = method.dataset.method;
-                paymentForms.forEach(form => {
-                    form.style.display = 'none';
-                });
-                const target = document.querySelector(`.${methodType}-form`);
-                if (target) {
-                    target.style.display = 'block';
-                }
+                syncPaymentForms(methodType);
 
                 clearPaymentError();
                 trackEvent('payment_method_selected', {

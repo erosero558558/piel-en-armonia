@@ -103,7 +103,7 @@
 
         const errorDiv = document.getElementById('rescheduleError');
         if (errorDiv) {
-            errorDiv.style.display = 'none';
+            errorDiv.classList.add('is-hidden');
         }
 
         modal.classList.add('active');
@@ -170,11 +170,11 @@
         const newDate = dateInput.value;
         const newTime = timeSelect.value;
 
-        errorDiv.style.display = 'none';
+        errorDiv.classList.add('is-hidden');
 
         if (!newDate || !newTime) {
             errorDiv.textContent = t('Selecciona fecha y horario.', 'Select date and time.');
-            errorDiv.style.display = 'block';
+            errorDiv.classList.remove('is-hidden');
             return;
         }
 
@@ -200,11 +200,11 @@
                 notify(t('Cita reprogramada exitosamente.', 'Appointment rescheduled successfully.'), 'success');
             } else {
                 errorDiv.textContent = resp?.error || t('Error al reprogramar.', 'Error while rescheduling.');
-                errorDiv.style.display = 'block';
+                errorDiv.classList.remove('is-hidden');
             }
         } catch (error) {
             errorDiv.textContent = t('Error de conexion. Intentalo de nuevo.', 'Connection error. Try again.');
-            errorDiv.style.display = 'block';
+            errorDiv.classList.remove('is-hidden');
         } finally {
             btn.disabled = false;
             btn.textContent = t('Confirmar reprogramacion', 'Confirm reschedule');

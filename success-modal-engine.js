@@ -162,18 +162,18 @@ END:VCALENDAR`;
 
         if (detailsDiv) {
             detailsDiv.innerHTML = `
-                <div style="background: #f5f5f7; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: left;">
-                    <p style="margin-bottom: 8px;"><strong>${lang === 'es' ? 'Doctor:' : 'Doctor:'}</strong> ${escapeHtml(getDoctorName(appointment.doctor))}</p>
-                    <p style="margin-bottom: 8px;"><strong>${lang === 'es' ? 'Fecha:' : 'Date:'}</strong> ${escapeHtml(appointment.date || '-')}</p>
-                    <p style="margin-bottom: 8px;"><strong>${lang === 'es' ? 'Hora:' : 'Time:'}</strong> ${escapeHtml(appointment.time || '-')}</p>
-                    <p style="margin-bottom: 8px;"><strong>${lang === 'es' ? 'Pago:' : 'Payment:'}</strong> ${escapeHtml(getPaymentMethodLabel(appointment.paymentMethod))} - ${escapeHtml(getPaymentStatusLabel(appointment.paymentStatus))}</p>
+                <div class="success-details-card">
+                    <p class="success-details-line"><strong>${lang === 'es' ? 'Doctor:' : 'Doctor:'}</strong> ${escapeHtml(getDoctorName(appointment.doctor))}</p>
+                    <p class="success-details-line"><strong>${lang === 'es' ? 'Fecha:' : 'Date:'}</strong> ${escapeHtml(appointment.date || '-')}</p>
+                    <p class="success-details-line"><strong>${lang === 'es' ? 'Hora:' : 'Time:'}</strong> ${escapeHtml(appointment.time || '-')}</p>
+                    <p class="success-details-line"><strong>${lang === 'es' ? 'Pago:' : 'Payment:'}</strong> ${escapeHtml(getPaymentMethodLabel(appointment.paymentMethod))} - ${escapeHtml(getPaymentStatusLabel(appointment.paymentStatus))}</p>
                     <p><strong>${lang === 'es' ? 'Total:' : 'Total:'}</strong> ${escapeHtml(appointment.price || '$0.00')}</p>
                 </div>
-                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                    <a href="${googleCalendarUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex: 1;">
+                <div class="success-calendar-actions">
+                    <a href="${googleCalendarUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary success-calendar-btn">
                         <i class="fab fa-google"></i> Google Calendar
                     </a>
-                    <a href="${activeIcsUrl}" download="cita-piel-en-armonia.ics" class="btn btn-secondary" style="flex: 1;">
+                    <a href="${activeIcsUrl}" download="cita-piel-en-armonia.ics" class="btn btn-secondary success-calendar-btn">
                         <i class="fas fa-calendar-alt"></i> Outlook/Apple
                     </a>
                 </div>

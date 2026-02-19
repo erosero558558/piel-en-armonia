@@ -107,9 +107,9 @@
                 subtotalEl.textContent = `$${price.toFixed(2)}`;
                 ivaEl.textContent = `$${iva.toFixed(2)}`;
                 totalEl.textContent = `$${total.toFixed(2)}`;
-                priceSummary.style.display = 'block';
+                priceSummary.classList.remove('is-hidden');
             } else {
-                priceSummary.style.display = 'none';
+                priceSummary.classList.add('is-hidden');
             }
 
             updateAvailableTimes().catch(() => undefined);

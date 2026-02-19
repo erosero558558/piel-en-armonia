@@ -278,7 +278,7 @@ function runDeferredModule(loader, onReady, onError) {
     });
 }
 
-const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred11-mobiletypelock1-a11yfocus1-chatsanitize1-depuracion7';
+const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred12-cspinline1-stateclass1';
 
 let deferredStylesheetPromise = null;
 let deferredStylesheetInitDone = false;
@@ -492,7 +492,7 @@ const LOCAL_FALLBACK_ENABLED = window.location.protocol === 'file:';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let themeTransitionTimer = null;
 
-const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2';
+const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2-stateclass1';
 
 function getBookingEngineDeps() {
     return {
@@ -1700,7 +1700,7 @@ function initGalleryInteractionsWarmup() {
 // ========================================
 // APPOINTMENT FORM (DEFERRED MODULE)
 // ========================================
-const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260218-phase4';
+const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260218-phase4-stateclass1';
 
 function getBookingUiDeps() {
     return {
@@ -1811,7 +1811,7 @@ async function processPayment() {
 // ========================================
 // SUCCESS MODAL (DEFERRED MODULE)
 // ========================================
-const SUCCESS_MODAL_ENGINE_URL = '/success-modal-engine.js?v=figo-success-modal-20260218-phase1';
+const SUCCESS_MODAL_ENGINE_URL = '/success-modal-engine.js?v=figo-success-modal-20260218-phase1-inlineclass1';
 
 function getSuccessModalEngineDeps() {
     return {
@@ -2642,7 +2642,7 @@ setTimeout(() => {
 // ========================================
 // REPROGRAMACION ONLINE
 // ========================================
-const RESCHEDULE_ENGINE_URL = '/reschedule-engine.js?v=figo-reschedule-20260218-phase4';
+const RESCHEDULE_ENGINE_URL = '/reschedule-engine.js?v=figo-reschedule-20260218-phase4-stateclass1';
 
 function getRescheduleEngineDeps() {
     return {

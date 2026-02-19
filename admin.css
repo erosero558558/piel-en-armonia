@@ -13,6 +13,10 @@
     background: var(--color-bg-gray);
 }
 
+.is-hidden {
+    display: none !important;
+}
+
 /* ========================================
    LOGIN SCREEN
    ======================================== */
@@ -669,6 +673,11 @@
     font-size: 0.95rem;
     line-height: 1.6;
     margin-bottom: 12px;
+}
+
+.review-verified-icon {
+    color: var(--color-phone);
+    margin-left: auto;
 }
 
 .review-date-admin {
