@@ -60,39 +60,6 @@
 
         initialized = true;
 
-        if (typeof deps.loadPaymentConfig === 'function') {
-            deps.loadPaymentConfig().then(config => {
-                if (config && config.turnstileSiteKey) {
-                    injectTurnstile(config.turnstileSiteKey);
-                }
-            }).catch(() => {});
-        }
-
-        function injectTurnstile(siteKey) {
-            if (appointmentForm.querySelector('.cf-turnstile')) return;
-
-            const script = document.createElement('script');
-            script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
-            script.async = true;
-            script.defer = true;
-            document.head.appendChild(script);
-
-            const container = document.createElement('div');
-            container.className = 'cf-turnstile';
-            container.dataset.sitekey = siteKey;
-
-            const submitBtn = appointmentForm.querySelector('button[type="submit"]');
-            if (submitBtn) {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'form-group';
-                wrapper.style.marginTop = '1rem';
-                wrapper.style.display = 'flex';
-                wrapper.style.justifyContent = 'center';
-                wrapper.appendChild(container);
-                appointmentForm.insertBefore(wrapper, submitBtn);
-            }
-        }
-
         async function updateAvailableTimes() {
             const selectedDate = dateInput ? dateInput.value : '';
             if (!selectedDate || !timeSelect) return;
@@ -101,7 +68,16 @@
             const availability = await deps.loadAvailabilityData();
             const bookedSlots = await deps.getBookedSlots(selectedDate, selectedDoctor);
             const availableSlots = availability[selectedDate] || deps.getDefaultTimeSlots();
-            const freeSlots = availableSlots.filter((slot) => !bookedSlots.includes(slot));
+            const isToday = selectedDate === new Date().toISOString().split('T')[0];
+            const nowMinutes = isToday ? new Date().getHours() * 60 + new Date().getMinutes() : -1;
+            const freeSlots = availableSlots.filter((slot) => {
+                if (bookedSlots.includes(slot)) return false;
+                if (isToday) {
+                    const [h, m] = slot.split(':').map(Number);
+                    if (h * 60 + m <= nowMinutes + 60) return false;
+                }
+                return true;
+            });
 
             const currentValue = timeSelect.value;
             timeSelect.innerHTML = '<option value="">Hora</option>';
@@ -124,24 +100,24 @@
         serviceSelect.addEventListener('change', function () {
             const selected = this.options[this.selectedIndex];
             const price = parseFloat(selected.dataset.price) || 0;
+            const priceHint = document.getElementById('priceHint');
+
+            const iva = price * 0.12;
+            const total = price + iva;
+            subtotalEl.textContent = `$${price.toFixed(2)}`;
+            ivaEl.textContent = `$${iva.toFixed(2)}`;
+            totalEl.textContent = `$${total.toFixed(2)}`;
 
             if (price > 0) {
-                const iva = price * 0.12;
-                const total = price + iva;
-                subtotalEl.textContent = `$${price.toFixed(2)}`;
-                ivaEl.textContent = `$${iva.toFixed(2)}`;
-                totalEl.textContent = `$${total.toFixed(2)}`;
-                priceSummary.style.display = 'block';
+                priceSummary.classList.remove('is-hidden');
+                if (priceHint) priceHint.classList.add('is-hidden');
             } else {
-                priceSummary.style.display = 'none';
+                priceSummary.classList.remove('is-hidden');
+                if (priceHint) priceHint.classList.remove('is-hidden');
             }
 
             updateAvailableTimes().catch(() => undefined);
         });
-
-        if (serviceSelect.value) {
-            serviceSelect.dispatchEvent(new Event('change'));
-        }
 
         if (dateInput) {
             dateInput.min = new Date().toISOString().split('T')[0];
@@ -159,6 +135,10 @@
                     phoneInput.value = normalized;
                 }
             });
+        }
+
+        if (serviceSelect.value) {
+            serviceSelect.dispatchEvent(new Event('change'));
         }
 
         appointmentForm.addEventListener('submit', async function (e) {
@@ -185,12 +165,10 @@
                 }
 
                 const normalizedPhone = normalizeEcuadorPhone(formData.get('phone'));
-                const captchaToken = formData.get('cf-turnstile-response') || '';
 
                 const appointment = {
                     service: formData.get('service'),
                     doctor: formData.get('doctor'),
-                    captchaToken,
                     date: formData.get('date'),
                     time: formData.get('time'),
                     name: formData.get('name'),
