@@ -361,11 +361,9 @@ const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 const CASE_PHOTO_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
 const CONSENT_ENGINE_URL = '/consent-engine.js?v=figo-consent-20260219-phase1';
-let bookingViewTracked = false;
 let chatStartedTracked = false;
-let availabilityPrefetched = false;
-let reviewsPrefetched = false;
-let checkoutSession = {
+const ANALYTICS_ENGINE_URL = '/analytics-engine.js?v=figo-analytics-20260219-phase1';
+let checkoutSessionFallback = {
     active: false,
     completed: false,
     startedAt: 0,
@@ -430,10 +428,8 @@ function getBookingEngineDeps() {
         setCurrentAppointment: (appointment) => {
             currentAppointment = appointment;
         },
-        getCheckoutSession: () => checkoutSession,
-        setCheckoutSessionActive: (active) => {
-            checkoutSession.active = active === true;
-        },
+        getCheckoutSession,
+        setCheckoutSessionActive,
         startCheckoutSession,
         completeCheckoutSession,
         maybeTrackCheckoutAbandon,
@@ -578,26 +574,30 @@ function setCookieConsent(status) {
     });
 }
 
-function trackEvent(eventName, params = {}) {
-    if (!eventName || typeof eventName !== 'string') {
-        return;
-    }
-
-    const payload = {
-        event_category: 'conversion',
-        ...params
+function getAnalyticsEngineDeps() {
+    return {
+        observeOnceWhenVisible,
+        loadAvailabilityData,
+        loadPublicReviews
     };
+}
 
-    if (typeof window.gtag === 'function') {
-        window.gtag('event', eventName, payload);
-        return;
-    }
-
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({
-        event: eventName,
-        ...payload
+function loadAnalyticsEngine() {
+    return loadDeferredModule({
+        cacheKey: 'analytics-engine',
+        src: ANALYTICS_ENGINE_URL,
+        scriptDataAttribute: 'data-analytics-engine',
+        resolveModule: () => window.PielAnalyticsEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getAnalyticsEngineDeps()),
+        missingApiError: 'analytics-engine loaded without API',
+        loadError: 'No se pudo cargar analytics-engine.js',
+        logLabel: 'Analytics engine'
     });
+}
+
+function trackEvent(eventName, params = {}) {
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.trackEvent(eventName, params));
 }
 
 function normalizeAnalyticsLabel(value, fallback = 'unknown') {
@@ -613,111 +613,73 @@ function normalizeAnalyticsLabel(value, fallback = 'unknown') {
 }
 
 function markBookingViewed(source = 'unknown') {
-    if (bookingViewTracked) {
-        return;
-    }
-    bookingViewTracked = true;
-    trackEvent('view_booking', {
-        source
-    });
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.markBookingViewed(source));
 }
 
 function prefetchAvailabilityData(source = 'unknown') {
-    if (availabilityPrefetched) {
-        return;
-    }
-    availabilityPrefetched = true;
-    loadAvailabilityData({ background: true }).catch(() => {
-        availabilityPrefetched = false;
-    });
-    trackEvent('availability_prefetch', {
-        source
-    });
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.prefetchAvailabilityData(source));
 }
 
 function prefetchReviewsData(source = 'unknown') {
-    if (reviewsPrefetched) {
-        return;
-    }
-    reviewsPrefetched = true;
-    loadPublicReviews({ background: true }).catch(() => {
-        reviewsPrefetched = false;
-    });
-    trackEvent('reviews_prefetch', {
-        source
-    });
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.prefetchReviewsData(source));
 }
 
 function initBookingFunnelObserver() {
-    const bookingSection = document.getElementById('citas');
-    if (!bookingSection) {
-        return;
-    }
-
-    observeOnceWhenVisible(bookingSection, () => {
-        markBookingViewed('observer');
-        prefetchAvailabilityData('booking_section_visible');
-    }, {
-        threshold: 0.35,
-        onNoObserver: () => {
-            markBookingViewed('fallback_no_observer');
-            prefetchAvailabilityData('fallback_no_observer');
-        }
-    });
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.initBookingFunnelObserver());
 }
 
 function initDeferredSectionPrefetch() {
-    const reviewsSection = document.getElementById('resenas');
-    if (!reviewsSection) {
-        return;
-    }
-
-    observeOnceWhenVisible(reviewsSection, () => {
-        prefetchReviewsData('reviews_section_visible');
-    }, {
-        threshold: 0.2,
-        rootMargin: '120px 0px',
-        onNoObserver: () => {
-            prefetchReviewsData('fallback_no_observer');
-        }
-    });
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.initDeferredSectionPrefetch());
 }
 
 function startCheckoutSession(appointment) {
-    checkoutSession = {
+    checkoutSessionFallback = {
         active: true,
         completed: false,
         startedAt: Date.now(),
         service: appointment?.service || '',
         doctor: appointment?.doctor || ''
     };
+
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.startCheckoutSession(appointment));
+}
+
+function getCheckoutSession() {
+    if (window.PielAnalyticsEngine && typeof window.PielAnalyticsEngine.getCheckoutSession === 'function') {
+        const session = window.PielAnalyticsEngine.getCheckoutSession();
+        if (session && typeof session === 'object') {
+            checkoutSessionFallback = {
+                active: session.active === true,
+                completed: session.completed === true,
+                startedAt: Number(session.startedAt) || 0,
+                service: String(session.service || ''),
+                doctor: String(session.doctor || '')
+            };
+        }
+    }
+
+    return checkoutSessionFallback;
+}
+
+function setCheckoutSessionActive(active) {
+    checkoutSessionFallback.active = active === true;
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.setCheckoutSessionActive(active));
 }
 
 function completeCheckoutSession(method) {
-    if (!checkoutSession.active) {
+    if (!checkoutSessionFallback.active) {
         return;
     }
-    checkoutSession.completed = true;
-    trackEvent('booking_confirmed', {
-        payment_method: method || 'unknown',
-        service: checkoutSession.service || '',
-        doctor: checkoutSession.doctor || ''
-    });
+    checkoutSessionFallback.completed = true;
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.completeCheckoutSession(method));
 }
 
 function maybeTrackCheckoutAbandon(reason = 'unknown') {
-    if (!checkoutSession.active || checkoutSession.completed) {
+    if (!checkoutSessionFallback.active || checkoutSessionFallback.completed) {
         return;
     }
 
-    const startedAt = checkoutSession.startedAt || Date.now();
-    const elapsedSec = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
-    trackEvent('checkout_abandon', {
-        service: checkoutSession.service || '',
-        doctor: checkoutSession.doctor || '',
-        elapsed_sec: elapsedSec,
-        reason: normalizeAnalyticsLabel(reason, 'unknown')
-    });
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.maybeTrackCheckoutAbandon(reason));
 }
 
 function getDataEngineDeps() {
@@ -1234,7 +1196,7 @@ function closePaymentModal(options = {}) {
         maybeTrackCheckoutAbandon(abandonReason);
     }
 
-    checkoutSession.active = false;
+    setCheckoutSessionActive(false);
     const modal = document.getElementById('paymentModal');
     if (modal) {
         modal.classList.remove('active');
