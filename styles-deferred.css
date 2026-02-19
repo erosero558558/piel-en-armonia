@@ -1238,6 +1238,12 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
     text-align: center;
 }
 
+.reviews-actions .btn {
+    min-height: 50px;
+    padding: 0 28px;
+    font-size: 1.05rem;
+}
+
 .appointment-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
