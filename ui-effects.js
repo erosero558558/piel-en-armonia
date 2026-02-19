@@ -4,7 +4,8 @@
     let initialized = false;
 
     function initScrollAnimations() {
-        const targets = document.querySelectorAll('.service-card, .team-card, .section-header, .tele-card, .review-card');
+        const selector = '.service-card, .team-card, .section-header, .tele-card, .review-card, .showcase-hero, .showcase-card, .showcase-split, .clinic-info, .clinic-map, .footer-content > *, .appointment-form-container, .appointment-info';
+        const targets = document.querySelectorAll(selector);
         if (!targets.length) return;
 
         const shouldSkipObserver = window.innerWidth < 900
@@ -16,8 +17,13 @@
         }
 
         const observer = new IntersectionObserver((entries) => {
+            let intersectCount = 0;
             entries.forEach((entry) => {
                 if (entry.isIntersecting) {
+                    const delay = intersectCount * 100;
+                    entry.target.style.transitionDelay = `${delay}ms`;
+                    intersectCount++;
+
                     entry.target.classList.add('visible');
                     observer.unobserve(entry.target);
                 }
