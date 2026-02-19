@@ -32,7 +32,11 @@ set_exception_handler(static function (Throwable $e): void {
 
 function api_elapsed_ms(float $startedAt): int
 {
-    return (int) round((microtime(true) - $startedAt) * 1000);
+    $elapsed = (microtime(true) - $startedAt) * 1000;
+    if (!is_finite($elapsed) || $elapsed <= 0) {
+        return 1;
+    }
+    return max(1, (int) round($elapsed));
 }
 
 function api_resolve_figo_endpoint_for_health(): string
