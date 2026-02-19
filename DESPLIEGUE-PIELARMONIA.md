@@ -5,6 +5,7 @@
 Sube estos archivos a la raiz del hosting (`public_html` o equivalente):
 
 - `index.html`
+- `index.php`
 - `styles.css`
 - `styles-deferred.css`
 - `script.js`
@@ -40,6 +41,7 @@ Notas:
 - El CSS se divide en `styles.css` (critico) y `styles-deferred.css` (diferido).
 - Las traducciones EN se cargan bajo demanda desde `translations-en.js`.
 - `.htaccess` ahora aplica Brotli/gzip y politicas de cache: estaticos con `max-age`, API critica con `no-store`.
+- `index.php` ahora entrega la home con cabeceras de seguridad (incluye CSP) cuando el servidor enruta `/` a PHP.
 - Si ya existe `figo-chat.php` en tu servidor, mantenlo publicado.
 - `proxy.php` queda deshabilitado por seguridad (retorna 410).
 
@@ -110,7 +112,9 @@ Ejemplo de `data/figo-config.json`:
 - Guarda el secret mostrado por el script en `FIGO_TELEGRAM_WEBHOOK_SECRET`.
 
 4. Sitio:
+- `https://pielarmonia.com/`
 - `https://pielarmonia.com/index.html`
+- Validar en `/` header `Content-Security-Policy` presente.
 
 5. Panel:
 - `https://pielarmonia.com/admin.html`

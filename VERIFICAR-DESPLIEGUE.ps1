@@ -64,6 +64,23 @@ function Get-LocalSha256 {
     return (Get-FileHash -Algorithm SHA256 -Path $Path).Hash.ToLowerInvariant()
 }
 
+function Get-RemoteText {
+    param([string]$Url)
+
+    $tmp = New-TemporaryFile
+    try {
+        curl.exe -sS -L --max-time 30 --connect-timeout 8 -o $tmp $Url | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            return ''
+        }
+        return [string](Get-Content -Path $tmp -Raw)
+    } catch {
+        return ''
+    } finally {
+        Remove-Item -Force -ErrorAction SilentlyContinue $tmp
+    }
+}
+
 function Invoke-JsonGet {
     param([string]$Url)
 
@@ -270,6 +287,17 @@ $bookingEngineRemoteUrl = if ($bookingEngineVersion -ne '') {
     "$base/booking-engine.js?v=$bookingEngineVersion"
 } else {
     "$base/booking-engine.js"
+}
+
+$analyticsEngineVersion = ''
+$analyticsEngineMatch = [regex]::Match($localScriptTextForRefs, "analytics-engine\.js\?v=([a-zA-Z0-9._-]+)")
+if ($analyticsEngineMatch.Success) {
+    $analyticsEngineVersion = $analyticsEngineMatch.Groups[1].Value
+}
+$analyticsEngineRemoteUrl = if ($analyticsEngineVersion -ne '') {
+    "$base/analytics-engine.js?v=$analyticsEngineVersion"
+} else {
+    "$base/analytics-engine.js"
 }
 
 $uiEffectsVersion = ''
@@ -558,22 +586,41 @@ $results | ForEach-Object {
     }
 }
 
-$scriptRemoteTmp = New-TemporaryFile
-try {
-    curl.exe -sS -L --max-time 30 --connect-timeout 8 -o $scriptRemoteTmp (Get-Url -Base $base -Ref $localScriptRef) | Out-Null
-    $remoteScriptText = Get-Content -Path $scriptRemoteTmp -Raw
-} finally {
-    Remove-Item -Force -ErrorAction SilentlyContinue $scriptRemoteTmp
-}
+$remoteScriptText = Get-RemoteText -Url (Get-Url -Base $base -Ref $localScriptRef)
+$remoteBookingEngineText = Get-RemoteText -Url $bookingEngineRemoteUrl
+$remoteAnalyticsEngineText = Get-RemoteText -Url $analyticsEngineRemoteUrl
 
-$ga4Checks = @(
-    @{ Name = 'function initGA4'; Pattern = 'function\s+initGA4' },
-    @{ Name = 'initGA4()'; Pattern = 'initGA4\(\)' },
-    @{ Name = 'trackEvent(start_checkout)'; Pattern = "trackEvent\(\s*['""]start_checkout['""]" }
+$analyticsChecks = @(
+    @{
+        Name = 'function initGA4'
+        Pattern = 'function\s+initGA4'
+        Sources = @('script')
+    },
+    @{
+        Name = 'initGA4()'
+        Pattern = 'initGA4\(\)'
+        Sources = @('script')
+    },
+    @{
+        Name = 'trackEvent(start_checkout)'
+        Pattern = "trackEvent\(\s*['""]start_checkout['""]"
+        Sources = @('script', 'booking', 'analytics')
+    }
 )
 
-foreach ($check in $ga4Checks) {
-    if ([regex]::IsMatch($remoteScriptText, $check.Pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+foreach ($check in $analyticsChecks) {
+    $matched = $false
+    if ($check.Sources -contains 'script' -and -not $matched -and [regex]::IsMatch($remoteScriptText, $check.Pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+        $matched = $true
+    }
+    if ($check.Sources -contains 'booking' -and -not $matched -and [regex]::IsMatch($remoteBookingEngineText, $check.Pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+        $matched = $true
+    }
+    if ($check.Sources -contains 'analytics' -and -not $matched -and [regex]::IsMatch($remoteAnalyticsEngineText, $check.Pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+        $matched = $true
+    }
+
+    if ($matched) {
         Write-Host "[OK]  script remoto contiene: $($check.Name)"
     } else {
         Write-Host "[FAIL] script remoto NO contiene: $($check.Name)"

@@ -6,6 +6,7 @@ Fecha de ejecucion sugerida: completar al desplegar.
 
 1. Verifica que existan estos archivos en produccion:
 - `index.html`
+- `index.php`
 - `styles.css`
 - `styles-deferred.css`
 - `script.js`
@@ -76,7 +77,7 @@ Fecha de ejecucion sugerida: completar al desplegar.
 
 ## 3. Flujo de cita publica
 
-1. Abre `https://TU_DOMINIO/index.html`.
+1. Abre `https://TU_DOMINIO/` y `https://TU_DOMINIO/index.html`.
 2. En `Reserva tu Cita`, completa formulario:
 - servicio, doctor, fecha, hora, nombre, email, telefono.
 3. Clic en `Confirmar Reserva`.

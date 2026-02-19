@@ -11,7 +11,7 @@ test.describe('Checklist de Pruebas en Producción', () => {
   // 1. Pre-check de servidor (archivos, variables, permisos)
   test('1. Pre-check de servidor - Archivos críticos existen', async () => {
     const requiredFiles = [
-      'index.html', 'styles.css', 'styles-deferred.css', 'script.js',
+      'index.html', 'index.php', 'styles.css', 'styles-deferred.css', 'script.js',
       'chat-engine.js', 'booking-engine.js', 'reviews-engine.js', 'translations-en.js',
       'terminos.html', 'privacidad.html', 'cookies.html', 'aviso-medico.html',
       'legal.css', 'admin.html', 'admin.js', 'api.php', 'api-lib.php',
