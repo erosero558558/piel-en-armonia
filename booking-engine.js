@@ -102,6 +102,15 @@
         fileNameEl.textContent = file ? file.name : '';
     }
 
+    function getCaptchaToken(action) {
+        try {
+            return requireFn('getCaptchaToken')(action);
+        } catch (e) {
+            console.warn('Captcha token not available', e);
+            return Promise.resolve(null);
+        }
+    }
+
     function getActivePaymentMethod() {
         const activeMethod = document.querySelector('.payment-method.active');
         return activeMethod && activeMethod.dataset ? activeMethod.dataset.method || 'cash' : 'cash';
@@ -290,7 +299,12 @@
 
         const appointment = getCurrentAppointment();
         const appointmentPayload = await requireFn('buildAppointmentPayload')(appointment);
-        const intent = await requireFn('createPaymentIntent')(requireFn('stripTransientAppointmentFields')(appointment));
+
+        const captchaToken1 = await getCaptchaToken('payment_intent');
+        const intentPayload = requireFn('stripTransientAppointmentFields')(appointment);
+        intentPayload.captchaToken = captchaToken1;
+
+        const intent = await requireFn('createPaymentIntent')(intentPayload);
         if (!intent.clientSecret || !intent.paymentIntentId) {
             throw new Error('No se pudo iniciar el cobro con tarjeta.');
         }
@@ -326,13 +340,15 @@
             payment_intent_id: paymentIntent.id
         });
 
+        const captchaToken2 = await getCaptchaToken('appointment_submit');
         const payload = {
             ...appointmentPayload,
             paymentMethod: 'card',
             paymentStatus: 'paid',
             paymentProvider: 'stripe',
             paymentIntentId: paymentIntent.id,
-            status: 'confirmed'
+            status: 'confirmed',
+            captchaToken: captchaToken2
         };
 
         return requireFn('createAppointmentRecord')(payload, { allowLocalFallback: false });
@@ -355,6 +371,9 @@
 
         const upload = await requireFn('uploadTransferProof')(proofFile, { retries: 2 });
         const appointmentPayload = await requireFn('buildAppointmentPayload')(getCurrentAppointment());
+
+        const captchaToken = await getCaptchaToken('appointment_submit');
+
         const payload = {
             ...appointmentPayload,
             paymentMethod: 'transfer',
@@ -364,7 +383,8 @@
             transferProofUrl: upload.transferProofUrl || '',
             transferProofName: upload.transferProofName || '',
             transferProofMime: upload.transferProofMime || '',
-            status: 'confirmed'
+            status: 'confirmed',
+            captchaToken
         };
 
         return requireFn('createAppointmentRecord')(payload, { allowLocalFallback: false });
@@ -372,11 +392,13 @@
 
     async function processCashPaymentFlow() {
         const appointmentPayload = await requireFn('buildAppointmentPayload')(getCurrentAppointment());
+        const captchaToken = await getCaptchaToken('appointment_submit');
         const payload = {
             ...appointmentPayload,
             paymentMethod: 'cash',
             paymentStatus: 'pending_cash',
-            status: 'confirmed'
+            status: 'confirmed',
+            captchaToken
         };
 
         return requireFn('createAppointmentRecord')(payload);

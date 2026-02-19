@@ -345,6 +345,8 @@ function initDeferredStylesheetLoading() {
 // TRANSLATIONS
 // ========================================
 const I18N_ENGINE_URL = '/i18n-engine.js?v=figo-i18n-20260219-phase1';
+const CAPTCHA_ENGINE_URL = '/captcha-engine.js?v=figo-captcha-20260219-phase1';
+const EMAIL_ENGINE_URL = '/email-engine.js?v=figo-email-20260219-phase1';
 
 let currentLang = localStorage.getItem('language') || 'es';
 const THEME_STORAGE_KEY = 'themeMode';
@@ -377,6 +379,44 @@ let paymentConfigLoadedAt = 0;
 let stripeSdkPromise = null;
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 const DATA_ENGINE_URL = '/data-engine.js?v=figo-data-20260219-phase1';
+
+function getCaptchaEngineDeps() {
+    return {
+        config: {}
+    };
+}
+
+function loadCaptchaEngine() {
+    return loadDeferredModule({
+        cacheKey: 'captcha-engine',
+        src: CAPTCHA_ENGINE_URL,
+        scriptDataAttribute: 'data-captcha-engine',
+        resolveModule: () => window.PielCaptchaEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getCaptchaEngineDeps()),
+        missingApiError: 'captcha-engine loaded without API',
+        loadError: 'No se pudo cargar captcha-engine.js',
+        logLabel: 'Captcha engine'
+    });
+}
+
+function getCaptchaToken(action) {
+    return withDeferredModule(loadCaptchaEngine, (engine) => engine.getToken(action));
+}
+
+function loadEmailEngine() {
+    return loadDeferredModule({
+        cacheKey: 'email-engine',
+        src: EMAIL_ENGINE_URL,
+        scriptDataAttribute: 'data-email-engine',
+        resolveModule: () => window.PielEmailEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(),
+        missingApiError: 'email-engine loaded without API',
+        loadError: 'No se pudo cargar email-engine.js',
+        logLabel: 'Email engine'
+    });
+}
 
 function getI18nEngineDeps() {
     return {
@@ -443,7 +483,8 @@ function getBookingEngineDeps() {
         showSuccessModal,
         showToast,
         trackEvent,
-        normalizeAnalyticsLabel
+        normalizeAnalyticsLabel,
+        getCaptchaToken
     };
 }
 
@@ -1288,7 +1329,8 @@ function getEngagementFormsEngineDeps() {
         showToast,
         getCurrentLang: () => currentLang,
         getReviewsCache,
-        setReviewsCache
+        setReviewsCache,
+        getCaptchaToken
     };
 }
 

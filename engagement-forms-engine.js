@@ -14,6 +14,14 @@
         return getLang() === 'en' ? enText : esText;
     }
 
+    function getCaptchaToken(action) {
+        try {
+            return deps.getCaptchaToken ? deps.getCaptchaToken(action) : Promise.resolve(null);
+        } catch (e) {
+            return Promise.resolve(null);
+        }
+    }
+
     function resetStarVisuals() {
         stars.forEach((star) => {
             star.classList.remove('active', 'fas');
@@ -49,12 +57,14 @@
             }
 
             const formData = new FormData(this);
+            const token = await getCaptchaToken('callback');
             const callback = {
                 id: Date.now(),
                 telefono: formData.get('telefono'),
                 preferencia: formData.get('preferencia'),
                 fecha: new Date().toISOString(),
-                status: 'pendiente'
+                status: 'pendiente',
+                captchaToken: token
             };
 
             try {
@@ -111,13 +121,15 @@
             }
 
             const formData = new FormData(this);
+            const token = await getCaptchaToken('review');
             const review = {
                 id: Date.now(),
                 name: formData.get('reviewerName'),
                 rating: selectedRating,
                 text: formData.get('reviewText'),
                 date: new Date().toISOString(),
-                verified: true
+                verified: true,
+                captchaToken: token
             };
 
             try {

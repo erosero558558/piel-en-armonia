@@ -363,14 +363,17 @@ if ($method === 'GET' && $resource === 'payment-config') {
 if ($method === 'POST' && $resource === 'payment-intent') {
     require_rate_limit('payment-intent', 8, 60);
 
+    $payload = require_json_body();
+    if (!captcha_verify_token((string)($payload['captchaToken'] ?? ''))) {
+        json_response(['ok' => false, 'error' => 'CAPTCHA invalido'], 400);
+    }
+
     if (!payment_gateway_enabled()) {
         json_response([
             'ok' => false,
             'error' => 'Pasarela de pago no configurada'
         ], 503);
     }
-
-    $payload = require_json_body();
     $appointment = normalize_appointment($payload);
 
     if ($appointment['service'] === '' || $appointment['name'] === '' || $appointment['email'] === '') {
@@ -607,6 +610,11 @@ if ($method === 'POST' && $resource === 'stripe-webhook') {
 if ($method === 'POST' && $resource === 'appointments') {
     require_rate_limit('appointments', 5, 60);
     $payload = require_json_body();
+
+    if (!captcha_verify_token((string)($payload['captchaToken'] ?? ''))) {
+        json_response(['ok' => false, 'error' => 'CAPTCHA invalido'], 400);
+    }
+
     $appointment = normalize_appointment($payload);
 
     if ($appointment['name'] === '' || $appointment['email'] === '' || $appointment['phone'] === '') {
@@ -933,6 +941,11 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') 
 if ($method === 'POST' && $resource === 'callbacks') {
     require_rate_limit('callbacks', 5, 60);
     $payload = require_json_body();
+
+    if (!captcha_verify_token((string)($payload['captchaToken'] ?? ''))) {
+        json_response(['ok' => false, 'error' => 'CAPTCHA invalido'], 400);
+    }
+
     $callback = normalize_callback($payload);
 
     if ($callback['telefono'] === '') {
@@ -993,6 +1006,11 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'callbacks') {
 if ($method === 'POST' && $resource === 'reviews') {
     require_rate_limit('reviews', 3, 60);
     $payload = require_json_body();
+
+    if (!captcha_verify_token((string)($payload['captchaToken'] ?? ''))) {
+        json_response(['ok' => false, 'error' => 'CAPTCHA invalido'], 400);
+    }
+
     $review = normalize_review($payload);
     if ($review['name'] === '' || $review['text'] === '') {
         json_response([
