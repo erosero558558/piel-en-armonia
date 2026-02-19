@@ -1,0 +1,16 @@
+
+Running 11 tests using 1 worker
+
+  ✓   1 [chromium] › tests/checklist-production.spec.js:11:3 › Checklist de Pruebas en Producción › 1. Pre-check de servidor - Archivos críticos existen (26ms)
+  ✓   2 [chromium] › tests/checklist-production.spec.js:26:3 › Checklist de Pruebas en Producción › 1. Pre-check de servidor - Variables de entorno y salud (48ms)
+  ✓   3 [chromium] › tests/checklist-production.spec.js:40:3 › Checklist de Pruebas en Producción › 2. Panel Admin - Login fallido (743ms)
+  ✓   4 [chromium] › tests/checklist-production.spec.js:57:3 › Checklist de Pruebas en Producción › 2. Panel Admin - Login exitoso y navegación (2.7s)
+  ✓   5 [chromium] › tests/checklist-production.spec.js:84:3 › Checklist de Pruebas en Producción › 3. Cita Pública - Carga de formulario (593ms)
+  ✓   6 [chromium] › tests/checklist-production.spec.js:93:3 › Checklist de Pruebas en Producción › 3. Cita Pública - Flujo básico (mock) (2.7s)
+  ✓   7 [chromium] › tests/checklist-production.spec.js:151:3 › Checklist de Pruebas en Producción › 4. Disponibilidad - API responde (12ms)
+  ✓   8 [chromium] › tests/checklist-production.spec.js:160:3 › Checklist de Pruebas en Producción › 5. Callback - Formulario existe (516ms)
+  ✓   9 [chromium] › tests/checklist-production.spec.js:171:3 › Checklist de Pruebas en Producción › 6. Reseñas - Carga correcta (554ms)
+  ✓  10 [chromium] › tests/checklist-production.spec.js:185:3 › Checklist de Pruebas en Producción › 7. Chatbot Figo - API Health (12ms)
+  ✓  11 [chromium] › tests/checklist-production.spec.js:204:3 › Checklist de Pruebas en Producción › 8. Seguridad - Headers y acceso denegado (12ms)
+
+  11 passed (9.8s)

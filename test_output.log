@@ -1,0 +1,17 @@
+
+Running 11 tests using 1 worker
+
+  ✓   1 [chromium] › tests/checklist-production.spec.js:11:3 › Checklist de Pruebas en Producción › 1. Pre-check de servidor - Archivos críticos existen (35ms)
+  ✓   2 [chromium] › tests/checklist-production.spec.js:26:3 › Checklist de Pruebas en Producción › 1. Pre-check de servidor - Variables de entorno y salud (49ms)
+  ✓   3 [chromium] › tests/checklist-production.spec.js:40:3 › Checklist de Pruebas en Producción › 2. Panel Admin - Login fallido (737ms)
+BROWSER LOG: The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.
+  ✓   4 [chromium] › tests/checklist-production.spec.js:57:3 › Checklist de Pruebas en Producción › 2. Panel Admin - Login exitoso y navegación (2.7s)
+  ✓   5 [chromium] › tests/checklist-production.spec.js:93:3 › Checklist de Pruebas en Producción › 3. Cita Pública - Carga de formulario (608ms)
+  ✓   6 [chromium] › tests/checklist-production.spec.js:102:3 › Checklist de Pruebas en Producción › 3. Cita Pública - Flujo básico (mock) (2.7s)
+  ✓   7 [chromium] › tests/checklist-production.spec.js:160:3 › Checklist de Pruebas en Producción › 4. Disponibilidad - API responde (12ms)
+  ✓   8 [chromium] › tests/checklist-production.spec.js:169:3 › Checklist de Pruebas en Producción › 5. Callback - Formulario existe (499ms)
+  ✓   9 [chromium] › tests/checklist-production.spec.js:180:3 › Checklist de Pruebas en Producción › 6. Reseñas - Carga correcta (588ms)
+  ✓  10 [chromium] › tests/checklist-production.spec.js:194:3 › Checklist de Pruebas en Producción › 7. Chatbot Figo - API Health (12ms)
+  ✓  11 [chromium] › tests/checklist-production.spec.js:213:3 › Checklist de Pruebas en Producción › 8. Seguridad - Headers y acceso denegado (12ms)
+
+  11 passed (9.9s)
