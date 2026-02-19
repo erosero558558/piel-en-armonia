@@ -85,10 +85,59 @@
         applyScrollState();
     }
 
+    function initMapLoader() {
+        const placeholder = document.getElementById('mapPlaceholder');
+        if (!placeholder) return;
+
+        const loadMap = () => {
+            const src = placeholder.dataset.src;
+            if (!src) return;
+
+            const iframe = document.createElement('iframe');
+            iframe.src = src;
+            iframe.width = '100%';
+            iframe.height = '100%';
+            iframe.allowFullscreen = true;
+            iframe.loading = 'lazy';
+            iframe.referrerPolicy = 'no-referrer-when-downgrade';
+            iframe.style.border = '0';
+
+            placeholder.innerHTML = '';
+            placeholder.appendChild(iframe);
+            placeholder.classList.remove('map-placeholder');
+            placeholder.style.backgroundColor = 'transparent';
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    loadMap();
+                    observer.disconnect();
+                }
+            });
+        }, { rootMargin: '200px' });
+
+        observer.observe(placeholder);
+        placeholder.addEventListener('click', loadMap, { once: true });
+    }
+
+    function initBlurUpImages() {
+        const images = document.querySelectorAll('.blur-up img');
+        images.forEach(img => {
+            if (img.complete) {
+                img.classList.add('loaded');
+            } else {
+                img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
+            }
+        });
+    }
+
     function initDeferredVisualEffects() {
         const run = () => {
             initScrollAnimations();
             initParallax();
+            initMapLoader();
+            initBlurUpImages();
         };
 
         if (typeof window.requestIdleCallback === 'function') {
