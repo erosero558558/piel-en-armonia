@@ -1218,36 +1218,39 @@ function initBookingUiWarmup() {
 // ========================================
 const UI_BRIDGE_ENGINE_URL = '/ui-bridge-engine.js?v=figo-ui-bridge-20260219-phase1';
 
-function openPaymentModal(appointmentData) {
-    runDeferredModule(
+function runUiBridgeAction(actionName, args = [], onError) {
+    return runDeferredModule(
         loadUiBridgeEngine,
-        (engine) => engine.openPaymentModal(appointmentData),
-        () => {
-            showToast('No se pudo abrir el modulo de pago.', 'error');
-        }
+        (engine) => {
+            if (!engine || typeof engine[actionName] !== 'function') {
+                throw new Error(`UI bridge action unavailable: ${actionName}`);
+            }
+            return engine[actionName].apply(engine, Array.isArray(args) ? args : []);
+        },
+        onError
     );
+}
+
+function openPaymentModal(appointmentData) {
+    runUiBridgeAction('openPaymentModal', [appointmentData], () => {
+        showToast('No se pudo abrir el modulo de pago.', 'error');
+    });
 }
 
 function closePaymentModal(options = {}) {
-    runDeferredModule(
-        loadUiBridgeEngine,
-        (engine) => engine.closePaymentModal(options),
-        () => {
-            const modal = document.getElementById('paymentModal');
-            if (modal) {
-                modal.classList.remove('active');
-            }
-            document.body.style.overflow = '';
+    runUiBridgeAction('closePaymentModal', [options], () => {
+        const modal = document.getElementById('paymentModal');
+        if (modal) {
+            modal.classList.remove('active');
         }
-    );
+        document.body.style.overflow = '';
+    });
 }
 
 async function processPayment() {
-    return runDeferredModule(
-        loadUiBridgeEngine,
-        (engine) => engine.processPayment(),
-        () => showToast('No se pudo procesar el pago en este momento.', 'error')
-    );
+    return runUiBridgeAction('processPayment', [], () => {
+        showToast('No se pudo procesar el pago en este momento.', 'error');
+    });
 }
 
 // ========================================
@@ -1291,25 +1294,19 @@ function initSuccessModalEngineWarmup() {
 }
 
 function showSuccessModal(emailSent = false) {
-    runDeferredModule(
-        loadUiBridgeEngine,
-        (engine) => engine.showSuccessModal(emailSent),
-        () => showToast('No se pudo abrir la confirmacion de cita.', 'error')
-    );
+    runUiBridgeAction('showSuccessModal', [emailSent], () => {
+        showToast('No se pudo abrir la confirmacion de cita.', 'error');
+    });
 }
 
 function closeSuccessModal() {
-    runDeferredModule(
-        loadUiBridgeEngine,
-        (engine) => engine.closeSuccessModal(),
-        () => {
-            const modal = document.getElementById('successModal');
-            if (modal) {
-                modal.classList.remove('active');
-            }
-            document.body.style.overflow = '';
+    runUiBridgeAction('closeSuccessModal', [], () => {
+        const modal = document.getElementById('successModal');
+        if (modal) {
+            modal.classList.remove('active');
         }
-    );
+        document.body.style.overflow = '';
+    });
 }
 
 // ========================================
@@ -1368,31 +1365,23 @@ function initEngagementFormsEngineWarmup() {
 }
 
 function openReviewModal() {
-    runDeferredModule(
-        loadUiBridgeEngine,
-        (engine) => engine.openReviewModal(),
-        () => {
-            const modal = document.getElementById('reviewModal');
-            if (modal) {
-                modal.classList.add('active');
-                document.body.style.overflow = 'hidden';
-            }
+    runUiBridgeAction('openReviewModal', [], () => {
+        const modal = document.getElementById('reviewModal');
+        if (modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
         }
-    );
+    });
 }
 
 function closeReviewModal() {
-    runDeferredModule(
-        loadUiBridgeEngine,
-        (engine) => engine.closeReviewModal(),
-        () => {
-            const modal = document.getElementById('reviewModal');
-            if (modal) {
-                modal.classList.remove('active');
-            }
-            document.body.style.overflow = '';
+    runUiBridgeAction('closeReviewModal', [], () => {
+        const modal = document.getElementById('reviewModal');
+        if (modal) {
+            modal.classList.remove('active');
         }
-    );
+        document.body.style.overflow = '';
+    });
 }
 
 // MODAL CLOSE HANDLERS (DEFERRED MODULE)
@@ -1439,15 +1428,19 @@ function initModalUxEngineWarmup() {
 // CHATBOT CON FIGO
 // ========================================
 let chatbotOpen = false;
-const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
-const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
-const CHAT_HISTORY_MAX_ITEMS = 50;
-const CHAT_CONTEXT_MAX_ITEMS = 24;
+const CHAT_STATE_ENGINE_URL = '/chat-state-engine.js?v=figo-chat-state-20260219-phase1';
 const CHAT_UI_ENGINE_URL = '/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1';
 const CHAT_WIDGET_ENGINE_URL = '/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification1';
 const ACTION_ROUTER_ENGINE_URL = '/action-router-engine.js?v=figo-action-router-20260219-phase1';
 
-function getChatUiEngineDeps() {
+function createChatStateFallback() {
+    const historyStorageKey = 'chatHistory';
+    const historyTtlMs = 24 * 60 * 60 * 1000;
+    const historyMaxItems = 50;
+    const contextMaxItems = 24;
+    let chatHistory = [];
+    let conversationContext = [];
+
     return {
         getChatHistory: () => chatHistory,
         setChatHistory: (nextHistory) => {
@@ -1457,15 +1450,70 @@ function getChatUiEngineDeps() {
         setConversationContext: (nextContext) => {
             conversationContext = Array.isArray(nextContext) ? nextContext : [];
         },
-        historyStorageKey: CHAT_HISTORY_STORAGE_KEY,
-        historyTtlMs: CHAT_HISTORY_TTL_MS,
-        historyMaxItems: CHAT_HISTORY_MAX_ITEMS,
-        contextMaxItems: CHAT_CONTEXT_MAX_ITEMS,
+        getChatHistoryLength: () => chatHistory.length,
+        getHistoryStorageKey: () => historyStorageKey,
+        getHistoryTtlMs: () => historyTtlMs,
+        getHistoryMaxItems: () => historyMaxItems,
+        getContextMaxItems: () => contextMaxItems
+    };
+}
+
+const chatStateFallback = createChatStateFallback();
+
+function getChatStateManager() {
+    const module = window.PielChatStateEngine;
+    if (
+        module
+        && typeof module.getChatHistory === 'function'
+        && typeof module.setChatHistory === 'function'
+        && typeof module.getConversationContext === 'function'
+        && typeof module.setConversationContext === 'function'
+    ) {
+        return module;
+    }
+    return chatStateFallback;
+}
+
+function getChatStateEngineDeps() {
+    return {
+        historyStorageKey: chatStateFallback.getHistoryStorageKey(),
+        historyTtlMs: chatStateFallback.getHistoryTtlMs(),
+        historyMaxItems: chatStateFallback.getHistoryMaxItems(),
+        contextMaxItems: chatStateFallback.getContextMaxItems(),
         debugLog
     };
 }
 
-const loadChatUiEngine = createEngineLoader({
+const loadChatStateEngine = createEngineLoader({
+    cacheKey: 'chat-state-engine',
+    src: CHAT_STATE_ENGINE_URL,
+    scriptDataAttribute: 'data-chat-state-engine',
+    resolveModule: () => window.PielChatStateEngine,
+    depsFactory: getChatStateEngineDeps,
+    missingApiError: 'chat-state-engine loaded without API',
+    loadError: 'No se pudo cargar chat-state-engine.js',
+    logLabel: 'Chat state engine'
+});
+
+function ensureChatStateEngine() {
+    return runDeferredModule(loadChatStateEngine, (engine) => engine, () => getChatStateManager());
+}
+
+function getChatUiEngineDeps() {
+    return {
+        getChatHistory: () => getChatStateManager().getChatHistory(),
+        setChatHistory: (nextHistory) => getChatStateManager().setChatHistory(nextHistory),
+        getConversationContext: () => getChatStateManager().getConversationContext(),
+        setConversationContext: (nextContext) => getChatStateManager().setConversationContext(nextContext),
+        historyStorageKey: getChatStateManager().getHistoryStorageKey(),
+        historyTtlMs: getChatStateManager().getHistoryTtlMs(),
+        historyMaxItems: getChatStateManager().getHistoryMaxItems(),
+        contextMaxItems: getChatStateManager().getContextMaxItems(),
+        debugLog
+    };
+}
+
+const loadChatUiEngineCore = createEngineLoader({
     cacheKey: 'chat-ui-engine',
     src: CHAT_UI_ENGINE_URL,
     scriptDataAttribute: 'data-chat-ui-engine',
@@ -1475,6 +1523,10 @@ const loadChatUiEngine = createEngineLoader({
     loadError: 'No se pudo cargar chat-ui-engine.js',
     logLabel: 'Chat UI engine'
 });
+
+function loadChatUiEngine() {
+    return withDeferredModule(ensureChatStateEngine, () => loadChatUiEngineCore());
+}
 
 function initChatUiEngineWarmup() {
     const warmup = createWarmupRunner(() => loadChatUiEngine(), { markWarmOnSuccess: true });
@@ -1492,7 +1544,7 @@ function getChatWidgetEngineDeps() {
         setChatbotOpen: (isOpen) => {
             chatbotOpen = isOpen === true;
         },
-        getChatHistoryLength: () => chatHistory.length,
+        getChatHistoryLength: () => getChatStateManager().getChatHistoryLength(),
         warmChatUi: () => runDeferredModule(loadChatUiEngine, () => undefined),
         scrollToBottom,
         trackEvent,
@@ -1504,7 +1556,7 @@ function getChatWidgetEngineDeps() {
     };
 }
 
-const loadChatWidgetEngine = createEngineLoader({
+const loadChatWidgetEngineCore = createEngineLoader({
     cacheKey: 'chat-widget-engine',
     src: CHAT_WIDGET_ENGINE_URL,
     scriptDataAttribute: 'data-chat-widget-engine',
@@ -1514,6 +1566,10 @@ const loadChatWidgetEngine = createEngineLoader({
     loadError: 'No se pudo cargar chat-widget-engine.js',
     logLabel: 'Chat widget engine'
 });
+
+function loadChatWidgetEngine() {
+    return withDeferredModule(ensureChatStateEngine, () => loadChatWidgetEngineCore());
+}
 
 function initChatWidgetEngineWarmup() {
     const warmup = createWarmupRunner(() => loadChatWidgetEngine(), { markWarmOnSuccess: true });
@@ -1565,39 +1621,6 @@ function initActionRouterEngine() {
         debugLog('Action router load failed:', error);
     });
 }
-
-let chatHistory = (function () {
-    try {
-        const raw = localStorage.getItem(CHAT_HISTORY_STORAGE_KEY);
-        const saved = raw ? JSON.parse(raw) : [];
-        if (!Array.isArray(saved) || saved.length === 0) {
-            return [];
-        }
-
-        const cutoff = Date.now() - CHAT_HISTORY_TTL_MS;
-        const filtered = saved.filter((entry) => {
-            if (!entry || typeof entry !== 'object') return false;
-            const ts = entry.time ? new Date(entry.time).getTime() : Number.NaN;
-            return Number.isFinite(ts) && ts > cutoff;
-        });
-
-        const valid = filtered.length <= CHAT_HISTORY_MAX_ITEMS
-            ? filtered
-            : filtered.slice(-CHAT_HISTORY_MAX_ITEMS);
-
-        if (valid.length !== saved.length) {
-            try {
-                localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(valid));
-            } catch (error) {
-                // noop
-            }
-        }
-        return valid;
-    } catch (error) {
-        return [];
-    }
-})();
-let conversationContext = [];
 
 function toggleChatbot() {
     runDeferredModule(loadChatWidgetEngine, (engine) => engine.toggleChatbot(), () => {
@@ -1936,24 +1959,18 @@ function initRescheduleEngineWarmup() {
 }
 
 function closeRescheduleModal() {
-    runDeferredModule(
-        loadUiBridgeEngine,
-        (engine) => engine.closeRescheduleModal(),
-        () => {
-            const modal = document.getElementById('rescheduleModal');
-            if (modal) {
-                modal.classList.remove('active');
-            }
+    runUiBridgeAction('closeRescheduleModal', [], () => {
+        const modal = document.getElementById('rescheduleModal');
+        if (modal) {
+            modal.classList.remove('active');
         }
-    );
+    });
 }
 
 function submitReschedule() {
-    runDeferredModule(
-        loadUiBridgeEngine,
-        (engine) => engine.submitReschedule(),
-        () => showToast(currentLang === 'es' ? 'No se pudo reprogramar en este momento.' : 'Unable to reschedule right now.', 'error')
-    );
+    runUiBridgeAction('submitReschedule', [], () => {
+        showToast(currentLang === 'es' ? 'No se pudo reprogramar en este momento.' : 'Unable to reschedule right now.', 'error');
+    });
 }
 
 function getAppBootstrapEngineDeps() {
