@@ -34,6 +34,10 @@ Sube estos archivos a la raiz del hosting (`public_html` o equivalente):
 - `GATE-POSTDEPLOY.ps1`
 - `CONFIGURAR-TELEGRAM-WEBHOOK.ps1`
 
+Atajo recomendado para preparar un paquete listo para subir:
+- `npm run bundle:deploy`
+- Esto genera un `.zip` en `_deploy_bundle/` con `manifest-sha256.txt`.
+
 Notas:
 - El frontend ahora consume `figo-chat.php` para el chatbot IA.
 - El motor pesado del chat se carga en diferido desde `chat-engine.js`.
