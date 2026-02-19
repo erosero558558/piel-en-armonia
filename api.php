@@ -158,6 +158,11 @@ if ($requestOrigin !== '') {
         }
     }
 }
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Content-Security-Policy: default-src \'none\'; frame-ancestors \'none\'');
+header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
