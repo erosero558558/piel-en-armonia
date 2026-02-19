@@ -4,7 +4,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/api-lib.php';
 
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
-    require_once __DIR__ . '/vendor/autoload.php';
+    try {
+        require_once __DIR__ . '/vendor/autoload.php';
+    } catch (Throwable $autoloadError) {
+        error_log('Piel en Armonia: Composer autoload no disponible en pagos (' . $autoloadError->getMessage() . ')');
+    }
 }
 
 const TRANSFER_PROOF_MAX_BYTES = 5242880; // 5 MB
@@ -39,11 +43,18 @@ function payment_stripe_webhook_secret(): string
 
 function payment_gateway_enabled(): bool
 {
+    if (!class_exists('\Stripe\StripeClient')) {
+        return false;
+    }
     return payment_stripe_secret_key() !== '' && payment_stripe_publishable_key() !== '';
 }
 
 function stripe_verify_webhook_signature(string $payload, string $sigHeader, string $secret): array
 {
+    if (!class_exists('\Stripe\Webhook')) {
+        throw new RuntimeException('Stripe SDK no disponible en el servidor.');
+    }
+
     try {
         $event = \Stripe\Webhook::constructEvent($payload, $sigHeader, $secret);
         return $event->toArray();
@@ -72,6 +83,10 @@ function payment_build_idempotency_key(string $prefix, string $seed): string
 
 function stripe_create_payment_intent(array $appointment, string $idempotencyKey = ''): array
 {
+    if (!class_exists('\Stripe\StripeClient')) {
+        throw new RuntimeException('Stripe SDK no disponible en el servidor.');
+    }
+
     $secret = payment_stripe_secret_key();
     if ($secret === '') {
         throw new RuntimeException('La pasarela de pagos no esta configurada.');
@@ -121,6 +136,10 @@ function stripe_create_payment_intent(array $appointment, string $idempotencyKey
 
 function stripe_get_payment_intent(string $paymentIntentId): array
 {
+    if (!class_exists('\Stripe\StripeClient')) {
+        throw new RuntimeException('Stripe SDK no disponible en el servidor.');
+    }
+
     $secret = payment_stripe_secret_key();
     if ($secret === '') {
         throw new RuntimeException('La pasarela de pagos no esta configurada.');

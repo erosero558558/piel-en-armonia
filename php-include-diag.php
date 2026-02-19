@@ -15,8 +15,12 @@ diag_step('start');
 
 $autoloadFile = __DIR__ . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
 if (is_file($autoloadFile)) {
-    require_once $autoloadFile;
-    diag_step('vendor/autoload.php');
+    try {
+        require_once $autoloadFile;
+        diag_step('vendor/autoload.php');
+    } catch (Throwable $autoloadError) {
+        diag_step('vendor/autoload.php(error): ' . $autoloadError->getMessage());
+    }
 }
 
 $envFile = __DIR__ . DIRECTORY_SEPARATOR . 'env.php';

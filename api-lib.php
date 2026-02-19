@@ -8,7 +8,11 @@ declare(strict_types=1);
 // Autoloader de Composer (para PHPMailer y otras dependencias)
 $autoloadFile = __DIR__ . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
 if (is_file($autoloadFile)) {
-    require_once $autoloadFile;
+    try {
+        require_once $autoloadFile;
+    } catch (Throwable $autoloadError) {
+        error_log('Piel en Armonia: Composer autoload no disponible (' . $autoloadError->getMessage() . ')');
+    }
 }
 
 // Cargar variables de entorno desde env.php sin ejecutarlo directamente.
