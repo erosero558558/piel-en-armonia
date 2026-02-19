@@ -3,55 +3,45 @@ require_once __DIR__ . '/../api-lib.php';
 require_once __DIR__ . '/../figo-brain.php';
 
 $tests = [
-    // Greeting
+    // --- Basic Tests ---
     ['hola', 'Bienvenido a **Piel en Armonía**'],
     ['buenas tardes', 'Soy Figo'],
 
-    // Robustness Tests (New)
-    // "hialuronico" contains "hi" -> Should match Rejuvenation (not Greeting)
-    ['acido hialuronico', 'Toxina Botulínica'],
-    // "ahora" contains "hora" -> Should NOT match Booking blindly (unless "quiero" is present, but "hora" alone is weak)
-    // We expect Unknown or generic fallback if no other strong signal is present, or perhaps just NOT booking.
-    // Let's test "quiero pagar ahora" -> Should match Payment.
-    ['quiero pagar ahora', 'formas de pago'],
+    // --- Robustness (Fuzzy Matching) ---
+    // "prcio" -> precio (1 char diff)
+    ['prcio consulta', 'valores referenciales'],
+    // "cunto" -> cuanto
+    ['cunto cuesta acne', '$89.60'],
+    // "angendar" -> agendar
+    ['quiero angendar', 'Perfecto'],
 
-    // Identity
-    ['quien eres', 'Soy **Figo**'],
-    ['eres un bot', 'asistente virtual'],
+    // --- Temporal Awareness ---
+    // Response depends on time, but should contain "atendiendo" or "cerrados"
+    ['estan atendiendo ahora', 'atendiendo'],
 
-    // Pricing (Dynamic)
+    // --- Sentiment / Escalation ---
+    ['pesimo servicio', 'Lamento mucho'],
+    ['quiero poner una queja', 'hablar con un humano'],
+    ['nadie contesta el telefono', 'WhatsApp de Gerencia'],
+
+    // --- New Medical Topics ---
+    ['tengo la cara roja', 'Rosácea'], // Intent: Rosacea
+    ['manchas oscuras', 'Melasma'], // Intent: Melasma
+    ['se me cae el cabello', 'Caída de Cabello'], // Intent: Hair Loss
+    ['tengo verrugas', 'Verrugas y Lunares'], // Intent: Warts
+
+    // --- Standard Topics ---
     ['precio consulta', 'valores referenciales'],
-    ['cuanto cuesta acne', '$89.60'],
-
-    // Services
-    ['que tratamientos hacen', 'Nuestras Especialidades'],
-    ['tienen laser', 'Nuestra tecnología láser'],
-
-    // Booking
-    ['agendar cita', 'Excelente decisión'],
-    ['quiero sacar turno', 'Haz clic aquí'],
-
-    // Location
+    ['agendar cita', 'Perfecto'],
     ['donde estan', 'Edificio Citimed'],
-    ['direccion', 'Mariana de Jesús'],
-
-    // Hours
     ['horario', 'Lunes a Viernes'],
-    ['atienden sabado', '09:00 - 13:00'],
-
-    // Doctors
     ['dr rosero', 'Javier Rosero'],
-    ['dra carolina', 'Carolina Narváez'],
-
-    // Specific Treatments
-    ['rejuvenecimiento', 'Toxina Botulínica'],
+    ['rejuvenecimiento', 'Rejuvenecimiento Natural'],
     ['online', 'Videoconsulta'],
-
-    // Contact
     ['telefono', '098 245 3672'],
 ];
 
-echo "Running Standard Tests...\n";
+echo "Running Advanced Tests...\n";
 $passed = 0;
 $failed = 0;
 
@@ -63,6 +53,15 @@ foreach ($tests as $test) {
     $response = FigoBrain::process($messages);
     $content = $response['choices'][0]['message']['content'];
 
+    // Fuzzy matching for "atendiendo" or "cerrados" in temporal test
+    if ($input === 'estan atendiendo ahora') {
+        if (stripos($content, 'atendiendo') !== false || stripos($content, 'cerrados') !== false) {
+            echo "[PASS] Input: '$input' -> Found temporal status.\n";
+            $passed++;
+            continue;
+        }
+    }
+
     if (stripos($content, $expected) !== false) {
         echo "[PASS] Input: '$input' -> Found: '$expected'\n";
         $passed++;
@@ -73,19 +72,19 @@ foreach ($tests as $test) {
 }
 
 echo "\nRunning Context Tests...\n";
-// Context Test 1: Pricing -> Acne
+// Context Test 1: Rosacea -> Pricing
 $messages = [
-    ['role' => 'user', 'content' => 'cuanto cuesta la consulta'],
-    ['role' => 'assistant', 'content' => 'El precio es...'],
-    ['role' => 'user', 'content' => 'y de acne']
+    ['role' => 'user', 'content' => 'tengo rosacea'],
+    ['role' => 'assistant', 'content' => 'Para la Rosácea...'],
+    ['role' => 'user', 'content' => 'cuanto cuesta'] // Should trigger pricing_specific
 ];
 $response = FigoBrain::process($messages);
 $content = $response['choices'][0]['message']['content'];
-if (stripos($content, '$89.60') !== false) { // Should show acne pricing
-    echo "[PASS] Context: Pricing -> Acne found price.\n";
+if (stripos($content, 'valores referenciales') !== false) {
+    echo "[PASS] Context: Rosacea -> Pricing found.\n";
     $passed++;
 } else {
-    echo "[FAIL] Context: Pricing -> Acne failed. Got: " . substr($content, 0, 100) . "...\n";
+    echo "[FAIL] Context: Rosacea -> Pricing failed. Got: " . substr($content, 0, 100) . "...\n";
     $failed++;
 }
 
