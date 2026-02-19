@@ -217,6 +217,7 @@ if ($resource === 'health') {
 
 $publicEndpoints = [
     ['method' => 'GET', 'resource' => 'monitoring-config'],
+    ['method' => 'GET', 'resource' => 'features'],
     ['method' => 'GET', 'resource' => 'payment-config'],
     ['method' => 'GET', 'resource' => 'availability'],
     ['method' => 'GET', 'resource' => 'reviews'],
@@ -375,6 +376,13 @@ if ($method === 'GET' && $resource === 'booked-slots') {
     json_response([
         'ok' => true,
         'data' => $slots
+    ]);
+}
+
+if ($method === 'GET' && $resource === 'features') {
+    json_response([
+        'ok' => true,
+        'features' => get_feature_flags()
     ]);
 }
 
