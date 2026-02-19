@@ -9,45 +9,6 @@ require_once __DIR__ . '/api-lib.php';
  * - Telegram webhook mode: receives Telegram updates and replies as bot
  */
 
-function figo_backend_apply_cors(): void
-{
-    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Telegram-Bot-Api-Secret-Token');
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-
-    $origin = isset($_SERVER['HTTP_ORIGIN']) ? trim((string) $_SERVER['HTTP_ORIGIN']) : '';
-    if ($origin === '') {
-        return;
-    }
-
-    $allowed = [];
-    $rawAllowed = getenv('PIELARMONIA_ALLOWED_ORIGIN');
-    if (!is_string($rawAllowed) || trim($rawAllowed) === '') {
-        $rawAllowed = getenv('PIELARMONIA_ALLOWED_ORIGINS');
-    }
-    if (is_string($rawAllowed) && trim($rawAllowed) !== '') {
-        foreach (explode(',', $rawAllowed) as $item) {
-            $item = trim($item);
-            if ($item !== '') {
-                $allowed[] = rtrim($item, '/');
-            }
-        }
-    }
-
-    $allowed[] = 'https://pielarmonia.com';
-    $allowed[] = 'https://www.pielarmonia.com';
-    $allowed = array_values(array_unique(array_filter($allowed)));
-
-    $normalizedOrigin = rtrim($origin, '/');
-    foreach ($allowed as $allowedOrigin) {
-        if (strcasecmp($normalizedOrigin, $allowedOrigin) === 0) {
-            header('Access-Control-Allow-Origin: ' . $origin);
-            header('Vary: Origin');
-            return;
-        }
-    }
-}
-
 function figo_backend_normalize_text(string $text): string
 {
     $text = strtolower(trim($text));
@@ -129,12 +90,12 @@ function figo_backend_ai_system_prompt(): string
     return "Eres Figo, asistente virtual amigable de la clinica dermatologica \"Piel en Armonia\" en Quito, Ecuador.\n"
         . "Eres conversacional y natural. Puedes hablar de cualquier tema de forma amena, pero tu especialidad es la clinica.\n"
         . "Cuando pregunten sobre la clinica, da informacion precisa:\n"
-        . "- Consulta presencial: \$46 | Telefonica: \$28.75 | Video: \$34.50\n"
-        . "- Acne: desde \$80 | Laser: desde \$172.50 | Rejuvenecimiento: desde \$138\n"
+        . "- Consulta presencial: \$40 | Telefonica: \$25 | Video: \$30\n"
+        . "- Acne: desde \$80 | Laser: desde \$150 | Rejuvenecimiento: desde \$120\n"
         . "- Deteccion cancer de piel: desde \$70\n"
-        . "- Direccion: Valparaiso 13-183 y Sodiro, Consultorio Dr. Celio Caiza, Quito (Frente al Colegio de las Mercedarias, a 2 cuadras de la Maternidad Isidro Ayora)\n"
+        . "- Direccion: Av. Dr. Cecilio Caiza e Hijas N2-30 y Av. Amazonas, Quito\n"
         . "- Horario: L-V 9:00-18:00, Sab 9:00-13:00\n"
-        . "- WhatsApp: 098 245 3672\n"
+        . "- WhatsApp: +593 98 245 3672\n"
         . "- Doctores: Dr. Javier Rosero (dermatologo clinico), Dra. Carolina Narvaez (estetica/laser)\n"
         . "- Web: https://pielarmonia.com\n"
         . "Responde en espanol. Se conciso (2-4 oraciones para temas generales, mas detalle para temas de la clinica).";
@@ -242,7 +203,7 @@ function figo_backend_answer(string $userMessage): string
             . "3) Elige tarjeta, transferencia o efectivo.\n"
             . "4) Confirma y la cita queda registrada.\n\n"
             . "Si eliges transferencia, sube comprobante y numero de referencia.\n"
-            . "Soporte inmediato: WhatsApp 098 245 3672.";
+            . "Soporte inmediato: WhatsApp +593 98 245 3672.";
     }
 
     if (figo_backend_contains_any($normalized, [
@@ -266,13 +227,13 @@ function figo_backend_answer(string $userMessage): string
         '/\bofrecen\b/',
         '/\bhacen\b/'
     ])) {
-        return "Servicios principales (precios con IVA 15%):\n"
-            . "- Consulta Dermatologica: $46\n"
-            . "- Consulta Telefonica: $28.75\n"
-            . "- Video Consulta: $34.50\n"
+        return "Servicios principales:\n"
+            . "- Consulta Dermatologica: $40\n"
+            . "- Consulta Telefonica: $25\n"
+            . "- Video Consulta: $30\n"
             . "- Tratamiento de Acne: desde $80\n"
-            . "- Rejuvenecimiento: desde $138\n"
-            . "- Laser Dermatologico: desde $172.50\n"
+            . "- Rejuvenecimiento: desde $120\n"
+            . "- Laser Dermatologico: desde $150\n"
             . "- Deteccion de Cancer de Piel: desde $70";
     }
 
@@ -283,12 +244,12 @@ function figo_backend_answer(string $userMessage): string
         '/\btarifa\b/',
         '/\bcuanto\b/'
     ])) {
-        return "Precios (con IVA 15%):\n"
-            . "- Consulta Dermatologica: $46\n"
-            . "- Consulta Telefonica: $28.75\n"
-            . "- Video Consulta: $34.50\n"
-            . "- Laser: desde $172.50\n"
-            . "- Rejuvenecimiento: desde $138\n"
+        return "Precios base:\n"
+            . "- Consulta Dermatologica: $40\n"
+            . "- Consulta Telefonica: $25\n"
+            . "- Video Consulta: $30\n"
+            . "- Laser: desde $150\n"
+            . "- Rejuvenecimiento: desde $120\n"
             . "- Acne: desde $80";
     }
 
@@ -299,15 +260,14 @@ function figo_backend_answer(string $userMessage): string
         '/\bhorario\b/'
     ])) {
         return "Estamos en Quito, Ecuador.\n"
-            . "Direccion: Valparaiso 13-183 y Sodiro, Consultorio Dr. Celio Caiza.\n"
-            . "Referencia: Frente al Colegio de las Mercedarias, a 2 cuadras de la Maternidad Isidro Ayora.\n"
+            . "Direccion: Av. Dr. Cecilio Caiza e Hijas N2-30 y Av. Amazonas.\n"
             . "Horario: Lunes a Viernes 09:00-18:00, Sabados 09:00-13:00.\n"
-            . "Telefono/WhatsApp: 098 245 3672.";
+            . "Telefono/WhatsApp: +593 98 245 3672.";
     }
 
     return "Gracias por escribirme. Soy Figo de Piel en Armonia y estoy para ayudarte.\n"
         . "Puedo darte informacion sobre servicios dermatologicos, precios, citas, pagos, horarios y ubicacion.\n"
-        . "Si necesitas atencion directa: WhatsApp 098 245 3672.";
+        . "Si necesitas atencion directa: WhatsApp +593 98 245 3672.";
 }
 
 function figo_backend_telegram_token(): string
@@ -482,13 +442,10 @@ function figo_backend_handle_telegram_update(array $update, string $telegramToke
     json_response(['ok' => true, 'handled' => true]);
 }
 
-figo_backend_apply_cors();
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+api_apply_cors(['GET', 'POST', 'OPTIONS'], ['Content-Type', 'Authorization', 'X-Telegram-Bot-Api-Secret-Token'], true);
 
 $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
-if ($method === 'OPTIONS') {
-    http_response_code(204);
-    exit();
-}
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -520,7 +477,7 @@ if ($method !== 'POST') {
     ], 405);
 }
 
-require_rate_limit('figo-backend');
+require_rate_limit('figo-backend', 30, 60);
 $payload = require_json_body();
 
 if (figo_backend_is_telegram_update($payload)) {

@@ -70,41 +70,7 @@ function api_is_figo_recursive_config(string $endpoint): bool
     return $endpointPath === '/figo-chat.php';
 }
 
-$requestOrigin = isset($_SERVER['HTTP_ORIGIN']) ? trim((string) $_SERVER['HTTP_ORIGIN']) : '';
-$allowedOrigin = getenv('PIELARMONIA_ALLOWED_ORIGIN');
-$allowedList = [];
-if (is_string($allowedOrigin) && trim($allowedOrigin) !== '') {
-    foreach (explode(',', $allowedOrigin) as $origin) {
-        $origin = trim((string) $origin);
-        if ($origin !== '') {
-            $allowedList[] = rtrim($origin, '/');
-        }
-    }
-}
-
-$host = isset($_SERVER['HTTP_HOST']) ? trim((string) $_SERVER['HTTP_HOST']) : '';
-if ($host !== '') {
-    $allowedList[] = (is_https_request() ? 'https' : 'http') . '://' . $host;
-}
-
-$allowedList = array_values(array_unique(array_filter($allowedList)));
-if ($requestOrigin !== '') {
-    $normalizedOrigin = rtrim($requestOrigin, '/');
-    foreach ($allowedList as $origin) {
-        if (strcasecmp($normalizedOrigin, $origin) === 0) {
-            header('Access-Control-Allow-Origin: ' . $requestOrigin);
-            header('Access-Control-Allow-Credentials: true');
-            header('Vary: Origin');
-            break;
-        }
-    }
-}
-header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(204);
-    exit();
-}
+api_apply_cors(['GET', 'POST', 'PUT', 'PATCH', 'OPTIONS'], ['Content-Type', 'Authorization', 'X-CSRF-Token'], true);
 
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $resource = isset($_GET['resource']) ? (string) $_GET['resource'] : '';
