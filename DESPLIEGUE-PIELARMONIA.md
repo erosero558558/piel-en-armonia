@@ -1,5 +1,20 @@
 # Despliegue en pielarmonia.com
 
+## Deploy automatico sin subir manual
+
+Si desde tu PC no puedes subir por FTP/SFTP, usa el workflow:
+- `.github/workflows/deploy-hosting.yml`
+- `GITHUB-ACTIONS-DEPLOY.md` (paso a paso)
+
+Configura en GitHub (repo -> Settings -> Secrets and variables -> Actions):
+- Secrets: `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`
+- Variables opcionales: `FTP_PROTOCOL` (`ftps` recomendado), `FTP_SERVER_DIR` (`/public_html/`), `PROD_URL`
+
+Uso:
+- Push a `main`: deploy automatico.
+- Manual: Actions -> `Deploy Hosting (FTP/FTPS)` -> `Run workflow`.
+- Prueba sin cambios: `dry_run = true`.
+
 ## Archivos a subir
 
 Sube estos archivos a la raiz del hosting (`public_html` o equivalente):

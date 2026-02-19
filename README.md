@@ -105,3 +105,18 @@ Modo transicion (solo temporal): si el servidor aun no envia header CSP pero tu 
 
 Este proyecto es privado y propiedad de Piel Armonía.
 
+## Deploy automatico por GitHub Actions
+
+Si no puedes subir archivos manualmente, deploy con:
+- `.github/workflows/deploy-hosting.yml`
+- `GITHUB-ACTIONS-DEPLOY.md` (paso a paso)
+
+Configura en GitHub (repo -> Settings -> Secrets and variables -> Actions):
+- Secrets: `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`
+- Variables opcionales: `FTP_PROTOCOL`, `FTP_SERVER_DIR`, `PROD_URL`
+
+Ejecucion:
+- `git push` a `main` para deploy automatico.
+- O `Actions -> Deploy Hosting (FTP/FTPS) -> Run workflow`.
+- Usa `dry_run = true` para validar sin subir.
+
