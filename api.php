@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
 require_once __DIR__ . '/payment-lib.php';
+require_once __DIR__ . '/lib/monitoring.php';
+
+init_monitoring();
 
 apply_security_headers(false);
 
@@ -15,6 +18,11 @@ set_exception_handler(static function (Throwable $e): void {
         header('Content-Type: application/json; charset=utf-8');
     }
     error_log('Piel en Armonía API uncaught: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+
+    if (function_exists('\Sentry\captureException')) {
+        \Sentry\captureException($e);
+    }
+
     echo json_encode([
         'ok' => false,
         'error' => $e->getMessage() ?: 'Error interno del servidor'
@@ -187,36 +195,28 @@ register_shutdown_function(static function () use ($requestStartedAt, $method, $
     ]);
 });
 
+if ($resource === 'monitoring-config') {
+    $config = get_monitoring_config();
+    json_response($config);
+}
+
 if ($resource === 'health') {
-    $storageReady = ensure_data_file();
+    $health = check_system_health();
     $figoEndpoint = api_resolve_figo_endpoint_for_health();
     $figoConfigured = $figoEndpoint !== '';
     $figoRecursive = api_is_figo_recursive_config($figoEndpoint);
     $timingMs = api_elapsed_ms($requestStartedAt);
-    audit_log_event('api.health', [
-        'method' => $method,
-        'resource' => $resource,
-        'storageReady' => $storageReady,
-        'timingMs' => $timingMs,
-        'version' => app_runtime_version(),
-        'figoConfigured' => $figoConfigured,
-        'figoRecursiveConfig' => $figoRecursive
-    ]);
-    json_response([
-        'ok' => true,
-        'status' => 'ok',
-        'storageReady' => $storageReady,
-        'timingMs' => $timingMs,
-        'version' => app_runtime_version(),
-        'dataDirWritable' => data_dir_writable(),
-        'storeEncrypted' => store_file_is_encrypted(),
-        'figoConfigured' => $figoConfigured,
-        'figoRecursiveConfig' => $figoRecursive,
-        'timestamp' => local_date('c')
-    ]);
+
+    $health['figoConfigured'] = $figoConfigured;
+    $health['figoRecursiveConfig'] = $figoRecursive;
+    $health['timingMs'] = $timingMs;
+
+    audit_log_event('api.health', $health);
+    json_response($health, $health['ok'] ? 200 : 503);
 }
 
 $publicEndpoints = [
+    ['method' => 'GET', 'resource' => 'monitoring-config'],
     ['method' => 'GET', 'resource' => 'payment-config'],
     ['method' => 'GET', 'resource' => 'availability'],
     ['method' => 'GET', 'resource' => 'reviews'],
