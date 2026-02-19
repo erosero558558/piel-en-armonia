@@ -45,6 +45,7 @@ Sube estos archivos a la raiz del hosting (`public_html` o equivalente):
 - `figo-chat.php`
 - `figo-backend.php`
 - `.htaccess`
+- carpeta `vendor/` (dependencias instaladas)
 - carpeta `data/` (con permisos de escritura)
 - `SMOKE-PRODUCCION.ps1`
 - `VERIFICAR-DESPLIEGUE.ps1`
@@ -72,6 +73,7 @@ Notas:
 - PHP 7.4 o superior
 - Sesiones PHP habilitadas (para `admin-auth.php`)
 - Permisos de escritura para la carpeta `data/`
+- Dependencias de PHP instaladas (subir carpeta `vendor/` o ejecutar `composer install`)
 
 ## Variables de entorno (produccion)
 
