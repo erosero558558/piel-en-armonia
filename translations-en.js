@@ -134,6 +134,8 @@ window.PIEL_EN_TRANSLATIONS = {
         opt_video: "Video Consultation - $30",
         opt_laser: "Laser Treatment - from $150",
         opt_rejuvenation: "Rejuvenation - from $120",
+        opt_acne: "Acne Treatment - from $80",
+        opt_cancer: "Skin Cancer Detection - from $70",
         label_doctor: "Doctor",
         select_doctor: "Select a doctor",
         opt_rosero: "Dr. Javier Rosero - Clinical Dermatologist",
