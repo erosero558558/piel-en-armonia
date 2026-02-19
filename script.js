@@ -988,7 +988,7 @@ function validateCasePhotoFiles(files) {
     if (files.length > MAX_CASE_PHOTOS) {
         throw new Error(
             currentLang === 'es'
-                ? `Puedes subir máximo ${MAX_CASE_PHOTOS} fotos.`
+                ? `Puedes subir maximo ${MAX_CASE_PHOTOS} fotos.`
                 : `You can upload up to ${MAX_CASE_PHOTOS} photos.`
         );
     }
@@ -999,7 +999,7 @@ function validateCasePhotoFiles(files) {
         if (file.size > MAX_CASE_PHOTO_BYTES) {
             throw new Error(
                 currentLang === 'es'
-                    ? `Cada foto debe pesar máximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
+                    ? `Cada foto debe pesar maximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
                     : `Each photo must be at most ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
             );
         }
@@ -1630,6 +1630,47 @@ const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
 const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
 const CHAT_HISTORY_MAX_ITEMS = 50;
 const CHAT_CONTEXT_MAX_ITEMS = 24;
+const CHAT_UI_ENGINE_URL = '/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1';
+
+function getChatUiEngineDeps() {
+    return {
+        getChatHistory: () => chatHistory,
+        setChatHistory: (nextHistory) => {
+            chatHistory = Array.isArray(nextHistory) ? nextHistory : [];
+        },
+        pruneChatHistory,
+        persistChatHistory,
+        appendConversationContext,
+        debugLog
+    };
+}
+
+function loadChatUiEngine() {
+    return loadDeferredModule({
+        cacheKey: 'chat-ui-engine',
+        src: CHAT_UI_ENGINE_URL,
+        scriptDataAttribute: 'data-chat-ui-engine',
+        resolveModule: () => window.PielChatUiEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getChatUiEngineDeps()),
+        missingApiError: 'chat-ui-engine loaded without API',
+        loadError: 'No se pudo cargar chat-ui-engine.js',
+        logLabel: 'Chat UI engine'
+    });
+}
+
+function initChatUiEngineWarmup() {
+    const warmup = createWarmupRunner(() => loadChatUiEngine(), { markWarmOnSuccess: true });
+
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
+    bindWarmupTarget('#chatInput', 'focus', warmup, false);
+
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 2600,
+        fallbackDelay: 1300
+    });
+}
 
 function pruneChatHistory(entries) {
     if (!Array.isArray(entries) || entries.length === 0) {
@@ -1716,6 +1757,7 @@ function shouldUseRealAI() {
 
 function toggleChatbot() {
     const container = document.getElementById('chatbotContainer');
+    runDeferredModule(loadChatUiEngine, () => undefined);
     chatbotOpen = !chatbotOpen;
     
     if (chatbotOpen) {
@@ -1742,7 +1784,7 @@ function toggleChatbot() {
                 welcomeMsg = 'Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
                 welcomeMsg += '<strong>Conectado con Inteligencia Artificial</strong><br><br>';
                 welcomeMsg += 'Puedo ayudarte con informacion detallada sobre:<br>';
-                welcomeMsg += '- Nuestros servicios dermatológicos<br>';
+                welcomeMsg += '- Nuestros servicios dermatologicos<br>';
                 welcomeMsg += '- Precios de consultas y tratamientos<br>';
                 welcomeMsg += '- Agendar citas presenciales o online<br>';
                 welcomeMsg += '- Ubicacion y horarios de atencion<br>';
@@ -1751,7 +1793,7 @@ function toggleChatbot() {
             } else {
                 welcomeMsg = 'Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
                 welcomeMsg += 'Puedo ayudarte con informacion sobre:<br>';
-                welcomeMsg += '- Nuestros servicios dermatológicos<br>';
+                welcomeMsg += '- Nuestros servicios dermatologicos<br>';
                 welcomeMsg += '- Precios de consultas y tratamientos<br>';
                 welcomeMsg += '- Agendar citas presenciales o online<br>';
                 welcomeMsg += '- Ubicacion y horarios de atencion<br><br>';
@@ -1798,7 +1840,7 @@ async function sendChatMessage() {
     
     if (!message) return;
     
-    addUserMessage(message);
+    await Promise.resolve(addUserMessage(message)).catch(() => undefined);
     input.value = '';
 
     await processWithKimi(message);
@@ -1822,117 +1864,18 @@ function sendQuickMessage(type) {
     };
 
     const message = messages[type] || type;
-    addUserMessage(message);
+    Promise.resolve(addUserMessage(message)).catch(() => undefined);
 
     processWithKimi(message);
 }
 
 function addUserMessage(text) {
-    const messagesContainer = document.getElementById('chatMessages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'chat-message user';
-    messageDiv.innerHTML = `
-        <div class="message-avatar"><i class="fas fa-user"></i></div>
-        <div class="message-content"><p>${escapeHtml(text)}</p></div>
-    `;
-    messagesContainer.appendChild(messageDiv);
-    scrollToBottom();
-
-    chatHistory.push({ type: 'user', text, time: new Date().toISOString() });
-    chatHistory = pruneChatHistory(chatHistory);
-    persistChatHistory();
-    appendConversationContext('user', text);
-}
-
-function sanitizeBotHtml(html) {
-    const allowed = ['b', 'strong', 'i', 'em', 'br', 'p', 'ul', 'ol', 'li', 'a', 'div', 'button', 'input', 'span', 'small'];
-    const allowedAttrs = {
-        'a': ['href', 'target', 'rel'],
-        'button': ['class', 'data-action'],
-        'div': ['class'],
-        'input': ['type', 'id', 'min', 'value', 'class'],
-        'i': ['class'],
-        'span': ['class'],
-        'small': ['class']
-    };
-
-    // Convertir onclick inline a data-action antes de sanitizar
-    const safeHtml = html
-        .replace(/onclick="handleChatBookingSelection\('([^']+)'\)"/g, 'data-action="chat-booking" data-value="$1"')
-        .replace(/onclick="sendQuickMessage\('([^']+)'\)"/g, 'data-action="quick-message" data-value="$1"')
-        .replace(/onclick="handleChatDateSelect\(this\.value\)"/g, 'data-action="chat-date-select"')
-        .replace(/onclick="minimizeChatbot\(\)"/g, 'data-action="minimize-chat"')
-        .replace(/onclick="startChatBooking\(\)"/g, 'data-action="start-booking"');
-
-    const div = document.createElement('div');
-    div.innerHTML = safeHtml;
-    div.querySelectorAll('script, style, iframe, object, embed').forEach(el => el.remove());
-    div.querySelectorAll('*').forEach(el => {
-        const tag = el.tagName.toLowerCase();
-        if (!allowed.includes(tag)) {
-            el.replaceWith(document.createTextNode(el.textContent));
-        } else {
-            const keep = [...(allowedAttrs[tag] || []), 'data-action', 'data-value'];
-            Array.from(el.attributes).forEach(attr => {
-                if (!keep.includes(attr.name)) {
-                    el.removeAttribute(attr.name);
-                }
-            });
-            if (tag === 'a') {
-                const href = el.getAttribute('href') || '';
-                if (!/^https?:\/\/|^#/.test(href)) el.removeAttribute('href');
-                if (href.startsWith('http')) {
-                    el.setAttribute('target', '_blank');
-                    el.setAttribute('rel', 'noopener noreferrer');
-                }
-            }
-            // Eliminar cualquier atributo on* que haya pasado
-            Array.from(el.attributes).forEach(attr => {
-                if (attr.name.startsWith('on')) {
-                    el.removeAttribute(attr.name);
-                }
-            });
-        }
-    });
-    return div.innerHTML;
+    return withDeferredModule(loadChatUiEngine, (engine) => engine.addUserMessage(text));
 }
 
 function addBotMessage(html, showOfflineLabel = false) {
-    const messagesContainer = document.getElementById('chatMessages');
-    const safeHtml = sanitizeBotHtml(html);
-
-    // Verificar si el ultimo mensaje es identico (evitar duplicados en UI)
-    const lastMessage = messagesContainer.querySelector('.chat-message.bot:last-child');
-    if (lastMessage) {
-        const lastContent = lastMessage.querySelector('.message-content');
-        if (lastContent && lastContent.innerHTML === safeHtml) {
-            debugLog('⚠️ Mensaje duplicado detectado, no se muestra');
-            return;
-        }
-    }
-    
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'chat-message bot';
-    
-    // Solo mostrar indicador offline si se solicita explicitamente (para debug)
-    const offlineIndicator = showOfflineLabel ?
-        `<div class="chatbot-offline-badge">
-            <i class="fas fa-robot"></i> Asistente Virtual
-        </div>` : '';
-    
-    messageDiv.innerHTML = `
-        <div class="message-avatar"><i class="fas fa-user-md"></i></div>
-        <div class="message-content">${offlineIndicator}${safeHtml}</div>
-    `;
-    messagesContainer.appendChild(messageDiv);
-    scrollToBottom();
-    
-    // Guardar en historial
-    chatHistory.push({ type: 'bot', text: safeHtml, time: new Date().toISOString() });
-    chatHistory = pruneChatHistory(chatHistory);
-    persistChatHistory();
+    return runDeferredModule(loadChatUiEngine, (engine) => engine.addBotMessage(html, showOfflineLabel));
 }
-
 // Delegated event handler for sanitized chat actions (replaces inline onclick)
 document.addEventListener('click', function(e) {
     const actionEl = e.target.closest('[data-action]');
@@ -2006,31 +1949,28 @@ document.addEventListener('change', function(e) {
 });
 
 function showTypingIndicator() {
-    const messagesContainer = document.getElementById('chatMessages');
-    const typingDiv = document.createElement('div');
-    typingDiv.className = 'chat-message bot typing';
-    typingDiv.id = 'typingIndicator';
-    typingDiv.innerHTML = `
-        <div class="message-avatar"><i class="fas fa-user-md"></i></div>
-        <div class="typing-indicator">
-            <span></span><span></span><span></span>
-        </div>
-    `;
-    messagesContainer.appendChild(typingDiv);
-    scrollToBottom();
+    runDeferredModule(loadChatUiEngine, (engine) => engine.showTypingIndicator());
 }
 
 function removeTypingIndicator() {
-    const typing = document.getElementById('typingIndicator');
-    if (typing) typing.remove();
+    runDeferredModule(loadChatUiEngine, (engine) => engine.removeTypingIndicator());
 }
 
 function scrollToBottom() {
+    if (window.PielChatUiEngine && typeof window.PielChatUiEngine.scrollToBottom === 'function') {
+        window.PielChatUiEngine.scrollToBottom();
+        return;
+    }
     const container = document.getElementById('chatMessages');
-    container.scrollTop = container.scrollHeight;
+    if (container) {
+        container.scrollTop = container.scrollHeight;
+    }
 }
 
 function escapeHtml(text) {
+    if (window.PielChatUiEngine && typeof window.PielChatUiEngine.escapeHtml === 'function') {
+        return window.PielChatUiEngine.escapeHtml(text);
+    }
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
@@ -2309,6 +2249,7 @@ document.addEventListener('DOMContentLoaded', function() {
         initBookingUiWarmup();
         initReviewsEngineWarmup();
         initGalleryInteractionsWarmup();
+        initChatUiEngineWarmup();
         initChatEngineWarmup();
         initChatBookingEngineWarmup();
         initUiEffectsWarmup();
@@ -2342,3 +2283,4 @@ document.addEventListener('DOMContentLoaded', function() {
         console.warn('Chatbot en modo offline: abre el sitio desde servidor para usar IA real.');
     }
 });
+
