@@ -988,7 +988,7 @@ function validateCasePhotoFiles(files) {
     if (files.length > MAX_CASE_PHOTOS) {
         throw new Error(
             currentLang === 'es'
-                ? `Puedes subir maximo ${MAX_CASE_PHOTOS} fotos.`
+                ? `Puedes subir m\u00E1ximo ${MAX_CASE_PHOTOS} fotos.`
                 : `You can upload up to ${MAX_CASE_PHOTOS} photos.`
         );
     }
@@ -999,7 +999,7 @@ function validateCasePhotoFiles(files) {
         if (file.size > MAX_CASE_PHOTO_BYTES) {
             throw new Error(
                 currentLang === 'es'
-                    ? `Cada foto debe pesar maximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
+                    ? `Cada foto debe pesar m\u00E1ximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
                     : `Each photo must be at most ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
             );
         }
@@ -1631,6 +1631,7 @@ const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
 const CHAT_HISTORY_MAX_ITEMS = 50;
 const CHAT_CONTEXT_MAX_ITEMS = 24;
 const CHAT_UI_ENGINE_URL = '/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1';
+const ACTION_ROUTER_ENGINE_URL = '/action-router-engine.js?v=figo-action-router-20260219-phase1';
 
 function getChatUiEngineDeps() {
     return {
@@ -1669,6 +1670,50 @@ function initChatUiEngineWarmup() {
     scheduleDeferredTask(warmup, {
         idleTimeout: 2600,
         fallbackDelay: 1300
+    });
+}
+
+function getActionRouterEngineDeps() {
+    return {
+        setThemeMode,
+        changeLanguage,
+        toggleMobileMenu,
+        startWebVideo,
+        openReviewModal,
+        closeReviewModal,
+        closeVideoModal,
+        closePaymentModal,
+        processPayment,
+        closeSuccessModal,
+        closeRescheduleModal,
+        submitReschedule,
+        toggleChatbot,
+        sendChatMessage,
+        handleChatBookingSelection,
+        sendQuickMessage,
+        minimizeChatbot,
+        startChatBooking,
+        handleChatDateSelect
+    };
+}
+
+function loadActionRouterEngine() {
+    return loadDeferredModule({
+        cacheKey: 'action-router-engine',
+        src: ACTION_ROUTER_ENGINE_URL,
+        scriptDataAttribute: 'data-action-router-engine',
+        resolveModule: () => window.PielActionRouterEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getActionRouterEngineDeps()),
+        missingApiError: 'action-router-engine loaded without API',
+        loadError: 'No se pudo cargar action-router-engine.js',
+        logLabel: 'Action router engine'
+    });
+}
+
+function initActionRouterEngine() {
+    runDeferredModule(loadActionRouterEngine, () => undefined, (error) => {
+        debugLog('Action router load failed:', error);
     });
 }
 
@@ -1784,7 +1829,7 @@ function toggleChatbot() {
                 welcomeMsg = 'Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
                 welcomeMsg += '<strong>Conectado con Inteligencia Artificial</strong><br><br>';
                 welcomeMsg += 'Puedo ayudarte con informacion detallada sobre:<br>';
-                welcomeMsg += '- Nuestros servicios dermatologicos<br>';
+                welcomeMsg += '- Nuestros servicios dermatol\u00F3gicos<br>';
                 welcomeMsg += '- Precios de consultas y tratamientos<br>';
                 welcomeMsg += '- Agendar citas presenciales o online<br>';
                 welcomeMsg += '- Ubicacion y horarios de atencion<br>';
@@ -1793,7 +1838,7 @@ function toggleChatbot() {
             } else {
                 welcomeMsg = 'Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
                 welcomeMsg += 'Puedo ayudarte con informacion sobre:<br>';
-                welcomeMsg += '- Nuestros servicios dermatologicos<br>';
+                welcomeMsg += '- Nuestros servicios dermatol\u00F3gicos<br>';
                 welcomeMsg += '- Precios de consultas y tratamientos<br>';
                 welcomeMsg += '- Agendar citas presenciales o online<br>';
                 welcomeMsg += '- Ubicacion y horarios de atencion<br><br>';
@@ -1876,78 +1921,6 @@ function addUserMessage(text) {
 function addBotMessage(html, showOfflineLabel = false) {
     return runDeferredModule(loadChatUiEngine, (engine) => engine.addBotMessage(html, showOfflineLabel));
 }
-// Delegated event handler for sanitized chat actions (replaces inline onclick)
-document.addEventListener('click', function(e) {
-    const actionEl = e.target.closest('[data-action]');
-    if (!actionEl) return;
-    const action = actionEl.getAttribute('data-action');
-    const value = actionEl.getAttribute('data-value') || '';
-    switch (action) {
-        case 'toast-close':
-            actionEl.closest('.toast')?.remove();
-            break;
-        case 'set-theme':
-            setThemeMode(value || 'system');
-            break;
-        case 'set-language':
-            changeLanguage(value || 'es');
-            break;
-        case 'toggle-mobile-menu':
-            toggleMobileMenu();
-            break;
-        case 'start-web-video':
-            startWebVideo();
-            break;
-        case 'open-review-modal':
-            openReviewModal();
-            break;
-        case 'close-review-modal':
-            closeReviewModal();
-            break;
-        case 'close-video-modal':
-            closeVideoModal();
-            break;
-        case 'close-payment-modal':
-            closePaymentModal();
-            break;
-        case 'process-payment':
-            processPayment();
-            break;
-        case 'close-success-modal':
-            closeSuccessModal();
-            break;
-        case 'close-reschedule-modal':
-            closeRescheduleModal();
-            break;
-        case 'submit-reschedule':
-            submitReschedule();
-            break;
-        case 'toggle-chatbot':
-            toggleChatbot();
-            break;
-        case 'send-chat-message':
-            sendChatMessage();
-            break;
-        case 'chat-booking':
-            handleChatBookingSelection(value);
-            break;
-        case 'quick-message':
-            sendQuickMessage(value);
-            break;
-        case 'minimize-chat':
-            minimizeChatbot();
-            break;
-        case 'start-booking':
-            startChatBooking();
-            break;
-    }
-});
-document.addEventListener('change', function(e) {
-    if (e.target.closest('[data-action="chat-date-select"]')) {
-        handleChatDateSelect(e.target.value);
-    }
-});
-
 function showTypingIndicator() {
     runDeferredModule(loadChatUiEngine, (engine) => engine.showTypingIndicator());
 }
@@ -2234,6 +2207,7 @@ function submitReschedule() {
 
 document.addEventListener('DOMContentLoaded', function() {
     disablePlaceholderExternalLinks();
+    initActionRouterEngine();
     initDeferredStylesheetLoading();
     initThemeMode();
     changeLanguage(currentLang);
