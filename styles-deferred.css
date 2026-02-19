@@ -2735,173 +2735,6 @@ html[data-theme='dark'] .toast-message {
 }
 
 /* ========================================
-   APPLE AIR VISUAL HOTFIX (LEGIBILIDAD)
-   ======================================== */
-.language-bar {
-    background: rgba(255, 255, 255, 0.9);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.nav {
-    background: rgba(255, 255, 255, 0.9);
-    border-color: rgba(0, 0, 0, 0.1);
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
-}
-
-.nav.scrolled {
-    background: rgba(255, 255, 255, 0.96);
-}
-
-.nav-logo,
-.nav-links a {
-    color: #1d1d1f;
-}
-
-.nav-links a:hover {
-    color: #000;
-}
-
-.hero {
-    background: linear-gradient(180deg, #fbfbfd 0%, #f5f5f7 100%);
-}
-
-.hero::before {
-    background:
-        radial-gradient(560px 260px at 22% 4%, rgba(0, 113, 227, 0.14), transparent 70%),
-        radial-gradient(520px 250px at 86% 84%, rgba(73, 176, 255, 0.12), transparent 72%);
-}
-
-.hero-bg-image {
-    opacity: 0.26;
-    filter: none;
-}
-
-.hero-title {
-    color: #1d1d1f;
-    text-shadow: none;
-}
-
-.gradient-text {
-    background: linear-gradient(90deg, #5ac8fa 0%, #0a84ff 55%, #30d158 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-}
-
-.hero-subtitle {
-    color: #424245;
-    text-shadow: none;
-}
-
-.hero-actions .btn-secondary {
-    background: #fff;
-    border-color: #d2d2d7;
-    color: #1d1d1f;
-}
-
-.contact-chip {
-    border-color: rgba(0, 0, 0, 0.1);
-    background: rgba(255, 255, 255, 0.9);
-    color: #1d1d1f;
-    backdrop-filter: none;
-}
-
-.contact-chip:hover {
-    border-color: rgba(0, 0, 0, 0.18);
-    background: #fff;
-}
-
-.contact-chip.whatsapp {
-    color: #1d1d1f;
-}
-
-.metric-card {
-    border-color: rgba(0, 0, 0, 0.1);
-    background: rgba(255, 255, 255, 0.9);
-}
-
-.metric-card strong {
-    color: #1d1d1f;
-}
-
-.metric-card span {
-    color: #6e6e73;
-}
-
-.section-gray {
-    background: #f5f5f7;
-}
-
-.section-light {
-    background: #fff;
-}
-
-.section-title {
-    color: #1d1d1f;
-}
-
-.section-subtitle {
-    color: #6e6e73;
-}
-
-html[data-theme='dark'] .hero {
-    background: linear-gradient(180deg, #0b0f17 0%, #111827 100%);
-}
-
-html[data-theme='dark'] .hero::before {
-    background:
-        linear-gradient(180deg, rgba(5, 8, 13, 0.42) 0%, rgba(6, 9, 14, 0.55) 100%),
-        radial-gradient(520px 260px at 16% 6%, rgba(10, 132, 255, 0.18), transparent 74%),
-        radial-gradient(520px 260px at 84% 86%, rgba(94, 92, 230, 0.18), transparent 74%);
-}
-
-html[data-theme='dark'] .hero-bg-image {
-    opacity: 0.2;
-    filter: none;
-}
-
-html[data-theme='dark'] .hero-title {
-    color: #f5f5f7;
-}
-
-html[data-theme='dark'] .hero-subtitle {
-    color: #d2d2d7;
-}
-
-html[data-theme='dark'] .contact-chip {
-    border-color: rgba(255, 255, 255, 0.18);
-    background: rgba(255, 255, 255, 0.08);
-    color: #f5f5f7;
-}
-
-html[data-theme='dark'] .contact-chip.whatsapp {
-    color: #f5f5f7;
-}
-
-html[data-theme='dark'] .metric-card {
-    border-color: rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.06);
-}
-
-html[data-theme='dark'] .metric-card strong {
-    color: #f5f5f7;
-}
-
-html[data-theme='dark'] .metric-card span {
-    color: #d2d2d7;
-}
-
-html[data-theme='dark'] .hero-title span:not(.gradient-text) {
-    color: #f5f5f7;
-}
-
-@media (max-width: 900px) {
-    .hero-bg-image {
-        opacity: 0.22;
-    }
-}
-
-/* ========================================
    HERO FINAL OVERRIDES (LEGIBILIDAD)
    ======================================== */
 .hero-title span:not(.gradient-text) {
@@ -2910,6 +2743,17 @@ html[data-theme='dark'] .hero-title span:not(.gradient-text) {
 
 html[data-theme='light'] .hero {
     background: linear-gradient(180deg, #fbfbfd 0%, #f5f5f7 100%) !important;
+}
+
+html[data-theme='light'] .hero::before {
+    background:
+        radial-gradient(560px 260px at 22% 4%, rgba(0, 113, 227, 0.14), transparent 70%),
+        radial-gradient(520px 250px at 86% 84%, rgba(73, 176, 255, 0.12), transparent 72%) !important;
+}
+
+html[data-theme='light'] .hero-bg-image {
+    opacity: 0.26 !important;
+    filter: none !important;
 }
 
 html[data-theme='light'] .hero-title {
@@ -2925,6 +2769,15 @@ html[data-theme='light'] .hero-subtitle {
 html[data-theme='light'] .contact-chip {
     border-color: rgba(0, 0, 0, 0.1) !important;
     background: rgba(255, 255, 255, 0.92) !important;
+    color: #1d1d1f !important;
+}
+
+html[data-theme='light'] .contact-chip:hover {
+    border-color: rgba(0, 0, 0, 0.18) !important;
+    background: #fff !important;
+}
+
+html[data-theme='light'] .contact-chip.whatsapp {
     color: #1d1d1f !important;
 }
 
@@ -2945,6 +2798,18 @@ html[data-theme='dark'] .hero {
     background: linear-gradient(180deg, #0b0f17 0%, #111827 100%) !important;
 }
 
+html[data-theme='dark'] .hero::before {
+    background:
+        linear-gradient(180deg, rgba(5, 8, 13, 0.42) 0%, rgba(6, 9, 14, 0.55) 100%),
+        radial-gradient(520px 260px at 16% 6%, rgba(10, 132, 255, 0.18), transparent 74%),
+        radial-gradient(520px 260px at 84% 86%, rgba(94, 92, 230, 0.18), transparent 74%) !important;
+}
+
+html[data-theme='dark'] .hero-bg-image {
+    opacity: 0.2 !important;
+    filter: none !important;
+}
+
 html[data-theme='dark'] .hero-title {
     color: #f5f5f7 !important;
     text-shadow: 0 4px 24px rgba(0, 0, 0, 0.45) !important;
@@ -2953,6 +2818,16 @@ html[data-theme='dark'] .hero-title {
 html[data-theme='dark'] .hero-subtitle {
     color: #d2d2d7 !important;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.32) !important;
+}
+
+html[data-theme='dark'] .contact-chip.whatsapp {
+    color: #f5f5f7 !important;
+}
+
+@media (max-width: 900px) {
+    html[data-theme='light'] .hero-bg-image {
+        opacity: 0.22 !important;
+    }
 }
 
 /* ========================================
