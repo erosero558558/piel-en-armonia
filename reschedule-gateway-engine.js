@@ -5,7 +5,7 @@
 (function () {
     'use strict';
 
-    const RESCHEDULE_ENGINE_URL = '/reschedule-engine.js?v=figo-reschedule-20260219-phase4-stateclass2';
+    const RESCHEDULE_ENGINE_URL = '/reschedule-engine.js?v=figo-reschedule-20260219-phase4-stateclass3';
     let deps = null;
 
     function init(inputDeps) {
