@@ -7,6 +7,7 @@ const { defineConfig } = require('@playwright/test');
  *   - Servidor PHP local: php -S localhost:8000 (y usar la URL por defecto)
  */
 const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8000';
+const shouldStartLocalServer = !process.env.TEST_BASE_URL;
 
 module.exports = defineConfig({
   testDir: './tests',
@@ -17,14 +18,14 @@ module.exports = defineConfig({
     headless: true,
     screenshot: 'only-on-failure',
   },
-  /* Descomenta si tienes PHP local:
-  webServer: {
-    command: 'php -S localhost:8000',
-    port: 8000,
-    reuseExistingServer: true,
-    timeout: 10000,
-  },
-  */
+  webServer: shouldStartLocalServer
+    ? {
+      command: 'python -m http.server 8000 --bind 127.0.0.1',
+      port: 8000,
+      reuseExistingServer: true,
+      timeout: 15000,
+    }
+    : undefined,
   projects: [
     {
       name: 'chromium',

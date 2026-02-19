@@ -2265,7 +2265,7 @@ async function processWithKimi(message) {
 }
 
 runDeferredModule(loadChatWidgetEngine, (engine) => engine.scheduleInitialNotification(30000));
-const APP_BOOTSTRAP_ENGINE_URL = '/app-bootstrap-engine.js?v=figo-bootstrap-20260219-phase2-events6';
+const APP_BOOTSTRAP_ENGINE_URL = '/app-bootstrap-engine.js?v=figo-bootstrap-20260219-phase2-events7';
 // ========================================
 // REPROGRAMACION ONLINE
 // ========================================
@@ -2381,6 +2381,7 @@ function getAppBootstrapEngineDeps() {
         initSuccessModalEngineWarmup,
         initEngagementFormsEngineWarmup,
         initModalUxEngineWarmup,
+        initNavigationEngineWarmup,
         handleChatKeypress,
         maybeTrackCheckoutAbandon,
         trackEvent,

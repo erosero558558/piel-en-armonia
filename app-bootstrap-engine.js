@@ -104,6 +104,7 @@
             callDep('initSuccessModalEngineWarmup');
             callDep('initEngagementFormsEngineWarmup');
             callDep('initModalUxEngineWarmup');
+            callDep('initNavigationEngineWarmup');
         });
 
         if (typeof initDeferredWarmups === 'function') {
