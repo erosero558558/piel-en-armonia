@@ -61,7 +61,10 @@ function api_resolve_figo_endpoint_for_health(): string
         if (!is_string($path) || $path === '' || !is_file($path)) {
             continue;
         }
-        $raw = @file_get_contents($path);
+        if (!is_readable($path)) {
+            continue;
+        }
+        $raw = file_get_contents($path);
         if (!is_string($raw) || trim($raw) === '') {
             continue;
         }
