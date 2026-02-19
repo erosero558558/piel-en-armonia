@@ -219,7 +219,7 @@ function getDoctorName(doctor) {
     const names = {
         rosero: 'Dr. Rosero',
         narvaez: 'Dra. Narváez',
-        indiferente: 'Cualquiera'
+        indiferente: 'Cualquiera disponible'
     };
     return names[doctor] || doctor;
 }

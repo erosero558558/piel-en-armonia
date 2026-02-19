@@ -79,7 +79,9 @@
                 ? 'Dr. Javier Rosero'
                 : doctorValue === 'narvaez'
                     ? 'Dra. Carolina Narvaez'
-                    : doctorValue;
+                    : doctorValue === 'indiferente'
+                        ? 'Cualquiera disponible'
+                        : doctorValue;
 
             info.innerHTML =
                 '<p><strong>' + t('Paciente', 'Patient') + ':</strong> ' + safe(rescheduleAppointment.name) + '</p>' +
@@ -140,7 +142,16 @@
             const availability = await deps.loadAvailabilityData();
             const daySlots = availability[selectedDate] || getDefaultTimeSlots();
             const booked = await deps.getBookedSlots(selectedDate, rescheduleAppointment.doctor || '');
-            const freeSlots = daySlots.filter((slot) => !booked.includes(slot));
+            const isToday = selectedDate === new Date().toISOString().split('T')[0];
+            const nowMinutes = isToday ? new Date().getHours() * 60 + new Date().getMinutes() : -1;
+            const freeSlots = daySlots.filter((slot) => {
+                if (booked.includes(slot)) return false;
+                if (isToday) {
+                    const [h, m] = slot.split(':').map(Number);
+                    if (h * 60 + m <= nowMinutes + 60) return false;
+                }
+                return true;
+            });
 
             timeSelect.innerHTML = '<option value="">' + t('Selecciona un horario', 'Select a time') + '</option>';
             freeSlots.forEach((slot) => {

@@ -15,7 +15,7 @@
     const CHAT_DOCTORS = [
         { key: 'rosero', label: 'Dr. Javier Rosero' },
         { key: 'narvaez', label: 'Dra. Carolina Narvaez' },
-        { key: 'indiferente', label: 'Cualquiera' }
+        { key: 'indiferente', label: 'Cualquiera disponible' }
     ];
 
     function getLang() {

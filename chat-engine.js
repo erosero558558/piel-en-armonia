@@ -152,7 +152,7 @@ function isGenericAssistantReply(text) {
     return matches >= 2;
 }
 
-function shouldRefineWithFigo(userMessage, botResponse) {
+function shouldRefineWithFigo(botResponse) {
     return isGenericAssistantReply(botResponse);
 }
 
@@ -161,20 +161,20 @@ const SYSTEM_PROMPT = `Eres el Dr. Virtual, asistente inteligente de la clinica 
 INFORMACION DE LA CLINICA:
 - Nombre: Piel en Armonia
 - Doctores: Dr. Javier Rosero (Dermatologo Clinico) y Dra. Carolina Narvaez (Dermatologa Estetica)
-- Direccion: Dr. Cecilio Caiza e hijas, Quito, Ecuador
+- Direccion: Valparaiso 13-183 y Sodiro, Consultorio Dr. Celio Caiza, Quito (Frente al Colegio de las Mercedarias, a 2 cuadras de la Maternidad Isidro Ayora)
 - Telefono/WhatsApp: 098 245 3672
 - Contacto Dra. Carolina: 098 786 6885 | caro93narvaez@gmail.com
 - Horario: Lunes-Viernes 9:00-18:00, Sabados 9:00-13:00
 - Estacionamiento privado disponible
 
-SERVICIOS Y PRECIOS:
-- Consulta Dermatologica: $40 (incluye IVA)
-- Consulta Telefonica: $25
-- Video Consulta: $30
-- Tratamiento Laser: desde $150
-- Rejuvenecimiento: desde $120
-- Tratamiento de Acne: desde $80
-- Deteccion de Cancer de Piel: desde $70
+SERVICIOS Y PRECIOS (con IVA 12%):
+- Consulta Dermatológica: $44.80
+- Consulta Telefónica: $28
+- Video Consulta: $33.60
+- Tratamiento Láser: desde $168
+- Rejuvenecimiento: desde $134.40
+- Tratamiento de Acné: desde $80
+- Detección de Cáncer de Piel: desde $70
 
 OPCIONES DE CONSULTA ONLINE:
 1. Llamada telefonica: tel:+593982453672
@@ -349,7 +349,7 @@ async function tryRealAI(message) {
         }
 
         const canRefine = primaryReply.mode === 'live' && primaryReply.source !== 'fallback';
-        if (canRefine && shouldRefineWithFigo(message, botResponse)) {
+        if (canRefine && shouldRefineWithFigo(botResponse)) {
             debugLog('Respuesta generica detectada, solicitando precision adicional a Figo');
 
             const precisionPrompt = `Tu respuesta anterior fue demasiado general.
@@ -404,16 +404,7 @@ Pregunta original del paciente: "${message}"`;
         console.error('Error con bot del servidor:', error);
         removeTypingIndicator();
         
-        // Mostrar error específico
-        if (error.message.includes('HTTP 503')) {
-            processLocalResponse(message, false);
-        } else if (error.message.includes('TIMEOUT')) {
-            processLocalResponse(message, false);
-        } else if (error.message.includes('Failed to fetch')) {
-            processLocalResponse(message, false);
-        } else {
-            processLocalResponse(message, false);
-        }
+        processLocalResponse(message, false);
     }
 }
 
@@ -472,28 +463,28 @@ Si quieres, te llevo directo a <a href="#citas" data-action="minimize-chat">Rese
     }
     // SERVICIOS
     else if (/servicio|tratamiento|hacen|ofrecen|que hacen/.test(lowerMsg)) {
-        response = 'Servicios dermatologicos:<br><br>';
+        response = 'Servicios dermatológicos:<br><br>';
         response += '<strong>Consultas:</strong><br>';
-        response += '• Presencial: $40<br>';
-        response += '• Telefonica: $25<br>';
-        response += '• Video: $30<br><br>';
+        response += '• Presencial: $44.80<br>';
+        response += '• Telefónica: $28<br>';
+        response += '• Video: $33.60<br><br>';
         response += '<strong>Tratamientos:</strong><br>';
-        response += '• Acne: desde $80<br>';
-        response += '• Laser: desde $150<br>';
-        response += '• Rejuvenecimiento: desde $120<br>';
+        response += '• Acné: desde $80<br>';
+        response += '• Láser: desde $168<br>';
+        response += '• Rejuvenecimiento: desde $134.40<br>';
         response += '• Detección de cáncer de piel: desde $70';
     }
     // PRECIOS
     else if (/precio|cuanto cuesta|valor|tarifa|costo/.test(lowerMsg)) {
         response = 'Precios (incluyen IVA 12%):<br><br>';
         response += '<strong>Consultas:</strong><br>';
-        response += '• Presencial: $40<br>';
-        response += '• Telefonica: $25<br>';
-        response += '• Video: $30<br><br>';
+        response += '• Presencial: $44.80<br>';
+        response += '• Telefónica: $28<br>';
+        response += '• Video: $33.60<br><br>';
         response += '<strong>Tratamientos (desde):</strong><br>';
-        response += '• Acne: $80<br>';
-        response += '• Laser: $150<br>';
-        response += '• Rejuvenecimiento: $120<br><br>';
+        response += '• Acné: $80<br>';
+        response += '• Láser: $168<br>';
+        response += '• Rejuvenecimiento: $134.40<br><br>';
         response += 'Para presupuesto preciso, agenda una consulta.';
     }
     // PAGOS

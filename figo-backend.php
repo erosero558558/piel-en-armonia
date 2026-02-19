@@ -21,7 +21,10 @@ function figo_backend_apply_cors(): void
     }
 
     $allowed = [];
-    $rawAllowed = getenv('PIELARMONIA_ALLOWED_ORIGINS');
+    $rawAllowed = getenv('PIELARMONIA_ALLOWED_ORIGIN');
+    if (!is_string($rawAllowed) || trim($rawAllowed) === '') {
+        $rawAllowed = getenv('PIELARMONIA_ALLOWED_ORIGINS');
+    }
     if (is_string($rawAllowed) && trim($rawAllowed) !== '') {
         foreach (explode(',', $rawAllowed) as $item) {
             $item = trim($item);
@@ -129,7 +132,7 @@ function figo_backend_ai_system_prompt(): string
         . "- Consulta presencial: \$40 | Telefonica: \$25 | Video: \$30\n"
         . "- Acne: desde \$80 | Laser: desde \$150 | Rejuvenecimiento: desde \$120\n"
         . "- Deteccion cancer de piel: desde \$70\n"
-        . "- Direccion: Av. Dr. Cecilio Caiza e Hijas N2-30 y Av. Amazonas, Quito\n"
+        . "- Direccion: Valparaiso 13-183 y Sodiro, Consultorio Dr. Celio Caiza, Quito (Frente al Colegio de las Mercedarias, a 2 cuadras de la Maternidad Isidro Ayora)\n"
         . "- Horario: L-V 9:00-18:00, Sab 9:00-13:00\n"
         . "- WhatsApp: 098 245 3672\n"
         . "- Doctores: Dr. Javier Rosero (dermatologo clinico), Dra. Carolina Narvaez (estetica/laser)\n"
@@ -296,7 +299,8 @@ function figo_backend_answer(string $userMessage): string
         '/\bhorario\b/'
     ])) {
         return "Estamos en Quito, Ecuador.\n"
-            . "Direccion: Av. Dr. Cecilio Caiza e Hijas N2-30 y Av. Amazonas.\n"
+            . "Direccion: Valparaiso 13-183 y Sodiro, Consultorio Dr. Celio Caiza.\n"
+            . "Referencia: Frente al Colegio de las Mercedarias, a 2 cuadras de la Maternidad Isidro Ayora.\n"
             . "Horario: Lunes a Viernes 09:00-18:00, Sabados 09:00-13:00.\n"
             . "Telefono/WhatsApp: 098 245 3672.";
     }

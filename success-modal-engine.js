@@ -35,7 +35,7 @@
         const names = {
             rosero: 'Dr. Javier Rosero',
             narvaez: 'Dra. Carolina Narvaez',
-            indiferente: 'Primera disponible'
+            indiferente: 'Cualquiera disponible'
         };
         return names[doctor] || doctor || '-';
     }

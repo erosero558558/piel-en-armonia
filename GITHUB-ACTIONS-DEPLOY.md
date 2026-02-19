@@ -17,6 +17,8 @@ En:
 
 Crea:
 - `FTP_PROTOCOL`: `ftps` (recomendado) o `ftp`
+- `FTP_SERVER_PORT`: `21` (FTP/FTPS) o `22` (SFTP si lo usas en otro flujo)
+- `FTP_SECURITY`: `strict` (o `loose` si tu FTPS usa certificado no valido)
 - `FTP_SERVER_DIR`: `/public_html/`
 - `PROD_URL`: `https://pielarmonia.com`
 
@@ -27,7 +29,9 @@ Opciones:
 - Manual: `Actions` -> `Deploy Hosting (FTP/FTPS)` -> `Run workflow`.
 
 Parametros manuales recomendados:
-- `protocol`: `ftps`
+- `protocol`: `ftp` (si te daba timeout con `ftps`, prueba primero `ftp`)
+- `server_port`: `21`
+- `security`: `strict` (usa `loose` solo si FTPS da error de certificado)
 - `server_dir`: `/public_html/`
 - `dry_run`: `false`
 - `clean_slate`: `false`
@@ -42,3 +46,6 @@ Despues del deploy:
 Si falla conexion FTP:
 - Revisa host, usuario, clave y puerto en tu proveedor.
 - Usa el host FTP del proveedor, no una URL proxied por Cloudflare.
+- Si ves `Timeout (control socket)`, el runner no llega al puerto remoto:
+  - cambia `protocol/port` (ej. `ftp:21`)
+  - pide al hosting habilitar acceso desde IPs de GitHub Actions

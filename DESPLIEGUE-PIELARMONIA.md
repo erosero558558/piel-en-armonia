@@ -6,14 +6,17 @@ Si desde tu PC no puedes subir por FTP/SFTP, usa el workflow:
 - `.github/workflows/deploy-hosting.yml`
 - `GITHUB-ACTIONS-DEPLOY.md` (paso a paso)
 
+Si tu hosting ya tiene sincronizacion por Git (pull automatico), ese metodo es el recomendado y mas seguro.
+
 Configura en GitHub (repo -> Settings -> Secrets and variables -> Actions):
 - Secrets: `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`
-- Variables opcionales: `FTP_PROTOCOL` (`ftps` recomendado), `FTP_SERVER_DIR` (`/public_html/`), `PROD_URL`
+- Variables opcionales: `FTP_PROTOCOL`, `FTP_SERVER_PORT`, `FTP_SECURITY`, `FTP_SERVER_DIR` (`/public_html/`), `PROD_URL`
 
 Uso:
 - Push a `main`: deploy automatico.
 - Manual: Actions -> `Deploy Hosting (FTP/FTPS)` -> `Run workflow`.
 - Prueba sin cambios: `dry_run = true`.
+- Si falla `Timeout (control socket)`: prueba `protocol=ftp`, `server_port=21`.
 
 ## Archivos a subir
 

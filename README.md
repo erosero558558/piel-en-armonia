@@ -111,12 +111,15 @@ Si no puedes subir archivos manualmente, deploy con:
 - `.github/workflows/deploy-hosting.yml`
 - `GITHUB-ACTIONS-DEPLOY.md` (paso a paso)
 
+Nota: si tu servidor ya hace `git pull`/sync automatico cada 5 minutos, usa ese flujo como principal y deja este workflow solo como respaldo manual.
+
 Configura en GitHub (repo -> Settings -> Secrets and variables -> Actions):
 - Secrets: `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`
-- Variables opcionales: `FTP_PROTOCOL`, `FTP_SERVER_DIR`, `PROD_URL`
+- Variables opcionales: `FTP_PROTOCOL`, `FTP_SERVER_PORT`, `FTP_SECURITY`, `FTP_SERVER_DIR`, `PROD_URL`
 
 Ejecucion:
 - `git push` a `main` para deploy automatico.
 - O `Actions -> Deploy Hosting (FTP/FTPS) -> Run workflow`.
 - Usa `dry_run = true` para validar sin subir.
+- Si falla `Timeout (control socket)`, prueba `protocol=ftp`, `server_port=21`.
 

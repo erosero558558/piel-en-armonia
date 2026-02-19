@@ -1236,7 +1236,7 @@ if ($method === 'PATCH' && $resource === 'reschedule') {
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $newDate)) {
         json_response(['ok' => false, 'error' => 'Formato de fecha inválido'], 400);
     }
-    if (strtotime($newDate) < strtotime(date('Y-m-d'))) {
+    if (strtotime($newDate) < strtotime(local_date('Y-m-d'))) {
         json_response(['ok' => false, 'error' => 'No puedes reprogramar a una fecha pasada'], 400);
     }
 

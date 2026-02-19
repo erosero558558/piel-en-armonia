@@ -1,15 +1,6 @@
 name: Deploy Hosting (FTP/FTPS)
 
 on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - "**/*.md"
-      - ".github/workflows/**"
-      - "tests/**"
-      - "test-results/**"
-      - "playwright.config.js"
   workflow_dispatch:
     inputs:
       protocol:
@@ -20,6 +11,19 @@ on:
         options:
           - ftps
           - ftp
+      server_port:
+        description: "Puerto remoto (21 FTP/FTPS, 22 SFTP)"
+        required: false
+        default: "21"
+        type: string
+      security:
+        description: "Validacion TLS para FTPS"
+        required: false
+        default: "strict"
+        type: choice
+        options:
+          - strict
+          - loose
       server_dir:
         description: "Directorio remoto en hosting"
         required: false
@@ -47,6 +51,8 @@ jobs:
     timeout-minutes: 20
     env:
       FTP_PROTOCOL: ${{ github.event.inputs.protocol || vars.FTP_PROTOCOL || 'ftps' }}
+      FTP_SERVER_PORT: ${{ github.event.inputs.server_port || vars.FTP_SERVER_PORT || '21' }}
+      FTP_SECURITY: ${{ github.event.inputs.security || vars.FTP_SECURITY || 'strict' }}
       FTP_SERVER_DIR: ${{ github.event.inputs.server_dir || vars.FTP_SERVER_DIR || '/public_html/' }}
       FTP_DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
       FTP_CLEAN_SLATE: ${{ github.event.inputs.clean_slate || 'false' }}
@@ -73,6 +79,21 @@ jobs:
             exit 1
           fi
 
+      - name: Preflight red (control socket)
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOST="${{ secrets.FTP_SERVER }}"
+          PORT="${FTP_SERVER_PORT}"
+          echo "Testeando conectividad TCP a ${HOST}:${PORT} ..."
+          if timeout 8 bash -c "cat < /dev/null > /dev/tcp/${HOST}/${PORT}" 2>/dev/null; then
+            echo "TCP OK en ${HOST}:${PORT}"
+          else
+            echo "::error::No se puede abrir ${HOST}:${PORT} desde GitHub Runner (timeout/control socket)."
+            echo "::error::Verifica puerto/protocolo correctos y firewall del hosting (allowlist para GitHub Actions)."
+            exit 1
+          fi
+
       - name: Deploy por FTP/FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
@@ -80,6 +101,8 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ${{ env.FTP_PROTOCOL }}
+          port: ${{ env.FTP_SERVER_PORT }}
+          security: ${{ env.FTP_SECURITY }}
           server-dir: ${{ env.FTP_SERVER_DIR }}
           local-dir: ./
           dangerous-clean-slate: ${{ env.FTP_CLEAN_SLATE }}
