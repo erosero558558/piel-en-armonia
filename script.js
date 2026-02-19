@@ -559,7 +559,7 @@ function getBookingEngineDeps() {
     };
 }
 
-const loadBookingEngine = createEngineLoader({
+const loadBookingEngineCore = createEngineLoader({
     cacheKey: 'booking-engine',
     src: BOOKING_ENGINE_URL,
     scriptDataAttribute: 'data-booking-engine',
@@ -569,6 +569,10 @@ const loadBookingEngine = createEngineLoader({
     loadError: 'No se pudo cargar booking-engine.js',
     logLabel: 'Booking engine'
 });
+
+function loadBookingEngine() {
+    return withDeferredModule(loadAnalyticsGatewayEngine, () => loadBookingEngineCore());
+}
 
 function initBookingEngineWarmup() {
     const warmup = createWarmupRunner(() => loadBookingEngine(), { markWarmOnSuccess: true });
@@ -728,8 +732,72 @@ const loadAnalyticsEngine = createEngineLoader({
     logLabel: 'Analytics engine'
 });
 
+function getAnalyticsGatewayEngineDeps() {
+    return {
+        loadAnalyticsEngine,
+        getAnalyticsEngine: () => window.PielAnalyticsEngine
+    };
+}
+
+const loadAnalyticsGatewayEngine = createEngineLoader({
+    cacheKey: 'analytics-gateway-engine',
+    src: ANALYTICS_GATEWAY_ENGINE_URL,
+    scriptDataAttribute: 'data-analytics-gateway-engine',
+    resolveModule: () => window.PielAnalyticsGatewayEngine,
+    depsFactory: getAnalyticsGatewayEngineDeps,
+    missingApiError: 'analytics-gateway-engine loaded without API',
+    loadError: 'No se pudo cargar analytics-gateway-engine.js',
+    logLabel: 'Analytics gateway engine'
+});
+
+function getDefaultCheckoutSession() {
+    return {
+        active: false,
+        completed: false,
+        startedAt: 0,
+        service: '',
+        doctor: ''
+    };
+}
+
+function getAnalyticsGatewayEngineApi() {
+    const engine = window.PielAnalyticsGatewayEngine;
+    if (
+        engine
+        && typeof engine.trackEvent === 'function'
+        && typeof engine.markBookingViewed === 'function'
+        && typeof engine.prefetchAvailabilityData === 'function'
+        && typeof engine.prefetchReviewsData === 'function'
+        && typeof engine.initBookingFunnelObserver === 'function'
+        && typeof engine.initDeferredSectionPrefetch === 'function'
+        && typeof engine.startCheckoutSession === 'function'
+        && typeof engine.getCheckoutSession === 'function'
+        && typeof engine.setCheckoutSessionActive === 'function'
+        && typeof engine.completeCheckoutSession === 'function'
+        && typeof engine.maybeTrackCheckoutAbandon === 'function'
+    ) {
+        return engine;
+    }
+    return null;
+}
+
+function runAnalyticsGatewayAction(actionName, args = [], onError) {
+    return runDeferredModule(
+        loadAnalyticsGatewayEngine,
+        (engine) => {
+            if (!engine || typeof engine[actionName] !== 'function') {
+                throw new Error(`Analytics gateway action unavailable: ${actionName}`);
+            }
+            return engine[actionName].apply(engine, Array.isArray(args) ? args : []);
+        },
+        onError
+    );
+}
+
 function trackEvent(eventName, params = {}) {
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.trackEvent(eventName, params));
+    return runAnalyticsGatewayAction('trackEvent', [eventName, params], () => {
+        runDeferredModule(loadAnalyticsEngine, (engine) => engine.trackEvent(eventName, params));
+    });
 }
 
 function normalizeAnalyticsLabel(value, fallback = 'unknown') {
@@ -745,73 +813,85 @@ function normalizeAnalyticsLabel(value, fallback = 'unknown') {
 }
 
 function markBookingViewed(source = 'unknown') {
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.markBookingViewed(source));
+    runAnalyticsGatewayAction('markBookingViewed', [source], () => {
+        runDeferredModule(loadAnalyticsEngine, (engine) => engine.markBookingViewed(source));
+    });
 }
 
 function prefetchAvailabilityData(source = 'unknown') {
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.prefetchAvailabilityData(source));
+    runAnalyticsGatewayAction('prefetchAvailabilityData', [source], () => {
+        runDeferredModule(loadAnalyticsEngine, (engine) => engine.prefetchAvailabilityData(source));
+    });
 }
 
 function prefetchReviewsData(source = 'unknown') {
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.prefetchReviewsData(source));
+    runAnalyticsGatewayAction('prefetchReviewsData', [source], () => {
+        runDeferredModule(loadAnalyticsEngine, (engine) => engine.prefetchReviewsData(source));
+    });
 }
 
 function initBookingFunnelObserver() {
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.initBookingFunnelObserver());
+    runAnalyticsGatewayAction('initBookingFunnelObserver', [], () => {
+        runDeferredModule(loadAnalyticsEngine, (engine) => engine.initBookingFunnelObserver());
+    });
 }
 
 function initDeferredSectionPrefetch() {
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.initDeferredSectionPrefetch());
+    runAnalyticsGatewayAction('initDeferredSectionPrefetch', [], () => {
+        runDeferredModule(loadAnalyticsEngine, (engine) => engine.initDeferredSectionPrefetch());
+    });
 }
 
 function startCheckoutSession(appointment) {
-    checkoutSessionFallback = {
-        active: true,
-        completed: false,
-        startedAt: Date.now(),
-        service: appointment?.service || '',
-        doctor: appointment?.doctor || ''
-    };
-
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.startCheckoutSession(appointment));
+    runAnalyticsGatewayAction('startCheckoutSession', [appointment], () => {
+        runDeferredModule(loadAnalyticsEngine, (engine) => engine.startCheckoutSession(appointment));
+    });
 }
 
 function getCheckoutSession() {
-    if (window.PielAnalyticsEngine && typeof window.PielAnalyticsEngine.getCheckoutSession === 'function') {
-        const session = window.PielAnalyticsEngine.getCheckoutSession();
-        if (session && typeof session === 'object') {
-            checkoutSessionFallback = {
-                active: session.active === true,
-                completed: session.completed === true,
-                startedAt: Number(session.startedAt) || 0,
-                service: String(session.service || ''),
-                doctor: String(session.doctor || '')
-            };
-        }
+    const gateway = getAnalyticsGatewayEngineApi();
+    if (gateway) {
+        const session = gateway.getCheckoutSession();
+        return session && typeof session === 'object'
+            ? session
+            : getDefaultCheckoutSession();
     }
 
-    return checkoutSessionFallback;
+    runDeferredModule(loadAnalyticsGatewayEngine, () => undefined);
+    return getDefaultCheckoutSession();
 }
 
 function setCheckoutSessionActive(active) {
-    checkoutSessionFallback.active = active === true;
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.setCheckoutSessionActive(active));
+    runAnalyticsGatewayAction('setCheckoutSessionActive', [active], () => {
+        runDeferredModule(loadAnalyticsEngine, (engine) => engine.setCheckoutSessionActive(active));
+    });
 }
 
 function completeCheckoutSession(method) {
-    if (!checkoutSessionFallback.active) {
-        return;
-    }
-    checkoutSessionFallback.completed = true;
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.completeCheckoutSession(method));
+    runAnalyticsGatewayAction('completeCheckoutSession', [method], () => {
+        runDeferredModule(loadAnalyticsEngine, (engine) => engine.completeCheckoutSession(method));
+    });
 }
 
 function maybeTrackCheckoutAbandon(reason = 'unknown') {
-    if (!checkoutSessionFallback.active || checkoutSessionFallback.completed) {
-        return;
-    }
+    runAnalyticsGatewayAction('maybeTrackCheckoutAbandon', [reason], () => {
+        runDeferredModule(loadAnalyticsEngine, (engine) => engine.maybeTrackCheckoutAbandon(reason));
+    });
+}
 
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.maybeTrackCheckoutAbandon(reason));
+function initAnalyticsGatewayEngineWarmup() {
+    const warmup = createWarmupRunner(() => loadAnalyticsGatewayEngine(), { markWarmOnSuccess: true });
+
+    bindWarmupTargetsBatch(warmup, [
+        { selector: '#appointmentForm', eventName: 'focusin', passive: false },
+        { selector: '#appointmentForm', eventName: 'pointerdown' },
+        { selector: '.nav-cta[href="#citas"]', eventName: 'pointerdown' }
+    ]);
+
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 1800,
+        fallbackDelay: 900
+    });
 }
 
 function getDataEngineDeps() {
@@ -1378,7 +1458,9 @@ const loadBookingUiCore = createEngineLoader({
 });
 
 function loadBookingUi() {
-    return withDeferredModule(loadBookingMediaEngine, () => loadBookingUiCore());
+    return withDeferredModule(loadBookingMediaEngine, () =>
+        withDeferredModule(loadAnalyticsGatewayEngine, () => loadBookingUiCore())
+    );
 }
 
 function initBookingUiWarmup() {
@@ -2082,7 +2164,7 @@ async function processWithKimi(message) {
 }
 
 runDeferredModule(loadChatWidgetEngine, (engine) => engine.scheduleInitialNotification(30000));
-const APP_BOOTSTRAP_ENGINE_URL = '/app-bootstrap-engine.js?v=figo-bootstrap-20260219-phase2-events4';
+const APP_BOOTSTRAP_ENGINE_URL = '/app-bootstrap-engine.js?v=figo-bootstrap-20260219-phase2-events5';
 // ========================================
 // REPROGRAMACION ONLINE
 // ========================================
@@ -2181,6 +2263,7 @@ function getAppBootstrapEngineDeps() {
         initEnglishBundleWarmup,
         initDataEngineWarmup,
         initDataGatewayEngineWarmup,
+        initAnalyticsGatewayEngineWarmup,
         initBookingEngineWarmup,
         initBookingMediaEngineWarmup,
         initPaymentGatewayEngineWarmup,
