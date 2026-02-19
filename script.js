@@ -360,7 +360,7 @@ function createEngineLoader(config = {}) {
     };
 }
 
-const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred12-cspinline1-stateclass1';
+const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred12-cspinline1-stateclass2';
 
 let deferredStylesheetPromise = null;
 let deferredStylesheetInitDone = false;
@@ -527,7 +527,7 @@ function initEnglishBundleWarmup() {
     }
 }
 
-const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2-stateclass1';
+const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260219-phase1-analytics2-transferretry2-stateclass2';
 const BOOKING_MEDIA_ENGINE_URL = '/booking-media-engine.js?v=figo-booking-media-20260219-phase1';
 const PAYMENT_GATEWAY_ENGINE_URL = '/payment-gateway-engine.js?v=figo-payment-gateway-20260219-phase1';
 const NAVIGATION_ENGINE_URL = '/navigation-engine.js?v=figo-navigation-20260219-phase1';
@@ -1519,7 +1519,7 @@ function closeVideoModal() {
 // ========================================
 // GALLERY INTERACTIONS (DEFERRED MODULE)
 // ========================================
-const GALLERY_INTERACTIONS_URL = '/gallery-interactions.js?v=figo-gallery-20260218-phase4';
+const GALLERY_INTERACTIONS_URL = '/gallery-interactions.js?v=figo-gallery-20260219-phase5';
 
 const loadGalleryInteractions = createEngineLoader({
     cacheKey: 'gallery-interactions',
@@ -1557,7 +1557,7 @@ function initGalleryInteractionsWarmup() {
 // ========================================
 // APPOINTMENT FORM (DEFERRED MODULE)
 // ========================================
-const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260218-phase4-stateclass1';
+const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260219-phase4-stateclass2';
 
 function getBookingUiDeps() {
     return {
@@ -1662,7 +1662,7 @@ async function processPayment() {
 // ========================================
 // SUCCESS MODAL (DEFERRED MODULE)
 // ========================================
-const SUCCESS_MODAL_ENGINE_URL = '/success-modal-engine.js?v=figo-success-modal-20260218-phase1-inlineclass1';
+const SUCCESS_MODAL_ENGINE_URL = '/success-modal-engine.js?v=figo-success-modal-20260219-phase1-inlineclass2';
 
 function getSuccessModalEngineDeps() {
     return {
@@ -1718,7 +1718,7 @@ function closeSuccessModal() {
 // ========================================
 // CALLBACK + REVIEW FORMS (DEFERRED MODULE)
 // ========================================
-const ENGAGEMENT_FORMS_ENGINE_URL = '/engagement-forms-engine.js?v=figo-engagement-20260218-phase1';
+const ENGAGEMENT_FORMS_ENGINE_URL = '/engagement-forms-engine.js?v=figo-engagement-20260219-phase2';
 
 function getEngagementFormsEngineDeps() {
     return {
@@ -1792,7 +1792,7 @@ function closeReviewModal() {
 
 // MODAL CLOSE HANDLERS (DEFERRED MODULE)
 // ========================================
-const MODAL_UX_ENGINE_URL = '/modal-ux-engine.js?v=figo-modal-ux-20260218-phase1';
+const MODAL_UX_ENGINE_URL = '/modal-ux-engine.js?v=figo-modal-ux-20260219-phase2';
 
 function getModalUxEngineDeps() {
     return {
@@ -2133,7 +2133,7 @@ function escapeHtml(text) {
 // ========================================
 // BOOKING CONVERSACIONAL DESDE CHATBOT (DEFERRED MODULE)
 // ========================================
-const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260219-phase2-inlinefix1';
+const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260219-phase2-inlinefix2';
 
 function getChatBookingEngineDeps() {
     return {
@@ -2237,7 +2237,7 @@ function isChatBookingActive() {
 
 const loadFigoChatEngine = createEngineLoader({
     cacheKey: 'figo-chat-engine',
-    src: '/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1',
+    src: '/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap2',
     scriptDataAttribute: 'data-figo-chat-engine',
     resolveModule: () => window.FigoChatEngine,
     isModuleReady: (module) => !!module,
@@ -2255,7 +2255,7 @@ function initChatEngineWarmup() {
     });
 }
 
-const UI_EFFECTS_URL = '/ui-effects.js?v=figo-ui-20260218-phase4';
+const UI_EFFECTS_URL = '/ui-effects.js?v=figo-ui-20260219-phase5';
 
 const loadUiEffects = createEngineLoader({
     cacheKey: 'ui-effects',

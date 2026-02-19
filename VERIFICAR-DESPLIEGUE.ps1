@@ -43,7 +43,10 @@ function Get-Url {
 }
 
 function Get-RemoteSha256 {
-    param([string]$Url)
+    param(
+        [string]$Url,
+        [switch]$NormalizeText
+    )
 
     $tmp = New-TemporaryFile
     try {
@@ -51,6 +54,15 @@ function Get-RemoteSha256 {
         if ($LASTEXITCODE -ne 0) {
             throw "No se pudo descargar $Url"
         }
+
+        if ($NormalizeText) {
+            $text = [string](Get-Content -Path $tmp -Raw)
+            $normalized = $text -replace "`r`n", "`n" -replace "`r", "`n"
+            $bytes = [System.Text.Encoding]::UTF8.GetBytes($normalized)
+            $sha = [System.Security.Cryptography.SHA256]::Create()
+            return ([System.BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant()
+        }
+
         return (Get-FileHash -Algorithm SHA256 -Path $tmp).Hash.ToLowerInvariant()
     } finally {
         Remove-Item -Force -ErrorAction SilentlyContinue $tmp
@@ -58,10 +70,22 @@ function Get-RemoteSha256 {
 }
 
 function Get-LocalSha256 {
-    param([string]$Path)
+    param(
+        [string]$Path,
+        [switch]$NormalizeText
+    )
     if (-not (Test-Path $Path)) {
         return ''
     }
+
+    if ($NormalizeText) {
+        $text = [string](Get-Content -Path $Path -Raw)
+        $normalized = $text -replace "`r`n", "`n" -replace "`r", "`n"
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($normalized)
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        return ([System.BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant()
+    }
+
     return (Get-FileHash -Algorithm SHA256 -Path $Path).Hash.ToLowerInvariant()
 }
 
@@ -570,8 +594,8 @@ $checks = @(
     }
 )
 foreach ($item in $checks) {
-    $localHash = Get-LocalSha256 -Path $item.LocalPath
-    $remoteHash = Get-RemoteSha256 -Url $item.RemoteUrl
+    $localHash = Get-LocalSha256 -Path $item.LocalPath -NormalizeText
+    $remoteHash = Get-RemoteSha256 -Url $item.RemoteUrl -NormalizeText
     $match = ($localHash -ne '' -and $localHash -eq $remoteHash)
     $results += [PSCustomObject]@{
         Asset = $item.Name

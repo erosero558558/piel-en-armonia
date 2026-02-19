@@ -7,7 +7,7 @@
 
     let deps = null;
     const I18N_HTML_ALLOWED_KEYS = new Set(['clinic_hours']);
-    const EN_TRANSLATIONS_URL = '/translations-en.js?v=ui-20260218-i18n-en1';
+    const EN_TRANSLATIONS_URL = '/translations-en.js?v=ui-20260219-i18n-en2';
 
     const translations = {
         es: null,
