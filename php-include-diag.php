@@ -20,9 +20,29 @@ if (is_file($autoloadFile)) {
 }
 
 $envFile = __DIR__ . DIRECTORY_SEPARATOR . 'env.php';
-if (is_file($envFile)) {
-    require_once $envFile;
-    diag_step('env.php');
+if (is_file($envFile) && is_readable($envFile)) {
+    $loaded = 0;
+    $envLines = @file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if (is_array($envLines)) {
+        foreach ($envLines as $rawLine) {
+            $line = trim((string) $rawLine);
+            $prefix2 = substr($line, 0, 2);
+            $prefix1 = substr($line, 0, 1);
+            if ($line === '' || $prefix2 === '//' || $prefix1 === '#' || $prefix2 === '/*' || $prefix1 === '*') {
+                continue;
+            }
+            if (!preg_match('/^putenv\(\s*([\'"])(.+)\1\s*\)\s*;\s*$/', $line, $matches)) {
+                continue;
+            }
+            $pair = $matches[2];
+            if (strpos($pair, '=') === false) {
+                continue;
+            }
+            @putenv($pair);
+            $loaded++;
+        }
+    }
+    diag_step("env.php(parsed={$loaded})");
 }
 
 require_once __DIR__ . '/lib/common.php';
