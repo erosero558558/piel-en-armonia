@@ -523,7 +523,7 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
     border: 1px solid var(--ui-border);
     background: rgba(255, 255, 255, 0.9);
     box-shadow: var(--ui-shadow-sm);
-    padding: 28px 24px;
+    padding: 32px 28px;
     transition: transform var(--ui-ease), box-shadow var(--ui-ease), border-color var(--ui-ease);
 }
 
@@ -594,7 +594,7 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
     border: 1px solid var(--ui-border);
     background: rgba(255, 255, 255, 0.95);
     box-shadow: var(--ui-shadow-sm);
-    padding: 26px 24px;
+    padding: 32px 28px;
     transition: transform var(--ui-ease), box-shadow var(--ui-ease);
 }
 
@@ -1175,10 +1175,10 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
 
 .review-card {
     border-radius: var(--ui-radius);
-    border: 1px solid #d6e2f3;
+    border: 1px solid var(--ui-border);
     background: rgba(255, 255, 255, 0.94);
     box-shadow: var(--ui-shadow-sm);
-    padding: 22px 20px;
+    padding: 26px 24px;
 }
 
 .review-header {
