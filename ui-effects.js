@@ -78,10 +78,36 @@
         applyScrollState();
     }
 
+    function initServicesCarousel() {
+        const wrapper = document.querySelector('.services-carousel-wrapper');
+        if (!wrapper) return;
+
+        const container = wrapper.querySelector('.services-carousel');
+        const prevBtn = wrapper.querySelector('[data-action="carousel-prev"]');
+        const nextBtn = wrapper.querySelector('[data-action="carousel-next"]');
+
+        if (!container || !prevBtn || !nextBtn) return;
+
+        const getScrollAmount = () => {
+            const card = container.querySelector('.service-card');
+            // width + gap (20px)
+            return card ? card.offsetWidth + 20 : 320;
+        };
+
+        prevBtn.addEventListener('click', () => {
+            container.scrollBy({ left: -getScrollAmount(), behavior: 'smooth' });
+        });
+
+        nextBtn.addEventListener('click', () => {
+            container.scrollBy({ left: getScrollAmount(), behavior: 'smooth' });
+        });
+    }
+
     function initDeferredVisualEffects() {
         const run = () => {
             initScrollAnimations();
             initParallax();
+            initServicesCarousel();
         };
 
         if (typeof window.requestIdleCallback === 'function') {

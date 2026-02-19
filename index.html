@@ -314,98 +314,106 @@
             <h2 class="section-title" data-i18n="services_title">Nuestros Servicios</h2>
             <p class="section-subtitle" data-i18n="services_subtitle">Tratamientos dermatológicos de excelencia</p>
         </div>
-        <div class="services-grid">
-            <div class="service-card">
-                <div class="service-card-img">
-                    <picture>
-                        <source type="image/avif" srcset="images/optimized/service-consulta.avif">
-                        <source type="image/webp" srcset="images/optimized/service-consulta.webp">
-                        <img src="images/optimized/service-consulta.jpg" alt="Consulta dermatológica" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
-                    </picture>
+        <div class="services-carousel-wrapper">
+            <button class="carousel-btn prev" aria-label="Anterior" data-action="carousel-prev">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="services-carousel" id="servicesCarousel">
+                <div class="service-card">
+                    <div class="service-card-img">
+                        <picture>
+                            <source type="image/avif" srcset="images/optimized/service-consulta.avif">
+                            <source type="image/webp" srcset="images/optimized/service-consulta.webp">
+                            <img src="images/optimized/service-consulta.jpg" alt="Consulta dermatológica" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
+                        </picture>
+                    </div>
+                    <div class="service-icon">
+                        <i class="fas fa-stethoscope"></i>
+                    </div>
+                    <h3 data-i18n="service_consulta">Consulta Dermatológica</h3>
+                    <p data-i18n="service_consulta_desc">Evaluación completa de tu piel con diagnóstico preciso y plan de tratamiento personalizado.</p>
+                    <span class="service-price">$40</span>
                 </div>
-                <div class="service-icon">
-                    <i class="fas fa-stethoscope"></i>
+                <div class="service-card featured">
+                    <div class="service-badge" data-i18n="badge_popular">Popular</div>
+                    <div class="service-card-img">
+                        <picture>
+                            <source type="image/avif" srcset="images/optimized/service-telemedicina.avif">
+                            <source type="image/webp" srcset="images/optimized/service-telemedicina.webp">
+                            <img src="images/optimized/service-telemedicina.jpg" alt="Telemedicina" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
+                        </picture>
+                    </div>
+                    <div class="service-icon">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <h3 data-i18n="service_telemedicina">Telemedicina</h3>
+                    <p data-i18n="service_telemedicina_desc">Consulta médica desde la comodidad de tu hogar por teléfono o videollamada.</p>
+                    <span class="service-price">$25 - $30</span>
                 </div>
-                <h3 data-i18n="service_consulta">Consulta Dermatológica</h3>
-                <p data-i18n="service_consulta_desc">Evaluación completa de tu piel con diagnóstico preciso y plan de tratamiento personalizado.</p>
-                <span class="service-price">$40</span>
+                <div class="service-card">
+                    <div class="service-card-img">
+                        <picture>
+                            <source type="image/avif" srcset="images/optimized/service-laser.avif">
+                            <source type="image/webp" srcset="images/optimized/service-laser.webp">
+                            <img src="images/optimized/service-laser.jpg" alt="Láser dermatológico" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
+                        </picture>
+                    </div>
+                    <div class="service-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3 data-i18n="service_laser">Láser Dermatológico</h3>
+                    <p data-i18n="service_laser_desc">Tratamientos con láser de última generación para diversas afecciones de la piel.</p>
+                    <span class="service-price" data-i18n="price_from">Desde $150</span>
+                </div>
+                <div class="service-card">
+                    <div class="service-card-img">
+                        <picture>
+                            <source type="image/avif" srcset="images/optimized/service-rejuvenecimiento.avif">
+                            <source type="image/webp" srcset="images/optimized/service-rejuvenecimiento.webp">
+                            <img src="images/optimized/service-rejuvenecimiento.jpg" alt="Rejuvenecimiento facial" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
+                        </picture>
+                    </div>
+                    <div class="service-icon">
+                        <i class="fas fa-wand-magic-sparkles"></i>
+                    </div>
+                    <h3 data-i18n="service_rejuvenation">Rejuvenecimiento</h3>
+                    <p data-i18n="service_rejuvenation_desc">Tratamientos estéticos para recuperar la juventud y luminosidad de tu piel.</p>
+                    <span class="service-price" data-i18n="price_from">Desde $120</span>
+                </div>
+                <div class="service-card">
+                    <div class="service-card-img">
+                        <picture>
+                            <source type="image/avif" srcset="images/optimized/service-acne.avif">
+                            <source type="image/webp" srcset="images/optimized/service-acne.webp">
+                            <img src="images/optimized/service-acne.jpg" alt="Tratamiento de acne" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
+                        </picture>
+                    </div>
+                    <div class="service-icon">
+                        <i class="fas fa-shield-virus"></i>
+                    </div>
+                    <h3 data-i18n="service_acne">Tratamiento de Acné</h3>
+                    <p data-i18n="service_acne_desc">Soluciones efectivas para controlar y eliminar el acné en todas sus formas.</p>
+                    <span class="service-price" data-i18n="price_from">Desde $80</span>
+                </div>
+                <div class="service-card">
+                    <div class="service-card-img">
+                        <picture>
+                            <source type="image/avif" srcset="images/optimized/service-cancer.avif">
+                            <source type="image/webp" srcset="images/optimized/service-cancer.webp">
+                            <img src="images/optimized/service-cancer.jpg" alt="Deteccion de cancer de piel" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
+                        </picture>
+                    </div>
+                    <div class="service-icon">
+                        <i class="fas fa-microscope"></i>
+                    </div>
+                    <h3 data-i18n="service_cancer">Detección de Cáncer de Piel</h3>
+                    <p data-i18n="service_cancer_desc">Examen dermatoscópico completo para detección temprana de lesiones sospechosas.</p>
+                    <span class="service-price" data-i18n="price_from">Desde $70</span>
+                </div>
             </div>
-            <div class="service-card featured">
-                <div class="service-badge" data-i18n="badge_popular">Popular</div>
-                <div class="service-card-img">
-                    <picture>
-                        <source type="image/avif" srcset="images/optimized/service-telemedicina.avif">
-                        <source type="image/webp" srcset="images/optimized/service-telemedicina.webp">
-                        <img src="images/optimized/service-telemedicina.jpg" alt="Telemedicina" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
-                    </picture>
-                </div>
-                <div class="service-icon">
-                    <i class="fas fa-video"></i>
-                </div>
-                <h3 data-i18n="service_telemedicina">Telemedicina</h3>
-                <p data-i18n="service_telemedicina_desc">Consulta médica desde la comodidad de tu hogar por teléfono o videollamada.</p>
-                <span class="service-price">$25 - $30</span>
-            </div>
-            <div class="service-card">
-                <div class="service-card-img">
-                    <picture>
-                        <source type="image/avif" srcset="images/optimized/service-laser.avif">
-                        <source type="image/webp" srcset="images/optimized/service-laser.webp">
-                        <img src="images/optimized/service-laser.jpg" alt="Láser dermatológico" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
-                    </picture>
-                </div>
-                <div class="service-icon">
-                    <i class="fas fa-bolt"></i>
-                </div>
-                <h3 data-i18n="service_laser">Láser Dermatológico</h3>
-                <p data-i18n="service_laser_desc">Tratamientos con láser de última generación para diversas afecciones de la piel.</p>
-                <span class="service-price" data-i18n="price_from">Desde $150</span>
-            </div>
-            <div class="service-card">
-                <div class="service-card-img">
-                    <picture>
-                        <source type="image/avif" srcset="images/optimized/service-rejuvenecimiento.avif">
-                        <source type="image/webp" srcset="images/optimized/service-rejuvenecimiento.webp">
-                        <img src="images/optimized/service-rejuvenecimiento.jpg" alt="Rejuvenecimiento facial" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
-                    </picture>
-                </div>
-                <div class="service-icon">
-                    <i class="fas fa-wand-magic-sparkles"></i>
-                </div>
-                <h3 data-i18n="service_rejuvenation">Rejuvenecimiento</h3>
-                <p data-i18n="service_rejuvenation_desc">Tratamientos estéticos para recuperar la juventud y luminosidad de tu piel.</p>
-                <span class="service-price" data-i18n="price_from">Desde $120</span>
-            </div>
-            <div class="service-card">
-                <div class="service-card-img">
-                    <picture>
-                        <source type="image/avif" srcset="images/optimized/service-acne.avif">
-                        <source type="image/webp" srcset="images/optimized/service-acne.webp">
-                        <img src="images/optimized/service-acne.jpg" alt="Tratamiento de acne" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
-                    </picture>
-                </div>
-                <div class="service-icon">
-                    <i class="fas fa-shield-virus"></i>
-                </div>
-                <h3 data-i18n="service_acne">Tratamiento de Acné</h3>
-                <p data-i18n="service_acne_desc">Soluciones efectivas para controlar y eliminar el acné en todas sus formas.</p>
-                <span class="service-price" data-i18n="price_from">Desde $80</span>
-            </div>
-            <div class="service-card">
-                <div class="service-card-img">
-                    <picture>
-                        <source type="image/avif" srcset="images/optimized/service-cancer.avif">
-                        <source type="image/webp" srcset="images/optimized/service-cancer.webp">
-                        <img src="images/optimized/service-cancer.jpg" alt="Deteccion de cancer de piel" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
-                    </picture>
-                </div>
-                <div class="service-icon">
-                    <i class="fas fa-microscope"></i>
-                </div>
-                <h3 data-i18n="service_cancer">Detección de Cáncer de Piel</h3>
-                <p data-i18n="service_cancer_desc">Examen dermatoscópico completo para detección temprana de lesiones sospechosas.</p>
-                <span class="service-price" data-i18n="price_from">Desde $70</span>
-            </div>
+            <button class="carousel-btn next" aria-label="Siguiente" data-action="carousel-next">
+                <i class="fas fa-chevron-right"></i>
+            </button>
         </div>
     </section>
 
