@@ -9,7 +9,6 @@ uploads/
 node_modules/
 test-results/
 playwright-report/
-_deploy_bundle/
 
 # PHP Composer
 vendor/
@@ -17,4 +16,4 @@ vendor/
 # Sistema
 .DS_Store
 Thumbs.db
-*.log
+php_server.log

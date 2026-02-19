@@ -8,6 +8,18 @@ const ADMIN_PASSWORD = process.env.PIELARMONIA_ADMIN_PASSWORD || 'admin123';
 
 test.describe('Checklist de Pruebas en Producción', () => {
 
+  test.beforeAll(async () => {
+    // Clear rate limit directory to avoid 429 errors during testing
+    const rateLimitDir = path.join(__dirname, '../data/ratelimit');
+    if (fs.existsSync(rateLimitDir)) {
+        try {
+            fs.rmSync(rateLimitDir, { recursive: true, force: true });
+        } catch (e) {
+            console.warn('Could not clear rate limit dir:', e.message);
+        }
+    }
+  });
+
   // 1. Pre-check de servidor (archivos, variables, permisos)
   test('1. Pre-check de servidor - Archivos críticos existen', async () => {
     const requiredFiles = [
@@ -170,6 +182,7 @@ test.describe('Checklist de Pruebas en Producción', () => {
     const callbackInputs = page.locator('input[name="telefono"], input[name="phone"]');
     // Verificar si hay algún formulario de "te llamamos"
     // Esto depende de la UI específica
+    await expect(callbackInputs.first()).toBeVisible();
   });
 
   // 6. Flujo de reseñas
