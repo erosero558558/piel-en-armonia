@@ -791,7 +791,10 @@ function verify_admin_password(string $password): bool
 
 function truncate_field(string $value, int $maxLength): string
 {
-    return mb_strlen($value) > $maxLength ? mb_substr($value, 0, $maxLength) : $value;
+    if (function_exists('mb_strlen')) {
+        return mb_strlen($value) > $maxLength ? mb_substr($value, 0, $maxLength) : $value;
+    }
+    return strlen($value) > $maxLength ? substr($value, 0, $maxLength) : $value;
 }
 
 function normalize_string_list(mixed $value, int $maxItems = 5, int $maxLength = 300): array

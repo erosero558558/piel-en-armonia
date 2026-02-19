@@ -195,7 +195,16 @@
                     const allSlots = Array.isArray(availability[input]) && availability[input].length > 0
                         ? availability[input]
                         : FALLBACK_SLOTS;
-                    const freeSlots = allSlots.filter((slot) => !booked.includes(slot)).sort();
+                    const isToday = input === new Date().toISOString().split('T')[0];
+                    const nowMinutes = isToday ? new Date().getHours() * 60 + new Date().getMinutes() : -1;
+                    const freeSlots = allSlots.filter((slot) => {
+                        if (booked.includes(slot)) return false;
+                        if (isToday) {
+                            const [h, m] = slot.split(':').map(Number);
+                            if (h * 60 + m <= nowMinutes + 60) return false;
+                        }
+                        return true;
+                    }).sort();
 
                     if (deps && typeof deps.removeTypingIndicator === 'function') {
                         deps.removeTypingIndicator();

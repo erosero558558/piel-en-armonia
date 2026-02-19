@@ -68,7 +68,16 @@
             const availability = await deps.loadAvailabilityData();
             const bookedSlots = await deps.getBookedSlots(selectedDate, selectedDoctor);
             const availableSlots = availability[selectedDate] || deps.getDefaultTimeSlots();
-            const freeSlots = availableSlots.filter((slot) => !bookedSlots.includes(slot));
+            const isToday = selectedDate === new Date().toISOString().split('T')[0];
+            const nowMinutes = isToday ? new Date().getHours() * 60 + new Date().getMinutes() : -1;
+            const freeSlots = availableSlots.filter((slot) => {
+                if (bookedSlots.includes(slot)) return false;
+                if (isToday) {
+                    const [h, m] = slot.split(':').map(Number);
+                    if (h * 60 + m <= nowMinutes + 60) return false;
+                }
+                return true;
+            });
 
             const currentValue = timeSelect.value;
             timeSelect.innerHTML = '<option value="">Hora</option>';

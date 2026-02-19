@@ -2684,31 +2684,6 @@ html[data-theme='dark'] .toast-message {
 }
 
 @media (max-width: 1140px) {
-    .nav-content {
-        padding: 0 20px;
-    }
-
-    .nav-links {
-        gap: 14px;
-    }
-
-    .section-header,
-    .services-grid,
-    .telemedicine-options,
-    .callback-box,
-    .team-grid,
-    .gallery-filter,
-    .gallery-grid,
-    .clinic-container,
-    .reviews-grid,
-    .reviews-actions,
-    .appointment-container,
-    .footer-content,
-    .footer-bottom,
-    .hero-content {
-        width: min(1140px, calc(100% - 26px));
-    }
-
     .services-grid,
     .telemedicine-options,
     .reviews-grid {
@@ -2721,16 +2696,6 @@ html[data-theme='dark'] .toast-message {
 
     .callback-form {
         grid-template-columns: 1fr;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation: none !important;
-        transition: none !important;
-        scroll-behavior: auto !important;
     }
 }
 
@@ -3546,100 +3511,10 @@ html[data-theme='dark'] .showcase-eyebrow {
 }
 
 @media (max-width: 640px) {
-    html {
-        scroll-padding-top: 130px;
-    }
-
-    .language-bar {
-        height: auto;
-        padding: calc(6px + var(--safe-top)) 0 6px;
-    }
-
-    .language-options {
-        width: calc(100% - 14px);
-        flex-wrap: wrap;
-        row-gap: 6px;
-    }
-
-    .theme-options {
-        flex: 1;
-        min-width: 0;
-        overflow-x: auto;
-        scrollbar-width: none;
-    }
-
-    .theme-options::-webkit-scrollbar {
-        display: none;
-    }
-
-    .lang-switch {
-        margin-left: auto;
-        flex-shrink: 0;
-    }
-
-    .theme-btn,
-    .lang-btn {
-        font-size: 0.73rem;
-        padding: 4px 8px;
-        letter-spacing: 0.02em;
-    }
-
-    .nav {
-        top: calc(58px + var(--safe-top));
-        width: calc(100% - 12px);
-    }
-
-    .mobile-menu {
-        top: calc(122px + var(--safe-top));
-    }
-
-    .mobile-menu a {
-        font-size: 0.98rem;
-        padding: 13px 12px;
-    }
-
-    .hero {
-        padding-top: calc(150px + var(--safe-top));
-        padding-bottom: 70px;
-    }
-
-    .hero-title {
-        font-size: clamp(1.9rem, 10.6vw, 2.6rem);
-    }
-
-    .hero-subtitle {
-        font-size: 0.98rem;
-        max-width: 30ch;
-    }
-
     .services-grid,
     .telemedicine-options,
     .reviews-grid {
         grid-template-columns: 1fr;
-    }
-
-    .hero-actions {
-        display: grid;
-        grid-template-columns: 1fr;
-        width: min(100%, 320px);
-    }
-
-    .hero-actions .btn {
-        width: 100%;
-        min-height: 50px;
-        font-size: 0.97rem;
-    }
-
-    .hero-contact-bar {
-        display: grid;
-        grid-template-columns: 1fr;
-        width: min(100%, 320px);
-    }
-
-    .contact-chip {
-        width: 100%;
-        min-height: 50px;
-        font-size: 0.97rem;
     }
 
     .section {
@@ -3687,14 +3562,6 @@ html[data-theme='dark'] .showcase-eyebrow {
         bottom: 0;
         height: calc(100dvh - 78px - var(--safe-bottom));
         border-radius: 18px 18px 0 0;
-    }
-
-    .message-content {
-        max-width: 88%;
-    }
-
-    .quick-dock-item {
-        font-size: 0.74rem;
     }
 
     .footer {

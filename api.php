@@ -651,6 +651,19 @@ if ($method === 'POST' && $resource === 'appointments') {
         ], 400);
     }
 
+    // Si es hoy, la hora debe ser al menos 1 hora en el futuro
+    if ($appointment['date'] === local_date('Y-m-d')) {
+        $nowMinutes = (int) local_date('H') * 60 + (int) local_date('i');
+        $parts = explode(':', $appointment['time']);
+        $slotMinutes = (int) ($parts[0] ?? 0) * 60 + (int) ($parts[1] ?? 0);
+        if ($slotMinutes <= $nowMinutes + 60) {
+            json_response([
+                'ok' => false,
+                'error' => 'Ese horario ya pasó o es muy pronto. Selecciona una hora con al menos 1 hora de anticipación, o elige otra fecha.'
+            ], 400);
+        }
+    }
+
     // Validar que el horario exista en la disponibilidad configurada
     $availableSlots = isset($store['availability'][$appointment['date']]) && is_array($store['availability'][$appointment['date']])
         ? $store['availability'][$appointment['date']]
