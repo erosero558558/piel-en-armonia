@@ -7,11 +7,6 @@ require_once __DIR__ . '/common.php';
  * Validation and sanitization helpers.
  */
 
-function local_date(string $format): string
-{
-    return date($format);
-}
-
 function sanitize_phone(string $phone): string
 {
     return trim($phone);
