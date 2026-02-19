@@ -20,7 +20,12 @@ class FigoBrain
         // --- Escalation / Sentiment ---
         'escalation' => [
             'queja', 'reclamo', 'mal servicio', 'pesimo', 'enojado', 'molesto', 'nadie contesta',
-            'ayuda humana', 'quiero hablar con alguien', 'persona real', 'no entiendo', 'basura', 'estafa'
+            'no entiendo', 'basura', 'estafa', 'fraude'
+        ],
+        'handoff' => [
+            'ayuda humana', 'quiero hablar con alguien', 'persona real', 'hablar con un humano',
+            'hablar con un doctor', 'agente', 'soporte', 'asesor', 'atencion al cliente', 'hablar con persona',
+            'no eres real', 'necesito una persona', 'hablar con el doctor', 'hablar con la doctora'
         ],
         // --- Identity & Rapport ---
         'greeting' => [
@@ -223,6 +228,12 @@ class FigoBrain
                        "He marcado este tema como prioritario. Por favor, contacta directamente a nuestra **Gerencia de Atención al Paciente**:\n\n" .
                        "👉 **[WhatsApp Directo de Soporte](https://wa.me/593982453672)**\n\n" .
                        "Un miembro humano de nuestro equipo resolverá esto de inmediato.";
+
+            case 'handoff':
+                return "Entiendo que prefieres hablar con una persona. 👩‍💻\n\n" .
+                       "Puedes chatear directamente con nuestro equipo humano por WhatsApp aquí:\n\n" .
+                       "👉 **[Abrir Chat de WhatsApp](https://wa.me/593982453672)**\n\n" .
+                       "O si prefieres, déjanos tu número y te llamamos en breve.";
 
             // --- Trust & Authority ---
             case 'trust_why_us':

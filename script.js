@@ -2179,7 +2179,8 @@ function shouldUseRealAI() {
 }
 
 // Contexto del sistema para el asistente
-const SYSTEM_PROMPT = `Eres el Dr. Virtual, asistente inteligente de la clinica dermatologica "Piel en Armonia" en Quito, Ecuador.
+const SYSTEM_PROMPT = `Eres Figo, el Concierge Digital de la clínica dermatológica "Piel en Armonía" en Quito, Ecuador.
+Tu tono es profesional, cálido, eficiente y experto. Eres un asistente de alto nivel, no un robot genérico.
 
 INFORMACION DE LA CLINICA:
 - Nombre: Piel en Armonia
@@ -2246,23 +2247,23 @@ function toggleChatbot() {
             var welcomeMsg;
             
             if (usandoIA) {
-                welcomeMsg = 'Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
-                welcomeMsg += '<strong>Conectado con Inteligencia Artificial</strong><br><br>';
-                welcomeMsg += 'Puedo ayudarte con informacion detallada sobre:<br>';
-                welcomeMsg += '- Nuestros servicios dermatologicos<br>';
-                welcomeMsg += '- Precios de consultas y tratamientos<br>';
-                welcomeMsg += '- Agendar citas presenciales o online<br>';
-                welcomeMsg += '- Ubicacion y horarios de atencion<br>';
-                welcomeMsg += '- Resolver tus dudas sobre cuidado de la piel<br><br>';
-                welcomeMsg += 'En que puedo ayudarte hoy?';
+                welcomeMsg = '¡Hola! Soy <strong>Figo</strong>, tu Concierge Digital en <strong>Piel en Armonía</strong>. 🤖✨<br><br>';
+                welcomeMsg += 'Estoy aquí para brindarte una atención de excelencia.<br><br>';
+                welcomeMsg += 'Puedo asistirte con:<br>';
+                welcomeMsg += '• Información detallada de tratamientos<br>';
+                welcomeMsg += '• Precios y formas de pago<br>';
+                welcomeMsg += '• Agendamiento de citas<br>';
+                welcomeMsg += '• Ubicación y horarios<br>';
+                welcomeMsg += '• Dudas dermatológicas generales<br><br>';
+                welcomeMsg += '¿En qué puedo servirte hoy?';
             } else {
-                welcomeMsg = 'Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
-                welcomeMsg += 'Puedo ayudarte con informacion sobre:<br>';
-                welcomeMsg += '- Nuestros servicios dermatologicos<br>';
-                welcomeMsg += '- Precios de consultas y tratamientos<br>';
-                welcomeMsg += '- Agendar citas presenciales o online<br>';
-                welcomeMsg += '- Ubicacion y horarios de atencion<br><br>';
-                welcomeMsg += 'En que puedo ayudarte hoy?';
+                welcomeMsg = '¡Hola! Soy <strong>Figo</strong>, tu Concierge Digital en <strong>Piel en Armonía</strong>. 🤖✨<br><br>';
+                welcomeMsg += 'Puedo asistirte con:<br>';
+                welcomeMsg += '• Información detallada de tratamientos<br>';
+                welcomeMsg += '• Precios y formas de pago<br>';
+                welcomeMsg += '• Agendamiento de citas<br>';
+                welcomeMsg += '• Ubicación y horarios<br><br>';
+                welcomeMsg += '¿En qué puedo servirte hoy?';
             }
 
             addBotMessage(welcomeMsg);
@@ -2322,7 +2323,7 @@ function sendQuickMessage(type) {
         services: 'Que servicios ofrecen?',
         prices: 'Cuales son los precios?',
         telemedicine: 'Como funciona la consulta online?',
-        human: 'Quiero hablar con un doctor real',
+        human: 'Quiero hablar con una persona real',
         acne: 'Tengo problemas de acne',
         laser: 'Informacion sobre tratamientos laser',
         location: 'Donde estan ubicados?'

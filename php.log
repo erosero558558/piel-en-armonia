@@ -1,0 +1,163 @@
+[Thu Feb 19 02:14:25 2026] PHP 8.3.6 Development Server (http://localhost:8000) started
+[Thu Feb 19 02:15:32 2026] [::1]:32812 Accepted
+[Thu Feb 19 02:15:32 2026] [::1]:32812 [200]: GET /
+[Thu Feb 19 02:15:32 2026] [::1]:32812 Closing
+[Thu Feb 19 02:15:32 2026] [::1]:32824 Accepted
+[Thu Feb 19 02:15:32 2026] [::1]:32840 Accepted
+[Thu Feb 19 02:15:32 2026] [::1]:32824 [200]: GET /styles.css?v=ui-20260219-critical2-mobiletypelock1-a11yfocus1-perfcv1
+[Thu Feb 19 02:15:32 2026] [::1]:32840 [200]: GET /styles-deferred.css?v=ui-20260219-deferred9-mobiletypelock1-a11yfocus1-chatsanitize1-depuracion5
+[Thu Feb 19 02:15:32 2026] [::1]:32824 Closing
+[Thu Feb 19 02:15:32 2026] [::1]:32840 Closing
+[Thu Feb 19 02:15:32 2026] [::1]:32844 Accepted
+[Thu Feb 19 02:15:32 2026] [::1]:32844 [200]: GET /hero-woman.jpg
+[Thu Feb 19 02:15:32 2026] [::1]:32844 Closing
+[Thu Feb 19 02:15:32 2026] [::1]:32852 Accepted
+[Thu Feb 19 02:15:32 2026] [::1]:32852 [200]: GET /script.js?v=figo-20260218-phase5-opt-i18n2-ui2-gallery1-reschedule1-bookingui1-chatbooking1-successmodal1-engagement1-modalux1-loaderconsolidation1-warmupconsolidation1-observerconsolidation1-wrapperconsolidation1-bootdefer1-apihardening1-uploadretry1-analytics2-uploadparallel1-transferretry2-linkrel1-textclean1-placeholderlinks1-a11yfocus1-deferredsync1-chathardening1
+[Thu Feb 19 02:15:32 2026] [::1]:32852 Closing
+[Thu Feb 19 02:15:33 2026] [::1]:32864 Accepted
+[Thu Feb 19 02:15:33 2026] [::1]:32864 [200]: GET /images/optimized/showcase-hero.avif
+[Thu Feb 19 02:15:33 2026] [::1]:32864 Closing
+[Thu Feb 19 02:15:33 2026] [::1]:32868 Accepted
+[Thu Feb 19 02:15:33 2026] [::1]:32884 Accepted
+[Thu Feb 19 02:15:33 2026] [::1]:32898 Accepted
+[Thu Feb 19 02:15:33 2026] [::1]:32868 [200]: GET /images/optimized/showcase-diagnostic.avif
+[Thu Feb 19 02:15:33 2026] [::1]:32884 [200]: GET /images/optimized/showcase-clinic.avif
+[Thu Feb 19 02:15:33 2026] [::1]:32898 [200]: GET /images/optimized/showcase-treatment.avif
+[Thu Feb 19 02:15:33 2026] [::1]:32868 Closing
+[Thu Feb 19 02:15:33 2026] [::1]:32884 Closing
+[Thu Feb 19 02:15:33 2026] [::1]:32898 Closing
+[Thu Feb 19 02:15:33 2026] [::1]:32906 Accepted
+[Thu Feb 19 02:15:33 2026] [::1]:32906 [200]: GET /booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2
+[Thu Feb 19 02:15:33 2026] [::1]:32906 Closing
+[Thu Feb 19 02:15:33 2026] [::1]:32912 Accepted
+[Thu Feb 19 02:15:33 2026] [::1]:32920 Accepted
+[Thu Feb 19 02:15:33 2026] [::1]:32922 Accepted
+[Thu Feb 19 02:15:33 2026] [::1]:32924 Accepted
+[Thu Feb 19 02:15:33 2026] [::1]:32928 Accepted
+[Thu Feb 19 02:15:33 2026] [::1]:32944 Accepted
+[Thu Feb 19 02:15:33 2026] [::1]:32912 [200]: GET /booking-ui.js?v=figo-booking-ui-20260218-phase4
+[Thu Feb 19 02:15:33 2026] [::1]:32920 [200]: GET /gallery-interactions.js?v=figo-gallery-20260218-phase4
+[Thu Feb 19 02:15:33 2026] [::1]:32922 [200]: GET /chat-engine.js?v=figo-chat-20260218-phase2-linkrel1-textclean1
+[Thu Feb 19 02:15:33 2026] [::1]:32924 [200]: GET /chat-booking-engine.js?v=figo-chat-booking-20260219-phase2-inlinefix1
+[Thu Feb 19 02:15:33 2026] [::1]:32928 [200]: GET /ui-effects.js?v=figo-ui-20260218-phase4
+[Thu Feb 19 02:15:33 2026] [::1]:32944 [200]: GET /success-modal-engine.js?v=figo-success-modal-20260218-phase1
+[Thu Feb 19 02:15:33 2026] [::1]:32912 Closing
+[Thu Feb 19 02:15:33 2026] [::1]:32920 Closing
+[Thu Feb 19 02:15:33 2026] [::1]:32922 Closing
+[Thu Feb 19 02:15:33 2026] [::1]:32924 Closing
+[Thu Feb 19 02:15:33 2026] [::1]:32928 Closing
+[Thu Feb 19 02:15:33 2026] [::1]:32944 Closing
+[Thu Feb 19 02:15:33 2026] [::1]:32952 Accepted
+[Thu Feb 19 02:15:33 2026] [::1]:32952 [200]: GET /engagement-forms-engine.js?v=figo-engagement-20260218-phase1
+[Thu Feb 19 02:15:33 2026] [::1]:32952 Closing
+[Thu Feb 19 02:15:33 2026] [::1]:32954 Accepted
+[Thu Feb 19 02:15:33 2026] [::1]:32954 [200]: GET /modal-ux-engine.js?v=figo-modal-ux-20260218-phase1
+[Thu Feb 19 02:15:33 2026] [::1]:32954 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52756 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52756 [200]: GET /
+[Thu Feb 19 02:16:23 2026] [::1]:52756 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52770 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52776 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52788 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52770 [200]: GET /styles.css?v=ui-20260219-critical2-mobiletypelock1-a11yfocus1-perfcv1
+[Thu Feb 19 02:16:23 2026] [::1]:52770 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52776 [200]: GET /styles-deferred.css?v=ui-20260219-deferred9-mobiletypelock1-a11yfocus1-chatsanitize1-depuracion5
+[Thu Feb 19 02:16:23 2026] [::1]:52776 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52788 [200]: GET /hero-woman.jpg
+[Thu Feb 19 02:16:23 2026] [::1]:52788 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52796 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52796 [200]: GET /script.js?v=figo-20260218-phase5-opt-i18n2-ui2-gallery1-reschedule1-bookingui1-chatbooking1-successmodal1-engagement1-modalux1-loaderconsolidation1-warmupconsolidation1-observerconsolidation1-wrapperconsolidation1-bootdefer1-apihardening1-uploadretry1-analytics2-uploadparallel1-transferretry2-linkrel1-textclean1-placeholderlinks1-a11yfocus1-deferredsync1-chathardening1
+[Thu Feb 19 02:16:23 2026] [::1]:52796 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52802 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52818 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52822 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52828 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52802 [200]: GET /images/optimized/showcase-hero.avif
+[Thu Feb 19 02:16:23 2026] [::1]:52818 [200]: GET /images/optimized/showcase-diagnostic.avif
+[Thu Feb 19 02:16:23 2026] [::1]:52822 [200]: GET /images/optimized/showcase-clinic.avif
+[Thu Feb 19 02:16:23 2026] [::1]:52828 [200]: GET /images/optimized/showcase-treatment.avif
+[Thu Feb 19 02:16:23 2026] [::1]:52802 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52818 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52822 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52828 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52840 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52840 [200]: GET /booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2
+[Thu Feb 19 02:16:23 2026] [::1]:52840 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52842 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52850 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52842 [200]: GET /booking-ui.js?v=figo-booking-ui-20260218-phase4
+[Thu Feb 19 02:16:23 2026] [::1]:52864 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52850 [200]: GET /gallery-interactions.js?v=figo-gallery-20260218-phase4
+[Thu Feb 19 02:16:23 2026] [::1]:52880 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52842 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52850 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52894 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52864 [200]: GET /chat-engine.js?v=figo-chat-20260218-phase2-linkrel1-textclean1
+[Thu Feb 19 02:16:23 2026] [::1]:52908 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52864 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52918 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52894 [200]: GET /ui-effects.js?v=figo-ui-20260218-phase4
+[Thu Feb 19 02:16:23 2026] [::1]:52908 [200]: GET /success-modal-engine.js?v=figo-success-modal-20260218-phase1
+[Thu Feb 19 02:16:23 2026] [::1]:52880 [200]: GET /chat-booking-engine.js?v=figo-chat-booking-20260219-phase2-inlinefix1
+[Thu Feb 19 02:16:23 2026] [::1]:52928 Accepted
+[Thu Feb 19 02:16:23 2026] [::1]:52918 [200]: GET /engagement-forms-engine.js?v=figo-engagement-20260218-phase1
+[Thu Feb 19 02:16:23 2026] [::1]:52928 [200]: GET /modal-ux-engine.js?v=figo-modal-ux-20260218-phase1
+[Thu Feb 19 02:16:23 2026] [::1]:52894 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52908 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52880 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52918 Closing
+[Thu Feb 19 02:16:23 2026] [::1]:52928 Closing
+[Thu Feb 19 02:16:26 2026] [::1]:52932 Accepted
+[Thu Feb 19 02:16:26 2026] [::1]:52932 [200]: GET /
+[Thu Feb 19 02:16:26 2026] [::1]:52932 Closing
+[Thu Feb 19 02:16:26 2026] [::1]:52934 Accepted
+[Thu Feb 19 02:16:26 2026] [::1]:52944 Accepted
+[Thu Feb 19 02:16:26 2026] [::1]:52954 Accepted
+[Thu Feb 19 02:16:26 2026] [::1]:52934 [200]: GET /styles.css?v=ui-20260219-critical2-mobiletypelock1-a11yfocus1-perfcv1
+[Thu Feb 19 02:16:26 2026] [::1]:52944 [200]: GET /styles-deferred.css?v=ui-20260219-deferred9-mobiletypelock1-a11yfocus1-chatsanitize1-depuracion5
+[Thu Feb 19 02:16:26 2026] [::1]:52954 [200]: GET /hero-woman.jpg
+[Thu Feb 19 02:16:26 2026] [::1]:52934 Closing
+[Thu Feb 19 02:16:26 2026] [::1]:52944 Closing
+[Thu Feb 19 02:16:26 2026] [::1]:52954 Closing
+[Thu Feb 19 02:16:26 2026] [::1]:52956 Accepted
+[Thu Feb 19 02:16:26 2026] [::1]:52956 [200]: GET /script.js?v=figo-20260218-phase5-opt-i18n2-ui2-gallery1-reschedule1-bookingui1-chatbooking1-successmodal1-engagement1-modalux1-loaderconsolidation1-warmupconsolidation1-observerconsolidation1-wrapperconsolidation1-bootdefer1-apihardening1-uploadretry1-analytics2-uploadparallel1-transferretry2-linkrel1-textclean1-placeholderlinks1-a11yfocus1-deferredsync1-chathardening1
+[Thu Feb 19 02:16:26 2026] [::1]:52956 Closing
+[Thu Feb 19 02:16:27 2026] [::1]:52970 Accepted
+[Thu Feb 19 02:16:27 2026] [::1]:52984 Accepted
+[Thu Feb 19 02:16:27 2026] [::1]:53000 Accepted
+[Thu Feb 19 02:16:27 2026] [::1]:53014 Accepted
+[Thu Feb 19 02:16:27 2026] [::1]:52970 [200]: GET /images/optimized/showcase-hero.avif
+[Thu Feb 19 02:16:27 2026] [::1]:52984 [200]: GET /images/optimized/showcase-diagnostic.avif
+[Thu Feb 19 02:16:27 2026] [::1]:53000 [200]: GET /images/optimized/showcase-clinic.avif
+[Thu Feb 19 02:16:27 2026] [::1]:53014 [200]: GET /images/optimized/showcase-treatment.avif
+[Thu Feb 19 02:16:27 2026] [::1]:52970 Closing
+[Thu Feb 19 02:16:27 2026] [::1]:52984 Closing
+[Thu Feb 19 02:16:27 2026] [::1]:53000 Closing
+[Thu Feb 19 02:16:27 2026] [::1]:53014 Closing
+[Thu Feb 19 02:16:27 2026] [::1]:53022 Accepted
+[Thu Feb 19 02:16:27 2026] [::1]:53022 [200]: GET /booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2
+[Thu Feb 19 02:16:27 2026] [::1]:53022 Closing
+[Thu Feb 19 02:16:27 2026] [::1]:53024 Accepted
+[Thu Feb 19 02:16:27 2026] [::1]:53024 [200]: GET /booking-ui.js?v=figo-booking-ui-20260218-phase4
+[Thu Feb 19 02:16:27 2026] [::1]:53024 Closing
+[Thu Feb 19 02:16:27 2026] [::1]:53032 Accepted
+[Thu Feb 19 02:16:27 2026] [::1]:53032 [200]: GET /engagement-forms-engine.js?v=figo-engagement-20260218-phase1
+[Thu Feb 19 02:16:27 2026] [::1]:53032 Closing
+[Thu Feb 19 02:16:27 2026] [::1]:53036 Accepted
+[Thu Feb 19 02:16:27 2026] [::1]:53036 [200]: GET /modal-ux-engine.js?v=figo-modal-ux-20260218-phase1
+[Thu Feb 19 02:16:27 2026] [::1]:53036 Closing
+[Thu Feb 19 02:16:27 2026] [::1]:53044 Accepted
+[Thu Feb 19 02:16:27 2026] [::1]:53044 [200]: GET /gallery-interactions.js?v=figo-gallery-20260218-phase4
+[Thu Feb 19 02:16:27 2026] [::1]:53044 Closing
+[Thu Feb 19 02:16:27 2026] [::1]:53048 Accepted
+[Thu Feb 19 02:16:27 2026] [::1]:53048 [200]: GET /chat-engine.js?v=figo-chat-20260218-phase2-linkrel1-textclean1
+[Thu Feb 19 02:16:27 2026] [::1]:53048 Closing
+[Thu Feb 19 02:16:27 2026] [::1]:53062 Accepted
+[Thu Feb 19 02:16:27 2026] [::1]:53072 Accepted
+[Thu Feb 19 02:16:27 2026] [::1]:53086 Accepted
+[Thu Feb 19 02:16:27 2026] [::1]:53062 [200]: GET /chat-booking-engine.js?v=figo-chat-booking-20260219-phase2-inlinefix1
+[Thu Feb 19 02:16:27 2026] [::1]:53062 Closing
+[Thu Feb 19 02:16:27 2026] [::1]:53072 [200]: GET /ui-effects.js?v=figo-ui-20260218-phase4
+[Thu Feb 19 02:16:27 2026] [::1]:53072 Closing
+[Thu Feb 19 02:16:27 2026] [::1]:53086 [200]: GET /success-modal-engine.js?v=figo-success-modal-20260218-phase1
+[Thu Feb 19 02:16:27 2026] [::1]:53086 Closing
