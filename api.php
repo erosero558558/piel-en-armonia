@@ -569,21 +569,58 @@ if ($method === 'POST' && $resource === 'stripe-webhook') {
         if ($intentId !== '') {
             $webhookStore = read_store();
             $updated = false;
-            foreach ($webhookStore['appointments'] as &$appt) {
+            $indexBuilt = false;
+
+            if (!isset($webhookStore['paymentIntentIndex'])) {
+                $webhookStore['paymentIntentIndex'] = [];
+                foreach ($webhookStore['appointments'] as $idx => $appt) {
+                    $idxIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
+                    if ($idxIntent !== '') {
+                        $webhookStore['paymentIntentIndex'][$idxIntent] = $idx;
+                    }
+                }
+                $indexBuilt = true;
+            }
+
+            $found = false;
+            $idx = isset($webhookStore['paymentIntentIndex'][$intentId]) ? (int) $webhookStore['paymentIntentIndex'][$intentId] : -1;
+
+            if ($idx >= 0 && isset($webhookStore['appointments'][$idx])) {
+                $appt = &$webhookStore['appointments'][$idx];
                 $existingIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
                 if ($existingIntent !== '' && hash_equals($existingIntent, $intentId)) {
+                    $found = true;
                     if (($appt['paymentStatus'] ?? '') !== 'paid') {
                         $appt['paymentStatus'] = 'paid';
                         $appt['paymentPaidAt'] = local_date('c');
                         $updated = true;
                     }
-                    break;
                 }
+                unset($appt);
             }
-            unset($appt);
-            if ($updated) {
+
+            if (!$found) {
+                foreach ($webhookStore['appointments'] as $idx => &$appt) {
+                    $existingIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
+                    if ($existingIntent !== '' && hash_equals($existingIntent, $intentId)) {
+                        $webhookStore['paymentIntentIndex'][$intentId] = $idx;
+                        $indexBuilt = true;
+                        if (($appt['paymentStatus'] ?? '') !== 'paid') {
+                            $appt['paymentStatus'] = 'paid';
+                            $appt['paymentPaidAt'] = local_date('c');
+                            $updated = true;
+                        }
+                        break;
+                    }
+                }
+                unset($appt);
+            }
+
+            if ($updated || $indexBuilt) {
                 write_store($webhookStore);
-                audit_log_event('stripe.webhook_payment_confirmed', ['intentId' => $intentId]);
+                if ($updated) {
+                    audit_log_event('stripe.webhook_payment_confirmed', ['intentId' => $intentId]);
+                }
             }
         }
     }
@@ -595,20 +632,56 @@ if ($method === 'POST' && $resource === 'stripe-webhook') {
         if ($intentId !== '') {
             $webhookStore = read_store();
             $updated = false;
-            foreach ($webhookStore['appointments'] as &$appt) {
+            $indexBuilt = false;
+
+            if (!isset($webhookStore['paymentIntentIndex'])) {
+                $webhookStore['paymentIntentIndex'] = [];
+                foreach ($webhookStore['appointments'] as $idx => $appt) {
+                    $idxIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
+                    if ($idxIntent !== '') {
+                        $webhookStore['paymentIntentIndex'][$idxIntent] = $idx;
+                    }
+                }
+                $indexBuilt = true;
+            }
+
+            $found = false;
+            $idx = isset($webhookStore['paymentIntentIndex'][$intentId]) ? (int) $webhookStore['paymentIntentIndex'][$intentId] : -1;
+
+            if ($idx >= 0 && isset($webhookStore['appointments'][$idx])) {
+                $appt = &$webhookStore['appointments'][$idx];
                 $existingIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
                 if ($existingIntent !== '' && hash_equals($existingIntent, $intentId)) {
+                    $found = true;
                     if (!in_array($appt['paymentStatus'] ?? '', ['paid', 'failed'], true)) {
                         $appt['paymentStatus'] = 'failed';
                         $updated = true;
                     }
-                    break;
                 }
+                unset($appt);
             }
-            unset($appt);
-            if ($updated) {
+
+            if (!$found) {
+                foreach ($webhookStore['appointments'] as $idx => &$appt) {
+                    $existingIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
+                    if ($existingIntent !== '' && hash_equals($existingIntent, $intentId)) {
+                        $webhookStore['paymentIntentIndex'][$intentId] = $idx;
+                        $indexBuilt = true;
+                        if (!in_array($appt['paymentStatus'] ?? '', ['paid', 'failed'], true)) {
+                            $appt['paymentStatus'] = 'failed';
+                            $updated = true;
+                        }
+                        break;
+                    }
+                }
+                unset($appt);
+            }
+
+            if ($updated || $indexBuilt) {
                 write_store($webhookStore);
-                audit_log_event('stripe.webhook_payment_failed', ['intentId' => $intentId]);
+                if ($updated) {
+                    audit_log_event('stripe.webhook_payment_failed', ['intentId' => $intentId]);
+                }
             }
         }
     }
@@ -854,6 +927,15 @@ if ($method === 'POST' && $resource === 'appointments') {
     }
 
     $store['appointments'][] = $appointment;
+
+    if (isset($store['paymentIntentIndex'])) {
+        $intentId = trim((string) ($appointment['paymentIntentId'] ?? ''));
+        if ($intentId !== '') {
+            $idx = count($store['appointments']) - 1;
+            $store['paymentIntentIndex'][$intentId] = $idx;
+        }
+    }
+
     write_store($store);
 
     $emailSent = false;
@@ -885,7 +967,7 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') 
         ], 400);
     }
     $found = false;
-    foreach ($store['appointments'] as &$appt) {
+    foreach ($store['appointments'] as $idx => &$appt) {
         if ((int) ($appt['id'] ?? 0) !== $id) {
             continue;
         }
@@ -903,7 +985,18 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') 
             $appt['paymentProvider'] = (string) $payload['paymentProvider'];
         }
         if (isset($payload['paymentIntentId'])) {
-            $appt['paymentIntentId'] = (string) $payload['paymentIntentId'];
+            $oldIntentId = trim((string) ($appt['paymentIntentId'] ?? ''));
+            $newIntentId = trim((string) $payload['paymentIntentId']);
+            $appt['paymentIntentId'] = $newIntentId;
+
+            if (isset($store['paymentIntentIndex'])) {
+                if ($oldIntentId !== '' && isset($store['paymentIntentIndex'][$oldIntentId])) {
+                    unset($store['paymentIntentIndex'][$oldIntentId]);
+                }
+                if ($newIntentId !== '') {
+                    $store['paymentIntentIndex'][$newIntentId] = $idx;
+                }
+            }
         }
         if (isset($payload['paymentPaidAt'])) {
             $appt['paymentPaidAt'] = (string) $payload['paymentPaidAt'];
@@ -1061,6 +1154,11 @@ if ($method === 'POST' && $resource === 'import') {
     $store['callbacks'] = isset($payload['callbacks']) && is_array($payload['callbacks']) ? $payload['callbacks'] : [];
     $store['reviews'] = isset($payload['reviews']) && is_array($payload['reviews']) ? $payload['reviews'] : [];
     $store['availability'] = isset($payload['availability']) && is_array($payload['availability']) ? $payload['availability'] : [];
+
+    if (isset($store['paymentIntentIndex'])) {
+        unset($store['paymentIntentIndex']);
+    }
+
     write_store($store);
     json_response([
         'ok' => true
