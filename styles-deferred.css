@@ -1440,7 +1440,7 @@ textarea:focus {
 
 .footer-content {
     display: grid;
-    grid-template-columns: 1.2fr 1fr 1fr 1.2fr;
+    grid-template-columns: 1.3fr 1fr 1.3fr;
     gap: 24px;
     align-items: start;
 }
@@ -1472,16 +1472,14 @@ textarea:focus {
 }
 
 .footer-links,
-.footer-contact,
-.footer-legal {
+.footer-contact {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
 .footer-links a,
-.footer-contact a,
-.footer-legal a {
+.footer-contact a {
     color: #c8d8ef;
     text-decoration: none;
     font-weight: 600;
@@ -1489,8 +1487,7 @@ textarea:focus {
 }
 
 .footer-links a:hover,
-.footer-contact a:hover,
-.footer-legal a:hover {
+.footer-contact a:hover {
     color: #ffffff;
 }
 
@@ -1512,11 +1509,42 @@ textarea:focus {
 
 .footer-bottom {
     margin-top: 24px;
-    padding-top: 14px;
+    padding-top: 18px;
     border-top: 1px solid rgba(177, 202, 233, 0.22);
     color: #9bb1cf;
     font-size: 0.86rem;
     text-align: center;
+}
+
+.footer-institutional {
+    text-align: center;
+    margin-bottom: 16px;
+    color: #aac0dd;
+}
+
+.footer-institutional p {
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.footer-legal-links {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 18px;
+}
+
+.footer-legal-links a {
+    color: #c8d8ef;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.86rem;
+    transition: color var(--ui-ease);
+}
+
+.footer-legal-links a:hover {
+    color: #ffffff;
 }
 
 .modal {

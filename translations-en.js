@@ -219,10 +219,10 @@ window.PIEL_EN_TRANSLATIONS = {
         label_rating: "Rating",
         label_review: "Your experience",
         btn_submit_review: "Submit Review",
-        legal_terms: "Terms and Conditions",
-        legal_privacy: "Privacy Policy",
-        legal_cookies: "Cookie Policy",
-        legal_disclaimer: "Medical Liability Notice",
+        legal_terms: "Terms",
+        legal_privacy: "Privacy",
+        legal_cookies: "Cookies",
+        legal_disclaimer: "Medical Notice",
         chat_disclaimer: "This assistant provides general guidance and does not replace a professional medical consultation.",
         cookie_banner_text: "We use essential cookies for security and operation. You can accept or reject optional cookies.",
         cookie_reject: "Reject",
@@ -230,5 +230,6 @@ window.PIEL_EN_TRANSLATIONS = {
         cookie_more: "More information",
         footer_privacy_note: "If you share photos by web or WhatsApp, they are used only for clinical guidance and appointment management.",
         footer_tagline: "Specialized dermatology in Quito",
-        footer_rights: "All rights reserved."
+        footer_rights: "All rights reserved.",
+        footer_institutional: "Attention by appointment · Billing · Privacy and data processing"
     };
