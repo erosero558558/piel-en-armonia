@@ -1,0 +1,78 @@
+# Plan de Recuperación ante Desastres (Disaster Recovery) - Piel en Armonía
+
+Este documento define la estrategia para asegurar la continuidad del negocio y la integridad de los datos en caso de fallas graves.
+
+## 1. Objetivos
+
+*   **RPO (Recovery Point Objective):** 24 horas. (Pérdida máxima aceptable de datos).
+*   **RTO (Recovery Time Objective):** 4 horas. (Tiempo máximo para restaurar el servicio).
+
+## 2. Alcance
+
+El plan cubre:
+1.  **Código Fuente:** Repositorio Git.
+2.  **Configuración:** Variables de entorno y `env.php`.
+3.  **Datos:** Archivo `data/store.json` (Citas, Reseñas, Callbacks).
+
+## 3. Estrategia de Respaldo (Backup)
+
+### 3.1 Datos (`store.json`)
+La aplicación realiza automáticamente copias de seguridad rotativas en `data/backups/` cada vez que se escribe en el almacén de datos (citas nuevas, actualizaciones). Se guardan hasta 30 versiones anteriores.
+
+**Ubicación:** `/app/data/backups/store-YYYYMMDD-HHMMSS-XXXXXX.json`
+
+### 3.2 Código
+El código fuente reside en GitHub y se despliega mediante GitHub Actions. El repositorio es la fuente de verdad para la aplicación.
+
+### 3.3 Configuración
+Las credenciales y claves de API (Stripe, SMTP, Admin Pass) deben estar documentadas en el gestor de contraseñas del equipo y configuradas como Secrets en el repositorio.
+
+## 4. Procedimientos de Restauración
+
+### Escenario 1: Corrupción de Datos (Error lógico o borrado accidental)
+**Síntoma:** La aplicación muestra datos incorrectos o vacíos, o error de JSON.
+
+**Pasos:**
+1.  Acceder al servidor vía SFTP/SSH.
+2.  Navegar a `data/backups/`.
+3.  Identificar el archivo de backup más reciente con tamaño y fecha correctos (antes del incidente).
+4.  Detener temporalmente el tráfico (renombrar `api.php` o usar `.htaccess` deny all).
+5.  Copiar el backup seleccionado a `data/store.json`.
+    ```bash
+    cp data/backups/store-20231025-100000-a1b2c3.json data/store.json
+    ```
+6.  Verificar que el JSON sea válido.
+7.  Restaurar acceso y verificar funcionalidad (`/health`).
+
+### Escenario 2: Pérdida Total del Servidor (Hosting caído o borrado)
+**Síntoma:** El servidor no responde y no es recuperable.
+
+**Pasos:**
+1.  **Provisionar Nuevo Servidor:** Contratar nuevo hosting compatible con PHP 7.4+.
+2.  **Configurar Entorno:**
+    *   Subir archivos del proyecto (ver `DESPLIEGUE-PIELARMONIA.md`).
+    *   Configurar variables de entorno (desde gestor de contraseñas).
+    *   Asegurar permisos de escritura en `data/`.
+3.  **Restaurar Datos:**
+    *   Si se tiene copia local reciente de `store.json`, subirla a `data/`.
+    *   Si no, contactar al proveedor de hosting anterior para intentar recuperar backups de sistema.
+4.  **Redirigir DNS:** Apuntar el dominio `pielarmonia.com` a la nueva IP.
+5.  **Verificación:** Ejecutar `GATE-POSTDEPLOY.ps1`.
+
+### Escenario 3: Compromiso de Seguridad (Hackeo)
+**Síntoma:** Archivos modificados, admin password comprometida.
+
+**Pasos:**
+1.  **Aislar:** Cambiar contraseñas de hosting y base de datos (si aplica).
+2.  **Limpiar:** Borrar todo el contenido del servidor `public_html`.
+3.  **Redesplegar:** Realizar un despliegue limpio desde el repositorio Git confiable.
+4.  **Rotar Secretos:** Cambiar `PIELARMONIA_ADMIN_PASSWORD`, claves de Stripe, SMTP, etc.
+5.  **Auditar Datos:** Revisar `store.json` línea por línea para asegurar que no hay inyecciones o datos falsos.
+
+## 5. Pruebas de Recuperación
+
+Se recomienda realizar un simulacro de restauración semestralmente:
+1.  Descargar el último backup de producción.
+2.  Levantar un servidor local (`php -S localhost:8080`).
+3.  Cargar el backup en el entorno local.
+4.  Verificar que las citas y reseñas se cargan correctamente.
