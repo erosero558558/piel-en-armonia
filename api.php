@@ -597,6 +597,8 @@ if (in_array($method, ['POST', 'PUT', 'PATCH'], true) && $isAdmin) {
 
 if ($resource === 'figo-config' && $method === 'GET') {
     $configMeta = api_read_figo_config_with_meta();
+    $candidatePaths = api_figo_config_candidate_paths();
+    $writePath = $candidatePaths[0] ?? (string) ($configMeta['path'] ?? api_resolve_figo_config_path());
     $config = is_array($configMeta['config'] ?? null) ? $configMeta['config'] : [];
     $masked = api_mask_figo_config($config);
     $aiNode = (isset($config['ai']) && is_array($config['ai'])) ? $config['ai'] : [];
@@ -608,6 +610,8 @@ if ($resource === 'figo-config' && $method === 'GET') {
         'data' => $masked,
         'exists' => (bool) ($configMeta['exists'] ?? false),
         'path' => basename((string) ($configMeta['path'] ?? 'figo-config.json')),
+        'activePath' => (string) ($configMeta['path'] ?? ''),
+        'writePath' => (string) $writePath,
         'figoEndpointConfigured' => $figoEndpoint !== '',
         'aiConfigured' => $aiEndpoint !== '',
         'timestamp' => gmdate('c')
@@ -638,20 +642,27 @@ if ($resource === 'figo-config' && in_array($method, ['POST', 'PUT', 'PATCH'], t
         ], $status);
     }
 
-    $path = (string) ($configMeta['path'] ?? api_resolve_figo_config_path());
+    $candidatePaths = api_figo_config_candidate_paths();
+    $path = (string) ($candidatePaths[0] ?? ($configMeta['path'] ?? api_resolve_figo_config_path()));
     $dir = dirname($path);
 
     if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
         json_response([
             'ok' => false,
-            'error' => 'No se pudo crear el directorio de configuracion'
+            'error' => 'No se pudo crear el directorio de configuracion en ' . $dir
         ], 500);
+    }
+
+    if (!is_file($path)) {
+        @chmod($dir, 0775);
+    } else {
+        @chmod($path, 0664);
     }
 
     if ((is_file($path) && !is_writable($path)) || (!is_file($path) && !is_writable($dir))) {
         json_response([
             'ok' => false,
-            'error' => 'No hay permisos para guardar la configuracion'
+            'error' => 'No hay permisos para guardar la configuracion en ' . $path
         ], 500);
     }
 
