@@ -50,7 +50,17 @@ function clinic_whatsapp_display(): string
 
 function clinic_address_display(): string
 {
-    return env_value('PIELARMONIA_CLINIC_ADDRESS', 'Valparaiso 13-183 y Sodiro, Quito, Ecuador');
+    return env_value('PIELARMONIA_CLINIC_ADDRESS', 'Av. Dr. Cecilio Caiza e Hijas N2-30 y Av. Amazonas, Edificio Medicenter, Piso 3, Consultorio 302, Quito, Ecuador');
+}
+
+function clinic_map_url(): string
+{
+    return env_value('PIELARMONIA_CLINIC_MAP_URL', 'https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu');
+}
+
+function clinic_schedule_display(): string
+{
+    return env_value('PIELARMONIA_CLINIC_SCHEDULE', "Lunes a Viernes: 9:00 - 18:00 | Sabados: 9:00 - 13:00");
 }
 
 function app_runtime_version(): string
@@ -1276,42 +1286,75 @@ function maybe_send_appointment_email(array $appointment): bool
         return false;
     }
 
-    $clinicName = 'Piel en Armonía';
+    $clinic = 'Piel en Armonia';
     $name = $appointment['name'] ?? 'paciente';
     $service = get_service_label((string) ($appointment['service'] ?? ''));
     $doctor = get_doctor_label((string) ($appointment['doctor'] ?? ''));
     $date = format_date_label((string) ($appointment['date'] ?? ''));
+    $rawDate = (string) ($appointment['date'] ?? '');
     $time = (string) ($appointment['time'] ?? '-');
     $price = (string) ($appointment['price'] ?? get_service_total_price((string) ($appointment['service'] ?? '')));
     $payment = get_payment_method_label((string) ($appointment['paymentMethod'] ?? 'unpaid'));
     $paymentStatus = get_payment_status_label((string) ($appointment['paymentStatus'] ?? 'pending'));
 
-    $subject = 'Confirmacion de cita - ' . $clinicName;
-    $message = "Hola " . $name . ",\n\n";
-    $message .= "Tu cita en " . $clinicName . " fue registrada correctamente.\n\n";
-    $message .= "--- Detalles de tu cita ---\n";
-    $message .= "Servicio: " . $service . "\n";
-    $message .= "Doctor: " . $doctor . "\n";
-    $message .= "Fecha: " . $date . "\n";
-    $message .= "Hora: " . $time . "\n";
-    $message .= "Precio: " . $price . "\n";
-    $message .= "Metodo de pago: " . $payment . "\n";
-    $message .= "Estado de pago: " . $paymentStatus . "\n";
-    $message .= "---\n\n";
-    $message .= "Recuerda llegar 10 minutos antes de tu cita.\n";
-    $message .= "Direccion: " . clinic_address_display() . "\n\n";
+    $subject = 'Confirmacion de cita | ' . $rawDate . ' ' . $time . ' | ' . $clinic;
+
+    $m = "";
+    $m .= "PIEL EN ARMONIA\n";
+    $m .= "Dermatologia Especializada\n";
+    $m .= str_repeat("-", 45) . "\n\n";
+
+    $m .= "Hola " . $name . ",\n\n";
+    $m .= "Tu cita ha sido registrada exitosamente.\n";
+    $m .= "A continuacion los detalles:\n\n";
+
+    $m .= str_repeat("-", 45) . "\n";
+    $m .= "  DETALLES DE TU CITA\n";
+    $m .= str_repeat("-", 45) . "\n\n";
+    $m .= "  Servicio:     " . $service . "\n";
+    $m .= "  Doctor:       " . $doctor . "\n";
+    $m .= "  Fecha:        " . $date . "\n";
+    $m .= "  Hora:         " . $time . "\n";
+    $m .= "  Precio:       " . $price . "\n";
+    $m .= "  Pago:         " . $payment . "\n";
+    $m .= "  Estado:       " . $paymentStatus . "\n\n";
+
+    $m .= str_repeat("-", 45) . "\n";
+    $m .= "  ANTES DE TU CITA\n";
+    $m .= str_repeat("-", 45) . "\n\n";
+    $m .= "  * Llega 10 minutos antes de tu hora.\n";
+    $m .= "  * Trae tu cedula o documento de identidad.\n";
+    $m .= "  * Si tienes examenes previos, trailos a la consulta.\n\n";
+
+    $m .= str_repeat("-", 45) . "\n";
+    $m .= "  COMO LLEGAR\n";
+    $m .= str_repeat("-", 45) . "\n\n";
+    $m .= "  Direccion:\n";
+    $m .= "  " . clinic_address_display() . "\n\n";
+    $m .= "  Referencia: Cerca del Supermaxi 6 de Diciembre,\n";
+    $m .= "  sector La Mariscal.\n\n";
+    $m .= "  Ver en Google Maps:\n";
+    $m .= "  " . clinic_map_url() . "\n\n";
+
+    $m .= "  Horario de atencion:\n";
+    $m .= "  " . clinic_schedule_display() . "\n\n";
 
     $token = $appointment['rescheduleToken'] ?? '';
     if ($token !== '') {
-        $message .= "Si necesitas reprogramar tu cita, usa este enlace:\n";
-        $message .= "https://pielarmonia.com/?reschedule=" . $token . "\n\n";
+        $m .= str_repeat("-", 45) . "\n";
+        $m .= "  REPROGRAMAR O CANCELAR\n";
+        $m .= str_repeat("-", 45) . "\n\n";
+        $m .= "  Si necesitas cambiar la fecha u hora:\n";
+        $m .= "  https://pielarmonia.com/?reschedule=" . $token . "\n\n";
     }
 
-    $message .= "Gracias por confiar en nosotros.\n";
-    $message .= $clinicName . "\n";
-    $message .= "Telefono/WhatsApp: " . clinic_whatsapp_display();
+    $m .= str_repeat("-", 45) . "\n\n";
+    $m .= "Gracias por confiar en Piel en Armonia.\n";
+    $m .= "Estamos para cuidarte.\n\n";
+    $m .= "Telefono/WhatsApp: " . clinic_whatsapp_display() . "\n";
+    $m .= "Web: https://pielarmonia.com\n";
 
-    return send_mail($to, $subject, $message);
+    return send_mail($to, $subject, $m);
 }
 
 function maybe_send_admin_notification(array $appointment): bool
@@ -1326,70 +1369,89 @@ function maybe_send_admin_notification(array $appointment): bool
         return false;
     }
 
-    $clinicName = 'Piel en Armonía';
     $name = $appointment['name'] ?? '-';
+    $email = $appointment['email'] ?? '-';
+    $phone = $appointment['phone'] ?? '-';
     $service = get_service_label((string) ($appointment['service'] ?? ''));
     $doctor = get_doctor_label((string) ($appointment['doctor'] ?? ''));
     $date = format_date_label((string) ($appointment['date'] ?? ''));
+    $rawDate = (string) ($appointment['date'] ?? '');
     $time = (string) ($appointment['time'] ?? '-');
     $price = (string) ($appointment['price'] ?? get_service_total_price((string) ($appointment['service'] ?? '')));
     $payment = get_payment_method_label((string) ($appointment['paymentMethod'] ?? 'unpaid'));
     $paymentStatus = get_payment_status_label((string) ($appointment['paymentStatus'] ?? 'pending'));
 
-    $subject = 'Nueva cita: ' . $name . ' - ' . $service . ' (' . $date . ')';
-    $body = "=== NUEVA CITA AGENDADA ===\n\n";
+    $subject = '[Piel en Armonia] Nueva cita: ' . $name . ' | ' . $rawDate . ' ' . $time;
 
-    $body .= "--- Paciente ---\n";
-    $body .= "Nombre: " . $name . "\n";
-    $body .= "Email: " . ($appointment['email'] ?? '-') . "\n";
-    $body .= "Telefono: " . ($appointment['phone'] ?? '-') . "\n\n";
+    $b = "";
+    $b .= "PIEL EN ARMONIA - NOTIFICACION DE CITA\n";
+    $b .= str_repeat("=", 50) . "\n\n";
 
-    $body .= "--- Cita ---\n";
-    $body .= "Servicio: " . $service . "\n";
-    $body .= "Doctor: " . $doctor . "\n";
-    $body .= "Fecha: " . $date . "\n";
-    $body .= "Hora: " . $time . "\n";
-    $body .= "Precio: " . $price . "\n\n";
+    $b .= "Se ha registrado una nueva cita desde la web.\n\n";
 
-    $body .= "--- Pago ---\n";
-    $body .= "Metodo: " . $payment . "\n";
-    $body .= "Estado: " . $paymentStatus . "\n\n";
+    $b .= str_repeat("-", 50) . "\n";
+    $b .= "  PACIENTE\n";
+    $b .= str_repeat("-", 50) . "\n";
+    $b .= "  Nombre:      " . $name . "\n";
+    $b .= "  Email:       " . $email . "\n";
+    $b .= "  Telefono:    " . $phone . "\n\n";
+
+    $b .= str_repeat("-", 50) . "\n";
+    $b .= "  CITA\n";
+    $b .= str_repeat("-", 50) . "\n";
+    $b .= "  Servicio:    " . $service . "\n";
+    $b .= "  Doctor:      " . $doctor . "\n";
+    $b .= "  Fecha:       " . $date . "\n";
+    $b .= "  Hora:        " . $time . "\n";
+    $b .= "  Precio:      " . $price . "\n\n";
+
+    $b .= str_repeat("-", 50) . "\n";
+    $b .= "  PAGO\n";
+    $b .= str_repeat("-", 50) . "\n";
+    $b .= "  Metodo:      " . $payment . "\n";
+    $b .= "  Estado:      " . $paymentStatus . "\n\n";
 
     $reason = trim((string) ($appointment['reason'] ?? ''));
     $area = trim((string) ($appointment['affectedArea'] ?? ''));
     $evolution = trim((string) ($appointment['evolutionTime'] ?? ''));
     if ($reason !== '' || $area !== '' || $evolution !== '') {
-        $body .= "--- Informacion clinica ---\n";
+        $b .= str_repeat("-", 50) . "\n";
+        $b .= "  INFORMACION CLINICA\n";
+        $b .= str_repeat("-", 50) . "\n";
         if ($reason !== '') {
-            $body .= "Motivo: " . $reason . "\n";
+            $b .= "  Motivo:              " . $reason . "\n";
         }
         if ($area !== '') {
-            $body .= "Zona afectada: " . $area . "\n";
+            $b .= "  Zona afectada:       " . $area . "\n";
         }
         if ($evolution !== '') {
-            $body .= "Tiempo de evolucion: " . $evolution . "\n";
+            $b .= "  Tiempo de evolucion: " . $evolution . "\n";
         }
-        $body .= "\n";
+        $b .= "\n";
     }
 
     $photoCount = (int) ($appointment['casePhotoCount'] ?? 0);
     if ($photoCount > 0) {
-        $body .= "Fotos adjuntas: " . $photoCount . "\n";
+        $b .= str_repeat("-", 50) . "\n";
+        $b .= "  FOTOS ADJUNTAS (" . $photoCount . ")\n";
+        $b .= str_repeat("-", 50) . "\n";
         if (isset($appointment['casePhotoUrls']) && is_array($appointment['casePhotoUrls'])) {
             foreach ($appointment['casePhotoUrls'] as $photoUrl) {
                 $url = trim((string) $photoUrl);
                 if ($url !== '') {
-                    $body .= "- " . $url . "\n";
+                    $b .= "  " . $url . "\n";
                 }
             }
         }
-        $body .= "\n";
+        $b .= "\n";
     }
 
-    $body .= "Registrado: " . local_date('d/m/Y H:i') . "\n";
-    $body .= "Consentimiento datos: " . ((isset($appointment['privacyConsent']) && $appointment['privacyConsent']) ? 'si' : 'no') . "\n";
+    $b .= str_repeat("=", 50) . "\n";
+    $b .= "Registrado: " . local_date('d/m/Y H:i') . "\n";
+    $b .= "Consentimiento datos: " . ((isset($appointment['privacyConsent']) && $appointment['privacyConsent']) ? 'Si' : 'No') . "\n";
+    $b .= "Ubicacion: " . clinic_map_url() . "\n";
 
-    return send_mail($adminEmail, $subject, $body);
+    return send_mail($adminEmail, $subject, $b);
 }
 
 function maybe_send_cancellation_email(array $appointment): bool

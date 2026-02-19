@@ -478,47 +478,12 @@ let checkoutSession = {
     service: '',
     doctor: ''
 };
-const DEFAULT_PUBLIC_REVIEWS = [
-    {
-        id: 'google-jose-gancino',
-        name: 'Jose Gancino',
-        rating: 5,
-        text: 'Buena atencion, solo faltan los numeros de la oficina y horarios de atencion.',
-        date: '2025-10-01T10:00:00-05:00',
-        verified: true
-    },
-    {
-        id: 'google-jacqueline-ruiz-torres',
-        name: 'Jacqueline Ruiz Torres',
-        rating: 5,
-        text: 'Excelente atencion y economico.',
-        date: '2025-04-15T10:00:00-05:00',
-        verified: true
-    },
-    {
-        id: 'google-cris-lema',
-        name: 'Cris Lema',
-        rating: 5,
-        text: '',
-        date: '2025-10-10T10:00:00-05:00',
-        verified: true
-    },
-    {
-        id: 'google-camila-escobar',
-        name: 'Camila Escobar',
-        rating: 5,
-        text: '',
-        date: '2025-02-01T10:00:00-05:00',
-        verified: true
-    }
-];
 const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
 let currentAppointment = null;
 let availabilityCache = {};
 let availabilityCacheLoadedAt = 0;
 let availabilityCachePromise = null;
 const bookedSlotsCache = new Map();
-let reviewsCache = [];
 let paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
 let paymentConfigLoaded = false;
 let paymentConfigLoadedAt = 0;
@@ -1549,129 +1514,67 @@ async function createReviewRecord(review) {
     }
 }
 
-function mergePublicReviews(inputReviews) {
-    const merged = [];
-    const seen = new Set();
+const REVIEWS_ENGINE_URL = '/reviews-engine.js?v=figo-reviews-20260219-phase1';
 
-    const addReview = (review) => {
-        if (!review || typeof review !== 'object') return;
-        const name = String(review.name || '').trim().toLowerCase();
-        const text = String(review.text || '').trim().toLowerCase();
-        const date = String(review.date || '').trim();
-        const signature = `${name}|${text}|${date}`;
-        if (!name || seen.has(signature)) return;
-        seen.add(signature);
-        merged.push(review);
+function getReviewsEngineDeps() {
+    return {
+        apiRequest,
+        storageGetJSON,
+        escapeHtml,
+        getCurrentLang: () => currentLang
     };
-
-    DEFAULT_PUBLIC_REVIEWS.forEach(addReview);
-    if (Array.isArray(inputReviews)) {
-        inputReviews.forEach(addReview);
-    }
-
-    return merged;
 }
 
-async function loadPublicReviews(options = {}) {
-    const background = options && options.background === true;
-
-    try {
-        const payload = await apiRequest('reviews', {
-            background,
-            silentSlowNotice: background
-        });
-        const fetchedReviews = Array.isArray(payload.data) ? payload.data : [];
-        reviewsCache = mergePublicReviews(fetchedReviews);
-    } catch (error) {
-        const localReviews = storageGetJSON('reviews', []);
-        reviewsCache = mergePublicReviews(localReviews);
-    }
-
-    renderPublicReviews(reviewsCache);
+function loadReviewsEngine() {
+    return loadDeferredModule({
+        cacheKey: 'reviews-engine',
+        src: REVIEWS_ENGINE_URL,
+        scriptDataAttribute: 'data-reviews-engine',
+        resolveModule: () => window.PielReviewsEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getReviewsEngineDeps()),
+        missingApiError: 'reviews-engine loaded without API',
+        loadError: 'No se pudo cargar reviews-engine.js',
+        logLabel: 'Reviews engine'
+    });
 }
 
-function getInitials(name) {
-    const parts = String(name || 'Paciente')
-        .split(' ')
-        .filter(Boolean)
-        .slice(0, 2);
-    if (parts.length === 0) return 'PA';
-    return parts.map(part => part[0].toUpperCase()).join('');
+function getReviewsCache() {
+    if (window.PielReviewsEngine && typeof window.PielReviewsEngine.getCache === 'function') {
+        return window.PielReviewsEngine.getCache();
+    }
+    return [];
 }
 
-function getRelativeDateLabel(dateText) {
-    const date = new Date(dateText);
-    if (Number.isNaN(date.getTime())) {
-        return currentLang === 'es' ? 'Reciente' : 'Recent';
-    }
-    const now = new Date();
-    const days = Math.max(0, Math.floor((now - date) / (1000 * 60 * 60 * 24)));
-    if (currentLang === 'es') {
-        if (days <= 1) return 'Hoy';
-        if (days < 7) return `Hace ${days} d${days === 1 ? 'ia' : 'ias'}`;
-        if (days < 30) return `Hace ${Math.floor(days / 7)} semana(s)`;
-        return date.toLocaleDateString('es-EC');
-    }
-    if (days <= 1) return 'Today';
-    if (days < 7) return `${days} day(s) ago`;
-    if (days < 30) return `${Math.floor(days / 7)} week(s) ago`;
-    return date.toLocaleDateString('en-US');
-}
-
-function renderStars(rating) {
-    const value = Math.max(1, Math.min(5, Number(rating) || 0));
-    let html = '';
-    for (let i = 1; i <= 5; i += 1) {
-        html += `<i class="${i <= value ? 'fas' : 'far'} fa-star"></i>`;
-    }
-    return html;
+function setReviewsCache(items) {
+    runDeferredModule(loadReviewsEngine, (engine) => engine.setCache(items));
 }
 
 function renderPublicReviews(reviews) {
-    const grid = document.querySelector('.reviews-grid');
-    if (!grid || !Array.isArray(reviews) || reviews.length === 0) return;
+    runDeferredModule(loadReviewsEngine, (engine) => engine.renderPublicReviews(reviews));
+}
 
-    const topReviews = reviews.slice(0, 6);
-    grid.innerHTML = topReviews.map(review => {
-        const text = String(review.text || '').trim();
-        const textHtml = text !== ''
-            ? `<p class="review-text">"${escapeHtml(text)}"</p>`
-            : '';
-        return `
-        <div class="review-card">
-            <div class="review-header">
-                <div class="review-avatar">${escapeHtml(getInitials(review.name))}</div>
-                <div class="review-meta">
-                    <h4>${escapeHtml(review.name || (currentLang === 'es' ? 'Paciente' : 'Patient'))}</h4>
-                    <div class="review-stars">${renderStars(review.rating)}</div>
-                </div>
-            </div>
-            ${textHtml}
-            <span class="review-date">${getRelativeDateLabel(review.date)}</span>
-        </div>
-    `;
-    }).join('');
+function loadPublicReviews(options = {}) {
+    return withDeferredModule(loadReviewsEngine, (engine) => engine.loadPublicReviews(options));
+}
 
-    // Actualizar promedio dinamico en hero + seccion de resenas
-    if (reviews.length > 0) {
-        const avg = reviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / reviews.length;
-        const starsHtml = renderStars(Math.round(avg));
+function initReviewsEngineWarmup() {
+    const warmup = createWarmupRunner(() => loadReviewsEngine(), { markWarmOnSuccess: true });
 
-        document.querySelectorAll('.rating-number').forEach(el => {
-            el.textContent = avg.toFixed(1);
-        });
+    const reviewSection = document.getElementById('resenas');
+    observeOnceWhenVisible(reviewSection, warmup, {
+        threshold: 0.05,
+        rootMargin: '300px 0px',
+        onNoObserver: warmup
+    });
 
-        document.querySelectorAll('.rating-stars').forEach(el => {
-            el.innerHTML = starsHtml;
-        });
-    }
+    bindWarmupTarget('#resenas', 'mouseenter', warmup);
+    bindWarmupTarget('#resenas', 'touchstart', warmup);
+    bindWarmupTarget('#resenas [data-action="open-review-modal"]', 'focus', warmup, false);
 
-    const countText = currentLang === 'es'
-        ? `${reviews.length} rese\u00f1as verificadas`
-        : `${reviews.length} verified reviews`;
-
-    document.querySelectorAll('.rating-count').forEach(el => {
-        el.textContent = countText;
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 2200,
+        fallbackDelay: 1300
     });
 }
 
@@ -1714,8 +1617,9 @@ async function changeLanguage(lang) {
         }
     });
 
-    if (reviewsCache.length > 0) {
-        renderPublicReviews(reviewsCache);
+    const cachedReviews = getReviewsCache();
+    if (cachedReviews.length > 0) {
+        renderPublicReviews(cachedReviews);
     }
 }
 
@@ -1977,15 +1881,13 @@ function getEngagementFormsEngineDeps() {
         renderPublicReviews,
         showToast,
         getCurrentLang: () => currentLang,
-        getReviewsCache: () => Array.isArray(reviewsCache) ? reviewsCache.slice() : [],
-        setReviewsCache: (items) => {
-            reviewsCache = Array.isArray(items) ? items.slice() : [];
-        }
+        getReviewsCache,
+        setReviewsCache
     };
 }
 
 function loadEngagementFormsEngine() {
-    return loadDeferredModule({
+    return loadReviewsEngine().then(() => loadDeferredModule({
         cacheKey: 'engagement-forms-engine',
         src: ENGAGEMENT_FORMS_ENGINE_URL,
         scriptDataAttribute: 'data-engagement-forms-engine',
@@ -1995,7 +1897,7 @@ function loadEngagementFormsEngine() {
         missingApiError: 'engagement-forms-engine loaded without API',
         loadError: 'No se pudo cargar engagement-forms-engine.js',
         logLabel: 'Engagement forms engine'
-    });
+    }));
 }
 
 function initEngagementFormsEngineWarmup() {
@@ -2133,17 +2035,76 @@ document.addEventListener('click', function(e) {
 // CHATBOT CON FIGO
 // ========================================
 let chatbotOpen = false;
+const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
+const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
+const CHAT_HISTORY_MAX_ITEMS = 50;
+const CHAT_CONTEXT_MAX_ITEMS = 24;
+
+function pruneChatHistory(entries) {
+    if (!Array.isArray(entries) || entries.length === 0) {
+        return [];
+    }
+
+    const cutoff = Date.now() - CHAT_HISTORY_TTL_MS;
+    const filtered = entries.filter((entry) => {
+        if (!entry || typeof entry !== 'object') return false;
+        const ts = entry.time ? new Date(entry.time).getTime() : Number.NaN;
+        return Number.isFinite(ts) && ts > cutoff;
+    });
+
+    if (filtered.length <= CHAT_HISTORY_MAX_ITEMS) {
+        return filtered;
+    }
+
+    return filtered.slice(-CHAT_HISTORY_MAX_ITEMS);
+}
+
+function persistChatHistory() {
+    try {
+        localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(chatHistory));
+    } catch (error) {
+        // noop
+    }
+}
+
+function appendConversationContext(role, content) {
+    const normalizedRole = String(role || '').trim();
+    const normalizedContent = String(content || '').trim();
+    if (!normalizedRole || !normalizedContent) {
+        return;
+    }
+
+    const lastMsg = conversationContext[conversationContext.length - 1];
+    if (lastMsg && lastMsg.role === normalizedRole && lastMsg.content === normalizedContent) {
+        return;
+    }
+
+    conversationContext.push({
+        role: normalizedRole,
+        content: normalizedContent
+    });
+
+    if (conversationContext.length > CHAT_CONTEXT_MAX_ITEMS) {
+        conversationContext = conversationContext.slice(-CHAT_CONTEXT_MAX_ITEMS);
+    }
+}
+
 let chatHistory = (function() {
     try {
-        const raw = localStorage.getItem('chatHistory');
+        const raw = localStorage.getItem(CHAT_HISTORY_STORAGE_KEY);
         const saved = raw ? JSON.parse(raw) : [];
-        const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-        const valid = saved.filter(m => m.time && new Date(m.time).getTime() > cutoff);
+        const valid = pruneChatHistory(saved);
         if (valid.length !== saved.length) {
-            try { localStorage.setItem('chatHistory', JSON.stringify(valid)); } catch(e) {}
+            try {
+                localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(valid));
+            } catch (error) {
+                // noop
+            }
         }
         return valid;
-    } catch(e) { return []; }
+    } catch (error) {
+        return [];
+    }
 })();
 let conversationContext = [];
 
@@ -2287,13 +2248,9 @@ function addUserMessage(text) {
     scrollToBottom();
 
     chatHistory.push({ type: 'user', text, time: new Date().toISOString() });
-    try { localStorage.setItem('chatHistory', JSON.stringify(chatHistory)); } catch(e) {}
-
-    // Agregar al contexto de conversacion (evitar duplicados)
-    const lastMsg = conversationContext[conversationContext.length - 1];
-    if (!lastMsg || lastMsg.role !== 'user' || lastMsg.content !== text) {
-        conversationContext.push({ role: 'user', content: text });
-    }
+    chatHistory = pruneChatHistory(chatHistory);
+    persistChatHistory();
+    appendConversationContext('user', text);
 }
 
 function sanitizeBotHtml(html) {
@@ -2381,7 +2338,8 @@ function addBotMessage(html, showOfflineLabel = false) {
     
     // Guardar en historial
     chatHistory.push({ type: 'bot', text: safeHtml, time: new Date().toISOString() });
-    try { localStorage.setItem('chatHistory', JSON.stringify(chatHistory)); } catch(e) {}
+    chatHistory = pruneChatHistory(chatHistory);
+    persistChatHistory();
 }
 
 // Delegated event handler for sanitized chat actions (replaces inline onclick)
@@ -2600,7 +2558,7 @@ function isChatBookingActive() {
 function loadFigoChatEngine() {
     return loadDeferredModule({
         cacheKey: 'figo-chat-engine',
-        src: '/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1',
+        src: '/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1',
         scriptDataAttribute: 'data-figo-chat-engine',
         resolveModule: () => window.FigoChatEngine,
         isModuleReady: (module) => !!module,
@@ -2757,6 +2715,7 @@ document.addEventListener('DOMContentLoaded', function() {
         initEnglishBundleWarmup();
         initBookingEngineWarmup();
         initBookingUiWarmup();
+        initReviewsEngineWarmup();
         initGalleryInteractionsWarmup();
         initChatEngineWarmup();
         initChatBookingEngineWarmup();

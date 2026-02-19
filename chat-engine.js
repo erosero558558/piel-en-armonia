@@ -11,6 +11,7 @@ const KIMI_CONFIG = {
     maxTokens: 1000,
     temperature: 0.7
 };
+const CHAT_CONTEXT_MAX_ITEMS = 24;
 
 let isProcessingMessage = false; // Evitar duplicados
 
@@ -328,6 +329,9 @@ async function tryRealAI(message) {
             }
         }
         conversationContext = uniqueContext;
+        if (conversationContext.length > CHAT_CONTEXT_MAX_ITEMS) {
+            conversationContext = conversationContext.slice(-CHAT_CONTEXT_MAX_ITEMS);
+        }
         
         // Preparar mensajes para la API
         const messages = buildFigoMessages();
@@ -387,6 +391,9 @@ Pregunta original del paciente: "${message}"`;
         const lastMsg = conversationContext[conversationContext.length - 1];
         if (!lastMsg || lastMsg.role !== 'assistant' || lastMsg.content !== botResponse) {
             conversationContext.push({ role: 'assistant', content: botResponse });
+            if (conversationContext.length > CHAT_CONTEXT_MAX_ITEMS) {
+                conversationContext = conversationContext.slice(-CHAT_CONTEXT_MAX_ITEMS);
+            }
         }
         
         removeTypingIndicator();
@@ -638,13 +645,6 @@ function resetConversation() {
     chatHistory = [];
     showToast('Conversacion reiniciada', 'info');
 }
-
-setTimeout(() => {
-    const notification = document.getElementById('chatNotification');
-    if (notification && !chatbotOpen && chatHistory.length === 0) {
-        notification.style.display = 'flex';
-    }
-}, 30000);
 
 function checkServerEnvironment() {
     if (window.location.protocol === 'file:') {
