@@ -1106,7 +1106,7 @@ function initGalleryInteractionsWarmup() {
 // ========================================
 // APPOINTMENT FORM (DEFERRED MODULE)
 // ========================================
-const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260218-phase4-stateclass1';
+const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260219-phase4-stateclass2-funnel1';
 
 function getBookingUiDeps() {
     return {
@@ -1422,6 +1422,22 @@ document.addEventListener('click', function(e) {
     });
 });
 
+function resolveWhatsappSource(waLink) {
+    if (!waLink || !(waLink instanceof Element)) return 'unknown';
+
+    const chatContext = waLink.closest('#chatbotContainer, #chatbotWidget');
+    if (chatContext) return 'chatbot';
+
+    const section = waLink.closest('section[id], footer[id], footer, .quick-contact-dock');
+    if (!section) return 'unknown';
+
+    const sectionId = section.getAttribute('id') || '';
+    if (sectionId) return sectionId;
+    if (section.classList.contains('quick-contact-dock')) return 'quick_dock';
+    if (section.tagName && section.tagName.toLowerCase() === 'footer') return 'footer';
+    return 'unknown';
+}
+
 document.addEventListener('click', function(e) {
     const targetEl = e.target instanceof Element ? e.target : null;
     if (!targetEl) return;
@@ -1429,11 +1445,14 @@ document.addEventListener('click', function(e) {
     const waLink = targetEl.closest('a[href*="wa.me"], a[href*="api.whatsapp.com"]');
     if (!waLink) return;
 
+    const source = resolveWhatsappSource(waLink);
+    trackEvent('whatsapp_click', { source });
+
     const inChatContext = !!waLink.closest('#chatbotContainer') || !!waLink.closest('#chatbotWidget');
     if (!inChatContext) return;
 
     trackEvent('chat_handoff_whatsapp', {
-        source: 'chatbot'
+        source
     });
 });
 
@@ -1446,7 +1465,7 @@ const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
 const CHAT_HISTORY_MAX_ITEMS = 50;
 const CHAT_CONTEXT_MAX_ITEMS = 24;
 const CHAT_UI_ENGINE_URL = '/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1';
-const CHAT_WIDGET_ENGINE_URL = '/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification1';
+const CHAT_WIDGET_ENGINE_URL = '/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1';
 const ACTION_ROUTER_ENGINE_URL = '/action-router-engine.js?v=figo-action-router-20260219-phase1';
 
 function getChatUiEngineDeps() {
@@ -1741,7 +1760,7 @@ function escapeHtml(text) {
 // ========================================
 // BOOKING CONVERSACIONAL DESDE CHATBOT (DEFERRED MODULE)
 // ========================================
-const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260219-phase2-inlinefix1';
+const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260219-phase2-inlinefix2-funnel1';
 
 function getChatBookingEngineDeps() {
     return {

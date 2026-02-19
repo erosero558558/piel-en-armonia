@@ -9,6 +9,7 @@ uploads/
 node_modules/
 test-results/
 playwright-report/
+_deploy_bundle/
 
 # PHP Composer
 vendor/
