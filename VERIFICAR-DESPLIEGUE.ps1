@@ -163,11 +163,7 @@ $criticalCssRemoteUrl = Get-Url -Base $base -Ref $localStyleRef
 try {
     $assetHeaderChecks = @(
         @{ Name = 'app-script'; Url = $appScriptRemoteUrl },
-        @{ Name = 'critical-css'; Url = $criticalCssRemoteUrl },
-        @{ Name = 'booking-ui'; Url = $bookingUiRemoteUrl },
-        @{ Name = 'reschedule-engine'; Url = $rescheduleEngineRemoteUrl },
-        @{ Name = 'ui-effects'; Url = $uiEffectsRemoteUrl },
-        @{ Name = 'gallery-interactions'; Url = $galleryInteractionsRemoteUrl }
+        @{ Name = 'critical-css'; Url = $criticalCssRemoteUrl }
     )
     foreach ($assetCheck in $assetHeaderChecks) {
         if ([string]::IsNullOrWhiteSpace($assetCheck.Url)) {
@@ -362,6 +358,54 @@ $modalUxEngineRemoteUrl = if ($modalUxEngineVersion -ne '') {
     "$base/modal-ux-engine.js?v=$modalUxEngineVersion"
 } else {
     "$base/modal-ux-engine.js"
+}
+
+try {
+    $assetHeaderChecks = @(
+        @{ Name = 'chat-engine'; Url = $chatEngineRemoteUrl },
+        @{ Name = 'styles-deferred'; Url = $deferredStylesRemoteUrl },
+        @{ Name = 'translations-en'; Url = $translationsEnRemoteUrl },
+        @{ Name = 'booking-engine'; Url = $bookingEngineRemoteUrl },
+        @{ Name = 'booking-ui'; Url = $bookingUiRemoteUrl },
+        @{ Name = 'chat-booking-engine'; Url = $chatBookingEngineRemoteUrl },
+        @{ Name = 'success-modal-engine'; Url = $successModalEngineRemoteUrl },
+        @{ Name = 'engagement-forms-engine'; Url = $engagementFormsEngineRemoteUrl },
+        @{ Name = 'modal-ux-engine'; Url = $modalUxEngineRemoteUrl },
+        @{ Name = 'reschedule-engine'; Url = $rescheduleEngineRemoteUrl },
+        @{ Name = 'ui-effects'; Url = $uiEffectsRemoteUrl },
+        @{ Name = 'gallery-interactions'; Url = $galleryInteractionsRemoteUrl }
+    )
+    foreach ($assetCheck in $assetHeaderChecks) {
+        if ([string]::IsNullOrWhiteSpace($assetCheck.Url)) {
+            continue
+        }
+        $assetResp = Invoke-WebRequest -Uri $assetCheck.Url -Method GET -TimeoutSec 30 -UseBasicParsing -Headers @{
+            'Cache-Control' = 'no-cache'
+            'User-Agent' = 'PielArmoniaDeployCheck/1.0'
+        }
+        $cacheHeader = [string]$assetResp.Headers['Cache-Control']
+        if ([string]::IsNullOrWhiteSpace($cacheHeader) -or $cacheHeader -notmatch 'max-age') {
+            Write-Host "[FAIL] asset sin Cache-Control con max-age: $($assetCheck.Name)"
+            $results += [PSCustomObject]@{
+                Asset = "cache-header:$($assetCheck.Name)"
+                Match = $false
+                LocalHash = 'max-age'
+                RemoteHash = if ($cacheHeader) { $cacheHeader } else { 'missing' }
+                RemoteUrl = $assetCheck.Url
+            }
+        } else {
+            Write-Host "[OK]  cache header correcto en: $($assetCheck.Name)"
+        }
+    }
+} catch {
+    Write-Host "[FAIL] No se pudieron validar headers de cache de assets secundarios"
+    $results += [PSCustomObject]@{
+        Asset = 'cache-header:assets-secondary'
+        Match = $false
+        LocalHash = 'max-age'
+        RemoteHash = ''
+        RemoteUrl = "$base/"
+    }
 }
 
 if ([regex]::IsMatch($remoteIndexRaw, '\son[a-z]+\s*=', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {

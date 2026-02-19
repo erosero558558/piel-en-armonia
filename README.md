@@ -81,6 +81,13 @@ El proyecto utiliza Playwright para pruebas de extremo a extremo (E2E).
 
 Para instrucciones detalladas sobre cómo desplegar en producción, por favor revisa el archivo [DESPLIEGUE-PIELARMONIA.md](DESPLIEGUE-PIELARMONIA.md).
 
+Comandos rapidos post-deploy (PowerShell, dominio por defecto https://pielarmonia.com):
+- npm run verify:prod
+- npm run smoke:prod
+- npm run gate:prod
+
+Para probar otro dominio:
+- powershell -NoProfile -ExecutionPolicy Bypass -File .\GATE-POSTDEPLOY.ps1 -Domain "https://tu-dominio.com"
 ## 📂 Estructura del Proyecto
 
 - `api.php`: Punto de entrada principal para la API.
@@ -94,3 +101,4 @@ Para instrucciones detalladas sobre cómo desplegar en producción, por favor re
 ## 📄 Licencia
 
 Este proyecto es privado y propiedad de Piel Armonía.
+
