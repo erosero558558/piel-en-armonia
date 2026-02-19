@@ -498,6 +498,29 @@ function initEnglishBundleWarmup() {
 }
 
 const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2-stateclass1';
+const BOOKING_MEDIA_ENGINE_URL = '/booking-media-engine.js?v=figo-booking-media-20260219-phase1';
+
+function getBookingMediaEngineDeps() {
+    return {
+        getCurrentLang: () => currentLang,
+        uploadTransferProof,
+        maxCasePhotos: MAX_CASE_PHOTOS,
+        maxCasePhotoBytes: MAX_CASE_PHOTO_BYTES,
+        uploadConcurrency: CASE_PHOTO_UPLOAD_CONCURRENCY,
+        allowedCasePhotoTypes: Array.from(CASE_PHOTO_ALLOWED_TYPES)
+    };
+}
+
+const loadBookingMediaEngine = createEngineLoader({
+    cacheKey: 'booking-media-engine',
+    src: BOOKING_MEDIA_ENGINE_URL,
+    scriptDataAttribute: 'data-booking-media-engine',
+    resolveModule: () => window.PielBookingMediaEngine,
+    depsFactory: getBookingMediaEngineDeps,
+    missingApiError: 'booking-media-engine loaded without API',
+    loadError: 'No se pudo cargar booking-media-engine.js',
+    logLabel: 'Booking media engine'
+});
 
 function getBookingEngineDeps() {
     return {
@@ -556,6 +579,23 @@ function initBookingEngineWarmup() {
     scheduleDeferredTask(warmup, {
         idleTimeout: 2500,
         fallbackDelay: 1100
+    });
+}
+
+function initBookingMediaEngineWarmup() {
+    const warmup = createWarmupRunner(() => loadBookingMediaEngine(), { markWarmOnSuccess: true });
+
+    bindWarmupTargetsBatch(warmup, [
+        { selector: '#appointmentForm', eventName: 'focusin', passive: false },
+        { selector: '#appointmentForm', eventName: 'pointerdown' }
+    ]);
+
+    const bookingSection = document.getElementById('citas');
+    observeWarmupForSection(bookingSection, warmup, '300px 0px');
+
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 2200,
+        fallbackDelay: 1000
     });
 }
 
@@ -896,12 +936,23 @@ async function uploadTransferProof(file, options = {}) {
 }
 
 function getCasePhotoFiles(formElement) {
+    const engine = getBookingMediaEngineApi();
+    if (engine && typeof engine.getCasePhotoFiles === 'function') {
+        return engine.getCasePhotoFiles(formElement);
+    }
+
     const input = formElement?.querySelector('#casePhotos');
     if (!input || !input.files) return [];
     return Array.from(input.files);
 }
 
 function validateCasePhotoFiles(files) {
+    const engine = getBookingMediaEngineApi();
+    if (engine && typeof engine.validateCasePhotoFiles === 'function') {
+        engine.validateCasePhotoFiles(files);
+        return;
+    }
+
     if (!Array.isArray(files) || files.length === 0) return;
 
     if (files.length > MAX_CASE_PHOTOS) {
@@ -936,64 +987,65 @@ function validateCasePhotoFiles(files) {
     }
 }
 
-async function ensureCasePhotosUploaded(appointment) {
-    const files = Array.isArray(appointment?.casePhotoFiles) ? appointment.casePhotoFiles : [];
-    if (files.length === 0) {
-        return { names: [], urls: [], paths: [] };
+function getBookingMediaEngineApi() {
+    const engine = window.PielBookingMediaEngine;
+    if (
+        engine
+        && typeof engine.buildAppointmentPayload === 'function'
+        && typeof engine.stripTransientAppointmentFields === 'function'
+    ) {
+        return engine;
     }
-
-    if (Array.isArray(appointment.casePhotoUploads) && appointment.casePhotoUploads.length > 0) {
-        return {
-            names: appointment.casePhotoUploads.map(item => String(item.name || '')).filter(Boolean),
-            urls: appointment.casePhotoUploads.map(item => String(item.url || '')).filter(Boolean),
-            paths: appointment.casePhotoUploads.map(item => String(item.path || '')).filter(Boolean)
-        };
-    }
-
-    const uploads = new Array(files.length);
-    const workerCount = Math.max(1, Math.min(CASE_PHOTO_UPLOAD_CONCURRENCY, files.length));
-    let cursor = 0;
-
-    // Limita concurrencia para no saturar red/servidor durante la reserva.
-    const uploadWorker = async () => {
-        while (cursor < files.length) {
-            const index = cursor;
-            cursor += 1;
-            const file = files[index];
-            const uploaded = await uploadTransferProof(file, { retries: 2 });
-            uploads[index] = {
-                name: uploaded.transferProofName || file.name || '',
-                url: uploaded.transferProofUrl || '',
-                path: uploaded.transferProofPath || ''
-            };
-        }
-    };
-
-    await Promise.all(Array.from({ length: workerCount }, () => uploadWorker()));
-    appointment.casePhotoUploads = uploads;
-
-    return {
-        names: uploads.map(item => String(item.name || '')).filter(Boolean),
-        urls: uploads.map(item => String(item.url || '')).filter(Boolean),
-        paths: uploads.map(item => String(item.path || '')).filter(Boolean)
-    };
+    return null;
 }
 
 function stripTransientAppointmentFields(appointment) {
-    const payload = { ...appointment };
+    const engine = getBookingMediaEngineApi();
+    if (engine) {
+        return engine.stripTransientAppointmentFields(appointment);
+    }
+
+    const payload = { ...(appointment || {}) };
     delete payload.casePhotoFiles;
     delete payload.casePhotoUploads;
     return payload;
 }
 
+function mapStoredCasePhotoUploads(items) {
+    if (!Array.isArray(items) || items.length === 0) {
+        return { names: [], urls: [], paths: [] };
+    }
+    return {
+        names: items.map((item) => String(item?.name || '')).filter(Boolean),
+        urls: items.map((item) => String(item?.url || '')).filter(Boolean),
+        paths: items.map((item) => String(item?.path || '')).filter(Boolean)
+    };
+}
+
 async function buildAppointmentPayload(appointment) {
-    const payload = stripTransientAppointmentFields(appointment || {});
-    const uploadedPhotos = await ensureCasePhotosUploaded(appointment || {});
-    payload.casePhotoCount = uploadedPhotos.urls.length;
-    payload.casePhotoNames = uploadedPhotos.names;
-    payload.casePhotoUrls = uploadedPhotos.urls;
-    payload.casePhotoPaths = uploadedPhotos.paths;
-    return payload;
+    return runDeferredModule(
+        loadBookingMediaEngine,
+        (engine) => engine.buildAppointmentPayload(appointment),
+        () => {
+            const pendingFiles = Array.isArray(appointment?.casePhotoFiles) ? appointment.casePhotoFiles : [];
+            const existingUploads = Array.isArray(appointment?.casePhotoUploads) ? appointment.casePhotoUploads : [];
+            if (pendingFiles.length > 0 && existingUploads.length === 0) {
+                throw new Error(
+                    currentLang === 'es'
+                        ? 'No se pudieron preparar las imagenes adjuntas. Intenta de nuevo.'
+                        : 'Unable to process attached images. Please try again.'
+                );
+            }
+
+            const payload = stripTransientAppointmentFields(appointment || {});
+            const uploadedPhotos = mapStoredCasePhotoUploads(existingUploads);
+            payload.casePhotoCount = uploadedPhotos.urls.length;
+            payload.casePhotoNames = uploadedPhotos.names;
+            payload.casePhotoUrls = uploadedPhotos.urls;
+            payload.casePhotoPaths = uploadedPhotos.paths;
+            return payload;
+        }
+    );
 }
 
 function invalidateBookedSlotsCache(date = '', doctor = '') {
@@ -1179,7 +1231,7 @@ function getBookingUiDeps() {
     };
 }
 
-const loadBookingUi = createEngineLoader({
+const loadBookingUiCore = createEngineLoader({
     cacheKey: 'booking-ui',
     src: BOOKING_UI_URL,
     scriptDataAttribute: 'data-booking-ui',
@@ -1189,6 +1241,10 @@ const loadBookingUi = createEngineLoader({
     loadError: 'No se pudo cargar booking-ui.js',
     logLabel: 'Booking UI'
 });
+
+function loadBookingUi() {
+    return withDeferredModule(loadBookingMediaEngine, () => loadBookingUiCore());
+}
 
 function initBookingUiWarmup() {
     const warmup = createWarmupRunner(() => loadBookingUi());
@@ -1891,7 +1947,7 @@ async function processWithKimi(message) {
 }
 
 runDeferredModule(loadChatWidgetEngine, (engine) => engine.scheduleInitialNotification(30000));
-const APP_BOOTSTRAP_ENGINE_URL = '/app-bootstrap-engine.js?v=figo-bootstrap-20260219-phase2-events1';
+const APP_BOOTSTRAP_ENGINE_URL = '/app-bootstrap-engine.js?v=figo-bootstrap-20260219-phase2-events2';
 // ========================================
 // REPROGRAMACION ONLINE
 // ========================================
@@ -1990,6 +2046,7 @@ function getAppBootstrapEngineDeps() {
         initEnglishBundleWarmup,
         initDataEngineWarmup,
         initBookingEngineWarmup,
+        initBookingMediaEngineWarmup,
         initBookingUiWarmup,
         initReviewsEngineWarmup,
         initGalleryInteractionsWarmup,
