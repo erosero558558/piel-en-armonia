@@ -185,6 +185,30 @@ if ($resource === '' && $action !== '') {
 
 register_shutdown_function(static function () use ($requestStartedAt, $method, $resource): void {
     $elapsed = api_elapsed_ms($requestStartedAt);
+
+    if (class_exists('Metrics')) {
+        Metrics::observe('http_request_duration_seconds', $elapsed / 1000, [
+            'method' => $method,
+            'resource' => $resource,
+            'status' => (string)http_response_code()
+        ]);
+
+        $status = http_response_code();
+        $isSuccess = $status >= 200 && $status < 400;
+
+        if ($isSuccess) {
+            if ($resource === 'monitoring-config') {
+                Metrics::increment('conversion_funnel_events_total', ['step' => 'page_view']);
+            } elseif ($resource === 'availability' || $resource === 'booked-slots') {
+                Metrics::increment('conversion_funnel_events_total', ['step' => 'view_availability']);
+            } elseif ($resource === 'payment-intent' && $method === 'POST') {
+                Metrics::increment('conversion_funnel_events_total', ['step' => 'initiate_checkout']);
+            } elseif ($resource === 'appointments' && $method === 'POST') {
+                Metrics::increment('conversion_funnel_events_total', ['step' => 'complete_booking']);
+            }
+        }
+    }
+
     if ($elapsed < 2000) {
         return;
     }
@@ -217,6 +241,7 @@ if ($resource === 'health') {
 
 $publicEndpoints = [
     ['method' => 'GET', 'resource' => 'monitoring-config'],
+    ['method' => 'GET', 'resource' => 'metrics'],
     ['method' => 'GET', 'resource' => 'payment-config'],
     ['method' => 'GET', 'resource' => 'availability'],
     ['method' => 'GET', 'resource' => 'reviews'],
@@ -272,6 +297,62 @@ if (in_array($method, ['POST', 'PUT', 'PATCH'], true) && $isAdmin) {
 }
 
 $store = read_store();
+
+if ($resource === 'metrics') {
+    if (!class_exists('Metrics')) {
+        http_response_code(500);
+        die("Metrics library not loaded");
+    }
+    header('Content-Type: text/plain; version=0.0.4');
+
+    // Calculate Business Metrics from Store
+    $revenueByDate = [];
+    foreach ($store['appointments'] as $appt) {
+        if (($appt['status'] ?? '') !== 'cancelled' && ($appt['paymentStatus'] ?? '') === 'paid') {
+            $date = $appt['date'] ?? '';
+            $service = $appt['service'] ?? '';
+            $price = function_exists('get_service_price') ? get_service_price($service) : 0;
+            if ($date && $price > 0) {
+                if (!isset($revenueByDate[$date])) {
+                    $revenueByDate[$date] = 0;
+                }
+                $revenueByDate[$date] += $price;
+            }
+        }
+    }
+
+    $stats = ['confirmed' => 0, 'no_show' => 0, 'completed' => 0, 'cancelled' => 0];
+    foreach ($store['appointments'] as $appt) {
+        $st = function_exists('map_appointment_status')
+            ? map_appointment_status($appt['status'] ?? 'confirmed')
+            : ($appt['status'] ?? 'confirmed');
+
+        if (isset($stats[$st])) {
+            $stats[$st]++;
+        }
+    }
+
+    // Output standard metrics
+    echo Metrics::export();
+
+    // Output business metrics
+    foreach ($revenueByDate as $date => $amount) {
+        echo "\n# TYPE pielarmonia_revenue_daily_total gauge";
+        echo "\npielarmonia_revenue_daily_total{date=\"$date\"} $amount";
+    }
+
+    foreach ($stats as $st => $count) {
+        echo "\n# TYPE pielarmonia_appointments_total gauge";
+        echo "\npielarmonia_appointments_total{status=\"$st\"} $count";
+    }
+
+    $totalValid = $stats['confirmed'] + $stats['no_show'] + $stats['completed'];
+    $rate = $totalValid > 0 ? ($stats['no_show'] / $totalValid) : 0;
+    echo "\n# TYPE pielarmonia_no_show_rate gauge";
+    echo "\npielarmonia_no_show_rate $rate\n";
+
+    exit;
+}
 
 if ($method === 'GET' && $resource === 'data') {
     json_response([
