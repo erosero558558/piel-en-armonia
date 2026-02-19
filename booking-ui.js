@@ -139,6 +139,10 @@
             updateAvailableTimes().catch(() => undefined);
         });
 
+        if (serviceSelect.value) {
+            serviceSelect.dispatchEvent(new Event('change'));
+        }
+
         if (dateInput) {
             dateInput.min = new Date().toISOString().split('T')[0];
             dateInput.addEventListener('change', () => updateAvailableTimes().catch(() => undefined));
