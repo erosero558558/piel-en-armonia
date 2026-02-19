@@ -778,39 +778,6 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
     transform: scale(1.05);
 }
 
-.team-overlay {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to top, rgba(7, 15, 27, 0.64), transparent 60%);
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity var(--ui-ease);
-}
-
-.team-card:hover .team-overlay {
-    opacity: 1;
-}
-
-.team-actions {
-    display: flex;
-    gap: 8px;
-    padding-bottom: 14px;
-}
-
-.team-btn {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    color: #f6fbff;
-    text-decoration: none;
-    border: 1px solid rgba(235, 246, 255, 0.5);
-    background: rgba(255, 255, 255, 0.2);
-}
-
 .team-info {
     padding: 22px 22px 24px;
 }
@@ -820,30 +787,40 @@ html[data-theme='dark'] .theme-btn[data-theme-mode='system'] i {
     color: #132e51;
 }
 
-.team-role {
-    margin-top: 6px;
+.team-role-exp {
+    margin-top: 4px;
     color: #2b7cd1;
     font-weight: 700;
+    font-size: 0.94rem;
+    margin-bottom: 12px;
 }
 
-.team-desc {
-    margin-top: 10px;
+.team-detail {
     color: #4f607b;
-    line-height: 1.6;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-top: 6px;
 }
 
-.team-status {
-    margin-top: 14px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: #1a8d57;
-    font-weight: 700;
-    font-size: 0.88rem;
+.team-detail strong {
+    color: #132e51;
 }
 
-.team-status i {
-    font-size: 0.56rem;
+.team-actions-footer {
+    margin-top: 18px;
+}
+
+.team-secondary-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.btn-sm {
+    min-height: 38px;
+    padding: 0 14px;
+    font-size: 0.86rem;
 }
 
 .gallery-filter {
@@ -2487,7 +2464,7 @@ html[data-theme='dark'] .appointment-form h3 {
 
 html[data-theme='dark'] .service-card p,
 html[data-theme='dark'] .tele-card p,
-html[data-theme='dark'] .team-desc,
+html[data-theme='dark'] .team-detail,
 html[data-theme='dark'] .gallery-info p,
 html[data-theme='dark'] .rating-count,
 html[data-theme='dark'] .review-text,
@@ -2495,6 +2472,10 @@ html[data-theme='dark'] .clinic-desc,
 html[data-theme='dark'] .clinic-item p,
 html[data-theme='dark'] .review-date {
     color: #aac1e2;
+}
+
+html[data-theme='dark'] .team-detail strong {
+    color: #e9f1ff;
 }
 
 html[data-theme='dark'] .service-price,
@@ -2509,7 +2490,7 @@ html[data-theme='dark'] .tele-features li {
 }
 
 html[data-theme='dark'] .tele-price,
-html[data-theme='dark'] .team-role,
+html[data-theme='dark'] .team-role-exp,
 html[data-theme='dark'] .clinic-item i,
 html[data-theme='dark'] .filter-btn.active,
 html[data-theme='dark'] .filter-btn:hover {
