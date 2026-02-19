@@ -287,10 +287,39 @@ function loadDashboardData() {
     document.getElementById('totalAppointments').textContent = currentAppointments.length;
 
     const today = new Date().toISOString().split('T')[0];
-    const todayAppointments = currentAppointments.filter(a => a.date === today && a.status !== 'cancelled');
+
+    const todayAppointments = [];
+    let pendingTransfers = 0;
+    let confirmedCount = 0;
+
+    // Optimized: Single pass over appointments
+    for (const a of currentAppointments) {
+        // Today appointments
+        if (a.date === today && a.status !== 'cancelled') {
+            todayAppointments.push(a);
+        }
+
+        // Pending transfers
+        if (a.paymentStatus === 'pending_transfer_review') {
+            pendingTransfers++;
+        }
+
+        // Confirmed count
+        const status = a.status || 'confirmed';
+        if (status === 'confirmed') {
+            confirmedCount++;
+        }
+    }
+
     document.getElementById('todayAppointments').textContent = todayAppointments.length;
 
-    const pendingCallbacks = currentCallbacks.filter(c => normalizeCallbackStatus(c.status) === 'pendiente');
+    // Optimized: Single pass loop for callbacks
+    const pendingCallbacks = [];
+    for (const c of currentCallbacks) {
+        if (normalizeCallbackStatus(c.status) === 'pendiente') {
+            pendingCallbacks.push(c);
+        }
+    }
     document.getElementById('pendingCallbacks').textContent = pendingCallbacks.length;
 
     let avgRating = 0;
@@ -299,8 +328,6 @@ function loadDashboardData() {
     }
     document.getElementById('avgRating').textContent = avgRating;
 
-    const pendingTransfers = currentAppointments.filter(a => a.paymentStatus === 'pending_transfer_review').length;
-    const confirmedCount = currentAppointments.filter(a => (a.status || 'confirmed') === 'confirmed').length;
     document.getElementById('appointmentsBadge').textContent = pendingTransfers > 0
         ? `${confirmedCount} (${pendingTransfers} por validar)`
         : confirmedCount;
