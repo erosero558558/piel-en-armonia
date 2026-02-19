@@ -1,9 +1,14 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/common.php';
+require_once __DIR__ . '/http.php';
+
 /**
  * Session and authentication logic.
  */
+
+const SESSION_TIMEOUT = 1800; // 30 minutos de inactividad
 
 function start_secure_session(): void
 {
@@ -71,12 +76,12 @@ function destroy_secure_session(): void
 
 function verify_admin_password(string $password): bool
 {
-    $hash = getenv(ADMIN_PASSWORD_HASH_ENV);
+    $hash = getenv('PIELARMONIA_ADMIN_PASSWORD_HASH');
     if (is_string($hash) && $hash !== '') {
         return password_verify($password, $hash);
     }
 
-    $plain = getenv(ADMIN_PASSWORD_ENV);
+    $plain = getenv('PIELARMONIA_ADMIN_PASSWORD');
     if (is_string($plain) && $plain !== '') {
         return hash_equals($plain, $password);
     }

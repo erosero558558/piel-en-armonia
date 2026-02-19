@@ -1,16 +1,31 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/common.php';
+require_once __DIR__ . '/business.php';
+
 /**
  * Storage and file system operations.
  */
 
-const DATA_DIR = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'data';
-const DATA_FILE = DATA_DIR . DIRECTORY_SEPARATOR . 'store.json';
-const BACKUP_DIR = DATA_DIR . DIRECTORY_SEPARATOR . 'backups';
-const MAX_STORE_BACKUPS = 30;
-const STORE_LOCK_TIMEOUT_MS = 1800;
-const STORE_LOCK_RETRY_DELAY_US = 25000;
+if (!defined('DATA_DIR')) {
+    define('DATA_DIR', __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'data');
+}
+if (!defined('DATA_FILE')) {
+    define('DATA_FILE', DATA_DIR . DIRECTORY_SEPARATOR . 'store.json');
+}
+if (!defined('BACKUP_DIR')) {
+    define('BACKUP_DIR', DATA_DIR . DIRECTORY_SEPARATOR . 'backups');
+}
+if (!defined('MAX_STORE_BACKUPS')) {
+    define('MAX_STORE_BACKUPS', 30);
+}
+if (!defined('STORE_LOCK_TIMEOUT_MS')) {
+    define('STORE_LOCK_TIMEOUT_MS', 1800);
+}
+if (!defined('STORE_LOCK_RETRY_DELAY_US')) {
+    define('STORE_LOCK_RETRY_DELAY_US', 25000);
+}
 
 function data_dir_path(): string
 {
@@ -218,30 +233,6 @@ function ensure_data_htaccess(string $dir): void
     @file_put_contents($htaccess, $rules, LOCK_EX);
 }
 
-function audit_log_event(string $event, array $details = []): void
-{
-    $line = [
-        'ts' => local_date('c'),
-        'event' => $event,
-        'ip' => (string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown'),
-        'actor' => (session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['admin_logged_in'])) ? 'admin' : 'public',
-        'path' => (string) ($_SERVER['REQUEST_URI'] ?? ''),
-        'details' => $details
-    ];
-
-    $encoded = json_encode($line, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if (!is_string($encoded) || $encoded === '') {
-        return;
-    }
-
-    $dir = data_dir_path();
-    if (!is_dir($dir)) {
-        @mkdir($dir, 0775, true);
-    }
-    ensure_data_htaccess($dir);
-    @file_put_contents(audit_log_file_path(), $encoded . PHP_EOL, FILE_APPEND | LOCK_EX);
-}
-
 function ensure_backup_dir(): bool
 {
     $backupDir = backup_dir_path();
@@ -356,10 +347,25 @@ function read_store(): array
     $decodedRaw = data_decrypt_payload($rawText);
     if ($decodedRaw === '') {
         if (substr($rawText, 0, 6) === 'ENCv1:') {
-            json_response([
-                'ok' => false,
-                'error' => 'No se pudo descifrar la base de datos. Verifica PIELARMONIA_DATA_ENCRYPTION_KEY'
-            ], 500);
+            // Esto solo se puede mostrar si json_response está disponible, pero lib/storage.php no depende de http.php.
+            // Asi que hacemos un error log y retornamos array vacio, o lanzamos excepcion.
+            // api-lib.php hacia json_response... que es un side effect.
+            // Lo mejor es hacer error log y retornar vacio, o die.
+            // Para compatibilidad:
+            error_log('Piel en Armonía: No se pudo descifrar la base de datos. Verifica PIELARMONIA_DATA_ENCRYPTION_KEY');
+             // Si el llamador espera respuesta json, deberiamos lanzar excepcion?
+             // api-lib.php hacia: json_response(['ok'=>false, ...], 500);
+             // Si yo hago require_once 'http.php' aqui seria circular dependency? No.
+             // Pero storage no deberia saber de HTTP.
+             // Voy a dejarlo como retorno de array vacio y log, pero si el store esta corrupto/encriptado mal, la app no funcionara bien.
+             // El caller (api.php) podria manejarlo.
+             // O puedo requerir http.php aqui y usar json_response para mantener el comportamiento exacto de api-lib.php.
+             if (function_exists('json_response')) {
+                 json_response([
+                    'ok' => false,
+                    'error' => 'No se pudo descifrar la base de datos. Verifica PIELARMONIA_DATA_ENCRYPTION_KEY'
+                ], 500);
+             }
         }
         return [
             'appointments' => [],
@@ -387,6 +393,10 @@ function read_store(): array
     $data['availability'] = isset($data['availability']) && is_array($data['availability']) ? $data['availability'] : [];
     $data['updatedAt'] = isset($data['updatedAt']) ? (string) $data['updatedAt'] : local_date('c');
 
+    if (!isset($data['idx_appointments_date']) || !is_array($data['idx_appointments_date'])) {
+        $data['idx_appointments_date'] = build_appointment_index($data['appointments']);
+    }
+
     return $data;
 }
 
@@ -412,11 +422,16 @@ function acquire_store_lock($fp, int $timeoutMs = STORE_LOCK_TIMEOUT_MS): bool
 function write_store(array $store): void
 {
     if (!ensure_data_file()) {
-        json_response([
-            'ok' => false,
-            'error' => 'No hay permisos de escritura para los datos',
-            'path' => data_file_path()
-        ], 500);
+        if (function_exists('json_response')) {
+            json_response([
+                'ok' => false,
+                'error' => 'No hay permisos de escritura para los datos',
+                'path' => data_file_path()
+            ], 500);
+        } else {
+             error_log('No hay permisos de escritura para los datos: ' . data_file_path());
+             return;
+        }
     }
 
     $store['appointments'] = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
@@ -425,12 +440,20 @@ function write_store(array $store): void
     $store['availability'] = isset($store['availability']) && is_array($store['availability']) ? $store['availability'] : [];
     $store['updatedAt'] = local_date('c');
 
+    // Rebuild index before saving to ensure consistency
+    $store['idx_appointments_date'] = build_appointment_index($store['appointments']);
+
     $fp = @fopen(data_file_path(), 'c+');
     if ($fp === false) {
-        json_response([
-            'ok' => false,
-            'error' => 'No se pudo abrir el archivo de datos'
-        ], 500);
+        if (function_exists('json_response')) {
+            json_response([
+                'ok' => false,
+                'error' => 'No se pudo abrir el archivo de datos'
+            ], 500);
+        } else {
+            error_log('No se pudo abrir el archivo de datos');
+            return;
+        }
     }
 
     $lockAcquired = false;
@@ -438,11 +461,16 @@ function write_store(array $store): void
         $lockTimeoutMs = STORE_LOCK_TIMEOUT_MS;
         if (!acquire_store_lock($fp, $lockTimeoutMs)) {
             header('Retry-After: 1');
-            json_response([
-                'ok' => false,
-                'error' => 'El sistema esta ocupado. Intenta nuevamente en unos segundos',
-                'retryAfterMs' => $lockTimeoutMs
-            ], 503);
+            if (function_exists('json_response')) {
+                json_response([
+                    'ok' => false,
+                    'error' => 'El sistema esta ocupado. Intenta nuevamente en unos segundos',
+                    'retryAfterMs' => $lockTimeoutMs
+                ], 503);
+            } else {
+                error_log('El sistema esta ocupado (lock timeout)');
+                return;
+            }
         }
         $lockAcquired = true;
 
@@ -454,10 +482,14 @@ function write_store(array $store): void
         $encoded = json_encode($store, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $payloadToWrite = is_string($encoded) ? data_encrypt_payload($encoded) : '';
         if ($payloadToWrite === '' || fwrite($fp, $payloadToWrite) === false) {
-            json_response([
-                'ok' => false,
-                'error' => 'No se pudo guardar la información'
-            ], 500);
+             if (function_exists('json_response')) {
+                json_response([
+                    'ok' => false,
+                    'error' => 'No se pudo guardar la información'
+                ], 500);
+            } else {
+                error_log('No se pudo guardar la informacion (fwrite failed)');
+            }
         }
         fflush($fp);
     } finally {

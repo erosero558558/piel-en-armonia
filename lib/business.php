@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/common.php';
+require_once __DIR__ . '/validation.php';
+
 /**
  * Business Logic Helpers
  */
@@ -50,40 +53,72 @@ function get_service_total_price(string $service): string
     return '$' . number_format($total, 2, '.', '');
 }
 
-function map_callback_status(string $status): string
+function build_appointment_index(array $appointments): array
 {
-    $normalized = strtolower(trim($status));
-    if ($normalized === 'contacted') {
-        return 'contactado';
+    $index = [];
+    foreach ($appointments as $i => $appt) {
+        $date = (string) ($appt['date'] ?? '');
+        if ($date === '') {
+            continue;
+        }
+        if (!isset($index[$date])) {
+            $index[$date] = [];
+        }
+        $index[$date][] = $i;
     }
-    if ($normalized === 'pending') {
-        return 'pendiente';
-    }
-    return in_array($normalized, ['pendiente', 'contactado'], true) ? $normalized : 'pendiente';
+    return $index;
 }
 
-function map_appointment_status(string $status): string
+function appointment_slot_taken(array $appointments, string $date, string $time, ?int $excludeId = null, string $doctor = '', ?array $index = null): bool
 {
-    $normalized = strtolower(trim($status));
-    return in_array($normalized, ['confirmed', 'pending', 'cancelled', 'completed'], true)
-        ? $normalized
-        : 'confirmed';
-}
+    // Use index if available for faster lookup
+    if ($index !== null) {
+        if (!isset($index[$date])) {
+            return false;
+        }
 
-function appointment_slot_taken(array $appointments, string $date, string $time, ?int $excludeId = null, string $doctor = ''): bool
-{
+        foreach ($index[$date] as $idx) {
+            if (!isset($appointments[$idx])) {
+                continue;
+            }
+            $appt = $appointments[$idx];
+            $id = isset($appt['id']) ? (int) $appt['id'] : null;
+            if ($excludeId !== null && $id === $excludeId) {
+                continue;
+            }
+            $status = map_appointment_status((string) ($appt['status'] ?? 'confirmed'));
+            if ($status === 'cancelled') {
+                continue;
+            }
+            if ((string) ($appt['time'] ?? '') !== $time) {
+                continue;
+            }
+            if ($doctor !== '' && $doctor !== 'indiferente') {
+                $apptDoctor = (string) ($appt['doctor'] ?? '');
+                if ($apptDoctor !== '' && $apptDoctor !== 'indiferente' && $apptDoctor !== $doctor) {
+                    continue;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
     foreach ($appointments as $appt) {
+        if ((string) ($appt['date'] ?? '') !== $date || (string) ($appt['time'] ?? '') !== $time) {
+            continue;
+        }
+
         $id = isset($appt['id']) ? (int) $appt['id'] : null;
         if ($excludeId !== null && $id === $excludeId) {
             continue;
         }
-        $status = map_appointment_status((string) ($appt['status'] ?? 'confirmed'));
-        if ($status === 'cancelled') {
+
+        $rawStatus = (string) ($appt['status'] ?? 'confirmed');
+        if (strcasecmp($rawStatus, 'cancelled') === 0) {
             continue;
         }
-        if ((string) ($appt['date'] ?? '') !== $date || (string) ($appt['time'] ?? '') !== $time) {
-            continue;
-        }
+
         if ($doctor !== '' && $doctor !== 'indiferente') {
             $apptDoctor = (string) ($appt['doctor'] ?? '');
             if ($apptDoctor !== '' && $apptDoctor !== 'indiferente' && $apptDoctor !== $doctor) {

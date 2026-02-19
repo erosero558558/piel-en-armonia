@@ -635,69 +635,11 @@ if ($method === 'POST' && $resource === 'appointments') {
     $payload = require_json_body();
     $appointment = normalize_appointment($payload);
 
-    if ($appointment['name'] === '' || $appointment['email'] === '' || $appointment['phone'] === '') {
+    $validation = validate_appointment_payload($appointment, $store['availability'] ?? []);
+    if (!$validation['ok']) {
         json_response([
             'ok' => false,
-            'error' => 'Nombre, email y teléfono son obligatorios'
-        ], 400);
-    }
-
-    if (!validate_email($appointment['email'])) {
-        json_response([
-            'ok' => false,
-            'error' => 'El formato del email no es válido'
-        ], 400);
-    }
-
-    if (!validate_phone($appointment['phone'])) {
-        json_response([
-            'ok' => false,
-            'error' => 'El formato del teléfono no es válido'
-        ], 400);
-    }
-
-    if (!isset($appointment['privacyConsent']) || $appointment['privacyConsent'] !== true) {
-        json_response([
-            'ok' => false,
-            'error' => 'Debes aceptar el tratamiento de datos para reservar la cita'
-        ], 400);
-    }
-
-    if ($appointment['date'] === '' || $appointment['time'] === '') {
-        json_response([
-            'ok' => false,
-            'error' => 'Fecha y hora son obligatorias'
-        ], 400);
-    }
-
-    if ($appointment['date'] < local_date('Y-m-d')) {
-        json_response([
-            'ok' => false,
-            'error' => 'No se puede agendar en una fecha pasada'
-        ], 400);
-    }
-
-    // Si es hoy, la hora debe ser al menos 1 hora en el futuro
-    if ($appointment['date'] === local_date('Y-m-d')) {
-        $nowMinutes = (int) local_date('H') * 60 + (int) local_date('i');
-        $parts = explode(':', $appointment['time']);
-        $slotMinutes = (int) ($parts[0] ?? 0) * 60 + (int) ($parts[1] ?? 0);
-        if ($slotMinutes <= $nowMinutes + 60) {
-            json_response([
-                'ok' => false,
-                'error' => 'Ese horario ya pasó o es muy pronto. Selecciona una hora con al menos 1 hora de anticipación, o elige otra fecha.'
-            ], 400);
-        }
-    }
-
-    // Validar que el horario exista en la disponibilidad configurada
-    $availableSlots = isset($store['availability'][$appointment['date']]) && is_array($store['availability'][$appointment['date']])
-        ? $store['availability'][$appointment['date']]
-        : [];
-    if (count($availableSlots) > 0 && !in_array($appointment['time'], $availableSlots, true)) {
-        json_response([
-            'ok' => false,
-            'error' => 'Ese horario no está disponible para la fecha seleccionada'
+            'error' => $validation['error']
         ], 400);
     }
 
