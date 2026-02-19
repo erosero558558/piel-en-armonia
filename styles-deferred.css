@@ -3157,6 +3157,29 @@ html[data-theme='dark'] .showcase-eyebrow {
         font-size: 16px;
     }
 
+    .chatbot-widget {
+        right: 12px;
+        bottom: calc(90px + var(--safe-bottom));
+    }
+
+    .quick-dock {
+        left: 8px;
+        right: 8px;
+        bottom: calc(8px + var(--safe-bottom));
+        transform: none;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 6px;
+        border-radius: 16px;
+    }
+
+    .quick-dock-item {
+        min-width: 0;
+        flex: 1;
+        height: 42px;
+        font-size: 0.78rem;
+    }
+
     .nav-logo span {
         max-width: 170px;
         white-space: nowrap;
