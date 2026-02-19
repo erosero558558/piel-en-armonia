@@ -339,6 +339,11 @@ $deferredStylesRemoteUrl = if ($indexDeferredStylesRemoteUrl -ne '') {
 } else {
     "$base/styles-deferred.css"
 }
+if ($deferredStylesRemoteUrl -match '\?') {
+    $deferredStylesRemoteUrl = "$deferredStylesRemoteUrl&verify=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
+} else {
+    $deferredStylesRemoteUrl = "$deferredStylesRemoteUrl?verify=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
+}
 
 $translationsEnVersion = ''
 $translationsEnMatch = [regex]::Match($localI18nEngineTextForRefs, "translations-en\.js\?v=([a-zA-Z0-9._-]+)")
@@ -517,7 +522,7 @@ try {
     }
 }
 
-if ([regex]::IsMatch([string]$remoteIndexRaw, '\son[a-z]+\s*=', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+if ([regex]::IsMatch([string]$remoteIndexRaw, '<[a-zA-Z][^>]*\son[a-z]+\s*=', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
     Write-Host "[FAIL] index remoto contiene event handlers inline (on*)"
     $results += [PSCustomObject]@{
         Asset = 'index-inline-handlers'

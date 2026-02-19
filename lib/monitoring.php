@@ -75,6 +75,8 @@ function check_system_health(): array
         'ok' => $status === 'ok',
         'timestamp' => local_date('c'),
         'version' => app_runtime_version(),
+        'dataDirWritable' => $dataWritable,
+        'storeEncrypted' => $storeEncrypted,
         'checks' => [
             'storage' => [
                 'ready' => $storageReady,
