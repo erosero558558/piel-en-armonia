@@ -77,6 +77,22 @@ function require_csrf(): void
     }
 }
 
+function apply_security_headers(bool $isHtml = true): void
+{
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: SAMEORIGIN');
+    header('X-XSS-Protection: 1; mode=block');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+
+    if ($isHtml) {
+        // Relaxed CSP for frontend
+        // header("Content-Security-Policy: default-src 'self' https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:;");
+    } else {
+        // Strict CSP for API
+        header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
+    }
+}
+
 /**
  * Applies CORS headers based on environment configuration and request origin.
  */
