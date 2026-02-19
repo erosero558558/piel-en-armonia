@@ -76,6 +76,30 @@
         return requireFn('normalizeAnalyticsLabel')(value, fallback);
     }
 
+    function sanitizeBookingSubmissionError(rawMessage) {
+        const message = String(rawMessage || '').trim();
+        if (!message) {
+            return 'Hubo un problema tecnico temporal al registrar la cita. Intenta nuevamente.';
+        }
+
+        const technicalPatterns = [
+            /call to undefined function/i,
+            /fatal error/i,
+            /uncaught/i,
+            /stack trace/i,
+            /syntax error/i,
+            /on line \d+/i,
+            /in \/.+\.php/i,
+            /mb_strlen/i
+        ];
+
+        if (technicalPatterns.some((pattern) => pattern.test(message))) {
+            return 'Hubo un problema tecnico temporal al registrar la cita. Intenta nuevamente.';
+        }
+
+        return message;
+    }
+
     function clearPaymentError() {
         setPaymentError('');
     }
@@ -490,10 +514,11 @@
             const summary = document.getElementById('priceSummary');
             if (summary) summary.classList.add('is-hidden');
         } catch (error) {
-            let message = error?.message || 'No se pudo registrar la cita. Intenta nuevamente.';
+            const rawMessage = error?.message || '';
+            let message = sanitizeBookingSubmissionError(rawMessage);
             if (
                 paymentMethodUsed === 'card'
-                && /horario ya fue reservado/i.test(message)
+                && /horario ya fue reservado/i.test(rawMessage)
             ) {
                 message = 'El pago fue aprobado, pero el horario acaba de ocuparse. Escribenos por WhatsApp para resolverlo de inmediato: 098 245 3672.';
             }

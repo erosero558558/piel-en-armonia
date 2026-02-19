@@ -35,6 +35,36 @@
         return div.innerHTML;
     }
 
+    function sanitizeBookingRegistrationError(rawMessage) {
+        const message = String(rawMessage || '').trim();
+        if (!message) {
+            return t(
+                'Hubo un problema tecnico temporal al registrar la cita',
+                'There was a temporary technical issue while registering your appointment'
+            );
+        }
+
+        const technicalPatterns = [
+            /call to undefined function/i,
+            /fatal error/i,
+            /uncaught/i,
+            /stack trace/i,
+            /syntax error/i,
+            /on line \d+/i,
+            /in \/.+\.php/i,
+            /mb_strlen/i
+        ];
+
+        if (technicalPatterns.some((pattern) => pattern.test(message))) {
+            return t(
+                'Hubo un problema tecnico temporal al registrar la cita',
+                'There was a temporary technical issue while registering your appointment'
+            );
+        }
+
+        return message;
+    }
+
     function addBotMessage(html) {
         if (deps && typeof deps.addBotMessage === 'function') {
             deps.addBotMessage(html);
@@ -508,10 +538,11 @@
                 if (deps && typeof deps.removeTypingIndicator === 'function') {
                     deps.removeTypingIndicator();
                 }
+                const safeError = sanitizeBookingRegistrationError(error && error.message ? error.message : '');
                 addBotMessage(
                     t(
-                        `No se pudo registrar la cita: ${escapeHtml(error && error.message ? error.message : 'Error desconocido')}. Intenta de nuevo o agenda desde <a href="#citas" data-action="minimize-chat">el formulario</a>.`,
-                        `Could not register your appointment: ${escapeHtml(error && error.message ? error.message : 'Unknown error')}. Try again or use the <a href="#citas" data-action="minimize-chat">booking form</a>.`
+                        `No se pudo registrar la cita: ${escapeHtml(safeError)}. Intenta de nuevo o agenda desde <a href="#citas" data-action="minimize-chat">el formulario</a>.`,
+                        `Could not register your appointment: ${escapeHtml(safeError)}. Try again or use the <a href="#citas" data-action="minimize-chat">booking form</a>.`
                     )
                 );
                 if (deps && typeof deps.setCheckoutStep === 'function') {
