@@ -535,6 +535,20 @@ if ([regex]::IsMatch([string]$remoteIndexRaw, '<[a-zA-Z][^>]*\son[a-z]+\s*=', [S
     Write-Host "[OK]  index remoto sin handlers inline (on*)"
 }
 
+$inlineExecutableScriptPattern = '<script\b(?![^>]*\bsrc=)(?![^>]*\btype\s*=\s*["'']application/ld\+json["''])[^>]*>[\s\S]*?</script>'
+if ([regex]::IsMatch([string]$remoteIndexRaw, $inlineExecutableScriptPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+    Write-Host "[FAIL] index remoto contiene scripts inline ejecutables"
+    $results += [PSCustomObject]@{
+        Asset = 'index-inline-executable-script'
+        Match = $false
+        LocalHash = 'none'
+        RemoteHash = 'found'
+        RemoteUrl = "$base/"
+    }
+} else {
+    Write-Host "[OK]  index remoto sin scripts inline ejecutables"
+}
+
 if ($remoteScriptRef -eq '') {
     Write-Host "[FAIL] No se pudo detectar referencia de script.js en index remoto"
     $results += [PSCustomObject]@{
