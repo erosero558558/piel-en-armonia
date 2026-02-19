@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * Storage and Persistence Helpers
+ * Storage and file system operations.
  */
 
 const DATA_DIR = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'data';
@@ -27,7 +27,7 @@ function data_dir_path(): string
     }
 
     $candidates[] = DATA_DIR;
-    $candidates[] = dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . 'data';
+    $candidates[] = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'data';
     $candidates[] = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'pielarmonia-data';
 
     foreach ($candidates as $candidate) {
@@ -206,6 +206,42 @@ function data_decrypt_payload(string $raw): string
     return $plain;
 }
 
+function ensure_data_htaccess(string $dir): void
+{
+    $htaccess = $dir . DIRECTORY_SEPARATOR . '.htaccess';
+    if (file_exists($htaccess)) {
+        return;
+    }
+    $rules = "# Bloquear acceso publico a datos sensibles\n";
+    $rules .= "Order deny,allow\nDeny from all\n";
+    $rules .= "<IfModule mod_authz_core.c>\n  Require all denied\n</IfModule>\n";
+    @file_put_contents($htaccess, $rules, LOCK_EX);
+}
+
+function audit_log_event(string $event, array $details = []): void
+{
+    $line = [
+        'ts' => local_date('c'),
+        'event' => $event,
+        'ip' => (string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown'),
+        'actor' => (session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['admin_logged_in'])) ? 'admin' : 'public',
+        'path' => (string) ($_SERVER['REQUEST_URI'] ?? ''),
+        'details' => $details
+    ];
+
+    $encoded = json_encode($line, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if (!is_string($encoded) || $encoded === '') {
+        return;
+    }
+
+    $dir = data_dir_path();
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+    ensure_data_htaccess($dir);
+    @file_put_contents(audit_log_file_path(), $encoded . PHP_EOL, FILE_APPEND | LOCK_EX);
+}
+
 function ensure_backup_dir(): bool
 {
     $backupDir = backup_dir_path();
@@ -259,18 +295,6 @@ function create_store_backup_locked($fp): void
     }
 
     prune_backup_files();
-}
-
-function ensure_data_htaccess(string $dir): void
-{
-    $htaccess = $dir . DIRECTORY_SEPARATOR . '.htaccess';
-    if (file_exists($htaccess)) {
-        return;
-    }
-    $rules = "# Bloquear acceso publico a datos sensibles\n";
-    $rules .= "Order deny,allow\nDeny from all\n";
-    $rules .= "<IfModule mod_authz_core.c>\n  Require all denied\n</IfModule>\n";
-    @file_put_contents($htaccess, $rules, LOCK_EX);
 }
 
 function ensure_data_file(): bool
@@ -366,6 +390,25 @@ function read_store(): array
     return $data;
 }
 
+function acquire_store_lock($fp, int $timeoutMs = STORE_LOCK_TIMEOUT_MS): bool
+{
+    if (!is_resource($fp)) {
+        return false;
+    }
+
+    $timeoutMs = max(100, $timeoutMs);
+    $deadline = microtime(true) + ($timeoutMs / 1000);
+
+    do {
+        if (flock($fp, LOCK_EX | LOCK_NB)) {
+            return true;
+        }
+        usleep(STORE_LOCK_RETRY_DELAY_US);
+    } while (microtime(true) < $deadline);
+
+    return false;
+}
+
 function write_store(array $store): void
 {
     if (!ensure_data_file()) {
@@ -423,23 +466,4 @@ function write_store(array $store): void
         }
         fclose($fp);
     }
-}
-
-function acquire_store_lock($fp, int $timeoutMs = STORE_LOCK_TIMEOUT_MS): bool
-{
-    if (!is_resource($fp)) {
-        return false;
-    }
-
-    $timeoutMs = max(100, $timeoutMs);
-    $deadline = microtime(true) + ($timeoutMs / 1000);
-
-    do {
-        if (flock($fp, LOCK_EX | LOCK_NB)) {
-            return true;
-        }
-        usleep(STORE_LOCK_RETRY_DELAY_US);
-    } while (microtime(true) < $deadline);
-
-    return false;
 }
