@@ -24,6 +24,7 @@ require_once __DIR__ . '/lib/validation.php';
 require_once __DIR__ . '/lib/models.php';
 require_once __DIR__ . '/lib/storage.php';
 require_once __DIR__ . '/lib/http.php';
+require_once __DIR__ . '/lib/security.php';
 require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/ratelimit.php';
 require_once __DIR__ . '/lib/business.php';

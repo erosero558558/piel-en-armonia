@@ -159,6 +159,10 @@ try {
 } finally {
     Remove-Item -Force -ErrorAction SilentlyContinue $remoteIndexTmp
 }
+$remoteIndexRaw = [string]$remoteIndexRaw
+if ($null -eq $remoteIndexRaw) {
+    $remoteIndexRaw = ''
+}
 
 $results = @()
 
@@ -499,7 +503,7 @@ try {
     }
 }
 
-if ([regex]::IsMatch($remoteIndexRaw, '\son[a-z]+\s*=', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+if ([regex]::IsMatch([string]$remoteIndexRaw, '\son[a-z]+\s*=', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
     Write-Host "[FAIL] index remoto contiene event handlers inline (on*)"
     $results += [PSCustomObject]@{
         Asset = 'index-inline-handlers'
@@ -961,7 +965,7 @@ if ($RunSmoke) {
     & .\SMOKE-PRODUCCION.ps1 -Domain $base -TestFigoPost -AllowDegradedFigo:$AllowDegradedFigo -AllowRecursiveFigo:$AllowRecursiveFigo -AllowMetaCspFallback:$AllowMetaCspFallback -RequireWebhookSecret:$RequireWebhookSecret
 }
 
-$failed = ($results | Where-Object { -not $_.Match }).Count
+$failed = @($results | Where-Object { $_.Match -ne $true }).Count
 if ($failed -gt 0) {
     Write-Host ""
     Write-Host "Resultado: $failed falla(s) detectadas."
