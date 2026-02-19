@@ -14,8 +14,10 @@ if (is_file($envFile)) {
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . '/vendor/autoload.php';
 }
-require_once __DIR__ . '/lib/email.php';
-require_once __DIR__ . '/lib/captcha.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\SMTP;
 
 const DATA_DIR = __DIR__ . DIRECTORY_SEPARATOR . 'data';
 const DATA_FILE = DATA_DIR . DIRECTORY_SEPARATOR . 'store.json';
@@ -27,13 +29,6 @@ const ADMIN_PASSWORD_ENV = 'PIELARMONIA_ADMIN_PASSWORD';
 const ADMIN_PASSWORD_HASH_ENV = 'PIELARMONIA_ADMIN_PASSWORD_HASH';
 const APP_TIMEZONE = 'America/Guayaquil';
 const SESSION_TIMEOUT = 1800; // 30 minutos de inactividad
-const SERVICE_PRICES = [
-    'consulta' => 40.00,
-    'telefono' => 25.00,
-    'video' => 30.00,
-    'laser' => 150.00,
-    'rejuvenecimiento' => 120.00
-];
 
 date_default_timezone_set(APP_TIMEZONE);
 
@@ -53,7 +48,7 @@ function env_value(string $key, string $default = ''): string
 
 function clinic_phone_display(): string
 {
-    return env_value('PIELARMONIA_CLINIC_PHONE', '098 245 3672');
+    return env_value('PIELARMONIA_CLINIC_PHONE', '+593 98 245 3672');
 }
 
 function clinic_whatsapp_display(): string
@@ -95,15 +90,6 @@ function app_runtime_version(): string
         }
     }
 
-    $cacheFile = __DIR__ . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'app_version.txt';
-    if (is_file($cacheFile) && (time() - @filemtime($cacheFile)) < 3600) {
-        $cached = @file_get_contents($cacheFile);
-        if (is_string($cached) && trim($cached) !== '') {
-            $resolved = trim($cached);
-            return $resolved;
-        }
-    }
-
     $versionSources = [
         __DIR__ . DIRECTORY_SEPARATOR . 'index.html',
         __DIR__ . DIRECTORY_SEPARATOR . 'script.js',
@@ -129,8 +115,6 @@ function app_runtime_version(): string
         $resolved = 'dev';
     }
 
-    @file_put_contents($cacheFile, $resolved, LOCK_EX);
-
     return $resolved;
 }
 
@@ -141,35 +125,18 @@ function data_dir_path(): string
         return $resolvedDir;
     }
 
-    $checkList = [];
+    $candidates = [];
 
-    // 1. Env variable (highest priority)
     $envDir = getenv('PIELARMONIA_DATA_DIR');
     if (is_string($envDir) && trim($envDir) !== '') {
-        $checkList[] = trim($envDir);
+        $candidates[] = trim($envDir);
     }
 
-    // 2. Preferred candidates
-    // Prefer data outside webroot (../data) over inside (./data)
-    $checkList[] = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data';
-    $checkList[] = DATA_DIR;
-    $checkList[] = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'pielarmonia-data';
+    $candidates[] = DATA_DIR;
+    $candidates[] = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data';
+    $candidates[] = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'pielarmonia-data';
 
-    // First pass: Check for existing data to prevent data loss
-    foreach ($checkList as $candidate) {
-        $candidate = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, (string) $candidate), DIRECTORY_SEPARATOR);
-        if ($candidate === '') {
-            continue;
-        }
-        // If store.json exists here, use this directory
-        if (@file_exists($candidate . DIRECTORY_SEPARATOR . 'store.json') && @is_writable($candidate)) {
-            $resolvedDir = $candidate;
-            return $resolvedDir;
-        }
-    }
-
-    // Second pass: Find first writable directory for new install or fallback
-    foreach ($checkList as $candidate) {
+    foreach ($candidates as $candidate) {
         $candidate = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, (string) $candidate), DIRECTORY_SEPARATOR);
         if ($candidate === '') {
             continue;
@@ -350,7 +317,7 @@ function audit_log_event(string $event, array $details = []): void
     $line = [
         'ts' => local_date('c'),
         'event' => $event,
-        'ip' => get_client_ip(),
+        'ip' => (string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown'),
         'actor' => (session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['admin_logged_in'])) ? 'admin' : 'public',
         'path' => (string) ($_SERVER['REQUEST_URI'] ?? ''),
         'details' => $details
@@ -373,10 +340,6 @@ function json_response(array $payload, int $status = 200): void
 {
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');
-    // API responses should not be cached by browsers or CDNs.
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    header('Pragma: no-cache');
-    header('Expires: 0');
     echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit();
 }
@@ -547,7 +510,6 @@ function ensure_data_file(): bool
     if (!file_exists($dataFile)) {
         $seed = [
             'appointments' => [],
-            'idx_appointments_date' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
@@ -565,49 +527,27 @@ function ensure_data_file(): bool
     return true;
 }
 
-function rebuild_appointment_index(array $appointments): array
-{
-    $index = [];
-    foreach ($appointments as $key => $appt) {
-        $date = (string) ($appt['date'] ?? '');
-        if ($date !== '') {
-            $index[$date][] = $key;
-        }
-    }
-    return $index;
-}
-
 function read_store(): array
 {
-    static $cache = null;
-
-    if ($cache !== null) {
-        return $cache;
-    }
-
     if (!ensure_data_file()) {
-        $cache = [
+        return [
             'appointments' => [],
-            'idx_appointments_date' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
             'updatedAt' => local_date('c')
         ];
-        return $cache;
     }
 
     $raw = @file_get_contents(data_file_path());
     if ($raw === false || $raw === '') {
-        $cache = [
+        return [
             'appointments' => [],
-            'idx_appointments_date' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
             'updatedAt' => local_date('c')
         ];
-        return $cache;
     }
 
     $rawText = (string) $raw;
@@ -619,44 +559,33 @@ function read_store(): array
                 'error' => 'No se pudo descifrar la base de datos. Verifica PIELARMONIA_DATA_ENCRYPTION_KEY'
             ], 500);
         }
-        $cache = [
+        return [
             'appointments' => [],
-            'idx_appointments_date' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
             'updatedAt' => local_date('c')
         ];
-        return $cache;
     }
 
     $data = json_decode($decodedRaw, true);
     if (!is_array($data)) {
-        $cache = [
+        return [
             'appointments' => [],
-            'idx_appointments_date' => [],
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
             'updatedAt' => local_date('c')
         ];
-        return $cache;
     }
 
     $data['appointments'] = isset($data['appointments']) && is_array($data['appointments']) ? $data['appointments'] : [];
-
-    // Lazy migration: build index if missing
-    if (!isset($data['idx_appointments_date']) || !is_array($data['idx_appointments_date'])) {
-        $data['idx_appointments_date'] = rebuild_appointment_index($data['appointments']);
-    }
-
     $data['callbacks'] = isset($data['callbacks']) && is_array($data['callbacks']) ? $data['callbacks'] : [];
     $data['reviews'] = isset($data['reviews']) && is_array($data['reviews']) ? $data['reviews'] : [];
     $data['availability'] = isset($data['availability']) && is_array($data['availability']) ? $data['availability'] : [];
     $data['updatedAt'] = isset($data['updatedAt']) ? (string) $data['updatedAt'] : local_date('c');
 
-    $cache = $data;
-    return $cache;
+    return $data;
 }
 
 function write_store(array $store): void
@@ -670,10 +599,6 @@ function write_store(array $store): void
     }
 
     $store['appointments'] = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
-
-    // Always rebuild index before saving to ensure consistency
-    $store['idx_appointments_date'] = rebuild_appointment_index($store['appointments']);
-
     $store['callbacks'] = isset($store['callbacks']) && is_array($store['callbacks']) ? $store['callbacks'] : [];
     $store['reviews'] = isset($store['reviews']) && is_array($store['reviews']) ? $store['reviews'] : [];
     $store['availability'] = isset($store['availability']) && is_array($store['availability']) ? $store['availability'] : [];
@@ -835,35 +760,9 @@ function require_csrf(): void
     }
 }
 
-function get_client_ip(): string
-{
-    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-
-    // Cloudflare
-    if (isset($_SERVER['HTTP_CF_CONNECTING_IP']) && filter_var($_SERVER['HTTP_CF_CONNECTING_IP'], FILTER_VALIDATE_IP)) {
-        return $_SERVER['HTTP_CF_CONNECTING_IP'];
-    }
-
-    // X-Forwarded-For
-    if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        $forwarded = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-        $first = trim($forwarded[0]);
-        if (filter_var($first, FILTER_VALIDATE_IP)) {
-            return $first;
-        }
-    }
-
-    // Client-IP
-    if (isset($_SERVER['HTTP_CLIENT_IP']) && filter_var($_SERVER['HTTP_CLIENT_IP'], FILTER_VALIDATE_IP)) {
-        return $_SERVER['HTTP_CLIENT_IP'];
-    }
-
-    return $ip;
-}
-
 function check_rate_limit(string $action, int $maxRequests = 10, int $windowSeconds = 60): bool
 {
-    $ip = get_client_ip();
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     $key = md5($ip . ':' . $action);
     $rateDir = data_dir_path() . DIRECTORY_SEPARATOR . 'ratelimit';
 
@@ -871,70 +770,30 @@ function check_rate_limit(string $action, int $maxRequests = 10, int $windowSeco
         @mkdir($rateDir, 0775, true);
     }
 
-    $file = $rateDir . DIRECTORY_SEPARATOR . $key . '.bin';
+    $file = $rateDir . DIRECTORY_SEPARATOR . $key . '.json';
     $now = time();
     $entries = [];
 
-    $fp = @fopen($file, 'c+');
-    if (!$fp) {
-        return true;
-    }
-
-    if (!flock($fp, LOCK_EX)) {
-        fclose($fp);
-        return true;
-    }
-
-    $fstat = fstat($fp);
-    $size = $fstat['size'];
-
-    if ($size > 0) {
-        $bin = fread($fp, $size);
-        if (is_string($bin) && strlen($bin) > 0) {
-            $unpacked = @unpack('N*', $bin);
-            if (is_array($unpacked)) {
-                $entries = array_values($unpacked);
-            }
-        }
+    if (file_exists($file)) {
+        $raw = @file_get_contents($file);
+        $entries = is_string($raw) ? (json_decode($raw, true) ?? []) : [];
     }
 
     // Filtrar entradas dentro de la ventana de tiempo
-    $validEntries = [];
-    foreach ($entries as $ts) {
-        if (($now - $ts) < $windowSeconds) {
-            $validEntries[] = $ts;
-        }
-    }
+    $entries = array_values(array_filter($entries, static function (int $ts) use ($now, $windowSeconds): bool {
+        return ($now - $ts) < $windowSeconds;
+    }));
 
-    if (count($validEntries) >= $maxRequests) {
-        flock($fp, LOCK_UN);
-        fclose($fp);
+    if (count($entries) >= $maxRequests) {
         return false;
     }
 
-    $validEntries[] = $now;
-
-    ftruncate($fp, 0);
-    rewind($fp);
-    if (!empty($validEntries)) {
-        $packed = pack('N*', ...$validEntries);
-        fwrite($fp, $packed);
-    }
-    fflush($fp);
-
-    flock($fp, LOCK_UN);
-    fclose($fp);
+    $entries[] = $now;
+    @file_put_contents($file, json_encode($entries), LOCK_EX);
 
     // Limpieza periódica: eliminar archivos de rate limit con más de 1 hora sin modificación
     if (mt_rand(1, 50) === 1) {
-        $allFiles = @glob($rateDir . DIRECTORY_SEPARATOR . '*.{bin,json}', GLOB_BRACE);
-        if ($allFiles === false) {
-            $allFiles = array_merge(
-                (array) @glob($rateDir . DIRECTORY_SEPARATOR . '*.bin'),
-                (array) @glob($rateDir . DIRECTORY_SEPARATOR . '*.json')
-            );
-        }
-
+        $allFiles = @glob($rateDir . DIRECTORY_SEPARATOR . '*.json');
         if (is_array($allFiles)) {
             foreach ($allFiles as $f) {
                 if (($now - (int) @filemtime($f)) > 3600) {
@@ -1040,7 +899,7 @@ function get_vat_rate(): float
 {
     $raw = getenv('PIELARMONIA_VAT_RATE');
     if (!is_string($raw) || trim($raw) === '') {
-        return 0.15;
+        return 0.12;
     }
 
     $rate = (float) trim($raw);
@@ -1059,7 +918,14 @@ function get_vat_rate(): float
 
 function get_service_price_amount(string $service): float
 {
-    return isset(SERVICE_PRICES[$service]) ? (float) SERVICE_PRICES[$service] : 0.0;
+    $prices = [
+        'consulta' => 40.00,
+        'telefono' => 25.00,
+        'video' => 30.00,
+        'laser' => 150.00,
+        'rejuvenecimiento' => 120.00
+    ];
+    return isset($prices[$service]) ? (float) $prices[$service] : 0.0;
 }
 
 function get_service_price(string $service): string
@@ -1078,9 +944,9 @@ function get_service_label(string $service): string
 {
     $labels = [
         'consulta' => 'Consulta Presencial',
-        'telefono' => 'Consulta Telefónica',
+        'telefono' => 'Consulta Telefonica',
         'video' => 'Video Consulta',
-        'laser' => 'Tratamiento Láser',
+        'laser' => 'Tratamiento Laser',
         'rejuvenecimiento' => 'Rejuvenecimiento'
     ];
     return $labels[$service] ?? $service;
@@ -1100,7 +966,7 @@ function get_payment_method_label(string $method): string
 {
     $labels = [
         'cash' => 'Efectivo (en consultorio)',
-        'card' => 'Tarjeta de crédito/débito',
+        'card' => 'Tarjeta de credito/debito',
         'transfer' => 'Transferencia bancaria',
         'unpaid' => 'Pendiente'
     ];
@@ -1197,48 +1063,8 @@ function normalize_appointment(array $appointment): array
     ];
 }
 
-function appointment_slot_taken(array $appointments, string $date, string $time, ?int $excludeId = null, string $doctor = '', ?array $index = null): bool
+function appointment_slot_taken(array $appointments, string $date, string $time, ?int $excludeId = null, string $doctor = ''): bool
 {
-    // Use index if available for O(1) lookup
-    if ($index !== null) {
-        if (isset($index[$date])) {
-            $candidates = $index[$date];
-            foreach ($candidates as $key) {
-                if (!isset($appointments[$key])) {
-                    continue;
-                }
-                $appt = $appointments[$key];
-
-                // Duplicate logic check from linear scan
-                $id = isset($appt['id']) ? (int) $appt['id'] : null;
-                if ($excludeId !== null && $id === $excludeId) {
-                    continue;
-                }
-                $status = map_appointment_status((string) ($appt['status'] ?? 'confirmed'));
-                if ($status === 'cancelled') {
-                    continue;
-                }
-                // Date is already matched by index lookup, but double check doesn't hurt
-                if ((string) ($appt['date'] ?? '') !== $date) {
-                    continue;
-                }
-                if ((string) ($appt['time'] ?? '') !== $time) {
-                    continue;
-                }
-                if ($doctor !== '' && $doctor !== 'indiferente') {
-                    $apptDoctor = (string) ($appt['doctor'] ?? '');
-                    if ($apptDoctor !== '' && $apptDoctor !== 'indiferente' && $apptDoctor !== $doctor) {
-                        continue;
-                    }
-                }
-                return true;
-            }
-        }
-        // If date not in index or no candidate matched, it's free.
-        return false;
-    }
-
-    // Fallback to linear scan
     foreach ($appointments as $appt) {
         $id = isset($appt['id']) ? (int) $appt['id'] : null;
         if ($excludeId !== null && $id === $excludeId) {
@@ -1263,13 +1089,176 @@ function appointment_slot_taken(array $appointments, string $date, string $time,
 }
 
 // ========================================
-// EMAIL (Delegado a lib/email.php)
+// SMTP EMAIL
 // ========================================
+
+function smtp_config(): array
+{
+    return [
+        'host' => (string) (getenv('PIELARMONIA_SMTP_HOST') ?: 'smtp.gmail.com'),
+        'port' => (int) (getenv('PIELARMONIA_SMTP_PORT') ?: 587),
+        'user' => (string) (getenv('PIELARMONIA_SMTP_USER') ?: ''),
+        'pass' => (string) (getenv('PIELARMONIA_SMTP_PASS') ?: ''),
+        'from' => (string) (getenv('PIELARMONIA_EMAIL_FROM') ?: ''),
+        'from_name' => 'Piel en Armonía',
+    ];
+}
+
+function smtp_enabled(): bool
+{
+    $cfg = smtp_config();
+    return $cfg['user'] !== '' && $cfg['pass'] !== '';
+}
+
+function turnstile_site_key(): string
+{
+    return env_value('PIELARMONIA_TURNSTILE_SITE_KEY', '');
+}
+
+function turnstile_secret_key(): string
+{
+    return env_value('PIELARMONIA_TURNSTILE_SECRET_KEY', '');
+}
+
+function verify_encryption_setup(): array
+{
+    $key = data_encryption_key();
+    if ($key === '') {
+        return ['ok' => false, 'error' => 'No hay clave de encriptación configurada'];
+    }
+
+    if (!function_exists('openssl_encrypt')) {
+        return ['ok' => false, 'error' => 'La extensión OpenSSL no está disponible'];
+    }
+
+    // Probar encriptacion y desencriptacion
+    $test = 'test-payload-' . time();
+    $encrypted = data_encrypt_payload($test);
+    if ($encrypted === '') {
+        return ['ok' => false, 'error' => 'Fallo al encriptar datos de prueba'];
+    }
+
+    $decrypted = data_decrypt_payload($encrypted);
+    if ($decrypted !== $test) {
+        return ['ok' => false, 'error' => 'Fallo al desencriptar datos de prueba'];
+    }
+
+    return ['ok' => true];
+}
+
+function verify_turnstile_token(string $token): bool
+{
+    $secret = turnstile_secret_key();
+    if ($secret === '') {
+        return true;
+    }
+
+    if ($token === '') {
+        return false;
+    }
+
+    $url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+    $data = [
+        'secret' => $secret,
+        'response' => $token,
+        'remoteip' => $_SERVER['REMOTE_ADDR'] ?? ''
+    ];
+
+    $options = [
+        'http' => [
+            'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+            'method'  => 'POST',
+            'content' => http_build_query($data)
+        ]
+    ];
+
+    $context  = stream_context_create($options);
+    $result = @file_get_contents($url, false, $context);
+
+    if ($result === false) {
+        error_log('Piel en Armonía Turnstile: fallo al conectar con Cloudflare');
+        return false;
+    }
+
+    $json = json_decode($result, true);
+    return isset($json['success']) && $json['success'] === true;
+}
+
+/**
+ * Envía email vía SMTP usando PHPMailer.
+ */
+function smtp_send_mail(string $to, string $subject, string $body): bool
+{
+    $cfg = smtp_config();
+
+    if ($cfg['user'] === '' || $cfg['pass'] === '') {
+        error_log('Piel en Armonía: SMTP no configurado (PIELARMONIA_SMTP_USER / PIELARMONIA_SMTP_PASS)');
+        return false;
+    }
+
+    $mail = new PHPMailer(true);
+
+    try {
+        // Server settings
+        $mail->isSMTP();
+        $mail->Host       = $cfg['host'];
+        $mail->SMTPAuth   = true;
+        $mail->Username   = $cfg['user'];
+        $mail->Password   = $cfg['pass'];
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = $cfg['port'];
+        $mail->CharSet    = 'UTF-8';
+
+        // Recipients
+        $from = $cfg['from'] !== '' ? $cfg['from'] : $cfg['user'];
+        $fromName = $cfg['from_name'];
+
+        $mail->setFrom($from, $fromName);
+        $mail->addAddress($to);
+
+        // Content
+        $mail->isHTML(false);
+        $mail->Subject = $subject;
+        $mail->Body    = $body;
+
+        $mail->send();
+        return true;
+    } catch (Exception $e) {
+        error_log("Piel en Armonía SMTP: Message could not be sent. Mailer Error: {$mail->ErrorInfo}");
+        return false;
+    } catch (Throwable $e) {
+        error_log("Piel en Armonía SMTP: Error inesperado: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Envía email usando SMTP si está configurado, o mail() como fallback.
+ */
+function send_mail(string $to, string $subject, string $body): bool
+{
+    if (smtp_enabled()) {
+        return smtp_send_mail($to, $subject, $body);
+    }
+
+    // Fallback a mail() nativo
+    $from = getenv('PIELARMONIA_EMAIL_FROM');
+    if (!is_string($from) || $from === '') {
+        $from = 'no-reply@pielarmonia.com';
+    }
+    $headers = "From: Piel en Armonía <{$from}>\r\nContent-Type: text/plain; charset=UTF-8";
+
+    $sent = @mail($to, $subject, $body, $headers);
+    if (!$sent) {
+        error_log('Piel en Armonía: fallo al enviar email (mail nativo) a ' . $to);
+    }
+    return $sent;
+}
 
 function maybe_send_appointment_email(array $appointment): bool
 {
     $to = trim((string) ($appointment['email'] ?? ''));
-    if (!validate_email($to)) {
+    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
         return false;
     }
 
@@ -1341,7 +1330,7 @@ function maybe_send_appointment_email(array $appointment): bool
     $m .= "Telefono/WhatsApp: " . clinic_whatsapp_display() . "\n";
     $m .= "Web: https://pielarmonia.com\n";
 
-    return email_send($to, $subject, $m);
+    return send_mail($to, $subject, $m);
 }
 
 function maybe_send_admin_notification(array $appointment): bool
@@ -1351,7 +1340,7 @@ function maybe_send_admin_notification(array $appointment): bool
         $adminEmail = 'javier.rosero94@gmail.com';
     }
     $adminEmail = trim((string) $adminEmail);
-    if (!validate_email($adminEmail)) {
+    if (!filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
         error_log('Piel en Armonía: PIELARMONIA_ADMIN_EMAIL invalido');
         return false;
     }
@@ -1438,13 +1427,13 @@ function maybe_send_admin_notification(array $appointment): bool
     $b .= "Consentimiento datos: " . ((isset($appointment['privacyConsent']) && $appointment['privacyConsent']) ? 'Si' : 'No') . "\n";
     $b .= "Ubicacion: " . clinic_map_url() . "\n";
 
-    return email_send($adminEmail, $subject, $b);
+    return send_mail($adminEmail, $subject, $b);
 }
 
 function maybe_send_cancellation_email(array $appointment): bool
 {
     $to = trim((string) ($appointment['email'] ?? ''));
-    if (!validate_email($to)) {
+    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
         return false;
     }
 
@@ -1460,7 +1449,7 @@ function maybe_send_cancellation_email(array $appointment): bool
     $message .= "Si deseas reprogramar, visita https://pielarmonia.com/#citas o escribenos por WhatsApp: " . clinic_whatsapp_display() . ".\n\n";
     $message .= "Gracias por confiar en nosotros.";
 
-    return email_send($to, $subject, $message);
+    return send_mail($to, $subject, $message);
 }
 
 function maybe_send_callback_admin_notification(array $callback): bool
@@ -1469,7 +1458,7 @@ function maybe_send_callback_admin_notification(array $callback): bool
     if (!is_string($adminEmail) || $adminEmail === '') {
         return false;
     }
-    if (!validate_email($adminEmail)) {
+    if (!filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
         return false;
     }
 
@@ -1481,13 +1470,13 @@ function maybe_send_callback_admin_notification(array $callback): bool
     $body .= "Fecha de solicitud: " . local_date('d/m/Y H:i') . "\n\n";
     $body .= "Por favor contactar lo antes posible.";
 
-    return email_send($adminEmail, $subject, $body);
+    return send_mail($adminEmail, $subject, $body);
 }
 
 function maybe_send_reminder_email(array $appointment): bool
 {
     $to = trim((string) ($appointment['email'] ?? ''));
-    if (!validate_email($to)) {
+    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
         return false;
     }
 
@@ -1510,13 +1499,13 @@ function maybe_send_reminder_email(array $appointment): bool
     $body .= "- Equipo Piel en Armonía\n";
     $body .= "WhatsApp: " . clinic_whatsapp_display();
 
-    return email_send($to, $subject, $body);
+    return send_mail($to, $subject, $body);
 }
 
 function maybe_send_reschedule_email(array $appointment): bool
 {
     $to = trim((string) ($appointment['email'] ?? ''));
-    if (!validate_email($to)) {
+    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
         return false;
     }
 
@@ -1538,5 +1527,5 @@ function maybe_send_reschedule_email(array $appointment): bool
     $body .= "Te esperamos. ¡Gracias por confiar en nosotros!\n";
     $body .= "- Equipo Piel en Armonía";
 
-    return email_send($to, $subject, $body);
+    return send_mail($to, $subject, $body);
 }

@@ -226,6 +226,7 @@ if ($resource === 'health') {
         'version' => app_runtime_version(),
         'dataDirWritable' => data_dir_writable(),
         'storeEncrypted' => store_file_is_encrypted(),
+        'encryptionVerified' => verify_encryption_setup(),
         'figoConfigured' => $figoConfigured,
         'figoRecursiveConfig' => $figoRecursive,
         'timestamp' => local_date('c')
@@ -388,6 +389,7 @@ if ($method === 'GET' && $resource === 'payment-config') {
         'provider' => 'stripe',
         'enabled' => payment_gateway_enabled(),
         'publishableKey' => payment_stripe_publishable_key(),
+        'turnstileSiteKey' => turnstile_site_key(),
         'currency' => payment_currency()
     ]);
 }
@@ -415,6 +417,14 @@ if ($method === 'POST' && $resource === 'payment-intent') {
     }
 
     $payload = require_json_body();
+
+    if (!verify_turnstile_token((string)($payload['turnstileToken'] ?? ''))) {
+        json_response([
+            'ok' => false,
+            'error' => 'Verificación de seguridad fallida (Captcha). Recarga la página.'
+        ], 403);
+    }
+
     $appointment = normalize_appointment($payload);
 
     if ($appointment['service'] === '' || $appointment['name'] === '' || $appointment['email'] === '') {
@@ -730,6 +740,14 @@ if ($method === 'POST' && $resource === 'appointments') {
     }
 
     $payload = require_json_body();
+
+    if (!verify_turnstile_token((string)($payload['turnstileToken'] ?? ''))) {
+        json_response([
+            'ok' => false,
+            'error' => 'Verificación de seguridad fallida (Captcha). Recarga la página.'
+        ], 403);
+    }
+
     $appointment = normalize_appointment($payload);
 
     if ($appointment['name'] === '' || $appointment['email'] === '' || $appointment['phone'] === '') {

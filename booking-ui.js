@@ -82,6 +82,24 @@
             });
         }
 
+        if (typeof window.turnstile !== 'undefined' && deps.loadPaymentConfig) {
+            deps.loadPaymentConfig().then(function (config) {
+                if (config && config.turnstileSiteKey) {
+                    var widgetEl = document.getElementById('turnstile-widget');
+                    if (widgetEl) {
+                        try {
+                            window.turnstile.render('#turnstile-widget', {
+                                sitekey: config.turnstileSiteKey,
+                                theme: 'auto'
+                            });
+                        } catch (e) {
+                            console.error('Turnstile render failed', e);
+                        }
+                    }
+                }
+            }).catch(function () {});
+        }
+
         async function updateAvailableTimes() {
             const selectedDate = dateInput ? dateInput.value : '';
             if (!selectedDate || !timeSelect) return;
@@ -215,10 +233,12 @@
                 }
 
                 const normalizedPhone = normalizeEcuadorPhone(formData.get('phone'));
+                const turnstileToken = formData.get('cf-turnstile-response');
 
                 const appointment = {
                     service: formData.get('service'),
                     doctor: formData.get('doctor'),
+                    turnstileToken,
                     date: formData.get('date'),
                     time: formData.get('time'),
                     name: formData.get('name'),
