@@ -88,6 +88,7 @@
             callDep('initDataEngineWarmup');
             callDep('initBookingEngineWarmup');
             callDep('initBookingMediaEngineWarmup');
+            callDep('initPaymentGatewayEngineWarmup');
             callDep('initBookingUiWarmup');
             callDep('initReviewsEngineWarmup');
             callDep('initGalleryInteractionsWarmup');

@@ -453,10 +453,6 @@ let checkoutSessionFallback = {
 };
 const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
 let currentAppointment = null;
-let paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
-let paymentConfigLoaded = false;
-let paymentConfigLoadedAt = 0;
-let stripeSdkPromise = null;
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 const DATA_ENGINE_URL = '/data-engine.js?v=figo-data-20260219-phase1';
 
@@ -499,6 +495,25 @@ function initEnglishBundleWarmup() {
 
 const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2-stateclass1';
 const BOOKING_MEDIA_ENGINE_URL = '/booking-media-engine.js?v=figo-booking-media-20260219-phase1';
+const PAYMENT_GATEWAY_ENGINE_URL = '/payment-gateway-engine.js?v=figo-payment-gateway-20260219-phase1';
+let stripeSdkFallbackPromise = null;
+
+function getPaymentGatewayEngineDeps() {
+    return {
+        apiRequest
+    };
+}
+
+const loadPaymentGatewayEngine = createEngineLoader({
+    cacheKey: 'payment-gateway-engine',
+    src: PAYMENT_GATEWAY_ENGINE_URL,
+    scriptDataAttribute: 'data-payment-gateway-engine',
+    resolveModule: () => window.PielPaymentGatewayEngine,
+    depsFactory: getPaymentGatewayEngineDeps,
+    missingApiError: 'payment-gateway-engine loaded without API',
+    loadError: 'No se pudo cargar payment-gateway-engine.js',
+    logLabel: 'Payment gateway engine'
+});
 
 function getBookingMediaEngineDeps() {
     return {
@@ -596,6 +611,21 @@ function initBookingMediaEngineWarmup() {
     scheduleDeferredTask(warmup, {
         idleTimeout: 2200,
         fallbackDelay: 1000
+    });
+}
+
+function initPaymentGatewayEngineWarmup() {
+    const warmup = createWarmupRunner(() => loadPaymentGatewayEngine(), { markWarmOnSuccess: true });
+
+    bindWarmupTargetsBatch(warmup, [
+        { selector: '.payment-method[data-method="card"]', eventName: 'pointerdown' },
+        { selector: '#appointmentForm button[type="submit"]', eventName: 'pointerdown' },
+        { selector: '#appointmentForm button[type="submit"]', eventName: 'focus', passive: false }
+    ]);
+
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 2600,
+        fallbackDelay: 1200
     });
 }
 
@@ -864,71 +894,119 @@ async function apiRequest(resource, options = {}) {
     return withDeferredModule(loadDataEngine, (engine) => engine.apiRequest(resource, options));
 }
 
+function getPaymentGatewayEngineApi() {
+    const engine = window.PielPaymentGatewayEngine;
+    if (
+        engine
+        && typeof engine.loadPaymentConfig === 'function'
+        && typeof engine.loadStripeSdk === 'function'
+        && typeof engine.createPaymentIntent === 'function'
+        && typeof engine.verifyPaymentIntent === 'function'
+    ) {
+        return engine;
+    }
+    return null;
+}
+
 async function loadPaymentConfig() {
-    const now = Date.now();
-    if (paymentConfigLoaded && (now - paymentConfigLoadedAt) < 5 * 60 * 1000) {
-        return paymentConfig;
+    const engine = getPaymentGatewayEngineApi();
+    if (engine) {
+        return engine.loadPaymentConfig();
     }
 
-    try {
-        const payload = await apiRequest('payment-config');
-        paymentConfig = {
-            enabled: payload.enabled === true,
-            provider: payload.provider || 'stripe',
-            publishableKey: payload.publishableKey || '',
-            currency: payload.currency || 'USD'
-        };
-    } catch (error) {
-        paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
-    }
-    paymentConfigLoaded = true;
-    paymentConfigLoadedAt = now;
-    return paymentConfig;
+    return runDeferredModule(
+        loadPaymentGatewayEngine,
+        (gateway) => gateway.loadPaymentConfig(),
+        async () => {
+            try {
+                const payload = await apiRequest('payment-config');
+                return {
+                    enabled: payload.enabled === true,
+                    provider: payload.provider || 'stripe',
+                    publishableKey: payload.publishableKey || '',
+                    currency: payload.currency || 'USD'
+                };
+            } catch (_) {
+                return { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
+            }
+        }
+    );
 }
 
 async function loadStripeSdk() {
-    if (typeof window.Stripe === 'function') {
-        return true;
+    const engine = getPaymentGatewayEngineApi();
+    if (engine) {
+        return engine.loadStripeSdk();
     }
 
-    if (stripeSdkPromise) {
-        return stripeSdkPromise;
-    }
+    return runDeferredModule(
+        loadPaymentGatewayEngine,
+        (gateway) => gateway.loadStripeSdk(),
+        () => {
+            if (typeof window.Stripe === 'function') {
+                return true;
+            }
 
-    stripeSdkPromise = new Promise((resolve, reject) => {
-        const existingScript = document.querySelector('script[data-stripe-sdk="true"]');
-        if (existingScript) {
-            existingScript.addEventListener('load', () => resolve(true), { once: true });
-            existingScript.addEventListener('error', () => reject(new Error('No se pudo cargar Stripe SDK')), { once: true });
-            return;
+            if (stripeSdkFallbackPromise) {
+                return stripeSdkFallbackPromise;
+            }
+
+            stripeSdkFallbackPromise = new Promise((resolve, reject) => {
+                const existingScript = document.querySelector('script[data-stripe-sdk="true"]');
+                if (existingScript) {
+                    existingScript.addEventListener('load', () => resolve(true), { once: true });
+                    existingScript.addEventListener('error', () => reject(new Error('No se pudo cargar Stripe SDK')), { once: true });
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = 'https://js.stripe.com/v3/';
+                script.async = true;
+                script.defer = true;
+                script.dataset.stripeSdk = 'true';
+                script.onload = () => resolve(true);
+                script.onerror = () => reject(new Error('No se pudo cargar Stripe SDK'));
+                document.head.appendChild(script);
+            }).catch((error) => {
+                stripeSdkFallbackPromise = null;
+                throw error;
+            });
+
+            return stripeSdkFallbackPromise;
         }
-
-        const script = document.createElement('script');
-        script.src = 'https://js.stripe.com/v3/';
-        script.async = true;
-        script.defer = true;
-        script.dataset.stripeSdk = 'true';
-        script.onload = () => resolve(true);
-        script.onerror = () => reject(new Error('No se pudo cargar Stripe SDK'));
-        document.head.appendChild(script);
-    });
-
-    return stripeSdkPromise;
+    );
 }
 
 async function createPaymentIntent(appointment) {
-    const payload = await apiRequest('payment-intent', {
-        method: 'POST',
-        body: appointment
-    });
-    return payload;
+    const engine = getPaymentGatewayEngineApi();
+    if (engine) {
+        return engine.createPaymentIntent(appointment);
+    }
+
+    return runDeferredModule(
+        loadPaymentGatewayEngine,
+        (gateway) => gateway.createPaymentIntent(appointment),
+        () => apiRequest('payment-intent', {
+            method: 'POST',
+            body: appointment
+        })
+    );
 }
 
 async function verifyPaymentIntent(paymentIntentId) {
-    return apiRequest('payment-verify', {
-        method: 'POST',
-        body: { paymentIntentId }
-    });
+    const engine = getPaymentGatewayEngineApi();
+    if (engine) {
+        return engine.verifyPaymentIntent(paymentIntentId);
+    }
+
+    return runDeferredModule(
+        loadPaymentGatewayEngine,
+        (gateway) => gateway.verifyPaymentIntent(paymentIntentId),
+        () => apiRequest('payment-verify', {
+            method: 'POST',
+            body: { paymentIntentId }
+        })
+    );
 }
 
 async function uploadTransferProof(file, options = {}) {
@@ -1947,7 +2025,7 @@ async function processWithKimi(message) {
 }
 
 runDeferredModule(loadChatWidgetEngine, (engine) => engine.scheduleInitialNotification(30000));
-const APP_BOOTSTRAP_ENGINE_URL = '/app-bootstrap-engine.js?v=figo-bootstrap-20260219-phase2-events2';
+const APP_BOOTSTRAP_ENGINE_URL = '/app-bootstrap-engine.js?v=figo-bootstrap-20260219-phase2-events3';
 // ========================================
 // REPROGRAMACION ONLINE
 // ========================================
@@ -2047,6 +2125,7 @@ function getAppBootstrapEngineDeps() {
         initDataEngineWarmup,
         initBookingEngineWarmup,
         initBookingMediaEngineWarmup,
+        initPaymentGatewayEngineWarmup,
         initBookingUiWarmup,
         initReviewsEngineWarmup,
         initGalleryInteractionsWarmup,
