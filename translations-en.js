@@ -172,6 +172,8 @@ window.PIEL_EN_TRANSLATIONS = {
         summary_subtotal: "Subtotal",
         summary_iva: "VAT (12%)",
         summary_total: "Total",
+        summary_includes: "Includes: evaluation + diagnosis + plan",
+        summary_excludes: "Excludes: additional procedures (informed beforehand)",
         btn_continue: "Continue to Payment",
         payment_title: "Payment Method",
         pay_card: "Card",
