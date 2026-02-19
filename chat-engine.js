@@ -453,7 +453,7 @@ Si quieres, te llevo directo a <a href="#citas" data-action="minimize-chat">Rese
     }
     // SALUDO
     else if (/hola|buenos dias|buenas tardes|buenas noches|hey|hi|hello/.test(lowerMsg)) {
-        response = '¡Hola! Soy el asistente de <strong>Piel en Armonía</strong>.<br><br>';
+        response = '¡Hola! Soy <strong>Figo</strong>, asistente de <strong>Piel en Armonía</strong>.<br><br>';
         response += 'Puedo ayudarte con:<br>';
         response += '• Servicios dermatologicos<br>';
         response += '• Precios de tratamientos<br>';
@@ -505,6 +505,13 @@ Al enviar el formulario se abre la ventana de pago automaticamente.<br><br>
 Tu cita queda registrada y te contactamos para confirmar detalles por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">098 245 3672</a>.<br><br>
 
 Si quieres, te guio paso a paso seg\u00fan el m\u00e9todo que prefieras.`;
+    }
+    // HANDOFF / HUMAN
+    else if (/hablar con|humano|persona real|doctor real|agente/.test(lowerMsg)) {
+        response = `Entiendo que prefieres hablar con una persona. 👩‍💻<br><br>
+Puedes chatear directamente con nuestro equipo humano por WhatsApp aquí:<br><br>
+👉 <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">Abrir Chat de WhatsApp</a><br><br>
+O llámanos al +593 98 245 3672.`;
     }
     // CITAS - iniciar booking conversacional
     else if (/cita|agendar|reservar|turno|hora/.test(lowerMsg)) {

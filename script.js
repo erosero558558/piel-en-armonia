@@ -1,12 +1,12 @@
 /**
- * PIEL EN ARMON�A - Apple Design
+ * PIEL EN ARMONIA - Apple Design
  * Todas las funcionalidades integradas
  * 
  * Incluye:
  * - Toast notifications
  * - Loading states
  * - Exportar a calendario
- * - Validaci�n de disponibilidad
+ * - Validacion de disponibilidad
  */
 
 // ========================================
@@ -33,10 +33,10 @@ function showToast(message, type = 'info', title = '') {
     };
     
     const titles = {
-        success: title || '�xito',
+        success: title || 'Exito',
         error: title || 'Error',
         warning: title || 'Advertencia',
-        info: title || 'Informaci�n'
+        info: title || 'Informacion'
     };
     
     // Escapar mensaje para prevenir XSS
@@ -278,13 +278,24 @@ function runDeferredModule(loader, onReady, onError) {
     });
 }
 
-const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260218-deferred2';
+const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred9-mobiletypelock1-a11yfocus1-chatsanitize1-depuracion5';
 
 let deferredStylesheetPromise = null;
 let deferredStylesheetInitDone = false;
 
+function resolveDeferredStylesheetUrl() {
+    const preload = document.querySelector('link[rel="preload"][as="style"][href*="styles-deferred.css"]');
+    if (preload) {
+        const href = preload.getAttribute('href');
+        if (href && href.trim() !== '') {
+            return href;
+        }
+    }
+    return DEFERRED_STYLESHEET_URL;
+}
+
 function loadDeferredStylesheet() {
-    if (document.querySelector('link[data-deferred-stylesheet="true"]')) {
+    if (document.querySelector('link[data-deferred-stylesheet="true"], link[rel="stylesheet"][href*="styles-deferred.css"]')) {
         return Promise.resolve(true);
     }
 
@@ -292,10 +303,12 @@ function loadDeferredStylesheet() {
         return deferredStylesheetPromise;
     }
 
+    const stylesheetUrl = resolveDeferredStylesheetUrl();
+
     deferredStylesheetPromise = new Promise((resolve, reject) => {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = DEFERRED_STYLESHEET_URL;
+        link.href = stylesheetUrl;
         link.dataset.deferredStylesheet = 'true';
         link.onload = () => resolve(true);
         link.onerror = () => reject(new Error('No se pudo cargar styles-deferred.css'));
@@ -441,9 +454,11 @@ const DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
 const DOCTOR_CAROLINA_EMAIL = 'caro93narvaez@gmail.com';
 const MAX_CASE_PHOTOS = 3;
 const MAX_CASE_PHOTO_BYTES = 5 * 1024 * 1024;
+const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 const CASE_PHOTO_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
 const API_REQUEST_TIMEOUT_MS = 9000;
+const UPLOAD_REQUEST_TIMEOUT_MS = 16000;
 const API_RETRY_BASE_DELAY_MS = 450;
 const API_DEFAULT_RETRIES = 1;
 const API_SLOW_NOTICE_MS = 1200;
@@ -451,6 +466,7 @@ const API_SLOW_NOTICE_COOLDOWN_MS = 25000;
 const AVAILABILITY_CACHE_TTL_MS = 5 * 60 * 1000;
 const BOOKED_SLOTS_CACHE_TTL_MS = 45 * 1000;
 let apiSlowNoticeLastAt = 0;
+const apiInFlightGetRequests = new Map();
 let bookingViewTracked = false;
 let chatStartedTracked = false;
 let availabilityPrefetched = false;
@@ -467,7 +483,7 @@ const DEFAULT_PUBLIC_REVIEWS = [
         id: 'google-jose-gancino',
         name: 'Jose Gancino',
         rating: 5,
-        text: 'Buena atenci�n solo falta los n�meros de la oficina y horarios de atenci�n.',
+        text: 'Buena atencion, solo faltan los numeros de la oficina y horarios de atencion.',
         date: '2025-10-01T10:00:00-05:00',
         verified: true
     },
@@ -475,7 +491,7 @@ const DEFAULT_PUBLIC_REVIEWS = [
         id: 'google-jacqueline-ruiz-torres',
         name: 'Jacqueline Ruiz Torres',
         rating: 5,
-        text: 'Exelente atenci�n y econ�mico 🙏🤗👌',
+        text: 'Excelente atencion y economico.',
         date: '2025-04-15T10:00:00-05:00',
         verified: true
     },
@@ -511,7 +527,7 @@ const LOCAL_FALLBACK_ENABLED = window.location.protocol === 'file:';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let themeTransitionTimer = null;
 
-const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1';
+const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2';
 
 function getBookingEngineDeps() {
     return {
@@ -710,7 +726,7 @@ function prefetchAvailabilityData(source = 'unknown') {
         return;
     }
     availabilityPrefetched = true;
-    loadAvailabilityData().catch(() => {
+    loadAvailabilityData({ background: true }).catch(() => {
         availabilityPrefetched = false;
     });
     trackEvent('availability_prefetch', {
@@ -723,7 +739,7 @@ function prefetchReviewsData(source = 'unknown') {
         return;
     }
     reviewsPrefetched = true;
-    loadPublicReviews().catch(() => {
+    loadPublicReviews({ background: true }).catch(() => {
         reviewsPrefetched = false;
     });
     trackEvent('reviews_prefetch', {
@@ -807,6 +823,31 @@ function waitMs(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function getApiRetryDelayMs(attempt) {
+    const cappedAttempt = Math.max(0, Math.min(5, Number(attempt) || 0));
+    const jitter = Math.floor(Math.random() * 180);
+    return (API_RETRY_BASE_DELAY_MS * (2 ** cappedAttempt)) + jitter;
+}
+
+function isLikelyNetworkError(error) {
+    if (!error || typeof error !== 'object') {
+        return false;
+    }
+
+    const name = String(error.name || '').toLowerCase();
+    const message = String(error.message || '').toLowerCase();
+
+    if (name === 'typeerror') {
+        return true;
+    }
+
+    return message.includes('failed to fetch')
+        || message.includes('networkerror')
+        || message.includes('network request failed')
+        || message.includes('load failed')
+        || message.includes('fetch');
+}
+
 function initGA4() {
     if (window._ga4Loaded) return;
     if (getCookieConsent() !== 'accepted') return;
@@ -857,6 +898,14 @@ function initCookieBanner() {
     }
 }
 
+function disablePlaceholderExternalLinks() {
+    document.querySelectorAll('a[href^="URL_"]').forEach((anchor) => {
+        anchor.removeAttribute('href');
+        anchor.setAttribute('aria-disabled', 'true');
+        anchor.classList.add('is-disabled-link');
+    });
+}
+
 function handleSystemThemeChange() {
     if (currentThemeMode === 'system') {
         applyThemeMode('system');
@@ -898,7 +947,8 @@ async function apiRequest(resource, options = {}) {
             }
         });
     }
-    const url = `${API_ENDPOINT}?${query.toString()}`;
+
+    const url = API_ENDPOINT + '?' + query.toString();
     const requestInit = {
         method: method,
         credentials: 'same-origin',
@@ -917,8 +967,9 @@ async function apiRequest(resource, options = {}) {
         ? Math.max(0, Number(options.retries))
         : (method === 'GET' ? API_DEFAULT_RETRIES : 0);
 
-    const shouldShowSlowNotice = options.silentSlowNotice !== true;
+    const shouldShowSlowNotice = options.silentSlowNotice !== true && options.background !== true;
     const retryableStatusCodes = new Set([408, 425, 429, 500, 502, 503, 504]);
+    const dedupeGet = method === 'GET' && options.dedupe !== false;
 
     function makeApiError(message, status = 0, retryable = false, code = '') {
         const error = new Error(message);
@@ -928,92 +979,128 @@ async function apiRequest(resource, options = {}) {
         return error;
     }
 
-    let lastError = null;
+    const execute = async () => {
+        let lastError = null;
 
-    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-        let slowNoticeTimer = null;
+        for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            let slowNoticeTimer = null;
 
-        if (shouldShowSlowNotice) {
-            slowNoticeTimer = setTimeout(() => {
-                const now = Date.now();
-                if ((now - apiSlowNoticeLastAt) > API_SLOW_NOTICE_COOLDOWN_MS) {
-                    apiSlowNoticeLastAt = now;
-                    showToast(
-                        currentLang === 'es'
-                            ? 'Conectando con el servidor...'
-                            : 'Connecting to server...',
-                        'info'
-                    );
-                }
-            }, API_SLOW_NOTICE_MS);
-        }
+            if (shouldShowSlowNotice) {
+                slowNoticeTimer = setTimeout(() => {
+                    const now = Date.now();
+                    if ((now - apiSlowNoticeLastAt) > API_SLOW_NOTICE_COOLDOWN_MS) {
+                        apiSlowNoticeLastAt = now;
+                        showToast(
+                            currentLang === 'es'
+                                ? 'Conectando con el servidor...'
+                                : 'Connecting to server...',
+                            'info'
+                        );
+                    }
+                }, API_SLOW_NOTICE_MS);
+            }
 
-        try {
-            const response = await fetch(url, {
-                ...requestInit,
-                signal: controller.signal
-            });
-
-            const responseText = await response.text();
-            let payload = {};
             try {
-                payload = responseText ? JSON.parse(responseText) : {};
-            } catch (error) {
-                throw makeApiError('Respuesta del servidor no es JSON valido', response.status, false, 'invalid_json');
-            }
+                const response = await fetch(url, {
+                    ...requestInit,
+                    signal: controller.signal
+                });
 
-            if (!response.ok || payload.ok === false) {
-                const message = payload.error || `HTTP ${response.status}`;
-                throw makeApiError(message, response.status, retryableStatusCodes.has(response.status), 'http_error');
-            }
-
-            return payload;
-        } catch (error) {
-            const normalizedError = (() => {
-                if (error && error.name === 'AbortError') {
-                    return makeApiError(
-                        currentLang === 'es'
-                            ? 'Tiempo de espera agotado con el servidor'
-                            : 'Server request timed out',
-                        0,
-                        true,
-                        'timeout'
+                const responseText = await response.text();
+                let payload = {};
+                try {
+                    payload = responseText ? JSON.parse(responseText) : {};
+                } catch (error) {
+                    throw makeApiError(
+                        'Respuesta del servidor no es JSON valido',
+                        response.status,
+                        retryableStatusCodes.has(response.status),
+                        'invalid_json'
                     );
                 }
 
-                if (error instanceof Error) {
-                    if (typeof error.retryable !== 'boolean') {
-                        error.retryable = false;
-                    }
-                    if (typeof error.status !== 'number') {
-                        error.status = 0;
-                    }
-                    return error;
+                if (!response.ok || payload.ok === false) {
+                    const message = payload.error || ('HTTP ' + response.status);
+                    throw makeApiError(message, response.status, retryableStatusCodes.has(response.status), 'http_error');
                 }
 
-                return makeApiError('Error de conexion con el servidor', 0, true, 'network_error');
-            })();
+                return payload;
+            } catch (error) {
+                const normalizedError = (() => {
+                    if (error && error.name === 'AbortError') {
+                        return makeApiError(
+                            currentLang === 'es'
+                                ? 'Tiempo de espera agotado con el servidor'
+                                : 'Server request timed out',
+                            0,
+                            true,
+                            'timeout'
+                        );
+                    }
 
-            lastError = normalizedError;
+                    if (isLikelyNetworkError(error)) {
+                        return makeApiError(
+                            currentLang === 'es'
+                                ? 'No se pudo conectar con el servidor'
+                                : 'Could not connect to server',
+                            0,
+                            true,
+                            'network_error'
+                        );
+                    }
 
-            const canRetry = attempt < maxRetries && normalizedError.retryable === true;
-            if (!canRetry) {
-                throw normalizedError;
-            }
+                    if (error instanceof Error) {
+                        if (typeof error.retryable !== 'boolean') {
+                            error.retryable = false;
+                        }
+                        if (typeof error.status !== 'number') {
+                            error.status = 0;
+                        }
+                        if (typeof error.code !== 'string' || !error.code) {
+                            error.code = 'api_error';
+                        }
+                        return error;
+                    }
 
-            const retryDelay = API_RETRY_BASE_DELAY_MS * (attempt + 1);
-            await waitMs(retryDelay);
-        } finally {
-            clearTimeout(timeoutId);
-            if (slowNoticeTimer !== null) {
-                clearTimeout(slowNoticeTimer);
+                    return makeApiError('Error de conexion con el servidor', 0, true, 'network_error');
+                })();
+
+                lastError = normalizedError;
+
+                const canRetry = attempt < maxRetries && normalizedError.retryable === true;
+                if (!canRetry) {
+                    throw normalizedError;
+                }
+
+                const retryDelay = getApiRetryDelayMs(attempt);
+                await waitMs(retryDelay);
+            } finally {
+                clearTimeout(timeoutId);
+                if (slowNoticeTimer !== null) {
+                    clearTimeout(slowNoticeTimer);
+                }
             }
         }
+
+        throw lastError || new Error('No se pudo completar la solicitud');
+    };
+
+    if (!dedupeGet) {
+        return execute();
     }
 
-    throw lastError || new Error('No se pudo completar la solicitud');
+    if (apiInFlightGetRequests.has(url)) {
+        return apiInFlightGetRequests.get(url);
+    }
+
+    const inFlight = execute().finally(() => {
+        apiInFlightGetRequests.delete(url);
+    });
+
+    apiInFlightGetRequests.set(url, inFlight);
+    return inFlight;
 }
 
 async function loadPaymentConfig() {
@@ -1083,49 +1170,107 @@ async function verifyPaymentIntent(paymentIntentId) {
     });
 }
 
-async function uploadTransferProof(file) {
+async function uploadTransferProof(file, options = {}) {
     const formData = new FormData();
     formData.append('proof', file);
 
     const query = new URLSearchParams({ resource: 'transfer-proof' });
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
+    const url = `${API_ENDPOINT}?${query.toString()}`;
+    const timeoutMs = Number.isFinite(options.timeoutMs)
+        ? Math.max(3000, Number(options.timeoutMs))
+        : UPLOAD_REQUEST_TIMEOUT_MS;
+    const maxRetries = Number.isInteger(options.retries)
+        ? Math.max(0, Number(options.retries))
+        : 1;
+    const retryableStatusCodes = new Set([408, 425, 429, 500, 502, 503, 504]);
 
-    let response;
-    let text = '';
-    try {
-        response = await fetch(`${API_ENDPOINT}?${query.toString()}`, {
-            method: 'POST',
-            credentials: 'same-origin',
-            body: formData,
-            signal: controller.signal
-        });
-        text = await response.text();
-    } catch (error) {
-        if (error && error.name === 'AbortError') {
-            throw new Error(
-                currentLang === 'es'
-                    ? 'Tiempo de espera agotado al subir el comprobante'
-                    : 'Upload timed out while sending proof file'
-            );
+    let lastError = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: formData,
+                signal: controller.signal
+            });
+
+            const text = await response.text();
+            let payload = {};
+            try {
+                payload = text ? JSON.parse(text) : {};
+            } catch (error) {
+                const parseError = new Error('No se pudo interpretar la respuesta de subida');
+                parseError.retryable = retryableStatusCodes.has(response.status);
+                parseError.status = response.status;
+                throw parseError;
+            }
+
+            if (!response.ok || payload.ok === false) {
+                const httpError = new Error(payload.error || `HTTP ${response.status}`);
+                httpError.retryable = retryableStatusCodes.has(response.status);
+                httpError.status = response.status;
+                throw httpError;
+            }
+
+            return payload.data || {};
+        } catch (error) {
+            const normalizedError = (() => {
+                if (error && error.name === 'AbortError') {
+                    const timeoutError = new Error(
+                        currentLang === 'es'
+                            ? 'Tiempo de espera agotado al subir el comprobante'
+                            : 'Upload timed out while sending proof file'
+                    );
+                    timeoutError.retryable = true;
+                    timeoutError.code = 'timeout';
+                    return timeoutError;
+                }
+
+                if (isLikelyNetworkError(error)) {
+                    const networkError = new Error(
+                        currentLang === 'es'
+                            ? 'No se pudo conectar con el servidor al subir el comprobante'
+                            : 'Could not connect to server while uploading proof'
+                    );
+                    networkError.retryable = true;
+                    networkError.code = 'network_error';
+                    return networkError;
+                }
+
+                if (error instanceof Error) {
+                    if (typeof error.retryable !== 'boolean') {
+                        error.retryable = false;
+                    }
+                    return error;
+                }
+
+                const fallbackError = new Error(
+                    currentLang === 'es'
+                        ? 'No se pudo subir el comprobante'
+                        : 'Unable to upload proof'
+                );
+                fallbackError.retryable = true;
+                fallbackError.code = 'upload_error';
+                return fallbackError;
+            })();
+
+            lastError = normalizedError;
+            const canRetry = attempt < maxRetries && normalizedError.retryable === true;
+            if (!canRetry) {
+                throw normalizedError;
+            }
+
+            await waitMs(getApiRetryDelayMs(attempt));
+        } finally {
+            clearTimeout(timeoutId);
         }
-        throw error;
-    } finally {
-        clearTimeout(timeoutId);
     }
 
-    let payload = {};
-    try {
-        payload = text ? JSON.parse(text) : {};
-    } catch (error) {
-        throw new Error('No se pudo interpretar la respuesta de subida');
-    }
-
-    if (!response.ok || payload.ok === false) {
-        throw new Error(payload.error || `HTTP ${response.status}`);
-    }
-
-    return payload.data || {};
+    throw lastError || new Error('No se pudo subir el comprobante');
 }
 
 function getCasePhotoFiles(formElement) {
@@ -1183,15 +1328,26 @@ async function ensureCasePhotosUploaded(appointment) {
         };
     }
 
-    const uploads = [];
-    for (const file of files) {
-        const uploaded = await uploadTransferProof(file);
-        uploads.push({
-            name: uploaded.transferProofName || file.name || '',
-            url: uploaded.transferProofUrl || '',
-            path: uploaded.transferProofPath || ''
-        });
-    }
+    const uploads = new Array(files.length);
+    const workerCount = Math.max(1, Math.min(CASE_PHOTO_UPLOAD_CONCURRENCY, files.length));
+    let cursor = 0;
+
+    // Limita concurrencia para no saturar red/servidor durante la reserva.
+    const uploadWorker = async () => {
+        while (cursor < files.length) {
+            const index = cursor;
+            cursor += 1;
+            const file = files[index];
+            const uploaded = await uploadTransferProof(file, { retries: 2 });
+            uploads[index] = {
+                name: uploaded.transferProofName || file.name || '',
+                url: uploaded.transferProofUrl || '',
+                path: uploaded.transferProofPath || ''
+            };
+        }
+    };
+
+    await Promise.all(Array.from({ length: workerCount }, () => uploadWorker()));
     appointment.casePhotoUploads = uploads;
 
     return {
@@ -1242,6 +1398,7 @@ function invalidateBookedSlotsCache(date = '', doctor = '') {
 
 async function loadAvailabilityData(options = {}) {
     const forceRefresh = options && options.forceRefresh === true;
+    const background = options && options.background === true;
     const now = Date.now();
 
     if (!forceRefresh && availabilityCacheLoadedAt > 0 && (now - availabilityCacheLoadedAt) < AVAILABILITY_CACHE_TTL_MS) {
@@ -1254,7 +1411,10 @@ async function loadAvailabilityData(options = {}) {
 
     availabilityCachePromise = (async () => {
         try {
-            const payload = await apiRequest('availability');
+            const payload = await apiRequest('availability', {
+                background,
+                silentSlowNotice: background
+            });
             availabilityCache = payload.data || {};
             availabilityCacheLoadedAt = Date.now();
             storageSetJSON('availability', availabilityCache);
@@ -1412,15 +1572,21 @@ function mergePublicReviews(inputReviews) {
     return merged;
 }
 
-async function loadPublicReviews() {
+async function loadPublicReviews(options = {}) {
+    const background = options && options.background === true;
+
     try {
-        const payload = await apiRequest('reviews');
+        const payload = await apiRequest('reviews', {
+            background,
+            silentSlowNotice: background
+        });
         const fetchedReviews = Array.isArray(payload.data) ? payload.data : [];
         reviewsCache = mergePublicReviews(fetchedReviews);
     } catch (error) {
         const localReviews = storageGetJSON('reviews', []);
         reviewsCache = mergePublicReviews(localReviews);
     }
+
     renderPublicReviews(reviewsCache);
 }
 
@@ -1989,7 +2155,7 @@ let chatHistory = (function() {
 })();
 let conversationContext = [];
 
-// CONFIGURACI�N DE CHAT
+// CONFIGURACION DE CHAT
 const KIMI_CONFIG = {
     apiUrl: '/figo-chat.php',
     model: 'figo-assistant',
@@ -2013,46 +2179,47 @@ function shouldUseRealAI() {
 }
 
 // Contexto del sistema para el asistente
-const SYSTEM_PROMPT = `Eres el Dr. Virtual, asistente inteligente de la cl�nica dermatol�gica "Piel en Armon�a" en Quito, Ecuador.
+const SYSTEM_PROMPT = `Eres Figo, el Concierge Digital de la clínica dermatológica "Piel en Armonía" en Quito, Ecuador.
+Tu tono es profesional, cálido, eficiente y experto. Eres un asistente de alto nivel, no un robot genérico.
 
-INFORMACI�N DE LA CL�NICA:
-- Nombre: Piel en Armon�a
-- Doctores: Dr. Javier Rosero (Dermat�logo Cl�nico) y Dra. Carolina Narv�ez (Dermat�loga Est�tica)
-- Direcci�n: ${CLINIC_ADDRESS}
-- Tel�fono/WhatsApp: +593 98 245 3672
+INFORMACION DE LA CLINICA:
+- Nombre: Piel en Armonia
+- Doctores: Dr. Javier Rosero (Dermatologo Clinico) y Dra. Carolina Narvaez (Dermatologa Estetica)
+- Direccion: ${CLINIC_ADDRESS}
+- Telefono/WhatsApp: +593 98 245 3672
 - Contacto Dra. Carolina: ${DOCTOR_CAROLINA_PHONE} | ${DOCTOR_CAROLINA_EMAIL}
-- Horario: Lunes-Viernes 9:00-18:00, S�bados 9:00-13:00
+- Horario: Lunes-Viernes 9:00-18:00, Sabados 9:00-13:00
 - Estacionamiento privado disponible
 
 SERVICIOS Y PRECIOS:
-- Consulta Dermatol�gica: $40 (incluye IVA)
-- Consulta Telef�nica: $25
+- Consulta Dermatologica: $40 (incluye IVA)
+- Consulta Telefonica: $25
 - Video Consulta: $30
-- Tratamiento L�ser: desde $150
+- Tratamiento Laser: desde $150
 - Rejuvenecimiento: desde $120
-- Tratamiento de Acn�: desde $80
-- Detecci�n de C�ncer de Piel: desde $70
+- Tratamiento de Acne: desde $80
+- Deteccion de Cancer de Piel: desde $70
 
 OPCIONES DE CONSULTA ONLINE:
-1. Llamada telef�nica: tel:+593982453672
+1. Llamada telefonica: tel:+593982453672
 2. WhatsApp Video: https://wa.me/593982453672
 3. Video Web (Jitsi): https://meet.jit.si/PielEnArmonia-Consulta
 
 INSTRUCCIONES:
-- S� profesional, amable y emp�tico
-- Responde en espa�ol (o en el idioma que use el paciente)
-- Si el paciente tiene s�ntomas graves o emergencias, recomienda acudir a urgencias
-- Para agendar citas, dirige al formulario web, WhatsApp o llamada telef�nica
-- Si no sabes algo espec�fico, ofrece transferir al doctor real
-- No hagas diagn�sticos m�dicos definitivos, solo orientaci�n general
+- Se profesional, amable y empatico
+- Responde en espanol (o en el idioma que use el paciente)
+- Si el paciente tiene sintomas graves o emergencias, recomienda acudir a urgencias
+- Para agendar citas, dirige al formulario web, WhatsApp o llamada telefonica
+- Si no sabes algo especifico, ofrece transferir al doctor real
+- No hagas diagnosticos medicos definitivos, solo orientacion general
 - Usa emojis ocasionalmente para ser amigable
-- Mant�n respuestas concisas pero informativas
+- Manten respuestas concisas pero informativas
 
 Tu objetivo es ayudar a los pacientes a:
-1. Conocer los servicios de la cl�nica
+1. Conocer los servicios de la clinica
 2. Entender los precios
 3. Agendar citas
-4. Resolver dudas b�sicas sobre dermatolog�a
+4. Resolver dudas basicas sobre dermatologia
 5. Conectar con un doctor real cuando sea necesario`;
 
 function toggleChatbot() {
@@ -2075,30 +2242,30 @@ function toggleChatbot() {
             // Verificar si estamos usando IA real
             const usandoIA = shouldUseRealAI();
             
-            debugLog('?? Estado del chatbot:', usandoIA ? 'IA REAL' : 'Respuestas locales');
+            debugLog('Estado del chatbot:', usandoIA ? 'IA REAL' : 'Respuestas locales');
             
             var welcomeMsg;
             
             if (usandoIA) {
-                welcomeMsg = '�Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armon�a</strong>.<br><br>';
-                welcomeMsg += '<strong>Conectado con Inteligencia Artificial</strong><br><br>';
-                welcomeMsg += 'Puedo ayudarte con informaci�n detallada sobre:<br>';
-                welcomeMsg += '� Nuestros servicios dermatologicos<br>';
-                welcomeMsg += '� Precios de consultas y tratamientos<br>';
-                welcomeMsg += '� Agendar citas presenciales o online<br>';
-                welcomeMsg += '� Ubicacion y horarios de atencion<br>';
-                welcomeMsg += '� Resolver tus dudas sobre cuidado de la piel<br><br>';
-                welcomeMsg += '�En que puedo ayudarte hoy?';
+                welcomeMsg = '¡Hola! Soy <strong>Figo</strong>, tu Concierge Digital en <strong>Piel en Armonía</strong>. 🤖✨<br><br>';
+                welcomeMsg += 'Estoy aquí para brindarte una atención de excelencia.<br><br>';
+                welcomeMsg += 'Puedo asistirte con:<br>';
+                welcomeMsg += '• Información detallada de tratamientos<br>';
+                welcomeMsg += '• Precios y formas de pago<br>';
+                welcomeMsg += '• Agendamiento de citas<br>';
+                welcomeMsg += '• Ubicación y horarios<br>';
+                welcomeMsg += '• Dudas dermatológicas generales<br><br>';
+                welcomeMsg += '¿En qué puedo servirte hoy?';
             } else {
-                welcomeMsg = '�Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armon�a</strong>.<br><br>';
-                welcomeMsg += 'Puedo ayudarte con informaci�n sobre:<br>';
-                welcomeMsg += '� Nuestros servicios dermatologicos<br>';
-                welcomeMsg += '� Precios de consultas y tratamientos<br>';
-                welcomeMsg += '� Agendar citas presenciales o online<br>';
-                welcomeMsg += '� Ubicacion y horarios de atencion<br><br>';
-                welcomeMsg += '�En que puedo ayudarte hoy?';
+                welcomeMsg = '¡Hola! Soy <strong>Figo</strong>, tu Concierge Digital en <strong>Piel en Armonía</strong>. 🤖✨<br><br>';
+                welcomeMsg += 'Puedo asistirte con:<br>';
+                welcomeMsg += '• Información detallada de tratamientos<br>';
+                welcomeMsg += '• Precios y formas de pago<br>';
+                welcomeMsg += '• Agendamiento de citas<br>';
+                welcomeMsg += '• Ubicación y horarios<br><br>';
+                welcomeMsg += '¿En qué puedo servirte hoy?';
             }
-            
+
             addBotMessage(welcomeMsg);
             
             // Sugerir opciones rapidas
@@ -2153,13 +2320,13 @@ function sendQuickMessage(type) {
     }
 
     const messages = {
-        services: '�Qu� servicios ofrecen?',
-        prices: '�Cu�les son los precios?',
-        telemedicine: '�C�mo funciona la consulta online?',
-        human: 'Quiero hablar con un doctor real',
-        acne: 'Tengo problemas de acn�',
-        laser: 'Informaci�n sobre tratamientos l�ser',
-        location: '�D�nde est�n ubicados?'
+        services: 'Que servicios ofrecen?',
+        prices: 'Cuales son los precios?',
+        telemedicine: 'Como funciona la consulta online?',
+        human: 'Quiero hablar con una persona real',
+        acne: 'Tengo problemas de acne',
+        laser: 'Informacion sobre tratamientos laser',
+        location: 'Donde estan ubicados?'
     };
 
     const message = messages[type] || type;
@@ -2182,7 +2349,7 @@ function addUserMessage(text) {
     chatHistory.push({ type: 'user', text, time: new Date().toISOString() });
     try { localStorage.setItem('chatHistory', JSON.stringify(chatHistory)); } catch(e) {}
 
-    // Agregar al contexto de conversaci�n (evitar duplicados)
+    // Agregar al contexto de conversacion (evitar duplicados)
     const lastMsg = conversationContext[conversationContext.length - 1];
     if (!lastMsg || lastMsg.role !== 'user' || lastMsg.content !== text) {
         conversationContext.push({ role: 'user', content: text });
@@ -2194,10 +2361,10 @@ function sanitizeBotHtml(html) {
     const allowedAttrs = {
         'a': ['href', 'target', 'rel'],
         'button': ['class', 'data-action'],
-        'div': ['class', 'style'],
-        'input': ['type', 'id', 'min', 'style', 'value'],
+        'div': ['class'],
+        'input': ['type', 'id', 'min', 'value', 'class'],
         'i': ['class'],
-        'span': ['class', 'style'],
+        'span': ['class'],
         'small': ['class']
     };
 
@@ -2259,9 +2426,9 @@ function addBotMessage(html, showOfflineLabel = false) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'chat-message bot';
     
-    // Solo mostrar indicador offline si se solicita expl�citamente (para debug)
-    const offlineIndicator = showOfflineLabel ? 
-        `<div style="font-size: 0.7rem; color: #86868b; margin-bottom: 4px; opacity: 0.7;">
+    // Solo mostrar indicador offline si se solicita explicitamente (para debug)
+    const offlineIndicator = showOfflineLabel ?
+        `<div class="chatbot-offline-badge">
             <i class="fas fa-robot"></i> Asistente Virtual
         </div>` : '';
     
@@ -2374,10 +2541,16 @@ function scrollToBottom() {
     container.scrollTop = container.scrollHeight;
 }
 
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // ========================================
 // BOOKING CONVERSACIONAL DESDE CHATBOT (DEFERRED MODULE)
 // ========================================
-const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260218-phase1';
+const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260219-phase2-inlinefix1';
 
 function getChatBookingEngineDeps() {
     return {
@@ -2497,7 +2670,7 @@ function isChatBookingActive() {
 function loadFigoChatEngine() {
     return loadDeferredModule({
         cacheKey: 'figo-chat-engine',
-        src: '/chat-engine.js?v=figo-chat-20260218-phase2',
+        src: '/chat-engine.js?v=figo-chat-20260218-phase2-linkrel1-textclean1',
         scriptDataAttribute: 'data-figo-chat-engine',
         resolveModule: () => window.FigoChatEngine,
         isModuleReady: (module) => !!module,
@@ -2671,6 +2844,7 @@ function submitReschedule() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    disablePlaceholderExternalLinks();
     initDeferredStylesheetLoading();
     initThemeMode();
     changeLanguage(currentLang);

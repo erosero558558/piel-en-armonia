@@ -3,18 +3,39 @@ require_once __DIR__ . '/../api-lib.php';
 require_once __DIR__ . '/../figo-brain.php';
 
 $tests = [
-    ['hola', 'Dr. Virtual'],
-    ['precio consulta', 'Nuestros Precios'],
-    ['cuanto cuesta acne', 'Acné:'],
-    ['agendar cita', 'Reservar Cita Online'],
-    ['donde estan', 'Nuestra Ubicación'],
-    ['horario', 'Horarios de Atención'],
-    ['dr rosero', 'Javier Rosero'],
-    ['rejuvenecimiento', 'Toxina Botulínica'],
-    ['online', 'Videoconsulta'],
-    ['telefono', 'WhatsApp'],
+    // --- V3 Safety & Triage Tests ---
+    ['tengo sangrado', 'IMPORTANTE: Mensaje de Seguridad'],
+    ['dolor insoportable', 'acude inmediatamente a urgencias'],
+    ['ayuda medica urgente', '911'],
+
+    // --- V3 Trust & Technology ---
+    ['porque elegirlos', 'excelencia médica y calidez humana'],
+    ['que tecnologia tienen', 'Láser CO2 Fraccionado'],
+    ['tienen laser fotona', 'tecnología de vanguardia'],
+
+    // --- Basic Interaction ---
+    ['hola', 'Bienvenido a **Piel en Armonía**'],
+
+    // --- Robustness (Fuzzy) ---
+    ['prcio consulta', 'valores referenciales'], // "precio"
+    ['cunto cuesta acne', '$89.60'], // "cuanto"
+
+    // --- Core Business ---
+    ['agendar cita', 'Maravillosa elección'],
+    ['donde estan', 'Edificio Citimed'],
+    ['dr rosero', 'Especialista en Dermatología Clínica'],
+
+    // --- Medical Topics ---
+    ['manchas oscuras', 'Melasma'],
+    ['se me cae el cabello', 'Caída de Cabello'],
+    ['tengo verrugas', 'Verrugas y Lunares'],
+
+    // --- Sentiment ---
+    ['pesimo servicio', 'Siento mucho que estés pasando'],
+    ['quiero poner una queja', 'Gerencia de Atención'],
 ];
 
+echo "Running FigoBrain V3 Tests...\n";
 $passed = 0;
 $failed = 0;
 
@@ -26,7 +47,7 @@ foreach ($tests as $test) {
     $response = FigoBrain::process($messages);
     $content = $response['choices'][0]['message']['content'];
 
-    if (strpos($content, $expected) !== false) {
+    if (stripos($content, $expected) !== false) {
         echo "[PASS] Input: '$input' -> Found: '$expected'\n";
         $passed++;
     } else {
