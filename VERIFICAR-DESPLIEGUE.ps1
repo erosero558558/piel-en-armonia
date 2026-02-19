@@ -289,6 +289,28 @@ $chatEngineRemoteUrl = if ($chatEngineVersion -ne '') {
     "$base/chat-engine.js"
 }
 
+$chatUiEngineVersion = ''
+$chatUiEngineMatch = [regex]::Match($localScriptTextForRefs, "chat-ui-engine\.js\?v=([a-zA-Z0-9._-]+)")
+if ($chatUiEngineMatch.Success) {
+    $chatUiEngineVersion = $chatUiEngineMatch.Groups[1].Value
+}
+$chatUiEngineRemoteUrl = if ($chatUiEngineVersion -ne '') {
+    "$base/chat-ui-engine.js?v=$chatUiEngineVersion"
+} else {
+    "$base/chat-ui-engine.js"
+}
+
+$chatWidgetEngineVersion = ''
+$chatWidgetEngineMatch = [regex]::Match($localScriptTextForRefs, "chat-widget-engine\.js\?v=([a-zA-Z0-9._-]+)")
+if ($chatWidgetEngineMatch.Success) {
+    $chatWidgetEngineVersion = $chatWidgetEngineMatch.Groups[1].Value
+}
+$chatWidgetEngineRemoteUrl = if ($chatWidgetEngineVersion -ne '') {
+    "$base/chat-widget-engine.js?v=$chatWidgetEngineVersion"
+} else {
+    "$base/chat-widget-engine.js"
+}
+
 $deferredStylesVersion = ''
 $deferredStylesMatch = [regex]::Match($localScriptTextForRefs, "styles-deferred\.css\?v=([a-zA-Z0-9._-]+)")
 if ($deferredStylesMatch.Success) {
@@ -429,7 +451,9 @@ $modalUxEngineRemoteUrl = if ($modalUxEngineVersion -ne '') {
 
 try {
     $assetHeaderChecks = @(
+        @{ Name = 'chat-widget-engine'; Url = $chatWidgetEngineRemoteUrl },
         @{ Name = 'chat-engine'; Url = $chatEngineRemoteUrl },
+        @{ Name = 'chat-ui-engine'; Url = $chatUiEngineRemoteUrl },
         @{ Name = 'styles-deferred'; Url = $deferredStylesRemoteUrl },
         @{ Name = 'translations-en'; Url = $translationsEnRemoteUrl },
         @{ Name = 'booking-engine'; Url = $bookingEngineRemoteUrl },
@@ -541,9 +565,19 @@ $checks = @(
         RemoteUrl = (Get-Url -Base $base -Ref $localScriptRef)
     },
     [PSCustomObject]@{
+        Name = 'chat-widget-engine.js'
+        LocalPath = 'chat-widget-engine.js'
+        RemoteUrl = $chatWidgetEngineRemoteUrl
+    },
+    [PSCustomObject]@{
         Name = 'chat-engine.js'
         LocalPath = 'chat-engine.js'
         RemoteUrl = $chatEngineRemoteUrl
+    },
+    [PSCustomObject]@{
+        Name = 'chat-ui-engine.js'
+        LocalPath = 'chat-ui-engine.js'
+        RemoteUrl = $chatUiEngineRemoteUrl
     },
     [PSCustomObject]@{
         Name = 'styles-deferred.css'
@@ -628,6 +662,8 @@ $results | ForEach-Object {
 $remoteScriptText = Get-RemoteText -Url (Get-Url -Base $base -Ref $localScriptRef)
 $remoteBookingEngineText = Get-RemoteText -Url $bookingEngineRemoteUrl
 $remoteAnalyticsEngineText = Get-RemoteText -Url $analyticsEngineRemoteUrl
+$remoteChatBookingEngineText = Get-RemoteText -Url $chatBookingEngineRemoteUrl
+$remoteChatWidgetEngineText = Get-RemoteText -Url $chatWidgetEngineRemoteUrl
 
 $analyticsChecks = @(
     @{
@@ -643,7 +679,42 @@ $analyticsChecks = @(
     @{
         Name = 'trackEvent(start_checkout)'
         Pattern = "trackEvent\(\s*['""]start_checkout['""]"
-        Sources = @('script', 'booking', 'analytics')
+        Sources = @('script', 'booking', 'analytics', 'chat-booking')
+    },
+    @{
+        Name = 'trackEvent(booking_step_completed)'
+        Pattern = "trackEvent\(\s*['""]booking_step_completed['""]"
+        Sources = @('chat-booking')
+    },
+    @{
+        Name = 'trackEvent(payment_method_selected)'
+        Pattern = "trackEvent\(\s*['""]payment_method_selected['""]"
+        Sources = @('booking', 'chat-booking')
+    },
+    @{
+        Name = 'trackEvent(payment_success)'
+        Pattern = "trackEvent\(\s*['""]payment_success['""]"
+        Sources = @('booking')
+    },
+    @{
+        Name = 'trackEvent(booking_confirmed)'
+        Pattern = "trackEvent\(\s*['""]booking_confirmed['""]"
+        Sources = @('analytics')
+    },
+    @{
+        Name = 'trackEvent(chat_handoff_whatsapp)'
+        Pattern = "trackEvent\(\s*['""]chat_handoff_whatsapp['""]"
+        Sources = @('script')
+    },
+    @{
+        Name = 'trackEvent(whatsapp_click)'
+        Pattern = "trackEvent\(\s*['""]whatsapp_click['""]"
+        Sources = @('script')
+    },
+    @{
+        Name = 'trackEvent(chat_started)'
+        Pattern = "trackEvent\(\s*['""]chat_started['""]"
+        Sources = @('script', 'chat-widget')
     }
 )
 
@@ -658,11 +729,17 @@ foreach ($check in $analyticsChecks) {
     if ($check.Sources -contains 'analytics' -and -not $matched -and [regex]::IsMatch($remoteAnalyticsEngineText, $check.Pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
         $matched = $true
     }
+    if ($check.Sources -contains 'chat-booking' -and -not $matched -and [regex]::IsMatch($remoteChatBookingEngineText, $check.Pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+        $matched = $true
+    }
+    if ($check.Sources -contains 'chat-widget' -and -not $matched -and [regex]::IsMatch($remoteChatWidgetEngineText, $check.Pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+        $matched = $true
+    }
 
     if ($matched) {
-        Write-Host "[OK]  script remoto contiene: $($check.Name)"
+        Write-Host "[OK]  assets remotos contienen: $($check.Name)"
     } else {
-        Write-Host "[FAIL] script remoto NO contiene: $($check.Name)"
+        Write-Host "[FAIL] assets remotos NO contienen: $($check.Name)"
         $results += [PSCustomObject]@{
             Asset = "script-token:$($check.Name)"
             Match = $false
