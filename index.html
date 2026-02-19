@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://www.google-analytics.com https://*.stripe.com data:; frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; connect-src 'self' https://api.stripe.com https://m.stripe.network https://r.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com; worker-src 'self' blob:; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://www.google-analytics.com https://*.stripe.com data:; frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; connect-src 'self' https://api.stripe.com https://m.stripe.network https://r.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com; worker-src 'self' blob:; form-action 'self';">
     <title>Piel en Armonía | Dermatología Especializada en Quito</title>
     <meta name="description" content="Clínica dermatológica en Quito. Dr. Javier Rosero y Dra. Carolina Narváez. Consulta presencial, online y telemedicina con pagos seguros.">
     <meta name="robots" content="index, follow, max-image-preview:large">
@@ -43,7 +43,7 @@
           "currenciesAccepted": "USD",
           "address": {
             "@type": "PostalAddress",
-            "streetAddress": "Valparaiso 13-183 y Sodiro, Consultorio Dr. Celio Caiza",
+            "streetAddress": "Av. Dr. Cecilio Caiza e Hijas N2-30, Edificio Medicenter, Piso 3, Consultorio 302",
             "addressLocality": "Quito",
             "addressRegion": "Pichincha",
             "postalCode": "170517",
@@ -68,7 +68,7 @@
               "closes": "13:00"
             }
           ],
-          "hasMap": "https://www.google.com/maps/search/Valparaiso+13-183+y+Sodiro,+Quito,+Ecuador",
+          "hasMap": "https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D",
           "sameAs": [
             "https://wa.me/593982453672"
           ]
@@ -98,8 +98,8 @@
       ]
     }
     </script>
-    <link rel="stylesheet" href="styles.css?v=ui-20260219-critical2-mobiletypelock1-a11yfocus1-perfcv1">
-    <link rel="preload" as="style" href="styles-deferred.css?v=ui-20260219-deferred12-cspinline1-stateclass1">
+    <link rel="stylesheet" href="styles.css?v=ui-20260218-critical1">
+    <link rel="preload" as="style" href="styles-deferred.css?v=ui-20260218-deferred2">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -351,7 +351,7 @@
                     <picture>
                         <source type="image/avif" srcset="images/optimized/service-laser.avif">
                         <source type="image/webp" srcset="images/optimized/service-laser.webp">
-                        <img src="images/optimized/service-laser.jpg" alt="Láser dermatológico" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
+                        <img src="images/optimized/service-laser.jpg" alt="Laser dermatologico" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
                     </picture>
                 </div>
                 <div class="service-icon">
@@ -505,8 +505,8 @@
     <!-- Team Section -->
     <section class="section section-dark" id="equipo">
         <div class="section-header">
-            <h2 class="section-title" data-i18n="team_title">Equipo médico</h2>
-            <p class="section-subtitle" data-i18n="team_subtitle_new">Atención basada en evidencia, con enfoque clínico y estético.</p>
+            <h2 class="section-title" data-i18n="team_title">Nuestro Equipo</h2>
+            <p class="section-subtitle" data-i18n="team_subtitle">Especialistas dedicados al cuidado de tu piel</p>
         </div>
         <div class="team-grid">
             <div class="team-card">
@@ -516,21 +516,28 @@
                         <source type="image/webp" srcset="images/optimized/team-rosero.webp">
                         <img src="images/optimized/team-rosero.jpg" alt="Dr. Javier Rosero" width="500" height="600" loading="lazy" decoding="async" fetchpriority="low">
                     </picture>
+                    <div class="team-overlay">
+                        <div class="team-actions">
+                            <a href="tel:+593982453672" class="team-btn" title="Llamar">
+                                <i class="fas fa-phone"></i>
+                            </a>
+                            <a href="https://wa.me/593982453672?text=Hola%20Dr.%20Rosero" target="_blank" rel="noopener noreferrer" class="team-btn" title="WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                            <a href="mailto:javier.rosero94@gmail.com" class="team-btn" title="Email">
+                                <i class="fas fa-envelope"></i>
+                            </a>
+                        </div>
+                    </div>
                 </div>
                 <div class="team-info">
                     <h3>Dr. Javier Rosero</h3>
-                    <p class="team-role-exp" data-i18n="rosero_role_exp">Dermatólogo Clínico · 15 años de experiencia</p>
-
-                    <p class="team-detail"><strong data-i18n="label_focus">Enfoque:</strong> <span data-i18n="rosero_focus_list">acné, manchas, dermatitis, cáncer de piel, cirugía dermatológica.</span></p>
-                    <p class="team-detail"><strong data-i18n="label_modality">Modalidad:</strong> <span data-i18n="rosero_modality_list">presencial y online</span></p>
-
-                    <div class="team-actions-footer">
-                        <a href="#citas" class="btn btn-primary btn-full" data-i18n="btn_book_rosero">Reservar con Dr. Rosero</a>
-                        <div class="team-secondary-actions">
-                            <a href="https://wa.me/593982453672?text=Hola%20Dr.%20Rosero" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" data-i18n="btn_whatsapp_short"><i class="fab fa-whatsapp"></i> WhatsApp</a>
-                            <a href="mailto:javier.rosero94@gmail.com" class="btn btn-secondary btn-sm" data-i18n="btn_email_short"><i class="fas fa-envelope"></i> Correo</a>
-                        </div>
-                    </div>
+                    <p class="team-role" data-i18n="role_dermatologo">Dermatólogo Clínico</p>
+                    <p class="team-desc" data-i18n="desc_rosero">15 años de experiencia en dermatología clínica y quirúrgica. Especialista en detección temprana de cáncer de piel.</p>
+                    <span class="team-status available">
+                        <i class="fas fa-circle"></i>
+                        <span data-i18n="status_available">Disponible hoy</span>
+                    </span>
                 </div>
             </div>
             
@@ -541,21 +548,28 @@
                         <source type="image/webp" srcset="images/optimized/team-narvaez.webp">
                         <img src="images/optimized/team-narvaez.jpg" alt="Dra. Carolina Narváez" width="500" height="600" loading="lazy" decoding="async" fetchpriority="low">
                     </picture>
+                    <div class="team-overlay">
+                        <div class="team-actions">
+                            <a href="tel:+593987866885" class="team-btn" title="Llamar">
+                                <i class="fas fa-phone"></i>
+                            </a>
+                            <a href="https://wa.me/593987866885?text=Hola%20Dra.%20Narváez" target="_blank" rel="noopener noreferrer" class="team-btn" title="WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                            <a href="mailto:caro93narvaez@gmail.com" class="team-btn" title="Email">
+                                <i class="fas fa-envelope"></i>
+                            </a>
+                        </div>
+                    </div>
                 </div>
                 <div class="team-info">
                     <h3>Dra. Carolina Narváez</h3>
-                    <p class="team-role-exp" data-i18n="narvaez_role_exp">Dermatóloga Estética · Especialista en rejuvenecimiento</p>
-
-                    <p class="team-detail"><strong data-i18n="label_focus">Enfoque:</strong> <span data-i18n="narvaez_focus_list">rejuvenecimiento facial, láser, estética médica, tratamientos no invasivos.</span></p>
-                    <p class="team-detail"><strong data-i18n="label_modality">Modalidad:</strong> <span data-i18n="narvaez_modality_list">presencial y online</span></p>
-
-                    <div class="team-actions-footer">
-                        <a href="#citas" class="btn btn-primary btn-full" data-i18n="btn_book_narvaez">Reservar con Dra. Narváez</a>
-                        <div class="team-secondary-actions">
-                            <a href="https://wa.me/593987866885?text=Hola%20Dra.%20Narváez" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" data-i18n="btn_whatsapp_short"><i class="fab fa-whatsapp"></i> WhatsApp</a>
-                            <a href="mailto:caro93narvaez@gmail.com" class="btn btn-secondary btn-sm" data-i18n="btn_email_short"><i class="fas fa-envelope"></i> Correo</a>
-                        </div>
-                    </div>
+                    <p class="team-role" data-i18n="role_estetica">Dermatóloga Estética</p>
+                    <p class="team-desc" data-i18n="desc_narvaez">Especialista en rejuvenecimiento facial, láser dermatológico y tratamientos estéticos no invasivos.</p>
+                    <span class="team-status available">
+                        <i class="fas fa-circle"></i>
+                        <span data-i18n="status_available">Disponible hoy</span>
+                    </span>
                 </div>
             </div>
         </div>
@@ -580,10 +594,10 @@
         <div class="gallery-grid">
             <div class="gallery-item" data-category="acne">
                 <div class="ba-slider">
-                    <div class="ba-after ba-after-tone-1">
+                    <div class="ba-after" style="background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);">
                         <span class="ba-label" data-i18n="label_after">Después</span>
                     </div>
-                    <div class="ba-before ba-before-tone-1">
+                    <div class="ba-before" style="background: linear-gradient(135deg, #ff7043 0%, #d84315 100%);">
                         <span class="ba-label" data-i18n="label_before">Antes</span>
                     </div>
                     <div class="ba-handle"></div>
@@ -596,10 +610,10 @@
             
             <div class="gallery-item" data-category="rejuvenecimiento">
                 <div class="ba-slider">
-                    <div class="ba-after ba-after-tone-2">
+                    <div class="ba-after" style="background: linear-gradient(135deg, #81c784 0%, #4caf50 100%);">
                         <span class="ba-label" data-i18n="label_after">Después</span>
                     </div>
-                    <div class="ba-before ba-before-tone-2">
+                    <div class="ba-before" style="background: linear-gradient(135deg, #bcaaa4 0%, #8d6e63 100%);">
                         <span class="ba-label" data-i18n="label_before">Antes</span>
                     </div>
                     <div class="ba-handle"></div>
@@ -612,10 +626,10 @@
             
             <div class="gallery-item" data-category="laser">
                 <div class="ba-slider">
-                    <div class="ba-after ba-after-tone-3">
+                    <div class="ba-after" style="background: linear-gradient(135deg, #64b5f6 0%, #1976d2 100%);">
                         <span class="ba-label" data-i18n="label_after">Después</span>
                     </div>
-                    <div class="ba-before ba-before-tone-3">
+                    <div class="ba-before" style="background: linear-gradient(135deg, #90a4ae 0%, #546e7a 100%);">
                         <span class="ba-label" data-i18n="label_before">Antes</span>
                     </div>
                     <div class="ba-handle"></div>
@@ -628,10 +642,10 @@
             
             <div class="gallery-item" data-category="manchas">
                 <div class="ba-slider">
-                    <div class="ba-after ba-after-tone-4">
+                    <div class="ba-after" style="background: linear-gradient(135deg, #fff176 0%, #fdd835 100%);">
                         <span class="ba-label" data-i18n="label_after">Después</span>
                     </div>
-                    <div class="ba-before ba-before-tone-4">
+                    <div class="ba-before" style="background: linear-gradient(135deg, #a1887f 0%, #6d4c41 100%);">
                         <span class="ba-label" data-i18n="label_before">Antes</span>
                     </div>
                     <div class="ba-handle"></div>
@@ -672,7 +686,7 @@
                         <i class="fas fa-map-marker-alt"></i>
                         <div>
                             <strong data-i18n="clinic_address_label">Dirección</strong>
-                            <p>Valparaiso 13-183 y Sodiro<br>Consultorio Dr. Celio Caiza<br>Referencia: Frente al Colegio de las Mercedarias, a 2 cuadras de la Maternidad Isidro Ayora<br>Quito, Ecuador</p>
+                            <p>Av. Dr. Cecilio Caiza e Hijas N2-30 y Av. Amazonas<br>Edificio Medicenter, Piso 3, Consultorio 302<br>La Mariscal (Cerca del Supermaxi 6 de Diciembre)<br>Quito, Ecuador</p>
                         </div>
                     </div>
                     <div class="clinic-item">
@@ -698,7 +712,7 @@
                     </div>
                 </div>
                 
-                <a href="https://www.google.com/maps/search/Valparaiso+13-183+y+Sodiro,+Quito,+Ecuador" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+                <a href="https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
                     <i class="fas fa-directions"></i>
                     <span data-i18n="btn_directions">Cómo llegar</span>
                 </a>
@@ -706,9 +720,10 @@
             
             <div class="clinic-map">
                 <iframe 
-                    src="https://www.google.com/maps?q=Valparaiso+13-183+y+Sodiro,+Quito,+Ecuador&output=embed"
+                    src="https://www.google.com/maps?q=Dr.+Cecilio+Caiza+e+hijas,+Quito,+Ecuador&output=embed"
                     width="100%" 
                     height="100%" 
+                    style="border:0; border-radius: 24px;" 
                     allowfullscreen="" 
                     loading="lazy" 
                     referrerpolicy="no-referrer-when-downgrade">
@@ -957,7 +972,7 @@
                         </p>
                     </div>
                     
-                    <div class="price-summary is-hidden" id="priceSummary">
+                    <div class="price-summary" id="priceSummary" style="display: none;">
                         <div class="price-row">
                             <span data-i18n="summary_subtotal">Subtotal</span>
                             <span id="subtotalPrice">$0.00</span>
@@ -1052,7 +1067,7 @@
             <h3 data-i18n="video_modal_title">Elige cómo quieres hacer la videollamada:</h3>
             
             <a href="https://meet.jit.si/PielEnArmonia-Consulta" target="_blank" rel="noopener noreferrer" class="video-option">
-                <div class="video-option-icon video-option-icon-jitsi">
+                <div class="video-option-icon" style="background: #1a73e8;">
                     <i class="fas fa-video"></i>
                 </div>
                 <div class="video-option-info">
@@ -1063,7 +1078,7 @@
             </a>
             
             <a href="https://wa.me/593982453672?text=Hola%20doctor,%20solicito%20videoconsulta" target="_blank" rel="noopener noreferrer" class="video-option">
-                <div class="video-option-icon video-option-icon-whatsapp">
+                <div class="video-option-icon" style="background: #25d366;">
                     <i class="fab fa-whatsapp"></i>
                 </div>
                 <div class="video-option-info">
@@ -1118,7 +1133,7 @@
                 </div>
 
                 <!-- Transfer Payment -->
-                <div class="payment-form transfer-form is-hidden">
+                <div class="payment-form transfer-form" style="display: none;">
                     <div class="bank-info">
                         <p><strong data-i18n="bank_name">Banco Pichincha</strong></p>
                         <p data-i18n="bank_account">Cuenta de Ahorros: 2200160272</p>
@@ -1136,7 +1151,7 @@
                 </div>
                 
                 <!-- Cash Payment -->
-                <div class="payment-form cash-form is-hidden">
+                <div class="payment-form cash-form" style="display: none;">
                     <p data-i18n="cash_info">Paga directamente en el consultorio el día de tu cita.</p>
                 </div>
             </div>
@@ -1171,7 +1186,7 @@
                     <p data-i18n="payment_faq_include_a">Cada servicio indica valor base y tipo de atención. Si requiere procedimientos adicionales, se informa antes de confirmar.</p>
                 </details>
             </div>
-            <div id="paymentError" class="payment-error is-hidden"></div>
+            <div id="paymentError" class="payment-error" style="display: none;"></div>
             
             <button type="button" class="btn btn-primary btn-full" data-action="process-payment">
                 <i class="fas fa-lock"></i>
@@ -1211,7 +1226,7 @@
                     <option value="" data-i18n="reschedule_select_time">Selecciona un horario</option>
                 </select>
             </div>
-            <div id="rescheduleError" class="form-error is-hidden"></div>
+            <div id="rescheduleError" class="form-error" style="display:none;"></div>
             <button type="button" class="btn btn-primary" id="rescheduleSubmitBtn" data-action="submit-reschedule">
                 <span data-i18n="reschedule_confirm">Confirmar reprogramación</span>
             </button>
@@ -1338,6 +1353,6 @@
             <a href="cookies.html" class="cookie-link" data-i18n="cookie_more">Más información</a>
         </div>
     </div>
-    <script src="script.js?v=figo-20260218-phase5-opt-i18n2-ui2-gallery1-reschedule1-bookingui1-chatbooking1-successmodal1-engagement1-modalux1-loaderconsolidation1-warmupconsolidation1-observerconsolidation1-wrapperconsolidation1-bootdefer1-apihardening1-uploadretry1-analytics2-uploadparallel1-transferretry2-linkrel1-textclean1-placeholderlinks1-a11yfocus1-deferredsync1-chathardening1-depuracionjs6-cspinline1-dataenginewrap1-chatui1-actionrouter1-i18nengine1-themeengine1-consentengine1-analyticsengine1-chatwidget1-chatui2-reschedulegateway1"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>
