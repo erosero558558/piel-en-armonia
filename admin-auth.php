@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
 
+apply_security_headers(false);
 api_apply_cors(['GET', 'POST', 'OPTIONS'], ['Content-Type', 'X-CSRF-Token'], true);
 
 start_secure_session();

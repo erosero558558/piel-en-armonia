@@ -17,6 +17,9 @@ if (is_file($envFile)) {
     require_once $envFile;
 }
 
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'db.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'security.php';
+
 const DATA_DIR = __DIR__ . DIRECTORY_SEPARATOR . 'data';
 const DATA_FILE = DATA_DIR . DIRECTORY_SEPARATOR . 'store.json';
 const BACKUP_DIR = DATA_DIR . DIRECTORY_SEPARATOR . 'backups';
@@ -820,6 +823,7 @@ function verify_admin_password(string $password): bool
 
     $plain = getenv(ADMIN_PASSWORD_ENV);
     if (is_string($plain) && $plain !== '') {
+        error_log('Piel en Armonía SECURITY WARNING: Using plain text admin password. Please migrate to PIELARMONIA_ADMIN_PASSWORD_HASH.');
         return hash_equals($plain, $password);
     }
 

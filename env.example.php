@@ -49,3 +49,9 @@
 
 // ── Cron (recordatorios automáticos) ────────────────
 // putenv('PIELARMONIA_CRON_SECRET=un_token_secreto_largo');
+
+// ── Base de Datos (opcional) ────────────────────────
+// putenv('PIELARMONIA_DB_HOST=127.0.0.1');
+// putenv('PIELARMONIA_DB_NAME=pielarmonia');
+// putenv('PIELARMONIA_DB_USER=root');
+// putenv('PIELARMONIA_DB_PASS=secret');
