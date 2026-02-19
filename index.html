@@ -98,15 +98,14 @@
       ]
     }
     </script>
-    <link rel="stylesheet" href="styles.css?v=ui-20260219-critical2-mobiletypelock1-a11yfocus1-perfcv3">
-    <link rel="preload" as="style" href="styles-deferred.css?v=ui-20260219-deferred12-cspinline1-stateclass3">
+    <link rel="stylesheet" href="styles.css?v=ui-20260219-critical2-mobiletypelock1-a11yfocus1-perfcv1">
+    <link rel="preload" as="style" href="styles-deferred.css?v=ui-20260219-deferred12-cspinline1-stateclass1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="preload" as="image" href="hero-woman.jpg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
 </head>
 <body>
     <!-- Language Selector -->
@@ -178,62 +177,32 @@
             <img src="hero-woman.jpg" alt="Piel saludable y radiante" class="hero-bg-image" width="1344" height="768" loading="eager" fetchpriority="high">
         </div>
         <div class="hero-content">
-            <div class="hero-trust-bar">
-                <span>Especialistas Certificados</span>
-                <span class="separator">•</span>
-                <span>Miembros SED</span>
-                <span class="separator">•</span>
-                <span>Clínica & Estética</span>
-                <span class="separator">•</span>
-                <span>Quito (Lun-Sab)</span>
-            </div>
             <h1 class="hero-title">
-                <span class="gradient-text" data-i18n="hero_title1">Tu piel.</span>
-                <span data-i18n="hero_title2">En las mejores manos.</span>
+                <span class="gradient-text" data-i18n="hero_title1">Dermatología clínica y estética en Quito,</span>
+                <span data-i18n="hero_title2">con enfoque médico</span>
             </h1>
             <p class="hero-subtitle" data-i18n="hero_subtitle">
-                Dermatología especializada con tecnología de vanguardia. Tratamientos personalizados para que tu piel luzca saludable y radiante.
+                Evaluamos tu caso, definimos el diagnóstico y te damos un plan claro. Presencial u online.
             </p>
             <div class="hero-actions">
                 <a href="#citas" class="btn btn-primary" data-i18n="hero_cta_primary">Reservar Consulta</a>
-                <a href="#telemedicina" class="btn btn-secondary" data-i18n="hero_cta_secondary">Consulta Online</a>
+                <a href="#telemedicina" class="btn btn-secondary" data-i18n="hero_cta_secondary">Consulta online hoy</a>
             </div>
             
-            <!-- Quick Contact Bar -->
-            <div class="hero-contact-bar">
-                <a href="tel:+593982453672" class="contact-chip">
-                    <i class="fas fa-phone"></i>
-                    <span>098 245 3672</span>
-                </a>
-                <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer" class="contact-chip whatsapp">
-                    <i class="fab fa-whatsapp"></i>
-                    <span>WhatsApp</span>
-                </a>
-            </div>
-
-            <div class="hero-metrics" aria-label="Resumen de atencion">
-                <div class="metric-card metric-card-reviews">
-                    <div class="reviews-summary reviews-summary-compact">
-                        <span class="rating-number">5.0</span>
-                        <div class="rating-stars" aria-hidden="true">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                        </div>
-                    </div>
-                    <span class="rating-count">4 reseñas verificadas</span>
-                </div>
-                <div class="metric-card">
-                    <strong>500+</strong>
-                    <span>Consultas completadas</span>
-                </div>
-                <div class="metric-card">
-                    <strong>3 min</strong>
-                    <span>Tiempo de respuesta inicial</span>
-                </div>
-            </div>
+            <ul class="hero-bullets">
+                <li>
+                    <i class="fas fa-check"></i>
+                    <span data-i18n="hero_bullet1">Diagnóstico y plan (sin tratamientos “genéricos”)</span>
+                </li>
+                <li>
+                    <i class="fas fa-check"></i>
+                    <span data-i18n="hero_bullet2">Teledermatología con guía para fotos</span>
+                </li>
+                <li>
+                    <i class="fas fa-check"></i>
+                    <span data-i18n="hero_bullet3">Seguimiento y reprogramación fácil</span>
+                </li>
+            </ul>
         </div>
     </section>
 
@@ -324,120 +293,97 @@
             <h2 class="section-title" data-i18n="services_title">Nuestros Servicios</h2>
             <p class="section-subtitle" data-i18n="services_subtitle">Tratamientos dermatológicos de excelencia</p>
         </div>
-        <div class="services-carousel-wrapper">
-            <button class="carousel-btn prev" aria-label="Anterior" data-action="carousel-prev">
-                <i class="fas fa-chevron-left"></i>
-            </button>
-            <div class="services-carousel" id="servicesCarousel">
-                <div class="service-card">
-                    <div class="service-card-img">
-                        <picture>
-                            <source type="image/avif" srcset="images/optimized/service-consulta.avif">
-                            <source type="image/webp" srcset="images/optimized/service-consulta.webp">
-                            <img src="images/optimized/service-consulta.jpg" alt="Consulta dermatológica" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
-                        </picture>
-                    </div>
-                    <div class="service-icon">
-                        <i class="fas fa-stethoscope"></i>
-                    </div>
-                    <h3 data-i18n="service_consulta">Consulta Dermatológica</h3>
-                    <p data-i18n="service_consulta_desc">Evaluación completa de tu piel con diagnóstico preciso y plan de tratamiento personalizado.</p>
-                    <span class="service-price">$40</span>
+        <div class="services-grid">
+            <div class="service-card">
+                <div class="service-card-img">
+                    <picture>
+                        <source type="image/avif" srcset="images/optimized/service-consulta.avif">
+                        <source type="image/webp" srcset="images/optimized/service-consulta.webp">
+                        <img src="images/optimized/service-consulta.jpg" alt="Consulta dermatológica" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
+                    </picture>
                 </div>
-                <div class="service-card featured">
-                    <div class="service-badge" data-i18n="badge_popular">Popular</div>
-                    <div class="service-card-img">
-                        <picture>
-                            <source type="image/avif" srcset="images/optimized/service-telemedicina.avif">
-                            <source type="image/webp" srcset="images/optimized/service-telemedicina.webp">
-                            <img src="images/optimized/service-telemedicina.jpg" alt="Telemedicina" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
-                        </picture>
-                    </div>
-                    <div class="service-icon">
-                        <i class="fas fa-video"></i>
-                    </div>
-                    <h3 data-i18n="service_telemedicina">Telemedicina</h3>
-                    <p data-i18n="service_telemedicina_desc">Consulta médica desde la comodidad de tu hogar por teléfono o videollamada.</p>
-                    <span class="service-price">$25 - $30</span>
+                <div class="service-icon">
+                    <i class="fas fa-stethoscope"></i>
                 </div>
-                <div class="service-card">
-                    <div class="service-card-img">
-                        <picture>
-                            <source type="image/avif" srcset="images/optimized/service-laser.avif">
-                            <source type="image/webp" srcset="images/optimized/service-laser.webp">
-                            <img src="images/optimized/service-laser.jpg" alt="Láser dermatológico" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
-                        </picture>
-                    </div>
-                    <div class="service-icon">
-                        <i class="fas fa-bolt"></i>
-                    </div>
-                    <h3 data-i18n="service_laser">Láser Dermatológico</h3>
-                    <p data-i18n="service_laser_desc">Tratamientos con láser de última generación para diversas afecciones de la piel.</p>
-                    <span class="service-price" data-i18n="price_from">Desde $150</span>
-                </div>
-                <div class="service-card">
-                    <div class="service-card-img">
-                        <picture>
-                            <source type="image/avif" srcset="images/optimized/service-rejuvenecimiento.avif">
-                            <source type="image/webp" srcset="images/optimized/service-rejuvenecimiento.webp">
-                            <img src="images/optimized/service-rejuvenecimiento.jpg" alt="Rejuvenecimiento facial" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
-                        </picture>
-                    </div>
-                    <div class="service-icon">
-                        <i class="fas fa-wand-magic-sparkles"></i>
-                    </div>
-                    <h3 data-i18n="service_rejuvenation">Rejuvenecimiento</h3>
-                    <p data-i18n="service_rejuvenation_desc">Tratamientos estéticos para recuperar la juventud y luminosidad de tu piel.</p>
-                    <span class="service-price" data-i18n="price_from">Desde $120</span>
-                </div>
-                <div class="service-card">
-                    <div class="service-card-img">
-                        <picture>
-                            <source type="image/avif" srcset="images/optimized/service-acne.avif">
-                            <source type="image/webp" srcset="images/optimized/service-acne.webp">
-                            <img src="images/optimized/service-acne.jpg" alt="Tratamiento de acne" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
-                        </picture>
-                    </div>
-                    <div class="service-icon">
-                        <i class="fas fa-shield-virus"></i>
-                    </div>
-                    <h3 data-i18n="service_acne">Tratamiento de Acné</h3>
-                    <p data-i18n="service_acne_desc">Soluciones efectivas para controlar y eliminar el acné en todas sus formas.</p>
-                    <span class="service-price" data-i18n="price_from">Desde $80</span>
-                </div>
-                <div class="service-card">
-                    <div class="service-card-img">
-                        <picture>
-                            <source type="image/avif" srcset="images/optimized/service-cancer.avif">
-                            <source type="image/webp" srcset="images/optimized/service-cancer.webp">
-                            <img src="images/optimized/service-cancer.jpg" alt="Deteccion de cancer de piel" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
-                        </picture>
-                    </div>
-                    <div class="service-icon">
-                        <i class="fas fa-microscope"></i>
-                    </div>
-                    <h3 data-i18n="service_cancer">Detección de Cáncer de Piel</h3>
-                    <p data-i18n="service_cancer_desc">Examen dermatoscópico completo para detección temprana de lesiones sospechosas.</p>
-                    <span class="service-price" data-i18n="price_from">Desde $70</span>
-                </div>
+                <h3 data-i18n="service_consulta">Consulta Dermatológica</h3>
+                <p data-i18n="service_consulta_desc">Evaluación completa de tu piel con diagnóstico preciso y plan de tratamiento personalizado.</p>
+                <span class="service-price">$40</span>
             </div>
-            <button class="carousel-btn next" aria-label="Siguiente" data-action="carousel-next">
-                <i class="fas fa-chevron-right"></i>
-            </button>
-        </div>
-
-        <div class="pathologies-container">
-            <h3 class="pathologies-title" data-i18n="pathologies_title">Patologías Frecuentes</h3>
-            <div class="pathologies-grid">
-                <div class="pathology-item"><i class="fas fa-check"></i> <span data-i18n="path_acne">Acné y cicatrices</span></div>
-                <div class="pathology-item"><i class="fas fa-check"></i> <span data-i18n="path_rosacea">Rosácea y rojeces</span></div>
-                <div class="pathology-item"><i class="fas fa-check"></i> <span data-i18n="path_melasma">Melasma y manchas</span></div>
-                <div class="pathology-item"><i class="fas fa-check"></i> <span data-i18n="path_hair">Caída del cabello</span></div>
-                <div class="pathology-item"><i class="fas fa-check"></i> <span data-i18n="path_nails">Hongos en uñas</span></div>
-                <div class="pathology-item"><i class="fas fa-check"></i> <span data-i18n="path_warts">Verrugas y lunares</span></div>
-                <div class="pathology-item"><i class="fas fa-check"></i> <span data-i18n="path_dermatitis">Dermatitis y alergias</span></div>
-                <div class="pathology-item"><i class="fas fa-check"></i> <span data-i18n="path_kids">Dermatología infantil</span></div>
-                <div class="pathology-item"><i class="fas fa-check"></i> <span data-i18n="path_aging">Signos de la edad</span></div>
+            <div class="service-card featured">
+                <div class="service-badge" data-i18n="badge_popular">Popular</div>
+                <div class="service-card-img">
+                    <picture>
+                        <source type="image/avif" srcset="images/optimized/service-telemedicina.avif">
+                        <source type="image/webp" srcset="images/optimized/service-telemedicina.webp">
+                        <img src="images/optimized/service-telemedicina.jpg" alt="Telemedicina" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
+                    </picture>
+                </div>
+                <div class="service-icon">
+                    <i class="fas fa-video"></i>
+                </div>
+                <h3 data-i18n="service_telemedicina">Telemedicina</h3>
+                <p data-i18n="service_telemedicina_desc">Consulta médica desde la comodidad de tu hogar por teléfono o videollamada.</p>
+                <span class="service-price">$25 - $30</span>
+            </div>
+            <div class="service-card">
+                <div class="service-card-img">
+                    <picture>
+                        <source type="image/avif" srcset="images/optimized/service-laser.avif">
+                        <source type="image/webp" srcset="images/optimized/service-laser.webp">
+                        <img src="images/optimized/service-laser.jpg" alt="Láser dermatológico" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
+                    </picture>
+                </div>
+                <div class="service-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h3 data-i18n="service_laser">Láser Dermatológico</h3>
+                <p data-i18n="service_laser_desc">Tratamientos con láser de última generación para diversas afecciones de la piel.</p>
+                <span class="service-price" data-i18n="price_from">Desde $150</span>
+            </div>
+            <div class="service-card">
+                <div class="service-card-img">
+                    <picture>
+                        <source type="image/avif" srcset="images/optimized/service-rejuvenecimiento.avif">
+                        <source type="image/webp" srcset="images/optimized/service-rejuvenecimiento.webp">
+                        <img src="images/optimized/service-rejuvenecimiento.jpg" alt="Rejuvenecimiento facial" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
+                    </picture>
+                </div>
+                <div class="service-icon">
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                </div>
+                <h3 data-i18n="service_rejuvenation">Rejuvenecimiento</h3>
+                <p data-i18n="service_rejuvenation_desc">Tratamientos estéticos para recuperar la juventud y luminosidad de tu piel.</p>
+                <span class="service-price" data-i18n="price_from">Desde $120</span>
+            </div>
+            <div class="service-card">
+                <div class="service-card-img">
+                    <picture>
+                        <source type="image/avif" srcset="images/optimized/service-acne.avif">
+                        <source type="image/webp" srcset="images/optimized/service-acne.webp">
+                        <img src="images/optimized/service-acne.jpg" alt="Tratamiento de acne" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
+                    </picture>
+                </div>
+                <div class="service-icon">
+                    <i class="fas fa-shield-virus"></i>
+                </div>
+                <h3 data-i18n="service_acne">Tratamiento de Acné</h3>
+                <p data-i18n="service_acne_desc">Soluciones efectivas para controlar y eliminar el acné en todas sus formas.</p>
+                <span class="service-price" data-i18n="price_from">Desde $80</span>
+            </div>
+            <div class="service-card">
+                <div class="service-card-img">
+                    <picture>
+                        <source type="image/avif" srcset="images/optimized/service-cancer.avif">
+                        <source type="image/webp" srcset="images/optimized/service-cancer.webp">
+                        <img src="images/optimized/service-cancer.jpg" alt="Deteccion de cancer de piel" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
+                    </picture>
+                </div>
+                <div class="service-icon">
+                    <i class="fas fa-microscope"></i>
+                </div>
+                <h3 data-i18n="service_cancer">Detección de Cáncer de Piel</h3>
+                <p data-i18n="service_cancer_desc">Examen dermatoscópico completo para detección temprana de lesiones sospechosas.</p>
+                <span class="service-price" data-i18n="price_from">Desde $70</span>
             </div>
         </div>
     </section>
@@ -518,7 +464,7 @@
                 <h3 data-i18n="callback_title">¿Prefieres que te llamemos?</h3>
                 <p data-i18n="callback_desc">Déjanos tu número y el doctor te llamará en los próximos minutos.</p>
                 <form id="callbackForm" class="callback-form">
-                    <input type="tel" name="telefono" placeholder="098 000 0000" required>
+                    <input type="tel" name="telefono" placeholder="+593 98 000 0000" required>
                     <select name="preferencia" required>
                         <option value="" data-i18n="callback_when">¿Cuándo prefieres?</option>
                         <option value="ahora" data-i18n="callback_now">Lo antes posible</option>
@@ -608,42 +554,11 @@
         </div>
     </section>
 
-    <!-- Trajectory Section -->
-    <section class="section section-gray" id="trayectoria">
-        <div class="section-header">
-            <h2 class="section-title" data-i18n="traj_title">Trayectoria y Reconocimientos</h2>
-            <p class="section-subtitle" data-i18n="traj_subtitle">Compromiso constante con la excelencia académica y la divulgación científica.</p>
-        </div>
-        <div class="trajectory-grid">
-            <div class="trajectory-card">
-                <div class="trajectory-icon media">
-                    <i class="fas fa-microphone-alt"></i>
-                </div>
-                <h3 data-i18n="traj_card1_title">Medios de Comunicación</h3>
-                <p data-i18n="traj_card1_desc">Expertos invitados frecuentes en TV y Radio para hablar sobre salud de la piel.</p>
-            </div>
-            <div class="trajectory-card">
-                <div class="trajectory-icon congress">
-                    <i class="fas fa-globe-americas"></i>
-                </div>
-                <h3 data-i18n="traj_card2_title">Congresos Internacionales</h3>
-                <p data-i18n="traj_card2_desc">Ponentes en eventos dermatológicos en Latinoamérica y USA.</p>
-            </div>
-            <div class="trajectory-card">
-                <div class="trajectory-icon science">
-                    <i class="fas fa-book-medical"></i>
-                </div>
-                <h3 data-i18n="traj_card3_title">Publicaciones Científicas</h3>
-                <p data-i18n="traj_card3_desc">Autores de artículos en revistas indexadas de dermatología.</p>
-            </div>
-        </div>
-    </section>
-
     <!-- Gallery Section -->
     <section class="section section-light" id="galeria">
         <div class="section-header">
-            <h2 class="section-title" data-i18n="gallery_title">Resultados reales</h2>
-            <p class="section-subtitle" data-i18n="gallery_subtitle">Casos con consentimiento. Los resultados varían según diagnóstico, tipo de piel y adherencia.</p>
+            <h2 class="section-title" data-i18n="gallery_title">Resultados que hablan por sí solos</h2>
+            <p class="section-subtitle" data-i18n="gallery_subtitle">Transformaciones reales de nuestros pacientes</p>
         </div>
         
         <!-- Gallery Filter -->
@@ -667,17 +582,8 @@
                     <div class="ba-handle"></div>
                 </div>
                 <div class="gallery-info">
-                    <div class="gallery-details">
-                        <div class="detail-row">
-                            <span class="detail-label" data-i18n="label_duration">Tiempo:</span>
-                            <span class="detail-value" data-i18n="case_acne_time">6 meses</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label" data-i18n="label_goal">Objetivo:</span>
-                            <span class="detail-value" data-i18n="case_acne_goal">Acné severo</span>
-                        </div>
-                    </div>
-                    <p class="gallery-note" data-i18n="gallery_note">Nota: Referencial. La indicación final se define en consulta.</p>
+                    <h4 data-i18n="case_acne">Tratamiento de Acné Severo</h4>
+                    <p data-i18n="case_acne_desc">6 meses de tratamiento combinado</p>
                 </div>
             </div>
             
@@ -692,17 +598,8 @@
                     <div class="ba-handle"></div>
                 </div>
                 <div class="gallery-info">
-                    <div class="gallery-details">
-                        <div class="detail-row">
-                            <span class="detail-label" data-i18n="label_duration">Tiempo:</span>
-                            <span class="detail-value" data-i18n="case_reju_time">3 sesiones</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label" data-i18n="label_goal">Objetivo:</span>
-                            <span class="detail-value" data-i18n="case_reju_goal">Textura y luminosidad</span>
-                        </div>
-                    </div>
-                    <p class="gallery-note" data-i18n="gallery_note">Nota: Referencial. La indicación final se define en consulta.</p>
+                    <h4 data-i18n="case_rejuvenation">Rejuvenecimiento Facial</h4>
+                    <p data-i18n="case_rejuvenation_desc">Láser + peelings químicos</p>
                 </div>
             </div>
             
@@ -717,17 +614,8 @@
                     <div class="ba-handle"></div>
                 </div>
                 <div class="gallery-info">
-                    <div class="gallery-details">
-                        <div class="detail-row">
-                            <span class="detail-label" data-i18n="label_duration">Tiempo:</span>
-                            <span class="detail-value" data-i18n="case_laser_time">1-2 sesiones</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label" data-i18n="label_goal">Objetivo:</span>
-                            <span class="detail-value" data-i18n="case_laser_goal">Lesiones vasculares</span>
-                        </div>
-                    </div>
-                    <p class="gallery-note" data-i18n="gallery_note">Nota: Referencial. La indicación final se define en consulta.</p>
+                    <h4 data-i18n="case_laser">Tratamiento Láser</h4>
+                    <p data-i18n="case_laser_desc">Eliminación de lesiones vasculares</p>
                 </div>
             </div>
             
@@ -742,17 +630,8 @@
                     <div class="ba-handle"></div>
                 </div>
                 <div class="gallery-info">
-                    <div class="gallery-details">
-                        <div class="detail-row">
-                            <span class="detail-label" data-i18n="label_duration">Tiempo:</span>
-                            <span class="detail-value" data-i18n="case_spots_time">8-12 semanas</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label" data-i18n="label_goal">Objetivo:</span>
-                            <span class="detail-value" data-i18n="case_spots_goal">Manchas</span>
-                        </div>
-                    </div>
-                    <p class="gallery-note" data-i18n="gallery_note">Nota: Referencial. La indicación final se define en consulta.</p>
+                    <h4 data-i18n="case_spots">Eliminación de Manchas</h4>
+                    <p data-i18n="case_spots_desc">Tratamiento despigmentante</p>
                 </div>
             </div>
         </div>
@@ -768,37 +647,6 @@
             <div class="trust-note">
                 <i class="fas fa-clock"></i>
                 <p data-i18n="results_note_timeline">El tiempo mostrado en cada caso corresponde al proceso real del paciente.</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Tips Section -->
-    <section class="section section-light" id="consejos">
-        <div class="section-header">
-            <h2 class="section-title" data-i18n="tips_title">Consejos del Experto</h2>
-            <p class="section-subtitle" data-i18n="tips_subtitle">Pequeños cambios para grandes resultados en tu piel.</p>
-        </div>
-        <div class="tips-grid">
-            <div class="tip-card">
-                <div class="tip-icon sun">
-                    <i class="fas fa-sun"></i>
-                </div>
-                <h3 data-i18n="tip1_title">Protección Solar 365</h3>
-                <p data-i18n="tip1_desc">El sol es la causa #1 del envejecimiento. Usa protector SPF 50+ cada 3 horas, incluso en días nublados.</p>
-            </div>
-            <div class="tip-card">
-                <div class="tip-icon mole">
-                    <i class="fas fa-search"></i>
-                </div>
-                <h3 data-i18n="tip2_title">La Regla ABCDE</h3>
-                <p data-i18n="tip2_desc">Vigila tus lunares: Asimetría, Bordes, Color, Diámetro y Evolución. Ante dudas, consulta.</p>
-            </div>
-            <div class="tip-card">
-                <div class="tip-icon water">
-                    <i class="fas fa-tint"></i>
-                </div>
-                <h3 data-i18n="tip3_title">Hidratación es Clave</h3>
-                <p data-i18n="tip3_desc">Una piel hidratada es una piel fuerte. Bebe agua y usa crema hidratante según tu tipo de piel.</p>
             </div>
         </div>
     </section>
@@ -831,7 +679,7 @@
                         <i class="fas fa-phone"></i>
                         <div>
                             <strong data-i18n="clinic_phone_label">Teléfono</strong>
-                            <p>098 245 3672</p>
+                            <p>+593 98 245 3672</p>
                         </div>
                     </div>
                     <div class="clinic-item">
@@ -843,20 +691,19 @@
                     </div>
                 </div>
                 
-                <a href="https://www.google.com/maps/search/Valparaiso+13-183+y+Sodiro,+Quito,+Ecuador" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-full">
+                <a href="https://www.google.com/maps/search/Valparaiso+13-183+y+Sodiro,+Quito,+Ecuador" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
                     <i class="fas fa-directions"></i>
                     <span data-i18n="btn_directions">Cómo llegar</span>
                 </a>
             </div>
             
             <div class="clinic-map">
-                <iframe
+                <iframe 
                     src="https://www.google.com/maps?q=Valparaiso+13-183+y+Sodiro,+Quito,+Ecuador&output=embed"
-                    title="Mapa de ubicación - Piel en Armonía, Quito"
-                    width="100%"
-                    height="100%"
-                    allowfullscreen=""
-                    loading="lazy"
+                    width="100%" 
+                    height="100%" 
+                    allowfullscreen="" 
+                    loading="lazy" 
                     referrerpolicy="no-referrer-when-downgrade">
                 </iframe>
             </div>
@@ -934,7 +781,6 @@
                     </div>
                     <i class="fas fa-check-circle verified"></i>
                 </div>
-                <p class="review-text">"Muy recomendado."</p>
                 <span class="review-date">Hace 4 meses</span>
             </div>
 
@@ -953,7 +799,6 @@
                     </div>
                     <i class="fas fa-check-circle verified"></i>
                 </div>
-                <p class="review-text">"Excelente servicio y atención."</p>
                 <span class="review-date">Hace un año</span>
             </div>
         </div>
@@ -1053,7 +898,7 @@
                     
                     <div class="form-group">
                         <label data-i18n="label_phone">Teléfono</label>
-                        <input type="tel" name="phone" required inputmode="tel" autocomplete="tel" data-i18n="placeholder_phone" placeholder="098 XXXXXXX">
+                        <input type="tel" name="phone" required inputmode="tel" autocomplete="tel" data-i18n="placeholder_phone" placeholder="+593 9XXXXXXXX">
                     </div>
 
                     <div class="form-group">
@@ -1094,10 +939,6 @@
                         <small class="form-help" data-i18n="case_photos_help">Puedes subir hasta 3 fotos (max 5 MB c/u) para orientar mejor la primera consulta.</small>
                     </div>
 
-                    <div class="form-group">
-                        <div id="turnstile-widget"></div>
-                    </div>
-
                     <div class="form-consent">
                         <label class="checkbox-line">
                             <input type="checkbox" name="privacyConsent" required>
@@ -1115,7 +956,7 @@
                             <span id="subtotalPrice">$0.00</span>
                         </div>
                         <div class="price-row">
-                            <span data-i18n="summary_iva">IVA (15%)</span>
+                            <span data-i18n="summary_iva">IVA (12%)</span>
                             <span id="ivaPrice">$0.00</span>
                         </div>
                         <div class="price-row total">
@@ -1152,14 +993,21 @@
                 <a href="#citas" data-i18n="nav_book">Reservar</a>
             </div>
 
+            <div class="footer-legal">
+                <a href="terminos.html" data-i18n="legal_terms">Términos y Condiciones</a>
+                <a href="privacidad.html" data-i18n="legal_privacy">Política de Privacidad</a>
+                <a href="cookies.html" data-i18n="legal_cookies">Política de Cookies</a>
+                <a href="aviso-medico.html" data-i18n="legal_disclaimer">Aviso de Responsabilidad Médica</a>
+            </div>
+            
             <div class="footer-contact">
                 <a href="tel:+593982453672">
                     <i class="fas fa-phone"></i>
-                    Clínica: 098 245 3672
+                    Clínica: +593 98 245 3672
                 </a>
                 <a href="tel:+593987866885">
                     <i class="fas fa-phone"></i>
-                    Dra. Carolina: 098 786 6885
+                    Dra. Carolina: +593 98 786 6885
                 </a>
                 <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">
                     <i class="fab fa-whatsapp"></i>
@@ -1167,11 +1015,11 @@
                 </a>
                 <a href="mailto:javier.rosero94@gmail.com">
                     <i class="fas fa-envelope"></i>
-                    Dr. Javier: javier.rosero94@gmail.com
+                    javier.rosero94@gmail.com
                 </a>
                 <a href="mailto:caro93narvaez@gmail.com">
                     <i class="fas fa-envelope"></i>
-                    Dra. Carolina: caro93narvaez@gmail.com
+                    caro93narvaez@gmail.com
                 </a>
             </div>
             
@@ -1184,23 +1032,14 @@
             -->
         </div>
         <div class="footer-bottom">
-            <div class="footer-institutional">
-                <p data-i18n="footer_institutional">Atención con cita previa · Facturación · Privacidad y tratamiento de datos</p>
-                <div class="footer-legal-links">
-                    <a href="privacidad.html" data-i18n="legal_privacy">Privacidad</a>
-                    <a href="terminos.html" data-i18n="legal_terms">Términos</a>
-                    <a href="cookies.html" data-i18n="legal_cookies">Cookies</a>
-                    <a href="aviso-medico.html" data-i18n="legal_disclaimer">Aviso médico</a>
-                </div>
-            </div>
-            <p class="copyright">&copy; 2026 Piel en Armonía. <span data-i18n="footer_rights">Todos los derechos reservados.</span></p>
+            <p>&copy; 2026 Piel en Armonía. <span data-i18n="footer_rights">Todos los derechos reservados.</span></p>
         </div>
     </footer>
 
     <!-- Video Options Modal -->
     <div class="modal" id="videoModal">
         <div class="modal-content">
-            <button type="button" class="modal-close" data-action="close-video-modal" aria-label="Cerrar">
+            <button type="button" class="modal-close" data-action="close-video-modal">
                 <i class="fas fa-times"></i>
             </button>
             <h3 data-i18n="video_modal_title">Elige cómo quieres hacer la videollamada:</h3>
@@ -1237,7 +1076,7 @@
     <!-- Payment Modal -->
     <div class="modal" id="paymentModal">
         <div class="modal-content payment-modal">
-            <button type="button" class="modal-close" data-action="close-payment-modal" aria-label="Cerrar">
+            <button type="button" class="modal-close" data-action="close-payment-modal">
                 <i class="fas fa-times"></i>
             </button>
             <h3 data-i18n="payment_title">Método de Pago</h3>
@@ -1352,7 +1191,7 @@
     <!-- Reschedule Modal -->
     <div class="modal" id="rescheduleModal">
         <div class="modal-content">
-            <button type="button" class="modal-close" data-action="close-reschedule-modal" aria-label="Cerrar">&times;</button>
+            <button type="button" class="modal-close" data-action="close-reschedule-modal">&times;</button>
             <h3 data-i18n="reschedule_title">Reprogramar Cita</h3>
             <div id="rescheduleInfo"></div>
             <div class="form-group">
@@ -1374,7 +1213,6 @@
 
     <!-- Chatbot Widget -->
     <div class="chatbot-widget" id="chatbotWidget">
-        <div class="chat-teaser" id="chatTeaser">👋 ¡Hola! ¿En qué te puedo ayudar?</div>
         <button type="button" class="chatbot-toggle" data-action="toggle-chatbot" aria-label="Abrir chat">
             <i class="fas fa-comments"></i>
             <span class="chatbot-notification" id="chatNotification">1</span>
@@ -1422,7 +1260,7 @@
             </div>
 
             <p class="chatbot-disclaimer" data-i18n="chat_disclaimer">
-                Este asistente ofrece orientación general y no reemplaza una consulta médica profesional.
+                Este asistente ofrece orientacion general y no reemplaza una consulta medica profesional.
             </p>
             
             <div class="chatbot-input-area">
@@ -1452,7 +1290,7 @@
     <!-- Review Modal -->
     <div class="modal" id="reviewModal">
         <div class="modal-content">
-            <button type="button" class="modal-close" data-action="close-review-modal" aria-label="Cerrar">
+            <button type="button" class="modal-close" data-action="close-review-modal">
                 <i class="fas fa-times"></i>
             </button>
             <h3 data-i18n="review_modal_title">Escribe tu Reseña</h3>
@@ -1493,6 +1331,6 @@
             <a href="cookies.html" class="cookie-link" data-i18n="cookie_more">Más información</a>
         </div>
     </div>
-    <script src="script.js?v=figo-20260219-phase5-opt-i18n3-ui2-gallery3-reschedule3-bookingui4-chatbooking4-successmodal3-engagement3-modalux3-loaderconsolidation1-warmupconsolidation1-observerconsolidation1-wrapperconsolidation1-bootdefer1-apihardening1-uploadretry1-analytics2-uploadparallel1-transferretry2-linkrel1-textclean1-placeholderlinks1-a11yfocus1-deferredsync1-chathardening1-depuracionjs6-cspinline1-dataenginewrap1-chatui1-actionrouter1-i18nengine1-themeengine1-consentengine1-analyticsengine1-chatwidget2-chatui2-reschedulegateway3-bootstrapengine2-loaderfactory1-warmupbatch1-bootstrapevents2-uibridge2-chatstate1-bookingmedia1-paymentgateway1-datagateway1-analyticsgateway1-storagegateway1-navigation4-funnel1"></script>
+    <script src="script.js?v=figo-20260218-phase5-opt-i18n2-ui2-gallery1-reschedule1-bookingui1-chatbooking1-successmodal1-engagement1-modalux1-loaderconsolidation1-warmupconsolidation1-observerconsolidation1-wrapperconsolidation1-bootdefer1-apihardening1-uploadretry1-analytics2-uploadparallel1-transferretry2-linkrel1-textclean1-placeholderlinks1-a11yfocus1-deferredsync1-chathardening1-depuracionjs6-cspinline1-dataenginewrap1-chatui1-actionrouter1-i18nengine1-themeengine1-consentengine1-analyticsengine1-chatwidget1-chatui2-reschedulegateway1"></script>
 </body>
 </html>

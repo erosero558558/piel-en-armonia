@@ -589,6 +589,31 @@ html[data-theme='dark'] .hero-trust-bar .separator {
     width: min(100%, 820px);
 }
 
+.hero-bullets {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    list-style: none;
+    max-width: 680px;
+}
+
+.hero-bullets li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 1.05rem;
+    color: #424245;
+    line-height: 1.5;
+}
+
+.hero-bullets i {
+    color: var(--ui-success);
+    font-size: 1.1em;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
 .metric-card {
     border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 16px;
@@ -1182,6 +1207,10 @@ html[data-theme='dark'] .contact-chip {
 html[data-theme='dark'] .metric-card {
     border-color: rgba(255, 255, 255, 0.14);
     background: rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme='dark'] .hero-bullets li {
+    color: #d2d2d7;
 }
 
 html[data-theme='dark'] .metric-card strong,
