@@ -103,14 +103,20 @@ Importante:
 - `FIGO_CHAT_ENDPOINT` NO debe ser `https://pielarmonia.com/figo-chat.php` ni ninguna URL que apunte al mismo proxy.
   Debe apuntar al backend real de Clawbot/Figo (upstream).
 
-Ejemplo de `data/figo-config.json`:
+Ejemplo recomendado de `data/figo-config.json`:
 ```json
 {
-  "endpoint": "https://TU_BACKEND_FIGO/chat",
+  "endpoint": "https://TU_DOMINIO/figo-backend.php",
   "token": "TOKEN_OPCIONAL",
   "apiKeyHeader": "X-API-Key",
   "apiKey": "APIKEY_OPCIONAL",
-  "timeout": 20
+  "timeout": 20,
+  "ai": {
+    "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+    "apiKey": "sk-or-v1-REEMPLAZAR",
+    "model": "arcee-ai/trinity-large-preview:free"
+  },
+  "allowLocalFallback": true
 }
 ```
 
