@@ -3443,3 +3443,231 @@ html[data-theme='dark'] .showcase-eyebrow {
         font-size: clamp(1.08rem, 5vw, 1.24rem);
     }
 }
+
+/* ========================================
+   NEW SECTIONS: Pathologies, Trajectory, Tips
+   ======================================== */
+
+/* Pathologies Section */
+.pathologies-container {
+    margin-top: 48px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: var(--ui-radius);
+    padding: 24px;
+    border: 1px solid rgba(199, 214, 235, 0.5);
+}
+
+.pathologies-title {
+    font-size: 1.15rem;
+    color: #1d3a5f; /* var(--ui-ink) aprox */
+    margin-bottom: 18px;
+    font-weight: 700;
+}
+
+.pathologies-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.pathology-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.94rem;
+    color: #4b607c; /* var(--ui-ink-soft) aprox */
+    background: #fff;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(199, 214, 235, 0.3);
+    transition: all var(--ui-ease);
+}
+
+.pathology-item:hover {
+    transform: translateY(-2px);
+    border-color: var(--ui-accent);
+    box-shadow: 0 4px 12px rgba(10, 132, 255, 0.1);
+}
+
+.pathology-item i {
+    color: var(--ui-accent);
+    font-size: 0.8rem;
+}
+
+/* Trajectory Section */
+.trajectory-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    width: min(1140px, calc(100% - 40px));
+    margin: 0 auto;
+}
+
+.trajectory-card {
+    background: #fff;
+    border-radius: var(--ui-radius);
+    padding: 32px 24px;
+    text-align: center;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: var(--ui-shadow-sm);
+    transition: transform var(--ui-ease);
+}
+
+.trajectory-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--ui-shadow-md);
+}
+
+.trajectory-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    display: grid;
+    place-items: center;
+    font-size: 1.5rem;
+}
+
+.trajectory-icon.media {
+    background: rgba(255, 99, 71, 0.1);
+    color: #ff6347;
+}
+
+.trajectory-icon.congress {
+    background: rgba(30, 144, 255, 0.1);
+    color: #1e90ff;
+}
+
+.trajectory-icon.science {
+    background: rgba(60, 179, 113, 0.1);
+    color: #3cb371;
+}
+
+.trajectory-card h3 {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    color: #1d3a5f;
+}
+
+.trajectory-card p {
+    font-size: 0.92rem;
+    color: #4b607c;
+    line-height: 1.5;
+}
+
+/* Tips Section */
+.tips-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    width: min(1140px, calc(100% - 40px));
+    margin: 0 auto;
+}
+
+.tip-card {
+    background: #fdfdfd;
+    border-radius: var(--ui-radius);
+    padding: 24px;
+    border: 1px solid rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: transform var(--ui-ease);
+}
+
+.tip-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--ui-shadow-md);
+}
+
+.tip-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    font-size: 1.2rem;
+}
+
+.tip-icon.sun {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.tip-icon.mole {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.tip-icon.water {
+    background: #d4edda;
+    color: #155724;
+}
+
+.tip-card h3 {
+    font-size: 1.05rem;
+    color: #1d3a5f;
+}
+
+.tip-card p {
+    font-size: 0.9rem;
+    color: #4b607c;
+    line-height: 1.5;
+}
+
+/* Dark Mode Overrides for New Sections */
+html[data-theme='dark'] .pathologies-container {
+    background: rgba(15, 26, 44, 0.6);
+    border-color: rgba(122, 156, 207, 0.2);
+}
+
+html[data-theme='dark'] .pathologies-title {
+    color: #f0f6ff;
+}
+
+html[data-theme='dark'] .pathology-item {
+    background: rgba(11, 20, 35, 0.8);
+    border-color: rgba(122, 156, 207, 0.25);
+    color: #dbe7fa;
+}
+
+html[data-theme='dark'] .pathology-item:hover {
+    border-color: #4dabf7;
+    background: rgba(19, 36, 60, 0.9);
+}
+
+html[data-theme='dark'] .trajectory-card,
+html[data-theme='dark'] .tip-card {
+    background: rgba(15, 26, 44, 0.9);
+    border-color: rgba(122, 156, 207, 0.3);
+}
+
+html[data-theme='dark'] .trajectory-card h3,
+html[data-theme='dark'] .tip-card h3 {
+    color: #f0f6ff;
+}
+
+html[data-theme='dark'] .trajectory-card p,
+html[data-theme='dark'] .tip-card p {
+    color: #aac1e2;
+}
+
+/* Mobile Responsiveness for New Sections */
+@media (max-width: 900px) {
+    .pathologies-grid,
+    .trajectory-grid,
+    .tips-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .pathologies-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .pathologies-grid {
+        grid-template-columns: 1fr;
+    }
+}
