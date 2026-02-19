@@ -120,7 +120,13 @@ img {
 .appointment-container,
 .footer-content,
 .footer-bottom,
-.hero-content {
+.hero-content,
+.showcase-hero,
+.showcase-grid,
+.showcase-split,
+.pathologies-container,
+.trajectory-grid,
+.tips-grid {
     width: min(1140px, calc(100% - 40px));
     margin-left: auto;
     margin-right: auto;
