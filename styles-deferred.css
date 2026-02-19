@@ -2323,8 +2323,9 @@ textarea:focus {
 }
 
 *:focus-visible {
-    outline: 3px solid rgba(43, 144, 255, 0.34);
+    outline: 2px solid var(--ui-accent);
     outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.2);
 }
 
 body.theme-transition,
@@ -3581,6 +3582,10 @@ html[data-theme='dark'] .showcase-eyebrow {
 }
 
 @media (max-width: 900px) {
+    body {
+        font-size: 16px;
+    }
+
     html {
         scroll-padding-top: 120px;
     }
@@ -3647,7 +3652,8 @@ html[data-theme='dark'] .showcase-eyebrow {
     }
 
     .mobile-menu a {
-        font-size: 0.96rem;
+        font-size: 1rem;
+        line-height: 1.35;
         padding: 14px 14px;
     }
 
@@ -3666,14 +3672,26 @@ html[data-theme='dark'] .showcase-eyebrow {
 
     .hero-title {
         max-width: none;
-        font-size: clamp(2rem, 10.4vw, 3.15rem);
-        line-height: 1.02;
+        font-size: clamp(2.05rem, 9vw, 3rem);
+        line-height: 1.05;
+        letter-spacing: -0.02em;
     }
 
     .hero-subtitle {
-        max-width: 34ch;
-        font-size: 1rem;
-        line-height: 1.56;
+        max-width: 33ch;
+        font-size: clamp(1rem, 2.6vw, 1.08rem);
+        line-height: 1.6;
+    }
+
+    .section-title {
+        font-size: clamp(1.72rem, 5.8vw, 2.25rem);
+        line-height: 1.12;
+    }
+
+    .section-subtitle {
+        font-size: clamp(0.98rem, 2.6vw, 1.06rem);
+        line-height: 1.58;
+        max-width: 38ch;
     }
 
     .hero-actions {
@@ -3715,6 +3733,14 @@ html[data-theme='dark'] .showcase-eyebrow {
 
     .metric-card {
         padding: 12px 14px;
+    }
+
+    .metric-card strong {
+        font-size: 1.05rem;
+    }
+
+    .metric-card span {
+        font-size: 0.9rem;
     }
 
     .section {
@@ -3965,17 +3991,23 @@ html[data-theme='dark'] .showcase-eyebrow {
         top: calc(122px + var(--safe-top));
     }
 
+    .mobile-menu a {
+        font-size: 0.98rem;
+        padding: 13px 12px;
+    }
+
     .hero {
         padding-top: calc(150px + var(--safe-top));
         padding-bottom: 70px;
     }
 
     .hero-title {
-        font-size: clamp(1.86rem, 11.2vw, 2.8rem);
+        font-size: clamp(1.9rem, 10.6vw, 2.6rem);
     }
 
     .hero-subtitle {
-        font-size: 0.94rem;
+        font-size: 0.98rem;
+        max-width: 30ch;
     }
 
     .hero-actions {
@@ -3986,6 +4018,8 @@ html[data-theme='dark'] .showcase-eyebrow {
 
     .hero-actions .btn {
         width: 100%;
+        min-height: 50px;
+        font-size: 0.97rem;
     }
 
     .hero-contact-bar {
@@ -3996,6 +4030,8 @@ html[data-theme='dark'] .showcase-eyebrow {
 
     .contact-chip {
         width: 100%;
+        min-height: 50px;
+        font-size: 0.97rem;
     }
 
     .section {

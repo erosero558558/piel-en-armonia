@@ -52,6 +52,27 @@ a {
     color: inherit;
 }
 
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--ui-accent);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.2);
+}
+
+.is-disabled-link {
+    pointer-events: none !important;
+    opacity: 0.45;
+    cursor: default;
+    text-decoration: none;
+}
+
+.is-disabled-link i {
+    opacity: 0.82;
+}
+
 img {
     max-width: 100%;
     display: block;
@@ -1175,6 +1196,11 @@ html[data-theme='dark'] .cookie-link {
         border-radius: 18px;
     }
 
+    .mobile-menu a {
+        font-size: 1rem;
+        line-height: 1.35;
+    }
+
     .hero {
         min-height: auto;
         padding: calc(138px + var(--safe-top)) 0 74px;
@@ -1188,14 +1214,26 @@ html[data-theme='dark'] .cookie-link {
 
     .hero-title {
         max-width: none;
-        font-size: clamp(2rem, 10.4vw, 3.15rem);
-        line-height: 1.02;
+        font-size: clamp(2.05rem, 9vw, 3rem);
+        line-height: 1.05;
+        letter-spacing: -0.02em;
     }
 
     .hero-subtitle {
-        max-width: 34ch;
-        font-size: 1rem;
-        line-height: 1.56;
+        max-width: 33ch;
+        font-size: clamp(1rem, 2.6vw, 1.08rem);
+        line-height: 1.6;
+    }
+
+    .section-title {
+        font-size: clamp(1.72rem, 5.8vw, 2.25rem);
+        line-height: 1.12;
+    }
+
+    .section-subtitle {
+        font-size: clamp(0.98rem, 2.6vw, 1.06rem);
+        line-height: 1.58;
+        max-width: 38ch;
     }
 
     .hero-actions,
@@ -1214,6 +1252,14 @@ html[data-theme='dark'] .cookie-link {
 
     .metric-card {
         padding: 12px 14px;
+    }
+
+    .metric-card strong {
+        font-size: 1.05rem;
+    }
+
+    .metric-card span {
+        font-size: 0.9rem;
     }
 
     .chatbot-widget {
@@ -1308,17 +1354,23 @@ html[data-theme='dark'] .cookie-link {
         top: calc(122px + var(--safe-top));
     }
 
+    .mobile-menu a {
+        font-size: 0.98rem;
+        padding: 13px 12px;
+    }
+
     .hero {
         padding-top: calc(150px + var(--safe-top));
         padding-bottom: 70px;
     }
 
     .hero-title {
-        font-size: clamp(1.86rem, 11.2vw, 2.8rem);
+        font-size: clamp(1.9rem, 10.6vw, 2.6rem);
     }
 
     .hero-subtitle {
-        font-size: 0.94rem;
+        font-size: 0.98rem;
+        max-width: 30ch;
     }
 
     .hero-actions,
@@ -1331,6 +1383,8 @@ html[data-theme='dark'] .cookie-link {
     .hero-actions .btn,
     .contact-chip {
         width: 100%;
+        min-height: 50px;
+        font-size: 0.97rem;
     }
 
     .message-content {

@@ -890,8 +890,6 @@ function disablePlaceholderExternalLinks() {
         anchor.removeAttribute('href');
         anchor.setAttribute('aria-disabled', 'true');
         anchor.classList.add('is-disabled-link');
-        anchor.style.pointerEvents = 'none';
-        anchor.style.opacity = '0.45';
     });
 }
 
