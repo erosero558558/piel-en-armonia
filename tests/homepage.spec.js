@@ -25,6 +25,14 @@ test.describe('Homepage', () => {
     await expect(form).toBeVisible();
   });
 
+  test('renderiza reseñas en la sección pública', async ({ page }) => {
+    const reviewsSection = page.locator('#resenas, #reviews, .reviews-section').first();
+    await expect(reviewsSection).toBeVisible();
+    await reviewsSection.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1800);
+    await expect(page.locator('.reviews-grid .review-card').first()).toBeVisible();
+  });
+
   test('navegación principal funciona', async ({ page }) => {
     const nav = page.locator('nav, .nav, .navbar').first();
     await expect(nav).toBeVisible();

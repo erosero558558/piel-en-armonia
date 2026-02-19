@@ -50,7 +50,7 @@ function clinic_whatsapp_display(): string
 
 function clinic_address_display(): string
 {
-    return env_value('PIELARMONIA_CLINIC_ADDRESS', 'Av. Dr. Cecilio Caiza e Hijas N2-30 y Av. Amazonas, Edificio Medicenter, Piso 3, Consultorio 302, Quito, Ecuador');
+    return env_value('PIELARMONIA_CLINIC_ADDRESS', 'Valparaiso 13-183 y Sodiro, Consultorio Dr. Celio Caiza, Quito, Ecuador');
 }
 
 function clinic_map_url(): string
@@ -1331,8 +1331,8 @@ function maybe_send_appointment_email(array $appointment): bool
     $m .= str_repeat("-", 45) . "\n\n";
     $m .= "  Direccion:\n";
     $m .= "  " . clinic_address_display() . "\n\n";
-    $m .= "  Referencia: Cerca del Supermaxi 6 de Diciembre,\n";
-    $m .= "  sector La Mariscal.\n\n";
+    $m .= "  Referencia: Frente al Colegio de las Mercedarias,\n";
+    $m .= "  a 2 cuadras de la Maternidad Isidro Ayora.\n\n";
     $m .= "  Ver en Google Maps:\n";
     $m .= "  " . clinic_map_url() . "\n\n";
 
