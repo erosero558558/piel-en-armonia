@@ -55,3 +55,9 @@
 // putenv('PIELARMONIA_DB_NAME=pielarmonia');
 // putenv('PIELARMONIA_DB_USER=root');
 // putenv('PIELARMONIA_DB_PASS=secret');
+
+// ── Feature Flags ───────────────────────────────────
+// putenv('FEATURE_NEW_BOOKING_UI=true');
+// putenv('FEATURE_STRIPE_ELEMENTS=true');
+// putenv('FEATURE_DARK_MODE=true');
+// putenv('FEATURE_CHATGPT_INTEGRATION=true');
