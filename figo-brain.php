@@ -38,7 +38,7 @@ class FigoBrain
         }
 
         if ($lastUserMessage === '') {
-            return self::buildResponse('Hola, soy el asistente virtual de Piel en Armonía. ¿En qué puedo ayudarte hoy?');
+            return self::buildResponse("👋 **¡Hola!** Soy el **Dr. Virtual** de Piel en Armonía.\n\nEstoy aquí para ayudarte a agendar tu cita, resolver dudas sobre tratamientos o precios.\n\n¿En qué puedo ayudarte hoy?");
         }
 
         $intent = self::detectIntent($lastUserMessage);
@@ -82,114 +82,118 @@ class FigoBrain
     {
         switch ($intent) {
             case 'greeting':
-                return "¡Hola! Soy Figo, tu asistente en Piel en Armonía. 😊\n\nPuedo ayudarte con:\n- Agendar citas\n- Consultar precios y servicios\n- Información de tratamientos (Acné, Láser, Rejuvenecimiento)\n- Ubicación y horarios\n\n¿Qué necesitas saber?";
+                return "👋 **¡Hola!** Soy el **Dr. Virtual** de Piel en Armonía.\n\nPuedo ayudarte con:\n🗓️ **Agendar citas**\n💰 **Precios y servicios**\n📍 **Ubicación y horarios**\n🧪 **Información sobre tratamientos** (Acné, Láser, Rejuvenecimiento)\n\n¿En qué puedo ayudarte hoy?";
 
             case 'pricing':
                 $priceConsult = get_service_total_price('consulta');
                 $priceOnline = get_service_total_price('video');
-                $priceAcne = get_service_total_price('acne'); // Base price logic
-                // Fallback manually if function returns 0 or default
-                if ($priceAcne === '$0.00') $priceAcne = '$89.60'; // Estimate with VAT
+                $priceAcne = get_service_total_price('acne');
+                if ($priceAcne === '$0.00') $priceAcne = '$89.60'; // Estimate fallback
 
-                return "Nuestros precios referenciales (incluyen IVA):\n\n" .
-                       "📋 **Consultas:**\n" .
-                       "- Presencial: {$priceConsult}\n" .
-                       "- Online (Video): {$priceOnline}\n" .
-                       "- Telefónica: " . get_service_total_price('telefono') . "\n\n" .
-                       "💉 **Tratamientos (desde):**\n" .
-                       "- Acné: {$priceAcne}\n" .
-                       "- Láser: " . get_service_total_price('laser') . "\n" .
-                       "- Rejuvenecimiento: " . get_service_total_price('rejuvenecimiento') . "\n\n" .
-                       "Para un presupuesto exacto, es necesaria una valoración médica. ¿Te gustaría agendar una cita?";
+                return "💰 **Nuestros Precios (IVA incluido):**\n\n" .
+                       "**Consultas:**\n" .
+                       "• Presencial: **{$priceConsult}**\n" .
+                       "• Online (Video): **{$priceOnline}**\n" .
+                       "• Telefónica: **" . get_service_total_price('telefono') . "**\n\n" .
+                       "**Tratamientos (desde):**\n" .
+                       "• Acné: **{$priceAcne}**\n" .
+                       "• Láser: **" . get_service_total_price('laser') . "**\n" .
+                       "• Rejuvenecimiento: **" . get_service_total_price('rejuvenecimiento') . "**\n\n" .
+                       "⚠️ *Los precios de tratamientos son referenciales y requieren evaluación médica.*";
 
             case 'services':
-                return "En Piel en Armonía ofrecemos una amplia gama de servicios dermatológicos:\n\n" .
-                       "✅ **Dermatología Clínica:** Acné, rosácea, manchas, alergias, detección de cáncer de piel.\n" .
-                       "✨ **Dermatología Estética:** Rejuvenecimiento, toxina botulínica, rellenos, láser CO2.\n" .
-                       "💻 **Telemedicina:** Consultas por videollamada o teléfono.\n\n" .
-                       "¿Te interesa algún tratamiento en específico?";
+                return "🌟 **Nuestros Servicios:**\n\n" .
+                       "👨‍⚕️ **Dermatología Clínica:**\nControl de acné, rosácea, manchas, alergias y detección de cáncer de piel.\n\n" .
+                       "✨ **Dermatología Estética:**\nRejuvenecimiento, toxina botulínica (Botox), rellenos, y láser CO2.\n\n" .
+                       "💻 **Telemedicina:**\nConsultas desde casa por videollamada o teléfono.\n\n" .
+                       "¿Te gustaría agendar una cita para alguno de estos servicios?";
 
             case 'booking':
-                return "¡Claro! Agendar tu cita es muy fácil y rápido.\n\n" .
-                       "Puedes hacerlo directamente aquí:\n" .
-                       "👉 [Reservar Cita Online](https://pielarmonia.com/#citas)\n\n" .
-                       "Solo elige el servicio, el doctor y el horario que prefieras. El sistema te guiará para realizar el pago y confirmar tu reserva al instante.";
+                return "🗓️ **¡Agendar es muy fácil!**\n\n" .
+                       "Puedes reservar tu cita ahora mismo eligiendo tu horario preferido:\n\n" .
+                       "👉 **[Click aquí para Reservar Cita Online](https://pielarmonia.com/#citas)**\n\n" .
+                       "Solo selecciona el servicio, el doctor y la hora. ¡Te esperamos!";
 
             case 'payment':
-                return "Para tu comodidad, aceptamos los siguientes métodos de pago en nuestra web:\n\n" .
-                       "💳 **Tarjeta de Crédito/Débito:** Visa o Mastercard.\n" .
-                       "🏦 **Transferencia Bancaria:** Te daremos los datos al finalizar la reserva.\n" .
-                       "💵 **Efectivo:** Puedes reservar y pagar el día de tu consulta (sujeto a confirmación).\n\n" .
-                       "Todo el proceso es seguro y rápido desde nuestra sección de [Reservar Cita](https://pielarmonia.com/#citas).";
+                return "💳 **Métodos de Pago Aceptados:**\n\n" .
+                       "✅ **Tarjeta de Crédito/Débito** (Visa/Mastercard)\n" .
+                       "✅ **Transferencia Bancaria**\n" .
+                       "✅ **Efectivo** (Reserva online y paga en consultorio)\n\n" .
+                       "Todo el proceso es seguro. Puedes reservar aquí: [Agendar Cita](https://pielarmonia.com/#citas)";
 
             case 'location':
-                return "📍 **Ubicación:**\n" .
-                       "Estamos en Quito, Ecuador. Sector La Carolina.\n" .
-                       "Edificio Citimed, Consultorio 312.\n\n" .
-                       "🗺️ **Ver en Mapa:** [Google Maps](https://goo.gl/maps/pielarmonia)\n\n" .
-                       "Contamos con parqueadero para pacientes.";
+                return "📍 **Nuestra Ubicación:**\n\n" .
+                       "**Piel en Armonía**\n" .
+                       "Calle Valparaíso y Sodiro\n" .
+                       "Consultorio del Dr. Cecilio Caiza\n" .
+                       "Quito, Ecuador\n\n" .
+                       "🚗 **Referencia:** Frente al Colegio de las Mercedarias, cerca de la Maternidad Isidro Ayora.\n\n" .
+                       "🗺️ **[Ver en Google Maps](https://www.google.com/maps/search/Valparaiso+13-183+y+Sodiro,+Quito,+Ecuador)**";
 
             case 'hours':
                 return "⏰ **Horarios de Atención:**\n\n" .
-                       "Lunes a Viernes: 09:00 - 18:00\n" .
-                       "Sábados: 09:00 - 13:00\n\n" .
-                       "Recuerda que atendemos previa cita. Puedes agendar la tuya [aquí](https://pielarmonia.com/#citas).";
+                       "• **Lunes a Viernes:** 09:00 - 18:00\n" .
+                       "• **Sábados:** 09:00 - 13:00\n\n" .
+                       "Recuerda que atendemos previa cita. ¡Reserva tu turno [aquí](https://pielarmonia.com/#citas)!";
 
             case 'doctors':
-                return "Contamos con especialistas de primer nivel:\n\n" .
-                       "👨‍⚕️ **Dr. Javier Rosero:** Dermatólogo Clínico, experto en cáncer de piel, cirugía dermatológica y acné.\n\n" .
-                       "👩‍⚕️ **Dra. Carolina Narváez:** Dermatóloga Estética, especialista en láser, rejuvenecimiento y armonización facial.\n\n" .
-                       "Ambos están listos para cuidar la salud de tu piel.";
+                return "🩺 **Nuestro Equipo Médico:**\n\n" .
+                       "👨‍⚕️ **Dr. Javier Rosero**\n*Dermatólogo Clínico*\nEspecialista en cáncer de piel, cirugía y acné.\n\n" .
+                       "👩‍⚕️ **Dra. Carolina Narváez**\n*Dermatóloga Estética*\nEspecialista en láser, rejuvenecimiento y armonización facial.\n\n" .
+                       "Ambos son excelentes profesionales listos para cuidarte.";
 
             case 'acne':
-                return "El acné es una de nuestras especialidades. Tratamos desde acné activo hasta cicatrices y secuelas.\n\n" .
-                       "🔹 **Tratamiento Integral:** Combinamos medicación, limpiezas y tecnología láser según tu caso.\n" .
-                       "🔹 **Resultados:** Buscamos controlar el brote y mejorar la textura de tu piel.\n\n" .
-                       "Te recomiendo agendar una **Consulta de Acné** para evaluar tu tipo de piel y diseñar tu plan.";
+                return "🧬 **Tratamiento de Acné**\n\n" .
+                       "El acné es nuestra especialidad. Ofrecemos un abordaje integral:\n" .
+                       "• Medicación personalizada\n" .
+                       "• Limpiezas profundas\n" .
+                       "• Tecnología láser para secuelas\n\n" .
+                       "Recupera la confianza en tu piel. Te sugiero agendar una **Consulta de Acné** hoy mismo.";
 
             case 'laser':
-                return "Nuestra tecnología láser es ideal para:\n" .
-                       "- Rejuvenecimiento facial (Láser CO2)\n" .
-                       "- Eliminación de cicatrices de acné\n" .
-                       "- Manchas y lesiones vasculares\n" .
-                       "- Eliminación de lunares benignos\n\n" .
-                       "Es un procedimiento seguro y con excelentes resultados. ¿Quisieras más información sobre precios?";
+                return "⚡ **Tecnología Láser CO2**\n\n" .
+                       "Ideal para renovar tu piel:\n" .
+                       "✅ Rejuvenecimiento facial profundo\n" .
+                       "✅ Eliminación de cicatrices de acné\n" .
+                       "✅ Tratamiento de manchas y lunares\n\n" .
+                       "Es un procedimiento seguro con resultados visibles. ¿Te gustaría conocer los costos?";
 
             case 'rejuvenation':
-                return "Para rejuvenecimiento facial ofrecemos tratamientos personalizados:\n" .
-                       "- Toxina Botulínica (Botox) para líneas de expresión.\n" .
-                       "- Ácido Hialurónico para reposición de volumen.\n" .
-                       "- Bioestimuladores de colágeno.\n" .
-                       "- Láser CO2 Fraccionado.\n\n" .
-                       "Lo ideal es una valoración para indicarte qué tratamiento te dará los resultados más naturales y armónicos.";
+                return "✨ **Rejuvenecimiento Facial**\n\n" .
+                       "Diseñamos un plan único para ti:\n" .
+                       "• **Toxina Botulínica (Botox):** Suaviza líneas de expresión.\n" .
+                       "• **Ácido Hialurónico:** Repone volumen e hidrata.\n" .
+                       "• **Bioestimuladores:** Activan tu propio colágeno.\n\n" .
+                       "Agenda una valoración para indicarte el mejor tratamiento para tu rostro.";
 
             case 'telemedicine':
-                return "Si no puedes venir presencialmente, ¡te atendemos online!\n\n" .
-                       "📱 **Videoconsulta:** A través de WhatsApp o Zoom. Incluye evaluación, diagnóstico y receta digital. Precio: " . get_service_total_price('video') . "\n\n" .
-                       "📞 **Consulta Telefónica:** Para seguimientos o dudas puntuales. Precio: " . get_service_total_price('telefono') . "\n\n" .
-                       "Agenda tu cita online seleccionando la opción 'Videoconsulta'.";
+                return "💻 **Consulta Online**\n\n" .
+                       "Si no puedes venir, te atendemos donde estés:\n\n" .
+                       "📱 **Videoconsulta ($30):** Diagnóstico completo y receta digital por videollamada.\n" .
+                       "📞 **Consulta Telefónica ($25):** Ideal para seguimientos rápidos.\n\n" .
+                       "Agenda seleccionando la opción **'Telemedicina'** en nuestro formulario.";
 
             case 'contact':
-                return "Puedes contactarnos directamente por:\n" .
+                return "📞 **Contáctanos:**\n\n" .
                        "📱 **WhatsApp:** [+593 98 245 3672](https://wa.me/593982453672)\n" .
                        "📧 **Email:** info@pielarmonia.com\n\n" .
-                       "Estamos atentos para responder tus dudas.";
+                       "Estamos atentos para responder tus dudas. Si es urgente, te recomendamos llamar.";
 
             case 'cancellation':
             case 'rescheduling':
-                return "Para cancelar o reprogramar tu cita, por favor revisa el correo de confirmación que recibiste.\n\n" .
-                       "Allí encontrarás un enlace directo para gestionar tu reserva. También puedes escribirnos por WhatsApp al +593 98 245 3672 para ayudarte manualmente.";
+                return "🔄 **Cambios en tu Cita**\n\n" .
+                       "Para cancelar o reprogramar, revisa el enlace en tu correo de confirmación.\n\n" .
+                       "Si no lo encuentras, escríbenos por WhatsApp al **+593 98 245 3672** y te ayudaremos con gusto.";
 
             case 'thanks':
-                return "¡De nada! Ha sido un gusto ayudarte. Si tienes más preguntas, aquí estaré. ¡Que tengas un lindo día! ✨";
+                return "😊 **¡De nada!**\n\nHa sido un placer ayudarte. Si tienes más preguntas, aquí estaré.\n\n¡Que tengas un excelente día y cuida tu piel! ✨";
 
             default:
-                // Fallback for unknown intent
-                return "Entiendo. Para darte la mejor información sobre ese tema, te sugiero que:\n\n" .
-                       "1. Mires nuestros [Servicios](https://pielarmonia.com/#servicios)\n" .
-                       "2. Agendes una [Cita de Valoración](https://pielarmonia.com/#citas)\n" .
-                       "3. Nos escribas por [WhatsApp](https://wa.me/593982453672) para atención personalizada.\n\n" .
-                       "¿Hay algo más puntual en lo que pueda guiarte? (Precios, Ubicación, Citas)";
+                return "🤖 Entiendo. Para darte la mejor información, te sugiero:\n\n" .
+                       "1️⃣ Ver nuestros **[Servicios](https://pielarmonia.com/#servicios)**\n" .
+                       "2️⃣ Agendar una **[Cita de Valoración](https://pielarmonia.com/#citas)**\n" .
+                       "3️⃣ Escribirnos por **[WhatsApp](https://wa.me/593982453672)** para atención personalizada.\n\n" .
+                       "¿Te gustaría saber sobre precios o ubicación?";
         }
     }
 
