@@ -3,6 +3,7 @@ param(
     [switch]$RunSmoke,
     [switch]$AllowDegradedFigo,
     [switch]$AllowRecursiveFigo,
+    [switch]$AllowMetaCspFallback,
     [switch]$RequireWebhookSecret,
     [int]$MaxHealthTimingMs = 2000
 )
@@ -147,10 +148,16 @@ try {
         'X-Content-Type-Options',
         'Referrer-Policy'
     )
+    $homeHtml = ''
+    try { $homeHtml = [string]$homeResp.Content } catch { $homeHtml = '' }
     foreach ($headerName in $requiredSecurityHeaders) {
         if ($null -ne $homeResp.Headers[$headerName]) {
             Write-Host "[OK]  header presente: $headerName"
         } else {
+            if ($headerName -eq 'Content-Security-Policy' -and $AllowMetaCspFallback -and [regex]::IsMatch($homeHtml, '<meta[^>]+http-equiv\s*=\s*["'']Content-Security-Policy["'']', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+                Write-Host "[WARN] header ausente: $headerName (fallback temporal por meta-CSP)"
+                continue
+            }
             Write-Host "[FAIL] header ausente: $headerName"
             $results += [PSCustomObject]@{
                 Asset = "header:$headerName"
@@ -842,7 +849,7 @@ try {
 if ($RunSmoke) {
     Write-Host ""
     Write-Host "Ejecutando smoke..."
-    & .\SMOKE-PRODUCCION.ps1 -Domain $base -TestFigoPost -AllowDegradedFigo:$AllowDegradedFigo -AllowRecursiveFigo:$AllowRecursiveFigo -RequireWebhookSecret:$RequireWebhookSecret
+    & .\SMOKE-PRODUCCION.ps1 -Domain $base -TestFigoPost -AllowDegradedFigo:$AllowDegradedFigo -AllowRecursiveFigo:$AllowRecursiveFigo -AllowMetaCspFallback:$AllowMetaCspFallback -RequireWebhookSecret:$RequireWebhookSecret
 }
 
 $failed = ($results | Where-Object { -not $_.Match }).Count

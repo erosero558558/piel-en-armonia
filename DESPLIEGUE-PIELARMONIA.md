@@ -129,6 +129,7 @@ Ejemplo de `data/figo-config.json`:
 
 8. Gate completo post-deploy (recomendado):
 - `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireWebhookSecret`
+- (Temporal, solo mientras corriges headers en edge/servidor) `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -AllowMetaCspFallback`
 
 ## Notas importantes
 

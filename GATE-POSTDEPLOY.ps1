@@ -3,6 +3,7 @@ param(
     [int]$BenchRuns = 25,
     [switch]$AllowDegradedFigo,
     [switch]$AllowRecursiveFigo,
+    [switch]$AllowMetaCspFallback,
     [switch]$RequireWebhookSecret
 )
 
@@ -20,6 +21,7 @@ Write-Host "[1/3] Verificacion de despliegue..." -ForegroundColor Yellow
     -Domain $Domain `
     -AllowDegradedFigo:$AllowDegradedFigo `
     -AllowRecursiveFigo:$AllowRecursiveFigo `
+    -AllowMetaCspFallback:$AllowMetaCspFallback `
     -RequireWebhookSecret:$RequireWebhookSecret
 if ($LASTEXITCODE -ne 0) {
     $failures += 1
@@ -32,6 +34,7 @@ Write-Host "[2/3] Smoke de produccion..." -ForegroundColor Yellow
     -TestFigoPost `
     -AllowDegradedFigo:$AllowDegradedFigo `
     -AllowRecursiveFigo:$AllowRecursiveFigo `
+    -AllowMetaCspFallback:$AllowMetaCspFallback `
     -RequireWebhookSecret:$RequireWebhookSecret
 if ($LASTEXITCODE -ne 0) {
     $failures += 1

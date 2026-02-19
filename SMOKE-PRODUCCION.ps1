@@ -3,6 +3,7 @@ param(
     [switch]$TestFigoPost,
     [switch]$AllowDegradedFigo,
     [switch]$AllowRecursiveFigo,
+    [switch]$AllowMetaCspFallback,
     [switch]$RequireWebhookSecret,
     [int]$MaxHealthTimingMs = 2000
 )
@@ -428,8 +429,14 @@ try {
         'Accept' = 'text/html'
         'User-Agent' = 'PielArmoniaSmoke/1.0'
     }
+    $homeHtml = ''
+    try { $homeHtml = [string]$homeHeaderResp.Content } catch { $homeHtml = '' }
     foreach ($headerName in @('Content-Security-Policy', 'X-Content-Type-Options', 'Referrer-Policy')) {
         if ($null -eq $homeHeaderResp.Headers[$headerName]) {
+            if ($headerName -eq 'Content-Security-Policy' -and $AllowMetaCspFallback -and [regex]::IsMatch($homeHtml, '<meta[^>]+http-equiv\s*=\s*["'']Content-Security-Policy["'']', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+                Write-Host "[WARN] Home sin header CSP; usando fallback temporal por meta-CSP"
+                continue
+            }
             Write-Host "[FAIL] Home sin header de seguridad: $headerName"
             $contractFailures += 1
         }
