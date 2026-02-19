@@ -849,7 +849,7 @@ async function importData(input) {
     if (!file) return;
     input.value = '';
 
-    if (!confirm('Esto reemplazara TODOS los datos actuales (citas, callbacks, resenas y disponibilidad) con los del archivo seleccionado.\n\n¿Deseas continuar?')) {
+    if (!confirm('Esto reemplazará TODOS los datos actuales (citas, callbacks, reseñas y disponibilidad) con los del archivo seleccionado.\n\n¿Deseas continuar?')) {
         return;
     }
 
@@ -858,7 +858,7 @@ async function importData(input) {
         const data = JSON.parse(text);
 
         if (!data || typeof data !== 'object') {
-            throw new Error('El archivo no contiene datos validos');
+            throw new Error('El archivo no contiene datos válidos');
         }
 
         const payload = {
@@ -876,7 +876,7 @@ async function importData(input) {
         await refreshData();
         const activeItem = document.querySelector('.nav-item.active');
         renderSection(activeItem?.dataset.section || 'dashboard');
-        showToast(`Datos importados: ${payload.appointments.length} citas, ${payload.callbacks.length} callbacks, ${payload.reviews.length} resenas`, 'success');
+        showToast(`Datos importados: ${payload.appointments.length} citas, ${payload.callbacks.length} callbacks, ${payload.reviews.length} reseñas`, 'success');
     } catch (error) {
         showToast(`Error al importar: ${error.message}`, 'error');
     }

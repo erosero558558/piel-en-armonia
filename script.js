@@ -447,7 +447,6 @@ let currentLang = localStorage.getItem('language') || 'es';
 const THEME_STORAGE_KEY = 'themeMode';
 const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
 let currentThemeMode = localStorage.getItem(THEME_STORAGE_KEY) || 'system';
-const API_ENDPOINT = '/api.php';
 const CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
 const CLINIC_MAP_URL = 'https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D';
 const DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
@@ -457,16 +456,6 @@ const MAX_CASE_PHOTO_BYTES = 5 * 1024 * 1024;
 const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 const CASE_PHOTO_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
-const API_REQUEST_TIMEOUT_MS = 9000;
-const UPLOAD_REQUEST_TIMEOUT_MS = 16000;
-const API_RETRY_BASE_DELAY_MS = 450;
-const API_DEFAULT_RETRIES = 1;
-const API_SLOW_NOTICE_MS = 1200;
-const API_SLOW_NOTICE_COOLDOWN_MS = 25000;
-const AVAILABILITY_CACHE_TTL_MS = 5 * 60 * 1000;
-const BOOKED_SLOTS_CACHE_TTL_MS = 45 * 1000;
-let apiSlowNoticeLastAt = 0;
-const apiInFlightGetRequests = new Map();
 let bookingViewTracked = false;
 let chatStartedTracked = false;
 let availabilityPrefetched = false;
@@ -480,17 +469,13 @@ let checkoutSession = {
 };
 const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
 let currentAppointment = null;
-let availabilityCache = {};
-let availabilityCacheLoadedAt = 0;
-let availabilityCachePromise = null;
-const bookedSlotsCache = new Map();
 let paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
 let paymentConfigLoaded = false;
 let paymentConfigLoadedAt = 0;
 let stripeSdkPromise = null;
-const LOCAL_FALLBACK_ENABLED = window.location.protocol === 'file:';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let themeTransitionTimer = null;
+const DATA_ENGINE_URL = '/data-engine.js?v=figo-data-20260219-phase1';
 
 const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260218-phase1-analytics2-transferretry2-stateclass1';
 
@@ -784,33 +769,47 @@ function maybeTrackCheckoutAbandon(reason = 'unknown') {
     });
 }
 
-function waitMs(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+function getDataEngineDeps() {
+    return {
+        getCurrentLang: () => currentLang,
+        showToast,
+        storageGetJSON,
+        storageSetJSON
+    };
 }
 
-function getApiRetryDelayMs(attempt) {
-    const cappedAttempt = Math.max(0, Math.min(5, Number(attempt) || 0));
-    const jitter = Math.floor(Math.random() * 180);
-    return (API_RETRY_BASE_DELAY_MS * (2 ** cappedAttempt)) + jitter;
+function loadDataEngine() {
+    return loadDeferredModule({
+        cacheKey: 'data-engine',
+        src: DATA_ENGINE_URL,
+        scriptDataAttribute: 'data-data-engine',
+        resolveModule: () => window.PielDataEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getDataEngineDeps()),
+        missingApiError: 'data-engine loaded without API',
+        loadError: 'No se pudo cargar data-engine.js',
+        logLabel: 'Data engine'
+    });
 }
 
-function isLikelyNetworkError(error) {
-    if (!error || typeof error !== 'object') {
-        return false;
-    }
+function initDataEngineWarmup() {
+    const warmup = createWarmupRunner(() => loadDataEngine(), { markWarmOnSuccess: true });
 
-    const name = String(error.name || '').toLowerCase();
-    const message = String(error.message || '').toLowerCase();
+    bindWarmupTarget('#appointmentForm', 'focusin', warmup, false);
+    bindWarmupTarget('#appointmentForm', 'pointerdown', warmup);
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'pointerdown', warmup);
 
-    if (name === 'typeerror') {
-        return true;
-    }
+    const bookingSection = document.getElementById('citas');
+    observeOnceWhenVisible(bookingSection, warmup, {
+        threshold: 0.05,
+        rootMargin: '260px 0px',
+        onNoObserver: warmup
+    });
 
-    return message.includes('failed to fetch')
-        || message.includes('networkerror')
-        || message.includes('network request failed')
-        || message.includes('load failed')
-        || message.includes('fetch');
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 1800,
+        fallbackDelay: 900
+    });
 }
 
 function initGA4() {
@@ -903,169 +902,7 @@ function storageSetJSON(key, value) {
 }
 
 async function apiRequest(resource, options = {}) {
-    const method = String(options.method || 'GET').toUpperCase();
-    const query = new URLSearchParams({ resource: resource });
-    if (options.query && typeof options.query === 'object') {
-        Object.entries(options.query).forEach(([key, value]) => {
-            if (value !== undefined && value !== null && value !== '') {
-                query.set(key, String(value));
-            }
-        });
-    }
-
-    const url = API_ENDPOINT + '?' + query.toString();
-    const requestInit = {
-        method: method,
-        credentials: 'same-origin',
-        headers: {
-            'Accept': 'application/json'
-        }
-    };
-
-    if (options.body !== undefined) {
-        requestInit.headers['Content-Type'] = 'application/json';
-        requestInit.body = JSON.stringify(options.body);
-    }
-
-    const timeoutMs = Number.isFinite(options.timeoutMs) ? Math.max(1500, Number(options.timeoutMs)) : API_REQUEST_TIMEOUT_MS;
-    const maxRetries = Number.isInteger(options.retries)
-        ? Math.max(0, Number(options.retries))
-        : (method === 'GET' ? API_DEFAULT_RETRIES : 0);
-
-    const shouldShowSlowNotice = options.silentSlowNotice !== true && options.background !== true;
-    const retryableStatusCodes = new Set([408, 425, 429, 500, 502, 503, 504]);
-    const dedupeGet = method === 'GET' && options.dedupe !== false;
-
-    function makeApiError(message, status = 0, retryable = false, code = '') {
-        const error = new Error(message);
-        error.status = status;
-        error.retryable = retryable;
-        error.code = code;
-        return error;
-    }
-
-    const execute = async () => {
-        let lastError = null;
-
-        for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-            let slowNoticeTimer = null;
-
-            if (shouldShowSlowNotice) {
-                slowNoticeTimer = setTimeout(() => {
-                    const now = Date.now();
-                    if ((now - apiSlowNoticeLastAt) > API_SLOW_NOTICE_COOLDOWN_MS) {
-                        apiSlowNoticeLastAt = now;
-                        showToast(
-                            currentLang === 'es'
-                                ? 'Conectando con el servidor...'
-                                : 'Connecting to server...',
-                            'info'
-                        );
-                    }
-                }, API_SLOW_NOTICE_MS);
-            }
-
-            try {
-                const response = await fetch(url, {
-                    ...requestInit,
-                    signal: controller.signal
-                });
-
-                const responseText = await response.text();
-                let payload = {};
-                try {
-                    payload = responseText ? JSON.parse(responseText) : {};
-                } catch (error) {
-                    throw makeApiError(
-                        'Respuesta del servidor no es JSON valido',
-                        response.status,
-                        retryableStatusCodes.has(response.status),
-                        'invalid_json'
-                    );
-                }
-
-                if (!response.ok || payload.ok === false) {
-                    const message = payload.error || ('HTTP ' + response.status);
-                    throw makeApiError(message, response.status, retryableStatusCodes.has(response.status), 'http_error');
-                }
-
-                return payload;
-            } catch (error) {
-                const normalizedError = (() => {
-                    if (error && error.name === 'AbortError') {
-                        return makeApiError(
-                            currentLang === 'es'
-                                ? 'Tiempo de espera agotado con el servidor'
-                                : 'Server request timed out',
-                            0,
-                            true,
-                            'timeout'
-                        );
-                    }
-
-                    if (isLikelyNetworkError(error)) {
-                        return makeApiError(
-                            currentLang === 'es'
-                                ? 'No se pudo conectar con el servidor'
-                                : 'Could not connect to server',
-                            0,
-                            true,
-                            'network_error'
-                        );
-                    }
-
-                    if (error instanceof Error) {
-                        if (typeof error.retryable !== 'boolean') {
-                            error.retryable = false;
-                        }
-                        if (typeof error.status !== 'number') {
-                            error.status = 0;
-                        }
-                        if (typeof error.code !== 'string' || !error.code) {
-                            error.code = 'api_error';
-                        }
-                        return error;
-                    }
-
-                    return makeApiError('Error de conexion con el servidor', 0, true, 'network_error');
-                })();
-
-                lastError = normalizedError;
-
-                const canRetry = attempt < maxRetries && normalizedError.retryable === true;
-                if (!canRetry) {
-                    throw normalizedError;
-                }
-
-                const retryDelay = getApiRetryDelayMs(attempt);
-                await waitMs(retryDelay);
-            } finally {
-                clearTimeout(timeoutId);
-                if (slowNoticeTimer !== null) {
-                    clearTimeout(slowNoticeTimer);
-                }
-            }
-        }
-
-        throw lastError || new Error('No se pudo completar la solicitud');
-    };
-
-    if (!dedupeGet) {
-        return execute();
-    }
-
-    if (apiInFlightGetRequests.has(url)) {
-        return apiInFlightGetRequests.get(url);
-    }
-
-    const inFlight = execute().finally(() => {
-        apiInFlightGetRequests.delete(url);
-    });
-
-    apiInFlightGetRequests.set(url, inFlight);
-    return inFlight;
+    return withDeferredModule(loadDataEngine, (engine) => engine.apiRequest(resource, options));
 }
 
 async function loadPaymentConfig() {
@@ -1136,106 +973,7 @@ async function verifyPaymentIntent(paymentIntentId) {
 }
 
 async function uploadTransferProof(file, options = {}) {
-    const formData = new FormData();
-    formData.append('proof', file);
-
-    const query = new URLSearchParams({ resource: 'transfer-proof' });
-    const url = `${API_ENDPOINT}?${query.toString()}`;
-    const timeoutMs = Number.isFinite(options.timeoutMs)
-        ? Math.max(3000, Number(options.timeoutMs))
-        : UPLOAD_REQUEST_TIMEOUT_MS;
-    const maxRetries = Number.isInteger(options.retries)
-        ? Math.max(0, Number(options.retries))
-        : 1;
-    const retryableStatusCodes = new Set([408, 425, 429, 500, 502, 503, 504]);
-
-    let lastError = null;
-
-    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                credentials: 'same-origin',
-                body: formData,
-                signal: controller.signal
-            });
-
-            const text = await response.text();
-            let payload = {};
-            try {
-                payload = text ? JSON.parse(text) : {};
-            } catch (error) {
-                const parseError = new Error('No se pudo interpretar la respuesta de subida');
-                parseError.retryable = retryableStatusCodes.has(response.status);
-                parseError.status = response.status;
-                throw parseError;
-            }
-
-            if (!response.ok || payload.ok === false) {
-                const httpError = new Error(payload.error || `HTTP ${response.status}`);
-                httpError.retryable = retryableStatusCodes.has(response.status);
-                httpError.status = response.status;
-                throw httpError;
-            }
-
-            return payload.data || {};
-        } catch (error) {
-            const normalizedError = (() => {
-                if (error && error.name === 'AbortError') {
-                    const timeoutError = new Error(
-                        currentLang === 'es'
-                            ? 'Tiempo de espera agotado al subir el comprobante'
-                            : 'Upload timed out while sending proof file'
-                    );
-                    timeoutError.retryable = true;
-                    timeoutError.code = 'timeout';
-                    return timeoutError;
-                }
-
-                if (isLikelyNetworkError(error)) {
-                    const networkError = new Error(
-                        currentLang === 'es'
-                            ? 'No se pudo conectar con el servidor al subir el comprobante'
-                            : 'Could not connect to server while uploading proof'
-                    );
-                    networkError.retryable = true;
-                    networkError.code = 'network_error';
-                    return networkError;
-                }
-
-                if (error instanceof Error) {
-                    if (typeof error.retryable !== 'boolean') {
-                        error.retryable = false;
-                    }
-                    return error;
-                }
-
-                const fallbackError = new Error(
-                    currentLang === 'es'
-                        ? 'No se pudo subir el comprobante'
-                        : 'Unable to upload proof'
-                );
-                fallbackError.retryable = true;
-                fallbackError.code = 'upload_error';
-                return fallbackError;
-            })();
-
-            lastError = normalizedError;
-            const canRetry = attempt < maxRetries && normalizedError.retryable === true;
-            if (!canRetry) {
-                throw normalizedError;
-            }
-
-            await waitMs(getApiRetryDelayMs(attempt));
-        } finally {
-            clearTimeout(timeoutId);
-        }
-    }
-
-    throw lastError || new Error('No se pudo subir el comprobante');
+    return withDeferredModule(loadDataEngine, (engine) => engine.uploadTransferProof(file, options));
 }
 
 function getCasePhotoFiles(formElement) {
@@ -1250,7 +988,7 @@ function validateCasePhotoFiles(files) {
     if (files.length > MAX_CASE_PHOTOS) {
         throw new Error(
             currentLang === 'es'
-                ? `Puedes subir maximo ${MAX_CASE_PHOTOS} fotos.`
+                ? `Puedes subir máximo ${MAX_CASE_PHOTOS} fotos.`
                 : `You can upload up to ${MAX_CASE_PHOTOS} photos.`
         );
     }
@@ -1261,7 +999,7 @@ function validateCasePhotoFiles(files) {
         if (file.size > MAX_CASE_PHOTO_BYTES) {
             throw new Error(
                 currentLang === 'es'
-                    ? `Cada foto debe pesar maximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
+                    ? `Cada foto debe pesar máximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
                     : `Each photo must be at most ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
             );
         }
@@ -1339,179 +1077,32 @@ async function buildAppointmentPayload(appointment) {
     return payload;
 }
 
-function getBookedSlotsCacheKey(date, doctor = '') {
-    return `${String(date || '')}::${String(doctor || '')}`;
-}
-
 function invalidateBookedSlotsCache(date = '', doctor = '') {
-    const targetDate = String(date || '').trim();
-    const targetDoctor = String(doctor || '').trim();
-    if (!targetDate) {
-        bookedSlotsCache.clear();
+    if (window.PielDataEngine && typeof window.PielDataEngine.invalidateBookedSlotsCache === 'function') {
+        window.PielDataEngine.invalidateBookedSlotsCache(date, doctor);
         return;
     }
-
-    for (const key of bookedSlotsCache.keys()) {
-        if (!key.startsWith(`${targetDate}::`)) {
-            continue;
-        }
-        if (targetDoctor === '' || key === getBookedSlotsCacheKey(targetDate, targetDoctor)) {
-            bookedSlotsCache.delete(key);
-        }
-    }
+    runDeferredModule(loadDataEngine, (engine) => engine.invalidateBookedSlotsCache(date, doctor));
 }
 
 async function loadAvailabilityData(options = {}) {
-    const forceRefresh = options && options.forceRefresh === true;
-    const background = options && options.background === true;
-    const now = Date.now();
-
-    if (!forceRefresh && availabilityCacheLoadedAt > 0 && (now - availabilityCacheLoadedAt) < AVAILABILITY_CACHE_TTL_MS) {
-        return availabilityCache;
-    }
-
-    if (!forceRefresh && availabilityCachePromise) {
-        return availabilityCachePromise;
-    }
-
-    availabilityCachePromise = (async () => {
-        try {
-            const payload = await apiRequest('availability', {
-                background,
-                silentSlowNotice: background
-            });
-            availabilityCache = payload.data || {};
-            availabilityCacheLoadedAt = Date.now();
-            storageSetJSON('availability', availabilityCache);
-        } catch (error) {
-            availabilityCache = storageGetJSON('availability', {});
-            if (availabilityCache && typeof availabilityCache === 'object' && Object.keys(availabilityCache).length > 0) {
-                availabilityCacheLoadedAt = Date.now();
-            }
-        } finally {
-            availabilityCachePromise = null;
-        }
-
-        return availabilityCache;
-    })();
-
-    return availabilityCachePromise;
+    return withDeferredModule(loadDataEngine, (engine) => engine.loadAvailabilityData(options));
 }
 
 async function getBookedSlots(date, doctor = '') {
-    const cacheKey = getBookedSlotsCacheKey(date, doctor);
-    const now = Date.now();
-    const cachedEntry = bookedSlotsCache.get(cacheKey);
-    if (cachedEntry && (now - cachedEntry.at) < BOOKED_SLOTS_CACHE_TTL_MS) {
-        return cachedEntry.slots;
-    }
-
-    try {
-        const query = { date: date };
-        if (doctor) query.doctor = doctor;
-        const payload = await apiRequest('booked-slots', { query });
-        const slots = Array.isArray(payload.data) ? payload.data : [];
-        bookedSlotsCache.set(cacheKey, {
-            slots,
-            at: now
-        });
-        return slots;
-    } catch (error) {
-        if (!LOCAL_FALLBACK_ENABLED) {
-            throw error;
-        }
-        const appointments = storageGetJSON('appointments', []);
-        const slots = appointments
-            .filter(a => {
-                if (a.date !== date || a.status === 'cancelled') return false;
-                if (doctor && doctor !== 'indiferente') {
-                    const aDoc = a.doctor || '';
-                    if (aDoc && aDoc !== 'indiferente' && aDoc !== doctor) return false;
-                }
-                return true;
-            })
-            .map(a => a.time);
-        bookedSlotsCache.set(cacheKey, {
-            slots,
-            at: now
-        });
-        return slots;
-    }
+    return withDeferredModule(loadDataEngine, (engine) => engine.getBookedSlots(date, doctor));
 }
 
 async function createAppointmentRecord(appointment, options = {}) {
-    const allowLocalFallback = options.allowLocalFallback !== false;
-    try {
-        const payload = await apiRequest('appointments', {
-            method: 'POST',
-            body: appointment
-        });
-        const localAppointments = storageGetJSON('appointments', []);
-        localAppointments.push(payload.data);
-        storageSetJSON('appointments', localAppointments);
-        if (payload && payload.data) {
-            invalidateBookedSlotsCache(payload.data.date || appointment?.date || '', payload.data.doctor || appointment?.doctor || '');
-        } else {
-            invalidateBookedSlotsCache(appointment?.date || '', appointment?.doctor || '');
-        }
-        return {
-            appointment: payload.data,
-            emailSent: payload.emailSent === true
-        };
-    } catch (error) {
-        if (!LOCAL_FALLBACK_ENABLED || !allowLocalFallback) {
-            throw error;
-        }
-        const localAppointments = storageGetJSON('appointments', []);
-        const fallback = {
-            ...appointment,
-            id: Date.now(),
-            status: 'confirmed',
-            dateBooked: new Date().toISOString(),
-            paymentStatus: appointment.paymentStatus || 'pending'
-        };
-        localAppointments.push(fallback);
-        storageSetJSON('appointments', localAppointments);
-        invalidateBookedSlotsCache(fallback.date || appointment?.date || '', fallback.doctor || appointment?.doctor || '');
-        return {
-            appointment: fallback,
-            emailSent: false
-        };
-    }
+    return withDeferredModule(loadDataEngine, (engine) => engine.createAppointmentRecord(appointment, options));
 }
 
 async function createCallbackRecord(callback) {
-    try {
-        await apiRequest('callbacks', {
-            method: 'POST',
-            body: callback
-        });
-    } catch (error) {
-        if (!LOCAL_FALLBACK_ENABLED) {
-            throw error;
-        }
-        const callbacks = storageGetJSON('callbacks', []);
-        callbacks.push(callback);
-        storageSetJSON('callbacks', callbacks);
-    }
+    return withDeferredModule(loadDataEngine, (engine) => engine.createCallbackRecord(callback));
 }
 
 async function createReviewRecord(review) {
-    try {
-        const payload = await apiRequest('reviews', {
-            method: 'POST',
-            body: review
-        });
-        return payload.data;
-    } catch (error) {
-        if (!LOCAL_FALLBACK_ENABLED) {
-            throw error;
-        }
-        const localReviews = storageGetJSON('reviews', []);
-        localReviews.unshift(review);
-        storageSetJSON('reviews', localReviews);
-        return review;
-    }
+    return withDeferredModule(loadDataEngine, (engine) => engine.createReviewRecord(review));
 }
 
 const REVIEWS_ENGINE_URL = '/reviews-engine.js?v=figo-reviews-20260219-phase1';
@@ -2151,7 +1742,7 @@ function toggleChatbot() {
                 welcomeMsg = 'Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
                 welcomeMsg += '<strong>Conectado con Inteligencia Artificial</strong><br><br>';
                 welcomeMsg += 'Puedo ayudarte con informacion detallada sobre:<br>';
-                welcomeMsg += '- Nuestros servicios dermatologicos<br>';
+                welcomeMsg += '- Nuestros servicios dermatológicos<br>';
                 welcomeMsg += '- Precios de consultas y tratamientos<br>';
                 welcomeMsg += '- Agendar citas presenciales o online<br>';
                 welcomeMsg += '- Ubicacion y horarios de atencion<br>';
@@ -2160,7 +1751,7 @@ function toggleChatbot() {
             } else {
                 welcomeMsg = 'Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
                 welcomeMsg += 'Puedo ayudarte con informacion sobre:<br>';
-                welcomeMsg += '- Nuestros servicios dermatologicos<br>';
+                welcomeMsg += '- Nuestros servicios dermatológicos<br>';
                 welcomeMsg += '- Precios de consultas y tratamientos<br>';
                 welcomeMsg += '- Agendar citas presenciales o online<br>';
                 welcomeMsg += '- Ubicacion y horarios de atencion<br><br>';
@@ -2713,6 +2304,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const initDeferredWarmups = createOnceTask(() => {
         initEnglishBundleWarmup();
+        initDataEngineWarmup();
         initBookingEngineWarmup();
         initBookingUiWarmup();
         initReviewsEngineWarmup();
