@@ -428,10 +428,19 @@ function initDeferredStylesheetLoading() {
 // ========================================
 const I18N_ENGINE_URL = '/i18n-engine.js?v=figo-i18n-20260219-phase1';
 
-let currentLang = localStorage.getItem('language') || 'es';
+function readLocalStorageString(key, fallback = '') {
+    try {
+        const value = localStorage.getItem(key);
+        return (typeof value === 'string' && value !== '') ? value : fallback;
+    } catch (_) {
+        return fallback;
+    }
+}
+
+let currentLang = readLocalStorageString('language', 'es');
 const THEME_STORAGE_KEY = 'themeMode';
 const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
-let currentThemeMode = localStorage.getItem(THEME_STORAGE_KEY) || 'system';
+let currentThemeMode = readLocalStorageString(THEME_STORAGE_KEY, 'system');
 const THEME_ENGINE_URL = '/theme-engine.js?v=figo-theme-20260219-phase1';
 const CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
 const CLINIC_MAP_URL = 'https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D';
@@ -445,6 +454,7 @@ const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
 const CONSENT_ENGINE_URL = '/consent-engine.js?v=figo-consent-20260219-phase1';
 const ANALYTICS_ENGINE_URL = '/analytics-engine.js?v=figo-analytics-20260219-phase1';
 const ANALYTICS_GATEWAY_ENGINE_URL = '/analytics-gateway-engine.js?v=figo-analytics-gateway-20260219-phase1';
+const STORAGE_GATEWAY_ENGINE_URL = '/storage-gateway-engine.js?v=figo-storage-gateway-20260219-phase1';
 const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
 let currentAppointment = null;
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
@@ -684,32 +694,66 @@ const loadConsentEngine = createEngineLoader({
     logLabel: 'Consent engine'
 });
 
+function getStorageGatewayEngineDeps() {
+    return {};
+}
+
+const loadStorageGatewayEngine = createEngineLoader({
+    cacheKey: 'storage-gateway-engine',
+    src: STORAGE_GATEWAY_ENGINE_URL,
+    scriptDataAttribute: 'data-storage-gateway-engine',
+    resolveModule: () => window.PielStorageGatewayEngine,
+    depsFactory: getStorageGatewayEngineDeps,
+    missingApiError: 'storage-gateway-engine loaded without API',
+    loadError: 'No se pudo cargar storage-gateway-engine.js',
+    logLabel: 'Storage gateway engine'
+});
+
+function getStorageGatewayEngineApi() {
+    const engine = window.PielStorageGatewayEngine;
+    if (
+        engine
+        && typeof engine.getJSON === 'function'
+        && typeof engine.setJSON === 'function'
+        && typeof engine.getString === 'function'
+        && typeof engine.remove === 'function'
+    ) {
+        return engine;
+    }
+    return null;
+}
+
+function initStorageGatewayEngineWarmup() {
+    const warmup = createWarmupRunner(() => loadStorageGatewayEngine(), { markWarmOnSuccess: true });
+
+    bindWarmupTargetsBatch(warmup, [
+        { selector: '#cookieBanner', eventName: 'pointerdown' },
+        { selector: '.theme-option[data-theme-mode="dark"]', eventName: 'pointerdown' },
+        { selector: '.lang-btn[data-lang="en"]', eventName: 'pointerdown' }
+    ]);
+
+    scheduleDeferredTask(warmup, {
+        idleTimeout: 2100,
+        fallbackDelay: 900
+    });
+}
+
 function getCookieConsent() {
     if (window.PielConsentEngine && typeof window.PielConsentEngine.getCookieConsent === 'function') {
         return window.PielConsentEngine.getCookieConsent();
     }
 
-    try {
-        const raw = localStorage.getItem(COOKIE_CONSENT_KEY);
-        if (!raw) return '';
-        const parsed = JSON.parse(raw);
-        return typeof parsed?.status === 'string' ? parsed.status : '';
-    } catch (error) {
-        return '';
-    }
+    const parsed = storageGetJSON(COOKIE_CONSENT_KEY, null);
+    return typeof parsed?.status === 'string' ? parsed.status : '';
 }
 
 function setCookieConsent(status) {
     return runDeferredModule(loadConsentEngine, (engine) => engine.setCookieConsent(status), () => {
         const normalized = status === 'accepted' ? 'accepted' : 'rejected';
-        try {
-            localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({
-                status: normalized,
-                at: new Date().toISOString()
-            }));
-        } catch (error) {
-            // noop
-        }
+        storageSetJSON(COOKIE_CONSENT_KEY, {
+            status: normalized,
+            at: new Date().toISOString()
+        });
     });
 }
 
@@ -982,6 +1026,11 @@ function disablePlaceholderExternalLinks() {
 }
 
 function storageGetJSON(key, fallback) {
+    const storageGateway = getStorageGatewayEngineApi();
+    if (storageGateway) {
+        return storageGateway.getJSON(key, fallback);
+    }
+
     try {
         const value = JSON.parse(localStorage.getItem(key) || 'null');
         return value === null ? fallback : value;
@@ -991,6 +1040,12 @@ function storageGetJSON(key, fallback) {
 }
 
 function storageSetJSON(key, value) {
+    const storageGateway = getStorageGatewayEngineApi();
+    if (storageGateway) {
+        storageGateway.setJSON(key, value);
+        return;
+    }
+
     try {
         localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
@@ -2164,7 +2219,7 @@ async function processWithKimi(message) {
 }
 
 runDeferredModule(loadChatWidgetEngine, (engine) => engine.scheduleInitialNotification(30000));
-const APP_BOOTSTRAP_ENGINE_URL = '/app-bootstrap-engine.js?v=figo-bootstrap-20260219-phase2-events5';
+const APP_BOOTSTRAP_ENGINE_URL = '/app-bootstrap-engine.js?v=figo-bootstrap-20260219-phase2-events6';
 // ========================================
 // REPROGRAMACION ONLINE
 // ========================================
@@ -2261,6 +2316,7 @@ function getAppBootstrapEngineDeps() {
         createOnceTask,
         scheduleDeferredTask,
         initEnglishBundleWarmup,
+        initStorageGatewayEngineWarmup,
         initDataEngineWarmup,
         initDataGatewayEngineWarmup,
         initAnalyticsGatewayEngineWarmup,
