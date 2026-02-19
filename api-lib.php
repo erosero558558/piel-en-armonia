@@ -519,6 +519,22 @@ function ensure_data_file(): bool
     return true;
 }
 
+function build_appointment_index(array $appointments): array
+{
+    $index = [];
+    foreach ($appointments as $i => $appt) {
+        $date = (string) ($appt['date'] ?? '');
+        if ($date === '') {
+            continue;
+        }
+        if (!isset($index[$date])) {
+            $index[$date] = [];
+        }
+        $index[$date][] = $i;
+    }
+    return $index;
+}
+
 function read_store(): array
 {
     if (!ensure_data_file()) {
@@ -577,6 +593,10 @@ function read_store(): array
     $data['availability'] = isset($data['availability']) && is_array($data['availability']) ? $data['availability'] : [];
     $data['updatedAt'] = isset($data['updatedAt']) ? (string) $data['updatedAt'] : local_date('c');
 
+    if (!isset($data['idx_appointments_date']) || !is_array($data['idx_appointments_date'])) {
+        $data['idx_appointments_date'] = build_appointment_index($data['appointments']);
+    }
+
     return $data;
 }
 
@@ -595,6 +615,9 @@ function write_store(array $store): void
     $store['reviews'] = isset($store['reviews']) && is_array($store['reviews']) ? $store['reviews'] : [];
     $store['availability'] = isset($store['availability']) && is_array($store['availability']) ? $store['availability'] : [];
     $store['updatedAt'] = local_date('c');
+
+    // Rebuild index before saving to ensure consistency
+    $store['idx_appointments_date'] = build_appointment_index($store['appointments']);
 
     $fp = @fopen(data_file_path(), 'c+');
     if ($fp === false) {
@@ -1055,8 +1078,41 @@ function normalize_appointment(array $appointment): array
     ];
 }
 
-function appointment_slot_taken(array $appointments, string $date, string $time, ?int $excludeId = null, string $doctor = ''): bool
+function appointment_slot_taken(array $appointments, string $date, string $time, ?int $excludeId = null, string $doctor = '', ?array $index = null): bool
 {
+    // Use index if available for faster lookup
+    if ($index !== null) {
+        if (!isset($index[$date])) {
+            return false;
+        }
+
+        foreach ($index[$date] as $idx) {
+            if (!isset($appointments[$idx])) {
+                continue;
+            }
+            $appt = $appointments[$idx];
+            $id = isset($appt['id']) ? (int) $appt['id'] : null;
+            if ($excludeId !== null && $id === $excludeId) {
+                continue;
+            }
+            $status = map_appointment_status((string) ($appt['status'] ?? 'confirmed'));
+            if ($status === 'cancelled') {
+                continue;
+            }
+            if ((string) ($appt['time'] ?? '') !== $time) {
+                continue;
+            }
+            if ($doctor !== '' && $doctor !== 'indiferente') {
+                $apptDoctor = (string) ($appt['doctor'] ?? '');
+                if ($apptDoctor !== '' && $apptDoctor !== 'indiferente' && $apptDoctor !== $doctor) {
+                    continue;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
     foreach ($appointments as $appt) {
         $id = isset($appt['id']) ? (int) $appt['id'] : null;
         if ($excludeId !== null && $id === $excludeId) {

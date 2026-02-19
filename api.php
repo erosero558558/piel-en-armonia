@@ -319,25 +319,51 @@ if ($method === 'GET' && $resource === 'booked-slots') {
     }
 
     $doctor = isset($_GET['doctor']) ? trim((string) $_GET['doctor']) : '';
-
     $slots = [];
-    foreach ($store['appointments'] as $appointment) {
-        $status = map_appointment_status((string) ($appointment['status'] ?? 'confirmed'));
-        if ($status === 'cancelled') {
-            continue;
-        }
-        if ((string) ($appointment['date'] ?? '') !== $date) {
-            continue;
-        }
-        if ($doctor !== '' && $doctor !== 'indiferente') {
-            $apptDoctor = (string) ($appointment['doctor'] ?? '');
-            if ($apptDoctor !== '' && $apptDoctor !== 'indiferente' && $apptDoctor !== $doctor) {
-                continue;
+    $index = $store['idx_appointments_date'] ?? null;
+
+    if ($index !== null) {
+        if (isset($index[$date])) {
+            foreach ($index[$date] as $idx) {
+                if (!isset($store['appointments'][$idx])) {
+                    continue;
+                }
+                $appointment = $store['appointments'][$idx];
+                $status = map_appointment_status((string) ($appointment['status'] ?? 'confirmed'));
+                if ($status === 'cancelled') {
+                    continue;
+                }
+                if ($doctor !== '' && $doctor !== 'indiferente') {
+                    $apptDoctor = (string) ($appointment['doctor'] ?? '');
+                    if ($apptDoctor !== '' && $apptDoctor !== 'indiferente' && $apptDoctor !== $doctor) {
+                        continue;
+                    }
+                }
+                $time = (string) ($appointment['time'] ?? '');
+                if ($time !== '') {
+                    $slots[] = $time;
+                }
             }
         }
-        $time = (string) ($appointment['time'] ?? '');
-        if ($time !== '') {
-            $slots[] = $time;
+    } else {
+        foreach ($store['appointments'] as $appointment) {
+            $status = map_appointment_status((string) ($appointment['status'] ?? 'confirmed'));
+            if ($status === 'cancelled') {
+                continue;
+            }
+            if ((string) ($appointment['date'] ?? '') !== $date) {
+                continue;
+            }
+            if ($doctor !== '' && $doctor !== 'indiferente') {
+                $apptDoctor = (string) ($appointment['doctor'] ?? '');
+                if ($apptDoctor !== '' && $apptDoctor !== 'indiferente' && $apptDoctor !== $doctor) {
+                    continue;
+                }
+            }
+            $time = (string) ($appointment['time'] ?? '');
+            if ($time !== '') {
+                $slots[] = $time;
+            }
         }
     }
 
@@ -415,7 +441,7 @@ if ($method === 'POST' && $resource === 'payment-intent') {
         ], 400);
     }
 
-    if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $appointment['doctor'])) {
+    if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $appointment['doctor'], $store['idx_appointments_date'] ?? null)) {
         json_response([
             'ok' => false,
             'error' => 'Ese horario ya fue reservado'
@@ -675,7 +701,7 @@ if ($method === 'POST' && $resource === 'appointments') {
         ], 400);
     }
 
-    if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $appointment['doctor'])) {
+    if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $appointment['doctor'], $store['idx_appointments_date'] ?? null)) {
         json_response([
             'ok' => false,
             'error' => 'Ese horario ya fue reservado'
@@ -825,7 +851,7 @@ if ($method === 'POST' && $resource === 'appointments') {
         $doctors = ['rosero', 'narvaez'];
         $assigned = '';
         foreach ($doctors as $candidate) {
-            if (!appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $candidate)) {
+            if (!appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $candidate, $store['idx_appointments_date'] ?? null)) {
                 $assigned = $candidate;
                 break;
             }
@@ -1101,7 +1127,7 @@ if ($method === 'PATCH' && $resource === 'reschedule') {
 
         $doctor = $appt['doctor'] ?? '';
         $excludeId = (int) ($appt['id'] ?? 0);
-        if (appointment_slot_taken($store['appointments'], $newDate, $newTime, $excludeId, $doctor)) {
+        if (appointment_slot_taken($store['appointments'], $newDate, $newTime, $excludeId, $doctor, $store['idx_appointments_date'] ?? null)) {
             json_response(['ok' => false, 'error' => 'El horario seleccionado ya no está disponible'], 409);
         }
 
