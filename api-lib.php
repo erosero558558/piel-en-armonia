@@ -968,17 +968,20 @@ function normalize_appointment(array $appointment): array
 function appointment_slot_taken(array $appointments, string $date, string $time, ?int $excludeId = null, string $doctor = ''): bool
 {
     foreach ($appointments as $appt) {
+        if ((string) ($appt['date'] ?? '') !== $date || (string) ($appt['time'] ?? '') !== $time) {
+            continue;
+        }
+
         $id = isset($appt['id']) ? (int) $appt['id'] : null;
         if ($excludeId !== null && $id === $excludeId) {
             continue;
         }
-        $status = map_appointment_status((string) ($appt['status'] ?? 'confirmed'));
-        if ($status === 'cancelled') {
+
+        $rawStatus = (string) ($appt['status'] ?? 'confirmed');
+        if (strcasecmp($rawStatus, 'cancelled') === 0) {
             continue;
         }
-        if ((string) ($appt['date'] ?? '') !== $date || (string) ($appt['time'] ?? '') !== $time) {
-            continue;
-        }
+
         if ($doctor !== '' && $doctor !== 'indiferente') {
             $apptDoctor = (string) ($appt['doctor'] ?? '');
             if ($apptDoctor !== '' && $apptDoctor !== 'indiferente' && $apptDoctor !== $doctor) {

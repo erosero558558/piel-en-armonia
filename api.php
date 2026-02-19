@@ -229,11 +229,11 @@ if ($method === 'GET' && $resource === 'booked-slots') {
 
     $slots = [];
     foreach ($store['appointments'] as $appointment) {
-        $status = map_appointment_status((string) ($appointment['status'] ?? 'confirmed'));
-        if ($status === 'cancelled') {
+        if ((string) ($appointment['date'] ?? '') !== $date) {
             continue;
         }
-        if ((string) ($appointment['date'] ?? '') !== $date) {
+        $rawStatus = (string) ($appointment['status'] ?? 'confirmed');
+        if (strcasecmp($rawStatus, 'cancelled') === 0) {
             continue;
         }
         if ($doctor !== '' && $doctor !== 'indiferente') {
