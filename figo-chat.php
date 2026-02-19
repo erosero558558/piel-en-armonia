@@ -2,12 +2,47 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
-require_once __DIR__ . '/figo-brain.php';
 
 /**
  * Figo chat endpoint.
  * Frontend -> /figo-chat.php -> configured Figo backend.
  */
+
+function figo_apply_cors(): void
+{
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+
+    $origin = isset($_SERVER['HTTP_ORIGIN']) ? trim((string) $_SERVER['HTTP_ORIGIN']) : '';
+    if ($origin === '') {
+        return;
+    }
+
+    $allowed = [];
+    $rawAllowed = getenv('PIELARMONIA_ALLOWED_ORIGINS');
+    if (is_string($rawAllowed) && trim($rawAllowed) !== '') {
+        foreach (explode(',', $rawAllowed) as $item) {
+            $item = trim($item);
+            if ($item !== '') {
+                $allowed[] = rtrim($item, '/');
+            }
+        }
+    }
+
+    $allowed[] = 'https://pielarmonia.com';
+    $allowed[] = 'https://www.pielarmonia.com';
+    $allowed = array_values(array_unique(array_filter($allowed)));
+
+    $normalizedOrigin = rtrim($origin, '/');
+    foreach ($allowed as $allowedOrigin) {
+        if (strcasecmp($normalizedOrigin, $allowedOrigin) === 0) {
+            header('Access-Control-Allow-Origin: ' . $origin);
+            header('Vary: Origin');
+            return;
+        }
+    }
+}
 
 function figo_extract_text(array $decoded, string $raw): string
 {
@@ -250,72 +285,78 @@ function figo_finalize_completion(
 
 function figo_build_fallback_completion(string $model, array $messages): array
 {
-    // Use the Smart Local Brain (FigoBrain) instead of static rules.
-    return FigoBrain::process($messages);
+    $lastUser = '';
+    for ($i = count($messages) - 1; $i >= 0; $i--) {
+        $msg = $messages[$i] ?? null;
+        if (is_array($msg) && (($msg['role'] ?? '') === 'user') && is_string($msg['content'] ?? null)) {
+            $lastUser = trim((string) $msg['content']);
+            break;
+        }
+    }
+
+    if ($lastUser === '') {
+        $lastUser = 'consulta general';
+    }
+
+    $normalized = strtolower($lastUser);
+    $isPayment = preg_match('/pago|pagar|tarjeta|transferencia|efectivo|factura|comprobante/', $normalized) === 1;
+    $isBooking = preg_match('/cita|agendar|reservar|turno|hora/', $normalized) === 1;
+    $isPricing = preg_match('/precio|costo|valor|tarifa|cuanto cuesta/', $normalized) === 1;
+    $isOutOfScope = preg_match('/capital|presidente|noticia|deporte|futbol|clima|bitcoin|politica/', $normalized) === 1;
+
+    if ($isOutOfScope) {
+        $content = 'Puedo ayudarte solo con temas de Piel en Armonía (servicios, precios, citas, pagos y ubicación). Si quieres, te guio ahora mismo para reservar tu cita o elegir tratamiento.';
+    } elseif ($isPayment) {
+        $content = "Para pagar en la web:\n1) Completa el formulario de Reservar Cita.\n2) Se abre el módulo de pago.\n3) Elige tarjeta, transferencia o efectivo.\n4) Confirma y te validamos por WhatsApp (+593 98 245 3672).\n\nSi quieres, te guío según el método que prefieras.";
+    } elseif ($isBooking) {
+        $content = "Para agendar:\n1) Abre Reservar Cita.\n2) Elige servicio, doctor, fecha y hora.\n3) Completa tus datos.\n4) Confirma pago y reserva.\n\nTambién puedes agendar por WhatsApp: https://wa.me/593982453672";
+    } elseif ($isPricing) {
+        $content = "Precios base:\n- Consulta dermatológica: $40\n- Consulta telefónica: $25\n- Video consulta: $30\n- Acné: desde $80\n- Láser: desde $150\n- Rejuvenecimiento: desde $120\n\nSi me dices tu caso, te recomiendo el siguiente paso.";
+    } else {
+        $content = "Puedo ayudarte con Piel en Armonía. Sobre \"{$lastUser}\", te guio paso a paso en servicios, citas o pagos. Si prefieres atención inmediata: WhatsApp +593 98 245 3672.";
+    }
+
+    try {
+        $id = 'figo-fallback-' . bin2hex(random_bytes(8));
+    } catch (Throwable $e) {
+        $id = 'figo-fallback-' . substr(md5((string) microtime(true)), 0, 16);
+    }
+
+    return [
+        'id' => $id,
+        'object' => 'chat.completion',
+        'created' => time(),
+        'model' => $model,
+        'choices' => [[
+            'index' => 0,
+            'message' => [
+                'role' => 'assistant',
+                'content' => $content
+            ],
+            'finish_reason' => 'stop'
+        ]]
+    ];
 }
 
-function figo_parse_bool_value($raw): ?bool
+function figo_degraded_mode_enabled(): bool
 {
-    if (is_bool($raw)) {
-        return $raw;
-    }
-
-    if (is_int($raw) || is_float($raw)) {
-        if ((int) $raw === 1) {
-            return true;
-        }
-        if ((int) $raw === 0) {
-            return false;
-        }
-        return null;
-    }
-
+    $raw = getenv('FIGO_CHAT_DEGRADED_MODE');
     if (!is_string($raw) || trim($raw) === '') {
-        return null;
+        // Default seguro: evita errores duros en frontend cuando falta configuracion.
+        return true;
     }
 
     $value = strtolower(trim($raw));
-    if (in_array($value, ['1', 'true', 'yes', 'on'], true)) {
-        return true;
-    }
-    if (in_array($value, ['0', 'false', 'no', 'off'], true)) {
-        return false;
-    }
-
-    return null;
+    return in_array($value, ['1', 'true', 'yes', 'on'], true);
 }
 
-function figo_degraded_mode_enabled(
-    array $fileConfig = [],
-    bool $endpointConfigured = false,
-    bool $recursiveConfigDetected = false,
-    ?bool $upstreamReachable = null
-): bool
-{
-    $envMode = figo_parse_bool_value(getenv('FIGO_CHAT_DEGRADED_MODE'));
-    if ($envMode !== null) {
-        return $envMode;
-    }
-
-    if (array_key_exists('degradedMode', $fileConfig)) {
-        $fileMode = figo_parse_bool_value($fileConfig['degradedMode']);
-        if ($fileMode !== null) {
-            return $fileMode;
-        }
-    }
-
-    // Auto mode by default: if upstream is configured and healthy, do not degrade.
-    if ($endpointConfigured && !$recursiveConfigDetected && $upstreamReachable !== false) {
-        return false;
-    }
-
-    return true;
-}
-
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-api_apply_cors(['GET', 'POST', 'OPTIONS'], ['Content-Type', 'Authorization'], true);
+figo_apply_cors();
 
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+if ($method === 'OPTIONS') {
+    http_response_code(204);
+    exit();
+}
 
 header('Content-Type: application/json; charset=utf-8');
 $fileConfig = figo_read_file_config();
@@ -338,13 +379,15 @@ $endpoint = figo_first_non_empty([
 ]);
 $endpointDiagnostics = figo_endpoint_diagnostics($endpoint);
 $recursiveConfigDetected = figo_is_recursive_endpoint($endpoint);
-$upstreamReachable = figo_probe_upstream($endpoint, 3);
-$degradedModeEnabled = figo_degraded_mode_enabled(
-    $fileConfig,
-    $endpointDiagnostics['configured'],
-    $recursiveConfigDetected,
-    $upstreamReachable
-);
+
+// OPTIMIZATION: Only probe upstream for diagnostics (GET), not for every message (POST).
+// For POST, we assume it's reachable and let the actual request handle failures.
+$upstreamReachable = null;
+$requestMethod = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+if ($requestMethod === 'GET') {
+    $upstreamReachable = figo_probe_upstream($endpoint, 3);
+}
+
 $diagnosticMode = (!$endpointDiagnostics['configured'] || $recursiveConfigDetected || $upstreamReachable === false)
     ? 'degraded'
     : 'live';
@@ -355,7 +398,7 @@ $configSource = isset($fileConfig['__source']) && is_string($fileConfig['__sourc
 if ($method === 'GET') {
     audit_log_event('figo.status', [
         'configured' => $endpointDiagnostics['configured'],
-        'degradedMode' => $degradedModeEnabled,
+        'degradedMode' => figo_degraded_mode_enabled(),
         'endpointHost' => $endpointDiagnostics['endpointHost'],
         'recursiveConfigDetected' => $recursiveConfigDetected,
         'upstreamReachable' => $upstreamReachable
@@ -365,7 +408,7 @@ if ($method === 'GET') {
         'service' => 'figo-chat',
         'mode' => $diagnosticMode,
         'configured' => $endpointDiagnostics['configured'],
-        'degradedMode' => $degradedModeEnabled,
+        'degradedMode' => figo_degraded_mode_enabled(),
         'hasFileConfig' => isset($fileConfig['__source']),
         'configSource' => $configSource,
         'endpointHost' => $endpointDiagnostics['endpointHost'],
@@ -388,7 +431,7 @@ if ($method !== 'POST') {
 }
 
 start_secure_session();
-require_rate_limit('figo-chat');
+require_rate_limit('figo-chat', 15, 60);
 
 $payload = require_json_body();
 $messages = isset($payload['messages']) && is_array($payload['messages'])
@@ -534,7 +577,7 @@ if ($recursiveConfigDetected) {
         'endpointPath' => $endpointDiagnostics['endpointPath']
     ]);
 
-    if ($degradedModeEnabled) {
+    if (figo_degraded_mode_enabled()) {
         $fallback = figo_finalize_completion(
             figo_build_fallback_completion($model, $messages),
             'degraded',
@@ -559,7 +602,7 @@ if ($recursiveConfigDetected) {
 
 $curlAvailable = function_exists('curl_init') && function_exists('curl_setopt_array') && function_exists('curl_exec');
 if (!$curlAvailable) {
-    if ($degradedModeEnabled) {
+    if (figo_degraded_mode_enabled()) {
         $fallback = figo_finalize_completion(
             figo_build_fallback_completion($model, $messages),
             'degraded',
@@ -615,7 +658,7 @@ if (!is_string($rawResponse)) {
     audit_log_event('figo.upstream_error', [
         'reason' => 'curl_failed'
     ]);
-    if ($degradedModeEnabled) {
+    if (figo_degraded_mode_enabled()) {
         $fallback = figo_finalize_completion(
             figo_build_fallback_completion($model, $messages),
             'degraded',
@@ -644,7 +687,7 @@ if ($httpCode >= 400) {
         'reason' => 'http_error',
         'status' => $httpCode
     ]);
-    if ($degradedModeEnabled) {
+    if (figo_degraded_mode_enabled()) {
         $fallback = figo_finalize_completion(
             figo_build_fallback_completion($model, $messages),
             'degraded',
