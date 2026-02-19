@@ -169,6 +169,7 @@
         }
 
         container.classList.add('active');
+        hideTeaser();
 
         const notification = document.getElementById('chatNotification');
         if (notification) {
@@ -235,20 +236,35 @@
         Promise.resolve(processWithKimiSafe(message)).catch(() => undefined);
     }
 
+    function showTeaser() {
+        const teaser = document.getElementById('chatTeaser');
+        if (teaser) {
+            teaser.classList.add('show');
+        }
+    }
+
+    function hideTeaser() {
+        const teaser = document.getElementById('chatTeaser');
+        if (teaser) {
+            teaser.classList.remove('show');
+        }
+    }
+
     function scheduleInitialNotification(delayMs) {
         const delay = Number(delayMs);
-        const safeDelay = Number.isFinite(delay) && delay >= 0 ? delay : 30000;
+        const safeDelay = Number.isFinite(delay) && delay >= 0 ? delay : 8000;
 
         setTimeout(() => {
             const notification = document.getElementById('chatNotification');
-            if (!notification) {
-                return;
-            }
 
             const isOpen = getChatbotOpen();
             const historyLength = getChatHistoryLength();
+
             if (!isOpen && historyLength === 0) {
-                notification.style.display = 'flex';
+                if (notification) {
+                    notification.style.display = 'flex';
+                }
+                showTeaser();
             }
         }, safeDelay);
     }
@@ -260,6 +276,8 @@
         handleChatKeypress,
         sendChatMessage,
         sendQuickMessage,
-        scheduleInitialNotification
+        scheduleInitialNotification,
+        showTeaser,
+        hideTeaser
     };
 })();

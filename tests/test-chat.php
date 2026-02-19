@@ -3,11 +3,11 @@ require_once __DIR__ . '/../api-lib.php';
 require_once __DIR__ . '/../figo-brain.php';
 
 $tests = [
-    ['hola', 'Hola! Soy Figo'],
-    ['precio consulta', 'Nuestros precios'],
+    ['hola', 'Dr. Virtual'],
+    ['precio consulta', 'Nuestros Precios'],
     ['cuanto cuesta acne', 'Acné:'],
     ['agendar cita', 'Reservar Cita Online'],
-    ['donde estan', 'Ubicación'],
+    ['donde estan', 'Nuestra Ubicación'],
     ['horario', 'Horarios de Atención'],
     ['dr rosero', 'Javier Rosero'],
     ['rejuvenecimiento', 'Toxina Botulínica'],
