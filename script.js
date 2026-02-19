@@ -1446,7 +1446,7 @@ const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
 const CHAT_HISTORY_MAX_ITEMS = 50;
 const CHAT_CONTEXT_MAX_ITEMS = 24;
 const CHAT_UI_ENGINE_URL = '/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1';
-const CHAT_WIDGET_ENGINE_URL = '/chat-widget-engine.js?v=figo-chat-widget-20260219-phase1';
+const CHAT_WIDGET_ENGINE_URL = '/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification1';
 const ACTION_ROUTER_ENGINE_URL = '/action-router-engine.js?v=figo-action-router-20260219-phase1';
 
 function getChatUiEngineDeps() {
@@ -1683,6 +1683,10 @@ function sendQuickMessage(type) {
     });
 }
 
+function scheduleChatNotification() {
+    runDeferredModule(loadChatWidgetEngine, (engine) => engine.scheduleInitialNotification(30000));
+}
+
 function addUserMessage(text) {
     return withDeferredModule(loadChatUiEngine, (engine) => engine.addUserMessage(text));
 }
@@ -1906,19 +1910,15 @@ function checkServerEnvironment() {
     return true;
 }
 
-setTimeout(() => {
-    const notification = document.getElementById('chatNotification');
-    if (notification && !chatbotOpen && chatHistory.length === 0) {
-        notification.style.display = 'flex';
-    }
-}, 30000);
+scheduleChatNotification();
 // ========================================
 // REPROGRAMACION ONLINE
 // ========================================
-const RESCHEDULE_ENGINE_URL = '/reschedule-engine.js?v=figo-reschedule-20260218-phase4-stateclass1';
+const RESCHEDULE_GATEWAY_ENGINE_URL = '/reschedule-gateway-engine.js?v=figo-reschedule-gateway-20260219-phase1';
 
-function getRescheduleEngineDeps() {
+function getRescheduleGatewayEngineDeps() {
     return {
+        loadDeferredModule,
         apiRequest,
         loadAvailabilityData,
         getBookedSlots,
@@ -1930,29 +1930,24 @@ function getRescheduleEngineDeps() {
     };
 }
 
-function loadRescheduleEngine() {
+function loadRescheduleGatewayEngine() {
     return loadDeferredModule({
-        cacheKey: 'reschedule-engine',
-        src: RESCHEDULE_ENGINE_URL,
-        scriptDataAttribute: 'data-reschedule-engine',
-        resolveModule: () => window.PielRescheduleEngine,
+        cacheKey: 'reschedule-gateway-engine',
+        src: RESCHEDULE_GATEWAY_ENGINE_URL,
+        scriptDataAttribute: 'data-reschedule-gateway-engine',
+        resolveModule: () => window.PielRescheduleGatewayEngine,
         isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getRescheduleEngineDeps()),
-        missingApiError: 'reschedule-engine loaded without API',
-        loadError: 'No se pudo cargar reschedule-engine.js',
-        logLabel: 'Reschedule engine'
+        onModuleReady: (module) => module.init(getRescheduleGatewayEngineDeps()),
+        missingApiError: 'reschedule-gateway-engine loaded without API',
+        loadError: 'No se pudo cargar reschedule-gateway-engine.js',
+        logLabel: 'Reschedule gateway engine'
     });
 }
 
 function initRescheduleEngineWarmup() {
-    const params = new URLSearchParams(window.location.search);
-    if (!params.has('reschedule')) {
-        return;
-    }
-
     runDeferredModule(
-        loadRescheduleEngine,
-        (engine) => engine.checkRescheduleParam(),
+        loadRescheduleGatewayEngine,
+        (engine) => engine.initRescheduleFromParam(),
         () => {
             showToast(currentLang === 'es' ? 'No se pudo cargar la reprogramacion.' : 'Unable to load reschedule flow.', 'error');
         }
@@ -1960,16 +1955,16 @@ function initRescheduleEngineWarmup() {
 }
 
 function closeRescheduleModal() {
-    const modal = document.getElementById('rescheduleModal');
-    if (modal) {
-        modal.classList.remove('active');
-    }
-
-    runDeferredModule(loadRescheduleEngine, (engine) => engine.closeRescheduleModal());
+    runDeferredModule(loadRescheduleGatewayEngine, (engine) => engine.closeRescheduleModal(), () => {
+        const modal = document.getElementById('rescheduleModal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    });
 }
 
 function submitReschedule() {
-    runDeferredModule(loadRescheduleEngine, (engine) => engine.submitReschedule(), () => {
+    runDeferredModule(loadRescheduleGatewayEngine, (engine) => engine.submitReschedule(), () => {
         showToast(currentLang === 'es' ? 'No se pudo reprogramar en este momento.' : 'Unable to reschedule right now.', 'error');
     });
 }

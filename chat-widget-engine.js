@@ -223,12 +223,31 @@
         Promise.resolve(processWithKimiSafe(message)).catch(() => undefined);
     }
 
+    function scheduleInitialNotification(delayMs) {
+        const delay = Number(delayMs);
+        const safeDelay = Number.isFinite(delay) && delay >= 0 ? delay : 30000;
+
+        setTimeout(() => {
+            const notification = document.getElementById('chatNotification');
+            if (!notification) {
+                return;
+            }
+
+            const isOpen = getChatbotOpen();
+            const historyLength = getChatHistoryLength();
+            if (!isOpen && historyLength === 0) {
+                notification.style.display = 'flex';
+            }
+        }, safeDelay);
+    }
+
     window.PielChatWidgetEngine = {
         init,
         toggleChatbot,
         minimizeChatbot,
         handleChatKeypress,
         sendChatMessage,
-        sendQuickMessage
+        sendQuickMessage,
+        scheduleInitialNotification
     };
 })();
