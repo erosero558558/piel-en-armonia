@@ -444,13 +444,7 @@ const CASE_PHOTO_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp
 const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
 const CONSENT_ENGINE_URL = '/consent-engine.js?v=figo-consent-20260219-phase1';
 const ANALYTICS_ENGINE_URL = '/analytics-engine.js?v=figo-analytics-20260219-phase1';
-let checkoutSessionFallback = {
-    active: false,
-    completed: false,
-    startedAt: 0,
-    service: '',
-    doctor: ''
-};
+const ANALYTICS_GATEWAY_ENGINE_URL = '/analytics-gateway-engine.js?v=figo-analytics-gateway-20260219-phase1';
 const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
 let currentAppointment = null;
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
