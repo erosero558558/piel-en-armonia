@@ -92,7 +92,7 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
         Header set Cache-Control "public, max-age=300, stale-while-revalidate=60"
     </FilesMatch>
 
-    <FilesMatch "^(api|figo-chat|figo-backend|admin-auth)\.php$">
+    <FilesMatch "^(api|figo-chat|figo-backend|admin-auth|backup-receiver)\.php$">
         Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
         Header set Pragma "no-cache"
         Header set Expires "0"

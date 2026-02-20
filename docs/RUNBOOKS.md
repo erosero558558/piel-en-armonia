@@ -103,6 +103,14 @@ curl -s "https://pielarmonia.com/cron.php?action=backup-offsite&dryRun=1&token=Y
 
 Si no configuras endpoint remoto, `backup-offsite` replica localmente en `data/backups/offsite-local/`.
 
+Para réplica remota real:
+* Publica `backup-receiver.php` en el servidor destino.
+* Configura `PIELARMONIA_BACKUP_RECEIVER_TOKEN` en destino.
+* Configura en origen:
+  `PIELARMONIA_BACKUP_OFFSITE_URL=https://DESTINO/backup-receiver.php`
+  `PIELARMONIA_BACKUP_OFFSITE_TOKEN=<mismo_token>`
+* Usa `CONFIGURAR-BACKUP-OFFSITE.ps1` para generar token y comandos.
+
 ### 3.3 Revisión de Auditoría
 Revisar `data/audit.log` semanalmente en busca de:
 *   Accesos no autorizados (`api.unauthorized`).

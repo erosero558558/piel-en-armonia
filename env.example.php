@@ -63,6 +63,10 @@
 // putenv('PIELARMONIA_BACKUP_OFFSITE_TIMEOUT_SECONDS=20');
 // Replica local de snapshots (default true). Guardado en data/backups/offsite-local/
 // putenv('PIELARMONIA_BACKUP_LOCAL_REPLICA=true');
+// Receiver remoto (cuando este servidor actua como destino offsite)
+// putenv('PIELARMONIA_BACKUP_RECEIVER_TOKEN=token_largo_rotado');
+// Limite de subida en MB para backup-receiver.php (default 50)
+// putenv('PIELARMONIA_BACKUP_RECEIVER_MAX_MB=50');
 
 // ── Base de Datos (opcional) ────────────────────────
 // putenv('PIELARMONIA_DB_HOST=127.0.0.1');

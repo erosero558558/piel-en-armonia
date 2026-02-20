@@ -100,6 +100,8 @@ Configura estas variables en tu hosting:
 - `PIELARMONIA_BACKUP_OFFSITE_TOKEN_HEADER` (opcional, default `Authorization`)
 - `PIELARMONIA_BACKUP_OFFSITE_TIMEOUT_SECONDS` (opcional, default 20)
 - `PIELARMONIA_BACKUP_LOCAL_REPLICA` (opcional, default `true`, replica local en `data/backups/offsite-local/`)
+- `PIELARMONIA_BACKUP_RECEIVER_TOKEN` (solo cuando este servidor actua como destino de `backup-receiver.php`)
+- `PIELARMONIA_BACKUP_RECEIVER_MAX_MB` (opcional, limite de subida en MB del receiver)
 
 Importante:
 - Ya no existe fallback `admin123`, incluso en local.
@@ -173,6 +175,14 @@ Ejemplo recomendado de `data/figo-config.json`:
 9. Verificacion de cron de backup:
 - `https://pielarmonia.com/cron.php?action=backup-health&token=YOUR_CRON_SECRET`
 - `https://pielarmonia.com/cron.php?action=backup-offsite&dryRun=1&token=YOUR_CRON_SECRET`
+
+10. Replica remota real (opcional):
+- Publica `backup-receiver.php` en servidor destino.
+- Configura token en destino (`PIELARMONIA_BACKUP_RECEIVER_TOKEN`).
+- En origen configura:
+  `PIELARMONIA_BACKUP_OFFSITE_URL=https://DESTINO/backup-receiver.php`
+  `PIELARMONIA_BACKUP_OFFSITE_TOKEN=<TOKEN>`
+- Script de ayuda: `.\CONFIGURAR-BACKUP-OFFSITE.ps1`
 
 ## Notas importantes
 
