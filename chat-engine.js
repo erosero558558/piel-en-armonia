@@ -15,7 +15,17 @@ const KIMI_CONFIG = {
 };
 const CHAT_CONTEXT_MAX_ITEMS = 24;
 
+/* global debugLog, showTypingIndicator, removeTypingIndicator, addBotMessage, isChatBookingActive, processChatBookingStep, startChatBooking, showToast */
+
 let isProcessingMessage = false; // Evitar duplicados
+let conversationContext = [];
+let chatHistory = [];
+let currentAppointment = null;
+
+const CLINIC_ADDRESS = 'Valparaiso 13-183 y Sodiro, Consultorio Dr. Celio Caiza, Quito';
+const CLINIC_MAP_URL = 'https://goo.gl/maps/YOUR_MAP_LINK';
+const DOCTOR_CAROLINA_PHONE = '098 786 6885';
+const DOCTOR_CAROLINA_EMAIL = 'caro93narvaez@gmail.com';
 
 function shouldUseRealAI() {
     if (localStorage.getItem('forceAI') === 'true') {

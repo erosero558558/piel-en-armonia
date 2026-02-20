@@ -3,6 +3,8 @@
  * Server-backed admin with session auth.
  */
 
+/* global showToast, escapeHtml, normalizeCallbackStatus, formatDate, debounce */
+
 const AUTH_ENDPOINT = '/admin-auth.php';
 const API_ENDPOINT = '/api.php';
 
@@ -52,7 +54,7 @@ async function requestJson(url, options = {}) {
     let payload = {};
     try {
         payload = responseText ? JSON.parse(responseText) : {};
-    } catch (error) {
+    } catch (_) {
         throw new Error('Respuesta no valida del servidor');
     }
 
@@ -75,7 +77,7 @@ function getLocalData(key, fallback) {
     try {
         const value = JSON.parse(localStorage.getItem(key) || 'null');
         return value === null ? fallback : value;
-    } catch (error) {
+    } catch (_) {
         return fallback;
     }
 }
@@ -317,7 +319,7 @@ async function refreshData() {
         } else {
             currentFunnelMetrics = getEmptyFunnelMetrics();
         }
-    } catch (error) {
+    } catch (_) {
         loadFallbackState();
         showToast('No se pudo conectar al backend. Usando datos locales.', 'warning');
     }
@@ -350,7 +352,7 @@ async function checkAuth() {
         } else {
             showLogin();
         }
-    } catch (error) {
+    } catch (_) {
         showLogin();
         showToast('No se pudo verificar la sesion', 'warning');
     }
@@ -359,7 +361,7 @@ async function checkAuth() {
 async function logout() {
     try {
         await authRequest('logout', { method: 'POST' });
-    } catch (error) {
+    } catch (_) {
         // Continue with local logout UI.
     }
     showToast('Sesion cerrada correctamente', 'info');

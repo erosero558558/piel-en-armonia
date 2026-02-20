@@ -1,18 +1,6 @@
 (function () {
     'use strict';
 
-    const API_ENDPOINT = '/api.php';
-    const CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
-    const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
-    const API_REQUEST_TIMEOUT_MS = 9000;
-    const API_RETRY_BASE_DELAY_MS = 450;
-    const API_DEFAULT_RETRIES = 1;
-    const API_SLOW_NOTICE_MS = 1200;
-    const API_SLOW_NOTICE_COOLDOWN_MS = 25000;
-    const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
-    const THEME_STORAGE_KEY = 'themeMode';
-    const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
-
     let currentLang = localStorage.getItem('language') || 'es';
     let currentThemeMode = localStorage.getItem('themeMode') || 'system';
     let currentAppointment = null;
@@ -75,14 +63,26 @@
             const cutoff = Date.now() - 24 * 60 * 60 * 1000;
             const valid = saved.filter(m => m.time && new Date(m.time).getTime() > cutoff);
             if (valid.length !== saved.length) {
-                try { localStorage.setItem('chatHistory', JSON.stringify(valid)); } catch(e) {}
+                try { localStorage.setItem('chatHistory', JSON.stringify(valid)); } catch(_error) {}
             }
             return valid;
-        } catch(e) { return []; }
+        } catch(_error) { return []; }
     }
     function setChatHistory(history) {
-        try { localStorage.setItem('chatHistory', JSON.stringify(history)); } catch(e) {}
+        try { localStorage.setItem('chatHistory', JSON.stringify(history)); } catch(_error) {}
     }
+
+    const API_ENDPOINT = '/api.php';
+    const CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
+    const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
+    const API_REQUEST_TIMEOUT_MS = 9000;
+    const API_RETRY_BASE_DELAY_MS = 450;
+    const API_DEFAULT_RETRIES = 1;
+    const API_SLOW_NOTICE_MS = 1200;
+    const API_SLOW_NOTICE_COOLDOWN_MS = 25000;
+    const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
+    const THEME_STORAGE_KEY = 'themeMode';
+    const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
 
     function debugLog(...args) {
     }
@@ -127,7 +127,7 @@
                     }
                 }
             }
-        } catch (_) {
+        } catch (_error) {
             return '';
         }
 
@@ -152,7 +152,7 @@
                 return resolved.pathname + resolved.search;
             }
             return resolved.toString();
-        } catch (_) {
+        } catch (_error) {
             const separator = cleanUrl.indexOf('?') >= 0 ? '&' : '?';
             return cleanUrl + separator + 'cv=' + encodeURIComponent(deployVersion);
         }
@@ -215,7 +215,7 @@
         try {
             const value = JSON.parse(localStorage.getItem(key) || 'null');
             return value === null ? fallback : value;
-        } catch (error) {
+        } catch (_error) {
             return fallback;
         }
     }
@@ -223,7 +223,7 @@
     function storageSetJSON(key, value) {
         try {
             localStorage.setItem(key, JSON.stringify(value));
-        } catch (error) {
+        } catch (_error) {
             // Ignore storage quota errors.
         }
     }
@@ -816,7 +816,7 @@
                 let payload = {};
                 try {
                     payload = responseText ? JSON.parse(responseText) : {};
-                } catch (error) {
+                } catch (_error) {
                     throw makeApiError('Respuesta del servidor no es JSON valido', response.status, false, 'invalid_json');
                 }
 
@@ -887,7 +887,7 @@
                 publishableKey: payload.publishableKey || '',
                 currency: payload.currency || 'USD'
             };
-        } catch (error) {
+        } catch (_error) {
             config = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
         }
         setPaymentConfig(config);
@@ -1044,7 +1044,7 @@
                     return;
                 }
             }
-        } catch (_) {}
+        } catch (_error) {}
 
         fetch(FUNNEL_EVENT_ENDPOINT, {
             method: 'POST',

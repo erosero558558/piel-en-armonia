@@ -40,7 +40,7 @@ export function getCookieConsent() {
         if (!raw) return '';
         const parsed = JSON.parse(raw);
         return typeof parsed?.status === 'string' ? parsed.status : '';
-    } catch (error) {
+    } catch (_error) {
         return '';
     }
 }

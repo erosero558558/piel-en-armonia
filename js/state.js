@@ -1,5 +1,3 @@
-import { DEFAULT_TIME_SLOTS } from './config.js';
-
 let currentLang = localStorage.getItem('language') || 'es';
 let currentThemeMode = localStorage.getItem('themeMode') || 'system';
 let currentAppointment = null;
@@ -94,11 +92,11 @@ export function getChatHistory() {
         const cutoff = Date.now() - 24 * 60 * 60 * 1000;
         const valid = saved.filter(m => m.time && new Date(m.time).getTime() > cutoff);
         if (valid.length !== saved.length) {
-            try { localStorage.setItem('chatHistory', JSON.stringify(valid)); } catch(e) {}
+            try { localStorage.setItem('chatHistory', JSON.stringify(valid)); } catch(_error) {}
         }
         return valid;
-    } catch(e) { return []; }
+    } catch(_error) { return []; }
 }
 export function setChatHistory(history) {
-    try { localStorage.setItem('chatHistory', JSON.stringify(history)); } catch(e) {}
+    try { localStorage.setItem('chatHistory', JSON.stringify(history)); } catch(_error) {}
 }

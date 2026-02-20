@@ -17,7 +17,7 @@ export async function loadPaymentConfig() {
             publishableKey: payload.publishableKey || '',
             currency: payload.currency || 'USD'
         };
-    } catch (error) {
+    } catch (_error) {
         config = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
     }
     setPaymentConfig(config);
@@ -106,7 +106,7 @@ export async function uploadTransferProof(file) {
     let payload = {};
     try {
         payload = text ? JSON.parse(text) : {};
-    } catch (error) {
+    } catch (_error) {
         throw new Error('No se pudo interpretar la respuesta de subida');
     }
 
