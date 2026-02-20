@@ -1,4 +1,4 @@
-﻿(function (window) {
+var PielBookingEngine = (function () {
     'use strict';
 
     // build-sync: 20260219-sync1
@@ -6,7 +6,7 @@
     let initialized = false;
     let listenersBound = false;
     let isPaymentProcessing = false;
-    let paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
+    let paymentConfig = { enabled: false, provider: 'stripe', publishableKey: ''};
     let stripeClient = null;
     let stripeElements = null;
     let stripeCardElement = null;
@@ -34,14 +34,6 @@
             throw new Error(`BookingEngine dependency missing: ${name}`);
         }
         return fn;
-    }
-
-    function getCurrentLang() {
-        try {
-            return requireFn('getCurrentLang')() || 'es';
-        } catch (_) {
-            return 'es';
-        }
     }
 
     function getCurrentAppointment() {
@@ -150,7 +142,7 @@
     }
 
     function syncPaymentForms(activeMethod) {
-        const methodType = String(activeMethod || getActivePaymentMethod() || 'cash');
+        const methodType = String(activeMethod || getActivePaymentMethod());
         const paymentForms = document.querySelectorAll('.payment-form');
         paymentForms.forEach((form) => {
             form.classList.add('is-hidden');
@@ -529,7 +521,7 @@
                 error_code: normalizeAnalyticsLabel(error?.code || message, 'payment_failed')
             });
             setCheckoutStep('payment_error', {
-                paymentMethod: paymentMethodUsed || getActivePaymentMethod() || 'unknown'
+                paymentMethod: paymentMethodUsed || getActivePaymentMethod()
             });
 
             setPaymentError(message);
@@ -587,5 +579,6 @@
         processPayment
     };
 
-    window.PielBookingEngine = api;
-})(window);
+    return api;
+
+})();

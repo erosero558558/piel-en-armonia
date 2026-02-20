@@ -3,7 +3,7 @@
  * Extracted for lazy loading.
  */
 
-function initCalendar() {
+export function initCalendar() {
     // This function satisfies the explicit user request example.
     // In our architecture, the logic is mainly in updateAvailableTimes which is called by UI events.
     if (window.debugLog) {
@@ -11,7 +11,7 @@ function initCalendar() {
     }
 }
 
-async function updateAvailableTimes(deps, elements) {
+export async function updateAvailableTimes(deps, elements) {
     const { dateInput, timeSelect, doctorSelect, t } = elements;
 
     const selectedDate = dateInput ? dateInput.value : '';
@@ -49,5 +49,3 @@ async function updateAvailableTimes(deps, elements) {
         timeSelect.appendChild(option);
     });
 }
-
-export { initCalendar, updateAvailableTimes };
