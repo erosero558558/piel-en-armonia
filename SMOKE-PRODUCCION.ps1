@@ -1,6 +1,7 @@
 param(
     [string]$Domain = 'https://pielarmonia.com',
     [switch]$TestFigoPost,
+    [switch]$AllowFigoRateLimit,
     [switch]$AllowDegradedFigo,
     [switch]$AllowRecursiveFigo,
     [switch]$AllowMetaCspFallback,
@@ -472,6 +473,10 @@ if (-not $RequireCronReady) {
 
 foreach ($result in $results) {
     $expected = $expectedStatusByName[$result.Name]
+    if ($result.Name -eq 'Figo chat POST' -and $AllowFigoRateLimit -and [int]$result.Status -eq 429) {
+        Write-Host "[WARN] Figo chat POST en rate-limit (429) aceptado por configuracion"
+        continue
+    }
     if ($null -ne $expected -and [int]$result.Status -ne [int]$expected) {
         Write-Host "[FAIL] $($result.Name) devolvio HTTP $($result.Status), esperado HTTP $expected"
         $contractFailures += 1

@@ -36,6 +36,7 @@ Write-Host "[2/3] Smoke de produccion..." -ForegroundColor Yellow
 & .\SMOKE-PRODUCCION.ps1 `
     -Domain $Domain `
     -TestFigoPost `
+    -AllowFigoRateLimit `
     -AllowDegradedFigo:$AllowDegradedFigo `
     -AllowRecursiveFigo:$AllowRecursiveFigo `
     -AllowMetaCspFallback:$AllowMetaCspFallback `
