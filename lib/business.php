@@ -40,14 +40,14 @@ function get_services_config(): array
         'laser' => [
             'name' => 'Láser Dermatológico',
             'price_base' => 150.00,
-            'tax_rate' => 0.15, // IVA 15% - estético
+            'tax_rate' => get_vat_rate(), // IVA dinámico (default 15%) - estético
             'category' => 'procedimiento',
             'is_from_price' => true
         ],
         'rejuvenecimiento' => [
             'name' => 'Rejuvenecimiento Facial',
             'price_base' => 120.00,
-            'tax_rate' => 0.15, // IVA 15% - estético
+            'tax_rate' => get_vat_rate(), // IVA dinámico (default 15%) - estético
             'category' => 'estetico',
             'is_from_price' => true
         ],

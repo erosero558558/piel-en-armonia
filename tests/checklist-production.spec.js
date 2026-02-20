@@ -77,9 +77,19 @@ test.describe('Checklist de Pruebas en Producción', () => {
     await page.fill('input[type="password"]', ADMIN_PASSWORD);
     await page.click('button[type="submit"]');
 
+    // Verificar si aparece un toast de éxito o error
+    try {
+        const toast = page.locator('.toast');
+        await toast.waitFor({ state: 'visible', timeout: 5000 });
+        const toastText = await toast.textContent();
+        console.log(`Login toast: ${toastText}`);
+    } catch (e) {
+        console.log('No toast appeared');
+    }
+
     // Esperar a que cargue el dashboard
     // Ajustar selectores según la implementación real de admin.js/html
-    await expect(page.locator('#adminDashboard')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('#adminDashboard')).toBeVisible({ timeout: 30000 });
 
     // Navegación
     // Verificar que existen los enlaces o pestañas

@@ -30,6 +30,20 @@ module.exports = [
         },
     },
     {
+        files: ['tests/**/*.mjs'],
+        languageOptions: {
+            sourceType: 'module',
+            globals: {
+                ...globals.node,
+                console: 'readonly'
+            },
+        },
+        rules: {
+            'no-console': 'off',
+            'no-undef': 'off'
+        }
+    },
+    {
         files: ['tests/**/*.spec.js'],
         ...pluginPlaywright.configs['flat/recommended'],
         rules: {
