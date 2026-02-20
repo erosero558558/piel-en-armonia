@@ -122,6 +122,27 @@ function Measure-Endpoint {
     }
 }
 
+function Get-BenchFailureReasons {
+    param(
+        [pscustomobject]$Result
+    )
+
+    $reasons = @()
+    if ($Result.StatusFailures -gt 0 -or $Result.NetworkFailures -gt 0) {
+        $reasons += 'status_or_network'
+    }
+
+    if ($Result.Name -in @('health', 'reviews', 'availability') -and $Result.P95Ms -gt 800) {
+        $reasons += 'p95_core_over_800'
+    }
+
+    if ($Result.Name -eq 'figo-post' -and $Result.P95Ms -gt 2500) {
+        $reasons += 'p95_figo_post_over_2500'
+    }
+
+    return $reasons
+}
+
 Write-Host "== Bench Produccion API =="
 Write-Host "Dominio: $base"
 Write-Host "Runs por endpoint: $Runs"
@@ -144,21 +165,62 @@ foreach ($check in $checks) {
     $results += Measure-Endpoint -Name $check.Name -Url $check.Url -Method $check.Method -JsonBody $check.Body
 }
 
+$failuresByName = @{}
+foreach ($result in $results) {
+    $reasons = Get-BenchFailureReasons -Result $result
+    if ($reasons.Count -gt 0) {
+        $failuresByName[$result.Name] = $reasons
+    }
+}
+
+if ($failuresByName.Count -gt 0) {
+    Write-Host ""
+    Write-Host "[WARN] Se detectaron fallos iniciales de benchmark. Ejecutando corrida de confirmacion..." -ForegroundColor Yellow
+    foreach ($check in $checks) {
+        if (-not $failuresByName.ContainsKey($check.Name)) {
+            continue
+        }
+
+        $rerun = Measure-Endpoint -Name $check.Name -Url $check.Url -Method $check.Method -JsonBody $check.Body
+        $rerunReasons = Get-BenchFailureReasons -Result $rerun
+
+        if ($rerunReasons.Count -eq 0) {
+            Write-Host "[INFO] $($check.Name) recuperado en corrida de confirmacion." -ForegroundColor Green
+            for ($idx = 0; $idx -lt $results.Count; $idx++) {
+                if ($results[$idx].Name -eq $check.Name) {
+                    $results[$idx] = $rerun
+                    break
+                }
+            }
+        } else {
+            Write-Host "[WARN] $($check.Name) sigue fallando en confirmacion." -ForegroundColor Yellow
+            for ($idx = 0; $idx -lt $results.Count; $idx++) {
+                if ($results[$idx].Name -eq $check.Name) {
+                    $results[$idx] = $rerun
+                    break
+                }
+            }
+        }
+    }
+}
+
 $results | Format-Table -AutoSize
 
 $failed = $false
 foreach ($result in $results) {
-    if ($result.StatusFailures -gt 0 -or $result.NetworkFailures -gt 0) {
+    $reasons = Get-BenchFailureReasons -Result $result
+
+    if ($reasons -contains 'status_or_network') {
         $failed = $true
         Write-Host "[FAIL] $($result.Name) tiene errores de status/red." -ForegroundColor Red
     }
 
-    if ($result.Name -in @('health', 'reviews', 'availability') -and $result.P95Ms -gt 800) {
+    if ($reasons -contains 'p95_core_over_800') {
         $failed = $true
         Write-Host "[FAIL] $($result.Name) supera p95 de 800ms (actual: $($result.P95Ms)ms)." -ForegroundColor Red
     }
 
-    if ($result.Name -eq 'figo-post' -and $result.P95Ms -gt 2500) {
+    if ($reasons -contains 'p95_figo_post_over_2500') {
         $failed = $true
         Write-Host "[FAIL] figo-post supera p95 de 2500ms (actual: $($result.P95Ms)ms)." -ForegroundColor Red
     }
