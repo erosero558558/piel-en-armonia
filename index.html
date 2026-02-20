@@ -120,7 +120,44 @@
     .service-card-img{height:136px}
     }
     </style>
-    <link rel="preload" as="style" href="styles-deferred.css?v=ui-20260219-deferred12-cspinline1-stateclass1">
+    <style>
+    /* Chat viewport guardrails for small windows/mobile */
+    @media (max-width:900px){
+    .chatbot-widget{
+        right:12px !important;
+        bottom:calc(82px + var(--safe-bottom)) !important;
+        z-index:2300 !important;
+    }
+    .chatbot-container{
+        left:8px !important;
+        right:8px !important;
+        width:auto !important;
+        max-width:none !important;
+        bottom:calc(146px + var(--safe-bottom)) !important;
+        height:min(68dvh, 560px) !important;
+        max-height:calc(100dvh - 170px - var(--safe-bottom)) !important;
+        margin:0 !important;
+        transform-origin:bottom center !important;
+        animation:none !important;
+    }
+    }
+    @media (max-width:640px){
+    .chatbot-widget{
+        right:10px !important;
+        bottom:calc(76px + var(--safe-bottom)) !important;
+    }
+    .chatbot-container{
+        left:0 !important;
+        right:0 !important;
+        bottom:0 !important;
+        height:calc(100dvh - 78px - var(--safe-bottom)) !important;
+        max-height:none !important;
+        border-radius:18px 18px 0 0 !important;
+        animation:none !important;
+    }
+    }
+    </style>
+    <link rel="preload" as="style" href="styles-deferred.css?v=ui-20260220-deferred13-chatmobilefix1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>

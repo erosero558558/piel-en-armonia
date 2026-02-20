@@ -2430,6 +2430,25 @@ html[data-theme='dark'] .showcase-eyebrow {
         font-size: 1.18rem;
     }
 
+    .chatbot-widget {
+        right: 12px;
+        bottom: calc(82px + var(--safe-bottom));
+        z-index: 2300;
+    }
+
+    .chatbot-container {
+        left: 8px;
+        right: 8px;
+        width: auto;
+        max-width: none;
+        bottom: calc(146px + var(--safe-bottom));
+        height: min(68dvh, 560px);
+        max-height: calc(100dvh - 170px - var(--safe-bottom));
+        transform-origin: bottom center;
+        margin: 0;
+        animation: none;
+    }
+
     .footer {
         --footer-meta-size: clamp(0.9rem, 2vw, 0.98rem);
         --footer-link-size: clamp(1rem, 2.2vw, 1.08rem);
@@ -2547,6 +2566,13 @@ html[data-theme='dark'] .showcase-eyebrow {
         bottom: 0;
         height: calc(100dvh - 78px - var(--safe-bottom));
         border-radius: 18px 18px 0 0;
+        max-height: none;
+        animation: none;
+    }
+
+    .chatbot-widget {
+        right: 10px;
+        bottom: calc(76px + var(--safe-bottom));
     }
 
     .footer {

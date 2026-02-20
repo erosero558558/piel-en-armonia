@@ -1969,8 +1969,9 @@ html[data-theme='dark'] .cookie-link {
     }
 
     .chatbot-widget {
-        right: 16px;
-        bottom: calc(86px + var(--safe-bottom));
+        right: 12px;
+        bottom: calc(82px + var(--safe-bottom));
+        z-index: 2300;
     }
 
     .chatbot-toggle {
@@ -1979,14 +1980,16 @@ html[data-theme='dark'] .cookie-link {
     }
 
     .chatbot-container {
-        right: 16px;
-        left: 16px;
-        bottom: calc(152px + var(--safe-bottom));
+        right: 8px;
+        left: 8px;
+        bottom: calc(146px + var(--safe-bottom));
         width: auto;
         max-width: none;
-        height: min(60vh, 560px);
+        height: min(68dvh, 560px);
+        max-height: calc(100dvh - 170px - var(--safe-bottom));
         border-radius: 20px;
         transform-origin: bottom center;
+        animation: none;
     }
 
     .quick-dock {
@@ -2097,6 +2100,21 @@ html[data-theme='dark'] .cookie-link {
 
     .message-content {
         max-width: 88%;
+    }
+
+    .chatbot-widget {
+        right: 10px;
+        bottom: calc(76px + var(--safe-bottom));
+    }
+
+    .chatbot-container {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: calc(100dvh - 78px - var(--safe-bottom));
+        max-height: none;
+        border-radius: 18px 18px 0 0;
+        animation: none;
     }
 
     .cookie-banner {
