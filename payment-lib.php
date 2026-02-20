@@ -8,7 +8,7 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     try {
         require_once __DIR__ . '/vendor/autoload.php';
     } catch (Throwable $autoloadError) {
-        error_log('Piel en Armonia: Composer autoload no disponible en pagos (' . $autoloadError->getMessage() . ')');
+        error_log('Piel en Armonía: Composer autoload no disponible en pagos (' . $autoloadError->getMessage() . ')');
     }
 }
 
@@ -68,8 +68,11 @@ function stripe_verify_webhook_signature(string $payload, string $sigHeader, str
 
 function payment_expected_amount_cents(string $service): int
 {
+    // Fix: Use correct service-specific tax rate from business logic
+    // instead of blindly applying general VAT rate.
     $subtotal = get_service_price_amount($service);
-    $total = $subtotal + ($subtotal * get_vat_rate());
+    $tax_rate = get_service_tax_rate($service);
+    $total = compute_total($subtotal, $tax_rate);
     return (int) round($total * 100);
 }
 

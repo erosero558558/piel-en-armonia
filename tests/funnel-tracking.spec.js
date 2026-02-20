@@ -108,6 +108,20 @@ async function getTrackedEvents(page) {
   });
 }
 
+async function getFunnelEvents(page) {
+  return page.evaluate(() => {
+    const events = Array.isArray(window.__funnelEventsCaptured)
+      ? window.__funnelEventsCaptured
+      : [];
+    return events.map((item) => ({
+      ...item,
+      params: item && item.params && typeof item.params === 'object'
+        ? { ...item.params }
+        : item && item.params,
+    }));
+  });
+}
+
 async function fillBookingFormAndOpenPayment(page) {
   const serviceSelect = page.locator('#serviceSelect');
   await serviceSelect.selectOption('consulta');
@@ -167,6 +181,64 @@ test.describe('Tracking del embudo de conversion', () => {
         at: new Date().toISOString(),
       }));
     });
+    await page.addInitScript(() => {
+      window.__funnelEventsCaptured = [];
+      const funnelEndpointMarker = '/api.php?resource=funnel-event';
+      const capturePayload = (rawPayload) => {
+        if (typeof rawPayload !== 'string' || rawPayload.trim() === '') return;
+        try {
+          const parsed = JSON.parse(rawPayload);
+          if (parsed && typeof parsed === 'object') {
+            window.__funnelEventsCaptured.push(parsed);
+          }
+        } catch (_) {
+          // ignore malformed payloads
+        }
+      };
+
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = function patchedFetch(input, init) {
+        const url = typeof input === 'string'
+          ? input
+          : (input && typeof input.url === 'string' ? input.url : '');
+
+        if (url.includes(funnelEndpointMarker)) {
+          if (init && typeof init.body === 'string') {
+            capturePayload(init.body);
+          }
+          return Promise.resolve(new Response(JSON.stringify({ ok: true, recorded: true }), {
+            status: 202,
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          }));
+        }
+
+        return originalFetch(input, init);
+      };
+
+      const originalSendBeacon = typeof navigator.sendBeacon === 'function'
+        ? navigator.sendBeacon.bind(navigator)
+        : null;
+      navigator.sendBeacon = function patchedSendBeacon(url, data) {
+        const targetUrl = String(url || '');
+        if (targetUrl.includes(funnelEndpointMarker)) {
+          try {
+            if (typeof data === 'string') {
+              capturePayload(data);
+            } else if (data && typeof data.text === 'function') {
+              data.text().then(capturePayload).catch(() => undefined);
+            }
+          } catch (_) {
+            // ignore capture failures
+          }
+          return true;
+        }
+
+        if (originalSendBeacon) {
+          return originalSendBeacon(url, data);
+        }
+        return false;
+      };
+    });
     await mockApi(page);
     await page.goto('/');
     await dismissCookieBannerIfVisible(page);
@@ -175,6 +247,7 @@ test.describe('Tracking del embudo de conversion', () => {
   test('emite eventos de pasos y start_checkout en reserva web', async ({ page }) => {
     await fillBookingFormAndOpenPayment(page);
     const events = await getTrackedEvents(page);
+    const funnelEvents = await getFunnelEvents(page);
 
     expect(events).toEqual(expect.arrayContaining([
       expect.objectContaining({
@@ -192,6 +265,29 @@ test.describe('Tracking del embudo de conversion', () => {
         checkout_entry: 'booking_form',
       }),
     ]));
+
+    expect(funnelEvents).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        event: 'booking_step_completed',
+        params: expect.objectContaining({
+          step: 'service_selected',
+          source: 'booking_form',
+        }),
+      }),
+      expect.objectContaining({
+        event: 'booking_step_completed',
+        params: expect.objectContaining({
+          step: 'form_submitted',
+          source: 'booking_form',
+        }),
+      }),
+      expect.objectContaining({
+        event: 'start_checkout',
+        params: expect.objectContaining({
+          checkout_entry: 'booking_form',
+        }),
+      }),
+    ]));
   });
 
   test('emite checkout_abandon con paso y origen al cerrar modal', async ({ page }) => {
@@ -201,12 +297,18 @@ test.describe('Tracking del embudo de conversion', () => {
     await page.waitForTimeout(250);
 
     const events = await getTrackedEvents(page);
+    const funnelEvents = await getFunnelEvents(page);
     const abandonEvent = events.find((item) => item.event === 'checkout_abandon');
+    const abandonFunnelEvent = funnelEvents.find((item) => item && item.event === 'checkout_abandon');
 
     expect(abandonEvent).toBeTruthy();
     expect(abandonEvent.checkout_step).toBe('payment_modal_closed');
     expect(abandonEvent.checkout_entry).toBe('booking_form');
     expect(abandonEvent.reason).toBe('modal_close');
+    expect(abandonFunnelEvent).toBeTruthy();
+    expect(abandonFunnelEvent.params.checkout_step || abandonFunnelEvent.params.step).toBe('payment_modal_closed');
+    expect(abandonFunnelEvent.params.checkout_entry).toBe('booking_form');
+    expect(abandonFunnelEvent.params.reason).toBe('modal_close');
   });
 
   test('emite chat_started y paso inicial al iniciar reserva desde chatbot', async ({ page }) => {
@@ -216,6 +318,7 @@ test.describe('Tracking del embudo de conversion', () => {
     await page.waitForTimeout(600);
 
     const events = await getTrackedEvents(page);
+    const funnelEvents = await getFunnelEvents(page);
 
     expect(events).toEqual(expect.arrayContaining([
       expect.objectContaining({
@@ -225,6 +328,19 @@ test.describe('Tracking del embudo de conversion', () => {
         event: 'booking_step_completed',
         step: 'chat_booking_started',
         source: 'chatbot',
+      }),
+    ]));
+
+    expect(funnelEvents).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        event: 'chat_started',
+      }),
+      expect.objectContaining({
+        event: 'booking_step_completed',
+        params: expect.objectContaining({
+          step: 'chat_booking_started',
+          source: 'chatbot',
+        }),
       }),
     ]));
   });

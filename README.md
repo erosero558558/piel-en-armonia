@@ -88,13 +88,18 @@ El proyecto utiliza Playwright para pruebas de extremo a extremo (E2E).
 
 Para instrucciones detalladas sobre cómo desplegar en producción, por favor revisa el archivo [DESPLIEGUE-PIELARMONIA.md](DESPLIEGUE-PIELARMONIA.md).
 
-Comandos rapidos post-deploy (PowerShell, dominio por defecto https://pielarmonia.com):
-- npm run verify:prod
-- npm run smoke:prod
-- npm run gate:prod
-- npm run gate:prod:strict
-- npm run monitor:prod
-- powershell -NoProfile -ExecutionPolicy Bypass -File .\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireBackupHealthy
+Comandos rápidos post-deploy:
+
+**Windows (PowerShell):**
+- `npm run verify:prod`
+- `npm run smoke:prod`
+- `npm run gate:prod`
+- `npm run gate:prod:strict`
+- `npm run monitor:prod`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireBackupHealthy`
+
+**Linux/Mac:**
+- `php bin/verify-gate.php`
 
 Para probar otro dominio:
 - powershell -NoProfile -ExecutionPolicy Bypass -File .\GATE-POSTDEPLOY.ps1 -Domain "https://tu-dominio.com"
