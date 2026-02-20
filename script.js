@@ -1201,7 +1201,7 @@ function initGalleryInteractionsWarmup() {
 // ========================================
 // APPOINTMENT FORM (DEFERRED MODULE)
 // ========================================
-const BOOKING_UI_URL = withDeployAssetVersion('/booking-ui.js?v=figo-booking-ui-20260219-phase4-stateclass2-funnel2');
+const BOOKING_UI_URL = withDeployAssetVersion('/booking-ui.js?v=figo-booking-ui-20260220-sync1');
 
 function getBookingUiDeps() {
     return {
@@ -1989,7 +1989,7 @@ function initChatEngineWarmup() {
     });
 }
 
-const UI_EFFECTS_URL = withDeployAssetVersion('/ui-effects.js?v=figo-ui-20260218-phase4-sync1');
+const UI_EFFECTS_URL = withDeployAssetVersion('/ui-effects.js?v=figo-ui-20260220-sync2');
 
 function loadUiEffects() {
     return loadDeferredModule({

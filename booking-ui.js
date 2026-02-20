@@ -1,5 +1,6 @@
 ﻿(function () {
     'use strict';
+    // build-sync: 20260220-sync1
 
     let deps = null;
     let initialized = false;
