@@ -19,6 +19,7 @@ if (is_file($envFile)) {
 
 // Cargar librerias modularizadas
 require_once __DIR__ . '/lib/common.php';
+require_once __DIR__ . '/lib/features.php';
 require_once __DIR__ . '/lib/validation.php';
 require_once __DIR__ . '/lib/http.php';
 require_once __DIR__ . '/lib/security.php';
