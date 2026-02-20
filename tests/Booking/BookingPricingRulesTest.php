@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../../lib/business.php';
 
-class BookingServiceTest extends TestCase
+class BookingPricingRulesTest extends TestCase
 {
     protected function tearDown(): void
     {
@@ -89,3 +89,4 @@ class BookingServiceTest extends TestCase
         $this->assertArrayHasKey('error', $result);
     }
 }
+

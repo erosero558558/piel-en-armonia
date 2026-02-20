@@ -7,15 +7,256 @@
 // ========================================
 // INTEGRACIÓN CON BOT DEL SERVIDOR
 // ========================================
+let deps = null;
+let initialized = false;
+
+const DEFAULT_CLINIC_ADDRESS = 'Valparaíso 13-183 y Sodiro, Consultorio Dr. Cecilio Caiza, Quito (Frente al Colegio de las Mercedarias, a 2 cuadras de la Maternidad Isidro Ayora)';
+const DEFAULT_CLINIC_MAP_URL = 'https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D';
+const DEFAULT_DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
+const DEFAULT_DOCTOR_CAROLINA_EMAIL = 'caro93narvaez@gmail.com';
+
+let CLINIC_ADDRESS = DEFAULT_CLINIC_ADDRESS;
+let CLINIC_MAP_URL = DEFAULT_CLINIC_MAP_URL;
+let DOCTOR_CAROLINA_PHONE = DEFAULT_DOCTOR_CAROLINA_PHONE;
+let DOCTOR_CAROLINA_EMAIL = DEFAULT_DOCTOR_CAROLINA_EMAIL;
+
+let conversationContext = [];
+let chatHistory = [];
+let currentAppointment = null;
+
 const KIMI_CONFIG = {
     apiUrl: '/figo-chat.php',
     model: 'figo-assistant',
     maxTokens: 1000,
     temperature: 0.7
 };
-const CHAT_CONTEXT_MAX_ITEMS = 24;
+let CHAT_CONTEXT_MAX_ITEMS = 24;
 
 let isProcessingMessage = false; // Evitar duplicados
+
+function getDepFunction(name) {
+    if (deps && typeof deps[name] === 'function') {
+        return deps[name];
+    }
+
+    if (typeof window !== 'undefined' && typeof window[name] === 'function') {
+        return window[name];
+    }
+
+    return null;
+}
+
+function debugLog() {
+    const logger = (deps && typeof deps.debugLog === 'function')
+        ? deps.debugLog
+        : (typeof window !== 'undefined' && typeof window.debugLog === 'function' ? window.debugLog : null);
+
+    if (!logger) {
+        return;
+    }
+
+    try {
+        logger.apply(null, arguments);
+    } catch (_) {
+        // noop
+    }
+}
+
+function callDep(name) {
+    const fn = getDepFunction(name);
+    if (!fn) {
+        return undefined;
+    }
+
+    try {
+        const args = Array.prototype.slice.call(arguments, 1);
+        return fn.apply(null, args);
+    } catch (_) {
+        return undefined;
+    }
+}
+
+function syncRuntimeState() {
+    const context = callDep('getConversationContext');
+    if (Array.isArray(context)) {
+        conversationContext = context.slice(-CHAT_CONTEXT_MAX_ITEMS);
+    }
+
+    const history = callDep('getChatHistory');
+    if (Array.isArray(history)) {
+        chatHistory = history.slice();
+    } else {
+        try {
+            const raw = localStorage.getItem('chatHistory');
+            const parsed = raw ? JSON.parse(raw) : [];
+            chatHistory = Array.isArray(parsed) ? parsed : [];
+        } catch (_) {
+            chatHistory = [];
+        }
+    }
+
+    const appointment = callDep('getCurrentAppointment');
+    if (appointment && typeof appointment === 'object') {
+        currentAppointment = appointment;
+    } else if (typeof window !== 'undefined' && window.currentAppointment && typeof window.currentAppointment === 'object') {
+        currentAppointment = window.currentAppointment;
+    } else {
+        currentAppointment = null;
+    }
+}
+
+function persistConversationContext() {
+    if (!Array.isArray(conversationContext)) {
+        conversationContext = [];
+    }
+
+    if (conversationContext.length > CHAT_CONTEXT_MAX_ITEMS) {
+        conversationContext = conversationContext.slice(-CHAT_CONTEXT_MAX_ITEMS);
+    }
+
+    const persisted = callDep('setConversationContext', conversationContext);
+    if (persisted !== undefined) {
+        return;
+    }
+
+    if (typeof window !== 'undefined') {
+        window.conversationContext = conversationContext.slice();
+    }
+}
+
+function persistChatHistory() {
+    if (!Array.isArray(chatHistory)) {
+        chatHistory = [];
+    }
+
+    const persisted = callDep('setChatHistory', chatHistory);
+    if (persisted !== undefined) {
+        return;
+    }
+
+    try {
+        localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+    } catch (_) {
+        // noop
+    }
+}
+
+function applyRuntimeConfig() {
+    if (!deps || typeof deps !== 'object') {
+        return;
+    }
+
+    const contextMax = Number(deps.chatContextMaxItems);
+    if (Number.isFinite(contextMax) && contextMax > 0) {
+        CHAT_CONTEXT_MAX_ITEMS = Math.floor(contextMax);
+    }
+
+    if (typeof deps.clinicAddress === 'string' && deps.clinicAddress.trim() !== '') {
+        CLINIC_ADDRESS = deps.clinicAddress.trim();
+    }
+    if (typeof deps.clinicMapUrl === 'string' && deps.clinicMapUrl.trim() !== '') {
+        CLINIC_MAP_URL = deps.clinicMapUrl.trim();
+    }
+    if (typeof deps.doctorCarolinaPhone === 'string' && deps.doctorCarolinaPhone.trim() !== '') {
+        DOCTOR_CAROLINA_PHONE = deps.doctorCarolinaPhone.trim();
+    }
+    if (typeof deps.doctorCarolinaEmail === 'string' && deps.doctorCarolinaEmail.trim() !== '') {
+        DOCTOR_CAROLINA_EMAIL = deps.doctorCarolinaEmail.trim();
+    }
+}
+
+function init(inputDeps) {
+    deps = inputDeps || {};
+    applyRuntimeConfig();
+    syncRuntimeState();
+    initialized = true;
+    return window.FigoChatEngine;
+}
+
+function addBotMessage(html, showOfflineLabel) {
+    const depCall = callDep('addBotMessage', html, showOfflineLabel);
+    if (depCall !== undefined) {
+        return depCall;
+    }
+    if (window.PielChatUiEngine && typeof window.PielChatUiEngine.addBotMessage === 'function') {
+        return window.PielChatUiEngine.addBotMessage(html, showOfflineLabel);
+    }
+    return undefined;
+}
+
+function showTypingIndicator() {
+    const depCall = callDep('showTypingIndicator');
+    if (depCall !== undefined) {
+        return depCall;
+    }
+    if (window.PielChatUiEngine && typeof window.PielChatUiEngine.showTypingIndicator === 'function') {
+        return window.PielChatUiEngine.showTypingIndicator();
+    }
+    return undefined;
+}
+
+function removeTypingIndicator() {
+    const depCall = callDep('removeTypingIndicator');
+    if (depCall !== undefined) {
+        return depCall;
+    }
+    if (window.PielChatUiEngine && typeof window.PielChatUiEngine.removeTypingIndicator === 'function') {
+        return window.PielChatUiEngine.removeTypingIndicator();
+    }
+    return undefined;
+}
+
+function startChatBooking() {
+    const depCall = callDep('startChatBooking');
+    if (depCall !== undefined) {
+        return depCall;
+    }
+    if (window.PielChatBookingEngine && typeof window.PielChatBookingEngine.startChatBooking === 'function') {
+        return window.PielChatBookingEngine.startChatBooking();
+    }
+    return undefined;
+}
+
+function processChatBookingStep(message) {
+    const depFn = getDepFunction('processChatBookingStep');
+    if (depFn) {
+        return depFn(message);
+    }
+    if (window.PielChatBookingEngine && typeof window.PielChatBookingEngine.processChatBookingStep === 'function') {
+        return window.PielChatBookingEngine.processChatBookingStep(message);
+    }
+    return Promise.resolve(false);
+}
+
+function isChatBookingActive() {
+    const depFn = getDepFunction('isChatBookingActive');
+    if (depFn) {
+        try {
+            return depFn() === true;
+        } catch (_) {
+            return false;
+        }
+    }
+    if (window.PielChatBookingEngine && typeof window.PielChatBookingEngine.isActive === 'function') {
+        try {
+            return window.PielChatBookingEngine.isActive() === true;
+        } catch (_) {
+            return false;
+        }
+    }
+    return false;
+}
+
+function showToast(message, type, title) {
+    const depCall = callDep('showToast', message, type, title);
+    if (depCall !== undefined) {
+        return depCall;
+    }
+    if (typeof window !== 'undefined' && typeof window.showToast === 'function') {
+        return window.showToast(message, type, title);
+    }
+    return undefined;
+}
 
 function shouldUseRealAI() {
     if (localStorage.getItem('forceAI') === 'true') {
@@ -30,13 +271,19 @@ function shouldUseRealAI() {
 }
 
 async function processWithKimi(message) {
+    if (!initialized) {
+        syncRuntimeState();
+    }
+
+    syncRuntimeState();
+
     if (isProcessingMessage) {
         debugLog('Ya procesando, ignorando duplicado');
         return;
     }
 
     // Si hay un booking en curso, desviar al flujo conversacional
-    if (typeof isChatBookingActive === 'function' && isChatBookingActive()) {
+    if (isChatBookingActive()) {
         const handled = await processChatBookingStep(message);
         if (handled !== false) {
             return;
@@ -211,6 +458,8 @@ const FIGO_EXPERT_PROMPT = `MODO FIGO PRO:
 - Evita decir "modo offline" salvo que realmente no haya conexion con el servidor.`;
 
 function buildAppointmentContextSummary() {
+    syncRuntimeState();
+
     if (!currentAppointment) return 'sin cita activa';
 
     const parts = [];
@@ -241,6 +490,8 @@ FLUJO DE PAGO REAL DEL SITIO:
 }
 
 function buildFigoMessages() {
+    syncRuntimeState();
+
     return [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'system', content: FIGO_EXPERT_PROMPT },
@@ -324,6 +575,8 @@ async function requestFigoCompletion(messages, overrides = {}, debugLabel = 'pri
 
 async function tryRealAI(message) {
     try {
+        syncRuntimeState();
+
         // Limpiar duplicados del contexto antes de enviar
         const uniqueContext = [];
         for (const msg of conversationContext) {
@@ -336,6 +589,7 @@ async function tryRealAI(message) {
         if (conversationContext.length > CHAT_CONTEXT_MAX_ITEMS) {
             conversationContext = conversationContext.slice(-CHAT_CONTEXT_MAX_ITEMS);
         }
+        persistConversationContext();
         
         // Preparar mensajes para la API
         const messages = buildFigoMessages();
@@ -398,6 +652,7 @@ Pregunta original del paciente: "${message}"`;
             if (conversationContext.length > CHAT_CONTEXT_MAX_ITEMS) {
                 conversationContext = conversationContext.slice(-CHAT_CONTEXT_MAX_ITEMS);
             }
+            persistConversationContext();
         }
         
         removeTypingIndicator();
@@ -643,8 +898,10 @@ function formatMarkdown(text) {
 // ========================================
 function resetConversation() {
     conversationContext = [];
+    persistConversationContext();
     localStorage.removeItem('chatHistory');
     chatHistory = [];
+    persistChatHistory();
     showToast('Conversacion reiniciada', 'info');
 }
 
@@ -659,6 +916,7 @@ function checkServerEnvironment() {
 }
 
 function forzarModoIA() {
+    syncRuntimeState();
     localStorage.setItem('forceAI', 'true');
     showToast('Modo IA activado manualmente', 'success');
 
@@ -685,6 +943,7 @@ function mostrarInfoDebug() {
 
 if (typeof window !== 'undefined') {
     window.FigoChatEngine = {
+        init,
         processWithKimi,
         resetConversation,
         checkServerEnvironment,

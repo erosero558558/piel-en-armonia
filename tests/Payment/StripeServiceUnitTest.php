@@ -9,7 +9,7 @@ require_once __DIR__ . '/../../tests/helpers/StripeMock.php';
 require_once __DIR__ . '/../../lib/business.php';
 require_once __DIR__ . '/../../payment-lib.php';
 
-class StripeServiceTest extends TestCase
+class StripeServiceUnitTest extends TestCase
 {
     protected function tearDown(): void
     {
@@ -79,3 +79,4 @@ class StripeServiceTest extends TestCase
         }
     }
 }
+

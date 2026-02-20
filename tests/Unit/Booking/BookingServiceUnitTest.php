@@ -49,7 +49,7 @@ if (!function_exists('payment_currency')) {
 // No, we can't redefine existing functions easily.
 // We will use relative dates for testing.
 
-class BookingServiceTest extends TestCase
+class BookingServiceUnitTest extends TestCase
 {
     private BookingService $service;
     private array $emptyStore;
@@ -206,3 +206,4 @@ class BookingServiceTest extends TestCase
         $this->assertEquals('11:00', $updated['time']);
     }
 }
+

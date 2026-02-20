@@ -2,7 +2,7 @@
     'use strict';
 
     const API_ENDPOINT = '/api.php';
-    const CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
+    const CLINIC_ADDRESS$1 = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
     const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
     const API_REQUEST_TIMEOUT_MS = 9000;
     const API_RETRY_BASE_DELAY_MS = 450;
@@ -1082,7 +1082,7 @@
         return {
             getCurrentLang: getCurrentLang,
             getCurrentAppointment: getCurrentAppointment,
-            getClinicAddress: () => CLINIC_ADDRESS,
+            getClinicAddress: () => CLINIC_ADDRESS$1,
             escapeHtml: escapeHtml$1
         };
     }
@@ -1558,7 +1558,12 @@
     const CHAT_UI_ENGINE_URL = withDeployAssetVersion('/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1');
     const CHAT_WIDGET_ENGINE_URL = withDeployAssetVersion('/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1');
     const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion('/chat-booking-engine.js?v=figo-chat-booking-20260220-sync2-cachecoherence1');
-    const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion('/chat-engine.js?v=figo-chat-20260220-phase3-runtimeconfig1-contextcap1-sync2');
+    const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion('/chat-engine.js?v=figo-chat-20260220-phase4-depinject1');
+
+    const CLINIC_ADDRESS = 'Valparaiso 13-183 y Sodiro, Consultorio Dr. Cecilio Caiza, Quito (Frente al Colegio de las Mercedarias, a 2 cuadras de la Maternidad Isidro Ayora)';
+    const CLINIC_MAP_URL = 'https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D';
+    const DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
+    const DOCTOR_CAROLINA_EMAIL = 'caro93narvaez@gmail.com';
 
     const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
     const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -1812,13 +1817,48 @@
         );
     }
 
+    function processChatBookingStep(userInput) {
+        return withDeferredModule(loadChatBookingEngine, (engine) => engine.processChatBookingStep(userInput));
+    }
+
+    function isChatBookingActive() {
+        if (window.PielChatBookingEngine && typeof window.PielChatBookingEngine.isActive === 'function') {
+            return window.PielChatBookingEngine.isActive();
+        }
+        return false;
+    }
+
     function loadFigoChatEngine() {
         return loadDeferredModule({
             cacheKey: 'figo-chat-engine',
             src: FIGO_CHAT_ENGINE_URL,
             scriptDataAttribute: 'data-figo-chat-engine',
             resolveModule: () => window.FigoChatEngine,
-            isModuleReady: (module) => !!module,
+            isModuleReady: (module) => !!(module && typeof module.processWithKimi === 'function'),
+            onModuleReady: (module) => {
+                if (module && typeof module.init === 'function') {
+                    module.init({
+                        debugLog,
+                        showTypingIndicator,
+                        removeTypingIndicator,
+                        addBotMessage,
+                        startChatBooking,
+                        processChatBookingStep,
+                        isChatBookingActive,
+                        showToast,
+                        getConversationContext,
+                        setConversationContext,
+                        getCurrentAppointment,
+                        getChatHistory,
+                        setChatHistory,
+                        chatContextMaxItems: CHAT_CONTEXT_MAX_ITEMS,
+                        clinicAddress: CLINIC_ADDRESS,
+                        clinicMapUrl: CLINIC_MAP_URL,
+                        doctorCarolinaPhone: DOCTOR_CAROLINA_PHONE,
+                        doctorCarolinaEmail: DOCTOR_CAROLINA_EMAIL
+                    });
+                }
+            },
             missingApiError: 'Figo chat engine loaded without API',
             loadError: 'No se pudo cargar chat-engine.js'
         });
