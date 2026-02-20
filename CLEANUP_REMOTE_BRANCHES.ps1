@@ -1,5 +1,4 @@
 # Script para limpiar ramas remotas mergeadas a main
-# Ejecutar: ./CLEANUP_REMOTE_BRANCHES.ps1
 
 Write-Host "===================================================" -ForegroundColor Cyan
 Write-Host "LIMPIEZA DE RAMAS REMOTAS MERGEADAS A MAIN" -ForegroundColor Cyan
@@ -23,10 +22,10 @@ if ($count -eq 0) {
 Write-Host "Ramas a eliminar: $count" -ForegroundColor Yellow
 Write-Host ""
 
-# Confirmación
-$confirmation = Read-Host "¿Eliminar $count ramas remotas? (escribe 'SI' para confirmar)"
+# Confirmacion
+$confirmation = Read-Host "Eliminar $count ramas remotas? (escribe SI para confirmar)"
 if ($confirmation -ne 'SI') {
-    Write-Host "Operación cancelada." -ForegroundColor Red
+    Write-Host "Operacion cancelada." -ForegroundColor Red
     exit 1
 }
 
@@ -38,12 +37,12 @@ $failed = 0
 
 foreach ($branch in $branches) {
     Write-Host "  Eliminando: $branch" -NoNewline
-    try {
-        git push origin --delete $branch 2>$null
-        Write-Host " ✓" -ForegroundColor Green
+    git push origin --delete $branch 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host " OK" -ForegroundColor Green
         $deleted++
-    } catch {
-        Write-Host " ✗ (protegida o ya eliminada)" -ForegroundColor Red
+    } else {
+        Write-Host " FAIL" -ForegroundColor Red
         $failed++
     }
 }
