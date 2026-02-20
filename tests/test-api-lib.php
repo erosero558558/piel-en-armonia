@@ -163,8 +163,8 @@ run_test('Missing Date uses current date', function() {
     }
 });
 
-// Test 10: XSS Handling (Backend sanitizes HTML)
-run_test('HTML chars are sanitized (api-lib prevents storage of raw HTML)', function() {
+// Test 10: XSS Handling (Sanitization should escape HTML entities)
+run_test('HTML chars are escaped (backend sanitization)', function() {
     $input = ['text' => '<script>alert(1)</script>'];
     $result = normalize_review($input);
     assert_equals('&lt;script&gt;alert(1)&lt;/script&gt;', $result['text']);
