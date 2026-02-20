@@ -815,6 +815,11 @@ $analyticsChecks = @(
         Sources = @('script', 'booking', 'analytics', 'chat-booking')
     },
     @{
+        Name = 'trackEvent(view_booking)'
+        Pattern = "['""]view_booking['""]"
+        Sources = @('script', 'analytics')
+    },
+    @{
         Name = 'trackEvent(booking_step_completed)'
         Pattern = "trackEvent\(\s*['""]booking_step_completed['""]"
         Sources = @('chat-booking')

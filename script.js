@@ -1512,6 +1512,11 @@ document.addEventListener('click', function(e) {
     e.preventDefault();
     const navHeight = nav ? nav.offsetHeight : 0;
     const targetPosition = target.offsetTop - navHeight - 20;
+
+    if (href === '#citas') {
+        markBookingViewed('cta_click');
+    }
+
     window.scrollTo({
         top: targetPosition,
         behavior: 'smooth'
@@ -1680,6 +1685,7 @@ function getActionRouterEngineDeps() {
             if (select) {
                 select.value = value;
                 select.dispatchEvent(new Event('change'));
+                markBookingViewed('service_select');
                 const appointmentSection = document.getElementById('citas');
                 if (appointmentSection) {
                     const navHeight = document.querySelector('.nav')?.offsetHeight || 80;
