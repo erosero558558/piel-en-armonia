@@ -32,29 +32,29 @@ function assert_equals($expected, $actual, $message = '') {
     return true;
 }
 
-// Test 1: Standard service with default VAT (12%)
-run_test('Standard service (consulta) with default VAT (12%)', function() {
+// Test 1: Standard service with default VAT (15%)
+run_test('Standard service (consulta) with default VAT (15%)', function() {
     // Clear any previous env var to ensure default
     putenv('PIELARMONIA_VAT_RATE');
 
-    // verify default rate is indeed 0.12
-    if (get_vat_rate() !== 0.12) {
-        echo "  Warning: Default VAT rate is not 0.12 as expected, it is " . get_vat_rate() . "\n";
+    // verify default rate is indeed 0.15
+    if (get_vat_rate() !== 0.15) {
+        echo "  Warning: Default VAT rate is not 0.15 as expected, it is " . get_vat_rate() . "\n";
     }
 
-    // "consulta" price is 40.00
-    // 40.00 + (40.00 * 0.12) = 44.80
-    $expected = '$44.80';
+    // "consulta" price is 40.00 with 0% tax in config
+    // 40.00 + (40.00 * 0.00) = 40.00
+    $expected = '$40.00';
     $actual = get_service_total_price('consulta');
     return assert_equals($expected, $actual);
 });
 
-// Test 2: Custom VAT (15%)
-run_test('Standard service (consulta) with custom VAT (15%)', function() {
+// Test 2: Custom VAT (15%) - Consulta should remain exempt
+run_test('Standard service (consulta) with custom VAT (15%) - Exempt', function() {
     putenv('PIELARMONIA_VAT_RATE=0.15');
 
-    // 40.00 + (40.00 * 0.15) = 40.00 + 6.00 = 46.00
-    $expected = '$46.00';
+    // Consulta is 0% VAT, so it ignores the global rate
+    $expected = '$40.00';
     $actual = get_service_total_price('consulta');
 
     // Clean up
@@ -92,23 +92,20 @@ run_test('Unknown service (should be 0 price)', function() {
 // The function implementation: if ($rate > 1.0 && $rate <= 100.0) { $rate = $rate / 100.0; }
 // if ($rate > 1.0) { return 1.0; }
 run_test('VAT > 1 edge case (should be capped at 1.0)', function() {
-    // If we set it to 150, it's > 100 so it won't be divided.
-    // Wait, let's check logic:
-    // if ($rate > 1.0 && $rate <= 100.0) { $rate = $rate / 100.0; }
-    // if ($rate > 1.0) { return 1.0; }
+    // Using 'laser' (taxable) to verify VAT logic. Base: 150.00
 
     // Case A: 50 -> should be 0.5
     putenv('PIELARMONIA_VAT_RATE=50');
-    // 40 + (40 * 0.5) = 60.00
-    $expectedA = '$60.00';
-    $actualA = get_service_total_price('consulta');
+    // 150 + (150 * 0.5) = 225.00
+    $expectedA = '$225.00';
+    $actualA = get_service_total_price('laser');
     if (!assert_equals($expectedA, $actualA, 'VAT 50 should be 50%')) return false;
 
     // Case B: 200 -> should be 1.0 (capped)
     putenv('PIELARMONIA_VAT_RATE=200');
-    // 40 + (40 * 1.0) = 80.00
-    $expectedB = '$80.00';
-    $actualB = get_service_total_price('consulta');
+    // 150 + (150 * 1.0) = 300.00
+    $expectedB = '$300.00';
+    $actualB = get_service_total_price('laser');
     if (!assert_equals($expectedB, $actualB, 'VAT 200 should be capped at 100%')) return false;
 
     // Clean up

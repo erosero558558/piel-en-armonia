@@ -15,6 +15,8 @@ define('IVA_GENERAL_RATE', 0.15); // 15%
 // Configuración de servicios con tasas de IVA
 function get_services_config(): array
 {
+    $vat = get_vat_rate();
+
     return [
         'consulta' => [
             'name' => 'Consulta Dermatológica',
@@ -40,14 +42,14 @@ function get_services_config(): array
         'laser' => [
             'name' => 'Láser Dermatológico',
             'price_base' => 150.00,
-            'tax_rate' => 0.15, // IVA 15% - estético
+            'tax_rate' => $vat, // IVA variable - estético
             'category' => 'procedimiento',
             'is_from_price' => true
         ],
         'rejuvenecimiento' => [
             'name' => 'Rejuvenecimiento Facial',
             'price_base' => 120.00,
-            'tax_rate' => 0.15, // IVA 15% - estético
+            'tax_rate' => $vat, // IVA variable - estético
             'category' => 'estetico',
             'is_from_price' => true
         ],
