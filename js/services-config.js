@@ -245,10 +245,11 @@ export function getCheckoutBreakdown(serviceId, additionalOptions = {}) {
     
     const { 
         discountAmount = 0,
-        discountRate = 0,
         isCupoSolidario = false
     } = additionalOptions;
     
+    let { discountRate = 0 } = additionalOptions;
+
     let priceBase = service.priceBase;
     let finalDiscountRate = discountRate;
     

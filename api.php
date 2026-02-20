@@ -577,6 +577,13 @@ if ($resource === 'monitoring-config') {
     json_response($config);
 }
 
+if ($resource === 'features') {
+    json_response([
+        'ok' => true,
+        'data' => FeatureFlags::getAll()
+    ]);
+}
+
 if ($resource === 'health') {
     $health = check_system_health();
     $figoEndpoint = api_resolve_figo_endpoint_for_health();
@@ -594,6 +601,7 @@ if ($resource === 'health') {
 
 $publicEndpoints = [
     ['method' => 'GET', 'resource' => 'monitoring-config'],
+    ['method' => 'GET', 'resource' => 'features'],
     ['method' => 'GET', 'resource' => 'metrics'],
     ['method' => 'GET', 'resource' => 'payment-config'],
     ['method' => 'GET', 'resource' => 'availability'],
