@@ -5,8 +5,27 @@ declare(strict_types=1);
  * HTTP helper functions.
  */
 
+if (!class_exists('TestingExitException')) {
+    class TestingExitException extends Exception {
+        public $payload;
+        public $status;
+        public function __construct($payload, $status) {
+            $this->payload = $payload;
+            $this->status = $status;
+            parent::__construct("JSON Response: $status");
+        }
+    }
+}
+
 function json_response(array $payload, int $status = 200): void
 {
+    if (defined('TESTING_ENV')) {
+        $GLOBALS['__TEST_RESPONSE'] = ['payload' => $payload, 'status' => $status];
+        if (!defined('TESTING_FORCE_EXIT')) {
+            throw new TestingExitException($payload, $status);
+        }
+    }
+
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -35,6 +54,13 @@ function is_https_request(): bool
 
 function require_json_body(): array
 {
+    if (isset($GLOBALS['__TEST_JSON_BODY'])) {
+        $data = json_decode($GLOBALS['__TEST_JSON_BODY'], true);
+        if (is_array($data)) {
+            return $data;
+        }
+    }
+
     $raw = file_get_contents('php://input');
     $data = json_decode($raw ?? '', true);
     if (!is_array($data)) {
