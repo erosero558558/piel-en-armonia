@@ -243,21 +243,16 @@ export function getCheckoutBreakdown(serviceId, additionalOptions = {}) {
         return null;
     }
     
-    // Changed from const to let to allow reassignment of discountRate
-    let {
+    const {
         discountAmount = 0,
+        discountRate = 0,
         isCupoSolidario = false
     } = additionalOptions;
 
-    let { discountRate = 0 } = additionalOptions;
-    
-    let { discountRate = 0 } = additionalOptions;
-
-    let priceBase = service.priceBase;
+    const priceBase = service.priceBase;
     let finalDiscountRate = discountRate;
     
     // Aplicar descuento de cupo solidario si aplica
-    let finalDiscountRate = discountRate;
     if (isCupoSolidario && SPECIAL_SERVICES.cupoSolidario) {
         finalDiscountRate = SPECIAL_SERVICES.cupoSolidario.discountRate;
     }
