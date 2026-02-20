@@ -98,6 +98,7 @@ Comandos rapidos post-deploy (PowerShell, dominio por defecto https://pielarmoni
 
 Para probar otro dominio:
 - powershell -NoProfile -ExecutionPolicy Bypass -File .\GATE-POSTDEPLOY.ps1 -Domain "https://tu-dominio.com"
+- powershell -NoProfile -ExecutionPolicy Bypass -File .\VERIFICAR-DESPLIEGUE.ps1 -Domain "https://tu-dominio.com" -AssetHashRetryCount 3 -AssetHashRetryDelaySec 5
 
 Modo transicion (solo temporal): si el servidor aun no envia header CSP pero tu HTML incluye meta-CSP:
 - powershell -NoProfile -ExecutionPolicy Bypass -File .\GATE-POSTDEPLOY.ps1 -Domain "https://tu-dominio.com" -AllowMetaCspFallback

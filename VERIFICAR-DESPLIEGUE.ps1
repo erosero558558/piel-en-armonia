@@ -7,7 +7,9 @@ param(
     [switch]$RequireWebhookSecret,
     [switch]$RequireBackupHealthy,
     [switch]$RequireStableDataDir,
-    [int]$MaxHealthTimingMs = 2000
+    [int]$MaxHealthTimingMs = 2000,
+    [int]$AssetHashRetryCount = 2,
+    [int]$AssetHashRetryDelaySec = 4
 )
 
 $ErrorActionPreference = 'Stop'
@@ -752,24 +754,41 @@ $checks += @(
 foreach ($item in $checks) {
     $localHash = Get-LocalSha256 -Path $item.LocalPath -NormalizeText
     $remoteHash = Get-RemoteSha256 -Url $item.RemoteUrl -NormalizeText
+    $attempts = 0
     $match = ($localHash -ne '' -and $localHash -eq $remoteHash)
+
+    while (-not $match -and $attempts -lt $AssetHashRetryCount) {
+        Start-Sleep -Seconds $AssetHashRetryDelaySec
+        $remoteHash = Get-RemoteSha256 -Url $item.RemoteUrl -NormalizeText
+        $attempts += 1
+        $match = ($localHash -ne '' -and $localHash -eq $remoteHash)
+    }
+
     $results += [PSCustomObject]@{
         Asset = $item.Name
         Match = $match
         LocalHash = $localHash
         RemoteHash = $remoteHash
         RemoteUrl = $item.RemoteUrl
+        Attempts = $attempts
     }
 }
 
 $results | ForEach-Object {
     if ($_.Match) {
-        Write-Host "[OK]  $($_.Asset) hashes coinciden"
+        if ($_.Attempts -gt 0) {
+            Write-Host "[OK]  $($_.Asset) hashes coinciden (retry=$($_.Attempts))"
+        } else {
+            Write-Host "[OK]  $($_.Asset) hashes coinciden"
+        }
     } else {
         Write-Host "[FAIL] $($_.Asset) hash no coincide"
         Write-Host "       Local : $($_.LocalHash)"
         Write-Host "       Remote: $($_.RemoteHash)"
         Write-Host "       URL   : $($_.RemoteUrl)"
+        if ($_.Attempts -gt 0) {
+            Write-Host "       Retries agotados: $($_.Attempts)"
+        }
     }
 }
 
