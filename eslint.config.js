@@ -5,7 +5,7 @@ const js = require('@eslint/js');
 module.exports = [
     js.configs.recommended,
     {
-        files: ['**/*.js'],
+        files: ['**/*.js', '**/*.mjs'],
         languageOptions: {
             sourceType: 'commonjs',
             globals: {
@@ -24,7 +24,7 @@ module.exports = [
         },
     },
     {
-        files: ['js/**/*.js'],
+        files: ['js/**/*.js', '**/*.mjs'],
         languageOptions: {
             sourceType: 'module',
         },
