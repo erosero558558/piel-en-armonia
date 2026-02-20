@@ -82,7 +82,7 @@ Configura estas variables en tu hosting:
 - `PIELARMONIA_ADMIN_PASSWORD` (obligatoria para login admin)
 - `PIELARMONIA_ADMIN_PASSWORD_HASH` (opcional, tiene prioridad)
 - `PIELARMONIA_ADMIN_EMAIL` (recomendada para recibir aviso de nuevas citas)
-- `PIELARMONIA_EMAIL_FROM` (opcional, para correos de confirmación)
+- `PIELARMONIA_EMAIL_FROM` (opcional, para correos de confirmaciÃ³n)
 - `PIELARMONIA_DATA_DIR` (opcional, para forzar ruta de datos si `public_html/data` no tiene permisos)
 - `PIELARMONIA_DATA_ENCRYPTION_KEY` (opcional, recomendado para cifrado en reposo de `store.json`)
 - `FIGO_CHAT_ENDPOINT` (obligatoria para conectar el chatbot real)
@@ -90,7 +90,7 @@ Configura estas variables en tu hosting:
 - `FIGO_CHAT_APIKEY_HEADER` y `FIGO_CHAT_APIKEY` (opcionales, si tu backend usa API key custom)
 - `FIGO_CHAT_TIMEOUT_SECONDS` (opcional, default 20)
 - `FIGO_CHAT_DEGRADED_MODE` (opcional: `true` para forzar fallback; por defecto es auto y prioriza `live` cuando upstream esta sano)
-- `FIGO_TELEGRAM_BOT_TOKEN` (opcional, para puente/notificación Telegram en `figo-backend.php`)
+- `FIGO_TELEGRAM_BOT_TOKEN` (opcional, para puente/notificaciÃ³n Telegram en `figo-backend.php`)
 - `FIGO_TELEGRAM_CHAT_ID` (opcional, chat destino para notificaciones Telegram)
 - `FIGO_TELEGRAM_WEBHOOK_SECRET` (recomendado, valida peticiones webhook de Telegram)
 - `PIELARMONIA_CRON_SECRET` (obligatoria para `cron.php`)
@@ -171,6 +171,7 @@ Ejemplo recomendado de `data/figo-config.json`:
 - `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireWebhookSecret`
 - (Temporal, solo mientras corriges headers en edge/servidor) `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -AllowMetaCspFallback`
 - Para exigir backups sanos en el gate: `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireBackupHealthy`
+- Para exigir almacenamiento persistente (no /tmp): `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireStableDataDir`
 
 9. Verificacion de cron de backup:
 - `https://pielarmonia.com/cron.php?action=backup-health&token=YOUR_CRON_SECRET`
@@ -189,7 +190,7 @@ Ejemplo recomendado de `data/figo-config.json`:
 ## Notas importantes
 
 - El chatbot del sitio usa `figo-chat.php`.
-- Los datos de citas, callbacks, reseñas y disponibilidad se guardan en backend (`data/store.json`).
+- Los datos de citas, callbacks, reseÃ±as y disponibilidad se guardan en backend (`data/store.json`).
 - El backend registra auditoria de accesos/eventos en `data/audit.log`.
 - Si `figo-chat.php` falla, el chatbot mantiene fallback local para no romper UX.
 - Para entorno local, revisa `SERVIDOR-LOCAL.md`.
