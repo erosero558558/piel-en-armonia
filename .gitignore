@@ -9,6 +9,8 @@ uploads/
 node_modules/
 test-results/
 playwright-report/
+lhci_reports/
+.lighthouseci/
 _deploy_bundle/
 verification/
 
