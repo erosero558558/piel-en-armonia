@@ -69,4 +69,7 @@ test.describe('Chat responsive layout', () => {
     await assertChatFitsViewport(page);
   });
 });
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/refactor/git-cleanup-xss-tests-16898407020443118636

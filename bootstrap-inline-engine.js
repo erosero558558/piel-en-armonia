@@ -5,7 +5,7 @@
 (function () {
     'use strict';
 
-    const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260220-deferred16-chatfit1-cachebust1';
+    const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260220-deferred13-chatmobilefix1';
     const DEBUG = false;
 
     const deferredModulePromises = new Map();
