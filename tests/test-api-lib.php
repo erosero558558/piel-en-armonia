@@ -167,7 +167,8 @@ run_test('Missing Date uses current date', function() {
 run_test('HTML chars are preserved (api-lib handles storage, frontend handles display)', function() {
     $input = ['text' => '<script>alert(1)</script>'];
     $result = normalize_review($input);
-    assert_equals('<script>alert(1)</script>', $result['text']);
+    // sanitize_xss uses htmlspecialchars
+    assert_equals('&lt;script&gt;alert(1)&lt;/script&gt;', $result['text']);
 });
 
 echo "\nResults: $passed passed, $failed failed.\n";

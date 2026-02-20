@@ -56,7 +56,7 @@ if ($attempts === 20) {
 // Actually, when the server starts and reads/initializes the store, it creates `store.json` (already created).
 // It might trigger a backup on first write.
 // Let's count backups before our explicit write.
-$filesBefore = glob($backupDir . '/store-*.json');
+$filesBefore = glob($backupDir . '/store-*.sqlite');
 $countBefore = is_array($filesBefore) ? count($filesBefore) : 0;
 echo "Backups before write: $countBefore\n";
 
@@ -100,7 +100,7 @@ if ($httpCode !== 201) {
 sleep(1);
 
 // Check backups again
-$filesAfter = glob($backupDir . '/store-*.json');
+$filesAfter = glob($backupDir . '/store-*.sqlite');
 $countAfter = is_array($filesAfter) ? count($filesAfter) : 0;
 echo "Backups after write: $countAfter\n";
 

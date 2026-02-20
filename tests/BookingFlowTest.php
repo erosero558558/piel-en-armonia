@@ -107,7 +107,7 @@ try {
     // 4. Verify Persistence (GET appointments - admin protected)
     // To test admin, we need session. Or we can just inspect the file directly since we have access to $dataDir.
     run_test('Integration: Verify Persistence on Disk', function() use ($dataDir, $apptDate) {
-        $file = $dataDir . '/store.json';
+        $file = $dataDir . '/store.sqlite';
         assert_true(file_exists($file), 'Store file should exist');
 
         // The store might be encrypted or plain.

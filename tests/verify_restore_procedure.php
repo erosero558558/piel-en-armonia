@@ -71,7 +71,15 @@ try {
 
     // 4. Simulate Data Loss
     test_log("Simulating data loss (clearing store)...");
-    file_put_contents($storePath, '{}');
+    // file_put_contents($storePath, '{}'); // Invalid for SQLite
+    if (file_exists($storePath)) {
+        // Close DB connection first if open?
+        // Since we are running in same process, we might need to close.
+        if (function_exists('close_db_connection')) {
+            close_db_connection();
+        }
+        unlink($storePath);
+    }
 
     $corrupted = read_store(); // Should be empty or default
     if (!empty($corrupted['appointments'])) {
