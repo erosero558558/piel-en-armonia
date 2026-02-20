@@ -689,7 +689,7 @@ if ($resource === 'figo-config' && in_array($method, ['POST', 'PUT', 'PATCH'], t
         $status = $e->getCode() >= 400 && $e->getCode() < 600 ? (int) $e->getCode() : 400;
         json_response([
             'ok' => false,
-            'error' => $e->getMessage()
+            'error' => api_error_message_for_client($e, $status)
         ], $status);
     }
 
@@ -1014,7 +1014,7 @@ if ($method === 'POST' && $resource === 'payment-intent') {
     } catch (RuntimeException $e) {
         json_response([
             'ok' => false,
-            'error' => $e->getMessage()
+            'error' => api_error_message_for_client($e, 502)
         ], 502);
     }
 
@@ -1052,7 +1052,7 @@ if ($method === 'POST' && $resource === 'payment-verify') {
     } catch (RuntimeException $e) {
         json_response([
             'ok' => false,
-            'error' => $e->getMessage()
+            'error' => api_error_message_for_client($e, 502)
         ], 502);
     }
 
@@ -1085,7 +1085,7 @@ if ($method === 'POST' && $resource === 'transfer-proof') {
     } catch (RuntimeException $e) {
         json_response([
             'ok' => false,
-            'error' => $e->getMessage()
+            'error' => api_error_message_for_client($e, 400)
         ], 400);
     }
 
@@ -1121,7 +1121,7 @@ if ($method === 'POST' && $resource === 'stripe-webhook') {
         $event = stripe_verify_webhook_signature($rawBody, $sigHeader, $webhookSecret);
     } catch (RuntimeException $e) {
         audit_log_event('stripe.webhook_signature_failed', ['error' => $e->getMessage()]);
-        json_response(['ok' => false, 'error' => $e->getMessage()], 400);
+        json_response(['ok' => false, 'error' => 'Firma de webhook invalida'], 400);
     }
 
     $eventType = (string) ($event['type'] ?? '');
@@ -1240,7 +1240,7 @@ if ($method === 'POST' && $resource === 'appointments') {
         } catch (RuntimeException $e) {
             json_response([
                 'ok' => false,
-                'error' => 'No se pudo validar el pago: ' . $e->getMessage()
+                'error' => 'No se pudo validar el pago en este momento'
             ], 502);
         }
 

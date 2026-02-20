@@ -65,6 +65,281 @@ function showToast(message, type = 'info', title = '') {
     }, 5000);
 }
 
+const DEBUG = false;
+function debugLog(...args) {
+    if (DEBUG) {
+        console.log(...args);
+    }
+}
+
+const deferredModulePromises = new Map();
+
+function loadDeferredModule(options) {
+    const {
+        cacheKey,
+        src,
+        scriptDataAttribute,
+        resolveModule,
+        isModuleReady = (module) => !!module,
+        onModuleReady,
+        missingApiError = 'Deferred module loaded without expected API',
+        loadError = 'No se pudo cargar el modulo diferido',
+        logLabel = ''
+    } = options || {};
+
+    if (!cacheKey || !src || !scriptDataAttribute || typeof resolveModule !== 'function') {
+        return Promise.reject(new Error('Invalid deferred module configuration'));
+    }
+
+    const getReadyModule = () => {
+        const module = resolveModule();
+        if (!isModuleReady(module)) {
+            return null;
+        }
+
+        if (typeof onModuleReady === 'function') {
+            onModuleReady(module);
+        }
+
+        return module;
+    };
+
+    const readyModule = getReadyModule();
+    if (readyModule) {
+        return Promise.resolve(readyModule);
+    }
+
+    if (deferredModulePromises.has(cacheKey)) {
+        return deferredModulePromises.get(cacheKey);
+    }
+
+    const promise = new Promise((resolve, reject) => {
+        const handleLoad = () => {
+            const module = getReadyModule();
+            if (module) {
+                resolve(module);
+                return;
+            }
+            reject(new Error(missingApiError));
+        };
+
+        import(src)
+            .then(() => {
+                if (!document.querySelector('script[' + scriptDataAttribute + '="true"]')) {
+                    const marker = document.createElement('script');
+                    marker.setAttribute(scriptDataAttribute, 'true');
+                    marker.dataset.dynamicImport = 'true';
+                    document.head.appendChild(marker);
+                }
+                handleLoad();
+            })
+            .catch((err) => {
+                debugLog(logLabel + ' dynamic import failed:', err);
+                reject(new Error(loadError));
+            });
+    }).catch((error) => {
+        deferredModulePromises.delete(cacheKey);
+        if (logLabel) {
+            debugLog(logLabel + ' load failed:', error);
+        }
+        throw error;
+    });
+
+    deferredModulePromises.set(cacheKey, promise);
+    return promise;
+}
+
+function isConstrainedNetworkConnection() {
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    return !!(connection && (
+        connection.saveData === true
+        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
+    ));
+}
+
+function scheduleDeferredTask(task, options = {}) {
+    const {
+        idleTimeout = 2000,
+        fallbackDelay = 1200,
+        skipOnConstrained = true,
+        constrainedDelay = fallbackDelay
+    } = options;
+
+    if (isConstrainedNetworkConnection()) {
+        if (skipOnConstrained) {
+            return false;
+        }
+        setTimeout(task, constrainedDelay);
+        return true;
+    }
+
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(task, { timeout: idleTimeout });
+    } else {
+        setTimeout(task, fallbackDelay);
+    }
+
+    return true;
+}
+
+function bindWarmupTarget(selector, eventName, handler, passive = true) {
+    const element = document.querySelector(selector);
+    if (!element) {
+        return false;
+    }
+
+    element.addEventListener(eventName, handler, { once: true, passive });
+    return true;
+}
+
+function createOnceTask(task) {
+    let executed = false;
+
+    return function runOnce() {
+        if (executed) {
+            return;
+        }
+
+        executed = true;
+        task();
+    };
+}
+
+function createWarmupRunner(loadFn, options = {}) {
+    const markWarmOnSuccess = options.markWarmOnSuccess === true;
+    let warmed = false;
+
+    return function warmup() {
+        if (warmed || window.location.protocol === 'file:') {
+            return;
+        }
+
+        if (markWarmOnSuccess) {
+            Promise.resolve(loadFn()).then(() => {
+                warmed = true;
+            }).catch(() => undefined);
+            return;
+        }
+
+        warmed = true;
+        Promise.resolve(loadFn()).catch(() => {
+            warmed = false;
+        });
+    };
+}
+
+function observeOnceWhenVisible(element, onVisible, options = {}) {
+    const {
+        threshold = 0.05,
+        rootMargin = '0px',
+        onNoObserver
+    } = options;
+
+    if (!element) {
+        return false;
+    }
+
+    if (!('IntersectionObserver' in window)) {
+        if (typeof onNoObserver === 'function') {
+            onNoObserver();
+        }
+        return false;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (!entry.isIntersecting) {
+                return;
+            }
+            onVisible(entry);
+            observer.disconnect();
+        });
+    }, {
+        threshold,
+        rootMargin
+    });
+
+    observer.observe(element);
+    return true;
+}
+
+function withDeferredModule(loader, onReady) {
+    return Promise.resolve()
+        .then(() => loader())
+        .then((module) => onReady(module));
+}
+
+function runDeferredModule(loader, onReady, onError) {
+    return withDeferredModule(loader, onReady).catch((error) => {
+        if (typeof onError === 'function') {
+            return onError(error);
+        }
+        return undefined;
+    });
+}
+
+const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred12-cspinline1-stateclass1-sync1';
+
+let deferredStylesheetPromise = null;
+let deferredStylesheetInitDone = false;
+
+function resolveDeferredStylesheetUrl() {
+    const preload = document.querySelector('link[rel="preload"][as="style"][href*="styles-deferred.css"]');
+    if (preload) {
+        const href = preload.getAttribute('href');
+        if (href && href.trim() !== '') {
+            return href;
+        }
+    }
+    return DEFERRED_STYLESHEET_URL;
+}
+
+function loadDeferredStylesheet() {
+    if (document.querySelector('link[data-deferred-stylesheet="true"], link[rel="stylesheet"][href*="styles-deferred.css"]')) {
+        return Promise.resolve(true);
+    }
+
+    if (deferredStylesheetPromise) {
+        return deferredStylesheetPromise;
+    }
+
+    const stylesheetUrl = resolveDeferredStylesheetUrl();
+
+    deferredStylesheetPromise = new Promise((resolve, reject) => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = stylesheetUrl;
+        link.dataset.deferredStylesheet = 'true';
+        link.onload = () => resolve(true);
+        link.onerror = () => reject(new Error('No se pudo cargar styles-deferred.css'));
+        document.head.appendChild(link);
+    }).catch((error) => {
+        deferredStylesheetPromise = null;
+        debugLog('Deferred stylesheet load failed:', error);
+        throw error;
+    });
+
+    return deferredStylesheetPromise;
+}
+
+function initDeferredStylesheetLoading() {
+    if (deferredStylesheetInitDone || window.location.protocol === 'file:') {
+        return;
+    }
+
+    deferredStylesheetInitDone = true;
+
+    const startLoad = () => {
+        loadDeferredStylesheet().catch(() => undefined);
+    };
+
+    scheduleDeferredTask(startLoad, {
+        idleTimeout: 1200,
+        fallbackDelay: 160,
+        skipOnConstrained: false,
+        constrainedDelay: 900
+    });
+}
 
 // ========================================
 // TRANSLATIONS

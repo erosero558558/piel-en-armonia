@@ -95,7 +95,7 @@ class PaymentController
         } catch (RuntimeException $e) {
             json_response([
                 'ok' => false,
-                'error' => $e->getMessage()
+                'error' => 'No se pudo iniciar el pago en este momento'
             ], 502);
         }
 
@@ -135,7 +135,7 @@ class PaymentController
         } catch (RuntimeException $e) {
             json_response([
                 'ok' => false,
-                'error' => $e->getMessage()
+                'error' => 'No se pudo validar el pago en este momento'
             ], 502);
         }
 
@@ -170,7 +170,7 @@ class PaymentController
         } catch (RuntimeException $e) {
             json_response([
                 'ok' => false,
-                'error' => $e->getMessage()
+                'error' => 'No se pudo procesar el comprobante enviado'
             ], 400);
         }
 
@@ -208,7 +208,7 @@ class PaymentController
             $event = stripe_verify_webhook_signature($rawBody, $sigHeader, $webhookSecret);
         } catch (RuntimeException $e) {
             audit_log_event('stripe.webhook_signature_failed', ['error' => $e->getMessage()]);
-            json_response(['ok' => false, 'error' => $e->getMessage()], 400);
+            json_response(['ok' => false, 'error' => 'Firma de webhook invalida'], 400);
         }
 
         $eventType = (string) ($event['type'] ?? '');

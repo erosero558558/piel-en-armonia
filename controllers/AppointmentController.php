@@ -164,7 +164,7 @@ class AppointmentController
             } catch (RuntimeException $e) {
                 json_response([
                     'ok' => false,
-                    'error' => 'No se pudo validar el pago: ' . $e->getMessage()
+                    'error' => 'No se pudo validar el pago en este momento'
                 ], 502);
             }
 
