@@ -32,7 +32,7 @@ namespace Stripe {
             $this->data = $data;
             if (!isset($this->data['id'])) $this->data['id'] = 'pi_mock_123';
             if (!isset($this->data['client_secret'])) $this->data['client_secret'] = 'pi_mock_secret_123';
-            if (!isset($this->data['amount'])) $this->data['amount'] = 4480;
+            if (!isset($this->data['amount'])) $this->data['amount'] = 4000;
             if (!isset($this->data['currency'])) $this->data['currency'] = 'usd';
         }
         public function toArray() {
@@ -80,7 +80,7 @@ namespace {
     run_test('payment_expected_amount_cents calculation', function() {
         putenv('PIELARMONIA_VAT_RATE');
         $cents = payment_expected_amount_cents('consulta');
-        assert_equals(4480, $cents);
+        assert_equals(4000, $cents);
     });
 
     run_test('payment_build_idempotency_key format', function() {
@@ -106,7 +106,7 @@ namespace {
 
         if (!isset($intent['id'])) throw new Exception("Intent ID missing");
         if (!isset($intent['client_secret'])) throw new Exception("Client Secret missing");
-        assert_equals(4480, $intent['amount']);
+        assert_equals(4000, $intent['amount']);
         assert_equals('usd', $intent['currency']);
 
         putenv('PIELARMONIA_STRIPE_SECRET_KEY');
