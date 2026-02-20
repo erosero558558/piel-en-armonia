@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pielarmonia-ingress
+  namespace: pielarmonia
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: pielarmonia.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: pielarmonia-service
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - pielarmonia.com
+    secretName: pielarmonia-tls

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pielarmonia-config
+  namespace: pielarmonia
+data:
+  PIELARMONIA_ALLOWED_ORIGIN: "https://pielarmonia.com"
+  PIELARMONIA_DEBUG_EXCEPTIONS: "false"
+  PIELARMONIA_AUDIT_PUBLIC_GET: "false"
+  PIELARMONIA_AUDIT_HEALTH: "false"
+  PIELARMONIA_BACKUP_MAX_AGE_HOURS: "24"
+  PIELARMONIA_BACKUP_LOCAL_REPLICA: "true"
+  PIELARMONIA_BACKUP_RECEIVER_MAX_MB: "50"
+  FEATURE_NEW_BOOKING_UI: "true"
+  FEATURE_STRIPE_ELEMENTS: "true"
+  FEATURE_DARK_MODE: "true"
+  FEATURE_CHATGPT_INTEGRATION: "true"
+  PIELARMONIA_DATA_DIR: "/var/www/data"
+  PIELARMONIA_REDIS_HOST: "redis"

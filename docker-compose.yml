@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: pielarmonia_app
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+      - pielarmonia_data:/var/www/data
+      - ./env.php:/var/www/html/env.php
+    environment:
+      - PIELARMONIA_DATA_DIR=/var/www/data
+      - PIELARMONIA_REDIS_HOST=redis
+    depends_on:
+      - redis
+    networks:
+      - pielarmonia_net
+
+  redis:
+    image: redis:alpine
+    container_name: pielarmonia_redis
+    restart: always
+    volumes:
+      - pielarmonia_redis_data:/data
+    networks:
+      - pielarmonia_net
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: pielarmonia_prometheus
+    volumes:
+      - ./prometheus.docker.yml:/etc/prometheus/prometheus.yml
+      - pielarmonia_prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - pielarmonia_net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: pielarmonia_grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/dashboard.json:/var/lib/grafana/dashboards/dashboard.json
+      - pielarmonia_grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    networks:
+      - pielarmonia_net
+
+volumes:
+  pielarmonia_data:
+  pielarmonia_redis_data:
+  pielarmonia_prometheus_data:
+  pielarmonia_grafana_data:
+
+networks:
+  pielarmonia_net:
+    driver: bridge
