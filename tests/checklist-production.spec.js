@@ -18,6 +18,26 @@ test.describe('Checklist de Pruebas en Producción', () => {
             console.warn('Could not clear rate limit dir:', e.message);
         }
     }
+
+    // Set up env.php for E2E tests authentication
+    const envPath = path.join(__dirname, '../env.php');
+    try {
+        fs.writeFileSync(envPath, `<?php putenv('PIELARMONIA_ADMIN_PASSWORD=${ADMIN_PASSWORD}'); ?>`);
+    } catch (e) {
+        console.warn('Could not create env.php for E2E tests:', e.message);
+    }
+  });
+
+  test.afterAll(async () => {
+      // Clean up env.php
+      const envPath = path.join(__dirname, '../env.php');
+      if (fs.existsSync(envPath)) {
+          try {
+              fs.unlinkSync(envPath);
+          } catch (e) {
+              console.warn('Could not cleanup env.php:', e.message);
+          }
+      }
   });
 
   // 1. Pre-check de servidor (archivos, variables, permisos)
