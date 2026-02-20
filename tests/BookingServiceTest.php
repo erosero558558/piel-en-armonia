@@ -12,7 +12,7 @@ $mock_store = [
 $mock_payload = [];
 $mock_intent = [
     'status' => 'succeeded',
-    'amount' => 4480,
+    'amount' => 4000,
     'currency' => 'usd',
     'metadata' => [
         'site' => 'pielarmonia.com',
@@ -61,7 +61,7 @@ function maybe_send_reschedule_email($appt): void {}
 
 function payment_gateway_enabled(): bool { return true; }
 function payment_currency(): string { return 'USD'; }
-function payment_expected_amount_cents($service): int { return 4480; } // 40 + 12% = 44.80
+function payment_expected_amount_cents($service): int { return 4000; } // 40 + 0% = 40.00
 
 function stripe_get_payment_intent(string $id): array {
     global $mock_intent;
@@ -99,10 +99,10 @@ run_test('get_service_price_amount invalid', function() {
 });
 
 run_test('get_service_total_price calculation', function() {
-    // 40 + 12% = 44.80
-    // get_service_total_price returns formatted string '$44.80'
+    // 40 + 0% = 40.00
+    // get_service_total_price returns formatted string '$40.00'
     $price = get_service_total_price('consulta');
-    assert_equals('$44.80', $price);
+    assert_equals('$40.00', $price);
 });
 
 run_test('appointment_slot_taken basic', function() {
@@ -188,8 +188,8 @@ run_test('AppointmentController::store successful card payment', function() {
 
     $mock_intent = [
         'status' => 'succeeded',
-        'amount' => 4480,
-        'amount_received' => 4480,
+        'amount' => 4000,
+        'amount_received' => 4000,
         'currency' => 'USD',
         'metadata' => [
             'site' => 'pielarmonia.com',
