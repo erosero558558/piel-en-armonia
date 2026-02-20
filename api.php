@@ -5,6 +5,7 @@ require_once __DIR__ . '/api-lib.php';
 require_once __DIR__ . '/payment-lib.php';
 require_once __DIR__ . '/lib/monitoring.php';
 require_once __DIR__ . '/lib/metrics.php';
+require_once __DIR__ . '/lib/prediction.php';
 
 // Controllers
 require_once __DIR__ . '/controllers/HealthController.php';
@@ -851,7 +852,7 @@ if ($resource === 'metrics') {
         if (($appt['status'] ?? '') !== 'cancelled' && ($appt['paymentStatus'] ?? '') === 'paid') {
             $date = $appt['date'] ?? '';
             $service = $appt['service'] ?? '';
-            $price = function_exists('get_service_price_amount') ? get_service_price_amount($service) : 0.0;
+            $price = function_exists('get_service_price_amount') ? get_service_price_amount($service, $date) : 0.0;
             if ($date && $price > 0) {
                 if (!isset($revenueByDate[$date])) {
                     $revenueByDate[$date] = 0;
@@ -1028,6 +1029,44 @@ if ($method === 'GET' && $resource === 'reschedule') {
 if ($method === 'PATCH' && $resource === 'reschedule') {
     AppointmentController::processReschedule($context);
     exit;
+}
+
+if ($method === 'GET' && $resource === 'predictions' && $action === 'no-show') {
+    // Admin check is already done by default for non-public endpoints
+    $email = isset($_GET['email']) ? trim((string) $_GET['email']) : '';
+    $phone = isset($_GET['phone']) ? trim((string) $_GET['phone']) : '';
+    $date = isset($_GET['date']) ? trim((string) $_GET['date']) : '';
+    $time = isset($_GET['time']) ? trim((string) $_GET['time']) : '';
+    $service = isset($_GET['service']) ? trim((string) $_GET['service']) : '';
+
+    if ($email === '' && $phone === '') {
+        json_response(['ok' => false, 'error' => 'Email o telefono requerido'], 400);
+    }
+
+    $history = [];
+    if (isset($store['appointments']) && is_array($store['appointments'])) {
+        foreach ($store['appointments'] as $appt) {
+            $apptEmail = isset($appt['email']) ? trim((string) $appt['email']) : '';
+            $apptPhone = isset($appt['phone']) ? trim((string) $appt['phone']) : '';
+
+            if (($email !== '' && strcasecmp($email, $apptEmail) === 0) ||
+                ($phone !== '' && $phone === $apptPhone)) {
+                $history[] = $appt;
+            }
+        }
+    }
+
+    $prediction = NoShowPredictor::predict([
+        'date' => $date,
+        'time' => $time,
+        'service' => $service
+    ], $history);
+
+    json_response([
+        'ok' => true,
+        'prediction' => $prediction,
+        'history_count' => count($history)
+    ]);
 }
 
 json_response([

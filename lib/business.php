@@ -12,6 +12,29 @@ require_once __DIR__ . '/validation.php';
 // Tasa de IVA general (configurable via environment)
 define('IVA_GENERAL_RATE', 0.15); // 15%
 
+function is_weekend(?string $date = null): bool
+{
+    if ($date === null || trim($date) === '') {
+        return false;
+    }
+    try {
+        $ts = strtotime($date);
+        if ($ts === false) return false;
+        $day = (int) date('N', $ts); // 1=Mon, 7=Sun
+        return $day >= 6;
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+function get_dynamic_price_multiplier(?string $date = null, ?string $time = null): float
+{
+    if (is_weekend($date)) {
+        return 1.10; // 10% recargo fines de semana
+    }
+    return 1.0;
+}
+
 // Configuración de servicios con tasas de IVA
 function get_services_config(): array
 {
@@ -97,12 +120,13 @@ function get_service_config(string $service_id): ?array
 }
 
 /**
- * Obtiene el precio base de un servicio
+ * Obtiene el precio base de un servicio (con multiplicador dinamico opcional)
  */
-function get_service_price_amount(string $service): float
+function get_service_price_amount(string $service, ?string $date = null, ?string $time = null): float
 {
     $config = get_service_config($service);
-    return $config ? $config['price_base'] : 0.0;
+    $base = $config ? $config['price_base'] : 0.0;
+    return $base * get_dynamic_price_multiplier($date, $time);
 }
 
 /**
@@ -117,18 +141,18 @@ function get_service_tax_rate(string $service): float
 /**
  * Obtiene el precio formateado de un servicio
  */
-function get_service_price(string $service): string
+function get_service_price(string $service, ?string $date = null, ?string $time = null): string
 {
-    $amount = get_service_price_amount($service);
+    $amount = get_service_price_amount($service, $date, $time);
     return '$' . number_format($amount, 2, '.', '');
 }
 
 /**
  * Obtiene el precio total incluyendo IVA
  */
-function get_service_total_price(string $service): string
+function get_service_total_price(string $service, ?string $date = null, ?string $time = null): string
 {
-    $base = get_service_price_amount($service);
+    $base = get_service_price_amount($service, $date, $time);
     $tax_rate = get_service_tax_rate($service);
     $total = compute_total($base, $tax_rate);
     return '$' . number_format($total, 2, '.', '');
@@ -137,7 +161,7 @@ function get_service_total_price(string $service): string
 /**
  * Obtiene el desglose completo de precios de un servicio
  */
-function get_service_price_breakdown(string $service): array
+function get_service_price_breakdown(string $service, ?string $date = null, ?string $time = null): array
 {
     $config = get_service_config($service);
     
@@ -147,8 +171,9 @@ function get_service_price_breakdown(string $service): array
             'service_id' => $service
         ];
     }
-    
-    $base = $config['price_base'];
+
+    $multiplier = get_dynamic_price_multiplier($date, $time);
+    $base = $config['price_base'] * $multiplier;
     $tax_rate = $config['tax_rate'];
     $tax_amount = compute_tax($base, $tax_rate);
     $total = compute_total($base, $tax_rate);
@@ -160,6 +185,8 @@ function get_service_price_breakdown(string $service): array
         'is_from_price' => $config['is_from_price'],
         'pricing' => [
             'base_amount' => $base,
+            'multiplier' => $multiplier,
+            'is_dynamic' => $multiplier !== 1.0,
             'tax_rate' => $tax_rate,
             'tax_rate_percent' => round($tax_rate * 100),
             'tax_amount' => $tax_amount,

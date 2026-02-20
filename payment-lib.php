@@ -66,9 +66,9 @@ function stripe_verify_webhook_signature(string $payload, string $sigHeader, str
     }
 }
 
-function payment_expected_amount_cents(string $service): int
+function payment_expected_amount_cents(string $service, ?string $date = null, ?string $time = null): int
 {
-    $subtotal = get_service_price_amount($service);
+    $subtotal = get_service_price_amount($service, $date, $time);
     $total = $subtotal + ($subtotal * get_vat_rate());
     return (int) round($total * 100);
 }
@@ -94,7 +94,9 @@ function stripe_create_payment_intent(array $appointment, string $idempotencyKey
     }
 
     $service = (string) ($appointment['service'] ?? '');
-    $amountCents = payment_expected_amount_cents($service);
+    $date = (string) ($appointment['date'] ?? '');
+    $time = (string) ($appointment['time'] ?? '');
+    $amountCents = payment_expected_amount_cents($service, $date, $time);
     if ($amountCents <= 0) {
         throw new RuntimeException('No se pudo calcular el monto del pago.');
     }
