@@ -1,12 +1,8 @@
 import { state } from './state.js';
 import { COOKIE_CONSENT_KEY } from './config.js';
 
-const DEBUG = false;
-
-export function debugLog(...args) {
-    if (DEBUG) {
-        console.log(...args);
-    }
+export function debugLog() {
+    // Debug logging removed
 }
 
 export function escapeHtml(text) {
