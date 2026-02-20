@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Tests Unitarios para Sistema de Precios e IVA
  * Piel en Armonía
