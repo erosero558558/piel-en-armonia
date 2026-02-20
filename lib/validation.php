@@ -12,6 +12,11 @@ function sanitize_phone(string $phone): string
     return trim($phone);
 }
 
+function sanitize_xss(string $value): string
+{
+    return htmlspecialchars($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+}
+
 function validate_email(string $email): bool
 {
     return $email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
