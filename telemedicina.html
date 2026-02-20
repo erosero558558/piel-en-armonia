@@ -3585,7 +3585,7 @@ function initDeferredStylesheetLoading() {
     scheduleDeferredTask(() => loadDeferredStylesheet().catch(() => {}), { idleTimeout: 1200, fallbackDelay: 160, skipOnConstrained: false, constrainedDelay: 900 });
 }
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW fail', err)); });
+    window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(err => debugLog('SW fail', err)); });
 }
 window.initDeferredStylesheetLoading();
 </script>

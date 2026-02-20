@@ -2,6 +2,8 @@
  * Shared utilities for Piel en Armonía
  */
 
+const DEBUG = false;
+
 /**
  * Escapes HTML special characters to prevent XSS.
  * @param {string} text - The text to escape.
@@ -14,7 +16,7 @@ function escapeHtml(text) {
 }
 
 function debugLog(...args) {
-    if (typeof console !== 'undefined' && typeof console.log === 'function') {
+    if (DEBUG && typeof console !== 'undefined' && typeof console.log === 'function') {
         console.log(...args);
     }
 }
