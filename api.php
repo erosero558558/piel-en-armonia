@@ -831,31 +831,6 @@ if ($resource === 'figo-config' && in_array($method, ['POST', 'PUT', 'PATCH'], t
     ]);
 }
 
-// Features Config (Admin Only)
-if ($resource === 'features-config') {
-    if ($method === 'GET') {
-        json_response([
-            'ok' => true,
-            'data' => FeatureFlags::getRawConfig()
-        ]);
-    }
-
-    if ($method === 'POST') {
-        require_rate_limit('features-config', 10, 60);
-        $payload = require_json_body();
-        FeatureFlags::updateConfig($payload);
-
-        audit_log_event('features.updated', [
-            'keys' => array_keys($payload)
-        ]);
-
-        json_response([
-            'ok' => true,
-            'data' => FeatureFlags::getRawConfig()
-        ]);
-    }
-}
-
 // Payment Config
 if ($method === 'GET' && $resource === 'payment-config') {
     PaymentController::config($context);
