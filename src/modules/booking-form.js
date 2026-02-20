@@ -277,6 +277,7 @@ export function init(inputDeps) {
                 privacyConsent,
                 casePhotoFiles,
                 casePhotoUploads: [],
+                checkoutEntry: 'booking_form',
                 price: totalEl.textContent
             };
 
