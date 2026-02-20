@@ -175,6 +175,8 @@ Ejemplo recomendado de `data/figo-config.json`:
 9. Verificacion de cron de backup:
 - `https://pielarmonia.com/cron.php?action=backup-health&token=YOUR_CRON_SECRET`
 - `https://pielarmonia.com/cron.php?action=backup-offsite&dryRun=1&token=YOUR_CRON_SECRET`
+- (Recomendado) `curl -s "https://pielarmonia.com/cron.php?action=backup-health" -H "Authorization: Bearer YOUR_CRON_SECRET"`
+- (Recomendado) `curl -s "https://pielarmonia.com/cron.php?action=backup-offsite&dryRun=1" -H "X-Cron-Token: YOUR_CRON_SECRET"`
 
 10. Replica remota real (opcional):
 - Publica `backup-receiver.php` en servidor destino.

@@ -6,6 +6,7 @@ param(
     [switch]$AllowMetaCspFallback,
     [switch]$RequireWebhookSecret,
     [switch]$RequireBackupReceiverReady,
+    [switch]$RequireCronReady,
     [int]$MaxHealthTimingMs = 2000,
     [int]$FigoPostRetries = 3,
     [int]$FigoPostRetryDelaySec = 2
@@ -338,7 +339,12 @@ function Invoke-JsonPostCheck {
         }
         $sw.Stop()
 
-        if ($status -ge 200 -and $status -lt 500) {
+        $retryableStatus = @(
+            0, 408, 425, 429, 500, 502, 503, 504
+        )
+        $shouldRetry = ($retryableStatus -contains [int]$status)
+
+        if ($status -ge 200 -and $status -lt 500 -and -not $shouldRetry) {
             if ($attempt -gt 1) {
                 Write-Host "[INFO] $Name recuperado en intento $attempt/$maxAttempts"
             }
@@ -351,8 +357,8 @@ function Invoke-JsonPostCheck {
             }
         }
 
-        if ($attempt -lt $maxAttempts) {
-            Write-Host "[WARN] $Name intento $attempt/$maxAttempts fallo (HTTP $status). Reintentando en $RetryDelaySec s..."
+        if ($attempt -lt $maxAttempts -and $shouldRetry) {
+            Write-Host "[WARN] $Name intento $attempt/$maxAttempts con estado transitorio (HTTP $status). Reintentando en $RetryDelaySec s..."
             Start-Sleep -Seconds $RetryDelaySec
         } else {
             Write-Host "[FAIL] $Name -> HTTP $status ($([int]$sw.ElapsedMilliseconds) ms)"
@@ -385,6 +391,10 @@ $results += Invoke-Check -Name 'Admin auth status' -Url "$base/admin-auth.php?ac
 $results += Invoke-Check -Name 'Figo chat GET' -Url "$base/figo-chat.php"
 $results += Invoke-Check -Name 'Figo backend GET' -Url "$base/figo-backend.php"
 $results += Invoke-Check -Name 'Backup receiver GET' -Url "$base/backup-receiver.php"
+if ($RequireCronReady) {
+    $results += Invoke-Check -Name 'Cron backup health unauthorized' -Url "$base/cron.php?action=backup-health"
+    $results += Invoke-Check -Name 'Cron backup offsite unauthorized' -Url "$base/cron.php?action=backup-offsite"
+}
 $results += Invoke-Check -Name 'Chat engine asset' -Url $chatEngineAssetUrl
 $results += Invoke-Check -Name 'Deferred styles asset' -Url $deferredStylesAssetUrl
 $results += Invoke-Check -Name 'EN translations asset' -Url $translationsEnAssetUrl
@@ -432,6 +442,8 @@ $expectedStatusByName = @{
     'Figo chat GET' = 200
     'Figo backend GET' = 200
     'Backup receiver GET' = 405
+    'Cron backup health unauthorized' = 403
+    'Cron backup offsite unauthorized' = 403
     'Chat engine asset' = 200
     'Deferred styles asset' = 200
     'EN translations asset' = 200
@@ -452,6 +464,10 @@ if ($TestFigoPost) {
 }
 if ($RequireBackupReceiverReady) {
     $expectedStatusByName['Backup receiver POST unauthorized'] = 401
+}
+if (-not $RequireCronReady) {
+    $expectedStatusByName.Remove('Cron backup health unauthorized') | Out-Null
+    $expectedStatusByName.Remove('Cron backup offsite unauthorized') | Out-Null
 }
 
 foreach ($result in $results) {

@@ -925,6 +925,22 @@ try {
         $backupNode = $null
     }
     if ($null -eq $backupNode) {
+        try {
+            $healthUrlNoCache = if ($healthUrl -match '\?') {
+                "$healthUrl&verify=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
+            } else {
+                "$healthUrl?verify=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
+            }
+            $healthRetryResp = Invoke-JsonGet -Url $healthUrlNoCache
+            $backupNode = $healthRetryResp.Json.checks.backup
+            if ($null -ne $backupNode) {
+                Write-Host "[INFO] health checks.backup recuperado en segunda lectura"
+            }
+        } catch {
+            $backupNode = $null
+        }
+    }
+    if ($null -eq $backupNode) {
         Write-Host "[WARN] health no incluye checks.backup"
         if ($RequireBackupHealthy) {
             $results += [PSCustomObject]@{

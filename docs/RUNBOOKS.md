@@ -87,11 +87,16 @@ El sistema mantiene backups rotativos en `data/backups/` al escribir `store.json
 ```bash
 10 3 * * * curl -s "https://pielarmonia.com/cron.php?action=backup-health&token=YOUR_CRON_SECRET"
 20 3 * * * curl -s "https://pielarmonia.com/cron.php?action=backup-offsite&token=YOUR_CRON_SECRET"
+
+# Alternativa recomendada (sin token en URL):
+curl -s "https://pielarmonia.com/cron.php?action=backup-health" -H "Authorization: Bearer YOUR_CRON_SECRET"
+curl -s "https://pielarmonia.com/cron.php?action=backup-offsite" -H "X-Cron-Token: YOUR_CRON_SECRET"
 ```
 
 **Prueba manual (dry run offsite):**
 ```bash
 curl -s "https://pielarmonia.com/cron.php?action=backup-offsite&dryRun=1&token=YOUR_CRON_SECRET"
+curl -s "https://pielarmonia.com/cron.php?action=backup-offsite&dryRun=1" -H "Authorization: Bearer YOUR_CRON_SECRET"
 ```
 
 **Variables requeridas para offsite real:**

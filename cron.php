@@ -27,12 +27,30 @@ function cron_json(array $payload, int $status = 200): void
     exit();
 }
 
+function cron_extract_token(): string
+{
+    $authHeader = isset($_SERVER['HTTP_AUTHORIZATION']) ? trim((string) $_SERVER['HTTP_AUTHORIZATION']) : '';
+    if ($authHeader !== '') {
+        if (preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches) === 1) {
+            return trim((string) ($matches[1] ?? ''));
+        }
+        return $authHeader;
+    }
+
+    $headerToken = isset($_SERVER['HTTP_X_CRON_TOKEN']) ? trim((string) $_SERVER['HTTP_X_CRON_TOKEN']) : '';
+    if ($headerToken !== '') {
+        return $headerToken;
+    }
+
+    return trim((string) ($_GET['token'] ?? ''));
+}
+
 $secret = getenv('PIELARMONIA_CRON_SECRET');
 if (!is_string($secret) || $secret === '') {
     cron_json(['ok' => false, 'error' => 'CRON_SECRET no configurado'], 500);
 }
 
-$token = trim((string) ($_GET['token'] ?? ''));
+$token = cron_extract_token();
 if (!hash_equals($secret, $token)) {
     cron_json(['ok' => false, 'error' => 'Token invalido'], 403);
 }
