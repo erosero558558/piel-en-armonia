@@ -7,7 +7,8 @@ param(
     [switch]$RequireWebhookSecret,
     [switch]$RequireBackupHealthy,
     [switch]$RequireBackupReceiverReady,
-    [switch]$RequireCronReady
+    [switch]$RequireCronReady,
+    [switch]$RequireStableDataDir
 )
 
 $ErrorActionPreference = 'Stop'
@@ -26,7 +27,8 @@ Write-Host "[1/3] Verificacion de despliegue..." -ForegroundColor Yellow
     -AllowRecursiveFigo:$AllowRecursiveFigo `
     -AllowMetaCspFallback:$AllowMetaCspFallback `
     -RequireWebhookSecret:$RequireWebhookSecret `
-    -RequireBackupHealthy:$RequireBackupHealthy
+    -RequireBackupHealthy:$RequireBackupHealthy `
+    -RequireStableDataDir:$RequireStableDataDir
 if ($LASTEXITCODE -ne 0) {
     $failures += 1
 }

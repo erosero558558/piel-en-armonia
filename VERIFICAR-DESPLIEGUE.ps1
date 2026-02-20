@@ -6,6 +6,7 @@ param(
     [switch]$AllowMetaCspFallback,
     [switch]$RequireWebhookSecret,
     [switch]$RequireBackupHealthy,
+    [switch]$RequireStableDataDir,
     [int]$MaxHealthTimingMs = 2000
 )
 
@@ -915,6 +916,29 @@ try {
             LocalHash = 'false'
             RemoteHash = 'true'
             RemoteUrl = $healthUrl
+        }
+    }
+
+    $dataDirSource = ''
+    try {
+        $dataDirSource = [string]($healthResp.Json.dataDirSource)
+    } catch {
+        $dataDirSource = ''
+    }
+    if ($dataDirSource -ne '') {
+        if ($dataDirSource -eq 'tmp') {
+            Write-Host "[WARN] health dataDirSource=tmp (persistencia efimera)"
+            if ($RequireStableDataDir) {
+                $results += [PSCustomObject]@{
+                    Asset = 'health-dataDirSource'
+                    Match = $false
+                    LocalHash = 'stable'
+                    RemoteHash = 'tmp'
+                    RemoteUrl = $healthUrl
+                }
+            }
+        } else {
+            Write-Host "[OK]  health dataDirSource=$dataDirSource"
         }
     }
 
