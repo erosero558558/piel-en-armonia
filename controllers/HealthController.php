@@ -10,9 +10,31 @@ class HealthController
         $resource = $context['resource'] ?? 'health';
 
         $storageReady = ensure_data_file();
+        $dataWritable = data_dir_writable();
+        $storeEncrypted = store_file_is_encrypted();
         $figoEndpoint = self::resolve_figo_endpoint();
         $figoConfigured = $figoEndpoint !== '';
         $figoRecursive = self::is_figo_recursive_config($figoEndpoint);
+        $redisStatus = getenv('PIELARMONIA_REDIS_HOST') ? 'configured' : 'disabled';
+
+        $backupCheck = [
+            'enabled' => false
+        ];
+        if (function_exists('backup_latest_status')) {
+            $backupStatus = backup_latest_status();
+            $backupCheck = [
+                'enabled' => true,
+                'ok' => (bool) ($backupStatus['ok'] ?? false),
+                'reason' => (string) ($backupStatus['reason'] ?? ''),
+                'count' => (int) ($backupStatus['count'] ?? 0),
+                'maxAgeHours' => (int) ($backupStatus['maxAgeHours'] ?? 24),
+                'latestAgeHours' => $backupStatus['latestAgeHours'] ?? null,
+                'latestValid' => (bool) ($backupStatus['latestValid'] ?? false),
+                'latestFresh' => (bool) ($backupStatus['latestFresh'] ?? false),
+                'offsiteConfigured' => function_exists('backup_offsite_configured') ? backup_offsite_configured() : false,
+                'replicaMode' => function_exists('backup_replica_mode') ? backup_replica_mode() : 'none'
+            ];
+        }
 
         $timingMs = (int) round((microtime(true) - $requestStartedAt) * 1000);
 
@@ -31,10 +53,20 @@ class HealthController
             'storageReady' => $storageReady,
             'timingMs' => $timingMs,
             'version' => app_runtime_version(),
-            'dataDirWritable' => data_dir_writable(),
-            'storeEncrypted' => store_file_is_encrypted(),
+            'dataDirWritable' => $dataWritable,
+            'storeEncrypted' => $storeEncrypted,
             'figoConfigured' => $figoConfigured,
             'figoRecursiveConfig' => $figoRecursive,
+            'checks' => [
+                'storage' => [
+                    'ready' => $storageReady,
+                    'writable' => $dataWritable,
+                    'encrypted' => $storeEncrypted
+                ],
+                'redis' => $redisStatus,
+                'php_version' => PHP_VERSION,
+                'backup' => $backupCheck
+            ],
             'timestamp' => local_date('c')
         ]);
     }
