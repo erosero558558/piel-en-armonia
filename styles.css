@@ -47,6 +47,7 @@ html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
     scroll-padding-top: 122px;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -102,6 +103,15 @@ img {
     }
     to {
         opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+    to {
         transform: translateY(0);
     }
 }
@@ -1013,6 +1023,10 @@ html[data-theme='dark'] .hero-trust-bar .separator {
 }
 
 @media (max-width: 768px) {
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+
     .services-disclaimers {
         grid-template-columns: 1fr;
         margin-top: 32px;
@@ -2095,6 +2109,8 @@ html[data-theme='dark'] .cookie-link {
         max-height: 88dvh;
         border-radius: 20px 20px 0 0;
         padding: 18px 14px calc(20px + var(--safe-bottom));
+        animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        overscroll-behavior: contain;
     }
 }
 

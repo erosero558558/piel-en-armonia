@@ -4,6 +4,8 @@
     let deps = null;
     let initialized = false;
     let escapeListenerBound = false;
+    let backGestureBound = false;
+    let isClosingViaBack = false;
 
     function closeModalElement(modal) {
         if (!modal) {
@@ -63,10 +65,82 @@
         });
     }
 
+    function setupBackGesture() {
+        if (backGestureBound) {
+            return;
+        }
+        backGestureBound = true;
+
+        window.addEventListener('popstate', function () {
+            isClosingViaBack = true;
+            let closedAny = false;
+
+            document.querySelectorAll('.modal.active').forEach((modal) => {
+                closedAny = true;
+                if (modal.id === 'paymentModal') {
+                    if (deps && typeof deps.closePaymentModal === 'function') {
+                        deps.closePaymentModal({ skipAbandonTrack: false, reason: 'back_gesture' });
+                    }
+                } else {
+                    modal.classList.remove('active');
+                }
+            });
+
+            const mobileMenu = document.getElementById('mobileMenu');
+            if (mobileMenu && mobileMenu.classList.contains('active')) {
+                closedAny = true;
+                if (deps && typeof deps.toggleMobileMenu === 'function') {
+                    deps.toggleMobileMenu(false);
+                } else {
+                    mobileMenu.classList.remove('active');
+                }
+            }
+
+            if (closedAny) {
+                document.body.style.overflow = '';
+            }
+
+            setTimeout(() => {
+                isClosingViaBack = false;
+            }, 50);
+        });
+
+        const observer = new MutationObserver((mutations) => {
+            let opened = false;
+            let closed = false;
+
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class') {
+                    const target = mutation.target;
+                    if (target.classList.contains('active')) {
+                        opened = true;
+                    } else {
+                        closed = true;
+                    }
+                }
+            });
+
+            if (opened) {
+                if (!history.state || !history.state.modalOpen) {
+                    history.pushState({ modalOpen: true }, '');
+                }
+            } else if (closed) {
+                if (!isClosingViaBack && history.state && history.state.modalOpen) {
+                    history.back();
+                }
+            }
+        });
+
+        document.querySelectorAll('.modal, #mobileMenu').forEach((el) => {
+            observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+        });
+    }
+
     function init(inputDeps) {
         deps = inputDeps || deps;
         bindBackdropClose();
         bindEscapeClose();
+        setupBackGesture();
         initialized = true;
         return window.PielModalUxEngine;
     }
