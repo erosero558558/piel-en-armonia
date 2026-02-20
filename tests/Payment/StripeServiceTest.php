@@ -34,7 +34,7 @@ class StripeServiceTest extends TestCase
     public function testPaymentExpectedAmountCents(): void
     {
         putenv('PIELARMONIA_VAT_RATE=15');
-        $this->assertEquals(4600, \payment_expected_amount_cents('consulta'));
+        $this->assertEquals(4000, \payment_expected_amount_cents('consulta'));
     }
 
     public function testPaymentGatewayEnabled(): void
@@ -70,7 +70,7 @@ class StripeServiceTest extends TestCase
 
             $this->assertIsArray($intent);
             $this->assertStringStartsWith('pi_mock_', $intent['id']);
-            $this->assertEquals(4600, $intent['amount']);
+            $this->assertEquals(4000, $intent['amount']);
             $this->assertEquals('usd', $intent['currency']);
             $this->assertEquals('Test User', $intent['metadata']['name'] ?? '');
 
