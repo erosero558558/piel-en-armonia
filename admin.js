@@ -3,6 +3,7 @@
  * Server-backed admin with session auth.
  */
 
+console.log('Admin JS loaded');
 const AUTH_ENDPOINT = '/admin-auth.php';
 const API_ENDPOINT = '/api.php';
 

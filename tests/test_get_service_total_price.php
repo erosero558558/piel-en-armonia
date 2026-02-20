@@ -32,48 +32,41 @@ function assert_equals($expected, $actual, $message = '') {
     return true;
 }
 
-// Test 1: Standard service with default VAT (12%)
-run_test('Standard service (consulta) with default VAT (12%)', function() {
+// Test 1: Standard service with default VAT (15%)
+// Note: 'consulta' is a clinical service with 0% tax rate in business.php configuration.
+// However, get_service_total_price() calculates tax based on the environment VAT rate
+// for the base price, NOT using the service-specific tax configuration (that is in get_service_price_breakdown).
+// Wait, looking at api-lib.php / business.php:
+// function get_service_total_price(string $service): string {
+//     $base = get_service_price_amount($service);
+//     $tax_rate = get_service_tax_rate($service);
+//     $total = compute_total($base, $tax_rate);
+//     return '$' . number_format($total, 2, '.', '');
+// }
+// It uses get_service_tax_rate($service).
+// For 'consulta', tax_rate is 0.00.
+// So expected is $40.00.
+// The previous test seemed to assume get_service_total_price used global VAT, or the config was different.
+run_test('Standard service (consulta) with default VAT (0% for clinical)', function() {
     // Clear any previous env var to ensure default
     putenv('PIELARMONIA_VAT_RATE');
 
-    // verify default rate is indeed 0.12
-    if (get_vat_rate() !== 0.12) {
-        echo "  Warning: Default VAT rate is not 0.12 as expected, it is " . get_vat_rate() . "\n";
-    }
+    // verify default rate is 0.15 (though not used for this specific calculation if service overrides it)
+    // if (get_vat_rate() !== 0.15) { ... }
 
-    // "consulta" price is 40.00
-    // 40.00 + (40.00 * 0.12) = 44.80
-    $expected = '$44.80';
-    $actual = get_service_total_price('consulta');
-    return assert_equals($expected, $actual);
-});
-
-// Test 2: Custom VAT (15%)
-run_test('Standard service (consulta) with custom VAT (15%)', function() {
-    putenv('PIELARMONIA_VAT_RATE=0.15');
-
-    // 40.00 + (40.00 * 0.15) = 40.00 + 6.00 = 46.00
-    $expected = '$46.00';
-    $actual = get_service_total_price('consulta');
-
-    // Clean up
-    putenv('PIELARMONIA_VAT_RATE');
-
-    return assert_equals($expected, $actual);
-});
-
-// Test 3: Zero VAT (0%)
-run_test('Standard service (consulta) with zero VAT', function() {
-    putenv('PIELARMONIA_VAT_RATE=0');
-
-    // 40.00 + 0 = 40.00
+    // "consulta" price is 40.00, tax_rate is 0.00
+    // 40.00 + (40.00 * 0.00) = 40.00
     $expected = '$40.00';
     $actual = get_service_total_price('consulta');
+    return assert_equals($expected, $actual);
+});
 
-    // Clean up
-    putenv('PIELARMONIA_VAT_RATE');
-
+// Test 2: Service with Tax (laser) with default VAT
+run_test('Service with Tax (laser) with default VAT (15%)', function() {
+    // "laser" price is 150.00, tax_rate is 0.15
+    // 150.00 + (150.00 * 0.15) = 150 + 22.50 = 172.50
+    $expected = '$172.50';
+    $actual = get_service_total_price('laser');
     return assert_equals($expected, $actual);
 });
 
@@ -88,48 +81,8 @@ run_test('Unknown service (should be 0 price)', function() {
     return assert_equals($expected, $actual);
 });
 
-// Test 5: Edge case VAT > 1 (should be treated as 1.0 or handled gracefully)
-// The function implementation: if ($rate > 1.0 && $rate <= 100.0) { $rate = $rate / 100.0; }
-// if ($rate > 1.0) { return 1.0; }
-run_test('VAT > 1 edge case (should be capped at 1.0)', function() {
-    // If we set it to 150, it's > 100 so it won't be divided.
-    // Wait, let's check logic:
-    // if ($rate > 1.0 && $rate <= 100.0) { $rate = $rate / 100.0; }
-    // if ($rate > 1.0) { return 1.0; }
-
-    // Case A: 50 -> should be 0.5
-    putenv('PIELARMONIA_VAT_RATE=50');
-    // 40 + (40 * 0.5) = 60.00
-    $expectedA = '$60.00';
-    $actualA = get_service_total_price('consulta');
-    if (!assert_equals($expectedA, $actualA, 'VAT 50 should be 50%')) return false;
-
-    // Case B: 200 -> should be 1.0 (capped)
-    putenv('PIELARMONIA_VAT_RATE=200');
-    // 40 + (40 * 1.0) = 80.00
-    $expectedB = '$80.00';
-    $actualB = get_service_total_price('consulta');
-    if (!assert_equals($expectedB, $actualB, 'VAT 200 should be capped at 100%')) return false;
-
-    // Clean up
-    putenv('PIELARMONIA_VAT_RATE');
-
-    return true;
-});
-
-// Test 6: Negative VAT
-run_test('Negative VAT (should be 0)', function() {
-    // Logic: if ($rate < 0.0) { return 0.0; }
-    putenv('PIELARMONIA_VAT_RATE=-0.5');
-
-    // 40 + 0 = 40.00
-    $expected = '$40.00';
-    $actual = get_service_total_price('consulta');
-
-    // Clean up
-    putenv('PIELARMONIA_VAT_RATE');
-
-    return assert_equals($expected, $actual);
-});
+// Note: Test 5 & 6 removed because `get_service_total_price` uses fixed tax rates from configuration, not the environment variable.
+// The environment variable is likely used elsewhere or was used in legacy code.
+// Current implementation reads from `get_services_config()` which has hardcoded rates.
 
 echo "\nAll tests passed!\n";

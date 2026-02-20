@@ -1,0 +1,142 @@
+[Fri Feb 20 13:33:48 2026] PHP 8.3.6 Development Server (http://localhost:8080) started
+[Fri Feb 20 13:33:50 2026] [::1]:40758 Accepted
+[Fri Feb 20 13:33:50 2026] [::1]:40758 [200]: GET /
+[Fri Feb 20 13:33:50 2026] [::1]:40758 Closing
+[Fri Feb 20 13:33:50 2026] [::1]:40768 Accepted
+[Fri Feb 20 13:33:50 2026] [::1]:40784 Accepted
+[Fri Feb 20 13:33:50 2026] [::1]:40798 Accepted
+[Fri Feb 20 13:33:50 2026] [::1]:40768 [200]: GET /styles.css?v=ui-20260219-pricing1
+[Fri Feb 20 13:33:50 2026] [::1]:40784 [200]: GET /styles-deferred.css?v=ui-20260219-deferred12-cspinline1-stateclass1
+[Fri Feb 20 13:33:50 2026] [::1]:40768 Closing
+[Fri Feb 20 13:33:50 2026] [::1]:40784 Closing
+[Fri Feb 20 13:33:50 2026] [::1]:40798 [200]: GET /hero-woman.jpg
+[Fri Feb 20 13:33:50 2026] [::1]:40798 Closing
+[Fri Feb 20 13:33:50 2026] [::1]:40814 Accepted
+[Fri Feb 20 13:33:50 2026] [::1]:40820 Accepted
+[Fri Feb 20 13:33:50 2026] [::1]:40814 [200]: GET /bootstrap-inline-engine.js?v=20260220132114
+[Fri Feb 20 13:33:50 2026] [::1]:40820 [200]: GET /script.js?v=20260220132114
+[Fri Feb 20 13:33:50 2026] [::1]:40814 Closing
+[Fri Feb 20 13:33:50 2026] [::1]:40820 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40832 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40848 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40858 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40870 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40872 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40832 [200]: GET /images/optimized/showcase-hero.avif
+[Fri Feb 20 13:33:51 2026] [::1]:40848 [200]: GET /images/optimized/showcase-diagnostic.avif
+[Fri Feb 20 13:33:51 2026] [::1]:40858 [200]: GET /images/optimized/showcase-clinic.avif
+[Fri Feb 20 13:33:51 2026] [::1]:40870 [200]: GET /images/optimized/showcase-treatment.avif
+[Fri Feb 20 13:33:51 2026] [::1]:40872 [200]: GET /chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:40832 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40848 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40858 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40870 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40872 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40884 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40884 [200]: GET /action-router-engine.js?v=figo-action-router-20260219-phase1&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:40884 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40886 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40892 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40894 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40910 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40886 [200]: GET /theme-engine.js?v=figo-theme-20260219-phase1&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:40886 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40892 [200]: GET /i18n-engine.js?v=figo-i18n-20260219-phase1-sync1&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:40894 [200]: GET /consent-engine.js?v=figo-consent-20260219-phase1&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:40910 [200]: GET /analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:40892 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40894 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40910 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40920 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40920 [200]: GET /reschedule-gateway-engine.js?v=figo-reschedule-gateway-20260219-phase1&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:40920 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40924 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40924 [200]: GET /data-engine.js?v=figo-data-20260219-phase1&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:40924 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40930 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40946 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40958 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40968 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40984 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40930 [200]: GET /booking-engine.js?v=figo-booking-20260219-mbfix1&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:40946 [200]: GET /booking-ui.js?v=figo-booking-ui-20260219-phase4-stateclass2-funnel2&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:40958 [200]: GET /reviews-engine.js?v=figo-reviews-20260219-phase1&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:40968 [200]: GET /gallery-interactions.js?v=figo-gallery-20260218-phase4&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:40994 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:40984 [200]: GET /chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:40994 [200]: GET /chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1-sync1
+[Fri Feb 20 13:33:51 2026] [::1]:40930 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40946 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40958 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40968 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40984 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:40994 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:41008 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:41018 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:41026 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:41042 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:41052 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:41008 [200]: GET /sw.js
+[Fri Feb 20 13:33:51 2026] [::1]:41018 [200]: GET /chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:41008 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:41018 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:41026 [200]: GET /ui-effects.js?v=figo-ui-20260218-phase4-sync1&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:41026 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:41042 [200]: GET /success-modal-engine.js?v=figo-success-modal-20260218-phase1-inlineclass1-sync1&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:41042 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:41052 [200]: GET /modal-ux-engine.js?v=figo-modal-ux-20260218-phase1&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:41052 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:41064 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:41064 [200]: GET /engagement-forms-engine.js?v=figo-engagement-20260218-phase1-sync1&cv=20260220132114
+[Fri Feb 20 13:33:51 2026] [::1]:41064 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:41080 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:41086 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:41080 [200]: GET /
+[Fri Feb 20 13:33:51 2026] [::1]:41080 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:41094 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:41086 [200]: GET /index.html
+[Fri Feb 20 13:33:51 2026] [::1]:41094 [200]: GET /telemedicina.html
+[Fri Feb 20 13:33:51 2026] [::1]:41086 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:41094 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:41100 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:41108 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:41122 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:41100 [200]: GET /styles.css
+[Fri Feb 20 13:33:51 2026] [::1]:41108 [200]: GET /styles-deferred.css
+[Fri Feb 20 13:33:51 2026] [::1]:41100 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:41122 [200]: GET /script.js
+[Fri Feb 20 13:33:51 2026] [::1]:41108 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:41122 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:41130 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:41130 [200]: GET /hero-woman.jpg
+[Fri Feb 20 13:33:51 2026] [::1]:41130 Closing
+[Fri Feb 20 13:33:51 2026] [::1]:41136 Accepted
+[Fri Feb 20 13:33:51 2026] [::1]:41136 [200]: GET /favicon.ico
+[Fri Feb 20 13:33:51 2026] [::1]:41136 Closing
+[Fri Feb 20 13:33:52 2026] [::1]:41144 Accepted
+[Fri Feb 20 13:33:52 2026] [::1]:41144 [200]: GET /admin.html
+[Fri Feb 20 13:33:52 2026] [::1]:41144 Closing
+[Fri Feb 20 13:33:52 2026] [::1]:41152 Accepted
+[Fri Feb 20 13:33:52 2026] [::1]:41152 [200]: GET /admin.css
+[Fri Feb 20 13:33:52 2026] [::1]:41152 Closing
+[Fri Feb 20 13:33:52 2026] [::1]:41156 Accepted
+[Fri Feb 20 13:33:52 2026] [::1]:41156 [200]: GET /js/monitoring-loader.js
+[Fri Feb 20 13:33:52 2026] [::1]:41156 Closing
+[Fri Feb 20 13:33:52 2026] [::1]:41158 Accepted
+[Fri Feb 20 13:33:52 2026] [::1]:41158 [200]: GET /utils.js
+[Fri Feb 20 13:33:52 2026] [::1]:41158 Closing
+[Fri Feb 20 13:33:52 2026] [::1]:41162 Accepted
+[Fri Feb 20 13:33:52 2026] [::1]:41162 [200]: GET /admin.js
+[Fri Feb 20 13:33:52 2026] [::1]:41162 Closing
+[Fri Feb 20 13:33:52 2026] [::1]:41166 Accepted
+[Fri Feb 20 13:33:52 2026] [::1]:41166 [200]: GET /admin-auth.php?action=status
+[Fri Feb 20 13:33:52 2026] [::1]:41166 Closing
+[Fri Feb 20 13:33:52 2026] [::1]:41176 Accepted
+[Fri Feb 20 13:33:52 2026] [::1]:41176 [200]: GET /api.php?resource=monitoring-config
+[Fri Feb 20 13:33:52 2026] [::1]:41176 Closing
+[Fri Feb 20 13:33:52 2026] [::1]:41192 Accepted
+[Fri Feb 20 13:33:52 2026] [::1]:41192 [200]: POST /admin-auth.php?action=login
+[Fri Feb 20 13:33:52 2026] [::1]:41192 Closing
+[Fri Feb 20 13:33:52 2026] [::1]:41200 Accepted
+[Fri Feb 20 13:33:52 2026] [::1]:41200 [200]: GET /api.php?resource=data
+[Fri Feb 20 13:33:52 2026] [::1]:41200 Closing
