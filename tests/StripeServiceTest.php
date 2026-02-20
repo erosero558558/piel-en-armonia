@@ -32,7 +32,7 @@ namespace Stripe {
             $this->data = $data;
             if (!isset($this->data['id'])) $this->data['id'] = 'pi_mock_123';
             if (!isset($this->data['client_secret'])) $this->data['client_secret'] = 'pi_mock_secret_123';
-            if (!isset($this->data['amount'])) $this->data['amount'] = 4000;
+        if (!isset($this->data['amount'])) $this->data['amount'] = 4000;
             if (!isset($this->data['currency'])) $this->data['currency'] = 'usd';
         }
         public function toArray() {
@@ -79,7 +79,6 @@ namespace {
 
     run_test('payment_expected_amount_cents calculation', function() {
         putenv('PIELARMONIA_VAT_RATE');
-        // consulta is 0% VAT, so $40.00 -> 4000 cents
         $cents = payment_expected_amount_cents('consulta');
         assert_equals(4000, $cents);
     });
