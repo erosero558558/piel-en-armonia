@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/validation.php';
+require_once __DIR__ . '/tenants.php';
 
 /**
  * Business Logic Helpers - Sistema de Precios e IVA
@@ -36,9 +37,9 @@ function get_dynamic_price_multiplier(?string $date = null, ?string $time = null
 }
 
 // Configuración de servicios con tasas de IVA
-function get_services_config(): array
+function get_services_config(?string $tenantId = null): array
 {
-    $vat = get_vat_rate();
+    $vat = get_vat_rate($tenantId);
 
     return [
         'consulta' => [
@@ -113,18 +114,18 @@ function compute_total(float $price_base, float $tax_rate): float
 /**
  * Obtiene la configuración de un servicio por ID
  */
-function get_service_config(string $service_id): ?array
+function get_service_config(string $service_id, ?string $tenantId = null): ?array
 {
-    $services = get_services_config();
+    $services = get_services_config($tenantId);
     return $services[$service_id] ?? null;
 }
 
 /**
  * Obtiene el precio base de un servicio (con multiplicador dinamico opcional)
  */
-function get_service_price_amount(string $service, ?string $date = null, ?string $time = null): float
+function get_service_price_amount(string $service, ?string $date = null, ?string $time = null, ?string $tenantId = null): float
 {
-    $config = get_service_config($service);
+    $config = get_service_config($service, $tenantId);
     $base = $config ? $config['price_base'] : 0.0;
     return $base * get_dynamic_price_multiplier($date, $time);
 }
@@ -132,28 +133,28 @@ function get_service_price_amount(string $service, ?string $date = null, ?string
 /**
  * Obtiene la tasa de IVA de un servicio
  */
-function get_service_tax_rate(string $service): float
+function get_service_tax_rate(string $service, ?string $tenantId = null): float
 {
-    $config = get_service_config($service);
+    $config = get_service_config($service, $tenantId);
     return $config ? $config['tax_rate'] : 0.0;
 }
 
 /**
  * Obtiene el precio formateado de un servicio
  */
-function get_service_price(string $service, ?string $date = null, ?string $time = null): string
+function get_service_price(string $service, ?string $date = null, ?string $time = null, ?string $tenantId = null): string
 {
-    $amount = get_service_price_amount($service, $date, $time);
+    $amount = get_service_price_amount($service, $date, $time, $tenantId);
     return '$' . number_format($amount, 2, '.', '');
 }
 
 /**
  * Obtiene el precio total incluyendo IVA
  */
-function get_service_total_price(string $service, ?string $date = null, ?string $time = null): string
+function get_service_total_price(string $service, ?string $date = null, ?string $time = null, ?string $tenantId = null): string
 {
-    $base = get_service_price_amount($service, $date, $time);
-    $tax_rate = get_service_tax_rate($service);
+    $base = get_service_price_amount($service, $date, $time, $tenantId);
+    $tax_rate = get_service_tax_rate($service, $tenantId);
     $total = compute_total($base, $tax_rate);
     return '$' . number_format($total, 2, '.', '');
 }
@@ -161,9 +162,9 @@ function get_service_total_price(string $service, ?string $date = null, ?string 
 /**
  * Obtiene el desglose completo de precios de un servicio
  */
-function get_service_price_breakdown(string $service, ?string $date = null, ?string $time = null): array
+function get_service_price_breakdown(string $service, ?string $date = null, ?string $time = null, ?string $tenantId = null): array
 {
-    $config = get_service_config($service);
+    $config = get_service_config($service, $tenantId);
     
     if (!$config) {
         return [
@@ -207,9 +208,9 @@ function get_service_price_breakdown(string $service, ?string $date = null, ?str
 /**
  * Valida que un monto de pago coincida con el servicio
  */
-function validate_payment_amount(string $service, float $amount, float $tolerance = 0.01): array
+function validate_payment_amount(string $service, float $amount, float $tolerance = 0.01, ?string $tenantId = null): array
 {
-    $breakdown = get_service_price_breakdown($service);
+    $breakdown = get_service_price_breakdown($service, null, null, $tenantId);
     
     if (isset($breakdown['error'])) {
         return [
@@ -242,8 +243,9 @@ function validate_payment_amount(string $service, float $amount, float $toleranc
 /**
  * Obtiene la tasa de IVA del environment (legacy support)
  */
-function get_vat_rate(): float
+function get_vat_rate(?string $tenantId = null): float
 {
+    // Future: use $tenantId to load tenant-specific settings
     $raw = getenv('PIELARMONIA_VAT_RATE');
     if (!is_string($raw) || trim($raw) === '') {
         return IVA_GENERAL_RATE;

@@ -260,7 +260,8 @@ class BookingService
     private function validatePaymentIntent(array $intent, array $appointment): array
     {
         $intentStatus = (string) ($intent['status'] ?? '');
-        $expectedAmount = payment_expected_amount_cents($appointment['service']);
+        $tenantId = (string) ($appointment['tenantId'] ?? get_current_tenant_id());
+        $expectedAmount = payment_expected_amount_cents($appointment['service'], null, null, $tenantId);
         $intentAmount = isset($intent['amount']) ? (int) $intent['amount'] : 0;
         $amountReceived = isset($intent['amount_received']) ? (int) $intent['amount_received'] : 0;
         $intentCurrency = strtoupper((string) ($intent['currency'] ?? payment_currency()));

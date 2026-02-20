@@ -38,6 +38,7 @@ assert_eq($output['paymentMethod'], 'unpaid', "Default paymentMethod should be '
 assert_eq($output['casePhotoCount'], 0, "Default casePhotoCount should be 0");
 assert_eq($output['service'], '', "Default service should be empty string");
 assert_eq($output['status'], 'confirmed', "Default status should be 'confirmed'");
+assert_eq($output['tenantId'], 'pielarmonia', "Default tenantId should be 'pielarmonia'");
 
 // --- Test Case 2: Payment Method Normalization ---
 echo "\n--- Test Case 2: Payment Method Normalization ---\n";
