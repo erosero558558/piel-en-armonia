@@ -10,16 +10,28 @@ export function debugLog(...args) {
 }
 
 export function escapeHtml(text) {
-    if (window.PielChatUiEngine && typeof window.PielChatUiEngine.escapeHtml === 'function') {
-        return window.PielChatUiEngine.escapeHtml(text);
-    }
     const div = document.createElement('div');
-    div.textContent = text;
+    div.textContent = String(text || '');
     return div.innerHTML;
 }
 
 export function waitMs(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return dateStr;
+    return date.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+export function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
+    };
 }
 
 export function isConstrainedNetworkConnection() {
@@ -52,7 +64,7 @@ export function resolveDeployAssetVersion() {
                 }
             }
         }
-    } catch (_) {
+    } catch (_error) {
         return '';
     }
 
@@ -77,7 +89,7 @@ export function withDeployAssetVersion(url) {
             return resolved.pathname + resolved.search;
         }
         return resolved.toString();
-    } catch (_) {
+    } catch (_error) {
         const separator = cleanUrl.indexOf('?') >= 0 ? '&' : '?';
         return cleanUrl + separator + 'cv=' + encodeURIComponent(deployVersion);
     }
@@ -140,7 +152,7 @@ export function storageGetJSON(key, fallback) {
     try {
         const value = JSON.parse(localStorage.getItem(key) || 'null');
         return value === null ? fallback : value;
-    } catch (error) {
+    } catch (_error) {
         return fallback;
     }
 }
@@ -148,7 +160,7 @@ export function storageGetJSON(key, fallback) {
 export function storageSetJSON(key, value) {
     try {
         localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
+    } catch (_error) {
         // Ignore storage quota errors.
     }
 }
@@ -199,7 +211,7 @@ export function getCookieConsent() {
         if (!raw) return '';
         const parsed = JSON.parse(raw);
         return typeof parsed?.status === 'string' ? parsed.status : '';
-    } catch (error) {
+    } catch (_error) {
         return '';
     }
 }
@@ -212,7 +224,7 @@ export function setCookieConsent(status) {
             status: normalized,
             at: new Date().toISOString()
         }));
-    } catch (error) {
+    } catch (_error) {
         // noop
     }
 }

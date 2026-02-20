@@ -1,18 +1,6 @@
 (function () {
     'use strict';
 
-    const API_ENDPOINT = '/api.php';
-    const CLINIC_ADDRESS$1 = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
-    const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
-    const API_REQUEST_TIMEOUT_MS = 9000;
-    const API_RETRY_BASE_DELAY_MS = 450;
-    const API_DEFAULT_RETRIES = 1;
-    const API_SLOW_NOTICE_MS = 1200;
-    const API_SLOW_NOTICE_COOLDOWN_MS = 25000;
-    const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
-    const THEME_STORAGE_KEY = 'themeMode';
-    const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
-
     let currentLang = localStorage.getItem('language') || 'es';
     let currentThemeMode = localStorage.getItem('themeMode') || 'system';
     let currentAppointment = null;
@@ -75,24 +63,33 @@
             const cutoff = Date.now() - 24 * 60 * 60 * 1000;
             const valid = saved.filter(m => m.time && new Date(m.time).getTime() > cutoff);
             if (valid.length !== saved.length) {
-                try { localStorage.setItem('chatHistory', JSON.stringify(valid)); } catch(e) {}
+                try { localStorage.setItem('chatHistory', JSON.stringify(valid)); } catch(_error) {}
             }
             return valid;
-        } catch(e) { return []; }
+        } catch(_error) { return []; }
     }
     function setChatHistory(history) {
-        try { localStorage.setItem('chatHistory', JSON.stringify(history)); } catch(e) {}
+        try { localStorage.setItem('chatHistory', JSON.stringify(history)); } catch(_error) {}
     }
+
+    const API_ENDPOINT = '/api.php';
+    const CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
+    const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
+    const API_REQUEST_TIMEOUT_MS = 9000;
+    const API_RETRY_BASE_DELAY_MS = 450;
+    const API_DEFAULT_RETRIES = 1;
+    const API_SLOW_NOTICE_MS = 1200;
+    const API_SLOW_NOTICE_COOLDOWN_MS = 25000;
+    const DEFAULT_TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
+    const THEME_STORAGE_KEY = 'themeMode';
+    const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
 
     function debugLog(...args) {
     }
 
     function escapeHtml$1(text) {
-        if (window.PielChatUiEngine && typeof window.PielChatUiEngine.escapeHtml === 'function') {
-            return window.PielChatUiEngine.escapeHtml(text);
-        }
         const div = document.createElement('div');
-        div.textContent = text;
+        div.textContent = String(text || '');
         return div.innerHTML;
     }
 
@@ -130,7 +127,7 @@
                     }
                 }
             }
-        } catch (_) {
+        } catch (_error) {
             return '';
         }
 
@@ -155,7 +152,7 @@
                 return resolved.pathname + resolved.search;
             }
             return resolved.toString();
-        } catch (_) {
+        } catch (_error) {
             const separator = cleanUrl.indexOf('?') >= 0 ? '&' : '?';
             return cleanUrl + separator + 'cv=' + encodeURIComponent(deployVersion);
         }
@@ -218,7 +215,7 @@
         try {
             const value = JSON.parse(localStorage.getItem(key) || 'null');
             return value === null ? fallback : value;
-        } catch (error) {
+        } catch (_error) {
             return fallback;
         }
     }
@@ -226,9 +223,46 @@
     function storageSetJSON(key, value) {
         try {
             localStorage.setItem(key, JSON.stringify(value));
-        } catch (error) {
+        } catch (_error) {
             // Ignore storage quota errors.
         }
+    }
+
+    function getInitials(name) {
+        const parts = String(name || 'Paciente')
+            .split(' ')
+            .filter(Boolean)
+            .slice(0, 2);
+        if (parts.length === 0) return 'PA';
+        return parts.map(part => part[0].toUpperCase()).join('');
+    }
+
+    function getRelativeDateLabel(dateText) {
+        const date = new Date(dateText);
+        if (Number.isNaN(date.getTime())) {
+            return getCurrentLang() === 'es' ? 'Reciente' : 'Recent';
+        }
+        const now = new Date();
+        const days = Math.max(0, Math.floor((now - date) / (1000 * 60 * 60 * 24)));
+        if (getCurrentLang() === 'es') {
+            if (days <= 1) return 'Hoy';
+            if (days < 7) return `Hace ${days} d${days === 1 ? 'ía' : 'ías'}`;
+            if (days < 30) return `Hace ${Math.floor(days / 7)} semana(s)`;
+            return date.toLocaleDateString('es-EC');
+        }
+        if (days <= 1) return 'Today';
+        if (days < 7) return `${days} day(s) ago`;
+        if (days < 30) return `${Math.floor(days / 7)} week(s) ago`;
+        return date.toLocaleDateString('en-US');
+    }
+
+    function renderStars(rating) {
+        const value = Math.max(1, Math.min(5, Number(rating) || 0));
+        let html = '';
+        for (let i = 1; i <= 5; i += 1) {
+            html += `<i class="${i <= value ? 'fas' : 'far'} fa-star"></i>`;
+        }
+        return html;
     }
 
     const deferredModulePromises = new Map();
@@ -469,7 +503,8 @@
             getCurrentLang: getCurrentLang,
             showToast,
             storageGetJSON,
-            storageSetJSON
+            storageSetJSON,
+            waitMs
         };
     }
 
@@ -552,6 +587,9 @@
             apiRequest: apiRequest$1,
             storageGetJSON,
             escapeHtml: escapeHtml$1,
+            getInitials,
+            getRelativeDateLabel,
+            renderStars,
             getCurrentLang: getCurrentLang
         };
     }
@@ -778,7 +816,7 @@
                 let payload = {};
                 try {
                     payload = responseText ? JSON.parse(responseText) : {};
-                } catch (error) {
+                } catch (_error) {
                     throw makeApiError('Respuesta del servidor no es JSON valido', response.status, false, 'invalid_json');
                 }
 
@@ -849,7 +887,7 @@
                 publishableKey: payload.publishableKey || '',
                 currency: payload.currency || 'USD'
             };
-        } catch (error) {
+        } catch (_error) {
             config = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
         }
         setPaymentConfig(config);
@@ -1006,7 +1044,7 @@
                     return;
                 }
             }
-        } catch (_) {}
+        } catch (_error) {}
 
         fetch(FUNNEL_EVENT_ENDPOINT, {
             method: 'POST',
@@ -1082,7 +1120,7 @@
         return {
             getCurrentLang: getCurrentLang,
             getCurrentAppointment: getCurrentAppointment,
-            getClinicAddress: () => CLINIC_ADDRESS$1,
+            getClinicAddress: () => CLINIC_ADDRESS,
             escapeHtml: escapeHtml$1
         };
     }
@@ -1557,13 +1595,8 @@
 
     const CHAT_UI_ENGINE_URL = withDeployAssetVersion('/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1');
     const CHAT_WIDGET_ENGINE_URL = withDeployAssetVersion('/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1');
-    const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion('/chat-booking-engine.js?v=figo-chat-booking-20260220-sync2-cachecoherence1');
-    const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion('/chat-engine.js?v=figo-chat-20260220-phase4-depinject1');
-
-    const CLINIC_ADDRESS = 'Valparaiso 13-183 y Sodiro, Consultorio Dr. Cecilio Caiza, Quito (Frente al Colegio de las Mercedarias, a 2 cuadras de la Maternidad Isidro Ayora)';
-    const CLINIC_MAP_URL = 'https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D';
-    const DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
-    const DOCTOR_CAROLINA_EMAIL = 'caro93narvaez@gmail.com';
+    const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion('/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1');
+    const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion('/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1-sync1');
 
     const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
     const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -1571,12 +1604,7 @@
     const CHAT_CONTEXT_MAX_ITEMS = 24;
 
     function escapeHtml(text) {
-        if (window.PielChatUiEngine && typeof window.PielChatUiEngine.escapeHtml === 'function') {
-            return window.PielChatUiEngine.escapeHtml(text);
-        }
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        return escapeHtml$1(text);
     }
 
     function scrollToBottom() {
@@ -1616,7 +1644,8 @@
             historyTtlMs: CHAT_HISTORY_TTL_MS,
             historyMaxItems: CHAT_HISTORY_MAX_ITEMS,
             contextMaxItems: CHAT_CONTEXT_MAX_ITEMS,
-            debugLog
+            debugLog,
+            escapeHtml: escapeHtml$1
         };
     }
 
@@ -1817,48 +1846,13 @@
         );
     }
 
-    function processChatBookingStep(userInput) {
-        return withDeferredModule(loadChatBookingEngine, (engine) => engine.processChatBookingStep(userInput));
-    }
-
-    function isChatBookingActive() {
-        if (window.PielChatBookingEngine && typeof window.PielChatBookingEngine.isActive === 'function') {
-            return window.PielChatBookingEngine.isActive();
-        }
-        return false;
-    }
-
     function loadFigoChatEngine() {
         return loadDeferredModule({
             cacheKey: 'figo-chat-engine',
             src: FIGO_CHAT_ENGINE_URL,
             scriptDataAttribute: 'data-figo-chat-engine',
             resolveModule: () => window.FigoChatEngine,
-            isModuleReady: (module) => !!(module && typeof module.processWithKimi === 'function'),
-            onModuleReady: (module) => {
-                if (module && typeof module.init === 'function') {
-                    module.init({
-                        debugLog,
-                        showTypingIndicator,
-                        removeTypingIndicator,
-                        addBotMessage,
-                        startChatBooking,
-                        processChatBookingStep,
-                        isChatBookingActive,
-                        showToast,
-                        getConversationContext,
-                        setConversationContext,
-                        getCurrentAppointment,
-                        getChatHistory,
-                        setChatHistory,
-                        chatContextMaxItems: CHAT_CONTEXT_MAX_ITEMS,
-                        clinicAddress: CLINIC_ADDRESS,
-                        clinicMapUrl: CLINIC_MAP_URL,
-                        doctorCarolinaPhone: DOCTOR_CAROLINA_PHONE,
-                        doctorCarolinaEmail: DOCTOR_CAROLINA_EMAIL
-                    });
-                }
-            },
+            isModuleReady: (module) => !!module,
             missingApiError: 'Figo chat engine loaded without API',
             loadError: 'No se pudo cargar chat-engine.js'
         });
@@ -2108,18 +2102,15 @@
         initBookingFunnelObserver();
         initDeferredSectionPrefetch();
 
-        const initHighPriorityWarmups = createOnceTask(() => {
+        const initDeferredWarmups = createOnceTask(() => {
             initEnglishBundleWarmup();
             initDataEngineWarmup();
             initBookingEngineWarmup();
             initBookingUiWarmup();
-            initChatUiEngineWarmup();
-            initChatWidgetEngineWarmup();
-        });
-
-        const initLowPriorityWarmups = createOnceTask(() => {
             initReviewsEngineWarmup();
             initGalleryInteractionsWarmup();
+            initChatUiEngineWarmup();
+            initChatWidgetEngineWarmup();
             initChatEngineWarmup();
             initChatBookingEngineWarmup();
             initUiEffectsWarmup();
@@ -2129,26 +2120,14 @@
             initModalUxEngineWarmup();
         });
 
-        const initDeferredWarmups = () => {
-            initHighPriorityWarmups();
-            initLowPriorityWarmups();
-        };
-
         window.addEventListener('pointerdown', initDeferredWarmups, { once: true, passive: true });
         window.addEventListener('keydown', initDeferredWarmups, { once: true });
 
-        scheduleDeferredTask(initHighPriorityWarmups, {
-            idleTimeout: 1400,
-            fallbackDelay: 500,
+        scheduleDeferredTask(initDeferredWarmups, {
+            idleTimeout: 1100,
+            fallbackDelay: 320,
             skipOnConstrained: false,
-            constrainedDelay: 1200
-        });
-
-        scheduleDeferredTask(initLowPriorityWarmups, {
-            idleTimeout: 5200,
-            fallbackDelay: 2600,
-            skipOnConstrained: false,
-            constrainedDelay: 3600
+            constrainedDelay: 900
         });
 
         const chatInput = document.getElementById('chatInput');

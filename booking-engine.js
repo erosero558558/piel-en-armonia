@@ -36,13 +36,13 @@
         return fn;
     }
 
-    function getCurrentLang() {
-        try {
-            return requireFn('getCurrentLang')() || 'es';
-        } catch (_) {
-            return 'es';
-        }
-    }
+    // function getCurrentLang() {
+    //     try {
+    //         return requireFn('getCurrentLang')() || 'es';
+    //     } catch (_error) {
+    //         return 'es';
+    //     }
+    // }
 
     function getCurrentAppointment() {
         return requireFn('getCurrentAppointment')();
@@ -59,7 +59,7 @@
     function setCheckoutStep(step, payload = {}) {
         try {
             requireFn('setCheckoutStep')(step, payload || {});
-        } catch (_) {
+        } catch (_error) {
             // noop when analytics step tracking is unavailable
         }
     }
@@ -191,7 +191,7 @@
 
         try {
             await requireFn('loadStripeSdk')();
-        } catch (_) {
+        } catch (_error) {
             setCardMethodEnabled(false);
             return false;
         }

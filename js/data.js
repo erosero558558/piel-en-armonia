@@ -1,4 +1,4 @@
-import { withDeployAssetVersion, showToast, storageGetJSON, storageSetJSON } from './utils.js';
+import { withDeployAssetVersion, showToast, storageGetJSON, storageSetJSON, waitMs } from './utils.js';
 import { getCurrentLang } from './state.js';
 import { loadDeferredModule, withDeferredModule, createWarmupRunner, bindWarmupTarget, observeOnceWhenVisible, scheduleDeferredTask } from './loader.js';
 
@@ -9,7 +9,8 @@ function getDataEngineDeps() {
         getCurrentLang: getCurrentLang,
         showToast,
         storageGetJSON,
-        storageSetJSON
+        storageSetJSON,
+        waitMs
     };
 }
 

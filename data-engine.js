@@ -42,27 +42,19 @@
         if (deps && typeof deps.storageGetJSON === 'function') {
             return deps.storageGetJSON(key, fallback);
         }
-        try {
-            const value = JSON.parse(localStorage.getItem(key) || 'null');
-            return value === null ? fallback : value;
-        } catch (error) {
-            return fallback;
-        }
+        return fallback;
     }
 
     function storageSetJSON(key, value) {
         if (deps && typeof deps.storageSetJSON === 'function') {
             deps.storageSetJSON(key, value);
-            return;
-        }
-        try {
-            localStorage.setItem(key, JSON.stringify(value));
-        } catch (error) {
-            // ignore storage errors
         }
     }
 
     function waitMs(ms) {
+        if (deps && typeof deps.waitMs === 'function') {
+            return deps.waitMs(ms);
+        }
         return new Promise((resolve) => setTimeout(resolve, ms));
     }
 

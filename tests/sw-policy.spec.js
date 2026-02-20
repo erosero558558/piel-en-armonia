@@ -20,6 +20,6 @@ test.describe('Service worker policy hardening', () => {
 
     expect(source).toContain("/styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1");
     expect(source).toContain("/bootstrap-inline-engine.js?v=figo-bootstrap-20260220-cachecoherence1");
-    expect(source).toContain("/script.js?v=figo-20260220-phase6-cachecoherence1");
+    expect(source).toContain("/script.js?v=figo-20260220-phase8-warmuptiers1");
   });
 });

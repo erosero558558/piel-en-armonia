@@ -3,6 +3,8 @@
  * Server-backed admin with session auth.
  */
 
+/* global showToast, escapeHtml, normalizeCallbackStatus, formatDate, debounce */
+
 const AUTH_ENDPOINT = '/admin-auth.php';
 const API_ENDPOINT = '/api.php';
 
@@ -14,58 +16,6 @@ let currentFunnelMetrics = null;
 let selectedDate = null;
 let currentMonth = new Date();
 let csrfToken = '';
-
-function escapeHtml(value) {
-    const text = String(value ?? '');
-    return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
-function showToast(message, type = 'info', title = '') {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-
-    const icons = {
-        success: 'fa-check-circle',
-        error: 'fa-times-circle',
-        warning: 'fa-exclamation-circle',
-        info: 'fa-info-circle'
-    };
-
-    const titles = {
-        success: title || 'Exito',
-        error: title || 'Error',
-        warning: title || 'Advertencia',
-        info: title || 'Información'
-    };
-
-    toast.innerHTML = `
-        <i class="fas ${icons[type]} toast-icon"></i>
-        <div class="toast-content">
-            <div class="toast-title">${escapeHtml(titles[type])}</div>
-            <div class="toast-message">${escapeHtml(message)}</div>
-        </div>
-        <button type="button" class="toast-close" data-action="close-toast">
-            <i class="fas fa-times"></i>
-        </button>
-        <div class="toast-progress"></div>
-    `;
-
-    container.appendChild(toast);
-    setTimeout(() => {
-        if (toast.parentElement) {
-            toast.style.animation = 'slideIn 0.3s ease reverse';
-            setTimeout(() => toast.remove(), 300);
-        }
-    }, 5000);
-}
 
 function normalizeCallbackStatus(status) {
     const normalized = String(status || '').toLowerCase().trim();
@@ -104,7 +54,7 @@ async function requestJson(url, options = {}) {
     let payload = {};
     try {
         payload = responseText ? JSON.parse(responseText) : {};
-    } catch (error) {
+    } catch (_) {
         throw new Error('Respuesta no valida del servidor');
     }
 
@@ -127,7 +77,7 @@ function getLocalData(key, fallback) {
     try {
         const value = JSON.parse(localStorage.getItem(key) || 'null');
         return value === null ? fallback : value;
-    } catch (error) {
+    } catch (_) {
         return fallback;
     }
 }
@@ -369,7 +319,7 @@ async function refreshData() {
         } else {
             currentFunnelMetrics = getEmptyFunnelMetrics();
         }
-    } catch (error) {
+    } catch (_) {
         loadFallbackState();
         showToast('No se pudo conectar al backend. Usando datos locales.', 'warning');
     }
@@ -402,7 +352,7 @@ async function checkAuth() {
         } else {
             showLogin();
         }
-    } catch (error) {
+    } catch (_) {
         showLogin();
         showToast('No se pudo verificar la sesion', 'warning');
     }
@@ -411,7 +361,7 @@ async function checkAuth() {
 async function logout() {
     try {
         await authRequest('logout', { method: 'POST' });
-    } catch (error) {
+    } catch (_) {
         // Continue with local logout UI.
     }
     showToast('Sesion cerrada correctamente', 'info');
@@ -488,12 +438,6 @@ function getPreferenceText(pref) {
         '1hora': 'En 1 hora'
     };
     return texts[pref] || pref;
-}
-
-function formatDate(dateStr) {
-    const date = new Date(dateStr);
-    if (Number.isNaN(date.getTime())) return dateStr;
-    return date.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function sanitizePublicHref(url) {

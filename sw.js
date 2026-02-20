@@ -1,11 +1,11 @@
-const CACHE_NAME = 'pielarmonia-v3-20260220-cachecoherence1';
+const CACHE_NAME = 'pielarmonia-v4-20260220-phase8warmups1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/telemedicina.html',
   '/styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1',
   '/bootstrap-inline-engine.js?v=figo-bootstrap-20260220-cachecoherence1',
-  '/script.js?v=figo-20260220-phase6-cachecoherence1',
+  '/script.js?v=figo-20260220-phase8-warmuptiers1',
   '/hero-woman.jpg',
   '/favicon.ico',
   '/manifest.json',

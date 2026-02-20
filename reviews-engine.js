@@ -47,9 +47,7 @@
         if (deps && typeof deps.escapeHtml === 'function') {
             return deps.escapeHtml(value);
         }
-        const div = document.createElement('div');
-        div.textContent = String(value || '');
-        return div.innerHTML;
+        return '';
     }
 
     function mergePublicReviews(inputReviews) {
@@ -76,43 +74,24 @@
     }
 
     function getInitials(name) {
-        const parts = String(name || 'Paciente')
-            .split(' ')
-            .filter(Boolean)
-            .slice(0, 2);
-        if (parts.length === 0) return 'PA';
-        return parts.map((part) => part[0].toUpperCase()).join('');
+        if (deps && typeof deps.getInitials === 'function') {
+            return deps.getInitials(name);
+        }
+        return 'PA';
     }
 
     function getRelativeDateLabel(dateText) {
-        const date = new Date(dateText);
-        if (Number.isNaN(date.getTime())) {
-            return getLang() === 'es' ? 'Reciente' : 'Recent';
+        if (deps && typeof deps.getRelativeDateLabel === 'function') {
+            return deps.getRelativeDateLabel(dateText);
         }
-
-        const now = new Date();
-        const days = Math.max(0, Math.floor((now - date) / (1000 * 60 * 60 * 24)));
-
-        if (getLang() === 'es') {
-            if (days <= 1) return 'Hoy';
-            if (days < 7) return `Hace ${days} d${days === 1 ? 'ia' : 'ias'}`;
-            if (days < 30) return `Hace ${Math.floor(days / 7)} semana(s)`;
-            return date.toLocaleDateString('es-EC');
-        }
-
-        if (days <= 1) return 'Today';
-        if (days < 7) return `${days} day(s) ago`;
-        if (days < 30) return `${Math.floor(days / 7)} week(s) ago`;
-        return date.toLocaleDateString('en-US');
+        return '';
     }
 
     function renderStars(rating) {
-        const value = Math.max(1, Math.min(5, Number(rating) || 0));
-        let html = '';
-        for (let i = 1; i <= 5; i += 1) {
-            html += `<i class="${i <= value ? 'fas' : 'far'} fa-star"></i>`;
+        if (deps && typeof deps.renderStars === 'function') {
+            return deps.renderStars(rating);
         }
-        return html;
+        return '';
     }
 
     function renderPublicReviews(reviews) {

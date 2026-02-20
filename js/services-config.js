@@ -116,7 +116,7 @@ export function isWeekend(dateString) {
         const date = new Date(dateString + 'T12:00:00');
         const day = date.getDay();
         return day === 0 || day === 6; // 0=Domingo, 6=Sabado
-    } catch (e) {
+    } catch (_error) {
         return false;
     }
 }
@@ -180,7 +180,7 @@ export function roundToTwo(num) {
 export function formatMoney(amount, options = {}) {
     const { 
         showCurrency = true, 
-        currency = 'USD',
+        _currency = 'USD',
         locale = 'es-EC',
         minimumFractionDigits = 2,
         maximumFractionDigits = 2

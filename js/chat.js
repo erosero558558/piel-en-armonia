@@ -1,4 +1,4 @@
-import { withDeployAssetVersion, debugLog, showToast } from './utils.js';
+import { withDeployAssetVersion, debugLog, showToast, escapeHtml as escapeHtmlUtil } from './utils.js';
 import { loadDeferredModule, runDeferredModule, withDeferredModule, createWarmupRunner, bindWarmupTarget, scheduleDeferredTask } from './loader.js';
 import { getCurrentLang, getCurrentAppointment, getChatHistory, setChatHistory, getConversationContext, setConversationContext, getChatbotOpen, setChatbotOpen, setCurrentAppointment } from './state.js';
 import { trackEvent } from './analytics.js';
@@ -21,12 +21,7 @@ const CHAT_HISTORY_MAX_ITEMS = 50;
 const CHAT_CONTEXT_MAX_ITEMS = 24;
 
 export function escapeHtml(text) {
-    if (window.PielChatUiEngine && typeof window.PielChatUiEngine.escapeHtml === 'function') {
-        return window.PielChatUiEngine.escapeHtml(text);
-    }
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return escapeHtmlUtil(text);
 }
 
 export function scrollToBottom() {
@@ -66,7 +61,8 @@ function getChatUiEngineDeps() {
         historyTtlMs: CHAT_HISTORY_TTL_MS,
         historyMaxItems: CHAT_HISTORY_MAX_ITEMS,
         contextMaxItems: CHAT_CONTEXT_MAX_ITEMS,
-        debugLog
+        debugLog,
+        escapeHtml: escapeHtmlUtil
     };
 }
 
