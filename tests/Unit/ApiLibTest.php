@@ -118,7 +118,7 @@ class ApiLibTest extends TestCase
     {
         $input = ['text' => '<script>alert(1)</script>'];
         $result = normalize_review($input);
-        // normalize_review preserves HTML, frontend handles it.
-        $this->assertSame('<script>alert(1)</script>', $result['text']);
+        // normalize_review sanitizes HTML to prevent XSS.
+        $this->assertSame('&lt;script&gt;alert(1)&lt;/script&gt;', $result['text']);
     }
 }

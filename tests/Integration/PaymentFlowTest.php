@@ -75,7 +75,8 @@ class PaymentFlowTest extends TestCase
 
     public function testCreateIntentSuccess(): void
     {
-        $futureDate = date('Y-m-d', strtotime('+2 days'));
+        // Use 'next tuesday' to ensure a weekday and avoid weekend surcharge (10%)
+        $futureDate = date('Y-m-d', strtotime('next tuesday'));
         $payload = [
             'name' => 'Payment Test',
             'email' => 'payment@example.com',
