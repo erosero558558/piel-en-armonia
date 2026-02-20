@@ -1,13 +1,15 @@
-const CACHE_NAME = 'pielarmonia-v1';
+const CACHE_NAME = 'pielarmonia-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/telemedicina.html',
-  '/styles.css',
   '/styles-deferred.css',
   '/script.js',
   '/hero-woman.jpg',
-  '/favicon.ico'
+  '/favicon.ico',
+  '/manifest.json',
+  '/images/icon-192.png',
+  '/images/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
