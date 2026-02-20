@@ -313,3 +313,4 @@
     window.loadDeferredStylesheet = loadDeferredStylesheet;
     window.initDeferredStylesheetLoading = initDeferredStylesheetLoading;
 })();
+window.initDeferredStylesheetLoading();
