@@ -74,8 +74,20 @@ test.describe('Checklist de Pruebas en Producción', () => {
     await page.goto('/admin.html');
 
     // Login correcto
+    await expect(page.locator('input[type="password"]')).toBeVisible();
     await page.fill('input[type="password"]', ADMIN_PASSWORD);
+
+    // Wait for response to verify login success/failure reasons
+    const responsePromise = page.waitForResponse(response =>
+      response.url().includes('admin-auth.php') && response.request().method() === 'POST'
+    );
+
     await page.click('button[type="submit"]');
+
+    const response = await responsePromise;
+    expect(response.status()).toBe(200); // Ensure API calls login success
+    const body = await response.json();
+    expect(body.authenticated).toBe(true);
 
     // Esperar a que cargue el dashboard
     // Ajustar selectores según la implementación real de admin.js/html
