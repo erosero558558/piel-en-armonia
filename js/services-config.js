@@ -243,7 +243,7 @@ export function getCheckoutBreakdown(serviceId, additionalOptions = {}) {
         return null;
     }
     
-    const { 
+    let {
         discountAmount = 0,
         discountRate = 0,
         isCupoSolidario = false

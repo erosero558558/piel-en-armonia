@@ -5,8 +5,8 @@ require_once __DIR__ . '/../api-lib.php';
 
 function run_tests() {
     $tests = [
-        'Default (unset)' => [null, 0.12],
-        'Default (empty string)' => ['', 0.12],
+        'Default (unset)' => [null, 0.15],
+        'Default (empty string)' => ['', 0.15],
         'Decimal (0.15)' => ['0.15', 0.15],
         'Percentage (15)' => ['15', 0.15],
         'Percentage (12)' => ['12', 0.12],
