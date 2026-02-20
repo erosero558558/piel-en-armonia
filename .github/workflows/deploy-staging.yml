@@ -1,0 +1,148 @@
+name: Deploy Staging (FTP/FTPS)
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+    inputs:
+      protocol:
+        description: "Protocolo de deploy"
+        required: false
+        default: "ftps"
+        type: choice
+        options:
+          - ftps
+          - ftp
+      server_port:
+        description: "Puerto remoto (21 FTP/FTPS, 22 SFTP)"
+        required: false
+        default: "21"
+        type: string
+      security:
+        description: "Validacion TLS para FTPS"
+        required: false
+        default: "strict"
+        type: choice
+        options:
+          - strict
+          - loose
+      server_dir:
+        description: "Directorio remoto en hosting"
+        required: false
+        default: "/staging/"
+        type: string
+      dry_run:
+        description: "Simular deploy sin subir archivos"
+        required: false
+        default: false
+        type: boolean
+      clean_slate:
+        description: "Eliminar archivos remotos no presentes (peligroso)"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: deploy-pielarmonia-staging
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy a staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      FTP_PROTOCOL: ${{ github.event.inputs.protocol || vars.STAGING_FTP_PROTOCOL || 'ftps' }}
+      FTP_SERVER_PORT: ${{ github.event.inputs.server_port || vars.STAGING_FTP_SERVER_PORT || '21' }}
+      FTP_SECURITY: ${{ github.event.inputs.security || vars.STAGING_FTP_SECURITY || 'strict' }}
+      FTP_SERVER_DIR: ${{ github.event.inputs.server_dir || vars.STAGING_FTP_SERVER_DIR || '/staging/' }}
+      FTP_DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+      FTP_CLEAN_SLATE: ${{ github.event.inputs.clean_slate || 'false' }}
+      PROD_URL: ${{ vars.STAGING_URL || 'https://staging.pielarmonia.com' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validar secretos requeridos
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${{ secrets.STAGING_FTP_SERVER }}" ]; then
+            echo "::error::Falta el secret STAGING_FTP_SERVER"
+            exit 1
+          fi
+          if [ -z "${{ secrets.STAGING_FTP_USERNAME }}" ]; then
+            echo "::error::Falta el secret STAGING_FTP_USERNAME"
+            exit 1
+          fi
+          if [ -z "${{ secrets.STAGING_FTP_PASSWORD }}" ]; then
+            echo "::error::Falta el secret STAGING_FTP_PASSWORD"
+            exit 1
+          fi
+
+      - name: Preflight red (control socket)
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOST="${{ secrets.STAGING_FTP_SERVER }}"
+          PORT="${FTP_SERVER_PORT}"
+          echo "Testeando conectividad TCP a ${HOST}:${PORT} ..."
+          if timeout 8 bash -c "cat < /dev/null > /dev/tcp/${HOST}/${PORT}" 2>/dev/null; then
+            echo "TCP OK en ${HOST}:${PORT}"
+          else
+            echo "::error::No se puede abrir ${HOST}:${PORT} desde GitHub Runner (timeout/control socket)."
+            echo "::error::Verifica puerto/protocolo correctos y firewall del hosting (allowlist para GitHub Actions)."
+            exit 1
+          fi
+
+      - name: Deploy por FTP/FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ${{ env.FTP_PROTOCOL }}
+          port: ${{ env.FTP_SERVER_PORT }}
+          security: ${{ env.FTP_SECURITY }}
+          server-dir: ${{ env.FTP_SERVER_DIR }}
+          local-dir: ./
+          dangerous-clean-slate: ${{ env.FTP_CLEAN_SLATE }}
+          dry-run: ${{ env.FTP_DRY_RUN }}
+          timeout: 120000
+          log-level: verbose
+          state-name: .ftp-deploy-sync-state.json
+          exclude: |
+            **/.git*
+            **/.github/**
+            **/.vscode/**
+            **/.claude/**
+            **/node_modules/**
+            **/test-results/**
+            **/tests/**
+            **/playwright-report/**
+            **/_deploy_bundle/**
+            **/verification/**
+            **/data/**
+            **/uploads/**
+            **/env.php
+            **/php.log
+            **/*.log
+            **/*.zip
+            **/*.ps1
+
+      - name: Smoke rapido de endpoints publicos
+        if: ${{ env.FTP_DRY_RUN != 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS "${PROD_URL}/api.php?resource=health" > /tmp/health.json
+          curl -fsS "${PROD_URL}/figo-chat.php" > /tmp/figo.json
+          curl -IfsS "${PROD_URL}/" > /tmp/home_headers.txt
+          echo "Health:"
+          head -c 300 /tmp/health.json
+          echo
+          echo "Figo:"
+          head -c 300 /tmp/figo.json
+          echo
