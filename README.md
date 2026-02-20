@@ -74,6 +74,11 @@ El proyecto utiliza Playwright para pruebas de extremo a extremo (E2E).
    npm test
    ```
 
+   Pruebas PHP (unitarias/integracion ligera):
+   ```bash
+   npm run test:php
+   ```
+
    Para ver la interfaz gráfica de las pruebas:
    ```bash
    npm run test:ui

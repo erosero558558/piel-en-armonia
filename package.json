@@ -5,7 +5,7 @@
     "test": "npx playwright test",
     "test:headed": "npx playwright test --headed",
     "test:ui": "npx playwright test --ui",
-    "test:php": "bash tests/run-php-tests.sh",
+    "test:php": "php tests/run-php-tests.php",
     "lint": "npm run lint:js && npm run lint:php",
     "lint:js": "eslint .",
     "lint:php": "find . -name '*.php' -not -path './vendor/*' -exec php -l {} \\;",
