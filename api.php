@@ -850,7 +850,7 @@ if ($resource === 'metrics') {
         if (($appt['status'] ?? '') !== 'cancelled' && ($appt['paymentStatus'] ?? '') === 'paid') {
             $date = $appt['date'] ?? '';
             $service = $appt['service'] ?? '';
-            $price = function_exists('get_service_price') ? get_service_price($service) : 0;
+            $price = function_exists('get_service_price_amount') ? get_service_price_amount($service) : 0.0;
             if ($date && $price > 0) {
                 if (!isset($revenueByDate[$date])) {
                     $revenueByDate[$date] = 0;
