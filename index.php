@@ -22,6 +22,61 @@ if (!is_string($indexHtml) || $indexHtml === '') {
     exit;
 }
 
+// --- Server-Side Rendering (SSR) of Content ---
+$contentFile = __DIR__ . '/content/es.json';
+if (is_file($contentFile)) {
+    $contentJson = file_get_contents($contentFile);
+    $content = json_decode($contentJson, true);
+
+    if (is_array($content)) {
+        // Use DOMDocument to inject content
+        $dom = new DOMDocument();
+        // Suppress warnings for HTML5 tags
+        libxml_use_internal_errors(true);
+        // Force UTF-8
+        $dom->loadHTML('<?xml encoding="UTF-8">' . $indexHtml, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+
+        $xpath = new DOMXPath($dom);
+        $nodes = $xpath->query('//*[@data-i18n]');
+
+        foreach ($nodes as $node) {
+            $key = $node->getAttribute('data-i18n');
+            if (isset($content[$key])) {
+                $text = $content[$key];
+
+                if ($node->nodeName === 'input' || $node->nodeName === 'textarea') {
+                    $node->setAttribute('placeholder', $text);
+                } else {
+                    // Use fragment to support HTML in content (like <br>)
+                    $fragment = $dom->createDocumentFragment();
+                    if (@$fragment->appendXML($text)) {
+                        $node->nodeValue = ''; // Clear existing
+                        $node->appendChild($fragment);
+                    } else {
+                        // Fallback to text if XML parsing fails
+                        $node->nodeValue = $text;
+                    }
+                }
+            }
+        }
+
+        // Inject content payload for client-side hydration
+        $head = $dom->getElementsByTagName('head')->item(0);
+        if ($head) {
+            $script = $dom->createElement('script');
+            $script->textContent = 'window.PIEL_CONTENT = ' . $contentJson . ';';
+            $head->appendChild($script);
+        }
+
+        $indexHtml = $dom->saveHTML();
+
+        // Cleanup artifacts from DOMDocument loadHTML hack
+        $indexHtml = str_replace('<?xml encoding="UTF-8">', '', $indexHtml);
+    }
+}
+// ----------------------------------------------
+
 $assetVersion = rawurlencode(app_runtime_version());
 $bootstrapScriptUrl = 'bootstrap-inline-engine.js?v=' . $assetVersion;
 $bootstrapScriptTag = '<script src="' . $bootstrapScriptUrl . '" defer></script>';
