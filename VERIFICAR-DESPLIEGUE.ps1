@@ -867,7 +867,7 @@ foreach ($check in $analyticsChecks) {
 $healthUrl = "$base/api.php?resource=health"
 try {
     $healthResp = Invoke-JsonGet -Url $healthUrl
-    $healthRequired = @('timingMs', 'version', 'dataDirWritable', 'storeEncrypted', 'figoConfigured', 'figoRecursiveConfig')
+    $healthRequired = @('timingMs', 'version', 'dataDirWritable', 'dataDirSource', 'storeEncrypted', 'figoConfigured', 'figoRecursiveConfig')
     foreach ($field in $healthRequired) {
         if ($null -ne $healthResp.Json.PSObject.Properties[$field]) {
             Write-Host "[OK]  health incluye: $field"
@@ -1018,6 +1018,18 @@ try {
         } else {
             Write-Host "[WARN] backup offsite no configurado"
         }
+    }
+
+    $storeCountsNode = $null
+    try {
+        $storeCountsNode = $healthResp.Json.checks.storeCounts
+    } catch {
+        $storeCountsNode = $null
+    }
+    if ($null -eq $storeCountsNode) {
+        Write-Host "[WARN] health no incluye checks.storeCounts"
+    } else {
+        Write-Host "[OK]  health incluye checks.storeCounts"
     }
 } catch {
     Write-Host "[FAIL] No se pudo validar health: $($_.Exception.Message)"
