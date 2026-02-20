@@ -73,3 +73,7 @@
 // putenv('FEATURE_STRIPE_ELEMENTS=true');
 // putenv('FEATURE_DARK_MODE=true');
 // putenv('FEATURE_CHATGPT_INTEGRATION=true');
+
+// ── Debug seguro (solo desarrollo) ───────────────────
+// En produccion mantener en false para no filtrar errores internos al frontend
+// putenv('PIELARMONIA_DEBUG_EXCEPTIONS=false');

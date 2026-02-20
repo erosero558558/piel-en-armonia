@@ -11,6 +11,51 @@ apply_security_headers(false);
 
 $requestStartedAt = microtime(true);
 
+function api_should_hide_error_message(string $message): bool
+{
+    $trimmed = trim($message);
+    if ($trimmed === '') {
+        return true;
+    }
+
+    $technicalPatterns = [
+        '/call to undefined function/i',
+        '/fatal error/i',
+        '/uncaught/i',
+        '/stack trace/i',
+        '/syntax error/i',
+        '/on line \d+/i',
+        '/ in \\/.+\\.php/i',
+        '/mb_strlen/i',
+        '/pdoexception/i',
+        '/sqlstate/i'
+    ];
+
+    foreach ($technicalPatterns as $pattern) {
+        if (@preg_match($pattern, $trimmed) === 1) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function api_error_message_for_client(Throwable $error, int $status): string
+{
+    $rawMessage = trim((string) $error->getMessage());
+    $debugEnabled = parse_bool(getenv('PIELARMONIA_DEBUG_EXCEPTIONS') ?: false);
+    if ($debugEnabled && $rawMessage !== '') {
+        return $rawMessage;
+    }
+
+    $isClientError = $status >= 400 && $status < 500;
+    if ($isClientError && $rawMessage !== '' && !api_should_hide_error_message($rawMessage)) {
+        return $rawMessage;
+    }
+
+    return 'Error interno del servidor';
+}
+
 set_exception_handler(static function (Throwable $e): void {
     $code = ($e->getCode() >= 400 && $e->getCode() < 600) ? (int) $e->getCode() : 500;
     if (!headers_sent()) {
@@ -31,9 +76,10 @@ set_exception_handler(static function (Throwable $e): void {
         \Sentry\captureException($e);
     }
 
+    $clientMessage = api_error_message_for_client($e, $code);
     echo json_encode([
         'ok' => false,
-        'error' => $e->getMessage() ?: 'Error interno del servidor'
+        'error' => $clientMessage
     ], JSON_UNESCAPED_UNICODE);
     exit(1);
 });
