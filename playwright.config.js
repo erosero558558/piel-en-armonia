@@ -23,6 +23,12 @@ const localServerCommand = usePhpServer
   ? 'php -S 127.0.0.1:8000 -t .'
   : 'python -m http.server 8000 --bind 127.0.0.1';
 
+// Pass environment variables to the web server process
+const env = { ...process.env };
+if (usePhpServer) {
+  env.PIELARMONIA_ADMIN_PASSWORD = process.env.PIELARMONIA_ADMIN_PASSWORD || 'admin123';
+}
+
 module.exports = defineConfig({
   testDir: './tests',
   timeout: 30000,
@@ -38,6 +44,7 @@ module.exports = defineConfig({
       port: 8000,
       reuseExistingServer: true,
       timeout: 15000,
+      env: env,
     }
     : undefined,
   projects: [
