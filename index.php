@@ -26,24 +26,37 @@ $assetVersion = rawurlencode(app_runtime_version());
 $bootstrapScriptUrl = 'bootstrap-inline-engine.js?v=' . $assetVersion;
 $bootstrapScriptTag = '<script src="' . $bootstrapScriptUrl . '" defer></script>';
 
-// Reemplaza el bootstrap inline por archivo externo para reducir superficie CSP.
+// Elimina bootstrap inline legado para reducir superficie CSP.
 $inlineBootstrapPattern = '#<script>\s*const\s+DEFERRED_STYLESHEET_URL[\s\S]*?</script>#i';
-$replaceCount = 0;
-$indexHtml = (string) preg_replace($inlineBootstrapPattern, $bootstrapScriptTag, $indexHtml, 1, $replaceCount);
+$indexHtml = (string) preg_replace($inlineBootstrapPattern, '', $indexHtml, 1);
 
-// Si no encontro el bloque inline, asegura la inyeccion antes de script.js (idempotente).
-if ($replaceCount === 0 && strpos($indexHtml, $bootstrapScriptUrl) === false) {
-    $indexHtml = (string) preg_replace(
-        '#<script[^>]+src=["\']script\.js(?:\?[^"\']*)?[^>]*></script>#i',
-        $bootstrapScriptTag . "\n    \$0",
-        $indexHtml,
-        1
-    );
-}
+// Remueve tags bootstrap existentes para evitar duplicados y cache stale.
+$bootstrapTagPattern = '#\s*<script[^>]+src=["\']bootstrap-inline-engine\.js(?:\?[^"\']*)?["\'][^>]*>\s*</script>#i';
+$indexHtml = (string) preg_replace($bootstrapTagPattern, '', $indexHtml);
 
 // Fuerza versionado del bundle principal para invalidar cache en cada deploy.
 $mainScriptPattern = '#<script([^>]+src=["\'])script\.js(?:\?[^"\']*)?(["\'][^>]*)></script>#i';
 $mainScriptReplacement = '<script$1script.js?v=' . $assetVersion . '$2></script>';
 $indexHtml = (string) preg_replace($mainScriptPattern, $mainScriptReplacement, $indexHtml, 1);
+
+// Inyecta bootstrap antes del script principal (idempotente tras limpieza).
+$mainScriptInsertPattern = '#<script[^>]+src=["\']script\.js(?:\?[^"\']*)?["\'][^>]*></script>#i';
+$mainScriptInsertCount = 0;
+$indexHtml = (string) preg_replace(
+    $mainScriptInsertPattern,
+    $bootstrapScriptTag . "\n    \$0",
+    $indexHtml,
+    1,
+    $mainScriptInsertCount
+);
+
+if ($mainScriptInsertCount === 0) {
+    $indexHtml = (string) preg_replace(
+        '#</body>#i',
+        '    ' . $bootstrapScriptTag . "\n</body>",
+        $indexHtml,
+        1
+    );
+}
 
 echo $indexHtml;
