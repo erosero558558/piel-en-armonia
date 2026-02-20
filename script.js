@@ -69,13 +69,66 @@ function showToast(message, type = 'info', title = '') {
 // ========================================
 // TRANSLATIONS
 // ========================================
-const I18N_ENGINE_URL = '/i18n-engine.js?v=figo-i18n-20260219-phase1-sync1';
+function resolveDeployAssetVersion() {
+    try {
+        if (document.currentScript && typeof document.currentScript.src === 'string' && document.currentScript.src !== '') {
+            const currentUrl = new URL(document.currentScript.src, window.location.href);
+            const fromCurrent = currentUrl.searchParams.get('v');
+            if (fromCurrent) {
+                return fromCurrent;
+            }
+        }
+
+        const scriptEl = document.querySelector('script[src*="script.js"]');
+        if (scriptEl && typeof scriptEl.getAttribute === 'function') {
+            const rawSrc = scriptEl.getAttribute('src') || '';
+            if (rawSrc) {
+                const parsed = new URL(rawSrc, window.location.href);
+                const fromTag = parsed.searchParams.get('v');
+                if (fromTag) {
+                    return fromTag;
+                }
+            }
+        }
+    } catch (_) {
+        return '';
+    }
+
+    return '';
+}
+
+function withDeployAssetVersion(url) {
+    const cleanUrl = String(url || '').trim();
+    if (cleanUrl === '') {
+        return cleanUrl;
+    }
+
+    const deployVersion = window.__PA_DEPLOY_ASSET_VERSION__ || '';
+    if (!deployVersion) {
+        return cleanUrl;
+    }
+
+    try {
+        const resolved = new URL(cleanUrl, window.location.origin);
+        resolved.searchParams.set('cv', deployVersion);
+        if (cleanUrl.startsWith('/')) {
+            return resolved.pathname + resolved.search;
+        }
+        return resolved.toString();
+    } catch (_) {
+        const separator = cleanUrl.indexOf('?') >= 0 ? '&' : '?';
+        return cleanUrl + separator + 'cv=' + encodeURIComponent(deployVersion);
+    }
+}
+
+window.__PA_DEPLOY_ASSET_VERSION__ = window.__PA_DEPLOY_ASSET_VERSION__ || resolveDeployAssetVersion();
+const I18N_ENGINE_URL = withDeployAssetVersion('/i18n-engine.js?v=figo-i18n-20260219-phase1-sync1');
 
 let currentLang = localStorage.getItem('language') || 'es';
 const THEME_STORAGE_KEY = 'themeMode';
 const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
 let currentThemeMode = localStorage.getItem(THEME_STORAGE_KEY) || 'system';
-const THEME_ENGINE_URL = '/theme-engine.js?v=figo-theme-20260219-phase1';
+const THEME_ENGINE_URL = withDeployAssetVersion('/theme-engine.js?v=figo-theme-20260219-phase1');
 const CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
 const CLINIC_MAP_URL = 'https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D';
 const DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
@@ -85,8 +138,8 @@ const MAX_CASE_PHOTO_BYTES = 5 * 1024 * 1024;
 const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 const CASE_PHOTO_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
-const CONSENT_ENGINE_URL = '/consent-engine.js?v=figo-consent-20260219-phase1';
-const ANALYTICS_ENGINE_URL = '/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1';
+const CONSENT_ENGINE_URL = withDeployAssetVersion('/consent-engine.js?v=figo-consent-20260219-phase1');
+const ANALYTICS_ENGINE_URL = withDeployAssetVersion('/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1');
 let checkoutSessionFallback = {
     active: false,
     completed: false,
@@ -104,7 +157,7 @@ let paymentConfigLoaded = false;
 let paymentConfigLoadedAt = 0;
 let stripeSdkPromise = null;
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
-const DATA_ENGINE_URL = '/data-engine.js?v=figo-data-20260219-phase1';
+const DATA_ENGINE_URL = withDeployAssetVersion('/data-engine.js?v=figo-data-20260219-phase1');
 
 function getI18nEngineDeps() {
     return {
@@ -146,7 +199,7 @@ function initEnglishBundleWarmup() {
     }
 }
 
-const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260219-mbfix1';
+const BOOKING_ENGINE_URL = withDeployAssetVersion('/booking-engine.js?v=figo-booking-20260219-mbfix1');
 
 function getBookingEngineDeps() {
     return {
@@ -728,7 +781,7 @@ async function createReviewRecord(review) {
     return withDeferredModule(loadDataEngine, (engine) => engine.createReviewRecord(review));
 }
 
-const REVIEWS_ENGINE_URL = '/reviews-engine.js?v=figo-reviews-20260219-phase1';
+const REVIEWS_ENGINE_URL = withDeployAssetVersion('/reviews-engine.js?v=figo-reviews-20260219-phase1');
 
 function getReviewsEngineDeps() {
     return {
@@ -828,7 +881,7 @@ function closeVideoModal() {
 // ========================================
 // GALLERY INTERACTIONS (DEFERRED MODULE)
 // ========================================
-const GALLERY_INTERACTIONS_URL = '/gallery-interactions.js?v=figo-gallery-20260218-phase4';
+const GALLERY_INTERACTIONS_URL = withDeployAssetVersion('/gallery-interactions.js?v=figo-gallery-20260218-phase4');
 
 function loadGalleryInteractions() {
     return loadDeferredModule({
@@ -873,7 +926,7 @@ function initGalleryInteractionsWarmup() {
 // ========================================
 // APPOINTMENT FORM (DEFERRED MODULE)
 // ========================================
-const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260219-phase4-stateclass2-funnel2';
+const BOOKING_UI_URL = withDeployAssetVersion('/booking-ui.js?v=figo-booking-ui-20260219-phase4-stateclass2-funnel2');
 
 function getBookingUiDeps() {
     return {
@@ -985,7 +1038,7 @@ async function processPayment() {
 // ========================================
 // SUCCESS MODAL (DEFERRED MODULE)
 // ========================================
-const SUCCESS_MODAL_ENGINE_URL = '/success-modal-engine.js?v=figo-success-modal-20260218-phase1-inlineclass1-sync1';
+const SUCCESS_MODAL_ENGINE_URL = withDeployAssetVersion('/success-modal-engine.js?v=figo-success-modal-20260218-phase1-inlineclass1-sync1');
 
 function getSuccessModalEngineDeps() {
     return {
@@ -1046,7 +1099,7 @@ function closeSuccessModal() {
 // ========================================
 // CALLBACK + REVIEW FORMS (DEFERRED MODULE)
 // ========================================
-const ENGAGEMENT_FORMS_ENGINE_URL = '/engagement-forms-engine.js?v=figo-engagement-20260218-phase1-sync1';
+const ENGAGEMENT_FORMS_ENGINE_URL = withDeployAssetVersion('/engagement-forms-engine.js?v=figo-engagement-20260218-phase1-sync1');
 
 function getEngagementFormsEngineDeps() {
     return {
@@ -1125,7 +1178,7 @@ function closeReviewModal() {
 
 // MODAL CLOSE HANDLERS (DEFERRED MODULE)
 // ========================================
-const MODAL_UX_ENGINE_URL = '/modal-ux-engine.js?v=figo-modal-ux-20260218-phase1';
+const MODAL_UX_ENGINE_URL = withDeployAssetVersion('/modal-ux-engine.js?v=figo-modal-ux-20260218-phase1');
 
 function getModalUxEngineDeps() {
     return {
@@ -1232,9 +1285,9 @@ const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
 const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
 const CHAT_HISTORY_MAX_ITEMS = 50;
 const CHAT_CONTEXT_MAX_ITEMS = 24;
-const CHAT_UI_ENGINE_URL = '/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1';
-const CHAT_WIDGET_ENGINE_URL = '/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1';
-const ACTION_ROUTER_ENGINE_URL = '/action-router-engine.js?v=figo-action-router-20260219-phase1';
+const CHAT_UI_ENGINE_URL = withDeployAssetVersion('/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1');
+const CHAT_WIDGET_ENGINE_URL = withDeployAssetVersion('/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1');
+const ACTION_ROUTER_ENGINE_URL = withDeployAssetVersion('/action-router-engine.js?v=figo-action-router-20260219-phase1');
 
 function getChatUiEngineDeps() {
     return {
@@ -1528,7 +1581,7 @@ function escapeHtml(text) {
 // ========================================
 // BOOKING CONVERSACIONAL DESDE CHATBOT (DEFERRED MODULE)
 // ========================================
-const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1';
+const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion('/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1');
 
 function getChatBookingEngineDeps() {
     return {
@@ -1661,7 +1714,7 @@ function initChatEngineWarmup() {
     });
 }
 
-const UI_EFFECTS_URL = '/ui-effects.js?v=figo-ui-20260218-phase4-sync1';
+const UI_EFFECTS_URL = withDeployAssetVersion('/ui-effects.js?v=figo-ui-20260218-phase4-sync1');
 
 function loadUiEffects() {
     return loadDeferredModule({
@@ -1718,7 +1771,7 @@ scheduleChatNotification();
 // ========================================
 // REPROGRAMACION ONLINE
 // ========================================
-const RESCHEDULE_GATEWAY_ENGINE_URL = '/reschedule-gateway-engine.js?v=figo-reschedule-gateway-20260219-phase1';
+const RESCHEDULE_GATEWAY_ENGINE_URL = withDeployAssetVersion('/reschedule-gateway-engine.js?v=figo-reschedule-gateway-20260219-phase1');
 
 function getRescheduleGatewayEngineDeps() {
     return {

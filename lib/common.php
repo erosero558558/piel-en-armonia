@@ -34,12 +34,41 @@ function app_runtime_version(): string
     }
 
     $versionSources = [
+        __DIR__ . '/../index.php',
         __DIR__ . '/../index.html',
         __DIR__ . '/../script.js',
         __DIR__ . '/../styles.css',
         __DIR__ . '/../api.php',
         __DIR__ . '/../figo-chat.php'
     ];
+
+    $versionGlobs = [
+        __DIR__ . '/../*.js',
+        __DIR__ . '/../*.css',
+        __DIR__ . '/../*.html',
+        __DIR__ . '/../js/*.js',
+        __DIR__ . '/../lib/*.php',
+        __DIR__ . '/../controllers/*.php'
+    ];
+
+    $indexed = [];
+    foreach ($versionSources as $source) {
+        $indexed[$source] = true;
+    }
+
+    foreach ($versionGlobs as $pattern) {
+        $matches = glob($pattern);
+        if (!is_array($matches)) {
+            continue;
+        }
+        foreach ($matches as $match) {
+            if (is_string($match) && $match !== '') {
+                $indexed[$match] = true;
+            }
+        }
+    }
+
+    $versionSources = array_keys($indexed);
 
     $latestMtime = 0;
     foreach ($versionSources as $source) {

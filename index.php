@@ -22,7 +22,8 @@ if (!is_string($indexHtml) || $indexHtml === '') {
     exit;
 }
 
-$bootstrapScriptUrl = 'bootstrap-inline-engine.js?v=ui-20260219-csp-inline-bootstrap1';
+$assetVersion = rawurlencode(app_runtime_version());
+$bootstrapScriptUrl = 'bootstrap-inline-engine.js?v=' . $assetVersion;
 $bootstrapScriptTag = '<script src="' . $bootstrapScriptUrl . '" defer></script>';
 
 // Reemplaza el bootstrap inline por archivo externo para reducir superficie CSP.
@@ -33,11 +34,16 @@ $indexHtml = (string) preg_replace($inlineBootstrapPattern, $bootstrapScriptTag,
 // Si no encontro el bloque inline, asegura la inyeccion antes de script.js (idempotente).
 if ($replaceCount === 0 && strpos($indexHtml, $bootstrapScriptUrl) === false) {
     $indexHtml = (string) preg_replace(
-        '#<script[^>]+src=["\']script\.js[^>]*></script>#i',
+        '#<script[^>]+src=["\']script\.js(?:\?[^"\']*)?[^>]*></script>#i',
         $bootstrapScriptTag . "\n    \$0",
         $indexHtml,
         1
     );
 }
+
+// Fuerza versionado del bundle principal para invalidar cache en cada deploy.
+$mainScriptPattern = '#<script([^>]+src=["\'])script\.js(?:\?[^"\']*)?(["\'][^>]*)></script>#i';
+$mainScriptReplacement = '<script$1script.js?v=' . $assetVersion . '$2></script>';
+$indexHtml = (string) preg_replace($mainScriptPattern, $mainScriptReplacement, $indexHtml, 1);
 
 echo $indexHtml;
