@@ -23,6 +23,16 @@ on:
         required: false
         default: "90"
         type: string
+      asset_hash_retry_count:
+        description: "Reintentos por hash de asset"
+        required: false
+        default: "2"
+        type: string
+      asset_hash_retry_delay_sec:
+        description: "Espera entre reintentos de hash (seg)"
+        required: false
+        default: "4"
+        type: string
 
 concurrency:
   group: post-deploy-gate-main
@@ -41,6 +51,8 @@ jobs:
       TARGET_DOMAIN: ${{ github.event.inputs.domain || 'https://pielarmonia.com' }}
       BENCH_RUNS: ${{ github.event.inputs.bench_runs || '25' }}
       WAIT_SECONDS: ${{ github.event.inputs.wait_seconds || '90' }}
+      ASSET_HASH_RETRY_COUNT: ${{ github.event.inputs.asset_hash_retry_count || '2' }}
+      ASSET_HASH_RETRY_DELAY_SEC: ${{ github.event.inputs.asset_hash_retry_delay_sec || '4' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -60,9 +72,15 @@ jobs:
         run: |
           $benchRuns = [int]$env:BENCH_RUNS
           if ($benchRuns -lt 10) { $benchRuns = 10 }
+          $hashRetryCount = [int]$env:ASSET_HASH_RETRY_COUNT
+          if ($hashRetryCount -lt 0) { $hashRetryCount = 0 }
+          $hashRetryDelay = [int]$env:ASSET_HASH_RETRY_DELAY_SEC
+          if ($hashRetryDelay -lt 1) { $hashRetryDelay = 1 }
           ./GATE-POSTDEPLOY.ps1 `
             -Domain $env:TARGET_DOMAIN `
             -BenchRuns $benchRuns `
+            -AssetHashRetryCount $hashRetryCount `
+            -AssetHashRetryDelaySec $hashRetryDelay `
             -RequireStableDataDir `
             -RequireBackupHealthy `
             -RequireBackupReceiverReady `
@@ -75,6 +93,7 @@ jobs:
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Post-deploy gate"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Dominio: ``$env:TARGET_DOMAIN``"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Bench runs: ``$env:BENCH_RUNS``"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Asset hash retries: ``$env:ASSET_HASH_RETRY_COUNT`` cada ``$env:ASSET_HASH_RETRY_DELAY_SEC``s"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Resultado: ``${{ steps.gate.outcome }}``"
 
       - name: Crear/actualizar incidente de gate

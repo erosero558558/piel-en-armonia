@@ -56,6 +56,9 @@ Si tu hosting hace `git pull` automatico, usa este workflow para validar cada pu
 - `Actions` -> `Post-Deploy Gate (Git Sync)`
 - O simplemente push a `main` y se ejecuta solo.
 - Adicionalmente corre cada 6 horas como monitoreo continuo.
+- Puedes ajustar tolerancia de propagacion de cache con:
+  - `asset_hash_retry_count`
+  - `asset_hash_retry_delay_sec`
 
 Este gate corre:
 - verificacion de despliegue
