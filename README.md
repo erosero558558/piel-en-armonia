@@ -54,6 +54,8 @@ Las variables de entorno principales son:
 - `PIELARMONIA_ADMIN_PASSWORD`: Contraseña para el acceso administrativo.
 - `PIELARMONIA_ADMIN_EMAIL`: Email para notificaciones administrativas.
 - `FIGO_CHAT_ENDPOINT`: URL del backend del chatbot (si se usa).
+- `PIELARMONIA_CRON_SECRET`: Token para ejecutar `cron.php` de forma segura.
+- `PIELARMONIA_BACKUP_OFFSITE_URL`: Endpoint opcional para replicar backups offsite.
 
 Para una lista completa y detalles sobre la configuración, consulta [SERVIDOR-LOCAL.md](SERVIDOR-LOCAL.md) y [DESPLIEGUE-PIELARMONIA.md](DESPLIEGUE-PIELARMONIA.md).
 
@@ -85,6 +87,7 @@ Comandos rapidos post-deploy (PowerShell, dominio por defecto https://pielarmoni
 - npm run verify:prod
 - npm run smoke:prod
 - npm run gate:prod
+- powershell -NoProfile -ExecutionPolicy Bypass -File .\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireBackupHealthy
 
 Para probar otro dominio:
 - powershell -NoProfile -ExecutionPolicy Bypass -File .\GATE-POSTDEPLOY.ps1 -Domain "https://tu-dominio.com"
