@@ -17,7 +17,15 @@ set_exception_handler(static function (Throwable $e): void {
         http_response_code($code);
         header('Content-Type: application/json; charset=utf-8');
     }
-    error_log('Piel en Armonía API uncaught: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+    if (function_exists('get_logger')) {
+        get_logger()->error('Piel en Armonía API uncaught: ' . $e->getMessage(), [
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString()
+        ]);
+    } else {
+        error_log('Piel en Armonía API uncaught: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+    }
 
     if (function_exists('\Sentry\captureException')) {
         \Sentry\captureException($e);
@@ -1310,12 +1318,12 @@ if ($method === 'POST' && $resource === 'appointments') {
     try {
         $emailSent = maybe_send_appointment_email($appointment);
     } catch (Throwable $e) {
-        error_log('Piel en Armonía: fallo al enviar email de confirmación: ' . $e->getMessage());
+        get_logger()->error('Piel en Armonía: fallo al enviar email de confirmación: ' . $e->getMessage());
     }
     try {
         maybe_send_admin_notification($appointment);
     } catch (Throwable $e) {
-        error_log('Piel en Armonía: fallo al enviar notificación admin: ' . $e->getMessage());
+        get_logger()->error('Piel en Armonía: fallo al enviar notificación admin: ' . $e->getMessage());
     }
 
     json_response([
@@ -1387,7 +1395,7 @@ if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') 
     if (isset($payload['status']) && map_appointment_status((string) $payload['status']) === 'cancelled') {
         foreach ($store['appointments'] as $apptNotify) {
             if ((int) ($apptNotify['id'] ?? 0) === $id) {
-                try { maybe_send_cancellation_email($apptNotify); } catch (Throwable $e) { error_log('Piel en Armonía: fallo email cancelación: ' . $e->getMessage()); }
+                try { maybe_send_cancellation_email($apptNotify); } catch (Throwable $e) { get_logger()->error('Piel en Armonía: fallo email cancelación: ' . $e->getMessage()); }
                 break;
             }
         }
@@ -1419,7 +1427,7 @@ if ($method === 'POST' && $resource === 'callbacks') {
 
     $store['callbacks'][] = $callback;
     write_store($store);
-    try { maybe_send_callback_admin_notification($callback); } catch (Throwable $e) { error_log('Piel en Armonía: fallo notificación callback: ' . $e->getMessage()); }
+    try { maybe_send_callback_admin_notification($callback); } catch (Throwable $e) { get_logger()->error('Piel en Armonía: fallo notificación callback: ' . $e->getMessage()); }
     json_response([
         'ok' => true,
         'data' => $callback
@@ -1579,7 +1587,7 @@ if ($method === 'PATCH' && $resource === 'reschedule') {
         $found = true;
 
         write_store($store);
-        try { maybe_send_reschedule_email($appt); } catch (Throwable $e) { error_log('Piel en Armonía: fallo email reagendar: ' . $e->getMessage()); }
+        try { maybe_send_reschedule_email($appt); } catch (Throwable $e) { get_logger()->error('Piel en Armonía: fallo email reagendar: ' . $e->getMessage()); }
 
         json_response([
             'ok' => true,

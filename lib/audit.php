@@ -30,4 +30,8 @@ function audit_log_event(string $event, array $details = []): void
     }
     ensure_data_htaccess($dir);
     @file_put_contents(audit_log_file_path(), $encoded . PHP_EOL, FILE_APPEND | LOCK_EX);
+
+    if (function_exists('get_logger')) {
+        get_logger()->info($event, $line);
+    }
 }
