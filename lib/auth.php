@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/http.php';
+require_once __DIR__ . '/totp.php';
 
 /**
  * Session and authentication logic.
@@ -92,4 +93,13 @@ function verify_admin_password(string $password): bool
     }
 
     return false;
+}
+
+function verify_2fa_code(string $code): bool
+{
+    $secret = getenv('PIELARMONIA_ADMIN_2FA_SECRET');
+    if (!is_string($secret) || trim($secret) === '') {
+        return false;
+    }
+    return TOTP::verify($secret, $code);
 }

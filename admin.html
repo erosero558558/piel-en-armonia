@@ -22,11 +22,15 @@
                 <p>Piel en Armonía</p>
             </div>
             <form id="loginForm" class="login-form">
-                <div class="form-group">
+                <div class="form-group" id="passwordGroup">
                     <label>Contraseña</label>
                     <input type="password" id="adminPassword" placeholder="Ingrese contraseña" required>
                 </div>
-                <button type="submit" class="btn btn-primary btn-full">
+                <div class="form-group is-hidden" id="group2FA">
+                    <label>Código 2FA</label>
+                    <input type="text" id="admin2FACode" placeholder="000000" maxlength="6" pattern="[0-9]*" autocomplete="one-time-code">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full" id="loginBtn">
                     <i class="fas fa-sign-in-alt"></i>
                     Ingresar
                 </button>
