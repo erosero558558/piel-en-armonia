@@ -59,4 +59,25 @@ if ($mainScriptInsertCount === 0) {
     );
 }
 
+// Prepare HTTP/2 Server Push (Preload) headers
+$preloadLinks = [];
+
+// 1. Critical CSS (styles.css) - Extract from HTML to get version
+if (preg_match('/href=["\'](styles\.css[^"\']*)["\']/i', $indexHtml, $matches)) {
+    $preloadLinks[] = "<{$matches[1]}>; rel=preload; as=style";
+}
+
+// 2. Critical Image (hero-woman.jpg) - LCP
+$preloadLinks[] = "<hero-woman.jpg>; rel=preload; as=image";
+
+// 3. Critical JS (bootstrap-inline-engine.js) - Versioned
+$preloadLinks[] = "<{$bootstrapScriptUrl}>; rel=preload; as=script";
+
+// 4. Main JS (script.js) - Versioned
+$preloadLinks[] = "<script.js?v={$assetVersion}>; rel=preload; as=script";
+
+if (!empty($preloadLinks)) {
+    header('Link: ' . implode(', ', $preloadLinks), false);
+}
+
 echo $indexHtml;
