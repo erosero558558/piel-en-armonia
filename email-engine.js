@@ -21,7 +21,6 @@
         // For now, it might be used by other modules to trigger generic email sending if endpoint existed
         // But currently appointments/callbacks send emails automatically.
         // We will just return resolved for now or implement a call to a hypothetical 'contact' endpoint
-        console.log('Email engine: sendEmail called', payload);
         return Promise.resolve({ ok: true });
     }
 
