@@ -255,10 +255,19 @@
         background:rgba(255,255,255,0.9);
         padding:20px;
     }
+    .services-disclaimers{
+        max-width:900px;
+        margin:48px auto 0;
+        padding:0 20px;
+        display:grid;
+        grid-template-columns:repeat(2,1fr);
+        gap:16px;
+    }
     @media (max-width:768px){
     .pricing-item{flex-direction:column}
     .pricing-grid-2{grid-template-columns:1fr}
     .pricing-amount-group{align-items:flex-start}
+    .services-disclaimers{grid-template-columns:1fr}
     }
     html[data-theme='dark'] .pricing-category,
     html[data-theme='dark'] .pricing-disclaimer{

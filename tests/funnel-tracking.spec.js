@@ -123,6 +123,9 @@ async function getFunnelEvents(page) {
 }
 
 async function fillBookingFormAndOpenPayment(page) {
+  await page.waitForSelector('script[data-action-router-engine="true"]', { timeout: 10000, state: 'attached' });
+  await page.waitForSelector('script[data-booking-ui="true"]', { timeout: 10000, state: 'attached' });
+
   const serviceSelect = page.locator('#serviceSelect');
   await serviceSelect.selectOption('consulta');
 
@@ -168,8 +171,12 @@ async function fillBookingFormAndOpenPayment(page) {
 
   await page.locator('input[name="privacyConsent"]').check();
   await page.locator('#appointmentForm button[type="submit"]').click();
-
-  await expect(page.locator('#paymentModal')).toHaveClass(/active/);
+  await expect.poll(async () => page.evaluate(() => {
+    const modal = document.getElementById('paymentModal');
+    return !!(modal && modal.classList.contains('active'));
+  }), {
+    timeout: 10000,
+  }).toBe(true);
   await page.waitForTimeout(250);
 }
 
@@ -293,7 +300,12 @@ test.describe('Tracking del embudo de conversion', () => {
   test('emite checkout_abandon con paso y origen al cerrar modal', async ({ page }) => {
     await fillBookingFormAndOpenPayment(page);
     await page.locator('#paymentModal [data-action="close-payment-modal"]').click();
-    await expect(page.locator('#paymentModal')).not.toHaveClass(/active/);
+    await expect.poll(async () => page.evaluate(() => {
+      const modal = document.getElementById('paymentModal');
+      return !!(modal && modal.classList.contains('active'));
+    }), {
+      timeout: 10000,
+    }).toBe(false);
     await page.waitForTimeout(250);
 
     const events = await getTrackedEvents(page);
@@ -312,8 +324,14 @@ test.describe('Tracking del embudo de conversion', () => {
   });
 
   test('emite chat_started y paso inicial al iniciar reserva desde chatbot', async ({ page }) => {
+    await page.waitForSelector('script[data-action-router-engine="true"]', { timeout: 10000, state: 'attached' });
     await page.locator('#chatbotWidget .chatbot-toggle').click();
-    await expect(page.locator('#chatbotContainer')).toHaveClass(/active/);
+    await expect.poll(async () => page.evaluate(() => {
+      const container = document.getElementById('chatbotContainer');
+      return !!(container && container.classList.contains('active'));
+    }), {
+      timeout: 10000,
+    }).toBe(true);
     await page.locator('#quickOptions [data-action="quick-message"][data-value="appointment"]').click();
     await page.waitForTimeout(600);
 

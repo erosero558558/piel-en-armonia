@@ -294,7 +294,7 @@
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {
-            navigator.serviceWorker.register('/sw.js').catch(function (error) {
+            navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(function (error) {
                 debugLog('SW fail', error);
             });
         });
