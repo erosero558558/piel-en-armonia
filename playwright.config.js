@@ -38,6 +38,10 @@ module.exports = defineConfig({
       port: 8000,
       reuseExistingServer: true,
       timeout: 15000,
+      env: {
+        PIELARMONIA_ADMIN_PASSWORD: process.env.PIELARMONIA_ADMIN_PASSWORD || 'admin123',
+        ...process.env
+      },
     }
     : undefined,
   projects: [

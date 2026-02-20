@@ -1,6 +1,11 @@
 <?php
 // Router for PHP built-in server during tests
 
+// Skip if run in CLI (this file is not a unit test)
+if (php_sapi_name() === 'cli') {
+    exit(0);
+}
+
 // Skip static assets
 if (preg_match('/\.(?:png|jpg|jpeg|gif|css|js|html|ico)$/', $_SERVER["REQUEST_URI"])) {
     return false;

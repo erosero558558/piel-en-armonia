@@ -249,16 +249,17 @@ export function getCheckoutBreakdown(serviceId, additionalOptions = {}) {
         isCupoSolidario = false
     } = additionalOptions;
     
+    let effectiveDiscountRate = discountRate;
     let priceBase = service.priceBase;
     
     // Aplicar descuento de cupo solidario si aplica
     if (isCupoSolidario && SPECIAL_SERVICES.cupoSolidario) {
-        discountRate = SPECIAL_SERVICES.cupoSolidario.discountRate;
+        effectiveDiscountRate = SPECIAL_SERVICES.cupoSolidario.discountRate;
     }
     
     // Calcular descuento
-    const discount = discountRate > 0 
-        ? roundToTwo(priceBase * discountRate) 
+    const discount = effectiveDiscountRate > 0
+        ? roundToTwo(priceBase * effectiveDiscountRate)
         : discountAmount;
     
     const priceAfterDiscount = roundToTwo(priceBase - discount);
