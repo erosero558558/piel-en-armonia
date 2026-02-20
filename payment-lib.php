@@ -69,7 +69,8 @@ function stripe_verify_webhook_signature(string $payload, string $sigHeader, str
 function payment_expected_amount_cents(string $service): int
 {
     $subtotal = get_service_price_amount($service);
-    $total = $subtotal + ($subtotal * get_service_tax_rate($service));
+    $tax_rate = get_service_tax_rate($service);
+    $total = compute_total($subtotal, $tax_rate);
     return (int) round($total * 100);
 }
 
