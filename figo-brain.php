@@ -207,12 +207,12 @@ class FigoBrain
     private static function generateResponse(string $intent, string $message): string
     {
         // Dynamic Data
-        $pConsult = self::getPrice('consulta', '$44.80');
-        $pOnline = self::getPrice('video', '$33.60');
-        $pPhone = self::getPrice('telefono', '$28.00');
-        $pAcne = self::getPrice('acne', '$89.60 (aprox)');
-        $pLaser = self::getPrice('laser', '$168.00 (aprox)');
-        $pRejuv = self::getPrice('rejuvenecimiento', '$134.40 (aprox)');
+        $pConsult = self::getPrice('consulta', '$40.00');
+        $pOnline = self::getPrice('video', '$30.00');
+        $pPhone = self::getPrice('telefono', '$25.00');
+        $pAcne = self::getPrice('acne', '$80.00 (aprox)');
+        $pLaser = self::getPrice('laser', '$172.50 (aprox)');
+        $pRejuv = self::getPrice('rejuvenecimiento', '$138.00 (aprox)');
 
         switch ($intent) {
             case 'emergency':
