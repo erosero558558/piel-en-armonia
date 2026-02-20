@@ -5,7 +5,9 @@ param(
     [switch]$AllowRecursiveFigo,
     [switch]$AllowMetaCspFallback,
     [switch]$RequireWebhookSecret,
-    [int]$MaxHealthTimingMs = 2000
+    [int]$MaxHealthTimingMs = 2000,
+    [int]$FigoPostRetries = 3,
+    [int]$FigoPostRetryDelaySec = 2
 )
 
 $ErrorActionPreference = 'Stop'
@@ -299,59 +301,73 @@ function Invoke-JsonPostCheck {
     param(
         [string]$Name,
         [string]$Url,
-        [object]$Body
+        [object]$Body,
+        [int]$RetryCount = 1,
+        [int]$RetryDelaySec = 2
     )
 
     $jsonBody = if ($null -eq $Body) { '{}' } else { $Body | ConvertTo-Json -Depth 8 -Compress }
-    $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    $status = 0
-    $bodyText = ''
-    $ok = $false
+    $maxAttempts = [Math]::Max(1, $RetryCount)
 
-    try {
-        $resp = Invoke-WebRequest -Uri $Url -Method POST -ContentType 'application/json' -Body $jsonBody -TimeoutSec 20 -UseBasicParsing -Headers @{
-            'Accept' = 'application/json'
-            'User-Agent' = 'PielArmoniaSmoke/1.0'
-        }
-        $status = [int]$resp.StatusCode
-        $bodyText = [string]$resp.Content
-        $ok = $true
-    } catch {
-        $response = $_.Exception.Response
-        if ($null -ne $response) {
-            try { $status = [int]$response.StatusCode } catch { $status = 0 }
-            try {
-                $reader = New-Object System.IO.StreamReader($response.GetResponseStream())
-                $bodyText = $reader.ReadToEnd()
-                $reader.Close()
-            } catch {}
-        }
+    for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        $status = 0
+        $bodyText = ''
         $ok = $false
-    }
-    $sw.Stop()
 
-    if ($status -ge 200 -and $status -lt 500) {
-        Write-Host "[OK]  $Name -> HTTP $status ($([int]$sw.ElapsedMilliseconds) ms)"
-        return [PSCustomObject]@{
-            Name = $Name
-            Ok = $true
-            Status = $status
-            Body = $bodyText
+        try {
+            $resp = Invoke-WebRequest -Uri $Url -Method POST -ContentType 'application/json' -Body $jsonBody -TimeoutSec 20 -UseBasicParsing -Headers @{
+                'Accept' = 'application/json'
+                'User-Agent' = 'PielArmoniaSmoke/1.0'
+            }
+            $status = [int]$resp.StatusCode
+            $bodyText = [string]$resp.Content
+            $ok = $true
+        } catch {
+            $response = $_.Exception.Response
+            if ($null -ne $response) {
+                try { $status = [int]$response.StatusCode } catch { $status = 0 }
+                try {
+                    $reader = New-Object System.IO.StreamReader($response.GetResponseStream())
+                    $bodyText = $reader.ReadToEnd()
+                    $reader.Close()
+                } catch {}
+            }
+            $ok = $false
         }
-    }
+        $sw.Stop()
 
-    Write-Host "[FAIL] $Name -> HTTP $status ($([int]$sw.ElapsedMilliseconds) ms)"
-    if ($bodyText) {
-        Write-Host "       $bodyText"
-    } else {
-        Write-Host "       Sin respuesta"
-    }
+        if ($status -ge 200 -and $status -lt 500) {
+            if ($attempt -gt 1) {
+                Write-Host "[INFO] $Name recuperado en intento $attempt/$maxAttempts"
+            }
+            Write-Host "[OK]  $Name -> HTTP $status ($([int]$sw.ElapsedMilliseconds) ms)"
+            return [PSCustomObject]@{
+                Name = $Name
+                Ok = $true
+                Status = $status
+                Body = $bodyText
+            }
+        }
 
-    return [PSCustomObject]@{
-        Name = $Name
-        Ok = $ok
-        Status = $status
-        Body = $bodyText
+        if ($attempt -lt $maxAttempts) {
+            Write-Host "[WARN] $Name intento $attempt/$maxAttempts fallo (HTTP $status). Reintentando en $RetryDelaySec s..."
+            Start-Sleep -Seconds $RetryDelaySec
+        } else {
+            Write-Host "[FAIL] $Name -> HTTP $status ($([int]$sw.ElapsedMilliseconds) ms)"
+            if ($bodyText) {
+                Write-Host "       $bodyText"
+            } else {
+                Write-Host "       Sin respuesta"
+            }
+
+            return [PSCustomObject]@{
+                Name = $Name
+                Ok = $ok
+                Status = $status
+                Body = $bodyText
+            }
+        }
     }
 }
 
@@ -394,7 +410,7 @@ if ($TestFigoPost) {
         max_tokens = 120
         temperature = 0.4
     }
-    $results += Invoke-JsonPostCheck -Name 'Figo chat POST' -Url "$base/figo-chat.php" -Body $figoPayload
+    $results += Invoke-JsonPostCheck -Name 'Figo chat POST' -Url "$base/figo-chat.php" -Body $figoPayload -RetryCount $FigoPostRetries -RetryDelaySec $FigoPostRetryDelaySec
 }
 
 $contractFailures = 0
