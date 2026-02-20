@@ -243,7 +243,8 @@ export function getCheckoutBreakdown(serviceId, additionalOptions = {}) {
         return null;
     }
     
-    const { 
+    // Changed from const to let to allow reassignment of discountRate
+    let {
         discountAmount = 0,
         discountRate = 0,
         isCupoSolidario = false
