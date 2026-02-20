@@ -1,24 +1,44 @@
 <?php
-
-// Image Optimization Script
-// Generates responsive WebP images from source JPG/PNGs.
+// bin/optimize-images.php
+// Script to generate responsive WebP images and LQIP placeholders.
 
 $source_dirs = ['.', 'images/optimized'];
 $target_dir = 'images/optimized';
-$resolutions = [
-    'mobile' => 640,
-    'tablet' => 1024,
-    'desktop' => 'original' // Keep original resolution
+
+// Configuration: Map prefixes to target widths
+$config = [
+    'hero-woman' => [640, 1024, 1344],
+    'showcase-hero' => [640, 1024, 1400],
+    'showcase-diagnostic' => [640, 800],
+    'showcase-clinic' => [640, 800],
+    'showcase-treatment' => [640, 900],
+    'service-' => [400],
+    'team-' => [500],
 ];
+
+if (!extension_loaded('gd')) {
+    die("Error: GD extension is required.\n");
+}
 
 if (!is_dir($target_dir)) {
     mkdir($target_dir, 0755, true);
 }
 
-function optimize_image($file_path, $target_dir, $resolutions) {
+function get_target_widths($filename, $config) {
+    foreach ($config as $prefix => $widths) {
+        // Check if filename starts with prefix (handling wildcards like service-)
+        $clean_prefix = rtrim($prefix, '-');
+        if (strpos($filename, $clean_prefix) === 0) {
+            return $widths;
+        }
+    }
+    return [];
+}
+
+function optimize_image($file_path, $target_dir, $target_widths) {
     $info = getimagesize($file_path);
     if (!$info) {
-        echo "Skipping invalid image: $file_path\n";
+        // Not a valid image
         return;
     }
 
@@ -27,16 +47,25 @@ function optimize_image($file_path, $target_dir, $resolutions) {
     $height = $info[1];
     $filename = pathinfo($file_path, PATHINFO_FILENAME);
 
-    // Create source image resource
+    // Skip if filename looks like a generated artifact (ends in digits or lqip)
+    if (preg_match('/-(\d+|lqip)$/', $filename)) {
+        return;
+    }
+
+    echo "Processing: $file_path ($width x $height)\n";
+
+    // Load image
     switch ($mime) {
         case 'image/jpeg':
             $image = imagecreatefromjpeg($file_path);
             break;
         case 'image/png':
             $image = imagecreatefrompng($file_path);
+            // Preserve transparency
+            imagealphablending($image, false);
+            imagesavealpha($image, true);
             break;
         default:
-            // Skip non-supported types
             return;
     }
 
@@ -45,50 +74,51 @@ function optimize_image($file_path, $target_dir, $resolutions) {
         return;
     }
 
-    foreach ($resolutions as $name => $target_width) {
-        $new_width = ($target_width === 'original') ? $width : $target_width;
+    // Generate LQIP (20px width)
+    $lqip_width = 20;
+    $lqip_height = (int)($height * ($lqip_width / $width));
+    $lqip_image = imagecreatetruecolor($lqip_width, $lqip_height);
 
-        // Don't upscale small images (unless original)
-        if ($target_width !== 'original' && $width < $target_width) {
-            continue;
-        }
+    // Fill with white background for LQIP (simpler for blur-up)
+    $white = imagecolorallocate($lqip_image, 255, 255, 255);
+    imagefill($lqip_image, 0, 0, $white);
 
-        // Calculate height proportionally
-        $new_height = ($target_width === 'original') ? $height : (int)($height * ($new_width / $width));
+    imagecopyresampled($lqip_image, $image, 0, 0, 0, 0, $lqip_width, $lqip_height, $width, $height);
+    $lqip_path = "$target_dir/{$filename}-lqip.jpg";
 
-        // Create new image resource
-        $new_image = imagecreatetruecolor($new_width, $new_height);
+    // Only generate if not exists or source is newer
+    if (!file_exists($lqip_path) || filemtime($file_path) > filemtime($lqip_path)) {
+        imagejpeg($lqip_image, $lqip_path, 20);
+        echo "  Generated LQIP: $lqip_path\n";
+    }
+    imagedestroy($lqip_image);
 
-        // Preserve transparency for PNG
+    // Generate WebP Original Size
+    $webp_original_path = "$target_dir/{$filename}.webp";
+    if (!file_exists($webp_original_path) || filemtime($file_path) > filemtime($webp_original_path)) {
+        imagewebp($image, $webp_original_path, 80);
+        echo "  Generated WebP (Original): $webp_original_path\n";
+    }
+
+    // Generate WebP Resized Variants
+    foreach ($target_widths as $target_width) {
+        if ($target_width >= $width) continue; // Skip upscaling
+
+        $new_height = (int)($height * ($target_width / $width));
+        $new_image = imagecreatetruecolor($target_width, $new_height);
+
         if ($mime === 'image/png') {
             imagealphablending($new_image, false);
             imagesavealpha($new_image, true);
         }
 
-        // Resize
-        imagecopyresampled($new_image, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height);
+        imagecopyresampled($new_image, $image, 0, 0, 0, 0, $target_width, $new_height, $width, $height);
 
-        // Generate filename: name-width.webp (e.g., hero-woman-640.webp)
-        // If original, use name-original.webp to distinguish? Or just name.webp?
-        // Let's use name-width.webp to be explicit about size.
-        // Special case: If original, maybe keep name.webp for backward compatibility?
-        // Actually, the plan says name-width.webp. But existing code uses name.webp.
-        // Let's output BOTH name.webp (for existing code) AND name-width.webp (for srcset).
-
-        $output_filename = "{$filename}-{$new_width}.webp";
-        $output_path = "{$target_dir}/{$output_filename}";
-
-        // Save as WebP
-        imagewebp($new_image, $output_path, 82);
-        echo "Generated: {$output_path} ({$new_width}x{$new_height})\n";
-
-        // If this is the original size, also update/create the standard name.webp
-        if ($target_width === 'original') {
-             $standard_path = "{$target_dir}/{$filename}.webp";
-             imagewebp($new_image, $standard_path, 82);
-             echo "Updated standard: {$standard_path}\n";
+        $output_path = "$target_dir/{$filename}-{$target_width}.webp";
+        if (!file_exists($output_path) || filemtime($file_path) > filemtime($output_path)) {
+            imagewebp($new_image, $output_path, 80);
+            echo "  Generated WebP ($target_width): $output_path\n";
         }
-
         imagedestroy($new_image);
     }
 
@@ -96,6 +126,8 @@ function optimize_image($file_path, $target_dir, $resolutions) {
 }
 
 // Main execution
+echo "Starting image optimization...\n";
+
 foreach ($source_dirs as $dir) {
     if (!is_dir($dir)) continue;
 
@@ -106,11 +138,13 @@ foreach ($source_dirs as $dir) {
         $path = $dir . '/' . $file;
         $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
 
-        // Only process source JPG/PNG files
-        // Avoid re-processing generated webp files or thumbnails
-        if (in_array($ext, ['jpg', 'png']) && strpos($file, '-640') === false && strpos($file, '-1024') === false) {
-             echo "Processing: $path\n";
-             optimize_image($path, $target_dir, $resolutions);
+        if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
+            // Check if it's a source file (not generated)
+            $filename = pathinfo($path, PATHINFO_FILENAME);
+            if (!preg_match('/-(\d+|lqip)$/', $filename)) {
+                $widths = get_target_widths($filename, $config);
+                optimize_image($path, $target_dir, $widths);
+            }
         }
     }
 }
