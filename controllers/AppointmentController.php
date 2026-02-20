@@ -81,8 +81,9 @@ class AppointmentController
 
         write_store($newStore);
 
-        $emailSent = maybe_send_appointment_email($appointment);
-        maybe_send_admin_notification($appointment);
+        $event = new BookingCreated($appointment);
+        get_event_dispatcher()->dispatch($event);
+        $emailSent = $event->emailSent;
 
         json_response([
             'ok' => true,
@@ -156,7 +157,7 @@ class AppointmentController
         if (isset($payload['status']) && map_appointment_status((string) $payload['status']) === 'cancelled') {
             foreach ($store['appointments'] as $apptNotify) {
                 if ((int) ($apptNotify['id'] ?? 0) === $id) {
-                    maybe_send_cancellation_email($apptNotify);
+                    get_event_dispatcher()->dispatch(new BookingCancelled($apptNotify));
                     break;
                 }
             }
@@ -226,7 +227,7 @@ class AppointmentController
         $appointment = $result['data'];
 
         write_store($newStore);
-        maybe_send_reschedule_email($appointment);
+        get_event_dispatcher()->dispatch(new BookingRescheduled($appointment));
 
         json_response([
             'ok' => true,

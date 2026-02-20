@@ -34,3 +34,4 @@ require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/email.php';
 require_once __DIR__ . '/lib/ratelimit.php';
 require_once __DIR__ . '/lib/security.php';
+require_once __DIR__ . '/lib/event_setup.php';
