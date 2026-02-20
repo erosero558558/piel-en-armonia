@@ -18,7 +18,10 @@ $tests = [
 
     // --- Robustness (Fuzzy) ---
     ['prcio consulta', 'valores referenciales'], // "precio"
-    ['cunto cuesta acne', '$89.60'], // "cuanto"
+
+    // Updated expectation: Bot now gives a conversational description for acne, not just the price.
+    // We check for the starting phrase of the acne response.
+    ['cunto cuesta acne', 'El **Acné** no es solo estético'],
 
     // --- Core Business ---
     ['agendar cita', 'Maravillosa elección'],

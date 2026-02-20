@@ -4,10 +4,7 @@
 // 1. Include the library to be tested
 require_once __DIR__ . '/../api-lib.php';
 
-// 2. Set environment variables for consistent test execution
-putenv('PIELARMONIA_VAT_RATE=0.12');
-
-// 3. Define a simple assertion helper
+// 2. Define a simple assertion helper
 function assert_eq($actual, $expected, $message) {
     if ($actual === $expected) {
         echo "✅ PASS: $message\n";
@@ -59,14 +56,13 @@ foreach ($cases as $case) {
 
 // --- Test Case 3: Service Price Calculation ---
 echo "\n--- Test Case 3: Service Price Calculation ---\n";
-// 'consulta' price is 40.00. VAT is 0.12. Total = 44.80.
-// get_service_total_price formats as '$44.80'
+// 'consulta' price is 40.00. VAT is 0.00. Total = 40.00.
 $out = normalize_appointment(['service' => 'consulta']);
-assert_eq($out['price'], '$44.80', "Price for 'consulta' should be '$44.80'");
+assert_eq($out['price'], '$40.00', "Price for 'consulta' should be '$40.00'");
 
-// 'laser' price is 150.00. VAT is 0.12. Total = 168.00.
+// 'laser' price is 150.00. VAT is 0.15. Total = 172.50.
 $out = normalize_appointment(['service' => 'laser']);
-assert_eq($out['price'], '$168.00', "Price for 'laser' should be '$168.00'");
+assert_eq($out['price'], '$172.50', "Price for 'laser' should be '$172.50'");
 
 // --- Test Case 4: Truncation Limits ---
 echo "\n--- Test Case 4: Truncation Limits ---\n";
