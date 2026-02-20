@@ -15,6 +15,16 @@ let selectedDate = null;
 let currentMonth = new Date();
 let csrfToken = '';
 
+function escapeHtml(value) {
+    const text = String(value ?? '');
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function showToast(message, type = 'info', title = '') {
     const container = document.getElementById('toastContainer');
     if (!container) return;

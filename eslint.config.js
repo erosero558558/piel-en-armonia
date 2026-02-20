@@ -3,6 +3,16 @@ const pluginPlaywright = require('eslint-plugin-playwright');
 const js = require('@eslint/js');
 
 module.exports = [
+    {
+        ignores: [
+            '_deploy_bundle/**',
+            'vendor/**',
+            'node_modules/**',
+            'playwright-report/**',
+            'test-results/**',
+            'verification/**'
+        ]
+    },
     js.configs.recommended,
     {
         files: ['**/*.js', '**/*.mjs'],

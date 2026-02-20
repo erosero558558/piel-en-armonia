@@ -2108,15 +2108,18 @@
         initBookingFunnelObserver();
         initDeferredSectionPrefetch();
 
-        const initDeferredWarmups = createOnceTask(() => {
+        const initHighPriorityWarmups = createOnceTask(() => {
             initEnglishBundleWarmup();
             initDataEngineWarmup();
             initBookingEngineWarmup();
             initBookingUiWarmup();
-            initReviewsEngineWarmup();
-            initGalleryInteractionsWarmup();
             initChatUiEngineWarmup();
             initChatWidgetEngineWarmup();
+        });
+
+        const initLowPriorityWarmups = createOnceTask(() => {
+            initReviewsEngineWarmup();
+            initGalleryInteractionsWarmup();
             initChatEngineWarmup();
             initChatBookingEngineWarmup();
             initUiEffectsWarmup();
@@ -2126,14 +2129,26 @@
             initModalUxEngineWarmup();
         });
 
+        const initDeferredWarmups = () => {
+            initHighPriorityWarmups();
+            initLowPriorityWarmups();
+        };
+
         window.addEventListener('pointerdown', initDeferredWarmups, { once: true, passive: true });
         window.addEventListener('keydown', initDeferredWarmups, { once: true });
 
-        scheduleDeferredTask(initDeferredWarmups, {
-            idleTimeout: 1100,
-            fallbackDelay: 320,
+        scheduleDeferredTask(initHighPriorityWarmups, {
+            idleTimeout: 1400,
+            fallbackDelay: 500,
             skipOnConstrained: false,
-            constrainedDelay: 900
+            constrainedDelay: 1200
+        });
+
+        scheduleDeferredTask(initLowPriorityWarmups, {
+            idleTimeout: 5200,
+            fallbackDelay: 2600,
+            skipOnConstrained: false,
+            constrainedDelay: 3600
         });
 
         const chatInput = document.getElementById('chatInput');
