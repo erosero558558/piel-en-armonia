@@ -994,17 +994,47 @@ document.addEventListener('DOMContentLoaded', function() {
     if (loginForm) {
         loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            const password = document.getElementById('adminPassword').value;
-            try {
-                const loginResult = await authRequest('login', {
-                    method: 'POST',
-                    body: { password: password }
-                });
-                if (loginResult.csrfToken) csrfToken = loginResult.csrfToken;
-                showToast('Bienvenido al panel de administracion', 'success');
-                await showDashboard();
-            } catch (error) {
-                showToast('Contraseña incorrecta', 'error');
+
+            // Check if 2FA mode is active
+            const is2FAMode = !document.getElementById('group2FA').classList.contains('is-hidden');
+
+            if (is2FAMode) {
+                const code = document.getElementById('admin2FACode').value;
+                try {
+                    const result = await authRequest('login-2fa', {
+                        method: 'POST',
+                        body: { code: code }
+                    });
+                    if (result.csrfToken) csrfToken = result.csrfToken;
+                    showToast('Bienvenido al panel de administracion', 'success');
+                    await showDashboard();
+                } catch (error) {
+                    showToast('Código incorrecto o sesión expirada', 'error');
+                }
+            } else {
+                const password = document.getElementById('adminPassword').value;
+                try {
+                    const loginResult = await authRequest('login', {
+                        method: 'POST',
+                        body: { password: password }
+                    });
+
+                    if (loginResult.twoFactorRequired) {
+                        // Switch to 2FA mode
+                        document.getElementById('passwordGroup').classList.add('is-hidden');
+                        document.getElementById('group2FA').classList.remove('is-hidden');
+                        document.getElementById('admin2FACode').focus();
+                        const btn = document.getElementById('loginBtn');
+                        btn.innerHTML = '<i class="fas fa-check"></i> Verificar';
+                        showToast('Ingresa tu código 2FA', 'info');
+                    } else {
+                        if (loginResult.csrfToken) csrfToken = loginResult.csrfToken;
+                        showToast('Bienvenido al panel de administracion', 'success');
+                        await showDashboard();
+                    }
+                } catch (error) {
+                    showToast('Contraseña incorrecta', 'error');
+                }
             }
         });
     }

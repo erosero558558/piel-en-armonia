@@ -61,11 +61,72 @@ if ($method === 'POST' && $action === 'login') {
         ], 401);
     }
 
+    $totpSecret = getenv('PIELARMONIA_ADMIN_2FA_SECRET');
+    if (is_string($totpSecret) && trim($totpSecret) !== '') {
+        $_SESSION['admin_partial_login'] = true;
+        $_SESSION['admin_partial_login_expires'] = time() + 300; // 5 minutos para ingresar codigo
+
+        audit_log_event('admin.login_2fa_required', [
+            'step' => 'password_verified'
+        ]);
+
+        json_response([
+            'ok' => true,
+            'twoFactorRequired' => true
+        ]);
+    }
+
     session_regenerate_id(true);
     $_SESSION['admin_logged_in'] = true;
     reset_rate_limit(ADMIN_LOGIN_FAIL_ACTION);
     audit_log_event('admin.login_success', [
         'authenticated' => true
+    ]);
+
+    json_response([
+        'ok' => true,
+        'authenticated' => true,
+        'csrfToken' => generate_csrf_token()
+    ]);
+}
+
+if ($method === 'POST' && $action === 'login-2fa') {
+    require_rate_limit('admin-login-2fa', 6, 300);
+
+    if (!isset($_SESSION['admin_partial_login']) || ($_SESSION['admin_partial_login'] !== true)) {
+        json_response(['ok' => false, 'error' => 'Sesión expirada'], 401);
+    }
+
+    if (time() > ($_SESSION['admin_partial_login_expires'] ?? 0)) {
+        unset($_SESSION['admin_partial_login']);
+        json_response(['ok' => false, 'error' => 'Tiempo expirado, vuelve a ingresar'], 401);
+    }
+
+    $payload = require_json_body();
+    $code = isset($payload['code']) ? trim((string) $payload['code']) : '';
+
+    if ($code === '') {
+        json_response(['ok' => false, 'error' => 'Código requerido'], 400);
+    }
+
+    if (!verify_2fa_code($code)) {
+        audit_log_event('admin.login_2fa_failed', [
+            'reason' => 'invalid_code'
+        ]);
+        json_response(['ok' => false, 'error' => 'Código inválido'], 401);
+    }
+
+    // Success
+    unset($_SESSION['admin_partial_login']);
+    unset($_SESSION['admin_partial_login_expires']);
+
+    session_regenerate_id(true);
+    $_SESSION['admin_logged_in'] = true;
+    reset_rate_limit(ADMIN_LOGIN_FAIL_ACTION);
+
+    audit_log_event('admin.login_success', [
+        'authenticated' => true,
+        'method' => '2fa'
     ]);
 
     json_response([
