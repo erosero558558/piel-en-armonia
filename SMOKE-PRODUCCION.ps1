@@ -5,6 +5,7 @@ param(
     [switch]$AllowRecursiveFigo,
     [switch]$AllowMetaCspFallback,
     [switch]$RequireWebhookSecret,
+    [switch]$RequireBackupReceiverReady,
     [int]$MaxHealthTimingMs = 2000,
     [int]$FigoPostRetries = 3,
     [int]$FigoPostRetryDelaySec = 2
@@ -383,6 +384,7 @@ $results += Invoke-Check -Name 'Availability API' -Url "$base/api.php?resource=a
 $results += Invoke-Check -Name 'Admin auth status' -Url "$base/admin-auth.php?action=status"
 $results += Invoke-Check -Name 'Figo chat GET' -Url "$base/figo-chat.php"
 $results += Invoke-Check -Name 'Figo backend GET' -Url "$base/figo-backend.php"
+$results += Invoke-Check -Name 'Backup receiver GET' -Url "$base/backup-receiver.php"
 $results += Invoke-Check -Name 'Chat engine asset' -Url $chatEngineAssetUrl
 $results += Invoke-Check -Name 'Deferred styles asset' -Url $deferredStylesAssetUrl
 $results += Invoke-Check -Name 'EN translations asset' -Url $translationsEnAssetUrl
@@ -413,6 +415,12 @@ if ($TestFigoPost) {
     $results += Invoke-JsonPostCheck -Name 'Figo chat POST' -Url "$base/figo-chat.php" -Body $figoPayload -RetryCount $FigoPostRetries -RetryDelaySec $FigoPostRetryDelaySec
 }
 
+if ($RequireBackupReceiverReady) {
+    $results += Invoke-JsonPostCheck -Name 'Backup receiver POST unauthorized' -Url "$base/backup-receiver.php" -Body @{
+        smoke = $true
+    }
+}
+
 $contractFailures = 0
 
 $expectedStatusByName = @{
@@ -423,6 +431,7 @@ $expectedStatusByName = @{
     'Admin auth status' = 200
     'Figo chat GET' = 200
     'Figo backend GET' = 200
+    'Backup receiver GET' = 405
     'Chat engine asset' = 200
     'Deferred styles asset' = 200
     'EN translations asset' = 200
@@ -440,6 +449,9 @@ $expectedStatusByName = @{
 }
 if ($TestFigoPost) {
     $expectedStatusByName['Figo chat POST'] = 200
+}
+if ($RequireBackupReceiverReady) {
+    $expectedStatusByName['Backup receiver POST unauthorized'] = 401
 }
 
 foreach ($result in $results) {

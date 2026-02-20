@@ -5,7 +5,8 @@ param(
     [switch]$AllowRecursiveFigo,
     [switch]$AllowMetaCspFallback,
     [switch]$RequireWebhookSecret,
-    [switch]$RequireBackupHealthy
+    [switch]$RequireBackupHealthy,
+    [switch]$RequireBackupReceiverReady
 )
 
 $ErrorActionPreference = 'Stop'
@@ -37,7 +38,8 @@ Write-Host "[2/3] Smoke de produccion..." -ForegroundColor Yellow
     -AllowDegradedFigo:$AllowDegradedFigo `
     -AllowRecursiveFigo:$AllowRecursiveFigo `
     -AllowMetaCspFallback:$AllowMetaCspFallback `
-    -RequireWebhookSecret:$RequireWebhookSecret
+    -RequireWebhookSecret:$RequireWebhookSecret `
+    -RequireBackupReceiverReady:$RequireBackupReceiverReady
 if ($LASTEXITCODE -ne 0) {
     $failures += 1
 }
