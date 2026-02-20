@@ -1,5 +1,6 @@
-﻿(function () {
+(function () {
     'use strict';
+
     // build-sync: 20260220-sync1
 
     let deps = null;
@@ -80,7 +81,7 @@
     function init(inputDeps) {
         deps = inputDeps || deps;
         if (initialized) {
-            return window.PielBookingUi;
+            return { init };
         }
 
         const serviceSelect = document.getElementById('serviceSelect');
@@ -95,7 +96,7 @@
         const appointmentForm = document.getElementById('appointmentForm');
 
         if (!serviceSelect || !priceSummary || !subtotalEl || !ivaEl || !totalEl || !appointmentForm) {
-            return window.PielBookingUi;
+            return { init };
         }
 
         initialized = true;
@@ -118,9 +119,10 @@
         serviceSelect.addEventListener('change', function () {
             const selected = this.options[this.selectedIndex];
             const price = parseFloat(selected.dataset.price) || 0;
+                const taxRate = parseFloat(selected.dataset.serviceTax) || 0;
             const priceHint = document.getElementById('priceHint');
 
-            const iva = price * 0.12;
+                const iva = price * taxRate;
             const total = price + iva;
             subtotalEl.textContent = `$${price.toFixed(2)}`;
             ivaEl.textContent = `$${iva.toFixed(2)}`;
@@ -350,10 +352,11 @@
             }
         });
 
-        return window.PielBookingUi;
+        return { init };
     }
 
     window.PielBookingUi = {
         init
     };
+
 })();
