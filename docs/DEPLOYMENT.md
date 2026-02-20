@@ -75,8 +75,15 @@ Si hubo corrupción de `store.json`:
 Después de cada despliegue, es **obligatorio** ejecutar las validaciones automáticas:
 
 ### Script de Verificación
+
+**Windows (PowerShell):**
 ```powershell
 .\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com"
+```
+
+**Linux/Mac (PHP):**
+```bash
+php bin/verify-gate.php
 ```
 
 ### Checklist Manual (Smoke Test)
