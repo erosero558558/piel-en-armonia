@@ -538,7 +538,8 @@ function read_store(): array
             'callbacks' => [],
             'reviews' => [],
             'availability' => [],
-            'updatedAt' => local_date('c')
+            'updatedAt' => local_date('c'),
+            'idx_appointments_date' => []
         ];
 
         // Fetch Appointments
@@ -587,9 +588,7 @@ function read_store(): array
         }
 
         // Build index
-        if (!isset($store['idx_appointments_date']) || !is_array($store['idx_appointments_date'])) {
-             $store['idx_appointments_date'] = build_appointment_index($store['appointments']);
-        }
+        $store['idx_appointments_date'] = build_appointment_index($store['appointments']);
 
         return $store;
     } catch (PDOException $e) {
