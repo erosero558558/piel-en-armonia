@@ -18,7 +18,7 @@ $tests = [
 
     // --- Robustness (Fuzzy) ---
     ['prcio consulta', 'valores referenciales'], // "precio"
-    ['cunto cuesta acne', '$89.60'], // "cuanto"
+    ['cunto cuesta acne', '$80.00'], // "cuanto"
 
     // --- Core Business ---
     ['agendar cita', 'Maravillosa elección'],
@@ -33,6 +33,10 @@ $tests = [
     // --- Sentiment ---
     ['pesimo servicio', 'Siento mucho que estés pasando'],
     ['quiero poner una queja', 'Gerencia de Atención'],
+
+    // --- Out of Scope ---
+    ['quien es el presidente', 'asistente especializado en dermatología'],
+    ['noticias de futbol', 'asistente especializado en dermatología'],
 ];
 
 echo "Running FigoBrain V3 Tests...\n";

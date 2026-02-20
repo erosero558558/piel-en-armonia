@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
+require_once __DIR__ . '/figo-brain.php';
 
 apply_security_headers(false);
 
@@ -287,41 +288,20 @@ function figo_finalize_completion(
 
 function figo_build_fallback_completion(string $model, array $messages): array
 {
-    $lastUser = '';
-    for ($i = count($messages) - 1; $i >= 0; $i--) {
-        $msg = $messages[$i] ?? null;
-        if (is_array($msg) && (($msg['role'] ?? '') === 'user') && is_string($msg['content'] ?? null)) {
-            $lastUser = trim((string) $msg['content']);
-            break;
-        }
-    }
-
-    if ($lastUser === '') {
-        $lastUser = 'consulta general';
-    }
-
-    $normalized = strtolower($lastUser);
-    $isPayment = preg_match('/pago|pagar|tarjeta|transferencia|efectivo|factura|comprobante/', $normalized) === 1;
-    $isBooking = preg_match('/cita|agendar|reservar|turno|hora/', $normalized) === 1;
-    $isPricing = preg_match('/precio|costo|valor|tarifa|cuanto cuesta/', $normalized) === 1;
-    $isOutOfScope = preg_match('/capital|presidente|noticia|deporte|futbol|clima|bitcoin|politica/', $normalized) === 1;
-
-    if ($isOutOfScope) {
-        $content = 'Puedo ayudarte solo con temas de Piel en Armonía (servicios, precios, citas, pagos y ubicación). Si quieres, te guio ahora mismo para reservar tu cita o elegir tratamiento.';
-    } elseif ($isPayment) {
-        $content = "Para pagar en la web:\n1) Completa el formulario de Reservar Cita.\n2) Se abre el módulo de pago.\n3) Elige tarjeta, transferencia o efectivo.\n4) Confirma y te validamos por WhatsApp (+593 98 245 3672).\n\nSi quieres, te guío según el método que prefieras.";
-    } elseif ($isBooking) {
-        $content = "Para agendar:\n1) Abre Reservar Cita.\n2) Elige servicio, doctor, fecha y hora.\n3) Completa tus datos.\n4) Confirma pago y reserva.\n\nTambién puedes agendar por WhatsApp: https://wa.me/593982453672";
-    } elseif ($isPricing) {
-        $content = "Precios base:\n- Consulta dermatológica: $40\n- Consulta telefónica: $25\n- Video consulta: $30\n- Acné: desde $80\n- Láser: desde $150\n- Rejuvenecimiento: desde $120\n\nSi me dices tu caso, te recomiendo el siguiente paso.";
-    } else {
-        $content = "Puedo ayudarte con Piel en Armonía. Sobre \"{$lastUser}\", te guio paso a paso en servicios, citas o pagos. Si prefieres atención inmediata: WhatsApp +593 98 245 3672.";
-    }
-
+    // Try to use FigoBrain V3 (Advanced Logic)
     try {
-        $id = 'figo-fallback-' . bin2hex(random_bytes(8));
+        if (class_exists('FigoBrain')) {
+            return FigoBrain::process($messages);
+        }
     } catch (Throwable $e) {
-        $id = 'figo-fallback-' . substr(md5((string) microtime(true)), 0, 16);
+        error_log('Piel en Armonía FigoBrain Exception: ' . $e->getMessage());
+    }
+
+    // Safety Net (Extreme Fallback)
+    try {
+        $id = 'figo-panic-' . bin2hex(random_bytes(8));
+    } catch (Throwable $e) {
+        $id = 'figo-panic-' . substr(md5((string) microtime(true)), 0, 16);
     }
 
     return [
@@ -333,7 +313,7 @@ function figo_build_fallback_completion(string $model, array $messages): array
             'index' => 0,
             'message' => [
                 'role' => 'assistant',
-                'content' => $content
+                'content' => "Lo siento, estoy teniendo problemas técnicos momentáneos. Por favor contáctanos directamente al WhatsApp +593 98 245 3672."
             ],
             'finish_reason' => 'stop'
         ]]
