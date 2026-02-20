@@ -1,0 +1,75 @@
+name: Production Monitor
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: "Dominio objetivo"
+        required: false
+        default: "https://pielarmonia.com"
+        type: string
+      max_latency_ms:
+        description: "Latencia maxima aceptada por endpoint (ms)"
+        required: false
+        default: "3500"
+        type: string
+      allow_degraded_figo:
+        description: "Permitir Figo en modo degraded temporalmente"
+        required: false
+        default: false
+        type: boolean
+      skip_backup_check:
+        description: "Saltar validacion de backup en health"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: prod-monitor
+  cancel-in-progress: true
+
+jobs:
+  monitor:
+    name: Health + latency monitor
+    runs-on: windows-latest
+    timeout-minutes: 10
+    env:
+      TARGET_DOMAIN: ${{ github.event.inputs.domain || 'https://pielarmonia.com' }}
+      MAX_LATENCY_MS: ${{ github.event.inputs.max_latency_ms || '3500' }}
+      ALLOW_DEGRADED_FIGO: ${{ github.event.inputs.allow_degraded_figo || 'false' }}
+      SKIP_BACKUP_CHECK: ${{ github.event.inputs.skip_backup_check || 'false' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ejecutar monitor de produccion
+        shell: pwsh
+        run: |
+          $maxLatency = [int]$env:MAX_LATENCY_MS
+          if ($maxLatency -lt 500) { $maxLatency = 500 }
+
+          $args = @(
+            '-Domain', $env:TARGET_DOMAIN,
+            '-MaxLatencyMs', $maxLatency
+          )
+
+          if ($env:ALLOW_DEGRADED_FIGO -eq 'true') {
+            $args += '-AllowDegradedFigo'
+          }
+          if ($env:SKIP_BACKUP_CHECK -eq 'true') {
+            $args += '-SkipBackupCheck'
+          }
+
+          & ./MONITOR-PRODUCCION.ps1 @args
+
+      - name: Resumen
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Production monitor"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Dominio: ``$env:TARGET_DOMAIN``"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Max latency: ``$env:MAX_LATENCY_MS ms``"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- allow_degraded_figo: ``$env:ALLOW_DEGRADED_FIGO``"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- skip_backup_check: ``$env:SKIP_BACKUP_CHECK``"

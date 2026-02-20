@@ -63,3 +63,22 @@ Este gate corre:
 - benchmark API
 
 en modo estricto (`RequireStableDataDir`, `RequireBackupHealthy`, `RequireBackupReceiverReady`, `RequireCronReady`).
+
+## 6) Monitoreo continuo de produccion
+
+Workflow:
+- `Actions` -> `Production Monitor`
+- Corre cada 30 minutos y valida:
+  - home
+  - health
+  - reviews
+  - availability
+  - figo GET
+  - latencia maxima por endpoint
+  - backup saludable y `dataDir` persistente
+
+Se puede correr manual con overrides:
+- `domain`
+- `max_latency_ms`
+- `allow_degraded_figo`
+- `skip_backup_check`

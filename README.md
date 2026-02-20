@@ -93,6 +93,7 @@ Comandos rapidos post-deploy (PowerShell, dominio por defecto https://pielarmoni
 - npm run smoke:prod
 - npm run gate:prod
 - npm run gate:prod:strict
+- npm run monitor:prod
 - powershell -NoProfile -ExecutionPolicy Bypass -File .\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireBackupHealthy
 
 Para probar otro dominio:
@@ -119,6 +120,7 @@ Este proyecto es privado y propiedad de Piel Armonía.
 Si no puedes subir archivos manualmente, deploy con:
 - `.github/workflows/deploy-hosting.yml`
 - `.github/workflows/post-deploy-gate.yml` (valida prod despues del sync git)
+- `.github/workflows/prod-monitor.yml` (monitorea salud/latencia cada 30 min)
 - `GITHUB-ACTIONS-DEPLOY.md` (paso a paso)
 
 Nota: si tu servidor ya hace `git pull`/sync automatico cada 5 minutos, usa ese flujo como principal y deja este workflow solo como respaldo manual.
