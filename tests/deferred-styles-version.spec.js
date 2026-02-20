@@ -24,9 +24,9 @@ test.describe('Deferred stylesheet version parity', () => {
       await page.goto(path);
       await page.waitForTimeout(800);
 
-      const preloadHref = await page.locator('link[rel="preload"][as="style"][href*="styles-deferred.css"]').first().getAttribute('href');
-      expect(preloadHref).toBeTruthy();
-      expect(preloadHref).toContain(EXPECTED_DEFERRED_VERSION);
+      const linkLocator = page.locator('link[rel="preload"][as="style"][href*="styles-deferred.css"]').first();
+      // Check that the href attribute contains the expected version string
+      await expect(linkLocator).toHaveAttribute('href', new RegExp(EXPECTED_DEFERRED_VERSION));
 
       const resolvedVersionRequest = requests.find((url) => url.includes(EXPECTED_DEFERRED_VERSION));
       expect(resolvedVersionRequest, `styles-deferred request missing expected version on ${path}`).toBeTruthy();
