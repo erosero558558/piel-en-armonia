@@ -27,13 +27,44 @@ if (!defined('STORE_LOCK_RETRY_DELAY_US')) {
     define('STORE_LOCK_RETRY_DELAY_US', 25000);
 }
 
-function resolve_data_dir(): array
+function data_home_dir_candidate(): string
 {
-    static $resolved = null;
-    if (is_array($resolved) && isset($resolved['path'], $resolved['source'])) {
-        return $resolved;
+    $home = '';
+    $homeCandidates = [
+        getenv('PIELARMONIA_HOME_DIR'),
+        getenv('HOME'),
+        getenv('USERPROFILE')
+    ];
+
+    foreach ($homeCandidates as $candidate) {
+        if (is_string($candidate) && trim($candidate) !== '') {
+            $home = trim($candidate);
+            break;
+        }
     }
 
+    if ($home === '') {
+        $homeDrive = getenv('HOMEDRIVE');
+        $homePath = getenv('HOMEPATH');
+        if (is_string($homeDrive) && is_string($homePath) && trim($homeDrive . $homePath) !== '') {
+            $home = trim($homeDrive . $homePath);
+        }
+    }
+
+    if ($home === '') {
+        return '';
+    }
+
+    $home = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $home), DIRECTORY_SEPARATOR);
+    if ($home === '') {
+        return '';
+    }
+
+    return $home . DIRECTORY_SEPARATOR . 'pielarmonia-data';
+}
+
+function data_dir_candidates(): array
+{
     $candidates = [];
 
     $envDir = getenv('PIELARMONIA_DATA_DIR');
@@ -52,13 +83,51 @@ function resolve_data_dir(): array
         'source' => 'parent',
         'path' => dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'data'
     ];
+
+    $homeCandidate = data_home_dir_candidate();
+    if ($homeCandidate !== '') {
+        $candidates[] = [
+            'source' => 'home',
+            'path' => $homeCandidate
+        ];
+    }
+
     $candidates[] = [
         'source' => 'tmp',
         'path' => sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'pielarmonia-data'
     ];
 
+    $normalized = [];
+    $seen = [];
     foreach ($candidates as $candidate) {
         $path = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, (string) ($candidate['path'] ?? '')), DIRECTORY_SEPARATOR);
+        $source = (string) ($candidate['source'] ?? 'unknown');
+        if ($path === '') {
+            continue;
+        }
+        $key = strtolower($path);
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $normalized[] = [
+            'source' => $source,
+            'path' => $path
+        ];
+    }
+
+    return $normalized;
+}
+
+function resolve_data_dir(): array
+{
+    static $resolved = null;
+    if (is_array($resolved) && isset($resolved['path'], $resolved['source'])) {
+        return $resolved;
+    }
+
+    foreach (data_dir_candidates() as $candidate) {
+        $path = (string) ($candidate['path'] ?? '');
         $source = (string) ($candidate['source'] ?? 'unknown');
         if ($path === '') {
             continue;
@@ -68,6 +137,10 @@ function resolve_data_dir(): array
             if (!@mkdir($path, 0775, true) && !@is_dir($path)) {
                 continue;
             }
+        }
+
+        if (!@is_writable($path)) {
+            @chmod($path, 0775);
         }
 
         if (@is_writable($path)) {
@@ -319,6 +392,82 @@ function create_store_backup_locked($fp): void
     prune_backup_files();
 }
 
+function data_store_shape_valid(array $data): bool
+{
+    foreach (['appointments', 'callbacks', 'reviews', 'availability'] as $key) {
+        if (!array_key_exists($key, $data) || !is_array($data[$key])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function data_store_candidate_files(string $targetFile): array
+{
+    $files = [];
+    foreach (data_dir_candidates() as $candidate) {
+        $dir = (string) ($candidate['path'] ?? '');
+        if ($dir === '') {
+            continue;
+        }
+        $candidateFile = $dir . DIRECTORY_SEPARATOR . 'store.json';
+        if (!is_file($candidateFile) || !is_readable($candidateFile)) {
+            continue;
+        }
+        if (strcasecmp($candidateFile, $targetFile) === 0) {
+            continue;
+        }
+
+        $mtime = @filemtime($candidateFile);
+        $files[] = [
+            'path' => $candidateFile,
+            'source' => (string) ($candidate['source'] ?? 'unknown'),
+            'mtime' => is_int($mtime) ? $mtime : 0
+        ];
+    }
+
+    usort($files, static function (array $a, array $b): int {
+        return ($b['mtime'] ?? 0) <=> ($a['mtime'] ?? 0);
+    });
+
+    return $files;
+}
+
+function data_try_migrate_store_file(string $targetFile): bool
+{
+    foreach (data_store_candidate_files($targetFile) as $candidate) {
+        $sourcePath = (string) ($candidate['path'] ?? '');
+        if ($sourcePath === '') {
+            continue;
+        }
+
+        $raw = @file_get_contents($sourcePath);
+        if (!is_string($raw) || trim($raw) === '') {
+            continue;
+        }
+
+        $decoded = data_decrypt_payload($raw);
+        if ($decoded === '') {
+            continue;
+        }
+
+        $data = json_decode($decoded, true);
+        if (!is_array($data) || !data_store_shape_valid($data)) {
+            continue;
+        }
+
+        if (@file_put_contents($targetFile, $raw, LOCK_EX) === false) {
+            continue;
+        }
+
+        @chmod($targetFile, 0664);
+        error_log('Piel en Armonia: store.json migrado desde ' . $sourcePath . ' hacia ' . $targetFile);
+        return true;
+    }
+
+    return false;
+}
+
 function ensure_data_file(): bool
 {
     $dataDir = data_dir_path();
@@ -332,22 +481,24 @@ function ensure_data_file(): bool
     ensure_data_htaccess($dataDir);
 
     if (!file_exists($dataFile)) {
-        $seed = [
-            'appointments' => [],
-            'callbacks' => [],
-            'reviews' => [],
-            'availability' => [],
-            'createdAt' => local_date('c'),
-            'updatedAt' => local_date('c')
-        ];
-        $seedEncoded = json_encode($seed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        $payloadToWrite = is_string($seedEncoded) ? data_encrypt_payload($seedEncoded) : '';
-        if ($payloadToWrite === '' || @file_put_contents($dataFile, $payloadToWrite, LOCK_EX) === false) {
-            error_log('Piel en Armonía: no se pudo inicializar store.json en ' . $dataFile);
-            return false;
+        $migrated = data_try_migrate_store_file($dataFile);
+        if (!$migrated) {
+            $seed = [
+                'appointments' => [],
+                'callbacks' => [],
+                'reviews' => [],
+                'availability' => [],
+                'createdAt' => local_date('c'),
+                'updatedAt' => local_date('c')
+            ];
+            $seedEncoded = json_encode($seed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $payloadToWrite = is_string($seedEncoded) ? data_encrypt_payload($seedEncoded) : '';
+            if ($payloadToWrite === '' || @file_put_contents($dataFile, $payloadToWrite, LOCK_EX) === false) {
+                error_log('Piel en Armonia: no se pudo inicializar store.json en ' . $dataFile);
+                return false;
+            }
         }
     }
-
     return true;
 }
 
