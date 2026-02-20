@@ -632,6 +632,7 @@ if ($resource === 'features') {
 if ($resource === 'health') {
     // We are passing context but HealthController might not need all of it
     $healthContext = [
+        'store' => $store,
         'requestStartedAt' => $requestStartedAt,
         'method' => $method,
         'resource' => $resource

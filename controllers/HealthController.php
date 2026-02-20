@@ -12,10 +12,27 @@ class HealthController
         $storageReady = ensure_data_file();
         $dataWritable = data_dir_writable();
         $storeEncrypted = store_file_is_encrypted();
+        $dataDirSource = function_exists('data_dir_source') ? data_dir_source() : 'unknown';
         $figoEndpoint = self::resolve_figo_endpoint();
         $figoConfigured = $figoEndpoint !== '';
         $figoRecursive = self::is_figo_recursive_config($figoEndpoint);
         $redisStatus = getenv('PIELARMONIA_REDIS_HOST') ? 'configured' : 'disabled';
+        $store = isset($context['store']) && is_array($context['store']) ? $context['store'] : read_store();
+        $appointments = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
+        $confirmedAppointments = 0;
+        foreach ($appointments as $appointment) {
+            $status = map_appointment_status((string) ($appointment['status'] ?? 'confirmed'));
+            if ($status !== 'cancelled') {
+                $confirmedAppointments++;
+            }
+        }
+        $storeCounts = [
+            'appointments' => count($appointments),
+            'appointmentsActive' => $confirmedAppointments,
+            'callbacks' => isset($store['callbacks']) && is_array($store['callbacks']) ? count($store['callbacks']) : 0,
+            'reviews' => isset($store['reviews']) && is_array($store['reviews']) ? count($store['reviews']) : 0,
+            'availabilityDays' => isset($store['availability']) && is_array($store['availability']) ? count($store['availability']) : 0
+        ];
 
         $backupCheck = [
             'enabled' => false
@@ -44,6 +61,7 @@ class HealthController
             'storageReady' => $storageReady,
             'timingMs' => $timingMs,
             'version' => app_runtime_version(),
+            'dataDirSource' => $dataDirSource,
             'figoConfigured' => $figoConfigured,
             'figoRecursiveConfig' => $figoRecursive
         ]);
@@ -54,6 +72,7 @@ class HealthController
             'timingMs' => $timingMs,
             'version' => app_runtime_version(),
             'dataDirWritable' => $dataWritable,
+            'dataDirSource' => $dataDirSource,
             'storeEncrypted' => $storeEncrypted,
             'figoConfigured' => $figoConfigured,
             'figoRecursiveConfig' => $figoRecursive,
@@ -61,11 +80,13 @@ class HealthController
                 'storage' => [
                     'ready' => $storageReady,
                     'writable' => $dataWritable,
-                    'encrypted' => $storeEncrypted
+                    'encrypted' => $storeEncrypted,
+                    'source' => $dataDirSource
                 ],
                 'redis' => $redisStatus,
                 'php_version' => PHP_VERSION,
-                'backup' => $backupCheck
+                'backup' => $backupCheck,
+                'storeCounts' => $storeCounts
             ],
             'timestamp' => local_date('c')
         ]);

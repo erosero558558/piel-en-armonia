@@ -27,44 +27,75 @@ if (!defined('STORE_LOCK_RETRY_DELAY_US')) {
     define('STORE_LOCK_RETRY_DELAY_US', 25000);
 }
 
-function data_dir_path(): string
+function resolve_data_dir(): array
 {
-    static $resolvedDir = null;
-    if (is_string($resolvedDir) && $resolvedDir !== '') {
-        return $resolvedDir;
+    static $resolved = null;
+    if (is_array($resolved) && isset($resolved['path'], $resolved['source'])) {
+        return $resolved;
     }
 
     $candidates = [];
 
     $envDir = getenv('PIELARMONIA_DATA_DIR');
     if (is_string($envDir) && trim($envDir) !== '') {
-        $candidates[] = trim($envDir);
+        $candidates[] = [
+            'source' => 'env',
+            'path' => trim($envDir)
+        ];
     }
 
-    $candidates[] = DATA_DIR;
-    $candidates[] = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'data';
-    $candidates[] = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'pielarmonia-data';
+    $candidates[] = [
+        'source' => 'project',
+        'path' => DATA_DIR
+    ];
+    $candidates[] = [
+        'source' => 'parent',
+        'path' => dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'data'
+    ];
+    $candidates[] = [
+        'source' => 'tmp',
+        'path' => sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'pielarmonia-data'
+    ];
 
     foreach ($candidates as $candidate) {
-        $candidate = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, (string) $candidate), DIRECTORY_SEPARATOR);
-        if ($candidate === '') {
+        $path = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, (string) ($candidate['path'] ?? '')), DIRECTORY_SEPARATOR);
+        $source = (string) ($candidate['source'] ?? 'unknown');
+        if ($path === '') {
             continue;
         }
 
-        if (!@is_dir($candidate)) {
-            if (!@mkdir($candidate, 0775, true) && !@is_dir($candidate)) {
+        if (!@is_dir($path)) {
+            if (!@mkdir($path, 0775, true) && !@is_dir($path)) {
                 continue;
             }
         }
 
-        if (@is_writable($candidate)) {
-            $resolvedDir = $candidate;
-            return $resolvedDir;
+        if (@is_writable($path)) {
+            $resolved = [
+                'path' => $path,
+                'source' => $source
+            ];
+            return $resolved;
         }
     }
 
-    $resolvedDir = DATA_DIR;
-    return $resolvedDir;
+    $resolved = [
+        'path' => DATA_DIR,
+        'source' => 'fallback'
+    ];
+    return $resolved;
+}
+
+function data_dir_path(): string
+{
+    $resolved = resolve_data_dir();
+    return (string) ($resolved['path'] ?? DATA_DIR);
+}
+
+function data_dir_source(): string
+{
+    $resolved = resolve_data_dir();
+    return (string) ($resolved['source'] ?? 'unknown');
 }
 
 function data_file_path(): string
