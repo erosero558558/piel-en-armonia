@@ -6,6 +6,7 @@
     "test:headed": "npx playwright test --headed",
     "test:ui": "npx playwright test --ui",
     "test:php": "php tests/run-php-tests.php",
+    "test:performance": "lhci autorun",
     "lint": "npm run lint:js && npm run lint:php",
     "lint:js": "eslint .",
     "lint:php": "find . -name '*.php' -not -path './vendor/*' -exec php -l {} \\;",
@@ -19,11 +20,13 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.58.2",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "eslint": "^10.0.0",
     "eslint-plugin-playwright": "^2.7.0",
     "globals": "^17.3.0",
+    "lighthouse": "^13.0.3",
     "rollup": "^4.58.0"
   }
 }
