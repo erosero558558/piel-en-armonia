@@ -5,6 +5,7 @@ param(
     [switch]$AllowRecursiveFigo,
     [switch]$AllowMetaCspFallback,
     [switch]$RequireWebhookSecret,
+    [switch]$RequireBackupHealthy,
     [int]$MaxHealthTimingMs = 2000
 )
 
@@ -914,6 +915,68 @@ try {
             LocalHash = 'false'
             RemoteHash = 'true'
             RemoteUrl = $healthUrl
+        }
+    }
+
+    $backupNode = $null
+    try {
+        $backupNode = $healthResp.Json.checks.backup
+    } catch {
+        $backupNode = $null
+    }
+    if ($null -eq $backupNode) {
+        Write-Host "[WARN] health no incluye checks.backup"
+        if ($RequireBackupHealthy) {
+            $results += [PSCustomObject]@{
+                Asset = 'health-backup-missing'
+                Match = $false
+                LocalHash = 'present'
+                RemoteHash = 'missing'
+                RemoteUrl = $healthUrl
+            }
+        }
+    } else {
+        $backupEnabled = $false
+        $backupOk = $false
+        $backupReason = ''
+        $backupLatestAge = ''
+        $backupOffsiteConfigured = $false
+        try { $backupEnabled = [bool]$backupNode.enabled } catch { $backupEnabled = $false }
+        try { $backupOk = [bool]$backupNode.ok } catch { $backupOk = $false }
+        try { $backupReason = [string]$backupNode.reason } catch { $backupReason = '' }
+        try { $backupLatestAge = [string]$backupNode.latestAgeHours } catch { $backupLatestAge = '' }
+        try { $backupOffsiteConfigured = [bool]$backupNode.offsiteConfigured } catch { $backupOffsiteConfigured = $false }
+
+        if (-not $backupEnabled) {
+            Write-Host "[WARN] checks.backup.enabled=false"
+            if ($RequireBackupHealthy) {
+                $results += [PSCustomObject]@{
+                    Asset = 'health-backup-enabled'
+                    Match = $false
+                    LocalHash = 'true'
+                    RemoteHash = 'false'
+                    RemoteUrl = $healthUrl
+                }
+            }
+        } elseif ($backupOk) {
+            Write-Host "[OK]  health backup: ok (latestAgeHours=$backupLatestAge)"
+        } else {
+            Write-Host "[WARN] health backup: no-ok (reason=$backupReason, latestAgeHours=$backupLatestAge)"
+            if ($RequireBackupHealthy) {
+                $results += [PSCustomObject]@{
+                    Asset = 'health-backup-ok'
+                    Match = $false
+                    LocalHash = 'true'
+                    RemoteHash = 'false'
+                    RemoteUrl = $healthUrl
+                }
+            }
+        }
+
+        if ($backupOffsiteConfigured) {
+            Write-Host "[OK]  backup offsite configurado"
+        } else {
+            Write-Host "[WARN] backup offsite no configurado"
         }
     }
 } catch {

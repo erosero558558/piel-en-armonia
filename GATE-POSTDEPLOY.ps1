@@ -4,7 +4,8 @@ param(
     [switch]$AllowDegradedFigo,
     [switch]$AllowRecursiveFigo,
     [switch]$AllowMetaCspFallback,
-    [switch]$RequireWebhookSecret
+    [switch]$RequireWebhookSecret,
+    [switch]$RequireBackupHealthy
 )
 
 $ErrorActionPreference = 'Stop'
@@ -22,7 +23,8 @@ Write-Host "[1/3] Verificacion de despliegue..." -ForegroundColor Yellow
     -AllowDegradedFigo:$AllowDegradedFigo `
     -AllowRecursiveFigo:$AllowRecursiveFigo `
     -AllowMetaCspFallback:$AllowMetaCspFallback `
-    -RequireWebhookSecret:$RequireWebhookSecret
+    -RequireWebhookSecret:$RequireWebhookSecret `
+    -RequireBackupHealthy:$RequireBackupHealthy
 if ($LASTEXITCODE -ne 0) {
     $failures += 1
 }
