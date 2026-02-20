@@ -99,10 +99,10 @@ run_test('get_service_price_amount invalid', function() {
 });
 
 run_test('get_service_total_price calculation', function() {
-    // 40 + 12% = 44.80
-    // get_service_total_price returns formatted string '$44.80'
+    // 'consulta' is 0% VAT -> $40.00
+    // get_service_total_price returns formatted string '$40.00'
     $price = get_service_total_price('consulta');
-    assert_equals('$44.80', $price);
+    assert_equals('$40.00', $price);
 });
 
 run_test('appointment_slot_taken basic', function() {

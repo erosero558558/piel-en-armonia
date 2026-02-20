@@ -119,9 +119,10 @@
         serviceSelect.addEventListener('change', function () {
             const selected = this.options[this.selectedIndex];
             const price = parseFloat(selected.dataset.price) || 0;
+                const taxRate = parseFloat(selected.dataset.serviceTax) || 0;
             const priceHint = document.getElementById('priceHint');
 
-            const iva = price * 0.12;
+                const iva = price * taxRate;
             const total = price + iva;
             subtotalEl.textContent = `$${price.toFixed(2)}`;
             ivaEl.textContent = `$${iva.toFixed(2)}`;
