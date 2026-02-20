@@ -1992,8 +1992,8 @@ textarea:focus {
 }
 
 .chatbot-actions button {
-    width: 30px;
-    height: 30px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     border: 1px solid rgba(255, 255, 255, 0.28);
     background: rgba(255, 255, 255, 0.13);
@@ -2219,7 +2219,7 @@ textarea:focus {
 
 .quick-dock-item {
     min-width: 90px;
-    height: 40px;
+    height: 44px;
     border-radius: 999px;
     border: 1px solid transparent;
     color: #2e4566;
@@ -2275,7 +2275,7 @@ textarea:focus {
 }
 
 .cookie-btn {
-    min-height: 38px;
+    min-height: 44px;
     padding: 8px 14px;
     border-radius: 999px;
     font-size: 0.8rem;
@@ -2803,6 +2803,39 @@ html[data-theme='dark'] .toast-message {
         content-visibility: auto;
         contain-intrinsic-size: 900px;
     }
+}
+
+@media (max-width: 768px) {
+    .language-bar,
+    .nav,
+    .metric-card,
+    .contact-chip,
+    .appointment-info,
+    .modal,
+    .quick-dock,
+    .chatbot-container,
+    .cookie-banner {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+
+    .language-bar { background: rgba(247, 250, 255, 0.98); }
+    .nav { background: rgba(255, 255, 255, 0.98); }
+    .metric-card { background: rgba(11, 24, 43, 0.95); }
+    .contact-chip { background: rgba(8, 21, 38, 0.95); }
+    .appointment-info { background: rgba(255, 255, 255, 0.95); }
+    .modal { background: rgba(6, 14, 26, 0.85); }
+    .quick-dock { background: rgba(255, 255, 255, 0.98); }
+    .chatbot-container { background: #ffffff; }
+    .cookie-banner { background: #ffffff; }
+
+    html[data-theme='dark'] .language-bar { background: rgba(9, 16, 28, 0.98); }
+    html[data-theme='dark'] .nav { background: rgba(9, 16, 29, 0.98); }
+    html[data-theme='dark'] .appointment-info { background: rgba(20, 35, 55, 0.95); }
+    html[data-theme='dark'] .modal { background: rgba(4, 9, 17, 0.95); }
+    html[data-theme='dark'] .quick-dock { background: rgba(11, 20, 35, 0.98); }
+    html[data-theme='dark'] .chatbot-container { background: #0f1b2f; }
+    html[data-theme='dark'] .cookie-banner { background: rgba(11, 20, 35, 0.98); }
 }
 
 @media (max-width: 1140px) {

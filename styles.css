@@ -64,6 +64,15 @@ a {
     color: inherit;
 }
 
+a,
+button,
+input,
+select,
+textarea,
+label {
+    touch-action: manipulation;
+}
+
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
@@ -262,7 +271,7 @@ img {
     text-decoration: none;
     font-weight: 600;
     font-size: 0.86rem;
-    padding: 4px 0;
+    padding: 12px 0;
     transition: color var(--ui-ease);
 }
 
@@ -295,7 +304,7 @@ img {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 42px;
+    min-height: 44px;
     padding: 0 18px;
     border-radius: 999px;
     border: 1px solid rgba(0, 118, 255, 0.22);
@@ -314,8 +323,8 @@ img {
 }
 
 .nav-mobile-toggle {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     border: 1px solid #d3dff2;
     background: #ffffff;
