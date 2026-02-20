@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit0903e8ee8ae7e125d1de18e2f1036a51
+class ComposerStaticInit0e88e7d1a7b3805c6310a48cc0e60805
 {
     public static $files = array (
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
@@ -75,6 +75,7 @@ class ComposerStaticInit0903e8ee8ae7e125d1de18e2f1036a51
         'G' =>
         array (
             'GuzzleHttp\\Psr7\\' => 16,
+            'GraphQL\\' => 8,
         ),
         'F' =>
         array (
@@ -93,6 +94,7 @@ class ComposerStaticInit0903e8ee8ae7e125d1de18e2f1036a51
         ),
         'A' =>
         array (
+            'App\\GraphQL\\' => 12,
             'Amp\\ByteStream\\' => 15,
             'Amp\\' => 4,
             'AdvancedJsonRpc\\' => 16,
@@ -207,6 +209,10 @@ class ComposerStaticInit0903e8ee8ae7e125d1de18e2f1036a51
         array (
             0 => __DIR__ . '/..' . '/guzzlehttp/psr7/src',
         ),
+        'GraphQL\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/webonyx/graphql-php/src',
+        ),
         'Fidry\\CpuCoreCounter\\' =>
         array (
             0 => __DIR__ . '/..' . '/fidry/cpu-core-counter/src',
@@ -230,6 +236,10 @@ class ComposerStaticInit0903e8ee8ae7e125d1de18e2f1036a51
         'Composer\\Pcre\\' =>
         array (
             0 => __DIR__ . '/..' . '/composer/pcre/src',
+        ),
+        'App\\GraphQL\\' =>
+        array (
+            0 => __DIR__ . '/../..' . '/lib/GraphQL',
         ),
         'Amp\\ByteStream\\' =>
         array (
@@ -1443,11 +1453,11 @@ class ComposerStaticInit0903e8ee8ae7e125d1de18e2f1036a51
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit0903e8ee8ae7e125d1de18e2f1036a51::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit0903e8ee8ae7e125d1de18e2f1036a51::$prefixDirsPsr4;
-            $loader->fallbackDirsPsr4 = ComposerStaticInit0903e8ee8ae7e125d1de18e2f1036a51::$fallbackDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInit0903e8ee8ae7e125d1de18e2f1036a51::$prefixesPsr0;
-            $loader->classMap = ComposerStaticInit0903e8ee8ae7e125d1de18e2f1036a51::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit0e88e7d1a7b3805c6310a48cc0e60805::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit0e88e7d1a7b3805c6310a48cc0e60805::$prefixDirsPsr4;
+            $loader->fallbackDirsPsr4 = ComposerStaticInit0e88e7d1a7b3805c6310a48cc0e60805::$fallbackDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInit0e88e7d1a7b3805c6310a48cc0e60805::$prefixesPsr0;
+            $loader->classMap = ComposerStaticInit0e88e7d1a7b3805c6310a48cc0e60805::$classMap;
 
         }, null, ClassLoader::class);
     }

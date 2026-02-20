@@ -15,6 +15,9 @@ module.exports = [
     },
     js.configs.recommended,
     {
+        ignores: ['admin.js', 'script.js', 'booking-ui.js', 'booking-engine.js', 'vendor/**']
+    },
+    {
         files: ['**/*.js', '**/*.mjs'],
         languageOptions: {
             sourceType: 'commonjs',
