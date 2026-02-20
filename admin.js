@@ -15,48 +15,6 @@ let selectedDate = null;
 let currentMonth = new Date();
 let csrfToken = '';
 
-function showToast(message, type = 'info', title = '') {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-
-    const icons = {
-        success: 'fa-check-circle',
-        error: 'fa-times-circle',
-        warning: 'fa-exclamation-circle',
-        info: 'fa-info-circle'
-    };
-
-    const titles = {
-        success: title || 'Exito',
-        error: title || 'Error',
-        warning: title || 'Advertencia',
-        info: title || 'Información'
-    };
-
-    toast.innerHTML = `
-        <i class="fas ${icons[type]} toast-icon"></i>
-        <div class="toast-content">
-            <div class="toast-title">${escapeHtml(titles[type])}</div>
-            <div class="toast-message">${escapeHtml(message)}</div>
-        </div>
-        <button type="button" class="toast-close" data-action="close-toast">
-            <i class="fas fa-times"></i>
-        </button>
-        <div class="toast-progress"></div>
-    `;
-
-    container.appendChild(toast);
-    setTimeout(() => {
-        if (toast.parentElement) {
-            toast.style.animation = 'slideIn 0.3s ease reverse';
-            setTimeout(() => toast.remove(), 300);
-        }
-    }, 5000);
-}
-
 function normalizeCallbackStatus(status) {
     const normalized = String(status || '').toLowerCase().trim();
     if (normalized === 'pending') return 'pendiente';
@@ -478,12 +436,6 @@ function getPreferenceText(pref) {
         '1hora': 'En 1 hora'
     };
     return texts[pref] || pref;
-}
-
-function formatDate(dateStr) {
-    const date = new Date(dateStr);
-    if (Number.isNaN(date.getTime())) return dateStr;
-    return date.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function sanitizePublicHref(url) {

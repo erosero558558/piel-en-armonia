@@ -122,8 +122,11 @@
     }
 
     function escapeHtml(text) {
+        if (deps && typeof deps.escapeHtml === 'function') {
+            return deps.escapeHtml(text);
+        }
         const div = document.createElement('div');
-        div.textContent = text;
+        div.textContent = String(text || '');
         return div.innerHTML;
     }
 

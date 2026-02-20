@@ -88,11 +88,8 @@
     }
 
     function escapeHtml$1(text) {
-        if (window.PielChatUiEngine && typeof window.PielChatUiEngine.escapeHtml === 'function') {
-            return window.PielChatUiEngine.escapeHtml(text);
-        }
         const div = document.createElement('div');
-        div.textContent = text;
+        div.textContent = String(text || '');
         return div.innerHTML;
     }
 
@@ -229,6 +226,43 @@
         } catch (error) {
             // Ignore storage quota errors.
         }
+    }
+
+    function getInitials(name) {
+        const parts = String(name || 'Paciente')
+            .split(' ')
+            .filter(Boolean)
+            .slice(0, 2);
+        if (parts.length === 0) return 'PA';
+        return parts.map(part => part[0].toUpperCase()).join('');
+    }
+
+    function getRelativeDateLabel(dateText) {
+        const date = new Date(dateText);
+        if (Number.isNaN(date.getTime())) {
+            return getCurrentLang() === 'es' ? 'Reciente' : 'Recent';
+        }
+        const now = new Date();
+        const days = Math.max(0, Math.floor((now - date) / (1000 * 60 * 60 * 24)));
+        if (getCurrentLang() === 'es') {
+            if (days <= 1) return 'Hoy';
+            if (days < 7) return `Hace ${days} d${days === 1 ? 'ía' : 'ías'}`;
+            if (days < 30) return `Hace ${Math.floor(days / 7)} semana(s)`;
+            return date.toLocaleDateString('es-EC');
+        }
+        if (days <= 1) return 'Today';
+        if (days < 7) return `${days} day(s) ago`;
+        if (days < 30) return `${Math.floor(days / 7)} week(s) ago`;
+        return date.toLocaleDateString('en-US');
+    }
+
+    function renderStars(rating) {
+        const value = Math.max(1, Math.min(5, Number(rating) || 0));
+        let html = '';
+        for (let i = 1; i <= 5; i += 1) {
+            html += `<i class="${i <= value ? 'fas' : 'far'} fa-star"></i>`;
+        }
+        return html;
     }
 
     const deferredModulePromises = new Map();
@@ -469,7 +503,8 @@
             getCurrentLang: getCurrentLang,
             showToast,
             storageGetJSON,
-            storageSetJSON
+            storageSetJSON,
+            waitMs
         };
     }
 
@@ -552,6 +587,9 @@
             apiRequest: apiRequest$1,
             storageGetJSON,
             escapeHtml: escapeHtml$1,
+            getInitials,
+            getRelativeDateLabel,
+            renderStars,
             getCurrentLang: getCurrentLang
         };
     }
@@ -1557,8 +1595,8 @@
 
     const CHAT_UI_ENGINE_URL = withDeployAssetVersion('/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1');
     const CHAT_WIDGET_ENGINE_URL = withDeployAssetVersion('/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1');
-    const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion('/chat-booking-engine.js?v=figo-chat-booking-20260220-sync2-cachecoherence1');
-    const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion('/chat-engine.js?v=figo-chat-20260220-phase3-runtimeconfig1-contextcap1-sync2');
+    const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion('/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1');
+    const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion('/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1-sync1');
 
     const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
     const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -1566,12 +1604,7 @@
     const CHAT_CONTEXT_MAX_ITEMS = 24;
 
     function escapeHtml(text) {
-        if (window.PielChatUiEngine && typeof window.PielChatUiEngine.escapeHtml === 'function') {
-            return window.PielChatUiEngine.escapeHtml(text);
-        }
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        return escapeHtml$1(text);
     }
 
     function scrollToBottom() {
@@ -1611,7 +1644,8 @@
             historyTtlMs: CHAT_HISTORY_TTL_MS,
             historyMaxItems: CHAT_HISTORY_MAX_ITEMS,
             contextMaxItems: CHAT_CONTEXT_MAX_ITEMS,
-            debugLog
+            debugLog,
+            escapeHtml: escapeHtml$1
         };
     }
 

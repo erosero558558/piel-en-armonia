@@ -10,16 +10,28 @@ export function debugLog(...args) {
 }
 
 export function escapeHtml(text) {
-    if (window.PielChatUiEngine && typeof window.PielChatUiEngine.escapeHtml === 'function') {
-        return window.PielChatUiEngine.escapeHtml(text);
-    }
     const div = document.createElement('div');
-    div.textContent = text;
+    div.textContent = String(text || '');
     return div.innerHTML;
 }
 
 export function waitMs(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return dateStr;
+    return date.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+export function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
+    };
 }
 
 export function isConstrainedNetworkConnection() {

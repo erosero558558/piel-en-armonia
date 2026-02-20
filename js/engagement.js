@@ -1,4 +1,4 @@
-import { withDeployAssetVersion, showToast, escapeHtml, storageGetJSON } from './utils.js';
+import { withDeployAssetVersion, showToast, escapeHtml, storageGetJSON, getInitials, getRelativeDateLabel, renderStars } from './utils.js';
 import { loadDeferredModule, runDeferredModule, withDeferredModule, createWarmupRunner, bindWarmupTarget, scheduleDeferredTask, observeOnceWhenVisible } from './loader.js';
 import { getCurrentLang, getReviewsCache, setReviewsCache } from './state.js';
 import { apiRequest, createCallbackRecord, createReviewRecord } from './data.js';
@@ -12,6 +12,9 @@ function getReviewsEngineDeps() {
         apiRequest,
         storageGetJSON,
         escapeHtml,
+        getInitials,
+        getRelativeDateLabel,
+        renderStars,
         getCurrentLang: getCurrentLang
     };
 }
