@@ -89,6 +89,13 @@ class FigoBrain
         'cancellation' => ['cancelar', 'anular', 'no puedo ir', 'suspender', 'dar de baja', 'borrar cita'],
         'rescheduling' => ['reprogramar', 'cambiar fecha', 'mover cita', 'postergar', 'otra fecha'],
         'contact' => ['telefono', 'celular', 'whatsapp', 'correo', 'email', 'contacto', 'llamar'],
+        'out_of_scope' => [
+            'capital', 'presidente', 'noticia', 'deporte', 'futbol', 'bitcoin', 'politica',
+            'gobierno', 'elecciones', 'mundial', 'messi', 'ronaldo', 'cripto', 'ethereum',
+            'religion', 'dios', 'jesus', 'biblia',
+            'receta de cocina', 'como cocinar', 'restaurante', 'comida',
+            'peliculas', 'cine', 'netflix', 'series', 'musica', 'cancion'
+        ],
         'thanks' => ['gracias', 'ok', 'listo', 'perfecto', 'excelente', 'muy amable', 'chevere']
     ];
 
@@ -362,6 +369,14 @@ class FigoBrain
                        "📞 **Llamadas:** 098 245 3672\n" .
                        "📧 **Email:** info@pielarmonia.com\n\n" .
                        "Escríbenos, nos encantará atenderte.";
+
+            case 'out_of_scope':
+                return "Soy un asistente especializado en dermatología y servicios de **Piel en Armonía**. 🩺\n\n" .
+                       "Aunque me encantaría conversar sobre otros temas, mi función es ayudarte con:\n" .
+                       "- Citas y Horarios\n" .
+                       "- Precios de Tratamientos\n" .
+                       "- Dudas sobre el cuidado de tu piel\n\n" .
+                       "¿En qué puedo asistirte respecto a nuestra clínica?";
 
             case 'cancellation':
             case 'rescheduling':

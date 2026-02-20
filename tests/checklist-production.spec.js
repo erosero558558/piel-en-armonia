@@ -18,6 +18,26 @@ test.describe('Checklist de Pruebas en Producción', () => {
             console.warn('Could not clear rate limit dir:', e.message);
         }
     }
+
+    // Set up env.php for E2E tests authentication
+    const envPath = path.join(__dirname, '../env.php');
+    try {
+        fs.writeFileSync(envPath, `<?php putenv('PIELARMONIA_ADMIN_PASSWORD=${ADMIN_PASSWORD}'); ?>`);
+    } catch (e) {
+        console.warn('Could not create env.php for E2E tests:', e.message);
+    }
+  });
+
+  test.afterAll(async () => {
+      // Clean up env.php
+      const envPath = path.join(__dirname, '../env.php');
+      if (fs.existsSync(envPath)) {
+          try {
+              fs.unlinkSync(envPath);
+          } catch (e) {
+              console.warn('Could not cleanup env.php:', e.message);
+          }
+      }
   });
 
   // 1. Pre-check de servidor (archivos, variables, permisos)
@@ -77,9 +97,14 @@ test.describe('Checklist de Pruebas en Producción', () => {
     await page.fill('input[type="password"]', ADMIN_PASSWORD);
     await page.click('button[type="submit"]');
 
-    // Esperar a que cargue el dashboard
-    // Ajustar selectores según la implementación real de admin.js/html
-    await expect(page.locator('#adminDashboard')).toBeVisible({ timeout: 15000 });
+    // 1. Confirm login success via toast or URL change first
+    // This confirms the backend auth worked
+    await expect(page.locator('.toast.success')).toBeVisible({ timeout: 10000 });
+
+    // 2. Wait for dashboard visibility
+    // admin.js removes 'is-hidden' class from #adminDashboard
+    await expect(page.locator('#adminDashboard')).not.toHaveClass(/is-hidden/, { timeout: 15000 });
+    await expect(page.locator('#adminDashboard')).toBeVisible({ timeout: 5000 });
 
     // Navegación
     // Verificar que existen los enlaces o pestañas
