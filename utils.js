@@ -13,7 +13,14 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function debugLog(...args) {
+    if (typeof console !== 'undefined' && typeof console.log === 'function') {
+        console.log(...args);
+    }
+}
+
 // Expose to window explicitly to be safe, though function declaration does it in global scope
 if (typeof window !== 'undefined') {
     window.escapeHtml = escapeHtml;
+    window.debugLog = debugLog;
 }
