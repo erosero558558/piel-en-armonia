@@ -668,7 +668,17 @@ if ($null -ne $figoBackendGetResult -and $figoBackendGetResult.Ok) {
     }
 }
 
-$okCount = [int](($results | Where-Object { $_.Ok } | Measure-Object).Count)
+$okCount = 0
+foreach ($result in $results) {
+    $isOk = $false
+    try { $isOk = [bool]$result.Ok } catch { $isOk = $false }
+    if (-not $isOk -and $result.Name -eq 'Figo chat POST' -and $AllowFigoRateLimit -and [int]$result.Status -eq 429) {
+        $isOk = $true
+    }
+    if ($isOk) {
+        $okCount++
+    }
+}
 $total = $results.Count
 Write-Host ""
 Write-Host "Resultado HTTP base: $okCount/$total checks OK"
