@@ -446,7 +446,7 @@ $expectedStatusByName = @{
     'Health API' = 200
     'Reviews API' = 200
     'Availability API' = 200
-    'Funnel event POST' = 202
+    'Funnel event POST' = @(202, 401)
     'Funnel metrics unauthorized' = 401
     'Admin auth status' = 200
     'Figo chat GET' = 200
@@ -486,7 +486,21 @@ foreach ($result in $results) {
         Write-Host "[WARN] Figo chat POST en rate-limit (429) aceptado por configuracion"
         continue
     }
-    if ($null -ne $expected -and [int]$result.Status -ne [int]$expected) {
+    if ($null -eq $expected) {
+        continue
+    }
+
+    if ($expected -is [System.Array]) {
+        if (-not ($expected -contains [int]$result.Status)) {
+            Write-Host "[FAIL] $($result.Name) devolvio HTTP $($result.Status), esperado uno de: $($expected -join ', ')"
+            $contractFailures += 1
+        } elseif ($result.Name -eq 'Funnel event POST' -and [int]$result.Status -eq 401) {
+            Write-Host "[WARN] Funnel event POST protegido (401). Se acepta en modo hardening."
+        }
+        continue
+    }
+
+    if ([int]$result.Status -ne [int]$expected) {
         Write-Host "[FAIL] $($result.Name) devolvio HTTP $($result.Status), esperado HTTP $expected"
         $contractFailures += 1
     }

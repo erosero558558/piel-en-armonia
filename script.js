@@ -278,7 +278,7 @@ function runDeferredModule(loader, onReady, onError) {
     });
 }
 
-const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260220-deferred14-chatguard1-pricingfallback1';
+const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1';
 
 let deferredStylesheetPromise = null;
 let deferredStylesheetInitDone = false;

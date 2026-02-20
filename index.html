@@ -142,6 +142,50 @@
         margin-bottom:8px;
         font-size:1.35rem;
     }
+    .pricing-category-title i,
+    .pricing-disclaimer-icon i{
+        width:1.2em;
+        text-align:center;
+        flex:0 0 1.2em;
+    }
+    .pricing-group{
+        margin-bottom:18px;
+        padding-bottom:18px;
+        border-bottom:1px solid rgba(160,178,204,0.32);
+    }
+    .pricing-group:last-of-type{
+        margin-bottom:0;
+        padding-bottom:0;
+        border-bottom:none;
+    }
+    .pricing-group-title{
+        display:flex;
+        align-items:center;
+        gap:8px;
+        margin-bottom:10px;
+        font-size:1.02rem;
+    }
+    .age-tag{
+        display:inline-flex;
+        align-items:center;
+        padding:3px 8px;
+        border-radius:999px;
+        background:rgba(2,132,199,0.1);
+        color:#0d72b5;
+        font-size:0.74rem;
+        font-weight:700;
+    }
+    .pricing-info{
+        display:flex;
+        flex-direction:column;
+        gap:4px;
+        min-width:0;
+        flex:1;
+    }
+    .pricing-name{
+        font-weight:700;
+        line-height:1.35;
+    }
     .pricing-item{
         display:flex;
         justify-content:space-between;
@@ -151,10 +195,57 @@
         border-bottom:1px dashed rgba(160, 178, 204, 0.45);
     }
     .pricing-item:last-child{border-bottom:none}
+    .pricing-item--featured{
+        margin:0 -8px;
+        padding:14px 12px;
+        border-radius:12px;
+        background:rgba(2,132,199,0.06);
+        border:1px solid rgba(2,132,199,0.14);
+    }
     .pricing-desc{
         display:block;
         color:#6b7890;
         font-size:0.9rem;
+    }
+    .pricing-amount{
+        white-space:nowrap;
+        font-size:1.18rem;
+        font-weight:700;
+        color:#0f7bc7;
+    }
+    .pricing-amount--secondary{
+        font-size:0.98rem;
+        color:#4c688a;
+        font-weight:600;
+    }
+    .pricing-amount-group{
+        display:flex;
+        flex-direction:column;
+        align-items:flex-end;
+        gap:4px;
+    }
+    .pricing-grid-2{
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:12px;
+    }
+    .pricing-note{
+        margin-top:12px;
+        padding:10px 12px;
+        border-radius:12px;
+        background:rgba(240,247,255,0.9);
+        border-left:3px solid #0f7bc7;
+        color:#556a86;
+        font-size:0.86rem;
+        line-height:1.45;
+    }
+    .pricing-note--highlight{
+        background:rgba(255,246,235,0.95);
+        border-left-color:#cc6a0b;
+    }
+    .pricing-link{
+        color:#0f7bc7;
+        font-weight:700;
     }
     .pricing-disclaimer{
         width:min(1000px, calc(100% - 24px));
@@ -166,12 +257,34 @@
     }
     @media (max-width:768px){
     .pricing-item{flex-direction:column}
+    .pricing-grid-2{grid-template-columns:1fr}
+    .pricing-amount-group{align-items:flex-start}
     }
     html[data-theme='dark'] .pricing-category,
     html[data-theme='dark'] .pricing-disclaimer{
         background:rgba(15, 26, 44, 0.92);
         border-color:rgba(122, 156, 207, 0.38);
     }
+    html[data-theme='dark'] .pricing-group{border-bottom-color:rgba(122,156,207,0.28)}
+    html[data-theme='dark'] .age-tag{background:rgba(66,153,225,0.24);color:#9ed4ff}
+    html[data-theme='dark'] .pricing-name{color:#eaf3ff}
+    html[data-theme='dark'] .pricing-desc{color:#9db3cf}
+    html[data-theme='dark'] .pricing-amount{color:#5ac8fa}
+    html[data-theme='dark'] .pricing-amount--secondary{color:#bdd1ea}
+    html[data-theme='dark'] .pricing-item--featured{
+        background:rgba(90,200,250,0.08);
+        border-color:rgba(90,200,250,0.24);
+    }
+    html[data-theme='dark'] .pricing-note{
+        background:rgba(16,32,56,0.86);
+        border-left-color:#5ac8fa;
+        color:#acc3de;
+    }
+    html[data-theme='dark'] .pricing-note--highlight{
+        background:rgba(58,36,18,0.76);
+        border-left-color:#f59e0b;
+    }
+    html[data-theme='dark'] .pricing-link{color:#88d5ff}
     </style>
     <style>
     /* Chat viewport guardrails for small windows/mobile */
@@ -232,7 +345,7 @@
     }
     }
     </style>
-    <link rel="preload" as="style" href="styles-deferred.css?v=ui-20260220-deferred14-chatguard1-pricingfallback1">
+    <link rel="preload" as="style" href="styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
