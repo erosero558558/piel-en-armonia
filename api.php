@@ -804,6 +804,16 @@ if ($resource === 'figo-config' && in_array($method, ['POST', 'PUT', 'PATCH'], t
     ]);
 }
 
+if ($method === 'GET' && $resource === 'payment-config') {
+    json_response([
+        'ok' => true,
+        'provider' => 'stripe',
+        'enabled' => payment_gateway_enabled(),
+        'publishableKey' => payment_stripe_publishable_key(),
+        'currency' => payment_currency()
+    ]);
+}
+
 $storeReadStart = microtime(true);
 $store = read_store();
 $storeReadDuration = microtime(true) - $storeReadStart;
@@ -1011,16 +1021,6 @@ if ($method === 'GET' && $resource === 'booked-slots') {
     json_response([
         'ok' => true,
         'data' => $slots
-    ]);
-}
-
-if ($method === 'GET' && $resource === 'payment-config') {
-    json_response([
-        'ok' => true,
-        'provider' => 'stripe',
-        'enabled' => payment_gateway_enabled(),
-        'publishableKey' => payment_stripe_publishable_key(),
-        'currency' => payment_currency()
     ]);
 }
 
