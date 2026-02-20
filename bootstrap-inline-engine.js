@@ -6,17 +6,13 @@
     'use strict';
 
     const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1';
-    const DEBUG = false;
 
     const deferredModulePromises = new Map();
     let deferredStylesheetPromise = null;
     let deferredStylesheetInitDone = false;
 
     function debugLog() {
-        if (!DEBUG || typeof console === 'undefined' || typeof console.log !== 'function') {
-            return;
-        }
-        console.log.apply(console, arguments);
+        // Debug logging removed
     }
 
     function loadDeferredModule(options) {
