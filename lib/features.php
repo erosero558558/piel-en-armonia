@@ -203,6 +203,47 @@ class FeatureFlags
         }
         return $result;
     }
+
+    public static function getRawConfig(): array
+    {
+        $allKeys = array_keys(self::$defaults);
+        $stored = self::loadFlags();
+        $storedKeys = array_keys($stored);
+        $keys = array_unique(array_merge($allKeys, $storedKeys));
+
+        $result = [];
+        foreach ($keys as $key) {
+            $default = ['enabled' => self::$defaults[$key] ?? false];
+            $config = $stored[$key] ?? $default;
+            if (is_bool($config)) {
+                $config = ['enabled' => $config];
+            }
+
+            // Check for Env Var Override
+            $envKey = 'FEATURE_' . strtoupper($key);
+            $envVal = getenv($envKey);
+            $isOverridden = ($envVal !== false && $envVal !== '');
+
+            $config['percentage'] = $config['percentage'] ?? 0;
+            $config['overridden'] = $isOverridden;
+            $config['resolved'] = self::isEnabled($key);
+
+            $result[$key] = $config;
+        }
+        return $result;
+    }
+
+    public static function updateConfig(array $newConfig): void
+    {
+        $current = self::loadFlags();
+        // Merge updates
+        foreach ($newConfig as $key => $val) {
+            if (is_array($val)) {
+                $current[$key] = $val;
+            }
+        }
+        self::saveFlags($current);
+    }
 }
 
 // Backward compatibility functions

@@ -382,6 +382,85 @@ function renderCurrentSection() {
     if (section === 'callbacks') loadCallbacks();
     if (section === 'reviews') loadReviews();
     if (section === 'availability') initAvailabilityCalendar();
+    if (section === 'features') loadFeatureFlags();
+}
+
+async function loadFeatureFlags() {
+    const grid = document.getElementById('featuresGrid');
+    if (!grid) return;
+    grid.innerHTML = '<p class="loading-message">Cargando configuración...</p>';
+
+    try {
+        const payload = await apiRequest('features-config');
+        if (payload.ok && payload.data) {
+            renderFeatureFlags(payload.data);
+        } else {
+            throw new Error('Formato de respuesta inválido');
+        }
+    } catch (error) {
+        grid.innerHTML = `<p class="error-message">Error al cargar flags: ${escapeHtml(error.message)}</p>`;
+        showToast('Error al cargar feature flags', 'error');
+    }
+}
+
+function renderFeatureFlags(flags) {
+    const grid = document.getElementById('featuresGrid');
+    if (!grid) return;
+
+    if (Object.keys(flags).length === 0) {
+        grid.innerHTML = '<p class="empty-message">No hay feature flags configurados</p>';
+        return;
+    }
+
+    grid.innerHTML = Object.entries(flags).map(([key, config]) => {
+        const isEnabled = config.enabled;
+        const percentage = config.percentage || 0;
+        const isOverridden = config.overridden;
+        const resolved = config.resolved;
+
+        return `
+            <div class="feature-card ${isOverridden ? 'overridden' : ''}">
+                <div class="feature-header">
+                    <span class="feature-name">${escapeHtml(key)}</span>
+                    <span class="feature-status-pill ${resolved ? 'enabled' : 'disabled'}">
+                        ${resolved ? 'ACTIVO' : 'INACTIVO'}
+                    </span>
+                </div>
+
+                <div class="feature-body">
+                    <div class="feature-control-row">
+                        <label class="feature-label">Habilitado</label>
+                        <label class="switch">
+                            <input type="checkbox"
+                                ${isEnabled ? 'checked' : ''}
+                                data-action="toggle-feature"
+                                data-key="${escapeHtml(key)}"
+                                ${isOverridden ? 'disabled' : ''}>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+
+                    <div class="feature-percentage-row">
+                        <div class="percentage-label">
+                            <span>Rollout Gradual</span>
+                            <span class="percentage-value" id="pct-val-${escapeHtml(key)}">${percentage}%</span>
+                        </div>
+                        <input type="range" min="0" max="100" value="${percentage}"
+                            data-action="change-percentage"
+                            data-key="${escapeHtml(key)}"
+                            ${!isEnabled || isOverridden ? 'disabled' : ''}>
+                    </div>
+
+                    ${isOverridden ? `
+                        <div class="overridden-notice">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Sobreescrito por variable de entorno
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 function loadAppointments() {
@@ -845,6 +924,28 @@ async function removeTimeSlot(dateStr, time) {
     }
 }
 
+async function saveFeatureFlag(key, updates) {
+    try {
+        const payload = {
+            [key]: updates
+        };
+        const response = await apiRequest('features-config', {
+            method: 'POST',
+            body: payload
+        });
+
+        if (response.ok && response.data) {
+            renderFeatureFlags(response.data);
+            showToast(`Feature ${key} actualizada`, 'success');
+        } else {
+            throw new Error('Error al guardar');
+        }
+    } catch (error) {
+        showToast(`Error: ${error.message}`, 'error');
+        loadFeatureFlags();
+    }
+}
+
 function exportData() {
     const data = {
         appointments: currentAppointments,
@@ -910,7 +1011,8 @@ function renderSection(section) {
         appointments: 'Citas',
         callbacks: 'Callbacks',
         reviews: 'Reseñas',
-        availability: 'Disponibilidad'
+        availability: 'Disponibilidad',
+        features: 'Feature Flags'
     };
     document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
 
@@ -923,6 +1025,7 @@ function renderSection(section) {
     if (section === 'callbacks') loadCallbacks();
     if (section === 'reviews') loadReviews();
     if (section === 'availability') initAvailabilityCalendar();
+    if (section === 'features') loadFeatureFlags();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -1071,6 +1174,37 @@ document.addEventListener('DOMContentLoaded', function() {
             importData(importFileInput);
         });
     }
+
+    document.addEventListener('change', async function(e) {
+        if (!e.target.matches('[data-action]')) return;
+        const action = e.target.dataset.action;
+        const key = e.target.dataset.key;
+
+        if (action === 'toggle-feature') {
+            const enabled = e.target.checked;
+            const rangeInput = document.querySelector(`input[type="range"][data-key="${key}"]`);
+            const card = e.target.closest('.feature-card');
+            const isOverridden = card && card.classList.contains('overridden');
+
+            if (rangeInput && !isOverridden) {
+                 rangeInput.disabled = !enabled;
+            }
+            await saveFeatureFlag(key, { enabled });
+        }
+
+        if (action === 'change-percentage') {
+            const percentage = parseInt(e.target.value, 10);
+            await saveFeatureFlag(key, { percentage });
+        }
+    });
+
+    document.addEventListener('input', function(e) {
+        if (e.target.dataset.action === 'change-percentage') {
+            const key = e.target.dataset.key;
+            const valSpan = document.getElementById(`pct-val-${key}`);
+            if (valSpan) valSpan.textContent = `${e.target.value}%`;
+        }
+    });
 
     checkAuth();
 });
