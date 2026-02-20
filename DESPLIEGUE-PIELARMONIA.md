@@ -7,6 +7,8 @@ Si desde tu PC no puedes subir por FTP/SFTP, usa el workflow:
 - `GITHUB-ACTIONS-DEPLOY.md` (paso a paso)
 
 Si tu hosting ya tiene sincronizacion por Git (pull automatico), ese metodo es el recomendado y mas seguro.
+En ese caso ejecuta el gate automatico con:
+- `.github/workflows/post-deploy-gate.yml` (se dispara en push a `main` y valida produccion en modo estricto).
 
 Configura en GitHub (repo -> Settings -> Secrets and variables -> Actions):
 - Secrets: `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`

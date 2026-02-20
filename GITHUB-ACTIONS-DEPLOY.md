@@ -49,3 +49,17 @@ Si falla conexion FTP:
 - Si ves `Timeout (control socket)`, el runner no llega al puerto remoto:
   - cambia `protocol/port` (ej. `ftp:21`)
   - pide al hosting habilitar acceso desde IPs de GitHub Actions
+
+## 5) Si usas sincronizacion Git en servidor (sin FTP)
+
+Si tu hosting hace `git pull` automatico, usa este workflow para validar cada push:
+- `Actions` -> `Post-Deploy Gate (Git Sync)`
+- O simplemente push a `main` y se ejecuta solo.
+- Adicionalmente corre cada 6 horas como monitoreo continuo.
+
+Este gate corre:
+- verificacion de despliegue
+- smoke de endpoints
+- benchmark API
+
+en modo estricto (`RequireStableDataDir`, `RequireBackupHealthy`, `RequireBackupReceiverReady`, `RequireCronReady`).

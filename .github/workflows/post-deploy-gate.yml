@@ -1,0 +1,74 @@
+name: Post-Deploy Gate (Git Sync)
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: "Dominio objetivo"
+        required: false
+        default: "https://pielarmonia.com"
+        type: string
+      bench_runs:
+        description: "Muestras por endpoint para benchmark"
+        required: false
+        default: "25"
+        type: string
+      wait_seconds:
+        description: "Espera para sincronizacion del servidor"
+        required: false
+        default: "90"
+        type: string
+
+concurrency:
+  group: post-deploy-gate-main
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Gate estricto en produccion
+    runs-on: windows-latest
+    timeout-minutes: 35
+    env:
+      TARGET_DOMAIN: ${{ github.event.inputs.domain || 'https://pielarmonia.com' }}
+      BENCH_RUNS: ${{ github.event.inputs.bench_runs || '25' }}
+      WAIT_SECONDS: ${{ github.event.inputs.wait_seconds || '90' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Esperar sincronizacion Git del hosting
+        if: ${{ github.event_name == 'push' }}
+        shell: pwsh
+        run: |
+          $waitSeconds = [int]$env:WAIT_SECONDS
+          if ($waitSeconds -lt 0) { $waitSeconds = 0 }
+          Write-Host "Esperando $waitSeconds segundos para que el servidor termine el pull..."
+          Start-Sleep -Seconds $waitSeconds
+
+      - name: Ejecutar gate estricto
+        id: gate
+        shell: pwsh
+        run: |
+          $benchRuns = [int]$env:BENCH_RUNS
+          if ($benchRuns -lt 10) { $benchRuns = 10 }
+          ./GATE-POSTDEPLOY.ps1 `
+            -Domain $env:TARGET_DOMAIN `
+            -BenchRuns $benchRuns `
+            -RequireStableDataDir `
+            -RequireBackupHealthy `
+            -RequireBackupReceiverReady `
+            -RequireCronReady
+
+      - name: Resumen
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Post-deploy gate"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Dominio: ``$env:TARGET_DOMAIN``"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Bench runs: ``$env:BENCH_RUNS``"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Resultado: ``${{ steps.gate.outcome }}``"
