@@ -42,6 +42,27 @@ function Get-Url {
     return "$Base/$Ref"
 }
 
+function Get-RefPath {
+    param([string]$Ref)
+
+    if ([string]::IsNullOrWhiteSpace($Ref)) {
+        return ''
+    }
+
+    $clean = $Ref.Trim()
+    $hashIndex = $clean.IndexOf('#')
+    if ($hashIndex -ge 0) {
+        $clean = $clean.Substring(0, $hashIndex)
+    }
+
+    $queryIndex = $clean.IndexOf('?')
+    if ($queryIndex -ge 0) {
+        $clean = $clean.Substring(0, $queryIndex)
+    }
+
+    return $clean
+}
+
 function Get-RemoteSha256 {
     param(
         [string]$Url,
@@ -216,7 +237,7 @@ $remoteScriptRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern '<script
 $remoteStyleRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern '<link[^>]+href="([^"]*styles\.css[^"]*)"'
 $remoteDeferredStyleRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern '<link[^>]+href="([^"]*styles-deferred\.css[^"]*)"'
 $remoteHasInlineCriticalCss = [regex]::IsMatch($remoteIndexRaw, '<style\b[^>]*>[\s\S]*?</style>', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-$appScriptRemoteUrl = Get-Url -Base $base -Ref $localScriptRef
+$appScriptRemoteUrl = Get-Url -Base $base -Ref $remoteScriptRef
 $criticalCssRemoteUrl = Get-Url -Base $base -Ref $localStyleRef
 $indexDeferredStylesRemoteUrl = Get-Url -Base $base -Ref $localDeferredStyleRef
 
@@ -558,7 +579,7 @@ if ($remoteScriptRef -eq '') {
         RemoteHash = $remoteScriptRef
         RemoteUrl = "$base/"
     }
-} elseif ($remoteScriptRef -eq $localScriptRef) {
+} elseif ((Get-RefPath -Ref $remoteScriptRef) -eq (Get-RefPath -Ref $localScriptRef)) {
     Write-Host "[OK]  index remoto usa misma referencia de script.js"
 } else {
     Write-Host "[FAIL] index remoto script.js diferente"
@@ -653,7 +674,7 @@ $checks += @(
     [PSCustomObject]@{
         Name = 'script.js'
         LocalPath = 'script.js'
-        RemoteUrl = (Get-Url -Base $base -Ref $localScriptRef)
+        RemoteUrl = (Get-Url -Base $base -Ref $remoteScriptRef)
     },
     [PSCustomObject]@{
         Name = 'chat-widget-engine.js'
