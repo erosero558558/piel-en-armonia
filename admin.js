@@ -3,7 +3,7 @@
  * Server-backed admin with session auth.
  */
 
-/* global showToast, escapeHtml, normalizeCallbackStatus, formatDate, debounce */
+import { escapeHtml } from './utils.js';
 
 const AUTH_ENDPOINT = '/admin-auth.php';
 const API_ENDPOINT = '/api.php';
