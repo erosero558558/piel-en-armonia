@@ -51,21 +51,20 @@ export function loadDeferredModule(options) {
             reject(new Error(missingApiError));
         };
 
-        const existing = document.querySelector('script[' + scriptDataAttribute + '="true"]');
-        if (existing) {
-            existing.addEventListener('load', handleLoad, { once: true });
-            existing.addEventListener('error', () => reject(new Error(loadError)), { once: true });
-            return;
-        }
-
-        const script = document.createElement('script');
-        script.src = src;
-        script.async = true;
-        script.defer = true;
-        script.setAttribute(scriptDataAttribute, 'true');
-        script.onload = handleLoad;
-        script.onerror = () => reject(new Error(loadError));
-        document.head.appendChild(script);
+        import(src)
+            .then(() => {
+                if (!document.querySelector('script[' + scriptDataAttribute + '="true"]')) {
+                    const marker = document.createElement('script');
+                    marker.setAttribute(scriptDataAttribute, 'true');
+                    marker.dataset.dynamicImport = 'true';
+                    document.head.appendChild(marker);
+                }
+                handleLoad();
+            })
+            .catch((err) => {
+                debugLog(logLabel + ' dynamic import failed:', err);
+                reject(new Error(loadError));
+            });
     }).catch((error) => {
         deferredModulePromises.delete(cacheKey);
         if (logLabel) {

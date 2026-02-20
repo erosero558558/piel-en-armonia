@@ -1,5 +1,6 @@
-﻿(function () {
+(function () {
     'use strict';
+
     // build-sync: 20260220-sync1
 
     let deps = null;
@@ -80,14 +81,13 @@
     function init(inputDeps) {
         deps = inputDeps || deps;
         if (initialized) {
-            return window.PielBookingUi;
+            return { init };
         }
 
         const serviceSelect = document.getElementById('serviceSelect');
         const priceSummary = document.getElementById('priceSummary');
         const subtotalEl = document.getElementById('subtotalPrice');
         const ivaEl = document.getElementById('ivaPrice');
-        const ivaLabelEl = document.querySelector('[data-i18n="summary_iva"]');
         const totalEl = document.getElementById('totalPrice');
         const dateInput = document.querySelector('input[name="date"]');
         const timeSelect = document.querySelector('select[name="time"]');
@@ -96,7 +96,7 @@
         const appointmentForm = document.getElementById('appointmentForm');
 
         if (!serviceSelect || !priceSummary || !subtotalEl || !ivaEl || !totalEl || !appointmentForm) {
-            return window.PielBookingUi;
+            return { init };
         }
 
         initialized = true;
@@ -116,64 +116,25 @@
             }
         }
 
-        let servicesConfigModule = null;
-        async function updatePriceDisplay() {
-            try {
-                if (!servicesConfigModule) {
-                    servicesConfigModule = await import('./js/services-config.js');
-                }
-                const config = servicesConfigModule;
-                const serviceId = serviceSelect.value;
-                const dateValue = dateInput ? dateInput.value : null;
-
-                if (!serviceId) return;
-
-                const priceInfo = config.getServicePriceInfo(serviceId, {
-                    includeTax: true,
-                    date: dateValue
-                });
-
-                if (!priceInfo) return;
-
-                subtotalEl.textContent = config.formatMoney(priceInfo.priceBase);
-                ivaEl.textContent = config.formatMoney(priceInfo.taxAmount);
-                if (ivaLabelEl) {
-                    ivaLabelEl.textContent = priceInfo.taxLabel || 'IVA';
-                }
-                totalEl.textContent = config.formatMoney(priceInfo.total);
-
-                const priceHint = document.getElementById('priceHint');
-                if (priceInfo.total > 0) {
-                    priceSummary.classList.remove('is-hidden');
-                    if (priceHint) priceHint.classList.add('is-hidden');
-                } else {
-                    priceSummary.classList.remove('is-hidden');
-                    if (priceHint) priceHint.classList.remove('is-hidden');
-                }
-
-                if (priceInfo.isDynamic) {
-                    // Opcional: Mostrar indicador de precio dinamico
-                    // console.log('Dynamic price applied');
-                }
-
-            } catch (error) {
-                console.error('Error updating price display', error);
-                // Fallback a logica simple si falla la carga
-                const selected = serviceSelect.options[serviceSelect.selectedIndex];
-                const price = parseFloat(selected.dataset.price) || 0;
-                const iva = price * 0.15; // Fallback a 15%
-                const total = price + iva;
-                subtotalEl.textContent = `$${price.toFixed(2)}`;
-                ivaEl.textContent = `$${iva.toFixed(2)}`;
-                if (ivaLabelEl) {
-                    ivaLabelEl.textContent = 'IVA (15%)';
-                }
-                totalEl.textContent = `$${total.toFixed(2)}`;
-            }
-        }
-
         serviceSelect.addEventListener('change', function () {
-            updatePriceDisplay().catch(() => undefined);
+            const selected = this.options[this.selectedIndex];
+            const price = parseFloat(selected.dataset.price) || 0;
+                const taxRate = parseFloat(selected.dataset.serviceTax) || 0;
+            const priceHint = document.getElementById('priceHint');
+
+                const iva = price * taxRate;
+            const total = price + iva;
+            subtotalEl.textContent = `$${price.toFixed(2)}`;
+            ivaEl.textContent = `$${iva.toFixed(2)}`;
+            totalEl.textContent = `$${total.toFixed(2)}`;
+
+            if (price > 0) {
+                priceSummary.classList.remove('is-hidden');
+                if (priceHint) priceHint.classList.add('is-hidden');
+            } else {
+                priceSummary.classList.remove('is-hidden');
+                if (priceHint) priceHint.classList.remove('is-hidden');
+            }
 
             if (this.value) {
                 trackFormStep('service_selected', {
@@ -187,7 +148,6 @@
         if (dateInput) {
             dateInput.min = new Date().toISOString().split('T')[0];
             dateInput.addEventListener('change', () => {
-                updatePriceDisplay().catch(() => undefined);
                 if (dateInput.value) {
                     trackFormStep('date_selected');
                 }
@@ -392,10 +352,11 @@
             }
         });
 
-        return window.PielBookingUi;
+        return { init };
     }
 
     window.PielBookingUi = {
         init
     };
+
 })();

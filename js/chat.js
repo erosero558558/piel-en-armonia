@@ -1,288 +1,194 @@
-import { KIMI_CONFIG, SYSTEM_PROMPT, CLINIC_ADDRESS, DOCTOR_CAROLINA_PHONE, DOCTOR_CAROLINA_EMAIL } from './config.js';
-import {
-    getCurrentLang, getChatbotOpen, setChatbotOpen, getChatStartedTracked, setChatStartedTracked,
-    getConversationContext, setConversationContext, getChatHistory, setChatHistory, setCurrentAppointment
-} from './state.js';
-import { debugLog, escapeHtml, showToast } from './utils.js';
+import { withDeployAssetVersion, debugLog, showToast } from './utils.js';
+import { loadDeferredModule, runDeferredModule, withDeferredModule, createWarmupRunner, bindWarmupTarget, scheduleDeferredTask } from './loader.js';
+import { getCurrentLang, getChatHistory, setChatHistory, getConversationContext, setConversationContext, getChatbotOpen, setChatbotOpen, setCurrentAppointment } from './state.js';
 import { trackEvent } from './analytics.js';
-import { loadDeferredModule, runDeferredModule, createWarmupRunner, bindWarmupTarget, scheduleDeferredTask, withDeferredModule } from './loader.js';
-import {
-    loadAvailabilityData, getBookedSlots, startCheckoutSession, completeCheckoutSession,
-    createAppointmentRecord, openPaymentModal
-} from './booking.js';
+import { loadAvailabilityData, getBookedSlots, createAppointmentRecord } from './data.js';
+import { startCheckoutSession, setCheckoutStep, completeCheckoutSession, openPaymentModal } from './booking.js';
 
-const CHAT_BOOKING_ENGINE_URL = '/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1';
+const CHAT_UI_ENGINE_URL = withDeployAssetVersion('/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1');
+const CHAT_WIDGET_ENGINE_URL = withDeployAssetVersion('/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1');
+const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion('/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1');
+const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion('/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1-sync1');
 
-// CHATBOT FUNCTIONS
-export function toggleChatbot() {
-    const container = document.getElementById('chatbotContainer');
-    const notification = document.getElementById('chatNotification');
-    const isOpen = !getChatbotOpen();
-    setChatbotOpen(isOpen);
+const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
+const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
+const CHAT_HISTORY_MAX_ITEMS = 50;
+const CHAT_CONTEXT_MAX_ITEMS = 24;
 
-    if (isOpen) {
-        container.classList.add('active');
-        if (notification) notification.style.display = 'none';
-        scrollToBottom();
-        if (!getChatStartedTracked()) {
-            setChatStartedTracked(true);
-            trackEvent('chat_started', {
-                source: 'widget'
-            });
-        }
-
-        const history = getChatHistory();
-        // Si es la primera vez, mostrar mensaje inicial
-        if (history.length === 0) {
-            // Verificar si estamos usando IA real
-            const usandoIA = shouldUseRealAI();
-
-            debugLog('?? Estado del chatbot:', usandoIA ? 'IA REAL' : 'Respuestas locales');
-
-            var welcomeMsg;
-
-            if (usandoIA) {
-                welcomeMsg = '¡Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonía</strong>.<br><br>';
-                welcomeMsg += '<strong>Conectado con Inteligencia Artificial</strong><br><br>';
-                welcomeMsg += 'Puedo ayudarte con información detallada sobre:<br>';
-                welcomeMsg += '• Nuestros servicios dermatologicos<br>';
-                welcomeMsg += '• Precios de consultas y tratamientos<br>';
-                welcomeMsg += '• Agendar citas presenciales o online<br>';
-                welcomeMsg += '• Ubicacion y horarios de atencion<br>';
-                welcomeMsg += '• Resolver tus dudas sobre cuidado de la piel<br><br>';
-                welcomeMsg += '¿En que puedo ayudarte hoy?';
-            } else {
-                welcomeMsg = '¡Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonía</strong>.<br><br>';
-                welcomeMsg += 'Puedo ayudarte con información sobre:<br>';
-                welcomeMsg += '• Nuestros servicios dermatologicos<br>';
-                welcomeMsg += '• Precios de consultas y tratamientos<br>';
-                welcomeMsg += '• Agendar citas presenciales o online<br>';
-                welcomeMsg += '• Ubicacion y horarios de atencion<br><br>';
-                welcomeMsg += '¿En que puedo ayudarte hoy?';
-            }
-
-            addBotMessage(welcomeMsg);
-
-            // Sugerir opciones rapidas
-            setTimeout(function() {
-                var quickOptions = '<div class="chat-suggestions">';
-                quickOptions += '<button class="chat-suggestion-btn" data-action="quick-message" data-value="services">';
-                quickOptions += '<i class="fas fa-stethoscope"></i> Ver servicios';
-                quickOptions += '</button>';
-                quickOptions += '<button class="chat-suggestion-btn" data-action="quick-message" data-value="appointment">';
-                quickOptions += '<i class="fas fa-calendar-check"></i> Agendar cita';
-                quickOptions += '</button>';
-                quickOptions += '<button class="chat-suggestion-btn" data-action="quick-message" data-value="prices">';
-                quickOptions += '<i class="fas fa-tag"></i> Consultar precios';
-                quickOptions += '</button>';
-                quickOptions += '</div>';
-                addBotMessage(quickOptions);
-            }, 500);
-        }
-    } else {
-        container.classList.remove('active');
+export function escapeHtml(text) {
+    if (window.PielChatUiEngine && typeof window.PielChatUiEngine.escapeHtml === 'function') {
+        return window.PielChatUiEngine.escapeHtml(text);
     }
-}
-
-export function minimizeChatbot() {
-    document.getElementById('chatbotContainer').classList.remove('active');
-    setChatbotOpen(false);
-}
-
-export function handleChatKeypress(event) {
-    if (event.key === 'Enter') {
-        sendChatMessage();
-    }
-}
-
-export async function sendChatMessage() {
-    const input = document.getElementById('chatInput');
-    const message = input.value.trim();
-
-    if (!message) return;
-
-    addUserMessage(message);
-    input.value = '';
-
-    await processWithKimi(message);
-}
-
-export function sendQuickMessage(type) {
-    if (type === 'appointment') {
-        addUserMessage('Quiero agendar una cita');
-        startChatBooking();
-        return;
-    }
-
-    const messages = {
-        services: '¿Qué servicios ofrecen?',
-        prices: '¿Cuáles son los precios?',
-        telemedicine: '¿Cómo funciona la consulta online?',
-        human: 'Quiero hablar con un doctor real',
-        acne: 'Tengo problemas de acné',
-        laser: 'Información sobre tratamientos láser',
-        location: '¿Dónde están ubicados?'
-    };
-
-    const message = messages[type] || type;
-    addUserMessage(message);
-
-    processWithKimi(message);
-}
-
-export function addUserMessage(text) {
-    const messagesContainer = document.getElementById('chatMessages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'chat-message user';
-    messageDiv.innerHTML = `
-        <div class="message-avatar"><i class="fas fa-user"></i></div>
-        <div class="message-content"><p>${escapeHtml(text)}</p></div>
-    `;
-    messagesContainer.appendChild(messageDiv);
-    scrollToBottom();
-
-    const history = getChatHistory();
-    history.push({ type: 'user', text, time: new Date().toISOString() });
-    setChatHistory(history);
-
-    // Agregar al contexto de conversación (evitar duplicados)
-    const context = getConversationContext();
-    const lastMsg = context[context.length - 1];
-    if (!lastMsg || lastMsg.role !== 'user' || lastMsg.content !== text) {
-        context.push({ role: 'user', content: text });
-    }
-    setConversationContext(context);
-}
-
-export function addBotMessage(html, showOfflineLabel = false) {
-    const messagesContainer = document.getElementById('chatMessages');
-    const safeHtml = sanitizeBotHtml(html);
-
-    // Verificar si el ultimo mensaje es identico (evitar duplicados en UI)
-    const lastMessage = messagesContainer.querySelector('.chat-message.bot:last-child');
-    if (lastMessage) {
-        const lastContent = lastMessage.querySelector('.message-content');
-        if (lastContent && lastContent.innerHTML === safeHtml) {
-            debugLog('⚠️ Mensaje duplicado detectado, no se muestra');
-            return;
-        }
-    }
-
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'chat-message bot';
-
-    // Solo mostrar indicador offline si se solicita explícitamente (para debug)
-    const offlineIndicator = showOfflineLabel ?
-        `<div style="font-size: 0.7rem; color: #86868b; margin-bottom: 4px; opacity: 0.7;">
-            <i class="fas fa-robot"></i> Asistente Virtual
-        </div>` : '';
-
-    messageDiv.innerHTML = `
-        <div class="message-avatar"><i class="fas fa-user-md"></i></div>
-        <div class="message-content">${offlineIndicator}${safeHtml}</div>
-    `;
-    messagesContainer.appendChild(messageDiv);
-    scrollToBottom();
-
-    // Guardar en historial
-    const history = getChatHistory();
-    history.push({ type: 'bot', text: safeHtml, time: new Date().toISOString() });
-    setChatHistory(history);
-}
-
-export function showTypingIndicator() {
-    const messagesContainer = document.getElementById('chatMessages');
-    const typingDiv = document.createElement('div');
-    typingDiv.className = 'chat-message bot typing';
-    typingDiv.id = 'typingIndicator';
-    typingDiv.innerHTML = `
-        <div class="message-avatar"><i class="fas fa-user-md"></i></div>
-        <div class="typing-indicator">
-            <span></span><span></span><span></span>
-        </div>
-    `;
-    messagesContainer.appendChild(typingDiv);
-    scrollToBottom();
-}
-
-export function removeTypingIndicator() {
-    const typing = document.getElementById('typingIndicator');
-    if (typing) typing.remove();
-}
-
-function scrollToBottom() {
-    const container = document.getElementById('chatMessages');
-    container.scrollTop = container.scrollHeight;
-}
-
-function sanitizeBotHtml(html) {
-    const allowed = ['b', 'strong', 'i', 'em', 'br', 'p', 'ul', 'ol', 'li', 'a', 'div', 'button', 'input', 'span', 'small'];
-    const allowedAttrs = {
-        'a': ['href', 'target', 'rel'],
-        'button': ['class', 'data-action'],
-        'div': ['class', 'style'],
-        'input': ['type', 'id', 'min', 'style', 'value'],
-        'i': ['class'],
-        'span': ['class', 'style'],
-        'small': ['class']
-    };
-
-    // Convertir onclick inline a data-action antes de sanitizar
-    const safeHtml = html
-        .replace(/onclick="handleChatBookingSelection\('([^']+)'\)"/g, 'data-action="chat-booking" data-value="$1"')
-        .replace(/onclick="sendQuickMessage\('([^']+)'\)"/g, 'data-action="quick-message" data-value="$1"')
-        .replace(/onclick="handleChatDateSelect\(this\.value\)"/g, 'data-action="chat-date-select"')
-        .replace(/onclick="minimizeChatbot\(\)"/g, 'data-action="minimize-chat"')
-        .replace(/onclick="startChatBooking\(\)"/g, 'data-action="start-booking"');
-
     const div = document.createElement('div');
-    div.innerHTML = safeHtml;
-    div.querySelectorAll('script, style, iframe, object, embed').forEach(el => el.remove());
-    div.querySelectorAll('*').forEach(el => {
-        const tag = el.tagName.toLowerCase();
-        if (!allowed.includes(tag)) {
-            el.replaceWith(document.createTextNode(el.textContent));
-        } else {
-            const keep = [...(allowedAttrs[tag] || []), 'data-action', 'data-value'];
-            Array.from(el.attributes).forEach(attr => {
-                if (!keep.includes(attr.name)) {
-                    el.removeAttribute(attr.name);
-                }
-            });
-            if (tag === 'a') {
-                const href = el.getAttribute('href') || '';
-                if (!/^https?:\/\/|^#/.test(href)) el.removeAttribute('href');
-                if (href.startsWith('http')) {
-                    el.setAttribute('target', '_blank');
-                    el.setAttribute('rel', 'noopener noreferrer');
-                }
-            }
-            // Eliminar cualquier atributo on* que haya pasado
-            Array.from(el.attributes).forEach(attr => {
-                if (attr.name.startsWith('on')) {
-                    el.removeAttribute(attr.name);
-                }
-            });
-        }
-    });
+    div.textContent = text;
     return div.innerHTML;
 }
 
-function shouldUseRealAI() {
-    if (localStorage.getItem('forceAI') === 'true') {
-        return true;
+export function scrollToBottom() {
+    if (window.PielChatUiEngine && typeof window.PielChatUiEngine.scrollToBottom === 'function') {
+        window.PielChatUiEngine.scrollToBottom();
+        return;
     }
-
-    var protocol = window.location.protocol;
-
-    if (protocol === 'file:') {
-        return false;
+    const container = document.getElementById('chatMessages');
+    if (container) {
+        container.scrollTop = container.scrollHeight;
     }
-
-    return true;
 }
 
-// CHAT BOOKING ENGINE
+export function addUserMessage(text) {
+    return withDeferredModule(loadChatUiEngine, (engine) => engine.addUserMessage(text));
+}
+
+export function addBotMessage(html, showOfflineLabel = false) {
+    return runDeferredModule(loadChatUiEngine, (engine) => engine.addBotMessage(html, showOfflineLabel));
+}
+
+export function showTypingIndicator() {
+    runDeferredModule(loadChatUiEngine, (engine) => engine.showTypingIndicator());
+}
+
+export function removeTypingIndicator() {
+    runDeferredModule(loadChatUiEngine, (engine) => engine.removeTypingIndicator());
+}
+
+function getChatUiEngineDeps() {
+    return {
+        getChatHistory,
+        setChatHistory,
+        getConversationContext,
+        setConversationContext,
+        historyStorageKey: CHAT_HISTORY_STORAGE_KEY,
+        historyTtlMs: CHAT_HISTORY_TTL_MS,
+        historyMaxItems: CHAT_HISTORY_MAX_ITEMS,
+        contextMaxItems: CHAT_CONTEXT_MAX_ITEMS,
+        debugLog
+    };
+}
+
+export function loadChatUiEngine() {
+    return loadDeferredModule({
+        cacheKey: 'chat-ui-engine',
+        src: CHAT_UI_ENGINE_URL,
+        scriptDataAttribute: 'data-chat-ui-engine',
+        resolveModule: () => window.PielChatUiEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getChatUiEngineDeps()),
+        missingApiError: 'chat-ui-engine loaded without API',
+        loadError: 'No se pudo cargar chat-ui-engine.js',
+        logLabel: 'Chat UI engine'
+    });
+}
+
+export function initChatUiEngineWarmup() {
+    const warmup = createWarmupRunner(() => loadChatUiEngine(), { markWarmOnSuccess: true });
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
+    bindWarmupTarget('#chatInput', 'focus', warmup, false);
+    scheduleDeferredTask(warmup, { idleTimeout: 2600, fallbackDelay: 1300 });
+}
+
+function getChatWidgetEngineDeps() {
+    return {
+        getChatbotOpen,
+        setChatbotOpen,
+        getChatHistoryLength: () => getChatHistory().length,
+        warmChatUi: () => runDeferredModule(loadChatUiEngine, () => undefined),
+        scrollToBottom,
+        trackEvent,
+        debugLog,
+        addBotMessage,
+        addUserMessage,
+        processWithKimi,
+        startChatBooking
+    };
+}
+
+export function loadChatWidgetEngine() {
+    return loadDeferredModule({
+        cacheKey: 'chat-widget-engine',
+        src: CHAT_WIDGET_ENGINE_URL,
+        scriptDataAttribute: 'data-chat-widget-engine',
+        resolveModule: () => window.PielChatWidgetEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getChatWidgetEngineDeps()),
+        missingApiError: 'chat-widget-engine loaded without API',
+        loadError: 'No se pudo cargar chat-widget-engine.js',
+        logLabel: 'Chat widget engine'
+    });
+}
+
+export function initChatWidgetEngineWarmup() {
+    const warmup = createWarmupRunner(() => loadChatWidgetEngine(), { markWarmOnSuccess: true });
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
+    bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
+    bindWarmupTarget('#chatInput', 'focus', warmup, false);
+    scheduleDeferredTask(warmup, { idleTimeout: 2600, fallbackDelay: 1300 });
+}
+
+export function toggleChatbot() {
+    runDeferredModule(loadChatWidgetEngine, (engine) => engine.toggleChatbot(), () => {
+        const container = document.getElementById('chatbotContainer');
+        if (!container) return;
+        const isOpen = !getChatbotOpen();
+        setChatbotOpen(isOpen);
+        container.classList.toggle('active', isOpen);
+    });
+}
+
+export function minimizeChatbot() {
+    runDeferredModule(loadChatWidgetEngine, (engine) => engine.minimizeChatbot(), () => {
+        const container = document.getElementById('chatbotContainer');
+        if (container) container.classList.remove('active');
+        setChatbotOpen(false);
+    });
+}
+
+export function handleChatKeypress(event) {
+    runDeferredModule(loadChatWidgetEngine, (engine) => engine.handleChatKeypress(event), () => {
+        if (event && event.key === 'Enter') {
+            sendChatMessage();
+        }
+    });
+}
+
+export async function sendChatMessage() {
+    return runDeferredModule(loadChatWidgetEngine, (engine) => engine.sendChatMessage(), async () => {
+        const input = document.getElementById('chatInput');
+        if (!input) return;
+        const message = String(input.value || '').trim();
+        if (!message) return;
+        await Promise.resolve(addUserMessage(message)).catch(() => undefined);
+        input.value = '';
+        await processWithKimi(message);
+    });
+}
+
+export function sendQuickMessage(type) {
+    runDeferredModule(loadChatWidgetEngine, (engine) => engine.sendQuickMessage(type), () => {
+        if (type === 'appointment') {
+            Promise.resolve(addUserMessage('Quiero agendar una cita')).catch(() => undefined);
+            startChatBooking();
+            return;
+        }
+        const quickMessages = {
+            services: 'Que servicios ofrecen?',
+            prices: 'Cuales son los precios?',
+            telemedicine: 'Como funciona la consulta online?',
+            human: 'Quiero hablar con un doctor real',
+            acne: 'Tengo problemas de acne',
+            laser: 'Informacion sobre tratamientos laser',
+            location: 'Donde estan ubicados?'
+        };
+        const message = quickMessages[type] || type;
+        Promise.resolve(addUserMessage(message)).catch(() => undefined);
+        processWithKimi(message);
+    });
+}
+
+export function scheduleChatNotification() {
+    runDeferredModule(loadChatWidgetEngine, (engine) => engine.scheduleInitialNotification(30000));
+}
+
 function getChatBookingEngineDeps() {
     return {
         addBotMessage,
@@ -292,6 +198,7 @@ function getChatBookingEngineDeps() {
         loadAvailabilityData,
         getBookedSlots,
         startCheckoutSession,
+        setCheckoutStep,
         completeCheckoutSession,
         createAppointmentRecord,
         showToast,
@@ -299,8 +206,8 @@ function getChatBookingEngineDeps() {
         escapeHtml,
         minimizeChatbot,
         openPaymentModal,
-        getCurrentLang: getCurrentLang,
-        setCurrentAppointment: setCurrentAppointment
+        getCurrentLang,
+        setCurrentAppointment
     };
 }
 
@@ -320,17 +227,12 @@ export function loadChatBookingEngine() {
 
 export function initChatBookingEngineWarmup() {
     const warmup = createWarmupRunner(() => loadChatBookingEngine());
-
     bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
     bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
     bindWarmupTarget('#quickOptions [data-action="quick-message"][data-value="appointment"]', 'mouseenter', warmup);
     bindWarmupTarget('#quickOptions [data-action="quick-message"][data-value="appointment"]', 'touchstart', warmup);
     bindWarmupTarget('#chatInput', 'focus', warmup, false);
-
-    scheduleDeferredTask(warmup, {
-        idleTimeout: 2600,
-        fallbackDelay: 1700
-    });
+    scheduleDeferredTask(warmup, { idleTimeout: 2600, fallbackDelay: 1700 });
 }
 
 export function startChatBooking() {
@@ -339,16 +241,6 @@ export function startChatBooking() {
         (engine) => engine.startChatBooking(),
         () => {
             addBotMessage('No pude iniciar la reserva por chat. Puedes continuar desde <a href="#citas" data-action="minimize-chat">el formulario</a>.');
-        }
-    );
-}
-
-export function cancelChatBooking() {
-    runDeferredModule(
-        loadChatBookingEngine,
-        (engine) => engine.cancelChatBooking(),
-        () => {
-            addBotMessage('No se pudo cancelar la reserva en este momento.');
         }
     );
 }
@@ -364,10 +256,7 @@ export function handleChatBookingSelection(value) {
 }
 
 export function handleChatDateSelect(value) {
-    if (!value) {
-        return;
-    }
-
+    if (!value) return;
     runDeferredModule(
         loadChatBookingEngine,
         (engine) => engine.handleChatDateSelect(value),
@@ -392,11 +281,10 @@ export function isChatBookingActive() {
     return false;
 }
 
-// FIGO CHAT ENGINE
 export function loadFigoChatEngine() {
     return loadDeferredModule({
         cacheKey: 'figo-chat-engine',
-        src: '/chat-engine.js?v=figo-chat-20260218-phase2',
+        src: FIGO_CHAT_ENGINE_URL,
         scriptDataAttribute: 'data-figo-chat-engine',
         resolveModule: () => window.FigoChatEngine,
         isModuleReady: (module) => !!module,
@@ -407,15 +295,10 @@ export function loadFigoChatEngine() {
 
 export function initChatEngineWarmup() {
     const warmup = createWarmupRunner(() => loadFigoChatEngine(), { markWarmOnSuccess: true });
-
     bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
     bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
     bindWarmupTarget('#chatInput', 'focus', warmup);
-
-    scheduleDeferredTask(warmup, {
-        idleTimeout: 7000,
-        fallbackDelay: 7000
-    });
+    scheduleDeferredTask(warmup, { idleTimeout: 7000, fallbackDelay: 7000 });
 }
 
 export async function processWithKimi(message) {
@@ -428,24 +311,6 @@ export async function processWithKimi(message) {
             addBotMessage('No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.', false);
         }
     );
-}
-
-export function resetConversation() {
-    runDeferredModule(loadFigoChatEngine, (engine) => engine.resetConversation(), () => {
-        showToast('No se pudo reiniciar la conversacion.', 'warning');
-    });
-}
-
-export function forzarModoIA() {
-    runDeferredModule(loadFigoChatEngine, (engine) => engine.forzarModoIA(), () => {
-        showToast('No se pudo activar modo IA.', 'warning');
-    });
-}
-
-export function mostrarInfoDebug() {
-    runDeferredModule(loadFigoChatEngine, (engine) => engine.mostrarInfoDebug(), () => {
-        showToast('No se pudo mostrar informacion de debug.', 'warning');
-    });
 }
 
 export function checkServerEnvironment() {
