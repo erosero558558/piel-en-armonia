@@ -4,15 +4,15 @@ test('PWA Manifest and Service Worker Check', async ({ page }) => {
   await page.goto('/');
 
   // 1. Check Manifest Link
-  const manifestLink = await page.$('link[rel="manifest"]');
-  expect(manifestLink).not.toBeNull();
-  const manifestHref = await manifestLink.getAttribute('href');
-  expect(manifestHref).toBe('/manifest.json');
+  // Use locator and toHaveAttribute as per best practices
+  const manifestLink = page.locator('link[rel="manifest"]');
+  await expect(manifestLink).toHaveCount(1);
+  await expect(manifestLink).toHaveAttribute('href', '/manifest.json');
 
   // 2. Check Service Worker Registration
   // We can check if navigator.serviceWorker.controller is active or just if registration happens
   // Since registration is async, we can check console logs or network requests, or execute script
-  const swRegistration = await page.evaluate(async () => {
+  await page.evaluate(async () => {
     if ('serviceWorker' in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
       return regs.length > 0;
