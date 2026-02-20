@@ -4,9 +4,6 @@
  * Piel en Armonía
  */
 
-/* eslint-disable no-console */
-/* eslint-env node */
-
 import {
     computeTax,
     computeTotal,
