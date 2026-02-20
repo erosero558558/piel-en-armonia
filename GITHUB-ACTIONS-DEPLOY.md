@@ -63,6 +63,7 @@ Este gate corre:
 - benchmark API
 
 en modo estricto (`RequireStableDataDir`, `RequireBackupHealthy`, `RequireBackupReceiverReady`, `RequireCronReady`).
+Si falla (push/schedule), crea o actualiza un issue de incidente automaticamente.
 
 ## 6) Monitoreo continuo de produccion
 
@@ -82,3 +83,5 @@ Se puede correr manual con overrides:
 - `max_latency_ms`
 - `allow_degraded_figo`
 - `skip_backup_check`
+
+Si falla en ejecucion programada, crea/actualiza un issue de incidente automaticamente.
