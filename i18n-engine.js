@@ -8,7 +8,6 @@
 
     let deps = null;
     const I18N_HTML_ALLOWED_KEYS = new Set(['clinic_hours']);
-    const EN_TRANSLATIONS_URL = '/translations-en.js?v=ui-20260219-i18n-en3-sync1';
 
     const translations = {
         es: null,
@@ -19,6 +18,11 @@
 
     function init(inputDeps) {
         deps = inputDeps || {};
+
+        if (window.PIEL_CONTENT && typeof window.PIEL_CONTENT === 'object') {
+            translations.es = window.PIEL_CONTENT;
+        }
+
         return window.PielI18nEngine;
     }
 
@@ -53,37 +57,8 @@
         }
     }
 
-    function captureSpanishTranslationsFromDom() {
-        const bundle = {};
-        document.querySelectorAll('[data-i18n]').forEach((el) => {
-            const key = String(el.dataset.i18n || '').trim();
-            if (!key) {
-                return;
-            }
-
-            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                bundle[key] = el.placeholder || '';
-                return;
-            }
-
-            if (I18N_HTML_ALLOWED_KEYS.has(key)) {
-                bundle[key] = el.innerHTML || '';
-                return;
-            }
-
-            bundle[key] = el.textContent || '';
-        });
-
-        return bundle;
-    }
-
     function ensureEnglishTranslations() {
         if (translations.en && typeof translations.en === 'object') {
-            return Promise.resolve(translations.en);
-        }
-
-        if (window.PIEL_EN_TRANSLATIONS && typeof window.PIEL_EN_TRANSLATIONS === 'object') {
-            translations.en = window.PIEL_EN_TRANSLATIONS;
             return Promise.resolve(translations.en);
         }
 
@@ -91,41 +66,20 @@
             return enTranslationsPromise;
         }
 
-        enTranslationsPromise = new Promise((resolve, reject) => {
-            const existing = document.querySelector('script[data-en-translations="true"]');
-            if (existing) {
-                existing.addEventListener('load', () => {
-                    if (window.PIEL_EN_TRANSLATIONS && typeof window.PIEL_EN_TRANSLATIONS === 'object') {
-                        translations.en = window.PIEL_EN_TRANSLATIONS;
-                        resolve(translations.en);
-                        return;
-                    }
-                    reject(new Error('English translations loaded without payload'));
-                }, { once: true });
-                existing.addEventListener('error', () => reject(new Error('No se pudo cargar translations-en.js')), { once: true });
-                return;
-            }
-
-            const script = document.createElement('script');
-            script.src = EN_TRANSLATIONS_URL;
-            script.async = true;
-            script.defer = true;
-            script.dataset.enTranslations = 'true';
-            script.onload = () => {
-                if (window.PIEL_EN_TRANSLATIONS && typeof window.PIEL_EN_TRANSLATIONS === 'object') {
-                    translations.en = window.PIEL_EN_TRANSLATIONS;
-                    resolve(translations.en);
-                    return;
-                }
-                reject(new Error('English translations loaded without payload'));
-            };
-            script.onerror = () => reject(new Error('No se pudo cargar translations-en.js'));
-            document.head.appendChild(script);
-        }).catch((error) => {
-            enTranslationsPromise = null;
-            debugLogSafe('English translations load failed:', error);
-            throw error;
-        });
+        enTranslationsPromise = fetch('api.php?resource=content&lang=en')
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to load EN content');
+                return response.json();
+            })
+            .then(data => {
+                translations.en = data;
+                return translations.en;
+            })
+            .catch((error) => {
+                enTranslationsPromise = null;
+                debugLogSafe('English translations load failed:', error);
+                throw error;
+            });
 
         return enTranslationsPromise;
     }
@@ -138,7 +92,15 @@
         document.documentElement.lang = nextLang;
 
         if (!translations.es || typeof translations.es !== 'object') {
-            translations.es = captureSpanishTranslationsFromDom();
+            // Fallback: try to load ES from API if not injected
+            try {
+                const res = await fetch('api.php?resource=content&lang=es');
+                if (res.ok) {
+                    translations.es = await res.json();
+                }
+            } catch (e) {
+                debugLogSafe('Failed to load ES content fallback', e);
+            }
         }
 
         if (nextLang === 'en' && !translations.en) {

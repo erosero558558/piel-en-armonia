@@ -15,6 +15,7 @@ require_once __DIR__ . '/controllers/AppointmentController.php';
 require_once __DIR__ . '/controllers/CallbackController.php';
 require_once __DIR__ . '/controllers/ReviewController.php';
 require_once __DIR__ . '/controllers/AvailabilityController.php';
+require_once __DIR__ . '/controllers/ContentController.php';
 
 init_monitoring();
 
@@ -659,6 +660,7 @@ $publicEndpoints = [
     ['method' => 'POST', 'resource' => 'reviews'],
     ['method' => 'GET', 'resource' => 'reschedule'],
     ['method' => 'PATCH', 'resource' => 'reschedule'],
+    ['method' => 'GET', 'resource' => 'content'],
 ];
 
 $isPublic = false;
@@ -1028,6 +1030,11 @@ if ($method === 'GET' && $resource === 'reschedule') {
 
 if ($method === 'PATCH' && $resource === 'reschedule') {
     AppointmentController::processReschedule($context);
+    exit;
+}
+
+if ($method === 'GET' && $resource === 'content') {
+    ContentController::get($context);
     exit;
 }
 

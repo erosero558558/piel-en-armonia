@@ -44,7 +44,7 @@ test.describe('Checklist de Pruebas en Producción', () => {
   test('1. Pre-check de servidor - Archivos críticos existen', async () => {
     const requiredFiles = [
       'index.html', 'index.php', 'styles.css', 'styles-deferred.css', 'script.js',
-      'chat-engine.js', 'booking-engine.js', 'reviews-engine.js', 'translations-en.js',
+      'chat-engine.js', 'booking-engine.js', 'reviews-engine.js',
       'terminos.html', 'privacidad.html', 'cookies.html', 'aviso-medico.html',
       'legal.css', 'admin.html', 'admin.js', 'api.php', 'api-lib.php',
       'payment-lib.php', 'admin-auth.php', 'figo-chat.php'
