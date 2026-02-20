@@ -114,3 +114,64 @@ Utilizar los scripts de PowerShell incluidos en el repositorio para métricas.
 
 *   **Latencia:** `.\BENCH-API-PRODUCCION.ps1` mide el tiempo de respuesta de la API.
 *   **Disponibilidad:** `.\SMOKE-PRODUCCION.ps1` realiza un recorrido rápido por las URLs principales.
+
+---
+
+## 5. Procedimiento de Rollback
+
+### 5.1 Revertir Código (Deploy Fallido)
+Si un despliegue introduce errores críticos (pantalla blanca, errores 500 generalizados), se debe revertir el código a la versión estable anterior.
+
+**Método A: Revertir vía GitHub (Recomendado)**
+1.  Identificar el commit problemático en la historia de `main`.
+2.  Crear un revert commit:
+    ```bash
+    git revert <commit-hash>
+    git push origin main
+    ```
+3.  Esto disparará automáticamente el workflow de despliegue (`deploy-hosting.yml`).
+4.  Monitorear la pestaña "Actions" en GitHub hasta que el deploy finalice (verde).
+
+**Método B: Revertir Manual (Emergencia)**
+Si GitHub Actions no funciona:
+1.  Localizar el backup local o checkout del commit anterior.
+2.  Subir manualmente los archivos PHP/JS/HTML vía FTP/SFTP (ver sección 1.2).
+    *   **NO** sobrescribir la carpeta `data/`.
+    *   **NO** subir `env.php` si no ha cambiado.
+
+### 5.2 Restauración de Base de Datos (Rollback de Datos)
+Si el despliegue corrompió `store.json` o borró datos:
+
+**Punto de Restauración:**
+El sistema genera backups automáticos en `data/backups/` antes de cada escritura.
+
+**Pasos:**
+1.  Acceder por SFTP a `data/backups/`.
+2.  Localizar el archivo `store-YYYYMMDD-HHMMSS-XXXXXX.json` con fecha/hora justo antes del incidente.
+3.  Descargar y verificar que el JSON es válido.
+4.  Renombrar `data/store.json` a `data/store.json.corrupt` (como evidencia).
+5.  Subir el backup seleccionado como `data/store.json`.
+6.  Verificar permisos (664 o 644).
+
+### 5.3 Contactos de Emergencia
+En caso de incidentes críticos que no se pueden resolver con rollback:
+
+*   **Líder Técnico:** [Nombre/Teléfono - Ver Gestor de Contraseñas]
+*   **Hosting Support:** [Link/Ticket]
+*   **Stripe Support:** [Link]
+
+### 5.4 Checklist de Validación Post-Rollback
+Una vez revertido el cambio, ejecutar las siguientes validaciones:
+
+1.  **Smoke Test:**
+    *   [ ] La página de inicio carga sin errores visuales.
+    *   [ ] `/api.php?resource=health` devuelve `{"status":"ok", ...}`.
+    *   [ ] `/api.php?resource=features` devuelve la configuración correcta.
+
+2.  **Flujos Críticos:**
+    *   [ ] El widget de reserva muestra horarios disponibles.
+    *   [ ] El formulario de "Telemedicina" carga correctamente.
+    *   [ ] Iniciar sesión en `/admin.html` (si aplica).
+
+3.  **Logs:**
+    *   [ ] Verificar que no hay nuevos errores fatales en `php.log` o `error_log`.

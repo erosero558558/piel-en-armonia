@@ -18,7 +18,7 @@ $tests = [
 
     // --- Robustness (Fuzzy) ---
     ['prcio consulta', 'valores referenciales'], // "precio"
-    ['cunto cuesta acne', '$89.60'], // "cuanto"
+    ['cunto cuesta acne', '$80.00'], // "cuanto" - Acne is 0% tax ($80.00)
 
     // --- Core Business ---
     ['agendar cita', 'Maravillosa elección'],
