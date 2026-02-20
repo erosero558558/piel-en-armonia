@@ -508,6 +508,13 @@ register_shutdown_function(static function () use ($requestStartedAt, $method, $
         }
     }
 
+    if (class_exists('Metrics')) {
+        // Track memory usage in bytes with custom buckets (256KB to 128MB)
+        Metrics::observe('php_memory_usage_bytes', (float)memory_get_peak_usage(true), [], [
+            262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216, 33554432, 67108864, 134217728
+        ]);
+    }
+
     if ($elapsed < 2000) {
         return;
     }
@@ -713,7 +720,15 @@ if ($resource === 'figo-config' && in_array($method, ['POST', 'PUT', 'PATCH'], t
     ]);
 }
 
+$storeReadStart = microtime(true);
 $store = read_store();
+$storeReadDuration = microtime(true) - $storeReadStart;
+
+if (class_exists('Metrics')) {
+    Metrics::observe('store_read_duration_seconds', $storeReadDuration, [], [
+        0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0
+    ]);
+}
 
 if ($resource === 'metrics') {
     if (!class_exists('Metrics')) {
@@ -767,6 +782,45 @@ if ($resource === 'metrics') {
     $rate = $totalValid > 0 ? ($stats['no_show'] / $totalValid) : 0;
     echo "\n# TYPE pielarmonia_no_show_rate gauge";
     echo "\npielarmonia_no_show_rate $rate\n";
+
+    // Store File Size
+    $storeSize = @filesize(data_file_path());
+    if ($storeSize !== false) {
+        echo "\n# TYPE pielarmonia_store_file_size_bytes gauge";
+        echo "\npielarmonia_store_file_size_bytes $storeSize";
+    }
+
+    // Service Popularity
+    $serviceCounts = [];
+    foreach ($store['appointments'] as $appt) {
+        $svc = $appt['service'] ?? 'unknown';
+        if ($svc === '') $svc = 'unknown';
+        if (!isset($serviceCounts[$svc])) $serviceCounts[$svc] = 0;
+        $serviceCounts[$svc]++;
+    }
+    foreach ($serviceCounts as $svc => $count) {
+        echo "\n# TYPE pielarmonia_service_popularity_total gauge";
+        echo "\npielarmonia_service_popularity_total{service=\"$svc\"} $count";
+    }
+
+    // Lead Time (Last 30 days)
+    $leadTimes = [];
+    $now = time();
+    foreach ($store['appointments'] as $appt) {
+        if (($appt['status'] ?? '') === 'cancelled') continue;
+        $bookedAt = isset($appt['dateBooked']) ? strtotime($appt['dateBooked']) : false;
+        $apptTime = strtotime(($appt['date'] ?? '') . ' ' . ($appt['time'] ?? ''));
+        // Only consider bookings made in the last 30 days
+        if ($bookedAt && $apptTime && $bookedAt > ($now - 30 * 86400)) {
+            $lead = $apptTime - $bookedAt;
+            if ($lead > 0) $leadTimes[] = $lead;
+        }
+    }
+    if (count($leadTimes) > 0) {
+        $avgLead = array_sum($leadTimes) / count($leadTimes);
+        echo "\n# TYPE pielarmonia_lead_time_seconds_avg gauge";
+        echo "\npielarmonia_lead_time_seconds_avg $avgLead\n";
+    }
 
     exit;
 }
@@ -1097,6 +1151,9 @@ if ($method === 'POST' && $resource === 'stripe-webhook') {
             unset($appt);
             if ($updated) {
                 write_store($webhookStore);
+                if (class_exists('Metrics')) {
+                    Metrics::increment('conversion_funnel_events_total', ['step' => 'payment_success']);
+                }
                 audit_log_event('stripe.webhook_payment_confirmed', ['intentId' => $intentId]);
             }
         }
