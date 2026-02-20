@@ -79,9 +79,9 @@ function normalize_review(array $review): array
     }
     return [
         'id' => isset($review['id']) ? (int) $review['id'] : (int) round(microtime(true) * 1000),
-        'name' => truncate_field(isset($review['name']) ? trim((string) $review['name']) : '', 100),
+        'name' => truncate_field(sanitize_xss(isset($review['name']) ? trim((string) $review['name']) : ''), 100),
         'rating' => $rating,
-        'text' => truncate_field(isset($review['text']) ? trim((string) $review['text']) : '', 2000),
+        'text' => truncate_field(sanitize_xss(isset($review['text']) ? trim((string) $review['text']) : ''), 2000),
         'date' => isset($review['date']) ? (string) $review['date'] : local_date('c'),
         'verified' => isset($review['verified']) ? parse_bool($review['verified']) : true
     ];
@@ -92,7 +92,7 @@ function normalize_callback(array $callback): array
     return [
         'id' => isset($callback['id']) ? (int) $callback['id'] : (int) round(microtime(true) * 1000),
         'telefono' => truncate_field(sanitize_phone((string) ($callback['telefono'] ?? '')), 20),
-        'preferencia' => truncate_field((string) ($callback['preferencia'] ?? ''), 200),
+        'preferencia' => truncate_field(sanitize_xss((string) ($callback['preferencia'] ?? '')), 200),
         'fecha' => isset($callback['fecha']) ? (string) $callback['fecha'] : local_date('c'),
         'status' => map_callback_status((string) ($callback['status'] ?? 'pendiente'))
     ];
@@ -100,7 +100,7 @@ function normalize_callback(array $callback): array
 
 function normalize_appointment(array $appointment): array
 {
-    $service = (string) ($appointment['service'] ?? '');
+    $service = sanitize_xss((string) ($appointment['service'] ?? ''));
     $paymentMethod = strtolower(trim((string) ($appointment['paymentMethod'] ?? 'unpaid')));
     if (!in_array($paymentMethod, ['card', 'transfer', 'cash', 'unpaid'], true)) {
         $paymentMethod = 'unpaid';
@@ -127,15 +127,15 @@ function normalize_appointment(array $appointment): array
     return [
         'id' => isset($appointment['id']) ? (int) $appointment['id'] : (int) round(microtime(true) * 1000),
         'service' => truncate_field($service, 50),
-        'doctor' => truncate_field((string) ($appointment['doctor'] ?? ''), 100),
+        'doctor' => truncate_field(sanitize_xss((string) ($appointment['doctor'] ?? '')), 100),
         'date' => truncate_field((string) ($appointment['date'] ?? ''), 20),
         'time' => truncate_field((string) ($appointment['time'] ?? ''), 10),
-        'name' => truncate_field(trim((string) ($appointment['name'] ?? '')), 150),
+        'name' => truncate_field(sanitize_xss(trim((string) ($appointment['name'] ?? ''))), 150),
         'email' => truncate_field(trim((string) ($appointment['email'] ?? '')), 254),
         'phone' => truncate_field(sanitize_phone((string) ($appointment['phone'] ?? '')), 20),
-        'reason' => truncate_field(trim((string) ($appointment['reason'] ?? '')), 1000),
-        'affectedArea' => truncate_field(trim((string) ($appointment['affectedArea'] ?? '')), 100),
-        'evolutionTime' => truncate_field(trim((string) ($appointment['evolutionTime'] ?? '')), 100),
+        'reason' => truncate_field(sanitize_xss(trim((string) ($appointment['reason'] ?? ''))), 1000),
+        'affectedArea' => truncate_field(sanitize_xss(trim((string) ($appointment['affectedArea'] ?? ''))), 100),
+        'evolutionTime' => truncate_field(sanitize_xss(trim((string) ($appointment['evolutionTime'] ?? ''))), 100),
         'privacyConsent' => $privacyConsent,
         'privacyConsentAt' => truncate_field(trim((string) ($appointment['privacyConsentAt'] ?? $privacyConsentAtDefault)), 30),
         'casePhotoCount' => $casePhotoCount,
@@ -152,7 +152,7 @@ function normalize_appointment(array $appointment): array
         'transferReference' => truncate_field(trim((string) ($appointment['transferReference'] ?? '')), 100),
         'transferProofPath' => truncate_field(trim((string) ($appointment['transferProofPath'] ?? '')), 300),
         'transferProofUrl' => truncate_field(trim((string) ($appointment['transferProofUrl'] ?? '')), 300),
-        'transferProofName' => truncate_field(trim((string) ($appointment['transferProofName'] ?? '')), 200),
+        'transferProofName' => truncate_field(sanitize_xss(trim((string) ($appointment['transferProofName'] ?? ''))), 200),
         'transferProofMime' => truncate_field(trim((string) ($appointment['transferProofMime'] ?? '')), 50),
         'dateBooked' => isset($appointment['dateBooked']) ? (string) $appointment['dateBooked'] : local_date('c'),
         'rescheduleToken' => isset($appointment['rescheduleToken']) && $appointment['rescheduleToken'] !== ''
