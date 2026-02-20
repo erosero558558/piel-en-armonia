@@ -93,6 +93,7 @@ if ($action === 'backup-health') {
 
     $status = backup_latest_status($maxAgeHours);
     $status['offsiteConfigured'] = backup_offsite_configured();
+    $status['replicaMode'] = function_exists('backup_replica_mode') ? backup_replica_mode() : 'none';
     $status['timestamp'] = local_date('c');
 
     audit_log_event(
@@ -103,7 +104,8 @@ if ($action === 'backup-health') {
             'count' => (int) ($status['count'] ?? 0),
             'latestAgeHours' => $status['latestAgeHours'] ?? null,
             'maxAgeHours' => (int) ($status['maxAgeHours'] ?? $maxAgeHours),
-            'offsiteConfigured' => (bool) $status['offsiteConfigured']
+            'offsiteConfigured' => (bool) $status['offsiteConfigured'],
+            'replicaMode' => (string) ($status['replicaMode'] ?? 'none')
         ]
     );
 
@@ -148,11 +150,13 @@ if ($action === 'backup-offsite') {
         'counts' => isset($snapshot['counts']) && is_array($snapshot['counts']) ? $snapshot['counts'] : []
     ];
 
+    $replicaMode = function_exists('backup_replica_mode') ? backup_replica_mode() : 'none';
     if ($dryRun) {
         audit_log_event('cron.backup_offsite.dry_run', [
             'file' => $snapshotSummary['file'],
             'sizeBytes' => $snapshotSummary['sizeBytes'],
-            'offsiteConfigured' => backup_offsite_configured()
+            'offsiteConfigured' => backup_offsite_configured(),
+            'replicaMode' => $replicaMode
         ]);
 
         cron_json([
@@ -160,35 +164,42 @@ if ($action === 'backup-offsite') {
             'action' => 'backup-offsite',
             'dryRun' => true,
             'offsiteConfigured' => backup_offsite_configured(),
+            'replicaMode' => $replicaMode,
             'snapshot' => $snapshotSummary
         ]);
     }
 
-    if (!backup_offsite_configured()) {
+    if ($replicaMode === 'none') {
         audit_log_event('cron.backup_offsite.warn', [
             'reason' => 'offsite_not_configured',
-            'file' => $snapshotSummary['file']
+            'file' => $snapshotSummary['file'],
+            'replicaMode' => 'none'
         ]);
 
         cron_json([
             'ok' => false,
             'action' => 'backup-offsite',
-            'error' => 'PIELARMONIA_BACKUP_OFFSITE_URL no configurado',
+            'error' => 'No hay destino de replica configurado',
             'snapshot' => $snapshotSummary
         ], 503);
     }
 
-    $upload = backup_upload_file((string) $snapshot['uploadPath'], [
+    $replicaMetadata = [
         'source' => 'pielarmonia',
         'storeEncrypted' => store_file_is_encrypted(),
         'dataDir' => basename((string) data_dir_path()),
         'snapshotCreatedAt' => (string) ($snapshot['createdAt'] ?? local_date('c')),
         'snapshotSha256' => (string) ($snapshot['sha256'] ?? ''),
         'runtimeVersion' => app_runtime_version()
-    ]);
+    ];
+
+    $upload = $replicaMode === 'remote'
+        ? backup_upload_file((string) $snapshot['uploadPath'], $replicaMetadata)
+        : backup_replicate_local_file((string) $snapshot['uploadPath'], $replicaMetadata);
 
     $uploadOk = (bool) ($upload['ok'] ?? false);
     audit_log_event($uploadOk ? 'cron.backup_offsite.ok' : 'cron.backup_offsite.fail', [
+        'replicaMode' => $replicaMode,
         'status' => (int) ($upload['status'] ?? 0),
         'reason' => (string) ($upload['reason'] ?? ''),
         'file' => $snapshotSummary['file']
@@ -197,6 +208,7 @@ if ($action === 'backup-offsite') {
     cron_json([
         'ok' => $uploadOk,
         'action' => 'backup-offsite',
+        'replicaMode' => $replicaMode,
         'snapshot' => $snapshotSummary,
         'upload' => $upload
     ], $uploadOk ? 200 : 502);

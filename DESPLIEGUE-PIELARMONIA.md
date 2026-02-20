@@ -99,6 +99,7 @@ Configura estas variables en tu hosting:
 - `PIELARMONIA_BACKUP_OFFSITE_TOKEN` (opcional)
 - `PIELARMONIA_BACKUP_OFFSITE_TOKEN_HEADER` (opcional, default `Authorization`)
 - `PIELARMONIA_BACKUP_OFFSITE_TIMEOUT_SECONDS` (opcional, default 20)
+- `PIELARMONIA_BACKUP_LOCAL_REPLICA` (opcional, default `true`, replica local en `data/backups/offsite-local/`)
 
 Importante:
 - Ya no existe fallback `admin123`, incluso en local.

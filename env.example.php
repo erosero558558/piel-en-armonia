@@ -61,6 +61,8 @@
 // putenv('PIELARMONIA_BACKUP_OFFSITE_TOKEN_HEADER=Authorization');
 // Timeout de subida offsite en segundos (5-120, default 20)
 // putenv('PIELARMONIA_BACKUP_OFFSITE_TIMEOUT_SECONDS=20');
+// Replica local de snapshots (default true). Guardado en data/backups/offsite-local/
+// putenv('PIELARMONIA_BACKUP_LOCAL_REPLICA=true');
 
 // ── Base de Datos (opcional) ────────────────────────
 // putenv('PIELARMONIA_DB_HOST=127.0.0.1');

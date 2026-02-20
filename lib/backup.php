@@ -24,6 +24,10 @@ if (!defined('BACKUP_OFFSITE_MAX_TIMEOUT_SECONDS')) {
     define('BACKUP_OFFSITE_MAX_TIMEOUT_SECONDS', 120);
 }
 
+if (!defined('BACKUP_LOCAL_REPLICA_DIRNAME')) {
+    define('BACKUP_LOCAL_REPLICA_DIRNAME', 'offsite-local');
+}
+
 function backup_health_max_age_hours(): int
 {
     $raw = getenv('PIELARMONIA_BACKUP_MAX_AGE_HOURS');
@@ -68,6 +72,32 @@ function backup_offsite_target_url(): string
     ]);
 }
 
+function backup_local_replica_enabled(): bool
+{
+    $raw = getenv('PIELARMONIA_BACKUP_LOCAL_REPLICA');
+    if (!is_string($raw) || trim($raw) === '') {
+        // Enabled by default to keep backup replication active even without remote endpoint.
+        return true;
+    }
+    return parse_bool($raw);
+}
+
+function backup_local_replica_dir(): string
+{
+    return backup_dir_path() . DIRECTORY_SEPARATOR . BACKUP_LOCAL_REPLICA_DIRNAME;
+}
+
+function backup_replica_mode(): string
+{
+    if (backup_offsite_target_url() !== '') {
+        return 'remote';
+    }
+    if (backup_local_replica_enabled()) {
+        return 'local';
+    }
+    return 'none';
+}
+
 function backup_offsite_token(): string
 {
     return backup_first_non_empty_string([
@@ -88,7 +118,7 @@ function backup_offsite_token_header(): string
 
 function backup_offsite_configured(): bool
 {
-    return backup_offsite_target_url() !== '';
+    return backup_replica_mode() !== 'none';
 }
 
 function backup_list_files(int $limit = 0): array
@@ -500,5 +530,64 @@ function backup_upload_file(string $filePath, array $metadata = []): array
         'status' => $status,
         'reason' => $ok ? '' : 'offsite_http_error',
         'response' => $responseSummary
+    ];
+}
+
+function backup_replicate_local_file(string $filePath, array $metadata = []): array
+{
+    if (!backup_local_replica_enabled()) {
+        return [
+            'ok' => false,
+            'status' => 0,
+            'reason' => 'local_replica_disabled'
+        ];
+    }
+
+    if (!is_file($filePath) || !is_readable($filePath)) {
+        return [
+            'ok' => false,
+            'status' => 0,
+            'reason' => 'snapshot_not_readable'
+        ];
+    }
+
+    $replicaDir = backup_local_replica_dir();
+    if (!is_dir($replicaDir) && !@mkdir($replicaDir, 0775, true) && !is_dir($replicaDir)) {
+        return [
+            'ok' => false,
+            'status' => 0,
+            'reason' => 'local_replica_dir_not_ready'
+        ];
+    }
+
+    $destination = $replicaDir . DIRECTORY_SEPARATOR . basename($filePath);
+    if (!@copy($filePath, $destination)) {
+        return [
+            'ok' => false,
+            'status' => 0,
+            'reason' => 'local_replica_copy_failed'
+        ];
+    }
+
+    $sourceShaPath = $filePath . '.sha256';
+    if (is_file($sourceShaPath) && is_readable($sourceShaPath)) {
+        @copy($sourceShaPath, $destination . '.sha256');
+    }
+
+    $metaFile = $destination . '.meta.json';
+    $meta = $metadata;
+    $meta['replicatedAt'] = local_date('c');
+    $meta['runtimeVersion'] = app_runtime_version();
+    @file_put_contents($metaFile, json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);
+
+    $bytes = @filesize($destination);
+    return [
+        'ok' => true,
+        'status' => 200,
+        'reason' => '',
+        'mode' => 'local',
+        'file' => basename($destination),
+        'path' => $destination,
+        'sizeBytes' => is_int($bytes) && $bytes > 0 ? $bytes : 0
     ];
 }

@@ -99,6 +99,9 @@ curl -s "https://pielarmonia.com/cron.php?action=backup-offsite&dryRun=1&token=Y
 * `PIELARMONIA_BACKUP_OFFSITE_TOKEN` (opcional)
 * `PIELARMONIA_BACKUP_OFFSITE_TOKEN_HEADER` (opcional)
 * `PIELARMONIA_BACKUP_MAX_AGE_HOURS` (opcional)
+* `PIELARMONIA_BACKUP_LOCAL_REPLICA` (opcional, default `true`)
+
+Si no configuras endpoint remoto, `backup-offsite` replica localmente en `data/backups/offsite-local/`.
 
 ### 3.3 Revisión de Auditoría
 Revisar `data/audit.log` semanalmente en busca de:
