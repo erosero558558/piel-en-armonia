@@ -121,6 +121,78 @@
     }
     </style>
     <style>
+    /* Critical fallback: pricing/disclaimers should never render as raw left-aligned text */
+    .pricing-container{
+        width:min(1000px, calc(100% - 24px));
+        margin:0 auto;
+        display:flex;
+        flex-direction:column;
+        gap:24px;
+    }
+    .pricing-category{
+        background:rgba(255, 255, 255, 0.92);
+        border:1px solid rgba(190, 205, 228, 0.78);
+        border-radius:20px;
+        padding:24px;
+    }
+    .pricing-category-title{
+        display:flex;
+        align-items:center;
+        gap:10px;
+        margin-bottom:8px;
+        font-size:1.35rem;
+    }
+    .pricing-item{
+        display:flex;
+        justify-content:space-between;
+        align-items:flex-start;
+        gap:12px;
+        padding:12px 0;
+        border-bottom:1px dashed rgba(160, 178, 204, 0.45);
+    }
+    .pricing-item:last-child{border-bottom:none}
+    .pricing-name{font-weight:600}
+    .pricing-desc{
+        display:block;
+        color:#6b7890;
+        font-size:0.9rem;
+    }
+    .pricing-disclaimer{
+        width:min(1000px, calc(100% - 24px));
+        margin:30px auto 0;
+        padding:20px;
+        border-radius:20px;
+        border:1px solid rgba(190, 205, 228, 0.78);
+        background:rgba(255, 255, 255, 0.9);
+    }
+    .services-disclaimers{
+        width:min(900px, calc(100% - 24px));
+        margin:40px auto 0;
+        display:grid;
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+        gap:12px;
+    }
+    .disclaimer-item{
+        display:flex;
+        gap:10px;
+        align-items:flex-start;
+        padding:14px;
+        border-radius:14px;
+        background:rgba(255, 255, 255, 0.9);
+        border:1px solid rgba(190, 205, 228, 0.62);
+    }
+    @media (max-width:768px){
+    .pricing-item{flex-direction:column}
+    .services-disclaimers{grid-template-columns:1fr}
+    }
+    html[data-theme='dark'] .pricing-category,
+    html[data-theme='dark'] .pricing-disclaimer,
+    html[data-theme='dark'] .disclaimer-item{
+        background:rgba(15, 26, 44, 0.92);
+        border-color:rgba(122, 156, 207, 0.38);
+    }
+    </style>
+    <style>
     /* Chat viewport guardrails for small windows/mobile */
     @media (max-width:900px){
     .chatbot-widget{
@@ -157,7 +229,7 @@
     }
     }
     </style>
-    <link rel="preload" as="style" href="styles-deferred.css?v=ui-20260220-deferred14-pricingfix1">
+    <link rel="preload" as="style" href="styles-deferred.css?v=ui-20260220-deferred15-pricingfallback1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
