@@ -3,7 +3,8 @@
         "phpmailer/phpmailer": "^7.0",
         "predis/predis": "^3.4",
         "sentry/sdk": "^4.0",
-        "monolog/monolog": "^3.10"
+        "monolog/monolog": "^3.10",
+        "webonyx/graphql-php": "^15.30"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.0",
@@ -11,7 +12,8 @@
     },
     "autoload": {
         "psr-4": {
-            "": "lib/"
+            "": "lib/",
+            "App\\GraphQL\\": "lib/GraphQL/"
         }
     }
 }
