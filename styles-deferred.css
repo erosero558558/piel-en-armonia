@@ -3155,3 +3155,28 @@ html[data-theme='dark'] .map-placeholder:hover .map-placeholder-content i {
         transform: translateY(-3px);
     }
 }
+
+/* Keep chat and quick actions reachable while consent banner is visible. */
+body.cookie-banner-active .chatbot-widget {
+    bottom: calc(152px + var(--safe-bottom));
+}
+
+body.cookie-banner-active .quick-dock {
+    bottom: calc(106px + var(--safe-bottom));
+}
+
+@media (max-width: 900px) {
+    body.cookie-banner-active .chatbot-widget {
+        bottom: calc(176px + var(--safe-bottom));
+    }
+
+    body.cookie-banner-active .quick-dock {
+        bottom: calc(102px + var(--safe-bottom));
+    }
+}
+
+@media (max-width: 640px) {
+    body.cookie-banner-active .chatbot-widget {
+        bottom: calc(192px + var(--safe-bottom));
+    }
+}

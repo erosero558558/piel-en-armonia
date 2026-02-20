@@ -88,12 +88,25 @@
         gtag('config', measurementId);
     }
 
+    function setBannerActiveState(banner, isActive) {
+        if (!banner) {
+            return;
+        }
+
+        const active = isActive === true;
+        banner.classList.toggle('active', active);
+
+        if (document.body) {
+            document.body.classList.toggle('cookie-banner-active', active);
+        }
+    }
+
     function bindCookieButtons(acceptBtn, rejectBtn, banner) {
         if (acceptBtn && !acceptBtn.dataset.cookieBound) {
             acceptBtn.dataset.cookieBound = 'true';
             acceptBtn.addEventListener('click', () => {
                 setCookieConsent('accepted');
-                banner.classList.remove('active');
+                setBannerActiveState(banner, false);
                 showToastSafe(
                     getCurrentLang() === 'es'
                         ? 'Preferencias de cookies guardadas.'
@@ -109,7 +122,7 @@
             rejectBtn.dataset.cookieBound = 'true';
             rejectBtn.addEventListener('click', () => {
                 setCookieConsent('rejected');
-                banner.classList.remove('active');
+                setBannerActiveState(banner, false);
                 showToastSafe(
                     getCurrentLang() === 'es'
                         ? 'Solo se mantendran cookies esenciales.'
@@ -127,9 +140,9 @@
 
         const consent = getCookieConsent();
         if (consent === 'accepted' || consent === 'rejected') {
-            banner.classList.remove('active');
+            setBannerActiveState(banner, false);
         } else {
-            banner.classList.add('active');
+            setBannerActiveState(banner, true);
         }
 
         const acceptBtn = document.getElementById('cookieAcceptBtn');

@@ -121,8 +121,61 @@
     }
     </style>
     <style>
+    /* Pricing fallback: prevents raw left-aligned text if deferred CSS is delayed */
+    .pricing-container{
+        width:min(1000px, calc(100% - 24px));
+        margin:0 auto;
+        display:flex;
+        flex-direction:column;
+        gap:24px;
+    }
+    .pricing-category{
+        border-radius:20px;
+        border:1px solid rgba(190, 205, 228, 0.78);
+        background:rgba(255,255,255,0.92);
+        padding:24px;
+    }
+    .pricing-category-title{
+        display:flex;
+        align-items:center;
+        gap:10px;
+        margin-bottom:8px;
+        font-size:1.35rem;
+    }
+    .pricing-item{
+        display:flex;
+        justify-content:space-between;
+        align-items:flex-start;
+        gap:12px;
+        padding:12px 0;
+        border-bottom:1px dashed rgba(160, 178, 204, 0.45);
+    }
+    .pricing-item:last-child{border-bottom:none}
+    .pricing-desc{
+        display:block;
+        color:#6b7890;
+        font-size:0.9rem;
+    }
+    .pricing-disclaimer{
+        width:min(1000px, calc(100% - 24px));
+        margin:30px auto 0;
+        border-radius:20px;
+        border:1px solid rgba(190, 205, 228, 0.78);
+        background:rgba(255,255,255,0.9);
+        padding:20px;
+    }
+    @media (max-width:768px){
+    .pricing-item{flex-direction:column}
+    }
+    html[data-theme='dark'] .pricing-category,
+    html[data-theme='dark'] .pricing-disclaimer{
+        background:rgba(15, 26, 44, 0.92);
+        border-color:rgba(122, 156, 207, 0.38);
+    }
+    </style>
+    <style>
     /* Chat viewport guardrails for small windows/mobile */
-    @media (max-width:900px){
+    @media (max-width:1100px){
     .chatbot-widget{
         right:12px !important;
         bottom:calc(82px + var(--safe-bottom)) !important;
@@ -157,7 +210,29 @@
     }
     }
     </style>
-    <link rel="preload" as="style" href="styles-deferred.css?v=ui-20260220-deferred13-chatmobilefix1">
+    <style>
+    /* Keep floating actions clickable while cookie banner is active */
+    body.cookie-banner-active .chatbot-widget{
+        bottom:calc(152px + var(--safe-bottom)) !important;
+    }
+    body.cookie-banner-active .quick-dock{
+        bottom:calc(106px + var(--safe-bottom)) !important;
+    }
+    @media (max-width:900px){
+    body.cookie-banner-active .chatbot-widget{
+        bottom:calc(176px + var(--safe-bottom)) !important;
+    }
+    body.cookie-banner-active .quick-dock{
+        bottom:calc(102px + var(--safe-bottom)) !important;
+    }
+    }
+    @media (max-width:640px){
+    body.cookie-banner-active .chatbot-widget{
+        bottom:calc(192px + var(--safe-bottom)) !important;
+    }
+    }
+    </style>
+    <link rel="preload" as="style" href="styles-deferred.css?v=ui-20260220-deferred14-chatguard1-pricingfallback1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -239,7 +314,7 @@
 
     <!-- Hero Section -->
     <section class="hero" id="inicio">
-    <div class="hero-image-container blur-up" style="background-image: url('images/optimized/hero-woman-lqip.jpg')">
+    <div class="hero-image-container blur-up" style="background-image: url('images/optimized/hero-woman-640.webp')">
         <picture>
             <source srcset="images/optimized/hero-woman-640.webp" media="(max-width: 640px)" type="image/webp">
             <source srcset="images/optimized/hero-woman-1024.webp" media="(max-width: 1024px)" type="image/webp">
