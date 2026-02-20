@@ -2682,6 +2682,25 @@ html[data-theme='dark'] .showcase-eyebrow {
 /* ========================================
    MOBILE UX TUNING (FINAL OVERRIDES)
    ======================================== */
+@media (max-width: 1100px) {
+    .chatbot-widget {
+        right: 12px;
+        bottom: calc(82px + var(--safe-bottom));
+    }
+
+    .chatbot-container {
+        left: 10px;
+        right: 10px;
+        width: auto;
+        max-width: none;
+        bottom: calc(146px + var(--safe-bottom));
+        height: min(68dvh, 560px);
+        max-height: calc(100dvh - 170px - var(--safe-bottom));
+        margin: 0;
+        transform-origin: bottom center;
+    }
+}
+
 @media (max-width: 900px) {
     body {
         font-size: 16px;

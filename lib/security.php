@@ -15,6 +15,9 @@ function apply_security_headers(bool $isHtml = false): void
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: SAMEORIGIN');
     header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('X-Permitted-Cross-Domain-Policies: none');
+    header('Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=()');
+    header('Cross-Origin-Resource-Policy: same-origin');
 
     // HSTS (HTTP Strict Transport Security)
     $isHttps = false;
@@ -50,5 +53,9 @@ function apply_security_headers(bool $isHtml = false): void
     } else {
         // CSP for API endpoints (JSON) - strict lockdown
         header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; sandbox");
+        // APIs should not be cached by browsers/proxies by default.
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        header('Expires: 0');
     }
 }
