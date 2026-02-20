@@ -4,6 +4,16 @@ declare(strict_types=1);
 require_once __DIR__ . '/api-lib.php';
 require_once __DIR__ . '/payment-lib.php';
 require_once __DIR__ . '/lib/monitoring.php';
+require_once __DIR__ . '/lib/metrics.php';
+
+// Controllers
+require_once __DIR__ . '/controllers/HealthController.php';
+require_once __DIR__ . '/controllers/PaymentController.php';
+require_once __DIR__ . '/controllers/AdminDataController.php';
+require_once __DIR__ . '/controllers/AppointmentController.php';
+require_once __DIR__ . '/controllers/CallbackController.php';
+require_once __DIR__ . '/controllers/ReviewController.php';
+require_once __DIR__ . '/controllers/AvailabilityController.php';
 
 init_monitoring();
 
@@ -595,6 +605,18 @@ register_shutdown_function(static function () use ($requestStartedAt, $method, $
     ]);
 });
 
+// Load Store
+$storeReadStart = microtime(true);
+$store = read_store();
+$storeReadDuration = microtime(true) - $storeReadStart;
+
+if (class_exists('Metrics')) {
+    Metrics::observe('store_read_duration_seconds', $storeReadDuration, [], [
+        0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0
+    ]);
+}
+
+// Inline Logic for monitoring-config, features, health
 if ($resource === 'monitoring-config') {
     $config = get_monitoring_config();
     json_response($config);
@@ -608,20 +630,14 @@ if ($resource === 'features') {
 }
 
 if ($resource === 'health') {
-    $health = check_system_health();
-    $figoEndpoint = api_resolve_figo_endpoint_for_health();
-    $figoConfigured = $figoEndpoint !== '';
-    $figoRecursive = api_is_figo_recursive_config($figoEndpoint);
-    $timingMs = api_elapsed_ms($requestStartedAt);
-
-    $health['figoConfigured'] = $figoConfigured;
-    $health['figoRecursiveConfig'] = $figoRecursive;
-    $health['timingMs'] = $timingMs;
-
-    if (api_should_audit_health()) {
-        audit_log_event('api.health', $health);
-    }
-    json_response($health, $health['ok'] ? 200 : 503);
+    // We are passing context but HealthController might not need all of it
+    $healthContext = [
+        'requestStartedAt' => $requestStartedAt,
+        'method' => $method,
+        'resource' => $resource
+    ];
+    HealthController::check($healthContext);
+    exit;
 }
 
 $publicEndpoints = [
@@ -686,6 +702,16 @@ if (in_array($method, ['POST', 'PUT', 'PATCH'], true) && $isAdmin) {
     require_csrf();
 }
 
+// Prepare Context for Controllers
+$context = [
+    'store' => $store,
+    'isAdmin' => $isAdmin,
+    'requestStartedAt' => $requestStartedAt,
+    'method' => $method,
+    'resource' => $resource
+];
+
+// Complex inline logic for figo-config (keep for now)
 if ($resource === 'figo-config' && $method === 'GET') {
     $configMeta = api_read_figo_config_with_meta();
     $candidatePaths = api_figo_config_candidate_paths();
@@ -804,26 +830,13 @@ if ($resource === 'figo-config' && in_array($method, ['POST', 'PUT', 'PATCH'], t
     ]);
 }
 
+// Payment Config
 if ($method === 'GET' && $resource === 'payment-config') {
-    json_response([
-        'ok' => true,
-        'provider' => 'stripe',
-        'enabled' => payment_gateway_enabled(),
-        'publishableKey' => payment_stripe_publishable_key(),
-        'currency' => payment_currency()
-    ]);
+    PaymentController::config($context);
+    exit;
 }
 
-$storeReadStart = microtime(true);
-$store = read_store();
-$storeReadDuration = microtime(true) - $storeReadStart;
-
-if (class_exists('Metrics')) {
-    Metrics::observe('store_read_duration_seconds', $storeReadDuration, [], [
-        0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0
-    ]);
-}
-
+// Metrics (complex inline logic)
 if ($resource === 'metrics') {
     if (!class_exists('Metrics')) {
         http_response_code(500);
@@ -919,823 +932,101 @@ if ($resource === 'metrics') {
     exit;
 }
 
+// Controller Dispatching
+
 if ($method === 'GET' && $resource === 'data') {
-    json_response([
-        'ok' => true,
-        'data' => $store
-    ]);
+    AdminDataController::index($context);
+    exit;
 }
 
 if ($method === 'GET' && $resource === 'appointments') {
-    json_response([
-        'ok' => true,
-        'data' => $store['appointments']
-    ]);
+    AppointmentController::index($context);
+    exit;
 }
 
 if ($method === 'GET' && $resource === 'callbacks') {
-    json_response([
-        'ok' => true,
-        'data' => $store['callbacks']
-    ]);
+    CallbackController::index($context);
+    exit;
 }
 
 if ($method === 'GET' && $resource === 'reviews') {
-    usort($store['reviews'], static function (array $a, array $b): int {
-        return strcmp((string) ($b['date'] ?? ''), (string) ($a['date'] ?? ''));
-    });
-    json_response([
-        'ok' => true,
-        'data' => $store['reviews']
-    ]);
+    ReviewController::index($context);
+    exit;
 }
 
 if ($method === 'GET' && $resource === 'availability') {
-    json_response([
-        'ok' => true,
-        'data' => $store['availability']
-    ]);
+    AvailabilityController::index($context);
+    exit;
 }
 
 if ($method === 'GET' && $resource === 'booked-slots') {
-    $date = isset($_GET['date']) ? (string) $_GET['date'] : '';
-    if ($date === '') {
-        json_response([
-            'ok' => false,
-            'error' => 'Fecha requerida'
-        ], 400);
-    }
-
-    $doctor = isset($_GET['doctor']) ? trim((string) $_GET['doctor']) : '';
-    $slots = [];
-    $index = $store['idx_appointments_date'] ?? null;
-
-    if ($index !== null) {
-        if (isset($index[$date])) {
-            foreach ($index[$date] as $idx) {
-                if (!isset($store['appointments'][$idx])) {
-                    continue;
-                }
-                $appointment = $store['appointments'][$idx];
-                $status = map_appointment_status((string) ($appointment['status'] ?? 'confirmed'));
-                if ($status === 'cancelled') {
-                    continue;
-                }
-                if ($doctor !== '' && $doctor !== 'indiferente') {
-                    $apptDoctor = (string) ($appointment['doctor'] ?? '');
-                    if ($apptDoctor !== '' && $apptDoctor !== 'indiferente' && $apptDoctor !== $doctor) {
-                        continue;
-                    }
-                }
-                $time = (string) ($appointment['time'] ?? '');
-                if ($time !== '') {
-                    $slots[] = $time;
-                }
-            }
-        }
-    } else {
-        foreach ($store['appointments'] as $appointment) {
-            $status = map_appointment_status((string) ($appointment['status'] ?? 'confirmed'));
-            if ($status === 'cancelled') {
-                continue;
-            }
-            if ((string) ($appointment['date'] ?? '') !== $date) {
-                continue;
-            }
-            if ($doctor !== '' && $doctor !== 'indiferente') {
-                $apptDoctor = (string) ($appointment['doctor'] ?? '');
-                if ($apptDoctor !== '' && $apptDoctor !== 'indiferente' && $apptDoctor !== $doctor) {
-                    continue;
-                }
-            }
-            $time = (string) ($appointment['time'] ?? '');
-            if ($time !== '') {
-                $slots[] = $time;
-            }
-        }
-    }
-
-    $slots = array_values(array_unique($slots));
-    sort($slots);
-
-    json_response([
-        'ok' => true,
-        'data' => $slots
-    ]);
+    AppointmentController::bookedSlots($context);
+    exit;
 }
 
 if ($method === 'POST' && $resource === 'payment-intent') {
-    require_rate_limit('payment-intent', 8, 60);
-
-    if (!payment_gateway_enabled()) {
-        json_response([
-            'ok' => false,
-            'error' => 'Pasarela de pago no configurada'
-        ], 503);
-    }
-
-    $payload = require_json_body();
-    $appointment = normalize_appointment($payload);
-
-    if ($appointment['service'] === '' || $appointment['name'] === '' || $appointment['email'] === '') {
-        json_response([
-            'ok' => false,
-            'error' => 'Datos incompletos para iniciar el pago'
-        ], 400);
-    }
-
-    if (!validate_email($appointment['email'])) {
-        json_response([
-            'ok' => false,
-            'error' => 'El formato del email no es valido'
-        ], 400);
-    }
-
-    if (!validate_phone($appointment['phone'])) {
-        json_response([
-            'ok' => false,
-            'error' => 'El formato del telefono no es valido'
-        ], 400);
-    }
-
-    if (!isset($appointment['privacyConsent']) || $appointment['privacyConsent'] !== true) {
-        json_response([
-            'ok' => false,
-            'error' => 'Debes aceptar el tratamiento de datos para reservar la cita'
-        ], 400);
-    }
-
-    if ($appointment['date'] === '' || $appointment['time'] === '') {
-        json_response([
-            'ok' => false,
-            'error' => 'Fecha y hora son obligatorias'
-        ], 400);
-    }
-
-    if ($appointment['date'] < local_date('Y-m-d')) {
-        json_response([
-            'ok' => false,
-            'error' => 'No se puede agendar en una fecha pasada'
-        ], 400);
-    }
-
-    if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $appointment['doctor'], $store['idx_appointments_date'] ?? null)) {
-        json_response([
-            'ok' => false,
-            'error' => 'Ese horario ya fue reservado'
-        ], 409);
-    }
-
-    $seed = implode('|', [
-        $appointment['email'],
-        $appointment['service'],
-        $appointment['date'],
-        $appointment['time'],
-        $appointment['doctor'],
-        $appointment['phone']
-    ]);
-    $idempotencyKey = payment_build_idempotency_key('intent', $seed);
-
-    try {
-        $intent = stripe_create_payment_intent($appointment, $idempotencyKey);
-    } catch (RuntimeException $e) {
-        json_response([
-            'ok' => false,
-            'error' => api_error_message_for_client($e, 502)
-        ], 502);
-    }
-
-    json_response([
-        'ok' => true,
-        'clientSecret' => isset($intent['client_secret']) ? (string) $intent['client_secret'] : '',
-        'paymentIntentId' => isset($intent['id']) ? (string) $intent['id'] : '',
-        'amount' => isset($intent['amount']) ? (int) $intent['amount'] : payment_expected_amount_cents($appointment['service']),
-        'currency' => strtoupper((string) ($intent['currency'] ?? payment_currency())),
-        'publishableKey' => payment_stripe_publishable_key()
-    ]);
+    PaymentController::createIntent($context);
+    exit;
 }
 
 if ($method === 'POST' && $resource === 'payment-verify') {
-    require_rate_limit('payment-verify', 12, 60);
-
-    if (!payment_gateway_enabled()) {
-        json_response([
-            'ok' => false,
-            'error' => 'Pasarela de pago no configurada'
-        ], 503);
-    }
-
-    $payload = require_json_body();
-    $paymentIntentId = isset($payload['paymentIntentId']) ? trim((string) $payload['paymentIntentId']) : '';
-    if ($paymentIntentId === '') {
-        json_response([
-            'ok' => false,
-            'error' => 'paymentIntentId es obligatorio'
-        ], 400);
-    }
-
-    try {
-        $intent = stripe_get_payment_intent($paymentIntentId);
-    } catch (RuntimeException $e) {
-        json_response([
-            'ok' => false,
-            'error' => api_error_message_for_client($e, 502)
-        ], 502);
-    }
-
-    $status = (string) ($intent['status'] ?? '');
-    $paid = in_array($status, ['succeeded', 'requires_capture'], true);
-
-    json_response([
-        'ok' => true,
-        'paid' => $paid,
-        'status' => $status,
-        'id' => isset($intent['id']) ? (string) $intent['id'] : $paymentIntentId,
-        'amount' => isset($intent['amount']) ? (int) $intent['amount'] : 0,
-        'amountReceived' => isset($intent['amount_received']) ? (int) $intent['amount_received'] : 0,
-        'currency' => strtoupper((string) ($intent['currency'] ?? payment_currency()))
-    ]);
+    PaymentController::verify($context);
+    exit;
 }
 
 if ($method === 'POST' && $resource === 'transfer-proof') {
-    require_rate_limit('transfer-proof', 6, 60);
-
-    if (!isset($_FILES['proof']) || !is_array($_FILES['proof'])) {
-        json_response([
-            'ok' => false,
-            'error' => 'Debes adjuntar un comprobante'
-        ], 400);
-    }
-
-    try {
-        $upload = save_transfer_proof_upload($_FILES['proof']);
-    } catch (RuntimeException $e) {
-        json_response([
-            'ok' => false,
-            'error' => api_error_message_for_client($e, 400)
-        ], 400);
-    }
-
-    json_response([
-        'ok' => true,
-        'data' => [
-            'transferProofPath' => (string) ($upload['path'] ?? ''),
-            'transferProofUrl' => (string) ($upload['url'] ?? ''),
-            'transferProofName' => (string) ($upload['name'] ?? ''),
-            'transferProofMime' => (string) ($upload['mime'] ?? ''),
-            'transferProofSize' => (int) ($upload['size'] ?? 0)
-        ]
-    ], 201);
+    PaymentController::transferProof($context);
+    exit;
 }
 
 if ($method === 'POST' && $resource === 'stripe-webhook') {
-    $webhookSecret = payment_stripe_webhook_secret();
-    if ($webhookSecret === '') {
-        json_response(['ok' => false, 'error' => 'Webhook no configurado'], 503);
-    }
-
-    $rawBody = file_get_contents('php://input');
-    if (!is_string($rawBody) || $rawBody === '') {
-        json_response(['ok' => false, 'error' => 'Cuerpo vacio'], 400);
-    }
-
-    $sigHeader = isset($_SERVER['HTTP_STRIPE_SIGNATURE']) ? (string) $_SERVER['HTTP_STRIPE_SIGNATURE'] : '';
-    if ($sigHeader === '') {
-        json_response(['ok' => false, 'error' => 'Sin firma'], 400);
-    }
-
-    try {
-        $event = stripe_verify_webhook_signature($rawBody, $sigHeader, $webhookSecret);
-    } catch (RuntimeException $e) {
-        audit_log_event('stripe.webhook_signature_failed', ['error' => $e->getMessage()]);
-        json_response(['ok' => false, 'error' => 'Firma de webhook invalida'], 400);
-    }
-
-    $eventType = (string) ($event['type'] ?? '');
-    audit_log_event('stripe.webhook_received', ['type' => $eventType]);
-
-    if ($eventType === 'payment_intent.succeeded') {
-        $intentData = isset($event['data']['object']) && is_array($event['data']['object']) ? $event['data']['object'] : [];
-        $intentId = (string) ($intentData['id'] ?? '');
-
-        if ($intentId !== '') {
-            $webhookStore = read_store();
-            $updated = false;
-            foreach ($webhookStore['appointments'] as &$appt) {
-                $existingIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
-                if ($existingIntent !== '' && hash_equals($existingIntent, $intentId)) {
-                    if (($appt['paymentStatus'] ?? '') !== 'paid') {
-                        $appt['paymentStatus'] = 'paid';
-                        $appt['paymentPaidAt'] = local_date('c');
-                        $updated = true;
-                    }
-                    break;
-                }
-            }
-            unset($appt);
-            if ($updated) {
-                write_store($webhookStore);
-                if (class_exists('Metrics')) {
-                    Metrics::increment('conversion_funnel_events_total', ['step' => 'payment_success']);
-                }
-                audit_log_event('stripe.webhook_payment_confirmed', ['intentId' => $intentId]);
-            }
-        }
-    }
-
-    if ($eventType === 'payment_intent.payment_failed') {
-        $intentData = isset($event['data']['object']) && is_array($event['data']['object']) ? $event['data']['object'] : [];
-        $intentId = (string) ($intentData['id'] ?? '');
-
-        if ($intentId !== '') {
-            $webhookStore = read_store();
-            $updated = false;
-            foreach ($webhookStore['appointments'] as &$appt) {
-                $existingIntent = trim((string) ($appt['paymentIntentId'] ?? ''));
-                if ($existingIntent !== '' && hash_equals($existingIntent, $intentId)) {
-                    if (!in_array($appt['paymentStatus'] ?? '', ['paid', 'failed'], true)) {
-                        $appt['paymentStatus'] = 'failed';
-                        $updated = true;
-                    }
-                    break;
-                }
-            }
-            unset($appt);
-            if ($updated) {
-                write_store($webhookStore);
-                audit_log_event('stripe.webhook_payment_failed', ['intentId' => $intentId]);
-            }
-        }
-    }
-
-    json_response(['ok' => true, 'received' => true]);
+    PaymentController::webhook($context);
+    exit;
 }
 
 if ($method === 'POST' && $resource === 'appointments') {
-    require_rate_limit('appointments', 5, 60);
-    $payload = require_json_body();
-    $appointment = normalize_appointment($payload);
-
-    $validation = validate_appointment_payload($appointment, $store['availability'] ?? []);
-    if (!$validation['ok']) {
-        json_response([
-            'ok' => false,
-            'error' => $validation['error']
-        ], 400);
-    }
-
-    if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $appointment['doctor'], $store['idx_appointments_date'] ?? null)) {
-        json_response([
-            'ok' => false,
-            'error' => 'Ese horario ya fue reservado'
-        ], 409);
-    }
-
-    $paymentMethod = strtolower(trim((string) ($appointment['paymentMethod'] ?? 'unpaid')));
-    if (!in_array($paymentMethod, ['card', 'transfer', 'cash', 'unpaid'], true)) {
-        json_response([
-            'ok' => false,
-            'error' => 'Metodo de pago no valido'
-        ], 400);
-    }
-
-    if ($paymentMethod === 'card') {
-        $paymentIntentId = trim((string) ($appointment['paymentIntentId'] ?? ''));
-        if ($paymentIntentId === '') {
-            json_response([
-                'ok' => false,
-                'error' => 'Falta confirmar el pago con tarjeta'
-            ], 400);
-        }
-
-        foreach ($store['appointments'] as $existingAppointment) {
-            $existingIntent = trim((string) ($existingAppointment['paymentIntentId'] ?? ''));
-            if ($existingIntent !== '' && hash_equals($existingIntent, $paymentIntentId)) {
-                json_response([
-                    'ok' => false,
-                    'error' => 'Este pago ya fue utilizado para otra reserva'
-                ], 409);
-            }
-        }
-
-        if (!payment_gateway_enabled()) {
-            json_response([
-                'ok' => false,
-                'error' => 'La pasarela de pago no esta disponible'
-            ], 503);
-        }
-
-        try {
-            $intent = stripe_get_payment_intent($paymentIntentId);
-        } catch (RuntimeException $e) {
-            json_response([
-                'ok' => false,
-                'error' => 'No se pudo validar el pago en este momento'
-            ], 502);
-        }
-
-        $intentStatus = (string) ($intent['status'] ?? '');
-        $expectedAmount = payment_expected_amount_cents($appointment['service']);
-        $intentAmount = isset($intent['amount']) ? (int) $intent['amount'] : 0;
-        $amountReceived = isset($intent['amount_received']) ? (int) $intent['amount_received'] : 0;
-        $intentCurrency = strtoupper((string) ($intent['currency'] ?? payment_currency()));
-        $expectedCurrency = strtoupper(payment_currency());
-        $intentMetadata = isset($intent['metadata']) && is_array($intent['metadata']) ? $intent['metadata'] : [];
-        $metadataSite = trim((string) ($intentMetadata['site'] ?? ''));
-        $metadataService = trim((string) ($intentMetadata['service'] ?? ''));
-        $metadataDate = trim((string) ($intentMetadata['date'] ?? ''));
-        $metadataTime = trim((string) ($intentMetadata['time'] ?? ''));
-        $metadataDoctor = trim((string) ($intentMetadata['doctor'] ?? ''));
-
-        if ($intentStatus !== 'succeeded') {
-            json_response([
-                'ok' => false,
-                'error' => 'El pago aun no esta completado'
-            ], 400);
-        }
-        if ($intentAmount !== $expectedAmount || $amountReceived < $expectedAmount) {
-            json_response([
-                'ok' => false,
-                'error' => 'El monto pagado no coincide con la reserva'
-            ], 400);
-        }
-        if ($intentCurrency !== $expectedCurrency) {
-            json_response([
-                'ok' => false,
-                'error' => 'La moneda del pago no coincide con la configuracion'
-            ], 400);
-        }
-        if ($metadataSite !== '' && strcasecmp($metadataSite, 'pielarmonia.com') !== 0) {
-            json_response([
-                'ok' => false,
-                'error' => 'El pago no pertenece a este sitio'
-            ], 400);
-        }
-        if ($metadataService !== '' && $metadataService !== $appointment['service']) {
-            json_response([
-                'ok' => false,
-                'error' => 'El pago no coincide con el servicio seleccionado'
-            ], 400);
-        }
-        if ($metadataDate !== '' && $metadataDate !== $appointment['date']) {
-            json_response([
-                'ok' => false,
-                'error' => 'El pago no coincide con la fecha seleccionada'
-            ], 400);
-        }
-        if ($metadataTime !== '' && $metadataTime !== $appointment['time']) {
-            json_response([
-                'ok' => false,
-                'error' => 'El pago no coincide con la hora seleccionada'
-            ], 400);
-        }
-        if ($metadataDoctor !== '' && $metadataDoctor !== $appointment['doctor']) {
-            json_response([
-                'ok' => false,
-                'error' => 'El pago no coincide con el doctor seleccionado'
-            ], 400);
-        }
-
-        $appointment['paymentMethod'] = 'card';
-        $appointment['paymentStatus'] = 'paid';
-        $appointment['paymentProvider'] = 'stripe';
-        $appointment['paymentPaidAt'] = local_date('c');
-        $appointment['paymentIntentId'] = $paymentIntentId;
-    } elseif ($paymentMethod === 'transfer') {
-        $reference = trim((string) ($appointment['transferReference'] ?? ''));
-        $proofPath = trim((string) ($appointment['transferProofPath'] ?? ''));
-        $proofUrl = trim((string) ($appointment['transferProofUrl'] ?? ''));
-
-        if ($reference === '') {
-            json_response([
-                'ok' => false,
-                'error' => 'Debes ingresar el numero de referencia de la transferencia'
-            ], 400);
-        }
-        if ($proofPath === '' || $proofUrl === '') {
-            json_response([
-                'ok' => false,
-                'error' => 'Debes adjuntar el comprobante de transferencia'
-            ], 400);
-        }
-
-        $appointment['paymentMethod'] = 'transfer';
-        $appointment['paymentStatus'] = 'pending_transfer_review';
-    } elseif ($paymentMethod === 'cash') {
-        $appointment['paymentMethod'] = 'cash';
-        $appointment['paymentStatus'] = 'pending_cash';
-    } else {
-        $appointment['paymentMethod'] = 'unpaid';
-        $appointment['paymentStatus'] = 'pending';
-    }
-
-    // Si el doctor es "indiferente", asignar al primer doctor con slot libre
-    if ($appointment['doctor'] === 'indiferente' || $appointment['doctor'] === '') {
-        $doctors = ['rosero', 'narvaez'];
-        $assigned = '';
-        foreach ($doctors as $candidate) {
-            if (!appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $candidate, $store['idx_appointments_date'] ?? null)) {
-                $assigned = $candidate;
-                break;
-            }
-        }
-        if ($assigned !== '') {
-            $appointment['doctorAssigned'] = $assigned;
-        }
-    }
-
-    $store['appointments'][] = $appointment;
-    write_store($store);
-
-    $emailSent = false;
-    try {
-        $emailSent = maybe_send_appointment_email($appointment);
-    } catch (Throwable $e) {
-        get_logger()->error('Piel en Armonía: fallo al enviar email de confirmación: ' . $e->getMessage());
-    }
-    try {
-        maybe_send_admin_notification($appointment);
-    } catch (Throwable $e) {
-        get_logger()->error('Piel en Armonía: fallo al enviar notificación admin: ' . $e->getMessage());
-    }
-
-    json_response([
-        'ok' => true,
-        'data' => $appointment,
-        'emailSent' => $emailSent
-    ], 201);
+    AppointmentController::store($context);
+    exit;
 }
 
 if (($method === 'PATCH' || $method === 'PUT') && $resource === 'appointments') {
-    $payload = require_json_body();
-    $id = isset($payload['id']) ? (int) $payload['id'] : 0;
-    if ($id <= 0) {
-        json_response([
-            'ok' => false,
-            'error' => 'Identificador inválido'
-        ], 400);
-    }
-    $found = false;
-    foreach ($store['appointments'] as &$appt) {
-        if ((int) ($appt['id'] ?? 0) !== $id) {
-            continue;
-        }
-        $found = true;
-        if (isset($payload['status'])) {
-            $appt['status'] = map_appointment_status((string) $payload['status']);
-        }
-        if (isset($payload['paymentStatus'])) {
-            $appt['paymentStatus'] = (string) $payload['paymentStatus'];
-        }
-        if (isset($payload['paymentMethod'])) {
-            $appt['paymentMethod'] = (string) $payload['paymentMethod'];
-        }
-        if (isset($payload['paymentProvider'])) {
-            $appt['paymentProvider'] = (string) $payload['paymentProvider'];
-        }
-        if (isset($payload['paymentIntentId'])) {
-            $appt['paymentIntentId'] = (string) $payload['paymentIntentId'];
-        }
-        if (isset($payload['paymentPaidAt'])) {
-            $appt['paymentPaidAt'] = (string) $payload['paymentPaidAt'];
-        }
-        if (isset($payload['transferReference'])) {
-            $appt['transferReference'] = (string) $payload['transferReference'];
-        }
-        if (isset($payload['transferProofPath'])) {
-            $appt['transferProofPath'] = (string) $payload['transferProofPath'];
-        }
-        if (isset($payload['transferProofUrl'])) {
-            $appt['transferProofUrl'] = (string) $payload['transferProofUrl'];
-        }
-        if (isset($payload['transferProofName'])) {
-            $appt['transferProofName'] = (string) $payload['transferProofName'];
-        }
-        if (isset($payload['transferProofMime'])) {
-            $appt['transferProofMime'] = (string) $payload['transferProofMime'];
-        }
-    }
-    unset($appt);
-    if (!$found) {
-        json_response([
-            'ok' => false,
-            'error' => 'Cita no encontrada'
-        ], 404);
-    }
-    write_store($store);
-
-    // Enviar email de cancelación al paciente si se canceló la cita
-    if (isset($payload['status']) && map_appointment_status((string) $payload['status']) === 'cancelled') {
-        foreach ($store['appointments'] as $apptNotify) {
-            if ((int) ($apptNotify['id'] ?? 0) === $id) {
-                try { maybe_send_cancellation_email($apptNotify); } catch (Throwable $e) { get_logger()->error('Piel en Armonía: fallo email cancelación: ' . $e->getMessage()); }
-                break;
-            }
-        }
-    }
-
-    json_response([
-        'ok' => true
-    ]);
+    AppointmentController::update($context);
+    exit;
 }
 
 if ($method === 'POST' && $resource === 'callbacks') {
-    require_rate_limit('callbacks', 5, 60);
-    $payload = require_json_body();
-    $callback = normalize_callback($payload);
-
-    if ($callback['telefono'] === '') {
-        json_response([
-            'ok' => false,
-            'error' => 'Teléfono obligatorio'
-        ], 400);
-    }
-
-    if (!validate_phone($callback['telefono'])) {
-        json_response([
-            'ok' => false,
-            'error' => 'El formato del teléfono no es válido'
-        ], 400);
-    }
-
-    $store['callbacks'][] = $callback;
-    write_store($store);
-    try { maybe_send_callback_admin_notification($callback); } catch (Throwable $e) { get_logger()->error('Piel en Armonía: fallo notificación callback: ' . $e->getMessage()); }
-    json_response([
-        'ok' => true,
-        'data' => $callback
-    ], 201);
+    CallbackController::store($context);
+    exit;
 }
 
 if (($method === 'PATCH' || $method === 'PUT') && $resource === 'callbacks') {
-    $payload = require_json_body();
-    $id = isset($payload['id']) ? (int) $payload['id'] : 0;
-    if ($id <= 0) {
-        json_response([
-            'ok' => false,
-            'error' => 'Identificador inválido'
-        ], 400);
-    }
-    $found = false;
-    foreach ($store['callbacks'] as &$callback) {
-        if ((int) ($callback['id'] ?? 0) !== $id) {
-            continue;
-        }
-        $found = true;
-        if (isset($payload['status'])) {
-            $callback['status'] = map_callback_status((string) $payload['status']);
-        }
-    }
-    unset($callback);
-    if (!$found) {
-        json_response([
-            'ok' => false,
-            'error' => 'Callback no encontrado'
-        ], 404);
-    }
-    write_store($store);
-    json_response([
-        'ok' => true
-    ]);
+    CallbackController::update($context);
+    exit;
 }
 
 if ($method === 'POST' && $resource === 'reviews') {
-    require_rate_limit('reviews', 3, 60);
-    $payload = require_json_body();
-    $review = normalize_review($payload);
-    if ($review['name'] === '' || $review['text'] === '') {
-        json_response([
-            'ok' => false,
-            'error' => 'Nombre y reseña son obligatorios'
-        ], 400);
-    }
-    $store['reviews'][] = $review;
-    write_store($store);
-    json_response([
-        'ok' => true,
-        'data' => $review
-    ], 201);
+    ReviewController::store($context);
+    exit;
 }
 
 if ($method === 'POST' && $resource === 'availability') {
-    $payload = require_json_body();
-    $availability = isset($payload['availability']) && is_array($payload['availability'])
-        ? $payload['availability']
-        : [];
-    $store['availability'] = $availability;
-    write_store($store);
-    json_response([
-        'ok' => true,
-        'data' => $store['availability']
-    ]);
+    AvailabilityController::update($context);
+    exit;
 }
 
 if ($method === 'POST' && $resource === 'import') {
-    if (!$isAdmin) {
-        json_response(['ok' => false, 'error' => 'No autorizado'], 401);
-    }
-    require_csrf();
-    $payload = require_json_body();
-    $store['appointments'] = isset($payload['appointments']) && is_array($payload['appointments']) ? $payload['appointments'] : [];
-    $store['callbacks'] = isset($payload['callbacks']) && is_array($payload['callbacks']) ? $payload['callbacks'] : [];
-    $store['reviews'] = isset($payload['reviews']) && is_array($payload['reviews']) ? $payload['reviews'] : [];
-    $store['availability'] = isset($payload['availability']) && is_array($payload['availability']) ? $payload['availability'] : [];
-    write_store($store);
-    json_response([
-        'ok' => true
-    ]);
+    AdminDataController::import($context);
+    exit;
 }
 
-// ── Reprogramación pública (por token) ──────────────────
 if ($method === 'GET' && $resource === 'reschedule') {
-    $token = trim((string) ($_GET['token'] ?? ''));
-    if ($token === '' || strlen($token) < 16) {
-        json_response(['ok' => false, 'error' => 'Token inválido'], 400);
-    }
-
-    $found = null;
-    foreach ($store['appointments'] as $appt) {
-        if (($appt['rescheduleToken'] ?? '') === $token && ($appt['status'] ?? '') !== 'cancelled') {
-            $found = $appt;
-            break;
-        }
-    }
-
-    if (!$found) {
-        json_response(['ok' => false, 'error' => 'Cita no encontrada o cancelada'], 404);
-    }
-
-    json_response([
-        'ok' => true,
-        'data' => [
-            'id' => $found['id'],
-            'service' => $found['service'] ?? '',
-            'doctor' => $found['doctor'] ?? '',
-            'date' => $found['date'] ?? '',
-            'time' => $found['time'] ?? '',
-            'name' => $found['name'] ?? '',
-            'status' => $found['status'] ?? ''
-        ]
-    ]);
+    AppointmentController::checkReschedule($context);
+    exit;
 }
 
 if ($method === 'PATCH' && $resource === 'reschedule') {
-    require_rate_limit('reschedule', 5, 60);
-    $payload = require_json_body();
-    $token = trim((string) ($payload['token'] ?? ''));
-    $newDate = trim((string) ($payload['date'] ?? ''));
-    $newTime = trim((string) ($payload['time'] ?? ''));
-
-    if ($token === '' || strlen($token) < 16) {
-        json_response(['ok' => false, 'error' => 'Token inválido'], 400);
-    }
-    if ($newDate === '' || $newTime === '') {
-        json_response(['ok' => false, 'error' => 'Fecha y hora son obligatorias'], 400);
-    }
-    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $newDate)) {
-        json_response(['ok' => false, 'error' => 'Formato de fecha inválido'], 400);
-    }
-    if (strtotime($newDate) < strtotime(date('Y-m-d'))) {
-        json_response(['ok' => false, 'error' => 'No puedes reprogramar a una fecha pasada'], 400);
-    }
-
-    $found = false;
-    foreach ($store['appointments'] as &$appt) {
-        if (($appt['rescheduleToken'] ?? '') !== $token) {
-            continue;
-        }
-        if (($appt['status'] ?? '') === 'cancelled') {
-            json_response(['ok' => false, 'error' => 'Esta cita fue cancelada'], 400);
-        }
-
-        $doctor = $appt['doctor'] ?? '';
-        $excludeId = (int) ($appt['id'] ?? 0);
-        if (appointment_slot_taken($store['appointments'], $newDate, $newTime, $excludeId, $doctor, $store['idx_appointments_date'] ?? null)) {
-            json_response(['ok' => false, 'error' => 'El horario seleccionado ya no está disponible'], 409);
-        }
-
-        $appt['date'] = $newDate;
-        $appt['time'] = $newTime;
-        $appt['reminderSentAt'] = '';
-        $found = true;
-
-        write_store($store);
-        try { maybe_send_reschedule_email($appt); } catch (Throwable $e) { get_logger()->error('Piel en Armonía: fallo email reagendar: ' . $e->getMessage()); }
-
-        json_response([
-            'ok' => true,
-            'data' => [
-                'id' => $appt['id'],
-                'date' => $newDate,
-                'time' => $newTime
-            ]
-        ]);
-    }
-    unset($appt);
-
-    if (!$found) {
-        json_response(['ok' => false, 'error' => 'Cita no encontrada'], 404);
-    }
+    AppointmentController::processReschedule($context);
+    exit;
 }
 
 json_response([
