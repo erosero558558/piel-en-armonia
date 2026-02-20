@@ -1,0 +1,75 @@
+import { withDeployAssetVersion, debugLog } from './utils.js';
+import { loadDeferredModule, runDeferredModule } from './loader.js';
+import { setThemeMode } from './theme.js';
+import { changeLanguage } from './i18n.js';
+import { toggleMobileMenu, startWebVideo, closeVideoModal } from './ui.js';
+import { openReviewModal, closeReviewModal } from './engagement.js';
+import { closePaymentModal, processPayment, markBookingViewed } from './booking.js';
+import { closeSuccessModal } from './success-modal.js';
+import { closeRescheduleModal, submitReschedule } from './reschedule.js';
+import { toggleChatbot, sendChatMessage, handleChatBookingSelection, sendQuickMessage, minimizeChatbot, startChatBooking, handleChatDateSelect } from './chat.js';
+
+const ACTION_ROUTER_ENGINE_URL = withDeployAssetVersion('/action-router-engine.js?v=figo-action-router-20260219-phase1');
+
+function selectService(value) {
+    const select = document.getElementById('serviceSelect');
+    if (select) {
+        select.value = value;
+        select.dispatchEvent(new Event('change'));
+        markBookingViewed('service_select');
+        const appointmentSection = document.getElementById('citas');
+        if (appointmentSection) {
+            const navHeight = document.querySelector('.nav')?.offsetHeight || 80;
+            const targetPosition = appointmentSection.offsetTop - navHeight - 20;
+            window.scrollTo({
+                top: targetPosition,
+                behavior: 'smooth'
+            });
+        }
+    }
+}
+
+function getActionRouterEngineDeps() {
+    return {
+        setThemeMode,
+        changeLanguage,
+        toggleMobileMenu,
+        startWebVideo,
+        openReviewModal,
+        closeReviewModal,
+        closeVideoModal,
+        closePaymentModal,
+        processPayment,
+        closeSuccessModal,
+        closeRescheduleModal,
+        submitReschedule,
+        toggleChatbot,
+        sendChatMessage,
+        handleChatBookingSelection,
+        sendQuickMessage,
+        minimizeChatbot,
+        startChatBooking,
+        handleChatDateSelect,
+        selectService
+    };
+}
+
+export function loadActionRouterEngine() {
+    return loadDeferredModule({
+        cacheKey: 'action-router-engine',
+        src: ACTION_ROUTER_ENGINE_URL,
+        scriptDataAttribute: 'data-action-router-engine',
+        resolveModule: () => window.PielActionRouterEngine,
+        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        onModuleReady: (module) => module.init(getActionRouterEngineDeps()),
+        missingApiError: 'action-router-engine loaded without API',
+        loadError: 'No se pudo cargar action-router-engine.js',
+        logLabel: 'Action router engine'
+    });
+}
+
+export function initActionRouterEngine() {
+    runDeferredModule(loadActionRouterEngine, () => undefined, (error) => {
+        debugLog('Action router load failed:', error);
+    });
+}

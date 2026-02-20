@@ -1,70 +1,23 @@
-import {
-    getCurrentLang, getCurrentAppointment, setCurrentAppointment,
-    getCheckoutSession, setCheckoutSession, setCheckoutSessionActive,
-    getAvailabilityCache, setAvailabilityCache, getAvailabilityCacheLoadedAt, setAvailabilityCacheLoadedAt,
-    getAvailabilityCachePromise, setAvailabilityCachePromise, getBookedSlotsCache,
-    getBookingViewTracked, setBookingViewTracked,
-    getAvailabilityPrefetched, setAvailabilityPrefetched
-} from './state.js';
-import {
-    DEFAULT_TIME_SLOTS, LOCAL_FALLBACK_ENABLED, AVAILABILITY_CACHE_TTL_MS, BOOKED_SLOTS_CACHE_TTL_MS,
-    MAX_CASE_PHOTOS, MAX_CASE_PHOTO_BYTES, CASE_PHOTO_ALLOWED_TYPES, CLINIC_ADDRESS
-} from './config.js';
-import {
-    showToast, debugLog, escapeHtml, storageGetJSON, storageSetJSON
-} from './utils.js';
-import {
-    loadDeferredModule, scheduleDeferredTask, createWarmupRunner, bindWarmupTarget, observeOnceWhenVisible, runDeferredModule
-} from './loader.js';
-import { apiRequest } from './api.js';
-import {
-    loadPaymentConfig, loadStripeSdk, createPaymentIntent, verifyPaymentIntent, uploadTransferProof
-} from './payment.js';
-import { trackEvent, normalizeAnalyticsLabel } from './analytics.js';
+import { withDeployAssetVersion, showToast, debugLog } from './utils.js';
+import { loadDeferredModule, runDeferredModule, createWarmupRunner, bindWarmupTarget, observeOnceWhenVisible, scheduleDeferredTask } from './loader.js';
+import { getCurrentLang, getCurrentAppointment, setCurrentAppointment, getCheckoutSession, setCheckoutSessionActive } from './state.js';
+import { DEFAULT_TIME_SLOTS } from './config.js';
+import { loadPaymentConfig, loadStripeSdk, createPaymentIntent, verifyPaymentIntent } from './payment.js';
+import { trackEvent, normalizeAnalyticsLabel, loadAnalyticsEngine, markBookingViewed } from './analytics.js';
 import { showSuccessModal } from './success-modal.js';
+import { createAppointmentRecord, uploadTransferProof, loadAvailabilityData, getBookedSlots } from './data.js';
 
-const BOOKING_ENGINE_URL = '/booking-engine.js?v=figo-booking-20260219-mbfix1';
-const BOOKING_UI_URL = '/booking-ui.js?v=figo-booking-ui-20260218-phase4';
+export { markBookingViewed };
 
-export function getCasePhotoFiles(formElement) {
-    const input = formElement?.querySelector('#casePhotos');
-    if (!input || !input.files) return [];
-    return Array.from(input.files);
-}
+const BOOKING_ENGINE_URL = withDeployAssetVersion('/booking-engine.js?v=figo-booking-20260219-mbfix1');
+const BOOKING_UI_URL = withDeployAssetVersion('/booking-ui.js?v=figo-booking-ui-20260220-sync1');
+const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 
-export function validateCasePhotoFiles(files) {
-    if (!Array.isArray(files) || files.length === 0) return;
-
-    if (files.length > MAX_CASE_PHOTOS) {
-        throw new Error(
-            getCurrentLang() === 'es'
-                ? `Puedes subir maximo ${MAX_CASE_PHOTOS} fotos.`
-                : `You can upload up to ${MAX_CASE_PHOTOS} photos.`
-        );
-    }
-
-    for (const file of files) {
-        if (!file) continue;
-
-        if (file.size > MAX_CASE_PHOTO_BYTES) {
-            throw new Error(
-                getCurrentLang() === 'es'
-                    ? `Cada foto debe pesar maximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
-                    : `Each photo must be at most ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
-            );
-        }
-
-        const mime = String(file.type || '').toLowerCase();
-        const validByMime = CASE_PHOTO_ALLOWED_TYPES.has(mime);
-        const validByExt = /\.(jpe?g|png|webp)$/i.test(String(file.name || ''));
-        if (!validByMime && !validByExt) {
-            throw new Error(
-                getCurrentLang() === 'es'
-                    ? 'Solo se permiten imágenes JPG, PNG o WEBP.'
-                    : 'Only JPG, PNG or WEBP images are allowed.'
-            );
-        }
-    }
+function stripTransientAppointmentFields(appointment) {
+    const payload = { ...appointment };
+    delete payload.casePhotoFiles;
+    delete payload.casePhotoUploads;
+    return payload;
 }
 
 async function ensureCasePhotosUploaded(appointment) {
@@ -81,15 +34,25 @@ async function ensureCasePhotosUploaded(appointment) {
         };
     }
 
-    const uploads = [];
-    for (const file of files) {
-        const uploaded = await uploadTransferProof(file);
-        uploads.push({
-            name: uploaded.transferProofName || file.name || '',
-            url: uploaded.transferProofUrl || '',
-            path: uploaded.transferProofPath || ''
-        });
-    }
+    const uploads = new Array(files.length);
+    const workerCount = Math.max(1, Math.min(CASE_PHOTO_UPLOAD_CONCURRENCY, files.length));
+    let cursor = 0;
+
+    const uploadWorker = async () => {
+        while (cursor < files.length) {
+            const index = cursor;
+            cursor += 1;
+            const file = files[index];
+            const uploaded = await uploadTransferProof(file, { retries: 2 });
+            uploads[index] = {
+                name: uploaded.transferProofName || file.name || '',
+                url: uploaded.transferProofUrl || '',
+                path: uploaded.transferProofPath || ''
+            };
+        }
+    };
+
+    await Promise.all(Array.from({ length: workerCount }, () => uploadWorker()));
     appointment.casePhotoUploads = uploads;
 
     return {
@@ -99,14 +62,7 @@ async function ensureCasePhotosUploaded(appointment) {
     };
 }
 
-export function stripTransientAppointmentFields(appointment) {
-    const payload = { ...appointment };
-    delete payload.casePhotoFiles;
-    delete payload.casePhotoUploads;
-    return payload;
-}
-
-export async function buildAppointmentPayload(appointment) {
+async function buildAppointmentPayload(appointment) {
     const payload = stripTransientAppointmentFields(appointment || {});
     const uploadedPhotos = await ensureCasePhotosUploaded(appointment || {});
     payload.casePhotoCount = uploadedPhotos.urls.length;
@@ -116,221 +72,15 @@ export async function buildAppointmentPayload(appointment) {
     return payload;
 }
 
-function getBookedSlotsCacheKey(date, doctor = '') {
-    return `${String(date || '')}::${String(doctor || '')}`;
-}
-
-export function invalidateBookedSlotsCache(date = '', doctor = '') {
-    const targetDate = String(date || '').trim();
-    const targetDoctor = String(doctor || '').trim();
-    const cache = getBookedSlotsCache();
-    if (!targetDate) {
-        cache.clear();
-        return;
-    }
-
-    for (const key of cache.keys()) {
-        if (!key.startsWith(`${targetDate}::`)) {
-            continue;
-        }
-        if (targetDoctor === '' || key === getBookedSlotsCacheKey(targetDate, targetDoctor)) {
-            cache.delete(key);
-        }
-    }
-}
-
-export async function loadAvailabilityData(options = {}) {
-    const forceRefresh = options && options.forceRefresh === true;
-    const now = Date.now();
-    const cache = getAvailabilityCache();
-    const loadedAt = getAvailabilityCacheLoadedAt();
-
-    if (!forceRefresh && loadedAt > 0 && (now - loadedAt) < AVAILABILITY_CACHE_TTL_MS) {
-        return cache;
-    }
-
-    if (!forceRefresh && getAvailabilityCachePromise()) {
-        return getAvailabilityCachePromise();
-    }
-
-    const promise = (async () => {
-        try {
-            const payload = await apiRequest('availability');
-            setAvailabilityCache(payload.data || {});
-            setAvailabilityCacheLoadedAt(Date.now());
-            storageSetJSON('availability', getAvailabilityCache());
-        } catch (error) {
-            setAvailabilityCache(storageGetJSON('availability', {}));
-            const currentCache = getAvailabilityCache();
-            if (currentCache && typeof currentCache === 'object' && Object.keys(currentCache).length > 0) {
-                setAvailabilityCacheLoadedAt(Date.now());
-            }
-        } finally {
-            setAvailabilityCachePromise(null);
-        }
-
-        return getAvailabilityCache();
-    })();
-
-    setAvailabilityCachePromise(promise);
-    return promise;
-}
-
-export async function getBookedSlots(date, doctor = '') {
-    const cacheKey = getBookedSlotsCacheKey(date, doctor);
-    const now = Date.now();
-    const cache = getBookedSlotsCache();
-    const cachedEntry = cache.get(cacheKey);
-    if (cachedEntry && (now - cachedEntry.at) < BOOKED_SLOTS_CACHE_TTL_MS) {
-        return cachedEntry.slots;
-    }
-
-    try {
-        const query = { date: date };
-        if (doctor) query.doctor = doctor;
-        const payload = await apiRequest('booked-slots', { query });
-        const slots = Array.isArray(payload.data) ? payload.data : [];
-        cache.set(cacheKey, {
-            slots,
-            at: now
-        });
-        return slots;
-    } catch (error) {
-        if (!LOCAL_FALLBACK_ENABLED) {
-            throw error;
-        }
-        const appointments = storageGetJSON('appointments', []);
-        const slots = appointments
-            .filter(a => {
-                if (a.date !== date || a.status === 'cancelled') return false;
-                if (doctor && doctor !== 'indiferente') {
-                    const aDoc = a.doctor || '';
-                    if (aDoc && aDoc !== 'indiferente' && aDoc !== doctor) return false;
-                }
-                return true;
-            })
-            .map(a => a.time);
-        cache.set(cacheKey, {
-            slots,
-            at: now
-        });
-        return slots;
-    }
-}
-
-export async function createAppointmentRecord(appointment, options = {}) {
-    const allowLocalFallback = options.allowLocalFallback !== false;
-    try {
-        const payload = await apiRequest('appointments', {
-            method: 'POST',
-            body: appointment
-        });
-        const localAppointments = storageGetJSON('appointments', []);
-        localAppointments.push(payload.data);
-        storageSetJSON('appointments', localAppointments);
-        if (payload && payload.data) {
-            invalidateBookedSlotsCache(payload.data.date || appointment?.date || '', payload.data.doctor || appointment?.doctor || '');
-        } else {
-            invalidateBookedSlotsCache(appointment?.date || '', appointment?.doctor || '');
-        }
-        return {
-            appointment: payload.data,
-            emailSent: payload.emailSent === true
-        };
-    } catch (error) {
-        if (!LOCAL_FALLBACK_ENABLED || !allowLocalFallback) {
-            throw error;
-        }
-        const localAppointments = storageGetJSON('appointments', []);
-        const fallback = {
-            ...appointment,
-            id: Date.now(),
-            status: 'confirmed',
-            dateBooked: new Date().toISOString(),
-            paymentStatus: appointment.paymentStatus || 'pending'
-        };
-        localAppointments.push(fallback);
-        storageSetJSON('appointments', localAppointments);
-        invalidateBookedSlotsCache(fallback.date || appointment?.date || '', fallback.doctor || appointment?.doctor || '');
-        return {
-            appointment: fallback,
-            emailSent: false
-        };
-    }
-}
-
-export function startCheckoutSession(appointment) {
-    const session = {
-        active: true,
-        completed: false,
-        startedAt: Date.now(),
-        service: appointment?.service || '',
-        doctor: appointment?.doctor || ''
-    };
-    setCheckoutSession(session);
-}
-
-export function completeCheckoutSession(method) {
-    const session = getCheckoutSession();
-    if (!session.active) {
-        return;
-    }
-    session.completed = true;
-    setCheckoutSession(session);
-    trackEvent('booking_confirmed', {
-        payment_method: method || 'unknown',
-        service: session.service || '',
-        doctor: session.doctor || ''
-    });
-}
-
-export function maybeTrackCheckoutAbandon(reason = 'unknown') {
-    const session = getCheckoutSession();
-    if (!session.active || session.completed) {
-        return;
-    }
-
-    const startedAt = session.startedAt || Date.now();
-    const elapsedSec = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
-    trackEvent('checkout_abandon', {
-        service: session.service || '',
-        doctor: session.doctor || '',
-        elapsed_sec: elapsedSec,
-        reason: normalizeAnalyticsLabel(reason, 'unknown')
-    });
-}
-
-export function markBookingViewed(source = 'unknown') {
-    if (getBookingViewTracked()) {
-        return;
-    }
-    setBookingViewTracked(true);
-    trackEvent('view_booking', {
-        source
-    });
-}
-
-export function prefetchAvailabilityData(source = 'unknown') {
-    if (getAvailabilityPrefetched()) {
-        return;
-    }
-    setAvailabilityPrefetched(true);
-    loadAvailabilityData().catch(() => {
-        setAvailabilityPrefetched(false);
-    });
-    trackEvent('availability_prefetch', {
-        source
-    });
-}
-
 function getBookingEngineDeps() {
     return {
-        getCurrentLang: getCurrentLang,
-        getCurrentAppointment: getCurrentAppointment,
-        setCurrentAppointment: setCurrentAppointment,
-        getCheckoutSession: getCheckoutSession,
-        setCheckoutSessionActive: setCheckoutSessionActive,
+        getCurrentLang,
+        getCurrentAppointment,
+        setCurrentAppointment,
+        getCheckoutSession,
+        setCheckoutSessionActive,
         startCheckoutSession,
+        setCheckoutStep,
         completeCheckoutSession,
         maybeTrackCheckoutAbandon,
         loadPaymentConfig,
@@ -383,58 +133,24 @@ export function initBookingEngineWarmup() {
     });
 }
 
-// Payment Modal Wrappers
-export function openPaymentModal(appointmentData) {
-    runDeferredModule(
-        loadBookingEngine,
-        (engine) => engine.openPaymentModal(appointmentData),
-        (error) => {
-            debugLog('openPaymentModal fallback error:', error);
-            showToast('No se pudo abrir el modulo de pago.', 'error');
-        }
-    );
+// CHECKOUT SESSION WRAPPERS
+export function startCheckoutSession(appointment, metadata = {}) {
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.startCheckoutSession(appointment, metadata));
 }
 
-export function closePaymentModal(options = {}) {
-    if (window.PielBookingEngine && typeof window.PielBookingEngine.closePaymentModal === 'function') {
-        window.PielBookingEngine.closePaymentModal(options);
-        return;
-    }
-
-    const skipAbandonTrack = options && options.skipAbandonTrack === true;
-    const abandonReason = options && typeof options.reason === 'string' ? options.reason : 'modal_close';
-    if (!skipAbandonTrack) {
-        maybeTrackCheckoutAbandon(abandonReason);
-    }
-
-    setCheckoutSessionActive(false);
-    const modal = document.getElementById('paymentModal');
-    if (modal) {
-        modal.classList.remove('active');
-    }
-    document.body.style.overflow = '';
+export function setCheckoutStep(step, metadata = {}) {
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.setCheckoutStep(step, metadata));
 }
 
-export function getActivePaymentMethod() {
-    if (window.PielBookingEngine && typeof window.PielBookingEngine.getActivePaymentMethod === 'function') {
-        return window.PielBookingEngine.getActivePaymentMethod();
-    }
-    const activeMethod = document.querySelector('.payment-method.active');
-    return activeMethod?.dataset.method || 'cash';
+export function completeCheckoutSession(method) {
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.completeCheckoutSession(method));
 }
 
-export async function processPayment() {
-    return runDeferredModule(
-        loadBookingEngine,
-        (engine) => engine.processPayment(),
-        (error) => {
-            debugLog('processPayment error:', error);
-            showToast('No se pudo procesar el pago en este momento.', 'error');
-        }
-    );
+export function maybeTrackCheckoutAbandon(reason = 'unknown') {
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.maybeTrackCheckoutAbandon(reason));
 }
 
-// Booking UI
+// BOOKING UI
 function getBookingUiDeps() {
     return {
         loadAvailabilityData,
@@ -442,15 +158,59 @@ function getBookingUiDeps() {
         showToast,
         getCurrentLang: getCurrentLang,
         getDefaultTimeSlots: () => DEFAULT_TIME_SLOTS.slice(),
-        getCasePhotoFiles,
+        getCasePhotoFiles: (form) => {
+             const input = form?.querySelector('#casePhotos');
+             if (!input || !input.files) return [];
+             return Array.from(input.files);
+        },
         validateCasePhotoFiles,
         markBookingViewed,
         startCheckoutSession,
+        setCheckoutStep,
         trackEvent,
         normalizeAnalyticsLabel,
         openPaymentModal,
         setCurrentAppointment: setCurrentAppointment
     };
+}
+
+function validateCasePhotoFiles(files) {
+    const MAX_CASE_PHOTOS = 3;
+    const MAX_CASE_PHOTO_BYTES = 5 * 1024 * 1024;
+    const CASE_PHOTO_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+    if (!Array.isArray(files) || files.length === 0) return;
+
+    if (files.length > MAX_CASE_PHOTOS) {
+        throw new Error(
+            getCurrentLang() === 'es'
+                ? `Puedes subir m\u00E1ximo ${MAX_CASE_PHOTOS} fotos.`
+                : `You can upload up to ${MAX_CASE_PHOTOS} photos.`
+        );
+    }
+
+    for (const file of files) {
+        if (!file) continue;
+
+        if (file.size > MAX_CASE_PHOTO_BYTES) {
+            throw new Error(
+                getCurrentLang() === 'es'
+                    ? `Cada foto debe pesar m\u00E1ximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
+                    : `Each photo must be at most ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
+            );
+        }
+
+        const mime = String(file.type || '').toLowerCase();
+        const validByMime = CASE_PHOTO_ALLOWED_TYPES.has(mime);
+        const validByExt = /\.(jpe?g|png|webp)$/i.test(String(file.name || ''));
+        if (!validByMime && !validByExt) {
+            throw new Error(
+                getCurrentLang() === 'es'
+                    ? 'Solo se permiten im\u00e1genes JPG, PNG o WEBP.'
+                    : 'Only JPG, PNG or WEBP images are allowed.'
+            );
+        }
+    }
 }
 
 export function loadBookingUi() {
@@ -494,20 +254,48 @@ export function initBookingUiWarmup() {
     });
 }
 
-export function initBookingFunnelObserver() {
-    const bookingSection = document.getElementById('citas');
-    if (!bookingSection) {
+export function openPaymentModal(appointmentData) {
+    runDeferredModule(
+        loadBookingEngine,
+        (engine) => engine.openPaymentModal(appointmentData),
+        (error) => {
+            debugLog('openPaymentModal fallback error:', error);
+            showToast('No se pudo abrir el modulo de pago.', 'error');
+        }
+    );
+}
+
+export function closePaymentModal(options = {}) {
+    if (window.PielBookingEngine && typeof window.PielBookingEngine.closePaymentModal === 'function') {
+        window.PielBookingEngine.closePaymentModal(options);
         return;
     }
 
-    observeOnceWhenVisible(bookingSection, () => {
-        markBookingViewed('observer');
-        prefetchAvailabilityData('booking_section_visible');
-    }, {
-        threshold: 0.35,
-        onNoObserver: () => {
-            markBookingViewed('fallback_no_observer');
-            prefetchAvailabilityData('fallback_no_observer');
+    const skipAbandonTrack = options && options.skipAbandonTrack === true;
+    const abandonReason = options && typeof options.reason === 'string' ? options.reason : 'modal_close';
+    if (!skipAbandonTrack) {
+        maybeTrackCheckoutAbandon(abandonReason);
+    }
+
+    setCheckoutSessionActive(false);
+    const modal = document.getElementById('paymentModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+    document.body.style.overflow = '';
+}
+
+export async function processPayment() {
+    return runDeferredModule(
+        loadBookingEngine,
+        (engine) => engine.processPayment(),
+        (error) => {
+            debugLog('processPayment error:', error);
+            showToast('No se pudo procesar el pago en este momento.', 'error');
         }
-    });
+    );
+}
+
+export function initBookingFunnelObserver() {
+    runDeferredModule(loadAnalyticsEngine, (engine) => engine.initBookingFunnelObserver());
 }

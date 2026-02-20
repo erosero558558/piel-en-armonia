@@ -10,6 +10,9 @@ export function debugLog(...args) {
 }
 
 export function escapeHtml(text) {
+    if (window.PielChatUiEngine && typeof window.PielChatUiEngine.escapeHtml === 'function') {
+        return window.PielChatUiEngine.escapeHtml(text);
+    }
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
@@ -25,6 +28,59 @@ export function isConstrainedNetworkConnection() {
         connection.saveData === true
         || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
     ));
+}
+
+// ASSET VERSIONING
+export function resolveDeployAssetVersion() {
+    try {
+        if (document.currentScript && typeof document.currentScript.src === 'string' && document.currentScript.src !== '') {
+            const currentUrl = new URL(document.currentScript.src, window.location.href);
+            const fromCurrent = currentUrl.searchParams.get('v');
+            if (fromCurrent) {
+                return fromCurrent;
+            }
+        }
+
+        const scriptEl = document.querySelector('script[src*="script.js"]');
+        if (scriptEl && typeof scriptEl.getAttribute === 'function') {
+            const rawSrc = scriptEl.getAttribute('src') || '';
+            if (rawSrc) {
+                const parsed = new URL(rawSrc, window.location.href);
+                const fromTag = parsed.searchParams.get('v');
+                if (fromTag) {
+                    return fromTag;
+                }
+            }
+        }
+    } catch (_) {
+        return '';
+    }
+
+    return '';
+}
+
+export function withDeployAssetVersion(url) {
+    const cleanUrl = String(url || '').trim();
+    if (cleanUrl === '') {
+        return cleanUrl;
+    }
+
+    const deployVersion = window.__PA_DEPLOY_ASSET_VERSION__ || '';
+    if (!deployVersion) {
+        return cleanUrl;
+    }
+
+    try {
+        const resolved = new URL(cleanUrl, window.location.origin);
+        resolved.searchParams.set('cv', deployVersion);
+        if (cleanUrl.startsWith('/')) {
+            return resolved.pathname + resolved.search;
+        }
+        return resolved.toString();
+    } catch (_) {
+        const separator = cleanUrl.indexOf('?') >= 0 ? '&' : '?';
+        return cleanUrl + separator + 'cv=' + encodeURIComponent(deployVersion);
+    }
 }
 
 // TOAST NOTIFICATIONS SYSTEM
@@ -49,10 +105,10 @@ export function showToast(message, type = 'info', title = '') {
     };
 
     const titles = {
-        success: title || 'Éxito',
+        success: title || 'Exito',
         error: title || 'Error',
         warning: title || 'Advertencia',
-        info: title || 'Información'
+        info: title || 'Informacion'
     };
 
     // Escapar mensaje para prevenir XSS
@@ -135,6 +191,9 @@ export function renderStars(rating) {
 }
 
 export function getCookieConsent() {
+    if (window.PielConsentEngine && typeof window.PielConsentEngine.getCookieConsent === 'function') {
+        return window.PielConsentEngine.getCookieConsent();
+    }
     try {
         const raw = localStorage.getItem(COOKIE_CONSENT_KEY);
         if (!raw) return '';
@@ -146,6 +205,7 @@ export function getCookieConsent() {
 }
 
 export function setCookieConsent(status) {
+    // This function might be overridden by consent engine usage in other modules, but basic utility here.
     const normalized = status === 'accepted' ? 'accepted' : 'rejected';
     try {
         localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({

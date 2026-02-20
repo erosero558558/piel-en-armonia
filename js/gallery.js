@@ -1,6 +1,7 @@
-import { loadDeferredModule, createWarmupRunner, observeOnceWhenVisible, scheduleDeferredTask } from './loader.js';
+import { withDeployAssetVersion } from './utils.js';
+import { loadDeferredModule, createWarmupRunner, bindWarmupTarget, scheduleDeferredTask, observeOnceWhenVisible } from './loader.js';
 
-const GALLERY_INTERACTIONS_URL = '/gallery-interactions.js?v=figo-gallery-20260218-phase4';
+const GALLERY_INTERACTIONS_URL = withDeployAssetVersion('/gallery-interactions.js?v=figo-gallery-20260218-phase4');
 
 export function loadGalleryInteractions() {
     return loadDeferredModule({
@@ -18,26 +19,19 @@ export function loadGalleryInteractions() {
 
 export function initGalleryInteractionsWarmup() {
     const warmup = createWarmupRunner(() => loadGalleryInteractions());
-
     const gallerySection = document.getElementById('galeria');
     observeOnceWhenVisible(gallerySection, warmup, {
         threshold: 0.05,
         rootMargin: '320px 0px',
         onNoObserver: warmup
     });
-
     const firstFilterBtn = document.querySelector('.filter-btn');
     if (firstFilterBtn) {
         firstFilterBtn.addEventListener('mouseenter', warmup, { once: true, passive: true });
         firstFilterBtn.addEventListener('touchstart', warmup, { once: true, passive: true });
     }
-
     if (!gallerySection && !firstFilterBtn) {
         return;
     }
-
-    scheduleDeferredTask(warmup, {
-        idleTimeout: 2500,
-        fallbackDelay: 1500
-    });
+    scheduleDeferredTask(warmup, { idleTimeout: 2500, fallbackDelay: 1500 });
 }

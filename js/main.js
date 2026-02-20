@@ -1,64 +1,36 @@
-import {
-    initThemeMode, setThemeMode
-} from './theme.js';
-import {
-    changeLanguage, initEnglishBundleWarmup, onLanguageChange
-} from './i18n.js';
-import {
-    initCookieBanner
-} from './cookies.js';
-import {
-    initGA4, trackEvent, normalizeAnalyticsLabel
-} from './analytics.js';
-import {
-    initBookingFunnelObserver, initBookingEngineWarmup, initBookingUiWarmup,
-    openPaymentModal, closePaymentModal, processPayment, maybeTrackCheckoutAbandon
-} from './booking.js';
-import {
-    initGalleryInteractionsWarmup
-} from './gallery.js';
-import {
-    initChatEngineWarmup, initChatBookingEngineWarmup, toggleChatbot, minimizeChatbot,
-    sendChatMessage, sendQuickMessage, handleChatKeypress, handleChatBookingSelection,
-    handleChatDateSelect, startChatBooking, checkServerEnvironment, getChatHistory, getChatbotOpen
-} from './chat.js';
-import {
-    initUiEffectsWarmup, toggleMobileMenu, startWebVideo, closeVideoModal,
-    loadModalUxEngine, initModalUxEngineWarmup
-} from './ui.js';
-import {
-    initRescheduleEngineWarmup, closeRescheduleModal, submitReschedule
-} from './reschedule.js';
-import {
-    initSuccessModalEngineWarmup, closeSuccessModal
-} from './success-modal.js';
-import {
-    initEngagementFormsEngineWarmup, initDeferredSectionPrefetch, openReviewModal, closeReviewModal, renderPublicReviews
-} from './engagement.js';
-import {
-    scheduleDeferredTask, createOnceTask, debugLog
-} from './loader.js';
-import {
-    showToast
-} from './utils.js';
-import {
-    getCurrentLang, getReviewsCache
-} from './state.js';
+import { createOnceTask, scheduleDeferredTask } from './loader.js';
+import { resolveDeployAssetVersion, withDeployAssetVersion, debugLog } from './utils.js';
+import { initActionRouterEngine } from './router.js';
+import { initThemeMode } from './theme.js';
+import { changeLanguage, initEnglishBundleWarmup } from './i18n.js';
+import { getCurrentLang } from './state.js';
+import { initCookieBanner, initGA4 } from './cookies.js';
+import { initBookingFunnelObserver, initDeferredSectionPrefetch, maybeTrackCheckoutAbandon, trackEvent } from './analytics.js';
+import { initDataEngineWarmup } from './data.js';
+import { initBookingEngineWarmup, initBookingUiWarmup, markBookingViewed } from './booking.js';
+import { initReviewsEngineWarmup } from './engagement.js';
+import { initGalleryInteractionsWarmup } from './gallery.js';
+import { initChatUiEngineWarmup, initChatWidgetEngineWarmup, initChatEngineWarmup, initChatBookingEngineWarmup, handleChatKeypress, checkServerEnvironment } from './chat.js';
+import { initUiEffectsWarmup, initModalUxEngineWarmup } from './ui.js';
+import { initRescheduleEngineWarmup } from './reschedule.js';
+import { initSuccessModalEngineWarmup } from './success-modal.js';
+import { initEngagementFormsEngineWarmup } from './engagement.js';
 
-// Deferred Stylesheet Loading
-const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260218-deferred2';
+// Setup global version
+window.__PA_DEPLOY_ASSET_VERSION__ = window.__PA_DEPLOY_ASSET_VERSION__ || resolveDeployAssetVersion();
+
+// Deferred Stylesheet
+const DEFERRED_STYLESHEET_URL = withDeployAssetVersion('/styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1');
 let deferredStylesheetPromise = null;
 let deferredStylesheetInitDone = false;
 
 function loadDeferredStylesheet() {
-    if (document.querySelector('link[data-deferred-stylesheet="true"]')) {
+    if (document.querySelector('link[data-deferred-stylesheet="true"], link[rel="stylesheet"][href*="styles-deferred.css"]')) {
         return Promise.resolve(true);
     }
-
     if (deferredStylesheetPromise) {
         return deferredStylesheetPromise;
     }
-
     deferredStylesheetPromise = new Promise((resolve, reject) => {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
@@ -72,7 +44,6 @@ function loadDeferredStylesheet() {
         debugLog('Deferred stylesheet load failed:', error);
         throw error;
     });
-
     return deferredStylesheetPromise;
 }
 
@@ -80,13 +51,10 @@ function initDeferredStylesheetLoading() {
     if (deferredStylesheetInitDone || window.location.protocol === 'file:') {
         return;
     }
-
     deferredStylesheetInitDone = true;
-
     const startLoad = () => {
         loadDeferredStylesheet().catch(() => undefined);
     };
-
     scheduleDeferredTask(startLoad, {
         idleTimeout: 1200,
         fallbackDelay: 160,
@@ -95,152 +63,50 @@ function initDeferredStylesheetLoading() {
     });
 }
 
-// Smooth Scroll
-const nav = document.querySelector('.nav');
-document.addEventListener('click', function(e) {
-    const targetEl = e.target instanceof Element ? e.target : null;
-    if (!targetEl) return;
-
-    const anchor = targetEl.closest('a[href^="#"]');
-    if (!anchor) return;
-
-    const href = anchor.getAttribute('href');
-    if (!href || href === '#') return;
-
-    const target = document.querySelector(href);
-    if (!target) return;
-
-    e.preventDefault();
-    const navHeight = nav ? nav.offsetHeight : 0;
-    const targetPosition = target.offsetTop - navHeight - 20;
-    window.scrollTo({
-        top: targetPosition,
-        behavior: 'smooth'
+function disablePlaceholderExternalLinks() {
+    document.querySelectorAll('a[href^="URL_"]').forEach((anchor) => {
+        anchor.removeAttribute('href');
+        anchor.setAttribute('aria-disabled', 'true');
+        anchor.classList.add('is-disabled-link');
     });
-});
+}
 
-document.addEventListener('click', function(e) {
-    const targetEl = e.target instanceof Element ? e.target : null;
-    if (!targetEl) return;
+function resolveWhatsappSource(waLink) {
+    if (!waLink || !(waLink instanceof Element)) return 'unknown';
 
-    const waLink = targetEl.closest('a[href*="wa.me"], a[href*="api.whatsapp.com"]');
-    if (!waLink) return;
+    const chatContext = waLink.closest('#chatbotContainer, #chatbotWidget');
+    if (chatContext) return 'chatbot';
 
-    const inChatContext = !!waLink.closest('#chatbotContainer') || !!waLink.closest('#chatbotWidget');
-    if (!inChatContext) return;
+    const section = waLink.closest('section[id], footer[id], footer, .quick-contact-dock');
+    if (!section) return 'unknown';
 
-    trackEvent('chat_handoff_whatsapp', {
-        source: 'chatbot'
-    });
-});
+    const sectionId = section.getAttribute('id') || '';
+    if (sectionId) return sectionId;
+    if (section.classList.contains('quick-contact-dock')) return 'quick_dock';
+    if (section.tagName && section.tagName.toLowerCase() === 'footer') return 'footer';
+    return 'unknown';
+}
 
-// Delegated Event Handler
-document.addEventListener('click', function(e) {
-    const actionEl = e.target.closest('[data-action]');
-    if (!actionEl) return;
-    const action = actionEl.getAttribute('data-action');
-    const value = actionEl.getAttribute('data-value') || '';
-    switch (action) {
-        case 'toast-close':
-            actionEl.closest('.toast')?.remove();
-            break;
-        case 'set-theme':
-            setThemeMode(value || 'system');
-            break;
-        case 'set-language':
-            changeLanguage(value || 'es');
-            break;
-        case 'toggle-mobile-menu':
-            toggleMobileMenu();
-            break;
-        case 'start-web-video':
-            startWebVideo();
-            break;
-        case 'open-review-modal':
-            openReviewModal();
-            break;
-        case 'close-review-modal':
-            closeReviewModal();
-            break;
-        case 'close-video-modal':
-            closeVideoModal();
-            break;
-        case 'close-payment-modal':
-            closePaymentModal();
-            break;
-        case 'process-payment':
-            processPayment();
-            break;
-        case 'close-success-modal':
-            closeSuccessModal();
-            break;
-        case 'close-reschedule-modal':
-            closeRescheduleModal();
-            break;
-        case 'submit-reschedule':
-            submitReschedule();
-            break;
-        case 'toggle-chatbot':
-            toggleChatbot();
-            break;
-        case 'send-chat-message':
-            sendChatMessage();
-            break;
-        case 'chat-booking':
-            handleChatBookingSelection(value);
-            break;
-        case 'quick-message':
-            sendQuickMessage(value);
-            break;
-        case 'minimize-chat':
-            minimizeChatbot();
-            break;
-        case 'start-booking':
-            startChatBooking();
-            break;
-    }
-});
-
-document.addEventListener('change', function(e) {
-    if (e.target.closest('[data-action="chat-date-select"]')) {
-        handleChatDateSelect(e.target.value);
-    }
-});
-
-// Setup language change listener
-onLanguageChange(() => {
-    const reviews = getReviewsCache();
-    if (reviews && reviews.length > 0) {
-        renderPublicReviews(reviews);
-    }
-});
-
-// Initialization
-function init() {
+document.addEventListener('DOMContentLoaded', function() {
+    disablePlaceholderExternalLinks();
+    initActionRouterEngine();
     initDeferredStylesheetLoading();
-    try {
-        initThemeMode();
-    } catch (e) {
-        console.error('Theme init error:', e);
-    }
-
-    changeLanguage(getCurrentLang()).catch(e => console.error('Lang init error:', e));
-
-    try {
-        initCookieBanner();
-    } catch (e) {
-        console.error('Cookie init error:', e);
-    }
-
+    initThemeMode();
+    changeLanguage(getCurrentLang());
+    initCookieBanner();
     initGA4();
     initBookingFunnelObserver();
     initDeferredSectionPrefetch();
 
     const initDeferredWarmups = createOnceTask(() => {
         initEnglishBundleWarmup();
+        initDataEngineWarmup();
         initBookingEngineWarmup();
         initBookingUiWarmup();
+        initReviewsEngineWarmup();
         initGalleryInteractionsWarmup();
+        initChatUiEngineWarmup();
+        initChatWidgetEngineWarmup();
         initChatEngineWarmup();
         initChatBookingEngineWarmup();
         initUiEffectsWarmup();
@@ -274,19 +140,51 @@ function init() {
         console.warn('Chatbot en modo offline: abre el sitio desde servidor para usar IA real.');
     }
 
-    // Chat notification
-    setTimeout(() => {
-        const notification = document.getElementById('chatNotification');
-        if (notification && !getChatbotOpen() && getChatHistory().length === 0) {
-            notification.style.display = 'flex';
+    // Smooth Scroll
+    const nav = document.querySelector('.nav');
+    document.addEventListener('click', function(e) {
+        const targetEl = e.target instanceof Element ? e.target : null;
+        if (!targetEl) return;
+
+        const anchor = targetEl.closest('a[href^="#"]');
+        if (!anchor) return;
+
+        const href = anchor.getAttribute('href');
+        if (!href || href === '#') return;
+
+        const target = document.querySelector(href);
+        if (!target) return;
+
+        e.preventDefault();
+        const navHeight = nav ? nav.offsetHeight : 0;
+        const targetPosition = target.offsetTop - navHeight - 20;
+
+        if (href === '#citas') {
+            markBookingViewed('cta_click');
         }
-    }, 30000);
-}
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+        window.scrollTo({
+            top: targetPosition,
+            behavior: 'smooth'
+        });
+    });
 
-window.PielInit = init; // Expose for debugging/tests if needed
+    // WhatsApp Analytics
+    document.addEventListener('click', function(e) {
+        const targetEl = e.target instanceof Element ? e.target : null;
+        if (!targetEl) return;
+
+        const waLink = targetEl.closest('a[href*="wa.me"], a[href*="api.whatsapp.com"]');
+        if (!waLink) return;
+
+        const source = resolveWhatsappSource(waLink);
+        trackEvent('whatsapp_click', { source });
+
+        const inChatContext = !!waLink.closest('#chatbotContainer') || !!waLink.closest('#chatbotWidget');
+        if (!inChatContext) return;
+
+        trackEvent('chat_handoff_whatsapp', {
+            source
+        });
+    });
+});
