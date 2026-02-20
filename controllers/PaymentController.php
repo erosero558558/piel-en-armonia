@@ -103,7 +103,7 @@ class PaymentController
             'ok' => true,
             'clientSecret' => isset($intent['client_secret']) ? (string) $intent['client_secret'] : '',
             'paymentIntentId' => isset($intent['id']) ? (string) $intent['id'] : '',
-            'amount' => isset($intent['amount']) ? (int) $intent['amount'] : payment_expected_amount_cents($appointment['service']),
+            'amount' => isset($intent['amount']) ? (int) $intent['amount'] : payment_expected_amount_cents($appointment['service'], $appointment['date'] ?? null, $appointment['time'] ?? null),
             'currency' => strtoupper((string) ($intent['currency'] ?? payment_currency())),
             'publishableKey' => payment_stripe_publishable_key()
         ]);

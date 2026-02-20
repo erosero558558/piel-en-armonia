@@ -99,7 +99,7 @@ run_test('get_service_price_amount invalid', function() {
 });
 
 run_test('get_service_total_price calculation', function() {
-    // 40 + 0% (medical service) = 40.00
+    // 40 + 0% = 40.00
     // get_service_total_price returns formatted string '$40.00'
     $price = get_service_total_price('consulta');
     assert_equals('$40.00', $price);

@@ -105,6 +105,35 @@ export const SPECIAL_SERVICES = {
 };
 
 /**
+ * Verifica si una fecha cae en fin de semana (Sabado/Domingo)
+ * @param {string} dateString - Fecha en formato YYYY-MM-DD
+ * @returns {boolean}
+ */
+export function isWeekend(dateString) {
+    if (!dateString) return false;
+    try {
+        // Usar T12:00:00 para evitar problemas de zona horaria al parsear solo fecha
+        const date = new Date(dateString + 'T12:00:00');
+        const day = date.getDay();
+        return day === 0 || day === 6; // 0=Domingo, 6=Sabado
+    } catch (e) {
+        return false;
+    }
+}
+
+/**
+ * Obtiene el multiplicador de precio dinamico
+ * @param {string} dateString
+ * @returns {number}
+ */
+export function getDynamicPriceMultiplier(dateString) {
+    if (isWeekend(dateString)) {
+        return 1.10; // +10% en fines de semana
+    }
+    return 1.0;
+}
+
+/**
  * Calcula el impuesto (IVA) para un monto base y tasa
  * @param {number} priceBase - Precio base
  * @param {number} taxRate - Tasa de impuesto (ej: 0.15 para 15%)
@@ -182,7 +211,7 @@ export function getServiceById(serviceId) {
 /**
  * Obtiene el precio a mostrar para un servicio
  * @param {string} serviceId - ID del servicio
- * @param {Object} options - Opciones
+ * @param {Object} options - Opciones (includeTax, date)
  * @returns {Object} Información de precio formateada
  */
 export function getServicePriceInfo(serviceId, options = {}) {
@@ -191,8 +220,10 @@ export function getServicePriceInfo(serviceId, options = {}) {
         return null;
     }
     
-    const { includeTax = true } = options;
-    const priceBase = service.priceBase;
+    const { includeTax = true, date = null } = options;
+    const multiplier = getDynamicPriceMultiplier(date);
+    const priceBase = roundToTwo(service.priceBase * multiplier);
+
     const taxRate = service.taxRate;
     const taxAmount = computeTax(priceBase, taxRate);
     const total = includeTax ? computeTotal(priceBase, taxRate) : priceBase;
@@ -200,6 +231,8 @@ export function getServicePriceInfo(serviceId, options = {}) {
     return {
         service,
         priceBase,
+        multiplier,
+        isDynamic: multiplier !== 1.0,
         taxRate,
         taxAmount,
         total,
@@ -246,10 +279,12 @@ export function getCheckoutBreakdown(serviceId, additionalOptions = {}) {
     const {
         discountAmount = 0,
         isCupoSolidario = false,
-        discountRate = 0
+        discountRate = 0,
+        date = null
     } = additionalOptions;
 
-    const priceBase = service.priceBase;
+    const multiplier = getDynamicPriceMultiplier(date);
+    const priceBase = roundToTwo(service.priceBase * multiplier);
     let finalDiscountRate = discountRate;
     
     // Aplicar descuento de cupo solidario si aplica
@@ -278,6 +313,8 @@ export function getCheckoutBreakdown(serviceId, additionalOptions = {}) {
         },
         pricing: {
             base: priceBase,
+            multiplier,
+            isDynamic: multiplier !== 1.0,
             discount,
             discountRate: finalDiscountRate,
             priceAfterDiscount,
@@ -338,5 +375,7 @@ export default {
     getTaxLabel,
     getCheckoutBreakdown,
     validatePaymentAmount,
+    isWeekend,
+    getDynamicPriceMultiplier,
     PRICING_DISCLAIMERS
 };
