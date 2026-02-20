@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data:; connect-src 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data:; connect-src 'self'; form-action 'self';">
     <title>Panel de Administración - Piel en Armonía</title>
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="stylesheet" href="styles.css">
@@ -101,7 +101,7 @@
                         <i class="fas fa-upload"></i>
                         Importar Datos
                     </button>
-                    <input type="file" id="importFileInput" accept=".json" style="display:none">
+                    <input type="file" id="importFileInput" accept=".json" class="is-hidden">
                 </div>
             </header>
 
@@ -312,7 +312,7 @@
                             <p class="empty-message">Selecciona una fecha para ver los horarios</p>
                         </div>
 
-                        <div class="add-slot-form" id="addSlotForm" style="display: none;">
+                        <div class="add-slot-form is-hidden" id="addSlotForm">
                             <h4>Agregar Horario</h4>
                             <div class="form-row">
                                 <input type="time" id="newSlotTime" required>

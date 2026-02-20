@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://www.google-analytics.com https://*.stripe.com data:; frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; connect-src 'self' https://api.stripe.com https://m.stripe.network https://r.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com; worker-src 'self' blob:; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://www.google-analytics.com https://*.stripe.com data:; frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; connect-src 'self' https://api.stripe.com https://m.stripe.network https://r.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com; worker-src 'self' blob:; form-action 'self';">
     <title>Telemedicina Dermatológica | Piel en Armonía</title>
     <meta name="description" content="Consulta dermatológica online por video o WhatsApp. Diagnóstico y tratamiento desde casa con especialistas.">
     <meta name="robots" content="index, follow, max-image-preview:large">
@@ -3525,80 +3525,8 @@ html[data-theme='dark'] .cookie-link {
             <a href="cookies.html" class="cookie-link" data-i18n="cookie_more">Más información</a>
         </div>
     </div>
-    <script>
-const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260219-deferred12-cspinline1-stateclass1-sync1';
-const DEBUG = false;
-function debugLog(...args) { if (DEBUG) console.log(...args); }
-const deferredModulePromises = new Map();
-let deferredStylesheetPromise = null;
-let deferredStylesheetInitDone = false;
-function loadDeferredModule(options) {
-    const { cacheKey, src, scriptDataAttribute, resolveModule, isModuleReady = (m) => !!m, onModuleReady, missingApiError, loadError, logLabel } = options || {};
-    if (!cacheKey || !src || !scriptDataAttribute || typeof resolveModule !== 'function') return Promise.reject(new Error('Invalid config'));
-    const getReady = () => { const m = resolveModule(); if (isModuleReady(m)) { if (typeof onModuleReady === 'function') onModuleReady(m); return m; } return null; };
-    const ready = getReady(); if (ready) return Promise.resolve(ready);
-    if (deferredModulePromises.has(cacheKey)) return deferredModulePromises.get(cacheKey);
-    const p = new Promise((resolve, reject) => {
-        const handle = () => { const m = getReady(); if (m) resolve(m); else reject(new Error(missingApiError || 'Module missing')); };
-        const existing = document.querySelector('script[' + scriptDataAttribute + '="true"]');
-        if (existing) { existing.addEventListener('load', handle, { once: true }); existing.addEventListener('error', () => reject(new Error(loadError)), { once: true }); return; }
-        const s = document.createElement('script'); s.src = src; s.async = true; s.defer = true; s.setAttribute(scriptDataAttribute, 'true');
-        s.onload = handle; s.onerror = () => reject(new Error(loadError || 'Load failed')); document.head.appendChild(s);
-    }).catch(e => { deferredModulePromises.delete(cacheKey); if (logLabel) debugLog(logLabel + ' failed:', e); throw e; });
-    deferredModulePromises.set(cacheKey, p); return p;
-}
-function isConstrainedNetworkConnection() { const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection; return !!(c && (c.saveData === true || /(^|[^0-9])2g/.test(String(c.effectiveType || '')))); }
-function scheduleDeferredTask(task, options = {}) {
-    const { idleTimeout = 2000, fallbackDelay = 1200, skipOnConstrained = true, constrainedDelay = fallbackDelay } = options;
-    if (isConstrainedNetworkConnection()) { if (skipOnConstrained) return false; setTimeout(task, constrainedDelay); return true; }
-    if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(task, { timeout: idleTimeout }); else setTimeout(task, fallbackDelay); return true;
-}
-function bindWarmupTarget(sel, evt, h, p = true) { const el = document.querySelector(sel); if (!el) return false; el.addEventListener(evt, h, { once: true, passive: p }); return true; }
-function createOnceTask(task) { let ex = false; return function() { if (ex) return; ex = true; task(); }; }
-function createWarmupRunner(loadFn, opts = {}) { const mark = opts.markWarmOnSuccess === true; let warmed = false; return function() { if (warmed || window.location.protocol === 'file:') return; if (mark) { Promise.resolve(loadFn()).then(() => { warmed = true; }).catch(() => {}); return; } warmed = true; Promise.resolve(loadFn()).catch(() => { warmed = false; }); }; }
-function observeOnceWhenVisible(el, onVis, opts = {}) {
-    const { threshold = 0.05, rootMargin = '0px', onNoObserver } = opts;
-    if (!el) return false;
-    if (!('IntersectionObserver' in window)) { if (typeof onNoObserver === 'function') onNoObserver(); return false; }
-    const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if (!e.isIntersecting) return; onVis(e); obs.disconnect(); }); }, { threshold, rootMargin });
-    obs.observe(el); return true;
-}
-function withDeferredModule(loader, onReady) { return Promise.resolve().then(() => loader()).then(m => onReady(m)); }
-function runDeferredModule(loader, onReady, onError) { return withDeferredModule(loader, onReady).catch(e => { if (typeof onError === 'function') return onError(e); }); }
-function resolveDeferredStylesheetUrl() {
-    const preload = document.querySelector('link[rel="preload"][as="style"][href*="styles-deferred.css"]');
-    if (preload) { const href = preload.getAttribute('href'); if (href && href.trim() !== '') return href; } return DEFERRED_STYLESHEET_URL;
-}
-function loadDeferredStylesheet() {
-    if (document.querySelector('link[data-deferred-stylesheet="true"], link[rel="stylesheet"][href*="styles-deferred.css"]')) return Promise.resolve(true);
-    if (deferredStylesheetPromise) return deferredStylesheetPromise;
-    const url = resolveDeferredStylesheetUrl();
-    deferredStylesheetPromise = new Promise((resolve, reject) => {
-        const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = url; link.dataset.deferredStylesheet = 'true';
-        link.onload = () => resolve(true); link.onerror = () => reject(new Error('Style load failed')); document.head.appendChild(link);
-    }).catch(e => { deferredStylesheetPromise = null; debugLog('CSS fail', e); throw e; });
-    return deferredStylesheetPromise;
-}
-function initDeferredStylesheetLoading() {
-    if (deferredStylesheetInitDone || window.location.protocol === 'file:') return;
-    deferredStylesheetInitDone = true;
-    scheduleDeferredTask(() => loadDeferredStylesheet().catch(() => {}), { idleTimeout: 1200, fallbackDelay: 160, skipOnConstrained: false, constrainedDelay: 900 });
-}
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW fail', err)); });
-}
-window.initDeferredStylesheetLoading();
-</script>
+    <script src="bootstrap-inline-engine.js" defer></script>
     <script src="script.js" defer></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            setTimeout(function() {
-                var section = document.getElementById('telemedicina');
-                if (section) {
-                    section.scrollIntoView({ behavior: 'smooth' });
-                }
-            }, 500);
-        });
-    </script>
+    <script src="js/telemedicina-init.js" defer></script>
 </body>
 </html>
