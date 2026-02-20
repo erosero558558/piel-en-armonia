@@ -56,6 +56,22 @@ function api_error_message_for_client(Throwable $error, int $status): string
     return 'Error interno del servidor';
 }
 
+function api_should_audit_public_get(string $resource): bool
+{
+    $enabled = parse_bool(getenv('PIELARMONIA_AUDIT_PUBLIC_GET') ?: false);
+    if ($enabled) {
+        return true;
+    }
+
+    // Keep high-value GET traces even when broad public GET audit is disabled.
+    return in_array($resource, ['health', 'metrics'], true);
+}
+
+function api_should_audit_health(): bool
+{
+    return parse_bool(getenv('PIELARMONIA_AUDIT_HEALTH') ?: false);
+}
+
 set_exception_handler(static function (Throwable $e): void {
     $code = ($e->getCode() >= 400 && $e->getCode() < 600) ? (int) $e->getCode() : 500;
     if (!headers_sent()) {
@@ -602,7 +618,9 @@ if ($resource === 'health') {
     $health['figoRecursiveConfig'] = $figoRecursive;
     $health['timingMs'] = $timingMs;
 
-    audit_log_event('api.health', $health);
+    if (api_should_audit_health()) {
+        audit_log_event('api.health', $health);
+    }
     json_response($health, $health['ok'] ? 200 : 503);
 }
 
@@ -650,11 +668,18 @@ if (!$isPublic) {
     }
 }
 
-audit_log_event('api.access', [
-    'method' => $method,
-    'resource' => $resource,
-    'scope' => $isAdmin ? 'admin' : 'public'
-]);
+$shouldAuditAccess = true;
+if (!$isAdmin && $method === 'GET' && !api_should_audit_public_get($resource)) {
+    $shouldAuditAccess = false;
+}
+
+if ($shouldAuditAccess) {
+    audit_log_event('api.access', [
+        'method' => $method,
+        'resource' => $resource,
+        'scope' => $isAdmin ? 'admin' : 'public'
+    ]);
+}
 
 // CSRF: validar token en mutaciones autenticadas (no publicas)
 if (in_array($method, ['POST', 'PUT', 'PATCH'], true) && $isAdmin) {
