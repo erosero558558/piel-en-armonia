@@ -157,7 +157,7 @@
                 <li><a href="#resenas" data-i18n="nav_reviews">Reseñas</a></li>
             </ul>
             <div class="nav-actions">
-                <a href="#citas" class="nav-cta" data-i18n="nav_book">Reservar Cita</a>
+                <a href="#citas" class="nav-cta" id="booking-btn" data-i18n="nav_book">Reservar Cita</a>
             </div>
             <button type="button" class="nav-mobile-toggle" data-action="toggle-mobile-menu">
                 <i class="fas fa-bars"></i>
@@ -1677,6 +1677,27 @@
     <script src="bootstrap-inline-engine.js?v=ui-20260219-csp-inline-bootstrap1" defer></script>
     <script src="script.js" defer></script>
     <script src="gallery-lazy.js" defer></script>
+    <script>
+    // Cargar calendar solo cuando se hace click en "Reservar"
+    const bookingBtn = document.getElementById('booking-btn');
+    if (bookingBtn) {
+        bookingBtn.addEventListener('click', () => {
+            import('./js/booking-calendar.js').then(module => {
+                module.initCalendar();
+            });
+        });
+    }
+    // Also apply to other booking buttons for consistency
+    document.querySelectorAll('a[href="#citas"]').forEach(btn => {
+        if (btn.id !== 'booking-btn') {
+            btn.addEventListener('click', () => {
+                import('./js/booking-calendar.js').then(module => {
+                    module.initCalendar();
+                });
+            });
+        }
+    });
+    </script>
 </body>
 </html>
 
