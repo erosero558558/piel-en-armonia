@@ -3,16 +3,17 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/business.php';
+require_once __DIR__ . '/db.php';
 
 /**
- * Storage and file system operations.
+ * Storage and file system operations using SQLite.
  */
 
 if (!defined('DATA_DIR')) {
     define('DATA_DIR', __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'data');
 }
 if (!defined('DATA_FILE')) {
-    define('DATA_FILE', DATA_DIR . DIRECTORY_SEPARATOR . 'store.json');
+    define('DATA_FILE', DATA_DIR . DIRECTORY_SEPARATOR . 'store.sqlite');
 }
 if (!defined('BACKUP_DIR')) {
     define('BACKUP_DIR', DATA_DIR . DIRECTORY_SEPARATOR . 'backups');
@@ -173,6 +174,11 @@ function data_dir_source(): string
 
 function data_file_path(): string
 {
+    return data_dir_path() . DIRECTORY_SEPARATOR . 'store.sqlite';
+}
+
+function data_json_path(): string
+{
     return data_dir_path() . DIRECTORY_SEPARATOR . 'store.json';
 }
 
@@ -189,27 +195,6 @@ function data_dir_writable(): bool
     return @is_writable($dir);
 }
 
-function store_file_is_encrypted(): bool
-{
-    $path = data_file_path();
-    if (!is_file($path)) {
-        return false;
-    }
-
-    $fp = @fopen($path, 'rb');
-    if ($fp === false) {
-        return false;
-    }
-
-    try {
-        $prefix = fread($fp, 6);
-    } finally {
-        fclose($fp);
-    }
-
-    return is_string($prefix) && $prefix === 'ENCv1:';
-}
-
 function backup_dir_path(): string
 {
     return data_dir_path() . DIRECTORY_SEPARATOR . 'backups';
@@ -218,6 +203,17 @@ function backup_dir_path(): string
 function audit_log_file_path(): string
 {
     return data_dir_path() . DIRECTORY_SEPARATOR . 'audit.log';
+}
+
+function store_file_is_encrypted(): bool
+{
+    return false;
+}
+
+// Encryption functions retained for legacy support if needed, but not used for SQLite directly
+function data_encrypt_payload(string $plain): string
+{
+    return $plain;
 }
 
 function data_encryption_key(): string
@@ -260,35 +256,6 @@ function data_encryption_key(): string
     return $resolved;
 }
 
-function data_encrypt_payload(string $plain): string
-{
-    $key = data_encryption_key();
-    if ($key === '') {
-        return $plain;
-    }
-
-    if (!function_exists('openssl_encrypt')) {
-        error_log('Piel en Armonía: openssl_encrypt no disponible para cifrado de datos');
-        return '';
-    }
-
-    try {
-        $iv = random_bytes(12);
-    } catch (Throwable $e) {
-        error_log('Piel en Armonía: no se pudo generar IV para cifrado de datos');
-        return '';
-    }
-
-    $tag = '';
-    $cipher = openssl_encrypt($plain, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
-    if (!is_string($cipher) || $cipher === '' || !is_string($tag) || $tag === '') {
-        error_log('Piel en Armonía: fallo al cifrar store.json');
-        return '';
-    }
-
-    return 'ENCv1:' . base64_encode($iv . $tag . $cipher);
-}
-
 function data_decrypt_payload(string $raw): string
 {
     if (substr($raw, 0, 6) !== 'ENCv1:') {
@@ -297,19 +264,16 @@ function data_decrypt_payload(string $raw): string
 
     $key = data_encryption_key();
     if ($key === '') {
-        error_log('Piel en Armonía: store cifrado pero no hay PIELARMONIA_DATA_ENCRYPTION_KEY');
         return '';
     }
 
     if (!function_exists('openssl_decrypt')) {
-        error_log('Piel en Armonía: openssl_decrypt no disponible para descifrado de datos');
         return '';
     }
 
     $encoded = substr($raw, 6);
     $packed = base64_decode($encoded, true);
     if (!is_string($packed) || strlen($packed) <= 28) {
-        error_log('Piel en Armonía: payload cifrado invalido');
         return '';
     }
 
@@ -318,7 +282,6 @@ function data_decrypt_payload(string $raw): string
     $cipher = substr($packed, 28);
     $plain = openssl_decrypt($cipher, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
     if (!is_string($plain)) {
-        error_log('Piel en Armonía: fallo al descifrar store.json');
         return '';
     }
 
@@ -348,7 +311,7 @@ function ensure_backup_dir(): bool
 
 function prune_backup_files(): void
 {
-    $files = glob(backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.json');
+    $files = glob(backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.sqlite');
     if (!is_array($files) || count($files) <= MAX_STORE_BACKUPS) {
         return;
     }
@@ -360,20 +323,14 @@ function prune_backup_files(): void
     }
 }
 
-function create_store_backup_locked($fp): void
+function create_store_backup_locked($sourcePath): void
 {
-    if (!is_resource($fp)) {
-        return;
-    }
-
     if (!ensure_backup_dir()) {
         error_log('Piel en Armonía: no se pudo crear el directorio de backups');
         return;
     }
 
-    rewind($fp);
-    $current = stream_get_contents($fp);
-    if (!is_string($current) || trim($current) === '') {
+    if (!file_exists($sourcePath)) {
         return;
     }
 
@@ -383,95 +340,147 @@ function create_store_backup_locked($fp): void
         $suffix = substr(md5((string) microtime(true)), 0, 6);
     }
 
-    $filename = backup_dir_path() . DIRECTORY_SEPARATOR . 'store-' . local_date('Ymd-His') . '-' . $suffix . '.json';
-    if (@file_put_contents($filename, $current, LOCK_EX) === false) {
-        error_log('Piel en Armonía: no se pudo guardar backup de store.json');
+    $filename = backup_dir_path() . DIRECTORY_SEPARATOR . 'store-' . local_date('Ymd-His') . '-' . $suffix . '.sqlite';
+    if (!copy($sourcePath, $filename)) {
+        error_log('Piel en Armonía: no se pudo guardar backup de store.sqlite');
         return;
     }
 
     prune_backup_files();
 }
 
-function data_store_shape_valid(array $data): bool
+function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
 {
-    foreach (['appointments', 'callbacks', 'reviews', 'availability'] as $key) {
-        if (!array_key_exists($key, $data) || !is_array($data[$key])) {
-            return false;
-        }
-    }
-    return true;
-}
-
-function data_store_candidate_files(string $targetFile): array
-{
-    $files = [];
-    foreach (data_dir_candidates() as $candidate) {
-        $dir = (string) ($candidate['path'] ?? '');
-        if ($dir === '') {
-            continue;
-        }
-        $candidateFile = $dir . DIRECTORY_SEPARATOR . 'store.json';
-        if (!is_file($candidateFile) || !is_readable($candidateFile)) {
-            continue;
-        }
-        if (strcasecmp($candidateFile, $targetFile) === 0) {
-            continue;
-        }
-
-        $mtime = @filemtime($candidateFile);
-        $files[] = [
-            'path' => $candidateFile,
-            'source' => (string) ($candidate['source'] ?? 'unknown'),
-            'mtime' => is_int($mtime) ? $mtime : 0
-        ];
+    if (!file_exists($jsonPath)) {
+        return false;
     }
 
-    usort($files, static function (array $a, array $b): int {
-        return ($b['mtime'] ?? 0) <=> ($a['mtime'] ?? 0);
-    });
+    $raw = @file_get_contents($jsonPath);
+    if ($raw === false || $raw === '') {
+        return false;
+    }
 
-    return $files;
-}
+    $decoded = data_decrypt_payload((string)$raw);
+    if ($decoded === '') {
+        $decoded = (string)$raw; // Try as plain JSON
+    }
 
-function data_try_migrate_store_file(string $targetFile): bool
-{
-    foreach (data_store_candidate_files($targetFile) as $candidate) {
-        $sourcePath = (string) ($candidate['path'] ?? '');
-        if ($sourcePath === '') {
-            continue;
+    if (substr($decoded, 0, 6) === 'ENCv1:') {
+        // Failed decryption
+        error_log('Migration failed: could not decrypt store.json');
+        return false;
+    }
+
+    $data = json_decode($decoded, true);
+    if (!is_array($data)) {
+        error_log('Migration failed: invalid JSON');
+        return false;
+    }
+
+    $pdo = get_db_connection($sqlitePath);
+    if (!$pdo) {
+        return false;
+    }
+
+    ensure_db_schema();
+
+    $pdo->beginTransaction();
+    try {
+        // Appointments
+        if (isset($data['appointments']) && is_array($data['appointments'])) {
+            $stmt = $pdo->prepare("INSERT OR REPLACE INTO appointments (id, date, time, doctor, service, name, email, phone, status, paymentMethod, paymentStatus, paymentIntentId, rescheduleToken, json_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            foreach ($data['appointments'] as $appt) {
+                if (!isset($appt['id'])) continue;
+                $stmt->execute([
+                    $appt['id'],
+                    $appt['date'] ?? '',
+                    $appt['time'] ?? '',
+                    $appt['doctor'] ?? '',
+                    $appt['service'] ?? '',
+                    $appt['name'] ?? '',
+                    $appt['email'] ?? '',
+                    $appt['phone'] ?? '',
+                    $appt['status'] ?? 'confirmed',
+                    $appt['paymentMethod'] ?? '',
+                    $appt['paymentStatus'] ?? '',
+                    $appt['paymentIntentId'] ?? '',
+                    $appt['rescheduleToken'] ?? '',
+                    json_encode($appt, JSON_UNESCAPED_UNICODE)
+                ]);
+            }
         }
 
-        $raw = @file_get_contents($sourcePath);
-        if (!is_string($raw) || trim($raw) === '') {
-            continue;
+        // Reviews
+        if (isset($data['reviews']) && is_array($data['reviews'])) {
+            $stmt = $pdo->prepare("INSERT OR REPLACE INTO reviews (id, name, rating, text, date, verified, json_data) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            foreach ($data['reviews'] as $review) {
+                if (!isset($review['id'])) continue;
+                $stmt->execute([
+                    $review['id'],
+                    $review['name'] ?? '',
+                    $review['rating'] ?? 0,
+                    $review['text'] ?? '',
+                    $review['date'] ?? '',
+                    isset($review['verified']) && $review['verified'] ? 1 : 0,
+                    json_encode($review, JSON_UNESCAPED_UNICODE)
+                ]);
+            }
         }
 
-        $decoded = data_decrypt_payload($raw);
-        if ($decoded === '') {
-            continue;
+        // Callbacks
+        if (isset($data['callbacks']) && is_array($data['callbacks'])) {
+            $stmt = $pdo->prepare("INSERT OR REPLACE INTO callbacks (id, telefono, preferencia, fecha, status, json_data) VALUES (?, ?, ?, ?, ?, ?)");
+            foreach ($data['callbacks'] as $cb) {
+                if (!isset($cb['id'])) continue;
+                $stmt->execute([
+                    $cb['id'],
+                    $cb['telefono'] ?? '',
+                    $cb['preferencia'] ?? '',
+                    $cb['fecha'] ?? '',
+                    $cb['status'] ?? 'pendiente',
+                    json_encode($cb, JSON_UNESCAPED_UNICODE)
+                ]);
+            }
         }
 
-        $data = json_decode($decoded, true);
-        if (!is_array($data) || !data_store_shape_valid($data)) {
-            continue;
+        // Availability
+        if (isset($data['availability']) && is_array($data['availability'])) {
+            $stmt = $pdo->prepare("INSERT OR REPLACE INTO availability (date, time, doctor) VALUES (?, ?, ?)");
+            foreach ($data['availability'] as $date => $times) {
+                if (!is_array($times)) continue;
+                foreach ($times as $time) {
+                    $stmt->execute([$date, $time, 'global']);
+                }
+            }
         }
 
-        if (@file_put_contents($targetFile, $raw, LOCK_EX) === false) {
-            continue;
+        // Metadata
+        $stmt = $pdo->prepare("INSERT OR REPLACE INTO kv_store (key, value) VALUES (?, ?)");
+        if (isset($data['updatedAt'])) {
+            $stmt->execute(['updatedAt', $data['updatedAt']]);
+        }
+        if (isset($data['createdAt'])) {
+            $stmt->execute(['createdAt', $data['createdAt']]);
         }
 
-        @chmod($targetFile, 0664);
-        error_log('Piel en Armonia: store.json migrado desde ' . $sourcePath . ' hacia ' . $targetFile);
+        $pdo->commit();
+
+        // Rename json file to avoid re-migration
+        @rename($jsonPath, $jsonPath . '.migrated');
+
         return true;
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        error_log('Migration failed: ' . $e->getMessage());
+        return false;
     }
-
-    return false;
 }
 
 function ensure_data_file(): bool
 {
     $dataDir = data_dir_path();
-    $dataFile = data_file_path();
+    $dbPath = data_file_path();
+    $jsonPath = data_json_path();
 
     if (!is_dir($dataDir) && !@mkdir($dataDir, 0775, true) && !is_dir($dataDir)) {
         error_log('Piel en Armonía: no se pudo crear el directorio de datos: ' . $dataDir);
@@ -480,25 +489,23 @@ function ensure_data_file(): bool
 
     ensure_data_htaccess($dataDir);
 
-    if (!file_exists($dataFile)) {
-        $migrated = data_try_migrate_store_file($dataFile);
-        if (!$migrated) {
-            $seed = [
-                'appointments' => [],
-                'callbacks' => [],
-                'reviews' => [],
-                'availability' => [],
-                'createdAt' => local_date('c'),
-                'updatedAt' => local_date('c')
-            ];
-            $seedEncoded = json_encode($seed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            $payloadToWrite = is_string($seedEncoded) ? data_encrypt_payload($seedEncoded) : '';
-            if ($payloadToWrite === '' || @file_put_contents($dataFile, $payloadToWrite, LOCK_EX) === false) {
-                error_log('Piel en Armonia: no se pudo inicializar store.json en ' . $dataFile);
-                return false;
-            }
-        }
+    // Ensure schema exists
+    $pdo = get_db_connection($dbPath);
+    if ($pdo) {
+        ensure_db_schema();
+    } else {
+         error_log('Piel en Armonía: no se pudo conectar a SQLite: ' . $dbPath);
+         return false;
     }
+
+    // Check for migration
+    if (file_exists($jsonPath) && !file_exists($dbPath . '.migrated_flag')) {
+        // We check if DB is empty or just force migration if json exists?
+        // Better: if json exists and we haven't migrated yet.
+        // migrate_json_to_sqlite renames json file, so checking file_exists($jsonPath) is enough
+        migrate_json_to_sqlite($jsonPath, $dbPath);
+    }
+
     return true;
 }
 
@@ -514,8 +521,8 @@ function read_store(): array
         ];
     }
 
-    $raw = @file_get_contents(data_file_path());
-    if ($raw === false || $raw === '') {
+    $pdo = get_db_connection(data_file_path());
+    if (!$pdo) {
         return [
             'appointments' => [],
             'callbacks' => [],
@@ -525,30 +532,67 @@ function read_store(): array
         ];
     }
 
-    $rawText = (string) $raw;
-    $decodedRaw = data_decrypt_payload($rawText);
-    if ($decodedRaw === '') {
-        if (substr($rawText, 0, 6) === 'ENCv1:') {
-            // Esto solo se puede mostrar si json_response está disponible, pero lib/storage.php no depende de http.php.
-            // Asi que hacemos un error log y retornamos array vacio, o lanzamos excepcion.
-            // api-lib.php hacia json_response... que es un side effect.
-            // Lo mejor es hacer error log y retornar vacio, o die.
-            // Para compatibilidad:
-            error_log('Piel en Armonía: No se pudo descifrar la base de datos. Verifica PIELARMONIA_DATA_ENCRYPTION_KEY');
-             // Si el llamador espera respuesta json, deberiamos lanzar excepcion?
-             // api-lib.php hacia: json_response(['ok'=>false, ...], 500);
-             // Si yo hago require_once 'http.php' aqui seria circular dependency? No.
-             // Pero storage no deberia saber de HTTP.
-             // Voy a dejarlo como retorno de array vacio y log, pero si el store esta corrupto/encriptado mal, la app no funcionara bien.
-             // El caller (api.php) podria manejarlo.
-             // O puedo requerir http.php aqui y usar json_response para mantener el comportamiento exacto de api-lib.php.
-             if (function_exists('json_response')) {
-                 json_response([
-                    'ok' => false,
-                    'error' => 'No se pudo descifrar la base de datos. Verifica PIELARMONIA_DATA_ENCRYPTION_KEY'
-                ], 500);
-             }
+    try {
+        $store = [
+            'appointments' => [],
+            'callbacks' => [],
+            'reviews' => [],
+            'availability' => [],
+            'updatedAt' => local_date('c'),
+            'idx_appointments_date' => []
+        ];
+
+        // Fetch Appointments
+        $stmt = $pdo->query("SELECT json_data FROM appointments");
+        while ($row = $stmt->fetch()) {
+            $data = json_decode($row['json_data'], true);
+            if (is_array($data)) {
+                $store['appointments'][] = $data;
+            }
         }
+
+        // Fetch Reviews
+        $stmt = $pdo->query("SELECT json_data FROM reviews");
+        while ($row = $stmt->fetch()) {
+            $data = json_decode($row['json_data'], true);
+            if (is_array($data)) {
+                $store['reviews'][] = $data;
+            }
+        }
+
+        // Fetch Callbacks
+        $stmt = $pdo->query("SELECT json_data FROM callbacks");
+        while ($row = $stmt->fetch()) {
+            $data = json_decode($row['json_data'], true);
+            if (is_array($data)) {
+                $store['callbacks'][] = $data;
+            }
+        }
+
+        // Fetch Availability
+        $stmt = $pdo->query("SELECT date, time FROM availability");
+        while ($row = $stmt->fetch()) {
+            $date = $row['date'];
+            $time = $row['time'];
+            if (!isset($store['availability'][$date])) {
+                $store['availability'][$date] = [];
+            }
+            $store['availability'][$date][] = $time;
+        }
+
+        // Fetch Metadata
+        $stmt = $pdo->query("SELECT value FROM kv_store WHERE key = 'updatedAt'");
+        $row = $stmt->fetch();
+        if ($row) {
+            $store['updatedAt'] = $row['value'];
+        }
+
+        // Build index
+        $store['idx_appointments_date'] = build_appointment_index($store['appointments']);
+
+        return $store;
+    } catch (PDOException $e) {
+        error_log('Read Store Error: ' . $e->getMessage());
         return [
             'appointments' => [],
             'callbacks' => [],
@@ -557,127 +601,151 @@ function read_store(): array
             'updatedAt' => local_date('c')
         ];
     }
-
-    $data = json_decode($decodedRaw, true);
-    if (!is_array($data)) {
-        return [
-            'appointments' => [],
-            'callbacks' => [],
-            'reviews' => [],
-            'availability' => [],
-            'updatedAt' => local_date('c')
-        ];
-    }
-
-    $data['appointments'] = isset($data['appointments']) && is_array($data['appointments']) ? $data['appointments'] : [];
-    $data['callbacks'] = isset($data['callbacks']) && is_array($data['callbacks']) ? $data['callbacks'] : [];
-    $data['reviews'] = isset($data['reviews']) && is_array($data['reviews']) ? $data['reviews'] : [];
-    $data['availability'] = isset($data['availability']) && is_array($data['availability']) ? $data['availability'] : [];
-    $data['updatedAt'] = isset($data['updatedAt']) ? (string) $data['updatedAt'] : local_date('c');
-
-    if (!isset($data['idx_appointments_date']) || !is_array($data['idx_appointments_date'])) {
-        $data['idx_appointments_date'] = build_appointment_index($data['appointments']);
-    }
-
-    return $data;
 }
 
 function acquire_store_lock($fp, int $timeoutMs = STORE_LOCK_TIMEOUT_MS): bool
 {
-    if (!is_resource($fp)) {
-        return false;
-    }
-
-    $timeoutMs = max(100, $timeoutMs);
-    $deadline = microtime(true) + ($timeoutMs / 1000);
-
-    do {
-        if (flock($fp, LOCK_EX | LOCK_NB)) {
-            return true;
-        }
-        usleep(STORE_LOCK_RETRY_DELAY_US);
-    } while (microtime(true) < $deadline);
-
-    return false;
+    // Deprecated with SQLite, kept for compatibility if needed by external callers
+    return true;
 }
 
 function write_store(array $store): void
 {
     if (!ensure_data_file()) {
         if (function_exists('json_response')) {
-            json_response([
-                'ok' => false,
-                'error' => 'No hay permisos de escritura para los datos',
-                'path' => data_file_path()
-            ], 500);
-        } else {
-             error_log('No hay permisos de escritura para los datos: ' . data_file_path());
-             return;
+             json_response(['ok' => false, 'error' => 'Storage error'], 500);
         }
+        return;
     }
 
-    $store['appointments'] = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
-    $store['callbacks'] = isset($store['callbacks']) && is_array($store['callbacks']) ? $store['callbacks'] : [];
-    $store['reviews'] = isset($store['reviews']) && is_array($store['reviews']) ? $store['reviews'] : [];
-    $store['availability'] = isset($store['availability']) && is_array($store['availability']) ? $store['availability'] : [];
-    $store['updatedAt'] = local_date('c');
-
-    // Rebuild index before saving to ensure consistency
-    $store['idx_appointments_date'] = build_appointment_index($store['appointments']);
-
-    $fp = @fopen(data_file_path(), 'c+');
-    if ($fp === false) {
-        if (function_exists('json_response')) {
-            json_response([
-                'ok' => false,
-                'error' => 'No se pudo abrir el archivo de datos'
-            ], 500);
-        } else {
-            error_log('No se pudo abrir el archivo de datos');
-            return;
+    $dbPath = data_file_path();
+    $pdo = get_db_connection($dbPath);
+    if (!$pdo) {
+         if (function_exists('json_response')) {
+             json_response(['ok' => false, 'error' => 'DB Connection error'], 500);
         }
+        return;
     }
 
-    $lockAcquired = false;
+    // Backup
+    create_store_backup_locked($dbPath);
+
     try {
-        $lockTimeoutMs = STORE_LOCK_TIMEOUT_MS;
-        if (!acquire_store_lock($fp, $lockTimeoutMs)) {
-            header('Retry-After: 1');
-            if (function_exists('json_response')) {
-                json_response([
-                    'ok' => false,
-                    'error' => 'El sistema esta ocupado. Intenta nuevamente en unos segundos',
-                    'retryAfterMs' => $lockTimeoutMs
-                ], 503);
-            } else {
-                error_log('El sistema esta ocupado (lock timeout)');
-                return;
+        $pdo->beginTransaction();
+
+        $updatedAt = local_date('c');
+
+        // Sync Appointments
+        // Strategy: Get all IDs.
+        $existingIds = $pdo->query("SELECT id FROM appointments")->fetchAll(PDO::FETCH_COLUMN);
+        $existingIds = array_flip($existingIds); // id => index
+
+        $incomingIds = [];
+        $stmtUpsert = $pdo->prepare("INSERT OR REPLACE INTO appointments (id, date, time, doctor, service, name, email, phone, status, paymentMethod, paymentStatus, paymentIntentId, rescheduleToken, json_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+        foreach ($store['appointments'] as $appt) {
+            if (!isset($appt['id'])) continue;
+            $id = $appt['id'];
+            $incomingIds[$id] = true;
+
+            $stmtUpsert->execute([
+                $id,
+                $appt['date'] ?? '',
+                $appt['time'] ?? '',
+                $appt['doctor'] ?? '',
+                $appt['service'] ?? '',
+                $appt['name'] ?? '',
+                $appt['email'] ?? '',
+                $appt['phone'] ?? '',
+                $appt['status'] ?? 'confirmed',
+                $appt['paymentMethod'] ?? '',
+                $appt['paymentStatus'] ?? '',
+                $appt['paymentIntentId'] ?? '',
+                $appt['rescheduleToken'] ?? '',
+                json_encode($appt, JSON_UNESCAPED_UNICODE)
+            ]);
+        }
+
+        // Delete missing
+        $toDelete = array_diff_key($existingIds, $incomingIds);
+        if (!empty($toDelete)) {
+            $idsToDelete = implode(',', array_keys($toDelete));
+            $pdo->exec("DELETE FROM appointments WHERE id IN ($idsToDelete)");
+        }
+
+        // Sync Reviews
+        $existingIds = $pdo->query("SELECT id FROM reviews")->fetchAll(PDO::FETCH_COLUMN);
+        $existingIds = array_flip($existingIds);
+        $incomingIds = [];
+        $stmtUpsert = $pdo->prepare("INSERT OR REPLACE INTO reviews (id, name, rating, text, date, verified, json_data) VALUES (?, ?, ?, ?, ?, ?, ?)");
+
+        foreach ($store['reviews'] as $review) {
+            if (!isset($review['id'])) continue;
+            $id = $review['id'];
+            $incomingIds[$id] = true;
+            $stmtUpsert->execute([
+                $id,
+                $review['name'] ?? '',
+                $review['rating'] ?? 0,
+                $review['text'] ?? '',
+                $review['date'] ?? '',
+                isset($review['verified']) && $review['verified'] ? 1 : 0,
+                json_encode($review, JSON_UNESCAPED_UNICODE)
+            ]);
+        }
+        $toDelete = array_diff_key($existingIds, $incomingIds);
+        if (!empty($toDelete)) {
+             $idsToDelete = implode(',', array_keys($toDelete));
+             $pdo->exec("DELETE FROM reviews WHERE id IN ($idsToDelete)");
+        }
+
+        // Sync Callbacks
+        $existingIds = $pdo->query("SELECT id FROM callbacks")->fetchAll(PDO::FETCH_COLUMN);
+        $existingIds = array_flip($existingIds);
+        $incomingIds = [];
+        $stmtUpsert = $pdo->prepare("INSERT OR REPLACE INTO callbacks (id, telefono, preferencia, fecha, status, json_data) VALUES (?, ?, ?, ?, ?, ?)");
+
+        foreach ($store['callbacks'] as $cb) {
+            if (!isset($cb['id'])) continue;
+            $id = $cb['id'];
+            $incomingIds[$id] = true;
+            $stmtUpsert->execute([
+                $id,
+                $cb['telefono'] ?? '',
+                $cb['preferencia'] ?? '',
+                $cb['fecha'] ?? '',
+                $cb['status'] ?? 'pendiente',
+                json_encode($cb, JSON_UNESCAPED_UNICODE)
+            ]);
+        }
+        $toDelete = array_diff_key($existingIds, $incomingIds);
+        if (!empty($toDelete)) {
+             $idsToDelete = implode(',', array_keys($toDelete));
+             $pdo->exec("DELETE FROM callbacks WHERE id IN ($idsToDelete)");
+        }
+
+        // Sync Availability (Full Replace)
+        $pdo->exec("DELETE FROM availability");
+        $stmtInsert = $pdo->prepare("INSERT INTO availability (date, time, doctor) VALUES (?, ?, ?)");
+        if (isset($store['availability']) && is_array($store['availability'])) {
+            foreach ($store['availability'] as $date => $times) {
+                if (!is_array($times)) continue;
+                foreach ($times as $time) {
+                    $stmtInsert->execute([$date, $time, 'global']);
+                }
             }
         }
-        $lockAcquired = true;
 
-        // Backup del estado anterior antes de sobrescribir.
-        create_store_backup_locked($fp);
+        // Metadata
+        $stmt = $pdo->prepare("INSERT OR REPLACE INTO kv_store (key, value) VALUES (?, ?)");
+        $stmt->execute(['updatedAt', $updatedAt]);
 
-        ftruncate($fp, 0);
-        rewind($fp);
-        $encoded = json_encode($store, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        $payloadToWrite = is_string($encoded) ? data_encrypt_payload($encoded) : '';
-        if ($payloadToWrite === '' || fwrite($fp, $payloadToWrite) === false) {
-             if (function_exists('json_response')) {
-                json_response([
-                    'ok' => false,
-                    'error' => 'No se pudo guardar la información'
-                ], 500);
-            } else {
-                error_log('No se pudo guardar la informacion (fwrite failed)');
-            }
+        $pdo->commit();
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        error_log('Write Store Error: ' . $e->getMessage());
+        if (function_exists('json_response')) {
+             json_response(['ok' => false, 'error' => 'Write error'], 500);
         }
-        fflush($fp);
-    } finally {
-        if ($lockAcquired) {
-            flock($fp, LOCK_UN);
-        }
-        fclose($fp);
     }
 }

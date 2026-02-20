@@ -123,7 +123,7 @@ function backup_offsite_configured(): bool
 
 function backup_list_files(int $limit = 0): array
 {
-    $pattern = backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.json';
+    $pattern = backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.sqlite';
     $files = glob($pattern);
     if (!is_array($files) || $files === []) {
         return [];
@@ -252,6 +252,32 @@ function backup_validate_file(string $path): array
         $result['ageHours'] = round(max(0, time() - $mtime) / 3600, 3);
     }
 
+    // Check if it's a SQLite file
+    $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+    if ($ext === 'sqlite') {
+        try {
+            $pdo = new PDO("sqlite:$path");
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+            // Basic integrity check could be PRAGMA integrity_check, but slow.
+            // Just count rows.
+            $counts = [];
+            $counts['appointments'] = (int)$pdo->query("SELECT COUNT(*) FROM appointments")->fetchColumn();
+            $counts['reviews'] = (int)$pdo->query("SELECT COUNT(*) FROM reviews")->fetchColumn();
+            $counts['callbacks'] = (int)$pdo->query("SELECT COUNT(*) FROM callbacks")->fetchColumn();
+            $counts['availability'] = (int)$pdo->query("SELECT COUNT(*) FROM availability")->fetchColumn();
+
+            $result['counts'] = $counts;
+            $result['ok'] = true;
+            $result['reason'] = '';
+            return $result;
+        } catch (Exception $e) {
+            $result['reason'] = 'sqlite_error: ' . $e->getMessage();
+            return $result;
+        }
+    }
+
+    // Fallback to JSON validation (for legacy backups or offsite snapshots)
     $raw = @file_get_contents($path);
     if (!is_string($raw) || trim($raw) === '') {
         $result['reason'] = 'file_empty_or_unreadable';
@@ -352,26 +378,9 @@ function backup_create_offsite_snapshot(): array
         ];
     }
 
-    $storePath = data_file_path();
-    $fp = @fopen($storePath, 'rb');
-    if ($fp === false) {
-        return [
-            'ok' => false,
-            'reason' => 'store_open_failed'
-        ];
-    }
-
-    $raw = '';
-    $lockAcquired = false;
-    try {
-        $lockAcquired = flock($fp, LOCK_SH);
-        $raw = stream_get_contents($fp);
-    } finally {
-        if ($lockAcquired) {
-            flock($fp, LOCK_UN);
-        }
-        fclose($fp);
-    }
+    // Generate JSON dump from current store state
+    $data = read_store();
+    $raw = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
 
     if (!is_string($raw) || trim($raw) === '') {
         return [
@@ -380,11 +389,12 @@ function backup_create_offsite_snapshot(): array
         ];
     }
 
-    $decoded = backup_decode_store_payload($raw);
-    if (($decoded['ok'] ?? false) !== true) {
-        return [
+    // Verify it's valid structure (sanity check)
+    $shape = backup_validate_store_shape($data);
+    if (!$shape['ok']) {
+         return [
             'ok' => false,
-            'reason' => (string) ($decoded['reason'] ?? 'decode_failed')
+            'reason' => 'invalid_store_shape_export'
         ];
     }
 
@@ -433,7 +443,7 @@ function backup_create_offsite_snapshot(): array
         'gzipFile' => $gzipPath !== '' ? basename($gzipPath) : '',
         'uploadPath' => $uploadPath,
         'sha256' => $sha256,
-        'counts' => $decoded['counts'] ?? []
+        'counts' => $shape['counts'] ?? []
     ];
 }
 
