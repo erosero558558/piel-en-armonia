@@ -1,6 +1,6 @@
 import { withDeployAssetVersion, showToast, escapeHtml, storageGetJSON } from './utils.js';
 import { loadDeferredModule, runDeferredModule, withDeferredModule, createWarmupRunner, bindWarmupTarget, scheduleDeferredTask, observeOnceWhenVisible } from './loader.js';
-import { getCurrentLang, getReviewsCache, setReviewsCache } from './state.js';
+import { state } from './state.js';
 import { apiRequest, createCallbackRecord, createReviewRecord } from './data.js';
 
 const ENGAGEMENT_FORMS_ENGINE_URL = withDeployAssetVersion('/engagement-forms-engine.js?v=figo-engagement-20260218-phase1-sync1');
@@ -12,7 +12,7 @@ function getReviewsEngineDeps() {
         apiRequest,
         storageGetJSON,
         escapeHtml,
-        getCurrentLang: getCurrentLang
+        getCurrentLang: () => state.currentLang
     };
 }
 
@@ -59,9 +59,9 @@ function getEngagementFormsEngineDeps() {
         createReviewRecord,
         renderPublicReviews,
         showToast,
-        getCurrentLang: getCurrentLang,
-        getReviewsCache,
-        setReviewsCache
+        getCurrentLang: () => state.currentLang,
+        getReviewsCache: () => state.reviewsCache,
+        setReviewsCache: (val) => { state.reviewsCache = val; }
     };
 }
 

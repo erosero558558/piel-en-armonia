@@ -3,7 +3,7 @@ import { resolveDeployAssetVersion, withDeployAssetVersion, debugLog } from './u
 import { initActionRouterEngine } from './router.js';
 import { initThemeMode } from './theme.js';
 import { changeLanguage, initEnglishBundleWarmup } from './i18n.js';
-import { getCurrentLang } from './state.js';
+import { state } from './state.js';
 import { initCookieBanner, initGA4 } from './cookies.js';
 import { initBookingFunnelObserver, initDeferredSectionPrefetch, maybeTrackCheckoutAbandon, trackEvent } from './analytics.js';
 import { initDataEngineWarmup } from './data.js';
@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initActionRouterEngine();
     initDeferredStylesheetLoading();
     initThemeMode();
-    changeLanguage(getCurrentLang());
+    changeLanguage(state.currentLang);
     initCookieBanner();
     initGA4();
     initBookingFunnelObserver();

@@ -1,12 +1,12 @@
 import { withDeployAssetVersion, showToast, storageGetJSON, storageSetJSON } from './utils.js';
-import { getCurrentLang } from './state.js';
+import { state } from './state.js';
 import { loadDeferredModule, withDeferredModule, createWarmupRunner, bindWarmupTarget, observeOnceWhenVisible, scheduleDeferredTask } from './loader.js';
 
 const DATA_ENGINE_URL = withDeployAssetVersion('/data-engine.js?v=figo-data-20260219-phase1');
 
 function getDataEngineDeps() {
     return {
-        getCurrentLang: getCurrentLang,
+        getCurrentLang: () => state.currentLang,
         showToast,
         storageGetJSON,
         storageSetJSON

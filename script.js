@@ -13,60 +13,34 @@
     const THEME_STORAGE_KEY = 'themeMode';
     const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
 
-    let currentLang = localStorage.getItem('language') || 'es';
-    let currentThemeMode = localStorage.getItem('themeMode') || 'system';
-    let currentAppointment = null;
-    let checkoutSession = {
-        active: false,
-        completed: false,
-        startedAt: 0,
-        service: '',
-        doctor: ''
+    const internalState = {
+        currentLang: localStorage.getItem('language') || 'es',
+        currentThemeMode: localStorage.getItem('themeMode') || 'system',
+        currentAppointment: null,
+        checkoutSession: {
+            active: false,
+            completed: false,
+            startedAt: 0,
+            service: '',
+            doctor: ''
+        },
+        bookingViewTracked: false,
+        chatStartedTracked: false,
+        availabilityPrefetched: false,
+        reviewsPrefetched: false,
+        apiSlowNoticeLastAt: 0,
+        availabilityCache: {},
+        availabilityCacheLoadedAt: 0,
+        availabilityCachePromise: null,
+        bookedSlotsCache: new Map(),
+        reviewsCache: [],
+        paymentConfig: { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' },
+        paymentConfigLoaded: false,
+        paymentConfigLoadedAt: 0,
+        stripeSdkPromise: null,
+        chatbotOpen: false,
+        conversationContext: []
     };
-    let apiSlowNoticeLastAt = 0;
-    let reviewsCache = [];
-    let paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
-    let paymentConfigLoaded = false;
-    let paymentConfigLoadedAt = 0;
-    let stripeSdkPromise = null;
-    let chatbotOpen = false;
-    let conversationContext = [];
-
-    function getCurrentLang() { return currentLang; }
-    function setCurrentLang(lang) { currentLang = lang; }
-
-    function getCurrentThemeMode() { return currentThemeMode; }
-    function setCurrentThemeMode(mode) { currentThemeMode = mode; }
-
-    function getCurrentAppointment() { return currentAppointment; }
-    function setCurrentAppointment(appt) { currentAppointment = appt; }
-
-    function getCheckoutSession() { return checkoutSession; }
-    function setCheckoutSessionActive(active) { checkoutSession.active = active === true; }
-
-    function getApiSlowNoticeLastAt() { return apiSlowNoticeLastAt; }
-    function setApiSlowNoticeLastAt(val) { apiSlowNoticeLastAt = val; }
-
-    function getReviewsCache() { return reviewsCache; }
-    function setReviewsCache(val) { reviewsCache = val; }
-
-    function getPaymentConfig() { return paymentConfig; }
-    function setPaymentConfig(val) { paymentConfig = val; }
-
-    function getPaymentConfigLoaded() { return paymentConfigLoaded; }
-    function setPaymentConfigLoaded(val) { paymentConfigLoaded = val; }
-
-    function getPaymentConfigLoadedAt() { return paymentConfigLoadedAt; }
-    function setPaymentConfigLoadedAt(val) { paymentConfigLoadedAt = val; }
-
-    function getStripeSdkPromise() { return stripeSdkPromise; }
-    function setStripeSdkPromise(val) { stripeSdkPromise = val; }
-
-    function getChatbotOpen() { return chatbotOpen; }
-    function setChatbotOpen(val) { chatbotOpen = val; }
-
-    function getConversationContext() { return conversationContext; }
-    function setConversationContext(val) { conversationContext = val; }
 
     function getChatHistory() {
         try {
@@ -80,9 +54,31 @@
             return valid;
         } catch(e) { return []; }
     }
+
     function setChatHistory(history) {
         try { localStorage.setItem('chatHistory', JSON.stringify(history)); } catch(e) {}
     }
+
+    const handler = {
+        get(target, prop, receiver) {
+            if (prop === 'chatHistory') {
+                return getChatHistory();
+            }
+            return Reflect.get(target, prop, receiver);
+        },
+        set(target, prop, value, receiver) {
+            if (prop === 'chatHistory') {
+                setChatHistory(value);
+                return true;
+            }
+            if (prop === 'bookedSlotsCache') {
+                return false;
+            }
+            return Reflect.set(target, prop, value, receiver);
+        }
+    };
+
+    const state = new Proxy(internalState, handler);
 
     function debugLog(...args) {
     }
@@ -430,9 +426,9 @@
 
     function getThemeEngineDeps() {
         return {
-            getCurrentThemeMode: getCurrentThemeMode,
+            getCurrentThemeMode: () => state.currentThemeMode,
             setCurrentThemeMode: (mode) => {
-                setCurrentThemeMode(VALID_THEME_MODES.has(mode) ? mode : 'system');
+                state.currentThemeMode = VALID_THEME_MODES.has(mode) ? mode : 'system';
             },
             themeStorageKey: THEME_STORAGE_KEY,
             validThemeModes: Array.from(VALID_THEME_MODES),
@@ -466,7 +462,7 @@
 
     function getDataEngineDeps() {
         return {
-            getCurrentLang: getCurrentLang,
+            getCurrentLang: () => state.currentLang,
             showToast,
             storageGetJSON,
             storageSetJSON
@@ -552,7 +548,7 @@
             apiRequest: apiRequest$1,
             storageGetJSON,
             escapeHtml: escapeHtml$1,
-            getCurrentLang: getCurrentLang
+            getCurrentLang: () => state.currentLang
         };
     }
 
@@ -599,9 +595,9 @@
             createReviewRecord,
             renderPublicReviews,
             showToast,
-            getCurrentLang: getCurrentLang,
-            getReviewsCache,
-            setReviewsCache
+            getCurrentLang: () => state.currentLang,
+            getReviewsCache: () => state.reviewsCache,
+            setReviewsCache: (val) => { state.reviewsCache = val; }
         };
     }
 
@@ -664,12 +660,12 @@
 
     function getI18nEngineDeps() {
         return {
-            getCurrentLang: getCurrentLang,
+            getCurrentLang: () => state.currentLang,
             setCurrentLang: (lang) => {
-                setCurrentLang(lang === 'en' ? 'en' : 'es');
+                state.currentLang = (lang === 'en' ? 'en' : 'es');
             },
             showToast,
-            getReviewsCache,
+            getReviewsCache: () => state.reviewsCache,
             renderPublicReviews,
             debugLog
         };
@@ -756,10 +752,10 @@
             if (shouldShowSlowNotice) {
                 slowNoticeTimer = setTimeout(() => {
                     const now = Date.now();
-                    if ((now - getApiSlowNoticeLastAt()) > API_SLOW_NOTICE_COOLDOWN_MS) {
-                        setApiSlowNoticeLastAt(now);
+                    if ((now - state.apiSlowNoticeLastAt) > API_SLOW_NOTICE_COOLDOWN_MS) {
+                        state.apiSlowNoticeLastAt = now;
                         showToast(
-                            getCurrentLang() === 'es'
+                            state.currentLang === 'es'
                                 ? 'Conectando con el servidor...'
                                 : 'Connecting to server...',
                             'info'
@@ -792,7 +788,7 @@
                 const normalizedError = (() => {
                     if (error && error.name === 'AbortError') {
                         return makeApiError(
-                            getCurrentLang() === 'es'
+                            state.currentLang === 'es'
                                 ? 'Tiempo de espera agotado con el servidor'
                                 : 'Server request timed out',
                             0,
@@ -836,8 +832,8 @@
 
     async function loadPaymentConfig() {
         const now = Date.now();
-        if (getPaymentConfigLoaded() && (now - getPaymentConfigLoadedAt()) < 5 * 60 * 1000) {
-            return getPaymentConfig();
+        if (state.paymentConfigLoaded && (now - state.paymentConfigLoadedAt) < 5 * 60 * 1000) {
+            return state.paymentConfig;
         }
 
         let config;
@@ -852,9 +848,9 @@
         } catch (error) {
             config = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
         }
-        setPaymentConfig(config);
-        setPaymentConfigLoaded(true);
-        setPaymentConfigLoadedAt(now);
+        state.paymentConfig = config;
+        state.paymentConfigLoaded = true;
+        state.paymentConfigLoadedAt = now;
         return config;
     }
 
@@ -863,8 +859,8 @@
             return true;
         }
 
-        if (getStripeSdkPromise()) {
-            return getStripeSdkPromise();
+        if (state.stripeSdkPromise) {
+            return state.stripeSdkPromise;
         }
 
         const promise = new Promise((resolve, reject) => {
@@ -885,7 +881,7 @@
             document.head.appendChild(script);
         });
 
-        setStripeSdkPromise(promise);
+        state.stripeSdkPromise = promise;
         return promise;
     }
 
@@ -1080,8 +1076,8 @@
 
     function getSuccessModalEngineDeps() {
         return {
-            getCurrentLang: getCurrentLang,
-            getCurrentAppointment: getCurrentAppointment,
+            getCurrentLang: () => state.currentLang,
+            getCurrentAppointment: () => state.currentAppointment,
             getClinicAddress: () => CLINIC_ADDRESS,
             escapeHtml: escapeHtml$1
         };
@@ -1193,11 +1189,11 @@
 
     function getBookingEngineDeps() {
         return {
-            getCurrentLang,
-            getCurrentAppointment,
-            setCurrentAppointment,
-            getCheckoutSession,
-            setCheckoutSessionActive,
+            getCurrentLang: () => state.currentLang,
+            getCurrentAppointment: () => state.currentAppointment,
+            setCurrentAppointment: (appt) => { state.currentAppointment = appt; },
+            getCheckoutSession: () => state.checkoutSession,
+            setCheckoutSessionActive: (active) => { state.checkoutSession.active = (active === true); },
             startCheckoutSession,
             setCheckoutStep,
             completeCheckoutSession,
@@ -1275,7 +1271,7 @@
             loadAvailabilityData,
             getBookedSlots,
             showToast,
-            getCurrentLang: getCurrentLang,
+            getCurrentLang: () => state.currentLang,
             getDefaultTimeSlots: () => DEFAULT_TIME_SLOTS.slice(),
             getCasePhotoFiles: (form) => {
                  const input = form?.querySelector('#casePhotos');
@@ -1289,7 +1285,7 @@
             trackEvent,
             normalizeAnalyticsLabel,
             openPaymentModal,
-            setCurrentAppointment: setCurrentAppointment
+            setCurrentAppointment: (appt) => { state.currentAppointment = appt; }
         };
     }
 
@@ -1302,7 +1298,7 @@
 
         if (files.length > MAX_CASE_PHOTOS) {
             throw new Error(
-                getCurrentLang() === 'es'
+                state.currentLang === 'es'
                     ? `Puedes subir m\u00E1ximo ${MAX_CASE_PHOTOS} fotos.`
                     : `You can upload up to ${MAX_CASE_PHOTOS} photos.`
             );
@@ -1313,7 +1309,7 @@
 
             if (file.size > MAX_CASE_PHOTO_BYTES) {
                 throw new Error(
-                    getCurrentLang() === 'es'
+                    state.currentLang === 'es'
                         ? `Cada foto debe pesar m\u00E1ximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
                         : `Each photo must be at most ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
                 );
@@ -1324,7 +1320,7 @@
             const validByExt = /\.(jpe?g|png|webp)$/i.test(String(file.name || ''));
             if (!validByMime && !validByExt) {
                 throw new Error(
-                    getCurrentLang() === 'es'
+                    state.currentLang === 'es'
                         ? 'Solo se permiten im\u00e1genes JPG, PNG o WEBP.'
                         : 'Only JPG, PNG or WEBP images are allowed.'
                 );
@@ -1395,7 +1391,7 @@
             maybeTrackCheckoutAbandon(abandonReason);
         }
 
-        setCheckoutSessionActive(false);
+        state.checkoutSession.active = false;
         const modal = document.getElementById('paymentModal');
         if (modal) {
             modal.classList.remove('active');
@@ -1511,7 +1507,7 @@
             invalidateBookedSlotsCache,
             showToast,
             escapeHtml: escapeHtml$1,
-            getCurrentLang: getCurrentLang,
+            getCurrentLang: () => state.currentLang,
             getDefaultTimeSlots: () => DEFAULT_TIME_SLOTS.slice()
         };
     }
@@ -1535,7 +1531,7 @@
             loadRescheduleGatewayEngine,
             (engine) => engine.initRescheduleFromParam(),
             () => {
-                showToast(getCurrentLang() === 'es' ? 'No se pudo cargar la reprogramacion.' : 'Unable to load reschedule flow.', 'error');
+                showToast(state.currentLang === 'es' ? 'No se pudo cargar la reprogramacion.' : 'Unable to load reschedule flow.', 'error');
             }
         );
     }
@@ -1551,7 +1547,7 @@
 
     function submitReschedule() {
         runDeferredModule(loadRescheduleGatewayEngine, (engine) => engine.submitReschedule(), () => {
-            showToast(getCurrentLang() === 'es' ? 'No se pudo reprogramar en este momento.' : 'Unable to reschedule right now.', 'error');
+            showToast(state.currentLang === 'es' ? 'No se pudo reprogramar en este momento.' : 'Unable to reschedule right now.', 'error');
         });
     }
 
@@ -1603,10 +1599,10 @@
 
     function getChatUiEngineDeps() {
         return {
-            getChatHistory,
-            setChatHistory,
-            getConversationContext,
-            setConversationContext,
+            getChatHistory: () => state.chatHistory,
+            setChatHistory: (h) => { state.chatHistory = h; },
+            getConversationContext: () => state.conversationContext,
+            setConversationContext: (c) => { state.conversationContext = c; },
             historyStorageKey: CHAT_HISTORY_STORAGE_KEY,
             historyTtlMs: CHAT_HISTORY_TTL_MS,
             historyMaxItems: CHAT_HISTORY_MAX_ITEMS,
@@ -1639,9 +1635,9 @@
 
     function getChatWidgetEngineDeps() {
         return {
-            getChatbotOpen,
-            setChatbotOpen,
-            getChatHistoryLength: () => getChatHistory().length,
+            getChatbotOpen: () => state.chatbotOpen,
+            setChatbotOpen: (val) => { state.chatbotOpen = val; },
+            getChatHistoryLength: () => state.chatHistory.length,
             warmChatUi: () => runDeferredModule(loadChatUiEngine, () => undefined),
             scrollToBottom,
             trackEvent,
@@ -1679,8 +1675,8 @@
         runDeferredModule(loadChatWidgetEngine, (engine) => engine.toggleChatbot(), () => {
             const container = document.getElementById('chatbotContainer');
             if (!container) return;
-            const isOpen = !getChatbotOpen();
-            setChatbotOpen(isOpen);
+            const isOpen = !state.chatbotOpen;
+            state.chatbotOpen = isOpen;
             container.classList.toggle('active', isOpen);
         });
     }
@@ -1689,7 +1685,7 @@
         runDeferredModule(loadChatWidgetEngine, (engine) => engine.minimizeChatbot(), () => {
             const container = document.getElementById('chatbotContainer');
             if (container) container.classList.remove('active');
-            setChatbotOpen(false);
+            state.chatbotOpen = false;
         });
     }
 
@@ -1752,8 +1748,8 @@
             escapeHtml,
             minimizeChatbot,
             openPaymentModal,
-            getCurrentLang,
-            setCurrentAppointment
+            getCurrentLang: () => state.currentLang,
+            setCurrentAppointment: (appt) => { state.currentAppointment = appt; }
         };
     }
 
@@ -1922,7 +1918,7 @@
 
     function getConsentEngineDeps() {
         return {
-            getCurrentLang: getCurrentLang,
+            getCurrentLang: () => state.currentLang,
             showToast,
             trackEvent,
             cookieConsentKey: COOKIE_CONSENT_KEY,
@@ -2062,7 +2058,7 @@
         initActionRouterEngine();
         initDeferredStylesheetLoading();
         initThemeMode();
-        changeLanguage(getCurrentLang());
+        changeLanguage(state.currentLang);
         initCookieBanner();
         initGA4();
         initBookingFunnelObserver();

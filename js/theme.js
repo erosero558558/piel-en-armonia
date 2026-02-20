@@ -1,6 +1,6 @@
 import { withDeployAssetVersion } from './utils.js';
 import { loadDeferredModule, runDeferredModule } from './loader.js';
-import { getCurrentThemeMode, setCurrentThemeMode } from './state.js';
+import { state } from './state.js';
 import { THEME_STORAGE_KEY, VALID_THEME_MODES } from './config.js';
 
 const THEME_ENGINE_URL = withDeployAssetVersion('/theme-engine.js?v=figo-theme-20260219-phase1');
@@ -8,9 +8,9 @@ const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-s
 
 function getThemeEngineDeps() {
     return {
-        getCurrentThemeMode: getCurrentThemeMode,
+        getCurrentThemeMode: () => state.currentThemeMode,
         setCurrentThemeMode: (mode) => {
-            setCurrentThemeMode(VALID_THEME_MODES.has(mode) ? mode : 'system');
+            state.currentThemeMode = VALID_THEME_MODES.has(mode) ? mode : 'system';
         },
         themeStorageKey: THEME_STORAGE_KEY,
         validThemeModes: Array.from(VALID_THEME_MODES),

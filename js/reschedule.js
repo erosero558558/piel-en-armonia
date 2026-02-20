@@ -1,6 +1,6 @@
 import { withDeployAssetVersion, showToast, escapeHtml } from './utils.js';
 import { loadDeferredModule, runDeferredModule } from './loader.js';
-import { getCurrentLang } from './state.js';
+import { state } from './state.js';
 import { DEFAULT_TIME_SLOTS } from './config.js';
 import { apiRequest, loadAvailabilityData, getBookedSlots, invalidateBookedSlotsCache } from './data.js';
 
@@ -15,7 +15,7 @@ function getRescheduleGatewayEngineDeps() {
         invalidateBookedSlotsCache,
         showToast,
         escapeHtml,
-        getCurrentLang: getCurrentLang,
+        getCurrentLang: () => state.currentLang,
         getDefaultTimeSlots: () => DEFAULT_TIME_SLOTS.slice()
     };
 }
@@ -39,7 +39,7 @@ export function initRescheduleEngineWarmup() {
         loadRescheduleGatewayEngine,
         (engine) => engine.initRescheduleFromParam(),
         () => {
-            showToast(getCurrentLang() === 'es' ? 'No se pudo cargar la reprogramacion.' : 'Unable to load reschedule flow.', 'error');
+            showToast(state.currentLang === 'es' ? 'No se pudo cargar la reprogramacion.' : 'Unable to load reschedule flow.', 'error');
         }
     );
 }
@@ -55,6 +55,6 @@ export function closeRescheduleModal() {
 
 export function submitReschedule() {
     runDeferredModule(loadRescheduleGatewayEngine, (engine) => engine.submitReschedule(), () => {
-        showToast(getCurrentLang() === 'es' ? 'No se pudo reprogramar en este momento.' : 'Unable to reschedule right now.', 'error');
+        showToast(state.currentLang === 'es' ? 'No se pudo reprogramar en este momento.' : 'Unable to reschedule right now.', 'error');
     });
 }

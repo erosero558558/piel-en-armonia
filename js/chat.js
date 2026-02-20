@@ -1,14 +1,14 @@
 import { withDeployAssetVersion, debugLog, showToast } from './utils.js';
 import { loadDeferredModule, runDeferredModule, withDeferredModule, createWarmupRunner, bindWarmupTarget, scheduleDeferredTask } from './loader.js';
-import { getCurrentLang, getChatHistory, setChatHistory, getConversationContext, setConversationContext, getChatbotOpen, setChatbotOpen, setCurrentAppointment } from './state.js';
+import { state } from './state.js';
 import { trackEvent } from './analytics.js';
 import { loadAvailabilityData, getBookedSlots, createAppointmentRecord } from './data.js';
 import { startCheckoutSession, setCheckoutStep, completeCheckoutSession, openPaymentModal } from './booking.js';
 
 const CHAT_UI_ENGINE_URL = withDeployAssetVersion('/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1');
 const CHAT_WIDGET_ENGINE_URL = withDeployAssetVersion('/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1');
-const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion('/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1');
-const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion('/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1-sync1');
+const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion('/chat-booking-engine.js?v=figo-chat-booking-20260220-sync2-cachecoherence1');
+const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion('/chat-engine.js?v=figo-chat-20260220-phase3-runtimeconfig1-contextcap1-sync2');
 
 const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
 const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -53,10 +53,10 @@ export function removeTypingIndicator() {
 
 function getChatUiEngineDeps() {
     return {
-        getChatHistory,
-        setChatHistory,
-        getConversationContext,
-        setConversationContext,
+        getChatHistory: () => state.chatHistory,
+        setChatHistory: (h) => { state.chatHistory = h; },
+        getConversationContext: () => state.conversationContext,
+        setConversationContext: (c) => { state.conversationContext = c; },
         historyStorageKey: CHAT_HISTORY_STORAGE_KEY,
         historyTtlMs: CHAT_HISTORY_TTL_MS,
         historyMaxItems: CHAT_HISTORY_MAX_ITEMS,
@@ -89,9 +89,9 @@ export function initChatUiEngineWarmup() {
 
 function getChatWidgetEngineDeps() {
     return {
-        getChatbotOpen,
-        setChatbotOpen,
-        getChatHistoryLength: () => getChatHistory().length,
+        getChatbotOpen: () => state.chatbotOpen,
+        setChatbotOpen: (val) => { state.chatbotOpen = val; },
+        getChatHistoryLength: () => state.chatHistory.length,
         warmChatUi: () => runDeferredModule(loadChatUiEngine, () => undefined),
         scrollToBottom,
         trackEvent,
@@ -129,8 +129,8 @@ export function toggleChatbot() {
     runDeferredModule(loadChatWidgetEngine, (engine) => engine.toggleChatbot(), () => {
         const container = document.getElementById('chatbotContainer');
         if (!container) return;
-        const isOpen = !getChatbotOpen();
-        setChatbotOpen(isOpen);
+        const isOpen = !state.chatbotOpen;
+        state.chatbotOpen = isOpen;
         container.classList.toggle('active', isOpen);
     });
 }
@@ -139,7 +139,7 @@ export function minimizeChatbot() {
     runDeferredModule(loadChatWidgetEngine, (engine) => engine.minimizeChatbot(), () => {
         const container = document.getElementById('chatbotContainer');
         if (container) container.classList.remove('active');
-        setChatbotOpen(false);
+        state.chatbotOpen = false;
     });
 }
 
@@ -206,8 +206,8 @@ function getChatBookingEngineDeps() {
         escapeHtml,
         minimizeChatbot,
         openPaymentModal,
-        getCurrentLang,
-        setCurrentAppointment
+        getCurrentLang: () => state.currentLang,
+        setCurrentAppointment: (appt) => { state.currentAppointment = appt; }
     };
 }
 

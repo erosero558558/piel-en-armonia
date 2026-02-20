@@ -1,6 +1,6 @@
 import { withDeployAssetVersion, showToast, debugLog } from './utils.js';
 import { loadDeferredModule, runDeferredModule, createWarmupRunner, bindWarmupTarget, observeOnceWhenVisible, scheduleDeferredTask } from './loader.js';
-import { getCurrentLang, getCurrentAppointment, setCurrentAppointment, getCheckoutSession, setCheckoutSessionActive } from './state.js';
+import { state } from './state.js';
 import { DEFAULT_TIME_SLOTS } from './config.js';
 import { loadPaymentConfig, loadStripeSdk, createPaymentIntent, verifyPaymentIntent } from './payment.js';
 import { trackEvent, normalizeAnalyticsLabel, loadAnalyticsEngine, markBookingViewed } from './analytics.js';
@@ -74,11 +74,11 @@ async function buildAppointmentPayload(appointment) {
 
 function getBookingEngineDeps() {
     return {
-        getCurrentLang,
-        getCurrentAppointment,
-        setCurrentAppointment,
-        getCheckoutSession,
-        setCheckoutSessionActive,
+        getCurrentLang: () => state.currentLang,
+        getCurrentAppointment: () => state.currentAppointment,
+        setCurrentAppointment: (appt) => { state.currentAppointment = appt; },
+        getCheckoutSession: () => state.checkoutSession,
+        setCheckoutSessionActive: (active) => { state.checkoutSession.active = (active === true); },
         startCheckoutSession,
         setCheckoutStep,
         completeCheckoutSession,
@@ -156,7 +156,7 @@ function getBookingUiDeps() {
         loadAvailabilityData,
         getBookedSlots,
         showToast,
-        getCurrentLang: getCurrentLang,
+        getCurrentLang: () => state.currentLang,
         getDefaultTimeSlots: () => DEFAULT_TIME_SLOTS.slice(),
         getCasePhotoFiles: (form) => {
              const input = form?.querySelector('#casePhotos');
@@ -170,7 +170,7 @@ function getBookingUiDeps() {
         trackEvent,
         normalizeAnalyticsLabel,
         openPaymentModal,
-        setCurrentAppointment: setCurrentAppointment
+        setCurrentAppointment: (appt) => { state.currentAppointment = appt; }
     };
 }
 
@@ -183,7 +183,7 @@ function validateCasePhotoFiles(files) {
 
     if (files.length > MAX_CASE_PHOTOS) {
         throw new Error(
-            getCurrentLang() === 'es'
+            state.currentLang === 'es'
                 ? `Puedes subir m\u00E1ximo ${MAX_CASE_PHOTOS} fotos.`
                 : `You can upload up to ${MAX_CASE_PHOTOS} photos.`
         );
@@ -194,7 +194,7 @@ function validateCasePhotoFiles(files) {
 
         if (file.size > MAX_CASE_PHOTO_BYTES) {
             throw new Error(
-                getCurrentLang() === 'es'
+                state.currentLang === 'es'
                     ? `Cada foto debe pesar m\u00E1ximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
                     : `Each photo must be at most ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
             );
@@ -205,7 +205,7 @@ function validateCasePhotoFiles(files) {
         const validByExt = /\.(jpe?g|png|webp)$/i.test(String(file.name || ''));
         if (!validByMime && !validByExt) {
             throw new Error(
-                getCurrentLang() === 'es'
+                state.currentLang === 'es'
                     ? 'Solo se permiten im\u00e1genes JPG, PNG o WEBP.'
                     : 'Only JPG, PNG or WEBP images are allowed.'
             );
@@ -277,7 +277,7 @@ export function closePaymentModal(options = {}) {
         maybeTrackCheckoutAbandon(abandonReason);
     }
 
-    setCheckoutSessionActive(false);
+    state.checkoutSession.active = false;
     const modal = document.getElementById('paymentModal');
     if (modal) {
         modal.classList.remove('active');
