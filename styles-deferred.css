@@ -3096,3 +3096,43 @@ html[data-theme='dark'] .map-placeholder-content i {
 html[data-theme='dark'] .map-placeholder:hover .map-placeholder-content i {
     color: #3b557a;
 }
+
+/* Restored Typing Indicator */
+.typing-indicator {
+    border: 1px solid #d7e3f4;
+    background: #fff;
+    border-radius: 14px;
+    min-width: 56px;
+    min-height: 38px;
+    padding: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.typing-indicator span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #8ba0c0;
+    animation: typingPulse 1s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(2) {
+    animation-delay: 0.15s;
+}
+
+.typing-indicator span:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+@keyframes typingPulse {
+    0%, 80%, 100% {
+        opacity: 0.4;
+        transform: translateY(0);
+    }
+    40% {
+        opacity: 1;
+        transform: translateY(-3px);
+    }
+}

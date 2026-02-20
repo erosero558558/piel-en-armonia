@@ -37,8 +37,10 @@ async function processWithKimi(message) {
 
     // Si hay un booking en curso, desviar al flujo conversacional
     if (typeof isChatBookingActive === 'function' && isChatBookingActive()) {
-        await processChatBookingStep(message);
-        return;
+        const handled = await processChatBookingStep(message);
+        if (handled !== false) {
+            return;
+        }
     }
 
     // Detectar intención de agendar cita para iniciar booking conversacional
