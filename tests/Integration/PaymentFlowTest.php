@@ -105,6 +105,12 @@ class PaymentFlowTest extends TestCase
         $this->assertEquals(200, $response['status']);
         $this->assertTrue($response['payload']['ok']);
         $this->assertStringStartsWith('pi_mock_', $response['payload']['paymentIntentId']);
-        $this->assertEquals(4000, $response['payload']['amount']);
+
+        // Check for weekend surcharge
+        $expectedAmount = 4000;
+        if (date('N', strtotime($futureDate)) >= 6) {
+            $expectedAmount = 4400; // 10% surcharge
+        }
+        $this->assertEquals($expectedAmount, $response['payload']['amount']);
     }
 }
