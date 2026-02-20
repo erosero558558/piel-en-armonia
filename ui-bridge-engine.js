@@ -21,7 +21,11 @@
     }
 
     function runDeferred(loader, onReady, onError) {
-        if (!deps || typeof deps.runDeferredModule !== 'function' || typeof loader !== 'function') {
+        if (
+            !deps ||
+            typeof deps.runDeferredModule !== 'function' ||
+            typeof loader !== 'function'
+        ) {
             if (typeof onError === 'function') {
                 return onError(new Error('Deferred runtime unavailable'));
             }
@@ -47,7 +51,11 @@
             (engine) => engine.openPaymentModal(appointmentData),
             (error) => {
                 callDep('debugLog', 'openPaymentModal fallback error:', error);
-                callDep('showToast', 'No se pudo abrir el modulo de pago.', 'error');
+                callDep(
+                    'showToast',
+                    'No se pudo abrir el modulo de pago.',
+                    'error'
+                );
             }
         );
     }
@@ -55,13 +63,19 @@
     function closePaymentModal(options) {
         const settings = options && typeof options === 'object' ? options : {};
 
-        if (window.PielBookingEngine && typeof window.PielBookingEngine.closePaymentModal === 'function') {
+        if (
+            window.PielBookingEngine &&
+            typeof window.PielBookingEngine.closePaymentModal === 'function'
+        ) {
             window.PielBookingEngine.closePaymentModal(settings);
             return;
         }
 
         const skipAbandonTrack = settings.skipAbandonTrack === true;
-        const abandonReason = typeof settings.reason === 'string' ? settings.reason : 'modal_close';
+        const abandonReason =
+            typeof settings.reason === 'string'
+                ? settings.reason
+                : 'modal_close';
         if (!skipAbandonTrack) {
             callDep('maybeTrackCheckoutAbandon', abandonReason);
         }
@@ -81,7 +95,11 @@
             (engine) => engine.processPayment(),
             (error) => {
                 callDep('debugLog', 'processPayment error:', error);
-                callDep('showToast', 'No se pudo procesar el pago en este momento.', 'error');
+                callDep(
+                    'showToast',
+                    'No se pudo procesar el pago en este momento.',
+                    'error'
+                );
             }
         );
     }
@@ -91,7 +109,11 @@
             deps.loadSuccessModalEngine,
             (engine) => engine.showSuccessModal(emailSent === true),
             () => {
-                callDep('showToast', 'No se pudo abrir la confirmacion de cita.', 'error');
+                callDep(
+                    'showToast',
+                    'No se pudo abrir la confirmacion de cita.',
+                    'error'
+                );
             }
         );
     }
@@ -103,9 +125,8 @@
         }
         document.body.style.overflow = '';
 
-        runDeferred(
-            deps.loadSuccessModalEngine,
-            (engine) => engine.closeSuccessModal()
+        runDeferred(deps.loadSuccessModalEngine, (engine) =>
+            engine.closeSuccessModal()
         );
     }
 
@@ -130,9 +151,8 @@
         }
         document.body.style.overflow = '';
 
-        runDeferred(
-            deps.loadEngagementFormsEngine,
-            (engine) => engine.closeReviewModal()
+        runDeferred(deps.loadEngagementFormsEngine, (engine) =>
+            engine.closeReviewModal()
         );
     }
 
@@ -154,7 +174,14 @@
             deps.loadRescheduleGatewayEngine,
             (engine) => engine.submitReschedule(),
             () => {
-                callDep('showToast', t('No se pudo reprogramar en este momento.', 'Unable to reschedule right now.'), 'error');
+                callDep(
+                    'showToast',
+                    t(
+                        'No se pudo reprogramar en este momento.',
+                        'Unable to reschedule right now.'
+                    ),
+                    'error'
+                );
             }
         );
     }
@@ -169,6 +196,6 @@
         openReviewModal,
         closeReviewModal,
         closeRescheduleModal,
-        submitReschedule
+        submitReschedule,
     };
 })();

@@ -11,6 +11,7 @@ To ensure high availability and quick response to downtime, we use UptimeRobot t
 ### Endpoint
 
 The application exposes a health check endpoint:
+
 - **URL**: `https://pielarmonia.com/api.php?resource=health`
 - **Method**: `GET`
 - **Expected Status**: `200 OK`
@@ -37,6 +38,7 @@ The application exposes a health check endpoint:
 ### Verification
 
 After creation, the monitor should show as **UP** within a few minutes. If it shows **DOWN**:
+
 - Check if the site is accessible.
 - Check if the `/api.php?resource=health` endpoint is returning `200 OK`.
 - Verify no firewall rules are blocking UptimeRobot IPs.
@@ -66,19 +68,22 @@ This guide explains how to spin up a local or self-hosted Grafana + Prometheus s
 ### Running the Monitoring Stack
 
 1. Start your PHP application (e.g., using built-in server):
-   ```bash
-   php -S 0.0.0.0:8080
-   ```
-   *Note: Ensure it binds to `0.0.0.0` or uses `host.docker.internal` correctly.*
+
+    ```bash
+    php -S 0.0.0.0:8080
+    ```
+
+    _Note: Ensure it binds to `0.0.0.0` or uses `host.docker.internal` correctly._
 
 2. Start the monitoring stack:
-   ```bash
-   docker-compose -f docker-compose.monitoring.yml up -d
-   ```
+
+    ```bash
+    docker-compose -f docker-compose.monitoring.yml up -d
+    ```
 
 3. Access the services:
-   - **Prometheus**: [http://localhost:9090](http://localhost:9090)
-   - **Grafana**: [http://localhost:3000](http://localhost:3000) (Login: `admin` / `admin`)
+    - **Prometheus**: [http://localhost:9090](http://localhost:9090)
+    - **Grafana**: [http://localhost:3000](http://localhost:3000) (Login: `admin` / `admin`)
 
 ### Verification
 

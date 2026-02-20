@@ -1,4 +1,4 @@
-(function(window) {
+(function (window) {
     'use strict';
     let deps = null;
     let initialized = false;
@@ -27,7 +27,7 @@
     const api = {
         init,
         validateEmail,
-        sendEmail
+        sendEmail,
     };
 
     window.PielEmailEngine = api;

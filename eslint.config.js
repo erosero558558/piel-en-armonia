@@ -38,13 +38,13 @@ module.exports = [
             sourceType: 'module',
             globals: {
                 ...globals.node,
-                console: 'readonly'
+                console: 'readonly',
             },
         },
         rules: {
             'no-console': 'off',
-            'no-undef': 'off'
-        }
+            'no-undef': 'off',
+        },
     },
     {
         files: ['tests/**/*.spec.js'],
@@ -55,7 +55,7 @@ module.exports = [
             'playwright/no-conditional-in-test': 'warn',
             'playwright/no-conditional-expect': 'warn',
             'playwright/no-wait-for-timeout': 'warn',
-            'playwright/no-useless-not': 'warn'
+            'playwright/no-useless-not': 'warn',
         },
     },
 ];

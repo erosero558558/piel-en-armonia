@@ -3,20 +3,24 @@
 ## Deploy automatico sin subir manual
 
 Si desde tu PC no puedes subir por FTP/SFTP, usa el workflow:
+
 - `.github/workflows/deploy-hosting.yml`
 - `GITHUB-ACTIONS-DEPLOY.md` (paso a paso)
 
 Si tu hosting ya tiene sincronizacion por Git (pull automatico), ese metodo es el recomendado y mas seguro.
 En ese caso ejecuta el gate automatico con:
+
 - `.github/workflows/post-deploy-gate.yml` (se dispara en push a `main` y valida produccion en modo estricto).
-Para monitoreo continuo, habilita:
+  Para monitoreo continuo, habilita:
 - `.github/workflows/prod-monitor.yml` (salud + latencia cada 30 minutos).
 
 Configura en GitHub (repo -> Settings -> Secrets and variables -> Actions):
+
 - Secrets: `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`
 - Variables opcionales: `FTP_PROTOCOL`, `FTP_SERVER_PORT`, `FTP_SECURITY`, `FTP_SERVER_DIR` (`/public_html/`), `PROD_URL`
 
 Uso:
+
 - Push a `main`: deploy automatico.
 - Manual: Actions -> `Deploy Hosting (FTP/FTPS)` -> `Run workflow`.
 - Prueba sin cambios: `dry_run = true`.
@@ -58,10 +62,12 @@ Sube estos archivos a la raiz del hosting (`public_html` o equivalente):
 - `CONFIGURAR-TELEGRAM-WEBHOOK.ps1`
 
 Atajo recomendado para preparar un paquete listo para subir:
+
 - `npm run bundle:deploy`
 - Esto genera un `.zip` en `_deploy_bundle/` con `manifest-sha256.txt`.
 
 Notas:
+
 - El frontend ahora consume `figo-chat.php` para el chatbot IA.
 - El motor pesado del chat se carga en diferido desde `chat-engine.js`.
 - El flujo de reserva/pago se carga en diferido desde `booking-engine.js`.
@@ -108,6 +114,7 @@ Configura estas variables en tu hosting:
 - `PIELARMONIA_BACKUP_RECEIVER_MAX_MB` (opcional, limite de subida en MB del receiver)
 
 Importante:
+
 - Ya no existe fallback `admin123`, incluso en local.
 - Debes configurar `PIELARMONIA_ADMIN_PASSWORD` o `PIELARMONIA_ADMIN_PASSWORD_HASH`.
 - Para notificaciones por email al administrador, configura `PIELARMONIA_ADMIN_EMAIL`.
@@ -117,73 +124,86 @@ Importante:
   Debe apuntar al backend real de Clawbot/Figo (upstream).
 
 Ejemplo recomendado de `data/figo-config.json`:
+
 ```json
 {
-  "endpoint": "https://TU_DOMINIO/figo-backend.php",
-  "token": "TOKEN_OPCIONAL",
-  "apiKeyHeader": "X-API-Key",
-  "apiKey": "APIKEY_OPCIONAL",
-  "timeout": 20,
-  "ai": {
-    "endpoint": "https://openrouter.ai/api/v1/chat/completions",
-    "apiKey": "sk-or-v1-REEMPLAZAR",
-    "model": "arcee-ai/trinity-large-preview:free"
-  },
-  "allowLocalFallback": true
+    "endpoint": "https://TU_DOMINIO/figo-backend.php",
+    "token": "TOKEN_OPCIONAL",
+    "apiKeyHeader": "X-API-Key",
+    "apiKey": "APIKEY_OPCIONAL",
+    "timeout": 20,
+    "ai": {
+        "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+        "apiKey": "sk-or-v1-REEMPLAZAR",
+        "model": "arcee-ai/trinity-large-preview:free"
+    },
+    "allowLocalFallback": true
 }
 ```
 
 ## Verificaciones rapidas
 
 1. Salud API:
+
 - `https://pielarmonia.com/api.php?resource=health`
 - Validar campos nuevos: `timingMs`, `version`, `dataDirWritable`, `storeEncrypted`, `figoConfigured`, `figoRecursiveConfig`.
 - Revisar `checks.backup`: `enabled`, `ok`, `latestAgeHours`, `offsiteConfigured`.
 
 2. Admin auth status:
+
 - `https://pielarmonia.com/admin-auth.php?action=status`
 
 3. Bot Figo:
+
 - `https://pielarmonia.com/figo-chat.php`
 - Validar diagnostico: `mode`, `recursiveConfigDetected`, `upstreamReachable`.
 
-3.1 Backend Figo local (opcional):
+    3.1 Backend Figo local (opcional):
+
 - `https://pielarmonia.com/figo-backend.php`
 - Debe responder JSON con `ok: true` en GET.
 
-3.2 Configurar webhook Telegram (si quieres que @figo64_bot responda con el mismo motor):
+    3.2 Configurar webhook Telegram (si quieres que @figo64_bot responda con el mismo motor):
+
 - `.\CONFIGURAR-TELEGRAM-WEBHOOK.ps1 -BotToken "TOKEN_ROTADO" -WebhookUrl "https://pielarmonia.com/figo-backend.php"`
 - Guarda el secret mostrado por el script en `FIGO_TELEGRAM_WEBHOOK_SECRET`.
 
 4. Sitio:
+
 - `https://pielarmonia.com/`
 - `https://pielarmonia.com/index.html`
 - Validar en `/` header `Content-Security-Policy` presente.
 
 5. Panel:
+
 - `https://pielarmonia.com/admin.html`
 
 6. Verificacion de paridad de despliegue:
+
 - `.\VERIFICAR-DESPLIEGUE.ps1 -Domain "https://pielarmonia.com" -RunSmoke`
 - Si estas en ventana de mantenimiento y aceptas modo degradado temporal:
-  - `.\VERIFICAR-DESPLIEGUE.ps1 -Domain "https://pielarmonia.com" -RunSmoke -AllowDegradedFigo -AllowRecursiveFigo`
+    - `.\VERIFICAR-DESPLIEGUE.ps1 -Domain "https://pielarmonia.com" -RunSmoke -AllowDegradedFigo -AllowRecursiveFigo`
 
 7. Bench de latencia (p95):
+
 - `.\BENCH-API-PRODUCCION.ps1 -Domain "https://pielarmonia.com" -Runs 25 -IncludeFigoPost`
 
 8. Gate completo post-deploy (recomendado):
+
 - `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireWebhookSecret`
 - (Temporal, solo mientras corriges headers en edge/servidor) `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -AllowMetaCspFallback`
 - Para exigir backups sanos en el gate: `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireBackupHealthy`
 - Para exigir almacenamiento persistente (no /tmp): `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireStableDataDir`
 
 9. Verificacion de cron de backup:
+
 - `https://pielarmonia.com/cron.php?action=backup-health&token=YOUR_CRON_SECRET`
 - `https://pielarmonia.com/cron.php?action=backup-offsite&dryRun=1&token=YOUR_CRON_SECRET`
 - (Recomendado) `curl -s "https://pielarmonia.com/cron.php?action=backup-health" -H "Authorization: Bearer YOUR_CRON_SECRET"`
 - (Recomendado) `curl -s "https://pielarmonia.com/cron.php?action=backup-offsite&dryRun=1" -H "X-Cron-Token: YOUR_CRON_SECRET"`
 
 10. Replica remota real (opcional):
+
 - Publica `backup-receiver.php` en servidor destino.
 - Configura token en destino (`PIELARMONIA_BACKUP_RECEIVER_TOKEN`).
 - En origen configura:

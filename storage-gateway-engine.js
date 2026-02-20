@@ -12,7 +12,7 @@
     function getString(key, fallback = '') {
         try {
             const value = localStorage.getItem(String(key || ''));
-            return (typeof value === 'string' && value !== '') ? value : fallback;
+            return typeof value === 'string' && value !== '' ? value : fallback;
         } catch (_) {
             return fallback;
         }
@@ -20,7 +20,9 @@
 
     function getJSON(key, fallback) {
         try {
-            const value = JSON.parse(localStorage.getItem(String(key || '')) || 'null');
+            const value = JSON.parse(
+                localStorage.getItem(String(key || '')) || 'null'
+            );
             return value === null ? fallback : value;
         } catch (_) {
             return fallback;
@@ -60,6 +62,6 @@
         getJSON,
         setString,
         setJSON,
-        remove
+        remove,
     };
 })();

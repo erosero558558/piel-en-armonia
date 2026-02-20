@@ -14,10 +14,15 @@ export const SERVICES_CONFIG = [
         nameShort: 'Consulta',
         priceBase: 40,
         isFromPrice: false,
-        taxRate: 0.00, // 0% IVA (servicios de salud)
+        taxRate: 0.0, // 0% IVA (servicios de salud)
         category: 'clinico',
-        description: 'Evaluación completa de tu piel con diagnóstico preciso y plan de tratamiento personalizado.',
-        includes: ['Evaluación dermatológica completa', 'Diagnóstico', 'Plan de tratamiento']
+        description:
+            'Evaluación completa de tu piel con diagnóstico preciso y plan de tratamiento personalizado.',
+        includes: [
+            'Evaluación dermatológica completa',
+            'Diagnóstico',
+            'Plan de tratamiento',
+        ],
     },
     {
         id: 'telefono',
@@ -25,11 +30,12 @@ export const SERVICES_CONFIG = [
         nameShort: 'Teléfono',
         priceBase: 25,
         isFromPrice: false,
-        taxRate: 0.00, // 0% IVA
+        taxRate: 0.0, // 0% IVA
         category: 'telemedicina',
-        description: 'Consulta médica por teléfono para controles y dudas puntuales.',
+        description:
+            'Consulta médica por teléfono para controles y dudas puntuales.',
         note: 'Solo para controles establecidos',
-        includes: ['Llamada telefónica', 'Orientación médica']
+        includes: ['Llamada telefónica', 'Orientación médica'],
     },
     {
         id: 'video',
@@ -37,10 +43,11 @@ export const SERVICES_CONFIG = [
         nameShort: 'Video',
         priceBase: 30,
         isFromPrice: false,
-        taxRate: 0.00, // 0% IVA
+        taxRate: 0.0, // 0% IVA
         category: 'telemedicina',
-        description: 'Consulta médica por videollamada desde la comodidad de tu hogar.',
-        includes: ['Videollamada', 'Evaluación visual', 'Orientación médica']
+        description:
+            'Consulta médica por videollamada desde la comodidad de tu hogar.',
+        includes: ['Videollamada', 'Evaluación visual', 'Orientación médica'],
     },
     {
         id: 'laser',
@@ -50,9 +57,10 @@ export const SERVICES_CONFIG = [
         isFromPrice: true,
         taxRate: 0.15, // 15% IVA (procedimientos estéticos)
         category: 'procedimiento',
-        description: 'Tratamientos con láser de última generación para diversas afecciones de la piel.',
+        description:
+            'Tratamientos con láser de última generación para diversas afecciones de la piel.',
         note: 'Según evaluación clínica',
-        includes: ['Evaluación previa', 'Sesión de láser', 'Seguimiento']
+        includes: ['Evaluación previa', 'Sesión de láser', 'Seguimiento'],
     },
     {
         id: 'rejuvenecimiento',
@@ -62,9 +70,14 @@ export const SERVICES_CONFIG = [
         isFromPrice: true,
         taxRate: 0.15, // 15% IVA
         category: 'estetico',
-        description: 'Tratamientos estéticos para recuperar la juventud y luminosidad de tu piel.',
+        description:
+            'Tratamientos estéticos para recuperar la juventud y luminosidad de tu piel.',
         note: 'Según evaluación clínica',
-        includes: ['Evaluación estética', 'Tratamiento personalizado', 'Seguimiento']
+        includes: [
+            'Evaluación estética',
+            'Tratamiento personalizado',
+            'Seguimiento',
+        ],
     },
     {
         id: 'acne',
@@ -72,11 +85,16 @@ export const SERVICES_CONFIG = [
         nameShort: 'Acné',
         priceBase: 80,
         isFromPrice: true,
-        taxRate: 0.00, // 0% IVA (tratamiento médico)
+        taxRate: 0.0, // 0% IVA (tratamiento médico)
         category: 'clinico',
-        description: 'Soluciones efectivas para controlar y eliminar el acné en todas sus formas.',
+        description:
+            'Soluciones efectivas para controlar y eliminar el acné en todas sus formas.',
         note: 'Según evaluación clínica',
-        includes: ['Evaluación dermatológica', 'Plan de tratamiento', 'Productos recomendados']
+        includes: [
+            'Evaluación dermatológica',
+            'Plan de tratamiento',
+            'Productos recomendados',
+        ],
     },
     {
         id: 'cancer',
@@ -84,12 +102,17 @@ export const SERVICES_CONFIG = [
         nameShort: 'Detección',
         priceBase: 70,
         isFromPrice: true,
-        taxRate: 0.00, // 0% IVA (prevención médica)
+        taxRate: 0.0, // 0% IVA (prevención médica)
         category: 'clinico',
-        description: 'Examen dermatoscópico completo para detección temprana de lesiones sospechosas.',
+        description:
+            'Examen dermatoscópico completo para detección temprana de lesiones sospechosas.',
         note: 'Según evaluación clínica',
-        includes: ['Dermatoscopía completa', 'Documentación fotográfica', 'Informe médico']
-    }
+        includes: [
+            'Dermatoscopía completa',
+            'Documentación fotográfica',
+            'Informe médico',
+        ],
+    },
 ];
 
 // Servicios especiales (cupos solidarios, pediátricos, etc.)
@@ -99,9 +122,9 @@ export const SPECIAL_SERVICES = {
         name: 'Cupo Solidario',
         description: 'Atención accesible para pacientes de escasos recursos.',
         discountRate: 0.375, // 37.5% de descuento sobre precio base
-        taxRate: 0.00,
-        availability: 'Limitado por semana'
-    }
+        taxRate: 0.0,
+        availability: 'Limitado por semana',
+    },
 };
 
 /**
@@ -128,7 +151,7 @@ export function isWeekend(dateString) {
  */
 export function getDynamicPriceMultiplier(dateString) {
     if (isWeekend(dateString)) {
-        return 1.10; // +10% en fines de semana
+        return 1.1; // +10% en fines de semana
     }
     return 1.0;
 }
@@ -155,7 +178,10 @@ export function computeTax(priceBase, taxRate) {
  */
 export function computeTotal(priceBase, taxRate) {
     if (typeof priceBase !== 'number' || typeof taxRate !== 'number') {
-        console.warn('computeTotal: Invalid parameters', { priceBase, taxRate });
+        console.warn('computeTotal: Invalid parameters', {
+            priceBase,
+            taxRate,
+        });
         return priceBase || 0;
     }
     const tax = computeTax(priceBase, taxRate);
@@ -178,24 +204,24 @@ export function roundToTwo(num) {
  * @returns {string} Monto formateado
  */
 export function formatMoney(amount, options = {}) {
-    const { 
-        showCurrency = true, 
+    const {
+        showCurrency = true,
         currency = 'USD',
         locale = 'es-EC',
         minimumFractionDigits = 2,
-        maximumFractionDigits = 2
+        maximumFractionDigits = 2,
     } = options;
-    
+
     if (typeof amount !== 'number' || isNaN(amount)) {
         console.warn('formatMoney: Invalid amount', amount);
         return showCurrency ? '$0.00' : '0.00';
     }
-    
+
     const formatted = amount.toLocaleString(locale, {
         minimumFractionDigits,
-        maximumFractionDigits
+        maximumFractionDigits,
     });
-    
+
     return showCurrency ? `$${formatted}` : formatted;
 }
 
@@ -205,7 +231,7 @@ export function formatMoney(amount, options = {}) {
  * @returns {Object|null} Configuración del servicio
  */
 export function getServiceById(serviceId) {
-    return SERVICES_CONFIG.find(s => s.id === serviceId) || null;
+    return SERVICES_CONFIG.find((s) => s.id === serviceId) || null;
 }
 
 /**
@@ -219,7 +245,7 @@ export function getServicePriceInfo(serviceId, options = {}) {
     if (!service) {
         return null;
     }
-    
+
     const { includeTax = true, date = null } = options;
     const multiplier = getDynamicPriceMultiplier(date);
     const priceBase = roundToTwo(service.priceBase * multiplier);
@@ -227,7 +253,7 @@ export function getServicePriceInfo(serviceId, options = {}) {
     const taxRate = service.taxRate;
     const taxAmount = computeTax(priceBase, taxRate);
     const total = includeTax ? computeTotal(priceBase, taxRate) : priceBase;
-    
+
     return {
         service,
         priceBase,
@@ -241,11 +267,11 @@ export function getServicePriceInfo(serviceId, options = {}) {
             base: formatMoney(priceBase),
             tax: formatMoney(taxAmount),
             total: formatMoney(total),
-            display: service.isFromPrice 
-                ? `Desde ${formatMoney(total)}` 
-                : formatMoney(total)
+            display: service.isFromPrice
+                ? `Desde ${formatMoney(total)}`
+                : formatMoney(total),
         },
-        taxLabel: getTaxLabel(taxRate)
+        taxLabel: getTaxLabel(taxRate),
     };
 }
 
@@ -255,7 +281,7 @@ export function getServicePriceInfo(serviceId, options = {}) {
  * @returns {string} Etiqueta descriptiva
  */
 export function getTaxLabel(taxRate) {
-    if (taxRate === 0 || taxRate === 0.00) {
+    if (taxRate === 0 || taxRate === 0.0) {
         return 'IVA 0%';
     } else if (taxRate === IVA_GENERAL_RATE) {
         return `IVA ${(taxRate * 100).toFixed(0)}% incluido`;
@@ -275,41 +301,42 @@ export function getCheckoutBreakdown(serviceId, additionalOptions = {}) {
     if (!service) {
         return null;
     }
-    
+
     const {
         discountAmount = 0,
         isCupoSolidario = false,
         discountRate = 0,
-        date = null
+        date = null,
     } = additionalOptions;
 
     const multiplier = getDynamicPriceMultiplier(date);
     const priceBase = roundToTwo(service.priceBase * multiplier);
     let finalDiscountRate = discountRate;
-    
+
     // Aplicar descuento de cupo solidario si aplica
     if (isCupoSolidario && SPECIAL_SERVICES.cupoSolidario) {
         finalDiscountRate = SPECIAL_SERVICES.cupoSolidario.discountRate;
     }
-    
+
     // Calcular descuento
-    const discount = finalDiscountRate > 0
-        ? roundToTwo(priceBase * finalDiscountRate)
-        : discountAmount;
-    
+    const discount =
+        finalDiscountRate > 0
+            ? roundToTwo(priceBase * finalDiscountRate)
+            : discountAmount;
+
     const priceAfterDiscount = roundToTwo(priceBase - discount);
-    
+
     // Calcular impuestos sobre el precio con descuento
     const taxRate = service.taxRate;
     const taxAmount = computeTax(priceAfterDiscount, taxRate);
     const total = computeTotal(priceAfterDiscount, taxRate);
-    
+
     return {
         service: {
             id: service.id,
             name: service.name,
             isFromPrice: service.isFromPrice,
-            note: service.note
+            note: service.note,
         },
         pricing: {
             base: priceBase,
@@ -320,7 +347,7 @@ export function getCheckoutBreakdown(serviceId, additionalOptions = {}) {
             priceAfterDiscount,
             taxRate,
             taxAmount,
-            total
+            total,
         },
         formatted: {
             base: formatMoney(priceBase),
@@ -328,12 +355,12 @@ export function getCheckoutBreakdown(serviceId, additionalOptions = {}) {
             priceAfterDiscount: formatMoney(priceAfterDiscount),
             taxAmount: formatMoney(taxAmount),
             taxRate: `${(taxRate * 100).toFixed(0)}%`,
-            total: formatMoney(total)
+            total: formatMoney(total),
         },
         labels: {
             tax: getTaxLabel(taxRate),
-            note: service.note || null
-        }
+            note: service.note || null,
+        },
     };
 }
 
@@ -347,18 +374,23 @@ export function getCheckoutBreakdown(serviceId, additionalOptions = {}) {
 export function validatePaymentAmount(serviceId, amount, tolerance = 0.01) {
     const priceInfo = getServicePriceInfo(serviceId);
     if (!priceInfo) return false;
-    
+
     const expectedAmount = priceInfo.total;
     return Math.abs(amount - expectedAmount) <= tolerance;
 }
 
 // Textos informativos obligatorios
 export const PRICING_DISCLAIMERS = {
-    referralNote: 'Valores referenciales. El costo final depende de la valoración clínica y el plan indicado.',
-    economicHelp: 'Si tienes limitaciones económicas, escríbenos: buscaremos opciones según disponibilidad.',
-    ivaNote: 'Los valores mostrados indican el IVA aplicable (0% en servicios de salud / tarifa general en servicios gravados), según facturación.',
-    fromPriceNote: 'Los servicios marcados como "Desde" requieren valoración previa para determinar el costo exacto.',
-    solidarioNote: 'Cupos solidarios limitados por semana. Se asignan por orden de llegada y disponibilidad.'
+    referralNote:
+        'Valores referenciales. El costo final depende de la valoración clínica y el plan indicado.',
+    economicHelp:
+        'Si tienes limitaciones económicas, escríbenos: buscaremos opciones según disponibilidad.',
+    ivaNote:
+        'Los valores mostrados indican el IVA aplicable (0% en servicios de salud / tarifa general en servicios gravados), según facturación.',
+    fromPriceNote:
+        'Los servicios marcados como "Desde" requieren valoración previa para determinar el costo exacto.',
+    solidarioNote:
+        'Cupos solidarios limitados por semana. Se asignan por orden de llegada y disponibilidad.',
 };
 
 // Exportar todo para uso global si es necesario
@@ -377,5 +409,5 @@ export default {
     validatePaymentAmount,
     isWeekend,
     getDynamicPriceMultiplier,
-    PRICING_DISCLAIMERS
+    PRICING_DISCLAIMERS,
 };

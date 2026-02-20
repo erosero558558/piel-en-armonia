@@ -5,35 +5,41 @@
     let initialized = false;
 
     function initScrollAnimations() {
-        const selector = '.service-card, .team-card, .section-header, .tele-card, .review-card, .showcase-hero, .showcase-card, .showcase-split, .clinic-info, .clinic-map, .footer-content > *, .appointment-form-container, .appointment-info';
+        const selector =
+            '.service-card, .team-card, .section-header, .tele-card, .review-card, .showcase-hero, .showcase-card, .showcase-split, .clinic-info, .clinic-map, .footer-content > *, .appointment-form-container, .appointment-info';
         const targets = document.querySelectorAll(selector);
         if (!targets.length) return;
 
-        const shouldSkipObserver = window.innerWidth < 900
-            || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        const shouldSkipObserver =
+            window.innerWidth < 900 ||
+            (window.matchMedia &&
+                window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
         if (shouldSkipObserver) {
             targets.forEach((el) => el.classList.add('visible'));
             return;
         }
 
-        const observer = new IntersectionObserver((entries) => {
-            let intersectCount = 0;
-            entries.forEach((entry) => {
-                if (entry.isIntersecting) {
-                    const delay = intersectCount * 100;
-                    entry.target.style.transitionDelay = `${delay}ms`;
-                    intersectCount++;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                let intersectCount = 0;
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        const delay = intersectCount * 100;
+                        entry.target.style.transitionDelay = `${delay}ms`;
+                        intersectCount++;
 
-                    entry.target.classList.add('visible');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, {
-            root: null,
-            rootMargin: '0px 0px -100px 0px',
-            threshold: 0.1
-        });
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            },
+            {
+                root: null,
+                rootMargin: '0px 0px -100px 0px',
+                threshold: 0.1,
+            }
+        );
 
         targets.forEach((el) => {
             el.classList.add('animate-on-scroll');
@@ -45,19 +51,27 @@
         const heroImage = document.querySelector('.hero-image-container');
         if (!heroImage) return;
         if (window.innerWidth < 1100) return;
-        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        if (
+            window.matchMedia &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        )
+            return;
 
         let ticking = false;
-        window.addEventListener('scroll', () => {
-            if (ticking) return;
-            ticking = true;
-            window.requestAnimationFrame(() => {
-                const scrolled = window.pageYOffset;
-                const rate = Math.min(80, scrolled * 0.12);
-                heroImage.style.transform = `translateY(calc(-50% + ${rate}px))`;
-                ticking = false;
-            });
-        }, { passive: true });
+        window.addEventListener(
+            'scroll',
+            () => {
+                if (ticking) return;
+                ticking = true;
+                window.requestAnimationFrame(() => {
+                    const scrolled = window.pageYOffset;
+                    const rate = Math.min(80, scrolled * 0.12);
+                    heroImage.style.transform = `translateY(calc(-50% + ${rate}px))`;
+                    ticking = false;
+                });
+            },
+            { passive: true }
+        );
     }
 
     function initNavbarScroll() {
@@ -76,11 +90,15 @@
             ticking = false;
         };
 
-        window.addEventListener('scroll', () => {
-            if (ticking) return;
-            ticking = true;
-            window.requestAnimationFrame(applyScrollState);
-        }, { passive: true });
+        window.addEventListener(
+            'scroll',
+            () => {
+                if (ticking) return;
+                ticking = true;
+                window.requestAnimationFrame(applyScrollState);
+            },
+            { passive: true }
+        );
 
         applyScrollState();
     }
@@ -108,14 +126,17 @@
             placeholder.style.backgroundColor = 'transparent';
         };
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    loadMap();
-                    observer.disconnect();
-                }
-            });
-        }, { rootMargin: '200px' });
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        loadMap();
+                        observer.disconnect();
+                    }
+                });
+            },
+            { rootMargin: '200px' }
+        );
 
         observer.observe(placeholder);
         placeholder.addEventListener('click', loadMap, { once: true });
@@ -123,11 +144,15 @@
 
     function initBlurUpImages() {
         const images = document.querySelectorAll('.blur-up img');
-        images.forEach(img => {
+        images.forEach((img) => {
             if (img.complete) {
                 img.classList.add('loaded');
             } else {
-                img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
+                img.addEventListener(
+                    'load',
+                    () => img.classList.add('loaded'),
+                    { once: true }
+                );
             }
         });
     }
@@ -155,6 +180,6 @@
     }
 
     window.PielUiEffects = {
-        init
+        init,
     };
 })();

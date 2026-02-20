@@ -41,7 +41,11 @@
     }
 
     function getHistoryStorageKey() {
-        if (deps && typeof deps.historyStorageKey === 'string' && deps.historyStorageKey) {
+        if (
+            deps &&
+            typeof deps.historyStorageKey === 'string' &&
+            deps.historyStorageKey
+        ) {
             return deps.historyStorageKey;
         }
         return 'chatHistory';
@@ -49,7 +53,7 @@
 
     function getHistoryTtlMs() {
         const ttl = Number(deps && deps.historyTtlMs);
-        return Number.isFinite(ttl) && ttl > 0 ? ttl : (24 * 60 * 60 * 1000);
+        return Number.isFinite(ttl) && ttl > 0 ? ttl : 24 * 60 * 60 * 1000;
     }
 
     function getHistoryMaxItems() {
@@ -86,7 +90,10 @@
 
     function persistChatHistory() {
         try {
-            localStorage.setItem(getHistoryStorageKey(), JSON.stringify(getChatHistory()));
+            localStorage.setItem(
+                getHistoryStorageKey(),
+                JSON.stringify(getChatHistory())
+            );
         } catch (error) {
             // noop
         }
@@ -101,17 +108,22 @@
 
         const context = getConversationContext().slice();
         const last = context[context.length - 1];
-        if (last && last.role === normalizedRole && last.content === normalizedContent) {
+        if (
+            last &&
+            last.role === normalizedRole &&
+            last.content === normalizedContent
+        ) {
             return;
         }
 
         context.push({
             role: normalizedRole,
-            content: normalizedContent
+            content: normalizedContent,
         });
 
         const maxItems = getContextMaxItems();
-        const nextContext = context.length > maxItems ? context.slice(-maxItems) : context;
+        const nextContext =
+            context.length > maxItems ? context.slice(-maxItems) : context;
         setConversationContext(nextContext);
     }
 
@@ -128,7 +140,23 @@
     }
 
     function sanitizeBotHtml(html) {
-        const allowed = ['b', 'strong', 'i', 'em', 'br', 'p', 'ul', 'ol', 'li', 'a', 'div', 'button', 'input', 'span', 'small'];
+        const allowed = [
+            'b',
+            'strong',
+            'i',
+            'em',
+            'br',
+            'p',
+            'ul',
+            'ol',
+            'li',
+            'a',
+            'div',
+            'button',
+            'input',
+            'span',
+            'small',
+        ];
         const allowedAttrs = {
             a: ['href', 'target', 'rel'],
             button: ['class', 'data-action'],
@@ -136,19 +164,36 @@
             input: ['type', 'id', 'min', 'value', 'class'],
             i: ['class'],
             span: ['class'],
-            small: ['class']
+            small: ['class'],
         };
 
         const safeHtml = String(html || '')
-            .replace(/onclick="handleChatBookingSelection\('([^']+)'\)"/g, 'data-action="chat-booking" data-value="$1"')
-            .replace(/onclick="sendQuickMessage\('([^']+)'\)"/g, 'data-action="quick-message" data-value="$1"')
-            .replace(/onclick="handleChatDateSelect\(this\.value\)"/g, 'data-action="chat-date-select"')
-            .replace(/onclick="minimizeChatbot\(\)"/g, 'data-action="minimize-chat"')
-            .replace(/onclick="startChatBooking\(\)"/g, 'data-action="start-booking"');
+            .replace(
+                /onclick="handleChatBookingSelection\('([^']+)'\)"/g,
+                'data-action="chat-booking" data-value="$1"'
+            )
+            .replace(
+                /onclick="sendQuickMessage\('([^']+)'\)"/g,
+                'data-action="quick-message" data-value="$1"'
+            )
+            .replace(
+                /onclick="handleChatDateSelect\(this\.value\)"/g,
+                'data-action="chat-date-select"'
+            )
+            .replace(
+                /onclick="minimizeChatbot\(\)"/g,
+                'data-action="minimize-chat"'
+            )
+            .replace(
+                /onclick="startChatBooking\(\)"/g,
+                'data-action="start-booking"'
+            );
 
         const container = document.createElement('div');
         container.innerHTML = safeHtml;
-        container.querySelectorAll('script, style, iframe, object, embed').forEach((el) => el.remove());
+        container
+            .querySelectorAll('script, style, iframe, object, embed')
+            .forEach((el) => el.remove());
         container.querySelectorAll('*').forEach((el) => {
             const tag = el.tagName.toLowerCase();
             if (!allowed.includes(tag)) {
@@ -156,7 +201,10 @@
                 return;
             }
 
-            const keep = (allowedAttrs[tag] || []).concat(['data-action', 'data-value']);
+            const keep = (allowedAttrs[tag] || []).concat([
+                'data-action',
+                'data-value',
+            ]);
             Array.from(el.attributes).forEach((attr) => {
                 if (!keep.includes(attr.name)) {
                     el.removeAttribute(attr.name);
@@ -219,7 +267,9 @@
         }
 
         const safeHtml = sanitizeBotHtml(html);
-        const lastMessage = messagesContainer.querySelector('.chat-message.bot:last-child');
+        const lastMessage = messagesContainer.querySelector(
+            '.chat-message.bot:last-child'
+        );
         if (lastMessage) {
             const lastContent = lastMessage.querySelector('.message-content');
             if (lastContent && lastContent.innerHTML === safeHtml) {
@@ -241,7 +291,11 @@
         messagesContainer.appendChild(messageDiv);
         scrollToBottom();
 
-        const entry = { type: 'bot', text: safeHtml, time: new Date().toISOString() };
+        const entry = {
+            type: 'bot',
+            text: safeHtml,
+            time: new Date().toISOString(),
+        };
         const nextHistory = pruneChatHistory(getChatHistory().concat(entry));
         setChatHistory(nextHistory);
         persistChatHistory();
@@ -281,6 +335,6 @@
         showTypingIndicator,
         removeTypingIndicator,
         scrollToBottom,
-        escapeHtml
+        escapeHtml,
     };
 })();

@@ -28,7 +28,7 @@
 
     function getLang() {
         return deps && typeof deps.getCurrentLang === 'function'
-            ? (deps.getCurrentLang() || 'es')
+            ? deps.getCurrentLang() || 'es'
             : 'es';
     }
 
@@ -69,7 +69,7 @@
     function getApiRetryDelayMs(attempt) {
         const cappedAttempt = Math.max(0, Math.min(5, Number(attempt) || 0));
         const jitter = Math.floor(Math.random() * 180);
-        return (API_RETRY_BASE_DELAY_MS * (2 ** cappedAttempt)) + jitter;
+        return API_RETRY_BASE_DELAY_MS * 2 ** cappedAttempt + jitter;
     }
 
     function isLikelyNetworkError(error) {
@@ -84,11 +84,13 @@
             return true;
         }
 
-        return message.includes('failed to fetch')
-            || message.includes('networkerror')
-            || message.includes('network request failed')
-            || message.includes('load failed')
-            || message.includes('fetch');
+        return (
+            message.includes('failed to fetch') ||
+            message.includes('networkerror') ||
+            message.includes('network request failed') ||
+            message.includes('load failed') ||
+            message.includes('fetch')
+        );
     }
 
     function makeApiError(message, status = 0, retryable = false, code = '') {
@@ -115,12 +117,21 @@
             method: method,
             credentials: 'same-origin',
             headers: {
-                'Accept': 'application/json'
-            }
+                Accept: 'application/json',
+            },
         };
 
-        const protectedResources = new Set(['payment-intent', 'appointments', 'callbacks', 'reviews']);
-        if (protectedResources.has(resource) && deps && typeof deps.getCaptchaToken === 'function') {
+        const protectedResources = new Set([
+            'payment-intent',
+            'appointments',
+            'callbacks',
+            'reviews',
+        ]);
+        if (
+            protectedResources.has(resource) &&
+            deps &&
+            typeof deps.getCaptchaToken === 'function'
+        ) {
             try {
                 const token = await deps.getCaptchaToken(resource);
                 if (token) {
@@ -139,10 +150,15 @@
             : API_REQUEST_TIMEOUT_MS;
         const maxRetries = Number.isInteger(options.retries)
             ? Math.max(0, Number(options.retries))
-            : (method === 'GET' ? API_DEFAULT_RETRIES : 0);
+            : method === 'GET'
+              ? API_DEFAULT_RETRIES
+              : 0;
 
-        const shouldShowSlowNotice = options.silentSlowNotice !== true && options.background !== true;
-        const retryableStatusCodes = new Set([408, 425, 429, 500, 502, 503, 504]);
+        const shouldShowSlowNotice =
+            options.silentSlowNotice !== true && options.background !== true;
+        const retryableStatusCodes = new Set([
+            408, 425, 429, 500, 502, 503, 504,
+        ]);
         const dedupeGet = method === 'GET' && options.dedupe !== false;
 
         const execute = async () => {
@@ -150,13 +166,19 @@
 
             for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+                const timeoutId = setTimeout(
+                    () => controller.abort(),
+                    timeoutMs
+                );
                 let slowNoticeTimer = null;
 
                 if (shouldShowSlowNotice) {
                     slowNoticeTimer = setTimeout(() => {
                         const now = Date.now();
-                        if ((now - apiSlowNoticeLastAt) > API_SLOW_NOTICE_COOLDOWN_MS) {
+                        if (
+                            now - apiSlowNoticeLastAt >
+                            API_SLOW_NOTICE_COOLDOWN_MS
+                        ) {
                             apiSlowNoticeLastAt = now;
                             showToastSafe(
                                 getLang() === 'es'
@@ -171,7 +193,7 @@
                 try {
                     const response = await fetch(url, {
                         ...requestInit,
-                        signal: controller.signal
+                        signal: controller.signal,
                     });
 
                     const responseText = await response.text();
@@ -188,8 +210,14 @@
                     }
 
                     if (!response.ok || payload.ok === false) {
-                        const message = payload.error || ('HTTP ' + response.status);
-                        throw makeApiError(message, response.status, retryableStatusCodes.has(response.status), 'http_error');
+                        const message =
+                            payload.error || 'HTTP ' + response.status;
+                        throw makeApiError(
+                            message,
+                            response.status,
+                            retryableStatusCodes.has(response.status),
+                            'http_error'
+                        );
                     }
 
                     return payload;
@@ -230,12 +258,19 @@
                             return error;
                         }
 
-                        return makeApiError('Error de conexion con el servidor', 0, true, 'network_error');
+                        return makeApiError(
+                            'Error de conexion con el servidor',
+                            0,
+                            true,
+                            'network_error'
+                        );
                     })();
 
                     lastError = normalizedError;
 
-                    const canRetry = attempt < maxRetries && normalizedError.retryable === true;
+                    const canRetry =
+                        attempt < maxRetries &&
+                        normalizedError.retryable === true;
                     if (!canRetry) {
                         throw normalizedError;
                     }
@@ -280,7 +315,9 @@
         const maxRetries = Number.isInteger(options.retries)
             ? Math.max(0, Number(options.retries))
             : 1;
-        const retryableStatusCodes = new Set([408, 425, 429, 500, 502, 503, 504]);
+        const retryableStatusCodes = new Set([
+            408, 425, 429, 500, 502, 503, 504,
+        ]);
 
         let captchaToken = '';
         if (deps && typeof deps.getCaptchaToken === 'function') {
@@ -306,7 +343,7 @@
                     credentials: 'same-origin',
                     headers: headers,
                     body: formData,
-                    signal: controller.signal
+                    signal: controller.signal,
                 });
 
                 const text = await response.text();
@@ -314,15 +351,23 @@
                 try {
                     payload = text ? JSON.parse(text) : {};
                 } catch (error) {
-                    const parseError = new Error('No se pudo interpretar la respuesta de subida');
-                    parseError.retryable = retryableStatusCodes.has(response.status);
+                    const parseError = new Error(
+                        'No se pudo interpretar la respuesta de subida'
+                    );
+                    parseError.retryable = retryableStatusCodes.has(
+                        response.status
+                    );
                     parseError.status = response.status;
                     throw parseError;
                 }
 
                 if (!response.ok || payload.ok === false) {
-                    const httpError = new Error(payload.error || `HTTP ${response.status}`);
-                    httpError.retryable = retryableStatusCodes.has(response.status);
+                    const httpError = new Error(
+                        payload.error || `HTTP ${response.status}`
+                    );
+                    httpError.retryable = retryableStatusCodes.has(
+                        response.status
+                    );
                     httpError.status = response.status;
                     throw httpError;
                 }
@@ -370,7 +415,8 @@
                 })();
 
                 lastError = normalizedError;
-                const canRetry = attempt < maxRetries && normalizedError.retryable === true;
+                const canRetry =
+                    attempt < maxRetries && normalizedError.retryable === true;
                 if (!canRetry) {
                     throw normalizedError;
                 }
@@ -400,7 +446,10 @@
             if (!key.startsWith(`${targetDate}::`)) {
                 continue;
             }
-            if (targetDoctor === '' || key === getBookedSlotsCacheKey(targetDate, targetDoctor)) {
+            if (
+                targetDoctor === '' ||
+                key === getBookedSlotsCacheKey(targetDate, targetDoctor)
+            ) {
                 bookedSlotsCache.delete(key);
             }
         }
@@ -411,7 +460,11 @@
         const background = options && options.background === true;
         const now = Date.now();
 
-        if (!forceRefresh && availabilityCacheLoadedAt > 0 && (now - availabilityCacheLoadedAt) < AVAILABILITY_CACHE_TTL_MS) {
+        if (
+            !forceRefresh &&
+            availabilityCacheLoadedAt > 0 &&
+            now - availabilityCacheLoadedAt < AVAILABILITY_CACHE_TTL_MS
+        ) {
             return availabilityCache;
         }
 
@@ -423,14 +476,18 @@
             try {
                 const payload = await apiRequest('availability', {
                     background,
-                    silentSlowNotice: background
+                    silentSlowNotice: background,
                 });
                 availabilityCache = payload.data || {};
                 availabilityCacheLoadedAt = Date.now();
                 storageSetJSON('availability', availabilityCache);
             } catch (error) {
                 availabilityCache = storageGetJSON('availability', {});
-                if (availabilityCache && typeof availabilityCache === 'object' && Object.keys(availabilityCache).length > 0) {
+                if (
+                    availabilityCache &&
+                    typeof availabilityCache === 'object' &&
+                    Object.keys(availabilityCache).length > 0
+                ) {
                     availabilityCacheLoadedAt = Date.now();
                 }
             } finally {
@@ -447,7 +504,7 @@
         const cacheKey = getBookedSlotsCacheKey(date, doctor);
         const now = Date.now();
         const cachedEntry = bookedSlotsCache.get(cacheKey);
-        if (cachedEntry && (now - cachedEntry.at) < BOOKED_SLOTS_CACHE_TTL_MS) {
+        if (cachedEntry && now - cachedEntry.at < BOOKED_SLOTS_CACHE_TTL_MS) {
             return cachedEntry.slots;
         }
 
@@ -458,7 +515,7 @@
             const slots = Array.isArray(payload.data) ? payload.data : [];
             bookedSlotsCache.set(cacheKey, {
                 slots,
-                at: now
+                at: now,
             });
             return slots;
         } catch (error) {
@@ -468,17 +525,26 @@
             const appointments = storageGetJSON('appointments', []);
             const slots = appointments
                 .filter((appointment) => {
-                    if (appointment.date !== date || appointment.status === 'cancelled') return false;
+                    if (
+                        appointment.date !== date ||
+                        appointment.status === 'cancelled'
+                    )
+                        return false;
                     if (doctor && doctor !== 'indiferente') {
                         const currentDoctor = appointment.doctor || '';
-                        if (currentDoctor && currentDoctor !== 'indiferente' && currentDoctor !== doctor) return false;
+                        if (
+                            currentDoctor &&
+                            currentDoctor !== 'indiferente' &&
+                            currentDoctor !== doctor
+                        )
+                            return false;
                     }
                     return true;
                 })
                 .map((appointment) => appointment.time);
             bookedSlotsCache.set(cacheKey, {
                 slots,
-                at: now
+                at: now,
             });
             return slots;
         }
@@ -489,19 +555,25 @@
         try {
             const payload = await apiRequest('appointments', {
                 method: 'POST',
-                body: appointment
+                body: appointment,
             });
             const localAppointments = storageGetJSON('appointments', []);
             localAppointments.push(payload.data);
             storageSetJSON('appointments', localAppointments);
             if (payload && payload.data) {
-                invalidateBookedSlotsCache(payload.data.date || appointment?.date || '', payload.data.doctor || appointment?.doctor || '');
+                invalidateBookedSlotsCache(
+                    payload.data.date || appointment?.date || '',
+                    payload.data.doctor || appointment?.doctor || ''
+                );
             } else {
-                invalidateBookedSlotsCache(appointment?.date || '', appointment?.doctor || '');
+                invalidateBookedSlotsCache(
+                    appointment?.date || '',
+                    appointment?.doctor || ''
+                );
             }
             return {
                 appointment: payload.data,
-                emailSent: payload.emailSent === true
+                emailSent: payload.emailSent === true,
             };
         } catch (error) {
             if (!LOCAL_FALLBACK_ENABLED || !allowLocalFallback) {
@@ -513,14 +585,17 @@
                 id: Date.now(),
                 status: 'confirmed',
                 dateBooked: new Date().toISOString(),
-                paymentStatus: appointment.paymentStatus || 'pending'
+                paymentStatus: appointment.paymentStatus || 'pending',
             };
             localAppointments.push(fallback);
             storageSetJSON('appointments', localAppointments);
-            invalidateBookedSlotsCache(fallback.date || appointment?.date || '', fallback.doctor || appointment?.doctor || '');
+            invalidateBookedSlotsCache(
+                fallback.date || appointment?.date || '',
+                fallback.doctor || appointment?.doctor || ''
+            );
             return {
                 appointment: fallback,
-                emailSent: false
+                emailSent: false,
             };
         }
     }
@@ -529,7 +604,7 @@
         try {
             await apiRequest('callbacks', {
                 method: 'POST',
-                body: callback
+                body: callback,
             });
         } catch (error) {
             if (!LOCAL_FALLBACK_ENABLED) {
@@ -545,7 +620,7 @@
         try {
             const payload = await apiRequest('reviews', {
                 method: 'POST',
-                body: review
+                body: review,
             });
             return payload.data;
         } catch (error) {
@@ -568,6 +643,6 @@
         getBookedSlots,
         createAppointmentRecord,
         createCallbackRecord,
-        createReviewRecord
+        createReviewRecord,
     };
 })();

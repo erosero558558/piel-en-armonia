@@ -22,7 +22,9 @@
         }
 
         menu.classList.toggle('active');
-        document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : '';
+        document.body.style.overflow = menu.classList.contains('active')
+            ? 'hidden'
+            : '';
     }
 
     function startWebVideo() {
@@ -47,6 +49,6 @@
         init,
         toggleMobileMenu,
         startWebVideo,
-        closeVideoModal
+        closeVideoModal,
     };
 })();

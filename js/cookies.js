@@ -4,7 +4,9 @@ import { getCurrentLang } from './state.js';
 import { trackEvent } from './analytics.js';
 import { COOKIE_CONSENT_KEY } from './config.js';
 
-const CONSENT_ENGINE_URL = withDeployAssetVersion('/consent-engine.js?v=figo-consent-20260219-phase1');
+const CONSENT_ENGINE_URL = withDeployAssetVersion(
+    '/consent-engine.js?v=figo-consent-20260219-phase1'
+);
 
 function getConsentEngineDeps() {
     return {
@@ -12,7 +14,7 @@ function getConsentEngineDeps() {
         showToast,
         trackEvent,
         cookieConsentKey: COOKIE_CONSENT_KEY,
-        gaMeasurementId: 'G-GYY8PE5M8W'
+        gaMeasurementId: 'G-GYY8PE5M8W',
     };
 }
 
@@ -22,16 +24,20 @@ export function loadConsentEngine() {
         src: CONSENT_ENGINE_URL,
         scriptDataAttribute: 'data-consent-engine',
         resolveModule: () => window.PielConsentEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        isModuleReady: (module) =>
+            !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getConsentEngineDeps()),
         missingApiError: 'consent-engine loaded without API',
         loadError: 'No se pudo cargar consent-engine.js',
-        logLabel: 'Consent engine'
+        logLabel: 'Consent engine',
     });
 }
 
 export function getCookieConsent() {
-    if (window.PielConsentEngine && typeof window.PielConsentEngine.getCookieConsent === 'function') {
+    if (
+        window.PielConsentEngine &&
+        typeof window.PielConsentEngine.getCookieConsent === 'function'
+    ) {
         return window.PielConsentEngine.getCookieConsent();
     }
 
@@ -46,17 +52,24 @@ export function getCookieConsent() {
 }
 
 export function setCookieConsent(status) {
-    return runDeferredModule(loadConsentEngine, (engine) => engine.setCookieConsent(status), () => {
-        const normalized = status === 'accepted' ? 'accepted' : 'rejected';
-        try {
-            localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({
-                status: normalized,
-                at: new Date().toISOString()
-            }));
-        } catch (error) {
-            // noop
+    return runDeferredModule(
+        loadConsentEngine,
+        (engine) => engine.setCookieConsent(status),
+        () => {
+            const normalized = status === 'accepted' ? 'accepted' : 'rejected';
+            try {
+                localStorage.setItem(
+                    COOKIE_CONSENT_KEY,
+                    JSON.stringify({
+                        status: normalized,
+                        at: new Date().toISOString(),
+                    })
+                );
+            } catch (error) {
+                // noop
+            }
         }
-    });
+    );
 }
 
 export function initGA4() {

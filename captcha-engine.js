@@ -1,4 +1,4 @@
-(function(window) {
+(function (window) {
     'use strict';
     let deps = null;
     let initialized = false;
@@ -14,8 +14,10 @@
 
         // If not provided, try to find in DOM
         if (!siteKey) {
-             const meta = document.querySelector('meta[name="recaptcha-site-key"]');
-             if (meta) siteKey = meta.content;
+            const meta = document.querySelector(
+                'meta[name="recaptcha-site-key"]'
+            );
+            if (meta) siteKey = meta.content;
         }
 
         // Check if global PIELARMONIA_RECAPTCHA_KEY exists (injected by PHP)
@@ -58,7 +60,9 @@
         return new Promise((resolve) => {
             window.grecaptcha.ready(async () => {
                 try {
-                    const token = await window.grecaptcha.execute(siteKey, { action: action || 'submit' });
+                    const token = await window.grecaptcha.execute(siteKey, {
+                        action: action || 'submit',
+                    });
                     resolve(token);
                 } catch (e) {
                     console.error('reCAPTCHA execution failed', e);
@@ -70,7 +74,7 @@
 
     const api = {
         init,
-        getToken
+        getToken,
     };
 
     window.PielCaptchaEngine = api;

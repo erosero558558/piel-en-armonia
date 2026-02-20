@@ -10,7 +10,10 @@ export function debugLog(...args) {
 }
 
 export function escapeHtml(text) {
-    if (window.PielChatUiEngine && typeof window.PielChatUiEngine.escapeHtml === 'function') {
+    if (
+        window.PielChatUiEngine &&
+        typeof window.PielChatUiEngine.escapeHtml === 'function'
+    ) {
         return window.PielChatUiEngine.escapeHtml(text);
     }
     const div = document.createElement('div');
@@ -19,22 +22,33 @@ export function escapeHtml(text) {
 }
 
 export function waitMs(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export function isConstrainedNetworkConnection() {
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    return !!(connection && (
-        connection.saveData === true
-        || /(^|[^0-9])2g/.test(String(connection.effectiveType || ''))
-    ));
+    const connection =
+        navigator.connection ||
+        navigator.mozConnection ||
+        navigator.webkitConnection;
+    return !!(
+        connection &&
+        (connection.saveData === true ||
+            /(^|[^0-9])2g/.test(String(connection.effectiveType || '')))
+    );
 }
 
 // ASSET VERSIONING
 export function resolveDeployAssetVersion() {
     try {
-        if (document.currentScript && typeof document.currentScript.src === 'string' && document.currentScript.src !== '') {
-            const currentUrl = new URL(document.currentScript.src, window.location.href);
+        if (
+            document.currentScript &&
+            typeof document.currentScript.src === 'string' &&
+            document.currentScript.src !== ''
+        ) {
+            const currentUrl = new URL(
+                document.currentScript.src,
+                window.location.href
+            );
             const fromCurrent = currentUrl.searchParams.get('v');
             if (fromCurrent) {
                 return fromCurrent;
@@ -101,18 +115,22 @@ export function showToast(message, type = 'info', title = '') {
         success: 'fa-check-circle',
         error: 'fa-times-circle',
         warning: 'fa-exclamation-circle',
-        info: 'fa-info-circle'
+        info: 'fa-info-circle',
     };
 
     const titles = {
         success: title || 'Exito',
         error: title || 'Error',
         warning: title || 'Advertencia',
-        info: title || 'Informacion'
+        info: title || 'Informacion',
     };
 
     // Escapar mensaje para prevenir XSS
-    const safeMsg = String(message).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const safeMsg = String(message)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
     toast.innerHTML = `
         <i class="fas ${icons[type]} toast-icon"></i>
         <div class="toast-content">
@@ -159,7 +177,7 @@ export function getInitials(name) {
         .filter(Boolean)
         .slice(0, 2);
     if (parts.length === 0) return 'PA';
-    return parts.map(part => part[0].toUpperCase()).join('');
+    return parts.map((part) => part[0].toUpperCase()).join('');
 }
 
 export function getRelativeDateLabel(dateText) {
@@ -191,7 +209,10 @@ export function renderStars(rating) {
 }
 
 export function getCookieConsent() {
-    if (window.PielConsentEngine && typeof window.PielConsentEngine.getCookieConsent === 'function') {
+    if (
+        window.PielConsentEngine &&
+        typeof window.PielConsentEngine.getCookieConsent === 'function'
+    ) {
         return window.PielConsentEngine.getCookieConsent();
     }
     try {
@@ -208,10 +229,13 @@ export function setCookieConsent(status) {
     // This function might be overridden by consent engine usage in other modules, but basic utility here.
     const normalized = status === 'accepted' ? 'accepted' : 'rejected';
     try {
-        localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({
-            status: normalized,
-            at: new Date().toISOString()
-        }));
+        localStorage.setItem(
+            COOKIE_CONSENT_KEY,
+            JSON.stringify({
+                status: normalized,
+                at: new Date().toISOString(),
+            })
+        );
     } catch (error) {
         // noop
     }

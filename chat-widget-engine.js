@@ -15,7 +15,7 @@
         human: 'Quiero hablar con un doctor real',
         acne: 'Tengo problemas de acne',
         laser: 'Informacion sobre tratamientos laser',
-        location: 'Donde estan ubicados?'
+        location: 'Donde estan ubicados?',
     };
 
     function init(inputDeps) {
@@ -68,7 +68,7 @@
 
         chatStartedTracked = true;
         trackEventSafe('chat_started', {
-            source: source || 'widget'
+            source: source || 'widget',
         });
     }
 
@@ -112,10 +112,12 @@
     }
 
     function buildWelcomeMessage(usingRealAI) {
-        let message = 'Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
+        let message =
+            'Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Piel en Armonia</strong>.<br><br>';
 
         if (usingRealAI) {
-            message += '<strong>Conectado con Inteligencia Artificial</strong><br><br>';
+            message +=
+                '<strong>Conectado con Inteligencia Artificial</strong><br><br>';
             message += 'Puedo ayudarte con informacion detallada sobre:<br>';
             message += '- Nuestros servicios dermatologicos<br>';
             message += '- Precios de consultas y tratamientos<br>';
@@ -137,13 +139,17 @@
     function renderQuickSuggestions() {
         setTimeout(() => {
             let quickOptions = '<div class="chat-suggestions">';
-            quickOptions += '<button class="chat-suggestion-btn" data-action="quick-message" data-value="services">';
+            quickOptions +=
+                '<button class="chat-suggestion-btn" data-action="quick-message" data-value="services">';
             quickOptions += '<i class="fas fa-stethoscope"></i> Ver servicios';
             quickOptions += '</button>';
-            quickOptions += '<button class="chat-suggestion-btn" data-action="quick-message" data-value="appointment">';
-            quickOptions += '<i class="fas fa-calendar-check"></i> Agendar cita';
+            quickOptions +=
+                '<button class="chat-suggestion-btn" data-action="quick-message" data-value="appointment">';
+            quickOptions +=
+                '<i class="fas fa-calendar-check"></i> Agendar cita';
             quickOptions += '</button>';
-            quickOptions += '<button class="chat-suggestion-btn" data-action="quick-message" data-value="prices">';
+            quickOptions +=
+                '<button class="chat-suggestion-btn" data-action="quick-message" data-value="prices">';
             quickOptions += '<i class="fas fa-tag"></i> Consultar precios';
             quickOptions += '</button>';
             quickOptions += '</div>';
@@ -185,7 +191,10 @@
         }
 
         const usingRealAI = shouldUseRealAI();
-        debugLogSafe('Estado del chatbot:', usingRealAI ? 'IA REAL' : 'Respuestas locales');
+        debugLogSafe(
+            'Estado del chatbot:',
+            usingRealAI ? 'IA REAL' : 'Respuestas locales'
+        );
         addBotMessageSafe(buildWelcomeMessage(usingRealAI));
         renderQuickSuggestions();
     }
@@ -217,16 +226,22 @@
 
         ensureChatStartedTracked('first_message');
 
-        await Promise.resolve(addUserMessageSafe(message)).catch(() => undefined);
+        await Promise.resolve(addUserMessageSafe(message)).catch(
+            () => undefined
+        );
         input.value = '';
-        await Promise.resolve(processWithKimiSafe(message)).catch(() => undefined);
+        await Promise.resolve(processWithKimiSafe(message)).catch(
+            () => undefined
+        );
     }
 
     function sendQuickMessage(type) {
         ensureChatStartedTracked('quick_message');
 
         if (type === 'appointment') {
-            Promise.resolve(addUserMessageSafe('Quiero agendar una cita')).catch(() => undefined);
+            Promise.resolve(
+                addUserMessageSafe('Quiero agendar una cita')
+            ).catch(() => undefined);
             startChatBookingSafe();
             return;
         }
@@ -278,6 +293,6 @@
         sendQuickMessage,
         scheduleInitialNotification,
         showTeaser,
-        hideTeaser
+        hideTeaser,
     };
 })();

@@ -11,7 +11,7 @@
             rating: 5,
             text: 'Buena atencion, solo faltan los numeros de la oficina y horarios de atencion.',
             date: '2025-10-01T10:00:00-05:00',
-            verified: true
+            verified: true,
         },
         {
             id: 'google-jacqueline-ruiz-torres',
@@ -19,7 +19,7 @@
             rating: 5,
             text: 'Excelente atencion y economico.',
             date: '2025-04-15T10:00:00-05:00',
-            verified: true
+            verified: true,
         },
         {
             id: 'google-cris-lema',
@@ -27,7 +27,7 @@
             rating: 5,
             text: '',
             date: '2025-10-10T10:00:00-05:00',
-            verified: true
+            verified: true,
         },
         {
             id: 'google-camila-escobar',
@@ -35,12 +35,14 @@
             rating: 5,
             text: '',
             date: '2025-02-01T10:00:00-05:00',
-            verified: true
-        }
+            verified: true,
+        },
     ];
 
     function getLang() {
-        return deps && typeof deps.getCurrentLang === 'function' ? deps.getCurrentLang() : 'es';
+        return deps && typeof deps.getCurrentLang === 'function'
+            ? deps.getCurrentLang()
+            : 'es';
     }
 
     function escapeText(value) {
@@ -58,8 +60,12 @@
 
         const addReview = (review) => {
             if (!review || typeof review !== 'object') return;
-            const name = String(review.name || '').trim().toLowerCase();
-            const text = String(review.text || '').trim().toLowerCase();
+            const name = String(review.name || '')
+                .trim()
+                .toLowerCase();
+            const text = String(review.text || '')
+                .trim()
+                .toLowerCase();
             const date = String(review.date || '').trim();
             const signature = `${name}|${text}|${date}`;
             if (!name || seen.has(signature)) return;
@@ -91,7 +97,10 @@
         }
 
         const now = new Date();
-        const days = Math.max(0, Math.floor((now - date) / (1000 * 60 * 60 * 24)));
+        const days = Math.max(
+            0,
+            Math.floor((now - date) / (1000 * 60 * 60 * 24))
+        );
 
         if (getLang() === 'es') {
             if (days <= 1) return 'Hoy';
@@ -120,12 +129,14 @@
         if (!grid || !Array.isArray(reviews) || reviews.length === 0) return;
 
         const topReviews = reviews.slice(0, 6);
-        grid.innerHTML = topReviews.map((review) => {
-            const text = String(review.text || '').trim();
-            const textHtml = text !== ''
-                ? `<p class="review-text">"${escapeText(text)}"</p>`
-                : '';
-            return `
+        grid.innerHTML = topReviews
+            .map((review) => {
+                const text = String(review.text || '').trim();
+                const textHtml =
+                    text !== ''
+                        ? `<p class="review-text">"${escapeText(text)}"</p>`
+                        : '';
+                return `
         <div class="review-card">
             <div class="review-header">
                 <div class="review-avatar">${escapeText(getInitials(review.name))}</div>
@@ -138,10 +149,15 @@
             <span class="review-date">${getRelativeDateLabel(review.date)}</span>
         </div>
     `;
-        }).join('');
+            })
+            .join('');
 
         if (reviews.length > 0) {
-            const avg = reviews.reduce((sum, item) => sum + (Number(item.rating) || 0), 0) / reviews.length;
+            const avg =
+                reviews.reduce(
+                    (sum, item) => sum + (Number(item.rating) || 0),
+                    0
+                ) / reviews.length;
             const starsHtml = renderStars(Math.round(avg));
 
             document.querySelectorAll('.rating-number').forEach((el) => {
@@ -153,9 +169,10 @@
             });
         }
 
-        const countText = getLang() === 'es'
-            ? `${reviews.length} reseñas verificadas`
-            : `${reviews.length} verified reviews`;
+        const countText =
+            getLang() === 'es'
+                ? `${reviews.length} reseñas verificadas`
+                : `${reviews.length} verified reviews`;
 
         document.querySelectorAll('.rating-count').forEach((el) => {
             el.textContent = countText;
@@ -172,14 +189,17 @@
 
             const payload = await deps.apiRequest('reviews', {
                 background,
-                silentSlowNotice: background
+                silentSlowNotice: background,
             });
-            const fetchedReviews = Array.isArray(payload.data) ? payload.data : [];
+            const fetchedReviews = Array.isArray(payload.data)
+                ? payload.data
+                : [];
             reviewsCache = mergePublicReviews(fetchedReviews);
         } catch (error) {
-            const localReviews = deps && typeof deps.storageGetJSON === 'function'
-                ? deps.storageGetJSON('reviews', [])
-                : [];
+            const localReviews =
+                deps && typeof deps.storageGetJSON === 'function'
+                    ? deps.storageGetJSON('reviews', [])
+                    : [];
             reviewsCache = mergePublicReviews(localReviews);
         }
 
@@ -209,6 +229,6 @@
         loadPublicReviews,
         renderPublicReviews,
         getCache,
-        setCache
+        setCache,
     };
 })();

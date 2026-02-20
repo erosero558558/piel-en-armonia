@@ -32,9 +32,11 @@ Luego abre:
 - `FIGO_CHAT_TOKEN`: token Bearer opcional para autenticar contra Figo.
 
 Alternativa sin variables de entorno:
+
 - Crea `data/figo-config.json` con `endpoint` y credenciales opcionales.
 
 Nota:
+
 - Ya no existe fallback `admin123`. Debes definir una de las dos variables de contraseña.
 
 ## Ejemplo en PowerShell (sesión actual)

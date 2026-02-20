@@ -7,13 +7,18 @@
         }
 
         element.addEventListener('click', function () {
-            import('./js/booking-calendar.js').then(function (moduleRef) {
-                if (moduleRef && typeof moduleRef.initCalendar === 'function') {
-                    moduleRef.initCalendar();
-                }
-            }).catch(function () {
-                // noop
-            });
+            import('./js/booking-calendar.js')
+                .then(function (moduleRef) {
+                    if (
+                        moduleRef &&
+                        typeof moduleRef.initCalendar === 'function'
+                    ) {
+                        moduleRef.initCalendar();
+                    }
+                })
+                .catch(function () {
+                    // noop
+                });
         });
     }
 

@@ -9,7 +9,7 @@ import {
     getCheckoutBreakdown,
     formatMoney,
     PRICING_DISCLAIMERS,
-    SERVICES_CONFIG
+    SERVICES_CONFIG,
 } from './services-config.js';
 
 export function renderCheckoutBreakdown(serviceId, options = {}) {
@@ -17,10 +17,10 @@ export function renderCheckoutBreakdown(serviceId, options = {}) {
     if (!breakdown) {
         return '<p class="error">Error al cargar información de precios</p>';
     }
-    
+
     const { service, pricing, formatted, labels } = breakdown;
     const isFromPrice = service.isFromPrice;
-    
+
     return `
         <div class="checkout-breakdown ${isFromPrice ? 'requires-quote' : ''}" data-service-id="${service.id}">
             <div class="checkout-header">
@@ -28,7 +28,9 @@ export function renderCheckoutBreakdown(serviceId, options = {}) {
                 ${service.note ? `<span class="checkout-service-note">${service.note}</span>` : ''}
             </div>
             <div class="checkout-pricing">
-                ${pricing.discount > 0 ? `
+                ${
+                    pricing.discount > 0
+                        ? `
                     <div class="checkout-row checkout-discount">
                         <span class="checkout-label">Precio base</span>
                         <span class="checkout-value checkout-strike">${formatted.base}</span>
@@ -37,13 +39,17 @@ export function renderCheckoutBreakdown(serviceId, options = {}) {
                         <span class="checkout-label">Descuento</span>
                         <span class="checkout-value checkout-discount-value">-${formatted.discount}</span>
                     </div>
-                ` : `
+                `
+                        : `
                     <div class="checkout-row">
                         <span class="checkout-label">Subtotal</span>
                         <span class="checkout-value">${formatted.base}</span>
                     </div>
-                `}
-                ${pricing.taxRate > 0 ? `
+                `
+                }
+                ${
+                    pricing.taxRate > 0
+                        ? `
                     <div class="checkout-row checkout-tax">
                         <span class="checkout-label">
                             IVA (${formatted.taxRate})
@@ -51,7 +57,8 @@ export function renderCheckoutBreakdown(serviceId, options = {}) {
                         </span>
                         <span class="checkout-value">${formatted.taxAmount}</span>
                     </div>
-                ` : `
+                `
+                        : `
                     <div class="checkout-row checkout-tax-zero">
                         <span class="checkout-label">
                             IVA (0%)
@@ -59,14 +66,17 @@ export function renderCheckoutBreakdown(serviceId, options = {}) {
                         </span>
                         <span class="checkout-value">$0.00</span>
                     </div>
-                `}
+                `
+                }
                 <div class="checkout-divider"></div>
                 <div class="checkout-row checkout-total">
                     <span class="checkout-label">Total a pagar</span>
                     <span class="checkout-value checkout-total-amount">${formatted.total}</span>
                 </div>
             </div>
-            ${isFromPrice ? `
+            ${
+                isFromPrice
+                    ? `
                 <div class="checkout-quote-notice">
                     <i class="fas fa-info-circle"></i>
                     <div>
@@ -74,7 +84,9 @@ export function renderCheckoutBreakdown(serviceId, options = {}) {
                         <p>Este servicio requiere una consulta inicial para determinar el plan y costo exacto.</p>
                     </div>
                 </div>
-            ` : ''}
+            `
+                    : ''
+            }
             <div class="checkout-disclaimers">
                 <p class="disclaimer-text">
                     <i class="fas fa-info-circle"></i>
@@ -86,9 +98,9 @@ export function renderCheckoutBreakdown(serviceId, options = {}) {
 }
 
 export function renderServiceSelector() {
-    const options = SERVICES_CONFIG.map(service => {
+    const options = SERVICES_CONFIG.map((service) => {
         const priceInfo = getServicePriceInfo(service.id);
-        const displayPrice = service.isFromPrice 
+        const displayPrice = service.isFromPrice
             ? `Desde ${priceInfo.formatted.total}`
             : priceInfo.formatted.total;
         return `
@@ -97,7 +109,7 @@ export function renderServiceSelector() {
             </option>
         `;
     }).join('');
-    
+
     return `
         <div class="service-selector-container">
             <label for="service-select" class="form-label">Selecciona el servicio</label>
@@ -115,11 +127,14 @@ export function updateServiceBreakdown(serviceId, container, options = {}) {
     container.innerHTML = renderCheckoutBreakdown(serviceId, options);
 }
 
-export function initServiceSelectorHandler(selectId = 'service-select', containerId = 'service-breakdown') {
+export function initServiceSelectorHandler(
+    selectId = 'service-select',
+    containerId = 'service-breakdown'
+) {
     const select = document.getElementById(selectId);
     const container = document.getElementById(containerId);
     if (!select || !container) return;
-    
+
     select.addEventListener('change', (e) => {
         const serviceId = e.target.value;
         if (serviceId) {
@@ -133,27 +148,27 @@ export function validateCheckoutPayment(serviceId, amount) {
     if (!priceInfo) {
         return { valid: false, error: 'Servicio no encontrado' };
     }
-    
+
     const expectedAmount = priceInfo.total;
     const tolerance = 0.01;
     const difference = Math.abs(amount - expectedAmount);
-    
+
     if (difference <= tolerance) {
         return { valid: true, expected: expectedAmount, received: amount };
     }
-    
+
     return {
         valid: false,
         error: `Monto incorrecto. Esperado: $${expectedAmount}, Recibido: $${amount}`,
         expected: expectedAmount,
-        received: amount
+        received: amount,
     };
 }
 
 export function getServiceDataForAPI(serviceId, options = {}) {
     const breakdown = getCheckoutBreakdown(serviceId, options);
     if (!breakdown) return null;
-    
+
     return {
         service_id: breakdown.service.id,
         service_name: breakdown.service.name,
@@ -163,9 +178,9 @@ export function getServiceDataForAPI(serviceId, options = {}) {
             discount_amount: breakdown.pricing.discount,
             tax_rate: breakdown.pricing.taxRate,
             tax_amount: breakdown.pricing.taxAmount,
-            total_amount: breakdown.pricing.total
+            total_amount: breakdown.pricing.total,
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
     };
 }
 
@@ -175,5 +190,5 @@ export default {
     updateServiceBreakdown,
     initServiceSelectorHandler,
     validateCheckoutPayment,
-    getServiceDataForAPI
+    getServiceDataForAPI,
 };

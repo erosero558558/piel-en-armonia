@@ -16,7 +16,11 @@ function escapeHtml(text) {
 }
 
 function debugLog(...args) {
-    if (DEBUG && typeof console !== 'undefined' && typeof console.log === 'function') {
+    if (
+        DEBUG &&
+        typeof console !== 'undefined' &&
+        typeof console.log === 'function'
+    ) {
         console.log(...args);
     }
 }

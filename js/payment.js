@@ -1,10 +1,23 @@
 import { apiRequest } from './api.js';
-import { getPaymentConfig, setPaymentConfig, getPaymentConfigLoaded, setPaymentConfigLoaded, getPaymentConfigLoadedAt, setPaymentConfigLoadedAt, getStripeSdkPromise, setStripeSdkPromise, getCurrentLang } from './state.js';
+import {
+    getPaymentConfig,
+    setPaymentConfig,
+    getPaymentConfigLoaded,
+    setPaymentConfigLoaded,
+    getPaymentConfigLoadedAt,
+    setPaymentConfigLoadedAt,
+    getStripeSdkPromise,
+    setStripeSdkPromise,
+    getCurrentLang,
+} from './state.js';
 import { API_ENDPOINT, API_REQUEST_TIMEOUT_MS } from './config.js';
 
 export async function loadPaymentConfig() {
     const now = Date.now();
-    if (getPaymentConfigLoaded() && (now - getPaymentConfigLoadedAt()) < 5 * 60 * 1000) {
+    if (
+        getPaymentConfigLoaded() &&
+        now - getPaymentConfigLoadedAt() < 5 * 60 * 1000
+    ) {
         return getPaymentConfig();
     }
 
@@ -15,10 +28,15 @@ export async function loadPaymentConfig() {
             enabled: payload.enabled === true,
             provider: payload.provider || 'stripe',
             publishableKey: payload.publishableKey || '',
-            currency: payload.currency || 'USD'
+            currency: payload.currency || 'USD',
         };
     } catch (error) {
-        config = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
+        config = {
+            enabled: false,
+            provider: 'stripe',
+            publishableKey: '',
+            currency: 'USD',
+        };
     }
     setPaymentConfig(config);
     setPaymentConfigLoaded(true);
@@ -36,10 +54,18 @@ export async function loadStripeSdk() {
     }
 
     const promise = new Promise((resolve, reject) => {
-        const existingScript = document.querySelector('script[data-stripe-sdk="true"]');
+        const existingScript = document.querySelector(
+            'script[data-stripe-sdk="true"]'
+        );
         if (existingScript) {
-            existingScript.addEventListener('load', () => resolve(true), { once: true });
-            existingScript.addEventListener('error', () => reject(new Error('No se pudo cargar Stripe SDK')), { once: true });
+            existingScript.addEventListener('load', () => resolve(true), {
+                once: true,
+            });
+            existingScript.addEventListener(
+                'error',
+                () => reject(new Error('No se pudo cargar Stripe SDK')),
+                { once: true }
+            );
             return;
         }
 
@@ -49,7 +75,8 @@ export async function loadStripeSdk() {
         script.defer = true;
         script.dataset.stripeSdk = 'true';
         script.onload = () => resolve(true);
-        script.onerror = () => reject(new Error('No se pudo cargar Stripe SDK'));
+        script.onerror = () =>
+            reject(new Error('No se pudo cargar Stripe SDK'));
         document.head.appendChild(script);
     });
 
@@ -60,7 +87,7 @@ export async function loadStripeSdk() {
 export async function createPaymentIntent(appointment) {
     const payload = await apiRequest('payment-intent', {
         method: 'POST',
-        body: appointment
+        body: appointment,
     });
     return payload;
 }
@@ -68,7 +95,7 @@ export async function createPaymentIntent(appointment) {
 export async function verifyPaymentIntent(paymentIntentId) {
     return apiRequest('payment-verify', {
         method: 'POST',
-        body: { paymentIntentId }
+        body: { paymentIntentId },
     });
 }
 
@@ -78,7 +105,10 @@ export async function uploadTransferProof(file) {
 
     const query = new URLSearchParams({ resource: 'transfer-proof' });
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
+    const timeoutId = setTimeout(
+        () => controller.abort(),
+        API_REQUEST_TIMEOUT_MS
+    );
 
     let response;
     let text = '';
@@ -87,7 +117,7 @@ export async function uploadTransferProof(file) {
             method: 'POST',
             credentials: 'same-origin',
             body: formData,
-            signal: controller.signal
+            signal: controller.signal,
         });
         text = await response.text();
     } catch (error) {

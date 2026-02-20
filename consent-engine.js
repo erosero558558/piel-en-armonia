@@ -32,14 +32,22 @@
     }
 
     function getConsentStorageKey() {
-        if (deps && typeof deps.cookieConsentKey === 'string' && deps.cookieConsentKey) {
+        if (
+            deps &&
+            typeof deps.cookieConsentKey === 'string' &&
+            deps.cookieConsentKey
+        ) {
             return deps.cookieConsentKey;
         }
         return 'pa_cookie_consent_v1';
     }
 
     function getMeasurementId() {
-        if (deps && typeof deps.gaMeasurementId === 'string' && deps.gaMeasurementId) {
+        if (
+            deps &&
+            typeof deps.gaMeasurementId === 'string' &&
+            deps.gaMeasurementId
+        ) {
             return deps.gaMeasurementId;
         }
         return 'G-GYY8PE5M8W';
@@ -59,10 +67,13 @@
     function setCookieConsent(status) {
         const normalized = status === 'accepted' ? 'accepted' : 'rejected';
         try {
-            localStorage.setItem(getConsentStorageKey(), JSON.stringify({
-                status: normalized,
-                at: new Date().toISOString()
-            }));
+            localStorage.setItem(
+                getConsentStorageKey(),
+                JSON.stringify({
+                    status: normalized,
+                    at: new Date().toISOString(),
+                })
+            );
         } catch (error) {
             // noop
         }
@@ -81,7 +92,9 @@
         document.head.appendChild(script);
 
         window.dataLayer = window.dataLayer || [];
-        function gtag() { window.dataLayer.push(arguments); }
+        function gtag() {
+            window.dataLayer.push(arguments);
+        }
         window.gtag = gtag;
         gtag('js', new Date());
         gtag('consent', 'update', { analytics_storage: 'granted' });
@@ -156,6 +169,6 @@
         getCookieConsent,
         setCookieConsent,
         initGA4,
-        initCookieBanner
+        initCookieBanner,
     };
 })();

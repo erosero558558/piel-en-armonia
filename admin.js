@@ -26,14 +26,14 @@ function showToast(message, type = 'info', title = '') {
         success: 'fa-check-circle',
         error: 'fa-times-circle',
         warning: 'fa-exclamation-circle',
-        info: 'fa-info-circle'
+        info: 'fa-info-circle',
     };
 
     const titles = {
         success: title || 'Exito',
         error: title || 'Error',
         warning: title || 'Advertencia',
-        info: title || 'Información'
+        info: title || 'Información',
     };
 
     toast.innerHTML = `
@@ -58,7 +58,9 @@ function showToast(message, type = 'info', title = '') {
 }
 
 function normalizeCallbackStatus(status) {
-    const normalized = String(status || '').toLowerCase().trim();
+    const normalized = String(status || '')
+        .toLowerCase()
+        .trim();
     if (normalized === 'pending') return 'pendiente';
     if (normalized === 'contacted') return 'contactado';
     return normalized === 'contactado' ? 'contactado' : 'pendiente';
@@ -75,8 +77,8 @@ async function requestJson(url, options = {}) {
         method: options.method || 'GET',
         credentials: 'same-origin',
         headers: {
-            Accept: 'application/json'
-        }
+            Accept: 'application/json',
+        },
     };
 
     if (csrfToken && options.method && options.method !== 'GET') {
@@ -110,7 +112,10 @@ async function apiRequest(resource, options = {}) {
 }
 
 async function authRequest(action, options = {}) {
-    return requestJson(`${AUTH_ENDPOINT}?action=${encodeURIComponent(action)}`, options);
+    return requestJson(
+        `${AUTH_ENDPOINT}?action=${encodeURIComponent(action)}`,
+        options
+    );
 }
 
 function getLocalData(key, fallback) {
@@ -131,12 +136,12 @@ function getEmptyFunnelMetrics() {
             checkoutAbandon: 0,
             startRatePct: 0,
             confirmedRatePct: 0,
-            abandonRatePct: 0
+            abandonRatePct: 0,
         },
         checkoutAbandonByStep: [],
         checkoutEntryBreakdown: [],
         paymentMethodBreakdown: [],
-        bookingStepBreakdown: []
+        bookingStepBreakdown: [],
     };
 }
 
@@ -165,14 +170,16 @@ function normalizeFunnelRows(rows) {
     return rows
         .map((row) => ({
             label: String(row && row.label ? row.label : 'unknown'),
-            count: toPositiveNumber(row && row.count ? row.count : 0)
+            count: toPositiveNumber(row && row.count ? row.count : 0),
         }))
         .filter((row) => row.count > 0)
         .sort((a, b) => b.count - a.count);
 }
 
 function formatFunnelStepLabel(label) {
-    const raw = String(label || '').trim().toLowerCase();
+    const raw = String(label || '')
+        .trim()
+        .toLowerCase();
     const labels = {
         service_selected: 'Servicio seleccionado',
         doctor_selected: 'Doctor seleccionado',
@@ -197,7 +204,7 @@ function formatFunnelStepLabel(label) {
         payment: 'Metodo de pago',
         confirmation: 'Confirmacion',
         payment_method_selected: 'Metodo de pago',
-        unknown: 'Paso no identificado'
+        unknown: 'Paso no identificado',
     };
 
     if (labels[raw]) {
@@ -212,11 +219,13 @@ function formatFunnelStepLabel(label) {
 }
 
 function formatFunnelEntryLabel(label) {
-    const raw = String(label || '').trim().toLowerCase();
+    const raw = String(label || '')
+        .trim()
+        .toLowerCase();
     const labels = {
         booking_form: 'Formulario web',
         chatbot: 'Chatbot',
-        unknown: 'No identificado'
+        unknown: 'No identificado',
     };
     if (labels[raw]) {
         return labels[raw];
@@ -229,13 +238,15 @@ function formatFunnelEntryLabel(label) {
 }
 
 function formatPaymentMethodLabel(label) {
-    const raw = String(label || '').trim().toLowerCase();
+    const raw = String(label || '')
+        .trim()
+        .toLowerCase();
     const labels = {
         card: 'Tarjeta',
         transfer: 'Transferencia',
         cash: 'Efectivo',
         unpaid: 'Sin definir',
-        unknown: 'No identificado'
+        unknown: 'No identificado',
     };
     if (labels[raw]) {
         return labels[raw];
@@ -260,47 +271,66 @@ function renderFunnelList(elementId, rows, formatLabel, emptyMessage) {
     }
 
     const total = safeRows.reduce((sum, row) => sum + row.count, 0);
-    listEl.innerHTML = safeRows.map((row) => {
-        const sharePct = total > 0 ? formatPercent((row.count / total) * 100) : '0%';
-        return `
+    listEl.innerHTML = safeRows
+        .map((row) => {
+            const sharePct =
+                total > 0 ? formatPercent((row.count / total) * 100) : '0%';
+            return `
             <div class="funnel-row">
                 <span class="funnel-row-label">${escapeHtml(formatLabel(row.label))}</span>
                 <span class="funnel-row-count">${escapeHtml(formatCount(row.count))} (${escapeHtml(sharePct)})</span>
             </div>
         `;
-    }).join('');
+        })
+        .join('');
 }
 
 function renderFunnelMetrics() {
-    const metrics = currentFunnelMetrics && typeof currentFunnelMetrics === 'object'
-        ? currentFunnelMetrics
-        : getEmptyFunnelMetrics();
-    const summary = metrics.summary && typeof metrics.summary === 'object'
-        ? metrics.summary
-        : {};
+    const metrics =
+        currentFunnelMetrics && typeof currentFunnelMetrics === 'object'
+            ? currentFunnelMetrics
+            : getEmptyFunnelMetrics();
+    const summary =
+        metrics.summary && typeof metrics.summary === 'object'
+            ? metrics.summary
+            : {};
 
     const viewBooking = toPositiveNumber(summary.viewBooking);
     const startCheckout = toPositiveNumber(summary.startCheckout);
     const bookingConfirmed = toPositiveNumber(summary.bookingConfirmed);
     const checkoutAbandon = toPositiveNumber(summary.checkoutAbandon);
-    const startRatePct = toPositiveNumber(summary.startRatePct) || (viewBooking > 0 ? (startCheckout / viewBooking) * 100 : 0);
-    const confirmedRatePct = toPositiveNumber(summary.confirmedRatePct) || (startCheckout > 0 ? (bookingConfirmed / startCheckout) * 100 : 0);
-    const abandonRatePct = toPositiveNumber(summary.abandonRatePct) || (startCheckout > 0 ? (checkoutAbandon / startCheckout) * 100 : 0);
+    const startRatePct =
+        toPositiveNumber(summary.startRatePct) ||
+        (viewBooking > 0 ? (startCheckout / viewBooking) * 100 : 0);
+    const confirmedRatePct =
+        toPositiveNumber(summary.confirmedRatePct) ||
+        (startCheckout > 0 ? (bookingConfirmed / startCheckout) * 100 : 0);
+    const abandonRatePct =
+        toPositiveNumber(summary.abandonRatePct) ||
+        (startCheckout > 0 ? (checkoutAbandon / startCheckout) * 100 : 0);
 
     const viewBookingEl = document.getElementById('funnelViewBooking');
     if (viewBookingEl) viewBookingEl.textContent = formatCount(viewBooking);
 
     const startCheckoutEl = document.getElementById('funnelStartCheckout');
-    if (startCheckoutEl) startCheckoutEl.textContent = formatCount(startCheckout);
+    if (startCheckoutEl)
+        startCheckoutEl.textContent = formatCount(startCheckout);
 
-    const bookingConfirmedEl = document.getElementById('funnelBookingConfirmed');
-    if (bookingConfirmedEl) bookingConfirmedEl.textContent = formatCount(bookingConfirmed);
+    const bookingConfirmedEl = document.getElementById(
+        'funnelBookingConfirmed'
+    );
+    if (bookingConfirmedEl)
+        bookingConfirmedEl.textContent = formatCount(bookingConfirmed);
 
     const funnelAbandonRateEl = document.getElementById('funnelAbandonRate');
-    if (funnelAbandonRateEl) funnelAbandonRateEl.textContent = formatPercent(abandonRatePct);
+    if (funnelAbandonRateEl)
+        funnelAbandonRateEl.textContent = formatPercent(abandonRatePct);
 
-    const checkoutConversionRateEl = document.getElementById('checkoutConversionRate');
-    if (checkoutConversionRateEl) checkoutConversionRateEl.textContent = formatPercent(confirmedRatePct);
+    const checkoutConversionRateEl = document.getElementById(
+        'checkoutConversionRate'
+    );
+    if (checkoutConversionRateEl)
+        checkoutConversionRateEl.textContent = formatPercent(confirmedRatePct);
 
     const funnelAbandonListEl = document.getElementById('funnelAbandonList');
     if (!funnelAbandonListEl) {
@@ -329,9 +359,9 @@ function renderFunnelMetrics() {
 
 function loadFallbackState() {
     currentAppointments = getLocalData('appointments', []);
-    currentCallbacks = getLocalData('callbacks', []).map(c => ({
+    currentCallbacks = getLocalData('callbacks', []).map((c) => ({
         ...c,
-        status: normalizeCallbackStatus(c.status)
+        status: normalizeCallbackStatus(c.status),
     }));
     currentReviews = getLocalData('reviews', []);
     currentAvailability = getLocalData('availability', {});
@@ -342,26 +372,40 @@ async function refreshData() {
     try {
         const [payload, funnelPayload] = await Promise.all([
             apiRequest('data'),
-            apiRequest('funnel-metrics').catch(() => null)
+            apiRequest('funnel-metrics').catch(() => null),
         ]);
 
         const data = payload.data || {};
-        currentAppointments = Array.isArray(data.appointments) ? data.appointments : [];
-        currentCallbacks = Array.isArray(data.callbacks) ? data.callbacks.map(c => ({
-            ...c,
-            status: normalizeCallbackStatus(c.status)
-        })) : [];
+        currentAppointments = Array.isArray(data.appointments)
+            ? data.appointments
+            : [];
+        currentCallbacks = Array.isArray(data.callbacks)
+            ? data.callbacks.map((c) => ({
+                  ...c,
+                  status: normalizeCallbackStatus(c.status),
+              }))
+            : [];
         currentReviews = Array.isArray(data.reviews) ? data.reviews : [];
-        currentAvailability = data.availability && typeof data.availability === 'object' ? data.availability : {};
+        currentAvailability =
+            data.availability && typeof data.availability === 'object'
+                ? data.availability
+                : {};
 
-        if (funnelPayload && funnelPayload.data && typeof funnelPayload.data === 'object') {
+        if (
+            funnelPayload &&
+            funnelPayload.data &&
+            typeof funnelPayload.data === 'object'
+        ) {
             currentFunnelMetrics = funnelPayload.data;
         } else {
             currentFunnelMetrics = getEmptyFunnelMetrics();
         }
     } catch (error) {
         loadFallbackState();
-        showToast('No se pudo conectar al backend. Usando datos locales.', 'warning');
+        showToast(
+            'No se pudo conectar al backend. Usando datos locales.',
+            'warning'
+        );
     }
 }
 
@@ -411,7 +455,12 @@ async function logout() {
 function updateDate() {
     const dateEl = document.getElementById('currentDate');
     if (!dateEl) return;
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const options = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    };
     dateEl.textContent = new Date().toLocaleDateString('es-EC', options);
 }
 
@@ -421,7 +470,7 @@ function getServiceName(service) {
         telefono: 'Consulta Telefónica',
         video: 'Video Consulta',
         laser: 'Tratamiento Láser',
-        rejuvenecimiento: 'Rejuvenecimiento'
+        rejuvenecimiento: 'Rejuvenecimiento',
     };
     return names[service] || service;
 }
@@ -430,7 +479,7 @@ function getDoctorName(doctor) {
     const names = {
         rosero: 'Dr. Rosero',
         narvaez: 'Dra. Narváez',
-        indiferente: 'Cualquiera disponible'
+        indiferente: 'Cualquiera disponible',
     };
     return names[doctor] || doctor;
 }
@@ -440,24 +489,28 @@ function getStatusText(status) {
         confirmed: 'Confirmada',
         pending: 'Pendiente',
         cancelled: 'Cancelada',
-        completed: 'Completada'
+        completed: 'Completada',
     };
     return texts[status] || status;
 }
 
 function getPaymentMethodText(method) {
-    const normalized = String(method || '').toLowerCase().trim();
+    const normalized = String(method || '')
+        .toLowerCase()
+        .trim();
     const texts = {
         card: 'Tarjeta',
         transfer: 'Transferencia',
         cash: 'Efectivo',
-        unpaid: 'Sin definir'
+        unpaid: 'Sin definir',
     };
-    return texts[normalized] || (method || 'Sin definir');
+    return texts[normalized] || method || 'Sin definir';
 }
 
 function getPaymentStatusText(status) {
-    const normalized = String(status || '').toLowerCase().trim();
+    const normalized = String(status || '')
+        .toLowerCase()
+        .trim();
     const texts = {
         paid: 'Pagado',
         pending_cash: 'Pago en consultorio',
@@ -465,9 +518,9 @@ function getPaymentStatusText(status) {
         pending_transfer_review: 'Comprobante por validar',
         pending_gateway: 'Pago en proceso',
         pending: 'Pendiente',
-        failed: 'Pago fallido'
+        failed: 'Pago fallido',
     };
-    return texts[normalized] || (status || 'Pendiente');
+    return texts[normalized] || status || 'Pendiente';
 }
 
 function getPreferenceText(pref) {
@@ -475,7 +528,7 @@ function getPreferenceText(pref) {
         ahora: 'Lo antes posible',
         '15min': 'En 15 minutos',
         '30min': 'En 30 minutos',
-        '1hora': 'En 1 hora'
+        '1hora': 'En 1 hora',
     };
     return texts[pref] || pref;
 }
@@ -483,7 +536,11 @@ function getPreferenceText(pref) {
 function formatDate(dateStr) {
     const date = new Date(dateStr);
     if (Number.isNaN(date.getTime())) return dateStr;
-    return date.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' });
+    return date.toLocaleDateString('es-EC', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+    });
 }
 
 function sanitizePublicHref(url) {
@@ -495,7 +552,8 @@ function sanitizePublicHref(url) {
 }
 
 function loadDashboardData() {
-    document.getElementById('totalAppointments').textContent = currentAppointments.length;
+    document.getElementById('totalAppointments').textContent =
+        currentAppointments.length;
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -522,7 +580,8 @@ function loadDashboardData() {
         }
     }
 
-    document.getElementById('todayAppointments').textContent = todayAppointments.length;
+    document.getElementById('todayAppointments').textContent =
+        todayAppointments.length;
 
     // Optimized: Single pass loop for callbacks
     const pendingCallbacks = [];
@@ -531,25 +590,36 @@ function loadDashboardData() {
             pendingCallbacks.push(c);
         }
     }
-    document.getElementById('pendingCallbacks').textContent = pendingCallbacks.length;
+    document.getElementById('pendingCallbacks').textContent =
+        pendingCallbacks.length;
 
     let avgRating = 0;
     if (currentReviews.length > 0) {
-        avgRating = (currentReviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / currentReviews.length).toFixed(1);
+        avgRating = (
+            currentReviews.reduce(
+                (sum, r) => sum + (Number(r.rating) || 0),
+                0
+            ) / currentReviews.length
+        ).toFixed(1);
     }
     document.getElementById('avgRating').textContent = avgRating;
 
-    document.getElementById('appointmentsBadge').textContent = pendingTransfers > 0
-        ? `${confirmedCount} (${pendingTransfers} por validar)`
-        : confirmedCount;
-    document.getElementById('callbacksBadge').textContent = pendingCallbacks.length;
+    document.getElementById('appointmentsBadge').textContent =
+        pendingTransfers > 0
+            ? `${confirmedCount} (${pendingTransfers} por validar)`
+            : confirmedCount;
+    document.getElementById('callbacksBadge').textContent =
+        pendingCallbacks.length;
     document.getElementById('reviewsBadge').textContent = currentReviews.length;
 
     const todayList = document.getElementById('todayAppointmentsList');
     if (todayAppointments.length === 0) {
-        todayList.innerHTML = '<p class="empty-message">No hay citas para hoy</p>';
+        todayList.innerHTML =
+            '<p class="empty-message">No hay citas para hoy</p>';
     } else {
-        todayList.innerHTML = todayAppointments.map(a => `
+        todayList.innerHTML = todayAppointments
+            .map(
+                (a) => `
             <div class="upcoming-item">
                 <div class="upcoming-time">
                     <span class="time">${escapeHtml(a.time)}</span>
@@ -567,15 +637,20 @@ function loadDashboardData() {
                     </a>
                 </div>
             </div>
-        `).join('');
+        `
+            )
+            .join('');
     }
 
     const callbacksList = document.getElementById('recentCallbacksList');
     const recentCallbacks = currentCallbacks.slice(-5).reverse();
     if (recentCallbacks.length === 0) {
-        callbacksList.innerHTML = '<p class="empty-message">No hay callbacks pendientes</p>';
+        callbacksList.innerHTML =
+            '<p class="empty-message">No hay callbacks pendientes</p>';
     } else {
-        callbacksList.innerHTML = recentCallbacks.map(c => `
+        callbacksList.innerHTML = recentCallbacks
+            .map(
+                (c) => `
             <div class="upcoming-item">
                 <div class="upcoming-info">
                     <span class="name">${escapeHtml(c.telefono)}</span>
@@ -587,7 +662,9 @@ function loadDashboardData() {
                     </a>
                 </div>
             </div>
-        `).join('');
+        `
+            )
+            .join('');
     }
 
     renderFunnelMetrics();
@@ -611,7 +688,8 @@ function renderAppointments(appointments) {
     if (!tbody) return;
 
     if (appointments.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="empty-message">No hay citas registradas</td></tr>';
+        tbody.innerHTML =
+            '<tr><td colspan="8" class="empty-message">No hay citas registradas</td></tr>';
         return;
     }
 
@@ -621,7 +699,9 @@ function renderAppointments(appointments) {
         return dateB.localeCompare(dateA);
     });
 
-    tbody.innerHTML = sorted.map(a => `
+    tbody.innerHTML = sorted
+        .map(
+            (a) => `
         <tr>
             <td>
                 <strong>${escapeHtml(a.name)}</strong><br>
@@ -634,8 +714,8 @@ function renderAppointments(appointments) {
             <td>
                 <strong>${escapeHtml(a.price || '$0.00')}</strong><br>
                 <small>${escapeHtml(getPaymentMethodText(a.paymentMethod))} - ${escapeHtml(getPaymentStatusText(a.paymentStatus))}</small>
-                ${(a.transferReference ? `<br><small>Ref: ${escapeHtml(a.transferReference)}</small>` : '')}
-                ${(sanitizePublicHref(a.transferProofUrl) ? `<br><a href="${escapeHtml(sanitizePublicHref(a.transferProofUrl))}" target="_blank" rel="noopener noreferrer">Ver comprobante</a>` : '')}
+                ${a.transferReference ? `<br><small>Ref: ${escapeHtml(a.transferReference)}</small>` : ''}
+                ${sanitizePublicHref(a.transferProofUrl) ? `<br><a href="${escapeHtml(sanitizePublicHref(a.transferProofUrl))}" target="_blank" rel="noopener noreferrer">Ver comprobante</a>` : ''}
             </td>
             <td>
                 <span class="status-badge status-${escapeHtml(a.status || 'confirmed')}">
@@ -644,14 +724,18 @@ function renderAppointments(appointments) {
             </td>
             <td>
                 <div class="table-actions">
-                    ${(a.paymentStatus === 'pending_transfer_review' ? `
+                    ${
+                        a.paymentStatus === 'pending_transfer_review'
+                            ? `
                     <button type="button" class="btn-icon success" data-action="approve-transfer" data-id="${Number(a.id) || 0}" title="Aprobar transferencia">
                         <i class="fas fa-check"></i>
                     </button>
                     <button type="button" class="btn-icon danger" data-action="reject-transfer" data-id="${Number(a.id) || 0}" title="Rechazar transferencia">
                         <i class="fas fa-ban"></i>
                     </button>
-                    ` : '')}
+                    `
+                            : ''
+                    }
                     <a href="tel:${escapeHtml(a.phone)}" class="btn-icon" title="Llamar">
                         <i class="fas fa-phone"></i>
                     </a>
@@ -664,7 +748,9 @@ function renderAppointments(appointments) {
                 </div>
             </td>
         </tr>
-    `).join('');
+    `
+        )
+        .join('');
 }
 
 function getWeekRange() {
@@ -675,7 +761,7 @@ function getWeekRange() {
     end.setDate(start.getDate() + 6);
     return {
         start: start.toISOString().split('T')[0],
-        end: end.toISOString().split('T')[0]
+        end: end.toISOString().split('T')[0],
     };
 }
 
@@ -689,20 +775,28 @@ function filterAppointments() {
 
     switch (filter) {
         case 'today':
-            filtered = filtered.filter(a => a.date === today);
+            filtered = filtered.filter((a) => a.date === today);
             break;
         case 'week':
-            filtered = filtered.filter(a => a.date >= currentWeek.start && a.date <= currentWeek.end);
+            filtered = filtered.filter(
+                (a) => a.date >= currentWeek.start && a.date <= currentWeek.end
+            );
             break;
         case 'month':
-            filtered = filtered.filter(a => new Date(a.date).getMonth() === currentMonthNumber);
+            filtered = filtered.filter(
+                (a) => new Date(a.date).getMonth() === currentMonthNumber
+            );
             break;
         case 'confirmed':
         case 'cancelled':
-            filtered = filtered.filter(a => (a.status || 'confirmed') === filter);
+            filtered = filtered.filter(
+                (a) => (a.status || 'confirmed') === filter
+            );
             break;
         case 'pending_transfer':
-            filtered = filtered.filter(a => a.paymentStatus === 'pending_transfer_review');
+            filtered = filtered.filter(
+                (a) => a.paymentStatus === 'pending_transfer_review'
+            );
             break;
         default:
             break;
@@ -712,11 +806,18 @@ function filterAppointments() {
 }
 
 function searchAppointments() {
-    const search = document.getElementById('searchAppointments').value.toLowerCase();
-    const filtered = currentAppointments.filter(a =>
-        String(a.name || '').toLowerCase().includes(search) ||
-        String(a.email || '').toLowerCase().includes(search) ||
-        String(a.phone || '').includes(search)
+    const search = document
+        .getElementById('searchAppointments')
+        .value.toLowerCase();
+    const filtered = currentAppointments.filter(
+        (a) =>
+            String(a.name || '')
+                .toLowerCase()
+                .includes(search) ||
+            String(a.email || '')
+                .toLowerCase()
+                .includes(search) ||
+            String(a.phone || '').includes(search)
     );
     renderAppointments(filtered);
 }
@@ -730,7 +831,7 @@ async function cancelAppointment(id) {
     try {
         await apiRequest('appointments', {
             method: 'PATCH',
-            body: { id: id, status: 'cancelled' }
+            body: { id: id, status: 'cancelled' },
         });
         await refreshData();
         loadAppointments();
@@ -742,12 +843,20 @@ async function cancelAppointment(id) {
 }
 
 async function approveTransfer(id) {
-    if (!confirm('¿Aprobar el comprobante de transferencia de esta cita?')) return;
-    if (!id) { showToast('Id de cita invalido', 'error'); return; }
+    if (!confirm('¿Aprobar el comprobante de transferencia de esta cita?'))
+        return;
+    if (!id) {
+        showToast('Id de cita invalido', 'error');
+        return;
+    }
     try {
         await apiRequest('appointments', {
             method: 'PATCH',
-            body: { id: id, paymentStatus: 'paid', paymentPaidAt: new Date().toISOString() }
+            body: {
+                id: id,
+                paymentStatus: 'paid',
+                paymentPaidAt: new Date().toISOString(),
+            },
         });
         await refreshData();
         loadAppointments();
@@ -759,12 +868,20 @@ async function approveTransfer(id) {
 }
 
 async function rejectTransfer(id) {
-    if (!confirm('¿Rechazar el comprobante de transferencia? La cita quedará como pago fallido.')) return;
-    if (!id) { showToast('Id de cita invalido', 'error'); return; }
+    if (
+        !confirm(
+            '¿Rechazar el comprobante de transferencia? La cita quedará como pago fallido.'
+        )
+    )
+        return;
+    if (!id) {
+        showToast('Id de cita invalido', 'error');
+        return;
+    }
     try {
         await apiRequest('appointments', {
             method: 'PATCH',
-            body: { id: id, paymentStatus: 'failed' }
+            body: { id: id, paymentStatus: 'failed' },
         });
         await refreshData();
         loadAppointments();
@@ -784,15 +901,17 @@ function renderCallbacks(callbacks) {
     if (!grid) return;
 
     if (callbacks.length === 0) {
-        grid.innerHTML = '<p class="empty-message">No hay callbacks registrados</p>';
+        grid.innerHTML =
+            '<p class="empty-message">No hay callbacks registrados</p>';
         return;
     }
 
-    grid.innerHTML = callbacks.map(c => {
-        const status = normalizeCallbackStatus(c.status);
-        const callbackId = Number(c.id) || 0;
-        const callbackDateKey = encodeURIComponent(String(c.fecha || ''));
-        return `
+    grid.innerHTML = callbacks
+        .map((c) => {
+            const status = normalizeCallbackStatus(c.status);
+            const callbackId = Number(c.id) || 0;
+            const callbackDateKey = encodeURIComponent(String(c.fecha || ''));
+            return `
             <div class="callback-card ${status}">
                 <div class="callback-header">
                     <span class="callback-phone">${escapeHtml(c.telefono)}</span>
@@ -813,16 +932,21 @@ function renderCallbacks(callbacks) {
                         <i class="fas fa-phone"></i>
                         Llamar
                     </a>
-                    ${status === 'pendiente' ? `
+                    ${
+                        status === 'pendiente'
+                            ? `
                         <button type="button" class="btn btn-primary btn-sm" data-action="mark-contacted" data-callback-id="${callbackId}" data-callback-date="${callbackDateKey}">
                             <i class="fas fa-check"></i>
                             Marcar contactado
                         </button>
-                    ` : ''}
+                    `
+                            : ''
+                    }
                 </div>
             </div>
         `;
-    }).join('');
+        })
+        .join('');
 }
 
 function filterCallbacks() {
@@ -830,9 +954,13 @@ function filterCallbacks() {
     let callbacks = [...currentCallbacks];
 
     if (filter === 'pending') {
-        callbacks = callbacks.filter(c => normalizeCallbackStatus(c.status) === 'pendiente');
+        callbacks = callbacks.filter(
+            (c) => normalizeCallbackStatus(c.status) === 'pendiente'
+        );
     } else if (filter === 'contacted') {
-        callbacks = callbacks.filter(c => normalizeCallbackStatus(c.status) === 'contactado');
+        callbacks = callbacks.filter(
+            (c) => normalizeCallbackStatus(c.status) === 'contactado'
+        );
     }
 
     renderCallbacks(callbacks);
@@ -842,12 +970,12 @@ async function markContacted(callbackId, callbackDate = '') {
     let callback = null;
     const normalizedId = Number(callbackId);
     if (normalizedId > 0) {
-        callback = currentCallbacks.find(c => Number(c.id) === normalizedId);
+        callback = currentCallbacks.find((c) => Number(c.id) === normalizedId);
     }
 
     const decodedDate = callbackDate ? decodeURIComponent(callbackDate) : '';
     if (!callback && decodedDate) {
-        callback = currentCallbacks.find(c => c.fecha === decodedDate);
+        callback = currentCallbacks.find((c) => c.fecha === decodedDate);
     }
 
     if (!callback) {
@@ -862,7 +990,7 @@ async function markContacted(callbackId, callbackDate = '') {
         }
         await apiRequest('callbacks', {
             method: 'PATCH',
-            body: { id: Number(callbackId), status: 'contactado' }
+            body: { id: Number(callbackId), status: 'contactado' },
         });
         await refreshData();
         loadCallbacks();
@@ -874,12 +1002,19 @@ async function markContacted(callbackId, callbackDate = '') {
 }
 
 function loadReviews() {
-    const avgRating = currentReviews.length > 0
-        ? (currentReviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / currentReviews.length).toFixed(1)
-        : '0.0';
+    const avgRating =
+        currentReviews.length > 0
+            ? (
+                  currentReviews.reduce(
+                      (sum, r) => sum + (Number(r.rating) || 0),
+                      0
+                  ) / currentReviews.length
+              ).toFixed(1)
+            : '0.0';
 
     document.getElementById('adminAvgRating').textContent = avgRating;
-    document.getElementById('totalReviewsCount').textContent = `${currentReviews.length} reseñas`;
+    document.getElementById('totalReviewsCount').textContent =
+        `${currentReviews.length} reseñas`;
 
     const starsContainer = document.getElementById('adminRatingStars');
     const fullStars = Math.floor(Number(avgRating));
@@ -892,14 +1027,18 @@ function loadReviews() {
 
     const grid = document.getElementById('reviewsGrid');
     if (currentReviews.length === 0) {
-        grid.innerHTML = '<p class="empty-message">No hay reseñas registradas</p>';
+        grid.innerHTML =
+            '<p class="empty-message">No hay reseñas registradas</p>';
         return;
     }
 
     grid.innerHTML = currentReviews
         .slice()
-        .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
-        .map(r => `
+        .sort((a, b) =>
+            String(b.date || '').localeCompare(String(a.date || ''))
+        )
+        .map(
+            (r) => `
             <div class="review-card-admin">
                 <div class="review-header-admin">
                     <strong>${escapeHtml(r.name || 'Paciente')}</strong>
@@ -909,7 +1048,9 @@ function loadReviews() {
                 <p>${escapeHtml(r.text || '')}</p>
                 <small>${escapeHtml(new Date(r.date).toLocaleDateString('es-EC'))}</small>
             </div>
-        `).join('');
+        `
+        )
+        .join('');
 }
 
 function initAvailabilityCalendar() {
@@ -923,16 +1064,19 @@ function renderAvailabilityCalendar() {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const daysInPrevMonth = new Date(year, month, 0).getDate();
 
-    document.getElementById('calendarMonth').textContent = new Date(year, month).toLocaleDateString('es-EC', {
+    document.getElementById('calendarMonth').textContent = new Date(
+        year,
+        month
+    ).toLocaleDateString('es-EC', {
         month: 'long',
-        year: 'numeric'
+        year: 'numeric',
     });
 
     const calendar = document.getElementById('availabilityCalendar');
     calendar.innerHTML = '';
 
     const weekDays = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
-    weekDays.forEach(day => {
+    weekDays.forEach((day) => {
         const dayEl = document.createElement('div');
         dayEl.className = 'calendar-day-header';
         dayEl.textContent = day;
@@ -955,7 +1099,11 @@ function renderAvailabilityCalendar() {
         dayEl.textContent = day;
 
         if (selectedDate === dateStr) dayEl.classList.add('selected');
-        if (currentAvailability[dateStr] && currentAvailability[dateStr].length > 0) dayEl.classList.add('has-slots');
+        if (
+            currentAvailability[dateStr] &&
+            currentAvailability[dateStr].length > 0
+        )
+            dayEl.classList.add('has-slots');
 
         dayEl.addEventListener('click', () => selectDate(dateStr));
         calendar.appendChild(dayEl);
@@ -980,12 +1128,13 @@ function selectDate(dateStr) {
     selectedDate = dateStr;
     renderAvailabilityCalendar();
     const date = new Date(dateStr);
-    document.getElementById('selectedDate').textContent = date.toLocaleDateString('es-EC', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    });
+    document.getElementById('selectedDate').textContent =
+        date.toLocaleDateString('es-EC', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        });
     document.getElementById('addSlotForm').classList.remove('is-hidden');
     loadTimeSlots(dateStr);
 }
@@ -994,13 +1143,18 @@ function loadTimeSlots(dateStr) {
     const slots = currentAvailability[dateStr] || [];
     const list = document.getElementById('timeSlotsList');
     if (slots.length === 0) {
-        list.innerHTML = '<p class="empty-message">No hay horarios configurados</p>';
+        list.innerHTML =
+            '<p class="empty-message">No hay horarios configurados</p>';
         return;
     }
 
     const encodedDate = encodeURIComponent(String(dateStr || ''));
 
-    list.innerHTML = slots.slice().sort().map(time => `
+    list.innerHTML = slots
+        .slice()
+        .sort()
+        .map(
+            (time) => `
         <div class="time-slot-item">
             <span class="time">${escapeHtml(time)}</span>
             <div class="slot-actions">
@@ -1009,13 +1163,15 @@ function loadTimeSlots(dateStr) {
                 </button>
             </div>
         </div>
-    `).join('');
+    `
+        )
+        .join('');
 }
 
 async function saveAvailability() {
     await apiRequest('availability', {
         method: 'POST',
-        body: { availability: currentAvailability }
+        body: { availability: currentAvailability },
     });
 }
 
@@ -1053,7 +1209,9 @@ async function addTimeSlot() {
 
 async function removeTimeSlot(dateStr, time) {
     try {
-        currentAvailability[dateStr] = (currentAvailability[dateStr] || []).filter(t => t !== time);
+        currentAvailability[dateStr] = (
+            currentAvailability[dateStr] || []
+        ).filter((t) => t !== time);
         await saveAvailability();
         loadTimeSlots(dateStr);
         renderAvailabilityCalendar();
@@ -1069,10 +1227,12 @@ function exportData() {
         callbacks: currentCallbacks,
         reviews: currentReviews,
         availability: currentAvailability,
-        exportDate: new Date().toISOString()
+        exportDate: new Date().toISOString(),
     };
 
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: 'application/json',
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -1089,7 +1249,11 @@ async function importData(input) {
     if (!file) return;
     input.value = '';
 
-    if (!confirm('Esto reemplazará TODOS los datos actuales (citas, callbacks, reseñas y disponibilidad) con los del archivo seleccionado.\n\n¿Deseas continuar?')) {
+    if (
+        !confirm(
+            'Esto reemplazará TODOS los datos actuales (citas, callbacks, reseñas y disponibilidad) con los del archivo seleccionado.\n\n¿Deseas continuar?'
+        )
+    ) {
         return;
     }
 
@@ -1102,21 +1266,29 @@ async function importData(input) {
         }
 
         const payload = {
-            appointments: Array.isArray(data.appointments) ? data.appointments : [],
+            appointments: Array.isArray(data.appointments)
+                ? data.appointments
+                : [],
             callbacks: Array.isArray(data.callbacks) ? data.callbacks : [],
             reviews: Array.isArray(data.reviews) ? data.reviews : [],
-            availability: data.availability && typeof data.availability === 'object' ? data.availability : {}
+            availability:
+                data.availability && typeof data.availability === 'object'
+                    ? data.availability
+                    : {},
         };
 
         await apiRequest('import', {
             method: 'POST',
-            body: payload
+            body: payload,
         });
 
         await refreshData();
         const activeItem = document.querySelector('.nav-item.active');
         renderSection(activeItem?.dataset.section || 'dashboard');
-        showToast(`Datos importados: ${payload.appointments.length} citas, ${payload.callbacks.length} callbacks, ${payload.reviews.length} reseñas`, 'success');
+        showToast(
+            `Datos importados: ${payload.appointments.length} citas, ${payload.callbacks.length} callbacks, ${payload.reviews.length} reseñas`,
+            'success'
+        );
     } catch (error) {
         showToast(`Error al importar: ${error.message}`, 'error');
     }
@@ -1128,11 +1300,14 @@ function renderSection(section) {
         appointments: 'Citas',
         callbacks: 'Callbacks',
         reviews: 'Reseñas',
-        availability: 'Disponibilidad'
+        availability: 'Disponibilidad',
     };
-    document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
+    document.getElementById('pageTitle').textContent =
+        titles[section] || 'Dashboard';
 
-    document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+    document
+        .querySelectorAll('.admin-section')
+        .forEach((s) => s.classList.remove('active'));
     const sectionEl = document.getElementById(section);
     if (sectionEl) sectionEl.classList.add('active');
 
@@ -1143,8 +1318,8 @@ function renderSection(section) {
     if (section === 'availability') initAvailabilityCalendar();
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    document.addEventListener('click', async function(e) {
+document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('click', async function (e) {
         const actionEl = e.target.closest('[data-action]');
         if (!actionEl) return;
 
@@ -1210,21 +1385,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
-        loginForm.addEventListener('submit', async function(e) {
+        loginForm.addEventListener('submit', async function (e) {
             e.preventDefault();
 
             // Check if 2FA mode is active
-            const is2FAMode = !document.getElementById('group2FA').classList.contains('is-hidden');
+            const is2FAMode = !document
+                .getElementById('group2FA')
+                .classList.contains('is-hidden');
 
             if (is2FAMode) {
                 const code = document.getElementById('admin2FACode').value;
                 try {
                     const result = await authRequest('login-2fa', {
                         method: 'POST',
-                        body: { code: code }
+                        body: { code: code },
                     });
                     if (result.csrfToken) csrfToken = result.csrfToken;
-                    showToast('Bienvenido al panel de administracion', 'success');
+                    showToast(
+                        'Bienvenido al panel de administracion',
+                        'success'
+                    );
                     await showDashboard();
                 } catch (error) {
                     showToast('Código incorrecto o sesión expirada', 'error');
@@ -1234,20 +1414,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 try {
                     const loginResult = await authRequest('login', {
                         method: 'POST',
-                        body: { password: password }
+                        body: { password: password },
                     });
 
                     if (loginResult.twoFactorRequired) {
                         // Switch to 2FA mode
-                        document.getElementById('passwordGroup').classList.add('is-hidden');
-                        document.getElementById('group2FA').classList.remove('is-hidden');
+                        document
+                            .getElementById('passwordGroup')
+                            .classList.add('is-hidden');
+                        document
+                            .getElementById('group2FA')
+                            .classList.remove('is-hidden');
                         document.getElementById('admin2FACode').focus();
                         const btn = document.getElementById('loginBtn');
-                        btn.innerHTML = '<i class="fas fa-check"></i> Verificar';
+                        btn.innerHTML =
+                            '<i class="fas fa-check"></i> Verificar';
                         showToast('Ingresa tu código 2FA', 'info');
                     } else {
-                        if (loginResult.csrfToken) csrfToken = loginResult.csrfToken;
-                        showToast('Bienvenido al panel de administracion', 'success');
+                        if (loginResult.csrfToken)
+                            csrfToken = loginResult.csrfToken;
+                        showToast(
+                            'Bienvenido al panel de administracion',
+                            'success'
+                        );
                         await showDashboard();
                     }
                 } catch (error) {
@@ -1258,10 +1447,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
-        item.addEventListener('click', async function(e) {
+    navItems.forEach((item) => {
+        item.addEventListener('click', async function (e) {
             e.preventDefault();
-            navItems.forEach(nav => nav.classList.remove('active'));
+            navItems.forEach((nav) => nav.classList.remove('active'));
             this.classList.add('active');
             await refreshData();
             renderSection(this.dataset.section);
@@ -1285,7 +1474,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const importFileInput = document.getElementById('importFileInput');
     if (importFileInput) {
-        importFileInput.addEventListener('change', function() {
+        importFileInput.addEventListener('change', function () {
             importData(importFileInput);
         });
     }

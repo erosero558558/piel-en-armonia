@@ -1,9 +1,19 @@
 import { withDeployAssetVersion } from './utils.js';
-import { loadDeferredModule, createWarmupRunner, bindWarmupTarget, scheduleDeferredTask, runDeferredModule } from './loader.js';
+import {
+    loadDeferredModule,
+    createWarmupRunner,
+    bindWarmupTarget,
+    scheduleDeferredTask,
+    runDeferredModule,
+} from './loader.js';
 import { closePaymentModal } from './booking.js';
 
-const UI_EFFECTS_URL = withDeployAssetVersion('/ui-effects.js?v=figo-ui-20260220-sync2');
-const MODAL_UX_ENGINE_URL = withDeployAssetVersion('/modal-ux-engine.js?v=figo-modal-ux-20260220-phase2-cachefix1');
+const UI_EFFECTS_URL = withDeployAssetVersion(
+    '/ui-effects.js?v=figo-ui-20260220-sync2'
+);
+const MODAL_UX_ENGINE_URL = withDeployAssetVersion(
+    '/modal-ux-engine.js?v=figo-modal-ux-20260220-phase2-cachefix1'
+);
 
 // UI Effects
 export function loadUiEffects() {
@@ -12,11 +22,12 @@ export function loadUiEffects() {
         src: UI_EFFECTS_URL,
         scriptDataAttribute: 'data-ui-effects',
         resolveModule: () => window.PielUiEffects,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        isModuleReady: (module) =>
+            !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(),
         missingApiError: 'ui-effects loaded without API',
         loadError: 'No se pudo cargar ui-effects.js',
-        logLabel: 'UI effects'
+        logLabel: 'UI effects',
     });
 }
 
@@ -25,8 +36,14 @@ export function initUiEffectsWarmup() {
     bindWarmupTarget('.nav', 'mouseenter', warmup);
     bindWarmupTarget('.nav', 'touchstart', warmup);
     const triggerOnce = () => warmup();
-    window.addEventListener('scroll', triggerOnce, { once: true, passive: true });
-    window.addEventListener('pointerdown', triggerOnce, { once: true, passive: true });
+    window.addEventListener('scroll', triggerOnce, {
+        once: true,
+        passive: true,
+    });
+    window.addEventListener('pointerdown', triggerOnce, {
+        once: true,
+        passive: true,
+    });
     scheduleDeferredTask(warmup, { idleTimeout: 1800, fallbackDelay: 1200 });
 }
 
@@ -38,14 +55,16 @@ export function toggleMobileMenu(forceClose) {
         return;
     }
     menu.classList.toggle('active');
-    document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : '';
+    document.body.style.overflow = menu.classList.contains('active')
+        ? 'hidden'
+        : '';
 }
 
 // Modal UX Engine
 function getModalUxEngineDeps() {
     return {
         closePaymentModal,
-        toggleMobileMenu
+        toggleMobileMenu,
     };
 }
 
@@ -55,11 +74,12 @@ export function loadModalUxEngine() {
         src: MODAL_UX_ENGINE_URL,
         scriptDataAttribute: 'data-modal-ux-engine',
         resolveModule: () => window.PielModalUxEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        isModuleReady: (module) =>
+            !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getModalUxEngineDeps()),
         missingApiError: 'modal-ux-engine loaded without API',
         loadError: 'No se pudo cargar modal-ux-engine.js',
-        logLabel: 'Modal UX engine'
+        logLabel: 'Modal UX engine',
     });
 }
 

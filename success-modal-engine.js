@@ -6,7 +6,9 @@
     let activeIcsUrl = '';
 
     function getLang() {
-        return deps && typeof deps.getCurrentLang === 'function' ? deps.getCurrentLang() : 'es';
+        return deps && typeof deps.getCurrentLang === 'function'
+            ? deps.getCurrentLang()
+            : 'es';
     }
 
     function getAppointment() {
@@ -36,7 +38,7 @@
         const names = {
             rosero: 'Dr. Javier Rosero',
             narvaez: 'Dra. Carolina Narvaez',
-            indiferente: 'Cualquiera disponible'
+            indiferente: 'Cualquiera disponible',
         };
         return names[doctor] || doctor || '-';
     }
@@ -47,10 +49,10 @@
             card: lang === 'es' ? 'Tarjeta' : 'Card',
             transfer: lang === 'es' ? 'Transferencia' : 'Transfer',
             cash: lang === 'es' ? 'Efectivo' : 'Cash',
-            unpaid: lang === 'es' ? 'Pendiente' : 'Pending'
+            unpaid: lang === 'es' ? 'Pendiente' : 'Pending',
         };
         const key = String(method || '').toLowerCase();
-        return map[key] || (method || map.unpaid);
+        return map[key] || method || map.unpaid;
     }
 
     function getPaymentStatusLabel(status) {
@@ -61,7 +63,7 @@
             pending_transfer: 'Transferencia pendiente',
             pending_gateway: 'Procesando pago',
             pending: 'Pendiente',
-            failed: 'Fallido'
+            failed: 'Fallido',
         };
         const en = {
             paid: 'Paid',
@@ -70,11 +72,11 @@
             pending_transfer: 'Transfer pending',
             pending_gateway: 'Processing payment',
             pending: 'Pending',
-            failed: 'Failed'
+            failed: 'Failed',
         };
         const key = String(status || '').toLowerCase();
         const map = getLang() === 'es' ? es : en;
-        return map[key] || (status || map.pending);
+        return map[key] || status || map.pending;
     }
 
     function getServiceName(service) {
@@ -83,7 +85,7 @@
             telefono: 'Consulta Telefónica',
             video: 'Video Consulta',
             laser: 'Tratamiento Láser',
-            rejuvenecimiento: 'Rejuvenecimiento'
+            rejuvenecimiento: 'Rejuvenecimiento',
         };
         return names[service] || service || '-';
     }
@@ -138,23 +140,32 @@ END:VCALENDAR`;
 
         if (successDesc) {
             if (emailSent) {
-                successDesc.textContent = lang === 'es'
-                    ? 'Enviamos un correo de confirmacion con los detalles de tu cita.'
-                    : 'A confirmation email with your appointment details was sent.';
+                successDesc.textContent =
+                    lang === 'es'
+                        ? 'Enviamos un correo de confirmacion con los detalles de tu cita.'
+                        : 'A confirmation email with your appointment details was sent.';
             } else {
-                successDesc.textContent = lang === 'es'
-                    ? 'Tu cita fue registrada. Te contactaremos para confirmar detalles.'
-                    : 'Your appointment was saved. We will contact you to confirm details.';
+                successDesc.textContent =
+                    lang === 'es'
+                        ? 'Tu cita fue registrada. Te contactaremos para confirmar detalles.'
+                        : 'Your appointment was saved. We will contact you to confirm details.';
             }
         }
 
-        const rawStart = appointment.date && appointment.time
-            ? new Date(`${appointment.date}T${appointment.time}`)
-            : new Date();
-        const startDate = Number.isNaN(rawStart.getTime()) ? new Date() : rawStart;
+        const rawStart =
+            appointment.date && appointment.time
+                ? new Date(`${appointment.date}T${appointment.time}`)
+                : new Date();
+        const startDate = Number.isNaN(rawStart.getTime())
+            ? new Date()
+            : rawStart;
         const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
 
-        const googleCalendarUrl = generateGoogleCalendarUrl(appointment, startDate, endDate);
+        const googleCalendarUrl = generateGoogleCalendarUrl(
+            appointment,
+            startDate,
+            endDate
+        );
         const icsContent = generateIcs(appointment, startDate, endDate);
         const icsBlob = new Blob([icsContent], { type: 'text/calendar' });
 
@@ -201,6 +212,6 @@ END:VCALENDAR`;
     window.PielSuccessModalEngine = {
         init,
         showSuccessModal,
-        closeSuccessModal
+        closeSuccessModal,
     };
 })();

@@ -9,10 +9,10 @@
 ## 🎯 VISIÓN GENERAL
 
 ```
-FASE 1 (Semana 1-2): Seguridad & Estabilidad  
-FASE 2 (Semana 3-4): Testing & Refactor Core   
-FASE 3 (Semana 5-6): Frontend Modularización   
-FASE 4 (Semana 7-8): Performance & Limpieza    
+FASE 1 (Semana 1-2): Seguridad & Estabilidad
+FASE 2 (Semana 3-4): Testing & Refactor Core
+FASE 3 (Semana 5-6): Frontend Modularización
+FASE 4 (Semana 7-8): Performance & Limpieza
 ```
 
 ---
@@ -20,6 +20,7 @@ FASE 4 (Semana 7-8): Performance & Limpieza
 ## 🔴 FASE 1: Seguridad & Estabilidad (Semanas 1-2)
 
 ### 1.1 Seguridad Inmediata (Día 1-2)
+
 **Prioridad:** CRÍTICA | **Riesgo:** Alto | **Tiempo:** 4h
 
 ```bash
@@ -31,10 +32,12 @@ FASE 4 (Semana 7-8): Performance & Limpieza
 ```
 
 **Archivos a modificar:**
+
 - `.github/workflows/*.yml` - Usar secrets en lugar de variables hardcodeadas
 - `env.example.php` - Documentar mejor prácticas de seguridad
 
 ### 1.2 Pentesting Automatizado (Día 3-4)
+
 **Prioridad:** CRÍTICA | **Tiempo:** 6h
 
 ```bash
@@ -48,17 +51,19 @@ tests/security/
 ```
 
 **Integración en CI:**
+
 ```yaml
 # .github/workflows/security.yml (nuevo)
 security-pentest:
-  runs-on: ubuntu-latest
-  steps:
-    - name: Run SQLMap scan
-    - name: Run XSS payloads
-    - name: Test rate limiting
+    runs-on: ubuntu-latest
+    steps:
+        - name: Run SQLMap scan
+        - name: Run XSS payloads
+        - name: Test rate limiting
 ```
 
 ### 1.3 Sistema de Backups Verificado (Día 5)
+
 **Prioridad:** ALTA | **Tiempo:** 3h
 
 ```php
@@ -74,6 +79,7 @@ security-pentest:
 ## 🟠 FASE 2: Testing & Refactor Core (Semanas 3-4)
 
 ### 2.1 Tests Unitarios Críticos (Día 1-5)
+
 **Meta:** 30% → 60% cobertura | **Tiempo:** 20h
 
 ```php
@@ -98,6 +104,7 @@ tests/Unit/
 ```
 
 **Ejemplo de test a crear:**
+
 ```php
 // tests/Unit/Booking/BookingServiceTest.php
 class BookingServiceTest extends TestCase
@@ -111,16 +118,18 @@ class BookingServiceTest extends TestCase
 ```
 
 ### 2.2 Refactor api.php → Controladores (Día 6-10)
+
 **Meta:** 980 líneas → <200 líneas | **Tiempo:** 16h
 
 **Plan de migración:**
+
 ```php
 // Antes (api.php):
 case 'appointments':
     // 150 líneas de lógica mezclada...
 
 // Después (AppointmentsController.php):
-class AppointmentsController 
+class AppointmentsController
 {
     public function create(Request $request): Response;
     public function list(Request $request): Response;
@@ -133,6 +142,7 @@ $router->post('/appointments', [AppointmentsController::class, 'create']);
 ```
 
 **Checklist de migración:**
+
 - [ ] `/appointments` → `AppointmentController`
 - [ ] `/booked-slots` → `AvailabilityController::getBookedSlots()`
 - [ ] `/callbacks` → `CallbackController`
@@ -141,6 +151,7 @@ $router->post('/appointments', [AppointmentsController::class, 'create']);
 - [ ] `/admin/*` → `AdminController` (nuevo)
 
 ### 2.3 Typed Properties PHP 8.2 (Día 11-14)
+
 **Tiempo:** 12h
 
 ```php
@@ -171,6 +182,7 @@ class BookingRequest {
 ## 🟡 FASE 3: Frontend Modularización (Semanas 5-6)
 
 ### 3.1 Refactor script.js → Módulos ES6 (Día 1-7)
+
 **Meta:** 1,856 líneas → módulos <300 líneas | **Tiempo:** 28h
 
 ```
@@ -203,50 +215,58 @@ js/
 ```
 
 **Build process:**
+
 ```json
 // package.json
 {
-  "scripts": {
-    "build:js": "rollup -c rollup.config.js",
-    "build:prod": "npm run build:js && npm run minify"
-  }
+    "scripts": {
+        "build:js": "rollup -c rollup.config.js",
+        "build:prod": "npm run build:js && npm run minify"
+    }
 }
 ```
 
 ### 3.2 Optimización index.html (Día 8-10)
+
 **Meta:** 120KB → <50KB | **Tiempo:** 12h
 
 ```html
 <!-- ANTES: Todo inline -->
 <html>
-<head>
-  <style>/* 20KB de CSS crítico */</style>
-  <script>/* 10KB de JS inline */</script>
-</head>
-<body>
-  <!-- 80KB de HTML con contenido duplicado -->
-</body>
+    <head>
+        <style>
+            /* 20KB de CSS crítico */
+        </style>
+        <script>
+            /* 10KB de JS inline */
+        </script>
+    </head>
+    <body>
+        <!-- 80KB de HTML con contenido duplicado -->
+    </body>
 </html>
 
 <!-- DESPUÉS: Componentes -->
 <html>
-<head>
-  <link rel="preload" href="css/critical.css" as="style">
-  <script type="module" src="js/core/app.js"></script>
-</head>
-<body>
-  <div id="app"></div>
-  <!-- Contenido cargado vía JS o templates separados -->
-</body>
+    <head>
+        <link rel="preload" href="css/critical.css" as="style" />
+        <script type="module" src="js/core/app.js"></script>
+    </head>
+    <body>
+        <div id="app"></div>
+        <!-- Contenido cargado vía JS o templates separados -->
+    </body>
 </html>
 ```
 
 **Estrategia:**
+
 - [ ] Separar contenido estático a templates JSON
 - [ ] Lazy load de secciones no críticas
 - [ ] Critical CSS extraído automáticamente
 
 ### 3.3 Sistema de Templates (Día 11-14)
+
 **Tiempo:** 12h
 
 ```php
@@ -268,6 +288,7 @@ $template->render('booking/confirmation', [
 ## 🟢 FASE 4: Performance & Limpieza (Semanas 7-8)
 
 ### 4.1 Optimización de Imágenes (Día 1-3)
+
 **Tiempo:** 10h
 
 ```bash
@@ -280,6 +301,7 @@ scripts/optimize-images.php
 ```
 
 ### 4.2 Limpieza de Ramas Git (Día 4)
+
 **Tiempo:** 4h
 
 ```bash
@@ -294,6 +316,7 @@ scripts/optimize-images.php
 ```
 
 ### 4.3 Documentación Automatizada (Día 5-7)
+
 **Tiempo:** 12h
 
 ```bash
@@ -305,34 +328,35 @@ npm install --save-dev @codecov/webpack-plugin
 ```
 
 ### 4.4 Monitoreo Avanzado (Día 8-10)
+
 **Tiempo:** 12h
 
 ```yaml
 # .github/workflows/performance.yml
 performance-budget:
-  runs-on: ubuntu-latest
-  steps:
-    - name: Lighthouse CI
-      run: |
-        npm install -g @lhci/cli
-        lhci autorun
-      env:
-        LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+    runs-on: ubuntu-latest
+    steps:
+        - name: Lighthouse CI
+          run: |
+              npm install -g @lhci/cli
+              lhci autorun
+          env:
+              LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
 ```
 
 ---
 
 ## 📊 METAS Y KPIs
 
-| Métrica | Actual | Objetivo | Fase |
-|---------|--------|----------|------|
-| Cobertura tests | 5% | 80% | 2 |
-| Tamaño script.js | 72KB | <30KB | 3 |
-| Tamaño api.php | 33KB | <15KB | 2 |
-| Líneas index.html | 120KB | <50KB | 3 |
-| Ramas git | 118 | <10 | 4 |
-| Psalm errors | ~50 | 0 | 2 |
-| Tiempo CI/CD | ~8min | <5min | 2 |
+| Métrica           | Actual | Objetivo | Fase |
+| ----------------- | ------ | -------- | ---- |
+| Cobertura tests   | 5%     | 80%      | 2    |
+| Tamaño script.js  | 72KB   | <30KB    | 3    |
+| Tamaño api.php    | 33KB   | <15KB    | 2    |
+| Líneas index.html | 120KB  | <50KB    | 3    |
+| Ramas git         | 118    | <10      | 4    |
+| Psalm errors      | ~50    | 0        | 2    |
+| Tiempo CI/CD      | ~8min  | <5min    | 2    |
 
 ---
 
@@ -357,16 +381,16 @@ npm install --save-dev lighthouse @lhci/cli
 
 ## ⏰ CRONOGRAMA SUGERIDO
 
-| Semana | Enfoque | Tareas Principales | Entregable |
-|--------|---------|-------------------|------------|
-| 1 | Seguridad | Rotar keys, pentest, backups | Sistema auditado |
-| 2 | Tests core | Unit tests críticos | +40% cobertura |
-| 3 | Refactor PHP | api.php → controladores | Código modularizado |
-| 4 | Tipado estricto | PHP 8.2 features | Tipado completo |
-| 5 | JS modular | script.js → ES6 modules | Bundle optimizado |
-| 6 | Frontend | index.html refactor | <50KB HTML |
-| 7 | Performance | Imágenes, lazy loading | Lighthouse 90+ |
-| 8 | Limpieza | Ramas, docs, monitoreo | Deuda técnica 0 |
+| Semana | Enfoque         | Tareas Principales           | Entregable          |
+| ------ | --------------- | ---------------------------- | ------------------- |
+| 1      | Seguridad       | Rotar keys, pentest, backups | Sistema auditado    |
+| 2      | Tests core      | Unit tests críticos          | +40% cobertura      |
+| 3      | Refactor PHP    | api.php → controladores      | Código modularizado |
+| 4      | Tipado estricto | PHP 8.2 features             | Tipado completo     |
+| 5      | JS modular      | script.js → ES6 modules      | Bundle optimizado   |
+| 6      | Frontend        | index.html refactor          | <50KB HTML          |
+| 7      | Performance     | Imágenes, lazy loading       | Lighthouse 90+      |
+| 8      | Limpieza        | Ramas, docs, monitoreo       | Deuda técnica 0     |
 
 ---
 
@@ -383,5 +407,5 @@ npm run smoke:prod
 
 ---
 
-*Plan creado el 2026-02-20*  
-*Próxima revisión: 2026-02-27*
+_Plan creado el 2026-02-20_
+_Próxima revisión: 2026-02-27_

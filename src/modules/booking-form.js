@@ -5,7 +5,9 @@ let initialized = false;
 const completedFormSteps = Object.create(null);
 
 function getLang() {
-    return deps && typeof deps.getCurrentLang === 'function' ? deps.getCurrentLang() : 'es';
+    return deps && typeof deps.getCurrentLang === 'function'
+        ? deps.getCurrentLang()
+        : 'es';
 }
 
 function t(esText, enText) {
@@ -54,7 +56,7 @@ function trackFormStep(step, payload = {}, options = {}) {
     const stepPayload = {
         step,
         source: 'booking_form',
-        ...payload
+        ...payload,
     };
 
     deps.trackEvent('booking_step_completed', stepPayload);
@@ -62,16 +64,16 @@ function trackFormStep(step, payload = {}, options = {}) {
     if (typeof deps.setCheckoutStep === 'function') {
         deps.setCheckoutStep(step, {
             checkoutEntry: 'booking_form',
-            ...payload
+            ...payload,
         });
     }
 }
 
 function hasClinicalContext(formData) {
     return !!(
-        (formData.get('reason') || '').trim()
-        || (formData.get('affectedArea') || '').trim()
-        || (formData.get('evolutionTime') || '').trim()
+        (formData.get('reason') || '').trim() ||
+        (formData.get('affectedArea') || '').trim() ||
+        (formData.get('evolutionTime') || '').trim()
     );
 }
 
@@ -92,7 +94,14 @@ export function init(inputDeps) {
     const phoneInput = document.querySelector('input[name="phone"]');
     const appointmentForm = document.getElementById('appointmentForm');
 
-    if (!serviceSelect || !priceSummary || !subtotalEl || !ivaEl || !totalEl || !appointmentForm) {
+    if (
+        !serviceSelect ||
+        !priceSummary ||
+        !subtotalEl ||
+        !ivaEl ||
+        !totalEl ||
+        !appointmentForm
+    ) {
         return { init };
     }
 
@@ -105,21 +114,27 @@ export function init(inputDeps) {
                 dateInput,
                 timeSelect,
                 doctorSelect,
-                t
+                t,
             });
         } catch (error) {
             console.error('Failed to load booking-calendar.js', error);
-            deps.showToast(t('Error cargando calendario. Intenta nuevamente.', 'Error loading calendar. Please try again.'), 'error');
+            deps.showToast(
+                t(
+                    'Error cargando calendario. Intenta nuevamente.',
+                    'Error loading calendar. Please try again.'
+                ),
+                'error'
+            );
         }
     }
 
     serviceSelect.addEventListener('change', function () {
         const selected = this.options[this.selectedIndex];
         const price = parseFloat(selected.dataset.price) || 0;
-            const taxRate = parseFloat(selected.dataset.serviceTax) || 0;
+        const taxRate = parseFloat(selected.dataset.serviceTax) || 0;
         const priceHint = document.getElementById('priceHint');
 
-            const iva = price * taxRate;
+        const iva = price * taxRate;
         const total = price + iva;
         subtotalEl.textContent = `$${price.toFixed(2)}`;
         ivaEl.textContent = `$${iva.toFixed(2)}`;
@@ -135,7 +150,7 @@ export function init(inputDeps) {
 
         if (this.value) {
             trackFormStep('service_selected', {
-                service: this.value
+                service: this.value,
             });
         }
 
@@ -156,7 +171,7 @@ export function init(inputDeps) {
         doctorSelect.addEventListener('change', () => {
             if (doctorSelect.value) {
                 trackFormStep('doctor_selected', {
-                    doctor: doctorSelect.value
+                    doctor: doctorSelect.value,
                 });
             }
             updateAvailableTimes().catch(() => undefined);
@@ -204,13 +219,21 @@ export function init(inputDeps) {
         });
     }
 
-    const reasonInput = appointmentForm.querySelector('textarea[name="reason"]');
-    const areaSelect = appointmentForm.querySelector('select[name="affectedArea"]');
-    const evolutionSelect = appointmentForm.querySelector('select[name="evolutionTime"]');
+    const reasonInput = appointmentForm.querySelector(
+        'textarea[name="reason"]'
+    );
+    const areaSelect = appointmentForm.querySelector(
+        'select[name="affectedArea"]'
+    );
+    const evolutionSelect = appointmentForm.querySelector(
+        'select[name="evolutionTime"]'
+    );
     const maybeTrackClinicalContext = () => {
         const reason = reasonInput ? (reasonInput.value || '').trim() : '';
         const area = areaSelect ? (areaSelect.value || '').trim() : '';
-        const evolution = evolutionSelect ? (evolutionSelect.value || '').trim() : '';
+        const evolution = evolutionSelect
+            ? (evolutionSelect.value || '').trim()
+            : '';
         if (reason || area || evolution) {
             trackFormStep('clinical_context_added');
         }
@@ -225,7 +248,9 @@ export function init(inputDeps) {
         evolutionSelect.addEventListener('change', maybeTrackClinicalContext);
     }
 
-    const privacyConsentInput = appointmentForm.querySelector('input[name="privacyConsent"]');
+    const privacyConsentInput = appointmentForm.querySelector(
+        'input[name="privacyConsent"]'
+    );
     if (privacyConsentInput) {
         privacyConsentInput.addEventListener('change', () => {
             if (privacyConsentInput.checked) {
@@ -245,7 +270,8 @@ export function init(inputDeps) {
         const originalContent = submitBtn ? submitBtn.innerHTML : '';
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+            submitBtn.innerHTML =
+                '<i class="fas fa-spinner fa-spin"></i> Procesando...';
         }
 
         try {
@@ -255,13 +281,17 @@ export function init(inputDeps) {
             const privacyConsent = formData.get('privacyConsent') === 'on';
 
             if (!privacyConsent) {
-                throw new Error(t(
-                    'Debes aceptar el tratamiento de datos para continuar.',
-                    'You must accept data processing to continue.'
-                ));
+                throw new Error(
+                    t(
+                        'Debes aceptar el tratamiento de datos para continuar.',
+                        'You must accept data processing to continue.'
+                    )
+                );
             }
 
-            const normalizedPhone = normalizeEcuadorPhone(formData.get('phone'));
+            const normalizedPhone = normalizeEcuadorPhone(
+                formData.get('phone')
+            );
 
             const appointment = {
                 service: formData.get('service'),
@@ -278,15 +308,19 @@ export function init(inputDeps) {
                 casePhotoFiles,
                 casePhotoUploads: [],
                 checkoutEntry: 'booking_form',
-                price: totalEl.textContent
+                price: totalEl.textContent,
             };
 
             trackFormStep('form_submitted', {}, { once: false });
             if (appointment.service) {
-                trackFormStep('service_selected', { service: appointment.service });
+                trackFormStep('service_selected', {
+                    service: appointment.service,
+                });
             }
             if (appointment.doctor) {
-                trackFormStep('doctor_selected', { doctor: appointment.doctor });
+                trackFormStep('doctor_selected', {
+                    doctor: appointment.doctor,
+                });
             }
             if (appointment.date) {
                 trackFormStep('date_selected');
@@ -297,7 +331,11 @@ export function init(inputDeps) {
             if ((appointment.name || '').trim().length >= 2) {
                 trackFormStep('name_added');
             }
-            if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((appointment.email || '').trim())) {
+            if (
+                /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+                    (appointment.email || '').trim()
+                )
+            ) {
                 trackFormStep('email_added');
             }
             if ((appointment.phone || '').replace(/\D/g, '').length >= 7) {
@@ -312,12 +350,18 @@ export function init(inputDeps) {
 
             deps.markBookingViewed('form_submit');
 
-            const bookedSlots = await deps.getBookedSlots(appointment.date, appointment.doctor);
+            const bookedSlots = await deps.getBookedSlots(
+                appointment.date,
+                appointment.doctor
+            );
             if (bookedSlots.includes(appointment.time)) {
-                deps.showToast(t(
-                    'Este horario ya fue reservado. Por favor selecciona otro.',
-                    'This time slot was just booked. Please choose another.'
-                ), 'error');
+                deps.showToast(
+                    t(
+                        'Este horario ya fue reservado. Por favor selecciona otro.',
+                        'This time slot was just booked. Please choose another.'
+                    ),
+                    'error'
+                );
                 await updateAvailableTimes();
                 return;
             }
@@ -325,21 +369,28 @@ export function init(inputDeps) {
             deps.setCurrentAppointment(appointment);
             deps.startCheckoutSession(appointment, {
                 checkoutEntry: 'booking_form',
-                step: 'booking_form_validated'
+                step: 'booking_form_validated',
             });
             deps.trackEvent('start_checkout', {
                 service: appointment.service || '',
                 doctor: appointment.doctor || '',
-                checkout_entry: 'booking_form'
+                checkout_entry: 'booking_form',
             });
             deps.openPaymentModal(appointment);
         } catch (error) {
             deps.trackEvent('booking_error', {
                 stage: 'booking_form',
-                error_code: deps.normalizeAnalyticsLabel(error && (error.code || error.message), 'booking_prepare_failed')
+                error_code: deps.normalizeAnalyticsLabel(
+                    error && (error.code || error.message),
+                    'booking_prepare_failed'
+                ),
             });
             deps.showToast(
-                (error && error.message) || t('No se pudo preparar la reserva. Intenta nuevamente.', 'Could not prepare booking. Please try again.'),
+                (error && error.message) ||
+                    t(
+                        'No se pudo preparar la reserva. Intenta nuevamente.',
+                        'Could not prepare booking. Please try again.'
+                    ),
                 'error'
             );
         } finally {

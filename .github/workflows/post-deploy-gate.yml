@@ -1,214 +1,214 @@
 name: Post-Deploy Gate (Git Sync)
 
 on:
-  push:
-    branches:
-      - main
-  schedule:
-    - cron: "17 */6 * * *"
-  workflow_dispatch:
-    inputs:
-      domain:
-        description: "Dominio objetivo"
-        required: false
-        default: "https://pielarmonia.com"
-        type: string
-      bench_runs:
-        description: "Muestras por endpoint para benchmark"
-        required: false
-        default: "25"
-        type: string
-      wait_seconds:
-        description: "Espera para sincronizacion del servidor"
-        required: false
-        default: "90"
-        type: string
-      asset_hash_retry_count:
-        description: "Reintentos por hash de asset"
-        required: false
-        default: "2"
-        type: string
-      asset_hash_retry_delay_sec:
-        description: "Espera entre reintentos de hash (seg)"
-        required: false
-        default: "4"
-        type: string
-      verify_retry_attempts:
-        description: "Reintentos completos de verificacion de despliegue"
-        required: false
-        default: "1"
-        type: string
-      verify_retry_delay_sec:
-        description: "Espera entre reintentos de verificacion (seg)"
-        required: false
-        default: "75"
-        type: string
+    push:
+        branches:
+            - main
+    schedule:
+        - cron: '17 */6 * * *'
+    workflow_dispatch:
+        inputs:
+            domain:
+                description: 'Dominio objetivo'
+                required: false
+                default: 'https://pielarmonia.com'
+                type: string
+            bench_runs:
+                description: 'Muestras por endpoint para benchmark'
+                required: false
+                default: '25'
+                type: string
+            wait_seconds:
+                description: 'Espera para sincronizacion del servidor'
+                required: false
+                default: '90'
+                type: string
+            asset_hash_retry_count:
+                description: 'Reintentos por hash de asset'
+                required: false
+                default: '2'
+                type: string
+            asset_hash_retry_delay_sec:
+                description: 'Espera entre reintentos de hash (seg)'
+                required: false
+                default: '4'
+                type: string
+            verify_retry_attempts:
+                description: 'Reintentos completos de verificacion de despliegue'
+                required: false
+                default: '1'
+                type: string
+            verify_retry_delay_sec:
+                description: 'Espera entre reintentos de verificacion (seg)'
+                required: false
+                default: '75'
+                type: string
 
 concurrency:
-  group: post-deploy-gate-main
-  cancel-in-progress: true
+    group: post-deploy-gate-main
+    cancel-in-progress: true
 
 permissions:
-  contents: read
-  issues: write
+    contents: read
+    issues: write
 
 jobs:
-  gate:
-    name: Gate estricto en produccion
-    runs-on: windows-latest
-    timeout-minutes: 35
-    env:
-      TARGET_DOMAIN: ${{ github.event.inputs.domain || 'https://pielarmonia.com' }}
-      BENCH_RUNS: ${{ github.event.inputs.bench_runs || '25' }}
-      WAIT_SECONDS: ${{ github.event.inputs.wait_seconds || '90' }}
-      ASSET_HASH_RETRY_COUNT: ${{ github.event.inputs.asset_hash_retry_count || '2' }}
-      ASSET_HASH_RETRY_DELAY_SEC: ${{ github.event.inputs.asset_hash_retry_delay_sec || '4' }}
-      VERIFY_RETRY_ATTEMPTS: ${{ github.event.inputs.verify_retry_attempts || '1' }}
-      VERIFY_RETRY_DELAY_SEC: ${{ github.event.inputs.verify_retry_delay_sec || '75' }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    gate:
+        name: Gate estricto en produccion
+        runs-on: windows-latest
+        timeout-minutes: 35
+        env:
+            TARGET_DOMAIN: ${{ github.event.inputs.domain || 'https://pielarmonia.com' }}
+            BENCH_RUNS: ${{ github.event.inputs.bench_runs || '25' }}
+            WAIT_SECONDS: ${{ github.event.inputs.wait_seconds || '90' }}
+            ASSET_HASH_RETRY_COUNT: ${{ github.event.inputs.asset_hash_retry_count || '2' }}
+            ASSET_HASH_RETRY_DELAY_SEC: ${{ github.event.inputs.asset_hash_retry_delay_sec || '4' }}
+            VERIFY_RETRY_ATTEMPTS: ${{ github.event.inputs.verify_retry_attempts || '1' }}
+            VERIFY_RETRY_DELAY_SEC: ${{ github.event.inputs.verify_retry_delay_sec || '75' }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Esperar sincronizacion Git del hosting
-        if: ${{ github.event_name == 'push' }}
-        shell: pwsh
-        run: |
-          $waitSeconds = [int]$env:WAIT_SECONDS
-          if ($waitSeconds -lt 0) { $waitSeconds = 0 }
-          Write-Host "Esperando $waitSeconds segundos para que el servidor termine el pull..."
-          Start-Sleep -Seconds $waitSeconds
+            - name: Esperar sincronizacion Git del hosting
+              if: ${{ github.event_name == 'push' }}
+              shell: pwsh
+              run: |
+                  $waitSeconds = [int]$env:WAIT_SECONDS
+                  if ($waitSeconds -lt 0) { $waitSeconds = 0 }
+                  Write-Host "Esperando $waitSeconds segundos para que el servidor termine el pull..."
+                  Start-Sleep -Seconds $waitSeconds
 
-      - name: Ejecutar gate estricto
-        id: gate
-        shell: pwsh
-        run: |
-          $benchRuns = [int]$env:BENCH_RUNS
-          if ($benchRuns -lt 10) { $benchRuns = 10 }
-          $hashRetryCount = [int]$env:ASSET_HASH_RETRY_COUNT
-          if ($hashRetryCount -lt 0) { $hashRetryCount = 0 }
-          $hashRetryDelay = [int]$env:ASSET_HASH_RETRY_DELAY_SEC
-          if ($hashRetryDelay -lt 1) { $hashRetryDelay = 1 }
-          $verifyRetryAttempts = [int]$env:VERIFY_RETRY_ATTEMPTS
-          if ($verifyRetryAttempts -lt 0) { $verifyRetryAttempts = 0 }
-          $verifyRetryDelay = [int]$env:VERIFY_RETRY_DELAY_SEC
-          if ($verifyRetryDelay -lt 1) { $verifyRetryDelay = 1 }
-          ./GATE-POSTDEPLOY.ps1 `
-            -Domain $env:TARGET_DOMAIN `
-            -BenchRuns $benchRuns `
-            -AssetHashRetryCount $hashRetryCount `
-            -AssetHashRetryDelaySec $hashRetryDelay `
-            -VerifyRetryAttempts $verifyRetryAttempts `
-            -VerifyRetryDelaySec $verifyRetryDelay `
-            -RequireStableDataDir `
-            -RequireBackupHealthy `
-            -RequireBackupReceiverReady `
-            -RequireCronReady
+            - name: Ejecutar gate estricto
+              id: gate
+              shell: pwsh
+              run: |
+                  $benchRuns = [int]$env:BENCH_RUNS
+                  if ($benchRuns -lt 10) { $benchRuns = 10 }
+                  $hashRetryCount = [int]$env:ASSET_HASH_RETRY_COUNT
+                  if ($hashRetryCount -lt 0) { $hashRetryCount = 0 }
+                  $hashRetryDelay = [int]$env:ASSET_HASH_RETRY_DELAY_SEC
+                  if ($hashRetryDelay -lt 1) { $hashRetryDelay = 1 }
+                  $verifyRetryAttempts = [int]$env:VERIFY_RETRY_ATTEMPTS
+                  if ($verifyRetryAttempts -lt 0) { $verifyRetryAttempts = 0 }
+                  $verifyRetryDelay = [int]$env:VERIFY_RETRY_DELAY_SEC
+                  if ($verifyRetryDelay -lt 1) { $verifyRetryDelay = 1 }
+                  ./GATE-POSTDEPLOY.ps1 `
+                    -Domain $env:TARGET_DOMAIN `
+                    -BenchRuns $benchRuns `
+                    -AssetHashRetryCount $hashRetryCount `
+                    -AssetHashRetryDelaySec $hashRetryDelay `
+                    -VerifyRetryAttempts $verifyRetryAttempts `
+                    -VerifyRetryDelaySec $verifyRetryDelay `
+                    -RequireStableDataDir `
+                    -RequireBackupHealthy `
+                    -RequireBackupReceiverReady `
+                    -RequireCronReady
 
-      - name: Resumen
-        if: ${{ always() }}
-        shell: pwsh
-        run: |
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Post-deploy gate"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Dominio: ``$env:TARGET_DOMAIN``"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Bench runs: ``$env:BENCH_RUNS``"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Asset hash retries: ``$env:ASSET_HASH_RETRY_COUNT`` cada ``$env:ASSET_HASH_RETRY_DELAY_SEC``s"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Verify retries: ``$env:VERIFY_RETRY_ATTEMPTS`` cada ``$env:VERIFY_RETRY_DELAY_SEC``s"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Resultado: ``${{ steps.gate.outcome }}``"
+            - name: Resumen
+              if: ${{ always() }}
+              shell: pwsh
+              run: |
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Post-deploy gate"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Dominio: ``$env:TARGET_DOMAIN``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Bench runs: ``$env:BENCH_RUNS``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Asset hash retries: ``$env:ASSET_HASH_RETRY_COUNT`` cada ``$env:ASSET_HASH_RETRY_DELAY_SEC``s"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Verify retries: ``$env:VERIFY_RETRY_ATTEMPTS`` cada ``$env:VERIFY_RETRY_DELAY_SEC``s"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Resultado: ``${{ steps.gate.outcome }}``"
 
-      - name: Publicar reporte de verificacion
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: post-deploy-verify-report
-          path: verification/last-deploy-verify.json
-          if-no-files-found: warn
-          retention-days: 14
+            - name: Publicar reporte de verificacion
+              if: ${{ always() }}
+              uses: actions/upload-artifact@v4
+              with:
+                  name: post-deploy-verify-report
+                  path: verification/last-deploy-verify.json
+                  if-no-files-found: warn
+                  retention-days: 14
 
-      - name: Crear/actualizar incidente de gate
-        if: ${{ failure() && github.event_name != 'workflow_dispatch' }}
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const title = '[ALERTA PROD] Gate post-deploy fallando';
-            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
-            const now = new Date().toISOString();
-            const body = [
-              'El workflow `Post-Deploy Gate (Git Sync)` fallo en produccion.',
-              '',
-              `- Fecha: ${now}`,
-              `- Run: ${runUrl}`,
-              `- Workflow: ${context.workflow}`,
-              `- Branch: ${context.ref}`
-            ].join('\n');
+            - name: Crear/actualizar incidente de gate
+              if: ${{ failure() && github.event_name != 'workflow_dispatch' }}
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const title = '[ALERTA PROD] Gate post-deploy fallando';
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+                      const body = [
+                        'El workflow `Post-Deploy Gate (Git Sync)` fallo en produccion.',
+                        '',
+                        `- Fecha: ${now}`,
+                        `- Run: ${runUrl}`,
+                        `- Workflow: ${context.workflow}`,
+                        `- Branch: ${context.ref}`
+                      ].join('\n');
 
-            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
-              owner,
-              repo,
-              state: 'open',
-              per_page: 100
-            });
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
 
-            const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
-            if (existing) {
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: existing.number,
-                body
-              });
-              core.info(`Issue existente actualizado: #${existing.number}`);
-            } else {
-              const created = await github.rest.issues.create({
-                owner,
-                repo,
-                title,
-                body
-              });
-              core.info(`Issue creado: #${created.data.number}`);
-            }
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (existing) {
+                        await github.rest.issues.createComment({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body
+                        });
+                        core.info(`Issue existente actualizado: #${existing.number}`);
+                      } else {
+                        const created = await github.rest.issues.create({
+                          owner,
+                          repo,
+                          title,
+                          body
+                        });
+                        core.info(`Issue creado: #${created.data.number}`);
+                      }
 
-      - name: Cerrar incidente de gate al recuperar
-        if: ${{ success() && github.event_name != 'workflow_dispatch' }}
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const title = '[ALERTA PROD] Gate post-deploy fallando';
-            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
-            const now = new Date().toISOString();
+            - name: Cerrar incidente de gate al recuperar
+              if: ${{ success() && github.event_name != 'workflow_dispatch' }}
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const title = '[ALERTA PROD] Gate post-deploy fallando';
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
 
-            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
-              owner,
-              repo,
-              state: 'open',
-              per_page: 100
-            });
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
 
-            const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
-            if (!existing) {
-              core.info('No hay incidente abierto para cerrar.');
-              return;
-            }
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (!existing) {
+                        core.info('No hay incidente abierto para cerrar.');
+                        return;
+                      }
 
-            await github.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number: existing.number,
-              body: [
-                'Recuperado automaticamente por gate post-deploy.',
-                '',
-                `- Fecha: ${now}`,
-                `- Run: ${runUrl}`
-              ].join('\n')
-            });
+                      await github.rest.issues.createComment({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        body: [
+                          'Recuperado automaticamente por gate post-deploy.',
+                          '',
+                          `- Fecha: ${now}`,
+                          `- Run: ${runUrl}`
+                        ].join('\n')
+                      });
 
-            await github.rest.issues.update({
-              owner,
-              repo,
-              issue_number: existing.number,
-              state: 'closed'
-            });
-            core.info(`Issue cerrado: #${existing.number}`);
+                      await github.rest.issues.update({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        state: 'closed'
+                      });
+                      core.info(`Issue cerrado: #${existing.number}`);

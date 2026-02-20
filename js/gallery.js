@@ -1,7 +1,15 @@
 import { withDeployAssetVersion } from './utils.js';
-import { loadDeferredModule, createWarmupRunner, bindWarmupTarget, scheduleDeferredTask, observeOnceWhenVisible } from './loader.js';
+import {
+    loadDeferredModule,
+    createWarmupRunner,
+    bindWarmupTarget,
+    scheduleDeferredTask,
+    observeOnceWhenVisible,
+} from './loader.js';
 
-const GALLERY_INTERACTIONS_URL = withDeployAssetVersion('/gallery-interactions.js?v=figo-gallery-20260218-phase4');
+const GALLERY_INTERACTIONS_URL = withDeployAssetVersion(
+    '/gallery-interactions.js?v=figo-gallery-20260218-phase4'
+);
 
 export function loadGalleryInteractions() {
     return loadDeferredModule({
@@ -9,11 +17,12 @@ export function loadGalleryInteractions() {
         src: GALLERY_INTERACTIONS_URL,
         scriptDataAttribute: 'data-gallery-interactions',
         resolveModule: () => window.PielGalleryInteractions,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        isModuleReady: (module) =>
+            !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(),
         missingApiError: 'gallery-interactions loaded without API',
         loadError: 'No se pudo cargar gallery-interactions.js',
-        logLabel: 'Gallery interactions'
+        logLabel: 'Gallery interactions',
     });
 }
 
@@ -23,12 +32,18 @@ export function initGalleryInteractionsWarmup() {
     observeOnceWhenVisible(gallerySection, warmup, {
         threshold: 0.05,
         rootMargin: '320px 0px',
-        onNoObserver: warmup
+        onNoObserver: warmup,
     });
     const firstFilterBtn = document.querySelector('.filter-btn');
     if (firstFilterBtn) {
-        firstFilterBtn.addEventListener('mouseenter', warmup, { once: true, passive: true });
-        firstFilterBtn.addEventListener('touchstart', warmup, { once: true, passive: true });
+        firstFilterBtn.addEventListener('mouseenter', warmup, {
+            once: true,
+            passive: true,
+        });
+        firstFilterBtn.addEventListener('touchstart', warmup, {
+            once: true,
+            passive: true,
+        });
     }
     if (!gallerySection && !firstFilterBtn) {
         return;

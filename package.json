@@ -1,29 +1,39 @@
 {
-  "name": "pielarmonia",
-  "private": true,
-  "scripts": {
-    "test": "npx playwright test",
-    "test:headed": "npx playwright test --headed",
-    "test:ui": "npx playwright test --ui",
-    "test:php": "php tests/run-php-tests.php",
-    "lint": "npm run lint:js && npm run lint:php",
-    "lint:js": "eslint .",
-    "lint:php": "find . -name '*.php' -not -path './vendor/*' -exec php -l {} \\;",
-    "build": "rollup -c",
-    "bundle:deploy": "powershell -NoProfile -ExecutionPolicy Bypass -File ./PREPARAR-PAQUETE-DESPLIEGUE.ps1 -IncludeTooling",
-    "verify:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./VERIFICAR-DESPLIEGUE.ps1 -Domain https://pielarmonia.com",
-    "smoke:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./SMOKE-PRODUCCION.ps1 -Domain https://pielarmonia.com -TestFigoPost",
-    "gate:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./GATE-POSTDEPLOY.ps1 -Domain https://pielarmonia.com",
-    "gate:prod:strict": "powershell -NoProfile -ExecutionPolicy Bypass -File ./GATE-POSTDEPLOY.ps1 -Domain https://pielarmonia.com -RequireStableDataDir -RequireBackupHealthy -RequireBackupReceiverReady -RequireCronReady",
-    "monitor:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./MONITOR-PRODUCCION.ps1 -Domain https://pielarmonia.com"
-  },
-  "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.58.2",
-    "@rollup/plugin-node-resolve": "^16.0.3",
-    "eslint": "^10.0.0",
-    "eslint-plugin-playwright": "^2.7.0",
-    "globals": "^17.3.0",
-    "rollup": "^4.58.0"
-  }
+    "name": "pielarmonia",
+    "private": true,
+    "scripts": {
+        "test": "npx playwright test",
+        "test:headed": "npx playwright test --headed",
+        "test:ui": "npx playwright test --ui",
+        "test:php": "php tests/run-php-tests.php",
+        "lint": "npm run lint:js && npm run lint:php",
+        "lint:js": "eslint .",
+        "lint:php": "find . -name '*.php' -not -path './vendor/*' -exec php -l {} \\;",
+        "build": "rollup -c",
+        "bundle:deploy": "powershell -NoProfile -ExecutionPolicy Bypass -File ./PREPARAR-PAQUETE-DESPLIEGUE.ps1 -IncludeTooling",
+        "verify:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./VERIFICAR-DESPLIEGUE.ps1 -Domain https://pielarmonia.com",
+        "smoke:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./SMOKE-PRODUCCION.ps1 -Domain https://pielarmonia.com -TestFigoPost",
+        "gate:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./GATE-POSTDEPLOY.ps1 -Domain https://pielarmonia.com",
+        "gate:prod:strict": "powershell -NoProfile -ExecutionPolicy Bypass -File ./GATE-POSTDEPLOY.ps1 -Domain https://pielarmonia.com -RequireStableDataDir -RequireBackupHealthy -RequireBackupReceiverReady -RequireCronReady",
+        "monitor:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./MONITOR-PRODUCCION.ps1 -Domain https://pielarmonia.com",
+        "format": "prettier --write .",
+        "prepare": "husky"
+    },
+    "lint-staged": {
+        "*.php": "vendor/bin/php-cs-fixer fix",
+        "*.{js,mjs,cjs,json,md}": "prettier --write",
+        "*.{js,mjs,cjs}": "eslint --fix"
+    },
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "@playwright/test": "^1.58.2",
+        "@rollup/plugin-node-resolve": "^16.0.3",
+        "eslint": "^10.0.0",
+        "eslint-plugin-playwright": "^2.7.0",
+        "globals": "^17.3.0",
+        "husky": "^9.1.7",
+        "lint-staged": "^16.2.7",
+        "prettier": "^3.8.1",
+        "rollup": "^4.58.0"
+    }
 }

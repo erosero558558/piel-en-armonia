@@ -34,7 +34,9 @@
             return;
         }
 
-        const action = String(actionEl.getAttribute('data-action') || '').trim();
+        const action = String(
+            actionEl.getAttribute('data-action') || ''
+        ).trim();
         const value = actionEl.getAttribute('data-value') || '';
         if (!action) {
             return;
@@ -127,6 +129,6 @@
     }
 
     window.PielActionRouterEngine = {
-        init
+        init,
     };
 })();

@@ -1,4 +1,5 @@
 # ROADMAP DE IMPLEMENTACIÓN - ORDEN DE PRIORIDAD
+
 **Análisis estratégico basado en el estado actual del código**
 **Fecha:** 2026-02-19 | **Puntuación global actual:** 5.4/10
 
@@ -6,25 +7,28 @@
 
 ## 🎯 MATRIZ DE PRIORIZACIÓN
 
-| Prioridad | Item | Impacto Seguridad | Impacto Negocio | Complejidad | ROI |
-|-----------|------|-------------------|-----------------|-------------|-----|
-| P0 | SQL Injection Fix | CRÍTICO | CRÍTICO | Media | 10/10 |
-| P0 | HTTP Security Headers | CRÍTICO | Alto | Baja | 9/10 |
-| P0 | Password Hashing | CRÍTICO | CRÍTICO | Baja | 10/10 |
-| P1 | Rate Limiting Redis | Alto | Medio | Media | 7/10 |
-| P1 | Input Validation | Alto | Alto | Media | 8/10 |
-| P2 | Refactor api.php | Medio | Alto | Alta | 6/10 |
-| P2 | Lazy Loading | Medio | Medio | Baja | 7/10 |
-| P3 | Tests Coverage | Medio | Alto | Media | 6/10 |
-| P3 | CSP Estricto | Medio | Bajo | Baja | 5/10 |
+| Prioridad | Item                  | Impacto Seguridad | Impacto Negocio | Complejidad | ROI   |
+| --------- | --------------------- | ----------------- | --------------- | ----------- | ----- |
+| P0        | SQL Injection Fix     | CRÍTICO           | CRÍTICO         | Media       | 10/10 |
+| P0        | HTTP Security Headers | CRÍTICO           | Alto            | Baja        | 9/10  |
+| P0        | Password Hashing      | CRÍTICO           | CRÍTICO         | Baja        | 10/10 |
+| P1        | Rate Limiting Redis   | Alto              | Medio           | Media       | 7/10  |
+| P1        | Input Validation      | Alto              | Alto            | Media       | 8/10  |
+| P2        | Refactor api.php      | Medio             | Alto            | Alta        | 6/10  |
+| P2        | Lazy Loading          | Medio             | Medio           | Baja        | 7/10  |
+| P3        | Tests Coverage        | Medio             | Alto            | Media       | 6/10  |
+| P3        | CSP Estricto          | Medio             | Bajo            | Baja        | 5/10  |
 
 ---
 
-## 🔴 FASE 1: SUPERVIVENCIA (Semana 1-2) 
+## 🔴 FASE 1: SUPERVIVENCIA (Semana 1-2)
+
 **"Sin esto, el negocio puede colapsar por un hack"**
 
 ### 1.1 SQL INJECTION FIX (P0) - 2 días
+
 **¿Por qué primero?**
+
 - **Riesgo:** Un atacante puede borrar toda la base de datos, robar datos de pacientes (información médica protegida por HIPAA/GDPR)
 - **Impacto legal:** Multas de hasta 4% del volumen de negocio por GDPR
 - **Impacto reputacional:** Un leak de datos médicos destruye la confianza permanentemente
@@ -38,7 +42,7 @@
 class Database {
     private static $instance = null;
     private $pdo;
-    
+
     private function __construct() {
         $this->pdo = new PDO(
             "mysql:host=".DB_HOST.";dbname=".DB_NAME,
@@ -49,14 +53,14 @@ class Database {
              PDO::ATTR_EMULATE_PREPARES => false] // Importante: desactivar emulación
         );
     }
-    
+
     public static function getInstance() {
         if (self::$instance === null) {
             self::$instance = new self();
         }
         return self::$instance;
     }
-    
+
     public function query($sql, $params = []) {
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
@@ -77,6 +81,7 @@ $result = $db->query("SELECT * FROM appointments WHERE id = ?", [$id]);
 ```
 
 **Testing:**
+
 ```php
 // tests/test_sql_injection.php
 function testSqlInjection() {
@@ -90,7 +95,9 @@ function testSqlInjection() {
 ---
 
 ### 1.2 HTTP SECURITY HEADERS (P0) - 1 día
+
 **¿Por qué segundo?**
+
 - **Riesgo:** XSS puede robar cookies de sesión de administradores, permitir defacement
 - **Facilidad:** Implementación trivial (< 50 líneas), protección inmediata
 - **Compliance:** Requerido por estándares de seguridad modernos
@@ -103,23 +110,23 @@ class SecurityHeaders {
     public static function apply() {
         // Prevenir XSS
         header("Content-Security-Policy: " . self::getCSP());
-        
+
         // Prevenir clickjacking
         header("X-Frame-Options: DENY");
-        
+
         // Prevenir MIME-sniffing
         header("X-Content-Type-Options: nosniff");
-        
+
         // Forzar HTTPS
         header("Strict-Transport-Security: max-age=31536000; includeSubDomains");
-        
+
         // Política de referrer
         header("Referrer-Policy: strict-origin-when-cross-origin");
-        
+
         // Política de permisos
         header("Permissions-Policy: geolocation=(), microphone=(), camera=()");
     }
-    
+
     private static function getCSP() {
         return "default-src 'self'; " .
                "script-src 'self' 'unsafe-inline' https://js.stripe.com https://www.google.com; " .
@@ -136,6 +143,7 @@ SecurityHeaders::apply();
 ```
 
 **Validación:**
+
 ```bash
 # Test con curl
 curl -I https://pielenarmonia.com/api.php | grep -E "(X-Frame|X-Content|Strict-Transport)"
@@ -144,7 +152,9 @@ curl -I https://pielenarmonia.com/api.php | grep -E "(X-Frame|X-Content|Strict-T
 ---
 
 ### 1.3 PASSWORD HASHING (P0) - 1 día
+
 **¿Por qué tercero?**
+
 - **Riesgo:** Si se filtra la BD, passwords en texto plano = acceso total
 - **Impacto:** Compliance GDPR requiere almacenamiento seguro de credenciales
 - **Facilidad:** PHP tiene funciones nativas, cambio mínimo de código
@@ -160,15 +170,15 @@ class PasswordManager {
         'time_cost' => 4,        # Iteraciones
         'threads' => 3
     ];
-    
+
     public static function hash($password) {
         return password_hash($password, self::ALGO, self::OPTIONS);
     }
-    
+
     public static function verify($password, $hash) {
         return password_verify($password, $hash);
     }
-    
+
     public static function needsRehash($hash) {
         return password_needs_rehash($hash, self::ALGO, self::OPTIONS);
     }
@@ -193,10 +203,13 @@ function migratePasswordOnLogin($userId, $password, $oldHash) {
 ---
 
 ## 🟡 FASE 2: PROTECCIÓN AVANZADA (Semana 3-4)
+
 **"Mitigar ataques distribuidos y automatizados"**
 
 ### 2.1 RATE LIMITING CON REDIS (P1) - 3 días
+
 **¿Por qué ahora?**
+
 - Sin rate limiting, un ataque DDoS básico tumba el sitio
 - Fuerza bruta en login sin limitación = acceso eventual garantizado
 - File-based rate limiting no funciona en múltiples servidores
@@ -238,7 +251,7 @@ class RateLimiter {
     private $redis;
     private $defaultLimit = 100;  // requests
     private $defaultWindow = 3600; // 1 hora
-    
+
     public function __construct() {
         $this->redis = new Client([
             'scheme' => 'tcp',
@@ -246,35 +259,35 @@ class RateLimiter {
             'port'   => 6379,
         ]);
     }
-    
+
     public function check($identifier, $type = 'ip') {
         $key = "rate_limit:{$type}:{$identifier}";
         $current = $this->redis->get($key);
-        
+
         if ($current === null) {
             $this->redis->setex($key, $this->defaultWindow, 1);
             return ['allowed' => true, 'remaining' => $this->defaultLimit - 1];
         }
-        
+
         if ($current >= $this->defaultLimit) {
             $ttl = $this->redis->ttl($key);
             return ['allowed' => false, 'retry_after' => $ttl];
         }
-        
+
         $this->redis->incr($key);
         return ['allowed' => true, 'remaining' => $this->defaultLimit - $current - 1];
     }
-    
+
     // Rate limiting específico para endpoints sensibles
     public function checkLogin($ip, $email) {
         // Limit por IP
         $ipCheck = $this->check($ip, 'login_ip');
         if (!$ipCheck['allowed']) return $ipCheck;
-        
+
         // Limit por email (anti-fuerza bruta)
         $emailCheck = $this->check(md5($email), 'login_email');
         if (!$emailCheck['allowed']) return $emailCheck;
-        
+
         return ['allowed' => true];
     }
 }
@@ -296,7 +309,9 @@ $limits = [
 ---
 
 ### 2.2 VALIDACIÓN DE INPUTS CENTRALIZADA (P1) - 2 días
+
 **¿Por qué?**
+
 - Validación dispersa = inconsistencias = vulnerabilidades
 - Validación en frontend es inútil (puede ser bypassed)
 
@@ -307,25 +322,25 @@ $limits = [
 class Validator {
     private $errors = [];
     private $data = [];
-    
+
     public function __construct($data) {
         $this->data = $data;
     }
-    
+
     public function required($field) {
         if (empty($this->data[$field])) {
             $this->errors[$field] = "Campo obligatorio";
         }
         return $this;
     }
-    
+
     public function email($field) {
         if (!filter_var($this->data[$field], FILTER_VALIDATE_EMAIL)) {
             $this->errors[$field] = "Email inválido";
         }
         return $this;
     }
-    
+
     public function phone($field) {
         $phone = preg_replace('/[^0-9]/', '', $this->data[$field]);
         if (strlen($phone) < 9 || strlen($phone) > 15) {
@@ -333,7 +348,7 @@ class Validator {
         }
         return $this;
     }
-    
+
     public function date($field, $format = 'Y-m-d') {
         $d = DateTime::createFromFormat($format, $this->data[$field]);
         if (!$d || $d->format($format) !== $this->data[$field]) {
@@ -341,7 +356,7 @@ class Validator {
         }
         return $this;
     }
-    
+
     public function sanitize($field, $type = 'string') {
         $value = $this->data[$field] ?? '';
         switch ($type) {
@@ -354,15 +369,15 @@ class Validator {
                 return htmlspecialchars(trim($value), ENT_QUOTES, 'UTF-8');
         }
     }
-    
+
     public function passes() {
         return empty($this->errors);
     }
-    
+
     public function fails() {
         return !empty($this->errors);
     }
-    
+
     public function errors() {
         return $this->errors;
     }
@@ -384,10 +399,13 @@ if ($validator->fails()) {
 ---
 
 ## 🟠 FASE 3: ESCALABILIDAD Y MANTENIMIENTO (Mes 2)
+
 **"Preparar el código para crecimiento"**
 
 ### 3.1 REFACTORIZACIÓN DE api.php (P2) - 1 semana
+
 **Problema actual:**
+
 - 1,165 líneas, 165 condicionales
 - Mezcla de lógica de negocio, acceso a datos y HTTP
 - Imposible de testear unitariamente
@@ -423,7 +441,7 @@ if ($validator->fails()) {
 // controllers/AppointmentController.php
 class AppointmentController {
     private $service;
-    
+
     public function __construct() {
         $this->service = new AppointmentService(
             new AppointmentRepository(),
@@ -431,7 +449,7 @@ class AppointmentController {
             new AuditService()
         );
     }
-    
+
     public function create($request) {
         try {
             $dto = CreateAppointmentDTO::fromRequest($request);
@@ -444,7 +462,7 @@ class AppointmentController {
             return Response::json(['error' => 'Internal server error'], 500);
         }
     }
-    
+
     public function get($id) {
         $appointment = $this->service->findById($id);
         if (!$appointment) {
@@ -459,29 +477,29 @@ class AppointmentService {
     private $repository;
     private $email;
     private $audit;
-    
+
     public function __construct($repository, $email, $audit) {
         $this->repository = $repository;
         $this->email = $email;
         $this->audit = $audit;
     }
-    
+
     public function create(CreateAppointmentDTO $dto) {
         // Validaciones de negocio
         if (!$this->isTimeSlotAvailable($dto->date, $dto->time)) {
             throw new ValidationException(['time' => 'Horario no disponible']);
         }
-        
+
         // Crear entidad
         $appointment = new Appointment($dto);
-        
+
         // Persistir
         $this->repository->save($appointment);
-        
+
         // Side effects
         $this->email->sendConfirmation($appointment);
         $this->audit->log('appointment_created', $appointment);
-        
+
         return $appointment;
     }
 }
@@ -489,13 +507,13 @@ class AppointmentService {
 // Repositories/AppointmentRepository.php
 class AppointmentRepository {
     private $db;
-    
+
     public function __construct() {
         $this->db = Database::getInstance();
     }
-    
+
     public function save(Appointment $appointment) {
-        $sql = "INSERT INTO appointments (name, email, phone, date, time, service) 
+        $sql = "INSERT INTO appointments (name, email, phone, date, time, service)
                 VALUES (?, ?, ?, ?, ?, ?)";
         $this->db->query($sql, [
             $appointment->name,
@@ -507,10 +525,10 @@ class AppointmentRepository {
         ]);
         return $this->db->lastInsertId();
     }
-    
+
     public function findById($id) {
         return $this->db->query(
-            "SELECT * FROM appointments WHERE id = ?", 
+            "SELECT * FROM appointments WHERE id = ?",
             [$id]
         )->fetch();
     }
@@ -518,6 +536,7 @@ class AppointmentRepository {
 ```
 
 **Beneficios:**
+
 - Cada clase tiene una sola responsabilidad
 - Testeable unitariamente (inyección de dependencias)
 - Cambios en BD no afectan lógica de negocio
@@ -526,7 +545,9 @@ class AppointmentRepository {
 ---
 
 ### 3.2 LAZY LOADING DE IMÁGENES (P2) - 2 días
+
 **Impacto en negocio:**
+
 - 40% de usuarios abandonan si el sitio tarda >3s en cargar
 - Google penaliza en SEO sitios lentos
 - Datos móviles: imágenes pesadas = costo para usuarios
@@ -535,10 +556,10 @@ class AppointmentRepository {
 
 ```html
 <!-- ANTES -->
-<img src="hero-woman.jpg" alt="Hero">
+<img src="hero-woman.jpg" alt="Hero" />
 
 <!-- DESPUÉS -->
-<img 
+<img
     src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E"
     data-src="hero-woman.jpg"
     data-srcset="hero-woman-400.jpg 400w, hero-woman-800.jpg 800w"
@@ -546,34 +567,38 @@ class AppointmentRepository {
     class="lazyload"
     width="800"
     height="600"
->
+/>
 ```
 
 ```javascript
 // lazyload.js (nativo, sin librerías)
-const imageObserver = new IntersectionObserver((entries, observer) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            const img = entry.target;
-            img.src = img.dataset.src;
-            if (img.dataset.srcset) {
-                img.srcset = img.dataset.srcset;
+const imageObserver = new IntersectionObserver(
+    (entries, observer) => {
+        entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                img.src = img.dataset.src;
+                if (img.dataset.srcset) {
+                    img.srcset = img.dataset.srcset;
+                }
+                img.classList.add('loaded');
+                observer.unobserve(img);
             }
-            img.classList.add('loaded');
-            observer.unobserve(img);
-        }
-    });
-}, {
-    rootMargin: '50px 0px', // Cargar 50px antes de entrar en viewport
-    threshold: 0.01
-});
+        });
+    },
+    {
+        rootMargin: '50px 0px', // Cargar 50px antes de entrar en viewport
+        threshold: 0.01,
+    }
+);
 
-document.querySelectorAll('img[data-src]').forEach(img => {
+document.querySelectorAll('img[data-src]').forEach((img) => {
     imageObserver.observe(img);
 });
 ```
 
 **CSS para transición suave:**
+
 ```css
 img[data-src] {
     opacity: 0;
@@ -589,6 +614,7 @@ img.loaded {
 ## 🟢 FASE 4: OPTIMIZACIONES Y TESTING (Mes 3)
 
 ### 4.1 COBERTURA DE TESTS 70%+ (P3) - 2 semanas
+
 **Estrategia de testing:**
 
 ```php
@@ -596,12 +622,12 @@ img.loaded {
 class AppointmentControllerTest extends TestCase {
     private $controller;
     private $mockService;
-    
+
     protected function setUp(): void {
         $this->mockService = $this->createMock(AppointmentService::class);
         $this->controller = new AppointmentController($this->mockService);
     }
-    
+
     public function testCreateAppointmentSuccess() {
         $request = [
             'name' => 'Juan Pérez',
@@ -611,29 +637,29 @@ class AppointmentControllerTest extends TestCase {
             'time' => '10:00',
             'service' => 'facial'
         ];
-        
+
         $expectedAppointment = new Appointment($request);
         $this->mockService
             ->expects($this->once())
             ->method('create')
             ->willReturn($expectedAppointment);
-        
+
         $response = $this->controller->create($request);
-        
+
         $this->assertEquals(201, $response->status());
         $this->assertEquals($expectedAppointment, $response->data());
     }
-    
+
     public function testCreateAppointmentValidationError() {
         $request = ['name' => '']; // Datos inválidos
-        
+
         $this->mockService
             ->expects($this->once())
             ->method('create')
             ->willThrowException(new ValidationException(['name' => 'Requerido']));
-        
+
         $response = $this->controller->create($request);
-        
+
         $this->assertEquals(422, $response->status());
         $this->assertArrayHasKey('name', $response->data()['errors']);
     }
@@ -641,47 +667,48 @@ class AppointmentControllerTest extends TestCase {
 ```
 
 **Pipeline CI/CD:**
+
 ```yaml
 # .github/workflows/tests.yml
 name: Tests
 on: [push, pull_request]
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: pdo, pdo_mysql, redis
-      - name: Run tests
-        run: |
-          composer install
-          ./vendor/bin/phpunit --coverage-clover coverage.xml
-      - name: Check coverage
-        run: |
-          COVERAGE=$(php -r "echo json_decode(file_get_contents('coverage.json'))->percent;")
-          if [ $COVERAGE -lt 70 ]; then
-            echo "Cobertura $COVERAGE% es menor al 70% requerido"
-            exit 1
-          fi
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.2'
+                  extensions: pdo, pdo_mysql, redis
+            - name: Run tests
+              run: |
+                  composer install
+                  ./vendor/bin/phpunit --coverage-clover coverage.xml
+            - name: Check coverage
+              run: |
+                  COVERAGE=$(php -r "echo json_decode(file_get_contents('coverage.json'))->percent;")
+                  if [ $COVERAGE -lt 70 ]; then
+                    echo "Cobertura $COVERAGE% es menor al 70% requerido"
+                    exit 1
+                  fi
 ```
 
 ---
 
 ## 📊 CRONOGRAMA RESUMIDO
 
-| Semana | Tareas | Impacto | Estado esperado |
-|--------|--------|---------|-----------------|
-| **Semana 1** | SQL Injection + HTTP Headers | CRÍTICO | Seguridad básica OK |
-| **Semana 2** | Password Hashing + Hotfixes | CRÍTICO | Autenticación segura |
-| **Semana 3** | Redis Rate Limiting | Alto | Protección DDoS |
-| **Semana 4** | Validación Centralizada | Alto | Inputs saneados |
-| **Semana 5-6** | Refactor api.php | Medio | Código mantenible |
-| **Semana 7** | Lazy Loading | Medio | Performance +40% |
-| **Semana 8-9** | Tests 70% | Medio | Calidad asegurada |
-| **Semana 10-12** | Optimizaciones | Bajo | Pulido final |
+| Semana           | Tareas                       | Impacto | Estado esperado      |
+| ---------------- | ---------------------------- | ------- | -------------------- |
+| **Semana 1**     | SQL Injection + HTTP Headers | CRÍTICO | Seguridad básica OK  |
+| **Semana 2**     | Password Hashing + Hotfixes  | CRÍTICO | Autenticación segura |
+| **Semana 3**     | Redis Rate Limiting          | Alto    | Protección DDoS      |
+| **Semana 4**     | Validación Centralizada      | Alto    | Inputs saneados      |
+| **Semana 5-6**   | Refactor api.php             | Medio   | Código mantenible    |
+| **Semana 7**     | Lazy Loading                 | Medio   | Performance +40%     |
+| **Semana 8-9**   | Tests 70%                    | Medio   | Calidad asegurada    |
+| **Semana 10-12** | Optimizaciones               | Bajo    | Pulido final         |
 
 ---
 
@@ -690,16 +717,19 @@ jobs:
 ### ROI de cada fase:
 
 **FASE 1 (Semanas 1-2):**
+
 - Costo: 4 días de desarrollo
 - Beneficio: Evitar multas GDPR (hasta €20M), proteger reputación
 - ROI: **Infinito** (evitar catástrofe)
 
 **FASE 2 (Semanas 3-4):**
+
 - Costo: 5 días + infra Redis (~$20/mes)
 - Beneficio: Uptime 99.9%, protección contra competidores desleales
 - ROI: **500%** (evitar pérdida de ingresos por downtime)
 
 **FASE 3 (Semanas 5-7):**
+
 - Costo: 9 días
 - Beneficio: Velocidad de desarrollo 2x, menos bugs
 - ROI: **300%** (ahorro en mantenimiento)
@@ -708,13 +738,13 @@ jobs:
 
 ## ⚠️ RIESGOS DE NO IMPLEMENTAR
 
-| Item | Probabilidad | Impacto | Consecuencia |
-|------|-------------|---------|--------------|
-| SQL Injection exploit | Alta | Crítico | Robo de datos de 10,000+ pacientes |
-| Credential stuffing | Alta | Alto | Acceso no autorizado a cuenta admin |
-| DDoS sin rate limit | Media | Alto | Sitio caído durante 24h = €X pérdida |
-| XSS + admin session | Media | Alto | Defacement, malware distribuido |
-| GDPR fine | Baja | Extremo | Multa €20M o 4% de facturación |
+| Item                  | Probabilidad | Impacto | Consecuencia                         |
+| --------------------- | ------------ | ------- | ------------------------------------ |
+| SQL Injection exploit | Alta         | Crítico | Robo de datos de 10,000+ pacientes   |
+| Credential stuffing   | Alta         | Alto    | Acceso no autorizado a cuenta admin  |
+| DDoS sin rate limit   | Media        | Alto    | Sitio caído durante 24h = €X pérdida |
+| XSS + admin session   | Media        | Alto    | Defacement, malware distribuido      |
+| GDPR fine             | Baja         | Extremo | Multa €20M o 4% de facturación       |
 
 ---
 
@@ -723,6 +753,7 @@ jobs:
 **Prioridad absoluta:** Implementar FASE 1 antes de cualquier otra cosa, incluso antes de nuevas features. Un sitio hackeado no sirve nuevas features.
 
 **Orden de importancia:**
+
 1. **SQL Injection** (día 1-2) - Riesgo existencial
 2. **HTTP Headers** (día 3) - Protección XSS/Clickjacking inmediata
 3. **Password Hashing** (día 4-5) - Protección de datos de usuarios
@@ -730,6 +761,7 @@ jobs:
 5. Refactor y optimizaciones (después de asegurar)
 
 **Presupuesto recomendado:**
+
 - 2 semanas de desarrollo senior (€3,000-5,000)
 - Infra Redis (€20/mes)
 - Auditoría de seguridad post-implementación (€1,000)
@@ -737,4 +769,4 @@ jobs:
 
 ---
 
-*Generado automáticamente basado en análisis de 53,723 líneas de código*
+_Generado automáticamente basado en análisis de 53,723 líneas de código_

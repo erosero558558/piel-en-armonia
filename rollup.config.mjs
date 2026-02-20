@@ -8,19 +8,19 @@ export default [
             format: 'iife',
             sourcemap: false,
             paths: {
-                'booking-calendar-lazy': './js/booking-calendar.js'
-            }
+                'booking-calendar-lazy': './js/booking-calendar.js',
+            },
         },
         plugins: [resolve()],
-        external: ['booking-calendar-lazy']
+        external: ['booking-calendar-lazy'],
     },
     {
         input: 'js/main.js',
         output: {
             file: 'script.js',
             format: 'iife',
-            sourcemap: false
+            sourcemap: false,
         },
-        plugins: [resolve()]
-    }
+        plugins: [resolve()],
+    },
 ];

@@ -49,7 +49,10 @@
             }
 
             document.querySelectorAll('.modal').forEach((modal) => {
-                if (modal.id === 'paymentModal' && modal.classList.contains('active')) {
+                if (
+                    modal.id === 'paymentModal' &&
+                    modal.classList.contains('active')
+                ) {
                     if (deps && typeof deps.closePaymentModal === 'function') {
                         deps.closePaymentModal();
                     }
@@ -79,7 +82,10 @@
                 closedAny = true;
                 if (modal.id === 'paymentModal') {
                     if (deps && typeof deps.closePaymentModal === 'function') {
-                        deps.closePaymentModal({ skipAbandonTrack: false, reason: 'back_gesture' });
+                        deps.closePaymentModal({
+                            skipAbandonTrack: false,
+                            reason: 'back_gesture',
+                        });
                     }
                 } else {
                     modal.classList.remove('active');
@@ -125,14 +131,21 @@
                     history.pushState({ modalOpen: true }, '');
                 }
             } else if (closed) {
-                if (!isClosingViaBack && history.state && history.state.modalOpen) {
+                if (
+                    !isClosingViaBack &&
+                    history.state &&
+                    history.state.modalOpen
+                ) {
                     history.back();
                 }
             }
         });
 
         document.querySelectorAll('.modal, #mobileMenu').forEach((el) => {
-            observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+            observer.observe(el, {
+                attributes: true,
+                attributeFilter: ['class'],
+            });
         });
     }
 
@@ -151,6 +164,6 @@
 
     window.PielModalUxEngine = {
         init,
-        isInitialized
+        isInitialized,
     };
 })();

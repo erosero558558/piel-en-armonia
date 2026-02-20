@@ -11,7 +11,9 @@
     }
 
     function getLang() {
-        return deps && typeof deps.getCurrentLang === 'function' ? deps.getCurrentLang() : 'es';
+        return deps && typeof deps.getCurrentLang === 'function'
+            ? deps.getCurrentLang()
+            : 'es';
     }
 
     function t(esText, enText) {
@@ -50,16 +52,31 @@
         rescheduleToken = token;
 
         try {
-            const resp = await deps.apiRequest('reschedule', { query: { token: token } });
-            if ((resp && (resp.ok === undefined || resp.ok)) && resp.data) {
+            const resp = await deps.apiRequest('reschedule', {
+                query: { token: token },
+            });
+            if (resp && (resp.ok === undefined || resp.ok) && resp.data) {
                 rescheduleAppointment = resp.data;
                 openRescheduleModal(resp.data);
                 return true;
             }
-            notify(resp?.error || t('Enlace de reprogramacion invalido.', 'Invalid reschedule link.'), 'error');
+            notify(
+                resp?.error ||
+                    t(
+                        'Enlace de reprogramacion invalido.',
+                        'Invalid reschedule link.'
+                    ),
+                'error'
+            );
             return false;
         } catch (error) {
-            notify(t('No se pudo cargar la cita. Verifica el enlace.', 'Unable to load appointment. Verify the link.'), 'error');
+            notify(
+                t(
+                    'No se pudo cargar la cita. Verifica el enlace.',
+                    'Unable to load appointment. Verify the link.'
+                ),
+                'error'
+            );
             return false;
         }
     }
@@ -75,19 +92,38 @@
         const info = document.getElementById('rescheduleInfo');
         if (info && rescheduleAppointment) {
             const doctorValue = String(rescheduleAppointment.doctor || '');
-            const doctorLabel = doctorValue === 'rosero'
-                ? 'Dr. Javier Rosero'
-                : doctorValue === 'narvaez'
-                    ? 'Dra. Carolina Narvaez'
-                    : doctorValue === 'indiferente'
+            const doctorLabel =
+                doctorValue === 'rosero'
+                    ? 'Dr. Javier Rosero'
+                    : doctorValue === 'narvaez'
+                      ? 'Dra. Carolina Narvaez'
+                      : doctorValue === 'indiferente'
                         ? 'Cualquiera disponible'
                         : doctorValue;
 
             info.innerHTML =
-                '<p><strong>' + t('Paciente', 'Patient') + ':</strong> ' + safe(rescheduleAppointment.name) + '</p>' +
-                '<p><strong>' + t('Servicio', 'Service') + ':</strong> ' + safe(rescheduleAppointment.service) + '</p>' +
-                '<p><strong>' + t('Doctor', 'Doctor') + ':</strong> ' + safe(doctorLabel) + '</p>' +
-                '<p><strong>' + t('Fecha actual', 'Current date') + ':</strong> ' + safe(rescheduleAppointment.date) + ' ' + safe(rescheduleAppointment.time) + '</p>';
+                '<p><strong>' +
+                t('Paciente', 'Patient') +
+                ':</strong> ' +
+                safe(rescheduleAppointment.name) +
+                '</p>' +
+                '<p><strong>' +
+                t('Servicio', 'Service') +
+                ':</strong> ' +
+                safe(rescheduleAppointment.service) +
+                '</p>' +
+                '<p><strong>' +
+                t('Doctor', 'Doctor') +
+                ':</strong> ' +
+                safe(doctorLabel) +
+                '</p>' +
+                '<p><strong>' +
+                t('Fecha actual', 'Current date') +
+                ':</strong> ' +
+                safe(rescheduleAppointment.date) +
+                ' ' +
+                safe(rescheduleAppointment.time) +
+                '</p>';
         }
 
         const dateInput = document.getElementById('rescheduleDate');
@@ -100,7 +136,10 @@
 
         const timeSelect = document.getElementById('rescheduleTime');
         if (timeSelect) {
-            timeSelect.innerHTML = '<option value="">' + t('Selecciona un horario', 'Select a time') + '</option>';
+            timeSelect.innerHTML =
+                '<option value="">' +
+                t('Selecciona un horario', 'Select a time') +
+                '</option>';
         }
 
         const errorDiv = document.getElementById('rescheduleError');
@@ -136,14 +175,22 @@
             return;
         }
 
-        timeSelect.innerHTML = '<option value="">' + t('Cargando...', 'Loading...') + '</option>';
+        timeSelect.innerHTML =
+            '<option value="">' + t('Cargando...', 'Loading...') + '</option>';
 
         try {
             const availability = await deps.loadAvailabilityData();
-            const daySlots = availability[selectedDate] || getDefaultTimeSlots();
-            const booked = await deps.getBookedSlots(selectedDate, rescheduleAppointment.doctor || '');
-            const isToday = selectedDate === new Date().toISOString().split('T')[0];
-            const nowMinutes = isToday ? new Date().getHours() * 60 + new Date().getMinutes() : -1;
+            const daySlots =
+                availability[selectedDate] || getDefaultTimeSlots();
+            const booked = await deps.getBookedSlots(
+                selectedDate,
+                rescheduleAppointment.doctor || ''
+            );
+            const isToday =
+                selectedDate === new Date().toISOString().split('T')[0];
+            const nowMinutes = isToday
+                ? new Date().getHours() * 60 + new Date().getMinutes()
+                : -1;
             const freeSlots = daySlots.filter((slot) => {
                 if (booked.includes(slot)) return false;
                 if (isToday) {
@@ -153,7 +200,10 @@
                 return true;
             });
 
-            timeSelect.innerHTML = '<option value="">' + t('Selecciona un horario', 'Select a time') + '</option>';
+            timeSelect.innerHTML =
+                '<option value="">' +
+                t('Selecciona un horario', 'Select a time') +
+                '</option>';
             freeSlots.forEach((slot) => {
                 const opt = document.createElement('option');
                 opt.value = slot;
@@ -162,10 +212,16 @@
             });
 
             if (freeSlots.length === 0) {
-                timeSelect.innerHTML = '<option value="">' + t('Sin horarios disponibles', 'No slots available') + '</option>';
+                timeSelect.innerHTML =
+                    '<option value="">' +
+                    t('Sin horarios disponibles', 'No slots available') +
+                    '</option>';
             }
         } catch (error) {
-            timeSelect.innerHTML = '<option value="">' + t('Error al cargar horarios', 'Error loading slots') + '</option>';
+            timeSelect.innerHTML =
+                '<option value="">' +
+                t('Error al cargar horarios', 'Error loading slots') +
+                '</option>';
         }
     }
 
@@ -184,7 +240,10 @@
         errorDiv.classList.add('is-hidden');
 
         if (!newDate || !newTime) {
-            errorDiv.textContent = t('Selecciona fecha y horario.', 'Select date and time.');
+            errorDiv.textContent = t(
+                'Selecciona fecha y horario.',
+                'Select date and time.'
+            );
             errorDiv.classList.remove('is-hidden');
             return;
         }
@@ -198,8 +257,8 @@
                 body: {
                     token: rescheduleToken,
                     date: newDate,
-                    time: newTime
-                }
+                    time: newTime,
+                },
             });
 
             if (resp && (resp.ok === undefined || resp.ok)) {
@@ -208,17 +267,31 @@
                 deps.invalidateBookedSlotsCache(oldDate, doctor);
                 deps.invalidateBookedSlotsCache(newDate, doctor);
                 closeRescheduleModal();
-                notify(t('Cita reprogramada exitosamente.', 'Appointment rescheduled successfully.'), 'success');
+                notify(
+                    t(
+                        'Cita reprogramada exitosamente.',
+                        'Appointment rescheduled successfully.'
+                    ),
+                    'success'
+                );
             } else {
-                errorDiv.textContent = resp?.error || t('Error al reprogramar.', 'Error while rescheduling.');
+                errorDiv.textContent =
+                    resp?.error ||
+                    t('Error al reprogramar.', 'Error while rescheduling.');
                 errorDiv.classList.remove('is-hidden');
             }
         } catch (error) {
-            errorDiv.textContent = t('Error de conexion. Intentalo de nuevo.', 'Connection error. Try again.');
+            errorDiv.textContent = t(
+                'Error de conexion. Intentalo de nuevo.',
+                'Connection error. Try again.'
+            );
             errorDiv.classList.remove('is-hidden');
         } finally {
             btn.disabled = false;
-            btn.textContent = t('Confirmar reprogramacion', 'Confirm reschedule');
+            btn.textContent = t(
+                'Confirmar reprogramacion',
+                'Confirm reschedule'
+            );
         }
     }
 
@@ -228,6 +301,6 @@
         openRescheduleModal,
         closeRescheduleModal,
         loadRescheduleSlots,
-        submitReschedule
+        submitReschedule,
     };
 })();

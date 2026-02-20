@@ -5,7 +5,8 @@
 (function () {
     'use strict';
 
-    const RESCHEDULE_ENGINE_URL = '/reschedule-engine.js?v=figo-reschedule-20260219-phase4-stateclass3';
+    const RESCHEDULE_ENGINE_URL =
+        '/reschedule-engine.js?v=figo-reschedule-20260219-phase4-stateclass3';
     let deps = null;
 
     function init(inputDeps) {
@@ -28,7 +29,9 @@
 
     function loadDeferredModuleSafe(options) {
         if (!deps || typeof deps.loadDeferredModule !== 'function') {
-            return Promise.reject(new Error('Missing dependency: loadDeferredModule'));
+            return Promise.reject(
+                new Error('Missing dependency: loadDeferredModule')
+            );
         }
         return deps.loadDeferredModule(options || {});
     }
@@ -42,7 +45,7 @@
             showToast: deps.showToast,
             escapeHtml: deps.escapeHtml,
             getCurrentLang: deps.getCurrentLang,
-            getDefaultTimeSlots: deps.getDefaultTimeSlots
+            getDefaultTimeSlots: deps.getDefaultTimeSlots,
         };
     }
 
@@ -52,11 +55,12 @@
             src: RESCHEDULE_ENGINE_URL,
             scriptDataAttribute: 'data-reschedule-engine',
             resolveModule: () => window.PielRescheduleEngine,
-            isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getRescheduleEngineDeps()),
             missingApiError: 'reschedule-engine loaded without API',
             loadError: 'No se pudo cargar reschedule-engine.js',
-            logLabel: 'Reschedule engine'
+            logLabel: 'Reschedule engine',
         });
     }
 
@@ -116,6 +120,6 @@
         init,
         initRescheduleFromParam,
         closeRescheduleModal,
-        submitReschedule
+        submitReschedule,
     };
 })();

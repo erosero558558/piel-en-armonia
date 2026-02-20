@@ -8,11 +8,12 @@
 
     let deps = null;
     const I18N_HTML_ALLOWED_KEYS = new Set(['clinic_hours']);
-    const EN_TRANSLATIONS_URL = '/translations-en.js?v=ui-20260219-i18n-en3-sync1';
+    const EN_TRANSLATIONS_URL =
+        '/translations-en.js?v=ui-20260219-i18n-en3-sync1';
 
     const translations = {
         es: null,
-        en: null
+        en: null,
     };
 
     let enTranslationsPromise = null;
@@ -82,7 +83,10 @@
             return Promise.resolve(translations.en);
         }
 
-        if (window.PIEL_EN_TRANSLATIONS && typeof window.PIEL_EN_TRANSLATIONS === 'object') {
+        if (
+            window.PIEL_EN_TRANSLATIONS &&
+            typeof window.PIEL_EN_TRANSLATIONS === 'object'
+        ) {
             translations.en = window.PIEL_EN_TRANSLATIONS;
             return Promise.resolve(translations.en);
         }
@@ -92,17 +96,37 @@
         }
 
         enTranslationsPromise = new Promise((resolve, reject) => {
-            const existing = document.querySelector('script[data-en-translations="true"]');
+            const existing = document.querySelector(
+                'script[data-en-translations="true"]'
+            );
             if (existing) {
-                existing.addEventListener('load', () => {
-                    if (window.PIEL_EN_TRANSLATIONS && typeof window.PIEL_EN_TRANSLATIONS === 'object') {
-                        translations.en = window.PIEL_EN_TRANSLATIONS;
-                        resolve(translations.en);
-                        return;
-                    }
-                    reject(new Error('English translations loaded without payload'));
-                }, { once: true });
-                existing.addEventListener('error', () => reject(new Error('No se pudo cargar translations-en.js')), { once: true });
+                existing.addEventListener(
+                    'load',
+                    () => {
+                        if (
+                            window.PIEL_EN_TRANSLATIONS &&
+                            typeof window.PIEL_EN_TRANSLATIONS === 'object'
+                        ) {
+                            translations.en = window.PIEL_EN_TRANSLATIONS;
+                            resolve(translations.en);
+                            return;
+                        }
+                        reject(
+                            new Error(
+                                'English translations loaded without payload'
+                            )
+                        );
+                    },
+                    { once: true }
+                );
+                existing.addEventListener(
+                    'error',
+                    () =>
+                        reject(
+                            new Error('No se pudo cargar translations-en.js')
+                        ),
+                    { once: true }
+                );
                 return;
             }
 
@@ -112,14 +136,20 @@
             script.defer = true;
             script.dataset.enTranslations = 'true';
             script.onload = () => {
-                if (window.PIEL_EN_TRANSLATIONS && typeof window.PIEL_EN_TRANSLATIONS === 'object') {
+                if (
+                    window.PIEL_EN_TRANSLATIONS &&
+                    typeof window.PIEL_EN_TRANSLATIONS === 'object'
+                ) {
                     translations.en = window.PIEL_EN_TRANSLATIONS;
                     resolve(translations.en);
                     return;
                 }
-                reject(new Error('English translations loaded without payload'));
+                reject(
+                    new Error('English translations loaded without payload')
+                );
             };
-            script.onerror = () => reject(new Error('No se pudo cargar translations-en.js'));
+            script.onerror = () =>
+                reject(new Error('No se pudo cargar translations-en.js'));
             document.head.appendChild(script);
         }).catch((error) => {
             enTranslationsPromise = null;
@@ -145,7 +175,10 @@
             try {
                 await ensureEnglishTranslations();
             } catch (error) {
-                showToastSafe('No se pudo cargar el paquete de idioma EN. Se mantiene Espanol.', 'warning');
+                showToastSafe(
+                    'No se pudo cargar el paquete de idioma EN. Se mantiene Espanol.',
+                    'warning'
+                );
             }
         }
 
@@ -182,6 +215,6 @@
     window.PielI18nEngine = {
         init,
         ensureEnglishTranslations,
-        changeLanguage
+        changeLanguage,
     };
 })();

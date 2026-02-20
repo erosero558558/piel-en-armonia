@@ -17,7 +17,7 @@
         doctor: '',
         step: '',
         entry: '',
-        paymentMethod: ''
+        paymentMethod: '',
     };
 
     function init(inputDeps) {
@@ -40,7 +40,7 @@
 
         const payload = {
             event_category: 'conversion',
-            ...params
+            ...params,
         };
 
         if (typeof window.gtag === 'function') {
@@ -51,7 +51,7 @@
         window.dataLayer = window.dataLayer || [];
         window.dataLayer.push({
             event: eventName,
-            ...payload
+            ...payload,
         });
     }
 
@@ -75,10 +75,18 @@
         }
 
         if (deps && typeof deps.observeOnceWhenVisible === 'function') {
-            return deps.observeOnceWhenVisible(element, onVisible, options || {});
+            return deps.observeOnceWhenVisible(
+                element,
+                onVisible,
+                options || {}
+            );
         }
 
-        const { threshold = 0.2, rootMargin = '0px', onNoObserver } = options || {};
+        const {
+            threshold = 0.2,
+            rootMargin = '0px',
+            onNoObserver,
+        } = options || {};
         if (!('IntersectionObserver' in window)) {
             if (typeof onNoObserver === 'function') {
                 onNoObserver();
@@ -86,17 +94,22 @@
             return false;
         }
 
-        const observer = new IntersectionObserver((entries, currentObserver) => {
-            const isVisible = entries.some((entry) => entry && entry.isIntersecting);
-            if (!isVisible) {
-                return;
+        const observer = new IntersectionObserver(
+            (entries, currentObserver) => {
+                const isVisible = entries.some(
+                    (entry) => entry && entry.isIntersecting
+                );
+                if (!isVisible) {
+                    return;
+                }
+                currentObserver.disconnect();
+                onVisible();
+            },
+            {
+                threshold,
+                rootMargin,
             }
-            currentObserver.disconnect();
-            onVisible();
-        }, {
-            threshold,
-            rootMargin
-        });
+        );
 
         observer.observe(element);
         return true;
@@ -110,7 +123,9 @@
         availabilityPrefetched = true;
 
         if (deps && typeof deps.loadAvailabilityData === 'function') {
-            Promise.resolve(deps.loadAvailabilityData({ background: true })).catch(() => {
+            Promise.resolve(
+                deps.loadAvailabilityData({ background: true })
+            ).catch(() => {
                 availabilityPrefetched = false;
             });
         }
@@ -126,9 +141,11 @@
         reviewsPrefetched = true;
 
         if (deps && typeof deps.loadPublicReviews === 'function') {
-            Promise.resolve(deps.loadPublicReviews({ background: true })).catch(() => {
-                reviewsPrefetched = false;
-            });
+            Promise.resolve(deps.loadPublicReviews({ background: true })).catch(
+                () => {
+                    reviewsPrefetched = false;
+                }
+            );
         }
 
         trackEvent('reviews_prefetch', { source });
@@ -149,16 +166,20 @@
             return;
         }
 
-        observeOnceWhenVisible(bookingSection, () => {
-            markBookingViewed('observer');
-            prefetchAvailabilityData('booking_section_visible');
-        }, {
-            threshold: 0.35,
-            onNoObserver: () => {
-                markBookingViewed('fallback_no_observer');
-                prefetchAvailabilityData('fallback_no_observer');
+        observeOnceWhenVisible(
+            bookingSection,
+            () => {
+                markBookingViewed('observer');
+                prefetchAvailabilityData('booking_section_visible');
+            },
+            {
+                threshold: 0.35,
+                onNoObserver: () => {
+                    markBookingViewed('fallback_no_observer');
+                    prefetchAvailabilityData('fallback_no_observer');
+                },
             }
-        });
+        );
     }
 
     function initDeferredSectionPrefetch() {
@@ -167,15 +188,19 @@
             return;
         }
 
-        observeOnceWhenVisible(reviewsSection, () => {
-            prefetchReviewsData('reviews_section_visible');
-        }, {
-            threshold: 0.2,
-            rootMargin: '120px 0px',
-            onNoObserver: () => {
-                prefetchReviewsData('fallback_no_observer');
+        observeOnceWhenVisible(
+            reviewsSection,
+            () => {
+                prefetchReviewsData('reviews_section_visible');
+            },
+            {
+                threshold: 0.2,
+                rootMargin: '120px 0px',
+                onNoObserver: () => {
+                    prefetchReviewsData('fallback_no_observer');
+                },
             }
-        });
+        );
     }
 
     function startCheckoutSession(appointment, metadata = {}) {
@@ -192,11 +217,12 @@
             active: true,
             completed: false,
             startedAt: Date.now(),
-            service: appointment && appointment.service ? appointment.service : '',
+            service:
+                appointment && appointment.service ? appointment.service : '',
             doctor: appointment && appointment.doctor ? appointment.doctor : '',
             step: initialStep,
             entry: checkoutEntry,
-            paymentMethod: ''
+            paymentMethod: '',
         };
     }
 
@@ -205,7 +231,10 @@
             return;
         }
 
-        checkoutSession.step = normalizeAnalyticsLabel(step, checkoutSession.step || 'unknown');
+        checkoutSession.step = normalizeAnalyticsLabel(
+            step,
+            checkoutSession.step || 'unknown'
+        );
 
         if (metadata && typeof metadata === 'object') {
             if (metadata.service) {
@@ -215,7 +244,10 @@
                 checkoutSession.doctor = String(metadata.doctor);
             }
             if (metadata.paymentMethod) {
-                checkoutSession.paymentMethod = normalizeAnalyticsLabel(metadata.paymentMethod, 'unknown');
+                checkoutSession.paymentMethod = normalizeAnalyticsLabel(
+                    metadata.paymentMethod,
+                    'unknown'
+                );
             }
             if (metadata.checkoutEntry || metadata.entry) {
                 checkoutSession.entry = normalizeAnalyticsLabel(
@@ -239,7 +271,7 @@
             doctor: String(checkoutSession.doctor || ''),
             step: String(checkoutSession.step || ''),
             entry: String(checkoutSession.entry || ''),
-            paymentMethod: String(checkoutSession.paymentMethod || '')
+            paymentMethod: String(checkoutSession.paymentMethod || ''),
         };
     }
 
@@ -250,13 +282,16 @@
 
         checkoutSession.completed = true;
         checkoutSession.step = 'booking_confirmed';
-        checkoutSession.paymentMethod = normalizeAnalyticsLabel(method, checkoutSession.paymentMethod || 'unknown');
+        checkoutSession.paymentMethod = normalizeAnalyticsLabel(
+            method,
+            checkoutSession.paymentMethod || 'unknown'
+        );
         trackEvent('booking_confirmed', {
             payment_method: method || 'unknown',
             service: checkoutSession.service || '',
             doctor: checkoutSession.doctor || '',
             checkout_step: checkoutSession.step || 'booking_confirmed',
-            checkout_entry: checkoutSession.entry || 'unknown'
+            checkout_entry: checkoutSession.entry || 'unknown',
         });
     }
 
@@ -266,7 +301,10 @@
         }
 
         const startedAt = checkoutSession.startedAt || Date.now();
-        const elapsedSec = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+        const elapsedSec = Math.max(
+            0,
+            Math.round((Date.now() - startedAt) / 1000)
+        );
         trackEvent('checkout_abandon', {
             service: checkoutSession.service || '',
             doctor: checkoutSession.doctor || '',
@@ -274,7 +312,7 @@
             elapsed_sec: elapsedSec,
             reason: normalizeAnalyticsLabel(reason, 'unknown'),
             checkout_step: checkoutSession.step || 'unknown',
-            checkout_entry: checkoutSession.entry || 'unknown'
+            checkout_entry: checkoutSession.entry || 'unknown',
         });
     }
 
@@ -292,6 +330,6 @@
         setCheckoutSessionActive,
         getCheckoutSession,
         completeCheckoutSession,
-        maybeTrackCheckoutAbandon
+        maybeTrackCheckoutAbandon,
     };
 })();

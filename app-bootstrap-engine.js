@@ -29,7 +29,8 @@
         const nav = document.querySelector('.nav');
 
         document.addEventListener('click', (event) => {
-            const targetEl = event.target instanceof Element ? event.target : null;
+            const targetEl =
+                event.target instanceof Element ? event.target : null;
             if (!targetEl) return;
 
             const anchor = targetEl.closest('a[href^="#"]');
@@ -46,7 +47,7 @@
             const targetPosition = target.offsetTop - navHeight - 20;
             window.scrollTo({
                 top: targetPosition,
-                behavior: 'smooth'
+                behavior: 'smooth',
             });
         });
     }
@@ -61,7 +62,9 @@
             return 'chatbot';
         }
 
-        const section = waLink.closest('section[id], footer[id], footer, .quick-contact-dock');
+        const section = waLink.closest(
+            'section[id], footer[id], footer, .quick-contact-dock'
+        );
         if (!section) {
             return 'unknown';
         }
@@ -84,22 +87,27 @@
 
     function bindChatHandoffTracking() {
         document.addEventListener('click', (event) => {
-            const targetEl = event.target instanceof Element ? event.target : null;
+            const targetEl =
+                event.target instanceof Element ? event.target : null;
             if (!targetEl) return;
 
-            const waLink = targetEl.closest('a[href*="wa.me"], a[href*="api.whatsapp.com"]');
+            const waLink = targetEl.closest(
+                'a[href*="wa.me"], a[href*="api.whatsapp.com"]'
+            );
             if (!waLink) return;
 
             const source = resolveWhatsappSource(waLink);
             callDep('trackEvent', 'whatsapp_click', {
-                source
+                source,
             });
 
-            const inChatContext = !!waLink.closest('#chatbotContainer') || !!waLink.closest('#chatbotWidget');
+            const inChatContext =
+                !!waLink.closest('#chatbotContainer') ||
+                !!waLink.closest('#chatbotWidget');
             if (!inChatContext) return;
 
             callDep('trackEvent', 'chat_handoff_whatsapp', {
-                source
+                source,
             });
         });
     }
@@ -144,19 +152,28 @@
         });
 
         if (typeof initDeferredWarmups === 'function') {
-            window.addEventListener('pointerdown', initDeferredWarmups, { once: true, passive: true });
-            window.addEventListener('keydown', initDeferredWarmups, { once: true });
+            window.addEventListener('pointerdown', initDeferredWarmups, {
+                once: true,
+                passive: true,
+            });
+            window.addEventListener('keydown', initDeferredWarmups, {
+                once: true,
+            });
 
             callDep('scheduleDeferredTask', initDeferredWarmups, {
                 idleTimeout: 1100,
                 fallbackDelay: 320,
                 skipOnConstrained: false,
-                constrainedDelay: 900
+                constrainedDelay: 900,
             });
         }
 
         const chatInput = document.getElementById('chatInput');
-        if (chatInput && deps && typeof deps.handleChatKeypress === 'function') {
+        if (
+            chatInput &&
+            deps &&
+            typeof deps.handleChatKeypress === 'function'
+        ) {
             chatInput.addEventListener('keypress', deps.handleChatKeypress);
         }
 
@@ -175,7 +192,9 @@
                     'Servidor requerido'
                 );
             }, 2000);
-            console.warn('Chatbot en modo offline: abre el sitio desde servidor para usar IA real.');
+            console.warn(
+                'Chatbot en modo offline: abre el sitio desde servidor para usar IA real.'
+            );
         }
     }
 
@@ -186,7 +205,9 @@
         started = true;
 
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', onReady, { once: true });
+            document.addEventListener('DOMContentLoaded', onReady, {
+                once: true,
+            });
             return;
         }
 
@@ -195,6 +216,6 @@
 
     window.PielAppBootstrapEngine = {
         init,
-        start
+        start,
     };
 })();

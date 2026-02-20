@@ -14,7 +14,7 @@
         completed: false,
         startedAt: 0,
         service: '',
-        doctor: ''
+        doctor: '',
     };
 
     function init(inputDeps) {
@@ -43,7 +43,7 @@
             completed: value.completed === true,
             startedAt: Number(value.startedAt) || 0,
             service: String(value.service || ''),
-            doctor: String(value.doctor || '')
+            doctor: String(value.doctor || ''),
         };
     }
 
@@ -65,7 +65,11 @@
         if (direct) {
             return Promise.resolve(direct);
         }
-        return Promise.reject(new Error('AnalyticsGatewayEngine dependency missing: loadAnalyticsEngine'));
+        return Promise.reject(
+            new Error(
+                'AnalyticsGatewayEngine dependency missing: loadAnalyticsEngine'
+            )
+        );
     }
 
     function trackEventFallback(eventName, params = {}) {
@@ -75,7 +79,7 @@
 
         const payload = {
             event_category: 'conversion',
-            ...(params || {})
+            ...(params || {}),
         };
 
         if (typeof window.gtag === 'function') {
@@ -86,7 +90,7 @@
         window.dataLayer = window.dataLayer || [];
         window.dataLayer.push({
             event: eventName,
-            ...payload
+            ...payload,
         });
     }
 
@@ -98,7 +102,9 @@
 
         return loadAnalyticsEngineModule().then((engine) => {
             if (!engine || typeof engine[methodName] !== 'function') {
-                throw new Error(`Analytics gateway action unavailable: ${methodName}`);
+                throw new Error(
+                    `Analytics gateway action unavailable: ${methodName}`
+                );
             }
             return engine[methodName].apply(engine, args);
         });
@@ -111,7 +117,9 @@
         }
 
         try {
-            checkoutSession = normalizeCheckoutSession(direct.getCheckoutSession());
+            checkoutSession = normalizeCheckoutSession(
+                direct.getCheckoutSession()
+            );
         } catch (_) {
             // noop
         }
@@ -182,11 +190,14 @@
             active: true,
             completed: false,
             startedAt: Date.now(),
-            service: appointment && appointment.service ? appointment.service : '',
-            doctor: appointment && appointment.doctor ? appointment.doctor : ''
+            service:
+                appointment && appointment.service ? appointment.service : '',
+            doctor: appointment && appointment.doctor ? appointment.doctor : '',
         });
 
-        callAnalytics('startCheckoutSession', [appointment]).catch(() => undefined);
+        callAnalytics('startCheckoutSession', [appointment]).catch(
+            () => undefined
+        );
     }
 
     function getCheckoutSession() {
@@ -196,7 +207,9 @@
 
     function setCheckoutSessionActive(active) {
         checkoutSession.active = active === true;
-        callAnalytics('setCheckoutSessionActive', [active]).catch(() => undefined);
+        callAnalytics('setCheckoutSessionActive', [active]).catch(
+            () => undefined
+        );
     }
 
     function completeCheckoutSession(method) {
@@ -216,7 +229,7 @@
         trackEventFallback('booking_confirmed', {
             payment_method: method || 'unknown',
             service: checkoutSession.service || '',
-            doctor: checkoutSession.doctor || ''
+            doctor: checkoutSession.doctor || '',
         });
     }
 
@@ -233,12 +246,15 @@
         }
 
         const startedAt = checkoutSession.startedAt || Date.now();
-        const elapsedSec = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+        const elapsedSec = Math.max(
+            0,
+            Math.round((Date.now() - startedAt) / 1000)
+        );
         trackEventFallback('checkout_abandon', {
             service: checkoutSession.service || '',
             doctor: checkoutSession.doctor || '',
             elapsed_sec: elapsedSec,
-            reason: normalizeAnalyticsLabel(reason, 'unknown')
+            reason: normalizeAnalyticsLabel(reason, 'unknown'),
         });
     }
 
@@ -254,6 +270,6 @@
         getCheckoutSession,
         setCheckoutSessionActive,
         completeCheckoutSession,
-        maybeTrackCheckoutAbandon
+        maybeTrackCheckoutAbandon,
     };
 })();

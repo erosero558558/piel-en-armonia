@@ -29,7 +29,11 @@
     }
 
     function getThemeStorageKey() {
-        if (deps && typeof deps.themeStorageKey === 'string' && deps.themeStorageKey) {
+        if (
+            deps &&
+            typeof deps.themeStorageKey === 'string' &&
+            deps.themeStorageKey
+        ) {
             return deps.themeStorageKey;
         }
         return 'themeMode';
@@ -39,7 +43,9 @@
         if (deps && typeof deps.getSystemThemeQuery === 'function') {
             return deps.getSystemThemeQuery();
         }
-        return window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+        return window.matchMedia
+            ? window.matchMedia('(prefers-color-scheme: dark)')
+            : null;
     }
 
     function isValidThemeMode(mode) {
@@ -48,7 +54,11 @@
         if (Array.isArray(validModes)) {
             return validModes.includes(normalized);
         }
-        return normalized === 'light' || normalized === 'dark' || normalized === 'system';
+        return (
+            normalized === 'light' ||
+            normalized === 'dark' ||
+            normalized === 'system'
+        );
     }
 
     function resolveThemeMode(mode) {
@@ -73,7 +83,10 @@
     function updateThemeButtons() {
         const currentMode = getCurrentThemeMode();
         document.querySelectorAll('.theme-btn').forEach((btn) => {
-            btn.classList.toggle('active', btn.dataset.themeMode === currentMode);
+            btn.classList.toggle(
+                'active',
+                btn.dataset.themeMode === currentMode
+            );
         });
     }
 
@@ -108,7 +121,8 @@
     }
 
     function initThemeMode() {
-        const storedTheme = localStorage.getItem(getThemeStorageKey()) || 'system';
+        const storedTheme =
+            localStorage.getItem(getThemeStorageKey()) || 'system';
         const nextMode = isValidThemeMode(storedTheme) ? storedTheme : 'system';
         setCurrentThemeMode(nextMode);
         applyThemeMode(nextMode);
@@ -132,7 +146,10 @@
         }
 
         if (typeof systemThemeQuery.addEventListener === 'function') {
-            systemThemeQuery.addEventListener('change', handleSystemThemeChange);
+            systemThemeQuery.addEventListener(
+                'change',
+                handleSystemThemeChange
+            );
             systemThemeListenerBound = true;
             return;
         }
@@ -147,6 +164,6 @@
         init,
         setThemeMode,
         initThemeMode,
-        applyThemeMode
+        applyThemeMode,
     };
 })();

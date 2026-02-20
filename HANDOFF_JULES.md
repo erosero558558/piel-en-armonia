@@ -2,19 +2,21 @@
 
 **Fecha:** 2026-02-20  
 **Estado Actual:** Sistema estable en producción, API keys rotadas, seguridad implementada  
-**Prioridad:** Testing y cobertura de código  
+**Prioridad:** Testing y cobertura de código
 
 ---
 
 ## 🎯 CONTEXTO RÁPIDO
 
 ### ✅ Estado Actual (Funcionando)
+
 - **Producción:** https://pielarmonia.com - Gate pasa ✅
 - **Seguridad:** SQL injection protegido, headers CSP, rate limiting ✅
 - **CI/CD:** 5 workflows activos, deploy automático ✅
 - **API Key:** Recién rotada (línea 40 de env.php)
 
 ### 🔴 Problema Principal
+
 **Cobertura de tests: ~5%** (solo 1 test unitario existe: `tests/Unit/ApiLibTest.php`)
 
 **Consecuencia:** Cualquier cambio en booking/payments es riesgoso sin validación automática.
@@ -62,6 +64,7 @@ mkdir -p tests/Integration
 ```
 
 **Estructura objetivo:**
+
 ```
 tests/
 ├── Unit/
@@ -111,10 +114,10 @@ class BookingServiceTest extends TestCase
             'email' => 'juan@test.com',
             'phone' => '0991234567'
         ];
-        
+
         // TODO: Llamar función que crea booking
         // $result = create_booking($data);
-        
+
         // $this->assertArrayHasKey('id', $result);
         // $this->assertEquals('pending', $result['status']);
     }
@@ -133,7 +136,7 @@ class BookingServiceTest extends TestCase
             'date' => '2020-01-01', // Fecha pasada
             'time' => '10:00'
         ];
-        
+
         // TODO: Intentar crear booking
         // Debe fallar con error de fecha inválida
     }
@@ -155,6 +158,7 @@ class BookingServiceTest extends TestCase
 ```
 
 **Comando para probar:**
+
 ```bash
 vendor/bin/phpunit tests/Unit/Booking/BookingServiceTest.php
 ```
@@ -201,6 +205,7 @@ class RateLimiterTest extends TestCase
 ```
 
 **Comando para probar:**
+
 ```bash
 vendor/bin/phpunit tests/Unit/Security/RateLimiterTest.php
 ```
@@ -264,6 +269,7 @@ Verificar que `phpunit.xml` incluye los nuevos tests:
 ```
 
 **Probar todo:**
+
 ```bash
 vendor/bin/phpunit --coverage-text
 ```
@@ -296,10 +302,12 @@ Buscar workflow "CI" → Job "unit-tests" → Debe pasar ✅
 ## 🎯 CRITERIOS DE ÉXITO
 
 ### Antes de empezar:
+
 - [ ] `npm run gate:prod:strict` pasa
 - [ ] `vendor/bin/phpunit` corre (aunque con pocos tests)
 
 ### Después de completar:
+
 - [ ] Al menos 3 archivos de tests nuevos creados
 - [ ] Cobertura sube de 5% a ~25-30%
 - [ ] CI/CD pasa en GitHub Actions
@@ -310,6 +318,7 @@ Buscar workflow "CI" → Job "unit-tests" → Debe pasar ✅
 ## 📚 REFERENCIAS ÚTILES
 
 ### Archivos importantes ya existentes:
+
 - `tests/Unit/ApiLibTest.php` - Ejemplo de test funcional
 - `lib/booking.php` - Lógica de booking (si existe)
 - `lib/ratelimit.php` - Rate limiting
@@ -318,6 +327,7 @@ Buscar workflow "CI" → Job "unit-tests" → Debe pasar ✅
 - `.github/workflows/ci.yml` - CI/CD pipeline
 
 ### Comandos útiles:
+
 ```bash
 # Ver cobertura detallada
 vendor/bin/phpunit --coverage-html coverage/
@@ -354,4 +364,4 @@ Si encuentras problemas:
 
 **Buena suerte, Jules! 🚀**
 
-*Documento creado por Kimi - 2026-02-20*
+_Documento creado por Kimi - 2026-02-20_

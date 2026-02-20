@@ -3,9 +3,11 @@
 ## 1) Configura secretos del repo
 
 En GitHub:
+
 - `Settings` -> `Secrets and variables` -> `Actions` -> `New repository secret`
 
 Crea:
+
 - `FTP_SERVER` (ejemplo: `ftp.tudominio.com` o IP del hosting)
 - `FTP_USERNAME`
 - `FTP_PASSWORD`
@@ -13,9 +15,11 @@ Crea:
 ## 2) Configura variables opcionales
 
 En:
+
 - `Settings` -> `Secrets and variables` -> `Actions` -> `Variables`
 
 Crea:
+
 - `FTP_PROTOCOL`: `ftps` (recomendado) o `ftp`
 - `FTP_SERVER_PORT`: `21` (FTP/FTPS) o `22` (SFTP si lo usas en otro flujo)
 - `FTP_SECURITY`: `strict` (o `loose` si tu FTPS usa certificado no valido)
@@ -25,10 +29,12 @@ Crea:
 ## 3) Ejecuta deploy
 
 Opciones:
+
 - Push a `main` para deploy automatico.
 - Manual: `Actions` -> `Deploy Hosting (FTP/FTPS)` -> `Run workflow`.
 
 Parametros manuales recomendados:
+
 - `protocol`: `ftp` (si te daba timeout con `ftps`, prueba primero `ftp`)
 - `server_port`: `21`
 - `security`: `strict` (usa `loose` solo si FTPS da error de certificado)
@@ -39,28 +45,32 @@ Parametros manuales recomendados:
 ## 4) Verifica
 
 Despues del deploy:
+
 - `https://pielarmonia.com/api.php?resource=health`
 - `https://pielarmonia.com/figo-chat.php`
 - `https://pielarmonia.com/`
 
 Si falla conexion FTP:
+
 - Revisa host, usuario, clave y puerto en tu proveedor.
 - Usa el host FTP del proveedor, no una URL proxied por Cloudflare.
 - Si ves `Timeout (control socket)`, el runner no llega al puerto remoto:
-  - cambia `protocol/port` (ej. `ftp:21`)
-  - pide al hosting habilitar acceso desde IPs de GitHub Actions
+    - cambia `protocol/port` (ej. `ftp:21`)
+    - pide al hosting habilitar acceso desde IPs de GitHub Actions
 
 ## 5) Si usas sincronizacion Git en servidor (sin FTP)
 
 Si tu hosting hace `git pull` automatico, usa este workflow para validar cada push:
+
 - `Actions` -> `Post-Deploy Gate (Git Sync)`
 - O simplemente push a `main` y se ejecuta solo.
 - Adicionalmente corre cada 6 horas como monitoreo continuo.
 - Puedes ajustar tolerancia de propagacion de cache con:
-  - `asset_hash_retry_count`
-  - `asset_hash_retry_delay_sec`
+    - `asset_hash_retry_count`
+    - `asset_hash_retry_delay_sec`
 
 Este gate corre:
+
 - verificacion de despliegue
 - smoke de endpoints
 - benchmark API
@@ -72,17 +82,19 @@ Si luego recupera en una corrida exitosa, cierra ese issue automaticamente.
 ## 6) Monitoreo continuo de produccion
 
 Workflow:
+
 - `Actions` -> `Production Monitor`
 - Corre cada 30 minutos y valida:
-  - home
-  - health
-  - reviews
-  - availability
-  - figo GET
-  - latencia maxima por endpoint
-  - backup saludable y `dataDir` persistente
+    - home
+    - health
+    - reviews
+    - availability
+    - figo GET
+    - latencia maxima por endpoint
+    - backup saludable y `dataDir` persistente
 
 Se puede correr manual con overrides:
+
 - `domain`
 - `max_latency_ms`
 - `allow_degraded_figo`

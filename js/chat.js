@@ -1,14 +1,47 @@
 import { withDeployAssetVersion, debugLog, showToast } from './utils.js';
-import { loadDeferredModule, runDeferredModule, withDeferredModule, createWarmupRunner, bindWarmupTarget, scheduleDeferredTask } from './loader.js';
-import { getCurrentLang, getChatHistory, setChatHistory, getConversationContext, setConversationContext, getChatbotOpen, setChatbotOpen, setCurrentAppointment } from './state.js';
+import {
+    loadDeferredModule,
+    runDeferredModule,
+    withDeferredModule,
+    createWarmupRunner,
+    bindWarmupTarget,
+    scheduleDeferredTask,
+} from './loader.js';
+import {
+    getCurrentLang,
+    getChatHistory,
+    setChatHistory,
+    getConversationContext,
+    setConversationContext,
+    getChatbotOpen,
+    setChatbotOpen,
+    setCurrentAppointment,
+} from './state.js';
 import { trackEvent } from './analytics.js';
-import { loadAvailabilityData, getBookedSlots, createAppointmentRecord } from './data.js';
-import { startCheckoutSession, setCheckoutStep, completeCheckoutSession, openPaymentModal } from './booking.js';
+import {
+    loadAvailabilityData,
+    getBookedSlots,
+    createAppointmentRecord,
+} from './data.js';
+import {
+    startCheckoutSession,
+    setCheckoutStep,
+    completeCheckoutSession,
+    openPaymentModal,
+} from './booking.js';
 
-const CHAT_UI_ENGINE_URL = withDeployAssetVersion('/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1');
-const CHAT_WIDGET_ENGINE_URL = withDeployAssetVersion('/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1');
-const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion('/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1');
-const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion('/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1-sync1');
+const CHAT_UI_ENGINE_URL = withDeployAssetVersion(
+    '/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1'
+);
+const CHAT_WIDGET_ENGINE_URL = withDeployAssetVersion(
+    '/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1'
+);
+const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion(
+    '/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1'
+);
+const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion(
+    '/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1-sync1'
+);
 
 const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
 const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -16,7 +49,10 @@ const CHAT_HISTORY_MAX_ITEMS = 50;
 const CHAT_CONTEXT_MAX_ITEMS = 24;
 
 export function escapeHtml(text) {
-    if (window.PielChatUiEngine && typeof window.PielChatUiEngine.escapeHtml === 'function') {
+    if (
+        window.PielChatUiEngine &&
+        typeof window.PielChatUiEngine.escapeHtml === 'function'
+    ) {
         return window.PielChatUiEngine.escapeHtml(text);
     }
     const div = document.createElement('div');
@@ -25,7 +61,10 @@ export function escapeHtml(text) {
 }
 
 export function scrollToBottom() {
-    if (window.PielChatUiEngine && typeof window.PielChatUiEngine.scrollToBottom === 'function') {
+    if (
+        window.PielChatUiEngine &&
+        typeof window.PielChatUiEngine.scrollToBottom === 'function'
+    ) {
         window.PielChatUiEngine.scrollToBottom();
         return;
     }
@@ -36,19 +75,27 @@ export function scrollToBottom() {
 }
 
 export function addUserMessage(text) {
-    return withDeferredModule(loadChatUiEngine, (engine) => engine.addUserMessage(text));
+    return withDeferredModule(loadChatUiEngine, (engine) =>
+        engine.addUserMessage(text)
+    );
 }
 
 export function addBotMessage(html, showOfflineLabel = false) {
-    return runDeferredModule(loadChatUiEngine, (engine) => engine.addBotMessage(html, showOfflineLabel));
+    return runDeferredModule(loadChatUiEngine, (engine) =>
+        engine.addBotMessage(html, showOfflineLabel)
+    );
 }
 
 export function showTypingIndicator() {
-    runDeferredModule(loadChatUiEngine, (engine) => engine.showTypingIndicator());
+    runDeferredModule(loadChatUiEngine, (engine) =>
+        engine.showTypingIndicator()
+    );
 }
 
 export function removeTypingIndicator() {
-    runDeferredModule(loadChatUiEngine, (engine) => engine.removeTypingIndicator());
+    runDeferredModule(loadChatUiEngine, (engine) =>
+        engine.removeTypingIndicator()
+    );
 }
 
 function getChatUiEngineDeps() {
@@ -61,7 +108,7 @@ function getChatUiEngineDeps() {
         historyTtlMs: CHAT_HISTORY_TTL_MS,
         historyMaxItems: CHAT_HISTORY_MAX_ITEMS,
         contextMaxItems: CHAT_CONTEXT_MAX_ITEMS,
-        debugLog
+        debugLog,
     };
 }
 
@@ -71,16 +118,19 @@ export function loadChatUiEngine() {
         src: CHAT_UI_ENGINE_URL,
         scriptDataAttribute: 'data-chat-ui-engine',
         resolveModule: () => window.PielChatUiEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        isModuleReady: (module) =>
+            !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getChatUiEngineDeps()),
         missingApiError: 'chat-ui-engine loaded without API',
         loadError: 'No se pudo cargar chat-ui-engine.js',
-        logLabel: 'Chat UI engine'
+        logLabel: 'Chat UI engine',
     });
 }
 
 export function initChatUiEngineWarmup() {
-    const warmup = createWarmupRunner(() => loadChatUiEngine(), { markWarmOnSuccess: true });
+    const warmup = createWarmupRunner(() => loadChatUiEngine(), {
+        markWarmOnSuccess: true,
+    });
     bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
     bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
     bindWarmupTarget('#chatInput', 'focus', warmup, false);
@@ -99,7 +149,7 @@ function getChatWidgetEngineDeps() {
         addBotMessage,
         addUserMessage,
         processWithKimi,
-        startChatBooking
+        startChatBooking,
     };
 }
 
@@ -109,16 +159,19 @@ export function loadChatWidgetEngine() {
         src: CHAT_WIDGET_ENGINE_URL,
         scriptDataAttribute: 'data-chat-widget-engine',
         resolveModule: () => window.PielChatWidgetEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        isModuleReady: (module) =>
+            !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getChatWidgetEngineDeps()),
         missingApiError: 'chat-widget-engine loaded without API',
         loadError: 'No se pudo cargar chat-widget-engine.js',
-        logLabel: 'Chat widget engine'
+        logLabel: 'Chat widget engine',
     });
 }
 
 export function initChatWidgetEngineWarmup() {
-    const warmup = createWarmupRunner(() => loadChatWidgetEngine(), { markWarmOnSuccess: true });
+    const warmup = createWarmupRunner(() => loadChatWidgetEngine(), {
+        markWarmOnSuccess: true,
+    });
     bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
     bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
     bindWarmupTarget('#chatInput', 'focus', warmup, false);
@@ -126,67 +179,93 @@ export function initChatWidgetEngineWarmup() {
 }
 
 export function toggleChatbot() {
-    runDeferredModule(loadChatWidgetEngine, (engine) => engine.toggleChatbot(), () => {
-        const container = document.getElementById('chatbotContainer');
-        if (!container) return;
-        const isOpen = !getChatbotOpen();
-        setChatbotOpen(isOpen);
-        container.classList.toggle('active', isOpen);
-    });
+    runDeferredModule(
+        loadChatWidgetEngine,
+        (engine) => engine.toggleChatbot(),
+        () => {
+            const container = document.getElementById('chatbotContainer');
+            if (!container) return;
+            const isOpen = !getChatbotOpen();
+            setChatbotOpen(isOpen);
+            container.classList.toggle('active', isOpen);
+        }
+    );
 }
 
 export function minimizeChatbot() {
-    runDeferredModule(loadChatWidgetEngine, (engine) => engine.minimizeChatbot(), () => {
-        const container = document.getElementById('chatbotContainer');
-        if (container) container.classList.remove('active');
-        setChatbotOpen(false);
-    });
+    runDeferredModule(
+        loadChatWidgetEngine,
+        (engine) => engine.minimizeChatbot(),
+        () => {
+            const container = document.getElementById('chatbotContainer');
+            if (container) container.classList.remove('active');
+            setChatbotOpen(false);
+        }
+    );
 }
 
 export function handleChatKeypress(event) {
-    runDeferredModule(loadChatWidgetEngine, (engine) => engine.handleChatKeypress(event), () => {
-        if (event && event.key === 'Enter') {
-            sendChatMessage();
+    runDeferredModule(
+        loadChatWidgetEngine,
+        (engine) => engine.handleChatKeypress(event),
+        () => {
+            if (event && event.key === 'Enter') {
+                sendChatMessage();
+            }
         }
-    });
+    );
 }
 
 export async function sendChatMessage() {
-    return runDeferredModule(loadChatWidgetEngine, (engine) => engine.sendChatMessage(), async () => {
-        const input = document.getElementById('chatInput');
-        if (!input) return;
-        const message = String(input.value || '').trim();
-        if (!message) return;
-        await Promise.resolve(addUserMessage(message)).catch(() => undefined);
-        input.value = '';
-        await processWithKimi(message);
-    });
+    return runDeferredModule(
+        loadChatWidgetEngine,
+        (engine) => engine.sendChatMessage(),
+        async () => {
+            const input = document.getElementById('chatInput');
+            if (!input) return;
+            const message = String(input.value || '').trim();
+            if (!message) return;
+            await Promise.resolve(addUserMessage(message)).catch(
+                () => undefined
+            );
+            input.value = '';
+            await processWithKimi(message);
+        }
+    );
 }
 
 export function sendQuickMessage(type) {
-    runDeferredModule(loadChatWidgetEngine, (engine) => engine.sendQuickMessage(type), () => {
-        if (type === 'appointment') {
-            Promise.resolve(addUserMessage('Quiero agendar una cita')).catch(() => undefined);
-            startChatBooking();
-            return;
+    runDeferredModule(
+        loadChatWidgetEngine,
+        (engine) => engine.sendQuickMessage(type),
+        () => {
+            if (type === 'appointment') {
+                Promise.resolve(
+                    addUserMessage('Quiero agendar una cita')
+                ).catch(() => undefined);
+                startChatBooking();
+                return;
+            }
+            const quickMessages = {
+                services: 'Que servicios ofrecen?',
+                prices: 'Cuales son los precios?',
+                telemedicine: 'Como funciona la consulta online?',
+                human: 'Quiero hablar con un doctor real',
+                acne: 'Tengo problemas de acne',
+                laser: 'Informacion sobre tratamientos laser',
+                location: 'Donde estan ubicados?',
+            };
+            const message = quickMessages[type] || type;
+            Promise.resolve(addUserMessage(message)).catch(() => undefined);
+            processWithKimi(message);
         }
-        const quickMessages = {
-            services: 'Que servicios ofrecen?',
-            prices: 'Cuales son los precios?',
-            telemedicine: 'Como funciona la consulta online?',
-            human: 'Quiero hablar con un doctor real',
-            acne: 'Tengo problemas de acne',
-            laser: 'Informacion sobre tratamientos laser',
-            location: 'Donde estan ubicados?'
-        };
-        const message = quickMessages[type] || type;
-        Promise.resolve(addUserMessage(message)).catch(() => undefined);
-        processWithKimi(message);
-    });
+    );
 }
 
 export function scheduleChatNotification() {
-    runDeferredModule(loadChatWidgetEngine, (engine) => engine.scheduleInitialNotification(30000));
+    runDeferredModule(loadChatWidgetEngine, (engine) =>
+        engine.scheduleInitialNotification(30000)
+    );
 }
 
 function getChatBookingEngineDeps() {
@@ -207,7 +286,7 @@ function getChatBookingEngineDeps() {
         minimizeChatbot,
         openPaymentModal,
         getCurrentLang,
-        setCurrentAppointment
+        setCurrentAppointment,
     };
 }
 
@@ -217,11 +296,12 @@ export function loadChatBookingEngine() {
         src: CHAT_BOOKING_ENGINE_URL,
         scriptDataAttribute: 'data-chat-booking-engine',
         resolveModule: () => window.PielChatBookingEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        isModuleReady: (module) =>
+            !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getChatBookingEngineDeps()),
         missingApiError: 'chat-booking-engine loaded without API',
         loadError: 'No se pudo cargar chat-booking-engine.js',
-        logLabel: 'Chat booking engine'
+        logLabel: 'Chat booking engine',
     });
 }
 
@@ -229,8 +309,16 @@ export function initChatBookingEngineWarmup() {
     const warmup = createWarmupRunner(() => loadChatBookingEngine());
     bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
     bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
-    bindWarmupTarget('#quickOptions [data-action="quick-message"][data-value="appointment"]', 'mouseenter', warmup);
-    bindWarmupTarget('#quickOptions [data-action="quick-message"][data-value="appointment"]', 'touchstart', warmup);
+    bindWarmupTarget(
+        '#quickOptions [data-action="quick-message"][data-value="appointment"]',
+        'mouseenter',
+        warmup
+    );
+    bindWarmupTarget(
+        '#quickOptions [data-action="quick-message"][data-value="appointment"]',
+        'touchstart',
+        warmup
+    );
     bindWarmupTarget('#chatInput', 'focus', warmup, false);
     scheduleDeferredTask(warmup, { idleTimeout: 2600, fallbackDelay: 1700 });
 }
@@ -240,7 +328,9 @@ export function startChatBooking() {
         loadChatBookingEngine,
         (engine) => engine.startChatBooking(),
         () => {
-            addBotMessage('No pude iniciar la reserva por chat. Puedes continuar desde <a href="#citas" data-action="minimize-chat">el formulario</a>.');
+            addBotMessage(
+                'No pude iniciar la reserva por chat. Puedes continuar desde <a href="#citas" data-action="minimize-chat">el formulario</a>.'
+            );
         }
     );
 }
@@ -267,15 +357,22 @@ export function handleChatDateSelect(value) {
 }
 
 export function processChatBookingStep(userInput) {
-    return withDeferredModule(loadChatBookingEngine, (engine) => engine.processChatBookingStep(userInput));
+    return withDeferredModule(loadChatBookingEngine, (engine) =>
+        engine.processChatBookingStep(userInput)
+    );
 }
 
 export function finalizeChatBooking() {
-    return withDeferredModule(loadChatBookingEngine, (engine) => engine.finalizeChatBooking());
+    return withDeferredModule(loadChatBookingEngine, (engine) =>
+        engine.finalizeChatBooking()
+    );
 }
 
 export function isChatBookingActive() {
-    if (window.PielChatBookingEngine && typeof window.PielChatBookingEngine.isActive === 'function') {
+    if (
+        window.PielChatBookingEngine &&
+        typeof window.PielChatBookingEngine.isActive === 'function'
+    ) {
         return window.PielChatBookingEngine.isActive();
     }
     return false;
@@ -289,12 +386,14 @@ export function loadFigoChatEngine() {
         resolveModule: () => window.FigoChatEngine,
         isModuleReady: (module) => !!module,
         missingApiError: 'Figo chat engine loaded without API',
-        loadError: 'No se pudo cargar chat-engine.js'
+        loadError: 'No se pudo cargar chat-engine.js',
     });
 }
 
 export function initChatEngineWarmup() {
-    const warmup = createWarmupRunner(() => loadFigoChatEngine(), { markWarmOnSuccess: true });
+    const warmup = createWarmupRunner(() => loadFigoChatEngine(), {
+        markWarmOnSuccess: true,
+    });
     bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
     bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
     bindWarmupTarget('#chatInput', 'focus', warmup);
@@ -308,7 +407,10 @@ export async function processWithKimi(message) {
         (error) => {
             console.error('Error cargando motor de chat:', error);
             removeTypingIndicator();
-            addBotMessage('No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.', false);
+            addBotMessage(
+                'No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.',
+                false
+            );
         }
     );
 }
@@ -316,7 +418,11 @@ export async function processWithKimi(message) {
 export function checkServerEnvironment() {
     if (window.location.protocol === 'file:') {
         setTimeout(() => {
-            showToast('Para usar funciones online, abre el sitio en un servidor local. Ver SERVIDOR-LOCAL.md', 'warning', 'Servidor requerido');
+            showToast(
+                'Para usar funciones online, abre el sitio en un servidor local. Ver SERVIDOR-LOCAL.md',
+                'warning',
+                'Servidor requerido'
+            );
         }, 2000);
         return false;
     }

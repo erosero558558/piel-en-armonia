@@ -9,7 +9,7 @@
         enabled: false,
         provider: 'stripe',
         publishableKey: '',
-        currency: 'USD'
+        currency: 'USD',
     };
 
     let deps = null;
@@ -36,13 +36,16 @@
             enabled: source.enabled === true,
             provider: source.provider || 'stripe',
             publishableKey: source.publishableKey || '',
-            currency: source.currency || 'USD'
+            currency: source.currency || 'USD',
         };
     }
 
     async function loadPaymentConfig() {
         const now = Date.now();
-        if (paymentConfigLoaded && (now - paymentConfigLoadedAt) < 5 * 60 * 1000) {
+        if (
+            paymentConfigLoaded &&
+            now - paymentConfigLoadedAt < 5 * 60 * 1000
+        ) {
             return paymentConfig;
         }
 
@@ -68,10 +71,18 @@
         }
 
         stripeSdkPromise = new Promise((resolve, reject) => {
-            const existingScript = document.querySelector('script[data-stripe-sdk="true"]');
+            const existingScript = document.querySelector(
+                'script[data-stripe-sdk="true"]'
+            );
             if (existingScript) {
-                existingScript.addEventListener('load', () => resolve(true), { once: true });
-                existingScript.addEventListener('error', () => reject(new Error('No se pudo cargar Stripe SDK')), { once: true });
+                existingScript.addEventListener('load', () => resolve(true), {
+                    once: true,
+                });
+                existingScript.addEventListener(
+                    'error',
+                    () => reject(new Error('No se pudo cargar Stripe SDK')),
+                    { once: true }
+                );
                 return;
             }
 
@@ -81,7 +92,8 @@
             script.defer = true;
             script.dataset.stripeSdk = 'true';
             script.onload = () => resolve(true);
-            script.onerror = () => reject(new Error('No se pudo cargar Stripe SDK'));
+            script.onerror = () =>
+                reject(new Error('No se pudo cargar Stripe SDK'));
             document.head.appendChild(script);
         }).catch((error) => {
             stripeSdkPromise = null;
@@ -94,14 +106,14 @@
     async function createPaymentIntent(appointment) {
         return getApiRequest()('payment-intent', {
             method: 'POST',
-            body: appointment
+            body: appointment,
         });
     }
 
     async function verifyPaymentIntent(paymentIntentId) {
         return getApiRequest()('payment-verify', {
             method: 'POST',
-            body: { paymentIntentId }
+            body: { paymentIntentId },
         });
     }
 
@@ -110,6 +122,6 @@
         loadPaymentConfig,
         loadStripeSdk,
         createPaymentIntent,
-        verifyPaymentIntent
+        verifyPaymentIntent,
     };
 })();

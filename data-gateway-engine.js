@@ -32,18 +32,27 @@
             return Promise.resolve(direct);
         }
 
-        return Promise.reject(new Error('DataGatewayEngine dependency missing: loadDataEngine'));
+        return Promise.reject(
+            new Error('DataGatewayEngine dependency missing: loadDataEngine')
+        );
     }
 
     function callDataMethod(engine, methodName, args) {
         if (!engine || typeof engine[methodName] !== 'function') {
-            throw new Error(`DataGatewayEngine method unavailable: ${methodName}`);
+            throw new Error(
+                `DataGatewayEngine method unavailable: ${methodName}`
+            );
         }
-        return engine[methodName].apply(engine, Array.isArray(args) ? args : []);
+        return engine[methodName].apply(
+            engine,
+            Array.isArray(args) ? args : []
+        );
     }
 
     function withDataEngine(methodName, args) {
-        return loadDataEngineModule().then((engine) => callDataMethod(engine, methodName, args));
+        return loadDataEngineModule().then((engine) =>
+            callDataMethod(engine, methodName, args)
+        );
     }
 
     function apiRequest(resource, options = {}) {
@@ -57,7 +66,9 @@
             return;
         }
 
-        withDataEngine('invalidateBookedSlotsCache', [date, doctor]).catch(() => undefined);
+        withDataEngine('invalidateBookedSlotsCache', [date, doctor]).catch(
+            () => undefined
+        );
     }
 
     function loadAvailabilityData(options = {}) {
@@ -69,7 +80,10 @@
     }
 
     function createAppointmentRecord(appointment, options = {}) {
-        return withDataEngine('createAppointmentRecord', [appointment, options]);
+        return withDataEngine('createAppointmentRecord', [
+            appointment,
+            options,
+        ]);
     }
 
     function createCallbackRecord(callback) {
@@ -93,6 +107,6 @@
         createAppointmentRecord,
         createCallbackRecord,
         createReviewRecord,
-        uploadTransferProof
+        uploadTransferProof,
     };
 })();

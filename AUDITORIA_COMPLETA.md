@@ -28,19 +28,21 @@
 ## ✅ FORTALEZAS (Lo que está bien)
 
 ### 1. **Seguridad Implementada** 🔒
-| Aspecto | Estado | Detalle |
-|---------|--------|---------|
-| SQL Injection | ✅ Protegido | Uso de PDO + prepared statements |
-| XSS | ⚠️ Mitigado | Escape en frontend, falta sanitización backend |
-| CSRF | ✅ Protegido | Tokens validados en mutaciones |
-| Rate Limiting | ✅ Activo | 5 req/min para bookings |
-| Sesiones | ✅ Seguras | HttpOnly, Secure, SameSite |
-| Headers HTTP | ✅ Completos | CSP, HSTS, X-Frame-Options |
-| Auth | ✅ Robustez | 2FA opcional, password hashing |
+
+| Aspecto       | Estado       | Detalle                                        |
+| ------------- | ------------ | ---------------------------------------------- |
+| SQL Injection | ✅ Protegido | Uso de PDO + prepared statements               |
+| XSS           | ⚠️ Mitigado  | Escape en frontend, falta sanitización backend |
+| CSRF          | ✅ Protegido | Tokens validados en mutaciones                 |
+| Rate Limiting | ✅ Activo    | 5 req/min para bookings                        |
+| Sesiones      | ✅ Seguras   | HttpOnly, Secure, SameSite                     |
+| Headers HTTP  | ✅ Completos | CSP, HSTS, X-Frame-Options                     |
+| Auth          | ✅ Robustez  | 2FA opcional, password hashing                 |
 
 **Pentest P0:** ✅ Pasado (Ver `SECURITY_AUDIT.md` y `tests/pentest_p0.php`)
 
 ### 2. **Arquitectura Backend** 🏗️
+
 ```
 controllers/ (10 archivos)
 ├── AppointmentController.php      ✅ Completo
@@ -58,17 +60,19 @@ controllers/ (10 archivos)
 **Separación de responsabilidades:** API.php reducido de ~1,300 a ~1,000 líneas.
 
 ### 3. **CI/CD y DevOps** 🚀
-| Workflow | Estado | Función |
-|----------|--------|---------|
-| `ci.yml` | ✅ Activo | Lint + Security + Tests + E2E |
-| `deploy-hosting.yml` | ✅ Activo | Deploy automático |
-| `post-deploy-gate.yml` | ✅ Activo | Verificación post-deploy |
-| `prod-monitor.yml` | ✅ Activo | Monitoreo 30min |
-| `deploy-staging.yml` | ✅ Activo | Staging auto-deploy |
+
+| Workflow               | Estado    | Función                       |
+| ---------------------- | --------- | ----------------------------- |
+| `ci.yml`               | ✅ Activo | Lint + Security + Tests + E2E |
+| `deploy-hosting.yml`   | ✅ Activo | Deploy automático             |
+| `post-deploy-gate.yml` | ✅ Activo | Verificación post-deploy      |
+| `prod-monitor.yml`     | ✅ Activo | Monitoreo 30min               |
+| `deploy-staging.yml`   | ✅ Activo | Staging auto-deploy           |
 
 **Gate actual:** ✅ Pasa en producción (último verificado)
 
 ### 4. **Testing** 🧪
+
 ```
 tests/
 ├── Unit/                          ✅ NUEVO
@@ -94,6 +98,7 @@ Total: 69 archivos de test
 **Cobertura estimada:** ~5% → **~35-40%** (Mejorado drásticamente)
 
 ### 5. **Frontend Modularizado** 📦
+
 ```
 src/ (NUEVO - ES6 Modules)
 ├── booking-ui-entry.js
@@ -109,10 +114,12 @@ Rollup: ✅ Configurado (rollup.config.mjs)
 ```
 
 ### 6. **Feature Flags** 🚩
+
 - Backend: ✅ `lib/features.php` implementado
 - UI: ✅ Panel de administración (mergeado recientemente)
 
 ### 7. **Chatbot Figo** 🤖
+
 - AI externa: ✅ OpenRouter integrado
 - Fallback local: ✅ FigoBrain con 20+ intents
 - Telegram: ✅ Webhook configurado
@@ -123,6 +130,7 @@ Rollup: ✅ Configurado (rollup.config.mjs)
 ## ⚠️ DEBILIDADES (Áreas de mejora)
 
 ### 1. **Deuda Técnica de Frontend** 🔴
+
 ```
 Problema: script.js creció a 77KB (antes ~72KB)
 
@@ -137,6 +145,7 @@ Refactor ES6: En progreso (solo src/modules/booking-form.js)
 **Recomendación:** Continuar migración a ES6 modules con Rollup.
 
 ### 2. **XSS - Sanitización Backend** 🟡
+
 ```
 Estado: Payloads se almacenan sin sanitizar
 Mitigación: Frontend usa escapeHtml()
@@ -146,6 +155,7 @@ Solución: Implementar htmlspecialchars() en lib/validation.php
 ```
 
 ### 3. **Ramas Git Sin Limpiar** 🔴
+
 ```
 126 ramas remotas
 ├── Mergeadas: ~50+ (deberían eliminarse)
@@ -158,6 +168,7 @@ Deuda: Dificulta navegación, confusión
 **Recomendación:** `git push origin --delete rama1 rama2 ...`
 
 ### 4. **Condiciones de Carrera** 🟡
+
 ```
 Ubicación: lib/ratelimit.php
 Problema: LOCK_EX en escritura, pero lectura no bloqueante
@@ -168,6 +179,7 @@ Solución ideal: Migrar a Redis (existe rama: redis-ratelimit)
 ```
 
 ### 5. **Tests Duplicados** 🟡
+
 ```
 Detectado:
 ├── tests/Booking/BookingServiceTest.php
@@ -178,6 +190,7 @@ Acción: Consolidar o diferenciar claramente
 ```
 
 ### 6. **Configuración PHPUnit** 🟡
+
 ```xml
 <!-- phpunit.xml actual -->
 <testsuite name="Unit">
@@ -192,6 +205,7 @@ Falta:
 ```
 
 ### 7. **TODOs en Código** 🟡
+
 ```
 17 TODOs/FIXMEs/X encontrados:
 ├── admin.js: 3
@@ -206,36 +220,40 @@ Falta:
 ## 📊 MÉTRICAS DETALLADAS
 
 ### Líneas de Código
-| Archivo | Tamaño | Estado |
-|---------|--------|--------|
-| api.php | 35KB (~1,000 líneas) | ✅ Mejorado (antes 33KB) |
-| script.js | 77KB | ⚠️ Creció (necesita modularización) |
-| index.html | 124KB | ⚠️ Monolito grande |
-| admin.js | 153 funciones | ✅ Funcional |
+
+| Archivo    | Tamaño               | Estado                              |
+| ---------- | -------------------- | ----------------------------------- |
+| api.php    | 35KB (~1,000 líneas) | ✅ Mejorado (antes 33KB)            |
+| script.js  | 77KB                 | ⚠️ Creció (necesita modularización) |
+| index.html | 124KB                | ⚠️ Monolito grande                  |
+| admin.js   | 153 funciones        | ✅ Funcional                        |
 
 ### Tests
-| Tipo | Cantidad | Cobertura Est. |
-|------|----------|----------------|
-| Unit Tests | 8 archivos | ~25% |
-| Integration | 2 archivos | ~10% |
-| E2E | 15+ specs | ~15% |
-| **Total** | **69 archivos** | **~35-40%** |
+
+| Tipo        | Cantidad        | Cobertura Est. |
+| ----------- | --------------- | -------------- |
+| Unit Tests  | 8 archivos      | ~25%           |
+| Integration | 2 archivos      | ~10%           |
+| E2E         | 15+ specs       | ~15%           |
+| **Total**   | **69 archivos** | **~35-40%**    |
 
 ### Seguridad
-| Check | Estado |
-|-------|--------|
-| Pentest P0 | ✅ Pasado |
-| Headers HTTP | ✅ Completos |
-| Rate Limiting | ✅ Funcional |
-| CSRF | ✅ Protegido |
-| SQL Injection | ✅ No vulnerable |
-| XSS | ⚠️ Mitigado frontend |
+
+| Check         | Estado               |
+| ------------- | -------------------- |
+| Pentest P0    | ✅ Pasado            |
+| Headers HTTP  | ✅ Completos         |
+| Rate Limiting | ✅ Funcional         |
+| CSRF          | ✅ Protegido         |
+| SQL Injection | ✅ No vulnerable     |
+| XSS           | ⚠️ Mitigado frontend |
 
 ---
 
 ## 🔴 PROBLEMAS CRÍTICOS (Requieren atención)
 
 ### 1. **Límite de Complejidad Cognitive**
+
 ```php
 // admin.js: 153 funciones
 // booking-engine.js: 47 funciones
@@ -243,6 +261,7 @@ Falta:
 ```
 
 ### 2. **Archivos Temporales en Repo**
+
 ```
 _tmp_prod_*.js (8 archivos)
 _tmp_remote_*.js/css (12 archivos)
@@ -251,6 +270,7 @@ Acción: Agregar a .gitignore y eliminar
 ```
 
 ### 3. **Duplicación de Lógica de Tests**
+
 ```
 tests/BookingServiceTest.php vs tests/Unit/Booking/BookingServiceTest.php
 
@@ -268,73 +288,75 @@ Recomendación: Renombrar para claridad
 ### 🔴 Alta Prioridad (Esta semana)
 
 1. **Limpiar Ramas Git**
-   ```bash
-   # Eliminar ramas mergeadas
-   git push origin --delete $(git branch -r --merged main | grep -v main)
-   ```
+
+    ```bash
+    # Eliminar ramas mergeadas
+    git push origin --delete $(git branch -r --merged main | grep -v main)
+    ```
 
 2. **Actualizar phpunit.xml**
-   ```xml
-   <testsuite name="All">
-       <directory>tests/Unit</directory>
-       <directory>tests/Booking</directory>
-       <directory>tests/Integration</directory>
-       <directory>tests/Payment</directory>
-       <directory>tests/Security</directory>
-   </testsuite>
-   ```
+
+    ```xml
+    <testsuite name="All">
+        <directory>tests/Unit</directory>
+        <directory>tests/Booking</directory>
+        <directory>tests/Integration</directory>
+        <directory>tests/Payment</directory>
+        <directory>tests/Security</directory>
+    </testsuite>
+    ```
 
 3. **Agregar Sanitización Backend XSS**
-   ```php
-   // lib/validation.php
-   function sanitize_html_input(string $input): string {
-       return htmlspecialchars($input, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-   }
-   ```
+    ```php
+    // lib/validation.php
+    function sanitize_html_input(string $input): string {
+        return htmlspecialchars($input, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+    ```
 
 ### 🟡 Media Prioridad (Próximas 2 semanas)
 
 4. **Continuar Refactor ES6**
-   - Migrar chat-engine.js a módulos
-   - Migrar booking-engine.js a módulos
-   - Configurar build de producción con Rollup
+    - Migrar chat-engine.js a módulos
+    - Migrar booking-engine.js a módulos
+    - Configurar build de producción con Rollup
 
 5. **Consolidar Tests Duplicados**
-   - Diferenciar claramente tests de integración vs unitarios
-   - Renombrar archivos para reflejar propósito
+    - Diferenciar claramente tests de integración vs unitarios
+    - Renombrar archivos para reflejar propósito
 
 6. **Eliminar Archivos Temporales**
-   ```bash
-   git rm _tmp_*.js _tmp_*.css
-   echo "_tmp_*" >> .gitignore
-   ```
+    ```bash
+    git rm _tmp_*.js _tmp_*.css
+    echo "_tmp_*" >> .gitignore
+    ```
 
 ### 🟢 Baja Prioridad (Mes 2)
 
 7. **Migrar Rate Limiting a Redis**
-   - Rama disponible: `redis-ratelimit`
-   - Elimina condiciones de carrera
+    - Rama disponible: `redis-ratelimit`
+    - Elimina condiciones de carrera
 
 8. **Reducir Tamaño de index.html**
-   - Separar contenido a templates JSON
-   - Implementar lazy loading de secciones
+    - Separar contenido a templates JSON
+    - Implementar lazy loading de secciones
 
 9. **Implementar CSP estricto**
-   - Eliminar `'unsafe-inline'` de style-src
-   - Usar nonces o hashes
+    - Eliminar `'unsafe-inline'` de style-src
+    - Usar nonces o hashes
 
 ---
 
 ## 📈 COMPARATIVO: Antes vs Ahora
 
-| Aspecto | 19 Feb 2026 | 20 Feb 2026 | Cambio |
-|---------|-------------|-------------|--------|
-| Tests | 20 archivos | 69 archivos | **+245%** 🚀 |
-| Cobertura | ~5% | ~35-40% | **+700%** 🚀 |
-| Controladores | 7 | 10 | **+43%** ✅ |
-| Ramas | 118 | 126 | **-7%** ⚠️ |
-| TODOs | ? | 17 | **Identificados** ✅ |
-| ES6 Modules | 0 | 1 | **Iniciado** ✅ |
+| Aspecto       | 19 Feb 2026 | 20 Feb 2026 | Cambio               |
+| ------------- | ----------- | ----------- | -------------------- |
+| Tests         | 20 archivos | 69 archivos | **+245%** 🚀         |
+| Cobertura     | ~5%         | ~35-40%     | **+700%** 🚀         |
+| Controladores | 7           | 10          | **+43%** ✅          |
+| Ramas         | 118         | 126         | **-7%** ⚠️           |
+| TODOs         | ?           | 17          | **Identificados** ✅ |
+| ES6 Modules   | 0           | 1           | **Iniciado** ✅      |
 
 ---
 
@@ -363,6 +385,7 @@ Antes de considerar el sistema "completo":
 ✅ **CI/CD:** Pipeline robusto con gates
 
 ⚠️ **Áreas de mejora:**
+
 - Frontend necesita continuar migración ES6
 - Deuda técnica de ramas y archivos temporales
 - Sanitización backend XSS para defensa en profundidad
@@ -371,5 +394,5 @@ Antes de considerar el sistema "completo":
 
 ---
 
-*Auditoría realizada el 20 de Febrero de 2026*
-*Próxima revisión recomendada: 27 de Febrero de 2026*
+_Auditoría realizada el 20 de Febrero de 2026_
+_Próxima revisión recomendada: 27 de Febrero de 2026_

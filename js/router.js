@@ -4,12 +4,26 @@ import { setThemeMode } from './theme.js';
 import { changeLanguage } from './i18n.js';
 import { toggleMobileMenu, startWebVideo, closeVideoModal } from './ui.js';
 import { openReviewModal, closeReviewModal } from './engagement.js';
-import { closePaymentModal, processPayment, markBookingViewed } from './booking.js';
+import {
+    closePaymentModal,
+    processPayment,
+    markBookingViewed,
+} from './booking.js';
 import { closeSuccessModal } from './success-modal.js';
 import { closeRescheduleModal, submitReschedule } from './reschedule.js';
-import { toggleChatbot, sendChatMessage, handleChatBookingSelection, sendQuickMessage, minimizeChatbot, startChatBooking, handleChatDateSelect } from './chat.js';
+import {
+    toggleChatbot,
+    sendChatMessage,
+    handleChatBookingSelection,
+    sendQuickMessage,
+    minimizeChatbot,
+    startChatBooking,
+    handleChatDateSelect,
+} from './chat.js';
 
-const ACTION_ROUTER_ENGINE_URL = withDeployAssetVersion('/action-router-engine.js?v=figo-action-router-20260219-phase1');
+const ACTION_ROUTER_ENGINE_URL = withDeployAssetVersion(
+    '/action-router-engine.js?v=figo-action-router-20260219-phase1'
+);
 
 function selectService(value) {
     const select = document.getElementById('serviceSelect');
@@ -19,11 +33,13 @@ function selectService(value) {
         markBookingViewed('service_select');
         const appointmentSection = document.getElementById('citas');
         if (appointmentSection) {
-            const navHeight = document.querySelector('.nav')?.offsetHeight || 80;
-            const targetPosition = appointmentSection.offsetTop - navHeight - 20;
+            const navHeight =
+                document.querySelector('.nav')?.offsetHeight || 80;
+            const targetPosition =
+                appointmentSection.offsetTop - navHeight - 20;
             window.scrollTo({
                 top: targetPosition,
-                behavior: 'smooth'
+                behavior: 'smooth',
             });
         }
     }
@@ -50,7 +66,7 @@ function getActionRouterEngineDeps() {
         minimizeChatbot,
         startChatBooking,
         handleChatDateSelect,
-        selectService
+        selectService,
     };
 }
 
@@ -60,16 +76,21 @@ export function loadActionRouterEngine() {
         src: ACTION_ROUTER_ENGINE_URL,
         scriptDataAttribute: 'data-action-router-engine',
         resolveModule: () => window.PielActionRouterEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        isModuleReady: (module) =>
+            !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getActionRouterEngineDeps()),
         missingApiError: 'action-router-engine loaded without API',
         loadError: 'No se pudo cargar action-router-engine.js',
-        logLabel: 'Action router engine'
+        logLabel: 'Action router engine',
     });
 }
 
 export function initActionRouterEngine() {
-    runDeferredModule(loadActionRouterEngine, () => undefined, (error) => {
-        debugLog('Action router load failed:', error);
-    });
+    runDeferredModule(
+        loadActionRouterEngine,
+        () => undefined,
+        (error) => {
+            debugLog('Action router load failed:', error);
+        }
+    );
 }

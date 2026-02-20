@@ -1,56 +1,56 @@
 name: Close Resolved Production Issues
 
 on:
-  workflow_run:
-    workflows: ["Post-Deploy Gate (Git Sync)", "Production Monitor"]
-    types:
-      - completed
+    workflow_run:
+        workflows: ['Post-Deploy Gate (Git Sync)', 'Production Monitor']
+        types:
+            - completed
 
 permissions:
-  issues: write
+    issues: write
 
 jobs:
-  close-resolved:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Close resolved production alerts
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            
-            // Buscar issues abiertos de alertas de producción
-            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
-              owner,
-              repo,
-              state: 'open',
-              labels: 'production-alert',
-              per_page: 100
-            });
-            
-            const now = new Date().toISOString();
-            const workflowName = context.payload.workflow_run.name;
-            const runUrl = context.payload.workflow_run.html_url;
-            
-            for (const issue of openIssues) {
-              if (issue.pull_request) continue; // Ignorar PRs
-              
-              // Cerrar issue con comentario
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: issue.number,
-                body: `✅ **RESUELTO**\n\nEl workflow "${workflowName}" ha pasado correctamente.\n- Fecha: ${now}\n- Run: ${runUrl}\n\nCerrando alerta automáticamente.`
-              });
-              
-              await github.rest.issues.update({
-                owner,
-                repo,
-                issue_number: issue.number,
-                state: 'closed'
-              });
-              
-              console.log(`Issue #${issue.number} cerrado.`);
-            }
+    close-resolved:
+        if: ${{ github.event.workflow_run.conclusion == 'success' }}
+        runs-on: ubuntu-latest
+        steps:
+            - name: Close resolved production alerts
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+
+                      // Buscar issues abiertos de alertas de producción
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        labels: 'production-alert',
+                        per_page: 100
+                      });
+
+                      const now = new Date().toISOString();
+                      const workflowName = context.payload.workflow_run.name;
+                      const runUrl = context.payload.workflow_run.html_url;
+
+                      for (const issue of openIssues) {
+                        if (issue.pull_request) continue; // Ignorar PRs
+
+                        // Cerrar issue con comentario
+                        await github.rest.issues.createComment({
+                          owner,
+                          repo,
+                          issue_number: issue.number,
+                          body: `✅ **RESUELTO**\n\nEl workflow "${workflowName}" ha pasado correctamente.\n- Fecha: ${now}\n- Run: ${runUrl}\n\nCerrando alerta automáticamente.`
+                        });
+
+                        await github.rest.issues.update({
+                          owner,
+                          repo,
+                          issue_number: issue.number,
+                          state: 'closed'
+                        });
+
+                        console.log(`Issue #${issue.number} cerrado.`);
+                      }
