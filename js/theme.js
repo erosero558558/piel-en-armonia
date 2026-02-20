@@ -3,7 +3,7 @@ import { loadDeferredModule, runDeferredModule } from './loader.js';
 import { getCurrentThemeMode, setCurrentThemeMode } from './state.js';
 import { THEME_STORAGE_KEY, VALID_THEME_MODES } from './config.js';
 
-const THEME_ENGINE_URL = withDeployAssetVersion('/theme-engine.js?v=figo-theme-20260219-phase1');
+const UI_BUNDLE_URL = withDeployAssetVersion('/js/engines/ui-bundle.js');
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
 function getThemeEngineDeps() {
@@ -20,14 +20,14 @@ function getThemeEngineDeps() {
 
 export function loadThemeEngine() {
     return loadDeferredModule({
-        cacheKey: 'theme-engine',
-        src: THEME_ENGINE_URL,
-        scriptDataAttribute: 'data-theme-engine',
+        cacheKey: 'ui-bundle',
+        src: UI_BUNDLE_URL,
+        scriptDataAttribute: 'data-ui-bundle',
         resolveModule: () => window.PielThemeEngine,
         isModuleReady: (module) => !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getThemeEngineDeps()),
         missingApiError: 'theme-engine loaded without API',
-        loadError: 'No se pudo cargar theme-engine.js',
+        loadError: 'No se pudo cargar theme-engine (ui-bundle)',
         logLabel: 'Theme engine'
     });
 }

@@ -188,3 +188,62 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Legacy: Gallery Lazy Loading
+(function() {
+    const galleryObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                const src = img.dataset.src;
+                const srcset = img.dataset.srcset;
+
+                if (srcset) img.srcset = srcset;
+                img.src = src;
+                img.classList.add('loaded');
+
+                galleryObserver.unobserve(img);
+            }
+        });
+    }, { rootMargin: '200px' });
+
+    document.querySelectorAll('.gallery-img[data-src]').forEach(img => {
+        galleryObserver.observe(img);
+    });
+})();
+
+// Booking Calendar Lazy Init
+(function () {
+    'use strict';
+
+    function wireBookingCalendarLazyLoad(element) {
+        if (!element) {
+            return;
+        }
+
+        element.addEventListener('click', function () {
+            const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
+            loadDeferredModule({
+                cacheKey: 'booking-utils-calendar',
+                src: BOOKING_UTILS_URL,
+                scriptDataAttribute: 'data-booking-utils',
+                resolveModule: () => window.PielBookingCalendarEngine
+            }).then(function (moduleRef) {
+                if (moduleRef && typeof moduleRef.initCalendar === 'function') {
+                    moduleRef.initCalendar();
+                }
+            }).catch(function () {
+                // noop
+            });
+        });
+    }
+
+    const bookingBtn = document.getElementById('booking-btn');
+    wireBookingCalendarLazyLoad(bookingBtn);
+
+    document.querySelectorAll('a[href="#citas"]').forEach(function (button) {
+        if (button.id !== 'booking-btn') {
+            wireBookingCalendarLazyLoad(button);
+        }
+    });
+})();

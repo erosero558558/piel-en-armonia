@@ -3,7 +3,7 @@ import { loadDeferredModule, runDeferredModule, createWarmupRunner, bindWarmupTa
 import { getCurrentLang, getCurrentAppointment } from './state.js';
 import { CLINIC_ADDRESS } from './config.js';
 
-const SUCCESS_MODAL_ENGINE_URL = withDeployAssetVersion('/success-modal-engine.js?v=figo-success-modal-20260218-phase1-inlineclass1-sync1');
+const UI_BUNDLE_URL = withDeployAssetVersion('/js/engines/ui-bundle.js');
 
 function getSuccessModalEngineDeps() {
     return {
@@ -16,14 +16,14 @@ function getSuccessModalEngineDeps() {
 
 export function loadSuccessModalEngine() {
     return loadDeferredModule({
-        cacheKey: 'success-modal-engine',
-        src: SUCCESS_MODAL_ENGINE_URL,
-        scriptDataAttribute: 'data-success-modal-engine',
+        cacheKey: 'ui-bundle',
+        src: UI_BUNDLE_URL,
+        scriptDataAttribute: 'data-ui-bundle',
         resolveModule: () => window.PielSuccessModalEngine,
         isModuleReady: (module) => !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getSuccessModalEngineDeps()),
         missingApiError: 'success-modal-engine loaded without API',
-        loadError: 'No se pudo cargar success-modal-engine.js',
+        loadError: 'No se pudo cargar success-modal-engine (ui-bundle)',
         logLabel: 'Success modal engine'
     });
 }

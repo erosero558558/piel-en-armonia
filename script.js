@@ -233,7 +233,7 @@
 
     const deferredModulePromises = new Map();
 
-    function loadDeferredModule(options) {
+    function loadDeferredModule$1(options) {
         const {
             cacheKey,
             src,
@@ -425,7 +425,7 @@
         });
     }
 
-    const THEME_ENGINE_URL = withDeployAssetVersion('/theme-engine.js?v=figo-theme-20260219-phase1');
+    const UI_BUNDLE_URL$3 = withDeployAssetVersion('/js/engines/ui-bundle.js');
     const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
     function getThemeEngineDeps() {
@@ -441,15 +441,15 @@
     }
 
     function loadThemeEngine() {
-        return loadDeferredModule({
-            cacheKey: 'theme-engine',
-            src: THEME_ENGINE_URL,
-            scriptDataAttribute: 'data-theme-engine',
+        return loadDeferredModule$1({
+            cacheKey: 'ui-bundle',
+            src: UI_BUNDLE_URL$3,
+            scriptDataAttribute: 'data-ui-bundle',
             resolveModule: () => window.PielThemeEngine,
             isModuleReady: (module) => !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getThemeEngineDeps()),
             missingApiError: 'theme-engine loaded without API',
-            loadError: 'No se pudo cargar theme-engine.js',
+            loadError: 'No se pudo cargar theme-engine (ui-bundle)',
             logLabel: 'Theme engine'
         });
     }
@@ -474,7 +474,7 @@
     }
 
     function loadDataEngine() {
-        return loadDeferredModule({
+        return loadDeferredModule$1({
             cacheKey: 'data-engine',
             src: DATA_ENGINE_URL,
             scriptDataAttribute: 'data-data-engine',
@@ -543,8 +543,7 @@
         return withDeferredModule(loadDataEngine, (engine) => engine.uploadTransferProof(file, options));
     }
 
-    const ENGAGEMENT_FORMS_ENGINE_URL = withDeployAssetVersion('/engagement-forms-engine.js?v=figo-engagement-20260218-phase1-sync1');
-    const REVIEWS_ENGINE_URL = withDeployAssetVersion('/reviews-engine.js?v=figo-reviews-20260219-phase1');
+    const ENGAGEMENT_BUNDLE_URL = withDeployAssetVersion('/js/engines/engagement-bundle.js');
 
     // REVIEWS ENGINE
     function getReviewsEngineDeps() {
@@ -557,15 +556,15 @@
     }
 
     function loadReviewsEngine() {
-        return loadDeferredModule({
-            cacheKey: 'reviews-engine',
-            src: REVIEWS_ENGINE_URL,
-            scriptDataAttribute: 'data-reviews-engine',
+        return loadDeferredModule$1({
+            cacheKey: 'engagement-bundle',
+            src: ENGAGEMENT_BUNDLE_URL,
+            scriptDataAttribute: 'data-engagement-bundle',
             resolveModule: () => window.PielReviewsEngine,
             isModuleReady: (module) => !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getReviewsEngineDeps()),
             missingApiError: 'reviews-engine loaded without API',
-            loadError: 'No se pudo cargar reviews-engine.js',
+            loadError: 'No se pudo cargar reviews-engine (engagement-bundle)',
             logLabel: 'Reviews engine'
         });
     }
@@ -606,17 +605,17 @@
     }
 
     function loadEngagementFormsEngine() {
-        return loadReviewsEngine().then(() => loadDeferredModule({
-            cacheKey: 'engagement-forms-engine',
-            src: ENGAGEMENT_FORMS_ENGINE_URL,
-            scriptDataAttribute: 'data-engagement-forms-engine',
+        return loadDeferredModule$1({
+            cacheKey: 'engagement-bundle',
+            src: ENGAGEMENT_BUNDLE_URL,
+            scriptDataAttribute: 'data-engagement-bundle',
             resolveModule: () => window.PielEngagementFormsEngine,
             isModuleReady: (module) => !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getEngagementFormsEngineDeps()),
             missingApiError: 'engagement-forms-engine loaded without API',
-            loadError: 'No se pudo cargar engagement-forms-engine.js',
+            loadError: 'No se pudo cargar engagement-forms-engine (engagement-bundle)',
             logLabel: 'Engagement forms engine'
-        }));
+        });
     }
 
     function initEngagementFormsEngineWarmup() {
@@ -660,7 +659,7 @@
         runDeferredModule(loadEngagementFormsEngine, (engine) => engine.closeReviewModal());
     }
 
-    const I18N_ENGINE_URL = withDeployAssetVersion('/i18n-engine.js?v=figo-i18n-20260219-phase1-sync1');
+    const DATA_BUNDLE_URL$1 = withDeployAssetVersion('/js/engines/data-bundle.js');
 
     function getI18nEngineDeps() {
         return {
@@ -676,15 +675,15 @@
     }
 
     function loadI18nEngine() {
-        return loadDeferredModule({
-            cacheKey: 'i18n-engine',
-            src: I18N_ENGINE_URL,
-            scriptDataAttribute: 'data-i18n-engine',
+        return loadDeferredModule$1({
+            cacheKey: 'data-bundle',
+            src: DATA_BUNDLE_URL$1,
+            scriptDataAttribute: 'data-data-bundle',
             resolveModule: () => window.PielI18nEngine,
             isModuleReady: (module) => !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getI18nEngineDeps()),
             missingApiError: 'i18n-engine loaded without API',
-            loadError: 'No se pudo cargar i18n-engine.js',
+            loadError: 'No se pudo cargar i18n-engine (data-bundle)',
             logLabel: 'I18n engine'
         });
     }
@@ -834,74 +833,49 @@
         throw lastError || new Error('No se pudo completar la solicitud');
     }
 
-    async function loadPaymentConfig() {
-        const now = Date.now();
-        if (getPaymentConfigLoaded() && (now - getPaymentConfigLoadedAt()) < 5 * 60 * 1000) {
-            return getPaymentConfig();
-        }
+    const BOOKING_UTILS_URL$2 = withDeployAssetVersion('/js/engines/booking-utils.js');
 
-        let config;
-        try {
-            const payload = await apiRequest('payment-config');
-            config = {
-                enabled: payload.enabled === true,
-                provider: payload.provider || 'stripe',
-                publishableKey: payload.publishableKey || '',
-                currency: payload.currency || 'USD'
-            };
-        } catch (error) {
-            config = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
-        }
-        setPaymentConfig(config);
-        setPaymentConfigLoaded(true);
-        setPaymentConfigLoadedAt(now);
-        return config;
+    function getPaymentGatewayEngineDeps() {
+        return {
+            apiRequest,
+            getCurrentLang,
+            getPaymentConfig, setPaymentConfig,
+            getPaymentConfigLoaded, setPaymentConfigLoaded,
+            getPaymentConfigLoadedAt, setPaymentConfigLoadedAt,
+            getStripeSdkPromise, setStripeSdkPromise,
+            apiEndpoint: API_ENDPOINT,
+            apiRequestTimeoutMs: API_REQUEST_TIMEOUT_MS
+        };
+    }
+
+    function loadPaymentGatewayEngine() {
+        return loadDeferredModule$1({
+            cacheKey: 'booking-utils',
+            src: BOOKING_UTILS_URL$2,
+            scriptDataAttribute: 'data-booking-utils',
+            resolveModule: () => window.PielPaymentGatewayEngine,
+            isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(getPaymentGatewayEngineDeps()),
+            missingApiError: 'payment-gateway-engine loaded without API',
+            loadError: 'No se pudo cargar payment-gateway-engine (booking-utils)',
+            logLabel: 'Payment gateway engine'
+        });
+    }
+
+    async function loadPaymentConfig() {
+        return withDeferredModule(loadPaymentGatewayEngine, (engine) => engine.loadPaymentConfig());
     }
 
     async function loadStripeSdk() {
-        if (typeof window.Stripe === 'function') {
-            return true;
-        }
-
-        if (getStripeSdkPromise()) {
-            return getStripeSdkPromise();
-        }
-
-        const promise = new Promise((resolve, reject) => {
-            const existingScript = document.querySelector('script[data-stripe-sdk="true"]');
-            if (existingScript) {
-                existingScript.addEventListener('load', () => resolve(true), { once: true });
-                existingScript.addEventListener('error', () => reject(new Error('No se pudo cargar Stripe SDK')), { once: true });
-                return;
-            }
-
-            const script = document.createElement('script');
-            script.src = 'https://js.stripe.com/v3/';
-            script.async = true;
-            script.defer = true;
-            script.dataset.stripeSdk = 'true';
-            script.onload = () => resolve(true);
-            script.onerror = () => reject(new Error('No se pudo cargar Stripe SDK'));
-            document.head.appendChild(script);
-        });
-
-        setStripeSdkPromise(promise);
-        return promise;
+        return withDeferredModule(loadPaymentGatewayEngine, (engine) => engine.loadStripeSdk());
     }
 
     async function createPaymentIntent(appointment) {
-        const payload = await apiRequest('payment-intent', {
-            method: 'POST',
-            body: appointment
-        });
-        return payload;
+        return withDeferredModule(loadPaymentGatewayEngine, (engine) => engine.createPaymentIntent(appointment));
     }
 
     async function verifyPaymentIntent(paymentIntentId) {
-        return apiRequest('payment-verify', {
-            method: 'POST',
-            body: { paymentIntentId }
-        });
+        return withDeferredModule(loadPaymentGatewayEngine, (engine) => engine.verifyPaymentIntent(paymentIntentId));
     }
 
     const ANALYTICS_ENGINE_URL = withDeployAssetVersion('/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1');
@@ -1030,7 +1004,7 @@
     }
 
     function loadAnalyticsEngine() {
-        return loadDeferredModule({
+        return loadDeferredModule$1({
             cacheKey: 'analytics-engine',
             src: ANALYTICS_ENGINE_URL,
             scriptDataAttribute: 'data-analytics-engine',
@@ -1076,7 +1050,7 @@
         runDeferredModule(loadAnalyticsEngine, (engine) => engine.maybeTrackCheckoutAbandon(reason));
     }
 
-    const SUCCESS_MODAL_ENGINE_URL = withDeployAssetVersion('/success-modal-engine.js?v=figo-success-modal-20260218-phase1-inlineclass1-sync1');
+    const UI_BUNDLE_URL$2 = withDeployAssetVersion('/js/engines/ui-bundle.js');
 
     function getSuccessModalEngineDeps() {
         return {
@@ -1088,15 +1062,15 @@
     }
 
     function loadSuccessModalEngine() {
-        return loadDeferredModule({
-            cacheKey: 'success-modal-engine',
-            src: SUCCESS_MODAL_ENGINE_URL,
-            scriptDataAttribute: 'data-success-modal-engine',
+        return loadDeferredModule$1({
+            cacheKey: 'ui-bundle',
+            src: UI_BUNDLE_URL$2,
+            scriptDataAttribute: 'data-ui-bundle',
             resolveModule: () => window.PielSuccessModalEngine,
             isModuleReady: (module) => !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getSuccessModalEngineDeps()),
             missingApiError: 'success-modal-engine loaded without API',
-            loadError: 'No se pudo cargar success-modal-engine.js',
+            loadError: 'No se pudo cargar success-modal-engine (ui-bundle)',
             logLabel: 'Success modal engine'
         });
     }
@@ -1130,6 +1104,7 @@
 
     const BOOKING_ENGINE_URL = withDeployAssetVersion('/booking-engine.js?v=figo-booking-20260219-mbfix1');
     const BOOKING_UI_URL = withDeployAssetVersion('/booking-ui.js?v=figo-booking-ui-20260220-sync3-cachepurge1');
+    const BOOKING_UTILS_URL$1 = withDeployAssetVersion('/js/engines/booking-utils.js');
     const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 
     function stripTransientAppointmentFields(appointment) {
@@ -1218,7 +1193,7 @@
     }
 
     function loadBookingEngine() {
-        return loadDeferredModule({
+        return loadDeferredModule$1({
             cacheKey: 'booking-engine',
             src: BOOKING_ENGINE_URL,
             scriptDataAttribute: 'data-booking-engine',
@@ -1269,6 +1244,23 @@
         runDeferredModule(loadAnalyticsEngine, (engine) => engine.maybeTrackCheckoutAbandon(reason));
     }
 
+    function loadBookingCalendarEngine() {
+        return loadDeferredModule$1({
+            cacheKey: 'booking-utils-calendar',
+            src: BOOKING_UTILS_URL$1,
+            scriptDataAttribute: 'data-booking-utils',
+            resolveModule: () => window.PielBookingCalendarEngine,
+            isModuleReady: (module) => !!(module && typeof module.initCalendar === 'function'),
+            missingApiError: 'booking-calendar-engine loaded without API',
+            loadError: 'No se pudo cargar booking-calendar-engine',
+            logLabel: 'Booking Calendar engine'
+        });
+    }
+
+    async function updateAvailableTimes(elements) {
+        return runDeferredModule(loadBookingCalendarEngine, (engine) => engine.updateAvailableTimes(getBookingUiDeps(), elements));
+    }
+
     // BOOKING UI
     function getBookingUiDeps() {
         return {
@@ -1289,7 +1281,8 @@
             trackEvent,
             normalizeAnalyticsLabel,
             openPaymentModal,
-            setCurrentAppointment: setCurrentAppointment
+            setCurrentAppointment: setCurrentAppointment,
+            updateAvailableTimes
         };
     }
 
@@ -1333,7 +1326,7 @@
     }
 
     function loadBookingUi() {
-        return loadDeferredModule({
+        return loadDeferredModule$1({
             cacheKey: 'booking-ui',
             src: BOOKING_UI_URL,
             scriptDataAttribute: 'data-booking-ui',
@@ -1413,20 +1406,19 @@
         );
     }
 
-    const UI_EFFECTS_URL = withDeployAssetVersion('/ui-effects.js?v=figo-ui-20260220-sync2');
-    const MODAL_UX_ENGINE_URL = withDeployAssetVersion('/modal-ux-engine.js?v=figo-modal-ux-20260220-phase2-cachefix1');
+    const UI_BUNDLE_URL$1 = withDeployAssetVersion('/js/engines/ui-bundle.js');
 
     // UI Effects
     function loadUiEffects() {
-        return loadDeferredModule({
-            cacheKey: 'ui-effects',
-            src: UI_EFFECTS_URL,
-            scriptDataAttribute: 'data-ui-effects',
+        return loadDeferredModule$1({
+            cacheKey: 'ui-bundle',
+            src: UI_BUNDLE_URL$1,
+            scriptDataAttribute: 'data-ui-bundle',
             resolveModule: () => window.PielUiEffects,
             isModuleReady: (module) => !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(),
             missingApiError: 'ui-effects loaded without API',
-            loadError: 'No se pudo cargar ui-effects.js',
+            loadError: 'No se pudo cargar ui-effects (ui-bundle)',
             logLabel: 'UI effects'
         });
     }
@@ -1461,15 +1453,15 @@
     }
 
     function loadModalUxEngine() {
-        return loadDeferredModule({
-            cacheKey: 'modal-ux-engine',
-            src: MODAL_UX_ENGINE_URL,
-            scriptDataAttribute: 'data-modal-ux-engine',
+        return loadDeferredModule$1({
+            cacheKey: 'ui-bundle',
+            src: UI_BUNDLE_URL$1,
+            scriptDataAttribute: 'data-ui-bundle',
             resolveModule: () => window.PielModalUxEngine,
             isModuleReady: (module) => !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getModalUxEngineDeps()),
             missingApiError: 'modal-ux-engine loaded without API',
-            loadError: 'No se pudo cargar modal-ux-engine.js',
+            loadError: 'No se pudo cargar modal-ux-engine (ui-bundle)',
             logLabel: 'Modal UX engine'
         });
     }
@@ -1500,11 +1492,10 @@
         document.body.style.overflow = '';
     }
 
-    const RESCHEDULE_GATEWAY_ENGINE_URL = withDeployAssetVersion('/reschedule-gateway-engine.js?v=figo-reschedule-gateway-20260219-phase1');
+    const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
 
-    function getRescheduleGatewayEngineDeps() {
+    function getRescheduleEngineDeps() {
         return {
-            loadDeferredModule,
             apiRequest: apiRequest$1,
             loadAvailabilityData,
             getBookedSlots,
@@ -1516,23 +1507,23 @@
         };
     }
 
-    function loadRescheduleGatewayEngine() {
-        return loadDeferredModule({
-            cacheKey: 'reschedule-gateway-engine',
-            src: RESCHEDULE_GATEWAY_ENGINE_URL,
-            scriptDataAttribute: 'data-reschedule-gateway-engine',
-            resolveModule: () => window.PielRescheduleGatewayEngine,
+    function loadRescheduleEngine() {
+        return loadDeferredModule$1({
+            cacheKey: 'booking-utils',
+            src: BOOKING_UTILS_URL,
+            scriptDataAttribute: 'data-booking-utils',
+            resolveModule: () => window.PielRescheduleEngine,
             isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-            onModuleReady: (module) => module.init(getRescheduleGatewayEngineDeps()),
-            missingApiError: 'reschedule-gateway-engine loaded without API',
-            loadError: 'No se pudo cargar reschedule-gateway-engine.js',
-            logLabel: 'Reschedule gateway engine'
+            onModuleReady: (module) => module.init(getRescheduleEngineDeps()),
+            missingApiError: 'reschedule-engine loaded without API',
+            loadError: 'No se pudo cargar reschedule-engine (booking-utils)',
+            logLabel: 'Reschedule engine'
         });
     }
 
     function initRescheduleEngineWarmup() {
         runDeferredModule(
-            loadRescheduleGatewayEngine,
+            loadRescheduleEngine,
             (engine) => engine.initRescheduleFromParam(),
             () => {
                 showToast(getCurrentLang() === 'es' ? 'No se pudo cargar la reprogramacion.' : 'Unable to load reschedule flow.', 'error');
@@ -1541,7 +1532,7 @@
     }
 
     function closeRescheduleModal() {
-        runDeferredModule(loadRescheduleGatewayEngine, (engine) => engine.closeRescheduleModal(), () => {
+        runDeferredModule(loadRescheduleEngine, (engine) => engine.closeRescheduleModal(), () => {
             const modal = document.getElementById('rescheduleModal');
             if (modal) {
                 modal.classList.remove('active');
@@ -1550,15 +1541,15 @@
     }
 
     function submitReschedule() {
-        runDeferredModule(loadRescheduleGatewayEngine, (engine) => engine.submitReschedule(), () => {
+        runDeferredModule(loadRescheduleEngine, (engine) => engine.submitReschedule(), () => {
             showToast(getCurrentLang() === 'es' ? 'No se pudo reprogramar en este momento.' : 'Unable to reschedule right now.', 'error');
         });
     }
 
     const CHAT_UI_ENGINE_URL = withDeployAssetVersion('/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1');
     const CHAT_WIDGET_ENGINE_URL = withDeployAssetVersion('/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1');
-    const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion('/chat-booking-engine.js?v=figo-chat-booking-20260220-sync2-cachecoherence1');
-    const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion('/chat-engine.js?v=figo-chat-20260220-phase3-runtimeconfig1-contextcap1-sync2');
+    const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion('/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1');
+    const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion('/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1-sync1');
 
     const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
     const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -1616,7 +1607,7 @@
     }
 
     function loadChatUiEngine() {
-        return loadDeferredModule({
+        return loadDeferredModule$1({
             cacheKey: 'chat-ui-engine',
             src: CHAT_UI_ENGINE_URL,
             scriptDataAttribute: 'data-chat-ui-engine',
@@ -1654,7 +1645,7 @@
     }
 
     function loadChatWidgetEngine() {
-        return loadDeferredModule({
+        return loadDeferredModule$1({
             cacheKey: 'chat-widget-engine',
             src: CHAT_WIDGET_ENGINE_URL,
             scriptDataAttribute: 'data-chat-widget-engine',
@@ -1758,7 +1749,7 @@
     }
 
     function loadChatBookingEngine() {
-        return loadDeferredModule({
+        return loadDeferredModule$1({
             cacheKey: 'chat-booking-engine',
             src: CHAT_BOOKING_ENGINE_URL,
             scriptDataAttribute: 'data-chat-booking-engine',
@@ -1813,7 +1804,7 @@
     }
 
     function loadFigoChatEngine() {
-        return loadDeferredModule({
+        return loadDeferredModule$1({
             cacheKey: 'figo-chat-engine',
             src: FIGO_CHAT_ENGINE_URL,
             scriptDataAttribute: 'data-figo-chat-engine',
@@ -1854,7 +1845,7 @@
         return true;
     }
 
-    const ACTION_ROUTER_ENGINE_URL = withDeployAssetVersion('/action-router-engine.js?v=figo-action-router-20260219-phase1');
+    const DATA_BUNDLE_URL = withDeployAssetVersion('/js/engines/data-bundle.js');
 
     function selectService(value) {
         const select = document.getElementById('serviceSelect');
@@ -1900,15 +1891,15 @@
     }
 
     function loadActionRouterEngine() {
-        return loadDeferredModule({
-            cacheKey: 'action-router-engine',
-            src: ACTION_ROUTER_ENGINE_URL,
-            scriptDataAttribute: 'data-action-router-engine',
+        return loadDeferredModule$1({
+            cacheKey: 'data-bundle',
+            src: DATA_BUNDLE_URL,
+            scriptDataAttribute: 'data-data-bundle',
             resolveModule: () => window.PielActionRouterEngine,
             isModuleReady: (module) => !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getActionRouterEngineDeps()),
             missingApiError: 'action-router-engine loaded without API',
-            loadError: 'No se pudo cargar action-router-engine.js',
+            loadError: 'No se pudo cargar action-router-engine (data-bundle)',
             logLabel: 'Action router engine'
         });
     }
@@ -1918,7 +1909,7 @@
         });
     }
 
-    const CONSENT_ENGINE_URL = withDeployAssetVersion('/consent-engine.js?v=figo-consent-20260219-phase1');
+    const UI_BUNDLE_URL = withDeployAssetVersion('/js/engines/ui-bundle.js');
 
     function getConsentEngineDeps() {
         return {
@@ -1931,15 +1922,15 @@
     }
 
     function loadConsentEngine() {
-        return loadDeferredModule({
-            cacheKey: 'consent-engine',
-            src: CONSENT_ENGINE_URL,
-            scriptDataAttribute: 'data-consent-engine',
+        return loadDeferredModule$1({
+            cacheKey: 'ui-bundle',
+            src: UI_BUNDLE_URL,
+            scriptDataAttribute: 'data-ui-bundle',
             resolveModule: () => window.PielConsentEngine,
             isModuleReady: (module) => !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getConsentEngineDeps()),
             missingApiError: 'consent-engine loaded without API',
-            loadError: 'No se pudo cargar consent-engine.js',
+            loadError: 'No se pudo cargar consent-engine (ui-bundle)',
             logLabel: 'Consent engine'
         });
     }
@@ -1955,7 +1946,7 @@
     const GALLERY_INTERACTIONS_URL = withDeployAssetVersion('/gallery-interactions.js?v=figo-gallery-20260218-phase4');
 
     function loadGalleryInteractions() {
-        return loadDeferredModule({
+        return loadDeferredModule$1({
             cacheKey: 'gallery-interactions',
             src: GALLERY_INTERACTIONS_URL,
             scriptDataAttribute: 'data-gallery-interactions',
@@ -2158,5 +2149,63 @@
             });
         });
     });
+
+    // Legacy: Gallery Lazy Loading
+    (function() {
+        const galleryObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    const src = img.dataset.src;
+                    const srcset = img.dataset.srcset;
+
+                    if (srcset) img.srcset = srcset;
+                    img.src = src;
+                    img.classList.add('loaded');
+
+                    galleryObserver.unobserve(img);
+                }
+            });
+        }, { rootMargin: '200px' });
+
+        document.querySelectorAll('.gallery-img[data-src]').forEach(img => {
+            galleryObserver.observe(img);
+        });
+    })();
+
+    // Booking Calendar Lazy Init
+    (function () {
+
+        function wireBookingCalendarLazyLoad(element) {
+            if (!element) {
+                return;
+            }
+
+            element.addEventListener('click', function () {
+                const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
+                loadDeferredModule({
+                    cacheKey: 'booking-utils-calendar',
+                    src: BOOKING_UTILS_URL,
+                    scriptDataAttribute: 'data-booking-utils',
+                    resolveModule: () => window.PielBookingCalendarEngine
+                }).then(function (moduleRef) {
+                    if (moduleRef && typeof moduleRef.initCalendar === 'function') {
+                        moduleRef.initCalendar();
+                    }
+                }).catch(function () {
+                    // noop
+                });
+            });
+        }
+
+        const bookingBtn = document.getElementById('booking-btn');
+        wireBookingCalendarLazyLoad(bookingBtn);
+
+        document.querySelectorAll('a[href="#citas"]').forEach(function (button) {
+            if (button.id !== 'booking-btn') {
+                wireBookingCalendarLazyLoad(button);
+            }
+        });
+    })();
 
 })();

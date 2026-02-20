@@ -11,6 +11,7 @@ export { markBookingViewed };
 
 const BOOKING_ENGINE_URL = withDeployAssetVersion('/booking-engine.js?v=figo-booking-20260219-mbfix1');
 const BOOKING_UI_URL = withDeployAssetVersion('/booking-ui.js?v=figo-booking-ui-20260220-sync3-cachepurge1');
+const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
 const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 
 function stripTransientAppointmentFields(appointment) {
@@ -150,6 +151,23 @@ export function maybeTrackCheckoutAbandon(reason = 'unknown') {
     runDeferredModule(loadAnalyticsEngine, (engine) => engine.maybeTrackCheckoutAbandon(reason));
 }
 
+export function loadBookingCalendarEngine() {
+    return loadDeferredModule({
+        cacheKey: 'booking-utils-calendar',
+        src: BOOKING_UTILS_URL,
+        scriptDataAttribute: 'data-booking-utils',
+        resolveModule: () => window.PielBookingCalendarEngine,
+        isModuleReady: (module) => !!(module && typeof module.initCalendar === 'function'),
+        missingApiError: 'booking-calendar-engine loaded without API',
+        loadError: 'No se pudo cargar booking-calendar-engine',
+        logLabel: 'Booking Calendar engine'
+    });
+}
+
+export async function updateAvailableTimes(elements) {
+    return runDeferredModule(loadBookingCalendarEngine, (engine) => engine.updateAvailableTimes(getBookingUiDeps(), elements));
+}
+
 // BOOKING UI
 function getBookingUiDeps() {
     return {
@@ -170,7 +188,8 @@ function getBookingUiDeps() {
         trackEvent,
         normalizeAnalyticsLabel,
         openPaymentModal,
-        setCurrentAppointment: setCurrentAppointment
+        setCurrentAppointment: setCurrentAppointment,
+        updateAvailableTimes
     };
 }
 
