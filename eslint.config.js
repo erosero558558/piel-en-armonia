@@ -24,9 +24,12 @@ module.exports = [
         },
     },
     {
-        files: ['js/**/*.js'],
+        files: ['js/**/*.js', '**/*.mjs'],
         languageOptions: {
             sourceType: 'module',
+            globals: {
+                ...globals.node,
+            },
         },
     },
     {
