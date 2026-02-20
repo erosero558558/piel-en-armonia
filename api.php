@@ -14,6 +14,9 @@ require_once __DIR__ . '/controllers/AppointmentController.php';
 require_once __DIR__ . '/controllers/CallbackController.php';
 require_once __DIR__ . '/controllers/ReviewController.php';
 require_once __DIR__ . '/controllers/AvailabilityController.php';
+require_once __DIR__ . '/controllers/FigoConfigController.php';
+require_once __DIR__ . '/controllers/AnalyticsController.php';
+require_once __DIR__ . '/controllers/MetricsController.php';
 
 init_monitoring();
 
@@ -113,6 +116,105 @@ set_exception_handler(static function (Throwable $e): void {
 function api_elapsed_ms(float $startedAt): int
 {
     return (int) round((microtime(true) - $startedAt) * 1000);
+}
+
+function api_funnel_allowed_events(): array
+{
+    return [
+        'view_booking',
+        'start_checkout',
+        'payment_method_selected',
+        'payment_success',
+        'booking_confirmed',
+        'checkout_abandon',
+        'booking_step_completed',
+        'booking_error',
+        'checkout_error',
+        'chat_started',
+        'chat_handoff_whatsapp',
+        'whatsapp_click'
+    ];
+}
+
+function api_funnel_normalize_label($value, string $fallback = 'unknown', int $maxLength = 48): string
+{
+    if (!is_string($value) && !is_numeric($value)) {
+        return $fallback;
+    }
+
+    $normalized = strtolower(trim((string) $value));
+    if ($normalized === '') {
+        return $fallback;
+    }
+
+    $normalized = preg_replace('/[^a-z0-9_]+/', '_', $normalized);
+    $normalized = trim((string) $normalized, '_');
+    if ($normalized === '') {
+        return $fallback;
+    }
+
+    if (strlen($normalized) > $maxLength) {
+        $normalized = substr($normalized, 0, $maxLength);
+    }
+
+    return $normalized === '' ? $fallback : $normalized;
+}
+
+function api_parse_prometheus_labels(string $rawLabels): array
+{
+    $labels = [];
+    if ($rawLabels === '') {
+        return $labels;
+    }
+
+    $matchCount = preg_match_all('/([a-zA-Z_][a-zA-Z0-9_]*)="((?:[^"\\\\]|\\\\.)*)"/', $rawLabels, $matches, PREG_SET_ORDER);
+    if (!is_int($matchCount) || $matchCount < 1) {
+        return $labels;
+    }
+
+    foreach ($matches as $match) {
+        $key = isset($match[1]) ? (string) $match[1] : '';
+        $value = isset($match[2]) ? (string) $match[2] : '';
+        if ($key === '') {
+            continue;
+        }
+        $labels[$key] = stripcslashes($value);
+    }
+
+    return $labels;
+}
+
+function api_prometheus_counter_series(string $metricsText, string $metricName): array
+{
+    $series = [];
+    if ($metricName === '' || trim($metricsText) === '') {
+        return $series;
+    }
+
+    $pattern = '/^' . preg_quote($metricName, '/') . '(?:\{([^}]*)\})?\s+([+-]?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?)$/';
+    $lines = preg_split('/\R/', $metricsText) ?: [];
+
+    foreach ($lines as $line) {
+        $line = trim((string) $line);
+        if ($line === '' || $line[0] === '#') {
+            continue;
+        }
+
+        if (preg_match($pattern, $line, $match) !== 1) {
+            continue;
+        }
+
+        $labelsRaw = isset($match[1]) ? (string) $match[1] : '';
+        $valueRaw = isset($match[2]) ? (string) $match[2] : '0';
+        $value = is_numeric($valueRaw) ? (float) $valueRaw : 0.0;
+
+        $series[] = [
+            'labels' => api_parse_prometheus_labels($labelsRaw),
+            'value' => $value
+        ];
+    }
+
+    return $series;
 }
 
 function api_resolve_figo_endpoint_for_health(): string
@@ -656,6 +758,7 @@ $publicEndpoints = [
     ['method' => 'POST', 'resource' => 'appointments'],
     ['method' => 'POST', 'resource' => 'callbacks'],
     ['method' => 'POST', 'resource' => 'reviews'],
+    ['method' => 'POST', 'resource' => 'funnel-event'],
     ['method' => 'GET', 'resource' => 'reschedule'],
     ['method' => 'PATCH', 'resource' => 'reschedule'],
 ];
@@ -712,123 +815,15 @@ $context = [
     'resource' => $resource
 ];
 
-// Complex inline logic for figo-config (keep for now)
+// Figo Config endpoints
 if ($resource === 'figo-config' && $method === 'GET') {
-    $configMeta = api_read_figo_config_with_meta();
-    $candidatePaths = api_figo_config_candidate_paths();
-    $writePath = $candidatePaths[0] ?? (string) ($configMeta['path'] ?? api_resolve_figo_config_path());
-    $config = is_array($configMeta['config'] ?? null) ? $configMeta['config'] : [];
-    $masked = api_mask_figo_config($config);
-    $aiNode = (isset($config['ai']) && is_array($config['ai'])) ? $config['ai'] : [];
-    $aiEndpoint = isset($aiNode['endpoint']) && is_string($aiNode['endpoint']) ? trim((string) $aiNode['endpoint']) : '';
-    $figoEndpoint = isset($config['endpoint']) && is_string($config['endpoint']) ? trim((string) $config['endpoint']) : '';
-
-    json_response([
-        'ok' => true,
-        'data' => $masked,
-        'exists' => (bool) ($configMeta['exists'] ?? false),
-        'path' => basename((string) ($configMeta['path'] ?? 'figo-config.json')),
-        'activePath' => (string) ($configMeta['path'] ?? ''),
-        'writePath' => (string) $writePath,
-        'figoEndpointConfigured' => $figoEndpoint !== '',
-        'aiConfigured' => $aiEndpoint !== '',
-        'timestamp' => gmdate('c')
-    ]);
+    FigoConfigController::show($context);
+    exit;
 }
 
 if ($resource === 'figo-config' && in_array($method, ['POST', 'PUT', 'PATCH'], true)) {
-    require_rate_limit('figo-config', 6, 60);
-
-    $payload = require_json_body();
-    if (!is_array($payload)) {
-        json_response([
-            'ok' => false,
-            'error' => 'Payload invalido'
-        ], 400);
-    }
-
-    $configMeta = api_read_figo_config_with_meta();
-    $current = is_array($configMeta['config'] ?? null) ? $configMeta['config'] : [];
-
-    try {
-        $next = api_merge_figo_config($current, $payload);
-    } catch (RuntimeException $e) {
-        $status = $e->getCode() >= 400 && $e->getCode() < 600 ? (int) $e->getCode() : 400;
-        json_response([
-            'ok' => false,
-            'error' => api_error_message_for_client($e, $status)
-        ], $status);
-    }
-
-    $candidatePaths = api_figo_config_candidate_paths();
-    $path = (string) ($candidatePaths[0] ?? ($configMeta['path'] ?? api_resolve_figo_config_path()));
-    $dir = dirname($path);
-
-    if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
-        json_response([
-            'ok' => false,
-            'error' => 'No se pudo crear el directorio de configuracion en ' . $dir
-        ], 500);
-    }
-
-    if (!is_file($path)) {
-        @chmod($dir, 0775);
-    } else {
-        @chmod($path, 0664);
-    }
-
-    if ((is_file($path) && !is_writable($path)) || (!is_file($path) && !is_writable($dir))) {
-        json_response([
-            'ok' => false,
-            'error' => 'No hay permisos para guardar la configuracion en ' . $path
-        ], 500);
-    }
-
-    $encoded = json_encode($next, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if (!is_string($encoded)) {
-        json_response([
-            'ok' => false,
-            'error' => 'No se pudo serializar la configuracion'
-        ], 500);
-    }
-
-    $bytes = @file_put_contents($path, $encoded . PHP_EOL, LOCK_EX);
-    if (!is_int($bytes)) {
-        json_response([
-            'ok' => false,
-            'error' => 'No se pudo guardar figo-config.json'
-        ], 500);
-    }
-
-    $aiNode = (isset($next['ai']) && is_array($next['ai'])) ? $next['ai'] : [];
-    $aiEndpoint = isset($aiNode['endpoint']) && is_string($aiNode['endpoint']) ? trim((string) $aiNode['endpoint']) : '';
-    $figoEndpoint = isset($next['endpoint']) && is_string($next['endpoint']) ? trim((string) $next['endpoint']) : '';
-    $figoHost = '';
-    if ($figoEndpoint !== '') {
-        $figoParts = @parse_url($figoEndpoint);
-        if (is_array($figoParts) && isset($figoParts['host']) && is_string($figoParts['host'])) {
-            $figoHost = strtolower(trim((string) $figoParts['host']));
-        }
-    }
-
-    audit_log_event('figo.config_updated', [
-        'path' => basename($path),
-        'figoEndpointConfigured' => $figoEndpoint !== '',
-        'figoEndpointHost' => $figoHost,
-        'aiConfigured' => $aiEndpoint !== '',
-        'allowLocalFallback' => isset($next['allowLocalFallback']) ? (bool) $next['allowLocalFallback'] : null
-    ]);
-
-    json_response([
-        'ok' => true,
-        'saved' => true,
-        'path' => basename($path),
-        'bytes' => $bytes,
-        'data' => api_mask_figo_config($next),
-        'figoEndpointConfigured' => $figoEndpoint !== '',
-        'aiConfigured' => $aiEndpoint !== '',
-        'timestamp' => gmdate('c')
-    ]);
+    FigoConfigController::update($context);
+    exit;
 }
 
 // Payment Config
@@ -837,99 +832,21 @@ if ($method === 'GET' && $resource === 'payment-config') {
     exit;
 }
 
-// Metrics (complex inline logic)
+// Funnel event ingestion
+if ($method === 'POST' && $resource === 'funnel-event') {
+    AnalyticsController::recordEvent($context);
+    exit;
+}
+
+// Metrics export
 if ($resource === 'metrics') {
-    if (!class_exists('Metrics')) {
-        http_response_code(500);
-        die("Metrics library not loaded");
-    }
-    header('Content-Type: text/plain; version=0.0.4');
+    MetricsController::export($context);
+    exit;
+}
 
-    // Calculate Business Metrics from Store
-    $revenueByDate = [];
-    foreach ($store['appointments'] as $appt) {
-        if (($appt['status'] ?? '') !== 'cancelled' && ($appt['paymentStatus'] ?? '') === 'paid') {
-            $date = $appt['date'] ?? '';
-            $service = $appt['service'] ?? '';
-            $price = function_exists('get_service_price_amount') ? get_service_price_amount($service) : 0.0;
-            if ($date && $price > 0) {
-                if (!isset($revenueByDate[$date])) {
-                    $revenueByDate[$date] = 0;
-                }
-                $revenueByDate[$date] += $price;
-            }
-        }
-    }
-
-    $stats = ['confirmed' => 0, 'no_show' => 0, 'completed' => 0, 'cancelled' => 0];
-    foreach ($store['appointments'] as $appt) {
-        $st = function_exists('map_appointment_status')
-            ? map_appointment_status($appt['status'] ?? 'confirmed')
-            : ($appt['status'] ?? 'confirmed');
-
-        if (isset($stats[$st])) {
-            $stats[$st]++;
-        }
-    }
-
-    // Output standard metrics
-    echo Metrics::export();
-
-    // Output business metrics
-    foreach ($revenueByDate as $date => $amount) {
-        echo "\n# TYPE pielarmonia_revenue_daily_total gauge";
-        echo "\npielarmonia_revenue_daily_total{date=\"$date\"} $amount";
-    }
-
-    foreach ($stats as $st => $count) {
-        echo "\n# TYPE pielarmonia_appointments_total gauge";
-        echo "\npielarmonia_appointments_total{status=\"$st\"} $count";
-    }
-
-    $totalValid = $stats['confirmed'] + $stats['no_show'] + $stats['completed'];
-    $rate = $totalValid > 0 ? ($stats['no_show'] / $totalValid) : 0;
-    echo "\n# TYPE pielarmonia_no_show_rate gauge";
-    echo "\npielarmonia_no_show_rate $rate\n";
-
-    // Store File Size
-    $storeSize = @filesize(data_file_path());
-    if ($storeSize !== false) {
-        echo "\n# TYPE pielarmonia_store_file_size_bytes gauge";
-        echo "\npielarmonia_store_file_size_bytes $storeSize";
-    }
-
-    // Service Popularity
-    $serviceCounts = [];
-    foreach ($store['appointments'] as $appt) {
-        $svc = $appt['service'] ?? 'unknown';
-        if ($svc === '') $svc = 'unknown';
-        if (!isset($serviceCounts[$svc])) $serviceCounts[$svc] = 0;
-        $serviceCounts[$svc]++;
-    }
-    foreach ($serviceCounts as $svc => $count) {
-        echo "\n# TYPE pielarmonia_service_popularity_total gauge";
-        echo "\npielarmonia_service_popularity_total{service=\"$svc\"} $count";
-    }
-
-    // Lead Time (Last 30 days)
-    $leadTimes = [];
-    $now = time();
-    foreach ($store['appointments'] as $appt) {
-        if (($appt['status'] ?? '') === 'cancelled') continue;
-        $bookedAt = isset($appt['dateBooked']) ? strtotime($appt['dateBooked']) : false;
-        $apptTime = strtotime(($appt['date'] ?? '') . ' ' . ($appt['time'] ?? ''));
-        // Only consider bookings made in the last 30 days
-        if ($bookedAt && $apptTime && $bookedAt > ($now - 30 * 86400)) {
-            $lead = $apptTime - $bookedAt;
-            if ($lead > 0) $leadTimes[] = $lead;
-        }
-    }
-    if (count($leadTimes) > 0) {
-        $avgLead = array_sum($leadTimes) / count($leadTimes);
-        echo "\n# TYPE pielarmonia_lead_time_seconds_avg gauge";
-        echo "\npielarmonia_lead_time_seconds_avg $avgLead\n";
-    }
-
+// Funnel metrics
+if ($method === 'GET' && $resource === 'funnel-metrics') {
+    AnalyticsController::getFunnelMetrics($context);
     exit;
 }
 
