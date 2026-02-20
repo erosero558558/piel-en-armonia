@@ -100,15 +100,14 @@ export function init(inputDeps) {
 
     async function updateAvailableTimes() {
         try {
-            const module = await import('booking-calendar-lazy');
-            await module.updateAvailableTimes(deps, {
+            await deps.updateAvailableTimes({
                 dateInput,
                 timeSelect,
                 doctorSelect,
                 t
             });
         } catch (error) {
-            console.error('Failed to load booking-calendar.js', error);
+            console.error('Failed to load booking-calendar', error);
             deps.showToast(t('Error cargando calendario. Intenta nuevamente.', 'Error loading calendar. Please try again.'), 'error');
         }
     }

@@ -7,13 +7,9 @@ export default [
         output: {
             file: 'booking-ui.js',
             format: 'iife',
-            sourcemap: false,
-            paths: {
-                'booking-calendar-lazy': './js/booking-calendar.js'
-            }
+            sourcemap: false
         },
-        plugins: [resolve()],
-        external: ['booking-calendar-lazy']
+        plugins: [resolve()]
     },
     // Booking Engine
     {

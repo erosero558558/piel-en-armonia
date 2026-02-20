@@ -9,7 +9,7 @@ import { closeSuccessModal } from './success-modal.js';
 import { closeRescheduleModal, submitReschedule } from './reschedule.js';
 import { toggleChatbot, sendChatMessage, handleChatBookingSelection, sendQuickMessage, minimizeChatbot, startChatBooking, handleChatDateSelect } from './chat.js';
 
-const ACTION_ROUTER_ENGINE_URL = withDeployAssetVersion('/action-router-engine.js?v=figo-action-router-20260219-phase1');
+const DATA_BUNDLE_URL = withDeployAssetVersion('/js/engines/data-bundle.js');
 
 function selectService(value) {
     const select = document.getElementById('serviceSelect');
@@ -56,14 +56,14 @@ function getActionRouterEngineDeps() {
 
 export function loadActionRouterEngine() {
     return loadDeferredModule({
-        cacheKey: 'action-router-engine',
-        src: ACTION_ROUTER_ENGINE_URL,
-        scriptDataAttribute: 'data-action-router-engine',
+        cacheKey: 'data-bundle',
+        src: DATA_BUNDLE_URL,
+        scriptDataAttribute: 'data-data-bundle',
         resolveModule: () => window.PielActionRouterEngine,
         isModuleReady: (module) => !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getActionRouterEngineDeps()),
         missingApiError: 'action-router-engine loaded without API',
-        loadError: 'No se pudo cargar action-router-engine.js',
+        loadError: 'No se pudo cargar action-router-engine (data-bundle)',
         logLabel: 'Action router engine'
     });
 }

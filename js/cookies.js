@@ -4,7 +4,7 @@ import { state } from './state.js';
 import { trackEvent } from './analytics.js';
 import { COOKIE_CONSENT_KEY } from './config.js';
 
-const CONSENT_ENGINE_URL = withDeployAssetVersion('/consent-engine.js?v=figo-consent-20260219-phase1');
+const UI_BUNDLE_URL = withDeployAssetVersion('/js/engines/ui-bundle.js');
 
 function getConsentEngineDeps() {
     return {
@@ -18,14 +18,14 @@ function getConsentEngineDeps() {
 
 export function loadConsentEngine() {
     return loadDeferredModule({
-        cacheKey: 'consent-engine',
-        src: CONSENT_ENGINE_URL,
-        scriptDataAttribute: 'data-consent-engine',
+        cacheKey: 'ui-bundle',
+        src: UI_BUNDLE_URL,
+        scriptDataAttribute: 'data-ui-bundle',
         resolveModule: () => window.PielConsentEngine,
         isModuleReady: (module) => !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getConsentEngineDeps()),
         missingApiError: 'consent-engine loaded without API',
-        loadError: 'No se pudo cargar consent-engine.js',
+        loadError: 'No se pudo cargar consent-engine (ui-bundle)',
         logLabel: 'Consent engine'
     });
 }

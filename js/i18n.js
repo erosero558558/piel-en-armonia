@@ -3,7 +3,7 @@ import { loadDeferredModule, withDeferredModule } from './loader.js';
 import { state } from './state.js';
 import { renderPublicReviews } from './engagement.js';
 
-const I18N_ENGINE_URL = withDeployAssetVersion('/i18n-engine.js?v=figo-i18n-20260219-phase1-sync1');
+const DATA_BUNDLE_URL = withDeployAssetVersion('/js/engines/data-bundle.js');
 
 function getI18nEngineDeps() {
     return {
@@ -20,14 +20,14 @@ function getI18nEngineDeps() {
 
 export function loadI18nEngine() {
     return loadDeferredModule({
-        cacheKey: 'i18n-engine',
-        src: I18N_ENGINE_URL,
-        scriptDataAttribute: 'data-i18n-engine',
+        cacheKey: 'data-bundle',
+        src: DATA_BUNDLE_URL,
+        scriptDataAttribute: 'data-data-bundle',
         resolveModule: () => window.PielI18nEngine,
         isModuleReady: (module) => !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getI18nEngineDeps()),
         missingApiError: 'i18n-engine loaded without API',
-        loadError: 'No se pudo cargar i18n-engine.js',
+        loadError: 'No se pudo cargar i18n-engine (data-bundle)',
         logLabel: 'I18n engine'
     });
 }
