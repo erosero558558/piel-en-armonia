@@ -4,10 +4,7 @@
 // 1. Include the library to be tested
 require_once __DIR__ . '/../api-lib.php';
 
-// 2. Set environment variables for consistent test execution
-putenv('PIELARMONIA_VAT_RATE=0.12');
-
-// 3. Define a simple assertion helper
+// 2. Define a simple assertion helper
 function assert_eq($actual, $expected, $message) {
     if ($actual === $expected) {
         echo "✅ PASS: $message\n";

@@ -247,6 +247,8 @@ export function getCheckoutBreakdown(serviceId, additionalOptions = {}) {
         discountAmount = 0,
         isCupoSolidario = false
     } = additionalOptions;
+
+    let { discountRate = 0 } = additionalOptions;
     
     let { discountRate = 0 } = additionalOptions;
 

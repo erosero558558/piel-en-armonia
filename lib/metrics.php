@@ -65,10 +65,12 @@ class Metrics
         }
     }
 
-    public static function observe(string $name, float $value, array $labels = []): void
+    public static function observe(string $name, float $value, array $labels = [], ?array $buckets = null): void
     {
         self::init();
-        $buckets = [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
+        if ($buckets === null) {
+            $buckets = [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
+        }
         $key = self::buildKey($name, $labels);
 
         if (self::$useRedis) {
@@ -79,6 +81,13 @@ class Metrics
 
                 // Track key
                 self::$client->sadd('metrics:keys', 'metrics:histogram:' . $key);
+
+                // Store buckets definition if customized
+                // We use a set to store the unique bucket values (as strings)
+                // This allows us to reconstruct the correct buckets in export()
+                foreach ($buckets as $bucket) {
+                    $pipe->sadd('metrics:histogram:' . $key . ':buckets', (string)$bucket);
+                }
 
                 foreach ($buckets as $bucket) {
                     if ($value <= $bucket) {
@@ -184,7 +193,18 @@ class Metrics
                         $output[] = $metricNameFull . "_count " . $count;
                         $output[] = $metricNameFull . "_sum " . $sum;
 
-                        $buckets = [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
+                        // Retrieve dynamic buckets
+                        $bucketVals = self::$client->smembers('metrics:histogram:' . $metricNameFull . ':buckets');
+                        $buckets = [];
+                        if (!empty($bucketVals)) {
+                            foreach ($bucketVals as $bv) {
+                                $buckets[] = (float)$bv;
+                            }
+                            sort($buckets);
+                        } else {
+                            // Fallback default
+                            $buckets = [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
+                        }
 
                         // Need to reconstruct labels for buckets
                         $labels = '';
@@ -251,6 +271,11 @@ class Metrics
                     $output[] = $metricName . "_sum$labels " . ($hData['sum'] ?? 0);
 
                     if (isset($hData['buckets'])) {
+                        // Sort buckets by numeric key value to ensure order
+                        uksort($hData['buckets'], function($a, $b) {
+                            return (float)$a <=> (float)$b;
+                        });
+
                         foreach ($hData['buckets'] as $le => $count) {
                             if ($labels === '') {
                                 $bucketLabels = "{le=\"$le\"}";
