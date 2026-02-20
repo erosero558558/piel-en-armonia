@@ -191,10 +191,55 @@ Ejemplo recomendado de `data/figo-config.json`:
   `PIELARMONIA_BACKUP_OFFSITE_TOKEN=<TOKEN>`
 - Script de ayuda: `.\CONFIGURAR-BACKUP-OFFSITE.ps1`
 
-## Notas importantes
+## Despliegue con Docker y Kubernetes (Fase 4)
 
-- El chatbot del sitio usa `figo-chat.php`.
-- Los datos de citas, callbacks, reseÃ±as y disponibilidad se guardan en backend (`data/store.json`).
-- El backend registra auditoria de accesos/eventos en `data/audit.log`.
-- Si `figo-chat.php` falla, el chatbot mantiene fallback local para no romper UX.
-- Para entorno local, revisa `SERVIDOR-LOCAL.md`.
+### Docker (Local)
+
+Para desarrollo o pruebas locales con el stack completo (App, Redis, Prometheus, Grafana):
+
+1.  Copia `env.example.php` a `env.php` y configura tus variables.
+2.  Ejecuta:
+    ```bash
+    docker-compose up -d --build
+    ```
+3.  Accede a:
+    -   App: http://localhost:8080
+    -   Grafana: http://localhost:3000 (admin/admin)
+    -   Prometheus: http://localhost:9090
+
+### Kubernetes (Produccion)
+
+Archivos de manifiesto en carpeta `k8s/`:
+
+1.  **Secretos**: Copia `k8s/secret.yaml.example` a `k8s/secret.yaml`, rellena los valores Base64 y aplica:
+    ```bash
+    kubectl apply -f k8s/namespace.yaml
+    kubectl apply -f k8s/secret.yaml
+    ```
+
+2.  **Configuracion**: Revisa `k8s/configmap.yaml` y aplica:
+    ```bash
+    kubectl apply -f k8s/configmap.yaml
+    ```
+
+3.  **Volumenes y Servicios**:
+    ```bash
+    kubectl apply -f k8s/pvc.yaml
+    kubectl apply -f k8s/redis.yaml
+    ```
+
+4.  **Despliegue App**:
+    -   Construye y sube tu imagen Docker (`docker build -t tu-repo/app:latest . && docker push ...`).
+    -   Actualiza la imagen en `k8s/deployment.yaml`.
+    -   Aplica:
+        ```bash
+        kubectl apply -f k8s/deployment.yaml
+        kubectl apply -f k8s/service.yaml
+        ```
+
+5.  **Ingress**:
+    -   Asegurate de tener un Ingress Controller (nginx) y Cert-Manager.
+    -   Aplica:
+        ```bash
+        kubectl apply -f k8s/ingress.yaml
+        ```

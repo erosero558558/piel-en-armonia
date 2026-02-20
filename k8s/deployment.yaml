@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pielarmonia-app
+  namespace: pielarmonia
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pielarmonia-app
+  template:
+    metadata:
+      labels:
+        app: pielarmonia-app
+    spec:
+      containers:
+      - name: app
+        image: pielarmonia/app:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        envFrom:
+        - configMapRef:
+            name: pielarmonia-config
+        - secretRef:
+            name: pielarmonia-secret
+        volumeMounts:
+        - name: data-volume
+          mountPath: /var/www/data
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: pielarmonia-data-pvc
