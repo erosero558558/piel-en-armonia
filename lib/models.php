@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/validation.php';
 require_once __DIR__ . '/business.php';
+require_once __DIR__ . '/tenants.php';
 
 /**
  * Business logic and data models.
@@ -79,6 +80,9 @@ function normalize_review(array $review): array
     }
     return [
         'id' => isset($review['id']) ? (int) $review['id'] : (int) round(microtime(true) * 1000),
+        'tenantId' => isset($review['tenantId']) && is_string($review['tenantId']) && trim($review['tenantId']) !== ''
+            ? trim($review['tenantId'])
+            : get_current_tenant_id(),
         'name' => truncate_field(sanitize_xss(isset($review['name']) ? trim((string) $review['name']) : ''), 100),
         'rating' => $rating,
         'text' => truncate_field(sanitize_xss(isset($review['text']) ? trim((string) $review['text']) : ''), 2000),
@@ -126,6 +130,9 @@ function normalize_appointment(array $appointment): array
 
     return [
         'id' => isset($appointment['id']) ? (int) $appointment['id'] : (int) round(microtime(true) * 1000),
+        'tenantId' => isset($appointment['tenantId']) && is_string($appointment['tenantId']) && trim($appointment['tenantId']) !== ''
+            ? trim($appointment['tenantId'])
+            : get_current_tenant_id(),
         'service' => truncate_field($service, 50),
         'doctor' => truncate_field(sanitize_xss((string) ($appointment['doctor'] ?? '')), 100),
         'date' => truncate_field((string) ($appointment['date'] ?? ''), 20),
