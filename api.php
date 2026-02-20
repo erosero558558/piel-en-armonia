@@ -597,10 +597,7 @@ audit_log_event('api.access', [
 
 // CSRF: validar token en mutaciones autenticadas (no publicas)
 if (in_array($method, ['POST', 'PUT', 'PATCH'], true) && $isAdmin) {
-    $publicMutations = ['appointments', 'callbacks', 'reviews', 'payment-intent', 'payment-verify', 'transfer-proof', 'stripe-webhook'];
-    if (!in_array($resource, $publicMutations, true)) {
-        require_csrf();
-    }
+    require_csrf();
 }
 
 if ($resource === 'figo-config' && $method === 'GET') {

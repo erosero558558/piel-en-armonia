@@ -1,8 +1,0 @@
-# Denegar acceso web a todos los archivos de datos
-Require all denied
-
-# Alternativa para Apache < 2.4
-<IfModule !mod_authz_core.c>
-    Order deny,allow
-    Deny from all
-</IfModule>
