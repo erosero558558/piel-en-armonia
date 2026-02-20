@@ -132,7 +132,7 @@
         addBotMessage(msg);
     }
 
-    function cancelChatBooking() {
+    function cancelChatBooking(silent = false) {
         if (chatBooking && deps && typeof deps.trackEvent === 'function') {
             deps.trackEvent('checkout_abandon', {
                 source: 'chatbot',
@@ -141,10 +141,17 @@
             });
         }
         chatBooking = null;
-        addBotMessage(t(
-            'Reserva cancelada. Si necesitas algo mas, estoy aqui para ayudarte.',
-            'Booking cancelled. If you need anything else, I am here to help.'
-        ));
+        if (!silent) {
+            addBotMessage(t(
+                'Reserva cancelada. Si necesitas algo mas, estoy aqui para ayudarte.',
+                'Booking cancelled. If you need anything else, I am here to help.'
+            ));
+        }
+    }
+
+    function isGeneralIntent(text) {
+        const normalized = String(text || '').toLowerCase();
+        return /(precio|costo|cuanto|doctor|humano|ayuda|hablar|contactar|ubicacion|donde|horario|telefono|whatsapp)/.test(normalized);
     }
 
     function handleChatBookingSelection(value) {
@@ -166,23 +173,27 @@
     }
 
     async function processChatBookingStep(userInput) {
-        if (!chatBooking) return;
+        if (!chatBooking) return false;
         const input = String(userInput || '').trim();
 
         if (/cancelar|salir|no quiero|cancel|exit/i.test(input)) {
             cancelChatBooking();
-            return;
+            return true;
         }
 
         switch (chatBooking.step) {
             case 'service': {
                 const service = CHAT_SERVICES.find((item) => item.key === input || item.label.toLowerCase() === input.toLowerCase());
                 if (!service) {
+                    if (isGeneralIntent(input)) {
+                        cancelChatBooking(true);
+                        return false;
+                    }
                     addBotMessage(t(
                         'Por favor selecciona un servicio valido de las opciones.',
                         'Please choose a valid service from the options.'
                     ));
-                    return;
+                    return true;
                 }
                 chatBooking.service = service.key;
                 chatBooking.serviceLabel = service.label;
@@ -206,11 +217,15 @@
             case 'doctor': {
                 const doctor = CHAT_DOCTORS.find((item) => item.key === input || item.label.toLowerCase() === input.toLowerCase());
                 if (!doctor) {
+                    if (isGeneralIntent(input)) {
+                        cancelChatBooking(true);
+                        return false;
+                    }
                     addBotMessage(t(
                         'Por favor selecciona un doctor de las opciones.',
                         'Please choose a doctor from the options.'
                     ));
-                    return;
+                    return true;
                 }
                 chatBooking.doctor = doctor.key;
                 chatBooking.doctorLabel = doctor.label;
@@ -236,7 +251,7 @@
                         'Por favor selecciona una fecha valida (usa el calendario).',
                         'Please select a valid date (use the date picker).'
                     ));
-                    return;
+                    return true;
                 }
 
                 const selectedDate = new Date(`${input}T12:00:00`);
@@ -247,7 +262,7 @@
                         'La fecha debe ser hoy o en el futuro. Selecciona otra fecha.',
                         'Date must be today or in the future. Please choose another date.'
                     ));
-                    return;
+                    return true;
                 }
 
                 chatBooking.date = input;
@@ -294,7 +309,7 @@
                             `<input type="date" id="chatDateInput" min="${new Date().toISOString().split('T')[0]}" data-action="chat-date-select" class="chat-date-input">`
                         );
                         chatBooking.step = 'date';
-                        return;
+                        return true;
                     }
 
                     const locale = getLang() === 'en' ? 'en-US' : 'es-EC';
@@ -330,7 +345,7 @@
                         'Por favor selecciona un horario valido de las opciones.',
                         'Please choose a valid time from the options.'
                     ));
-                    return;
+                    return true;
                 }
                 chatBooking.time = input;
                 chatBooking.step = 'name';
@@ -347,7 +362,7 @@
                         'El nombre debe tener al menos 2 caracteres.',
                         'Name must be at least 2 characters long.'
                     ));
-                    return;
+                    return true;
                 }
                 chatBooking.name = input;
                 chatBooking.step = 'email';
@@ -363,7 +378,7 @@
                         'El formato del email no es valido. Ejemplo: nombre@correo.com',
                         'Invalid email format. Example: name@example.com'
                     ));
-                    return;
+                    return true;
                 }
                 chatBooking.email = input;
                 chatBooking.step = 'phone';
@@ -379,7 +394,7 @@
                         'El telefono debe tener entre 7 y 15 digitos.',
                         'Phone number must have between 7 and 15 digits.'
                     ));
-                    return;
+                    return true;
                 }
                 chatBooking.phone = input;
                 chatBooking.step = 'payment';
@@ -419,7 +434,7 @@
                         'Elige un metodo de pago: Efectivo, Tarjeta o Transferencia.',
                         'Choose a payment method: Cash, Card, or Transfer.'
                     ));
-                    return;
+                    return true;
                 }
 
                 chatBooking.paymentMethod = method;
@@ -431,6 +446,7 @@
                 break;
             }
         }
+        return true;
     }
 
     async function finalizeChatBooking() {
