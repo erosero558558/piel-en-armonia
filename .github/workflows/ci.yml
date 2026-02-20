@@ -32,6 +32,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+      - name: Install Composer Dependencies
+        run: composer install --prefer-dist --no-progress
+      - name: Run Psalm Static Analysis
+        run: vendor/bin/psalm --no-cache
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
@@ -52,10 +61,19 @@ jobs:
         with:
           php-version: '8.2'
           tools: composer:v2
+          coverage: pcov
       - name: Install Composer Dependencies
         run: composer install --prefer-dist --no-progress
-      - name: Run PHP Tests
+      - name: Run PHPUnit with Coverage
+        run: vendor/bin/phpunit --coverage-text --coverage-clover coverage.xml
+      - name: Run Legacy PHP Tests
         run: npm run test:php
+      - name: Upload Coverage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage
+          path: coverage.xml
+          retention-days: 14
 
   e2e-tests:
     runs-on: ubuntu-latest
