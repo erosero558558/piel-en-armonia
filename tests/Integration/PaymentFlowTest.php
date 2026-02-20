@@ -105,6 +105,6 @@ class PaymentFlowTest extends TestCase
         $this->assertEquals(200, $response['status']);
         $this->assertTrue($response['payload']['ok']);
         $this->assertStringStartsWith('pi_mock_', $response['payload']['paymentIntentId']);
-        $this->assertEquals(4600, $response['payload']['amount']);
+        $this->assertEquals(4000, $response['payload']['amount']);
     }
 }
