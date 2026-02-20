@@ -2,7 +2,7 @@
 
 **Fecha:** 21 de Febrero de 2026  
 **Análisis:** Ultra-detallado de TODO el proyecto  
-**Commit:** d87639e  
+**Commit:** d87639e
 
 ---
 
@@ -24,6 +24,7 @@
 ## 🔴 P0 - CRÍTICOS (Seguridad/Core)
 
 ### 1. **Proxy.php Deprecado** 🔴
+
 ```php
 // proxy.php línea 5
 /**
@@ -34,6 +35,7 @@ Acción: Migrar uso a endpoints nuevos y eliminar
 ```
 
 ### 2. **Debug Expuesto en Código** 🔴
+
 ```javascript
 // múltiples archivos JS
 const DEBUG = false; // Cambiable a true
@@ -54,6 +56,7 @@ Solución: Eliminar en build de producción
 ## 🟡 P1 - IMPORTANTES (Features/Mejoras)
 
 ### 3. **Migración ES6 Incompleta** 🟡
+
 ```
 Progreso: ~40%
 Módulos pendientes:
@@ -64,6 +67,7 @@ Módulos pendientes:
 ```
 
 ### 4. **Optimizar index.html (127KB)** 🟡
+
 ```
 Meta: <80KB
 Acciones:
@@ -73,6 +77,7 @@ Acciones:
 ```
 
 ### 5. **Tests Duplicados** 🟡
+
 ```
 Duplicados:
 - tests/BookingServiceTest.php vs tests/Unit/Booking/BookingServiceTest.php
@@ -80,6 +85,7 @@ Duplicados:
 ```
 
 ### 6. **Documentación de Handoff** 🟡
+
 ```
 HANDOFF_JULES.md contiene TODOs sin completar:
 - Líneas 115, 125, 137, 144, 151: Tests de booking sin implementar
@@ -88,6 +94,7 @@ HANDOFF_JULES.md contiene TODOs sin completar:
 ```
 
 ### 7. **Limpieza Probabilística Rate Limit** 🟡
+
 ```php
 // lib/ratelimit.php:99
 // Limpieza probabilistica: evita escanear todo el arbol en cada request.
@@ -96,6 +103,7 @@ Mejora: Implementar cola de limpieza async
 ```
 
 ### 8. **Service Worker Offline** 🟡
+
 ```
 sw.js existe pero:
 - [ ] Estrategias de cache no optimizadas
@@ -104,6 +112,7 @@ sw.js existe pero:
 ```
 
 ### 9. **Web App Manifest** 🟡
+
 ```
 manifest.json existe pero:
 - [ ] Faltan íconos de todos los tamaños
@@ -112,6 +121,7 @@ manifest.json existe pero:
 ```
 
 ### 10. **Feature Flags Frontend** 🟡
+
 ```
 Backend: ✅ lib/features.php
 UI Admin: ✅ Panel de administración
@@ -119,6 +129,7 @@ Frontend: ❌ No lee flags en JavaScript
 ```
 
 ### 11. **Analytics Engine** 🟡
+
 ```
 analytics-engine.js y analytics-gateway-engine.js:
 - [ ] Sin tests automatizados
@@ -127,6 +138,7 @@ analytics-engine.js y analytics-gateway-engine.js:
 ```
 
 ### 12. **Theme Engine** 🟡
+
 ```
 theme-engine.js existe pero:
 - [ ] Solo modo claro/oscuro básico
@@ -135,6 +147,7 @@ theme-engine.js existe pero:
 ```
 
 ### 13. **i18n Incompleto** 🟡
+
 ```
 translations-en.js existe pero:
 - [ ] Solo español e inglés parcial
@@ -143,6 +156,7 @@ translations-en.js existe pero:
 ```
 
 ### 14. **Modal UX Engine** 🟡
+
 ```
 modal-ux-engine.js:
 - [ ] Sin animaciones de entrada/salida
@@ -151,6 +165,7 @@ modal-ux-engine.js:
 ```
 
 ### 15. **Consent Engine** 🟡
+
 ```
 consent-engine.js:
 - [ ] Sin sincronización con Google Consent Mode v2
@@ -159,6 +174,7 @@ consent-engine.js:
 ```
 
 ### 16. **Gallery Lazy Loading** 🟡
+
 ```
 gallery-lazy.js existe pero:
 - [ ] No usa Intersection Observer
@@ -167,6 +183,7 @@ gallery-lazy.js existe pero:
 ```
 
 ### 17. **Email Engine** 🟡
+
 ```
 email-engine.js:
 - [ ] Sin cola de reintentos
@@ -179,6 +196,7 @@ email-engine.js:
 ## 🟢 P2 - DESEABLES (Optimizaciones)
 
 ### 18. **Redis Rate Limiting** 🟢
+
 ```
 Rama: origin/redis-ratelimit-8498742229573751898
 Beneficio: Elimina condiciones de carrera
@@ -186,6 +204,7 @@ Costo: 2-3 días + infraestructura Redis
 ```
 
 ### 19. **Grafana Dashboard** 🟢
+
 ```
 Configuración existe:
 - prometheus.yml ✅
@@ -199,6 +218,7 @@ Falta:
 ```
 
 ### 20. **CSP Estricto** 🟢
+
 ```
 Actual: 'unsafe-inline' en style-src
 Meta: Nonces o hashes
@@ -206,6 +226,7 @@ Beneficio: Seguridad reforzada contra XSS
 ```
 
 ### 21. **Dynamic Pricing** 🟢
+
 ```
 Implementado parcialmente en PR #120
 Falta:
@@ -215,6 +236,7 @@ Falta:
 ```
 
 ### 22. **No-Show Prediction** 🟢
+
 ```
 Implementado parcialmente en PR #120
 Falta:
@@ -224,6 +246,7 @@ Falta:
 ```
 
 ### 23. **Monitoreo de Métricas de Negocio** 🟢
+
 ```
 MetricsController exporta Prometheus pero:
 - [ ] Sin dashboard de funnel de conversión
@@ -232,6 +255,7 @@ MetricsController exporta Prometheus pero:
 ```
 
 ### 24. **A/B Testing Framework** 🟢
+
 ```
 Feature flags backend listo
 Falta:
@@ -241,6 +265,7 @@ Falta:
 ```
 
 ### 25. **Optimización de Imágenes** 🟢
+
 ```
 Falta:
 - [ ] Conversión automática a WebP
@@ -249,6 +274,7 @@ Falta:
 ```
 
 ### 26. **Compression y Caching** 🟢
+
 ```
 Falta:
 - [ ] Brotli compression (más eficiente que gzip)
@@ -257,6 +283,7 @@ Falta:
 ```
 
 ### 27. **Audit Logging Mejorado** 🟢
+
 ```
 lib/audit.php existe pero:
 - [ ] Sin exportación a SIEM
@@ -265,6 +292,7 @@ lib/audit.php existe pero:
 ```
 
 ### 28. **Backup Offsite Automatizado** 🟢
+
 ```
 backup-receiver.php existe pero:
 - [ ] Sin verificación de integridad
@@ -273,6 +301,7 @@ backup-receiver.php existe pero:
 ```
 
 ### 29. **Cron Mejorado** 🟢
+
 ```
 cron.php existe pero:
 - [ ] Sin cola de tareas (solo ejecución directa)
@@ -281,6 +310,7 @@ cron.php existe pero:
 ```
 
 ### 30. **Email Templates** 🟢
+
 ```
 lib/email.php usa texto plano
 Falta:
@@ -290,6 +320,7 @@ Falta:
 ```
 
 ### 31. **SMS Notifications** 🟢
+
 ```
 No implementado
 Proveedores sugeridos: Twilio, Vonage
@@ -297,6 +328,7 @@ Uso: Recordatorios de citas, confirmaciones
 ```
 
 ### 32. **Push Notifications** 🟢
+
 ```
 SW existe pero:
 - [ ] Sin suscripción push
@@ -305,6 +337,7 @@ SW existe pero:
 ```
 
 ### 33. **Chatbot Mejorado** 🟢
+
 ```
 Figo funciona pero:
 - [ ] Sin memoria de conversaciones largas
@@ -313,6 +346,7 @@ Figo funciona pero:
 ```
 
 ### 34. **Reportes Automatizados** 🟢
+
 ```
 Falta:
 - [ ] Reporte semanal de citas por email
@@ -321,6 +355,7 @@ Falta:
 ```
 
 ### 35. **Multi-tenant** 🟢
+
 ```
 Estructura actual: Single-tenant
 Para escalar a múltiples clínicas:
@@ -334,6 +369,7 @@ Para escalar a múltiples clínicas:
 ## ⚪ P3 - FUTUROS (Innovación/Escalabilidad)
 
 ### 36. **Machine Learning Pipeline** ⚪
+
 ```
 Usos:
 - Predicción de demanda
@@ -342,6 +378,7 @@ Usos:
 ```
 
 ### 37. **Mobile App** ⚪
+
 ```
 Opciones:
 - PWA con capacidades nativas
@@ -350,6 +387,7 @@ Opciones:
 ```
 
 ### 38. **Telemedicina Completa** ⚪
+
 ```
 telemedicina.html existe pero básico
 Falta:
@@ -359,6 +397,7 @@ Falta:
 ```
 
 ### 39. **Integraciones Terceros** ⚪
+
 ```
 - Google Calendar API
 - Microsoft Outlook
@@ -367,6 +406,7 @@ Falta:
 ```
 
 ### 40. **Facturación Electrónica** ⚪
+
 ```
 Para Ecuador:
 - [ ] Integración SRI
@@ -375,6 +415,7 @@ Para Ecuador:
 ```
 
 ### 41. **Sistema de Referidos** ⚪
+
 ```
 - [ ] Códigos de referido únicos
 - [ ] Tracking de conversiones
@@ -382,6 +423,7 @@ Para Ecuador:
 ```
 
 ### 42. **Programa de Fidelización** ⚪
+
 ```
 - [ ] Puntos por visitas
 - [ ] Descuentos por frecuencia
@@ -389,6 +431,7 @@ Para Ecuador:
 ```
 
 ### 43. **API Pública Documentada** ⚪
+
 ```
 - [ ] OpenAPI/Swagger spec
 - [ ] API keys para terceros
@@ -396,6 +439,7 @@ Para Ecuador:
 ```
 
 ### 44. **White-label** ⚪
+
 ```
 Para franquicias:
 - [ ] Branding configurable
@@ -404,6 +448,7 @@ Para franquicias:
 ```
 
 ### 45. **Compliance GDPR Completo** ⚪
+
 ```
 - [ ] Derecho al olvido automatizado
 - [ ] Exportación de datos (portabilidad)
@@ -411,12 +456,14 @@ Para franquicias:
 ```
 
 ### 46. **Blockchain para Certificados** ⚪
+
 ```
 Uso: Certificados de tratamientos
 Beneficio: Inmutabilidad, verificación
 ```
 
 ### 47. **Real-time Analytics** ⚪
+
 ```
 Actual: Métricas batch
 Futuro: Dashboard en tiempo real
@@ -428,6 +475,7 @@ Tecnología: WebSockets, Kafka
 ## 📊 PRIORIZACIÓN POR IMPACTO/ESFUERZO
 
 ### Quick Wins (Alto impacto, Bajo esfuerzo)
+
 1. ✅ ~~Eliminar archivos temporales~~ (HECHO)
 2. ✅ ~~Limpiar ramas Git~~ (HECHO)
 3. 🔴 Eliminar proxy.php deprecado
@@ -436,6 +484,7 @@ Tecnología: WebSockets, Kafka
 6. 🟡 Feature flags en frontend
 
 ### Proyectos Medianos (2-4 semanas)
+
 7. 🟡 Completar migración ES6
 8. 🟡 Optimizar index.html
 9. 🟢 Redis rate limiting
@@ -443,6 +492,7 @@ Tecnología: WebSockets, Kafka
 11. 🟢 CSP estricto
 
 ### Proyectos Grandes (1-3 meses)
+
 12. 🟢 Dynamic pricing completo
 13. 🟢 No-show prediction ML
 14. 🟢 Mobile app PWA
@@ -454,6 +504,7 @@ Tecnología: WebSockets, Kafka
 ## 🎯 RECOMENDACIÓN DE ORDEN
 
 ### Esta Semana (Sprint 1)
+
 ```bash
 1. Eliminar proxy.php deprecado
 2. Remover debug expuesto de producción
@@ -462,6 +513,7 @@ Tecnología: WebSockets, Kafka
 ```
 
 ### Próximo Mes (Sprints 2-4)
+
 ```bash
 5. Completar migración ES6
 6. Optimizar index.html (<80KB)
@@ -470,6 +522,7 @@ Tecnología: WebSockets, Kafka
 ```
 
 ### Trimestre (Sprints 5-12)
+
 ```bash
 9. Dynamic pricing + No-show prediction
 10. Mobile app PWA completa
@@ -479,5 +532,5 @@ Tecnología: WebSockets, Kafka
 
 ---
 
-*Documento generado: 21 de Febrero de 2026*  
-*Análisis de: ~150 archivos, ~140,000 líneas de código*
+_Documento generado: 21 de Febrero de 2026_
+_Análisis de: ~150 archivos, ~140,000 líneas de código_

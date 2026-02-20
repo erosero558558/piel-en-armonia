@@ -8,7 +8,9 @@
     let stars = [];
 
     function getLang() {
-        return deps && typeof deps.getCurrentLang === 'function' ? deps.getCurrentLang() : 'es';
+        return deps && typeof deps.getCurrentLang === 'function'
+            ? deps.getCurrentLang()
+            : 'es';
     }
 
     function t(esText, enText) {
@@ -17,7 +19,9 @@
 
     function getCaptchaToken(action) {
         try {
-            return deps.getCaptchaToken ? deps.getCaptchaToken(action) : Promise.resolve(null);
+            return deps.getCaptchaToken
+                ? deps.getCaptchaToken(action)
+                : Promise.resolve(null);
         } catch (e) {
             return Promise.resolve(null);
         }
@@ -42,7 +46,10 @@
 
     function bindCallbackForm() {
         const callbackForm = document.getElementById('callbackForm');
-        if (!callbackForm || callbackForm.dataset.callbackEngineBound === 'true') {
+        if (
+            !callbackForm ||
+            callbackForm.dataset.callbackEngineBound === 'true'
+        ) {
             return;
         }
         callbackForm.dataset.callbackEngineBound = 'true';
@@ -54,7 +61,8 @@
             const originalContent = submitBtn ? submitBtn.innerHTML : '';
             if (submitBtn) {
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+                submitBtn.innerHTML =
+                    '<i class="fas fa-spinner fa-spin"></i> Enviando...';
             }
 
             const formData = new FormData(this);
@@ -65,7 +73,7 @@
                 preferencia: formData.get('preferencia'),
                 fecha: new Date().toISOString(),
                 status: 'pendiente',
-                captchaToken: token
+                captchaToken: token,
             };
 
             try {
@@ -74,7 +82,10 @@
                 }
                 if (deps && typeof deps.showToast === 'function') {
                     deps.showToast(
-                        t('Solicitud enviada. Te llamaremos pronto.', 'Request sent. We will call you soon.'),
+                        t(
+                            'Solicitud enviada. Te llamaremos pronto.',
+                            'Request sent. We will call you soon.'
+                        ),
                         'success'
                     );
                 }
@@ -82,7 +93,10 @@
             } catch (error) {
                 if (deps && typeof deps.showToast === 'function') {
                     deps.showToast(
-                        t('No se pudo enviar tu solicitud. Intenta de nuevo.', 'We could not send your request. Try again.'),
+                        t(
+                            'No se pudo enviar tu solicitud. Intenta de nuevo.',
+                            'We could not send your request. Try again.'
+                        ),
                         'error'
                     );
                 }
@@ -97,7 +111,9 @@
 
     function bindReviewForm() {
         const reviewForm = document.getElementById('reviewForm');
-        const reviewStars = Array.from(document.querySelectorAll('.star-rating i'));
+        const reviewStars = Array.from(
+            document.querySelectorAll('.star-rating i')
+        );
         if (!reviewForm || reviewForm.dataset.reviewEngineBound === 'true') {
             stars = reviewStars;
             return;
@@ -117,7 +133,12 @@
             e.preventDefault();
 
             if (selectedRating === 0) {
-                alert(t('Por favor selecciona una calificacion', 'Please select a rating'));
+                alert(
+                    t(
+                        'Por favor selecciona una calificacion',
+                        'Please select a rating'
+                    )
+                );
                 return;
             }
 
@@ -130,18 +151,25 @@
                 text: formData.get('reviewText'),
                 date: new Date().toISOString(),
                 verified: true,
-                captchaToken: token
+                captchaToken: token,
             };
 
             try {
-                const savedReview = deps && typeof deps.createReviewRecord === 'function'
-                    ? await deps.createReviewRecord(review)
-                    : review;
+                const savedReview =
+                    deps && typeof deps.createReviewRecord === 'function'
+                        ? await deps.createReviewRecord(review)
+                        : review;
 
-                const currentReviews = deps && typeof deps.getReviewsCache === 'function'
-                    ? deps.getReviewsCache()
-                    : [];
-                const mergedReviews = [savedReview, ...currentReviews.filter((item) => item.id !== savedReview.id)];
+                const currentReviews =
+                    deps && typeof deps.getReviewsCache === 'function'
+                        ? deps.getReviewsCache()
+                        : [];
+                const mergedReviews = [
+                    savedReview,
+                    ...currentReviews.filter(
+                        (item) => item.id !== savedReview.id
+                    ),
+                ];
 
                 if (deps && typeof deps.setReviewsCache === 'function') {
                     deps.setReviewsCache(mergedReviews);
@@ -152,7 +180,10 @@
 
                 if (deps && typeof deps.showToast === 'function') {
                     deps.showToast(
-                        t('Gracias por tu reseña.', 'Thank you for your review.'),
+                        t(
+                            'Gracias por tu reseña.',
+                            'Thank you for your review.'
+                        ),
                         'success'
                     );
                 }
@@ -164,7 +195,10 @@
             } catch (error) {
                 if (deps && typeof deps.showToast === 'function') {
                     deps.showToast(
-                        t('No pudimos guardar tu reseña. Intenta nuevamente.', 'We could not save your review. Try again.'),
+                        t(
+                            'No pudimos guardar tu reseña. Intenta nuevamente.',
+                            'We could not save your review. Try again.'
+                        ),
                         'error'
                     );
                 }
@@ -202,7 +236,7 @@
         init,
         isInitialized,
         openReviewModal,
-        closeReviewModal
+        closeReviewModal,
     };
 })();
 (function () {

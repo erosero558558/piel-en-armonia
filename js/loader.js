@@ -12,11 +12,18 @@ export function loadDeferredModule(options) {
         onModuleReady,
         missingApiError = 'Deferred module loaded without expected API',
         loadError = 'No se pudo cargar el modulo diferido',
-        logLabel = ''
+        logLabel = '',
     } = options || {};
 
-    if (!cacheKey || !src || !scriptDataAttribute || typeof resolveModule !== 'function') {
-        return Promise.reject(new Error('Invalid deferred module configuration'));
+    if (
+        !cacheKey ||
+        !src ||
+        !scriptDataAttribute ||
+        typeof resolveModule !== 'function'
+    ) {
+        return Promise.reject(
+            new Error('Invalid deferred module configuration')
+        );
     }
 
     const getReadyModule = () => {
@@ -53,7 +60,11 @@ export function loadDeferredModule(options) {
 
         import(src)
             .then(() => {
-                if (!document.querySelector('script[' + scriptDataAttribute + '="true"]')) {
+                if (
+                    !document.querySelector(
+                        'script[' + scriptDataAttribute + '="true"]'
+                    )
+                ) {
                     const marker = document.createElement('script');
                     marker.setAttribute(scriptDataAttribute, 'true');
                     marker.dataset.dynamicImport = 'true';
@@ -82,7 +93,7 @@ export function scheduleDeferredTask(task, options = {}) {
         idleTimeout = 2000,
         fallbackDelay = 1200,
         skipOnConstrained = true,
-        constrainedDelay = fallbackDelay
+        constrainedDelay = fallbackDelay,
     } = options;
 
     if (isConstrainedNetworkConnection()) {
@@ -135,9 +146,11 @@ export function createWarmupRunner(loadFn, options = {}) {
         }
 
         if (markWarmOnSuccess) {
-            Promise.resolve(loadFn()).then(() => {
-                warmed = true;
-            }).catch(() => undefined);
+            Promise.resolve(loadFn())
+                .then(() => {
+                    warmed = true;
+                })
+                .catch(() => undefined);
             return;
         }
 
@@ -149,11 +162,7 @@ export function createWarmupRunner(loadFn, options = {}) {
 }
 
 export function observeOnceWhenVisible(element, onVisible, options = {}) {
-    const {
-        threshold = 0.05,
-        rootMargin = '0px',
-        onNoObserver
-    } = options;
+    const { threshold = 0.05, rootMargin = '0px', onNoObserver } = options;
 
     if (!element) {
         return false;
@@ -166,18 +175,21 @@ export function observeOnceWhenVisible(element, onVisible, options = {}) {
         return false;
     }
 
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-            if (!entry.isIntersecting) {
-                return;
-            }
-            onVisible(entry);
-            observer.disconnect();
-        });
-    }, {
-        threshold,
-        rootMargin
-    });
+    const observer = new IntersectionObserver(
+        (entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) {
+                    return;
+                }
+                onVisible(entry);
+                observer.disconnect();
+            });
+        },
+        {
+            threshold,
+            rootMargin,
+        }
+    );
 
     observer.observe(element);
     return true;

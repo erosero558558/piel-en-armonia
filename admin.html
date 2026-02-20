@@ -1,335 +1,495 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data:; connect-src 'self'; form-action 'self';">
-    <title>Panel de Administración - Piel en Armonía</title>
-    <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="admin.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="js/monitoring-loader.js" async></script>
-</head>
-<body class="admin-body">
-    <!-- Login Screen -->
-    <div id="loginScreen" class="login-screen">
-        <div class="login-box">
-            <div class="login-logo">
-                <i class="fas fa-spa"></i>
-                <h1>Panel de Administración</h1>
-                <p>Piel en Armonía</p>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data:; connect-src 'self'; form-action 'self';"
+        />
+        <title>Panel de Administración - Piel en Armonía</title>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="stylesheet" href="styles.css" />
+        <link rel="stylesheet" href="admin.css" />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        />
+        <script src="js/monitoring-loader.js" async></script>
+    </head>
+    <body class="admin-body">
+        <!-- Login Screen -->
+        <div id="loginScreen" class="login-screen">
+            <div class="login-box">
+                <div class="login-logo">
+                    <i class="fas fa-spa"></i>
+                    <h1>Panel de Administración</h1>
+                    <p>Piel en Armonía</p>
+                </div>
+                <form id="loginForm" class="login-form">
+                    <div class="form-group" id="passwordGroup">
+                        <label>Contraseña</label>
+                        <input
+                            type="password"
+                            id="adminPassword"
+                            placeholder="Ingrese contraseña"
+                            required
+                        />
+                    </div>
+                    <div class="form-group is-hidden" id="group2FA">
+                        <label>Código 2FA</label>
+                        <input
+                            type="text"
+                            id="admin2FACode"
+                            placeholder="000000"
+                            maxlength="6"
+                            pattern="[0-9]*"
+                            autocomplete="one-time-code"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        class="btn btn-primary btn-full"
+                        id="loginBtn"
+                    >
+                        <i class="fas fa-sign-in-alt"></i>
+                        Ingresar
+                    </button>
+                </form>
+                <p class="login-hint">
+                    Configura la clave en
+                    <code>PIELARMONIA_ADMIN_PASSWORD</code> en producción.
+                </p>
+                <a href="index.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i>
+                    Volver al sitio
+                </a>
             </div>
-            <form id="loginForm" class="login-form">
-                <div class="form-group" id="passwordGroup">
-                    <label>Contraseña</label>
-                    <input type="password" id="adminPassword" placeholder="Ingrese contraseña" required>
-                </div>
-                <div class="form-group is-hidden" id="group2FA">
-                    <label>Código 2FA</label>
-                    <input type="text" id="admin2FACode" placeholder="000000" maxlength="6" pattern="[0-9]*" autocomplete="one-time-code">
-                </div>
-                <button type="submit" class="btn btn-primary btn-full" id="loginBtn">
-                    <i class="fas fa-sign-in-alt"></i>
-                    Ingresar
-                </button>
-            </form>
-            <p class="login-hint">Configura la clave en <code>PIELARMONIA_ADMIN_PASSWORD</code> en producción.</p>
-            <a href="index.html" class="back-link">
-                <i class="fas fa-arrow-left"></i>
-                Volver al sitio
-            </a>
         </div>
-    </div>
 
-    <!-- Admin Dashboard -->
-    <div id="adminDashboard" class="admin-dashboard is-hidden">
-        <!-- Sidebar -->
-        <aside class="admin-sidebar">
-            <div class="sidebar-header">
-                <i class="fas fa-spa"></i>
-                <span>Piel en Armonía</span>
-            </div>
-            
-            <nav class="sidebar-nav">
-                <a href="#dashboard" class="nav-item active" data-section="dashboard">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="#appointments" class="nav-item" data-section="appointments">
-                    <i class="fas fa-calendar-check"></i>
-                    <span>Citas</span>
-                    <span class="badge" id="appointmentsBadge">0</span>
-                </a>
-                <a href="#callbacks" class="nav-item" data-section="callbacks">
-                    <i class="fas fa-phone-alt"></i>
-                    <span>Callbacks</span>
-                    <span class="badge" id="callbacksBadge">0</span>
-                </a>
-                <a href="#reviews" class="nav-item" data-section="reviews">
-                    <i class="fas fa-star"></i>
-                    <span>Reseñas</span>
-                    <span class="badge" id="reviewsBadge">0</span>
-                </a>
-                <a href="#availability" class="nav-item" data-section="availability">
-                    <i class="fas fa-clock"></i>
-                    <span>Disponibilidad</span>
-                </a>
-            </nav>
-            
-            <div class="sidebar-footer">
-                <button type="button" class="logout-btn" data-action="logout">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Cerrar Sesión</span>
-                </button>
-            </div>
-        </aside>
+        <!-- Admin Dashboard -->
+        <div id="adminDashboard" class="admin-dashboard is-hidden">
+            <!-- Sidebar -->
+            <aside class="admin-sidebar">
+                <div class="sidebar-header">
+                    <i class="fas fa-spa"></i>
+                    <span>Piel en Armonía</span>
+                </div>
 
-        <!-- Main Content -->
-        <main class="admin-main">
-            <!-- Header -->
-            <header class="admin-header">
-                <h2 id="pageTitle">Dashboard</h2>
-                <div class="header-actions">
-                    <span class="current-date" id="currentDate"></span>
-                    <button type="button" class="btn btn-secondary btn-sm" data-action="export-data">
-                        <i class="fas fa-download"></i>
-                        Exportar Datos
+                <nav class="sidebar-nav">
+                    <a
+                        href="#dashboard"
+                        class="nav-item active"
+                        data-section="dashboard"
+                    >
+                        <i class="fas fa-chart-line"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a
+                        href="#appointments"
+                        class="nav-item"
+                        data-section="appointments"
+                    >
+                        <i class="fas fa-calendar-check"></i>
+                        <span>Citas</span>
+                        <span class="badge" id="appointmentsBadge">0</span>
+                    </a>
+                    <a
+                        href="#callbacks"
+                        class="nav-item"
+                        data-section="callbacks"
+                    >
+                        <i class="fas fa-phone-alt"></i>
+                        <span>Callbacks</span>
+                        <span class="badge" id="callbacksBadge">0</span>
+                    </a>
+                    <a href="#reviews" class="nav-item" data-section="reviews">
+                        <i class="fas fa-star"></i>
+                        <span>Reseñas</span>
+                        <span class="badge" id="reviewsBadge">0</span>
+                    </a>
+                    <a
+                        href="#availability"
+                        class="nav-item"
+                        data-section="availability"
+                    >
+                        <i class="fas fa-clock"></i>
+                        <span>Disponibilidad</span>
+                    </a>
+                </nav>
+
+                <div class="sidebar-footer">
+                    <button
+                        type="button"
+                        class="logout-btn"
+                        data-action="logout"
+                    >
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Cerrar Sesión</span>
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm" data-action="open-import-file">
-                        <i class="fas fa-upload"></i>
-                        Importar Datos
-                    </button>
-                    <input type="file" id="importFileInput" accept=".json" class="is-hidden">
                 </div>
-            </header>
+            </aside>
 
-            <!-- Dashboard Section -->
-            <section id="dashboard" class="admin-section active">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon blue">
-                            <i class="fas fa-calendar-check"></i>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-number" id="totalAppointments">0</span>
-                            <span class="stat-label">Citas Totales</span>
-                        </div>
+            <!-- Main Content -->
+            <main class="admin-main">
+                <!-- Header -->
+                <header class="admin-header">
+                    <h2 id="pageTitle">Dashboard</h2>
+                    <div class="header-actions">
+                        <span class="current-date" id="currentDate"></span>
+                        <button
+                            type="button"
+                            class="btn btn-secondary btn-sm"
+                            data-action="export-data"
+                        >
+                            <i class="fas fa-download"></i>
+                            Exportar Datos
+                        </button>
+                        <button
+                            type="button"
+                            class="btn btn-secondary btn-sm"
+                            data-action="open-import-file"
+                        >
+                            <i class="fas fa-upload"></i>
+                            Importar Datos
+                        </button>
+                        <input
+                            type="file"
+                            id="importFileInput"
+                            accept=".json"
+                            class="is-hidden"
+                        />
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon green">
-                            <i class="fas fa-calendar-day"></i>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-number" id="todayAppointments">0</span>
-                            <span class="stat-label">Citas Hoy</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon orange">
-                            <i class="fas fa-phone-alt"></i>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-number" id="pendingCallbacks">0</span>
-                            <span class="stat-label">Callbacks Pendientes</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon purple">
-                            <i class="fas fa-star"></i>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-number" id="avgRating">0.0</span>
-                            <span class="stat-label">Rating Promedio</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon red">
-                            <i class="fas fa-funnel-dollar"></i>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-number" id="checkoutConversionRate">0%</span>
-                            <span class="stat-label">Conversion Checkout</span>
-                        </div>
-                    </div>
-                </div>
+                </header>
 
-                <div class="dashboard-grid">
-                    <div class="dashboard-card">
-                        <h3><i class="fas fa-calendar-day"></i> Citas de Hoy</h3>
-                        <div class="upcoming-list" id="todayAppointmentsList">
-                            <p class="empty-message">No hay citas para hoy</p>
-                        </div>
-                    </div>
-                    <div class="dashboard-card">
-                        <h3><i class="fas fa-phone-alt"></i> Callbacks Recientes</h3>
-                        <div class="upcoming-list" id="recentCallbacksList">
-                            <p class="empty-message">No hay callbacks pendientes</p>
-                        </div>
-                    </div>
-                    <div class="dashboard-card">
-                        <h3><i class="fas fa-chart-line"></i> Embudo de Reserva</h3>
-                        <div class="funnel-summary" id="funnelSummary">
-                            <div class="funnel-chip">
-                                <span class="funnel-chip-label">Ver reserva</span>
-                                <span class="funnel-chip-value" id="funnelViewBooking">0</span>
+                <!-- Dashboard Section -->
+                <section id="dashboard" class="admin-section active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon blue">
+                                <i class="fas fa-calendar-check"></i>
                             </div>
-                            <div class="funnel-chip">
-                                <span class="funnel-chip-label">Inician checkout</span>
-                                <span class="funnel-chip-value" id="funnelStartCheckout">0</span>
-                            </div>
-                            <div class="funnel-chip">
-                                <span class="funnel-chip-label">Confirman cita</span>
-                                <span class="funnel-chip-value" id="funnelBookingConfirmed">0</span>
-                            </div>
-                            <div class="funnel-chip">
-                                <span class="funnel-chip-label">Abandono</span>
-                                <span class="funnel-chip-value" id="funnelAbandonRate">0%</span>
+                            <div class="stat-info">
+                                <span class="stat-number" id="totalAppointments"
+                                    >0</span
+                                >
+                                <span class="stat-label">Citas Totales</span>
                             </div>
                         </div>
-                        <div class="funnel-breakdown">
-                            <h4>Abandono por paso</h4>
-                            <div class="funnel-list" id="funnelAbandonList">
-                                <p class="empty-message">Sin datos de abandono</p>
+                        <div class="stat-card">
+                            <div class="stat-icon green">
+                                <i class="fas fa-calendar-day"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-number" id="todayAppointments"
+                                    >0</span
+                                >
+                                <span class="stat-label">Citas Hoy</span>
                             </div>
                         </div>
-                        <div class="funnel-breakdown">
-                            <h4>Entrada al checkout</h4>
-                            <div class="funnel-list" id="funnelEntryList">
-                                <p class="empty-message">Sin datos de entrada</p>
+                        <div class="stat-card">
+                            <div class="stat-icon orange">
+                                <i class="fas fa-phone-alt"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-number" id="pendingCallbacks"
+                                    >0</span
+                                >
+                                <span class="stat-label"
+                                    >Callbacks Pendientes</span
+                                >
                             </div>
                         </div>
-                        <div class="funnel-breakdown">
-                            <h4>Método de pago seleccionado</h4>
-                            <div class="funnel-list" id="funnelPaymentMethodList">
-                                <p class="empty-message">Sin datos de pago</p>
+                        <div class="stat-card">
+                            <div class="stat-icon purple">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-number" id="avgRating"
+                                    >0.0</span
+                                >
+                                <span class="stat-label">Rating Promedio</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon red">
+                                <i class="fas fa-funnel-dollar"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span
+                                    class="stat-number"
+                                    id="checkoutConversionRate"
+                                    >0%</span
+                                >
+                                <span class="stat-label"
+                                    >Conversion Checkout</span
+                                >
                             </div>
                         </div>
                     </div>
-                </div>
-            </section>
 
-            <!-- Appointments Section -->
-            <section id="appointments" class="admin-section">
-                <div class="section-toolbar">
-                    <div class="filter-group">
-                        <select id="appointmentFilter">
-                            <option value="all">Todas las citas</option>
-                            <option value="today">Hoy</option>
-                            <option value="week">Esta semana</option>
-                            <option value="month">Este mes</option>
-                            <option value="confirmed">Confirmadas</option>
-                            <option value="cancelled">Canceladas</option>
-                            <option value="pending_transfer">Transferencias por validar</option>
-                        </select>
-                    </div>
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="searchAppointments" placeholder="Buscar paciente...">
-                    </div>
-                </div>
-
-                <div class="table-container">
-                    <table class="data-table" id="appointmentsTable">
-                        <thead>
-                            <tr>
-                                <th>Paciente</th>
-                                <th>Servicio</th>
-                                <th>Doctor</th>
-                                <th>Fecha</th>
-                                <th>Hora</th>
-                                <th>Precio</th>
-                                <th>Estado</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="appointmentsTableBody">
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- Callbacks Section -->
-            <section id="callbacks" class="admin-section">
-                <div class="section-toolbar">
-                    <div class="filter-group">
-                        <select id="callbackFilter">
-                            <option value="all">Todos</option>
-                            <option value="pending">Pendientes</option>
-                            <option value="contacted">Contactados</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="callbacks-grid" id="callbacksGrid">
-                </div>
-            </section>
-
-            <!-- Reviews Section -->
-            <section id="reviews" class="admin-section">
-                <div class="reviews-stats">
-                    <div class="rating-summary">
-                        <span class="big-rating" id="adminAvgRating">4.9</span>
-                        <div class="rating-stars" id="adminRatingStars">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card">
+                            <h3>
+                                <i class="fas fa-calendar-day"></i> Citas de Hoy
+                            </h3>
+                            <div
+                                class="upcoming-list"
+                                id="todayAppointmentsList"
+                            >
+                                <p class="empty-message">
+                                    No hay citas para hoy
+                                </p>
+                            </div>
                         </div>
-                        <span class="total-reviews" id="totalReviewsCount">0 reseñas</span>
+                        <div class="dashboard-card">
+                            <h3>
+                                <i class="fas fa-phone-alt"></i> Callbacks
+                                Recientes
+                            </h3>
+                            <div class="upcoming-list" id="recentCallbacksList">
+                                <p class="empty-message">
+                                    No hay callbacks pendientes
+                                </p>
+                            </div>
+                        </div>
+                        <div class="dashboard-card">
+                            <h3>
+                                <i class="fas fa-chart-line"></i> Embudo de
+                                Reserva
+                            </h3>
+                            <div class="funnel-summary" id="funnelSummary">
+                                <div class="funnel-chip">
+                                    <span class="funnel-chip-label"
+                                        >Ver reserva</span
+                                    >
+                                    <span
+                                        class="funnel-chip-value"
+                                        id="funnelViewBooking"
+                                        >0</span
+                                    >
+                                </div>
+                                <div class="funnel-chip">
+                                    <span class="funnel-chip-label"
+                                        >Inician checkout</span
+                                    >
+                                    <span
+                                        class="funnel-chip-value"
+                                        id="funnelStartCheckout"
+                                        >0</span
+                                    >
+                                </div>
+                                <div class="funnel-chip">
+                                    <span class="funnel-chip-label"
+                                        >Confirman cita</span
+                                    >
+                                    <span
+                                        class="funnel-chip-value"
+                                        id="funnelBookingConfirmed"
+                                        >0</span
+                                    >
+                                </div>
+                                <div class="funnel-chip">
+                                    <span class="funnel-chip-label"
+                                        >Abandono</span
+                                    >
+                                    <span
+                                        class="funnel-chip-value"
+                                        id="funnelAbandonRate"
+                                        >0%</span
+                                    >
+                                </div>
+                            </div>
+                            <div class="funnel-breakdown">
+                                <h4>Abandono por paso</h4>
+                                <div class="funnel-list" id="funnelAbandonList">
+                                    <p class="empty-message">
+                                        Sin datos de abandono
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="funnel-breakdown">
+                                <h4>Entrada al checkout</h4>
+                                <div class="funnel-list" id="funnelEntryList">
+                                    <p class="empty-message">
+                                        Sin datos de entrada
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="funnel-breakdown">
+                                <h4>Método de pago seleccionado</h4>
+                                <div
+                                    class="funnel-list"
+                                    id="funnelPaymentMethodList"
+                                >
+                                    <p class="empty-message">
+                                        Sin datos de pago
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </section>
 
-                <div class="reviews-grid-admin" id="reviewsGrid">
-                </div>
-            </section>
-
-            <!-- Availability Section -->
-            <section id="availability" class="admin-section">
-                <div class="availability-container">
-                    <div class="availability-calendar">
-                        <h3>Configurar Horarios Disponibles</h3>
-                        <div class="calendar-header">
-                            <button type="button" class="btn-icon" data-action="change-month" data-delta="-1">
-                                <i class="fas fa-chevron-left"></i>
-                            </button>
-                            <span id="calendarMonth">Enero 2024</span>
-                            <button type="button" class="btn-icon" data-action="change-month" data-delta="1">
-                                <i class="fas fa-chevron-right"></i>
-                            </button>
+                <!-- Appointments Section -->
+                <section id="appointments" class="admin-section">
+                    <div class="section-toolbar">
+                        <div class="filter-group">
+                            <select id="appointmentFilter">
+                                <option value="all">Todas las citas</option>
+                                <option value="today">Hoy</option>
+                                <option value="week">Esta semana</option>
+                                <option value="month">Este mes</option>
+                                <option value="confirmed">Confirmadas</option>
+                                <option value="cancelled">Canceladas</option>
+                                <option value="pending_transfer">
+                                    Transferencias por validar
+                                </option>
+                            </select>
                         </div>
-                        <div class="calendar-grid" id="availabilityCalendar">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input
+                                type="text"
+                                id="searchAppointments"
+                                placeholder="Buscar paciente..."
+                            />
                         </div>
                     </div>
 
-                    <div class="time-slots-config">
-                        <h3>Horarios del Día</h3>
-                        <p class="selected-date" id="selectedDate">Selecciona una fecha</p>
-                        
-                        <div class="time-slots-list" id="timeSlotsList">
-                            <p class="empty-message">Selecciona una fecha para ver los horarios</p>
-                        </div>
+                    <div class="table-container">
+                        <table class="data-table" id="appointmentsTable">
+                            <thead>
+                                <tr>
+                                    <th>Paciente</th>
+                                    <th>Servicio</th>
+                                    <th>Doctor</th>
+                                    <th>Fecha</th>
+                                    <th>Hora</th>
+                                    <th>Precio</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="appointmentsTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
 
-                        <div class="add-slot-form is-hidden" id="addSlotForm">
-                            <h4>Agregar Horario</h4>
-                            <div class="form-row">
-                                <input type="time" id="newSlotTime" required>
-                                <button type="button" class="btn btn-primary btn-sm" data-action="add-time-slot">
-                                    <i class="fas fa-plus"></i>
+                <!-- Callbacks Section -->
+                <section id="callbacks" class="admin-section">
+                    <div class="section-toolbar">
+                        <div class="filter-group">
+                            <select id="callbackFilter">
+                                <option value="all">Todos</option>
+                                <option value="pending">Pendientes</option>
+                                <option value="contacted">Contactados</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="callbacks-grid" id="callbacksGrid"></div>
+                </section>
+
+                <!-- Reviews Section -->
+                <section id="reviews" class="admin-section">
+                    <div class="reviews-stats">
+                        <div class="rating-summary">
+                            <span class="big-rating" id="adminAvgRating"
+                                >4.9</span
+                            >
+                            <div class="rating-stars" id="adminRatingStars">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <span class="total-reviews" id="totalReviewsCount"
+                                >0 reseñas</span
+                            >
+                        </div>
+                    </div>
+
+                    <div class="reviews-grid-admin" id="reviewsGrid"></div>
+                </section>
+
+                <!-- Availability Section -->
+                <section id="availability" class="admin-section">
+                    <div class="availability-container">
+                        <div class="availability-calendar">
+                            <h3>Configurar Horarios Disponibles</h3>
+                            <div class="calendar-header">
+                                <button
+                                    type="button"
+                                    class="btn-icon"
+                                    data-action="change-month"
+                                    data-delta="-1"
+                                >
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <span id="calendarMonth">Enero 2024</span>
+                                <button
+                                    type="button"
+                                    class="btn-icon"
+                                    data-action="change-month"
+                                    data-delta="1"
+                                >
+                                    <i class="fas fa-chevron-right"></i>
                                 </button>
                             </div>
+                            <div
+                                class="calendar-grid"
+                                id="availabilityCalendar"
+                            ></div>
+                        </div>
+
+                        <div class="time-slots-config">
+                            <h3>Horarios del Día</h3>
+                            <p class="selected-date" id="selectedDate">
+                                Selecciona una fecha
+                            </p>
+
+                            <div class="time-slots-list" id="timeSlotsList">
+                                <p class="empty-message">
+                                    Selecciona una fecha para ver los horarios
+                                </p>
+                            </div>
+
+                            <div
+                                class="add-slot-form is-hidden"
+                                id="addSlotForm"
+                            >
+                                <h4>Agregar Horario</h4>
+                                <div class="form-row">
+                                    <input
+                                        type="time"
+                                        id="newSlotTime"
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        class="btn btn-primary btn-sm"
+                                        data-action="add-time-slot"
+                                    >
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </section>
-        </main>
-    </div>
+                </section>
+            </main>
+        </div>
 
-    <!-- Toast Container -->
-    <div id="toastContainer" class="toast-container"></div>
+        <!-- Toast Container -->
+        <div id="toastContainer" class="toast-container"></div>
 
-    <script src="admin.js" defer></script>
-</body>
+        <script src="utils.js" defer></script>
+        <script src="admin.js" defer></script>
+    </body>
 </html>

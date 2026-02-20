@@ -1,5 +1,16 @@
-import { API_ENDPOINT, API_REQUEST_TIMEOUT_MS, API_DEFAULT_RETRIES, API_SLOW_NOTICE_MS, API_SLOW_NOTICE_COOLDOWN_MS, API_RETRY_BASE_DELAY_MS } from './config.js';
-import { state } from './state.js';
+import {
+    API_ENDPOINT,
+    API_REQUEST_TIMEOUT_MS,
+    API_DEFAULT_RETRIES,
+    API_SLOW_NOTICE_MS,
+    API_SLOW_NOTICE_COOLDOWN_MS,
+    API_RETRY_BASE_DELAY_MS,
+} from './config.js';
+import {
+    getCurrentLang,
+    getApiSlowNoticeLastAt,
+    setApiSlowNoticeLastAt,
+} from './state.js';
 import { showToast, waitMs } from './utils.js';
 
 export async function apiRequest(resource, options = {}) {
@@ -17,8 +28,8 @@ export async function apiRequest(resource, options = {}) {
         method: method,
         credentials: 'same-origin',
         headers: {
-            'Accept': 'application/json'
-        }
+            Accept: 'application/json',
+        },
     };
 
     if (options.body !== undefined) {
@@ -26,10 +37,14 @@ export async function apiRequest(resource, options = {}) {
         requestInit.body = JSON.stringify(options.body);
     }
 
-    const timeoutMs = Number.isFinite(options.timeoutMs) ? Math.max(1500, Number(options.timeoutMs)) : API_REQUEST_TIMEOUT_MS;
+    const timeoutMs = Number.isFinite(options.timeoutMs)
+        ? Math.max(1500, Number(options.timeoutMs))
+        : API_REQUEST_TIMEOUT_MS;
     const maxRetries = Number.isInteger(options.retries)
         ? Math.max(0, Number(options.retries))
-        : (method === 'GET' ? API_DEFAULT_RETRIES : 0);
+        : method === 'GET'
+          ? API_DEFAULT_RETRIES
+          : 0;
 
     const shouldShowSlowNotice = options.silentSlowNotice !== true;
     const retryableStatusCodes = new Set([408, 425, 429, 500, 502, 503, 504]);
@@ -52,8 +67,11 @@ export async function apiRequest(resource, options = {}) {
         if (shouldShowSlowNotice) {
             slowNoticeTimer = setTimeout(() => {
                 const now = Date.now();
-                if ((now - state.apiSlowNoticeLastAt) > API_SLOW_NOTICE_COOLDOWN_MS) {
-                    state.apiSlowNoticeLastAt = now;
+                if (
+                    now - getApiSlowNoticeLastAt() >
+                    API_SLOW_NOTICE_COOLDOWN_MS
+                ) {
+                    setApiSlowNoticeLastAt(now);
                     showToast(
                         state.currentLang === 'es'
                             ? 'Conectando con el servidor...'
@@ -67,20 +85,30 @@ export async function apiRequest(resource, options = {}) {
         try {
             const response = await fetch(url, {
                 ...requestInit,
-                signal: controller.signal
+                signal: controller.signal,
             });
 
             const responseText = await response.text();
             let payload = {};
             try {
                 payload = responseText ? JSON.parse(responseText) : {};
-            } catch (_error) {
-                throw makeApiError('Respuesta del servidor no es JSON valido', response.status, false, 'invalid_json');
+            } catch (error) {
+                throw makeApiError(
+                    'Respuesta del servidor no es JSON valido',
+                    response.status,
+                    false,
+                    'invalid_json'
+                );
             }
 
             if (!response.ok || payload.ok === false) {
                 const message = payload.error || `HTTP ${response.status}`;
-                throw makeApiError(message, response.status, retryableStatusCodes.has(response.status), 'http_error');
+                throw makeApiError(
+                    message,
+                    response.status,
+                    retryableStatusCodes.has(response.status),
+                    'http_error'
+                );
             }
 
             return payload;
@@ -107,12 +135,18 @@ export async function apiRequest(resource, options = {}) {
                     return error;
                 }
 
-                return makeApiError('Error de conexion con el servidor', 0, true, 'network_error');
+                return makeApiError(
+                    'Error de conexion con el servidor',
+                    0,
+                    true,
+                    'network_error'
+                );
             })();
 
             lastError = normalizedError;
 
-            const canRetry = attempt < maxRetries && normalizedError.retryable === true;
+            const canRetry =
+                attempt < maxRetries && normalizedError.retryable === true;
             if (!canRetry) {
                 throw normalizedError;
             }

@@ -4,22 +4,36 @@
     let deps = null;
     let chatBooking = null;
 
-    const FALLBACK_SLOTS = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
+    const FALLBACK_SLOTS = [
+        '09:00',
+        '10:00',
+        '11:00',
+        '12:00',
+        '15:00',
+        '16:00',
+        '17:00',
+    ];
     const CHAT_SERVICES = [
         { key: 'consulta', label: 'Consulta Presencial', price: '$46.00' },
         { key: 'telefono', label: 'Consulta Telefónica', price: '$28.75' },
         { key: 'video', label: 'Video Consulta', price: '$34.50' },
         { key: 'laser', label: 'Tratamiento Láser', price: '$172.50' },
-        { key: 'rejuvenecimiento', label: 'Rejuvenecimiento', price: '$138.00' }
+        {
+            key: 'rejuvenecimiento',
+            label: 'Rejuvenecimiento',
+            price: '$138.00',
+        },
     ];
     const CHAT_DOCTORS = [
         { key: 'rosero', label: 'Dr. Javier Rosero' },
         { key: 'narvaez', label: 'Dra. Carolina Narvaez' },
-        { key: 'indiferente', label: 'Cualquiera disponible' }
+        { key: 'indiferente', label: 'Cualquiera disponible' },
     ];
 
     function getLang() {
-        return deps && typeof deps.getCurrentLang === 'function' ? deps.getCurrentLang() : 'es';
+        return deps && typeof deps.getCurrentLang === 'function'
+            ? deps.getCurrentLang()
+            : 'es';
     }
 
     function t(esText, enText) {
@@ -52,7 +66,7 @@
             /syntax error/i,
             /on line \d+/i,
             /in \/.+\.php/i,
-            /mb_strlen/i
+            /mb_strlen/i,
         ];
 
         if (technicalPatterns.some((pattern) => pattern.test(message))) {
@@ -85,12 +99,18 @@
         if (doctor) return doctor.label;
         if (value === 'efectivo' || value === 'cash') return 'Efectivo';
         if (value === 'tarjeta' || value === 'card') return 'Tarjeta';
-        if (value === 'transferencia' || value === 'transfer') return 'Transferencia';
+        if (value === 'transferencia' || value === 'transfer')
+            return 'Transferencia';
         return value;
     }
 
     function trackChatBookingStep(step, payload = {}, options = {}) {
-        if (!deps || typeof deps.trackEvent !== 'function' || !chatBooking || !step) {
+        if (
+            !deps ||
+            typeof deps.trackEvent !== 'function' ||
+            !chatBooking ||
+            !step
+        ) {
             return;
         }
 
@@ -108,7 +128,7 @@
         deps.trackEvent('booking_step_completed', {
             step,
             source: 'chatbot',
-            ...payload
+            ...payload,
         });
     }
 
@@ -117,7 +137,7 @@
         if (deps && typeof deps.trackEvent === 'function') {
             deps.trackEvent('booking_step_completed', {
                 step: 'chat_booking_started',
-                source: 'chatbot'
+                source: 'chatbot',
             });
         }
         let msg = t(
@@ -137,21 +157,25 @@
             deps.trackEvent('checkout_abandon', {
                 source: 'chatbot',
                 reason: 'chat_cancel',
-                step: chatBooking.step || 'unknown'
+                step: chatBooking.step || 'unknown',
             });
         }
         chatBooking = null;
         if (!silent) {
-            addBotMessage(t(
-                'Reserva cancelada. Si necesitas algo mas, estoy aqui para ayudarte.',
-                'Booking cancelled. If you need anything else, I am here to help.'
-            ));
+            addBotMessage(
+                t(
+                    'Reserva cancelada. Si necesitas algo mas, estoy aqui para ayudarte.',
+                    'Booking cancelled. If you need anything else, I am here to help.'
+                )
+            );
         }
     }
 
     function isGeneralIntent(text) {
         const normalized = String(text || '').toLowerCase();
-        return /(precio|costo|cuanto|doctor|humano|ayuda|hablar|contactar|ubicacion|donde|horario|telefono|whatsapp)/.test(normalized);
+        return /(precio|costo|cuanto|doctor|humano|ayuda|hablar|contactar|ubicacion|donde|horario|telefono|whatsapp)/.test(
+            normalized
+        );
     }
 
     function handleChatBookingSelection(value) {
@@ -183,16 +207,22 @@
 
         switch (chatBooking.step) {
             case 'service': {
-                const service = CHAT_SERVICES.find((item) => item.key === input || item.label.toLowerCase() === input.toLowerCase());
+                const service = CHAT_SERVICES.find(
+                    (item) =>
+                        item.key === input ||
+                        item.label.toLowerCase() === input.toLowerCase()
+                );
                 if (!service) {
                     if (isGeneralIntent(input)) {
                         cancelChatBooking(true);
                         return false;
                     }
-                    addBotMessage(t(
-                        'Por favor selecciona un servicio valido de las opciones.',
-                        'Please choose a valid service from the options.'
-                    ));
+                    addBotMessage(
+                        t(
+                            'Por favor selecciona un servicio valido de las opciones.',
+                            'Please choose a valid service from the options.'
+                        )
+                    );
                     return true;
                 }
                 chatBooking.service = service.key;
@@ -200,11 +230,14 @@
                 chatBooking.price = service.price;
                 chatBooking.step = 'doctor';
                 trackChatBookingStep('service_selected', {
-                    service: service.key
+                    service: service.key,
                 });
 
                 let msg = `${t('Servicio', 'Service')}: <strong>${escapeHtml(service.label)}</strong> (${service.price})<br><br>`;
-                msg += t('<strong>Paso 2/7:</strong> ¿Con que doctor prefieres?<br><br>', '<strong>Step 2/7:</strong> Which doctor do you prefer?<br><br>');
+                msg += t(
+                    '<strong>Paso 2/7:</strong> ¿Con que doctor prefieres?<br><br>',
+                    '<strong>Step 2/7:</strong> Which doctor do you prefer?<br><br>'
+                );
                 msg += '<div class="chat-suggestions">';
                 CHAT_DOCTORS.forEach((doctor) => {
                     msg += `<button class="chat-suggestion-btn" data-action="chat-booking" data-value="${doctor.key}">${escapeHtml(doctor.label)}</button>`;
@@ -215,28 +248,37 @@
             }
 
             case 'doctor': {
-                const doctor = CHAT_DOCTORS.find((item) => item.key === input || item.label.toLowerCase() === input.toLowerCase());
+                const doctor = CHAT_DOCTORS.find(
+                    (item) =>
+                        item.key === input ||
+                        item.label.toLowerCase() === input.toLowerCase()
+                );
                 if (!doctor) {
                     if (isGeneralIntent(input)) {
                         cancelChatBooking(true);
                         return false;
                     }
-                    addBotMessage(t(
-                        'Por favor selecciona un doctor de las opciones.',
-                        'Please choose a doctor from the options.'
-                    ));
+                    addBotMessage(
+                        t(
+                            'Por favor selecciona un doctor de las opciones.',
+                            'Please choose a doctor from the options.'
+                        )
+                    );
                     return true;
                 }
                 chatBooking.doctor = doctor.key;
                 chatBooking.doctorLabel = doctor.label;
                 chatBooking.step = 'date';
                 trackChatBookingStep('doctor_selected', {
-                    doctor: doctor.key
+                    doctor: doctor.key,
                 });
 
                 const today = new Date().toISOString().split('T')[0];
                 let msg = `${t('Doctor', 'Doctor')}: <strong>${escapeHtml(doctor.label)}</strong><br><br>`;
-                msg += t('<strong>Paso 3/7:</strong> ¿Que fecha prefieres?<br><br>', '<strong>Step 3/7:</strong> Which date do you prefer?<br><br>');
+                msg += t(
+                    '<strong>Paso 3/7:</strong> ¿Que fecha prefieres?<br><br>',
+                    '<strong>Step 3/7:</strong> Which date do you prefer?<br><br>'
+                );
                 msg += `<input type="date" id="chatDateInput" min="${today}" `;
                 msg += 'data-action="chat-date-select" ';
                 msg += 'class="chat-date-input">';
@@ -247,10 +289,12 @@
             case 'date': {
                 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
                 if (!dateRegex.test(input)) {
-                    addBotMessage(t(
-                        'Por favor selecciona una fecha valida (usa el calendario).',
-                        'Please select a valid date (use the date picker).'
-                    ));
+                    addBotMessage(
+                        t(
+                            'Por favor selecciona una fecha valida (usa el calendario).',
+                            'Please select a valid date (use the date picker).'
+                        )
+                    );
                     return true;
                 }
 
@@ -258,17 +302,19 @@
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 if (selectedDate < today) {
-                    addBotMessage(t(
-                        'La fecha debe ser hoy o en el futuro. Selecciona otra fecha.',
-                        'Date must be today or in the future. Please choose another date.'
-                    ));
+                    addBotMessage(
+                        t(
+                            'La fecha debe ser hoy o en el futuro. Selecciona otra fecha.',
+                            'Date must be today or in the future. Please choose another date.'
+                        )
+                    );
                     return true;
                 }
 
                 chatBooking.date = input;
                 chatBooking.step = 'time';
                 trackChatBookingStep('date_selected', {
-                    date: input
+                    date: input,
                 });
 
                 if (deps && typeof deps.showTypingIndicator === 'function') {
@@ -276,27 +322,42 @@
                 }
 
                 try {
-                    const availability = deps && typeof deps.loadAvailabilityData === 'function'
-                        ? await deps.loadAvailabilityData()
-                        : {};
-                    const booked = deps && typeof deps.getBookedSlots === 'function'
-                        ? await deps.getBookedSlots(input, chatBooking.doctor || '')
-                        : [];
-                    const allSlots = Array.isArray(availability[input]) && availability[input].length > 0
-                        ? availability[input]
-                        : FALLBACK_SLOTS;
-                    const isToday = input === new Date().toISOString().split('T')[0];
-                    const nowMinutes = isToday ? new Date().getHours() * 60 + new Date().getMinutes() : -1;
-                    const freeSlots = allSlots.filter((slot) => {
-                        if (booked.includes(slot)) return false;
-                        if (isToday) {
-                            const [h, m] = slot.split(':').map(Number);
-                            if (h * 60 + m <= nowMinutes + 60) return false;
-                        }
-                        return true;
-                    }).sort();
+                    const availability =
+                        deps && typeof deps.loadAvailabilityData === 'function'
+                            ? await deps.loadAvailabilityData()
+                            : {};
+                    const booked =
+                        deps && typeof deps.getBookedSlots === 'function'
+                            ? await deps.getBookedSlots(
+                                  input,
+                                  chatBooking.doctor || ''
+                              )
+                            : [];
+                    const allSlots =
+                        Array.isArray(availability[input]) &&
+                        availability[input].length > 0
+                            ? availability[input]
+                            : FALLBACK_SLOTS;
+                    const isToday =
+                        input === new Date().toISOString().split('T')[0];
+                    const nowMinutes = isToday
+                        ? new Date().getHours() * 60 + new Date().getMinutes()
+                        : -1;
+                    const freeSlots = allSlots
+                        .filter((slot) => {
+                            if (booked.includes(slot)) return false;
+                            if (isToday) {
+                                const [h, m] = slot.split(':').map(Number);
+                                if (h * 60 + m <= nowMinutes + 60) return false;
+                            }
+                            return true;
+                        })
+                        .sort();
 
-                    if (deps && typeof deps.removeTypingIndicator === 'function') {
+                    if (
+                        deps &&
+                        typeof deps.removeTypingIndicator === 'function'
+                    ) {
                         deps.removeTypingIndicator();
                     }
 
@@ -306,7 +367,7 @@
                                 'No hay horarios disponibles para esa fecha. Por favor elige otra.<br><br>',
                                 'No times are available for that date. Please choose another one.<br><br>'
                             ) +
-                            `<input type="date" id="chatDateInput" min="${new Date().toISOString().split('T')[0]}" data-action="chat-date-select" class="chat-date-input">`
+                                `<input type="date" id="chatDateInput" min="${new Date().toISOString().split('T')[0]}" data-action="chat-date-select" class="chat-date-input">`
                         );
                         chatBooking.step = 'date';
                         return true;
@@ -316,10 +377,13 @@
                     const dateLabel = selectedDate.toLocaleDateString(locale, {
                         weekday: 'long',
                         day: 'numeric',
-                        month: 'long'
+                        month: 'long',
                     });
                     let msg = `${t('Fecha', 'Date')}: <strong>${escapeHtml(dateLabel)}</strong><br><br>`;
-                    msg += t('<strong>Paso 4/7:</strong> Horarios disponibles:<br><br>', '<strong>Step 4/7:</strong> Available times:<br><br>');
+                    msg += t(
+                        '<strong>Paso 4/7:</strong> Horarios disponibles:<br><br>',
+                        '<strong>Step 4/7:</strong> Available times:<br><br>'
+                    );
                     msg += '<div class="chat-suggestions">';
                     freeSlots.forEach((time) => {
                         msg += `<button class="chat-suggestion-btn" data-action="chat-booking" data-value="${time}">${time}</button>`;
@@ -327,13 +391,18 @@
                     msg += '</div>';
                     addBotMessage(msg);
                 } catch (error) {
-                    if (deps && typeof deps.removeTypingIndicator === 'function') {
+                    if (
+                        deps &&
+                        typeof deps.removeTypingIndicator === 'function'
+                    ) {
                         deps.removeTypingIndicator();
                     }
-                    addBotMessage(t(
-                        'No pude consultar los horarios. Intenta de nuevo.',
-                        'I could not load the schedule. Please try again.'
-                    ));
+                    addBotMessage(
+                        t(
+                            'No pude consultar los horarios. Intenta de nuevo.',
+                            'I could not load the schedule. Please try again.'
+                        )
+                    );
                     chatBooking.step = 'date';
                 }
                 break;
@@ -341,59 +410,73 @@
 
             case 'time': {
                 if (!/^\d{2}:\d{2}$/.test(input)) {
-                    addBotMessage(t(
-                        'Por favor selecciona un horario valido de las opciones.',
-                        'Please choose a valid time from the options.'
-                    ));
+                    addBotMessage(
+                        t(
+                            'Por favor selecciona un horario valido de las opciones.',
+                            'Please choose a valid time from the options.'
+                        )
+                    );
                     return true;
                 }
                 chatBooking.time = input;
                 chatBooking.step = 'name';
                 trackChatBookingStep('time_selected', {
-                    time: input
+                    time: input,
                 });
-                addBotMessage(`${t('Hora', 'Time')}: <strong>${escapeHtml(input)}</strong><br><br>${t('<strong>Paso 5/7:</strong> ¿Cual es tu nombre completo?', '<strong>Step 5/7:</strong> What is your full name?')}`);
+                addBotMessage(
+                    `${t('Hora', 'Time')}: <strong>${escapeHtml(input)}</strong><br><br>${t('<strong>Paso 5/7:</strong> ¿Cual es tu nombre completo?', '<strong>Step 5/7:</strong> What is your full name?')}`
+                );
                 break;
             }
 
             case 'name': {
                 if (input.length < 2) {
-                    addBotMessage(t(
-                        'El nombre debe tener al menos 2 caracteres.',
-                        'Name must be at least 2 characters long.'
-                    ));
+                    addBotMessage(
+                        t(
+                            'El nombre debe tener al menos 2 caracteres.',
+                            'Name must be at least 2 characters long.'
+                        )
+                    );
                     return true;
                 }
                 chatBooking.name = input;
                 chatBooking.step = 'email';
                 trackChatBookingStep('name_added');
-                addBotMessage(`${t('Nombre', 'Name')}: <strong>${escapeHtml(input)}</strong><br><br>${t('<strong>Paso 6/7:</strong> ¿Cual es tu email?', '<strong>Step 6/7:</strong> What is your email?')}`);
+                addBotMessage(
+                    `${t('Nombre', 'Name')}: <strong>${escapeHtml(input)}</strong><br><br>${t('<strong>Paso 6/7:</strong> ¿Cual es tu email?', '<strong>Step 6/7:</strong> What is your email?')}`
+                );
                 break;
             }
 
             case 'email': {
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 if (!emailRegex.test(input)) {
-                    addBotMessage(t(
-                        'El formato del email no es valido. Ejemplo: nombre@correo.com',
-                        'Invalid email format. Example: name@example.com'
-                    ));
+                    addBotMessage(
+                        t(
+                            'El formato del email no es valido. Ejemplo: nombre@correo.com',
+                            'Invalid email format. Example: name@example.com'
+                        )
+                    );
                     return true;
                 }
                 chatBooking.email = input;
                 chatBooking.step = 'phone';
                 trackChatBookingStep('email_added');
-                addBotMessage(`${t('Email', 'Email')}: <strong>${escapeHtml(input)}</strong><br><br>${t('<strong>Paso 7/7:</strong> ¿Cual es tu numero de telefono?', '<strong>Step 7/7:</strong> What is your phone number?')}`);
+                addBotMessage(
+                    `${t('Email', 'Email')}: <strong>${escapeHtml(input)}</strong><br><br>${t('<strong>Paso 7/7:</strong> ¿Cual es tu numero de telefono?', '<strong>Step 7/7:</strong> What is your phone number?')}`
+                );
                 break;
             }
 
             case 'phone': {
                 const digits = input.replace(/\D/g, '');
                 if (digits.length < 7 || digits.length > 15) {
-                    addBotMessage(t(
-                        'El telefono debe tener entre 7 y 15 digitos.',
-                        'Phone number must have between 7 and 15 digits.'
-                    ));
+                    addBotMessage(
+                        t(
+                            'El telefono debe tener entre 7 y 15 digitos.',
+                            'Phone number must have between 7 and 15 digits.'
+                        )
+                    );
                     return true;
                 }
                 chatBooking.phone = input;
@@ -411,9 +494,12 @@
                 msg += `&bull; ${t('Telefono', 'Phone')}: ${escapeHtml(chatBooking.phone)}<br><br>`;
                 msg += `${t('¿Como deseas pagar?', 'How would you like to pay?')}<br><br>`;
                 msg += '<div class="chat-suggestions">';
-                msg += '<button class="chat-suggestion-btn" data-action="chat-booking" data-value="efectivo"><i class="fas fa-money-bill-wave"></i> Efectivo</button>';
-                msg += '<button class="chat-suggestion-btn" data-action="chat-booking" data-value="tarjeta"><i class="fas fa-credit-card"></i> Tarjeta</button>';
-                msg += '<button class="chat-suggestion-btn" data-action="chat-booking" data-value="transferencia"><i class="fas fa-university"></i> Transferencia</button>';
+                msg +=
+                    '<button class="chat-suggestion-btn" data-action="chat-booking" data-value="efectivo"><i class="fas fa-money-bill-wave"></i> Efectivo</button>';
+                msg +=
+                    '<button class="chat-suggestion-btn" data-action="chat-booking" data-value="tarjeta"><i class="fas fa-credit-card"></i> Tarjeta</button>';
+                msg +=
+                    '<button class="chat-suggestion-btn" data-action="chat-booking" data-value="transferencia"><i class="fas fa-university"></i> Transferencia</button>';
                 msg += '</div>';
                 addBotMessage(msg);
                 break;
@@ -426,21 +512,23 @@
                     tarjeta: 'card',
                     card: 'card',
                     transferencia: 'transfer',
-                    transfer: 'transfer'
+                    transfer: 'transfer',
                 };
                 const method = paymentMap[input.toLowerCase()];
                 if (!method) {
-                    addBotMessage(t(
-                        'Elige un metodo de pago: Efectivo, Tarjeta o Transferencia.',
-                        'Choose a payment method: Cash, Card, or Transfer.'
-                    ));
+                    addBotMessage(
+                        t(
+                            'Elige un metodo de pago: Efectivo, Tarjeta o Transferencia.',
+                            'Choose a payment method: Cash, Card, or Transfer.'
+                        )
+                    );
                     return true;
                 }
 
                 chatBooking.paymentMethod = method;
                 chatBooking.step = 'confirm';
                 trackChatBookingStep('payment_method_selected', {
-                    payment_method: method
+                    payment_method: method,
                 });
                 await finalizeChatBooking();
                 break;
@@ -461,23 +549,23 @@
             email: chatBooking.email,
             phone: chatBooking.phone,
             privacyConsent: true,
-            price: chatBooking.price
+            price: chatBooking.price,
         };
 
         if (deps && typeof deps.startCheckoutSession === 'function') {
             deps.startCheckoutSession(appointment, {
                 checkoutEntry: 'chatbot',
-                step: 'chat_booking_validated'
+                step: 'chat_booking_validated',
             });
         }
         if (deps && typeof deps.trackEvent === 'function') {
             deps.trackEvent('start_checkout', {
                 service: appointment.service || '',
                 doctor: appointment.doctor || '',
-                checkout_entry: 'chatbot'
+                checkout_entry: 'chatbot',
             });
             deps.trackEvent('payment_method_selected', {
-                payment_method: chatBooking.paymentMethod || 'unknown'
+                payment_method: chatBooking.paymentMethod || 'unknown',
             });
         }
         if (deps && typeof deps.setCheckoutStep === 'function') {
@@ -485,7 +573,7 @@
                 checkoutEntry: 'chatbot',
                 paymentMethod: chatBooking.paymentMethod || 'unknown',
                 service: appointment.service || '',
-                doctor: appointment.doctor || ''
+                doctor: appointment.doctor || '',
             });
         }
 
@@ -496,7 +584,7 @@
             if (deps && typeof deps.setCheckoutStep === 'function') {
                 deps.setCheckoutStep('payment_processing', {
                     checkoutEntry: 'chatbot',
-                    paymentMethod: 'cash'
+                    paymentMethod: 'cash',
                 });
             }
 
@@ -505,46 +593,68 @@
                     ...appointment,
                     paymentMethod: 'cash',
                     paymentStatus: 'pending_cash',
-                    status: 'confirmed'
+                    status: 'confirmed',
                 };
-                const result = deps && typeof deps.createAppointmentRecord === 'function'
-                    ? await deps.createAppointmentRecord(payload)
-                    : null;
+                const result =
+                    deps && typeof deps.createAppointmentRecord === 'function'
+                        ? await deps.createAppointmentRecord(payload)
+                        : null;
 
                 if (deps && typeof deps.removeTypingIndicator === 'function') {
                     deps.removeTypingIndicator();
                 }
-                if (result && typeof deps.setCurrentAppointment === 'function') {
+                if (
+                    result &&
+                    typeof deps.setCurrentAppointment === 'function'
+                ) {
                     deps.setCurrentAppointment(result.appointment);
                 }
-                if (deps && typeof deps.completeCheckoutSession === 'function') {
+                if (
+                    deps &&
+                    typeof deps.completeCheckoutSession === 'function'
+                ) {
                     deps.completeCheckoutSession('cash');
                 }
                 if (deps && typeof deps.setCheckoutStep === 'function') {
                     deps.setCheckoutStep('booking_confirmed', {
                         checkoutEntry: 'chatbot',
-                        paymentMethod: 'cash'
+                        paymentMethod: 'cash',
                     });
                 }
 
                 let msg = `<strong>${t('¡Cita agendada con exito!', 'Appointment booked successfully!')}</strong><br><br>`;
-                msg += t('Tu cita ha sido registrada. ', 'Your appointment has been registered. ');
+                msg += t(
+                    'Tu cita ha sido registrada. ',
+                    'Your appointment has been registered. '
+                );
                 if (result && result.emailSent) {
-                    msg += t('Te enviamos un correo de confirmacion.<br><br>', 'We sent you a confirmation email.<br><br>');
+                    msg += t(
+                        'Te enviamos un correo de confirmacion.<br><br>',
+                        'We sent you a confirmation email.<br><br>'
+                    );
                 } else {
-                    msg += t('Te contactaremos para confirmar detalles.<br><br>', 'We will contact you to confirm details.<br><br>');
+                    msg += t(
+                        'Te contactaremos para confirmar detalles.<br><br>',
+                        'We will contact you to confirm details.<br><br>'
+                    );
                 }
                 msg += `&bull; ${t('Servicio', 'Service')}: ${escapeHtml(chatBooking.serviceLabel)}<br>`;
                 msg += `&bull; ${t('Doctor', 'Doctor')}: ${escapeHtml(chatBooking.doctorLabel)}<br>`;
                 msg += `&bull; ${t('Fecha', 'Date')}: ${escapeHtml(chatBooking.date)}<br>`;
                 msg += `&bull; ${t('Hora', 'Time')}: ${escapeHtml(chatBooking.time)}<br>`;
                 msg += `&bull; ${t('Pago', 'Payment')}: ${t('En consultorio', 'At clinic')}<br><br>`;
-                msg += t('Recuerda llegar 10 minutos antes de tu cita.', 'Please arrive 10 minutes before your appointment.');
+                msg += t(
+                    'Recuerda llegar 10 minutos antes de tu cita.',
+                    'Please arrive 10 minutes before your appointment.'
+                );
                 addBotMessage(msg);
 
                 if (deps && typeof deps.showToast === 'function') {
                     deps.showToast(
-                        t('Cita agendada correctamente desde el asistente.', 'Appointment booked from chat assistant.'),
+                        t(
+                            'Cita agendada correctamente desde el asistente.',
+                            'Appointment booked from chat assistant.'
+                        ),
                         'success'
                     );
                 }
@@ -554,7 +664,9 @@
                 if (deps && typeof deps.removeTypingIndicator === 'function') {
                     deps.removeTypingIndicator();
                 }
-                const safeError = sanitizeBookingRegistrationError(error && error.message ? error.message : '');
+                const safeError = sanitizeBookingRegistrationError(
+                    error && error.message ? error.message : ''
+                );
                 addBotMessage(
                     t(
                         `No se pudo registrar la cita: ${escapeHtml(safeError)}. Intenta de nuevo o agenda desde <a href="#citas" data-action="minimize-chat">el formulario</a>.`,
@@ -564,7 +676,7 @@
                 if (deps && typeof deps.setCheckoutStep === 'function') {
                     deps.setCheckoutStep('payment_error', {
                         checkoutEntry: 'chatbot',
-                        paymentMethod: 'cash'
+                        paymentMethod: 'cash',
                     });
                 }
                 chatBooking.step = 'payment';
@@ -593,7 +705,9 @@
                 deps.openPaymentModal(appointment);
             }
             setTimeout(() => {
-                const methodEl = document.querySelector(`.payment-method[data-method="${method}"]`);
+                const methodEl = document.querySelector(
+                    `.payment-method[data-method="${method}"]`
+                );
                 if (methodEl && !methodEl.classList.contains('disabled')) {
                     methodEl.click();
                 }
@@ -618,7 +732,6 @@
         handleChatBookingSelection,
         handleChatDateSelect,
         processChatBookingStep,
-        finalizeChatBooking
+        finalizeChatBooking,
     };
 })();
-

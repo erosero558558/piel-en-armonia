@@ -1,168 +1,168 @@
 name: Production Monitor
 
 on:
-  schedule:
-    - cron: "*/30 * * * *"
-  workflow_dispatch:
-    inputs:
-      domain:
-        description: "Dominio objetivo"
-        required: false
-        default: "https://pielarmonia.com"
-        type: string
-      max_latency_ms:
-        description: "Latencia maxima aceptada por endpoint (ms)"
-        required: false
-        default: "3500"
-        type: string
-      allow_degraded_figo:
-        description: "Permitir Figo en modo degraded temporalmente"
-        required: false
-        default: false
-        type: boolean
-      skip_backup_check:
-        description: "Saltar validacion de backup en health"
-        required: false
-        default: false
-        type: boolean
+    schedule:
+        - cron: '*/30 * * * *'
+    workflow_dispatch:
+        inputs:
+            domain:
+                description: 'Dominio objetivo'
+                required: false
+                default: 'https://pielarmonia.com'
+                type: string
+            max_latency_ms:
+                description: 'Latencia maxima aceptada por endpoint (ms)'
+                required: false
+                default: '3500'
+                type: string
+            allow_degraded_figo:
+                description: 'Permitir Figo en modo degraded temporalmente'
+                required: false
+                default: false
+                type: boolean
+            skip_backup_check:
+                description: 'Saltar validacion de backup en health'
+                required: false
+                default: false
+                type: boolean
 
 concurrency:
-  group: prod-monitor
-  cancel-in-progress: true
+    group: prod-monitor
+    cancel-in-progress: true
 
 permissions:
-  contents: read
-  issues: write
+    contents: read
+    issues: write
 
 jobs:
-  monitor:
-    name: Health + latency monitor
-    runs-on: windows-latest
-    timeout-minutes: 10
-    env:
-      TARGET_DOMAIN: ${{ github.event.inputs.domain || 'https://pielarmonia.com' }}
-      MAX_LATENCY_MS: ${{ github.event.inputs.max_latency_ms || '3500' }}
-      ALLOW_DEGRADED_FIGO: ${{ github.event.inputs.allow_degraded_figo || 'false' }}
-      SKIP_BACKUP_CHECK: ${{ github.event.inputs.skip_backup_check || 'false' }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    monitor:
+        name: Health + latency monitor
+        runs-on: windows-latest
+        timeout-minutes: 10
+        env:
+            TARGET_DOMAIN: ${{ github.event.inputs.domain || 'https://pielarmonia.com' }}
+            MAX_LATENCY_MS: ${{ github.event.inputs.max_latency_ms || '3500' }}
+            ALLOW_DEGRADED_FIGO: ${{ github.event.inputs.allow_degraded_figo || 'false' }}
+            SKIP_BACKUP_CHECK: ${{ github.event.inputs.skip_backup_check || 'false' }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Ejecutar monitor de produccion
-        shell: pwsh
-        run: |
-          $maxLatency = [int]$env:MAX_LATENCY_MS
-          if ($maxLatency -lt 500) { $maxLatency = 500 }
+            - name: Ejecutar monitor de produccion
+              shell: pwsh
+              run: |
+                  $maxLatency = [int]$env:MAX_LATENCY_MS
+                  if ($maxLatency -lt 500) { $maxLatency = 500 }
 
-          $args = @(
-            '-Domain', $env:TARGET_DOMAIN,
-            '-MaxLatencyMs', $maxLatency
-          )
+                  $args = @(
+                    '-Domain', $env:TARGET_DOMAIN,
+                    '-MaxLatencyMs', $maxLatency
+                  )
 
-          if ($env:ALLOW_DEGRADED_FIGO -eq 'true') {
-            $args += '-AllowDegradedFigo'
-          }
-          if ($env:SKIP_BACKUP_CHECK -eq 'true') {
-            $args += '-SkipBackupCheck'
-          }
+                  if ($env:ALLOW_DEGRADED_FIGO -eq 'true') {
+                    $args += '-AllowDegradedFigo'
+                  }
+                  if ($env:SKIP_BACKUP_CHECK -eq 'true') {
+                    $args += '-SkipBackupCheck'
+                  }
 
-          & ./MONITOR-PRODUCCION.ps1 @args
+                  & ./MONITOR-PRODUCCION.ps1 @args
 
-      - name: Resumen
-        if: ${{ always() }}
-        shell: pwsh
-        run: |
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Production monitor"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Dominio: ``$env:TARGET_DOMAIN``"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Max latency: ``$env:MAX_LATENCY_MS ms``"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- allow_degraded_figo: ``$env:ALLOW_DEGRADED_FIGO``"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- skip_backup_check: ``$env:SKIP_BACKUP_CHECK``"
+            - name: Resumen
+              if: ${{ always() }}
+              shell: pwsh
+              run: |
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Production monitor"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Dominio: ``$env:TARGET_DOMAIN``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Max latency: ``$env:MAX_LATENCY_MS ms``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- allow_degraded_figo: ``$env:ALLOW_DEGRADED_FIGO``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- skip_backup_check: ``$env:SKIP_BACKUP_CHECK``"
 
-      - name: Crear/actualizar incidente (solo schedule)
-        if: ${{ failure() && github.event_name == 'schedule' }}
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const title = '[ALERTA PROD] Monitor de produccion fallando';
-            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
-            const now = new Date().toISOString();
-            const body = [
-              'El workflow `Production Monitor` fallo en ejecucion programada.',
-              '',
-              `- Fecha: ${now}`,
-              `- Run: ${runUrl}`,
-              `- Workflow: ${context.workflow}`,
-              `- Branch: ${context.ref}`
-            ].join('\n');
+            - name: Crear/actualizar incidente (solo schedule)
+              if: ${{ failure() && github.event_name == 'schedule' }}
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const title = '[ALERTA PROD] Monitor de produccion fallando';
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+                      const body = [
+                        'El workflow `Production Monitor` fallo en ejecucion programada.',
+                        '',
+                        `- Fecha: ${now}`,
+                        `- Run: ${runUrl}`,
+                        `- Workflow: ${context.workflow}`,
+                        `- Branch: ${context.ref}`
+                      ].join('\n');
 
-            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
-              owner,
-              repo,
-              state: 'open',
-              per_page: 100
-            });
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
 
-            const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
-            if (existing) {
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: existing.number,
-                body
-              });
-              core.info(`Issue existente actualizado: #${existing.number}`);
-            } else {
-              const created = await github.rest.issues.create({
-                owner,
-                repo,
-                title,
-                body
-              });
-              core.info(`Issue creado: #${created.data.number}`);
-            }
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (existing) {
+                        await github.rest.issues.createComment({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body
+                        });
+                        core.info(`Issue existente actualizado: #${existing.number}`);
+                      } else {
+                        const created = await github.rest.issues.create({
+                          owner,
+                          repo,
+                          title,
+                          body
+                        });
+                        core.info(`Issue creado: #${created.data.number}`);
+                      }
 
-      - name: Cerrar incidente al recuperar (solo schedule)
-        if: ${{ success() && github.event_name == 'schedule' }}
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const title = '[ALERTA PROD] Monitor de produccion fallando';
-            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
-            const now = new Date().toISOString();
+            - name: Cerrar incidente al recuperar (solo schedule)
+              if: ${{ success() && github.event_name == 'schedule' }}
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const title = '[ALERTA PROD] Monitor de produccion fallando';
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
 
-            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
-              owner,
-              repo,
-              state: 'open',
-              per_page: 100
-            });
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
 
-            const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
-            if (!existing) {
-              core.info('No hay incidente abierto para cerrar.');
-              return;
-            }
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (!existing) {
+                        core.info('No hay incidente abierto para cerrar.');
+                        return;
+                      }
 
-            await github.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number: existing.number,
-              body: [
-                'Recuperado automaticamente por monitor programado.',
-                '',
-                `- Fecha: ${now}`,
-                `- Run: ${runUrl}`
-              ].join('\n')
-            });
+                      await github.rest.issues.createComment({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        body: [
+                          'Recuperado automaticamente por monitor programado.',
+                          '',
+                          `- Fecha: ${now}`,
+                          `- Run: ${runUrl}`
+                        ].join('\n')
+                      });
 
-            await github.rest.issues.update({
-              owner,
-              repo,
-              issue_number: existing.number,
-              state: 'closed'
-            });
-            core.info(`Issue cerrado: #${existing.number}`);
+                      await github.rest.issues.update({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        state: 'closed'
+                      });
+                      core.info(`Issue cerrado: #${existing.number}`);

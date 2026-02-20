@@ -34,22 +34,32 @@
     }
 
     function getHistoryStorageKey() {
-        const key = deps && typeof deps.historyStorageKey === 'string'
-            ? deps.historyStorageKey.trim()
-            : '';
+        const key =
+            deps && typeof deps.historyStorageKey === 'string'
+                ? deps.historyStorageKey.trim()
+                : '';
         return key || DEFAULT_HISTORY_STORAGE_KEY;
     }
 
     function getHistoryTtlMs() {
-        return normalizePositiveNumber(deps && deps.historyTtlMs, DEFAULT_HISTORY_TTL_MS);
+        return normalizePositiveNumber(
+            deps && deps.historyTtlMs,
+            DEFAULT_HISTORY_TTL_MS
+        );
     }
 
     function getHistoryMaxItems() {
-        return normalizePositiveNumber(deps && deps.historyMaxItems, DEFAULT_HISTORY_MAX_ITEMS);
+        return normalizePositiveNumber(
+            deps && deps.historyMaxItems,
+            DEFAULT_HISTORY_MAX_ITEMS
+        );
     }
 
     function getContextMaxItems() {
-        return normalizePositiveNumber(deps && deps.contextMaxItems, DEFAULT_CONTEXT_MAX_ITEMS);
+        return normalizePositiveNumber(
+            deps && deps.contextMaxItems,
+            DEFAULT_CONTEXT_MAX_ITEMS
+        );
     }
 
     function debugLogSafe() {
@@ -121,7 +131,10 @@
 
             if (Array.isArray(parsed) && valid.length !== parsed.length) {
                 try {
-                    localStorage.setItem(getHistoryStorageKey(), JSON.stringify(valid));
+                    localStorage.setItem(
+                        getHistoryStorageKey(),
+                        JSON.stringify(valid)
+                    );
                 } catch (error) {
                     // noop
                 }
@@ -164,6 +177,6 @@
         getHistoryStorageKey,
         getHistoryTtlMs,
         getHistoryMaxItems,
-        getContextMaxItems
+        getContextMaxItems,
     };
 })();

@@ -6,7 +6,12 @@ var PielBookingEngine = (function () {
     let initialized = false;
     let listenersBound = false;
     let isPaymentProcessing = false;
-    let paymentConfig = { enabled: false, provider: 'stripe', publishableKey: ''};
+    let paymentConfig = {
+        enabled: false,
+        provider: 'stripe',
+        publishableKey: '',
+        currency: 'USD',
+    };
     let stripeClient = null;
     let stripeElements = null;
     let stripeCardElement = null;
@@ -20,7 +25,11 @@ var PielBookingEngine = (function () {
         initialized = true;
 
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', bindPaymentListeners, { once: true });
+            document.addEventListener(
+                'DOMContentLoaded',
+                bindPaymentListeners,
+                { once: true }
+            );
         } else {
             bindPaymentListeners();
         }
@@ -82,7 +91,7 @@ var PielBookingEngine = (function () {
             /syntax error/i,
             /on line \d+/i,
             /in \/.+\.php/i,
-            /mb_strlen/i
+            /mb_strlen/i,
         ];
 
         if (technicalPatterns.some((pattern) => pattern.test(message))) {
@@ -138,11 +147,15 @@ var PielBookingEngine = (function () {
 
     function getActivePaymentMethod() {
         const activeMethod = document.querySelector('.payment-method.active');
-        return activeMethod && activeMethod.dataset ? activeMethod.dataset.method || 'cash' : 'cash';
+        return activeMethod && activeMethod.dataset
+            ? activeMethod.dataset.method || 'cash'
+            : 'cash';
     }
 
     function syncPaymentForms(activeMethod) {
-        const methodType = String(activeMethod || getActivePaymentMethod());
+        const methodType = String(
+            activeMethod || getActivePaymentMethod() || 'cash'
+        );
         const paymentForms = document.querySelectorAll('.payment-form');
         paymentForms.forEach((form) => {
             form.classList.add('is-hidden');
@@ -154,7 +167,9 @@ var PielBookingEngine = (function () {
     }
 
     function setCardMethodEnabled(enabled) {
-        const cardMethod = document.querySelector('.payment-method[data-method="card"]');
+        const cardMethod = document.querySelector(
+            '.payment-method[data-method="card"]'
+        );
         if (!cardMethod) return;
 
         cardMethod.classList.toggle('disabled', !enabled);
@@ -164,8 +179,12 @@ var PielBookingEngine = (function () {
             : 'Pago con tarjeta temporalmente no disponible';
 
         if (!enabled && cardMethod.classList.contains('active')) {
-            const transferMethod = document.querySelector('.payment-method[data-method="transfer"]');
-            const cashMethod = document.querySelector('.payment-method[data-method="cash"]');
+            const transferMethod = document.querySelector(
+                '.payment-method[data-method="transfer"]'
+            );
+            const cashMethod = document.querySelector(
+                '.payment-method[data-method="cash"]'
+            );
             const fallback = transferMethod || cashMethod;
             if (fallback) {
                 fallback.click();
@@ -175,7 +194,9 @@ var PielBookingEngine = (function () {
 
     async function refreshCardPaymentAvailability() {
         paymentConfig = await requireFn('loadPaymentConfig')();
-        const gatewayEnabled = paymentConfig.enabled === true && String(paymentConfig.provider || '').toLowerCase() === 'stripe';
+        const gatewayEnabled =
+            paymentConfig.enabled === true &&
+            String(paymentConfig.provider || '').toLowerCase() === 'stripe';
         if (!gatewayEnabled) {
             setCardMethodEnabled(false);
             return false;
@@ -221,16 +242,17 @@ var PielBookingEngine = (function () {
                 style: {
                     base: {
                         color: '#1d1d1f',
-                        fontFamily: '"Plus Jakarta Sans", "Helvetica Neue", Arial, sans-serif',
+                        fontFamily:
+                            '"Plus Jakarta Sans", "Helvetica Neue", Arial, sans-serif',
                         fontSize: '16px',
                         '::placeholder': {
-                            color: '#9aa6b2'
-                        }
+                            color: '#9aa6b2',
+                        },
                     },
                     invalid: {
-                        color: '#d14343'
-                    }
-                }
+                        color: '#d14343',
+                    },
+                },
             });
         }
 
@@ -250,12 +272,16 @@ var PielBookingEngine = (function () {
 
         const appointment = getCurrentAppointment() || {};
         const checkout = requireFn('getCheckoutSession')();
-        const checkoutEntry = (checkout && checkout.entry) || appointment.checkoutEntry || 'unknown';
+        const checkoutEntry =
+            (checkout && checkout.entry) ||
+            appointment.checkoutEntry ||
+            'unknown';
         let checkoutStartedNow = false;
         if (!checkout || !checkout.active || !checkout.startedAt) {
             requireFn('startCheckoutSession')(appointment, {
-                checkoutEntry: checkoutEntry === 'unknown' ? 'web_form' : checkoutEntry,
-                step: 'payment_modal_open'
+                checkoutEntry:
+                    checkoutEntry === 'unknown' ? 'web_form' : checkoutEntry,
+                step: 'payment_modal_open',
             });
             checkoutStartedNow = true;
         }
@@ -264,14 +290,16 @@ var PielBookingEngine = (function () {
             trackEvent('start_checkout', {
                 service: appointment.service || '',
                 doctor: appointment.doctor || '',
-                checkout_entry: checkoutEntry === 'unknown' ? 'web_form' : checkoutEntry
+                checkout_entry:
+                    checkoutEntry === 'unknown' ? 'web_form' : checkoutEntry,
             });
         }
 
         setCheckoutStep('payment_modal_open', {
-            checkoutEntry: checkoutEntry === 'unknown' ? 'web_form' : checkoutEntry,
+            checkoutEntry:
+                checkoutEntry === 'unknown' ? 'web_form' : checkoutEntry,
             service: appointment.service || '',
-            doctor: appointment.doctor || ''
+            doctor: appointment.doctor || '',
         });
 
         const paymentTotal = document.getElementById('paymentTotal');
@@ -287,7 +315,10 @@ var PielBookingEngine = (function () {
             cardNameInput.value = appointment.name;
         }
 
-        if (stripeCardElement && typeof stripeCardElement.clear === 'function') {
+        if (
+            stripeCardElement &&
+            typeof stripeCardElement.clear === 'function'
+        ) {
             stripeCardElement.clear();
         }
 
@@ -301,7 +332,10 @@ var PielBookingEngine = (function () {
 
     function closePaymentModal(options = {}) {
         const skipAbandonTrack = options && options.skipAbandonTrack === true;
-        const abandonReason = options && typeof options.reason === 'string' ? options.reason : 'modal_close';
+        const abandonReason =
+            options && typeof options.reason === 'string'
+                ? options.reason
+                : 'modal_close';
         const modal = document.getElementById('paymentModal');
 
         if (!skipAbandonTrack) {
@@ -328,16 +362,22 @@ var PielBookingEngine = (function () {
             throw new Error('No se pudo inicializar el formulario de tarjeta.');
         }
 
-        const cardholderName = (document.getElementById('cardholderName')?.value || '').trim();
+        const cardholderName = (
+            document.getElementById('cardholderName')?.value || ''
+        ).trim();
         if (cardholderName.length < 3) {
             throw new Error('Ingresa el nombre del titular de la tarjeta.');
         }
 
         const appointment = getCurrentAppointment();
-        const appointmentPayload = await requireFn('buildAppointmentPayload')(appointment);
+        const appointmentPayload = await requireFn('buildAppointmentPayload')(
+            appointment
+        );
 
         const captchaToken1 = await getCaptchaToken('payment_intent');
-        const intentPayload = requireFn('stripTransientAppointmentFields')(appointment);
+        const intentPayload = requireFn('stripTransientAppointmentFields')(
+            appointment
+        );
         intentPayload.captchaToken = captchaToken1;
 
         const intent = await requireFn('createPaymentIntent')(intentPayload);
@@ -345,19 +385,25 @@ var PielBookingEngine = (function () {
             throw new Error('No se pudo iniciar el cobro con tarjeta.');
         }
 
-        const result = await stripeClient.confirmCardPayment(intent.clientSecret, {
-            payment_method: {
-                card: stripeCardElement,
-                billing_details: {
-                    name: cardholderName,
-                    email: appointment?.email || undefined,
-                    phone: appointment?.phone || undefined
-                }
+        const result = await stripeClient.confirmCardPayment(
+            intent.clientSecret,
+            {
+                payment_method: {
+                    card: stripeCardElement,
+                    billing_details: {
+                        name: cardholderName,
+                        email: appointment?.email || undefined,
+                        phone: appointment?.phone || undefined,
+                    },
+                },
             }
-        });
+        );
 
         if (result.error) {
-            throw new Error(result.error.message || 'No se pudo completar el pago con tarjeta.');
+            throw new Error(
+                result.error.message ||
+                    'No se pudo completar el pago con tarjeta.'
+            );
         }
 
         const paymentIntent = result.paymentIntent;
@@ -365,15 +411,19 @@ var PielBookingEngine = (function () {
             throw new Error('El pago no fue confirmado por la pasarela.');
         }
 
-        const verification = await requireFn('verifyPaymentIntent')(paymentIntent.id);
+        const verification = await requireFn('verifyPaymentIntent')(
+            paymentIntent.id
+        );
         if (!verification.paid) {
-            throw new Error('No pudimos verificar el pago. Intenta nuevamente.');
+            throw new Error(
+                'No pudimos verificar el pago. Intenta nuevamente.'
+            );
         }
 
         trackEvent('payment_success', {
             payment_method: 'card',
             payment_provider: 'stripe',
-            payment_intent_id: paymentIntent.id
+            payment_intent_id: paymentIntent.id,
         });
 
         const captchaToken2 = await getCaptchaToken('appointment_submit');
@@ -384,20 +434,29 @@ var PielBookingEngine = (function () {
             paymentProvider: 'stripe',
             paymentIntentId: paymentIntent.id,
             status: 'confirmed',
-            captchaToken: captchaToken2
+            captchaToken: captchaToken2,
         };
 
-        return requireFn('createAppointmentRecord')(payload, { allowLocalFallback: false });
+        return requireFn('createAppointmentRecord')(payload, {
+            allowLocalFallback: false,
+        });
     }
 
     async function processTransferPaymentFlow() {
-        const transferReference = (document.getElementById('transferReference')?.value || '').trim();
+        const transferReference = (
+            document.getElementById('transferReference')?.value || ''
+        ).trim();
         if (transferReference.length < 3) {
-            throw new Error('Ingresa el numero de referencia de la transferencia.');
+            throw new Error(
+                'Ingresa el numero de referencia de la transferencia.'
+            );
         }
 
         const proofInput = document.getElementById('transferProofFile');
-        const proofFile = proofInput?.files && proofInput.files[0] ? proofInput.files[0] : null;
+        const proofFile =
+            proofInput?.files && proofInput.files[0]
+                ? proofInput.files[0]
+                : null;
         if (!proofFile) {
             throw new Error('Adjunta el comprobante de transferencia.');
         }
@@ -405,8 +464,12 @@ var PielBookingEngine = (function () {
             throw new Error('El comprobante supera el limite de 5 MB.');
         }
 
-        const upload = await requireFn('uploadTransferProof')(proofFile, { retries: 2 });
-        const appointmentPayload = await requireFn('buildAppointmentPayload')(getCurrentAppointment());
+        const upload = await requireFn('uploadTransferProof')(proofFile, {
+            retries: 2,
+        });
+        const appointmentPayload = await requireFn('buildAppointmentPayload')(
+            getCurrentAppointment()
+        );
 
         const captchaToken = await getCaptchaToken('appointment_submit');
 
@@ -420,21 +483,25 @@ var PielBookingEngine = (function () {
             transferProofName: upload.transferProofName || '',
             transferProofMime: upload.transferProofMime || '',
             status: 'confirmed',
-            captchaToken
+            captchaToken,
         };
 
-        return requireFn('createAppointmentRecord')(payload, { allowLocalFallback: false });
+        return requireFn('createAppointmentRecord')(payload, {
+            allowLocalFallback: false,
+        });
     }
 
     async function processCashPaymentFlow() {
-        const appointmentPayload = await requireFn('buildAppointmentPayload')(getCurrentAppointment());
+        const appointmentPayload = await requireFn('buildAppointmentPayload')(
+            getCurrentAppointment()
+        );
         const captchaToken = await getCaptchaToken('appointment_submit');
         const payload = {
             ...appointmentPayload,
             paymentMethod: 'cash',
             paymentStatus: 'pending_cash',
             status: 'confirmed',
-            captchaToken
+            captchaToken,
         };
 
         return requireFn('createAppointmentRecord')(payload);
@@ -467,13 +534,13 @@ var PielBookingEngine = (function () {
             clearPaymentError();
             trackEvent('payment_method_selected', {
                 payment_method: paymentMethod || 'unknown',
-                selection_source: 'submit'
+                selection_source: 'submit',
             });
             setCheckoutStep('payment_method_selected', {
-                paymentMethod: paymentMethod || 'unknown'
+                paymentMethod: paymentMethod || 'unknown',
             });
             setCheckoutStep('payment_processing', {
-                paymentMethod: paymentMethod || 'unknown'
+                paymentMethod: paymentMethod || 'unknown',
             });
 
             let result;
@@ -488,7 +555,7 @@ var PielBookingEngine = (function () {
             setCurrentAppointment(result.appointment);
 
             setCheckoutStep('booking_confirmed', {
-                paymentMethod: paymentMethod || 'unknown'
+                paymentMethod: paymentMethod || 'unknown',
             });
             requireFn('completeCheckoutSession')(paymentMethod);
             closePaymentModal({ skipAbandonTrack: true });
@@ -509,19 +576,24 @@ var PielBookingEngine = (function () {
             const rawMessage = error?.message || '';
             let message = sanitizeBookingSubmissionError(rawMessage);
             if (
-                paymentMethodUsed === 'card'
-                && /horario ya fue reservado/i.test(rawMessage)
+                paymentMethodUsed === 'card' &&
+                /horario ya fue reservado/i.test(rawMessage)
             ) {
-                message = 'El pago fue aprobado, pero el horario acaba de ocuparse. Escribenos por WhatsApp para resolverlo de inmediato: 098 245 3672.';
+                message =
+                    'El pago fue aprobado, pero el horario acaba de ocuparse. Escribenos por WhatsApp para resolverlo de inmediato: 098 245 3672.';
             }
 
             trackEvent('checkout_error', {
                 stage: 'payment_submit',
                 payment_method: paymentMethodUsed || getActivePaymentMethod(),
-                error_code: normalizeAnalyticsLabel(error?.code || message, 'payment_failed')
+                error_code: normalizeAnalyticsLabel(
+                    error?.code || message,
+                    'payment_failed'
+                ),
             });
             setCheckoutStep('payment_error', {
-                paymentMethod: paymentMethodUsed || getActivePaymentMethod()
+                paymentMethod:
+                    paymentMethodUsed || getActivePaymentMethod() || 'unknown',
             });
 
             setPaymentError(message);
@@ -539,14 +611,17 @@ var PielBookingEngine = (function () {
 
         const paymentMethods = document.querySelectorAll('.payment-method');
 
-        paymentMethods.forEach(method => {
+        paymentMethods.forEach((method) => {
             method.addEventListener('click', () => {
                 if (method.classList.contains('disabled')) {
-                    showToast('Pago con tarjeta no disponible por el momento.', 'warning');
+                    showToast(
+                        'Pago con tarjeta no disponible por el momento.',
+                        'warning'
+                    );
                     return;
                 }
 
-                paymentMethods.forEach(m => m.classList.remove('active'));
+                paymentMethods.forEach((m) => m.classList.remove('active'));
                 method.classList.add('active');
 
                 const methodType = method.dataset.method;
@@ -554,12 +629,15 @@ var PielBookingEngine = (function () {
 
                 clearPaymentError();
                 trackEvent('payment_method_selected', {
-                    payment_method: methodType || 'unknown'
+                    payment_method: methodType || 'unknown',
                 });
 
                 if (methodType === 'card') {
-                    refreshCardPaymentAvailability().catch(error => {
-                        setPaymentError(error?.message || 'No se pudo cargar el formulario de tarjeta');
+                    refreshCardPaymentAvailability().catch((error) => {
+                        setPaymentError(
+                            error?.message ||
+                                'No se pudo cargar el formulario de tarjeta'
+                        );
                     });
                 }
             });
@@ -567,7 +645,10 @@ var PielBookingEngine = (function () {
 
         const transferProofInput = document.getElementById('transferProofFile');
         if (transferProofInput) {
-            transferProofInput.addEventListener('change', updateTransferProofFileName);
+            transferProofInput.addEventListener(
+                'change',
+                updateTransferProofFileName
+            );
         }
     }
 
@@ -576,7 +657,7 @@ var PielBookingEngine = (function () {
         openPaymentModal,
         closePaymentModal,
         getActivePaymentMethod,
-        processPayment
+        processPayment,
     };
 
     return api;

@@ -86,19 +86,27 @@
                 }
             });
 
-            handle.addEventListener('touchstart', (e) => {
-                isDragging = true;
-                e.preventDefault();
-            }, { passive: false });
+            handle.addEventListener(
+                'touchstart',
+                (e) => {
+                    isDragging = true;
+                    e.preventDefault();
+                },
+                { passive: false }
+            );
             document.addEventListener('touchend', () => {
                 isDragging = false;
             });
-            document.addEventListener('touchmove', (e) => {
-                if (isDragging) {
-                    e.preventDefault();
-                    updateSlider(e.touches[0].clientX);
-                }
-            }, { passive: false });
+            document.addEventListener(
+                'touchmove',
+                (e) => {
+                    if (isDragging) {
+                        e.preventDefault();
+                        updateSlider(e.touches[0].clientX);
+                    }
+                },
+                { passive: false }
+            );
 
             slider.addEventListener('click', (e) => {
                 if (e.target !== handle) {
@@ -124,15 +132,18 @@
             return;
         }
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach((entry) => {
-                if (!entry.isIntersecting) {
-                    return;
-                }
-                initAll();
-                observer.disconnect();
-            });
-        }, { threshold: 0.15, rootMargin: '200px 0px' });
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) {
+                        return;
+                    }
+                    initAll();
+                    observer.disconnect();
+                });
+            },
+            { threshold: 0.15, rootMargin: '200px 0px' }
+        );
 
         observer.observe(gallerySection);
     }
@@ -146,6 +157,6 @@
     }
 
     window.PielGalleryInteractions = {
-        init
+        init,
     };
 })();

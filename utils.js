@@ -13,37 +13,13 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function debugLog() {
-    // Debug logging removed
-}
-
-function waitMs(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function formatDate(dateStr) {
-    const date = new Date(dateStr);
-    if (Number.isNaN(date.getTime())) return dateStr;
-    return date.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function debounce(func, wait) {
-    let timeout;
-    return function(...args) {
-        const context = this;
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(context, args), wait);
-    };
-}
-
-function showToast(message, type = 'info', title = '') {
-    // Create container if doesn't exist
-    let container = document.getElementById('toastContainer');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toastContainer';
-        container.className = 'toast-container';
-        document.body.appendChild(container);
+function debugLog(...args) {
+    if (
+        DEBUG &&
+        typeof console !== 'undefined' &&
+        typeof console.log === 'function'
+    ) {
+        console.log(...args);
     }
 
     const toast = document.createElement('div');

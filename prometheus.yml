@@ -1,12 +1,12 @@
 global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+    scrape_interval: 15s
+    evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: 'pielarmonia'
-    scheme: http
-    metrics_path: '/api.php'
-    params:
-      resource: ['metrics']
-    static_configs:
-      - targets: ['localhost:80'] # Update with your production host
+    - job_name: 'pielarmonia'
+      scheme: http
+      metrics_path: '/api.php'
+      params:
+          resource: ['metrics']
+      static_configs:
+          - targets: ['localhost:80'] # Update with your production host

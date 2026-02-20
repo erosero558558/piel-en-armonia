@@ -7,9 +7,13 @@ export default [
         output: {
             file: 'booking-ui.js',
             format: 'iife',
-            sourcemap: false
+            sourcemap: false,
+            paths: {
+                'booking-calendar-lazy': './js/booking-calendar.js',
+            },
         },
-        plugins: [resolve()]
+        plugins: [resolve()],
+        external: ['booking-calendar-lazy'],
     },
     // Booking Engine
     {
@@ -48,8 +52,8 @@ export default [
         output: {
             file: 'script.js',
             format: 'iife',
-            sourcemap: false
+            sourcemap: false,
         },
-        plugins: [resolve()]
-    }
+        plugins: [resolve()],
+    },
 ];

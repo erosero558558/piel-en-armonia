@@ -1,8 +1,22 @@
-import { withDeployAssetVersion, showToast, storageGetJSON, storageSetJSON } from './utils.js';
-import { state } from './state.js';
-import { loadDeferredModule, withDeferredModule, createWarmupRunner, bindWarmupTarget, observeOnceWhenVisible, scheduleDeferredTask } from './loader.js';
+import {
+    withDeployAssetVersion,
+    showToast,
+    storageGetJSON,
+    storageSetJSON,
+} from './utils.js';
+import { getCurrentLang } from './state.js';
+import {
+    loadDeferredModule,
+    withDeferredModule,
+    createWarmupRunner,
+    bindWarmupTarget,
+    observeOnceWhenVisible,
+    scheduleDeferredTask,
+} from './loader.js';
 
-const DATA_ENGINE_URL = withDeployAssetVersion('/data-engine.js?v=figo-data-20260219-phase1');
+const DATA_ENGINE_URL = withDeployAssetVersion(
+    '/data-engine.js?v=figo-data-20260219-phase1'
+);
 
 function getDataEngineDeps() {
     return {
@@ -10,7 +24,6 @@ function getDataEngineDeps() {
         showToast,
         storageGetJSON,
         storageSetJSON,
-        waitMs
     };
 }
 
@@ -20,16 +33,19 @@ export function loadDataEngine() {
         src: DATA_ENGINE_URL,
         scriptDataAttribute: 'data-data-engine',
         resolveModule: () => window.PielDataEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        isModuleReady: (module) =>
+            !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getDataEngineDeps()),
         missingApiError: 'data-engine loaded without API',
         loadError: 'No se pudo cargar data-engine.js',
-        logLabel: 'Data engine'
+        logLabel: 'Data engine',
     });
 }
 
 export function initDataEngineWarmup() {
-    const warmup = createWarmupRunner(() => loadDataEngine(), { markWarmOnSuccess: true });
+    const warmup = createWarmupRunner(() => loadDataEngine(), {
+        markWarmOnSuccess: true,
+    });
 
     bindWarmupTarget('#appointmentForm', 'focusin', warmup, false);
     bindWarmupTarget('#appointmentForm', 'pointerdown', warmup);
@@ -39,47 +55,66 @@ export function initDataEngineWarmup() {
     observeOnceWhenVisible(bookingSection, warmup, {
         threshold: 0.05,
         rootMargin: '260px 0px',
-        onNoObserver: warmup
+        onNoObserver: warmup,
     });
 
     scheduleDeferredTask(warmup, {
         idleTimeout: 1800,
-        fallbackDelay: 900
+        fallbackDelay: 900,
     });
 }
 
 export async function apiRequest(resource, options = {}) {
-    return withDeferredModule(loadDataEngine, (engine) => engine.apiRequest(resource, options));
+    return withDeferredModule(loadDataEngine, (engine) =>
+        engine.apiRequest(resource, options)
+    );
 }
 
 export function invalidateBookedSlotsCache(date = '', doctor = '') {
-    if (window.PielDataEngine && typeof window.PielDataEngine.invalidateBookedSlotsCache === 'function') {
+    if (
+        window.PielDataEngine &&
+        typeof window.PielDataEngine.invalidateBookedSlotsCache === 'function'
+    ) {
         window.PielDataEngine.invalidateBookedSlotsCache(date, doctor);
         return;
     }
-    withDeferredModule(loadDataEngine, (engine) => engine.invalidateBookedSlotsCache(date, doctor)).catch(() => undefined);
+    withDeferredModule(loadDataEngine, (engine) =>
+        engine.invalidateBookedSlotsCache(date, doctor)
+    ).catch(() => undefined);
 }
 
 export async function loadAvailabilityData(options = {}) {
-    return withDeferredModule(loadDataEngine, (engine) => engine.loadAvailabilityData(options));
+    return withDeferredModule(loadDataEngine, (engine) =>
+        engine.loadAvailabilityData(options)
+    );
 }
 
 export async function getBookedSlots(date, doctor = '') {
-    return withDeferredModule(loadDataEngine, (engine) => engine.getBookedSlots(date, doctor));
+    return withDeferredModule(loadDataEngine, (engine) =>
+        engine.getBookedSlots(date, doctor)
+    );
 }
 
 export async function createAppointmentRecord(appointment, options = {}) {
-    return withDeferredModule(loadDataEngine, (engine) => engine.createAppointmentRecord(appointment, options));
+    return withDeferredModule(loadDataEngine, (engine) =>
+        engine.createAppointmentRecord(appointment, options)
+    );
 }
 
 export async function createCallbackRecord(callback) {
-    return withDeferredModule(loadDataEngine, (engine) => engine.createCallbackRecord(callback));
+    return withDeferredModule(loadDataEngine, (engine) =>
+        engine.createCallbackRecord(callback)
+    );
 }
 
 export async function createReviewRecord(review) {
-    return withDeferredModule(loadDataEngine, (engine) => engine.createReviewRecord(review));
+    return withDeferredModule(loadDataEngine, (engine) =>
+        engine.createReviewRecord(review)
+    );
 }
 
 export async function uploadTransferProof(file, options = {}) {
-    return withDeferredModule(loadDataEngine, (engine) => engine.uploadTransferProof(file, options));
+    return withDeferredModule(loadDataEngine, (engine) =>
+        engine.uploadTransferProof(file, options)
+    );
 }

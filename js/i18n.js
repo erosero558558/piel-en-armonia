@@ -3,7 +3,9 @@ import { loadDeferredModule, withDeferredModule } from './loader.js';
 import { state } from './state.js';
 import { renderPublicReviews } from './engagement.js';
 
-const DATA_BUNDLE_URL = withDeployAssetVersion('/js/engines/data-bundle.js');
+const I18N_ENGINE_URL = withDeployAssetVersion(
+    '/i18n-engine.js?v=figo-i18n-20260219-phase1-sync1'
+);
 
 function getI18nEngineDeps() {
     return {
@@ -14,7 +16,7 @@ function getI18nEngineDeps() {
         showToast,
         getReviewsCache: () => state.reviewsCache,
         renderPublicReviews,
-        debugLog
+        debugLog,
     };
 }
 
@@ -24,27 +26,38 @@ export function loadI18nEngine() {
         src: DATA_BUNDLE_URL,
         scriptDataAttribute: 'data-data-bundle',
         resolveModule: () => window.PielI18nEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        isModuleReady: (module) =>
+            !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getI18nEngineDeps()),
         missingApiError: 'i18n-engine loaded without API',
-        loadError: 'No se pudo cargar i18n-engine (data-bundle)',
-        logLabel: 'I18n engine'
+        loadError: 'No se pudo cargar i18n-engine.js',
+        logLabel: 'I18n engine',
     });
 }
 
 export function initEnglishBundleWarmup() {
     const warmup = () => {
-        withDeferredModule(loadI18nEngine, (engine) => engine.ensureEnglishTranslations()).catch(() => undefined);
+        withDeferredModule(loadI18nEngine, (engine) =>
+            engine.ensureEnglishTranslations()
+        ).catch(() => undefined);
     };
 
     const enBtn = document.querySelector('.lang-btn[data-lang="en"]');
     if (enBtn) {
-        enBtn.addEventListener('mouseenter', warmup, { once: true, passive: true });
-        enBtn.addEventListener('touchstart', warmup, { once: true, passive: true });
+        enBtn.addEventListener('mouseenter', warmup, {
+            once: true,
+            passive: true,
+        });
+        enBtn.addEventListener('touchstart', warmup, {
+            once: true,
+            passive: true,
+        });
         enBtn.addEventListener('focus', warmup, { once: true });
     }
 }
 
 export async function changeLanguage(lang) {
-    return withDeferredModule(loadI18nEngine, (engine) => engine.changeLanguage(lang));
+    return withDeferredModule(loadI18nEngine, (engine) =>
+        engine.changeLanguage(lang)
+    );
 }

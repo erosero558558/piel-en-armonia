@@ -1,10 +1,16 @@
-import { withDeployAssetVersion } from './utils.js';
-import { loadDeferredModule, runDeferredModule } from './loader.js';
+import { withDeployAssetVersion, debugLog } from './utils.js';
+import {
+    loadDeferredModule,
+    runDeferredModule,
+    withDeferredModule,
+} from './loader.js';
 import { observeOnceWhenVisible } from './loader.js';
 import { loadAvailabilityData } from './data.js';
 import { loadPublicReviews } from './engagement.js';
 
-const ANALYTICS_ENGINE_URL = withDeployAssetVersion('/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1');
+const ANALYTICS_ENGINE_URL = withDeployAssetVersion(
+    '/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1'
+);
 const FUNNEL_EVENT_ENDPOINT = '/api.php?resource=funnel-event';
 const FUNNEL_SERVER_EVENTS = new Set([
     'view_booking',
@@ -18,7 +24,7 @@ const FUNNEL_SERVER_EVENTS = new Set([
     'checkout_error',
     'chat_started',
     'chat_handoff_whatsapp',
-    'whatsapp_click'
+    'whatsapp_click',
 ]);
 const FUNNEL_SERVER_ALLOWED_PARAMS = new Set([
     'source',
@@ -27,7 +33,7 @@ const FUNNEL_SERVER_ALLOWED_PARAMS = new Set([
     'checkout_entry',
     'checkout_step',
     'reason',
-    'error_code'
+    'error_code',
 ]);
 const FUNNEL_EVENT_DEDUP_MS = 1200;
 const funnelEventLastSentAt = new Map();
@@ -46,9 +52,10 @@ function normalizeFunnelLabelClient(value, fallback = 'unknown') {
 }
 
 function buildFunnelServerParams(params = {}) {
-    const sourceRaw = params && typeof params === 'object' ? params.source : undefined;
+    const sourceRaw =
+        params && typeof params === 'object' ? params.source : undefined;
     const normalized = {
-        source: normalizeFunnelLabelClient(sourceRaw, 'unknown')
+        source: normalizeFunnelLabelClient(sourceRaw, 'unknown'),
     };
 
     if (!params || typeof params !== 'object') {
@@ -60,7 +67,10 @@ function buildFunnelServerParams(params = {}) {
             return;
         }
         if (Object.prototype.hasOwnProperty.call(params, key)) {
-            normalized[key] = normalizeFunnelLabelClient(params[key], 'unknown');
+            normalized[key] = normalizeFunnelLabelClient(
+                params[key],
+                'unknown'
+            );
         }
     });
 
@@ -83,7 +93,7 @@ function sendFunnelEventToServer(eventName, params = {}) {
         serverParams.payment_method || '',
         serverParams.checkout_step || serverParams.step || '',
         serverParams.reason || '',
-        serverParams.source || ''
+        serverParams.source || '',
     ].join('|');
 
     const now = Date.now();
@@ -95,7 +105,7 @@ function sendFunnelEventToServer(eventName, params = {}) {
 
     const payload = JSON.stringify({
         event: normalizedEvent,
-        params: serverParams
+        params: serverParams,
     });
 
     try {
@@ -112,11 +122,11 @@ function sendFunnelEventToServer(eventName, params = {}) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            Accept: 'application/json'
+            Accept: 'application/json',
         },
         body: payload,
         keepalive: true,
-        credentials: 'same-origin'
+        credentials: 'same-origin',
     }).catch(() => undefined);
 }
 
@@ -125,7 +135,7 @@ function getAnalyticsEngineDeps() {
         observeOnceWhenVisible,
         loadAvailabilityData,
         loadPublicReviews,
-        trackEventToServer: sendFunnelEventToServer
+        trackEventToServer: sendFunnelEventToServer,
     };
 }
 
@@ -135,17 +145,20 @@ export function loadAnalyticsEngine() {
         src: ANALYTICS_ENGINE_URL,
         scriptDataAttribute: 'data-analytics-engine',
         resolveModule: () => window.PielAnalyticsEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        isModuleReady: (module) =>
+            !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getAnalyticsEngineDeps()),
         missingApiError: 'analytics-engine loaded without API',
         loadError: 'No se pudo cargar analytics-engine.js',
-        logLabel: 'Analytics engine'
+        logLabel: 'Analytics engine',
     });
 }
 
 export function trackEvent(eventName, params = {}) {
     sendFunnelEventToServer(eventName, params);
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.trackEvent(eventName, params));
+    runDeferredModule(loadAnalyticsEngine, (engine) =>
+        engine.trackEvent(eventName, params)
+    );
 }
 
 export function normalizeAnalyticsLabel(value, fallback = 'unknown') {
@@ -161,41 +174,61 @@ export function normalizeAnalyticsLabel(value, fallback = 'unknown') {
 }
 
 export function markBookingViewed(source = 'unknown') {
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.markBookingViewed(source));
+    runDeferredModule(loadAnalyticsEngine, (engine) =>
+        engine.markBookingViewed(source)
+    );
 }
 
 export function prefetchAvailabilityData(source = 'unknown') {
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.prefetchAvailabilityData(source));
+    runDeferredModule(loadAnalyticsEngine, (engine) =>
+        engine.prefetchAvailabilityData(source)
+    );
 }
 
 export function prefetchReviewsData(source = 'unknown') {
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.prefetchReviewsData(source));
+    runDeferredModule(loadAnalyticsEngine, (engine) =>
+        engine.prefetchReviewsData(source)
+    );
 }
 
 export function initBookingFunnelObserver() {
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.initBookingFunnelObserver());
+    runDeferredModule(loadAnalyticsEngine, (engine) =>
+        engine.initBookingFunnelObserver()
+    );
 }
 
 export function initDeferredSectionPrefetch() {
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.initDeferredSectionPrefetch());
+    runDeferredModule(loadAnalyticsEngine, (engine) =>
+        engine.initDeferredSectionPrefetch()
+    );
 }
 
 export function startCheckoutSession(appointment, metadata = {}) {
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.startCheckoutSession(appointment, metadata));
+    runDeferredModule(loadAnalyticsEngine, (engine) =>
+        engine.startCheckoutSession(appointment, metadata)
+    );
 }
 
 export function setCheckoutStep(step, metadata = {}) {
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.setCheckoutStep(step, metadata));
+    runDeferredModule(loadAnalyticsEngine, (engine) =>
+        engine.setCheckoutStep(step, metadata)
+    );
 }
 
 export function setCheckoutSessionActive(active) {
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.setCheckoutSessionActive(active));
+    runDeferredModule(loadAnalyticsEngine, (engine) =>
+        engine.setCheckoutSessionActive(active)
+    );
 }
 
 export function completeCheckoutSession(method) {
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.completeCheckoutSession(method));
+    runDeferredModule(loadAnalyticsEngine, (engine) =>
+        engine.completeCheckoutSession(method)
+    );
 }
 
 export function maybeTrackCheckoutAbandon(reason = 'unknown') {
-    runDeferredModule(loadAnalyticsEngine, (engine) => engine.maybeTrackCheckoutAbandon(reason));
+    runDeferredModule(loadAnalyticsEngine, (engine) =>
+        engine.maybeTrackCheckoutAbandon(reason)
+    );
 }

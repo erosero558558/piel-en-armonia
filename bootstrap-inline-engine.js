@@ -5,14 +5,23 @@
 (function () {
     'use strict';
 
-    const DEFERRED_STYLESHEET_URL = '/styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1';
+    const DEFERRED_STYLESHEET_URL =
+        '/styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1';
+    const DEBUG = false;
 
     const deferredModulePromises = new Map();
     let deferredStylesheetPromise = null;
     let deferredStylesheetInitDone = false;
 
     function debugLog() {
-        // Debug logging removed
+        if (
+            !DEBUG ||
+            typeof console === 'undefined' ||
+            typeof console.log !== 'function'
+        ) {
+            return;
+        }
+        console.log.apply(console, arguments);
     }
 
     function loadDeferredModule(options) {
@@ -21,15 +30,23 @@
         const src = safeOptions.src;
         const scriptDataAttribute = safeOptions.scriptDataAttribute;
         const resolveModule = safeOptions.resolveModule;
-        const isModuleReady = typeof safeOptions.isModuleReady === 'function'
-            ? safeOptions.isModuleReady
-            : function (moduleRef) { return !!moduleRef; };
+        const isModuleReady =
+            typeof safeOptions.isModuleReady === 'function'
+                ? safeOptions.isModuleReady
+                : function (moduleRef) {
+                      return !!moduleRef;
+                  };
         const onModuleReady = safeOptions.onModuleReady;
         const missingApiError = safeOptions.missingApiError;
         const loadError = safeOptions.loadError;
         const logLabel = safeOptions.logLabel;
 
-        if (!cacheKey || !src || !scriptDataAttribute || typeof resolveModule !== 'function') {
+        if (
+            !cacheKey ||
+            !src ||
+            !scriptDataAttribute ||
+            typeof resolveModule !== 'function'
+        ) {
             return Promise.reject(new Error('Invalid config'));
         }
 
@@ -63,12 +80,20 @@
                 reject(new Error(missingApiError || 'Module missing'));
             }
 
-            const existingScript = document.querySelector('script[' + scriptDataAttribute + '="true"]');
+            const existingScript = document.querySelector(
+                'script[' + scriptDataAttribute + '="true"]'
+            );
             if (existingScript) {
-                existingScript.addEventListener('load', handleLoad, { once: true });
-                existingScript.addEventListener('error', function () {
-                    reject(new Error(loadError || 'Load failed'));
-                }, { once: true });
+                existingScript.addEventListener('load', handleLoad, {
+                    once: true,
+                });
+                existingScript.addEventListener(
+                    'error',
+                    function () {
+                        reject(new Error(loadError || 'Load failed'));
+                    },
+                    { once: true }
+                );
                 return;
             }
 
@@ -95,23 +120,35 @@
     }
 
     function isConstrainedNetworkConnection() {
-        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        const connection =
+            navigator.connection ||
+            navigator.mozConnection ||
+            navigator.webkitConnection;
         if (!connection) {
             return false;
         }
 
         const effectiveType = String(connection.effectiveType || '');
-        return connection.saveData === true || /(^|[^0-9])2g/.test(effectiveType);
+        return (
+            connection.saveData === true || /(^|[^0-9])2g/.test(effectiveType)
+        );
     }
 
     function scheduleDeferredTask(task, options) {
         const safeOptions = options || {};
-        const idleTimeout = typeof safeOptions.idleTimeout === 'number' ? safeOptions.idleTimeout : 2000;
-        const fallbackDelay = typeof safeOptions.fallbackDelay === 'number' ? safeOptions.fallbackDelay : 1200;
+        const idleTimeout =
+            typeof safeOptions.idleTimeout === 'number'
+                ? safeOptions.idleTimeout
+                : 2000;
+        const fallbackDelay =
+            typeof safeOptions.fallbackDelay === 'number'
+                ? safeOptions.fallbackDelay
+                : 1200;
         const skipOnConstrained = safeOptions.skipOnConstrained !== false;
-        const constrainedDelay = typeof safeOptions.constrainedDelay === 'number'
-            ? safeOptions.constrainedDelay
-            : fallbackDelay;
+        const constrainedDelay =
+            typeof safeOptions.constrainedDelay === 'number'
+                ? safeOptions.constrainedDelay
+                : fallbackDelay;
 
         if (isConstrainedNetworkConnection()) {
             if (skipOnConstrained) {
@@ -138,7 +175,7 @@
 
         element.addEventListener(eventName, handler, {
             once: true,
-            passive: passive !== false
+            passive: passive !== false,
         });
 
         return true;
@@ -166,11 +203,13 @@
             }
 
             if (markWarmOnSuccess) {
-                Promise.resolve(loadFn()).then(function () {
-                    warmed = true;
-                }).catch(function () {
-                    // noop
-                });
+                Promise.resolve(loadFn())
+                    .then(function () {
+                        warmed = true;
+                    })
+                    .catch(function () {
+                        // noop
+                    });
                 return;
             }
 
@@ -183,8 +222,14 @@
 
     function observeOnceWhenVisible(element, onVisible, options) {
         const safeOptions = options || {};
-        const threshold = typeof safeOptions.threshold === 'number' ? safeOptions.threshold : 0.05;
-        const rootMargin = typeof safeOptions.rootMargin === 'string' ? safeOptions.rootMargin : '0px';
+        const threshold =
+            typeof safeOptions.threshold === 'number'
+                ? safeOptions.threshold
+                : 0.05;
+        const rootMargin =
+            typeof safeOptions.rootMargin === 'string'
+                ? safeOptions.rootMargin
+                : '0px';
         const onNoObserver = safeOptions.onNoObserver;
 
         if (!element) {
@@ -198,29 +243,34 @@
             return false;
         }
 
-        const observer = new IntersectionObserver(function (entries) {
-            entries.forEach(function (entry) {
-                if (!entry.isIntersecting) {
-                    return;
-                }
-                onVisible(entry);
-                observer.disconnect();
-            });
-        }, {
-            threshold,
-            rootMargin
-        });
+        const observer = new IntersectionObserver(
+            function (entries) {
+                entries.forEach(function (entry) {
+                    if (!entry.isIntersecting) {
+                        return;
+                    }
+                    onVisible(entry);
+                    observer.disconnect();
+                });
+            },
+            {
+                threshold,
+                rootMargin,
+            }
+        );
 
         observer.observe(element);
         return true;
     }
 
     function withDeferredModule(loader, onReady) {
-        return Promise.resolve().then(function () {
-            return loader();
-        }).then(function (moduleRef) {
-            return onReady(moduleRef);
-        });
+        return Promise.resolve()
+            .then(function () {
+                return loader();
+            })
+            .then(function (moduleRef) {
+                return onReady(moduleRef);
+            });
     }
 
     function runDeferredModule(loader, onReady, onError) {
@@ -233,7 +283,9 @@
     }
 
     function resolveDeferredStylesheetUrl() {
-        const preload = document.querySelector('link[rel="preload"][as="style"][href*="styles-deferred.css"]');
+        const preload = document.querySelector(
+            'link[rel="preload"][as="style"][href*="styles-deferred.css"]'
+        );
         if (preload) {
             const href = preload.getAttribute('href');
             if (href && href.trim() !== '') {
@@ -244,7 +296,11 @@
     }
 
     function loadDeferredStylesheet() {
-        if (document.querySelector('link[data-deferred-stylesheet="true"], link[rel="stylesheet"][href*="styles-deferred.css"]')) {
+        if (
+            document.querySelector(
+                'link[data-deferred-stylesheet="true"], link[rel="stylesheet"][href*="styles-deferred.css"]'
+            )
+        ) {
             return Promise.resolve(true);
         }
 
@@ -258,8 +314,12 @@
             link.rel = 'stylesheet';
             link.href = stylesheetUrl;
             link.dataset.deferredStylesheet = 'true';
-            link.onload = function () { resolve(true); };
-            link.onerror = function () { reject(new Error('Style load failed')); };
+            link.onload = function () {
+                resolve(true);
+            };
+            link.onerror = function () {
+                reject(new Error('Style load failed'));
+            };
             document.head.appendChild(link);
         }).catch(function (error) {
             deferredStylesheetPromise = null;
@@ -271,28 +331,36 @@
     }
 
     function initDeferredStylesheetLoading() {
-        if (deferredStylesheetInitDone || window.location.protocol === 'file:') {
+        if (
+            deferredStylesheetInitDone ||
+            window.location.protocol === 'file:'
+        ) {
             return;
         }
 
         deferredStylesheetInitDone = true;
-        scheduleDeferredTask(function () {
-            loadDeferredStylesheet().catch(function () {
-                // noop
-            });
-        }, {
-            idleTimeout: 1200,
-            fallbackDelay: 160,
-            skipOnConstrained: false,
-            constrainedDelay: 900
-        });
+        scheduleDeferredTask(
+            function () {
+                loadDeferredStylesheet().catch(function () {
+                    // noop
+                });
+            },
+            {
+                idleTimeout: 1200,
+                fallbackDelay: 160,
+                skipOnConstrained: false,
+                constrainedDelay: 900,
+            }
+        );
     }
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {
-            navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(function (error) {
-                debugLog('SW fail', error);
-            });
+            navigator.serviceWorker
+                .register('/sw.js', { updateViaCache: 'none' })
+                .catch(function (error) {
+                    debugLog('SW fail', error);
+                });
         });
     }
 

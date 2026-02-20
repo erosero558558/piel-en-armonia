@@ -3,6 +3,7 @@
 ## Estado Actual
 
 ✅ **Sistema funcionando correctamente**
+
 - Smoke test: 25/25 checks OK
 - Gate: PASANDO
 - Monitor: PASANDO
@@ -15,6 +16,7 @@
 ## Cómo Cerrar
 
 ### Opción 1: GitHub Web (Recomendado)
+
 1. Ir a: https://github.com/erosero558558/piel-en-armonia/issues
 2. Abrir issue #122
 3. Comentar: "✅ Resuelto - Sistema estable"
@@ -22,6 +24,7 @@
 5. Repetir para #130
 
 ### Opción 2: GitHub CLI
+
 ```bash
 # Instalar gh CLI si no lo tienes
 winget install --id GitHub.cli
@@ -38,6 +41,7 @@ gh issue close 130
 ```
 
 ### Opción 3: API de GitHub
+
 ```bash
 curl -X POST \
   -H "Authorization: token TU_TOKEN" \

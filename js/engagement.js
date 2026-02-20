@@ -1,9 +1,31 @@
-import { withDeployAssetVersion, showToast, escapeHtml, storageGetJSON, getInitials, getRelativeDateLabel, renderStars } from './utils.js';
-import { loadDeferredModule, runDeferredModule, withDeferredModule, createWarmupRunner, bindWarmupTarget, scheduleDeferredTask, observeOnceWhenVisible } from './loader.js';
-import { state } from './state.js';
-import { apiRequest, createCallbackRecord, createReviewRecord } from './data.js';
+import {
+    withDeployAssetVersion,
+    showToast,
+    escapeHtml,
+    storageGetJSON,
+} from './utils.js';
+import {
+    loadDeferredModule,
+    runDeferredModule,
+    withDeferredModule,
+    createWarmupRunner,
+    bindWarmupTarget,
+    scheduleDeferredTask,
+    observeOnceWhenVisible,
+} from './loader.js';
+import { getCurrentLang, getReviewsCache, setReviewsCache } from './state.js';
+import {
+    apiRequest,
+    createCallbackRecord,
+    createReviewRecord,
+} from './data.js';
 
-const ENGAGEMENT_BUNDLE_URL = withDeployAssetVersion('/js/engines/engagement-bundle.js');
+const ENGAGEMENT_FORMS_ENGINE_URL = withDeployAssetVersion(
+    '/engagement-forms-engine.js?v=figo-engagement-20260218-phase1-sync1'
+);
+const REVIEWS_ENGINE_URL = withDeployAssetVersion(
+    '/reviews-engine.js?v=figo-reviews-20260219-phase1'
+);
 
 // REVIEWS ENGINE
 function getReviewsEngineDeps() {
@@ -11,7 +33,7 @@ function getReviewsEngineDeps() {
         apiRequest,
         storageGetJSON,
         escapeHtml,
-        getCurrentLang: () => state.currentLang
+        getCurrentLang: getCurrentLang,
     };
 }
 
@@ -21,34 +43,46 @@ export function loadReviewsEngine() {
         src: ENGAGEMENT_BUNDLE_URL,
         scriptDataAttribute: 'data-engagement-bundle',
         resolveModule: () => window.PielReviewsEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+        isModuleReady: (module) =>
+            !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getReviewsEngineDeps()),
         missingApiError: 'reviews-engine loaded without API',
-        loadError: 'No se pudo cargar reviews-engine (engagement-bundle)',
-        logLabel: 'Reviews engine'
+        loadError: 'No se pudo cargar reviews-engine.js',
+        logLabel: 'Reviews engine',
     });
 }
 
 export function initReviewsEngineWarmup() {
-    const warmup = createWarmupRunner(() => loadReviewsEngine(), { markWarmOnSuccess: true });
+    const warmup = createWarmupRunner(() => loadReviewsEngine(), {
+        markWarmOnSuccess: true,
+    });
     const reviewSection = document.getElementById('resenas');
     observeOnceWhenVisible(reviewSection, warmup, {
         threshold: 0.05,
         rootMargin: '300px 0px',
-        onNoObserver: warmup
+        onNoObserver: warmup,
     });
     bindWarmupTarget('#resenas', 'mouseenter', warmup);
     bindWarmupTarget('#resenas', 'touchstart', warmup);
-    bindWarmupTarget('#resenas [data-action="open-review-modal"]', 'focus', warmup, false);
+    bindWarmupTarget(
+        '#resenas [data-action="open-review-modal"]',
+        'focus',
+        warmup,
+        false
+    );
     scheduleDeferredTask(warmup, { idleTimeout: 2200, fallbackDelay: 1300 });
 }
 
 export function renderPublicReviews(reviews) {
-    runDeferredModule(loadReviewsEngine, (engine) => engine.renderPublicReviews(reviews));
+    runDeferredModule(loadReviewsEngine, (engine) =>
+        engine.renderPublicReviews(reviews)
+    );
 }
 
 export function loadPublicReviews(options = {}) {
-    return withDeferredModule(loadReviewsEngine, (engine) => engine.loadPublicReviews(options));
+    return withDeferredModule(loadReviewsEngine, (engine) =>
+        engine.loadPublicReviews(options)
+    );
 }
 
 // ENGAGEMENT FORMS ENGINE
@@ -58,32 +92,44 @@ function getEngagementFormsEngineDeps() {
         createReviewRecord,
         renderPublicReviews,
         showToast,
-        getCurrentLang: () => state.currentLang,
-        getReviewsCache: () => state.reviewsCache,
-        setReviewsCache: (val) => { state.reviewsCache = val; }
+        getCurrentLang: getCurrentLang,
+        getReviewsCache,
+        setReviewsCache,
     };
 }
 
 export function loadEngagementFormsEngine() {
-    return loadDeferredModule({
-        cacheKey: 'engagement-bundle',
-        src: ENGAGEMENT_BUNDLE_URL,
-        scriptDataAttribute: 'data-engagement-bundle',
-        resolveModule: () => window.PielEngagementFormsEngine,
-        isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getEngagementFormsEngineDeps()),
-        missingApiError: 'engagement-forms-engine loaded without API',
-        loadError: 'No se pudo cargar engagement-forms-engine (engagement-bundle)',
-        logLabel: 'Engagement forms engine'
-    });
+    return loadReviewsEngine().then(() =>
+        loadDeferredModule({
+            cacheKey: 'engagement-forms-engine',
+            src: ENGAGEMENT_FORMS_ENGINE_URL,
+            scriptDataAttribute: 'data-engagement-forms-engine',
+            resolveModule: () => window.PielEngagementFormsEngine,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) =>
+                module.init(getEngagementFormsEngineDeps()),
+            missingApiError: 'engagement-forms-engine loaded without API',
+            loadError: 'No se pudo cargar engagement-forms-engine.js',
+            logLabel: 'Engagement forms engine',
+        })
+    );
 }
 
 export function initEngagementFormsEngineWarmup() {
     const warmup = createWarmupRunner(() => loadEngagementFormsEngine());
     bindWarmupTarget('#callbackForm', 'focusin', warmup, false);
     bindWarmupTarget('#callbackForm', 'pointerdown', warmup);
-    bindWarmupTarget('#resenas [data-action="open-review-modal"]', 'mouseenter', warmup);
-    bindWarmupTarget('#resenas [data-action="open-review-modal"]', 'touchstart', warmup);
+    bindWarmupTarget(
+        '#resenas [data-action="open-review-modal"]',
+        'mouseenter',
+        warmup
+    );
+    bindWarmupTarget(
+        '#resenas [data-action="open-review-modal"]',
+        'touchstart',
+        warmup
+    );
     if (document.getElementById('callbackForm')) {
         setTimeout(warmup, 120);
     }
@@ -91,7 +137,7 @@ export function initEngagementFormsEngineWarmup() {
     observeOnceWhenVisible(reviewSection, warmup, {
         threshold: 0.05,
         rootMargin: '280px 0px',
-        onNoObserver: warmup
+        onNoObserver: warmup,
     });
     scheduleDeferredTask(warmup, { idleTimeout: 2600, fallbackDelay: 1500 });
 }
@@ -116,5 +162,7 @@ export function closeReviewModal() {
         modal.classList.remove('active');
     }
     document.body.style.overflow = '';
-    runDeferredModule(loadEngagementFormsEngine, (engine) => engine.closeReviewModal());
+    runDeferredModule(loadEngagementFormsEngine, (engine) =>
+        engine.closeReviewModal()
+    );
 }

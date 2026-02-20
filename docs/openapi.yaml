@@ -1,573 +1,580 @@
 openapi: 3.0.0
 info:
-  title: Piel en Armonía API
-  description: |
-    API for appointment booking, reviews, and callbacks for Piel en Armonía clinic.
+    title: Piel en Armonía API
+    description: |
+        API for appointment booking, reviews, and callbacks for Piel en Armonía clinic.
 
-    **Routing Note:**
-    This API uses a legacy routing mechanism via the `resource` query parameter.
-    All endpoints are accessed via `api.php`.
-    Example: The logical resource `/health` is accessed via `GET /api.php?resource=health`.
-  version: 1.0.0
+        **Routing Note:**
+        This API uses a legacy routing mechanism via the `resource` query parameter.
+        All endpoints are accessed via `api.php`.
+        Example: The logical resource `/health` is accessed via `GET /api.php?resource=health`.
+    version: 1.0.0
 servers:
-  - url: https://pielarmonia.com
-    description: Production Server
-  - url: http://localhost:8080
-    description: Local Development Server
+    - url: https://pielarmonia.com
+      description: Production Server
+    - url: http://localhost:8080
+      description: Local Development Server
 
 components:
-  securitySchemes:
-    cookieAuth:
-      type: apiKey
-      in: cookie
-      name: PHPSESSID
-    csrfToken:
-      type: apiKey
-      in: header
-      name: X-CSRF-Token
+    securitySchemes:
+        cookieAuth:
+            type: apiKey
+            in: cookie
+            name: PHPSESSID
+        csrfToken:
+            type: apiKey
+            in: header
+            name: X-CSRF-Token
 
-  schemas:
-    Appointment:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        service:
-          type: string
-          description: Service identifier (e.g., 'consulta', 'laser')
-        doctor:
-          type: string
-          description: Doctor identifier (e.g., 'rosero', 'narvaez')
-        date:
-          type: string
-          format: date
-          example: '2023-10-25'
-        time:
-          type: string
-          example: '10:00'
-        name:
-          type: string
-        email:
-          type: string
-          format: email
-        phone:
-          type: string
-        reason:
-          type: string
-        affectedArea:
-          type: string
-        evolutionTime:
-          type: string
-        privacyConsent:
-          type: boolean
-        casePhotoUrls:
-          type: array
-          items:
-            type: string
-        status:
-          type: string
-          enum: [confirmed, pending, cancelled, completed]
-        paymentMethod:
-          type: string
-          enum: [card, transfer, cash, unpaid]
-        paymentStatus:
-          type: string
-          enum: [paid, pending, pending_cash, pending_transfer_review, failed]
-      required:
-        - service
-        - date
-        - time
-        - name
-        - email
-        - phone
-        - privacyConsent
+    schemas:
+        Appointment:
+            type: object
+            properties:
+                id:
+                    type: integer
+                    readOnly: true
+                service:
+                    type: string
+                    description: Service identifier (e.g., 'consulta', 'laser')
+                doctor:
+                    type: string
+                    description: Doctor identifier (e.g., 'rosero', 'narvaez')
+                date:
+                    type: string
+                    format: date
+                    example: '2023-10-25'
+                time:
+                    type: string
+                    example: '10:00'
+                name:
+                    type: string
+                email:
+                    type: string
+                    format: email
+                phone:
+                    type: string
+                reason:
+                    type: string
+                affectedArea:
+                    type: string
+                evolutionTime:
+                    type: string
+                privacyConsent:
+                    type: boolean
+                casePhotoUrls:
+                    type: array
+                    items:
+                        type: string
+                status:
+                    type: string
+                    enum: [confirmed, pending, cancelled, completed]
+                paymentMethod:
+                    type: string
+                    enum: [card, transfer, cash, unpaid]
+                paymentStatus:
+                    type: string
+                    enum:
+                        [
+                            paid,
+                            pending,
+                            pending_cash,
+                            pending_transfer_review,
+                            failed,
+                        ]
+            required:
+                - service
+                - date
+                - time
+                - name
+                - email
+                - phone
+                - privacyConsent
 
-    Callback:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        telefono:
-          type: string
-        preferencia:
-          type: string
-        fecha:
-          type: string
-          format: date-time
-          readOnly: true
-        status:
-          type: string
-          enum: [pendiente, contactado]
-      required:
-        - telefono
+        Callback:
+            type: object
+            properties:
+                id:
+                    type: integer
+                    readOnly: true
+                telefono:
+                    type: string
+                preferencia:
+                    type: string
+                fecha:
+                    type: string
+                    format: date-time
+                    readOnly: true
+                status:
+                    type: string
+                    enum: [pendiente, contactado]
+            required:
+                - telefono
 
-    Review:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        name:
-          type: string
-        rating:
-          type: integer
-          minimum: 1
-          maximum: 5
-        text:
-          type: string
-        date:
-          type: string
-          format: date-time
-          readOnly: true
-        verified:
-          type: boolean
-      required:
-        - name
-        - rating
-        - text
+        Review:
+            type: object
+            properties:
+                id:
+                    type: integer
+                    readOnly: true
+                name:
+                    type: string
+                rating:
+                    type: integer
+                    minimum: 1
+                    maximum: 5
+                text:
+                    type: string
+                date:
+                    type: string
+                    format: date-time
+                    readOnly: true
+                verified:
+                    type: boolean
+            required:
+                - name
+                - rating
+                - text
 
-    Availability:
-      type: object
-      additionalProperties:
-        type: array
-        items:
-          type: string
-          example: "09:00"
-      description: Map of date strings (YYYY-MM-DD) to arrays of available time slots.
+        Availability:
+            type: object
+            additionalProperties:
+                type: array
+                items:
+                    type: string
+                    example: '09:00'
+            description: Map of date strings (YYYY-MM-DD) to arrays of available time slots.
 
 paths:
-  /api.php?resource=health:
-    get:
-      summary: API Health Check
-      description: Returns the health status of the API and storage.
-      tags: [System]
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  status:
-                    type: string
-                  storageReady:
-                    type: boolean
-                  version:
-                    type: string
+    /api.php?resource=health:
+        get:
+            summary: API Health Check
+            description: Returns the health status of the API and storage.
+            tags: [System]
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    ok:
+                                        type: boolean
+                                    status:
+                                        type: string
+                                    storageReady:
+                                        type: boolean
+                                    version:
+                                        type: string
 
-  /api.php?resource=payment-config:
-    get:
-      summary: Get Payment Configuration
-      description: Returns public Stripe key and currency settings.
-      tags: [Payment]
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  provider:
-                    type: string
-                  enabled:
-                    type: boolean
-                  publishableKey:
-                    type: string
-                  currency:
-                    type: string
+    /api.php?resource=payment-config:
+        get:
+            summary: Get Payment Configuration
+            description: Returns public Stripe key and currency settings.
+            tags: [Payment]
+            responses:
+                '200':
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    ok:
+                                        type: boolean
+                                    provider:
+                                        type: string
+                                    enabled:
+                                        type: boolean
+                                    publishableKey:
+                                        type: string
+                                    currency:
+                                        type: string
 
-  /api.php?resource=availability:
-    get:
-      summary: Get Availability Slots
-      description: Returns configured availability slots.
-      tags: [Appointments]
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  data:
-                    $ref: '#/components/schemas/Availability'
-    post:
-      summary: Update Availability
-      description: Updates the availability configuration. Requires Admin authentication.
-      tags: [Appointments, Admin]
-      security:
-        - cookieAuth: []
-        - csrfToken: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                availability:
-                  $ref: '#/components/schemas/Availability'
-      responses:
-        '200':
-          description: Updated successfully
+    /api.php?resource=availability:
+        get:
+            summary: Get Availability Slots
+            description: Returns configured availability slots.
+            tags: [Appointments]
+            responses:
+                '200':
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    ok:
+                                        type: boolean
+                                    data:
+                                        $ref: '#/components/schemas/Availability'
+        post:
+            summary: Update Availability
+            description: Updates the availability configuration. Requires Admin authentication.
+            tags: [Appointments, Admin]
+            security:
+                - cookieAuth: []
+                - csrfToken: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                availability:
+                                    $ref: '#/components/schemas/Availability'
+            responses:
+                '200':
+                    description: Updated successfully
 
-  /api.php?resource=booked-slots:
-    get:
-      summary: Get Booked Slots
-      description: Returns a list of time slots that are already booked for a specific date and doctor.
-      tags: [Appointments]
-      parameters:
-        - in: query
-          name: date
-          schema:
-            type: string
-            format: date
-          required: true
-        - in: query
-          name: doctor
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  data:
-                    type: array
-                    items:
+    /api.php?resource=booked-slots:
+        get:
+            summary: Get Booked Slots
+            description: Returns a list of time slots that are already booked for a specific date and doctor.
+            tags: [Appointments]
+            parameters:
+                - in: query
+                  name: date
+                  schema:
                       type: string
+                      format: date
+                  required: true
+                - in: query
+                  name: doctor
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    ok:
+                                        type: boolean
+                                    data:
+                                        type: array
+                                        items:
+                                            type: string
 
-  /api.php?resource=reviews:
-    get:
-      summary: Get Reviews
-      description: Returns a list of patient reviews.
-      tags: [Reviews]
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Review'
-    post:
-      summary: Submit Review
-      description: Submit a new review.
-      tags: [Reviews]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Review'
-      responses:
-        '201':
-          description: Created
+    /api.php?resource=reviews:
+        get:
+            summary: Get Reviews
+            description: Returns a list of patient reviews.
+            tags: [Reviews]
+            responses:
+                '200':
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    ok:
+                                        type: boolean
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/Review'
+        post:
+            summary: Submit Review
+            description: Submit a new review.
+            tags: [Reviews]
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Review'
+            responses:
+                '201':
+                    description: Created
 
-  /api.php?resource=appointments:
-    get:
-      summary: Get All Appointments
-      description: Returns all appointments. Requires Admin authentication.
-      tags: [Appointments, Admin]
-      security:
-        - cookieAuth: []
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Appointment'
-    post:
-      summary: Create Appointment
-      description: Book a new appointment.
-      tags: [Appointments]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Appointment'
-      responses:
-        '201':
-          description: Created
-    patch:
-      summary: Update Appointment
-      description: Update an existing appointment. Requires Admin authentication.
-      tags: [Appointments, Admin]
-      security:
-        - cookieAuth: []
-        - csrfToken: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                id:
-                  type: integer
-                status:
-                  type: string
-                paymentStatus:
-                  type: string
-      responses:
-        '200':
-          description: Updated
+    /api.php?resource=appointments:
+        get:
+            summary: Get All Appointments
+            description: Returns all appointments. Requires Admin authentication.
+            tags: [Appointments, Admin]
+            security:
+                - cookieAuth: []
+            responses:
+                '200':
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    ok:
+                                        type: boolean
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/Appointment'
+        post:
+            summary: Create Appointment
+            description: Book a new appointment.
+            tags: [Appointments]
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Appointment'
+            responses:
+                '201':
+                    description: Created
+        patch:
+            summary: Update Appointment
+            description: Update an existing appointment. Requires Admin authentication.
+            tags: [Appointments, Admin]
+            security:
+                - cookieAuth: []
+                - csrfToken: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                id:
+                                    type: integer
+                                status:
+                                    type: string
+                                paymentStatus:
+                                    type: string
+            responses:
+                '200':
+                    description: Updated
 
-  /api.php?resource=callbacks:
-    get:
-      summary: Get Callbacks
-      description: Returns all callback requests. Requires Admin authentication.
-      tags: [Callbacks, Admin]
-      security:
-        - cookieAuth: []
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Callback'
-    post:
-      summary: Request Callback
-      description: Request a callback from the clinic.
-      tags: [Callbacks]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Callback'
-      responses:
-        '201':
-          description: Created
-    patch:
-      summary: Update Callback
-      description: Update callback status. Requires Admin authentication.
-      tags: [Callbacks, Admin]
-      security:
-        - cookieAuth: []
-        - csrfToken: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                id:
-                  type: integer
-                status:
-                  type: string
-      responses:
-        '200':
-          description: Updated
+    /api.php?resource=callbacks:
+        get:
+            summary: Get Callbacks
+            description: Returns all callback requests. Requires Admin authentication.
+            tags: [Callbacks, Admin]
+            security:
+                - cookieAuth: []
+            responses:
+                '200':
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    ok:
+                                        type: boolean
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/Callback'
+        post:
+            summary: Request Callback
+            description: Request a callback from the clinic.
+            tags: [Callbacks]
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Callback'
+            responses:
+                '201':
+                    description: Created
+        patch:
+            summary: Update Callback
+            description: Update callback status. Requires Admin authentication.
+            tags: [Callbacks, Admin]
+            security:
+                - cookieAuth: []
+                - csrfToken: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                id:
+                                    type: integer
+                                status:
+                                    type: string
+            responses:
+                '200':
+                    description: Updated
 
-  /api.php?resource=payment-intent:
-    post:
-      summary: Create Payment Intent
-      description: Create a Stripe Payment Intent for an appointment.
-      tags: [Payment]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Appointment'
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  clientSecret:
-                    type: string
-                  paymentIntentId:
-                    type: string
+    /api.php?resource=payment-intent:
+        post:
+            summary: Create Payment Intent
+            description: Create a Stripe Payment Intent for an appointment.
+            tags: [Payment]
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Appointment'
+            responses:
+                '200':
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    ok:
+                                        type: boolean
+                                    clientSecret:
+                                        type: string
+                                    paymentIntentId:
+                                        type: string
 
-  /api.php?resource=payment-verify:
-    post:
-      summary: Verify Payment
-      description: Verify the status of a Payment Intent.
-      tags: [Payment]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                paymentIntentId:
-                  type: string
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  paid:
-                    type: boolean
-                  status:
-                    type: string
+    /api.php?resource=payment-verify:
+        post:
+            summary: Verify Payment
+            description: Verify the status of a Payment Intent.
+            tags: [Payment]
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                paymentIntentId:
+                                    type: string
+            responses:
+                '200':
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    ok:
+                                        type: boolean
+                                    paid:
+                                        type: boolean
+                                    status:
+                                        type: string
 
-  /api.php?resource=transfer-proof:
-    post:
-      summary: Upload Transfer Proof
-      description: Upload a proof of bank transfer.
-      tags: [Payment]
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                proof:
-                  type: string
-                  format: binary
-      responses:
-        '201':
-          description: Uploaded
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  data:
-                    type: object
-                    properties:
-                      transferProofUrl:
-                        type: string
+    /api.php?resource=transfer-proof:
+        post:
+            summary: Upload Transfer Proof
+            description: Upload a proof of bank transfer.
+            tags: [Payment]
+            requestBody:
+                content:
+                    multipart/form-data:
+                        schema:
+                            type: object
+                            properties:
+                                proof:
+                                    type: string
+                                    format: binary
+            responses:
+                '201':
+                    description: Uploaded
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    ok:
+                                        type: boolean
+                                    data:
+                                        type: object
+                                        properties:
+                                            transferProofUrl:
+                                                type: string
 
-  /api.php?resource=stripe-webhook:
-    post:
-      summary: Stripe Webhook
-      description: Endpoint for Stripe webhook events.
-      tags: [Payment]
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: Received
+    /api.php?resource=stripe-webhook:
+        post:
+            summary: Stripe Webhook
+            description: Endpoint for Stripe webhook events.
+            tags: [Payment]
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+            responses:
+                '200':
+                    description: Received
 
-  /api.php?resource=reschedule:
-    get:
-      summary: Get Reschedule Info
-      description: Get appointment details by reschedule token.
-      tags: [Appointments]
-      parameters:
-        - in: query
-          name: token
-          schema:
-            type: string
-          required: true
-      responses:
-        '200':
-          description: Success
-    patch:
-      summary: Reschedule Appointment
-      description: Reschedule an appointment using a token.
-      tags: [Appointments]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                token:
-                  type: string
-                date:
-                  type: string
-                  format: date
-                time:
-                  type: string
-      responses:
-        '200':
-          description: Success
+    /api.php?resource=reschedule:
+        get:
+            summary: Get Reschedule Info
+            description: Get appointment details by reschedule token.
+            tags: [Appointments]
+            parameters:
+                - in: query
+                  name: token
+                  schema:
+                      type: string
+                  required: true
+            responses:
+                '200':
+                    description: Success
+        patch:
+            summary: Reschedule Appointment
+            description: Reschedule an appointment using a token.
+            tags: [Appointments]
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                token:
+                                    type: string
+                                date:
+                                    type: string
+                                    format: date
+                                time:
+                                    type: string
+            responses:
+                '200':
+                    description: Success
 
-  /api.php?resource=data:
-    get:
-      summary: Get All Data
-      description: Dump of the entire data store. Requires Admin authentication.
-      tags: [System, Admin]
-      security:
-        - cookieAuth: []
-      responses:
-        '200':
-          description: Success
+    /api.php?resource=data:
+        get:
+            summary: Get All Data
+            description: Dump of the entire data store. Requires Admin authentication.
+            tags: [System, Admin]
+            security:
+                - cookieAuth: []
+            responses:
+                '200':
+                    description: Success
 
-  /api.php?resource=import:
-    post:
-      summary: Import Data
-      description: Import data into the store. Requires Admin authentication.
-      tags: [System, Admin]
-      security:
-        - cookieAuth: []
-        - csrfToken: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                appointments:
-                  type: array
-                callbacks:
-                  type: array
-                reviews:
-                  type: array
-                availability:
-                  $ref: '#/components/schemas/Availability'
-      responses:
-        '200':
-          description: Success
+    /api.php?resource=import:
+        post:
+            summary: Import Data
+            description: Import data into the store. Requires Admin authentication.
+            tags: [System, Admin]
+            security:
+                - cookieAuth: []
+                - csrfToken: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                appointments:
+                                    type: array
+                                callbacks:
+                                    type: array
+                                reviews:
+                                    type: array
+                                availability:
+                                    $ref: '#/components/schemas/Availability'
+            responses:
+                '200':
+                    description: Success

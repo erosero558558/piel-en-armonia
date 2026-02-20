@@ -14,9 +14,11 @@ Seguimos una versión simplificada de la **Pirámide de Pruebas**:
 Las pruebas unitarias verifican funciones individuales, validaciones y lógica de negocio sin depender de la base de datos o servicios externos (mockeados).
 
 ### Ubicación
+
 `tests/*.php` (Archivos prefijados con `test_` o `verify-`).
 
 ### Ejecución
+
 El script `tests/run-php-tests.sh` busca y ejecuta todos los archivos de prueba PHP secuencialmente.
 
 ```bash
@@ -28,6 +30,7 @@ php tests/test_validation.php
 ```
 
 ### Cómo escribir un test
+
 Crea un archivo `tests/test_mi_funcion.php`:
 
 ```php
@@ -50,9 +53,11 @@ Asegúrate de limpiar cualquier estado global o archivos temporales creados.
 Las pruebas E2E simulan un usuario real navegando por la aplicación, reservando citas y accediendo al panel de administración.
 
 ### Ubicación
+
 `*.spec.js` en la raíz o subcarpetas de tests.
 
 ### Configuración
+
 `playwright.config.js` define los navegadores, URLs base y timeouts.
 
 ### Ejecución
@@ -75,9 +80,9 @@ npx playwright test tests/homepage.spec.js
 import { test, expect } from '@playwright/test';
 
 test('Página de inicio carga correctamente', async ({ page }) => {
-  await page.goto('/');
-  await expect(page).toHaveTitle(/Piel en Armonía/);
-  await expect(page.locator('h1')).toBeVisible();
+    await page.goto('/');
+    await expect(page).toHaveTitle(/Piel en Armonía/);
+    await expect(page.locator('h1')).toBeVisible();
 });
 ```
 
@@ -86,6 +91,7 @@ test('Página de inicio carga correctamente', async ({ page }) => {
 Cada Pull Request y commit en `main` dispara el flujo de trabajo `.github/workflows/ci.yml`.
 
 ### Pasos del CI:
+
 1.  **Linting:** Verifica estilo de código JS y sintaxis PHP.
 2.  **Unit Tests:** Ejecuta `tests/run-php-tests.sh`.
 3.  **E2E Tests:** Ejecuta Playwright en un servidor PHP temporal.
@@ -95,5 +101,5 @@ Cada Pull Request y commit en `main` dispara el flujo de trabajo `.github/workfl
 
 ## Cobertura y Calidad
 
-*   No requerimos un % estricto de cobertura, pero **toda nueva funcionalidad debe tener al menos un test**.
-*   Los bugs críticos reportados deben incluir un test que reproduzca el fallo (TDD) antes de ser arreglados.
+- No requerimos un % estricto de cobertura, pero **toda nueva funcionalidad debe tener al menos un test**.
+- Los bugs críticos reportados deben incluir un test que reproduzca el fallo (TDD) antes de ser arreglados.

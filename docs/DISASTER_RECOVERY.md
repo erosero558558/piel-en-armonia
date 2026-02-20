@@ -4,33 +4,61 @@ Este documento describe los procedimientos de recuperación ante desastres (DR) 
 
 ## Estrategia de Backup
 
-El sistema implementa una estrategia de backup híbrida:
-1.  **Backups Locales (Rotativos):** Se generan automáticamente en `data/backups/` cada vez que se modifican los datos. Se retienen las últimas 30 versiones.
-2.  **Backups Offsite (Snapshot):** Se generan diariamente mediante `cron.php?action=backup-offsite` y se envían a un servidor remoto o se replican en `data/offsite-local/` si no hay remoto configurado.
-3.  **Verificación de Salud:** `cron.php?action=backup-health` verifica periódicamente la integridad y frescura de los backups.
+- **RPO (Recovery Point Objective):** 24 horas. (Pérdida máxima aceptable de datos).
+- **RTO (Recovery Time Objective):** 4 horas. (Tiempo máximo para restaurar el servicio).
 
 ## Identificación de Desastre
 
-Un desastre se declara cuando:
--   Los datos en `store.json` están corruptos (no se pueden leer o descifrar).
--   Los datos han sido eliminados accidentalmente.
--   El servidor ha sufrido una falla catastrófica y se ha reinstalado, requiriendo restauración de datos.
+El plan cubre:
+
+1.  **Código Fuente:** Repositorio Git.
+2.  **Configuración:** Variables de entorno y `env.php`.
+3.  **Datos:** Archivo `data/store.json` (Citas, Reseñas, Callbacks).
 
 ## Procedimiento de Restauración (Automático)
 
-Utilice el script `bin/restore-backup.php` para restaurar un backup de manera segura.
+### 3.1 Datos (`store.json`)
+
+La aplicación realiza automáticamente copias de seguridad rotativas en `data/backups/` cada vez que se escribe en el almacén de datos (citas nuevas, actualizaciones). Se guardan hasta 30 versiones anteriores.
 
 ### Requisitos
 -   Acceso SSH al servidor.
 -   PHP CLI instalado.
 -   Un archivo de backup válido (JSON).
 
-### Pasos
-1.  **Localizar el backup:**
-    -   Backups recientes: `ls -lt data/backups/`
-    -   Snapshots offsite: `ls -lt data/offsite-local/` o descargar desde el almacenamiento remoto.
+Adicionalmente, el cron soporta:
 
-2.  **Ejecutar el script de restauración:**
+- `action=backup-health` para validar frescura/integridad del último backup.
+- `action=backup-offsite` para crear snapshot y replicarlo a un endpoint externo.
+
+Variables recomendadas:
+
+- `PIELARMONIA_BACKUP_MAX_AGE_HOURS`
+- `PIELARMONIA_BACKUP_OFFSITE_URL`
+- `PIELARMONIA_BACKUP_OFFSITE_TOKEN`
+- `PIELARMONIA_BACKUP_OFFSITE_TIMEOUT_SECONDS`
+
+### 3.2 Código
+
+El código fuente reside en GitHub y se despliega mediante GitHub Actions. El repositorio es la fuente de verdad para la aplicación.
+
+### 3.3 Configuración
+
+Las credenciales y claves de API (Stripe, SMTP, Admin Pass) deben estar documentadas en el gestor de contraseñas del equipo y configuradas como Secrets en el repositorio.
+
+## 4. Procedimientos de Restauración
+
+### Escenario 1: Corrupción de Datos (Error lógico o borrado accidental)
+
+**Síntoma:** La aplicación muestra datos incorrectos o vacíos, o error de JSON.
+
+**Pasos:**
+
+1.  Acceder al servidor vía SFTP/SSH.
+2.  Navegar a `data/backups/`.
+3.  Identificar el archivo de backup más reciente con tamaño y fecha correctos (antes del incidente).
+4.  Detener temporalmente el tráfico (renombrar `api.php` o usar `.htaccess` deny all).
+5.  Copiar el backup seleccionado a `data/store.json`.
     ```bash
     sudo -u www-data php bin/restore-backup.php <ruta_al_archivo_backup>
     ```
@@ -40,16 +68,34 @@ Utilice el script `bin/restore-backup.php` para restaurar un backup de manera se
     ```
     *Nota: Ejecutar como `www-data` asegura que los permisos del archivo restaurado sean correctos para el servidor web.*
 
-3.  **Confirmar la operación:**
-    El script validará el archivo, mostrará un resumen de los datos (citas, disponibilidad, etc.) y pedirá confirmación. Escriba `yes` para proceder.
-    Nota: El script creará automáticamente una copia de seguridad del estado actual en `data/store.json.pre-restore-YYYYMMDD-HHMMSS.bak` antes de sobrescribir.
+### Escenario 2: Pérdida Total del Servidor (Hosting caído o borrado)
 
-4.  **Verificar la restauración:**
-    El script verificará que los datos se hayan escrito correctamente. Si ve "Restore completed successfully", el proceso ha terminado.
+**Síntoma:** El servidor no responde y no es recuperable.
 
-## Procedimiento de Restauración (Manual)
+**Pasos:**
 
-Si el script no está disponible, puede restaurar manualmente:
+1.  **Provisionar Nuevo Servidor:** Contratar nuevo hosting compatible con PHP 7.4+.
+2.  **Configurar Entorno:**
+    - Subir archivos del proyecto (ver `DESPLIEGUE-PIELARMONIA.md`).
+    - Configurar variables de entorno (desde gestor de contraseñas).
+    - Asegurar permisos de escritura en `data/`.
+3.  **Restaurar Datos:**
+    - Si se tiene copia local reciente de `store.json`, subirla a `data/`.
+    - Si no, contactar al proveedor de hosting anterior para intentar recuperar backups de sistema.
+4.  **Redirigir DNS:** Apuntar el dominio `pielarmonia.com` a la nueva IP.
+5.  **Verificación:** Ejecutar `GATE-POSTDEPLOY.ps1`.
+
+### Escenario 3: Compromiso de Seguridad (Hackeo)
+
+**Síntoma:** Archivos modificados, admin password comprometida.
+
+**Pasos:**
+
+1.  **Aislar:** Cambiar contraseñas de hosting y base de datos (si aplica).
+2.  **Limpiar:** Borrar todo el contenido del servidor `public_html`.
+3.  **Redesplegar:** Realizar un despliegue limpio desde el repositorio Git confiable.
+4.  **Rotar Secretos:** Cambiar `PIELARMONIA_ADMIN_PASSWORD`, claves de Stripe, SMTP, etc.
+5.  **Auditar Datos:** Revisar `store.json` línea por línea para asegurar que no hay inyecciones o datos falsos.
 
 1.  **Detener el servidor web** (opcional pero recomendado para evitar escrituras concurrentes).
 2.  **Respaldar el archivo actual:**
@@ -68,10 +114,10 @@ Si el script no está disponible, puede restaurar manualmente:
     ```
 5.  **Reiniciar el servidor web** si fue detenido.
 
-## Pruebas de Recuperación
+Se recomienda realizar un simulacro de restauración semestralmente:
 
-Se recomienda realizar simulacros de recuperación periódicamente utilizando el entorno de pruebas o local.
-Puede ejecutar el test de integración para verificar el funcionamiento del script de restauración:
-```bash
-vendor/bin/phpunit tests/Integration/DisasterRecoveryTest.php
-```
+1.  Descargar el último backup de producción.
+2.  Levantar un servidor local (`php -S localhost:8080`).
+3.  Cargar el backup en el entorno local.
+4.  Verificar que las citas y reseñas se cargan correctamente.
+5.  Si hay offsite configurado, probar restauración desde snapshot offsite al menos una vez por trimestre.
