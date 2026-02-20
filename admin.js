@@ -3,6 +3,8 @@
  * Server-backed admin with session auth.
  */
 
+import { escapeHtml } from './utils.js';
+
 const AUTH_ENDPOINT = '/admin-auth.php';
 const API_ENDPOINT = '/api.php';
 

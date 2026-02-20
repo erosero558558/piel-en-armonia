@@ -54,10 +54,21 @@ function require_json_body(): array {
     return $mock_payload;
 }
 
-function maybe_send_appointment_email($appt): bool { return true; }
-function maybe_send_admin_notification($appt): void {}
-function maybe_send_cancellation_email($appt): void {}
-function maybe_send_reschedule_email($appt): void {}
+// Mocking email functions if not already defined (though lib/email.php might be included via event_setup.php)
+// Since we now include event_setup.php -> EmailListener.php -> email.php, we should remove these mocks if they conflict.
+// However, existing tests rely on them being mocks? No, email.php has real logic.
+// If we want to mock them, we should have done it before including email.php.
+// But we are in a single file test runner.
+// Strategy: Use runkit if available, or just don't include email.php if we can help it.
+// But EmailListener requires email.php.
+// So we must rely on the real email.php, but ensure it doesn't actually send emails during tests.
+// email.php uses send_mail() which uses mail() or PHPMailer.
+// We can define a mock for send_mail() if it's not defined? No, it's in email.php.
+// The best way here is to remove these function definitions since they clash with email.php included by event_setup.php.
+// And then we need to ensure email sending doesn't break the test (e.g. by configuring it to fail gracefully or pass).
+// Or better: redefine `smtp_enabled` to return false and `mail` to return true?
+// `mail` is a built-in.
+// Let's remove the conflicting definitions first.
 
 function payment_gateway_enabled(): bool { return true; }
 function payment_currency(): string { return 'USD'; }
@@ -74,6 +85,7 @@ require_once __DIR__ . '/../lib/common.php';
 require_once __DIR__ . '/../lib/validation.php';
 require_once __DIR__ . '/../lib/models.php';
 require_once __DIR__ . '/../lib/business.php';
+require_once __DIR__ . '/../lib/event_setup.php';
 require_once __DIR__ . '/../controllers/AppointmentController.php';
 
 // Tests for lib/business.php
