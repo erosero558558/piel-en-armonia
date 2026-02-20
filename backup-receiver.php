@@ -80,7 +80,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
 }
 
 $expectedToken = backup_first_non_empty_string([
-    getenv('PIELARMONIA_BACKUP_RECEIVER_TOKEN')
+    getenv('PIELARMONIA_BACKUP_RECEIVER_TOKEN'),
+    getenv('PIELARMONIA_BACKUP_OFFSITE_TOKEN'),
+    getenv('PIELARMONIA_BACKUP_WEBHOOK_TOKEN')
 ]);
 if ($expectedToken === '') {
     backup_receiver_json([
