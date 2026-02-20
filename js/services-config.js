@@ -257,6 +257,7 @@ export function getCheckoutBreakdown(serviceId, additionalOptions = {}) {
     let finalDiscountRate = discountRate;
     
     // Aplicar descuento de cupo solidario si aplica
+    let finalDiscountRate = discountRate;
     if (isCupoSolidario && SPECIAL_SERVICES.cupoSolidario) {
         finalDiscountRate = SPECIAL_SERVICES.cupoSolidario.discountRate;
     }
