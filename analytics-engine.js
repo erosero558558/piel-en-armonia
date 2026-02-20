@@ -30,6 +30,14 @@
             return;
         }
 
+        if (deps && typeof deps.trackEventToServer === 'function') {
+            try {
+                deps.trackEventToServer(eventName, params);
+            } catch (_) {
+                // Ignore telemetry forwarding failures.
+            }
+        }
+
         const payload = {
             event_category: 'conversion',
             ...params

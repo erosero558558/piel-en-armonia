@@ -11,6 +11,7 @@ let currentAppointments = [];
 let currentCallbacks = [];
 let currentReviews = [];
 let currentAvailability = {};
+let currentFunnelMetrics = null;
 let selectedDate = null;
 let currentMonth = new Date();
 let csrfToken = '';
@@ -122,6 +123,211 @@ function getLocalData(key, fallback) {
     }
 }
 
+function getEmptyFunnelMetrics() {
+    return {
+        summary: {
+            viewBooking: 0,
+            startCheckout: 0,
+            bookingConfirmed: 0,
+            checkoutAbandon: 0,
+            startRatePct: 0,
+            confirmedRatePct: 0,
+            abandonRatePct: 0
+        },
+        checkoutAbandonByStep: [],
+        checkoutEntryBreakdown: [],
+        paymentMethodBreakdown: [],
+        bookingStepBreakdown: []
+    };
+}
+
+function formatPercent(value) {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return '0%';
+    return `${num.toFixed(1)}%`;
+}
+
+function formatCount(value) {
+    const num = Number(value);
+    if (!Number.isFinite(num) || num < 0) return '0';
+    return Math.round(num).toLocaleString('es-EC');
+}
+
+function toPositiveNumber(value) {
+    const num = Number(value);
+    if (!Number.isFinite(num) || num < 0) return 0;
+    return num;
+}
+
+function normalizeFunnelRows(rows) {
+    if (!Array.isArray(rows)) {
+        return [];
+    }
+    return rows
+        .map((row) => ({
+            label: String(row && row.label ? row.label : 'unknown'),
+            count: toPositiveNumber(row && row.count ? row.count : 0)
+        }))
+        .filter((row) => row.count > 0)
+        .sort((a, b) => b.count - a.count);
+}
+
+function formatFunnelStepLabel(label) {
+    const raw = String(label || '').trim().toLowerCase();
+    const labels = {
+        service_selected: 'Servicio seleccionado',
+        doctor_selected: 'Doctor seleccionado',
+        date_selected: 'Fecha seleccionada',
+        time_selected: 'Hora seleccionada',
+        name_added: 'Nombre ingresado',
+        email_added: 'Email ingresado',
+        phone_added: 'Telefono ingresado',
+        contact_info_completed: 'Datos de contacto completados',
+        clinical_context_added: 'Contexto clinico agregado',
+        privacy_consent_checked: 'Consentimiento de privacidad',
+        form_submitted: 'Formulario enviado',
+        chat_booking_started: 'Reserva iniciada en chat',
+        payment_modal_open: 'Modal de pago abierto',
+        payment_modal_closed: 'Modal de pago cerrado',
+        payment_processing: 'Pago en proceso',
+        payment_error: 'Error de pago',
+        patient_data: 'Datos del paciente',
+        reason: 'Motivo de consulta',
+        photos: 'Fotos clinicas',
+        slot: 'Fecha y hora',
+        payment: 'Metodo de pago',
+        confirmation: 'Confirmacion',
+        payment_method_selected: 'Metodo de pago',
+        unknown: 'Paso no identificado'
+    };
+
+    if (labels[raw]) {
+        return labels[raw];
+    }
+
+    const prettified = raw.replace(/_/g, ' ').trim();
+    if (prettified === '') {
+        return labels.unknown;
+    }
+    return prettified.charAt(0).toUpperCase() + prettified.slice(1);
+}
+
+function formatFunnelEntryLabel(label) {
+    const raw = String(label || '').trim().toLowerCase();
+    const labels = {
+        booking_form: 'Formulario web',
+        chatbot: 'Chatbot',
+        unknown: 'No identificado'
+    };
+    if (labels[raw]) {
+        return labels[raw];
+    }
+    const prettified = raw.replace(/_/g, ' ').trim();
+    if (prettified === '') {
+        return labels.unknown;
+    }
+    return prettified.charAt(0).toUpperCase() + prettified.slice(1);
+}
+
+function formatPaymentMethodLabel(label) {
+    const raw = String(label || '').trim().toLowerCase();
+    const labels = {
+        card: 'Tarjeta',
+        transfer: 'Transferencia',
+        cash: 'Efectivo',
+        unpaid: 'Sin definir',
+        unknown: 'No identificado'
+    };
+    if (labels[raw]) {
+        return labels[raw];
+    }
+    const prettified = raw.replace(/_/g, ' ').trim();
+    if (prettified === '') {
+        return labels.unknown;
+    }
+    return prettified.charAt(0).toUpperCase() + prettified.slice(1);
+}
+
+function renderFunnelList(elementId, rows, formatLabel, emptyMessage) {
+    const listEl = document.getElementById(elementId);
+    if (!listEl) {
+        return;
+    }
+
+    const safeRows = normalizeFunnelRows(rows).slice(0, 6);
+    if (safeRows.length === 0) {
+        listEl.innerHTML = `<p class="empty-message">${escapeHtml(emptyMessage)}</p>`;
+        return;
+    }
+
+    const total = safeRows.reduce((sum, row) => sum + row.count, 0);
+    listEl.innerHTML = safeRows.map((row) => {
+        const sharePct = total > 0 ? formatPercent((row.count / total) * 100) : '0%';
+        return `
+            <div class="funnel-row">
+                <span class="funnel-row-label">${escapeHtml(formatLabel(row.label))}</span>
+                <span class="funnel-row-count">${escapeHtml(formatCount(row.count))} (${escapeHtml(sharePct)})</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderFunnelMetrics() {
+    const metrics = currentFunnelMetrics && typeof currentFunnelMetrics === 'object'
+        ? currentFunnelMetrics
+        : getEmptyFunnelMetrics();
+    const summary = metrics.summary && typeof metrics.summary === 'object'
+        ? metrics.summary
+        : {};
+
+    const viewBooking = toPositiveNumber(summary.viewBooking);
+    const startCheckout = toPositiveNumber(summary.startCheckout);
+    const bookingConfirmed = toPositiveNumber(summary.bookingConfirmed);
+    const checkoutAbandon = toPositiveNumber(summary.checkoutAbandon);
+    const startRatePct = toPositiveNumber(summary.startRatePct) || (viewBooking > 0 ? (startCheckout / viewBooking) * 100 : 0);
+    const confirmedRatePct = toPositiveNumber(summary.confirmedRatePct) || (startCheckout > 0 ? (bookingConfirmed / startCheckout) * 100 : 0);
+    const abandonRatePct = toPositiveNumber(summary.abandonRatePct) || (startCheckout > 0 ? (checkoutAbandon / startCheckout) * 100 : 0);
+
+    const viewBookingEl = document.getElementById('funnelViewBooking');
+    if (viewBookingEl) viewBookingEl.textContent = formatCount(viewBooking);
+
+    const startCheckoutEl = document.getElementById('funnelStartCheckout');
+    if (startCheckoutEl) startCheckoutEl.textContent = formatCount(startCheckout);
+
+    const bookingConfirmedEl = document.getElementById('funnelBookingConfirmed');
+    if (bookingConfirmedEl) bookingConfirmedEl.textContent = formatCount(bookingConfirmed);
+
+    const funnelAbandonRateEl = document.getElementById('funnelAbandonRate');
+    if (funnelAbandonRateEl) funnelAbandonRateEl.textContent = formatPercent(abandonRatePct);
+
+    const checkoutConversionRateEl = document.getElementById('checkoutConversionRate');
+    if (checkoutConversionRateEl) checkoutConversionRateEl.textContent = formatPercent(confirmedRatePct);
+
+    const funnelAbandonListEl = document.getElementById('funnelAbandonList');
+    if (!funnelAbandonListEl) {
+        return;
+    }
+
+    renderFunnelList(
+        'funnelAbandonList',
+        metrics.checkoutAbandonByStep,
+        formatFunnelStepLabel,
+        'Sin datos de abandono'
+    );
+    renderFunnelList(
+        'funnelEntryList',
+        metrics.checkoutEntryBreakdown,
+        formatFunnelEntryLabel,
+        'Sin datos de entrada'
+    );
+    renderFunnelList(
+        'funnelPaymentMethodList',
+        metrics.paymentMethodBreakdown,
+        formatPaymentMethodLabel,
+        'Sin datos de pago'
+    );
+}
+
 function loadFallbackState() {
     currentAppointments = getLocalData('appointments', []);
     currentCallbacks = getLocalData('callbacks', []).map(c => ({
@@ -130,11 +336,16 @@ function loadFallbackState() {
     }));
     currentReviews = getLocalData('reviews', []);
     currentAvailability = getLocalData('availability', {});
+    currentFunnelMetrics = getEmptyFunnelMetrics();
 }
 
 async function refreshData() {
     try {
-        const payload = await apiRequest('data');
+        const [payload, funnelPayload] = await Promise.all([
+            apiRequest('data'),
+            apiRequest('funnel-metrics').catch(() => null)
+        ]);
+
         const data = payload.data || {};
         currentAppointments = Array.isArray(data.appointments) ? data.appointments : [];
         currentCallbacks = Array.isArray(data.callbacks) ? data.callbacks.map(c => ({
@@ -143,6 +354,12 @@ async function refreshData() {
         })) : [];
         currentReviews = Array.isArray(data.reviews) ? data.reviews : [];
         currentAvailability = data.availability && typeof data.availability === 'object' ? data.availability : {};
+
+        if (funnelPayload && funnelPayload.data && typeof funnelPayload.data === 'object') {
+            currentFunnelMetrics = funnelPayload.data;
+        } else {
+            currentFunnelMetrics = getEmptyFunnelMetrics();
+        }
     } catch (error) {
         loadFallbackState();
         showToast('No se pudo conectar al backend. Usando datos locales.', 'warning');
@@ -373,6 +590,8 @@ function loadDashboardData() {
             </div>
         `).join('');
     }
+
+    renderFunnelMetrics();
 }
 
 function renderCurrentSection() {

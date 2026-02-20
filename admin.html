@@ -144,6 +144,15 @@
                             <span class="stat-label">Rating Promedio</span>
                         </div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-icon red">
+                            <i class="fas fa-funnel-dollar"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="checkoutConversionRate">0%</span>
+                            <span class="stat-label">Conversion Checkout</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="dashboard-grid">
@@ -157,6 +166,45 @@
                         <h3><i class="fas fa-phone-alt"></i> Callbacks Recientes</h3>
                         <div class="upcoming-list" id="recentCallbacksList">
                             <p class="empty-message">No hay callbacks pendientes</p>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3><i class="fas fa-chart-line"></i> Embudo de Reserva</h3>
+                        <div class="funnel-summary" id="funnelSummary">
+                            <div class="funnel-chip">
+                                <span class="funnel-chip-label">Ver reserva</span>
+                                <span class="funnel-chip-value" id="funnelViewBooking">0</span>
+                            </div>
+                            <div class="funnel-chip">
+                                <span class="funnel-chip-label">Inician checkout</span>
+                                <span class="funnel-chip-value" id="funnelStartCheckout">0</span>
+                            </div>
+                            <div class="funnel-chip">
+                                <span class="funnel-chip-label">Confirman cita</span>
+                                <span class="funnel-chip-value" id="funnelBookingConfirmed">0</span>
+                            </div>
+                            <div class="funnel-chip">
+                                <span class="funnel-chip-label">Abandono</span>
+                                <span class="funnel-chip-value" id="funnelAbandonRate">0%</span>
+                            </div>
+                        </div>
+                        <div class="funnel-breakdown">
+                            <h4>Abandono por paso</h4>
+                            <div class="funnel-list" id="funnelAbandonList">
+                                <p class="empty-message">Sin datos de abandono</p>
+                            </div>
+                        </div>
+                        <div class="funnel-breakdown">
+                            <h4>Entrada al checkout</h4>
+                            <div class="funnel-list" id="funnelEntryList">
+                                <p class="empty-message">Sin datos de entrada</p>
+                            </div>
+                        </div>
+                        <div class="funnel-breakdown">
+                            <h4>Método de pago seleccionado</h4>
+                            <div class="funnel-list" id="funnelPaymentMethodList">
+                                <p class="empty-message">Sin datos de pago</p>
+                            </div>
                         </div>
                     </div>
                 </div>

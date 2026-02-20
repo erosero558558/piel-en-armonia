@@ -388,6 +388,13 @@ $results += Invoke-Check -Name 'Home' -Url "$base/"
 $results += Invoke-Check -Name 'Health API' -Url "$base/api.php?resource=health"
 $results += Invoke-Check -Name 'Reviews API' -Url "$base/api.php?resource=reviews"
 $results += Invoke-Check -Name 'Availability API' -Url "$base/api.php?resource=availability"
+$results += Invoke-JsonPostCheck -Name 'Funnel event POST' -Url "$base/api.php?resource=funnel-event" -Body @{
+    event = 'view_booking'
+    params = @{
+        source = 'smoke'
+    }
+}
+$results += Invoke-Check -Name 'Funnel metrics unauthorized' -Url "$base/api.php?resource=funnel-metrics"
 $results += Invoke-Check -Name 'Admin auth status' -Url "$base/admin-auth.php?action=status"
 $results += Invoke-Check -Name 'Figo chat GET' -Url "$base/figo-chat.php"
 $results += Invoke-Check -Name 'Figo backend GET' -Url "$base/figo-backend.php"
@@ -439,6 +446,8 @@ $expectedStatusByName = @{
     'Health API' = 200
     'Reviews API' = 200
     'Availability API' = 200
+    'Funnel event POST' = 202
+    'Funnel metrics unauthorized' = 401
     'Admin auth status' = 200
     'Figo chat GET' = 200
     'Figo backend GET' = 200
@@ -612,6 +621,20 @@ if ($null -ne $figoGetResult -and $figoGetResult.Ok) {
         }
     } catch {
         Write-Host "[FAIL] Figo chat GET no devolvio JSON valido"
+        $contractFailures += 1
+    }
+}
+
+$funnelEventResult = $results | Where-Object { $_.Name -eq 'Funnel event POST' } | Select-Object -First 1
+if ($null -ne $funnelEventResult -and [int]$funnelEventResult.Status -eq 202) {
+    try {
+        $funnelEventJson = $funnelEventResult.Body | ConvertFrom-Json
+        if (-not [bool]$funnelEventJson.ok -or -not [bool]$funnelEventJson.recorded) {
+            Write-Host "[FAIL] Funnel event POST no confirmo registro (ok/recorded)"
+            $contractFailures += 1
+        }
+    } catch {
+        Write-Host "[FAIL] Funnel event POST no devolvio JSON valido"
         $contractFailures += 1
     }
 }

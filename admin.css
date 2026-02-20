@@ -343,6 +343,73 @@
     gap: 12px;
 }
 
+.funnel-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.funnel-chip {
+    background: var(--color-bg-gray);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.funnel-chip-label {
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.funnel-chip-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.funnel-breakdown h4 {
+    margin: 0 0 10px;
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    font-weight: 600;
+}
+
+.funnel-breakdown + .funnel-breakdown {
+    margin-top: 14px;
+}
+
+.funnel-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.funnel-row {
+    background: var(--color-bg-gray);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.funnel-row-label {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+
+.funnel-row-count {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
 .upcoming-item {
     display: flex;
     align-items: center;
@@ -989,6 +1056,10 @@
 
 @media (max-width: 480px) {
     .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .funnel-summary {
         grid-template-columns: 1fr;
     }
     
