@@ -2,7 +2,7 @@ import { loadDeferredModule, createWarmupRunner, bindWarmupTarget, scheduleDefer
 import { closePaymentModal } from './booking.js';
 
 const UI_EFFECTS_URL = '/ui-effects.js?v=figo-ui-20260218-phase4';
-const MODAL_UX_ENGINE_URL = '/modal-ux-engine.js?v=figo-modal-ux-20260218-phase1';
+const MODAL_UX_ENGINE_URL = '/modal-ux-engine.js?v=figo-modal-ux-20260220-phase2-cachefix1';
 
 export function loadUiEffects() {
     return loadDeferredModule({

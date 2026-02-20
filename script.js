@@ -1453,7 +1453,7 @@ function closeReviewModal() {
 
 // MODAL CLOSE HANDLERS (DEFERRED MODULE)
 // ========================================
-const MODAL_UX_ENGINE_URL = withDeployAssetVersion('/modal-ux-engine.js?v=figo-modal-ux-20260218-phase1');
+const MODAL_UX_ENGINE_URL = withDeployAssetVersion('/modal-ux-engine.js?v=figo-modal-ux-20260220-phase2-cachefix1');
 
 function getModalUxEngineDeps() {
     return {
