@@ -1,4 +1,4 @@
-import { getCurrentLang } from './state.js';
+import { state } from './state.js';
 import { COOKIE_CONSENT_KEY } from './config.js';
 
 const DEBUG = false;
@@ -177,11 +177,11 @@ export function getInitials(name) {
 export function getRelativeDateLabel(dateText) {
     const date = new Date(dateText);
     if (Number.isNaN(date.getTime())) {
-        return getCurrentLang() === 'es' ? 'Reciente' : 'Recent';
+        return state.currentLang === 'es' ? 'Reciente' : 'Recent';
     }
     const now = new Date();
     const days = Math.max(0, Math.floor((now - date) / (1000 * 60 * 60 * 24)));
-    if (getCurrentLang() === 'es') {
+    if (state.currentLang === 'es') {
         if (days <= 1) return 'Hoy';
         if (days < 7) return `Hace ${days} d${days === 1 ? 'ía' : 'ías'}`;
         if (days < 30) return `Hace ${Math.floor(days / 7)} semana(s)`;

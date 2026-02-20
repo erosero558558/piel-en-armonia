@@ -1,6 +1,6 @@
 import { withDeployAssetVersion, showToast } from './utils.js';
 import { loadDeferredModule, runDeferredModule } from './loader.js';
-import { getCurrentLang } from './state.js';
+import { state } from './state.js';
 import { trackEvent } from './analytics.js';
 import { COOKIE_CONSENT_KEY } from './config.js';
 
@@ -8,7 +8,7 @@ const CONSENT_ENGINE_URL = withDeployAssetVersion('/consent-engine.js?v=figo-con
 
 function getConsentEngineDeps() {
     return {
-        getCurrentLang: getCurrentLang,
+        getCurrentLang: () => state.currentLang,
         showToast,
         trackEvent,
         cookieConsentKey: COOKIE_CONSENT_KEY,

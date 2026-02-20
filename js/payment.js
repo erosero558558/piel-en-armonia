@@ -1,11 +1,11 @@
 import { apiRequest } from './api.js';
-import { getPaymentConfig, setPaymentConfig, getPaymentConfigLoaded, setPaymentConfigLoaded, getPaymentConfigLoadedAt, setPaymentConfigLoadedAt, getStripeSdkPromise, setStripeSdkPromise, getCurrentLang } from './state.js';
+import { state } from './state.js';
 import { API_ENDPOINT, API_REQUEST_TIMEOUT_MS } from './config.js';
 
 export async function loadPaymentConfig() {
     const now = Date.now();
-    if (getPaymentConfigLoaded() && (now - getPaymentConfigLoadedAt()) < 5 * 60 * 1000) {
-        return getPaymentConfig();
+    if (state.paymentConfigLoaded && (now - state.paymentConfigLoadedAt) < 5 * 60 * 1000) {
+        return state.paymentConfig;
     }
 
     let config;
@@ -20,9 +20,9 @@ export async function loadPaymentConfig() {
     } catch (_error) {
         config = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
     }
-    setPaymentConfig(config);
-    setPaymentConfigLoaded(true);
-    setPaymentConfigLoadedAt(now);
+    state.paymentConfig = config;
+    state.paymentConfigLoaded = true;
+    state.paymentConfigLoadedAt = now;
     return config;
 }
 
@@ -31,8 +31,8 @@ export async function loadStripeSdk() {
         return true;
     }
 
-    if (getStripeSdkPromise()) {
-        return getStripeSdkPromise();
+    if (state.stripeSdkPromise) {
+        return state.stripeSdkPromise;
     }
 
     const promise = new Promise((resolve, reject) => {
@@ -53,7 +53,7 @@ export async function loadStripeSdk() {
         document.head.appendChild(script);
     });
 
-    setStripeSdkPromise(promise);
+    state.stripeSdkPromise = promise;
     return promise;
 }
 
@@ -93,7 +93,7 @@ export async function uploadTransferProof(file) {
     } catch (error) {
         if (error && error.name === 'AbortError') {
             throw new Error(
-                getCurrentLang() === 'es'
+                state.currentLang === 'es'
                     ? 'Tiempo de espera agotado al subir el comprobante'
                     : 'Upload timed out while sending proof file'
             );

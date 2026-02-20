@@ -1,18 +1,18 @@
 import { withDeployAssetVersion, showToast, debugLog } from './utils.js';
 import { loadDeferredModule, withDeferredModule } from './loader.js';
-import { getCurrentLang, setCurrentLang, getReviewsCache } from './state.js';
+import { state } from './state.js';
 import { renderPublicReviews } from './engagement.js';
 
 const I18N_ENGINE_URL = withDeployAssetVersion('/i18n-engine.js?v=figo-i18n-20260219-phase1-sync1');
 
 function getI18nEngineDeps() {
     return {
-        getCurrentLang: getCurrentLang,
+        getCurrentLang: () => state.currentLang,
         setCurrentLang: (lang) => {
-            setCurrentLang(lang === 'en' ? 'en' : 'es');
+            state.currentLang = (lang === 'en' ? 'en' : 'es');
         },
         showToast,
-        getReviewsCache,
+        getReviewsCache: () => state.reviewsCache,
         renderPublicReviews,
         debugLog
     };

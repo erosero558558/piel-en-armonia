@@ -1,5 +1,5 @@
 import { API_ENDPOINT, API_REQUEST_TIMEOUT_MS, API_DEFAULT_RETRIES, API_SLOW_NOTICE_MS, API_SLOW_NOTICE_COOLDOWN_MS, API_RETRY_BASE_DELAY_MS } from './config.js';
-import { getCurrentLang, getApiSlowNoticeLastAt, setApiSlowNoticeLastAt } from './state.js';
+import { state } from './state.js';
 import { showToast, waitMs } from './utils.js';
 
 export async function apiRequest(resource, options = {}) {
@@ -52,10 +52,10 @@ export async function apiRequest(resource, options = {}) {
         if (shouldShowSlowNotice) {
             slowNoticeTimer = setTimeout(() => {
                 const now = Date.now();
-                if ((now - getApiSlowNoticeLastAt()) > API_SLOW_NOTICE_COOLDOWN_MS) {
-                    setApiSlowNoticeLastAt(now);
+                if ((now - state.apiSlowNoticeLastAt) > API_SLOW_NOTICE_COOLDOWN_MS) {
+                    state.apiSlowNoticeLastAt = now;
                     showToast(
-                        getCurrentLang() === 'es'
+                        state.currentLang === 'es'
                             ? 'Conectando con el servidor...'
                             : 'Connecting to server...',
                         'info'
@@ -88,7 +88,7 @@ export async function apiRequest(resource, options = {}) {
             const normalizedError = (() => {
                 if (error && error.name === 'AbortError') {
                     return makeApiError(
-                        getCurrentLang() === 'es'
+                        state.currentLang === 'es'
                             ? 'Tiempo de espera agotado con el servidor'
                             : 'Server request timed out',
                         0,

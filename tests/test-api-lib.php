@@ -163,11 +163,10 @@ run_test('Missing Date uses current date', function() {
     }
 });
 
-// Test 10: XSS Handling (Truncation doesn't prevent XSS but checks behavior)
-run_test('HTML chars are preserved (api-lib handles storage, frontend handles display)', function() {
+// Test 10: XSS Handling (Backend sanitizes HTML)
+run_test('HTML chars are sanitized (api-lib prevents storage of raw HTML)', function() {
     $input = ['text' => '<script>alert(1)</script>'];
     $result = normalize_review($input);
-    // sanitize_xss() is applied in normalize_review(), so HTML entities are expected
     assert_equals('&lt;script&gt;alert(1)&lt;/script&gt;', $result['text']);
 });
 

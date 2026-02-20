@@ -1,6 +1,6 @@
 import { withDeployAssetVersion, debugLog, showToast, escapeHtml as escapeHtmlUtil } from './utils.js';
 import { loadDeferredModule, runDeferredModule, withDeferredModule, createWarmupRunner, bindWarmupTarget, scheduleDeferredTask } from './loader.js';
-import { getCurrentLang, getCurrentAppointment, getChatHistory, setChatHistory, getConversationContext, setConversationContext, getChatbotOpen, setChatbotOpen, setCurrentAppointment } from './state.js';
+import { state } from './state.js';
 import { trackEvent } from './analytics.js';
 import { loadAvailabilityData, getBookedSlots, createAppointmentRecord } from './data.js';
 import { startCheckoutSession, setCheckoutStep, completeCheckoutSession, openPaymentModal } from './booking.js';
@@ -8,12 +8,7 @@ import { startCheckoutSession, setCheckoutStep, completeCheckoutSession, openPay
 const CHAT_UI_ENGINE_URL = withDeployAssetVersion('/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1');
 const CHAT_WIDGET_ENGINE_URL = withDeployAssetVersion('/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1');
 const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion('/chat-booking-engine.js?v=figo-chat-booking-20260220-sync2-cachecoherence1');
-const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion('/chat-engine.js?v=figo-chat-20260220-phase4-depinject1');
-
-const CLINIC_ADDRESS = 'Valparaiso 13-183 y Sodiro, Consultorio Dr. Cecilio Caiza, Quito (Frente al Colegio de las Mercedarias, a 2 cuadras de la Maternidad Isidro Ayora)';
-const CLINIC_MAP_URL = 'https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D';
-const DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
-const DOCTOR_CAROLINA_EMAIL = 'caro93narvaez@gmail.com';
+const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion('/chat-engine.js?v=figo-chat-20260220-phase3-runtimeconfig1-contextcap1-sync2');
 
 const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
 const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -53,10 +48,10 @@ export function removeTypingIndicator() {
 
 function getChatUiEngineDeps() {
     return {
-        getChatHistory,
-        setChatHistory,
-        getConversationContext,
-        setConversationContext,
+        getChatHistory: () => state.chatHistory,
+        setChatHistory: (h) => { state.chatHistory = h; },
+        getConversationContext: () => state.conversationContext,
+        setConversationContext: (c) => { state.conversationContext = c; },
         historyStorageKey: CHAT_HISTORY_STORAGE_KEY,
         historyTtlMs: CHAT_HISTORY_TTL_MS,
         historyMaxItems: CHAT_HISTORY_MAX_ITEMS,
@@ -90,9 +85,9 @@ export function initChatUiEngineWarmup() {
 
 function getChatWidgetEngineDeps() {
     return {
-        getChatbotOpen,
-        setChatbotOpen,
-        getChatHistoryLength: () => getChatHistory().length,
+        getChatbotOpen: () => state.chatbotOpen,
+        setChatbotOpen: (val) => { state.chatbotOpen = val; },
+        getChatHistoryLength: () => state.chatHistory.length,
         warmChatUi: () => runDeferredModule(loadChatUiEngine, () => undefined),
         scrollToBottom,
         trackEvent,
@@ -130,8 +125,8 @@ export function toggleChatbot() {
     runDeferredModule(loadChatWidgetEngine, (engine) => engine.toggleChatbot(), () => {
         const container = document.getElementById('chatbotContainer');
         if (!container) return;
-        const isOpen = !getChatbotOpen();
-        setChatbotOpen(isOpen);
+        const isOpen = !state.chatbotOpen;
+        state.chatbotOpen = isOpen;
         container.classList.toggle('active', isOpen);
     });
 }
@@ -140,7 +135,7 @@ export function minimizeChatbot() {
     runDeferredModule(loadChatWidgetEngine, (engine) => engine.minimizeChatbot(), () => {
         const container = document.getElementById('chatbotContainer');
         if (container) container.classList.remove('active');
-        setChatbotOpen(false);
+        state.chatbotOpen = false;
     });
 }
 
@@ -207,8 +202,8 @@ function getChatBookingEngineDeps() {
         escapeHtml,
         minimizeChatbot,
         openPaymentModal,
-        getCurrentLang,
-        setCurrentAppointment
+        getCurrentLang: () => state.currentLang,
+        setCurrentAppointment: (appt) => { state.currentAppointment = appt; }
     };
 }
 

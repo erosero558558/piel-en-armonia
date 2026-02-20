@@ -1,14 +1,14 @@
 import { withDeployAssetVersion, escapeHtml, showToast } from './utils.js';
 import { loadDeferredModule, runDeferredModule, createWarmupRunner, bindWarmupTarget, scheduleDeferredTask } from './loader.js';
-import { getCurrentLang, getCurrentAppointment } from './state.js';
+import { state } from './state.js';
 import { CLINIC_ADDRESS } from './config.js';
 
 const SUCCESS_MODAL_ENGINE_URL = withDeployAssetVersion('/success-modal-engine.js?v=figo-success-modal-20260218-phase1-inlineclass1-sync1');
 
 function getSuccessModalEngineDeps() {
     return {
-        getCurrentLang: getCurrentLang,
-        getCurrentAppointment: getCurrentAppointment,
+        getCurrentLang: () => state.currentLang,
+        getCurrentAppointment: () => state.currentAppointment,
         getClinicAddress: () => CLINIC_ADDRESS,
         escapeHtml
     };
