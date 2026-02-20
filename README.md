@@ -123,7 +123,7 @@ Si no puedes subir archivos manualmente, deploy con:
 - `.github/workflows/prod-monitor.yml` (monitorea salud/latencia cada 30 min)
 - `GITHUB-ACTIONS-DEPLOY.md` (paso a paso)
 
-Nota: `post-deploy-gate` y `prod-monitor` crean/actualizan un issue de incidente cuando fallan.
+Nota: `post-deploy-gate` y `prod-monitor` crean/actualizan un issue de incidente cuando fallan y lo cierran automaticamente cuando recuperan.
 
 Nota: si tu servidor ya hace `git pull`/sync automatico cada 5 minutos, usa ese flujo como principal y deja este workflow solo como respaldo manual.
 

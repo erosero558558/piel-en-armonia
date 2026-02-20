@@ -64,6 +64,7 @@ Este gate corre:
 
 en modo estricto (`RequireStableDataDir`, `RequireBackupHealthy`, `RequireBackupReceiverReady`, `RequireCronReady`).
 Si falla (push/schedule), crea o actualiza un issue de incidente automaticamente.
+Si luego recupera en una corrida exitosa, cierra ese issue automaticamente.
 
 ## 6) Monitoreo continuo de produccion
 
@@ -85,3 +86,4 @@ Se puede correr manual con overrides:
 - `skip_backup_check`
 
 Si falla en ejecucion programada, crea/actualiza un issue de incidente automaticamente.
+Cuando recupera en una corrida programada exitosa, cierra el issue automaticamente.

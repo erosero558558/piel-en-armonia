@@ -122,3 +122,47 @@ jobs:
               });
               core.info(`Issue creado: #${created.data.number}`);
             }
+
+      - name: Cerrar incidente al recuperar (solo schedule)
+        if: ${{ success() && github.event_name == 'schedule' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const title = '[ALERTA PROD] Monitor de produccion fallando';
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const now = new Date().toISOString();
+
+            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100
+            });
+
+            const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+            if (!existing) {
+              core.info('No hay incidente abierto para cerrar.');
+              return;
+            }
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: existing.number,
+              body: [
+                'Recuperado automaticamente por monitor programado.',
+                '',
+                `- Fecha: ${now}`,
+                `- Run: ${runUrl}`
+              ].join('\n')
+            });
+
+            await github.rest.issues.update({
+              owner,
+              repo,
+              issue_number: existing.number,
+              state: 'closed'
+            });
+            core.info(`Issue cerrado: #${existing.number}`);
