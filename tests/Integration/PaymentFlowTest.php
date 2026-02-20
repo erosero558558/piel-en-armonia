@@ -75,8 +75,8 @@ class PaymentFlowTest extends TestCase
 
     public function testCreateIntentSuccess(): void
     {
-        // Use 'next tuesday' to ensure a weekday and avoid weekend surcharge (10%)
-        $futureDate = date('Y-m-d', strtotime('next tuesday'));
+        // Use a fixed weekday to avoid dynamic pricing surcharges (weekends are +10%)
+        $futureDate = date('Y-m-d', strtotime('next monday'));
         $payload = [
             'name' => 'Payment Test',
             'email' => 'payment@example.com',
@@ -106,12 +106,6 @@ class PaymentFlowTest extends TestCase
         $this->assertEquals(200, $response['status']);
         $this->assertTrue($response['payload']['ok']);
         $this->assertStringStartsWith('pi_mock_', $response['payload']['paymentIntentId']);
-
-        // Check for weekend surcharge
-        $expectedAmount = 4000;
-        if (date('N', strtotime($futureDate)) >= 6) {
-            $expectedAmount = 4400; // 10% surcharge
-        }
-        $this->assertEquals($expectedAmount, $response['payload']['amount']);
+        $this->assertEquals(4000, $response['payload']['amount']);
     }
 }
