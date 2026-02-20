@@ -80,11 +80,25 @@ Esto verificará:
 *   Visitar el sitio y verificar carga rápida.
 *   Verificar que `https://pielarmonia.com/api.php?resource=health` esté OK.
 
-### 3.2 Backup Semanal
-Aunque el sistema guarda backups rotativos en `data/backups/`, se recomienda descargar una copia local semanalmente.
+### 3.2 Backups y Verificacion
+El sistema mantiene backups rotativos en `data/backups/` al escribir `store.json`. Adicionalmente, se recomienda ejecutar verificaciones y replicacion offsite por cron.
 
-**Comando:**
-Conectarse por SFTP y descargar `data/store.json`.
+**Cron recomendado (America/Guayaquil):**
+```bash
+10 3 * * * curl -s "https://pielarmonia.com/cron.php?action=backup-health&token=YOUR_CRON_SECRET"
+20 3 * * * curl -s "https://pielarmonia.com/cron.php?action=backup-offsite&token=YOUR_CRON_SECRET"
+```
+
+**Prueba manual (dry run offsite):**
+```bash
+curl -s "https://pielarmonia.com/cron.php?action=backup-offsite&dryRun=1&token=YOUR_CRON_SECRET"
+```
+
+**Variables requeridas para offsite real:**
+* `PIELARMONIA_BACKUP_OFFSITE_URL`
+* `PIELARMONIA_BACKUP_OFFSITE_TOKEN` (opcional)
+* `PIELARMONIA_BACKUP_OFFSITE_TOKEN_HEADER` (opcional)
+* `PIELARMONIA_BACKUP_MAX_AGE_HOURS` (opcional)
 
 ### 3.3 Revisión de Auditoría
 Revisar `data/audit.log` semanalmente en busca de:

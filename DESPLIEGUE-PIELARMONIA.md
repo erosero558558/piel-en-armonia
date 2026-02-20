@@ -93,6 +93,12 @@ Configura estas variables en tu hosting:
 - `FIGO_TELEGRAM_BOT_TOKEN` (opcional, para puente/notificación Telegram en `figo-backend.php`)
 - `FIGO_TELEGRAM_CHAT_ID` (opcional, chat destino para notificaciones Telegram)
 - `FIGO_TELEGRAM_WEBHOOK_SECRET` (recomendado, valida peticiones webhook de Telegram)
+- `PIELARMONIA_CRON_SECRET` (obligatoria para `cron.php`)
+- `PIELARMONIA_BACKUP_MAX_AGE_HOURS` (opcional, default 24)
+- `PIELARMONIA_BACKUP_OFFSITE_URL` (opcional, endpoint externo para snapshots)
+- `PIELARMONIA_BACKUP_OFFSITE_TOKEN` (opcional)
+- `PIELARMONIA_BACKUP_OFFSITE_TOKEN_HEADER` (opcional, default `Authorization`)
+- `PIELARMONIA_BACKUP_OFFSITE_TIMEOUT_SECONDS` (opcional, default 20)
 
 Importante:
 - Ya no existe fallback `admin123`, incluso en local.
@@ -125,6 +131,7 @@ Ejemplo recomendado de `data/figo-config.json`:
 1. Salud API:
 - `https://pielarmonia.com/api.php?resource=health`
 - Validar campos nuevos: `timingMs`, `version`, `dataDirWritable`, `storeEncrypted`, `figoConfigured`, `figoRecursiveConfig`.
+- Revisar `checks.backup`: `enabled`, `ok`, `latestAgeHours`, `offsiteConfigured`.
 
 2. Admin auth status:
 - `https://pielarmonia.com/admin-auth.php?action=status`
@@ -160,6 +167,11 @@ Ejemplo recomendado de `data/figo-config.json`:
 8. Gate completo post-deploy (recomendado):
 - `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireWebhookSecret`
 - (Temporal, solo mientras corriges headers en edge/servidor) `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -AllowMetaCspFallback`
+- Para exigir backups sanos en el gate: `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireBackupHealthy`
+
+9. Verificacion de cron de backup:
+- `https://pielarmonia.com/cron.php?action=backup-health&token=YOUR_CRON_SECRET`
+- `https://pielarmonia.com/cron.php?action=backup-offsite&dryRun=1&token=YOUR_CRON_SECRET`
 
 ## Notas importantes
 

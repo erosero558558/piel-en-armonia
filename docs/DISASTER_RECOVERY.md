@@ -21,6 +21,16 @@ La aplicación realiza automáticamente copias de seguridad rotativas en `data/b
 
 **Ubicación:** `/app/data/backups/store-YYYYMMDD-HHMMSS-XXXXXX.json`
 
+Adicionalmente, el cron soporta:
+* `action=backup-health` para validar frescura/integridad del último backup.
+* `action=backup-offsite` para crear snapshot y replicarlo a un endpoint externo.
+
+Variables recomendadas:
+* `PIELARMONIA_BACKUP_MAX_AGE_HOURS`
+* `PIELARMONIA_BACKUP_OFFSITE_URL`
+* `PIELARMONIA_BACKUP_OFFSITE_TOKEN`
+* `PIELARMONIA_BACKUP_OFFSITE_TIMEOUT_SECONDS`
+
 ### 3.2 Código
 El código fuente reside en GitHub y se despliega mediante GitHub Actions. El repositorio es la fuente de verdad para la aplicación.
 
@@ -43,6 +53,7 @@ Las credenciales y claves de API (Stripe, SMTP, Admin Pass) deben estar document
     ```
 6.  Verificar que el JSON sea válido.
 7.  Restaurar acceso y verificar funcionalidad (`/health`).
+8.  Ejecutar `backup-health` para confirmar que la cadena de backup queda nuevamente sana.
 
 ### Escenario 2: Pérdida Total del Servidor (Hosting caído o borrado)
 **Síntoma:** El servidor no responde y no es recuperable.
@@ -76,3 +87,4 @@ Se recomienda realizar un simulacro de restauración semestralmente:
 2.  Levantar un servidor local (`php -S localhost:8080`).
 3.  Cargar el backup en el entorno local.
 4.  Verificar que las citas y reseñas se cargan correctamente.
+5.  Si hay offsite configurado, probar restauración desde snapshot offsite al menos una vez por trimestre.

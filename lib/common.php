@@ -9,6 +9,33 @@ const APP_TIMEZONE = 'America/Guayaquil';
 
 date_default_timezone_set(APP_TIMEZONE);
 
+if (!function_exists('mb_strlen')) {
+    function mb_strlen(string $value, ?string $encoding = null): int
+    {
+        $chars = @preg_split('//u', $value, -1, PREG_SPLIT_NO_EMPTY);
+        if (is_array($chars)) {
+            return count($chars);
+        }
+        return strlen($value);
+    }
+}
+
+if (!function_exists('mb_substr')) {
+    function mb_substr(string $value, int $start, ?int $length = null, ?string $encoding = null): string
+    {
+        $chars = @preg_split('//u', $value, -1, PREG_SPLIT_NO_EMPTY);
+        if (is_array($chars)) {
+            $slice = $length === null
+                ? array_slice($chars, $start)
+                : array_slice($chars, $start, $length);
+            return implode('', $slice);
+        }
+
+        $slice = $length === null ? substr($value, $start) : substr($value, $start, $length);
+        return is_string($slice) ? $slice : '';
+    }
+}
+
 function local_date(string $format): string
 {
     return date($format);

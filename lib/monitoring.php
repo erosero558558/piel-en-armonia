@@ -68,6 +68,24 @@ function check_system_health(): array
         }
     }
 
+    $backupCheck = [
+        'enabled' => false
+    ];
+    if (function_exists('backup_latest_status')) {
+        $backupStatus = backup_latest_status();
+        $backupCheck = [
+            'enabled' => true,
+            'ok' => (bool) ($backupStatus['ok'] ?? false),
+            'reason' => (string) ($backupStatus['reason'] ?? ''),
+            'count' => (int) ($backupStatus['count'] ?? 0),
+            'maxAgeHours' => (int) ($backupStatus['maxAgeHours'] ?? backup_health_max_age_hours()),
+            'latestAgeHours' => $backupStatus['latestAgeHours'] ?? null,
+            'latestValid' => (bool) ($backupStatus['latestValid'] ?? false),
+            'latestFresh' => (bool) ($backupStatus['latestFresh'] ?? false),
+            'offsiteConfigured' => function_exists('backup_offsite_configured') ? backup_offsite_configured() : false
+        ];
+    }
+
     $status = ($storageReady && $dataWritable) ? 'ok' : 'error';
 
     return [
@@ -84,7 +102,8 @@ function check_system_health(): array
                 'encrypted' => $storeEncrypted
             ],
             'redis' => $redisStatus,
-            'php_version' => PHP_VERSION
+            'php_version' => PHP_VERSION,
+            'backup' => $backupCheck
         ]
     ];
 }

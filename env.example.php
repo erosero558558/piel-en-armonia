@@ -50,6 +50,18 @@
 // ── Cron (recordatorios automáticos) ────────────────
 // putenv('PIELARMONIA_CRON_SECRET=un_token_secreto_largo');
 
+// ── Backups (salud + replicacion offsite) ───────────
+// Edad maxima (horas) del ultimo backup para health check (1-168, default 24)
+// putenv('PIELARMONIA_BACKUP_MAX_AGE_HOURS=24');
+// Webhook/endpoint para subir snapshots offsite (multipart form-data)
+// putenv('PIELARMONIA_BACKUP_OFFSITE_URL=https://tu-backup-endpoint.example/upload');
+// Token opcional para autenticar el webhook de backup
+// putenv('PIELARMONIA_BACKUP_OFFSITE_TOKEN=token_largo_rotado');
+// Header opcional del token (default Authorization)
+// putenv('PIELARMONIA_BACKUP_OFFSITE_TOKEN_HEADER=Authorization');
+// Timeout de subida offsite en segundos (5-120, default 20)
+// putenv('PIELARMONIA_BACKUP_OFFSITE_TIMEOUT_SECONDS=20');
+
 // ── Base de Datos (opcional) ────────────────────────
 // putenv('PIELARMONIA_DB_HOST=127.0.0.1');
 // putenv('PIELARMONIA_DB_NAME=pielarmonia');
