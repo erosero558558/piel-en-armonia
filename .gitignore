@@ -10,6 +10,7 @@ node_modules/
 test-results/
 playwright-report/
 _deploy_bundle/
+verification/
 
 # PHP Composer
 vendor/

@@ -33,6 +33,16 @@ on:
         required: false
         default: "4"
         type: string
+      verify_retry_attempts:
+        description: "Reintentos completos de verificacion de despliegue"
+        required: false
+        default: "1"
+        type: string
+      verify_retry_delay_sec:
+        description: "Espera entre reintentos de verificacion (seg)"
+        required: false
+        default: "75"
+        type: string
 
 concurrency:
   group: post-deploy-gate-main
@@ -53,6 +63,8 @@ jobs:
       WAIT_SECONDS: ${{ github.event.inputs.wait_seconds || '90' }}
       ASSET_HASH_RETRY_COUNT: ${{ github.event.inputs.asset_hash_retry_count || '2' }}
       ASSET_HASH_RETRY_DELAY_SEC: ${{ github.event.inputs.asset_hash_retry_delay_sec || '4' }}
+      VERIFY_RETRY_ATTEMPTS: ${{ github.event.inputs.verify_retry_attempts || '1' }}
+      VERIFY_RETRY_DELAY_SEC: ${{ github.event.inputs.verify_retry_delay_sec || '75' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -76,11 +88,17 @@ jobs:
           if ($hashRetryCount -lt 0) { $hashRetryCount = 0 }
           $hashRetryDelay = [int]$env:ASSET_HASH_RETRY_DELAY_SEC
           if ($hashRetryDelay -lt 1) { $hashRetryDelay = 1 }
+          $verifyRetryAttempts = [int]$env:VERIFY_RETRY_ATTEMPTS
+          if ($verifyRetryAttempts -lt 0) { $verifyRetryAttempts = 0 }
+          $verifyRetryDelay = [int]$env:VERIFY_RETRY_DELAY_SEC
+          if ($verifyRetryDelay -lt 1) { $verifyRetryDelay = 1 }
           ./GATE-POSTDEPLOY.ps1 `
             -Domain $env:TARGET_DOMAIN `
             -BenchRuns $benchRuns `
             -AssetHashRetryCount $hashRetryCount `
             -AssetHashRetryDelaySec $hashRetryDelay `
+            -VerifyRetryAttempts $verifyRetryAttempts `
+            -VerifyRetryDelaySec $verifyRetryDelay `
             -RequireStableDataDir `
             -RequireBackupHealthy `
             -RequireBackupReceiverReady `
@@ -94,7 +112,17 @@ jobs:
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Dominio: ``$env:TARGET_DOMAIN``"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Bench runs: ``$env:BENCH_RUNS``"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Asset hash retries: ``$env:ASSET_HASH_RETRY_COUNT`` cada ``$env:ASSET_HASH_RETRY_DELAY_SEC``s"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Verify retries: ``$env:VERIFY_RETRY_ATTEMPTS`` cada ``$env:VERIFY_RETRY_DELAY_SEC``s"
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Resultado: ``${{ steps.gate.outcome }}``"
+
+      - name: Publicar reporte de verificacion
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: post-deploy-verify-report
+          path: verification/last-deploy-verify.json
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Crear/actualizar incidente de gate
         if: ${{ failure() && github.event_name != 'workflow_dispatch' }}

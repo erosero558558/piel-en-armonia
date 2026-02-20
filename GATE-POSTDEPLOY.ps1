@@ -8,7 +8,11 @@ param(
     [switch]$RequireBackupHealthy,
     [switch]$RequireBackupReceiverReady,
     [switch]$RequireCronReady,
-    [switch]$RequireStableDataDir
+    [switch]$RequireStableDataDir,
+    [int]$AssetHashRetryCount = 2,
+    [int]$AssetHashRetryDelaySec = 4,
+    [int]$VerifyRetryAttempts = 1,
+    [int]$VerifyRetryDelaySec = 75
 )
 
 $ErrorActionPreference = 'Stop'
@@ -21,15 +25,35 @@ $failures = 0
 
 Write-Host ""
 Write-Host "[1/3] Verificacion de despliegue..." -ForegroundColor Yellow
-& .\VERIFICAR-DESPLIEGUE.ps1 `
-    -Domain $Domain `
-    -AllowDegradedFigo:$AllowDegradedFigo `
-    -AllowRecursiveFigo:$AllowRecursiveFigo `
-    -AllowMetaCspFallback:$AllowMetaCspFallback `
-    -RequireWebhookSecret:$RequireWebhookSecret `
-    -RequireBackupHealthy:$RequireBackupHealthy `
-    -RequireStableDataDir:$RequireStableDataDir
-if ($LASTEXITCODE -ne 0) {
+$verifyAttempts = 0
+$verifyMaxAttempts = [Math]::Max(1, $VerifyRetryAttempts + 1)
+$verifyPassed = $false
+
+while ($verifyAttempts -lt $verifyMaxAttempts) {
+    & .\VERIFICAR-DESPLIEGUE.ps1 `
+        -Domain $Domain `
+        -AllowDegradedFigo:$AllowDegradedFigo `
+        -AllowRecursiveFigo:$AllowRecursiveFigo `
+        -AllowMetaCspFallback:$AllowMetaCspFallback `
+        -RequireWebhookSecret:$RequireWebhookSecret `
+        -RequireBackupHealthy:$RequireBackupHealthy `
+        -RequireStableDataDir:$RequireStableDataDir `
+        -AssetHashRetryCount $AssetHashRetryCount `
+        -AssetHashRetryDelaySec $AssetHashRetryDelaySec
+
+    if ($LASTEXITCODE -eq 0) {
+        $verifyPassed = $true
+        break
+    }
+
+    $verifyAttempts += 1
+    if ($verifyAttempts -lt $verifyMaxAttempts) {
+        Write-Host "[WARN] Verificacion fallida. Reintento $verifyAttempts/$($verifyMaxAttempts - 1) en $VerifyRetryDelaySec s..." -ForegroundColor Yellow
+        Start-Sleep -Seconds ([Math]::Max(1, $VerifyRetryDelaySec))
+    }
+}
+
+if (-not $verifyPassed) {
     $failures += 1
 }
 

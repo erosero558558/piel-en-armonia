@@ -1322,7 +1322,7 @@ function initGalleryInteractionsWarmup() {
 // ========================================
 // APPOINTMENT FORM (DEFERRED MODULE)
 // ========================================
-const BOOKING_UI_URL = withDeployAssetVersion('/booking-ui.js?v=figo-booking-ui-20260220-sync1');
+const BOOKING_UI_URL = withDeployAssetVersion('/booking-ui.js?v=figo-booking-ui-20260220-sync2');
 
 function getBookingUiDeps() {
     return {
@@ -1983,7 +1983,7 @@ function escapeHtml(text) {
 // ========================================
 // BOOKING CONVERSACIONAL DESDE CHATBOT (DEFERRED MODULE)
 // ========================================
-const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion('/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1');
+const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion('/chat-booking-engine.js?v=figo-chat-booking-20260220-sync2');
 
 function getChatBookingEngineDeps() {
     return {
@@ -2094,7 +2094,7 @@ function isChatBookingActive() {
 function loadFigoChatEngine() {
     return loadDeferredModule({
         cacheKey: 'figo-chat-engine',
-        src: '/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1-sync1',
+        src: '/chat-engine.js?v=figo-chat-20260220-phase4-sync2',
         scriptDataAttribute: 'data-figo-chat-engine',
         resolveModule: () => window.FigoChatEngine,
         isModuleReady: (module) => !!module,

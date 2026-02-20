@@ -9,7 +9,8 @@ param(
     [switch]$RequireStableDataDir,
     [int]$MaxHealthTimingMs = 2000,
     [int]$AssetHashRetryCount = 2,
-    [int]$AssetHashRetryDelaySec = 4
+    [int]$AssetHashRetryDelaySec = 4,
+    [string]$ReportPath = 'verification/last-deploy-verify.json'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -363,6 +364,37 @@ $deferredStylesRemoteUrl = if ($indexDeferredStylesRemoteUrl -ne '') {
     "$base/styles-deferred.css?v=$deferredStylesVersion"
 } else {
     "$base/styles-deferred.css"
+}
+
+function Write-VerifyReport {
+    param(
+        [string]$Path,
+        [string]$Domain,
+        [Object[]]$Results,
+        [int]$FailedCount
+    )
+
+    try {
+        $reportDir = Split-Path -Path $Path -Parent
+        if (-not [string]::IsNullOrWhiteSpace($reportDir) -and -not (Test-Path $reportDir)) {
+            New-Item -ItemType Directory -Path $reportDir -Force | Out-Null
+        }
+
+        $report = [PSCustomObject]@{
+            generatedAt = (Get-Date).ToString('o')
+            domain = $Domain
+            failed = $FailedCount
+            total = @($Results).Count
+            ok = [Math]::Max(0, (@($Results).Count - $FailedCount))
+            failures = @($Results | Where-Object { $_.Match -ne $true })
+            checks = @($Results)
+        }
+
+        $report | ConvertTo-Json -Depth 12 | Set-Content -Path $Path -Encoding UTF8
+        Write-Host "[INFO] reporte de verificacion guardado: $Path"
+    } catch {
+        Write-Host "[WARN] no se pudo escribir reporte de verificacion: $($_.Exception.Message)"
+    }
 }
 if ($deferredStylesRemoteUrl -match '\?') {
     $deferredStylesRemoteUrl = "$deferredStylesRemoteUrl&verify=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
@@ -1213,6 +1245,7 @@ if ($RunSmoke) {
 }
 
 $failed = @($results | Where-Object { $_.Match -ne $true }).Count
+Write-VerifyReport -Path $ReportPath -Domain $base -Results $results -FailedCount $failed
 if ($failed -gt 0) {
     Write-Host ""
     Write-Host "Resultado: $failed falla(s) detectadas."
