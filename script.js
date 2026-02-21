@@ -2672,16 +2672,17 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         disablePlaceholderExternalLinks();
-        initActionRouterEngine();
         initDeferredStylesheetLoading();
         initThemeMode();
         changeLanguage(state$1.currentLang);
-        initCookieBanner();
-        initGA4();
-        initBookingFunnelObserver();
         initDeferredSectionPrefetch();
 
         loadDeferredContent().then(() => {
+            initActionRouterEngine();
+            initCookieBanner();
+            initGA4();
+            initBookingFunnelObserver();
+
             const initHighPriorityWarmups = createOnceTask(() => {
                 initEnglishBundleWarmup();
                 initDataEngineWarmup();
