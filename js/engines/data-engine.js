@@ -10,8 +10,8 @@
     const API_DEFAULT_RETRIES = 1;
     const API_SLOW_NOTICE_MS = 1200;
     const API_SLOW_NOTICE_COOLDOWN_MS = 25000;
-    const AVAILABILITY_CACHE_TTL_MS = 5 * 60 * 1000;
-    const BOOKED_SLOTS_CACHE_TTL_MS = 45 * 1000;
+    const AVAILABILITY_CACHE_TTL_MS = 60 * 1000;
+    const BOOKED_SLOTS_CACHE_TTL_MS = 10 * 1000;
     const LOCAL_FALLBACK_ENABLED = window.location.protocol === 'file:';
 
     let apiSlowNoticeLastAt = 0;
@@ -450,6 +450,7 @@
     async function loadAvailabilityData(options = {}) {
         const forceRefresh = options && options.forceRefresh === true;
         const background = options && options.background === true;
+        const strict = options && options.strict === true;
         const now = Date.now();
 
         if (
@@ -481,6 +482,8 @@
                     Object.keys(availabilityCache).length > 0
                 ) {
                     availabilityCacheLoadedAt = Date.now();
+                } else if (strict) {
+                    throw error;
                 }
             } finally {
                 availabilityCachePromise = null;

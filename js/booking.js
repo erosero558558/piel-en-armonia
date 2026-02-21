@@ -11,7 +11,6 @@ import {
     state,
     setCurrentAppointment,
 } from './state.js';
-import { DEFAULT_TIME_SLOTS } from './config.js';
 import {
     loadPaymentConfig,
     loadStripeSdk,
@@ -229,9 +228,9 @@ function getBookingUiDeps() {
     return {
         loadAvailabilityData,
         getBookedSlots,
+        updateAvailableTimes,
         showToast,
         getCurrentLang: () => state.currentLang,
-        getDefaultTimeSlots: () => DEFAULT_TIME_SLOTS.slice(),
         getCasePhotoFiles: (form) => {
             const input = form?.querySelector('#casePhotos');
             if (!input || !input.files) return [];

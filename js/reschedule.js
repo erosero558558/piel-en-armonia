@@ -1,7 +1,6 @@
 import { withDeployAssetVersion, showToast, escapeHtml } from './utils.js';
 import { loadDeferredModule, runDeferredModule } from './loader.js';
 import { getCurrentLang } from './state.js';
-import { DEFAULT_TIME_SLOTS } from './config.js';
 import {
     apiRequest,
     loadAvailabilityData,
@@ -22,7 +21,6 @@ function getRescheduleEngineDeps() {
         showToast,
         escapeHtml,
         getCurrentLang: getCurrentLang,
-        getDefaultTimeSlots: () => DEFAULT_TIME_SLOTS.slice(),
     };
 }
 

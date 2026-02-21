@@ -82,7 +82,8 @@
 // putenv('PIELARMONIA_STORAGE_JSON_FALLBACK=true');
 // Fallback de contenido publico cuando store esta vacio (default true)
 // putenv('PIELARMONIA_DEFAULT_REVIEWS_ENABLED=true');
-// putenv('PIELARMONIA_DEFAULT_AVAILABILITY_ENABLED=true');
+// Agenda fallback cuando no hay horarios configurados (default false para usar agenda real)
+// putenv('PIELARMONIA_DEFAULT_AVAILABILITY_ENABLED=false');
 
 // ── Feature Flags ───────────────────────────────────
 // putenv('FEATURE_NEW_BOOKING_UI=true');

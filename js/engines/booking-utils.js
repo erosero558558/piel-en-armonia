@@ -179,9 +179,31 @@
             '<option value="">' + t('Cargando...', 'Loading...') + '</option>';
 
         try {
-            const availability = await deps$1.loadAvailabilityData();
-            const daySlots =
-                availability[selectedDate] || getDefaultTimeSlots();
+            const availability = await deps$1.loadAvailabilityData({
+                strict: true,
+            });
+            const configuredSlots = Array.isArray(availability[selectedDate])
+                ? availability[selectedDate]
+                : [];
+            const daySlots = Array.from(
+                new Set(
+                    configuredSlots
+                        .map((slot) => String(slot || '').trim())
+                        .filter(Boolean)
+                )
+            ).sort();
+
+            if (daySlots.length === 0) {
+                timeSelect.innerHTML =
+                    '<option value="">' +
+                    t(
+                        'Sin agenda disponible para esta fecha',
+                        'No schedule available for this date'
+                    ) +
+                    '</option>';
+                return;
+            }
+
             const booked = await deps$1.getBookedSlots(
                 selectedDate,
                 rescheduleAppointment.doctor || ''
@@ -214,7 +236,10 @@
             if (freeSlots.length === 0) {
                 timeSelect.innerHTML =
                     '<option value="">' +
-                    t('Sin horarios disponibles', 'No slots available') +
+                    t(
+                        'No quedan horarios libres en esta fecha',
+                        'No free slots remain on this date'
+                    ) +
                     '</option>';
             }
         } catch (error) {
@@ -493,10 +518,18 @@
         if (!selectedDate || !timeSelect) return;
 
         const selectedDoctor = doctorSelect ? doctorSelect.value : '';
-        const availability = await deps.loadAvailabilityData();
+        const availability = await deps.loadAvailabilityData({ strict: true });
         const bookedSlots = await deps.getBookedSlots(selectedDate, selectedDoctor);
-        const availableSlots =
-            availability[selectedDate] || deps.getDefaultTimeSlots();
+        const configuredSlots = Array.isArray(availability[selectedDate])
+            ? availability[selectedDate]
+            : [];
+        const availableSlots = Array.from(
+            new Set(
+                configuredSlots
+                    .map((slot) => String(slot || '').trim())
+                    .filter(Boolean)
+            )
+        ).sort();
         const isToday = selectedDate === new Date().toISOString().split('T')[0];
         const nowMinutes = isToday
             ? new Date().getHours() * 60 + new Date().getMinutes()
@@ -513,13 +546,29 @@
         const currentValue = timeSelect.value;
         timeSelect.innerHTML = '<option value="">Hora</option>';
 
+        if (availableSlots.length === 0) {
+            timeSelect.innerHTML =
+                '<option value="" disabled>' +
+                t(
+                    'Sin agenda disponible para esta fecha',
+                    'No schedule available for this date'
+                ) +
+                '</option>';
+            return;
+        }
+
         if (freeSlots.length === 0) {
             timeSelect.innerHTML +=
-                '<option value="" disabled>No hay horarios disponibles</option>';
+                '<option value="" disabled>' +
+                t(
+                    'No quedan horarios libres',
+                    'No free slots available'
+                ) +
+                '</option>';
             deps.showToast(
                 t(
-                    'No hay horarios disponibles para esta fecha',
-                    'No slots available for this date'
+                    'No quedan horarios libres para esta fecha',
+                    'No free slots available for this date'
                 ),
                 'warning'
             );

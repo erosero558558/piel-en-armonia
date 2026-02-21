@@ -27,7 +27,7 @@ function default_availability_enabled(): bool
 {
     $raw = getenv('PIELARMONIA_DEFAULT_AVAILABILITY_ENABLED');
     if (!is_string($raw) || trim($raw) === '') {
-        return true;
+        return false;
     }
     return parse_bool($raw);
 }

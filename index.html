@@ -8,7 +8,7 @@
         />
         <meta
             http-equiv="Content-Security-Policy"
-            content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com https://browser.sentry-cdn.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://www.google-analytics.com https://*.stripe.com https://cloudflareinsights.com data:; frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; connect-src 'self' https://api.stripe.com https://m.stripe.network https://r.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://cloudflareinsights.com https://browser.sentry-cdn.com https://*.ingest.sentry.io https://sentry.io; worker-src 'self' blob:; form-action 'self';"
+            content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com https://browser.sentry-cdn.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://www.google-analytics.com https://*.stripe.com https://cloudflareinsights.com data:; frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; connect-src 'self' https://api.stripe.com https://m.stripe.network https://r.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://cloudflareinsights.com https://browser.sentry-cdn.com https://*.ingest.sentry.io https://sentry.io; worker-src 'self' blob:; form-action 'self';"
         />
         <title>Piel en Armonía | Dermatología Especializada en Quito</title>
         <meta
@@ -1795,6 +1795,67 @@
                 color: #88d5ff;
             }
         </style>
+        <style>
+            /* Chat viewport guardrails for small windows/mobile */
+            @media (max-width: 1100px) {
+                .chatbot-widget {
+                    right: 12px !important;
+                    bottom: calc(82px + var(--safe-bottom)) !important;
+                    z-index: 2300 !important;
+                }
+                .chatbot-container {
+                    left: 8px !important;
+                    right: 8px !important;
+                    width: auto !important;
+                    max-width: none !important;
+                    bottom: calc(146px + var(--safe-bottom)) !important;
+                    height: min(68dvh, 560px) !important;
+                    max-height: calc(
+                        100dvh - 170px - var(--safe-bottom)
+                    ) !important;
+                    margin: 0 !important;
+                    transform-origin: bottom center !important;
+                    animation: none !important;
+                }
+            }
+            @media (max-width: 640px) {
+                .chatbot-widget {
+                    right: 10px !important;
+                    bottom: calc(76px + var(--safe-bottom)) !important;
+                }
+                .chatbot-container {
+                    left: 0 !important;
+                    right: 0 !important;
+                    bottom: 0 !important;
+                    height: calc(100dvh - 78px - var(--safe-bottom)) !important;
+                    max-height: none !important;
+                    border-radius: 18px 18px 0 0 !important;
+                    animation: none !important;
+                }
+            }
+        </style>
+        <style>
+            /* Keep floating actions clickable while cookie banner is active */
+            body.cookie-banner-active .chatbot-widget {
+                bottom: calc(152px + var(--safe-bottom)) !important;
+            }
+            body.cookie-banner-active .quick-dock {
+                bottom: calc(106px + var(--safe-bottom)) !important;
+            }
+            @media (max-width: 900px) {
+                body.cookie-banner-active .chatbot-widget {
+                    bottom: calc(176px + var(--safe-bottom)) !important;
+                }
+                body.cookie-banner-active .quick-dock {
+                    bottom: calc(102px + var(--safe-bottom)) !important;
+                }
+            }
+            @media (max-width: 640px) {
+                body.cookie-banner-active .chatbot-widget {
+                    bottom: calc(192px + var(--safe-bottom)) !important;
+                }
+            }
+        </style>
         <link
             rel="preload"
             as="style"
@@ -1838,27 +1899,27 @@
         />
         <link
             rel="modulepreload"
-            href="/js/engines/ui-bundle.js?v=20260220-consolidated1&cv=figo-20260221-phase9-chatbridge1"
+            href="/js/engines/ui-bundle.js?v=20260220-consolidated1&cv=figo-20260221-phase10-realagenda1"
         />
         <link
             rel="modulepreload"
-            href="/js/engines/data-bundle.js?v=20260220-consolidated1&cv=figo-20260221-phase9-chatbridge1"
+            href="/js/engines/data-bundle.js?v=20260220-consolidated1&cv=figo-20260221-phase10-realagenda1"
         />
         <link
             rel="modulepreload"
-            href="/js/engines/data-engine.js?v=figo-data-20260219-phase1&cv=figo-20260221-phase9-chatbridge1"
+            href="/data-engine.js?v=figo-data-20260219-phase1&cv=figo-20260221-phase10-realagenda1"
         />
         <link
             rel="modulepreload"
-            href="/js/engines/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1&cv=figo-20260221-phase9-chatbridge1"
+            href="/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1&cv=figo-20260221-phase10-realagenda1"
         />
         <script src="js/monitoring-loader.js" async></script>
         <script
-            src="js/bootstrap-inline-engine.js?v=figo-bootstrap-20260221-phase9-chatbridge1"
+            src="bootstrap-inline-engine.js?v=figo-20260221-phase10-realagenda1"
             defer
         ></script>
         <script
-            src="script.js?v=figo-20260221-phase9-chatbridge1"
+            src="script.js?v=figo-20260221-phase10-realagenda1"
             defer
         ></script>
     </head>

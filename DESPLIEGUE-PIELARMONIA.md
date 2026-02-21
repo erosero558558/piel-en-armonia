@@ -116,7 +116,7 @@ Configura estas variables en tu hosting:
 - `PIELARMONIA_BACKUP_RECEIVER_MAX_MB` (opcional, limite de subida en MB del receiver)
 - `PIELARMONIA_STORAGE_JSON_FALLBACK` (opcional, default `true`, usa `store.json` si SQLite falla)
 - `PIELARMONIA_DEFAULT_REVIEWS_ENABLED` (opcional, default `true`, fallback de reseñas cuando store esta vacio)
-- `PIELARMONIA_DEFAULT_AVAILABILITY_ENABLED` (opcional, default `true`, genera agenda base cuando store esta vacio)
+- `PIELARMONIA_DEFAULT_AVAILABILITY_ENABLED` (opcional, default `false`; en `true` genera agenda base cuando store esta vacio)
 
 Importante:
 

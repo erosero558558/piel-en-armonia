@@ -193,15 +193,6 @@
     const API_DEFAULT_RETRIES = 1;
     const API_SLOW_NOTICE_MS = 1200;
     const API_SLOW_NOTICE_COOLDOWN_MS = 25000;
-    const DEFAULT_TIME_SLOTS = [
-        '09:00',
-        '10:00',
-        '11:00',
-        '12:00',
-        '15:00',
-        '16:00',
-        '17:00',
-    ];
     const THEME_STORAGE_KEY = 'themeMode';
     const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
 
@@ -621,7 +612,7 @@
     }
 
     const DATA_ENGINE_URL = withDeployAssetVersion(
-        '/js/engines/data-engine.js?v=figo-data-20260219-phase1'
+        '/data-engine.js?v=figo-data-20260219-phase1'
     );
 
     function getDataEngineDeps() {
@@ -1081,7 +1072,7 @@
         throw lastError || new Error('No se pudo completar la solicitud');
     }
 
-    const BOOKING_UTILS_URL$2 = withDeployAssetVersion('/js/engines/booking-utils.js');
+    const BOOKING_UTILS_URL$1 = withDeployAssetVersion('/js/engines/booking-utils.js');
 
     function getPaymentGatewayEngineDeps() {
         return {
@@ -1099,7 +1090,7 @@
     function loadPaymentGatewayEngine() {
         return loadDeferredModule({
             cacheKey: 'booking-utils',
-            src: BOOKING_UTILS_URL$2,
+            src: BOOKING_UTILS_URL$1,
             scriptDataAttribute: 'data-booking-utils',
             resolveModule: () => window.Piel && window.Piel.PaymentGatewayEngine,
             isModuleReady: (module) => !!(module && typeof module.init === 'function'),
@@ -1127,7 +1118,7 @@
     }
 
     const ANALYTICS_ENGINE_URL = withDeployAssetVersion(
-        '/js/engines/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1'
+        '/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1'
     );
     const FUNNEL_EVENT_ENDPOINT = '/api.php?resource=funnel-event';
     const FUNNEL_SERVER_EVENTS = new Set([
@@ -1391,12 +1382,14 @@
     }
 
     const BOOKING_ENGINE_URL = withDeployAssetVersion(
-        '/js/engines/booking-engine.js?v=figo-booking-20260219-mbfix1'
+        '/booking-engine.js?v=figo-booking-20260219-mbfix1'
     );
     const BOOKING_UI_URL = withDeployAssetVersion(
-        '/js/engines/booking-ui.js?v=figo-booking-ui-20260220-sync3-cachepurge1'
+        '/booking-ui.js?v=figo-booking-ui-20260220-sync3-cachepurge1'
     );
-    const BOOKING_UTILS_URL$1 = withDeployAssetVersion('/js/engines/booking-utils.js');
+    const BOOKING_CALENDAR_ENGINE_URL = withDeployAssetVersion(
+        '/js/engines/booking-utils.js'
+    );
     const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 
     function stripTransientAppointmentFields(appointment) {
@@ -1566,18 +1559,22 @@
     function loadBookingCalendarEngine() {
         return loadDeferredModule({
             cacheKey: 'booking-utils-calendar',
-            src: BOOKING_UTILS_URL$1,
+            src: BOOKING_CALENDAR_ENGINE_URL,
             scriptDataAttribute: 'data-booking-utils',
             resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine,
-            isModuleReady: (module) => !!(module && typeof module.initCalendar === 'function'),
+            isModuleReady: (module) =>
+                !!(module && typeof module.updateAvailableTimes === 'function'),
             missingApiError: 'booking-calendar-engine loaded without API',
             loadError: 'No se pudo cargar booking-calendar-engine',
-            logLabel: 'Booking Calendar engine'
+            logLabel: 'Booking calendar engine',
         });
     }
 
     async function updateAvailableTimes(elements) {
-        return runDeferredModule(loadBookingCalendarEngine, (engine) => engine.updateAvailableTimes(getBookingUiDeps(), elements));
+        return runDeferredModule(
+            loadBookingCalendarEngine,
+            (engine) => engine.updateAvailableTimes(getBookingUiDeps(), elements)
+        );
     }
 
     // BOOKING UI
@@ -1585,9 +1582,9 @@
         return {
             loadAvailabilityData,
             getBookedSlots,
+            updateAvailableTimes,
             showToast,
             getCurrentLang: () => state$1.currentLang,
-            getDefaultTimeSlots: () => DEFAULT_TIME_SLOTS.slice(),
             getCasePhotoFiles: (form) => {
                 const input = form?.querySelector('#casePhotos');
                 if (!input || !input.files) return [];
@@ -1601,7 +1598,6 @@
             normalizeAnalyticsLabel,
             openPaymentModal,
             setCurrentAppointment: setCurrentAppointment,
-            updateAvailableTimes, // Added dependency
         };
     }
 
@@ -1855,7 +1851,6 @@
             showToast,
             escapeHtml: escapeHtml$1,
             getCurrentLang: getCurrentLang,
-            getDefaultTimeSlots: () => DEFAULT_TIME_SLOTS.slice(),
         };
     }
 
@@ -1918,16 +1913,16 @@
     }
 
     const CHAT_UI_ENGINE_URL = withDeployAssetVersion(
-        '/js/engines/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1'
+        '/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1'
     );
     const CHAT_WIDGET_ENGINE_URL = withDeployAssetVersion(
-        '/js/engines/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1'
+        '/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1'
     );
     const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion(
-        '/js/engines/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1'
+        '/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1'
     );
     const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion(
-        '/js/engines/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1-sync1'
+        '/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1-sync1'
     );
 
     const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
@@ -2446,7 +2441,7 @@
     }
 
     const GALLERY_INTERACTIONS_URL = withDeployAssetVersion(
-        '/js/engines/gallery-interactions.js?v=figo-gallery-20260218-phase4'
+        '/gallery-interactions.js?v=figo-gallery-20260218-phase4'
     );
 
     function loadGalleryInteractions() {
@@ -2801,12 +2796,11 @@
             }
 
             element.addEventListener('click', function () {
-                const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
                 loadDeferredModule({
                     cacheKey: 'booking-utils-calendar',
-                    src: BOOKING_UTILS_URL,
+                    src: BOOKING_CALENDAR_ENGINE_URL,
                     scriptDataAttribute: 'data-booking-utils',
-                    resolveModule: () => window.PielBookingCalendarEngine
+                    resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine
                 }).then(function (moduleRef) {
                     if (moduleRef && typeof moduleRef.initCalendar === 'function') {
                         moduleRef.initCalendar();
@@ -2898,6 +2892,8 @@
                     event.stopImmediatePropagation();
                     fallbackSelectService(value);
                     break;
+                default:
+                    break;
             }
         });
 
@@ -2970,7 +2966,7 @@
                 chatInput.addEventListener('keypress', handleChatKeypress);
             }
 
-            // Gallery lazy load is already initialized below in the legacy fallback block.
+            // Gallery lazy load is initialized in the legacy fallback block below.
             initBookingCalendarLazyInit();
         });
 
@@ -3082,6 +3078,7 @@
                 userVisibleOnly: true,
                 applicationServerKey: publicVapidKey
             });
+            console.log('Push Subscription:', JSON.stringify(subscription));
         } catch (error) {
             console.error('Push subscription error:', error);
         }
@@ -3096,10 +3093,9 @@
             }
 
             element.addEventListener('click', function () {
-                const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
                 loadDeferredModule({
                     cacheKey: 'booking-utils-calendar',
-                    src: BOOKING_UTILS_URL,
+                    src: BOOKING_CALENDAR_ENGINE_URL,
                     scriptDataAttribute: 'data-booking-utils',
                     resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine
                 }).then(function (moduleRef) {
