@@ -152,50 +152,17 @@ async function fillBookingFormAndOpenPayment(page) {
         timeout: 10000,
         state: 'attached',
     });
-    // Trigger lazy load of booking-ui.js
-    const form = page.locator('#appointmentForm');
-    if (await form.isVisible()) {
-        await form.focus();
-        await form.click({ force: true });
-    }
-    // Check if booking-ui.js is loaded by checking for a side-effect or variable
-    // Since attributes might be stripping, we rely on the object presence or just wait a bit.
-    // Ideally we check window.PielBookingUi, but here we can just wait for src.
-    try {
-        await page.waitForSelector('script[src*="booking-ui.js"]', {
-            timeout: 5000,
-            state: 'attached',
-        });
-    } catch (e) {
-        // Fallback: maybe it's already loaded or attribute differs.
-        // We'll proceed as the form filling will fail if logic isn't bound.
-    }
 
-    // Ensure booking section is visible to trigger lazy load
+    // Ensure lazy loading triggers by scrolling to the booking section
     const bookingSection = page.locator('#citas');
-    await bookingSection.scrollIntoViewIfNeeded();
-
-    // Force trigger warmup via focusin to be safe
-    const appointmentForm = page.locator('#appointmentForm');
-    if (await appointmentForm.isVisible()) {
-        await appointmentForm.dispatchEvent('focusin');
+    if (await bookingSection.count() > 0) {
+        await bookingSection.scrollIntoViewIfNeeded();
+        await page.waitForTimeout(500); // Give IntersectionObserver time to trigger
     }
 
-    // Wait for interactive element instead of script tag
-    const serviceSelect = page.locator('#serviceSelect');
-    await expect(serviceSelect).toBeVisible({ timeout: 30000 });
-
-    // Inject mock options to ensure testability
-    await page.evaluate(() => {
-        const select = document.getElementById('serviceSelect');
-        if (!select.querySelector('option[value="consulta"]')) {
-            const opt = document.createElement('option');
-            opt.value = 'consulta';
-            opt.text = 'Consulta General';
-            opt.dataset.price = '40.00';
-            opt.dataset.serviceTax = '0.0';
-            select.appendChild(opt);
-        }
+    await page.waitForSelector('script[data-booking-ui="true"]', {
+        timeout: 30000,
+        state: 'attached',
     });
 
     await serviceSelect.selectOption('consulta');

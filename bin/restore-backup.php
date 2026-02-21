@@ -98,6 +98,11 @@ if (file_exists($currentStorePath)) {
         exit(1);
     }
     echo "Safety backup created at: $safetyBackupPath\n";
+
+    // Unlink the current store to ensure fresh creation if it was corrupted
+    if (!unlink($currentStorePath)) {
+        echo "Warning: Could not delete current store file before restore.\n";
+    }
 } else {
     echo "No existing store found. Skipping safety backup.\n";
 }
