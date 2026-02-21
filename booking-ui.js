@@ -1,413 +1,408 @@
-(function () {
-    'use strict';
+// build-sync: 20260220-sync1
 
-    // build-sync: 20260220-sync1
+let deps = null;
+let initialized = false;
+const completedFormSteps = Object.create(null);
 
-    let deps = null;
-    let initialized = false;
-    const completedFormSteps = Object.create(null);
+function getLang() {
+    return deps && typeof deps.getCurrentLang === 'function'
+        ? deps.getCurrentLang()
+        : 'es';
+}
 
-    function getLang() {
-        return deps && typeof deps.getCurrentLang === 'function'
-            ? deps.getCurrentLang()
-            : 'es';
+function t(esText, enText) {
+    return getLang() === 'es' ? esText : enText;
+}
+
+function normalizeEcuadorPhone(rawValue) {
+    const raw = String(rawValue || '').trim();
+    if (raw === '') return '';
+
+    const digits = raw.replace(/\D/g, '');
+
+    if (digits.startsWith('593') && digits.length >= 12) {
+        return `+${digits}`;
     }
 
-    function t(esText, enText) {
-        return getLang() === 'es' ? esText : enText;
+    if (digits.startsWith('09') && digits.length === 10) {
+        return `+593${digits.slice(1)}`;
     }
 
-    function normalizeEcuadorPhone(rawValue) {
-        const raw = String(rawValue || '').trim();
-        if (raw === '') return '';
-
-        const digits = raw.replace(/\D/g, '');
-
-        if (digits.startsWith('593') && digits.length >= 12) {
-            return `+${digits}`;
-        }
-
-        if (digits.startsWith('09') && digits.length === 10) {
-            return `+593${digits.slice(1)}`;
-        }
-
-        if (digits.startsWith('9') && digits.length === 9) {
-            return `+593${digits}`;
-        }
-
-        if (raw.startsWith('+')) {
-            return `+${raw.slice(1).replace(/\D/g, '')}`;
-        }
-
-        return raw;
+    if (digits.startsWith('9') && digits.length === 9) {
+        return `+593${digits}`;
     }
 
-    function trackFormStep(step, payload = {}, options = {}) {
-        if (!deps || typeof deps.trackEvent !== 'function' || !step) {
-            return;
-        }
+    if (raw.startsWith('+')) {
+        return `+${raw.slice(1).replace(/\D/g, '')}`;
+    }
 
-        const once = options && options.once !== false;
-        if (once && completedFormSteps[step]) {
-            return;
-        }
+    return raw;
+}
 
-        if (once) {
-            completedFormSteps[step] = true;
-        }
+function trackFormStep(step, payload = {}, options = {}) {
+    if (!deps || typeof deps.trackEvent !== 'function' || !step) {
+        return;
+    }
 
-        const stepPayload = {
-            step,
-            source: 'booking_form',
+    const once = options && options.once !== false;
+    if (once && completedFormSteps[step]) {
+        return;
+    }
+
+    if (once) {
+        completedFormSteps[step] = true;
+    }
+
+    const stepPayload = {
+        step,
+        source: 'booking_form',
+        ...payload,
+    };
+
+    deps.trackEvent('booking_step_completed', stepPayload);
+
+    if (typeof deps.setCheckoutStep === 'function') {
+        deps.setCheckoutStep(step, {
+            checkoutEntry: 'booking_form',
             ...payload,
-        };
-
-        deps.trackEvent('booking_step_completed', stepPayload);
-
-        if (typeof deps.setCheckoutStep === 'function') {
-            deps.setCheckoutStep(step, {
-                checkoutEntry: 'booking_form',
-                ...payload,
-            });
-        }
-    }
-
-    function hasClinicalContext(formData) {
-        return !!(
-            (formData.get('reason') || '').trim() ||
-            (formData.get('affectedArea') || '').trim() ||
-            (formData.get('evolutionTime') || '').trim()
-        );
-    }
-
-    function init(inputDeps) {
-        deps = inputDeps || deps;
-        if (initialized) {
-            return { init };
-        }
-
-        const serviceSelect = document.getElementById('serviceSelect');
-        const priceSummary = document.getElementById('priceSummary');
-        const subtotalEl = document.getElementById('subtotalPrice');
-        const ivaEl = document.getElementById('ivaPrice');
-        const totalEl = document.getElementById('totalPrice');
-        const dateInput = document.querySelector('input[name="date"]');
-        const timeSelect = document.querySelector('select[name="time"]');
-        const doctorSelect = document.querySelector('select[name="doctor"]');
-        const phoneInput = document.querySelector('input[name="phone"]');
-        const appointmentForm = document.getElementById('appointmentForm');
-
-        if (
-            !serviceSelect ||
-            !priceSummary ||
-            !subtotalEl ||
-            !ivaEl ||
-            !totalEl ||
-            !appointmentForm
-        ) {
-            return { init };
-        }
-
-        initialized = true;
-
-        async function updateAvailableTimes() {
-            try {
-                await deps.updateAvailableTimes({
-                    dateInput,
-                    timeSelect,
-                    doctorSelect,
-                    t,
-                });
-            } catch (error) {
-                console.error('Failed to load booking-calendar.js', error);
-                deps.showToast(
-                    t(
-                        'Error cargando calendario. Intenta nuevamente.',
-                        'Error loading calendar. Please try again.'
-                    ),
-                    'error'
-                );
-            }
-        }
-
-        serviceSelect.addEventListener('change', function () {
-            const selected = this.options[this.selectedIndex];
-            const price = parseFloat(selected.dataset.price) || 0;
-            const taxRate = parseFloat(selected.dataset.serviceTax) || 0;
-            const priceHint = document.getElementById('priceHint');
-
-            const iva = price * taxRate;
-            const total = price + iva;
-            subtotalEl.textContent = `$${price.toFixed(2)}`;
-            ivaEl.textContent = `$${iva.toFixed(2)}`;
-            totalEl.textContent = `$${total.toFixed(2)}`;
-
-            if (price > 0) {
-                priceSummary.classList.remove('is-hidden');
-                if (priceHint) priceHint.classList.add('is-hidden');
-            } else {
-                priceSummary.classList.remove('is-hidden');
-                if (priceHint) priceHint.classList.remove('is-hidden');
-            }
-
-            if (this.value) {
-                trackFormStep('service_selected', {
-                    service: this.value,
-                });
-            }
-
-            updateAvailableTimes().catch(() => undefined);
         });
+    }
+}
 
-        if (dateInput) {
-            dateInput.min = new Date().toISOString().split('T')[0];
-            dateInput.addEventListener('change', () => {
-                if (dateInput.value) {
-                    trackFormStep('date_selected');
-                }
-                updateAvailableTimes().catch(() => undefined);
-            });
-        }
+function hasClinicalContext(formData) {
+    return !!(
+        (formData.get('reason') || '').trim() ||
+        (formData.get('affectedArea') || '').trim() ||
+        (formData.get('evolutionTime') || '').trim()
+    );
+}
 
-        if (doctorSelect) {
-            doctorSelect.addEventListener('change', () => {
-                if (doctorSelect.value) {
-                    trackFormStep('doctor_selected', {
-                        doctor: doctorSelect.value,
-                    });
-                }
-                updateAvailableTimes().catch(() => undefined);
-            });
-        }
-
-        if (timeSelect) {
-            timeSelect.addEventListener('change', () => {
-                if (timeSelect.value) {
-                    trackFormStep('time_selected');
-                }
-            });
-        }
-
-        if (phoneInput) {
-            phoneInput.addEventListener('blur', () => {
-                const normalized = normalizeEcuadorPhone(phoneInput.value);
-                if (normalized !== '') {
-                    phoneInput.value = normalized;
-                }
-
-                const digits = normalized.replace(/\D/g, '');
-                if (digits.length >= 7 && digits.length <= 15) {
-                    trackFormStep('phone_added');
-                }
-            });
-        }
-
-        const nameInput = appointmentForm.querySelector('input[name="name"]');
-        if (nameInput) {
-            nameInput.addEventListener('blur', () => {
-                if ((nameInput.value || '').trim().length >= 2) {
-                    trackFormStep('name_added');
-                }
-            });
-        }
-
-        const emailInput = appointmentForm.querySelector('input[name="email"]');
-        if (emailInput) {
-            emailInput.addEventListener('blur', () => {
-                const email = (emailInput.value || '').trim();
-                if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                    trackFormStep('email_added');
-                }
-            });
-        }
-
-        const reasonInput = appointmentForm.querySelector(
-            'textarea[name="reason"]'
-        );
-        const areaSelect = appointmentForm.querySelector(
-            'select[name="affectedArea"]'
-        );
-        const evolutionSelect = appointmentForm.querySelector(
-            'select[name="evolutionTime"]'
-        );
-        const maybeTrackClinicalContext = () => {
-            const reason = reasonInput ? (reasonInput.value || '').trim() : '';
-            const area = areaSelect ? (areaSelect.value || '').trim() : '';
-            const evolution = evolutionSelect
-                ? (evolutionSelect.value || '').trim()
-                : '';
-            if (reason || area || evolution) {
-                trackFormStep('clinical_context_added');
-            }
-        };
-        if (reasonInput) {
-            reasonInput.addEventListener('blur', maybeTrackClinicalContext);
-        }
-        if (areaSelect) {
-            areaSelect.addEventListener('change', maybeTrackClinicalContext);
-        }
-        if (evolutionSelect) {
-            evolutionSelect.addEventListener('change', maybeTrackClinicalContext);
-        }
-
-        const privacyConsentInput = appointmentForm.querySelector(
-            'input[name="privacyConsent"]'
-        );
-        if (privacyConsentInput) {
-            privacyConsentInput.addEventListener('change', () => {
-                if (privacyConsentInput.checked) {
-                    trackFormStep('privacy_consent_checked');
-                }
-            });
-        }
-
-        if (serviceSelect.value) {
-            serviceSelect.dispatchEvent(new Event('change'));
-        }
-
-        appointmentForm.addEventListener('submit', async function (e) {
-            e.preventDefault();
-
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalContent = submitBtn ? submitBtn.innerHTML : '';
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML =
-                    '<i class="fas fa-spinner fa-spin"></i> Procesando...';
-            }
-
-            try {
-                const formData = new FormData(this);
-                const casePhotoFiles = deps.getCasePhotoFiles(this);
-                deps.validateCasePhotoFiles(casePhotoFiles);
-                const privacyConsent = formData.get('privacyConsent') === 'on';
-
-                if (!privacyConsent) {
-                    throw new Error(
-                        t(
-                            'Debes aceptar el tratamiento de datos para continuar.',
-                            'You must accept data processing to continue.'
-                        )
-                    );
-                }
-
-                const normalizedPhone = normalizeEcuadorPhone(
-                    formData.get('phone')
-                );
-
-                const appointment = {
-                    service: formData.get('service'),
-                    doctor: formData.get('doctor'),
-                    date: formData.get('date'),
-                    time: formData.get('time'),
-                    name: formData.get('name'),
-                    email: formData.get('email'),
-                    phone: normalizedPhone,
-                    reason: formData.get('reason') || '',
-                    affectedArea: formData.get('affectedArea') || '',
-                    evolutionTime: formData.get('evolutionTime') || '',
-                    privacyConsent,
-                    casePhotoFiles,
-                    casePhotoUploads: [],
-                    checkoutEntry: 'booking_form',
-                    price: totalEl.textContent,
-                };
-
-                trackFormStep('form_submitted', {}, { once: false });
-                if (appointment.service) {
-                    trackFormStep('service_selected', {
-                        service: appointment.service,
-                    });
-                }
-                if (appointment.doctor) {
-                    trackFormStep('doctor_selected', {
-                        doctor: appointment.doctor,
-                    });
-                }
-                if (appointment.date) {
-                    trackFormStep('date_selected');
-                }
-                if (appointment.time) {
-                    trackFormStep('time_selected');
-                }
-                if ((appointment.name || '').trim().length >= 2) {
-                    trackFormStep('name_added');
-                }
-                if (
-                    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-                        (appointment.email || '').trim()
-                    )
-                ) {
-                    trackFormStep('email_added');
-                }
-                if ((appointment.phone || '').replace(/\D/g, '').length >= 7) {
-                    trackFormStep('phone_added');
-                }
-                if (privacyConsent) {
-                    trackFormStep('privacy_consent_checked');
-                }
-                if (hasClinicalContext(formData)) {
-                    trackFormStep('clinical_context_added');
-                }
-
-                deps.markBookingViewed('form_submit');
-
-                const bookedSlots = await deps.getBookedSlots(
-                    appointment.date,
-                    appointment.doctor
-                );
-                if (bookedSlots.includes(appointment.time)) {
-                    deps.showToast(
-                        t(
-                            'Este horario ya fue reservado. Por favor selecciona otro.',
-                            'This time slot was just booked. Please choose another.'
-                        ),
-                        'error'
-                    );
-                    await updateAvailableTimes();
-                    return;
-                }
-
-                deps.setCurrentAppointment(appointment);
-                deps.startCheckoutSession(appointment, {
-                    checkoutEntry: 'booking_form',
-                    step: 'booking_form_validated',
-                });
-                deps.trackEvent('start_checkout', {
-                    service: appointment.service || '',
-                    doctor: appointment.doctor || '',
-                    checkout_entry: 'booking_form',
-                });
-                deps.openPaymentModal(appointment);
-            } catch (error) {
-                deps.trackEvent('booking_error', {
-                    stage: 'booking_form',
-                    error_code: deps.normalizeAnalyticsLabel(
-                        error && (error.code || error.message),
-                        'booking_prepare_failed'
-                    ),
-                });
-                deps.showToast(
-                    (error && error.message) ||
-                        t(
-                            'No se pudo preparar la reserva. Intenta nuevamente.',
-                            'Could not prepare booking. Please try again.'
-                        ),
-                    'error'
-                );
-            } finally {
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalContent;
-                }
-            }
-        });
-
+function init(inputDeps) {
+    deps = inputDeps || deps;
+    if (initialized) {
         return { init };
     }
 
-    window.PielBookingUi = {
-        init,
-    };
+    const serviceSelect = document.getElementById('serviceSelect');
+    const priceSummary = document.getElementById('priceSummary');
+    const subtotalEl = document.getElementById('subtotalPrice');
+    const ivaEl = document.getElementById('ivaPrice');
+    const totalEl = document.getElementById('totalPrice');
+    const dateInput = document.querySelector('input[name="date"]');
+    const timeSelect = document.querySelector('select[name="time"]');
+    const doctorSelect = document.querySelector('select[name="doctor"]');
+    const phoneInput = document.querySelector('input[name="phone"]');
+    const appointmentForm = document.getElementById('appointmentForm');
 
-})();
+    if (
+        !serviceSelect ||
+        !priceSummary ||
+        !subtotalEl ||
+        !ivaEl ||
+        !totalEl ||
+        !appointmentForm
+    ) {
+        return { init };
+    }
+
+    initialized = true;
+
+    async function updateAvailableTimes() {
+        try {
+            await deps.updateAvailableTimes({
+                dateInput,
+                timeSelect,
+                doctorSelect,
+                t,
+            });
+        } catch (error) {
+            console.error('Failed to load booking-calendar.js', error);
+            deps.showToast(
+                t(
+                    'Error cargando calendario. Intenta nuevamente.',
+                    'Error loading calendar. Please try again.'
+                ),
+                'error'
+            );
+        }
+    }
+
+    serviceSelect.addEventListener('change', function () {
+        const selected = this.options[this.selectedIndex];
+        const price = parseFloat(selected.dataset.price) || 0;
+        const taxRate = parseFloat(selected.dataset.serviceTax) || 0;
+        const priceHint = document.getElementById('priceHint');
+
+        const iva = price * taxRate;
+        const total = price + iva;
+        subtotalEl.textContent = `$${price.toFixed(2)}`;
+        ivaEl.textContent = `$${iva.toFixed(2)}`;
+        totalEl.textContent = `$${total.toFixed(2)}`;
+
+        if (price > 0) {
+            priceSummary.classList.remove('is-hidden');
+            if (priceHint) priceHint.classList.add('is-hidden');
+        } else {
+            priceSummary.classList.remove('is-hidden');
+            if (priceHint) priceHint.classList.remove('is-hidden');
+        }
+
+        if (this.value) {
+            trackFormStep('service_selected', {
+                service: this.value,
+            });
+        }
+
+        updateAvailableTimes().catch(() => undefined);
+    });
+
+    if (dateInput) {
+        dateInput.min = new Date().toISOString().split('T')[0];
+        dateInput.addEventListener('change', () => {
+            if (dateInput.value) {
+                trackFormStep('date_selected');
+            }
+            updateAvailableTimes().catch(() => undefined);
+        });
+    }
+
+    if (doctorSelect) {
+        doctorSelect.addEventListener('change', () => {
+            if (doctorSelect.value) {
+                trackFormStep('doctor_selected', {
+                    doctor: doctorSelect.value,
+                });
+            }
+            updateAvailableTimes().catch(() => undefined);
+        });
+    }
+
+    if (timeSelect) {
+        timeSelect.addEventListener('change', () => {
+            if (timeSelect.value) {
+                trackFormStep('time_selected');
+            }
+        });
+    }
+
+    if (phoneInput) {
+        phoneInput.addEventListener('blur', () => {
+            const normalized = normalizeEcuadorPhone(phoneInput.value);
+            if (normalized !== '') {
+                phoneInput.value = normalized;
+            }
+
+            const digits = normalized.replace(/\D/g, '');
+            if (digits.length >= 7 && digits.length <= 15) {
+                trackFormStep('phone_added');
+            }
+        });
+    }
+
+    const nameInput = appointmentForm.querySelector('input[name="name"]');
+    if (nameInput) {
+        nameInput.addEventListener('blur', () => {
+            if ((nameInput.value || '').trim().length >= 2) {
+                trackFormStep('name_added');
+            }
+        });
+    }
+
+    const emailInput = appointmentForm.querySelector('input[name="email"]');
+    if (emailInput) {
+        emailInput.addEventListener('blur', () => {
+            const email = (emailInput.value || '').trim();
+            if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                trackFormStep('email_added');
+            }
+        });
+    }
+
+    const reasonInput = appointmentForm.querySelector(
+        'textarea[name="reason"]'
+    );
+    const areaSelect = appointmentForm.querySelector(
+        'select[name="affectedArea"]'
+    );
+    const evolutionSelect = appointmentForm.querySelector(
+        'select[name="evolutionTime"]'
+    );
+    const maybeTrackClinicalContext = () => {
+        const reason = reasonInput ? (reasonInput.value || '').trim() : '';
+        const area = areaSelect ? (areaSelect.value || '').trim() : '';
+        const evolution = evolutionSelect
+            ? (evolutionSelect.value || '').trim()
+            : '';
+        if (reason || area || evolution) {
+            trackFormStep('clinical_context_added');
+        }
+    };
+    if (reasonInput) {
+        reasonInput.addEventListener('blur', maybeTrackClinicalContext);
+    }
+    if (areaSelect) {
+        areaSelect.addEventListener('change', maybeTrackClinicalContext);
+    }
+    if (evolutionSelect) {
+        evolutionSelect.addEventListener('change', maybeTrackClinicalContext);
+    }
+
+    const privacyConsentInput = appointmentForm.querySelector(
+        'input[name="privacyConsent"]'
+    );
+    if (privacyConsentInput) {
+        privacyConsentInput.addEventListener('change', () => {
+            if (privacyConsentInput.checked) {
+                trackFormStep('privacy_consent_checked');
+            }
+        });
+    }
+
+    if (serviceSelect.value) {
+        serviceSelect.dispatchEvent(new Event('change'));
+    }
+
+    appointmentForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalContent = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML =
+                '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+        }
+
+        try {
+            const formData = new FormData(this);
+            const casePhotoFiles = deps.getCasePhotoFiles(this);
+            deps.validateCasePhotoFiles(casePhotoFiles);
+            const privacyConsent = formData.get('privacyConsent') === 'on';
+
+            if (!privacyConsent) {
+                throw new Error(
+                    t(
+                        'Debes aceptar el tratamiento de datos para continuar.',
+                        'You must accept data processing to continue.'
+                    )
+                );
+            }
+
+            const normalizedPhone = normalizeEcuadorPhone(
+                formData.get('phone')
+            );
+
+            const appointment = {
+                service: formData.get('service'),
+                doctor: formData.get('doctor'),
+                date: formData.get('date'),
+                time: formData.get('time'),
+                name: formData.get('name'),
+                email: formData.get('email'),
+                phone: normalizedPhone,
+                reason: formData.get('reason') || '',
+                affectedArea: formData.get('affectedArea') || '',
+                evolutionTime: formData.get('evolutionTime') || '',
+                privacyConsent,
+                casePhotoFiles,
+                casePhotoUploads: [],
+                checkoutEntry: 'booking_form',
+                price: totalEl.textContent,
+            };
+
+            trackFormStep('form_submitted', {}, { once: false });
+            if (appointment.service) {
+                trackFormStep('service_selected', {
+                    service: appointment.service,
+                });
+            }
+            if (appointment.doctor) {
+                trackFormStep('doctor_selected', {
+                    doctor: appointment.doctor,
+                });
+            }
+            if (appointment.date) {
+                trackFormStep('date_selected');
+            }
+            if (appointment.time) {
+                trackFormStep('time_selected');
+            }
+            if ((appointment.name || '').trim().length >= 2) {
+                trackFormStep('name_added');
+            }
+            if (
+                /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+                    (appointment.email || '').trim()
+                )
+            ) {
+                trackFormStep('email_added');
+            }
+            if ((appointment.phone || '').replace(/\D/g, '').length >= 7) {
+                trackFormStep('phone_added');
+            }
+            if (privacyConsent) {
+                trackFormStep('privacy_consent_checked');
+            }
+            if (hasClinicalContext(formData)) {
+                trackFormStep('clinical_context_added');
+            }
+
+            deps.markBookingViewed('form_submit');
+
+            const bookedSlots = await deps.getBookedSlots(
+                appointment.date,
+                appointment.doctor
+            );
+            if (bookedSlots.includes(appointment.time)) {
+                deps.showToast(
+                    t(
+                        'Este horario ya fue reservado. Por favor selecciona otro.',
+                        'This time slot was just booked. Please choose another.'
+                    ),
+                    'error'
+                );
+                await updateAvailableTimes();
+                return;
+            }
+
+            deps.setCurrentAppointment(appointment);
+            deps.startCheckoutSession(appointment, {
+                checkoutEntry: 'booking_form',
+                step: 'booking_form_validated',
+            });
+            deps.trackEvent('start_checkout', {
+                service: appointment.service || '',
+                doctor: appointment.doctor || '',
+                checkout_entry: 'booking_form',
+            });
+            deps.openPaymentModal(appointment);
+        } catch (error) {
+            deps.trackEvent('booking_error', {
+                stage: 'booking_form',
+                error_code: deps.normalizeAnalyticsLabel(
+                    error && (error.code || error.message),
+                    'booking_prepare_failed'
+                ),
+            });
+            deps.showToast(
+                (error && error.message) ||
+                    t(
+                        'No se pudo preparar la reserva. Intenta nuevamente.',
+                        'Could not prepare booking. Please try again.'
+                    ),
+                'error'
+            );
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalContent;
+            }
+        }
+    });
+
+    return { init };
+}
+
+window.PielBookingUi = {
+    init,
+};

@@ -2413,7 +2413,7 @@
         return loadDeferredModule({
             cacheKey: 'action-router-engine',
             src: DATA_BUNDLE_URL,
-            scriptDataAttribute: 'data-data-bundle',
+            scriptDataAttribute: 'data-action-router-engine',
             resolveModule: () => window.PielActionRouterEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),

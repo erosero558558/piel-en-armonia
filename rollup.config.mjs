@@ -6,14 +6,11 @@ export default [
         input: 'src/apps/booking/ui-entry.js',
         output: {
             file: 'booking-ui.js',
-            format: 'iife',
-            sourcemap: false,
-            paths: {
-                'booking-calendar-lazy': './js/booking-calendar.js',
-            },
+            format: 'es',
+            sourcemap: false
         },
-        plugins: [resolve()],
-        external: ['booking-calendar-lazy'],
+        plugins: [resolve()]
+        // Removed external: ['booking-calendar-lazy'] to bundle it inline
     },
     // Booking Engine
     {
@@ -40,8 +37,10 @@ export default [
     {
         input: 'src/apps/admin/index.js',
         output: {
-            file: 'admin.js',
-            format: 'iife',
+            dir: '.',
+            entryFileNames: 'admin.js',
+            chunkFileNames: 'js/admin-chunks/[name]-[hash].js',
+            format: 'es',
             sourcemap: false
         },
         plugins: [resolve()]

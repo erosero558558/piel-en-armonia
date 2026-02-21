@@ -33,7 +33,9 @@
         "globals": "^17.3.0",
         "husky": "^9.1.7",
         "lint-staged": "^16.2.7",
+        "lodash": "^4.17.23",
         "prettier": "^3.8.1",
-        "rollup": "^4.58.0"
+        "rollup": "^4.58.0",
+        "rollup-plugin-analyze": "^0.4.0"
     }
 }
