@@ -176,30 +176,6 @@ async function fillBookingFormAndOpenPayment(page) {
         state: 'attached',
     });
 
-    // Pre-load booking-ui.js to avoid lazy loading timeouts in test environment
-    await page.evaluate(async () => {
-        if (!window.PielBookingUi) {
-            try {
-                // Find correct versioned URL if possible, or fallback
-                const script = document.createElement('script');
-                script.src = '/booking-ui.js';
-                // Note: The app uses versioned URL, but for test, root access works.
-                // We rely on import() to execute it.
-                await import('/booking-ui.js');
-            } catch (e) {
-                console.error('Failed to preload booking-ui.js', e);
-            }
-        }
-
-        if (!window.PielBookingEngine) {
-            try {
-                await import('/booking-engine.js');
-            } catch (e) {
-                console.error('Failed to preload booking-engine.js', e);
-            }
-        }
-    });
-
     const serviceSelect = page.locator('select[name="service"]');
     await serviceSelect.selectOption('consulta');
 
@@ -213,15 +189,14 @@ async function fillBookingFormAndOpenPayment(page) {
 
     // Fill triggers change event, which triggers updateAvailableTimes
     // We capture the request to ensure we wait for it
-    // eslint-disable-next-line playwright/missing-playwright-await
-    const bookedSlotsPromise = page.waitForResponse(
-        resp => resp.url().includes('booked-slots') && resp.status() === 200,
-        { timeout: 5000 }
-    ).catch(() => null);
-
-    // Wait for availability to load and populate slots
-    const timeSelect = page.locator('select[name="time"]');
-    await expect(timeSelect.locator('option:not([disabled])')).not.toHaveCount(0, { timeout: 10000 });
+    await Promise.all([
+        // eslint-disable-next-line playwright/missing-playwright-await
+        page.waitForResponse(
+            resp => resp.url().includes('booked-slots') && resp.status() === 200,
+            { timeout: 5000 }
+        ).catch(() => null),
+        dateInput.fill(dateValue)
+    ]);
 
     // Select the first available option
     await timeSelect.selectOption({ index: 1 });

@@ -34,7 +34,7 @@
 
     function showToastSafe(message, type) {
         if (deps && typeof deps.showToast === 'function') {
-            deps.showToast(message, type || 'info');
+            deps.showToast(message, type);
         }
     }
 
@@ -638,4 +638,5 @@
         createCallbackRecord,
         createReviewRecord,
     };
+
 })();

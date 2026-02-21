@@ -1,12 +1,9 @@
-/**
- * Internationalization engine (deferred-loaded).
- * Handles language bundles and DOM translation updates.
- */
 (function () {
     'use strict';
+
     // build-sync: 20260219-sync1
 
-    let deps = null;
+    let deps$1 = null;
     const I18N_HTML_ALLOWED_KEYS = new Set(['clinic_hours']);
 
     const translations = {
@@ -16,8 +13,8 @@
 
     let enTranslationsPromise = null;
 
-    function init(inputDeps) {
-        deps = inputDeps || {};
+    function init$1(inputDeps) {
+        deps$1 = inputDeps || {};
 
         if (window.PIEL_CONTENT && typeof window.PIEL_CONTENT === 'object') {
             translations.es = window.PIEL_CONTENT;
@@ -27,33 +24,33 @@
     }
 
     function debugLogSafe() {
-        if (deps && typeof deps.debugLog === 'function') {
-            deps.debugLog.apply(null, arguments);
+        if (deps$1 && typeof deps$1.debugLog === 'function') {
+            deps$1.debugLog.apply(null, arguments);
         }
     }
 
     function setCurrentLang(lang) {
-        if (deps && typeof deps.setCurrentLang === 'function') {
-            deps.setCurrentLang(lang);
+        if (deps$1 && typeof deps$1.setCurrentLang === 'function') {
+            deps$1.setCurrentLang(lang);
         }
     }
 
     function showToastSafe(message, type) {
-        if (deps && typeof deps.showToast === 'function') {
-            deps.showToast(message, type || 'info');
+        if (deps$1 && typeof deps$1.showToast === 'function') {
+            deps$1.showToast(message, type);
         }
     }
 
     function getReviewsCacheSafe() {
-        if (deps && typeof deps.getReviewsCache === 'function') {
-            return deps.getReviewsCache();
+        if (deps$1 && typeof deps$1.getReviewsCache === 'function') {
+            return deps$1.getReviewsCache();
         }
         return [];
     }
 
     function renderPublicReviewsSafe(reviews) {
-        if (deps && typeof deps.renderPublicReviews === 'function') {
-            deps.renderPublicReviews(reviews);
+        if (deps$1 && typeof deps$1.renderPublicReviews === 'function') {
+            deps$1.renderPublicReviews(reviews);
         }
     }
 
@@ -141,19 +138,11 @@
         return nextLang;
     }
 
-    window.Piel = window.Piel || {};
-    window.Piel.I18nEngine = {
-        init,
+    window.PielI18nEngine = {
+        init: init$1,
         ensureEnglishTranslations,
         changeLanguage
     };
-})();
-/**
- * Global action router engine (deferred-loaded).
- * Centralizes delegated handlers for data-action attributes.
- */
-(function () {
-    'use strict';
 
     let deps = null;
     let listenersBound = false;
@@ -251,8 +240,6 @@
             case 'select-service':
                 callDep('selectService', value);
                 break;
-            default:
-                break;
         }
     }
 
@@ -280,4 +267,5 @@
     window.Piel.ActionRouterEngine = {
         init
     };
+
 })();

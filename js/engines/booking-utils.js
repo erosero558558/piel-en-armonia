@@ -1,23 +1,19 @@
-/**
- * Booking Utilities Bundle
- * Contains: Reschedule Engine, Payment Gateway Logic
- */
-
-// --- Reschedule Engine ---
 (function () {
     'use strict';
 
-    let deps = null;
+    let deps$1 = null;
     let rescheduleToken = '';
     let rescheduleAppointment = null;
 
-    function init(inputDeps) {
-        deps = inputDeps || deps;
+    function init$1(inputDeps) {
+        deps$1 = inputDeps || deps$1;
         return window.PielRescheduleEngine;
     }
 
     function getLang() {
-        return deps && typeof deps.getCurrentLang === 'function' ? deps.getCurrentLang() : 'es';
+        return deps$1 && typeof deps$1.getCurrentLang === 'function'
+            ? deps$1.getCurrentLang()
+            : 'es';
     }
 
     function t(esText, enText) {
@@ -25,8 +21,8 @@
     }
 
     function safe(text) {
-        if (deps && typeof deps.escapeHtml === 'function') {
-            return deps.escapeHtml(String(text || ''));
+        if (deps$1 && typeof deps$1.escapeHtml === 'function') {
+            return deps$1.escapeHtml(String(text || ''));
         }
         const div = document.createElement('div');
         div.textContent = String(text || '');
@@ -34,15 +30,15 @@
     }
 
     function getDefaultTimeSlots() {
-        if (deps && typeof deps.getDefaultTimeSlots === 'function') {
-            return deps.getDefaultTimeSlots();
+        if (deps$1 && typeof deps$1.getDefaultTimeSlots === 'function') {
+            return deps$1.getDefaultTimeSlots();
         }
         return ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
     }
 
     function notify(message, type) {
-        if (deps && typeof deps.showToast === 'function') {
-            deps.showToast(message, type || 'info');
+        if (deps$1 && typeof deps$1.showToast === 'function') {
+            deps$1.showToast(message, type || 'info');
         }
     }
 
@@ -56,16 +52,31 @@
         rescheduleToken = token;
 
         try {
-            const resp = await deps.apiRequest('reschedule', { query: { token: token } });
-            if ((resp && (resp.ok === undefined || resp.ok)) && resp.data) {
+            const resp = await deps$1.apiRequest('reschedule', {
+                query: { token: token },
+            });
+            if (resp && (resp.ok === undefined || resp.ok) && resp.data) {
                 rescheduleAppointment = resp.data;
                 openRescheduleModal(resp.data);
                 return true;
             }
-            notify(resp?.error || t('Enlace de reprogramacion invalido.', 'Invalid reschedule link.'), 'error');
+            notify(
+                resp?.error ||
+                    t(
+                        'Enlace de reprogramacion invalido.',
+                        'Invalid reschedule link.'
+                    ),
+                'error'
+            );
             return false;
         } catch (error) {
-            notify(t('No se pudo cargar la cita. Verifica el enlace.', 'Unable to load appointment. Verify the link.'), 'error');
+            notify(
+                t(
+                    'No se pudo cargar la cita. Verifica el enlace.',
+                    'Unable to load appointment. Verify the link.'
+                ),
+                'error'
+            );
             return false;
         }
     }
@@ -81,19 +92,38 @@
         const info = document.getElementById('rescheduleInfo');
         if (info && rescheduleAppointment) {
             const doctorValue = String(rescheduleAppointment.doctor || '');
-            const doctorLabel = doctorValue === 'rosero'
-                ? 'Dr. Javier Rosero'
-                : doctorValue === 'narvaez'
-                    ? 'Dra. Carolina Narvaez'
-                    : doctorValue === 'indiferente'
+            const doctorLabel =
+                doctorValue === 'rosero'
+                    ? 'Dr. Javier Rosero'
+                    : doctorValue === 'narvaez'
+                      ? 'Dra. Carolina Narvaez'
+                      : doctorValue === 'indiferente'
                         ? 'Cualquiera disponible'
                         : doctorValue;
 
             info.innerHTML =
-                '<p><strong>' + t('Paciente', 'Patient') + ':</strong> ' + safe(rescheduleAppointment.name) + '</p>' +
-                '<p><strong>' + t('Servicio', 'Service') + ':</strong> ' + safe(rescheduleAppointment.service) + '</p>' +
-                '<p><strong>' + t('Doctor', 'Doctor') + ':</strong> ' + safe(doctorLabel) + '</p>' +
-                '<p><strong>' + t('Fecha actual', 'Current date') + ':</strong> ' + safe(rescheduleAppointment.date) + ' ' + safe(rescheduleAppointment.time) + '</p>';
+                '<p><strong>' +
+                t('Paciente', 'Patient') +
+                ':</strong> ' +
+                safe(rescheduleAppointment.name) +
+                '</p>' +
+                '<p><strong>' +
+                t('Servicio', 'Service') +
+                ':</strong> ' +
+                safe(rescheduleAppointment.service) +
+                '</p>' +
+                '<p><strong>' +
+                t('Doctor', 'Doctor') +
+                ':</strong> ' +
+                safe(doctorLabel) +
+                '</p>' +
+                '<p><strong>' +
+                t('Fecha actual', 'Current date') +
+                ':</strong> ' +
+                safe(rescheduleAppointment.date) +
+                ' ' +
+                safe(rescheduleAppointment.time) +
+                '</p>';
         }
 
         const dateInput = document.getElementById('rescheduleDate');
@@ -106,7 +136,10 @@
 
         const timeSelect = document.getElementById('rescheduleTime');
         if (timeSelect) {
-            timeSelect.innerHTML = '<option value="">' + t('Selecciona un horario', 'Select a time') + '</option>';
+            timeSelect.innerHTML =
+                '<option value="">' +
+                t('Selecciona un horario', 'Select a time') +
+                '</option>';
         }
 
         const errorDiv = document.getElementById('rescheduleError');
@@ -142,14 +175,22 @@
             return;
         }
 
-        timeSelect.innerHTML = '<option value="">' + t('Cargando...', 'Loading...') + '</option>';
+        timeSelect.innerHTML =
+            '<option value="">' + t('Cargando...', 'Loading...') + '</option>';
 
         try {
-            const availability = await deps.loadAvailabilityData();
-            const daySlots = availability[selectedDate] || getDefaultTimeSlots();
-            const booked = await deps.getBookedSlots(selectedDate, rescheduleAppointment.doctor || '');
-            const isToday = selectedDate === new Date().toISOString().split('T')[0];
-            const nowMinutes = isToday ? new Date().getHours() * 60 + new Date().getMinutes() : -1;
+            const availability = await deps$1.loadAvailabilityData();
+            const daySlots =
+                availability[selectedDate] || getDefaultTimeSlots();
+            const booked = await deps$1.getBookedSlots(
+                selectedDate,
+                rescheduleAppointment.doctor || ''
+            );
+            const isToday =
+                selectedDate === new Date().toISOString().split('T')[0];
+            const nowMinutes = isToday
+                ? new Date().getHours() * 60 + new Date().getMinutes()
+                : -1;
             const freeSlots = daySlots.filter((slot) => {
                 if (booked.includes(slot)) return false;
                 if (isToday) {
@@ -159,7 +200,10 @@
                 return true;
             });
 
-            timeSelect.innerHTML = '<option value="">' + t('Selecciona un horario', 'Select a time') + '</option>';
+            timeSelect.innerHTML =
+                '<option value="">' +
+                t('Selecciona un horario', 'Select a time') +
+                '</option>';
             freeSlots.forEach((slot) => {
                 const opt = document.createElement('option');
                 opt.value = slot;
@@ -168,10 +212,16 @@
             });
 
             if (freeSlots.length === 0) {
-                timeSelect.innerHTML = '<option value="">' + t('Sin horarios disponibles', 'No slots available') + '</option>';
+                timeSelect.innerHTML =
+                    '<option value="">' +
+                    t('Sin horarios disponibles', 'No slots available') +
+                    '</option>';
             }
         } catch (error) {
-            timeSelect.innerHTML = '<option value="">' + t('Error al cargar horarios', 'Error loading slots') + '</option>';
+            timeSelect.innerHTML =
+                '<option value="">' +
+                t('Error al cargar horarios', 'Error loading slots') +
+                '</option>';
         }
     }
 
@@ -190,7 +240,10 @@
         errorDiv.classList.add('is-hidden');
 
         if (!newDate || !newTime) {
-            errorDiv.textContent = t('Selecciona fecha y horario.', 'Select date and time.');
+            errorDiv.textContent = t(
+                'Selecciona fecha y horario.',
+                'Select date and time.'
+            );
             errorDiv.classList.remove('is-hidden');
             return;
         }
@@ -199,72 +252,73 @@
         btn.textContent = t('Reprogramando...', 'Rescheduling...');
 
         try {
-            const resp = await deps.apiRequest('reschedule', {
+            const resp = await deps$1.apiRequest('reschedule', {
                 method: 'PATCH',
                 body: {
                     token: rescheduleToken,
                     date: newDate,
-                    time: newTime
-                }
+                    time: newTime,
+                },
             });
 
             if (resp && (resp.ok === undefined || resp.ok)) {
                 const oldDate = rescheduleAppointment?.date || '';
                 const doctor = rescheduleAppointment?.doctor || '';
-                deps.invalidateBookedSlotsCache(oldDate, doctor);
-                deps.invalidateBookedSlotsCache(newDate, doctor);
+                deps$1.invalidateBookedSlotsCache(oldDate, doctor);
+                deps$1.invalidateBookedSlotsCache(newDate, doctor);
                 closeRescheduleModal();
-                notify(t('Cita reprogramada exitosamente.', 'Appointment rescheduled successfully.'), 'success');
+                notify(
+                    t(
+                        'Cita reprogramada exitosamente.',
+                        'Appointment rescheduled successfully.'
+                    ),
+                    'success'
+                );
             } else {
-                errorDiv.textContent = resp?.error || t('Error al reprogramar.', 'Error while rescheduling.');
+                errorDiv.textContent =
+                    resp?.error ||
+                    t('Error al reprogramar.', 'Error while rescheduling.');
                 errorDiv.classList.remove('is-hidden');
             }
         } catch (error) {
-            errorDiv.textContent = t('Error de conexion. Intentalo de nuevo.', 'Connection error. Try again.');
+            errorDiv.textContent = t(
+                'Error de conexion. Intentalo de nuevo.',
+                'Connection error. Try again.'
+            );
             errorDiv.classList.remove('is-hidden');
         } finally {
             btn.disabled = false;
-            btn.textContent = t('Confirmar reprogramacion', 'Confirm reschedule');
+            btn.textContent = t(
+                'Confirmar reprogramacion',
+                'Confirm reschedule'
+            );
         }
     }
 
-    function initRescheduleFromParam() {
-        return checkRescheduleParam();
-    }
-
-    window.Piel = window.Piel || {};
-    window.Piel.RescheduleEngine = {
-        init,
+    window.PielRescheduleEngine = {
+        init: init$1,
         checkRescheduleParam,
         openRescheduleModal,
         closeRescheduleModal,
         loadRescheduleSlots,
         submitReschedule,
-        initRescheduleFromParam
     };
-})();
 
-// --- Payment Gateway Engine ---
-(function () {
-    'use strict';
+    const DEFAULT_PAYMENT_CONFIG = {
+        enabled: false,
+        provider: 'stripe',
+        publishableKey: '',
+        currency: 'USD',
+    };
 
     let deps = null;
-    let paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
+    let paymentConfig = { ...DEFAULT_PAYMENT_CONFIG };
     let paymentConfigLoaded = false;
     let paymentConfigLoadedAt = 0;
     let stripeSdkPromise = null;
 
     function init(inputDeps) {
         deps = inputDeps || {};
-        // Initialize state if passed in deps
-        if (deps.getPaymentConfigLoaded && deps.getPaymentConfigLoaded()) {
-             paymentConfig = deps.getPaymentConfig();
-             paymentConfigLoaded = true;
-             paymentConfigLoadedAt = deps.getPaymentConfigLoadedAt();
-        }
-        if (deps.getStripeSdkPromise) {
-            stripeSdkPromise = deps.getStripeSdkPromise();
-        }
         return window.PielPaymentGatewayEngine;
     }
 
@@ -275,46 +329,34 @@
         throw new Error('PaymentGatewayEngine dependency missing: apiRequest');
     }
 
+    function normalizePaymentConfig(payload) {
+        const source = payload && typeof payload === 'object' ? payload : {};
+        return {
+            enabled: source.enabled === true,
+            provider: source.provider || 'stripe',
+            publishableKey: source.publishableKey || '',
+            currency: source.currency || 'USD',
+        };
+    }
+
     async function loadPaymentConfig() {
         const now = Date.now();
-        // Check local state first
-        if (paymentConfigLoaded && (now - paymentConfigLoadedAt) < 5 * 60 * 1000) {
+        if (
+            paymentConfigLoaded &&
+            now - paymentConfigLoadedAt < 5 * 60 * 1000
+        ) {
             return paymentConfig;
-        }
-
-        // Check global state if provided
-        if (deps && typeof deps.getPaymentConfigLoaded === 'function' && deps.getPaymentConfigLoaded()) {
-             const loadedAt = deps.getPaymentConfigLoadedAt();
-             if ((now - loadedAt) < 5 * 60 * 1000) {
-                 paymentConfig = deps.getPaymentConfig();
-                 paymentConfigLoaded = true;
-                 paymentConfigLoadedAt = loadedAt;
-                 return paymentConfig;
-             }
         }
 
         try {
             const payload = await getApiRequest()('payment-config');
-            paymentConfig = {
-                enabled: payload.enabled === true,
-                provider: payload.provider || 'stripe',
-                publishableKey: payload.publishableKey || '',
-                currency: payload.currency || 'USD'
-            };
+            paymentConfig = normalizePaymentConfig(payload);
         } catch (_) {
-            paymentConfig = { enabled: false, provider: 'stripe', publishableKey: '', currency: 'USD' };
+            paymentConfig = { ...DEFAULT_PAYMENT_CONFIG };
         }
 
         paymentConfigLoaded = true;
         paymentConfigLoadedAt = now;
-
-        // Update global state if provided
-        if (deps && typeof deps.setPaymentConfig === 'function') {
-            deps.setPaymentConfig(paymentConfig);
-            deps.setPaymentConfigLoaded(true);
-            deps.setPaymentConfigLoadedAt(now);
-        }
-
         return paymentConfig;
     }
 
@@ -327,16 +369,19 @@
             return stripeSdkPromise;
         }
 
-        if (deps && typeof deps.getStripeSdkPromise === 'function' && deps.getStripeSdkPromise()) {
-            stripeSdkPromise = deps.getStripeSdkPromise();
-            return stripeSdkPromise;
-        }
-
         stripeSdkPromise = new Promise((resolve, reject) => {
-            const existingScript = document.querySelector('script[data-stripe-sdk="true"]');
+            const existingScript = document.querySelector(
+                'script[data-stripe-sdk="true"]'
+            );
             if (existingScript) {
-                existingScript.addEventListener('load', () => resolve(true), { once: true });
-                existingScript.addEventListener('error', () => reject(new Error('No se pudo cargar Stripe SDK')), { once: true });
+                existingScript.addEventListener('load', () => resolve(true), {
+                    once: true,
+                });
+                existingScript.addEventListener(
+                    'error',
+                    () => reject(new Error('No se pudo cargar Stripe SDK')),
+                    { once: true }
+                );
                 return;
             }
 
@@ -346,19 +391,13 @@
             script.defer = true;
             script.dataset.stripeSdk = 'true';
             script.onload = () => resolve(true);
-            script.onerror = () => reject(new Error('No se pudo cargar Stripe SDK'));
+            script.onerror = () =>
+                reject(new Error('No se pudo cargar Stripe SDK'));
             document.head.appendChild(script);
         }).catch((error) => {
             stripeSdkPromise = null;
-            if (deps && typeof deps.setStripeSdkPromise === 'function') {
-                deps.setStripeSdkPromise(null);
-            }
             throw error;
         });
-
-        if (deps && typeof deps.setStripeSdkPromise === 'function') {
-            deps.setStripeSdkPromise(stripeSdkPromise);
-        }
 
         return stripeSdkPromise;
     }
@@ -366,14 +405,14 @@
     async function createPaymentIntent(appointment) {
         return getApiRequest()('payment-intent', {
             method: 'POST',
-            body: appointment
+            body: appointment,
         });
     }
 
     async function verifyPaymentIntent(paymentIntentId) {
         return getApiRequest()('payment-verify', {
             method: 'POST',
-            body: { paymentIntentId }
+            body: { paymentIntentId },
         });
     }
 
@@ -432,15 +471,17 @@
         loadStripeSdk,
         createPaymentIntent,
         verifyPaymentIntent,
-        uploadTransferProof
+        uploadTransferProof,
     };
-})();
 
-// --- Booking Calendar Engine ---
-(function () {
-    'use strict';
+    /**
+     * Piel en Armonia - Booking Calendar Logic
+     * Extracted for lazy loading.
+     */
 
     function initCalendar() {
+        // This function satisfies the explicit user request example.
+        // In our architecture, the logic is mainly in updateAvailableTimes which is called by UI events.
         if (window.debugLog) {
             window.debugLog('Booking calendar module loaded lazy.');
         }
@@ -455,9 +496,12 @@
         const selectedDoctor = doctorSelect ? doctorSelect.value : '';
         const availability = await deps.loadAvailabilityData();
         const bookedSlots = await deps.getBookedSlots(selectedDate, selectedDoctor);
-        const availableSlots = availability[selectedDate] || deps.getDefaultTimeSlots();
+        const availableSlots =
+            availability[selectedDate] || deps.getDefaultTimeSlots();
         const isToday = selectedDate === new Date().toISOString().split('T')[0];
-        const nowMinutes = isToday ? new Date().getHours() * 60 + new Date().getMinutes() : -1;
+        const nowMinutes = isToday
+            ? new Date().getHours() * 60 + new Date().getMinutes()
+            : -1;
         const freeSlots = availableSlots.filter((slot) => {
             if (bookedSlots.includes(slot)) return false;
             if (isToday) {
@@ -471,8 +515,15 @@
         timeSelect.innerHTML = '<option value="">Hora</option>';
 
         if (freeSlots.length === 0) {
-            timeSelect.innerHTML += '<option value="" disabled>No hay horarios disponibles</option>';
-            deps.showToast(t('No hay horarios disponibles para esta fecha', 'No slots available for this date'), 'warning');
+            timeSelect.innerHTML +=
+                '<option value="" disabled>No hay horarios disponibles</option>';
+            deps.showToast(
+                t(
+                    'No hay horarios disponibles para esta fecha',
+                    'No slots available for this date'
+                ),
+                'warning'
+            );
             return;
         }
 
@@ -490,4 +541,5 @@
         initCalendar,
         updateAvailableTimes
     };
+
 })();

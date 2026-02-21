@@ -9,7 +9,9 @@ import {
     invalidateBookedSlotsCache,
 } from './data.js';
 
-const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
+const BOOKING_UTILS_URL = withDeployAssetVersion(
+    '/js/engines/booking-utils.js?v=figo-booking-utils-20260220-unified'
+);
 
 function getRescheduleEngineDeps() {
     return {
@@ -42,7 +44,7 @@ export function loadRescheduleEngine() {
 export function initRescheduleEngineWarmup() {
     runDeferredModule(
         loadRescheduleEngine,
-        (engine) => engine.initRescheduleFromParam(),
+        (engine) => engine.checkRescheduleParam(),
         () => {
             showToast(
                 getCurrentLang() === 'es'
