@@ -14,6 +14,19 @@ $dataDir = sys_get_temp_dir() . '/pielarmonia-test-data-' . uniqid();
 if (!is_dir($dataDir)) {
     mkdir($dataDir, 0777, true);
 }
+// Seed availability
+$apptDate = date('Y-m-d', strtotime('+2 days'));
+$seed = [
+    'appointments' => [],
+    'availability' => [
+        $apptDate => ['09:00', '10:00']
+    ],
+    'reviews' => [],
+    'callbacks' => [],
+    'updatedAt' => date('c')
+];
+file_put_contents($dataDir . '/store.json', json_encode($seed));
+
 putenv("PIELARMONIA_DATA_DIR=$dataDir");
 // We need to pass this env var to the server process too!
 

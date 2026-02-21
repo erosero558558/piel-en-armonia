@@ -16,6 +16,20 @@ $cookieFile = sys_get_temp_dir() . '/cookie-' . uniqid() . '.txt';
 if (!is_dir($dataDir)) {
     mkdir($dataDir, 0777, true);
 }
+// Seed availability
+$seed = [
+    'appointments' => [],
+    'availability' => [
+        date('Y-m-d', strtotime('+3 days')) => ['10:00'],
+        date('Y-m-d', strtotime('+4 days')) => ['10:00', '11:00'],
+        date('Y-m-d', strtotime('+5 days')) => ['10:00']
+    ],
+    'reviews' => [],
+    'callbacks' => [],
+    'updatedAt' => date('c')
+];
+file_put_contents($dataDir . '/store.json', json_encode($seed));
+
 // We need to pass env vars to the server process
 $envVars = "PIELARMONIA_DATA_DIR=$dataDir PIELARMONIA_ADMIN_PASSWORD=secret";
 

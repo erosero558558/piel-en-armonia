@@ -139,7 +139,7 @@ function initBookingCalendarLazyInit() {
                 cacheKey: 'booking-utils-calendar',
                 src: BOOKING_UTILS_URL,
                 scriptDataAttribute: 'data-booking-utils',
-                resolveModule: () => window.PielBookingCalendarEngine
+                resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine
             }).then(function (moduleRef) {
                 if (moduleRef && typeof moduleRef.initCalendar === 'function') {
                     moduleRef.initCalendar();
@@ -422,38 +422,3 @@ window.subscribeToPushNotifications = async function() {
     }
 };
 
-// Booking Calendar Lazy Init
-(function () {
-    'use strict';
-
-    function wireBookingCalendarLazyLoad(element) {
-        if (!element) {
-            return;
-        }
-
-        element.addEventListener('click', function () {
-            const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
-            loadDeferredModule({
-                cacheKey: 'booking-utils-calendar',
-                src: BOOKING_UTILS_URL,
-                scriptDataAttribute: 'data-booking-utils',
-                resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine
-            }).then(function (moduleRef) {
-                if (moduleRef && typeof moduleRef.initCalendar === 'function') {
-                    moduleRef.initCalendar();
-                }
-            }).catch(function () {
-                // noop
-            });
-        });
-    }
-
-    const bookingBtn = document.getElementById('booking-btn');
-    wireBookingCalendarLazyLoad(bookingBtn);
-
-    document.querySelectorAll('a[href="#citas"]').forEach(function (button) {
-        if (button.id !== 'booking-btn') {
-            wireBookingCalendarLazyLoad(button);
-        }
-    });
-})();

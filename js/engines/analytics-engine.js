@@ -312,7 +312,8 @@
         });
     }
 
-    window.PielAnalyticsEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.AnalyticsEngine = {
         init,
         trackEvent,
         normalizeAnalyticsLabel,
