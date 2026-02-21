@@ -1,18 +1,14 @@
-import { withDeployAssetVersion } from '../src/apps/shared/utils.js';
-import {
-    loadDeferredModule,
-    createWarmupRunner,
-    bindWarmupTarget,
-    scheduleDeferredTask,
-} from './loader.js';
-import { closePaymentModal } from './booking.js';
+/* GENERATED FILE - DO NOT EDIT DIRECTLY - Edit source in js/main.js and run npm run build */
+import { c as createWarmupRunner, b as bindWarmupTarget, a as scheduleDeferredTask, l as loadDeferredModule, d as withDeployAssetVersion } from '../../script.js';
+import { closePaymentModal } from './booking-DPy72ffF.js';
+import './success-modal-D5Mn68in.js';
 
 const UI_BUNDLE_URL = withDeployAssetVersion(
     '/js/engines/ui-bundle.js?v=20260220-consolidated1'
 );
 
 // UI Effects
-export function loadUiEffects() {
+function loadUiEffects() {
     return loadDeferredModule({
         cacheKey: 'ui-effects',
         src: UI_BUNDLE_URL,
@@ -27,7 +23,7 @@ export function loadUiEffects() {
     });
 }
 
-export function initUiEffectsWarmup() {
+function initUiEffectsWarmup() {
     const warmup = createWarmupRunner(() => loadUiEffects());
     bindWarmupTarget('.nav', 'mouseenter', warmup);
     bindWarmupTarget('.nav', 'touchstart', warmup);
@@ -43,7 +39,7 @@ export function initUiEffectsWarmup() {
     scheduleDeferredTask(warmup, { idleTimeout: 1800, fallbackDelay: 1200 });
 }
 
-export function toggleMobileMenu(forceClose) {
+function toggleMobileMenu(forceClose) {
     const menu = document.getElementById('mobileMenu');
     if (forceClose === false) {
         menu.classList.remove('active');
@@ -64,7 +60,7 @@ function getModalUxEngineDeps() {
     };
 }
 
-export function loadModalUxEngine() {
+function loadModalUxEngine() {
     return loadDeferredModule({
         cacheKey: 'modal-ux-engine',
         src: UI_BUNDLE_URL,
@@ -79,7 +75,7 @@ export function loadModalUxEngine() {
     });
 }
 
-export function initModalUxEngineWarmup() {
+function initModalUxEngineWarmup() {
     const warmup = createWarmupRunner(() => loadModalUxEngine());
     bindWarmupTarget('.modal', 'pointerdown', warmup);
     bindWarmupTarget('.modal-close', 'pointerdown', warmup);
@@ -89,7 +85,7 @@ export function initModalUxEngineWarmup() {
     scheduleDeferredTask(warmup, { idleTimeout: 2200, fallbackDelay: 1200 });
 }
 
-export function startWebVideo() {
+function startWebVideo() {
     const modal = document.getElementById('videoModal');
     if (modal) {
         modal.classList.add('active');
@@ -97,10 +93,12 @@ export function startWebVideo() {
     }
 }
 
-export function closeVideoModal() {
+function closeVideoModal() {
     const modal = document.getElementById('videoModal');
     if (modal) {
         modal.classList.remove('active');
     }
     document.body.style.overflow = '';
 }
+
+export { closeVideoModal, initModalUxEngineWarmup, initUiEffectsWarmup, loadModalUxEngine, loadUiEffects, startWebVideo, toggleMobileMenu };

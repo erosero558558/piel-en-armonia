@@ -1,17 +1,11 @@
-import { withDeployAssetVersion } from '../src/apps/shared/utils.js';
-import {
-    loadDeferredModule,
-    createWarmupRunner,
-    bindWarmupTarget,
-    scheduleDeferredTask,
-    observeOnceWhenVisible,
-} from './loader.js';
+/* GENERATED FILE - DO NOT EDIT DIRECTLY - Edit source in js/main.js and run npm run build */
+import { c as createWarmupRunner, o as observeOnceWhenVisible, s as scheduleDeferredTask, l as loadDeferredModule, w as withDeployAssetVersion } from '../../script.js';
 
 const GALLERY_INTERACTIONS_URL = withDeployAssetVersion(
     '/js/engines/gallery-interactions.js?v=figo-gallery-20260218-phase4'
 );
 
-export function loadGalleryInteractions() {
+function loadGalleryInteractions() {
     return loadDeferredModule({
         cacheKey: 'gallery-interactions',
         src: GALLERY_INTERACTIONS_URL,
@@ -26,7 +20,7 @@ export function loadGalleryInteractions() {
     });
 }
 
-export function initGalleryInteractionsWarmup() {
+function initGalleryInteractionsWarmup() {
     const warmup = createWarmupRunner(() => loadGalleryInteractions());
     const gallerySection = document.getElementById('galeria');
     observeOnceWhenVisible(gallerySection, warmup, {
@@ -50,3 +44,5 @@ export function initGalleryInteractionsWarmup() {
     }
     scheduleDeferredTask(warmup, { idleTimeout: 2500, fallbackDelay: 1500 });
 }
+
+export { initGalleryInteractionsWarmup, loadGalleryInteractions };

@@ -1,13 +1,5 @@
-import { withDeployAssetVersion, escapeHtml, showToast } from '../src/apps/shared/utils.js';
-import {
-    loadDeferredModule,
-    runDeferredModule,
-    createWarmupRunner,
-    bindWarmupTarget,
-    scheduleDeferredTask,
-} from './loader.js';
-import { getCurrentLang, getCurrentAppointment } from './state.js';
-import { CLINIC_ADDRESS } from './config.js';
+/* GENERATED FILE - DO NOT EDIT DIRECTLY - Edit source in js/main.js and run npm run build */
+import { r as runDeferredModule, s as showToast, k as getCurrentAppointment, l as loadDeferredModule, d as withDeployAssetVersion, X as escapeHtml, h as CLINIC_ADDRESS, u as getCurrentLang, c as createWarmupRunner, b as bindWarmupTarget, a as scheduleDeferredTask } from '../../script.js';
 
 const UI_BUNDLE_URL = withDeployAssetVersion(
     '/js/engines/ui-bundle.js?v=20260220-consolidated1'
@@ -22,7 +14,7 @@ function getSuccessModalEngineDeps() {
     };
 }
 
-export function loadSuccessModalEngine() {
+function loadSuccessModalEngine() {
     return loadDeferredModule({
         cacheKey: 'success-modal-engine',
         src: UI_BUNDLE_URL,
@@ -37,7 +29,7 @@ export function loadSuccessModalEngine() {
     });
 }
 
-export function initSuccessModalEngineWarmup() {
+function initSuccessModalEngineWarmup() {
     const warmup = createWarmupRunner(() => loadSuccessModalEngine());
     bindWarmupTarget(
         '#appointmentForm button[type="submit"]',
@@ -54,7 +46,7 @@ export function initSuccessModalEngineWarmup() {
     scheduleDeferredTask(warmup, { idleTimeout: 2800, fallbackDelay: 1600 });
 }
 
-export function showSuccessModal(emailSent = false) {
+function showSuccessModal(emailSent = false) {
     const appt = getCurrentAppointment();
     if (appt) {
         try {
@@ -73,7 +65,7 @@ export function showSuccessModal(emailSent = false) {
     );
 }
 
-export function closeSuccessModal() {
+function closeSuccessModal() {
     const modal = document.getElementById('successModal');
     if (modal) {
         modal.classList.remove('active');
@@ -83,3 +75,5 @@ export function closeSuccessModal() {
         engine.closeSuccessModal()
     );
 }
+
+export { closeSuccessModal, initSuccessModalEngineWarmup, loadSuccessModalEngine, showSuccessModal };

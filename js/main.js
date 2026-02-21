@@ -3,7 +3,7 @@ import {
     resolveDeployAssetVersion,
     withDeployAssetVersion,
     debugLog,
-} from './utils.js';
+} from '../src/apps/shared/utils.js';
 import { initActionRouterEngine } from './router.js';
 import { initThemeMode } from './theme.js';
 import { changeLanguage, initEnglishBundleWarmup } from './i18n.js';
@@ -16,32 +16,14 @@ import {
     trackEvent,
 } from './analytics.js';
 import { initDataEngineWarmup } from './data.js';
-import {
-    initBookingEngineWarmup,
-    initBookingUiWarmup,
-    markBookingViewed,
-} from './booking.js';
-import { initReviewsEngineWarmup } from './engagement.js';
-import { initGalleryInteractionsWarmup } from './gallery.js';
-import {
-    initChatUiEngineWarmup,
-    initChatWidgetEngineWarmup,
-    initChatEngineWarmup,
-    initChatBookingEngineWarmup,
-    toggleChatbot,
-    sendChatMessage,
-    handleChatBookingSelection,
-    sendQuickMessage,
-    minimizeChatbot,
-    startChatBooking,
-    handleChatDateSelect,
-    handleChatKeypress,
-    checkServerEnvironment,
-} from '../src/apps/chat/shell.js';
-import { initUiEffectsWarmup, initModalUxEngineWarmup } from './ui.js';
-import { initRescheduleEngineWarmup } from './reschedule.js';
-import { initSuccessModalEngineWarmup } from './success-modal.js';
-import { initEngagementFormsEngineWarmup } from './engagement.js';
+// LAZY LOADED MODULES
+// import { initBookingEngineWarmup, initBookingUiWarmup, markBookingViewed } from './booking.js';
+// import { initReviewsEngineWarmup, initEngagementFormsEngineWarmup } from './engagement.js';
+// import { initGalleryInteractionsWarmup } from './gallery.js';
+// import { ... } from '../src/apps/chat/shell.js';
+// import { initUiEffectsWarmup, initModalUxEngineWarmup } from './ui.js';
+// import { initRescheduleEngineWarmup } from './reschedule.js';
+// import { initSuccessModalEngineWarmup } from './success-modal.js';
 import { loadDeferredContent } from './content-loader.js';
 
 // Setup global version
@@ -165,7 +147,9 @@ function fallbackSelectService(value) {
     if (select) {
         select.value = value;
         select.dispatchEvent(new Event('change'));
-        markBookingViewed('service_select');
+        import('./booking.js').then(({ markBookingViewed }) => {
+             markBookingViewed('service_select');
+        });
         const appointmentSection = document.getElementById('citas');
         if (appointmentSection) {
             const navHeight = document.querySelector('.nav')?.offsetHeight || 80;
@@ -185,7 +169,7 @@ function initChatActionFallbackBridge() {
     }
     chatActionFallbackBridgeBound = true;
 
-    document.addEventListener('click', function (event) {
+    document.addEventListener('click', async function (event) {
         const target = event.target instanceof Element ? event.target : null;
         if (!target) return;
 
@@ -195,51 +179,46 @@ function initChatActionFallbackBridge() {
         const action = String(actionEl.getAttribute('data-action') || '').trim();
         const value = actionEl.getAttribute('data-value') || '';
 
-        switch (action) {
-            case 'toggle-chatbot':
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                toggleChatbot();
-                break;
-            case 'minimize-chat':
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                minimizeChatbot();
-                break;
-            case 'send-chat-message':
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                sendChatMessage();
-                break;
-            case 'quick-message':
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                sendQuickMessage(value);
-                break;
-            case 'chat-booking':
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                handleChatBookingSelection(value);
-                break;
-            case 'start-booking':
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                startChatBooking();
-                break;
-            case 'select-service':
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                fallbackSelectService(value);
-                break;
-            default:
-                break;
+        if ([
+            'toggle-chatbot', 'minimize-chat', 'send-chat-message', 'quick-message',
+            'chat-booking', 'start-booking'
+        ].includes(action)) {
+             event.preventDefault();
+             event.stopImmediatePropagation();
+
+             const chatShell = await import('../src/apps/chat/shell.js');
+             switch (action) {
+                case 'toggle-chatbot':
+                    chatShell.toggleChatbot();
+                    break;
+                case 'minimize-chat':
+                    chatShell.minimizeChatbot();
+                    break;
+                case 'send-chat-message':
+                    chatShell.sendChatMessage();
+                    break;
+                case 'quick-message':
+                    chatShell.sendQuickMessage(value);
+                    break;
+                case 'chat-booking':
+                    chatShell.handleChatBookingSelection(value);
+                    break;
+                case 'start-booking':
+                    chatShell.startChatBooking();
+                    break;
+            }
+        } else if (action === 'select-service') {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            fallbackSelectService(value);
         }
     });
 
-    document.addEventListener('change', function (event) {
+    document.addEventListener('change', async function (event) {
         const target = event.target instanceof Element ? event.target : null;
         if (!target) return;
         if (target.closest('[data-action="chat-date-select"]')) {
+            const { handleChatDateSelect } = await import('../src/apps/chat/shell.js');
             handleChatDateSelect(target.value);
         }
     });
@@ -260,31 +239,48 @@ document.addEventListener('DOMContentLoaded', function () {
     loadDeferredContent().then(() => {
         showConsentBanner();
 
-        const initHighPriorityWarmups = createOnceTask(() => {
+        const initHighPriorityWarmups = createOnceTask(async () => {
             initEnglishBundleWarmup();
             initDataEngineWarmup();
+
+            const { initBookingEngineWarmup, initBookingUiWarmup } = await import('./booking.js');
             initBookingEngineWarmup();
             initBookingUiWarmup();
+
+            const { initChatUiEngineWarmup, initChatWidgetEngineWarmup } = await import('../src/apps/chat/shell.js');
             initChatUiEngineWarmup();
             initChatWidgetEngineWarmup();
         });
 
-        const initLowPriorityWarmups = createOnceTask(() => {
+        const initLowPriorityWarmups = createOnceTask(async () => {
+            const { initReviewsEngineWarmup, initEngagementFormsEngineWarmup } = await import('./engagement.js');
             initReviewsEngineWarmup();
+            initEngagementFormsEngineWarmup();
+
+            const { initGalleryInteractionsWarmup } = await import('./gallery.js');
             initGalleryInteractionsWarmup();
+
+            const { initChatEngineWarmup, initChatBookingEngineWarmup } = await import('../src/apps/chat/shell.js');
             initChatEngineWarmup();
             initChatBookingEngineWarmup();
+
+            const { initUiEffectsWarmup, initModalUxEngineWarmup } = await import('./ui.js');
             initUiEffectsWarmup();
-            initRescheduleEngineWarmup();
-            initSuccessModalEngineWarmup();
-            initEngagementFormsEngineWarmup();
             initModalUxEngineWarmup();
+
+            const { initRescheduleEngineWarmup } = await import('./reschedule.js');
+            initRescheduleEngineWarmup();
+
+            const { initSuccessModalEngineWarmup } = await import('./success-modal.js');
+            initSuccessModalEngineWarmup();
         });
 
         const initDeferredWarmups = createOnceTask(() => {
             initHighPriorityWarmups();
             initLowPriorityWarmups();
-            initBookingUiWarmup();
+            import('./booking.js').then(({ initBookingUiWarmup }) => {
+                 initBookingUiWarmup();
+            });
         });
 
         window.addEventListener('pointerdown', initDeferredWarmups, {
@@ -302,7 +298,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const chatInput = document.getElementById('chatInput');
         if (chatInput) {
-            chatInput.addEventListener('keypress', handleChatKeypress);
+            import('../src/apps/chat/shell.js').then(({ handleChatKeypress }) => {
+                chatInput.addEventListener('keypress', handleChatKeypress);
+            });
         }
 
         // Gallery lazy load is already initialized below in the legacy fallback block.
@@ -313,12 +311,14 @@ document.addEventListener('DOMContentLoaded', function () {
         maybeTrackCheckoutAbandon('page_hide');
     });
 
-    const isServer = checkServerEnvironment();
-    if (!isServer) {
-        console.warn(
-            'Chatbot en modo offline: abre el sitio desde servidor para usar IA real.'
-        );
-    }
+    import('../src/apps/chat/shell.js').then(({ checkServerEnvironment }) => {
+        const isServer = checkServerEnvironment();
+        if (!isServer) {
+            console.warn(
+                'Chatbot en modo offline: abre el sitio desde servidor para usar IA real.'
+            );
+        }
+    });
 
     // Smooth Scroll
     const nav = document.querySelector('.nav');
@@ -340,7 +340,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const targetPosition = target.offsetTop - navHeight - 20;
 
         if (href === '#citas') {
-            markBookingViewed('cta_click');
+             import('./booking.js').then(({ markBookingViewed }) => {
+                 markBookingViewed('cta_click');
+             });
         }
 
         window.scrollTo({
@@ -399,7 +401,9 @@ document.addEventListener('DOMContentLoaded', function () {
 // Offline/Online Sync
 window.addEventListener('online', () => {
     // Refresh availability when connection returns
-    initBookingEngineWarmup();
+    import('./booking.js').then(({ initBookingEngineWarmup }) => {
+        initBookingEngineWarmup();
+    });
     initDataEngineWarmup();
 });
 

@@ -1,5 +1,5 @@
-import { state } from './state.js';
-import { COOKIE_CONSENT_KEY } from './config.js';
+import { state } from '../../../js/state.js';
+import { COOKIE_CONSENT_KEY } from '../../../js/config.js';
 
 export function debugLog() {
     // Debug logging removed
