@@ -37,7 +37,7 @@ function getReviewsEngineDeps() {
 export function loadReviewsEngine() {
     return loadDeferredModule({
         cacheKey: 'engagement-bundle',
-        src: REVIEWS_ENGINE_URL,
+        src: ENGAGEMENT_BUNDLE_URL,
         scriptDataAttribute: 'data-engagement-bundle',
         resolveModule: () => window.PielReviewsEngine,
         isModuleReady: (module) =>

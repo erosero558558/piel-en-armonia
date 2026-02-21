@@ -227,6 +227,7 @@ export async function updateAvailableTimes(elements) {
 // BOOKING UI
 function getBookingUiDeps() {
     return {
+        updateAvailableTimes,
         loadAvailabilityData,
         getBookedSlots,
         showToast,

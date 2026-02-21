@@ -16,7 +16,16 @@ async function mockApi(page) {
         const resource = url.searchParams.get('resource') || '';
 
         if (resource === 'availability') {
-            return jsonResponse(route, { ok: true, data: {} });
+            // Mock availability for next 7 days
+            const today = new Date();
+            const availability = {};
+            for (let i = 0; i < 14; i++) {
+                const d = new Date(today);
+                d.setDate(today.getDate() + i);
+                const key = d.toISOString().split('T')[0];
+                availability[key] = ['09:00', '10:00', '11:00', '15:00'];
+            }
+            return jsonResponse(route, { ok: true, data: availability });
         }
 
         if (resource === 'booked-slots') {
@@ -145,16 +154,7 @@ async function fillBookingFormAndOpenPayment(page) {
         await appointmentForm.dispatchEvent('focusin');
     }
 
-    // Wait for UI engine script or readiness
-    try {
-        await page.waitForSelector('script[data-booking-ui="true"]', {
-            timeout: 5000,
-            state: 'attached',
-        });
-    } catch (_) {
-        // Fallback: wait for interactive element
-    }
-
+    // Wait for interactive element instead of script tag
     const serviceSelect = page.locator('#serviceSelect');
     await expect(serviceSelect).toBeVisible({ timeout: 30000 });
 
@@ -180,35 +180,45 @@ async function fillBookingFormAndOpenPayment(page) {
     const target = new Date();
     target.setDate(target.getDate() + 7);
     const dateValue = target.toISOString().split('T')[0];
+
+    // Fill triggers change event, which triggers updateAvailableTimes
+    // We capture the request to ensure we wait for it
+    const bookedSlotsPromise = page.waitForResponse(
+        resp => resp.url().includes('booked-slots') && resp.status() === 200,
+        { timeout: 5000 }
+    ).catch(() => null);
+
     await dateInput.fill(dateValue);
-    await dateInput.dispatchEvent('change');
-    await page.waitForTimeout(250);
+    await bookedSlotsPromise;
 
-    // Ensure we pick a time that isn't in booked-slots
-    await page.evaluate(() => {
-        const timeSelect = document.querySelector('select[name="time"]');
-        if (!timeSelect) return;
+    // Buffer for DOM update from the app
+    await page.waitForTimeout(500);
 
-        // Mock booked slots might be empty, but let's be safe and pick 10:00 explicitly
-        // Since mockApi returns empty booked-slots, 10:00 should be fine.
-        // However, if the UI hasn't updated availability yet, options might be disabled.
-        // Force enable options for test stability.
+    // Poll until we can successfully select a time slot
+    await expect.poll(async () => {
+        await page.evaluate(() => {
+            const timeSelect = document.querySelector('select[name="time"]');
+            if (!timeSelect) return;
 
-        let candidate = Array.from(timeSelect.options).find(
-            (option) => option.value === '10:00'
-        );
+            // Find valid options (not disabled, not empty placeholder)
+            const options = Array.from(timeSelect.options).filter(o => !o.disabled && o.value);
+            if (options.length > 0) {
+                // Prefer 10:00 if available, otherwise first valid
+                const candidate = options.find(o => o.value === '10:00') || options[0];
+                if (timeSelect.value !== candidate.value) {
+                    timeSelect.value = candidate.value;
+                    timeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+        });
+        return await page.$eval('select[name="time"]', el => el.value);
+    }, { timeout: 10000 }).toMatch(/\d{2}:\d{2}/);
 
-        if (!candidate) {
-            candidate = document.createElement('option');
-            candidate.value = '10:00';
-            candidate.textContent = '10:00';
-            timeSelect.appendChild(candidate);
-        }
-
-        candidate.disabled = false;
-        timeSelect.value = '10:00';
-        timeSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    // Double check it stayed selected
+    await page.waitForTimeout(200);
+    await expect.poll(async () => {
+         return await page.$eval('select[name="time"]', el => el.value);
+    }).toMatch(/\d{2}:\d{2}/);
 
     const nameInput = page.locator('input[name="name"]');
     await nameInput.fill('Paciente Test Tracking');
