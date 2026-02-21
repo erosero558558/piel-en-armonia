@@ -1,4 +1,5 @@
 <?php
+
 // Tests for api-lib.php
 // To run: php tests/test_api_lib.php
 
@@ -7,7 +8,8 @@ require_once __DIR__ . '/../api-lib.php';
 $failed = 0;
 $passed = 0;
 
-function assert_equals($expected, $actual, $message = '') {
+function assert_equals($expected, $actual, $message = '')
+{
     global $failed, $passed;
     if ($expected === $actual) {
         echo "✅ PASS: $message\n";

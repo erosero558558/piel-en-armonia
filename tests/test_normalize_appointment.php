@@ -1,11 +1,13 @@
 <?php
+
 // tests/test_normalize_appointment.php
 
 // 1. Include the library to be tested
 require_once __DIR__ . '/../api-lib.php';
 
 // 2. Define a simple assertion helper
-function assert_eq($actual, $expected, $message) {
+function assert_eq($actual, $expected, $message)
+{
     if ($actual === $expected) {
         echo "✅ PASS: $message\n";
     } else {
@@ -16,7 +18,8 @@ function assert_eq($actual, $expected, $message) {
     }
 }
 
-function assert_true($condition, $message) {
+function assert_true($condition, $message)
+{
     if ($condition) {
         echo "✅ PASS: $message\n";
     } else {

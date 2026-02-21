@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -168,7 +169,9 @@ class FigoBrain
                 elseif (strlen($keyword) > 4) {
                     $words = explode(' ', $normalized);
                     foreach ($words as $word) {
-                        if (abs(strlen($word) - strlen($keyword)) > 2) continue;
+                        if (abs(strlen($word) - strlen($keyword)) > 2) {
+                            continue;
+                        }
                         $dist = levenshtein($keyword, $word);
                         if ($dist <= 1) { // 1 char error allowed
                             $scores[$intent] += 2;
@@ -242,7 +245,7 @@ class FigoBrain
                        "👉 **[Abrir Chat de WhatsApp](https://wa.me/593982453672)**\n\n" .
                        "O si prefieres, déjanos tu número y te llamamos en breve.";
 
-            // --- Trust & Authority ---
+                // --- Trust & Authority ---
             case 'trust_why_us':
                 return "Elegir **Piel en Armonía** es elegir excelencia médica y calidez humana. 💎\n\n" .
                        "✨ **Experiencia:** Más de 15 años cuidando la salud de la piel.\n" .
@@ -257,7 +260,7 @@ class FigoBrain
                        "🔹 **Cabinas de Fototerapia:** Para vitíligo y psoriasis.\n\n" .
                        "Invertimos en lo mejor porque tu piel merece lo mejor.";
 
-            // --- Core Business ---
+                // --- Core Business ---
             case 'pricing':
             case 'pricing_specific':
                 return "La transparencia es parte de nuestro servicio. Aquí tienes nuestros valores referenciales (incluyen IVA): 🏷️\n\n" .
@@ -314,7 +317,7 @@ class FigoBrain
                        "Especialista en Dermatología Estética y Láser. Su enfoque es la elegancia y naturalidad.\n\n" .
                        "Ambos comparten una filosofía de ética y excelencia.";
 
-            // --- Medical Topics (Expanded) ---
+                // --- Medical Topics (Expanded) ---
             case 'acne':
                 return "El **Acné** no es solo estético, es salud. 🌿\n\n" .
                        "Nuestro enfoque es 360°: tratamos la inflamación, prevenimos cicatrices y restauramos la textura de tu piel con medicación + tecnología.\n\n" .
@@ -404,9 +407,13 @@ class FigoBrain
     {
         $hour = (int) date('G');
         $timeGreeting = 'Hola';
-        if ($hour >= 5 && $hour < 12) $timeGreeting = 'Buenos días';
-        elseif ($hour >= 12 && $hour < 19) $timeGreeting = 'Buenas tardes';
-        else $timeGreeting = 'Buenas noches';
+        if ($hour >= 5 && $hour < 12) {
+            $timeGreeting = 'Buenos días';
+        } elseif ($hour >= 12 && $hour < 19) {
+            $timeGreeting = 'Buenas tardes';
+        } else {
+            $timeGreeting = 'Buenas noches';
+        }
 
         return "¡{$timeGreeting}! Bienvenido a **Piel en Armonía**. 🌿\n\n" .
                "Soy Figo, tu Concierge Dermatológico. Estoy aquí para ayudarte a agendar, consultar precios o resolver dudas sobre tu piel.\n\n" .
@@ -452,8 +459,12 @@ class FigoBrain
         }
 
         $isOpen = false;
-        if ($day >= 1 && $day <= 5 && $hour >= 9 && $hour < 18) $isOpen = true;
-        if ($day === 6 && $hour >= 9 && $hour < 13) $isOpen = true;
+        if ($day >= 1 && $day <= 5 && $hour >= 9 && $hour < 18) {
+            $isOpen = true;
+        }
+        if ($day === 6 && $hour >= 9 && $hour < 13) {
+            $isOpen = true;
+        }
 
         return $isOpen
             ? "✅ **Estamos abiertos ahora.**"

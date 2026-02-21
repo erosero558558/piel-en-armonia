@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/common.php';
@@ -476,7 +477,9 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
         if (isset($data['appointments']) && is_array($data['appointments'])) {
             $stmt = $pdo->prepare("INSERT OR REPLACE INTO appointments (id, date, time, doctor, service, name, email, phone, status, paymentMethod, paymentStatus, paymentIntentId, rescheduleToken, json_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             foreach ($data['appointments'] as $appt) {
-                if (!isset($appt['id'])) continue;
+                if (!isset($appt['id'])) {
+                    continue;
+                }
                 $stmt->execute([
                     $appt['id'],
                     $appt['date'] ?? '',
@@ -500,7 +503,9 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
         if (isset($data['reviews']) && is_array($data['reviews'])) {
             $stmt = $pdo->prepare("INSERT OR REPLACE INTO reviews (id, name, rating, text, date, verified, json_data) VALUES (?, ?, ?, ?, ?, ?, ?)");
             foreach ($data['reviews'] as $review) {
-                if (!isset($review['id'])) continue;
+                if (!isset($review['id'])) {
+                    continue;
+                }
                 $stmt->execute([
                     $review['id'],
                     $review['name'] ?? '',
@@ -517,7 +522,9 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
         if (isset($data['callbacks']) && is_array($data['callbacks'])) {
             $stmt = $pdo->prepare("INSERT OR REPLACE INTO callbacks (id, telefono, preferencia, fecha, status, json_data) VALUES (?, ?, ?, ?, ?, ?)");
             foreach ($data['callbacks'] as $cb) {
-                if (!isset($cb['id'])) continue;
+                if (!isset($cb['id'])) {
+                    continue;
+                }
                 $stmt->execute([
                     $cb['id'],
                     $cb['telefono'] ?? '',
@@ -533,7 +540,9 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
         if (isset($data['availability']) && is_array($data['availability'])) {
             $stmt = $pdo->prepare("INSERT OR REPLACE INTO availability (date, time, doctor) VALUES (?, ?, ?)");
             foreach ($data['availability'] as $date => $times) {
-                if (!is_array($times)) continue;
+                if (!is_array($times)) {
+                    continue;
+                }
                 foreach ($times as $time) {
                     $stmt->execute([$date, $time, 'global']);
                 }
@@ -593,8 +602,8 @@ function ensure_data_file(): bool
     if ($pdo) {
         ensure_db_schema();
     } else {
-         error_log('Piel en Armonía: no se pudo conectar a SQLite: ' . $dbPath);
-         return false;
+        error_log('Piel en Armonía: no se pudo conectar a SQLite: ' . $dbPath);
+        return false;
     }
 
     // Check for migration
@@ -714,7 +723,7 @@ function write_store(array $store): void
 {
     if (!ensure_data_file()) {
         if (function_exists('json_response')) {
-             json_response(['ok' => false, 'error' => 'Storage error'], 500);
+            json_response(['ok' => false, 'error' => 'Storage error'], 500);
         }
         return;
     }
@@ -742,8 +751,8 @@ function write_store(array $store): void
     $dbPath = data_file_path();
     $pdo = get_db_connection($dbPath);
     if (!$pdo) {
-         if (function_exists('json_response')) {
-             json_response(['ok' => false, 'error' => 'DB Connection error'], 500);
+        if (function_exists('json_response')) {
+            json_response(['ok' => false, 'error' => 'DB Connection error'], 500);
         }
         return;
     }
@@ -765,7 +774,9 @@ function write_store(array $store): void
         $stmtUpsert = $pdo->prepare("INSERT OR REPLACE INTO appointments (id, date, time, doctor, service, name, email, phone, status, paymentMethod, paymentStatus, paymentIntentId, rescheduleToken, json_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
         foreach ($store['appointments'] as $appt) {
-            if (!isset($appt['id'])) continue;
+            if (!isset($appt['id'])) {
+                continue;
+            }
             $id = $appt['id'];
             $incomingIds[$id] = true;
 
@@ -801,7 +812,9 @@ function write_store(array $store): void
         $stmtUpsert = $pdo->prepare("INSERT OR REPLACE INTO reviews (id, name, rating, text, date, verified, json_data) VALUES (?, ?, ?, ?, ?, ?, ?)");
 
         foreach ($store['reviews'] as $review) {
-            if (!isset($review['id'])) continue;
+            if (!isset($review['id'])) {
+                continue;
+            }
             $id = $review['id'];
             $incomingIds[$id] = true;
             $stmtUpsert->execute([
@@ -816,8 +829,8 @@ function write_store(array $store): void
         }
         $toDelete = array_diff_key($existingIds, $incomingIds);
         if (!empty($toDelete)) {
-             $idsToDelete = implode(',', array_keys($toDelete));
-             $pdo->exec("DELETE FROM reviews WHERE id IN ($idsToDelete)");
+            $idsToDelete = implode(',', array_keys($toDelete));
+            $pdo->exec("DELETE FROM reviews WHERE id IN ($idsToDelete)");
         }
 
         // Sync Callbacks
@@ -827,7 +840,9 @@ function write_store(array $store): void
         $stmtUpsert = $pdo->prepare("INSERT OR REPLACE INTO callbacks (id, telefono, preferencia, fecha, status, json_data) VALUES (?, ?, ?, ?, ?, ?)");
 
         foreach ($store['callbacks'] as $cb) {
-            if (!isset($cb['id'])) continue;
+            if (!isset($cb['id'])) {
+                continue;
+            }
             $id = $cb['id'];
             $incomingIds[$id] = true;
             $stmtUpsert->execute([
@@ -841,8 +856,8 @@ function write_store(array $store): void
         }
         $toDelete = array_diff_key($existingIds, $incomingIds);
         if (!empty($toDelete)) {
-             $idsToDelete = implode(',', array_keys($toDelete));
-             $pdo->exec("DELETE FROM callbacks WHERE id IN ($idsToDelete)");
+            $idsToDelete = implode(',', array_keys($toDelete));
+            $pdo->exec("DELETE FROM callbacks WHERE id IN ($idsToDelete)");
         }
 
         // Sync Availability (Full Replace)
@@ -850,7 +865,9 @@ function write_store(array $store): void
         $stmtInsert = $pdo->prepare("INSERT INTO availability (date, time, doctor) VALUES (?, ?, ?)");
         if (isset($store['availability']) && is_array($store['availability'])) {
             foreach ($store['availability'] as $date => $times) {
-                if (!is_array($times)) continue;
+                if (!is_array($times)) {
+                    continue;
+                }
                 foreach ($times as $time) {
                     $stmtInsert->execute([$date, $time, 'global']);
                 }
@@ -866,7 +883,7 @@ function write_store(array $store): void
         $pdo->rollBack();
         error_log('Write Store Error: ' . $e->getMessage());
         if (function_exists('json_response')) {
-             json_response(['ok' => false, 'error' => 'Write error'], 500);
+            json_response(['ok' => false, 'error' => 'Write error'], 500);
         }
     }
 }

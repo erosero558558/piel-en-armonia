@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/test_framework.php';
@@ -23,33 +24,41 @@ $mock_intent = [
     ]
 ];
 
-class JsonResponseException extends Exception {
+class JsonResponseException extends Exception
+{
     public $payload;
     public $status;
-    public function __construct($payload, $status) {
+    public function __construct($payload, $status)
+    {
         $this->payload = $payload;
         $this->status = $status;
         parent::__construct(json_encode($payload));
     }
 }
 
-function json_response(array $payload, int $status = 200): void {
+function json_response(array $payload, int $status = 200): void
+{
     throw new JsonResponseException($payload, $status);
 }
 
-function read_store(): array {
+function read_store(): array
+{
     global $mock_store;
     return $mock_store;
 }
 
-function write_store(array $store): void {
+function write_store(array $store): void
+{
     global $mock_store;
     $mock_store = $store;
 }
 
-function require_rate_limit($key, $limit, $window): void {}
+function require_rate_limit($key, $limit, $window): void
+{
+}
 
-function require_json_body(): array {
+function require_json_body(): array
+{
     global $mock_payload;
     return $mock_payload;
 }
@@ -70,11 +79,21 @@ function require_json_body(): array {
 // `mail` is a built-in.
 // Let's remove the conflicting definitions first.
 
-function payment_gateway_enabled(): bool { return true; }
-function payment_currency(): string { return 'USD'; }
-function payment_expected_amount_cents($service): int { return 4000; } // 40 + 0% = 40.00
+function payment_gateway_enabled(): bool
+{
+    return true;
+}
+function payment_currency(): string
+{
+    return 'USD';
+}
+function payment_expected_amount_cents($service): int
+{
+    return 4000;
+} // 40 + 0% = 40.00
 
-function stripe_get_payment_intent(string $id): array {
+function stripe_get_payment_intent(string $id): array
+{
     global $mock_intent;
     return $mock_intent;
 }
@@ -90,7 +109,7 @@ require_once __DIR__ . '/../controllers/AppointmentController.php';
 
 // Tests for lib/business.php
 
-run_test('get_vat_rate default', function() {
+run_test('get_vat_rate default', function () {
     // Default is 0.12 if env not set (or empty string in mock env)
     // Note: getenv returns false/string. In CLI it might be false.
     // business.php: if (!is_string($raw) || trim($raw) === '') return 0.12;
@@ -100,24 +119,24 @@ run_test('get_vat_rate default', function() {
     assert_true(is_float($rate));
 });
 
-run_test('get_service_price_amount exists', function() {
+run_test('get_service_price_amount exists', function () {
     $price = get_service_price_amount('consulta');
     assert_equals(40.0, $price);
 });
 
-run_test('get_service_price_amount invalid', function() {
+run_test('get_service_price_amount invalid', function () {
     $price = get_service_price_amount('invalid_service');
     assert_equals(0.0, $price);
 });
 
-run_test('get_service_total_price calculation', function() {
+run_test('get_service_total_price calculation', function () {
     // 40 + 0% = 40.00
     // get_service_total_price returns formatted string '$40.00'
     $price = get_service_total_price('consulta');
     assert_equals('$40.00', $price);
 });
 
-run_test('appointment_slot_taken basic', function() {
+run_test('appointment_slot_taken basic', function () {
     $appointments = [
         ['date' => '2024-01-01', 'time' => '10:00', 'status' => 'confirmed', 'doctor' => 'rosero']
     ];
@@ -128,7 +147,7 @@ run_test('appointment_slot_taken basic', function() {
     assert_false($free, 'Slot should be free');
 });
 
-run_test('appointment_slot_taken excludes cancelled', function() {
+run_test('appointment_slot_taken excludes cancelled', function () {
     $appointments = [
         ['date' => '2024-01-01', 'time' => '10:00', 'status' => 'cancelled', 'doctor' => 'rosero']
     ];
@@ -136,7 +155,7 @@ run_test('appointment_slot_taken excludes cancelled', function() {
     assert_false($taken, 'Cancelled slot should be free');
 });
 
-run_test('appointment_slot_taken excludes self', function() {
+run_test('appointment_slot_taken excludes self', function () {
     $appointments = [
         ['id' => 123, 'date' => '2024-01-01', 'time' => '10:00', 'status' => 'confirmed', 'doctor' => 'rosero']
     ];
@@ -144,7 +163,7 @@ run_test('appointment_slot_taken excludes self', function() {
     assert_false($taken, 'Slot should be free if checking against self');
 });
 
-run_test('appointment_slot_taken doctor logic', function() {
+run_test('appointment_slot_taken doctor logic', function () {
     $appointments = [
         ['date' => '2024-01-01', 'time' => '10:00', 'status' => 'confirmed', 'doctor' => 'rosero']
     ];
@@ -163,7 +182,7 @@ run_test('appointment_slot_taken doctor logic', function() {
 
 // Tests for AppointmentController::store
 
-run_test('AppointmentController::store validation failure', function() {
+run_test('AppointmentController::store validation failure', function () {
     global $mock_payload;
     $mock_payload = []; // Empty
 
@@ -176,7 +195,7 @@ run_test('AppointmentController::store validation failure', function() {
     }
 });
 
-run_test('AppointmentController::store successful card payment', function() {
+run_test('AppointmentController::store successful card payment', function () {
     global $mock_store, $mock_payload, $mock_intent;
 
     // Reset store

@@ -1,11 +1,13 @@
 <?php
+
 // bin/verify-gate.php
 
 $domain = 'https://pielarmonia.com';
 $checks = [];
 $failures = 0;
 
-function check($name, $callback) {
+function check($name, $callback)
+{
     global $checks, $failures;
     echo "Checking $name... ";
     try {
@@ -25,7 +27,8 @@ function check($name, $callback) {
     }
 }
 
-function fetch($url) {
+function fetch($url)
+{
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
@@ -43,7 +46,8 @@ function fetch($url) {
     return ['code' => $httpCode, 'body' => $response];
 }
 
-function fetchHeaders($url) {
+function fetchHeaders($url)
+{
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HEADER, true);
@@ -62,31 +66,31 @@ echo "Domain: $domain\n";
 echo "Date: " . date('Y-m-d H:i:s') . "\n\n";
 
 // 1. Check Homepage
-check('Homepage (200 OK)', function() use ($domain) {
+check('Homepage (200 OK)', function () use ($domain) {
     $res = fetch($domain . '/');
     return $res['code'] === 200;
 });
 
 // 2. Check Security Headers
-check('Security Headers', function() use ($domain) {
+check('Security Headers', function () use ($domain) {
     $headers = fetchHeaders($domain . '/');
     $required = ['Content-Security-Policy', 'X-Content-Type-Options', 'Referrer-Policy'];
     foreach ($required as $h) {
         if (stripos($headers, $h) === false) {
-             // Fallback: check for meta tag in body if header missing
-             $res = fetch($domain . '/');
-             if (stripos($res['body'], "http-equiv=\"$h\"") !== false || stripos($res['body'], "http-equiv='$h'") !== false) {
-                 continue;
-             }
-             echo " (Missing $h) ";
-             return false;
+            // Fallback: check for meta tag in body if header missing
+            $res = fetch($domain . '/');
+            if (stripos($res['body'], "http-equiv=\"$h\"") !== false || stripos($res['body'], "http-equiv='$h'") !== false) {
+                continue;
+            }
+            echo " (Missing $h) ";
+            return false;
         }
     }
     return true;
 });
 
 // 3. Check Health API
-check('Health API (200 OK & JSON)', function() use ($domain) {
+check('Health API (200 OK & JSON)', function () use ($domain) {
     $res = fetch($domain . '/api.php?resource=health');
     if ($res['code'] !== 200) {
         echo " (HTTP " . $res['code'] . ") ";
@@ -102,23 +106,25 @@ check('Health API (200 OK & JSON)', function() use ($domain) {
     $requiredFields = ['timingMs', 'version', 'dataDirWritable', 'storeEncrypted', 'checks'];
     foreach ($requiredFields as $f) {
         if (!isset($json[$f])) {
-             echo " (Missing field: $f) ";
-             return false;
+            echo " (Missing field: $f) ";
+            return false;
         }
     }
 
     if (!isset($json['checks']['backup']['ok'])) {
-         echo " (Backup check missing) ";
-         return false;
+        echo " (Backup check missing) ";
+        return false;
     }
 
     return true;
 });
 
 // 4. Check Figo Chat
-check('Figo Chat (200 OK)', function() use ($domain) {
+check('Figo Chat (200 OK)', function () use ($domain) {
     $res = fetch($domain . '/figo-chat.php');
-    if ($res['code'] !== 200) return false;
+    if ($res['code'] !== 200) {
+        return false;
+    }
     $json = json_decode($res['body'], true);
     return isset($json['mode']);
 });
@@ -137,10 +143,10 @@ if ($indexRes['code'] === 200) {
             $scriptUrl = $domain . '/' . ltrim($scriptUrl, '/');
         }
 
-        check('Asset Hash: script.js', function() use ($scriptUrl) {
+        check('Asset Hash: script.js', function () use ($scriptUrl) {
             if (!file_exists('script.js')) {
-                 echo " (Local file missing) ";
-                 return false;
+                echo " (Local file missing) ";
+                return false;
             }
 
             // Normalize local file (CRLF -> LF)
@@ -150,8 +156,8 @@ if ($indexRes['code'] === 200) {
 
             $res = fetch($scriptUrl);
             if ($res['code'] !== 200) {
-                 echo " (Remote fetch failed) ";
-                 return false;
+                echo " (Remote fetch failed) ";
+                return false;
             }
 
             $remoteContent = $res['body'];
@@ -159,8 +165,8 @@ if ($indexRes['code'] === 200) {
             $remoteHash = hash('sha256', $remoteContent);
 
             if ($localHash !== $remoteHash) {
-                 echo " (Hash mismatch. Local: " . substr($localHash, 0, 8) . ", Remote: " . substr($remoteHash, 0, 8) . ") ";
-                 return false;
+                echo " (Hash mismatch. Local: " . substr($localHash, 0, 8) . ", Remote: " . substr($remoteHash, 0, 8) . ") ";
+                return false;
             }
             return true;
         });
@@ -175,10 +181,10 @@ if ($indexRes['code'] === 200) {
             $styleUrl = $domain . '/' . ltrim($styleUrl, '/');
         }
 
-        check('Asset Hash: styles.css', function() use ($styleUrl) {
+        check('Asset Hash: styles.css', function () use ($styleUrl) {
             if (!file_exists('styles.css')) {
-                 echo " (Local file missing) ";
-                 return false;
+                echo " (Local file missing) ";
+                return false;
             }
 
             $localContent = file_get_contents('styles.css');
@@ -186,15 +192,17 @@ if ($indexRes['code'] === 200) {
             $localHash = hash('sha256', $localContent);
 
             $res = fetch($styleUrl);
-            if ($res['code'] !== 200) return false;
+            if ($res['code'] !== 200) {
+                return false;
+            }
 
             $remoteContent = $res['body'];
             $remoteContent = str_replace(["\r\n", "\r"], "\n", $remoteContent);
             $remoteHash = hash('sha256', $remoteContent);
 
             if ($localHash !== $remoteHash) {
-                 echo " (Hash mismatch) ";
-                 return false;
+                echo " (Hash mismatch) ";
+                return false;
             }
             return true;
         });
@@ -208,4 +216,3 @@ if ($failures > 0) {
     echo "\n\033[32mGate Verification PASSED.\033[0m\n";
     exit(0);
 }
-?>

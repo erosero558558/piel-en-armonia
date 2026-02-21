@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -138,8 +139,12 @@ class FeatureFlags
         // 3. Gradual Rollout
         if (isset($config['percentage'])) {
             $percentage = (int)$config['percentage'];
-            if ($percentage >= 100) return true;
-            if ($percentage <= 0) return false;
+            if ($percentage >= 100) {
+                return true;
+            }
+            if ($percentage <= 0) {
+                return false;
+            }
 
             if ($identity === null) {
                 $identity = session_id();

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 if (php_sapi_name() !== 'cli') {
@@ -12,7 +13,8 @@ require_once __DIR__ . '/../lib/business.php';
 require_once __DIR__ . '/../lib/storage.php';
 require_once __DIR__ . '/../lib/backup.php';
 
-function usage() {
+function usage()
+{
     echo "Usage: php bin/restore-backup.php <backup_file_path> [--force]\n";
     echo "  <backup_file_path>: Path to the backup file (JSON).\n";
     echo "  --force: Skip confirmation prompt (use with caution).\n";

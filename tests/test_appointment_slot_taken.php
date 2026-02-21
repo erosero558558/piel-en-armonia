@@ -1,10 +1,12 @@
 <?php
+
 require_once __DIR__ . '/../api-lib.php';
 
 $testsRun = 0;
 $testsPassed = 0;
 
-function assertTest(bool $condition, string $message) {
+function assertTest(bool $condition, string $message)
+{
     global $testsRun, $testsPassed;
     $testsRun++;
     if ($condition) {

@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../api-lib.php';
 
 echo "Testing Rate Limiter...\n";

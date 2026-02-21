@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 // Standalone Integration Test for Disaster Recovery
@@ -20,7 +21,8 @@ $restoreScript = realpath(__DIR__ . '/../../bin/restore-backup.php');
 require_once __DIR__ . '/../../lib/storage.php';
 require_once __DIR__ . '/../../lib/backup.php';
 
-function fail($msg) {
+function fail($msg)
+{
     global $tempDir;
     echo "FAILED: $msg\n";
     // Cleanup
@@ -28,8 +30,11 @@ function fail($msg) {
     exit(1);
 }
 
-function recursiveRemove($dir) {
-    if (!is_dir($dir)) return;
+function recursiveRemove($dir)
+{
+    if (!is_dir($dir)) {
+        return;
+    }
     $files = new RecursiveIteratorIterator(
         new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS),
         RecursiveIteratorIterator::CHILD_FIRST
@@ -119,4 +124,3 @@ try {
 } catch (Throwable $e) {
     fail("Exception: " . $e->getMessage());
 }
-?>

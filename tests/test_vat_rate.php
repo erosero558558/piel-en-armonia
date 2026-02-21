@@ -1,9 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../api-lib.php';
 
-function run_tests() {
+function run_tests()
+{
     // 2026-02-20: Updated default expectation to 0.15 (15%) as per new business logic.
     $tests = [
         'Default (unset)' => [null, 0.15],

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 // Self-contained Backup Verification Test
@@ -47,7 +48,9 @@ while ($attempts < 20) {
 
 if ($attempts === 20) {
     echo "FAILED: Server failed to start on port $port.\n";
-    if ($pid) exec("kill $pid");
+    if ($pid) {
+        exec("kill $pid");
+    }
     exec("rm -rf " . escapeshellarg($tempDir));
     exit(1);
 }

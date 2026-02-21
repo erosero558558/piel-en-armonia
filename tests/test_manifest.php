@@ -1,4 +1,5 @@
 <?php
+
 // tests/test_manifest.php
 
 echo "Testing Manifest existence and validity...\n";

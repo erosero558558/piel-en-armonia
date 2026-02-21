@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/common.php';
@@ -20,7 +21,9 @@ function is_weekend(?string $date = null): bool
     }
     try {
         $ts = strtotime($date);
-        if ($ts === false) return false;
+        if ($ts === false) {
+            return false;
+        }
         $day = (int) date('N', $ts); // 1=Mon, 7=Sun
         return $day >= 6;
     } catch (Throwable $e) {
@@ -165,7 +168,7 @@ function get_service_total_price(string $service, ?string $date = null, ?string 
 function get_service_price_breakdown(string $service, ?string $date = null, ?string $time = null, ?string $tenantId = null): array
 {
     $config = get_service_config($service, $tenantId);
-    
+
     if (!$config) {
         return [
             'error' => 'Servicio no encontrado',
@@ -178,7 +181,7 @@ function get_service_price_breakdown(string $service, ?string $date = null, ?str
     $tax_rate = $config['tax_rate'];
     $tax_amount = compute_tax($base, $tax_rate);
     $total = compute_total($base, $tax_rate);
-    
+
     return [
         'service_id' => $service,
         'service_name' => $config['name'],
@@ -197,7 +200,7 @@ function get_service_price_breakdown(string $service, ?string $date = null, ?str
             'base' => '$' . number_format($base, 2, '.', ''),
             'tax_amount' => '$' . number_format($tax_amount, 2, '.', ''),
             'total' => '$' . number_format($total, 2, '.', ''),
-            'display' => $config['is_from_price'] 
+            'display' => $config['is_from_price']
                 ? 'Desde $' . number_format($total, 2, '.', '')
                 : '$' . number_format($total, 2, '.', '')
         ],
@@ -211,17 +214,17 @@ function get_service_price_breakdown(string $service, ?string $date = null, ?str
 function validate_payment_amount(string $service, float $amount, float $tolerance = 0.01, ?string $tenantId = null): array
 {
     $breakdown = get_service_price_breakdown($service, null, null, $tenantId);
-    
+
     if (isset($breakdown['error'])) {
         return [
             'valid' => false,
             'error' => $breakdown['error']
         ];
     }
-    
+
     $expected = $breakdown['pricing']['total_amount'];
     $difference = abs($amount - $expected);
-    
+
     if ($difference <= $tolerance) {
         return [
             'valid' => true,
@@ -230,7 +233,7 @@ function validate_payment_amount(string $service, float $amount, float $toleranc
             'difference' => $difference
         ];
     }
-    
+
     return [
         'valid' => false,
         'error' => "Monto incorrecto. Esperado: \${$expected}, Recibido: \${$amount}",

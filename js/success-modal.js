@@ -9,8 +9,8 @@ import {
 import { getCurrentLang, getCurrentAppointment } from './state.js';
 import { CLINIC_ADDRESS } from './config.js';
 
-const SUCCESS_MODAL_ENGINE_URL = withDeployAssetVersion(
-    '/success-modal-engine.js?v=figo-success-modal-20260218-phase1-inlineclass1-sync1'
+const UI_BUNDLE_URL = withDeployAssetVersion(
+    '/js/engines/ui-bundle.js?v=20260220-consolidated1'
 );
 
 function getSuccessModalEngineDeps() {
@@ -25,8 +25,8 @@ function getSuccessModalEngineDeps() {
 export function loadSuccessModalEngine() {
     return loadDeferredModule({
         cacheKey: 'success-modal-engine',
-        src: SUCCESS_MODAL_ENGINE_URL,
-        scriptDataAttribute: 'data-success-modal-engine',
+        src: UI_BUNDLE_URL,
+        scriptDataAttribute: 'data-ui-bundle',
         resolveModule: () => window.PielSuccessModalEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),

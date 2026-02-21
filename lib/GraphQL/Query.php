@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\GraphQL;
@@ -81,8 +82,8 @@ class Query extends ObjectType
                 'reviews' => [
                     'type' => Type::listOf(Types::review()),
                     'resolve' => function ($root, $args, $context) {
-                         $store = $context['store'];
-                         return isset($store['reviews']) && is_array($store['reviews']) ? $store['reviews'] : [];
+                        $store = $context['store'];
+                        return isset($store['reviews']) && is_array($store['reviews']) ? $store['reviews'] : [];
                     }
                 ],
                 'bookedSlots' => [
@@ -190,7 +191,7 @@ class Query extends ObjectType
                         $phone = $args['phone'] ?? '';
 
                         if ($email === '' && $phone === '') {
-                             throw new \GraphQL\Error\UserError("Email o telefono requerido");
+                            throw new \GraphQL\Error\UserError("Email o telefono requerido");
                         }
 
                         $history = [];
@@ -230,7 +231,9 @@ class Query extends ObjectType
                             'appointments' => isset($store['appointments']) ? $store['appointments'] : [],
                             'reviews' => isset($store['reviews']) ? $store['reviews'] : [],
                             'callbacks' => isset($store['callbacks']) ? $store['callbacks'] : [],
-                            'availability' => isset($store['availability']) ? array_map(function($k, $v) { return ['date' => $k, 'slots' => $v]; }, array_keys($store['availability']), $store['availability']) : []
+                            'availability' => isset($store['availability']) ? array_map(function ($k, $v) {
+                                return ['date' => $k, 'slots' => $v];
+                            }, array_keys($store['availability']), $store['availability']) : []
                         ];
                     }
                 ],

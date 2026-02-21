@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Tests\Booking;
@@ -89,4 +90,3 @@ class BookingPricingRulesTest extends TestCase
         $this->assertArrayHasKey('error', $result);
     }
 }
-

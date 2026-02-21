@@ -1,10 +1,12 @@
 <?php
+
 require_once __DIR__ . '/../figo-brain.php';
 
 $reflection = new ReflectionClass('FigoBrain');
 print_r($reflection->getMethods());
 
-function test_intent($message, $expectedIntent) {
+function test_intent($message, $expectedIntent)
+{
     echo "Testing message: '$message' ... ";
 
     // Use reflection to access private method detectIntent if possible,

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
@@ -746,4 +747,3 @@ json_response(figo_finalize_completion([
         'finish_reason' => 'stop'
         ]]
 ], 'live', 'upstream', '', true, false, $httpCode));
-

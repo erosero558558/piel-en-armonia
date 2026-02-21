@@ -1,4 +1,5 @@
 <?php
+
 // Test: rate limit hardening (IP detection + reset + non-consuming checks)
 
 declare(strict_types=1);

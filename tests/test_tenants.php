@@ -1,9 +1,11 @@
 <?php
+
 // tests/test_tenants.php
 
 require_once __DIR__ . '/../lib/tenants.php';
 
-function assert_eq($actual, $expected, $message) {
+function assert_eq($actual, $expected, $message)
+{
     if ($actual === $expected) {
         echo "✅ PASS: $message\n";
     } else {

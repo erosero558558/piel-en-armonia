@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\GraphQL;
@@ -35,25 +36,25 @@ class Mutation extends ObjectType
                         'input' => Type::nonNull(Types::appointmentInput())
                     ],
                     'resolve' => function ($root, $args, $context) {
-                         $store = $context['store'];
-                         $input = $args['input'];
-                         $appointment = normalize_appointment($input);
+                        $store = $context['store'];
+                        $input = $args['input'];
+                        $appointment = normalize_appointment($input);
 
-                         if (!payment_gateway_enabled()) {
-                             throw new UserError('Pasarela de pago no configurada');
-                         }
+                        if (!payment_gateway_enabled()) {
+                            throw new UserError('Pasarela de pago no configurada');
+                        }
 
-                         if ($appointment['service'] === '' || $appointment['name'] === '' || $appointment['email'] === '') {
-                             throw new UserError('Datos incompletos para iniciar el pago');
-                         }
+                        if ($appointment['service'] === '' || $appointment['name'] === '' || $appointment['email'] === '') {
+                            throw new UserError('Datos incompletos para iniciar el pago');
+                        }
 
-                         $seed = implode('|', [
-                            $appointment['email'],
-                            $appointment['service'],
-                            $appointment['date'] ?? '',
-                            $appointment['time'] ?? '',
-                            $appointment['doctor'] ?? '',
-                            $appointment['phone'] ?? ''
+                        $seed = implode('|', [
+                           $appointment['email'],
+                           $appointment['service'],
+                           $appointment['date'] ?? '',
+                           $appointment['time'] ?? '',
+                           $appointment['doctor'] ?? '',
+                           $appointment['phone'] ?? ''
                         ]);
                         $idempotencyKey = payment_build_idempotency_key('intent', $seed);
 
@@ -133,10 +134,10 @@ class Mutation extends ObjectType
 
                         $decoded = base64_decode($base64, true);
                         if ($decoded === false) {
-                             throw new UserError("Invalid base64");
+                            throw new UserError("Invalid base64");
                         }
                         $size = strlen($decoded);
-                         if ($size > 5242880) { // 5MB
+                        if ($size > 5242880) { // 5MB
                             throw new UserError('El comprobante supera 5 MB.');
                         }
 
@@ -148,13 +149,13 @@ class Mutation extends ObjectType
                         ];
                         // Validate mime type properly if possible, but trusting client for now or use finfo on buffer
                         if (!isset($allowed[$mime])) {
-                             // Try to detect
-                             $finfo = new \finfo(FILEINFO_MIME_TYPE);
-                             $detected = $finfo->buffer($decoded);
-                             if (!isset($allowed[$detected])) {
-                                  throw new UserError('Formato no permitido. Usa JPG, PNG, WEBP o PDF.');
-                             }
-                             $mime = $detected;
+                            // Try to detect
+                            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                            $detected = $finfo->buffer($decoded);
+                            if (!isset($allowed[$detected])) {
+                                throw new UserError('Formato no permitido. Usa JPG, PNG, WEBP o PDF.');
+                            }
+                            $mime = $detected;
                         }
 
                         $extension = $allowed[$mime];
@@ -162,7 +163,7 @@ class Mutation extends ObjectType
 
                         $dir = transfer_proof_upload_dir();
                         if (!is_dir($dir) && !@mkdir($dir, 0775, true)) {
-                             throw new UserError('Error interno de almacenamiento');
+                            throw new UserError('Error interno de almacenamiento');
                         }
 
                         $path = $dir . DIRECTORY_SEPARATOR . $uniqueName;
@@ -231,7 +232,9 @@ class Mutation extends ObjectType
                                 continue;
                             }
                             $found = true;
-                            $appt = array_merge($appt, array_filter($input, function($v) { return !is_null($v); }));
+                            $appt = array_merge($appt, array_filter($input, function ($v) {
+                                return !is_null($v);
+                            }));
                             $updatedAppt = $appt;
                             break;
                         }
@@ -251,17 +254,17 @@ class Mutation extends ObjectType
                         'input' => Type::nonNull(Types::reviewInput())
                     ],
                     'resolve' => function ($root, $args, $context) {
-                         $store = $context['store'];
-                         $input = $args['input'];
+                        $store = $context['store'];
+                        $input = $args['input'];
 
-                         $review = normalize_review($input);
-                         if ($review['rating'] < 1 || $review['name'] === '') {
-                             throw new UserError('Datos invalidos');
-                         }
+                        $review = normalize_review($input);
+                        if ($review['rating'] < 1 || $review['name'] === '') {
+                            throw new UserError('Datos invalidos');
+                        }
 
-                         $store['reviews'][] = $review;
-                         write_store($store);
-                         return $review;
+                        $store['reviews'][] = $review;
+                        write_store($store);
+                        return $review;
                     }
                 ],
                 'updateAvailability' => [

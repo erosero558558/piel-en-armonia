@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/test_framework.php';
@@ -38,7 +39,8 @@ if ($attempts === 10) {
 }
 
 // Helper for requests
-function api_request($method, $resource, $data = null) {
+function api_request($method, $resource, $data = null)
+{
     global $baseUrl;
     $url = "$baseUrl?resource=$resource";
     $ch = curl_init($url);
@@ -56,7 +58,7 @@ function api_request($method, $resource, $data = null) {
 
 try {
     // 1. Check availability (GET)
-    run_test('Integration: Check Availability', function() {
+    run_test('Integration: Check Availability', function () {
         $res = api_request('GET', 'availability');
         assert_equals(200, $res['code']);
         assert_array_has_key('data', $res['body']);
@@ -65,7 +67,7 @@ try {
 
     // 2. Create Appointment (POST)
     $apptDate = date('Y-m-d', strtotime('+2 days'));
-    run_test('Integration: Create Appointment', function() use ($apptDate) {
+    run_test('Integration: Create Appointment', function () use ($apptDate) {
         $payload = [
             'name' => 'Integration User',
             'email' => 'integration@example.com',
@@ -89,7 +91,7 @@ try {
     });
 
     // 3. Verify Slot Taken (GET booked-slots)
-    run_test('Integration: Verify Slot Taken', function() use ($apptDate) {
+    run_test('Integration: Verify Slot Taken', function () use ($apptDate) {
         global $baseUrl;
         // booked-slots needs date param
         $url = "$baseUrl?resource=booked-slots&date=$apptDate";
@@ -106,7 +108,7 @@ try {
 
     // 4. Verify Persistence (GET appointments - admin protected)
     // To test admin, we need session. Or we can just inspect the file directly since we have access to $dataDir.
-    run_test('Integration: Verify Persistence on Disk', function() use ($dataDir, $apptDate) {
+    run_test('Integration: Verify Persistence on Disk', function () use ($dataDir, $apptDate) {
         $file = $dataDir . '/store.sqlite';
         assert_true(file_exists($file), 'Store file should exist');
 

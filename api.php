@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
@@ -503,8 +504,12 @@ if ($resource === 'metrics') {
     $serviceCounts = [];
     foreach ($store['appointments'] as $appt) {
         $svc = $appt['service'] ?? 'unknown';
-        if ($svc === '') $svc = 'unknown';
-        if (!isset($serviceCounts[$svc])) $serviceCounts[$svc] = 0;
+        if ($svc === '') {
+            $svc = 'unknown';
+        }
+        if (!isset($serviceCounts[$svc])) {
+            $serviceCounts[$svc] = 0;
+        }
         $serviceCounts[$svc]++;
     }
     foreach ($serviceCounts as $svc => $count) {
@@ -516,13 +521,17 @@ if ($resource === 'metrics') {
     $leadTimes = [];
     $now = time();
     foreach ($store['appointments'] as $appt) {
-        if (($appt['status'] ?? '') === 'cancelled') continue;
+        if (($appt['status'] ?? '') === 'cancelled') {
+            continue;
+        }
         $bookedAt = isset($appt['dateBooked']) ? strtotime($appt['dateBooked']) : false;
         $apptTime = strtotime(($appt['date'] ?? '') . ' ' . ($appt['time'] ?? ''));
         // Only consider bookings made in the last 30 days
         if ($bookedAt && $apptTime && $bookedAt > ($now - 30 * 86400)) {
             $lead = $apptTime - $bookedAt;
-            if ($lead > 0) $leadTimes[] = $lead;
+            if ($lead > 0) {
+                $leadTimes[] = $lead;
+            }
         }
     }
     if (count($leadTimes) > 0) {

@@ -3,7 +3,8 @@
 $baseUrl = 'http://localhost:8081/api.php';
 $authUrl = 'http://localhost:8081/admin-auth.php';
 
-function request($url, $method = 'GET', $data = [], $headers = [], $cookies = []) {
+function request($url, $method = 'GET', $data = [], $headers = [], $cookies = [])
+{
     $ch = curl_init();
     $queryParams = '';
     if ($method === 'GET' && !empty($data)) {
@@ -160,9 +161,9 @@ if (empty($cookies)) {
     $headers = ['X-CSRF-Token: ' . $csrfToken];
     $res = request($baseUrl . '?resource=import', 'POST', ['appointments' => []], $headers, $cookies);
     if ($res['code'] === 200) {
-         echo "[PASS] Authenticated request with CSRF token succeeded.\n";
+        echo "[PASS] Authenticated request with CSRF token succeeded.\n";
     } else {
-         echo "[WARN] Authenticated request failed with code {$res['code']}. Body: {$res['body']}\n";
+        echo "[WARN] Authenticated request failed with code {$res['code']}. Body: {$res['body']}\n";
     }
 }
 

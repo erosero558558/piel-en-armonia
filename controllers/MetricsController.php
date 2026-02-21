@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -93,8 +94,12 @@ class MetricsController
         $serviceCounts = [];
         foreach ($store['appointments'] as $appt) {
             $svc = $appt['service'] ?? 'unknown';
-            if ($svc === '') $svc = 'unknown';
-            if (!isset($serviceCounts[$svc])) $serviceCounts[$svc] = 0;
+            if ($svc === '') {
+                $svc = 'unknown';
+            }
+            if (!isset($serviceCounts[$svc])) {
+                $serviceCounts[$svc] = 0;
+            }
             $serviceCounts[$svc]++;
         }
         return $serviceCounts;
@@ -109,7 +114,9 @@ class MetricsController
         $now = time();
 
         foreach ($store['appointments'] as $appt) {
-            if (($appt['status'] ?? '') === 'cancelled') continue;
+            if (($appt['status'] ?? '') === 'cancelled') {
+                continue;
+            }
 
             $bookedAt = isset($appt['dateBooked']) ? strtotime($appt['dateBooked']) : false;
             $apptTime = strtotime(($appt['date'] ?? '') . ' ' . ($appt['time'] ?? ''));
@@ -117,7 +124,9 @@ class MetricsController
             // Only consider bookings made in the last 30 days
             if ($bookedAt && $apptTime && $bookedAt > ($now - 30 * 86400)) {
                 $lead = $apptTime - $bookedAt;
-                if ($lead > 0) $leadTimes[] = $lead;
+                if ($lead > 0) {
+                    $leadTimes[] = $lead;
+                }
             }
         }
 

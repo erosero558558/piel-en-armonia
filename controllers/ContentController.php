@@ -1,8 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
-class ContentController {
-    public static function get(array $context): void {
+class ContentController
+{
+    public static function get(array $context): void
+    {
         $lang = isset($_GET['lang']) ? trim((string)$_GET['lang']) : 'es';
         if (!in_array($lang, ['es', 'en'], true)) {
             $lang = 'es';

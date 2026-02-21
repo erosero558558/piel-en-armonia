@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\GraphQL;
@@ -145,12 +146,12 @@ class Types
 
     public static function featureFlag(): ObjectType
     {
-         return self::$featureFlag ?: (self::$featureFlag = new ObjectType([
-            'name' => 'FeatureFlag',
-            'fields' => [
-                'name' => Type::string(),
-                'enabled' => Type::boolean(),
-            ]
+        return self::$featureFlag ?: (self::$featureFlag = new ObjectType([
+           'name' => 'FeatureFlag',
+           'fields' => [
+               'name' => Type::string(),
+               'enabled' => Type::boolean(),
+           ]
         ]));
     }
 

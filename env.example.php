@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Ejemplo de configuración de Piel en Armonía.
  * Copia este archivo como env.php y completa los valores.

@@ -1,9 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/features.php';
 
-function assert_true($condition, $message = '') {
+function assert_true($condition, $message = '')
+{
     if ($condition !== true) {
         echo "FAIL: $message\n";
         exit(1);
@@ -11,7 +13,8 @@ function assert_true($condition, $message = '') {
     echo "PASS: $message\n";
 }
 
-function assert_false($condition, $message = '') {
+function assert_false($condition, $message = '')
+{
     if ($condition !== false) {
         echo "FAIL: $message\n";
         exit(1);

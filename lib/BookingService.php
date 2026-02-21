@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/business.php';
@@ -224,7 +225,7 @@ class BookingService
             $excludeId = (int) ($appt['id'] ?? 0);
 
             // Availability check
-             $availableSlots = isset($store['availability'][$newDate]) && is_array($store['availability'][$newDate])
+            $availableSlots = isset($store['availability'][$newDate]) && is_array($store['availability'][$newDate])
             ? $store['availability'][$newDate]
             : [];
             if (count($availableSlots) > 0 && !in_array($newTime, $availableSlots, true)) {

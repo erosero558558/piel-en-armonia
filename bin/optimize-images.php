@@ -1,4 +1,5 @@
 <?php
+
 // bin/optimize-images.php
 // Script to generate responsive WebP images and LQIP placeholders.
 
@@ -24,7 +25,8 @@ if (!is_dir($target_dir)) {
     mkdir($target_dir, 0755, true);
 }
 
-function get_target_widths($filename, $config) {
+function get_target_widths($filename, $config)
+{
     foreach ($config as $prefix => $widths) {
         // Check if filename starts with prefix (handling wildcards like service-)
         $clean_prefix = rtrim($prefix, '-');
@@ -35,7 +37,8 @@ function get_target_widths($filename, $config) {
     return [];
 }
 
-function optimize_image($file_path, $target_dir, $target_widths) {
+function optimize_image($file_path, $target_dir, $target_widths)
+{
     $info = getimagesize($file_path);
     if (!$info) {
         // Not a valid image
@@ -102,7 +105,9 @@ function optimize_image($file_path, $target_dir, $target_widths) {
 
     // Generate WebP Resized Variants
     foreach ($target_widths as $target_width) {
-        if ($target_width >= $width) continue; // Skip upscaling
+        if ($target_width >= $width) {
+            continue;
+        } // Skip upscaling
 
         $new_height = (int)($height * ($target_width / $width));
         $new_image = imagecreatetruecolor($target_width, $new_height);
@@ -129,11 +134,15 @@ function optimize_image($file_path, $target_dir, $target_widths) {
 echo "Starting image optimization...\n";
 
 foreach ($source_dirs as $dir) {
-    if (!is_dir($dir)) continue;
+    if (!is_dir($dir)) {
+        continue;
+    }
 
     $files = scandir($dir);
     foreach ($files as $file) {
-        if ($file === '.' || $file === '..') continue;
+        if ($file === '.' || $file === '..') {
+            continue;
+        }
 
         $path = $dir . '/' . $file;
         $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));

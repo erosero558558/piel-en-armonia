@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../api-lib.php';
 require_once __DIR__ . '/../figo-brain.php';
 

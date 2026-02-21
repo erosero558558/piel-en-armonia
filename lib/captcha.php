@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 function captcha_verify_token(string $token): bool
@@ -43,7 +44,7 @@ function captcha_verify_token(string $token): bool
 
         $success = isset($json['success']) && $json['success'] === true;
         if (!$success) {
-             error_log('CAPTCHA verification failed: ' . json_encode($json));
+            error_log('CAPTCHA verification failed: ' . json_encode($json));
         }
 
         // Para reCAPTCHA v3, tambien deberiamos verificar el score y la accion

@@ -1,4 +1,5 @@
 <?php
+
 // tests/test-indexing.php
 
 // Mock the environment

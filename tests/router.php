@@ -1,4 +1,5 @@
 <?php
+
 // Router for PHP built-in server during tests
 
 // Skip if run in CLI (this file is not a unit test)

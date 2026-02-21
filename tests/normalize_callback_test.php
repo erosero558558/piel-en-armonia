@@ -1,8 +1,10 @@
 <?php
+
 // tests/normalize_callback_test.php
 require_once __DIR__ . '/../api-lib.php';
 
-function assert_equals($expected, $actual, $message) {
+function assert_equals($expected, $actual, $message)
+{
     if ($expected !== $actual) {
         echo "FAIL: $message\n";
         echo "Expected: " . json_encode($expected) . "\n";
@@ -13,7 +15,8 @@ function assert_equals($expected, $actual, $message) {
     }
 }
 
-function test_strlen(string $value): int {
+function test_strlen(string $value): int
+{
     if (function_exists('mb_strlen')) {
         return (int) mb_strlen($value, 'UTF-8');
     }
