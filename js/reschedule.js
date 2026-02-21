@@ -9,9 +9,7 @@ import {
     invalidateBookedSlotsCache,
 } from './data.js';
 
-const RESCHEDULE_GATEWAY_ENGINE_URL = withDeployAssetVersion(
-    '/reschedule-gateway-engine.js?v=figo-reschedule-gateway-20260219-phase1'
-);
+const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
 
 function getRescheduleEngineDeps() {
     return {
@@ -28,16 +26,16 @@ function getRescheduleEngineDeps() {
 
 export function loadRescheduleEngine() {
     return loadDeferredModule({
-        cacheKey: 'reschedule-gateway-engine',
-        src: RESCHEDULE_GATEWAY_ENGINE_URL,
-        scriptDataAttribute: 'data-reschedule-gateway-engine',
-        resolveModule: () => window.PielRescheduleGatewayEngine,
+        cacheKey: 'booking-utils',
+        src: BOOKING_UTILS_URL,
+        scriptDataAttribute: 'data-booking-utils',
+        resolveModule: () => window.PielRescheduleEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getRescheduleEngineDeps()),
-        missingApiError: 'reschedule-gateway-engine loaded without API',
-        loadError: 'No se pudo cargar reschedule-gateway-engine.js',
-        logLabel: 'Reschedule gateway engine',
+        missingApiError: 'reschedule-engine loaded without API',
+        loadError: 'No se pudo cargar booking-utils.js (reschedule)',
+        logLabel: 'Reschedule engine',
     });
 }
 
