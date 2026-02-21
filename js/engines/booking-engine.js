@@ -1,5 +1,5 @@
-window.Piel = window.Piel || {};
-window.Piel.BookingEngine = (function () {
+this.Piel = this.Piel || {};
+this.Piel.BookingEngine = (function () {
     'use strict';
 
     // build-sync: 20260219-sync1

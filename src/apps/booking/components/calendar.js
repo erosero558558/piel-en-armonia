@@ -11,6 +11,14 @@ export function initCalendar() {
     }
 }
 
+function getDefaultTimeSlots() {
+    return [
+        '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+        '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
+        '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'
+    ];
+}
+
 export async function updateAvailableTimes(deps, elements) {
     const { dateInput, timeSelect, doctorSelect, t } = elements;
 
@@ -21,7 +29,7 @@ export async function updateAvailableTimes(deps, elements) {
     const availability = await deps.loadAvailabilityData();
     const bookedSlots = await deps.getBookedSlots(selectedDate, selectedDoctor);
     const availableSlots =
-        availability[selectedDate] || deps.getDefaultTimeSlots();
+        availability[selectedDate] || getDefaultTimeSlots();
     const isToday = selectedDate === new Date().toISOString().split('T')[0];
     const nowMinutes = isToday
         ? new Date().getHours() * 60 + new Date().getMinutes()

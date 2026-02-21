@@ -93,6 +93,16 @@ export default [
         },
         plugins: [resolve()]
     },
+    // Data Engine
+    {
+        input: 'src/apps/data/engine.js',
+        output: {
+            file: 'js/engines/data-engine.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
     // Data Bundle
     {
         input: 'src/bundles/data.js',
