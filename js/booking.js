@@ -244,7 +244,6 @@ function getBookingUiDeps() {
         normalizeAnalyticsLabel,
         openPaymentModal,
         setCurrentAppointment: setCurrentAppointment,
-        updateAvailableTimes, // Added dependency
     };
 }
 
