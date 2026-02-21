@@ -319,12 +319,31 @@ function loadFallbackState() {
     setFunnelMetrics(getEmptyFunnelMetrics());
 }
 
-async function refreshData() {
-    try {
-        const [payload, funnelPayload] = await Promise.all([
-            apiRequest('data'),
-            apiRequest('funnel-metrics').catch(() => null)
-        ]);
+    function saveLocalData(key, data) {
+        try {
+            localStorage.setItem(key, JSON.stringify(data));
+        } catch (error) {
+            // storage quota full or disabled
+        }
+    }
+
+    function getEmptyFunnelMetrics() {
+        return {
+            summary: {
+                viewBooking: 0,
+                startCheckout: 0,
+                bookingConfirmed: 0,
+                checkoutAbandon: 0,
+                startRatePct: 0,
+                confirmedRatePct: 0,
+                abandonRatePct: 0
+            },
+            checkoutAbandonByStep: [],
+            checkoutEntryBreakdown: [],
+            paymentMethodBreakdown: [],
+            bookingStepBreakdown: []
+        };
+    }
 
         const data = payload.data || {};
         setAppointments(Array.isArray(data.appointments) ? data.appointments : []);
@@ -335,8 +354,235 @@ async function refreshData() {
         setReviews(Array.isArray(data.reviews) ? data.reviews : []);
         setAvailability(data.availability && typeof data.availability === 'object' ? data.availability : {});
 
-        if (funnelPayload && funnelPayload.data && typeof funnelPayload.data === 'object') {
-            setFunnelMetrics(funnelPayload.data);
+    async function refreshData() {
+        try {
+            const [payload, funnelPayload] = await Promise.all([
+                apiRequest('data'),
+                apiRequest('funnel-metrics').catch(() => null)
+            ]);
+
+            const data = payload.data || {};
+            currentAppointments = Array.isArray(data.appointments) ? data.appointments : [];
+            currentCallbacks = Array.isArray(data.callbacks) ? data.callbacks.map(c => ({
+                ...c,
+                status: normalizeCallbackStatus(c.status)
+            })) : [];
+            currentReviews = Array.isArray(data.reviews) ? data.reviews : [];
+            currentAvailability = data.availability && typeof data.availability === 'object' ? data.availability : {};
+
+            if (funnelPayload && funnelPayload.data && typeof funnelPayload.data === 'object') {
+                currentFunnelMetrics = funnelPayload.data;
+            } else {
+                currentFunnelMetrics = getEmptyFunnelMetrics();
+            }
+
+            saveLocalData('appointments', currentAppointments);
+            saveLocalData('callbacks', currentCallbacks);
+            saveLocalData('reviews', currentReviews);
+            saveLocalData('availability', currentAvailability);
+        } catch (error) {
+            loadFallbackState();
+            showToast('No se pudo conectar al backend. Usando datos locales.', 'warning');
+        }
+    }
+
+    function showLogin() {
+        const loginScreen = document.getElementById('loginScreen');
+        const dashboard = document.getElementById('adminDashboard');
+        if (loginScreen) loginScreen.classList.remove('is-hidden');
+        if (dashboard) dashboard.classList.add('is-hidden');
+    }
+
+    async function showDashboard() {
+        const loginScreen = document.getElementById('loginScreen');
+        const dashboard = document.getElementById('adminDashboard');
+        if (loginScreen) loginScreen.classList.add('is-hidden');
+        if (dashboard) dashboard.classList.remove('is-hidden');
+        updateDate();
+        await refreshData();
+        loadDashboardData();
+        renderCurrentSection();
+    }
+
+    async function checkAuth() {
+        try {
+            if (!navigator.onLine) {
+                const cached = getLocalData('appointments', null);
+                if (cached) {
+                    showToast('Modo Offline: Mostrando datos locales', 'info');
+                    await showDashboard();
+                    return;
+                }
+            }
+
+            const payload = await authRequest('status');
+            if (payload.authenticated) {
+                if (payload.csrfToken) csrfToken = payload.csrfToken;
+                await showDashboard();
+            } else {
+                showLogin();
+            }
+        } catch (error) {
+            if (getLocalData('appointments', null)) {
+                showToast('Error de conexión. Mostrando datos locales.', 'warning');
+                await showDashboard();
+                return;
+            }
+            showLogin();
+            showToast('No se pudo verificar la sesion', 'warning');
+        }
+    }
+
+    async function logout() {
+        try {
+            await authRequest('logout', { method: 'POST' });
+        } catch (error) {
+            // Continue with local logout UI.
+        }
+        showToast('Sesion cerrada correctamente', 'info');
+        setTimeout(() => window.location.reload(), 800);
+    }
+
+    function updateDate() {
+        const dateEl = document.getElementById('currentDate');
+        if (!dateEl) return;
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        dateEl.textContent = new Date().toLocaleDateString('es-EC', options);
+    }
+
+    function getServiceName(service) {
+        const names = {
+            consulta: 'Consulta Dermatológica',
+            telefono: 'Consulta Telefónica',
+            video: 'Video Consulta',
+            laser: 'Tratamiento Láser',
+            rejuvenecimiento: 'Rejuvenecimiento'
+        };
+        return names[service] || service;
+    }
+
+    function getDoctorName(doctor) {
+        const names = {
+            rosero: 'Dr. Rosero',
+            narvaez: 'Dra. Narváez',
+            indiferente: 'Cualquiera disponible'
+        };
+        return names[doctor] || doctor;
+    }
+
+    function getStatusText(status) {
+        const texts = {
+            confirmed: 'Confirmada',
+            pending: 'Pendiente',
+            cancelled: 'Cancelada',
+            completed: 'Completada'
+        };
+        return texts[status] || status;
+    }
+
+    function getPaymentMethodText(method) {
+        const normalized = String(method || '').toLowerCase().trim();
+        const texts = {
+            card: 'Tarjeta',
+            transfer: 'Transferencia',
+            cash: 'Efectivo',
+            unpaid: 'Sin definir'
+        };
+        return texts[normalized] || (method || 'Sin definir');
+    }
+
+    function getPaymentStatusText(status) {
+        const normalized = String(status || '').toLowerCase().trim();
+        const texts = {
+            paid: 'Pagado',
+            pending_cash: 'Pago en consultorio',
+            pending_transfer: 'Transferencia pendiente',
+            pending_transfer_review: 'Comprobante por validar',
+            pending_gateway: 'Pago en proceso',
+            pending: 'Pendiente',
+            failed: 'Pago fallido'
+        };
+        return texts[normalized] || (status || 'Pendiente');
+    }
+
+    function getPreferenceText(pref) {
+        const texts = {
+            ahora: 'Lo antes posible',
+            '15min': 'En 15 minutos',
+            '30min': 'En 30 minutos',
+            '1hora': 'En 1 hora'
+        };
+        return texts[pref] || pref;
+    }
+
+    function formatDate(dateStr) {
+        const date = new Date(dateStr);
+        if (Number.isNaN(date.getTime())) return dateStr;
+        return date.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function sanitizePublicHref(url) {
+        const value = String(url || '').trim();
+        if (value === '') return '';
+        if (value.startsWith('/')) return value;
+        if (/^https?:\/\//i.test(value)) return value;
+        return '';
+    }
+
+    function loadDashboardData() {
+        document.getElementById('totalAppointments').textContent = currentAppointments.length;
+
+        const today = new Date().toISOString().split('T')[0];
+
+        const todayAppointments = [];
+        let pendingTransfers = 0;
+        let confirmedCount = 0;
+
+        // Optimized: Single pass over appointments
+        for (const a of currentAppointments) {
+            // Today appointments
+            if (a.date === today && a.status !== 'cancelled') {
+                todayAppointments.push(a);
+            }
+
+            // Pending transfers
+            if (a.paymentStatus === 'pending_transfer_review') {
+                pendingTransfers++;
+            }
+
+            // Confirmed count
+            const status = a.status || 'confirmed';
+            if (status === 'confirmed') {
+                confirmedCount++;
+            }
+        }
+
+        document.getElementById('todayAppointments').textContent = todayAppointments.length;
+
+        // Optimized: Single pass loop for callbacks
+        const pendingCallbacks = [];
+        for (const c of currentCallbacks) {
+            if (normalizeCallbackStatus(c.status) === 'pendiente') {
+                pendingCallbacks.push(c);
+            }
+        }
+        document.getElementById('pendingCallbacks').textContent = pendingCallbacks.length;
+
+        let avgRating = 0;
+        if (currentReviews.length > 0) {
+            avgRating = (currentReviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / currentReviews.length).toFixed(1);
+        }
+        document.getElementById('avgRating').textContent = avgRating;
+
+        document.getElementById('appointmentsBadge').textContent = pendingTransfers > 0
+            ? `${confirmedCount} (${pendingTransfers} por validar)`
+            : confirmedCount;
+        document.getElementById('callbacksBadge').textContent = pendingCallbacks.length;
+        document.getElementById('reviewsBadge').textContent = currentReviews.length;
+
+        const todayList = document.getElementById('todayAppointmentsList');
+        if (todayAppointments.length === 0) {
+            todayList.innerHTML = '<p class="empty-message">No hay citas para hoy</p>';
         } else {
             setFunnelMetrics(getEmptyFunnelMetrics());
         }
@@ -603,6 +849,98 @@ document.addEventListener('DOMContentLoaded', async function() {
             await refreshData();
             renderSection(this.dataset.section);
         });
+
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                // Check if 2FA mode is active
+                const is2FAMode = !document.getElementById('group2FA').classList.contains('is-hidden');
+
+                if (is2FAMode) {
+                    const code = document.getElementById('admin2FACode').value;
+                    try {
+                        const result = await authRequest('login-2fa', {
+                            method: 'POST',
+                            body: { code: code }
+                        });
+                        if (result.csrfToken) csrfToken = result.csrfToken;
+                        showToast('Bienvenido al panel de administracion', 'success');
+                        await showDashboard();
+                    } catch (error) {
+                        showToast('Código incorrecto o sesión expirada', 'error');
+                    }
+                } else {
+                    const password = document.getElementById('adminPassword').value;
+                    try {
+                        const loginResult = await authRequest('login', {
+                            method: 'POST',
+                            body: { password: password }
+                        });
+
+                        if (loginResult.twoFactorRequired) {
+                            // Switch to 2FA mode
+                            document.getElementById('passwordGroup').classList.add('is-hidden');
+                            document.getElementById('group2FA').classList.remove('is-hidden');
+                            document.getElementById('admin2FACode').focus();
+                            const btn = document.getElementById('loginBtn');
+                            btn.innerHTML = '<i class="fas fa-check"></i> Verificar';
+                            showToast('Ingresa tu código 2FA', 'info');
+                        } else {
+                            if (loginResult.csrfToken) csrfToken = loginResult.csrfToken;
+                            showToast('Bienvenido al panel de administracion', 'success');
+                            await showDashboard();
+                        }
+                    } catch (error) {
+                        showToast('Contraseña incorrecta', 'error');
+                    }
+                }
+            });
+        }
+
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', async function(e) {
+                e.preventDefault();
+                navItems.forEach(nav => nav.classList.remove('active'));
+                this.classList.add('active');
+                await refreshData();
+                renderSection(this.dataset.section);
+            });
+        });
+
+        const appointmentFilter = document.getElementById('appointmentFilter');
+        if (appointmentFilter) {
+            appointmentFilter.addEventListener('change', filterAppointments);
+        }
+
+        const searchInput = document.getElementById('searchAppointments');
+        if (searchInput) {
+            searchInput.addEventListener('input', searchAppointments);
+        }
+
+        const callbackFilter = document.getElementById('callbackFilter');
+        if (callbackFilter) {
+            callbackFilter.addEventListener('change', filterCallbacks);
+        }
+
+        const importFileInput = document.getElementById('importFileInput');
+        if (importFileInput) {
+            importFileInput.addEventListener('change', function() {
+                importData(importFileInput);
+            });
+        }
+
+        window.addEventListener('online', () => {
+            showToast('Conexión restaurada. Actualizando datos...', 'success');
+            refreshData().then(() => {
+                const activeItem = document.querySelector('.nav-item.active');
+                renderSection(activeItem?.dataset.section || 'dashboard');
+            });
+        });
+
+        checkAuth();
     });
 
     const importFileInput = document.getElementById('importFileInput');

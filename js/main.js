@@ -181,6 +181,14 @@ document.addEventListener('DOMContentLoaded', function () {
         initLowPriorityWarmups();
     };
 
+    const initDeferredWarmups = createOnceTask(() => {
+        if (initLowPriorityWarmups) {
+            initLowPriorityWarmups();
+        }
+        // Force booking UI warmup if not already done, as a fallback
+        initBookingUiWarmup();
+    });
+
     window.addEventListener('pointerdown', initDeferredWarmups, {
         once: true,
         passive: true,
@@ -295,6 +303,33 @@ document.addEventListener('DOMContentLoaded', function () {
         galleryObserver.observe(img);
     });
 })();
+
+// Offline/Online Sync
+window.addEventListener('online', () => {
+    // Refresh availability when connection returns
+    initBookingEngineWarmup();
+    initDataEngineWarmup();
+});
+
+// Push Notifications (Stub)
+window.subscribeToPushNotifications = async function() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.warn('Push not supported');
+        return;
+    }
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        // VAPID public key required here
+        const publicVapidKey = 'B...';
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: publicVapidKey
+        });
+        console.log('Push Subscription:', JSON.stringify(subscription));
+    } catch (error) {
+        console.error('Push subscription error:', error);
+    }
+};
 
 // Booking Calendar Lazy Init
 (function () {

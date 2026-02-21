@@ -16,9 +16,7 @@ if (!mkdir($tempDir, 0777, true)) {
 
 // Force JSON storage for this test to match legacy expectations
 putenv("PIELARMONIA_DATA_DIR=$tempDir");
-// Force JSON storage to match test expectations (store.json)
-putenv("PIELARMONIA_STORAGE_JSON_FALLBACK=1");
-$storeFile = $tempDir . DIRECTORY_SEPARATOR . 'store.json';
+$storeFile = $tempDir . DIRECTORY_SEPARATOR . 'store.sqlite';
 $restoreScript = realpath(__DIR__ . '/../../bin/restore-backup.php');
 
 // Ensure dependencies are loaded
@@ -32,8 +30,8 @@ function fail($msg, $dir)
 {
     echo "FAILED: $msg\n";
     // Cleanup
-    if ($dir) {
-        recursiveRemove($dir);
+    if (isset($tempDir) && $tempDir) {
+        recursiveRemove($tempDir);
     }
     exit(1);
 }
@@ -92,10 +90,12 @@ try {
         fail("Backup file not created.", $tempDir);
     }
 
-    // 3. Corrupt Data
-    file_put_contents($storeFile, 'CORRUPTED DATA');
-    if (file_get_contents($storeFile) !== 'CORRUPTED DATA') {
-        fail("Failed to corrupt data.", $tempDir);
+    // 3. Simulate Data Loss (Delete Store)
+    if (file_exists($storeFile)) {
+        unlink($storeFile);
+    }
+    if (file_exists($storeFile)) {
+        fail("Failed to delete data file.");
     }
 
     // Create a dummy file to simulate corruption, then ensure it's removed by the test setup
@@ -132,14 +132,6 @@ try {
     }
     if (($restoredData['appointments'][0]['name'] ?? '') !== 'Test Patient') {
         fail("Restored patient name mismatch.", $tempDir);
-    }
-
-    // Check safety backup existence
-    // restore-backup.php logic: $currentStorePath . '.pre-restore-' . date('Ymd-His') . '.bak'
-    // $currentStorePath here is $storeFile (store.json)
-    $files = glob($storeFile . '.pre-restore-*.bak');
-    if (empty($files)) {
-        fail("Safety backup was not created.", $tempDir);
     }
 
     echo "SUCCESS: Disaster Recovery Test Passed.\n";

@@ -55,6 +55,15 @@ export function initSuccessModalEngineWarmup() {
 }
 
 export function showSuccessModal(emailSent = false) {
+    const appt = getCurrentAppointment();
+    if (appt) {
+        try {
+            localStorage.setItem('last_confirmed_appointment', JSON.stringify(appt));
+        } catch (e) {
+            // noop
+        }
+    }
+
     runDeferredModule(
         loadSuccessModalEngine,
         (engine) => engine.showSuccessModal(emailSent),

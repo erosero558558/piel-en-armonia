@@ -147,8 +147,31 @@ async function getFunnelEvents(page) {
 }
 
 async function fillBookingFormAndOpenPayment(page) {
-    // ActionRouterEngine is now in data-bundle.js
     await page.waitForSelector('script[data-data-bundle="true"]', {
+        timeout: 10000,
+        state: 'attached',
+    });
+
+    // Scroll to trigger lazy loading if needed
+    const bookingSection = page.locator('#citas');
+    await bookingSection.scrollIntoViewIfNeeded();
+
+    // Trigger focusin to force-start warmup if observer is slow
+    await page.evaluate(() => {
+        const form = document.getElementById('appointmentForm');
+        if (form) form.dispatchEvent(new Event('focusin', { bubbles: true }));
+
+        // Force load explicitly if warmup is delayed
+        if (window.PielBookingEngine && typeof window.PielBookingEngine.loadBookingUi === 'function') {
+             window.PielBookingEngine.loadBookingUi();
+        } else if (window.loadDeferredModule) {
+             // Fallback if main bundle not fully exposed globally
+             const event = new Event('pointerdown');
+             window.dispatchEvent(event);
+        }
+    });
+
+    await page.waitForSelector('script[data-booking-ui="true"]', {
         timeout: 10000,
         state: 'attached',
     });
@@ -427,7 +450,6 @@ test.describe('Tracking del embudo de conversion', () => {
     test('emite chat_started y paso inicial al iniciar reserva desde chatbot', async ({
         page,
     }) => {
-        // ActionRouterEngine is now in data-bundle.js
         await page.waitForSelector('script[data-data-bundle="true"]', {
             timeout: 10000,
             state: 'attached',

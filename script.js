@@ -1360,6 +1360,15 @@
     }
 
     function showSuccessModal(emailSent = false) {
+        const appt = getCurrentAppointment();
+        if (appt) {
+            try {
+                localStorage.setItem('last_confirmed_appointment', JSON.stringify(appt));
+            } catch (e) {
+                // noop
+            }
+        }
+
         runDeferredModule(
             loadSuccessModalEngine,
             (engine) => engine.showSuccessModal(emailSent),
@@ -1744,7 +1753,7 @@
             cacheKey: 'ui-effects',
             src: UI_BUNDLE_URL$1,
             scriptDataAttribute: 'data-ui-bundle',
-            resolveModule: () => window.Piel && window.Piel.UiEffects,
+            resolveModule: () => window.PielUiEffects,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(),
@@ -1796,7 +1805,7 @@
             cacheKey: 'modal-ux-engine',
             src: UI_BUNDLE_URL$1,
             scriptDataAttribute: 'data-ui-bundle',
-            resolveModule: () => window.Piel && window.Piel.ModalUxEngine,
+            resolveModule: () => window.PielModalUxEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getModalUxEngineDeps()),
@@ -2438,7 +2447,7 @@
             cacheKey: 'gallery-interactions',
             src: GALLERY_INTERACTIONS_URL,
             scriptDataAttribute: 'data-gallery-interactions',
-            resolveModule: () => window.Piel && window.Piel.GalleryInteractions,
+            resolveModule: () => window.PielGalleryInteractions,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(),
@@ -2471,50 +2480,6 @@
             return;
         }
         scheduleDeferredTask(warmup, { idleTimeout: 2500, fallbackDelay: 1500 });
-    }
-
-    const CONTENT_JSON_URL = withDeployAssetVersion('/content/index.json');
-
-    function hydrateDeferredText(container) {
-        if (!window.PIEL_CONTENT) return;
-        const nodes = container.querySelectorAll('[data-i18n]');
-        nodes.forEach((node) => {
-            const key = node.getAttribute('data-i18n');
-            if (window.PIEL_CONTENT[key]) {
-                if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA') {
-                    node.placeholder = window.PIEL_CONTENT[key];
-                } else {
-                    node.innerHTML = window.PIEL_CONTENT[key];
-                }
-            }
-        });
-    }
-
-    async function loadDeferredContent() {
-        try {
-            const response = await fetch(CONTENT_JSON_URL);
-            if (!response.ok) {
-                throw new Error(`Failed to load content: ${response.status}`);
-            }
-            const data = await response.json();
-
-            Object.keys(data).forEach((id) => {
-                const container = document.getElementById(id);
-                if (container && container.classList.contains('deferred-content')) {
-                    container.innerHTML = data[id];
-                    container.classList.remove('deferred-content'); // Optional cleanup
-                    hydrateDeferredText(container);
-                } else if (!container) {
-                    debugLog(`Warning: Container #${id} not found for deferred content.`);
-                }
-            });
-
-            debugLog('Deferred content loaded and hydrated.');
-            return true;
-        } catch (error) {
-            console.error('Error loading deferred content:', error);
-            return false;
-        }
     }
 
     // Setup global version
@@ -2658,10 +2623,25 @@
             initModalUxEngineWarmup();
         });
 
-        const initDeferredWarmups = () => {
-            initHighPriorityWarmups();
-            initLowPriorityWarmups();
-        };
+        const initLowPriorityWarmups = createOnceTask(() => {
+            initReviewsEngineWarmup();
+            initGalleryInteractionsWarmup();
+            initChatEngineWarmup();
+            initChatBookingEngineWarmup();
+            initUiEffectsWarmup();
+            initRescheduleEngineWarmup();
+            initSuccessModalEngineWarmup();
+            initEngagementFormsEngineWarmup();
+            initModalUxEngineWarmup();
+        });
+
+        const initDeferredWarmups = createOnceTask(() => {
+            if (initLowPriorityWarmups) {
+                initLowPriorityWarmups();
+            }
+            // Force booking UI warmup if not already done, as a fallback
+            initBookingUiWarmup();
+        });
 
         window.addEventListener('pointerdown', initDeferredWarmups, {
             once: true,
@@ -2789,6 +2769,33 @@
             galleryObserver.observe(img);
         });
     })();
+
+    // Offline/Online Sync
+    window.addEventListener('online', () => {
+        // Refresh availability when connection returns
+        initBookingEngineWarmup();
+        initDataEngineWarmup();
+    });
+
+    // Push Notifications (Stub)
+    window.subscribeToPushNotifications = async function() {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            console.warn('Push not supported');
+            return;
+        }
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            // VAPID public key required here
+            const publicVapidKey = 'B...';
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: publicVapidKey
+            });
+            console.log('Push Subscription:', JSON.stringify(subscription));
+        } catch (error) {
+            console.error('Push subscription error:', error);
+        }
+    };
 
     // Booking Calendar Lazy Init
     (function () {

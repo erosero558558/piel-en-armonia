@@ -1,12 +1,15 @@
-const CACHE_NAME = 'pielarmonia-v6-20260221-mobileblankfix2';
+const CACHE_NAME = 'pielarmonia-v5-20260220-offline-enhancement';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/telemedicina.html',
-    '/styles-deferred.css?v=ui-20260221-deferred17-mobileblankfix2',
-    '/bootstrap-inline-engine.js?v=figo-bootstrap-20260221-mobileblankfix2',
-    '/script.js?v=figo-20260221-phase7-mobileblankfix2',
-    '/images/optimized/hero-woman.jpg',
+    '/admin.html',
+    '/admin.css',
+    '/admin.js',
+    '/styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1',
+    '/bootstrap-inline-engine.js?v=figo-bootstrap-20260220-cachecoherence1',
+    '/script.js?v=figo-20260220-phase6-cachecoherence1',
+    '/hero-woman.jpg',
     '/favicon.ico',
     '/manifest.json',
     '/images/icon-192.png',
@@ -152,4 +155,31 @@ self.addEventListener('fetch', (event) => {
     }
 
     event.respondWith(fetch(request));
+});
+
+self.addEventListener('sync', (event) => {
+    if (event.tag === 'sync-appointments') {
+        // Placeholder for background sync
+        console.log('Syncing appointments in background...');
+    }
+});
+
+self.addEventListener('push', (event) => {
+    const data = event.data ? event.data.json() : {};
+    const title = data.title || 'Piel en Armonía';
+    const options = {
+        body: data.body || 'Tienes una nueva notificación.',
+        icon: '/images/icon-192.png',
+        badge: '/images/icon-192.png',
+        data: data.url || '/'
+    };
+
+    event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    event.waitUntil(
+        clients.openWindow(event.notification.data)
+    );
 });
