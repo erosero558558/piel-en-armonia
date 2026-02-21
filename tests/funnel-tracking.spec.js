@@ -64,6 +64,14 @@ async function mockApi(page) {
             return jsonResponse(route, { ok: true, paid: true });
         }
 
+        if (url.hostname === 'js.stripe.com') {
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/javascript',
+                body: 'window.Stripe = () => ({ elements: () => ({ create: () => ({ mount: () => {}, on: () => {} }) }) });',
+            });
+        }
+
         if (resource === 'transfer-proof') {
             return jsonResponse(route, {
                 ok: true,
@@ -140,7 +148,6 @@ async function getFunnelEvents(page) {
 }
 
 async function fillBookingFormAndOpenPayment(page) {
-    // Action router engine is now in data-bundle
     await page.waitForSelector('script[data-data-bundle="true"]', {
         timeout: 10000,
         state: 'attached',
@@ -256,6 +263,15 @@ async function fillBookingFormAndOpenPayment(page) {
 
 test.describe('Tracking del embudo de conversion', () => {
     test.beforeEach(async ({ page }) => {
+        page.on('console', msg => {
+            if (msg.type() === 'error') {
+                console.log(`[Browser Console Error] ${msg.text()}`);
+            }
+        });
+        page.on('pageerror', err => {
+            console.log(`[Browser Page Error] ${err.message}`);
+        });
+
         await page.addInitScript(() => {
             localStorage.setItem(
                 'pa_cookie_consent_v1',

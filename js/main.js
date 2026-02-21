@@ -197,17 +197,11 @@ document.addEventListener('DOMContentLoaded', function () {
             initChatWidgetEngineWarmup();
         });
 
-        const initLowPriorityWarmups = createOnceTask(() => {
-            initReviewsEngineWarmup();
-            initGalleryInteractionsWarmup();
-            initChatEngineWarmup();
-            initChatBookingEngineWarmup();
-            initUiEffectsWarmup();
-            initRescheduleEngineWarmup();
-            initSuccessModalEngineWarmup();
-            initEngagementFormsEngineWarmup();
-            initModalUxEngineWarmup();
-        });
+    window.addEventListener('pointerdown', initLowPriorityWarmups, {
+        once: true,
+        passive: true,
+    });
+    window.addEventListener('keydown', initLowPriorityWarmups, { once: true });
 
         window.addEventListener('pointerdown', initLowPriorityWarmups, {
             once: true,

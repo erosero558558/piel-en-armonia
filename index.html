@@ -1810,19 +1810,64 @@
                 }
             }
         </style>
-        <link rel="preload" as="style" href="styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1">
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-        <link rel="preconnect" href="https://js.stripe.com">
-        <link rel="dns-prefetch" href="https://browser.sentry-cdn.com">
-        <link rel="dns-prefetch" href="https://www.google-analytics.com">
-        <link rel="dns-prefetch" href="https://www.googletagmanager.com">
-        <link rel="dns-prefetch" href="https://www.google.com">
-        <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-        <link rel="preload" as="image" href="images/optimized/hero-woman-1344.webp" imagesrcset="images/optimized/hero-woman-640.webp 640w, images/optimized/hero-woman-1024.webp 1024w, images/optimized/hero-woman-1344.webp 1344w" imagesizes="100vw" fetchpriority="high">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link
+            rel="preload"
+            as="style"
+            href="styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1"
+        />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            rel="preconnect"
+            href="https://cdnjs.cloudflare.com"
+            crossorigin
+        />
+        <link rel="preconnect" href="https://js.stripe.com" />
+        <link rel="dns-prefetch" href="https://browser.sentry-cdn.com" />
+        <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://www.google.com" />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            rel="preload"
+            as="image"
+            href="images/optimized/hero-woman-1344.webp"
+            imagesrcset="images/optimized/hero-woman-640.webp 640w, images/optimized/hero-woman-1024.webp 1024w, images/optimized/hero-woman-1344.webp 1344w"
+            imagesizes="100vw"
+            fetchpriority="high"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        />
+        <link
+            rel="modulepreload"
+            href="/js/engines/ui-bundle.js?v=20260220-consolidated1&cv=figo-20260220-phase6-cachecoherence1"
+        />
+        <link
+            rel="modulepreload"
+            href="/js/engines/data-bundle.js?v=20260220-consolidated1&cv=figo-20260220-phase6-cachecoherence1"
+        />
+        <link
+            rel="modulepreload"
+            href="/data-engine.js?v=figo-data-20260219-phase1&cv=figo-20260220-phase6-cachecoherence1"
+        />
+        <link
+            rel="modulepreload"
+            href="/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1&cv=figo-20260220-phase6-cachecoherence1"
+        />
         <script src="js/monitoring-loader.js" async></script>
+        <script
+            src="bootstrap-inline-engine.js?v=figo-bootstrap-20260220-cachecoherence1"
+            defer
+        ></script>
+        <script
+            src="script.js?v=figo-20260220-phase6-cachecoherence1"
+            defer
+        ></script>
     </head>
     <body>
         <!-- Language Selector -->
@@ -2100,8 +2145,41 @@
         <!-- Review Modal -->
         <div class="modal deferred-content" id="reviewModal"></div>
 
-        <div class="cookie-banner deferred-content" id="cookieBanner" role="dialog" aria-live="polite" aria-label="Preferencias de cookies"></div>
-        <script src="bootstrap-inline-engine.js?v=figo-bootstrap-20260220-cachecoherence1" defer></script>
-        <script src="script.js?v=figo-20260220-phase6-cachecoherence1" defer></script>
+        <div
+            class="cookie-banner"
+            id="cookieBanner"
+            role="dialog"
+            aria-live="polite"
+            aria-label="Preferencias de cookies"
+        >
+            <p class="cookie-text" data-i18n="cookie_banner_text">
+                Usamos cookies esenciales para seguridad y funcionamiento.
+                Puedes aceptar o rechazar cookies opcionales.
+            </p>
+            <div class="cookie-actions">
+                <button
+                    type="button"
+                    class="btn btn-secondary cookie-btn"
+                    id="cookieRejectBtn"
+                    data-i18n="cookie_reject"
+                >
+                    Rechazar
+                </button>
+                <button
+                    type="button"
+                    class="btn btn-primary cookie-btn"
+                    id="cookieAcceptBtn"
+                    data-i18n="cookie_accept"
+                >
+                    Aceptar
+                </button>
+                <a
+                    href="cookies.html"
+                    class="cookie-link"
+                    data-i18n="cookie_more"
+                    >Más información</a
+                >
+            </div>
+        </div>
     </body>
 </html>
