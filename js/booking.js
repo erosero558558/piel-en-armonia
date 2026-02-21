@@ -227,7 +227,6 @@ export async function updateAvailableTimes(elements) {
 // BOOKING UI
 function getBookingUiDeps() {
     return {
-        updateAvailableTimes,
         loadAvailabilityData,
         updateAvailableTimes,
         getBookedSlots,
@@ -247,7 +246,6 @@ function getBookingUiDeps() {
         normalizeAnalyticsLabel,
         openPaymentModal,
         setCurrentAppointment: setCurrentAppointment,
-        updateAvailableTimes,
     };
 }
 
