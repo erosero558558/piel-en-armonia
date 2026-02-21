@@ -32,7 +32,7 @@ function fail($msg)
 
 function recursiveRemove($dir)
 {
-    if (!is_dir($dir)) {
+    if (!is_string($dir) || $dir === '' || !is_dir($dir)) {
         return;
     }
     $files = new RecursiveIteratorIterator(
