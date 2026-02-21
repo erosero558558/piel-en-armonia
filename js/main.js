@@ -30,7 +30,7 @@ import {
     initChatBookingEngineWarmup,
     handleChatKeypress,
     checkServerEnvironment,
-} from './chat.js';
+} from '../src/apps/chat/shell.js';
 import { initUiEffectsWarmup, initModalUxEngineWarmup } from './ui.js';
 import { initRescheduleEngineWarmup } from './reschedule.js';
 import { initSuccessModalEngineWarmup } from './success-modal.js';
