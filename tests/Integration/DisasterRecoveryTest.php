@@ -14,6 +14,9 @@ if (!mkdir($tempDir, 0777, true)) {
 }
 
 putenv("PIELARMONIA_DATA_DIR=$tempDir");
+// Force JSON fallback because this test expects store.json manipulation
+putenv("PIELARMONIA_STORAGE_JSON_FALLBACK=true");
+
 $storeFile = $tempDir . DIRECTORY_SEPARATOR . 'store.json';
 $restoreScript = realpath(__DIR__ . '/../../bin/restore-backup.php');
 
@@ -88,7 +91,7 @@ try {
     // 4. Restore using CLI script
     // We use --force to skip confirmation
     $cmd = sprintf(
-        'PIELARMONIA_DATA_DIR=%s php %s %s --force',
+        'PIELARMONIA_DATA_DIR=%s PIELARMONIA_STORAGE_JSON_FALLBACK=true php %s %s --force',
         escapeshellarg($tempDir),
         escapeshellarg($restoreScript),
         escapeshellarg($backupPath)

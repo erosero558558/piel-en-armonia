@@ -6,7 +6,7 @@ export default [
         input: 'src/apps/booking/ui-entry.js',
         output: {
             file: 'booking-ui.js',
-            format: 'iife',
+            format: 'es', // Changed to ESM
             sourcemap: false,
             paths: {
                 'booking-calendar-lazy': './js/booking-calendar.js',
