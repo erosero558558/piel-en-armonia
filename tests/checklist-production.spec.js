@@ -112,6 +112,12 @@ test.describe('Checklist de Pruebas en Producción', () => {
         request,
     }) => {
         await skipIfPhpRuntimeMissing(test, request);
+        if (!process.env.PIELARMONIA_ADMIN_PASSWORD) {
+            test.skip(
+                true,
+                'PIELARMONIA_ADMIN_PASSWORD no está definido para validar login exitoso en producción.'
+            );
+        }
         await page.goto('/admin.html');
 
         // Login correcto

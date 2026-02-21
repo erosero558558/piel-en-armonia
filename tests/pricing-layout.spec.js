@@ -4,6 +4,10 @@ const { test, expect } = require('@playwright/test');
 async function openPricingSection(page, viewport) {
     await page.setViewportSize(viewport);
     await page.goto('/');
+    await page
+        .locator('#tarifario .pricing-container')
+        .first()
+        .waitFor({ state: 'visible', timeout: 15000 });
     await page.evaluate(() => {
         const target = document.getElementById('tarifario');
         if (target) {
