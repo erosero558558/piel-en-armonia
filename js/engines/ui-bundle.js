@@ -615,40 +615,49 @@ END:VCALENDAR`;
         }
     }
 
-    function bindCookieButtons(acceptBtn, rejectBtn, banner) {
-        if (acceptBtn && !acceptBtn.dataset.cookieBound) {
-            acceptBtn.dataset.cookieBound = 'true';
-            acceptBtn.addEventListener('click', () => {
-                setCookieConsent('accepted');
-                setBannerActiveState(banner, false);
-                showToastSafe(
-                    getCurrentLang() === 'es'
-                        ? 'Preferencias de cookies guardadas.'
-                        : 'Cookie preferences saved.',
-                    'success'
-                );
-                initGA4();
-                trackEventSafe('cookie_consent_update', { status: 'accepted' });
-            });
-        }
+    function handleConsentAction(action) {
+        const banner = document.getElementById('cookieBanner');
+        if (!banner) return;
 
-        if (rejectBtn && !rejectBtn.dataset.cookieBound) {
-            rejectBtn.dataset.cookieBound = 'true';
-            rejectBtn.addEventListener('click', () => {
-                setCookieConsent('rejected');
-                setBannerActiveState(banner, false);
-                showToastSafe(
-                    getCurrentLang() === 'es'
-                        ? 'Solo se mantendran cookies esenciales.'
-                        : 'Only essential cookies will be kept.',
-                    'info'
-                );
-                trackEventSafe('cookie_consent_update', { status: 'rejected' });
-            });
+        if (action === 'accepted') {
+            setCookieConsent('accepted');
+            setBannerActiveState(banner, false);
+            showToastSafe(
+                getCurrentLang() === 'es'
+                    ? 'Preferencias de cookies guardadas.'
+                    : 'Cookie preferences saved.',
+                'success'
+            );
+            initGA4();
+            trackEventSafe('cookie_consent_update', { status: 'accepted' });
+        } else if (action === 'rejected') {
+            setCookieConsent('rejected');
+            setBannerActiveState(banner, false);
+            showToastSafe(
+                getCurrentLang() === 'es'
+                    ? 'Solo se mantendran cookies esenciales.'
+                    : 'Only essential cookies will be kept.',
+                'info'
+            );
+            trackEventSafe('cookie_consent_update', { status: 'rejected' });
         }
     }
 
+    function bindDelegatedListeners() {
+        document.addEventListener('click', (e) => {
+            const target = e.target;
+            if (!target) return;
+
+            if (target.closest('#cookieAcceptBtn')) {
+                handleConsentAction('accepted');
+            } else if (target.closest('#cookieRejectBtn')) {
+                handleConsentAction('rejected');
+            }
+        });
+    }
+
     function initCookieBanner() {
+        // Only handles visibility
         const banner = document.getElementById('cookieBanner');
         if (!banner) return false;
 
@@ -658,11 +667,13 @@ END:VCALENDAR`;
         } else {
             setBannerActiveState(banner, true);
         }
-
-        const acceptBtn = document.getElementById('cookieAcceptBtn');
-        const rejectBtn = document.getElementById('cookieRejectBtn');
-        bindCookieButtons(acceptBtn, rejectBtn, banner);
         return true;
+    }
+
+    function init(inputDeps) {
+        deps = inputDeps || {};
+        bindDelegatedListeners();
+        return window.PielConsentEngine;
     }
 
     window.PielConsentEngine = {

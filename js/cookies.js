@@ -76,6 +76,16 @@ export function initGA4() {
     runDeferredModule(loadConsentEngine, (engine) => engine.initGA4());
 }
 
+export function bootstrapConsent() {
+    loadConsentEngine(); // Loads bundle and binds delegated listeners via init()
+}
+
+export function showConsentBanner() {
+    runDeferredModule(loadConsentEngine, (engine) => engine.initCookieBanner()); // Only shows banner
+}
+
 export function initCookieBanner() {
-    runDeferredModule(loadConsentEngine, (engine) => engine.initCookieBanner());
+    // Deprecated alias kept for compatibility if needed, but main.js should use bootstrap/show
+    bootstrapConsent();
+    showConsentBanner();
 }

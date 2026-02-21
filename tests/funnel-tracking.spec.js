@@ -140,8 +140,12 @@ async function getFunnelEvents(page) {
 }
 
 async function fillBookingFormAndOpenPayment(page) {
-    // Wait for bundle first
+    // Action router engine is now in data-bundle
     await page.waitForSelector('script[data-data-bundle="true"]', {
+        timeout: 10000,
+        state: 'attached',
+    });
+    await page.waitForSelector('script[data-booking-ui="true"]', {
         timeout: 10000,
         state: 'attached',
     });

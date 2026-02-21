@@ -542,16 +542,16 @@ function bindPaymentListeners() {
     if (listenersBound) return;
     listenersBound = true;
 
-    const paymentMethods = document.querySelectorAll('.payment-method');
+        document.addEventListener('click', (e) => {
+            const method = e.target.closest('.payment-method');
+            if (!method) return;
 
-    paymentMethods.forEach(method => {
-        method.addEventListener('click', () => {
             if (method.classList.contains('disabled')) {
                 showToast('Pago con tarjeta no disponible por el momento.', 'warning');
                 return;
             }
 
-            paymentMethods.forEach(m => m.classList.remove('active'));
+            document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('active'));
             method.classList.add('active');
 
             const methodType = method.dataset.method;
@@ -560,20 +560,20 @@ function bindPaymentListeners() {
             clearPaymentError();
             trackEvent('payment_method_selected', {
                 payment_method: methodType || 'unknown'
-            });
+        });
 
             if (methodType === 'card') {
                 refreshCardPaymentAvailability().catch(error => {
                     setPaymentError(error?.message || 'No se pudo cargar el formulario de tarjeta');
                 });
             }
-        });
     });
 
-    const transferProofInput = document.getElementById('transferProofFile');
-    if (transferProofInput) {
-        transferProofInput.addEventListener('change', updateTransferProofFileName);
-    }
+        document.addEventListener('change', (e) => {
+            if (e.target && e.target.id === 'transferProofFile') {
+                updateTransferProofFileName();
+            }
+        });
 }
 
 const api = {

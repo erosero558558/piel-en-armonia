@@ -8,7 +8,10 @@ test.describe('Gallery Lazy Loading', () => {
 
     test('gallery images are present with data-src', async ({ page }) => {
         const gallerySection = page.locator('#galeria');
-        await gallerySection.scrollIntoViewIfNeeded(); // Just to make sure it's in DOM if lazy loaded section (it's not)
+        // Wait for deferred content to load
+        await expect(gallerySection.locator('.gallery-img').first()).toBeAttached({ timeout: 10000 });
+
+        await gallerySection.scrollIntoViewIfNeeded();
 
         const images = page.locator('.gallery-img');
         const count = await images.count();

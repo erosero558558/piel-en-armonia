@@ -372,7 +372,7 @@
 
     const deferredModulePromises = new Map();
 
-    function loadDeferredModule$1(options) {
+    function loadDeferredModule(options) {
         const {
             cacheKey,
             src,
@@ -596,7 +596,7 @@
     }
 
     function loadThemeEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'theme-engine',
             src: UI_BUNDLE_URL$3,
             scriptDataAttribute: 'data-ui-bundle',
@@ -632,7 +632,7 @@
     }
 
     function loadDataEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'data-engine',
             src: DATA_ENGINE_URL,
             scriptDataAttribute: 'data-data-engine',
@@ -738,7 +738,7 @@
     }
 
     function loadReviewsEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'engagement-bundle',
             src: ENGAGEMENT_BUNDLE_URL,
             scriptDataAttribute: 'data-engagement-bundle',
@@ -800,7 +800,7 @@
 
     function loadEngagementFormsEngine() {
         return loadReviewsEngine().then(() =>
-            loadDeferredModule$1({
+            loadDeferredModule({
                 cacheKey: 'engagement-forms-engine',
                 src: ENGAGEMENT_BUNDLE_URL,
                 scriptDataAttribute: 'data-engagement-bundle',
@@ -885,7 +885,7 @@
     }
 
     function loadI18nEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'i18n-engine',
             src: DATA_BUNDLE_URL$1,
             scriptDataAttribute: 'data-data-bundle',
@@ -1298,7 +1298,7 @@
     }
 
     function loadAnalyticsEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'analytics-engine',
             src: ANALYTICS_ENGINE_URL,
             scriptDataAttribute: 'data-analytics-engine',
@@ -1369,7 +1369,7 @@
     }
 
     function loadSuccessModalEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'success-modal-engine',
             src: UI_BUNDLE_URL$2,
             scriptDataAttribute: 'data-ui-bundle',
@@ -1532,7 +1532,7 @@
     }
 
     function loadBookingEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'booking-engine',
             src: BOOKING_ENGINE_URL,
             scriptDataAttribute: 'data-booking-engine',
@@ -1681,7 +1681,7 @@
     }
 
     function loadBookingUi() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'booking-ui',
             src: BOOKING_UI_URL,
             scriptDataAttribute: 'data-booking-ui',
@@ -1781,7 +1781,7 @@
 
     // UI Effects
     function loadUiEffects() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'ui-effects',
             src: UI_BUNDLE_URL$1,
             scriptDataAttribute: 'data-ui-bundle',
@@ -1833,7 +1833,7 @@
     }
 
     function loadModalUxEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'modal-ux-engine',
             src: UI_BUNDLE_URL$1,
             scriptDataAttribute: 'data-ui-bundle',
@@ -1891,7 +1891,7 @@
     }
 
     function loadRescheduleEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'reschedule-gateway-engine',
             src: RESCHEDULE_GATEWAY_ENGINE_URL,
             scriptDataAttribute: 'data-reschedule-gateway-engine',
@@ -2031,7 +2031,7 @@
     }
 
     function loadChatUiEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'chat-ui-engine',
             src: CHAT_UI_ENGINE_URL,
             scriptDataAttribute: 'data-chat-ui-engine',
@@ -2072,7 +2072,7 @@
     }
 
     function loadChatWidgetEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'chat-widget-engine',
             src: CHAT_WIDGET_ENGINE_URL,
             scriptDataAttribute: 'data-chat-widget-engine',
@@ -2203,7 +2203,7 @@
     }
 
     function loadChatBookingEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'chat-booking-engine',
             src: CHAT_BOOKING_ENGINE_URL,
             scriptDataAttribute: 'data-chat-booking-engine',
@@ -2285,7 +2285,7 @@
     }
 
     function loadFigoChatEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'figo-chat-engine',
             src: FIGO_CHAT_ENGINE_URL,
             scriptDataAttribute: 'data-figo-chat-engine',
@@ -2409,7 +2409,7 @@
     }
 
     function loadActionRouterEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'action-router-engine',
             src: DATA_BUNDLE_URL,
             scriptDataAttribute: 'data-data-bundle',
@@ -2447,7 +2447,7 @@
     }
 
     function loadConsentEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'consent-engine',
             src: UI_BUNDLE_URL,
             scriptDataAttribute: 'data-ui-bundle',
@@ -2474,7 +2474,7 @@
     );
 
     function loadGalleryInteractions() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'gallery-interactions',
             src: GALLERY_INTERACTIONS_URL,
             scriptDataAttribute: 'data-gallery-interactions',
@@ -2511,6 +2511,50 @@
             return;
         }
         scheduleDeferredTask(warmup, { idleTimeout: 2500, fallbackDelay: 1500 });
+    }
+
+    const CONTENT_JSON_URL = withDeployAssetVersion('/content/index.json');
+
+    function hydrateDeferredText(container) {
+        if (!window.PIEL_CONTENT) return;
+        const nodes = container.querySelectorAll('[data-i18n]');
+        nodes.forEach((node) => {
+            const key = node.getAttribute('data-i18n');
+            if (window.PIEL_CONTENT[key]) {
+                if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA') {
+                    node.placeholder = window.PIEL_CONTENT[key];
+                } else {
+                    node.innerHTML = window.PIEL_CONTENT[key];
+                }
+            }
+        });
+    }
+
+    async function loadDeferredContent() {
+        try {
+            const response = await fetch(CONTENT_JSON_URL);
+            if (!response.ok) {
+                throw new Error(`Failed to load content: ${response.status}`);
+            }
+            const data = await response.json();
+
+            Object.keys(data).forEach((id) => {
+                const container = document.getElementById(id);
+                if (container) {
+                    container.innerHTML = data[id];
+                    container.classList.remove('deferred-content'); // Optional cleanup
+                    hydrateDeferredText(container);
+                } else {
+                    debugLog(`Warning: Container #${id} not found for deferred content.`);
+                }
+            });
+
+            debugLog('Deferred content loaded and hydrated.');
+            return true;
+        } catch (error) {
+            console.error('Error loading deferred content:', error);
+            return false;
+        }
     }
 
     // Setup global version
@@ -2594,67 +2638,117 @@
         return 'unknown';
     }
 
+    function initGalleryLazyLoad() {
+        const galleryObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    const src = img.dataset.src;
+                    const srcset = img.dataset.srcset;
+
+                    if (srcset) img.srcset = srcset;
+                    img.src = src;
+                    img.classList.add('loaded');
+
+                    galleryObserver.unobserve(img);
+                }
+            });
+        }, { rootMargin: '200px' });
+
+        document.querySelectorAll('.gallery-img[data-src]').forEach(img => {
+            galleryObserver.observe(img);
+        });
+    }
+
+    function initBookingCalendarLazyInit() {
+        function wireBookingCalendarLazyLoad(element) {
+            if (!element) {
+                return;
+            }
+
+            element.addEventListener('click', function () {
+                const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
+                loadDeferredModule({
+                    cacheKey: 'booking-utils-calendar',
+                    src: BOOKING_UTILS_URL,
+                    scriptDataAttribute: 'data-booking-utils',
+                    resolveModule: () => window.PielBookingCalendarEngine
+                }).then(function (moduleRef) {
+                    if (moduleRef && typeof moduleRef.initCalendar === 'function') {
+                        moduleRef.initCalendar();
+                    }
+                }).catch(function () {
+                    // noop
+                });
+            });
+        }
+
+        const bookingBtn = document.getElementById('booking-btn');
+        wireBookingCalendarLazyLoad(bookingBtn);
+
+        document.querySelectorAll('a[href="#citas"]').forEach(function (button) {
+            if (button.id !== 'booking-btn') {
+                wireBookingCalendarLazyLoad(button);
+            }
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         disablePlaceholderExternalLinks();
-        initActionRouterEngine();
         initDeferredStylesheetLoading();
         initThemeMode();
         changeLanguage(state$1.currentLang);
-        initCookieBanner();
-        initGA4();
-        initBookingFunnelObserver();
         initDeferredSectionPrefetch();
 
-        const initHighPriorityWarmups = createOnceTask(() => {
-            initEnglishBundleWarmup();
-            initDataEngineWarmup();
-            initBookingEngineWarmup();
-            initBookingUiWarmup();
-            initChatUiEngineWarmup();
-            initChatWidgetEngineWarmup();
-        });
+        loadDeferredContent().then(() => {
+            initActionRouterEngine();
+            initCookieBanner();
+            initGA4();
+            initBookingFunnelObserver();
 
-        const initLowPriorityWarmups = createOnceTask(() => {
-            initReviewsEngineWarmup();
-            initGalleryInteractionsWarmup();
-            initChatEngineWarmup();
-            initChatBookingEngineWarmup();
-            initUiEffectsWarmup();
-            initRescheduleEngineWarmup();
-            initSuccessModalEngineWarmup();
-            initEngagementFormsEngineWarmup();
-            initModalUxEngineWarmup();
-        });
+            const initHighPriorityWarmups = createOnceTask(() => {
+                initEnglishBundleWarmup();
+                initDataEngineWarmup();
+                initBookingEngineWarmup();
+                initBookingUiWarmup();
+                initChatUiEngineWarmup();
+                initChatWidgetEngineWarmup();
+            });
 
-        const initDeferredWarmups = createOnceTask(() => {
-            initHighPriorityWarmups();
-            setTimeout(initLowPriorityWarmups, 200);
-        });
+            const initLowPriorityWarmups = createOnceTask(() => {
+                initReviewsEngineWarmup();
+                initGalleryInteractionsWarmup();
+                initChatEngineWarmup();
+                initChatBookingEngineWarmup();
+                initUiEffectsWarmup();
+                initRescheduleEngineWarmup();
+                initSuccessModalEngineWarmup();
+                initEngagementFormsEngineWarmup();
+                initModalUxEngineWarmup();
+            });
 
-        window.addEventListener('pointerdown', initDeferredWarmups, {
-            once: true,
-            passive: true,
-        });
-        window.addEventListener('keydown', initDeferredWarmups, { once: true });
+            window.addEventListener('pointerdown', initLowPriorityWarmups, {
+                once: true,
+                passive: true,
+            });
+            window.addEventListener('keydown', initLowPriorityWarmups, { once: true });
 
-        scheduleDeferredTask(initHighPriorityWarmups, {
-            idleTimeout: 1400,
-            fallbackDelay: 500,
-            skipOnConstrained: false,
-            constrainedDelay: 900,
-        });
+            scheduleDeferredTask(initHighPriorityWarmups, {
+                idleTimeout: 1400,
+                fallbackDelay: 500,
+                skipOnConstrained: false,
+                constrainedDelay: 900,
+            });
 
-        scheduleDeferredTask(initLowPriorityWarmups, {
-            idleTimeout: 3200,
-            fallbackDelay: 1800,
-            skipOnConstrained: false,
-            constrainedDelay: 2400,
-        });
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.addEventListener('keypress', handleChatKeypress);
+            }
 
-        const chatInput = document.getElementById('chatInput');
-        if (chatInput) {
-            chatInput.addEventListener('keypress', handleChatKeypress);
-        }
+            // Re-init dynamic components
+            initGalleryLazyLoad();
+            initBookingCalendarLazyInit();
+        });
 
         window.addEventListener('pagehide', () => {
             maybeTrackCheckoutAbandon$1('page_hide');
@@ -2719,63 +2813,5 @@
             });
         });
     });
-
-    // Legacy: Gallery Lazy Loading
-    (function() {
-        const galleryObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-                    const src = img.dataset.src;
-                    const srcset = img.dataset.srcset;
-
-                    if (srcset) img.srcset = srcset;
-                    img.src = src;
-                    img.classList.add('loaded');
-
-                    galleryObserver.unobserve(img);
-                }
-            });
-        }, { rootMargin: '200px' });
-
-        document.querySelectorAll('.gallery-img[data-src]').forEach(img => {
-            galleryObserver.observe(img);
-        });
-    })();
-
-    // Booking Calendar Lazy Init
-    (function () {
-
-        function wireBookingCalendarLazyLoad(element) {
-            if (!element) {
-                return;
-            }
-
-            element.addEventListener('click', function () {
-                const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
-                loadDeferredModule({
-                    cacheKey: 'booking-utils-calendar',
-                    src: BOOKING_UTILS_URL,
-                    scriptDataAttribute: 'data-booking-utils',
-                    resolveModule: () => window.PielBookingCalendarEngine
-                }).then(function (moduleRef) {
-                    if (moduleRef && typeof moduleRef.initCalendar === 'function') {
-                        moduleRef.initCalendar();
-                    }
-                }).catch(function () {
-                    // noop
-                });
-            });
-        }
-
-        const bookingBtn = document.getElementById('booking-btn');
-        wireBookingCalendarLazyLoad(bookingBtn);
-
-        document.querySelectorAll('a[href="#citas"]').forEach(function (button) {
-            if (button.id !== 'booking-btn') {
-                wireBookingCalendarLazyLoad(button);
-            }
-        });
-    })();
 
 })();
