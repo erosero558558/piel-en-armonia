@@ -39,6 +39,12 @@ class ApiConfig
             'data:GET' => [60, 60],
             'import:POST' => [5, 60],
 
+            // Push Notifications
+            'push-config:GET' => [60, 60],
+            'push-subscribe:POST' => [10, 60],
+            'push-unsubscribe:POST' => [10, 60],
+            'push-test:POST' => [5, 60],
+
             // Predictions
             'predictions:GET' => [20, 60],
         ];

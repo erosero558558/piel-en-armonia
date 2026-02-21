@@ -1,3 +1,5 @@
+import { initPushNotifications } from './js/admin-push.js';
+
 let currentAppointments = [];
 let currentCallbacks = [];
 let currentReviews = [];
@@ -2259,6 +2261,7 @@ async function importData(input) {
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
+    initPushNotifications();
     attachGlobalListeners();
 
     const loginForm = document.getElementById('loginForm');

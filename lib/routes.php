@@ -50,6 +50,12 @@ function register_api_routes(Router $router): void
 
     $router->add('GET', 'content', [ContentController::class, 'get']);
 
+    // Push Notifications
+    $router->add('GET', 'push-config', [PushController::class, 'config']);
+    $router->add('POST', 'push-subscribe', [PushController::class, 'subscribe']);
+    $router->add('POST', 'push-unsubscribe', [PushController::class, 'unsubscribe']);
+    $router->add('POST', 'push-test', [PushController::class, 'test']);
+
     // v2 Routes
     $router->add('GET', 'health', [HealthController::class, 'check'], 'v2');
 }

@@ -4,20 +4,21 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
+class ComposerStaticInit21800cc0faaa1057513ed6b5a581fcac
 {
     public static $files = array (
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
         '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
         'ad155f8f1cf0d418fe49e248db8c661b' => __DIR__ . '/..' . '/react/promise/src/functions_include.php',
         '320cde22f66dd4f5d3fd621d3e88b98f' => __DIR__ . '/..' . '/symfony/polyfill-ctype/bootstrap.php',
+        '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
         '8825ede83f2f289127722d4e842cf7e8' => __DIR__ . '/..' . '/symfony/polyfill-intl-grapheme/bootstrap.php',
         'e69f7f6ee287b969198c3c9d6777bd38' => __DIR__ . '/..' . '/symfony/polyfill-intl-normalizer/bootstrap.php',
         'e8aa6e4b5a1db2f56ae794f1505391a8' => __DIR__ . '/..' . '/amphp/amp/lib/functions.php',
         '76cd0796156622033397994f25b0d8fc' => __DIR__ . '/..' . '/amphp/amp/lib/Internal/functions.php',
-        '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
         'b6b991a57620e2fb6b2f66f03fe9ddc2' => __DIR__ . '/..' . '/symfony/string/Resources/functions.php',
         '6cd5651c4fef5ed6b63e8d8b8ffbf3cc' => __DIR__ . '/..' . '/amphp/byte-stream/lib/functions.php',
+        '37a3dc5111fe8f707ab4c132ef1dbc62' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/functions_include.php',
         '6124b4c8570aa390c21fafd04a26c69f' => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy/deep_copy.php',
         'fb4ca2d97fe7ba6af750497425204e70' => __DIR__ . '/..' . '/sentry/sentry/src/functions.php',
         'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
@@ -58,6 +59,7 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
             'Symfony\\Component\\Filesystem\\' => 29,
             'Symfony\\Component\\EventDispatcher\\' => 34,
             'Symfony\\Component\\Console\\' => 26,
+            'SpomkyLabs\\Pki\\' => 15,
             'Spatie\\ArrayToXml\\' => 18,
             'Sentry\\' => 7,
         ),
@@ -75,8 +77,10 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         array (
             'Psr\\Log\\' => 8,
             'Psr\\Http\\Message\\' => 17,
+            'Psr\\Http\\Client\\' => 16,
             'Psr\\EventDispatcher\\' => 20,
             'Psr\\Container\\' => 14,
+            'Psr\\Clock\\' => 10,
             'Psalm\\' => 6,
             'Predis\\' => 7,
             'PhpParser\\' => 10,
@@ -87,6 +91,7 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         'M' =>
         array (
             'Monolog\\' => 8,
+            'Minishlink\\WebPush\\' => 19,
         ),
         'L' =>
         array (
@@ -94,11 +99,14 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         ),
         'J' =>
         array (
+            'Jose\\Component\\' => 15,
             'Jean85\\' => 7,
         ),
         'G' =>
         array (
             'GuzzleHttp\\Psr7\\' => 16,
+            'GuzzleHttp\\Promise\\' => 19,
+            'GuzzleHttp\\' => 11,
         ),
         'F' =>
         array (
@@ -119,6 +127,11 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
             'Composer\\Semver\\' => 16,
             'Composer\\Pcre\\' => 14,
             'Clue\\React\\NDJson\\' => 18,
+        ),
+        'B' =>
+        array (
+            'Brick\\Math\\' => 11,
+            'Base64Url\\' => 10,
         ),
         'A' =>
         array (
@@ -211,6 +224,10 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         array (
             0 => __DIR__ . '/..' . '/symfony/console',
         ),
+        'SpomkyLabs\\Pki\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/spomky-labs/pki-framework/src',
+        ),
         'Spatie\\ArrayToXml\\' =>
         array (
             0 => __DIR__ . '/..' . '/spatie/array-to-xml/src',
@@ -256,6 +273,10 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
             0 => __DIR__ . '/..' . '/psr/http-factory/src',
             1 => __DIR__ . '/..' . '/psr/http-message/src',
         ),
+        'Psr\\Http\\Client\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/psr/http-client/src',
+        ),
         'Psr\\EventDispatcher\\' =>
         array (
             0 => __DIR__ . '/..' . '/psr/event-dispatcher/src',
@@ -263,6 +284,10 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         'Psr\\Container\\' =>
         array (
             0 => __DIR__ . '/..' . '/psr/container/src',
+        ),
+        'Psr\\Clock\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/psr/clock/src',
         ),
         'Psalm\\' =>
         array (
@@ -292,9 +317,17 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         array (
             0 => __DIR__ . '/..' . '/monolog/monolog/src/Monolog',
         ),
+        'Minishlink\\WebPush\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/minishlink/web-push/src',
+        ),
         'LanguageServerProtocol\\' =>
         array (
             0 => __DIR__ . '/..' . '/felixfbecker/language-server-protocol/src',
+        ),
+        'Jose\\Component\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/web-token/jwt-library',
         ),
         'Jean85\\' =>
         array (
@@ -303,6 +336,14 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         'GuzzleHttp\\Psr7\\' =>
         array (
             0 => __DIR__ . '/..' . '/guzzlehttp/psr7/src',
+        ),
+        'GuzzleHttp\\Promise\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/guzzlehttp/promises/src',
+        ),
+        'GuzzleHttp\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/guzzlehttp/guzzle/src',
         ),
         'Fidry\\CpuCoreCounter\\' =>
         array (
@@ -335,6 +376,14 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         'Clue\\React\\NDJson\\' =>
         array (
             0 => __DIR__ . '/..' . '/clue/ndjson-react/src',
+        ),
+        'Brick\\Math\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/brick/math/src',
+        ),
+        'Base64Url\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/spomky-labs/base64url/src',
         ),
         'Amp\\ByteStream\\' =>
         array (
@@ -1557,11 +1606,11 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$prefixDirsPsr4;
-            $loader->fallbackDirsPsr4 = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$fallbackDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$prefixesPsr0;
-            $loader->classMap = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit21800cc0faaa1057513ed6b5a581fcac::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit21800cc0faaa1057513ed6b5a581fcac::$prefixDirsPsr4;
+            $loader->fallbackDirsPsr4 = ComposerStaticInit21800cc0faaa1057513ed6b5a581fcac::$fallbackDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInit21800cc0faaa1057513ed6b5a581fcac::$prefixesPsr0;
+            $loader->classMap = ComposerStaticInit21800cc0faaa1057513ed6b5a581fcac::$classMap;
 
         }, null, ClassLoader::class);
     }

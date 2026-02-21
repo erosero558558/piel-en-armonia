@@ -150,6 +150,13 @@ function ensure_db_schema(): void
             value TEXT,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )",
+        "CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id INTEGER PRIMARY KEY,
+            endpoint TEXT UNIQUE,
+            keys TEXT,
+            user_agent TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )",
         "CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(date)",
         "CREATE INDEX IF NOT EXISTS idx_appointments_email ON appointments(email)",
         "CREATE INDEX IF NOT EXISTS idx_appointments_rescheduleToken ON appointments(rescheduleToken)",
