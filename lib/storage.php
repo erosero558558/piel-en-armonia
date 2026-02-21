@@ -51,16 +51,6 @@ function storage_sqlite_available(): bool
     return $available;
 }
 
-function storage_use_json_fallback(): bool
-{
-    $forceJson = getenv('PIELARMONIA_STORAGE_JSON_FALLBACK');
-    if (is_string($forceJson) && trim($forceJson) !== '' && parse_bool($forceJson)) {
-        return true;
-    }
-
-    return !storage_sqlite_available();
-}
-
 function storage_default_store_payload(): array
 {
     return [
@@ -584,19 +574,6 @@ function ensure_data_file(): bool
 
     ensure_data_htaccess($dataDir);
 
-    if (storage_use_json_fallback()) {
-        if (!is_file($jsonPath)) {
-            $seed = storage_default_store_payload();
-            $seed['createdAt'] = local_date('c');
-            $raw = json_encode($seed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
-            if (!is_string($raw) || @file_put_contents($jsonPath, $raw, LOCK_EX) === false) {
-                error_log('Piel en Armonia: no se pudo inicializar store.json en fallback');
-                return false;
-            }
-        }
-        return true;
-    }
-
     // Ensure schema exists
     $pdo = get_db_connection($dbPath);
     if ($pdo) {
@@ -621,26 +598,6 @@ function read_store(): array
 {
     if (!ensure_data_file()) {
         return normalize_store_payload(storage_default_store_payload());
-    }
-
-    if (storage_use_json_fallback()) {
-        $jsonPath = data_json_path();
-        $raw = @file_get_contents($jsonPath);
-        if (!is_string($raw) || trim($raw) === '') {
-            return normalize_store_payload(storage_default_store_payload());
-        }
-
-        $decoded = data_decrypt_payload($raw);
-        if ($decoded === '') {
-            $decoded = $raw;
-        }
-
-        $store = json_decode($decoded, true);
-        if (!is_array($store)) {
-            return normalize_store_payload(storage_default_store_payload());
-        }
-
-        return normalize_store_payload($store);
     }
 
     $pdo = get_db_connection(data_file_path());
@@ -729,25 +686,6 @@ function write_store(array $store): void
     }
 
     $store = normalize_store_payload($store);
-
-    if (storage_use_json_fallback()) {
-        $jsonPath = data_json_path();
-        if (is_file($jsonPath)) {
-            create_store_backup_locked($jsonPath);
-        }
-
-        $store['updatedAt'] = local_date('c');
-        unset($store['idx_appointments_date']);
-        $jsonPayload = json_encode($store, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
-        if (!is_string($jsonPayload) || @file_put_contents($jsonPath, $jsonPayload, LOCK_EX) === false) {
-            error_log('Write Store Error: json_fallback_write_failed');
-            if (function_exists('json_response')) {
-                json_response(['ok' => false, 'error' => 'Write error'], 500);
-            }
-        }
-        return;
-    }
-
     $dbPath = data_file_path();
     $pdo = get_db_connection($dbPath);
     if (!$pdo) {
