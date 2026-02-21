@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 class AdminDataController
@@ -18,7 +19,7 @@ class AdminDataController
         // POST /import (Admin)
         $store = $context['store'];
         if (!$context['isAdmin']) {
-             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+            json_response(['ok' => false, 'error' => 'No autorizado'], 401);
         }
         require_csrf();
 

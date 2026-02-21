@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -491,9 +492,9 @@ function backup_create_offsite_snapshot(): array
     // Verify it's valid structure (sanity check)
     $shape = backup_validate_store_shape($data);
     if (!$shape['ok']) {
-         return [
-            'ok' => false,
-            'reason' => 'invalid_store_shape_export'
+        return [
+           'ok' => false,
+           'reason' => 'invalid_store_shape_export'
         ];
     }
 

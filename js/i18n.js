@@ -3,8 +3,8 @@ import { loadDeferredModule, withDeferredModule } from './loader.js';
 import { state } from './state.js';
 import { renderPublicReviews } from './engagement.js';
 
-const I18N_ENGINE_URL = withDeployAssetVersion(
-    '/i18n-engine.js?v=figo-i18n-20260219-phase1-sync1'
+const DATA_BUNDLE_URL = withDeployAssetVersion(
+    '/js/engines/data-bundle.js?v=20260220-consolidated1'
 );
 
 function getI18nEngineDeps() {
@@ -22,7 +22,7 @@ function getI18nEngineDeps() {
 
 export function loadI18nEngine() {
     return loadDeferredModule({
-        cacheKey: 'data-bundle',
+        cacheKey: 'i18n-engine',
         src: DATA_BUNDLE_URL,
         scriptDataAttribute: 'data-data-bundle',
         resolveModule: () => window.PielI18nEngine,

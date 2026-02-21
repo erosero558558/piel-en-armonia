@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../lib/common.php';
 require_once __DIR__ . '/../lib/validation.php';
 

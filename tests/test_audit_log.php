@@ -1,4 +1,5 @@
 <?php
+
 // Start session before any output to avoid "headers already sent"
 if (session_status() === PHP_SESSION_NONE) {
     @session_start();

@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInitf4a49b3aa6e8df5a7caaab0ee0ca9271
+class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
 {
     public static $files = array (
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
@@ -341,6 +341,10 @@ class ComposerStaticInitf4a49b3aa6e8df5a7caaab0ee0ca9271
         'Clue\\React\\NDJson\\' =>
         array (
             0 => __DIR__ . '/..' . '/clue/ndjson-react/src',
+        ),
+        'App\\GraphQL\\' =>
+        array (
+            0 => __DIR__ . '/../..' . '/lib/GraphQL',
         ),
         'Amp\\ByteStream\\' =>
         array (
@@ -1563,11 +1567,11 @@ class ComposerStaticInitf4a49b3aa6e8df5a7caaab0ee0ca9271
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInitf4a49b3aa6e8df5a7caaab0ee0ca9271::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInitf4a49b3aa6e8df5a7caaab0ee0ca9271::$prefixDirsPsr4;
-            $loader->fallbackDirsPsr4 = ComposerStaticInitf4a49b3aa6e8df5a7caaab0ee0ca9271::$fallbackDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInitf4a49b3aa6e8df5a7caaab0ee0ca9271::$prefixesPsr0;
-            $loader->classMap = ComposerStaticInitf4a49b3aa6e8df5a7caaab0ee0ca9271::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$prefixDirsPsr4;
+            $loader->fallbackDirsPsr4 = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$fallbackDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$prefixesPsr0;
+            $loader->classMap = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$classMap;
 
         }, null, ClassLoader::class);
     }

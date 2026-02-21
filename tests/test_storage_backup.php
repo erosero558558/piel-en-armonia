@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 // Set up temporary environment for testing
@@ -19,7 +20,7 @@ require_once __DIR__ . '/../lib/db.php';
 echo "Testing Storage Backup Logic (SQLite)...\n";
 echo "Using temp data dir: $tmpDataDir\n";
 
-run_test('Writing to store should create a backup of the previous state', function() use ($tmpDataDir) {
+run_test('Writing to store should create a backup of the previous state', function () use ($tmpDataDir) {
     // 1. Create initial state
     $initialStore = read_store();
     $appt1 = ['id' => 1, 'name' => 'Backup Test 1', 'date' => '2023-01-01'];
@@ -77,13 +78,17 @@ run_test('Writing to store should create a backup of the previous state', functi
     close_db_connection();
 });
 
-run_test('Backup rotation (max backups)', function() use ($tmpDataDir) {
+run_test('Backup rotation (max backups)', function () use ($tmpDataDir) {
     // Clear backups from previous test
     $backupDir = $tmpDataDir . '/backups';
     $files = glob($backupDir . '/*');
-    foreach($files as $f) unlink($f);
+    foreach ($files as $f) {
+        unlink($f);
+    }
 
-    if (!is_dir($backupDir)) mkdir($backupDir, 0777, true);
+    if (!is_dir($backupDir)) {
+        mkdir($backupDir, 0777, true);
+    }
 
     // Create 35 dummy files
     for ($i = 0; $i < 35; $i++) {

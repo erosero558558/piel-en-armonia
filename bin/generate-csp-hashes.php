@@ -25,7 +25,9 @@ function getCspHashes(string $filepath): void
     echo "Hashes for $filepath (Scripts - Inline only):\n";
     foreach ($matches[1] as $scriptContent) {
         // Skip empty scripts or whitespace only
-        if (trim($scriptContent) === '') continue;
+        if (trim($scriptContent) === '') {
+            continue;
+        }
 
         // Skip application/ld+json as it doesn't need CSP hash usually (browsers ignore it for execution)
         // But let's check if the tag has type="application/ld+json"

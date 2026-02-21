@@ -52,8 +52,6 @@ test.describe('Checklist de Pruebas en Producción', () => {
             'script.js',
             'chat-engine.js',
             'booking-engine.js',
-            'reviews-engine.js',
-            'translations-en.js',
             'terminos.html',
             'privacidad.html',
             'cookies.html',

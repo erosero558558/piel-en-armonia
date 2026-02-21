@@ -1,4 +1,5 @@
 <?php
+
 // bin/generate-icons.php
 
 $icons = [
@@ -25,7 +26,7 @@ foreach ($icons as $filename => $size) {
     // Since we might not have TTF, let's draw some geometric shapes or text with built-in font
 
     // Draw a circle
-    imagefilledellipse($im, $size/2, $size/2, $size*0.8, $size*0.8, $white);
+    imagefilledellipse($im, $size / 2, $size / 2, $size * 0.8, $size * 0.8, $white);
 
     // Draw text "PA" (Piel Armonia)
     // Built-in fonts are small. Let's draw lines to make a "P" and "A"?
@@ -39,9 +40,9 @@ foreach ($icons as $filename => $size) {
     $len = $size * 0.5;
 
     // Vertical rect
-    imagefilledrectangle($im, ($size - $thickness)/2, ($size - $len)/2, ($size + $thickness)/2, ($size + $len)/2, $blue);
+    imagefilledrectangle($im, ($size - $thickness) / 2, ($size - $len) / 2, ($size + $thickness) / 2, ($size + $len) / 2, $blue);
     // Horizontal rect
-    imagefilledrectangle($im, ($size - $len)/2, ($size - $thickness)/2, ($size + $len)/2, ($size + $thickness)/2, $blue);
+    imagefilledrectangle($im, ($size - $len) / 2, ($size - $thickness) / 2, ($size + $len) / 2, ($size + $thickness) / 2, $blue);
 
     // Save
     $path = __DIR__ . '/../images/' . $filename;

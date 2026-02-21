@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/../lib/business.php';
 
 echo "Testing Dynamic Pricing Logic...\n";

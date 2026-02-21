@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 // Security Scan Script
@@ -12,7 +13,8 @@ echo "[SCAN] Starting PHP server on port $port...\n";
 $pid = exec("php -S $host > /dev/null 2>&1 & echo $!");
 sleep(2); // Wait for server to start
 
-function request($method, $path, $data = null, $headers = []) {
+function request($method, $path, $data = null, $headers = [])
+{
     global $baseUrl;
     $url = $baseUrl . $path;
 
@@ -48,7 +50,8 @@ function request($method, $path, $data = null, $headers = []) {
 
 $failures = 0;
 
-function check($name, $result, $expectedStatuses, $unexpectedContent = null) {
+function check($name, $result, $expectedStatuses, $unexpectedContent = null)
+{
     global $failures;
     if (!is_array($expectedStatuses)) {
         $expectedStatuses = [$expectedStatuses];
@@ -115,7 +118,9 @@ try {
     echo "[ERROR] " . $e->getMessage() . "\n";
     $failures++;
 } finally {
-    if (isset($pid) && $pid) exec("kill $pid");
+    if (isset($pid) && $pid) {
+        exec("kill $pid");
+    }
 }
 
 if ($failures > 0) {

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -19,7 +20,7 @@ function get_logger()
         && class_exists('\Monolog\Formatter\JsonFormatter');
 
     if (!$hasMonolog) {
-        $logger = new class {
+        $logger = new class () {
             private function normalizeContext($context): string
             {
                 if (!is_array($context) || $context === []) {

@@ -8,17 +8,14 @@ import {
 } from './loader.js';
 import { closePaymentModal } from './booking.js';
 
-const UI_EFFECTS_URL = withDeployAssetVersion(
-    '/ui-effects.js?v=figo-ui-20260220-sync2'
-);
-const MODAL_UX_ENGINE_URL = withDeployAssetVersion(
-    '/modal-ux-engine.js?v=figo-modal-ux-20260220-phase2-cachefix1'
+const UI_BUNDLE_URL = withDeployAssetVersion(
+    '/js/engines/ui-bundle.js?v=20260220-consolidated1'
 );
 
 // UI Effects
 export function loadUiEffects() {
     return loadDeferredModule({
-        cacheKey: 'ui-bundle',
+        cacheKey: 'ui-effects',
         src: UI_BUNDLE_URL,
         scriptDataAttribute: 'data-ui-bundle',
         resolveModule: () => window.PielUiEffects,
@@ -70,7 +67,7 @@ function getModalUxEngineDeps() {
 
 export function loadModalUxEngine() {
     return loadDeferredModule({
-        cacheKey: 'ui-bundle',
+        cacheKey: 'modal-ux-engine',
         src: UI_BUNDLE_URL,
         scriptDataAttribute: 'data-ui-bundle',
         resolveModule: () => window.PielModalUxEngine,

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -6,10 +7,12 @@ declare(strict_types=1);
  */
 
 if (!class_exists('TestingExitException')) {
-    class TestingExitException extends Exception {
+    class TestingExitException extends Exception
+    {
         public $payload;
         public $status;
-        public function __construct($payload, $status) {
+        public function __construct($payload, $status)
+        {
             $this->payload = $payload;
             $this->status = $status;
             parent::__construct("JSON Response: $status");
@@ -183,4 +186,3 @@ function api_apply_cors(array $methods = ['GET', 'POST', 'OPTIONS'], array $head
         exit();
     }
 }
-

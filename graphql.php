@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
@@ -81,21 +82,22 @@ try {
 
     $schema = new \App\GraphQL\Schema();
 
-    $debug = DebugFlag::INCLUDE_DEBUG_MESSAGE | DebugFlag::INCLUDE_TRACE;
-    // Only show trace in debug mode?
-    // For now, enable debug messages.
+    $debugEnabled = parse_bool(getenv('PIELARMONIA_DEBUG_EXCEPTIONS') ?: false);
+    $debug = $debugEnabled ? (DebugFlag::INCLUDE_DEBUG_MESSAGE | DebugFlag::INCLUDE_TRACE) : DebugFlag::NONE;
 
     $result = GraphQL::executeQuery($schema, $query, null, $context, $variableValues, $operationName);
     $output = $result->toArray($debug);
 
 } catch (\Throwable $e) {
+    $debugEnabled = parse_bool(getenv('PIELARMONIA_DEBUG_EXCEPTIONS') ?: false);
+    $errorData = ['message' => $e->getMessage()];
+
+    if ($debugEnabled) {
+        $errorData['trace'] = $e->getTraceAsString();
+    }
+
     $output = [
-        'errors' => [
-            [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString() // Maybe hide this in production
-            ]
-        ]
+        'errors' => [$errorData]
     ];
 }
 

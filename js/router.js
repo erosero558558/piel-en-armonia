@@ -21,8 +21,8 @@ import {
     handleChatDateSelect,
 } from './chat.js';
 
-const ACTION_ROUTER_ENGINE_URL = withDeployAssetVersion(
-    '/action-router-engine.js?v=figo-action-router-20260219-phase1'
+const DATA_BUNDLE_URL = withDeployAssetVersion(
+    '/js/engines/data-bundle.js?v=20260220-consolidated1'
 );
 
 function selectService(value) {
@@ -72,7 +72,7 @@ function getActionRouterEngineDeps() {
 
 export function loadActionRouterEngine() {
     return loadDeferredModule({
-        cacheKey: 'data-bundle',
+        cacheKey: 'action-router-engine',
         src: DATA_BUNDLE_URL,
         scriptDataAttribute: 'data-data-bundle',
         resolveModule: () => window.PielActionRouterEngine,

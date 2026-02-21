@@ -1,4 +1,5 @@
 <?php
+
 // tests/test-api-lib.php
 
 // Adjust path to api-lib.php based on location of this test file
@@ -7,7 +8,8 @@ require_once __DIR__ . '/../api-lib.php';
 $passed = 0;
 $failed = 0;
 
-function run_test($name, $fn) {
+function run_test($name, $fn)
+{
     global $passed, $failed;
     try {
         $fn();
@@ -22,7 +24,8 @@ function run_test($name, $fn) {
     }
 }
 
-function assert_equals($expected, $actual, $message = '') {
+function assert_equals($expected, $actual, $message = '')
+{
     if ($expected !== $actual) {
         $expectedStr = var_export($expected, true);
         $actualStr = var_export($actual, true);
@@ -30,7 +33,8 @@ function assert_equals($expected, $actual, $message = '') {
     }
 }
 
-function test_strlen(string $value): int {
+function test_strlen(string $value): int
+{
     if (function_exists('mb_strlen')) {
         return (int) mb_strlen($value, 'UTF-8');
     }
@@ -40,7 +44,7 @@ function test_strlen(string $value): int {
 echo "Running tests for normalize_review...\n";
 
 // Test 1: Happy Path
-run_test('Happy Path', function() {
+run_test('Happy Path', function () {
     $input = [
         'id' => 123,
         'name' => 'John Doe',
@@ -59,33 +63,33 @@ run_test('Happy Path', function() {
 });
 
 // Test 2: Rating Logic - Lower Bound
-run_test('Rating < 1 should be 1', function() {
+run_test('Rating < 1 should be 1', function () {
     $input = ['rating' => 0];
     $result = normalize_review($input);
     assert_equals(1, $result['rating']);
 });
 
-run_test('Rating negative should be 1', function() {
+run_test('Rating negative should be 1', function () {
     $input = ['rating' => -5];
     $result = normalize_review($input);
     assert_equals(1, $result['rating']);
 });
 
 // Test 3: Rating Logic - Upper Bound
-run_test('Rating > 5 should be 5', function() {
+run_test('Rating > 5 should be 5', function () {
     $input = ['rating' => 6];
     $result = normalize_review($input);
     assert_equals(5, $result['rating']);
 });
 
-run_test('Rating way over 5 should be 5', function() {
+run_test('Rating way over 5 should be 5', function () {
     $input = ['rating' => 100];
     $result = normalize_review($input);
     assert_equals(5, $result['rating']);
 });
 
 // Test 4: Rating Logic - Missing
-run_test('Missing rating should be 1 (default logic)', function() {
+run_test('Missing rating should be 1 (default logic)', function () {
     $input = [];
     $result = normalize_review($input);
     // Logic: $rating = isset ? ... : 0; if ($rating < 1) $rating = 1;
@@ -93,7 +97,7 @@ run_test('Missing rating should be 1 (default logic)', function() {
 });
 
 // Test 5: Truncation - Name
-run_test('Name truncation > 100 chars', function() {
+run_test('Name truncation > 100 chars', function () {
     $longName = str_repeat('a', 105);
     $input = ['name' => $longName];
     $result = normalize_review($input);
@@ -102,7 +106,7 @@ run_test('Name truncation > 100 chars', function() {
 });
 
 // Test 6: Truncation - Text
-run_test('Text truncation > 2000 chars', function() {
+run_test('Text truncation > 2000 chars', function () {
     $longText = str_repeat('b', 2005);
     $input = ['text' => $longText];
     $result = normalize_review($input);
@@ -111,38 +115,38 @@ run_test('Text truncation > 2000 chars', function() {
 });
 
 // Test 7: Boolean Parsing - Verified
-run_test('Verified "true" string', function() {
+run_test('Verified "true" string', function () {
     $input = ['verified' => 'true'];
     $result = normalize_review($input);
     assert_equals(true, $result['verified']);
 });
 
-run_test('Verified "false" string', function() {
+run_test('Verified "false" string', function () {
     $input = ['verified' => 'false'];
     $result = normalize_review($input);
     assert_equals(false, $result['verified']);
 });
 
-run_test('Verified "1" string', function() {
+run_test('Verified "1" string', function () {
     $input = ['verified' => '1'];
     $result = normalize_review($input);
     assert_equals(true, $result['verified']);
 });
 
-run_test('Verified integer 1', function() {
+run_test('Verified integer 1', function () {
     $input = ['verified' => 1];
     $result = normalize_review($input);
     assert_equals(true, $result['verified']);
 });
 
-run_test('Verified missing defaults to true', function() {
+run_test('Verified missing defaults to true', function () {
     $input = [];
     $result = normalize_review($input);
     assert_equals(true, $result['verified']);
 });
 
 // Test 8: Defaults - Missing ID
-run_test('Missing ID generates one', function() {
+run_test('Missing ID generates one', function () {
     $input = [];
     $result = normalize_review($input);
     if (!is_int($result['id']) || $result['id'] <= 0) {
@@ -151,7 +155,7 @@ run_test('Missing ID generates one', function() {
 });
 
 // Test 9: Defaults - Missing Date
-run_test('Missing Date uses current date', function() {
+run_test('Missing Date uses current date', function () {
     $input = [];
     $result = normalize_review($input);
     if (empty($result['date'])) {
@@ -159,12 +163,12 @@ run_test('Missing Date uses current date', function() {
     }
     // Check format roughly (ISO 8601)
     if (strpos($result['date'], '-') === false || strpos($result['date'], ':') === false) {
-         throw new Exception("Date format suspicious: " . $result['date']);
+        throw new Exception("Date format suspicious: " . $result['date']);
     }
 });
 
 // Test 10: XSS Handling (Sanitization happens on input)
-run_test('HTML chars are sanitized (api-lib handles storage)', function() {
+run_test('HTML chars are sanitized (api-lib handles storage)', function () {
     $input = ['text' => '<script>alert(1)</script>'];
     $result = normalize_review($input);
     assert_equals('&lt;script&gt;alert(1)&lt;/script&gt;', $result['text']);

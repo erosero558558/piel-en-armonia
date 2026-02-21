@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 // Prevent side effects from some included files if possible, though api-lib should be safe-ish
@@ -7,11 +8,13 @@ define('PIELARMONIA_TEST_MODE', true);
 require_once __DIR__ . '/../api-lib.php';
 
 // Helpers
-function test_log($msg) {
+function test_log($msg)
+{
     echo "[TEST] $msg\n";
 }
 
-function fail($msg) {
+function fail($msg)
+{
     echo "[FAIL] $msg\n";
     exit(1);
 }
@@ -119,7 +122,9 @@ try {
     // Clean up backup file
     if (file_exists($backupPath)) {
         unlink($backupPath);
-        if (file_exists($backupPath . '.sha256')) unlink($backupPath . '.sha256');
+        if (file_exists($backupPath . '.sha256')) {
+            unlink($backupPath . '.sha256');
+        }
         test_log("Cleaned up backup file.");
     }
 

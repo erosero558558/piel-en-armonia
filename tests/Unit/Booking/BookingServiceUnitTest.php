@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Tests\Unit\Booking;
@@ -11,12 +12,14 @@ require_once __DIR__ . '/../../../lib/BookingService.php';
 
 // Stub global functions for payment if they don't exist
 if (!function_exists('payment_gateway_enabled')) {
-    function payment_gateway_enabled(): bool {
+    function payment_gateway_enabled(): bool
+    {
         return true;
     }
 }
 if (!function_exists('stripe_get_payment_intent')) {
-    function stripe_get_payment_intent(string $id): array {
+    function stripe_get_payment_intent(string $id): array
+    {
         if ($id === 'pi_valid') {
             return [
                 'status' => 'succeeded',
@@ -36,12 +39,14 @@ if (!function_exists('stripe_get_payment_intent')) {
     }
 }
 if (!function_exists('payment_expected_amount_cents')) {
-    function payment_expected_amount_cents(string $service, ?string $date = null, ?string $time = null): int {
+    function payment_expected_amount_cents(string $service, ?string $date = null, ?string $time = null): int
+    {
         return 4000;
     }
 }
 if (!function_exists('payment_currency')) {
-    function payment_currency(): string {
+    function payment_currency(): string
+    {
         return 'USD';
     }
 }
@@ -206,4 +211,3 @@ class BookingServiceUnitTest extends TestCase
         $this->assertEquals('11:00', $updated['time']);
     }
 }
-

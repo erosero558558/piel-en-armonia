@@ -2,7 +2,8 @@
 
 require_once __DIR__ . '/../api-lib.php';
 
-function run_tests() {
+function run_tests()
+{
     $tests = [
         // Valid inputs
         ['input' => 'confirmed', 'expected' => 'confirmed'],

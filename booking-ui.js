@@ -247,10 +247,7 @@
             areaSelect.addEventListener('change', maybeTrackClinicalContext);
         }
         if (evolutionSelect) {
-            evolutionSelect.addEventListener(
-                'change',
-                maybeTrackClinicalContext
-            );
+            evolutionSelect.addEventListener('change', maybeTrackClinicalContext);
         }
 
         const privacyConsentInput = appointmentForm.querySelector(
@@ -412,4 +409,5 @@
     window.PielBookingUi = {
         init,
     };
+
 })();

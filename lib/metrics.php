@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -56,7 +57,7 @@ class Metrics
                 // Fail silently
             }
         } else {
-            self::updateFile(function(array &$data) use ($key, $value) {
+            self::updateFile(function (array &$data) use ($key, $value) {
                 if (!isset($data['counters'][$key])) {
                     $data['counters'][$key] = 0;
                 }
@@ -100,7 +101,7 @@ class Metrics
                 // Fail silently
             }
         } else {
-            self::updateFile(function(array &$data) use ($key, $value, $buckets) {
+            self::updateFile(function (array &$data) use ($key, $value, $buckets) {
                 if (!isset($data['histograms'][$key])) {
                     $data['histograms'][$key] = [
                         'count' => 0,
@@ -150,8 +151,12 @@ class Metrics
             if (!is_array($data)) {
                 $data = ['counters' => [], 'histograms' => []];
             }
-            if (!isset($data['counters'])) $data['counters'] = [];
-            if (!isset($data['histograms'])) $data['histograms'] = [];
+            if (!isset($data['counters'])) {
+                $data['counters'] = [];
+            }
+            if (!isset($data['histograms'])) {
+                $data['histograms'] = [];
+            }
 
             $callback($data);
 
@@ -244,7 +249,9 @@ class Metrics
                 $content = stream_get_contents($fp);
                 if ($content) {
                     $decoded = json_decode($content, true);
-                    if (is_array($decoded)) $data = $decoded;
+                    if (is_array($decoded)) {
+                        $data = $decoded;
+                    }
                 }
                 flock($fp, LOCK_UN);
                 fclose($fp);
@@ -272,7 +279,7 @@ class Metrics
 
                     if (isset($hData['buckets'])) {
                         // Sort buckets by numeric key value to ensure order
-                        uksort($hData['buckets'], function($a, $b) {
+                        uksort($hData['buckets'], function ($a, $b) {
                             return (float)$a <=> (float)$b;
                         });
 

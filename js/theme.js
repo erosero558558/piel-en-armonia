@@ -3,8 +3,8 @@ import { loadDeferredModule, runDeferredModule } from './loader.js';
 import { state } from './state.js';
 import { THEME_STORAGE_KEY, VALID_THEME_MODES } from './config.js';
 
-const THEME_ENGINE_URL = withDeployAssetVersion(
-    '/theme-engine.js?v=figo-theme-20260219-phase1'
+const UI_BUNDLE_URL = withDeployAssetVersion(
+    '/js/engines/ui-bundle.js?v=20260220-consolidated1'
 );
 const systemThemeQuery = window.matchMedia
     ? window.matchMedia('(prefers-color-scheme: dark)')
@@ -24,7 +24,7 @@ function getThemeEngineDeps() {
 
 export function loadThemeEngine() {
     return loadDeferredModule({
-        cacheKey: 'ui-bundle',
+        cacheKey: 'theme-engine',
         src: UI_BUNDLE_URL,
         scriptDataAttribute: 'data-ui-bundle',
         resolveModule: () => window.PielThemeEngine,

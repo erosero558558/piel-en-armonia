@@ -1,7 +1,9 @@
 <?php
+
 require_once __DIR__ . '/../api-lib.php';
 
-function assert_equals($expected, $actual, $message = '') {
+function assert_equals($expected, $actual, $message = '')
+{
     if ($expected !== $actual) {
         echo "FAIL: $message\n";
         echo "Expected: " . print_r($expected, true) . "\n";

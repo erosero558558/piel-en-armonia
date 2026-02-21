@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 class NoShowPredictor
@@ -71,8 +72,12 @@ class NoShowPredictor
         }
 
         // Cap score
-        if ($score > 1.0) $score = 1.0;
-        if ($score < 0.0) $score = 0.0;
+        if ($score > 1.0) {
+            $score = 1.0;
+        }
+        if ($score < 0.0) {
+            $score = 0.0;
+        }
 
         // Risk Level
         $riskLevel = 'low';

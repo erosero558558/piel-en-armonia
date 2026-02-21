@@ -20,11 +20,8 @@ import {
     createReviewRecord,
 } from './data.js';
 
-const ENGAGEMENT_FORMS_ENGINE_URL = withDeployAssetVersion(
-    '/engagement-forms-engine.js?v=figo-engagement-20260218-phase1-sync1'
-);
-const REVIEWS_ENGINE_URL = withDeployAssetVersion(
-    '/reviews-engine.js?v=figo-reviews-20260219-phase1'
+const ENGAGEMENT_BUNDLE_URL = withDeployAssetVersion(
+    '/js/engines/engagement-bundle.js?v=20260220-consolidated1'
 );
 
 // REVIEWS ENGINE
@@ -102,8 +99,8 @@ export function loadEngagementFormsEngine() {
     return loadReviewsEngine().then(() =>
         loadDeferredModule({
             cacheKey: 'engagement-forms-engine',
-            src: ENGAGEMENT_FORMS_ENGINE_URL,
-            scriptDataAttribute: 'data-engagement-forms-engine',
+            src: ENGAGEMENT_BUNDLE_URL,
+            scriptDataAttribute: 'data-engagement-bundle',
             resolveModule: () => window.PielEngagementFormsEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),

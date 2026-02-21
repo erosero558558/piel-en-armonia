@@ -1,9 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/features.php';
 
-function test_defaults() {
+function test_defaults()
+{
     $flags = get_feature_flags();
     assert($flags['new_booking_ui'] === false, 'Default new_booking_ui should be false');
     assert($flags['stripe_elements'] === false, 'Default stripe_elements should be false');
@@ -12,7 +14,8 @@ function test_defaults() {
     echo "Defaults test passed.\n";
 }
 
-function test_env_override() {
+function test_env_override()
+{
     putenv('FEATURE_NEW_BOOKING_UI=true');
     putenv('FEATURE_DARK_MODE=1');
     putenv('FEATURE_STRIPE_ELEMENTS=on');
@@ -32,7 +35,8 @@ function test_env_override() {
     putenv('FEATURE_CHATGPT_INTEGRATION');
 }
 
-function test_feature_enabled() {
+function test_feature_enabled()
+{
     putenv('FEATURE_NEW_BOOKING_UI=true');
     assert(feature_enabled('new_booking_ui') === true, 'feature_enabled failed for true');
     putenv('FEATURE_NEW_BOOKING_UI=false');

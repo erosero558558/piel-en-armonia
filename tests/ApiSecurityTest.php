@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/test_framework.php';
@@ -37,7 +38,8 @@ if ($attempts === 10) {
 }
 
 // Helper for requests (with header inspection)
-function api_request_headers($method, $resource, $data = null) {
+function api_request_headers($method, $resource, $data = null)
+{
     global $baseUrl;
     $url = "$baseUrl?resource=$resource";
     $ch = curl_init($url);
@@ -69,7 +71,7 @@ function api_request_headers($method, $resource, $data = null) {
 
 try {
     // 1. Security Headers on JSON Response
-    run_test('Security: JSON Headers', function() {
+    run_test('Security: JSON Headers', function () {
         $res = api_request_headers('GET', 'health');
         assert_equals(200, $res['code']);
 
@@ -79,18 +81,24 @@ try {
         // Let's normalize keys to lowercase for checking.
         $headersLower = array_change_key_case($headers, CASE_LOWER);
 
-        if (!isset($headersLower['x-frame-options'])) throw new Exception("X-Frame-Options missing");
+        if (!isset($headersLower['x-frame-options'])) {
+            throw new Exception("X-Frame-Options missing");
+        }
         assert_equals('SAMEORIGIN', $headersLower['x-frame-options']);
 
-        if (!isset($headersLower['x-content-type-options'])) throw new Exception("X-Content-Type-Options missing");
+        if (!isset($headersLower['x-content-type-options'])) {
+            throw new Exception("X-Content-Type-Options missing");
+        }
         assert_equals('nosniff', $headersLower['x-content-type-options']);
 
-        if (!isset($headersLower['content-security-policy'])) throw new Exception("CSP missing");
+        if (!isset($headersLower['content-security-policy'])) {
+            throw new Exception("CSP missing");
+        }
         assert_contains("default-src 'none'", $headersLower['content-security-policy']);
     });
 
     // 2. Admin Auth Protection
-    run_test('Security: Admin Auth Required', function() {
+    run_test('Security: Admin Auth Required', function () {
         // GET /appointments is protected
         $res = api_request_headers('GET', 'appointments');
         assert_equals(401, $res['code']);
@@ -98,7 +106,7 @@ try {
     });
 
     // 3. Rate Limiting
-    run_test('Security: Rate Limiting', function() {
+    run_test('Security: Rate Limiting', function () {
         // resource=payment-verify limit is 12 per minute
         // We will make 15 requests quickly.
         // Note: The rate limiter uses IP. Localhost might be ::1 or 127.0.0.1.

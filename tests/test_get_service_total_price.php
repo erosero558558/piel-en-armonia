@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Test script for get_service_total_price function.
  *
@@ -7,7 +8,8 @@
 
 require_once __DIR__ . '/../api-lib.php';
 
-function run_test($description, $callback) {
+function run_test($description, $callback)
+{
     try {
         $result = $callback();
         if ($result === true) {
@@ -22,7 +24,8 @@ function run_test($description, $callback) {
     }
 }
 
-function assert_equals($expected, $actual, $message = '') {
+function assert_equals($expected, $actual, $message = '')
+{
     if ($expected !== $actual) {
         echo "  Expected: " . var_export($expected, true) . "\n";
         echo "  Actual:   " . var_export($actual, true) . "\n";
