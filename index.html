@@ -8,7 +8,7 @@
         />
         <meta
             http-equiv="Content-Security-Policy"
-            content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://www.google-analytics.com https://*.stripe.com data:; frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; connect-src 'self' https://api.stripe.com https://m.stripe.network https://r.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com; worker-src 'self' blob:; form-action 'self';"
+            content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' https://www.google-analytics.com https://*.stripe.com data:; frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; connect-src 'self' https://api.stripe.com https://m.stripe.network https://r.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com; worker-src 'self' blob:; form-action 'self';"
         />
         <title>Piel en Armonía | Dermatología Especializada en Quito</title>
         <meta
@@ -134,6 +134,22 @@
             }
         </script>
         <style>
+            @font-face {
+                font-family: 'Fraunces';
+                font-style: normal;
+                font-weight: 100 900;
+                font-display: swap;
+                src: url('fonts/fraunces.woff2') format('woff2');
+                unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+            }
+            @font-face {
+                font-family: 'Plus Jakarta Sans';
+                font-style: normal;
+                font-weight: 100 800;
+                font-display: swap;
+                src: url('fonts/plus-jakarta-sans.woff2') format('woff2');
+                unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+            }
             :root {
                 --ui-ink: #1e293b;
                 --ui-ink-soft: #64748b;
@@ -1849,8 +1865,20 @@
             rel="stylesheet"
             href="styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1"
         />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            rel="preload"
+            href="fonts/plus-jakarta-sans.woff2"
+            as="font"
+            type="font/woff2"
+            crossorigin
+        />
+        <link
+            rel="preload"
+            href="fonts/fraunces.woff2"
+            as="font"
+            type="font/woff2"
+            crossorigin
+        />
         <link
             rel="preconnect"
             href="https://cdnjs.cloudflare.com"
@@ -1861,10 +1889,6 @@
         <link rel="dns-prefetch" href="https://www.google-analytics.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://www.google.com" />
-        <link
-            href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
-            rel="stylesheet"
-        />
         <link
             rel="preload"
             as="image"
