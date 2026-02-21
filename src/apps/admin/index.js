@@ -108,7 +108,7 @@ async function checkAuth() {
         if (!navigator.onLine) {
             const cached = getLocalData('appointments', null);
             if (cached) {
-                loadFallbackState();
+                // loadFallbackState(); // Removing undefined function call
                 showToast('Modo Offline: Mostrando datos locales', 'info');
                 await showDashboard();
                 return;
@@ -124,7 +124,7 @@ async function checkAuth() {
         }
     } catch (error) {
         if (getLocalData('appointments', null)) {
-            loadFallbackState();
+            // loadFallbackState(); // Removing undefined function call
             showToast('Error de conexión. Mostrando datos locales.', 'warning');
             await showDashboard();
             return;
@@ -132,11 +132,6 @@ async function checkAuth() {
         showLogin();
         showToast('No se pudo verificar la sesion', 'warning');
     }
-}
-
-function showLogin() {
-    const loginScreen = document.getElementById('loginScreen');
-    if (loginScreen) loginScreen.classList.remove('is-hidden');
 }
 
 async function logout() {
