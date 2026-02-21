@@ -133,6 +133,13 @@ async function fillBookingFormAndOpenPayment(page) {
         timeout: 10000,
         state: 'attached',
     });
+
+    // Ensure lazy loading triggers by scrolling to the booking section
+    const bookingSection = page.locator('#citas');
+    if (await bookingSection.count() > 0) {
+        await bookingSection.scrollIntoViewIfNeeded();
+    }
+
     await page.waitForSelector('script[data-booking-ui="true"]', {
         timeout: 10000,
         state: 'attached',
