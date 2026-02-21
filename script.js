@@ -740,7 +740,7 @@
     function loadReviewsEngine() {
         return loadDeferredModule$1({
             cacheKey: 'engagement-bundle',
-            src: REVIEWS_ENGINE_URL,
+            src: ENGAGEMENT_BUNDLE_URL,
             scriptDataAttribute: 'data-engagement-bundle',
             resolveModule: () => window.PielReviewsEngine,
             isModuleReady: (module) =>
