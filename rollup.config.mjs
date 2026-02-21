@@ -6,11 +6,11 @@ export default [
         input: 'src/apps/booking/ui-entry.js',
         output: {
             file: 'js/engines/booking-ui.js',
-            format: 'es',
+            format: 'iife',
+            name: 'Piel.BookingUi',
             sourcemap: false
         },
         plugins: [resolve()]
-        // Removed external: ['booking-calendar-lazy'] to bundle it inline
     },
     // Booking Engine
     {
