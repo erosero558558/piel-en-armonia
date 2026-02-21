@@ -128,7 +128,7 @@ if (preg_match('/href=["\'](styles\.css[^"\']*)["\']/i', $indexHtml, $matches)) 
 }
 
 // 2. Critical Image (hero-woman.jpg) - LCP
-$preloadLinks[] = "<hero-woman.jpg>; rel=preload; as=image";
+$preloadLinks[] = "</images/optimized/hero-woman.jpg>; rel=preload; as=image";
 
 // 3. Critical JS (bootstrap-inline-engine.js) - Versioned
 $preloadLinks[] = "<{$bootstrapScriptUrl}>; rel=preload; as=script";
