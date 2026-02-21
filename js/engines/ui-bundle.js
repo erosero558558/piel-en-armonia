@@ -587,19 +587,30 @@ END:VCALENDAR`;
         if (getCookieConsent() !== 'accepted') return;
 
         window._ga4Loaded = true;
-
         const measurementId = getMeasurementId();
-        const script = document.createElement('script');
-        script.async = true;
-        script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
-        document.head.appendChild(script);
 
         window.dataLayer = window.dataLayer || [];
         function gtag() { window.dataLayer.push(arguments); }
-        window.gtag = gtag;
+        if (!window.gtag) {
+            window.gtag = gtag;
+        }
+
         gtag('js', new Date());
         gtag('consent', 'update', { analytics_storage: 'granted' });
         gtag('config', measurementId);
+
+        const loadScript = () => {
+            const script = document.createElement('script');
+            script.async = true;
+            script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
+            document.head.appendChild(script);
+        };
+
+        if (window.requestIdleCallback) {
+            window.requestIdleCallback(loadScript, { timeout: 4000 });
+        } else {
+            setTimeout(loadScript, 2500);
+        }
     }
 
     function setBannerActiveState(banner, isActive) {
