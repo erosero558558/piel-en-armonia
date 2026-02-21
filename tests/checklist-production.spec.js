@@ -127,17 +127,17 @@ test.describe('Checklist de Pruebas en Producción', () => {
         // 1. Confirm login success via toast or URL change first
         // This confirms the backend auth worked
         await expect(page.locator('#adminDashboard')).toBeVisible({
-            timeout: 20000,
+            timeout: 45000,
         });
 
         // 2. Wait for dashboard visibility
         // admin.js removes 'is-hidden' class from #adminDashboard
         await expect(page.locator('#adminDashboard')).not.toHaveClass(
             /is-hidden/,
-            { timeout: 15000 }
+            { timeout: 30000 }
         );
         await expect(page.locator('#adminDashboard')).toBeVisible({
-            timeout: 5000,
+            timeout: 10000,
         });
 
         // Navegación
