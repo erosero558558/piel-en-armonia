@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pielarmonia-v7-20260221-phase9-chatbridge1';
+const CACHE_NAME = 'pielarmonia-v8-20260221-phase9-chatbridge1';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -6,9 +6,9 @@ const STATIC_ASSETS = [
     '/admin.html',
     '/admin.css',
     '/admin.js',
-    '/styles-deferred.css?v=ui-20260221-deferred17-mobileblankfix2',
-    '/bootstrap-inline-engine.js?v=figo-bootstrap-20260221-mobileblankfix2',
-    '/script.js?v=figo-20260221-phase7-mobileblankfix2',
+    '/styles-deferred.css?v=ui-20260221-deferred18-fullcssfix1',
+    '/bootstrap-inline-engine.js?v=figo-bootstrap-20260221-phase9-chatbridge1',
+    '/script.js?v=figo-20260221-phase9-chatbridge1',
     '/hero-woman.jpg',
     '/favicon.ico',
     '/manifest.json',

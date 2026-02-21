@@ -149,13 +149,17 @@ function initCookieBanner() {
 function init(inputDeps) {
     deps = inputDeps || {};
     bindDelegatedListeners();
-    return window.PielConsentEngine;
+    return window.Piel.ConsentEngine;
 }
 
-window.PielConsentEngine = {
+window.Piel = window.Piel || {};
+window.Piel.ConsentEngine = {
     init,
     getCookieConsent,
     setCookieConsent,
     initGA4,
     initCookieBanner
 };
+
+// Legacy support just in case
+window.PielConsentEngine = window.Piel.ConsentEngine;
