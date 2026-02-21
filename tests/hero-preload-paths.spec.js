@@ -9,7 +9,8 @@ test.describe('Service hero preload paths', () => {
             const heroResponses = [];
             page.on('response', (response) => {
                 const url = response.url();
-                if (url.endsWith('/hero-woman.jpg')) {
+                // Match any image request containing hero-woman
+                if (url.includes('hero-woman') && /\.(jpg|jpeg|png|webp|avif)$/i.test(url)) {
                     heroResponses.push(response.status());
                 }
             });

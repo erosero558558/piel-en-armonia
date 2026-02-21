@@ -1079,93 +1079,49 @@
         throw lastError || new Error('No se pudo completar la solicitud');
     }
 
-    withDeployAssetVersion('/js/engines/booking-utils.js');
+    const BOOKING_UTILS_URL$2 = withDeployAssetVersion('/js/engines/booking-utils.js');
+
+    function getPaymentGatewayEngineDeps() {
+        return {
+            apiRequest,
+            getCurrentLang,
+            getPaymentConfig, setPaymentConfig,
+            getPaymentConfigLoaded, setPaymentConfigLoaded,
+            getPaymentConfigLoadedAt, setPaymentConfigLoadedAt,
+            getStripeSdkPromise, setStripeSdkPromise,
+            apiEndpoint: API_ENDPOINT,
+            apiRequestTimeoutMs: API_REQUEST_TIMEOUT_MS
+        };
+    }
+
+    function loadPaymentGatewayEngine() {
+        return loadDeferredModule({
+            cacheKey: 'booking-utils',
+            src: BOOKING_UTILS_URL$2,
+            scriptDataAttribute: 'data-booking-utils',
+            resolveModule: () => window.PielPaymentGatewayEngine,
+            isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(getPaymentGatewayEngineDeps()),
+            missingApiError: 'payment-gateway-engine loaded without API',
+            loadError: 'No se pudo cargar payment-gateway-engine (booking-utils)',
+            logLabel: 'Payment gateway engine'
+        });
+    }
 
     async function loadPaymentConfig() {
-        const now = Date.now();
-        if (
-            getPaymentConfigLoaded() &&
-            now - getPaymentConfigLoadedAt() < 5 * 60 * 1000
-        ) {
-            return getPaymentConfig();
-        }
-
-        let config;
-        try {
-            const payload = await apiRequest('payment-config');
-            config = {
-                enabled: payload.enabled === true,
-                provider: payload.provider || 'stripe',
-                publishableKey: payload.publishableKey || '',
-                currency: payload.currency || 'USD',
-            };
-        } catch (error) {
-            config = {
-                enabled: false,
-                provider: 'stripe',
-                publishableKey: '',
-                currency: 'USD',
-            };
-        }
-        setPaymentConfig(config);
-        setPaymentConfigLoaded(true);
-        setPaymentConfigLoadedAt(now);
-        return config;
+        return runDeferredModule(loadPaymentGatewayEngine, (engine) => engine.loadPaymentConfig());
     }
 
     async function loadStripeSdk() {
-        if (typeof window.Stripe === 'function') {
-            return true;
-        }
-
-        if (getStripeSdkPromise()) {
-            return getStripeSdkPromise();
-        }
-
-        const promise = new Promise((resolve, reject) => {
-            const existingScript = document.querySelector(
-                'script[data-stripe-sdk="true"]'
-            );
-            if (existingScript) {
-                existingScript.addEventListener('load', () => resolve(true), {
-                    once: true,
-                });
-                existingScript.addEventListener(
-                    'error',
-                    () => reject(new Error('No se pudo cargar Stripe SDK')),
-                    { once: true }
-                );
-                return;
-            }
-
-            const script = document.createElement('script');
-            script.src = 'https://js.stripe.com/v3/';
-            script.async = true;
-            script.defer = true;
-            script.dataset.stripeSdk = 'true';
-            script.onload = () => resolve(true);
-            script.onerror = () =>
-                reject(new Error('No se pudo cargar Stripe SDK'));
-            document.head.appendChild(script);
-        });
-
-        setStripeSdkPromise(promise);
-        return promise;
+        return runDeferredModule(loadPaymentGatewayEngine, (engine) => engine.loadStripeSdk());
     }
 
     async function createPaymentIntent(appointment) {
-        const payload = await apiRequest('payment-intent', {
-            method: 'POST',
-            body: appointment,
-        });
-        return payload;
+        return runDeferredModule(loadPaymentGatewayEngine, (engine) => engine.createPaymentIntent(appointment));
     }
 
     async function verifyPaymentIntent(paymentIntentId) {
-        return apiRequest('payment-verify', {
-            method: 'POST',
-            body: { paymentIntentId },
-        });
+        return runDeferredModule(loadPaymentGatewayEngine, (engine) => engine.verifyPaymentIntent(paymentIntentId));
     }
 
     const ANALYTICS_ENGINE_URL = withDeployAssetVersion(
@@ -1429,7 +1385,7 @@
     const BOOKING_UI_URL = withDeployAssetVersion(
         '/booking-ui.js?v=figo-booking-ui-20260220-sync3-cachepurge1'
     );
-    const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
+    const BOOKING_UTILS_URL$1 = withDeployAssetVersion('/js/engines/booking-utils.js');
     const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 
     function stripTransientAppointmentFields(appointment) {
@@ -1599,7 +1555,7 @@
     function loadBookingCalendarEngine() {
         return loadDeferredModule$1({
             cacheKey: 'booking-utils-calendar',
-            src: BOOKING_UTILS_URL,
+            src: BOOKING_UTILS_URL$1,
             scriptDataAttribute: 'data-booking-utils',
             resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine,
             isModuleReady: (module) => !!(module && typeof module.initCalendar === 'function'),
@@ -1877,9 +1833,7 @@
         document.body.style.overflow = '';
     }
 
-    const RESCHEDULE_GATEWAY_ENGINE_URL = withDeployAssetVersion(
-        '/reschedule-gateway-engine.js?v=figo-reschedule-gateway-20260219-phase1'
-    );
+    const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
 
     function getRescheduleEngineDeps() {
         return {
@@ -1896,16 +1850,16 @@
 
     function loadRescheduleEngine() {
         return loadDeferredModule({
-            cacheKey: 'reschedule-gateway-engine',
-            src: RESCHEDULE_GATEWAY_ENGINE_URL,
-            scriptDataAttribute: 'data-reschedule-gateway-engine',
-            resolveModule: () => window.Piel && window.Piel.RescheduleGatewayEngine,
+            cacheKey: 'booking-utils',
+            src: BOOKING_UTILS_URL,
+            scriptDataAttribute: 'data-booking-utils',
+            resolveModule: () => window.PielRescheduleEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getRescheduleEngineDeps()),
-            missingApiError: 'reschedule-gateway-engine loaded without API',
-            loadError: 'No se pudo cargar reschedule-gateway-engine.js',
-            logLabel: 'Reschedule gateway engine',
+            missingApiError: 'reschedule-engine loaded without API',
+            loadError: 'No se pudo cargar booking-utils.js (reschedule)',
+            logLabel: 'Reschedule engine',
         });
     }
 

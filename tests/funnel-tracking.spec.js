@@ -160,10 +160,7 @@ async function fillBookingFormAndOpenPayment(page) {
     // Trigger warmup explicitly via focusin (fallback if observer is slow)
     await page.locator('#appointmentForm').dispatchEvent('focusin');
 
-    // We don't explicitly wait for the script tag as it might be loaded/cached differently,
-    // but we proceed to interact. If the script isn't loaded, the interactions will fail or have no effect.
-
-    const serviceSelect = page.locator('#serviceSelect');
+    const serviceSelect = page.locator('select[name="service"]');
     await serviceSelect.selectOption('consulta');
 
     const doctorSelect = page.locator('select[name="doctor"]');
@@ -176,14 +173,13 @@ async function fillBookingFormAndOpenPayment(page) {
 
     // Fill triggers change event, which triggers updateAvailableTimes
     // We capture the request to ensure we wait for it
-    // eslint-disable-next-line playwright/missing-playwright-await
-    const bookedSlotsPromise = page.waitForResponse(
-        resp => resp.url().includes('booked-slots') && resp.status() === 200,
-        { timeout: 5000 }
-    ).catch(() => null);
-
-    await dateInput.fill(dateValue);
-    await bookedSlotsPromise;
+    await Promise.all([
+        page.waitForResponse(
+            resp => resp.url().includes('booked-slots') && resp.status() === 200,
+            { timeout: 5000 }
+        ).catch(() => null),
+        dateInput.fill(dateValue)
+    ]);
 
     // Buffer for DOM update from the app
     await page.waitForTimeout(500);
