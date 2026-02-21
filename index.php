@@ -82,7 +82,13 @@ if (is_file($contentFile)) {
 }
 // ----------------------------------------------
 
-$assetVersion = rawurlencode(app_runtime_version());
+$assetVersion = '';
+if (preg_match('#script\.js\?v=([^"&\']+)#i', $indexHtml, $versionMatch)) {
+    $assetVersion = rawurlencode((string) $versionMatch[1]);
+}
+if ($assetVersion === '') {
+    $assetVersion = rawurlencode(app_runtime_version());
+}
 $bootstrapScriptUrl = 'bootstrap-inline-engine.js?v=' . $assetVersion;
 $bootstrapScriptTag = '<script src="' . $bootstrapScriptUrl . '" defer></script>';
 

@@ -176,30 +176,29 @@ document.addEventListener('DOMContentLoaded', function () {
             initChatWidgetEngineWarmup();
         });
 
-    const initDeferredWarmups = () => {
-        initHighPriorityWarmups();
-        initLowPriorityWarmups();
-    };
+        const initLowPriorityWarmups = createOnceTask(() => {
+            initReviewsEngineWarmup();
+            initGalleryInteractionsWarmup();
+            initChatEngineWarmup();
+            initChatBookingEngineWarmup();
+            initUiEffectsWarmup();
+            initRescheduleEngineWarmup();
+            initSuccessModalEngineWarmup();
+            initEngagementFormsEngineWarmup();
+            initModalUxEngineWarmup();
+        });
 
-    const initDeferredWarmups = createOnceTask(() => {
-        if (initLowPriorityWarmups) {
+        const initDeferredWarmups = createOnceTask(() => {
+            initHighPriorityWarmups();
             initLowPriorityWarmups();
-        }
-        // Force booking UI warmup if not already done, as a fallback
-        initBookingUiWarmup();
-    });
+            initBookingUiWarmup();
+        });
 
-    window.addEventListener('pointerdown', initDeferredWarmups, {
-        once: true,
-        passive: true,
-    });
-    window.addEventListener('keydown', initDeferredWarmups, { once: true });
-
-        window.addEventListener('pointerdown', initLowPriorityWarmups, {
+        window.addEventListener('pointerdown', initDeferredWarmups, {
             once: true,
             passive: true,
         });
-        window.addEventListener('keydown', initLowPriorityWarmups, { once: true });
+        window.addEventListener('keydown', initDeferredWarmups, { once: true });
 
         scheduleDeferredTask(initHighPriorityWarmups, {
             idleTimeout: 1400,
@@ -214,6 +213,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // Re-init dynamic components
+        initGalleryLazyLoad();
         initBookingCalendarLazyInit();
     });
 

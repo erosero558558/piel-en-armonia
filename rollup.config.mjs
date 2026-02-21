@@ -23,16 +23,6 @@ export default [
         },
         plugins: [resolve()]
     },
-    // Data Engine
-    {
-        input: 'src/apps/data/engine.js',
-        output: {
-            file: 'data-engine.js',
-            format: 'iife',
-            sourcemap: false
-        },
-        plugins: [resolve()]
-    },
     // Booking Calendar
     {
         input: 'src/apps/booking/components/calendar.js',
