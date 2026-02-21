@@ -65,8 +65,14 @@ try {
 
     write_store($initialData);
 
+    // Adapt to SQLite/JSON hybrid
     if (!file_exists($storeFile)) {
-        fail("Store file not created.");
+        $sqliteFile = $tempDir . DIRECTORY_SEPARATOR . 'store.sqlite';
+        if (file_exists($sqliteFile)) {
+            $storeFile = $sqliteFile;
+        } else {
+            fail("Store file not created (checked json and sqlite).");
+        }
     }
 
     // 2. Create Backup
