@@ -18,7 +18,6 @@ export default [
         output: {
             file: 'js/engines/booking-engine.js',
             format: 'iife',
-            name: 'Piel.BookingEngine',
             sourcemap: false
         },
         plugins: [resolve()]

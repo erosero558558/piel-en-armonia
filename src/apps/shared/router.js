@@ -121,6 +121,8 @@ function bindListeners() {
     document.addEventListener('change', handleActionChange);
 }
 
-window.PielActionRouterEngine = {
+window.Piel = window.Piel || {};
+window.Piel.ActionRouterEngine = {
     init
 };
+window.PielActionRouterEngine = window.Piel.ActionRouterEngine;

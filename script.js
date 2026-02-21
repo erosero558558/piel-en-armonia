@@ -1618,7 +1618,6 @@
             normalizeAnalyticsLabel,
             openPaymentModal,
             setCurrentAppointment: setCurrentAppointment,
-            updateAvailableTimes, // Added dependency
         };
     }
 
@@ -2401,7 +2400,7 @@
             cacheKey: 'action-router-engine',
             src: DATA_BUNDLE_URL,
             scriptDataAttribute: 'data-data-bundle',
-            resolveModule: () => window.Piel && window.Piel.ActionRouterEngine,
+            resolveModule: () => (window.Piel && window.Piel.ActionRouterEngine) || window.PielActionRouterEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getActionRouterEngineDeps()),
