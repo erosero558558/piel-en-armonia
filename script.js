@@ -959,7 +959,7 @@ function selectService(value) {
     if (select) {
         select.value = value;
         select.dispatchEvent(new Event('change'));
-        import('./js/chunks/booking-DPy72ffF.js').then(({ markBookingViewed }) => markBookingViewed('service_select'));
+        import('./js/chunks/booking-D9ZKfbO6.js').then(({ markBookingViewed }) => markBookingViewed('service_select'));
         const appointmentSection = document.getElementById('citas');
         if (appointmentSection) {
             const navHeight =
@@ -978,23 +978,23 @@ function getActionRouterEngineDeps() {
     return {
         setThemeMode,
         changeLanguage,
-        toggleMobileMenu: () => import('./js/chunks/ui-CiAF08qy.js').then(m => m.toggleMobileMenu()),
-        startWebVideo: (id) => import('./js/chunks/ui-CiAF08qy.js').then(m => m.startWebVideo(id)),
-        closeVideoModal: () => import('./js/chunks/ui-CiAF08qy.js').then(m => m.closeVideoModal()),
+        toggleMobileMenu: () => import('./js/chunks/ui-Dn4o--pG.js').then(m => m.toggleMobileMenu()),
+        startWebVideo: (id) => import('./js/chunks/ui-Dn4o--pG.js').then(m => m.startWebVideo(id)),
+        closeVideoModal: () => import('./js/chunks/ui-Dn4o--pG.js').then(m => m.closeVideoModal()),
         openReviewModal: () => Promise.resolve().then(function () { return engagement; }).then(m => m.openReviewModal()),
         closeReviewModal: () => Promise.resolve().then(function () { return engagement; }).then(m => m.closeReviewModal()),
-        closePaymentModal: (opts) => import('./js/chunks/booking-DPy72ffF.js').then(m => m.closePaymentModal(opts)),
-        processPayment: () => import('./js/chunks/booking-DPy72ffF.js').then(m => m.processPayment()),
+        closePaymentModal: (opts) => import('./js/chunks/booking-D9ZKfbO6.js').then(m => m.closePaymentModal(opts)),
+        processPayment: () => import('./js/chunks/booking-D9ZKfbO6.js').then(m => m.processPayment()),
         closeSuccessModal: () => import('./js/chunks/success-modal-D5Mn68in.js').then(m => m.closeSuccessModal()),
         closeRescheduleModal: () => import('./js/chunks/reschedule-DUxBQrhU.js').then(m => m.closeRescheduleModal()),
         submitReschedule: (id) => import('./js/chunks/reschedule-DUxBQrhU.js').then(m => m.submitReschedule(id)),
-        toggleChatbot: () => import('./js/chunks/shell-Bsdgf8JH.js').then(m => m.toggleChatbot()),
-        sendChatMessage: () => import('./js/chunks/shell-Bsdgf8JH.js').then(m => m.sendChatMessage()),
-        handleChatBookingSelection: (val) => import('./js/chunks/shell-Bsdgf8JH.js').then(m => m.handleChatBookingSelection(val)),
-        sendQuickMessage: (val) => import('./js/chunks/shell-Bsdgf8JH.js').then(m => m.sendQuickMessage(val)),
-        minimizeChatbot: () => import('./js/chunks/shell-Bsdgf8JH.js').then(m => m.minimizeChatbot()),
-        startChatBooking: () => import('./js/chunks/shell-Bsdgf8JH.js').then(m => m.startChatBooking()),
-        handleChatDateSelect: (val) => import('./js/chunks/shell-Bsdgf8JH.js').then(m => m.handleChatDateSelect(val)),
+        toggleChatbot: () => import('./js/chunks/shell-CDhRJl--.js').then(m => m.toggleChatbot()),
+        sendChatMessage: () => import('./js/chunks/shell-CDhRJl--.js').then(m => m.sendChatMessage()),
+        handleChatBookingSelection: (val) => import('./js/chunks/shell-CDhRJl--.js').then(m => m.handleChatBookingSelection(val)),
+        sendQuickMessage: (val) => import('./js/chunks/shell-CDhRJl--.js').then(m => m.sendQuickMessage(val)),
+        minimizeChatbot: () => import('./js/chunks/shell-CDhRJl--.js').then(m => m.minimizeChatbot()),
+        startChatBooking: () => import('./js/chunks/shell-CDhRJl--.js').then(m => m.startChatBooking()),
+        handleChatDateSelect: (val) => import('./js/chunks/shell-CDhRJl--.js').then(m => m.handleChatDateSelect(val)),
         selectService,
     };
 }
@@ -1596,7 +1596,7 @@ function fallbackSelectService(value) {
     if (select) {
         select.value = value;
         select.dispatchEvent(new Event('change'));
-        import('./js/chunks/booking-DPy72ffF.js').then(({ markBookingViewed }) => {
+        import('./js/chunks/booking-D9ZKfbO6.js').then(({ markBookingViewed }) => {
              markBookingViewed('service_select');
         });
         const appointmentSection = document.getElementById('citas');
@@ -1635,7 +1635,7 @@ function initChatActionFallbackBridge() {
              event.preventDefault();
              event.stopImmediatePropagation();
 
-             const chatShell = await import('./js/chunks/shell-Bsdgf8JH.js');
+             const chatShell = await import('./js/chunks/shell-CDhRJl--.js');
              switch (action) {
                 case 'toggle-chatbot':
                     chatShell.toggleChatbot();
@@ -1667,7 +1667,7 @@ function initChatActionFallbackBridge() {
         const target = event.target instanceof Element ? event.target : null;
         if (!target) return;
         if (target.closest('[data-action="chat-date-select"]')) {
-            const { handleChatDateSelect } = await import('./js/chunks/shell-Bsdgf8JH.js');
+            const { handleChatDateSelect } = await import('./js/chunks/shell-CDhRJl--.js');
             handleChatDateSelect(target.value);
         }
     });
@@ -1692,11 +1692,11 @@ document.addEventListener('DOMContentLoaded', function () {
             initEnglishBundleWarmup();
             initDataEngineWarmup();
 
-            const { initBookingEngineWarmup, initBookingUiWarmup } = await import('./js/chunks/booking-DPy72ffF.js');
+            const { initBookingEngineWarmup, initBookingUiWarmup } = await import('./js/chunks/booking-D9ZKfbO6.js');
             initBookingEngineWarmup();
             initBookingUiWarmup();
 
-            const { initChatUiEngineWarmup, initChatWidgetEngineWarmup } = await import('./js/chunks/shell-Bsdgf8JH.js');
+            const { initChatUiEngineWarmup, initChatWidgetEngineWarmup } = await import('./js/chunks/shell-CDhRJl--.js');
             initChatUiEngineWarmup();
             initChatWidgetEngineWarmup();
         });
@@ -1709,11 +1709,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const { initGalleryInteractionsWarmup } = await import('./js/chunks/gallery-DX_OiKH7.js');
             initGalleryInteractionsWarmup();
 
-            const { initChatEngineWarmup, initChatBookingEngineWarmup } = await import('./js/chunks/shell-Bsdgf8JH.js');
+            const { initChatEngineWarmup, initChatBookingEngineWarmup } = await import('./js/chunks/shell-CDhRJl--.js');
             initChatEngineWarmup();
             initChatBookingEngineWarmup();
 
-            const { initUiEffectsWarmup, initModalUxEngineWarmup } = await import('./js/chunks/ui-CiAF08qy.js');
+            const { initUiEffectsWarmup, initModalUxEngineWarmup } = await import('./js/chunks/ui-Dn4o--pG.js');
             initUiEffectsWarmup();
             initModalUxEngineWarmup();
 
@@ -1727,7 +1727,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const initDeferredWarmups = createOnceTask(() => {
             initHighPriorityWarmups();
             initLowPriorityWarmups();
-            import('./js/chunks/booking-DPy72ffF.js').then(({ initBookingUiWarmup }) => {
+            import('./js/chunks/booking-D9ZKfbO6.js').then(({ initBookingUiWarmup }) => {
                  initBookingUiWarmup();
             });
         });
@@ -1747,7 +1747,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const chatInput = document.getElementById('chatInput');
         if (chatInput) {
-            import('./js/chunks/shell-Bsdgf8JH.js').then(({ handleChatKeypress }) => {
+            import('./js/chunks/shell-CDhRJl--.js').then(({ handleChatKeypress }) => {
                 chatInput.addEventListener('keypress', handleChatKeypress);
             });
         }
@@ -1760,7 +1760,7 @@ document.addEventListener('DOMContentLoaded', function () {
         maybeTrackCheckoutAbandon('page_hide');
     });
 
-    import('./js/chunks/shell-Bsdgf8JH.js').then(({ checkServerEnvironment }) => {
+    import('./js/chunks/shell-CDhRJl--.js').then(({ checkServerEnvironment }) => {
         const isServer = checkServerEnvironment();
         if (!isServer) {
             console.warn(
@@ -1789,7 +1789,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const targetPosition = target.offsetTop - navHeight - 20;
 
         if (href === '#citas') {
-             import('./js/chunks/booking-DPy72ffF.js').then(({ markBookingViewed }) => {
+             import('./js/chunks/booking-D9ZKfbO6.js').then(({ markBookingViewed }) => {
                  markBookingViewed('cta_click');
              });
         }
@@ -1850,7 +1850,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // Offline/Online Sync
 window.addEventListener('online', () => {
     // Refresh availability when connection returns
-    import('./js/chunks/booking-DPy72ffF.js').then(({ initBookingEngineWarmup }) => {
+    import('./js/chunks/booking-D9ZKfbO6.js').then(({ initBookingEngineWarmup }) => {
         initBookingEngineWarmup();
     });
     initDataEngineWarmup();
