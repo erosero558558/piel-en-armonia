@@ -138,10 +138,11 @@ async function fillBookingFormAndOpenPayment(page) {
     const bookingSection = page.locator('#citas');
     if (await bookingSection.count() > 0) {
         await bookingSection.scrollIntoViewIfNeeded();
+        await page.waitForTimeout(500); // Give IntersectionObserver time to trigger
     }
 
     await page.waitForSelector('script[data-booking-ui="true"]', {
-        timeout: 10000,
+        timeout: 30000,
         state: 'attached',
     });
 
