@@ -758,16 +758,16 @@ function acquire_store_lock($fp, int $timeoutMs = STORE_LOCK_TIMEOUT_MS): bool
     return true;
 }
 
-function write_store(array $store): void
+function write_store(array $store, bool $emitHttpErrors = true): bool
 {
     if (!ensure_data_file()) {
         if (write_store_json_fallback($store)) {
-            return;
+            return true;
         }
-        if (function_exists('json_response')) {
+        if ($emitHttpErrors && function_exists('json_response')) {
             json_response(['ok' => false, 'error' => 'Storage error'], 500);
         }
-        return;
+        return false;
     }
 
     $store = normalize_store_payload($store);
@@ -775,12 +775,12 @@ function write_store(array $store): void
     $pdo = get_db_connection($dbPath);
     if (!$pdo) {
         if (write_store_json_fallback($store)) {
-            return;
+            return true;
         }
-        if (function_exists('json_response')) {
+        if ($emitHttpErrors && function_exists('json_response')) {
             json_response(['ok' => false, 'error' => 'DB Connection error'], 500);
         }
-        return;
+        return false;
     }
 
     // Backup
@@ -905,15 +905,17 @@ function write_store(array $store): void
         $stmt->execute(['updatedAt', $updatedAt]);
 
         $pdo->commit();
+        return true;
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log('Write Store Error: ' . $e->getMessage());
         if (write_store_json_fallback($store)) {
-            return;
+            return true;
         }
-        if (function_exists('json_response')) {
+        if ($emitHttpErrors && function_exists('json_response')) {
             json_response(['ok' => false, 'error' => 'Write error'], 500);
         }
+        return false;
     }
 }
 

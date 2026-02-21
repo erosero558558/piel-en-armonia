@@ -11,6 +11,10 @@ class ReviewController
         $reviews = isset($store['reviews']) && is_array($store['reviews']) ? $store['reviews'] : [];
         if (count($reviews) === 0 && function_exists('default_public_reviews_enabled') && default_public_reviews_enabled()) {
             $reviews = get_default_public_reviews();
+            if (count($reviews) > 0) {
+                $store['reviews'] = $reviews;
+                write_store($store, false);
+            }
         }
 
         usort($reviews, static function (array $a, array $b): int {

@@ -15,6 +15,10 @@ class AvailabilityController
             default_availability_enabled()
         ) {
             $availability = get_default_availability();
+            if (count($availability) > 0) {
+                $store['availability'] = $availability;
+                write_store($store, false);
+            }
         }
 
         json_response([
