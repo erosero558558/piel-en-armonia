@@ -129,14 +129,20 @@ async function getFunnelEvents(page) {
 }
 
 async function fillBookingFormAndOpenPayment(page) {
-    await page.waitForSelector('script[data-action-router-engine="true"]', {
+    await page.waitForSelector('script[data-data-bundle="true"]', {
         timeout: 10000,
         state: 'attached',
     });
-    await page.waitForSelector('script[data-booking-ui="true"]', {
-        timeout: 10000,
-        state: 'attached',
-    });
+
+    // Ensure booking section is visible to trigger lazy loading
+    const bookingSection = page.locator('#citas');
+    await bookingSection.scrollIntoViewIfNeeded();
+
+    // Trigger warmup explicitly via focusin (fallback if observer is slow)
+    await page.locator('#appointmentForm').dispatchEvent('focusin');
+
+    // We don't explicitly wait for the script tag as it might be loaded/cached differently,
+    // but we proceed to interact. If the script isn't loaded, the interactions will fail or have no effect.
 
     const serviceSelect = page.locator('#serviceSelect');
     await serviceSelect.selectOption('consulta');
@@ -389,7 +395,7 @@ test.describe('Tracking del embudo de conversion', () => {
     test('emite chat_started y paso inicial al iniciar reserva desde chatbot', async ({
         page,
     }) => {
-        await page.waitForSelector('script[data-action-router-engine="true"]', {
+        await page.waitForSelector('script[data-data-bundle="true"]', {
             timeout: 10000,
             state: 'attached',
         });

@@ -151,6 +151,11 @@ document.addEventListener('DOMContentLoaded', function () {
         initModalUxEngineWarmup();
     });
 
+    const initDeferredWarmups = () => {
+        initHighPriorityWarmups();
+        initLowPriorityWarmups();
+    };
+
     window.addEventListener('pointerdown', initDeferredWarmups, {
         once: true,
         passive: true,

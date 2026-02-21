@@ -577,7 +577,7 @@
         });
     }
 
-    const UI_BUNDLE_URL$2 = withDeployAssetVersion(
+    const UI_BUNDLE_URL$3 = withDeployAssetVersion(
         '/js/engines/ui-bundle.js?v=20260220-consolidated1'
     );
     const systemThemeQuery = window.matchMedia
@@ -599,7 +599,7 @@
     function loadThemeEngine() {
         return loadDeferredModule$1({
             cacheKey: 'theme-engine',
-            src: UI_BUNDLE_URL$2,
+            src: UI_BUNDLE_URL$3,
             scriptDataAttribute: 'data-ui-bundle',
             resolveModule: () => window.Piel && window.Piel.ThemeEngine,
             isModuleReady: (module) =>
@@ -742,7 +742,7 @@
     function loadReviewsEngine() {
         return loadDeferredModule$1({
             cacheKey: 'engagement-bundle',
-            src: REVIEWS_ENGINE_URL,
+            src: ENGAGEMENT_BUNDLE_URL,
             scriptDataAttribute: 'data-engagement-bundle',
             resolveModule: () => window.Piel && window.Piel.ReviewsEngine,
             isModuleReady: (module) =>
@@ -752,6 +752,27 @@
             loadError: 'No se pudo cargar reviews-engine.js',
             logLabel: 'Reviews engine',
         });
+    }
+
+    function initReviewsEngineWarmup() {
+        const warmup = createWarmupRunner(() => loadReviewsEngine(), {
+            markWarmOnSuccess: true,
+        });
+        const reviewSection = document.getElementById('resenas');
+        observeOnceWhenVisible(reviewSection, warmup, {
+            threshold: 0.05,
+            rootMargin: '300px 0px',
+            onNoObserver: warmup,
+        });
+        bindWarmupTarget('#resenas', 'mouseenter', warmup);
+        bindWarmupTarget('#resenas', 'touchstart', warmup);
+        bindWarmupTarget(
+            '#resenas [data-action="open-review-modal"]',
+            'focus',
+            warmup,
+            false
+        );
+        scheduleDeferredTask(warmup, { idleTimeout: 2200, fallbackDelay: 1300 });
     }
 
     function renderPublicReviews(reviews) {
@@ -795,6 +816,32 @@
                 logLabel: 'Engagement forms engine',
             })
         );
+    }
+
+    function initEngagementFormsEngineWarmup() {
+        const warmup = createWarmupRunner(() => loadEngagementFormsEngine());
+        bindWarmupTarget('#callbackForm', 'focusin', warmup, false);
+        bindWarmupTarget('#callbackForm', 'pointerdown', warmup);
+        bindWarmupTarget(
+            '#resenas [data-action="open-review-modal"]',
+            'mouseenter',
+            warmup
+        );
+        bindWarmupTarget(
+            '#resenas [data-action="open-review-modal"]',
+            'touchstart',
+            warmup
+        );
+        if (document.getElementById('callbackForm')) {
+            setTimeout(warmup, 120);
+        }
+        const reviewSection = document.getElementById('resenas');
+        observeOnceWhenVisible(reviewSection, warmup, {
+            threshold: 0.05,
+            rootMargin: '280px 0px',
+            onNoObserver: warmup,
+        });
+        scheduleDeferredTask(warmup, { idleTimeout: 2600, fallbackDelay: 1500 });
     }
 
     function openReviewModal() {
@@ -1310,7 +1357,7 @@
         );
     }
 
-    const UI_BUNDLE_URL$1 = withDeployAssetVersion(
+    const UI_BUNDLE_URL$2 = withDeployAssetVersion(
         '/js/engines/ui-bundle.js?v=20260220-consolidated1'
     );
 
@@ -1326,7 +1373,7 @@
     function loadSuccessModalEngine() {
         return loadDeferredModule$1({
             cacheKey: 'success-modal-engine',
-            src: UI_BUNDLE_URL$1,
+            src: UI_BUNDLE_URL$2,
             scriptDataAttribute: 'data-ui-bundle',
             resolveModule: () => window.Piel && window.Piel.SuccessModalEngine,
             isModuleReady: (module) =>
@@ -1336,6 +1383,23 @@
             loadError: 'No se pudo cargar success-modal-engine.js',
             logLabel: 'Success modal engine',
         });
+    }
+
+    function initSuccessModalEngineWarmup() {
+        const warmup = createWarmupRunner(() => loadSuccessModalEngine());
+        bindWarmupTarget(
+            '#appointmentForm button[type="submit"]',
+            'pointerdown',
+            warmup
+        );
+        bindWarmupTarget(
+            '#appointmentForm button[type="submit"]',
+            'focus',
+            warmup,
+            false
+        );
+        bindWarmupTarget('.payment-method', 'pointerdown', warmup);
+        scheduleDeferredTask(warmup, { idleTimeout: 2800, fallbackDelay: 1600 });
     }
 
     function showSuccessModal(emailSent = false) {
@@ -1365,7 +1429,7 @@
     const BOOKING_UI_URL = withDeployAssetVersion(
         '/booking-ui.js?v=figo-booking-ui-20260220-sync3-cachepurge1'
     );
-    withDeployAssetVersion('/js/engines/booking-utils.js');
+    const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
     const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 
     function stripTransientAppointmentFields(appointment) {
@@ -1532,6 +1596,23 @@
         );
     }
 
+    function loadBookingCalendarEngine() {
+        return loadDeferredModule$1({
+            cacheKey: 'booking-utils-calendar',
+            src: BOOKING_UTILS_URL,
+            scriptDataAttribute: 'data-booking-utils',
+            resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine,
+            isModuleReady: (module) => !!(module && typeof module.initCalendar === 'function'),
+            missingApiError: 'booking-calendar-engine loaded without API',
+            loadError: 'No se pudo cargar booking-calendar-engine',
+            logLabel: 'Booking Calendar engine'
+        });
+    }
+
+    async function updateAvailableTimes(elements) {
+        return runDeferredModule(loadBookingCalendarEngine, (engine) => engine.updateAvailableTimes(getBookingUiDeps(), elements));
+    }
+
     // BOOKING UI
     function getBookingUiDeps() {
         return {
@@ -1553,6 +1634,7 @@
             normalizeAnalyticsLabel,
             openPaymentModal,
             setCurrentAppointment: setCurrentAppointment,
+            updateAvailableTimes,
         };
     }
 
@@ -1691,9 +1773,41 @@
         );
     }
 
-    withDeployAssetVersion(
+    const UI_BUNDLE_URL$1 = withDeployAssetVersion(
         '/js/engines/ui-bundle.js?v=20260220-consolidated1'
     );
+
+    // UI Effects
+    function loadUiEffects() {
+        return loadDeferredModule$1({
+            cacheKey: 'ui-effects',
+            src: UI_BUNDLE_URL$1,
+            scriptDataAttribute: 'data-ui-bundle',
+            resolveModule: () => window.Piel && window.Piel.UiEffects,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(),
+            missingApiError: 'ui-effects loaded without API',
+            loadError: 'No se pudo cargar ui-effects.js',
+            logLabel: 'UI effects',
+        });
+    }
+
+    function initUiEffectsWarmup() {
+        const warmup = createWarmupRunner(() => loadUiEffects());
+        bindWarmupTarget('.nav', 'mouseenter', warmup);
+        bindWarmupTarget('.nav', 'touchstart', warmup);
+        const triggerOnce = () => warmup();
+        window.addEventListener('scroll', triggerOnce, {
+            once: true,
+            passive: true,
+        });
+        window.addEventListener('pointerdown', triggerOnce, {
+            once: true,
+            passive: true,
+        });
+        scheduleDeferredTask(warmup, { idleTimeout: 1800, fallbackDelay: 1200 });
+    }
 
     function toggleMobileMenu(forceClose) {
         const menu = document.getElementById('mobileMenu');
@@ -1706,6 +1820,39 @@
         document.body.style.overflow = menu.classList.contains('active')
             ? 'hidden'
             : '';
+    }
+
+    // Modal UX Engine
+    function getModalUxEngineDeps() {
+        return {
+            closePaymentModal,
+            toggleMobileMenu,
+        };
+    }
+
+    function loadModalUxEngine() {
+        return loadDeferredModule$1({
+            cacheKey: 'modal-ux-engine',
+            src: UI_BUNDLE_URL$1,
+            scriptDataAttribute: 'data-ui-bundle',
+            resolveModule: () => window.Piel && window.Piel.ModalUxEngine,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(getModalUxEngineDeps()),
+            missingApiError: 'modal-ux-engine loaded without API',
+            loadError: 'No se pudo cargar modal-ux-engine.js',
+            logLabel: 'Modal UX engine',
+        });
+    }
+
+    function initModalUxEngineWarmup() {
+        const warmup = createWarmupRunner(() => loadModalUxEngine());
+        bindWarmupTarget('.modal', 'pointerdown', warmup);
+        bindWarmupTarget('.modal-close', 'pointerdown', warmup);
+        if (document.querySelector('.modal')) {
+            setTimeout(warmup, 180);
+        }
+        scheduleDeferredTask(warmup, { idleTimeout: 2200, fallbackDelay: 1200 });
     }
 
     function startWebVideo() {
@@ -1754,6 +1901,21 @@
             loadError: 'No se pudo cargar reschedule-gateway-engine.js',
             logLabel: 'Reschedule gateway engine',
         });
+    }
+
+    function initRescheduleEngineWarmup() {
+        runDeferredModule(
+            loadRescheduleEngine,
+            (engine) => engine.initRescheduleFromParam(),
+            () => {
+                showToast(
+                    getCurrentLang() === 'es'
+                        ? 'No se pudo cargar la reprogramacion.'
+                        : 'Unable to load reschedule flow.',
+                    'error'
+                );
+            }
+        );
     }
 
     function closeRescheduleModal() {
@@ -2055,6 +2217,24 @@
         });
     }
 
+    function initChatBookingEngineWarmup() {
+        const warmup = createWarmupRunner(() => loadChatBookingEngine());
+        bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
+        bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
+        bindWarmupTarget(
+            '#quickOptions [data-action="quick-message"][data-value="appointment"]',
+            'mouseenter',
+            warmup
+        );
+        bindWarmupTarget(
+            '#quickOptions [data-action="quick-message"][data-value="appointment"]',
+            'touchstart',
+            warmup
+        );
+        bindWarmupTarget('#chatInput', 'focus', warmup, false);
+        scheduleDeferredTask(warmup, { idleTimeout: 2600, fallbackDelay: 1700 });
+    }
+
     function startChatBooking() {
         runDeferredModule(
             loadChatBookingEngine,
@@ -2139,6 +2319,16 @@
             missingApiError: 'Figo chat engine loaded without API',
             loadError: 'No se pudo cargar chat-engine.js',
         });
+    }
+
+    function initChatEngineWarmup() {
+        const warmup = createWarmupRunner(() => loadFigoChatEngine(), {
+            markWarmOnSuccess: true,
+        });
+        bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
+        bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
+        bindWarmupTarget('#chatInput', 'focus', warmup);
+        scheduleDeferredTask(warmup, { idleTimeout: 7000, fallbackDelay: 7000 });
     }
 
     async function processWithKimi(message) {
@@ -2280,9 +2470,49 @@
         runDeferredModule(loadConsentEngine, (engine) => engine.initCookieBanner());
     }
 
-    withDeployAssetVersion(
+    const GALLERY_INTERACTIONS_URL = withDeployAssetVersion(
         '/gallery-interactions.js?v=figo-gallery-20260218-phase4'
     );
+
+    function loadGalleryInteractions() {
+        return loadDeferredModule$1({
+            cacheKey: 'gallery-interactions',
+            src: GALLERY_INTERACTIONS_URL,
+            scriptDataAttribute: 'data-gallery-interactions',
+            resolveModule: () => window.Piel && window.Piel.GalleryInteractions,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(),
+            missingApiError: 'gallery-interactions loaded without API',
+            loadError: 'No se pudo cargar gallery-interactions.js',
+            logLabel: 'Gallery interactions',
+        });
+    }
+
+    function initGalleryInteractionsWarmup() {
+        const warmup = createWarmupRunner(() => loadGalleryInteractions());
+        const gallerySection = document.getElementById('galeria');
+        observeOnceWhenVisible(gallerySection, warmup, {
+            threshold: 0.05,
+            rootMargin: '320px 0px',
+            onNoObserver: warmup,
+        });
+        const firstFilterBtn = document.querySelector('.filter-btn');
+        if (firstFilterBtn) {
+            firstFilterBtn.addEventListener('mouseenter', warmup, {
+                once: true,
+                passive: true,
+            });
+            firstFilterBtn.addEventListener('touchstart', warmup, {
+                once: true,
+                passive: true,
+            });
+        }
+        if (!gallerySection && !firstFilterBtn) {
+            return;
+        }
+        scheduleDeferredTask(warmup, { idleTimeout: 2500, fallbackDelay: 1500 });
+    }
 
     // Setup global version
     window.Piel = window.Piel || {};
@@ -2385,6 +2615,23 @@
             initChatUiEngineWarmup();
             initChatWidgetEngineWarmup();
         });
+
+        const initLowPriorityWarmups = createOnceTask(() => {
+            initReviewsEngineWarmup();
+            initGalleryInteractionsWarmup();
+            initChatEngineWarmup();
+            initChatBookingEngineWarmup();
+            initUiEffectsWarmup();
+            initRescheduleEngineWarmup();
+            initSuccessModalEngineWarmup();
+            initEngagementFormsEngineWarmup();
+            initModalUxEngineWarmup();
+        });
+
+        const initDeferredWarmups = () => {
+            initHighPriorityWarmups();
+            initLowPriorityWarmups();
+        };
 
         window.addEventListener('pointerdown', initDeferredWarmups, {
             once: true,
