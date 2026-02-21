@@ -99,11 +99,6 @@ async function showDashboard() {
     await updateDate();
 }
 
-    // Initial load
-    await refreshData();
-    renderSection('dashboard');
-}
-
 async function checkAuth() {
     try {
         if (!navigator.onLine) {
@@ -121,6 +116,10 @@ async function checkAuth() {
             if (payload.csrfToken) setCsrfToken(payload.csrfToken);
             await showDashboard();
         } else {
+            const dashboard = document.getElementById('adminDashboard');
+            if (dashboard && !dashboard.classList.contains('is-hidden')) {
+                return;
+            }
             showLogin();
         }
     } catch (error) {
@@ -130,14 +129,13 @@ async function checkAuth() {
             await showDashboard();
             return;
         }
+        const dashboard = document.getElementById('adminDashboard');
+        if (dashboard && !dashboard.classList.contains('is-hidden')) {
+            return;
+        }
         showLogin();
         showToast('No se pudo verificar la sesion', 'warning');
     }
-}
-
-function showLogin() {
-    const loginScreen = document.getElementById('loginScreen');
-    if (loginScreen) loginScreen.classList.remove('is-hidden');
 }
 
 async function logout() {

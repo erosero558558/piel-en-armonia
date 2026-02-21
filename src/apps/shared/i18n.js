@@ -136,8 +136,10 @@ async function changeLanguage(lang) {
     return nextLang;
 }
 
-window.PielI18nEngine = {
+window.Piel = window.Piel || {};
+window.Piel.I18nEngine = {
     init,
     ensureEnglishTranslations,
     changeLanguage
 };
+window.PielI18nEngine = window.Piel.I18nEngine;

@@ -138,11 +138,13 @@
         return nextLang;
     }
 
-    window.PielI18nEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.I18nEngine = {
         init: init$1,
         ensureEnglishTranslations,
         changeLanguage
     };
+    window.PielI18nEngine = window.Piel.I18nEngine;
 
     let deps = null;
     let listenersBound = false;
@@ -263,8 +265,10 @@
         document.addEventListener('change', handleActionChange);
     }
 
-    window.PielActionRouterEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.ActionRouterEngine = {
         init
     };
+    window.PielActionRouterEngine = window.Piel.ActionRouterEngine;
 
 })();

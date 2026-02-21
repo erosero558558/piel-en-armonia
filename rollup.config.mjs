@@ -18,7 +18,6 @@ export default [
         output: {
             file: 'js/engines/booking-engine.js',
             format: 'iife',
-            name: 'Piel.BookingEngine',
             sourcemap: false
         },
         plugins: [resolve()]
@@ -119,6 +118,16 @@ export default [
         output: {
             file: 'js/engines/engagement-bundle.js',
             format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
+    // Admin Panel
+    {
+        input: 'src/apps/admin/index.js',
+        output: {
+            file: 'admin.js',
+            format: 'es',
             sourcemap: false
         },
         plugins: [resolve()]

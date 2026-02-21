@@ -1,5 +1,4 @@
-window.Piel = window.Piel || {};
-window.Piel.BookingEngine = (function () {
+(function () {
     'use strict';
 
     // build-sync: 20260219-sync1
@@ -580,6 +579,8 @@ window.Piel.BookingEngine = (function () {
         processPayment
     };
 
+    window.Piel = window.Piel || {};
+    window.Piel.BookingEngine = api;
     window.PielBookingEngine = api;
 
     return api;
