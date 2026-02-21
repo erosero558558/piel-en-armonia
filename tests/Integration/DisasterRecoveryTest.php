@@ -14,6 +14,7 @@ if (!mkdir($tempDir, 0777, true)) {
 }
 
 putenv("PIELARMONIA_DATA_DIR=$tempDir");
+putenv("PIELARMONIA_STORAGE_JSON_FALLBACK=1"); // Force JSON for this test to match expectation
 $storeFile = $tempDir . DIRECTORY_SEPARATOR . 'store.json';
 $restoreScript = realpath(__DIR__ . '/../../bin/restore-backup.php');
 
@@ -23,10 +24,13 @@ require_once __DIR__ . '/../../lib/backup.php';
 
 function fail($msg)
 {
-    global $tempDir;
+    // Use GLOBALS to access tempDir when running inside PHPUnit
+    $dir = $GLOBALS['tempDir'] ?? ($tempDir ?? null);
     echo "FAILED: $msg\n";
     // Cleanup
-    recursiveRemove($tempDir);
+    if ($dir) {
+        recursiveRemove($dir);
+    }
     exit(1);
 }
 
@@ -47,6 +51,9 @@ function recursiveRemove($dir)
 }
 
 try {
+    // Make tempDir global for the fail function when running via PHPUnit
+    $GLOBALS['tempDir'] = $tempDir;
+
     // 1. Setup Initial State
     $initialData = [
         'appointments' => [
