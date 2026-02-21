@@ -72,7 +72,11 @@ function check_system_health(): array
         'enabled' => false
     ];
     if (function_exists('backup_latest_status')) {
-        $backupStatus = backup_latest_status();
+        if (function_exists('backup_latest_status_fast')) {
+            $backupStatus = backup_latest_status_fast();
+        } else {
+            $backupStatus = backup_latest_status();
+        }
         $backupCheck = [
             'enabled' => true,
             'ok' => (bool) ($backupStatus['ok'] ?? false),

@@ -386,7 +386,76 @@ function backup_validate_file(string $path): array
     return $result;
 }
 
-function backup_latest_status(?int $maxAgeHours = null): array
+function backup_validate_file_fast(string $path): array
+{
+    $result = [
+        'ok' => false,
+        'path' => $path,
+        'file' => basename($path),
+        'exists' => false,
+        'readable' => false,
+        'sizeBytes' => 0,
+        'mtime' => '',
+        'ageHours' => null,
+        'counts' => [
+            'appointments' => 0,
+            'callbacks' => 0,
+            'reviews' => 0,
+            'availability' => 0
+        ],
+        'reason' => ''
+    ];
+
+    if (!is_file($path)) {
+        $result['reason'] = 'file_not_found';
+        return $result;
+    }
+    $result['exists'] = true;
+
+    if (!is_readable($path)) {
+        $result['reason'] = 'file_not_readable';
+        return $result;
+    }
+    $result['readable'] = true;
+
+    $size = @filesize($path);
+    if (is_int($size) && $size >= 0) {
+        $result['sizeBytes'] = $size;
+    }
+    if ($result['sizeBytes'] <= 0) {
+        $result['reason'] = 'file_empty';
+        return $result;
+    }
+
+    $mtime = @filemtime($path);
+    if (is_int($mtime) && $mtime > 0) {
+        $result['mtime'] = date('c', $mtime);
+        $result['ageHours'] = round(max(0, time() - $mtime) / 3600, 3);
+    }
+
+    $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+    if ($ext === 'sqlite') {
+        $header = '';
+        $fh = @fopen($path, 'rb');
+        if ($fh !== false) {
+            $read = @fread($fh, 16);
+            if (is_string($read)) {
+                $header = $read;
+            }
+            @fclose($fh);
+        }
+        if ($header !== '' && strpos($header, 'SQLite format 3') !== 0) {
+            $result['reason'] = 'sqlite_header_invalid';
+            return $result;
+        }
+    }
+
+    $result['ok'] = true;
+    $result['reason'] = '';
+    return $result;
+}
+
+function backup_latest_status_internal(?int $maxAgeHours, callable $validator): array
 {
     $maxAge = $maxAgeHours ?? backup_health_max_age_hours();
     if ($maxAge < 1) {
@@ -423,7 +492,7 @@ function backup_latest_status(?int $maxAgeHours = null): array
     }
 
     $latestPath = $files[0];
-    $latest = backup_validate_file($latestPath);
+    $latest = $validator($latestPath);
     $latestAgeHours = isset($latest['ageHours']) && is_numeric($latest['ageHours']) ? (float) $latest['ageHours'] : null;
     $latestValid = ($latest['ok'] ?? false) === true;
     $latestFresh = $latestAgeHours !== null && $latestAgeHours <= $maxAge;
@@ -451,6 +520,16 @@ function backup_latest_status(?int $maxAgeHours = null): array
         'bootstrapReason' => (string) ($bootstrapResult['reason'] ?? ''),
         'latest' => $latest
     ];
+}
+
+function backup_latest_status(?int $maxAgeHours = null): array
+{
+    return backup_latest_status_internal($maxAgeHours, 'backup_validate_file');
+}
+
+function backup_latest_status_fast(?int $maxAgeHours = null): array
+{
+    return backup_latest_status_internal($maxAgeHours, 'backup_validate_file_fast');
 }
 
 function backup_create_offsite_snapshot(): array
