@@ -122,6 +122,16 @@ export default [
         },
         plugins: [resolve()]
     },
+    // Admin Panel
+    {
+        input: 'src/apps/admin/index.js',
+        output: {
+            file: 'admin.js',
+            format: 'es',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
     // Main Script
     {
         input: 'js/main.js',

@@ -116,6 +116,10 @@ async function checkAuth() {
             if (payload.csrfToken) setCsrfToken(payload.csrfToken);
             await showDashboard();
         } else {
+            const dashboard = document.getElementById('adminDashboard');
+            if (dashboard && !dashboard.classList.contains('is-hidden')) {
+                return;
+            }
             showLogin();
         }
     } catch (error) {
@@ -123,6 +127,10 @@ async function checkAuth() {
             loadFallbackState();
             showToast('Error de conexión. Mostrando datos locales.', 'warning');
             await showDashboard();
+            return;
+        }
+        const dashboard = document.getElementById('adminDashboard');
+        if (dashboard && !dashboard.classList.contains('is-hidden')) {
             return;
         }
         showLogin();
