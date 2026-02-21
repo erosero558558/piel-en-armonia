@@ -229,7 +229,6 @@ function getBookingUiDeps() {
     return {
         updateAvailableTimes,
         loadAvailabilityData,
-        updateAvailableTimes,
         getBookedSlots,
         showToast,
         getCurrentLang: () => state.currentLang,
@@ -247,7 +246,6 @@ function getBookingUiDeps() {
         normalizeAnalyticsLabel,
         openPaymentModal,
         setCurrentAppointment: setCurrentAppointment,
-        updateAvailableTimes,
     };
 }
 
