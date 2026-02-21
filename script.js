@@ -2880,8 +2880,6 @@
                     event.stopImmediatePropagation();
                     fallbackSelectService(value);
                     break;
-                default:
-                    break;
             }
         });
 
@@ -2954,7 +2952,7 @@
                 chatInput.addEventListener('keypress', handleChatKeypress);
             }
 
-            // Gallery lazy load is initialized in the legacy fallback block below.
+            // Gallery lazy load is already initialized below in the legacy fallback block.
             initBookingCalendarLazyInit();
         });
 

@@ -1,7 +1,14 @@
-import { checkAuth, login, login2FA, logout } from './modules/auth.js';
-import { refreshData } from './modules/data.js';
-import { showToast, escapeHtml } from './modules/ui.js';
-import { setCsrfToken } from './modules/state.js';
+import { checkAuth as apiCheckAuth, login, login2FA, logout as apiLogout } from './modules/auth.js';
+import { refreshData, getLocalData } from './modules/data.js';
+import { showToast } from './modules/ui.js';
+import { setCsrfToken, csrfToken } from './modules/state.js';
+import { authRequest, apiRequest } from './modules/api.js';
+
+import { loadDashboardData } from './modules/dashboard.js';
+import { loadAppointments } from './modules/appointments.js';
+import { loadCallbacks } from './modules/callbacks.js';
+import { loadReviews } from './modules/reviews.js';
+import { initAvailabilityCalendar } from './modules/availability.js';
 
 async function renderSection(section) {
     const titles = {
@@ -11,299 +18,38 @@ async function renderSection(section) {
         reviews: 'Reseñas',
         availability: 'Disponibilidad'
     };
-    document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
+    const titleEl = document.getElementById('pageTitle');
+    if (titleEl) titleEl.textContent = titles[section] || 'Dashboard';
 
     document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
     const sectionEl = document.getElementById(section);
     if (sectionEl) sectionEl.classList.add('active');
 
-    try {
-        payload = responseText ? JSON.parse(responseText) : {};
-    } catch (error) {
-        throw new Error('Respuesta no valida del servidor');
-    }
-
-    if (!response.ok || payload.ok === false) {
-        throw new Error(payload.error || `HTTP ${response.status}`);
-    }
-
-    return payload;
-}
-
-// apiRequest was redeclared here. Removing it.
-
-async function authRequest(action, options = {}) {
-    return requestJson(`${AUTH_ENDPOINT}?action=${encodeURIComponent(action)}`, options);
-}
-
-function getLocalData(key, fallback) {
-    try {
-        const value = JSON.parse(localStorage.getItem(key) || 'null');
-        return value === null ? fallback : value;
-    } catch (error) {
-        return fallback;
-    }
-}
-
-function saveLocalData(key, data) {
-    try {
-        localStorage.setItem(key, JSON.stringify(data));
-    } catch (error) {
-        // storage quota full or disabled
-    }
-}
-
-function getEmptyFunnelMetrics() {
-    return {
-        summary: {
-            viewBooking: 0,
-            startCheckout: 0,
-            bookingConfirmed: 0,
-            checkoutAbandon: 0,
-            startRatePct: 0,
-            confirmedRatePct: 0,
-            abandonRatePct: 0
-        },
-        checkoutAbandonByStep: [],
-        checkoutEntryBreakdown: [],
-        paymentMethodBreakdown: [],
-        bookingStepBreakdown: []
-    };
-}
-
-function formatPercent(value) {
-    const num = Number(value);
-    if (!Number.isFinite(num)) return '0%';
-    return `${num.toFixed(1)}%`;
-}
-
-function formatCount(value) {
-    const num = Number(value);
-    if (!Number.isFinite(num) || num < 0) return '0';
-    return Math.round(num).toLocaleString('es-EC');
-}
-
-function toPositiveNumber(value) {
-    const num = Number(value);
-    if (!Number.isFinite(num) || num < 0) return 0;
-    return num;
-}
-
-function normalizeFunnelRows(rows) {
-    if (!Array.isArray(rows)) {
-        return [];
-    }
-    return rows
-        .map((row) => ({
-            label: String(row && row.label ? row.label : 'unknown'),
-            count: toPositiveNumber(row && row.count ? row.count : 0)
-        }))
-        .filter((row) => row.count > 0)
-        .sort((a, b) => b.count - a.count);
-}
-
-function formatFunnelStepLabel(label) {
-    const raw = String(label || '').trim().toLowerCase();
-    const labels = {
-        service_selected: 'Servicio seleccionado',
-        doctor_selected: 'Doctor seleccionado',
-        date_selected: 'Fecha seleccionada',
-        time_selected: 'Hora seleccionada',
-        name_added: 'Nombre ingresado',
-        email_added: 'Email ingresado',
-        phone_added: 'Telefono ingresado',
-        contact_info_completed: 'Datos de contacto completados',
-        clinical_context_added: 'Contexto clinico agregado',
-        privacy_consent_checked: 'Consentimiento de privacidad',
-        form_submitted: 'Formulario enviado',
-        chat_booking_started: 'Reserva iniciada en chat',
-        payment_modal_open: 'Modal de pago abierto',
-        payment_modal_closed: 'Modal de pago cerrado',
-        payment_processing: 'Pago en proceso',
-        payment_error: 'Error de pago',
-        patient_data: 'Datos del paciente',
-        reason: 'Motivo de consulta',
-        photos: 'Fotos clinicas',
-        slot: 'Fecha y hora',
-        payment: 'Metodo de pago',
-        confirmation: 'Confirmacion',
-        payment_method_selected: 'Metodo de pago',
-        unknown: 'Paso no identificado'
-    };
-
-    if (labels[raw]) {
-        return labels[raw];
-    }
-
-    const prettified = raw.replace(/_/g, ' ').trim();
-    if (prettified === '') {
-        return labels.unknown;
-    }
-    return prettified.charAt(0).toUpperCase() + prettified.slice(1);
-}
-
-function formatFunnelEntryLabel(label) {
-    const raw = String(label || '').trim().toLowerCase();
-    const labels = {
-        booking_form: 'Formulario web',
-        chatbot: 'Chatbot',
-        unknown: 'No identificado'
-    };
-    if (labels[raw]) {
-        return labels[raw];
-    }
-    const prettified = raw.replace(/_/g, ' ').trim();
-    if (prettified === '') {
-        return labels.unknown;
-    }
-    return prettified.charAt(0).toUpperCase() + prettified.slice(1);
-}
-
-function formatPaymentMethodLabel(label) {
-    const raw = String(label || '').trim().toLowerCase();
-    const labels = {
-        card: 'Tarjeta',
-        transfer: 'Transferencia',
-        cash: 'Efectivo',
-        unpaid: 'Sin definir',
-        unknown: 'No identificado'
-    };
-    if (labels[raw]) {
-        return labels[raw];
-    }
-    const prettified = raw.replace(/_/g, ' ').trim();
-    if (prettified === '') {
-        return labels.unknown;
-    }
-    return prettified.charAt(0).toUpperCase() + prettified.slice(1);
-}
-
-function renderFunnelList(elementId, rows, formatLabel, emptyMessage) {
-    const listEl = document.getElementById(elementId);
-    if (!listEl) {
-        return;
-    }
-
-    const safeRows = normalizeFunnelRows(rows).slice(0, 6);
-    if (safeRows.length === 0) {
-        listEl.innerHTML = `<p class="empty-message">${escapeHtml(emptyMessage)}</p>`;
-        return;
-    }
-
-    const total = safeRows.reduce((sum, row) => sum + row.count, 0);
-    listEl.innerHTML = safeRows.map((row) => {
-        const sharePct = total > 0 ? formatPercent((row.count / total) * 100) : '0%';
-        return `
-            <div class="funnel-row">
-                <span class="funnel-row-label">${escapeHtml(formatLabel(row.label))}</span>
-                <span class="funnel-row-count">${escapeHtml(formatCount(row.count))} (${escapeHtml(sharePct)})</span>
-            </div>
-        `;
-    }).join('');
-}
-
-function renderFunnelMetrics() {
-    const metrics = currentFunnelMetrics && typeof currentFunnelMetrics === 'object'
-        ? currentFunnelMetrics
-        : getEmptyFunnelMetrics();
-    const summary = metrics.summary && typeof metrics.summary === 'object'
-        ? metrics.summary
-        : {};
-
-    const viewBooking = toPositiveNumber(summary.viewBooking);
-    const startCheckout = toPositiveNumber(summary.startCheckout);
-    const bookingConfirmed = toPositiveNumber(summary.bookingConfirmed);
-    const checkoutAbandon = toPositiveNumber(summary.checkoutAbandon);
-    const startRatePct = toPositiveNumber(summary.startRatePct) || (viewBooking > 0 ? (startCheckout / viewBooking) * 100 : 0);
-    const confirmedRatePct = toPositiveNumber(summary.confirmedRatePct) || (startCheckout > 0 ? (bookingConfirmed / startCheckout) * 100 : 0);
-    const abandonRatePct = toPositiveNumber(summary.abandonRatePct) || (startCheckout > 0 ? (checkoutAbandon / startCheckout) * 100 : 0);
-
-    const viewBookingEl = document.getElementById('funnelViewBooking');
-    if (viewBookingEl) viewBookingEl.textContent = formatCount(viewBooking);
-
-    const startCheckoutEl = document.getElementById('funnelStartCheckout');
-    if (startCheckoutEl) startCheckoutEl.textContent = formatCount(startCheckout);
-
-    const bookingConfirmedEl = document.getElementById('funnelBookingConfirmed');
-    if (bookingConfirmedEl) bookingConfirmedEl.textContent = formatCount(bookingConfirmed);
-
-    const funnelAbandonRateEl = document.getElementById('funnelAbandonRate');
-    if (funnelAbandonRateEl) funnelAbandonRateEl.textContent = formatPercent(abandonRatePct);
-
-    const checkoutConversionRateEl = document.getElementById('checkoutConversionRate');
-    if (checkoutConversionRateEl) checkoutConversionRateEl.textContent = formatPercent(confirmedRatePct);
-
-    const funnelAbandonListEl = document.getElementById('funnelAbandonList');
-    if (!funnelAbandonListEl) {
-        return;
-    }
-
-    renderFunnelList(
-        'funnelAbandonList',
-        metrics.checkoutAbandonByStep,
-        formatFunnelStepLabel,
-        'Sin datos de abandono'
-    );
-    renderFunnelList(
-        'funnelEntryList',
-        metrics.checkoutEntryBreakdown,
-        formatFunnelEntryLabel,
-        'Sin datos de entrada'
-    );
-    renderFunnelList(
-        'funnelPaymentMethodList',
-        metrics.paymentMethodBreakdown,
-        formatPaymentMethodLabel,
-        'Sin datos de pago'
-    );
-}
-
-function loadFallbackState() {
-    currentAppointments = getLocalData('appointments', []);
-    currentCallbacks = getLocalData('callbacks', []).map(c => ({
-        ...c,
-        status: normalizeCallbackStatus(c.status)
-    }));
-    currentReviews = getLocalData('reviews', []);
-    currentAvailability = getLocalData('availability', {});
-    currentFunnelMetrics = getEmptyFunnelMetrics();
-}
-
-async function refreshData() {
-    try {
-        const [payload, funnelPayload] = await Promise.all([
-            apiRequest('data'),
-            apiRequest('funnel-metrics').catch(() => null)
-        ]);
-
-        const data = payload.data || {};
-        currentAppointments = Array.isArray(data.appointments) ? data.appointments : [];
-        currentCallbacks = Array.isArray(data.callbacks) ? data.callbacks.map(c => ({
-            ...c,
-            status: normalizeCallbackStatus(c.status)
-        })) : [];
-        currentReviews = Array.isArray(data.reviews) ? data.reviews : [];
-        currentAvailability = data.availability && typeof data.availability === 'object' ? data.availability : {};
-
-        if (funnelPayload && funnelPayload.data && typeof funnelPayload.data === 'object') {
-            currentFunnelMetrics = funnelPayload.data;
-        } else {
-            currentFunnelMetrics = getEmptyFunnelMetrics();
-        }
-
-        saveLocalData('appointments', currentAppointments);
-        saveLocalData('callbacks', currentCallbacks);
-        saveLocalData('reviews', currentReviews);
-        saveLocalData('availability', currentAvailability);
-    } catch (error) {
-        showToast('Error cargando módulo: ' + error.message, 'error');
+    // Load data for the section
+    switch (section) {
+        case 'dashboard':
+            loadDashboardData();
+            break;
+        case 'appointments':
+            loadAppointments();
+            break;
+        case 'callbacks':
+            loadCallbacks();
+            break;
+        case 'reviews':
+            loadReviews();
+            break;
+        case 'availability':
+            initAvailabilityCalendar();
+            break;
     }
 }
 
 async function handleLogin(e) {
     e.preventDefault();
 
-    const is2FAMode = !document.getElementById('group2FA').classList.contains('is-hidden');
+    const group2FA = document.getElementById('group2FA');
+    const is2FAMode = group2FA && !group2FA.classList.contains('is-hidden');
 
     if (is2FAMode) {
         const code = document.getElementById('admin2FACode').value;
@@ -322,10 +68,10 @@ async function handleLogin(e) {
 
             if (loginResult.twoFactorRequired) {
                 document.getElementById('passwordGroup').classList.add('is-hidden');
-                document.getElementById('group2FA').classList.remove('is-hidden');
+                if (group2FA) group2FA.classList.remove('is-hidden');
                 document.getElementById('admin2FACode').focus();
                 const btn = document.getElementById('loginBtn');
-                btn.innerHTML = '<i class="fas fa-check"></i> Verificar';
+                if (btn) btn.innerHTML = '<i class="fas fa-check"></i> Verificar';
                 showToast('Ingresa tu código 2FA', 'info');
             } else {
                 if (loginResult.csrfToken) setCsrfToken(loginResult.csrfToken);
@@ -338,11 +84,20 @@ async function handleLogin(e) {
     }
 }
 
+function showLogin() {
+    const loginScreen = document.getElementById('loginScreen');
+    const dashboard = document.getElementById('adminDashboard');
+    if (loginScreen) loginScreen.classList.remove('is-hidden');
+    if (dashboard) dashboard.classList.add('is-hidden');
+}
+
 async function showDashboard() {
     const loginScreen = document.getElementById('loginScreen');
     const dashboard = document.getElementById('adminDashboard');
     if (loginScreen) loginScreen.classList.add('is-hidden');
     if (dashboard) dashboard.classList.remove('is-hidden');
+    await updateDate();
+}
 
 async function checkAuth() {
     try {
@@ -357,7 +112,7 @@ async function checkAuth() {
 
         const payload = await authRequest('status');
         if (payload.authenticated) {
-            if (payload.csrfToken) csrfToken = payload.csrfToken;
+            if (payload.csrfToken) setCsrfToken(payload.csrfToken);
             await showDashboard();
         } else {
             showLogin();
@@ -374,16 +129,10 @@ async function checkAuth() {
 }
 
 async function logout() {
-    try {
-        await authRequest('logout', { method: 'POST' });
-    } catch (error) {
-        // Continue with local logout UI.
-    }
-    showToast('Sesion cerrada correctamente', 'info');
-    setTimeout(() => window.location.reload(), 800);
+    await apiLogout();
 }
 
-function updateDate() {
+async function updateDate() {
     const dateEl = document.getElementById('currentDate');
     if (dateEl) {
          const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
