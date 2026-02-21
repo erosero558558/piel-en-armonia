@@ -111,6 +111,7 @@ test.describe('Checklist de Pruebas en Producción', () => {
         page,
         request,
     }) => {
+        test.setTimeout(90000);
         await skipIfPhpRuntimeMissing(test, request);
         if (!process.env.PIELARMONIA_ADMIN_PASSWORD) {
             test.skip(

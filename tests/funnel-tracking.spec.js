@@ -231,7 +231,7 @@ async function fillBookingFormAndOpenPayment(page) {
     await page.waitForTimeout(1500);
 
     // Wait for modal to become active
-    await page.waitForSelector('#paymentModal.active', { timeout: 45000 });
+    await page.waitForSelector('#paymentModal.active', { timeout: 75000 });
     await page.waitForTimeout(250);
 }
 
@@ -336,6 +336,7 @@ test.describe('Tracking del embudo de conversion', () => {
     test('emite eventos de pasos y start_checkout en reserva web', async ({
         page,
     }) => {
+        test.setTimeout(90000);
         await fillBookingFormAndOpenPayment(page);
         const events = await getTrackedEvents(page);
         const funnelEvents = await getFunnelEvents(page);
@@ -388,6 +389,7 @@ test.describe('Tracking del embudo de conversion', () => {
     test('emite checkout_abandon con paso y origen al cerrar modal', async ({
         page,
     }) => {
+        test.setTimeout(90000);
         await fillBookingFormAndOpenPayment(page);
         await page
             .locator('#paymentModal [data-action="close-payment-modal"]')

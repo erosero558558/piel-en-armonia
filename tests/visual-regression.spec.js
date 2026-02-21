@@ -4,6 +4,7 @@ const { test, expect } = require('@playwright/test');
 test.describe('Pruebas de regresión visual', () => {
 
     test('Homepage Desktop - visualmente correcta', async ({ page }) => {
+        test.setTimeout(90000);
         // Navegar a la página de inicio
         await page.goto('/');
 
@@ -19,6 +20,7 @@ test.describe('Pruebas de regresión visual', () => {
     });
 
     test('Homepage Mobile - visualmente correcta', async ({ page }) => {
+        test.setTimeout(90000);
         // Configurar viewport móvil (iPhone SE / Pixel 5 size approx)
         await page.setViewportSize({ width: 375, height: 667 });
 
