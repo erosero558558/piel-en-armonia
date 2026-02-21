@@ -92,6 +92,7 @@ export default [
             file: 'script.js',
             format: 'iife',
             sourcemap: false,
+            banner: '/* GENERATED FILE - DO NOT EDIT DIRECTLY - Edit source in js/main.js and run npm run build */',
         },
         plugins: [resolve()],
     },
