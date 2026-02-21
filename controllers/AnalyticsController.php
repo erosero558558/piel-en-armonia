@@ -87,6 +87,7 @@ class AnalyticsController
         }
 
         $checkoutAbandonByStep = [];
+        $checkoutAbandonByReason = [];
         $checkoutEntryBreakdown = [];
         $paymentMethodBreakdown = [];
         $bookingStepBreakdown = [];
@@ -113,6 +114,12 @@ class AnalyticsController
                     $checkoutAbandonByStep[$step] = 0;
                 }
                 $checkoutAbandonByStep[$step] += $value;
+
+                $reason = self::normalizeLabel($labels['reason'] ?? 'unknown');
+                if (!isset($checkoutAbandonByReason[$reason])) {
+                    $checkoutAbandonByReason[$reason] = 0;
+                }
+                $checkoutAbandonByReason[$reason] += $value;
             }
 
             if ($eventName === 'start_checkout') {
@@ -141,6 +148,7 @@ class AnalyticsController
         }
 
         arsort($checkoutAbandonByStep);
+        arsort($checkoutAbandonByReason);
         arsort($checkoutEntryBreakdown);
         arsort($paymentMethodBreakdown);
         arsort($bookingStepBreakdown);
@@ -179,6 +187,7 @@ class AnalyticsController
                 ],
                 'events' => $eventTotals,
                 'checkoutAbandonByStep' => $toList($checkoutAbandonByStep),
+                'checkoutAbandonByReason' => $toList($checkoutAbandonByReason),
                 'checkoutEntryBreakdown' => $toList($checkoutEntryBreakdown),
                 'paymentMethodBreakdown' => $toList($paymentMethodBreakdown),
                 'bookingStepBreakdown' => $toList($bookingStepBreakdown),

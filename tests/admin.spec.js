@@ -60,6 +60,17 @@ test.describe('Panel de administración', () => {
         }
     });
 
+    test('dashboard incluye desgloses de embudo extendidos', async ({
+        page,
+    }) => {
+        await page.goto('/admin.html');
+        await expect(page.locator('#funnelAbandonList')).toHaveCount(1);
+        await expect(page.locator('#funnelEntryList')).toHaveCount(1);
+        await expect(page.locator('#funnelPaymentMethodList')).toHaveCount(1);
+        await expect(page.locator('#funnelAbandonReasonList')).toHaveCount(1);
+        await expect(page.locator('#funnelStepList')).toHaveCount(1);
+    });
+
     test.describe('API de administracion (requiere PHP)', () => {
         test('API health check funciona', async ({ request }) => {
             await skipIfPhpRuntimeMissing(test, request);

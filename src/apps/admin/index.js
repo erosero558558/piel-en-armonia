@@ -136,6 +136,7 @@ function getEmptyFunnelMetrics() {
             abandonRatePct: 0
         },
         checkoutAbandonByStep: [],
+        checkoutAbandonByReason: [],
         checkoutEntryBreakdown: [],
         paymentMethodBreakdown: [],
         bookingStepBreakdown: []
@@ -249,6 +250,25 @@ function formatPaymentMethodLabel(label) {
     return prettified.charAt(0).toUpperCase() + prettified.slice(1);
 }
 
+function formatFunnelReasonLabel(label) {
+    const raw = String(label || '').trim().toLowerCase();
+    const labels = {
+        modal_close: 'Cierre de modal',
+        page_hide: 'Salida de página',
+        route_change: 'Cambio de ruta',
+        session_timeout: 'Sesión expirada',
+        unknown: 'No identificado'
+    };
+    if (labels[raw]) {
+        return labels[raw];
+    }
+    const prettified = raw.replace(/_/g, ' ').trim();
+    if (prettified === '') {
+        return labels.unknown;
+    }
+    return prettified.charAt(0).toUpperCase() + prettified.slice(1);
+}
+
 function renderFunnelList(elementId, rows, formatLabel, emptyMessage) {
     const listEl = document.getElementById(elementId);
     if (!listEl) {
@@ -326,6 +346,18 @@ function renderFunnelMetrics() {
         metrics.paymentMethodBreakdown,
         formatPaymentMethodLabel,
         'Sin datos de pago'
+    );
+    renderFunnelList(
+        'funnelAbandonReasonList',
+        metrics.checkoutAbandonByReason,
+        formatFunnelReasonLabel,
+        'Sin datos de motivo'
+    );
+    renderFunnelList(
+        'funnelStepList',
+        metrics.bookingStepBreakdown,
+        formatFunnelStepLabel,
+        'Sin datos de pasos'
     );
 }
 
