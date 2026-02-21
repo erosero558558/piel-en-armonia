@@ -182,7 +182,7 @@ async function fillBookingFormAndOpenPayment(page) {
         page.waitForResponse(
             resp => resp.url().includes('booked-slots') && resp.status() === 200,
             { timeout: 5000 }
-        ).catch(() => null),
+        ),
         dateInput.fill(dateValue)
     ]);
 
