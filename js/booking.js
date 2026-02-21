@@ -246,7 +246,6 @@ function getBookingUiDeps() {
         normalizeAnalyticsLabel,
         openPaymentModal,
         setCurrentAppointment: setCurrentAppointment,
-        updateAvailableTimes,
     };
 }
 
