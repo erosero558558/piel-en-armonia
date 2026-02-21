@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
 
+apply_security_headers(false);
+
 // Ensure Composer autoload is loaded
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . '/vendor/autoload.php';
 }
-
-require_once __DIR__ . '/lib/GraphQL/Schema.php';
-
-use GraphQL\GraphQL;
-use GraphQL\Error\DebugFlag;
 
 // --- CORS & Headers ---
 $requestOrigin = isset($_SERVER['HTTP_ORIGIN']) ? trim((string) $_SERVER['HTTP_ORIGIN']) : '';
@@ -40,6 +37,7 @@ if ($requestOrigin !== '') {
             header('Access-Control-Allow-Origin: ' . $requestOrigin);
             header('Access-Control-Allow-Credentials: true');
             header('Vary: Origin');
+            header('Cross-Origin-Resource-Policy: cross-origin');
             break;
         }
     }
@@ -52,6 +50,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 header('Content-Type: application/json; charset=UTF-8');
+
+// --- GraphQL Dependencies ---
+require_once __DIR__ . '/lib/GraphQL/Schema.php';
+
+use GraphQL\GraphQL;
+use GraphQL\Error\DebugFlag;
 
 // --- Auth ---
 start_secure_session();

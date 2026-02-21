@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
 
+apply_security_headers(false);
+
 /**
  * Figo backend local:
  * - Web chat mode: receives OpenAI-style payload and returns chat.completion

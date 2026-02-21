@@ -18,6 +18,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
 
+apply_security_headers(false);
+
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
