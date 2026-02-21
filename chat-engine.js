@@ -7,7 +7,7 @@
      */
     // build-sync: 20260219-sync1
     // ========================================
-    // INTEGRACI�N CON BOT DEL SERVIDOR
+    // INTEGRACIÓN CON BOT DEL SERVIDOR
     // ========================================
     const KIMI_CONFIG = {
         apiUrl: '/figo-chat.php',
@@ -17,7 +17,126 @@
     };
     const CHAT_CONTEXT_MAX_ITEMS = 24;
 
+    let deps = null;
+    let conversationContext = [];
+    let chatHistory = [];
+    let currentAppointment = null;
+    let CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
+    let CLINIC_MAP_URL = '';
+    let DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
+    let DOCTOR_CAROLINA_EMAIL = 'caro93narvaez@gmail.com';
     let isProcessingMessage = false; // Evitar duplicados
+
+    function init(inputDeps = {}) {
+        deps = inputDeps || {};
+        conversationContext = getConversationContextSafe();
+        chatHistory = getChatHistorySafe();
+        currentAppointment = getCurrentAppointmentSafe();
+
+        const clinicAddress = String(deps.clinicAddress || '').trim();
+        const clinicMapUrl = String(deps.clinicMapUrl || '').trim();
+        const doctorPhone = String(deps.doctorCarolinaPhone || '').trim();
+        const doctorEmail = String(deps.doctorCarolinaEmail || '').trim();
+
+        if (clinicAddress) CLINIC_ADDRESS = clinicAddress;
+        if (clinicMapUrl) CLINIC_MAP_URL = clinicMapUrl;
+        if (doctorPhone) DOCTOR_CAROLINA_PHONE = doctorPhone;
+        if (doctorEmail) DOCTOR_CAROLINA_EMAIL = doctorEmail;
+
+        return window.FigoChatEngine;
+    }
+
+    function debugLog(...args) {
+        if (deps && typeof deps.debugLog === 'function') {
+            deps.debugLog(...args);
+        }
+    }
+
+    function showTypingIndicator() {
+        if (deps && typeof deps.showTypingIndicator === 'function') {
+            deps.showTypingIndicator();
+        }
+    }
+
+    function removeTypingIndicator() {
+        if (deps && typeof deps.removeTypingIndicator === 'function') {
+            deps.removeTypingIndicator();
+        }
+    }
+
+    function addBotMessage(content, showOfflineLabel = false) {
+        if (deps && typeof deps.addBotMessage === 'function') {
+            deps.addBotMessage(content, showOfflineLabel);
+        }
+    }
+
+    function startChatBooking() {
+        if (deps && typeof deps.startChatBooking === 'function') {
+            deps.startChatBooking();
+        }
+    }
+
+    function processChatBookingStep(message) {
+        if (deps && typeof deps.processChatBookingStep === 'function') {
+            return deps.processChatBookingStep(message);
+        }
+        return Promise.resolve(false);
+    }
+
+    function isChatBookingActive() {
+        if (deps && typeof deps.isChatBookingActive === 'function') {
+            return deps.isChatBookingActive() === true;
+        }
+        return false;
+    }
+
+    function showToast(message, type = 'info', title = '') {
+        if (deps && typeof deps.showToast === 'function') {
+            deps.showToast(message, type, title);
+        }
+    }
+
+    function getConversationContextSafe() {
+        if (deps && typeof deps.getConversationContext === 'function') {
+            const value = deps.getConversationContext();
+            return Array.isArray(value) ? value.slice() : [];
+        }
+        return Array.isArray(conversationContext) ? conversationContext.slice() : [];
+    }
+
+    function setConversationContextSafe(nextContext) {
+        conversationContext = Array.isArray(nextContext) ? nextContext.slice() : [];
+        if (deps && typeof deps.setConversationContext === 'function') {
+            deps.setConversationContext(conversationContext.slice());
+        }
+    }
+
+    function getChatHistorySafe() {
+        if (deps && typeof deps.getChatHistory === 'function') {
+            const value = deps.getChatHistory();
+            return Array.isArray(value) ? value.slice() : [];
+        }
+        return Array.isArray(chatHistory) ? chatHistory.slice() : [];
+    }
+
+    function setChatHistorySafe(nextHistory) {
+        chatHistory = Array.isArray(nextHistory) ? nextHistory.slice() : [];
+        if (deps && typeof deps.setChatHistory === 'function') {
+            deps.setChatHistory(chatHistory.slice());
+        }
+    }
+
+    function getCurrentAppointmentSafe() {
+        if (deps && typeof deps.getCurrentAppointment === 'function') {
+            const appointment = deps.getCurrentAppointment();
+            return appointment && typeof appointment === 'object'
+                ? appointment
+                : null;
+        }
+        return currentAppointment && typeof currentAppointment === 'object'
+            ? currentAppointment
+            : null;
+    }
 
     function shouldUseRealAI() {
         if (localStorage.getItem('forceAI') === 'true') {
@@ -48,7 +167,7 @@
             }
         }
 
-        // Detectar intenci�n de agendar cita para iniciar booking conversacional
+        // Detectar intención de agendar cita para iniciar booking conversacional
         if (
             /cita|agendar|reservar|turno|quiero una consulta|necesito cita/i.test(
                 message
@@ -65,7 +184,7 @@
         if (isOutOfScopeIntent(message)) {
             removeTypingIndicator();
             addBotMessage(
-                `Puedo ayudarte con temas de <strong>Piel en Armon�a</strong> (servicios, precios, citas, pagos, horarios y ubicaci�n).<br><br>Si deseas, te ayudo ahora con:<br>- <a href="#servicios" data-action="minimize-chat">Servicios y tratamientos</a><br>- <a href="#citas" data-action="minimize-chat">Reservar cita</a><br>- <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">WhatsApp directo</a>`,
+                `Puedo ayudarte con temas de <strong>Piel en Armonía</strong> (servicios, precios, citas, pagos, horarios y ubicación).<br><br>Si deseas, te ayudo ahora con:<br>- <a href="#servicios" data-action="minimize-chat">Servicios y tratamientos</a><br>- <a href="#citas" data-action="minimize-chat">Reservar cita</a><br>- <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">WhatsApp directo</a>`,
                 false
             );
             isProcessingMessage = false;
@@ -119,7 +238,7 @@
         if (!normalized) return true;
 
         const clinicScopePattern =
-            /(piel|dermat|acne|grano|espinilla|mancha|lesion|consulta|cita|agendar|reservar|turno|doctor|dra|dr|rosero|narvaez|quito|ubicaci�n|direcci�n|horario|precio|costo|tarifa|pago|pagar|transferencia|efectivo|tarjeta|whatsapp|tel�fono|telemedicina|video|laser|rejuvenecimiento|cancer|consultorio|servicio|tratamiento)/;
+            /(piel|dermat|acne|grano|espinilla|mancha|lesion|consulta|cita|agendar|reservar|turno|doctor|dra|dr|rosero|narvaez|quito|ubicación|dirección|horario|precio|costo|tarifa|pago|pagar|transferencia|efectivo|tarjeta|whatsapp|teléfono|telemedicina|video|laser|rejuvenecimiento|cancer|consultorio|servicio|tratamiento)/;
         return clinicScopePattern.test(normalized);
     }
 
@@ -188,13 +307,13 @@ INFORMACION DE LA CLINICA:
 - Estacionamiento privado disponible
 
 SERVICIOS Y PRECIOS (con IVA 15%):
-- Consulta Dermatol�gica: $46
-- Consulta Telef�nica: $28.75
+- Consulta Dermatológica: $46
+- Consulta Telefónica: $28.75
 - Video Consulta: $34.50
-- Tratamiento L�ser: desde $172.50
+- Tratamiento Láser: desde $172.50
 - Rejuvenecimiento: desde $138
-- Tratamiento de Acn�: desde $80
-- Detecci�n de C�ncer de Piel: desde $70
+- Tratamiento de Acné: desde $80
+- Detección de Cáncer de Piel: desde $70
 
 OPCIONES DE CONSULTA ONLINE:
 1. Llamada telefonica: tel:+593982453672
@@ -222,11 +341,12 @@ Tu objetivo es ayudar a los pacientes a:
 - Responde con pasos claros y accionables, no con texto general.
 - Si preguntan por pagos, explica el flujo real del sitio: reservar cita -> modal de pago -> metodo (tarjeta/transferencia/efectivo) -> confirmacion.
 - Si faltan datos para ayudar mejor, haz una sola pregunta de seguimiento concreta.
-- Mantente enfocado en Piel en Armon�a (servicios, precios, citas, pagos, ubicaci�n y contacto).
-- Si preguntan temas fuera de la cl�nica (capitales, noticias, deportes o cultura general), explica que solo atiendes temas de Piel en Armon�a y redirige a servicios/citas.
+- Mantente enfocado en Piel en Armonía (servicios, precios, citas, pagos, ubicación y contacto).
+- Si preguntan temas fuera de la clínica (capitales, noticias, deportes o cultura general), explica que solo atiendes temas de Piel en Armonía y redirige a servicios/citas.
 - Evita decir "modo offline" salvo que realmente no haya conexion con el servidor.`;
 
     function buildAppointmentContextSummary() {
+        currentAppointment = getCurrentAppointmentSafe();
         if (!currentAppointment) return 'sin cita activa';
 
         const parts = [];
@@ -264,6 +384,7 @@ FLUJO DE PAGO REAL DEL SITIO:
     }
 
     function buildFigoMessages() {
+        conversationContext = getConversationContextSafe();
         return [
             { role: 'system', content: SYSTEM_PROMPT },
             { role: 'system', content: FIGO_EXPERT_PROMPT },
@@ -318,7 +439,7 @@ FLUJO DE PAGO REAL DEL SITIO:
             responseText.substring(0, 500)
         );
 
-        let data = {};
+        let data;
         try {
             data = responseText ? JSON.parse(responseText) : {};
         } catch (e) {
@@ -358,6 +479,7 @@ FLUJO DE PAGO REAL DEL SITIO:
     async function tryRealAI(message) {
         try {
             // Limpiar duplicados del contexto antes de enviar
+            conversationContext = getConversationContextSafe();
             const uniqueContext = [];
             for (const msg of conversationContext) {
                 const last = uniqueContext[uniqueContext.length - 1];
@@ -369,10 +491,10 @@ FLUJO DE PAGO REAL DEL SITIO:
                     uniqueContext.push(msg);
                 }
             }
-            conversationContext = uniqueContext;
+            setConversationContextSafe(uniqueContext);
             if (conversationContext.length > CHAT_CONTEXT_MAX_ITEMS) {
-                conversationContext = conversationContext.slice(
-                    -CHAT_CONTEXT_MAX_ITEMS
+                setConversationContextSafe(
+                    conversationContext.slice(-CHAT_CONTEXT_MAX_ITEMS)
                 );
             }
 
@@ -417,7 +539,7 @@ FLUJO DE PAGO REAL DEL SITIO:
                 );
 
                 const precisionPrompt = `Tu respuesta anterior fue demasiado general.
-Responde con informaci�n espec�fica para la web de Piel en Armon�a.
+Responde con información específica para la web de Piel en Armonía.
 Incluye pasos concretos y el siguiente paso recomendado para el paciente.
 Pregunta original del paciente: "${message}"`;
 
@@ -455,21 +577,23 @@ Pregunta original del paciente: "${message}"`;
                 }
             }
 
-            // Evitar duplicados: verificar si el �ltimo mensaje ya es del asistente con el mismo contenido
+            // Evitar duplicados: verificar si el último mensaje ya es del asistente con el mismo contenido
             const lastMsg = conversationContext[conversationContext.length - 1];
             if (
                 !lastMsg ||
                 lastMsg.role !== 'assistant' ||
                 lastMsg.content !== botResponse
             ) {
-                conversationContext.push({
+                const nextContext = conversationContext.concat({
                     role: 'assistant',
                     content: botResponse,
                 });
-                if (conversationContext.length > CHAT_CONTEXT_MAX_ITEMS) {
-                    conversationContext = conversationContext.slice(
-                        -CHAT_CONTEXT_MAX_ITEMS
+                if (nextContext.length > CHAT_CONTEXT_MAX_ITEMS) {
+                    setConversationContextSafe(
+                        nextContext.slice(-CHAT_CONTEXT_MAX_ITEMS)
                     );
+                } else {
+                    setConversationContextSafe(nextContext);
                 }
             }
 
@@ -498,27 +622,27 @@ Pregunta original del paciente: "${message}"`;
         }
 
         // Comando especial: debug info
-        if (/debug|info sistema|informaci�n t�cnica/.test(normalizedMsg)) {
+        if (/debug|info sistema|información técnica/.test(normalizedMsg)) {
             mostrarInfoDebug();
             return;
         }
 
-        // Intentar detectar intenci�n y dar respuesta local
-        let response = null;
+        // Intentar detectar intención y dar respuesta local
+        let response;
 
         // AYUDA / MENU
         if (/ayuda|help|menu|opciones|que puedes hacer/.test(lowerMsg)) {
             response = 'Opciones disponibles:<br><br>';
             response +=
-                '<strong>Servicios:</strong> Informaci�n sobre consultas<br>';
+                '<strong>Servicios:</strong> Información sobre consultas<br>';
             response += '<strong>Precios:</strong> Tarifas de servicios<br>';
             response += '<strong>Citas:</strong> Como agendar<br>';
-            response += '<strong>Ubicaci�n:</strong> Direcci�n y horarios<br>';
-            response += '<strong>Contacto:</strong> WhatsApp y tel�fono';
+            response += '<strong>Ubicación:</strong> Dirección y horarios<br>';
+            response += '<strong>Contacto:</strong> WhatsApp y teléfono';
         }
         // FUERA DE ALCANCE
         else if (isOutOfScopeIntent(normalizedMsg)) {
-            response = `Puedo ayudarte solo con temas de <strong>Piel en Armon�a</strong>.<br><br>
+            response = `Puedo ayudarte solo con temas de <strong>Piel en Armonía</strong>.<br><br>
 Puedes consultarme sobre:<br>
 - Servicios y tratamientos dermatologicos<br>
 - Precios y formas de pago<br>
@@ -535,40 +659,40 @@ Si quieres, te llevo directo a <a href="#citas" data-action="minimize-chat">Rese
             )
         ) {
             response =
-                '�Hola! Soy <strong>Figo</strong>, asistente de <strong>Piel en Armon�a</strong>.<br><br>';
+                '¡Hola! Soy <strong>Figo</strong>, asistente de <strong>Piel en Armonía</strong>.<br><br>';
             response += 'Puedo ayudarte con:<br>';
-            response += '� Servicios dermatologicos<br>';
-            response += '� Precios de tratamientos<br>';
-            response += '� Agendar citas<br>';
-            response += '� Ubicacion y horarios<br><br>';
-            response += '�En que puedo ayudarte?';
+            response += '• Servicios dermatologicos<br>';
+            response += '• Precios de tratamientos<br>';
+            response += '• Agendar citas<br>';
+            response += '• Ubicacion y horarios<br><br>';
+            response += '¿En que puedo ayudarte?';
         }
         // SERVICIOS
         else if (
             /servicio|tratamiento|hacen|ofrecen|que hacen/.test(lowerMsg)
         ) {
-            response = 'Servicios dermatol�gicos:<br><br>';
+            response = 'Servicios dermatológicos:<br><br>';
             response += '<strong>Consultas:</strong><br>';
-            response += '� Presencial: $46<br>';
-            response += '� Telef�nica: $28.75<br>';
-            response += '� Video: $34.50<br><br>';
+            response += '• Presencial: $46<br>';
+            response += '• Telefónica: $28.75<br>';
+            response += '• Video: $34.50<br><br>';
             response += '<strong>Tratamientos:</strong><br>';
-            response += '� Acn�: desde $80<br>';
-            response += '� L�ser: desde $172.50<br>';
-            response += '� Rejuvenecimiento: desde $138<br>';
-            response += '� Detecci�n de c�ncer de piel: desde $70';
+            response += '• Acné: desde $80<br>';
+            response += '• Láser: desde $172.50<br>';
+            response += '• Rejuvenecimiento: desde $138<br>';
+            response += '• Detección de cáncer de piel: desde $70';
         }
         // PRECIOS
         else if (/precio|cuanto cuesta|valor|tarifa|costo/.test(lowerMsg)) {
             response = 'Precios (incluyen IVA 15%):<br><br>';
             response += '<strong>Consultas:</strong><br>';
-            response += '� Presencial: $46<br>';
-            response += '� Telef�nica: $28.75<br>';
-            response += '� Video: $34.50<br><br>';
+            response += '• Presencial: $46<br>';
+            response += '• Telefónica: $28.75<br>';
+            response += '• Video: $34.50<br><br>';
             response += '<strong>Tratamientos (desde):</strong><br>';
-            response += '� Acn�: $80<br>';
-            response += '� L�ser: $172.50<br>';
-            response += '� Rejuvenecimiento: $138<br><br>';
+            response += '• Acné: $80<br>';
+            response += '• Láser: $172.50<br>';
+            response += '• Rejuvenecimiento: $138<br><br>';
             response += 'Para presupuesto preciso, agenda una consulta.';
         }
         // PAGOS
@@ -581,9 +705,9 @@ Ve a <a href="#citas" data-action="minimize-chat">Reservar Cita</a>, completa tu
 Al enviar el formulario se abre la ventana de pago automaticamente.<br><br>
 
 <strong>3) Elige metodo de pago</strong><br>
-� <strong>Tarjeta:</strong> ingresa numero, fecha de vencimiento, CVV y nombre.<br>
-� <strong>Transferencia:</strong> realiza la transferencia y coloca el numero de referencia.<br>
-� <strong>Efectivo:</strong> dejas la reserva registrada y pagas en consultorio.<br><br>
+• <strong>Tarjeta:</strong> ingresa numero, fecha de vencimiento, CVV y nombre.<br>
+• <strong>Transferencia:</strong> realiza la transferencia y coloca el numero de referencia.<br>
+• <strong>Efectivo:</strong> dejas la reserva registrada y pagas en consultorio.<br><br>
 
 <strong>4) Confirmacion</strong><br>
 Tu cita queda registrada y te contactamos para confirmar detalles por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">098 245 3672</a>.<br><br>
@@ -595,42 +719,42 @@ Si quieres, te guio paso a paso seg\u00fan el m\u00e9todo que prefieras.`;
             /hablar con|humano|persona real|doctor real|agente/.test(lowerMsg)
         ) {
             response = `Entiendo que prefieres hablar con una persona. ?????<br><br>
-Puedes chatear directamente con nuestro equipo humano por WhatsApp aqu�:<br><br>
+Puedes chatear directamente con nuestro equipo humano por WhatsApp aquí:<br><br>
 ?? <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">Abrir Chat de WhatsApp</a><br><br>
-O ll�manos al +593 98 245 3672.`;
+O llámanos al +593 98 245 3672.`;
         }
         // CITAS - iniciar booking conversacional
         else if (/cita|agendar|reservar|turno|hora/.test(lowerMsg)) {
             startChatBooking();
             return;
         }
-        // ACN�
+        // ACNÉ
         else if (/acne|grano|espinilla|barro/.test(lowerMsg)) {
             response =
                 'El acne es muy comun y tenemos soluciones efectivas.<br><br>';
             response += 'Nuestro enfoque:<br>';
-            response += '� Evaluacion personalizada<br>';
-            response += '� Tratamientos topicos<br>';
-            response += '� Medicacion oral si es necesario<br>';
-            response += '� Peelings quimicos<br>';
-            response += '� Laser para cicatrices<br><br>';
+            response += '• Evaluacion personalizada<br>';
+            response += '• Tratamientos topicos<br>';
+            response += '• Medicacion oral si es necesario<br>';
+            response += '• Peelings quimicos<br>';
+            response += '• Laser para cicatrices<br><br>';
             response += 'Primera consulta: $40<br><br>';
-            response += '�Te gustaria agendar?';
+            response += '¿Te gustaria agendar?';
         }
         // LASER
         else if (/laser/.test(lowerMsg)) {
             response = 'Tecnologia laser de ultima generacion.<br><br>';
             response += 'Tratamientos:<br>';
-            response += '� Eliminacion de lesiones vasculares<br>';
-            response += '� Tratamiento de manchas<br>';
-            response += '� Rejuvenecimiento facial<br>';
-            response += '� Cicatrices de acne<br><br>';
+            response += '• Eliminacion de lesiones vasculares<br>';
+            response += '• Tratamiento de manchas<br>';
+            response += '• Rejuvenecimiento facial<br>';
+            response += '• Cicatrices de acne<br><br>';
             response += 'Precio: Desde $150<br><br>';
             response += 'Se requiere consulta de evaluaci\u00f3n previa.<br>';
-            response += '�Deseas agendar?';
+            response += '¿Deseas agendar?';
         }
         // UBICACION
-        else if (/donde|ubicaci�n|direcci�n|lugar|mapa|quito/.test(lowerMsg)) {
+        else if (/donde|ubicación|dirección|lugar|mapa|quito/.test(lowerMsg)) {
             response = '<strong>Ubicacion:</strong><br>';
             response += `${CLINIC_ADDRESS}<br>`;
             response += '<br>';
@@ -644,25 +768,25 @@ O ll�manos al +593 98 245 3672.`;
         }
         // DOCTORES
         else if (
-            /doctor|m�dico|medico|especialista|rosero|narvaez|dr|dra/.test(
+            /doctor|médico|medico|especialista|rosero|narvaez|dr|dra/.test(
                 lowerMsg
             )
         ) {
             response = `Contamos con dos excelentes especialistas:
 
 <strong>Dr. Javier Rosero</strong>
-Dermat�logo Cl�nico
-15 a�os de experiencia
-Especialista en detecci�n temprana de c�ncer de piel
+Dermatólogo Clínico
+15 años de experiencia
+Especialista en detección temprana de cáncer de piel
 
 <strong>Dra. Carolina Narvaez</strong>
-Dermat�loga Est�tica
-Especialista en rejuvenecimiento facial y l�ser
+Dermatóloga Estética
+Especialista en rejuvenecimiento facial y láser
 Contacto directo: ${DOCTOR_CAROLINA_PHONE} | ${DOCTOR_CAROLINA_EMAIL}
 
-Ambos est�n disponibles para consulta presencial y online.
+Ambos están disponibles para consulta presencial y online.
 
-�Con qui�n te gustar�a agendar?`;
+¿Con quién te gustaría agendar?`;
         }
         // TELEMEDICINA
         else if (
@@ -672,33 +796,33 @@ Ambos est�n disponibles para consulta presencial y online.
         ) {
             response = `Ofrecemos 3 opciones de consulta remota:
 
-<strong>?? 1. Llamada Telef�nica - $25</strong>
-Ideal para consultas r�pidas y seguimientos
+<strong>?? 1. Llamada Telefónica - $25</strong>
+Ideal para consultas rápidas y seguimientos
 
 <strong>?? 2. WhatsApp Video - $30</strong>
-Videollamada por WhatsApp, muy f�cil de usar
+Videollamada por WhatsApp, muy fácil de usar
 
 <strong>3. Video Web (Jitsi) - $30</strong>
 No necesitas instalar nada, funciona en el navegador
 
 Todas incluyen:
-? Evaluaci�n m�dica completa
+? Evaluación médica completa
 ? Receta digital
 ? Recomendaciones personalizadas
 ? Seguimiento por WhatsApp
 
-�Cu�l prefieres?`;
+¿Cuál prefieres?`;
         }
         // DESPEDIDA
         else if (/gracias|thank|adios|chao|hasta luego|bye/.test(lowerMsg)) {
-            response = `�De nada! ??
+            response = `¡De nada! ??
 
-Si tienes m�s dudas, no dudes en escribirme. Tambi�n puedes contactarnos directamente:
+Si tienes más dudas, no dudes en escribirme. También puedes contactarnos directamente:
 
 ?? WhatsApp: 098 245 3672
-?? Tel�fono: 098 245 3672
+?? Teléfono: 098 245 3672
 
-�Que tengas un excelente d�a!`;
+¡Que tengas un excelente día!`;
         }
         // RESPUESTA POR DEFECTO
         else {
@@ -716,7 +840,7 @@ Tambien puedes ir directo:<br>
     }
 
     function formatMarkdown(text) {
-        // Convertir markdown b�sico a HTML
+        // Convertir markdown básico a HTML
         let html = text
             // Negritas
             .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -727,7 +851,7 @@ Tambien puedes ir directo:<br>
                 /\[(.+?)\]\((.+?)\)/g,
                 '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
             )
-            // Saltos de l�nea
+            // Saltos de línea
             .replace(/\n/g, '<br>');
 
         return html;
@@ -737,9 +861,9 @@ Tambien puedes ir directo:<br>
     // UTILIDADES DEL CHATBOT
     // ========================================
     function resetConversation() {
-        conversationContext = [];
+        setConversationContextSafe([]);
         localStorage.removeItem('chatHistory');
-        chatHistory = [];
+        setChatHistorySafe([]);
         showToast('Conversacion reiniciada', 'info');
     }
 
@@ -761,6 +885,7 @@ Tambien puedes ir directo:<br>
         localStorage.setItem('forceAI', 'true');
         showToast('Modo IA activado manualmente', 'success');
 
+        chatHistory = getChatHistorySafe();
         if (chatHistory.length > 0) {
             addBotMessage(
                 '<strong>Modo IA activado</strong><br>Intentare usar inteligencia artificial real en los proximos mensajes.'
@@ -774,7 +899,7 @@ Tambien puedes ir directo:<br>
         const hostname = window.location.hostname;
         const forzado = localStorage.getItem('forceAI') === 'true';
 
-        let msg = '<strong>Informaci�n del sistema:</strong><br><br>';
+        let msg = '<strong>Información del sistema:</strong><br><br>';
         msg += 'Protocolo: ' + protocolo + '<br>';
         msg += 'Hostname: ' + hostname + '<br>';
         msg += 'Usa IA: ' + (usaIA ? 'SI' : 'NO') + '<br>';
@@ -786,6 +911,7 @@ Tambien puedes ir directo:<br>
 
     if (typeof window !== 'undefined') {
         window.FigoChatEngine = {
+            init,
             processWithKimi,
             resetConversation,
             checkServerEnvironment,

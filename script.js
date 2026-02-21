@@ -1,29 +1,18 @@
 (function () {
     'use strict';
 
-    const API_ENDPOINT = '/api.php';
-    const CLINIC_ADDRESS$1 = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
-    const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
-    const API_REQUEST_TIMEOUT_MS = 9000;
-    const API_RETRY_BASE_DELAY_MS = 450;
-    const API_DEFAULT_RETRIES = 1;
-    const API_SLOW_NOTICE_MS = 1200;
-    const API_SLOW_NOTICE_COOLDOWN_MS = 25000;
-    const DEFAULT_TIME_SLOTS = [
-        '09:00',
-        '10:00',
-        '11:00',
-        '12:00',
-        '15:00',
-        '16:00',
-        '17:00',
-    ];
-    const THEME_STORAGE_KEY = 'themeMode';
-    const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
-
     let currentLang = localStorage.getItem('language') || 'es';
-    localStorage.getItem('themeMode') || 'system';
+    let currentThemeMode = localStorage.getItem('themeMode') || 'system';
+    let currentAppointment = null;
+    let checkoutSession = {
+        active: false,
+        completed: false,
+        startedAt: 0,
+        service: '',
+        doctor: '',
+    };
     let apiSlowNoticeLastAt = 0;
+    const bookedSlotsCache = new Map();
     let reviewsCache = [];
     let paymentConfig = {
         enabled: false,
@@ -37,10 +26,32 @@
     let chatbotOpen = false;
     let conversationContext = [];
 
-    function getCurrentLang$1() {
+    function getCurrentLang() {
         return currentLang;
     }
+    function setCurrentLang(lang) {
+        currentLang = lang;
+    }
+
+    function getCurrentThemeMode() {
+        return currentThemeMode;
+    }
+    function setCurrentThemeMode(mode) {
+        currentThemeMode = mode;
+    }
+
+    function getCurrentAppointment() {
+        return currentAppointment;
+    }
     function setCurrentAppointment(appt) {
+        currentAppointment = appt;
+    }
+
+    function getCheckoutSession() {
+        return checkoutSession;
+    }
+    function setCheckoutSession(session) {
+        checkoutSession = session;
     }
 
     function getApiSlowNoticeLastAt() {
@@ -110,23 +121,44 @@
             if (valid.length !== saved.length) {
                 try {
                     localStorage.setItem('chatHistory', JSON.stringify(valid));
-                } catch (e) {}
+                } catch {
+                    // noop
+                }
             }
             return valid;
-        } catch (e) {
+        } catch {
             return [];
         }
     }
     function setChatHistory(history) {
         try {
             localStorage.setItem('chatHistory', JSON.stringify(history));
-        } catch (e) {}
+        } catch {
+            // noop
+        }
     }
+
+    const stateAccessors = {
+        currentLang: [getCurrentLang, setCurrentLang],
+        currentThemeMode: [getCurrentThemeMode, setCurrentThemeMode],
+        currentAppointment: [getCurrentAppointment, setCurrentAppointment],
+        checkoutSession: [getCheckoutSession, setCheckoutSession],
+        reviewsCache: [getReviewsCache, setReviewsCache],
+        chatbotOpen: [getChatbotOpen, setChatbotOpen],
+        conversationContext: [getConversationContext, setConversationContext],
+    };
+
+    const internalState = {
+        bookedSlotsCache,
+    };
 
     const handler = {
         get(target, prop, receiver) {
             if (prop === 'chatHistory') {
                 return getChatHistory();
+            }
+            if (Object.prototype.hasOwnProperty.call(stateAccessors, prop)) {
+                return stateAccessors[prop][0]();
             }
             return Reflect.get(target, prop, receiver);
         },
@@ -138,11 +170,39 @@
             if (prop === 'bookedSlotsCache') {
                 return false;
             }
+            if (Object.prototype.hasOwnProperty.call(stateAccessors, prop)) {
+                stateAccessors[prop][1](value);
+                return true;
+            }
             return Reflect.set(target, prop, value, receiver);
-        }
+        },
     };
 
     const state$1 = new Proxy(internalState, handler);
+
+    const API_ENDPOINT = '/api.php';
+    const CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
+    const CLINIC_MAP_URL =
+        'https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D';
+    const DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
+    const DOCTOR_CAROLINA_EMAIL = 'caro93narvaez@gmail.com';
+    const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
+    const API_REQUEST_TIMEOUT_MS = 9000;
+    const API_RETRY_BASE_DELAY_MS = 450;
+    const API_DEFAULT_RETRIES = 1;
+    const API_SLOW_NOTICE_MS = 1200;
+    const API_SLOW_NOTICE_COOLDOWN_MS = 25000;
+    const DEFAULT_TIME_SLOTS = [
+        '09:00',
+        '10:00',
+        '11:00',
+        '12:00',
+        '15:00',
+        '16:00',
+        '17:00',
+    ];
+    const THEME_STORAGE_KEY = 'themeMode';
+    const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
 
     function debugLog() {
         // Debug logging removed
@@ -614,6 +674,19 @@
         );
     }
 
+    function invalidateBookedSlotsCache(date = '', doctor = '') {
+        if (
+            window.PielDataEngine &&
+            typeof window.PielDataEngine.invalidateBookedSlotsCache === 'function'
+        ) {
+            window.PielDataEngine.invalidateBookedSlotsCache(date, doctor);
+            return;
+        }
+        withDeferredModule(loadDataEngine, (engine) =>
+            engine.invalidateBookedSlotsCache(date, doctor)
+        ).catch(() => undefined);
+    }
+
     async function loadAvailabilityData(options = {}) {
         return withDeferredModule(loadDataEngine, (engine) =>
             engine.loadAvailabilityData(options)
@@ -660,7 +733,7 @@
             apiRequest: apiRequest$1,
             storageGetJSON,
             escapeHtml: escapeHtml$1,
-            getCurrentLang: getCurrentLang$1,
+            getCurrentLang: getCurrentLang,
         };
     }
 
@@ -698,7 +771,7 @@
             createReviewRecord,
             renderPublicReviews,
             showToast,
-            getCurrentLang: getCurrentLang$1,
+            getCurrentLang: getCurrentLang,
             getReviewsCache,
             setReviewsCache,
         };
@@ -1241,9 +1314,9 @@
 
     function getSuccessModalEngineDeps() {
         return {
-            getCurrentLang: () => state.currentLang,
-            getCurrentAppointment: () => state.currentAppointment,
-            getClinicAddress: () => CLINIC_ADDRESS$1,
+            getCurrentLang,
+            getCurrentAppointment,
+            getClinicAddress: () => CLINIC_ADDRESS,
             escapeHtml: escapeHtml$1,
         };
     }
@@ -1290,9 +1363,7 @@
     const BOOKING_UI_URL = withDeployAssetVersion(
         '/booking-ui.js?v=figo-booking-ui-20260220-sync3-cachepurge1'
     );
-    const BOOKING_UTILS_URL = withDeployAssetVersion(
-        '/js/engines/booking-utils.js'
-    );
+    withDeployAssetVersion('/js/engines/booking-utils.js');
     const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 
     function stripTransientAppointmentFields(appointment) {
@@ -1372,11 +1443,11 @@
 
     function getBookingEngineDeps() {
         return {
-            getCurrentLang: () => state.currentLang,
-            getCurrentAppointment: () => state.currentAppointment,
-            setCurrentAppointment: (appt) => { state.currentAppointment = appt; },
-            getCheckoutSession: () => state.checkoutSession,
-            setCheckoutSessionActive: (active) => { state.checkoutSession.active = (active === true); },
+            getCurrentLang: () => state$1.currentLang,
+            getCurrentAppointment: () => state$1.currentAppointment,
+            setCurrentAppointment: (appt) => { state$1.currentAppointment = appt; },
+            getCheckoutSession: () => state$1.checkoutSession,
+            setCheckoutSessionActive: (active) => { state$1.checkoutSession.active = (active === true); },
             startCheckoutSession,
             setCheckoutStep,
             completeCheckoutSession,
@@ -1465,7 +1536,7 @@
             loadAvailabilityData,
             getBookedSlots,
             showToast,
-            getCurrentLang: () => state.currentLang,
+            getCurrentLang: () => state$1.currentLang,
             getDefaultTimeSlots: () => DEFAULT_TIME_SLOTS.slice(),
             getCasePhotoFiles: (form) => {
                 const input = form?.querySelector('#casePhotos');
@@ -1496,7 +1567,7 @@
 
         if (files.length > MAX_CASE_PHOTOS) {
             throw new Error(
-                state.currentLang === 'es'
+                state$1.currentLang === 'es'
                     ? `Puedes subir m\u00E1ximo ${MAX_CASE_PHOTOS} fotos.`
                     : `You can upload up to ${MAX_CASE_PHOTOS} photos.`
             );
@@ -1507,7 +1578,7 @@
 
             if (file.size > MAX_CASE_PHOTO_BYTES) {
                 throw new Error(
-                    state.currentLang === 'es'
+                    state$1.currentLang === 'es'
                         ? `Cada foto debe pesar m\u00E1ximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
                         : `Each photo must be at most ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
                 );
@@ -1518,7 +1589,7 @@
             const validByExt = /\.(jpe?g|png|webp)$/i.test(String(file.name || ''));
             if (!validByMime && !validByExt) {
                 throw new Error(
-                    state.currentLang === 'es'
+                    state$1.currentLang === 'es'
                         ? 'Solo se permiten im\u00e1genes JPG, PNG o WEBP.'
                         : 'Only JPG, PNG or WEBP images are allowed.'
                 );
@@ -1599,7 +1670,7 @@
             maybeTrackCheckoutAbandon(abandonReason);
         }
 
-        state.checkoutSession.active = false;
+        state$1.checkoutSession.active = false;
         const modal = document.getElementById('paymentModal');
         if (modal) {
             modal.classList.remove('active');
@@ -1650,13 +1721,41 @@
         document.body.style.overflow = '';
     }
 
-    withDeployAssetVersion(
+    const RESCHEDULE_GATEWAY_ENGINE_URL = withDeployAssetVersion(
         '/reschedule-gateway-engine.js?v=figo-reschedule-gateway-20260219-phase1'
     );
 
+    function getRescheduleEngineDeps() {
+        return {
+            apiRequest: apiRequest$1,
+            loadAvailabilityData,
+            getBookedSlots,
+            invalidateBookedSlotsCache,
+            showToast,
+            escapeHtml: escapeHtml$1,
+            getCurrentLang: getCurrentLang,
+            getDefaultTimeSlots: () => DEFAULT_TIME_SLOTS.slice(),
+        };
+    }
+
+    function loadRescheduleEngine() {
+        return loadDeferredModule$1({
+            cacheKey: 'reschedule-gateway-engine',
+            src: RESCHEDULE_GATEWAY_ENGINE_URL,
+            scriptDataAttribute: 'data-reschedule-gateway-engine',
+            resolveModule: () => window.PielRescheduleGatewayEngine,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(getRescheduleEngineDeps()),
+            missingApiError: 'reschedule-gateway-engine loaded without API',
+            loadError: 'No se pudo cargar reschedule-gateway-engine.js',
+            logLabel: 'Reschedule gateway engine',
+        });
+    }
+
     function closeRescheduleModal() {
         runDeferredModule(
-            loadRescheduleGatewayEngine,
+            loadRescheduleEngine,
             (engine) => engine.closeRescheduleModal(),
             () => {
                 const modal = document.getElementById('rescheduleModal');
@@ -1669,7 +1768,7 @@
 
     function submitReschedule() {
         runDeferredModule(
-            loadRescheduleGatewayEngine,
+            loadRescheduleEngine,
             (engine) => engine.submitReschedule(),
             () => {
                 showToast(
@@ -1752,10 +1851,10 @@
 
     function getChatUiEngineDeps() {
         return {
-            getChatHistory: () => state.chatHistory,
-            setChatHistory: (h) => { state.chatHistory = h; },
-            getConversationContext: () => state.conversationContext,
-            setConversationContext: (c) => { state.conversationContext = c; },
+            getChatHistory: () => state$1.chatHistory,
+            setChatHistory: (h) => { state$1.chatHistory = h; },
+            getConversationContext: () => state$1.conversationContext,
+            setConversationContext: (c) => { state$1.conversationContext = c; },
             historyStorageKey: CHAT_HISTORY_STORAGE_KEY,
             historyTtlMs: CHAT_HISTORY_TTL_MS,
             historyMaxItems: CHAT_HISTORY_MAX_ITEMS,
@@ -1791,9 +1890,9 @@
 
     function getChatWidgetEngineDeps() {
         return {
-            getChatbotOpen: () => state.chatbotOpen,
-            setChatbotOpen: (val) => { state.chatbotOpen = val; },
-            getChatHistoryLength: () => state.chatHistory.length,
+            getChatbotOpen: () => state$1.chatbotOpen,
+            setChatbotOpen: (val) => { state$1.chatbotOpen = val; },
+            getChatHistoryLength: () => state$1.chatHistory.length,
             warmChatUi: () => runDeferredModule(loadChatUiEngine, () => undefined),
             scrollToBottom,
             trackEvent,
@@ -1931,7 +2030,7 @@
             escapeHtml,
             minimizeChatbot,
             openPaymentModal,
-            getCurrentLang: getCurrentLang$1,
+            getCurrentLang,
             setCurrentAppointment,
         };
     }
