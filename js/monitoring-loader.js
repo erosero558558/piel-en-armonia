@@ -1,8 +1,9 @@
 (function () {
     // Avoid re-initialization
-    if (window.Sentry || window.PielMonitoring) return;
+    window.Piel = window.Piel || {};
+    if (window.Sentry || window.Piel.Monitoring) return;
 
-    window.PielMonitoring = { initialized: false };
+    window.Piel.Monitoring = { initialized: false };
 
     function loadScript(src, integrity, crossorigin) {
         return new Promise((resolve, reject) => {
@@ -63,7 +64,7 @@
                         }
 
                         window.Sentry.init(options);
-                        window.PielMonitoring.initialized = true;
+                        window.Piel.Monitoring.initialized = true;
                     }
                 });
             })

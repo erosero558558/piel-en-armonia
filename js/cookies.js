@@ -23,7 +23,7 @@ export function loadConsentEngine() {
         cacheKey: 'consent-engine',
         src: UI_BUNDLE_URL,
         scriptDataAttribute: 'data-ui-bundle',
-        resolveModule: () => window.PielConsentEngine,
+        resolveModule: () => window.Piel && window.Piel.ConsentEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getConsentEngineDeps()),
@@ -35,10 +35,11 @@ export function loadConsentEngine() {
 
 export function getCookieConsent() {
     if (
-        window.PielConsentEngine &&
-        typeof window.PielConsentEngine.getCookieConsent === 'function'
+        window.Piel &&
+        window.Piel.ConsentEngine &&
+        typeof window.Piel.ConsentEngine.getCookieConsent === 'function'
     ) {
-        return window.PielConsentEngine.getCookieConsent();
+        return window.Piel.ConsentEngine.getCookieConsent();
     }
 
     try {

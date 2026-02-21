@@ -232,7 +232,8 @@
         return initialized;
     }
 
-    window.PielEngagementFormsEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.EngagementFormsEngine = {
         init,
         isInitialized,
         openReviewModal,
@@ -424,7 +425,8 @@
         return window.PielReviewsEngine;
     }
 
-    window.PielReviewsEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.ReviewsEngine = {
         init,
         loadPublicReviews,
         renderPublicReviews,

@@ -1,5 +1,6 @@
 import { init } from './modules/booking-form.js';
 
-window.PielBookingUi = {
+window.Piel = window.Piel || {};
+window.Piel.BookingUi = {
     init,
 };

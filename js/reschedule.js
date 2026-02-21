@@ -31,7 +31,7 @@ export function loadRescheduleEngine() {
         cacheKey: 'reschedule-gateway-engine',
         src: RESCHEDULE_GATEWAY_ENGINE_URL,
         scriptDataAttribute: 'data-reschedule-gateway-engine',
-        resolveModule: () => window.PielRescheduleGatewayEngine,
+        resolveModule: () => window.Piel && window.Piel.RescheduleGatewayEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getRescheduleEngineDeps()),

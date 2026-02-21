@@ -144,7 +144,7 @@ export function loadAnalyticsEngine() {
         cacheKey: 'analytics-engine',
         src: ANALYTICS_ENGINE_URL,
         scriptDataAttribute: 'data-analytics-engine',
-        resolveModule: () => window.PielAnalyticsEngine,
+        resolveModule: () => window.Piel && window.Piel.AnalyticsEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getAnalyticsEngineDeps()),

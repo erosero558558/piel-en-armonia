@@ -75,7 +75,7 @@ export function loadActionRouterEngine() {
         cacheKey: 'action-router-engine',
         src: DATA_BUNDLE_URL,
         scriptDataAttribute: 'data-data-bundle',
-        resolveModule: () => window.PielActionRouterEngine,
+        resolveModule: () => window.Piel && window.Piel.ActionRouterEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getActionRouterEngineDeps()),

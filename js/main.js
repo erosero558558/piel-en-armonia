@@ -37,8 +37,9 @@ import { initSuccessModalEngineWarmup } from './success-modal.js';
 import { initEngagementFormsEngineWarmup } from './engagement.js';
 
 // Setup global version
-window.__PA_DEPLOY_ASSET_VERSION__ =
-    window.__PA_DEPLOY_ASSET_VERSION__ || resolveDeployAssetVersion();
+window.Piel = window.Piel || {};
+window.Piel.deployVersion =
+    window.Piel.deployVersion || resolveDeployAssetVersion();
 
 // Deferred Stylesheet
 const DEFERRED_STYLESHEET_URL = withDeployAssetVersion(
@@ -270,7 +271,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 cacheKey: 'booking-utils-calendar',
                 src: BOOKING_UTILS_URL,
                 scriptDataAttribute: 'data-booking-utils',
-                resolveModule: () => window.PielBookingCalendarEngine
+                resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine
             }).then(function (moduleRef) {
                 if (moduleRef && typeof moduleRef.initCalendar === 'function') {
                     moduleRef.initCalendar();

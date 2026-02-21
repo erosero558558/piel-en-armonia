@@ -21,7 +21,7 @@
 
     function init(inputDeps) {
         deps = inputDeps || {};
-        return window.PielChatWidgetEngine;
+        return window.Piel && window.Piel.ChatWidgetEngine;
     }
 
     function getChatbotOpen() {
@@ -285,7 +285,8 @@
         }, safeDelay);
     }
 
-    window.PielChatWidgetEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.ChatWidgetEngine = {
         init,
         toggleChatbot,
         minimizeChatbot,

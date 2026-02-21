@@ -58,10 +58,11 @@ const CHAT_CONTEXT_MAX_ITEMS = 24;
 
 export function escapeHtml(text) {
     if (
-        window.PielChatUiEngine &&
-        typeof window.PielChatUiEngine.escapeHtml === 'function'
+        window.Piel &&
+        window.Piel.ChatUiEngine &&
+        typeof window.Piel.ChatUiEngine.escapeHtml === 'function'
     ) {
-        return window.PielChatUiEngine.escapeHtml(text);
+        return window.Piel.ChatUiEngine.escapeHtml(text);
     }
     const div = document.createElement('div');
     div.textContent = text;
@@ -70,10 +71,11 @@ export function escapeHtml(text) {
 
 export function scrollToBottom() {
     if (
-        window.PielChatUiEngine &&
-        typeof window.PielChatUiEngine.scrollToBottom === 'function'
+        window.Piel &&
+        window.Piel.ChatUiEngine &&
+        typeof window.Piel.ChatUiEngine.scrollToBottom === 'function'
     ) {
-        window.PielChatUiEngine.scrollToBottom();
+        window.Piel.ChatUiEngine.scrollToBottom();
         return;
     }
     const container = document.getElementById('chatMessages');
@@ -125,7 +127,7 @@ export function loadChatUiEngine() {
         cacheKey: 'chat-ui-engine',
         src: CHAT_UI_ENGINE_URL,
         scriptDataAttribute: 'data-chat-ui-engine',
-        resolveModule: () => window.PielChatUiEngine,
+        resolveModule: () => window.Piel && window.Piel.ChatUiEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getChatUiEngineDeps()),
@@ -166,7 +168,7 @@ export function loadChatWidgetEngine() {
         cacheKey: 'chat-widget-engine',
         src: CHAT_WIDGET_ENGINE_URL,
         scriptDataAttribute: 'data-chat-widget-engine',
-        resolveModule: () => window.PielChatWidgetEngine,
+        resolveModule: () => window.Piel && window.Piel.ChatWidgetEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getChatWidgetEngineDeps()),
@@ -303,7 +305,7 @@ export function loadChatBookingEngine() {
         cacheKey: 'chat-booking-engine',
         src: CHAT_BOOKING_ENGINE_URL,
         scriptDataAttribute: 'data-chat-booking-engine',
-        resolveModule: () => window.PielChatBookingEngine,
+        resolveModule: () => window.Piel && window.Piel.ChatBookingEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getChatBookingEngineDeps()),
@@ -378,10 +380,11 @@ export function finalizeChatBooking() {
 
 export function isChatBookingActive() {
     if (
-        window.PielChatBookingEngine &&
-        typeof window.PielChatBookingEngine.isActive === 'function'
+        window.Piel &&
+        window.Piel.ChatBookingEngine &&
+        typeof window.Piel.ChatBookingEngine.isActive === 'function'
     ) {
-        return window.PielChatBookingEngine.isActive();
+        return window.Piel.ChatBookingEngine.isActive();
     }
     return false;
 }
@@ -391,7 +394,7 @@ export function loadFigoChatEngine() {
         cacheKey: 'figo-chat-engine',
         src: FIGO_CHAT_ENGINE_URL,
         scriptDataAttribute: 'data-figo-chat-engine',
-        resolveModule: () => window.FigoChatEngine,
+        resolveModule: () => window.Piel && window.Piel.FigoChatEngine,
         isModuleReady: (module) => !!(module && typeof module.processWithKimi === 'function'),
         onModuleReady: (module) => {
             if (module && typeof module.init === 'function') {

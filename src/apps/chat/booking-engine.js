@@ -716,14 +716,15 @@ async function finalizeChatBooking() {
 
 function init(inputDeps) {
     deps = inputDeps || deps;
-    return window.PielChatBookingEngine;
+    return window.Piel && window.Piel.ChatBookingEngine;
 }
 
 function isActive() {
     return chatBooking !== null;
 }
 
-window.PielChatBookingEngine = {
+window.Piel = window.Piel || {};
+window.Piel.ChatBookingEngine = {
     init,
     isActive,
     startChatBooking,

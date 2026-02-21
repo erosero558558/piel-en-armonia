@@ -258,7 +258,8 @@
         });
     }
 
-    window.PielAnalyticsGatewayEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.AnalyticsGatewayEngine = {
         init,
         trackEvent,
         markBookingViewed,

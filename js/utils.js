@@ -7,10 +7,11 @@ export function debugLog() {
 
 export function escapeHtml(text) {
     if (
-        window.PielChatUiEngine &&
-        typeof window.PielChatUiEngine.escapeHtml === 'function'
+        window.Piel &&
+        window.Piel.ChatUiEngine &&
+        typeof window.Piel.ChatUiEngine.escapeHtml === 'function'
     ) {
-        return window.PielChatUiEngine.escapeHtml(text);
+        return window.Piel.ChatUiEngine.escapeHtml(text);
     }
     const div = document.createElement('div');
     div.textContent = String(text || '');
@@ -90,7 +91,7 @@ export function withDeployAssetVersion(url) {
         return cleanUrl;
     }
 
-    const deployVersion = window.__PA_DEPLOY_ASSET_VERSION__ || '';
+    const deployVersion = (window.Piel && window.Piel.deployVersion) || '';
     if (!deployVersion) {
         return cleanUrl;
     }
@@ -221,10 +222,11 @@ export function renderStars(rating) {
 
 export function getCookieConsent() {
     if (
-        window.PielConsentEngine &&
-        typeof window.PielConsentEngine.getCookieConsent === 'function'
+        window.Piel &&
+        window.Piel.ConsentEngine &&
+        typeof window.Piel.ConsentEngine.getCookieConsent === 'function'
     ) {
-        return window.PielConsentEngine.getCookieConsent();
+        return window.Piel.ConsentEngine.getCookieConsent();
     }
     try {
         const raw = localStorage.getItem(COOKIE_CONSENT_KEY);

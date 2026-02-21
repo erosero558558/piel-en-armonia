@@ -210,10 +210,11 @@
 
     function escapeHtml$1(text) {
         if (
-            window.PielChatUiEngine &&
-            typeof window.PielChatUiEngine.escapeHtml === 'function'
+            window.Piel &&
+            window.Piel.ChatUiEngine &&
+            typeof window.Piel.ChatUiEngine.escapeHtml === 'function'
         ) {
-            return window.PielChatUiEngine.escapeHtml(text);
+            return window.Piel.ChatUiEngine.escapeHtml(text);
         }
         const div = document.createElement('div');
         div.textContent = String(text || '');
@@ -278,7 +279,7 @@
             return cleanUrl;
         }
 
-        const deployVersion = window.__PA_DEPLOY_ASSET_VERSION__ || '';
+        const deployVersion = (window.Piel && window.Piel.deployVersion) || '';
         if (!deployVersion) {
             return cleanUrl;
         }
@@ -600,7 +601,7 @@
             cacheKey: 'theme-engine',
             src: UI_BUNDLE_URL$2,
             scriptDataAttribute: 'data-ui-bundle',
-            resolveModule: () => window.PielThemeEngine,
+            resolveModule: () => window.Piel && window.Piel.ThemeEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getThemeEngineDeps()),
@@ -636,7 +637,7 @@
             cacheKey: 'data-engine',
             src: DATA_ENGINE_URL,
             scriptDataAttribute: 'data-data-engine',
-            resolveModule: () => window.PielDataEngine,
+            resolveModule: () => window.Piel && window.Piel.DataEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getDataEngineDeps()),
@@ -676,10 +677,11 @@
 
     function invalidateBookedSlotsCache(date = '', doctor = '') {
         if (
-            window.PielDataEngine &&
-            typeof window.PielDataEngine.invalidateBookedSlotsCache === 'function'
+            window.Piel &&
+            window.Piel.DataEngine &&
+            typeof window.Piel.DataEngine.invalidateBookedSlotsCache === 'function'
         ) {
-            window.PielDataEngine.invalidateBookedSlotsCache(date, doctor);
+            window.Piel.DataEngine.invalidateBookedSlotsCache(date, doctor);
             return;
         }
         withDeferredModule(loadDataEngine, (engine) =>
@@ -742,7 +744,7 @@
             cacheKey: 'engagement-bundle',
             src: REVIEWS_ENGINE_URL,
             scriptDataAttribute: 'data-engagement-bundle',
-            resolveModule: () => window.PielReviewsEngine,
+            resolveModule: () => window.Piel && window.Piel.ReviewsEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getReviewsEngineDeps()),
@@ -783,7 +785,7 @@
                 cacheKey: 'engagement-forms-engine',
                 src: ENGAGEMENT_BUNDLE_URL,
                 scriptDataAttribute: 'data-engagement-bundle',
-                resolveModule: () => window.PielEngagementFormsEngine,
+                resolveModule: () => window.Piel && window.Piel.EngagementFormsEngine,
                 isModuleReady: (module) =>
                     !!(module && typeof module.init === 'function'),
                 onModuleReady: (module) =>
@@ -842,7 +844,7 @@
             cacheKey: 'i18n-engine',
             src: DATA_BUNDLE_URL$1,
             scriptDataAttribute: 'data-data-bundle',
-            resolveModule: () => window.PielI18nEngine,
+            resolveModule: () => window.Piel && window.Piel.I18nEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getI18nEngineDeps()),
@@ -1255,7 +1257,7 @@
             cacheKey: 'analytics-engine',
             src: ANALYTICS_ENGINE_URL,
             scriptDataAttribute: 'data-analytics-engine',
-            resolveModule: () => window.PielAnalyticsEngine,
+            resolveModule: () => window.Piel && window.Piel.AnalyticsEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getAnalyticsEngineDeps()),
@@ -1326,7 +1328,7 @@
             cacheKey: 'success-modal-engine',
             src: UI_BUNDLE_URL$1,
             scriptDataAttribute: 'data-ui-bundle',
-            resolveModule: () => window.PielSuccessModalEngine,
+            resolveModule: () => window.Piel && window.Piel.SuccessModalEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getSuccessModalEngineDeps()),
@@ -1472,7 +1474,7 @@
             cacheKey: 'booking-engine',
             src: BOOKING_ENGINE_URL,
             scriptDataAttribute: 'data-booking-engine',
-            resolveModule: () => window.PielBookingEngine,
+            resolveModule: () => window.Piel && window.Piel.BookingEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getBookingEngineDeps()),
@@ -1602,7 +1604,7 @@
             cacheKey: 'booking-ui',
             src: BOOKING_UI_URL,
             scriptDataAttribute: 'data-booking-ui',
-            resolveModule: () => window.PielBookingUi,
+            resolveModule: () => window.Piel && window.Piel.BookingUi,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getBookingUiDeps()),
@@ -1654,10 +1656,11 @@
 
     function closePaymentModal(options = {}) {
         if (
-            window.PielBookingEngine &&
-            typeof window.PielBookingEngine.closePaymentModal === 'function'
+            window.Piel &&
+            window.Piel.BookingEngine &&
+            typeof window.Piel.BookingEngine.closePaymentModal === 'function'
         ) {
-            window.PielBookingEngine.closePaymentModal(options);
+            window.Piel.BookingEngine.closePaymentModal(options);
             return;
         }
 
@@ -1743,7 +1746,7 @@
             cacheKey: 'reschedule-gateway-engine',
             src: RESCHEDULE_GATEWAY_ENGINE_URL,
             scriptDataAttribute: 'data-reschedule-gateway-engine',
-            resolveModule: () => window.PielRescheduleGatewayEngine,
+            resolveModule: () => window.Piel && window.Piel.RescheduleGatewayEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getRescheduleEngineDeps()),
@@ -1801,10 +1804,11 @@
 
     function escapeHtml(text) {
         if (
-            window.PielChatUiEngine &&
-            typeof window.PielChatUiEngine.escapeHtml === 'function'
+            window.Piel &&
+            window.Piel.ChatUiEngine &&
+            typeof window.Piel.ChatUiEngine.escapeHtml === 'function'
         ) {
-            return window.PielChatUiEngine.escapeHtml(text);
+            return window.Piel.ChatUiEngine.escapeHtml(text);
         }
         const div = document.createElement('div');
         div.textContent = text;
@@ -1813,10 +1817,11 @@
 
     function scrollToBottom() {
         if (
-            window.PielChatUiEngine &&
-            typeof window.PielChatUiEngine.scrollToBottom === 'function'
+            window.Piel &&
+            window.Piel.ChatUiEngine &&
+            typeof window.Piel.ChatUiEngine.scrollToBottom === 'function'
         ) {
-            window.PielChatUiEngine.scrollToBottom();
+            window.Piel.ChatUiEngine.scrollToBottom();
             return;
         }
         const container = document.getElementById('chatMessages');
@@ -1868,7 +1873,7 @@
             cacheKey: 'chat-ui-engine',
             src: CHAT_UI_ENGINE_URL,
             scriptDataAttribute: 'data-chat-ui-engine',
-            resolveModule: () => window.PielChatUiEngine,
+            resolveModule: () => window.Piel && window.Piel.ChatUiEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getChatUiEngineDeps()),
@@ -1909,7 +1914,7 @@
             cacheKey: 'chat-widget-engine',
             src: CHAT_WIDGET_ENGINE_URL,
             scriptDataAttribute: 'data-chat-widget-engine',
-            resolveModule: () => window.PielChatWidgetEngine,
+            resolveModule: () => window.Piel && window.Piel.ChatWidgetEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getChatWidgetEngineDeps()),
@@ -2040,7 +2045,7 @@
             cacheKey: 'chat-booking-engine',
             src: CHAT_BOOKING_ENGINE_URL,
             scriptDataAttribute: 'data-chat-booking-engine',
-            resolveModule: () => window.PielChatBookingEngine,
+            resolveModule: () => window.Piel && window.Piel.ChatBookingEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getChatBookingEngineDeps()),
@@ -2091,10 +2096,11 @@
 
     function isChatBookingActive() {
         if (
-            window.PielChatBookingEngine &&
-            typeof window.PielChatBookingEngine.isActive === 'function'
+            window.Piel &&
+            window.Piel.ChatBookingEngine &&
+            typeof window.Piel.ChatBookingEngine.isActive === 'function'
         ) {
-            return window.PielChatBookingEngine.isActive();
+            return window.Piel.ChatBookingEngine.isActive();
         }
         return false;
     }
@@ -2104,7 +2110,7 @@
             cacheKey: 'figo-chat-engine',
             src: FIGO_CHAT_ENGINE_URL,
             scriptDataAttribute: 'data-figo-chat-engine',
-            resolveModule: () => window.FigoChatEngine,
+            resolveModule: () => window.Piel && window.Piel.FigoChatEngine,
             isModuleReady: (module) => !!(module && typeof module.processWithKimi === 'function'),
             onModuleReady: (module) => {
                 if (module && typeof module.init === 'function') {
@@ -2218,7 +2224,7 @@
             cacheKey: 'action-router-engine',
             src: DATA_BUNDLE_URL,
             scriptDataAttribute: 'data-data-bundle',
-            resolveModule: () => window.PielActionRouterEngine,
+            resolveModule: () => window.Piel && window.Piel.ActionRouterEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getActionRouterEngineDeps()),
@@ -2256,7 +2262,7 @@
             cacheKey: 'consent-engine',
             src: UI_BUNDLE_URL,
             scriptDataAttribute: 'data-ui-bundle',
-            resolveModule: () => window.PielConsentEngine,
+            resolveModule: () => window.Piel && window.Piel.ConsentEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getConsentEngineDeps()),
@@ -2279,8 +2285,9 @@
     );
 
     // Setup global version
-    window.__PA_DEPLOY_ASSET_VERSION__ =
-        window.__PA_DEPLOY_ASSET_VERSION__ || resolveDeployAssetVersion();
+    window.Piel = window.Piel || {};
+    window.Piel.deployVersion =
+        window.Piel.deployVersion || resolveDeployAssetVersion();
 
     // Deferred Stylesheet
     const DEFERRED_STYLESHEET_URL = withDeployAssetVersion(
@@ -2498,7 +2505,7 @@
                     cacheKey: 'booking-utils-calendar',
                     src: BOOKING_UTILS_URL,
                     scriptDataAttribute: 'data-booking-utils',
-                    resolveModule: () => window.PielBookingCalendarEngine
+                    resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine
                 }).then(function (moduleRef) {
                     if (moduleRef && typeof moduleRef.initCalendar === 'function') {
                         moduleRef.initCalendar();

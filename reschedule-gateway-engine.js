@@ -54,7 +54,7 @@
             cacheKey: 'reschedule-engine',
             src: RESCHEDULE_ENGINE_URL,
             scriptDataAttribute: 'data-reschedule-engine',
-            resolveModule: () => window.PielRescheduleEngine,
+            resolveModule: () => window.Piel && window.Piel.RescheduleEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getRescheduleEngineDeps()),
@@ -116,7 +116,8 @@
         });
     }
 
-    window.PielRescheduleGatewayEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.RescheduleGatewayEngine = {
         init,
         initRescheduleFromParam,
         closeRescheduleModal,

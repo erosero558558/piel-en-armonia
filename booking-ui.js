@@ -406,7 +406,8 @@
         return { init };
     }
 
-    window.PielBookingUi = {
+    window.Piel = window.Piel || {};
+    window.Piel.BookingUi = {
         init,
     };
 

@@ -27,7 +27,7 @@ export function loadSuccessModalEngine() {
         cacheKey: 'success-modal-engine',
         src: UI_BUNDLE_URL,
         scriptDataAttribute: 'data-ui-bundle',
-        resolveModule: () => window.PielSuccessModalEngine,
+        resolveModule: () => window.Piel && window.Piel.SuccessModalEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getSuccessModalEngineDeps()),

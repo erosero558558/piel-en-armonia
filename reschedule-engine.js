@@ -295,7 +295,8 @@
         }
     }
 
-    window.PielRescheduleEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.RescheduleEngine = {
         init,
         checkRescheduleParam,
         openRescheduleModal,

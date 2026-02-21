@@ -149,7 +149,7 @@ export function loadBookingEngine() {
         cacheKey: 'booking-engine',
         src: BOOKING_ENGINE_URL,
         scriptDataAttribute: 'data-booking-engine',
-        resolveModule: () => window.PielBookingEngine,
+        resolveModule: () => window.Piel && window.Piel.BookingEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getBookingEngineDeps()),
@@ -212,7 +212,7 @@ export function loadBookingCalendarEngine() {
         cacheKey: 'booking-utils-calendar',
         src: BOOKING_UTILS_URL,
         scriptDataAttribute: 'data-booking-utils',
-        resolveModule: () => window.PielBookingCalendarEngine,
+        resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine,
         isModuleReady: (module) => !!(module && typeof module.initCalendar === 'function'),
         missingApiError: 'booking-calendar-engine loaded without API',
         loadError: 'No se pudo cargar booking-calendar-engine',
@@ -296,7 +296,7 @@ export function loadBookingUi() {
         cacheKey: 'booking-ui',
         src: BOOKING_UI_URL,
         scriptDataAttribute: 'data-booking-ui',
-        resolveModule: () => window.PielBookingUi,
+        resolveModule: () => window.Piel && window.Piel.BookingUi,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getBookingUiDeps()),
@@ -349,10 +349,11 @@ export function openPaymentModal(appointmentData) {
 
 export function closePaymentModal(options = {}) {
     if (
-        window.PielBookingEngine &&
-        typeof window.PielBookingEngine.closePaymentModal === 'function'
+        window.Piel &&
+        window.Piel.BookingEngine &&
+        typeof window.Piel.BookingEngine.closePaymentModal === 'function'
     ) {
-        window.PielBookingEngine.closePaymentModal(options);
+        window.Piel.BookingEngine.closePaymentModal(options);
         return;
     }
 
