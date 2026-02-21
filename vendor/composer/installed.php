@@ -3,7 +3,7 @@
         'name' => '__root__',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '32fc80491f8bc8eb0eba6a0895e2680211fcdbc9',
+        'reference' => '72f5425278c431e0ad71d31ba0acac94705eb1ed',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         '__root__' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '32fc80491f8bc8eb0eba6a0895e2680211fcdbc9',
+            'reference' => '72f5425278c431e0ad71d31ba0acac94705eb1ed',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -820,15 +820,6 @@
             'install_path' => __DIR__ . '/../webmozart/assert',
             'aliases' => array(),
             'dev_requirement' => true,
-        ),
-        'webonyx/graphql-php' => array(
-            'pretty_version' => 'v15.30.2',
-            'version' => '15.30.2.0',
-            'reference' => 'abf6dc5f8b27915bfde26fdda0e92cebfb9aebf5',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../webonyx/graphql-php',
-            'aliases' => array(),
-            'dev_requirement' => false,
         ),
     ),
 );

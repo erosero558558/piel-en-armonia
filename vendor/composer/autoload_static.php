@@ -99,7 +99,6 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         'G' =>
         array (
             'GuzzleHttp\\Psr7\\' => 16,
-            'GraphQL\\' => 8,
         ),
         'F' =>
         array (
@@ -123,7 +122,6 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         ),
         'A' =>
         array (
-            'App\\GraphQL\\' => 12,
             'Amp\\ByteStream\\' => 15,
             'Amp\\' => 4,
             'AdvancedJsonRpc\\' => 16,
@@ -306,10 +304,6 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         array (
             0 => __DIR__ . '/..' . '/guzzlehttp/psr7/src',
         ),
-        'GraphQL\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/webonyx/graphql-php/src',
-        ),
         'Fidry\\CpuCoreCounter\\' =>
         array (
             0 => __DIR__ . '/..' . '/fidry/cpu-core-counter/src',
@@ -341,10 +335,6 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         'Clue\\React\\NDJson\\' =>
         array (
             0 => __DIR__ . '/..' . '/clue/ndjson-react/src',
-        ),
-        'App\\GraphQL\\' =>
-        array (
-            0 => __DIR__ . '/../..' . '/lib/GraphQL',
         ),
         'Amp\\ByteStream\\' =>
         array (
