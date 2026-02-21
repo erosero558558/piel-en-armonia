@@ -210,10 +210,7 @@ function backup_auto_refresh_try_create(): array
         return $result;
     }
 
-    if (!ensure_data_file()) {
-        $result['reason'] = 'store_not_ready';
-        return $result;
-    }
+    $storeReady = function_exists('ensure_data_file') ? ensure_data_file() : false;
 
     $storeCandidates = [];
     if (function_exists('data_file_path')) {
@@ -235,7 +232,7 @@ function backup_auto_refresh_try_create(): array
     }
 
     if ($storePath === '') {
-        $result['reason'] = 'store_file_missing';
+        $result['reason'] = $storeReady ? 'store_file_missing' : 'store_not_ready';
         return $result;
     }
 
