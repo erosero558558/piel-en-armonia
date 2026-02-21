@@ -4,7 +4,7 @@ import {
     storageGetJSON,
     storageSetJSON,
 } from './utils.js';
-import { getCurrentLang } from './state.js';
+import { state } from './state.js';
 import {
     loadDeferredModule,
     withDeferredModule,

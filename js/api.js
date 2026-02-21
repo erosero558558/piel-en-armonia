@@ -8,7 +8,6 @@ import {
 } from './config.js';
 import {
     state,
-    getCurrentLang,
     getApiSlowNoticeLastAt,
     setApiSlowNoticeLastAt,
 } from './state.js';
