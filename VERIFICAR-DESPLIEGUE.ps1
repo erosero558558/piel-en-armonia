@@ -894,11 +894,6 @@ $checks += @(
         RemoteUrl = $galleryInteractionsRemoteUrl
     },
     [PSCustomObject]@{
-        Name = 'reschedule-engine.js'
-        LocalPath = 'reschedule-engine.js'
-        RemoteUrl = $rescheduleEngineRemoteUrl
-    },
-    [PSCustomObject]@{
         Name = 'booking-ui.js'
         LocalPath = 'booking-ui.js'
         RemoteUrl = $bookingUiRemoteUrl
@@ -930,6 +925,15 @@ if ($hasTranslationsEnAsset) {
         LocalPath = 'translations-en.js'
         RemoteUrl = $translationsEnRemoteUrl
     }
+}
+if (Test-Path 'reschedule-engine.js') {
+    $checks += [PSCustomObject]@{
+        Name = 'reschedule-engine.js'
+        LocalPath = 'reschedule-engine.js'
+        RemoteUrl = $rescheduleEngineRemoteUrl
+    }
+} else {
+    Write-Host '[INFO] reschedule-engine.js no se detecta en local; se omite verificacion de hash.'
 }
 foreach ($item in $checks) {
     if ([string]::IsNullOrWhiteSpace($item.RemoteUrl)) {
