@@ -417,7 +417,6 @@ window.subscribeToPushNotifications = async function() {
             userVisibleOnly: true,
             applicationServerKey: publicVapidKey
         });
-        console.log('Push Subscription:', JSON.stringify(subscription));
     } catch (error) {
         console.error('Push subscription error:', error);
     }

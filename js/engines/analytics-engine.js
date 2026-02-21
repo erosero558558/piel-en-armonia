@@ -312,8 +312,7 @@
         });
     }
 
-    window.Piel = window.Piel || {};
-    window.Piel.AnalyticsEngine = {
+    window.PielAnalyticsEngine = {
         init,
         trackEvent,
         normalizeAnalyticsLabel,

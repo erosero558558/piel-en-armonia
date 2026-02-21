@@ -540,4 +540,7 @@
         updateAvailableTimes
     };
 
+    // Legacy support
+    window.PielBookingCalendarEngine = window.Piel.BookingCalendarEngine;
+
 })();

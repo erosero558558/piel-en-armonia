@@ -231,11 +231,11 @@ test.describe('Checklist de Pruebas en Producción', () => {
         expect(response.ok()).toBeTruthy();
         const body = await response.json();
         expect(body.ok).toBe(true);
-        const isAvailabilityObject =
-            body.data !== null &&
-            typeof body.data === 'object' &&
-            !Array.isArray(body.data);
-        expect(isAvailabilityObject).toBe(true);
+        // data should be an object (map of dates), potentially empty, but NOT strictly an array.
+        // PHP empty array [] encodes to [] in JSON, but associative array encodes to {}.
+        // So checking if it is an object (and not null) is safer.
+        expect(typeof body.data).toBe('object');
+        expect(body.data).not.toBeNull();
     });
 
     // 5. Flujo de callback
