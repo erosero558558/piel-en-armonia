@@ -1103,6 +1103,38 @@ html[data-theme='dark'] .contact-chip.whatsapp {
 
 /* ========================================
 
+/* ========================================
+   PRICING FALLBACK (Critical)
+   ======================================== */
+.pricing-container {
+    width: min(1000px, calc(100% - 24px));
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+.pricing-category {
+    border-radius: 20px;
+    border: 1px solid rgba(190, 205, 228, 0.78);
+    background: rgba(255, 255, 255, 0.92);
+    padding: 24px;
+}
+.pricing-category-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 1.35rem;
+}
+.pricing-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px dashed rgba(160, 178, 204, 0.45);
+}
+
 </style>
         <link
             rel="preload"
