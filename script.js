@@ -1081,7 +1081,7 @@
         throw lastError || new Error('No se pudo completar la solicitud');
     }
 
-    const BOOKING_UTILS_URL$1 = withDeployAssetVersion('/js/engines/booking-utils.js');
+    const BOOKING_UTILS_URL$2 = withDeployAssetVersion('/js/engines/booking-utils.js');
 
     function getPaymentGatewayEngineDeps() {
         return {
@@ -1099,7 +1099,7 @@
     function loadPaymentGatewayEngine() {
         return loadDeferredModule({
             cacheKey: 'booking-utils',
-            src: BOOKING_UTILS_URL$1,
+            src: BOOKING_UTILS_URL$2,
             scriptDataAttribute: 'data-booking-utils',
             resolveModule: () => window.Piel && window.Piel.PaymentGatewayEngine,
             isModuleReady: (module) => !!(module && typeof module.init === 'function'),
@@ -1396,7 +1396,7 @@
     const BOOKING_UI_URL = withDeployAssetVersion(
         '/booking-ui.js?v=figo-booking-ui-20260220-sync3-cachepurge1'
     );
-    withDeployAssetVersion('/js/engines/booking-utils.js');
+    const BOOKING_UTILS_URL$1 = withDeployAssetVersion('/js/engines/booking-utils.js');
     const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 
     function stripTransientAppointmentFields(appointment) {
@@ -1563,6 +1563,23 @@
         );
     }
 
+    function loadBookingCalendarEngine() {
+        return loadDeferredModule({
+            cacheKey: 'booking-utils-calendar',
+            src: BOOKING_UTILS_URL$1,
+            scriptDataAttribute: 'data-booking-utils',
+            resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine,
+            isModuleReady: (module) => !!(module && typeof module.initCalendar === 'function'),
+            missingApiError: 'booking-calendar-engine loaded without API',
+            loadError: 'No se pudo cargar booking-calendar-engine',
+            logLabel: 'Booking Calendar engine'
+        });
+    }
+
+    async function updateAvailableTimes(elements) {
+        return runDeferredModule(loadBookingCalendarEngine, (engine) => engine.updateAvailableTimes(getBookingUiDeps(), elements));
+    }
+
     // BOOKING UI
     function getBookingUiDeps() {
         return {
@@ -1584,6 +1601,7 @@
             normalizeAnalyticsLabel,
             openPaymentModal,
             setCurrentAppointment: setCurrentAppointment,
+            updateAvailableTimes, // Added dependency
         };
     }
 
