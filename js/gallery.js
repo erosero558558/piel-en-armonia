@@ -8,7 +8,7 @@ import {
 } from './loader.js';
 
 const GALLERY_INTERACTIONS_URL = withDeployAssetVersion(
-    '/gallery-interactions.js?v=figo-gallery-20260218-phase4'
+    '/js/engines/gallery-interactions.js?v=figo-gallery-20260218-phase4'
 );
 
 export function loadGalleryInteractions() {

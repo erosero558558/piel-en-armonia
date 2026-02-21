@@ -269,36 +269,6 @@ function loadFallbackState() {
     currentFunnelMetrics = getEmptyFunnelMetrics();
 }
 
-async function refreshData() {
-    try {
-        const [payload, funnelPayload] = await Promise.all([
-            apiRequest('data'),
-            apiRequest('funnel-metrics').catch(() => null)
-        ]);
-
-        const data = payload.data || {};
-        currentAppointments = Array.isArray(data.appointments) ? data.appointments : [];
-        currentCallbacks = Array.isArray(data.callbacks) ? data.callbacks.map(c => ({
-            ...c,
-            status: normalizeCallbackStatus(c.status)
-        })) : [];
-        currentReviews = Array.isArray(data.reviews) ? data.reviews : [];
-        currentAvailability = data.availability && typeof data.availability === 'object' ? data.availability : {};
-
-        if (funnelPayload && funnelPayload.data && typeof funnelPayload.data === 'object') {
-            currentFunnelMetrics = funnelPayload.data;
-        } else {
-            currentFunnelMetrics = getEmptyFunnelMetrics();
-        }
-
-        saveLocalData('appointments', currentAppointments);
-        saveLocalData('callbacks', currentCallbacks);
-        saveLocalData('reviews', currentReviews);
-        saveLocalData('availability', currentAvailability);
-    } catch (error) {
-        showToast('Error cargando módulo: ' + error.message, 'error');
-    }
-}
 
 async function handleLogin(e) {
     e.preventDefault();

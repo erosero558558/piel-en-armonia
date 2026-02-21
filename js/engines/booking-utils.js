@@ -464,8 +464,7 @@
         return payload.data || {};
     }
 
-    window.Piel = window.Piel || {};
-    window.Piel.PaymentGatewayEngine = {
+    window.PielPaymentGatewayEngine = {
         init,
         loadPaymentConfig,
         loadStripeSdk,
@@ -536,8 +535,7 @@
         });
     }
 
-    window.Piel = window.Piel || {};
-    window.Piel.BookingCalendarEngine = {
+    window.PielBookingCalendarEngine = {
         initCalendar,
         updateAvailableTimes
     };

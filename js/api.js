@@ -7,7 +7,7 @@ import {
     API_RETRY_BASE_DELAY_MS,
 } from './config.js';
 import {
-    getCurrentLang,
+    state,
     getApiSlowNoticeLastAt,
     setApiSlowNoticeLastAt,
 } from './state.js';

@@ -9,7 +9,7 @@ import { loadAvailabilityData } from './data.js';
 import { loadPublicReviews } from './engagement.js';
 
 const ANALYTICS_ENGINE_URL = withDeployAssetVersion(
-    '/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1'
+    '/js/engines/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1'
 );
 const FUNNEL_EVENT_ENDPOINT = '/api.php?resource=funnel-event';
 const FUNNEL_SERVER_EVENTS = new Set([

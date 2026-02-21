@@ -18,7 +18,7 @@
 
     function init(inputDeps) {
         deps = inputDeps || {};
-        return window.PielAnalyticsEngine;
+        return window.Piel.AnalyticsEngine;
     }
 
     function trackEvent(eventName, params = {}) {

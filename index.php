@@ -89,7 +89,7 @@ if (preg_match('#script\.js\?v=([^"&\']+)#i', $indexHtml, $versionMatch)) {
 if ($assetVersion === '') {
     $assetVersion = rawurlencode(app_runtime_version());
 }
-$bootstrapScriptUrl = 'bootstrap-inline-engine.js?v=' . $assetVersion;
+$bootstrapScriptUrl = 'js/bootstrap-inline-engine.js?v=' . $assetVersion;
 $bootstrapScriptTag = '<script src="' . $bootstrapScriptUrl . '" defer></script>';
 
 // Elimina bootstrap inline legado para reducir superficie CSP.
@@ -97,7 +97,7 @@ $inlineBootstrapPattern = '#<script>\s*const\s+DEFERRED_STYLESHEET_URL[\s\S]*?</
 $indexHtml = (string) preg_replace($inlineBootstrapPattern, '', $indexHtml, 1);
 
 // Remueve tags bootstrap existentes para evitar duplicados y cache stale.
-$bootstrapTagPattern = '#\s*<script[^>]+src=["\']bootstrap-inline-engine\.js(?:\?[^"\']*)?["\'][^>]*>\s*</script>#i';
+$bootstrapTagPattern = '#\s*<script[^>]+src=["\']js/bootstrap-inline-engine\.js(?:\?[^"\']*)?["\'][^>]*>\s*</script>#i';
 $indexHtml = (string) preg_replace($bootstrapTagPattern, '', $indexHtml);
 
 // Fuerza versionado del bundle principal para invalidar cache en cada deploy.
