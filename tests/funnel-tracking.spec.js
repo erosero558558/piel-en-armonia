@@ -133,6 +133,17 @@ async function fillBookingFormAndOpenPayment(page) {
         timeout: 10000,
         state: 'attached',
     });
+
+    // Scroll to trigger lazy loading if needed
+    const bookingSection = page.locator('#citas');
+    await bookingSection.scrollIntoViewIfNeeded();
+
+    // Trigger focusin to force-start warmup if observer is slow
+    await page.evaluate(() => {
+        const form = document.getElementById('appointmentForm');
+        if (form) form.dispatchEvent(new Event('focusin', { bubbles: true }));
+    });
+
     await page.waitForSelector('script[data-booking-ui="true"]', {
         timeout: 10000,
         state: 'attached',
