@@ -9,6 +9,128 @@ require_once __DIR__ . '/models.php';
  * Email sending logic.
  */
 
+function generate_ics_content(array $appt): string
+{
+    $date = (string)($appt['date'] ?? '');
+    $time = (string)($appt['time'] ?? '');
+    $id = (string)($appt['id'] ?? uniqid());
+    $doctor = (string)($appt['doctor'] ?? 'Doctor');
+    $service = (string)($appt['service'] ?? 'Servicio');
+
+    if ($date === '' || $time === '') {
+        return '';
+    }
+
+    $startStr = $date . ' ' . $time;
+    $startTimestamp = strtotime($startStr);
+    if ($startTimestamp === false) {
+        return '';
+    }
+
+    $start = gmdate('Ymd\THis\Z', $startTimestamp);
+    $end = gmdate('Ymd\THis\Z', $startTimestamp + 3600); // 1 hour duration
+    $now = gmdate('Ymd\THis\Z');
+
+    $out = "BEGIN:VCALENDAR\r\n";
+    $out .= "VERSION:2.0\r\n";
+    $out .= "PRODID:-//Piel en Armonia//Reserva//ES\r\n";
+    $out .= "METHOD:REQUEST\r\n";
+    $out .= "BEGIN:VEVENT\r\n";
+    $out .= "UID:" . $id . "@pielarmonia.com\r\n";
+    $out .= "DTSTAMP:" . $now . "\r\n";
+    $out .= "DTSTART:" . $start . "\r\n";
+    $out .= "DTEND:" . $end . "\r\n";
+    $out .= "SUMMARY:Cita Piel en Armonía\r\n";
+    $out .= "DESCRIPTION:Cita con " . $doctor . " para " . $service . "\r\n";
+    $out .= "LOCATION:Piel en Armonía, Quito\r\n";
+    $out .= "STATUS:CONFIRMED\r\n";
+    $out .= "SEQUENCE:0\r\n";
+    $out .= "END:VEVENT\r\n";
+    $out .= "END:VCALENDAR\r\n";
+
+    return $out;
+}
+
+function get_email_template(string $type, array $appt): string
+{
+    $name = sanitize_xss((string)($appt['name'] ?? 'Paciente'));
+    $serviceLabel = function_exists('get_service_label') ? get_service_label((string)($appt['service'] ?? '')) : ($appt['service'] ?? '-');
+    $doctorLabel = function_exists('get_doctor_label') ? get_doctor_label((string)($appt['doctor'] ?? '')) : ($appt['doctor'] ?? '-');
+    $dateLabel = function_exists('format_date_label') ? format_date_label((string)($appt['date'] ?? '')) : ($appt['date'] ?? '-');
+    $time = sanitize_xss((string)($appt['time'] ?? '-'));
+
+    $token = $appt['rescheduleToken'] ?? '';
+    $rescheduleLink = $token !== '' ? "https://pielarmonia.com/?reschedule=" . $token : "https://pielarmonia.com/#citas";
+
+    $title = '';
+    $intro = '';
+
+    if ($type === 'confirmation') {
+        $title = 'Confirmación de Cita';
+        $intro = 'Tu cita ha sido registrada correctamente.';
+    } elseif ($type === 'reminder') {
+        $title = 'Recordatorio de Cita';
+        $intro = 'Te recordamos que tienes una cita programada para mañana.';
+    } elseif ($type === 'reschedule') {
+        $title = 'Cita Reprogramada';
+        $intro = 'Tu cita ha sido reprogramada exitosamente.';
+    } elseif ($type === 'cancellation') {
+        $title = 'Cita Cancelada';
+        $intro = 'Tu cita ha sido cancelada.';
+    }
+
+    return <<<HTML
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{$title}</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px; }
+        .header { background-color: #f8f9fa; padding: 15px; text-align: center; border-bottom: 1px solid #eee; }
+        .header h1 { margin: 0; color: #2c3e50; font-size: 24px; }
+        .content { padding: 20px; }
+        .details { background-color: #f9f9f9; padding: 15px; border-radius: 4px; margin: 20px 0; }
+        .detail-row { margin-bottom: 10px; }
+        .detail-label { font-weight: bold; color: #555; }
+        .footer { margin-top: 30px; font-size: 12px; color: #777; text-align: center; border-top: 1px solid #eee; padding-top: 15px; }
+        .btn { display: inline-block; background-color: #e6b8af; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin-top: 10px; }
+        .btn:hover { background-color: #d6a89f; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Piel en Armonía</h1>
+        </div>
+        <div class="content">
+            <h2>{$title}</h2>
+            <p>Hola <strong>{$name}</strong>,</p>
+            <p>{$intro}</p>
+
+            <div class="details">
+                <div class="detail-row"><span class="detail-label">Servicio:</span> {$serviceLabel}</div>
+                <div class="detail-row"><span class="detail-label">Doctor:</span> {$doctorLabel}</div>
+                <div class="detail-row"><span class="detail-label">Fecha:</span> {$dateLabel}</div>
+                <div class="detail-row"><span class="detail-label">Hora:</span> {$time}</div>
+            </div>
+
+            <p>Si necesitas gestionar tu cita, puedes hacerlo aquí:</p>
+            <a href="{$rescheduleLink}" class="btn">Gestionar Cita</a>
+
+            <p>Si tienes dudas, contáctanos por WhatsApp: +593 98 245 3672.</p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2024 Piel en Armonía. Todos los derechos reservados.</p>
+            <p>Este es un mensaje automático, por favor no responder.</p>
+        </div>
+    </div>
+</body>
+</html>
+HTML;
+}
+
 function smtp_config(): array
 {
     return [
@@ -31,7 +153,7 @@ function smtp_enabled(): bool
  * Envía email vía SMTP con autenticación STARTTLS.
  * Compatible con Gmail y cualquier servidor SMTP estándar.
  */
-function smtp_send_mail(string $to, string $subject, string $body): bool
+function smtp_send_mail(string $to, string $subject, string $body, bool $isHtml = false, array $attachments = []): bool
 {
     $cfg = smtp_config();
 
@@ -67,10 +189,22 @@ function smtp_send_mail(string $to, string $subject, string $body): bool
         $mail->setFrom($from, $fromName);
         $mail->addAddress($to);
 
+        // Adjuntos
+        foreach ($attachments as $att) {
+            if (isset($att['content'], $att['name'])) {
+                $encoding = $att['encoding'] ?? 'base64';
+                $type = $att['type'] ?? 'application/octet-stream';
+                $mail->addStringAttachment($att['content'], $att['name'], $encoding, $type);
+            }
+        }
+
         // Contenido
-        $mail->isHTML(false);
+        $mail->isHTML($isHtml);
         $mail->Subject = $subject;
         $mail->Body    = $body;
+        if ($isHtml) {
+            $mail->AltBody = strip_tags($body);
+        }
 
         $mail->send();
         return true;
@@ -87,10 +221,10 @@ function smtp_send_mail(string $to, string $subject, string $body): bool
 /**
  * Envía email usando SMTP si está configurado, o mail() como fallback.
  */
-function send_mail(string $to, string $subject, string $body): bool
+function send_mail(string $to, string $subject, string $body, bool $isHtml = false, array $attachments = []): bool
 {
     if (smtp_enabled()) {
-        return smtp_send_mail($to, $subject, $body);
+        return smtp_send_mail($to, $subject, $body, $isHtml, $attachments);
     }
 
     // Fallback a mail() nativo
@@ -98,7 +232,15 @@ function send_mail(string $to, string $subject, string $body): bool
     if (!is_string($from) || $from === '') {
         $from = 'no-reply@pielarmonia.com';
     }
-    $headers = "From: Piel en Armonía <{$from}>\r\nContent-Type: text/plain; charset=UTF-8";
+
+    $headers = "From: Piel en Armonía <{$from}>\r\n";
+    $headers .= "MIME-Version: 1.0\r\n";
+
+    if ($isHtml) {
+        $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+    } else {
+        $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+    }
 
     $sent = @mail($to, $subject, $body, $headers);
     if (!$sent) {
@@ -116,29 +258,19 @@ function maybe_send_appointment_email(array $appointment): bool
 
     $clinicName = 'Piel en Armonía';
     $subject = 'Confirmacion de cita - ' . $clinicName;
-    $message = "Hola " . ($appointment['name'] ?? 'paciente') . ",\n\n";
-    $message .= "Tu cita fue registrada correctamente.\n";
+    $body = get_email_template('confirmation', $appointment);
 
-    $serviceLabel = function_exists('get_service_label') ? get_service_label((string)($appointment['service'] ?? '')) : ($appointment['service'] ?? '-');
-    $doctorLabel = function_exists('get_doctor_label') ? get_doctor_label((string)($appointment['doctor'] ?? '')) : ($appointment['doctor'] ?? '-');
-    $dateLabel = function_exists('format_date_label') ? format_date_label((string)($appointment['date'] ?? '')) : ($appointment['date'] ?? '-');
-    $paymentStatusLabel = function_exists('get_payment_status_label') ? get_payment_status_label((string)($appointment['paymentStatus'] ?? 'pending')) : ($appointment['paymentStatus'] ?? 'pending');
-
-    $message .= "Servicio: " . $serviceLabel . "\n";
-    $message .= "Doctor: " . $doctorLabel . "\n";
-    $message .= "Fecha: " . $dateLabel . " (" . ($appointment['date'] ?? '') . ")\n";
-    $message .= "Hora: " . ($appointment['time'] ?? '-') . "\n";
-    $message .= "Estado de pago: " . $paymentStatusLabel . "\n\n";
-
-    $token = $appointment['rescheduleToken'] ?? '';
-    if ($token !== '') {
-        $message .= "Si necesitas reprogramar tu cita, usa este enlace:\n";
-        $message .= "https://pielarmonia.com/?reschedule=" . $token . "\n\n";
+    $ics = generate_ics_content($appointment);
+    $attachments = [];
+    if ($ics !== '') {
+        $attachments[] = [
+            'content' => $ics,
+            'name' => 'cita.ics',
+            'type' => 'text/calendar; charset=utf-8; method=REQUEST'
+        ];
     }
 
-    $message .= "Gracias por confiar en nosotros.";
-
-    return send_mail($to, $subject, $message);
+    return send_mail($to, $subject, $body, true, $attachments);
 }
 
 function maybe_send_admin_notification(array $appointment): bool
@@ -195,23 +327,11 @@ function maybe_send_cancellation_email(array $appointment): bool
         return false;
     }
 
-    $serviceLabel = function_exists('get_service_label') ? get_service_label((string)($appointment['service'] ?? '')) : ($appointment['service'] ?? '-');
-    $doctorLabel = function_exists('get_doctor_label') ? get_doctor_label((string)($appointment['doctor'] ?? '')) : ($appointment['doctor'] ?? '-');
-    $dateLabel = function_exists('format_date_label') ? format_date_label((string)($appointment['date'] ?? '')) : ($appointment['date'] ?? '-');
-
     $clinicName = 'Piel en Armonía';
     $subject = 'Cita cancelada - ' . $clinicName;
-    $message = "Hola " . ($appointment['name'] ?? 'paciente') . ",\n\n";
-    $message .= "Tu cita ha sido cancelada.\n\n";
-    $message .= "Detalles de la cita cancelada:\n";
-    $message .= "Servicio: " . $serviceLabel . "\n";
-    $message .= "Doctor: " . $doctorLabel . "\n";
-    $message .= "Fecha: " . $dateLabel . "\n";
-    $message .= "Hora: " . ($appointment['time'] ?? '-') . "\n\n";
-    $message .= "Si deseas reprogramar, visita https://pielarmonia.com/#citas o escribenos por WhatsApp: +593 98 245 3672.\n\n";
-    $message .= "Gracias por confiar en nosotros.";
+    $body = get_email_template('cancellation', $appointment);
 
-    return send_mail($to, $subject, $message);
+    return send_mail($to, $subject, $body, true);
 }
 
 function maybe_send_callback_admin_notification(array $callback): bool
@@ -242,30 +362,21 @@ function maybe_send_reminder_email(array $appointment): bool
         return false;
     }
 
-    $serviceLabel = function_exists('get_service_label') ? get_service_label((string)($appointment['service'] ?? '')) : ($appointment['service'] ?? '-');
-    $doctorLabel = function_exists('get_doctor_label') ? get_doctor_label((string)($appointment['doctor'] ?? '')) : ($appointment['doctor'] ?? '-');
-    $dateLabel = function_exists('format_date_label') ? format_date_label((string)($appointment['date'] ?? '')) : ($appointment['date'] ?? '-');
-
     $clinicName = 'Piel en Armonía';
     $subject = 'Recordatorio de cita - ' . $clinicName;
-    $body = "Hola " . ($appointment['name'] ?? 'paciente') . ",\n\n";
-    $body .= "Te recordamos que tienes una cita programada para mañana.\n\n";
-    $body .= "Servicio: " . $serviceLabel . "\n";
-    $body .= "Doctor: " . $doctorLabel . "\n";
-    $body .= "Fecha: " . $dateLabel . "\n";
-    $body .= "Hora: " . ($appointment['time'] ?? '-') . "\n\n";
+    $body = get_email_template('reminder', $appointment);
 
-    $token = $appointment['rescheduleToken'] ?? '';
-    if ($token !== '') {
-        $body .= "Si necesitas reprogramar, usa este enlace:\n";
-        $body .= "https://pielarmonia.com/?reschedule=" . $token . "\n\n";
+    $ics = generate_ics_content($appointment);
+    $attachments = [];
+    if ($ics !== '') {
+        $attachments[] = [
+            'content' => $ics,
+            'name' => 'cita.ics',
+            'type' => 'text/calendar; charset=utf-8; method=REQUEST'
+        ];
     }
 
-    $body .= "Te esperamos. ¡Gracias por confiar en nosotros!\n";
-    $body .= "- Equipo Piel en Armonía\n";
-    $body .= "WhatsApp: +593 98 245 3672";
-
-    return send_mail($to, $subject, $body);
+    return send_mail($to, $subject, $body, true, $attachments);
 }
 
 function maybe_send_reschedule_email(array $appointment): bool
@@ -275,27 +386,9 @@ function maybe_send_reschedule_email(array $appointment): bool
         return false;
     }
 
-    $serviceLabel = function_exists('get_service_label') ? get_service_label((string)($appointment['service'] ?? '')) : ($appointment['service'] ?? '-');
-    $doctorLabel = function_exists('get_doctor_label') ? get_doctor_label((string)($appointment['doctor'] ?? '')) : ($appointment['doctor'] ?? '-');
-    $dateLabel = function_exists('format_date_label') ? format_date_label((string)($appointment['date'] ?? '')) : ($appointment['date'] ?? '-');
-
     $clinicName = 'Piel en Armonía';
     $subject = 'Cita reprogramada - ' . $clinicName;
-    $body = "Hola " . ($appointment['name'] ?? 'paciente') . ",\n\n";
-    $body .= "Tu cita ha sido reprogramada exitosamente.\n\n";
-    $body .= "Servicio: " . $serviceLabel . "\n";
-    $body .= "Doctor: " . $doctorLabel . "\n";
-    $body .= "Nueva fecha: " . $dateLabel . "\n";
-    $body .= "Nueva hora: " . ($appointment['time'] ?? '-') . "\n\n";
+    $body = get_email_template('reschedule', $appointment);
 
-    $token = $appointment['rescheduleToken'] ?? '';
-    if ($token !== '') {
-        $body .= "Si necesitas reprogramar de nuevo:\n";
-        $body .= "https://pielarmonia.com/?reschedule=" . $token . "\n\n";
-    }
-
-    $body .= "Te esperamos. ¡Gracias por confiar en nosotros!\n";
-    $body .= "- Equipo Piel en Armonía";
-
-    return send_mail($to, $subject, $body);
+    return send_mail($to, $subject, $body, true);
 }

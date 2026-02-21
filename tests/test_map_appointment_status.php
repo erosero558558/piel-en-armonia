@@ -10,6 +10,7 @@ function run_tests()
         ['input' => 'pending', 'expected' => 'pending'],
         ['input' => 'cancelled', 'expected' => 'cancelled'],
         ['input' => 'completed', 'expected' => 'completed'],
+        ['input' => 'no_show', 'expected' => 'no_show'],
 
         // Case insensitivity
         ['input' => 'Confirmed', 'expected' => 'confirmed'],
