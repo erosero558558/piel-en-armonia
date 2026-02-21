@@ -212,6 +212,15 @@ async function fillBookingFormAndOpenPayment(page) {
 
 test.describe('Tracking del embudo de conversion', () => {
     test.beforeEach(async ({ page }) => {
+        page.on('console', msg => {
+            if (msg.type() === 'error') {
+                console.log(`[Browser Console Error] ${msg.text()}`);
+            }
+        });
+        page.on('pageerror', err => {
+            console.log(`[Browser Page Error] ${err.message}`);
+        });
+
         await page.addInitScript(() => {
             localStorage.setItem(
                 'pa_cookie_consent_v1',
