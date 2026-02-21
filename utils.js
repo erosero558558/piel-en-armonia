@@ -23,6 +23,17 @@ function debugLog(...args) {
         console.log(...args);
     }
     */
+}
+
+function showToast(message, type = 'info', title = '') {
+    // Create container if doesn't exist
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
 
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
@@ -64,6 +75,25 @@ function debugLog(...args) {
             setTimeout(() => toast.remove(), 300);
         }
     }, 5000);
+}
+
+function waitMs(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return dateStr;
+    return date.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
+    };
 }
 
 // Expose to window explicitly to be safe, though function declaration does it in global scope
