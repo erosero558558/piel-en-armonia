@@ -179,6 +179,7 @@ async function fillBookingFormAndOpenPayment(page) {
     // Fill triggers change event, which triggers updateAvailableTimes
     // We capture the request to ensure we wait for it
     await Promise.all([
+        // eslint-disable-next-line playwright/missing-playwright-await
         page.waitForResponse(
             resp => resp.url().includes('booked-slots') && resp.status() === 200,
             { timeout: 5000 }
