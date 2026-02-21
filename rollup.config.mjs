@@ -23,6 +23,16 @@ export default [
         },
         plugins: [resolve()]
     },
+    // Data Engine
+    {
+        input: 'src/apps/data/engine.js',
+        output: {
+            file: 'data-engine.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
     // Booking Calendar
     {
         input: 'src/apps/booking/components/calendar.js',
@@ -80,6 +90,56 @@ export default [
         input: 'src/apps/chat/engine.js',
         output: {
             file: 'chat-engine.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
+    // Analytics Engine
+    {
+        input: 'src/apps/analytics/engine.js',
+        output: {
+            file: 'analytics-engine.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
+    // Booking Utils Bundle
+    {
+        input: 'src/bundles/booking-utils.js',
+        output: {
+            file: 'js/engines/booking-utils.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
+    // Data Bundle
+    {
+        input: 'src/bundles/data.js',
+        output: {
+            file: 'js/engines/data-bundle.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
+    // UI Bundle
+    {
+        input: 'src/bundles/ui.js',
+        output: {
+            file: 'js/engines/ui-bundle.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
+    // Engagement Bundle
+    {
+        input: 'src/bundles/engagement.js',
+        output: {
+            file: 'js/engines/engagement-bundle.js',
             format: 'iife',
             sourcemap: false
         },

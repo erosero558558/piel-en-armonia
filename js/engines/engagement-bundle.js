@@ -1,26 +1,27 @@
 (function () {
     'use strict';
+
     // build-sync: 20260219-sync1
 
-    let deps = null;
+    let deps$1 = null;
     let initialized = false;
     let selectedRating = 0;
     let stars = [];
 
-    function getLang() {
-        return deps && typeof deps.getCurrentLang === 'function'
-            ? deps.getCurrentLang()
+    function getLang$1() {
+        return deps$1 && typeof deps$1.getCurrentLang === 'function'
+            ? deps$1.getCurrentLang()
             : 'es';
     }
 
     function t(esText, enText) {
-        return getLang() === 'en' ? enText : esText;
+        return getLang$1() === 'en' ? enText : esText;
     }
 
     function getCaptchaToken(action) {
         try {
-            return deps.getCaptchaToken
-                ? deps.getCaptchaToken(action)
+            return deps$1.getCaptchaToken
+                ? deps$1.getCaptchaToken(action)
                 : Promise.resolve(null);
         } catch (e) {
             return Promise.resolve(null);
@@ -77,11 +78,11 @@
             };
 
             try {
-                if (deps && typeof deps.createCallbackRecord === 'function') {
-                    await deps.createCallbackRecord(callback);
+                if (deps$1 && typeof deps$1.createCallbackRecord === 'function') {
+                    await deps$1.createCallbackRecord(callback);
                 }
-                if (deps && typeof deps.showToast === 'function') {
-                    deps.showToast(
+                if (deps$1 && typeof deps$1.showToast === 'function') {
+                    deps$1.showToast(
                         t(
                             'Solicitud enviada. Te llamaremos pronto.',
                             'Request sent. We will call you soon.'
@@ -91,8 +92,8 @@
                 }
                 this.reset();
             } catch (error) {
-                if (deps && typeof deps.showToast === 'function') {
-                    deps.showToast(
+                if (deps$1 && typeof deps$1.showToast === 'function') {
+                    deps$1.showToast(
                         t(
                             'No se pudo enviar tu solicitud. Intenta de nuevo.',
                             'We could not send your request. Try again.'
@@ -156,14 +157,14 @@
 
             try {
                 const savedReview =
-                    deps && typeof deps.createReviewRecord === 'function'
-                        ? await deps.createReviewRecord(review)
+                    deps$1 && typeof deps$1.createReviewRecord === 'function'
+                        ? await deps$1.createReviewRecord(review)
                         : review;
 
                 const currentReviews =
-                    deps && typeof deps.getReviewsCache === 'function'
-                        ? deps.getReviewsCache()
-                        : [];
+                    deps$1 && typeof deps$1.getReviewsCache === 'function'
+                        ? deps$1.getReviewsCache()
+                            : [];
                 const mergedReviews = [
                     savedReview,
                     ...currentReviews.filter(
@@ -171,15 +172,15 @@
                     ),
                 ];
 
-                if (deps && typeof deps.setReviewsCache === 'function') {
-                    deps.setReviewsCache(mergedReviews);
+                if (deps$1 && typeof deps$1.setReviewsCache === 'function') {
+                    deps$1.setReviewsCache(mergedReviews);
                 }
-                if (deps && typeof deps.renderPublicReviews === 'function') {
-                    deps.renderPublicReviews(mergedReviews);
+                if (deps$1 && typeof deps$1.renderPublicReviews === 'function') {
+                    deps$1.renderPublicReviews(mergedReviews);
                 }
 
-                if (deps && typeof deps.showToast === 'function') {
-                    deps.showToast(
+                if (deps$1 && typeof deps$1.showToast === 'function') {
+                    deps$1.showToast(
                         t(
                             'Gracias por tu reseña.',
                             'Thank you for your review.'
@@ -193,8 +194,8 @@
                 selectedRating = 0;
                 resetStarVisuals();
             } catch (error) {
-                if (deps && typeof deps.showToast === 'function') {
-                    deps.showToast(
+                if (deps$1 && typeof deps$1.showToast === 'function') {
+                    deps$1.showToast(
                         t(
                             'No pudimos guardar tu reseña. Intenta nuevamente.',
                             'We could not save your review. Try again.'
@@ -220,8 +221,8 @@
         document.body.style.overflow = '';
     }
 
-    function init(inputDeps) {
-        deps = inputDeps || deps;
+    function init$1(inputDeps) {
+        deps$1 = inputDeps || deps$1;
         bindCallbackForm();
         bindReviewForm();
         initialized = true;
@@ -233,14 +234,11 @@
     }
 
     window.PielEngagementFormsEngine = {
-        init,
+        init: init$1,
         isInitialized,
         openReviewModal,
         closeReviewModal,
     };
-})();
-(function () {
-    'use strict';
 
     let deps = null;
     let reviewsCache = [];
@@ -346,18 +344,18 @@
                 ? `<p class="review-text">"${escapeText(text)}"</p>`
                 : '';
             return `
-        <div class="review-card">
-            <div class="review-header">
-                <div class="review-avatar">${escapeText(getInitials(review.name))}</div>
-                <div class="review-meta">
-                    <h4>${escapeText(review.name || (getLang() === 'es' ? 'Paciente' : 'Patient'))}</h4>
-                    <div class="review-stars">${renderStars(review.rating)}</div>
-                </div>
+    <div class="review-card">
+        <div class="review-header">
+            <div class="review-avatar">${escapeText(getInitials(review.name))}</div>
+            <div class="review-meta">
+                <h4>${escapeText(review.name || (getLang() === 'es' ? 'Paciente' : 'Patient'))}</h4>
+                <div class="review-stars">${renderStars(review.rating)}</div>
             </div>
-            ${textHtml}
-            <span class="review-date">${getRelativeDateLabel(review.date)}</span>
         </div>
-    `;
+        ${textHtml}
+        <span class="review-date">${getRelativeDateLabel(review.date)}</span>
+    </div>
+`;
         }).join('');
 
         if (reviews.length > 0) {
@@ -431,4 +429,5 @@
         getCache,
         setCache
     };
+
 })();

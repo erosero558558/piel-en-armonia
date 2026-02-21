@@ -1427,7 +1427,7 @@
     const BOOKING_UI_URL = withDeployAssetVersion(
         '/booking-ui.js?v=figo-booking-ui-20260220-sync3-cachepurge1'
     );
-    const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
+    const BOOKING_UTILS_URL$1 = withDeployAssetVersion('/js/engines/booking-utils.js');
     const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 
     function stripTransientAppointmentFields(appointment) {
@@ -1597,7 +1597,7 @@
     function loadBookingCalendarEngine() {
         return loadDeferredModule({
             cacheKey: 'booking-utils-calendar',
-            src: BOOKING_UTILS_URL,
+            src: BOOKING_UTILS_URL$1,
             scriptDataAttribute: 'data-booking-utils',
             resolveModule: () => window.PielBookingCalendarEngine,
             isModuleReady: (module) => !!(module && typeof module.initCalendar === 'function'),
@@ -1874,8 +1874,8 @@
         document.body.style.overflow = '';
     }
 
-    const RESCHEDULE_GATEWAY_ENGINE_URL = withDeployAssetVersion(
-        '/reschedule-gateway-engine.js?v=figo-reschedule-gateway-20260219-phase1'
+    const BOOKING_UTILS_URL = withDeployAssetVersion(
+        '/js/engines/booking-utils.js?v=figo-booking-utils-20260220-unified'
     );
 
     function getRescheduleEngineDeps() {
@@ -1893,23 +1893,23 @@
 
     function loadRescheduleEngine() {
         return loadDeferredModule({
-            cacheKey: 'reschedule-gateway-engine',
-            src: RESCHEDULE_GATEWAY_ENGINE_URL,
-            scriptDataAttribute: 'data-reschedule-gateway-engine',
-            resolveModule: () => window.PielRescheduleGatewayEngine,
+            cacheKey: 'booking-utils',
+            src: BOOKING_UTILS_URL,
+            scriptDataAttribute: 'data-booking-utils',
+            resolveModule: () => window.PielRescheduleEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getRescheduleEngineDeps()),
-            missingApiError: 'reschedule-gateway-engine loaded without API',
-            loadError: 'No se pudo cargar reschedule-gateway-engine.js',
-            logLabel: 'Reschedule gateway engine',
+            missingApiError: 'reschedule-engine loaded without API',
+            loadError: 'No se pudo cargar booking-utils.js (reschedule)',
+            logLabel: 'Reschedule engine',
         });
     }
 
     function initRescheduleEngineWarmup() {
         runDeferredModule(
             loadRescheduleEngine,
-            (engine) => engine.initRescheduleFromParam(),
+            (engine) => engine.checkRescheduleParam(),
             () => {
                 showToast(
                     getCurrentLang() === 'es'

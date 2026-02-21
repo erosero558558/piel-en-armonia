@@ -1,50 +1,46 @@
-/**
- * Theme engine (deferred-loaded).
- * Handles light/dark/system modes and system preference changes.
- */
 (function () {
     'use strict';
 
-    let deps = null;
+    let deps$3 = null;
     let themeTransitionTimer = null;
     let systemThemeListenerBound = false;
 
-    function init(inputDeps) {
-        deps = inputDeps || {};
+    function init$4(inputDeps) {
+        deps$3 = inputDeps || {};
         bindSystemThemeListener();
         return window.PielThemeEngine;
     }
 
     function getCurrentThemeMode() {
-        if (deps && typeof deps.getCurrentThemeMode === 'function') {
-            return deps.getCurrentThemeMode() || 'system';
+        if (deps$3 && typeof deps$3.getCurrentThemeMode === 'function') {
+            return deps$3.getCurrentThemeMode() || 'system';
         }
         return 'system';
     }
 
     function setCurrentThemeMode(mode) {
-        if (deps && typeof deps.setCurrentThemeMode === 'function') {
-            deps.setCurrentThemeMode(mode);
+        if (deps$3 && typeof deps$3.setCurrentThemeMode === 'function') {
+            deps$3.setCurrentThemeMode(mode);
         }
     }
 
     function getThemeStorageKey() {
-        if (deps && typeof deps.themeStorageKey === 'string' && deps.themeStorageKey) {
-            return deps.themeStorageKey;
+        if (deps$3 && typeof deps$3.themeStorageKey === 'string' && deps$3.themeStorageKey) {
+            return deps$3.themeStorageKey;
         }
         return 'themeMode';
     }
 
     function getSystemThemeQuery() {
-        if (deps && typeof deps.getSystemThemeQuery === 'function') {
-            return deps.getSystemThemeQuery();
+        if (deps$3 && typeof deps$3.getSystemThemeQuery === 'function') {
+            return deps$3.getSystemThemeQuery();
         }
         return window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
     }
 
     function isValidThemeMode(mode) {
         const normalized = String(mode || '').trim();
-        const validModes = deps ? deps.validThemeModes : null;
+        const validModes = deps$3 ? deps$3.validThemeModes : null;
         if (Array.isArray(validModes)) {
             return validModes.includes(normalized);
         }
@@ -144,17 +140,14 @@
     }
 
     window.PielThemeEngine = {
-        init,
+        init: init$4,
         setThemeMode,
         initThemeMode,
         applyThemeMode
     };
-})();
-(function () {
-    'use strict';
 
-    let deps = null;
-    let initialized = false;
+    let deps$2 = null;
+    let initialized$1 = false;
     let escapeListenerBound = false;
     let backGestureBound = false;
     let isClosingViaBack = false;
@@ -165,8 +158,8 @@
         }
 
         if (modal.id === 'paymentModal') {
-            if (deps && typeof deps.closePaymentModal === 'function') {
-                deps.closePaymentModal();
+            if (deps$2 && typeof deps$2.closePaymentModal === 'function') {
+                deps$2.closePaymentModal();
             }
             return;
         }
@@ -202,8 +195,8 @@
 
             document.querySelectorAll('.modal').forEach((modal) => {
                 if (modal.id === 'paymentModal' && modal.classList.contains('active')) {
-                    if (deps && typeof deps.closePaymentModal === 'function') {
-                        deps.closePaymentModal();
+                    if (deps$2 && typeof deps$2.closePaymentModal === 'function') {
+                        deps$2.closePaymentModal();
                     }
                     return;
                 }
@@ -211,8 +204,8 @@
             });
 
             document.body.style.overflow = '';
-            if (deps && typeof deps.toggleMobileMenu === 'function') {
-                deps.toggleMobileMenu(false);
+            if (deps$2 && typeof deps$2.toggleMobileMenu === 'function') {
+                deps$2.toggleMobileMenu(false);
             }
         });
     }
@@ -230,8 +223,8 @@
             document.querySelectorAll('.modal.active').forEach((modal) => {
                 closedAny = true;
                 if (modal.id === 'paymentModal') {
-                    if (deps && typeof deps.closePaymentModal === 'function') {
-                        deps.closePaymentModal({ skipAbandonTrack: false, reason: 'back_gesture' });
+                    if (deps$2 && typeof deps$2.closePaymentModal === 'function') {
+                        deps$2.closePaymentModal({ skipAbandonTrack: false, reason: 'back_gesture' });
                     }
                 } else {
                     modal.classList.remove('active');
@@ -241,8 +234,8 @@
             const mobileMenu = document.getElementById('mobileMenu');
             if (mobileMenu && mobileMenu.classList.contains('active')) {
                 closedAny = true;
-                if (deps && typeof deps.toggleMobileMenu === 'function') {
-                    deps.toggleMobileMenu(false);
+                if (deps$2 && typeof deps$2.toggleMobileMenu === 'function') {
+                    deps$2.toggleMobileMenu(false);
                 } else {
                     mobileMenu.classList.remove('active');
                 }
@@ -288,52 +281,50 @@
         });
     }
 
-    function init(inputDeps) {
-        deps = inputDeps || deps;
+    function init$3(inputDeps) {
+        deps$2 = inputDeps || deps$2;
         bindBackdropClose();
         bindEscapeClose();
         setupBackGesture();
-        initialized = true;
+        initialized$1 = true;
         return window.PielModalUxEngine;
     }
 
     function isInitialized() {
-        return initialized;
+        return initialized$1;
     }
 
     window.PielModalUxEngine = {
-        init,
+        init: init$3,
         isInitialized
     };
-})();
-(function () {
-    'use strict';
+
     // build-sync: 20260219-sync1
 
-    let deps = null;
+    let deps$1 = null;
     let activeIcsUrl = '';
 
     function getLang() {
-        return deps && typeof deps.getCurrentLang === 'function' ? deps.getCurrentLang() : 'es';
+        return deps$1 && typeof deps$1.getCurrentLang === 'function' ? deps$1.getCurrentLang() : 'es';
     }
 
     function getAppointment() {
-        if (deps && typeof deps.getCurrentAppointment === 'function') {
-            return deps.getCurrentAppointment() || {};
+        if (deps$1 && typeof deps$1.getCurrentAppointment === 'function') {
+            return deps$1.getCurrentAppointment() || {};
         }
         return {};
     }
 
     function getClinicAddress() {
-        if (deps && typeof deps.getClinicAddress === 'function') {
-            return String(deps.getClinicAddress() || '');
+        if (deps$1 && typeof deps$1.getClinicAddress === 'function') {
+            return String(deps$1.getClinicAddress() || '');
         }
         return '';
     }
 
     function escapeHtml(value) {
-        if (deps && typeof deps.escapeHtml === 'function') {
-            return deps.escapeHtml(String(value || ''));
+        if (deps$1 && typeof deps$1.escapeHtml === 'function') {
+            return deps$1.escapeHtml(String(value || ''));
         }
         const div = document.createElement('div');
         div.textContent = String(value || '');
@@ -471,22 +462,22 @@ END:VCALENDAR`;
 
         if (detailsDiv) {
             detailsDiv.innerHTML = `
-                <div class="success-details-card">
-                    <p class="success-details-line"><strong>${lang === 'es' ? 'Doctor:' : 'Doctor:'}</strong> ${escapeHtml(getDoctorName(appointment.doctor))}</p>
-                    <p class="success-details-line"><strong>${lang === 'es' ? 'Fecha:' : 'Date:'}</strong> ${escapeHtml(appointment.date || '-')}</p>
-                    <p class="success-details-line"><strong>${lang === 'es' ? 'Hora:' : 'Time:'}</strong> ${escapeHtml(appointment.time || '-')}</p>
-                    <p class="success-details-line"><strong>${lang === 'es' ? 'Pago:' : 'Payment:'}</strong> ${escapeHtml(getPaymentMethodLabel(appointment.paymentMethod))} - ${escapeHtml(getPaymentStatusLabel(appointment.paymentStatus))}</p>
-                    <p><strong>${lang === 'es' ? 'Total:' : 'Total:'}</strong> ${escapeHtml(appointment.price || '$0.00')}</p>
-                </div>
-                <div class="success-calendar-actions">
-                    <a href="${googleCalendarUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary success-calendar-btn">
-                        <i class="fab fa-google"></i> Google Calendar
-                    </a>
-                    <a href="${activeIcsUrl}" download="cita-piel-en-armonia.ics" class="btn btn-secondary success-calendar-btn">
-                        <i class="fas fa-calendar-alt"></i> Outlook/Apple
-                    </a>
-                </div>
-            `;
+            <div class="success-details-card">
+                <p class="success-details-line"><strong>${lang === 'es' ? 'Doctor:' : 'Doctor:'}</strong> ${escapeHtml(getDoctorName(appointment.doctor))}</p>
+                <p class="success-details-line"><strong>${lang === 'es' ? 'Fecha:' : 'Date:'}</strong> ${escapeHtml(appointment.date || '-')}</p>
+                <p class="success-details-line"><strong>${lang === 'es' ? 'Hora:' : 'Time:'}</strong> ${escapeHtml(appointment.time || '-')}</p>
+                <p class="success-details-line"><strong>${lang === 'es' ? 'Pago:' : 'Payment:'}</strong> ${escapeHtml(getPaymentMethodLabel(appointment.paymentMethod))} - ${escapeHtml(getPaymentStatusLabel(appointment.paymentStatus))}</p>
+                <p><strong>${lang === 'es' ? 'Total:' : 'Total:'}</strong> ${escapeHtml(appointment.price || '$0.00')}</p>
+            </div>
+            <div class="success-calendar-actions">
+                <a href="${googleCalendarUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary success-calendar-btn">
+                    <i class="fab fa-google"></i> Google Calendar
+                </a>
+                <a href="${activeIcsUrl}" download="cita-piel-en-armonia.ics" class="btn btn-secondary success-calendar-btn">
+                    <i class="fas fa-calendar-alt"></i> Outlook/Apple
+                </a>
+            </div>
+        `;
         }
 
         modal.classList.add('active');
@@ -501,30 +492,18 @@ END:VCALENDAR`;
         cleanupIcsUrl();
     }
 
-    function init(inputDeps) {
-        deps = inputDeps || deps;
+    function init$2(inputDeps) {
+        deps$1 = inputDeps || deps$1;
         return window.PielSuccessModalEngine;
     }
 
     window.PielSuccessModalEngine = {
-        init,
+        init: init$2,
         showSuccessModal,
         closeSuccessModal
     };
-})();
-/**
- * Consent and GA4 engine (deferred-loaded).
- * Handles cookie consent state and analytics bootstrap.
- */
-(function () {
-    'use strict';
 
     let deps = null;
-
-    function init(inputDeps) {
-        deps = inputDeps || {};
-        return window.PielConsentEngine;
-    }
 
     function getCurrentLang() {
         if (deps && typeof deps.getCurrentLang === 'function') {
@@ -670,22 +649,20 @@ END:VCALENDAR`;
         return true;
     }
 
-    function init(inputDeps) {
+    function init$1(inputDeps) {
         deps = inputDeps || {};
         bindDelegatedListeners();
         return window.PielConsentEngine;
     }
 
     window.PielConsentEngine = {
-        init,
+        init: init$1,
         getCookieConsent,
         setCookieConsent,
         initGA4,
         initCookieBanner
     };
-})();
-(function () {
-    'use strict';
+
     // build-sync: 20260220-sync2
 
     let initialized = false;
@@ -843,4 +820,5 @@ END:VCALENDAR`;
     window.PielUiEffects = {
         init
     };
+
 })();

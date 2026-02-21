@@ -1,7 +1,3 @@
-/**
- * Analytics and booking funnel engine (deferred-loaded).
- * Handles event tracking, section prefetch, and checkout session state.
- */
 (function () {
     'use strict';
 
@@ -332,4 +328,5 @@
         completeCheckoutSession,
         maybeTrackCheckoutAbandon,
     };
+
 })();
