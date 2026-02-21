@@ -165,6 +165,7 @@ async function fillBookingFormAndOpenPayment(page) {
         state: 'attached',
     });
 
+    const serviceSelect = page.locator('select[name="service"]');
     await serviceSelect.selectOption('consulta');
 
     const doctorSelect = page.locator('select[name="doctor"]');
@@ -177,13 +178,15 @@ async function fillBookingFormAndOpenPayment(page) {
 
     // Fill triggers change event, which triggers updateAvailableTimes
     // We capture the request to ensure we wait for it
-    const bookedSlotsPromise = page.waitForResponse(
-        resp => resp.url().includes('booked-slots') && resp.status() === 200,
-        { timeout: 5000 }
-    ).catch(() => null);
-
-    await dateInput.fill(dateValue);
-    await bookedSlotsPromise;
+    await Promise.all([
+        // eslint-disable-next-line playwright/missing-playwright-await
+        page.waitForResponse(
+            (resp) =>
+                resp.url().includes('booked-slots') && resp.status() === 200,
+            { timeout: 5000 }
+        ).catch(() => null),
+        dateInput.fill(dateValue),
+    ]);
 
     // Buffer for DOM update from the app
     await page.waitForTimeout(500);

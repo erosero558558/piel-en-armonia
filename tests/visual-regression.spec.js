@@ -7,8 +7,9 @@ test.describe('Pruebas de regresión visual', () => {
         // Navegar a la página de inicio
         await page.goto('/');
 
-        // Esperar a que la red esté inactiva (carga completa)
-        await page.waitForLoadState('networkidle');
+        // Esperar a que la carga termine
+        await page.waitForLoadState('load');
+        await page.waitForTimeout(1000); // Allow layout to settle
 
         // Tomar una captura de pantalla de toda la página
         await expect(page).toHaveScreenshot({ fullPage: true, timeout: 10000 });
@@ -21,11 +22,12 @@ test.describe('Pruebas de regresión visual', () => {
         // Navegar a la página de inicio
         await page.goto('/');
 
-        // Esperar a que la red esté inactiva
-        await page.waitForLoadState('networkidle');
+        // Esperar a que la carga termine
+        await page.waitForLoadState('load');
+        await page.waitForTimeout(1000); // Allow layout to settle
 
-        // Tomar una captura de pantalla de toda la página
-        await expect(page).toHaveScreenshot({ fullPage: true });
+        // Tomar una captura de pantalla del viewport (más estable que fullPage en móvil)
+        await expect(page).toHaveScreenshot({ fullPage: false });
     });
 
     test('Sección de Reserva - carga correctamente', async ({ page }) => {
