@@ -1595,7 +1595,7 @@
     }
 
     function loadBookingCalendarEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'booking-utils-calendar',
             src: BOOKING_UTILS_URL,
             scriptDataAttribute: 'data-booking-utils',
@@ -1782,7 +1782,7 @@
 
     // UI Effects
     function loadUiEffects() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'ui-effects',
             src: UI_BUNDLE_URL$1,
             scriptDataAttribute: 'data-ui-bundle',
@@ -1834,7 +1834,7 @@
     }
 
     function loadModalUxEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'modal-ux-engine',
             src: UI_BUNDLE_URL$1,
             scriptDataAttribute: 'data-ui-bundle',
@@ -2466,8 +2466,12 @@
         runDeferredModule(loadConsentEngine, (engine) => engine.initGA4());
     }
 
-    function initCookieBanner() {
-        runDeferredModule(loadConsentEngine, (engine) => engine.initCookieBanner());
+    function bootstrapConsent() {
+        loadConsentEngine(); // Loads bundle and binds delegated listeners via init()
+    }
+
+    function showConsentBanner() {
+        runDeferredModule(loadConsentEngine, (engine) => engine.initCookieBanner()); // Only shows banner
     }
 
     const GALLERY_INTERACTIONS_URL = withDeployAssetVersion(
@@ -2475,7 +2479,7 @@
     );
 
     function loadGalleryInteractions() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'gallery-interactions',
             src: GALLERY_INTERACTIONS_URL,
             scriptDataAttribute: 'data-gallery-interactions',
@@ -2512,6 +2516,50 @@
             return;
         }
         scheduleDeferredTask(warmup, { idleTimeout: 2500, fallbackDelay: 1500 });
+    }
+
+    const CONTENT_JSON_URL = withDeployAssetVersion('/content/index.json');
+
+    function hydrateDeferredText(container) {
+        if (!window.PIEL_CONTENT) return;
+        const nodes = container.querySelectorAll('[data-i18n]');
+        nodes.forEach((node) => {
+            const key = node.getAttribute('data-i18n');
+            if (window.PIEL_CONTENT[key]) {
+                if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA') {
+                    node.placeholder = window.PIEL_CONTENT[key];
+                } else {
+                    node.innerHTML = window.PIEL_CONTENT[key];
+                }
+            }
+        });
+    }
+
+    async function loadDeferredContent() {
+        try {
+            const response = await fetch(CONTENT_JSON_URL);
+            if (!response.ok) {
+                throw new Error(`Failed to load content: ${response.status}`);
+            }
+            const data = await response.json();
+
+            Object.keys(data).forEach((id) => {
+                const container = document.getElementById(id);
+                if (container) {
+                    container.innerHTML = data[id];
+                    container.classList.remove('deferred-content'); // Optional cleanup
+                    hydrateDeferredText(container);
+                } else {
+                    debugLog(`Warning: Container #${id} not found for deferred content.`);
+                }
+            });
+
+            debugLog('Deferred content loaded and hydrated.');
+            return true;
+        } catch (error) {
+            console.error('Error loading deferred content:', error);
+            return false;
+        }
     }
 
     // Setup global version
@@ -2652,34 +2700,26 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         disablePlaceholderExternalLinks();
+        bootstrapConsent();
+        initActionRouterEngine();
         initDeferredStylesheetLoading();
         initThemeMode();
         changeLanguage(state$1.currentLang);
+        initGA4();
+        initBookingFunnelObserver();
         initDeferredSectionPrefetch();
 
         loadDeferredContent().then(() => {
-            initActionRouterEngine();
-            initCookieBanner();
-            initGA4();
-            initBookingFunnelObserver();
+            showConsentBanner();
 
-        const initLowPriorityWarmups = createOnceTask(() => {
-            initReviewsEngineWarmup();
-            initGalleryInteractionsWarmup();
-            initChatEngineWarmup();
-            initChatBookingEngineWarmup();
-            initUiEffectsWarmup();
-            initRescheduleEngineWarmup();
-            initSuccessModalEngineWarmup();
-            initEngagementFormsEngineWarmup();
-            initModalUxEngineWarmup();
-        });
-
-        window.addEventListener('pointerdown', initLowPriorityWarmups, {
-            once: true,
-            passive: true,
-        });
-        window.addEventListener('keydown', initLowPriorityWarmups, { once: true });
+            const initHighPriorityWarmups = createOnceTask(() => {
+                initEnglishBundleWarmup();
+                initDataEngineWarmup();
+                initBookingEngineWarmup();
+                initBookingUiWarmup();
+                initChatUiEngineWarmup();
+                initChatWidgetEngineWarmup();
+            });
 
             const initLowPriorityWarmups = createOnceTask(() => {
                 initReviewsEngineWarmup();
