@@ -422,8 +422,7 @@
         return window.PielReviewsEngine;
     }
 
-    window.Piel = window.Piel || {};
-    window.Piel.ReviewsEngine = {
+    window.PielReviewsEngine = {
         init,
         loadPublicReviews,
         renderPublicReviews,

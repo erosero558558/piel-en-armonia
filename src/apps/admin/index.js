@@ -1,5 +1,4 @@
-import { checkAuth, login, login2FA, logout } from './modules/auth.js';
-import { refreshData } from './modules/data.js';
+import { login, login2FA } from './modules/auth.js';
 import { showToast, escapeHtml } from './modules/ui.js';
 import { setCsrfToken } from './modules/state.js';
 
@@ -343,6 +342,7 @@ async function showDashboard() {
     const dashboard = document.getElementById('adminDashboard');
     if (loginScreen) loginScreen.classList.add('is-hidden');
     if (dashboard) dashboard.classList.remove('is-hidden');
+}
 
 async function checkAuth() {
     try {
@@ -383,7 +383,7 @@ async function logout() {
     setTimeout(() => window.location.reload(), 800);
 }
 
-function updateDate() {
+async function updateDate() {
     const dateEl = document.getElementById('currentDate');
     if (dateEl) {
          const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };

@@ -1,5 +1,5 @@
-import { s as showToast, a as apiRequest, r as refreshData, c as currentAppointments, e as escapeHtml, g as getServiceName, b as getDoctorName, f as formatDate, d as getPaymentMethodText, h as getPaymentStatusText, i as sanitizePublicHref, j as getStatusText } from '../../admin.js';
-import { loadDashboardData } from './dashboard.js';
+import { s as showToast, a as apiRequest, b as currentAppointments, e as escapeHtml, g as getServiceName, d as getDoctorName, f as formatDate, h as getPaymentMethodText, i as getPaymentStatusText, j as sanitizePublicHref, k as getStatusText } from '../../admin.js';
+import { r as refreshData, l as loadDashboardData } from './dashboard.js';
 
 function getWeekRange() {
     const now = new Date();

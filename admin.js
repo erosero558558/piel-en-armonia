@@ -1,18 +1,18 @@
-let currentAppointments = [];
-let currentCallbacks = [];
-let currentReviews = [];
-let currentAvailability = {};
-let currentFunnelMetrics = null;
-let csrfToken = '';
+let currentAppointments$1 = [];
+let currentCallbacks$1 = [];
+let currentReviews$1 = [];
+let currentAvailability$1 = {};
+let currentFunnelMetrics$1 = null;
+let csrfToken$1 = '';
 
-function setAppointments(data) { currentAppointments = data || []; }
-function setCallbacks(data) { currentCallbacks = data || []; }
-function setReviews(data) { currentReviews = data || []; }
-function setAvailability(data) { currentAvailability = data || {}; }
-function setFunnelMetrics(data) { currentFunnelMetrics = data; }
-function setCsrfToken(token) { csrfToken = token; }
+function setAppointments(data) { currentAppointments$1 = data || []; }
+function setCallbacks(data) { currentCallbacks$1 = data || []; }
+function setReviews(data) { currentReviews$1 = data || []; }
+function setAvailability(data) { currentAvailability$1 = data || {}; }
+function setFunnelMetrics(data) { currentFunnelMetrics$1 = data; }
+function setCsrfToken(token) { csrfToken$1 = token; }
 
-function getEmptyFunnelMetrics() {
+function getEmptyFunnelMetrics$1() {
     return {
         summary: {
             viewBooking: 0,
@@ -32,13 +32,13 @@ function getEmptyFunnelMetrics() {
 
 var state = /*#__PURE__*/Object.freeze({
     __proto__: null,
-    get csrfToken () { return csrfToken; },
-    get currentAppointments () { return currentAppointments; },
-    get currentAvailability () { return currentAvailability; },
-    get currentCallbacks () { return currentCallbacks; },
-    get currentFunnelMetrics () { return currentFunnelMetrics; },
-    get currentReviews () { return currentReviews; },
-    getEmptyFunnelMetrics: getEmptyFunnelMetrics,
+    get csrfToken () { return csrfToken$1; },
+    get currentAppointments () { return currentAppointments$1; },
+    get currentAvailability () { return currentAvailability$1; },
+    get currentCallbacks () { return currentCallbacks$1; },
+    get currentFunnelMetrics () { return currentFunnelMetrics$1; },
+    get currentReviews () { return currentReviews$1; },
+    getEmptyFunnelMetrics: getEmptyFunnelMetrics$1,
     setAppointments: setAppointments,
     setAvailability: setAvailability,
     setCallbacks: setCallbacks,
@@ -48,7 +48,7 @@ var state = /*#__PURE__*/Object.freeze({
 });
 
 const API_ENDPOINT = '/api.php';
-const AUTH_ENDPOINT = '/admin-auth.php';
+const AUTH_ENDPOINT$1 = '/admin-auth.php';
 
 function buildQuery(resource) {
     const params = new URLSearchParams();
@@ -56,7 +56,7 @@ function buildQuery(resource) {
     return `${API_ENDPOINT}?${params.toString()}`;
 }
 
-async function requestJson(url, options = {}) {
+async function requestJson$1(url, options = {}) {
     const init = {
         method: options.method || 'GET',
         credentials: 'same-origin',
@@ -65,8 +65,8 @@ async function requestJson(url, options = {}) {
         }
     };
 
-    if (csrfToken && options.method && options.method !== 'GET') {
-        init.headers['X-CSRF-Token'] = csrfToken;
+    if (csrfToken$1 && options.method && options.method !== 'GET') {
+        init.headers['X-CSRF-Token'] = csrfToken$1;
     }
 
     if (options.body !== undefined) {
@@ -91,12 +91,12 @@ async function requestJson(url, options = {}) {
     return payload;
 }
 
-async function apiRequest(resource, options = {}) {
-    return requestJson(buildQuery(resource), options);
+async function apiRequest$1(resource, options = {}) {
+    return requestJson$1(buildQuery(resource), options);
 }
 
-async function authRequest(action, options = {}) {
-    return requestJson(`${AUTH_ENDPOINT}?action=${encodeURIComponent(action)}`, options);
+async function authRequest$1(action, options = {}) {
+    return requestJson$1(`${AUTH_ENDPOINT$1}?action=${encodeURIComponent(action)}`, options);
 }
 
 /**
@@ -253,343 +253,25 @@ function getPreferenceText(pref) {
     return texts[pref] || pref;
 }
 
-function normalizeCallbackStatus(status) {
+function normalizeCallbackStatus$1(status) {
     const normalized = String(status || '').toLowerCase().trim();
     if (normalized === 'pending') return 'pendiente';
     if (normalized === 'contacted') return 'contactado';
     return normalized === 'contactado' ? 'contactado' : 'pendiente';
 }
 
-async function checkAuth() {
-    try {
-        const payload = await authRequest('status');
-        if (payload.authenticated) {
-            if (payload.csrfToken) setCsrfToken(payload.csrfToken);
-            return true;
-        } else {
-            return false;
-        }
-    } catch (error) {
-        showToast('No se pudo verificar la sesion', 'warning');
-        return false;
-    }
-}
-
-async function logout() {
-    try {
-        await authRequest('logout', { method: 'POST' });
-    } catch (error) {
-        // Continue
-    }
-    showToast('Sesion cerrada correctamente', 'info');
-    setTimeout(() => window.location.reload(), 800);
-}
-
 async function login(password) {
-    return authRequest('login', {
+    return authRequest$1('login', {
         method: 'POST',
         body: { password }
     });
 }
 
 async function login2FA(code) {
-    return authRequest('login-2fa', {
+    return authRequest$1('login-2fa', {
         method: 'POST',
         body: { code }
     });
-}
-
-function getLocalData(key, fallback) {
-    try {
-        const value = JSON.parse(localStorage.getItem(key) || 'null');
-        return value === null ? fallback : value;
-    } catch (error) {
-        return fallback;
-    }
-}
-
-function loadFallbackState() {
-    setAppointments(getLocalData('appointments', []));
-    setCallbacks(getLocalData('callbacks', []).map(c => ({
-        ...c,
-        status: normalizeCallbackStatus(c.status)
-    })));
-    setReviews(getLocalData('reviews', []));
-    setAvailability(getLocalData('availability', {}));
-    setFunnelMetrics(getEmptyFunnelMetrics());
-}
-
-    function saveLocalData(key, data) {
-        try {
-            localStorage.setItem(key, JSON.stringify(data));
-        } catch (error) {
-            // storage quota full or disabled
-        }
-    }
-
-    function getEmptyFunnelMetrics() {
-        return {
-            summary: {
-                viewBooking: 0,
-                startCheckout: 0,
-                bookingConfirmed: 0,
-                checkoutAbandon: 0,
-                startRatePct: 0,
-                confirmedRatePct: 0,
-                abandonRatePct: 0
-            },
-            checkoutAbandonByStep: [],
-            checkoutEntryBreakdown: [],
-            paymentMethodBreakdown: [],
-            bookingStepBreakdown: []
-        };
-    }
-
-        const data = payload.data || {};
-        setAppointments(Array.isArray(data.appointments) ? data.appointments : []);
-        setCallbacks(Array.isArray(data.callbacks) ? data.callbacks.map(c => ({
-            ...c,
-            status: normalizeCallbackStatus(c.status)
-        })) : []);
-        setReviews(Array.isArray(data.reviews) ? data.reviews : []);
-        setAvailability(data.availability && typeof data.availability === 'object' ? data.availability : {});
-
-    async function refreshData() {
-        try {
-            const [payload, funnelPayload] = await Promise.all([
-                apiRequest('data'),
-                apiRequest('funnel-metrics').catch(() => null)
-            ]);
-
-            const data = payload.data || {};
-            currentAppointments = Array.isArray(data.appointments) ? data.appointments : [];
-            currentCallbacks = Array.isArray(data.callbacks) ? data.callbacks.map(c => ({
-                ...c,
-                status: normalizeCallbackStatus(c.status)
-            })) : [];
-            currentReviews = Array.isArray(data.reviews) ? data.reviews : [];
-            currentAvailability = data.availability && typeof data.availability === 'object' ? data.availability : {};
-
-            if (funnelPayload && funnelPayload.data && typeof funnelPayload.data === 'object') {
-                currentFunnelMetrics = funnelPayload.data;
-            } else {
-                currentFunnelMetrics = getEmptyFunnelMetrics();
-            }
-
-            saveLocalData('appointments', currentAppointments);
-            saveLocalData('callbacks', currentCallbacks);
-            saveLocalData('reviews', currentReviews);
-            saveLocalData('availability', currentAvailability);
-        } catch (error) {
-            loadFallbackState();
-            showToast('No se pudo conectar al backend. Usando datos locales.', 'warning');
-        }
-    }
-
-    function showLogin() {
-        const loginScreen = document.getElementById('loginScreen');
-        const dashboard = document.getElementById('adminDashboard');
-        if (loginScreen) loginScreen.classList.remove('is-hidden');
-        if (dashboard) dashboard.classList.add('is-hidden');
-    }
-
-    async function showDashboard() {
-        const loginScreen = document.getElementById('loginScreen');
-        const dashboard = document.getElementById('adminDashboard');
-        if (loginScreen) loginScreen.classList.add('is-hidden');
-        if (dashboard) dashboard.classList.remove('is-hidden');
-        updateDate();
-        await refreshData();
-        loadDashboardData();
-        renderCurrentSection();
-    }
-
-    async function checkAuth() {
-        try {
-            if (!navigator.onLine) {
-                const cached = getLocalData('appointments', null);
-                if (cached) {
-                    showToast('Modo Offline: Mostrando datos locales', 'info');
-                    await showDashboard();
-                    return;
-                }
-            }
-
-            const payload = await authRequest('status');
-            if (payload.authenticated) {
-                if (payload.csrfToken) csrfToken = payload.csrfToken;
-                await showDashboard();
-            } else {
-                showLogin();
-            }
-        } catch (error) {
-            if (getLocalData('appointments', null)) {
-                showToast('Error de conexión. Mostrando datos locales.', 'warning');
-                await showDashboard();
-                return;
-            }
-            showLogin();
-            showToast('No se pudo verificar la sesion', 'warning');
-        }
-    }
-
-    async function logout() {
-        try {
-            await authRequest('logout', { method: 'POST' });
-        } catch (error) {
-            // Continue with local logout UI.
-        }
-        showToast('Sesion cerrada correctamente', 'info');
-        setTimeout(() => window.location.reload(), 800);
-    }
-
-    function updateDate() {
-        const dateEl = document.getElementById('currentDate');
-        if (!dateEl) return;
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        dateEl.textContent = new Date().toLocaleDateString('es-EC', options);
-    }
-
-    function getServiceName(service) {
-        const names = {
-            consulta: 'Consulta Dermatológica',
-            telefono: 'Consulta Telefónica',
-            video: 'Video Consulta',
-            laser: 'Tratamiento Láser',
-            rejuvenecimiento: 'Rejuvenecimiento'
-        };
-        return names[service] || service;
-    }
-
-    function getDoctorName(doctor) {
-        const names = {
-            rosero: 'Dr. Rosero',
-            narvaez: 'Dra. Narváez',
-            indiferente: 'Cualquiera disponible'
-        };
-        return names[doctor] || doctor;
-    }
-
-    function getStatusText(status) {
-        const texts = {
-            confirmed: 'Confirmada',
-            pending: 'Pendiente',
-            cancelled: 'Cancelada',
-            completed: 'Completada'
-        };
-        return texts[status] || status;
-    }
-
-    function getPaymentMethodText(method) {
-        const normalized = String(method || '').toLowerCase().trim();
-        const texts = {
-            card: 'Tarjeta',
-            transfer: 'Transferencia',
-            cash: 'Efectivo',
-            unpaid: 'Sin definir'
-        };
-        return texts[normalized] || (method || 'Sin definir');
-    }
-
-    function getPaymentStatusText(status) {
-        const normalized = String(status || '').toLowerCase().trim();
-        const texts = {
-            paid: 'Pagado',
-            pending_cash: 'Pago en consultorio',
-            pending_transfer: 'Transferencia pendiente',
-            pending_transfer_review: 'Comprobante por validar',
-            pending_gateway: 'Pago en proceso',
-            pending: 'Pendiente',
-            failed: 'Pago fallido'
-        };
-        return texts[normalized] || (status || 'Pendiente');
-    }
-
-    function getPreferenceText(pref) {
-        const texts = {
-            ahora: 'Lo antes posible',
-            '15min': 'En 15 minutos',
-            '30min': 'En 30 minutos',
-            '1hora': 'En 1 hora'
-        };
-        return texts[pref] || pref;
-    }
-
-    function formatDate(dateStr) {
-        const date = new Date(dateStr);
-        if (Number.isNaN(date.getTime())) return dateStr;
-        return date.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' });
-    }
-
-    function sanitizePublicHref(url) {
-        const value = String(url || '').trim();
-        if (value === '') return '';
-        if (value.startsWith('/')) return value;
-        if (/^https?:\/\//i.test(value)) return value;
-        return '';
-    }
-
-    function loadDashboardData() {
-        document.getElementById('totalAppointments').textContent = currentAppointments.length;
-
-        const today = new Date().toISOString().split('T')[0];
-
-        const todayAppointments = [];
-        let pendingTransfers = 0;
-        let confirmedCount = 0;
-
-        // Optimized: Single pass over appointments
-        for (const a of currentAppointments) {
-            // Today appointments
-            if (a.date === today && a.status !== 'cancelled') {
-                todayAppointments.push(a);
-            }
-
-            // Pending transfers
-            if (a.paymentStatus === 'pending_transfer_review') {
-                pendingTransfers++;
-            }
-
-            // Confirmed count
-            const status = a.status || 'confirmed';
-            if (status === 'confirmed') {
-                confirmedCount++;
-            }
-        }
-
-        document.getElementById('todayAppointments').textContent = todayAppointments.length;
-
-        // Optimized: Single pass loop for callbacks
-        const pendingCallbacks = [];
-        for (const c of currentCallbacks) {
-            if (normalizeCallbackStatus(c.status) === 'pendiente') {
-                pendingCallbacks.push(c);
-            }
-        }
-        document.getElementById('pendingCallbacks').textContent = pendingCallbacks.length;
-
-        let avgRating = 0;
-        if (currentReviews.length > 0) {
-            avgRating = (currentReviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / currentReviews.length).toFixed(1);
-        }
-        document.getElementById('avgRating').textContent = avgRating;
-
-        document.getElementById('appointmentsBadge').textContent = pendingTransfers > 0
-            ? `${confirmedCount} (${pendingTransfers} por validar)`
-            : confirmedCount;
-        document.getElementById('callbacksBadge').textContent = pendingCallbacks.length;
-        document.getElementById('reviewsBadge').textContent = currentReviews.length;
-
-        const todayList = document.getElementById('todayAppointmentsList');
-        if (todayAppointments.length === 0) {
-            todayList.innerHTML = '<p class="empty-message">No hay citas para hoy</p>';
-        } else {
-            setFunnelMetrics(getEmptyFunnelMetrics());
-        }
-    } catch (error) {
-        loadFallbackState();
-        showToast('No se pudo conectar al backend. Usando datos locales.', 'warning');
-    }
 }
 
 async function renderSection(section) {
@@ -607,22 +289,85 @@ async function renderSection(section) {
     if (sectionEl) sectionEl.classList.add('active');
 
     try {
-        if (section === 'dashboard') {
-            const { loadDashboardData } = await import('./js/admin-chunks/dashboard.js');
-            loadDashboardData();
-        } else if (section === 'appointments') {
-            const { loadAppointments } = await import('./js/admin-chunks/appointments.js');
-            loadAppointments();
-        } else if (section === 'callbacks') {
-            const { loadCallbacks } = await import('./js/admin-chunks/callbacks.js');
-            loadCallbacks();
-        } else if (section === 'reviews') {
-            const { loadReviews } = await import('./js/admin-chunks/reviews.js');
-            loadReviews();
-        } else if (section === 'availability') {
-            const { initAvailabilityCalendar } = await import('./js/admin-chunks/availability.js');
-            initAvailabilityCalendar();
+        payload = responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+        throw new Error('Respuesta no valida del servidor');
+    }
+
+    if (!response.ok || payload.ok === false) {
+        throw new Error(payload.error || `HTTP ${response.status}`);
+    }
+
+    return payload;
+}
+
+// apiRequest was redeclared here. Removing it.
+
+async function authRequest(action, options = {}) {
+    return requestJson(`${AUTH_ENDPOINT}?action=${encodeURIComponent(action)}`, options);
+}
+
+function getLocalData(key, fallback) {
+    try {
+        const value = JSON.parse(localStorage.getItem(key) || 'null');
+        return value === null ? fallback : value;
+    } catch (error) {
+        return fallback;
+    }
+}
+
+function saveLocalData(key, data) {
+    try {
+        localStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+        // storage quota full or disabled
+    }
+}
+
+function getEmptyFunnelMetrics() {
+    return {
+        summary: {
+            viewBooking: 0,
+            startCheckout: 0,
+            bookingConfirmed: 0,
+            checkoutAbandon: 0,
+            startRatePct: 0,
+            confirmedRatePct: 0,
+            abandonRatePct: 0
+        },
+        checkoutAbandonByStep: [],
+        checkoutEntryBreakdown: [],
+        paymentMethodBreakdown: [],
+        bookingStepBreakdown: []
+    };
+}
+
+async function refreshData() {
+    try {
+        const [payload, funnelPayload] = await Promise.all([
+            apiRequest('data'),
+            apiRequest('funnel-metrics').catch(() => null)
+        ]);
+
+        const data = payload.data || {};
+        currentAppointments = Array.isArray(data.appointments) ? data.appointments : [];
+        currentCallbacks = Array.isArray(data.callbacks) ? data.callbacks.map(c => ({
+            ...c,
+            status: normalizeCallbackStatus(c.status)
+        })) : [];
+        currentReviews = Array.isArray(data.reviews) ? data.reviews : [];
+        currentAvailability = data.availability && typeof data.availability === 'object' ? data.availability : {};
+
+        if (funnelPayload && funnelPayload.data && typeof funnelPayload.data === 'object') {
+            currentFunnelMetrics = funnelPayload.data;
+        } else {
+            currentFunnelMetrics = getEmptyFunnelMetrics();
         }
+
+        saveLocalData('appointments', currentAppointments);
+        saveLocalData('callbacks', currentCallbacks);
+        saveLocalData('reviews', currentReviews);
+        saveLocalData('availability', currentAvailability);
     } catch (error) {
         showToast('Error cargando módulo: ' + error.message, 'error');
     }
@@ -671,18 +416,45 @@ async function showDashboard() {
     const dashboard = document.getElementById('adminDashboard');
     if (loginScreen) loginScreen.classList.add('is-hidden');
     if (dashboard) dashboard.classList.remove('is-hidden');
+}
 
-    const dateEl = document.getElementById('currentDate');
-    if (dateEl) {
-         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-         dateEl.textContent = new Date().toLocaleDateString('es-EC', options);
+async function checkAuth() {
+    try {
+        if (!navigator.onLine) {
+            const cached = getLocalData('appointments', null);
+            if (cached) {
+                showToast('Modo Offline: Mostrando datos locales', 'info');
+                await showDashboard();
+                return;
+            }
+        }
+
+        const payload = await authRequest('status');
+        if (payload.authenticated) {
+            if (payload.csrfToken) csrfToken = payload.csrfToken;
+            await showDashboard();
+        } else {
+            showLogin();
+        }
+    } catch (error) {
+        if (getLocalData('appointments', null)) {
+            showToast('Error de conexión. Mostrando datos locales.', 'warning');
+            await showDashboard();
+            return;
+        }
+        showLogin();
+        showToast('No se pudo verificar la sesion', 'warning');
     }
+}
 
-    await refreshData();
-    // Default to dashboard or current section
-    const activeItem = document.querySelector('.nav-item.active');
-    const section = activeItem?.dataset.section || 'dashboard';
-    renderSection(section);
+async function logout() {
+    try {
+        await authRequest('logout', { method: 'POST' });
+    } catch (error) {
+        // Continue with local logout UI.
+    }
+    showToast('Sesion cerrada correctamente', 'info');
+    setTimeout(() => window.location.reload(), 800);
 }
 
 function attachGlobalListeners() {
@@ -849,98 +621,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             await refreshData();
             renderSection(this.dataset.section);
         });
-
-        const loginForm = document.getElementById('loginForm');
-        if (loginForm) {
-            loginForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-
-                // Check if 2FA mode is active
-                const is2FAMode = !document.getElementById('group2FA').classList.contains('is-hidden');
-
-                if (is2FAMode) {
-                    const code = document.getElementById('admin2FACode').value;
-                    try {
-                        const result = await authRequest('login-2fa', {
-                            method: 'POST',
-                            body: { code: code }
-                        });
-                        if (result.csrfToken) csrfToken = result.csrfToken;
-                        showToast('Bienvenido al panel de administracion', 'success');
-                        await showDashboard();
-                    } catch (error) {
-                        showToast('Código incorrecto o sesión expirada', 'error');
-                    }
-                } else {
-                    const password = document.getElementById('adminPassword').value;
-                    try {
-                        const loginResult = await authRequest('login', {
-                            method: 'POST',
-                            body: { password: password }
-                        });
-
-                        if (loginResult.twoFactorRequired) {
-                            // Switch to 2FA mode
-                            document.getElementById('passwordGroup').classList.add('is-hidden');
-                            document.getElementById('group2FA').classList.remove('is-hidden');
-                            document.getElementById('admin2FACode').focus();
-                            const btn = document.getElementById('loginBtn');
-                            btn.innerHTML = '<i class="fas fa-check"></i> Verificar';
-                            showToast('Ingresa tu código 2FA', 'info');
-                        } else {
-                            if (loginResult.csrfToken) csrfToken = loginResult.csrfToken;
-                            showToast('Bienvenido al panel de administracion', 'success');
-                            await showDashboard();
-                        }
-                    } catch (error) {
-                        showToast('Contraseña incorrecta', 'error');
-                    }
-                }
-            });
-        }
-
-        const navItems = document.querySelectorAll('.nav-item');
-        navItems.forEach(item => {
-            item.addEventListener('click', async function(e) {
-                e.preventDefault();
-                navItems.forEach(nav => nav.classList.remove('active'));
-                this.classList.add('active');
-                await refreshData();
-                renderSection(this.dataset.section);
-            });
-        });
-
-        const appointmentFilter = document.getElementById('appointmentFilter');
-        if (appointmentFilter) {
-            appointmentFilter.addEventListener('change', filterAppointments);
-        }
-
-        const searchInput = document.getElementById('searchAppointments');
-        if (searchInput) {
-            searchInput.addEventListener('input', searchAppointments);
-        }
-
-        const callbackFilter = document.getElementById('callbackFilter');
-        if (callbackFilter) {
-            callbackFilter.addEventListener('change', filterCallbacks);
-        }
-
-        const importFileInput = document.getElementById('importFileInput');
-        if (importFileInput) {
-            importFileInput.addEventListener('change', function() {
-                importData(importFileInput);
-            });
-        }
-
-        window.addEventListener('online', () => {
-            showToast('Conexión restaurada. Actualizando datos...', 'success');
-            refreshData().then(() => {
-                const activeItem = document.querySelector('.nav-item.active');
-                renderSection(activeItem?.dataset.section || 'dashboard');
-            });
-        });
-
-        checkAuth();
     });
 
     const importFileInput = document.getElementById('importFileInput');
@@ -950,15 +630,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    const isAuthenticated = await checkAuth();
-    if (isAuthenticated) {
-        await showDashboard();
-    } else {
-        const loginScreen = document.getElementById('loginScreen');
-        const dashboard = document.getElementById('adminDashboard');
-        if (loginScreen) loginScreen.classList.remove('is-hidden');
-        if (dashboard) dashboard.classList.add('is-hidden');
-    }
+    window.addEventListener('online', () => {
+        showToast('Conexión restaurada. Actualizando datos...', 'success');
+        refreshData().then(() => {
+            const activeItem = document.querySelector('.nav-item.active');
+            renderSection(activeItem?.dataset.section || 'dashboard');
+        });
+    });
+
+    checkAuth();
 });
 
-export { apiRequest as a, getDoctorName as b, currentAppointments as c, getPaymentMethodText as d, escapeHtml as e, formatDate as f, getServiceName as g, getPaymentStatusText as h, sanitizePublicHref as i, getStatusText as j, currentCallbacks as k, getPreferenceText as l, currentReviews as m, normalizeCallbackStatus as n, currentFunnelMetrics as o, formatCount as p, formatPercent as q, refreshData as r, showToast as s, toPositiveNumber as t, getEmptyFunnelMetrics as u, currentAvailability as v };
+export { apiRequest$1 as a, currentAppointments$1 as b, currentAvailability$1 as c, getDoctorName as d, escapeHtml as e, formatDate as f, getServiceName as g, getPaymentMethodText as h, getPaymentStatusText as i, sanitizePublicHref as j, getStatusText as k, currentCallbacks$1 as l, getPreferenceText as m, normalizeCallbackStatus$1 as n, setAppointments as o, setCallbacks as p, setReviews as q, setAvailability as r, showToast as s, setFunnelMetrics as t, getEmptyFunnelMetrics$1 as u, currentReviews$1 as v, currentFunnelMetrics$1 as w, toPositiveNumber as x, formatCount as y, formatPercent as z };
