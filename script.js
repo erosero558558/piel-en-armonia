@@ -179,7 +179,7 @@
         },
     };
 
-    const state$1 = new Proxy(internalState, handler);
+    const state = new Proxy(internalState, handler);
 
     const API_ENDPOINT = '/api.php';
     const CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
@@ -578,9 +578,9 @@
 
     function getThemeEngineDeps() {
         return {
-            getCurrentThemeMode: () => state$1.currentThemeMode,
+            getCurrentThemeMode: () => state.currentThemeMode,
             setCurrentThemeMode: (mode) => {
-                state$1.currentThemeMode = VALID_THEME_MODES.has(mode) ? mode : 'system';
+                state.currentThemeMode = VALID_THEME_MODES.has(mode) ? mode : 'system';
             },
             themeStorageKey: THEME_STORAGE_KEY,
             validThemeModes: Array.from(VALID_THEME_MODES),
@@ -612,7 +612,7 @@
     }
 
     const DATA_ENGINE_URL = withDeployAssetVersion(
-        '/data-engine.js?v=figo-data-20260219-phase1'
+        '/js/engines/data-engine.js?v=figo-data-20260219-phase1'
     );
 
     function getDataEngineDeps() {
@@ -867,12 +867,12 @@
 
     function getI18nEngineDeps() {
         return {
-            getCurrentLang: () => state$1.currentLang,
+            getCurrentLang: () => state.currentLang,
             setCurrentLang: (lang) => {
-                state$1.currentLang = (lang === 'en' ? 'en' : 'es');
+                state.currentLang = (lang === 'en' ? 'en' : 'es');
             },
             showToast,
-            getReviewsCache: () => state$1.reviewsCache,
+            getReviewsCache: () => state.reviewsCache,
             renderPublicReviews,
             debugLog,
         };
@@ -1072,7 +1072,7 @@
         throw lastError || new Error('No se pudo completar la solicitud');
     }
 
-    const BOOKING_UTILS_URL$1 = withDeployAssetVersion('/js/engines/booking-utils.js');
+    const BOOKING_UTILS_URL$2 = withDeployAssetVersion('/js/engines/booking-utils.js');
 
     function getPaymentGatewayEngineDeps() {
         return {
@@ -1090,7 +1090,7 @@
     function loadPaymentGatewayEngine() {
         return loadDeferredModule({
             cacheKey: 'booking-utils',
-            src: BOOKING_UTILS_URL$1,
+            src: BOOKING_UTILS_URL$2,
             scriptDataAttribute: 'data-booking-utils',
             resolveModule: () => window.Piel && window.Piel.PaymentGatewayEngine,
             isModuleReady: (module) => !!(module && typeof module.init === 'function'),
@@ -1118,7 +1118,7 @@
     }
 
     const ANALYTICS_ENGINE_URL = withDeployAssetVersion(
-        '/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1'
+        '/js/engines/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1'
     );
     const FUNNEL_EVENT_ENDPOINT = '/api.php?resource=funnel-event';
     const FUNNEL_SERVER_EVENTS = new Set([
@@ -1382,14 +1382,12 @@
     }
 
     const BOOKING_ENGINE_URL = withDeployAssetVersion(
-        '/booking-engine.js?v=figo-booking-20260219-mbfix1'
+        '/js/engines/booking-engine.js?v=figo-booking-20260219-mbfix1'
     );
     const BOOKING_UI_URL = withDeployAssetVersion(
-        '/booking-ui.js?v=figo-booking-ui-20260220-sync3-cachepurge1'
+        '/js/engines/booking-ui.js?v=figo-booking-ui-20260220-sync3-cachepurge1'
     );
-    const BOOKING_CALENDAR_ENGINE_URL = withDeployAssetVersion(
-        '/js/engines/booking-utils.js'
-    );
+    const BOOKING_UTILS_URL$1 = withDeployAssetVersion('/js/engines/booking-utils.js');
     const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 
     function stripTransientAppointmentFields(appointment) {
@@ -1469,11 +1467,11 @@
 
     function getBookingEngineDeps() {
         return {
-            getCurrentLang: () => state$1.currentLang,
-            getCurrentAppointment: () => state$1.currentAppointment,
-            setCurrentAppointment: (appt) => { state$1.currentAppointment = appt; },
-            getCheckoutSession: () => state$1.checkoutSession,
-            setCheckoutSessionActive: (active) => { state$1.checkoutSession.active = (active === true); },
+            getCurrentLang: () => state.currentLang,
+            getCurrentAppointment: () => state.currentAppointment,
+            setCurrentAppointment: (appt) => { state.currentAppointment = appt; },
+            getCheckoutSession: () => state.checkoutSession,
+            setCheckoutSessionActive: (active) => { state.checkoutSession.active = (active === true); },
             startCheckoutSession,
             setCheckoutStep,
             completeCheckoutSession,
@@ -1559,32 +1557,33 @@
     function loadBookingCalendarEngine() {
         return loadDeferredModule({
             cacheKey: 'booking-utils-calendar',
-            src: BOOKING_CALENDAR_ENGINE_URL,
+            src: BOOKING_UTILS_URL$1,
             scriptDataAttribute: 'data-booking-utils',
             resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine,
-            isModuleReady: (module) =>
-                !!(module && typeof module.updateAvailableTimes === 'function'),
+            isModuleReady: (module) => !!(module && typeof module.initCalendar === 'function'),
             missingApiError: 'booking-calendar-engine loaded without API',
             loadError: 'No se pudo cargar booking-calendar-engine',
-            logLabel: 'Booking calendar engine',
+            logLabel: 'Booking Calendar engine'
         });
     }
 
     async function updateAvailableTimes(elements) {
-        return runDeferredModule(
-            loadBookingCalendarEngine,
-            (engine) => engine.updateAvailableTimes(getBookingUiDeps(), elements)
-        );
+        return runDeferredModule(loadBookingCalendarEngine, (engine) => engine.updateAvailableTimes(getBookingUiDeps(), elements));
     }
 
     // BOOKING UI
+    function getDefaultTimeSlots() {
+        return ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
+    }
+
     function getBookingUiDeps() {
         return {
             loadAvailabilityData,
             getBookedSlots,
             updateAvailableTimes,
+            getDefaultTimeSlots,
             showToast,
-            getCurrentLang: () => state$1.currentLang,
+            getCurrentLang: () => state.currentLang,
             getCasePhotoFiles: (form) => {
                 const input = form?.querySelector('#casePhotos');
                 if (!input || !input.files) return [];
@@ -1614,7 +1613,7 @@
 
         if (files.length > MAX_CASE_PHOTOS) {
             throw new Error(
-                state$1.currentLang === 'es'
+                state.currentLang === 'es'
                     ? `Puedes subir m\u00E1ximo ${MAX_CASE_PHOTOS} fotos.`
                     : `You can upload up to ${MAX_CASE_PHOTOS} photos.`
             );
@@ -1625,7 +1624,7 @@
 
             if (file.size > MAX_CASE_PHOTO_BYTES) {
                 throw new Error(
-                    state$1.currentLang === 'es'
+                    state.currentLang === 'es'
                         ? `Cada foto debe pesar m\u00E1ximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
                         : `Each photo must be at most ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
                 );
@@ -1636,7 +1635,7 @@
             const validByExt = /\.(jpe?g|png|webp)$/i.test(String(file.name || ''));
             if (!validByMime && !validByExt) {
                 throw new Error(
-                    state$1.currentLang === 'es'
+                    state.currentLang === 'es'
                         ? 'Solo se permiten im\u00e1genes JPG, PNG o WEBP.'
                         : 'Only JPG, PNG or WEBP images are allowed.'
                 );
@@ -1722,7 +1721,7 @@
             maybeTrackCheckoutAbandon(abandonReason);
         }
 
-        state$1.checkoutSession.active = false;
+        state.checkoutSession.active = false;
         const modal = document.getElementById('paymentModal');
         if (modal) {
             modal.classList.remove('active');
@@ -1913,16 +1912,16 @@
     }
 
     const CHAT_UI_ENGINE_URL = withDeployAssetVersion(
-        '/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1'
+        '/js/engines/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1'
     );
     const CHAT_WIDGET_ENGINE_URL = withDeployAssetVersion(
-        '/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1'
+        '/js/engines/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1'
     );
     const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion(
-        '/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1'
+        '/js/engines/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1'
     );
     const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion(
-        '/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1-sync1'
+        '/js/engines/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1-sync1'
     );
 
     const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
@@ -1984,10 +1983,10 @@
 
     function getChatUiEngineDeps() {
         return {
-            getChatHistory: () => state$1.chatHistory,
-            setChatHistory: (h) => { state$1.chatHistory = h; },
-            getConversationContext: () => state$1.conversationContext,
-            setConversationContext: (c) => { state$1.conversationContext = c; },
+            getChatHistory: () => state.chatHistory,
+            setChatHistory: (h) => { state.chatHistory = h; },
+            getConversationContext: () => state.conversationContext,
+            setConversationContext: (c) => { state.conversationContext = c; },
             historyStorageKey: CHAT_HISTORY_STORAGE_KEY,
             historyTtlMs: CHAT_HISTORY_TTL_MS,
             historyMaxItems: CHAT_HISTORY_MAX_ITEMS,
@@ -2023,9 +2022,9 @@
 
     function getChatWidgetEngineDeps() {
         return {
-            getChatbotOpen: () => state$1.chatbotOpen,
-            setChatbotOpen: (val) => { state$1.chatbotOpen = val; },
-            getChatHistoryLength: () => state$1.chatHistory.length,
+            getChatbotOpen: () => state.chatbotOpen,
+            setChatbotOpen: (val) => { state.chatbotOpen = val; },
+            getChatHistoryLength: () => state.chatHistory.length,
             warmChatUi: () => runDeferredModule(loadChatUiEngine, () => undefined),
             scrollToBottom,
             trackEvent,
@@ -2405,7 +2404,7 @@
 
     function getConsentEngineDeps() {
         return {
-            getCurrentLang: () => state$1.currentLang,
+            getCurrentLang: () => state.currentLang,
             showToast,
             trackEvent,
             cookieConsentKey: COOKIE_CONSENT_KEY,
@@ -2441,7 +2440,7 @@
     }
 
     const GALLERY_INTERACTIONS_URL = withDeployAssetVersion(
-        '/gallery-interactions.js?v=figo-gallery-20260218-phase4'
+        '/js/engines/gallery-interactions.js?v=figo-gallery-20260218-phase4'
     );
 
     function loadGalleryInteractions() {
@@ -2796,11 +2795,12 @@
             }
 
             element.addEventListener('click', function () {
+                const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
                 loadDeferredModule({
                     cacheKey: 'booking-utils-calendar',
-                    src: BOOKING_CALENDAR_ENGINE_URL,
+                    src: BOOKING_UTILS_URL,
                     scriptDataAttribute: 'data-booking-utils',
-                    resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine
+                    resolveModule: () => window.PielBookingCalendarEngine
                 }).then(function (moduleRef) {
                     if (moduleRef && typeof moduleRef.initCalendar === 'function') {
                         moduleRef.initCalendar();
@@ -2892,8 +2892,6 @@
                     event.stopImmediatePropagation();
                     fallbackSelectService(value);
                     break;
-                default:
-                    break;
             }
         });
 
@@ -2913,7 +2911,7 @@
         initActionRouterEngine();
         initDeferredStylesheetLoading();
         initThemeMode();
-        changeLanguage(state$1.currentLang);
+        changeLanguage(state.currentLang);
         initGA4();
         initBookingFunnelObserver();
         initDeferredSectionPrefetch();
@@ -2966,7 +2964,7 @@
                 chatInput.addEventListener('keypress', handleChatKeypress);
             }
 
-            // Gallery lazy load is initialized in the legacy fallback block below.
+            // Gallery lazy load is already initialized below in the legacy fallback block.
             initBookingCalendarLazyInit();
         });
 
@@ -3078,7 +3076,6 @@
                 userVisibleOnly: true,
                 applicationServerKey: publicVapidKey
             });
-            console.log('Push Subscription:', JSON.stringify(subscription));
         } catch (error) {
             console.error('Push subscription error:', error);
         }
@@ -3093,9 +3090,10 @@
             }
 
             element.addEventListener('click', function () {
+                const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
                 loadDeferredModule({
                     cacheKey: 'booking-utils-calendar',
-                    src: BOOKING_CALENDAR_ENGINE_URL,
+                    src: BOOKING_UTILS_URL,
                     scriptDataAttribute: 'data-booking-utils',
                     resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine
                 }).then(function (moduleRef) {

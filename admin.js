@@ -213,7 +213,8 @@ function getStatusText(status) {
         confirmed: 'Confirmada',
         pending: 'Pendiente',
         cancelled: 'Cancelada',
-        completed: 'Completada'
+        completed: 'Completada',
+        no_show: 'No-Show'
     };
     return texts[status] || status;
 }
@@ -729,6 +730,26 @@ async function cancelAppointment(id) {
     }
 }
 
+async function markNoShow(id) {
+    if (!confirm('¿Marcar esta cita como No-Show?')) return;
+    if (!id) {
+        showToast('Id de cita invalido', 'error');
+        return;
+    }
+    try {
+        await apiRequest('appointments', {
+            method: 'PATCH',
+            body: { id: id, status: 'no_show' }
+        });
+        await refreshData$1();
+        loadAppointments();
+        loadDashboardData();
+        showToast('Marcado como No-Show', 'success');
+    } catch (error) {
+        showToast(`Error: ${error.message}`, 'error');
+    }
+}
+
 async function approveTransfer(id) {
     if (!confirm('¿Aprobar el comprobante de transferencia de esta cita?')) return;
     if (!id) { showToast('Id de cita invalido', 'error'); return; }
@@ -767,6 +788,7 @@ var appointments = /*#__PURE__*/Object.freeze({
     __proto__: null,
     approveTransfer: approveTransfer,
     cancelAppointment: cancelAppointment,
+    markNoShow: markNoShow,
     filterAppointments: filterAppointments,
     loadAppointments: loadAppointments,
     rejectTransfer: rejectTransfer,
@@ -1082,13 +1104,50 @@ var availability = /*#__PURE__*/Object.freeze({
     renderAvailabilityCalendar: renderAvailabilityCalendar
 });
 
+function renderReports() {
+    const total = currentAppointments.length;
+    let confirmed = 0;
+    let cancelled = 0;
+    let noShow = 0;
+
+    for (const appt of currentAppointments) {
+        const status = appt.status || 'confirmed';
+        if (status === 'confirmed' || status === 'completed') {
+            confirmed++;
+        } else if (status === 'cancelled') {
+            cancelled++;
+        } else if (status === 'no_show') {
+            noShow++;
+        }
+    }
+
+    const cancelRate = total > 0 ? (cancelled / total) * 100 : 0;
+    const noShowRate = total > 0 ? (noShow / total) * 100 : 0;
+
+    const elCancel = document.getElementById('cancellationRate');
+    if (elCancel) elCancel.textContent = formatPercent(cancelRate);
+
+    const elNoShow = document.getElementById('noShowRate');
+    if (elNoShow) elNoShow.textContent = formatPercent(noShowRate);
+
+    const elRepConfirmed = document.getElementById('reportConfirmed');
+    if (elRepConfirmed) elRepConfirmed.textContent = formatCount(confirmed);
+
+    const elRepCancelled = document.getElementById('reportCancelled');
+    if (elRepCancelled) elRepCancelled.textContent = formatCount(cancelled);
+
+    const elRepNoShow = document.getElementById('reportNoShow');
+    if (elRepNoShow) elRepNoShow.textContent = formatCount(noShow);
+}
+
 async function renderSection(section) {
     const titles = {
         dashboard: 'Dashboard',
         appointments: 'Citas',
         callbacks: 'Callbacks',
         reviews: 'Reseñas',
-        availability: 'Disponibilidad'
+        availability: 'Disponibilidad',
+        reports: 'Reportes'
     };
     const titleEl = document.getElementById('pageTitle');
     if (titleEl) titleEl.textContent = titles[section] || 'Dashboard';
@@ -1112,6 +1171,9 @@ async function renderSection(section) {
             break;
         case 'availability':
             initAvailabilityCalendar();
+            break;
+        case 'reports':
+            renderReports();
             break;
         default:
             loadDashboardData();
@@ -1509,6 +1571,9 @@ function renderAppointments(appointments) {
                     <button type="button" class="btn-icon danger" data-action="cancel-appointment" data-id="${Number(a.id) || 0}" title="Cancelar">
                         <i class="fas fa-times"></i>
                     </button>
+                    <button type="button" class="btn-icon warning" data-action="mark-no-show" data-id="${Number(a.id) || 0}" title="Marcar No-Show">
+                        <i class="fas fa-user-slash"></i>
+                    </button>
                 </div>
             </td>
         </tr>
@@ -1579,6 +1644,26 @@ async function cancelAppointment(id) {
     }
 }
 
+async function markNoShow(id) {
+    if (!confirm('¿Marcar esta cita como No-Show?')) return;
+    if (!id) {
+        showToast('Id de cita invalido', 'error');
+        return;
+    }
+    try {
+        await apiRequest('appointments', {
+            method: 'PATCH',
+            body: { id: id, status: 'no_show' }
+        });
+        await refreshData();
+        loadAppointments();
+        loadDashboardData();
+        showToast('Marcado como No-Show', 'success');
+    } catch (error) {
+        showToast(`Error: ${error.message}`, 'error');
+    }
+}
+
 async function approveTransfer(id) {
     if (!confirm('¿Aprobar el comprobante de transferencia de esta cita?')) return;
     if (!id) { showToast('Id de cita invalido', 'error'); return; }
@@ -1617,6 +1702,7 @@ var appointments = /*#__PURE__*/Object.freeze({
     __proto__: null,
     approveTransfer: approveTransfer,
     cancelAppointment: cancelAppointment,
+    markNoShow: markNoShow,
     filterAppointments: filterAppointments,
     loadAppointments: loadAppointments,
     rejectTransfer: rejectTransfer,
@@ -1938,7 +2024,8 @@ async function renderSection(section) {
         appointments: 'Citas',
         callbacks: 'Callbacks',
         reviews: 'Reseñas',
-        availability: 'Disponibilidad'
+        availability: 'Disponibilidad',
+        reports: 'Reportes'
     };
     const titleEl = document.getElementById('pageTitle');
     if (titleEl) titleEl.textContent = titles[section] || 'Dashboard';
@@ -1963,6 +2050,9 @@ async function renderSection(section) {
             break;
         case 'availability':
             initAvailabilityCalendar();
+            break;
+        case 'reports':
+            renderReports();
             break;
     }
 }
@@ -2054,62 +2144,6 @@ async function logout() {
     await logout$1();
 }
 
-async function updateDate() {
-    const dateEl = document.getElementById('currentDate');
-    if (dateEl) {
-         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-         dateEl.textContent = new Date().toLocaleDateString('es-EC', options);
-    }
-
-    await refreshData();
-    renderSection('dashboard');
-}
-
-async function checkAuth() {
-    try {
-        if (!navigator.onLine) {
-            const cached = getLocalData('appointments', null);
-            if (cached) {
-                loadFallbackState();
-                showToast('Modo Offline: Mostrando datos locales', 'info');
-                await showDashboard();
-                return;
-            }
-        }
-
-        const payload = await authRequest('status');
-        if (payload.authenticated) {
-            if (payload.csrfToken) setCsrfToken(payload.csrfToken);
-            await showDashboard();
-        } else {
-            showLogin();
-        }
-    } catch (error) {
-        if (getLocalData('appointments', null)) {
-            loadFallbackState();
-            showToast('Error de conexión. Mostrando datos locales.', 'warning');
-            await showDashboard();
-            return;
-        }
-        showLogin();
-        showToast('No se pudo verificar la sesion', 'warning');
-    }
-}
-
-function showLogin() {
-    const loginScreen = document.getElementById('loginScreen');
-    if (loginScreen) loginScreen.classList.remove('is-hidden');
-}
-
-async function logout() {
-    try {
-        await authRequest('logout', { method: 'POST' });
-    } catch (error) {
-        // Continue with local logout UI.
-    }
-    showToast('Sesion cerrada correctamente', 'info');
-    setTimeout(() => window.location.reload(), 800);
-}
 
 function attachGlobalListeners() {
     document.addEventListener('click', async function(e) {
@@ -2126,6 +2160,11 @@ function attachGlobalListeners() {
         if (action === 'logout') {
             e.preventDefault();
             await logout();
+            return;
+        }
+        if (action === 'export-csv') {
+            e.preventDefault();
+            exportToCSV();
             return;
         }
         if (action === 'export-data') {
@@ -2151,12 +2190,13 @@ function attachGlobalListeners() {
                     decodeURIComponent(actionEl.dataset.time || '')
                 );
             }
-            else if (['approve-transfer', 'reject-transfer', 'cancel-appointment'].includes(action)) {
+            else if (['approve-transfer', 'reject-transfer', 'cancel-appointment', 'mark-no-show'].includes(action)) {
                 e.preventDefault();
                 const mod = await Promise.resolve().then(function () { return appointments; });
                 if (action === 'approve-transfer') await mod.approveTransfer(Number(actionEl.dataset.id || 0));
                 if (action === 'reject-transfer') await mod.rejectTransfer(Number(actionEl.dataset.id || 0));
                 if (action === 'cancel-appointment') await mod.cancelAppointment(Number(actionEl.dataset.id || 0));
+                if (action === 'mark-no-show') await mod.markNoShow(Number(actionEl.dataset.id || 0));
             }
             else if (action === 'mark-contacted') {
                 e.preventDefault();
@@ -2194,6 +2234,48 @@ function attachGlobalListeners() {
              filterCallbacks();
         });
     }
+}
+
+function exportToCSV() {
+    Promise.resolve().then(function () { return state; }).then(({ currentAppointments }) => {
+        if (!currentAppointments || currentAppointments.length === 0) {
+            showToast('No hay citas para exportar', 'warning');
+            return;
+        }
+
+        const headers = ['ID', 'Fecha', 'Hora', 'Paciente', 'Email', 'Telefono', 'Servicio', 'Doctor', 'Estado', 'Pago', 'Precio', 'Creado'];
+        const csvRows = [headers.join(',')];
+
+        for (const appt of currentAppointments) {
+            const row = [
+                appt.id,
+                appt.date,
+                appt.time,
+                `"${(appt.name || '').replace(/"/g, '""')}"`,
+                `"${(appt.email || '').replace(/"/g, '""')}"`,
+                `"${(appt.phone || '').replace(/"/g, '""')}"`,
+                `"${(appt.service || '').replace(/"/g, '""')}"`,
+                `"${(appt.doctor || '').replace(/"/g, '""')}"`,
+                appt.status,
+                appt.paymentStatus,
+                appt.price,
+                appt.dateBooked
+            ];
+            csvRows.push(row.join(','));
+        }
+
+        const csvString = csvRows.join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `citas-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('CSV exportado correctamente', 'success');
+    });
 }
 
 function exportData() {

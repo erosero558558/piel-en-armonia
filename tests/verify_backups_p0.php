@@ -18,9 +18,12 @@ if (!is_dir($tempDir)) {
 $backupDir = $tempDir . '/backups';
 
 // Initialize empty store to prevent migration from other directories
+$tomorrow = date('Y-m-d', strtotime('+1 day'));
 $initialStore = [
     'appointments' => [],
-    'availability' => [],
+    'availability' => [
+        $tomorrow => ['10:00']
+    ],
     'reviews' => [],
     'callbacks' => [],
     'updatedAt' => date('c'),
@@ -31,7 +34,7 @@ file_put_contents($tempDir . '/store.json', json_encode($initialStore));
 echo "Starting Backup Verification Server on port $port with data dir $tempDir...\n";
 
 // Start server
-$cmd = "PIELARMONIA_DATA_DIR=" . escapeshellarg($tempDir) . " php -S $host -t " . escapeshellarg(__DIR__ . "/../") . " > /dev/null 2>&1 & echo $!";
+$cmd = "PIELARMONIA_DEFAULT_AVAILABILITY_ENABLED=true PIELARMONIA_DATA_DIR=" . escapeshellarg($tempDir) . " php -S $host -t " . escapeshellarg(__DIR__ . "/../") . " > /dev/null 2>&1 & echo $!";
 $pid = trim(shell_exec($cmd));
 
 // Wait for server
@@ -64,7 +67,7 @@ $countBefore = is_array($filesBefore) ? count($filesBefore) : 0;
 echo "Backups before write: $countBefore\n";
 
 // Prepare payload
-$tomorrow = date('Y-m-d', strtotime('+1 day'));
+// $tomorrow already defined above
 $payload = [
     'name' => 'Backup Test User',
     'email' => 'backup@test.com',
