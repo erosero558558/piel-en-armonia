@@ -6,7 +6,7 @@ const STATIC_ASSETS = [
     '/styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1',
     '/bootstrap-inline-engine.js?v=figo-bootstrap-20260220-cachecoherence1',
     '/script.js?v=figo-20260220-phase6-cachecoherence1',
-    '/hero-woman.jpg',
+    '/images/optimized/hero-woman.jpg',
     '/favicon.ico',
     '/manifest.json',
     '/images/icon-192.png',

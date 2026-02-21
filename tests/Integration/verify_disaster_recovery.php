@@ -14,9 +14,9 @@ if (!mkdir($tempDir, 0777, true)) {
     die("Could not create temp dir: $tempDir\n");
 }
 
+// Force JSON storage for this test to match legacy expectations
+putenv("PIELARMONIA_STORAGE_JSON_FALLBACK=1");
 putenv("PIELARMONIA_DATA_DIR=$tempDir");
-// Force JSON fallback because this test expects store.json manipulation
-putenv("PIELARMONIA_STORAGE_JSON_FALLBACK=true");
 
 $storeFile = $tempDir . DIRECTORY_SEPARATOR . 'store.json';
 $restoreScript = realpath(__DIR__ . '/../../bin/restore-backup.php');
@@ -25,21 +25,19 @@ $restoreScript = realpath(__DIR__ . '/../../bin/restore-backup.php');
 require_once __DIR__ . '/../../lib/storage.php';
 require_once __DIR__ . '/../../lib/backup.php';
 
-function fail($msg)
+function fail($msg, $dir)
 {
-    // Use GLOBALS to access tempDir when running inside PHPUnit
-    $dir = $GLOBALS['tempDir'] ?? ($tempDir ?? null);
     echo "FAILED: $msg\n";
     // Cleanup
-    if (isset($tempDir)) {
-        recursiveRemove($tempDir);
+    if ($dir) {
+        recursiveRemove($dir);
     }
     exit(1);
 }
 
 function recursiveRemove($dir)
 {
-    if (!is_string($dir) || $dir === '' || !is_dir($dir)) {
+    if (!$dir || !is_dir($dir)) {
         return;
     }
     $files = new RecursiveIteratorIterator(
@@ -78,29 +76,23 @@ try {
 
     // Adapt to SQLite/JSON hybrid
     if (!file_exists($storeFile)) {
-        $sqliteFile = $tempDir . DIRECTORY_SEPARATOR . 'store.sqlite';
-        if (file_exists($sqliteFile)) {
-            $storeFile = $sqliteFile;
-        } else {
-            fail("Store file not created (checked json and sqlite).");
-        }
+        fail("Store file not created.", $tempDir);
     }
 
     // 2. Create Backup
     $snapshot = backup_create_offsite_snapshot();
     if (!($snapshot['ok'] ?? false)) {
-        fail("Backup snapshot failed: " . ($snapshot['reason'] ?? 'unknown'));
+        fail("Backup snapshot failed: " . ($snapshot['reason'] ?? 'unknown'), $tempDir);
     }
     $backupPath = $snapshot['path'];
     if (!file_exists($backupPath)) {
-        fail("Backup file not created.");
+        fail("Backup file not created.", $tempDir);
     }
 
-    // 3. Corrupt Data / Simulate Loss
-    // We explicitly delete any existing file to ensure we test a clean restoration scenario
-    // and avoid the "file is not a database" error from SQLite driver if file exists but is invalid.
-    if (file_exists($storeFile)) {
-        unlink($storeFile);
+    // 3. Corrupt Data
+    file_put_contents($storeFile, 'CORRUPTED DATA');
+    if (file_get_contents($storeFile) !== 'CORRUPTED DATA') {
+        fail("Failed to corrupt data.", $tempDir);
     }
 
     // Create a dummy file to simulate corruption, then ensure it's removed by the test setup
@@ -111,7 +103,7 @@ try {
     // 4. Restore using CLI script
     // We use --force to skip confirmation
     $cmd = sprintf(
-        'PIELARMONIA_DATA_DIR=%s PIELARMONIA_STORAGE_JSON_FALLBACK=true php %s %s --force 2>&1',
+        'PIELARMONIA_DATA_DIR=%s PIELARMONIA_STORAGE_JSON_FALLBACK=1 php %s %s --force',
         escapeshellarg($tempDir),
         escapeshellarg($restoreScript),
         escapeshellarg($backupPath)
@@ -120,18 +112,18 @@ try {
     exec($cmd, $output, $returnVar);
 
     if ($returnVar !== 0) {
-        echo "\nRestore script output (Failure):\n" . implode("\n", $output) . "\n";
-        fail("Restore script failed with code $returnVar");
+        echo "\nRestore script output:\n" . implode("\n", $output) . "\n";
+        fail("Restore script failed with code $returnVar", $tempDir);
     }
 
     // 5. Verify Restoration
     $restoredData = read_store();
 
     if (count($restoredData['appointments'] ?? []) !== 1) {
-        fail("Restored appointments count mismatch.");
+        fail("Restored appointments count mismatch.", $tempDir);
     }
     if (($restoredData['appointments'][0]['name'] ?? '') !== 'Test Patient') {
-        fail("Restored patient name mismatch.");
+        fail("Restored patient name mismatch.", $tempDir);
     }
 
     // Check safety backup existence
@@ -139,11 +131,7 @@ try {
     // $currentStorePath here is $storeFile (store.json)
     $files = glob($storeFile . '.pre-restore-*.bak');
     if (empty($files)) {
-        echo "\nRestore script output (Success but missing backup):\n" . implode("\n", $output) . "\n";
-        echo "Looking for pattern: " . $storeFile . '.pre-restore-*.bak' . "\n";
-        $allFiles = glob($tempDir . '/*');
-        echo "Files in temp dir:\n" . implode("\n", $allFiles) . "\n";
-        fail("Safety backup was not created.");
+        fail("Safety backup was not created.", $tempDir);
     }
 
     echo "SUCCESS: Disaster Recovery Test Passed.\n";
@@ -151,5 +139,5 @@ try {
     exit(0);
 
 } catch (Throwable $e) {
-    fail("Exception: " . $e->getMessage());
+    fail("Exception: " . $e->getMessage(), $tempDir);
 }
