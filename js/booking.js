@@ -224,11 +224,16 @@ export async function updateAvailableTimes(elements) {
 }
 
 // BOOKING UI
+function getDefaultTimeSlots() {
+    return ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
+}
+
 function getBookingUiDeps() {
     return {
         loadAvailabilityData,
         getBookedSlots,
         updateAvailableTimes,
+        getDefaultTimeSlots,
         showToast,
         getCurrentLang: () => state.currentLang,
         getCasePhotoFiles: (form) => {
