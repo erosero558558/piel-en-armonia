@@ -1,0 +1,43 @@
+
+> build
+> rollup -c
+
+[36m
+[1msrc/apps/booking/ui-entry.js[22m → [1mjs/engines/booking-ui.js[22m...[39m
+[32mcreated [1mjs/engines/booking-ui.js[22m in [1m91ms[22m[39m
+[36m
+[1msrc/apps/booking/engine.js[22m → [1mjs/engines/booking-engine.js[22m...[39m
+[32mcreated [1mjs/engines/booking-engine.js[22m in [1m51ms[22m[39m
+[36m
+[1msrc/apps/booking/components/calendar.js[22m → [1mjs/booking-calendar.js[22m...[39m
+[32mcreated [1mjs/booking-calendar.js[22m in [1m13ms[22m[39m
+[36m
+[1msrc/apps/chat/ui-engine.js[22m → [1mjs/engines/chat-ui-engine.js[22m...[39m
+[32mcreated [1mjs/engines/chat-ui-engine.js[22m in [1m27ms[22m[39m
+[36m
+[1msrc/apps/chat/widget-engine.js[22m → [1mjs/engines/chat-widget-engine.js[22m...[39m
+[32mcreated [1mjs/engines/chat-widget-engine.js[22m in [1m49ms[22m[39m
+[36m
+[1msrc/apps/chat/booking-engine.js[22m → [1mjs/engines/chat-booking-engine.js[22m...[39m
+[32mcreated [1mjs/engines/chat-booking-engine.js[22m in [1m44ms[22m[39m
+[36m
+[1msrc/apps/chat/engine.js[22m → [1mjs/engines/chat-engine.js[22m...[39m
+[32mcreated [1mjs/engines/chat-engine.js[22m in [1m43ms[22m[39m
+[36m
+[1msrc/apps/analytics/engine.js[22m → [1mjs/engines/analytics-engine.js[22m...[39m
+[32mcreated [1mjs/engines/analytics-engine.js[22m in [1m19ms[22m[39m
+[36m
+[1msrc/bundles/booking-utils.js[22m → [1mjs/engines/booking-utils.js[22m...[39m
+[32mcreated [1mjs/engines/booking-utils.js[22m in [1m37ms[22m[39m
+[36m
+[1msrc/bundles/data.js[22m → [1mjs/engines/data-bundle.js[22m...[39m
+[32mcreated [1mjs/engines/data-bundle.js[22m in [1m21ms[22m[39m
+[36m
+[1msrc/bundles/ui.js[22m → [1mjs/engines/ui-bundle.js[22m...[39m
+[32mcreated [1mjs/engines/ui-bundle.js[22m in [1m44ms[22m[39m
+[36m
+[1msrc/bundles/engagement.js[22m → [1mjs/engines/engagement-bundle.js[22m...[39m
+[32mcreated [1mjs/engines/engagement-bundle.js[22m in [1m26ms[22m[39m
+[36m
+[1mjs/main.js[22m → [1mscript.js[22m...[39m
+[32mcreated [1mscript.js[22m in [1m228ms[22m[39m

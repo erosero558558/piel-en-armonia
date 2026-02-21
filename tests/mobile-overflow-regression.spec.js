@@ -78,7 +78,9 @@ test.describe('Mobile overflow regressions', () => {
     }) => {
         await page.setViewportSize({ width: 360, height: 800 });
         await page.goto('/', { timeout: 45000, waitUntil: 'domcontentloaded' });
+        // eslint-disable-next-line playwright/no-networkidle
         await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => null);
+        // eslint-disable-next-line playwright/no-wait-for-timeout
         await page.waitForTimeout(1500);
 
         for (const sectionId of SECTION_IDS) {
@@ -88,6 +90,7 @@ test.describe('Mobile overflow regressions', () => {
                     section.scrollIntoView({ block: 'start' });
                 }
             }, sectionId);
+            // eslint-disable-next-line playwright/no-wait-for-timeout
             await page.waitForTimeout(80);
 
             const metrics = await collectOverflowForSection(page, sectionId);
@@ -104,6 +107,7 @@ test.describe('Mobile overflow regressions', () => {
     }) => {
         await page.setViewportSize({ width: 360, height: 800 });
         await page.goto('/');
+        // eslint-disable-next-line playwright/no-wait-for-timeout
         await page.waitForTimeout(600);
 
         const toggle = page.locator('.chatbot-toggle');
