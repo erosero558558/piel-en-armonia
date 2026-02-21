@@ -142,7 +142,7 @@ var PielBookingEngine = (function () {
     }
 
     function syncPaymentForms(activeMethod) {
-        const methodType = String(activeMethod || getActivePaymentMethod());
+        const methodType = String(activeMethod || getActivePaymentMethod() || 'cash');
         const paymentForms = document.querySelectorAll('.payment-form');
         paymentForms.forEach((form) => {
             form.classList.add('is-hidden');
@@ -578,6 +578,8 @@ var PielBookingEngine = (function () {
         getActivePaymentMethod,
         processPayment
     };
+
+    window.PielBookingEngine = api;
 
     return api;
 

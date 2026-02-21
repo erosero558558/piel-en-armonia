@@ -228,6 +228,7 @@ export async function updateAvailableTimes(elements) {
 function getBookingUiDeps() {
     return {
         loadAvailabilityData,
+        updateAvailableTimes,
         getBookedSlots,
         showToast,
         getCurrentLang: () => state.currentLang,

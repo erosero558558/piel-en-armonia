@@ -150,6 +150,11 @@ document.addEventListener('DOMContentLoaded', function () {
         initModalUxEngineWarmup();
     });
 
+    const initDeferredWarmups = createOnceTask(() => {
+        initHighPriorityWarmups();
+        initLowPriorityWarmups();
+    });
+
     window.addEventListener('pointerdown', initDeferredWarmups, {
         once: true,
         passive: true,
@@ -161,6 +166,13 @@ document.addEventListener('DOMContentLoaded', function () {
         fallbackDelay: 500,
         skipOnConstrained: false,
         constrainedDelay: 900,
+    });
+
+    scheduleDeferredTask(initLowPriorityWarmups, {
+        idleTimeout: 3200,
+        fallbackDelay: 1800,
+        skipOnConstrained: false,
+        constrainedDelay: 2400,
     });
 
     const chatInput = document.getElementById('chatInput');

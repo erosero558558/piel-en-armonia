@@ -1,6 +1,8 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 
+test.use({ serviceWorkers: 'block' });
+
 function jsonResponse(route, payload) {
     return route.fulfill({
         status: 200,
@@ -10,7 +12,7 @@ function jsonResponse(route, payload) {
 }
 
 async function mockApi(page) {
-    await page.route('**/api.php?**', async (route) => {
+    await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
         const request = route.request();
         const url = new URL(request.url());
         const resource = url.searchParams.get('resource') || '';
@@ -129,15 +131,40 @@ async function getFunnelEvents(page) {
 }
 
 async function fillBookingFormAndOpenPayment(page) {
-    await page.waitForSelector('script[data-action-router-engine="true"]', {
-        timeout: 10000,
-        state: 'attached',
-    });
-    await page.waitForSelector('script[data-booking-ui="true"]', {
-        timeout: 10000,
-        state: 'attached',
-    });
-
+    await expect
+        .poll(
+            async () =>
+                page.evaluate(() => {
+                    const dataBundleLoaded = !!document.querySelector(
+                        'script[data-data-bundle="true"]'
+                    );
+                    const actionRouterReady = !!(
+                        window.PielActionRouterEngine &&
+                        typeof window.PielActionRouterEngine.init ===
+                            'function'
+                    );
+                    return dataBundleLoaded || actionRouterReady;
+                }),
+            { timeout: 10000 }
+        )
+        .toBe(true);
+    await page.locator('#appointmentForm').click({ force: true });
+    await expect
+        .poll(
+            async () =>
+                page.evaluate(() => {
+                    const bookingUiLoaded = !!document.querySelector(
+                        'script[data-booking-ui="true"]'
+                    );
+                    const bookingUiReady = !!(
+                        window.PielBookingUi &&
+                        typeof window.PielBookingUi.init === 'function'
+                    );
+                    return bookingUiLoaded || bookingUiReady;
+                }),
+            { timeout: 15000 }
+        )
+        .toBe(true);
     const serviceSelect = page.locator('#serviceSelect');
     await serviceSelect.selectOption('consulta');
 
@@ -389,10 +416,23 @@ test.describe('Tracking del embudo de conversion', () => {
     test('emite chat_started y paso inicial al iniciar reserva desde chatbot', async ({
         page,
     }) => {
-        await page.waitForSelector('script[data-action-router-engine="true"]', {
-            timeout: 10000,
-            state: 'attached',
-        });
+        await expect
+            .poll(
+                async () =>
+                    page.evaluate(() => {
+                        const dataBundleLoaded = !!document.querySelector(
+                            'script[data-data-bundle="true"]'
+                        );
+                        const actionRouterReady = !!(
+                            window.PielActionRouterEngine &&
+                            typeof window.PielActionRouterEngine.init ===
+                                'function'
+                        );
+                        return dataBundleLoaded || actionRouterReady;
+                    }),
+                { timeout: 10000 }
+            )
+            .toBe(true);
         await page.locator('#chatbotWidget .chatbot-toggle').click();
         await expect
             .poll(

@@ -584,4 +584,6 @@ const api = {
     processPayment
 };
 
+window.PielBookingEngine = api;
+
 export default api;

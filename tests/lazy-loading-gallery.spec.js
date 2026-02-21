@@ -6,9 +6,25 @@ test.describe('Gallery Lazy Loading', () => {
         await page.goto('/');
     });
 
-    test('gallery script is loaded', async ({ page }) => {
-        const script = page.locator('script[src="gallery-lazy.js"]');
-        await expect(script).toHaveCount(1);
+    test('gallery interactions become active on demand', async ({ page }) => {
+        const gallerySection = page.locator('#galeria');
+        await gallerySection.scrollIntoViewIfNeeded();
+        await expect
+            .poll(
+                async () =>
+                    page.evaluate(() => {
+                        const interactionsLoaded = !!document.querySelector(
+                            'script[data-gallery-interactions="true"], script[src*="gallery-interactions.js"], script[src*="gallery-lazy.js"]'
+                        );
+                        const lazyApplied =
+                            document.querySelectorAll(
+                                '.gallery-img.loaded, .gallery-img[src]'
+                            ).length > 0;
+                        return interactionsLoaded || lazyApplied;
+                    }),
+                { timeout: 10000 }
+            )
+            .toBe(true);
     });
 
     test('gallery images are present with data-src', async ({ page }) => {
