@@ -231,7 +231,11 @@ test.describe('Checklist de Pruebas en Producción', () => {
         expect(response.ok()).toBeTruthy();
         const body = await response.json();
         expect(body.ok).toBe(true);
-        expect(Array.isArray(body.data)).toBe(true);
+        const isAvailabilityObject =
+            body.data !== null &&
+            typeof body.data === 'object' &&
+            !Array.isArray(body.data);
+        expect(isAvailabilityObject).toBe(true);
     });
 
     // 5. Flujo de callback
