@@ -225,9 +225,13 @@
             return cleanUrl;
         }
 
-        const deployVersion = window.__PA_DEPLOY_ASSET_VERSION__ || '';
+        const deployVersion =
+            window.__PA_DEPLOY_ASSET_VERSION__ || resolveDeployAssetVersion();
         if (!deployVersion) {
             return cleanUrl;
+        }
+        if (!window.__PA_DEPLOY_ASSET_VERSION__) {
+            window.__PA_DEPLOY_ASSET_VERSION__ = deployVersion;
         }
 
         try {
