@@ -27,11 +27,11 @@ export async function loadDeferredContent() {
 
         Object.keys(data).forEach((id) => {
             const container = document.getElementById(id);
-            if (container) {
+            if (container && container.classList.contains('deferred-content')) {
                 container.innerHTML = data[id];
                 container.classList.remove('deferred-content'); // Optional cleanup
                 hydrateDeferredText(container);
-            } else {
+            } else if (!container) {
                 debugLog(`Warning: Container #${id} not found for deferred content.`);
             }
         });
