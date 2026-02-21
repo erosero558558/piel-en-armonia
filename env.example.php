@@ -78,6 +78,8 @@
 // putenv('PIELARMONIA_DB_NAME=pielarmonia');
 // putenv('PIELARMONIA_DB_USER=root');
 // putenv('PIELARMONIA_DB_PASS=secret');
+// Fallback automatico a almacenamiento JSON cuando SQLite no esta disponible (default true)
+// putenv('PIELARMONIA_STORAGE_JSON_FALLBACK=true');
 
 // ── Feature Flags ───────────────────────────────────
 // putenv('FEATURE_NEW_BOOKING_UI=true');

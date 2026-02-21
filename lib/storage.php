@@ -266,6 +266,81 @@ function store_file_is_encrypted(): bool
     return false;
 }
 
+function storage_json_fallback_enabled(): bool
+{
+    $raw = getenv('PIELARMONIA_STORAGE_JSON_FALLBACK');
+    if (!is_string($raw) || trim($raw) === '') {
+        return true;
+    }
+    return parse_bool($raw);
+}
+
+function ensure_json_store_file(): bool
+{
+    $jsonPath = data_json_path();
+    if (is_file($jsonPath)) {
+        return is_readable($jsonPath);
+    }
+
+    $payload = storage_default_store_payload();
+    $raw = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    if (!is_string($raw) || trim($raw) === '') {
+        return false;
+    }
+
+    $encoded = data_encrypt_payload($raw);
+    return @file_put_contents($jsonPath, $encoded, LOCK_EX) !== false;
+}
+
+function read_store_json_fallback(): array
+{
+    if (!ensure_json_store_file()) {
+        return normalize_store_payload(storage_default_store_payload());
+    }
+
+    $raw = @file_get_contents(data_json_path());
+    if (!is_string($raw) || trim($raw) === '') {
+        return normalize_store_payload(storage_default_store_payload());
+    }
+
+    $decoded = data_decrypt_payload($raw);
+    if ($decoded === '') {
+        $decoded = $raw;
+    }
+
+    $data = json_decode($decoded, true);
+    if (!is_array($data)) {
+        return normalize_store_payload(storage_default_store_payload());
+    }
+
+    return normalize_store_payload($data);
+}
+
+function write_store_json_fallback(array $store): bool
+{
+    if (!storage_json_fallback_enabled()) {
+        return false;
+    }
+
+    $store = normalize_store_payload($store);
+    if (!ensure_json_store_file()) {
+        return false;
+    }
+
+    $jsonPath = data_json_path();
+    if (is_file($jsonPath)) {
+        create_store_backup_locked($jsonPath);
+    }
+
+    $raw = json_encode($store, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    if (!is_string($raw) || trim($raw) === '') {
+        return false;
+    }
+
+    $encoded = data_encrypt_payload($raw);
+    return @file_put_contents($jsonPath, $encoded, LOCK_EX) !== false;
+}
+
 // Encryption functions retained for legacy support if needed, but not used for SQLite directly
 function data_encrypt_payload(string $plain): string
 {
@@ -579,7 +654,10 @@ function ensure_data_file(): bool
     if ($pdo) {
         ensure_db_schema();
     } else {
-        error_log('Piel en Armonía: no se pudo conectar a SQLite: ' . $dbPath);
+        error_log('Piel en Armonia: no se pudo conectar a SQLite: ' . $dbPath);
+        if (storage_json_fallback_enabled() && ensure_json_store_file()) {
+            return true;
+        }
         return false;
     }
 
@@ -602,7 +680,9 @@ function read_store(): array
 
     $pdo = get_db_connection(data_file_path());
     if (!$pdo) {
-        return normalize_store_payload(storage_default_store_payload());
+        return storage_json_fallback_enabled()
+            ? read_store_json_fallback()
+            : normalize_store_payload(storage_default_store_payload());
     }
 
     try {
@@ -666,7 +746,9 @@ function read_store(): array
         return $store;
     } catch (PDOException $e) {
         error_log('Read Store Error: ' . $e->getMessage());
-        return normalize_store_payload(storage_default_store_payload());
+        return storage_json_fallback_enabled()
+            ? read_store_json_fallback()
+            : normalize_store_payload(storage_default_store_payload());
     }
 }
 
@@ -679,6 +761,9 @@ function acquire_store_lock($fp, int $timeoutMs = STORE_LOCK_TIMEOUT_MS): bool
 function write_store(array $store): void
 {
     if (!ensure_data_file()) {
+        if (write_store_json_fallback($store)) {
+            return;
+        }
         if (function_exists('json_response')) {
             json_response(['ok' => false, 'error' => 'Storage error'], 500);
         }
@@ -689,6 +774,9 @@ function write_store(array $store): void
     $dbPath = data_file_path();
     $pdo = get_db_connection($dbPath);
     if (!$pdo) {
+        if (write_store_json_fallback($store)) {
+            return;
+        }
         if (function_exists('json_response')) {
             json_response(['ok' => false, 'error' => 'DB Connection error'], 500);
         }
@@ -820,8 +908,12 @@ function write_store(array $store): void
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log('Write Store Error: ' . $e->getMessage());
+        if (write_store_json_fallback($store)) {
+            return;
+        }
         if (function_exists('json_response')) {
             json_response(['ok' => false, 'error' => 'Write error'], 500);
         }
     }
 }
+
