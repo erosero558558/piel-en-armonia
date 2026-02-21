@@ -89,8 +89,10 @@ class AnalyticsController
         $checkoutAbandonByStep = [];
         $checkoutAbandonByReason = [];
         $checkoutEntryBreakdown = [];
+        $eventSourceBreakdown = [];
         $paymentMethodBreakdown = [];
         $bookingStepBreakdown = [];
+        $errorCodeBreakdown = [];
 
         foreach ($series as $row) {
             $labels = is_array($row['labels'] ?? null) ? $row['labels'] : [];
@@ -107,6 +109,12 @@ class AnalyticsController
                 $eventTotals[$eventName] = 0;
             }
             $eventTotals[$eventName] += $value;
+
+            $source = self::normalizeLabel($labels['source'] ?? 'unknown');
+            if (!isset($eventSourceBreakdown[$source])) {
+                $eventSourceBreakdown[$source] = 0;
+            }
+            $eventSourceBreakdown[$source] += $value;
 
             if ($eventName === 'checkout_abandon') {
                 $step = self::normalizeLabel($labels['checkout_step'] ?? 'unknown');
@@ -145,13 +153,23 @@ class AnalyticsController
                 }
                 $bookingStepBreakdown[$step] += $value;
             }
+
+            if ($eventName === 'booking_error' || $eventName === 'checkout_error') {
+                $errorCode = self::normalizeLabel($labels['error_code'] ?? 'unknown');
+                if (!isset($errorCodeBreakdown[$errorCode])) {
+                    $errorCodeBreakdown[$errorCode] = 0;
+                }
+                $errorCodeBreakdown[$errorCode] += $value;
+            }
         }
 
         arsort($checkoutAbandonByStep);
         arsort($checkoutAbandonByReason);
         arsort($checkoutEntryBreakdown);
+        arsort($eventSourceBreakdown);
         arsort($paymentMethodBreakdown);
         arsort($bookingStepBreakdown);
+        arsort($errorCodeBreakdown);
 
         $viewBooking = (int) ($eventTotals['view_booking'] ?? 0);
         $startCheckout = (int) ($eventTotals['start_checkout'] ?? 0);
@@ -189,8 +207,10 @@ class AnalyticsController
                 'checkoutAbandonByStep' => $toList($checkoutAbandonByStep),
                 'checkoutAbandonByReason' => $toList($checkoutAbandonByReason),
                 'checkoutEntryBreakdown' => $toList($checkoutEntryBreakdown),
+                'eventSourceBreakdown' => $toList($eventSourceBreakdown),
                 'paymentMethodBreakdown' => $toList($paymentMethodBreakdown),
                 'bookingStepBreakdown' => $toList($bookingStepBreakdown),
+                'errorCodeBreakdown' => $toList($errorCodeBreakdown),
                 'generatedAt' => gmdate('c')
             ]
         ]);

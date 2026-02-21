@@ -66,9 +66,11 @@ test.describe('Panel de administración', () => {
         await page.goto('/admin.html');
         await expect(page.locator('#funnelAbandonList')).toHaveCount(1);
         await expect(page.locator('#funnelEntryList')).toHaveCount(1);
+        await expect(page.locator('#funnelSourceList')).toHaveCount(1);
         await expect(page.locator('#funnelPaymentMethodList')).toHaveCount(1);
         await expect(page.locator('#funnelAbandonReasonList')).toHaveCount(1);
         await expect(page.locator('#funnelStepList')).toHaveCount(1);
+        await expect(page.locator('#funnelErrorCodeList')).toHaveCount(1);
     });
 
     test.describe('API de administracion (requiere PHP)', () => {

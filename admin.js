@@ -155,8 +155,10 @@
             checkoutAbandonByStep: [],
             checkoutAbandonByReason: [],
             checkoutEntryBreakdown: [],
+            eventSourceBreakdown: [],
             paymentMethodBreakdown: [],
-            bookingStepBreakdown: []
+            bookingStepBreakdown: [],
+            errorCodeBreakdown: []
         };
     }
 
@@ -248,6 +250,24 @@
         return prettified.charAt(0).toUpperCase() + prettified.slice(1);
     }
 
+    function formatFunnelSourceLabel(label) {
+        const raw = String(label || '').trim().toLowerCase();
+        const labels = {
+            booking_form: 'Formulario web',
+            chatbot: 'Chatbot',
+            whatsapp: 'WhatsApp',
+            unknown: 'No identificado'
+        };
+        if (labels[raw]) {
+            return labels[raw];
+        }
+        const prettified = raw.replace(/_/g, ' ').trim();
+        if (prettified === '') {
+            return labels.unknown;
+        }
+        return prettified.charAt(0).toUpperCase() + prettified.slice(1);
+    }
+
     function formatPaymentMethodLabel(label) {
         const raw = String(label || '').trim().toLowerCase();
         const labels = {
@@ -279,6 +299,29 @@
         if (labels[raw]) {
             return labels[raw];
         }
+        const prettified = raw.replace(/_/g, ' ').trim();
+        if (prettified === '') {
+            return labels.unknown;
+        }
+        return prettified.charAt(0).toUpperCase() + prettified.slice(1);
+    }
+
+    function formatFunnelErrorCodeLabel(label) {
+        const raw = String(label || '').trim().toLowerCase();
+        const labels = {
+            invalid_slot: 'Horario no disponible',
+            validation_error: 'Validacion de datos',
+            payment_intent_failed: 'Error al iniciar pago',
+            payment_verify_failed: 'Error al confirmar pago',
+            transfer_proof_missing: 'Comprobante faltante',
+            network_error: 'Error de red',
+            unknown: 'Error no identificado'
+        };
+
+        if (labels[raw]) {
+            return labels[raw];
+        }
+
         const prettified = raw.replace(/_/g, ' ').trim();
         if (prettified === '') {
             return labels.unknown;
@@ -359,6 +402,12 @@
             'Sin datos de entrada'
         );
         renderFunnelList(
+            'funnelSourceList',
+            metrics.eventSourceBreakdown,
+            formatFunnelSourceLabel,
+            'Sin datos de origen'
+        );
+        renderFunnelList(
             'funnelPaymentMethodList',
             metrics.paymentMethodBreakdown,
             formatPaymentMethodLabel,
@@ -375,6 +424,12 @@
             metrics.bookingStepBreakdown,
             formatFunnelStepLabel,
             'Sin datos de pasos'
+        );
+        renderFunnelList(
+            'funnelErrorCodeList',
+            metrics.errorCodeBreakdown,
+            formatFunnelErrorCodeLabel,
+            'Sin datos de error'
         );
     }
 
