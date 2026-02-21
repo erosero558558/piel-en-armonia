@@ -5,7 +5,6 @@
 :root {
     --admin-sidebar: #1a1a2e;
     --admin-sidebar-width: 260px;
-    --admin-header-height: 70px;
 }
 
 .admin-body {
@@ -455,11 +454,6 @@
     font-weight: 600;
 }
 
-.upcoming-time .ampm {
-    font-size: 0.75rem;
-    color: var(--color-text-secondary);
-}
-
 .upcoming-info {
     flex: 1;
 }
@@ -737,39 +731,9 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.review-card-admin .review-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-.review-card-admin .review-avatar {
-    width: 44px;
-    height: 44px;
-    background: var(--color-primary);
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-}
-
-.review-card-admin .review-text {
-    font-size: 0.95rem;
-    line-height: 1.6;
-    margin-bottom: 12px;
-}
-
 .review-verified-icon {
     color: var(--color-phone);
     margin-left: auto;
-}
-
-.review-date-admin {
-    font-size: 0.85rem;
-    color: var(--color-text-secondary);
 }
 
 /* ========================================
@@ -1051,10 +1015,6 @@
     .admin-sidebar {
         transform: translateX(-100%);
         transition: transform 0.3s;
-    }
-
-    .admin-sidebar.open {
-        transform: translateX(0);
     }
 
     .admin-main {

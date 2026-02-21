@@ -165,6 +165,7 @@ async function fillBookingFormAndOpenPayment(page) {
         state: 'attached',
     });
 
+    const serviceSelect = page.locator('select[name="service"]');
     await serviceSelect.selectOption('consulta');
 
     const doctorSelect = page.locator('select[name="doctor"]');

@@ -1,20 +1,10 @@
-﻿/* ========================================
+/* ========================================
    DEFERRED STYLES - Below-fold sections
    Variables defined in styles.css (critical)
    ======================================== */
 
 /* build-sync: 20260219-sync1 */
 /* Scroll animations */
-.reveal {
-    opacity: 0;
-    transform: translateY(30px);
-    transition: all 0.6s ease-out;
-}
-
-.reveal.active {
-    opacity: 1;
-    transform: translateY(0);
-}
 
 .services-grid,
 .telemedicine-options,
@@ -1017,7 +1007,7 @@
     border: 0;
 }
 
-.rating-header,
+
 .reviews-summary {
     margin-top: 14px;
     display: inline-flex;
@@ -1781,19 +1771,6 @@ textarea:focus {
     }
 }
 
-.reveal {
-    opacity: 0;
-    transform: translateY(24px);
-    transition:
-        opacity 700ms var(--ui-ease-soft),
-        transform 700ms var(--ui-ease-soft);
-}
-
-.reveal.active {
-    opacity: 1;
-    transform: translateY(0);
-}
-
 .animate-on-scroll {
     opacity: 0;
     transform: translateY(20px);
@@ -2011,7 +1988,6 @@ html[data-theme='dark'] .filter-btn {
 
 html[data-theme='dark'] .clinic-item,
 html[data-theme='dark'] .price-summary,
-html[data-theme='dark'] .rating-header,
 html[data-theme='dark'] .reviews-summary {
     background: rgba(19, 33, 54, 0.9);
     border-color: rgba(121, 157, 209, 0.38);
