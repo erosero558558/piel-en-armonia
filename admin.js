@@ -141,6 +141,14 @@
         }
     }
 
+    function saveLocalData(key, data) {
+        try {
+            localStorage.setItem(key, JSON.stringify(data));
+        } catch (error) {
+            // storage quota full or disabled
+        }
+    }
+
     function getEmptyFunnelMetrics() {
         return {
             summary: {
@@ -378,6 +386,11 @@
             } else {
                 currentFunnelMetrics = getEmptyFunnelMetrics();
             }
+
+            saveLocalData('appointments', currentAppointments);
+            saveLocalData('callbacks', currentCallbacks);
+            saveLocalData('reviews', currentReviews);
+            saveLocalData('availability', currentAvailability);
         } catch (error) {
             loadFallbackState();
             showToast('No se pudo conectar al backend. Usando datos locales.', 'warning');
@@ -404,6 +417,15 @@
 
     async function checkAuth() {
         try {
+            if (!navigator.onLine) {
+                const cached = getLocalData('appointments', null);
+                if (cached) {
+                    showToast('Modo Offline: Mostrando datos locales', 'info');
+                    await showDashboard();
+                    return;
+                }
+            }
+
             const payload = await authRequest('status');
             if (payload.authenticated) {
                 if (payload.csrfToken) csrfToken = payload.csrfToken;
@@ -412,6 +434,11 @@
                 showLogin();
             }
         } catch (error) {
+            if (getLocalData('appointments', null)) {
+                showToast('Error de conexión. Mostrando datos locales.', 'warning');
+                await showDashboard();
+                return;
+            }
             showLogin();
             showToast('No se pudo verificar la sesion', 'warning');
         }
@@ -1304,6 +1331,14 @@
                 importData(importFileInput);
             });
         }
+
+        window.addEventListener('online', () => {
+            showToast('Conexión restaurada. Actualizando datos...', 'success');
+            refreshData().then(() => {
+                const activeItem = document.querySelector('.nav-item.active');
+                renderSection(activeItem?.dataset.section || 'dashboard');
+            });
+        });
 
         checkAuth();
     });
