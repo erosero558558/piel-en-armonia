@@ -178,13 +178,13 @@ async function fillBookingFormAndOpenPayment(page) {
 
     // Fill triggers change event, which triggers updateAvailableTimes
     // We capture the request to ensure we wait for it
-    await Promise.all([
-        page.waitForResponse(
-            resp => resp.url().includes('booked-slots') && resp.status() === 200,
-            { timeout: 5000 }
-        ).catch(() => null),
-        dateInput.fill(dateValue)
-    ]);
+    const responsePromise = page.waitForResponse(
+        resp => resp.url().includes('booked-slots') && resp.status() === 200,
+        { timeout: 5000 }
+    ).catch(() => null);
+
+    await dateInput.fill(dateValue);
+    await responsePromise;
 
     // Buffer for DOM update from the app
     await page.waitForTimeout(500);
