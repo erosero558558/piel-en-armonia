@@ -6,11 +6,11 @@ export default [
         input: 'src/apps/booking/ui-entry.js',
         output: {
             file: 'js/engines/booking-ui.js',
-            format: 'es',
+            format: 'iife',
+            name: 'Piel.BookingUi',
             sourcemap: false
         },
         plugins: [resolve()]
-        // Removed external: ['booking-calendar-lazy'] to bundle it inline
     },
     // Booking Engine
     {
@@ -127,11 +127,35 @@ export default [
     {
         input: 'js/main.js',
         output: {
-            file: 'script.js',
-            format: 'iife',
+            dir: '.',
+            entryFileNames: 'script.js',
+            chunkFileNames: 'js/chunks/[name]-[hash].js',
+            format: 'es',
             sourcemap: false,
             banner: '/* GENERATED FILE - DO NOT EDIT DIRECTLY - Edit source in js/main.js and run npm run build */',
         },
         plugins: [resolve()],
     },
+    // Admin App
+    {
+        input: 'src/apps/admin/index.js',
+        output: {
+            dir: '.',
+            entryFileNames: 'admin.js',
+            chunkFileNames: 'js/chunks/admin-[name]-[hash].js',
+            format: 'es',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
+    // Legal I18n
+    {
+        input: 'src/apps/legal/i18n.js',
+        output: {
+            file: 'js/legal-i18n.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    }
 ];

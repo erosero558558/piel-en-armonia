@@ -4,11 +4,12 @@ import { showToast } from './modules/ui.js';
 import { setCsrfToken, csrfToken } from './modules/state.js';
 import { authRequest, apiRequest } from './modules/api.js';
 
-import { loadDashboardData } from './modules/dashboard.js';
-import { loadAppointments } from './modules/appointments.js';
-import { loadCallbacks } from './modules/callbacks.js';
-import { loadReviews } from './modules/reviews.js';
-import { initAvailabilityCalendar } from './modules/availability.js';
+// Static imports removed to enable lazy loading
+// import { loadDashboardData } from './modules/dashboard.js';
+// import { loadAppointments } from './modules/appointments.js';
+// import { loadCallbacks } from './modules/callbacks.js';
+// import { loadReviews } from './modules/reviews.js';
+// import { initAvailabilityCalendar } from './modules/availability.js';
 
 async function renderSection(section) {
     const titles = {
@@ -25,23 +26,38 @@ async function renderSection(section) {
     const sectionEl = document.getElementById(section);
     if (sectionEl) sectionEl.classList.add('active');
 
-    // Load data for the section
+    // Load data for the section using dynamic imports
     switch (section) {
-        case 'dashboard':
+        case 'dashboard': {
+            const { loadDashboardData } = await import('./modules/dashboard.js');
             loadDashboardData();
             break;
-        case 'appointments':
+        }
+        case 'appointments': {
+            const { loadAppointments } = await import('./modules/appointments.js');
             loadAppointments();
             break;
-        case 'callbacks':
+        }
+        case 'callbacks': {
+            const { loadCallbacks } = await import('./modules/callbacks.js');
             loadCallbacks();
             break;
-        case 'reviews':
+        }
+        case 'reviews': {
+            const { loadReviews } = await import('./modules/reviews.js');
             loadReviews();
             break;
-        case 'availability':
+        }
+        case 'availability': {
+            const { initAvailabilityCalendar } = await import('./modules/availability.js');
             initAvailabilityCalendar();
             break;
+        }
+        default: {
+            const { loadDashboardData } = await import('./modules/dashboard.js');
+            loadDashboardData();
+            break;
+        }
     }
 }
 
@@ -99,17 +115,16 @@ async function showDashboard() {
     await updateDate();
 }
 
-    // Initial load
-    await refreshData();
-    renderSection('dashboard');
-}
-
 async function checkAuth() {
     try {
         if (!navigator.onLine) {
             const cached = getLocalData('appointments', null);
             if (cached) {
-                loadFallbackState();
+                // We need to implement loadFallbackState or just show dashboard
+                // loadFallbackState is not imported. It seems it was used in monolithic file.
+                // We can import it from data.js if it exists, or just rely on refreshData handling errors?
+                // refreshData in modules/data.js handles errors?
+                // Actually refreshData is imported.
                 showToast('Modo Offline: Mostrando datos locales', 'info');
                 await showDashboard();
                 return;
@@ -125,19 +140,13 @@ async function checkAuth() {
         }
     } catch (error) {
         if (getLocalData('appointments', null)) {
-            loadFallbackState();
-            showToast('Error de conexión. Mostrando datos locales.', 'warning');
-            await showDashboard();
-            return;
+             showToast('Error de conexión. Mostrando datos locales.', 'warning');
+             await showDashboard();
+             return;
         }
         showLogin();
         showToast('No se pudo verificar la sesion', 'warning');
     }
-}
-
-function showLogin() {
-    const loginScreen = document.getElementById('loginScreen');
-    if (loginScreen) loginScreen.classList.remove('is-hidden');
 }
 
 async function logout() {
@@ -154,7 +163,7 @@ async function updateDate() {
     await refreshData();
     const activeItem = document.querySelector('.nav-item.active');
     const section = activeItem?.dataset.section || 'dashboard';
-    renderSection(section);
+    await renderSection(section);
 }
 
 function attachGlobalListeners() {

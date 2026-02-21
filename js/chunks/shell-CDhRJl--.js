@@ -1,42 +1,7 @@
-import { withDeployAssetVersion, debugLog, showToast } from '../shared/utils.js';
-import {
-    loadDeferredModule,
-    runDeferredModule,
-    withDeferredModule,
-    createWarmupRunner,
-    bindWarmupTarget,
-    scheduleDeferredTask,
-} from '../../../js/loader.js';
-import {
-    state,
-    getCurrentLang,
-    getCurrentAppointment,
-    getChatHistory,
-    setChatHistory,
-    getConversationContext,
-    setConversationContext,
-    getChatbotOpen,
-    setChatbotOpen,
-    setCurrentAppointment,
-} from '../../../js/state.js';
-import {
-    CLINIC_ADDRESS,
-    CLINIC_MAP_URL,
-    DOCTOR_CAROLINA_PHONE,
-    DOCTOR_CAROLINA_EMAIL,
-} from '../../../js/config.js';
-import { trackEvent } from '../../../js/analytics.js';
-import {
-    loadAvailabilityData,
-    getBookedSlots,
-    createAppointmentRecord,
-} from '../../../js/data.js';
-import {
-    startCheckoutSession,
-    setCheckoutStep,
-    completeCheckoutSession,
-    openPaymentModal,
-} from '../../../js/booking.js';
+/* GENERATED FILE - DO NOT EDIT DIRECTLY - Edit source in js/main.js and run npm run build */
+import { r as runDeferredModule, s as showToast, w as withDeferredModule, c as createWarmupRunner, b as bindWarmupTarget, a as scheduleDeferredTask, l as loadDeferredModule, d as withDeployAssetVersion, e as setChatbotOpen, g as getChatbotOpen, D as DOCTOR_CAROLINA_EMAIL, f as DOCTOR_CAROLINA_PHONE, C as CLINIC_MAP_URL, h as CLINIC_ADDRESS, i as setChatHistory, j as getChatHistory, k as getCurrentAppointment, m as setConversationContext, n as getConversationContext, o as debugLog, p as state, t as trackEvent, q as setCurrentAppointment, u as getCurrentLang, v as createAppointmentRecord, x as getBookedSlots, y as loadAvailabilityData } from '../../script.js';
+import { openPaymentModal, completeCheckoutSession, setCheckoutStep, startCheckoutSession } from './booking-D9ZKfbO6.js';
+import './success-modal-D5Mn68in.js';
 
 const CHAT_UI_ENGINE_URL = withDeployAssetVersion(
     '/js/engines/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1'
@@ -56,7 +21,7 @@ const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
 const CHAT_HISTORY_MAX_ITEMS = 50;
 const CHAT_CONTEXT_MAX_ITEMS = 24;
 
-export function escapeHtml(text) {
+function escapeHtml(text) {
     if (
         window.Piel &&
         window.Piel.ChatUiEngine &&
@@ -69,7 +34,7 @@ export function escapeHtml(text) {
     return div.innerHTML;
 }
 
-export function scrollToBottom() {
+function scrollToBottom() {
     if (
         window.Piel &&
         window.Piel.ChatUiEngine &&
@@ -84,25 +49,25 @@ export function scrollToBottom() {
     }
 }
 
-export function addUserMessage(text) {
+function addUserMessage(text) {
     return withDeferredModule(loadChatUiEngine, (engine) =>
         engine.addUserMessage(text)
     );
 }
 
-export function addBotMessage(html, showOfflineLabel = false) {
+function addBotMessage(html, showOfflineLabel = false) {
     return runDeferredModule(loadChatUiEngine, (engine) =>
         engine.addBotMessage(html, showOfflineLabel)
     );
 }
 
-export function showTypingIndicator() {
+function showTypingIndicator() {
     runDeferredModule(loadChatUiEngine, (engine) =>
         engine.showTypingIndicator()
     );
 }
 
-export function removeTypingIndicator() {
+function removeTypingIndicator() {
     runDeferredModule(loadChatUiEngine, (engine) =>
         engine.removeTypingIndicator()
     );
@@ -122,7 +87,7 @@ function getChatUiEngineDeps() {
     };
 }
 
-export function loadChatUiEngine() {
+function loadChatUiEngine() {
     return loadDeferredModule({
         cacheKey: 'chat-ui-engine',
         src: CHAT_UI_ENGINE_URL,
@@ -137,7 +102,7 @@ export function loadChatUiEngine() {
     });
 }
 
-export function initChatUiEngineWarmup() {
+function initChatUiEngineWarmup() {
     const warmup = createWarmupRunner(() => loadChatUiEngine(), {
         markWarmOnSuccess: true,
     });
@@ -163,7 +128,7 @@ function getChatWidgetEngineDeps() {
     };
 }
 
-export function loadChatWidgetEngine() {
+function loadChatWidgetEngine() {
     return loadDeferredModule({
         cacheKey: 'chat-widget-engine',
         src: CHAT_WIDGET_ENGINE_URL,
@@ -178,7 +143,7 @@ export function loadChatWidgetEngine() {
     });
 }
 
-export function initChatWidgetEngineWarmup() {
+function initChatWidgetEngineWarmup() {
     const warmup = createWarmupRunner(() => loadChatWidgetEngine(), {
         markWarmOnSuccess: true,
     });
@@ -188,7 +153,7 @@ export function initChatWidgetEngineWarmup() {
     scheduleDeferredTask(warmup, { idleTimeout: 2600, fallbackDelay: 1300 });
 }
 
-export function toggleChatbot() {
+function toggleChatbot() {
     runDeferredModule(
         loadChatWidgetEngine,
         (engine) => engine.toggleChatbot(),
@@ -202,7 +167,7 @@ export function toggleChatbot() {
     );
 }
 
-export function minimizeChatbot() {
+function minimizeChatbot() {
     runDeferredModule(
         loadChatWidgetEngine,
         (engine) => engine.minimizeChatbot(),
@@ -214,7 +179,7 @@ export function minimizeChatbot() {
     );
 }
 
-export function handleChatKeypress(event) {
+function handleChatKeypress(event) {
     runDeferredModule(
         loadChatWidgetEngine,
         (engine) => engine.handleChatKeypress(event),
@@ -226,7 +191,7 @@ export function handleChatKeypress(event) {
     );
 }
 
-export async function sendChatMessage() {
+async function sendChatMessage() {
     return runDeferredModule(
         loadChatWidgetEngine,
         (engine) => engine.sendChatMessage(),
@@ -244,7 +209,7 @@ export async function sendChatMessage() {
     );
 }
 
-export function sendQuickMessage(type) {
+function sendQuickMessage(type) {
     runDeferredModule(
         loadChatWidgetEngine,
         (engine) => engine.sendQuickMessage(type),
@@ -272,7 +237,7 @@ export function sendQuickMessage(type) {
     );
 }
 
-export function scheduleChatNotification() {
+function scheduleChatNotification() {
     runDeferredModule(loadChatWidgetEngine, (engine) =>
         engine.scheduleInitialNotification(30000)
     );
@@ -300,7 +265,7 @@ function getChatBookingEngineDeps() {
     };
 }
 
-export function loadChatBookingEngine() {
+function loadChatBookingEngine() {
     return loadDeferredModule({
         cacheKey: 'chat-booking-engine',
         src: CHAT_BOOKING_ENGINE_URL,
@@ -315,7 +280,7 @@ export function loadChatBookingEngine() {
     });
 }
 
-export function initChatBookingEngineWarmup() {
+function initChatBookingEngineWarmup() {
     const warmup = createWarmupRunner(() => loadChatBookingEngine());
     bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
     bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
@@ -333,7 +298,7 @@ export function initChatBookingEngineWarmup() {
     scheduleDeferredTask(warmup, { idleTimeout: 2600, fallbackDelay: 1700 });
 }
 
-export function startChatBooking() {
+function startChatBooking() {
     runDeferredModule(
         loadChatBookingEngine,
         (engine) => engine.startChatBooking(),
@@ -345,7 +310,7 @@ export function startChatBooking() {
     );
 }
 
-export function handleChatBookingSelection(value) {
+function handleChatBookingSelection(value) {
     runDeferredModule(
         loadChatBookingEngine,
         (engine) => engine.handleChatBookingSelection(value),
@@ -355,7 +320,7 @@ export function handleChatBookingSelection(value) {
     );
 }
 
-export function handleChatDateSelect(value) {
+function handleChatDateSelect(value) {
     if (!value) return;
     runDeferredModule(
         loadChatBookingEngine,
@@ -366,19 +331,19 @@ export function handleChatDateSelect(value) {
     );
 }
 
-export function processChatBookingStep(userInput) {
+function processChatBookingStep(userInput) {
     return withDeferredModule(loadChatBookingEngine, (engine) =>
         engine.processChatBookingStep(userInput)
     );
 }
 
-export function finalizeChatBooking() {
+function finalizeChatBooking() {
     return withDeferredModule(loadChatBookingEngine, (engine) =>
         engine.finalizeChatBooking()
     );
 }
 
-export function isChatBookingActive() {
+function isChatBookingActive() {
     if (
         window.Piel &&
         window.Piel.ChatBookingEngine &&
@@ -389,7 +354,7 @@ export function isChatBookingActive() {
     return false;
 }
 
-export function loadFigoChatEngine() {
+function loadFigoChatEngine() {
     return loadDeferredModule({
         cacheKey: 'figo-chat-engine',
         src: FIGO_CHAT_ENGINE_URL,
@@ -425,7 +390,7 @@ export function loadFigoChatEngine() {
     });
 }
 
-export function initChatEngineWarmup() {
+function initChatEngineWarmup() {
     const warmup = createWarmupRunner(() => loadFigoChatEngine(), {
         markWarmOnSuccess: true,
     });
@@ -435,7 +400,7 @@ export function initChatEngineWarmup() {
     scheduleDeferredTask(warmup, { idleTimeout: 7000, fallbackDelay: 7000 });
 }
 
-export async function processWithKimi(message) {
+async function processWithKimi(message) {
     return runDeferredModule(
         loadFigoChatEngine,
         (engine) => engine.processWithKimi(message),
@@ -450,7 +415,7 @@ export async function processWithKimi(message) {
     );
 }
 
-export function checkServerEnvironment() {
+function checkServerEnvironment() {
     if (window.location.protocol === 'file:') {
         setTimeout(() => {
             showToast(
@@ -463,3 +428,5 @@ export function checkServerEnvironment() {
     }
     return true;
 }
+
+export { addBotMessage, addUserMessage, checkServerEnvironment, escapeHtml, finalizeChatBooking, handleChatBookingSelection, handleChatDateSelect, handleChatKeypress, initChatBookingEngineWarmup, initChatEngineWarmup, initChatUiEngineWarmup, initChatWidgetEngineWarmup, isChatBookingActive, loadChatBookingEngine, loadChatUiEngine, loadChatWidgetEngine, loadFigoChatEngine, minimizeChatbot, processChatBookingStep, processWithKimi, removeTypingIndicator, scheduleChatNotification, scrollToBottom, sendChatMessage, sendQuickMessage, showTypingIndicator, startChatBooking, toggleChatbot };
