@@ -16,6 +16,25 @@ $cookieFile = sys_get_temp_dir() . '/cookie-' . uniqid() . '.txt';
 if (!is_dir($dataDir)) {
     mkdir($dataDir, 0777, true);
 }
+
+// Seed Availability for +3, +4, +5 days
+$day3 = date('Y-m-d', strtotime('+3 days'));
+$day4 = date('Y-m-d', strtotime('+4 days'));
+$day5 = date('Y-m-d', strtotime('+5 days'));
+
+$seedData = [
+    'appointments' => [],
+    'reviews' => [],
+    'callbacks' => [],
+    'availability' => [
+        $day3 => ['10:00', '11:00'],
+        $day4 => ['10:00', '11:00'],
+        $day5 => ['10:00', '11:00']
+    ],
+    'updatedAt' => date('c')
+];
+file_put_contents($dataDir . '/store.json', json_encode($seedData));
+
 // We need to pass env vars to the server process
 $envVars = "PIELARMONIA_DATA_DIR=$dataDir PIELARMONIA_ADMIN_PASSWORD=secret";
 
@@ -71,8 +90,8 @@ function http_request($method, $url, $data = null, $cookies = null, $headers = [
 
 try {
     // 1. Conflict Handling (Waitlist)
-    run_test('E2E: Conflict Handling', function () use ($baseUrl) {
-        $date = date('Y-m-d', strtotime('+3 days')); // Ensure future date
+    run_test('E2E: Conflict Handling', function () use ($baseUrl, $day3) {
+        $date = $day3;
         $time = '10:00';
 
         // Create first appointment
@@ -111,8 +130,8 @@ try {
     });
 
     // 2. Reschedule Flow
-    run_test('E2E: Reschedule Flow', function () use ($baseUrl) {
-        $date = date('Y-m-d', strtotime('+4 days'));
+    run_test('E2E: Reschedule Flow', function () use ($baseUrl, $day4) {
+        $date = $day4;
         $time1 = '10:00';
         $time2 = '11:00';
 
@@ -160,8 +179,8 @@ try {
     });
 
     // 3. Admin Cancellation
-    run_test('E2E: Admin Cancellation', function () use ($baseUrl, $adminUrl, $cookieFile) {
-        $date = date('Y-m-d', strtotime('+5 days'));
+    run_test('E2E: Admin Cancellation', function () use ($baseUrl, $adminUrl, $cookieFile, $day5) {
+        $date = $day5;
         $time = '10:00';
 
         // Create appointment

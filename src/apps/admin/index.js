@@ -97,7 +97,6 @@ async function showDashboard() {
     if (loginScreen) loginScreen.classList.add('is-hidden');
     if (dashboard) dashboard.classList.remove('is-hidden');
     await updateDate();
-}
 
     // Initial load
     await refreshData();
@@ -133,11 +132,6 @@ async function checkAuth() {
         showLogin();
         showToast('No se pudo verificar la sesion', 'warning');
     }
-}
-
-function showLogin() {
-    const loginScreen = document.getElementById('loginScreen');
-    if (loginScreen) loginScreen.classList.remove('is-hidden');
 }
 
 async function logout() {

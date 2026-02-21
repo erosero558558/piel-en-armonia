@@ -91,6 +91,13 @@
 // putenv('FEATURE_DARK_MODE=true');
 // putenv('FEATURE_CHATGPT_INTEGRATION=true');
 
+// ── Notificaciones Push (VAPID) ─────────────────────
+// Generar con: openssl ecparam -name prime256v1 -genkey -noout -out private.pem && openssl ec -in private.pem -pubout -out public.pem
+// O dejar vacio para autogeneracion en BD (kv_store).
+// putenv('VAPID_PUBLIC_KEY=');
+// putenv('VAPID_PRIVATE_KEY=');
+// putenv('VAPID_SUBJECT=mailto:admin@pielarmonia.com');
+
 // ── Debug seguro (solo desarrollo) ───────────────────
 // En produccion mantener en false para no filtrar errores internos al frontend
 // putenv('PIELARMONIA_DEBUG_EXCEPTIONS=false');
