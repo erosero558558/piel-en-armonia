@@ -652,10 +652,11 @@ END:VCALENDAR`;
     function init$1(inputDeps) {
         deps = inputDeps || {};
         bindDelegatedListeners();
-        return window.PielConsentEngine;
+        return window.Piel.ConsentEngine;
     }
 
-    window.PielConsentEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.ConsentEngine = {
         init: init$1,
         getCookieConsent,
         setCookieConsent,

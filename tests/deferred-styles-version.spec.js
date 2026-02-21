@@ -2,7 +2,7 @@
 const { test, expect } = require('@playwright/test');
 
 // Updated to match the optimized minified CSS file
-const EXPECTED_DEFERRED_VERSION = 'ui-20260221-deferred17-mobileblankfix2';
+const EXPECTED_DEFERRED_VERSION = 'ui-20260221-deferred18-fullcssfix1';
 const DEFERRED_STYLESHEET_NAME = 'styles-deferred.css';
 
 const PAGE_PATHS = [
