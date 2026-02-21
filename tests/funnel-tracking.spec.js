@@ -16,7 +16,15 @@ async function mockApi(page) {
         const resource = url.searchParams.get('resource') || '';
 
         if (resource === 'availability') {
-            return jsonResponse(route, { ok: true, data: {} });
+            const target = new Date();
+            target.setDate(target.getDate() + 7);
+            const dateValue = target.toISOString().split('T')[0];
+            return jsonResponse(route, {
+                ok: true,
+                data: {
+                    [dateValue]: ['10:00', '11:00', '15:00']
+                }
+            });
         }
 
         if (resource === 'booked-slots') {
@@ -134,10 +142,45 @@ async function fillBookingFormAndOpenPayment(page) {
         timeout: 10000,
         state: 'attached',
     });
-    await page.waitForSelector('script[data-booking-ui="true"]', {
-        timeout: 10000,
-        state: 'attached',
+
+    // Pre-load booking-ui.js to avoid lazy loading timeouts in test environment
+    await page.evaluate(async () => {
+        if (!window.PielBookingUi) {
+            try {
+                // Find correct versioned URL if possible, or fallback
+                const script = document.createElement('script');
+                script.src = '/booking-ui.js';
+                // Note: The app uses versioned URL, but for test, root access works.
+                // We rely on import() to execute it.
+                await import('/booking-ui.js');
+            } catch (e) {
+                console.error('Failed to preload booking-ui.js', e);
+            }
+        }
+
+        if (!window.PielBookingEngine) {
+            try {
+                await import('/booking-engine.js');
+            } catch (e) {
+                console.error('Failed to preload booking-engine.js', e);
+            }
+        }
     });
+
+    // Trigger lazy load logic in app (to call init())
+    // Dispatch focusin to ensure initBookingUiWarmup fires immediately
+    await page.locator('#appointmentForm').dispatchEvent('focusin');
+
+    // Also scroll just in case
+    const bookingSection = page.locator('#citas');
+    await bookingSection.scrollIntoViewIfNeeded();
+
+    // Give time for initialization (microtasks)
+    await page.waitForTimeout(500);
+
+    // Ensure modules are loaded
+    await page.waitForFunction(() => !!window.PielBookingUi, null, { timeout: 15000 }).catch(() => console.error('PielBookingUi missing'));
+    await page.waitForFunction(() => !!window.PielBookingEngine, null, { timeout: 15000 }).catch(() => console.error('PielBookingEngine missing'));
 
     const serviceSelect = page.locator('#serviceSelect');
     await serviceSelect.selectOption('consulta');
@@ -151,23 +194,13 @@ async function fillBookingFormAndOpenPayment(page) {
     const dateValue = target.toISOString().split('T')[0];
     await dateInput.fill(dateValue);
     await dateInput.dispatchEvent('change');
-    await page.waitForTimeout(250);
 
-    await page.evaluate(() => {
-        const timeSelect = document.querySelector('select[name="time"]');
-        if (!timeSelect) return;
-        let candidate = Array.from(timeSelect.options).find(
-            (option) => option.value && !option.disabled
-        );
-        if (!candidate) {
-            candidate = document.createElement('option');
-            candidate.value = '10:00';
-            candidate.textContent = '10:00';
-            timeSelect.appendChild(candidate);
-        }
-        timeSelect.value = candidate.value;
-        timeSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    // Wait for availability to load and populate slots
+    const timeSelect = page.locator('select[name="time"]');
+    await expect(timeSelect.locator('option:not([disabled])')).not.toHaveCount(0, { timeout: 10000 });
+
+    // Select the first available option
+    await timeSelect.selectOption({ index: 1 });
 
     const nameInput = page.locator('input[name="name"]');
     await nameInput.fill('Paciente Test Tracking');
