@@ -220,13 +220,18 @@ async function fillBookingFormAndOpenPayment(page) {
     await page.locator('textarea[name="reason"]').blur();
 
     await page.locator('input[name="privacyConsent"]').check();
-    await page.locator('#appointmentForm button[type="submit"]').click();
 
-    // Wait for animation/modal open
-    await page.waitForTimeout(1000);
+    // Ensure button is clickable and visible before interaction
+    const submitBtn = page.locator('#appointmentForm button[type="submit"]');
+    await submitBtn.scrollIntoViewIfNeeded();
+    await expect(submitBtn).toBeVisible();
+    await submitBtn.click();
+
+    // Wait for animation/modal open with more leniency for CI
+    await page.waitForTimeout(1500);
 
     // Wait for modal to become active
-    await page.waitForSelector('#paymentModal.active', { timeout: 30000 });
+    await page.waitForSelector('#paymentModal.active', { timeout: 45000 });
     await page.waitForTimeout(250);
 }
 
