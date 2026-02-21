@@ -15,7 +15,6 @@ if (!mkdir($tempDir, 0777, true)) {
 }
 
 // Force JSON storage for this test to match legacy expectations
-putenv("PIELARMONIA_STORAGE_JSON_FALLBACK=1");
 putenv("PIELARMONIA_DATA_DIR=$tempDir");
 $restoreScript = realpath(__DIR__ . '/../bin/restore-backup.php');
 
@@ -23,7 +22,7 @@ $restoreScript = realpath(__DIR__ . '/../bin/restore-backup.php');
 require_once __DIR__ . '/../lib/storage.php';
 require_once __DIR__ . '/../lib/db.php';
 
-$storeFile = storage_use_json_fallback() ? data_json_path() : data_file_path();
+$storeFile = data_file_path();
 require_once __DIR__ . '/../lib/backup.php';
 
 function fail($msg, $dir)
@@ -109,7 +108,7 @@ try {
 
     // We use --force to skip confirmation
     $cmd = sprintf(
-        'PIELARMONIA_DATA_DIR=%s PIELARMONIA_STORAGE_JSON_FALLBACK=1 php %s %s --force',
+        'PIELARMONIA_DATA_DIR=%s php %s %s --force',
         escapeshellarg($tempDir),
         escapeshellarg($restoreScript),
         escapeshellarg($backupPath)
