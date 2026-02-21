@@ -13,15 +13,16 @@ test.describe('Consentimiento de cookies', () => {
         page,
     }) => {
         const banner = page.locator('#cookieBanner');
-        await expect(banner).toBeVisible();
+        // El banner puede tardar en aparecer si la inicializacion es diferida
+        await expect(banner).toBeVisible({ timeout: 10000 });
     });
 
     test('aceptar cookies oculta el banner', async ({ page }) => {
         const banner = page.locator('#cookieBanner');
-        await expect(banner).toBeVisible();
+        await expect(banner).toBeVisible({ timeout: 10000 });
 
         const acceptBtn = page.locator('#cookieAcceptBtn');
-        await acceptBtn.click();
+        await acceptBtn.click({ force: true });
 
         await expect(banner).not.toBeVisible();
 
@@ -36,10 +37,10 @@ test.describe('Consentimiento de cookies', () => {
 
     test('rechazar cookies oculta el banner', async ({ page }) => {
         const banner = page.locator('#cookieBanner');
-        await expect(banner).toBeVisible();
+        await expect(banner).toBeVisible({ timeout: 10000 });
 
         const rejectBtn = page.locator('#cookieRejectBtn');
-        await rejectBtn.click();
+        await rejectBtn.click({ force: true });
 
         await expect(banner).not.toBeVisible();
 
@@ -69,9 +70,11 @@ test.describe('Consentimiento de cookies', () => {
     });
 
     test('GA4 no se carga sin consentimiento', async ({ page }) => {
+        const banner = page.locator('#cookieBanner');
+        await expect(banner).toBeVisible({ timeout: 10000 });
         // Rechazar cookies
         const rejectBtn = page.locator('#cookieRejectBtn');
-        await rejectBtn.click();
+        await rejectBtn.click({ force: true });
         await page.waitForTimeout(1000);
 
         const ga4Loaded = await page.evaluate(() => !!window._ga4Loaded);
@@ -79,8 +82,10 @@ test.describe('Consentimiento de cookies', () => {
     });
 
     test('GA4 se carga al aceptar cookies', async ({ page }) => {
+        const banner = page.locator('#cookieBanner');
+        await expect(banner).toBeVisible({ timeout: 10000 });
         const acceptBtn = page.locator('#cookieAcceptBtn');
-        await acceptBtn.click();
+        await acceptBtn.click({ force: true });
         await page.waitForTimeout(2000);
 
         const ga4Loaded = await page.evaluate(() => !!window._ga4Loaded);

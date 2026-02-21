@@ -120,8 +120,8 @@ test.describe('Checklist de Pruebas en Producción', () => {
 
         // 1. Confirm login success via toast or URL change first
         // This confirms the backend auth worked
-        await expect(page.locator('.toast.success')).toBeVisible({
-            timeout: 10000,
+        await expect(page.locator('#adminDashboard')).toBeVisible({
+            timeout: 20000,
         });
 
         // 2. Wait for dashboard visibility

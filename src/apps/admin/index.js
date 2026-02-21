@@ -1,7 +1,6 @@
 import { checkAuth, login, login2FA, logout } from './modules/auth.js';
 import { refreshData } from './modules/data.js';
 import { showToast, escapeHtml } from './modules/ui.js';
-import { apiRequest } from './modules/api.js';
 import { setCsrfToken } from './modules/state.js';
 
 async function renderSection(section) {
@@ -31,9 +30,7 @@ async function renderSection(section) {
     return payload;
 }
 
-async function apiRequest(resource, options = {}) {
-    return requestJson(buildQuery(resource), options);
-}
+// apiRequest was redeclared here. Removing it.
 
 async function authRequest(action, options = {}) {
     return requestJson(`${AUTH_ENDPOINT}?action=${encodeURIComponent(action)}`, options);
