@@ -14,6 +14,8 @@ if (!mkdir($tempDir, 0777, true)) {
 }
 
 putenv("PIELARMONIA_DATA_DIR=$tempDir");
+// Force JSON storage to match test expectations (store.json)
+putenv("PIELARMONIA_STORAGE_JSON_FALLBACK=1");
 $storeFile = $tempDir . DIRECTORY_SEPARATOR . 'store.json';
 $restoreScript = realpath(__DIR__ . '/../../bin/restore-backup.php');
 

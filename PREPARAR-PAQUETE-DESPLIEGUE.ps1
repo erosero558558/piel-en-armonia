@@ -65,7 +65,6 @@ $files = @(
     'styles-deferred.css',
     'script.js',
     'app-bootstrap-engine.js',
-    'action-router-engine.js',
     'analytics-engine.js',
     'booking-engine.js',
     'booking-ui.js',
