@@ -1,21 +1,9 @@
-import { login, login2FA } from './modules/auth.js';
-import { showToast, normalizeCallbackStatus } from './modules/ui.js';
-import {
-    currentAppointments,
-    currentCallbacks,
-    currentReviews,
-    currentAvailability,
-    currentFunnelMetrics,
-    csrfToken,
-    setAppointments,
-    setCallbacks,
-    setReviews,
-    setAvailability,
-    setFunnelMetrics,
-    setCsrfToken,
-    getEmptyFunnelMetrics
-} from './modules/state.js';
-import { apiRequest, authRequest } from './modules/api.js';
+import { checkAuth as apiCheckAuth, login, login2FA, logout as apiLogout } from './modules/auth.js';
+import { refreshData, getLocalData } from './modules/data.js';
+import { showToast } from './modules/ui.js';
+import { setCsrfToken, csrfToken } from './modules/state.js';
+import { authRequest, apiRequest } from './modules/api.js';
+
 import { loadDashboardData } from './modules/dashboard.js';
 import { loadAppointments } from './modules/appointments.js';
 import { loadCallbacks } from './modules/callbacks.js';
@@ -37,6 +25,7 @@ async function renderSection(section) {
     const sectionEl = document.getElementById(section);
     if (sectionEl) sectionEl.classList.add('active');
 
+    // Load data for the section
     switch (section) {
         case 'dashboard':
             loadDashboardData();
@@ -53,76 +42,6 @@ async function renderSection(section) {
         case 'availability':
             initAvailabilityCalendar();
             break;
-        default:
-            loadDashboardData();
-            break;
-    }
-}
-
-function getLocalData(key, fallback) {
-    try {
-        const value = JSON.parse(localStorage.getItem(key) || 'null');
-        return value === null ? fallback : value;
-    } catch (error) {
-        return fallback;
-    }
-}
-
-function saveLocalData(key, data) {
-    try {
-        localStorage.setItem(key, JSON.stringify(data));
-    } catch (error) {
-        // storage quota full or disabled
-    }
-}
-
-function loadFallbackState() {
-    setAppointments(getLocalData('appointments', []));
-    setCallbacks(getLocalData('callbacks', []).map(c => ({
-        ...c,
-        status: normalizeCallbackStatus(c.status)
-    })));
-    setReviews(getLocalData('reviews', []));
-    setAvailability(getLocalData('availability', {}));
-    setFunnelMetrics(getEmptyFunnelMetrics());
-}
-
-async function refreshData() {
-    try {
-        const [payload, funnelPayload] = await Promise.all([
-            apiRequest('data'),
-            apiRequest('funnel-metrics').catch(() => null)
-        ]);
-
-        const data = payload.data || {};
-
-        const apps = Array.isArray(data.appointments) ? data.appointments : [];
-        setAppointments(apps);
-
-        const cbs = Array.isArray(data.callbacks) ? data.callbacks.map(c => ({
-            ...c,
-            status: normalizeCallbackStatus(c.status)
-        })) : [];
-        setCallbacks(cbs);
-
-        const revs = Array.isArray(data.reviews) ? data.reviews : [];
-        setReviews(revs);
-
-        const avail = data.availability && typeof data.availability === 'object' ? data.availability : {};
-        setAvailability(avail);
-
-        if (funnelPayload && funnelPayload.data && typeof funnelPayload.data === 'object') {
-            setFunnelMetrics(funnelPayload.data);
-        } else {
-            setFunnelMetrics(getEmptyFunnelMetrics());
-        }
-
-        saveLocalData('appointments', apps);
-        saveLocalData('callbacks', cbs);
-        saveLocalData('reviews', revs);
-        saveLocalData('availability', avail);
-    } catch (error) {
-        showToast('Error cargando módulo: ' + error.message, 'error');
     }
 }
 
@@ -148,17 +67,11 @@ async function handleLogin(e) {
             const loginResult = await login(password);
 
             if (loginResult.twoFactorRequired) {
-                const passGroup = document.getElementById('passwordGroup');
-                if (passGroup) passGroup.classList.add('is-hidden');
-
+                document.getElementById('passwordGroup').classList.add('is-hidden');
                 if (group2FA) group2FA.classList.remove('is-hidden');
-
-                const codeInput = document.getElementById('admin2FACode');
-                if (codeInput) codeInput.focus();
-
+                document.getElementById('admin2FACode').focus();
                 const btn = document.getElementById('loginBtn');
                 if (btn) btn.innerHTML = '<i class="fas fa-check"></i> Verificar';
-
                 showToast('Ingresa tu código 2FA', 'info');
             } else {
                 if (loginResult.csrfToken) setCsrfToken(loginResult.csrfToken);
@@ -171,11 +84,20 @@ async function handleLogin(e) {
     }
 }
 
+function showLogin() {
+    const loginScreen = document.getElementById('loginScreen');
+    const dashboard = document.getElementById('adminDashboard');
+    if (loginScreen) loginScreen.classList.remove('is-hidden');
+    if (dashboard) dashboard.classList.add('is-hidden');
+}
+
 async function showDashboard() {
     const loginScreen = document.getElementById('loginScreen');
     const dashboard = document.getElementById('adminDashboard');
     if (loginScreen) loginScreen.classList.add('is-hidden');
     if (dashboard) dashboard.classList.remove('is-hidden');
+    await updateDate();
+}
 
     // Initial load
     await refreshData();
@@ -219,13 +141,7 @@ function showLogin() {
 }
 
 async function logout() {
-    try {
-        await authRequest('logout', { method: 'POST' });
-    } catch (error) {
-        // Continue with local logout UI.
-    }
-    showToast('Sesion cerrada correctamente', 'info');
-    setTimeout(() => window.location.reload(), 800);
+    await apiLogout();
 }
 
 async function updateDate() {
