@@ -25,7 +25,7 @@
         {
             "datasource": {
                 "type": "prometheus",
-                "uid": "${DS_PROMETHEUS}"
+                "uid": "prometheus"
             },
             "fieldConfig": {
                 "defaults": {
@@ -102,7 +102,7 @@
                 {
                     "datasource": {
                         "type": "prometheus",
-                        "uid": "${DS_PROMETHEUS}"
+                        "uid": "prometheus"
                     },
                     "editorMode": "code",
                     "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
@@ -113,7 +113,7 @@
                 {
                     "datasource": {
                         "type": "prometheus",
-                        "uid": "${DS_PROMETHEUS}"
+                        "uid": "prometheus"
                     },
                     "editorMode": "code",
                     "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
@@ -124,7 +124,7 @@
                 {
                     "datasource": {
                         "type": "prometheus",
-                        "uid": "${DS_PROMETHEUS}"
+                        "uid": "prometheus"
                     },
                     "editorMode": "code",
                     "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
@@ -139,7 +139,7 @@
         {
             "datasource": {
                 "type": "prometheus",
-                "uid": "${DS_PROMETHEUS}"
+                "uid": "prometheus"
             },
             "fieldConfig": {
                 "defaults": {
@@ -216,7 +216,7 @@
                 {
                     "datasource": {
                         "type": "prometheus",
-                        "uid": "${DS_PROMETHEUS}"
+                        "uid": "prometheus"
                     },
                     "editorMode": "code",
                     "expr": "sum(increase(conversion_funnel_events_total[1h])) by (step)",
@@ -231,7 +231,7 @@
         {
             "datasource": {
                 "type": "prometheus",
-                "uid": "${DS_PROMETHEUS}"
+                "uid": "prometheus"
             },
             "fieldConfig": {
                 "defaults": {
@@ -308,7 +308,7 @@
                 {
                     "datasource": {
                         "type": "prometheus",
-                        "uid": "${DS_PROMETHEUS}"
+                        "uid": "prometheus"
                     },
                     "editorMode": "code",
                     "expr": "pielarmonia_revenue_daily_total",
@@ -323,7 +323,7 @@
         {
             "datasource": {
                 "type": "prometheus",
-                "uid": "${DS_PROMETHEUS}"
+                "uid": "prometheus"
             },
             "fieldConfig": {
                 "defaults": {
@@ -376,7 +376,7 @@
                 {
                     "datasource": {
                         "type": "prometheus",
-                        "uid": "${DS_PROMETHEUS}"
+                        "uid": "prometheus"
                     },
                     "editorMode": "code",
                     "expr": "pielarmonia_no_show_rate",
@@ -394,7 +394,7 @@
             "type": "timeseries",
             "datasource": {
                 "type": "prometheus",
-                "uid": "${DS_PROMETHEUS}"
+                "uid": "prometheus"
             },
             "gridPos": {
                 "h": 8,
@@ -406,7 +406,7 @@
                 {
                     "datasource": {
                         "type": "prometheus",
-                        "uid": "${DS_PROMETHEUS}"
+                        "uid": "prometheus"
                     },
                     "editorMode": "code",
                     "expr": "sum(rate(http_request_duration_seconds_count[5m])) by (status)",
@@ -474,7 +474,7 @@
             "type": "timeseries",
             "datasource": {
                 "type": "prometheus",
-                "uid": "${DS_PROMETHEUS}"
+                "uid": "prometheus"
             },
             "gridPos": {
                 "h": 8,
@@ -486,7 +486,7 @@
                 {
                     "datasource": {
                         "type": "prometheus",
-                        "uid": "${DS_PROMETHEUS}"
+                        "uid": "prometheus"
                     },
                     "editorMode": "code",
                     "expr": "histogram_quantile(0.95, sum(rate(php_memory_usage_bytes_bucket[5m])) by (le))",
@@ -515,7 +515,7 @@
             "type": "stat",
             "datasource": {
                 "type": "prometheus",
-                "uid": "${DS_PROMETHEUS}"
+                "uid": "prometheus"
             },
             "gridPos": {
                 "h": 4,
@@ -527,7 +527,7 @@
                 {
                     "datasource": {
                         "type": "prometheus",
-                        "uid": "${DS_PROMETHEUS}"
+                        "uid": "prometheus"
                     },
                     "editorMode": "code",
                     "expr": "pielarmonia_store_file_size_bytes",
@@ -560,7 +560,7 @@
             "type": "timeseries",
             "datasource": {
                 "type": "prometheus",
-                "uid": "${DS_PROMETHEUS}"
+                "uid": "prometheus"
             },
             "gridPos": {
                 "h": 8,
@@ -572,7 +572,7 @@
                 {
                     "datasource": {
                         "type": "prometheus",
-                        "uid": "${DS_PROMETHEUS}"
+                        "uid": "prometheus"
                     },
                     "editorMode": "code",
                     "expr": "histogram_quantile(0.99, sum(rate(store_read_duration_seconds_bucket[5m])) by (le))",
@@ -597,7 +597,7 @@
             "type": "piechart",
             "datasource": {
                 "type": "prometheus",
-                "uid": "${DS_PROMETHEUS}"
+                "uid": "prometheus"
             },
             "gridPos": {
                 "h": 8,
@@ -609,7 +609,7 @@
                 {
                     "datasource": {
                         "type": "prometheus",
-                        "uid": "${DS_PROMETHEUS}"
+                        "uid": "prometheus"
                     },
                     "editorMode": "code",
                     "expr": "pielarmonia_service_popularity_total",
@@ -694,7 +694,7 @@
             "type": "stat",
             "datasource": {
                 "type": "prometheus",
-                "uid": "${DS_PROMETHEUS}"
+                "uid": "prometheus"
             },
             "gridPos": {
                 "h": 4,
@@ -706,7 +706,7 @@
                 {
                     "datasource": {
                         "type": "prometheus",
-                        "uid": "${DS_PROMETHEUS}"
+                        "uid": "prometheus"
                     },
                     "editorMode": "code",
                     "expr": "pielarmonia_lead_time_seconds_avg",
@@ -739,7 +739,7 @@
             "type": "piechart",
             "datasource": {
                 "type": "prometheus",
-                "uid": "${DS_PROMETHEUS}"
+                "uid": "prometheus"
             },
             "gridPos": {
                 "h": 8,
@@ -751,7 +751,7 @@
                 {
                     "datasource": {
                         "type": "prometheus",
-                        "uid": "${DS_PROMETHEUS}"
+                        "uid": "prometheus"
                     },
                     "editorMode": "code",
                     "expr": "pielarmonia_appointments_total",

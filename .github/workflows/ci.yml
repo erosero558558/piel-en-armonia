@@ -27,6 +27,14 @@ jobs:
               run: npm run lint:js
             - name: Lint PHP
               run: npm run lint:php
+            - name: Lint Prometheus Config
+              run: |
+                  docker run --rm \
+                    -v $(pwd)/prometheus.docker.yml:/etc/prometheus/prometheus.yml \
+                    -v $(pwd)/prometheus.rules.yml:/etc/prometheus/prometheus.rules.yml \
+                    --entrypoint promtool \
+                    prom/prometheus:latest \
+                    check config /etc/prometheus/prometheus.yml
 
     security:
         runs-on: ubuntu-latest

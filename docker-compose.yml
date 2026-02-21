@@ -32,6 +32,7 @@ services:
     container_name: pielarmonia_prometheus
     volumes:
       - ./prometheus.docker.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus.rules.yml:/etc/prometheus/prometheus.rules.yml
       - pielarmonia_prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
