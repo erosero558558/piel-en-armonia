@@ -39,7 +39,7 @@ export default [
         output: {
             dir: '.',
             entryFileNames: 'admin.js',
-            chunkFileNames: 'js/admin-chunks/[name]-[hash].js',
+            chunkFileNames: 'js/admin-chunks/[name].js',
             format: 'es',
             sourcemap: false
         },

@@ -362,19 +362,19 @@ async function renderSection(section) {
 
     try {
         if (section === 'dashboard') {
-            const { loadDashboardData } = await import('./js/admin-chunks/dashboard-B6tqHnCY.js');
+            const { loadDashboardData } = await import('./js/admin-chunks/dashboard.js');
             loadDashboardData();
         } else if (section === 'appointments') {
-            const { loadAppointments } = await import('./js/admin-chunks/appointments-B2EHTbyb.js');
+            const { loadAppointments } = await import('./js/admin-chunks/appointments.js');
             loadAppointments();
         } else if (section === 'callbacks') {
-            const { loadCallbacks } = await import('./js/admin-chunks/callbacks-w6WUJ2zE.js');
+            const { loadCallbacks } = await import('./js/admin-chunks/callbacks.js');
             loadCallbacks();
         } else if (section === 'reviews') {
-            const { loadReviews } = await import('./js/admin-chunks/reviews-DFXlEOux.js');
+            const { loadReviews } = await import('./js/admin-chunks/reviews.js');
             loadReviews();
         } else if (section === 'availability') {
-            const { initAvailabilityCalendar } = await import('./js/admin-chunks/availability-4bfwcN9b.js');
+            const { initAvailabilityCalendar } = await import('./js/admin-chunks/availability.js');
             initAvailabilityCalendar();
         }
     } catch (error) {
@@ -471,7 +471,7 @@ function attachGlobalListeners() {
         try {
             if (['change-month', 'add-time-slot', 'remove-time-slot'].includes(action)) {
                 e.preventDefault();
-                const mod = await import('./js/admin-chunks/availability-4bfwcN9b.js');
+                const mod = await import('./js/admin-chunks/availability.js');
                 if (action === 'change-month') mod.changeMonth(Number(actionEl.dataset.delta || 0));
                 if (action === 'add-time-slot') await mod.addTimeSlot();
                 if (action === 'remove-time-slot') await mod.removeTimeSlot(
@@ -481,14 +481,14 @@ function attachGlobalListeners() {
             }
             else if (['approve-transfer', 'reject-transfer', 'cancel-appointment'].includes(action)) {
                 e.preventDefault();
-                const mod = await import('./js/admin-chunks/appointments-B2EHTbyb.js');
+                const mod = await import('./js/admin-chunks/appointments.js');
                 if (action === 'approve-transfer') await mod.approveTransfer(Number(actionEl.dataset.id || 0));
                 if (action === 'reject-transfer') await mod.rejectTransfer(Number(actionEl.dataset.id || 0));
                 if (action === 'cancel-appointment') await mod.cancelAppointment(Number(actionEl.dataset.id || 0));
             }
             else if (action === 'mark-contacted') {
                 e.preventDefault();
-                const mod = await import('./js/admin-chunks/callbacks-w6WUJ2zE.js');
+                const mod = await import('./js/admin-chunks/callbacks.js');
                 await mod.markContacted(
                     Number(actionEl.dataset.callbackId || 0),
                     actionEl.dataset.callbackDate || ''
@@ -502,7 +502,7 @@ function attachGlobalListeners() {
     const appointmentFilter = document.getElementById('appointmentFilter');
     if (appointmentFilter) {
         appointmentFilter.addEventListener('change', async () => {
-             const { filterAppointments } = await import('./js/admin-chunks/appointments-B2EHTbyb.js');
+             const { filterAppointments } = await import('./js/admin-chunks/appointments.js');
              filterAppointments();
         });
     }
@@ -510,7 +510,7 @@ function attachGlobalListeners() {
     const searchInput = document.getElementById('searchAppointments');
     if (searchInput) {
         searchInput.addEventListener('input', async () => {
-             const { searchAppointments } = await import('./js/admin-chunks/appointments-B2EHTbyb.js');
+             const { searchAppointments } = await import('./js/admin-chunks/appointments.js');
              searchAppointments();
         });
     }
@@ -518,7 +518,7 @@ function attachGlobalListeners() {
     const callbackFilter = document.getElementById('callbackFilter');
     if (callbackFilter) {
         callbackFilter.addEventListener('change', async () => {
-             const { filterCallbacks } = await import('./js/admin-chunks/callbacks-w6WUJ2zE.js');
+             const { filterCallbacks } = await import('./js/admin-chunks/callbacks.js');
              filterCallbacks();
         });
     }
