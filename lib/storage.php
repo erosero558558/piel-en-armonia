@@ -28,6 +28,71 @@ if (!defined('STORE_LOCK_RETRY_DELAY_US')) {
     define('STORE_LOCK_RETRY_DELAY_US', 25000);
 }
 
+function storage_sqlite_available(): bool
+{
+    static $available = null;
+    if (is_bool($available)) {
+        return $available;
+    }
+
+    if (!class_exists('PDO')) {
+        $available = false;
+        return $available;
+    }
+
+    try {
+        $drivers = PDO::getAvailableDrivers();
+        $available = is_array($drivers) && in_array('sqlite', $drivers, true);
+    } catch (Throwable $e) {
+        $available = false;
+    }
+
+    return $available;
+}
+
+function storage_use_json_fallback(): bool
+{
+    $forceJson = getenv('PIELARMONIA_STORAGE_JSON_FALLBACK');
+    if (is_string($forceJson) && trim($forceJson) !== '' && parse_bool($forceJson)) {
+        return true;
+    }
+
+    return !storage_sqlite_available();
+}
+
+function storage_default_store_payload(): array
+{
+    return [
+        'appointments' => [],
+        'callbacks' => [],
+        'reviews' => [],
+        'availability' => [],
+        'updatedAt' => local_date('c')
+    ];
+}
+
+function normalize_store_payload($rawStore): array
+{
+    $store = is_array($rawStore) ? $rawStore : [];
+
+    $appointments = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
+    $callbacks = isset($store['callbacks']) && is_array($store['callbacks']) ? $store['callbacks'] : [];
+    $reviews = isset($store['reviews']) && is_array($store['reviews']) ? $store['reviews'] : [];
+    $availability = isset($store['availability']) && is_array($store['availability']) ? $store['availability'] : [];
+    $updatedAt = isset($store['updatedAt']) && is_string($store['updatedAt']) && trim($store['updatedAt']) !== ''
+        ? trim($store['updatedAt'])
+        : local_date('c');
+
+    return [
+        'appointments' => array_values($appointments),
+        'callbacks' => array_values($callbacks),
+        'reviews' => array_values($reviews),
+        'availability' => $availability,
+        'updatedAt' => $updatedAt,
+        'idx_appointments_date' => build_appointment_index($appointments)
+    ];
+}
+
 function data_home_dir_candidate(): string
 {
     $home = '';
@@ -311,7 +376,20 @@ function ensure_backup_dir(): bool
 
 function prune_backup_files(): void
 {
-    $files = glob(backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.sqlite');
+    $patterns = [
+        backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.sqlite',
+        backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.json'
+    ];
+
+    $files = [];
+    foreach ($patterns as $pattern) {
+        $matches = glob($pattern);
+        if (!is_array($matches) || $matches === []) {
+            continue;
+        }
+        $files = array_merge($files, $matches);
+    }
+
     if (!is_array($files) || count($files) <= MAX_STORE_BACKUPS) {
         return;
     }
@@ -340,7 +418,15 @@ function create_store_backup_locked($sourcePath): void
         $suffix = substr(md5((string) microtime(true)), 0, 6);
     }
 
-    $filename = backup_dir_path() . DIRECTORY_SEPARATOR . 'store-' . local_date('Ymd-His') . '-' . $suffix . '.sqlite';
+    $extension = strtolower((string) pathinfo((string) $sourcePath, PATHINFO_EXTENSION));
+    if ($extension === '') {
+        $extension = 'sqlite';
+    }
+    if ($extension !== 'sqlite' && $extension !== 'json') {
+        $extension = 'sqlite';
+    }
+
+    $filename = backup_dir_path() . DIRECTORY_SEPARATOR . 'store-' . local_date('Ymd-His') . '-' . $suffix . '.' . $extension;
     if (!copy($sourcePath, $filename)) {
         error_log('Piel en Armonía: no se pudo guardar backup de store.sqlite');
         return;
@@ -489,6 +575,19 @@ function ensure_data_file(): bool
 
     ensure_data_htaccess($dataDir);
 
+    if (storage_use_json_fallback()) {
+        if (!is_file($jsonPath)) {
+            $seed = storage_default_store_payload();
+            $seed['createdAt'] = local_date('c');
+            $raw = json_encode($seed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+            if (!is_string($raw) || @file_put_contents($jsonPath, $raw, LOCK_EX) === false) {
+                error_log('Piel en Armonia: no se pudo inicializar store.json en fallback');
+                return false;
+            }
+        }
+        return true;
+    }
+
     // Ensure schema exists
     $pdo = get_db_connection($dbPath);
     if ($pdo) {
@@ -512,24 +611,32 @@ function ensure_data_file(): bool
 function read_store(): array
 {
     if (!ensure_data_file()) {
-        return [
-            'appointments' => [],
-            'callbacks' => [],
-            'reviews' => [],
-            'availability' => [],
-            'updatedAt' => local_date('c')
-        ];
+        return normalize_store_payload(storage_default_store_payload());
+    }
+
+    if (storage_use_json_fallback()) {
+        $jsonPath = data_json_path();
+        $raw = @file_get_contents($jsonPath);
+        if (!is_string($raw) || trim($raw) === '') {
+            return normalize_store_payload(storage_default_store_payload());
+        }
+
+        $decoded = data_decrypt_payload($raw);
+        if ($decoded === '') {
+            $decoded = $raw;
+        }
+
+        $store = json_decode($decoded, true);
+        if (!is_array($store)) {
+            return normalize_store_payload(storage_default_store_payload());
+        }
+
+        return normalize_store_payload($store);
     }
 
     $pdo = get_db_connection(data_file_path());
     if (!$pdo) {
-        return [
-            'appointments' => [],
-            'callbacks' => [],
-            'reviews' => [],
-            'availability' => [],
-            'updatedAt' => local_date('c')
-        ];
+        return normalize_store_payload(storage_default_store_payload());
     }
 
     try {
@@ -593,13 +700,7 @@ function read_store(): array
         return $store;
     } catch (PDOException $e) {
         error_log('Read Store Error: ' . $e->getMessage());
-        return [
-            'appointments' => [],
-            'callbacks' => [],
-            'reviews' => [],
-            'availability' => [],
-            'updatedAt' => local_date('c')
-        ];
+        return normalize_store_payload(storage_default_store_payload());
     }
 }
 
@@ -614,6 +715,26 @@ function write_store(array $store): void
     if (!ensure_data_file()) {
         if (function_exists('json_response')) {
              json_response(['ok' => false, 'error' => 'Storage error'], 500);
+        }
+        return;
+    }
+
+    $store = normalize_store_payload($store);
+
+    if (storage_use_json_fallback()) {
+        $jsonPath = data_json_path();
+        if (is_file($jsonPath)) {
+            create_store_backup_locked($jsonPath);
+        }
+
+        $store['updatedAt'] = local_date('c');
+        unset($store['idx_appointments_date']);
+        $jsonPayload = json_encode($store, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        if (!is_string($jsonPayload) || @file_put_contents($jsonPath, $jsonPayload, LOCK_EX) === false) {
+            error_log('Write Store Error: json_fallback_write_failed');
+            if (function_exists('json_response')) {
+                json_response(['ok' => false, 'error' => 'Write error'], 500);
+            }
         }
         return;
     }

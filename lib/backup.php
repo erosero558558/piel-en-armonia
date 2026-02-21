@@ -140,7 +140,7 @@ function backup_create_initial_seed_if_missing(): array
         return $result;
     }
 
-    if (!function_exists('ensure_data_file') || !function_exists('data_file_path') || !function_exists('create_store_backup_locked')) {
+    if (!function_exists('ensure_data_file') || !function_exists('create_store_backup_locked')) {
         $result['reason'] = 'storage_helpers_unavailable';
         return $result;
     }
@@ -150,8 +150,25 @@ function backup_create_initial_seed_if_missing(): array
         return $result;
     }
 
-    $storePath = (string) data_file_path();
-    if ($storePath === '' || !is_file($storePath) || !is_readable($storePath)) {
+    $storePathCandidates = [];
+    if (function_exists('data_file_path')) {
+        $storePathCandidates[] = (string) data_file_path();
+    }
+    if (function_exists('data_json_path')) {
+        $storePathCandidates[] = (string) data_json_path();
+    }
+
+    $storePath = '';
+    foreach ($storePathCandidates as $candidatePath) {
+        if (!is_string($candidatePath) || trim($candidatePath) === '') {
+            continue;
+        }
+        if (is_file($candidatePath) && is_readable($candidatePath)) {
+            $storePath = $candidatePath;
+            break;
+        }
+    }
+    if ($storePath === '') {
         $result['reason'] = 'store_file_missing';
         return $result;
     }
@@ -179,9 +196,20 @@ function backup_create_initial_seed_if_missing(): array
 
 function backup_list_files(int $limit = 0): array
 {
-    $pattern = backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.sqlite';
-    $files = glob($pattern);
-    if (!is_array($files) || $files === []) {
+    $patterns = [
+        backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.sqlite',
+        backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.json'
+    ];
+
+    $files = [];
+    foreach ($patterns as $pattern) {
+        $matches = glob($pattern);
+        if (!is_array($matches) || $matches === []) {
+            continue;
+        }
+        $files = array_merge($files, $matches);
+    }
+    if ($files === []) {
         return [];
     }
 
