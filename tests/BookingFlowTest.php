@@ -14,6 +14,20 @@ $dataDir = sys_get_temp_dir() . '/pielarmonia-test-data-' . uniqid();
 if (!is_dir($dataDir)) {
     mkdir($dataDir, 0777, true);
 }
+
+// Seed Availability
+$apptDate = date('Y-m-d', strtotime('+2 days'));
+$seedData = [
+    'appointments' => [],
+    'reviews' => [],
+    'callbacks' => [],
+    'availability' => [
+        $apptDate => ['09:00', '10:00', '11:00', '12:00']
+    ],
+    'updatedAt' => date('c')
+];
+file_put_contents($dataDir . '/store.json', json_encode($seedData));
+
 putenv("PIELARMONIA_DATA_DIR=$dataDir");
 // We need to pass this env var to the server process too!
 
@@ -66,7 +80,6 @@ try {
     });
 
     // 2. Create Appointment (POST)
-    $apptDate = date('Y-m-d', strtotime('+2 days'));
     run_test('Integration: Create Appointment', function () use ($apptDate) {
         $payload = [
             'name' => 'Integration User',
