@@ -152,6 +152,10 @@ async function fillBookingFormAndOpenPayment(page) {
         timeout: 10000,
         state: 'attached',
     });
+    await page.waitForSelector('script[data-booking-ui="true"]', {
+        timeout: 10000,
+        state: 'attached',
+    });
 
     // Ensure booking section is visible to trigger lazy loading
     const bookingSection = page.locator('#citas');
