@@ -8,12 +8,14 @@ declare(strict_types=1);
 echo "Starting Disaster Recovery Integration Test...\n";
 
 // Setup
+global $tempDir;
 $tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'pielarmonia_dr_test_' . uniqid();
 if (!mkdir($tempDir, 0777, true)) {
     die("Could not create temp dir: $tempDir\n");
 }
 
 putenv("PIELARMONIA_DATA_DIR=$tempDir");
+putenv("PIELARMONIA_STORAGE_JSON_FALLBACK=true");
 $storeFile = $tempDir . DIRECTORY_SEPARATOR . 'store.json';
 $restoreScript = realpath(__DIR__ . '/../../bin/restore-backup.php');
 

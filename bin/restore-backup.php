@@ -90,7 +90,10 @@ if (!$force) {
 }
 
 echo "Creating safety backup of current store...\n";
-$currentStorePath = data_file_path();
+$currentStorePath = function_exists('storage_use_json_fallback') && storage_use_json_fallback()
+    ? data_json_path()
+    : data_file_path();
+
 if (file_exists($currentStorePath)) {
     $safetyBackupPath = $currentStorePath . '.pre-restore-' . date('Ymd-His') . '.bak';
     if (!copy($currentStorePath, $safetyBackupPath)) {
