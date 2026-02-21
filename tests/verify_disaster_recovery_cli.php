@@ -16,7 +16,10 @@ if (!mkdir($tempDir, 0777, true)) {
 
 // Force JSON storage for this test to match legacy expectations
 putenv("PIELARMONIA_DATA_DIR=$tempDir");
-$restoreScript = realpath(__DIR__ . '/../bin/restore-backup.php');
+// Force JSON storage to match test expectations (store.json)
+putenv("PIELARMONIA_STORAGE_JSON_FALLBACK=1");
+$storeFile = $tempDir . DIRECTORY_SEPARATOR . 'store.json';
+$restoreScript = realpath(__DIR__ . '/../../bin/restore-backup.php');
 
 // Ensure dependencies are loaded
 require_once __DIR__ . '/../lib/storage.php';
