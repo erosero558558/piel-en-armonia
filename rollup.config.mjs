@@ -40,8 +40,10 @@ export default [
     {
         input: 'src/apps/admin/index.js',
         output: {
-            file: 'admin.js',
-            format: 'iife',
+            dir: '.',
+            entryFileNames: 'admin.js',
+            chunkFileNames: 'js/admin-chunks/[name]-[hash].js',
+            format: 'es',
             sourcemap: false
         },
         plugins: [resolve()]

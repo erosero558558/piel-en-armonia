@@ -1,0 +1,31 @@
+
+> build
+> rollup -c
+
+[36m
+[1msrc/apps/booking/ui-entry.js[22m → [1mbooking-ui.js[22m...[39m
+[32mcreated [1mbooking-ui.js[22m in [1m115ms[22m[39m
+[36m
+[1msrc/apps/booking/engine.js[22m → [1mbooking-engine.js[22m...[39m
+[32mcreated [1mbooking-engine.js[22m in [1m66ms[22m[39m
+[36m
+[1msrc/apps/booking/components/calendar.js[22m → [1mjs/booking-calendar.js[22m...[39m
+[32mcreated [1mjs/booking-calendar.js[22m in [1m17ms[22m[39m
+[36m
+[1msrc/apps/admin/index.js[22m → [1madmin.js[22m...[39m
+[32mcreated [1madmin.js[22m in [1m101ms[22m[39m
+[36m
+[1msrc/apps/chat/ui-engine.js[22m → [1mchat-ui-engine.js[22m...[39m
+[32mcreated [1mchat-ui-engine.js[22m in [1m26ms[22m[39m
+[36m
+[1msrc/apps/chat/widget-engine.js[22m → [1mchat-widget-engine.js[22m...[39m
+[32mcreated [1mchat-widget-engine.js[22m in [1m18ms[22m[39m
+[36m
+[1msrc/apps/chat/booking-engine.js[22m → [1mchat-booking-engine.js[22m...[39m
+[32mcreated [1mchat-booking-engine.js[22m in [1m39ms[22m[39m
+[36m
+[1msrc/apps/chat/engine.js[22m → [1mchat-engine.js[22m...[39m
+[32mcreated [1mchat-engine.js[22m in [1m42ms[22m[39m
+[36m
+[1mjs/main.js[22m → [1mscript.js[22m...[39m
+[32mcreated [1mscript.js[22m in [1m237ms[22m[39m
