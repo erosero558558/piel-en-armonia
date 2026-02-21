@@ -14,6 +14,100 @@ require_once __DIR__ . '/tenants.php';
 // Tasa de IVA general (configurable via environment)
 define('IVA_GENERAL_RATE', 0.15); // 15%
 
+function default_public_reviews_enabled(): bool
+{
+    $raw = getenv('PIELARMONIA_DEFAULT_REVIEWS_ENABLED');
+    if (!is_string($raw) || trim($raw) === '') {
+        return true;
+    }
+    return parse_bool($raw);
+}
+
+function default_availability_enabled(): bool
+{
+    $raw = getenv('PIELARMONIA_DEFAULT_AVAILABILITY_ENABLED');
+    if (!is_string($raw) || trim($raw) === '') {
+        return true;
+    }
+    return parse_bool($raw);
+}
+
+function get_default_public_reviews(): array
+{
+    return [
+        [
+            'id' => 'google-jose-gancino',
+            'name' => 'Jose Gancino',
+            'rating' => 5,
+            'text' => 'Buena atencion, solo faltan los numeros de la oficina y horarios de atencion.',
+            'date' => '2025-10-01T10:00:00-05:00',
+            'verified' => true
+        ],
+        [
+            'id' => 'google-jacqueline-ruiz-torres',
+            'name' => 'Jacqueline Ruiz Torres',
+            'rating' => 5,
+            'text' => 'Excelente atencion y economico.',
+            'date' => '2025-04-15T10:00:00-05:00',
+            'verified' => true
+        ],
+        [
+            'id' => 'google-cris-lema',
+            'name' => 'Cris Lema',
+            'rating' => 5,
+            'text' => '',
+            'date' => '2025-10-10T10:00:00-05:00',
+            'verified' => true
+        ],
+        [
+            'id' => 'google-camila-escobar',
+            'name' => 'Camila Escobar',
+            'rating' => 5,
+            'text' => '',
+            'date' => '2025-02-01T10:00:00-05:00',
+            'verified' => true
+        ]
+    ];
+}
+
+function get_default_availability(?int $days = null): array
+{
+    $totalDays = is_int($days) && $days > 0 ? $days : 21;
+    if ($totalDays > 60) {
+        $totalDays = 60;
+    }
+
+    $weekdaySlots = [
+        '09:00', '09:30', '10:00', '10:30',
+        '11:00', '11:30', '12:00', '12:30',
+        '14:00', '14:30', '15:00', '15:30',
+        '16:00', '16:30', '17:00', '17:30'
+    ];
+
+    $saturdaySlots = [
+        '09:00', '09:30', '10:00', '10:30',
+        '11:00', '11:30', '12:00', '12:30'
+    ];
+
+    $availability = [];
+    for ($i = 0; $i < $totalDays; $i++) {
+        $ts = strtotime('+' . $i . ' day');
+        if ($ts === false) {
+            continue;
+        }
+
+        $day = (int) date('N', $ts); // 1=Mon, 7=Sun
+        if ($day === 7) {
+            continue;
+        }
+
+        $date = date('Y-m-d', $ts);
+        $availability[$date] = $day === 6 ? $saturdaySlots : $weekdaySlots;
+    }
+
+    return $availability;
+}
+
 function is_weekend(?string $date = null): bool
 {
     if ($date === null || trim($date) === '') {

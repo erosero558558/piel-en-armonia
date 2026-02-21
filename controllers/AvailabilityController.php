@@ -8,9 +8,18 @@ class AvailabilityController
     {
         // GET /availability
         $store = $context['store'];
+        $availability = isset($store['availability']) && is_array($store['availability']) ? $store['availability'] : [];
+        if (
+            count($availability) === 0 &&
+            function_exists('default_availability_enabled') &&
+            default_availability_enabled()
+        ) {
+            $availability = get_default_availability();
+        }
+
         json_response([
             'ok' => true,
-            'data' => $store['availability']
+            'data' => $availability
         ]);
     }
 

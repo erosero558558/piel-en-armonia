@@ -8,12 +8,17 @@ class ReviewController
     {
         // GET /reviews
         $store = $context['store'];
-        usort($store['reviews'], static function (array $a, array $b): int {
+        $reviews = isset($store['reviews']) && is_array($store['reviews']) ? $store['reviews'] : [];
+        if (count($reviews) === 0 && function_exists('default_public_reviews_enabled') && default_public_reviews_enabled()) {
+            $reviews = get_default_public_reviews();
+        }
+
+        usort($reviews, static function (array $a, array $b): int {
             return strcmp((string) ($b['date'] ?? ''), (string) ($a['date'] ?? ''));
         });
         json_response([
             'ok' => true,
-            'data' => $store['reviews']
+            'data' => $reviews
         ]);
     }
 

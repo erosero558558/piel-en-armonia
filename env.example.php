@@ -80,6 +80,9 @@
 // putenv('PIELARMONIA_DB_PASS=secret');
 // Fallback automatico a almacenamiento JSON cuando SQLite no esta disponible (default true)
 // putenv('PIELARMONIA_STORAGE_JSON_FALLBACK=true');
+// Fallback de contenido publico cuando store esta vacio (default true)
+// putenv('PIELARMONIA_DEFAULT_REVIEWS_ENABLED=true');
+// putenv('PIELARMONIA_DEFAULT_AVAILABILITY_ENABLED=true');
 
 // ── Feature Flags ───────────────────────────────────
 // putenv('FEATURE_NEW_BOOKING_UI=true');
