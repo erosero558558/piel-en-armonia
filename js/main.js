@@ -139,7 +139,7 @@ function initBookingCalendarLazyInit() {
                 cacheKey: 'booking-utils-calendar',
                 src: BOOKING_UTILS_URL,
                 scriptDataAttribute: 'data-booking-utils',
-                resolveModule: () => window.PielBookingCalendarEngine
+                resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine
             }).then(function (moduleRef) {
                 if (moduleRef && typeof moduleRef.initCalendar === 'function') {
                     moduleRef.initCalendar();

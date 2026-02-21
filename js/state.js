@@ -29,6 +29,7 @@ let paymentConfigLoadedAt = 0;
 let stripeSdkPromise = null;
 let chatbotOpen = false;
 let conversationContext = [];
+let conversationContextLoaded = false;
 
 export function getCurrentLang() {
     return currentLang;
@@ -164,10 +165,30 @@ export function setChatbotOpen(val) {
 }
 
 export function getConversationContext() {
+    if (!conversationContextLoaded) {
+        conversationContextLoaded = true;
+        try {
+            const raw = localStorage.getItem('conversationContext');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                    conversationContext = parsed;
+                }
+            }
+        } catch {
+            // noop
+        }
+    }
     return conversationContext;
 }
 export function setConversationContext(val) {
     conversationContext = val;
+    conversationContextLoaded = true;
+    try {
+        localStorage.setItem('conversationContext', JSON.stringify(val));
+    } catch {
+        // noop
+    }
 }
 
 export function getChatHistory() {
