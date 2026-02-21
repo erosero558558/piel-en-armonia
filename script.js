@@ -1614,7 +1614,6 @@
     // BOOKING UI
     function getBookingUiDeps() {
         return {
-            updateAvailableTimes,
             loadAvailabilityData,
             updateAvailableTimes,
             getBookedSlots,
@@ -1634,7 +1633,6 @@
             normalizeAnalyticsLabel,
             openPaymentModal,
             setCurrentAppointment: setCurrentAppointment,
-            updateAvailableTimes,
         };
     }
 
