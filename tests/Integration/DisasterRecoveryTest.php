@@ -26,13 +26,15 @@ function fail($msg)
     global $tempDir;
     echo "FAILED: $msg\n";
     // Cleanup
-    recursiveRemove($tempDir);
+    if (isset($tempDir)) {
+        recursiveRemove($tempDir);
+    }
     exit(1);
 }
 
 function recursiveRemove($dir)
 {
-    if (!is_dir($dir)) {
+    if (!$dir || !is_dir($dir)) {
         return;
     }
     $files = new RecursiveIteratorIterator(

@@ -150,11 +150,11 @@ document.addEventListener('DOMContentLoaded', function () {
         initModalUxEngineWarmup();
     });
 
-    window.addEventListener('pointerdown', initDeferredWarmups, {
+    window.addEventListener('pointerdown', initLowPriorityWarmups, {
         once: true,
         passive: true,
     });
-    window.addEventListener('keydown', initDeferredWarmups, { once: true });
+    window.addEventListener('keydown', initLowPriorityWarmups, { once: true });
 
     scheduleDeferredTask(initHighPriorityWarmups, {
         idleTimeout: 1400,
