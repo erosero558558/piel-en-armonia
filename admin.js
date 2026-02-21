@@ -2096,11 +2096,6 @@ async function checkAuth() {
     }
 }
 
-function showLogin() {
-    const loginScreen = document.getElementById('loginScreen');
-    if (loginScreen) loginScreen.classList.remove('is-hidden');
-}
-
 async function logout() {
     try {
         await authRequest('logout', { method: 'POST' });
