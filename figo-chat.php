@@ -43,6 +43,7 @@ function figo_apply_cors(): void
         if (strcasecmp($normalizedOrigin, $allowedOrigin) === 0) {
             header('Access-Control-Allow-Origin: ' . $origin);
             header('Vary: Origin');
+            header('Cross-Origin-Resource-Policy: cross-origin');
             return;
         }
     }

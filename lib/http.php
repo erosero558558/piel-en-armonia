@@ -175,6 +175,7 @@ function api_apply_cors(array $methods = ['GET', 'POST', 'OPTIONS'], array $head
     if ($matched) {
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Vary: Origin');
+        header('Cross-Origin-Resource-Policy: cross-origin');
         if ($credentials) {
             header('Access-Control-Allow-Credentials: true');
         }
