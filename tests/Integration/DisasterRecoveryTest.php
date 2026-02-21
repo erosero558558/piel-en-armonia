@@ -94,27 +94,21 @@ try {
         fail("Failed to corrupt data.");
     }
 
-    // Delete the corrupt file so restore can create a fresh one
-    // (SQLite driver cannot connect to a text file)
-    $filesToClean = [
-        $storeFile,
-        $tempDir . DIRECTORY_SEPARATOR . 'store.json',
-        $storeFile . '-wal',
-        $storeFile . '-shm'
-    ];
-
-    foreach ($filesToClean as $f) {
-        if (file_exists($f)) {
-            unlink($f);
-        }
+    // Ensure any existing DB connection is closed before cleanup
+    if (function_exists('close_db_connection')) {
+        close_db_connection();
     }
 
-    // Create a valid empty SQLite file to ensure restore script can connect
-    try {
-        $pdo = new PDO("sqlite:$storeFile");
-        $pdo = null; // Close connection
-    } catch (Throwable $e) {
-        fail("Could not create empty sqlite file: " . $e->getMessage());
+    // Move backup to a safe location outside the data dir
+    $safeBackupPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'safe_backup_' . uniqid() . '.json';
+    if (!copy($backupPath, $safeBackupPath)) {
+        fail("Failed to copy backup to safe location.");
+    }
+
+    // Nuke the entire data directory to ensure no artifacts remain
+    recursiveRemove($tempDir);
+    if (!mkdir($tempDir, 0777, true)) {
+        fail("Failed to recreate temp dir.");
     }
 
     // 4. Restore using CLI script
@@ -123,7 +117,7 @@ try {
         'PIELARMONIA_DATA_DIR=%s php %s %s --force 2>&1',
         escapeshellarg($tempDir),
         escapeshellarg($restoreScript),
-        escapeshellarg($backupPath)
+        escapeshellarg($safeBackupPath)
     );
 
     exec($cmd, $output, $returnVar);
@@ -137,9 +131,11 @@ try {
     $restoredData = read_store();
 
     if (count($restoredData['appointments'] ?? []) !== 1) {
+        echo "Restore script output:\n" . implode("\n", $output) . "\n";
         fail("Restored appointments count mismatch.");
     }
     if (($restoredData['appointments'][0]['name'] ?? '') !== 'Test Patient') {
+        echo "Restore script output:\n" . implode("\n", $output) . "\n";
         fail("Restored patient name mismatch.");
     }
 
