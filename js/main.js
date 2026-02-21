@@ -28,6 +28,13 @@ import {
     initChatWidgetEngineWarmup,
     initChatEngineWarmup,
     initChatBookingEngineWarmup,
+    toggleChatbot,
+    sendChatMessage,
+    handleChatBookingSelection,
+    sendQuickMessage,
+    minimizeChatbot,
+    startChatBooking,
+    handleChatDateSelect,
     handleChatKeypress,
     checkServerEnvironment,
 } from '../src/apps/chat/shell.js';
@@ -153,9 +160,95 @@ function initBookingCalendarLazyInit() {
     });
 }
 
+function fallbackSelectService(value) {
+    const select = document.getElementById('serviceSelect');
+    if (select) {
+        select.value = value;
+        select.dispatchEvent(new Event('change'));
+        markBookingViewed('service_select');
+        const appointmentSection = document.getElementById('citas');
+        if (appointmentSection) {
+            const navHeight = document.querySelector('.nav')?.offsetHeight || 80;
+            const targetPosition = appointmentSection.offsetTop - navHeight - 20;
+            window.scrollTo({
+                top: targetPosition,
+                behavior: 'smooth',
+            });
+        }
+    }
+}
+
+let chatActionFallbackBridgeBound = false;
+function initChatActionFallbackBridge() {
+    if (chatActionFallbackBridgeBound) {
+        return;
+    }
+    chatActionFallbackBridgeBound = true;
+
+    document.addEventListener('click', function (event) {
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
+
+        const actionEl = target.closest('[data-action]');
+        if (!actionEl) return;
+
+        const action = String(actionEl.getAttribute('data-action') || '').trim();
+        const value = actionEl.getAttribute('data-value') || '';
+
+        switch (action) {
+            case 'toggle-chatbot':
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                toggleChatbot();
+                break;
+            case 'minimize-chat':
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                minimizeChatbot();
+                break;
+            case 'send-chat-message':
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                sendChatMessage();
+                break;
+            case 'quick-message':
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                sendQuickMessage(value);
+                break;
+            case 'chat-booking':
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                handleChatBookingSelection(value);
+                break;
+            case 'start-booking':
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                startChatBooking();
+                break;
+            case 'select-service':
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                fallbackSelectService(value);
+                break;
+            default:
+                break;
+        }
+    });
+
+    document.addEventListener('change', function (event) {
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        if (target.closest('[data-action="chat-date-select"]')) {
+            handleChatDateSelect(target.value);
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     disablePlaceholderExternalLinks();
     bootstrapConsent();
+    initChatActionFallbackBridge();
     initActionRouterEngine();
     initDeferredStylesheetLoading();
     initThemeMode();
@@ -212,8 +305,7 @@ document.addEventListener('DOMContentLoaded', function () {
             chatInput.addEventListener('keypress', handleChatKeypress);
         }
 
-        // Re-init dynamic components
-        initGalleryLazyLoad();
+        // Gallery lazy load is already initialized below in the legacy fallback block.
         initBookingCalendarLazyInit();
     });
 

@@ -892,7 +892,8 @@
             cacheKey: 'i18n-engine',
             src: DATA_BUNDLE_URL$1,
             scriptDataAttribute: 'data-data-bundle',
-            resolveModule: () => window.Piel && window.Piel.I18nEngine,
+            resolveModule: () =>
+                (window.Piel && window.Piel.I18nEngine) || window.PielI18nEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getI18nEngineDeps()),
@@ -2808,9 +2809,95 @@
         });
     }
 
+    function fallbackSelectService(value) {
+        const select = document.getElementById('serviceSelect');
+        if (select) {
+            select.value = value;
+            select.dispatchEvent(new Event('change'));
+            markBookingViewed('service_select');
+            const appointmentSection = document.getElementById('citas');
+            if (appointmentSection) {
+                const navHeight = document.querySelector('.nav')?.offsetHeight || 80;
+                const targetPosition = appointmentSection.offsetTop - navHeight - 20;
+                window.scrollTo({
+                    top: targetPosition,
+                    behavior: 'smooth',
+                });
+            }
+        }
+    }
+
+    let chatActionFallbackBridgeBound = false;
+    function initChatActionFallbackBridge() {
+        if (chatActionFallbackBridgeBound) {
+            return;
+        }
+        chatActionFallbackBridgeBound = true;
+
+        document.addEventListener('click', function (event) {
+            const target = event.target instanceof Element ? event.target : null;
+            if (!target) return;
+
+            const actionEl = target.closest('[data-action]');
+            if (!actionEl) return;
+
+            const action = String(actionEl.getAttribute('data-action') || '').trim();
+            const value = actionEl.getAttribute('data-value') || '';
+
+            switch (action) {
+                case 'toggle-chatbot':
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    toggleChatbot();
+                    break;
+                case 'minimize-chat':
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    minimizeChatbot();
+                    break;
+                case 'send-chat-message':
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    sendChatMessage();
+                    break;
+                case 'quick-message':
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    sendQuickMessage(value);
+                    break;
+                case 'chat-booking':
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    handleChatBookingSelection(value);
+                    break;
+                case 'start-booking':
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    startChatBooking();
+                    break;
+                case 'select-service':
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    fallbackSelectService(value);
+                    break;
+                default:
+                    break;
+            }
+        });
+
+        document.addEventListener('change', function (event) {
+            const target = event.target instanceof Element ? event.target : null;
+            if (!target) return;
+            if (target.closest('[data-action="chat-date-select"]')) {
+                handleChatDateSelect(target.value);
+            }
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         disablePlaceholderExternalLinks();
         bootstrapConsent();
+        initChatActionFallbackBridge();
         initActionRouterEngine();
         initDeferredStylesheetLoading();
         initThemeMode();
@@ -2867,8 +2954,7 @@
                 chatInput.addEventListener('keypress', handleChatKeypress);
             }
 
-            // Re-init dynamic components
-            initGalleryLazyLoad();
+            // Gallery lazy load is initialized in the legacy fallback block below.
             initBookingCalendarLazyInit();
         });
 
