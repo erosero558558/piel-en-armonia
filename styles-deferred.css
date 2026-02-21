@@ -3996,3 +3996,115 @@ body.cookie-banner-active .quick-dock {
         transform: scaleX(0);
     }
 }
+
+
+/* ========================================
+   MISSED STYLES & MEDIA QUERIES
+   ======================================== */
+
+.services-disclaimers {
+    max-width: 900px;
+    margin: 48px auto 0;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.disclaimer-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: var(--ui-surface);
+    border-radius: var(--ui-radius);
+    border-left: 3px solid var(--ui-accent);
+    box-shadow: var(--ui-shadow-sm);
+}
+
+.disclaimer-item i {
+    color: var(--ui-accent);
+    font-size: 1.1rem;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.disclaimer-item p {
+    font-size: 0.85rem;
+    color: var(--ui-ink-soft);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.disclaimer-item strong {
+    color: var(--ui-ink);
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .services-disclaimers {
+        grid-template-columns: 1fr;
+        margin-top: 32px;
+    }
+    .disclaimer-item {
+        padding: 12px;
+    }
+}
+
+/* Chat viewport guardrails for small windows/mobile */
+@media (max-width: 1100px) {
+    .chatbot-widget {
+        right: 12px !important;
+        bottom: calc(82px + var(--safe-bottom)) !important;
+        z-index: 2300 !important;
+    }
+    .chatbot-container {
+        left: 8px !important;
+        right: 8px !important;
+        width: auto !important;
+        max-width: none !important;
+        bottom: calc(146px + var(--safe-bottom)) !important;
+        height: min(68dvh, 560px) !important;
+        max-height: calc(100dvh - 170px - var(--safe-bottom)) !important;
+        margin: 0 !important;
+        transform-origin: bottom center !important;
+        animation: none !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .chatbot-widget {
+        right: 10px !important;
+        bottom: calc(76px + var(--safe-bottom)) !important;
+    }
+    .chatbot-container {
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        height: calc(100dvh - 78px - var(--safe-bottom)) !important;
+        max-height: none !important;
+        border-radius: 18px 18px 0 0 !important;
+        animation: none !important;
+    }
+}
+
+/* Keep floating actions clickable while cookie banner is active */
+body.cookie-banner-active .chatbot-widget {
+    bottom: calc(152px + var(--safe-bottom)) !important;
+}
+body.cookie-banner-active .quick-dock {
+    bottom: calc(106px + var(--safe-bottom)) !important;
+}
+@media (max-width: 900px) {
+    body.cookie-banner-active .chatbot-widget {
+        bottom: calc(176px + var(--safe-bottom)) !important;
+    }
+    body.cookie-banner-active .quick-dock {
+        bottom: calc(102px + var(--safe-bottom)) !important;
+    }
+}
+@media (max-width: 640px) {
+    body.cookie-banner-active .chatbot-widget {
+        bottom: calc(192px + var(--safe-bottom)) !important;
+    }
+}
