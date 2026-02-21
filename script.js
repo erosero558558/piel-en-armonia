@@ -1616,7 +1616,6 @@
         return {
             updateAvailableTimes,
             loadAvailabilityData,
-            updateAvailableTimes,
             getBookedSlots,
             showToast,
             getCurrentLang: () => state$1.currentLang,
@@ -1634,7 +1633,6 @@
             normalizeAnalyticsLabel,
             openPaymentModal,
             setCurrentAppointment: setCurrentAppointment,
-            updateAvailableTimes,
         };
     }
 
