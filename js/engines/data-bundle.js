@@ -66,7 +66,7 @@
             return enTranslationsPromise;
         }
 
-        enTranslationsPromise = fetch('api.php?resource=content&lang=en')
+        enTranslationsPromise = fetch('/api.php?resource=content&lang=en')
             .then(response => {
                 if (!response.ok) throw new Error('Failed to load EN content');
                 return response.json();
@@ -94,7 +94,7 @@
         if (!translations.es || typeof translations.es !== 'object') {
             // Fallback: try to load ES from API if not injected
             try {
-                const res = await fetch('api.php?resource=content&lang=es');
+                const res = await fetch('/api.php?resource=content&lang=es');
                 if (res.ok) {
                     translations.es = await res.json();
                 }

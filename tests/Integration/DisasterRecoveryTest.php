@@ -39,7 +39,7 @@ function fail($msg)
 
 function recursiveRemove($dir)
 {
-    if (!is_string($dir) || !is_dir($dir)) {
+    if (!is_string($dir) || $dir === '' || !is_dir($dir)) {
         return;
     }
     $files = new RecursiveIteratorIterator(
@@ -76,8 +76,14 @@ try {
     echo "Attempting to write store to: $storeFile\n";
     write_store($initialData);
 
+    // Adapt to SQLite/JSON hybrid
     if (!file_exists($storeFile)) {
-        fail("Store file not created at: $storeFile. Check permissions or lib/storage.php logic.");
+        $sqliteFile = $tempDir . DIRECTORY_SEPARATOR . 'store.sqlite';
+        if (file_exists($sqliteFile)) {
+            $storeFile = $sqliteFile;
+        } else {
+            fail("Store file not created (checked json and sqlite).");
+        }
     }
 
     // 2. Create Backup
