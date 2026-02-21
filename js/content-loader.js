@@ -45,8 +45,8 @@ export function hydrateDeferredText(container) {
 function normalizeDeferredAssetPath(value) {
     const raw = String(value || '').trim();
     if (!raw) return raw;
-    if (raw.startsWith('images/')) return `/${raw}`;
-    if (raw.startsWith('./images/')) return raw.replace('./images/', '/images/');
+    if (raw.startsWith('/images/')) return raw.substring(1);
+    if (raw.startsWith('./images/')) return raw.substring(2);
     return raw;
 }
 
@@ -69,8 +69,8 @@ function normalizeDeferredInlineStyle(value) {
     const raw = String(value || '');
     if (!raw) return raw;
     return raw
-        .replace(/url\((['"]?)\.?\/?images\//g, "url($1/images/")
-        .replace(/url\((['"]?)images\//g, "url($1/images/");
+        .replace(/url\((['"]?)\.?\/?images\//g, "url($1images/")
+        .replace(/url\((['"]?)images\//g, "url($1images/");
 }
 
 function normalizeDeferredAssetUrls(container) {
