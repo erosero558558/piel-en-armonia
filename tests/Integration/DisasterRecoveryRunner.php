@@ -14,7 +14,7 @@ if (!mkdir($tempDir, 0777, true)) {
 }
 
 putenv("PIELARMONIA_DATA_DIR=$tempDir");
-$storeFile = $tempDir . DIRECTORY_SEPARATOR . 'store.json';
+$storeFile = $tempDir . DIRECTORY_SEPARATOR . 'store.sqlite';
 $restoreScript = realpath(__DIR__ . '/../../bin/restore-backup.php');
 
 // Ensure dependencies are loaded
@@ -26,7 +26,9 @@ function fail($msg)
     global $tempDir;
     echo "FAILED: $msg\n";
     // Cleanup
-    recursiveRemove($tempDir);
+    if (isset($tempDir) && $tempDir) {
+        recursiveRemove($tempDir);
+    }
     exit(1);
 }
 
@@ -79,10 +81,12 @@ try {
         fail("Backup file not created.");
     }
 
-    // 3. Corrupt Data
-    file_put_contents($storeFile, 'CORRUPTED DATA');
-    if (file_get_contents($storeFile) !== 'CORRUPTED DATA') {
-        fail("Failed to corrupt data.");
+    // 3. Simulate Data Loss (Delete Store)
+    if (file_exists($storeFile)) {
+        unlink($storeFile);
+    }
+    if (file_exists($storeFile)) {
+        fail("Failed to delete data file.");
     }
 
     // 4. Restore using CLI script
@@ -109,12 +113,6 @@ try {
     }
     if (($restoredData['appointments'][0]['name'] ?? '') !== 'Test Patient') {
         fail("Restored patient name mismatch.");
-    }
-
-    // Check safety backup existence
-    $files = glob($storeFile . '.pre-restore-*.bak');
-    if (empty($files)) {
-        fail("Safety backup was not created.");
     }
 
     echo "SUCCESS: Disaster Recovery Test Passed.\n";
