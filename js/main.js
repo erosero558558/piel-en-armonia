@@ -176,16 +176,17 @@ function initBookingCalendarLazyInit() {
 
 document.addEventListener('DOMContentLoaded', function () {
     disablePlaceholderExternalLinks();
-    initActionRouterEngine();
     initDeferredStylesheetLoading();
     initThemeMode();
     changeLanguage(state.currentLang);
-    initCookieBanner();
-    initGA4();
-    initBookingFunnelObserver();
     initDeferredSectionPrefetch();
 
     loadDeferredContent().then(() => {
+        initActionRouterEngine();
+        initCookieBanner();
+        initGA4();
+        initBookingFunnelObserver();
+
         const initHighPriorityWarmups = createOnceTask(() => {
             initEnglishBundleWarmup();
             initDataEngineWarmup();
