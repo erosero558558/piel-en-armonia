@@ -91,7 +91,7 @@ try {
     // 4. Restore using CLI script
     // We use --force to skip confirmation
     $cmd = sprintf(
-        'PIELARMONIA_DATA_DIR=%s PIELARMONIA_STORAGE_JSON_FALLBACK=true php %s %s --force',
+        'PIELARMONIA_DATA_DIR=%s PIELARMONIA_STORAGE_JSON_FALLBACK=true php %s %s --force 2>&1',
         escapeshellarg($tempDir),
         escapeshellarg($restoreScript),
         escapeshellarg($backupPath)
@@ -100,7 +100,7 @@ try {
     exec($cmd, $output, $returnVar);
 
     if ($returnVar !== 0) {
-        echo "\nRestore script output:\n" . implode("\n", $output) . "\n";
+        echo "\nRestore script output (Failure):\n" . implode("\n", $output) . "\n";
         fail("Restore script failed with code $returnVar");
     }
 
@@ -115,8 +115,14 @@ try {
     }
 
     // Check safety backup existence
+    // restore-backup.php logic: $currentStorePath . '.pre-restore-' . date('Ymd-His') . '.bak'
+    // $currentStorePath here is $storeFile (store.json)
     $files = glob($storeFile . '.pre-restore-*.bak');
     if (empty($files)) {
+        echo "\nRestore script output (Success but missing backup):\n" . implode("\n", $output) . "\n";
+        echo "Looking for pattern: " . $storeFile . '.pre-restore-*.bak' . "\n";
+        $allFiles = glob($tempDir . '/*');
+        echo "Files in temp dir:\n" . implode("\n", $allFiles) . "\n";
         fail("Safety backup was not created.");
     }
 

@@ -6,14 +6,11 @@ export default [
         input: 'src/apps/booking/ui-entry.js',
         output: {
             file: 'booking-ui.js',
-            format: 'es', // Changed to ESM
-            sourcemap: false,
-            paths: {
-                'booking-calendar-lazy': './js/booking-calendar.js',
-            },
+            format: 'es',
+            sourcemap: false
         },
-        plugins: [resolve()],
-        external: ['booking-calendar-lazy'],
+        plugins: [resolve()]
+        // Removed external: ['booking-calendar-lazy'] to bundle it inline
     },
     // Booking Engine
     {
