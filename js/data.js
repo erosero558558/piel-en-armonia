@@ -32,7 +32,7 @@ export function loadDataEngine() {
         cacheKey: 'data-engine',
         src: DATA_ENGINE_URL,
         scriptDataAttribute: 'data-data-engine',
-        resolveModule: () => window.PielDataEngine,
+        resolveModule: () => window.Piel && window.Piel.DataEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getDataEngineDeps()),
@@ -72,10 +72,11 @@ export async function apiRequest(resource, options = {}) {
 
 export function invalidateBookedSlotsCache(date = '', doctor = '') {
     if (
-        window.PielDataEngine &&
-        typeof window.PielDataEngine.invalidateBookedSlotsCache === 'function'
+        window.Piel &&
+        window.Piel.DataEngine &&
+        typeof window.Piel.DataEngine.invalidateBookedSlotsCache === 'function'
     ) {
-        window.PielDataEngine.invalidateBookedSlotsCache(date, doctor);
+        window.Piel.DataEngine.invalidateBookedSlotsCache(date, doctor);
         return;
     }
     withDeferredModule(loadDataEngine, (engine) =>

@@ -117,7 +117,8 @@
         });
     }
 
-    window.PielPaymentGatewayEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.PaymentGatewayEngine = {
         init,
         loadPaymentConfig,
         loadStripeSdk,

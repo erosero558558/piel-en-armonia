@@ -9,7 +9,7 @@ let deps = null;
 
 function init(inputDeps) {
     deps = inputDeps || {};
-    return window.PielChatUiEngine;
+    return window.Piel && window.Piel.ChatUiEngine;
 }
 
 function getChatHistory() {
@@ -329,7 +329,8 @@ function removeTypingIndicator() {
     }
 }
 
-window.PielChatUiEngine = {
+window.Piel = window.Piel || {};
+window.Piel.ChatUiEngine = {
     init,
     addUserMessage,
     addBotMessage,

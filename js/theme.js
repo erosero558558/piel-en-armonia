@@ -27,7 +27,7 @@ export function loadThemeEngine() {
         cacheKey: 'theme-engine',
         src: UI_BUNDLE_URL,
         scriptDataAttribute: 'data-ui-bundle',
-        resolveModule: () => window.PielThemeEngine,
+        resolveModule: () => window.Piel && window.Piel.ThemeEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getThemeEngineDeps()),

@@ -141,7 +141,8 @@
         return nextLang;
     }
 
-    window.PielI18nEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.I18nEngine = {
         init,
         ensureEnglishTranslations,
         changeLanguage
@@ -275,7 +276,8 @@
         document.addEventListener('change', handleActionChange);
     }
 
-    window.PielActionRouterEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.ActionRouterEngine = {
         init
     };
 })();

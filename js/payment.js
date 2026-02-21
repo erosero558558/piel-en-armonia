@@ -34,7 +34,7 @@ export function loadPaymentGatewayEngine() {
         cacheKey: 'booking-utils',
         src: BOOKING_UTILS_URL,
         scriptDataAttribute: 'data-booking-utils',
-        resolveModule: () => window.PielPaymentGatewayEngine,
+        resolveModule: () => window.Piel && window.Piel.PaymentGatewayEngine,
         isModuleReady: (module) => !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getPaymentGatewayEngineDeps()),
         missingApiError: 'payment-gateway-engine loaded without API',

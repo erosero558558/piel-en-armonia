@@ -17,7 +17,7 @@ export function loadUiEffects() {
         cacheKey: 'ui-effects',
         src: UI_BUNDLE_URL,
         scriptDataAttribute: 'data-ui-bundle',
-        resolveModule: () => window.PielUiEffects,
+        resolveModule: () => window.Piel && window.Piel.UiEffects,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(),
@@ -69,7 +69,7 @@ export function loadModalUxEngine() {
         cacheKey: 'modal-ux-engine',
         src: UI_BUNDLE_URL,
         scriptDataAttribute: 'data-ui-bundle',
-        resolveModule: () => window.PielModalUxEngine,
+        resolveModule: () => window.Piel && window.Piel.ModalUxEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getModalUxEngineDeps()),

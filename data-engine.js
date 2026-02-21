@@ -23,7 +23,7 @@
 
     function init(inputDeps) {
         deps = inputDeps || deps || {};
-        return window.PielDataEngine;
+        return window.Piel && window.Piel.DataEngine;
     }
 
     function getLang() {
@@ -626,7 +626,8 @@
         }
     }
 
-    window.PielDataEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.DataEngine = {
         init,
         apiRequest,
         uploadTransferProof,

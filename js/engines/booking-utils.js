@@ -232,7 +232,8 @@
         return checkRescheduleParam();
     }
 
-    window.PielRescheduleEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.RescheduleEngine = {
         init,
         checkRescheduleParam,
         openRescheduleModal,
@@ -424,7 +425,8 @@
         return payload.data || {};
     }
 
-    window.PielPaymentGatewayEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.PaymentGatewayEngine = {
         init,
         loadPaymentConfig,
         loadStripeSdk,
@@ -483,7 +485,8 @@
         });
     }
 
-    window.PielBookingCalendarEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.BookingCalendarEngine = {
         initCalendar,
         updateAvailableTimes
     };

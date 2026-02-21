@@ -19,7 +19,7 @@ const QUICK_MESSAGES = {
 
 function init(inputDeps) {
     deps = inputDeps || {};
-    return window.PielChatWidgetEngine;
+    return window.Piel && window.Piel.ChatWidgetEngine;
 }
 
 function getChatbotOpen() {
@@ -283,7 +283,8 @@ function scheduleInitialNotification(delayMs) {
     }, safeDelay);
 }
 
-window.PielChatWidgetEngine = {
+window.Piel = window.Piel || {};
+window.Piel.ChatWidgetEngine = {
     init,
     toggleChatbot,
     minimizeChatbot,

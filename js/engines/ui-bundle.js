@@ -143,7 +143,8 @@
         }
     }
 
-    window.PielThemeEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.ThemeEngine = {
         init,
         setThemeMode,
         initThemeMode,
@@ -301,7 +302,8 @@
         return initialized;
     }
 
-    window.PielModalUxEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.ModalUxEngine = {
         init,
         isInitialized
     };
@@ -506,7 +508,8 @@ END:VCALENDAR`;
         return window.PielSuccessModalEngine;
     }
 
-    window.PielSuccessModalEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.SuccessModalEngine = {
         init,
         showSuccessModal,
         closeSuccessModal
@@ -670,13 +673,8 @@ END:VCALENDAR`;
         return true;
     }
 
-    function init(inputDeps) {
-        deps = inputDeps || {};
-        bindDelegatedListeners();
-        return window.PielConsentEngine;
-    }
-
-    window.PielConsentEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.ConsentEngine = {
         init,
         getCookieConsent,
         setCookieConsent,
@@ -840,7 +838,8 @@ END:VCALENDAR`;
         initDeferredVisualEffects();
     }
 
-    window.PielUiEffects = {
+    window.Piel = window.Piel || {};
+    window.Piel.UiEffects = {
         init
     };
 })();

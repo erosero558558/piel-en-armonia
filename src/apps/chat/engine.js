@@ -40,7 +40,7 @@ function init(inputDeps = {}) {
     if (doctorPhone) DOCTOR_CAROLINA_PHONE = doctorPhone;
     if (doctorEmail) DOCTOR_CAROLINA_EMAIL = doctorEmail;
 
-    return window.FigoChatEngine;
+    return window.Piel && window.Piel.FigoChatEngine;
 }
 
 function debugLog(...args) {
@@ -907,7 +907,8 @@ function mostrarInfoDebug() {
 }
 
 if (typeof window !== 'undefined') {
-    window.FigoChatEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.FigoChatEngine = {
         init,
         processWithKimi,
         resetConversation,

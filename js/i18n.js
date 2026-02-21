@@ -25,7 +25,7 @@ export function loadI18nEngine() {
         cacheKey: 'i18n-engine',
         src: DATA_BUNDLE_URL,
         scriptDataAttribute: 'data-data-bundle',
-        resolveModule: () => window.PielI18nEngine,
+        resolveModule: () => window.Piel && window.Piel.I18nEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(getI18nEngineDeps()),

@@ -16,7 +16,7 @@ export function loadGalleryInteractions() {
         cacheKey: 'gallery-interactions',
         src: GALLERY_INTERACTIONS_URL,
         scriptDataAttribute: 'data-gallery-interactions',
-        resolveModule: () => window.PielGalleryInteractions,
+        resolveModule: () => window.Piel && window.Piel.GalleryInteractions,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
         onModuleReady: (module) => module.init(),

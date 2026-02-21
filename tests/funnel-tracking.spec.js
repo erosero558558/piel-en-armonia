@@ -153,19 +153,17 @@ async function fillBookingFormAndOpenPayment(page) {
         state: 'attached',
     });
 
-    // Ensure lazy loading triggers by scrolling to the booking section
+    // Ensure booking section is visible to trigger lazy loading
     const bookingSection = page.locator('#citas');
-    if (await bookingSection.count() > 0) {
-        await bookingSection.scrollIntoViewIfNeeded();
-        await page.waitForTimeout(500); // Give IntersectionObserver time to trigger
-    }
+    await bookingSection.scrollIntoViewIfNeeded();
 
-    await page.waitForSelector('script[data-booking-ui="true"]', {
-        timeout: 30000,
-        state: 'attached',
-    });
+    // Trigger warmup explicitly via focusin (fallback if observer is slow)
+    await page.locator('#appointmentForm').dispatchEvent('focusin');
 
-    const serviceSelect = page.locator('select[name="service"]');
+    // We don't explicitly wait for the script tag as it might be loaded/cached differently,
+    // but we proceed to interact. If the script isn't loaded, the interactions will fail or have no effect.
+
+    const serviceSelect = page.locator('#serviceSelect');
     await serviceSelect.selectOption('consulta');
 
     const doctorSelect = page.locator('select[name="doctor"]');

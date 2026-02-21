@@ -210,10 +210,11 @@
 
     function escapeHtml$1(text) {
         if (
-            window.PielChatUiEngine &&
-            typeof window.PielChatUiEngine.escapeHtml === 'function'
+            window.Piel &&
+            window.Piel.ChatUiEngine &&
+            typeof window.Piel.ChatUiEngine.escapeHtml === 'function'
         ) {
-            return window.PielChatUiEngine.escapeHtml(text);
+            return window.Piel.ChatUiEngine.escapeHtml(text);
         }
         const div = document.createElement('div');
         div.textContent = String(text || '');
@@ -278,7 +279,7 @@
             return cleanUrl;
         }
 
-        const deployVersion = window.__PA_DEPLOY_ASSET_VERSION__ || '';
+        const deployVersion = (window.Piel && window.Piel.deployVersion) || '';
         if (!deployVersion) {
             return cleanUrl;
         }
@@ -600,7 +601,7 @@
             cacheKey: 'theme-engine',
             src: UI_BUNDLE_URL$3,
             scriptDataAttribute: 'data-ui-bundle',
-            resolveModule: () => window.PielThemeEngine,
+            resolveModule: () => window.Piel && window.Piel.ThemeEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getThemeEngineDeps()),
@@ -636,7 +637,7 @@
             cacheKey: 'data-engine',
             src: DATA_ENGINE_URL,
             scriptDataAttribute: 'data-data-engine',
-            resolveModule: () => window.PielDataEngine,
+            resolveModule: () => window.Piel && window.Piel.DataEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getDataEngineDeps()),
@@ -676,10 +677,11 @@
 
     function invalidateBookedSlotsCache(date = '', doctor = '') {
         if (
-            window.PielDataEngine &&
-            typeof window.PielDataEngine.invalidateBookedSlotsCache === 'function'
+            window.Piel &&
+            window.Piel.DataEngine &&
+            typeof window.Piel.DataEngine.invalidateBookedSlotsCache === 'function'
         ) {
-            window.PielDataEngine.invalidateBookedSlotsCache(date, doctor);
+            window.Piel.DataEngine.invalidateBookedSlotsCache(date, doctor);
             return;
         }
         withDeferredModule(loadDataEngine, (engine) =>
@@ -742,7 +744,7 @@
             cacheKey: 'engagement-bundle',
             src: ENGAGEMENT_BUNDLE_URL,
             scriptDataAttribute: 'data-engagement-bundle',
-            resolveModule: () => window.PielReviewsEngine,
+            resolveModule: () => window.Piel && window.Piel.ReviewsEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getReviewsEngineDeps()),
@@ -804,7 +806,7 @@
                 cacheKey: 'engagement-forms-engine',
                 src: ENGAGEMENT_BUNDLE_URL,
                 scriptDataAttribute: 'data-engagement-bundle',
-                resolveModule: () => window.PielEngagementFormsEngine,
+                resolveModule: () => window.Piel && window.Piel.EngagementFormsEngine,
                 isModuleReady: (module) =>
                     !!(module && typeof module.init === 'function'),
                 onModuleReady: (module) =>
@@ -889,7 +891,7 @@
             cacheKey: 'i18n-engine',
             src: DATA_BUNDLE_URL$1,
             scriptDataAttribute: 'data-data-bundle',
-            resolveModule: () => window.PielI18nEngine,
+            resolveModule: () => window.Piel && window.Piel.I18nEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getI18nEngineDeps()),
@@ -1302,7 +1304,7 @@
             cacheKey: 'analytics-engine',
             src: ANALYTICS_ENGINE_URL,
             scriptDataAttribute: 'data-analytics-engine',
-            resolveModule: () => window.PielAnalyticsEngine,
+            resolveModule: () => window.Piel && window.Piel.AnalyticsEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getAnalyticsEngineDeps()),
@@ -1373,7 +1375,7 @@
             cacheKey: 'success-modal-engine',
             src: UI_BUNDLE_URL$2,
             scriptDataAttribute: 'data-ui-bundle',
-            resolveModule: () => window.PielSuccessModalEngine,
+            resolveModule: () => window.Piel && window.Piel.SuccessModalEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getSuccessModalEngineDeps()),
@@ -1536,7 +1538,7 @@
             cacheKey: 'booking-engine',
             src: BOOKING_ENGINE_URL,
             scriptDataAttribute: 'data-booking-engine',
-            resolveModule: () => window.PielBookingEngine,
+            resolveModule: () => window.Piel && window.Piel.BookingEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getBookingEngineDeps()),
@@ -1595,11 +1597,11 @@
     }
 
     function loadBookingCalendarEngine() {
-        return loadDeferredModule({
+        return loadDeferredModule$1({
             cacheKey: 'booking-utils-calendar',
             src: BOOKING_UTILS_URL,
             scriptDataAttribute: 'data-booking-utils',
-            resolveModule: () => window.PielBookingCalendarEngine,
+            resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine,
             isModuleReady: (module) => !!(module && typeof module.initCalendar === 'function'),
             missingApiError: 'booking-calendar-engine loaded without API',
             loadError: 'No se pudo cargar booking-calendar-engine',
@@ -1686,7 +1688,7 @@
             cacheKey: 'booking-ui',
             src: BOOKING_UI_URL,
             scriptDataAttribute: 'data-booking-ui',
-            resolveModule: () => window.PielBookingUi,
+            resolveModule: () => window.Piel && window.Piel.BookingUi,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => {
@@ -1742,10 +1744,11 @@
 
     function closePaymentModal(options = {}) {
         if (
-            window.PielBookingEngine &&
-            typeof window.PielBookingEngine.closePaymentModal === 'function'
+            window.Piel &&
+            window.Piel.BookingEngine &&
+            typeof window.Piel.BookingEngine.closePaymentModal === 'function'
         ) {
-            window.PielBookingEngine.closePaymentModal(options);
+            window.Piel.BookingEngine.closePaymentModal(options);
             return;
         }
 
@@ -1782,11 +1785,11 @@
 
     // UI Effects
     function loadUiEffects() {
-        return loadDeferredModule({
+        return loadDeferredModule$1({
             cacheKey: 'ui-effects',
             src: UI_BUNDLE_URL$1,
             scriptDataAttribute: 'data-ui-bundle',
-            resolveModule: () => window.PielUiEffects,
+            resolveModule: () => window.Piel && window.Piel.UiEffects,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(),
@@ -1834,11 +1837,11 @@
     }
 
     function loadModalUxEngine() {
-        return loadDeferredModule({
+        return loadDeferredModule$1({
             cacheKey: 'modal-ux-engine',
             src: UI_BUNDLE_URL$1,
             scriptDataAttribute: 'data-ui-bundle',
-            resolveModule: () => window.PielModalUxEngine,
+            resolveModule: () => window.Piel && window.Piel.ModalUxEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getModalUxEngineDeps()),
@@ -1896,7 +1899,7 @@
             cacheKey: 'reschedule-gateway-engine',
             src: RESCHEDULE_GATEWAY_ENGINE_URL,
             scriptDataAttribute: 'data-reschedule-gateway-engine',
-            resolveModule: () => window.PielRescheduleGatewayEngine,
+            resolveModule: () => window.Piel && window.Piel.RescheduleGatewayEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getRescheduleEngineDeps()),
@@ -1969,10 +1972,11 @@
 
     function escapeHtml(text) {
         if (
-            window.PielChatUiEngine &&
-            typeof window.PielChatUiEngine.escapeHtml === 'function'
+            window.Piel &&
+            window.Piel.ChatUiEngine &&
+            typeof window.Piel.ChatUiEngine.escapeHtml === 'function'
         ) {
-            return window.PielChatUiEngine.escapeHtml(text);
+            return window.Piel.ChatUiEngine.escapeHtml(text);
         }
         const div = document.createElement('div');
         div.textContent = text;
@@ -1981,10 +1985,11 @@
 
     function scrollToBottom() {
         if (
-            window.PielChatUiEngine &&
-            typeof window.PielChatUiEngine.scrollToBottom === 'function'
+            window.Piel &&
+            window.Piel.ChatUiEngine &&
+            typeof window.Piel.ChatUiEngine.scrollToBottom === 'function'
         ) {
-            window.PielChatUiEngine.scrollToBottom();
+            window.Piel.ChatUiEngine.scrollToBottom();
             return;
         }
         const container = document.getElementById('chatMessages');
@@ -2036,7 +2041,7 @@
             cacheKey: 'chat-ui-engine',
             src: CHAT_UI_ENGINE_URL,
             scriptDataAttribute: 'data-chat-ui-engine',
-            resolveModule: () => window.PielChatUiEngine,
+            resolveModule: () => window.Piel && window.Piel.ChatUiEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getChatUiEngineDeps()),
@@ -2077,7 +2082,7 @@
             cacheKey: 'chat-widget-engine',
             src: CHAT_WIDGET_ENGINE_URL,
             scriptDataAttribute: 'data-chat-widget-engine',
-            resolveModule: () => window.PielChatWidgetEngine,
+            resolveModule: () => window.Piel && window.Piel.ChatWidgetEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getChatWidgetEngineDeps()),
@@ -2208,7 +2213,7 @@
             cacheKey: 'chat-booking-engine',
             src: CHAT_BOOKING_ENGINE_URL,
             scriptDataAttribute: 'data-chat-booking-engine',
-            resolveModule: () => window.PielChatBookingEngine,
+            resolveModule: () => window.Piel && window.Piel.ChatBookingEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getChatBookingEngineDeps()),
@@ -2277,10 +2282,11 @@
 
     function isChatBookingActive() {
         if (
-            window.PielChatBookingEngine &&
-            typeof window.PielChatBookingEngine.isActive === 'function'
+            window.Piel &&
+            window.Piel.ChatBookingEngine &&
+            typeof window.Piel.ChatBookingEngine.isActive === 'function'
         ) {
-            return window.PielChatBookingEngine.isActive();
+            return window.Piel.ChatBookingEngine.isActive();
         }
         return false;
     }
@@ -2290,7 +2296,7 @@
             cacheKey: 'figo-chat-engine',
             src: FIGO_CHAT_ENGINE_URL,
             scriptDataAttribute: 'data-figo-chat-engine',
-            resolveModule: () => window.FigoChatEngine,
+            resolveModule: () => window.Piel && window.Piel.FigoChatEngine,
             isModuleReady: (module) => !!(module && typeof module.processWithKimi === 'function'),
             onModuleReady: (module) => {
                 if (module && typeof module.init === 'function') {
@@ -2413,8 +2419,8 @@
         return loadDeferredModule({
             cacheKey: 'action-router-engine',
             src: DATA_BUNDLE_URL,
-            scriptDataAttribute: 'data-action-router-engine',
-            resolveModule: () => window.PielActionRouterEngine,
+            scriptDataAttribute: 'data-data-bundle',
+            resolveModule: () => window.Piel && window.Piel.ActionRouterEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getActionRouterEngineDeps()),
@@ -2452,7 +2458,7 @@
             cacheKey: 'consent-engine',
             src: UI_BUNDLE_URL,
             scriptDataAttribute: 'data-ui-bundle',
-            resolveModule: () => window.PielConsentEngine,
+            resolveModule: () => window.Piel && window.Piel.ConsentEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getConsentEngineDeps()),
@@ -2470,20 +2476,16 @@
         loadConsentEngine(); // Loads bundle and binds delegated listeners via init()
     }
 
-    function showConsentBanner() {
-        runDeferredModule(loadConsentEngine, (engine) => engine.initCookieBanner()); // Only shows banner
-    }
-
     const GALLERY_INTERACTIONS_URL = withDeployAssetVersion(
         '/gallery-interactions.js?v=figo-gallery-20260218-phase4'
     );
 
     function loadGalleryInteractions() {
-        return loadDeferredModule({
+        return loadDeferredModule$1({
             cacheKey: 'gallery-interactions',
             src: GALLERY_INTERACTIONS_URL,
             scriptDataAttribute: 'data-gallery-interactions',
-            resolveModule: () => window.PielGalleryInteractions,
+            resolveModule: () => window.Piel && window.Piel.GalleryInteractions,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(),
@@ -2518,232 +2520,10 @@
         scheduleDeferredTask(warmup, { idleTimeout: 2500, fallbackDelay: 1500 });
     }
 
-    const CONTENT_JSON_URL = withDeployAssetVersion('/content/index.json');
-    const REQUIRED_SECTION_IDS = [
-        'showcase',
-        'servicios',
-        'telemedicina',
-        'tarifario',
-        'equipo',
-        'galeria',
-        'consultorio',
-        'resenas',
-        'citas',
-        'chatbotWidget',
-    ];
-
-    const FALLBACK_SECTION_TITLES = {
-        showcase: 'Presentacion',
-        servicios: 'Servicios',
-        telemedicina: 'Telemedicina',
-        tarifario: 'Tarifario',
-        equipo: 'Equipo medico',
-        galeria: 'Resultados',
-        consultorio: 'Consultorio',
-        resenas: 'Resenas',
-        citas: 'Reserva de cita',
-        chatbotWidget: 'Asistente virtual',
-    };
-
-    function hydrateDeferredText(container) {
-        if (!window.PIEL_CONTENT) return;
-        const nodes = container.querySelectorAll('[data-i18n]');
-        nodes.forEach((node) => {
-            const key = node.getAttribute('data-i18n');
-            if (window.PIEL_CONTENT[key]) {
-                if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA') {
-                    node.placeholder = window.PIEL_CONTENT[key];
-                } else {
-                    node.innerHTML = window.PIEL_CONTENT[key];
-                }
-            }
-        });
-    }
-
-    function normalizeDeferredAssetPath(value) {
-        const raw = String(value || '').trim();
-        if (!raw) return raw;
-        if (raw.startsWith('images/')) return `/${raw}`;
-        if (raw.startsWith('./images/')) return raw.replace('./images/', '/images/');
-        return raw;
-    }
-
-    function normalizeDeferredSrcset(value) {
-        const raw = String(value || '').trim();
-        if (!raw) return raw;
-        return raw
-            .split(',')
-            .map((chunk) => {
-                const trimmed = chunk.trim();
-                if (!trimmed) return trimmed;
-                const parts = trimmed.split(/\s+/);
-                parts[0] = normalizeDeferredAssetPath(parts[0]);
-                return parts.join(' ');
-            })
-            .join(', ');
-    }
-
-    function normalizeDeferredInlineStyle(value) {
-        const raw = String(value || '');
-        if (!raw) return raw;
-        return raw
-            .replace(/url\((['"]?)\.?\/?images\//g, "url($1/images/")
-            .replace(/url\((['"]?)images\//g, "url($1/images/");
-    }
-
-    function normalizeDeferredAssetUrls(container) {
-        if (!container) return;
-
-        container.querySelectorAll('[src]').forEach((node) => {
-            const current = node.getAttribute('src');
-            const next = normalizeDeferredAssetPath(current);
-            if (next && next !== current) {
-                node.setAttribute('src', next);
-            }
-        });
-
-        container.querySelectorAll('[data-src]').forEach((node) => {
-            const current = node.getAttribute('data-src');
-            const next = normalizeDeferredAssetPath(current);
-            if (next && next !== current) {
-                node.setAttribute('data-src', next);
-            }
-        });
-
-        container.querySelectorAll('[srcset]').forEach((node) => {
-            const current = node.getAttribute('srcset');
-            const next = normalizeDeferredSrcset(current);
-            if (next && next !== current) {
-                node.setAttribute('srcset', next);
-            }
-        });
-
-        container.querySelectorAll('[data-srcset]').forEach((node) => {
-            const current = node.getAttribute('data-srcset');
-            const next = normalizeDeferredSrcset(current);
-            if (next && next !== current) {
-                node.setAttribute('data-srcset', next);
-            }
-        });
-
-        container.querySelectorAll('[style*="url("]').forEach((node) => {
-            const current = node.getAttribute('style');
-            const next = normalizeDeferredInlineStyle(current);
-            if (next && next !== current) {
-                node.setAttribute('style', next);
-            }
-        });
-    }
-
-    function forceDeferredSectionPaint(container) {
-        if (!container || !(container instanceof HTMLElement)) return;
-        container.style.contentVisibility = 'visible';
-        container.style.containIntrinsicSize = 'auto';
-    }
-
-    function isValidDeferredPayload(data) {
-        if (!data || typeof data !== 'object') return false;
-        return REQUIRED_SECTION_IDS.some(
-            (id) => typeof data[id] === 'string' && data[id].trim() !== ''
-        );
-    }
-
-    async function tryFetchDeferredPayload(url, useCacheBuster = false) {
-        const parsedUrl = new URL(url, window.location.origin);
-        if (useCacheBuster) {
-            parsedUrl.searchParams.set('_ts', String(Date.now()));
-        }
-
-        const response = await fetch(parsedUrl.toString(), {
-            cache: 'no-store',
-            credentials: 'same-origin',
-        });
-        if (!response.ok) {
-            throw new Error(`Deferred content fetch failed (${response.status})`);
-        }
-
-        const data = await response.json();
-        if (!isValidDeferredPayload(data)) {
-            throw new Error('Deferred content payload is invalid');
-        }
-
-        return data;
-    }
-
-    async function fetchDeferredPayload() {
-        const candidateUrls = [
-            CONTENT_JSON_URL,
-            '/content/index.json',
-            'content/index.json',
-            './content/index.json',
-        ];
-        const uniqueUrls = [...new Set(candidateUrls.filter(Boolean))];
-
-        let lastError = null;
-        for (let attempt = 0; attempt < 2; attempt += 1) {
-            const useCacheBuster = attempt > 0;
-            for (const url of uniqueUrls) {
-                try {
-                    return await tryFetchDeferredPayload(url, useCacheBuster);
-                } catch (error) {
-                    lastError = error;
-                }
-            }
-        }
-
-        throw lastError || new Error('Deferred content unavailable');
-    }
-
-    function renderDeferredFallbackState() {
-        const refreshHref = encodeURI(window.location.pathname || '/');
-        document.querySelectorAll('.section.deferred-content').forEach((section) => {
-            const title =
-                FALLBACK_SECTION_TITLES[section.id] || 'Contenido temporalmente no disponible';
-            section.innerHTML = `
-            <div class="section-header" style="text-align:center;">
-                <h2 class="section-title">${title}</h2>
-                <p class="section-subtitle">
-                    Estamos recargando esta seccion. Si no aparece en unos segundos, recarga la pagina.
-                </p>
-                <a href="${refreshHref}" class="btn btn-secondary">
-                    Recargar ahora
-                </a>
-            </div>
-        `;
-            section.classList.remove('deferred-content');
-            forceDeferredSectionPaint(section);
-        });
-    }
-
-    async function loadDeferredContent() {
-        try {
-            const data = await fetchDeferredPayload();
-
-            Object.keys(data).forEach((id) => {
-                const container = document.getElementById(id);
-                if (container) {
-                    container.innerHTML = data[id];
-                    normalizeDeferredAssetUrls(container);
-                    container.classList.remove('deferred-content'); // Optional cleanup
-                    forceDeferredSectionPaint(container);
-                    hydrateDeferredText(container);
-                } else {
-                    debugLog(`Warning: Container #${id} not found for deferred content.`);
-                }
-            });
-
-            debugLog('Deferred content loaded and hydrated.');
-            return true;
-        } catch (error) {
-            console.error('Error loading deferred content:', error);
-            renderDeferredFallbackState();
-            return false;
-        }
-    }
-
     // Setup global version
-    window.__PA_DEPLOY_ASSET_VERSION__ =
-        window.__PA_DEPLOY_ASSET_VERSION__ || resolveDeployAssetVersion();
+    window.Piel = window.Piel || {};
+    window.Piel.deployVersion =
+        window.Piel.deployVersion || resolveDeployAssetVersion();
 
     // Deferred Stylesheet
     const DEFERRED_STYLESHEET_URL = withDeployAssetVersion(
@@ -2891,14 +2671,28 @@
         loadDeferredContent().then(() => {
             showConsentBanner();
 
-            const initHighPriorityWarmups = createOnceTask(() => {
-                initEnglishBundleWarmup();
-                initDataEngineWarmup();
-                initBookingEngineWarmup();
-                initBookingUiWarmup();
-                initChatUiEngineWarmup();
-                initChatWidgetEngineWarmup();
-            });
+        const initLowPriorityWarmups = createOnceTask(() => {
+            initReviewsEngineWarmup();
+            initGalleryInteractionsWarmup();
+            initChatEngineWarmup();
+            initChatBookingEngineWarmup();
+            initUiEffectsWarmup();
+            initRescheduleEngineWarmup();
+            initSuccessModalEngineWarmup();
+            initEngagementFormsEngineWarmup();
+            initModalUxEngineWarmup();
+        });
+
+        const initDeferredWarmups = () => {
+            initHighPriorityWarmups();
+            initLowPriorityWarmups();
+        };
+
+        window.addEventListener('pointerdown', initDeferredWarmups, {
+            once: true,
+            passive: true,
+        });
+        window.addEventListener('keydown', initDeferredWarmups, { once: true });
 
             const initLowPriorityWarmups = createOnceTask(() => {
                 initReviewsEngineWarmup();
@@ -2998,5 +2792,63 @@
             });
         });
     });
+
+    // Legacy: Gallery Lazy Loading
+    (function() {
+        const galleryObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    const src = img.dataset.src;
+                    const srcset = img.dataset.srcset;
+
+                    if (srcset) img.srcset = srcset;
+                    img.src = src;
+                    img.classList.add('loaded');
+
+                    galleryObserver.unobserve(img);
+                }
+            });
+        }, { rootMargin: '200px' });
+
+        document.querySelectorAll('.gallery-img[data-src]').forEach(img => {
+            galleryObserver.observe(img);
+        });
+    })();
+
+    // Booking Calendar Lazy Init
+    (function () {
+
+        function wireBookingCalendarLazyLoad(element) {
+            if (!element) {
+                return;
+            }
+
+            element.addEventListener('click', function () {
+                const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
+                loadDeferredModule({
+                    cacheKey: 'booking-utils-calendar',
+                    src: BOOKING_UTILS_URL,
+                    scriptDataAttribute: 'data-booking-utils',
+                    resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine
+                }).then(function (moduleRef) {
+                    if (moduleRef && typeof moduleRef.initCalendar === 'function') {
+                        moduleRef.initCalendar();
+                    }
+                }).catch(function () {
+                    // noop
+                });
+            });
+        }
+
+        const bookingBtn = document.getElementById('booking-btn');
+        wireBookingCalendarLazyLoad(bookingBtn);
+
+        document.querySelectorAll('a[href="#citas"]').forEach(function (button) {
+            if (button.id !== 'booking-btn') {
+                wireBookingCalendarLazyLoad(button);
+            }
+        });
+    })();
 
 })();

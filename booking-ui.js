@@ -83,16 +83,10 @@ function init(inputDeps) {
         return { init };
     }
 
-    const serviceSelect = document.getElementById('serviceSelect');
-    const priceSummary = document.getElementById('priceSummary');
-    const subtotalEl = document.getElementById('subtotalPrice');
-    const ivaEl = document.getElementById('ivaPrice');
-    const totalEl = document.getElementById('totalPrice');
-    const dateInput = document.querySelector('input[name="date"]');
-    const timeSelect = document.querySelector('select[name="time"]');
-    const doctorSelect = document.querySelector('select[name="doctor"]');
-    const phoneInput = document.querySelector('input[name="phone"]');
-    const appointmentForm = document.getElementById('appointmentForm');
+    window.Piel = window.Piel || {};
+    window.Piel.BookingUi = {
+        init,
+    };
 
     if (
         !serviceSelect ||

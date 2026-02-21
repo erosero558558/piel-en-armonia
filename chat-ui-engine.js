@@ -11,7 +11,7 @@
 
     function init(inputDeps) {
         deps = inputDeps || {};
-        return window.PielChatUiEngine;
+        return window.Piel && window.Piel.ChatUiEngine;
     }
 
     function getChatHistory() {
@@ -331,7 +331,8 @@
         }
     }
 
-    window.PielChatUiEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.ChatUiEngine = {
         init,
         addUserMessage,
         addBotMessage,
