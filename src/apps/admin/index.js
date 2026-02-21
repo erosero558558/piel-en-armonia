@@ -99,11 +99,6 @@ async function showDashboard() {
     await updateDate();
 }
 
-    // Initial load
-    await refreshData();
-    renderSection('dashboard');
-}
-
 async function checkAuth() {
     try {
         if (!navigator.onLine) {

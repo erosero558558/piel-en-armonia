@@ -2144,62 +2144,6 @@ async function logout() {
     await logout$1();
 }
 
-async function updateDate() {
-    const dateEl = document.getElementById('currentDate');
-    if (dateEl) {
-         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-         dateEl.textContent = new Date().toLocaleDateString('es-EC', options);
-    }
-
-    await refreshData();
-    renderSection('dashboard');
-}
-
-async function checkAuth() {
-    try {
-        if (!navigator.onLine) {
-            const cached = getLocalData('appointments', null);
-            if (cached) {
-                loadFallbackState();
-                showToast('Modo Offline: Mostrando datos locales', 'info');
-                await showDashboard();
-                return;
-            }
-        }
-
-        const payload = await authRequest('status');
-        if (payload.authenticated) {
-            if (payload.csrfToken) setCsrfToken(payload.csrfToken);
-            await showDashboard();
-        } else {
-            showLogin();
-        }
-    } catch (error) {
-        if (getLocalData('appointments', null)) {
-            loadFallbackState();
-            showToast('Error de conexión. Mostrando datos locales.', 'warning');
-            await showDashboard();
-            return;
-        }
-        showLogin();
-        showToast('No se pudo verificar la sesion', 'warning');
-    }
-}
-
-function showLogin() {
-    const loginScreen = document.getElementById('loginScreen');
-    if (loginScreen) loginScreen.classList.remove('is-hidden');
-}
-
-async function logout() {
-    try {
-        await authRequest('logout', { method: 'POST' });
-    } catch (error) {
-        // Continue with local logout UI.
-    }
-    showToast('Sesion cerrada correctamente', 'info');
-    setTimeout(() => window.location.reload(), 800);
-}
 
 function attachGlobalListeners() {
     document.addEventListener('click', async function(e) {

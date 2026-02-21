@@ -18,7 +18,7 @@ putenv("PIELARMONIA_DATA_DIR=$dataDir");
 // We need to pass this env var to the server process too!
 
 echo "Starting server on port $port with data dir $dataDir...\n";
-$cmd = "PIELARMONIA_DATA_DIR=$dataDir php -S $host -t " . __DIR__ . "/../ > /dev/null 2>&1 & echo $!";
+$cmd = "PIELARMONIA_DEFAULT_AVAILABILITY_ENABLED=true PIELARMONIA_DATA_DIR=$dataDir php -S $host -t " . __DIR__ . "/../ > /dev/null 2>&1 & echo $!";
 $pid = exec($cmd);
 
 // Wait for server
