@@ -121,6 +121,62 @@ function backup_offsite_configured(): bool
     return backup_replica_mode() !== 'none';
 }
 
+function backup_create_initial_seed_if_missing(): array
+{
+    $result = [
+        'ok' => false,
+        'created' => false,
+        'reason' => '',
+        'file' => '',
+        'path' => ''
+    ];
+
+    $existing = backup_list_files(1);
+    if (count($existing) > 0) {
+        $result['ok'] = true;
+        $result['reason'] = 'already_exists';
+        $result['file'] = basename((string) $existing[0]);
+        $result['path'] = (string) $existing[0];
+        return $result;
+    }
+
+    if (!function_exists('ensure_data_file') || !function_exists('data_file_path') || !function_exists('create_store_backup_locked')) {
+        $result['reason'] = 'storage_helpers_unavailable';
+        return $result;
+    }
+
+    if (!ensure_data_file()) {
+        $result['reason'] = 'store_not_ready';
+        return $result;
+    }
+
+    $storePath = (string) data_file_path();
+    if ($storePath === '' || !is_file($storePath) || !is_readable($storePath)) {
+        $result['reason'] = 'store_file_missing';
+        return $result;
+    }
+
+    if (!ensure_backup_dir()) {
+        $result['reason'] = 'backup_dir_not_ready';
+        return $result;
+    }
+
+    create_store_backup_locked($storePath);
+    $after = backup_list_files(1);
+    if (count($after) === 0) {
+        $result['reason'] = 'seed_copy_failed';
+        return $result;
+    }
+
+    $result['ok'] = true;
+    $result['created'] = true;
+    $result['reason'] = '';
+    $result['file'] = basename((string) $after[0]);
+    $result['path'] = (string) $after[0];
+
+    return $result;
+}
+
 function backup_list_files(int $limit = 0): array
 {
     $pattern = backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.sqlite';
@@ -312,6 +368,15 @@ function backup_latest_status(?int $maxAgeHours = null): array
     $files = backup_list_files();
     $count = count($files);
 
+    $bootstrapResult = null;
+    if ($count === 0) {
+        $bootstrapResult = backup_create_initial_seed_if_missing();
+        if (($bootstrapResult['ok'] ?? false) === true) {
+            $files = backup_list_files();
+            $count = count($files);
+        }
+    }
+
     if ($count === 0) {
         return [
             'ok' => false,
@@ -322,7 +387,10 @@ function backup_latest_status(?int $maxAgeHours = null): array
             'latestPath' => '',
             'latestAgeHours' => null,
             'latestValid' => false,
-            'latestFresh' => false
+            'latestFresh' => false,
+            'bootstrapAttempted' => $bootstrapResult !== null,
+            'bootstrapCreated' => (bool) ($bootstrapResult['created'] ?? false),
+            'bootstrapReason' => (string) ($bootstrapResult['reason'] ?? '')
         ];
     }
 
@@ -350,6 +418,9 @@ function backup_latest_status(?int $maxAgeHours = null): array
         'latestAgeHours' => $latestAgeHours,
         'latestValid' => $latestValid,
         'latestFresh' => $latestFresh,
+        'bootstrapAttempted' => $bootstrapResult !== null,
+        'bootstrapCreated' => (bool) ($bootstrapResult['created'] ?? false),
+        'bootstrapReason' => (string) ($bootstrapResult['reason'] ?? ''),
         'latest' => $latest
     ];
 }
