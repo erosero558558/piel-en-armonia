@@ -1,11 +1,11 @@
-const CACHE_NAME = 'pielarmonia-v5-20260221-mobile-cachefix1';
+const CACHE_NAME = 'pielarmonia-v6-20260221-mobileblankfix2';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/telemedicina.html',
-    '/styles-deferred.css?v=ui-20260221-deferred16-mobilechatfix1',
-    '/bootstrap-inline-engine.js?v=figo-bootstrap-20260221-mobilecachefix1',
-    '/script.js?v=figo-20260221-phase7-mobilecachefix1',
+    '/styles-deferred.css?v=ui-20260221-deferred17-mobileblankfix2',
+    '/bootstrap-inline-engine.js?v=figo-bootstrap-20260221-mobileblankfix2',
+    '/script.js?v=figo-20260221-phase7-mobileblankfix2',
     '/images/optimized/hero-woman.jpg',
     '/favicon.ico',
     '/manifest.json',

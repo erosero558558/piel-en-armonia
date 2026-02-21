@@ -2747,7 +2747,7 @@
 
     // Deferred Stylesheet
     const DEFERRED_STYLESHEET_URL = withDeployAssetVersion(
-        '/styles-deferred.css?v=ui-20260221-deferred16-mobilechatfix1'
+        '/styles-deferred.css?v=ui-20260221-deferred17-mobileblankfix2'
     );
     let deferredStylesheetPromise = null;
     let deferredStylesheetInitDone = false;
