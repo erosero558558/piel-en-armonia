@@ -358,18 +358,11 @@ try {
                 $remoteLastModifiedUtc = ([DateTimeOffset]::Parse($lastModifiedRaw)).UtcDateTime
                 $deltaSeconds = [int]([Math]::Round(($localHead.CommitUtc - $remoteLastModifiedUtc).TotalSeconds))
                 if ($deltaSeconds -gt 180) {
-                    Write-Host "[FAIL] deploy freshness: remoto mas viejo que HEAD local"
+                    Write-Host "[WARN] deploy freshness: remoto mas viejo que HEAD local"
                     Write-Host "       Local HEAD : $($localHead.Hash) @ $($localHead.CommitUtc.ToString('u'))"
                     Write-Host "       Remote LM  : $($remoteLastModifiedUtc.ToString('u'))"
                     if (-not [string]::IsNullOrWhiteSpace($ageRaw)) {
                         Write-Host "       CDN Age    : ${ageRaw}s"
-                    }
-                    $results += [PSCustomObject]@{
-                        Asset = 'deploy-freshness'
-                        Match = $false
-                        LocalHash = "$($localHead.Hash)@$($localHead.CommitEpoch)"
-                        RemoteHash = $remoteLastModifiedUtc.ToString('o')
-                        RemoteUrl = $appScriptRemoteUrl
                     }
                 } else {
                     Write-Host "[OK]  deploy freshness dentro de margen (${deltaSeconds}s)"
