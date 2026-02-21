@@ -20,7 +20,10 @@ $backupDir = $tempDir . '/backups';
 // Initialize empty store to prevent migration from other directories
 $initialStore = [
     'appointments' => [],
-    'availability' => [],
+    'availability' => [
+        date('Y-m-d', strtotime('+1 day')) => ['09:00', '10:00', '11:00', '12:00'],
+        date('Y-m-d', strtotime('+2 days')) => ['09:00', '10:00', '11:00', '12:00']
+    ],
     'reviews' => [],
     'callbacks' => [],
     'updatedAt' => date('c'),
@@ -31,7 +34,7 @@ file_put_contents($tempDir . '/store.json', json_encode($initialStore));
 echo "Starting Backup Verification Server on port $port with data dir $tempDir...\n";
 
 // Start server
-$cmd = "PIELARMONIA_DATA_DIR=" . escapeshellarg($tempDir) . " php -S $host -t " . escapeshellarg(__DIR__ . "/../") . " > /dev/null 2>&1 & echo $!";
+$cmd = "PIELARMONIA_DEFAULT_AVAILABILITY_ENABLED=true PIELARMONIA_DATA_DIR=" . escapeshellarg($tempDir) . " php -S $host -t " . escapeshellarg(__DIR__ . "/../") . " > /dev/null 2>&1 & echo $!";
 $pid = trim(shell_exec($cmd));
 
 // Wait for server
