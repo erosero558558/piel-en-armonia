@@ -146,6 +146,14 @@
         applyThemeMode
     };
 
+    window.Piel = window.Piel || {};
+    window.Piel.ThemeEngine = {
+        init: init$4,
+        setThemeMode,
+        initThemeMode,
+        applyThemeMode
+    };
+
     let deps$2 = null;
     let initialized$1 = false;
     let escapeListenerBound = false;
