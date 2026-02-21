@@ -30,7 +30,7 @@ import {
     initChatBookingEngineWarmup,
     handleChatKeypress,
     checkServerEnvironment,
-} from './chat.js';
+} from '../src/apps/chat/shell.js';
 import { initUiEffectsWarmup, initModalUxEngineWarmup } from './ui.js';
 import { initRescheduleEngineWarmup } from './reschedule.js';
 import { initSuccessModalEngineWarmup } from './success-modal.js';
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const initDeferredWarmups = createOnceTask(() => {
         initHighPriorityWarmups();
-        initLowPriorityWarmups();
+        setTimeout(initLowPriorityWarmups, 200);
     });
 
     window.addEventListener('pointerdown', initDeferredWarmups, {

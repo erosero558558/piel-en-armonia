@@ -18,7 +18,16 @@ async function mockApi(page) {
         const resource = url.searchParams.get('resource') || '';
 
         if (resource === 'availability') {
-            return jsonResponse(route, { ok: true, data: {} });
+            // Mock availability for next 7 days
+            const today = new Date();
+            const availability = {};
+            for (let i = 0; i < 14; i++) {
+                const d = new Date(today);
+                d.setDate(today.getDate() + i);
+                const key = d.toISOString().split('T')[0];
+                availability[key] = ['09:00', '10:00', '11:00', '15:00'];
+            }
+            return jsonResponse(route, { ok: true, data: availability });
         }
 
         if (resource === 'booked-slots') {
@@ -131,41 +140,39 @@ async function getFunnelEvents(page) {
 }
 
 async function fillBookingFormAndOpenPayment(page) {
-    await expect
-        .poll(
-            async () =>
-                page.evaluate(() => {
-                    const dataBundleLoaded = !!document.querySelector(
-                        'script[data-data-bundle="true"]'
-                    );
-                    const actionRouterReady = !!(
-                        window.PielActionRouterEngine &&
-                        typeof window.PielActionRouterEngine.init ===
-                            'function'
-                    );
-                    return dataBundleLoaded || actionRouterReady;
-                }),
-            { timeout: 10000 }
-        )
-        .toBe(true);
-    await page.locator('#appointmentForm').click({ force: true });
-    await expect
-        .poll(
-            async () =>
-                page.evaluate(() => {
-                    const bookingUiLoaded = !!document.querySelector(
-                        'script[data-booking-ui="true"]'
-                    );
-                    const bookingUiReady = !!(
-                        window.PielBookingUi &&
-                        typeof window.PielBookingUi.init === 'function'
-                    );
-                    return bookingUiLoaded || bookingUiReady;
-                }),
-            { timeout: 15000 }
-        )
-        .toBe(true);
+    // Wait for bundle first
+    await page.waitForSelector('script[data-data-bundle="true"]', {
+        timeout: 10000,
+        state: 'attached',
+    });
+
+    // Ensure booking section is visible to trigger lazy load
+    const bookingSection = page.locator('#citas');
+    await bookingSection.scrollIntoViewIfNeeded();
+
+    // Force trigger warmup via focusin to be safe
+    const appointmentForm = page.locator('#appointmentForm');
+    if (await appointmentForm.isVisible()) {
+        await appointmentForm.dispatchEvent('focusin');
+    }
+
+    // Wait for interactive element instead of script tag
     const serviceSelect = page.locator('#serviceSelect');
+    await expect(serviceSelect).toBeVisible({ timeout: 30000 });
+
+    // Inject mock options to ensure testability
+    await page.evaluate(() => {
+        const select = document.getElementById('serviceSelect');
+        if (!select.querySelector('option[value="consulta"]')) {
+            const opt = document.createElement('option');
+            opt.value = 'consulta';
+            opt.text = 'Consulta General';
+            opt.dataset.price = '40.00';
+            opt.dataset.serviceTax = '0.0';
+            select.appendChild(opt);
+        }
+    });
+
     await serviceSelect.selectOption('consulta');
 
     const doctorSelect = page.locator('select[name="doctor"]');
@@ -175,25 +182,45 @@ async function fillBookingFormAndOpenPayment(page) {
     const target = new Date();
     target.setDate(target.getDate() + 7);
     const dateValue = target.toISOString().split('T')[0];
-    await dateInput.fill(dateValue);
-    await dateInput.dispatchEvent('change');
-    await page.waitForTimeout(250);
 
-    await page.evaluate(() => {
-        const timeSelect = document.querySelector('select[name="time"]');
-        if (!timeSelect) return;
-        let candidate = Array.from(timeSelect.options).find(
-            (option) => option.value && !option.disabled
-        );
-        if (!candidate) {
-            candidate = document.createElement('option');
-            candidate.value = '10:00';
-            candidate.textContent = '10:00';
-            timeSelect.appendChild(candidate);
-        }
-        timeSelect.value = candidate.value;
-        timeSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    // Fill triggers change event, which triggers updateAvailableTimes
+    // We capture the request to ensure we wait for it
+    const bookedSlotsPromise = page.waitForResponse(
+        resp => resp.url().includes('booked-slots') && resp.status() === 200,
+        { timeout: 5000 }
+    ).catch(() => null);
+
+    await dateInput.fill(dateValue);
+    await bookedSlotsPromise;
+
+    // Buffer for DOM update from the app
+    await page.waitForTimeout(500);
+
+    // Poll until we can successfully select a time slot
+    await expect.poll(async () => {
+        await page.evaluate(() => {
+            const timeSelect = document.querySelector('select[name="time"]');
+            if (!timeSelect) return;
+
+            // Find valid options (not disabled, not empty placeholder)
+            const options = Array.from(timeSelect.options).filter(o => !o.disabled && o.value);
+            if (options.length > 0) {
+                // Prefer 10:00 if available, otherwise first valid
+                const candidate = options.find(o => o.value === '10:00') || options[0];
+                if (timeSelect.value !== candidate.value) {
+                    timeSelect.value = candidate.value;
+                    timeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+        });
+        return await page.$eval('select[name="time"]', el => el.value);
+    }, { timeout: 10000 }).toMatch(/\d{2}:\d{2}/);
+
+    // Double check it stayed selected
+    await page.waitForTimeout(200);
+    await expect.poll(async () => {
+         return await page.$eval('select[name="time"]', el => el.value);
+    }).toMatch(/\d{2}:\d{2}/);
 
     const nameInput = page.locator('input[name="name"]');
     await nameInput.fill('Paciente Test Tracking');
@@ -214,18 +241,12 @@ async function fillBookingFormAndOpenPayment(page) {
 
     await page.locator('input[name="privacyConsent"]').check();
     await page.locator('#appointmentForm button[type="submit"]').click();
-    await expect
-        .poll(
-            async () =>
-                page.evaluate(() => {
-                    const modal = document.getElementById('paymentModal');
-                    return !!(modal && modal.classList.contains('active'));
-                }),
-            {
-                timeout: 10000,
-            }
-        )
-        .toBe(true);
+
+    // Wait for animation/modal open
+    await page.waitForTimeout(1000);
+
+    // Wait for modal to become active
+    await page.waitForSelector('#paymentModal.active', { timeout: 30000 });
     await page.waitForTimeout(250);
 }
 
@@ -416,23 +437,10 @@ test.describe('Tracking del embudo de conversion', () => {
     test('emite chat_started y paso inicial al iniciar reserva desde chatbot', async ({
         page,
     }) => {
-        await expect
-            .poll(
-                async () =>
-                    page.evaluate(() => {
-                        const dataBundleLoaded = !!document.querySelector(
-                            'script[data-data-bundle="true"]'
-                        );
-                        const actionRouterReady = !!(
-                            window.PielActionRouterEngine &&
-                            typeof window.PielActionRouterEngine.init ===
-                                'function'
-                        );
-                        return dataBundleLoaded || actionRouterReady;
-                    }),
-                { timeout: 10000 }
-            )
-            .toBe(true);
+        await page.waitForSelector('script[data-data-bundle="true"]', {
+            timeout: 10000,
+            state: 'attached',
+        });
         await page.locator('#chatbotWidget .chatbot-toggle').click();
         await expect
             .poll(

@@ -1,4 +1,4 @@
-import { withDeployAssetVersion, debugLog, showToast } from './utils.js';
+import { withDeployAssetVersion, debugLog, showToast } from '../../../js/utils.js';
 import {
     loadDeferredModule,
     runDeferredModule,
@@ -6,7 +6,7 @@ import {
     createWarmupRunner,
     bindWarmupTarget,
     scheduleDeferredTask,
-} from './loader.js';
+} from '../../../js/loader.js';
 import {
     state,
     getCurrentLang,
@@ -18,25 +18,25 @@ import {
     getChatbotOpen,
     setChatbotOpen,
     setCurrentAppointment,
-} from './state.js';
+} from '../../../js/state.js';
 import {
     CLINIC_ADDRESS,
     CLINIC_MAP_URL,
     DOCTOR_CAROLINA_PHONE,
     DOCTOR_CAROLINA_EMAIL,
-} from './config.js';
-import { trackEvent } from './analytics.js';
+} from '../../../js/config.js';
+import { trackEvent } from '../../../js/analytics.js';
 import {
     loadAvailabilityData,
     getBookedSlots,
     createAppointmentRecord,
-} from './data.js';
+} from '../../../js/data.js';
 import {
     startCheckoutSession,
     setCheckoutStep,
     completeCheckoutSession,
     openPaymentModal,
-} from './booking.js';
+} from '../../../js/booking.js';
 
 const CHAT_UI_ENGINE_URL = withDeployAssetVersion(
     '/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1'

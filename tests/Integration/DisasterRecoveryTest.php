@@ -14,6 +14,7 @@ if (!mkdir($tempDir, 0777, true)) {
 }
 
 putenv("PIELARMONIA_DATA_DIR=$tempDir");
+putenv("PIELARMONIA_STORAGE_JSON_FALLBACK=true"); // Force JSON for this test as it expects store.json
 $storeFile = $tempDir . DIRECTORY_SEPARATOR . 'store.json';
 $restoreScript = realpath(__DIR__ . '/../../bin/restore-backup.php');
 
@@ -32,7 +33,7 @@ function fail($msg)
 
 function recursiveRemove($dir)
 {
-    if (!is_dir($dir)) {
+    if (empty($dir) || !is_dir($dir)) {
         return;
     }
     $files = new RecursiveIteratorIterator(
@@ -63,10 +64,11 @@ try {
         'updatedAt' => date('c')
     ];
 
+    echo "Attempting to write store to: $storeFile\n";
     write_store($initialData);
 
     if (!file_exists($storeFile)) {
-        fail("Store file not created.");
+        fail("Store file not created at: $storeFile. Check permissions or lib/storage.php logic.");
     }
 
     // 2. Create Backup

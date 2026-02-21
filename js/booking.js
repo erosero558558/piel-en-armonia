@@ -227,6 +227,7 @@ export async function updateAvailableTimes(elements) {
 // BOOKING UI
 function getBookingUiDeps() {
     return {
+        updateAvailableTimes,
         loadAvailabilityData,
         updateAvailableTimes,
         getBookedSlots,
@@ -300,7 +301,11 @@ export function loadBookingUi() {
         resolveModule: () => window.PielBookingUi,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getBookingUiDeps()),
+        onModuleReady: (module) => {
+            module.init(getBookingUiDeps());
+            window.PielBookingUiReady = true;
+            if (window.debugLog) window.debugLog('Booking UI ready');
+        },
         missingApiError: 'booking-ui loaded without API',
         loadError: 'No se pudo cargar booking-ui.js',
         logLabel: 'Booking UI',
