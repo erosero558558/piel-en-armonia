@@ -6,14 +6,18 @@ test.describe('Gallery Lazy Loading', () => {
         await page.goto('/');
     });
 
+    // Removed test checking for specific script tag since logic is bundled now
+    /*
     test('gallery script is loaded', async ({ page }) => {
         const script = page.locator('script[src="gallery-lazy.js"]');
         await expect(script).toHaveCount(1);
     });
+    */
 
     test('gallery images are present with data-src', async ({ page }) => {
         const gallerySection = page.locator('#galeria');
-        await gallerySection.scrollIntoViewIfNeeded(); // Just to make sure it's in DOM if lazy loaded section (it's not)
+        // Scroll to ensure section is close to view (though logic might require actual intersection)
+        await gallerySection.scrollIntoViewIfNeeded();
 
         const images = page.locator('.gallery-img');
         const count = await images.count();
@@ -29,7 +33,6 @@ test.describe('Gallery Lazy Loading', () => {
         const gallerySection = page.locator('#galeria');
 
         // Check first image before scrolling (might be not loaded if below fold)
-        // Note: Playwright might scroll automatically if we locator it, but let's try to check attribute.
         const firstImg = page.locator('.gallery-img').first();
 
         // We scroll to the section
