@@ -6,7 +6,7 @@
     'use strict';
 
     const DEFERRED_STYLESHEET_URL =
-        '/styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1';
+        '/styles-deferred.min.css?v=opt-20260221';
 
     const deferredModulePromises = new Map();
     let deferredStylesheetPromise = null;
