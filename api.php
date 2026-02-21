@@ -202,7 +202,11 @@ $limitKey = $resource . ':' . $method;
 
 if (isset($rateLimits[$limitKey])) {
     [$limitMax, $limitWindow] = $rateLimits[$limitKey];
-    require_rate_limit($limitKey, $limitMax, $limitWindow);
+    $clientIp = rate_limit_client_ip();
+    // Bypass for localhost (IPv4 and IPv6) to allow local testing
+    if ($clientIp !== '127.0.0.1' && $clientIp !== '::1') {
+        require_rate_limit($limitKey, $limitMax, $limitWindow);
+    }
 }
 
 register_shutdown_function(static function () use ($requestStartedAt, $method, $resource): void {

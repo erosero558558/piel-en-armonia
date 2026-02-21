@@ -57,7 +57,11 @@ header('Content-Type: application/json; charset=UTF-8');
 start_secure_session();
 $isAdmin = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
 
-require_rate_limit('graphql', 60, 60);
+$clientIp = rate_limit_client_ip();
+// Bypass for localhost (IPv4 and IPv6) to allow local testing
+if ($clientIp !== '127.0.0.1' && $clientIp !== '::1') {
+    require_rate_limit('graphql', 60, 60);
+}
 
 // --- Context ---
 $store = read_store();
