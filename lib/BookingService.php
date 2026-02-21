@@ -45,11 +45,12 @@ class BookingService
             return ['ok' => false, 'error' => 'No se puede agendar en una fecha pasada', 'code' => 400];
         }
 
-        // Validate availability
-        $availableSlots = isset($store['availability'][$appointment['date']]) && is_array($store['availability'][$appointment['date']])
-            ? $store['availability'][$appointment['date']]
-            : [];
-        if (count($availableSlots) > 0 && !in_array($appointment['time'], $availableSlots, true)) {
+        // Validate availability (strict real agenda)
+        $availableSlots = $this->getConfiguredSlotsForDate($store, $appointment['date']);
+        if (count($availableSlots) === 0) {
+            return ['ok' => false, 'error' => 'No hay agenda disponible para la fecha seleccionada', 'code' => 400];
+        }
+        if (!in_array($appointment['time'], $availableSlots, true)) {
             return ['ok' => false, 'error' => 'Ese horario no está disponible para la fecha seleccionada', 'code' => 400];
         }
 
@@ -224,11 +225,12 @@ class BookingService
             $doctor = $appt['doctor'] ?? '';
             $excludeId = (int) ($appt['id'] ?? 0);
 
-            // Availability check
-            $availableSlots = isset($store['availability'][$newDate]) && is_array($store['availability'][$newDate])
-            ? $store['availability'][$newDate]
-            : [];
-            if (count($availableSlots) > 0 && !in_array($newTime, $availableSlots, true)) {
+            // Availability check (strict real agenda)
+            $availableSlots = $this->getConfiguredSlotsForDate($store, $newDate);
+            if (count($availableSlots) === 0) {
+                return ['ok' => false, 'error' => 'No hay agenda disponible para la fecha seleccionada', 'code' => 400];
+            }
+            if (!in_array($newTime, $availableSlots, true)) {
                 return ['ok' => false, 'error' => 'Ese horario no está disponible para la fecha seleccionada', 'code' => 400];
             }
 
@@ -300,5 +302,39 @@ class BookingService
         }
 
         return ['ok' => true];
+    }
+
+    private function getConfiguredSlotsForDate(array $store, string $date): array
+    {
+        $slots = [];
+
+        if (isset($store['availability'][$date]) && is_array($store['availability'][$date])) {
+            $slots = $store['availability'][$date];
+        }
+
+        if (
+            count($slots) === 0 &&
+            function_exists('default_availability_enabled') &&
+            default_availability_enabled() &&
+            function_exists('get_default_availability')
+        ) {
+            $fallback = get_default_availability();
+            if (isset($fallback[$date]) && is_array($fallback[$date])) {
+                $slots = $fallback[$date];
+            }
+        }
+
+        $normalized = [];
+        foreach ($slots as $slot) {
+            $time = trim((string) $slot);
+            if (!preg_match('/^\d{2}:\d{2}$/', $time)) {
+                continue;
+            }
+            $normalized[$time] = true;
+        }
+
+        $result = array_keys($normalized);
+        sort($result, SORT_STRING);
+        return $result;
     }
 }
