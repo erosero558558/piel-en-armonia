@@ -68,6 +68,28 @@ function Get-RefPath {
     return $clean
 }
 
+function Add-QueryParam {
+    param(
+        [string]$Url,
+        [string]$Name,
+        [string]$Value
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Url) -or [string]::IsNullOrWhiteSpace($Name) -or [string]::IsNullOrWhiteSpace($Value)) {
+        return $Url
+    }
+
+    try {
+        $uri = [Uri]$Url
+        $pathAndQuery = $uri.PathAndQuery
+        $separator = if ($pathAndQuery.Contains('?')) { '&' } else { '?' }
+        return "$Url$separator$Name=$([Uri]::EscapeDataString($Value))"
+    } catch {
+        $separator = if ($Url.Contains('?')) { '&' } else { '?' }
+        return "$Url$separator$Name=$([Uri]::EscapeDataString($Value))"
+    }
+}
+
 function Get-RemoteSha256 {
     param(
         [string]$Url,
@@ -310,6 +332,17 @@ $remoteHasInlineCriticalCss = [regex]::IsMatch($remoteIndexRaw, '<style\b[^>]*>[
 $appScriptRemoteUrl = Get-Url -Base $base -Ref $remoteScriptRef
 $criticalCssRemoteUrl = Get-Url -Base $base -Ref $localStyleRef
 $indexDeferredStylesRemoteUrl = Get-Url -Base $base -Ref $localDeferredStyleRef
+$deployAssetVersion = ''
+$deployVersionMatch = [regex]::Match($remoteScriptRef, '[?&]v=([^&]+)')
+if ($deployVersionMatch.Success) {
+    $deployAssetVersion = [Uri]::UnescapeDataString($deployVersionMatch.Groups[1].Value)
+}
+if ($deployAssetVersion -eq '') {
+    $deployVersionMatch = [regex]::Match($localScriptRef, '[?&]v=([^&]+)')
+    if ($deployVersionMatch.Success) {
+        $deployAssetVersion = [Uri]::UnescapeDataString($deployVersionMatch.Groups[1].Value)
+    }
+}
 
 try {
     if (-not [string]::IsNullOrWhiteSpace($appScriptRemoteUrl)) {
@@ -910,14 +943,18 @@ foreach ($item in $checks) {
         Write-Host "[WARN] Se omite hash de $($item.Name): URL remota vacia."
         continue
     }
+    $remoteUrlForHash = $item.RemoteUrl
+    if ($deployAssetVersion -ne '' -and $item.Name -ne 'script.js') {
+        $remoteUrlForHash = Add-QueryParam -Url $remoteUrlForHash -Name 'cv' -Value $deployAssetVersion
+    }
     $localHash = Get-LocalSha256 -Path $item.LocalPath -NormalizeText
-    $remoteHash = Get-RemoteSha256 -Url $item.RemoteUrl -NormalizeText
+    $remoteHash = Get-RemoteSha256 -Url $remoteUrlForHash -NormalizeText
     $attempts = 0
     $match = ($localHash -ne '' -and $localHash -eq $remoteHash)
 
     while (-not $match -and $attempts -lt $AssetHashRetryCount) {
         Start-Sleep -Seconds $AssetHashRetryDelaySec
-        $remoteHash = Get-RemoteSha256 -Url $item.RemoteUrl -NormalizeText
+        $remoteHash = Get-RemoteSha256 -Url $remoteUrlForHash -NormalizeText
         $attempts += 1
         $match = ($localHash -ne '' -and $localHash -eq $remoteHash)
     }
@@ -927,7 +964,7 @@ foreach ($item in $checks) {
         Match = $match
         LocalHash = $localHash
         RemoteHash = $remoteHash
-        RemoteUrl = $item.RemoteUrl
+        RemoteUrl = $remoteUrlForHash
         Attempts = $attempts
     }
 }
