@@ -1,0 +1,38 @@
+groups:
+  - name: pielarmonia
+    rules:
+      - alert: APIHighLatency
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API Latency (instance {{ $labels.instance }})"
+          description: "95th percentile latency is > 2s for more than 5 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: APIHighErrorRate
+        expr: sum(rate(http_request_duration_seconds_count{status=~"5.."}[5m])) / sum(rate(http_request_duration_seconds_count[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High Error Rate (instance {{ $labels.instance }})"
+          description: "API 5xx error rate is > 5% for more than 5 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance Down (instance {{ $labels.instance }})"
+          description: "Prometheus target down for more than 1 minute.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: HighMemoryUsage
+        expr: histogram_quantile(0.95, sum(rate(php_memory_usage_bytes_bucket[5m])) by (le)) > 104857600
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Memory Usage (instance {{ $labels.instance }})"
+          description: "PHP Memory usage is > 100MB for more than 5 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"

@@ -6,6 +6,7 @@ services:
         container_name: pielarmonia_prometheus
         volumes:
             - ./prometheus.docker.yml:/etc/prometheus/prometheus.yml
+            - ./prometheus.rules.yml:/etc/prometheus/prometheus.rules.yml
         command:
             - '--config.file=/etc/prometheus/prometheus.yml'
             - '--storage.tsdb.path=/prometheus'
