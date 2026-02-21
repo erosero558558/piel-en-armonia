@@ -176,7 +176,7 @@ async function fillBookingFormAndOpenPayment(page) {
             resp => resp.url().includes('booked-slots') && resp.status() === 200,
             { timeout: 5000 }
         ).catch(() => null),
-        dateInput.fill(dateValue)
+        dateInput.fill(dateValue),
     ]);
 
     // Buffer for DOM update from the app
