@@ -87,7 +87,7 @@ async function mockApi(page) {
             let body = {};
             try {
                 body = request.postDataJSON() || {};
-            } catch (_) {
+            } catch (e) {
                 body = {};
             }
 
@@ -199,6 +199,7 @@ async function fillBookingFormAndOpenPayment(page) {
     ]);
 
     // Select the first available option
+    const timeSelect = page.locator('select[name="time"]');
     await timeSelect.selectOption({ index: 1 });
 
     const nameInput = page.locator('input[name="name"]');
@@ -260,7 +261,7 @@ test.describe('Tracking del embudo de conversion', () => {
                     if (parsed && typeof parsed === 'object') {
                         window.__funnelEventsCaptured.push(parsed);
                     }
-                } catch (_) {
+                } catch (e) {
                     // ignore malformed payloads
                 }
             };
@@ -310,7 +311,7 @@ test.describe('Tracking del embudo de conversion', () => {
                                 .then(capturePayload)
                                 .catch(() => undefined);
                         }
-                    } catch (_) {
+                    } catch (e) {
                         // ignore capture failures
                     }
                     return true;

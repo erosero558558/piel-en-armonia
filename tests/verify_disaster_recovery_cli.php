@@ -17,7 +17,10 @@ if (!mkdir($tempDir, 0777, true)) {
 // Force JSON storage for this test to match legacy expectations
 putenv("PIELARMONIA_DATA_DIR=$tempDir");
 $storeFile = $tempDir . DIRECTORY_SEPARATOR . 'store.sqlite';
-$restoreScript = realpath(__DIR__ . '/../../bin/restore-backup.php');
+$restoreScript = realpath(__DIR__ . '/../bin/restore-backup.php');
+if ($restoreScript === false) {
+    fail("restore-backup.php not found relative to test dir", $tempDir);
+}
 
 // Ensure dependencies are loaded
 require_once __DIR__ . '/../lib/storage.php';
