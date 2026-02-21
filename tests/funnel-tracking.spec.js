@@ -177,22 +177,7 @@ async function fillBookingFormAndOpenPayment(page) {
         }
     });
 
-    // Trigger lazy load logic in app (to call init())
-    // Dispatch focusin to ensure initBookingUiWarmup fires immediately
-    await page.locator('#appointmentForm').dispatchEvent('focusin');
-
-    // Also scroll just in case
-    const bookingSection = page.locator('#citas');
-    await bookingSection.scrollIntoViewIfNeeded();
-
-    // Give time for initialization (microtasks)
-    await page.waitForTimeout(500);
-
-    // Ensure modules are loaded
-    await page.waitForFunction(() => !!window.PielBookingUi, null, { timeout: 15000 }).catch(() => console.error('PielBookingUi missing'));
-    await page.waitForFunction(() => !!window.PielBookingEngine, null, { timeout: 15000 }).catch(() => console.error('PielBookingEngine missing'));
-
-    const serviceSelect = page.locator('#serviceSelect');
+    const serviceSelect = page.locator('select[name="service"]');
     await serviceSelect.selectOption('consulta');
 
     const doctorSelect = page.locator('select[name="doctor"]');
@@ -202,8 +187,18 @@ async function fillBookingFormAndOpenPayment(page) {
     const target = new Date();
     target.setDate(target.getDate() + 7);
     const dateValue = target.toISOString().split('T')[0];
-    await dateInput.fill(dateValue);
-    await dateInput.dispatchEvent('change');
+
+    // Fill triggers change event, which triggers updateAvailableTimes
+    // We capture the request to ensure we wait for it
+    await Promise.all([
+        // eslint-disable-next-line playwright/missing-playwright-await
+        page.waitForResponse(
+            (resp) =>
+                resp.url().includes('booked-slots') && resp.status() === 200,
+            { timeout: 5000 }
+        ).catch(() => null),
+        dateInput.fill(dateValue),
+    ]);
 
     // Wait for availability to load and populate slots
     const timeSelect = page.locator('select[name="time"]');
