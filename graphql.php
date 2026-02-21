@@ -57,6 +57,8 @@ header('Content-Type: application/json; charset=UTF-8');
 start_secure_session();
 $isAdmin = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
 
+require_rate_limit('graphql', 60, 60);
+
 // --- Context ---
 $store = read_store();
 $context = [

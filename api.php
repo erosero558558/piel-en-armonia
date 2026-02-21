@@ -163,6 +163,48 @@ if ($resource === '' && $action !== '') {
     $resource = $action;
 }
 
+// Rate Limiting Configuration
+$rateLimits = [
+    // Public GET - High volume
+    'content:GET' => [120, 60],
+    'features:GET' => [60, 60],
+    'availability:GET' => [60, 60],
+    'reviews:GET' => [60, 60],
+    'booked-slots:GET' => [60, 60],
+    'payment-config:GET' => [60, 60],
+    'monitoring-config:GET' => [60, 60],
+    'metrics:GET' => [60, 60],
+
+    // Public POST - Actionable, lower volume to prevent spam
+    'payment-intent:POST' => [10, 60],
+    'payment-verify:POST' => [10, 60],
+    'transfer-proof:POST' => [5, 60],
+    'appointments:POST' => [5, 60],
+    'reviews:POST' => [5, 60],
+    'callbacks:POST' => [5, 60],
+
+    // Webhooks
+    'stripe-webhook:POST' => [60, 60],
+
+    // Reschedule
+    'reschedule:GET' => [30, 60],
+    'reschedule:PATCH' => [10, 60],
+
+    // Admin (authenticated)
+    'data:GET' => [60, 60],
+    'import:POST' => [5, 60],
+
+    // Predictions
+    'predictions:GET' => [20, 60],
+];
+
+$limitKey = $resource . ':' . $method;
+
+if (isset($rateLimits[$limitKey])) {
+    [$limitMax, $limitWindow] = $rateLimits[$limitKey];
+    require_rate_limit($limitKey, $limitMax, $limitWindow);
+}
+
 register_shutdown_function(static function () use ($requestStartedAt, $method, $resource): void {
     $elapsed = api_elapsed_ms($requestStartedAt);
 
