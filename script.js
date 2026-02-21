@@ -372,7 +372,7 @@
 
     const deferredModulePromises = new Map();
 
-    function loadDeferredModule$1(options) {
+    function loadDeferredModule(options) {
         const {
             cacheKey,
             src,
@@ -576,7 +576,7 @@
         });
     }
 
-    const UI_BUNDLE_URL$2 = withDeployAssetVersion(
+    const UI_BUNDLE_URL$3 = withDeployAssetVersion(
         '/js/engines/ui-bundle.js?v=20260220-consolidated1'
     );
     const systemThemeQuery = window.matchMedia
@@ -596,9 +596,9 @@
     }
 
     function loadThemeEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'theme-engine',
-            src: UI_BUNDLE_URL$2,
+            src: UI_BUNDLE_URL$3,
             scriptDataAttribute: 'data-ui-bundle',
             resolveModule: () => window.PielThemeEngine,
             isModuleReady: (module) =>
@@ -632,7 +632,7 @@
     }
 
     function loadDataEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'data-engine',
             src: DATA_ENGINE_URL,
             scriptDataAttribute: 'data-data-engine',
@@ -738,7 +738,7 @@
     }
 
     function loadReviewsEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'engagement-bundle',
             src: REVIEWS_ENGINE_URL,
             scriptDataAttribute: 'data-engagement-bundle',
@@ -750,6 +750,27 @@
             loadError: 'No se pudo cargar reviews-engine.js',
             logLabel: 'Reviews engine',
         });
+    }
+
+    function initReviewsEngineWarmup() {
+        const warmup = createWarmupRunner(() => loadReviewsEngine(), {
+            markWarmOnSuccess: true,
+        });
+        const reviewSection = document.getElementById('resenas');
+        observeOnceWhenVisible(reviewSection, warmup, {
+            threshold: 0.05,
+            rootMargin: '300px 0px',
+            onNoObserver: warmup,
+        });
+        bindWarmupTarget('#resenas', 'mouseenter', warmup);
+        bindWarmupTarget('#resenas', 'touchstart', warmup);
+        bindWarmupTarget(
+            '#resenas [data-action="open-review-modal"]',
+            'focus',
+            warmup,
+            false
+        );
+        scheduleDeferredTask(warmup, { idleTimeout: 2200, fallbackDelay: 1300 });
     }
 
     function renderPublicReviews(reviews) {
@@ -779,7 +800,7 @@
 
     function loadEngagementFormsEngine() {
         return loadReviewsEngine().then(() =>
-            loadDeferredModule$1({
+            loadDeferredModule({
                 cacheKey: 'engagement-forms-engine',
                 src: ENGAGEMENT_BUNDLE_URL,
                 scriptDataAttribute: 'data-engagement-bundle',
@@ -793,6 +814,32 @@
                 logLabel: 'Engagement forms engine',
             })
         );
+    }
+
+    function initEngagementFormsEngineWarmup() {
+        const warmup = createWarmupRunner(() => loadEngagementFormsEngine());
+        bindWarmupTarget('#callbackForm', 'focusin', warmup, false);
+        bindWarmupTarget('#callbackForm', 'pointerdown', warmup);
+        bindWarmupTarget(
+            '#resenas [data-action="open-review-modal"]',
+            'mouseenter',
+            warmup
+        );
+        bindWarmupTarget(
+            '#resenas [data-action="open-review-modal"]',
+            'touchstart',
+            warmup
+        );
+        if (document.getElementById('callbackForm')) {
+            setTimeout(warmup, 120);
+        }
+        const reviewSection = document.getElementById('resenas');
+        observeOnceWhenVisible(reviewSection, warmup, {
+            threshold: 0.05,
+            rootMargin: '280px 0px',
+            onNoObserver: warmup,
+        });
+        scheduleDeferredTask(warmup, { idleTimeout: 2600, fallbackDelay: 1500 });
     }
 
     function openReviewModal() {
@@ -838,7 +885,7 @@
     }
 
     function loadI18nEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'i18n-engine',
             src: DATA_BUNDLE_URL$1,
             scriptDataAttribute: 'data-data-bundle',
@@ -1251,7 +1298,7 @@
     }
 
     function loadAnalyticsEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'analytics-engine',
             src: ANALYTICS_ENGINE_URL,
             scriptDataAttribute: 'data-analytics-engine',
@@ -1308,7 +1355,7 @@
         );
     }
 
-    const UI_BUNDLE_URL$1 = withDeployAssetVersion(
+    const UI_BUNDLE_URL$2 = withDeployAssetVersion(
         '/js/engines/ui-bundle.js?v=20260220-consolidated1'
     );
 
@@ -1322,9 +1369,9 @@
     }
 
     function loadSuccessModalEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'success-modal-engine',
-            src: UI_BUNDLE_URL$1,
+            src: UI_BUNDLE_URL$2,
             scriptDataAttribute: 'data-ui-bundle',
             resolveModule: () => window.PielSuccessModalEngine,
             isModuleReady: (module) =>
@@ -1334,6 +1381,23 @@
             loadError: 'No se pudo cargar success-modal-engine.js',
             logLabel: 'Success modal engine',
         });
+    }
+
+    function initSuccessModalEngineWarmup() {
+        const warmup = createWarmupRunner(() => loadSuccessModalEngine());
+        bindWarmupTarget(
+            '#appointmentForm button[type="submit"]',
+            'pointerdown',
+            warmup
+        );
+        bindWarmupTarget(
+            '#appointmentForm button[type="submit"]',
+            'focus',
+            warmup,
+            false
+        );
+        bindWarmupTarget('.payment-method', 'pointerdown', warmup);
+        scheduleDeferredTask(warmup, { idleTimeout: 2800, fallbackDelay: 1600 });
     }
 
     function showSuccessModal(emailSent = false) {
@@ -1468,7 +1532,7 @@
     }
 
     function loadBookingEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'booking-engine',
             src: BOOKING_ENGINE_URL,
             scriptDataAttribute: 'data-booking-engine',
@@ -1598,7 +1662,7 @@
     }
 
     function loadBookingUi() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'booking-ui',
             src: BOOKING_UI_URL,
             scriptDataAttribute: 'data-booking-ui',
@@ -1688,9 +1752,41 @@
         );
     }
 
-    withDeployAssetVersion(
+    const UI_BUNDLE_URL$1 = withDeployAssetVersion(
         '/js/engines/ui-bundle.js?v=20260220-consolidated1'
     );
+
+    // UI Effects
+    function loadUiEffects() {
+        return loadDeferredModule({
+            cacheKey: 'ui-effects',
+            src: UI_BUNDLE_URL$1,
+            scriptDataAttribute: 'data-ui-bundle',
+            resolveModule: () => window.PielUiEffects,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(),
+            missingApiError: 'ui-effects loaded without API',
+            loadError: 'No se pudo cargar ui-effects.js',
+            logLabel: 'UI effects',
+        });
+    }
+
+    function initUiEffectsWarmup() {
+        const warmup = createWarmupRunner(() => loadUiEffects());
+        bindWarmupTarget('.nav', 'mouseenter', warmup);
+        bindWarmupTarget('.nav', 'touchstart', warmup);
+        const triggerOnce = () => warmup();
+        window.addEventListener('scroll', triggerOnce, {
+            once: true,
+            passive: true,
+        });
+        window.addEventListener('pointerdown', triggerOnce, {
+            once: true,
+            passive: true,
+        });
+        scheduleDeferredTask(warmup, { idleTimeout: 1800, fallbackDelay: 1200 });
+    }
 
     function toggleMobileMenu(forceClose) {
         const menu = document.getElementById('mobileMenu');
@@ -1703,6 +1799,39 @@
         document.body.style.overflow = menu.classList.contains('active')
             ? 'hidden'
             : '';
+    }
+
+    // Modal UX Engine
+    function getModalUxEngineDeps() {
+        return {
+            closePaymentModal,
+            toggleMobileMenu,
+        };
+    }
+
+    function loadModalUxEngine() {
+        return loadDeferredModule({
+            cacheKey: 'modal-ux-engine',
+            src: UI_BUNDLE_URL$1,
+            scriptDataAttribute: 'data-ui-bundle',
+            resolveModule: () => window.PielModalUxEngine,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(getModalUxEngineDeps()),
+            missingApiError: 'modal-ux-engine loaded without API',
+            loadError: 'No se pudo cargar modal-ux-engine.js',
+            logLabel: 'Modal UX engine',
+        });
+    }
+
+    function initModalUxEngineWarmup() {
+        const warmup = createWarmupRunner(() => loadModalUxEngine());
+        bindWarmupTarget('.modal', 'pointerdown', warmup);
+        bindWarmupTarget('.modal-close', 'pointerdown', warmup);
+        if (document.querySelector('.modal')) {
+            setTimeout(warmup, 180);
+        }
+        scheduleDeferredTask(warmup, { idleTimeout: 2200, fallbackDelay: 1200 });
     }
 
     function startWebVideo() {
@@ -1739,7 +1868,7 @@
     }
 
     function loadRescheduleEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'reschedule-gateway-engine',
             src: RESCHEDULE_GATEWAY_ENGINE_URL,
             scriptDataAttribute: 'data-reschedule-gateway-engine',
@@ -1751,6 +1880,21 @@
             loadError: 'No se pudo cargar reschedule-gateway-engine.js',
             logLabel: 'Reschedule gateway engine',
         });
+    }
+
+    function initRescheduleEngineWarmup() {
+        runDeferredModule(
+            loadRescheduleEngine,
+            (engine) => engine.initRescheduleFromParam(),
+            () => {
+                showToast(
+                    getCurrentLang() === 'es'
+                        ? 'No se pudo cargar la reprogramacion.'
+                        : 'Unable to load reschedule flow.',
+                    'error'
+                );
+            }
+        );
     }
 
     function closeRescheduleModal() {
@@ -1864,7 +2008,7 @@
     }
 
     function loadChatUiEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'chat-ui-engine',
             src: CHAT_UI_ENGINE_URL,
             scriptDataAttribute: 'data-chat-ui-engine',
@@ -1905,7 +2049,7 @@
     }
 
     function loadChatWidgetEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'chat-widget-engine',
             src: CHAT_WIDGET_ENGINE_URL,
             scriptDataAttribute: 'data-chat-widget-engine',
@@ -2036,7 +2180,7 @@
     }
 
     function loadChatBookingEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'chat-booking-engine',
             src: CHAT_BOOKING_ENGINE_URL,
             scriptDataAttribute: 'data-chat-booking-engine',
@@ -2048,6 +2192,24 @@
             loadError: 'No se pudo cargar chat-booking-engine.js',
             logLabel: 'Chat booking engine',
         });
+    }
+
+    function initChatBookingEngineWarmup() {
+        const warmup = createWarmupRunner(() => loadChatBookingEngine());
+        bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
+        bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
+        bindWarmupTarget(
+            '#quickOptions [data-action="quick-message"][data-value="appointment"]',
+            'mouseenter',
+            warmup
+        );
+        bindWarmupTarget(
+            '#quickOptions [data-action="quick-message"][data-value="appointment"]',
+            'touchstart',
+            warmup
+        );
+        bindWarmupTarget('#chatInput', 'focus', warmup, false);
+        scheduleDeferredTask(warmup, { idleTimeout: 2600, fallbackDelay: 1700 });
     }
 
     function startChatBooking() {
@@ -2100,7 +2262,7 @@
     }
 
     function loadFigoChatEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'figo-chat-engine',
             src: FIGO_CHAT_ENGINE_URL,
             scriptDataAttribute: 'data-figo-chat-engine',
@@ -2133,6 +2295,16 @@
             missingApiError: 'Figo chat engine loaded without API',
             loadError: 'No se pudo cargar chat-engine.js',
         });
+    }
+
+    function initChatEngineWarmup() {
+        const warmup = createWarmupRunner(() => loadFigoChatEngine(), {
+            markWarmOnSuccess: true,
+        });
+        bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'mouseenter', warmup);
+        bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'touchstart', warmup);
+        bindWarmupTarget('#chatInput', 'focus', warmup);
+        scheduleDeferredTask(warmup, { idleTimeout: 7000, fallbackDelay: 7000 });
     }
 
     async function processWithKimi(message) {
@@ -2214,7 +2386,7 @@
     }
 
     function loadActionRouterEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'action-router-engine',
             src: DATA_BUNDLE_URL,
             scriptDataAttribute: 'data-data-bundle',
@@ -2252,7 +2424,7 @@
     }
 
     function loadConsentEngine() {
-        return loadDeferredModule$1({
+        return loadDeferredModule({
             cacheKey: 'consent-engine',
             src: UI_BUNDLE_URL,
             scriptDataAttribute: 'data-ui-bundle',
@@ -2274,9 +2446,93 @@
         runDeferredModule(loadConsentEngine, (engine) => engine.initCookieBanner());
     }
 
-    withDeployAssetVersion(
+    const GALLERY_INTERACTIONS_URL = withDeployAssetVersion(
         '/gallery-interactions.js?v=figo-gallery-20260218-phase4'
     );
+
+    function loadGalleryInteractions() {
+        return loadDeferredModule({
+            cacheKey: 'gallery-interactions',
+            src: GALLERY_INTERACTIONS_URL,
+            scriptDataAttribute: 'data-gallery-interactions',
+            resolveModule: () => window.PielGalleryInteractions,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(),
+            missingApiError: 'gallery-interactions loaded without API',
+            loadError: 'No se pudo cargar gallery-interactions.js',
+            logLabel: 'Gallery interactions',
+        });
+    }
+
+    function initGalleryInteractionsWarmup() {
+        const warmup = createWarmupRunner(() => loadGalleryInteractions());
+        const gallerySection = document.getElementById('galeria');
+        observeOnceWhenVisible(gallerySection, warmup, {
+            threshold: 0.05,
+            rootMargin: '320px 0px',
+            onNoObserver: warmup,
+        });
+        const firstFilterBtn = document.querySelector('.filter-btn');
+        if (firstFilterBtn) {
+            firstFilterBtn.addEventListener('mouseenter', warmup, {
+                once: true,
+                passive: true,
+            });
+            firstFilterBtn.addEventListener('touchstart', warmup, {
+                once: true,
+                passive: true,
+            });
+        }
+        if (!gallerySection && !firstFilterBtn) {
+            return;
+        }
+        scheduleDeferredTask(warmup, { idleTimeout: 2500, fallbackDelay: 1500 });
+    }
+
+    const CONTENT_JSON_URL = withDeployAssetVersion('/content/index.json');
+
+    function hydrateDeferredText(container) {
+        if (!window.PIEL_CONTENT) return;
+        const nodes = container.querySelectorAll('[data-i18n]');
+        nodes.forEach((node) => {
+            const key = node.getAttribute('data-i18n');
+            if (window.PIEL_CONTENT[key]) {
+                if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA') {
+                    node.placeholder = window.PIEL_CONTENT[key];
+                } else {
+                    node.innerHTML = window.PIEL_CONTENT[key];
+                }
+            }
+        });
+    }
+
+    async function loadDeferredContent() {
+        try {
+            const response = await fetch(CONTENT_JSON_URL);
+            if (!response.ok) {
+                throw new Error(`Failed to load content: ${response.status}`);
+            }
+            const data = await response.json();
+
+            Object.keys(data).forEach((id) => {
+                const container = document.getElementById(id);
+                if (container) {
+                    container.innerHTML = data[id];
+                    container.classList.remove('deferred-content'); // Optional cleanup
+                    hydrateDeferredText(container);
+                } else {
+                    debugLog(`Warning: Container #${id} not found for deferred content.`);
+                }
+            });
+
+            debugLog('Deferred content loaded and hydrated.');
+            return true;
+        } catch (error) {
+            console.error('Error loading deferred content:', error);
+            return false;
+        }
+    }
 
     // Setup global version
     window.__PA_DEPLOY_ASSET_VERSION__ =
@@ -2359,6 +2615,61 @@
         return 'unknown';
     }
 
+    function initGalleryLazyLoad() {
+        const galleryObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    const src = img.dataset.src;
+                    const srcset = img.dataset.srcset;
+
+                    if (srcset) img.srcset = srcset;
+                    img.src = src;
+                    img.classList.add('loaded');
+
+                    galleryObserver.unobserve(img);
+                }
+            });
+        }, { rootMargin: '200px' });
+
+        document.querySelectorAll('.gallery-img[data-src]').forEach(img => {
+            galleryObserver.observe(img);
+        });
+    }
+
+    function initBookingCalendarLazyInit() {
+        function wireBookingCalendarLazyLoad(element) {
+            if (!element) {
+                return;
+            }
+
+            element.addEventListener('click', function () {
+                const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
+                loadDeferredModule({
+                    cacheKey: 'booking-utils-calendar',
+                    src: BOOKING_UTILS_URL,
+                    scriptDataAttribute: 'data-booking-utils',
+                    resolveModule: () => window.PielBookingCalendarEngine
+                }).then(function (moduleRef) {
+                    if (moduleRef && typeof moduleRef.initCalendar === 'function') {
+                        moduleRef.initCalendar();
+                    }
+                }).catch(function () {
+                    // noop
+                });
+            });
+        }
+
+        const bookingBtn = document.getElementById('booking-btn');
+        wireBookingCalendarLazyLoad(bookingBtn);
+
+        document.querySelectorAll('a[href="#citas"]').forEach(function (button) {
+            if (button.id !== 'booking-btn') {
+                wireBookingCalendarLazyLoad(button);
+            }
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         disablePlaceholderExternalLinks();
         initActionRouterEngine();
@@ -2370,32 +2681,50 @@
         initBookingFunnelObserver();
         initDeferredSectionPrefetch();
 
-        const initHighPriorityWarmups = createOnceTask(() => {
-            initEnglishBundleWarmup();
-            initDataEngineWarmup();
-            initBookingEngineWarmup();
-            initBookingUiWarmup();
-            initChatUiEngineWarmup();
-            initChatWidgetEngineWarmup();
-        });
+        loadDeferredContent().then(() => {
+            const initHighPriorityWarmups = createOnceTask(() => {
+                initEnglishBundleWarmup();
+                initDataEngineWarmup();
+                initBookingEngineWarmup();
+                initBookingUiWarmup();
+                initChatUiEngineWarmup();
+                initChatWidgetEngineWarmup();
+            });
 
-        window.addEventListener('pointerdown', initDeferredWarmups, {
-            once: true,
-            passive: true,
-        });
-        window.addEventListener('keydown', initDeferredWarmups, { once: true });
+            const initLowPriorityWarmups = createOnceTask(() => {
+                initReviewsEngineWarmup();
+                initGalleryInteractionsWarmup();
+                initChatEngineWarmup();
+                initChatBookingEngineWarmup();
+                initUiEffectsWarmup();
+                initRescheduleEngineWarmup();
+                initSuccessModalEngineWarmup();
+                initEngagementFormsEngineWarmup();
+                initModalUxEngineWarmup();
+            });
 
-        scheduleDeferredTask(initHighPriorityWarmups, {
-            idleTimeout: 1400,
-            fallbackDelay: 500,
-            skipOnConstrained: false,
-            constrainedDelay: 900,
-        });
+            window.addEventListener('pointerdown', initLowPriorityWarmups, {
+                once: true,
+                passive: true,
+            });
+            window.addEventListener('keydown', initLowPriorityWarmups, { once: true });
 
-        const chatInput = document.getElementById('chatInput');
-        if (chatInput) {
-            chatInput.addEventListener('keypress', handleChatKeypress);
-        }
+            scheduleDeferredTask(initHighPriorityWarmups, {
+                idleTimeout: 1400,
+                fallbackDelay: 500,
+                skipOnConstrained: false,
+                constrainedDelay: 900,
+            });
+
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.addEventListener('keypress', handleChatKeypress);
+            }
+
+            // Re-init dynamic components
+            initGalleryLazyLoad();
+            initBookingCalendarLazyInit();
+        });
 
         window.addEventListener('pagehide', () => {
             maybeTrackCheckoutAbandon$1('page_hide');
@@ -2460,63 +2789,5 @@
             });
         });
     });
-
-    // Legacy: Gallery Lazy Loading
-    (function() {
-        const galleryObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-                    const src = img.dataset.src;
-                    const srcset = img.dataset.srcset;
-
-                    if (srcset) img.srcset = srcset;
-                    img.src = src;
-                    img.classList.add('loaded');
-
-                    galleryObserver.unobserve(img);
-                }
-            });
-        }, { rootMargin: '200px' });
-
-        document.querySelectorAll('.gallery-img[data-src]').forEach(img => {
-            galleryObserver.observe(img);
-        });
-    })();
-
-    // Booking Calendar Lazy Init
-    (function () {
-
-        function wireBookingCalendarLazyLoad(element) {
-            if (!element) {
-                return;
-            }
-
-            element.addEventListener('click', function () {
-                const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
-                loadDeferredModule({
-                    cacheKey: 'booking-utils-calendar',
-                    src: BOOKING_UTILS_URL,
-                    scriptDataAttribute: 'data-booking-utils',
-                    resolveModule: () => window.PielBookingCalendarEngine
-                }).then(function (moduleRef) {
-                    if (moduleRef && typeof moduleRef.initCalendar === 'function') {
-                        moduleRef.initCalendar();
-                    }
-                }).catch(function () {
-                    // noop
-                });
-            });
-        }
-
-        const bookingBtn = document.getElementById('booking-btn');
-        wireBookingCalendarLazyLoad(bookingBtn);
-
-        document.querySelectorAll('a[href="#citas"]').forEach(function (button) {
-            if (button.id !== 'booking-btn') {
-                wireBookingCalendarLazyLoad(button);
-            }
-        });
-    })();
 
 })();
