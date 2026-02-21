@@ -44,7 +44,7 @@ window.Piel.deployVersion =
 
 // Deferred Stylesheet
 const DEFERRED_STYLESHEET_URL = withDeployAssetVersion(
-    '/styles-deferred.css?v=ui-20260221-deferred17-mobileblankfix2'
+    '/styles-deferred.css?v=ui-20260221-deferred18-fullcssfix1'
 );
 let deferredStylesheetPromise = null;
 let deferredStylesheetInitDone = false;

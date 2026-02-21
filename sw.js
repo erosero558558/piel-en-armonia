@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pielarmonia-v5-20260220-offline-enhancement';
+const CACHE_NAME = 'pielarmonia-v6-20260221-phase8-fullcssfix1';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -6,10 +6,10 @@ const STATIC_ASSETS = [
     '/admin.html',
     '/admin.css',
     '/admin.js',
-    '/styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1',
-    '/bootstrap-inline-engine.js?v=figo-bootstrap-20260220-cachecoherence1',
-    '/script.js?v=figo-20260220-phase6-cachecoherence1',
-    '/hero-woman.jpg',
+    '/styles-deferred.css?v=ui-20260221-deferred18-fullcssfix1',
+    '/bootstrap-inline-engine.js?v=figo-bootstrap-20260221-phase8-fullcssfix1',
+    '/script.js?v=figo-20260221-phase8-fullcssfix1',
+    '/images/optimized/hero-woman.jpg',
     '/favicon.ico',
     '/manifest.json',
     '/images/icon-192.png',

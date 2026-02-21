@@ -6,7 +6,7 @@
     'use strict';
 
     const DEFERRED_STYLESHEET_URL =
-        '/styles-deferred.min.css?v=opt-20260221';
+        '/styles-deferred.css?v=ui-20260221-deferred18-fullcssfix1';
 
     const deferredModulePromises = new Map();
     let deferredStylesheetPromise = null;
