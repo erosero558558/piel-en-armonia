@@ -26,14 +26,15 @@ test.describe('Deferred stylesheet version parity', () => {
             await page.goto(path);
             await page.waitForTimeout(800);
 
-            const preloadHref = await page
+            const preloadLink = page
                 .locator(
                     'link[rel="preload"][as="style"][href*="styles-deferred.css"]'
                 )
-                .first()
-                .getAttribute('href');
-            expect(preloadHref).toBeTruthy();
-            expect(preloadHref).toContain(EXPECTED_DEFERRED_VERSION);
+                .first();
+            await expect(preloadLink).toHaveAttribute(
+                'href',
+                new RegExp(EXPECTED_DEFERRED_VERSION)
+            );
 
             const resolvedVersionRequest = requests.find((url) =>
                 url.includes(EXPECTED_DEFERRED_VERSION)

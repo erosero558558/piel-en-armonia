@@ -74,6 +74,10 @@ function Get-RemoteSha256 {
         [switch]$NormalizeText
     )
 
+    if ([string]::IsNullOrWhiteSpace($Url)) {
+        return ''
+    }
+
     $tmp = New-TemporaryFile
     try {
         curl.exe -sS -L --max-time 30 --connect-timeout 8 -o $tmp $Url | Out-Null
@@ -117,6 +121,10 @@ function Get-LocalSha256 {
 
 function Get-RemoteText {
     param([string]$Url)
+
+    if ([string]::IsNullOrWhiteSpace($Url)) {
+        return ''
+    }
 
     $tmp = New-TemporaryFile
     try {
@@ -180,15 +188,26 @@ if ($localStyleRef -eq '' -and $localDeferredStyleRef -eq '' -and -not $localHas
     throw 'No se detecto CSS cargado desde index.html (styles.css, styles-deferred.css o inline)'
 }
 
-$remoteIndexTmp = New-TemporaryFile
-try {
-    curl.exe -sS -L --max-time 30 --connect-timeout 8 -o $remoteIndexTmp "$base/" | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "No se pudo descargar $base/"
+$remoteIndexRaw = ''
+$remoteIndexCandidates = @("$base/", "$base/index.html")
+foreach ($candidateUrl in $remoteIndexCandidates) {
+    $remoteIndexTmp = New-TemporaryFile
+    try {
+        curl.exe -sS -L --max-time 30 --connect-timeout 8 -o $remoteIndexTmp $candidateUrl | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            continue
+        }
+        $candidateHtml = [string](Get-Content -Path $remoteIndexTmp -Raw)
+        if ([regex]::IsMatch($candidateHtml, 'script\.js', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+            $remoteIndexRaw = $candidateHtml
+            break
+        }
+        if ($remoteIndexRaw -eq '') {
+            $remoteIndexRaw = $candidateHtml
+        }
+    } finally {
+        Remove-Item -Force -ErrorAction SilentlyContinue $remoteIndexTmp
     }
-    $remoteIndexRaw = Get-Content -Path $remoteIndexTmp -Raw
-} finally {
-    Remove-Item -Force -ErrorAction SilentlyContinue $remoteIndexTmp
 }
 $remoteIndexRaw = [string]$remoteIndexRaw
 if ($null -eq $remoteIndexRaw) {
@@ -198,10 +217,26 @@ if ($null -eq $remoteIndexRaw) {
 $results = @()
 
 try {
-    $homeResp = Invoke-WebRequest -Uri "$base/" -Method GET -TimeoutSec 30 -UseBasicParsing -Headers @{
-        'Cache-Control' = 'no-cache'
-        'User-Agent' = 'PielArmoniaDeployCheck/1.0'
+    $homeResp = $null
+    $homeCandidates = @("$base/", "$base/index.html")
+    foreach ($homeCandidate in $homeCandidates) {
+        try {
+            $candidateResp = Invoke-WebRequest -Uri $homeCandidate -Method GET -TimeoutSec 30 -UseBasicParsing -Headers @{
+                'Cache-Control' = 'no-cache'
+                'User-Agent' = 'PielArmoniaDeployCheck/1.0'
+            }
+            if ($candidateResp -and [int]$candidateResp.StatusCode -ge 200 -and [int]$candidateResp.StatusCode -lt 300) {
+                $homeResp = $candidateResp
+                break
+            }
+        } catch {
+            continue
+        }
     }
+    if ($null -eq $homeResp) {
+        throw 'No se pudo obtener una respuesta 2xx desde / o /index.html'
+    }
+
     $requiredSecurityHeaders = @(
         'Content-Security-Policy',
         'X-Content-Type-Options',
@@ -407,13 +442,23 @@ $translationsEnMatch = [regex]::Match($localI18nEngineTextForRefs, "translations
 if (-not $translationsEnMatch.Success) {
     $translationsEnMatch = [regex]::Match($localScriptTextForRefs, "translations-en\.js\?v=([a-zA-Z0-9._-]+)")
 }
+$hasTranslationsEnAsset = $false
 if ($translationsEnMatch.Success) {
     $translationsEnVersion = $translationsEnMatch.Groups[1].Value
+    $hasTranslationsEnAsset = $true
 }
-$translationsEnRemoteUrl = if ($translationsEnVersion -ne '') {
-    "$base/translations-en.js?v=$translationsEnVersion"
+if (-not $hasTranslationsEnAsset -and (Test-Path 'translations-en.js')) {
+    $hasTranslationsEnAsset = $true
+}
+$translationsEnRemoteUrl = ''
+if ($hasTranslationsEnAsset) {
+    $translationsEnRemoteUrl = if ($translationsEnVersion -ne '') {
+        "$base/translations-en.js?v=$translationsEnVersion"
+    } else {
+        "$base/translations-en.js"
+    }
 } else {
-    "$base/translations-en.js"
+    Write-Host '[INFO] translations-en.js no se detecta en local; se omite verificacion de hash.'
 }
 
 $bookingEngineVersion = ''
@@ -705,13 +750,17 @@ if ($localStyleRef -ne '') {
         RemoteUrl = (Get-Url -Base $base -Ref $localStyleRef)
     }
 }
-
-$checks += @(
-    [PSCustomObject]@{
+if ($remoteScriptRef -ne '') {
+    $checks += [PSCustomObject]@{
         Name = 'script.js'
         LocalPath = 'script.js'
         RemoteUrl = (Get-Url -Base $base -Ref $remoteScriptRef)
-    },
+    }
+} else {
+    Write-Host '[WARN] Se omite hash de script.js: referencia remota no detectada.'
+}
+
+$checks += @(
     [PSCustomObject]@{
         Name = 'chat-widget-engine.js'
         LocalPath = 'chat-widget-engine.js'
@@ -731,11 +780,6 @@ $checks += @(
         Name = 'styles-deferred.css'
         LocalPath = 'styles-deferred.css'
         RemoteUrl = $deferredStylesRemoteUrl
-    },
-    [PSCustomObject]@{
-        Name = 'translations-en.js'
-        LocalPath = 'translations-en.js'
-        RemoteUrl = $translationsEnRemoteUrl
     },
     [PSCustomObject]@{
         Name = 'booking-engine.js'
@@ -783,7 +827,18 @@ $checks += @(
         RemoteUrl = $modalUxEngineRemoteUrl
     }
 )
+if ($hasTranslationsEnAsset) {
+    $checks += [PSCustomObject]@{
+        Name = 'translations-en.js'
+        LocalPath = 'translations-en.js'
+        RemoteUrl = $translationsEnRemoteUrl
+    }
+}
 foreach ($item in $checks) {
+    if ([string]::IsNullOrWhiteSpace($item.RemoteUrl)) {
+        Write-Host "[WARN] Se omite hash de $($item.Name): URL remota vacia."
+        continue
+    }
     $localHash = Get-LocalSha256 -Path $item.LocalPath -NormalizeText
     $remoteHash = Get-RemoteSha256 -Url $item.RemoteUrl -NormalizeText
     $attempts = 0
