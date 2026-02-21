@@ -150,6 +150,14 @@ document.addEventListener('DOMContentLoaded', function () {
         initModalUxEngineWarmup();
     });
 
+    const initDeferredWarmups = createOnceTask(() => {
+        if (initLowPriorityWarmups) {
+            initLowPriorityWarmups();
+        }
+        // Force booking UI warmup if not already done, as a fallback
+        initBookingUiWarmup();
+    });
+
     window.addEventListener('pointerdown', initDeferredWarmups, {
         once: true,
         passive: true,

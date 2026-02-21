@@ -142,6 +142,15 @@ async function fillBookingFormAndOpenPayment(page) {
     await page.evaluate(() => {
         const form = document.getElementById('appointmentForm');
         if (form) form.dispatchEvent(new Event('focusin', { bubbles: true }));
+
+        // Force load explicitly if warmup is delayed
+        if (window.PielBookingEngine && typeof window.PielBookingEngine.loadBookingUi === 'function') {
+             window.PielBookingEngine.loadBookingUi();
+        } else if (window.loadDeferredModule) {
+             // Fallback if main bundle not fully exposed globally
+             const event = new Event('pointerdown');
+             window.dispatchEvent(event);
+        }
     });
 
     await page.waitForSelector('script[data-booking-ui="true"]', {
