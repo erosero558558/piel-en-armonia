@@ -5,7 +5,7 @@ export default [
     {
         input: 'src/apps/booking/ui-entry.js',
         output: {
-            file: 'booking-ui.js',
+            file: 'js/engines/booking-ui.js',
             format: 'es',
             sourcemap: false
         },
@@ -16,7 +16,7 @@ export default [
     {
         input: 'src/apps/booking/engine.js',
         output: {
-            file: 'booking-engine.js',
+            file: 'js/engines/booking-engine.js',
             format: 'iife',
             name: 'Piel.BookingEngine',
             sourcemap: false
@@ -33,23 +33,11 @@ export default [
         },
         plugins: [resolve()]
     },
-    // Admin App
-    {
-        input: 'src/apps/admin/index.js',
-        output: {
-            dir: '.',
-            entryFileNames: 'admin.js',
-            chunkFileNames: 'js/admin-chunks/[name].js',
-            format: 'es',
-            sourcemap: false
-        },
-        plugins: [resolve()]
-    },
     // Chat UI Engine
     {
         input: 'src/apps/chat/ui-engine.js',
         output: {
-            file: 'chat-ui-engine.js',
+            file: 'js/engines/chat-ui-engine.js',
             format: 'iife',
             sourcemap: false
         },
@@ -59,7 +47,7 @@ export default [
     {
         input: 'src/apps/chat/widget-engine.js',
         output: {
-            file: 'chat-widget-engine.js',
+            file: 'js/engines/chat-widget-engine.js',
             format: 'iife',
             sourcemap: false
         },
@@ -69,7 +57,7 @@ export default [
     {
         input: 'src/apps/chat/booking-engine.js',
         output: {
-            file: 'chat-booking-engine.js',
+            file: 'js/engines/chat-booking-engine.js',
             format: 'iife',
             sourcemap: false
         },
@@ -79,7 +67,7 @@ export default [
     {
         input: 'src/apps/chat/engine.js',
         output: {
-            file: 'chat-engine.js',
+            file: 'js/engines/chat-engine.js',
             format: 'iife',
             sourcemap: false
         },
@@ -89,7 +77,7 @@ export default [
     {
         input: 'src/apps/analytics/engine.js',
         output: {
-            file: 'analytics-engine.js',
+            file: 'js/engines/analytics-engine.js',
             format: 'iife',
             sourcemap: false
         },

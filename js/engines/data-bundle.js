@@ -263,8 +263,7 @@
         document.addEventListener('change', handleActionChange);
     }
 
-    window.Piel = window.Piel || {};
-    window.Piel.ActionRouterEngine = {
+    window.PielActionRouterEngine = {
         init
     };
 

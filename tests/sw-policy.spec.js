@@ -22,7 +22,7 @@ test.describe('Service worker policy hardening', () => {
             '/styles-deferred.css?v=ui-20260221-deferred18-fullcssfix1'
         );
         expect(source).toContain(
-            '/bootstrap-inline-engine.js?v=figo-bootstrap-20260221-phase9-chatbridge1'
+            '/js/bootstrap-inline-engine.js?v=figo-bootstrap-20260221-phase9-chatbridge1'
         );
         expect(source).toContain('/script.js?v=figo-20260221-phase9-chatbridge1');
     });

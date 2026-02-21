@@ -35,15 +35,15 @@ test.describe('Script asset version parity', () => {
                 nodes.map((node) => node.getAttribute('src') || '')
             );
             const bootstrapScript = scriptSources.find((src) =>
-                src.includes('bootstrap-inline-engine.js')
+                src.includes('js/bootstrap-inline-engine.js')
             );
             expect(
                 bootstrapScript,
-                `bootstrap-inline-engine.js missing on ${path}`
+                `js/bootstrap-inline-engine.js missing on ${path}`
             ).toBeTruthy();
             expect(
                 bootstrapScript,
-                `bootstrap-inline-engine.js must be versioned on ${path}`
+                `js/bootstrap-inline-engine.js must be versioned on ${path}`
             ).toContain('?v=');
         }
     });

@@ -39,16 +39,16 @@ import {
 } from '../../../js/booking.js';
 
 const CHAT_UI_ENGINE_URL = withDeployAssetVersion(
-    '/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1'
+    '/js/engines/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1'
 );
 const CHAT_WIDGET_ENGINE_URL = withDeployAssetVersion(
-    '/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1'
+    '/js/engines/chat-widget-engine.js?v=figo-chat-widget-20260219-phase2-notification2-funnel1-sync1'
 );
 const CHAT_BOOKING_ENGINE_URL = withDeployAssetVersion(
-    '/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1'
+    '/js/engines/chat-booking-engine.js?v=figo-chat-booking-20260219-mbfix1'
 );
 const FIGO_CHAT_ENGINE_URL = withDeployAssetVersion(
-    '/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1-sync1'
+    '/js/engines/chat-engine.js?v=figo-chat-20260219-phase3-runtimeconfig1-contextcap1-sync1'
 );
 
 const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';

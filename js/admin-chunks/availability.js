@@ -1,4 +1,4 @@
-import { s as showToast, v as currentAvailability, a as apiRequest, e as escapeHtml } from '../../admin.js';
+import { s as showToast, c as currentAvailability, a as apiRequest, e as escapeHtml } from '../../admin.js';
 
 let selectedDate = null;
 let currentMonth = new Date();

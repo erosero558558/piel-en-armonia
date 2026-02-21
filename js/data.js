@@ -15,7 +15,7 @@ import {
 } from './loader.js';
 
 const DATA_ENGINE_URL = withDeployAssetVersion(
-    '/data-engine.js?v=figo-data-20260219-phase1'
+    '/js/engines/data-engine.js?v=figo-data-20260219-phase1'
 );
 
 function getDataEngineDeps() {

@@ -35,10 +35,10 @@ import {
 export { markBookingViewed };
 
 const BOOKING_ENGINE_URL = withDeployAssetVersion(
-    '/booking-engine.js?v=figo-booking-20260219-mbfix1'
+    '/js/engines/booking-engine.js?v=figo-booking-20260219-mbfix1'
 );
 const BOOKING_UI_URL = withDeployAssetVersion(
-    '/booking-ui.js?v=figo-booking-ui-20260220-sync3-cachepurge1'
+    '/js/engines/booking-ui.js?v=figo-booking-ui-20260220-sync3-cachepurge1'
 );
 const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
 const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;

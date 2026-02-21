@@ -17,7 +17,7 @@ let checkoutSession = {
 
 function init(inputDeps) {
     deps = inputDeps || {};
-    return window.PielAnalyticsEngine;
+    return window.Piel.AnalyticsEngine;
 }
 
 function trackEvent(eventName, params = {}) {
@@ -311,7 +311,8 @@ function maybeTrackCheckoutAbandon(reason = 'unknown') {
     });
 }
 
-window.PielAnalyticsEngine = {
+window.Piel = window.Piel || {};
+window.Piel.AnalyticsEngine = {
     init,
     trackEvent,
     normalizeAnalyticsLabel,
