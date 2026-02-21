@@ -1,7 +1,9 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 
-const EXPECTED_DEFERRED_VERSION = 'ui-20260221-deferred17-mobileblankfix2';
+// Updated to match the optimized minified CSS file
+const EXPECTED_DEFERRED_VERSION = 'opt-20260221';
+const DEFERRED_STYLESHEET_NAME = 'styles-deferred.min.css';
 
 const PAGE_PATHS = [
     '/',
@@ -18,7 +20,7 @@ test.describe('Deferred stylesheet version parity', () => {
             const requests = [];
             page.on('request', (req) => {
                 const url = req.url();
-                if (url.includes('styles-deferred.css')) {
+                if (url.includes(DEFERRED_STYLESHEET_NAME)) {
                     requests.push(url);
                 }
             });
@@ -28,7 +30,7 @@ test.describe('Deferred stylesheet version parity', () => {
 
             const preloadLink = page
                 .locator(
-                    'link[rel="preload"][as="style"][href*="styles-deferred.css"]'
+                    `link[rel="preload"][as="style"][href*="${DEFERRED_STYLESHEET_NAME}"]`
                 )
                 .first();
             await expect(preloadLink).toHaveAttribute(
