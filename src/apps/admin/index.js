@@ -97,7 +97,6 @@ async function showDashboard() {
     if (loginScreen) loginScreen.classList.add('is-hidden');
     if (dashboard) dashboard.classList.remove('is-hidden');
     await updateDate();
-}
 
     // Initial load
     await refreshData();
