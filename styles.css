@@ -1285,9 +1285,11 @@ html[data-theme='dark'] .hero-trust-bar .separator {
 }
 
 @supports (content-visibility: auto) {
-    .section {
-        content-visibility: auto;
-        contain-intrinsic-size: 860px;
+    @media (min-width: 1024px) {
+        .section {
+            content-visibility: auto;
+            contain-intrinsic-size: 860px;
+        }
     }
 }
 
@@ -1901,6 +1903,11 @@ html[data-theme='dark'] .cookie-link {
 }
 
 @media (max-width: 900px) {
+    html,
+    body {
+        overflow-x: clip;
+    }
+
     html {
         scroll-padding-top: 120px;
     }
@@ -2044,16 +2051,17 @@ html[data-theme='dark'] .cookie-link {
     }
 
     .chatbot-container {
-        right: 8px;
-        left: 8px;
-        bottom: calc(146px + var(--safe-bottom));
-        width: auto;
-        max-width: none;
-        height: min(68dvh, 560px);
-        max-height: calc(100dvh - 170px - var(--safe-bottom));
-        border-radius: 20px;
-        transform-origin: bottom center;
-        animation: none;
+        right: 8px !important;
+        left: 8px !important;
+        bottom: calc(146px + var(--safe-bottom)) !important;
+        width: auto !important;
+        max-width: none !important;
+        height: min(68dvh, 560px) !important;
+        max-height: calc(100dvh - 170px - var(--safe-bottom)) !important;
+        border-radius: 20px !important;
+        transform: none !important;
+        transform-origin: bottom center !important;
+        animation: none !important;
     }
 
     .quick-dock {
@@ -2184,13 +2192,15 @@ html[data-theme='dark'] .cookie-link {
     }
 
     .chatbot-container {
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: calc(100dvh - 78px - var(--safe-bottom));
-        max-height: none;
-        border-radius: 18px 18px 0 0;
-        animation: none;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: auto !important;
+        height: calc(100dvh - 78px - var(--safe-bottom)) !important;
+        max-height: none !important;
+        border-radius: 18px 18px 0 0 !important;
+        transform: none !important;
+        animation: none !important;
     }
 
     .cookie-banner {

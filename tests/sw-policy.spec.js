@@ -19,13 +19,13 @@ test.describe('Service worker policy hardening', () => {
         const source = fs.readFileSync(swPath, 'utf8');
 
         expect(source).toContain(
-            '/styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1'
+            '/styles-deferred.css?v=ui-20260221-deferred16-mobilechatfix1'
         );
         expect(source).toContain(
-            '/bootstrap-inline-engine.js?v=figo-bootstrap-20260220-cachecoherence1'
+            '/bootstrap-inline-engine.js?v=figo-bootstrap-20260221-mobilecachefix1'
         );
         expect(source).toContain(
-            '/script.js?v=figo-20260220-phase6-cachecoherence1'
+            '/script.js?v=figo-20260221-phase7-mobilecachefix1'
         );
     });
 });

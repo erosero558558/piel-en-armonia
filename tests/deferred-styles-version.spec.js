@@ -1,7 +1,7 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 
-const EXPECTED_DEFERRED_VERSION = 'ui-20260220-deferred15-cookiebannerfix1';
+const EXPECTED_DEFERRED_VERSION = 'ui-20260221-deferred16-mobilechatfix1';
 
 const PAGE_PATHS = [
     '/',

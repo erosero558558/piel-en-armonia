@@ -2323,16 +2323,18 @@ html[data-theme='dark'] .toast-message {
 }
 
 @supports (content-visibility: auto) {
-    #servicios,
-    #telemedicina,
-    #equipo,
-    #galeria,
-    #consultorio,
-    #resenas,
-    #citas,
-    .footer {
-        content-visibility: auto;
-        contain-intrinsic-size: 900px;
+    @media (min-width: 1024px) {
+        #servicios,
+        #telemedicina,
+        #equipo,
+        #galeria,
+        #consultorio,
+        #resenas,
+        #citas,
+        .footer {
+            content-visibility: auto;
+            contain-intrinsic-size: 900px;
+        }
     }
 }
 
@@ -2784,6 +2786,11 @@ html[data-theme='dark'] .showcase-eyebrow {
 }
 
 @media (max-width: 900px) {
+    html,
+    body {
+        overflow-x: clip;
+    }
+
     body {
         font-size: 16px;
     }
@@ -2948,16 +2955,17 @@ html[data-theme='dark'] .showcase-eyebrow {
     }
 
     .chatbot-container {
-        left: 8px;
-        right: 8px;
-        width: auto;
-        max-width: none;
-        bottom: calc(146px + var(--safe-bottom));
-        height: min(68dvh, 560px);
-        max-height: calc(100dvh - 170px - var(--safe-bottom));
-        transform-origin: bottom center;
-        margin: 0;
-        animation: none;
+        left: 8px !important;
+        right: 8px !important;
+        width: auto !important;
+        max-width: none !important;
+        bottom: calc(146px + var(--safe-bottom)) !important;
+        height: min(68dvh, 560px) !important;
+        max-height: calc(100dvh - 170px - var(--safe-bottom)) !important;
+        transform: none !important;
+        transform-origin: bottom center !important;
+        margin: 0 !important;
+        animation: none !important;
     }
 
     .footer {
@@ -3072,13 +3080,15 @@ html[data-theme='dark'] .showcase-eyebrow {
     }
 
     .chatbot-container {
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: calc(100dvh - 78px - var(--safe-bottom));
-        border-radius: 18px 18px 0 0;
-        max-height: none;
-        animation: none;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: auto !important;
+        height: calc(100dvh - 78px - var(--safe-bottom)) !important;
+        border-radius: 18px 18px 0 0 !important;
+        max-height: none !important;
+        transform: none !important;
+        animation: none !important;
     }
 
     .chatbot-widget {

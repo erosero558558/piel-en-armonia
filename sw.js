@@ -1,11 +1,11 @@
-const CACHE_NAME = 'pielarmonia-v4-20260220-phase8warmups1';
+const CACHE_NAME = 'pielarmonia-v5-20260221-mobile-cachefix1';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/telemedicina.html',
-    '/styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1',
-    '/bootstrap-inline-engine.js?v=figo-bootstrap-20260220-cachecoherence1',
-    '/script.js?v=figo-20260220-phase6-cachecoherence1',
+    '/styles-deferred.css?v=ui-20260221-deferred16-mobilechatfix1',
+    '/bootstrap-inline-engine.js?v=figo-bootstrap-20260221-mobilecachefix1',
+    '/script.js?v=figo-20260221-phase7-mobilecachefix1',
     '/images/optimized/hero-woman.jpg',
     '/favicon.ico',
     '/manifest.json',
@@ -25,6 +25,7 @@ const NETWORK_ONLY_PREFIXES = [
 const CACHEABLE_EXTENSIONS = [
     '.css',
     '.js',
+    '.json',
     '.png',
     '.jpg',
     '.jpeg',
@@ -41,10 +42,6 @@ function isSameOrigin(url) {
     return url.origin === self.location.origin;
 }
 
-function isVersionedAsset(url) {
-    return url.searchParams.has('v') || url.searchParams.has('cv');
-}
-
 function isNetworkOnlyPath(pathname) {
     return NETWORK_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
@@ -59,6 +56,14 @@ function isHtmlRequest(request, url) {
 
 function isCacheableAsset(pathname) {
     return CACHEABLE_EXTENSIONS.some((ext) => pathname.endsWith(ext));
+}
+
+function shouldUseNetworkFirstForAsset(pathname) {
+    return (
+        pathname.endsWith('.js') ||
+        pathname.endsWith('.css') ||
+        pathname.endsWith('.json')
+    );
 }
 
 async function putInCache(request, response) {
@@ -138,11 +143,8 @@ self.addEventListener('fetch', (event) => {
     }
 
     if (isCacheableAsset(url.pathname)) {
-        const isPotentiallyMutableScriptOrStyle =
-            (url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) &&
-            !isVersionedAsset(url);
         event.respondWith(
-            isPotentiallyMutableScriptOrStyle
+            shouldUseNetworkFirstForAsset(url.pathname)
                 ? networkFirst(request)
                 : cacheFirst(request)
         );

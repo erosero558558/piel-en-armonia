@@ -43,7 +43,7 @@ window.__PA_DEPLOY_ASSET_VERSION__ =
 
 // Deferred Stylesheet
 const DEFERRED_STYLESHEET_URL = withDeployAssetVersion(
-    '/styles-deferred.css?v=ui-20260220-deferred15-cookiebannerfix1'
+    '/styles-deferred.css?v=ui-20260221-deferred17-mobileblankfix2'
 );
 let deferredStylesheetPromise = null;
 let deferredStylesheetInitDone = false;
