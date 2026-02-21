@@ -171,6 +171,36 @@ function Invoke-JsonGet {
     }
 }
 
+function Get-LocalGitHeadInfo {
+    try {
+        $hashRaw = (& git rev-parse --short HEAD 2>$null)
+        $epochRaw = (& git log -1 --format=%ct HEAD 2>$null)
+        if ($LASTEXITCODE -ne 0) {
+            return $null
+        }
+
+        $hash = [string]$hashRaw
+        $epochText = [string]$epochRaw
+        if ([string]::IsNullOrWhiteSpace($hash) -or [string]::IsNullOrWhiteSpace($epochText)) {
+            return $null
+        }
+
+        $commitEpoch = 0L
+        if (-not [long]::TryParse($epochText.Trim(), [ref]$commitEpoch)) {
+            return $null
+        }
+
+        $commitUtc = [DateTimeOffset]::FromUnixTimeSeconds($commitEpoch).UtcDateTime
+        return [PSCustomObject]@{
+            Hash = $hash.Trim()
+            CommitUtc = $commitUtc
+            CommitEpoch = $commitEpoch
+        }
+    } catch {
+        return $null
+    }
+}
+
 Write-Host "== Verificacion de despliegue =="
 Write-Host "Dominio: $base"
 Write-Host "Fecha: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
@@ -280,6 +310,47 @@ $remoteHasInlineCriticalCss = [regex]::IsMatch($remoteIndexRaw, '<style\b[^>]*>[
 $appScriptRemoteUrl = Get-Url -Base $base -Ref $remoteScriptRef
 $criticalCssRemoteUrl = Get-Url -Base $base -Ref $localStyleRef
 $indexDeferredStylesRemoteUrl = Get-Url -Base $base -Ref $localDeferredStyleRef
+
+try {
+    if (-not [string]::IsNullOrWhiteSpace($appScriptRemoteUrl)) {
+        $localHead = Get-LocalGitHeadInfo
+        if ($null -ne $localHead) {
+            $scriptHeadResp = Invoke-WebRequest -Uri $appScriptRemoteUrl -Method HEAD -TimeoutSec 30 -UseBasicParsing -Headers @{
+                'Cache-Control' = 'no-cache'
+                'User-Agent' = 'PielArmoniaDeployCheck/1.0'
+            }
+            $lastModifiedRaw = [string]$scriptHeadResp.Headers['Last-Modified']
+            $ageRaw = [string]$scriptHeadResp.Headers['Age']
+            if (-not [string]::IsNullOrWhiteSpace($lastModifiedRaw)) {
+                $remoteLastModifiedUtc = ([DateTimeOffset]::Parse($lastModifiedRaw)).UtcDateTime
+                $deltaSeconds = [int]([Math]::Round(($localHead.CommitUtc - $remoteLastModifiedUtc).TotalSeconds))
+                if ($deltaSeconds -gt 180) {
+                    Write-Host "[FAIL] deploy freshness: remoto mas viejo que HEAD local"
+                    Write-Host "       Local HEAD : $($localHead.Hash) @ $($localHead.CommitUtc.ToString('u'))"
+                    Write-Host "       Remote LM  : $($remoteLastModifiedUtc.ToString('u'))"
+                    if (-not [string]::IsNullOrWhiteSpace($ageRaw)) {
+                        Write-Host "       CDN Age    : ${ageRaw}s"
+                    }
+                    $results += [PSCustomObject]@{
+                        Asset = 'deploy-freshness'
+                        Match = $false
+                        LocalHash = "$($localHead.Hash)@$($localHead.CommitEpoch)"
+                        RemoteHash = $remoteLastModifiedUtc.ToString('o')
+                        RemoteUrl = $appScriptRemoteUrl
+                    }
+                } else {
+                    Write-Host "[OK]  deploy freshness dentro de margen (${deltaSeconds}s)"
+                }
+            } else {
+                Write-Host '[WARN] deploy freshness: Last-Modified no disponible'
+            }
+        } else {
+            Write-Host '[WARN] deploy freshness: no se pudo leer metadata de git local'
+        }
+    }
+} catch {
+    Write-Host "[WARN] No se pudo validar deploy freshness: $($_.Exception.Message)"
+}
 
 try {
     $assetHeaderChecks = @(
