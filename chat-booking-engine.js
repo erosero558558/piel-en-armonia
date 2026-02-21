@@ -390,7 +390,7 @@
                     });
                     msg += '</div>';
                     addBotMessage(msg);
-                } catch (error) {
+                } catch {
                     if (
                         deps &&
                         typeof deps.removeTypingIndicator === 'function'
@@ -734,4 +734,5 @@
         processChatBookingStep,
         finalizeChatBooking,
     };
+
 })();

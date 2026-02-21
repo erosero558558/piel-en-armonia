@@ -1,6 +1,6 @@
 import { withDeployAssetVersion, showToast, escapeHtml } from './utils.js';
 import { loadDeferredModule, runDeferredModule } from './loader.js';
-import { state } from './state.js';
+import { getCurrentLang } from './state.js';
 import { DEFAULT_TIME_SLOTS } from './config.js';
 import {
     apiRequest,
@@ -34,8 +34,7 @@ export function loadRescheduleEngine() {
         resolveModule: () => window.PielRescheduleGatewayEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) =>
-            module.init(getRescheduleGatewayEngineDeps()),
+        onModuleReady: (module) => module.init(getRescheduleEngineDeps()),
         missingApiError: 'reschedule-gateway-engine loaded without API',
         loadError: 'No se pudo cargar reschedule-gateway-engine.js',
         logLabel: 'Reschedule gateway engine',
@@ -59,7 +58,7 @@ export function initRescheduleEngineWarmup() {
 
 export function closeRescheduleModal() {
     runDeferredModule(
-        loadRescheduleGatewayEngine,
+        loadRescheduleEngine,
         (engine) => engine.closeRescheduleModal(),
         () => {
             const modal = document.getElementById('rescheduleModal');
@@ -72,7 +71,7 @@ export function closeRescheduleModal() {
 
 export function submitReschedule() {
     runDeferredModule(
-        loadRescheduleGatewayEngine,
+        loadRescheduleEngine,
         (engine) => engine.submitReschedule(),
         () => {
             showToast(

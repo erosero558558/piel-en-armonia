@@ -4,7 +4,6 @@ import {
     createWarmupRunner,
     bindWarmupTarget,
     scheduleDeferredTask,
-    runDeferredModule,
 } from './loader.js';
 import { closePaymentModal } from './booking.js';
 
@@ -18,9 +17,9 @@ const MODAL_UX_ENGINE_URL = withDeployAssetVersion(
 // UI Effects
 export function loadUiEffects() {
     return loadDeferredModule({
-        cacheKey: 'ui-bundle',
-        src: UI_BUNDLE_URL,
-        scriptDataAttribute: 'data-ui-bundle',
+        cacheKey: 'ui-effects',
+        src: UI_EFFECTS_URL,
+        scriptDataAttribute: 'data-ui-effects',
         resolveModule: () => window.PielUiEffects,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
@@ -70,9 +69,9 @@ function getModalUxEngineDeps() {
 
 export function loadModalUxEngine() {
     return loadDeferredModule({
-        cacheKey: 'ui-bundle',
-        src: UI_BUNDLE_URL,
-        scriptDataAttribute: 'data-ui-bundle',
+        cacheKey: 'modal-ux-engine',
+        src: MODAL_UX_ENGINE_URL,
+        scriptDataAttribute: 'data-modal-ux-engine',
         resolveModule: () => window.PielModalUxEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),

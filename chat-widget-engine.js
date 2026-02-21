@@ -1,9 +1,10 @@
-/**
- * Chat widget controller engine (deferred-loaded).
- * Handles open/minimize and quick interactions for the floating chatbot UI.
- */
 (function () {
     'use strict';
+
+    /**
+     * Chat widget controller engine (deferred-loaded).
+     * Handles open/minimize and quick interactions for the floating chatbot UI.
+     */
 
     let deps = null;
     let chatStartedTracked = false;
@@ -295,4 +296,5 @@
         showTeaser,
         hideTeaser,
     };
+
 })();

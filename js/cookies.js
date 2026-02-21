@@ -20,9 +20,9 @@ function getConsentEngineDeps() {
 
 export function loadConsentEngine() {
     return loadDeferredModule({
-        cacheKey: 'ui-bundle',
-        src: UI_BUNDLE_URL,
-        scriptDataAttribute: 'data-ui-bundle',
+        cacheKey: 'consent-engine',
+        src: CONSENT_ENGINE_URL,
+        scriptDataAttribute: 'data-consent-engine',
         resolveModule: () => window.PielConsentEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
@@ -46,7 +46,7 @@ export function getCookieConsent() {
         if (!raw) return '';
         const parsed = JSON.parse(raw);
         return typeof parsed?.status === 'string' ? parsed.status : '';
-    } catch (_error) {
+    } catch {
         return '';
     }
 }
@@ -65,7 +65,7 @@ export function setCookieConsent(status) {
                         at: new Date().toISOString(),
                     })
                 );
-            } catch (error) {
+            } catch {
                 // noop
             }
         }

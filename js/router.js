@@ -72,9 +72,9 @@ function getActionRouterEngineDeps() {
 
 export function loadActionRouterEngine() {
     return loadDeferredModule({
-        cacheKey: 'data-bundle',
-        src: DATA_BUNDLE_URL,
-        scriptDataAttribute: 'data-data-bundle',
+        cacheKey: 'action-router-engine',
+        src: ACTION_ROUTER_ENGINE_URL,
+        scriptDataAttribute: 'data-action-router-engine',
         resolveModule: () => window.PielActionRouterEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),

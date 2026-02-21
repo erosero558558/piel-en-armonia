@@ -1,5 +1,3 @@
-import { DEFAULT_TIME_SLOTS } from './config.js';
-
 let currentLang = localStorage.getItem('language') || 'es';
 let currentThemeMode = localStorage.getItem('themeMode') || 'system';
 let currentAppointment = null;
@@ -183,23 +181,44 @@ export function getChatHistory() {
         if (valid.length !== saved.length) {
             try {
                 localStorage.setItem('chatHistory', JSON.stringify(valid));
-            } catch (e) {}
+            } catch {
+                // noop
+            }
         }
         return valid;
-    } catch (e) {
+    } catch {
         return [];
     }
 }
 export function setChatHistory(history) {
     try {
         localStorage.setItem('chatHistory', JSON.stringify(history));
-    } catch (e) {}
+    } catch {
+        // noop
+    }
 }
+
+const stateAccessors = {
+    currentLang: [getCurrentLang, setCurrentLang],
+    currentThemeMode: [getCurrentThemeMode, setCurrentThemeMode],
+    currentAppointment: [getCurrentAppointment, setCurrentAppointment],
+    checkoutSession: [getCheckoutSession, setCheckoutSession],
+    reviewsCache: [getReviewsCache, setReviewsCache],
+    chatbotOpen: [getChatbotOpen, setChatbotOpen],
+    conversationContext: [getConversationContext, setConversationContext],
+};
+
+const internalState = {
+    bookedSlotsCache,
+};
 
 const handler = {
     get(target, prop, receiver) {
         if (prop === 'chatHistory') {
             return getChatHistory();
+        }
+        if (Object.prototype.hasOwnProperty.call(stateAccessors, prop)) {
+            return stateAccessors[prop][0]();
         }
         return Reflect.get(target, prop, receiver);
     },
@@ -211,8 +230,12 @@ const handler = {
         if (prop === 'bookedSlotsCache') {
             return false;
         }
+        if (Object.prototype.hasOwnProperty.call(stateAccessors, prop)) {
+            stateAccessors[prop][1](value);
+            return true;
+        }
         return Reflect.set(target, prop, value, receiver);
-    }
+    },
 };
 
 export const state = new Proxy(internalState, handler);

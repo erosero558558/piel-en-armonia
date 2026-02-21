@@ -46,6 +46,46 @@ export default [
         },
         plugins: [resolve()]
     },
+    // Chat UI Engine
+    {
+        input: 'src/apps/chat/ui-engine.js',
+        output: {
+            file: 'chat-ui-engine.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
+    // Chat Widget Engine
+    {
+        input: 'src/apps/chat/widget-engine.js',
+        output: {
+            file: 'chat-widget-engine.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
+    // Chat Booking Engine
+    {
+        input: 'src/apps/chat/booking-engine.js',
+        output: {
+            file: 'chat-booking-engine.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
+    // Figo Chat Engine
+    {
+        input: 'src/apps/chat/engine.js',
+        output: {
+            file: 'chat-engine.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
     // Main Script
     {
         input: 'js/main.js',

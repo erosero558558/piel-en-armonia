@@ -8,7 +8,9 @@ import {
     scheduleDeferredTask,
 } from './loader.js';
 import {
+    state,
     getCurrentLang,
+    getCurrentAppointment,
     getChatHistory,
     setChatHistory,
     getConversationContext,
@@ -17,6 +19,12 @@ import {
     setChatbotOpen,
     setCurrentAppointment,
 } from './state.js';
+import {
+    CLINIC_ADDRESS,
+    CLINIC_MAP_URL,
+    DOCTOR_CAROLINA_PHONE,
+    DOCTOR_CAROLINA_EMAIL,
+} from './config.js';
 import { trackEvent } from './analytics.js';
 import {
     loadAvailabilityData,

@@ -153,6 +153,68 @@
         } catch (e) {}
     }
 
+    const state = new Proxy(
+        {
+            bookedSlotsCache: new Map(),
+        },
+        {
+            get(target, prop, receiver) {
+                switch (prop) {
+                    case 'chatHistory':
+                        return getChatHistory();
+                    case 'currentLang':
+                        return getCurrentLang();
+                    case 'currentThemeMode':
+                        return getCurrentThemeMode();
+                    case 'currentAppointment':
+                        return getCurrentAppointment();
+                    case 'checkoutSession':
+                        return getCheckoutSession();
+                    case 'reviewsCache':
+                        return getReviewsCache();
+                    case 'chatbotOpen':
+                        return getChatbotOpen();
+                    case 'conversationContext':
+                        return getConversationContext();
+                    default:
+                        return Reflect.get(target, prop, receiver);
+                }
+            },
+            set(target, prop, value, receiver) {
+                switch (prop) {
+                    case 'chatHistory':
+                        setChatHistory(value);
+                        return true;
+                    case 'currentLang':
+                        setCurrentLang(value);
+                        return true;
+                    case 'currentThemeMode':
+                        setCurrentThemeMode(value);
+                        return true;
+                    case 'currentAppointment':
+                        setCurrentAppointment(value);
+                        return true;
+                    case 'checkoutSession':
+                        checkoutSession = value;
+                        return true;
+                    case 'reviewsCache':
+                        setReviewsCache(value);
+                        return true;
+                    case 'chatbotOpen':
+                        setChatbotOpen(value);
+                        return true;
+                    case 'conversationContext':
+                        setConversationContext(value);
+                        return true;
+                    case 'bookedSlotsCache':
+                        return false;
+                    default:
+                        return Reflect.set(target, prop, value, receiver);
+                }
+            },
+        }
+    );
+
     function debugLog(...args) {}
 
     function escapeHtml$1(text) {
@@ -589,9 +651,9 @@
 
     function loadThemeEngine() {
         return loadDeferredModule$1({
-            cacheKey: 'ui-bundle',
-            src: UI_BUNDLE_URL$3,
-            scriptDataAttribute: 'data-ui-bundle',
+            cacheKey: 'theme-engine',
+            src: THEME_ENGINE_URL,
+            scriptDataAttribute: 'data-theme-engine',
             resolveModule: () => window.PielThemeEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
@@ -742,7 +804,7 @@
     function loadReviewsEngine() {
         return loadDeferredModule$1({
             cacheKey: 'engagement-bundle',
-            src: ENGAGEMENT_BUNDLE_URL,
+            src: REVIEWS_ENGINE_URL,
             scriptDataAttribute: 'data-engagement-bundle',
             resolveModule: () => window.PielReviewsEngine,
             isModuleReady: (module) =>
@@ -805,7 +867,7 @@
 
     function loadEngagementFormsEngine() {
         return loadReviewsEngine().then(() =>
-            loadDeferredModule({
+            loadDeferredModule$1({
                 cacheKey: 'engagement-forms-engine',
                 src: ENGAGEMENT_FORMS_ENGINE_URL,
                 scriptDataAttribute: 'data-engagement-forms-engine',
@@ -894,9 +956,9 @@
 
     function loadI18nEngine() {
         return loadDeferredModule$1({
-            cacheKey: 'data-bundle',
-            src: DATA_BUNDLE_URL$1,
-            scriptDataAttribute: 'data-data-bundle',
+            cacheKey: 'i18n-engine',
+            src: I18N_ENGINE_URL,
+            scriptDataAttribute: 'data-i18n-engine',
             resolveModule: () => window.PielI18nEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
@@ -1383,9 +1445,9 @@
 
     function loadSuccessModalEngine() {
         return loadDeferredModule$1({
-            cacheKey: 'ui-bundle',
-            src: UI_BUNDLE_URL$2,
-            scriptDataAttribute: 'data-ui-bundle',
+            cacheKey: 'success-modal-engine',
+            src: SUCCESS_MODAL_ENGINE_URL,
+            scriptDataAttribute: 'data-success-modal-engine',
             resolveModule: () => window.PielSuccessModalEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
@@ -1442,6 +1504,9 @@
     );
     const BOOKING_UI_URL = withDeployAssetVersion(
         '/booking-ui.js?v=figo-booking-ui-20260220-sync3-cachepurge1'
+    );
+    const BOOKING_UTILS_URL = withDeployAssetVersion(
+        '/js/engines/booking-utils.js'
     );
     const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 
@@ -1620,7 +1685,7 @@
     function loadBookingCalendarEngine() {
         return loadDeferredModule$1({
             cacheKey: 'booking-utils-calendar',
-            src: BOOKING_UTILS_URL$1,
+            src: BOOKING_UTILS_URL,
             scriptDataAttribute: 'data-booking-utils',
             resolveModule: () => window.PielBookingCalendarEngine,
             isModuleReady: (module) => !!(module && typeof module.initCalendar === 'function'),
@@ -1807,9 +1872,9 @@
     // UI Effects
     function loadUiEffects() {
         return loadDeferredModule$1({
-            cacheKey: 'ui-bundle',
-            src: UI_BUNDLE_URL$1,
-            scriptDataAttribute: 'data-ui-bundle',
+            cacheKey: 'ui-effects',
+            src: UI_EFFECTS_URL,
+            scriptDataAttribute: 'data-ui-effects',
             resolveModule: () => window.PielUiEffects,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
@@ -1862,9 +1927,9 @@
 
     function loadModalUxEngine() {
         return loadDeferredModule$1({
-            cacheKey: 'ui-bundle',
-            src: UI_BUNDLE_URL$1,
-            scriptDataAttribute: 'data-ui-bundle',
+            cacheKey: 'modal-ux-engine',
+            src: MODAL_UX_ENGINE_URL,
+            scriptDataAttribute: 'data-modal-ux-engine',
             resolveModule: () => window.PielModalUxEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
@@ -1922,7 +1987,7 @@
     }
 
     function loadRescheduleGatewayEngine() {
-        return loadDeferredModule({
+        return loadDeferredModule$1({
             cacheKey: 'reschedule-gateway-engine',
             src: RESCHEDULE_GATEWAY_ENGINE_URL,
             scriptDataAttribute: 'data-reschedule-gateway-engine',
@@ -1930,7 +1995,7 @@
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) =>
-                module.init(getRescheduleGatewayEngineDeps()),
+                module.init(getRescheduleEngineDeps()),
             missingApiError: 'reschedule-gateway-engine loaded without API',
             loadError: 'No se pudo cargar reschedule-gateway-engine.js',
             logLabel: 'Reschedule gateway engine',
@@ -1939,7 +2004,7 @@
 
     function initRescheduleEngineWarmup() {
         runDeferredModule(
-            loadRescheduleEngine,
+            loadRescheduleGatewayEngine,
             (engine) => engine.initRescheduleFromParam(),
             () => {
                 showToast(
@@ -2451,9 +2516,9 @@
 
     function loadActionRouterEngine() {
         return loadDeferredModule$1({
-            cacheKey: 'data-bundle',
-            src: DATA_BUNDLE_URL,
-            scriptDataAttribute: 'data-data-bundle',
+            cacheKey: 'action-router-engine',
+            src: ACTION_ROUTER_ENGINE_URL,
+            scriptDataAttribute: 'data-action-router-engine',
             resolveModule: () => window.PielActionRouterEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
@@ -2488,9 +2553,9 @@
 
     function loadConsentEngine() {
         return loadDeferredModule$1({
-            cacheKey: 'ui-bundle',
-            src: UI_BUNDLE_URL,
-            scriptDataAttribute: 'data-ui-bundle',
+            cacheKey: 'consent-engine',
+            src: CONSENT_ENGINE_URL,
+            scriptDataAttribute: 'data-consent-engine',
             resolveModule: () => window.PielConsentEngine,
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),

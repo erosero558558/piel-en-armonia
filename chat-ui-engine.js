@@ -1,9 +1,10 @@
-/**
- * Chat UI engine (deferred-loaded).
- * Handles chat message rendering, sanitization and typing indicator.
- */
 (function () {
     'use strict';
+
+    /**
+     * Chat UI engine (deferred-loaded).
+     * Handles chat message rendering, sanitization and typing indicator.
+     */
     // build-sync: 20260219-sync1
 
     let deps = null;
@@ -94,13 +95,13 @@
                 getHistoryStorageKey(),
                 JSON.stringify(getChatHistory())
             );
-        } catch (error) {
+        } catch {
             // noop
         }
     }
 
     function appendConversationContext(role, content) {
-        const normalizedRole = String(role || '').trim();
+        const normalizedRole = String(role).trim();
         const normalizedContent = String(content || '').trim();
         if (!normalizedRole || !normalizedContent) {
             return;
@@ -250,9 +251,9 @@
         const messageDiv = document.createElement('div');
         messageDiv.className = 'chat-message user';
         messageDiv.innerHTML = `
-            <div class="message-avatar"><i class="fas fa-user"></i></div>
-            <div class="message-content"><p>${escapeHtml(text)}</p></div>
-        `;
+        <div class="message-avatar"><i class="fas fa-user"></i></div>
+        <div class="message-content"><p>${escapeHtml(text)}</p></div>
+    `;
         messagesContainer.appendChild(messageDiv);
         scrollToBottom();
 
@@ -288,9 +289,9 @@
         const messageDiv = document.createElement('div');
         messageDiv.className = 'chat-message bot';
         messageDiv.innerHTML = `
-            <div class="message-avatar"><i class="fas fa-user-md"></i></div>
-            <div class="message-content">${offlineIndicator}${safeHtml}</div>
-        `;
+        <div class="message-avatar"><i class="fas fa-user-md"></i></div>
+        <div class="message-content">${offlineIndicator}${safeHtml}</div>
+    `;
         messagesContainer.appendChild(messageDiv);
         scrollToBottom();
 
@@ -314,11 +315,11 @@
         typingDiv.className = 'chat-message bot typing';
         typingDiv.id = 'typingIndicator';
         typingDiv.innerHTML = `
-            <div class="message-avatar"><i class="fas fa-user-md"></i></div>
-            <div class="typing-indicator">
-                <span></span><span></span><span></span>
-            </div>
-        `;
+        <div class="message-avatar"><i class="fas fa-user-md"></i></div>
+        <div class="typing-indicator">
+            <span></span><span></span><span></span>
+        </div>
+    `;
         messagesContainer.appendChild(typingDiv);
         scrollToBottom();
     }
@@ -340,4 +341,5 @@
         scrollToBottom,
         escapeHtml,
     };
+
 })();

@@ -8,11 +8,8 @@ import {
     scheduleDeferredTask,
 } from './loader.js';
 import {
-    getCurrentLang,
-    getCurrentAppointment,
+    state,
     setCurrentAppointment,
-    getCheckoutSession,
-    setCheckoutSessionActive,
 } from './state.js';
 import { DEFAULT_TIME_SLOTS } from './config.js';
 import {
@@ -43,6 +40,7 @@ const BOOKING_ENGINE_URL = withDeployAssetVersion(
 const BOOKING_UI_URL = withDeployAssetVersion(
     '/booking-ui.js?v=figo-booking-ui-20260220-sync3-cachepurge1'
 );
+const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
 const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 
 function stripTransientAppointmentFields(appointment) {

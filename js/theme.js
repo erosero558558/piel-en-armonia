@@ -24,9 +24,9 @@ function getThemeEngineDeps() {
 
 export function loadThemeEngine() {
     return loadDeferredModule({
-        cacheKey: 'ui-bundle',
-        src: UI_BUNDLE_URL,
-        scriptDataAttribute: 'data-ui-bundle',
+        cacheKey: 'theme-engine',
+        src: THEME_ENGINE_URL,
+        scriptDataAttribute: 'data-theme-engine',
         resolveModule: () => window.PielThemeEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),

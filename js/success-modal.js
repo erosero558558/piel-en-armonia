@@ -15,8 +15,8 @@ const SUCCESS_MODAL_ENGINE_URL = withDeployAssetVersion(
 
 function getSuccessModalEngineDeps() {
     return {
-        getCurrentLang: () => state.currentLang,
-        getCurrentAppointment: () => state.currentAppointment,
+        getCurrentLang,
+        getCurrentAppointment,
         getClinicAddress: () => CLINIC_ADDRESS,
         escapeHtml,
     };
@@ -24,9 +24,9 @@ function getSuccessModalEngineDeps() {
 
 export function loadSuccessModalEngine() {
     return loadDeferredModule({
-        cacheKey: 'ui-bundle',
-        src: UI_BUNDLE_URL,
-        scriptDataAttribute: 'data-ui-bundle',
+        cacheKey: 'success-modal-engine',
+        src: SUCCESS_MODAL_ENGINE_URL,
+        scriptDataAttribute: 'data-success-modal-engine',
         resolveModule: () => window.PielSuccessModalEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),

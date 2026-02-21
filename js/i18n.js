@@ -22,9 +22,9 @@ function getI18nEngineDeps() {
 
 export function loadI18nEngine() {
     return loadDeferredModule({
-        cacheKey: 'data-bundle',
-        src: DATA_BUNDLE_URL,
-        scriptDataAttribute: 'data-data-bundle',
+        cacheKey: 'i18n-engine',
+        src: I18N_ENGINE_URL,
+        scriptDataAttribute: 'data-i18n-engine',
         resolveModule: () => window.PielI18nEngine,
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
