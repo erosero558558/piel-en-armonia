@@ -106,7 +106,7 @@ Configura estas variables en tu hosting:
 - `PIELARMONIA_CRON_SECRET` (obligatoria para `cron.php`)
 - `PIELARMONIA_BACKUP_MAX_AGE_HOURS` (opcional, default 24)
 - `PIELARMONIA_BACKUP_AUTO_REFRESH` (opcional, default `true`, refresca backup stale de forma automatica)
-- `PIELARMONIA_BACKUP_AUTO_REFRESH_INTERVAL_SECONDS` (opcional, default `21600`, cooldown de auto-refresh)
+- `PIELARMONIA_BACKUP_AUTO_REFRESH_INTERVAL_SECONDS` (opcional, default `600`, cooldown de auto-refresh)
 - `PIELARMONIA_BACKUP_OFFSITE_URL` (opcional, endpoint externo para snapshots)
 - `PIELARMONIA_BACKUP_OFFSITE_TOKEN` (opcional)
 - `PIELARMONIA_BACKUP_OFFSITE_TOKEN_HEADER` (opcional, default `Authorization`)

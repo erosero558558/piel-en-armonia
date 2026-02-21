@@ -56,8 +56,8 @@
 // putenv('PIELARMONIA_BACKUP_MAX_AGE_HOURS=24');
 // Auto-refresh de backup en health cuando el ultimo esta stale (default true)
 // putenv('PIELARMONIA_BACKUP_AUTO_REFRESH=true');
-// Cooldown de auto-refresh en segundos (300-604800, default 21600 = 6h)
-// putenv('PIELARMONIA_BACKUP_AUTO_REFRESH_INTERVAL_SECONDS=21600');
+// Cooldown de auto-refresh en segundos (300-604800, default 600 = 10min)
+// putenv('PIELARMONIA_BACKUP_AUTO_REFRESH_INTERVAL_SECONDS=600');
 // Webhook/endpoint para subir snapshots offsite (multipart form-data)
 // putenv('PIELARMONIA_BACKUP_OFFSITE_URL=https://tu-backup-endpoint.example/upload');
 // Token opcional para autenticar el webhook de backup

@@ -135,7 +135,7 @@ function backup_auto_refresh_enabled(): bool
 function backup_auto_refresh_interval_seconds(): int
 {
     $raw = getenv('PIELARMONIA_BACKUP_AUTO_REFRESH_INTERVAL_SECONDS');
-    $seconds = is_string($raw) && trim($raw) !== '' ? (int) trim($raw) : 21600;
+    $seconds = is_string($raw) && trim($raw) !== '' ? (int) trim($raw) : 600;
     if ($seconds < 300) {
         $seconds = 300;
     }
@@ -210,9 +210,6 @@ function backup_auto_refresh_try_create(): array
         return $result;
     }
 
-    $result['attempted'] = true;
-    backup_auto_refresh_touch_marker();
-
     if (!ensure_data_file()) {
         $result['reason'] = 'store_not_ready';
         return $result;
@@ -245,7 +242,9 @@ function backup_auto_refresh_try_create(): array
     $before = backup_list_files(1);
     $beforeLatest = count($before) > 0 ? basename((string) $before[0]) : '';
 
+    $result['attempted'] = true;
     create_store_backup_locked($storePath);
+    backup_auto_refresh_touch_marker();
 
     $after = backup_list_files(1);
     if (count($after) === 0) {
