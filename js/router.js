@@ -22,7 +22,7 @@ import {
 } from './chat.js';
 
 const DATA_BUNDLE_URL = withDeployAssetVersion(
-    '/js/engines/data-bundle.js?v=20260220-consolidated1'
+    '/js/engines/data-bundle.js?v=20260221-api-fix'
 );
 
 function selectService(value) {

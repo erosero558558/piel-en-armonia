@@ -105,6 +105,13 @@ if (file_exists($currentStorePath)) {
 echo "Restoring data...\n";
 // write_store handles encryption and locking
 // It also creates a backup in backups/ directory before overwriting.
+
+// Ensure clean state if DB is corrupted
+$targetPath = data_file_path();
+if (file_exists($targetPath)) {
+    @unlink($targetPath);
+}
+
 write_store($data);
 
 // Verify restore
