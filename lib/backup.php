@@ -122,6 +122,146 @@ function backup_offsite_configured(): bool
     return backup_replica_mode() !== 'none';
 }
 
+function backup_auto_refresh_enabled(): bool
+{
+    $raw = getenv('PIELARMONIA_BACKUP_AUTO_REFRESH');
+    if (!is_string($raw) || trim($raw) === '') {
+        // Enabled by default to avoid stale health checks when no writes occur.
+        return true;
+    }
+    return parse_bool($raw);
+}
+
+function backup_auto_refresh_interval_seconds(): int
+{
+    $raw = getenv('PIELARMONIA_BACKUP_AUTO_REFRESH_INTERVAL_SECONDS');
+    $seconds = is_string($raw) && trim($raw) !== '' ? (int) trim($raw) : 21600;
+    if ($seconds < 300) {
+        $seconds = 300;
+    }
+    if ($seconds > 604800) {
+        $seconds = 604800;
+    }
+    return $seconds;
+}
+
+function backup_auto_refresh_marker_path(): string
+{
+    return backup_dir_path() . DIRECTORY_SEPARATOR . 'backup-auto-refresh.marker';
+}
+
+function backup_auto_refresh_last_attempt_age_seconds(): ?int
+{
+    $marker = backup_auto_refresh_marker_path();
+    if (!is_file($marker)) {
+        return null;
+    }
+
+    $mtime = @filemtime($marker);
+    if (!is_int($mtime) || $mtime <= 0) {
+        return null;
+    }
+
+    return max(0, time() - $mtime);
+}
+
+function backup_auto_refresh_touch_marker(): void
+{
+    if (!ensure_backup_dir()) {
+        return;
+    }
+
+    $marker = backup_auto_refresh_marker_path();
+    @touch($marker);
+}
+
+function backup_auto_refresh_try_create(): array
+{
+    $cooldownSeconds = backup_auto_refresh_interval_seconds();
+    $lastAttemptAge = backup_auto_refresh_last_attempt_age_seconds();
+
+    $result = [
+        'ok' => false,
+        'attempted' => false,
+        'created' => false,
+        'reason' => '',
+        'cooldownSeconds' => $cooldownSeconds,
+        'lastAttemptAgeSeconds' => $lastAttemptAge,
+        'file' => ''
+    ];
+
+    if (!backup_auto_refresh_enabled()) {
+        $result['reason'] = 'auto_refresh_disabled';
+        return $result;
+    }
+
+    if (!function_exists('ensure_data_file') || !function_exists('create_store_backup_locked')) {
+        $result['reason'] = 'storage_helpers_unavailable';
+        return $result;
+    }
+
+    if (!ensure_backup_dir()) {
+        $result['reason'] = 'backup_dir_not_ready';
+        return $result;
+    }
+
+    if ($lastAttemptAge !== null && $lastAttemptAge < $cooldownSeconds) {
+        $result['reason'] = 'cooldown_active';
+        return $result;
+    }
+
+    $result['attempted'] = true;
+    backup_auto_refresh_touch_marker();
+
+    if (!ensure_data_file()) {
+        $result['reason'] = 'store_not_ready';
+        return $result;
+    }
+
+    $storeCandidates = [];
+    if (function_exists('data_file_path')) {
+        $storeCandidates[] = (string) data_file_path();
+    }
+    if (function_exists('data_json_path')) {
+        $storeCandidates[] = (string) data_json_path();
+    }
+
+    $storePath = '';
+    foreach ($storeCandidates as $candidate) {
+        if (!is_string($candidate) || trim($candidate) === '') {
+            continue;
+        }
+        if (is_file($candidate) && is_readable($candidate)) {
+            $storePath = $candidate;
+            break;
+        }
+    }
+
+    if ($storePath === '') {
+        $result['reason'] = 'store_file_missing';
+        return $result;
+    }
+
+    $before = backup_list_files(1);
+    $beforeLatest = count($before) > 0 ? basename((string) $before[0]) : '';
+
+    create_store_backup_locked($storePath);
+
+    $after = backup_list_files(1);
+    if (count($after) === 0) {
+        $result['reason'] = 'refresh_no_backup_created';
+        return $result;
+    }
+
+    $afterLatest = basename((string) $after[0]);
+    $result['ok'] = true;
+    $result['created'] = $afterLatest !== '' && $afterLatest !== $beforeLatest;
+    $result['file'] = $afterLatest;
+    $result['reason'] = $result['created'] ? '' : 'refresh_not_detected';
+
+    return $result;
+}
+
 function backup_create_initial_seed_if_missing(): array
 {
     $result = [
@@ -463,6 +603,17 @@ function backup_latest_status_internal(?int $maxAgeHours, callable $validator): 
         $maxAge = 1;
     }
 
+    $autoRefreshEnabled = backup_auto_refresh_enabled();
+    $autoRefresh = [
+        'enabled' => $autoRefreshEnabled,
+        'attempted' => false,
+        'created' => false,
+        'reason' => '',
+        'cooldownSeconds' => backup_auto_refresh_interval_seconds(),
+        'lastAttemptAgeSeconds' => backup_auto_refresh_last_attempt_age_seconds(),
+        'file' => ''
+    ];
+
     $files = backup_list_files();
     $count = count($files);
 
@@ -470,6 +621,20 @@ function backup_latest_status_internal(?int $maxAgeHours, callable $validator): 
     if ($count === 0) {
         $bootstrapResult = backup_create_initial_seed_if_missing();
         if (($bootstrapResult['ok'] ?? false) === true) {
+            $files = backup_list_files();
+            $count = count($files);
+        }
+    }
+
+    if ($count === 0 && $autoRefreshEnabled) {
+        $refresh = backup_auto_refresh_try_create();
+        $autoRefresh['attempted'] = (bool) ($refresh['attempted'] ?? false);
+        $autoRefresh['created'] = (bool) ($refresh['created'] ?? false);
+        $autoRefresh['reason'] = (string) ($refresh['reason'] ?? '');
+        $autoRefresh['cooldownSeconds'] = (int) ($refresh['cooldownSeconds'] ?? $autoRefresh['cooldownSeconds']);
+        $autoRefresh['lastAttemptAgeSeconds'] = $refresh['lastAttemptAgeSeconds'] ?? $autoRefresh['lastAttemptAgeSeconds'];
+        $autoRefresh['file'] = (string) ($refresh['file'] ?? '');
+        if (($refresh['ok'] ?? false) === true) {
             $files = backup_list_files();
             $count = count($files);
         }
@@ -488,7 +653,8 @@ function backup_latest_status_internal(?int $maxAgeHours, callable $validator): 
             'latestFresh' => false,
             'bootstrapAttempted' => $bootstrapResult !== null,
             'bootstrapCreated' => (bool) ($bootstrapResult['created'] ?? false),
-            'bootstrapReason' => (string) ($bootstrapResult['reason'] ?? '')
+            'bootstrapReason' => (string) ($bootstrapResult['reason'] ?? ''),
+            'autoRefresh' => $autoRefresh
         ];
     }
 
@@ -506,6 +672,36 @@ function backup_latest_status_internal(?int $maxAgeHours, callable $validator): 
         $reason = 'latest_backup_stale';
     }
 
+    if (!$ok && $autoRefreshEnabled && !$autoRefresh['attempted']) {
+        $refresh = backup_auto_refresh_try_create();
+        $autoRefresh['attempted'] = (bool) ($refresh['attempted'] ?? false);
+        $autoRefresh['created'] = (bool) ($refresh['created'] ?? false);
+        $autoRefresh['reason'] = (string) ($refresh['reason'] ?? '');
+        $autoRefresh['cooldownSeconds'] = (int) ($refresh['cooldownSeconds'] ?? $autoRefresh['cooldownSeconds']);
+        $autoRefresh['lastAttemptAgeSeconds'] = $refresh['lastAttemptAgeSeconds'] ?? $autoRefresh['lastAttemptAgeSeconds'];
+        $autoRefresh['file'] = (string) ($refresh['file'] ?? '');
+
+        if (($refresh['ok'] ?? false) === true) {
+            $files = backup_list_files();
+            $count = count($files);
+            if ($count > 0) {
+                $latestPath = $files[0];
+                $latest = $validator($latestPath);
+                $latestAgeHours = isset($latest['ageHours']) && is_numeric($latest['ageHours']) ? (float) $latest['ageHours'] : null;
+                $latestValid = ($latest['ok'] ?? false) === true;
+                $latestFresh = $latestAgeHours !== null && $latestAgeHours <= $maxAge;
+                $ok = $latestValid && $latestFresh;
+
+                $reason = '';
+                if (!$latestValid) {
+                    $reason = (string) ($latest['reason'] ?? 'latest_backup_invalid');
+                } elseif (!$latestFresh) {
+                    $reason = 'latest_backup_stale';
+                }
+            }
+        }
+    }
+
     return [
         'ok' => $ok,
         'reason' => $reason,
@@ -519,7 +715,8 @@ function backup_latest_status_internal(?int $maxAgeHours, callable $validator): 
         'bootstrapAttempted' => $bootstrapResult !== null,
         'bootstrapCreated' => (bool) ($bootstrapResult['created'] ?? false),
         'bootstrapReason' => (string) ($bootstrapResult['reason'] ?? ''),
-        'latest' => $latest
+        'latest' => $latest,
+        'autoRefresh' => $autoRefresh
     ];
 }
 
