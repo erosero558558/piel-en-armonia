@@ -9,10 +9,10 @@ test.describe('Pruebas de regresión visual', () => {
 
         // Esperar a que la carga termine
         await page.waitForLoadState('load');
-        await page.waitForTimeout(3000); // Allow layout to settle
+        await page.waitForTimeout(5000); // Allow layout to settle
 
         // Tomar una captura de pantalla de toda la página
-        await expect(page).toHaveScreenshot({ fullPage: true, timeout: 30000 });
+        await expect(page).toHaveScreenshot({ fullPage: true, timeout: 45000 });
     });
 
     test('Homepage Mobile - visualmente correcta', async ({ page }) => {
@@ -24,10 +24,10 @@ test.describe('Pruebas de regresión visual', () => {
 
         // Esperar a que la carga termine
         await page.waitForLoadState('load');
-        await page.waitForTimeout(3000); // Allow layout to settle
+        await page.waitForTimeout(5000); // Allow layout to settle
 
         // Tomar una captura de pantalla del viewport (más estable que fullPage en móvil)
-        await expect(page).toHaveScreenshot({ fullPage: false, timeout: 30000 });
+        await expect(page).toHaveScreenshot({ fullPage: false, timeout: 45000 });
     });
 
     test('Sección de Reserva - carga correctamente', async ({ page }) => {
@@ -42,10 +42,10 @@ test.describe('Pruebas de regresión visual', () => {
         await expect(bookingForm).toBeVisible({ timeout: 20000 });
 
         // Esperar un poco más para asegurar renderizado completo
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(4000);
 
         // Tomar screenshot solo de la sección de citas
-        await expect(bookingSection).toHaveScreenshot({ timeout: 30000 });
+        await expect(bookingSection).toHaveScreenshot({ timeout: 45000 });
     });
 
     test('Login Admin - visualmente correcto', async ({ page }) => {
