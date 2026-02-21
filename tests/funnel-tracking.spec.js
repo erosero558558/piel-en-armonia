@@ -129,7 +129,7 @@ async function getFunnelEvents(page) {
 }
 
 async function fillBookingFormAndOpenPayment(page) {
-    await page.waitForSelector('script[data-action-router-engine="true"]', {
+    await page.waitForSelector('script[data-data-bundle="true"]', {
         timeout: 10000,
         state: 'attached',
     });
@@ -389,7 +389,7 @@ test.describe('Tracking del embudo de conversion', () => {
     test('emite chat_started y paso inicial al iniciar reserva desde chatbot', async ({
         page,
     }) => {
-        await page.waitForSelector('script[data-action-router-engine="true"]', {
+        await page.waitForSelector('script[data-data-bundle="true"]', {
             timeout: 10000,
             state: 'attached',
         });

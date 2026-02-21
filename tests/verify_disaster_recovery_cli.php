@@ -14,12 +14,14 @@ if (!mkdir($tempDir, 0777, true)) {
 }
 
 putenv("PIELARMONIA_DATA_DIR=$tempDir");
-$storeFile = $tempDir . DIRECTORY_SEPARATOR . 'store.json';
-$restoreScript = realpath(__DIR__ . '/../../bin/restore-backup.php');
+$restoreScript = realpath(__DIR__ . '/../bin/restore-backup.php');
 
 // Ensure dependencies are loaded
-require_once __DIR__ . '/../../lib/storage.php';
-require_once __DIR__ . '/../../lib/backup.php';
+require_once __DIR__ . '/../lib/storage.php';
+require_once __DIR__ . '/../lib/db.php';
+
+$storeFile = storage_use_json_fallback() ? data_json_path() : data_file_path();
+require_once __DIR__ . '/../lib/backup.php';
 
 function fail($msg)
 {
@@ -86,6 +88,11 @@ try {
     }
 
     // 4. Restore using CLI script
+    // Close DB connection to release file lock before external script acts on it
+    if (function_exists('close_db_connection')) {
+        close_db_connection();
+    }
+
     // We use --force to skip confirmation
     $cmd = sprintf(
         'PIELARMONIA_DATA_DIR=%s php %s %s --force',
