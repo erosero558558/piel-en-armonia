@@ -14,6 +14,7 @@ function escapeHtml(text) {
 }
 
 function debugLog(...args) {
+    /*
     if (
         DEBUG &&
         typeof console !== 'undefined' &&
@@ -21,6 +22,7 @@ function debugLog(...args) {
     ) {
         console.log(...args);
     }
+    */
 
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;

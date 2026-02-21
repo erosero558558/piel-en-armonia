@@ -93,7 +93,7 @@
 
 // ── Debug seguro (solo desarrollo) ───────────────────
 // En produccion mantener en false para no filtrar errores internos al frontend
-// putenv('PIELARMONIA_DEBUG_EXCEPTIONS=false');
+putenv('PIELARMONIA_DEBUG_EXCEPTIONS=false');
 
 // ── Auditoria API (performance) ───────────────────────
 // Por defecto los GET publicos no se auditan para reducir I/O.

@@ -218,7 +218,7 @@ export async function loadDeferredContent() {
         debugLog('Deferred content loaded and hydrated.');
         return true;
     } catch (error) {
-        console.error('Error loading deferred content:', error);
+        // Error logging removed
         renderDeferredFallbackState();
         return false;
     }
