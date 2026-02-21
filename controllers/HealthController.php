@@ -53,6 +53,9 @@ class HealthController
                 'latestAgeHours' => $backupStatus['latestAgeHours'] ?? null,
                 'latestValid' => (bool) ($backupStatus['latestValid'] ?? false),
                 'latestFresh' => (bool) ($backupStatus['latestFresh'] ?? false),
+                'autoRefresh' => isset($backupStatus['autoRefresh']) && is_array($backupStatus['autoRefresh'])
+                    ? $backupStatus['autoRefresh']
+                    : null,
                 'offsiteConfigured' => function_exists('backup_offsite_configured') ? backup_offsite_configured() : false,
                 'replicaMode' => function_exists('backup_replica_mode') ? backup_replica_mode() : 'none'
             ];
