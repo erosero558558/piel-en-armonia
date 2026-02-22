@@ -41,10 +41,10 @@ jobs:
         env:
             TARGET_DOMAIN: ${{ github.event.inputs.domain || vars.PROD_URL || 'https://pielarmonia.com' }}
             TARGET_BRANCH: ${{ github.event.inputs.branch || 'main' }}
-            SSH_HOST: ${{ vars.SSH_HOST || secrets.FTP_SERVER }}
+            SSH_HOST: ${{ vars.SSH_HOST || secrets.SSH_HOST || secrets.FTP_SERVER || vars.FTP_SERVER || '' }}
             SSH_PORT: ${{ vars.SSH_PORT || '22' }}
-            SSH_USERNAME: ${{ secrets.SSH_USERNAME || secrets.FTP_USERNAME }}
-            SSH_PASSWORD: ${{ secrets.SSH_PASSWORD || secrets.FTP_PASSWORD }}
+            SSH_USERNAME: ${{ secrets.SSH_USERNAME || vars.SSH_USERNAME || secrets.FTP_USERNAME || vars.FTP_USERNAME || '' }}
+            SSH_PASSWORD: ${{ secrets.SSH_PASSWORD || vars.SSH_PASSWORD || secrets.FTP_PASSWORD || vars.FTP_PASSWORD || '' }}
             SSH_REPO_DIR: ${{ github.event.inputs.repo_dir || vars.SSH_REPO_DIR || '' }}
             REPO_GIT_URL: https://github.com/erosero558558/piel-en-armonia.git
 
