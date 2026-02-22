@@ -315,7 +315,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const isServer = checkServerEnvironment();
     if (!isServer) {
-        console.warn(
+        debugLog(
             'Chatbot en modo offline: abre el sitio desde servidor para usar IA real.'
         );
     }
@@ -406,7 +406,7 @@ window.addEventListener('online', () => {
 // Push Notifications (Stub)
 window.subscribeToPushNotifications = async function() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        console.warn('Push not supported');
+        debugLog('Push not supported');
         return;
     }
     try {
@@ -418,7 +418,7 @@ window.subscribeToPushNotifications = async function() {
             applicationServerKey: publicVapidKey
         });
     } catch (error) {
-        console.error('Push subscription error:', error);
+        debugLog('Push subscription error:', error);
     }
 };
 

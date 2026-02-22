@@ -65,6 +65,14 @@ function normalizeAnalyticsLabel(value, fallback) {
     return requireFn('normalizeAnalyticsLabel')(value, fallback);
 }
 
+function debugLog(message, context) {
+    const logger = deps && typeof deps.debugLog === 'function'
+        ? deps.debugLog
+        : null;
+    if (!logger) return;
+    logger(message, context);
+}
+
 function sanitizeBookingSubmissionError(rawMessage) {
     const message = String(rawMessage || '').trim();
     if (!message) {
@@ -128,7 +136,7 @@ function getCaptchaToken(action) {
     try {
         return requireFn('getCaptchaToken')(action);
     } catch (e) {
-        console.warn('Captcha token not available', e);
+        debugLog('Captcha token not available', e);
         return Promise.resolve(null);
     }
 }

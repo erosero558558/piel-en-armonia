@@ -138,6 +138,7 @@ function getBookingEngineDeps() {
         uploadTransferProof,
         showSuccessModal,
         showToast,
+        debugLog,
         trackEvent,
         normalizeAnalyticsLabel,
     };
@@ -248,6 +249,7 @@ function getBookingUiDeps() {
         trackEvent,
         normalizeAnalyticsLabel,
         openPaymentModal,
+        debugLog,
         setCurrentAppointment: setCurrentAppointment,
         updateAvailableTimes, // Added dependency
     };
@@ -307,7 +309,7 @@ export function loadBookingUi() {
         onModuleReady: (module) => {
             module.init(getBookingUiDeps());
             window.PielBookingUiReady = true;
-            if (window.debugLog) window.debugLog('Booking UI ready');
+            debugLog('Booking UI ready');
         },
         missingApiError: 'booking-ui loaded without API',
         loadError: 'No se pudo cargar booking-ui.js',

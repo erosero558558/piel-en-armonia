@@ -1486,6 +1486,7 @@
             uploadTransferProof,
             showSuccessModal,
             showToast,
+            debugLog,
             trackEvent,
             normalizeAnalyticsLabel,
         };
@@ -1596,6 +1597,7 @@
             trackEvent,
             normalizeAnalyticsLabel,
             openPaymentModal,
+            debugLog,
             setCurrentAppointment: setCurrentAppointment,
             updateAvailableTimes, // Added dependency
         };
@@ -1655,7 +1657,6 @@
             onModuleReady: (module) => {
                 module.init(getBookingUiDeps());
                 window.PielBookingUiReady = true;
-                if (window.debugLog) window.debugLog('Booking UI ready');
             },
             missingApiError: 'booking-ui loaded without API',
             loadError: 'No se pudo cargar booking-ui.js',
@@ -2302,7 +2303,6 @@
             loadFigoChatEngine,
             (engine) => engine.processWithKimi(message),
             (error) => {
-                console.error('Error cargando motor de chat:', error);
                 removeTypingIndicator();
                 addBotMessage(
                     'No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.',
@@ -2703,7 +2703,6 @@
             debugLog('Deferred content loaded and hydrated.');
             return true;
         } catch (error) {
-            console.error('Error loading deferred content:', error);
             renderDeferredFallbackState();
             return false;
         }
@@ -2975,12 +2974,7 @@
             maybeTrackCheckoutAbandon$1('page_hide');
         });
 
-        const isServer = checkServerEnvironment();
-        if (!isServer) {
-            console.warn(
-                'Chatbot en modo offline: abre el sitio desde servidor para usar IA real.'
-            );
-        }
+        checkServerEnvironment();
 
         // Smooth Scroll
         const nav = document.querySelector('.nav');
@@ -3068,7 +3062,6 @@
     // Push Notifications (Stub)
     window.subscribeToPushNotifications = async function() {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            console.warn('Push not supported');
             return;
         }
         try {
@@ -3080,7 +3073,6 @@
                 applicationServerKey: publicVapidKey
             });
         } catch (error) {
-            console.error('Push subscription error:', error);
         }
     };
 
