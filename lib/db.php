@@ -150,10 +150,21 @@ function ensure_db_schema(): void
             value TEXT,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )",
+        "CREATE TABLE IF NOT EXISTS audit_logs (
+            id INTEGER PRIMARY KEY,
+            ts TEXT,
+            event TEXT,
+            ip TEXT,
+            actor TEXT,
+            path TEXT,
+            details TEXT
+        )",
         "CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(date)",
         "CREATE INDEX IF NOT EXISTS idx_appointments_email ON appointments(email)",
         "CREATE INDEX IF NOT EXISTS idx_appointments_rescheduleToken ON appointments(rescheduleToken)",
-        "CREATE INDEX IF NOT EXISTS idx_reviews_rating ON reviews(rating)"
+        "CREATE INDEX IF NOT EXISTS idx_reviews_rating ON reviews(rating)",
+        "CREATE INDEX IF NOT EXISTS idx_audit_logs_ts ON audit_logs(ts)",
+        "CREATE INDEX IF NOT EXISTS idx_audit_logs_event ON audit_logs(event)"
     ];
 
     foreach ($queries as $sql) {
