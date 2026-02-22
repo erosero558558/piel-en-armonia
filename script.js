@@ -1597,7 +1597,6 @@
             normalizeAnalyticsLabel,
             openPaymentModal,
             setCurrentAppointment: setCurrentAppointment,
-            updateAvailableTimes, // Added dependency
         };
     }
 
@@ -2302,10 +2301,7 @@
             loadFigoChatEngine,
             (engine) => engine.processWithKimi(message),
             (error) => {
-                // Log error to monitoring service in production
-                if (window.Piel && window.Piel.reportError) {
-                    window.Piel.reportError('chat_engine_load', error);
-                }
+                console.error('Error cargando motor de chat:', error);
                 removeTypingIndicator();
                 addBotMessage(
                     'No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.',
@@ -2706,7 +2702,7 @@
             debugLog('Deferred content loaded and hydrated.');
             return true;
         } catch (error) {
-            // Silent fail - fallback UI will show
+            console.error('Error loading deferred content:', error);
             renderDeferredFallbackState();
             return false;
         }
@@ -2980,7 +2976,9 @@
 
         const isServer = checkServerEnvironment();
         if (!isServer) {
-            // Offline mode - no server connection
+            console.warn(
+                'Chatbot en modo offline: abre el sitio desde servidor para usar IA real.'
+            );
         }
 
         // Smooth Scroll
@@ -3069,7 +3067,7 @@
     // Push Notifications (Stub)
     window.subscribeToPushNotifications = async function() {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            // Push notifications not supported in this browser
+            console.warn('Push not supported');
             return;
         }
         try {
@@ -3081,7 +3079,7 @@
                 applicationServerKey: publicVapidKey
             });
         } catch (error) {
-            // Push subscription failed - ignore
+            console.error('Push subscription error:', error);
         }
     };
 
