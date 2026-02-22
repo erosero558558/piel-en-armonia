@@ -19,6 +19,7 @@ class ApiConfig
             'payment-config:GET' => [60, 60],
             'monitoring-config:GET' => [60, 60],
             'metrics:GET' => [60, 60],
+            'funnel-metrics:GET' => [60, 60],
 
             // Public POST - Actionable, lower volume to prevent spam
             'payment-intent:POST' => [10, 60],
@@ -27,6 +28,7 @@ class ApiConfig
             'appointments:POST' => [5, 60],
             'reviews:POST' => [5, 60],
             'callbacks:POST' => [5, 60],
+            'funnel-event:POST' => [120, 60],
 
             // Webhooks
             'stripe-webhook:POST' => [60, 60],
@@ -50,6 +52,8 @@ class ApiConfig
             ['method' => 'GET', 'resource' => 'monitoring-config'],
             ['method' => 'GET', 'resource' => 'features'],
             ['method' => 'GET', 'resource' => 'metrics'],
+            ['method' => 'GET', 'resource' => 'funnel-metrics'],
+            ['method' => 'POST', 'resource' => 'funnel-event'],
             ['method' => 'GET', 'resource' => 'payment-config'],
             ['method' => 'GET', 'resource' => 'availability'],
             ['method' => 'GET', 'resource' => 'reviews'],

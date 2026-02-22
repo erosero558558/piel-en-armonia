@@ -10,6 +10,9 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'metrics', [SystemController::class, 'metrics']);
     $router->add('GET', 'predictions', [SystemController::class, 'predictions']);
 
+    $router->add('POST', 'funnel-event', [AnalyticsController::class, 'recordEvent']);
+    $router->add('GET', 'funnel-metrics', [AnalyticsController::class, 'getFunnelMetrics']);
+
     $router->add('GET', 'figo-config', [ConfigController::class, 'getFigoConfig']);
     $router->add('POST', 'figo-config', [ConfigController::class, 'updateFigoConfig']);
     $router->add('PUT', 'figo-config', [ConfigController::class, 'updateFigoConfig']);
