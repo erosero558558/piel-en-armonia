@@ -32,26 +32,30 @@ async function renderSection(section) {
         case 'dashboard':
             loadDashboardData();
             break;
-        case 'appointments':
+        case 'appointments': {
             const { loadAppointments } = await import(
                 './modules/appointments.js'
             );
             loadAppointments();
             break;
-        case 'callbacks':
+        }
+        case 'callbacks': {
             const { loadCallbacks } = await import('./modules/callbacks.js');
             loadCallbacks();
             break;
-        case 'reviews':
+        }
+        case 'reviews': {
             const { loadReviews } = await import('./modules/reviews.js');
             loadReviews();
             break;
-        case 'availability':
+        }
+        case 'availability': {
             const { initAvailabilityCalendar } = await import(
                 './modules/availability.js'
             );
             await initAvailabilityCalendar();
             break;
+        }
         default:
             loadDashboardData();
             break;
