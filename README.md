@@ -155,6 +155,7 @@ Si no puedes subir archivos manualmente, deploy con:
 
 - `.github/workflows/deploy-hosting.yml`
 - `.github/workflows/post-deploy-gate.yml` (valida prod despues del sync git)
+- `.github/workflows/repair-git-sync.yml` (autocura: forzar `git fetch/reset` por SSH cuando falla el gate)
 - `.github/workflows/prod-monitor.yml` (monitorea salud/latencia cada 30 min)
 - `GITHUB-ACTIONS-DEPLOY.md` (paso a paso)
 
@@ -165,7 +166,8 @@ Nota: si tu servidor ya hace `git pull`/sync automatico cada 5 minutos, usa ese 
 Configura en GitHub (repo -> Settings -> Secrets and variables -> Actions):
 
 - Secrets: `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`
-- Variables opcionales: `FTP_PROTOCOL`, `FTP_SERVER_PORT`, `FTP_SECURITY`, `FTP_SERVER_DIR`, `PROD_URL`
+- Variables opcionales: `FTP_PROTOCOL`, `FTP_SERVER_PORT`, `FTP_SECURITY`, `FTP_SERVER_DIR`, `PROD_URL`, `SSH_HOST`, `SSH_PORT`, `SSH_REPO_DIR`
+- Secrets opcionales para SSH dedicado: `SSH_USERNAME`, `SSH_PASSWORD` (si no se definen, usa `FTP_USERNAME/FTP_PASSWORD`)
 
 Ejecucion:
 

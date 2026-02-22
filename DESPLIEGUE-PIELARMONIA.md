@@ -11,13 +11,15 @@ Si tu hosting ya tiene sincronizacion por Git (pull automatico), ese metodo es e
 En ese caso ejecuta el gate automatico con:
 
 - `.github/workflows/post-deploy-gate.yml` (se dispara en push a `main` y valida produccion en modo estricto).
+- `.github/workflows/repair-git-sync.yml` (si el gate falla en `main`, intenta reparar sync por SSH con `git fetch/reset` en servidor).
   Para monitoreo continuo, habilita:
 - `.github/workflows/prod-monitor.yml` (salud + latencia cada 30 minutos).
 
 Configura en GitHub (repo -> Settings -> Secrets and variables -> Actions):
 
 - Secrets: `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`
-- Variables opcionales: `FTP_PROTOCOL`, `FTP_SERVER_PORT`, `FTP_SECURITY`, `FTP_SERVER_DIR` (`/public_html/`), `PROD_URL`
+- Variables opcionales: `FTP_PROTOCOL`, `FTP_SERVER_PORT`, `FTP_SECURITY`, `FTP_SERVER_DIR` (`/public_html/`), `PROD_URL`, `SSH_HOST`, `SSH_PORT`, `SSH_REPO_DIR`
+- Secrets opcionales para SSH dedicado: `SSH_USERNAME`, `SSH_PASSWORD` (fallback a `FTP_USERNAME/FTP_PASSWORD`)
 
 Uso:
 
