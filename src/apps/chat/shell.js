@@ -1,4 +1,4 @@
-import { withDeployAssetVersion, debugLog, showToast } from '../../../js/utils.js';
+import { withDeployAssetVersion, debugLog, showToast, escapeHtml } from '../../../js/utils.js';
 import {
     loadDeferredModule,
     runDeferredModule,
@@ -56,18 +56,7 @@ const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
 const CHAT_HISTORY_MAX_ITEMS = 50;
 const CHAT_CONTEXT_MAX_ITEMS = 24;
 
-export function escapeHtml(text) {
-    if (
-        window.Piel &&
-        window.Piel.ChatUiEngine &&
-        typeof window.Piel.ChatUiEngine.escapeHtml === 'function'
-    ) {
-        return window.Piel.ChatUiEngine.escapeHtml(text);
-    }
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+export { escapeHtml };
 
 export function scrollToBottom() {
     if (

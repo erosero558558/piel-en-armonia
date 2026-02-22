@@ -6,13 +6,6 @@ export function debugLog() {
 }
 
 export function escapeHtml(text) {
-    if (
-        window.Piel &&
-        window.Piel.ChatUiEngine &&
-        typeof window.Piel.ChatUiEngine.escapeHtml === 'function'
-    ) {
-        return window.Piel.ChatUiEngine.escapeHtml(text);
-    }
     const div = document.createElement('div');
     div.textContent = String(text || '');
     return div.innerHTML;
