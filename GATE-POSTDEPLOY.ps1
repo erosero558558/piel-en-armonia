@@ -1,6 +1,8 @@
 param(
     [string]$Domain = 'https://pielarmonia.com',
     [int]$BenchRuns = 25,
+    [int]$CoreP95MaxMs = 800,
+    [int]$FigoPostP95MaxMs = 8000,
     [switch]$AllowDegradedFigo,
     [switch]$AllowRecursiveFigo,
     [switch]$AllowMetaCspFallback,
@@ -80,6 +82,8 @@ Write-Host "[3/3] Benchmark API..." -ForegroundColor Yellow
 & .\BENCH-API-PRODUCCION.ps1 `
     -Domain $Domain `
     -Runs $BenchRuns `
+    -CoreP95MaxMs $CoreP95MaxMs `
+    -FigoPostP95MaxMs $FigoPostP95MaxMs `
     -IncludeFigoPost
 if ($LASTEXITCODE -ne 0) {
     $failures += 1

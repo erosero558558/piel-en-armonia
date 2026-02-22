@@ -48,178 +48,180 @@ function Get-Url {
     return "$Base/$Ref"
 }
 
+function Get-ScriptVersionedRef {
+    param(
+        [string]$ScriptText,
+        [string]$FileName
+    )
+
+    if ([string]::IsNullOrWhiteSpace($ScriptText) -or [string]::IsNullOrWhiteSpace($FileName)) {
+        return ''
+    }
+
+    $escaped = [regex]::Escape($FileName)
+    $pattern = "([/a-zA-Z0-9._-]*$escaped\?v=[a-zA-Z0-9._-]+)"
+    $match = [regex]::Match($ScriptText, $pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    if ($match.Success) {
+        return $match.Groups[1].Value
+    }
+    return ''
+}
+
 $indexLocalRaw = if (Test-Path 'index.html') { Get-Content -Path 'index.html' -Raw } else { '' }
 $localScriptRef = Get-RefFromIndex -IndexHtml $indexLocalRaw -Pattern '<script\s+src="([^"]*script\.js[^"]*)"'
 $localStyleRef = Get-RefFromIndex -IndexHtml $indexLocalRaw -Pattern '<link\s+rel="stylesheet"\s+href="([^"]*styles\.css[^"]*)"'
+$localDeferredStyleRef = Get-RefFromIndex -IndexHtml $indexLocalRaw -Pattern '<link\s+rel="stylesheet"\s+href="([^"]*styles-deferred\.css[^"]*)"'
 $appScriptAssetUrl = if ($localScriptRef -ne '') { Get-Url -Base $base -Ref $localScriptRef } else { "$base/script.js" }
-$criticalCssAssetUrl = if ($localStyleRef -ne '') { Get-Url -Base $base -Ref $localStyleRef } else { "$base/styles.css" }
-
-$chatEngineVersion = ''
-if (Test-Path 'script.js') {
-    $scriptLocalRaw = Get-Content -Path 'script.js' -Raw
-    $chatEngineMatch = [regex]::Match($scriptLocalRaw, "chat-engine\.js\?v=([a-zA-Z0-9._-]+)")
-    if ($chatEngineMatch.Success) {
-        $chatEngineVersion = $chatEngineMatch.Groups[1].Value
-    }
+$criticalCssAssetUrl = if ($localStyleRef -ne '') {
+    Get-Url -Base $base -Ref $localStyleRef
+} elseif ($localDeferredStyleRef -ne '') {
+    Get-Url -Base $base -Ref $localDeferredStyleRef
+} elseif (Test-Path 'styles.css') {
+    "$base/styles.css"
+} elseif (Test-Path 'styles-deferred.css') {
+    "$base/styles-deferred.css"
+} else {
+    "$base/styles.css"
 }
+
+$scriptLocalRaw = if (Test-Path 'script.js') { Get-Content -Path 'script.js' -Raw } else { '' }
 $i18nEngineLocalRaw = if (Test-Path 'i18n-engine.js') { Get-Content -Path 'i18n-engine.js' -Raw } else { '' }
 $rescheduleGatewayLocalRaw = if (Test-Path 'reschedule-gateway-engine.js') { Get-Content -Path 'reschedule-gateway-engine.js' -Raw } else { '' }
-$chatEngineAssetUrl = if ($chatEngineVersion -ne '') {
-    "$base/chat-engine.js?v=$chatEngineVersion"
+
+$chatEngineRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'chat-engine.js'
+$chatEngineAssetUrl = if ($chatEngineRef -ne '') {
+    Get-Url -Base $base -Ref $chatEngineRef
+} elseif ((Test-Path 'chat-engine.js') -or (Test-Path 'js/engines/chat-engine.js')) {
+    "$base/js/engines/chat-engine.js"
 } else {
-    "$base/chat-engine.js"
+    ''
 }
 
-$deferredStylesVersion = ''
-if (Test-Path 'script.js') {
-    $deferredStylesMatch = [regex]::Match($scriptLocalRaw, "styles-deferred\.css\?v=([a-zA-Z0-9._-]+)")
-    if ($deferredStylesMatch.Success) {
-        $deferredStylesVersion = $deferredStylesMatch.Groups[1].Value
-    }
-}
-$deferredStylesAssetUrl = if ($deferredStylesVersion -ne '') {
-    "$base/styles-deferred.css?v=$deferredStylesVersion"
-} else {
+$deferredStylesRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'styles-deferred.css'
+$deferredStylesAssetUrl = if ($localDeferredStyleRef -ne '') {
+    Get-Url -Base $base -Ref $localDeferredStyleRef
+} elseif ($deferredStylesRef -ne '') {
+    Get-Url -Base $base -Ref $deferredStylesRef
+} elseif (Test-Path 'styles-deferred.css') {
     "$base/styles-deferred.css"
+} else {
+    ''
 }
 
-$translationsEnVersion = ''
-if ($i18nEngineLocalRaw -ne '') {
-    $translationsEnMatch = [regex]::Match($i18nEngineLocalRaw, "translations-en\.js\?v=([a-zA-Z0-9._-]+)")
-    if (-not $translationsEnMatch.Success -and (Test-Path 'script.js')) {
-        $translationsEnMatch = [regex]::Match($scriptLocalRaw, "translations-en\.js\?v=([a-zA-Z0-9._-]+)")
-    }
-    if ($translationsEnMatch.Success) { $translationsEnVersion = $translationsEnMatch.Groups[1].Value }
-} elseif (Test-Path 'script.js') {
-    $translationsEnMatch = [regex]::Match($scriptLocalRaw, "translations-en\.js\?v=([a-zA-Z0-9._-]+)")
-    if ($translationsEnMatch.Success) { $translationsEnVersion = $translationsEnMatch.Groups[1].Value }
+$translationsEnRef = Get-ScriptVersionedRef -ScriptText $i18nEngineLocalRaw -FileName 'translations-en.js'
+if ($translationsEnRef -eq '') {
+    $translationsEnRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'translations-en.js'
 }
-$translationsEnAssetUrl = if ($translationsEnVersion -ne '') {
-    "$base/translations-en.js?v=$translationsEnVersion"
-} else {
+$translationsEnAssetUrl = if ($translationsEnRef -ne '') {
+    Get-Url -Base $base -Ref $translationsEnRef
+} elseif (Test-Path 'translations-en.js') {
     "$base/translations-en.js"
+} elseif (Test-Path 'js/translations-en.js') {
+    "$base/js/translations-en.js"
+} else {
+    ''
 }
 
-$bookingEngineVersion = ''
-if (Test-Path 'script.js') {
-    $bookingEngineMatch = [regex]::Match($scriptLocalRaw, "booking-engine\.js\?v=([a-zA-Z0-9._-]+)")
-    if ($bookingEngineMatch.Success) {
-        $bookingEngineVersion = $bookingEngineMatch.Groups[1].Value
-    }
-}
-$bookingEngineAssetUrl = if ($bookingEngineVersion -ne '') {
-    "$base/booking-engine.js?v=$bookingEngineVersion"
+$bookingEngineRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'booking-engine.js'
+$bookingEngineAssetUrl = if ($bookingEngineRef -ne '') {
+    Get-Url -Base $base -Ref $bookingEngineRef
+} elseif ((Test-Path 'booking-engine.js') -or (Test-Path 'js/engines/booking-engine.js')) {
+    "$base/js/engines/booking-engine.js"
 } else {
-    "$base/booking-engine.js"
+    ''
 }
 
-$rescheduleEngineVersion = ''
-if ($rescheduleGatewayLocalRaw -ne '') {
-    $rescheduleEngineMatch = [regex]::Match($rescheduleGatewayLocalRaw, "reschedule-engine\.js\?v=([a-zA-Z0-9._-]+)")
-    if (-not $rescheduleEngineMatch.Success -and (Test-Path 'script.js')) {
-        $rescheduleEngineMatch = [regex]::Match($scriptLocalRaw, "reschedule-engine\.js\?v=([a-zA-Z0-9._-]+)")
-    }
-    if ($rescheduleEngineMatch.Success) { $rescheduleEngineVersion = $rescheduleEngineMatch.Groups[1].Value }
-} elseif (Test-Path 'script.js') {
-    $rescheduleEngineMatch = [regex]::Match($scriptLocalRaw, "reschedule-engine\.js\?v=([a-zA-Z0-9._-]+)")
-    if ($rescheduleEngineMatch.Success) { $rescheduleEngineVersion = $rescheduleEngineMatch.Groups[1].Value }
+$rescheduleEngineRef = Get-ScriptVersionedRef -ScriptText $rescheduleGatewayLocalRaw -FileName 'reschedule-engine.js'
+if ($rescheduleEngineRef -eq '') {
+    $rescheduleEngineRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'reschedule-engine.js'
 }
-$rescheduleEngineAssetUrl = if ($rescheduleEngineVersion -ne '') {
-    "$base/reschedule-engine.js?v=$rescheduleEngineVersion"
+$rescheduleEngineAssetUrl = if ($rescheduleEngineRef -ne '') {
+    Get-Url -Base $base -Ref $rescheduleEngineRef
+} elseif ((Test-Path 'reschedule-engine.js') -or (Test-Path 'js/engines/reschedule-engine.js')) {
+    "$base/js/engines/reschedule-engine.js"
 } else {
-    "$base/reschedule-engine.js"
+    ''
 }
 
-$bookingUiVersion = ''
-if (Test-Path 'script.js') {
-    $bookingUiMatch = [regex]::Match($scriptLocalRaw, "booking-ui\.js\?v=([a-zA-Z0-9._-]+)")
-    if ($bookingUiMatch.Success) {
-        $bookingUiVersion = $bookingUiMatch.Groups[1].Value
-    }
-}
-$bookingUiAssetUrl = if ($bookingUiVersion -ne '') {
-    "$base/booking-ui.js?v=$bookingUiVersion"
+$bookingUiRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'booking-ui.js'
+$bookingUiAssetUrl = if ($bookingUiRef -ne '') {
+    Get-Url -Base $base -Ref $bookingUiRef
+} elseif ((Test-Path 'booking-ui.js') -or (Test-Path 'js/engines/booking-ui.js')) {
+    "$base/js/engines/booking-ui.js"
 } else {
-    "$base/booking-ui.js"
+    ''
 }
 
-$chatBookingEngineVersion = ''
-if (Test-Path 'script.js') {
-    $chatBookingEngineMatch = [regex]::Match($scriptLocalRaw, "chat-booking-engine\.js\?v=([a-zA-Z0-9._-]+)")
-    if ($chatBookingEngineMatch.Success) {
-        $chatBookingEngineVersion = $chatBookingEngineMatch.Groups[1].Value
-    }
-}
-$chatBookingEngineAssetUrl = if ($chatBookingEngineVersion -ne '') {
-    "$base/chat-booking-engine.js?v=$chatBookingEngineVersion"
+$chatBookingEngineRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'chat-booking-engine.js'
+$chatBookingEngineAssetUrl = if ($chatBookingEngineRef -ne '') {
+    Get-Url -Base $base -Ref $chatBookingEngineRef
+} elseif ((Test-Path 'chat-booking-engine.js') -or (Test-Path 'js/engines/chat-booking-engine.js')) {
+    "$base/js/engines/chat-booking-engine.js"
 } else {
-    "$base/chat-booking-engine.js"
+    ''
 }
 
-$successModalEngineVersion = ''
-if (Test-Path 'script.js') {
-    $successModalEngineMatch = [regex]::Match($scriptLocalRaw, "success-modal-engine\.js\?v=([a-zA-Z0-9._-]+)")
-    if ($successModalEngineMatch.Success) {
-        $successModalEngineVersion = $successModalEngineMatch.Groups[1].Value
-    }
-}
-$successModalEngineAssetUrl = if ($successModalEngineVersion -ne '') {
-    "$base/success-modal-engine.js?v=$successModalEngineVersion"
+$successModalEngineRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'success-modal-engine.js'
+$successModalEngineAssetUrl = if ($successModalEngineRef -ne '') {
+    Get-Url -Base $base -Ref $successModalEngineRef
+} elseif ((Test-Path 'success-modal-engine.js') -or (Test-Path 'js/engines/success-modal-engine.js')) {
+    "$base/js/engines/success-modal-engine.js"
 } else {
-    "$base/success-modal-engine.js"
+    ''
 }
 
-$engagementFormsEngineVersion = ''
-if (Test-Path 'script.js') {
-    $engagementFormsEngineMatch = [regex]::Match($scriptLocalRaw, "engagement-forms-engine\.js\?v=([a-zA-Z0-9._-]+)")
-    if ($engagementFormsEngineMatch.Success) {
-        $engagementFormsEngineVersion = $engagementFormsEngineMatch.Groups[1].Value
-    }
-}
-$engagementFormsEngineAssetUrl = if ($engagementFormsEngineVersion -ne '') {
-    "$base/engagement-forms-engine.js?v=$engagementFormsEngineVersion"
+$engagementFormsEngineRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'engagement-forms-engine.js'
+$engagementFormsEngineAssetUrl = if ($engagementFormsEngineRef -ne '') {
+    Get-Url -Base $base -Ref $engagementFormsEngineRef
+} elseif ((Test-Path 'engagement-forms-engine.js') -or (Test-Path 'js/engines/engagement-forms-engine.js')) {
+    "$base/js/engines/engagement-forms-engine.js"
 } else {
-    "$base/engagement-forms-engine.js"
+    ''
 }
 
-$modalUxEngineVersion = ''
-if (Test-Path 'script.js') {
-    $modalUxEngineMatch = [regex]::Match($scriptLocalRaw, "modal-ux-engine\.js\?v=([a-zA-Z0-9._-]+)")
-    if ($modalUxEngineMatch.Success) {
-        $modalUxEngineVersion = $modalUxEngineMatch.Groups[1].Value
-    }
-}
-$modalUxEngineAssetUrl = if ($modalUxEngineVersion -ne '') {
-    "$base/modal-ux-engine.js?v=$modalUxEngineVersion"
+$modalUxEngineRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'modal-ux-engine.js'
+$modalUxEngineAssetUrl = if ($modalUxEngineRef -ne '') {
+    Get-Url -Base $base -Ref $modalUxEngineRef
+} elseif ((Test-Path 'modal-ux-engine.js') -or (Test-Path 'js/engines/modal-ux-engine.js')) {
+    "$base/js/engines/modal-ux-engine.js"
 } else {
-    "$base/modal-ux-engine.js"
+    ''
 }
 
-$uiEffectsVersion = ''
-if (Test-Path 'script.js') {
-    $uiEffectsMatch = [regex]::Match($scriptLocalRaw, "ui-effects\.js\?v=([a-zA-Z0-9._-]+)")
-    if ($uiEffectsMatch.Success) {
-        $uiEffectsVersion = $uiEffectsMatch.Groups[1].Value
-    }
-}
-$uiEffectsAssetUrl = if ($uiEffectsVersion -ne '') {
-    "$base/ui-effects.js?v=$uiEffectsVersion"
+$uiEffectsRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'ui-effects.js'
+$uiEffectsAssetUrl = if ($uiEffectsRef -ne '') {
+    Get-Url -Base $base -Ref $uiEffectsRef
+} elseif ((Test-Path 'ui-effects.js') -or (Test-Path 'js/engines/ui-effects.js')) {
+    "$base/js/engines/ui-effects.js"
 } else {
-    "$base/ui-effects.js"
+    ''
 }
 
-$galleryInteractionsVersion = ''
-if (Test-Path 'script.js') {
-    $galleryInteractionsMatch = [regex]::Match($scriptLocalRaw, "gallery-interactions\.js\?v=([a-zA-Z0-9._-]+)")
-    if ($galleryInteractionsMatch.Success) {
-        $galleryInteractionsVersion = $galleryInteractionsMatch.Groups[1].Value
-    }
-}
-$galleryInteractionsAssetUrl = if ($galleryInteractionsVersion -ne '') {
-    "$base/gallery-interactions.js?v=$galleryInteractionsVersion"
+$galleryInteractionsRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'gallery-interactions.js'
+$galleryInteractionsAssetUrl = if ($galleryInteractionsRef -ne '') {
+    Get-Url -Base $base -Ref $galleryInteractionsRef
+} elseif ((Test-Path 'gallery-interactions.js') -or (Test-Path 'js/engines/gallery-interactions.js')) {
+    "$base/js/engines/gallery-interactions.js"
 } else {
-    "$base/gallery-interactions.js"
+    ''
 }
+
+$assetChecks = @(
+    @{ Name = 'Chat engine asset'; Url = $chatEngineAssetUrl },
+    @{ Name = 'Deferred styles asset'; Url = $deferredStylesAssetUrl },
+    @{ Name = 'EN translations asset'; Url = $translationsEnAssetUrl },
+    @{ Name = 'Booking engine asset'; Url = $bookingEngineAssetUrl },
+    @{ Name = 'Booking UI asset'; Url = $bookingUiAssetUrl },
+    @{ Name = 'Chat booking engine asset'; Url = $chatBookingEngineAssetUrl },
+    @{ Name = 'Success modal engine asset'; Url = $successModalEngineAssetUrl },
+    @{ Name = 'Engagement forms engine asset'; Url = $engagementFormsEngineAssetUrl },
+    @{ Name = 'Modal UX engine asset'; Url = $modalUxEngineAssetUrl },
+    @{ Name = 'Reschedule engine asset'; Url = $rescheduleEngineAssetUrl },
+    @{ Name = 'UI effects asset'; Url = $uiEffectsAssetUrl },
+    @{ Name = 'Gallery interactions asset'; Url = $galleryInteractionsAssetUrl },
+    @{ Name = 'App script asset'; Url = $appScriptAssetUrl },
+    @{ Name = 'Critical CSS asset'; Url = $criticalCssAssetUrl }
+)
 
 function Invoke-Check {
     param(
@@ -403,20 +405,13 @@ if ($RequireCronReady) {
     $results += Invoke-Check -Name 'Cron backup health unauthorized' -Url "$base/cron.php?action=backup-health"
     $results += Invoke-Check -Name 'Cron backup offsite unauthorized' -Url "$base/cron.php?action=backup-offsite"
 }
-$results += Invoke-Check -Name 'Chat engine asset' -Url $chatEngineAssetUrl
-$results += Invoke-Check -Name 'Deferred styles asset' -Url $deferredStylesAssetUrl
-$results += Invoke-Check -Name 'EN translations asset' -Url $translationsEnAssetUrl
-$results += Invoke-Check -Name 'Booking engine asset' -Url $bookingEngineAssetUrl
-$results += Invoke-Check -Name 'Booking UI asset' -Url $bookingUiAssetUrl
-$results += Invoke-Check -Name 'Chat booking engine asset' -Url $chatBookingEngineAssetUrl
-$results += Invoke-Check -Name 'Success modal engine asset' -Url $successModalEngineAssetUrl
-$results += Invoke-Check -Name 'Engagement forms engine asset' -Url $engagementFormsEngineAssetUrl
-$results += Invoke-Check -Name 'Modal UX engine asset' -Url $modalUxEngineAssetUrl
-$results += Invoke-Check -Name 'Reschedule engine asset' -Url $rescheduleEngineAssetUrl
-$results += Invoke-Check -Name 'UI effects asset' -Url $uiEffectsAssetUrl
-$results += Invoke-Check -Name 'Gallery interactions asset' -Url $galleryInteractionsAssetUrl
-$results += Invoke-Check -Name 'App script asset' -Url $appScriptAssetUrl
-$results += Invoke-Check -Name 'Critical CSS asset' -Url $criticalCssAssetUrl
+foreach ($assetCheck in $assetChecks) {
+    if ([string]::IsNullOrWhiteSpace($assetCheck.Url)) {
+        Write-Host "[INFO] $($assetCheck.Name) omitido: no referenciado en el build local."
+        continue
+    }
+    $results += Invoke-Check -Name $assetCheck.Name -Url $assetCheck.Url
+}
 
 if ($TestFigoPost) {
     $figoPayload = @{
@@ -454,20 +449,12 @@ $expectedStatusByName = @{
     'Backup receiver GET' = 405
     'Cron backup health unauthorized' = 403
     'Cron backup offsite unauthorized' = 403
-    'Chat engine asset' = 200
-    'Deferred styles asset' = 200
-    'EN translations asset' = 200
-    'Booking engine asset' = 200
-    'Booking UI asset' = 200
-    'Chat booking engine asset' = 200
-    'Success modal engine asset' = 200
-    'Engagement forms engine asset' = 200
-    'Modal UX engine asset' = 200
-    'Reschedule engine asset' = 200
-    'UI effects asset' = 200
-    'Gallery interactions asset' = 200
-    'App script asset' = 200
-    'Critical CSS asset' = 200
+}
+foreach ($assetCheck in $assetChecks) {
+    if ([string]::IsNullOrWhiteSpace($assetCheck.Url)) {
+        continue
+    }
+    $expectedStatusByName[$assetCheck.Name] = 200
 }
 if ($TestFigoPost) {
     $expectedStatusByName['Figo chat POST'] = 200
@@ -528,20 +515,11 @@ try {
     $contractFailures += 1
 }
 
-try {
-    $assetHeaderChecks = @(
-        @{ Name = 'App script asset'; Url = $appScriptAssetUrl },
-        @{ Name = 'Critical CSS asset'; Url = $criticalCssAssetUrl },
-        @{ Name = 'Booking UI asset'; Url = $bookingUiAssetUrl },
-        @{ Name = 'Chat booking engine asset'; Url = $chatBookingEngineAssetUrl },
-        @{ Name = 'Success modal engine asset'; Url = $successModalEngineAssetUrl },
-        @{ Name = 'Engagement forms engine asset'; Url = $engagementFormsEngineAssetUrl },
-        @{ Name = 'Modal UX engine asset'; Url = $modalUxEngineAssetUrl },
-        @{ Name = 'Reschedule engine asset'; Url = $rescheduleEngineAssetUrl },
-        @{ Name = 'UI effects asset'; Url = $uiEffectsAssetUrl },
-        @{ Name = 'Gallery interactions asset'; Url = $galleryInteractionsAssetUrl }
-    )
-    foreach ($assetCheck in $assetHeaderChecks) {
+foreach ($assetCheck in $assetChecks) {
+    if ([string]::IsNullOrWhiteSpace($assetCheck.Url)) {
+        continue
+    }
+    try {
         $assetResp = Invoke-WebRequest -Uri $assetCheck.Url -Method GET -TimeoutSec 20 -UseBasicParsing -Headers @{
             'Cache-Control' = 'no-cache'
             'User-Agent' = 'PielArmoniaSmoke/1.0'
@@ -551,10 +529,10 @@ try {
             Write-Host "[FAIL] $($assetCheck.Name) sin Cache-Control con max-age"
             $contractFailures += 1
         }
+    } catch {
+        Write-Host "[FAIL] $($assetCheck.Name) no permitio validar cache: $($_.Exception.Message)"
+        $contractFailures += 1
     }
-} catch {
-    Write-Host "[FAIL] No se pudieron validar headers de cache para assets estaticos"
-    $contractFailures += 1
 }
 
 try {

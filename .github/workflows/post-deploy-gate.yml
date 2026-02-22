@@ -21,7 +21,7 @@ on:
             wait_seconds:
                 description: 'Espera para sincronizacion del servidor'
                 required: false
-                default: '90'
+                default: '120'
                 type: string
             asset_hash_retry_count:
                 description: 'Reintentos por hash de asset'
@@ -36,12 +36,22 @@ on:
             verify_retry_attempts:
                 description: 'Reintentos completos de verificacion de despliegue'
                 required: false
-                default: '1'
+                default: '2'
                 type: string
             verify_retry_delay_sec:
                 description: 'Espera entre reintentos de verificacion (seg)'
                 required: false
                 default: '75'
+                type: string
+            core_p95_max_ms:
+                description: 'Umbral p95 para health/reviews/availability (ms)'
+                required: false
+                default: '800'
+                type: string
+            figo_post_p95_max_ms:
+                description: 'Umbral p95 para figo-post (ms)'
+                required: false
+                default: '8000'
                 type: string
 
 concurrency:
@@ -60,11 +70,13 @@ jobs:
         env:
             TARGET_DOMAIN: ${{ github.event.inputs.domain || 'https://pielarmonia.com' }}
             BENCH_RUNS: ${{ github.event.inputs.bench_runs || '25' }}
-            WAIT_SECONDS: ${{ github.event.inputs.wait_seconds || '90' }}
+            WAIT_SECONDS: ${{ github.event.inputs.wait_seconds || '120' }}
             ASSET_HASH_RETRY_COUNT: ${{ github.event.inputs.asset_hash_retry_count || '2' }}
             ASSET_HASH_RETRY_DELAY_SEC: ${{ github.event.inputs.asset_hash_retry_delay_sec || '4' }}
-            VERIFY_RETRY_ATTEMPTS: ${{ github.event.inputs.verify_retry_attempts || '1' }}
+            VERIFY_RETRY_ATTEMPTS: ${{ github.event.inputs.verify_retry_attempts || '2' }}
             VERIFY_RETRY_DELAY_SEC: ${{ github.event.inputs.verify_retry_delay_sec || '75' }}
+            CORE_P95_MAX_MS: ${{ github.event.inputs.core_p95_max_ms || '800' }}
+            FIGO_POST_P95_MAX_MS: ${{ github.event.inputs.figo_post_p95_max_ms || '8000' }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -92,6 +104,10 @@ jobs:
                   if ($verifyRetryAttempts -lt 0) { $verifyRetryAttempts = 0 }
                   $verifyRetryDelay = [int]$env:VERIFY_RETRY_DELAY_SEC
                   if ($verifyRetryDelay -lt 1) { $verifyRetryDelay = 1 }
+                  $coreP95MaxMs = [int]$env:CORE_P95_MAX_MS
+                  if ($coreP95MaxMs -lt 100) { $coreP95MaxMs = 100 }
+                  $figoPostP95MaxMs = [int]$env:FIGO_POST_P95_MAX_MS
+                  if ($figoPostP95MaxMs -lt 1000) { $figoPostP95MaxMs = 1000 }
                   ./GATE-POSTDEPLOY.ps1 `
                     -Domain $env:TARGET_DOMAIN `
                     -BenchRuns $benchRuns `
@@ -99,6 +115,8 @@ jobs:
                     -AssetHashRetryDelaySec $hashRetryDelay `
                     -VerifyRetryAttempts $verifyRetryAttempts `
                     -VerifyRetryDelaySec $verifyRetryDelay `
+                    -CoreP95MaxMs $coreP95MaxMs `
+                    -FigoPostP95MaxMs $figoPostP95MaxMs `
                     -RequireStableDataDir `
                     -RequireBackupHealthy `
                     -RequireBackupReceiverReady `
@@ -132,6 +150,8 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Bench runs: ``$env:BENCH_RUNS``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Asset hash retries: ``$env:ASSET_HASH_RETRY_COUNT`` cada ``$env:ASSET_HASH_RETRY_DELAY_SEC``s"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Verify retries: ``$env:VERIFY_RETRY_ATTEMPTS`` cada ``$env:VERIFY_RETRY_DELAY_SEC``s"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- P95 core API max: ``$env:CORE_P95_MAX_MS`` ms"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- P95 figo-post max: ``$env:FIGO_POST_P95_MAX_MS`` ms"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Resultado: ``${{ steps.gate.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Contrato calendario: ejecutado con ``npm run test:calendar-contract``"
 

@@ -91,6 +91,23 @@ function Add-QueryParam {
     }
 }
 
+function Get-CacheBypassUrl {
+    param(
+        [string]$Url,
+        [string]$AssetName,
+        [int]$Attempt = 0
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Url)) {
+        return $Url
+    }
+
+    $safeAsset = if ([string]::IsNullOrWhiteSpace($AssetName)) { 'asset' } else { $AssetName }
+    $nonce = "$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())-$safeAsset-$Attempt"
+    $withVerify = Add-QueryParam -Url $Url -Name 'verify' -Value $nonce
+    return Add-QueryParam -Url $withVerify -Name 'ha' -Value "$Attempt"
+}
+
 function Get-RemoteSha256 {
     param(
         [string]$Url,
@@ -1021,14 +1038,14 @@ if ($SkipAssetHashChecks) {
             Write-Host "[INFO] Se omite hash de $($item.Name): no se pudo calcular hash local."
             continue
         }
-        $remoteHash = Get-RemoteSha256 -Url $remoteUrlForHash -NormalizeText
+        $remoteHash = Get-RemoteSha256 -Url (Get-CacheBypassUrl -Url $remoteUrlForHash -AssetName $item.Name -Attempt 0) -NormalizeText
         $attempts = 0
         $match = ($localHash -ne '' -and $localHash -eq $remoteHash)
 
         while (-not $match -and $attempts -lt $AssetHashRetryCount) {
             Start-Sleep -Seconds $AssetHashRetryDelaySec
-            $remoteHash = Get-RemoteSha256 -Url $remoteUrlForHash -NormalizeText
             $attempts += 1
+            $remoteHash = Get-RemoteSha256 -Url (Get-CacheBypassUrl -Url $remoteUrlForHash -AssetName $item.Name -Attempt $attempts) -NormalizeText
             $match = ($localHash -ne '' -and $localHash -eq $remoteHash)
         }
 

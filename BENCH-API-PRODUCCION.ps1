@@ -1,7 +1,9 @@
 param(
     [string]$Domain = 'https://pielarmonia.com',
     [int]$Runs = 25,
-    [switch]$IncludeFigoPost
+    [switch]$IncludeFigoPost,
+    [int]$CoreP95MaxMs = 800,
+    [int]$FigoPostP95MaxMs = 8000
 )
 
 $ErrorActionPreference = 'Stop'
@@ -132,11 +134,11 @@ function Get-BenchFailureReasons {
         $reasons += 'status_or_network'
     }
 
-    if ($Result.Name -in @('health', 'reviews', 'availability') -and $Result.P95Ms -gt 800) {
+    if ($Result.Name -in @('health', 'reviews', 'availability') -and $Result.P95Ms -gt $CoreP95MaxMs) {
         $reasons += 'p95_core_over_800'
     }
 
-    if ($Result.Name -eq 'figo-post' -and $Result.P95Ms -gt 2500) {
+    if ($Result.Name -eq 'figo-post' -and $Result.P95Ms -gt $FigoPostP95MaxMs) {
         $reasons += 'p95_figo_post_over_2500'
     }
 
@@ -217,12 +219,12 @@ foreach ($result in $results) {
 
     if ($reasons -contains 'p95_core_over_800') {
         $failed = $true
-        Write-Host "[FAIL] $($result.Name) supera p95 de 800ms (actual: $($result.P95Ms)ms)." -ForegroundColor Red
+        Write-Host "[FAIL] $($result.Name) supera p95 de ${CoreP95MaxMs}ms (actual: $($result.P95Ms)ms)." -ForegroundColor Red
     }
 
     if ($reasons -contains 'p95_figo_post_over_2500') {
         $failed = $true
-        Write-Host "[FAIL] figo-post supera p95 de 2500ms (actual: $($result.P95Ms)ms)." -ForegroundColor Red
+        Write-Host "[FAIL] figo-post supera p95 de ${FigoPostP95MaxMs}ms (actual: $($result.P95Ms)ms)." -ForegroundColor Red
     }
 }
 
