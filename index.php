@@ -4,9 +4,16 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
 
+// Generate CSP Nonce
+try {
+    $nonce = base64_encode(random_bytes(16));
+} catch (Exception $e) {
+    $nonce = ''; // Fallback, though random_bytes should rarely fail
+}
+
 if (!headers_sent()) {
     header('Content-Type: text/html; charset=UTF-8');
-    apply_security_headers(true);
+    apply_security_headers(true, $nonce);
 }
 
 $indexPath = __DIR__ . DIRECTORY_SEPARATOR . 'index.html';
@@ -68,6 +75,9 @@ if (is_file($contentFile)) {
             if ($head) {
                 $script = $dom->createElement('script');
                 $script->textContent = 'window.PIEL_CONTENT = ' . $contentJson . ';';
+                if ($nonce !== '') {
+                    $script->setAttribute('nonce', $nonce);
+                }
                 $head->appendChild($script);
             }
 
@@ -128,8 +138,8 @@ if ($mainScriptInsertCount === 0) {
 // Prepare HTTP/2 Server Push (Preload) headers
 $preloadLinks = [];
 
-// 1. Critical CSS (styles.css) - Extract from HTML to get version
-if (preg_match('/href=["\'](styles\.css[^"\']*)["\']/i', $indexHtml, $matches)) {
+// 1. Critical CSS (styles.css or styles-critical.css) - Extract from HTML to get version
+if (preg_match('/href=["\']((?:styles|styles-critical)\.css[^"\']*)["\']/i', $indexHtml, $matches)) {
     $preloadLinks[] = "<{$matches[1]}>; rel=preload; as=style";
 }
 

@@ -9,7 +9,9 @@ test.describe('Pruebas de regresión visual', () => {
 
         // Esperar a que la carga termine
         await page.waitForLoadState('load');
+        // eslint-disable-next-line playwright/no-networkidle
         await page.waitForLoadState('networkidle');
+        // eslint-disable-next-line playwright/no-wait-for-timeout
         await page.waitForTimeout(2000); // Allow layout to settle
 
         // Tomar una captura de pantalla de toda la página
@@ -25,7 +27,9 @@ test.describe('Pruebas de regresión visual', () => {
 
         // Esperar a que la carga termine
         await page.waitForLoadState('load');
+        // eslint-disable-next-line playwright/no-networkidle
         await page.waitForLoadState('networkidle');
+        // eslint-disable-next-line playwright/no-wait-for-timeout
         await page.waitForTimeout(2000); // Allow layout to settle
 
         // Tomar una captura de pantalla del viewport (más estable que fullPage en móvil)
@@ -44,6 +48,7 @@ test.describe('Pruebas de regresión visual', () => {
         await expect(bookingForm).toBeVisible({ timeout: 20000 });
 
         // Esperar un poco más para asegurar renderizado completo
+        // eslint-disable-next-line playwright/no-wait-for-timeout
         await page.waitForTimeout(2000);
 
         // Tomar screenshot solo de la sección de citas

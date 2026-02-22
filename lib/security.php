@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Security headers helper.
  */
 
-function apply_security_headers(bool $isHtml = false): void
+function apply_security_headers(bool $isHtml = false, ?string $nonce = null): void
 {
     if (headers_sent()) {
         return;
@@ -37,12 +37,19 @@ function apply_security_headers(bool $isHtml = false): void
     if ($isHtml) {
         // CSP for HTML pages (e.g., index.php)
         // Replicating index.php's logic but centralized to ensure consistency
+
+        $scriptSrc = "script-src 'self' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com https://browser.sentry-cdn.com https://static.cloudflareinsights.com";
+        if ($nonce !== null && $nonce !== '') {
+            $scriptSrc .= " 'nonce-" . $nonce . "'";
+        }
+        $scriptSrc .= "; ";
+
         $csp = "default-src 'self'; ";
         $csp .= "base-uri 'self'; ";
         $csp .= "object-src 'none'; ";
         $csp .= "frame-ancestors 'self'; ";
-        $csp .= "script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com https://browser.sentry-cdn.com https://static.cloudflareinsights.com; ";
-        $csp .= "style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; ";
+        $csp .= $scriptSrc;
+        $csp .= "style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com; ";
         $csp .= "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; ";
         $csp .= "img-src 'self' https://images.unsplash.com https://www.google-analytics.com https://*.stripe.com data:; ";
         $csp .= "frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; ";
