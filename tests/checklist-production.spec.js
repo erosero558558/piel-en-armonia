@@ -195,6 +195,8 @@ test.describe('Checklist de Pruebas en Producción', () => {
         if (await timeSelect.isVisible()) {
             // Seleccionar primera opción válida
             const options = await timeSelect.locator('option').all();
+            // eslint-disable-next-line playwright/no-wait-for-timeout
+            await page.waitForTimeout(1000); // Give time for slots to load
             if (options.length > 1) {
                 await timeSelect.selectOption({ index: 1 });
             }

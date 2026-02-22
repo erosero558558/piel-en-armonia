@@ -1,21 +1,67 @@
 {
-    "name": "Piel en Armonía | Dermatología Especializada",
-    "short_name": "PielArmonía",
-    "start_url": "/",
-    "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#0d1a2f",
-    "orientation": "portrait",
-    "icons": [
-        {
-            "src": "/images/icon-192.png",
-            "sizes": "192x192",
-            "type": "image/png"
-        },
-        {
-            "src": "/images/icon-512.png",
-            "sizes": "512x512",
-            "type": "image/png"
-        }
-    ]
+  "name": "Piel en Armonía | Dermatología Especializada",
+  "short_name": "PielArmonía",
+  "description": "Clínica dermatológica en Quito. Dr. Javier Rosero y Dra. Carolina Narváez. Consulta presencial, online y telemedicina con pagos seguros.",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0d1a2f",
+  "orientation": "portrait",
+  "lang": "es-EC",
+  "categories": ["medical", "health", "lifestyle"],
+  "icons": [
+    {
+      "src": "/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Reservar Cita",
+      "short_name": "Reservar",
+      "description": "Agenda tu cita dermatológica ahora",
+      "url": "/#citas",
+      "icons": [{ "src": "/images/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Telemedicina",
+      "short_name": "Telemedicina",
+      "description": "Consulta online desde casa",
+      "url": "/#telemedicina",
+      "icons": [{ "src": "/images/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+        "name": "Servicios",
+        "short_name": "Servicios",
+        "description": "Conoce nuestros tratamientos",
+        "url": "/#servicios",
+        "icons": [{ "src": "/images/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/images/optimized/showcase-hero-1400.jpg",
+      "sizes": "1400x700",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Clínica Piel en Armonía"
+    },
+    {
+      "src": "/images/optimized/showcase-hero-640.jpg",
+      "sizes": "640x320",
+      "type": "image/jpeg",
+      "label": "Dermatología Especializada"
+    }
+  ],
+  "prefer_related_applications": false
 }
