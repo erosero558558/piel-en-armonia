@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pielarmonia-v9-20260221-phase10-realagenda1';
+const CACHE_NAME = 'pielarmonia-v10-20260222-manifest-update';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
