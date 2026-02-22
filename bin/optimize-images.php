@@ -15,6 +15,7 @@ $config = [
     'showcase-treatment' => [640, 900],
     'service-' => [400],
     'team-' => [500],
+    'verification_failed' => [600],
 ];
 
 // CLI Arguments
