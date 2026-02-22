@@ -1944,7 +1944,7 @@
         ></script>
         <script
             src="script.js?v=figo-20260222-slotservicefix1"
-            defer
+            type="module"
         ></script>
     </head>
     <body>
@@ -2223,71 +2223,13 @@
         </section>
 
         <!-- Footer -->
-        <footer class="footer">
-            <div class="footer-content">
-                <div class="footer-brand">
-                    <i class="fas fa-spa"></i>
-                    <span>Piel en Armon&iacute;a</span>
+        <footer class="footer deferred-content" id="footer">
+            <div class="deferred-shell-fallback">
+                <div class="section-header">
+                    <p class="section-subtitle">
+                        Cargando información...
+                    </p>
                 </div>
-                <p class="footer-tagline" data-i18n="footer_tagline">
-                    Dermatolog&iacute;a especializada en Quito
-                </p>
-                <p class="footer-privacy-note" data-i18n="footer_privacy_note">
-                    Si compartes fotos por web o WhatsApp, se usan solo para
-                    orientaci&oacute;n cl&iacute;nica y gesti&oacute;n de tu cita.
-                </p>
-
-                <div class="footer-links">
-                    <a href="#servicios" data-i18n="nav_services">Servicios</a>
-                    <a href="#telemedicina" data-i18n="nav_telemedicine">Telemedicina</a>
-                    <a href="#equipo" data-i18n="nav_team">Equipo</a>
-                    <a href="#galeria" data-i18n="nav_gallery">Resultados</a>
-                    <a href="#consultorio" data-i18n="nav_clinic">Consultorio</a>
-                    <a href="#citas" data-i18n="nav_book">Reservar</a>
-                </div>
-
-                <div class="footer-legal">
-                    <a href="terminos.html" data-i18n="legal_terms">T&eacute;rminos y Condiciones</a>
-                    <a href="privacidad.html" data-i18n="legal_privacy">Pol&iacute;tica de Privacidad</a>
-                    <a href="cookies.html" data-i18n="legal_cookies">Pol&iacute;tica de Cookies</a>
-                    <a href="aviso-medico.html" data-i18n="legal_disclaimer">Aviso de Responsabilidad M&eacute;dica</a>
-                </div>
-
-                <div class="footer-contact">
-                    <a href="tel:+593982453672">
-                        <i class="fas fa-phone"></i>
-                        Cl&iacute;nica: +593 98 245 3672
-                    </a>
-                    <a href="tel:+593987866885">
-                        <i class="fas fa-phone"></i>
-                        Dra. Carolina: +593 98 786 6885
-                    </a>
-                    <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">
-                        <i class="fab fa-whatsapp"></i>
-                        WhatsApp
-                    </a>
-                    <a href="mailto:javier.rosero94@gmail.com">
-                        <i class="fas fa-envelope"></i>
-                        javier.rosero94@gmail.com
-                    </a>
-                    <a href="mailto:caro93narvaez@gmail.com">
-                        <i class="fas fa-envelope"></i>
-                        caro93narvaez@gmail.com
-                    </a>
-                </div>
-
-                <!-- Redes sociales: descomentar cuando se tengan las URLs reales
-            <div class="footer-social">
-                <a href="URL_FACEBOOK" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-                <a href="URL_INSTAGRAM" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-                <a href="URL_LINKEDIN" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
-            </div>
-            --></div>
-            <div class="footer-bottom">
-                <p>
-                    &copy; 2026 Piel en Armon&iacute;a.
-                    <span data-i18n="footer_rights">Todos los derechos reservados.</span>
-                </p>
             </div>
         </footer>
 
@@ -2325,40 +2267,11 @@
         <div class="modal deferred-content" id="reviewModal"></div>
 
         <div
-            class="cookie-banner"
+            class="cookie-banner deferred-content"
             id="cookieBanner"
             role="dialog"
             aria-live="polite"
             aria-label="Preferencias de cookies"
-        >
-            <p class="cookie-text" data-i18n="cookie_banner_text">
-                Usamos cookies esenciales para seguridad y funcionamiento.
-                Puedes aceptar o rechazar cookies opcionales.
-            </p>
-            <div class="cookie-actions">
-                <button
-                    type="button"
-                    class="btn btn-secondary cookie-btn"
-                    id="cookieRejectBtn"
-                    data-i18n="cookie_reject"
-                >
-                    Rechazar
-                </button>
-                <button
-                    type="button"
-                    class="btn btn-primary cookie-btn"
-                    id="cookieAcceptBtn"
-                    data-i18n="cookie_accept"
-                >
-                    Aceptar
-                </button>
-                <a
-                    href="cookies.html"
-                    class="cookie-link"
-                    data-i18n="cookie_more"
-                    >Más información</a
-                >
-            </div>
-        </div>
+        ></div>
     </body>
 </html>

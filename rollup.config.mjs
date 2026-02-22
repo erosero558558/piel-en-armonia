@@ -5,7 +5,9 @@ export default [
     {
         input: 'src/apps/admin/index.js',
         output: {
-            file: 'admin.js',
+            dir: './',
+            entryFileNames: 'admin.js',
+            chunkFileNames: 'js/chunks/[name]-[hash].js',
             format: 'es',
             sourcemap: false
         },
@@ -136,8 +138,10 @@ export default [
     {
         input: 'js/main.js',
         output: {
-            file: 'script.js',
-            format: 'iife',
+            dir: './',
+            entryFileNames: 'script.js',
+            chunkFileNames: 'js/chunks/[name]-[hash].js',
+            format: 'es',
             sourcemap: false,
             banner: '/* GENERATED FILE - DO NOT EDIT DIRECTLY - Edit source in js/main.js and run npm run build */',
         },
