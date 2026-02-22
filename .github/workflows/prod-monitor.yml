@@ -20,6 +20,16 @@ on:
                 required: false
                 default: false
                 type: boolean
+            allow_store_calendar:
+                description: 'Permitir agenda local/store en lugar de Google (solo emergencia)'
+                required: false
+                default: false
+                type: boolean
+            allow_blocked_calendar:
+                description: 'Permitir calendarMode=blocked temporalmente'
+                required: false
+                default: false
+                type: boolean
             skip_backup_check:
                 description: 'Saltar validacion de backup en health'
                 required: false
@@ -43,6 +53,8 @@ jobs:
             TARGET_DOMAIN: ${{ github.event.inputs.domain || 'https://pielarmonia.com' }}
             MAX_LATENCY_MS: ${{ github.event.inputs.max_latency_ms || '3500' }}
             ALLOW_DEGRADED_FIGO: ${{ github.event.inputs.allow_degraded_figo || 'false' }}
+            ALLOW_STORE_CALENDAR: ${{ github.event.inputs.allow_store_calendar || 'false' }}
+            ALLOW_BLOCKED_CALENDAR: ${{ github.event.inputs.allow_blocked_calendar || 'false' }}
             SKIP_BACKUP_CHECK: ${{ github.event.inputs.skip_backup_check || 'false' }}
         steps:
             - name: Checkout
@@ -62,6 +74,12 @@ jobs:
                   if ($env:ALLOW_DEGRADED_FIGO -eq 'true') {
                     $args += '-AllowDegradedFigo'
                   }
+                  if ($env:ALLOW_STORE_CALENDAR -eq 'true') {
+                    $args += '-AllowStoreCalendar'
+                  }
+                  if ($env:ALLOW_BLOCKED_CALENDAR -eq 'true') {
+                    $args += '-AllowBlockedCalendar'
+                  }
                   if ($env:SKIP_BACKUP_CHECK -eq 'true') {
                     $args += '-SkipBackupCheck'
                   }
@@ -76,6 +94,8 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Dominio: ``$env:TARGET_DOMAIN``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Max latency: ``$env:MAX_LATENCY_MS ms``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- allow_degraded_figo: ``$env:ALLOW_DEGRADED_FIGO``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- allow_store_calendar: ``$env:ALLOW_STORE_CALENDAR``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- allow_blocked_calendar: ``$env:ALLOW_BLOCKED_CALENDAR``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- skip_backup_check: ``$env:SKIP_BACKUP_CHECK``"
 
             - name: Crear/actualizar incidente (solo schedule)

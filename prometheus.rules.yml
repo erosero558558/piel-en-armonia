@@ -36,3 +36,39 @@ groups:
         annotations:
           summary: "High Memory Usage (instance {{ $labels.instance }})"
           description: "PHP Memory usage is > 100MB for more than 5 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: CalendarModeBlocked
+        expr: increase(calendar_mode_state{source="google",mode="blocked"}[5m]) > 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Calendar blocked mode detected (instance {{ $labels.instance }})"
+          description: "calendar_mode_state blocked increased in the last 5 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: CalendarApiErrorRateHigh
+        expr: (sum(rate(calendar_api_errors_total[5m])) / clamp_min(sum(rate(calendar_api_duration_seconds_count[5m])), 0.001)) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Google Calendar API error rate high (instance {{ $labels.instance }})"
+          description: "Calendar API error ratio is > 5% for more than 5 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: CalendarFreeBusyP95High
+        expr: histogram_quantile(0.95, sum(rate(calendar_api_duration_seconds_bucket{operation="freebusy_query"}[5m])) by (le)) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Google Calendar freebusy p95 high (instance {{ $labels.instance }})"
+          description: "calendar_api_duration_seconds p95 for freebusy_query is above 0.8s.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: CalendarBookingWriteP95High
+        expr: histogram_quantile(0.95, sum(rate(calendar_api_duration_seconds_bucket{operation=~"events_insert|events_patch"}[10m])) by (le)) > 2.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Google Calendar write p95 high (instance {{ $labels.instance }})"
+          description: "calendar_api_duration_seconds p95 for write operations is above 2.5s.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
