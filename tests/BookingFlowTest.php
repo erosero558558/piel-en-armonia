@@ -19,7 +19,7 @@ putenv('PIELARMONIA_AVAILABILITY_SOURCE=store');
 // We need to pass this env var to the server process too!
 
 echo "Starting server on port $port with data dir $dataDir...\n";
-$cmd = "PIELARMONIA_DATA_DIR=$dataDir PIELARMONIA_AVAILABILITY_SOURCE=store php -S $host -t " . __DIR__ . "/../ > /dev/null 2>&1 & echo $!";
+$cmd = "PIELARMONIA_ADMIN_PASSWORD=admin123 PIELARMONIA_DATA_DIR=$dataDir PIELARMONIA_AVAILABILITY_SOURCE=store php -S $host -t " . __DIR__ . "/../ > /dev/null 2>&1 & echo $!";
 $pid = exec($cmd);
 
 // Wait for server
@@ -39,25 +39,67 @@ if ($attempts === 10) {
     exit(1);
 }
 
+// Session jar for admin auth
+$cookieJar = sys_get_temp_dir() . '/cookie_' . uniqid() . '.txt';
+$csrfToken = null;
+
 // Helper for requests
 function api_request($method, $resource, $data = null)
 {
-    global $baseUrl;
+    global $baseUrl, $cookieJar, $csrfToken;
     $url = "$baseUrl?resource=$resource";
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+    curl_setopt($ch, CURLOPT_COOKIEJAR, $cookieJar);
+    curl_setopt($ch, CURLOPT_COOKIEFILE, $cookieJar);
+
+    $headers = ['Content-Type: application/json'];
+    if ($csrfToken) {
+        $headers[] = "X-CSRF-Token: $csrfToken";
+    }
+
     if ($data) {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
     }
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
     $response = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     return ['code' => $code, 'body' => json_decode($response, true)];
 }
 
+// Helper for auth
+function admin_login($password)
+{
+    global $host, $cookieJar;
+    $url = "http://$host/admin-auth.php?action=login";
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['password' => $password]));
+    curl_setopt($ch, CURLOPT_COOKIEJAR, $cookieJar);
+    curl_setopt($ch, CURLOPT_COOKIEFILE, $cookieJar);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    $response = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    $body = json_decode($response, true);
+    return ['ok' => $code === 200, 'token' => $body['csrfToken'] ?? null];
+}
+
 try {
+    // 0. Login as admin
+    run_test('Integration: Admin Login', function () {
+        global $csrfToken;
+        $res = admin_login('admin123');
+        assert_true($res['ok'], 'Admin login failed');
+        if (isset($res['token'])) {
+            $csrfToken = $res['token'];
+        }
+    });
+
     $apptDate = date('Y-m-d', strtotime('+2 days'));
 
     // 1. Check availability (GET)
