@@ -189,7 +189,11 @@ function validate_appointment_payload(array $payload, array $availability = []):
     $availableSlots = isset($availability[$date]) && is_array($availability[$date])
         ? $availability[$date]
         : [];
-    if (count($availableSlots) > 0 && !in_array($time, $availableSlots, true)) {
+    if (count($availableSlots) === 0) {
+        return ['ok' => false, 'error' => 'No hay agenda disponible para la fecha seleccionada'];
+    }
+
+    if (!in_array($time, $availableSlots, true)) {
         return ['ok' => false, 'error' => 'Ese horario no está disponible para la fecha seleccionada'];
     }
 

@@ -1,9 +1,158 @@
-import { currentAvailability } from './state.js';
+import {
+    currentAvailability,
+    currentAvailabilityMeta,
+    setAvailability,
+    setAvailabilityMeta,
+} from './state.js';
 import { apiRequest } from './api.js';
 import { escapeHtml, showToast } from './ui.js';
 
 let selectedDate = null;
 let currentMonth = new Date();
+let availabilityReadOnly = false;
+
+function ensureStatusElements() {
+    const panel = document.querySelector('#availability .time-slots-config');
+    if (!panel) return { statusEl: null, linksEl: null };
+
+    let statusEl = document.getElementById('availabilitySyncStatus');
+    if (!statusEl) {
+        statusEl = document.createElement('div');
+        statusEl.id = 'availabilitySyncStatus';
+        statusEl.className = 'selected-date';
+        panel.insertBefore(statusEl, panel.firstChild.nextSibling);
+    }
+
+    let linksEl = document.getElementById('availabilitySyncLinks');
+    if (!linksEl) {
+        linksEl = document.createElement('div');
+        linksEl.id = 'availabilitySyncLinks';
+        linksEl.className = 'selected-date';
+        statusEl.insertAdjacentElement('afterend', linksEl);
+    }
+
+    return { statusEl, linksEl };
+}
+
+function renderStatus() {
+    const { statusEl, linksEl } = ensureStatusElements();
+    if (!statusEl) return;
+
+    const source = String(currentAvailabilityMeta.source || 'store');
+    const mode = String(currentAvailabilityMeta.mode || 'live');
+    const timezone = String(currentAvailabilityMeta.timezone || 'America/Guayaquil');
+    const reachable = currentAvailabilityMeta.calendarReachable === false ? 'no' : 'si';
+    const generatedAt = String(currentAvailabilityMeta.generatedAt || '');
+    const generatedLabel = generatedAt
+        ? new Date(generatedAt).toLocaleString('es-EC')
+        : 'n/d';
+
+    if (source === 'google') {
+        statusEl.innerHTML = `Fuente: <strong>Google Calendar</strong> | Modo: <strong>${escapeHtml(mode)}</strong> | TZ: <strong>${escapeHtml(timezone)}</strong> | Reachable: <strong>${escapeHtml(reachable)}</strong> | Actualizado: ${escapeHtml(generatedLabel)}`;
+    } else {
+        statusEl.innerHTML = `Fuente: <strong>Configuracion local</strong> | Actualizado: ${escapeHtml(generatedLabel)}`;
+    }
+    updateSectionHeadings(source);
+
+    if (!linksEl) return;
+
+    const doctorCalendars = currentAvailabilityMeta.doctorCalendars;
+    if (!doctorCalendars || typeof doctorCalendars !== 'object') {
+        linksEl.innerHTML = '';
+        return;
+    }
+
+    const renderDoctor = (doctorKey, doctorLabel) => {
+        const record = doctorCalendars[doctorKey];
+        if (!record || typeof record !== 'object') {
+            return `${doctorLabel}: n/d`;
+        }
+        const masked = escapeHtml(String(record.idMasked || 'n/d'));
+        const openUrl = String(record.openUrl || '');
+        if (!/^https:\/\/calendar\.google\.com\//.test(openUrl)) {
+            return `${doctorLabel}: ${masked}`;
+        }
+        return `${doctorLabel}: ${masked} <a href="${escapeHtml(openUrl)}" target="_blank" rel="noopener noreferrer">Abrir</a>`;
+    };
+
+    linksEl.innerHTML = [
+        renderDoctor('rosero', 'Dr. Rosero'),
+        renderDoctor('narvaez', 'Dra. Narvaez'),
+    ].join(' | ');
+}
+
+function updateSectionHeadings(source) {
+    const calendarTitle = document.querySelector(
+        '#availability .availability-calendar h3'
+    );
+    if (calendarTitle) {
+        calendarTitle.textContent =
+            source === 'google'
+                ? 'Disponibilidad (Google Calendar - Solo lectura)'
+                : 'Configurar Horarios Disponibles';
+    }
+
+    const dayTitle = document.querySelector('#availability .time-slots-config h3');
+    if (dayTitle) {
+        dayTitle.textContent =
+            source === 'google'
+                ? 'Horarios del Dia (solo lectura)'
+                : 'Horarios del Dia';
+    }
+}
+
+function clearSelectedDateState() {
+    const selectedLabel = document.getElementById('selectedDate');
+    if (selectedLabel) {
+        selectedLabel.textContent = 'Selecciona una fecha';
+    }
+    const list = document.getElementById('timeSlotsList');
+    if (list) {
+        list.innerHTML = '<p class="empty-message">Selecciona una fecha para ver los horarios</p>';
+    }
+}
+
+function toggleReadOnlyUi() {
+    const addSlotForm = document.getElementById('addSlotForm');
+    if (addSlotForm) {
+        addSlotForm.classList.toggle('is-hidden', availabilityReadOnly);
+    }
+}
+
+async function refreshAvailabilitySnapshot() {
+    try {
+        const payload = await apiRequest('availability', {
+            query: {
+                doctor: 'indiferente',
+                service: 'consulta',
+                days: 45,
+            },
+        });
+
+        const data =
+            payload && payload.data && typeof payload.data === 'object'
+                ? payload.data
+                : {};
+        const meta =
+            payload && payload.meta && typeof payload.meta === 'object'
+                ? payload.meta
+                : {};
+
+        setAvailability(data);
+        setAvailabilityMeta(meta);
+        availabilityReadOnly = String(meta.source || '') === 'google';
+        renderStatus();
+        toggleReadOnlyUi();
+        if (selectedDate && !currentAvailability[selectedDate]) {
+            selectedDate = null;
+            clearSelectedDateState();
+        }
+    } catch {
+        availabilityReadOnly = String(currentAvailabilityMeta.source || '') === 'google';
+        renderStatus();
+        toggleReadOnlyUi();
+    }
+}
 
 export function renderAvailabilityCalendar() {
     const year = currentMonth.getFullYear();
@@ -12,16 +161,19 @@ export function renderAvailabilityCalendar() {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const daysInPrevMonth = new Date(year, month, 0).getDate();
 
-    document.getElementById('calendarMonth').textContent = new Date(year, month).toLocaleDateString('es-EC', {
+    document.getElementById('calendarMonth').textContent = new Date(
+        year,
+        month
+    ).toLocaleDateString('es-EC', {
         month: 'long',
-        year: 'numeric'
+        year: 'numeric',
     });
 
     const calendar = document.getElementById('availabilityCalendar');
     calendar.innerHTML = '';
 
     const weekDays = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
-    weekDays.forEach(day => {
+    weekDays.forEach((day) => {
         const dayEl = document.createElement('div');
         dayEl.className = 'calendar-day-header';
         dayEl.textContent = day;
@@ -44,7 +196,11 @@ export function renderAvailabilityCalendar() {
         dayEl.textContent = day;
 
         if (selectedDate === dateStr) dayEl.classList.add('selected');
-        if (currentAvailability[dateStr] && currentAvailability[dateStr].length > 0) dayEl.classList.add('has-slots');
+        if (
+            currentAvailability[dateStr] &&
+            currentAvailability[dateStr].length > 0
+        )
+            dayEl.classList.add('has-slots');
 
         dayEl.addEventListener('click', () => selectDate(dateStr));
         calendar.appendChild(dayEl);
@@ -60,8 +216,12 @@ export function renderAvailabilityCalendar() {
     }
 }
 
-export function initAvailabilityCalendar() {
+export async function initAvailabilityCalendar() {
+    await refreshAvailabilitySnapshot();
     renderAvailabilityCalendar();
+    if (!selectedDate) {
+        clearSelectedDateState();
+    }
 }
 
 export function changeMonth(delta) {
@@ -73,13 +233,16 @@ function selectDate(dateStr) {
     selectedDate = dateStr;
     renderAvailabilityCalendar();
     const date = new Date(dateStr);
-    document.getElementById('selectedDate').textContent = date.toLocaleDateString('es-EC', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    });
-    document.getElementById('addSlotForm').classList.remove('is-hidden');
+    document.getElementById('selectedDate').textContent = date.toLocaleDateString(
+        'es-EC',
+        {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        }
+    );
+    document.getElementById('addSlotForm').classList.toggle('is-hidden', availabilityReadOnly);
     loadTimeSlots(dateStr);
 }
 
@@ -93,26 +256,43 @@ function loadTimeSlots(dateStr) {
 
     const encodedDate = encodeURIComponent(String(dateStr || ''));
 
-    list.innerHTML = slots.slice().sort().map(time => `
+    list.innerHTML = slots
+        .slice()
+        .sort()
+        .map(
+            (time) => `
         <div class="time-slot-item">
             <span class="time">${escapeHtml(time)}</span>
             <div class="slot-actions">
-                <button type="button" class="btn-icon danger" data-action="remove-time-slot" data-date="${encodedDate}" data-time="${encodeURIComponent(String(time || ''))}">
+                ${
+                    availabilityReadOnly
+                        ? '<span class="selected-date">Solo lectura</span>'
+                        : `<button type="button" class="btn-icon danger" data-action="remove-time-slot" data-date="${encodedDate}" data-time="${encodeURIComponent(String(time || ''))}">
                     <i class="fas fa-trash"></i>
-                </button>
+                </button>`
+                }
             </div>
         </div>
-    `).join('');
+    `
+        )
+        .join('');
 }
 
 async function saveAvailability() {
+    if (availabilityReadOnly) {
+        throw new Error('Disponibilidad en solo lectura (Google Calendar).');
+    }
     await apiRequest('availability', {
         method: 'POST',
-        body: { availability: currentAvailability }
+        body: { availability: currentAvailability },
     });
 }
 
 export async function addTimeSlot() {
+    if (availabilityReadOnly) {
+        showToast('Disponibilidad en solo lectura: gestionala desde Google Calendar.', 'warning');
+        return;
+    }
     if (!selectedDate) {
         showToast('Selecciona una fecha primero', 'warning');
         return;
@@ -145,8 +325,12 @@ export async function addTimeSlot() {
 }
 
 export async function removeTimeSlot(dateStr, time) {
+    if (availabilityReadOnly) {
+        showToast('Disponibilidad en solo lectura: gestionala desde Google Calendar.', 'warning');
+        return;
+    }
     try {
-        currentAvailability[dateStr] = (currentAvailability[dateStr] || []).filter(t => t !== time);
+        currentAvailability[dateStr] = (currentAvailability[dateStr] || []).filter((t) => t !== time);
         await saveAvailability();
         loadTimeSlots(dateStr);
         renderAvailabilityCalendar();

@@ -70,17 +70,17 @@ export async function apiRequest(resource, options = {}) {
     );
 }
 
-export function invalidateBookedSlotsCache(date = '', doctor = '') {
+export function invalidateBookedSlotsCache(date = '', doctor = '', service = '') {
     if (
         window.Piel &&
         window.Piel.DataEngine &&
         typeof window.Piel.DataEngine.invalidateBookedSlotsCache === 'function'
     ) {
-        window.Piel.DataEngine.invalidateBookedSlotsCache(date, doctor);
+        window.Piel.DataEngine.invalidateBookedSlotsCache(date, doctor, service);
         return;
     }
     withDeferredModule(loadDataEngine, (engine) =>
-        engine.invalidateBookedSlotsCache(date, doctor)
+        engine.invalidateBookedSlotsCache(date, doctor, service)
     ).catch(() => undefined);
 }
 
@@ -90,9 +90,9 @@ export async function loadAvailabilityData(options = {}) {
     );
 }
 
-export async function getBookedSlots(date, doctor = '') {
+export async function getBookedSlots(date, doctor = '', service = '') {
     return withDeferredModule(loadDataEngine, (engine) =>
-        engine.getBookedSlots(date, doctor)
+        engine.getBookedSlots(date, doctor, service)
     );
 }
 

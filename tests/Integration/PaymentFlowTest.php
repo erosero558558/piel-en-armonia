@@ -30,6 +30,7 @@ class PaymentFlowTest extends TestCase
         putenv('PIELARMONIA_STRIPE_PUBLISHABLE_KEY=pk_test_mock');
         putenv('PIELARMONIA_VAT_RATE=15');
         putenv('PIELARMONIA_STRIPE_WEBHOOK_SECRET=whsec_mock');
+        putenv('PIELARMONIA_AVAILABILITY_SOURCE=store');
 
         if (!defined('TESTING_ENV')) {
             define('TESTING_ENV', true);
@@ -55,6 +56,7 @@ class PaymentFlowTest extends TestCase
         putenv('PIELARMONIA_STRIPE_PUBLISHABLE_KEY');
         putenv('PIELARMONIA_VAT_RATE');
         putenv('PIELARMONIA_STRIPE_WEBHOOK_SECRET');
+        putenv('PIELARMONIA_AVAILABILITY_SOURCE');
 
         $this->removeDirectory($this->tempDir);
         unset($GLOBALS['__TEST_JSON_BODY']);
@@ -108,5 +110,42 @@ class PaymentFlowTest extends TestCase
         $this->assertTrue($response['payload']['ok']);
         $this->assertStringStartsWith('pi_mock_', $response['payload']['paymentIntentId']);
         $this->assertEquals(4000, $response['payload']['amount']);
+    }
+
+    public function testCreateIntentFailsWhenDateHasNoAgenda(): void
+    {
+        $futureDate = date('Y-m-d', strtotime('next monday'));
+        $payload = [
+            'name' => 'Payment Test',
+            'email' => 'payment@example.com',
+            'phone' => '0999999999',
+            'date' => $futureDate,
+            'time' => '10:00',
+            'doctor' => 'rosero',
+            'service' => 'consulta',
+            'privacyConsent' => true
+        ];
+        $GLOBALS['__TEST_JSON_BODY'] = json_encode($payload);
+
+        $store = \read_store();
+        $store['appointments'] = [];
+        $store['availability'] = [];
+        \write_store($store);
+
+        $context = ['store' => $store];
+
+        try {
+            \PaymentController::createIntent($context);
+            $this->fail('Should have thrown TestingExitException');
+        } catch (\TestingExitException $e) {
+            $response = ['payload' => $e->payload, 'status' => $e->status];
+        }
+
+        $this->assertEquals(400, $response['status']);
+        $this->assertFalse($response['payload']['ok']);
+        $this->assertEquals(
+            'No hay agenda disponible para la fecha seleccionada',
+            $response['payload']['error']
+        );
     }
 }

@@ -3,10 +3,17 @@
 let deps = null;
 let listenersBound = false;
 
+function getEngineRef() {
+    if (window.Piel && window.Piel.ActionRouterEngine) {
+        return window.Piel.ActionRouterEngine;
+    }
+    return window.PielActionRouterEngine;
+}
+
 function init(inputDeps) {
     deps = inputDeps || {};
     bindListeners();
-    return window.PielActionRouterEngine;
+    return getEngineRef();
 }
 
 function callDep(name) {
@@ -121,6 +128,9 @@ function bindListeners() {
     document.addEventListener('change', handleActionChange);
 }
 
-window.PielActionRouterEngine = {
+window.Piel = window.Piel || {};
+window.Piel.ActionRouterEngine = {
     init
 };
+// Legacy global kept for compatibility with older loaders.
+window.PielActionRouterEngine = window.Piel.ActionRouterEngine;

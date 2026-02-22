@@ -4,6 +4,7 @@ import {
     setCallbacks,
     setReviews,
     setAvailability,
+    setAvailabilityMeta,
     setFunnelMetrics,
     getEmptyFunnelMetrics
 } from './state.js';
@@ -34,6 +35,7 @@ function loadFallbackState() {
     })));
     setReviews(getLocalData('reviews', []));
     setAvailability(getLocalData('availability', {}));
+    setAvailabilityMeta(getLocalData('availability-meta', {}));
     setFunnelMetrics(getEmptyFunnelMetrics());
 }
 
@@ -64,6 +66,11 @@ export async function refreshData() {
         const availability = data.availability && typeof data.availability === 'object' ? data.availability : {};
         setAvailability(availability);
         saveLocalData('availability', availability);
+        const availabilityMeta = data.availabilityMeta && typeof data.availabilityMeta === 'object'
+            ? data.availabilityMeta
+            : { source: 'store', mode: 'live', generatedAt: new Date().toISOString() };
+        setAvailabilityMeta(availabilityMeta);
+        saveLocalData('availability-meta', availabilityMeta);
 
         if (funnelPayload && funnelPayload.data && typeof funnelPayload.data === 'object') {
             setFunnelMetrics(funnelPayload.data);

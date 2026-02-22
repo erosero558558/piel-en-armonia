@@ -15,10 +15,11 @@ if (!is_dir($dataDir)) {
     mkdir($dataDir, 0777, true);
 }
 putenv("PIELARMONIA_DATA_DIR=$dataDir");
+putenv('PIELARMONIA_AVAILABILITY_SOURCE=store');
 // We need to pass this env var to the server process too!
 
 echo "Starting server on port $port with data dir $dataDir...\n";
-$cmd = "PIELARMONIA_DATA_DIR=$dataDir php -S $host -t " . __DIR__ . "/../ > /dev/null 2>&1 & echo $!";
+$cmd = "PIELARMONIA_DATA_DIR=$dataDir PIELARMONIA_AVAILABILITY_SOURCE=store php -S $host -t " . __DIR__ . "/../ > /dev/null 2>&1 & echo $!";
 $pid = exec($cmd);
 
 // Wait for server
@@ -57,6 +58,8 @@ function api_request($method, $resource, $data = null)
 }
 
 try {
+    $apptDate = date('Y-m-d', strtotime('+2 days'));
+
     // 1. Check availability (GET)
     run_test('Integration: Check Availability', function () {
         $res = api_request('GET', 'availability');
@@ -65,8 +68,19 @@ try {
         // Initially empty or whatever the default seed is
     });
 
-    // 2. Create Appointment (POST)
-    $apptDate = date('Y-m-d', strtotime('+2 days'));
+    // 2. Configure availability (POST)
+    run_test('Integration: Configure Availability', function () use ($apptDate) {
+        $res = api_request('POST', 'availability', [
+            'availability' => [
+                $apptDate => ['09:00', '10:00']
+            ]
+        ]);
+
+        assert_equals(200, $res['code']);
+        assert_true(isset($res['body']['ok']) && $res['body']['ok'] === true);
+    });
+
+    // 3. Create Appointment (POST)
     run_test('Integration: Create Appointment', function () use ($apptDate) {
         $payload = [
             'name' => 'Integration User',
@@ -90,7 +104,7 @@ try {
         assert_equals('pending_cash', $res['body']['data']['paymentStatus']);
     });
 
-    // 3. Verify Slot Taken (GET booked-slots)
+    // 4. Verify Slot Taken (GET booked-slots)
     run_test('Integration: Verify Slot Taken', function () use ($apptDate) {
         global $baseUrl;
         // booked-slots needs date param
@@ -106,7 +120,7 @@ try {
         assert_true(in_array('09:00', $body['data']), '09:00 should be in booked slots');
     });
 
-    // 4. Verify Persistence (GET appointments - admin protected)
+    // 5. Verify Persistence (GET appointments - admin protected)
     // To test admin, we need session. Or we can just inspect the file directly since we have access to $dataDir.
     run_test('Integration: Verify Persistence on Disk', function () use ($dataDir, $apptDate) {
         $file = $dataDir . '/store.sqlite';

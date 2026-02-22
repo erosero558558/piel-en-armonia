@@ -1,31 +1,53 @@
-import { checkAuth as apiCheckAuth, login, login2FA, logout as apiLogout } from './modules/auth.js';
+import { checkAuth, login, login2FA, logout } from './modules/auth.js';
 import { refreshData, getLocalData } from './modules/data.js';
 import { showToast } from './modules/ui.js';
-import { setCsrfToken, csrfToken } from './modules/state.js';
-import { authRequest, apiRequest } from './modules/api.js';
-
+import {
+    setCsrfToken,
+    currentAppointments,
+    currentCallbacks,
+    currentReviews,
+    currentAvailability,
+} from './modules/state.js';
+import { apiRequest } from './modules/api.js';
 import { loadDashboardData } from './modules/dashboard.js';
-import { loadAppointments } from './modules/appointments.js';
-import { loadCallbacks } from './modules/callbacks.js';
+import {
+    loadAppointments,
+    filterAppointments,
+    searchAppointments,
+    cancelAppointment,
+    approveTransfer,
+    rejectTransfer,
+} from './modules/appointments.js';
+import {
+    loadCallbacks,
+    filterCallbacks,
+    markContacted,
+} from './modules/callbacks.js';
 import { loadReviews } from './modules/reviews.js';
-import { initAvailabilityCalendar } from './modules/availability.js';
+import {
+    initAvailabilityCalendar,
+    changeMonth,
+    addTimeSlot,
+    removeTimeSlot,
+} from './modules/availability.js';
 
 async function renderSection(section) {
     const titles = {
         dashboard: 'Dashboard',
         appointments: 'Citas',
         callbacks: 'Callbacks',
-        reviews: 'Reseñas',
-        availability: 'Disponibilidad'
+        reviews: 'Resenas',
+        availability: 'Disponibilidad',
     };
     const titleEl = document.getElementById('pageTitle');
     if (titleEl) titleEl.textContent = titles[section] || 'Dashboard';
 
-    document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+    document
+        .querySelectorAll('.admin-section')
+        .forEach((s) => s.classList.remove('active'));
     const sectionEl = document.getElementById(section);
     if (sectionEl) sectionEl.classList.add('active');
 
-    // Load data for the section
     switch (section) {
         case 'dashboard':
             loadDashboardData();
@@ -40,47 +62,11 @@ async function renderSection(section) {
             loadReviews();
             break;
         case 'availability':
-            initAvailabilityCalendar();
+            await initAvailabilityCalendar();
             break;
-    }
-}
-
-async function handleLogin(e) {
-    e.preventDefault();
-
-    const group2FA = document.getElementById('group2FA');
-    const is2FAMode = group2FA && !group2FA.classList.contains('is-hidden');
-
-    if (is2FAMode) {
-        const code = document.getElementById('admin2FACode').value;
-        try {
-            const result = await login2FA(code);
-            if (result.csrfToken) setCsrfToken(result.csrfToken);
-            showToast('Bienvenido al panel de administracion', 'success');
-            await showDashboard();
-        } catch (error) {
-            showToast('Código incorrecto o sesión expirada', 'error');
-        }
-    } else {
-        const password = document.getElementById('adminPassword').value;
-        try {
-            const loginResult = await login(password);
-
-            if (loginResult.twoFactorRequired) {
-                document.getElementById('passwordGroup').classList.add('is-hidden');
-                if (group2FA) group2FA.classList.remove('is-hidden');
-                document.getElementById('admin2FACode').focus();
-                const btn = document.getElementById('loginBtn');
-                if (btn) btn.innerHTML = '<i class="fas fa-check"></i> Verificar';
-                showToast('Ingresa tu código 2FA', 'info');
-            } else {
-                if (loginResult.csrfToken) setCsrfToken(loginResult.csrfToken);
-                showToast('Bienvenido al panel de administracion', 'success');
-                await showDashboard();
-            }
-        } catch (error) {
-            showToast('Contraseña incorrecta', 'error');
-        }
+        default:
+            loadDashboardData();
+            break;
     }
 }
 
@@ -99,170 +85,101 @@ async function showDashboard() {
     await updateDate();
 }
 
-    // Initial load
-    await refreshData();
-    renderSection('dashboard');
-}
+async function handleLogin(event) {
+    event.preventDefault();
 
-async function checkAuth() {
+    const group2FA = document.getElementById('group2FA');
+    const is2FAMode = group2FA && !group2FA.classList.contains('is-hidden');
+
+    if (is2FAMode) {
+        const code = document.getElementById('admin2FACode')?.value || '';
+        try {
+            const result = await login2FA(code);
+            if (result.csrfToken) setCsrfToken(result.csrfToken);
+            showToast('Bienvenido al panel de administracion', 'success');
+            await showDashboard();
+        } catch {
+            showToast('Codigo incorrecto o sesion expirada', 'error');
+        }
+        return;
+    }
+
+    const password = document.getElementById('adminPassword')?.value || '';
     try {
-        if (!navigator.onLine) {
-            const cached = getLocalData('appointments', null);
-            if (cached) {
-                loadFallbackState();
-                showToast('Modo Offline: Mostrando datos locales', 'info');
-                await showDashboard();
-                return;
-            }
-        }
+        const loginResult = await login(password);
 
-        const payload = await authRequest('status');
-        if (payload.authenticated) {
-            if (payload.csrfToken) setCsrfToken(payload.csrfToken);
-            await showDashboard();
-        } else {
-            showLogin();
-        }
-    } catch (error) {
-        if (getLocalData('appointments', null)) {
-            loadFallbackState();
-            showToast('Error de conexión. Mostrando datos locales.', 'warning');
-            await showDashboard();
+        if (loginResult.twoFactorRequired) {
+            document.getElementById('passwordGroup')?.classList.add('is-hidden');
+            group2FA?.classList.remove('is-hidden');
+            document.getElementById('admin2FACode')?.focus();
+            const btn = document.getElementById('loginBtn');
+            if (btn) btn.innerHTML = '<i class="fas fa-check"></i> Verificar';
+            showToast('Ingresa tu codigo 2FA', 'info');
             return;
         }
-        showLogin();
-        showToast('No se pudo verificar la sesion', 'warning');
+
+        if (loginResult.csrfToken) setCsrfToken(loginResult.csrfToken);
+        showToast('Bienvenido al panel de administracion', 'success');
+        await showDashboard();
+    } catch {
+        showToast('Contrasena incorrecta', 'error');
     }
 }
 
-function showLogin() {
-    const loginScreen = document.getElementById('loginScreen');
-    if (loginScreen) loginScreen.classList.remove('is-hidden');
-}
+async function checkAuthAndBoot() {
+    if (!navigator.onLine && getLocalData('appointments', null)) {
+        showToast('Modo offline: mostrando datos locales', 'info');
+        await showDashboard();
+        return;
+    }
 
-async function logout() {
-    await apiLogout();
+    const authenticated = await checkAuth();
+    if (authenticated) {
+        await showDashboard();
+        return;
+    }
+    showLogin();
 }
 
 async function updateDate() {
     const dateEl = document.getElementById('currentDate');
     if (dateEl) {
-         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-         dateEl.textContent = new Date().toLocaleDateString('es-EC', options);
+        const options = {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        };
+        dateEl.textContent = new Date().toLocaleDateString('es-EC', options);
     }
 
     await refreshData();
     const activeItem = document.querySelector('.nav-item.active');
     const section = activeItem?.dataset.section || 'dashboard';
-    renderSection(section);
-}
-
-function attachGlobalListeners() {
-    document.addEventListener('click', async function(e) {
-        const actionEl = e.target.closest('[data-action]');
-        if (!actionEl) return;
-
-        const action = actionEl.dataset.action;
-
-        if (action === 'close-toast') {
-            const toast = actionEl.closest('.toast');
-            if (toast) toast.remove();
-            return;
-        }
-        if (action === 'logout') {
-            e.preventDefault();
-            await logout();
-            return;
-        }
-        if (action === 'export-data') {
-            e.preventDefault();
-            exportData();
-            return;
-        }
-        if (action === 'open-import-file') {
-            e.preventDefault();
-            const importInput = document.getElementById('importFileInput');
-            if (importInput) importInput.click();
-            return;
-        }
-
-        try {
-            if (['change-month', 'add-time-slot', 'remove-time-slot'].includes(action)) {
-                e.preventDefault();
-                const mod = await import('./modules/availability.js');
-                if (action === 'change-month') mod.changeMonth(Number(actionEl.dataset.delta || 0));
-                if (action === 'add-time-slot') await mod.addTimeSlot();
-                if (action === 'remove-time-slot') await mod.removeTimeSlot(
-                    decodeURIComponent(actionEl.dataset.date || ''),
-                    decodeURIComponent(actionEl.dataset.time || '')
-                );
-            }
-            else if (['approve-transfer', 'reject-transfer', 'cancel-appointment'].includes(action)) {
-                e.preventDefault();
-                const mod = await import('./modules/appointments.js');
-                if (action === 'approve-transfer') await mod.approveTransfer(Number(actionEl.dataset.id || 0));
-                if (action === 'reject-transfer') await mod.rejectTransfer(Number(actionEl.dataset.id || 0));
-                if (action === 'cancel-appointment') await mod.cancelAppointment(Number(actionEl.dataset.id || 0));
-            }
-            else if (action === 'mark-contacted') {
-                e.preventDefault();
-                const mod = await import('./modules/callbacks.js');
-                await mod.markContacted(
-                    Number(actionEl.dataset.callbackId || 0),
-                    actionEl.dataset.callbackDate || ''
-                );
-            }
-        } catch (error) {
-            showToast('Error ejecutando acción: ' + error.message, 'error');
-        }
-    });
-
-    const appointmentFilter = document.getElementById('appointmentFilter');
-    if (appointmentFilter) {
-        appointmentFilter.addEventListener('change', async () => {
-             const { filterAppointments } = await import('./modules/appointments.js');
-             filterAppointments();
-        });
-    }
-
-    const searchInput = document.getElementById('searchAppointments');
-    if (searchInput) {
-        searchInput.addEventListener('input', async () => {
-             const { searchAppointments } = await import('./modules/appointments.js');
-             searchAppointments();
-        });
-    }
-
-    const callbackFilter = document.getElementById('callbackFilter');
-    if (callbackFilter) {
-        callbackFilter.addEventListener('change', async () => {
-             const { filterCallbacks } = await import('./modules/callbacks.js');
-             filterCallbacks();
-        });
-    }
+    await renderSection(section);
 }
 
 function exportData() {
-    import('./modules/state.js').then(({ currentAppointments, currentCallbacks, currentReviews, currentAvailability }) => {
-         const data = {
-            appointments: currentAppointments,
-            callbacks: currentCallbacks,
-            reviews: currentReviews,
-            availability: currentAvailability,
-            exportDate: new Date().toISOString()
-        };
+    const payload = {
+        appointments: currentAppointments,
+        callbacks: currentCallbacks,
+        reviews: currentReviews,
+        availability: currentAvailability,
+        exportDate: new Date().toISOString(),
+    };
 
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `piel-en-armonia-backup-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast('Datos exportados correctamente', 'success');
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: 'application/json',
     });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `piel-en-armonia-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('Datos exportados correctamente', 'success');
 }
 
 async function importData(input) {
@@ -270,41 +187,139 @@ async function importData(input) {
     if (!file) return;
     input.value = '';
 
-    if (!confirm('Esto reemplazará TODOS los datos actuales con los del archivo seleccionado.\n\n¿Deseas continuar?')) {
+    if (
+        !confirm(
+            'Esto reemplazara TODOS los datos actuales con los del archivo seleccionado.\n\nDeseas continuar?'
+        )
+    ) {
         return;
     }
 
     try {
         const text = await file.text();
         const data = JSON.parse(text);
-
         if (!data || typeof data !== 'object') {
-            throw new Error('El archivo no contiene datos válidos');
+            throw new Error('El archivo no contiene datos validos');
         }
 
         const payload = {
-            appointments: Array.isArray(data.appointments) ? data.appointments : [],
+            appointments: Array.isArray(data.appointments)
+                ? data.appointments
+                : [],
             callbacks: Array.isArray(data.callbacks) ? data.callbacks : [],
             reviews: Array.isArray(data.reviews) ? data.reviews : [],
-            availability: data.availability && typeof data.availability === 'object' ? data.availability : {}
+            availability:
+                data.availability && typeof data.availability === 'object'
+                    ? data.availability
+                    : {},
         };
 
         await apiRequest('import', {
             method: 'POST',
-            body: payload
+            body: payload,
         });
 
         await refreshData();
         const activeItem = document.querySelector('.nav-item.active');
-        const section = activeItem?.dataset.section || 'dashboard';
-        renderSection(section);
+        await renderSection(activeItem?.dataset.section || 'dashboard');
         showToast(`Datos importados: ${payload.appointments.length} citas`, 'success');
     } catch (error) {
         showToast(`Error al importar: ${error.message}`, 'error');
     }
 }
 
-document.addEventListener('DOMContentLoaded', async function() {
+function attachGlobalListeners() {
+    document.addEventListener('click', async (event) => {
+        const actionEl = event.target.closest('[data-action]');
+        if (!actionEl) return;
+        const action = actionEl.dataset.action;
+
+        if (action === 'close-toast') {
+            actionEl.closest('.toast')?.remove();
+            return;
+        }
+
+        if (action === 'logout') {
+            event.preventDefault();
+            await logout();
+            return;
+        }
+
+        if (action === 'export-data') {
+            event.preventDefault();
+            exportData();
+            return;
+        }
+
+        if (action === 'open-import-file') {
+            event.preventDefault();
+            document.getElementById('importFileInput')?.click();
+            return;
+        }
+
+        try {
+            if (action === 'change-month') {
+                event.preventDefault();
+                changeMonth(Number(actionEl.dataset.delta || 0));
+                return;
+            }
+            if (action === 'add-time-slot') {
+                event.preventDefault();
+                await addTimeSlot();
+                return;
+            }
+            if (action === 'remove-time-slot') {
+                event.preventDefault();
+                await removeTimeSlot(
+                    decodeURIComponent(actionEl.dataset.date || ''),
+                    decodeURIComponent(actionEl.dataset.time || '')
+                );
+                return;
+            }
+            if (action === 'approve-transfer') {
+                event.preventDefault();
+                await approveTransfer(Number(actionEl.dataset.id || 0));
+                return;
+            }
+            if (action === 'reject-transfer') {
+                event.preventDefault();
+                await rejectTransfer(Number(actionEl.dataset.id || 0));
+                return;
+            }
+            if (action === 'cancel-appointment') {
+                event.preventDefault();
+                await cancelAppointment(Number(actionEl.dataset.id || 0));
+                return;
+            }
+            if (action === 'mark-contacted') {
+                event.preventDefault();
+                await markContacted(
+                    Number(actionEl.dataset.callbackId || 0),
+                    actionEl.dataset.callbackDate || ''
+                );
+            }
+        } catch (error) {
+            showToast(`Error ejecutando accion: ${error.message}`, 'error');
+        }
+    });
+
+    const appointmentFilter = document.getElementById('appointmentFilter');
+    if (appointmentFilter) {
+        appointmentFilter.addEventListener('change', filterAppointments);
+    }
+
+    const searchInput = document.getElementById('searchAppointments');
+    if (searchInput) {
+        searchInput.addEventListener('input', searchAppointments);
+    }
+
+    const callbackFilter = document.getElementById('callbackFilter');
+    if (callbackFilter) {
+        callbackFilter.addEventListener('change', filterCallbacks);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
     attachGlobalListeners();
 
     const loginForm = document.getElementById('loginForm');
@@ -313,30 +328,27 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
-        item.addEventListener('click', async function(e) {
-            e.preventDefault();
-            navItems.forEach(nav => nav.classList.remove('active'));
+    navItems.forEach((item) => {
+        item.addEventListener('click', async function onNavClick(event) {
+            event.preventDefault();
+            navItems.forEach((nav) => nav.classList.remove('active'));
             this.classList.add('active');
             await refreshData();
-            renderSection(this.dataset.section);
+            await renderSection(this.dataset.section);
         });
     });
 
     const importFileInput = document.getElementById('importFileInput');
     if (importFileInput) {
-        importFileInput.addEventListener('change', function() {
-            importData(importFileInput);
-        });
+        importFileInput.addEventListener('change', () => importData(importFileInput));
     }
 
-    window.addEventListener('online', () => {
-        showToast('Conexión restaurada. Actualizando datos...', 'success');
-        refreshData().then(() => {
-            const activeItem = document.querySelector('.nav-item.active');
-            renderSection(activeItem?.dataset.section || 'dashboard');
-        });
+    window.addEventListener('online', async () => {
+        showToast('Conexion restaurada. Actualizando datos...', 'success');
+        await refreshData();
+        const activeItem = document.querySelector('.nav-item.active');
+        await renderSection(activeItem?.dataset.section || 'dashboard');
     });
 
-    checkAuth();
+    await checkAuthAndBoot();
 });

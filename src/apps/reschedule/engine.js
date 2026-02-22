@@ -28,13 +28,6 @@ function safe(text) {
     return div.innerHTML;
 }
 
-function getDefaultTimeSlots() {
-    if (deps && typeof deps.getDefaultTimeSlots === 'function') {
-        return deps.getDefaultTimeSlots();
-    }
-    return ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
-}
-
 function notify(message, type) {
     if (deps && typeof deps.showToast === 'function') {
         deps.showToast(message, type || 'info');
@@ -68,7 +61,7 @@ async function checkRescheduleParam() {
             'error'
         );
         return false;
-    } catch (error) {
+    } catch {
         notify(
             t(
                 'No se pudo cargar la cita. Verifica el enlace.',
@@ -178,12 +171,17 @@ async function loadRescheduleSlots() {
         '<option value="">' + t('Cargando...', 'Loading...') + '</option>';
 
     try {
-        const availability = await deps.loadAvailabilityData();
-        const daySlots =
-            availability[selectedDate] || getDefaultTimeSlots();
+        const service = String(rescheduleAppointment.service || 'consulta');
+        const availability = await deps.loadAvailabilityData({
+            doctor: String(rescheduleAppointment.doctor || 'indiferente'),
+            service,
+            strict: true,
+        });
+        const daySlots = availability[selectedDate] || [];
         const booked = await deps.getBookedSlots(
             selectedDate,
-            rescheduleAppointment.doctor || ''
+            rescheduleAppointment.doctor || '',
+            service
         );
         const isToday =
             selectedDate === new Date().toISOString().split('T')[0];
@@ -217,9 +215,17 @@ async function loadRescheduleSlots() {
                 '</option>';
         }
     } catch (error) {
+        const isCalendarUnavailable =
+            error &&
+            (error.code === 'calendar_unreachable' ||
+                String(error.message || '')
+                    .toLowerCase()
+                    .includes('calendar_unreachable'));
         timeSelect.innerHTML =
             '<option value="">' +
-            t('Error al cargar horarios', 'Error loading slots') +
+            (isCalendarUnavailable
+                ? t('Agenda temporalmente no disponible', 'Schedule temporarily unavailable')
+                : t('Error al cargar horarios', 'Error loading slots')) +
             '</option>';
     }
 }
@@ -263,8 +269,9 @@ async function submitReschedule() {
         if (resp && (resp.ok === undefined || resp.ok)) {
             const oldDate = rescheduleAppointment?.date || '';
             const doctor = rescheduleAppointment?.doctor || '';
-            deps.invalidateBookedSlotsCache(oldDate, doctor);
-            deps.invalidateBookedSlotsCache(newDate, doctor);
+            const service = String(rescheduleAppointment?.service || 'consulta');
+            deps.invalidateBookedSlotsCache(oldDate, doctor, service);
+            deps.invalidateBookedSlotsCache(newDate, doctor, service);
             closeRescheduleModal();
             notify(
                 t(
@@ -279,7 +286,7 @@ async function submitReschedule() {
                 t('Error al reprogramar.', 'Error while rescheduling.');
             errorDiv.classList.remove('is-hidden');
         }
-    } catch (error) {
+    } catch {
         errorDiv.textContent = t(
             'Error de conexion. Intentalo de nuevo.',
             'Connection error. Try again.'

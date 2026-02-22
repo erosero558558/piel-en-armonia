@@ -61,6 +61,7 @@ class BookingServiceUnitTest extends TestCase
 
     protected function setUp(): void
     {
+        putenv('PIELARMONIA_AVAILABILITY_SOURCE=store');
         $this->service = new BookingService();
         $this->emptyStore = [
             'appointments' => [],
@@ -68,6 +69,11 @@ class BookingServiceUnitTest extends TestCase
             'reviews' => [],
             'callbacks' => []
         ];
+    }
+
+    protected function tearDown(): void
+    {
+        putenv('PIELARMONIA_AVAILABILITY_SOURCE');
     }
 
     public function testCreateSuccess(): void
@@ -209,5 +215,32 @@ class BookingServiceUnitTest extends TestCase
         }
         $this->assertEquals($futureDate, $updated['date']);
         $this->assertEquals('11:00', $updated['time']);
+    }
+
+    public function testCreateFailsWhenDateHasNoConfiguredAgenda(): void
+    {
+        $futureDate = date('Y-m-d', strtotime('+1 day'));
+        $store = $this->emptyStore;
+
+        $payload = [
+            'name' => 'John Doe',
+            'email' => 'john@example.com',
+            'phone' => '0991234567',
+            'date' => $futureDate,
+            'time' => '10:00',
+            'doctor' => 'rosero',
+            'service' => 'consulta',
+            'privacyConsent' => true,
+            'paymentMethod' => 'cash'
+        ];
+
+        $result = $this->service->create($store, $payload);
+
+        $this->assertFalse($result['ok']);
+        $this->assertEquals(400, $result['code']);
+        $this->assertEquals(
+            'No hay agenda disponible para la fecha seleccionada',
+            $result['error']
+        );
     }
 }

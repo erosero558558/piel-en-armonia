@@ -113,15 +113,27 @@ export function init(inputDeps) {
                 dateInput,
                 timeSelect,
                 doctorSelect,
+                serviceSelect,
                 t,
             });
         } catch (error) {
             console.error('Failed to load booking-calendar.js', error);
+            const isCalendarUnavailable =
+                error &&
+                (error.code === 'calendar_unreachable' ||
+                    String(error.message || '')
+                        .toLowerCase()
+                        .includes('calendar_unreachable'));
             deps.showToast(
-                t(
-                    'Error cargando calendario. Intenta nuevamente.',
-                    'Error loading calendar. Please try again.'
-                ),
+                isCalendarUnavailable
+                    ? t(
+                          'La agenda esta temporalmente no disponible. Intenta en unos minutos.',
+                          'The schedule is temporarily unavailable. Please try again in a few minutes.'
+                      )
+                    : t(
+                          'Error cargando calendario. Intenta nuevamente.',
+                          'Error loading calendar. Please try again.'
+                      ),
                 'error'
             );
         }

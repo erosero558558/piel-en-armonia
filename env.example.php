@@ -85,6 +85,27 @@
 // Agenda fallback cuando no hay horarios configurados (default false para usar agenda real)
 // putenv('PIELARMONIA_DEFAULT_AVAILABILITY_ENABLED=false');
 
+// -- Agenda Real (Google Calendar) --------------------------------------------
+// Fuente de agenda: "store" (local) o "google" (agenda real).
+// putenv('PIELARMONIA_AVAILABILITY_SOURCE=google');
+// Si Google falla: bloquear reservas/slots (true recomendado para evitar sobreventa).
+// putenv('PIELARMONIA_CALENDAR_BLOCK_ON_FAILURE=true');
+// Zona horaria de agenda.
+// putenv('PIELARMONIA_CALENDAR_TIMEZONE=America/Guayaquil');
+// Paso base de slot en minutos.
+// putenv('PIELARMONIA_CALENDAR_SLOT_STEP_MIN=30');
+// Duracion por servicio (min): clinica 30 / procedimientos 60.
+// putenv('PIELARMONIA_SERVICE_DURATION_MAP=consulta:30,telefono:30,video:30,acne:30,cancer:30,laser:60,rejuvenecimiento:60');
+// Service Account Google (server-to-server).
+// putenv('PIELARMONIA_GOOGLE_SA_CLIENT_EMAIL=service-account@proyecto.iam.gserviceaccount.com');
+// Clave privada en Base64 (contenido completo del private_key del JSON de Google).
+// putenv('PIELARMONIA_GOOGLE_SA_PRIVATE_KEY_B64=BASE64_PRIVATE_KEY');
+// IDs de calendario por doctor.
+// putenv('PIELARMONIA_GOOGLE_CALENDAR_ID_ROSERO=cal_id_rosero@group.calendar.google.com');
+// putenv('PIELARMONIA_GOOGLE_CALENDAR_ID_NARVAEZ=cal_id_narvaez@group.calendar.google.com');
+// TTL cache de disponibilidad (segundos).
+// putenv('PIELARMONIA_CALENDAR_CACHE_TTL_SEC=60');
+
 // ── Feature Flags ───────────────────────────────────
 // putenv('FEATURE_NEW_BOOKING_UI=true');
 // putenv('FEATURE_STRIPE_ELEMENTS=true');

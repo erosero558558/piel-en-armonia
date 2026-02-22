@@ -16,9 +16,8 @@
 
     let apiSlowNoticeLastAt = 0;
     const apiInFlightGetRequests = new Map();
-    let availabilityCache = {};
-    let availabilityCacheLoadedAt = 0;
-    let availabilityCachePromise = null;
+    const availabilityCache = new Map();
+    const availabilityCachePromises = new Map();
     const bookedSlotsCache = new Map();
 
     function init(inputDeps) {
@@ -204,11 +203,15 @@
                     if (!response.ok || payload.ok === false) {
                         const message =
                             payload.error || 'HTTP ' + response.status;
+                        const apiCode =
+                            payload.code ||
+                            payload.errorCode ||
+                            'http_error';
                         throw makeApiError(
                             message,
                             response.status,
                             retryableStatusCodes.has(response.status),
-                            'http_error'
+                            apiCode
                         );
                     }
 
@@ -422,13 +425,14 @@
         throw lastError || new Error('No se pudo subir el comprobante');
     }
 
-    function getBookedSlotsCacheKey(date, doctor = '') {
-        return `${String(date || '')}::${String(doctor || '')}`;
+    function getBookedSlotsCacheKey(date, doctor = '', service = '') {
+        return `${String(date || '')}::${String(doctor || '')}::${String(service || '')}`;
     }
 
-    function invalidateBookedSlotsCache(date = '', doctor = '') {
+    function invalidateBookedSlotsCache(date = '', doctor = '', service = '') {
         const targetDate = String(date || '').trim();
         const targetDoctor = String(doctor || '').trim();
+        const targetService = String(service || '').trim();
         if (!targetDate) {
             bookedSlotsCache.clear();
             return;
@@ -438,65 +442,133 @@
             if (!key.startsWith(`${targetDate}::`)) {
                 continue;
             }
-            if (
-                targetDoctor === '' ||
-                key === getBookedSlotsCacheKey(targetDate, targetDoctor)
-            ) {
+            if (targetDoctor === '' && targetService === '') {
+                bookedSlotsCache.delete(key);
+                continue;
+            }
+
+            const parts = key.split('::');
+            const keyDoctor = parts[1] || '';
+            const keyService = parts[2] || '';
+            const doctorMatches =
+                targetDoctor === '' || keyDoctor === targetDoctor;
+            const serviceMatches =
+                targetService === '' || keyService === targetService;
+            if (doctorMatches && serviceMatches) {
                 bookedSlotsCache.delete(key);
             }
         }
+    }
+
+    function getAvailabilityCacheKey(options = {}) {
+        const doctor = String(options.doctor || 'indiferente');
+        const service = String(options.service || 'consulta');
+        const dateFrom = String(options.dateFrom || '');
+        const days = Number(options.days || 21);
+        return `${doctor}::${service}::${dateFrom}::${days}`;
     }
 
     async function loadAvailabilityData(options = {}) {
         const forceRefresh = options && options.forceRefresh === true;
         const background = options && options.background === true;
         const strict = options && options.strict === true;
+        const doctor = String(options.doctor || 'indiferente');
+        const service = String(options.service || 'consulta');
+        const dateFrom = String(options.dateFrom || '');
+        const days = Number.isFinite(Number(options.days))
+            ? Number(options.days)
+            : 21;
+        const cacheKey = getAvailabilityCacheKey({
+            doctor,
+            service,
+            dateFrom,
+            days,
+        });
         const now = Date.now();
+        const cachedEntry = availabilityCache.get(cacheKey);
 
         if (
             !forceRefresh &&
-            availabilityCacheLoadedAt > 0 &&
-            now - availabilityCacheLoadedAt < AVAILABILITY_CACHE_TTL_MS
+            cachedEntry &&
+            now - cachedEntry.at < AVAILABILITY_CACHE_TTL_MS
         ) {
-            return availabilityCache;
+            return cachedEntry.data;
         }
 
-        if (!forceRefresh && availabilityCachePromise) {
-            return availabilityCachePromise;
+        if (!forceRefresh && availabilityCachePromises.has(cacheKey)) {
+            return availabilityCachePromises.get(cacheKey);
         }
 
-        availabilityCachePromise = (async () => {
+        const storageKey = `availability:${cacheKey}`;
+        const inFlight = (async () => {
             try {
+                const query = {
+                    doctor,
+                    service,
+                };
+                if (dateFrom) query.dateFrom = dateFrom;
+                if (Number.isFinite(days) && days > 0) query.days = days;
+
                 const payload = await apiRequest('availability', {
+                    query,
                     background,
                     silentSlowNotice: background,
                 });
-                availabilityCache = payload.data || {};
-                availabilityCacheLoadedAt = Date.now();
-                storageSetJSON('availability', availabilityCache);
+                const data =
+                    payload && payload.data && typeof payload.data === 'object'
+                        ? payload.data
+                        : {};
+                availabilityCache.set(cacheKey, {
+                    data,
+                    at: Date.now(),
+                    meta:
+                        payload && payload.meta && typeof payload.meta === 'object'
+                            ? payload.meta
+                            : {},
+                });
+                storageSetJSON(storageKey, data);
+                return data;
             } catch (error) {
-                availabilityCache = storageGetJSON('availability', {});
                 if (
-                    availabilityCache &&
-                    typeof availabilityCache === 'object' &&
-                    Object.keys(availabilityCache).length > 0
+                    error &&
+                    (error.code === 'calendar_unreachable' ||
+                        String(error.message || '')
+                            .toLowerCase()
+                            .includes('calendar_unreachable'))
                 ) {
-                    availabilityCacheLoadedAt = Date.now();
-                } else if (strict) {
                     throw error;
                 }
-            } finally {
-                availabilityCachePromise = null;
-            }
 
-            return availabilityCache;
+                const cached = storageGetJSON(storageKey, {});
+                if (
+                    cached &&
+                    typeof cached === 'object' &&
+                    Object.keys(cached).length > 0
+                ) {
+                    availabilityCache.set(cacheKey, {
+                        data: cached,
+                        at: Date.now(),
+                        meta: { source: 'local_cache' },
+                    });
+                    return cached;
+                }
+
+                if (strict) {
+                    throw error;
+                }
+
+                return {};
+            } finally {
+                availabilityCachePromises.delete(cacheKey);
+            }
         })();
 
-        return availabilityCachePromise;
+        availabilityCachePromises.set(cacheKey, inFlight);
+        return inFlight;
     }
 
-    async function getBookedSlots(date, doctor = '') {
-        const cacheKey = getBookedSlotsCacheKey(date, doctor);
+    async function getBookedSlots(date, doctor = '', service = 'consulta') {
+        const cacheKey = getBookedSlotsCacheKey(date, doctor, service);
         const now = Date.now();
         const cachedEntry = bookedSlotsCache.get(cacheKey);
         if (cachedEntry && now - cachedEntry.at < BOOKED_SLOTS_CACHE_TTL_MS) {
@@ -506,6 +578,7 @@
         try {
             const query = { date: date };
             if (doctor) query.doctor = doctor;
+            if (service) query.service = service;
             const payload = await apiRequest('booked-slots', { query });
             const slots = Array.isArray(payload.data) ? payload.data : [];
             bookedSlotsCache.set(cacheKey, {
@@ -514,6 +587,15 @@
             });
             return slots;
         } catch (error) {
+            if (
+                error &&
+                (error.code === 'calendar_unreachable' ||
+                    String(error.message || '')
+                        .toLowerCase()
+                        .includes('calendar_unreachable'))
+            ) {
+                throw error;
+            }
             if (!LOCAL_FALLBACK_ENABLED) {
                 throw error;
             }
@@ -537,11 +619,12 @@
                     return true;
                 })
                 .map((appointment) => appointment.time);
+            const uniqueSlots = Array.from(new Set(slots));
             bookedSlotsCache.set(cacheKey, {
-                slots,
+                slots: uniqueSlots,
                 at: now,
             });
-            return slots;
+            return uniqueSlots;
         }
     }
 
@@ -558,12 +641,14 @@
             if (payload && payload.data) {
                 invalidateBookedSlotsCache(
                     payload.data.date || appointment?.date || '',
-                    payload.data.doctor || appointment?.doctor || ''
+                    payload.data.doctor || appointment?.doctor || '',
+                    payload.data.service || appointment?.service || ''
                 );
             } else {
                 invalidateBookedSlotsCache(
                     appointment?.date || '',
-                    appointment?.doctor || ''
+                    appointment?.doctor || '',
+                    appointment?.service || ''
                 );
             }
             return {
@@ -586,7 +671,8 @@
             storageSetJSON('appointments', localAppointments);
             invalidateBookedSlotsCache(
                 fallback.date || appointment?.date || '',
-                fallback.doctor || appointment?.doctor || ''
+                fallback.doctor || appointment?.doctor || '',
+                fallback.service || appointment?.service || ''
             );
             return {
                 appointment: fallback,

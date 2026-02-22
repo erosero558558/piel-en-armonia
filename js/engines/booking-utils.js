@@ -29,13 +29,6 @@
         return div.innerHTML;
     }
 
-    function getDefaultTimeSlots() {
-        if (deps$1 && typeof deps$1.getDefaultTimeSlots === 'function') {
-            return deps$1.getDefaultTimeSlots();
-        }
-        return ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
-    }
-
     function notify(message, type) {
         if (deps$1 && typeof deps$1.showToast === 'function') {
             deps$1.showToast(message, type || 'info');
@@ -69,7 +62,7 @@
                 'error'
             );
             return false;
-        } catch (error) {
+        } catch {
             notify(
                 t(
                     'No se pudo cargar la cita. Verifica el enlace.',
@@ -179,34 +172,17 @@
             '<option value="">' + t('Cargando...', 'Loading...') + '</option>';
 
         try {
+            const service = String(rescheduleAppointment.service || 'consulta');
             const availability = await deps$1.loadAvailabilityData({
+                doctor: String(rescheduleAppointment.doctor || 'indiferente'),
+                service,
                 strict: true,
             });
-            const configuredSlots = Array.isArray(availability[selectedDate])
-                ? availability[selectedDate]
-                : [];
-            const daySlots = Array.from(
-                new Set(
-                    configuredSlots
-                        .map((slot) => String(slot || '').trim())
-                        .filter(Boolean)
-                )
-            ).sort();
-
-            if (daySlots.length === 0) {
-                timeSelect.innerHTML =
-                    '<option value="">' +
-                    t(
-                        'Sin agenda disponible para esta fecha',
-                        'No schedule available for this date'
-                    ) +
-                    '</option>';
-                return;
-            }
-
+            const daySlots = availability[selectedDate] || [];
             const booked = await deps$1.getBookedSlots(
                 selectedDate,
-                rescheduleAppointment.doctor || ''
+                rescheduleAppointment.doctor || '',
+                service
             );
             const isToday =
                 selectedDate === new Date().toISOString().split('T')[0];
@@ -236,16 +212,21 @@
             if (freeSlots.length === 0) {
                 timeSelect.innerHTML =
                     '<option value="">' +
-                    t(
-                        'No quedan horarios libres en esta fecha',
-                        'No free slots remain on this date'
-                    ) +
+                    t('Sin horarios disponibles', 'No slots available') +
                     '</option>';
             }
         } catch (error) {
+            const isCalendarUnavailable =
+                error &&
+                (error.code === 'calendar_unreachable' ||
+                    String(error.message || '')
+                        .toLowerCase()
+                        .includes('calendar_unreachable'));
             timeSelect.innerHTML =
                 '<option value="">' +
-                t('Error al cargar horarios', 'Error loading slots') +
+                (isCalendarUnavailable
+                    ? t('Agenda temporalmente no disponible', 'Schedule temporarily unavailable')
+                    : t('Error al cargar horarios', 'Error loading slots')) +
                 '</option>';
         }
     }
@@ -289,8 +270,9 @@
             if (resp && (resp.ok === undefined || resp.ok)) {
                 const oldDate = rescheduleAppointment?.date || '';
                 const doctor = rescheduleAppointment?.doctor || '';
-                deps$1.invalidateBookedSlotsCache(oldDate, doctor);
-                deps$1.invalidateBookedSlotsCache(newDate, doctor);
+                const service = String(rescheduleAppointment?.service || 'consulta');
+                deps$1.invalidateBookedSlotsCache(oldDate, doctor, service);
+                deps$1.invalidateBookedSlotsCache(newDate, doctor, service);
                 closeRescheduleModal();
                 notify(
                     t(
@@ -305,7 +287,7 @@
                     t('Error al reprogramar.', 'Error while rescheduling.');
                 errorDiv.classList.remove('is-hidden');
             }
-        } catch (error) {
+        } catch {
             errorDiv.textContent = t(
                 'Error de conexion. Intentalo de nuevo.',
                 'Connection error. Try again.'
@@ -512,24 +494,24 @@
     }
 
     async function updateAvailableTimes(deps, elements) {
-        const { dateInput, timeSelect, doctorSelect, t } = elements;
+        const { dateInput, timeSelect, doctorSelect, serviceSelect, t } = elements;
 
         const selectedDate = dateInput ? dateInput.value : '';
         if (!selectedDate || !timeSelect) return;
 
         const selectedDoctor = doctorSelect ? doctorSelect.value : '';
-        const availability = await deps.loadAvailabilityData({ strict: true });
-        const bookedSlots = await deps.getBookedSlots(selectedDate, selectedDoctor);
-        const configuredSlots = Array.isArray(availability[selectedDate])
-            ? availability[selectedDate]
-            : [];
-        const availableSlots = Array.from(
-            new Set(
-                configuredSlots
-                    .map((slot) => String(slot || '').trim())
-                    .filter(Boolean)
-            )
-        ).sort();
+        const selectedService = serviceSelect ? serviceSelect.value : 'consulta';
+        const availability = await deps.loadAvailabilityData({
+            doctor: selectedDoctor || 'indiferente',
+            service: selectedService || 'consulta',
+            strict: true,
+        });
+        const bookedSlots = await deps.getBookedSlots(
+            selectedDate,
+            selectedDoctor,
+            selectedService
+        );
+        const availableSlots = availability[selectedDate] || [];
         const isToday = selectedDate === new Date().toISOString().split('T')[0];
         const nowMinutes = isToday
             ? new Date().getHours() * 60 + new Date().getMinutes()
@@ -546,29 +528,13 @@
         const currentValue = timeSelect.value;
         timeSelect.innerHTML = '<option value="">Hora</option>';
 
-        if (availableSlots.length === 0) {
-            timeSelect.innerHTML =
-                '<option value="" disabled>' +
-                t(
-                    'Sin agenda disponible para esta fecha',
-                    'No schedule available for this date'
-                ) +
-                '</option>';
-            return;
-        }
-
         if (freeSlots.length === 0) {
             timeSelect.innerHTML +=
-                '<option value="" disabled>' +
-                t(
-                    'No quedan horarios libres',
-                    'No free slots available'
-                ) +
-                '</option>';
+                '<option value="" disabled>No hay horarios disponibles</option>';
             deps.showToast(
                 t(
-                    'No quedan horarios libres para esta fecha',
-                    'No free slots available for this date'
+                    'No hay horarios disponibles para esta fecha',
+                    'No slots available for this date'
                 ),
                 'warning'
             );
@@ -584,7 +550,8 @@
         });
     }
 
-    window.PielBookingCalendarEngine = {
+    window.Piel = window.Piel || {};
+    window.Piel.BookingCalendarEngine = {
         initCalendar,
         updateAvailableTimes
     };

@@ -92,6 +92,36 @@
     border-color: var(--color-primary);
 }
 
+.login-form .btn {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    border: 1px solid #0a84ff;
+    background: linear-gradient(135deg, #0a84ff, #4cc6ff);
+    color: #ffffff;
+    cursor: pointer;
+    padding: 12px 16px;
+    transition:
+        transform 0.2s ease,
+        filter 0.2s ease;
+}
+
+.login-form .btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.04);
+}
+
+.login-form .btn:focus-visible {
+    outline: 3px solid rgba(10, 132, 255, 0.35);
+    outline-offset: 2px;
+}
+
 .login-hint {
     font-size: 0.85rem;
     color: var(--color-text-secondary);

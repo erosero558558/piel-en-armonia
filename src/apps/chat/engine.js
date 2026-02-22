@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Figo chat engine (deferred-loaded).
  * Extracted from script.js to reduce initial parsing work.
  */
@@ -230,12 +230,67 @@ function isPaymentIntent(text) {
     );
 }
 
+function buildPaymentGuidance(normalizedMsg) {
+    const asksCard =
+        /(tarjeta|visa|mastercard|debito|credito|stripe)/.test(normalizedMsg);
+    const asksTransfer =
+        /(transferencia|deposito|comprobante|referencia|banco)/.test(
+            normalizedMsg
+        );
+    const asksCash = /(efectivo|consultorio|presencial)/.test(normalizedMsg);
+    const asksInvoice = /(factura|facturacion|ruc|cedula)/.test(normalizedMsg);
+
+    let response = `Asi puedes realizar tu pago en la web:<br><br>
+<strong>1) Reserva tu cita</strong><br>
+Ve a <a href="#citas" data-action="minimize-chat">Reservar Cita</a>, completa tus datos y selecciona fecha/hora.<br><br>
+
+<strong>2) Abre el modulo de pago</strong><br>
+Al enviar el formulario se abre la ventana de pago automaticamente.<br><br>
+
+<strong>3) Elige metodo de pago</strong><br>
+• <strong>Tarjeta:</strong> cobro seguro con Stripe.<br>
+• <strong>Transferencia:</strong> subes el comprobante y el numero de referencia.<br>
+• <strong>Efectivo:</strong> dejas la reserva registrada y pagas en consultorio.<br><br>`;
+
+    if (asksCard) {
+        response += `<strong>Tarjeta (paso a paso):</strong><br>
+1. Selecciona <strong>Tarjeta</strong>.<br>
+2. Completa nombre + datos de tarjeta en el formulario seguro.<br>
+3. Confirma el pago y espera la validacion final de la cita.<br><br>`;
+    }
+
+    if (asksTransfer) {
+        response += `<strong>Transferencia (paso a paso):</strong><br>
+1. Selecciona <strong>Transferencia</strong>.<br>
+2. Realiza el deposito o transferencia a la cuenta indicada.<br>
+3. Sube el comprobante y agrega numero de referencia.<br>
+4. Nuestro equipo valida y confirma por WhatsApp.<br><br>`;
+    }
+
+    if (asksCash) {
+        response += `<strong>Efectivo:</strong><br>
+La cita queda registrada y pagas el dia de la atencion en consultorio.<br><br>`;
+    }
+
+    if (asksInvoice) {
+        response += `<strong>Facturacion:</strong><br>
+Comparte tus datos de facturacion (cedula/RUC y correo) y te ayudamos por WhatsApp.<br><br>`;
+    }
+
+    response += `<strong>4) Confirmacion</strong><br>
+Tu cita queda registrada y te contactamos para confirmar detalles por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">098 245 3672</a>.<br><br>
+
+Si quieres, te guio ahora mismo segun el metodo que prefieras: <strong>tarjeta</strong>, <strong>transferencia</strong> o <strong>efectivo</strong>.`;
+
+    return response;
+}
+
 function isClinicScopeIntent(text) {
     const normalized = normalizeIntentText(text);
     if (!normalized) return true;
 
     const clinicScopePattern =
-        /(piel|dermat|acne|grano|espinilla|mancha|lesion|consulta|cita|agendar|reservar|turno|doctor|dra|dr|rosero|narvaez|quito|ubicación|dirección|horario|precio|costo|tarifa|pago|pagar|transferencia|efectivo|tarjeta|whatsapp|teléfono|telemedicina|video|laser|rejuvenecimiento|cancer|consultorio|servicio|tratamiento)/;
+        /(piel|dermat|acne|grano|espinilla|mancha|lesion|consulta|cita|agendar|reservar|turno|doctor|dra|dr|rosero|narvaez|quito|ubicacion|direccion|horario|precio|costo|tarifa|pago|pagar|transferencia|efectivo|tarjeta|whatsapp|telefono|telemedicina|video|laser|rejuvenecimiento|cancer|consultorio|servicio|tratamiento)/;
     return clinicScopePattern.test(normalized);
 }
 
@@ -275,6 +330,9 @@ function isGenericAssistantReply(text) {
         /escribenos por whatsapp/,
         /visita estas secciones/,
         /hay algo mas en lo que pueda orientarte/,
+        /si prefieres atencion inmediata/,
+        /te guio paso a paso/,
+        /sobre ".*", te guio paso a paso/,
         /estoy teniendo problemas tecnicos/,
         /contactanos directamente por whatsapp/,
         /te atenderemos personalmente/,
@@ -609,7 +667,6 @@ Pregunta original del paciente: "${message}"`;
 // SISTEMA DE RESPUESTAS LOCALES (FALLBACK)
 // ========================================
 function processLocalResponse(message, isOffline = true) {
-    const lowerMsg = message.toLowerCase();
     const normalizedMsg = normalizeIntentText(message);
 
     // Comando especial: forzar IA
@@ -619,7 +676,7 @@ function processLocalResponse(message, isOffline = true) {
     }
 
     // Comando especial: debug info
-    if (/debug|info sistema|información técnica/.test(normalizedMsg)) {
+    if (/debug|info sistema|informacion tecnica/.test(normalizedMsg)) {
         mostrarInfoDebug();
         return;
     }
@@ -628,7 +685,7 @@ function processLocalResponse(message, isOffline = true) {
     let response;
 
     // AYUDA / MENU
-    if (/ayuda|help|menu|opciones|que puedes hacer/.test(lowerMsg)) {
+    if (/ayuda|help|menu|opciones|que puedes hacer/.test(normalizedMsg)) {
         response = 'Opciones disponibles:<br><br>';
         response +=
             '<strong>Servicios:</strong> Información sobre consultas<br>';
@@ -652,7 +709,7 @@ Si quieres, te llevo directo a <a href="#citas" data-action="minimize-chat">Rese
     // SALUDO
     else if (
         /hola|buenos dias|buenas tardes|buenas noches|hey|hi|hello/.test(
-            lowerMsg
+            normalizedMsg
         )
     ) {
         response =
@@ -666,7 +723,7 @@ Si quieres, te llevo directo a <a href="#citas" data-action="minimize-chat">Rese
     }
     // SERVICIOS
     else if (
-        /servicio|tratamiento|hacen|ofrecen|que hacen/.test(lowerMsg)
+        /servicio|tratamiento|hacen|ofrecen|que hacen/.test(normalizedMsg)
     ) {
         response = 'Servicios dermatológicos:<br><br>';
         response += '<strong>Consultas:</strong><br>';
@@ -680,7 +737,7 @@ Si quieres, te llevo directo a <a href="#citas" data-action="minimize-chat">Rese
         response += '• Detección de cáncer de piel: desde $70';
     }
     // PRECIOS
-    else if (/precio|cuanto cuesta|valor|tarifa|costo/.test(lowerMsg)) {
+    else if (/precio|cuanto cuesta|valor|tarifa|costo/.test(normalizedMsg)) {
         response = 'Precios (incluyen IVA 15%):<br><br>';
         response += '<strong>Consultas:</strong><br>';
         response += '• Presencial: $46<br>';
@@ -694,26 +751,11 @@ Si quieres, te llevo directo a <a href="#citas" data-action="minimize-chat">Rese
     }
     // PAGOS
     else if (isPaymentIntent(normalizedMsg)) {
-        response = `Asi puedes realizar tu pago en la web:<br><br>
-<strong>1) Reserva tu cita</strong><br>
-Ve a <a href="#citas" data-action="minimize-chat">Reservar Cita</a>, completa tus datos y selecciona fecha/hora.<br><br>
-
-<strong>2) Abre el modulo de pago</strong><br>
-Al enviar el formulario se abre la ventana de pago automaticamente.<br><br>
-
-<strong>3) Elige metodo de pago</strong><br>
-• <strong>Tarjeta:</strong> ingresa numero, fecha de vencimiento, CVV y nombre.<br>
-• <strong>Transferencia:</strong> realiza la transferencia y coloca el numero de referencia.<br>
-• <strong>Efectivo:</strong> dejas la reserva registrada y pagas en consultorio.<br><br>
-
-<strong>4) Confirmacion</strong><br>
-Tu cita queda registrada y te contactamos para confirmar detalles por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">098 245 3672</a>.<br><br>
-
-Si quieres, te guio paso a paso seg\u00fan el m\u00e9todo que prefieras.`;
+        response = buildPaymentGuidance(normalizedMsg);
     }
     // HANDOFF / HUMAN
     else if (
-        /hablar con|humano|persona real|doctor real|agente/.test(lowerMsg)
+        /hablar con|humano|persona real|doctor real|agente/.test(normalizedMsg)
     ) {
         response = `Entiendo que prefieres hablar con una persona. ?????<br><br>
 Puedes chatear directamente con nuestro equipo humano por WhatsApp aquí:<br><br>
@@ -721,12 +763,12 @@ Puedes chatear directamente con nuestro equipo humano por WhatsApp aquí:<br><br
 O llámanos al +593 98 245 3672.`;
     }
     // CITAS - iniciar booking conversacional
-    else if (/cita|agendar|reservar|turno|hora/.test(lowerMsg)) {
+    else if (/cita|agendar|reservar|turno|hora/.test(normalizedMsg)) {
         startChatBooking();
         return;
     }
     // ACNÉ
-    else if (/acne|grano|espinilla|barro/.test(lowerMsg)) {
+    else if (/acne|grano|espinilla|barro/.test(normalizedMsg)) {
         response =
             'El acne es muy comun y tenemos soluciones efectivas.<br><br>';
         response += 'Nuestro enfoque:<br>';
@@ -739,7 +781,7 @@ O llámanos al +593 98 245 3672.`;
         response += '¿Te gustaria agendar?';
     }
     // LASER
-    else if (/laser/.test(lowerMsg)) {
+    else if (/laser/.test(normalizedMsg)) {
         response = 'Tecnologia laser de ultima generacion.<br><br>';
         response += 'Tratamientos:<br>';
         response += '• Eliminacion de lesiones vasculares<br>';
@@ -751,7 +793,7 @@ O llámanos al +593 98 245 3672.`;
         response += '¿Deseas agendar?';
     }
     // UBICACION
-    else if (/donde|ubicación|dirección|lugar|mapa|quito/.test(lowerMsg)) {
+    else if (/donde|ubicacion|direccion|lugar|mapa|quito/.test(normalizedMsg)) {
         response = '<strong>Ubicacion:</strong><br>';
         response += `${CLINIC_ADDRESS}<br>`;
         response += '<br>';
@@ -765,8 +807,8 @@ O llámanos al +593 98 245 3672.`;
     }
     // DOCTORES
     else if (
-        /doctor|médico|medico|especialista|rosero|narvaez|dr|dra/.test(
-            lowerMsg
+        /doctor|medico|especialista|rosero|narvaez|dr|dra/.test(
+            normalizedMsg
         )
     ) {
         response = `Contamos con dos excelentes especialistas:
@@ -788,7 +830,7 @@ Ambos están disponibles para consulta presencial y online.
     // TELEMEDICINA
     else if (
         /online|virtual|video|remota|telemedicina|whatsapp|llamada/.test(
-            lowerMsg
+            normalizedMsg
         )
     ) {
         response = `Ofrecemos 3 opciones de consulta remota:
@@ -811,7 +853,7 @@ Todas incluyen:
 ¿Cuál prefieres?`;
     }
     // DESPEDIDA
-    else if (/gracias|thank|adios|chao|hasta luego|bye/.test(lowerMsg)) {
+    else if (/gracias|thank|adios|chao|hasta luego|bye/.test(normalizedMsg)) {
         response = `¡De nada! ??
 
 Si tienes más dudas, no dudes en escribirme. También puedes contactarnos directamente:
@@ -917,3 +959,4 @@ if (typeof window !== 'undefined') {
         mostrarInfoDebug,
     };
 }
+

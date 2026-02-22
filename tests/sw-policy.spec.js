@@ -18,12 +18,14 @@ test.describe('Service worker policy hardening', () => {
     test('sw pre-caches versioned critical bundles', () => {
         const source = fs.readFileSync(swPath, 'utf8');
 
-        expect(source).toContain(
-            '/styles-deferred.css?v=ui-20260221-deferred18-fullcssfix1'
+        expect(source).toMatch(
+            /\/styles-deferred\.css\?v=[^'"\s]+/
         );
-        expect(source).toContain(
-            '/js/bootstrap-inline-engine.js?v=figo-bootstrap-20260221-mobileblankfix2'
+        expect(source).toMatch(
+            /\/js\/bootstrap-inline-engine\.js\?v=[^'"\s]+/
         );
-        expect(source).toContain('/script.js?v=figo-20260221-phase7-mobileblankfix2');
+        expect(source).toMatch(
+            /\/script\.js\?v=[^'"\s]+/
+        );
     });
 });

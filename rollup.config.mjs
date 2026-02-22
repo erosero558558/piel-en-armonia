@@ -1,6 +1,16 @@
 import resolve from '@rollup/plugin-node-resolve';
 
 export default [
+    // Admin App
+    {
+        input: 'src/apps/admin/index.js',
+        output: {
+            file: 'admin.js',
+            format: 'es',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
     // Booking UI
     {
         input: 'src/apps/booking/ui-entry.js',
@@ -17,8 +27,7 @@ export default [
         input: 'src/apps/booking/engine.js',
         output: {
             file: 'js/engines/booking-engine.js',
-            format: 'iife',
-            name: 'Piel.BookingEngine',
+            format: 'es',
             sourcemap: false
         },
         plugins: [resolve()]

@@ -64,4 +64,57 @@ test.describe('Chat Engine Unit Tests', () => {
         });
         expect(result).toBe(true);
     });
+
+    test('processWithKimi keeps out-of-scope questions limited to clinic context', async ({ page }) => {
+        const result = await page.evaluate(async () => {
+            let lastMessage = null;
+            const deps = {
+                addBotMessage: (msg) => {
+                    lastMessage = msg;
+                },
+                getConversationContext: () => [],
+                getChatHistory: () => [],
+                showTypingIndicator: () => {},
+                removeTypingIndicator: () => {},
+            };
+            window.Piel.FigoChatEngine.init(deps);
+
+            await window.Piel.FigoChatEngine.processWithKimi('capital de ecuador');
+            return lastMessage;
+        });
+
+        expect(result).toContain('Piel en Armonía');
+        expect(result).toContain('Reservar cita');
+        expect(result).not.toContain('Quito');
+    });
+
+    test('processWithKimi returns detailed payment steps on local fallback', async ({ page }) => {
+        const result = await page.evaluate(async () => {
+            let lastMessage = null;
+            const deps = {
+                addBotMessage: (msg) => {
+                    lastMessage = msg;
+                },
+                getConversationContext: () => [],
+                setConversationContext: () => {},
+                getChatHistory: () => [],
+                setChatHistory: () => {},
+                showTypingIndicator: () => {},
+                removeTypingIndicator: () => {},
+                debugLog: () => {},
+            };
+            window.Piel.FigoChatEngine.init(deps);
+
+            // Force local fallback branch after real-ai attempt.
+            window.fetch = () => Promise.reject(new Error('Network error'));
+            await window.Piel.FigoChatEngine.processWithKimi(
+                'como pago por transferencia y facturacion'
+            );
+
+            return lastMessage;
+        });
+
+        expect(result).toContain('Transferencia (paso a paso)');
+        expect(result).toContain('Facturacion');
+    });
 });

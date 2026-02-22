@@ -12,16 +12,24 @@ export function initCalendar() {
 }
 
 export async function updateAvailableTimes(deps, elements) {
-    const { dateInput, timeSelect, doctorSelect, t } = elements;
+    const { dateInput, timeSelect, doctorSelect, serviceSelect, t } = elements;
 
     const selectedDate = dateInput ? dateInput.value : '';
     if (!selectedDate || !timeSelect) return;
 
     const selectedDoctor = doctorSelect ? doctorSelect.value : '';
-    const availability = await deps.loadAvailabilityData();
-    const bookedSlots = await deps.getBookedSlots(selectedDate, selectedDoctor);
-    const availableSlots =
-        availability[selectedDate] || deps.getDefaultTimeSlots();
+    const selectedService = serviceSelect ? serviceSelect.value : 'consulta';
+    const availability = await deps.loadAvailabilityData({
+        doctor: selectedDoctor || 'indiferente',
+        service: selectedService || 'consulta',
+        strict: true,
+    });
+    const bookedSlots = await deps.getBookedSlots(
+        selectedDate,
+        selectedDoctor,
+        selectedService
+    );
+    const availableSlots = availability[selectedDate] || [];
     const isToday = selectedDate === new Date().toISOString().split('T')[0];
     const nowMinutes = isToday
         ? new Date().getHours() * 60 + new Date().getMinutes()

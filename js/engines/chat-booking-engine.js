@@ -3,16 +3,6 @@
 
     let deps = null;
     let chatBooking = null;
-
-    const FALLBACK_SLOTS = [
-        '09:00',
-        '10:00',
-        '11:00',
-        '12:00',
-        '15:00',
-        '16:00',
-        '17:00',
-    ];
     const CHAT_SERVICES = [
         { key: 'consulta', label: 'Consulta Presencial', price: '$46.00' },
         { key: 'telefono', label: 'Consulta Telefónica', price: '$28.75' },
@@ -324,20 +314,25 @@
                 try {
                     const availability =
                         deps && typeof deps.loadAvailabilityData === 'function'
-                            ? await deps.loadAvailabilityData()
+                            ? await deps.loadAvailabilityData({
+                                  doctor: chatBooking.doctor || 'indiferente',
+                                  service: chatBooking.service || 'consulta',
+                                  strict: true,
+                              })
                             : {};
                     const booked =
                         deps && typeof deps.getBookedSlots === 'function'
                             ? await deps.getBookedSlots(
                                   input,
-                                  chatBooking.doctor || ''
+                                  chatBooking.doctor || '',
+                                  chatBooking.service || 'consulta'
                               )
                             : [];
                     const allSlots =
                         Array.isArray(availability[input]) &&
                         availability[input].length > 0
                             ? availability[input]
-                            : FALLBACK_SLOTS;
+                            : [];
                     const isToday =
                         input === new Date().toISOString().split('T')[0];
                     const nowMinutes = isToday
@@ -390,7 +385,13 @@
                     });
                     msg += '</div>';
                     addBotMessage(msg);
-                } catch {
+                } catch (error) {
+                    const isCalendarUnavailable =
+                        error &&
+                        (error.code === 'calendar_unreachable' ||
+                            String(error.message || '')
+                                .toLowerCase()
+                                .includes('calendar_unreachable'));
                     if (
                         deps &&
                         typeof deps.removeTypingIndicator === 'function'
@@ -398,10 +399,15 @@
                         deps.removeTypingIndicator();
                     }
                     addBotMessage(
-                        t(
-                            'No pude consultar los horarios. Intenta de nuevo.',
-                            'I could not load the schedule. Please try again.'
-                        )
+                        isCalendarUnavailable
+                            ? t(
+                                  'La agenda esta temporalmente no disponible. Intenta de nuevo en unos minutos.',
+                                  'The schedule is temporarily unavailable. Please try again in a few minutes.'
+                              )
+                            : t(
+                                  'No pude consultar los horarios. Intenta de nuevo.',
+                                  'I could not load the schedule. Please try again.'
+                              )
                     );
                     chatBooking.step = 'date';
                 }

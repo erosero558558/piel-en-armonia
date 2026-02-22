@@ -1088,6 +1088,30 @@
             .cookie-link:hover {
                 text-decoration: underline;
             }
+            /* Payment modal viewport hardening: keep action reachable on short screens */
+            .payment-modal {
+                max-height: min(92dvh, 860px);
+                overflow-y: auto;
+                overscroll-behavior: contain;
+            }
+            .payment-modal [data-action='process-payment'] {
+                position: sticky;
+                bottom: 0;
+                z-index: 2;
+                margin-top: 12px;
+                box-shadow: 0 -12px 24px rgba(246, 249, 255, 0.95);
+            }
+            html[data-theme='dark'] .payment-modal [data-action='process-payment'] {
+                box-shadow: 0 -12px 24px rgba(9, 17, 30, 0.9);
+            }
+            @media (max-width: 640px) {
+                .payment-modal {
+                    max-height: calc(100dvh - 8px);
+                }
+                .payment-modal [data-action='process-payment'] {
+                    bottom: calc(var(--safe-bottom) + 4px);
+                }
+            }
             .modal {
                 position: fixed;
                 inset: 0;
