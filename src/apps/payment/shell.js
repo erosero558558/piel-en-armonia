@@ -1,4 +1,4 @@
-import { apiRequest } from './api.js';
+import { apiRequest } from '../shared/api.js';
 import {
     getPaymentConfig,
     setPaymentConfig,
@@ -9,10 +9,10 @@ import {
     getStripeSdkPromise,
     setStripeSdkPromise,
     getCurrentLang,
-} from './state.js';
-import { API_ENDPOINT, API_REQUEST_TIMEOUT_MS } from './config.js';
-import { loadDeferredModule, runDeferredModule } from './loader.js';
-import { withDeployAssetVersion } from './utils.js';
+} from '../shared/state.js';
+import { API_ENDPOINT, API_REQUEST_TIMEOUT_MS } from '../shared/config.js';
+import { loadDeferredModule, runDeferredModule } from '../shared/loader.js';
+import { withDeployAssetVersion } from '../shared/utils.js';
 
 const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
 

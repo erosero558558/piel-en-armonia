@@ -1,12 +1,12 @@
-import { withDeployAssetVersion, showToast, escapeHtml } from './utils.js';
-import { loadDeferredModule, runDeferredModule } from './loader.js';
-import { getCurrentLang } from './state.js';
+import { withDeployAssetVersion, showToast, escapeHtml } from '../shared/utils.js';
+import { loadDeferredModule, runDeferredModule } from '../shared/loader.js';
+import { getCurrentLang } from '../shared/state.js';
 import {
     apiRequest,
     loadAvailabilityData,
     getBookedSlots,
     invalidateBookedSlotsCache,
-} from './data.js';
+} from '../data/shell.js';
 
 const BOOKING_UTILS_URL = withDeployAssetVersion(
     '/js/engines/booking-utils.js?v=figo-booking-utils-20260220-unified'

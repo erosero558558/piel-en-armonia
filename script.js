@@ -1,6 +1,1831 @@
-/* GENERATED FILE - DO NOT EDIT DIRECTLY - Edit source in js/main.js and run npm run build */
+/* GENERATED FILE - DO NOT EDIT DIRECTLY - Edit source in src/apps/main/index.js and run npm run build */
 (function () {
     'use strict';
+
+    let currentLang$1 = localStorage.getItem('language') || 'es';
+    let currentThemeMode$1 = localStorage.getItem('themeMode') || 'system';
+    let currentAppointment$1 = null;
+    let checkoutSession$1 = {
+        active: false,
+        completed: false,
+        startedAt: 0,
+        service: '',
+        doctor: '',
+    };
+    let apiSlowNoticeLastAt$1 = 0;
+    const bookedSlotsCache$1 = new Map();
+    let reviewsCache$1 = [];
+    let paymentConfig$1 = {
+        enabled: false,
+        provider: 'stripe',
+        publishableKey: '',
+        currency: 'USD',
+    };
+    let paymentConfigLoaded$1 = false;
+    let paymentConfigLoadedAt$1 = 0;
+    let stripeSdkPromise$1 = null;
+    let chatbotOpen$1 = false;
+    let conversationContext$1 = [];
+
+    function getCurrentLang$1() {
+        return currentLang$1;
+    }
+    function setCurrentLang$1(lang) {
+        currentLang$1 = lang;
+    }
+
+    function getCurrentThemeMode$1() {
+        return currentThemeMode$1;
+    }
+    function setCurrentThemeMode$1(mode) {
+        currentThemeMode$1 = mode;
+    }
+
+    function getCurrentAppointment$1() {
+        return currentAppointment$1;
+    }
+    function setCurrentAppointment$1(appt) {
+        currentAppointment$1 = appt;
+    }
+
+    function getCheckoutSession$1() {
+        return checkoutSession$1;
+    }
+    function setCheckoutSession$1(session) {
+        checkoutSession$1 = session;
+    }
+
+    function getApiSlowNoticeLastAt$1() {
+        return apiSlowNoticeLastAt$1;
+    }
+    function setApiSlowNoticeLastAt$1(val) {
+        apiSlowNoticeLastAt$1 = val;
+    }
+
+    function getReviewsCache$1() {
+        return reviewsCache$1;
+    }
+    function setReviewsCache$1(val) {
+        reviewsCache$1 = val;
+    }
+
+    function getPaymentConfig$1() {
+        return paymentConfig$1;
+    }
+    function setPaymentConfig$1(val) {
+        paymentConfig$1 = val;
+    }
+
+    function getPaymentConfigLoaded$1() {
+        return paymentConfigLoaded$1;
+    }
+    function setPaymentConfigLoaded$1(val) {
+        paymentConfigLoaded$1 = val;
+    }
+
+    function getPaymentConfigLoadedAt$1() {
+        return paymentConfigLoadedAt$1;
+    }
+    function setPaymentConfigLoadedAt$1(val) {
+        paymentConfigLoadedAt$1 = val;
+    }
+
+    function getStripeSdkPromise$1() {
+        return stripeSdkPromise$1;
+    }
+    function setStripeSdkPromise$1(val) {
+        stripeSdkPromise$1 = val;
+    }
+
+    function getChatbotOpen$1() {
+        return chatbotOpen$1;
+    }
+    function setChatbotOpen$1(val) {
+        chatbotOpen$1 = val;
+    }
+
+    function getConversationContext$1() {
+        return conversationContext$1;
+    }
+    function setConversationContext$1(val) {
+        conversationContext$1 = val;
+    }
+
+    function getChatHistory$1() {
+        try {
+            const raw = localStorage.getItem('chatHistory');
+            const saved = raw ? JSON.parse(raw) : [];
+            const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+            const valid = saved.filter(
+                (m) => m.time && new Date(m.time).getTime() > cutoff
+            );
+            if (valid.length !== saved.length) {
+                try {
+                    localStorage.setItem('chatHistory', JSON.stringify(valid));
+                } catch {
+                    // noop
+                }
+            }
+            return valid;
+        } catch {
+            return [];
+        }
+    }
+    function setChatHistory$1(history) {
+        try {
+            localStorage.setItem('chatHistory', JSON.stringify(history));
+        } catch {
+            // noop
+        }
+    }
+
+    const stateAccessors$1 = {
+        currentLang: [getCurrentLang$1, setCurrentLang$1],
+        currentThemeMode: [getCurrentThemeMode$1, setCurrentThemeMode$1],
+        currentAppointment: [getCurrentAppointment$1, setCurrentAppointment$1],
+        checkoutSession: [getCheckoutSession$1, setCheckoutSession$1],
+        reviewsCache: [getReviewsCache$1, setReviewsCache$1],
+        chatbotOpen: [getChatbotOpen$1, setChatbotOpen$1],
+        conversationContext: [getConversationContext$1, setConversationContext$1],
+    };
+
+    const internalState$1 = {
+        bookedSlotsCache: bookedSlotsCache$1,
+    };
+
+    const handler$1 = {
+        get(target, prop, receiver) {
+            if (prop === 'chatHistory') {
+                return getChatHistory$1();
+            }
+            if (Object.prototype.hasOwnProperty.call(stateAccessors$1, prop)) {
+                return stateAccessors$1[prop][0]();
+            }
+            return Reflect.get(target, prop, receiver);
+        },
+        set(target, prop, value, receiver) {
+            if (prop === 'chatHistory') {
+                setChatHistory$1(value);
+                return true;
+            }
+            if (prop === 'bookedSlotsCache') {
+                return false;
+            }
+            if (Object.prototype.hasOwnProperty.call(stateAccessors$1, prop)) {
+                stateAccessors$1[prop][1](value);
+                return true;
+            }
+            return Reflect.set(target, prop, value, receiver);
+        },
+    };
+
+    const state$1 = new Proxy(internalState$1, handler$1);
+
+    const API_ENDPOINT$1 = '/api.php';
+    const CLINIC_ADDRESS$1 = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
+    const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
+    const API_REQUEST_TIMEOUT_MS$1 = 9000;
+    const API_RETRY_BASE_DELAY_MS$1 = 450;
+    const API_DEFAULT_RETRIES$1 = 1;
+    const API_SLOW_NOTICE_MS$1 = 1200;
+    const API_SLOW_NOTICE_COOLDOWN_MS$1 = 25000;
+    const THEME_STORAGE_KEY = 'themeMode';
+    const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
+
+    function debugLog$1() {
+        // Debug logging removed
+    }
+
+    function escapeHtml$2(text) {
+        if (
+            window.Piel &&
+            window.Piel.ChatUiEngine &&
+            typeof window.Piel.ChatUiEngine.escapeHtml === 'function'
+        ) {
+            return window.Piel.ChatUiEngine.escapeHtml(text);
+        }
+        const div = document.createElement('div');
+        div.textContent = String(text || '');
+        return div.innerHTML;
+    }
+
+    function waitMs$1(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function isConstrainedNetworkConnection$1() {
+        const connection =
+            navigator.connection ||
+            navigator.mozConnection ||
+            navigator.webkitConnection;
+        return !!(
+            connection &&
+            (connection.saveData === true ||
+                /(^|[^0-9])2g/.test(String(connection.effectiveType || '')))
+        );
+    }
+
+    // ASSET VERSIONING
+    function resolveDeployAssetVersion() {
+        try {
+            if (
+                document.currentScript &&
+                typeof document.currentScript.src === 'string' &&
+                document.currentScript.src !== ''
+            ) {
+                const currentUrl = new URL(
+                    document.currentScript.src,
+                    window.location.href
+                );
+                const fromCurrent = currentUrl.searchParams.get('v');
+                if (fromCurrent) {
+                    return fromCurrent;
+                }
+            }
+
+            const scriptEl = document.querySelector('script[src*="script.js"]');
+            if (scriptEl && typeof scriptEl.getAttribute === 'function') {
+                const rawSrc = scriptEl.getAttribute('src') || '';
+                if (rawSrc) {
+                    const parsed = new URL(rawSrc, window.location.href);
+                    const fromTag = parsed.searchParams.get('v');
+                    if (fromTag) {
+                        return fromTag;
+                    }
+                }
+            }
+        } catch (_error) {
+            return '';
+        }
+
+        return '';
+    }
+
+    function withDeployAssetVersion$1(url) {
+        const cleanUrl = String(url || '').trim();
+        if (cleanUrl === '') {
+            return cleanUrl;
+        }
+
+        const deployVersion = (window.Piel && window.Piel.deployVersion) || '';
+        if (!deployVersion) {
+            return cleanUrl;
+        }
+
+        try {
+            const resolved = new URL(cleanUrl, window.location.origin);
+            resolved.searchParams.set('cv', deployVersion);
+            if (cleanUrl.startsWith('/')) {
+                return resolved.pathname + resolved.search;
+            }
+            return resolved.toString();
+        } catch (_error) {
+            const separator = cleanUrl.indexOf('?') >= 0 ? '&' : '?';
+            return cleanUrl + separator + 'cv=' + encodeURIComponent(deployVersion);
+        }
+    }
+
+    // TOAST NOTIFICATIONS SYSTEM
+    function showToast$1(message, type = 'info', title = '') {
+        // Create container if doesn't exist
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+
+        const icons = {
+            success: 'fa-check-circle',
+            error: 'fa-times-circle',
+            warning: 'fa-exclamation-circle',
+            info: 'fa-info-circle',
+        };
+
+        const titles = {
+            success: title || 'Exito',
+            error: title || 'Error',
+            warning: title || 'Advertencia',
+            info: title || 'Informacion',
+        };
+
+        // Escapar mensaje para prevenir XSS
+        const safeMsg = String(message)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+        toast.innerHTML = `
+        <i class="fas ${icons[type]} toast-icon"></i>
+        <div class="toast-content">
+            <div class="toast-title">${titles[type]}</div>
+            <div class="toast-message">${safeMsg}</div>
+        </div>
+        <button type="button" class="toast-close" data-action="toast-close">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="toast-progress"></div>
+    `;
+
+        container.appendChild(toast);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 5000);
+    }
+
+    function storageGetJSON$1(key, fallback) {
+        try {
+            const value = JSON.parse(localStorage.getItem(key) || 'null');
+            return value === null ? fallback : value;
+        } catch (_error) {
+            return fallback;
+        }
+    }
+
+    function storageSetJSON$1(key, value) {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+        } catch (_error) {
+            // Ignore storage quota errors.
+        }
+    }
+
+    const deferredModulePromises$1 = new Map();
+
+    function loadDeferredModule$1(options) {
+        const {
+            cacheKey,
+            src,
+            scriptDataAttribute,
+            resolveModule,
+            isModuleReady = (module) => !!module,
+            onModuleReady,
+            missingApiError = 'Deferred module loaded without expected API',
+            loadError = 'No se pudo cargar el modulo diferido',
+            logLabel = '',
+        } = options || {};
+
+        if (
+            !cacheKey ||
+            !src ||
+            !scriptDataAttribute ||
+            typeof resolveModule !== 'function'
+        ) {
+            return Promise.reject(
+                new Error('Invalid deferred module configuration')
+            );
+        }
+
+        const getReadyModule = () => {
+            const module = resolveModule();
+            if (!isModuleReady(module)) {
+                return null;
+            }
+
+            if (typeof onModuleReady === 'function') {
+                onModuleReady(module);
+            }
+
+            return module;
+        };
+
+        const readyModule = getReadyModule();
+        if (readyModule) {
+            return Promise.resolve(readyModule);
+        }
+
+        if (deferredModulePromises$1.has(cacheKey)) {
+            return deferredModulePromises$1.get(cacheKey);
+        }
+
+        const promise = new Promise((resolve, reject) => {
+            const handleLoad = () => {
+                const module = getReadyModule();
+                if (module) {
+                    resolve(module);
+                    return;
+                }
+                reject(new Error(missingApiError));
+            };
+
+            import(src)
+                .then(() => {
+                    if (
+                        !document.querySelector(
+                            'script[' + scriptDataAttribute + '="true"]'
+                        )
+                    ) {
+                        const marker = document.createElement('script');
+                        marker.setAttribute(scriptDataAttribute, 'true');
+                        marker.dataset.dynamicImport = 'true';
+                        document.head.appendChild(marker);
+                    }
+                    handleLoad();
+                })
+                .catch((err) => {
+                    reject(new Error(loadError));
+                });
+        }).catch((error) => {
+            deferredModulePromises$1.delete(cacheKey);
+            throw error;
+        });
+
+        deferredModulePromises$1.set(cacheKey, promise);
+        return promise;
+    }
+
+    function scheduleDeferredTask$1(task, options = {}) {
+        const {
+            idleTimeout = 2000,
+            fallbackDelay = 1200,
+            skipOnConstrained = true,
+            constrainedDelay = fallbackDelay,
+        } = options;
+
+        if (isConstrainedNetworkConnection$1()) {
+            if (skipOnConstrained) {
+                return false;
+            }
+            setTimeout(task, constrainedDelay);
+            return true;
+        }
+
+        if (typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(task, { timeout: idleTimeout });
+        } else {
+            setTimeout(task, fallbackDelay);
+        }
+
+        return true;
+    }
+
+    function bindWarmupTarget$1(selector, eventName, handler, passive = true) {
+        const element = document.querySelector(selector);
+        if (!element) {
+            return false;
+        }
+
+        element.addEventListener(eventName, handler, { once: true, passive });
+        return true;
+    }
+
+    function createOnceTask(task) {
+        let executed = false;
+
+        return function runOnce() {
+            if (executed) {
+                return;
+            }
+
+            executed = true;
+            task();
+        };
+    }
+
+    function createWarmupRunner$1(loadFn, options = {}) {
+        const markWarmOnSuccess = options.markWarmOnSuccess === true;
+        let warmed = false;
+
+        return function warmup() {
+            if (warmed || window.location.protocol === 'file:') {
+                return;
+            }
+
+            if (markWarmOnSuccess) {
+                Promise.resolve(loadFn())
+                    .then(() => {
+                        warmed = true;
+                    })
+                    .catch(() => undefined);
+                return;
+            }
+
+            warmed = true;
+            Promise.resolve(loadFn()).catch(() => {
+                warmed = false;
+            });
+        };
+    }
+
+    function observeOnceWhenVisible$1(element, onVisible, options = {}) {
+        const { threshold = 0.05, rootMargin = '0px', onNoObserver } = options;
+
+        if (!element) {
+            return false;
+        }
+
+        if (!('IntersectionObserver' in window)) {
+            if (typeof onNoObserver === 'function') {
+                onNoObserver();
+            }
+            return false;
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) {
+                        return;
+                    }
+                    onVisible(entry);
+                    observer.disconnect();
+                });
+            },
+            {
+                threshold,
+                rootMargin,
+            }
+        );
+
+        observer.observe(element);
+        return true;
+    }
+
+    function withDeferredModule$1(loader, onReady) {
+        return Promise.resolve()
+            .then(() => loader())
+            .then((module) => onReady(module));
+    }
+
+    function runDeferredModule$1(loader, onReady, onError) {
+        return withDeferredModule$1(loader, onReady).catch((error) => {
+            if (typeof onError === 'function') {
+                return onError(error);
+            }
+            return undefined;
+        });
+    }
+
+    const UI_BUNDLE_URL$4 = withDeployAssetVersion$1(
+        '/js/engines/ui-bundle.js?v=20260220-consolidated1'
+    );
+    const systemThemeQuery = window.matchMedia
+        ? window.matchMedia('(prefers-color-scheme: dark)')
+        : null;
+
+    function getThemeEngineDeps() {
+        return {
+            getCurrentThemeMode: () => state$1.currentThemeMode,
+            setCurrentThemeMode: (mode) => {
+                state$1.currentThemeMode = VALID_THEME_MODES.has(mode) ? mode : 'system';
+            },
+            themeStorageKey: THEME_STORAGE_KEY,
+            validThemeModes: Array.from(VALID_THEME_MODES),
+            getSystemThemeQuery: () => systemThemeQuery,
+        };
+    }
+
+    function loadThemeEngine() {
+        return loadDeferredModule$1({
+            cacheKey: 'theme-engine',
+            src: UI_BUNDLE_URL$4,
+            scriptDataAttribute: 'data-ui-bundle',
+            resolveModule: () => window.Piel && window.Piel.ThemeEngine,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(getThemeEngineDeps()),
+            missingApiError: 'theme-engine loaded without API',
+            loadError: 'No se pudo cargar theme-engine.js',
+            logLabel: 'Theme engine',
+        });
+    }
+
+    function setThemeMode(mode) {
+        runDeferredModule$1(loadThemeEngine, (engine) => engine.setThemeMode(mode));
+    }
+
+    function initThemeMode() {
+        runDeferredModule$1(loadThemeEngine, (engine) => engine.initThemeMode());
+    }
+
+    const DATA_ENGINE_URL$1 = withDeployAssetVersion$1(
+        '/js/engines/data-engine.js?v=figo-data-20260219-phase1'
+    );
+
+    function getDataEngineDeps$1() {
+        return {
+            getCurrentLang: () => state$1.currentLang,
+            showToast: showToast$1,
+            storageGetJSON: storageGetJSON$1,
+            storageSetJSON: storageSetJSON$1,
+        };
+    }
+
+    function loadDataEngine$1() {
+        return loadDeferredModule$1({
+            cacheKey: 'data-engine',
+            src: DATA_ENGINE_URL$1,
+            scriptDataAttribute: 'data-data-engine',
+            resolveModule: () => window.Piel && window.Piel.DataEngine,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(getDataEngineDeps$1()),
+            missingApiError: 'data-engine loaded without API',
+            loadError: 'No se pudo cargar data-engine.js',
+            logLabel: 'Data engine',
+        });
+    }
+
+    function initDataEngineWarmup() {
+        const warmup = createWarmupRunner$1(() => loadDataEngine$1(), {
+            markWarmOnSuccess: true,
+        });
+
+        bindWarmupTarget$1('#appointmentForm', 'focusin', warmup, false);
+        bindWarmupTarget$1('#appointmentForm', 'pointerdown', warmup);
+        bindWarmupTarget$1('#chatbotWidget .chatbot-toggle', 'pointerdown', warmup);
+
+        const bookingSection = document.getElementById('citas');
+        observeOnceWhenVisible$1(bookingSection, warmup, {
+            threshold: 0.05,
+            rootMargin: '260px 0px',
+            onNoObserver: warmup,
+        });
+
+        scheduleDeferredTask$1(warmup, {
+            idleTimeout: 1800,
+            fallbackDelay: 900,
+        });
+    }
+
+    async function apiRequest$3(resource, options = {}) {
+        return withDeferredModule$1(loadDataEngine$1, (engine) =>
+            engine.apiRequest(resource, options)
+        );
+    }
+
+    function invalidateBookedSlotsCache(date = '', doctor = '', service = '') {
+        if (
+            window.Piel &&
+            window.Piel.DataEngine &&
+            typeof window.Piel.DataEngine.invalidateBookedSlotsCache === 'function'
+        ) {
+            window.Piel.DataEngine.invalidateBookedSlotsCache(date, doctor, service);
+            return;
+        }
+        withDeferredModule$1(loadDataEngine$1, (engine) =>
+            engine.invalidateBookedSlotsCache(date, doctor, service)
+        ).catch(() => undefined);
+    }
+
+    async function loadAvailabilityData$1(options = {}) {
+        return withDeferredModule$1(loadDataEngine$1, (engine) =>
+            engine.loadAvailabilityData(options)
+        );
+    }
+
+    async function getBookedSlots$1(date, doctor = '', service = '') {
+        return withDeferredModule$1(loadDataEngine$1, (engine) =>
+            engine.getBookedSlots(date, doctor, service)
+        );
+    }
+
+    async function createAppointmentRecord$1(appointment, options = {}) {
+        return withDeferredModule$1(loadDataEngine$1, (engine) =>
+            engine.createAppointmentRecord(appointment, options)
+        );
+    }
+
+    async function createCallbackRecord(callback) {
+        return withDeferredModule$1(loadDataEngine$1, (engine) =>
+            engine.createCallbackRecord(callback)
+        );
+    }
+
+    async function createReviewRecord(review) {
+        return withDeferredModule$1(loadDataEngine$1, (engine) =>
+            engine.createReviewRecord(review)
+        );
+    }
+
+    async function uploadTransferProof$1(file, options = {}) {
+        return withDeferredModule$1(loadDataEngine$1, (engine) =>
+            engine.uploadTransferProof(file, options)
+        );
+    }
+
+    const ENGAGEMENT_BUNDLE_URL$1 = withDeployAssetVersion$1(
+        '/js/engines/engagement-bundle.js?v=20260220-consolidated1'
+    );
+
+    // REVIEWS ENGINE
+    function getReviewsEngineDeps$1() {
+        return {
+            apiRequest: apiRequest$3,
+            storageGetJSON: storageGetJSON$1,
+            escapeHtml: escapeHtml$2,
+            getCurrentLang: getCurrentLang$1,
+        };
+    }
+
+    function loadReviewsEngine$1() {
+        return loadDeferredModule$1({
+            cacheKey: 'engagement-bundle',
+            src: ENGAGEMENT_BUNDLE_URL$1,
+            scriptDataAttribute: 'data-engagement-bundle',
+            resolveModule: () => window.Piel && window.Piel.ReviewsEngine,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(getReviewsEngineDeps$1()),
+            missingApiError: 'reviews-engine loaded without API',
+            loadError: 'No se pudo cargar reviews-engine.js',
+            logLabel: 'Reviews engine',
+        });
+    }
+
+    function initReviewsEngineWarmup() {
+        const warmup = createWarmupRunner$1(() => loadReviewsEngine$1(), {
+            markWarmOnSuccess: true,
+        });
+        const reviewSection = document.getElementById('resenas');
+        observeOnceWhenVisible$1(reviewSection, warmup, {
+            threshold: 0.05,
+            rootMargin: '300px 0px',
+            onNoObserver: warmup,
+        });
+        bindWarmupTarget$1('#resenas', 'mouseenter', warmup);
+        bindWarmupTarget$1('#resenas', 'touchstart', warmup);
+        bindWarmupTarget$1(
+            '#resenas [data-action="open-review-modal"]',
+            'focus',
+            warmup,
+            false
+        );
+        scheduleDeferredTask$1(warmup, { idleTimeout: 2200, fallbackDelay: 1300 });
+    }
+
+    function renderPublicReviews(reviews) {
+        runDeferredModule$1(loadReviewsEngine$1, (engine) =>
+            engine.renderPublicReviews(reviews)
+        );
+    }
+
+    // ENGAGEMENT FORMS ENGINE
+    function getEngagementFormsEngineDeps() {
+        return {
+            createCallbackRecord,
+            createReviewRecord,
+            renderPublicReviews,
+            showToast: showToast$1,
+            getCurrentLang: getCurrentLang$1,
+            getReviewsCache: getReviewsCache$1,
+            setReviewsCache: setReviewsCache$1,
+        };
+    }
+
+    function loadEngagementFormsEngine() {
+        return loadReviewsEngine$1().then(() =>
+            loadDeferredModule$1({
+                cacheKey: 'engagement-forms-engine',
+                src: ENGAGEMENT_BUNDLE_URL$1,
+                scriptDataAttribute: 'data-engagement-bundle',
+                resolveModule: () => window.Piel && window.Piel.EngagementFormsEngine,
+                isModuleReady: (module) =>
+                    !!(module && typeof module.init === 'function'),
+                onModuleReady: (module) =>
+                    module.init(getEngagementFormsEngineDeps()),
+                missingApiError: 'engagement-forms-engine loaded without API',
+                loadError: 'No se pudo cargar engagement-forms-engine.js',
+                logLabel: 'Engagement forms engine',
+            })
+        );
+    }
+
+    function initEngagementFormsEngineWarmup() {
+        const warmup = createWarmupRunner$1(() => loadEngagementFormsEngine());
+        bindWarmupTarget$1('#callbackForm', 'focusin', warmup, false);
+        bindWarmupTarget$1('#callbackForm', 'pointerdown', warmup);
+        bindWarmupTarget$1(
+            '#resenas [data-action="open-review-modal"]',
+            'mouseenter',
+            warmup
+        );
+        bindWarmupTarget$1(
+            '#resenas [data-action="open-review-modal"]',
+            'touchstart',
+            warmup
+        );
+        if (document.getElementById('callbackForm')) {
+            setTimeout(warmup, 120);
+        }
+        const reviewSection = document.getElementById('resenas');
+        observeOnceWhenVisible$1(reviewSection, warmup, {
+            threshold: 0.05,
+            rootMargin: '280px 0px',
+            onNoObserver: warmup,
+        });
+        scheduleDeferredTask$1(warmup, { idleTimeout: 2600, fallbackDelay: 1500 });
+    }
+
+    function openReviewModal() {
+        runDeferredModule$1(
+            loadEngagementFormsEngine,
+            (engine) => engine.openReviewModal(),
+            () => {
+                const modal = document.getElementById('reviewModal');
+                if (modal) {
+                    modal.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }
+            }
+        );
+    }
+
+    function closeReviewModal() {
+        const modal = document.getElementById('reviewModal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+        document.body.style.overflow = '';
+        runDeferredModule$1(loadEngagementFormsEngine, (engine) =>
+            engine.closeReviewModal()
+        );
+    }
+
+    const DATA_BUNDLE_URL$1 = withDeployAssetVersion$1(
+        '/js/engines/data-bundle.js?v=20260221-api-fix'
+    );
+
+    function getI18nEngineDeps() {
+        return {
+            getCurrentLang: () => state$1.currentLang,
+            setCurrentLang: (lang) => {
+                state$1.currentLang = (lang === 'en' ? 'en' : 'es');
+            },
+            showToast: showToast$1,
+            getReviewsCache: () => state$1.reviewsCache,
+            renderPublicReviews,
+            debugLog: debugLog$1,
+        };
+    }
+
+    function loadI18nEngine() {
+        return loadDeferredModule$1({
+            cacheKey: 'i18n-engine',
+            src: DATA_BUNDLE_URL$1,
+            scriptDataAttribute: 'data-data-bundle',
+            resolveModule: () =>
+                (window.Piel && window.Piel.I18nEngine) || window.PielI18nEngine,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(getI18nEngineDeps()),
+            missingApiError: 'i18n-engine loaded without API',
+            loadError: 'No se pudo cargar i18n-engine.js',
+            logLabel: 'I18n engine',
+        });
+    }
+
+    function initEnglishBundleWarmup() {
+        const warmup = () => {
+            withDeferredModule$1(loadI18nEngine, (engine) =>
+                engine.ensureEnglishTranslations()
+            ).catch(() => undefined);
+        };
+
+        const enBtn = document.querySelector('.lang-btn[data-lang="en"]');
+        if (enBtn) {
+            enBtn.addEventListener('mouseenter', warmup, {
+                once: true,
+                passive: true,
+            });
+            enBtn.addEventListener('touchstart', warmup, {
+                once: true,
+                passive: true,
+            });
+            enBtn.addEventListener('focus', warmup, { once: true });
+        }
+    }
+
+    async function changeLanguage(lang) {
+        return withDeferredModule$1(loadI18nEngine, (engine) =>
+            engine.changeLanguage(lang)
+        );
+    }
+
+    async function apiRequest$2(resource, options = {}) {
+        const method = String(options.method || 'GET').toUpperCase();
+        const query = new URLSearchParams({ resource: resource });
+        if (options.query && typeof options.query === 'object') {
+            Object.entries(options.query).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    query.set(key, String(value));
+                }
+            });
+        }
+        const url = `${API_ENDPOINT$1}?${query.toString()}`;
+        const requestInit = {
+            method: method,
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+            },
+        };
+
+        if (options.body !== undefined) {
+            requestInit.headers['Content-Type'] = 'application/json';
+            requestInit.body = JSON.stringify(options.body);
+        }
+
+        const timeoutMs = Number.isFinite(options.timeoutMs)
+            ? Math.max(1500, Number(options.timeoutMs))
+            : API_REQUEST_TIMEOUT_MS$1;
+        const maxRetries = Number.isInteger(options.retries)
+            ? Math.max(0, Number(options.retries))
+            : method === 'GET'
+              ? API_DEFAULT_RETRIES$1
+              : 0;
+
+        const shouldShowSlowNotice = options.silentSlowNotice !== true;
+        const retryableStatusCodes = new Set([408, 425, 429, 500, 502, 503, 504]);
+
+        function makeApiError(message, status = 0, retryable = false, code = '') {
+            const error = new Error(message);
+            error.status = status;
+            error.retryable = retryable;
+            error.code = code;
+            return error;
+        }
+
+        let lastError = null;
+
+        for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            let slowNoticeTimer = null;
+
+            if (shouldShowSlowNotice) {
+                slowNoticeTimer = setTimeout(() => {
+                    const now = Date.now();
+                    if (
+                        now - getApiSlowNoticeLastAt$1() >
+                        API_SLOW_NOTICE_COOLDOWN_MS$1
+                    ) {
+                        setApiSlowNoticeLastAt$1(now);
+                        showToast$1(
+                            state$1.currentLang === 'es'
+                                ? 'Conectando con el servidor...'
+                                : 'Connecting to server...',
+                            'info'
+                        );
+                    }
+                }, API_SLOW_NOTICE_MS$1);
+            }
+
+            try {
+                const response = await fetch(url, {
+                    ...requestInit,
+                    signal: controller.signal,
+                });
+
+                const responseText = await response.text();
+                let payload = {};
+                try {
+                    payload = responseText ? JSON.parse(responseText) : {};
+                } catch (error) {
+                    throw makeApiError(
+                        'Respuesta del servidor no es JSON valido',
+                        response.status,
+                        false,
+                        'invalid_json'
+                    );
+                }
+
+                if (!response.ok || payload.ok === false) {
+                    const message = payload.error || `HTTP ${response.status}`;
+                    throw makeApiError(
+                        message,
+                        response.status,
+                        retryableStatusCodes.has(response.status),
+                        'http_error'
+                    );
+                }
+
+                return payload;
+            } catch (error) {
+                const normalizedError = (() => {
+                    if (error && error.name === 'AbortError') {
+                        return makeApiError(
+                            state$1.currentLang === 'es'
+                                ? 'Tiempo de espera agotado con el servidor'
+                                : 'Server request timed out',
+                            0,
+                            true,
+                            'timeout'
+                        );
+                    }
+
+                    if (error instanceof Error) {
+                        if (typeof error.retryable !== 'boolean') {
+                            error.retryable = false;
+                        }
+                        if (typeof error.status !== 'number') {
+                            error.status = 0;
+                        }
+                        return error;
+                    }
+
+                    return makeApiError(
+                        'Error de conexion con el servidor',
+                        0,
+                        true,
+                        'network_error'
+                    );
+                })();
+
+                lastError = normalizedError;
+
+                const canRetry =
+                    attempt < maxRetries && normalizedError.retryable === true;
+                if (!canRetry) {
+                    throw normalizedError;
+                }
+
+                const retryDelay = API_RETRY_BASE_DELAY_MS$1 * (attempt + 1);
+                await waitMs$1(retryDelay);
+            } finally {
+                clearTimeout(timeoutId);
+                if (slowNoticeTimer !== null) {
+                    clearTimeout(slowNoticeTimer);
+                }
+            }
+        }
+
+        throw lastError || new Error('No se pudo completar la solicitud');
+    }
+
+    const BOOKING_UTILS_URL$3 = withDeployAssetVersion$1('/js/engines/booking-utils.js');
+
+    function getPaymentGatewayEngineDeps$1() {
+        return {
+            apiRequest: apiRequest$2,
+            getCurrentLang: getCurrentLang$1,
+            getPaymentConfig: getPaymentConfig$1, setPaymentConfig: setPaymentConfig$1,
+            getPaymentConfigLoaded: getPaymentConfigLoaded$1, setPaymentConfigLoaded: setPaymentConfigLoaded$1,
+            getPaymentConfigLoadedAt: getPaymentConfigLoadedAt$1, setPaymentConfigLoadedAt: setPaymentConfigLoadedAt$1,
+            getStripeSdkPromise: getStripeSdkPromise$1, setStripeSdkPromise: setStripeSdkPromise$1,
+            apiEndpoint: API_ENDPOINT$1,
+            apiRequestTimeoutMs: API_REQUEST_TIMEOUT_MS$1
+        };
+    }
+
+    function loadPaymentGatewayEngine$1() {
+        return loadDeferredModule$1({
+            cacheKey: 'booking-utils',
+            src: BOOKING_UTILS_URL$3,
+            scriptDataAttribute: 'data-booking-utils',
+            resolveModule: () => window.Piel && window.Piel.PaymentGatewayEngine,
+            isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(getPaymentGatewayEngineDeps$1()),
+            missingApiError: 'payment-gateway-engine loaded without API',
+            loadError: 'No se pudo cargar payment-gateway-engine (booking-utils)',
+            logLabel: 'Payment gateway engine'
+        });
+    }
+
+    async function loadPaymentConfig$1() {
+        return runDeferredModule$1(loadPaymentGatewayEngine$1, (engine) => engine.loadPaymentConfig());
+    }
+
+    async function loadStripeSdk$1() {
+        return runDeferredModule$1(loadPaymentGatewayEngine$1, (engine) => engine.loadStripeSdk());
+    }
+
+    async function createPaymentIntent$1(appointment) {
+        return runDeferredModule$1(loadPaymentGatewayEngine$1, (engine) => engine.createPaymentIntent(appointment));
+    }
+
+    async function verifyPaymentIntent$1(paymentIntentId) {
+        return runDeferredModule$1(loadPaymentGatewayEngine$1, (engine) => engine.verifyPaymentIntent(paymentIntentId));
+    }
+
+    const ANALYTICS_ENGINE_URL$1 = withDeployAssetVersion$1(
+        '/js/engines/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1'
+    );
+
+    function getAnalyticsEngineDeps$1() {
+        return {
+            getCheckoutSession: () => state$1.checkoutSession,
+            setCheckoutSessionActive: (active) => {
+                state$1.checkoutSession.active = active === true;
+            },
+            setCheckoutSession: (data) => {
+                if (data && typeof data === 'object') {
+                    Object.assign(state$1.checkoutSession, data);
+                }
+            },
+            getBookingViewTracked: () => state$1.bookingViewTracked,
+            setBookingViewTracked: (val) => {
+                state$1.bookingViewTracked = val;
+            },
+            getChatStartedTracked: () => state$1.chatStartedTracked,
+            setChatStartedTracked: (val) => {
+                state$1.chatStartedTracked = val;
+            },
+            debugLog: debugLog$1,
+            apiEndpoint: API_ENDPOINT$1,
+            getCookieConsentStatus: () => {
+                try {
+                    const raw = localStorage.getItem('pa_cookie_consent_v1');
+                    const parsed = JSON.parse(raw || '{}');
+                    return parsed.status || '';
+                } catch {
+                    return '';
+                }
+            }
+        };
+    }
+
+    function loadAnalyticsEngine$1() {
+        return loadDeferredModule$1({
+            cacheKey: 'analytics-engine',
+            src: ANALYTICS_ENGINE_URL$1,
+            scriptDataAttribute: 'data-analytics-engine',
+            resolveModule: () => window.Piel && window.Piel.AnalyticsEngine,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(getAnalyticsEngineDeps$1()),
+            missingApiError: 'Analytics engine loaded without API',
+            loadError: 'No se pudo cargar analytics-engine.js',
+            logLabel: 'Analytics engine',
+        });
+    }
+
+    function trackEvent$1(eventName, params = {}) {
+        if (window.Piel && window.Piel.AnalyticsEngine) {
+            window.Piel.AnalyticsEngine.trackEvent(eventName, params);
+            return;
+        }
+        runDeferredModule$1(loadAnalyticsEngine$1, (engine) =>
+            engine.trackEvent(eventName, params)
+        );
+    }
+
+    function normalizeAnalyticsLabel$1(text) {
+        if (
+            window.Piel &&
+            window.Piel.AnalyticsEngine &&
+            window.Piel.AnalyticsEngine.normalizeAnalyticsLabel
+        ) {
+            return window.Piel.AnalyticsEngine.normalizeAnalyticsLabel(text);
+        }
+        return String(text || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '_')
+            .replace(/^_+|_+$/g, '');
+    }
+
+    function markBookingViewed(source) {
+        runDeferredModule$1(loadAnalyticsEngine$1, (engine) =>
+            engine.markBookingViewed(source)
+        );
+    }
+
+    function maybeTrackCheckoutAbandon$2(reason) {
+        runDeferredModule$1(loadAnalyticsEngine$1, (engine) =>
+            engine.maybeTrackCheckoutAbandon(reason)
+        );
+    }
+
+    function initBookingFunnelObserver() {
+        const observer = () => {
+            runDeferredModule$1(loadAnalyticsEngine$1, (engine) =>
+                engine.initBookingFunnelObserver()
+            );
+        };
+
+        const bookingSection = document.getElementById('citas');
+        if (bookingSection) {
+            observeOnceWhenVisible$1(bookingSection, observer, { threshold: 0.1 });
+        }
+    }
+
+    function initDeferredSectionPrefetch() {
+        // Analytics engine handles intersection observers for tracking section views
+        // and can trigger prefetch logic if needed.
+        const prefetch = () => {
+            runDeferredModule$1(loadAnalyticsEngine$1, (engine) =>
+                engine.initSectionObservers()
+            );
+        };
+
+        // Low priority init
+        scheduleDeferredTask$1(prefetch, { idleTimeout: 3000, fallbackDelay: 2000 });
+    }
+
+    const UI_BUNDLE_URL$3 = withDeployAssetVersion$1(
+        '/js/engines/ui-bundle.js?v=20260220-consolidated1'
+    );
+
+    function getSuccessModalEngineDeps$1() {
+        return {
+            getCurrentLang: getCurrentLang$1,
+            getCurrentAppointment: getCurrentAppointment$1,
+            getClinicAddress: () => CLINIC_ADDRESS$1,
+            escapeHtml: escapeHtml$2,
+        };
+    }
+
+    function loadSuccessModalEngine$1() {
+        return loadDeferredModule$1({
+            cacheKey: 'success-modal-engine',
+            src: UI_BUNDLE_URL$3,
+            scriptDataAttribute: 'data-ui-bundle',
+            resolveModule: () => window.Piel && window.Piel.SuccessModalEngine,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(getSuccessModalEngineDeps$1()),
+            missingApiError: 'success-modal-engine loaded without API',
+            loadError: 'No se pudo cargar success-modal-engine.js',
+            logLabel: 'Success modal engine',
+        });
+    }
+
+    function initSuccessModalEngineWarmup() {
+        const warmup = createWarmupRunner$1(() => loadSuccessModalEngine$1());
+        bindWarmupTarget$1(
+            '#appointmentForm button[type="submit"]',
+            'pointerdown',
+            warmup
+        );
+        bindWarmupTarget$1(
+            '#appointmentForm button[type="submit"]',
+            'focus',
+            warmup,
+            false
+        );
+        bindWarmupTarget$1('.payment-method', 'pointerdown', warmup);
+        scheduleDeferredTask$1(warmup, { idleTimeout: 2800, fallbackDelay: 1600 });
+    }
+
+    function showSuccessModal$1(emailSent = false) {
+        const appt = getCurrentAppointment$1();
+        if (appt) {
+            try {
+                localStorage.setItem('last_confirmed_appointment', JSON.stringify(appt));
+            } catch (e) {
+                // noop
+            }
+        }
+
+        runDeferredModule$1(
+            loadSuccessModalEngine$1,
+            (engine) => engine.showSuccessModal(emailSent),
+            () => {
+                showToast$1('No se pudo abrir la confirmacion de cita.', 'error');
+            }
+        );
+    }
+
+    function closeSuccessModal() {
+        const modal = document.getElementById('successModal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+        document.body.style.overflow = '';
+        runDeferredModule$1(loadSuccessModalEngine$1, (engine) =>
+            engine.closeSuccessModal()
+        );
+    }
+
+    const BOOKING_ENGINE_URL$1 = withDeployAssetVersion$1(
+        '/js/engines/booking-engine.js?v=figo-booking-20260219-mbfix1'
+    );
+    const BOOKING_UI_URL = withDeployAssetVersion$1(
+        '/js/engines/booking-ui.js?v=figo-booking-ui-20260222-slotservicefix1'
+    );
+    const BOOKING_UTILS_URL$2 = withDeployAssetVersion$1('/js/engines/booking-utils.js');
+    const CASE_PHOTO_UPLOAD_CONCURRENCY$1 = 2;
+
+    function stripTransientAppointmentFields$1(appointment) {
+        const payload = { ...appointment };
+        delete payload.casePhotoFiles;
+        delete payload.casePhotoUploads;
+        return payload;
+    }
+
+    async function ensureCasePhotosUploaded$1(appointment) {
+        const files = Array.isArray(appointment?.casePhotoFiles)
+            ? appointment.casePhotoFiles
+            : [];
+        if (files.length === 0) {
+            return { names: [], urls: [], paths: [] };
+        }
+
+        if (
+            Array.isArray(appointment.casePhotoUploads) &&
+            appointment.casePhotoUploads.length > 0
+        ) {
+            return {
+                names: appointment.casePhotoUploads
+                    .map((item) => String(item.name || ''))
+                    .filter(Boolean),
+                urls: appointment.casePhotoUploads
+                    .map((item) => String(item.url || ''))
+                    .filter(Boolean),
+                paths: appointment.casePhotoUploads
+                    .map((item) => String(item.path || ''))
+                    .filter(Boolean),
+            };
+        }
+
+        const uploads = new Array(files.length);
+        const workerCount = Math.max(
+            1,
+            Math.min(CASE_PHOTO_UPLOAD_CONCURRENCY$1, files.length)
+        );
+        let cursor = 0;
+
+        const uploadWorker = async () => {
+            while (cursor < files.length) {
+                const index = cursor;
+                cursor += 1;
+                const file = files[index];
+                const uploaded = await uploadTransferProof$1(file, { retries: 2 });
+                uploads[index] = {
+                    name: uploaded.transferProofName || file.name || '',
+                    url: uploaded.transferProofUrl || '',
+                    path: uploaded.transferProofPath || '',
+                };
+            }
+        };
+
+        await Promise.all(
+            Array.from({ length: workerCount }, () => uploadWorker())
+        );
+        appointment.casePhotoUploads = uploads;
+
+        return {
+            names: uploads.map((item) => String(item.name || '')).filter(Boolean),
+            urls: uploads.map((item) => String(item.url || '')).filter(Boolean),
+            paths: uploads.map((item) => String(item.path || '')).filter(Boolean),
+        };
+    }
+
+    async function buildAppointmentPayload$1(appointment) {
+        const payload = stripTransientAppointmentFields$1(appointment || {});
+        const uploadedPhotos = await ensureCasePhotosUploaded$1(appointment || {});
+        payload.casePhotoCount = uploadedPhotos.urls.length;
+        payload.casePhotoNames = uploadedPhotos.names;
+        payload.casePhotoUrls = uploadedPhotos.urls;
+        payload.casePhotoPaths = uploadedPhotos.paths;
+        return payload;
+    }
+
+    function getBookingEngineDeps$1() {
+        return {
+            getCurrentLang: () => state$1.currentLang,
+            getCurrentAppointment: () => state$1.currentAppointment,
+            setCurrentAppointment: (appt) => { state$1.currentAppointment = appt; },
+            getCheckoutSession: () => state$1.checkoutSession,
+            setCheckoutSessionActive: (active) => { state$1.checkoutSession.active = (active === true); },
+            startCheckoutSession: startCheckoutSession$1,
+            setCheckoutStep: setCheckoutStep$1,
+            completeCheckoutSession: completeCheckoutSession$1,
+            maybeTrackCheckoutAbandon: maybeTrackCheckoutAbandon$1,
+            loadPaymentConfig: loadPaymentConfig$1,
+            loadStripeSdk: loadStripeSdk$1,
+            createPaymentIntent: createPaymentIntent$1,
+            verifyPaymentIntent: verifyPaymentIntent$1,
+            buildAppointmentPayload: buildAppointmentPayload$1,
+            stripTransientAppointmentFields: stripTransientAppointmentFields$1,
+            createAppointmentRecord: createAppointmentRecord$1,
+            uploadTransferProof: uploadTransferProof$1,
+            showSuccessModal: showSuccessModal$1,
+            showToast: showToast$1,
+            trackEvent: trackEvent$1,
+            normalizeAnalyticsLabel: normalizeAnalyticsLabel$1,
+        };
+    }
+
+    function loadBookingEngine$1() {
+        return loadDeferredModule$1({
+            cacheKey: 'booking-engine',
+            src: BOOKING_ENGINE_URL$1,
+            scriptDataAttribute: 'data-booking-engine',
+            resolveModule: () => window.Piel && window.Piel.BookingEngine,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(getBookingEngineDeps$1()),
+            missingApiError: 'Booking engine loaded without API',
+            loadError: 'No se pudo cargar booking-engine.js',
+            logLabel: 'Booking engine',
+        });
+    }
+
+    function initBookingEngineWarmup() {
+        const warmup = createWarmupRunner$1(() => loadBookingEngine$1(), {
+            markWarmOnSuccess: true,
+        });
+
+        const selectors = [
+            '.nav-cta[href="#citas"]',
+            '.quick-dock-item[href="#citas"]',
+            '.hero-actions a[href="#citas"]',
+        ];
+
+        selectors.forEach((selector) => {
+            bindWarmupTarget$1(selector, 'mouseenter', warmup);
+            bindWarmupTarget$1(selector, 'focus', warmup, false);
+            bindWarmupTarget$1(selector, 'touchstart', warmup);
+        });
+
+        scheduleDeferredTask$1(warmup, {
+            idleTimeout: 2500,
+            fallbackDelay: 1100,
+        });
+    }
+
+    // CHECKOUT SESSION WRAPPERS
+    function startCheckoutSession$1(appointment, metadata = {}) {
+        runDeferredModule$1(loadAnalyticsEngine$1, (engine) =>
+            engine.startCheckoutSession(appointment, metadata)
+        );
+    }
+
+    function setCheckoutStep$1(step, metadata = {}) {
+        runDeferredModule$1(loadAnalyticsEngine$1, (engine) =>
+            engine.setCheckoutStep(step, metadata)
+        );
+    }
+
+    function completeCheckoutSession$1(method) {
+        runDeferredModule$1(loadAnalyticsEngine$1, (engine) =>
+            engine.completeCheckoutSession(method)
+        );
+    }
+
+    function maybeTrackCheckoutAbandon$1(reason = 'unknown') {
+        runDeferredModule$1(loadAnalyticsEngine$1, (engine) =>
+            engine.maybeTrackCheckoutAbandon(reason)
+        );
+    }
+
+    function loadBookingCalendarEngine() {
+        return loadDeferredModule$1({
+            cacheKey: 'booking-utils-calendar',
+            src: BOOKING_UTILS_URL$2,
+            scriptDataAttribute: 'data-booking-utils',
+            resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine,
+            isModuleReady: (module) => !!(module && typeof module.initCalendar === 'function'),
+            missingApiError: 'booking-calendar-engine loaded without API',
+            loadError: 'No se pudo cargar booking-calendar-engine',
+            logLabel: 'Booking Calendar engine'
+        });
+    }
+
+    async function updateAvailableTimes(elements) {
+        return runDeferredModule$1(loadBookingCalendarEngine, (engine) => engine.updateAvailableTimes(getBookingUiDeps(), elements));
+    }
+
+    // BOOKING UI
+    function getDefaultTimeSlots() {
+        return ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
+    }
+
+    function getBookingUiDeps() {
+        return {
+            loadAvailabilityData: loadAvailabilityData$1,
+            getBookedSlots: getBookedSlots$1,
+            updateAvailableTimes,
+            getDefaultTimeSlots,
+            showToast: showToast$1,
+            getCurrentLang: () => state$1.currentLang,
+            getCasePhotoFiles: (form) => {
+                const input = form?.querySelector('#casePhotos');
+                if (!input || !input.files) return [];
+                return Array.from(input.files);
+            },
+            validateCasePhotoFiles,
+            markBookingViewed,
+            startCheckoutSession: startCheckoutSession$1,
+            setCheckoutStep: setCheckoutStep$1,
+            trackEvent: trackEvent$1,
+            normalizeAnalyticsLabel: normalizeAnalyticsLabel$1,
+            openPaymentModal: openPaymentModal$1,
+            setCurrentAppointment: setCurrentAppointment$1,
+            updateAvailableTimes, // Added dependency
+        };
+    }
+
+    function validateCasePhotoFiles(files) {
+        const MAX_CASE_PHOTOS = 3;
+        const MAX_CASE_PHOTO_BYTES = 5 * 1024 * 1024;
+        const CASE_PHOTO_ALLOWED_TYPES = new Set([
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+        ]);
+
+        if (!Array.isArray(files) || files.length === 0) return;
+
+        if (files.length > MAX_CASE_PHOTOS) {
+            throw new Error(
+                state$1.currentLang === 'es'
+                    ? `Puedes subir m\u00E1ximo ${MAX_CASE_PHOTOS} fotos.`
+                    : `You can upload up to ${MAX_CASE_PHOTOS} photos.`
+            );
+        }
+
+        for (const file of files) {
+            if (!file) continue;
+
+            if (file.size > MAX_CASE_PHOTO_BYTES) {
+                throw new Error(
+                    state$1.currentLang === 'es'
+                        ? `Cada foto debe pesar m\u00E1ximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
+                        : `Each photo must be at most ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
+                );
+            }
+
+            const mime = String(file.type || '').toLowerCase();
+            const validByMime = CASE_PHOTO_ALLOWED_TYPES.has(mime);
+            const validByExt = /\.(jpe?g|png|webp)$/i.test(String(file.name || ''));
+            if (!validByMime && !validByExt) {
+                throw new Error(
+                    state$1.currentLang === 'es'
+                        ? 'Solo se permiten im\u00e1genes JPG, PNG o WEBP.'
+                        : 'Only JPG, PNG or WEBP images are allowed.'
+                );
+            }
+        }
+    }
+
+    function loadBookingUi() {
+        return loadDeferredModule$1({
+            cacheKey: 'booking-ui',
+            src: BOOKING_UI_URL,
+            scriptDataAttribute: 'data-booking-ui',
+            resolveModule: () => window.Piel && window.Piel.BookingUi,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => {
+                module.init(getBookingUiDeps());
+                window.PielBookingUiReady = true;
+                if (window.debugLog) window.debugLog('Booking UI ready');
+            },
+            missingApiError: 'booking-ui loaded without API',
+            loadError: 'No se pudo cargar booking-ui.js',
+            logLabel: 'Booking UI',
+        });
+    }
+
+    function initBookingUiWarmup() {
+        const warmup = createWarmupRunner$1(() => loadBookingUi());
+
+        const bookingSection = document.getElementById('citas');
+        observeOnceWhenVisible$1(bookingSection, warmup, {
+            threshold: 0.05,
+            rootMargin: '320px 0px',
+            onNoObserver: warmup,
+        });
+
+        const appointmentForm = document.getElementById('appointmentForm');
+        if (appointmentForm) {
+            appointmentForm.addEventListener('focusin', warmup, { once: true });
+            appointmentForm.addEventListener('pointerdown', warmup, {
+                once: true,
+                passive: true,
+            });
+            setTimeout(warmup, 120);
+        }
+
+        if (!bookingSection && !appointmentForm) {
+            return;
+        }
+
+        scheduleDeferredTask$1(warmup, {
+            idleTimeout: 1800,
+            fallbackDelay: 1100,
+        });
+    }
+
+    function openPaymentModal$1(appointmentData) {
+        runDeferredModule$1(
+            loadBookingEngine$1,
+            (engine) => engine.openPaymentModal(appointmentData),
+            (error) => {
+                showToast$1('No se pudo abrir el modulo de pago.', 'error');
+            }
+        );
+    }
+
+    function closePaymentModal(options = {}) {
+        if (
+            window.Piel &&
+            window.Piel.BookingEngine &&
+            typeof window.Piel.BookingEngine.closePaymentModal === 'function'
+        ) {
+            window.Piel.BookingEngine.closePaymentModal(options);
+            return;
+        }
+
+        const skipAbandonTrack = options && options.skipAbandonTrack === true;
+        const abandonReason =
+            options && typeof options.reason === 'string'
+                ? options.reason
+                : 'modal_close';
+        if (!skipAbandonTrack) {
+            maybeTrackCheckoutAbandon$1(abandonReason);
+        }
+
+        state$1.checkoutSession.active = false;
+        const modal = document.getElementById('paymentModal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+        document.body.style.overflow = '';
+    }
+
+    async function processPayment() {
+        return runDeferredModule$1(
+            loadBookingEngine$1,
+            (engine) => engine.processPayment(),
+            (error) => {
+                showToast$1('No se pudo procesar el pago en este momento.', 'error');
+            }
+        );
+    }
+
+    const UI_BUNDLE_URL$2 = withDeployAssetVersion$1(
+        '/js/engines/ui-bundle.js?v=20260220-consolidated1'
+    );
+
+    // UI Effects
+    function loadUiEffects() {
+        return loadDeferredModule$1({
+            cacheKey: 'ui-effects',
+            src: UI_BUNDLE_URL$2,
+            scriptDataAttribute: 'data-ui-bundle',
+            resolveModule: () => window.Piel && window.Piel.UiEffects,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(),
+            missingApiError: 'ui-effects loaded without API',
+            loadError: 'No se pudo cargar ui-effects.js',
+            logLabel: 'UI effects',
+        });
+    }
+
+    function initUiEffectsWarmup() {
+        const warmup = createWarmupRunner$1(() => loadUiEffects());
+        bindWarmupTarget$1('.nav', 'mouseenter', warmup);
+        bindWarmupTarget$1('.nav', 'touchstart', warmup);
+        const triggerOnce = () => warmup();
+        window.addEventListener('scroll', triggerOnce, {
+            once: true,
+            passive: true,
+        });
+        window.addEventListener('pointerdown', triggerOnce, {
+            once: true,
+            passive: true,
+        });
+        scheduleDeferredTask$1(warmup, { idleTimeout: 1800, fallbackDelay: 1200 });
+    }
+
+    function toggleMobileMenu(forceClose) {
+        const menu = document.getElementById('mobileMenu');
+        if (forceClose === false) {
+            menu.classList.remove('active');
+            document.body.style.overflow = '';
+            return;
+        }
+        menu.classList.toggle('active');
+        document.body.style.overflow = menu.classList.contains('active')
+            ? 'hidden'
+            : '';
+    }
+
+    // Modal UX Engine
+    function getModalUxEngineDeps() {
+        return {
+            closePaymentModal,
+            toggleMobileMenu,
+        };
+    }
+
+    function loadModalUxEngine() {
+        return loadDeferredModule$1({
+            cacheKey: 'modal-ux-engine',
+            src: UI_BUNDLE_URL$2,
+            scriptDataAttribute: 'data-ui-bundle',
+            resolveModule: () => window.Piel && window.Piel.ModalUxEngine,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(getModalUxEngineDeps()),
+            missingApiError: 'modal-ux-engine loaded without API',
+            loadError: 'No se pudo cargar modal-ux-engine.js',
+            logLabel: 'Modal UX engine',
+        });
+    }
+
+    function initModalUxEngineWarmup() {
+        const warmup = createWarmupRunner$1(() => loadModalUxEngine());
+        bindWarmupTarget$1('.modal', 'pointerdown', warmup);
+        bindWarmupTarget$1('.modal-close', 'pointerdown', warmup);
+        if (document.querySelector('.modal')) {
+            setTimeout(warmup, 180);
+        }
+        scheduleDeferredTask$1(warmup, { idleTimeout: 2200, fallbackDelay: 1200 });
+    }
+
+    function startWebVideo() {
+        const modal = document.getElementById('videoModal');
+        if (modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function closeVideoModal() {
+        const modal = document.getElementById('videoModal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+        document.body.style.overflow = '';
+    }
+
+    const BOOKING_UTILS_URL$1 = withDeployAssetVersion$1(
+        '/js/engines/booking-utils.js?v=figo-booking-utils-20260220-unified'
+    );
+
+    function getRescheduleEngineDeps() {
+        return {
+            apiRequest: apiRequest$3,
+            loadAvailabilityData: loadAvailabilityData$1,
+            getBookedSlots: getBookedSlots$1,
+            invalidateBookedSlotsCache,
+            showToast: showToast$1,
+            escapeHtml: escapeHtml$2,
+            getCurrentLang: getCurrentLang$1,
+        };
+    }
+
+    function loadRescheduleEngine() {
+        return loadDeferredModule$1({
+            cacheKey: 'booking-utils',
+            src: BOOKING_UTILS_URL$1,
+            scriptDataAttribute: 'data-booking-utils',
+            resolveModule: () => window.PielRescheduleEngine,
+            isModuleReady: (module) =>
+                !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(getRescheduleEngineDeps()),
+            missingApiError: 'reschedule-engine loaded without API',
+            loadError: 'No se pudo cargar booking-utils.js (reschedule)',
+            logLabel: 'Reschedule engine',
+        });
+    }
+
+    function initRescheduleEngineWarmup() {
+        runDeferredModule$1(
+            loadRescheduleEngine,
+            (engine) => engine.checkRescheduleParam(),
+            () => {
+                showToast$1(
+                    getCurrentLang$1() === 'es'
+                        ? 'No se pudo cargar la reprogramacion.'
+                        : 'Unable to load reschedule flow.',
+                    'error'
+                );
+            }
+        );
+    }
+
+    function closeRescheduleModal() {
+        runDeferredModule$1(
+            loadRescheduleEngine,
+            (engine) => engine.closeRescheduleModal(),
+            () => {
+                const modal = document.getElementById('rescheduleModal');
+                if (modal) {
+                    modal.classList.remove('active');
+                }
+            }
+        );
+    }
+
+    function submitReschedule() {
+        runDeferredModule$1(
+            loadRescheduleEngine,
+            (engine) => engine.submitReschedule(),
+            () => {
+                showToast$1(
+                    getCurrentLang$1() === 'es'
+                        ? 'No se pudo reprogramar en este momento.'
+                        : 'Unable to reschedule right now.',
+                    'error'
+                );
+            }
+        );
+    }
 
     let currentLang = localStorage.getItem('language') || 'es';
     let currentThemeMode = localStorage.getItem('themeMode') || 'system';
@@ -187,14 +2012,11 @@
         'https://www.google.com/maps/place/Dr.+Cecilio+Caiza+e+hijas/@-0.1740225,-78.4865596,15z/data=!4m6!3m5!1s0x91d59b0024fc4507:0xdad3a4e6c831c417!8m2!3d-0.2165855!4d-78.4998702!16s%2Fg%2F11vpt0vjj1?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D';
     const DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
     const DOCTOR_CAROLINA_EMAIL = 'caro93narvaez@gmail.com';
-    const COOKIE_CONSENT_KEY = 'pa_cookie_consent_v1';
     const API_REQUEST_TIMEOUT_MS = 9000;
     const API_RETRY_BASE_DELAY_MS = 450;
     const API_DEFAULT_RETRIES = 1;
     const API_SLOW_NOTICE_MS = 1200;
     const API_SLOW_NOTICE_COOLDOWN_MS = 25000;
-    const THEME_STORAGE_KEY = 'themeMode';
-    const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
 
     function debugLog() {
         // Debug logging removed
@@ -227,42 +2049,6 @@
             (connection.saveData === true ||
                 /(^|[^0-9])2g/.test(String(connection.effectiveType || '')))
         );
-    }
-
-    // ASSET VERSIONING
-    function resolveDeployAssetVersion() {
-        try {
-            if (
-                document.currentScript &&
-                typeof document.currentScript.src === 'string' &&
-                document.currentScript.src !== ''
-            ) {
-                const currentUrl = new URL(
-                    document.currentScript.src,
-                    window.location.href
-                );
-                const fromCurrent = currentUrl.searchParams.get('v');
-                if (fromCurrent) {
-                    return fromCurrent;
-                }
-            }
-
-            const scriptEl = document.querySelector('script[src*="script.js"]');
-            if (scriptEl && typeof scriptEl.getAttribute === 'function') {
-                const rawSrc = scriptEl.getAttribute('src') || '';
-                if (rawSrc) {
-                    const parsed = new URL(rawSrc, window.location.href);
-                    const fromTag = parsed.searchParams.get('v');
-                    if (fromTag) {
-                        return fromTag;
-                    }
-                }
-            }
-        } catch (_error) {
-            return '';
-        }
-
-        return '';
     }
 
     function withDeployAssetVersion(url) {
@@ -482,19 +2268,6 @@
         return true;
     }
 
-    function createOnceTask(task) {
-        let executed = false;
-
-        return function runOnce() {
-            if (executed) {
-                return;
-            }
-
-            executed = true;
-            task();
-        };
-    }
-
     function createWarmupRunner(loadFn, options = {}) {
         const markWarmOnSuccess = options.markWarmOnSuccess === true;
         let warmed = false;
@@ -569,48 +2342,6 @@
         });
     }
 
-    const UI_BUNDLE_URL$3 = withDeployAssetVersion(
-        '/js/engines/ui-bundle.js?v=20260220-consolidated1'
-    );
-    const systemThemeQuery = window.matchMedia
-        ? window.matchMedia('(prefers-color-scheme: dark)')
-        : null;
-
-    function getThemeEngineDeps() {
-        return {
-            getCurrentThemeMode: () => state.currentThemeMode,
-            setCurrentThemeMode: (mode) => {
-                state.currentThemeMode = VALID_THEME_MODES.has(mode) ? mode : 'system';
-            },
-            themeStorageKey: THEME_STORAGE_KEY,
-            validThemeModes: Array.from(VALID_THEME_MODES),
-            getSystemThemeQuery: () => systemThemeQuery,
-        };
-    }
-
-    function loadThemeEngine() {
-        return loadDeferredModule({
-            cacheKey: 'theme-engine',
-            src: UI_BUNDLE_URL$3,
-            scriptDataAttribute: 'data-ui-bundle',
-            resolveModule: () => window.Piel && window.Piel.ThemeEngine,
-            isModuleReady: (module) =>
-                !!(module && typeof module.init === 'function'),
-            onModuleReady: (module) => module.init(getThemeEngineDeps()),
-            missingApiError: 'theme-engine loaded without API',
-            loadError: 'No se pudo cargar theme-engine.js',
-            logLabel: 'Theme engine',
-        });
-    }
-
-    function setThemeMode(mode) {
-        runDeferredModule(loadThemeEngine, (engine) => engine.setThemeMode(mode));
-    }
-
-    function initThemeMode() {
-        runDeferredModule(loadThemeEngine, (engine) => engine.initThemeMode());
-    }
-
     const DATA_ENGINE_URL = withDeployAssetVersion(
         '/js/engines/data-engine.js?v=figo-data-20260219-phase1'
     );
@@ -639,46 +2370,10 @@
         });
     }
 
-    function initDataEngineWarmup() {
-        const warmup = createWarmupRunner(() => loadDataEngine(), {
-            markWarmOnSuccess: true,
-        });
-
-        bindWarmupTarget('#appointmentForm', 'focusin', warmup, false);
-        bindWarmupTarget('#appointmentForm', 'pointerdown', warmup);
-        bindWarmupTarget('#chatbotWidget .chatbot-toggle', 'pointerdown', warmup);
-
-        const bookingSection = document.getElementById('citas');
-        observeOnceWhenVisible(bookingSection, warmup, {
-            threshold: 0.05,
-            rootMargin: '260px 0px',
-            onNoObserver: warmup,
-        });
-
-        scheduleDeferredTask(warmup, {
-            idleTimeout: 1800,
-            fallbackDelay: 900,
-        });
-    }
-
     async function apiRequest$1(resource, options = {}) {
         return withDeferredModule(loadDataEngine, (engine) =>
             engine.apiRequest(resource, options)
         );
-    }
-
-    function invalidateBookedSlotsCache(date = '', doctor = '', service = '') {
-        if (
-            window.Piel &&
-            window.Piel.DataEngine &&
-            typeof window.Piel.DataEngine.invalidateBookedSlotsCache === 'function'
-        ) {
-            window.Piel.DataEngine.invalidateBookedSlotsCache(date, doctor, service);
-            return;
-        }
-        withDeferredModule(loadDataEngine, (engine) =>
-            engine.invalidateBookedSlotsCache(date, doctor, service)
-        ).catch(() => undefined);
     }
 
     async function loadAvailabilityData(options = {}) {
@@ -696,18 +2391,6 @@
     async function createAppointmentRecord(appointment, options = {}) {
         return withDeferredModule(loadDataEngine, (engine) =>
             engine.createAppointmentRecord(appointment, options)
-        );
-    }
-
-    async function createCallbackRecord(callback) {
-        return withDeferredModule(loadDataEngine, (engine) =>
-            engine.createCallbackRecord(callback)
-        );
-    }
-
-    async function createReviewRecord(review) {
-        return withDeferredModule(loadDataEngine, (engine) =>
-            engine.createReviewRecord(review)
         );
     }
 
@@ -746,375 +2429,10 @@
         });
     }
 
-    function initReviewsEngineWarmup() {
-        const warmup = createWarmupRunner(() => loadReviewsEngine(), {
-            markWarmOnSuccess: true,
-        });
-        const reviewSection = document.getElementById('resenas');
-        observeOnceWhenVisible(reviewSection, warmup, {
-            threshold: 0.05,
-            rootMargin: '300px 0px',
-            onNoObserver: warmup,
-        });
-        bindWarmupTarget('#resenas', 'mouseenter', warmup);
-        bindWarmupTarget('#resenas', 'touchstart', warmup);
-        bindWarmupTarget(
-            '#resenas [data-action="open-review-modal"]',
-            'focus',
-            warmup,
-            false
-        );
-        scheduleDeferredTask(warmup, { idleTimeout: 2200, fallbackDelay: 1300 });
-    }
-
-    function renderPublicReviews(reviews) {
-        runDeferredModule(loadReviewsEngine, (engine) =>
-            engine.renderPublicReviews(reviews)
-        );
-    }
-
     function loadPublicReviews(options = {}) {
         return withDeferredModule(loadReviewsEngine, (engine) =>
             engine.loadPublicReviews(options)
         );
-    }
-
-    // ENGAGEMENT FORMS ENGINE
-    function getEngagementFormsEngineDeps() {
-        return {
-            createCallbackRecord,
-            createReviewRecord,
-            renderPublicReviews,
-            showToast,
-            getCurrentLang: getCurrentLang,
-            getReviewsCache,
-            setReviewsCache,
-        };
-    }
-
-    function loadEngagementFormsEngine() {
-        return loadReviewsEngine().then(() =>
-            loadDeferredModule({
-                cacheKey: 'engagement-forms-engine',
-                src: ENGAGEMENT_BUNDLE_URL,
-                scriptDataAttribute: 'data-engagement-bundle',
-                resolveModule: () => window.Piel && window.Piel.EngagementFormsEngine,
-                isModuleReady: (module) =>
-                    !!(module && typeof module.init === 'function'),
-                onModuleReady: (module) =>
-                    module.init(getEngagementFormsEngineDeps()),
-                missingApiError: 'engagement-forms-engine loaded without API',
-                loadError: 'No se pudo cargar engagement-forms-engine.js',
-                logLabel: 'Engagement forms engine',
-            })
-        );
-    }
-
-    function initEngagementFormsEngineWarmup() {
-        const warmup = createWarmupRunner(() => loadEngagementFormsEngine());
-        bindWarmupTarget('#callbackForm', 'focusin', warmup, false);
-        bindWarmupTarget('#callbackForm', 'pointerdown', warmup);
-        bindWarmupTarget(
-            '#resenas [data-action="open-review-modal"]',
-            'mouseenter',
-            warmup
-        );
-        bindWarmupTarget(
-            '#resenas [data-action="open-review-modal"]',
-            'touchstart',
-            warmup
-        );
-        if (document.getElementById('callbackForm')) {
-            setTimeout(warmup, 120);
-        }
-        const reviewSection = document.getElementById('resenas');
-        observeOnceWhenVisible(reviewSection, warmup, {
-            threshold: 0.05,
-            rootMargin: '280px 0px',
-            onNoObserver: warmup,
-        });
-        scheduleDeferredTask(warmup, { idleTimeout: 2600, fallbackDelay: 1500 });
-    }
-
-    function openReviewModal() {
-        runDeferredModule(
-            loadEngagementFormsEngine,
-            (engine) => engine.openReviewModal(),
-            () => {
-                const modal = document.getElementById('reviewModal');
-                if (modal) {
-                    modal.classList.add('active');
-                    document.body.style.overflow = 'hidden';
-                }
-            }
-        );
-    }
-
-    function closeReviewModal() {
-        const modal = document.getElementById('reviewModal');
-        if (modal) {
-            modal.classList.remove('active');
-        }
-        document.body.style.overflow = '';
-        runDeferredModule(loadEngagementFormsEngine, (engine) =>
-            engine.closeReviewModal()
-        );
-    }
-
-    const DATA_BUNDLE_URL$1 = withDeployAssetVersion(
-        '/js/engines/data-bundle.js?v=20260221-api-fix'
-    );
-
-    function getI18nEngineDeps() {
-        return {
-            getCurrentLang: () => state.currentLang,
-            setCurrentLang: (lang) => {
-                state.currentLang = (lang === 'en' ? 'en' : 'es');
-            },
-            showToast,
-            getReviewsCache: () => state.reviewsCache,
-            renderPublicReviews,
-            debugLog,
-        };
-    }
-
-    function loadI18nEngine() {
-        return loadDeferredModule({
-            cacheKey: 'i18n-engine',
-            src: DATA_BUNDLE_URL$1,
-            scriptDataAttribute: 'data-data-bundle',
-            resolveModule: () =>
-                (window.Piel && window.Piel.I18nEngine) || window.PielI18nEngine,
-            isModuleReady: (module) =>
-                !!(module && typeof module.init === 'function'),
-            onModuleReady: (module) => module.init(getI18nEngineDeps()),
-            missingApiError: 'i18n-engine loaded without API',
-            loadError: 'No se pudo cargar i18n-engine.js',
-            logLabel: 'I18n engine',
-        });
-    }
-
-    function initEnglishBundleWarmup() {
-        const warmup = () => {
-            withDeferredModule(loadI18nEngine, (engine) =>
-                engine.ensureEnglishTranslations()
-            ).catch(() => undefined);
-        };
-
-        const enBtn = document.querySelector('.lang-btn[data-lang="en"]');
-        if (enBtn) {
-            enBtn.addEventListener('mouseenter', warmup, {
-                once: true,
-                passive: true,
-            });
-            enBtn.addEventListener('touchstart', warmup, {
-                once: true,
-                passive: true,
-            });
-            enBtn.addEventListener('focus', warmup, { once: true });
-        }
-    }
-
-    async function changeLanguage(lang) {
-        return withDeferredModule(loadI18nEngine, (engine) =>
-            engine.changeLanguage(lang)
-        );
-    }
-
-    async function apiRequest(resource, options = {}) {
-        const method = String(options.method || 'GET').toUpperCase();
-        const query = new URLSearchParams({ resource: resource });
-        if (options.query && typeof options.query === 'object') {
-            Object.entries(options.query).forEach(([key, value]) => {
-                if (value !== undefined && value !== null && value !== '') {
-                    query.set(key, String(value));
-                }
-            });
-        }
-        const url = `${API_ENDPOINT}?${query.toString()}`;
-        const requestInit = {
-            method: method,
-            credentials: 'same-origin',
-            headers: {
-                Accept: 'application/json',
-            },
-        };
-
-        if (options.body !== undefined) {
-            requestInit.headers['Content-Type'] = 'application/json';
-            requestInit.body = JSON.stringify(options.body);
-        }
-
-        const timeoutMs = Number.isFinite(options.timeoutMs)
-            ? Math.max(1500, Number(options.timeoutMs))
-            : API_REQUEST_TIMEOUT_MS;
-        const maxRetries = Number.isInteger(options.retries)
-            ? Math.max(0, Number(options.retries))
-            : method === 'GET'
-              ? API_DEFAULT_RETRIES
-              : 0;
-
-        const shouldShowSlowNotice = options.silentSlowNotice !== true;
-        const retryableStatusCodes = new Set([408, 425, 429, 500, 502, 503, 504]);
-
-        function makeApiError(message, status = 0, retryable = false, code = '') {
-            const error = new Error(message);
-            error.status = status;
-            error.retryable = retryable;
-            error.code = code;
-            return error;
-        }
-
-        let lastError = null;
-
-        for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-            let slowNoticeTimer = null;
-
-            if (shouldShowSlowNotice) {
-                slowNoticeTimer = setTimeout(() => {
-                    const now = Date.now();
-                    if (
-                        now - getApiSlowNoticeLastAt() >
-                        API_SLOW_NOTICE_COOLDOWN_MS
-                    ) {
-                        setApiSlowNoticeLastAt(now);
-                        showToast(
-                            state.currentLang === 'es'
-                                ? 'Conectando con el servidor...'
-                                : 'Connecting to server...',
-                            'info'
-                        );
-                    }
-                }, API_SLOW_NOTICE_MS);
-            }
-
-            try {
-                const response = await fetch(url, {
-                    ...requestInit,
-                    signal: controller.signal,
-                });
-
-                const responseText = await response.text();
-                let payload = {};
-                try {
-                    payload = responseText ? JSON.parse(responseText) : {};
-                } catch (error) {
-                    throw makeApiError(
-                        'Respuesta del servidor no es JSON valido',
-                        response.status,
-                        false,
-                        'invalid_json'
-                    );
-                }
-
-                if (!response.ok || payload.ok === false) {
-                    const message = payload.error || `HTTP ${response.status}`;
-                    throw makeApiError(
-                        message,
-                        response.status,
-                        retryableStatusCodes.has(response.status),
-                        'http_error'
-                    );
-                }
-
-                return payload;
-            } catch (error) {
-                const normalizedError = (() => {
-                    if (error && error.name === 'AbortError') {
-                        return makeApiError(
-                            state.currentLang === 'es'
-                                ? 'Tiempo de espera agotado con el servidor'
-                                : 'Server request timed out',
-                            0,
-                            true,
-                            'timeout'
-                        );
-                    }
-
-                    if (error instanceof Error) {
-                        if (typeof error.retryable !== 'boolean') {
-                            error.retryable = false;
-                        }
-                        if (typeof error.status !== 'number') {
-                            error.status = 0;
-                        }
-                        return error;
-                    }
-
-                    return makeApiError(
-                        'Error de conexion con el servidor',
-                        0,
-                        true,
-                        'network_error'
-                    );
-                })();
-
-                lastError = normalizedError;
-
-                const canRetry =
-                    attempt < maxRetries && normalizedError.retryable === true;
-                if (!canRetry) {
-                    throw normalizedError;
-                }
-
-                const retryDelay = API_RETRY_BASE_DELAY_MS * (attempt + 1);
-                await waitMs(retryDelay);
-            } finally {
-                clearTimeout(timeoutId);
-                if (slowNoticeTimer !== null) {
-                    clearTimeout(slowNoticeTimer);
-                }
-            }
-        }
-
-        throw lastError || new Error('No se pudo completar la solicitud');
-    }
-
-    const BOOKING_UTILS_URL$2 = withDeployAssetVersion('/js/engines/booking-utils.js');
-
-    function getPaymentGatewayEngineDeps() {
-        return {
-            apiRequest,
-            getCurrentLang,
-            getPaymentConfig, setPaymentConfig,
-            getPaymentConfigLoaded, setPaymentConfigLoaded,
-            getPaymentConfigLoadedAt, setPaymentConfigLoadedAt,
-            getStripeSdkPromise, setStripeSdkPromise,
-            apiEndpoint: API_ENDPOINT,
-            apiRequestTimeoutMs: API_REQUEST_TIMEOUT_MS
-        };
-    }
-
-    function loadPaymentGatewayEngine() {
-        return loadDeferredModule({
-            cacheKey: 'booking-utils',
-            src: BOOKING_UTILS_URL$2,
-            scriptDataAttribute: 'data-booking-utils',
-            resolveModule: () => window.Piel && window.Piel.PaymentGatewayEngine,
-            isModuleReady: (module) => !!(module && typeof module.init === 'function'),
-            onModuleReady: (module) => module.init(getPaymentGatewayEngineDeps()),
-            missingApiError: 'payment-gateway-engine loaded without API',
-            loadError: 'No se pudo cargar payment-gateway-engine (booking-utils)',
-            logLabel: 'Payment gateway engine'
-        });
-    }
-
-    async function loadPaymentConfig() {
-        return runDeferredModule(loadPaymentGatewayEngine, (engine) => engine.loadPaymentConfig());
-    }
-
-    async function loadStripeSdk() {
-        return runDeferredModule(loadPaymentGatewayEngine, (engine) => engine.loadStripeSdk());
-    }
-
-    async function createPaymentIntent(appointment) {
-        return runDeferredModule(loadPaymentGatewayEngine, (engine) => engine.createPaymentIntent(appointment));
-    }
-
-    async function verifyPaymentIntent(paymentIntentId) {
-        return runDeferredModule(loadPaymentGatewayEngine, (engine) => engine.verifyPaymentIntent(paymentIntentId));
     }
 
     const ANALYTICS_ENGINE_URL = withDeployAssetVersion(
@@ -1282,31 +2600,203 @@
         return normalized || fallback;
     }
 
-    function markBookingViewed(source = 'unknown') {
-        runDeferredModule(loadAnalyticsEngine, (engine) =>
-            engine.markBookingViewed(source)
-        );
+    async function apiRequest(resource, options = {}) {
+        const method = String(options.method || 'GET').toUpperCase();
+        const query = new URLSearchParams({ resource: resource });
+        if (options.query && typeof options.query === 'object') {
+            Object.entries(options.query).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    query.set(key, String(value));
+                }
+            });
+        }
+        const url = `${API_ENDPOINT}?${query.toString()}`;
+        const requestInit = {
+            method: method,
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+            },
+        };
+
+        if (options.body !== undefined) {
+            requestInit.headers['Content-Type'] = 'application/json';
+            requestInit.body = JSON.stringify(options.body);
+        }
+
+        const timeoutMs = Number.isFinite(options.timeoutMs)
+            ? Math.max(1500, Number(options.timeoutMs))
+            : API_REQUEST_TIMEOUT_MS;
+        const maxRetries = Number.isInteger(options.retries)
+            ? Math.max(0, Number(options.retries))
+            : method === 'GET'
+              ? API_DEFAULT_RETRIES
+              : 0;
+
+        const shouldShowSlowNotice = options.silentSlowNotice !== true;
+        const retryableStatusCodes = new Set([408, 425, 429, 500, 502, 503, 504]);
+
+        function makeApiError(message, status = 0, retryable = false, code = '') {
+            const error = new Error(message);
+            error.status = status;
+            error.retryable = retryable;
+            error.code = code;
+            return error;
+        }
+
+        let lastError = null;
+
+        for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            let slowNoticeTimer = null;
+
+            if (shouldShowSlowNotice) {
+                slowNoticeTimer = setTimeout(() => {
+                    const now = Date.now();
+                    if (
+                        now - getApiSlowNoticeLastAt() >
+                        API_SLOW_NOTICE_COOLDOWN_MS
+                    ) {
+                        setApiSlowNoticeLastAt(now);
+                        showToast(
+                            state.currentLang === 'es'
+                                ? 'Conectando con el servidor...'
+                                : 'Connecting to server...',
+                            'info'
+                        );
+                    }
+                }, API_SLOW_NOTICE_MS);
+            }
+
+            try {
+                const response = await fetch(url, {
+                    ...requestInit,
+                    signal: controller.signal,
+                });
+
+                const responseText = await response.text();
+                let payload = {};
+                try {
+                    payload = responseText ? JSON.parse(responseText) : {};
+                } catch (error) {
+                    throw makeApiError(
+                        'Respuesta del servidor no es JSON valido',
+                        response.status,
+                        false,
+                        'invalid_json'
+                    );
+                }
+
+                if (!response.ok || payload.ok === false) {
+                    const message = payload.error || `HTTP ${response.status}`;
+                    throw makeApiError(
+                        message,
+                        response.status,
+                        retryableStatusCodes.has(response.status),
+                        'http_error'
+                    );
+                }
+
+                return payload;
+            } catch (error) {
+                const normalizedError = (() => {
+                    if (error && error.name === 'AbortError') {
+                        return makeApiError(
+                            state.currentLang === 'es'
+                                ? 'Tiempo de espera agotado con el servidor'
+                                : 'Server request timed out',
+                            0,
+                            true,
+                            'timeout'
+                        );
+                    }
+
+                    if (error instanceof Error) {
+                        if (typeof error.retryable !== 'boolean') {
+                            error.retryable = false;
+                        }
+                        if (typeof error.status !== 'number') {
+                            error.status = 0;
+                        }
+                        return error;
+                    }
+
+                    return makeApiError(
+                        'Error de conexion con el servidor',
+                        0,
+                        true,
+                        'network_error'
+                    );
+                })();
+
+                lastError = normalizedError;
+
+                const canRetry =
+                    attempt < maxRetries && normalizedError.retryable === true;
+                if (!canRetry) {
+                    throw normalizedError;
+                }
+
+                const retryDelay = API_RETRY_BASE_DELAY_MS * (attempt + 1);
+                await waitMs(retryDelay);
+            } finally {
+                clearTimeout(timeoutId);
+                if (slowNoticeTimer !== null) {
+                    clearTimeout(slowNoticeTimer);
+                }
+            }
+        }
+
+        throw lastError || new Error('No se pudo completar la solicitud');
     }
 
-    function initBookingFunnelObserver() {
-        runDeferredModule(loadAnalyticsEngine, (engine) =>
-            engine.initBookingFunnelObserver()
-        );
+    const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
+
+    function getPaymentGatewayEngineDeps() {
+        return {
+            apiRequest,
+            getCurrentLang,
+            getPaymentConfig, setPaymentConfig,
+            getPaymentConfigLoaded, setPaymentConfigLoaded,
+            getPaymentConfigLoadedAt, setPaymentConfigLoadedAt,
+            getStripeSdkPromise, setStripeSdkPromise,
+            apiEndpoint: API_ENDPOINT,
+            apiRequestTimeoutMs: API_REQUEST_TIMEOUT_MS
+        };
     }
 
-    function initDeferredSectionPrefetch() {
-        runDeferredModule(loadAnalyticsEngine, (engine) =>
-            engine.initDeferredSectionPrefetch()
-        );
+    function loadPaymentGatewayEngine() {
+        return loadDeferredModule({
+            cacheKey: 'booking-utils',
+            src: BOOKING_UTILS_URL,
+            scriptDataAttribute: 'data-booking-utils',
+            resolveModule: () => window.Piel && window.Piel.PaymentGatewayEngine,
+            isModuleReady: (module) => !!(module && typeof module.init === 'function'),
+            onModuleReady: (module) => module.init(getPaymentGatewayEngineDeps()),
+            missingApiError: 'payment-gateway-engine loaded without API',
+            loadError: 'No se pudo cargar payment-gateway-engine (booking-utils)',
+            logLabel: 'Payment gateway engine'
+        });
     }
 
-    function maybeTrackCheckoutAbandon$1(reason = 'unknown') {
-        runDeferredModule(loadAnalyticsEngine, (engine) =>
-            engine.maybeTrackCheckoutAbandon(reason)
-        );
+    async function loadPaymentConfig() {
+        return runDeferredModule(loadPaymentGatewayEngine, (engine) => engine.loadPaymentConfig());
     }
 
-    const UI_BUNDLE_URL$2 = withDeployAssetVersion(
+    async function loadStripeSdk() {
+        return runDeferredModule(loadPaymentGatewayEngine, (engine) => engine.loadStripeSdk());
+    }
+
+    async function createPaymentIntent(appointment) {
+        return runDeferredModule(loadPaymentGatewayEngine, (engine) => engine.createPaymentIntent(appointment));
+    }
+
+    async function verifyPaymentIntent(paymentIntentId) {
+        return runDeferredModule(loadPaymentGatewayEngine, (engine) => engine.verifyPaymentIntent(paymentIntentId));
+    }
+
+    const UI_BUNDLE_URL$1 = withDeployAssetVersion(
         '/js/engines/ui-bundle.js?v=20260220-consolidated1'
     );
 
@@ -1322,7 +2812,7 @@
     function loadSuccessModalEngine() {
         return loadDeferredModule({
             cacheKey: 'success-modal-engine',
-            src: UI_BUNDLE_URL$2,
+            src: UI_BUNDLE_URL$1,
             scriptDataAttribute: 'data-ui-bundle',
             resolveModule: () => window.Piel && window.Piel.SuccessModalEngine,
             isModuleReady: (module) =>
@@ -1332,23 +2822,6 @@
             loadError: 'No se pudo cargar success-modal-engine.js',
             logLabel: 'Success modal engine',
         });
-    }
-
-    function initSuccessModalEngineWarmup() {
-        const warmup = createWarmupRunner(() => loadSuccessModalEngine());
-        bindWarmupTarget(
-            '#appointmentForm button[type="submit"]',
-            'pointerdown',
-            warmup
-        );
-        bindWarmupTarget(
-            '#appointmentForm button[type="submit"]',
-            'focus',
-            warmup,
-            false
-        );
-        bindWarmupTarget('.payment-method', 'pointerdown', warmup);
-        scheduleDeferredTask(warmup, { idleTimeout: 2800, fallbackDelay: 1600 });
     }
 
     function showSuccessModal(emailSent = false) {
@@ -1370,24 +2843,13 @@
         );
     }
 
-    function closeSuccessModal() {
-        const modal = document.getElementById('successModal');
-        if (modal) {
-            modal.classList.remove('active');
-        }
-        document.body.style.overflow = '';
-        runDeferredModule(loadSuccessModalEngine, (engine) =>
-            engine.closeSuccessModal()
-        );
-    }
-
     const BOOKING_ENGINE_URL = withDeployAssetVersion(
         '/js/engines/booking-engine.js?v=figo-booking-20260219-mbfix1'
     );
-    const BOOKING_UI_URL = withDeployAssetVersion(
+    withDeployAssetVersion(
         '/js/engines/booking-ui.js?v=figo-booking-ui-20260222-slotservicefix1'
     );
-    const BOOKING_UTILS_URL$1 = withDeployAssetVersion('/js/engines/booking-utils.js');
+    withDeployAssetVersion('/js/engines/booking-utils.js');
     const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 
     function stripTransientAppointmentFields(appointment) {
@@ -1506,29 +2968,6 @@
         });
     }
 
-    function initBookingEngineWarmup() {
-        const warmup = createWarmupRunner(() => loadBookingEngine(), {
-            markWarmOnSuccess: true,
-        });
-
-        const selectors = [
-            '.nav-cta[href="#citas"]',
-            '.quick-dock-item[href="#citas"]',
-            '.hero-actions a[href="#citas"]',
-        ];
-
-        selectors.forEach((selector) => {
-            bindWarmupTarget(selector, 'mouseenter', warmup);
-            bindWarmupTarget(selector, 'focus', warmup, false);
-            bindWarmupTarget(selector, 'touchstart', warmup);
-        });
-
-        scheduleDeferredTask(warmup, {
-            idleTimeout: 2500,
-            fallbackDelay: 1100,
-        });
-    }
-
     // CHECKOUT SESSION WRAPPERS
     function startCheckoutSession(appointment, metadata = {}) {
         runDeferredModule(loadAnalyticsEngine, (engine) =>
@@ -1554,360 +2993,12 @@
         );
     }
 
-    function loadBookingCalendarEngine() {
-        return loadDeferredModule({
-            cacheKey: 'booking-utils-calendar',
-            src: BOOKING_UTILS_URL$1,
-            scriptDataAttribute: 'data-booking-utils',
-            resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine,
-            isModuleReady: (module) => !!(module && typeof module.initCalendar === 'function'),
-            missingApiError: 'booking-calendar-engine loaded without API',
-            loadError: 'No se pudo cargar booking-calendar-engine',
-            logLabel: 'Booking Calendar engine'
-        });
-    }
-
-    async function updateAvailableTimes(elements) {
-        return runDeferredModule(loadBookingCalendarEngine, (engine) => engine.updateAvailableTimes(getBookingUiDeps(), elements));
-    }
-
-    // BOOKING UI
-    function getDefaultTimeSlots() {
-        return ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
-    }
-
-    function getBookingUiDeps() {
-        return {
-            loadAvailabilityData,
-            getBookedSlots,
-            updateAvailableTimes,
-            getDefaultTimeSlots,
-            showToast,
-            getCurrentLang: () => state.currentLang,
-            getCasePhotoFiles: (form) => {
-                const input = form?.querySelector('#casePhotos');
-                if (!input || !input.files) return [];
-                return Array.from(input.files);
-            },
-            validateCasePhotoFiles,
-            markBookingViewed,
-            startCheckoutSession,
-            setCheckoutStep,
-            trackEvent,
-            normalizeAnalyticsLabel,
-            openPaymentModal,
-            setCurrentAppointment: setCurrentAppointment,
-            updateAvailableTimes, // Added dependency
-        };
-    }
-
-    function validateCasePhotoFiles(files) {
-        const MAX_CASE_PHOTOS = 3;
-        const MAX_CASE_PHOTO_BYTES = 5 * 1024 * 1024;
-        const CASE_PHOTO_ALLOWED_TYPES = new Set([
-            'image/jpeg',
-            'image/png',
-            'image/webp',
-        ]);
-
-        if (!Array.isArray(files) || files.length === 0) return;
-
-        if (files.length > MAX_CASE_PHOTOS) {
-            throw new Error(
-                state.currentLang === 'es'
-                    ? `Puedes subir m\u00E1ximo ${MAX_CASE_PHOTOS} fotos.`
-                    : `You can upload up to ${MAX_CASE_PHOTOS} photos.`
-            );
-        }
-
-        for (const file of files) {
-            if (!file) continue;
-
-            if (file.size > MAX_CASE_PHOTO_BYTES) {
-                throw new Error(
-                    state.currentLang === 'es'
-                        ? `Cada foto debe pesar m\u00E1ximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
-                        : `Each photo must be at most ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
-                );
-            }
-
-            const mime = String(file.type || '').toLowerCase();
-            const validByMime = CASE_PHOTO_ALLOWED_TYPES.has(mime);
-            const validByExt = /\.(jpe?g|png|webp)$/i.test(String(file.name || ''));
-            if (!validByMime && !validByExt) {
-                throw new Error(
-                    state.currentLang === 'es'
-                        ? 'Solo se permiten im\u00e1genes JPG, PNG o WEBP.'
-                        : 'Only JPG, PNG or WEBP images are allowed.'
-                );
-            }
-        }
-    }
-
-    function loadBookingUi() {
-        return loadDeferredModule({
-            cacheKey: 'booking-ui',
-            src: BOOKING_UI_URL,
-            scriptDataAttribute: 'data-booking-ui',
-            resolveModule: () => window.Piel && window.Piel.BookingUi,
-            isModuleReady: (module) =>
-                !!(module && typeof module.init === 'function'),
-            onModuleReady: (module) => {
-                module.init(getBookingUiDeps());
-                window.PielBookingUiReady = true;
-                if (window.debugLog) window.debugLog('Booking UI ready');
-            },
-            missingApiError: 'booking-ui loaded without API',
-            loadError: 'No se pudo cargar booking-ui.js',
-            logLabel: 'Booking UI',
-        });
-    }
-
-    function initBookingUiWarmup() {
-        const warmup = createWarmupRunner(() => loadBookingUi());
-
-        const bookingSection = document.getElementById('citas');
-        observeOnceWhenVisible(bookingSection, warmup, {
-            threshold: 0.05,
-            rootMargin: '320px 0px',
-            onNoObserver: warmup,
-        });
-
-        const appointmentForm = document.getElementById('appointmentForm');
-        if (appointmentForm) {
-            appointmentForm.addEventListener('focusin', warmup, { once: true });
-            appointmentForm.addEventListener('pointerdown', warmup, {
-                once: true,
-                passive: true,
-            });
-            setTimeout(warmup, 120);
-        }
-
-        if (!bookingSection && !appointmentForm) {
-            return;
-        }
-
-        scheduleDeferredTask(warmup, {
-            idleTimeout: 1800,
-            fallbackDelay: 1100,
-        });
-    }
-
     function openPaymentModal(appointmentData) {
         runDeferredModule(
             loadBookingEngine,
             (engine) => engine.openPaymentModal(appointmentData),
             (error) => {
                 showToast('No se pudo abrir el modulo de pago.', 'error');
-            }
-        );
-    }
-
-    function closePaymentModal(options = {}) {
-        if (
-            window.Piel &&
-            window.Piel.BookingEngine &&
-            typeof window.Piel.BookingEngine.closePaymentModal === 'function'
-        ) {
-            window.Piel.BookingEngine.closePaymentModal(options);
-            return;
-        }
-
-        const skipAbandonTrack = options && options.skipAbandonTrack === true;
-        const abandonReason =
-            options && typeof options.reason === 'string'
-                ? options.reason
-                : 'modal_close';
-        if (!skipAbandonTrack) {
-            maybeTrackCheckoutAbandon(abandonReason);
-        }
-
-        state.checkoutSession.active = false;
-        const modal = document.getElementById('paymentModal');
-        if (modal) {
-            modal.classList.remove('active');
-        }
-        document.body.style.overflow = '';
-    }
-
-    async function processPayment() {
-        return runDeferredModule(
-            loadBookingEngine,
-            (engine) => engine.processPayment(),
-            (error) => {
-                showToast('No se pudo procesar el pago en este momento.', 'error');
-            }
-        );
-    }
-
-    const UI_BUNDLE_URL$1 = withDeployAssetVersion(
-        '/js/engines/ui-bundle.js?v=20260220-consolidated1'
-    );
-
-    // UI Effects
-    function loadUiEffects() {
-        return loadDeferredModule({
-            cacheKey: 'ui-effects',
-            src: UI_BUNDLE_URL$1,
-            scriptDataAttribute: 'data-ui-bundle',
-            resolveModule: () => window.Piel && window.Piel.UiEffects,
-            isModuleReady: (module) =>
-                !!(module && typeof module.init === 'function'),
-            onModuleReady: (module) => module.init(),
-            missingApiError: 'ui-effects loaded without API',
-            loadError: 'No se pudo cargar ui-effects.js',
-            logLabel: 'UI effects',
-        });
-    }
-
-    function initUiEffectsWarmup() {
-        const warmup = createWarmupRunner(() => loadUiEffects());
-        bindWarmupTarget('.nav', 'mouseenter', warmup);
-        bindWarmupTarget('.nav', 'touchstart', warmup);
-        const triggerOnce = () => warmup();
-        window.addEventListener('scroll', triggerOnce, {
-            once: true,
-            passive: true,
-        });
-        window.addEventListener('pointerdown', triggerOnce, {
-            once: true,
-            passive: true,
-        });
-        scheduleDeferredTask(warmup, { idleTimeout: 1800, fallbackDelay: 1200 });
-    }
-
-    function toggleMobileMenu(forceClose) {
-        const menu = document.getElementById('mobileMenu');
-        if (forceClose === false) {
-            menu.classList.remove('active');
-            document.body.style.overflow = '';
-            return;
-        }
-        menu.classList.toggle('active');
-        document.body.style.overflow = menu.classList.contains('active')
-            ? 'hidden'
-            : '';
-    }
-
-    // Modal UX Engine
-    function getModalUxEngineDeps() {
-        return {
-            closePaymentModal,
-            toggleMobileMenu,
-        };
-    }
-
-    function loadModalUxEngine() {
-        return loadDeferredModule({
-            cacheKey: 'modal-ux-engine',
-            src: UI_BUNDLE_URL$1,
-            scriptDataAttribute: 'data-ui-bundle',
-            resolveModule: () => window.Piel && window.Piel.ModalUxEngine,
-            isModuleReady: (module) =>
-                !!(module && typeof module.init === 'function'),
-            onModuleReady: (module) => module.init(getModalUxEngineDeps()),
-            missingApiError: 'modal-ux-engine loaded without API',
-            loadError: 'No se pudo cargar modal-ux-engine.js',
-            logLabel: 'Modal UX engine',
-        });
-    }
-
-    function initModalUxEngineWarmup() {
-        const warmup = createWarmupRunner(() => loadModalUxEngine());
-        bindWarmupTarget('.modal', 'pointerdown', warmup);
-        bindWarmupTarget('.modal-close', 'pointerdown', warmup);
-        if (document.querySelector('.modal')) {
-            setTimeout(warmup, 180);
-        }
-        scheduleDeferredTask(warmup, { idleTimeout: 2200, fallbackDelay: 1200 });
-    }
-
-    function startWebVideo() {
-        const modal = document.getElementById('videoModal');
-        if (modal) {
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-    }
-
-    function closeVideoModal() {
-        const modal = document.getElementById('videoModal');
-        if (modal) {
-            modal.classList.remove('active');
-        }
-        document.body.style.overflow = '';
-    }
-
-    const BOOKING_UTILS_URL = withDeployAssetVersion(
-        '/js/engines/booking-utils.js?v=figo-booking-utils-20260220-unified'
-    );
-
-    function getRescheduleEngineDeps() {
-        return {
-            apiRequest: apiRequest$1,
-            loadAvailabilityData,
-            getBookedSlots,
-            invalidateBookedSlotsCache,
-            showToast,
-            escapeHtml: escapeHtml$1,
-            getCurrentLang: getCurrentLang,
-        };
-    }
-
-    function loadRescheduleEngine() {
-        return loadDeferredModule({
-            cacheKey: 'booking-utils',
-            src: BOOKING_UTILS_URL,
-            scriptDataAttribute: 'data-booking-utils',
-            resolveModule: () => window.PielRescheduleEngine,
-            isModuleReady: (module) =>
-                !!(module && typeof module.init === 'function'),
-            onModuleReady: (module) => module.init(getRescheduleEngineDeps()),
-            missingApiError: 'reschedule-engine loaded without API',
-            loadError: 'No se pudo cargar booking-utils.js (reschedule)',
-            logLabel: 'Reschedule engine',
-        });
-    }
-
-    function initRescheduleEngineWarmup() {
-        runDeferredModule(
-            loadRescheduleEngine,
-            (engine) => engine.checkRescheduleParam(),
-            () => {
-                showToast(
-                    getCurrentLang() === 'es'
-                        ? 'No se pudo cargar la reprogramacion.'
-                        : 'Unable to load reschedule flow.',
-                    'error'
-                );
-            }
-        );
-    }
-
-    function closeRescheduleModal() {
-        runDeferredModule(
-            loadRescheduleEngine,
-            (engine) => engine.closeRescheduleModal(),
-            () => {
-                const modal = document.getElementById('rescheduleModal');
-                if (modal) {
-                    modal.classList.remove('active');
-                }
-            }
-        );
-    }
-
-    function submitReschedule() {
-        runDeferredModule(
-            loadRescheduleEngine,
-            (engine) => engine.submitReschedule(),
-            () => {
-                showToast(
-                    getCurrentLang() === 'es'
-                        ? 'No se pudo reprogramar en este momento.'
-                        : 'Unable to reschedule right now.',
-                    'error'
-                );
             }
         );
     }
@@ -2302,10 +3393,7 @@
             loadFigoChatEngine,
             (engine) => engine.processWithKimi(message),
             (error) => {
-                // Log error to monitoring service in production
-                if (window.Piel && window.Piel.reportError) {
-                    window.Piel.reportError('chat_engine_load', error);
-                }
+                console.error('Error cargando motor de chat:', error);
                 removeTypingIndicator();
                 addBotMessage(
                     'No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.',
@@ -2329,7 +3417,7 @@
         return true;
     }
 
-    const DATA_BUNDLE_URL = withDeployAssetVersion(
+    const DATA_BUNDLE_URL = withDeployAssetVersion$1(
         '/js/engines/data-bundle.js?v=20260221-api-fix'
     );
 
@@ -2379,7 +3467,7 @@
     }
 
     function loadActionRouterEngine() {
-        return loadDeferredModule({
+        return loadDeferredModule$1({
             cacheKey: 'action-router-engine',
             src: DATA_BUNDLE_URL,
             scriptDataAttribute: 'data-data-bundle',
@@ -2396,7 +3484,7 @@
     }
 
     function initActionRouterEngine() {
-        runDeferredModule(
+        runDeferredModule$1(
             loadActionRouterEngine,
             () => undefined,
             (error) => {
@@ -2404,22 +3492,22 @@
         );
     }
 
-    const UI_BUNDLE_URL = withDeployAssetVersion(
+    const UI_BUNDLE_URL = withDeployAssetVersion$1(
         '/js/engines/ui-bundle.js?v=20260220-consolidated1'
     );
 
     function getConsentEngineDeps() {
         return {
-            getCurrentLang: () => state.currentLang,
-            showToast,
-            trackEvent,
+            getCurrentLang: () => state$1.currentLang,
+            showToast: showToast$1,
+            trackEvent: trackEvent$1,
             cookieConsentKey: COOKIE_CONSENT_KEY,
             gaMeasurementId: 'G-GYY8PE5M8W',
         };
     }
 
     function loadConsentEngine() {
-        return loadDeferredModule({
+        return loadDeferredModule$1({
             cacheKey: 'consent-engine',
             src: UI_BUNDLE_URL,
             scriptDataAttribute: 'data-ui-bundle',
@@ -2434,7 +3522,7 @@
     }
 
     function initGA4() {
-        runDeferredModule(loadConsentEngine, (engine) => engine.initGA4());
+        runDeferredModule$1(loadConsentEngine, (engine) => engine.initGA4());
     }
 
     function bootstrapConsent() {
@@ -2442,15 +3530,15 @@
     }
 
     function showConsentBanner() {
-        runDeferredModule(loadConsentEngine, (engine) => engine.initCookieBanner()); // Only shows banner
+        runDeferredModule$1(loadConsentEngine, (engine) => engine.initCookieBanner()); // Only shows banner
     }
 
-    const GALLERY_INTERACTIONS_URL = withDeployAssetVersion(
+    const GALLERY_INTERACTIONS_URL = withDeployAssetVersion$1(
         '/js/engines/gallery-interactions.js?v=figo-gallery-20260218-phase4'
     );
 
     function loadGalleryInteractions() {
-        return loadDeferredModule({
+        return loadDeferredModule$1({
             cacheKey: 'gallery-interactions',
             src: GALLERY_INTERACTIONS_URL,
             scriptDataAttribute: 'data-gallery-interactions',
@@ -2465,9 +3553,9 @@
     }
 
     function initGalleryInteractionsWarmup() {
-        const warmup = createWarmupRunner(() => loadGalleryInteractions());
+        const warmup = createWarmupRunner$1(() => loadGalleryInteractions());
         const gallerySection = document.getElementById('galeria');
-        observeOnceWhenVisible(gallerySection, warmup, {
+        observeOnceWhenVisible$1(gallerySection, warmup, {
             threshold: 0.05,
             rootMargin: '320px 0px',
             onNoObserver: warmup,
@@ -2486,10 +3574,10 @@
         if (!gallerySection && !firstFilterBtn) {
             return;
         }
-        scheduleDeferredTask(warmup, { idleTimeout: 2500, fallbackDelay: 1500 });
+        scheduleDeferredTask$1(warmup, { idleTimeout: 2500, fallbackDelay: 1500 });
     }
 
-    const CONTENT_JSON_URL = withDeployAssetVersion('/content/index.json');
+    const CONTENT_JSON_URL = withDeployAssetVersion$1('/content/index.json');
     const REQUIRED_SECTION_IDS = [
         'showcase',
         'servicios',
@@ -2699,14 +3787,14 @@
                     forceDeferredSectionPaint(container);
                     hydrateDeferredText(container);
                 } else if (!container) {
-                    debugLog(`Warning: Container #${id} not found for deferred content.`);
+                    debugLog$1(`Warning: Container #${id} not found for deferred content.`);
                 }
             });
 
-            debugLog('Deferred content loaded and hydrated.');
+            debugLog$1('Deferred content loaded and hydrated.');
             return true;
         } catch (error) {
-            // Silent fail - fallback UI will show
+            console.error('Error loading deferred content:', error);
             renderDeferredFallbackState();
             return false;
         }
@@ -2718,7 +3806,7 @@
         window.Piel.deployVersion || resolveDeployAssetVersion();
 
     // Deferred Stylesheet
-    const DEFERRED_STYLESHEET_URL = withDeployAssetVersion(
+    const DEFERRED_STYLESHEET_URL = withDeployAssetVersion$1(
         '/styles-deferred.css?v=ui-20260221-deferred18-fullcssfix1'
     );
     let deferredStylesheetPromise = null;
@@ -2759,7 +3847,7 @@
         const startLoad = () => {
             loadDeferredStylesheet().catch(() => undefined);
         };
-        scheduleDeferredTask(startLoad, {
+        scheduleDeferredTask$1(startLoad, {
             idleTimeout: 1200,
             fallbackDelay: 160,
             skipOnConstrained: false,
@@ -2801,8 +3889,8 @@
             }
 
             element.addEventListener('click', function () {
-                const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
-                loadDeferredModule({
+                const BOOKING_UTILS_URL = withDeployAssetVersion$1('/js/engines/booking-utils.js');
+                loadDeferredModule$1({
                     cacheKey: 'booking-utils-calendar',
                     src: BOOKING_UTILS_URL,
                     scriptDataAttribute: 'data-booking-utils',
@@ -2917,7 +4005,7 @@
         initActionRouterEngine();
         initDeferredStylesheetLoading();
         initThemeMode();
-        changeLanguage(state.currentLang);
+        changeLanguage(state$1.currentLang);
         initGA4();
         initBookingFunnelObserver();
         initDeferredSectionPrefetch();
@@ -2958,7 +4046,7 @@
             });
             window.addEventListener('keydown', initDeferredWarmups, { once: true });
 
-            scheduleDeferredTask(initHighPriorityWarmups, {
+            scheduleDeferredTask$1(initHighPriorityWarmups, {
                 idleTimeout: 1400,
                 fallbackDelay: 500,
                 skipOnConstrained: false,
@@ -2975,12 +4063,14 @@
         });
 
         window.addEventListener('pagehide', () => {
-            maybeTrackCheckoutAbandon$1('page_hide');
+            maybeTrackCheckoutAbandon$2('page_hide');
         });
 
         const isServer = checkServerEnvironment();
         if (!isServer) {
-            // Offline mode - no server connection
+            console.warn(
+                'Chatbot en modo offline: abre el sitio desde servidor para usar IA real.'
+            );
         }
 
         // Smooth Scroll
@@ -3023,14 +4113,14 @@
             if (!waLink) return;
 
             const source = resolveWhatsappSource(waLink);
-            trackEvent('whatsapp_click', { source });
+            trackEvent$1('whatsapp_click', { source });
 
             const inChatContext =
                 !!waLink.closest('#chatbotContainer') ||
                 !!waLink.closest('#chatbotWidget');
             if (!inChatContext) return;
 
-            trackEvent('chat_handoff_whatsapp', {
+            trackEvent$1('chat_handoff_whatsapp', {
                 source,
             });
         });
@@ -3069,7 +4159,7 @@
     // Push Notifications (Stub)
     window.subscribeToPushNotifications = async function() {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            // Push notifications not supported in this browser
+            console.warn('Push not supported');
             return;
         }
         try {
@@ -3081,7 +4171,7 @@
                 applicationServerKey: publicVapidKey
             });
         } catch (error) {
-            // Push subscription failed - ignore
+            console.error('Push subscription error:', error);
         }
     };
 
@@ -3094,8 +4184,8 @@
             }
 
             element.addEventListener('click', function () {
-                const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
-                loadDeferredModule({
+                const BOOKING_UTILS_URL = withDeployAssetVersion$1('/js/engines/booking-utils.js');
+                loadDeferredModule$1({
                     cacheKey: 'booking-utils-calendar',
                     src: BOOKING_UTILS_URL,
                     scriptDataAttribute: 'data-booking-utils',

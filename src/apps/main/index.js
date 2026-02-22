@@ -1,28 +1,28 @@
-import { createOnceTask, scheduleDeferredTask, loadDeferredModule } from './loader.js';
+import { createOnceTask, scheduleDeferredTask, loadDeferredModule } from '../shared/loader.js';
 import {
     resolveDeployAssetVersion,
     withDeployAssetVersion,
     debugLog,
-} from './utils.js';
-import { initActionRouterEngine } from './router.js';
-import { initThemeMode } from './theme.js';
-import { changeLanguage, initEnglishBundleWarmup } from './i18n.js';
-import { state } from './state.js';
-import { bootstrapConsent, showConsentBanner, initGA4 } from './cookies.js';
+} from '../shared/utils.js';
+import { initActionRouterEngine } from '../router/shell.js';
+import { initThemeMode } from '../theme/shell.js';
+import { changeLanguage, initEnglishBundleWarmup } from '../i18n/shell.js';
+import { state } from '../shared/state.js';
+import { bootstrapConsent, showConsentBanner, initGA4 } from '../consent/shell.js';
 import {
     initBookingFunnelObserver,
     initDeferredSectionPrefetch,
     maybeTrackCheckoutAbandon,
     trackEvent,
-} from './analytics.js';
-import { initDataEngineWarmup } from './data.js';
+} from '../analytics/shell.js';
+import { initDataEngineWarmup } from '../data/shell.js';
 import {
     initBookingEngineWarmup,
     initBookingUiWarmup,
     markBookingViewed,
-} from './booking.js';
-import { initReviewsEngineWarmup } from './engagement.js';
-import { initGalleryInteractionsWarmup } from './gallery.js';
+} from '../booking/shell.js';
+import { initReviewsEngineWarmup } from '../engagement/shell.js';
+import { initGalleryInteractionsWarmup } from '../gallery/shell.js';
 import {
     initChatUiEngineWarmup,
     initChatWidgetEngineWarmup,
@@ -37,12 +37,12 @@ import {
     handleChatDateSelect,
     handleChatKeypress,
     checkServerEnvironment,
-} from '../src/apps/chat/shell.js';
-import { initUiEffectsWarmup, initModalUxEngineWarmup } from './ui.js';
-import { initRescheduleEngineWarmup } from './reschedule.js';
-import { initSuccessModalEngineWarmup } from './success-modal.js';
-import { initEngagementFormsEngineWarmup } from './engagement.js';
-import { loadDeferredContent } from './content-loader.js';
+} from '../chat/shell.js';
+import { initUiEffectsWarmup, initModalUxEngineWarmup } from '../ui-effects/shell.js';
+import { initRescheduleEngineWarmup } from '../reschedule/shell.js';
+import { initSuccessModalEngineWarmup } from '../success-modal/shell.js';
+import { initEngagementFormsEngineWarmup } from '../engagement/shell.js';
+import { loadDeferredContent } from '../shared/content-loader.js';
 
 // Setup global version
 window.Piel = window.Piel || {};

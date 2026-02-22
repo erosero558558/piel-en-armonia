@@ -1,7 +1,7 @@
-import { withDeployAssetVersion, showToast, debugLog } from './utils.js';
-import { loadDeferredModule, withDeferredModule } from './loader.js';
-import { state } from './state.js';
-import { renderPublicReviews } from './engagement.js';
+import { withDeployAssetVersion, showToast, debugLog } from '../shared/utils.js';
+import { loadDeferredModule, withDeferredModule } from '../shared/loader.js';
+import { state } from '../shared/state.js';
+import { renderPublicReviews } from '../engagement/shell.js';
 
 const DATA_BUNDLE_URL = withDeployAssetVersion(
     '/js/engines/data-bundle.js?v=20260221-api-fix'

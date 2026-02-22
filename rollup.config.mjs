@@ -134,13 +134,53 @@ export default [
     },
     // Main Script
     {
-        input: 'js/main.js',
+        input: 'src/apps/main/index.js',
         output: {
             file: 'script.js',
             format: 'iife',
             sourcemap: false,
-            banner: '/* GENERATED FILE - DO NOT EDIT DIRECTLY - Edit source in js/main.js and run npm run build */',
+            banner: '/* GENERATED FILE - DO NOT EDIT DIRECTLY - Edit source in src/apps/main/index.js and run npm run build */',
         },
         plugins: [resolve()],
+    },
+    // Bootstrap Inline Engine
+    {
+        input: 'src/apps/shared/bootstrap.js',
+        output: {
+            file: 'js/bootstrap-inline-engine.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
+    // Monitoring Loader
+    {
+        input: 'src/apps/monitoring/loader.js',
+        output: {
+            file: 'js/monitoring-loader.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
+    // Services Init
+    {
+        input: 'src/apps/services/init.js',
+        output: {
+            file: 'js/services-init.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
+    // Telemedicina Init
+    {
+        input: 'src/apps/telemedicine/init.js',
+        output: {
+            file: 'js/telemedicina-init.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
     },
 ];

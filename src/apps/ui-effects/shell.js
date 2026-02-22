@@ -1,11 +1,11 @@
-import { withDeployAssetVersion } from './utils.js';
+import { withDeployAssetVersion } from '../shared/utils.js';
 import {
     loadDeferredModule,
     createWarmupRunner,
     bindWarmupTarget,
     scheduleDeferredTask,
-} from './loader.js';
-import { closePaymentModal } from './booking.js';
+} from '../shared/loader.js';
+import { closePaymentModal } from '../booking/shell.js';
 
 const UI_BUNDLE_URL = withDeployAssetVersion(
     '/js/engines/ui-bundle.js?v=20260220-consolidated1'
