@@ -21,3 +21,13 @@ vendor/
 .DS_Store
 Thumbs.db
 php_server.log
+
+# Python ML
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+ml/models/
