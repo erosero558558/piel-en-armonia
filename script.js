@@ -200,14 +200,7 @@
         // Debug logging removed
     }
 
-    function escapeHtml$1(text) {
-        if (
-            window.Piel &&
-            window.Piel.ChatUiEngine &&
-            typeof window.Piel.ChatUiEngine.escapeHtml === 'function'
-        ) {
-            return window.Piel.ChatUiEngine.escapeHtml(text);
-        }
+    function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = String(text || '');
         return div.innerHTML;
@@ -726,7 +719,7 @@
         return {
             apiRequest: apiRequest$1,
             storageGetJSON,
-            escapeHtml: escapeHtml$1,
+            escapeHtml,
             getCurrentLang: getCurrentLang,
         };
     }
@@ -1315,7 +1308,7 @@
             getCurrentLang,
             getCurrentAppointment,
             getClinicAddress: () => CLINIC_ADDRESS,
-            escapeHtml: escapeHtml$1,
+            escapeHtml,
         };
     }
 
@@ -1597,7 +1590,6 @@
             normalizeAnalyticsLabel,
             openPaymentModal,
             setCurrentAppointment: setCurrentAppointment,
-            updateAvailableTimes, // Added dependency
         };
     }
 
@@ -1849,7 +1841,7 @@
             getBookedSlots,
             invalidateBookedSlotsCache,
             showToast,
-            escapeHtml: escapeHtml$1,
+            escapeHtml,
             getCurrentLang: getCurrentLang,
         };
     }
@@ -1929,19 +1921,6 @@
     const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
     const CHAT_HISTORY_MAX_ITEMS = 50;
     const CHAT_CONTEXT_MAX_ITEMS = 24;
-
-    function escapeHtml(text) {
-        if (
-            window.Piel &&
-            window.Piel.ChatUiEngine &&
-            typeof window.Piel.ChatUiEngine.escapeHtml === 'function'
-        ) {
-            return window.Piel.ChatUiEngine.escapeHtml(text);
-        }
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
 
     function scrollToBottom() {
         if (
@@ -2302,10 +2281,7 @@
             loadFigoChatEngine,
             (engine) => engine.processWithKimi(message),
             (error) => {
-                // Log error to monitoring service in production
-                if (window.Piel && window.Piel.reportError) {
-                    window.Piel.reportError('chat_engine_load', error);
-                }
+                console.error('Error cargando motor de chat:', error);
                 removeTypingIndicator();
                 addBotMessage(
                     'No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.',
@@ -2706,7 +2682,7 @@
             debugLog('Deferred content loaded and hydrated.');
             return true;
         } catch (error) {
-            // Silent fail - fallback UI will show
+            console.error('Error loading deferred content:', error);
             renderDeferredFallbackState();
             return false;
         }
@@ -2980,7 +2956,9 @@
 
         const isServer = checkServerEnvironment();
         if (!isServer) {
-            // Offline mode - no server connection
+            console.warn(
+                'Chatbot en modo offline: abre el sitio desde servidor para usar IA real.'
+            );
         }
 
         // Smooth Scroll
@@ -3069,7 +3047,7 @@
     // Push Notifications (Stub)
     window.subscribeToPushNotifications = async function() {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            // Push notifications not supported in this browser
+            console.warn('Push not supported');
             return;
         }
         try {
@@ -3081,7 +3059,7 @@
                 applicationServerKey: publicVapidKey
             });
         } catch (error) {
-            // Push subscription failed - ignore
+            console.error('Push subscription error:', error);
         }
     };
 

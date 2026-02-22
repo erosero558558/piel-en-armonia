@@ -545,8 +545,13 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
                 if (!isset($appt['id'])) {
                     continue;
                 }
+                $id = $appt['id'];
+                if (!is_int($id) && !ctype_digit((string)$id)) {
+                    // Try to generate a numeric ID from timestamp if available, or hash
+                    $id = (int) (microtime(true) * 10000);
+                }
                 $stmt->execute([
-                    $appt['id'],
+                    $id,
                     $appt['date'] ?? '',
                     $appt['time'] ?? '',
                     $appt['doctor'] ?? '',
@@ -571,8 +576,12 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
                 if (!isset($review['id'])) {
                     continue;
                 }
+                $id = $review['id'];
+                if (!is_int($id) && !ctype_digit((string)$id)) {
+                    $id = (int) (microtime(true) * 10000);
+                }
                 $stmt->execute([
-                    $review['id'],
+                    $id,
                     $review['name'] ?? '',
                     $review['rating'] ?? 0,
                     $review['text'] ?? '',
@@ -590,8 +599,12 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
                 if (!isset($cb['id'])) {
                     continue;
                 }
+                $id = $cb['id'];
+                if (!is_int($id) && !ctype_digit((string)$id)) {
+                    $id = (int) (microtime(true) * 10000);
+                }
                 $stmt->execute([
-                    $cb['id'],
+                    $id,
                     $cb['telefono'] ?? '',
                     $cb['preferencia'] ?? '',
                     $cb['fecha'] ?? '',
@@ -804,6 +817,9 @@ function write_store(array $store, bool $emitHttpErrors = true): bool
                 continue;
             }
             $id = $appt['id'];
+            if (!is_int($id) && !ctype_digit((string)$id)) {
+                $id = (int) (microtime(true) * 10000);
+            }
             $incomingIds[$id] = true;
 
             $stmtUpsert->execute([
@@ -842,6 +858,9 @@ function write_store(array $store, bool $emitHttpErrors = true): bool
                 continue;
             }
             $id = $review['id'];
+            if (!is_int($id) && !ctype_digit((string)$id)) {
+                $id = (int) (microtime(true) * 10000);
+            }
             $incomingIds[$id] = true;
             $stmtUpsert->execute([
                 $id,
@@ -870,6 +889,9 @@ function write_store(array $store, bool $emitHttpErrors = true): bool
                 continue;
             }
             $id = $cb['id'];
+            if (!is_int($id) && !ctype_digit((string)$id)) {
+                $id = (int) (microtime(true) * 10000);
+            }
             $incomingIds[$id] = true;
             $stmtUpsert->execute([
                 $id,
