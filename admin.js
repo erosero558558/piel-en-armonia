@@ -198,7 +198,8 @@ function getStatusText(status) {
         confirmed: 'Confirmada',
         pending: 'Pendiente',
         cancelled: 'Cancelada',
-        completed: 'Completada'
+        completed: 'Completada',
+        noshow: 'No Asistió'
     };
     return texts[status] || status;
 }
@@ -534,6 +535,7 @@ function loadDashboardData() {
     const todayAppointments = [];
     let pendingTransfers = 0;
     let confirmedCount = 0;
+    let noShowCount = 0;
 
     for (const a of currentAppointments) {
         if (a.date === today && a.status !== 'cancelled') {
@@ -546,6 +548,14 @@ function loadDashboardData() {
         if (status === 'confirmed') {
             confirmedCount++;
         }
+        if (status === 'noshow') {
+            noShowCount++;
+        }
+    }
+
+    const totalNoShowsEl = document.getElementById('totalNoShows');
+    if (totalNoShowsEl) {
+        totalNoShowsEl.textContent = formatCount(noShowCount);
     }
 
     document.getElementById('todayAppointments').textContent = todayAppointments.length;
@@ -787,6 +797,66 @@ async function rejectTransfer(id) {
     } catch (error) {
         showToast(`No se pudo rechazar: ${error.message}`, 'error');
     }
+}
+
+async function markNoShow(id) {
+    if (!confirm('¿Marcar esta cita como No Asistió (No Show)?')) return;
+    if (!id) { showToast('Id de cita invalido', 'error'); return; }
+    try {
+        await apiRequest('appointments', {
+            method: 'PATCH',
+            body: { id: id, status: 'noshow' }
+        });
+        await refreshData();
+        loadAppointments();
+        loadDashboardData();
+        showToast('Cita marcada como No Show', 'success');
+    } catch (error) {
+        showToast(`Error: ${error.message}`, 'error');
+    }
+}
+
+function exportAppointmentsCSV() {
+    if (!currentAppointments || currentAppointments.length === 0) {
+        showToast('No hay citas para exportar', 'warning');
+        return;
+    }
+
+    const headers = [
+        'ID', 'Fecha', 'Hora', 'Paciente', 'Email', 'Telefono',
+        'Servicio', 'Doctor', 'Precio', 'Estado', 'Estado Pago', 'Metodo Pago'
+    ];
+
+    const rows = currentAppointments.map(appt => [
+        appt.id,
+        appt.date,
+        appt.time,
+        `"${(appt.name || '').replace(/"/g, '""')}"`,
+        `"${(appt.email || '').replace(/"/g, '""')}"`,
+        `"${(appt.phone || '').replace(/"/g, '""')}"`,
+        `"${(getServiceName(appt.service) || '').replace(/"/g, '""')}"`,
+        `"${(getDoctorName(appt.doctor) || '').replace(/"/g, '""')}"`,
+        appt.price,
+        getStatusText(appt.status || 'confirmed'),
+        getPaymentStatusText(appt.paymentStatus),
+        getPaymentMethodText(appt.paymentMethod)
+    ]);
+
+    const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `citas-pielarmonia-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('Archivo CSV generado', 'success');
 }
 
 function renderCallbacks(callbacks) {
@@ -1485,6 +1555,12 @@ function attachGlobalListeners() {
             return;
         }
 
+        if (action === 'export-csv') {
+            event.preventDefault();
+            exportAppointmentsCSV();
+            return;
+        }
+
         try {
             if (action === 'change-month') {
                 event.preventDefault();
@@ -1517,6 +1593,11 @@ function attachGlobalListeners() {
             if (action === 'cancel-appointment') {
                 event.preventDefault();
                 await cancelAppointment(Number(actionEl.dataset.id || 0));
+                return;
+            }
+            if (action === 'mark-no-show') {
+                event.preventDefault();
+                await markNoShow(Number(actionEl.dataset.id || 0));
                 return;
             }
             if (action === 'mark-contacted') {

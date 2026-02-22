@@ -101,7 +101,8 @@ export function getStatusText(status) {
         confirmed: 'Confirmada',
         pending: 'Pendiente',
         cancelled: 'Cancelada',
-        completed: 'Completada'
+        completed: 'Completada',
+        noshow: 'No Asistió'
     };
     return texts[status] || status;
 }
