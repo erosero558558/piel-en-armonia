@@ -87,7 +87,16 @@ class CalendarBookingServiceUnitTest extends TestCase
 
     public function testStoreBookedSlotsRespectOverlapAndDuration(): void
     {
-        $availability = CalendarAvailabilityService::fromEnv();
+        // Construct service manually to ensure config is correct and immune to env flakiness
+        $client = GoogleCalendarClient::fromEnv();
+        $availability = new CalendarAvailabilityService(
+            $client,
+            'store',
+            true,
+            'America/Guayaquil',
+            30, // Force slotStepMin to 30
+            ['consulta' => 30, 'laser' => 60]
+        );
         $date = date('Y-m-d', strtotime('+2 day'));
 
         $store = [
