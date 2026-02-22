@@ -26,7 +26,7 @@ on:
 
 concurrency:
     group: repair-git-sync-main
-    cancel-in-progress: false
+    cancel-in-progress: true
 
 permissions:
     contents: read
@@ -37,7 +37,7 @@ jobs:
         name: Repair git sync on server
         runs-on: ubuntu-latest
         timeout-minutes: 20
-        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && contains(fromJSON('["failure","cancelled","timed_out","action_required"]'), github.event.workflow_run.conclusion) && github.event.workflow_run.head_branch == 'main') }}
+        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && contains(fromJSON('["failure","timed_out","action_required","startup_failure"]'), github.event.workflow_run.conclusion) && github.event.workflow_run.head_branch == 'main') }}
         env:
             TARGET_DOMAIN: ${{ github.event.inputs.domain || vars.PROD_URL || 'https://pielarmonia.com' }}
             TARGET_BRANCH: ${{ github.event.inputs.branch || 'main' }}
