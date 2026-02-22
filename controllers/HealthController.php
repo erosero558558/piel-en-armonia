@@ -37,6 +37,7 @@ class HealthController
             $calendarService->getBlockOnFailure(),
             $calendarReachable
         );
+        $calendarSource = $calendarActive ? 'google' : 'store';
         $redisStatus = getenv('PIELARMONIA_REDIS_HOST') ? 'configured' : 'disabled';
         $store = isset($context['store']) && is_array($context['store']) ? $context['store'] : read_store();
         $appointments = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
@@ -95,6 +96,7 @@ class HealthController
             'calendarConfigured' => $calendarClientConfigured,
             'calendarReachable' => $calendarReachable,
             'calendarMode' => $calendarMode,
+            'calendarSource' => $calendarSource,
             'calendarLastSuccessAt' => $calendarLastSuccessAt,
             'calendarLastErrorAt' => $calendarLastErrorAt,
             'calendarLastErrorReason' => $calendarLastErrorReason,
@@ -113,6 +115,7 @@ class HealthController
             'calendarConfigured' => $calendarClientConfigured,
             'calendarReachable' => $calendarReachable,
             'calendarMode' => $calendarMode,
+            'calendarSource' => $calendarSource,
             'calendarAuth' => $calendarActive ? 'service_account' : 'none',
             'calendarLastSuccessAt' => $calendarLastSuccessAt,
             'calendarLastErrorAt' => $calendarLastErrorAt,
@@ -130,6 +133,7 @@ class HealthController
                     'calendarConfigured' => $calendarClientConfigured,
                     'calendarReachable' => $calendarReachable,
                     'calendarMode' => $calendarMode,
+                    'calendarSource' => $calendarSource,
                     'calendarAuth' => $calendarActive ? 'service_account' : 'none',
                     'calendarLastSuccessAt' => $calendarLastSuccessAt,
                     'calendarLastErrorAt' => $calendarLastErrorAt,
