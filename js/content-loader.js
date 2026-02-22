@@ -1,4 +1,4 @@
-import { debugLog, withDeployAssetVersion } from './utils.js';
+import { debugLog, withDeployAssetVersion, sanitizeHtml } from './utils.js';
 
 const CONTENT_JSON_URL = withDeployAssetVersion('/content/index.json');
 const REQUIRED_SECTION_IDS = [
@@ -36,7 +36,7 @@ export function hydrateDeferredText(container) {
             if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA') {
                 node.placeholder = window.PIEL_CONTENT[key];
             } else {
-                node.innerHTML = window.PIEL_CONTENT[key];
+                node.innerHTML = sanitizeHtml(window.PIEL_CONTENT[key]);
             }
         }
     });
@@ -182,17 +182,31 @@ function renderDeferredFallbackState() {
     document.querySelectorAll('.section.deferred-content').forEach((section) => {
         const title =
             FALLBACK_SECTION_TITLES[section.id] || 'Contenido temporalmente no disponible';
-        section.innerHTML = `
-            <div class="section-header" style="text-align:center;">
-                <h2 class="section-title">${title}</h2>
-                <p class="section-subtitle">
-                    Estamos recargando esta seccion. Si no aparece en unos segundos, recarga la pagina.
-                </p>
-                <a href="${refreshHref}" class="btn btn-secondary">
-                    Recargar ahora
-                </a>
-            </div>
-        `;
+
+        section.innerHTML = '';
+
+        const header = document.createElement('div');
+        header.className = 'section-header';
+        header.style.textAlign = 'center';
+
+        const h2 = document.createElement('h2');
+        h2.className = 'section-title';
+        h2.textContent = title;
+        header.appendChild(h2);
+
+        const p = document.createElement('p');
+        p.className = 'section-subtitle';
+        p.textContent = 'Estamos recargando esta seccion. Si no aparece en unos segundos, recarga la pagina.';
+        header.appendChild(p);
+
+        const a = document.createElement('a');
+        a.href = refreshHref;
+        a.className = 'btn btn-secondary';
+        a.textContent = 'Recargar ahora';
+        header.appendChild(a);
+
+        section.appendChild(header);
+
         section.classList.remove('deferred-content');
         forceDeferredSectionPaint(section);
     });
@@ -205,7 +219,7 @@ export async function loadDeferredContent() {
         Object.keys(data).forEach((id) => {
             const container = document.getElementById(id);
             if (container && container.classList.contains('deferred-content')) {
-                container.innerHTML = data[id];
+                container.innerHTML = sanitizeHtml(data[id]);
                 normalizeDeferredAssetUrls(container);
                 container.classList.remove('deferred-content'); // Optional cleanup
                 forceDeferredSectionPaint(container);

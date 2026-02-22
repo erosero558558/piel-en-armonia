@@ -226,6 +226,60 @@
         return;
     }
 
+    function sanitize(html) {
+        if (!html) return '';
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            const allowedTags = new Set([
+                'div', 'span', 'p', 'br', 'strong', 'b', 'em', 'i', 'u',
+                'ul', 'ol', 'li', 'a', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                'section', 'article', 'header', 'footer', 'nav', 'main', 'aside',
+                'figure', 'figcaption', 'blockquote', 'pre', 'code',
+                'table', 'thead', 'tbody', 'tr', 'th', 'td',
+                'button', 'label', 'input', 'textarea', 'form'
+            ]);
+
+            const allowedAttrs = new Set([
+                'href', 'src', 'alt', 'title', 'class', 'id', 'name', 'type',
+                'placeholder', 'value', 'rows', 'cols', 'checked', 'disabled',
+                'readonly', 'required', 'selected', 'target', 'rel', 'role'
+            ]);
+
+            const allElements = doc.body.querySelectorAll('*');
+            for (const el of allElements) {
+                const tagName = el.tagName.toLowerCase();
+                if (!allowedTags.has(tagName)) {
+                    el.remove();
+                    continue;
+                }
+
+                const attrs = Array.from(el.attributes);
+                for (const attr of attrs) {
+                    const name = attr.name.toLowerCase();
+                    if (name.startsWith('data-') || name.startsWith('aria-')) continue;
+                    if (!allowedAttrs.has(name)) {
+                        el.removeAttribute(name);
+                        continue;
+                    }
+                    if (name === 'href' || name === 'src') {
+                        const val = attr.value.toLowerCase().trim();
+                        if (val.startsWith('javascript:') || val.startsWith('vbscript:')) {
+                            el.removeAttribute(name);
+                        }
+                    }
+                    if (name.startsWith('on')) {
+                        el.removeAttribute(name);
+                    }
+                }
+            }
+            return doc.body.innerHTML;
+        } catch (_error) {
+            return '';
+        }
+    }
+
     function readStoredLanguage() {
         try {
             const value = localStorage.getItem(STORAGE_KEY);
@@ -284,7 +338,7 @@
             if (!key || typeof dict[key] !== 'string') {
                 return;
             }
-            element.innerHTML = dict[key];
+            element.innerHTML = sanitize(dict[key]);
         });
 
         updateLanguageButtons(lang);

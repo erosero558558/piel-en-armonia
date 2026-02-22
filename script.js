@@ -200,6 +200,68 @@
         // Debug logging removed
     }
 
+    function sanitizeHtml(html) {
+        if (!html) return '';
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            const allowedTags = new Set([
+                'div', 'span', 'p', 'br', 'strong', 'b', 'em', 'i', 'u',
+                'ul', 'ol', 'li', 'a', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                'section', 'article', 'header', 'footer', 'nav', 'main', 'aside',
+                'figure', 'figcaption', 'blockquote', 'pre', 'code',
+                'table', 'thead', 'tbody', 'tr', 'th', 'td',
+                'button', 'label', 'input', 'textarea', 'form'
+            ]);
+
+            const allowedAttrs = new Set([
+                'href', 'src', 'alt', 'title', 'class', 'id', 'name', 'type',
+                'placeholder', 'value', 'rows', 'cols', 'checked', 'disabled',
+                'readonly', 'required', 'selected', 'target', 'rel', 'role'
+            ]);
+
+            const allElements = doc.body.querySelectorAll('*');
+            for (const el of allElements) {
+                const tagName = el.tagName.toLowerCase();
+                if (!allowedTags.has(tagName)) {
+                    el.remove();
+                    continue;
+                }
+
+                // Sanitize attributes
+                const attrs = Array.from(el.attributes);
+                for (const attr of attrs) {
+                    const name = attr.name.toLowerCase();
+                    // Allow data-* and aria-* attributes
+                    if (name.startsWith('data-') || name.startsWith('aria-')) {
+                        continue;
+                    }
+                    if (!allowedAttrs.has(name)) {
+                        el.removeAttribute(name);
+                        continue;
+                    }
+
+                    // Sanitize URL attributes
+                    if (name === 'href' || name === 'src') {
+                        const val = attr.value.toLowerCase().trim();
+                        if (val.startsWith('javascript:') || val.startsWith('vbscript:')) {
+                            el.removeAttribute(name);
+                        }
+                    }
+
+                    // Remove event handlers
+                    if (name.startsWith('on')) {
+                        el.removeAttribute(name);
+                    }
+                }
+            }
+            return doc.body.innerHTML;
+        } catch (e) {
+            return '';
+        }
+    }
+
     function escapeHtml$1(text) {
         if (
             window.Piel &&
@@ -311,10 +373,10 @@
         };
 
         const titles = {
-            success: title || 'Exito',
-            error: title || 'Error',
-            warning: title || 'Advertencia',
-            info: title || 'Informacion',
+            success: sanitizeHtml(title || 'Exito'),
+            error: sanitizeHtml(title || 'Error'),
+            warning: sanitizeHtml(title || 'Advertencia'),
+            info: sanitizeHtml(title || 'Informacion'),
         };
 
         // Escapar mensaje para prevenir XSS
@@ -2302,10 +2364,7 @@
             loadFigoChatEngine,
             (engine) => engine.processWithKimi(message),
             (error) => {
-                // Log error to monitoring service in production
-                if (window.Piel && window.Piel.reportError) {
-                    window.Piel.reportError('chat_engine_load', error);
-                }
+                console.error('Error cargando motor de chat:', error);
                 removeTypingIndicator();
                 addBotMessage(
                     'No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.',
@@ -2525,7 +2584,7 @@
                 if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA') {
                     node.placeholder = window.PIEL_CONTENT[key];
                 } else {
-                    node.innerHTML = window.PIEL_CONTENT[key];
+                    node.innerHTML = sanitizeHtml(window.PIEL_CONTENT[key]);
                 }
             }
         });
@@ -2670,17 +2729,31 @@
         document.querySelectorAll('.section.deferred-content').forEach((section) => {
             const title =
                 FALLBACK_SECTION_TITLES[section.id] || 'Contenido temporalmente no disponible';
-            section.innerHTML = `
-            <div class="section-header" style="text-align:center;">
-                <h2 class="section-title">${title}</h2>
-                <p class="section-subtitle">
-                    Estamos recargando esta seccion. Si no aparece en unos segundos, recarga la pagina.
-                </p>
-                <a href="${refreshHref}" class="btn btn-secondary">
-                    Recargar ahora
-                </a>
-            </div>
-        `;
+
+            section.innerHTML = '';
+
+            const header = document.createElement('div');
+            header.className = 'section-header';
+            header.style.textAlign = 'center';
+
+            const h2 = document.createElement('h2');
+            h2.className = 'section-title';
+            h2.textContent = title;
+            header.appendChild(h2);
+
+            const p = document.createElement('p');
+            p.className = 'section-subtitle';
+            p.textContent = 'Estamos recargando esta seccion. Si no aparece en unos segundos, recarga la pagina.';
+            header.appendChild(p);
+
+            const a = document.createElement('a');
+            a.href = refreshHref;
+            a.className = 'btn btn-secondary';
+            a.textContent = 'Recargar ahora';
+            header.appendChild(a);
+
+            section.appendChild(header);
+
             section.classList.remove('deferred-content');
             forceDeferredSectionPaint(section);
         });
@@ -2693,7 +2766,7 @@
             Object.keys(data).forEach((id) => {
                 const container = document.getElementById(id);
                 if (container && container.classList.contains('deferred-content')) {
-                    container.innerHTML = data[id];
+                    container.innerHTML = sanitizeHtml(data[id]);
                     normalizeDeferredAssetUrls(container);
                     container.classList.remove('deferred-content'); // Optional cleanup
                     forceDeferredSectionPaint(container);
@@ -2706,7 +2779,7 @@
             debugLog('Deferred content loaded and hydrated.');
             return true;
         } catch (error) {
-            // Silent fail - fallback UI will show
+            console.error('Error loading deferred content:', error);
             renderDeferredFallbackState();
             return false;
         }
@@ -2980,7 +3053,9 @@
 
         const isServer = checkServerEnvironment();
         if (!isServer) {
-            // Offline mode - no server connection
+            console.warn(
+                'Chatbot en modo offline: abre el sitio desde servidor para usar IA real.'
+            );
         }
 
         // Smooth Scroll
@@ -3069,7 +3144,7 @@
     // Push Notifications (Stub)
     window.subscribeToPushNotifications = async function() {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            // Push notifications not supported in this browser
+            console.warn('Push not supported');
             return;
         }
         try {
@@ -3081,7 +3156,7 @@
                 applicationServerKey: publicVapidKey
             });
         } catch (error) {
-            // Push subscription failed - ignore
+            console.error('Push subscription error:', error);
         }
     };
 
