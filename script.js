@@ -1598,6 +1598,7 @@
             normalizeAnalyticsLabel,
             openPaymentModal,
             setCurrentAppointment: setCurrentAppointment,
+            updateAvailableTimes,
             debugLog,
         };
     }
