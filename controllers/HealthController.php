@@ -38,6 +38,7 @@ class HealthController
             $calendarReachable
         );
         $calendarSource = $calendarActive ? 'google' : 'store';
+        $calendarAuth = $calendarActive ? $calendarService->getClient()->getAuthMode() : 'none';
         $redisStatus = getenv('PIELARMONIA_REDIS_HOST') ? 'configured' : 'disabled';
         $store = isset($context['store']) && is_array($context['store']) ? $context['store'] : read_store();
         $appointments = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
@@ -116,7 +117,7 @@ class HealthController
             'calendarReachable' => $calendarReachable,
             'calendarMode' => $calendarMode,
             'calendarSource' => $calendarSource,
-            'calendarAuth' => $calendarActive ? 'service_account' : 'none',
+            'calendarAuth' => $calendarAuth,
             'calendarLastSuccessAt' => $calendarLastSuccessAt,
             'calendarLastErrorAt' => $calendarLastErrorAt,
             'calendarLastErrorReason' => $calendarLastErrorReason,
@@ -134,7 +135,7 @@ class HealthController
                     'calendarReachable' => $calendarReachable,
                     'calendarMode' => $calendarMode,
                     'calendarSource' => $calendarSource,
-                    'calendarAuth' => $calendarActive ? 'service_account' : 'none',
+                    'calendarAuth' => $calendarAuth,
                     'calendarLastSuccessAt' => $calendarLastSuccessAt,
                     'calendarLastErrorAt' => $calendarLastErrorAt,
                     'calendarLastErrorReason' => $calendarLastErrorReason,

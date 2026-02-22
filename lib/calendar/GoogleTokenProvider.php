@@ -4,22 +4,34 @@ declare(strict_types=1);
 
 class GoogleTokenProvider
 {
+    private string $authMode;
     private string $clientEmail;
     private string $privateKey;
+    private string $oauthClientId;
+    private string $oauthClientSecret;
+    private string $oauthRefreshToken;
     private string $tokenUri;
     private string $scope;
     private string $cachePath;
-    private static ?array $memoryCache = null;
+    private static array $memoryCache = [];
 
     public function __construct(
+        string $authMode,
         string $clientEmail,
         string $privateKey,
+        string $oauthClientId,
+        string $oauthClientSecret,
+        string $oauthRefreshToken,
         string $tokenUri,
         string $scope,
         string $cachePath
     ) {
+        $this->authMode = trim($authMode);
         $this->clientEmail = trim($clientEmail);
         $this->privateKey = trim($privateKey);
+        $this->oauthClientId = trim($oauthClientId);
+        $this->oauthClientSecret = trim($oauthClientSecret);
+        $this->oauthRefreshToken = trim($oauthRefreshToken);
         $this->tokenUri = trim($tokenUri);
         $this->scope = trim($scope);
         $this->cachePath = trim($cachePath);
@@ -30,6 +42,11 @@ class GoogleTokenProvider
         $clientEmail = (string) (getenv('PIELARMONIA_GOOGLE_SA_CLIENT_EMAIL') ?: '');
         $privateKeyB64 = (string) (getenv('PIELARMONIA_GOOGLE_SA_PRIVATE_KEY_B64') ?: '');
         $privateKeyRaw = (string) (getenv('PIELARMONIA_GOOGLE_SA_PRIVATE_KEY') ?: '');
+
+        $oauthClientId = (string) (getenv('PIELARMONIA_GOOGLE_OAUTH_CLIENT_ID') ?: '');
+        $oauthClientSecret = (string) (getenv('PIELARMONIA_GOOGLE_OAUTH_CLIENT_SECRET') ?: '');
+        $oauthRefreshToken = (string) (getenv('PIELARMONIA_GOOGLE_OAUTH_REFRESH_TOKEN') ?: '');
+
         $tokenUri = (string) (getenv('PIELARMONIA_GOOGLE_SA_TOKEN_URI') ?: 'https://oauth2.googleapis.com/token');
         $scope = (string) (getenv('PIELARMONIA_GOOGLE_SA_SCOPE') ?: 'https://www.googleapis.com/auth/calendar');
 
@@ -41,21 +58,60 @@ class GoogleTokenProvider
             }
         }
         if ($privateKey === '' && $privateKeyRaw !== '') {
-            $privateKey = str_replace('\n', "\n", trim($privateKeyRaw));
+            $privateKey = str_replace('\\n', "\n", trim($privateKeyRaw));
+        }
+
+        $serviceAccountConfigured = trim($clientEmail) !== '' && $privateKey !== '';
+        $oauthConfigured = trim($oauthClientId) !== ''
+            && trim($oauthClientSecret) !== ''
+            && trim($oauthRefreshToken) !== '';
+
+        $authMode = 'none';
+        if ($serviceAccountConfigured) {
+            $authMode = 'service_account';
+        } elseif ($oauthConfigured) {
+            $authMode = 'oauth_refresh';
         }
 
         $cacheDir = data_dir_path() . DIRECTORY_SEPARATOR . 'cache';
         if (!is_dir($cacheDir)) {
             @mkdir($cacheDir, 0775, true);
         }
-        $cachePath = $cacheDir . DIRECTORY_SEPARATOR . 'google-sa-token.json';
+        $cacheSuffix = $authMode === 'oauth_refresh' ? 'oauth' : 'sa';
+        $cachePath = $cacheDir . DIRECTORY_SEPARATOR . 'google-token-' . $cacheSuffix . '.json';
 
-        return new self($clientEmail, $privateKey, $tokenUri, $scope, $cachePath);
+        return new self(
+            $authMode,
+            $clientEmail,
+            $privateKey,
+            $oauthClientId,
+            $oauthClientSecret,
+            $oauthRefreshToken,
+            $tokenUri,
+            $scope,
+            $cachePath
+        );
+    }
+
+    public function getAuthMode(): string
+    {
+        return $this->authMode !== '' ? $this->authMode : 'none';
     }
 
     public function isConfigured(): bool
     {
-        return $this->clientEmail !== '' && $this->privateKey !== '' && $this->tokenUri !== '';
+        if ($this->tokenUri === '') {
+            return false;
+        }
+        if ($this->authMode === 'service_account') {
+            return $this->clientEmail !== '' && $this->privateKey !== '';
+        }
+        if ($this->authMode === 'oauth_refresh') {
+            return $this->oauthClientId !== ''
+                && $this->oauthClientSecret !== ''
+                && $this->oauthRefreshToken !== '';
+        }
+        return false;
     }
 
     public function getAccessToken(): array
@@ -63,7 +119,7 @@ class GoogleTokenProvider
         if (!$this->isConfigured()) {
             return [
                 'ok' => false,
-                'error' => 'Google Calendar no configurado',
+                'error' => 'Google Calendar not configured',
                 'code' => 'calendar_not_configured',
             ];
         }
@@ -82,16 +138,41 @@ class GoogleTokenProvider
             }
         }
 
-        $jwt = $this->buildJwt($now);
-        if ($jwt === '') {
+        if ($this->authMode === 'service_account') {
+            $jwt = $this->buildJwt($now);
+            if ($jwt === '') {
+                return [
+                    'ok' => false,
+                    'error' => 'Could not sign Google token',
+                    'code' => 'calendar_jwt_sign_failed',
+                ];
+            }
+
+            $tokenResponse = $this->requestToken(
+                [
+                    'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                    'assertion' => $jwt,
+                ],
+                'oauth_token_service_account'
+            );
+        } elseif ($this->authMode === 'oauth_refresh') {
+            $tokenResponse = $this->requestToken(
+                [
+                    'grant_type' => 'refresh_token',
+                    'client_id' => $this->oauthClientId,
+                    'client_secret' => $this->oauthClientSecret,
+                    'refresh_token' => $this->oauthRefreshToken,
+                ],
+                'oauth_token_refresh_token'
+            );
+        } else {
             return [
                 'ok' => false,
-                'error' => 'No se pudo firmar el token de Google',
-                'code' => 'calendar_jwt_sign_failed',
+                'error' => 'Google Calendar not configured',
+                'code' => 'calendar_not_configured',
             ];
         }
 
-        $tokenResponse = $this->requestToken($jwt);
         if (($tokenResponse['ok'] ?? false) !== true) {
             return $tokenResponse;
         }
@@ -101,7 +182,7 @@ class GoogleTokenProvider
         if ($accessToken === '' || $expiresIn <= 0) {
             return [
                 'ok' => false,
-                'error' => 'Respuesta inválida del token de Google',
+                'error' => 'Invalid response from Google OAuth',
                 'code' => 'calendar_token_invalid_response',
             ];
         }
@@ -111,6 +192,7 @@ class GoogleTokenProvider
             'access_token' => $accessToken,
             'expires_at' => $expiresAt,
             'updated_at' => gmdate('c'),
+            'auth_mode' => $this->authMode,
         ];
         $this->storeCache($record);
 
@@ -160,12 +242,9 @@ class GoogleTokenProvider
         return implode('.', $segments);
     }
 
-    private function requestToken(string $jwt): array
+    private function requestToken(array $payloadFields, string $operation): array
     {
-        $payload = http_build_query([
-            'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-            'assertion' => $jwt,
-        ]);
+        $payload = http_build_query($payloadFields);
 
         $headers = [
             'Content-Type: application/x-www-form-urlencoded',
@@ -177,7 +256,7 @@ class GoogleTokenProvider
         if (($response['ok'] ?? false) !== true) {
             return [
                 'ok' => false,
-                'error' => 'No se pudo autenticar con Google Calendar',
+                'error' => 'Could not authenticate with Google Calendar',
                 'code' => 'calendar_token_request_failed',
             ];
         }
@@ -188,7 +267,7 @@ class GoogleTokenProvider
         if (!is_array($json)) {
             return [
                 'ok' => false,
-                'error' => 'Respuesta no válida de Google OAuth',
+                'error' => 'Invalid response from Google OAuth',
                 'code' => 'calendar_token_invalid_json',
             ];
         }
@@ -196,14 +275,14 @@ class GoogleTokenProvider
         if ($status < 200 || $status >= 300) {
             $message = (string) ($json['error_description'] ?? $json['error'] ?? 'oauth_error');
             audit_log_event('calendar.error', [
-                'operation' => 'oauth_token',
+                'operation' => $operation,
                 'status' => $status,
                 'reason' => $message,
             ]);
 
             return [
                 'ok' => false,
-                'error' => 'Google OAuth rechazó la autenticación',
+                'error' => 'Google OAuth rejected authentication',
                 'code' => 'calendar_token_rejected',
             ];
         }
@@ -268,8 +347,8 @@ class GoogleTokenProvider
 
     private function loadCache(): ?array
     {
-        if (is_array(self::$memoryCache)) {
-            return self::$memoryCache;
+        if ($this->cachePath !== '' && isset(self::$memoryCache[$this->cachePath]) && is_array(self::$memoryCache[$this->cachePath])) {
+            return self::$memoryCache[$this->cachePath];
         }
         if ($this->cachePath === '' || !is_file($this->cachePath)) {
             return null;
@@ -282,13 +361,15 @@ class GoogleTokenProvider
         if (!is_array($decoded)) {
             return null;
         }
-        self::$memoryCache = $decoded;
+        self::$memoryCache[$this->cachePath] = $decoded;
         return $decoded;
     }
 
     private function storeCache(array $record): void
     {
-        self::$memoryCache = $record;
+        if ($this->cachePath !== '') {
+            self::$memoryCache[$this->cachePath] = $record;
+        }
         if ($this->cachePath === '') {
             return;
         }

@@ -29,6 +29,7 @@ class AdminDataController
             $availabilityService->getBlockOnFailure(),
             $calendarReachable
         );
+        $calendarAuth = $calendarActive ? $calendarClient->getAuthMode() : 'none';
         $doctorCalendars = [];
         foreach (['rosero', 'narvaez'] as $doctor) {
             $calendarId = trim((string) ($rawCalendars[$doctor] ?? ''));
@@ -44,7 +45,7 @@ class AdminDataController
             'source' => $calendarActive ? 'google' : 'store',
             'mode' => $calendarMode,
             'timezone' => $calendarClient->getTimezone(),
-            'calendarAuth' => $calendarActive ? 'service_account' : 'none',
+            'calendarAuth' => $calendarAuth,
             'calendarConfigured' => $calendarConfigured,
             'calendarReachable' => $calendarReachable,
             'calendarLastSuccessAt' => $calendarLastSuccessAt,

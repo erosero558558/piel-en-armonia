@@ -100,6 +100,11 @@
 // putenv('PIELARMONIA_GOOGLE_SA_CLIENT_EMAIL=service-account@proyecto.iam.gserviceaccount.com');
 // Clave privada en Base64 (contenido completo del private_key del JSON de Google).
 // putenv('PIELARMONIA_GOOGLE_SA_PRIVATE_KEY_B64=BASE64_PRIVATE_KEY');
+// Alternativa sin claves JSON (OAuth refresh token), util para organizaciones con
+// politica iam.disableServiceAccountKeyCreation habilitada.
+// putenv('PIELARMONIA_GOOGLE_OAUTH_CLIENT_ID=xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com');
+// putenv('PIELARMONIA_GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-xxxxxxxxxxxxxxxxxxxx');
+// putenv('PIELARMONIA_GOOGLE_OAUTH_REFRESH_TOKEN=1//0gxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
 // IDs de calendario por doctor.
 // putenv('PIELARMONIA_GOOGLE_CALENDAR_ID_ROSERO=cal_id_rosero@group.calendar.google.com');
 // putenv('PIELARMONIA_GOOGLE_CALENDAR_ID_NARVAEZ=cal_id_narvaez@group.calendar.google.com');

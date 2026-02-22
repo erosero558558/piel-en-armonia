@@ -64,6 +64,15 @@ class GoogleCalendarClient
         return $this->timezone;
     }
 
+    public function getAuthMode(): string
+    {
+        if (!$this->tokenProvider->isConfigured()) {
+            return 'none';
+        }
+        $mode = $this->tokenProvider->getAuthMode();
+        return $mode !== '' ? $mode : 'none';
+    }
+
     public function getDoctorCalendarMap(): array
     {
         return [
