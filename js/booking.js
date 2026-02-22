@@ -34,10 +34,10 @@ import {
 export { markBookingViewed };
 
 const BOOKING_ENGINE_URL = withDeployAssetVersion(
-    '/js/engines/booking-engine.js?v=figo-booking-20260219-mbfix1'
+    '/js/engines/booking-engine.js?v=figo-booking-20260222-debugfix1'
 );
 const BOOKING_UI_URL = withDeployAssetVersion(
-    '/js/engines/booking-ui.js?v=figo-booking-ui-20260222-slotservicefix1'
+    '/js/engines/booking-ui.js?v=figo-booking-ui-20260222-debugfix1'
 );
 const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
 const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
@@ -140,6 +140,7 @@ function getBookingEngineDeps() {
         showToast,
         trackEvent,
         normalizeAnalyticsLabel,
+        debugLog,
     };
 }
 
@@ -249,7 +250,7 @@ function getBookingUiDeps() {
         normalizeAnalyticsLabel,
         openPaymentModal,
         setCurrentAppointment: setCurrentAppointment,
-        updateAvailableTimes, // Added dependency
+        debugLog,
     };
 }
 

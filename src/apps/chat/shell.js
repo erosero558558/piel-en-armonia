@@ -440,7 +440,7 @@ export async function processWithKimi(message) {
         loadFigoChatEngine,
         (engine) => engine.processWithKimi(message),
         (error) => {
-            console.error('Error cargando motor de chat:', error);
+            debugLog('Error cargando motor de chat:', error);
             removeTypingIndicator();
             addBotMessage(
                 'No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.',

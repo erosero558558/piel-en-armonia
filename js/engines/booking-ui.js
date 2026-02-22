@@ -117,7 +117,7 @@ function init(inputDeps) {
                 t,
             });
         } catch (error) {
-            console.error('Failed to load booking-calendar.js', error);
+            deps.debugLog('Failed to load booking-calendar.js', error);
             const isCalendarUnavailable =
                 error &&
                 (error.code === 'calendar_unreachable' ||
