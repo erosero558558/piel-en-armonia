@@ -3,7 +3,7 @@ import {
     showToast,
     storageGetJSON,
     storageSetJSON,
-} from '../src/apps/shared/utils.js';
+} from './utils.js';
 import { state } from './state.js';
 import {
     loadDeferredModule,

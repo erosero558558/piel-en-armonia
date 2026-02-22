@@ -1,4 +1,4 @@
-import { withDeployAssetVersion, showToast, debugLog } from '../src/apps/shared/utils.js';
+import { withDeployAssetVersion, showToast, debugLog } from './utils.js';
 import {
     loadDeferredModule,
     runDeferredModule,
@@ -249,6 +249,7 @@ function getBookingUiDeps() {
         normalizeAnalyticsLabel,
         openPaymentModal,
         setCurrentAppointment: setCurrentAppointment,
+        updateAvailableTimes, // Added dependency
     };
 }
 

@@ -2,23 +2,28 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/test_framework.php';
+namespace Tests\Unit\Booking;
 
-// Mocks
+use PHPUnit\Framework\TestCase;
+use BookingService;
+
+// Ensure BookingService is loaded
+require_once __DIR__ . '/../../../lib/BookingService.php';
+
+// Stub global functions for payment if they don't exist
 if (!function_exists('payment_gateway_enabled')) {
     function payment_gateway_enabled(): bool
     {
         return true;
     }
 }
-
 if (!function_exists('stripe_get_payment_intent')) {
     function stripe_get_payment_intent(string $id): array
     {
         if ($id === 'pi_valid') {
             return [
                 'status' => 'succeeded',
-                'amount' => 4000,
+                'amount' => 4000, // 40 + 0% = 40.00
                 'currency' => 'usd',
                 'amount_received' => 4000,
                 'metadata' => [
@@ -33,54 +38,48 @@ if (!function_exists('stripe_get_payment_intent')) {
         throw new \RuntimeException('Payment error');
     }
 }
-
 if (!function_exists('payment_expected_amount_cents')) {
     function payment_expected_amount_cents(string $service, ?string $date = null, ?string $time = null): int
     {
         return 4000;
     }
 }
-
 if (!function_exists('payment_currency')) {
     function payment_currency(): string
     {
         return 'USD';
     }
 }
+// Override local_date to return a fixed date for past date testing?
+// No, we can't redefine existing functions easily.
+// We will use relative dates for testing.
 
-if (!function_exists('data_dir_path')) {
-    function data_dir_path(): string
+class BookingServiceUnitTest extends TestCase
+{
+    private BookingService $service;
+    private array $emptyStore;
+
+    protected function setUp(): void
     {
-        return sys_get_temp_dir();
+        putenv('PIELARMONIA_AVAILABILITY_SOURCE=store');
+        $this->service = new BookingService();
+        $this->emptyStore = [
+            'appointments' => [],
+            'availability' => [],
+            'reviews' => [],
+            'callbacks' => []
+        ];
     }
-}
 
-// Include code under test
-require_once __DIR__ . '/../lib/BookingService.php';
+    protected function tearDown(): void
+    {
+        putenv('PIELARMONIA_AVAILABILITY_SOURCE');
+    }
 
-// Helper to get fresh service and store
-function setup_test(): array {
-    // Reset availability source env to force store usage
-    putenv('PIELARMONIA_AVAILABILITY_SOURCE=store');
-
-    $service = new BookingService();
-    $emptyStore = [
-        'appointments' => [],
-        'availability' => [],
-        'reviews' => [],
-        'callbacks' => []
-    ];
-    return [$service, $emptyStore];
-}
-
-function teardown_test(): void {
-    putenv('PIELARMONIA_AVAILABILITY_SOURCE');
-}
-
-run_test('BookingService::create success', function () {
-    [$service, $store] = setup_test();
-    try {
+    public function testCreateSuccess(): void
+    {
         $futureDate = date('Y-m-d', strtotime('+1 day'));
+        $store = $this->emptyStore;
         $store['availability'][$futureDate] = ['10:00'];
 
         $payload = [
@@ -95,21 +94,18 @@ run_test('BookingService::create success', function () {
             'paymentMethod' => 'cash'
         ];
 
-        $result = $service->create($store, $payload);
+        $result = $this->service->create($store, $payload);
 
-        assert_true($result['ok'], 'Should be ok');
-        assert_equals(201, $result['code']);
-        assert_equals(1, count($result['store']['appointments']));
-        assert_equals('pending_cash', $result['data']['paymentStatus']);
-    } finally {
-        teardown_test();
+        $this->assertTrue($result['ok']);
+        $this->assertEquals(201, $result['code']);
+        $this->assertCount(1, $result['store']['appointments']);
+        $this->assertEquals('pending_cash', $result['data']['paymentStatus']);
     }
-});
 
-run_test('BookingService::create slot conflict', function () {
-    [$service, $store] = setup_test();
-    try {
+    public function testCreateSlotConflict(): void
+    {
         $futureDate = date('Y-m-d', strtotime('+1 day'));
+        $store = $this->emptyStore;
         $store['availability'][$futureDate] = ['10:00'];
 
         // Existing appointment
@@ -133,20 +129,17 @@ run_test('BookingService::create slot conflict', function () {
             'paymentMethod' => 'cash'
         ];
 
-        $result = $service->create($store, $payload);
+        $result = $this->service->create($store, $payload);
 
-        assert_false($result['ok']);
-        assert_equals(409, $result['code']);
-        assert_equals('Ese horario ya fue reservado', $result['error']);
-    } finally {
-        teardown_test();
+        $this->assertFalse($result['ok']);
+        $this->assertEquals(409, $result['code']);
+        $this->assertEquals('Ese horario ya fue reservado', $result['error']);
     }
-});
 
-run_test('BookingService::create past date', function () {
-    [$service, $store] = setup_test();
-    try {
+    public function testCreatePastDate(): void
+    {
         $pastDate = date('Y-m-d', strtotime('-1 day'));
+        $store = $this->emptyStore;
 
         $payload = [
             'name' => 'John Doe',
@@ -160,29 +153,26 @@ run_test('BookingService::create past date', function () {
             'paymentMethod' => 'cash'
         ];
 
-        $result = $service->create($store, $payload);
+        $result = $this->service->create($store, $payload);
 
-        assert_false($result['ok']);
-        assert_equals(400, $result['code']);
-        assert_contains('pasada', $result['error']);
-    } finally {
-        teardown_test();
+        $this->assertFalse($result['ok']);
+        $this->assertEquals(400, $result['code']);
+        $this->assertStringContainsString('pasada', $result['error']);
     }
-});
 
-run_test('BookingService::cancel', function () {
-    [$service, $store] = setup_test();
-    try {
+    public function testCancel(): void
+    {
+        $store = $this->emptyStore;
         $store['appointments'][] = [
             'id' => 123,
             'date' => '2025-01-01',
             'status' => 'confirmed'
         ];
 
-        $result = $service->cancel($store, 123);
+        $result = $this->service->cancel($store, 123);
 
-        assert_true($result['ok']);
-        assert_equals(200, $result['code']);
+        $this->assertTrue($result['ok']);
+        $this->assertEquals(200, $result['code']);
 
         // Verify in store
         $cancelled = null;
@@ -192,18 +182,15 @@ run_test('BookingService::cancel', function () {
                 break;
             }
         }
-        assert_equals('cancelled', $cancelled['status']);
-    } finally {
-        teardown_test();
+        $this->assertEquals('cancelled', $cancelled['status']);
     }
-});
 
-run_test('BookingService::reschedule success', function () {
-    [$service, $store] = setup_test();
-    try {
+    public function testRescheduleSuccess(): void
+    {
         $futureDate = date('Y-m-d', strtotime('+2 days'));
         $originalDate = date('Y-m-d', strtotime('+1 day'));
 
+        $store = $this->emptyStore;
         $store['availability'][$futureDate] = ['11:00'];
         $store['appointments'][] = [
             'id' => 123,
@@ -214,10 +201,10 @@ run_test('BookingService::reschedule success', function () {
             'rescheduleToken' => 'token_1234567890123456'
         ];
 
-        $result = $service->reschedule($store, 'token_1234567890123456', $futureDate, '11:00');
+        $result = $this->service->reschedule($store, 'token_1234567890123456', $futureDate, '11:00');
 
-        assert_true($result['ok'], 'Reschedule should be ok: ' . ($result['error'] ?? ''));
-        assert_equals(200, $result['code']);
+        $this->assertTrue($result['ok']);
+        $this->assertEquals(200, $result['code']);
 
         $updated = null;
         foreach ($result['store']['appointments'] as $appt) {
@@ -226,18 +213,14 @@ run_test('BookingService::reschedule success', function () {
                 break;
             }
         }
-        assert_equals($futureDate, $updated['date']);
-        assert_equals('11:00', $updated['time']);
-    } finally {
-        teardown_test();
+        $this->assertEquals($futureDate, $updated['date']);
+        $this->assertEquals('11:00', $updated['time']);
     }
-});
 
-run_test('BookingService::create fails when date has no configured agenda', function () {
-    [$service, $store] = setup_test();
-    try {
+    public function testCreateFailsWhenDateHasNoConfiguredAgenda(): void
+    {
         $futureDate = date('Y-m-d', strtotime('+1 day'));
-        // Note: We do NOT add availability for this date
+        $store = $this->emptyStore;
 
         $payload = [
             'name' => 'John Doe',
@@ -251,17 +234,13 @@ run_test('BookingService::create fails when date has no configured agenda', func
             'paymentMethod' => 'cash'
         ];
 
-        $result = $service->create($store, $payload);
+        $result = $this->service->create($store, $payload);
 
-        assert_false($result['ok']);
-        assert_equals(400, $result['code']);
-        assert_equals(
+        $this->assertFalse($result['ok']);
+        $this->assertEquals(400, $result['code']);
+        $this->assertEquals(
             'No hay agenda disponible para la fecha seleccionada',
             $result['error']
         );
-    } finally {
-        teardown_test();
     }
-});
-
-print_test_summary();
+}

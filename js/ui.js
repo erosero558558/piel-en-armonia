@@ -1,4 +1,4 @@
-import { withDeployAssetVersion } from '../src/apps/shared/utils.js';
+import { withDeployAssetVersion } from './utils.js';
 import {
     loadDeferredModule,
     createWarmupRunner,

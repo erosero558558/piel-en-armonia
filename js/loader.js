@@ -1,4 +1,4 @@
-import { debugLog, isConstrainedNetworkConnection } from '../src/apps/shared/utils.js';
+import { debugLog, isConstrainedNetworkConnection } from './utils.js';
 
 const deferredModulePromises = new Map();
 

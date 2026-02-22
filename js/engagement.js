@@ -3,7 +3,7 @@ import {
     showToast,
     escapeHtml,
     storageGetJSON,
-} from '../src/apps/shared/utils.js';
+} from './utils.js';
 import {
     loadDeferredModule,
     runDeferredModule,
