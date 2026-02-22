@@ -17,6 +17,26 @@ class HealthController
         $figoEndpoint = self::resolve_figo_endpoint();
         $figoConfigured = $figoEndpoint !== '';
         $figoRecursive = self::is_figo_recursive_config($figoEndpoint);
+        $calendarService = CalendarAvailabilityService::fromEnv();
+        $calendarActive = $calendarService->isGoogleActive();
+        $calendarClientConfigured = $calendarActive
+            ? $calendarService->getClient()->isConfigured()
+            : true;
+        $calendarStatusSnapshot = GoogleCalendarClient::readStatusSnapshot();
+        $calendarLastSuccessAt = (string) ($calendarStatusSnapshot['lastSuccessAt'] ?? '');
+        $calendarLastErrorAt = (string) ($calendarStatusSnapshot['lastErrorAt'] ?? '');
+        $calendarLastErrorReason = (string) ($calendarStatusSnapshot['lastErrorReason'] ?? '');
+        $calendarReachable = self::resolveCalendarReachable(
+            $calendarActive,
+            $calendarClientConfigured,
+            $calendarLastSuccessAt,
+            $calendarLastErrorAt
+        );
+        $calendarMode = self::resolveCalendarMode(
+            $calendarActive,
+            $calendarService->getBlockOnFailure(),
+            $calendarReachable
+        );
         $redisStatus = getenv('PIELARMONIA_REDIS_HOST') ? 'configured' : 'disabled';
         $store = isset($context['store']) && is_array($context['store']) ? $context['store'] : read_store();
         $appointments = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
@@ -71,7 +91,13 @@ class HealthController
             'version' => app_runtime_version(),
             'dataDirSource' => $dataDirSource,
             'figoConfigured' => $figoConfigured,
-            'figoRecursiveConfig' => $figoRecursive
+            'figoRecursiveConfig' => $figoRecursive,
+            'calendarConfigured' => $calendarClientConfigured,
+            'calendarReachable' => $calendarReachable,
+            'calendarMode' => $calendarMode,
+            'calendarLastSuccessAt' => $calendarLastSuccessAt,
+            'calendarLastErrorAt' => $calendarLastErrorAt,
+            'calendarLastErrorReason' => $calendarLastErrorReason,
         ]);
         json_response([
             'ok' => true,
@@ -84,6 +110,13 @@ class HealthController
             'storeEncrypted' => $storeEncrypted,
             'figoConfigured' => $figoConfigured,
             'figoRecursiveConfig' => $figoRecursive,
+            'calendarConfigured' => $calendarClientConfigured,
+            'calendarReachable' => $calendarReachable,
+            'calendarMode' => $calendarMode,
+            'calendarAuth' => $calendarActive ? 'service_account' : 'none',
+            'calendarLastSuccessAt' => $calendarLastSuccessAt,
+            'calendarLastErrorAt' => $calendarLastErrorAt,
+            'calendarLastErrorReason' => $calendarLastErrorReason,
             'checks' => [
                 'storage' => [
                     'ready' => $storageReady,
@@ -93,11 +126,65 @@ class HealthController
                 ],
                 'redis' => $redisStatus,
                 'php_version' => PHP_VERSION,
+                'calendar' => [
+                    'calendarConfigured' => $calendarClientConfigured,
+                    'calendarReachable' => $calendarReachable,
+                    'calendarMode' => $calendarMode,
+                    'calendarAuth' => $calendarActive ? 'service_account' : 'none',
+                    'calendarLastSuccessAt' => $calendarLastSuccessAt,
+                    'calendarLastErrorAt' => $calendarLastErrorAt,
+                    'calendarLastErrorReason' => $calendarLastErrorReason,
+                ],
                 'backup' => $backupCheck,
                 'storeCounts' => $storeCounts
             ],
             'timestamp' => local_date('c')
         ]);
+    }
+
+    private static function resolveCalendarReachable(
+        bool $calendarActive,
+        bool $calendarConfigured,
+        string $lastSuccessAt,
+        string $lastErrorAt
+    ): bool {
+        if (!$calendarActive) {
+            return true;
+        }
+        if (!$calendarConfigured) {
+            return false;
+        }
+        if ($lastSuccessAt === '' && $lastErrorAt === '') {
+            return true;
+        }
+        if ($lastSuccessAt === '') {
+            return false;
+        }
+        if ($lastErrorAt === '') {
+            return true;
+        }
+        return !self::timestampGreater($lastErrorAt, $lastSuccessAt);
+    }
+
+    private static function resolveCalendarMode(bool $calendarActive, bool $blockOnFailure, bool $calendarReachable): string
+    {
+        if (!$calendarActive) {
+            return 'live';
+        }
+        if ($blockOnFailure && !$calendarReachable) {
+            return 'blocked';
+        }
+        return 'live';
+    }
+
+    private static function timestampGreater(string $leftIso, string $rightIso): bool
+    {
+        $left = strtotime($leftIso);
+        $right = strtotime($rightIso);
+        if ($left === false || $right === false) {
+            return false;
+        }
+        return $left > $right;
     }
 
     private static function resolve_figo_endpoint(): string

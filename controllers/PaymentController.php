@@ -6,7 +6,6 @@ class PaymentController
 {
     public static function config(array $context): void
     {
-        // GET /payment-config
         json_response([
             'ok' => true,
             'provider' => 'stripe',
@@ -18,7 +17,6 @@ class PaymentController
 
     public static function createIntent(array $context): void
     {
-        // POST /payment-intent
         $store = $context['store'];
         require_rate_limit('payment-intent', 8, 60);
 
@@ -31,6 +29,14 @@ class PaymentController
 
         $payload = require_json_body();
         $appointment = normalize_appointment($payload);
+        $service = strtolower(trim((string) ($appointment['service'] ?? '')));
+        if ($service === '' || get_service_config($service) === null) {
+            json_response([
+                'ok' => false,
+                'error' => 'Servicio invalido para iniciar el pago'
+            ], 400);
+        }
+        $appointment['service'] = $service;
 
         if ($appointment['service'] === '' || $appointment['name'] === '' || $appointment['email'] === '') {
             json_response([
@@ -74,11 +80,105 @@ class PaymentController
             ], 400);
         }
 
-        if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $appointment['doctor'])) {
+        $calendarBooking = CalendarBookingService::fromEnv();
+        $requestedDoctor = strtolower(trim((string) ($appointment['doctor'] ?? '')));
+        if ($requestedDoctor === '') {
+            $requestedDoctor = 'indiferente';
+            $appointment['doctor'] = 'indiferente';
+        }
+        if (!in_array($requestedDoctor, ['rosero', 'narvaez', 'indiferente'], true)) {
             json_response([
                 'ok' => false,
-                'error' => 'Ese horario ya fue reservado'
-            ], 409);
+                'error' => 'Doctor invalido'
+            ], 400);
+        }
+
+        $doctorForCollision = $requestedDoctor;
+        if ($requestedDoctor === 'indiferente') {
+            $assigned = $calendarBooking->assignDoctorForIndiferente(
+                $store,
+                $appointment['date'],
+                $appointment['time'],
+                $appointment['service']
+            );
+            if (($assigned['ok'] ?? false) !== true) {
+                $errorCode = trim((string) ($assigned['code'] ?? ''));
+                json_response([
+                    'ok' => false,
+                    'error' => (string) ($assigned['error'] ?? 'No hay agenda disponible para la fecha seleccionada'),
+                    'code' => $errorCode !== '' ? $errorCode : 'slot_unavailable'
+                ], (int) ($assigned['status'] ?? 409));
+            }
+            $doctorForCollision = (string) ($assigned['doctor'] ?? 'indiferente');
+        } else {
+            if ($calendarBooking->isGoogleActive()) {
+                $slotCheck = $calendarBooking->ensureSlotAvailable(
+                    $store,
+                    $appointment['date'],
+                    $appointment['time'],
+                    $requestedDoctor,
+                    $appointment['service']
+                );
+                if (($slotCheck['ok'] ?? false) !== true) {
+                    $errorCode = trim((string) ($slotCheck['code'] ?? ''));
+                    json_response([
+                        'ok' => false,
+                        'error' => (string) ($slotCheck['error'] ?? 'No hay agenda disponible para la fecha seleccionada'),
+                        'code' => $errorCode !== '' ? $errorCode : 'slot_unavailable'
+                    ], (int) ($slotCheck['status'] ?? 409));
+                }
+            }
+        }
+
+        if (!$calendarBooking->isGoogleActive()) {
+            $availableSlots = self::getConfiguredSlotsForDate($store, $appointment['date']);
+            if (count($availableSlots) === 0) {
+                json_response([
+                    'ok' => false,
+                    'error' => 'No hay agenda disponible para la fecha seleccionada'
+                ], 400);
+            }
+            if (!in_array($appointment['time'], $availableSlots, true)) {
+                json_response([
+                    'ok' => false,
+                    'error' => 'Ese horario no esta disponible para la fecha seleccionada'
+                ], 400);
+            }
+        }
+
+        if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $doctorForCollision)) {
+            if ($requestedDoctor === 'indiferente') {
+                $alternateDoctor = $doctorForCollision === 'rosero' ? 'narvaez' : 'rosero';
+                if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $alternateDoctor)) {
+                    json_response([
+                        'ok' => false,
+                        'error' => 'Ese horario ya fue reservado'
+                    ], 409);
+                }
+                if ($calendarBooking->isGoogleActive()) {
+                    $alternateSlotCheck = $calendarBooking->ensureSlotAvailable(
+                        $store,
+                        $appointment['date'],
+                        $appointment['time'],
+                        $alternateDoctor,
+                        $appointment['service']
+                    );
+                    if (($alternateSlotCheck['ok'] ?? false) !== true) {
+                        $errorCode = trim((string) ($alternateSlotCheck['code'] ?? ''));
+                        json_response([
+                            'ok' => false,
+                            'error' => (string) ($alternateSlotCheck['error'] ?? 'No hay agenda disponible para la fecha seleccionada'),
+                            'code' => $errorCode !== '' ? $errorCode : 'slot_unavailable'
+                        ], (int) ($alternateSlotCheck['status'] ?? 409));
+                    }
+                }
+                $doctorForCollision = $alternateDoctor;
+            } else {
+                json_response([
+                    'ok' => false,
+                    'error' => 'Ese horario ya fue reservado'
+                ], 409);
+            }
         }
 
         $seed = implode('|', [
@@ -104,7 +204,11 @@ class PaymentController
             'ok' => true,
             'clientSecret' => isset($intent['client_secret']) ? (string) $intent['client_secret'] : '',
             'paymentIntentId' => isset($intent['id']) ? (string) $intent['id'] : '',
-            'amount' => isset($intent['amount']) ? (int) $intent['amount'] : payment_expected_amount_cents($appointment['service'], $appointment['date'] ?? null, $appointment['time'] ?? null),
+            'amount' => isset($intent['amount']) ? (int) $intent['amount'] : payment_expected_amount_cents(
+                $appointment['service'],
+                $appointment['date'] ?? null,
+                $appointment['time'] ?? null
+            ),
             'currency' => strtoupper((string) ($intent['currency'] ?? payment_currency())),
             'publishableKey' => payment_stripe_publishable_key()
         ]);
@@ -112,7 +216,6 @@ class PaymentController
 
     public static function verify(array $context): void
     {
-        // POST /payment-verify
         require_rate_limit('payment-verify', 12, 60);
 
         if (!payment_gateway_enabled()) {
@@ -156,7 +259,6 @@ class PaymentController
 
     public static function transferProof(array $context): void
     {
-        // POST /transfer-proof
         require_rate_limit('transfer-proof', 6, 60);
 
         if (!isset($_FILES['proof']) || !is_array($_FILES['proof'])) {
@@ -189,7 +291,6 @@ class PaymentController
 
     public static function webhook(array $context): void
     {
-        // POST /stripe-webhook
         $webhookSecret = payment_stripe_webhook_secret();
         if ($webhookSecret === '') {
             json_response(['ok' => false, 'error' => 'Webhook no configurado'], 503);
@@ -267,5 +368,39 @@ class PaymentController
         }
 
         json_response(['ok' => true, 'received' => true]);
+    }
+
+    private static function getConfiguredSlotsForDate(array $store, string $date): array
+    {
+        $slots = [];
+
+        if (isset($store['availability'][$date]) && is_array($store['availability'][$date])) {
+            $slots = $store['availability'][$date];
+        }
+
+        if (
+            count($slots) === 0 &&
+            function_exists('default_availability_enabled') &&
+            default_availability_enabled() &&
+            function_exists('get_default_availability')
+        ) {
+            $fallback = get_default_availability();
+            if (isset($fallback[$date]) && is_array($fallback[$date])) {
+                $slots = $fallback[$date];
+            }
+        }
+
+        $normalized = [];
+        foreach ($slots as $slot) {
+            $time = trim((string) $slot);
+            if (!preg_match('/^\d{2}:\d{2}$/', $time)) {
+                continue;
+            }
+            $normalized[$time] = true;
+        }
+
+        $result = array_keys($normalized);
+        sort($result, SORT_STRING);
+        return $result;
     }
 }

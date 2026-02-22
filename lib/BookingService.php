@@ -6,30 +6,37 @@ require_once __DIR__ . '/business.php';
 require_once __DIR__ . '/models.php';
 require_once __DIR__ . '/validation.php';
 require_once __DIR__ . '/common.php';
+require_once __DIR__ . '/calendar/GoogleTokenProvider.php';
+require_once __DIR__ . '/calendar/GoogleCalendarClient.php';
+require_once __DIR__ . '/calendar/CalendarAvailabilityService.php';
+require_once __DIR__ . '/calendar/CalendarBookingService.php';
 
 class BookingService
 {
     /**
-     * Creates a new appointment.
-     *
-     * @param array $store The current data store.
-     * @param array $payload The raw appointment data.
-     * @return array Result ['ok' => bool, 'store' => array, 'data' => array, 'error' => string, 'code' => int]
+     * @param array $store
+     * @param array $payload
+     * @return array
      */
     public function create(array $store, array $payload): array
     {
         $appointment = normalize_appointment($payload);
+        $service = strtolower(trim((string) ($appointment['service'] ?? '')));
+        if ($service === '' || get_service_config($service) === null) {
+            return ['ok' => false, 'error' => 'Servicio invalido', 'code' => 400];
+        }
+        $appointment['service'] = $service;
 
         if ($appointment['name'] === '' || $appointment['email'] === '' || $appointment['phone'] === '') {
-            return ['ok' => false, 'error' => 'Nombre, email y teléfono son obligatorios', 'code' => 400];
+            return ['ok' => false, 'error' => 'Nombre, email y telefono son obligatorios', 'code' => 400];
         }
 
         if (!validate_email($appointment['email'])) {
-            return ['ok' => false, 'error' => 'El formato del email no es válido', 'code' => 400];
+            return ['ok' => false, 'error' => 'El formato del email no es valido', 'code' => 400];
         }
 
         if (!validate_phone($appointment['phone'])) {
-            return ['ok' => false, 'error' => 'El formato del teléfono no es válido', 'code' => 400];
+            return ['ok' => false, 'error' => 'El formato del telefono no es valido', 'code' => 400];
         }
 
         if (!isset($appointment['privacyConsent']) || $appointment['privacyConsent'] !== true) {
@@ -40,37 +47,96 @@ class BookingService
             return ['ok' => false, 'error' => 'Fecha y hora son obligatorias', 'code' => 400];
         }
 
-        // Use a mockable date function if needed, but for now rely on local_date/date
         if ($appointment['date'] < local_date('Y-m-d')) {
             return ['ok' => false, 'error' => 'No se puede agendar en una fecha pasada', 'code' => 400];
         }
 
-        // Validate availability (strict real agenda)
-        $availableSlots = $this->getConfiguredSlotsForDate($store, $appointment['date']);
-        if (count($availableSlots) === 0) {
-            return ['ok' => false, 'error' => 'No hay agenda disponible para la fecha seleccionada', 'code' => 400];
+        $calendarBooking = CalendarBookingService::fromEnv();
+        $requestedDoctor = strtolower(trim((string) ($appointment['doctor'] ?? '')));
+        if ($requestedDoctor === '') {
+            $requestedDoctor = 'indiferente';
         }
-        if (!in_array($appointment['time'], $availableSlots, true)) {
-            return ['ok' => false, 'error' => 'Ese horario no está disponible para la fecha seleccionada', 'code' => 400];
+        if (!in_array($requestedDoctor, ['rosero', 'narvaez', 'indiferente'], true)) {
+            return ['ok' => false, 'error' => 'Doctor invalido', 'code' => 400];
         }
 
-        if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $appointment['doctor'])) {
-            return ['ok' => false, 'error' => 'Ese horario ya fue reservado', 'code' => 409];
+        $effectiveDoctor = $requestedDoctor;
+        if ($requestedDoctor === 'indiferente') {
+            $assigned = $calendarBooking->assignDoctorForIndiferente(
+                $store,
+                $appointment['date'],
+                $appointment['time'],
+                $appointment['service']
+            );
+            if (($assigned['ok'] ?? false) !== true) {
+                return [
+                    'ok' => false,
+                    'error' => (string) ($assigned['error'] ?? 'No hay agenda disponible para la fecha seleccionada'),
+                    'code' => (int) ($assigned['status'] ?? 409),
+                    'errorCode' => (string) ($assigned['code'] ?? 'slot_unavailable'),
+                ];
+            }
+            $effectiveDoctor = (string) ($assigned['doctor'] ?? '');
+        } else {
+            if ($calendarBooking->isGoogleActive()) {
+                $slotCheck = $calendarBooking->ensureSlotAvailable(
+                    $store,
+                    $appointment['date'],
+                    $appointment['time'],
+                    $requestedDoctor,
+                    $appointment['service']
+                );
+                if (($slotCheck['ok'] ?? false) !== true) {
+                    return [
+                        'ok' => false,
+                        'error' => (string) ($slotCheck['error'] ?? 'No hay agenda disponible para la fecha seleccionada'),
+                        'code' => (int) ($slotCheck['status'] ?? 409),
+                        'errorCode' => (string) ($slotCheck['code'] ?? 'slot_unavailable'),
+                    ];
+                }
+            }
+        }
+
+        if ($effectiveDoctor === '' || $effectiveDoctor === 'indiferente') {
+            return ['ok' => false, 'error' => 'No se pudo resolver un doctor disponible', 'code' => 409, 'errorCode' => 'slot_unavailable'];
+        }
+
+        if (!$calendarBooking->isGoogleActive()) {
+            $availableSlots = $this->getConfiguredSlotsForDate($store, $appointment['date']);
+            if (count($availableSlots) === 0) {
+                return ['ok' => false, 'error' => 'No hay agenda disponible para la fecha seleccionada', 'code' => 400];
+            }
+            if (!in_array($appointment['time'], $availableSlots, true)) {
+                return ['ok' => false, 'error' => 'Ese horario no esta disponible para la fecha seleccionada', 'code' => 400, 'errorCode' => 'slot_unavailable'];
+            }
+        }
+
+        if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $effectiveDoctor)) {
+            if ($requestedDoctor !== 'indiferente') {
+                return ['ok' => false, 'error' => 'Ese horario ya fue reservado', 'code' => 409, 'errorCode' => 'slot_unavailable'];
+            }
+
+            $alternateDoctor = $effectiveDoctor === 'rosero' ? 'narvaez' : 'rosero';
+            if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $alternateDoctor)) {
+                return ['ok' => false, 'error' => 'Ese horario ya fue reservado', 'code' => 409, 'errorCode' => 'slot_unavailable'];
+            }
+
+            if ($calendarBooking->isGoogleActive()) {
+                $otherCheck = $calendarBooking->ensureSlotAvailable(
+                    $store,
+                    $appointment['date'],
+                    $appointment['time'],
+                    $alternateDoctor,
+                    $appointment['service']
+                );
+                if (($otherCheck['ok'] ?? false) !== true) {
+                    return ['ok' => false, 'error' => 'Ese horario ya fue reservado', 'code' => 409, 'errorCode' => 'slot_unavailable'];
+                }
+            }
+            $effectiveDoctor = $alternateDoctor;
         }
 
         $paymentMethod = $appointment['paymentMethod'];
-
-        // Handle payment checks (Card logic is complex and relies on Stripe, skipping deep integration here, assuming validated by controller or separate service if possible, but for now copying logic)
-        // Actually, payment intent validation does external calls. Ideally this should be injected.
-        // For this refactor, I will assume the controller handles the Stripe verification BEFORE calling this service, OR I pass the intent data.
-        // But the original code does it inside `store`.
-        // To keep it testable, I might separate payment validation.
-        // However, to keep it simple and consistent with the request, I will include the logic but allow passing an optional payment verification result or dependency.
-
-        // Let's assume the controller does the Stripe verification if needed and passes the verified payment details?
-        // No, `AppointmentController` does `stripe_get_payment_intent`.
-
-        // I will keep the logic here but wrap the stripe call.
         if ($paymentMethod === 'card') {
             $paymentIntentId = trim((string) ($appointment['paymentIntentId'] ?? ''));
             if ($paymentIntentId === '') {
@@ -84,22 +150,16 @@ class BookingService
                 }
             }
 
-            // We can't easily move the Stripe API call here without dependency injection.
-            // For now, I'll rely on global `stripe_get_payment_intent` availability or a callback.
-            // But better: I'll assume the validation happens here.
-
             if (!function_exists('payment_gateway_enabled') || !payment_gateway_enabled()) {
                 return ['ok' => false, 'error' => 'La pasarela de pago no esta disponible', 'code' => 503];
             }
 
             try {
-                // Dependency: stripe_get_payment_intent
                 $intent = stripe_get_payment_intent($paymentIntentId);
             } catch (RuntimeException $e) {
                 return ['ok' => false, 'error' => 'No se pudo validar el pago en este momento', 'code' => 502];
             }
 
-            // Verify intent
             $validation = $this->validatePaymentIntent($intent, $appointment);
             if (!$validation['ok']) {
                 return $validation;
@@ -110,7 +170,6 @@ class BookingService
             $appointment['paymentProvider'] = 'stripe';
             $appointment['paymentPaidAt'] = local_date('c');
             $appointment['paymentIntentId'] = $paymentIntentId;
-
         } elseif ($paymentMethod === 'transfer') {
             $reference = trim((string) ($appointment['transferReference'] ?? ''));
             $proofPath = trim((string) ($appointment['transferProofPath'] ?? ''));
@@ -133,19 +192,29 @@ class BookingService
             $appointment['paymentStatus'] = 'pending';
         }
 
-        // Doctor assignment
-        if ($appointment['doctor'] === 'indiferente' || $appointment['doctor'] === '') {
-            $doctors = ['rosero', 'narvaez'];
-            $assigned = '';
-            foreach ($doctors as $candidate) {
-                if (!appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $candidate)) {
-                    $assigned = $candidate;
-                    break;
-                }
+        $appointment['slotDurationMin'] = $calendarBooking->getDurationMin((string) ($appointment['service'] ?? 'consulta'));
+        if ($requestedDoctor === 'indiferente') {
+            $appointment['doctorRequested'] = 'indiferente';
+            $appointment['doctorAssigned'] = $effectiveDoctor;
+            $calendarBooking->advanceIndiferenteCursor($store, $effectiveDoctor);
+        }
+        $appointment['doctor'] = $effectiveDoctor;
+
+        if ($calendarBooking->isGoogleActive()) {
+            $calendarEvent = $calendarBooking->createCalendarEvent($appointment, $effectiveDoctor);
+            if (($calendarEvent['ok'] ?? false) !== true) {
+                return [
+                    'ok' => false,
+                    'error' => (string) ($calendarEvent['error'] ?? 'No se pudo crear la cita en Google Calendar'),
+                    'code' => (int) ($calendarEvent['status'] ?? 503),
+                    'errorCode' => (string) ($calendarEvent['code'] ?? 'calendar_unreachable'),
+                ];
             }
-            if ($assigned !== '') {
-                $appointment['doctorAssigned'] = $assigned;
-            }
+
+            $appointment['calendarProvider'] = (string) ($calendarEvent['provider'] ?? 'google');
+            $appointment['calendarId'] = (string) ($calendarEvent['calendarId'] ?? '');
+            $appointment['calendarEventId'] = (string) ($calendarEvent['eventId'] ?? '');
+            $appointment['calendarEventUrl'] = (string) ($calendarEvent['eventHtmlLink'] ?? '');
         }
 
         $store['appointments'][] = $appointment;
@@ -154,22 +223,18 @@ class BookingService
             'ok' => true,
             'store' => $store,
             'data' => $appointment,
-            'code' => 201
+            'code' => 201,
         ];
     }
 
-    /**
-     * Cancels an appointment.
-     */
     public function cancel(array $store, int $id): array
     {
         if ($id <= 0) {
-            return ['ok' => false, 'error' => 'Identificador inválido', 'code' => 400];
+            return ['ok' => false, 'error' => 'Identificador invalido', 'code' => 400];
         }
 
         $found = false;
         $cancelledAppointment = null;
-
         foreach ($store['appointments'] as &$appt) {
             if ((int) ($appt['id'] ?? 0) !== $id) {
                 continue;
@@ -189,30 +254,29 @@ class BookingService
             'ok' => true,
             'store' => $store,
             'data' => $cancelledAppointment,
-            'code' => 200
+            'code' => 200,
         ];
     }
 
-    /**
-     * Reschedules an appointment.
-     */
     public function reschedule(array $store, string $token, string $newDate, string $newTime): array
     {
         if ($token === '' || strlen($token) < 16) {
-            return ['ok' => false, 'error' => 'Token inválido', 'code' => 400];
+            return ['ok' => false, 'error' => 'Token invalido', 'code' => 400];
         }
         if ($newDate === '' || $newTime === '') {
             return ['ok' => false, 'error' => 'Fecha y hora son obligatorias', 'code' => 400];
         }
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $newDate)) {
-            return ['ok' => false, 'error' => 'Formato de fecha inválido', 'code' => 400];
+            return ['ok' => false, 'error' => 'Formato de fecha invalido', 'code' => 400];
         }
-        if (strtotime($newDate) < strtotime(date('Y-m-d'))) {
+        if ($newDate < local_date('Y-m-d')) {
             return ['ok' => false, 'error' => 'No puedes reprogramar a una fecha pasada', 'code' => 400];
         }
 
+        $calendarBooking = CalendarBookingService::fromEnv();
         $found = false;
         $updatedAppointment = null;
+        $previousCalendarState = null;
 
         foreach ($store['appointments'] as &$appt) {
             if (($appt['rescheduleToken'] ?? '') !== $token) {
@@ -222,24 +286,83 @@ class BookingService
                 return ['ok' => false, 'error' => 'Esta cita fue cancelada', 'code' => 400];
             }
 
-            $doctor = $appt['doctor'] ?? '';
+            $service = (string) ($appt['service'] ?? 'consulta');
+            if ($service === '' || get_service_config($service) === null) {
+                return ['ok' => false, 'error' => 'Servicio invalido para reprogramacion', 'code' => 400];
+            }
+            $doctor = strtolower(trim((string) ($appt['doctor'] ?? '')));
+            if ($doctor === '') {
+                $doctor = strtolower(trim((string) ($appt['doctorAssigned'] ?? '')));
+            }
+            if ($doctor === '') {
+                $doctor = 'indiferente';
+            }
+
+            if ($doctor === 'indiferente') {
+                $assigned = $calendarBooking->assignDoctorForIndiferente($store, $newDate, $newTime, $service);
+                if (($assigned['ok'] ?? false) !== true) {
+                    return [
+                        'ok' => false,
+                        'error' => (string) ($assigned['error'] ?? 'No hay agenda disponible para la fecha seleccionada'),
+                        'code' => (int) ($assigned['status'] ?? 409),
+                        'errorCode' => (string) ($assigned['code'] ?? 'slot_unavailable'),
+                    ];
+                }
+                $doctor = (string) ($assigned['doctor'] ?? 'indiferente');
+            } elseif ($calendarBooking->isGoogleActive()) {
+                $slotCheck = $calendarBooking->ensureSlotAvailable($store, $newDate, $newTime, $doctor, $service);
+                if (($slotCheck['ok'] ?? false) !== true) {
+                    return [
+                        'ok' => false,
+                        'error' => (string) ($slotCheck['error'] ?? 'No hay agenda disponible para la fecha seleccionada'),
+                        'code' => (int) ($slotCheck['status'] ?? 409),
+                        'errorCode' => (string) ($slotCheck['code'] ?? 'slot_unavailable'),
+                    ];
+                }
+            }
+
+            if (!$calendarBooking->isGoogleActive()) {
+                $availableSlots = $this->getConfiguredSlotsForDate($store, $newDate);
+                if (count($availableSlots) === 0) {
+                    return ['ok' => false, 'error' => 'No hay agenda disponible para la fecha seleccionada', 'code' => 400];
+                }
+                if (!in_array($newTime, $availableSlots, true)) {
+                    return ['ok' => false, 'error' => 'Ese horario no esta disponible para la fecha seleccionada', 'code' => 400, 'errorCode' => 'slot_unavailable'];
+                }
+            }
+
             $excludeId = (int) ($appt['id'] ?? 0);
-
-            // Availability check (strict real agenda)
-            $availableSlots = $this->getConfiguredSlotsForDate($store, $newDate);
-            if (count($availableSlots) === 0) {
-                return ['ok' => false, 'error' => 'No hay agenda disponible para la fecha seleccionada', 'code' => 400];
-            }
-            if (!in_array($newTime, $availableSlots, true)) {
-                return ['ok' => false, 'error' => 'Ese horario no está disponible para la fecha seleccionada', 'code' => 400];
-            }
-
             if (appointment_slot_taken($store['appointments'], $newDate, $newTime, $excludeId, $doctor)) {
-                return ['ok' => false, 'error' => 'El horario seleccionado ya no está disponible', 'code' => 409];
+                return ['ok' => false, 'error' => 'El horario seleccionado ya no esta disponible', 'code' => 409, 'errorCode' => 'slot_unavailable'];
+            }
+
+            $previousCalendarState = [
+                'date' => (string) ($appt['date'] ?? ''),
+                'time' => (string) ($appt['time'] ?? ''),
+                'doctor' => (string) ($appt['doctor'] ?? ''),
+                'calendarId' => (string) ($appt['calendarId'] ?? ''),
+                'calendarEventId' => (string) ($appt['calendarEventId'] ?? ''),
+            ];
+
+            if ($calendarBooking->isGoogleActive()) {
+                $calendarPatch = $calendarBooking->patchCalendarEvent($appt, $newDate, $newTime, $doctor);
+                if (($calendarPatch['ok'] ?? false) !== true) {
+                    return [
+                        'ok' => false,
+                        'error' => (string) ($calendarPatch['error'] ?? 'No se pudo actualizar la cita en Google Calendar'),
+                        'code' => (int) ($calendarPatch['status'] ?? 503),
+                        'errorCode' => (string) ($calendarPatch['code'] ?? 'calendar_unreachable'),
+                    ];
+                }
             }
 
             $appt['date'] = $newDate;
             $appt['time'] = $newTime;
+            $appt['doctor'] = $doctor;
+            $appt['slotDurationMin'] = $calendarBooking->getDurationMin($service);
+            if (($appt['doctorRequested'] ?? '') === 'indiferente') {
+                $appt['doctorAssigned'] = $doctor;
+            }
             $appt['reminderSentAt'] = '';
 
             $found = true;
@@ -256,7 +379,10 @@ class BookingService
             'ok' => true,
             'store' => $store,
             'data' => $updatedAppointment,
-            'code' => 200
+            'code' => 200,
+            'meta' => [
+                'previousCalendarState' => $previousCalendarState,
+            ],
         ];
     }
 
@@ -264,7 +390,12 @@ class BookingService
     {
         $intentStatus = (string) ($intent['status'] ?? '');
         $tenantId = (string) ($appointment['tenantId'] ?? get_current_tenant_id());
-        $expectedAmount = payment_expected_amount_cents($appointment['service'], null, null, $tenantId);
+        $expectedAmount = payment_expected_amount_cents(
+            (string) ($appointment['service'] ?? ''),
+            (string) ($appointment['date'] ?? ''),
+            (string) ($appointment['time'] ?? ''),
+            $tenantId
+        );
         $intentAmount = isset($intent['amount']) ? (int) $intent['amount'] : 0;
         $amountReceived = isset($intent['amount_received']) ? (int) $intent['amount_received'] : 0;
         $intentCurrency = strtoupper((string) ($intent['currency'] ?? payment_currency()));
@@ -275,6 +406,7 @@ class BookingService
         $metadataDate = trim((string) ($intentMetadata['date'] ?? ''));
         $metadataTime = trim((string) ($intentMetadata['time'] ?? ''));
         $metadataDoctor = trim((string) ($intentMetadata['doctor'] ?? ''));
+        $appointmentDoctor = trim((string) ($appointment['doctor'] ?? ''));
 
         if ($intentStatus !== 'succeeded') {
             return ['ok' => false, 'error' => 'El pago aun no esta completado', 'code' => 400];
@@ -288,16 +420,16 @@ class BookingService
         if ($metadataSite !== '' && strcasecmp($metadataSite, 'pielarmonia.com') !== 0) {
             return ['ok' => false, 'error' => 'El pago no pertenece a este sitio', 'code' => 400];
         }
-        if ($metadataService !== '' && $metadataService !== $appointment['service']) {
+        if ($metadataService !== '' && $metadataService !== (string) $appointment['service']) {
             return ['ok' => false, 'error' => 'El pago no coincide con el servicio seleccionado', 'code' => 400];
         }
-        if ($metadataDate !== '' && $metadataDate !== $appointment['date']) {
+        if ($metadataDate !== '' && $metadataDate !== (string) $appointment['date']) {
             return ['ok' => false, 'error' => 'El pago no coincide con la fecha seleccionada', 'code' => 400];
         }
-        if ($metadataTime !== '' && $metadataTime !== $appointment['time']) {
+        if ($metadataTime !== '' && $metadataTime !== (string) $appointment['time']) {
             return ['ok' => false, 'error' => 'El pago no coincide con la hora seleccionada', 'code' => 400];
         }
-        if ($metadataDoctor !== '' && $metadataDoctor !== $appointment['doctor']) {
+        if ($metadataDoctor !== '' && $appointmentDoctor !== '' && $metadataDoctor !== $appointmentDoctor) {
             return ['ok' => false, 'error' => 'El pago no coincide con el doctor seleccionado', 'code' => 400];
         }
 
@@ -307,7 +439,6 @@ class BookingService
     private function getConfiguredSlotsForDate(array $store, string $date): array
     {
         $slots = [];
-
         if (isset($store['availability'][$date]) && is_array($store['availability'][$date])) {
             $slots = $store['availability'][$date];
         }

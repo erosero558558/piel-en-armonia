@@ -6,6 +6,9 @@ require_once __DIR__ . '/../lib/BookingService.php';
 
 class AppointmentController
 {
+    private const ALLOWED_DOCTORS = ['rosero', 'narvaez', 'indiferente'];
+    private const ALLOWED_SERVICES = ['consulta', 'telefono', 'video', 'acne', 'cancer', 'laser', 'rejuvenecimiento'];
+
     public static function index(array $context): void
     {
         // GET /appointments (Admin)
@@ -20,43 +23,61 @@ class AppointmentController
     {
         // GET /booked-slots
         $store = $context['store'];
-        $date = isset($_GET['date']) ? (string) $_GET['date'] : '';
+        $date = trim((string) ($_GET['date'] ?? ''));
         if ($date === '') {
             json_response([
                 'ok' => false,
-                'error' => 'Fecha requerida'
+                'error' => 'Fecha requerida',
+                'code' => 'calendar_bad_request',
+            ], 400);
+        }
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            json_response([
+                'ok' => false,
+                'error' => 'Fecha invalida. Usa formato YYYY-MM-DD',
+                'code' => 'calendar_bad_request',
             ], 400);
         }
 
-        $doctor = isset($_GET['doctor']) ? trim((string) $_GET['doctor']) : '';
-
-        $slots = [];
-        foreach ($store['appointments'] as $appointment) {
-            $status = map_appointment_status((string) ($appointment['status'] ?? 'confirmed'));
-            if ($status === 'cancelled') {
-                continue;
-            }
-            if ((string) ($appointment['date'] ?? '') !== $date) {
-                continue;
-            }
-            if ($doctor !== '' && $doctor !== 'indiferente') {
-                $apptDoctor = (string) ($appointment['doctor'] ?? '');
-                if ($apptDoctor !== '' && $apptDoctor !== 'indiferente' && $apptDoctor !== $doctor) {
-                    continue;
-                }
-            }
-            $time = (string) ($appointment['time'] ?? '');
-            if ($time !== '') {
-                $slots[] = $time;
-            }
+        $doctor = strtolower(trim((string) ($_GET['doctor'] ?? 'indiferente')));
+        if ($doctor === '') {
+            $doctor = 'indiferente';
+        }
+        if (!in_array($doctor, self::ALLOWED_DOCTORS, true)) {
+            json_response([
+                'ok' => false,
+                'error' => 'Doctor invalido. Usa rosero, narvaez o indiferente.',
+                'code' => 'calendar_bad_request',
+            ], 400);
         }
 
-        $slots = array_values(array_unique($slots));
-        sort($slots);
+        $service = strtolower(trim((string) ($_GET['service'] ?? 'consulta')));
+        if ($service === '') {
+            $service = 'consulta';
+        }
+        if (!in_array($service, self::ALLOWED_SERVICES, true)) {
+            json_response([
+                'ok' => false,
+                'error' => 'Servicio invalido para horarios ocupados',
+                'code' => 'calendar_bad_request',
+            ], 400);
+        }
+
+        $availabilityService = CalendarAvailabilityService::fromEnv();
+        $result = $availabilityService->getBookedSlots($store, $date, $doctor, $service);
+        if (($result['ok'] ?? false) !== true) {
+            json_response([
+                'ok' => false,
+                'error' => (string) ($result['error'] ?? 'No se pudo consultar horarios ocupados'),
+                'code' => (string) ($result['code'] ?? 'booked_slots_error'),
+                'meta' => isset($result['meta']) && is_array($result['meta']) ? $result['meta'] : [],
+            ], (int) ($result['status'] ?? 503));
+        }
 
         json_response([
             'ok' => true,
-            'data' => $slots
+            'data' => array_values(array_unique(is_array($result['data'] ?? null) ? $result['data'] : [])),
+            'meta' => isset($result['meta']) && is_array($result['meta']) ? $result['meta'] : [],
         ]);
     }
 
@@ -66,21 +87,77 @@ class AppointmentController
         $store = $context['store'];
         require_rate_limit('appointments', 5, 60);
         $payload = require_json_body();
-
         $bookingService = new BookingService();
-        $result = $bookingService->create($store, $payload);
+
+        $normalized = normalize_appointment($payload);
+        $lockDate = (string) ($normalized['date'] ?? '');
+        $lockTime = (string) ($normalized['time'] ?? '');
+
+        $runCreate = static function () use ($bookingService, $payload): array {
+            $freshStore = read_store();
+            return $bookingService->create($freshStore, $payload);
+        };
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $lockDate) && preg_match('/^\d{2}:\d{2}$/', $lockTime)) {
+            $lockResult = CalendarBookingService::withSlotLock($lockDate, $lockTime, $runCreate);
+            if (($lockResult['ok'] ?? false) !== true) {
+                json_response([
+                    'ok' => false,
+                    'error' => (string) ($lockResult['error'] ?? 'No se pudo reservar ese horario en este momento'),
+                    'code' => (string) ($lockResult['code'] ?? 'slot_lock_failed'),
+                ], (int) ($lockResult['status'] ?? 409));
+            }
+            $result = is_array($lockResult['result'] ?? null) ? $lockResult['result'] : [
+                'ok' => false,
+                'error' => 'Respuesta invalida del proceso de reserva',
+                'code' => 500,
+            ];
+        } else {
+            $result = $runCreate();
+        }
 
         if (!$result['ok']) {
-            json_response([
+            $errorPayload = [
                 'ok' => false,
-                'error' => $result['error']
-            ], $result['code']);
+                'error' => $result['error'],
+            ];
+            if (isset($result['errorCode']) && trim((string) $result['errorCode']) !== '') {
+                $errorPayload['code'] = (string) $result['errorCode'];
+            }
+            json_response($errorPayload, (int) ($result['code'] ?? 500));
         }
 
         $newStore = $result['store'];
         $appointment = $result['data'];
+        $calendarBooking = CalendarBookingService::fromEnv();
+        if (!isset($appointment['slotDurationMin']) || (int) $appointment['slotDurationMin'] <= 0) {
+            $appointment['slotDurationMin'] = $calendarBooking->getDurationMin((string) ($appointment['service'] ?? 'consulta'));
+        }
+        if (!isset($appointment['calendarProvider']) || trim((string) $appointment['calendarProvider']) === '') {
+            $appointment['calendarProvider'] = $calendarBooking->isGoogleActive() ? 'google' : 'store';
+        }
 
-        write_store($newStore);
+        $stored = write_store($newStore, false);
+        if ($stored !== true) {
+            if (!empty($appointment['calendarId']) && !empty($appointment['calendarEventId'])) {
+                $calendarBooking = CalendarBookingService::fromEnv();
+                if ($calendarBooking->isGoogleActive()) {
+                    $cancelResult = $calendarBooking->cancelCalendarEvent($appointment);
+                    if (($cancelResult['ok'] ?? false) !== true) {
+                        audit_log_event('calendar.error', [
+                            'operation' => 'events_delete_compensation',
+                            'reason' => (string) ($cancelResult['error'] ?? 'compensation_failed'),
+                            'appointmentId' => (int) ($appointment['id'] ?? 0),
+                        ]);
+                    }
+                }
+            }
+            json_response([
+                'ok' => false,
+                'error' => 'No se pudo confirmar la reserva en este momento',
+                'code' => 'booking_store_failed'
+            ], 503);
+        }
 
         $event = new BookingCreated($appointment);
         get_event_dispatcher()->dispatch($event);
@@ -106,6 +183,7 @@ class AppointmentController
             ], 400);
         }
         $found = false;
+        $cancelledAppointment = null;
         foreach ($store['appointments'] as &$appt) {
             if ((int) ($appt['id'] ?? 0) !== $id) {
                 continue;
@@ -113,6 +191,9 @@ class AppointmentController
             $found = true;
             if (isset($payload['status'])) {
                 $appt['status'] = map_appointment_status((string) $payload['status']);
+                if ($appt['status'] === 'cancelled') {
+                    $cancelledAppointment = $appt;
+                }
             }
             if (isset($payload['paymentStatus'])) {
                 $appt['paymentStatus'] = (string) $payload['paymentStatus'];
@@ -154,6 +235,20 @@ class AppointmentController
         }
         write_store($store);
 
+        if (is_array($cancelledAppointment)) {
+            $calendarBooking = CalendarBookingService::fromEnv();
+            if ($calendarBooking->isGoogleActive()) {
+                $cancelResult = $calendarBooking->cancelCalendarEvent($cancelledAppointment);
+                if (($cancelResult['ok'] ?? false) !== true) {
+                    audit_log_event('calendar.error', [
+                        'operation' => 'events_delete',
+                        'reason' => (string) ($cancelResult['error'] ?? 'cancel_failed'),
+                        'appointmentId' => $id,
+                    ]);
+                }
+            }
+        }
+
         // Enviar email de cancelación al paciente si se canceló la cita
         if (isset($payload['status']) && map_appointment_status((string) $payload['status']) === 'cancelled') {
             foreach ($store['appointments'] as $apptNotify) {
@@ -175,7 +270,11 @@ class AppointmentController
         $store = $context['store'];
         $token = trim((string) ($_GET['token'] ?? ''));
         if ($token === '' || strlen($token) < 16) {
-            json_response(['ok' => false, 'error' => 'Token inválido'], 400);
+            json_response([
+                'ok' => false,
+                'error' => 'Token invalido',
+                'code' => 'invalid_token'
+            ], 400);
         }
 
         $found = null;
@@ -207,7 +306,6 @@ class AppointmentController
     public static function processReschedule(array $context): void
     {
         // PATCH /reschedule
-        $store = $context['store'];
         require_rate_limit('reschedule', 5, 60);
         $payload = require_json_body();
         $token = trim((string) ($payload['token'] ?? ''));
@@ -215,19 +313,86 @@ class AppointmentController
         $newTime = trim((string) ($payload['time'] ?? ''));
 
         $bookingService = new BookingService();
-        $result = $bookingService->reschedule($store, $token, $newDate, $newTime);
+        $runReschedule = static function () use ($bookingService, $token, $newDate, $newTime): array {
+            $freshStore = read_store();
+            return $bookingService->reschedule($freshStore, $token, $newDate, $newTime);
+        };
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $newDate) && preg_match('/^\d{2}:\d{2}$/', $newTime)) {
+            $lockResult = CalendarBookingService::withSlotLock($newDate, $newTime, $runReschedule);
+            if (($lockResult['ok'] ?? false) !== true) {
+                json_response([
+                    'ok' => false,
+                    'error' => (string) ($lockResult['error'] ?? 'No se pudo reprogramar en este momento'),
+                    'code' => (string) ($lockResult['code'] ?? 'slot_lock_failed'),
+                ], (int) ($lockResult['status'] ?? 409));
+            }
+            $result = is_array($lockResult['result'] ?? null) ? $lockResult['result'] : [
+                'ok' => false,
+                'error' => 'Respuesta invalida del proceso de reprogramacion',
+                'code' => 500,
+            ];
+        } else {
+            $result = $runReschedule();
+        }
 
         if (!$result['ok']) {
-            json_response([
+            $errorPayload = [
                 'ok' => false,
-                'error' => $result['error']
-            ], $result['code']);
+                'error' => $result['error'],
+            ];
+            if (isset($result['errorCode']) && trim((string) $result['errorCode']) !== '') {
+                $errorPayload['code'] = (string) $result['errorCode'];
+            }
+            json_response($errorPayload, (int) ($result['code'] ?? 500));
         }
 
         $newStore = $result['store'];
         $appointment = $result['data'];
+        $calendarBooking = CalendarBookingService::fromEnv();
+        if (!isset($appointment['slotDurationMin']) || (int) $appointment['slotDurationMin'] <= 0) {
+            $appointment['slotDurationMin'] = $calendarBooking->getDurationMin((string) ($appointment['service'] ?? 'consulta'));
+        }
+        if (!isset($appointment['calendarProvider']) || trim((string) $appointment['calendarProvider']) === '') {
+            $appointment['calendarProvider'] = $calendarBooking->isGoogleActive() ? 'google' : 'store';
+        }
 
-        write_store($newStore);
+        $previousCalendarState = null;
+        if (isset($result['meta']['previousCalendarState']) && is_array($result['meta']['previousCalendarState'])) {
+            $previousCalendarState = $result['meta']['previousCalendarState'];
+        }
+
+        $stored = write_store($newStore, false);
+        if ($stored !== true) {
+            if ($calendarBooking->isGoogleActive() && is_array($previousCalendarState)) {
+                $previousDate = trim((string) ($previousCalendarState['date'] ?? ''));
+                $previousTime = trim((string) ($previousCalendarState['time'] ?? ''));
+                $previousDoctor = trim((string) ($previousCalendarState['doctor'] ?? ($appointment['doctor'] ?? '')));
+                if (
+                    preg_match('/^\d{4}-\d{2}-\d{2}$/', $previousDate) &&
+                    preg_match('/^\d{2}:\d{2}$/', $previousTime)
+                ) {
+                    $rollbackResult = $calendarBooking->patchCalendarEvent(
+                        $appointment,
+                        $previousDate,
+                        $previousTime,
+                        $previousDoctor !== '' ? $previousDoctor : null
+                    );
+                    if (($rollbackResult['ok'] ?? false) !== true) {
+                        audit_log_event('calendar.error', [
+                            'operation' => 'events_patch_rollback',
+                            'reason' => (string) ($rollbackResult['error'] ?? 'rollback_failed'),
+                            'appointmentId' => (int) ($appointment['id'] ?? 0),
+                        ]);
+                    }
+                }
+            }
+            json_response([
+                'ok' => false,
+                'error' => 'No se pudo guardar la reprogramacion en este momento',
+                'code' => 'reschedule_store_failed'
+            ], 503);
+        }
         get_event_dispatcher()->dispatch(new BookingRescheduled($appointment));
 
         json_response([
@@ -235,7 +400,13 @@ class AppointmentController
             'data' => [
                 'id' => $appointment['id'],
                 'date' => $newDate,
-                'time' => $newTime
+                'time' => $newTime,
+                'doctor' => $appointment['doctor'] ?? '',
+                'doctorAssigned' => $appointment['doctorAssigned'] ?? '',
+                'calendarProvider' => $appointment['calendarProvider'] ?? '',
+                'calendarId' => $appointment['calendarId'] ?? '',
+                'calendarEventId' => $appointment['calendarEventId'] ?? '',
+                'slotDurationMin' => (int) ($appointment['slotDurationMin'] ?? 0),
             ]
         ]);
     }
