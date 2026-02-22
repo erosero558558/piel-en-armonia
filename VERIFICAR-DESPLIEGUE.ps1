@@ -1161,7 +1161,20 @@ foreach ($check in $analyticsChecks) {
 $healthUrl = "$base/api.php?resource=health"
 try {
     $healthResp = Invoke-JsonGet -Url $healthUrl
-    $healthRequired = @('timingMs', 'version', 'dataDirWritable', 'dataDirSource', 'storeEncrypted', 'figoConfigured', 'figoRecursiveConfig')
+    $healthRequired = @(
+        'timingMs',
+        'version',
+        'dataDirWritable',
+        'dataDirSource',
+        'storeEncrypted',
+        'figoConfigured',
+        'figoRecursiveConfig',
+        'calendarConfigured',
+        'calendarReachable',
+        'calendarMode',
+        'calendarSource',
+        'calendarAuth'
+    )
     foreach ($field in $healthRequired) {
         if ($null -ne $healthResp.Json.PSObject.Properties[$field]) {
             Write-Host "[OK]  health incluye: $field"
@@ -1333,6 +1346,90 @@ try {
         LocalHash = ''
         RemoteHash = ''
         RemoteUrl = $healthUrl
+    }
+}
+
+$availabilityUrl = "$base/api.php?resource=availability&doctor=indiferente&service=consulta&days=7"
+try {
+    $availabilityResp = Invoke-JsonGet -Url $availabilityUrl
+    $availabilityMeta = $null
+    try { $availabilityMeta = $availabilityResp.Json.meta } catch { $availabilityMeta = $null }
+    if ($null -eq $availabilityMeta) {
+        Write-Host "[FAIL] availability no incluye meta"
+        $results += [PSCustomObject]@{
+            Asset = 'availability-meta'
+            Match = $false
+            LocalHash = 'present'
+            RemoteHash = 'missing'
+            RemoteUrl = $availabilityUrl
+        }
+    } else {
+        $availabilityMetaRequired = @('source', 'mode', 'timezone', 'doctor', 'service', 'durationMin', 'generatedAt')
+        foreach ($field in $availabilityMetaRequired) {
+            if ($null -ne $availabilityMeta.PSObject.Properties[$field]) {
+                Write-Host "[OK]  availability meta incluye: $field"
+            } else {
+                Write-Host "[FAIL] availability meta NO incluye: $field"
+                $results += [PSCustomObject]@{
+                    Asset = "availability-meta-field:$field"
+                    Match = $false
+                    LocalHash = 'present'
+                    RemoteHash = 'missing'
+                    RemoteUrl = $availabilityUrl
+                }
+            }
+        }
+    }
+} catch {
+    Write-Host "[FAIL] No se pudo validar availability: $($_.Exception.Message)"
+    $results += [PSCustomObject]@{
+        Asset = 'availability-endpoint'
+        Match = $false
+        LocalHash = ''
+        RemoteHash = ''
+        RemoteUrl = $availabilityUrl
+    }
+}
+
+$bookedSlotsUrl = "$base/api.php?resource=booked-slots&date=2030-01-15&doctor=indiferente&service=consulta"
+try {
+    $bookedResp = Invoke-JsonGet -Url $bookedSlotsUrl
+    $bookedMeta = $null
+    try { $bookedMeta = $bookedResp.Json.meta } catch { $bookedMeta = $null }
+    if ($null -eq $bookedMeta) {
+        Write-Host "[FAIL] booked-slots no incluye meta"
+        $results += [PSCustomObject]@{
+            Asset = 'booked-slots-meta'
+            Match = $false
+            LocalHash = 'present'
+            RemoteHash = 'missing'
+            RemoteUrl = $bookedSlotsUrl
+        }
+    } else {
+        $bookedMetaRequired = @('source', 'mode', 'timezone', 'doctor', 'service', 'durationMin', 'generatedAt')
+        foreach ($field in $bookedMetaRequired) {
+            if ($null -ne $bookedMeta.PSObject.Properties[$field]) {
+                Write-Host "[OK]  booked-slots meta incluye: $field"
+            } else {
+                Write-Host "[FAIL] booked-slots meta NO incluye: $field"
+                $results += [PSCustomObject]@{
+                    Asset = "booked-slots-meta-field:$field"
+                    Match = $false
+                    LocalHash = 'present'
+                    RemoteHash = 'missing'
+                    RemoteUrl = $bookedSlotsUrl
+                }
+            }
+        }
+    }
+} catch {
+    Write-Host "[FAIL] No se pudo validar booked-slots: $($_.Exception.Message)"
+    $results += [PSCustomObject]@{
+        Asset = 'booked-slots-endpoint'
+        Match = $false
+        LocalHash = ''
+        RemoteHash = ''
+        RemoteUrl = $bookedSlotsUrl
     }
 }
 
