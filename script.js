@@ -1385,7 +1385,7 @@
         '/js/engines/booking-engine.js?v=figo-booking-20260219-mbfix1'
     );
     const BOOKING_UI_URL = withDeployAssetVersion(
-        '/js/engines/booking-ui.js?v=figo-booking-ui-20260220-sync3-cachepurge1'
+        '/js/engines/booking-ui.js?v=figo-booking-ui-20260222-slotservicefix1'
     );
     const BOOKING_UTILS_URL$1 = withDeployAssetVersion('/js/engines/booking-utils.js');
     const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;

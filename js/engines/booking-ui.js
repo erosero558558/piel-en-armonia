@@ -363,7 +363,8 @@ function init(inputDeps) {
 
             const bookedSlots = await deps.getBookedSlots(
                 appointment.date,
-                appointment.doctor
+                appointment.doctor,
+                appointment.service || 'consulta'
             );
             if (bookedSlots.includes(appointment.time)) {
                 deps.showToast(
