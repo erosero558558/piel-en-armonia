@@ -817,6 +817,9 @@ function write_store(array $store, bool $emitHttpErrors = true): bool
                 continue;
             }
             $id = $appt['id'];
+            if (!is_int($id) && !ctype_digit((string)$id)) {
+                $id = (int) (microtime(true) * 10000);
+            }
             $incomingIds[$id] = true;
 
             $stmtUpsert->execute([
@@ -855,6 +858,9 @@ function write_store(array $store, bool $emitHttpErrors = true): bool
                 continue;
             }
             $id = $review['id'];
+            if (!is_int($id) && !ctype_digit((string)$id)) {
+                $id = (int) (microtime(true) * 10000);
+            }
             $incomingIds[$id] = true;
             $stmtUpsert->execute([
                 $id,
@@ -883,6 +889,9 @@ function write_store(array $store, bool $emitHttpErrors = true): bool
                 continue;
             }
             $id = $cb['id'];
+            if (!is_int($id) && !ctype_digit((string)$id)) {
+                $id = (int) (microtime(true) * 10000);
+            }
             $incomingIds[$id] = true;
             $stmtUpsert->execute([
                 $id,
