@@ -47,10 +47,11 @@ function read_store(): array
     return $mock_store;
 }
 
-function write_store(array $store): void
+function write_store(array $store): bool
 {
     global $mock_store;
     $mock_store = $store;
+    return true;
 }
 
 function require_rate_limit($key, $limit, $window): void
@@ -96,6 +97,11 @@ function stripe_get_payment_intent(string $id): array
 {
     global $mock_intent;
     return $mock_intent;
+}
+
+function data_dir_path(): string
+{
+    return sys_get_temp_dir();
 }
 
 // Include code under test

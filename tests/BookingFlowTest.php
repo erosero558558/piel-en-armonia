@@ -123,8 +123,11 @@ try {
     // 5. Verify Persistence (GET appointments - admin protected)
     // To test admin, we need session. Or we can just inspect the file directly since we have access to $dataDir.
     run_test('Integration: Verify Persistence on Disk', function () use ($dataDir, $apptDate) {
-        $file = $dataDir . '/store.sqlite';
-        assert_true(file_exists($file), 'Store file should exist');
+        $file = $dataDir . '/pielarmonia/store.sqlite';
+        if (!file_exists($file)) {
+            $file = $dataDir . '/store.sqlite';
+        }
+        assert_true(file_exists($file), 'Store file should exist at ' . $file);
 
         // The store might be encrypted or plain.
         // lib/storage.php: ensure_data_file writes encrypted seed.
