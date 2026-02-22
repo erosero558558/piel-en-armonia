@@ -37,6 +37,7 @@ import {
     completeCheckoutSession,
     openPaymentModal,
 } from '../../../js/booking.js';
+import { translate } from '../../../js/i18n.js';
 
 const CHAT_UI_ENGINE_URL = withDeployAssetVersion(
     '/js/engines/chat-ui-engine.js?v=figo-chat-ui-20260219-phase1-sync1'
@@ -110,6 +111,7 @@ export function removeTypingIndicator() {
 
 function getChatUiEngineDeps() {
     return {
+        translate,
         getChatHistory: () => state.chatHistory,
         setChatHistory: (h) => { state.chatHistory = h; },
         getConversationContext: () => state.conversationContext,
@@ -149,6 +151,7 @@ export function initChatUiEngineWarmup() {
 
 function getChatWidgetEngineDeps() {
     return {
+        translate,
         getChatbotOpen: () => state.chatbotOpen,
         setChatbotOpen: (val) => { state.chatbotOpen = val; },
         getChatHistoryLength: () => state.chatHistory.length,
@@ -251,19 +254,19 @@ export function sendQuickMessage(type) {
         () => {
             if (type === 'appointment') {
                 Promise.resolve(
-                    addUserMessage('Quiero agendar una cita')
+                    addUserMessage(translate('chat_msg_book_intent', 'Quiero agendar una cita'))
                 ).catch(() => undefined);
                 startChatBooking();
                 return;
             }
             const quickMessages = {
-                services: 'Que servicios ofrecen?',
-                prices: 'Cuales son los precios?',
-                telemedicine: 'Como funciona la consulta online?',
-                human: 'Quiero hablar con un doctor real',
-                acne: 'Tengo problemas de acne',
-                laser: 'Informacion sobre tratamientos laser',
-                location: 'Donde estan ubicados?',
+                services: translate('chat_msg_services', 'Que servicios ofrecen?'),
+                prices: translate('chat_msg_prices', 'Cuales son los precios?'),
+                telemedicine: translate('chat_msg_telemedicine', 'Como funciona la consulta online?'),
+                human: translate('chat_msg_human', 'Quiero hablar con un doctor real'),
+                acne: translate('chat_msg_acne', 'Tengo problemas de acne'),
+                laser: translate('chat_msg_laser', 'Informacion sobre tratamientos laser'),
+                location: translate('chat_msg_location', 'Donde estan ubicados?'),
             };
             const message = quickMessages[type] || type;
             Promise.resolve(addUserMessage(message)).catch(() => undefined);
@@ -280,6 +283,7 @@ export function scheduleChatNotification() {
 
 function getChatBookingEngineDeps() {
     return {
+        translate,
         addBotMessage,
         addUserMessage,
         showTypingIndicator,
@@ -339,7 +343,7 @@ export function startChatBooking() {
         (engine) => engine.startChatBooking(),
         () => {
             addBotMessage(
-                'No pude iniciar la reserva por chat. Puedes continuar desde <a href="#citas" data-action="minimize-chat">el formulario</a>.'
+                translate('chat_error_booking_start', 'No pude iniciar la reserva por chat. Puedes continuar desde <a href="#citas" data-action="minimize-chat">el formulario</a>.')
             );
         }
     );
@@ -350,7 +354,7 @@ export function handleChatBookingSelection(value) {
         loadChatBookingEngine,
         (engine) => engine.handleChatBookingSelection(value),
         () => {
-            addBotMessage('No pude procesar esa opcion. Intenta nuevamente.');
+            addBotMessage(translate('chat_error_option', 'No pude procesar esa opcion. Intenta nuevamente.'));
         }
     );
 }
@@ -361,7 +365,7 @@ export function handleChatDateSelect(value) {
         loadChatBookingEngine,
         (engine) => engine.handleChatDateSelect(value),
         () => {
-            addBotMessage('No pude procesar esa fecha. Intenta nuevamente.');
+            addBotMessage(translate('chat_error_date', 'No pude procesar esa fecha. Intenta nuevamente.'));
         }
     );
 }
@@ -399,6 +403,7 @@ export function loadFigoChatEngine() {
         onModuleReady: (module) => {
             if (module && typeof module.init === 'function') {
                 module.init({
+                    translate,
                     debugLog,
                     showTypingIndicator,
                     removeTypingIndicator,
@@ -443,7 +448,7 @@ export async function processWithKimi(message) {
             console.error('Error cargando motor de chat:', error);
             removeTypingIndicator();
             addBotMessage(
-                'No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.',
+                translate('chat_error_init', 'No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.'),
                 false
             );
         }
@@ -454,7 +459,7 @@ export function checkServerEnvironment() {
     if (window.location.protocol === 'file:') {
         setTimeout(() => {
             showToast(
-                'Para usar funciones online, abre el sitio en un servidor local. Ver SERVIDOR-LOCAL.md',
+                translate('server_required_warning', 'Para usar funciones online, abre el sitio en un servidor local. Ver SERVIDOR-LOCAL.md'),
                 'warning',
                 'Servidor requerido'
             );

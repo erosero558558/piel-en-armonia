@@ -9,14 +9,11 @@ function init(inputDeps) {
     return window.PielRescheduleEngine;
 }
 
-function getLang() {
-    return deps && typeof deps.getCurrentLang === 'function'
-        ? deps.getCurrentLang()
-        : 'es';
-}
-
-function t(esText, enText) {
-    return getLang() === 'es' ? esText : enText;
+function translate(key, fallback) {
+    if (deps && typeof deps.translate === 'function') {
+        return deps.translate(key, fallback);
+    }
+    return fallback || key;
 }
 
 function safe(text) {
@@ -54,18 +51,18 @@ async function checkRescheduleParam() {
         }
         notify(
             resp?.error ||
-                t(
-                    'Enlace de reprogramacion invalido.',
-                    'Invalid reschedule link.'
+                translate(
+                    'reschedule_invalid_link',
+                    'Enlace de reprogramacion invalido.'
                 ),
             'error'
         );
         return false;
     } catch {
         notify(
-            t(
-                'No se pudo cargar la cita. Verifica el enlace.',
-                'Unable to load appointment. Verify the link.'
+            translate(
+                'reschedule_load_error',
+                'No se pudo cargar la cita. Verifica el enlace.'
             ),
             'error'
         );
@@ -95,22 +92,22 @@ function openRescheduleModal(appt) {
 
         info.innerHTML =
             '<p><strong>' +
-            t('Paciente', 'Patient') +
+            translate('label_patient', 'Paciente') +
             ':</strong> ' +
             safe(rescheduleAppointment.name) +
             '</p>' +
             '<p><strong>' +
-            t('Servicio', 'Service') +
+            translate('label_service', 'Servicio') +
             ':</strong> ' +
             safe(rescheduleAppointment.service) +
             '</p>' +
             '<p><strong>' +
-            t('Doctor', 'Doctor') +
+            translate('label_doctor', 'Doctor') +
             ':</strong> ' +
             safe(doctorLabel) +
             '</p>' +
             '<p><strong>' +
-            t('Fecha actual', 'Current date') +
+            translate('label_current_date', 'Fecha actual') +
             ':</strong> ' +
             safe(rescheduleAppointment.date) +
             ' ' +
@@ -130,7 +127,7 @@ function openRescheduleModal(appt) {
     if (timeSelect) {
         timeSelect.innerHTML =
             '<option value="">' +
-            t('Selecciona un horario', 'Select a time') +
+            translate('reschedule_select_time', 'Selecciona un horario') +
             '</option>';
     }
 
@@ -168,7 +165,7 @@ async function loadRescheduleSlots() {
     }
 
     timeSelect.innerHTML =
-        '<option value="">' + t('Cargando...', 'Loading...') + '</option>';
+        '<option value="">' + translate('loading', 'Cargando...') + '</option>';
 
     try {
         const service = String(rescheduleAppointment.service || 'consulta');
@@ -199,7 +196,7 @@ async function loadRescheduleSlots() {
 
         timeSelect.innerHTML =
             '<option value="">' +
-            t('Selecciona un horario', 'Select a time') +
+            translate('reschedule_select_time', 'Selecciona un horario') +
             '</option>';
         freeSlots.forEach((slot) => {
             const opt = document.createElement('option');
@@ -211,7 +208,7 @@ async function loadRescheduleSlots() {
         if (freeSlots.length === 0) {
             timeSelect.innerHTML =
                 '<option value="">' +
-                t('Sin horarios disponibles', 'No slots available') +
+                translate('reschedule_no_slots', 'Sin horarios disponibles') +
                 '</option>';
         }
     } catch (error) {
@@ -224,8 +221,8 @@ async function loadRescheduleSlots() {
         timeSelect.innerHTML =
             '<option value="">' +
             (isCalendarUnavailable
-                ? t('Agenda temporalmente no disponible', 'Schedule temporarily unavailable')
-                : t('Error al cargar horarios', 'Error loading slots')) +
+                ? translate('reschedule_calendar_unavailable', 'Agenda temporalmente no disponible')
+                : translate('reschedule_slots_error', 'Error al cargar horarios')) +
             '</option>';
     }
 }
@@ -245,16 +242,16 @@ async function submitReschedule() {
     errorDiv.classList.add('is-hidden');
 
     if (!newDate || !newTime) {
-        errorDiv.textContent = t(
-            'Selecciona fecha y horario.',
-            'Select date and time.'
+        errorDiv.textContent = translate(
+            'reschedule_select_date_time',
+            'Selecciona fecha y horario.'
         );
         errorDiv.classList.remove('is-hidden');
         return;
     }
 
     btn.disabled = true;
-    btn.textContent = t('Reprogramando...', 'Rescheduling...');
+    btn.textContent = translate('reschedule_processing', 'Reprogramando...');
 
     try {
         const resp = await deps.apiRequest('reschedule', {
@@ -274,29 +271,29 @@ async function submitReschedule() {
             deps.invalidateBookedSlotsCache(newDate, doctor, service);
             closeRescheduleModal();
             notify(
-                t(
-                    'Cita reprogramada exitosamente.',
-                    'Appointment rescheduled successfully.'
+                translate(
+                    'reschedule_success',
+                    'Cita reprogramada exitosamente.'
                 ),
                 'success'
             );
         } else {
             errorDiv.textContent =
                 resp?.error ||
-                t('Error al reprogramar.', 'Error while rescheduling.');
+                translate('reschedule_error', 'Error al reprogramar.');
             errorDiv.classList.remove('is-hidden');
         }
     } catch {
-        errorDiv.textContent = t(
-            'Error de conexion. Intentalo de nuevo.',
-            'Connection error. Try again.'
+        errorDiv.textContent = translate(
+            'error_connection',
+            'Error de conexion. Intentalo de nuevo.'
         );
         errorDiv.classList.remove('is-hidden');
     } finally {
         btn.disabled = false;
-        btn.textContent = t(
-            'Confirmar reprogramacion',
-            'Confirm reschedule'
+        btn.textContent = translate(
+            'reschedule_confirm',
+            'Confirmar reprogramacion'
         );
     }
 }

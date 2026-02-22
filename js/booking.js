@@ -11,6 +11,7 @@ import {
     state,
     setCurrentAppointment,
 } from './state.js';
+import { translate } from './i18n.js';
 import {
     loadPaymentConfig,
     loadStripeSdk,
@@ -119,6 +120,7 @@ async function buildAppointmentPayload(appointment) {
 
 function getBookingEngineDeps() {
     return {
+        translate,
         getCurrentLang: () => state.currentLang,
         getCurrentAppointment: () => state.currentAppointment,
         setCurrentAppointment: (appt) => { state.currentAppointment = appt; },
@@ -230,6 +232,7 @@ function getDefaultTimeSlots() {
 
 function getBookingUiDeps() {
     return {
+        translate,
         loadAvailabilityData,
         getBookedSlots,
         updateAvailableTimes,
@@ -266,9 +269,7 @@ function validateCasePhotoFiles(files) {
 
     if (files.length > MAX_CASE_PHOTOS) {
         throw new Error(
-            state.currentLang === 'es'
-                ? `Puedes subir m\u00E1ximo ${MAX_CASE_PHOTOS} fotos.`
-                : `You can upload up to ${MAX_CASE_PHOTOS} photos.`
+            translate('booking_photos_max_count', `Puedes subir m\u00E1ximo ${MAX_CASE_PHOTOS} fotos.`)
         );
     }
 
@@ -277,9 +278,7 @@ function validateCasePhotoFiles(files) {
 
         if (file.size > MAX_CASE_PHOTO_BYTES) {
             throw new Error(
-                state.currentLang === 'es'
-                    ? `Cada foto debe pesar m\u00E1ximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
-                    : `Each photo must be at most ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
+                translate('booking_photos_max_size', `Cada foto debe pesar m\u00E1ximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`)
             );
         }
 
@@ -288,9 +287,7 @@ function validateCasePhotoFiles(files) {
         const validByExt = /\.(jpe?g|png|webp)$/i.test(String(file.name || ''));
         if (!validByMime && !validByExt) {
             throw new Error(
-                state.currentLang === 'es'
-                    ? 'Solo se permiten im\u00e1genes JPG, PNG o WEBP.'
-                    : 'Only JPG, PNG or WEBP images are allowed.'
+                translate('booking_photos_invalid_type', 'Solo se permiten im\u00e1genes JPG, PNG o WEBP.')
             );
         }
     }
@@ -351,7 +348,7 @@ export function openPaymentModal(appointmentData) {
         (engine) => engine.openPaymentModal(appointmentData),
         (error) => {
             debugLog('openPaymentModal fallback error:', error);
-            showToast('No se pudo abrir el modulo de pago.', 'error');
+            showToast(translate('payment_modal_open_error', 'No se pudo abrir el modulo de pago.'), 'error');
         }
     );
 }
@@ -389,7 +386,7 @@ export async function processPayment() {
         (engine) => engine.processPayment(),
         (error) => {
             debugLog('processPayment error:', error);
-            showToast('No se pudo procesar el pago en este momento.', 'error');
+            showToast(translate('payment_process_error', 'No se pudo procesar el pago en este momento.'), 'error');
         }
     );
 }

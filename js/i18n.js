@@ -62,3 +62,10 @@ export async function changeLanguage(lang) {
         engine.changeLanguage(lang)
     );
 }
+
+export function translate(key, fallback) {
+    if (window.PielI18nEngine && typeof window.PielI18nEngine.translate === 'function') {
+        return window.PielI18nEngine.translate(key, fallback);
+    }
+    return fallback || key;
+}

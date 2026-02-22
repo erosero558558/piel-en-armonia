@@ -1,6 +1,7 @@
 import { withDeployAssetVersion, showToast, escapeHtml } from './utils.js';
 import { loadDeferredModule, runDeferredModule } from './loader.js';
 import { getCurrentLang } from './state.js';
+import { translate } from './i18n.js';
 import {
     apiRequest,
     loadAvailabilityData,
@@ -14,6 +15,7 @@ const BOOKING_UTILS_URL = withDeployAssetVersion(
 
 function getRescheduleEngineDeps() {
     return {
+        translate,
         apiRequest,
         loadAvailabilityData,
         getBookedSlots,
@@ -45,9 +47,7 @@ export function initRescheduleEngineWarmup() {
         (engine) => engine.checkRescheduleParam(),
         () => {
             showToast(
-                getCurrentLang() === 'es'
-                    ? 'No se pudo cargar la reprogramacion.'
-                    : 'Unable to load reschedule flow.',
+                translate('reschedule_load_failed_toast', 'No se pudo cargar la reprogramacion.'),
                 'error'
             );
         }
@@ -73,9 +73,7 @@ export function submitReschedule() {
         (engine) => engine.submitReschedule(),
         () => {
             showToast(
-                getCurrentLang() === 'es'
-                    ? 'No se pudo reprogramar en este momento.'
-                    : 'Unable to reschedule right now.',
+                translate('reschedule_submit_failed_toast', 'No se pudo reprogramar en este momento.'),
                 'error'
             );
         }
