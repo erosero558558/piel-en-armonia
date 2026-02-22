@@ -7,6 +7,8 @@ function register_api_routes(Router $router): void
     // v1 Routes
     $router->add('GET', 'monitoring-config', [SystemController::class, 'monitoringConfig']);
     $router->add('GET', 'features', [SystemController::class, 'features']);
+    $router->add('GET', 'admin-features', [FeaturesController::class, 'index']);
+    $router->add('POST', 'admin-features', [FeaturesController::class, 'update']);
     $router->add('GET', 'metrics', [SystemController::class, 'metrics']);
     $router->add('GET', 'predictions', [SystemController::class, 'predictions']);
 

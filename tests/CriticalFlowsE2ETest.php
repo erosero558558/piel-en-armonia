@@ -70,6 +70,50 @@ function http_request($method, $url, $data = null, $cookies = null, $headers = [
 }
 
 try {
+    // Seed availability for testing
+    // Note: The server starts with empty availability. We need to auth and seed it.
+    global $adminUrl, $baseUrl;
+    $cookieJar = sys_get_temp_dir() . '/cookie_jar_critical_' . uniqid();
+
+    // Login
+    $ch = curl_init("$adminUrl?action=login");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['password' => 'secret']));
+    curl_setopt($ch, CURLOPT_COOKIEJAR, $cookieJar);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($code === 200) {
+        $body = json_decode($resp, true);
+        $csrfToken = $body['csrfToken'] ?? '';
+
+        // Seed +3, +4, +5 days
+        $dates = [
+            date('Y-m-d', strtotime('+3 days')),
+            date('Y-m-d', strtotime('+4 days')),
+            date('Y-m-d', strtotime('+5 days'))
+        ];
+
+        $availability = [];
+        foreach ($dates as $d) {
+            $availability[$d] = ['10:00', '11:00', '12:00'];
+        }
+
+        $ch = curl_init("$baseUrl?resource=availability");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['availability' => $availability]));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json', "X-CSRF-Token: $csrfToken"]);
+        curl_setopt($ch, CURLOPT_COOKIEFILE, $cookieJar);
+        curl_exec($ch);
+        curl_close($ch);
+    }
+
+    @unlink($cookieJar);
+
     // 1. Conflict Handling (Waitlist)
     run_test('E2E: Conflict Handling', function () use ($baseUrl) {
         $date = date('Y-m-d', strtotime('+3 days')); // Ensure future date

@@ -208,6 +208,52 @@ class FeatureFlags
         }
         return $result;
     }
+
+    public static function getRawConfig(): array
+    {
+        $allKeys = array_keys(self::$defaults);
+        $stored = self::loadFlags();
+        $storedKeys = array_keys($stored);
+        $keys = array_unique(array_merge($allKeys, $storedKeys));
+
+        $result = [];
+        foreach ($keys as $key) {
+            $config = $stored[$key] ?? ['enabled' => self::$defaults[$key] ?? false];
+            // Normalize
+            if (is_bool($config)) {
+                $config = ['enabled' => $config];
+            }
+            if (!isset($config['enabled'])) {
+                $config['enabled'] = false;
+            }
+            if (!isset($config['percentage'])) {
+                $config['percentage'] = 100;
+            }
+            $result[$key] = $config;
+        }
+        return $result;
+    }
+
+    public static function updateFlag(string $flag, array $config): void
+    {
+        $flags = self::loadFlags();
+
+        $current = $flags[$flag] ?? ['enabled' => self::$defaults[$flag] ?? false];
+        if (is_bool($current)) {
+            $current = ['enabled' => $current];
+        }
+
+        // Merge updates
+        if (isset($config['enabled'])) {
+            $current['enabled'] = (bool)$config['enabled'];
+        }
+        if (isset($config['percentage'])) {
+            $current['percentage'] = max(0, min(100, (int)$config['percentage']));
+        }
+
+        $flags[$flag] = $current;
+        self::saveFlags($flags);
+    }
 }
 
 // Backward compatibility functions
