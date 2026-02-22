@@ -193,9 +193,11 @@ test.describe('Checklist de Pruebas en Producción', () => {
         // Intentar seleccionar hora si aparece un select de hora
         const timeSelect = page.locator('select[name="time"]');
         if (await timeSelect.isVisible()) {
-            // Seleccionar primera opción válida
-            const options = await timeSelect.locator('option').all();
+            // Seleccionar primera opción válida que no esté deshabilitada
+            // Wait for at least one enabled option other than placeholder
+            const options = await timeSelect.locator('option:not([disabled])').all();
             if (options.length > 1) {
+                // Ensure the option is enabled and selectable
                 await timeSelect.selectOption({ index: 1 });
             }
         }
