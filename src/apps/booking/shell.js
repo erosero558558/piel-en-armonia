@@ -1,4 +1,4 @@
-import { withDeployAssetVersion, showToast, debugLog } from './utils.js';
+import { withDeployAssetVersion, showToast, debugLog } from '../shared/utils.js';
 import {
     loadDeferredModule,
     runDeferredModule,
@@ -6,30 +6,30 @@ import {
     bindWarmupTarget,
     observeOnceWhenVisible,
     scheduleDeferredTask,
-} from './loader.js';
+} from '../shared/loader.js';
 import {
     state,
     setCurrentAppointment,
-} from './state.js';
+} from '../shared/state.js';
 import {
     loadPaymentConfig,
     loadStripeSdk,
     createPaymentIntent,
     verifyPaymentIntent,
-} from './payment.js';
+} from '../payment/shell.js';
 import {
     trackEvent,
     normalizeAnalyticsLabel,
     loadAnalyticsEngine,
     markBookingViewed,
-} from './analytics.js';
-import { showSuccessModal } from './success-modal.js';
+} from '../analytics/shell.js';
+import { showSuccessModal } from '../success-modal/shell.js';
 import {
     createAppointmentRecord,
     uploadTransferProof,
     loadAvailabilityData,
     getBookedSlots,
-} from './data.js';
+} from '../data/shell.js';
 
 export { markBookingViewed };
 
@@ -249,7 +249,6 @@ function getBookingUiDeps() {
         normalizeAnalyticsLabel,
         openPaymentModal,
         setCurrentAppointment: setCurrentAppointment,
-        updateAvailableTimes, // Added dependency
     };
 }
 

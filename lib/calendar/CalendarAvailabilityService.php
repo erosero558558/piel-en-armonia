@@ -24,7 +24,7 @@ class CalendarAvailabilityService
         $this->client = $client;
         $this->source = $source;
         $this->blockOnFailure = $blockOnFailure;
-        $this->timezone = $timezone !== '' ? $timezone : APP_TIMEZONE;
+        $this->timezone = $timezone !== '' ? $timezone : (defined('APP_TIMEZONE') ? APP_TIMEZONE : 'America/Guayaquil');
         $this->slotStepMin = max(15, min(60, $slotStepMin));
         $this->durationMap = $durationMap;
         $this->maxDays = max(1, min(90, $maxDays));
@@ -38,7 +38,7 @@ class CalendarAvailabilityService
         }
 
         $blockOnFailure = self::parseBool((string) (getenv('PIELARMONIA_CALENDAR_BLOCK_ON_FAILURE') ?: 'true'));
-        $timezone = (string) (getenv('PIELARMONIA_CALENDAR_TIMEZONE') ?: APP_TIMEZONE);
+        $timezone = (string) (getenv('PIELARMONIA_CALENDAR_TIMEZONE') ?: (defined('APP_TIMEZONE') ? APP_TIMEZONE : 'America/Guayaquil'));
         $slotStepMin = (int) (getenv('PIELARMONIA_CALENDAR_SLOT_STEP_MIN') ?: 30);
         $durationMap = self::parseDurationMap(
             (string) (getenv('PIELARMONIA_SERVICE_DURATION_MAP') ?: 'consulta:30,telefono:30,video:30,acne:30,cancer:30,laser:60,rejuvenecimiento:60')

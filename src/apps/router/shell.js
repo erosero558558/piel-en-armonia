@@ -1,16 +1,16 @@
-import { withDeployAssetVersion, debugLog } from './utils.js';
-import { loadDeferredModule, runDeferredModule } from './loader.js';
-import { setThemeMode } from './theme.js';
-import { changeLanguage } from './i18n.js';
-import { toggleMobileMenu, startWebVideo, closeVideoModal } from './ui.js';
-import { openReviewModal, closeReviewModal } from './engagement.js';
+import { withDeployAssetVersion, debugLog } from '../shared/utils.js';
+import { loadDeferredModule, runDeferredModule } from '../shared/loader.js';
+import { setThemeMode } from '../theme/shell.js';
+import { changeLanguage } from '../i18n/shell.js';
+import { toggleMobileMenu, startWebVideo, closeVideoModal } from '../ui-effects/shell.js';
+import { openReviewModal, closeReviewModal } from '../engagement/shell.js';
 import {
     closePaymentModal,
     processPayment,
     markBookingViewed,
-} from './booking.js';
-import { closeSuccessModal } from './success-modal.js';
-import { closeRescheduleModal, submitReschedule } from './reschedule.js';
+} from '../booking/shell.js';
+import { closeSuccessModal } from '../success-modal/shell.js';
+import { closeRescheduleModal, submitReschedule } from '../reschedule/shell.js';
 import {
     toggleChatbot,
     sendChatMessage,
@@ -19,7 +19,7 @@ import {
     minimizeChatbot,
     startChatBooking,
     handleChatDateSelect,
-} from '../src/apps/chat/shell.js';
+} from '../chat/shell.js';
 
 const DATA_BUNDLE_URL = withDeployAssetVersion(
     '/js/engines/data-bundle.js?v=20260221-api-fix'

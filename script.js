@@ -1,4 +1,4 @@
-/* GENERATED FILE - DO NOT EDIT DIRECTLY - Edit source in js/main.js and run npm run build */
+/* GENERATED FILE - DO NOT EDIT DIRECTLY - Edit source in src/apps/main/index.js and run npm run build */
 (function () {
     'use strict';
 
@@ -773,12 +773,6 @@
         );
     }
 
-    function loadPublicReviews(options = {}) {
-        return withDeferredModule(loadReviewsEngine, (engine) =>
-            engine.loadPublicReviews(options)
-        );
-    }
-
     // ENGAGEMENT FORMS ENGINE
     function getEngagementFormsEngineDeps() {
         return {
@@ -1120,131 +1114,37 @@
     const ANALYTICS_ENGINE_URL = withDeployAssetVersion(
         '/js/engines/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1'
     );
-    const FUNNEL_EVENT_ENDPOINT = '/api.php?resource=funnel-event';
-    const FUNNEL_SERVER_EVENTS = new Set([
-        'view_booking',
-        'start_checkout',
-        'payment_method_selected',
-        'payment_success',
-        'booking_confirmed',
-        'checkout_abandon',
-        'booking_step_completed',
-        'booking_error',
-        'checkout_error',
-        'chat_started',
-        'chat_handoff_whatsapp',
-        'whatsapp_click',
-    ]);
-    const FUNNEL_SERVER_ALLOWED_PARAMS = new Set([
-        'source',
-        'step',
-        'payment_method',
-        'checkout_entry',
-        'checkout_step',
-        'reason',
-        'error_code',
-    ]);
-    const FUNNEL_EVENT_DEDUP_MS = 1200;
-    const funnelEventLastSentAt = new Map();
-
-    function normalizeFunnelLabelClient(value, fallback = 'unknown') {
-        if (value === null || value === undefined) {
-            return fallback;
-        }
-        const normalized = String(value)
-            .toLowerCase()
-            .trim()
-            .replace(/[^a-z0-9_]+/g, '_')
-            .replace(/^_+|_+$/g, '')
-            .slice(0, 48);
-        return normalized || fallback;
-    }
-
-    function buildFunnelServerParams(params = {}) {
-        const sourceRaw =
-            params && typeof params === 'object' ? params.source : undefined;
-        const normalized = {
-            source: normalizeFunnelLabelClient(sourceRaw, 'unknown'),
-        };
-
-        if (!params || typeof params !== 'object') {
-            return normalized;
-        }
-
-        FUNNEL_SERVER_ALLOWED_PARAMS.forEach((key) => {
-            if (key === 'source') {
-                return;
-            }
-            if (Object.prototype.hasOwnProperty.call(params, key)) {
-                normalized[key] = normalizeFunnelLabelClient(
-                    params[key],
-                    'unknown'
-                );
-            }
-        });
-
-        return normalized;
-    }
-
-    function sendFunnelEventToServer(eventName, params = {}) {
-        const normalizedEvent = normalizeFunnelLabelClient(eventName, '');
-        if (!FUNNEL_SERVER_EVENTS.has(normalizedEvent)) {
-            return;
-        }
-        if (window.location.protocol === 'file:') {
-            return;
-        }
-
-        const serverParams = buildFunnelServerParams(params);
-        const dedupKey = [
-            normalizedEvent,
-            serverParams.step || '',
-            serverParams.payment_method || '',
-            serverParams.checkout_step || serverParams.step || '',
-            serverParams.reason || '',
-            serverParams.source || '',
-        ].join('|');
-
-        const now = Date.now();
-        const previousAt = funnelEventLastSentAt.get(dedupKey) || 0;
-        if (now - previousAt < FUNNEL_EVENT_DEDUP_MS) {
-            return;
-        }
-        funnelEventLastSentAt.set(dedupKey, now);
-
-        const payload = JSON.stringify({
-            event: normalizedEvent,
-            params: serverParams,
-        });
-
-        try {
-            if (navigator.sendBeacon) {
-                const blob = new Blob([payload], { type: 'application/json' });
-                const sent = navigator.sendBeacon(FUNNEL_EVENT_ENDPOINT, blob);
-                if (sent) {
-                    return;
-                }
-            }
-        } catch (_error) {}
-
-        fetch(FUNNEL_EVENT_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-            },
-            body: payload,
-            keepalive: true,
-            credentials: 'same-origin',
-        }).catch(() => undefined);
-    }
 
     function getAnalyticsEngineDeps() {
         return {
-            observeOnceWhenVisible,
-            loadAvailabilityData,
-            loadPublicReviews,
-            trackEventToServer: sendFunnelEventToServer,
+            getCheckoutSession: () => state.checkoutSession,
+            setCheckoutSessionActive: (active) => {
+                state.checkoutSession.active = active === true;
+            },
+            setCheckoutSession: (data) => {
+                if (data && typeof data === 'object') {
+                    Object.assign(state.checkoutSession, data);
+                }
+            },
+            getBookingViewTracked: () => state.bookingViewTracked,
+            setBookingViewTracked: (val) => {
+                state.bookingViewTracked = val;
+            },
+            getChatStartedTracked: () => state.chatStartedTracked,
+            setChatStartedTracked: (val) => {
+                state.chatStartedTracked = val;
+            },
+            debugLog,
+            apiEndpoint: API_ENDPOINT,
+            getCookieConsentStatus: () => {
+                try {
+                    const raw = localStorage.getItem('pa_cookie_consent_v1');
+                    const parsed = JSON.parse(raw || '{}');
+                    return parsed.status || '';
+                } catch {
+                    return '';
+                }
+            }
         };
     }
 
@@ -1257,53 +1157,72 @@
             isModuleReady: (module) =>
                 !!(module && typeof module.init === 'function'),
             onModuleReady: (module) => module.init(getAnalyticsEngineDeps()),
-            missingApiError: 'analytics-engine loaded without API',
+            missingApiError: 'Analytics engine loaded without API',
             loadError: 'No se pudo cargar analytics-engine.js',
             logLabel: 'Analytics engine',
         });
     }
 
     function trackEvent(eventName, params = {}) {
-        sendFunnelEventToServer(eventName, params);
+        if (window.Piel && window.Piel.AnalyticsEngine) {
+            window.Piel.AnalyticsEngine.trackEvent(eventName, params);
+            return;
+        }
         runDeferredModule(loadAnalyticsEngine, (engine) =>
             engine.trackEvent(eventName, params)
         );
     }
 
-    function normalizeAnalyticsLabel(value, fallback = 'unknown') {
-        if (value === null || value === undefined) {
-            return fallback;
+    function normalizeAnalyticsLabel(text) {
+        if (
+            window.Piel &&
+            window.Piel.AnalyticsEngine &&
+            window.Piel.AnalyticsEngine.normalizeAnalyticsLabel
+        ) {
+            return window.Piel.AnalyticsEngine.normalizeAnalyticsLabel(text);
         }
-        const normalized = String(value)
+        return String(text || '')
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '_')
-            .replace(/^_+|_+$/g, '')
-            .slice(0, 64);
-        return normalized || fallback;
+            .replace(/^_+|_+$/g, '');
     }
 
-    function markBookingViewed(source = 'unknown') {
+    function markBookingViewed(source) {
         runDeferredModule(loadAnalyticsEngine, (engine) =>
             engine.markBookingViewed(source)
         );
     }
 
-    function initBookingFunnelObserver() {
-        runDeferredModule(loadAnalyticsEngine, (engine) =>
-            engine.initBookingFunnelObserver()
-        );
-    }
-
-    function initDeferredSectionPrefetch() {
-        runDeferredModule(loadAnalyticsEngine, (engine) =>
-            engine.initDeferredSectionPrefetch()
-        );
-    }
-
-    function maybeTrackCheckoutAbandon$1(reason = 'unknown') {
+    function maybeTrackCheckoutAbandon$1(reason) {
         runDeferredModule(loadAnalyticsEngine, (engine) =>
             engine.maybeTrackCheckoutAbandon(reason)
         );
+    }
+
+    function initBookingFunnelObserver() {
+        const observer = () => {
+            runDeferredModule(loadAnalyticsEngine, (engine) =>
+                engine.initBookingFunnelObserver()
+            );
+        };
+
+        const bookingSection = document.getElementById('citas');
+        if (bookingSection) {
+            observeOnceWhenVisible(bookingSection, observer, { threshold: 0.1 });
+        }
+    }
+
+    function initDeferredSectionPrefetch() {
+        // Analytics engine handles intersection observers for tracking section views
+        // and can trigger prefetch logic if needed.
+        const prefetch = () => {
+            runDeferredModule(loadAnalyticsEngine, (engine) =>
+                engine.initSectionObservers()
+            );
+        };
+
+        // Low priority init
+        scheduleDeferredTask(prefetch, { idleTimeout: 3000, fallbackDelay: 2000 });
     }
 
     const UI_BUNDLE_URL$2 = withDeployAssetVersion(
@@ -1597,7 +1516,6 @@
             normalizeAnalyticsLabel,
             openPaymentModal,
             setCurrentAppointment: setCurrentAppointment,
-            updateAvailableTimes, // Added dependency
         };
     }
 
@@ -2302,10 +2220,7 @@
             loadFigoChatEngine,
             (engine) => engine.processWithKimi(message),
             (error) => {
-                // Log error to monitoring service in production
-                if (window.Piel && window.Piel.reportError) {
-                    window.Piel.reportError('chat_engine_load', error);
-                }
+                console.error('Error cargando motor de chat:', error);
                 removeTypingIndicator();
                 addBotMessage(
                     'No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.',
@@ -2706,7 +2621,7 @@
             debugLog('Deferred content loaded and hydrated.');
             return true;
         } catch (error) {
-            // Silent fail - fallback UI will show
+            console.error('Error loading deferred content:', error);
             renderDeferredFallbackState();
             return false;
         }
@@ -2980,7 +2895,9 @@
 
         const isServer = checkServerEnvironment();
         if (!isServer) {
-            // Offline mode - no server connection
+            console.warn(
+                'Chatbot en modo offline: abre el sitio desde servidor para usar IA real.'
+            );
         }
 
         // Smooth Scroll
@@ -3069,7 +2986,7 @@
     // Push Notifications (Stub)
     window.subscribeToPushNotifications = async function() {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            // Push notifications not supported in this browser
+            console.warn('Push not supported');
             return;
         }
         try {
@@ -3081,7 +2998,7 @@
                 applicationServerKey: publicVapidKey
             });
         } catch (error) {
-            // Push subscription failed - ignore
+            console.error('Push subscription error:', error);
         }
     };
 
