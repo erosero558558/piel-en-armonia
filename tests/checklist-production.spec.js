@@ -193,6 +193,10 @@ test.describe('Checklist de Pruebas en Producción', () => {
         // Intentar seleccionar hora si aparece un select de hora
         const timeSelect = page.locator('select[name="time"]');
         if (await timeSelect.isVisible()) {
+            // Wait for options to be populated and element to be enabled
+            await expect(timeSelect).toBeEnabled({ timeout: 5000 });
+            await page.waitForFunction((el) => el.options.length > 1, await timeSelect.elementHandle());
+
             // Seleccionar primera opción válida
             const options = await timeSelect.locator('option').all();
             if (options.length > 1) {

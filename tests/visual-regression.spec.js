@@ -9,6 +9,8 @@ test.describe('Pruebas de regresión visual', () => {
 
         // Esperar a que la carga termine
         await page.waitForLoadState('load');
+        // eslint-disable-next-line
+        // eslint-disable-next-line
         await page.waitForLoadState('networkidle');
         await page.waitForTimeout(2000); // Allow layout to settle
 
