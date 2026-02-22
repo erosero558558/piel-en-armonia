@@ -363,6 +363,10 @@
         }
     }
 
+    if (typeof window !== 'undefined' && !window.debugLog) {
+        window.debugLog = debugLog;
+    }
+
     const deferredModulePromises = new Map();
 
     function loadDeferredModule(options) {
@@ -2302,10 +2306,7 @@
             loadFigoChatEngine,
             (engine) => engine.processWithKimi(message),
             (error) => {
-                // Log error to monitoring service in production
-                if (window.Piel && window.Piel.reportError) {
-                    window.Piel.reportError('chat_engine_load', error);
-                }
+                console.error('Error cargando motor de chat:', error);
                 removeTypingIndicator();
                 addBotMessage(
                     'No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.',
@@ -2688,6 +2689,17 @@
 
     async function loadDeferredContent() {
         try {
+            if (!window.PIEL_CONTENT) {
+                try {
+                    const response = await fetch('/content/es.json');
+                    if (response.ok) {
+                        window.PIEL_CONTENT = await response.json();
+                    }
+                } catch (e) {
+                    console.warn('Piel content fallback failed', e);
+                }
+            }
+
             const data = await fetchDeferredPayload();
 
             Object.keys(data).forEach((id) => {
@@ -2706,7 +2718,7 @@
             debugLog('Deferred content loaded and hydrated.');
             return true;
         } catch (error) {
-            // Silent fail - fallback UI will show
+            console.error('Error loading deferred content:', error);
             renderDeferredFallbackState();
             return false;
         }
@@ -2980,7 +2992,9 @@
 
         const isServer = checkServerEnvironment();
         if (!isServer) {
-            // Offline mode - no server connection
+            console.warn(
+                'Chatbot en modo offline: abre el sitio desde servidor para usar IA real.'
+            );
         }
 
         // Smooth Scroll
@@ -3069,7 +3083,7 @@
     // Push Notifications (Stub)
     window.subscribeToPushNotifications = async function() {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            // Push notifications not supported in this browser
+            console.warn('Push not supported');
             return;
         }
         try {
@@ -3081,7 +3095,7 @@
                 applicationServerKey: publicVapidKey
             });
         } catch (error) {
-            // Push subscription failed - ignore
+            console.error('Push subscription error:', error);
         }
     };
 
