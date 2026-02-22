@@ -562,7 +562,7 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
                     continue;
                 }
                 $stmt->execute([
-                    $appt['id'],
+                    (int) $appt['id'],
                     $appt['date'] ?? '',
                     $appt['time'] ?? '',
                     $appt['doctor'] ?? '',
@@ -588,7 +588,7 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
                     continue;
                 }
                 $stmt->execute([
-                    $review['id'],
+                    (int) $review['id'],
                     $review['name'] ?? '',
                     $review['rating'] ?? 0,
                     $review['text'] ?? '',
@@ -607,7 +607,7 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
                     continue;
                 }
                 $stmt->execute([
-                    $cb['id'],
+                    (int) $cb['id'],
                     $cb['telefono'] ?? '',
                     $cb['preferencia'] ?? '',
                     $cb['fecha'] ?? '',
