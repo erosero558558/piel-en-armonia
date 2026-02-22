@@ -15,18 +15,27 @@ $tempDir = sys_get_temp_dir() . '/pielarmonia-test-backup-' . uniqid();
 if (!is_dir($tempDir)) {
     mkdir($tempDir, 0777, true);
 }
-$backupDir = $tempDir . '/backups';
+
+// Create pielarmonia subdirectory for multi-tenancy compatibility
+$tenantDir = $tempDir . '/pielarmonia';
+if (!is_dir($tenantDir)) {
+    mkdir($tenantDir, 0777, true);
+}
+$backupDir = $tenantDir . '/backups';
 
 // Initialize empty store to prevent migration from other directories
+$tomorrow = date('Y-m-d', strtotime('+1 day'));
 $initialStore = [
     'appointments' => [],
-    'availability' => [],
+    'availability' => [
+        $tomorrow => ['10:00']
+    ],
     'reviews' => [],
     'callbacks' => [],
     'updatedAt' => date('c'),
     'createdAt' => date('c')
 ];
-file_put_contents($tempDir . '/store.json', json_encode($initialStore));
+file_put_contents($tenantDir . '/store.json', json_encode($initialStore));
 
 echo "Starting Backup Verification Server on port $port with data dir $tempDir...\n";
 

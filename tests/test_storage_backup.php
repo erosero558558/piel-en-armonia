@@ -30,8 +30,9 @@ run_test('Writing to store should create a backup of the previous state', functi
     write_store($initialStore);
 
     // Verify file exists
-    $storeFile = $tmpDataDir . '/store.sqlite';
-    assert_true(file_exists($storeFile), 'store.sqlite should exist');
+    // With multi-tenancy, path might be in subdirectory
+    $storeFile = data_file_path();
+    assert_true(file_exists($storeFile), 'store.sqlite should exist at ' . $storeFile);
 
     // 2. Modify state (this triggers backup of step 1)
     $modifiedStore = read_store(); // Read back to get correct structure
@@ -43,8 +44,8 @@ run_test('Writing to store should create a backup of the previous state', functi
     write_store($modifiedStore);
 
     // 3. Check for backup file
-    $backupDir = $tmpDataDir . '/backups';
-    assert_true(is_dir($backupDir), 'Backup directory should exist');
+    $backupDir = backup_dir_path();
+    assert_true(is_dir($backupDir), 'Backup directory should exist at ' . $backupDir);
 
     $files = glob($backupDir . '/store-*.sqlite');
     assert_greater_than(0, count($files), 'There should be at least one backup file');
@@ -80,14 +81,15 @@ run_test('Writing to store should create a backup of the previous state', functi
 
 run_test('Backup rotation (max backups)', function () use ($tmpDataDir) {
     // Clear backups from previous test
-    $backupDir = $tmpDataDir . '/backups';
+    $backupDir = backup_dir_path();
+    // Ensure dir exists (it might have been created by previous test)
+    if (!is_dir($backupDir)) {
+        mkdir($backupDir, 0777, true);
+    }
+
     $files = glob($backupDir . '/*');
     foreach ($files as $f) {
         unlink($f);
-    }
-
-    if (!is_dir($backupDir)) {
-        mkdir($backupDir, 0777, true);
     }
 
     // Create 35 dummy files

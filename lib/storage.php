@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/business.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/tenants.php';
 
 /**
  * Storage and file system operations using SQLite.
@@ -219,7 +220,22 @@ function resolve_data_dir(): array
 function data_dir_path(): string
 {
     $resolved = resolve_data_dir();
-    return (string) ($resolved['path'] ?? DATA_DIR);
+    $base = (string) ($resolved['path'] ?? DATA_DIR);
+    $tenant = get_current_tenant_id();
+
+    // Backward compatibility for default tenant 'pielarmonia'
+    if ($tenant === 'pielarmonia') {
+        $legacyDb = $base . DIRECTORY_SEPARATOR . 'store.sqlite';
+        $tenantDir = $base . DIRECTORY_SEPARATOR . $tenant;
+        $newDb = $tenantDir . DIRECTORY_SEPARATOR . 'store.sqlite';
+
+        // Legacy Mode: If legacy DB exists and new DB does not, use root.
+        if (file_exists($legacyDb) && !file_exists($newDb)) {
+            return $base;
+        }
+    }
+
+    return $base . DIRECTORY_SEPARATOR . $tenant;
 }
 
 function data_dir_source(): string
@@ -546,7 +562,7 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
                     continue;
                 }
                 $stmt->execute([
-                    $appt['id'],
+                    (int) $appt['id'],
                     $appt['date'] ?? '',
                     $appt['time'] ?? '',
                     $appt['doctor'] ?? '',
@@ -572,7 +588,7 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
                     continue;
                 }
                 $stmt->execute([
-                    $review['id'],
+                    (int) $review['id'],
                     $review['name'] ?? '',
                     $review['rating'] ?? 0,
                     $review['text'] ?? '',
@@ -591,7 +607,7 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
                     continue;
                 }
                 $stmt->execute([
-                    $cb['id'],
+                    (int) $cb['id'],
                     $cb['telefono'] ?? '',
                     $cb['preferencia'] ?? '',
                     $cb['fecha'] ?? '',

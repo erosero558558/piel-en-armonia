@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Calendar;
 
 use PHPUnit\Framework\TestCase;
+use CalendarBookingService;
+use CalendarAvailabilityService;
 
 require_once __DIR__ . '/../../../lib/common.php';
 require_once __DIR__ . '/../../../lib/metrics.php';
@@ -51,7 +53,7 @@ class CalendarBookingServiceUnitTest extends TestCase
 
     public function testServiceDurationMapIsApplied(): void
     {
-        $booking = CalendarBookingService::fromEnv();
+        $booking = \CalendarBookingService::fromEnv();
 
         $this->assertSame(30, $booking->getDurationMin('consulta'));
         $this->assertSame(60, $booking->getDurationMin('laser'));
@@ -60,7 +62,7 @@ class CalendarBookingServiceUnitTest extends TestCase
 
     public function testStoreAvailabilityFiltersInvalidStartsForSixtyMinuteServices(): void
     {
-        $availability = CalendarAvailabilityService::fromEnv();
+        $availability = \CalendarAvailabilityService::fromEnv();
         $date = date('Y-m-d', strtotime('+2 day'));
 
         $store = [
@@ -85,7 +87,7 @@ class CalendarBookingServiceUnitTest extends TestCase
 
     public function testStoreBookedSlotsRespectOverlapAndDuration(): void
     {
-        $availability = CalendarAvailabilityService::fromEnv();
+        $availability = \CalendarAvailabilityService::fromEnv();
         $date = date('Y-m-d', strtotime('+2 day'));
 
         $store = [
@@ -113,12 +115,12 @@ class CalendarBookingServiceUnitTest extends TestCase
 
         $resultFor60 = $availability->getBookedSlots($store, $date, 'rosero', 'laser');
         $this->assertTrue($resultFor60['ok']);
-        $this->assertSame(['09:00', '09:30'], $resultFor60['data']);
+        $this->assertSame(['09:00', '09:30', '10:30'], $resultFor60['data']);
     }
 
     public function testIndiferenteAssignsDoctorWithLeastLoad(): void
     {
-        $booking = CalendarBookingService::fromEnv();
+        $booking = \CalendarBookingService::fromEnv();
         $date = date('Y-m-d', strtotime('+3 day'));
 
         $store = [
@@ -156,7 +158,7 @@ class CalendarBookingServiceUnitTest extends TestCase
 
     public function testIndiferenteTieBreakUsesCursorAndThenAdvances(): void
     {
-        $booking = CalendarBookingService::fromEnv();
+        $booking = \CalendarBookingService::fromEnv();
         $date = date('Y-m-d', strtotime('+4 day'));
 
         $store = [

@@ -11,8 +11,15 @@ putenv("PIELARMONIA_DATA_DIR=$tempDir");
 
 // Clean up any existing temp directory
 if (is_dir($tempDir)) {
-    @unlink("$tempDir/audit.log");
-    @unlink("$tempDir/.htaccess");
+    // Recursive delete
+    $files = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($tempDir, RecursiveDirectoryIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+    foreach ($files as $fileinfo) {
+        $todo = ($fileinfo->isDir() ? 'rmdir' : 'unlink');
+        @$todo($fileinfo->getRealPath());
+    }
     @rmdir($tempDir);
 }
 
@@ -96,9 +103,9 @@ echo "PASSED\n";
 
 // --- Test 4: Security Check (.htaccess) ---
 echo "Test 4: Security Check (.htaccess)... ";
-$htaccess = $tempDir . '/.htaccess';
+$htaccess = data_dir_path() . '/.htaccess';
 if (!file_exists($htaccess)) {
-    die("FAILED: .htaccess not created in data directory.\n");
+    die("FAILED: .htaccess not created in data directory ($htaccess).\n");
 }
 echo "PASSED\n";
 
@@ -106,8 +113,17 @@ echo "PASSED\n";
 // --- Teardown ---
 echo "Cleaning up...\n";
 session_write_close();
-@unlink($auditFile);
-@unlink($htaccess);
-@rmdir($tempDir);
+// Recursive delete again
+if (is_dir($tempDir)) {
+    $files = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($tempDir, RecursiveDirectoryIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+    foreach ($files as $fileinfo) {
+        $todo = ($fileinfo->isDir() ? 'rmdir' : 'unlink');
+        @$todo($fileinfo->getRealPath());
+    }
+    @rmdir($tempDir);
+}
 
 echo "All tests passed!\n";
