@@ -104,6 +104,25 @@ jobs:
                     -RequireBackupReceiverReady `
                     -RequireCronReady
 
+            - name: Setup Node para contrato calendario
+              if: ${{ steps.gate.outcome == 'success' }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'npm'
+
+            - name: Instalar dependencias Node
+              if: ${{ steps.gate.outcome == 'success' }}
+              shell: pwsh
+              run: npm ci
+
+            - name: Validar contrato Google Calendar (no destructivo)
+              if: ${{ steps.gate.outcome == 'success' }}
+              shell: pwsh
+              env:
+                  TEST_BASE_URL: ${{ env.TARGET_DOMAIN }}
+              run: npm run test:calendar-contract
+
             - name: Resumen
               if: ${{ always() }}
               shell: pwsh
@@ -114,6 +133,7 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Asset hash retries: ``$env:ASSET_HASH_RETRY_COUNT`` cada ``$env:ASSET_HASH_RETRY_DELAY_SEC``s"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Verify retries: ``$env:VERIFY_RETRY_ATTEMPTS`` cada ``$env:VERIFY_RETRY_DELAY_SEC``s"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Resultado: ``${{ steps.gate.outcome }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Contrato calendario: ejecutado con ``npm run test:calendar-contract``"
 
             - name: Publicar reporte de verificacion
               if: ${{ always() }}
