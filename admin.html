@@ -121,6 +121,10 @@
                         <i class="fas fa-clock"></i>
                         <span>Disponibilidad</span>
                     </a>
+                    <a href="#audit" class="nav-item" data-section="audit">
+                        <i class="fas fa-history"></i>
+                        <span>Auditoría</span>
+                    </a>
                 </nav>
 
                 <div class="sidebar-footer">
@@ -517,6 +521,24 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </section>
+
+                <!-- Audit Section -->
+                <section id="audit" class="admin-section">
+                    <div class="table-container">
+                        <table class="data-table" id="auditLogsTable">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Evento</th>
+                                    <th>Actor</th>
+                                    <th>Ruta</th>
+                                    <th>Detalles</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditLogsTableBody"></tbody>
+                        </table>
                     </div>
                 </section>
             </main>

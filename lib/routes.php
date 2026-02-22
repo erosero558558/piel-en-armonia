@@ -50,6 +50,8 @@ function register_api_routes(Router $router): void
 
     $router->add('GET', 'content', [ContentController::class, 'get']);
 
+    $router->add('GET', 'audit', [AuditController::class, 'index']);
+
     // v2 Routes
     $router->add('GET', 'health', [HealthController::class, 'check'], 'v2');
 }

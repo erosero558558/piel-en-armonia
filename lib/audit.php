@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/storage.php';
+require_once __DIR__ . '/db.php';
 
 /**
  * Audit Logging Helpers
@@ -25,6 +26,20 @@ function audit_log_event(string $event, array $details = []): void
         return;
     }
 
+    // Database Logging
+    if (function_exists('db_query')) {
+        $detailsJson = json_encode($details, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        db_query("INSERT INTO audit_logs (ts, event, ip, actor, path, details) VALUES (?, ?, ?, ?, ?, ?)", [
+            $line['ts'],
+            $line['event'],
+            $line['ip'],
+            $line['actor'],
+            $line['path'],
+            $detailsJson
+        ]);
+    }
+
+    // File Logging (Legacy/Backup)
     $dir = data_dir_path();
     if (!is_dir($dir)) {
         @mkdir($dir, 0775, true);

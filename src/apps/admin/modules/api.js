@@ -3,9 +3,10 @@ import { csrfToken } from './state.js';
 const API_ENDPOINT = '/api.php';
 const AUTH_ENDPOINT = '/admin-auth.php';
 
-function buildQuery(resource) {
+function buildQuery(resource, queryParams = {}) {
     const params = new URLSearchParams();
     params.set('resource', resource);
+    Object.keys(queryParams).forEach(key => params.append(key, queryParams[key]));
     return `${API_ENDPOINT}?${params.toString()}`;
 }
 
@@ -45,7 +46,7 @@ async function requestJson(url, options = {}) {
 }
 
 export async function apiRequest(resource, options = {}) {
-    return requestJson(buildQuery(resource), options);
+    return requestJson(buildQuery(resource, options.params || {}), options);
 }
 
 export async function authRequest(action, options = {}) {
