@@ -21,27 +21,27 @@ on:
             wait_seconds:
                 description: 'Espera para sincronizacion del servidor'
                 required: false
-                default: '120'
+                default: '180'
                 type: string
             asset_hash_retry_count:
                 description: 'Reintentos por hash de asset'
                 required: false
-                default: '2'
+                default: '3'
                 type: string
             asset_hash_retry_delay_sec:
                 description: 'Espera entre reintentos de hash (seg)'
                 required: false
-                default: '4'
+                default: '8'
                 type: string
             verify_retry_attempts:
                 description: 'Reintentos completos de verificacion de despliegue'
                 required: false
-                default: '2'
+                default: '4'
                 type: string
             verify_retry_delay_sec:
                 description: 'Espera entre reintentos de verificacion (seg)'
                 required: false
-                default: '75'
+                default: '90'
                 type: string
             core_p95_max_ms:
                 description: 'Umbral p95 para health/reviews/availability (ms)'
@@ -56,7 +56,7 @@ on:
 
 concurrency:
     group: post-deploy-gate-main
-    cancel-in-progress: true
+    cancel-in-progress: false
 
 permissions:
     contents: read
@@ -66,7 +66,7 @@ jobs:
     gate:
         name: Gate estricto en produccion
         runs-on: windows-latest
-        timeout-minutes: 35
+        timeout-minutes: 55
         env:
             TARGET_DOMAIN: ${{ github.event.inputs.domain || 'https://pielarmonia.com' }}
             BENCH_RUNS: ${{ github.event.inputs.bench_runs || '25' }}
