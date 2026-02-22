@@ -1,5 +1,8 @@
 # Piel Armonía - Clínica Dermatológica y Estética
 
+> **📘 Documentación para Desarrolladores:**
+> Para una guía técnica completa sobre arquitectura, setup, testing y despliegue, consulta **[HANDOFF.md](HANDOFF.md)**.
+
 Bienvenido al repositorio de Piel Armonía, el sitio web y sistema de gestión para la clínica dermatológica. Este proyecto incluye un sistema de reservas, un panel administrativo, integración con chatbot IA y más.
 
 ## 📋 Características
@@ -137,13 +140,13 @@ Modo transicion (solo temporal): si el servidor aun no envia header CSP pero tu 
 
 ## 📂 Estructura del Proyecto
 
+- **`src/`**: Código fuente de la lógica de negocio (Engines, Bundles). **Editar aquí.**
+- **`js/`**: Artefactos compilados por Rollup. **No editar directamente.**
 - `api.php`: Punto de entrada principal para la API.
-- `admin.html` / `admin.js`: Frontend del panel administrativo.
+- `admin.html`: Frontend del panel administrativo.
 - `index.html`: Página principal.
-- `booking-engine.js`: Lógica del sistema de reservas.
-- `chat-engine.js`: Lógica del cliente del chatbot.
-- `data/`: Directorio para almacenamiento de datos (JSON, logs).
-- `tests/`: Scripts de prueba adicionales.
+- `data/`: Directorio para almacenamiento de datos (JSON, logs, SQLite).
+- `tests/`: Scripts de prueba E2E (Playwright) y PHP.
 
 ## 📄 Licencia
 
