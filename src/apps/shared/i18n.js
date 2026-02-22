@@ -52,6 +52,18 @@ function renderPublicReviewsSafe(reviews) {
     }
 }
 
+function translate(key, fallback) {
+    const lang = document.documentElement.lang || 'es';
+    const langPack = translations[lang] || translations.es;
+    if (langPack && Object.prototype.hasOwnProperty.call(langPack, key)) {
+        return langPack[key];
+    }
+    if (lang !== 'es' && translations.es && Object.prototype.hasOwnProperty.call(translations.es, key)) {
+        return translations.es[key];
+    }
+    return fallback || key;
+}
+
 function ensureEnglishTranslations() {
     if (translations.en && typeof translations.en === 'object') {
         return Promise.resolve(translations.en);
@@ -139,5 +151,6 @@ async function changeLanguage(lang) {
 window.PielI18nEngine = {
     init,
     ensureEnglishTranslations,
-    changeLanguage
+    changeLanguage,
+    translate
 };

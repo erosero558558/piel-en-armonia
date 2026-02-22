@@ -54,6 +54,18 @@
         }
     }
 
+    function translate(key, fallback) {
+        const lang = document.documentElement.lang || 'es';
+        const langPack = translations[lang] || translations.es;
+        if (langPack && Object.prototype.hasOwnProperty.call(langPack, key)) {
+            return langPack[key];
+        }
+        if (lang !== 'es' && translations.es && Object.prototype.hasOwnProperty.call(translations.es, key)) {
+            return translations.es[key];
+        }
+        return fallback || key;
+    }
+
     function ensureEnglishTranslations() {
         if (translations.en && typeof translations.en === 'object') {
             return Promise.resolve(translations.en);
@@ -141,7 +153,8 @@
     window.PielI18nEngine = {
         init: init$1,
         ensureEnglishTranslations,
-        changeLanguage
+        changeLanguage,
+        translate
     };
 
     let deps = null;

@@ -73,10 +73,20 @@ function normalizeAnalyticsLabel(value, fallback) {
     return requireFn('normalizeAnalyticsLabel')(value, fallback);
 }
 
+function translate(key, fallback) {
+    try {
+        return requireFn('translate')(key, fallback);
+    } catch (_) {
+        return fallback || key;
+    }
+}
+
 function sanitizeBookingSubmissionError(rawMessage) {
     const message = String(rawMessage || '').trim();
+    const technicalErrorMsg = translate('booking_error_technical', 'Hubo un problema tecnico temporal al registrar la cita. Intenta nuevamente.');
+
     if (!message) {
-        return 'Hubo un problema tecnico temporal al registrar la cita. Intenta nuevamente.';
+        return technicalErrorMsg;
     }
 
     const technicalPatterns = [
@@ -91,7 +101,7 @@ function sanitizeBookingSubmissionError(rawMessage) {
     ];
 
     if (technicalPatterns.some((pattern) => pattern.test(message))) {
-        return 'Hubo un problema tecnico temporal al registrar la cita. Intenta nuevamente.';
+        return technicalErrorMsg;
     }
 
     return message;
@@ -166,7 +176,7 @@ function setCardMethodEnabled(enabled) {
     cardMethod.setAttribute('aria-disabled', enabled ? 'false' : 'true');
     cardMethod.title = enabled
         ? ''
-        : 'Pago con tarjeta temporalmente no disponible';
+        : translate('payment_card_disabled_toast', 'Pago con tarjeta temporalmente no disponible');
 
     if (!enabled && cardMethod.classList.contains('active')) {
         const transferMethod = document.querySelector('.payment-method[data-method="transfer"]');
@@ -217,7 +227,7 @@ async function mountStripeCardElement() {
     }
 
     if (!stripeElements) {
-        throw new Error('No se pudo inicializar el formulario de tarjeta');
+        throw new Error(translate('payment_card_init_error', 'No se pudo inicializar el formulario de tarjeta'));
     }
 
     if (!stripeCardElement) {
@@ -327,15 +337,15 @@ function closePaymentModal(options = {}) {
 async function processCardPaymentFlow() {
     const cardAvailable = await refreshCardPaymentAvailability();
     if (!cardAvailable) {
-        throw new Error('Pago con tarjeta no disponible en este momento.');
+        throw new Error(translate('payment_card_unavailable', 'Pago con tarjeta no disponible en este momento.'));
     }
     if (!stripeClient || !stripeCardElement) {
-        throw new Error('No se pudo inicializar el formulario de tarjeta.');
+        throw new Error(translate('payment_card_init_error', 'No se pudo inicializar el formulario de tarjeta.'));
     }
 
     const cardholderName = (document.getElementById('cardholderName')?.value || '').trim();
     if (cardholderName.length < 3) {
-        throw new Error('Ingresa el nombre del titular de la tarjeta.');
+        throw new Error(translate('payment_card_name_required', 'Ingresa el nombre del titular de la tarjeta.'));
     }
 
     const appointment = getCurrentAppointment();
@@ -347,7 +357,7 @@ async function processCardPaymentFlow() {
 
     const intent = await requireFn('createPaymentIntent')(intentPayload);
     if (!intent.clientSecret || !intent.paymentIntentId) {
-        throw new Error('No se pudo iniciar el cobro con tarjeta.');
+        throw new Error(translate('payment_card_start_error', 'No se pudo iniciar el cobro con tarjeta.'));
     }
 
     const result = await stripeClient.confirmCardPayment(intent.clientSecret, {
@@ -362,17 +372,17 @@ async function processCardPaymentFlow() {
     });
 
     if (result.error) {
-        throw new Error(result.error.message || 'No se pudo completar el pago con tarjeta.');
+        throw new Error(result.error.message || translate('payment_card_complete_error', 'No se pudo completar el pago con tarjeta.'));
     }
 
     const paymentIntent = result.paymentIntent;
     if (!paymentIntent || paymentIntent.status !== 'succeeded') {
-        throw new Error('El pago no fue confirmado por la pasarela.');
+        throw new Error(translate('payment_card_unconfirmed', 'El pago no fue confirmado por la pasarela.'));
     }
 
     const verification = await requireFn('verifyPaymentIntent')(paymentIntent.id);
     if (!verification.paid) {
-        throw new Error('No pudimos verificar el pago. Intenta nuevamente.');
+        throw new Error(translate('payment_card_verify_error', 'No pudimos verificar el pago. Intenta nuevamente.'));
     }
 
     trackEvent('payment_success', {
@@ -398,16 +408,16 @@ async function processCardPaymentFlow() {
 async function processTransferPaymentFlow() {
     const transferReference = (document.getElementById('transferReference')?.value || '').trim();
     if (transferReference.length < 3) {
-        throw new Error('Ingresa el numero de referencia de la transferencia.');
+        throw new Error(translate('payment_transfer_ref_required', 'Ingresa el numero de referencia de la transferencia.'));
     }
 
     const proofInput = document.getElementById('transferProofFile');
     const proofFile = proofInput?.files && proofInput.files[0] ? proofInput.files[0] : null;
     if (!proofFile) {
-        throw new Error('Adjunta el comprobante de transferencia.');
+        throw new Error(translate('payment_transfer_proof_required', 'Adjunta el comprobante de transferencia.'));
     }
     if (proofFile.size > 5 * 1024 * 1024) {
-        throw new Error('El comprobante supera el limite de 5 MB.');
+        throw new Error(translate('payment_transfer_proof_size_error', 'El comprobante supera el limite de 5 MB.'));
     }
 
     const upload = await requireFn('uploadTransferProof')(proofFile, { retries: 2 });
@@ -463,7 +473,7 @@ async function processPayment() {
 
     try {
         if (!getCurrentAppointment()) {
-            showToast('Primero completa el formulario de cita.', 'warning');
+            showToast(translate('booking_form_incomplete', 'Primero completa el formulario de cita.'), 'warning');
             return;
         }
 
@@ -500,8 +510,8 @@ async function processPayment() {
         requireFn('showSuccessModal')(result.emailSent === true);
         showToast(
             paymentMethod === 'card'
-                ? 'Pago aprobado y cita registrada.'
-                : 'Cita registrada correctamente.',
+                ? translate('booking_success_card', 'Pago aprobado y cita registrada.')
+                : translate('booking_success_general', 'Cita registrada correctamente.'),
             'success'
         );
 
@@ -517,7 +527,7 @@ async function processPayment() {
             paymentMethodUsed === 'card'
             && /horario ya fue reservado/i.test(rawMessage)
         ) {
-            message = 'El pago fue aprobado, pero el horario acaba de ocuparse. Escribenos por WhatsApp para resolverlo de inmediato: 098 245 3672.';
+            message = translate('booking_error_slot_taken_paid', 'El pago fue aprobado, pero el horario acaba de ocuparse. Escribenos por WhatsApp para resolverlo de inmediato: 098 245 3672.');
         }
 
         trackEvent('checkout_error', {
@@ -547,7 +557,7 @@ function bindPaymentListeners() {
             if (!method) return;
 
             if (method.classList.contains('disabled')) {
-                showToast('Pago con tarjeta no disponible por el momento.', 'warning');
+                showToast(translate('payment_card_disabled_toast', 'Pago con tarjeta no disponible por el momento.'), 'warning');
                 return;
             }
 
@@ -564,7 +574,7 @@ function bindPaymentListeners() {
 
             if (methodType === 'card') {
                 refreshCardPaymentAvailability().catch(error => {
-                    setPaymentError(error?.message || 'No se pudo cargar el formulario de tarjeta');
+                    setPaymentError(error?.message || translate('payment_card_init_error', 'No se pudo cargar el formulario de tarjeta'));
                 });
             }
     });

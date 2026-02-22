@@ -921,6 +921,13 @@
         );
     }
 
+    function translate(key, fallback) {
+        if (window.PielI18nEngine && typeof window.PielI18nEngine.translate === 'function') {
+            return window.PielI18nEngine.translate(key, fallback);
+        }
+        return fallback || key;
+    }
+
     async function apiRequest(resource, options = {}) {
         const method = String(options.method || 'GET').toUpperCase();
         const query = new URLSearchParams({ resource: resource });
@@ -1467,6 +1474,7 @@
 
     function getBookingEngineDeps() {
         return {
+            translate,
             getCurrentLang: () => state.currentLang,
             getCurrentAppointment: () => state.currentAppointment,
             setCurrentAppointment: (appt) => { state.currentAppointment = appt; },
@@ -1578,6 +1586,7 @@
 
     function getBookingUiDeps() {
         return {
+            translate,
             loadAvailabilityData,
             getBookedSlots,
             updateAvailableTimes,
@@ -1614,9 +1623,7 @@
 
         if (files.length > MAX_CASE_PHOTOS) {
             throw new Error(
-                state.currentLang === 'es'
-                    ? `Puedes subir m\u00E1ximo ${MAX_CASE_PHOTOS} fotos.`
-                    : `You can upload up to ${MAX_CASE_PHOTOS} photos.`
+                translate('booking_photos_max_count', `Puedes subir m\u00E1ximo ${MAX_CASE_PHOTOS} fotos.`)
             );
         }
 
@@ -1625,9 +1632,7 @@
 
             if (file.size > MAX_CASE_PHOTO_BYTES) {
                 throw new Error(
-                    state.currentLang === 'es'
-                        ? `Cada foto debe pesar m\u00E1ximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
-                        : `Each photo must be at most ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`
+                    translate('booking_photos_max_size', `Cada foto debe pesar m\u00E1ximo ${Math.round(MAX_CASE_PHOTO_BYTES / (1024 * 1024))} MB.`)
                 );
             }
 
@@ -1636,9 +1641,7 @@
             const validByExt = /\.(jpe?g|png|webp)$/i.test(String(file.name || ''));
             if (!validByMime && !validByExt) {
                 throw new Error(
-                    state.currentLang === 'es'
-                        ? 'Solo se permiten im\u00e1genes JPG, PNG o WEBP.'
-                        : 'Only JPG, PNG or WEBP images are allowed.'
+                    translate('booking_photos_invalid_type', 'Solo se permiten im\u00e1genes JPG, PNG o WEBP.')
                 );
             }
         }
@@ -1698,7 +1701,7 @@
             loadBookingEngine,
             (engine) => engine.openPaymentModal(appointmentData),
             (error) => {
-                showToast('No se pudo abrir el modulo de pago.', 'error');
+                showToast(translate('payment_modal_open_error', 'No se pudo abrir el modulo de pago.'), 'error');
             }
         );
     }
@@ -1735,7 +1738,7 @@
             loadBookingEngine,
             (engine) => engine.processPayment(),
             (error) => {
-                showToast('No se pudo procesar el pago en este momento.', 'error');
+                showToast(translate('payment_process_error', 'No se pudo procesar el pago en este momento.'), 'error');
             }
         );
     }
@@ -1844,6 +1847,7 @@
 
     function getRescheduleEngineDeps() {
         return {
+            translate,
             apiRequest: apiRequest$1,
             loadAvailabilityData,
             getBookedSlots,
@@ -1875,9 +1879,7 @@
             (engine) => engine.checkRescheduleParam(),
             () => {
                 showToast(
-                    getCurrentLang() === 'es'
-                        ? 'No se pudo cargar la reprogramacion.'
-                        : 'Unable to load reschedule flow.',
+                    translate('reschedule_load_failed_toast', 'No se pudo cargar la reprogramacion.'),
                     'error'
                 );
             }
@@ -1903,9 +1905,7 @@
             (engine) => engine.submitReschedule(),
             () => {
                 showToast(
-                    getCurrentLang() === 'es'
-                        ? 'No se pudo reprogramar en este momento.'
-                        : 'Unable to reschedule right now.',
+                    translate('reschedule_submit_failed_toast', 'No se pudo reprogramar en este momento.'),
                     'error'
                 );
             }
@@ -1984,6 +1984,7 @@
 
     function getChatUiEngineDeps() {
         return {
+            translate,
             getChatHistory: () => state.chatHistory,
             setChatHistory: (h) => { state.chatHistory = h; },
             getConversationContext: () => state.conversationContext,
@@ -2023,6 +2024,7 @@
 
     function getChatWidgetEngineDeps() {
         return {
+            translate,
             getChatbotOpen: () => state.chatbotOpen,
             setChatbotOpen: (val) => { state.chatbotOpen = val; },
             getChatHistoryLength: () => state.chatHistory.length,
@@ -2125,19 +2127,19 @@
             () => {
                 if (type === 'appointment') {
                     Promise.resolve(
-                        addUserMessage('Quiero agendar una cita')
+                        addUserMessage(translate('chat_msg_book_intent', 'Quiero agendar una cita'))
                     ).catch(() => undefined);
                     startChatBooking();
                     return;
                 }
                 const quickMessages = {
-                    services: 'Que servicios ofrecen?',
-                    prices: 'Cuales son los precios?',
-                    telemedicine: 'Como funciona la consulta online?',
-                    human: 'Quiero hablar con un doctor real',
-                    acne: 'Tengo problemas de acne',
-                    laser: 'Informacion sobre tratamientos laser',
-                    location: 'Donde estan ubicados?',
+                    services: translate('chat_msg_services', 'Que servicios ofrecen?'),
+                    prices: translate('chat_msg_prices', 'Cuales son los precios?'),
+                    telemedicine: translate('chat_msg_telemedicine', 'Como funciona la consulta online?'),
+                    human: translate('chat_msg_human', 'Quiero hablar con un doctor real'),
+                    acne: translate('chat_msg_acne', 'Tengo problemas de acne'),
+                    laser: translate('chat_msg_laser', 'Informacion sobre tratamientos laser'),
+                    location: translate('chat_msg_location', 'Donde estan ubicados?'),
                 };
                 const message = quickMessages[type] || type;
                 Promise.resolve(addUserMessage(message)).catch(() => undefined);
@@ -2148,6 +2150,7 @@
 
     function getChatBookingEngineDeps() {
         return {
+            translate,
             addBotMessage,
             addUserMessage,
             showTypingIndicator,
@@ -2207,7 +2210,7 @@
             (engine) => engine.startChatBooking(),
             () => {
                 addBotMessage(
-                    'No pude iniciar la reserva por chat. Puedes continuar desde <a href="#citas" data-action="minimize-chat">el formulario</a>.'
+                    translate('chat_error_booking_start', 'No pude iniciar la reserva por chat. Puedes continuar desde <a href="#citas" data-action="minimize-chat">el formulario</a>.')
                 );
             }
         );
@@ -2218,7 +2221,7 @@
             loadChatBookingEngine,
             (engine) => engine.handleChatBookingSelection(value),
             () => {
-                addBotMessage('No pude procesar esa opcion. Intenta nuevamente.');
+                addBotMessage(translate('chat_error_option', 'No pude procesar esa opcion. Intenta nuevamente.'));
             }
         );
     }
@@ -2229,7 +2232,7 @@
             loadChatBookingEngine,
             (engine) => engine.handleChatDateSelect(value),
             () => {
-                addBotMessage('No pude procesar esa fecha. Intenta nuevamente.');
+                addBotMessage(translate('chat_error_date', 'No pude procesar esa fecha. Intenta nuevamente.'));
             }
         );
     }
@@ -2261,6 +2264,7 @@
             onModuleReady: (module) => {
                 if (module && typeof module.init === 'function') {
                     module.init({
+                        translate,
                         debugLog,
                         showTypingIndicator,
                         removeTypingIndicator,
@@ -2302,13 +2306,10 @@
             loadFigoChatEngine,
             (engine) => engine.processWithKimi(message),
             (error) => {
-                // Log error to monitoring service in production
-                if (window.Piel && window.Piel.reportError) {
-                    window.Piel.reportError('chat_engine_load', error);
-                }
+                console.error('Error cargando motor de chat:', error);
                 removeTypingIndicator();
                 addBotMessage(
-                    'No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.',
+                    translate('chat_error_init', 'No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.'),
                     false
                 );
             }
@@ -2319,7 +2320,7 @@
         if (window.location.protocol === 'file:') {
             setTimeout(() => {
                 showToast(
-                    'Para usar funciones online, abre el sitio en un servidor local. Ver SERVIDOR-LOCAL.md',
+                    translate('server_required_warning', 'Para usar funciones online, abre el sitio en un servidor local. Ver SERVIDOR-LOCAL.md'),
                     'warning',
                     'Servidor requerido'
                 );
@@ -2706,7 +2707,7 @@
             debugLog('Deferred content loaded and hydrated.');
             return true;
         } catch (error) {
-            // Silent fail - fallback UI will show
+            console.error('Error loading deferred content:', error);
             renderDeferredFallbackState();
             return false;
         }
@@ -2980,7 +2981,9 @@
 
         const isServer = checkServerEnvironment();
         if (!isServer) {
-            // Offline mode - no server connection
+            console.warn(
+                'Chatbot en modo offline: abre el sitio desde servidor para usar IA real.'
+            );
         }
 
         // Smooth Scroll
@@ -3069,7 +3072,7 @@
     // Push Notifications (Stub)
     window.subscribeToPushNotifications = async function() {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            // Push notifications not supported in this browser
+            console.warn('Push not supported');
             return;
         }
         try {
@@ -3081,7 +3084,7 @@
                 applicationServerKey: publicVapidKey
             });
         } catch (error) {
-            // Push subscription failed - ignore
+            console.error('Push subscription error:', error);
         }
     };
 

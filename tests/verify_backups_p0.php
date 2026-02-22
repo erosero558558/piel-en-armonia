@@ -17,15 +17,22 @@ if (!is_dir($tempDir)) {
 }
 $backupDir = $tempDir . '/backups';
 
+$tomorrow = date('Y-m-d', strtotime('+1 day'));
+
 // Initialize empty store to prevent migration from other directories
+// But we need availability to prevent "slot_unavailable" errors
+// Store availability format is date => slots (global)
 $initialStore = [
     'appointments' => [],
-    'availability' => [],
+    'availability' => [
+        $tomorrow => ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00']
+    ],
     'reviews' => [],
     'callbacks' => [],
     'updatedAt' => date('c'),
     'createdAt' => date('c')
 ];
+
 file_put_contents($tempDir . '/store.json', json_encode($initialStore));
 
 echo "Starting Backup Verification Server on port $port with data dir $tempDir...\n";
@@ -64,7 +71,6 @@ $countBefore = is_array($filesBefore) ? count($filesBefore) : 0;
 echo "Backups before write: $countBefore\n";
 
 // Prepare payload
-$tomorrow = date('Y-m-d', strtotime('+1 day'));
 $payload = [
     'name' => 'Backup Test User',
     'email' => 'backup@test.com',

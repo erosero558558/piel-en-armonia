@@ -10,8 +10,11 @@ function getLang() {
         : 'es';
 }
 
-function t(esText, enText) {
-    return getLang() === 'es' ? esText : enText;
+function translate(key, fallback) {
+    if (deps && typeof deps.translate === 'function') {
+        return deps.translate(key, fallback);
+    }
+    return fallback || key;
 }
 
 function normalizeEcuadorPhone(rawValue) {
@@ -114,7 +117,7 @@ export function init(inputDeps) {
                 timeSelect,
                 doctorSelect,
                 serviceSelect,
-                t,
+                t: translate,
             });
         } catch (error) {
             console.error('Failed to load booking-calendar.js', error);
@@ -126,13 +129,13 @@ export function init(inputDeps) {
                         .includes('calendar_unreachable'));
             deps.showToast(
                 isCalendarUnavailable
-                    ? t(
-                          'La agenda esta temporalmente no disponible. Intenta en unos minutos.',
-                          'The schedule is temporarily unavailable. Please try again in a few minutes.'
+                    ? translate(
+                          'booking_calendar_unavailable',
+                          'La agenda esta temporalmente no disponible. Intenta en unos minutos.'
                       )
-                    : t(
-                          'Error cargando calendario. Intenta nuevamente.',
-                          'Error loading calendar. Please try again.'
+                    : translate(
+                          'booking_calendar_error',
+                          'Error cargando calendario. Intenta nuevamente.'
                       ),
                 'error'
             );
@@ -293,9 +296,9 @@ export function init(inputDeps) {
 
             if (!privacyConsent) {
                 throw new Error(
-                    t(
-                        'Debes aceptar el tratamiento de datos para continuar.',
-                        'You must accept data processing to continue.'
+                    translate(
+                        'booking_consent_required',
+                        'Debes aceptar el tratamiento de datos para continuar.'
                     )
                 );
             }
@@ -368,9 +371,9 @@ export function init(inputDeps) {
             );
             if (bookedSlots.includes(appointment.time)) {
                 deps.showToast(
-                    t(
-                        'Este horario ya fue reservado. Por favor selecciona otro.',
-                        'This time slot was just booked. Please choose another.'
+                    translate(
+                        'booking_slot_taken',
+                        'Este horario ya fue reservado. Por favor selecciona otro.'
                     ),
                     'error'
                 );
@@ -399,9 +402,9 @@ export function init(inputDeps) {
             });
             deps.showToast(
                 (error && error.message) ||
-                    t(
-                        'No se pudo preparar la reserva. Intenta nuevamente.',
-                        'Could not prepare booking. Please try again.'
+                    translate(
+                        'booking_prepare_error',
+                        'No se pudo preparar la reserva. Intenta nuevamente.'
                     ),
                 'error'
             );
