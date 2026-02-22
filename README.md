@@ -79,6 +79,18 @@ El proyecto utiliza Playwright para pruebas de extremo a extremo (E2E).
     npm test
     ```
 
+    Contrato Google Calendar (solo lectura):
+
+    ```bash
+    TEST_BASE_URL=https://pielarmonia.com npm run test:calendar-contract
+    ```
+
+    Escritura Google Calendar (reserva + reprogramacion + limpieza segura):
+
+    ```bash
+    TEST_BASE_URL=https://pielarmonia.com TEST_ENABLE_CALENDAR_WRITE=true TEST_ADMIN_PASSWORD="tu-clave-admin" npm run test:calendar-write
+    ```
+
     Pruebas PHP (unitarias/integracion ligera):
 
     ```bash

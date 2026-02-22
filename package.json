@@ -4,6 +4,7 @@
     "scripts": {
         "test": "npx playwright test",
         "test:calendar-contract": "npx playwright test tests/calendar-google-contract.spec.js",
+        "test:calendar-write": "npx playwright test tests/calendar-google-write.spec.js",
         "test:headed": "npx playwright test --headed",
         "test:ui": "npx playwright test --ui",
         "test:php": "php tests/run-php-tests.php",
