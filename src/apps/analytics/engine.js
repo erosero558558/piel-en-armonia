@@ -28,8 +28,8 @@ function trackEvent(eventName, params = {}) {
     if (deps && typeof deps.trackEventToServer === 'function') {
         try {
             deps.trackEventToServer(eventName, params);
-        } catch (_) {
-            // Ignore telemetry forwarding failures.
+        } catch (error) {
+            console.warn('Telemetry forwarding failed', error);
         }
     }
 
@@ -120,7 +120,9 @@ function prefetchAvailabilityData(source = 'unknown') {
     if (deps && typeof deps.loadAvailabilityData === 'function') {
         Promise.resolve(
             deps.loadAvailabilityData({ background: true })
-        ).catch(() => {
+        ).catch((error) => {
+            console.warn('Availability prefetch failed', error);
+            trackEvent('prefetch_error', { source: 'availability', error: error?.message || 'unknown' });
             availabilityPrefetched = false;
         });
     }

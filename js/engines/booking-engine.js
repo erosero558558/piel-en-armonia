@@ -49,7 +49,7 @@ function setCheckoutStep(step, payload = {}) {
     try {
         requireFn('setCheckoutStep')(step, payload || {});
     } catch (_) {
-        // noop when analytics step tracking is unavailable
+        console.warn('Analytics step tracking unavailable');
     }
 }
 
@@ -129,6 +129,9 @@ function getCaptchaToken(action) {
         return requireFn('getCaptchaToken')(action);
     } catch (e) {
         console.warn('Captcha token not available', e);
+        try {
+            trackEvent('captcha_error', { action, error: e?.message || 'unknown' });
+        } catch (_) {}
         return Promise.resolve(null);
     }
 }
@@ -180,7 +183,11 @@ async function refreshCardPaymentAvailability() {
 
     try {
         await requireFn('loadStripeSdk')();
-    } catch (_) {
+    } catch (error) {
+        console.error('Failed to load Stripe SDK', error);
+        try {
+            trackEvent('payment_method_load_error', { method: 'card', error: error?.message || 'unknown' });
+        } catch (_) {}
         setCardMethodEnabled(false);
         return false;
     }
