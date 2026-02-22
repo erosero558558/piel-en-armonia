@@ -17,6 +17,7 @@ on:
                 options:
                     - ftps
                     - ftp
+                    - sftp
             server_port:
                 description: 'Puerto remoto (21 FTP/FTPS, 22 SFTP)'
                 required: false
@@ -58,10 +59,10 @@ jobs:
         timeout-minutes: 20
         env:
             # Staging Configuration
-            FTP_PROTOCOL: ${{ vars.STAGING_FTP_PROTOCOL || 'ftps' }}
-            FTP_SERVER_PORT: ${{ vars.STAGING_FTP_SERVER_PORT || '21' }}
-            FTP_SECURITY: ${{ vars.STAGING_FTP_SECURITY || 'strict' }}
-            FTP_SERVER_DIR: ${{ vars.STAGING_FTP_SERVER_DIR || '/staging/' }}
+            DEPLOY_PROTOCOL: ${{ github.event.inputs.protocol || vars.STAGING_FTP_PROTOCOL || 'ftps' }}
+            FTP_SERVER_PORT: ${{ github.event.inputs.server_port || vars.STAGING_FTP_SERVER_PORT || '21' }}
+            FTP_SECURITY: ${{ github.event.inputs.security || vars.STAGING_FTP_SECURITY || 'strict' }}
+            FTP_SERVER_DIR: ${{ github.event.inputs.server_dir || vars.STAGING_FTP_SERVER_DIR || '/staging/' }}
             FTP_DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
             FTP_CLEAN_SLATE: ${{ github.event.inputs.clean_slate || 'false' }} # Careful with clean slate on staging if shared
             STAGING_URL: ${{ vars.STAGING_URL || 'https://staging.pielarmonia.com' }}
@@ -110,39 +111,68 @@ jobs:
                     exit 1
                   fi
 
-            - name: Deploy a Staging (Canary)
+            - name: Preparar bundle de deploy (Staging)
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  rm -rf _deploy_bundle
+                  mkdir -p _deploy_bundle
+                  rsync -a --delete \
+                    --exclude='.git*' \
+                    --exclude='.github/' \
+                    --exclude='.vscode/' \
+                    --exclude='.claude/' \
+                    --exclude='node_modules/' \
+                    --exclude='test-results/' \
+                    --exclude='tests/' \
+                    --exclude='playwright-report/' \
+                    --exclude='_deploy_bundle/' \
+                    --exclude='verification/' \
+                    --exclude='data/' \
+                    --exclude='uploads/' \
+                    --exclude='env.php' \
+                    --exclude='php.log' \
+                    --exclude='*.log' \
+                    --exclude='*.zip' \
+                    --exclude='*.ps1' \
+                    ./ _deploy_bundle/
+
+            - name: Deploy a Staging (FTP/FTPS)
+              if: ${{ env.DEPLOY_PROTOCOL != 'sftp' }}
               uses: SamKirkland/FTP-Deploy-Action@v4.3.6
               with:
                   server: ${{ secrets.STAGING_FTP_SERVER }}
                   username: ${{ secrets.STAGING_FTP_USERNAME }}
                   password: ${{ secrets.STAGING_FTP_PASSWORD }}
-                  protocol: ${{ env.FTP_PROTOCOL }}
+                  protocol: ${{ env.DEPLOY_PROTOCOL }}
                   port: ${{ env.FTP_SERVER_PORT }}
                   security: ${{ env.FTP_SECURITY }}
                   server-dir: ${{ env.FTP_SERVER_DIR }}
-                  local-dir: ./
+                  local-dir: ./_deploy_bundle/
                   dangerous-clean-slate: ${{ env.FTP_CLEAN_SLATE }}
                   dry-run: ${{ env.FTP_DRY_RUN }}
                   timeout: 120000
                   state-name: .ftp-deploy-sync-state-staging.json
-                  exclude: |
-                      **/.git*
-                      **/.github/**
-                      **/.vscode/**
-                      **/.claude/**
-                      **/node_modules/**
-                      **/test-results/**
-                      **/tests/**
-                      **/playwright-report/**
-                      **/_deploy_bundle/**
-                      **/verification/**
-                      **/data/**
-                      **/uploads/**
-                      **/env.php
-                      **/php.log
-                      **/*.log
-                      **/*.zip
-                      **/*.ps1
+
+            - name: Deploy a Staging (SFTP)
+              if: ${{ env.DEPLOY_PROTOCOL == 'sftp' }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if [ "${FTP_DRY_RUN}" = "true" ]; then
+                    echo "Dry-run SFTP habilitado: se omite subida real."
+                    find _deploy_bundle -maxdepth 2 -type f | head -n 30
+                    exit 0
+                  fi
+                  sudo apt-get update
+                  sudo apt-get install -y lftp
+                  lftp -u "${{ secrets.STAGING_FTP_USERNAME }}","${{ secrets.STAGING_FTP_PASSWORD }}" "sftp://${{ secrets.STAGING_FTP_SERVER }}:${FTP_SERVER_PORT}" -e "
+                    set sftp:auto-confirm yes
+                    set net:max-retries 2
+                    set net:timeout 20
+                    mirror -R --delete --verbose _deploy_bundle/ ${FTP_SERVER_DIR}
+                    bye
+                  "
 
             - name: Smoke Tests (Staging)
               if: ${{ env.FTP_DRY_RUN != 'true' }}
@@ -173,7 +203,7 @@ jobs:
         timeout-minutes: 20
         env:
             # Production Configuration
-            FTP_PROTOCOL: ${{ github.event.inputs.protocol || vars.FTP_PROTOCOL || 'ftps' }}
+            DEPLOY_PROTOCOL: ${{ github.event.inputs.protocol || vars.FTP_PROTOCOL || 'ftps' }}
             FTP_SERVER_PORT: ${{ github.event.inputs.server_port || vars.FTP_SERVER_PORT || '21' }}
             FTP_SECURITY: ${{ github.event.inputs.security || vars.FTP_SECURITY || 'strict' }}
             FTP_SERVER_DIR: ${{ github.event.inputs.server_dir || vars.FTP_SERVER_DIR || '/public_html/' }}
@@ -225,39 +255,68 @@ jobs:
                     exit 1
                   fi
 
-            - name: Deploy a Produccion
+            - name: Preparar bundle de deploy (Prod)
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  rm -rf _deploy_bundle
+                  mkdir -p _deploy_bundle
+                  rsync -a --delete \
+                    --exclude='.git*' \
+                    --exclude='.github/' \
+                    --exclude='.vscode/' \
+                    --exclude='.claude/' \
+                    --exclude='node_modules/' \
+                    --exclude='test-results/' \
+                    --exclude='tests/' \
+                    --exclude='playwright-report/' \
+                    --exclude='_deploy_bundle/' \
+                    --exclude='verification/' \
+                    --exclude='data/' \
+                    --exclude='uploads/' \
+                    --exclude='env.php' \
+                    --exclude='php.log' \
+                    --exclude='*.log' \
+                    --exclude='*.zip' \
+                    --exclude='*.ps1' \
+                    ./ _deploy_bundle/
+
+            - name: Deploy a Produccion (FTP/FTPS)
+              if: ${{ env.DEPLOY_PROTOCOL != 'sftp' }}
               uses: SamKirkland/FTP-Deploy-Action@v4.3.6
               with:
                   server: ${{ secrets.FTP_SERVER }}
                   username: ${{ secrets.FTP_USERNAME }}
                   password: ${{ secrets.FTP_PASSWORD }}
-                  protocol: ${{ env.FTP_PROTOCOL }}
+                  protocol: ${{ env.DEPLOY_PROTOCOL }}
                   port: ${{ env.FTP_SERVER_PORT }}
                   security: ${{ env.FTP_SECURITY }}
                   server-dir: ${{ env.FTP_SERVER_DIR }}
-                  local-dir: ./
+                  local-dir: ./_deploy_bundle/
                   dangerous-clean-slate: ${{ env.FTP_CLEAN_SLATE }}
                   dry-run: ${{ env.FTP_DRY_RUN }}
                   timeout: 120000
                   state-name: .ftp-deploy-sync-state.json
-                  exclude: |
-                      **/.git*
-                      **/.github/**
-                      **/.vscode/**
-                      **/.claude/**
-                      **/node_modules/**
-                      **/test-results/**
-                      **/tests/**
-                      **/playwright-report/**
-                      **/_deploy_bundle/**
-                      **/verification/**
-                      **/data/**
-                      **/uploads/**
-                      **/env.php
-                      **/php.log
-                      **/*.log
-                      **/*.zip
-                      **/*.ps1
+
+            - name: Deploy a Produccion (SFTP)
+              if: ${{ env.DEPLOY_PROTOCOL == 'sftp' }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if [ "${FTP_DRY_RUN}" = "true" ]; then
+                    echo "Dry-run SFTP habilitado: se omite subida real."
+                    find _deploy_bundle -maxdepth 2 -type f | head -n 30
+                    exit 0
+                  fi
+                  sudo apt-get update
+                  sudo apt-get install -y lftp
+                  lftp -u "${{ secrets.FTP_USERNAME }}","${{ secrets.FTP_PASSWORD }}" "sftp://${{ secrets.FTP_SERVER }}:${FTP_SERVER_PORT}" -e "
+                    set sftp:auto-confirm yes
+                    set net:max-retries 2
+                    set net:timeout 20
+                    mirror -R --delete --verbose _deploy_bundle/ ${FTP_SERVER_DIR}
+                    bye
+                  "
 
             - name: Smoke Tests (Prod)
               if: ${{ env.FTP_DRY_RUN != 'true' }}

@@ -20,8 +20,8 @@ En:
 
 Crea:
 
-- `FTP_PROTOCOL`: `ftps` (recomendado) o `ftp`
-- `FTP_SERVER_PORT`: `21` (FTP/FTPS) o `22` (SFTP si lo usas en otro flujo)
+- `FTP_PROTOCOL`: `ftps`, `ftp` o `sftp`
+- `FTP_SERVER_PORT`: `21` (FTP/FTPS) o `22` (SFTP)
 - `FTP_SECURITY`: `strict` (o `loose` si tu FTPS usa certificado no valido)
 - `FTP_SERVER_DIR`: `/public_html/`
 - `PROD_URL`: `https://pielarmonia.com`
@@ -31,13 +31,13 @@ Crea:
 Opciones:
 
 - Push a `main` para deploy automatico.
-- Manual: `Actions` -> `Deploy Hosting (FTP/FTPS)` -> `Run workflow`.
+- Manual: `Actions` -> `Deploy Hosting (Canary Pipeline)` -> `Run workflow`.
 
-Parametros manuales recomendados:
+Parametros manuales recomendados (SFTP si tu hosting no abre puerto 21):
 
-- `protocol`: `ftp` (si te daba timeout con `ftps`, prueba primero `ftp`)
-- `server_port`: `21`
-- `security`: `strict` (usa `loose` solo si FTPS da error de certificado)
+- `protocol`: `sftp`
+- `server_port`: `22`
+- `security`: `strict` (solo aplica a FTPS)
 - `server_dir`: `/public_html/`
 - `dry_run`: `false`
 - `clean_slate`: `false`
@@ -57,6 +57,11 @@ Si falla conexion FTP:
 - Si ves `Timeout (control socket)`, el runner no llega al puerto remoto:
     - cambia `protocol/port` (ej. `ftp:21`)
     - pide al hosting habilitar acceso desde IPs de GitHub Actions
+
+Si usas SFTP:
+
+- Usa `protocol=sftp` y `server_port=22`.
+- El workflow prepara un bundle `_deploy_bundle/` y lo sube por `lftp` sobre SFTP.
 
 ## 5) Si usas sincronizacion Git en servidor (sin FTP)
 

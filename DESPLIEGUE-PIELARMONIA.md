@@ -24,9 +24,9 @@ Configura en GitHub (repo -> Settings -> Secrets and variables -> Actions):
 Uso:
 
 - Push a `main`: deploy automatico.
-- Manual: Actions -> `Deploy Hosting (FTP/FTPS)` -> `Run workflow`.
+- Manual: Actions -> `Deploy Hosting (Canary Pipeline)` -> `Run workflow`.
 - Prueba sin cambios: `dry_run = true`.
-- Si falla `Timeout (control socket)`: prueba `protocol=ftp`, `server_port=21`.
+- Si falla `Timeout (control socket)`: prueba `protocol=sftp`, `server_port=22` (o `protocol=ftp`, `server_port=21`).
 
 ## Archivos a subir
 
