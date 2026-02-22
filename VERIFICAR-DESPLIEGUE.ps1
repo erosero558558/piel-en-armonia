@@ -10,6 +10,7 @@ param(
     [int]$MaxHealthTimingMs = 2000,
     [int]$AssetHashRetryCount = 2,
     [int]$AssetHashRetryDelaySec = 4,
+    [switch]$SkipAssetHashChecks,
     [string]$ReportPath = 'verification/last-deploy-verify.json'
 )
 
@@ -139,6 +140,83 @@ function Get-LocalSha256 {
     }
 
     return (Get-FileHash -Algorithm SHA256 -Path $Path).Hash.ToLowerInvariant()
+}
+
+function Resolve-LocalAssetPath {
+    param(
+        [string]$PrimaryPath,
+        [string[]]$FallbackPaths = @()
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($PrimaryPath) -and (Test-Path $PrimaryPath)) {
+        return $PrimaryPath
+    }
+
+    foreach ($candidate in $FallbackPaths) {
+        if ([string]::IsNullOrWhiteSpace($candidate)) {
+            continue
+        }
+        if (Test-Path $candidate) {
+            return $candidate
+        }
+    }
+
+    return ''
+}
+
+function Get-ScriptVersionedRef {
+    param(
+        [string]$ScriptText,
+        [string]$FileName
+    )
+
+    if ([string]::IsNullOrWhiteSpace($ScriptText) -or [string]::IsNullOrWhiteSpace($FileName)) {
+        return ''
+    }
+
+    $escaped = [regex]::Escape($FileName)
+    $pattern = "([/a-zA-Z0-9._-]*$escaped\?v=[a-zA-Z0-9._-]+)"
+    $match = [regex]::Match($ScriptText, $pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    if ($match.Success) {
+        return $match.Groups[1].Value
+    }
+    return ''
+}
+
+function Get-LocalSha256FromGitHeadOrFile {
+    param(
+        [string]$Path,
+        [switch]$NormalizeText
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return ''
+    }
+
+    $gitPath = $Path.Replace('\', '/')
+    try {
+        $headContent = & git show --no-textconv "HEAD:$gitPath" 2>$null
+        if ($LASTEXITCODE -eq 0 -and $null -ne $headContent) {
+            $text = if ($headContent -is [System.Array]) {
+                [string]::Join("`n", $headContent)
+            } else {
+                [string]$headContent
+            }
+            if ($NormalizeText) {
+                $normalized = $text -replace "`r`n", "`n" -replace "`r", "`n"
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes($normalized)
+                $sha = [System.Security.Cryptography.SHA256]::Create()
+                return ([System.BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant()
+            }
+            $bytes = [System.Text.Encoding]::UTF8.GetBytes($text)
+            $sha = [System.Security.Cryptography.SHA256]::Create()
+            return ([System.BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant()
+        }
+    } catch {
+        # Fallback below
+    }
+
+    return Get-LocalSha256 -Path $Path -NormalizeText:$NormalizeText
 }
 
 function Get-RemoteText {
@@ -452,50 +530,42 @@ try {
 $localScriptTextForRefs = Get-Content -Path 'script.js' -Raw
 $localI18nEngineTextForRefs = if (Test-Path 'i18n-engine.js') { Get-Content -Path 'i18n-engine.js' -Raw } else { '' }
 $localRescheduleGatewayTextForRefs = if (Test-Path 'reschedule-gateway-engine.js') { Get-Content -Path 'reschedule-gateway-engine.js' -Raw } else { '' }
-$chatEngineVersion = ''
-$chatEngineMatch = [regex]::Match($localScriptTextForRefs, "chat-engine\.js\?v=([a-zA-Z0-9._-]+)")
-if ($chatEngineMatch.Success) {
-    $chatEngineVersion = $chatEngineMatch.Groups[1].Value
-}
-$chatEngineRemoteUrl = if ($chatEngineVersion -ne '') {
-    "$base/chat-engine.js?v=$chatEngineVersion"
+$chatEngineRef = Get-ScriptVersionedRef -ScriptText $localScriptTextForRefs -FileName 'chat-engine.js'
+$chatEngineRemoteUrl = if ($chatEngineRef -ne '') {
+    Get-Url -Base $base -Ref $chatEngineRef
+} elseif ((Test-Path 'chat-engine.js') -or (Test-Path 'js/engines/chat-engine.js')) {
+    "$base/js/engines/chat-engine.js"
 } else {
-    "$base/chat-engine.js"
+    ''
 }
 
-$chatUiEngineVersion = ''
-$chatUiEngineMatch = [regex]::Match($localScriptTextForRefs, "chat-ui-engine\.js\?v=([a-zA-Z0-9._-]+)")
-if ($chatUiEngineMatch.Success) {
-    $chatUiEngineVersion = $chatUiEngineMatch.Groups[1].Value
-}
-$chatUiEngineRemoteUrl = if ($chatUiEngineVersion -ne '') {
-    "$base/chat-ui-engine.js?v=$chatUiEngineVersion"
+$chatUiEngineRef = Get-ScriptVersionedRef -ScriptText $localScriptTextForRefs -FileName 'chat-ui-engine.js'
+$chatUiEngineRemoteUrl = if ($chatUiEngineRef -ne '') {
+    Get-Url -Base $base -Ref $chatUiEngineRef
+} elseif ((Test-Path 'chat-ui-engine.js') -or (Test-Path 'js/engines/chat-ui-engine.js')) {
+    "$base/js/engines/chat-ui-engine.js"
 } else {
-    "$base/chat-ui-engine.js"
+    ''
 }
 
-$chatWidgetEngineVersion = ''
-$chatWidgetEngineMatch = [regex]::Match($localScriptTextForRefs, "chat-widget-engine\.js\?v=([a-zA-Z0-9._-]+)")
-if ($chatWidgetEngineMatch.Success) {
-    $chatWidgetEngineVersion = $chatWidgetEngineMatch.Groups[1].Value
-}
-$chatWidgetEngineRemoteUrl = if ($chatWidgetEngineVersion -ne '') {
-    "$base/chat-widget-engine.js?v=$chatWidgetEngineVersion"
+$chatWidgetEngineRef = Get-ScriptVersionedRef -ScriptText $localScriptTextForRefs -FileName 'chat-widget-engine.js'
+$chatWidgetEngineRemoteUrl = if ($chatWidgetEngineRef -ne '') {
+    Get-Url -Base $base -Ref $chatWidgetEngineRef
+} elseif ((Test-Path 'chat-widget-engine.js') -or (Test-Path 'js/engines/chat-widget-engine.js')) {
+    "$base/js/engines/chat-widget-engine.js"
 } else {
-    "$base/chat-widget-engine.js"
+    ''
 }
 
-$deferredStylesVersion = ''
-$deferredStylesMatch = [regex]::Match($localScriptTextForRefs, "styles-deferred\.css\?v=([a-zA-Z0-9._-]+)")
-if ($deferredStylesMatch.Success) {
-    $deferredStylesVersion = $deferredStylesMatch.Groups[1].Value
-}
+$deferredStylesRef = Get-ScriptVersionedRef -ScriptText $localScriptTextForRefs -FileName 'styles-deferred.css'
 $deferredStylesRemoteUrl = if ($indexDeferredStylesRemoteUrl -ne '') {
     $indexDeferredStylesRemoteUrl
-} elseif ($deferredStylesVersion -ne '') {
-    "$base/styles-deferred.css?v=$deferredStylesVersion"
-} else {
+} elseif ($deferredStylesRef -ne '') {
+    Get-Url -Base $base -Ref $deferredStylesRef
+} elseif (Test-Path 'styles-deferred.css') {
     "$base/styles-deferred.css"
+} else {
+    ''
 }
 
 function Write-VerifyReport {
@@ -528,147 +598,121 @@ function Write-VerifyReport {
         Write-Host "[WARN] no se pudo escribir reporte de verificacion: $($_.Exception.Message)"
     }
 }
-if ($deferredStylesRemoteUrl -match '\?') {
-    $deferredStylesRemoteUrl = "$deferredStylesRemoteUrl&verify=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
-} else {
-    $deferredStylesRemoteUrl = "$deferredStylesRemoteUrl?verify=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
+if (-not [string]::IsNullOrWhiteSpace($deferredStylesRemoteUrl)) {
+    if ($deferredStylesRemoteUrl -match '\?') {
+        $deferredStylesRemoteUrl = "$deferredStylesRemoteUrl&verify=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
+    } else {
+        $deferredStylesRemoteUrl = "$deferredStylesRemoteUrl?verify=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())"
+    }
 }
 
-$translationsEnVersion = ''
-$translationsEnMatch = [regex]::Match($localI18nEngineTextForRefs, "translations-en\.js\?v=([a-zA-Z0-9._-]+)")
-if (-not $translationsEnMatch.Success) {
-    $translationsEnMatch = [regex]::Match($localScriptTextForRefs, "translations-en\.js\?v=([a-zA-Z0-9._-]+)")
+$translationsEnRef = Get-ScriptVersionedRef -ScriptText $localI18nEngineTextForRefs -FileName 'translations-en.js'
+if ($translationsEnRef -eq '') {
+    $translationsEnRef = Get-ScriptVersionedRef -ScriptText $localScriptTextForRefs -FileName 'translations-en.js'
 }
-$hasTranslationsEnAsset = $false
-if ($translationsEnMatch.Success) {
-    $translationsEnVersion = $translationsEnMatch.Groups[1].Value
-    $hasTranslationsEnAsset = $true
-}
-if (-not $hasTranslationsEnAsset -and (Test-Path 'translations-en.js')) {
-    $hasTranslationsEnAsset = $true
-}
-$translationsEnRemoteUrl = ''
-if ($hasTranslationsEnAsset) {
-    $translationsEnRemoteUrl = if ($translationsEnVersion -ne '') {
-        "$base/translations-en.js?v=$translationsEnVersion"
-    } else {
-        "$base/translations-en.js"
-    }
+$hasTranslationsEnAsset = ($translationsEnRef -ne '') -or (Test-Path 'translations-en.js')
+$translationsEnRemoteUrl = if ($translationsEnRef -ne '') {
+    Get-Url -Base $base -Ref $translationsEnRef
+} elseif (Test-Path 'translations-en.js') {
+    "$base/translations-en.js"
 } else {
+    ''
+}
+if (-not $hasTranslationsEnAsset) {
     Write-Host '[INFO] translations-en.js no se detecta en local; se omite verificacion de hash.'
 }
 
-$bookingEngineVersion = ''
-$bookingEngineMatch = [regex]::Match($localScriptTextForRefs, "booking-engine\.js\?v=([a-zA-Z0-9._-]+)")
-if ($bookingEngineMatch.Success) {
-    $bookingEngineVersion = $bookingEngineMatch.Groups[1].Value
-}
-$bookingEngineRemoteUrl = if ($bookingEngineVersion -ne '') {
-    "$base/booking-engine.js?v=$bookingEngineVersion"
+$bookingEngineRef = Get-ScriptVersionedRef -ScriptText $localScriptTextForRefs -FileName 'booking-engine.js'
+$bookingEngineRemoteUrl = if ($bookingEngineRef -ne '') {
+    Get-Url -Base $base -Ref $bookingEngineRef
+} elseif ((Test-Path 'booking-engine.js') -or (Test-Path 'js/engines/booking-engine.js')) {
+    "$base/js/engines/booking-engine.js"
 } else {
-    "$base/booking-engine.js"
+    ''
 }
 
-$analyticsEngineVersion = ''
-$analyticsEngineMatch = [regex]::Match($localScriptTextForRefs, "analytics-engine\.js\?v=([a-zA-Z0-9._-]+)")
-if ($analyticsEngineMatch.Success) {
-    $analyticsEngineVersion = $analyticsEngineMatch.Groups[1].Value
-}
-$analyticsEngineRemoteUrl = if ($analyticsEngineVersion -ne '') {
-    "$base/analytics-engine.js?v=$analyticsEngineVersion"
+$analyticsEngineRef = Get-ScriptVersionedRef -ScriptText $localScriptTextForRefs -FileName 'analytics-engine.js'
+$analyticsEngineRemoteUrl = if ($analyticsEngineRef -ne '') {
+    Get-Url -Base $base -Ref $analyticsEngineRef
+} elseif (Test-Path 'js/engines/analytics-engine.js') {
+    "$base/js/engines/analytics-engine.js"
 } else {
-    "$base/analytics-engine.js"
+    ''
 }
 
-$uiEffectsVersion = ''
-$uiEffectsMatch = [regex]::Match($localScriptTextForRefs, "ui-effects\.js\?v=([a-zA-Z0-9._-]+)")
-if ($uiEffectsMatch.Success) {
-    $uiEffectsVersion = $uiEffectsMatch.Groups[1].Value
-}
-$uiEffectsRemoteUrl = if ($uiEffectsVersion -ne '') {
-    "$base/ui-effects.js?v=$uiEffectsVersion"
-} else {
+$uiEffectsRef = Get-ScriptVersionedRef -ScriptText $localScriptTextForRefs -FileName 'ui-effects.js'
+$uiEffectsRemoteUrl = if ($uiEffectsRef -ne '') {
+    Get-Url -Base $base -Ref $uiEffectsRef
+} elseif (Test-Path 'ui-effects.js') {
     "$base/ui-effects.js"
+} else {
+    ''
 }
 
-$galleryInteractionsVersion = ''
-$galleryInteractionsMatch = [regex]::Match($localScriptTextForRefs, "gallery-interactions\.js\?v=([a-zA-Z0-9._-]+)")
-if ($galleryInteractionsMatch.Success) {
-    $galleryInteractionsVersion = $galleryInteractionsMatch.Groups[1].Value
-}
-$galleryInteractionsRemoteUrl = if ($galleryInteractionsVersion -ne '') {
-    "$base/gallery-interactions.js?v=$galleryInteractionsVersion"
+$galleryInteractionsRef = Get-ScriptVersionedRef -ScriptText $localScriptTextForRefs -FileName 'gallery-interactions.js'
+$galleryInteractionsRemoteUrl = if ($galleryInteractionsRef -ne '') {
+    Get-Url -Base $base -Ref $galleryInteractionsRef
+} elseif (Test-Path 'js/engines/gallery-interactions.js') {
+    "$base/js/engines/gallery-interactions.js"
 } else {
-    "$base/gallery-interactions.js"
+    ''
 }
 
-$rescheduleEngineVersion = ''
-$rescheduleEngineMatch = [regex]::Match($localRescheduleGatewayTextForRefs, "reschedule-engine\.js\?v=([a-zA-Z0-9._-]+)")
-if (-not $rescheduleEngineMatch.Success) {
-    $rescheduleEngineMatch = [regex]::Match($localScriptTextForRefs, "reschedule-engine\.js\?v=([a-zA-Z0-9._-]+)")
+$rescheduleEngineRef = Get-ScriptVersionedRef -ScriptText $localRescheduleGatewayTextForRefs -FileName 'reschedule-engine.js'
+if ($rescheduleEngineRef -eq '') {
+    $rescheduleEngineRef = Get-ScriptVersionedRef -ScriptText $localScriptTextForRefs -FileName 'reschedule-engine.js'
 }
-if ($rescheduleEngineMatch.Success) {
-    $rescheduleEngineVersion = $rescheduleEngineMatch.Groups[1].Value
-}
-$rescheduleEngineRemoteUrl = if ($rescheduleEngineVersion -ne '') {
-    "$base/reschedule-engine.js?v=$rescheduleEngineVersion"
-} else {
+$rescheduleEngineRemoteUrl = if ($rescheduleEngineRef -ne '') {
+    Get-Url -Base $base -Ref $rescheduleEngineRef
+} elseif (Test-Path 'reschedule-engine.js') {
     "$base/reschedule-engine.js"
+} else {
+    ''
 }
 
-$bookingUiVersion = ''
-$bookingUiMatch = [regex]::Match($localScriptTextForRefs, "booking-ui\.js\?v=([a-zA-Z0-9._-]+)")
-if ($bookingUiMatch.Success) {
-    $bookingUiVersion = $bookingUiMatch.Groups[1].Value
-}
-$bookingUiRemoteUrl = if ($bookingUiVersion -ne '') {
-    "$base/booking-ui.js?v=$bookingUiVersion"
+$bookingUiRef = Get-ScriptVersionedRef -ScriptText $localScriptTextForRefs -FileName 'booking-ui.js'
+$bookingUiRemoteUrl = if ($bookingUiRef -ne '') {
+    Get-Url -Base $base -Ref $bookingUiRef
+} elseif ((Test-Path 'booking-ui.js') -or (Test-Path 'js/engines/booking-ui.js')) {
+    "$base/js/engines/booking-ui.js"
 } else {
-    "$base/booking-ui.js"
+    ''
 }
 
-$chatBookingEngineVersion = ''
-$chatBookingEngineMatch = [regex]::Match($localScriptTextForRefs, "chat-booking-engine\.js\?v=([a-zA-Z0-9._-]+)")
-if ($chatBookingEngineMatch.Success) {
-    $chatBookingEngineVersion = $chatBookingEngineMatch.Groups[1].Value
-}
-$chatBookingEngineRemoteUrl = if ($chatBookingEngineVersion -ne '') {
-    "$base/chat-booking-engine.js?v=$chatBookingEngineVersion"
+$chatBookingEngineRef = Get-ScriptVersionedRef -ScriptText $localScriptTextForRefs -FileName 'chat-booking-engine.js'
+$chatBookingEngineRemoteUrl = if ($chatBookingEngineRef -ne '') {
+    Get-Url -Base $base -Ref $chatBookingEngineRef
+} elseif ((Test-Path 'chat-booking-engine.js') -or (Test-Path 'js/engines/chat-booking-engine.js')) {
+    "$base/js/engines/chat-booking-engine.js"
 } else {
-    "$base/chat-booking-engine.js"
+    ''
 }
 
-$successModalEngineVersion = ''
-$successModalEngineMatch = [regex]::Match($localScriptTextForRefs, "success-modal-engine\.js\?v=([a-zA-Z0-9._-]+)")
-if ($successModalEngineMatch.Success) {
-    $successModalEngineVersion = $successModalEngineMatch.Groups[1].Value
-}
-$successModalEngineRemoteUrl = if ($successModalEngineVersion -ne '') {
-    "$base/success-modal-engine.js?v=$successModalEngineVersion"
-} else {
+$successModalEngineRef = Get-ScriptVersionedRef -ScriptText $localScriptTextForRefs -FileName 'success-modal-engine.js'
+$successModalEngineRemoteUrl = if ($successModalEngineRef -ne '') {
+    Get-Url -Base $base -Ref $successModalEngineRef
+} elseif (Test-Path 'success-modal-engine.js') {
     "$base/success-modal-engine.js"
+} else {
+    ''
 }
 
-$engagementFormsEngineVersion = ''
-$engagementFormsEngineMatch = [regex]::Match($localScriptTextForRefs, "engagement-forms-engine\.js\?v=([a-zA-Z0-9._-]+)")
-if ($engagementFormsEngineMatch.Success) {
-    $engagementFormsEngineVersion = $engagementFormsEngineMatch.Groups[1].Value
-}
-$engagementFormsEngineRemoteUrl = if ($engagementFormsEngineVersion -ne '') {
-    "$base/engagement-forms-engine.js?v=$engagementFormsEngineVersion"
-} else {
+$engagementFormsEngineRef = Get-ScriptVersionedRef -ScriptText $localScriptTextForRefs -FileName 'engagement-forms-engine.js'
+$engagementFormsEngineRemoteUrl = if ($engagementFormsEngineRef -ne '') {
+    Get-Url -Base $base -Ref $engagementFormsEngineRef
+} elseif (Test-Path 'engagement-forms-engine.js') {
     "$base/engagement-forms-engine.js"
+} else {
+    ''
 }
 
-$modalUxEngineVersion = ''
-$modalUxEngineMatch = [regex]::Match($localScriptTextForRefs, "modal-ux-engine\.js\?v=([a-zA-Z0-9._-]+)")
-if ($modalUxEngineMatch.Success) {
-    $modalUxEngineVersion = $modalUxEngineMatch.Groups[1].Value
-}
-$modalUxEngineRemoteUrl = if ($modalUxEngineVersion -ne '') {
-    "$base/modal-ux-engine.js?v=$modalUxEngineVersion"
-} else {
+$modalUxEngineRef = Get-ScriptVersionedRef -ScriptText $localScriptTextForRefs -FileName 'modal-ux-engine.js'
+$modalUxEngineRemoteUrl = if ($modalUxEngineRef -ne '') {
+    Get-Url -Base $base -Ref $modalUxEngineRef
+} elseif (Test-Path 'modal-ux-engine.js') {
     "$base/modal-ux-engine.js"
+} else {
+    ''
 }
 
 try {
@@ -839,147 +883,181 @@ if ($localStyleRef -ne '') {
     }
 }
 
-$checks = @()
-if ($localStyleRef -ne '') {
-    $checks += [PSCustomObject]@{
-        Name = 'styles.css'
-        LocalPath = 'styles.css'
-        RemoteUrl = (Get-Url -Base $base -Ref $localStyleRef)
-    }
-}
-if ($remoteScriptRef -ne '') {
-    $checks += [PSCustomObject]@{
-        Name = 'script.js'
-        LocalPath = 'script.js'
-        RemoteUrl = (Get-Url -Base $base -Ref $remoteScriptRef)
-    }
+if ($SkipAssetHashChecks) {
+    Write-Host '[WARN] Se omite verificacion de hashes de assets (SkipAssetHashChecks).'
 } else {
-    Write-Host '[WARN] Se omite hash de script.js: referencia remota no detectada.'
-}
-
-$checks += @(
-    [PSCustomObject]@{
-        Name = 'chat-widget-engine.js'
-        LocalPath = 'chat-widget-engine.js'
-        RemoteUrl = $chatWidgetEngineRemoteUrl
-    },
-    [PSCustomObject]@{
-        Name = 'chat-engine.js'
-        LocalPath = 'chat-engine.js'
-        RemoteUrl = $chatEngineRemoteUrl
-    },
-    [PSCustomObject]@{
-        Name = 'chat-ui-engine.js'
-        LocalPath = 'chat-ui-engine.js'
-        RemoteUrl = $chatUiEngineRemoteUrl
-    },
-    [PSCustomObject]@{
-        Name = 'styles-deferred.css'
-        LocalPath = 'styles-deferred.css'
-        RemoteUrl = $deferredStylesRemoteUrl
-    },
-    [PSCustomObject]@{
-        Name = 'booking-engine.js'
-        LocalPath = 'booking-engine.js'
-        RemoteUrl = $bookingEngineRemoteUrl
-    },
-    [PSCustomObject]@{
-        Name = 'ui-effects.js'
-        LocalPath = 'ui-effects.js'
-        RemoteUrl = $uiEffectsRemoteUrl
-    },
-    [PSCustomObject]@{
-        Name = 'gallery-interactions.js'
-        LocalPath = 'gallery-interactions.js'
-        RemoteUrl = $galleryInteractionsRemoteUrl
-    },
-    [PSCustomObject]@{
-        Name = 'booking-ui.js'
-        LocalPath = 'booking-ui.js'
-        RemoteUrl = $bookingUiRemoteUrl
-    },
-    [PSCustomObject]@{
-        Name = 'chat-booking-engine.js'
-        LocalPath = 'chat-booking-engine.js'
-        RemoteUrl = $chatBookingEngineRemoteUrl
-    },
-    [PSCustomObject]@{
-        Name = 'success-modal-engine.js'
-        LocalPath = 'success-modal-engine.js'
-        RemoteUrl = $successModalEngineRemoteUrl
-    },
-    [PSCustomObject]@{
-        Name = 'engagement-forms-engine.js'
-        LocalPath = 'engagement-forms-engine.js'
-        RemoteUrl = $engagementFormsEngineRemoteUrl
-    },
-    [PSCustomObject]@{
-        Name = 'modal-ux-engine.js'
-        LocalPath = 'modal-ux-engine.js'
-        RemoteUrl = $modalUxEngineRemoteUrl
+    $checks = @()
+    if ($localStyleRef -ne '') {
+        $checks += [PSCustomObject]@{
+            Name = 'styles.css'
+            LocalPath = 'styles.css'
+            RemoteUrl = (Get-Url -Base $base -Ref $localStyleRef)
+        }
     }
-)
-if ($hasTranslationsEnAsset) {
-    $checks += [PSCustomObject]@{
-        Name = 'translations-en.js'
-        LocalPath = 'translations-en.js'
-        RemoteUrl = $translationsEnRemoteUrl
-    }
-}
-if (Test-Path 'reschedule-engine.js') {
-    $checks += [PSCustomObject]@{
-        Name = 'reschedule-engine.js'
-        LocalPath = 'reschedule-engine.js'
-        RemoteUrl = $rescheduleEngineRemoteUrl
-    }
-} else {
-    Write-Host '[INFO] reschedule-engine.js no se detecta en local; se omite verificacion de hash.'
-}
-foreach ($item in $checks) {
-    if ([string]::IsNullOrWhiteSpace($item.RemoteUrl)) {
-        Write-Host "[WARN] Se omite hash de $($item.Name): URL remota vacia."
-        continue
-    }
-    $remoteUrlForHash = $item.RemoteUrl
-    if ($deployAssetVersion -ne '' -and $item.Name -ne 'script.js') {
-        $remoteUrlForHash = Add-QueryParam -Url $remoteUrlForHash -Name 'cv' -Value $deployAssetVersion
-    }
-    $localHash = Get-LocalSha256 -Path $item.LocalPath -NormalizeText
-    $remoteHash = Get-RemoteSha256 -Url $remoteUrlForHash -NormalizeText
-    $attempts = 0
-    $match = ($localHash -ne '' -and $localHash -eq $remoteHash)
-
-    while (-not $match -and $attempts -lt $AssetHashRetryCount) {
-        Start-Sleep -Seconds $AssetHashRetryDelaySec
-        $remoteHash = Get-RemoteSha256 -Url $remoteUrlForHash -NormalizeText
-        $attempts += 1
-        $match = ($localHash -ne '' -and $localHash -eq $remoteHash)
-    }
-
-    $results += [PSCustomObject]@{
-        Asset = $item.Name
-        Match = $match
-        LocalHash = $localHash
-        RemoteHash = $remoteHash
-        RemoteUrl = $remoteUrlForHash
-        Attempts = $attempts
-    }
-}
-
-$results | ForEach-Object {
-    if ($_.Match) {
-        if ($_.Attempts -gt 0) {
-            Write-Host "[OK]  $($_.Asset) hashes coinciden (retry=$($_.Attempts))"
-        } else {
-            Write-Host "[OK]  $($_.Asset) hashes coinciden"
+    if ($remoteScriptRef -ne '') {
+        $checks += [PSCustomObject]@{
+            Name = 'script.js'
+            LocalPath = 'script.js'
+            RemoteUrl = (Get-Url -Base $base -Ref $remoteScriptRef)
         }
     } else {
-        Write-Host "[FAIL] $($_.Asset) hash no coincide"
-        Write-Host "       Local : $($_.LocalHash)"
-        Write-Host "       Remote: $($_.RemoteHash)"
-        Write-Host "       URL   : $($_.RemoteUrl)"
-        if ($_.Attempts -gt 0) {
-            Write-Host "       Retries agotados: $($_.Attempts)"
+        Write-Host '[WARN] Se omite hash de script.js: referencia remota no detectada.'
+    }
+
+    $checks += @(
+        [PSCustomObject]@{
+            Name = 'chat-widget-engine.js'
+            LocalPath = 'chat-widget-engine.js'
+            LocalCandidates = @('js/engines/chat-widget-engine.js')
+            RemoteUrl = $chatWidgetEngineRemoteUrl
+        },
+        [PSCustomObject]@{
+            Name = 'chat-engine.js'
+            LocalPath = 'chat-engine.js'
+            LocalCandidates = @('js/engines/chat-engine.js')
+            RemoteUrl = $chatEngineRemoteUrl
+        },
+        [PSCustomObject]@{
+            Name = 'chat-ui-engine.js'
+            LocalPath = 'chat-ui-engine.js'
+            LocalCandidates = @('js/engines/chat-ui-engine.js')
+            RemoteUrl = $chatUiEngineRemoteUrl
+        },
+        [PSCustomObject]@{
+            Name = 'styles-deferred.css'
+            LocalPath = 'styles-deferred.css'
+            LocalCandidates = @()
+            RemoteUrl = $deferredStylesRemoteUrl
+        },
+        [PSCustomObject]@{
+            Name = 'booking-engine.js'
+            LocalPath = 'booking-engine.js'
+            LocalCandidates = @('js/engines/booking-engine.js')
+            RemoteUrl = $bookingEngineRemoteUrl
+        },
+        [PSCustomObject]@{
+            Name = 'ui-effects.js'
+            LocalPath = 'ui-effects.js'
+            LocalCandidates = @('js/engines/ui-effects.js')
+            RemoteUrl = $uiEffectsRemoteUrl
+        },
+        [PSCustomObject]@{
+            Name = 'gallery-interactions.js'
+            LocalPath = 'gallery-interactions.js'
+            LocalCandidates = @('js/engines/gallery-interactions.js')
+            RemoteUrl = $galleryInteractionsRemoteUrl
+        },
+        [PSCustomObject]@{
+            Name = 'booking-ui.js'
+            LocalPath = 'booking-ui.js'
+            LocalCandidates = @('js/engines/booking-ui.js')
+            RemoteUrl = $bookingUiRemoteUrl
+        },
+        [PSCustomObject]@{
+            Name = 'chat-booking-engine.js'
+            LocalPath = 'chat-booking-engine.js'
+            LocalCandidates = @('js/engines/chat-booking-engine.js')
+            RemoteUrl = $chatBookingEngineRemoteUrl
+        },
+        [PSCustomObject]@{
+            Name = 'success-modal-engine.js'
+            LocalPath = 'success-modal-engine.js'
+            LocalCandidates = @('js/engines/success-modal-engine.js')
+            RemoteUrl = $successModalEngineRemoteUrl
+        },
+        [PSCustomObject]@{
+            Name = 'engagement-forms-engine.js'
+            LocalPath = 'engagement-forms-engine.js'
+            LocalCandidates = @('js/engines/engagement-forms-engine.js')
+            RemoteUrl = $engagementFormsEngineRemoteUrl
+        },
+        [PSCustomObject]@{
+            Name = 'modal-ux-engine.js'
+            LocalPath = 'modal-ux-engine.js'
+            LocalCandidates = @('js/engines/modal-ux-engine.js')
+            RemoteUrl = $modalUxEngineRemoteUrl
+        }
+    )
+    if ($hasTranslationsEnAsset) {
+        $checks += [PSCustomObject]@{
+            Name = 'translations-en.js'
+            LocalPath = 'translations-en.js'
+            LocalCandidates = @('js/translations-en.js')
+            RemoteUrl = $translationsEnRemoteUrl
+        }
+    }
+    if (($rescheduleEngineRemoteUrl -ne '') -or (Test-Path 'reschedule-engine.js') -or (Test-Path 'js/engines/reschedule-engine.js')) {
+        $checks += [PSCustomObject]@{
+            Name = 'reschedule-engine.js'
+            LocalPath = 'reschedule-engine.js'
+            LocalCandidates = @('js/engines/reschedule-engine.js')
+            RemoteUrl = $rescheduleEngineRemoteUrl
+        }
+    } else {
+        Write-Host '[INFO] reschedule-engine.js no se detecta en local; se omite verificacion de hash.'
+    }
+    foreach ($item in $checks) {
+        if ([string]::IsNullOrWhiteSpace($item.RemoteUrl)) {
+            Write-Host "[WARN] Se omite hash de $($item.Name): URL remota vacia."
+            continue
+        }
+
+        $localCandidates = @()
+        if ($null -ne $item.PSObject.Properties['LocalCandidates']) {
+            $localCandidates = @($item.LocalCandidates)
+        }
+        $resolvedLocalPath = Resolve-LocalAssetPath -PrimaryPath ([string]$item.LocalPath) -FallbackPaths $localCandidates
+        if ([string]::IsNullOrWhiteSpace($resolvedLocalPath)) {
+            Write-Host "[INFO] Se omite hash de $($item.Name): archivo local no encontrado."
+            continue
+        }
+
+        $remoteUrlForHash = $item.RemoteUrl
+        if ($deployAssetVersion -ne '' -and $item.Name -ne 'script.js') {
+            $remoteUrlForHash = Add-QueryParam -Url $remoteUrlForHash -Name 'cv' -Value $deployAssetVersion
+        }
+        $localHash = Get-LocalSha256FromGitHeadOrFile -Path $resolvedLocalPath -NormalizeText
+        if ([string]::IsNullOrWhiteSpace($localHash)) {
+            Write-Host "[INFO] Se omite hash de $($item.Name): no se pudo calcular hash local."
+            continue
+        }
+        $remoteHash = Get-RemoteSha256 -Url $remoteUrlForHash -NormalizeText
+        $attempts = 0
+        $match = ($localHash -ne '' -and $localHash -eq $remoteHash)
+
+        while (-not $match -and $attempts -lt $AssetHashRetryCount) {
+            Start-Sleep -Seconds $AssetHashRetryDelaySec
+            $remoteHash = Get-RemoteSha256 -Url $remoteUrlForHash -NormalizeText
+            $attempts += 1
+            $match = ($localHash -ne '' -and $localHash -eq $remoteHash)
+        }
+
+        $results += [PSCustomObject]@{
+            Asset = $item.Name
+            Match = $match
+            LocalHash = $localHash
+            RemoteHash = $remoteHash
+            LocalPath = $resolvedLocalPath
+            RemoteUrl = $remoteUrlForHash
+            Attempts = $attempts
+        }
+    }
+
+    $results | ForEach-Object {
+        if ($_.Match) {
+            if ($_.Attempts -gt 0) {
+                Write-Host "[OK]  $($_.Asset) hashes coinciden (retry=$($_.Attempts))"
+            } else {
+                Write-Host "[OK]  $($_.Asset) hashes coinciden"
+            }
+        } else {
+            Write-Host "[FAIL] $($_.Asset) hash no coincide"
+            Write-Host "       Local : $($_.LocalHash)"
+            Write-Host "       Remote: $($_.RemoteHash)"
+            Write-Host "       URL   : $($_.RemoteUrl)"
+            if ($_.Attempts -gt 0) {
+                Write-Host "       Retries agotados: $($_.Attempts)"
+            }
         }
     }
 }

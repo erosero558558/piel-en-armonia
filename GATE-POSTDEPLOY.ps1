@@ -9,6 +9,7 @@ param(
     [switch]$RequireBackupReceiverReady,
     [switch]$RequireCronReady,
     [switch]$RequireStableDataDir,
+    [switch]$SkipAssetHashChecks,
     [int]$AssetHashRetryCount = 2,
     [int]$AssetHashRetryDelaySec = 4,
     [int]$VerifyRetryAttempts = 1,
@@ -38,6 +39,7 @@ while ($verifyAttempts -lt $verifyMaxAttempts) {
         -RequireWebhookSecret:$RequireWebhookSecret `
         -RequireBackupHealthy:$RequireBackupHealthy `
         -RequireStableDataDir:$RequireStableDataDir `
+        -SkipAssetHashChecks:$SkipAssetHashChecks `
         -AssetHashRetryCount $AssetHashRetryCount `
         -AssetHashRetryDelaySec $AssetHashRetryDelaySec
 
