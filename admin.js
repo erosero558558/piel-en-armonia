@@ -932,7 +932,8 @@ let availabilityReadOnly = false;
 
 function ensureStatusElements() {
     const panel = document.querySelector('#availability .time-slots-config');
-    if (!panel) return { statusEl: null, linksEl: null };
+    if (!panel)
+        return { statusEl: null, detailsEl: null, linksEl: null };
 
     let statusEl = document.getElementById('availabilitySyncStatus');
     if (!statusEl) {
@@ -942,34 +943,65 @@ function ensureStatusElements() {
         panel.insertBefore(statusEl, panel.firstChild.nextSibling);
     }
 
+    let detailsEl = document.getElementById('availabilitySyncDetails');
+    if (!detailsEl) {
+        detailsEl = document.createElement('div');
+        detailsEl.id = 'availabilitySyncDetails';
+        detailsEl.className = 'selected-date';
+        statusEl.insertAdjacentElement('afterend', detailsEl);
+    }
+
     let linksEl = document.getElementById('availabilitySyncLinks');
     if (!linksEl) {
         linksEl = document.createElement('div');
         linksEl.id = 'availabilitySyncLinks';
         linksEl.className = 'selected-date';
-        statusEl.insertAdjacentElement('afterend', linksEl);
+        detailsEl.insertAdjacentElement('afterend', linksEl);
     }
 
-    return { statusEl, linksEl };
+    return { statusEl, detailsEl, linksEl };
+}
+
+function formatStatusTime(isoValue) {
+    const value = String(isoValue || '').trim();
+    if (!value) return 'n/d';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return 'n/d';
+    return parsed.toLocaleString('es-EC');
 }
 
 function renderStatus() {
-    const { statusEl, linksEl } = ensureStatusElements();
+    const { statusEl, detailsEl, linksEl } = ensureStatusElements();
     if (!statusEl) return;
 
     const source = String(currentAvailabilityMeta.source || 'store');
     const mode = String(currentAvailabilityMeta.mode || 'live');
     const timezone = String(currentAvailabilityMeta.timezone || 'America/Guayaquil');
+    const calendarAuth = String(currentAvailabilityMeta.calendarAuth || 'n/d');
+    const configured = currentAvailabilityMeta.calendarConfigured === false ? 'no' : 'si';
     const reachable = currentAvailabilityMeta.calendarReachable === false ? 'no' : 'si';
-    const generatedAt = String(currentAvailabilityMeta.generatedAt || '');
-    const generatedLabel = generatedAt
-        ? new Date(generatedAt).toLocaleString('es-EC')
-        : 'n/d';
+    const generatedLabel = formatStatusTime(currentAvailabilityMeta.generatedAt);
+    const lastSuccessLabel = formatStatusTime(
+        currentAvailabilityMeta.calendarLastSuccessAt
+    );
+    const lastErrorLabel = formatStatusTime(currentAvailabilityMeta.calendarLastErrorAt);
+    const lastErrorReason = String(currentAvailabilityMeta.calendarLastErrorReason || '').trim();
 
     if (source === 'google') {
-        statusEl.innerHTML = `Fuente: <strong>Google Calendar</strong> | Modo: <strong>${escapeHtml(mode)}</strong> | TZ: <strong>${escapeHtml(timezone)}</strong> | Reachable: <strong>${escapeHtml(reachable)}</strong> | Actualizado: ${escapeHtml(generatedLabel)}`;
+        const modeLabel = mode === 'blocked' ? 'bloqueado' : 'live';
+        statusEl.innerHTML = `Fuente: <strong>Google Calendar</strong> | Modo: <strong>${escapeHtml(modeLabel)}</strong> | TZ: <strong>${escapeHtml(timezone)}</strong>`;
+        if (detailsEl) {
+            let details = `Auth: <strong>${escapeHtml(calendarAuth)}</strong> | Configurado: <strong>${escapeHtml(configured)}</strong> | Reachable: <strong>${escapeHtml(reachable)}</strong> | Ultimo exito: <strong>${escapeHtml(lastSuccessLabel)}</strong> | Snapshot: <strong>${escapeHtml(generatedLabel)}</strong>`;
+            if (mode === 'blocked' && lastErrorReason) {
+                details += ` | Ultimo error: <strong>${escapeHtml(lastErrorLabel)}</strong> (${escapeHtml(lastErrorReason)})`;
+            }
+            detailsEl.innerHTML = details;
+        }
     } else {
-        statusEl.innerHTML = `Fuente: <strong>Configuracion local</strong> | Actualizado: ${escapeHtml(generatedLabel)}`;
+        statusEl.innerHTML = `Fuente: <strong>Configuracion local</strong>`;
+        if (detailsEl) {
+            detailsEl.innerHTML = `Snapshot: <strong>${escapeHtml(generatedLabel)}</strong>`;
+        }
     }
     updateSectionHeadings(source);
 
@@ -1052,14 +1084,33 @@ async function refreshAvailabilitySnapshot() {
             payload && payload.data && typeof payload.data === 'object'
                 ? payload.data
                 : {};
-        const meta =
+        const snapshotMeta =
             payload && payload.meta && typeof payload.meta === 'object'
                 ? payload.meta
                 : {};
+        const baseMeta =
+            currentAvailabilityMeta &&
+            typeof currentAvailabilityMeta === 'object'
+                ? currentAvailabilityMeta
+                : {};
+        const mergedMeta = {
+            ...baseMeta,
+            ...snapshotMeta,
+            source: String(snapshotMeta.source || baseMeta.source || 'store'),
+            mode: String(snapshotMeta.mode || baseMeta.mode || 'live'),
+            timezone: String(
+                snapshotMeta.timezone || baseMeta.timezone || 'America/Guayaquil'
+            ),
+            generatedAt: String(
+                snapshotMeta.generatedAt ||
+                    baseMeta.generatedAt ||
+                    new Date().toISOString()
+            ),
+        };
 
         setAvailability(data);
-        setAvailabilityMeta(meta);
-        availabilityReadOnly = String(meta.source || '') === 'google';
+        setAvailabilityMeta(mergedMeta);
+        availabilityReadOnly = String(mergedMeta.source || '') === 'google';
         renderStatus();
         toggleReadOnlyUi();
         if (selectedDate && !currentAvailability[selectedDate]) {
