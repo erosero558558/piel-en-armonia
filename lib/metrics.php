@@ -37,7 +37,12 @@ class Metrics
         }
 
         self::$useRedis = false;
-        self::$filePath = __DIR__ . '/../data/metrics.json';
+        if (function_exists('data_dir_path')) {
+            self::$filePath = data_dir_path() . '/metrics.json';
+        } else {
+            self::$filePath = __DIR__ . '/../data/metrics.json';
+        }
+
         if (!is_dir(dirname(self::$filePath))) {
             @mkdir(dirname(self::$filePath), 0775, true);
         }
