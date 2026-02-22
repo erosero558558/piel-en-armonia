@@ -38,6 +38,10 @@ class ApiConfig
             // Admin (authenticated)
             'data:GET' => [60, 60],
             'import:POST' => [5, 60],
+            'push-config:GET' => [60, 60],
+            'push-subscribe:POST' => [15, 60],
+            'push-unsubscribe:POST' => [15, 60],
+            'push-test:POST' => [6, 60],
 
             // Predictions
             'predictions:GET' => [20, 60],

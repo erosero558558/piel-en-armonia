@@ -82,7 +82,9 @@ export function getServiceName(service) {
         telefono: 'Consulta Telefónica',
         video: 'Video Consulta',
         laser: 'Tratamiento Láser',
-        rejuvenecimiento: 'Rejuvenecimiento'
+        rejuvenecimiento: 'Rejuvenecimiento',
+        acne: 'Tratamiento de Acne',
+        cancer: 'Deteccion de Cancer de Piel'
     };
     return names[service] || service;
 }
@@ -101,7 +103,9 @@ export function getStatusText(status) {
         confirmed: 'Confirmada',
         pending: 'Pendiente',
         cancelled: 'Cancelada',
-        completed: 'Completada'
+        completed: 'Completada',
+        no_show: 'No asistio',
+        noshow: 'No asistio'
     };
     return texts[status] || status;
 }
@@ -147,3 +151,4 @@ export function normalizeCallbackStatus(status) {
     if (normalized === 'contacted') return 'contactado';
     return normalized === 'contactado' ? 'contactado' : 'pendiente';
 }
+

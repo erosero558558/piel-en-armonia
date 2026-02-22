@@ -129,7 +129,11 @@ function map_callback_status(string $status): string
 function map_appointment_status(string $status): string
 {
     $normalized = strtolower(trim($status));
-    return in_array($normalized, ['confirmed', 'pending', 'cancelled', 'completed'], true)
+    if ($normalized === 'noshow') {
+        return 'no_show';
+    }
+
+    return in_array($normalized, ['confirmed', 'pending', 'cancelled', 'completed', 'no_show'], true)
         ? $normalized
         : 'confirmed';
 }

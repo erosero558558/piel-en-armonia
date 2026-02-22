@@ -14,6 +14,12 @@
 // putenv('PIELARMONIA_EMAIL_FROM=tu_email@gmail.com');
 // putenv('PIELARMONIA_ADMIN_EMAIL=tu_email@gmail.com');
 
+// Push Web Notifications (Admin)
+// Genera llaves VAPID y configura estas variables en produccion.
+// putenv('PIELARMONIA_VAPID_PUBLIC_KEY=BKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+// putenv('PIELARMONIA_VAPID_PRIVATE_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+// putenv('PIELARMONIA_VAPID_SUBJECT=mailto:javier.rosero94@gmail.com');
+
 // ── Admin ─────────────────────────────────────────────
 // putenv('PIELARMONIA_ADMIN_PASSWORD=tu_clave_admin');
 

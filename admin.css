@@ -616,6 +616,17 @@
     color: #721c24;
 }
 
+.status-completed {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-no_show,
+.status-noshow {
+    background: #ffe8cc;
+    color: #7a4f01;
+}
+
 .status-contacted {
     background: #d1ecf1;
     color: #0c5460;
@@ -655,6 +666,15 @@
 
 .btn-icon.success:hover {
     background: #34c759;
+    color: white;
+}
+
+.btn-icon.warning {
+    color: #d97706;
+}
+
+.btn-icon.warning:hover {
+    background: #d97706;
     color: white;
 }
 

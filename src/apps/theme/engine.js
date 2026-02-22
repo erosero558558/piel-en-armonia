@@ -144,3 +144,6 @@ window.PielThemeEngine = {
     initThemeMode,
     applyThemeMode
 };
+
+window.Piel = window.Piel || {};
+window.Piel.ThemeEngine = window.PielThemeEngine;

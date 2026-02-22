@@ -10,11 +10,14 @@ function run_tests()
         ['input' => 'pending', 'expected' => 'pending'],
         ['input' => 'cancelled', 'expected' => 'cancelled'],
         ['input' => 'completed', 'expected' => 'completed'],
+        ['input' => 'no_show', 'expected' => 'no_show'],
+        ['input' => 'noshow', 'expected' => 'no_show'],
 
         // Case insensitivity
         ['input' => 'Confirmed', 'expected' => 'confirmed'],
         ['input' => 'PENDING', 'expected' => 'pending'],
         ['input' => 'CaNcElLeD', 'expected' => 'cancelled'],
+        ['input' => 'NoShow', 'expected' => 'no_show'],
 
         // Whitespace trimming
         ['input' => ' confirmed ', 'expected' => 'confirmed'],

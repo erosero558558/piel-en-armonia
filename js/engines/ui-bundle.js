@@ -146,6 +146,9 @@
         applyThemeMode
     };
 
+    window.Piel = window.Piel || {};
+    window.Piel.ThemeEngine = window.PielThemeEngine;
+
     let deps$2 = null;
     let initialized$1 = false;
     let escapeListenerBound = false;

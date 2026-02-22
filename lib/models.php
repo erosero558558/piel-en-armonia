@@ -18,7 +18,9 @@ function get_service_label(string $service): string
         'telefono' => 'Consulta Telefonica',
         'video' => 'Video Consulta',
         'laser' => 'Tratamiento Laser',
-        'rejuvenecimiento' => 'Rejuvenecimiento'
+        'rejuvenecimiento' => 'Rejuvenecimiento',
+        'acne' => 'Tratamiento de Acne',
+        'cancer' => 'Deteccion de Cancer de Piel'
     ];
     return $labels[$service] ?? $service;
 }

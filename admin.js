@@ -179,7 +179,9 @@ function getServiceName(service) {
         telefono: 'Consulta Telefónica',
         video: 'Video Consulta',
         laser: 'Tratamiento Láser',
-        rejuvenecimiento: 'Rejuvenecimiento'
+        rejuvenecimiento: 'Rejuvenecimiento',
+        acne: 'Tratamiento de Acne',
+        cancer: 'Deteccion de Cancer de Piel'
     };
     return names[service] || service;
 }
@@ -198,7 +200,9 @@ function getStatusText(status) {
         confirmed: 'Confirmada',
         pending: 'Pendiente',
         cancelled: 'Cancelada',
-        completed: 'Completada'
+        completed: 'Completada',
+        no_show: 'No asistio',
+        noshow: 'No asistio'
     };
     return texts[status] || status;
 }
@@ -534,6 +538,7 @@ function loadDashboardData() {
     const todayAppointments = [];
     let pendingTransfers = 0;
     let confirmedCount = 0;
+    let totalNoShows = 0;
 
     for (const a of currentAppointments) {
         if (a.date === today && a.status !== 'cancelled') {
@@ -546,9 +551,16 @@ function loadDashboardData() {
         if (status === 'confirmed') {
             confirmedCount++;
         }
+        if (status === 'no_show') {
+            totalNoShows++;
+        }
     }
 
     document.getElementById('todayAppointments').textContent = todayAppointments.length;
+    const noShowEl = document.getElementById('totalNoShows');
+    if (noShowEl) {
+        noShowEl.textContent = formatCount(totalNoShows);
+    }
 
     const pendingCallbacks = [];
     for (const c of currentCallbacks) {
@@ -685,6 +697,11 @@ function renderAppointments(appointments) {
                     <button type="button" class="btn-icon danger" data-action="cancel-appointment" data-id="${Number(a.id) || 0}" title="Cancelar">
                         <i class="fas fa-times"></i>
                     </button>
+                    ${((a.status || 'confirmed') !== 'cancelled' && (a.status || 'confirmed') !== 'completed' && (a.status || 'confirmed') !== 'no_show' ? `
+                    <button type="button" class="btn-icon warning" data-action="mark-no-show" data-id="${Number(a.id) || 0}" title="Marcar no asistio">
+                        <i class="fas fa-user-slash"></i>
+                    </button>
+                    ` : '')}
                 </div>
             </td>
         </tr>
@@ -715,6 +732,7 @@ function filterAppointments() {
             break;
         case 'confirmed':
         case 'cancelled':
+        case 'no_show':
             filtered = filtered.filter(a => (a.status || 'confirmed') === filter);
             break;
         case 'pending_transfer':
@@ -755,6 +773,26 @@ async function cancelAppointment(id) {
     }
 }
 
+async function markNoShow(id) {
+    if (!confirm('Marcar esta cita como "No asistio"?')) return;
+    if (!id) {
+        showToast('Id de cita invalido', 'error');
+        return;
+    }
+    try {
+        await apiRequest('appointments', {
+            method: 'PATCH',
+            body: { id: id, status: 'no_show' }
+        });
+        await refreshData();
+        loadAppointments();
+        loadDashboardData();
+        showToast('Cita marcada como no asistio', 'success');
+    } catch (error) {
+        showToast(`No se pudo marcar no-show: ${error.message}`, 'error');
+    }
+}
+
 async function approveTransfer(id) {
     if (!confirm('¿Aprobar el comprobante de transferencia de esta cita?')) return;
     if (!id) { showToast('Id de cita invalido', 'error'); return; }
@@ -787,6 +825,63 @@ async function rejectTransfer(id) {
     } catch (error) {
         showToast(`No se pudo rechazar: ${error.message}`, 'error');
     }
+}
+
+function csvSafe(value) {
+    let text = String(value ?? '');
+    if (/^[=+\-@]/.test(text)) {
+        text = "'" + text;
+    }
+    return `"${text.replace(/"/g, '""')}"`;
+}
+
+function exportAppointmentsCSV() {
+    if (!Array.isArray(currentAppointments) || currentAppointments.length === 0) {
+        showToast('No hay citas para exportar', 'warning');
+        return;
+    }
+
+    const headers = [
+        'ID',
+        'Fecha',
+        'Hora',
+        'Paciente',
+        'Email',
+        'Telefono',
+        'Servicio',
+        'Doctor',
+        'Precio',
+        'Estado',
+        'Estado pago',
+        'Metodo pago'
+    ];
+
+    const rows = currentAppointments.map((a) => [
+        Number(a.id) || 0,
+        a.date || '',
+        a.time || '',
+        csvSafe(a.name || ''),
+        csvSafe(a.email || ''),
+        csvSafe(a.phone || ''),
+        csvSafe(getServiceName(a.service)),
+        csvSafe(getDoctorName(a.doctor)),
+        a.price || '',
+        csvSafe(getStatusText(a.status || 'confirmed')),
+        csvSafe(getPaymentStatusText(a.paymentStatus)),
+        csvSafe(getPaymentMethodText(a.paymentMethod))
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `citas-pielarmonia-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('CSV exportado correctamente', 'success');
 }
 
 function renderCallbacks(callbacks) {
@@ -1310,6 +1405,211 @@ async function removeTimeSlot(dateStr, time) {
     }
 }
 
+let initialized = false;
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const normalized = (base64String + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+
+    const raw = window.atob(normalized);
+    const output = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i += 1) {
+        output[i] = raw.charCodeAt(i);
+    }
+    return output;
+}
+
+function getButtons() {
+    const subscribeBtn = document.getElementById('subscribePushBtn');
+    const testBtn = document.getElementById('testPushBtn');
+    return { subscribeBtn, testBtn };
+}
+
+function setButtonsVisibility(visible) {
+    const { subscribeBtn, testBtn } = getButtons();
+    if (subscribeBtn) {
+        subscribeBtn.classList.toggle('is-hidden', !visible);
+        subscribeBtn.disabled = !visible;
+    }
+    if (testBtn) {
+        testBtn.classList.toggle('is-hidden', !visible);
+        testBtn.disabled = !visible;
+    }
+}
+
+function updateSubscribeButton(isSubscribed) {
+    const { subscribeBtn } = getButtons();
+    if (!subscribeBtn) return;
+
+    if (isSubscribed) {
+        subscribeBtn.dataset.action = 'unsubscribe';
+        subscribeBtn.classList.remove('btn-primary');
+        subscribeBtn.classList.add('btn-secondary');
+        subscribeBtn.innerHTML = '<i class="fas fa-bell-slash"></i> Desactivar Notificaciones';
+        return;
+    }
+
+    subscribeBtn.dataset.action = 'subscribe';
+    subscribeBtn.classList.remove('btn-secondary');
+    subscribeBtn.classList.add('btn-primary');
+    subscribeBtn.innerHTML = '<i class="fas fa-bell"></i> Activar Notificaciones';
+}
+
+async function getPushConfig() {
+    const payload = await apiRequest('push-config');
+    const publicKey = String(payload.publicKey || '');
+    if (!publicKey) {
+        throw new Error('VAPID public key no disponible');
+    }
+    return publicKey;
+}
+
+async function checkSubscriptionState() {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    updateSubscribeButton(Boolean(subscription));
+    return subscription;
+}
+
+async function subscribe() {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+        throw new Error('Permiso de notificaciones denegado');
+    }
+
+    const publicKey = await getPushConfig();
+    const registration = await navigator.serviceWorker.ready;
+    const existing = await registration.pushManager.getSubscription();
+    if (existing) {
+        return existing;
+    }
+
+    const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey)
+    });
+
+    await apiRequest('push-subscribe', {
+        method: 'POST',
+        body: { subscription }
+    });
+
+    return subscription;
+}
+
+async function unsubscribe() {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+        return;
+    }
+
+    await apiRequest('push-unsubscribe', {
+        method: 'POST',
+        body: { endpoint: subscription.endpoint }
+    });
+
+    await subscription.unsubscribe();
+}
+
+async function onToggleSubscription() {
+    const { subscribeBtn } = getButtons();
+    if (!subscribeBtn) return;
+    const action = String(subscribeBtn.dataset.action || 'subscribe');
+
+    const previous = subscribeBtn.innerHTML;
+    subscribeBtn.disabled = true;
+    subscribeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+
+    try {
+        if (action === 'unsubscribe') {
+            await unsubscribe();
+            showToast('Notificaciones desactivadas', 'info');
+        } else {
+            await subscribe();
+            showToast('Notificaciones activadas', 'success');
+        }
+    } catch (error) {
+        showToast(`Push: ${error.message || 'error desconocido'}`, 'error');
+    } finally {
+        subscribeBtn.disabled = false;
+        await checkSubscriptionState().catch(() => {
+            updateSubscribeButton(false);
+        });
+        if (subscribeBtn.dataset.action !== 'subscribe' && subscribeBtn.dataset.action !== 'unsubscribe') {
+            subscribeBtn.innerHTML = previous;
+        }
+    }
+}
+
+async function onTestNotification() {
+    const { testBtn } = getButtons();
+    if (!testBtn) return;
+    const icon = testBtn.querySelector('i');
+    const previousClass = icon ? icon.className : '';
+    testBtn.disabled = true;
+    if (icon) {
+        icon.className = 'fas fa-spinner fa-spin';
+    }
+
+    try {
+        const payload = await apiRequest('push-test', { method: 'POST', body: {} });
+        const result = payload.result || {};
+        const success = Number(result.success || 0);
+        const failed = Number(result.failed || 0);
+        if (failed > 0) {
+            showToast(`Push test: ${success} ok, ${failed} fallidos`, 'warning');
+        } else {
+            showToast(`Push test enviado (${success})`, 'success');
+        }
+    } catch (error) {
+        showToast(`Push test: ${error.message || 'error'}`, 'error');
+    } finally {
+        if (icon) {
+            icon.className = previousClass;
+        }
+        testBtn.disabled = false;
+    }
+}
+
+async function initPushNotifications() {
+    if (initialized) {
+        return;
+    }
+    initialized = true;
+
+    const { subscribeBtn, testBtn } = getButtons();
+    if (!subscribeBtn || !testBtn) {
+        return;
+    }
+
+    const supported = (
+        typeof window !== 'undefined' &&
+        'serviceWorker' in navigator &&
+        'PushManager' in window &&
+        typeof Notification !== 'undefined'
+    );
+
+    if (!supported) {
+        setButtonsVisibility(false);
+        return;
+    }
+
+    try {
+        await navigator.serviceWorker.register('/sw.js');
+        await getPushConfig();
+        setButtonsVisibility(true);
+        subscribeBtn.addEventListener('click', onToggleSubscription);
+        testBtn.addEventListener('click', onTestNotification);
+        await checkSubscriptionState();
+    } catch (error) {
+        setButtonsVisibility(false);
+        showToast('Push no configurado en servidor', 'info');
+    }
+}
+
 async function renderSection(section) {
     const titles = {
         dashboard: 'Dashboard',
@@ -1362,6 +1662,7 @@ async function showDashboard() {
     if (loginScreen) loginScreen.classList.add('is-hidden');
     if (dashboard) dashboard.classList.remove('is-hidden');
     await updateDate();
+    await initPushNotifications();
 }
 
 async function handleLogin(event) {
@@ -1535,6 +1836,11 @@ function attachGlobalListeners() {
             document.getElementById('importFileInput')?.click();
             return;
         }
+        if (action === 'export-csv') {
+            event.preventDefault();
+            exportAppointmentsCSV();
+            return;
+        }
 
         try {
             if (action === 'change-month') {
@@ -1568,6 +1874,11 @@ function attachGlobalListeners() {
             if (action === 'cancel-appointment') {
                 event.preventDefault();
                 await cancelAppointment(Number(actionEl.dataset.id || 0));
+                return;
+            }
+            if (action === 'mark-no-show') {
+                event.preventDefault();
+                await markNoShow(Number(actionEl.dataset.id || 0));
                 return;
             }
             if (action === 'mark-contacted') {

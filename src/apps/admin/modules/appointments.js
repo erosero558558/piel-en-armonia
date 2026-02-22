@@ -81,6 +81,11 @@ export function renderAppointments(appointments) {
                     <button type="button" class="btn-icon danger" data-action="cancel-appointment" data-id="${Number(a.id) || 0}" title="Cancelar">
                         <i class="fas fa-times"></i>
                     </button>
+                    ${((a.status || 'confirmed') !== 'cancelled' && (a.status || 'confirmed') !== 'completed' && (a.status || 'confirmed') !== 'no_show' ? `
+                    <button type="button" class="btn-icon warning" data-action="mark-no-show" data-id="${Number(a.id) || 0}" title="Marcar no asistio">
+                        <i class="fas fa-user-slash"></i>
+                    </button>
+                    ` : '')}
                 </div>
             </td>
         </tr>
@@ -111,6 +116,7 @@ export function filterAppointments() {
             break;
         case 'confirmed':
         case 'cancelled':
+        case 'no_show':
             filtered = filtered.filter(a => (a.status || 'confirmed') === filter);
             break;
         case 'pending_transfer':
@@ -153,6 +159,26 @@ export async function cancelAppointment(id) {
     }
 }
 
+export async function markNoShow(id) {
+    if (!confirm('Marcar esta cita como "No asistio"?')) return;
+    if (!id) {
+        showToast('Id de cita invalido', 'error');
+        return;
+    }
+    try {
+        await apiRequest('appointments', {
+            method: 'PATCH',
+            body: { id: id, status: 'no_show' }
+        });
+        await refreshData();
+        loadAppointments();
+        loadDashboardData();
+        showToast('Cita marcada como no asistio', 'success');
+    } catch (error) {
+        showToast(`No se pudo marcar no-show: ${error.message}`, 'error');
+    }
+}
+
 export async function approveTransfer(id) {
     if (!confirm('¿Aprobar el comprobante de transferencia de esta cita?')) return;
     if (!id) { showToast('Id de cita invalido', 'error'); return; }
@@ -185,4 +211,61 @@ export async function rejectTransfer(id) {
     } catch (error) {
         showToast(`No se pudo rechazar: ${error.message}`, 'error');
     }
+}
+
+function csvSafe(value) {
+    let text = String(value ?? '');
+    if (/^[=+\-@]/.test(text)) {
+        text = "'" + text;
+    }
+    return `"${text.replace(/"/g, '""')}"`;
+}
+
+export function exportAppointmentsCSV() {
+    if (!Array.isArray(currentAppointments) || currentAppointments.length === 0) {
+        showToast('No hay citas para exportar', 'warning');
+        return;
+    }
+
+    const headers = [
+        'ID',
+        'Fecha',
+        'Hora',
+        'Paciente',
+        'Email',
+        'Telefono',
+        'Servicio',
+        'Doctor',
+        'Precio',
+        'Estado',
+        'Estado pago',
+        'Metodo pago'
+    ];
+
+    const rows = currentAppointments.map((a) => [
+        Number(a.id) || 0,
+        a.date || '',
+        a.time || '',
+        csvSafe(a.name || ''),
+        csvSafe(a.email || ''),
+        csvSafe(a.phone || ''),
+        csvSafe(getServiceName(a.service)),
+        csvSafe(getDoctorName(a.doctor)),
+        a.price || '',
+        csvSafe(getStatusText(a.status || 'confirmed')),
+        csvSafe(getPaymentStatusText(a.paymentStatus)),
+        csvSafe(getPaymentMethodText(a.paymentMethod))
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `citas-pielarmonia-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('CSV exportado correctamente', 'success');
 }

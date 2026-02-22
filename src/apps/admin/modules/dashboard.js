@@ -186,6 +186,7 @@ export function loadDashboardData() {
     const todayAppointments = [];
     let pendingTransfers = 0;
     let confirmedCount = 0;
+    let totalNoShows = 0;
 
     for (const a of currentAppointments) {
         if (a.date === today && a.status !== 'cancelled') {
@@ -198,9 +199,16 @@ export function loadDashboardData() {
         if (status === 'confirmed') {
             confirmedCount++;
         }
+        if (status === 'no_show') {
+            totalNoShows++;
+        }
     }
 
     document.getElementById('todayAppointments').textContent = todayAppointments.length;
+    const noShowEl = document.getElementById('totalNoShows');
+    if (noShowEl) {
+        noShowEl.textContent = formatCount(totalNoShows);
+    }
 
     const pendingCallbacks = [];
     for (const c of currentCallbacks) {

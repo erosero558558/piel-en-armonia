@@ -17,6 +17,8 @@ import {
     cancelAppointment,
     approveTransfer,
     rejectTransfer,
+    markNoShow,
+    exportAppointmentsCSV,
 } from './modules/appointments.js';
 import {
     loadCallbacks,
@@ -30,6 +32,7 @@ import {
     addTimeSlot,
     removeTimeSlot,
 } from './modules/availability.js';
+import { initPushNotifications } from './modules/push.js';
 
 async function renderSection(section) {
     const titles = {
@@ -83,6 +86,7 @@ async function showDashboard() {
     if (loginScreen) loginScreen.classList.add('is-hidden');
     if (dashboard) dashboard.classList.remove('is-hidden');
     await updateDate();
+    await initPushNotifications();
 }
 
 async function handleLogin(event) {
@@ -256,6 +260,11 @@ function attachGlobalListeners() {
             document.getElementById('importFileInput')?.click();
             return;
         }
+        if (action === 'export-csv') {
+            event.preventDefault();
+            exportAppointmentsCSV();
+            return;
+        }
 
         try {
             if (action === 'change-month') {
@@ -289,6 +298,11 @@ function attachGlobalListeners() {
             if (action === 'cancel-appointment') {
                 event.preventDefault();
                 await cancelAppointment(Number(actionEl.dataset.id || 0));
+                return;
+            }
+            if (action === 'mark-no-show') {
+                event.preventDefault();
+                await markNoShow(Number(actionEl.dataset.id || 0));
                 return;
             }
             if (action === 'mark-contacted') {

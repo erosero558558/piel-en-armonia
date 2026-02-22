@@ -20,7 +20,10 @@ class NoShowPredictor
         $noShows = 0;
         $totalPast = 0;
         foreach ($history as $past) {
-            $status = $past['status'] ?? 'confirmed';
+            $status = strtolower(trim((string) ($past['status'] ?? 'confirmed')));
+            if ($status === 'noshow') {
+                $status = 'no_show';
+            }
             // Using loose comparison for status normalization if needed, but assuming strict string
             if ($status === 'no_show') {
                 $noShows++;
