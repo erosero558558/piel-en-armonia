@@ -258,6 +258,7 @@ class GoogleTokenProvider
                 'ok' => false,
                 'error' => 'Could not authenticate with Google Calendar',
                 'code' => 'calendar_token_request_failed',
+                'reason' => 'token_endpoint_unreachable',
             ];
         }
 
@@ -269,11 +270,14 @@ class GoogleTokenProvider
                 'ok' => false,
                 'error' => 'Invalid response from Google OAuth',
                 'code' => 'calendar_token_invalid_json',
+                'reason' => 'token_endpoint_invalid_json',
             ];
         }
 
         if ($status < 200 || $status >= 300) {
             $message = (string) ($json['error_description'] ?? $json['error'] ?? 'oauth_error');
+            $errorCode = trim((string) ($json['error'] ?? ''));
+            $errorReason = $errorCode !== '' ? $errorCode : ('status_' . $status);
             audit_log_event('calendar.error', [
                 'operation' => $operation,
                 'status' => $status,
@@ -284,6 +288,7 @@ class GoogleTokenProvider
                 'ok' => false,
                 'error' => 'Google OAuth rejected authentication',
                 'code' => 'calendar_token_rejected',
+                'reason' => $errorReason,
             ];
         }
 

@@ -241,7 +241,11 @@ class GoogleCalendarClient
         $startedAt = microtime(true);
         $auth = $this->tokenProvider->getAccessToken();
         if (($auth['ok'] ?? false) !== true) {
-            $this->recordFailure($operation, (string) ($auth['code'] ?? 'calendar_auth_failed'));
+            $authReason = trim((string) ($auth['reason'] ?? ''));
+            $this->recordFailure(
+                $operation,
+                $authReason !== '' ? $authReason : (string) ($auth['code'] ?? 'calendar_auth_failed')
+            );
             return [
                 'ok' => false,
                 'error' => (string) ($auth['error'] ?? 'No se pudo autenticar con Google Calendar'),
