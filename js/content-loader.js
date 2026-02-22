@@ -200,6 +200,17 @@ function renderDeferredFallbackState() {
 
 export async function loadDeferredContent() {
     try {
+        if (!window.PIEL_CONTENT) {
+            try {
+                const response = await fetch('/content/es.json');
+                if (response.ok) {
+                    window.PIEL_CONTENT = await response.json();
+                }
+            } catch (e) {
+                console.warn('Piel content fallback failed', e);
+            }
+        }
+
         const data = await fetchDeferredPayload();
 
         Object.keys(data).forEach((id) => {

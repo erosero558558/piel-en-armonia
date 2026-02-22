@@ -253,3 +253,7 @@ export function setCookieConsent(status) {
         // noop
     }
 }
+
+if (typeof window !== 'undefined' && !window.debugLog) {
+    window.debugLog = debugLog;
+}

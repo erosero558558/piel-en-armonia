@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../common.php';
+
 class GoogleCalendarClient
 {
     private GoogleTokenProvider $tokenProvider;
@@ -21,7 +23,7 @@ class GoogleCalendarClient
         int $cacheTtlSec = 60
     ) {
         $this->tokenProvider = $tokenProvider;
-        $this->timezone = trim($timezone) !== '' ? trim($timezone) : APP_TIMEZONE;
+        $this->timezone = trim($timezone) !== '' ? trim($timezone) : (defined('APP_TIMEZONE') ? APP_TIMEZONE : 'America/Guayaquil');
         $this->doctorCalendarMap = $doctorCalendarMap;
         $this->baseUrl = rtrim($baseUrl, '/');
         $this->timeoutMs = max(2000, $timeoutMs);
@@ -43,7 +45,7 @@ class GoogleCalendarClient
 
         return new self(
             GoogleTokenProvider::fromEnv(),
-            (string) (getenv('PIELARMONIA_CALENDAR_TIMEZONE') ?: APP_TIMEZONE),
+            (string) (getenv('PIELARMONIA_CALENDAR_TIMEZONE') ?: (defined('APP_TIMEZONE') ? APP_TIMEZONE : 'America/Guayaquil')),
             $map,
             'https://www.googleapis.com/calendar/v3',
             8500,
