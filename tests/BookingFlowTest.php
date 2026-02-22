@@ -9,6 +9,7 @@ $port = 8089; // Random port
 $host = "localhost:$port";
 $baseUrl = "http://$host/api.php";
 $dataDir = sys_get_temp_dir() . '/pielarmonia-test-data-' . uniqid();
+$cookieFile = sys_get_temp_dir() . '/cookie-' . uniqid() . '.txt';
 
 // Setup
 if (!is_dir($dataDir)) {
@@ -19,7 +20,8 @@ putenv('PIELARMONIA_AVAILABILITY_SOURCE=store');
 // We need to pass this env var to the server process too!
 
 echo "Starting server on port $port with data dir $dataDir...\n";
-$cmd = "PIELARMONIA_DATA_DIR=$dataDir PIELARMONIA_AVAILABILITY_SOURCE=store php -S $host -t " . __DIR__ . "/../ > /dev/null 2>&1 & echo $!";
+// Add PIELARMONIA_ADMIN_PASSWORD=secret to enable admin login
+$cmd = "PIELARMONIA_DATA_DIR=$dataDir PIELARMONIA_AVAILABILITY_SOURCE=store PIELARMONIA_ADMIN_PASSWORD=secret php -S $host -t " . __DIR__ . "/../ > /dev/null 2>&1 & echo $!";
 $pid = exec($cmd);
 
 // Wait for server
@@ -42,11 +44,13 @@ if ($attempts === 10) {
 // Helper for requests
 function api_request($method, $resource, $data = null)
 {
-    global $baseUrl;
+    global $baseUrl, $cookieFile;
     $url = "$baseUrl?resource=$resource";
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+    curl_setopt($ch, CURLOPT_COOKIEJAR, $cookieFile);
+    curl_setopt($ch, CURLOPT_COOKIEFILE, $cookieFile);
     if ($data) {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
@@ -68,6 +72,22 @@ try {
         // Initially empty or whatever the default seed is
     });
 
+    // 1.5 Login as Admin
+    run_test('Integration: Login Admin', function () use ($host, $cookieFile) {
+        $ch = curl_init("http://$host/admin-auth.php?action=login");
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query(['password' => 'secret']));
+        curl_setopt($ch, CURLOPT_COOKIEJAR, $cookieFile);
+        curl_setopt($ch, CURLOPT_COOKIEFILE, $cookieFile);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $res = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        $body = json_decode($res, true);
+        assert_equals(200, $code);
+        assert_true($body['ok'] === true, 'Login should succeed');
+    });
+
     // 2. Configure availability (POST)
     run_test('Integration: Configure Availability', function () use ($apptDate) {
         $res = api_request('POST', 'availability', [
@@ -76,6 +96,9 @@ try {
             ]
         ]);
 
+        if ($res['code'] !== 200) {
+            echo "Configure Availability Error: " . json_encode($res['body']) . "\n";
+        }
         assert_equals(200, $res['code']);
         assert_true(isset($res['body']['ok']) && $res['body']['ok'] === true);
     });
@@ -145,6 +168,8 @@ try {
     // Cleanup
     echo "Stopping server (PID $pid)...\n";
     exec("kill $pid");
+
+    if (file_exists($cookieFile)) unlink($cookieFile);
 
     // Recursive delete data dir
     if (is_dir($dataDir)) {
