@@ -209,6 +209,7 @@ test.describe('Checklist de Pruebas en Producción', () => {
         }
 
         // Llenar datos personales
+        if (page.isClosed()) return;
         await page.fill('input[name="name"]', 'Test Automático');
         await page.fill('input[name="email"]', 'test@example.com');
         await page.fill('input[name="phone"]', '0991234567');
