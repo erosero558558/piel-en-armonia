@@ -91,6 +91,10 @@ El proyecto utiliza Playwright para pruebas de extremo a extremo (E2E).
     TEST_BASE_URL=https://pielarmonia.com TEST_ENABLE_CALENDAR_WRITE=true TEST_ADMIN_PASSWORD="tu-clave-admin" npm run test:calendar-write
     ```
 
+    En GitHub Actions tambien puedes usar el workflow manual:
+    `Actions -> Calendar Write Smoke (Manual)` con `enable_write=true`
+    y secret `PIELARMONIA_ADMIN_PASSWORD`.
+
     Pruebas PHP (unitarias/integracion ligera):
 
     ```bash

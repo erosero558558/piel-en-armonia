@@ -1,0 +1,74 @@
+name: Calendar Write Smoke (Manual)
+
+on:
+    workflow_dispatch:
+        inputs:
+            domain:
+                description: 'Dominio objetivo'
+                required: false
+                default: 'https://pielarmonia.com'
+                type: string
+            enable_write:
+                description: 'Confirmar escritura real (crea/reprograma/cancela cita de prueba)'
+                required: false
+                default: false
+                type: boolean
+
+permissions:
+    contents: read
+
+jobs:
+    calendar-write-smoke:
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        env:
+            TEST_BASE_URL: ${{ github.event.inputs.domain || 'https://pielarmonia.com' }}
+            TEST_ENABLE_CALENDAR_WRITE: ${{ github.event.inputs.enable_write || 'false' }}
+            TEST_ADMIN_PASSWORD: ${{ secrets.PIELARMONIA_ADMIN_PASSWORD }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Validar habilitacion explicita
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if [ "${TEST_ENABLE_CALENDAR_WRITE}" != "true" ]; then
+                    echo "::error::Debes ejecutar con enable_write=true para permitir escritura real."
+                    exit 1
+                  fi
+
+            - name: Validar secret admin
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if [ -z "${TEST_ADMIN_PASSWORD}" ]; then
+                    echo "::error::Falta el secret PIELARMONIA_ADMIN_PASSWORD."
+                    exit 1
+                  fi
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'npm'
+
+            - name: Instalar dependencias
+              run: npm ci
+
+            - name: Instalar Playwright (chromium)
+              run: npx playwright install --with-deps chromium
+
+            - name: Ejecutar smoke write calendar
+              run: npm run test:calendar-write
+
+            - name: Resumen
+              if: ${{ always() }}
+              shell: bash
+              run: |
+                  {
+                    echo "## Calendar write smoke";
+                    echo "- Dominio: \`${TEST_BASE_URL}\`";
+                    echo "- Escritura habilitada: \`${TEST_ENABLE_CALENDAR_WRITE}\`";
+                    echo "- Resultado: \`${{ job.status }}\`";
+                  } >> "${GITHUB_STEP_SUMMARY}"
