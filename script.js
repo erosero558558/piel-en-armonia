@@ -2302,7 +2302,10 @@
             loadFigoChatEngine,
             (engine) => engine.processWithKimi(message),
             (error) => {
-                console.error('Error cargando motor de chat:', error);
+                // Log error to monitoring service in production
+                if (window.Piel && window.Piel.reportError) {
+                    window.Piel.reportError('chat_engine_load', error);
+                }
                 removeTypingIndicator();
                 addBotMessage(
                     'No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.',
@@ -2703,7 +2706,7 @@
             debugLog('Deferred content loaded and hydrated.');
             return true;
         } catch (error) {
-            console.error('Error loading deferred content:', error);
+            // Silent fail - fallback UI will show
             renderDeferredFallbackState();
             return false;
         }
@@ -2977,9 +2980,7 @@
 
         const isServer = checkServerEnvironment();
         if (!isServer) {
-            console.warn(
-                'Chatbot en modo offline: abre el sitio desde servidor para usar IA real.'
-            );
+            // Offline mode - no server connection
         }
 
         // Smooth Scroll
@@ -3068,7 +3069,7 @@
     // Push Notifications (Stub)
     window.subscribeToPushNotifications = async function() {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            console.warn('Push not supported');
+            // Push notifications not supported in this browser
             return;
         }
         try {
@@ -3080,7 +3081,7 @@
                 applicationServerKey: publicVapidKey
             });
         } catch (error) {
-            console.error('Push subscription error:', error);
+            // Push subscription failed - ignore
         }
     };
 

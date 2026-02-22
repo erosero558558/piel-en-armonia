@@ -13,13 +13,19 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function debugLog(...args) {
-    if (
-        DEBUG &&
-        typeof console !== 'undefined' &&
-        typeof console.log === 'function'
-    ) {
-        console.log(...args);
+/**
+ * Shows a toast notification.
+ * @param {string} message - The message to display.
+ * @param {string} type - The type of toast (success, error, warning, info).
+ * @param {string} [title] - Optional title for the toast.
+ */
+function showToast(message, type = 'info', title = '') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
     }
 
     const toast = document.createElement('div');
@@ -64,10 +70,63 @@ function debugLog(...args) {
     }, 5000);
 }
 
+/**
+ * Wait for a specified number of milliseconds.
+ * @param {number} ms - Milliseconds to wait.
+ * @returns {Promise<void>}
+ */
+function waitMs(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Format a date to a readable string.
+ * @param {Date|string} date - The date to format.
+ * @param {string} [format] - Optional format (default: 'short').
+ * @returns {string} The formatted date string.
+ */
+function formatDate(date, format = 'short') {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+
+    if (format === 'short') {
+        return d.toLocaleDateString('es-EC', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    }
+    if (format === 'long') {
+        return d.toLocaleDateString('es-EC', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+    }
+    return d.toISOString();
+}
+
+/**
+ * Debounce a function.
+ * @param {Function} func - The function to debounce.
+ * @param {number} wait - Milliseconds to wait.
+ * @returns {Function} The debounced function.
+ */
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 // Expose to window explicitly to be safe, though function declaration does it in global scope
 if (typeof window !== 'undefined') {
     window.escapeHtml = escapeHtml;
-    window.debugLog = debugLog;
     window.waitMs = waitMs;
     window.formatDate = formatDate;
     window.debounce = debounce;

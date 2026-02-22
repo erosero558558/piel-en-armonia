@@ -159,8 +159,7 @@ self.addEventListener('fetch', (event) => {
 
 self.addEventListener('sync', (event) => {
     if (event.tag === 'sync-appointments') {
-        // Placeholder for background sync
-        console.log('Syncing appointments in background...');
+        // Background sync placeholder - no-op for now
     }
 });
 
