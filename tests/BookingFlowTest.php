@@ -19,7 +19,7 @@ putenv('PIELARMONIA_AVAILABILITY_SOURCE=store');
 // We need to pass this env var to the server process too!
 
 echo "Starting server on port $port with data dir $dataDir...\n";
-$cmd = "PIELARMONIA_DATA_DIR=$dataDir PIELARMONIA_AVAILABILITY_SOURCE=store php -S $host -t " . __DIR__ . "/../ > /dev/null 2>&1 & echo $!";
+$cmd = "PIELARMONIA_DATA_DIR=$dataDir PIELARMONIA_AVAILABILITY_SOURCE=store PIELARMONIA_ADMIN_PASSWORD=secret php -S $host -t " . __DIR__ . "/../ > /dev/null 2>&1 & echo $!";
 $pid = exec($cmd);
 
 // Wait for server
@@ -70,14 +70,49 @@ try {
 
     // 2. Configure availability (POST)
     run_test('Integration: Configure Availability', function () use ($apptDate) {
-        $res = api_request('POST', 'availability', [
+        global $baseUrl;
+        $adminUrl = str_replace('api.php', 'admin-auth.php', $baseUrl);
+        $cookieJar = sys_get_temp_dir() . '/cookie_jar_' . uniqid();
+
+        // Login
+        $ch = curl_init("$adminUrl?action=login");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['password' => 'secret']));
+        curl_setopt($ch, CURLOPT_COOKIEJAR, $cookieJar);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        $resp = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        assert_equals(200, $code, "Admin login failed: $resp");
+        $body = json_decode($resp, true);
+        $csrfToken = $body['csrfToken'] ?? '';
+
+        // Post Availability with Cookie & CSRF
+        $url = "$baseUrl?resource=availability";
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
             'availability' => [
                 $apptDate => ['09:00', '10:00']
             ]
+        ]));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            "X-CSRF-Token: $csrfToken"
         ]);
+        curl_setopt($ch, CURLOPT_COOKIEFILE, $cookieJar);
+        $response = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
 
-        assert_equals(200, $res['code']);
-        assert_true(isset($res['body']['ok']) && $res['body']['ok'] === true);
+        @unlink($cookieJar);
+
+        assert_equals(200, $code, "Post availability failed: $response");
+        $resBody = json_decode($response, true);
+        assert_true(isset($resBody['ok']) && $resBody['ok'] === true);
     });
 
     // 3. Create Appointment (POST)

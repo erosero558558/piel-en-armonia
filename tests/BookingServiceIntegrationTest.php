@@ -105,6 +105,7 @@ require_once __DIR__ . '/../lib/validation.php';
 require_once __DIR__ . '/../lib/models.php';
 require_once __DIR__ . '/../lib/business.php';
 require_once __DIR__ . '/../lib/event_setup.php';
+require_once __DIR__ . '/../lib/storage.php';
 require_once __DIR__ . '/../controllers/AppointmentController.php';
 
 // Tests for lib/business.php
