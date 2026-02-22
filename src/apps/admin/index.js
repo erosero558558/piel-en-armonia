@@ -30,6 +30,7 @@ import {
     addTimeSlot,
     removeTimeSlot,
 } from './modules/availability.js';
+import { loadFeatures } from './modules/features.js';
 
 async function renderSection(section) {
     const titles = {
@@ -38,6 +39,7 @@ async function renderSection(section) {
         callbacks: 'Callbacks',
         reviews: 'Resenas',
         availability: 'Disponibilidad',
+        features: 'Feature Flags',
     };
     const titleEl = document.getElementById('pageTitle');
     if (titleEl) titleEl.textContent = titles[section] || 'Dashboard';
@@ -63,6 +65,9 @@ async function renderSection(section) {
             break;
         case 'availability':
             await initAvailabilityCalendar();
+            break;
+        case 'features':
+            await loadFeatures();
             break;
         default:
             loadDashboardData();
