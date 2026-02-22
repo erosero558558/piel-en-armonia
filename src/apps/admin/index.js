@@ -10,26 +10,6 @@ import {
 } from './modules/state.js';
 import { apiRequest } from './modules/api.js';
 import { loadDashboardData } from './modules/dashboard.js';
-import {
-    loadAppointments,
-    filterAppointments,
-    searchAppointments,
-    cancelAppointment,
-    approveTransfer,
-    rejectTransfer,
-} from './modules/appointments.js';
-import {
-    loadCallbacks,
-    filterCallbacks,
-    markContacted,
-} from './modules/callbacks.js';
-import { loadReviews } from './modules/reviews.js';
-import {
-    initAvailabilityCalendar,
-    changeMonth,
-    addTimeSlot,
-    removeTimeSlot,
-} from './modules/availability.js';
 
 async function renderSection(section) {
     const titles = {
@@ -52,18 +32,30 @@ async function renderSection(section) {
         case 'dashboard':
             loadDashboardData();
             break;
-        case 'appointments':
+        case 'appointments': {
+            const { loadAppointments } = await import(
+                './modules/appointments.js'
+            );
             loadAppointments();
             break;
-        case 'callbacks':
+        }
+        case 'callbacks': {
+            const { loadCallbacks } = await import('./modules/callbacks.js');
             loadCallbacks();
             break;
-        case 'reviews':
+        }
+        case 'reviews': {
+            const { loadReviews } = await import('./modules/reviews.js');
             loadReviews();
             break;
-        case 'availability':
+        }
+        case 'availability': {
+            const { initAvailabilityCalendar } = await import(
+                './modules/availability.js'
+            );
             await initAvailabilityCalendar();
             break;
+        }
         default:
             loadDashboardData();
             break;
@@ -260,16 +252,25 @@ function attachGlobalListeners() {
         try {
             if (action === 'change-month') {
                 event.preventDefault();
+                const { changeMonth } = await import(
+                    './modules/availability.js'
+                );
                 changeMonth(Number(actionEl.dataset.delta || 0));
                 return;
             }
             if (action === 'add-time-slot') {
                 event.preventDefault();
+                const { addTimeSlot } = await import(
+                    './modules/availability.js'
+                );
                 await addTimeSlot();
                 return;
             }
             if (action === 'remove-time-slot') {
                 event.preventDefault();
+                const { removeTimeSlot } = await import(
+                    './modules/availability.js'
+                );
                 await removeTimeSlot(
                     decodeURIComponent(actionEl.dataset.date || ''),
                     decodeURIComponent(actionEl.dataset.time || '')
@@ -278,21 +279,33 @@ function attachGlobalListeners() {
             }
             if (action === 'approve-transfer') {
                 event.preventDefault();
+                const { approveTransfer } = await import(
+                    './modules/appointments.js'
+                );
                 await approveTransfer(Number(actionEl.dataset.id || 0));
                 return;
             }
             if (action === 'reject-transfer') {
                 event.preventDefault();
+                const { rejectTransfer } = await import(
+                    './modules/appointments.js'
+                );
                 await rejectTransfer(Number(actionEl.dataset.id || 0));
                 return;
             }
             if (action === 'cancel-appointment') {
                 event.preventDefault();
+                const { cancelAppointment } = await import(
+                    './modules/appointments.js'
+                );
                 await cancelAppointment(Number(actionEl.dataset.id || 0));
                 return;
             }
             if (action === 'mark-contacted') {
                 event.preventDefault();
+                const { markContacted } = await import(
+                    './modules/callbacks.js'
+                );
                 await markContacted(
                     Number(actionEl.dataset.callbackId || 0),
                     actionEl.dataset.callbackDate || ''
@@ -305,17 +318,30 @@ function attachGlobalListeners() {
 
     const appointmentFilter = document.getElementById('appointmentFilter');
     if (appointmentFilter) {
-        appointmentFilter.addEventListener('change', filterAppointments);
+        appointmentFilter.addEventListener('change', async (e) => {
+            const { filterAppointments } = await import(
+                './modules/appointments.js'
+            );
+            filterAppointments(e);
+        });
     }
 
     const searchInput = document.getElementById('searchAppointments');
     if (searchInput) {
-        searchInput.addEventListener('input', searchAppointments);
+        searchInput.addEventListener('input', async (e) => {
+            const { searchAppointments } = await import(
+                './modules/appointments.js'
+            );
+            searchAppointments(e);
+        });
     }
 
     const callbackFilter = document.getElementById('callbackFilter');
     if (callbackFilter) {
-        callbackFilter.addEventListener('change', filterCallbacks);
+        callbackFilter.addEventListener('change', async (e) => {
+            const { filterCallbacks } = await import('./modules/callbacks.js');
+            filterCallbacks(e);
+        });
     }
 }
 
