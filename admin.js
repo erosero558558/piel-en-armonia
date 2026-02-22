@@ -822,6 +822,15 @@ function exportAppointmentsCSV() {
         return;
     }
 
+    const escapeCSV = (field) => {
+        let str = String(field || '');
+        // Prevent CSV Injection (Formula Injection)
+        if (/^[=+\-@]/.test(str)) {
+            str = "'" + str;
+        }
+        return `"${str.replace(/"/g, '""')}"`;
+    };
+
     const headers = [
         'ID', 'Fecha', 'Hora', 'Paciente', 'Email', 'Telefono',
         'Servicio', 'Doctor', 'Precio', 'Estado', 'Estado Pago', 'Metodo Pago'
@@ -831,11 +840,11 @@ function exportAppointmentsCSV() {
         appt.id,
         appt.date,
         appt.time,
-        `"${(appt.name || '').replace(/"/g, '""')}"`,
-        `"${(appt.email || '').replace(/"/g, '""')}"`,
-        `"${(appt.phone || '').replace(/"/g, '""')}"`,
-        `"${(getServiceName(appt.service) || '').replace(/"/g, '""')}"`,
-        `"${(getDoctorName(appt.doctor) || '').replace(/"/g, '""')}"`,
+        escapeCSV(appt.name),
+        escapeCSV(appt.email),
+        escapeCSV(appt.phone),
+        escapeCSV(getServiceName(appt.service)),
+        escapeCSV(getDoctorName(appt.doctor)),
         appt.price,
         getStatusText(appt.status || 'confirmed'),
         getPaymentStatusText(appt.paymentStatus),

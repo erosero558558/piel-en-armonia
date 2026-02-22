@@ -17,7 +17,8 @@ if (!is_dir($dataDir)) {
     mkdir($dataDir, 0777, true);
 }
 // We need to pass env vars to the server process
-$envVars = "PIELARMONIA_DATA_DIR=$dataDir PIELARMONIA_ADMIN_PASSWORD=secret";
+// Enable default availability so we have slots without seeding
+$envVars = "PIELARMONIA_DATA_DIR=$dataDir PIELARMONIA_ADMIN_PASSWORD=secret PIELARMONIA_DEFAULT_AVAILABILITY_ENABLED=true";
 
 echo "Starting server on port $port with data dir $dataDir...\n";
 // Start server relative to project root
@@ -72,7 +73,9 @@ function http_request($method, $url, $data = null, $cookies = null, $headers = [
 try {
     // 1. Conflict Handling (Waitlist)
     run_test('E2E: Conflict Handling', function () use ($baseUrl) {
-        $date = date('Y-m-d', strtotime('+3 days')); // Ensure future date
+        $ts = strtotime('+3 days');
+        if (date('N', $ts) == 7) $ts += 86400; // Skip Sunday
+        $date = date('Y-m-d', $ts);
         $time = '10:00';
 
         // Create first appointment
@@ -112,7 +115,9 @@ try {
 
     // 2. Reschedule Flow
     run_test('E2E: Reschedule Flow', function () use ($baseUrl) {
-        $date = date('Y-m-d', strtotime('+4 days'));
+        $ts = strtotime('+4 days');
+        if (date('N', $ts) == 7) $ts += 86400; // Skip Sunday
+        $date = date('Y-m-d', $ts);
         $time1 = '10:00';
         $time2 = '11:00';
 
@@ -161,7 +166,9 @@ try {
 
     // 3. Admin Cancellation
     run_test('E2E: Admin Cancellation', function () use ($baseUrl, $adminUrl, $cookieFile) {
-        $date = date('Y-m-d', strtotime('+5 days'));
+        $ts = strtotime('+5 days');
+        if (date('N', $ts) == 7) $ts += 86400; // Skip Sunday
+        $date = date('Y-m-d', $ts);
         $time = '10:00';
 
         // Create appointment
