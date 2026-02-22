@@ -1382,10 +1382,10 @@
     }
 
     const BOOKING_ENGINE_URL = withDeployAssetVersion(
-        '/js/engines/booking-engine.js?v=figo-booking-20260219-mbfix1'
+        '/js/engines/booking-engine.js?v=figo-booking-20260222-debugfix1'
     );
     const BOOKING_UI_URL = withDeployAssetVersion(
-        '/js/engines/booking-ui.js?v=figo-booking-ui-20260222-slotservicefix1'
+        '/js/engines/booking-ui.js?v=figo-booking-ui-20260222-debugfix1'
     );
     const BOOKING_UTILS_URL$1 = withDeployAssetVersion('/js/engines/booking-utils.js');
     const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
@@ -1488,6 +1488,7 @@
             showToast,
             trackEvent,
             normalizeAnalyticsLabel,
+            debugLog,
         };
     }
 
@@ -1597,7 +1598,7 @@
             normalizeAnalyticsLabel,
             openPaymentModal,
             setCurrentAppointment: setCurrentAppointment,
-            updateAvailableTimes, // Added dependency
+            debugLog,
         };
     }
 
@@ -2302,10 +2303,6 @@
             loadFigoChatEngine,
             (engine) => engine.processWithKimi(message),
             (error) => {
-                // Log error to monitoring service in production
-                if (window.Piel && window.Piel.reportError) {
-                    window.Piel.reportError('chat_engine_load', error);
-                }
                 removeTypingIndicator();
                 addBotMessage(
                     'No se pudo iniciar el asistente en este momento. Intenta de nuevo o escribenos por WhatsApp: <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">+593 98 245 3672</a>.',
@@ -2706,7 +2703,6 @@
             debugLog('Deferred content loaded and hydrated.');
             return true;
         } catch (error) {
-            // Silent fail - fallback UI will show
             renderDeferredFallbackState();
             return false;
         }
@@ -2978,10 +2974,7 @@
             maybeTrackCheckoutAbandon$1('page_hide');
         });
 
-        const isServer = checkServerEnvironment();
-        if (!isServer) {
-            // Offline mode - no server connection
-        }
+        checkServerEnvironment();
 
         // Smooth Scroll
         const nav = document.querySelector('.nav');
@@ -3069,7 +3062,6 @@
     // Push Notifications (Stub)
     window.subscribeToPushNotifications = async function() {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            // Push notifications not supported in this browser
             return;
         }
         try {
@@ -3081,7 +3073,6 @@
                 applicationServerKey: publicVapidKey
             });
         } catch (error) {
-            // Push subscription failed - ignore
         }
     };
 

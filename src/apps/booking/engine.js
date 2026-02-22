@@ -136,7 +136,7 @@ function getCaptchaToken(action) {
     try {
         return requireFn('getCaptchaToken')(action);
     } catch (e) {
-        console.warn('Captcha token not available', e);
+        requireFn('debugLog')('Captcha token not available', e);
         return Promise.resolve(null);
     }
 }

@@ -1,8 +1,7 @@
-import { withDeployAssetVersion, debugLog } from './utils.js';
+import { withDeployAssetVersion } from './utils.js';
 import {
     loadDeferredModule,
     runDeferredModule,
-    withDeferredModule,
 } from './loader.js';
 import { observeOnceWhenVisible } from './loader.js';
 import { loadAvailabilityData } from './data.js';
