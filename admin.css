@@ -621,6 +621,11 @@
     color: #0c5460;
 }
 
+.status-noshow {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
 .table-actions {
     display: flex;
     gap: 8px;
@@ -655,6 +660,15 @@
 
 .btn-icon.success:hover {
     background: #34c759;
+    color: white;
+}
+
+.btn-icon.warning {
+    color: #ff9500;
+}
+
+.btn-icon.warning:hover {
+    background: #ff9500;
     color: white;
 }
 

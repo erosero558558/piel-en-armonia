@@ -17,6 +17,8 @@ import {
     cancelAppointment,
     approveTransfer,
     rejectTransfer,
+    markNoShow,
+    exportAppointmentsCSV,
 } from './modules/appointments.js';
 import {
     loadCallbacks,
@@ -257,6 +259,12 @@ function attachGlobalListeners() {
             return;
         }
 
+        if (action === 'export-csv') {
+            event.preventDefault();
+            exportAppointmentsCSV();
+            return;
+        }
+
         try {
             if (action === 'change-month') {
                 event.preventDefault();
@@ -289,6 +297,11 @@ function attachGlobalListeners() {
             if (action === 'cancel-appointment') {
                 event.preventDefault();
                 await cancelAppointment(Number(actionEl.dataset.id || 0));
+                return;
+            }
+            if (action === 'mark-no-show') {
+                event.preventDefault();
+                await markNoShow(Number(actionEl.dataset.id || 0));
                 return;
             }
             if (action === 'mark-contacted') {

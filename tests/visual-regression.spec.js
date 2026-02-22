@@ -4,11 +4,16 @@ const { test, expect } = require('@playwright/test');
 test.describe('Pruebas de regresión visual', () => {
 
     test('Homepage Desktop - visualmente correcta', async ({ page }) => {
+        // Increase timeout for full page screenshot
+        test.setTimeout(60000);
+
         // Navegar a la página de inicio
         await page.goto('/');
 
         // Esperar a que la carga termine
         await page.waitForLoadState('load');
+        // eslint-disable-next-line playwright/no-networkidle
+        // eslint-disable-next-line playwright/no-networkidle
         await page.waitForLoadState('networkidle');
         await page.waitForTimeout(2000); // Allow layout to settle
 

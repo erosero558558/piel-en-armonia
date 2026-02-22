@@ -231,6 +231,17 @@
                                 >
                             </div>
                         </div>
+                        <div class="stat-card">
+                            <div class="stat-icon red">
+                                <i class="fas fa-user-slash"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-number" id="totalNoShows"
+                                    >0</span
+                                >
+                                <span class="stat-label">No Shows</span>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="dashboard-grid">
@@ -387,6 +398,14 @@
                                 </option>
                             </select>
                         </div>
+                        <button
+                            type="button"
+                            class="btn btn-secondary btn-sm"
+                            data-action="export-csv"
+                        >
+                            <i class="fas fa-file-csv"></i>
+                            Exportar CSV
+                        </button>
                         <div class="search-box">
                             <i class="fas fa-search"></i>
                             <input
