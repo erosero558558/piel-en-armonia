@@ -13,7 +13,10 @@
     "autoload": {
         "psr-4": {
             "": "lib/"
-        }
+        },
+        "classmap": [
+            "lib/calendar/"
+        ]
     },
     "scripts": {
         "lint": "php-cs-fixer fix --dry-run --diff",

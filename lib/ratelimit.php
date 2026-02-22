@@ -116,10 +116,66 @@ function rate_limit_cleanup_random_shard(string $rateDir, int $now): void
     }
 }
 
+function is_rate_limited_redis($redis, string $action, int $maxRequests, int $windowSeconds): bool
+{
+    $key = 'ratelimit:' . rate_limit_key($action);
+    $now = microtime(true);
+
+    // Contar cuantos eventos hay en la ventana actual
+    // Los eventos antiguos son aquellos menores a $now - $windowSeconds
+    $windowStart = $now - $windowSeconds;
+
+    // Contamos cuantos elementos tienen score > windowStart
+    // ZCOUNT cuenta entre min y max. Queremos entre windowStart y +inf
+    $count = $redis->zcount($key, $windowStart, '+inf');
+
+    return $count >= $maxRequests;
+}
+
+function check_rate_limit_redis($redis, string $action, int $maxRequests, int $windowSeconds): bool
+{
+    $key = 'ratelimit:' . rate_limit_key($action);
+    $now = microtime(true);
+
+    // Lua script para atomicidad check-and-set
+    $script = <<<LUA
+        local key = KEYS[1]
+        local limit = tonumber(ARGV[1])
+        local window = tonumber(ARGV[2])
+        local now = tonumber(ARGV[3])
+        local member = ARGV[4]
+
+        -- Limpiar entradas antiguas (fuera de la ventana)
+        local windowStart = now - window
+        redis.call('ZREMRANGEBYSCORE', key, 0, windowStart)
+
+        -- Contar actuales
+        local count = redis.call('ZCARD', key)
+
+        if count < limit then
+            redis.call('ZADD', key, now, member)
+            redis.call('EXPIRE', key, window + 60)
+            return 1 -- Allowed
+        else
+            return 0 -- Denied
+        end
+LUA;
+
+    $member = $now . ':' . uniqid();
+    $result = $redis->eval($script, 1, $key, $maxRequests, $windowSeconds, $now, $member);
+
+    return (bool)$result;
+}
+
 function is_rate_limited(string $action, int $maxRequests = 10, int $windowSeconds = 60): bool
 {
     $maxRequests = max(1, $maxRequests);
     $windowSeconds = max(1, $windowSeconds);
+
+    $redis = get_redis_client();
+    if ($redis) {
+        return is_rate_limited_redis($redis, $action, $maxRequests, $windowSeconds);
+    }
 
     $now = time();
     $filePath = rate_limit_file_path($action);
@@ -133,6 +189,11 @@ function check_rate_limit(string $action, int $maxRequests = 10, int $windowSeco
 {
     $maxRequests = max(1, $maxRequests);
     $windowSeconds = max(1, $windowSeconds);
+
+    $redis = get_redis_client();
+    if ($redis) {
+        return check_rate_limit_redis($redis, $action, $maxRequests, $windowSeconds);
+    }
 
     $rateDir = data_dir_path() . DIRECTORY_SEPARATOR . 'ratelimit';
     $filePath = rate_limit_file_path($action);
@@ -156,6 +217,13 @@ function check_rate_limit(string $action, int $maxRequests = 10, int $windowSeco
 
 function reset_rate_limit(string $action): void
 {
+    $redis = get_redis_client();
+    if ($redis) {
+        $key = 'ratelimit:' . rate_limit_key($action);
+        $redis->del($key);
+        return;
+    }
+
     $filePath = rate_limit_file_path($action);
     if (is_file($filePath)) {
         @unlink($filePath);
