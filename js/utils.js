@@ -5,6 +5,68 @@ export function debugLog() {
     // Debug logging removed
 }
 
+export function sanitizeHtml(html) {
+    if (!html) return '';
+    try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        const allowedTags = new Set([
+            'div', 'span', 'p', 'br', 'strong', 'b', 'em', 'i', 'u',
+            'ul', 'ol', 'li', 'a', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'section', 'article', 'header', 'footer', 'nav', 'main', 'aside',
+            'figure', 'figcaption', 'blockquote', 'pre', 'code',
+            'table', 'thead', 'tbody', 'tr', 'th', 'td',
+            'button', 'label', 'input', 'textarea', 'form'
+        ]);
+
+        const allowedAttrs = new Set([
+            'href', 'src', 'alt', 'title', 'class', 'id', 'name', 'type',
+            'placeholder', 'value', 'rows', 'cols', 'checked', 'disabled',
+            'readonly', 'required', 'selected', 'target', 'rel', 'role'
+        ]);
+
+        const allElements = doc.body.querySelectorAll('*');
+        for (const el of allElements) {
+            const tagName = el.tagName.toLowerCase();
+            if (!allowedTags.has(tagName)) {
+                el.remove();
+                continue;
+            }
+
+            // Sanitize attributes
+            const attrs = Array.from(el.attributes);
+            for (const attr of attrs) {
+                const name = attr.name.toLowerCase();
+                // Allow data-* and aria-* attributes
+                if (name.startsWith('data-') || name.startsWith('aria-')) {
+                    continue;
+                }
+                if (!allowedAttrs.has(name)) {
+                    el.removeAttribute(name);
+                    continue;
+                }
+
+                // Sanitize URL attributes
+                if (name === 'href' || name === 'src') {
+                    const val = attr.value.toLowerCase().trim();
+                    if (val.startsWith('javascript:') || val.startsWith('vbscript:')) {
+                        el.removeAttribute(name);
+                    }
+                }
+
+                // Remove event handlers
+                if (name.startsWith('on')) {
+                    el.removeAttribute(name);
+                }
+            }
+        }
+        return doc.body.innerHTML;
+    } catch (_error) {
+        return '';
+    }
+}
+
 export function escapeHtml(text) {
     if (
         window.Piel &&
@@ -131,10 +193,10 @@ export function showToast(message, type = 'info', title = '') {
     };
 
     const titles = {
-        success: title || 'Exito',
-        error: title || 'Error',
-        warning: title || 'Advertencia',
-        info: title || 'Informacion',
+        success: sanitizeHtml(title || 'Exito'),
+        error: sanitizeHtml(title || 'Error'),
+        warning: sanitizeHtml(title || 'Advertencia'),
+        info: sanitizeHtml(title || 'Informacion'),
     };
 
     // Escapar mensaje para prevenir XSS
