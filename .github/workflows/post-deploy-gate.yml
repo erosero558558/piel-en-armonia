@@ -56,7 +56,7 @@ on:
 
 concurrency:
     group: post-deploy-gate-main
-    cancel-in-progress: false
+    cancel-in-progress: true
 
 permissions:
     contents: read
