@@ -41,18 +41,6 @@ function json_response(array $payload, int $status = 200): void
     throw new JsonResponseException($payload, $status);
 }
 
-function read_store(): array
-{
-    global $mock_store;
-    return $mock_store;
-}
-
-function write_store(array $store): void
-{
-    global $mock_store;
-    $mock_store = $store;
-}
-
 function require_rate_limit($key, $limit, $window): void
 {
 }
@@ -102,10 +90,18 @@ function stripe_get_payment_intent(string $id): array
 // Note: We avoid api-lib.php to prevent including real http.php/storage.php
 require_once __DIR__ . '/../lib/common.php';
 require_once __DIR__ . '/../lib/validation.php';
+require_once __DIR__ . '/../lib/storage.php';
 require_once __DIR__ . '/../lib/models.php';
 require_once __DIR__ . '/../lib/business.php';
 require_once __DIR__ . '/../lib/event_setup.php';
 require_once __DIR__ . '/../controllers/AppointmentController.php';
+
+// Config
+$tempDir = sys_get_temp_dir() . '/pielarmonia-test-integration-' . uniqid();
+if (!is_dir($tempDir)) {
+    mkdir($tempDir, 0777, true);
+}
+putenv("PIELARMONIA_DATA_DIR=$tempDir");
 
 // Tests for lib/business.php
 
@@ -196,13 +192,13 @@ run_test('AppointmentController::store validation failure', function () {
 });
 
 run_test('AppointmentController::store successful card payment', function () {
-    global $mock_store, $mock_payload, $mock_intent;
+    global $mock_payload, $mock_intent;
 
     // Reset store
-    $mock_store = [
+    write_store([
         'appointments' => [],
         'availability' => ['2024-01-01' => ['10:00']] // Slot must be in availability
-    ];
+    ]);
 
     $mock_payload = [
         'name' => 'John Doe',
@@ -238,7 +234,10 @@ run_test('AppointmentController::store successful card payment', function () {
     $futureDate = date('Y-m-d', strtotime('+1 day'));
     $mock_payload['date'] = $futureDate;
     $mock_intent['metadata']['date'] = $futureDate;
-    $mock_store['availability'][$futureDate] = ['10:00'];
+
+    $store = read_store();
+    $store['availability'][$futureDate] = ['10:00'];
+    write_store($store);
 
     try {
         AppointmentController::store(['store' => read_store()]);
