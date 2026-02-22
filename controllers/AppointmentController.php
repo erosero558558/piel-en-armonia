@@ -117,14 +117,17 @@ class AppointmentController
         }
 
         if (!$result['ok']) {
+            $statusCode = (int) ($result['code'] ?? 500);
+            $errorCode = isset($result['errorCode']) ? trim((string) $result['errorCode']) : '';
+            if ($errorCode === '') {
+                $errorCode = self::inferErrorCode($statusCode, (string) ($result['error'] ?? ''));
+            }
             $errorPayload = [
                 'ok' => false,
                 'error' => $result['error'],
+                'code' => $errorCode,
             ];
-            if (isset($result['errorCode']) && trim((string) $result['errorCode']) !== '') {
-                $errorPayload['code'] = (string) $result['errorCode'];
-            }
-            json_response($errorPayload, (int) ($result['code'] ?? 500));
+            json_response($errorPayload, $statusCode);
         }
 
         $newStore = $result['store'];
@@ -337,14 +340,17 @@ class AppointmentController
         }
 
         if (!$result['ok']) {
+            $statusCode = (int) ($result['code'] ?? 500);
+            $errorCode = isset($result['errorCode']) ? trim((string) $result['errorCode']) : '';
+            if ($errorCode === '') {
+                $errorCode = self::inferErrorCode($statusCode, (string) ($result['error'] ?? ''));
+            }
             $errorPayload = [
                 'ok' => false,
                 'error' => $result['error'],
+                'code' => $errorCode,
             ];
-            if (isset($result['errorCode']) && trim((string) $result['errorCode']) !== '') {
-                $errorPayload['code'] = (string) $result['errorCode'];
-            }
-            json_response($errorPayload, (int) ($result['code'] ?? 500));
+            json_response($errorPayload, $statusCode);
         }
 
         $newStore = $result['store'];
@@ -409,5 +415,29 @@ class AppointmentController
                 'slotDurationMin' => (int) ($appointment['slotDurationMin'] ?? 0),
             ]
         ]);
+    }
+
+    private static function inferErrorCode(int $statusCode, string $errorMessage): string
+    {
+        $message = strtolower(trim($errorMessage));
+        if ($statusCode === 400) {
+            if (strpos($message, 'token') !== false) {
+                return 'invalid_token';
+            }
+            return 'bad_request';
+        }
+        if ($statusCode === 404) {
+            return 'not_found';
+        }
+        if ($statusCode === 409) {
+            return 'slot_unavailable';
+        }
+        if ($statusCode === 429) {
+            return 'rate_limited';
+        }
+        if ($statusCode === 503) {
+            return 'service_unavailable';
+        }
+        return 'internal_error';
     }
 }
