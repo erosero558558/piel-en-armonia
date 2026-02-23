@@ -1,4 +1,7 @@
 import resolve from '@rollup/plugin-node-resolve';
+import terser from '@rollup/plugin-terser';
+
+const plugins = [resolve(), terser()];
 
 export default [
     // Admin App
@@ -9,7 +12,7 @@ export default [
             format: 'es',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins
     },
     // Booking UI
     {
@@ -19,7 +22,7 @@ export default [
             format: 'es',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins
         // Removed external: ['booking-calendar-lazy'] to bundle it inline
     },
     // Booking Engine
@@ -30,7 +33,7 @@ export default [
             format: 'es',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins
     },
     // Booking Calendar
     {
@@ -40,7 +43,7 @@ export default [
             format: 'es',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins
     },
     // Chat UI Engine
     {
@@ -50,7 +53,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins
     },
     // Chat Widget Engine
     {
@@ -60,7 +63,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins
     },
     // Chat Booking Engine
     {
@@ -70,7 +73,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins
     },
     // Figo Chat Engine
     {
@@ -80,7 +83,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins
     },
     // Analytics Engine
     {
@@ -90,7 +93,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins
     },
     // Booking Utils Bundle
     {
@@ -100,7 +103,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins
     },
     // Data Bundle
     {
@@ -110,7 +113,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins
     },
     // UI Bundle
     {
@@ -120,7 +123,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins
     },
     // Engagement Bundle
     {
@@ -130,7 +133,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins
     },
     // Main Script
     {
@@ -141,6 +144,6 @@ export default [
             sourcemap: false,
             banner: '/* GENERATED FILE - DO NOT EDIT DIRECTLY - Edit source in js/main.js and run npm run build */',
         },
-        plugins: [resolve()],
+        plugins,
     },
 ];

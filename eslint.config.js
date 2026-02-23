@@ -15,7 +15,7 @@ module.exports = [
     },
     js.configs.recommended,
     {
-        ignores: ['admin.js', 'script.js', 'booking-ui.js', 'booking-engine.js', 'vendor/**']
+        ignores: ['admin.js', 'script.js', 'js/engines/**', 'js/booking-calendar.js', 'vendor/**']
     },
     {
         files: ['**/*.js', '**/*.mjs'],
