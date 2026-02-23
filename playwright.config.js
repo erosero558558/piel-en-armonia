@@ -44,6 +44,7 @@ module.exports = defineConfig({
               env: {
                   PIELARMONIA_ADMIN_PASSWORD:
                       process.env.PIELARMONIA_ADMIN_PASSWORD || 'admin123',
+                  PIELARMONIA_DEFAULT_AVAILABILITY_ENABLED: 'true',
                   ...process.env,
               },
           }
