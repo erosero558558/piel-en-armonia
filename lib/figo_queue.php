@@ -720,7 +720,7 @@ function figo_queue_gateway_error_code_from_status(int $httpCode, string $curlEr
     return 'gateway_unknown';
 }
 
-function figo_queue_gateway_call(array $job): array
+function figo_queue_gateway_call(array $job, ?int $timeoutOverrideSeconds = null): array
 {
     $endpoint = figo_queue_gateway_endpoint();
     if ($endpoint === '') {
@@ -776,7 +776,9 @@ function figo_queue_gateway_call(array $job): array
         $headers[] = figo_queue_gateway_key_header() . ': ' . trim($value);
     }
 
-    $timeout = figo_queue_worker_timeout_seconds();
+    $timeout = is_int($timeoutOverrideSeconds)
+        ? figo_queue_clamp_int($timeoutOverrideSeconds, figo_queue_worker_timeout_seconds(), 1, 60)
+        : figo_queue_worker_timeout_seconds();
     $start = microtime(true);
     $ch = curl_init($endpoint);
     if ($ch === false) {
@@ -1036,7 +1038,7 @@ function figo_queue_next_retry_at(int $attempts, int $now): int
     return $now + $backoff;
 }
 
-function figo_queue_process_job(string $jobId): array
+function figo_queue_process_job(string $jobId, ?int $gatewayTimeoutSeconds = null): array
 {
     $jobLock = figo_queue_acquire_lock('job-' . $jobId, 600);
     if (!is_resource($jobLock)) {
@@ -1073,7 +1075,7 @@ function figo_queue_process_job(string $jobId): array
         $job = figo_queue_mark_job($job, 'processing');
         figo_queue_write_job($job);
 
-        $gatewayResult = figo_queue_gateway_call($job);
+        $gatewayResult = figo_queue_gateway_call($job, $gatewayTimeoutSeconds);
         figo_queue_write_gateway_status([
             'ok' => (bool) ($gatewayResult['ok'] ?? false),
             'errorCode' => (string) ($gatewayResult['errorCode'] ?? ''),
@@ -1211,7 +1213,13 @@ function figo_queue_process_worker(?int $maxJobs = null, ?int $timeBudgetMs = nu
                 break;
             }
 
-            $result = figo_queue_process_job($jobId);
+            $timeoutOverride = null;
+            if (!$fromCron) {
+                $remainingMs = max(200, $timeBudget - $elapsedMs);
+                $timeoutOverride = max(1, min(3, (int) ceil($remainingMs / 1000)));
+            }
+
+            $result = figo_queue_process_job($jobId, $timeoutOverride);
             $processed++;
             if (($result['status'] ?? '') === 'completed') {
                 $completed++;
@@ -1432,8 +1440,8 @@ function figo_queue_bridge_result(array $payload): array
     }
 
     figo_queue_process_worker(
-        figo_queue_clamp_int(getenv('OPENCLAW_TRIGGER_MAX_JOBS'), 3, 1, 8),
-        figo_queue_clamp_int(getenv('OPENCLAW_TRIGGER_TIME_BUDGET_MS'), 1200, 200, 5000),
+        figo_queue_clamp_int(getenv('OPENCLAW_TRIGGER_MAX_JOBS'), 1, 1, 8),
+        figo_queue_clamp_int(getenv('OPENCLAW_TRIGGER_TIME_BUDGET_MS'), 900, 200, 5000),
         false
     );
 
