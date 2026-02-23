@@ -96,6 +96,12 @@
 // putenv('PIELARMONIA_AVAILABILITY_SOURCE=google');
 // Si Google falla: bloquear reservas/slots (true recomendado para evitar sobreventa).
 // putenv('PIELARMONIA_CALENDAR_BLOCK_ON_FAILURE=true');
+// Modo de autenticacion Google Calendar:
+// - auto (prioriza service account si existe, sino OAuth refresh token)
+// - oauth_refresh_token (recomendado cuando no se permiten llaves SA)
+// - service_account
+// - none
+// putenv('PIELARMONIA_CALENDAR_AUTH_MODE=oauth_refresh_token');
 // Zona horaria de agenda.
 // putenv('PIELARMONIA_CALENDAR_TIMEZONE=America/Guayaquil');
 // Paso base de slot en minutos.

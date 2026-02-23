@@ -30,6 +30,13 @@ class AdminDataController
             $calendarReachable
         );
         $calendarAuth = $calendarActive ? $calendarClient->getAuthMode() : 'none';
+        $calendarTokenSnapshot = GoogleTokenProvider::readStatusSnapshot();
+        $calendarTokenHealthy = self::resolveCalendarTokenHealthy(
+            $calendarActive,
+            $calendarConfigured,
+            $calendarAuth,
+            $calendarTokenSnapshot
+        );
         $doctorCalendars = [];
         foreach (['rosero', 'narvaez'] as $doctor) {
             $calendarId = trim((string) ($rawCalendars[$doctor] ?? ''));
@@ -46,6 +53,7 @@ class AdminDataController
             'mode' => $calendarMode,
             'timezone' => $calendarClient->getTimezone(),
             'calendarAuth' => $calendarAuth,
+            'calendarTokenHealthy' => $calendarTokenHealthy,
             'calendarConfigured' => $calendarConfigured,
             'calendarReachable' => $calendarReachable,
             'calendarLastSuccessAt' => $calendarLastSuccessAt,
@@ -113,6 +121,41 @@ class AdminDataController
             return 'blocked';
         }
         return 'live';
+    }
+
+    private static function resolveCalendarTokenHealthy(
+        bool $calendarActive,
+        bool $calendarConfigured,
+        string $calendarAuth,
+        array $tokenSnapshot
+    ): bool {
+        if (!$calendarActive) {
+            return true;
+        }
+        if (!$calendarConfigured) {
+            return false;
+        }
+        if (!in_array($calendarAuth, ['oauth_refresh', 'service_account'], true)) {
+            return false;
+        }
+
+        $expiresAt = (int) ($tokenSnapshot['expiresAt'] ?? 0);
+        if ($expiresAt > (time() + 30)) {
+            return true;
+        }
+
+        $lastSuccessAt = (string) ($tokenSnapshot['lastSuccessAt'] ?? '');
+        $lastErrorAt = (string) ($tokenSnapshot['lastErrorAt'] ?? '');
+        if ($lastSuccessAt === '' && $lastErrorAt === '') {
+            return false;
+        }
+        if ($lastSuccessAt === '') {
+            return false;
+        }
+        if ($lastErrorAt === '') {
+            return true;
+        }
+        return !self::timestampGreater($lastErrorAt, $lastSuccessAt);
     }
 
     private static function timestampGreater(string $leftIso, string $rightIso): bool

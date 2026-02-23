@@ -1073,6 +1073,7 @@ function renderStatus() {
     const mode = String(currentAvailabilityMeta.mode || 'live');
     const timezone = String(currentAvailabilityMeta.timezone || 'America/Guayaquil');
     const calendarAuth = String(currentAvailabilityMeta.calendarAuth || 'n/d');
+    const tokenHealthy = currentAvailabilityMeta.calendarTokenHealthy === false ? 'no' : 'si';
     const configured = currentAvailabilityMeta.calendarConfigured === false ? 'no' : 'si';
     const reachable = currentAvailabilityMeta.calendarReachable === false ? 'no' : 'si';
     const generatedLabel = formatStatusTime(currentAvailabilityMeta.generatedAt);
@@ -1086,7 +1087,7 @@ function renderStatus() {
         const modeLabel = mode === 'blocked' ? 'bloqueado' : 'live';
         statusEl.innerHTML = `Fuente: <strong>Google Calendar</strong> | Modo: <strong>${escapeHtml(modeLabel)}</strong> | TZ: <strong>${escapeHtml(timezone)}</strong>`;
         if (detailsEl) {
-            let details = `Auth: <strong>${escapeHtml(calendarAuth)}</strong> | Configurado: <strong>${escapeHtml(configured)}</strong> | Reachable: <strong>${escapeHtml(reachable)}</strong> | Ultimo exito: <strong>${escapeHtml(lastSuccessLabel)}</strong> | Snapshot: <strong>${escapeHtml(generatedLabel)}</strong>`;
+            let details = `Auth: <strong>${escapeHtml(calendarAuth)}</strong> | Token OK: <strong>${escapeHtml(tokenHealthy)}</strong> | Configurado: <strong>${escapeHtml(configured)}</strong> | Reachable: <strong>${escapeHtml(reachable)}</strong> | Ultimo exito: <strong>${escapeHtml(lastSuccessLabel)}</strong> | Snapshot: <strong>${escapeHtml(generatedLabel)}</strong>`;
             if (mode === 'blocked' && lastErrorReason) {
                 details += ` | Ultimo error: <strong>${escapeHtml(lastErrorLabel)}</strong> (${escapeHtml(lastErrorReason)})`;
             }

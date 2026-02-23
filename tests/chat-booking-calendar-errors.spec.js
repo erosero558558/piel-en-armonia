@@ -282,6 +282,33 @@ test.describe('Chat booking con agenda real: errores de calendario', () => {
             .toBeGreaterThan(beforeErrorDateInputCount);
     });
 
+    test('slot_conflict devuelve mensaje de horario ocupado y vuelve a fecha', async ({
+        page,
+    }, testInfo) => {
+        // eslint-disable-next-line playwright/no-skipped-test
+        test.skip(
+            !isLocalBaseUrl(testInfo),
+            'Este test valida comportamiento del build local antes de desplegar.'
+        );
+        const { dateValue } = await mockApiWithAppointmentError(
+            page,
+            'slot_conflict',
+            409,
+            'slot_conflict'
+        );
+
+        await openChatAndStartBooking(page);
+        const { beforeErrorDateInputCount } =
+            await completeChatBookingUntilCashSelection(page, dateValue);
+
+        await expect(page.locator('#chatMessages')).toContainText(
+            'Ese horario ya no esta disponible'
+        );
+        await expect
+            .poll(() => page.locator('#chatMessages #chatDateInput').count())
+            .toBeGreaterThan(beforeErrorDateInputCount);
+    });
+
     test('error de disponibilidad por mensaje muestra agenda no disponible', async ({
         page,
     }, testInfo) => {

@@ -13,6 +13,7 @@ class GoogleTokenProvider
     private string $tokenUri;
     private string $scope;
     private string $cachePath;
+    private string $statusPath;
     private static array $memoryCache = [];
 
     public function __construct(
@@ -24,7 +25,8 @@ class GoogleTokenProvider
         string $oauthRefreshToken,
         string $tokenUri,
         string $scope,
-        string $cachePath
+        string $cachePath,
+        string $statusPath
     ) {
         $this->authMode = trim($authMode);
         $this->clientEmail = trim($clientEmail);
@@ -35,6 +37,7 @@ class GoogleTokenProvider
         $this->tokenUri = trim($tokenUri);
         $this->scope = trim($scope);
         $this->cachePath = trim($cachePath);
+        $this->statusPath = trim($statusPath);
     }
 
     public static function fromEnv(): self
@@ -66,19 +69,27 @@ class GoogleTokenProvider
             && trim($oauthClientSecret) !== ''
             && trim($oauthRefreshToken) !== '';
 
-        $authMode = 'none';
-        if ($serviceAccountConfigured) {
-            $authMode = 'service_account';
-        } elseif ($oauthConfigured) {
-            $authMode = 'oauth_refresh';
+        $requestedAuthMode = strtolower(trim((string) (getenv('PIELARMONIA_CALENDAR_AUTH_MODE') ?: 'auto')));
+        if ($requestedAuthMode === 'oauth_refresh_token') {
+            $requestedAuthMode = 'oauth_refresh';
         }
+        if (!in_array($requestedAuthMode, ['auto', 'oauth_refresh', 'service_account', 'none'], true)) {
+            $requestedAuthMode = 'auto';
+        }
+        $authMode = self::resolveAuthMode($requestedAuthMode, $serviceAccountConfigured, $oauthConfigured);
 
         $cacheDir = data_dir_path() . DIRECTORY_SEPARATOR . 'cache';
         if (!is_dir($cacheDir)) {
             @mkdir($cacheDir, 0775, true);
         }
-        $cacheSuffix = $authMode === 'oauth_refresh' ? 'oauth' : 'sa';
+        $cacheSuffix = 'none';
+        if ($authMode === 'oauth_refresh') {
+            $cacheSuffix = 'oauth';
+        } elseif ($authMode === 'service_account') {
+            $cacheSuffix = 'sa';
+        }
         $cachePath = $cacheDir . DIRECTORY_SEPARATOR . 'google-token-' . $cacheSuffix . '.json';
+        $statusPath = $cacheDir . DIRECTORY_SEPARATOR . 'google-token-status.json';
 
         return new self(
             $authMode,
@@ -89,8 +100,15 @@ class GoogleTokenProvider
             $oauthRefreshToken,
             $tokenUri,
             $scope,
-            $cachePath
+            $cachePath,
+            $statusPath
         );
+    }
+
+    public static function readStatusSnapshot(): array
+    {
+        $path = data_dir_path() . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'google-token-status.json';
+        return self::readStatusSnapshotFromPath($path);
     }
 
     public function getAuthMode(): string
@@ -117,6 +135,7 @@ class GoogleTokenProvider
     public function getAccessToken(): array
     {
         if (!$this->isConfigured()) {
+            $this->recordTokenFailure('calendar_not_configured');
             return [
                 'ok' => false,
                 'error' => 'Google Calendar not configured',
@@ -130,6 +149,7 @@ class GoogleTokenProvider
             $token = (string) ($cached['access_token'] ?? '');
             $expiresAt = (int) ($cached['expires_at'] ?? 0);
             if ($token !== '' && $expiresAt > ($now + 60)) {
+                $this->recordTokenSuccess($expiresAt, 'cache_hit');
                 return [
                     'ok' => true,
                     'accessToken' => $token,
@@ -141,6 +161,7 @@ class GoogleTokenProvider
         if ($this->authMode === 'service_account') {
             $jwt = $this->buildJwt($now);
             if ($jwt === '') {
+                $this->recordTokenFailure('calendar_jwt_sign_failed');
                 return [
                     'ok' => false,
                     'error' => 'Could not sign Google token',
@@ -166,6 +187,7 @@ class GoogleTokenProvider
                 'oauth_token_refresh_token'
             );
         } else {
+            $this->recordTokenFailure('calendar_not_configured');
             return [
                 'ok' => false,
                 'error' => 'Google Calendar not configured',
@@ -174,12 +196,18 @@ class GoogleTokenProvider
         }
 
         if (($tokenResponse['ok'] ?? false) !== true) {
+            $tokenFailureReason = trim((string) ($tokenResponse['reason'] ?? ''));
+            if ($tokenFailureReason === '') {
+                $tokenFailureReason = trim((string) ($tokenResponse['code'] ?? 'calendar_token_request_failed'));
+            }
+            $this->recordTokenFailure($tokenFailureReason);
             return $tokenResponse;
         }
 
         $accessToken = (string) ($tokenResponse['accessToken'] ?? '');
         $expiresIn = (int) ($tokenResponse['expiresIn'] ?? 0);
         if ($accessToken === '' || $expiresIn <= 0) {
+            $this->recordTokenFailure('calendar_token_invalid_response');
             return [
                 'ok' => false,
                 'error' => 'Invalid response from Google OAuth',
@@ -195,6 +223,7 @@ class GoogleTokenProvider
             'auth_mode' => $this->authMode,
         ];
         $this->storeCache($record);
+        $this->recordTokenSuccess($expiresAt, 'token_refresh');
 
         return [
             'ok' => true,
@@ -388,5 +417,77 @@ class GoogleTokenProvider
     private function base64UrlEncode(string $value): string
     {
         return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
+    }
+
+    private static function resolveAuthMode(string $requestedMode, bool $serviceAccountConfigured, bool $oauthConfigured): string
+    {
+        if ($requestedMode === 'none') {
+            return 'none';
+        }
+        if ($requestedMode === 'oauth_refresh') {
+            return $oauthConfigured ? 'oauth_refresh' : 'none';
+        }
+        if ($requestedMode === 'service_account') {
+            return $serviceAccountConfigured ? 'service_account' : 'none';
+        }
+
+        if ($serviceAccountConfigured) {
+            return 'service_account';
+        }
+        if ($oauthConfigured) {
+            return 'oauth_refresh';
+        }
+        return 'none';
+    }
+
+    private static function readStatusSnapshotFromPath(string $path): array
+    {
+        if ($path === '' || !is_file($path)) {
+            return [];
+        }
+        $raw = @file_get_contents($path);
+        if (!is_string($raw) || trim($raw) === '') {
+            return [];
+        }
+        $decoded = json_decode($raw, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    private function writeStatusSnapshot(array $patch): void
+    {
+        if ($this->statusPath === '') {
+            return;
+        }
+        $dir = dirname($this->statusPath);
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0775, true);
+        }
+        $current = self::readStatusSnapshotFromPath($this->statusPath);
+        $updated = array_merge($current, $patch, [
+            'updatedAt' => local_date('c'),
+        ]);
+        @file_put_contents($this->statusPath, json_encode($updated, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
+    private function recordTokenSuccess(int $expiresAt, string $source): void
+    {
+        $this->writeStatusSnapshot([
+            'lastSuccessAt' => local_date('c'),
+            'lastErrorAt' => '',
+            'lastErrorReason' => '',
+            'expiresAt' => $expiresAt,
+            'authMode' => $this->getAuthMode(),
+            'source' => $source,
+        ]);
+    }
+
+    private function recordTokenFailure(string $reason): void
+    {
+        $normalizedReason = trim($reason) !== '' ? trim($reason) : 'token_error';
+        $this->writeStatusSnapshot([
+            'lastErrorAt' => local_date('c'),
+            'lastErrorReason' => $normalizedReason,
+            'authMode' => $this->getAuthMode(),
+        ]);
     }
 }

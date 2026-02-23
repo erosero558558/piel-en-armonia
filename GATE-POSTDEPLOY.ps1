@@ -12,6 +12,8 @@ param(
     [switch]$RequireCronReady,
     [switch]$RequireStableDataDir,
     [switch]$SkipAssetHashChecks,
+    [string]$AssetHashWarningUntil = '2026-03-08T23:59:59-05:00',
+    [switch]$ForceAssetHashChecks,
     [switch]$SkipFigoPostBench,
     [int]$AssetHashRetryCount = 2,
     [int]$AssetHashRetryDelaySec = 4,
@@ -24,6 +26,25 @@ $ErrorActionPreference = 'Stop'
 Write-Host "== Gate Post-Deploy ==" -ForegroundColor Cyan
 Write-Host "Dominio: $Domain"
 Write-Host "Fecha: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+
+$effectiveSkipAssetHashChecks = [bool]$SkipAssetHashChecks
+if (-not $ForceAssetHashChecks -and -not $effectiveSkipAssetHashChecks -and -not [string]::IsNullOrWhiteSpace($AssetHashWarningUntil)) {
+    try {
+        $deadline = [DateTimeOffset]::Parse($AssetHashWarningUntil)
+        if ([DateTimeOffset]::UtcNow -le $deadline.ToUniversalTime()) {
+            $effectiveSkipAssetHashChecks = $true
+            Write-Host "[WARN] Hash checks en modo warning temporal hasta $($deadline.ToString('yyyy-MM-dd HH:mm:ss zzz'))."
+        }
+    } catch {
+        Write-Host "[WARN] No se pudo interpretar AssetHashWarningUntil='$AssetHashWarningUntil'. Se usa comportamiento por defecto."
+    }
+}
+if ($ForceAssetHashChecks) {
+    $effectiveSkipAssetHashChecks = $false
+}
+if ($effectiveSkipAssetHashChecks) {
+    Write-Host "[INFO] Validacion de hash de assets: modo no bloqueante."
+}
 
 $failures = 0
 
@@ -42,7 +63,7 @@ while ($verifyAttempts -lt $verifyMaxAttempts) {
         -RequireWebhookSecret:$RequireWebhookSecret `
         -RequireBackupHealthy:$RequireBackupHealthy `
         -RequireStableDataDir:$RequireStableDataDir `
-        -SkipAssetHashChecks:$SkipAssetHashChecks `
+        -SkipAssetHashChecks:$effectiveSkipAssetHashChecks `
         -AssetHashRetryCount $AssetHashRetryCount `
         -AssetHashRetryDelaySec $AssetHashRetryDelaySec
 

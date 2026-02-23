@@ -122,6 +122,7 @@ class AppointmentController
             if ($errorCode === '') {
                 $errorCode = self::inferErrorCode($statusCode, (string) ($result['error'] ?? ''));
             }
+            $errorCode = self::normalizeConflictErrorCode($statusCode, $errorCode);
             $errorPayload = [
                 'ok' => false,
                 'error' => $result['error'],
@@ -345,6 +346,7 @@ class AppointmentController
             if ($errorCode === '') {
                 $errorCode = self::inferErrorCode($statusCode, (string) ($result['error'] ?? ''));
             }
+            $errorCode = self::normalizeConflictErrorCode($statusCode, $errorCode);
             $errorPayload = [
                 'ok' => false,
                 'error' => $result['error'],
@@ -430,7 +432,7 @@ class AppointmentController
             return 'not_found';
         }
         if ($statusCode === 409) {
-            return 'slot_unavailable';
+            return 'slot_conflict';
         }
         if ($statusCode === 429) {
             return 'rate_limited';
@@ -439,5 +441,18 @@ class AppointmentController
             return 'service_unavailable';
         }
         return 'internal_error';
+    }
+
+    private static function normalizeConflictErrorCode(int $statusCode, string $errorCode): string
+    {
+        if ($statusCode !== 409) {
+            return $errorCode;
+        }
+
+        $normalized = strtolower(trim($errorCode));
+        if ($normalized === '' || in_array($normalized, ['slot_unavailable', 'slot_locked', 'slot_lock_failed'], true)) {
+            return 'slot_conflict';
+        }
+        return $normalized;
     }
 }

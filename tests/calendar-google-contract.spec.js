@@ -43,6 +43,7 @@ test.describe('Contrato Google Calendar', () => {
         expect(body).toHaveProperty('calendarMode');
         expect(body).toHaveProperty('calendarSource');
         expect(body).toHaveProperty('calendarAuth');
+        expect(body).toHaveProperty('calendarTokenHealthy');
         expect(body).toHaveProperty('calendarLastSuccessAt');
         expect(body).toHaveProperty('calendarLastErrorAt');
         expect(body).toHaveProperty('calendarLastErrorReason');
@@ -52,6 +53,7 @@ test.describe('Contrato Google Calendar', () => {
         expect(['none', 'service_account', 'oauth_refresh']).toContain(
             String(body.calendarAuth)
         );
+        expect(typeof body.calendarTokenHealthy).toBe('boolean');
     });
 
     test('availability mantiene contrato con service/doctor y duración', async ({
@@ -131,4 +133,3 @@ test.describe('Contrato Google Calendar', () => {
         expect(Array.isArray(body.data)).toBe(true);
     });
 });
-

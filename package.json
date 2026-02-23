@@ -19,6 +19,7 @@
         "smoke:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./SMOKE-PRODUCCION.ps1 -Domain https://pielarmonia.com -TestFigoPost",
         "gate:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./GATE-POSTDEPLOY.ps1 -Domain https://pielarmonia.com",
         "gate:prod:backend": "powershell -NoProfile -ExecutionPolicy Bypass -File ./GATE-POSTDEPLOY.ps1 -Domain https://pielarmonia.com -SkipAssetHashChecks",
+        "gate:prod:hash-strict": "powershell -NoProfile -ExecutionPolicy Bypass -File ./GATE-POSTDEPLOY.ps1 -Domain https://pielarmonia.com -ForceAssetHashChecks",
         "gate:prod:strict": "powershell -NoProfile -ExecutionPolicy Bypass -File ./GATE-POSTDEPLOY.ps1 -Domain https://pielarmonia.com -RequireStableDataDir -RequireBackupHealthy -RequireBackupReceiverReady -RequireCronReady",
         "monitor:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./MONITOR-PRODUCCION.ps1 -Domain https://pielarmonia.com",
         "format": "prettier --write .",

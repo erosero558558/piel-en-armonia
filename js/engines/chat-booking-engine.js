@@ -89,10 +89,12 @@
         const code = String(error.code || '').toLowerCase();
         const message = String(error.message || '').toLowerCase();
         return (
+            code === 'slot_conflict' ||
             code === 'slot_unavailable' ||
             code === 'booking_slot_not_available' ||
             message.includes('no hay agenda disponible') ||
-            message.includes('ese horario no esta disponible')
+            message.includes('ese horario no esta disponible') ||
+            message.includes('slot_conflict')
         );
     }
 

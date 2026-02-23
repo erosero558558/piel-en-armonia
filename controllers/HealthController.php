@@ -39,6 +39,13 @@ class HealthController
         );
         $calendarSource = $calendarActive ? 'google' : 'store';
         $calendarAuth = $calendarActive ? $calendarService->getClient()->getAuthMode() : 'none';
+        $calendarTokenSnapshot = GoogleTokenProvider::readStatusSnapshot();
+        $calendarTokenHealthy = self::resolveCalendarTokenHealthy(
+            $calendarActive,
+            $calendarClientConfigured,
+            $calendarAuth,
+            $calendarTokenSnapshot
+        );
         $redisStatus = getenv('PIELARMONIA_REDIS_HOST') ? 'configured' : 'disabled';
         $store = isset($context['store']) && is_array($context['store']) ? $context['store'] : read_store();
         $appointments = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
@@ -101,6 +108,7 @@ class HealthController
             'calendarLastSuccessAt' => $calendarLastSuccessAt,
             'calendarLastErrorAt' => $calendarLastErrorAt,
             'calendarLastErrorReason' => $calendarLastErrorReason,
+            'calendarTokenHealthy' => $calendarTokenHealthy,
         ]);
         json_response([
             'ok' => true,
@@ -118,6 +126,7 @@ class HealthController
             'calendarMode' => $calendarMode,
             'calendarSource' => $calendarSource,
             'calendarAuth' => $calendarAuth,
+            'calendarTokenHealthy' => $calendarTokenHealthy,
             'calendarLastSuccessAt' => $calendarLastSuccessAt,
             'calendarLastErrorAt' => $calendarLastErrorAt,
             'calendarLastErrorReason' => $calendarLastErrorReason,
@@ -136,6 +145,7 @@ class HealthController
                     'calendarMode' => $calendarMode,
                     'calendarSource' => $calendarSource,
                     'calendarAuth' => $calendarAuth,
+                    'calendarTokenHealthy' => $calendarTokenHealthy,
                     'calendarLastSuccessAt' => $calendarLastSuccessAt,
                     'calendarLastErrorAt' => $calendarLastErrorAt,
                     'calendarLastErrorReason' => $calendarLastErrorReason,
@@ -180,6 +190,41 @@ class HealthController
             return 'blocked';
         }
         return 'live';
+    }
+
+    private static function resolveCalendarTokenHealthy(
+        bool $calendarActive,
+        bool $calendarConfigured,
+        string $calendarAuth,
+        array $tokenSnapshot
+    ): bool {
+        if (!$calendarActive) {
+            return true;
+        }
+        if (!$calendarConfigured) {
+            return false;
+        }
+        if (!in_array($calendarAuth, ['oauth_refresh', 'service_account'], true)) {
+            return false;
+        }
+
+        $expiresAt = (int) ($tokenSnapshot['expiresAt'] ?? 0);
+        if ($expiresAt > (time() + 30)) {
+            return true;
+        }
+
+        $lastSuccessAt = (string) ($tokenSnapshot['lastSuccessAt'] ?? '');
+        $lastErrorAt = (string) ($tokenSnapshot['lastErrorAt'] ?? '');
+        if ($lastSuccessAt === '' && $lastErrorAt === '') {
+            return false;
+        }
+        if ($lastSuccessAt === '') {
+            return false;
+        }
+        if ($lastErrorAt === '') {
+            return true;
+        }
+        return !self::timestampGreater($lastErrorAt, $lastSuccessAt);
     }
 
     private static function timestampGreater(string $leftIso, string $rightIso): bool

@@ -1367,7 +1367,8 @@ try {
         'calendarReachable',
         'calendarMode',
         'calendarSource',
-        'calendarAuth'
+        'calendarAuth',
+        'calendarTokenHealthy'
     )
     foreach ($field in $healthRequired) {
         if ($null -ne $healthResp.Json.PSObject.Properties[$field]) {
