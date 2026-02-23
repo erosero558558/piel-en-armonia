@@ -47,10 +47,11 @@ function read_store(): array
     return $mock_store;
 }
 
-function write_store(array $store): void
+function write_store(array $store): bool
 {
     global $mock_store;
     $mock_store = $store;
+    return true;
 }
 
 function require_rate_limit($key, $limit, $window): void
@@ -101,6 +102,20 @@ function stripe_get_payment_intent(string $id): array
 // Include code under test
 // Note: We avoid api-lib.php to prevent including real http.php/storage.php
 require_once __DIR__ . '/../lib/common.php';
+
+function with_store_lock(callable $callback)
+{
+    return [
+        'ok' => true,
+        'result' => $callback()
+    ];
+}
+
+function data_dir_path(): string
+{
+    return sys_get_temp_dir();
+}
+
 require_once __DIR__ . '/../lib/validation.php';
 require_once __DIR__ . '/../lib/models.php';
 require_once __DIR__ . '/../lib/business.php';
@@ -184,7 +199,7 @@ run_test('appointment_slot_taken doctor logic', function () {
 
 run_test('AppointmentController::store validation failure', function () {
     global $mock_payload;
-    $mock_payload = []; // Empty
+    $mock_payload = ['service' => 'consulta']; // Provide service to pass first check
 
     try {
         AppointmentController::store(['store' => read_store()]);

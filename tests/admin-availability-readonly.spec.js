@@ -134,7 +134,10 @@ async function openAvailabilitySection(page) {
 }
 
 test.describe('Admin disponibilidad: modo Google solo lectura', () => {
+    test.use({ serviceWorkers: 'block' }); // Block SW to ensure mocks work
+
     test('muestra estado Google y bloquea edicion local', async ({ page }) => {
+        page.on('console', msg => console.log('PAGE LOG:', msg.text()));
         await setupAdminApiMocks(page, 'google');
         await openAvailabilitySection(page);
 
@@ -151,6 +154,7 @@ test.describe('Admin disponibilidad: modo Google solo lectura', () => {
     });
 
     test('en fuente local habilita formulario de horarios', async ({ page }) => {
+        page.on('console', msg => console.log('PAGE LOG:', msg.text()));
         await setupAdminApiMocks(page, 'store');
         await openAvailabilitySection(page);
 
