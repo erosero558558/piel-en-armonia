@@ -17,7 +17,7 @@ if (!is_dir($dataDir)) {
     mkdir($dataDir, 0777, true);
 }
 // We need to pass env vars to the server process
-$envVars = "PIELARMONIA_DATA_DIR=$dataDir PIELARMONIA_ADMIN_PASSWORD=secret";
+$envVars = "PIELARMONIA_DATA_DIR=$dataDir PIELARMONIA_ADMIN_PASSWORD=secret PIELARMONIA_DEFAULT_AVAILABILITY_ENABLED=true";
 
 echo "Starting server on port $port with data dir $dataDir...\n";
 // Start server relative to project root
@@ -40,6 +40,27 @@ while ($attempts < 20) {
 if ($attempts === 20) {
     echo "Failed to start server.\n";
     exit(1);
+}
+
+// Inject availability to ensure slots are open (bypassing potential default avail issues in CLI server)
+$dbPath = $dataDir . '/store.sqlite';
+try {
+    $pdo = new PDO('sqlite:' . $dbPath);
+    $pdo->exec("CREATE TABLE IF NOT EXISTS availability (date TEXT, time TEXT, doctor TEXT, PRIMARY KEY (date, time, doctor))");
+    $stmt = $pdo->prepare("INSERT OR REPLACE INTO availability (date, time, doctor) VALUES (?, ?, ?)");
+
+    $days = [3, 4, 5];
+    foreach ($days as $day) {
+        $date = date('Y-m-d', strtotime("+$day days"));
+        // Slots needed for tests: 10:00, 11:00
+        $slots = ['10:00', '11:00'];
+        foreach ($slots as $slot) {
+            $stmt->execute([$date, $slot, 'global']);
+        }
+    }
+    echo "Availability injected for testing.\n";
+} catch (PDOException $e) {
+    echo "Availability injection failed: " . $e->getMessage() . "\n";
 }
 
 // Helper for requests with cookies
