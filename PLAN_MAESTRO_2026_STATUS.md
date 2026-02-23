@@ -65,7 +65,8 @@ Dominio: https://pielarmonia.com
 
 4. Fase 3 - Conversion y medicion: En progreso avanzado.
 - Eventos funnel y contrato API validados.
-- Pendiente: dashboard operacional formal con alertas permanentes.
+- Dashboard operacional semanal automatizado implementado (`npm run report:weekly:prod`).
+- Pendiente: alertas permanentes fuera de Grafana local (canal operativo).
 
 5. Fase 4 - UX movil y rendimiento critico: En progreso avanzado.
 - Regresiones moviles criticas en verde.
