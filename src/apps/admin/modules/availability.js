@@ -21,7 +21,11 @@ function ensureStatusElements() {
         statusEl = document.createElement('div');
         statusEl.id = 'availabilitySyncStatus';
         statusEl.className = 'selected-date';
-        panel.insertBefore(statusEl, panel.firstChild.nextSibling);
+        if (panel.firstChild) {
+            panel.insertBefore(statusEl, panel.firstChild.nextSibling);
+        } else {
+            panel.appendChild(statusEl);
+        }
     }
 
     let detailsEl = document.getElementById('availabilitySyncDetails');
