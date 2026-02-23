@@ -850,6 +850,8 @@ html[data-theme='dark'] .hero-trust-bar .separator {
         height: 136px;
     }
 }
+
+/* ========================================
    HERO FINAL OVERRIDES (LEGIBILIDAD)
    ======================================== */
 .hero-title span:not(.gradient-text) {

@@ -24,7 +24,8 @@
         "monitor:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./MONITOR-PRODUCCION.ps1 -Domain https://pielarmonia.com",
         "report:weekly:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./REPORTE-SEMANAL-PRODUCCION.ps1 -Domain https://pielarmonia.com",
         "format": "prettier --write .",
-        "prepare": "husky"
+        "prepare": "husky",
+        "css:optimize": "node scripts/build-css.mjs"
     },
     "lint-staged": {
         "*.php": "vendor/bin/php-cs-fixer fix",
