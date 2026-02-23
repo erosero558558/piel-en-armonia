@@ -11,6 +11,16 @@ export default [
         },
         plugins: [resolve()]
     },
+    // Data Engine
+    {
+        input: 'src/apps/data/engine.js',
+        output: {
+            file: 'js/engines/data-engine.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
     // Booking UI
     {
         input: 'src/apps/booking/ui-entry.js',
@@ -134,13 +144,43 @@ export default [
     },
     // Main Script
     {
-        input: 'js/main.js',
+        input: 'src/main.js',
         output: {
             file: 'script.js',
             format: 'iife',
             sourcemap: false,
-            banner: '/* GENERATED FILE - DO NOT EDIT DIRECTLY - Edit source in js/main.js and run npm run build */',
+            banner: '/* GENERATED FILE - DO NOT EDIT DIRECTLY - Edit source in src/main.js and run npm run build */',
         },
         plugins: [resolve()],
+    },
+    // Bootstrap Inline Engine
+    {
+        input: 'src/core/bootstrap-inline-engine.js',
+        output: {
+            file: 'js/bootstrap-inline-engine.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
+    // Legal I18n
+    {
+        input: 'src/apps/legal/shell.js',
+        output: {
+            file: 'js/legal-i18n.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
+    // Monitoring Loader
+    {
+        input: 'src/core/monitoring-loader.js',
+        output: {
+            file: 'js/monitoring-loader.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
     },
 ];
