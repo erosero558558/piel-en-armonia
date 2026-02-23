@@ -11,6 +11,7 @@ param(
     [int]$AssetHashRetryCount = 2,
     [int]$AssetHashRetryDelaySec = 4,
     [switch]$SkipAssetHashChecks,
+    [switch]$ForceAssetHashChecks,
     [string]$ReportPath = 'verification/last-deploy-verify.json'
 )
 
@@ -1077,9 +1078,12 @@ if ($localStyleRef -ne '') {
 
 if ($SkipAssetHashChecks) {
     Write-Host '[WARN] Se omite verificacion de hashes de assets (SkipAssetHashChecks).'
-} elseif ($deployFreshnessStale) {
+} elseif ($deployFreshnessStale -and -not $ForceAssetHashChecks) {
     Write-Host '[WARN] Se omite verificacion de hashes de assets hasta que el deploy remoto se sincronice con HEAD.'
 } else {
+    if ($deployFreshnessStale -and $ForceAssetHashChecks) {
+        Write-Host '[WARN] Deploy remoto atrasado vs HEAD local, pero se ejecutan hash checks por modo estricto.'
+    }
     $checks = @()
     if ($localStyleRef -ne '') {
         $checks += [PSCustomObject]@{

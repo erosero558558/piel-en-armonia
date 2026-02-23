@@ -64,6 +64,7 @@ while ($verifyAttempts -lt $verifyMaxAttempts) {
         -RequireBackupHealthy:$RequireBackupHealthy `
         -RequireStableDataDir:$RequireStableDataDir `
         -SkipAssetHashChecks:$effectiveSkipAssetHashChecks `
+        -ForceAssetHashChecks:$ForceAssetHashChecks `
         -AssetHashRetryCount $AssetHashRetryCount `
         -AssetHashRetryDelaySec $AssetHashRetryDelaySec
 
