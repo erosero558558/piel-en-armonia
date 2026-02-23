@@ -47,10 +47,11 @@ function read_store(): array
     return $mock_store;
 }
 
-function write_store(array $store): void
+function write_store(array $store): bool
 {
     global $mock_store;
     $mock_store = $store;
+    return true;
 }
 
 function require_rate_limit($key, $limit, $window): void
@@ -65,7 +66,7 @@ function require_json_body(): array
 
 function with_store_lock(callable $callback)
 {
-    return $callback();
+    return ['ok' => true, 'result' => $callback()];
 }
 
 function data_dir_path(): string

@@ -545,22 +545,27 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
                 if (!isset($appt['id'])) {
                     continue;
                 }
-                $stmt->execute([
-                    (int) $appt['id'],
-                    $appt['date'] ?? '',
-                    $appt['time'] ?? '',
-                    $appt['doctor'] ?? '',
-                    $appt['service'] ?? '',
-                    $appt['name'] ?? '',
-                    $appt['email'] ?? '',
-                    $appt['phone'] ?? '',
-                    $appt['status'] ?? 'confirmed',
-                    $appt['paymentMethod'] ?? '',
-                    $appt['paymentStatus'] ?? '',
-                    $appt['paymentIntentId'] ?? '',
-                    $appt['rescheduleToken'] ?? '',
-                    json_encode($appt, JSON_UNESCAPED_UNICODE)
-                ]);
+                try {
+                    $stmt->execute([
+                        (int) $appt['id'],
+                        $appt['date'] ?? '',
+                        $appt['time'] ?? '',
+                        $appt['doctor'] ?? '',
+                        $appt['service'] ?? '',
+                        $appt['name'] ?? '',
+                        $appt['email'] ?? '',
+                        $appt['phone'] ?? '',
+                        $appt['status'] ?? 'confirmed',
+                        $appt['paymentMethod'] ?? '',
+                        $appt['paymentStatus'] ?? '',
+                        $appt['paymentIntentId'] ?? '',
+                        $appt['rescheduleToken'] ?? '',
+                        json_encode($appt, JSON_UNESCAPED_UNICODE)
+                    ]);
+                } catch (PDOException $e) {
+                    error_log('Migration error (appointments): ' . $e->getMessage() . ' Data: ' . json_encode($appt));
+                    throw $e;
+                }
             }
         }
 
@@ -571,15 +576,20 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
                 if (!isset($review['id'])) {
                     continue;
                 }
-                $stmt->execute([
-                    (int) $review['id'],
-                    $review['name'] ?? '',
-                    $review['rating'] ?? 0,
-                    $review['text'] ?? '',
-                    $review['date'] ?? '',
-                    isset($review['verified']) && $review['verified'] ? 1 : 0,
-                    json_encode($review, JSON_UNESCAPED_UNICODE)
-                ]);
+                try {
+                    $stmt->execute([
+                        (int) $review['id'],
+                        $review['name'] ?? '',
+                        $review['rating'] ?? 0,
+                        $review['text'] ?? '',
+                        $review['date'] ?? '',
+                        isset($review['verified']) && $review['verified'] ? 1 : 0,
+                        json_encode($review, JSON_UNESCAPED_UNICODE)
+                    ]);
+                } catch (PDOException $e) {
+                    error_log('Migration error (reviews): ' . $e->getMessage() . ' Data: ' . json_encode($review));
+                    throw $e;
+                }
             }
         }
 
@@ -590,14 +600,19 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
                 if (!isset($cb['id'])) {
                     continue;
                 }
-                $stmt->execute([
-                    (int) $cb['id'],
-                    $cb['telefono'] ?? '',
-                    $cb['preferencia'] ?? '',
-                    $cb['fecha'] ?? '',
-                    $cb['status'] ?? 'pendiente',
-                    json_encode($cb, JSON_UNESCAPED_UNICODE)
-                ]);
+                try {
+                    $stmt->execute([
+                        (int) $cb['id'],
+                        $cb['telefono'] ?? '',
+                        $cb['preferencia'] ?? '',
+                        $cb['fecha'] ?? '',
+                        $cb['status'] ?? 'pendiente',
+                        json_encode($cb, JSON_UNESCAPED_UNICODE)
+                    ]);
+                } catch (PDOException $e) {
+                    error_log('Migration error (callbacks): ' . $e->getMessage() . ' Data: ' . json_encode($cb));
+                    throw $e;
+                }
             }
         }
 
@@ -609,7 +624,12 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
                     continue;
                 }
                 foreach ($times as $time) {
-                    $stmt->execute([$date, $time, 'global']);
+                    try {
+                        $stmt->execute([$date, $time, 'global']);
+                    } catch (PDOException $e) {
+                        error_log('Migration error (availability): ' . $e->getMessage() . ' Date: ' . $date . ' Time: ' . $time);
+                        throw $e;
+                    }
                 }
             }
         }
@@ -617,10 +637,20 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
         // Metadata
         $stmt = $pdo->prepare("INSERT OR REPLACE INTO kv_store (key, value) VALUES (?, ?)");
         if (isset($data['updatedAt'])) {
-            $stmt->execute(['updatedAt', $data['updatedAt']]);
+            try {
+                $stmt->execute(['updatedAt', $data['updatedAt']]);
+            } catch (PDOException $e) {
+                error_log('Migration error (kv_store updatedAt): ' . $e->getMessage());
+                throw $e;
+            }
         }
         if (isset($data['createdAt'])) {
-            $stmt->execute(['createdAt', $data['createdAt']]);
+            try {
+                $stmt->execute(['createdAt', $data['createdAt']]);
+            } catch (PDOException $e) {
+                error_log('Migration error (kv_store createdAt): ' . $e->getMessage());
+                throw $e;
+            }
         }
 
         $pdo->commit();
