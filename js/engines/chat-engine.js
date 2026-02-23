@@ -48,9 +48,7 @@
     }
 
     function debugLog(...args) {
-        if (deps && typeof deps.debugLog === 'function') {
-            deps.debugLog(...args);
-        }
+        // Debug logging disabled in production
     }
 
     function showTypingIndicator() {
@@ -193,7 +191,6 @@ Puedes continuar por <a href="https://wa.me/593982453672" target="_blank" rel="n
 
     async function processWithKimi(message) {
         if (isProcessingMessage) {
-            debugLog('Ya procesando, ignorando duplicado');
             return;
         }
 
@@ -232,10 +229,6 @@ Puedes continuar por <a href="https://wa.me/593982453672" target="_blank" rel="n
             return;
         }
 
-        // Prioriza IA real cuando el servidor esta disponible.
-        // Si falla la conexion, usa fallback local para no romper la experiencia.
-        debugLog('Procesando mensaje:', message);
-
         try {
             if (shouldUseRealAI()) {
                 debugLog('?? Consultando bot del servidor...');
@@ -248,7 +241,6 @@ Puedes continuar por <a href="https://wa.me/593982453672" target="_blank" rel="n
                 }, 600);
             }
         } catch (error) {
-            debugLog('Error:', error);
             removeTypingIndicator();
             processLocalResponse(message, false);
         } finally {
@@ -545,7 +537,6 @@ FLUJO DE PAGO REAL DEL SITIO:
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
-            debugLog('Error parseando JSON:', e);
             throw new Error('Respuesta no es JSON valido');
         }
 
@@ -595,7 +586,6 @@ FLUJO DE PAGO REAL DEL SITIO:
         }
 
         if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-            debugLog('Estructura invalida:', data);
             throw new Error('Respuesta invalida');
         }
 
@@ -871,7 +861,6 @@ Pregunta original del paciente: "${message}"`;
             addBotMessage(formatMarkdown(botResponse), false);
             debugLog('?? Mensaje mostrado en chat');
         } catch (error) {
-            debugLog('Error con bot del servidor:', error);
             removeTypingIndicator();
             if (isOpenClawQueueError(error)) {
                 showOpenClawUnavailableMessage(error?.code || error?.message || '');

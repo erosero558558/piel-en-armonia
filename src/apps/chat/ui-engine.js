@@ -127,9 +127,7 @@ function appendConversationContext(role, content) {
 }
 
 function debugLogSafe() {
-    if (deps && typeof deps.debugLog === 'function') {
-        deps.debugLog.apply(null, arguments);
-    }
+    // Debug logging disabled in production
 }
 
 function escapeHtml(text) {

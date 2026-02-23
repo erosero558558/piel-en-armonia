@@ -74,11 +74,7 @@ function normalizeAnalyticsLabel(value, fallback) {
 }
 
 function debugLog(message, context) {
-    const logger = deps && typeof deps.debugLog === 'function'
-        ? deps.debugLog
-        : null;
-    if (!logger) return;
-    logger(message, context);
+    // Debug logging disabled in production
 }
 
 function sanitizeBookingSubmissionError(rawMessage) {

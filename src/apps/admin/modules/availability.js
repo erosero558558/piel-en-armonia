@@ -204,7 +204,7 @@ async function refreshAvailabilitySnapshot() {
             clearSelectedDateState();
         }
     } catch (error) {
-        console.error('Error refreshing availability:', error);
+        // console.error('Error refreshing availability:', error);
         showToast(
             `Error al actualizar disponibilidad: ${error?.message || 'error desconocido'}`,
             'error'

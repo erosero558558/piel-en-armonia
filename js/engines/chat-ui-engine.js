@@ -128,12 +128,6 @@
         setConversationContext(nextContext);
     }
 
-    function debugLogSafe() {
-        if (deps && typeof deps.debugLog === 'function') {
-            deps.debugLog.apply(null, arguments);
-        }
-    }
-
     function escapeHtml(text) {
         if (deps && typeof deps.escapeHtml === 'function') {
             return deps.escapeHtml(text);
@@ -277,7 +271,6 @@
         if (lastMessage) {
             const lastContent = lastMessage.querySelector('.message-content');
             if (lastContent && lastContent.innerHTML === safeHtml) {
-                debugLogSafe('Mensaje duplicado detectado, no se muestra');
                 return;
             }
         }

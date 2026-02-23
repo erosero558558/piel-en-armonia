@@ -45,9 +45,7 @@ function init(inputDeps = {}) {
 }
 
 function debugLog(...args) {
-    if (deps && typeof deps.debugLog === 'function') {
-        deps.debugLog(...args);
-    }
+    // Debug logging disabled in production
 }
 
 function showTypingIndicator() {

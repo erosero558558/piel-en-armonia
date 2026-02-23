@@ -70,7 +70,6 @@
             })
             .catch(() => {
                 // Silent fail to not disrupt user experience
-                // console.error('Monitoring load error', err);
             });
     }
 

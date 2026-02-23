@@ -72,9 +72,7 @@ function ensureChatStartedTracked(source) {
 }
 
 function debugLogSafe(...args) {
-    if (deps && typeof deps.debugLog === 'function') {
-        deps.debugLog(...args);
-    }
+    // Debug logging disabled in production
 }
 
 function addBotMessageSafe(html) {
