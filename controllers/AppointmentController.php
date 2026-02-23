@@ -178,9 +178,14 @@ class AppointmentController
             $appointment['slotDurationMin'] = $calendarBooking->getDurationMin((string) ($appointment['service'] ?? 'consulta'));
         }
 
-        $event = new BookingCreated($appointment);
-        get_event_dispatcher()->dispatch($event);
-        $emailSent = $event->emailSent;
+        $emailSent = false;
+        $createdEvent = self::dispatchEventSafely('BookingCreated', $appointment);
+        if (is_object($createdEvent) && isset($createdEvent->emailSent)) {
+            $emailSent = (bool) $createdEvent->emailSent;
+        } else {
+            $emailSent = maybe_send_appointment_email($appointment);
+            maybe_send_admin_notification($appointment);
+        }
 
         json_response([
             'ok' => true,
@@ -299,7 +304,10 @@ class AppointmentController
 
         // Enviar email de cancelación al paciente si se canceló la cita
         if (isset($payload['status']) && map_appointment_status((string) $payload['status']) === 'cancelled' && isset($result['updated'])) {
-            get_event_dispatcher()->dispatch(new BookingCancelled($result['updated']));
+            $cancelEvent = self::dispatchEventSafely('BookingCancelled', (array) $result['updated']);
+            if ($cancelEvent === null) {
+                maybe_send_cancellation_email((array) $result['updated']);
+            }
         }
 
         json_response([
@@ -456,7 +464,10 @@ class AppointmentController
             $appointment['slotDurationMin'] = $calendarBooking->getDurationMin((string) ($appointment['service'] ?? 'consulta'));
         }
 
-        get_event_dispatcher()->dispatch(new BookingRescheduled($appointment));
+        $rescheduleEvent = self::dispatchEventSafely('BookingRescheduled', $appointment);
+        if ($rescheduleEvent === null) {
+            maybe_send_reschedule_email($appointment);
+        }
 
         json_response([
             'ok' => true,
@@ -472,6 +483,27 @@ class AppointmentController
                 'slotDurationMin' => (int) ($appointment['slotDurationMin'] ?? 0),
             ]
         ]);
+    }
+
+    private static function dispatchEventSafely(string $eventClass, array $appointment): ?object
+    {
+        if (!class_exists($eventClass) || !function_exists('get_event_dispatcher')) {
+            return null;
+        }
+
+        try {
+            $dispatcher = get_event_dispatcher();
+            if (!is_object($dispatcher) || !method_exists($dispatcher, 'dispatch')) {
+                return null;
+            }
+
+            $event = new $eventClass($appointment);
+            $dispatcher->dispatch($event);
+            return is_object($event) ? $event : null;
+        } catch (Throwable $e) {
+            error_log('Piel en Armonia: event dispatch fallback - ' . $e->getMessage());
+            return null;
+        }
     }
 
     private static function inferErrorCode(int $statusCode, string $errorMessage): string

@@ -41,4 +41,34 @@ require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/email.php';
 require_once __DIR__ . '/lib/ratelimit.php';
 require_once __DIR__ . '/lib/security.php';
-require_once __DIR__ . '/lib/event_setup.php';
+
+$eventSetupLoaded = false;
+$eventSetupFile = __DIR__ . '/lib/event_setup.php';
+if (is_file($eventSetupFile) && PHP_VERSION_ID >= 70400) {
+    try {
+        require_once $eventSetupFile;
+        $eventSetupLoaded = function_exists('get_event_dispatcher');
+    } catch (Throwable $eventSetupError) {
+        error_log('Piel en Armonia: event_setup disabled - ' . $eventSetupError->getMessage());
+    }
+}
+
+if (!$eventSetupLoaded && !function_exists('get_event_dispatcher')) {
+    function get_event_dispatcher()
+    {
+        static $nullDispatcher = null;
+        if (!is_object($nullDispatcher)) {
+            $nullDispatcher = new class {
+                public function addListener(string $eventName, callable $listener): void
+                {
+                }
+
+                public function dispatch($event)
+                {
+                    return $event;
+                }
+            };
+        }
+        return $nullDispatcher;
+    }
+}
