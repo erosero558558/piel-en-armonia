@@ -420,6 +420,8 @@ $headTouchesScriptFamily = $true
 $headTouchesStyles = $true
 $headTouchesDeferredStyles = $true
 $headTouchesIndex = $true
+$changedEngineAssets = @()
+$headTouchesEngineAssets = $false
 
 if ($changedFilesKnown) {
     $headTouchesFrontendAssets = Test-ChangedFilesMatchPatterns -ChangedFiles $changedFiles -Patterns @(
@@ -435,11 +437,15 @@ if ($changedFilesKnown) {
     )
     $headTouchesScriptFamily = Test-ChangedFilesMatchPatterns -ChangedFiles $changedFiles -Patterns @(
         '^script\.js$',
-        '^js/engines/',
         '^js/main\.js$',
-        '^src/apps/',
+        '^js/(loader|state|utils|main)\.js$',
+        '^src/bundles/ui\.js$',
         '^rollup\.config\.mjs$'
     )
+    $changedEngineAssets = @(
+        $changedFiles | Where-Object { $_ -match '^js/engines/.+\.js$' }
+    )
+    $headTouchesEngineAssets = $changedEngineAssets.Count -gt 0
     $headTouchesStyles = Test-ChangedFilesMatchPatterns -ChangedFiles $changedFiles -Patterns @('^styles\.css$')
     $headTouchesDeferredStyles = Test-ChangedFilesMatchPatterns -ChangedFiles $changedFiles -Patterns @('^styles-deferred\.css$')
     $headTouchesIndex = Test-ChangedFilesMatchPatterns -ChangedFiles $changedFiles -Patterns @('^index\.html$')
@@ -570,7 +576,11 @@ if ($deployAssetVersion -eq '') {
 try {
     $deployFreshnessProbeName = 'app-script'
     $deployFreshnessProbeUrl = $appScriptRemoteUrl
-    if (-not $headTouchesScriptFamily) {
+    if ($headTouchesEngineAssets) {
+        $engineProbePath = [string]$changedEngineAssets[0]
+        $deployFreshnessProbeName = "engine:$engineProbePath"
+        $deployFreshnessProbeUrl = Get-Url -Base $base -Ref $engineProbePath
+    } elseif (-not $headTouchesScriptFamily) {
         if ($headTouchesDeferredStyles -and -not [string]::IsNullOrWhiteSpace($indexDeferredStylesRemoteUrl)) {
             $deployFreshnessProbeName = 'styles-deferred'
             $deployFreshnessProbeUrl = $indexDeferredStylesRemoteUrl
