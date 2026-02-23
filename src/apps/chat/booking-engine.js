@@ -68,6 +68,36 @@ function sanitizeBookingRegistrationError(rawMessage) {
     return message;
 }
 
+function isCalendarUnavailableError(error) {
+    if (!error) return false;
+    const code = String(error.code || '').toLowerCase();
+    const message = String(error.message || '').toLowerCase();
+    return (
+        code === 'calendar_unreachable' ||
+        code === 'calendar_auth_failed' ||
+        code === 'calendar_token_rejected' ||
+        message.includes('calendar_unreachable') ||
+        message.includes('agenda temporalmente no disponible')
+    );
+}
+
+function isSlotUnavailableError(error) {
+    if (!error) return false;
+    const code = String(error.code || '').toLowerCase();
+    const message = String(error.message || '').toLowerCase();
+    return (
+        code === 'slot_unavailable' ||
+        code === 'booking_slot_not_available' ||
+        message.includes('no hay agenda disponible') ||
+        message.includes('ese horario no esta disponible')
+    );
+}
+
+function buildChatDateInput() {
+    const today = new Date().toISOString().split('T')[0];
+    return `<input type="date" id="chatDateInput" min="${today}" data-action="chat-date-select" class="chat-date-input">`;
+}
+
 function addBotMessage(html) {
     if (deps && typeof deps.addBotMessage === 'function') {
         deps.addBotMessage(html);
@@ -669,6 +699,43 @@ async function finalizeChatBooking() {
             if (deps && typeof deps.removeTypingIndicator === 'function') {
                 deps.removeTypingIndicator();
             }
+
+            if (isCalendarUnavailableError(error)) {
+                addBotMessage(
+                    t(
+                        'La agenda esta temporalmente no disponible. Intenta de nuevo en unos minutos o agenda por WhatsApp.<br><br>',
+                        'The schedule is temporarily unavailable. Please try again in a few minutes or book via WhatsApp.<br><br>'
+                    ) + buildChatDateInput()
+                );
+                if (deps && typeof deps.setCheckoutStep === 'function') {
+                    deps.setCheckoutStep('payment_error', {
+                        checkoutEntry: 'chatbot',
+                        paymentMethod: 'cash',
+                        reason: 'calendar_unreachable',
+                    });
+                }
+                chatBooking.step = 'date';
+                return;
+            }
+
+            if (isSlotUnavailableError(error)) {
+                addBotMessage(
+                    t(
+                        'Ese horario ya no esta disponible. Elige una nueva fecha u hora para continuar.<br><br>',
+                        'That slot is no longer available. Please choose a new date or time to continue.<br><br>'
+                    ) + buildChatDateInput()
+                );
+                if (deps && typeof deps.setCheckoutStep === 'function') {
+                    deps.setCheckoutStep('payment_error', {
+                        checkoutEntry: 'chatbot',
+                        paymentMethod: 'cash',
+                        reason: 'slot_unavailable',
+                    });
+                }
+                chatBooking.step = 'date';
+                return;
+            }
+
             const safeError = sanitizeBookingRegistrationError(
                 error && error.message ? error.message : ''
             );
