@@ -107,13 +107,31 @@ class CalendarBookingServiceUnitTest extends TestCase
             ],
         ];
 
+        // 30 min booking:
+        // Booked (60m @ 09:00) blocks 09:00-10:00.
+        // Slots: 09:00, 09:30, 10:00, 10:30
+        // Overlap: 09:00 (blocked), 09:30 (blocked), 10:00 (free), 10:30 (free)
+        // Booked list returned should be [09:00, 09:30]
         $resultFor30 = $availability->getBookedSlots($store, $date, 'rosero', 'consulta');
         $this->assertTrue($resultFor30['ok']);
         $this->assertSame(['09:00', '09:30'], $resultFor30['data']);
 
+        // 60 min booking (laser):
+        // Duration 60m.
+        // Slots: 09:00, 09:30, 10:00, 10:30
+        // 09:00: Blocked by appt.
+        // 09:30: Blocked by appt.
+        // 10:00: Free (10:00-11:00). 10:30 is in availability. 11:00 is implicitly free or not checked?
+        // Actually, logic checks if [start, end] is covered by available slots OR not overlapped by busy.
+        // `getBookedSlots` returns slots that are BUSY or insufficient.
+        // The implementation of `supportsDurationFromTemplate` checks if subsequent slots exist.
+        // For 10:00 (60m), it needs 10:00 and 10:30. Both exist in availability.
+        // For 10:30 (60m), it needs 10:30 and 11:00. 11:00 is NOT in availability.
+        // So 10:30 should be returned as "booked" (unavailable for duration).
+        // Booked: 09:00, 09:30, 10:30.
         $resultFor60 = $availability->getBookedSlots($store, $date, 'rosero', 'laser');
         $this->assertTrue($resultFor60['ok']);
-        $this->assertSame(['09:00', '09:30'], $resultFor60['data']);
+        $this->assertSame(['09:00', '09:30', '10:30'], $resultFor60['data']);
     }
 
     public function testIndiferenteAssignsDoctorWithLeastLoad(): void
