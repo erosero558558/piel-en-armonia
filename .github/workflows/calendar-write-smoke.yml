@@ -59,6 +59,9 @@ jobs:
             - name: Instalar Playwright (chromium)
               run: npx playwright install --with-deps chromium
 
+            - name: Verificar contrato de agenda real (read-only)
+              run: npm run test:calendar-contract
+
             - name: Ejecutar smoke write calendar
               run: npm run test:calendar-write
 
