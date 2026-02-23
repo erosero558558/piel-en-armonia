@@ -546,19 +546,19 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
                     continue;
                 }
                 $stmt->execute([
-                    $appt['id'],
-                    $appt['date'] ?? '',
-                    $appt['time'] ?? '',
-                    $appt['doctor'] ?? '',
-                    $appt['service'] ?? '',
-                    $appt['name'] ?? '',
-                    $appt['email'] ?? '',
-                    $appt['phone'] ?? '',
-                    $appt['status'] ?? 'confirmed',
-                    $appt['paymentMethod'] ?? '',
-                    $appt['paymentStatus'] ?? '',
-                    $appt['paymentIntentId'] ?? '',
-                    $appt['rescheduleToken'] ?? '',
+                    (int)$appt['id'],
+                    (string)($appt['date'] ?? ''),
+                    (string)($appt['time'] ?? ''),
+                    (string)($appt['doctor'] ?? ''),
+                    (string)($appt['service'] ?? ''),
+                    (string)($appt['name'] ?? ''),
+                    (string)($appt['email'] ?? ''),
+                    (string)($appt['phone'] ?? ''),
+                    (string)($appt['status'] ?? 'confirmed'),
+                    (string)($appt['paymentMethod'] ?? ''),
+                    (string)($appt['paymentStatus'] ?? ''),
+                    (string)($appt['paymentIntentId'] ?? ''),
+                    (string)($appt['rescheduleToken'] ?? ''),
                     json_encode($appt, JSON_UNESCAPED_UNICODE)
                 ]);
             }
@@ -572,11 +572,11 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
                     continue;
                 }
                 $stmt->execute([
-                    $review['id'],
-                    $review['name'] ?? '',
-                    $review['rating'] ?? 0,
-                    $review['text'] ?? '',
-                    $review['date'] ?? '',
+                    (int)$review['id'],
+                    (string)($review['name'] ?? ''),
+                    (int)($review['rating'] ?? 0),
+                    (string)($review['text'] ?? ''),
+                    (string)($review['date'] ?? ''),
                     isset($review['verified']) && $review['verified'] ? 1 : 0,
                     json_encode($review, JSON_UNESCAPED_UNICODE)
                 ]);
@@ -591,11 +591,11 @@ function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
                     continue;
                 }
                 $stmt->execute([
-                    $cb['id'],
-                    $cb['telefono'] ?? '',
-                    $cb['preferencia'] ?? '',
-                    $cb['fecha'] ?? '',
-                    $cb['status'] ?? 'pendiente',
+                    (int)$cb['id'],
+                    (string)($cb['telefono'] ?? ''),
+                    (string)($cb['preferencia'] ?? ''),
+                    (string)($cb['fecha'] ?? ''),
+                    (string)($cb['status'] ?? 'pendiente'),
                     json_encode($cb, JSON_UNESCAPED_UNICODE)
                 ]);
             }
@@ -837,23 +837,23 @@ function write_store(array $store, bool $emitHttpErrors = true): bool
             if (!isset($appt['id'])) {
                 continue;
             }
-            $id = $appt['id'];
+            $id = (int)$appt['id'];
             $incomingIds[$id] = true;
 
             $stmtUpsert->execute([
                 $id,
-                $appt['date'] ?? '',
-                $appt['time'] ?? '',
-                $appt['doctor'] ?? '',
-                $appt['service'] ?? '',
-                $appt['name'] ?? '',
-                $appt['email'] ?? '',
-                $appt['phone'] ?? '',
-                $appt['status'] ?? 'confirmed',
-                $appt['paymentMethod'] ?? '',
-                $appt['paymentStatus'] ?? '',
-                $appt['paymentIntentId'] ?? '',
-                $appt['rescheduleToken'] ?? '',
+                (string)($appt['date'] ?? ''),
+                (string)($appt['time'] ?? ''),
+                (string)($appt['doctor'] ?? ''),
+                (string)($appt['service'] ?? ''),
+                (string)($appt['name'] ?? ''),
+                (string)($appt['email'] ?? ''),
+                (string)($appt['phone'] ?? ''),
+                (string)($appt['status'] ?? 'confirmed'),
+                (string)($appt['paymentMethod'] ?? ''),
+                (string)($appt['paymentStatus'] ?? ''),
+                (string)($appt['paymentIntentId'] ?? ''),
+                (string)($appt['rescheduleToken'] ?? ''),
                 json_encode($appt, JSON_UNESCAPED_UNICODE)
             ]);
         }
@@ -875,14 +875,14 @@ function write_store(array $store, bool $emitHttpErrors = true): bool
             if (!isset($review['id'])) {
                 continue;
             }
-            $id = $review['id'];
+            $id = (int)$review['id'];
             $incomingIds[$id] = true;
             $stmtUpsert->execute([
                 $id,
-                $review['name'] ?? '',
-                $review['rating'] ?? 0,
-                $review['text'] ?? '',
-                $review['date'] ?? '',
+                (string)($review['name'] ?? ''),
+                (int)($review['rating'] ?? 0),
+                (string)($review['text'] ?? ''),
+                (string)($review['date'] ?? ''),
                 isset($review['verified']) && $review['verified'] ? 1 : 0,
                 json_encode($review, JSON_UNESCAPED_UNICODE)
             ]);
@@ -903,14 +903,14 @@ function write_store(array $store, bool $emitHttpErrors = true): bool
             if (!isset($cb['id'])) {
                 continue;
             }
-            $id = $cb['id'];
+            $id = (int)$cb['id'];
             $incomingIds[$id] = true;
             $stmtUpsert->execute([
                 $id,
-                $cb['telefono'] ?? '',
-                $cb['preferencia'] ?? '',
-                $cb['fecha'] ?? '',
-                $cb['status'] ?? 'pendiente',
+                (string)($cb['telefono'] ?? ''),
+                (string)($cb['preferencia'] ?? ''),
+                (string)($cb['fecha'] ?? ''),
+                (string)($cb['status'] ?? 'pendiente'),
                 json_encode($cb, JSON_UNESCAPED_UNICODE)
             ]);
         }
