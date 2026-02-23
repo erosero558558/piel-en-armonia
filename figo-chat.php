@@ -834,6 +834,15 @@ if (!is_array($decoded)) {
 }
 
 $content = figo_extract_text($decoded, $rawResponse);
+
+// Escalacion inteligente: Si la IA decide escalar, notificamos al admin.
+if (strpos($content, '[ESCALATE]') !== false) {
+    $content = trim(str_replace('[ESCALATE]', '', $content));
+    if (function_exists('maybe_send_chat_escalation_email')) {
+        maybe_send_chat_escalation_email($messages, $content);
+    }
+}
+
 if (figo_is_upstream_technical_fallback($content)) {
     audit_log_event('figo.fallback', [
         'reason' => 'upstream_technical_fallback',

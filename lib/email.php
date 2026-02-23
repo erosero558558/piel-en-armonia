@@ -401,3 +401,32 @@ function maybe_send_reschedule_email(array $appointment): bool
     return send_mail($to, $subject, $body);
 }
 
+
+function maybe_send_chat_escalation_email(array $messages, string $aiResponse): bool
+{
+    $adminEmail = getenv('PIELARMONIA_ADMIN_EMAIL');
+    if (!is_string($adminEmail) || trim($adminEmail) === '') {
+        $adminEmail = 'javier.rosero94@gmail.com';
+    }
+    $adminEmail = trim((string) $adminEmail);
+
+    $clinicName = 'Piel en Armonía';
+    $subject = '⚠️ Escalación de Chat - ' . $clinicName;
+
+    $body = "El asistente virtual ha detectado una situación que requiere atención humana.\n\n";
+    $body .= "--- Historial Reciente (Últimos 10 mensajes) ---\n";
+
+    // Extract last 10 messages for context
+    $recentMessages = array_slice($messages, -10);
+    foreach ($recentMessages as $msg) {
+        $role = strtoupper((string)($msg['role'] ?? 'UNKNOWN'));
+        $content = (string)($msg['content'] ?? '');
+        $body .= "[{$role}] {$content}\n\n";
+    }
+
+    $body .= "--- Respuesta del Asistente (Escalada) ---\n";
+    $body .= $aiResponse . "\n\n";
+    $body .= "Fecha: " . local_date('d/m/Y H:i') . "\n";
+
+    return send_mail($adminEmail, $subject, $body);
+}

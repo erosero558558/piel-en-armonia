@@ -138,7 +138,7 @@ class FigoBrain
             }
         }
 
-        $response = self::generateResponse($intent, $lastUserMessage);
+        $response = self::generateResponse($intent, $lastUserMessage, $messages);
         return self::buildResponse($response);
     }
 
@@ -207,7 +207,7 @@ class FigoBrain
     // CONTENT GENERATION
     // ==============================================================================
 
-    private static function generateResponse(string $intent, string $message): string
+    private static function generateResponse(string $intent, string $message, array $messages = []): string
     {
         // Dynamic Data
         $pConsult = self::getPrice('consulta', '$40.00');
@@ -234,16 +234,26 @@ class FigoBrain
                        "¿Cómo puedo hacer tu día mejor hoy?";
 
             case 'escalation':
-                return "Siento mucho que estés pasando por esta situación. En Piel en Armonía, tu satisfacción es absoluta prioridad. 🙏\n\n" .
+                $reply = "Siento mucho que estés pasando por esta situación. En Piel en Armonía, tu satisfacción es absoluta prioridad. 🙏\n\n" .
                        "He marcado este tema como prioritario. Por favor, contacta directamente a nuestra **Gerencia de Atención al Paciente**:\n\n" .
                        "👉 **[WhatsApp Directo de Soporte](https://wa.me/593982453672)**\n\n" .
                        "Un miembro humano de nuestro equipo resolverá esto de inmediato.";
 
+                if (function_exists('maybe_send_chat_escalation_email')) {
+                    maybe_send_chat_escalation_email($messages, $reply);
+                }
+                return $reply;
+
             case 'handoff':
-                return "Entiendo que prefieres hablar con una persona. 👩‍💻\n\n" .
+                $reply = "Entiendo que prefieres hablar con una persona. 👩‍💻\n\n" .
                        "Puedes chatear directamente con nuestro equipo humano por WhatsApp aquí:\n\n" .
                        "👉 **[Abrir Chat de WhatsApp](https://wa.me/593982453672)**\n\n" .
                        "O si prefieres, déjanos tu número y te llamamos en breve.";
+
+                if (function_exists('maybe_send_chat_escalation_email')) {
+                    maybe_send_chat_escalation_email($messages, $reply);
+                }
+                return $reply;
 
                 // --- Trust & Authority ---
             case 'trust_why_us':
