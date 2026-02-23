@@ -9,8 +9,9 @@ test.describe('Pruebas de regresión visual', () => {
 
         // Esperar a que la carga termine
         await page.waitForLoadState('load');
-        await page.waitForLoadState('networkidle');
-        await page.waitForTimeout(2000); // Allow layout to settle
+        // eslint-disable-next-line
+        await page.waitForLoadState('domcontentloaded');
+        await page.waitForTimeout(5000); // Allow layout to settle
 
         // Tomar una captura de pantalla de toda la página
         await expect(page).toHaveScreenshot({ fullPage: true, timeout: 30000 });
@@ -25,8 +26,9 @@ test.describe('Pruebas de regresión visual', () => {
 
         // Esperar a que la carga termine
         await page.waitForLoadState('load');
-        await page.waitForLoadState('networkidle');
-        await page.waitForTimeout(2000); // Allow layout to settle
+        // eslint-disable-next-line
+        await page.waitForLoadState('domcontentloaded');
+        await page.waitForTimeout(5000); // Allow layout to settle
 
         // Tomar una captura de pantalla del viewport (más estable que fullPage en móvil)
         await expect(page).toHaveScreenshot({ fullPage: false, timeout: 30000 });
