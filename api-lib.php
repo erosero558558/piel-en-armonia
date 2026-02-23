@@ -15,7 +15,11 @@ if (is_file($autoloadFile)) {
 // Cargar variables de entorno si existe env.php
 $envFile = __DIR__ . DIRECTORY_SEPARATOR . 'env.php';
 if (is_file($envFile)) {
-    require_once $envFile;
+    try {
+        require_once $envFile;
+    } catch (Throwable $envError) {
+        error_log('Piel en Armonia: env.php skipped - ' . $envError->getMessage());
+    }
 }
 
 // Cargar librerias modularizadas
