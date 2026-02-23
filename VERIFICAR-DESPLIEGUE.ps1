@@ -211,29 +211,9 @@ function Get-LocalSha256FromGitHeadOrFile {
         return ''
     }
 
-    $gitPath = $Path.Replace('\', '/')
-    try {
-        $headContent = & git show --no-textconv "HEAD:$gitPath" 2>$null
-        if ($LASTEXITCODE -eq 0 -and $null -ne $headContent) {
-            $text = if ($headContent -is [System.Array]) {
-                [string]::Join("`n", $headContent)
-            } else {
-                [string]$headContent
-            }
-            if ($NormalizeText) {
-                $normalized = $text -replace "`r`n", "`n" -replace "`r", "`n"
-                $bytes = [System.Text.Encoding]::UTF8.GetBytes($normalized)
-                $sha = [System.Security.Cryptography.SHA256]::Create()
-                return ([System.BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant()
-            }
-            $bytes = [System.Text.Encoding]::UTF8.GetBytes($text)
-            $sha = [System.Security.Cryptography.SHA256]::Create()
-            return ([System.BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant()
-        }
-    } catch {
-        # Fallback below
-    }
-
+    # NOTE:
+    # git show captured via PowerShell string pipelines can mangle encoding on large/non-ASCII assets.
+    # For deterministic parity against what the server actually serves, hash the checked-out local file.
     return Get-LocalSha256 -Path $Path -NormalizeText:$NormalizeText
 }
 
