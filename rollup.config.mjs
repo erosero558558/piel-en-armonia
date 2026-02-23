@@ -183,4 +183,24 @@ export default [
         },
         plugins: [resolve()]
     },
+    // Telemedicine Init
+    {
+        input: 'src/apps/telemedicine/shell.js',
+        output: {
+            file: 'js/telemedicina-init.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
+    // Services Init
+    {
+        input: 'src/apps/services/shell.js',
+        output: {
+            file: 'js/services-init.js',
+            format: 'iife',
+            sourcemap: false
+        },
+        plugins: [resolve()]
+    },
 ];
