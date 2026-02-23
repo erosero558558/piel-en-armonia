@@ -9,6 +9,7 @@ Dominio: https://pielarmonia.com
 - Chatbot: Operativo en Trinity/OpenRouter (cola OpenClaw deshabilitada por decision de producto).
 - Agenda real: Flujo create/reschedule/cancel validado contra Google Calendar en produccion.
 - Gate de produccion: Verde en modo backend (hash checks en modo warning temporal hasta 2026-03-08).
+- Gate hash estricto: ya valida hashes aun con deploy stale (fix aplicado en scripts de verificacion).
 
 ## Evidencia ejecutada hoy
 
@@ -42,6 +43,11 @@ Dominio: https://pielarmonia.com
   - `availability` p95: `536.3 ms`
   - `figo-get` p95: `570.33 ms`
   - `figo-post` p95: `582.74 ms`
+
+7. Hash gate estricto (forzado)
+- Comando: `npm run gate:prod:hash-strict`
+- Resultado: falla por drift real de assets (`9 hash mismatches`).
+- Causa: hosting remoto no sincronizado con `main` (frontend viejo en produccion).
 
 ## Estado por fases del plan unico
 
@@ -78,6 +84,15 @@ Dominio: https://pielarmonia.com
 2. Deploy freshness en modo advisory.
 - Estado: no bloqueante y esperado mientras hash gate temporal esta en warning.
 - Accion: revalidar en modo hash estricto a partir del 2026-03-08.
+
+3. Repair git sync remoto bloqueado por red.
+- Workflow ejecutado: `Repair Git Sync (Self-Heal)` run `22312282946`.
+- Falla: `dial tcp ...:22: i/o timeout`.
+- Implicacion: no se puede forzar `git reset` remoto desde GitHub Actions con la red actual.
+
+4. Host de deploy no accesible desde runner/local por puertos de administracion.
+- Pruebas: `101.47.4.223` en puertos `22`, `21`, `990` -> `TcpTestSucceeded=False`.
+- Implicacion: no hay canal remoto util para sincronizar artefactos (SSH/FTP/FTPS).
 
 ## Siguiente ejecucion recomendada
 
