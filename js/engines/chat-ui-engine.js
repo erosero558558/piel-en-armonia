@@ -11,6 +11,11 @@
 
     function init(inputDeps) {
         deps = inputDeps || {};
+        try {
+            restoreHistory();
+        } catch (e) {
+            // Safe fail
+        }
         return window.Piel && window.Piel.ChatUiEngine;
     }
 
@@ -101,7 +106,7 @@
     }
 
     function appendConversationContext(role, content) {
-        const normalizedRole = String(role).trim();
+        const normalizedRole = String(role || '').trim();
         const normalizedContent = String(content || '').trim();
         if (!normalizedRole || !normalizedContent) {
             return;
@@ -242,7 +247,7 @@
         container.scrollTop = container.scrollHeight;
     }
 
-    function addUserMessage(text) {
+    function renderUserMessageToDom(text) {
         const messagesContainer = document.getElementById('chatMessages');
         if (!messagesContainer) {
             return;
@@ -256,28 +261,25 @@
     `;
         messagesContainer.appendChild(messageDiv);
         scrollToBottom();
-
-        const entry = { type: 'user', text, time: new Date().toISOString() };
-        const nextHistory = pruneChatHistory(getChatHistory().concat(entry));
-        setChatHistory(nextHistory);
-        persistChatHistory();
-        appendConversationContext('user', text);
     }
 
-    function addBotMessage(html, showOfflineLabel) {
+    function renderBotMessageToDom(safeHtml, showOfflineLabel) {
         const messagesContainer = document.getElementById('chatMessages');
         if (!messagesContainer) {
             return;
         }
 
-        const safeHtml = sanitizeBotHtml(html);
         const lastMessage = messagesContainer.querySelector(
             '.chat-message.bot:last-child'
         );
         if (lastMessage) {
             const lastContent = lastMessage.querySelector('.message-content');
-            if (lastContent && lastContent.innerHTML === safeHtml) {
-                debugLogSafe('Mensaje duplicado detectado, no se muestra');
+            // Check for duplicates (ignoring offline indicator which might differ)
+            if (
+                lastContent &&
+                lastContent.innerHTML.includes(safeHtml) &&
+                safeHtml.length > 10
+            ) {
                 return;
             }
         }
@@ -294,6 +296,61 @@
     `;
         messagesContainer.appendChild(messageDiv);
         scrollToBottom();
+    }
+
+    function restoreHistory() {
+        const history = getChatHistory();
+        if (!Array.isArray(history) || history.length === 0) {
+            return;
+        }
+
+        debugLogSafe('Restaurando historial de chat:', history.length, 'mensajes');
+        history.forEach((entry) => {
+            if (!entry || typeof entry !== 'object') return;
+
+            if (entry.type === 'user') {
+                renderUserMessageToDom(entry.text);
+                appendConversationContext('user', entry.text);
+            } else if (entry.type === 'bot') {
+                renderBotMessageToDom(entry.text, false);
+                // Rebuild context (best effort: strip HTML)
+                const plainText = String(entry.text || '').replace(/<[^>]*>?/gm, '');
+                if (plainText) {
+                    appendConversationContext('assistant', plainText);
+                }
+            }
+        });
+    }
+
+    function addUserMessage(text) {
+        renderUserMessageToDom(text);
+
+        const entry = { type: 'user', text, time: new Date().toISOString() };
+        const nextHistory = pruneChatHistory(getChatHistory().concat(entry));
+        setChatHistory(nextHistory);
+        persistChatHistory();
+        appendConversationContext('user', text);
+    }
+
+    function addBotMessage(html, showOfflineLabel) {
+        const safeHtml = sanitizeBotHtml(html);
+
+        // Check duplicates before rendering or saving to history
+        const messagesContainer = document.getElementById('chatMessages');
+        if (messagesContainer) {
+             const lastMessage = messagesContainer.querySelector(
+                '.chat-message.bot:last-child'
+            );
+            if (lastMessage) {
+                const lastContent = lastMessage.querySelector('.message-content');
+                if (lastContent && lastContent.innerHTML.includes(safeHtml)) {
+                    debugLogSafe('Mensaje duplicado detectado, no se muestra');
+                    return;
+                }
+            }
+        }
+
+        renderBotMessageToDom(safeHtml, showOfflineLabel);
 
         const entry = {
             type: 'bot',
