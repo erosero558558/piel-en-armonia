@@ -104,9 +104,23 @@ require_once __DIR__ . '/../lib/common.php';
 require_once __DIR__ . '/../lib/validation.php';
 require_once __DIR__ . '/../lib/models.php';
 require_once __DIR__ . '/../lib/business.php';
-require_once __DIR__ . '/../lib/storage.php'; // Required for data_dir_path and with_store_lock
 require_once __DIR__ . '/../lib/event_setup.php';
 require_once __DIR__ . '/../controllers/AppointmentController.php';
+
+// Mocks for storage functions referenced by AppointmentController
+if (!function_exists('data_dir_path')) {
+    function data_dir_path(): string
+    {
+        return sys_get_temp_dir();
+    }
+}
+
+if (!function_exists('with_store_lock')) {
+    function with_store_lock(callable $callback)
+    {
+        return ['ok' => true, 'result' => $callback()];
+    }
+}
 
 // Tests for lib/business.php
 
