@@ -317,6 +317,31 @@ function figo_backend_ai_timeout_seconds(): int
     return $timeout;
 }
 
+function figo_backend_ai_max_tokens(): int
+{
+    $fileConfig = figo_backend_read_file_config();
+    $aiNode = (isset($fileConfig['ai']) && is_array($fileConfig['ai'])) ? $fileConfig['ai'] : [];
+
+    $raw = figo_backend_first_non_empty([
+        getenv('FIGO_AI_MAX_TOKENS'),
+        $fileConfig['aiMaxTokens'] ?? null,
+        isset($aiNode['maxTokens']) ? (string) $aiNode['maxTokens'] : null
+    ]);
+
+    $maxTokens = (int) $raw;
+    if ($maxTokens <= 0) {
+        // Default conservador para reducir latencia p95 sin romper calidad.
+        $maxTokens = 320;
+    }
+    if ($maxTokens < 96) {
+        $maxTokens = 96;
+    }
+    if ($maxTokens > 1200) {
+        $maxTokens = 1200;
+    }
+    return $maxTokens;
+}
+
 function figo_backend_ai_model(): string
 {
     $fileConfig = figo_backend_read_file_config();
@@ -497,7 +522,7 @@ function figo_backend_ai_response(string $userMessage, array $contextMessages = 
     $payload = json_encode([
         'model' => figo_backend_ai_model(),
         'messages' => $messages,
-        'max_tokens' => 500,
+        'max_tokens' => figo_backend_ai_max_tokens(),
         'temperature' => 0.7
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
@@ -903,6 +928,7 @@ if ($method === 'GET') {
         'configSource' => $configSource,
         'telegramConfigured' => $telegramConfigured,
         'telegramChatConfigured' => $telegramChatConfigured,
+        'telegramForwardWebMessages' => false,
         'webhookSecretConfigured' => figo_backend_telegram_webhook_secret() !== '',
         'timestamp' => gmdate('c')
     ]);
@@ -969,7 +995,7 @@ if (($responsePlan['ok'] ?? false) !== true) {
     ], (int) ($responsePlan['status'] ?? 503));
 }
 
-if ($telegramConfigured && $telegramChatConfigured) {
+if (false && $telegramConfigured && $telegramChatConfigured) {
     $telegramText = "Nuevo mensaje web (Piel en Armonia)\n"
         . "Paciente: " . ($userMessage === '' ? '[vacio]' : $userMessage) . "\n"
         . "Respuesta: " . $content . "\n"
