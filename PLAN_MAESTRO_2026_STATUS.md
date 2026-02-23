@@ -8,10 +8,10 @@ Dominio: https://pielarmonia.com
 - Estado general: En curso, estable.
 - Chatbot: Operativo en Trinity/OpenRouter (cola OpenClaw deshabilitada por decision de producto).
 - Agenda real: Flujo create/reschedule/cancel validado contra Google Calendar en produccion.
-- Gate de produccion: Verde en modo backend (hash checks en modo warning temporal hasta 2026-03-08).
+- Gate de produccion: Verde en modo bloqueante total (hash checks activos en `push`).
 - Umbral operativo `figo-post` endurecido a p95 <= `2500 ms` en gate/benchmark/workflow.
-- Gate hash estricto: ya valida hashes aun con deploy stale (fix aplicado en scripts de verificacion).
-- Workflow post-deploy ajustado para reactivar hash gate automaticamente en `push` despues del vencimiento de warning.
+- Gate hash estricto: validado en 3 corridas consecutivas.
+- Workflow post-deploy ajustado para ejecutar hashes bloqueantes en `push` de forma inmediata.
 
 ## Evidencia ejecutada hoy
 
@@ -80,10 +80,9 @@ Dominio: https://pielarmonia.com
 - Regresiones moviles criticas en verde.
 - Pendiente: seguimiento visual continuo post deploy.
 
-6. Fase 5 - Hardening final y hash gate estricto: En progreso.
-- Cambio automatico a hash blocking despues de 2026-03-08 (ya parametrizado en `GATE-POSTDEPLOY.ps1`).
-- Avance: 1 corrida hash estricta en verde validada.
-- Pendiente: completar 3 despliegues consecutivos en verde con hash estricto.
+6. Fase 5 - Hardening final y hash gate estricto: Completada.
+- 3 corridas hash estrictas consecutivas en verde.
+- Workflow principal (`post-deploy-gate.yml`) con hashes bloqueantes en eventos `push`.
 
 ## Nudos reales pendientes (sin ruido)
 
@@ -92,8 +91,8 @@ Dominio: https://pielarmonia.com
 - Mitigacion: tests backend criticos ya validados en produccion con Playwright/Smoke/Gate.
 
 2. Deploy freshness en modo advisory.
-- Estado: no bloqueante para commits sin cambios frontend.
-- Accion: mantener vigilancia y cerrar al completar 3 corridas hash strict consecutivas.
+- Estado: informativo para commits sin cambios frontend.
+- Accion: mantener vigilancia operativa, sin impacto de bloqueo cuando hashes ya validan en modo estricto.
 
 3. Repair git sync remoto bloqueado por red.
 - Workflow ejecutado: `Repair Git Sync (Self-Heal)` run `22312282946`.
@@ -106,6 +105,6 @@ Dominio: https://pielarmonia.com
 
 ## Siguiente ejecucion recomendada
 
-1. Ejecutar 2 corridas adicionales de `npm run gate:prod:hash-strict` para completar 3 consecutivas.
-2. Con 3/3 verdes, activar `gate:prod` como bloqueante total en workflow principal.
-3. Publicar dashboard semanal de `booking_confirmed`, error rate y p95 de `figo-post`.
+1. Mantener corrida diaria de `npm run gate:prod:hash-strict` como control preventivo.
+2. Publicar dashboard semanal de `booking_confirmed`, error rate y p95 de `figo-post`.
+3. Continuar fase de optimizacion de conversion (copy/UX/reserva) sobre base ya estabilizada.
