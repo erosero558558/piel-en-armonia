@@ -4,6 +4,7 @@ export let currentReviews = [];
 export let currentAvailability = {};
 export let currentAvailabilityMeta = {};
 export let currentFunnelMetrics = null;
+export let currentHealthStatus = null;
 export let csrfToken = '';
 
 export function setAppointments(data) { currentAppointments = data || []; }
@@ -12,6 +13,7 @@ export function setReviews(data) { currentReviews = data || []; }
 export function setAvailability(data) { currentAvailability = data || {}; }
 export function setAvailabilityMeta(data) { currentAvailabilityMeta = data || {}; }
 export function setFunnelMetrics(data) { currentFunnelMetrics = data; }
+export function setHealthStatus(data) { currentHealthStatus = data || null; }
 export function setCsrfToken(token) { csrfToken = token; }
 
 export function getEmptyFunnelMetrics() {
@@ -26,8 +28,11 @@ export function getEmptyFunnelMetrics() {
             abandonRatePct: 0
         },
         checkoutAbandonByStep: [],
+        checkoutAbandonByReason: [],
         checkoutEntryBreakdown: [],
+        eventSourceBreakdown: [],
         paymentMethodBreakdown: [],
-        bookingStepBreakdown: []
+        bookingStepBreakdown: [],
+        errorCodeBreakdown: []
     };
 }

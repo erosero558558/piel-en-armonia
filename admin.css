@@ -386,6 +386,12 @@
     color: var(--color-primary);
 }
 
+.muted-label {
+    margin: -8px 0 14px;
+    font-size: 0.86rem;
+    color: var(--color-text-secondary);
+}
+
 .upcoming-list {
     display: flex;
     flex-direction: column;

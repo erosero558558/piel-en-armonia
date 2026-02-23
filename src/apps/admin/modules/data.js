@@ -6,6 +6,7 @@ import {
     setAvailability,
     setAvailabilityMeta,
     setFunnelMetrics,
+    setHealthStatus,
     getEmptyFunnelMetrics
 } from './state.js';
 import { normalizeCallbackStatus, showToast } from './ui.js';
@@ -37,13 +38,15 @@ function loadFallbackState() {
     setAvailability(getLocalData('availability', {}));
     setAvailabilityMeta(getLocalData('availability-meta', {}));
     setFunnelMetrics(getEmptyFunnelMetrics());
+    setHealthStatus(getLocalData('health-status', null));
 }
 
 export async function refreshData() {
     try {
-        const [payload, funnelPayload] = await Promise.all([
+        const [payload, funnelPayload, healthPayload] = await Promise.all([
             apiRequest('data'),
-            apiRequest('funnel-metrics').catch(() => null)
+            apiRequest('funnel-metrics').catch(() => null),
+            apiRequest('health').catch(() => null)
         ]);
 
         const data = payload.data || {};
@@ -76,6 +79,13 @@ export async function refreshData() {
             setFunnelMetrics(funnelPayload.data);
         } else {
             setFunnelMetrics(getEmptyFunnelMetrics());
+        }
+
+        if (healthPayload && healthPayload.ok) {
+            setHealthStatus(healthPayload);
+            saveLocalData('health-status', healthPayload);
+        } else {
+            setHealthStatus(null);
         }
     } catch (error) {
         loadFallbackState();

@@ -4,6 +4,7 @@ let currentReviews = [];
 let currentAvailability = {};
 let currentAvailabilityMeta = {};
 let currentFunnelMetrics = null;
+let currentHealthStatus = null;
 let csrfToken = '';
 
 function setAppointments(data) { currentAppointments = data || []; }
@@ -12,6 +13,7 @@ function setReviews(data) { currentReviews = data || []; }
 function setAvailability(data) { currentAvailability = data || {}; }
 function setAvailabilityMeta(data) { currentAvailabilityMeta = data || {}; }
 function setFunnelMetrics(data) { currentFunnelMetrics = data; }
+function setHealthStatus(data) { currentHealthStatus = data || null; }
 function setCsrfToken(token) { csrfToken = token; }
 
 function getEmptyFunnelMetrics() {
@@ -26,9 +28,12 @@ function getEmptyFunnelMetrics() {
             abandonRatePct: 0
         },
         checkoutAbandonByStep: [],
+        checkoutAbandonByReason: [],
         checkoutEntryBreakdown: [],
+        eventSourceBreakdown: [],
         paymentMethodBreakdown: [],
-        bookingStepBreakdown: []
+        bookingStepBreakdown: [],
+        errorCodeBreakdown: []
     };
 }
 
@@ -322,13 +327,15 @@ function loadFallbackState() {
     setAvailability(getLocalData('availability', {}));
     setAvailabilityMeta(getLocalData('availability-meta', {}));
     setFunnelMetrics(getEmptyFunnelMetrics());
+    setHealthStatus(getLocalData('health-status', null));
 }
 
 async function refreshData() {
     try {
-        const [payload, funnelPayload] = await Promise.all([
+        const [payload, funnelPayload, healthPayload] = await Promise.all([
             apiRequest('data'),
-            apiRequest('funnel-metrics').catch(() => null)
+            apiRequest('funnel-metrics').catch(() => null),
+            apiRequest('health').catch(() => null)
         ]);
 
         const data = payload.data || {};
@@ -361,6 +368,13 @@ async function refreshData() {
             setFunnelMetrics(funnelPayload.data);
         } else {
             setFunnelMetrics(getEmptyFunnelMetrics());
+        }
+
+        if (healthPayload && healthPayload.ok) {
+            setHealthStatus(healthPayload);
+            saveLocalData('health-status', healthPayload);
+        } else {
+            setHealthStatus(null);
         }
     } catch (error) {
         loadFallbackState();
@@ -457,6 +471,52 @@ function formatPaymentMethodLabel(label) {
     return prettified.charAt(0).toUpperCase() + prettified.slice(1);
 }
 
+function formatEventSourceLabel(label) {
+    const raw = String(label || '').trim().toLowerCase();
+    const labels = {
+        web: 'Web',
+        booking_form: 'Formulario web',
+        chatbot: 'Chatbot',
+        admin: 'Panel admin',
+        unknown: 'No identificado'
+    };
+    if (labels[raw]) {
+        return labels[raw];
+    }
+    const prettified = raw.replace(/_/g, ' ').trim();
+    if (prettified === '') {
+        return labels.unknown;
+    }
+    return prettified.charAt(0).toUpperCase() + prettified.slice(1);
+}
+
+function formatAbandonReasonLabel(label) {
+    const raw = String(label || '').trim().toLowerCase();
+    const labels = {
+        user_closed: 'Usuario cerro el flujo',
+        timeout: 'Tiempo de espera agotado',
+        payment_failed: 'Pago fallido',
+        validation_error: 'Error de validacion',
+        unknown: 'No identificado'
+    };
+    if (labels[raw]) {
+        return labels[raw];
+    }
+    const prettified = raw.replace(/_/g, ' ').trim();
+    if (prettified === '') {
+        return labels.unknown;
+    }
+    return prettified.charAt(0).toUpperCase() + prettified.slice(1);
+}
+
+function formatErrorCodeLabel(label) {
+    const raw = String(label || '').trim().toLowerCase();
+    if (raw === '') {
+        return 'No identificado';
+    }
+    return raw.replace(/_/g, ' ');
+}
+
 function renderFunnelList(elementId, rows, formatLabel, emptyMessage) {
     const listEl = document.getElementById(elementId);
     if (!listEl) {
@@ -512,6 +572,32 @@ function renderFunnelMetrics() {
     const checkoutConversionRateEl = document.getElementById('checkoutConversionRate');
     if (checkoutConversionRateEl) checkoutConversionRateEl.textContent = formatPercent(confirmedRatePct);
 
+    const bookingErrorCount = toPositiveNumber(metrics.events && metrics.events.booking_error);
+    const checkoutErrorCount = toPositiveNumber(metrics.events && metrics.events.checkout_error);
+    const totalErrorCount = bookingErrorCount + checkoutErrorCount;
+    const bookingErrorRatePct = startCheckout > 0 ? (totalErrorCount / startCheckout) * 100 : 0;
+    const bookingErrorRateEl = document.getElementById('bookingErrorRate');
+    if (bookingErrorRateEl) {
+        bookingErrorRateEl.textContent = formatPercent(bookingErrorRatePct);
+    }
+
+    const calendarHealthStatusEl = document.getElementById('calendarHealthStatus');
+    if (calendarHealthStatusEl) {
+        const health = currentHealthStatus && typeof currentHealthStatus === 'object'
+            ? currentHealthStatus
+            : null;
+        const source = health && health.calendarSource ? String(health.calendarSource) : 'desconocido';
+        const mode = health && health.calendarMode ? String(health.calendarMode) : 'desconocido';
+        const reachable = health ? Boolean(health.calendarReachable) : false;
+        const tokenHealthy = health ? Boolean(health.calendarTokenHealthy) : false;
+
+        let label = `Agenda ${source}: ${mode}`;
+        if (source === 'google') {
+            label += reachable && tokenHealthy ? ' (OK)' : ' (revisar)';
+        }
+        calendarHealthStatusEl.textContent = label;
+    }
+
     const funnelAbandonListEl = document.getElementById('funnelAbandonList');
     if (!funnelAbandonListEl) {
         return;
@@ -534,6 +620,30 @@ function renderFunnelMetrics() {
         metrics.paymentMethodBreakdown,
         formatPaymentMethodLabel,
         'Sin datos de pago'
+    );
+    renderFunnelList(
+        'funnelSourceList',
+        metrics.eventSourceBreakdown,
+        formatEventSourceLabel,
+        'Sin datos de origen'
+    );
+    renderFunnelList(
+        'funnelAbandonReasonList',
+        metrics.checkoutAbandonByReason,
+        formatAbandonReasonLabel,
+        'Sin datos de motivo'
+    );
+    renderFunnelList(
+        'funnelStepList',
+        metrics.bookingStepBreakdown,
+        formatFunnelStepLabel,
+        'Sin datos de pasos'
+    );
+    renderFunnelList(
+        'funnelErrorCodeList',
+        metrics.errorCodeBreakdown,
+        formatErrorCodeLabel,
+        'Sin datos de error'
     );
 }
 
