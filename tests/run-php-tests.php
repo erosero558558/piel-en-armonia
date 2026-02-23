@@ -12,6 +12,8 @@ declare(strict_types=1);
 $testDir = __DIR__;
 $isWindows = DIRECTORY_SEPARATOR === '\\';
 $includePosixOnWindows = filter_var((string) getenv('PIELARMONIA_TEST_INCLUDE_POSIX'), FILTER_VALIDATE_BOOLEAN);
+$includeIntegration = filter_var((string) getenv('PIELARMONIA_TEST_INCLUDE_INTEGRATION'), FILTER_VALIDATE_BOOLEAN);
+$hasPdoSqlite = extension_loaded('pdo_sqlite');
 
 $patterns = [
     'test*.php',
@@ -31,7 +33,25 @@ $excludedFiles = [
 $posixOnlyFiles = [
     'ApiSecurityTest.php',
     'BookingFlowTest.php',
+    'CriticalFlowsE2ETest.php',
+    'verify_backups_p0.php',
+    'verify_disaster_recovery_cli.php',
+    'verify_restore_procedure.php',
     'test_storage_backup.php'
+];
+
+$integrationOnlyFiles = [
+    'BookingServiceIntegrationTest.php',
+    'CriticalFlowsE2ETest.php',
+    'verify_backups_p0.php',
+    'verify_disaster_recovery_cli.php',
+    'verify_restore_procedure.php'
+];
+
+$sqliteRequiredFiles = [
+    'verify_backups_p0.php',
+    'verify_disaster_recovery_cli.php',
+    'verify_restore_procedure.php'
 ];
 
 $discovered = [];
@@ -50,6 +70,12 @@ foreach ($patterns as $pattern) {
             continue;
         }
         if ($isWindows && !$includePosixOnWindows && in_array($name, $posixOnlyFiles, true)) {
+            continue;
+        }
+        if (!$includeIntegration && in_array($name, $integrationOnlyFiles, true)) {
+            continue;
+        }
+        if (!$hasPdoSqlite && in_array($name, $sqliteRequiredFiles, true)) {
             continue;
         }
         $discovered[$real] = true;

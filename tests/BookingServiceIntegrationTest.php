@@ -63,6 +63,43 @@ function require_json_body(): array
     return $mock_payload;
 }
 
+function with_store_lock(callable $callback): array
+{
+    try {
+        $result = $callback();
+        return [
+            'ok' => true,
+            'result' => $result,
+        ];
+    } catch (Throwable $e) {
+        return [
+            'ok' => false,
+            'error' => $e->getMessage(),
+            'code' => 500,
+        ];
+    }
+}
+
+function data_dir_path(): string
+{
+    static $path = null;
+    if (!is_string($path) || $path === '') {
+        $path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'pielarmonia-test-data';
+        if (!is_dir($path)) {
+            @mkdir($path, 0777, true);
+        }
+        if (!is_dir($path . DIRECTORY_SEPARATOR . 'locks')) {
+            @mkdir($path . DIRECTORY_SEPARATOR . 'locks', 0777, true);
+        }
+    }
+    return $path;
+}
+
+function data_dir_source(): string
+{
+    return 'test';
+}
+
 // Mocking email functions if not already defined (though lib/email.php might be included via event_setup.php)
 // Since we now include event_setup.php -> EmailListener.php -> email.php, we should remove these mocks if they conflict.
 // However, existing tests rely on them being mocks? No, email.php has real logic.

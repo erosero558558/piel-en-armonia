@@ -363,8 +363,15 @@ class GoogleTokenProvider
 
         $rawBody = @file_get_contents($url, false, $context);
         $status = 0;
-        if (isset($http_response_header) && is_array($http_response_header)) {
-            foreach ($http_response_header as $line) {
+        $responseHeaders = [];
+        if (function_exists('http_get_last_response_headers')) {
+            $headers = http_get_last_response_headers();
+            if (is_array($headers)) {
+                $responseHeaders = $headers;
+            }
+        }
+        if ($responseHeaders !== []) {
+            foreach ($responseHeaders as $line) {
                 if (preg_match('/^HTTP\/\d+\.\d+\s+(\d+)/i', (string) $line, $match) === 1) {
                     $status = (int) $match[1];
                     break;
