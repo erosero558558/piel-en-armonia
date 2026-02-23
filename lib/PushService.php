@@ -27,6 +27,7 @@ class PushService
         }
 
         $store = $this->readSubscriptions();
+        /** @var array<int, array> $items */
         $items = is_array($store['items'] ?? null) ? $store['items'] : [];
         $endpoint = $normalized['endpoint'];
         $items = array_values(array_filter($items, static function ($item) use ($endpoint): bool {
@@ -47,6 +48,7 @@ class PushService
         }
 
         $store = $this->readSubscriptions();
+        /** @var array<int, array> $items */
         $items = is_array($store['items'] ?? null) ? $store['items'] : [];
         $filtered = array_values(array_filter($items, static function ($item) use ($endpoint): bool {
             return (string) ($item['endpoint'] ?? '') !== $endpoint;
