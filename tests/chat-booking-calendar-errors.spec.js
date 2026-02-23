@@ -17,11 +17,6 @@ function nextDate(daysAhead = 4) {
     return date.toISOString().split('T')[0];
 }
 
-function isLocalBaseUrl(testInfo) {
-    const baseURL = String(testInfo?.project?.use?.baseURL || '').toLowerCase();
-    return baseURL.includes('localhost') || baseURL.includes('127.0.0.1');
-}
-
 async function mockApiWithAppointmentError(page, errorCode, statusCode, message) {
     const dateValue = nextDate(4);
 
@@ -230,12 +225,7 @@ async function completeChatBookingUntilCashSelection(page, dateValue) {
 test.describe('Chat booking con agenda real: errores de calendario', () => {
     test('calendar_unreachable devuelve mensaje claro y vuelve al paso de fecha', async ({
         page,
-    }, testInfo) => {
-        // eslint-disable-next-line playwright/no-skipped-test
-        test.skip(
-            !isLocalBaseUrl(testInfo),
-            'Este test valida comportamiento del build local antes de desplegar.'
-        );
+    }) => {
         const { dateValue } = await mockApiWithAppointmentError(
             page,
             'calendar_unreachable',
@@ -257,12 +247,7 @@ test.describe('Chat booking con agenda real: errores de calendario', () => {
 
     test('slot_unavailable devuelve mensaje de horario ocupado y vuelve a fecha', async ({
         page,
-    }, testInfo) => {
-        // eslint-disable-next-line playwright/no-skipped-test
-        test.skip(
-            !isLocalBaseUrl(testInfo),
-            'Este test valida comportamiento del build local antes de desplegar.'
-        );
+    }) => {
         const { dateValue } = await mockApiWithAppointmentError(
             page,
             'slot_unavailable',
@@ -284,12 +269,7 @@ test.describe('Chat booking con agenda real: errores de calendario', () => {
 
     test('slot_conflict devuelve mensaje de horario ocupado y vuelve a fecha', async ({
         page,
-    }, testInfo) => {
-        // eslint-disable-next-line playwright/no-skipped-test
-        test.skip(
-            !isLocalBaseUrl(testInfo),
-            'Este test valida comportamiento del build local antes de desplegar.'
-        );
+    }) => {
         const { dateValue } = await mockApiWithAppointmentError(
             page,
             'slot_conflict',
@@ -311,12 +291,7 @@ test.describe('Chat booking con agenda real: errores de calendario', () => {
 
     test('error de disponibilidad por mensaje muestra agenda no disponible', async ({
         page,
-    }, testInfo) => {
-        // eslint-disable-next-line playwright/no-skipped-test
-        test.skip(
-            !isLocalBaseUrl(testInfo),
-            'Este test valida comportamiento del build local antes de desplegar.'
-        );
+    }) => {
         const { dateValue } = await mockApiWithAvailabilityError(
             page,
             'No se pudo consultar la agenda real en Google Calendar'

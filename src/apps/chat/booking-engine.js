@@ -30,12 +30,12 @@ function t(esText, enText) {
 }
 
 function escapeHtml(value) {
-    if (deps && typeof deps.escapeHtml === 'function') {
-        return deps.escapeHtml(String(value || ''));
-    }
-    const div = document.createElement('div');
-    div.textContent = String(value || '');
-    return div.innerHTML;
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 function sanitizeBookingRegistrationError(rawMessage) {
@@ -633,6 +633,9 @@ async function finalizeChatBooking() {
                 deps && typeof deps.createAppointmentRecord === 'function'
                     ? await deps.createAppointmentRecord(payload)
                     : null;
+            if (!result) {
+                throw new Error('Could not create appointment record');
+            }
 
             if (deps && typeof deps.removeTypingIndicator === 'function') {
                 deps.removeTypingIndicator();

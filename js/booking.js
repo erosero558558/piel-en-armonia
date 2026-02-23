@@ -30,6 +30,7 @@ import {
     loadAvailabilityData,
     getBookedSlots,
 } from './data.js';
+import { getCaptchaToken } from './captcha.js';
 
 export { markBookingViewed };
 
@@ -136,6 +137,7 @@ function getBookingEngineDeps() {
         stripTransientAppointmentFields,
         createAppointmentRecord,
         uploadTransferProof,
+        getCaptchaToken,
         showSuccessModal,
         showToast,
         debugLog,
@@ -251,7 +253,6 @@ function getBookingUiDeps() {
         openPaymentModal,
         debugLog,
         setCurrentAppointment: setCurrentAppointment,
-        updateAvailableTimes, // Added dependency
     };
 }
 

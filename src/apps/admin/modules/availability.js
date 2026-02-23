@@ -21,7 +21,11 @@ function ensureStatusElements() {
         statusEl = document.createElement('div');
         statusEl.id = 'availabilitySyncStatus';
         statusEl.className = 'selected-date';
-        panel.insertBefore(statusEl, panel.firstChild.nextSibling);
+        if (panel.firstChild) {
+            panel.insertBefore(statusEl, panel.firstChild.nextSibling);
+        } else {
+            panel.appendChild(statusEl);
+        }
     }
 
     let detailsEl = document.getElementById('availabilitySyncDetails');
@@ -199,7 +203,12 @@ async function refreshAvailabilitySnapshot() {
             selectedDate = null;
             clearSelectedDateState();
         }
-    } catch {
+    } catch (error) {
+        console.error('Error refreshing availability:', error);
+        showToast(
+            `Error al actualizar disponibilidad: ${error?.message || 'error desconocido'}`,
+            'error'
+        );
         availabilityReadOnly = String(currentAvailabilityMeta.source || '') === 'google';
         renderStatus();
         toggleReadOnlyUi();

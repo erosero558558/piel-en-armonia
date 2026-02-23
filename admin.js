@@ -90,13 +90,20 @@ async function authRequest(action, options = {}) {
 
 /**
  * Escapes HTML special characters to prevent XSS.
+ * Avoids creating DOM nodes repeatedly to reduce memory churn.
  * @param {string} text - The text to escape.
  * @returns {string} The escaped HTML string.
  */
 function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = String(text ?? '');
-    return div.innerHTML;
+    if (text === null || text === undefined) {
+        return '';
+    }
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 function showToast(message, type = 'info', title = '') {
@@ -1035,7 +1042,11 @@ function ensureStatusElements() {
         statusEl = document.createElement('div');
         statusEl.id = 'availabilitySyncStatus';
         statusEl.className = 'selected-date';
-        panel.insertBefore(statusEl, panel.firstChild.nextSibling);
+        if (panel.firstChild) {
+            panel.insertBefore(statusEl, panel.firstChild.nextSibling);
+        } else {
+            panel.appendChild(statusEl);
+        }
     }
 
     let detailsEl = document.getElementById('availabilitySyncDetails');
@@ -1213,7 +1224,12 @@ async function refreshAvailabilitySnapshot() {
             selectedDate = null;
             clearSelectedDateState();
         }
-    } catch {
+    } catch (error) {
+        console.error('Error refreshing availability:', error);
+        showToast(
+            `Error al actualizar disponibilidad: ${error?.message || 'error desconocido'}`,
+            'error'
+        );
         availabilityReadOnly = String(currentAvailabilityMeta.source || '') === 'google';
         renderStatus();
         toggleReadOnlyUi();
