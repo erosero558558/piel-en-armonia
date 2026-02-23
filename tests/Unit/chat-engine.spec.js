@@ -5,7 +5,8 @@ const path = require('path');
 test.describe('Chat Engine Unit Tests', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('about:blank');
-        const enginePath = path.resolve(__dirname, '../../src/apps/chat/engine.js');
+        // Use the built file to resolve bundled imports (like pure-utils)
+        const enginePath = path.resolve(__dirname, '../../js/engines/chat-engine.js');
         const content = fs.readFileSync(enginePath, 'utf8');
         await page.addScriptTag({ content: content, type: 'module' });
         await page.waitForFunction(() => window.Piel && window.Piel.FigoChatEngine);

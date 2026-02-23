@@ -7,8 +7,8 @@ test.describe('Booking Engine Unit Tests', () => {
         // Navigate to a blank page
         await page.goto('about:blank');
 
-        // Read the engine script content
-        const enginePath = path.resolve(__dirname, '../../src/apps/booking/engine.js');
+        // Read the bundled engine script content
+        const enginePath = path.resolve(__dirname, '../../js/engines/booking-engine.js');
         const content = fs.readFileSync(enginePath, 'utf8');
 
         // Inject the engine script
