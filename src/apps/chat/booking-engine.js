@@ -417,12 +417,7 @@ async function processChatBookingStep(userInput) {
                 msg += '</div>';
                 addBotMessage(msg);
             } catch (error) {
-                const isCalendarUnavailable =
-                    error &&
-                    (error.code === 'calendar_unreachable' ||
-                        String(error.message || '')
-                            .toLowerCase()
-                            .includes('calendar_unreachable'));
+                const isCalendarUnavailable = isCalendarUnavailableError(error);
                 if (
                     deps &&
                     typeof deps.removeTypingIndicator === 'function'

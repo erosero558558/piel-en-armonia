@@ -103,6 +103,60 @@ async function mockApiWithAppointmentError(page, errorCode, statusCode, message)
     return { dateValue };
 }
 
+async function mockApiWithAvailabilityError(page, message) {
+    const dateValue = nextDate(5);
+
+    await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+        const request = route.request();
+        const url = new URL(request.url());
+        const resource = url.searchParams.get('resource') || '';
+
+        if (resource === 'availability') {
+            return jsonResponse(
+                route,
+                {
+                    ok: false,
+                    error: message,
+                },
+                503
+            );
+        }
+
+        if (resource === 'booked-slots') {
+            return jsonResponse(route, {
+                ok: true,
+                data: [],
+                meta: {
+                    source: 'google',
+                    mode: 'live',
+                    timezone: 'America/Guayaquil',
+                    doctor: String(url.searchParams.get('doctor') || 'indiferente'),
+                    service: String(url.searchParams.get('service') || 'consulta'),
+                    durationMin: 30,
+                    generatedAt: new Date().toISOString(),
+                },
+            });
+        }
+
+        if (resource === 'reviews') {
+            return jsonResponse(route, { ok: true, data: [] });
+        }
+
+        if (resource === 'health') {
+            return jsonResponse(route, {
+                ok: true,
+                calendarSource: 'google',
+                calendarMode: 'live',
+                calendarReachable: true,
+            });
+        }
+
+        return jsonResponse(route, { ok: true, data: {} });
+    });
+
+    return { dateValue };
+}
+
 async function openChatAndStartBooking(page) {
     await page.addInitScript(() => {
         localStorage.setItem(
@@ -226,5 +280,44 @@ test.describe('Chat booking con agenda real: errores de calendario', () => {
         await expect
             .poll(() => page.locator('#chatMessages #chatDateInput').count())
             .toBeGreaterThan(beforeErrorDateInputCount);
+    });
+
+    test('error de disponibilidad por mensaje muestra agenda no disponible', async ({
+        page,
+    }, testInfo) => {
+        // eslint-disable-next-line playwright/no-skipped-test
+        test.skip(
+            !isLocalBaseUrl(testInfo),
+            'Este test valida comportamiento del build local antes de desplegar.'
+        );
+        const { dateValue } = await mockApiWithAvailabilityError(
+            page,
+            'No se pudo consultar la agenda real en Google Calendar'
+        );
+
+        await openChatAndStartBooking(page);
+        await page
+            .locator(
+                '#chatMessages button[data-action="chat-booking"][data-value="consulta"]'
+            )
+            .last()
+            .click();
+        await page
+            .locator(
+                '#chatMessages button[data-action="chat-booking"][data-value="indiferente"]'
+            )
+            .last()
+            .click();
+
+        const dateInputs = page.locator('#chatMessages #chatDateInput');
+        await expect(dateInputs.last()).toBeVisible();
+        await dateInputs.last().evaluate((input, value) => {
+            input.value = String(value);
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        }, dateValue);
+
+        await expect(page.locator('#chatMessages')).toContainText(
+            'La agenda esta temporalmente no disponible'
+        );
     });
 });

@@ -14,6 +14,21 @@ function t(esText, enText) {
     return getLang() === 'es' ? esText : enText;
 }
 
+function isCalendarUnavailableError(error) {
+    if (!error) return false;
+    const code = String(error.code || '').toLowerCase();
+    const message = String(error.message || '').toLowerCase();
+    return (
+        code === 'calendar_unreachable' ||
+        code === 'calendar_auth_failed' ||
+        code === 'calendar_token_rejected' ||
+        message.includes('calendar_unreachable') ||
+        message.includes('agenda temporalmente no disponible') ||
+        message.includes('no se pudo consultar la agenda real') ||
+        message.includes('google calendar no')
+    );
+}
+
 function normalizeEcuadorPhone(rawValue) {
     const raw = String(rawValue || '').trim();
     if (raw === '') return '';
@@ -120,12 +135,7 @@ function init(inputDeps) {
             if (deps && typeof deps.debugLog === 'function') {
                 deps.debugLog('Failed to load booking-calendar.js', error);
             }
-            const isCalendarUnavailable =
-                error &&
-                (error.code === 'calendar_unreachable' ||
-                    String(error.message || '')
-                        .toLowerCase()
-                        .includes('calendar_unreachable'));
+            const isCalendarUnavailable = isCalendarUnavailableError(error);
             deps.showToast(
                 isCalendarUnavailable
                     ? t(

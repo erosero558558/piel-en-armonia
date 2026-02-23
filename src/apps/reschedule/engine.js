@@ -34,6 +34,21 @@ function notify(message, type) {
     }
 }
 
+function isCalendarUnavailableError(error) {
+    if (!error) return false;
+    const code = String(error.code || '').toLowerCase();
+    const message = String(error.message || '').toLowerCase();
+    return (
+        code === 'calendar_unreachable' ||
+        code === 'calendar_auth_failed' ||
+        code === 'calendar_token_rejected' ||
+        message.includes('calendar_unreachable') ||
+        message.includes('agenda temporalmente no disponible') ||
+        message.includes('no se pudo consultar la agenda real') ||
+        message.includes('google calendar no')
+    );
+}
+
 async function checkRescheduleParam() {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('reschedule');
@@ -215,12 +230,7 @@ async function loadRescheduleSlots() {
                 '</option>';
         }
     } catch (error) {
-        const isCalendarUnavailable =
-            error &&
-            (error.code === 'calendar_unreachable' ||
-                String(error.message || '')
-                    .toLowerCase()
-                    .includes('calendar_unreachable'));
+        const isCalendarUnavailable = isCalendarUnavailableError(error);
         timeSelect.innerHTML =
             '<option value="">' +
             (isCalendarUnavailable
