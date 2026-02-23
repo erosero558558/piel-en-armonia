@@ -16,8 +16,29 @@ $cookieFile = sys_get_temp_dir() . '/cookie-' . uniqid() . '.txt';
 if (!is_dir($dataDir)) {
     mkdir($dataDir, 0777, true);
 }
+
+// Seed availability for testing
+// The booking logic now validates availability.
+// We must ensure the dates we use (+3, +4, +5 days) have slots.
+$seedAvailability = [];
+$datesToSeed = [
+    date('Y-m-d', strtotime('+3 days')),
+    date('Y-m-d', strtotime('+4 days')),
+    date('Y-m-d', strtotime('+5 days'))
+];
+foreach ($datesToSeed as $d) {
+    // Providing ample slots for testing
+    $seedAvailability[$d] = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00'];
+}
+$seedData = [
+    'appointments' => [],
+    'availability' => $seedAvailability
+];
+file_put_contents("$dataDir/store.json", json_encode($seedData));
+
 // We need to pass env vars to the server process
-$envVars = "PIELARMONIA_DATA_DIR=$dataDir PIELARMONIA_ADMIN_PASSWORD=secret";
+// Set PIELARMONIA_AVAILABILITY_SOURCE=store to force local availability check
+$envVars = "PIELARMONIA_DATA_DIR=$dataDir PIELARMONIA_ADMIN_PASSWORD=secret PIELARMONIA_AVAILABILITY_SOURCE=store";
 
 echo "Starting server on port $port with data dir $dataDir...\n";
 // Start server relative to project root

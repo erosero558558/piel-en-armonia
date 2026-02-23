@@ -104,6 +104,7 @@ require_once __DIR__ . '/../lib/common.php';
 require_once __DIR__ . '/../lib/validation.php';
 require_once __DIR__ . '/../lib/models.php';
 require_once __DIR__ . '/../lib/business.php';
+require_once __DIR__ . '/../lib/storage.php'; // Required for data_dir_path and with_store_lock
 require_once __DIR__ . '/../lib/event_setup.php';
 require_once __DIR__ . '/../controllers/AppointmentController.php';
 
