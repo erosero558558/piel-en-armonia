@@ -1,6 +1,6 @@
-import { debugLog, withDeployAssetVersion } from './utils.js';
+import { debugLog, withDeployAssetVersion, escapeHtml } from './utils.js';
 
-const CONTENT_JSON_URL = withDeployAssetVersion('/content/index.json');
+const CONTENT_JSON_URL = withDeployAssetVersion('/content/sections.json');
 const REQUIRED_SECTION_IDS = [
     'showcase',
     'servicios',
@@ -155,9 +155,9 @@ async function tryFetchDeferredPayload(url, useCacheBuster = false) {
 async function fetchDeferredPayload() {
     const candidateUrls = [
         CONTENT_JSON_URL,
-        '/content/index.json',
-        'content/index.json',
-        './content/index.json',
+        '/content/sections.json',
+        'content/sections.json',
+        './content/sections.json',
     ];
     const uniqueUrls = [...new Set(candidateUrls.filter(Boolean))];
 
@@ -198,20 +198,96 @@ function renderDeferredFallbackState() {
     });
 }
 
+function preprocessData(templateId, item) {
+    const data = { ...item };
+
+    // Services
+    if (templateId === 'service-card-template') {
+        if (data.featured) data.featured_class = 'featured';
+        if (data.badge_key) {
+            data.badge_html = `<div class="service-badge" data-i18n="${data.badge_key}">${data.badge_text || ''}</div>`;
+        }
+        if (data.note) {
+            data.note_html = `<span class="price-note">${data.note}</span>`;
+        }
+        if (data.breakdown_tax) {
+            data.breakdown_tax_html = `<span class="price-tax">${data.breakdown_tax}</span>`;
+        }
+        if (!data.img_lqip) data.img_lqip = '';
+    }
+
+    // Reviews
+    if (templateId === 'review-card-template') {
+        if (data.verified) {
+            data.verified_html = '<i class="fas fa-check-circle verified"></i>';
+        }
+        if (data.text) {
+            data.text_html = `<p class="review-text">"${escapeHtml(data.text)}"</p>`;
+        }
+    }
+
+    // Team
+    if (templateId === 'team-card-template') {
+        if (data.name) {
+            data.name_encoded = encodeURIComponent(data.name);
+        }
+    }
+
+    return data;
+}
+
+function renderTemplate(templateId, rawData) {
+    const template = document.getElementById(templateId);
+    if (!template) {
+        debugLog(`Template not found: ${templateId}`);
+        return '';
+    }
+
+    const data = preprocessData(templateId, rawData);
+    let html = template.innerHTML;
+
+    html = html.replace(/\{\{([\w_]+)\}\}/g, (match, key) => {
+        const val = data[key];
+        return val !== undefined && val !== null ? val : '';
+    });
+
+    return html;
+}
+
 export async function loadDeferredContent() {
     try {
         const data = await fetchDeferredPayload();
 
+        // 1. Inject HTML Shells
         Object.keys(data).forEach((id) => {
+            if (id.endsWith('_items')) return; // Skip item arrays
+
             const container = document.getElementById(id);
             if (container && container.classList.contains('deferred-content')) {
-                container.innerHTML = data[id];
-                normalizeDeferredAssetUrls(container);
-                container.classList.remove('deferred-content'); // Optional cleanup
-                forceDeferredSectionPaint(container);
-                hydrateDeferredText(container);
-            } else if (!container) {
+                const content = data[id];
+                if (typeof content === 'string') {
+                    container.innerHTML = content;
+                    normalizeDeferredAssetUrls(container);
+                    container.classList.remove('deferred-content');
+                    forceDeferredSectionPaint(container);
+                    hydrateDeferredText(container);
+                }
+            } else if (!container && !id.endsWith('_items')) {
                 debugLog(`Warning: Container #${id} not found for deferred content.`);
+            }
+        });
+
+        // 2. Process Templates (for items inside shells)
+        document.querySelectorAll('[data-dynamic-target]').forEach(target => {
+            const templateId = target.getAttribute('data-dynamic-target');
+            const sourceKey = target.getAttribute('data-source');
+            const items = data[sourceKey];
+
+            if (templateId && Array.isArray(items)) {
+                const htmlParts = items.map(item => renderTemplate(templateId, item));
+                target.innerHTML = htmlParts.join('');
+                normalizeDeferredAssetUrls(target);
+                hydrateDeferredText(target);
             }
         });
 

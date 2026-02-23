@@ -2347,5 +2347,101 @@
                 >
             </div>
         </div>
+
+        <!-- Templates -->
+        <template id="service-card-template">
+            <div class="service-card {{featured_class}}" data-service-id="{{id}}" data-service-price="{{price}}" data-service-tax="{{tax}}" data-service-from="{{from}}">
+                {{badge_html}}
+                <div class="service-card-img blur-up" style="background-image: url('{{img_lqip}}');">
+                    <picture>
+                        <source type="image/avif" srcset="{{img_avif}}">
+                        <source type="image/webp" srcset="{{img_webp}}">
+                        <img src="{{img}}" alt="{{img_alt}}" width="400" height="240" loading="lazy" decoding="async" fetchpriority="low">
+                    </picture>
+                </div>
+                <div class="service-icon">
+                    <i class="{{icon}}"></i>
+                </div>
+                <div class="service-tag">{{tag}}</div>
+                <h3 data-i18n="{{title_key}}">{{title}}</h3>
+                <p data-i18n="{{desc_key}}">{{desc}}</p>
+                <div class="service-price-container">
+                    <span class="service-price">{{price_display}}</span>
+                    <span class="service-tax-badge">{{tax_badge}}</span>
+                </div>
+                <div class="service-price-breakdown">
+                    <span class="price-base">{{breakdown_base}}</span>
+                    {{breakdown_tax_html}}
+                    <span class="price-total">{{breakdown_total}}</span>
+                </div>
+                {{note_html}}
+                <a href="#citas" class="btn btn-secondary btn-sm btn-full" data-action="select-service" data-value="{{action_value}}">Reservar este servicio</a>
+            </div>
+        </template>
+
+        <template id="team-card-template">
+            <div class="team-card">
+                <div class="team-image">
+                    <picture>
+                        <source type="image/avif" srcset="{{img_avif}}">
+                        <source type="image/webp" srcset="{{img_webp}}">
+                        <img src="{{img}}" alt="{{name}}" width="500" height="600" loading="lazy" decoding="async" fetchpriority="low">
+                    </picture>
+                    <div class="team-overlay">
+                        <div class="team-actions">
+                            <a href="tel:{{phone}}" class="team-btn" title="Llamar"><i class="fas fa-phone"></i></a>
+                            <a href="https://wa.me/{{whatsapp}}?text=Hola%20{{name_encoded}}" target="_blank" rel="noopener noreferrer" class="team-btn" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                            <a href="mailto:{{email}}" class="team-btn" title="Email"><i class="fas fa-envelope"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="team-info">
+                    <h3>{{name}}</h3>
+                    <p class="team-role" data-i18n="{{role_key}}">{{role}}</p>
+                    <p class="team-desc" data-i18n="{{desc_key}}">{{desc}}</p>
+                    <span class="team-status available">
+                        <i class="fas fa-circle"></i>
+                        <span data-i18n="{{status_key}}">{{status}}</span>
+                    </span>
+                </div>
+            </div>
+        </template>
+
+        <template id="review-card-template">
+            <div class="review-card">
+                <div class="review-header">
+                    <div class="review-avatar">{{initials}}</div>
+                    <div class="review-meta">
+                        <h4>{{name}}</h4>
+                        <div class="review-stars">
+                            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                        </div>
+                    </div>
+                    {{verified_html}}
+                </div>
+                {{text_html}}
+                <span class="review-date">{{date}}</span>
+            </div>
+        </template>
+
+        <template id="gallery-item-template">
+            <div class="gallery-item" data-category="{{category}}">
+                <div class="ba-slider">
+                    <div class="ba-after ba-after-tone-1">
+                        <img class="gallery-img" loading="lazy" src="{{after_img}}" alt="Después">
+                        <span class="ba-label" data-i18n="label_after">Despu\u00e9s</span>
+                    </div>
+                    <div class="ba-before ba-before-tone-1">
+                        <img class="gallery-img" loading="lazy" src="{{before_img}}" alt="Antes" style="filter: grayscale(100%)">
+                        <span class="ba-label" data-i18n="label_before">Antes</span>
+                    </div>
+                    <div class="ba-handle"></div>
+                </div>
+                <div class="gallery-info">
+                    <h4 data-i18n="{{title_key}}">{{title}}</h4>
+                    <p data-i18n="{{desc_key}}">{{desc}}</p>
+                </div>
+            </div>
+        </template>
     </body>
 </html>
