@@ -48,6 +48,14 @@ test.describe('Version consistency across pages and service worker', () => {
         const acneScript = extractVersionedAsset(acneHtml, 'script\\.js');
         const laserScript = extractVersionedAsset(laserHtml, 'script\\.js');
 
+        // Note: The versions in script.js and bootstrap-inline-engine.js are manually managed
+        // and must match across all entry points.
+        const expectedBootstrapVersion = 'figo-20260221-phase10-realagenda1';
+        const expectedScriptVersion = 'figo-20260222-slotservicefix1';
+
+        expect(indexScript.version).toBe(expectedScriptVersion);
+        expect(indexBootstrap.version).toBe(expectedBootstrapVersion);
+
         expect(teleScript?.version).toBe(indexScript.version);
         expect(acneScript?.version).toBe(indexScript.version);
         expect(laserScript?.version).toBe(indexScript.version);

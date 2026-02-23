@@ -1335,7 +1335,9 @@
                     return;
                 }
             }
-        } catch (_error) {}
+            } catch (_error) {
+                // noop
+            }
 
         fetch(FUNNEL_EVENT_ENDPOINT, {
             method: 'POST',
