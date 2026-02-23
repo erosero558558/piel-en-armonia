@@ -1,4 +1,6 @@
-﻿/**
+'use strict';
+
+/**
  * Figo chat engine (deferred-loaded).
  * Extracted from script.js to reduce initial parsing work.
  */
@@ -6,12 +8,14 @@
 // ========================================
 // INTEGRACIÓN CON BOT DEL SERVIDOR
 // ========================================
-const KIMI_CONFIG = {
+
+let KIMI_CONFIG = {
     apiUrl: '/figo-chat.php',
     model: 'figo-assistant',
     maxTokens: 1000,
     temperature: 0.7,
 };
+
 const CHAT_CONTEXT_MAX_ITEMS = 24;
 const OPENCLAW_POLL_MAX_MS = 30000;
 
@@ -24,6 +28,8 @@ let CLINIC_MAP_URL = '';
 let DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
 let DOCTOR_CAROLINA_EMAIL = 'caro93narvaez@gmail.com';
 let isProcessingMessage = false; // Evitar duplicados
+
+let SYSTEM_PROMPT = `Eres el Dr. Virtual, asistente inteligente de la clinica dermatologica "Piel en Armonia" en Quito, Ecuador.`; // Default minimal prompt
 
 function init(inputDeps = {}) {
     deps = inputDeps || {};
@@ -40,6 +46,9 @@ function init(inputDeps = {}) {
     if (clinicMapUrl) CLINIC_MAP_URL = clinicMapUrl;
     if (doctorPhone) DOCTOR_CAROLINA_PHONE = doctorPhone;
     if (doctorEmail) DOCTOR_CAROLINA_EMAIL = doctorEmail;
+
+    if (deps.kimiConfig) KIMI_CONFIG = { ...KIMI_CONFIG, ...deps.kimiConfig };
+    if (deps.systemPrompt) SYSTEM_PROMPT = deps.systemPrompt;
 
     return window.Piel && window.Piel.FigoChatEngine;
 }
@@ -390,48 +399,6 @@ function isGenericAssistantReply(text) {
 function shouldRefineWithFigo(botResponse) {
     return isGenericAssistantReply(botResponse);
 }
-
-const SYSTEM_PROMPT = `Eres el Dr. Virtual, asistente inteligente de la clinica dermatologica "Piel en Armonia" en Quito, Ecuador.
-
-INFORMACION DE LA CLINICA:
-- Nombre: Piel en Armonia
-- Doctores: Dr. Javier Rosero (Dermatologo Clinico) y Dra. Carolina Narvaez (Dermatologa Estetica)
-- Direccion: Valparaiso 13-183 y Sodiro, Consultorio Dr. Celio Caiza, Quito (Frente al Colegio de las Mercedarias, a 2 cuadras de la Maternidad Isidro Ayora)
-- Telefono/WhatsApp: 098 245 3672
-- Contacto Dra. Carolina: 098 786 6885 | caro93narvaez@gmail.com
-- Horario: Lunes-Viernes 9:00-18:00, Sabados 9:00-13:00
-- Estacionamiento privado disponible
-
-SERVICIOS Y PRECIOS (con IVA 15%):
-- Consulta Dermatológica: $46
-- Consulta Telefónica: $28.75
-- Video Consulta: $34.50
-- Tratamiento Láser: desde $172.50
-- Rejuvenecimiento: desde $138
-- Tratamiento de Acné: desde $80
-- Detección de Cáncer de Piel: desde $70
-
-OPCIONES DE CONSULTA ONLINE:
-1. Llamada telefonica: tel:+593982453672
-2. WhatsApp Video: https://wa.me/593982453672
-3. Video Web (Jitsi): https://meet.jit.si/PielEnArmonia-Consulta
-
-INSTRUCCIONES:
-- Se profesional, amable y empatico
-- Responde en espanol (o en el idioma que use el paciente)
-- Si el paciente tiene sintomas graves o emergencias, recomienda acudir a urgencias
-- Para agendar citas, dirige al formulario web, WhatsApp o llamada telefonica
-- Si no sabes algo especifico, ofrece transferir al doctor real
-- No hagas diagnosticos medicos definitivos, solo orientacion general
-- Usa emojis ocasionalmente para ser amigable
-- Manten respuestas concisas pero informativas
-
-Tu objetivo es ayudar a los pacientes a:
-1. Conocer los servicios de la clinica
-2. Entender los precios
-3. Agendar citas
-4. Resolver dudas basicas sobre dermatologia
-5. Conectar con un doctor real cuando sea necesario`;
 
 const FIGO_EXPERT_PROMPT = `MODO FIGO PRO:
 - Responde con pasos claros y accionables, no con texto general.

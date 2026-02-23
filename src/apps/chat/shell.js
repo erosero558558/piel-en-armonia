@@ -24,6 +24,8 @@ import {
     CLINIC_MAP_URL,
     DOCTOR_CAROLINA_PHONE,
     DOCTOR_CAROLINA_EMAIL,
+    KIMI_CONFIG,
+    SYSTEM_PROMPT,
 } from '../../../js/config.js';
 import { trackEvent } from '../../../js/analytics.js';
 import {
@@ -418,7 +420,9 @@ export function loadFigoChatEngine() {
                     clinicAddress: CLINIC_ADDRESS,
                     clinicMapUrl: CLINIC_MAP_URL,
                     doctorCarolinaPhone: DOCTOR_CAROLINA_PHONE,
-                    doctorCarolinaEmail: DOCTOR_CAROLINA_EMAIL
+                    doctorCarolinaEmail: DOCTOR_CAROLINA_EMAIL,
+                    kimiConfig: KIMI_CONFIG,
+                    systemPrompt: SYSTEM_PROMPT,
                 });
             }
         },
