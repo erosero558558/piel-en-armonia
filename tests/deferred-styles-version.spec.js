@@ -4,6 +4,9 @@ const { test, expect } = require('@playwright/test');
 const EXPECTED_DEFERRED_VERSION = 'ui-20260223-clsfix1';
 const DEFERRED_STYLESHEET_NAME = 'styles-deferred.css';
 
+// Ensure tests use correct path prefix expectation
+const EXPECTED_HREF_PATTERN = new RegExp(EXPECTED_DEFERRED_VERSION);
+
 test('Homepage has correct deferred stylesheet version', async ({ page }) => {
     await page.goto('/');
     const link = page.locator('link[rel="preload"][as="style"][href*="styles-deferred.css"]');
@@ -21,11 +24,11 @@ test('Service page (Acne) has correct deferred stylesheet version', async ({ pag
     // Note: In subpages, the href might be relative (../styles-deferred.css...),
     // but our regex check just looks for the version string presence.
     const link = page.locator('link[rel="preload"][as="style"][href*="styles-deferred.css"]');
-    await expect(link).toHaveAttribute('href', new RegExp(EXPECTED_DEFERRED_VERSION));
+    await expect(link).toHaveAttribute('href', EXPECTED_HREF_PATTERN);
 });
 
 test('Service page (Laser) has correct deferred stylesheet version', async ({ page }) => {
     await page.goto('/servicios/laser.html');
     const link = page.locator('link[rel="preload"][as="style"][href*="styles-deferred.css"]');
-    await expect(link).toHaveAttribute('href', new RegExp(EXPECTED_DEFERRED_VERSION));
+    await expect(link).toHaveAttribute('href', EXPECTED_HREF_PATTERN);
 });

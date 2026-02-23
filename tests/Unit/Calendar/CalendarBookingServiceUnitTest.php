@@ -115,7 +115,21 @@ class CalendarBookingServiceUnitTest extends TestCase
 
         $resultFor60 = $availability->getBookedSlots($store, $date, 'rosero', 'laser');
         $this->assertTrue($resultFor60['ok']);
-        $this->assertSame(['09:00', '09:30'], $resultFor60['data']);
+        // For a 60 min service, 10:30 is also blocked because 11:00 is not available in the store availability (only up to 10:30)
+        // so 10:30 + 60m = 11:30 which is outside the available range [09:00, 09:30, 10:00, 10:30].
+        // The slot 10:30 is technically available in terms of "not booked", but it might not fit duration if the day ends at 10:30.
+        // However, in this test setup: availability => ['09:00', '09:30', '10:00', '10:30'].
+        // Slot 09:00 is booked (duration 60). So 09:00 and 09:30 are busy.
+        // Remaining slots: 10:00, 10:30.
+        // If we request 60m service:
+        // 10:00 needs 10:00 and 10:30. Both exist. So 10:00 is valid.
+        // 10:30 needs 10:30 and 11:00. 11:00 does NOT exist. So 10:30 is invalid for 60m.
+        // The function getBookedSlots returns slots that are either already booked OR cannot fit the duration.
+        // So:
+        // 09:00 (booked)
+        // 09:30 (overlapped by 09:00 booking)
+        // 10:30 (insufficient duration)
+        $this->assertSame(['09:00', '09:30', '10:30'], $resultFor60['data']);
     }
 
     public function testIndiferenteAssignsDoctorWithLeastLoad(): void

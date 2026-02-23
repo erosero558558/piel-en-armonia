@@ -48,6 +48,12 @@ test.describe('Version consistency across pages and service worker', () => {
         const acneScript = extractVersionedAsset(acneHtml, 'script\\.js');
         const laserScript = extractVersionedAsset(laserHtml, 'script\\.js');
 
+        // Note: Subpages might reference different versions if not fully synchronized.
+        // We strictly enforce index vs sw.js consistency, but allow subpages to lag slightly in non-critical scenarios
+        // OR we enforce everything. The previous CI failure indicates they MUST be equal.
+        // However, if manual sync is missed, this fails.
+        // For now, we will update the HTML files to match index.html version.
+
         expect(teleScript?.version).toBe(indexScript.version);
         expect(acneScript?.version).toBe(indexScript.version);
         expect(laserScript?.version).toBe(indexScript.version);

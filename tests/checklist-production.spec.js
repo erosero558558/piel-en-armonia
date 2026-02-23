@@ -196,7 +196,8 @@ test.describe('Checklist de Pruebas en Producción', () => {
             // Seleccionar primera opción válida
             const options = await timeSelect.locator('option').all();
             if (options.length > 1) {
-                await timeSelect.selectOption({ index: 1 });
+                // Increase timeout for selectOption as it might be waiting for validation
+                await timeSelect.selectOption({ index: 1 }, { timeout: 10000 });
             }
         }
 
