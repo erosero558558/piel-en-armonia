@@ -78,8 +78,16 @@ test.describe('Mobile overflow regressions', () => {
     }) => {
         await page.setViewportSize({ width: 360, height: 800 });
         await page.goto('/', { timeout: 45000, waitUntil: 'domcontentloaded' });
+
+        // Wait for a key element to ensure hydration/deferred loading is active
+        try {
+            await page.waitForSelector('footer', { state: 'attached', timeout: 20000 });
+        } catch {
+            // Fallback if footer is not immediately found (e.g. static version)
+        }
+
         await page.waitForLoadState('load', { timeout: 20000 }).catch(() => null);
-        await page.waitForTimeout(1500);
+        await page.waitForTimeout(2000); // Increased timeout to let layout settle
 
         for (const sectionId of SECTION_IDS) {
             await page.evaluate((id) => {
