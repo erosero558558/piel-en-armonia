@@ -39,6 +39,9 @@ if (!figo_queue_job_id_is_valid($jobId)) {
 
 require_rate_limit('figo-ai-check-' . substr($jobId, 0, 12), 120, 60);
 
+// Garantiza progreso de la cola durante el polling, incluso sin cron activo.
+figo_queue_process_job($jobId, figo_queue_poll_process_timeout_seconds());
+
 $status = figo_queue_status_payload_for_job($jobId);
 $response = [
     'ok' => (bool) ($status['ok'] ?? false),
@@ -71,4 +74,3 @@ if (($response['status'] ?? '') === 'expired') {
 
 $response['failedAt'] = (string) ($status['failedAt'] ?? gmdate('c'));
 json_response($response, 503);
-
