@@ -1,14 +1,19 @@
-import { createRequire } from 'module';
+import { generate } from 'critical';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-const require = createRequire(import.meta.url);
-const critical = require('critical');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.join(__dirname, '..');
 
-const indexHtmlPath = 'index.html';
-const stylesCssPath = 'styles.css';
-const tempHtmlPath = '_temp_index.html';
-const deferredCssPath = 'styles-deferred.css';
+const indexHtmlPath = path.join(rootDir, 'index.html');
+const stylesCssPath = 'styles.css'; // Relative to root
+const tempHtmlPath = path.join(rootDir, '_temp_index.html');
+const deferredCssPath = 'styles-deferred.css'; // Relative to root
+
+// FIXED VERSION for consistency across build and tests
+const CSS_VERSION = 'ui-20260223-critical-css';
 
 async function buildCss() {
     console.log('Starting Critical CSS generation...');
@@ -30,11 +35,11 @@ async function buildCss() {
 
     try {
         // 5. Run critical
-        const result = await critical.generate({
-            base: '.',
-            src: tempHtmlPath,
+        const result = await generate({
+            base: rootDir,
+            src: '_temp_index.html', // Relative to base
             target: {
-                html: indexHtmlPath,
+                html: 'index.html',
                 uncritical: deferredCssPath,
             },
             inline: true,
@@ -45,7 +50,6 @@ async function buildCss() {
                 { width: 375, height: 812 },
                 { width: 1300, height: 900 }
             ],
-            // Force include specific selectors for layout stability and themes
             include: [
                 /^\.showcase-hero-image/,
                 /^\.showcase-card-image/,
@@ -54,8 +58,8 @@ async function buildCss() {
                 /^\.team-image/,
                 /^\.clinic-map/,
                 /^\.ba-slider/,
-                /html\[data-theme/, // Keep theme overrides
-                /^\.pricing-container/, // Pricing fallback
+                /html\[data-theme/,
+                /^\.pricing-container/,
                 /^\.pricing-category/,
                 /^\.pricing-item/,
                 /^\.appointment-container/,
@@ -74,25 +78,64 @@ async function buildCss() {
 
         console.log('Critical CSS generated and inlined.');
 
-        // 6. Post-processing
-        let finalHtml = fs.readFileSync(indexHtmlPath, 'utf8');
+        // 6. Post-processing: Update index.html with versioned deferred CSS
+        updateDeferredCssVersion(indexHtmlPath, deferredCssPath, CSS_VERSION);
 
-        // Add versioning to deferred CSS
-        const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
-        const versionedHref = `${deferredCssPath}?v=${timestamp}`;
-        finalHtml = finalHtml.replace(new RegExp(deferredCssPath, 'g'), versionedHref);
+        // 7. Update other HTML files
+        const otherFiles = [
+            'telemedicina.html',
+            'admin.html',
+            'servicios/acne.html',
+            'servicios/cancer.html',
+            'servicios/consulta.html',
+            'servicios/laser.html',
+            'servicios/rejuvenecimiento.html',
+            'servicios/telemedicina.html'
+        ];
 
-        fs.writeFileSync(indexHtmlPath, finalHtml);
-        console.log(`Updated ${indexHtmlPath} with versioned deferred CSS.`);
+        for (const file of otherFiles) {
+            const filePath = path.join(rootDir, file);
+            if (fs.existsSync(filePath)) {
+                updateDeferredCssVersion(filePath, deferredCssPath, CSS_VERSION);
+            } else {
+                console.warn(`Warning: File ${file} not found.`);
+            }
+        }
 
     } catch (err) {
         console.error('Error generating critical CSS:', err);
         process.exit(1);
     } finally {
-        // 7. Cleanup
+        // 8. Cleanup
         if (fs.existsSync(tempHtmlPath)) {
             fs.unlinkSync(tempHtmlPath);
             console.log(`Removed temporary file ${tempHtmlPath}`);
+        }
+    }
+}
+
+function updateDeferredCssVersion(filePath, cssFileName, version) {
+    let content = fs.readFileSync(filePath, 'utf8');
+
+    // Regex to match existing deferred CSS link: styles-deferred.css?v=... or just styles-deferred.css
+    // We want to replace the whole href value
+    const regex = new RegExp(`${cssFileName}(\\?v=[^"']*)?`, 'g');
+    const versionedHref = `${cssFileName}?v=${version}`;
+
+    // Check if the file actually contains the link
+    if (content.match(regex)) {
+        content = content.replace(regex, versionedHref);
+        fs.writeFileSync(filePath, content);
+        console.log(`Updated ${filePath} with ${versionedHref}`);
+    } else {
+        // If not found (e.g. subpages might refer to ../styles-deferred.css)
+        const relativeRegex = new RegExp(`(styles-deferred\\.css)(\\?v=[^"']*)?`, 'g');
+        if (content.match(relativeRegex)) {
+             content = content.replace(relativeRegex, `$1?v=${version}`);
+             fs.writeFileSync(filePath, content);
+             console.log(`Updated ${filePath} (relative match) with ?v=${version}`);
+        } else {
+             console.log(`No deferred CSS link found in ${filePath}`);
         }
     }
 }
