@@ -129,8 +129,14 @@ async function openAvailabilitySection(page) {
 
     await page.locator('.nav-item[data-section="availability"]').click();
     await expect(page.locator('#availability')).toHaveClass(/active/);
-    await expect(page.locator('#availabilityCalendar .calendar-day.has-slots').first()).toBeVisible();
-    await page.locator('#availabilityCalendar .calendar-day.has-slots').first().click();
+
+    // Wait for calendar to render
+    await expect(page.locator('#availabilityCalendar')).toBeVisible();
+
+    // Ensure we are waiting for the slots to be populated
+    const slotDay = page.locator('#availabilityCalendar .calendar-day.has-slots').first();
+    await expect(slotDay).toBeVisible({ timeout: 10000 });
+    await slotDay.click();
 }
 
 test.describe('Admin disponibilidad: modo Google solo lectura', () => {

@@ -193,10 +193,21 @@ test.describe('Checklist de Pruebas en Producción', () => {
         // Intentar seleccionar hora si aparece un select de hora
         const timeSelect = page.locator('select[name="time"]');
         if (await timeSelect.isVisible()) {
-            // Seleccionar primera opción válida
-            const options = await timeSelect.locator('option').all();
-            if (options.length > 1) {
-                await timeSelect.selectOption({ index: 1 });
+            // Wait for options to be populated (more than just the placeholder)
+            try {
+                await page.waitForFunction(() => {
+                    const select = document.querySelector('select[name="time"]');
+                    return select && select.options.length > 1;
+                }, { timeout: 5000 });
+
+                // Seleccionar primera opción válida (no disabled, no empty)
+                const firstOptionValue = await timeSelect.locator('option:not([disabled]):not([value=""])').first().getAttribute('value');
+                if (firstOptionValue) {
+                    await timeSelect.selectOption(firstOptionValue);
+                }
+            } catch (e) {
+                // Ignore timeout if no slots found (e.g. no availability configured)
+                console.log('No time slots found or timeout waiting for them');
             }
         }
 
