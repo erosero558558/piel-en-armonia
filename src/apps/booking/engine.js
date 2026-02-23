@@ -450,7 +450,7 @@ async function processCashPaymentFlow() {
         captchaToken
     };
 
-    return requireFn('createAppointmentRecord')(payload);
+    return requireFn('createAppointmentRecord')(payload, { allowLocalFallback: false });
 }
 
 async function processPayment() {
