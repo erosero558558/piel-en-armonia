@@ -116,7 +116,7 @@ function sendFunnelEventToServer(eventName, params = {}) {
             }
         }
         } catch (_error) {
-            // noop
+            void _error;
         }
 
     fetch(FUNNEL_EVENT_ENDPOINT, {
