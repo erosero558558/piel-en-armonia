@@ -78,7 +78,6 @@ test.describe('Mobile overflow regressions', () => {
     }) => {
         await page.setViewportSize({ width: 360, height: 800 });
         await page.goto('/', { timeout: 45000, waitUntil: 'domcontentloaded' });
-        await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => null);
         await page.waitForTimeout(1500);
 
         for (const sectionId of SECTION_IDS) {
