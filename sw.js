@@ -1,3 +1,4 @@
+// Service Worker - Production
 const CACHE_NAME = 'pielarmonia-v10-20260223-openclaw-queue1';
 const STATIC_ASSETS = [
     '/',

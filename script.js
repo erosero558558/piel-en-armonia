@@ -196,9 +196,7 @@
     const THEME_STORAGE_KEY = 'themeMode';
     const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
 
-    function debugLog() {
-        // Debug logging removed
-    }
+    function debugLog() {}
 
     function escapeHtml$1(text) {
         if (
