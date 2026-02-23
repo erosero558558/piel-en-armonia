@@ -2,10 +2,27 @@
     'use strict';
 
     /**
+     * Escapes HTML special characters to prevent XSS.
+     * Avoids creating DOM nodes repeatedly to reduce memory churn.
+     * @param {string} text - The text to escape.
+     * @returns {string} The escaped HTML string.
+     */
+    function escapeHtml(text) {
+        if (text === null || text === undefined) {
+            return '';
+        }
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    /**
      * Chat UI engine (deferred-loaded).
      * Handles chat message rendering, sanitization and typing indicator.
      */
-    // build-sync: 20260219-sync1
 
     let deps = null;
 
@@ -126,21 +143,6 @@
         const nextContext =
             context.length > maxItems ? context.slice(-maxItems) : context;
         setConversationContext(nextContext);
-    }
-
-    function debugLogSafe() {
-        if (deps && typeof deps.debugLog === 'function') {
-            deps.debugLog.apply(null, arguments);
-        }
-    }
-
-    function escapeHtml(text) {
-        if (deps && typeof deps.escapeHtml === 'function') {
-            return deps.escapeHtml(text);
-        }
-        const div = document.createElement('div');
-        div.textContent = String(text || '');
-        return div.innerHTML;
     }
 
     function sanitizeBotHtml(html) {
@@ -277,7 +279,6 @@
         if (lastMessage) {
             const lastContent = lastMessage.querySelector('.message-content');
             if (lastContent && lastContent.innerHTML === safeHtml) {
-                debugLogSafe('Mensaje duplicado detectado, no se muestra');
                 return;
             }
         }

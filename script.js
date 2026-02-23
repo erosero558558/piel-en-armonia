@@ -193,24 +193,47 @@
     const API_DEFAULT_RETRIES = 1;
     const API_SLOW_NOTICE_MS = 1200;
     const API_SLOW_NOTICE_COOLDOWN_MS = 25000;
+    const DEFAULT_TIME_SLOTS = [
+        '09:00',
+        '10:00',
+        '11:00',
+        '12:00',
+        '15:00',
+        '16:00',
+        '17:00',
+    ];
     const THEME_STORAGE_KEY = 'themeMode';
     const VALID_THEME_MODES = new Set(['light', 'dark', 'system']);
+
+    /**
+     * Shared utilities for Piel en Armonía (Pure functions only).
+     * Can be safely imported into engines without pulling in state.
+     */
 
     function debugLog() {
         // Debug logging removed
     }
 
-    function escapeHtml$1(text) {
-        if (
-            window.Piel &&
-            window.Piel.ChatUiEngine &&
-            typeof window.Piel.ChatUiEngine.escapeHtml === 'function'
-        ) {
-            return window.Piel.ChatUiEngine.escapeHtml(text);
+    /**
+     * Escapes HTML special characters to prevent XSS.
+     * Avoids creating DOM nodes repeatedly to reduce memory churn.
+     * @param {string} text - The text to escape.
+     * @returns {string} The escaped HTML string.
+     */
+    function escapeHtml(text) {
+        if (text === null || text === undefined) {
+            return '';
         }
-        const div = document.createElement('div');
-        div.textContent = String(text || '');
-        return div.innerHTML;
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function getDefaultTimeSlots() {
+        return DEFAULT_TIME_SLOTS.slice();
     }
 
     function waitMs(ms) {
@@ -318,11 +341,8 @@
         };
 
         // Escapar mensaje para prevenir XSS
-        const safeMsg = String(message)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
+        const safeMsg = escapeHtml(String(message));
+
         toast.innerHTML = `
         <i class="fas ${icons[type]} toast-icon"></i>
         <div class="toast-content">
@@ -836,7 +856,7 @@
         return {
             apiRequest: apiRequest$1,
             storageGetJSON,
-            escapeHtml: escapeHtml$1,
+            escapeHtml,
             getCurrentLang: getCurrentLang,
         };
     }
@@ -1425,7 +1445,7 @@
             getCurrentLang,
             getCurrentAppointment,
             getClinicAddress: () => CLINIC_ADDRESS,
-            escapeHtml: escapeHtml$1,
+            escapeHtml,
         };
     }
 
@@ -1684,10 +1704,6 @@
     }
 
     // BOOKING UI
-    function getDefaultTimeSlots() {
-        return ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
-    }
-
     function getBookingUiDeps() {
         return {
             loadAvailabilityData,
@@ -1960,7 +1976,7 @@
             getBookedSlots,
             invalidateBookedSlotsCache,
             showToast,
-            escapeHtml: escapeHtml$1,
+            escapeHtml,
             getCurrentLang: getCurrentLang,
         };
     }
@@ -2040,19 +2056,6 @@
     const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
     const CHAT_HISTORY_MAX_ITEMS = 50;
     const CHAT_CONTEXT_MAX_ITEMS = 24;
-
-    function escapeHtml(text) {
-        if (
-            window.Piel &&
-            window.Piel.ChatUiEngine &&
-            typeof window.Piel.ChatUiEngine.escapeHtml === 'function'
-        ) {
-            return window.Piel.ChatUiEngine.escapeHtml(text);
-        }
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
 
     function scrollToBottom() {
         if (

@@ -1,4 +1,5 @@
 'use strict';
+import { escapeHtml } from '../../../js/pure-utils.js';
 
 let deps = null;
 let chatBooking = null;
@@ -27,15 +28,6 @@ function getLang() {
 
 function t(esText, enText) {
     return getLang() === 'en' ? enText : esText;
-}
-
-function escapeHtml(value) {
-    return String(value || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
 }
 
 function sanitizeBookingRegistrationError(rawMessage) {

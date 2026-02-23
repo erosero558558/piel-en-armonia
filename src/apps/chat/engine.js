@@ -3,6 +3,8 @@
  * Extracted from script.js to reduce initial parsing work.
  */
 // build-sync: 20260219-sync1
+import { debugLog } from '../../../js/pure-utils.js';
+
 // ========================================
 // INTEGRACIÓN CON BOT DEL SERVIDOR
 // ========================================
@@ -42,12 +44,6 @@ function init(inputDeps = {}) {
     if (doctorEmail) DOCTOR_CAROLINA_EMAIL = doctorEmail;
 
     return window.Piel && window.Piel.FigoChatEngine;
-}
-
-function debugLog(...args) {
-    if (deps && typeof deps.debugLog === 'function') {
-        deps.debugLog(...args);
-    }
 }
 
 function showTypingIndicator() {

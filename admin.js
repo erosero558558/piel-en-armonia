@@ -90,10 +90,6 @@ async function authRequest(action, options = {}) {
 }
 
 /**
- * Shared utilities for Piel en Armonía
- */
-
-/**
  * Escapes HTML special characters to prevent XSS.
  * Avoids creating DOM nodes repeatedly to reduce memory churn.
  * @param {string} text - The text to escape.

@@ -1,25 +1,6 @@
 /**
- * Shared utilities for Piel en Armonía
+ * Shared utilities for Piel en Armonía (Admin App)
+ * Re-exports from pure-utils to share logic.
  */
 
-/**
- * Escapes HTML special characters to prevent XSS.
- * Avoids creating DOM nodes repeatedly to reduce memory churn.
- * @param {string} text - The text to escape.
- * @returns {string} The escaped HTML string.
- */
-export function escapeHtml(text) {
-    if (text === null || text === undefined) {
-        return '';
-    }
-    return String(text)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
-export function debugLog(...args) {
-    // Debug logging removed
-}
+export { debugLog, escapeHtml } from '../../../js/pure-utils.js';

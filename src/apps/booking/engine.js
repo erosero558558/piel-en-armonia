@@ -1,4 +1,6 @@
 // build-sync: 20260219-sync1
+import { debugLog } from '../../../js/pure-utils.js';
+
 let deps = null;
 let initialized = false;
 let listenersBound = false;
@@ -71,14 +73,6 @@ function trackEvent(eventName, payload) {
 
 function normalizeAnalyticsLabel(value, fallback) {
     return requireFn('normalizeAnalyticsLabel')(value, fallback);
-}
-
-function debugLog(message, context) {
-    const logger = deps && typeof deps.debugLog === 'function'
-        ? deps.debugLog
-        : null;
-    if (!logger) return;
-    logger(message, context);
 }
 
 function sanitizeBookingSubmissionError(rawMessage) {

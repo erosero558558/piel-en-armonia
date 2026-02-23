@@ -1,6 +1,24 @@
 (function () {
     'use strict';
 
+    /**
+     * Escapes HTML special characters to prevent XSS.
+     * Avoids creating DOM nodes repeatedly to reduce memory churn.
+     * @param {string} text - The text to escape.
+     * @returns {string} The escaped HTML string.
+     */
+    function escapeHtml(text) {
+        if (text === null || text === undefined) {
+            return '';
+        }
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     let deps = null;
     let chatBooking = null;
     const CHAT_SERVICES = [
@@ -28,15 +46,6 @@
 
     function t(esText, enText) {
         return getLang() === 'en' ? enText : esText;
-    }
-
-    function escapeHtml(value) {
-        return String(value || '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
     }
 
     function sanitizeBookingRegistrationError(rawMessage) {

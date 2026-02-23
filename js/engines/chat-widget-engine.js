@@ -73,12 +73,6 @@
         });
     }
 
-    function debugLogSafe(...args) {
-        if (deps && typeof deps.debugLog === 'function') {
-            deps.debugLog(...args);
-        }
-    }
-
     function addBotMessageSafe(html) {
         if (deps && typeof deps.addBotMessage === 'function') {
             deps.addBotMessage(html);
@@ -192,10 +186,6 @@
         }
 
         const usingRealAI = shouldUseRealAI();
-        debugLogSafe(
-            'Estado del chatbot:',
-            usingRealAI ? 'IA REAL' : 'Respuestas locales'
-        );
         addBotMessageSafe(buildWelcomeMessage(usingRealAI));
         renderQuickSuggestions();
     }

@@ -1,4 +1,4 @@
-import { withDeployAssetVersion, showToast, debugLog } from './utils.js';
+import { withDeployAssetVersion, showToast, debugLog, getDefaultTimeSlots } from './utils.js';
 import {
     loadDeferredModule,
     runDeferredModule,
@@ -227,10 +227,6 @@ export async function updateAvailableTimes(elements) {
 }
 
 // BOOKING UI
-function getDefaultTimeSlots() {
-    return ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00'];
-}
-
 function getBookingUiDeps() {
     return {
         loadAvailabilityData,

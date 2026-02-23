@@ -3,6 +3,7 @@
  * Handles open/minimize and quick interactions for the floating chatbot UI.
  */
 'use strict';
+import { debugLog } from '../../../js/pure-utils.js';
 
 let deps = null;
 let chatStartedTracked = false;
@@ -69,12 +70,6 @@ function ensureChatStartedTracked(source) {
     trackEventSafe('chat_started', {
         source: source || 'widget',
     });
-}
-
-function debugLogSafe(...args) {
-    if (deps && typeof deps.debugLog === 'function') {
-        deps.debugLog(...args);
-    }
 }
 
 function addBotMessageSafe(html) {
@@ -190,7 +185,7 @@ function toggleChatbot() {
     }
 
     const usingRealAI = shouldUseRealAI();
-    debugLogSafe(
+    debugLog(
         'Estado del chatbot:',
         usingRealAI ? 'IA REAL' : 'Respuestas locales'
     );

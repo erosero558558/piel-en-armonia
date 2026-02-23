@@ -1,22 +1,8 @@
 import { state } from './state.js';
 import { COOKIE_CONSENT_KEY } from './config.js';
+import { debugLog, escapeHtml, getDefaultTimeSlots } from './pure-utils.js';
 
-export function debugLog() {
-    // Debug logging removed
-}
-
-export function escapeHtml(text) {
-    if (
-        window.Piel &&
-        window.Piel.ChatUiEngine &&
-        typeof window.Piel.ChatUiEngine.escapeHtml === 'function'
-    ) {
-        return window.Piel.ChatUiEngine.escapeHtml(text);
-    }
-    const div = document.createElement('div');
-    div.textContent = String(text || '');
-    return div.innerHTML;
-}
+export { debugLog, escapeHtml, getDefaultTimeSlots };
 
 export function waitMs(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -138,11 +124,8 @@ export function showToast(message, type = 'info', title = '') {
     };
 
     // Escapar mensaje para prevenir XSS
-    const safeMsg = String(message)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+    const safeMsg = escapeHtml(String(message));
+
     toast.innerHTML = `
         <i class="fas ${icons[type]} toast-icon"></i>
         <div class="toast-content">
