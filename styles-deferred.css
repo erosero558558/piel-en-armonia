@@ -3222,12 +3222,6 @@ html[data-theme='dark'] .map-placeholder:hover .map-placeholder-content i {
     }
 }
 
-/* Keep layout stable when consent state toggles. */
-body.cookie-banner-active .chatbot-widget,
-body.cookie-banner-active .quick-dock {
-    transition: bottom var(--ui-ease);
-}
-
 /* ========================================
    DEFERRED COMPONENTS (Chat, Modals, etc)
    Moved from critical CSS
@@ -4091,10 +4085,4 @@ html[data-theme='dark'] .payment-modal [data-action='process-payment'] {
         border-radius: 18px 18px 0 0 !important;
         animation: none !important;
     }
-}
-
-/* Keep layout stable when consent state toggles. */
-body.cookie-banner-active .chatbot-widget,
-body.cookie-banner-active .quick-dock {
-    transition: bottom var(--ui-ease) !important;
 }

@@ -318,9 +318,67 @@ function Get-LocalGitHeadInfo {
     }
 }
 
+function Test-HeadTouchesFrontendAssets {
+    try {
+        $changedRaw = (& git diff --name-only HEAD~1 HEAD 2>$null)
+        if ($LASTEXITCODE -ne 0 -or $null -eq $changedRaw) {
+            return $true
+        }
+
+        $changedFiles = @($changedRaw | ForEach-Object {
+            $line = [string]$_
+            if (-not [string]::IsNullOrWhiteSpace($line)) {
+                $line.Trim().Replace('\', '/')
+            }
+        } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+
+        if ($changedFiles.Count -eq 0) {
+            return $true
+        }
+
+        $frontendPatterns = @(
+            '^index\.html$',
+            '^script\.js$',
+            '^styles\.css$',
+            '^styles-deferred\.css$',
+            '^js/engines/',
+            '^js/main\.js$',
+            '^src/apps/',
+            '^src/styles/',
+            '^rollup\.config\.mjs$'
+        )
+
+        foreach ($file in $changedFiles) {
+            foreach ($pattern in $frontendPatterns) {
+                if ($file -match $pattern) {
+                    return $true
+                }
+            }
+        }
+
+        return $false
+    } catch {
+        return $true
+    }
+}
+
 Write-Host "== Verificacion de despliegue =="
 Write-Host "Dominio: $base"
 Write-Host "Fecha: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+
+$deployFreshnessChecked = $false
+$deployFreshnessStale = $false
+$deployFreshnessFailRequired = $true
+$deployFreshnessDeltaSeconds = 0
+$deployFreshnessLocalHash = ''
+$deployFreshnessLocalCommitUtc = ''
+$deployFreshnessRemoteLastModifiedUtc = ''
+
+$headTouchesFrontendAssets = Test-HeadTouchesFrontendAssets
+if (-not $headTouchesFrontendAssets) {
+    $deployFreshnessFailRequired = $false
+    Write-Host "[INFO] Deploy freshness en modo advisory: HEAD no cambia assets frontend."
+}
 
 $indexRaw = Get-Content -Path 'index.html' -Raw
 $localScriptRef = Get-RefFromIndex -IndexHtml $indexRaw -Pattern '<script[^>]+src="([^"]*script\.js[^"]*)"'
@@ -443,6 +501,7 @@ try {
     if (-not [string]::IsNullOrWhiteSpace($appScriptRemoteUrl)) {
         $localHead = Get-LocalGitHeadInfo
         if ($null -ne $localHead) {
+            $deployFreshnessChecked = $true
             $scriptHeadResp = Invoke-WebRequest -Uri $appScriptRemoteUrl -Method HEAD -TimeoutSec 30 -UseBasicParsing -Headers @{
                 'Cache-Control' = 'no-cache'
                 'User-Agent' = 'PielArmoniaDeployCheck/1.0'
@@ -452,7 +511,12 @@ try {
             if (-not [string]::IsNullOrWhiteSpace($lastModifiedRaw)) {
                 $remoteLastModifiedUtc = ([DateTimeOffset]::Parse($lastModifiedRaw)).UtcDateTime
                 $deltaSeconds = [int]([Math]::Round(($localHead.CommitUtc - $remoteLastModifiedUtc).TotalSeconds))
+                $deployFreshnessDeltaSeconds = $deltaSeconds
+                $deployFreshnessLocalHash = [string]$localHead.Hash
+                $deployFreshnessLocalCommitUtc = $localHead.CommitUtc.ToString('u')
+                $deployFreshnessRemoteLastModifiedUtc = $remoteLastModifiedUtc.ToString('u')
                 if ($deltaSeconds -gt 180) {
+                    $deployFreshnessStale = $true
                     Write-Host "[WARN] deploy freshness: remoto mas viejo que HEAD local"
                     Write-Host "       Local HEAD : $($localHead.Hash) @ $($localHead.CommitUtc.ToString('u'))"
                     Write-Host "       Remote LM  : $($remoteLastModifiedUtc.ToString('u'))"
@@ -471,6 +535,22 @@ try {
     }
 } catch {
     Write-Host "[WARN] No se pudo validar deploy freshness: $($_.Exception.Message)"
+}
+
+if ($deployFreshnessChecked -and $deployFreshnessStale) {
+    if ($deployFreshnessFailRequired) {
+        Write-Host "[FAIL] Deploy no sincronizado con HEAD local; se omiten hashes para evitar ruido."
+        $results += [PSCustomObject]@{
+            Asset = 'deploy-freshness'
+            Match = $false
+            LocalHash = "$deployFreshnessLocalHash @ $deployFreshnessLocalCommitUtc"
+            RemoteHash = "last-modified @ $deployFreshnessRemoteLastModifiedUtc"
+            RemoteUrl = $appScriptRemoteUrl
+            DeltaSeconds = $deployFreshnessDeltaSeconds
+        }
+    } else {
+        Write-Host "[WARN] Deploy no sincronizado con HEAD local (advisory, sin cambios frontend)."
+    }
 }
 
 try {
@@ -902,6 +982,8 @@ if ($localStyleRef -ne '') {
 
 if ($SkipAssetHashChecks) {
     Write-Host '[WARN] Se omite verificacion de hashes de assets (SkipAssetHashChecks).'
+} elseif ($deployFreshnessStale -and $deployFreshnessFailRequired) {
+    Write-Host '[WARN] Se omite verificacion de hashes de assets hasta que el deploy remoto se sincronice con HEAD.'
 } else {
     $checks = @()
     if ($localStyleRef -ne '') {

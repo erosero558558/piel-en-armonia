@@ -1054,12 +1054,6 @@ html[data-theme='dark'] .hero-trust-bar .separator {
     display: flex;
 }
 
-/* Keep layout stable when consent state toggles. */
-body.cookie-banner-active .chatbot-widget,
-body.cookie-banner-active .quick-dock {
-    transition: bottom var(--ui-ease);
-}
-
 .cookie-text {
     margin: 0;
     color: #294565;
