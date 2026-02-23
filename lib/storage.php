@@ -14,7 +14,7 @@ if (!defined('DATA_DIR')) {
     define('DATA_DIR', __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'data');
 }
 if (!defined('DATA_FILE')) {
-    define('DATA_FILE', DATA_DIR . DIRECTORY_SEPARATOR . 'store.sqlite');
+    define('DATA_FILE', DATA_DIR . DIRECTORY_SEPARATOR . 'store-v2.sqlite');
 }
 if (!defined('BACKUP_DIR')) {
     define('BACKUP_DIR', DATA_DIR . DIRECTORY_SEPARATOR . 'backups');
