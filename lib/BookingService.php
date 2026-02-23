@@ -6,10 +6,7 @@ require_once __DIR__ . '/business.php';
 require_once __DIR__ . '/models.php';
 require_once __DIR__ . '/validation.php';
 require_once __DIR__ . '/common.php';
-require_once __DIR__ . '/calendar/GoogleTokenProvider.php';
-require_once __DIR__ . '/calendar/GoogleCalendarClient.php';
-require_once __DIR__ . '/calendar/CalendarAvailabilityService.php';
-require_once __DIR__ . '/calendar/CalendarBookingService.php';
+require_once __DIR__ . '/calendar/runtime.php';
 
 class BookingService
 {
