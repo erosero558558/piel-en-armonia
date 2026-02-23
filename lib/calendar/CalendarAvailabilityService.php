@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../common.php';
+
 class CalendarAvailabilityService
 {
     private GoogleCalendarClient $client;
@@ -503,6 +505,7 @@ class CalendarAvailabilityService
             }
 
             if (!$this->supportsDurationFromTemplate($date, $slotTime, $requestedDuration, $slotLookup)) {
+                // DEBUG: echo "Slot $slotTime insufficient duration\n";
                 $booked[] = $slotTime;
                 continue;
             }
@@ -521,6 +524,7 @@ class CalendarAvailabilityService
                     continue;
                 }
                 if ($candidateStart < $busyEnd && $busyStart < $candidateEnd) {
+                    // DEBUG: echo "Slot $slotTime overlaps busy $busyStart - $busyEnd\n";
                     $booked[] = $slotTime;
                     break;
                 }
