@@ -1599,7 +1599,6 @@
             openPaymentModal,
             debugLog,
             setCurrentAppointment: setCurrentAppointment,
-            updateAvailableTimes, // Added dependency
         };
     }
 
