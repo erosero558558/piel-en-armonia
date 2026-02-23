@@ -31,7 +31,9 @@ import { initUiEffectsWarmup, initModalUxEngineWarmup } from './ui.js';
 import { initRescheduleEngineWarmup } from './reschedule.js';
 import { initSuccessModalEngineWarmup } from './success-modal.js';
 import { initEngagementFormsEngineWarmup } from './engagement.js';
-import { loadDeferredContent } from './content-loader.js';
+// content-loader.js prefetch: empieza a descargar al instante (antes de DOMContentLoaded)
+// para que cuando se necesite en el handler ya este en cache.
+const _contentLoaderMod = import('./content-loader.js');
 
 // Setup global version
 window.Piel = window.Piel || {};
@@ -246,7 +248,10 @@ document.addEventListener('DOMContentLoaded', function () {
     initBookingFunnelObserver();
     initDeferredSectionPrefetch();
 
-    loadDeferredContent().then(() => {
+    _contentLoaderMod
+        .then(({ loadDeferredContent }) => loadDeferredContent())
+        .catch(() => false)
+        .then(() => {
         showConsentBanner();
 
         const initHighPriorityWarmups = createOnceTask(() => {
