@@ -13,6 +13,7 @@ lhci_reports/
 .lighthouseci/
 _deploy_bundle/
 verification/
+.phpunit.cache/
 
 # PHP Composer
 vendor/
