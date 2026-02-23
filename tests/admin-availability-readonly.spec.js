@@ -129,6 +129,10 @@ async function openAvailabilitySection(page) {
 
     await page.locator('.nav-item[data-section="availability"]').click();
     await expect(page.locator('#availability')).toHaveClass(/active/);
+
+    // Wait for calendar to be rendered
+    await page.waitForSelector('#availabilityCalendar .calendar-day.has-slots', { state: 'visible', timeout: 10000 });
+
     await expect(page.locator('#availabilityCalendar .calendar-day.has-slots').first()).toBeVisible();
     await page.locator('#availabilityCalendar .calendar-day.has-slots').first().click();
 }
