@@ -196,7 +196,14 @@ test.describe('Checklist de Pruebas en Producción', () => {
             // Seleccionar primera opción válida
             const options = await timeSelect.locator('option').all();
             if (options.length > 1) {
-                await timeSelect.selectOption({ index: 1 });
+                // Retry selection if it fails (e.g. if options change dynamically)
+                try {
+                    await timeSelect.selectOption({ index: 1 }, { timeout: 5000 });
+                } catch (e) {
+                    // Try refreshing options
+                    await page.waitForTimeout(500);
+                    await timeSelect.selectOption({ index: 1 }, { timeout: 5000 });
+                }
             }
         }
 

@@ -33,6 +33,7 @@ class PushService
             return (string) ($item['endpoint'] ?? '') !== $endpoint;
         });
         $items[] = $normalized;
+        /** @psalm-suppress RedundantFunctionCall */
         $items = array_values($items);
 
         $store['items'] = $items;
@@ -52,6 +53,7 @@ class PushService
         $filtered = array_filter($items, static function ($item) use ($endpoint): bool {
             return (string) ($item['endpoint'] ?? '') !== $endpoint;
         });
+        /** @psalm-suppress RedundantFunctionCall */
         $filtered = array_values($filtered);
 
         if (count($filtered) === count($items)) {
