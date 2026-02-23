@@ -16,7 +16,7 @@ test('Homepage has correct deferred stylesheet version', async ({ page }) => {
 test('Subpage (Telemedicina) has correct deferred stylesheet version', async ({ page }) => {
     await page.goto('/telemedicina.html');
     const link = page.locator('link[rel="preload"][as="style"][href*="styles-deferred.css"]');
-    await expect(link).toHaveAttribute('href', new RegExp(EXPECTED_DEFERRED_VERSION));
+    await expect(link).toHaveAttribute('href', EXPECTED_HREF_PATTERN);
 });
 
 test('Service page (Acne) has correct deferred stylesheet version', async ({ page }) => {
