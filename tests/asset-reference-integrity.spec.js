@@ -39,10 +39,11 @@ function collectHtmlAssetRefs(htmlText) {
 
 function collectScriptAssetRefs(scriptText) {
     const refs = [];
-    const regex = /['"]\/([^'"]+\.(?:js|css)(?:\?[^'"]*)?)['"]/gi;
+    // Match both absolute (/path/file.js) and relative (./path/file.js) local asset refs
+    const regex = /['"](\.?\/[^'"]+\.(?:js|css)(?:\?[^'"]*)?)['"]/gi;
     let match;
     while ((match = regex.exec(scriptText)) !== null) {
-        refs.push(`/${match[1]}`);
+        refs.push(match[1]);
     }
     return refs;
 }
