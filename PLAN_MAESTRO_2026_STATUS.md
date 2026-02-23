@@ -13,6 +13,7 @@ Dominio: https://pielarmonia.com
 - Gate hash estricto: validado en 3 corridas consecutivas.
 - Workflow post-deploy ajustado para ejecutar hashes bloqueantes en `push` de forma inmediata.
 - admin.js code split completado: 71KB -> 49.7KB (bajo target <50KB). Chunks: appointments + availability bajo demanda.
+- script.js code split completado: 111KB -> 85.9KB (-25KB). Chat shell extraido a js/chunks/shell-*.js (15.2KB, lazy). HTML actualizado a type="module". Commit: 842ee92.
 - PIELARMONIA_DEBUG_EXCEPTIONS: default explicitamente `false` en env.example.php.
 - Dependencias circulares JS: investigadas y confirmadas como inexistentes en codigo actual (state.js no tiene imports del proyecto).
 
