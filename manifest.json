@@ -1,11 +1,21 @@
 {
     "name": "Piel en Armonía | Dermatología Especializada",
     "short_name": "PielArmonía",
+    "description": "Dermatología especializada en Quito. Reserva citas presenciales y online, paga de forma segura y recibe atención de calidad.",
+    "categories": [
+        "medical",
+        "health",
+        "lifestyle"
+    ],
     "start_url": "/",
+    "id": "/",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#0d1a2f",
     "orientation": "portrait",
+    "lang": "es",
+    "dir": "ltr",
+    "prefer_related_applications": false,
     "icons": [
         {
             "src": "/images/icon-192.png",
@@ -16,6 +26,55 @@
             "src": "/images/icon-512.png",
             "sizes": "512x512",
             "type": "image/png"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/images/optimized/hero-woman.jpg",
+            "sizes": "1344x768",
+            "type": "image/jpeg",
+            "form_factor": "wide",
+            "label": "Inicio - Piel en Armonía"
+        },
+        {
+            "src": "/images/optimized/showcase-hero.jpg",
+            "sizes": "1400x700",
+            "type": "image/jpeg",
+            "form_factor": "wide",
+            "label": "Nuestros servicios destacados"
+        },
+        {
+            "src": "/images/optimized/hero-woman-400.jpg",
+            "sizes": "400x229",
+            "type": "image/jpeg",
+            "form_factor": "narrow",
+            "label": "Inicio en móvil"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Reservar Cita",
+            "short_name": "Reservar",
+            "description": "Agenda tu cita con nuestros especialistas",
+            "url": "/#citas",
+            "icons": [
+                {
+                    "src": "/images/icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Telemedicina",
+            "short_name": "Online",
+            "description": "Consulta dermatológica online",
+            "url": "/telemedicina.html",
+            "icons": [
+                {
+                    "src": "/images/icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
         }
     ]
 }
