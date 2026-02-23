@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Calendar;
 
 use PHPUnit\Framework\TestCase;
+use CalendarBookingService;
+use CalendarAvailabilityService;
 
 require_once __DIR__ . '/../../../lib/common.php';
 require_once __DIR__ . '/../../../lib/metrics.php';
@@ -113,7 +115,36 @@ class CalendarBookingServiceUnitTest extends TestCase
 
         $resultFor60 = $availability->getBookedSlots($store, $date, 'rosero', 'laser');
         $this->assertTrue($resultFor60['ok']);
-        $this->assertSame(['09:00', '09:30'], $resultFor60['data']);
+        // For 60 min service:
+        // 09:00 is booked (existing appt)
+        // 09:30 is booked (overlaps existing appt 09:00-10:00)
+        // 10:00 is free (10:00-11:00 space exists if 10:30 exists?)
+        // Wait, availability slots are start times.
+        // Slots: 09:00, 09:30, 10:00, 10:30.
+        // Slot step 30 min.
+        // Existing appt: 09:00 (60m) -> Occupies 09:00-10:00.
+        //
+        // Check 09:00 (60m): Overlaps 09:00-10:00. BOOKED.
+        // Check 09:30 (60m): Needs 09:30-10:30. Overlaps 09:00-10:00. BOOKED.
+        // Check 10:00 (60m): Needs 10:00-11:00.
+        //   - 10:00 is in slots.
+        //   - 10:30 is in slots.
+        //   - 11:00 is NOT in slots.
+        //   - So 10:00 is insufficient duration?
+        //   - supportsDurationFromTemplate checks if subsequent slots exist.
+        //   - 60m needs 2 slots: current + next (30m later).
+        //   - 10:00 exists. 10:30 exists. So 10:00 supports duration? Yes.
+        //   - But 10:30 (60m) needs 10:30 + 11:00. 11:00 not in slots.
+        //   - So 10:30 should be BOOKED (insufficient duration).
+        //
+        // So for 60m request:
+        // 09:00: Booked (collision)
+        // 09:30: Booked (collision)
+        // 10:00: Free (no collision, duration ok because 10:30 exists)
+        // 10:30: Booked (insufficient duration, 11:00 missing)
+        //
+        // Expected Booked: ['09:00', '09:30', '10:30']
+        $this->assertSame(['09:00', '09:30', '10:30'], $resultFor60['data']);
     }
 
     public function testIndiferenteAssignsDoctorWithLeastLoad(): void
