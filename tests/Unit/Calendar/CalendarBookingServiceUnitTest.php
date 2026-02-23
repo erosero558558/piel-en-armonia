@@ -115,7 +115,9 @@ class CalendarBookingServiceUnitTest extends TestCase
 
         $resultFor60 = $availability->getBookedSlots($store, $date, 'rosero', 'laser');
         $this->assertTrue($resultFor60['ok']);
-        $this->assertSame(['09:00', '09:30'], $resultFor60['data']);
+        // 10:30 is included because a 60m slot starting at 10:30 needs a subsequent slot at 11:00,
+        // which is not in the template (template ends at 10:30). Thus 10:30 is unsupported/booked.
+        $this->assertSame(['09:00', '09:30', '10:30'], $resultFor60['data']);
     }
 
     public function testIndiferenteAssignsDoctorWithLeastLoad(): void
