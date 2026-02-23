@@ -29,12 +29,12 @@ class PushService
         $store = $this->readSubscriptions();
         $items = is_array($store['items'] ?? null) ? $store['items'] : [];
         $endpoint = $normalized['endpoint'];
-        $items = array_filter($items, static function ($item) use ($endpoint): bool {
+        $items = array_values(array_filter($items, static function ($item) use ($endpoint): bool {
             return (string) ($item['endpoint'] ?? '') !== $endpoint;
-        });
+        }));
         $items[] = $normalized;
 
-        $store['items'] = array_values($items);
+        $store['items'] = $items;
         $store['updatedAt'] = local_date('c');
         return $this->writeSubscriptions($store);
     }
