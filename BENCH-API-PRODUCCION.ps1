@@ -3,7 +3,7 @@ param(
     [int]$Runs = 25,
     [switch]$IncludeFigoPost,
     [int]$CoreP95MaxMs = 800,
-    [int]$FigoPostP95MaxMs = 8000
+    [int]$FigoPostP95MaxMs = 2500
 )
 
 $ErrorActionPreference = 'Stop'
@@ -139,7 +139,7 @@ function Get-BenchFailureReasons {
     }
 
     if ($Result.Name -eq 'figo-post' -and $Result.P95Ms -gt $FigoPostP95MaxMs) {
-        $reasons += 'p95_figo_post_over_2500'
+        $reasons += 'p95_figo_post_over_limit'
     }
 
     return $reasons
@@ -222,7 +222,7 @@ foreach ($result in $results) {
         Write-Host "[FAIL] $($result.Name) supera p95 de ${CoreP95MaxMs}ms (actual: $($result.P95Ms)ms)." -ForegroundColor Red
     }
 
-    if ($reasons -contains 'p95_figo_post_over_2500') {
+    if ($reasons -contains 'p95_figo_post_over_limit') {
         $failed = $true
         Write-Host "[FAIL] figo-post supera p95 de ${FigoPostP95MaxMs}ms (actual: $($result.P95Ms)ms)." -ForegroundColor Red
     }

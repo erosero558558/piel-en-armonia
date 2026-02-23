@@ -9,6 +9,7 @@ Dominio: https://pielarmonia.com
 - Chatbot: Operativo en Trinity/OpenRouter (cola OpenClaw deshabilitada por decision de producto).
 - Agenda real: Flujo create/reschedule/cancel validado contra Google Calendar en produccion.
 - Gate de produccion: Verde en modo backend (hash checks en modo warning temporal hasta 2026-03-08).
+- Umbral operativo `figo-post` endurecido a p95 <= `2500 ms` en gate/benchmark/workflow.
 - Gate hash estricto: ya valida hashes aun con deploy stale (fix aplicado en scripts de verificacion).
 
 ## Evidencia ejecutada hoy

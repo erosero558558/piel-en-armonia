@@ -2,7 +2,7 @@ param(
     [string]$Domain = 'https://pielarmonia.com',
     [int]$BenchRuns = 25,
     [int]$CoreP95MaxMs = 800,
-    [int]$FigoPostP95MaxMs = 8000,
+    [int]$FigoPostP95MaxMs = 2500,
     [switch]$AllowDegradedFigo,
     [switch]$AllowRecursiveFigo,
     [switch]$AllowMetaCspFallback,

@@ -51,7 +51,7 @@ on:
             figo_post_p95_max_ms:
                 description: 'Umbral p95 para figo-post (ms)'
                 required: false
-                default: '8000'
+                default: '2500'
                 type: string
             skip_asset_hash_checks:
                 description: 'Omitir validacion de hashes de assets'
@@ -96,7 +96,7 @@ jobs:
             VERIFY_RETRY_ATTEMPTS: ${{ github.event.inputs.verify_retry_attempts || vars.VERIFY_RETRY_ATTEMPTS || '2' }}
             VERIFY_RETRY_DELAY_SEC: ${{ github.event.inputs.verify_retry_delay_sec || vars.VERIFY_RETRY_DELAY_SEC || '75' }}
             CORE_P95_MAX_MS: ${{ github.event.inputs.core_p95_max_ms || vars.CORE_P95_MAX_MS || '800' }}
-            FIGO_POST_P95_MAX_MS: ${{ github.event.inputs.figo_post_p95_max_ms || vars.FIGO_POST_P95_MAX_MS || '8000' }}
+            FIGO_POST_P95_MAX_MS: ${{ github.event.inputs.figo_post_p95_max_ms || vars.FIGO_POST_P95_MAX_MS || '2500' }}
             EVENT_NAME: ${{ github.event_name }}
             SKIP_ASSET_HASH_CHECKS_INPUT: ${{ github.event.inputs.skip_asset_hash_checks || 'false' }}
             FORCE_ASSET_HASH_CHECKS_INPUT: ${{ github.event.inputs.force_asset_hash_checks || 'false' }}
