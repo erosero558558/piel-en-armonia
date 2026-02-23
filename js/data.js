@@ -13,6 +13,7 @@ import {
     observeOnceWhenVisible,
     scheduleDeferredTask,
 } from './loader.js';
+import { getCaptchaToken } from './captcha.js';
 
 const DATA_ENGINE_URL = withDeployAssetVersion(
     '/js/engines/data-engine.js?v=figo-data-20260219-phase1'
@@ -21,6 +22,7 @@ const DATA_ENGINE_URL = withDeployAssetVersion(
 function getDataEngineDeps() {
     return {
         getCurrentLang: () => state.currentLang,
+        getCaptchaToken,
         showToast,
         storageGetJSON,
         storageSetJSON,

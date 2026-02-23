@@ -69,6 +69,24 @@ if (is_file($contentFile)) {
                 $script = $dom->createElement('script');
                 $script->textContent = 'window.PIEL_CONTENT = ' . $contentJson . ';';
                 $head->appendChild($script);
+
+                // Inject Runtime Configuration (Captcha, etc.)
+                $captchaProvider = function_exists('captcha_get_provider') ? captcha_get_provider() : null;
+                $captchaSiteKey = function_exists('captcha_get_site_key') ? captcha_get_site_key() : null;
+                $captchaScriptUrl = function_exists('captcha_get_script_url') ? captcha_get_script_url() : null;
+
+                $pielConfig = [
+                    'captcha' => [
+                        'provider' => $captchaProvider,
+                        'siteKey' => $captchaSiteKey,
+                        'scriptUrl' => $captchaScriptUrl,
+                    ]
+                ];
+                $pielConfigJson = json_encode($pielConfig, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
+                $configScript = $dom->createElement('script');
+                $configScript->textContent = 'window.Piel = window.Piel || {}; window.Piel.config = ' . $pielConfigJson . ';';
+                $head->appendChild($configScript);
             }
 
             $indexHtml = $dom->saveHTML();

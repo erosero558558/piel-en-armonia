@@ -31,6 +31,7 @@ import {
     getBookedSlots,
     createAppointmentRecord,
 } from '../../../js/data.js';
+import { getCaptchaToken } from '../../../js/captcha.js';
 import {
     startCheckoutSession,
     setCheckoutStep,
@@ -290,6 +291,7 @@ function getChatBookingEngineDeps() {
         setCheckoutStep,
         completeCheckoutSession,
         createAppointmentRecord,
+        getCaptchaToken,
         showToast,
         trackEvent,
         escapeHtml,
