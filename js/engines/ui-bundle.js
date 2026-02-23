@@ -591,10 +591,6 @@ END:VCALENDAR`;
 
         const active = isActive === true;
         banner.classList.toggle('active', active);
-
-        if (document.body) {
-            document.body.classList.toggle('cookie-banner-active', active);
-        }
     }
 
     function handleConsentAction(action) {

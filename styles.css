@@ -470,7 +470,8 @@ img {
 
 .hero {
     min-height: 96vh;
-    padding: 178px 0 118px;
+    min-height: 96svh;
+    padding: 0;
     position: relative;
     display: grid;
     align-items: center;
@@ -517,6 +518,7 @@ img {
     display: flex;
     flex-direction: column;
     gap: 24px;
+    padding: 178px 0 118px;
 }
 
 .hero-trust-bar {
@@ -584,7 +586,7 @@ html[data-theme='dark'] .hero-trust-bar .separator {
     color: #1d1d1f;
     letter-spacing: -0.03em;
     max-width: 780px;
-    animation: fadeInUp 0.8s var(--ui-ease-sony) backwards;
+    animation: fadeIn 0.6s var(--ui-ease-sony) backwards;
     animation-delay: 0.1s;
 }
 
@@ -608,7 +610,7 @@ html[data-theme='dark'] .hero-trust-bar .separator {
     font-size: clamp(1rem, 2vw, 1.25rem);
     line-height: 1.62;
     color: #424245;
-    animation: fadeInUp 0.8s var(--ui-ease-sony) backwards;
+    animation: fadeIn 0.6s var(--ui-ease-sony) backwards;
     animation-delay: 0.2s;
 }
 
@@ -616,7 +618,7 @@ html[data-theme='dark'] .hero-trust-bar .separator {
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
-    animation: fadeInUp 0.8s var(--ui-ease-sony) backwards;
+    animation: fadeIn 0.6s var(--ui-ease-sony) backwards;
     animation-delay: 0.3s;
 }
 
@@ -631,7 +633,7 @@ html[data-theme='dark'] .hero-trust-bar .separator {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
-    animation: fadeInUp 0.8s var(--ui-ease-sony) backwards;
+    animation: fadeIn 0.6s var(--ui-ease-sony) backwards;
     animation-delay: 0.4s;
 }
 
@@ -666,7 +668,7 @@ html[data-theme='dark'] .hero-trust-bar .separator {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
     width: min(100%, 820px);
-    animation: fadeInUp 0.8s var(--ui-ease-sony) backwards;
+    animation: fadeIn 0.6s var(--ui-ease-sony) backwards;
     animation-delay: 0.5s;
 }
 
@@ -779,7 +781,11 @@ html[data-theme='dark'] .hero-trust-bar .separator {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    transition: all var(--ui-ease);
+    transition:
+        background-color var(--ui-ease),
+        color var(--ui-ease),
+        border-color var(--ui-ease),
+        box-shadow var(--ui-ease);
 }
 
 .quick-dock-item:hover {
@@ -1028,10 +1034,11 @@ html[data-theme='dark'] .hero-trust-bar .separator {
 
 .cookie-banner {
     position: fixed;
-    left: 16px;
-    right: 16px;
-    bottom: 16px;
-    z-index: 2500;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(960px, calc(100% - 32px));
+    bottom: calc(76px + var(--safe-bottom));
+    z-index: 2150;
     display: none;
     align-items: center;
     justify-content: space-between;
@@ -1047,13 +1054,10 @@ html[data-theme='dark'] .hero-trust-bar .separator {
     display: flex;
 }
 
-/* Keep chat and quick actions reachable while consent banner is visible. */
-body.cookie-banner-active .chatbot-widget {
-    bottom: calc(152px + var(--safe-bottom));
-}
-
+/* Keep layout stable when consent state toggles. */
+body.cookie-banner-active .chatbot-widget,
 body.cookie-banner-active .quick-dock {
-    bottom: calc(106px + var(--safe-bottom));
+    transition: bottom var(--ui-ease);
 }
 
 .cookie-text {
@@ -1451,13 +1455,13 @@ html[data-theme='dark'] .cookie-link {
 
     .hero {
         min-height: auto;
-        padding: calc(138px + var(--safe-top)) 0 74px;
     }
 
     .hero-content {
         align-items: center;
         text-align: center;
         gap: 16px;
+        padding: calc(138px + var(--safe-top)) 0 74px;
     }
 
     .hero-title {
@@ -1556,15 +1560,9 @@ html[data-theme='dark'] .cookie-link {
     .cookie-banner {
         left: 8px;
         right: 8px;
-        bottom: calc(8px + var(--safe-bottom));
-    }
-
-    body.cookie-banner-active .chatbot-widget {
-        bottom: calc(176px + var(--safe-bottom));
-    }
-
-    body.cookie-banner-active .quick-dock {
-        bottom: calc(102px + var(--safe-bottom));
+        transform: none;
+        width: auto;
+        bottom: calc(76px + var(--safe-bottom));
     }
 }
 
@@ -1621,7 +1619,7 @@ html[data-theme='dark'] .cookie-link {
         padding: 13px 12px;
     }
 
-    .hero {
+    .hero-content {
         padding-top: calc(150px + var(--safe-top));
         padding-bottom: 70px;
     }
@@ -1656,10 +1654,6 @@ html[data-theme='dark'] .cookie-link {
     .chatbot-widget {
         right: 10px;
         bottom: calc(76px + var(--safe-bottom));
-    }
-
-    body.cookie-banner-active .chatbot-widget {
-        bottom: calc(192px + var(--safe-bottom));
     }
 
     .chatbot-container {

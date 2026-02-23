@@ -3222,29 +3222,10 @@ html[data-theme='dark'] .map-placeholder:hover .map-placeholder-content i {
     }
 }
 
-/* Keep chat and quick actions reachable while consent banner is visible. */
-body.cookie-banner-active .chatbot-widget {
-    bottom: calc(152px + var(--safe-bottom));
-}
-
+/* Keep layout stable when consent state toggles. */
+body.cookie-banner-active .chatbot-widget,
 body.cookie-banner-active .quick-dock {
-    bottom: calc(106px + var(--safe-bottom));
-}
-
-@media (max-width: 900px) {
-    body.cookie-banner-active .chatbot-widget {
-        bottom: calc(176px + var(--safe-bottom));
-    }
-
-    body.cookie-banner-active .quick-dock {
-        bottom: calc(102px + var(--safe-bottom));
-    }
-}
-
-@media (max-width: 640px) {
-    body.cookie-banner-active .chatbot-widget {
-        bottom: calc(192px + var(--safe-bottom));
-    }
+    transition: bottom var(--ui-ease);
 }
 
 /* ========================================
@@ -3280,7 +3261,11 @@ body.cookie-banner-active .quick-dock {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    transition: all var(--ui-ease);
+    transition:
+        background-color var(--ui-ease),
+        color var(--ui-ease),
+        border-color var(--ui-ease),
+        box-shadow var(--ui-ease);
 }
 
 .quick-dock-item:hover {
@@ -3529,10 +3514,11 @@ body.cookie-banner-active .quick-dock {
 
 .cookie-banner {
     position: fixed;
-    left: 16px;
-    right: 16px;
-    bottom: 16px;
-    z-index: 2500;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(960px, calc(100% - 32px));
+    bottom: calc(76px + var(--safe-bottom));
+    z-index: 2150;
     display: none;
     align-items: center;
     justify-content: space-between;
@@ -3546,6 +3532,16 @@ body.cookie-banner-active .quick-dock {
 
 .cookie-banner.active {
     display: flex;
+}
+
+@media (max-width: 900px) {
+    .cookie-banner {
+        left: 8px;
+        right: 8px;
+        transform: none;
+        width: auto;
+        bottom: calc(76px + var(--safe-bottom));
+    }
 }
 
 .cookie-text {
@@ -4097,23 +4093,8 @@ html[data-theme='dark'] .payment-modal [data-action='process-payment'] {
     }
 }
 
-/* Keep floating actions clickable while cookie banner is active */
-body.cookie-banner-active .chatbot-widget {
-    bottom: calc(152px + var(--safe-bottom)) !important;
-}
+/* Keep layout stable when consent state toggles. */
+body.cookie-banner-active .chatbot-widget,
 body.cookie-banner-active .quick-dock {
-    bottom: calc(106px + var(--safe-bottom)) !important;
-}
-@media (max-width: 900px) {
-    body.cookie-banner-active .chatbot-widget {
-        bottom: calc(176px + var(--safe-bottom)) !important;
-    }
-    body.cookie-banner-active .quick-dock {
-        bottom: calc(102px + var(--safe-bottom)) !important;
-    }
-}
-@media (max-width: 640px) {
-    body.cookie-banner-active .chatbot-widget {
-        bottom: calc(192px + var(--safe-bottom)) !important;
-    }
+    transition: bottom var(--ui-ease) !important;
 }
