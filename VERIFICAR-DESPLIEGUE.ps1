@@ -362,6 +362,43 @@ function Test-HeadTouchesFrontendAssets {
     }
 }
 
+function Get-HeadChangedFiles {
+    try {
+        $changedRaw = (& git diff --name-only HEAD~1 HEAD 2>$null)
+        if ($LASTEXITCODE -ne 0 -or $null -eq $changedRaw) {
+            return $null
+        }
+
+        return @($changedRaw | ForEach-Object {
+            $line = [string]$_
+            if (-not [string]::IsNullOrWhiteSpace($line)) {
+                $line.Trim().Replace('\', '/')
+            }
+        } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    } catch {
+        return $null
+    }
+}
+
+function Test-ChangedFilesMatchPatterns {
+    param(
+        [string[]]$ChangedFiles,
+        [string[]]$Patterns
+    )
+
+    if ($null -eq $ChangedFiles -or $ChangedFiles.Count -eq 0) {
+        return $false
+    }
+    foreach ($file in $ChangedFiles) {
+        foreach ($pattern in $Patterns) {
+            if ($file -match $pattern) {
+                return $true
+            }
+        }
+    }
+    return $false
+}
+
 Write-Host "== Verificacion de despliegue =="
 Write-Host "Dominio: $base"
 Write-Host "Fecha: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
@@ -373,9 +410,42 @@ $deployFreshnessDeltaSeconds = 0
 $deployFreshnessLocalHash = ''
 $deployFreshnessLocalCommitUtc = ''
 $deployFreshnessRemoteLastModifiedUtc = ''
+$deployFreshnessProbeName = 'app-script'
+$deployFreshnessProbeUrl = ''
 
-$headTouchesFrontendAssets = Test-HeadTouchesFrontendAssets
-if (-not $headTouchesFrontendAssets) {
+$changedFiles = Get-HeadChangedFiles
+$changedFilesKnown = ($null -ne $changedFiles)
+$headTouchesFrontendAssets = $true
+$headTouchesScriptFamily = $true
+$headTouchesStyles = $true
+$headTouchesDeferredStyles = $true
+$headTouchesIndex = $true
+
+if ($changedFilesKnown) {
+    $headTouchesFrontendAssets = Test-ChangedFilesMatchPatterns -ChangedFiles $changedFiles -Patterns @(
+        '^index\.html$',
+        '^script\.js$',
+        '^styles\.css$',
+        '^styles-deferred\.css$',
+        '^js/engines/',
+        '^js/main\.js$',
+        '^src/apps/',
+        '^src/styles/',
+        '^rollup\.config\.mjs$'
+    )
+    $headTouchesScriptFamily = Test-ChangedFilesMatchPatterns -ChangedFiles $changedFiles -Patterns @(
+        '^script\.js$',
+        '^js/engines/',
+        '^js/main\.js$',
+        '^src/apps/',
+        '^rollup\.config\.mjs$'
+    )
+    $headTouchesStyles = Test-ChangedFilesMatchPatterns -ChangedFiles $changedFiles -Patterns @('^styles\.css$')
+    $headTouchesDeferredStyles = Test-ChangedFilesMatchPatterns -ChangedFiles $changedFiles -Patterns @('^styles-deferred\.css$')
+    $headTouchesIndex = Test-ChangedFilesMatchPatterns -ChangedFiles $changedFiles -Patterns @('^index\.html$')
+}
+
+if (-not $headTouchesFrontendAssets -and $changedFilesKnown) {
     $deployFreshnessFailRequired = $false
     Write-Host "[INFO] Deploy freshness en modo advisory: HEAD no cambia assets frontend."
 }
@@ -498,11 +568,26 @@ if ($deployAssetVersion -eq '') {
 }
 
 try {
-    if (-not [string]::IsNullOrWhiteSpace($appScriptRemoteUrl)) {
+    $deployFreshnessProbeName = 'app-script'
+    $deployFreshnessProbeUrl = $appScriptRemoteUrl
+    if (-not $headTouchesScriptFamily) {
+        if ($headTouchesDeferredStyles -and -not [string]::IsNullOrWhiteSpace($indexDeferredStylesRemoteUrl)) {
+            $deployFreshnessProbeName = 'styles-deferred'
+            $deployFreshnessProbeUrl = $indexDeferredStylesRemoteUrl
+        } elseif ($headTouchesStyles -and -not [string]::IsNullOrWhiteSpace($criticalCssRemoteUrl)) {
+            $deployFreshnessProbeName = 'styles'
+            $deployFreshnessProbeUrl = $criticalCssRemoteUrl
+        } elseif ($headTouchesIndex) {
+            $deployFreshnessProbeName = 'index'
+            $deployFreshnessProbeUrl = "$base/"
+        }
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($deployFreshnessProbeUrl)) {
         $localHead = Get-LocalGitHeadInfo
         if ($null -ne $localHead) {
             $deployFreshnessChecked = $true
-            $scriptHeadResp = Invoke-WebRequest -Uri $appScriptRemoteUrl -Method HEAD -TimeoutSec 30 -UseBasicParsing -Headers @{
+            $scriptHeadResp = Invoke-WebRequest -Uri $deployFreshnessProbeUrl -Method HEAD -TimeoutSec 30 -UseBasicParsing -Headers @{
                 'Cache-Control' = 'no-cache'
                 'User-Agent' = 'PielArmoniaDeployCheck/1.0'
             }
@@ -517,14 +602,14 @@ try {
                 $deployFreshnessRemoteLastModifiedUtc = $remoteLastModifiedUtc.ToString('u')
                 if ($deltaSeconds -gt 180) {
                     $deployFreshnessStale = $true
-                    Write-Host "[WARN] deploy freshness: remoto mas viejo que HEAD local"
+                    Write-Host "[WARN] deploy freshness ($deployFreshnessProbeName): remoto mas viejo que HEAD local"
                     Write-Host "       Local HEAD : $($localHead.Hash) @ $($localHead.CommitUtc.ToString('u'))"
                     Write-Host "       Remote LM  : $($remoteLastModifiedUtc.ToString('u'))"
                     if (-not [string]::IsNullOrWhiteSpace($ageRaw)) {
                         Write-Host "       CDN Age    : ${ageRaw}s"
                     }
                 } else {
-                    Write-Host "[OK]  deploy freshness dentro de margen (${deltaSeconds}s)"
+                    Write-Host "[OK]  deploy freshness ($deployFreshnessProbeName) dentro de margen (${deltaSeconds}s)"
                 }
             } else {
                 Write-Host '[WARN] deploy freshness: Last-Modified no disponible'
@@ -545,7 +630,7 @@ if ($deployFreshnessChecked -and $deployFreshnessStale) {
             Match = $false
             LocalHash = "$deployFreshnessLocalHash @ $deployFreshnessLocalCommitUtc"
             RemoteHash = "last-modified @ $deployFreshnessRemoteLastModifiedUtc"
-            RemoteUrl = $appScriptRemoteUrl
+            RemoteUrl = $deployFreshnessProbeUrl
             DeltaSeconds = $deployFreshnessDeltaSeconds
         }
     } else {
