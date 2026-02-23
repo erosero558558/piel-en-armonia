@@ -65,6 +65,11 @@ echo "Backups before write: $countBefore\n";
 
 // Prepare payload
 $tomorrow = date('Y-m-d', strtotime('+1 day'));
+
+// Seed availability for tomorrow to allow booking
+$initialStore['availability'][$tomorrow] = ['10:00'];
+file_put_contents($tempDir . '/store.json', json_encode($initialStore));
+
 $payload = [
     'name' => 'Backup Test User',
     'email' => 'backup@test.com',
