@@ -146,27 +146,6 @@ jobs:
                   if ($forceAssetHashChecksInput.ToLowerInvariant() -eq 'true') {
                     $forceAssetHashChecks = $true
                   }
-                  if (
-                    $env:EVENT_NAME -eq 'push' -and
-                    -not $skipAssetHashChecks -and
-                    -not $forceAssetHashChecks
-                  ) {
-                    $deadlineRaw = [string]$env:ASSET_HASH_WARNING_UNTIL_INPUT
-                    $withinWarningWindow = $false
-                    if (-not [string]::IsNullOrWhiteSpace($deadlineRaw)) {
-                      try {
-                        $deadline = [DateTimeOffset]::Parse($deadlineRaw)
-                        if ([DateTimeOffset]::UtcNow -le $deadline.ToUniversalTime()) {
-                          $withinWarningWindow = $true
-                        }
-                      } catch {
-                        Write-Host "[WARN] No se pudo parsear ASSET_HASH_WARNING_UNTIL_INPUT='$deadlineRaw'."
-                      }
-                    }
-                    if ($withinWarningWindow) {
-                      $skipAssetHashChecks = $true
-                    }
-                  }
                   if ($forceAssetHashChecks) {
                     $skipAssetHashChecks = $false
                   }
