@@ -177,6 +177,7 @@ test.describe('Chat booking con agenda real: errores de calendario', () => {
     test('calendar_unreachable devuelve mensaje claro y vuelve al paso de fecha', async ({
         page,
     }, testInfo) => {
+        // eslint-disable-next-line playwright/no-skipped-test
         test.skip(
             !isLocalBaseUrl(testInfo),
             'Este test valida comportamiento del build local antes de desplegar.'
@@ -203,6 +204,7 @@ test.describe('Chat booking con agenda real: errores de calendario', () => {
     test('slot_unavailable devuelve mensaje de horario ocupado y vuelve a fecha', async ({
         page,
     }, testInfo) => {
+        // eslint-disable-next-line playwright/no-skipped-test
         test.skip(
             !isLocalBaseUrl(testInfo),
             'Este test valida comportamiento del build local antes de desplegar.'
