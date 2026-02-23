@@ -88,20 +88,21 @@ jobs:
         runs-on: windows-latest
         timeout-minutes: 55
         env:
-            TARGET_DOMAIN: ${{ github.event.inputs.domain || 'https://pielarmonia.com' }}
-            BENCH_RUNS: ${{ github.event.inputs.bench_runs || '25' }}
-            WAIT_SECONDS: ${{ github.event.inputs.wait_seconds || '120' }}
-            ASSET_HASH_RETRY_COUNT: ${{ github.event.inputs.asset_hash_retry_count || '2' }}
-            ASSET_HASH_RETRY_DELAY_SEC: ${{ github.event.inputs.asset_hash_retry_delay_sec || '4' }}
-            VERIFY_RETRY_ATTEMPTS: ${{ github.event.inputs.verify_retry_attempts || '2' }}
-            VERIFY_RETRY_DELAY_SEC: ${{ github.event.inputs.verify_retry_delay_sec || '75' }}
-            CORE_P95_MAX_MS: ${{ github.event.inputs.core_p95_max_ms || '800' }}
-            FIGO_POST_P95_MAX_MS: ${{ github.event.inputs.figo_post_p95_max_ms || '8000' }}
+            TARGET_DOMAIN: ${{ github.event.inputs.domain || vars.TARGET_DOMAIN || 'https://pielarmonia.com' }}
+            BENCH_RUNS: ${{ github.event.inputs.bench_runs || vars.BENCH_RUNS || '25' }}
+            WAIT_SECONDS: ${{ github.event.inputs.wait_seconds || vars.WAIT_SECONDS || '120' }}
+            ASSET_HASH_RETRY_COUNT: ${{ github.event.inputs.asset_hash_retry_count || vars.ASSET_HASH_RETRY_COUNT || '2' }}
+            ASSET_HASH_RETRY_DELAY_SEC: ${{ github.event.inputs.asset_hash_retry_delay_sec || vars.ASSET_HASH_RETRY_DELAY_SEC || '4' }}
+            VERIFY_RETRY_ATTEMPTS: ${{ github.event.inputs.verify_retry_attempts || vars.VERIFY_RETRY_ATTEMPTS || '2' }}
+            VERIFY_RETRY_DELAY_SEC: ${{ github.event.inputs.verify_retry_delay_sec || vars.VERIFY_RETRY_DELAY_SEC || '75' }}
+            CORE_P95_MAX_MS: ${{ github.event.inputs.core_p95_max_ms || vars.CORE_P95_MAX_MS || '800' }}
+            FIGO_POST_P95_MAX_MS: ${{ github.event.inputs.figo_post_p95_max_ms || vars.FIGO_POST_P95_MAX_MS || '8000' }}
             EVENT_NAME: ${{ github.event_name }}
             SKIP_ASSET_HASH_CHECKS_INPUT: ${{ github.event.inputs.skip_asset_hash_checks || 'false' }}
             FORCE_ASSET_HASH_CHECKS_INPUT: ${{ github.event.inputs.force_asset_hash_checks || 'false' }}
-            ASSET_HASH_WARNING_UNTIL_INPUT: ${{ github.event.inputs.asset_hash_warning_until || '2026-03-08T23:59:59-05:00' }}
+            ASSET_HASH_WARNING_UNTIL_INPUT: ${{ github.event.inputs.asset_hash_warning_until || vars.ASSET_HASH_WARNING_UNTIL || '2026-03-08T23:59:59-05:00' }}
             SKIP_FIGO_POST_BENCH_INPUT: ${{ github.event.inputs.skip_figo_post_bench || 'false' }}
+            ENVIRONMENT_NAME: ${{ vars.ENVIRONMENT_NAME || 'PROD' }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -225,7 +226,8 @@ jobs:
                   script: |
                       const owner = context.repo.owner;
                       const repo = context.repo.repo;
-                      const title = '[ALERTA PROD] Gate post-deploy fallando';
+                      const envName = process.env.ENVIRONMENT_NAME || 'PROD';
+                      const title = `[ALERTA ${envName}] Gate post-deploy fallando`;
                       const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
                       const now = new Date().toISOString();
                       const body = [
@@ -270,7 +272,8 @@ jobs:
                   script: |
                       const owner = context.repo.owner;
                       const repo = context.repo.repo;
-                      const title = '[ALERTA PROD] Gate post-deploy fallando';
+                      const envName = process.env.ENVIRONMENT_NAME || 'PROD';
+                      const title = `[ALERTA ${envName}] Gate post-deploy fallando`;
                       const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
                       const now = new Date().toISOString();
 
