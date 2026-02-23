@@ -78,7 +78,7 @@
 // Polling sugerido para frontend
 // putenv('OPENCLAW_POLL_AFTER_MS=800');
 // Tiempo maximo (segundos) que cada poll puede usar para procesar el job
-// putenv('OPENCLAW_POLL_PROCESS_TIMEOUT_SEC=4');
+// putenv('OPENCLAW_POLL_PROCESS_TIMEOUT_SEC=8');
 // Trigger local al encolar (opcional)
 // putenv('OPENCLAW_TRIGGER_MAX_JOBS=1');
 // putenv('OPENCLAW_TRIGGER_TIME_BUDGET_MS=900');

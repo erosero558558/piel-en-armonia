@@ -274,7 +274,7 @@ function figo_queue_poll_after_ms(): int
 
 function figo_queue_poll_process_timeout_seconds(): int
 {
-    return figo_queue_clamp_int(getenv('OPENCLAW_POLL_PROCESS_TIMEOUT_SEC'), 4, 1, 20);
+    return figo_queue_clamp_int(getenv('OPENCLAW_POLL_PROCESS_TIMEOUT_SEC'), 8, 1, 20);
 }
 
 function figo_queue_allow_client_model(): bool
