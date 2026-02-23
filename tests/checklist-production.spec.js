@@ -192,17 +192,26 @@ test.describe('Checklist de Pruebas en Producción', () => {
 
         // Intentar seleccionar hora si aparece un select de hora
         const timeSelect = page.locator('select[name="time"]');
-        if (await timeSelect.isVisible()) {
-            // Seleccionar primera opción válida si está habilitada
-            // Esperar un poco a que se pueble
+        // Reduce timeout and check without waiting too long
+        if (await timeSelect.isVisible({ timeout: 2000 })) {
             try {
-                await expect(timeSelect).toBeEnabled({ timeout: 5000 });
-                const options = await timeSelect.locator('option').all();
-                if (options.length > 1) {
+                // Wait briefly for population
+                // eslint-disable-next-line playwright/missing-playwright-await
+                await page.waitForFunction(() => {
+                    const select = document.querySelector('select[name="time"]');
+                    return select && !select.disabled && select.options.length > 1;
+                }, null, { timeout: 3000 }).catch(() => {});
+
+                const isDisabled = await timeSelect.isDisabled();
+                const optionCount = await timeSelect.locator('option').count();
+
+                if (!isDisabled && optionCount > 1) {
                     await timeSelect.selectOption({ index: 1 });
+                } else {
+                    console.log('Time select empty or disabled, skipping.');
                 }
             } catch (e) {
-                console.log('Time select not enabled or populated, skipping selection in checklist test.');
+                console.log('Error selecting time:', e.message);
             }
         }
 

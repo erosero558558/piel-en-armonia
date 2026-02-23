@@ -29,6 +29,7 @@ class PushService
         $store = $this->readSubscriptions();
         $items = is_array($store['items'] ?? null) ? $store['items'] : [];
         $endpoint = $normalized['endpoint'];
+        /** @psalm-suppress RedundantFunctionCall */
         $items = array_values(array_filter($items, static function ($item) use ($endpoint): bool {
             return (string) ($item['endpoint'] ?? '') !== $endpoint;
         }));
@@ -56,7 +57,8 @@ class PushService
             return true;
         }
 
-        $store['items'] = $filtered;
+        /** @psalm-suppress RedundantFunctionCall */
+        $store['items'] = array_values($filtered);
         $store['updatedAt'] = local_date('c');
         return $this->writeSubscriptions($store);
     }
