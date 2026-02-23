@@ -18,9 +18,13 @@ if (!is_dir($tempDir)) {
 $backupDir = $tempDir . '/backups';
 
 // Initialize empty store to prevent migration from other directories
+// Seed availability for tomorrow to ensure booking succeeds
+$tomorrow = date('Y-m-d', strtotime('+1 day'));
 $initialStore = [
     'appointments' => [],
-    'availability' => [],
+    'availability' => [
+        $tomorrow => ['09:00', '10:00', '11:00']
+    ],
     'reviews' => [],
     'callbacks' => [],
     'updatedAt' => date('c'),
@@ -64,7 +68,7 @@ $countBefore = is_array($filesBefore) ? count($filesBefore) : 0;
 echo "Backups before write: $countBefore\n";
 
 // Prepare payload
-$tomorrow = date('Y-m-d', strtotime('+1 day'));
+// $tomorrow is already defined above
 $payload = [
     'name' => 'Backup Test User',
     'email' => 'backup@test.com',

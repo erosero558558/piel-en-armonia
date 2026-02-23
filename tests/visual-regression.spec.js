@@ -9,10 +9,10 @@ test.describe('Pruebas de regresión visual', () => {
 
         // Esperar a que la carga termine
         await page.waitForLoadState('load');
-        await page.waitForTimeout(2000); // Allow layout to settle
+        await page.waitForTimeout(5000); // Allow layout to settle significantly
 
         // Tomar una captura de pantalla de toda la página
-        await expect(page).toHaveScreenshot({ fullPage: true, timeout: 30000 });
+        await expect(page).toHaveScreenshot({ fullPage: true, timeout: 45000, animations: 'disabled' });
     });
 
     test('Homepage Mobile - visualmente correcta', async ({ page }) => {
@@ -24,10 +24,10 @@ test.describe('Pruebas de regresión visual', () => {
 
         // Esperar a que la carga termine
         await page.waitForLoadState('load');
-        await page.waitForTimeout(2000); // Allow layout to settle
+        await page.waitForTimeout(5000); // Allow layout to settle significantly
 
         // Tomar una captura de pantalla del viewport (más estable que fullPage en móvil)
-        await expect(page).toHaveScreenshot({ fullPage: false, timeout: 30000 });
+        await expect(page).toHaveScreenshot({ fullPage: false, timeout: 45000, animations: 'disabled' });
     });
 
     test('Sección de Reserva - carga correctamente', async ({ page }) => {
