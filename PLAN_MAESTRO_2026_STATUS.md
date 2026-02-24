@@ -36,8 +36,12 @@ Dominio: https://pielarmonia.com
 - CI run `22337042402` (commit `03c9ace`): `success`.
 - Post-Deploy Gate run `22337042395` (commit `03c9ace`): `success`.
 - Deploy Hosting (Canary) run `22337088362` (commit `03c9ace`): `success`.
+- CI run `22337574855` (commit `fe06cbc`): `success`.
+- Post-Deploy Gate run `22337574884` (commit `fe06cbc`): `success`.
+- Deploy Hosting (Canary) run `22337629002` (commit `fe06cbc`): `success`.
 - Convencion anti-bucle: este snapshot registra evidencia de cambios operativos/codigo; no se agregan corridas originadas solo por commits `docs(status)` para evitar recursividad documental.
 - Hardening workflows: override manual `require_google_calendar` habilitado en `Post-Deploy Gate` y `Production Monitor`.
+- Fase 2: suite `test:phase2` incorporada (paridad web/chat + concurrencia real opcional segun `TEST_ENABLE_CALENDAR_WRITE`).
 - Estado general: En curso. CI desbloqueado y pipeline activo tras fix de calendar runtime.
 - Chatbot: Operativo en Trinity/OpenRouter (cola OpenClaw deshabilitada por decision de producto).
 - Agenda real: activa en produccion (`calendarSource=google`, `calendarAuth=oauth_refresh`, `calendarMode=live`).
@@ -171,6 +175,14 @@ Dominio: https://pielarmonia.com
   - `Validar contrato Google Calendar (no destructivo)`: `success`
 - Interpretacion operativa: se valida cierre del criterio estricto de calendario para Fase 1.
 
+17. Suite automatizada para criterios de Fase 2
+- Commit: `fe06cbc`.
+- Cobertura:
+  - Concurrencia real en mismo slot (esperado `201 + 409 slot_conflict`) con cleanup admin.
+  - Paridad de oferta de slots entre web y chat para misma fecha/servicio.
+- Ejecucion CI:
+  - `npm run test:phase2` en job `e2e-tests` (con `TEST_ENABLE_CALENDAR_WRITE=false`, valida paridad y deja concurrencia real para corrida controlada).
+
 ## Estado por fases del plan unico
 
 1. Fase 0 - Control unico y anti-bucle: Completada.
@@ -255,7 +267,7 @@ Dominio: https://pielarmonia.com
 
 ## Siguiente ejecucion recomendada
 
-1. Ejecutar test de concurrencia de reservas para cierre de Fase 2 (esperado: `201` + `409 slot_conflict`).
+1. Ejecutar test de concurrencia de reservas para cierre de Fase 2 (esperado: `201` + `409 slot_conflict`) con `TEST_ENABLE_CALENDAR_WRITE=true TEST_ADMIN_PASSWORD=<secret> npm run test:phase2`.
 2. Ejecutar validacion de paridad web/chat para misma fecha y servicio.
 3. Confirmar primer evento en Sentry dashboard (Sentry ya activo en produccion).
 4. Mantener monitoreo semanal de p95 `availability` para detectar picos transitorios.
