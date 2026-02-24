@@ -260,8 +260,10 @@ test('agent-governance-summary genera JSON/Markdown y escribe artefactos', (t) =
 
     const jsonPath = join(dir, outJson);
     const mdPath = join(dir, outMd);
+    const metricsPath = join(dir, 'verification', 'agent-metrics.json');
     assert.equal(existsSync(jsonPath), true);
     assert.equal(existsSync(mdPath), true);
+    assert.equal(existsSync(metricsPath), false);
 
     const writtenJson = JSON.parse(readFileSync(jsonPath, 'utf8'));
     const writtenMd = readFileSync(mdPath, 'utf8');

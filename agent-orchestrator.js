@@ -1743,6 +1743,7 @@ function safeNumber(value, fallback = 0) {
 
 function cmdMetrics(args = []) {
     const wantsJson = args.includes('--json');
+    const noWrite = args.includes('--no-write');
     const board = parseBoard();
     const handoffData = parseHandoffs();
     const conflictAnalysis = analyzeConflicts(
@@ -1890,24 +1891,30 @@ function cmdMetrics(args = []) {
         },
     };
 
-    mkdirSync(dirname(METRICS_PATH), { recursive: true });
-    writeFileSync(
-        METRICS_PATH,
-        `${JSON.stringify(metrics, null, 4)}\n`,
-        'utf8'
-    );
-    writeFileSync(
-        CONTRIBUTION_HISTORY_PATH,
-        `${JSON.stringify(nextContributionHistory, null, 4)}\n`,
-        'utf8'
-    );
-    writeFileSync(
-        DOMAIN_HEALTH_HISTORY_PATH,
-        `${JSON.stringify(nextDomainHealthHistory, null, 4)}\n`,
-        'utf8'
-    );
+    if (!noWrite) {
+        mkdirSync(dirname(METRICS_PATH), { recursive: true });
+        writeFileSync(
+            METRICS_PATH,
+            `${JSON.stringify(metrics, null, 4)}\n`,
+            'utf8'
+        );
+        writeFileSync(
+            CONTRIBUTION_HISTORY_PATH,
+            `${JSON.stringify(nextContributionHistory, null, 4)}\n`,
+            'utf8'
+        );
+        writeFileSync(
+            DOMAIN_HEALTH_HISTORY_PATH,
+            `${JSON.stringify(nextDomainHealthHistory, null, 4)}\n`,
+            'utf8'
+        );
+    }
     if (wantsJson) {
         console.log(JSON.stringify(metrics, null, 2));
+        return;
+    }
+    if (noWrite) {
+        console.log('Metricas calculadas (no-write).');
         return;
     }
     console.log(`Metricas actualizadas en ${METRICS_PATH}`);

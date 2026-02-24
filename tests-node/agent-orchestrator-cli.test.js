@@ -577,6 +577,42 @@ test('metrics soporta --json, escribe archivo y expone delta/baseline handoff', 
     assert.equal(typeof domainHistory.snapshots[0].date, 'string');
 });
 
+test('metrics soporta --no-write y no persiste archivos runtime', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForConflictFixture({ codexStatus: 'in_progress' }),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithCodexBlock({ status: 'in_progress' }),
+    });
+
+    const result = runCli(dir, ['metrics', '--json', '--no-write']);
+    const json = parseJsonStdout(result);
+
+    assert.equal(json.version, 1);
+    assert.ok(json.contribution_history);
+    assert.ok(json.domain_health_history);
+    assert.equal(
+        require('fs').existsSync(
+            join(dir, 'verification', 'agent-metrics.json')
+        ),
+        false
+    );
+    assert.equal(
+        require('fs').existsSync(
+            join(dir, 'verification', 'agent-contribution-history.json')
+        ),
+        false
+    );
+    assert.equal(
+        require('fs').existsSync(
+            join(dir, 'verification', 'agent-domain-health-history.json')
+        ),
+        false
+    );
+});
+
 test('status --json expone porcentajes de aporte por agente y ranking', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));

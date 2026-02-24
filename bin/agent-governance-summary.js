@@ -635,7 +635,7 @@ function main() {
         handoffsStatus: ['handoffs', 'status', '--json'],
         handoffsLint: ['handoffs', 'lint', '--json'],
         codexCheck: ['codex-check', '--json'],
-        metrics: ['metrics', '--json'],
+        metrics: ['metrics', '--json', '--no-write'],
     };
 
     const results = {};
