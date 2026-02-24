@@ -105,6 +105,16 @@ Entregables:
 Criterio de salida:
 - [x] `npm run gate:prod` en verde en 3 corridas consecutivas (validado con corridas strict manuales 2026-02-23 21:59, 22:00 y 22:02 hora local servidor).
 
+## Fase 6 - Operacion continua: retencion y observabilidad
+Estado: `IN_PROGRESS`
+Entregables:
+- [ ] Consolidar metricas tecnicas de retencion (`no_show` y recurrencia) en reportes semanales.
+- [ ] Confirmar evidencia operativa de observabilidad (Sentry backend/frontend) en `health` y monitoreo.
+- [ ] Mantener gates criticos por dominio en CI sin degradar tiempos de deploy.
+
+Criterio de salida:
+- [ ] Dos ciclos semanales consecutivos con `REPORTE-SEMANAL-PRODUCCION.ps1` sin warnings criticos de agenda/observabilidad.
+
 ## Comandos oficiales del plan
 - Validacion backend bloqueante: `npm run gate:prod:backend`
 - Validacion strict hash (manual): `npm run gate:prod:hash-strict`
