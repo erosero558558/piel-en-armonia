@@ -1,5 +1,8 @@
 'use strict';
 
+// Must match the longest CSS exit animation (modal-backdrop-out: 0.18s).
+const CLOSE_ANIMATION_MS = 180;
+
 let deps = null;
 let initialized = false;
 let escapeListenerBound = false;
@@ -18,8 +21,19 @@ function closeModalElement(modal) {
         return;
     }
 
-    modal.classList.remove('active');
-    document.body.style.overflow = '';
+    // Already animating out — avoid stacking another timeout.
+    if (modal.classList.contains('is-closing')) {
+        return;
+    }
+
+    modal.classList.add('is-closing');
+    setTimeout(() => {
+        modal.classList.remove('active', 'is-closing');
+        // Only clear body overflow when no other modal remains open.
+        if (!document.querySelector('.modal.active')) {
+            document.body.style.overflow = '';
+        }
+    }, CLOSE_ANIMATION_MS);
 }
 
 function bindBackdropClose() {
@@ -47,17 +61,10 @@ function bindEscapeClose() {
             return;
         }
 
-        document.querySelectorAll('.modal').forEach((modal) => {
-            if (modal.id === 'paymentModal' && modal.classList.contains('active')) {
-                if (deps && typeof deps.closePaymentModal === 'function') {
-                    deps.closePaymentModal();
-                }
-                return;
-            }
-            modal.classList.remove('active');
+        document.querySelectorAll('.modal.active').forEach((modal) => {
+            closeModalElement(modal);
         });
 
-        document.body.style.overflow = '';
         if (deps && typeof deps.toggleMobileMenu === 'function') {
             deps.toggleMobileMenu(false);
         }
@@ -81,7 +88,7 @@ function setupBackGesture() {
                     deps.closePaymentModal({ skipAbandonTrack: false, reason: 'back_gesture' });
                 }
             } else {
-                modal.classList.remove('active');
+                closeModalElement(modal);
             }
         });
 
@@ -95,7 +102,9 @@ function setupBackGesture() {
             }
         }
 
-        if (closedAny) {
+        // Overflow is restored inside closeModalElement after the exit animation.
+        // Restore immediately for mobile-menu-only closes (no animation delay).
+        if (closedAny && !document.querySelector('.modal.active:not(.is-closing)')) {
             document.body.style.overflow = '';
         }
 

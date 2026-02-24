@@ -1364,6 +1364,18 @@ textarea:focus {
     text-decoration: underline;
 }
 
+/* ── Modal animations ────────────────────────────────────────────────────── */
+@keyframes modal-backdrop-in  { from { opacity: 0; } }
+@keyframes modal-backdrop-out { to   { opacity: 0; } }
+@keyframes modal-content-in {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+}
+@keyframes modal-content-out {
+    to { opacity: 0; transform: translateY(12px) scale(0.97); }
+}
+@keyframes sheet-in  { from { transform: translateY(100%); } }
+@keyframes sheet-out { to   { transform: translateY(100%); } }
+
 .modal {
     position: fixed;
     inset: 0;
@@ -1373,11 +1385,28 @@ textarea:focus {
     padding: 18px;
     background: rgba(6, 14, 26, 0.58);
     backdrop-filter: blur(5px);
-    z-index: 2200;
+    /* Raised above chatbot-widget (2300 on mobile) to ensure modal always wins */
+    z-index: 2500;
 }
 
 .modal.active {
     display: flex;
+    animation: modal-backdrop-in 0.22s ease-out;
+}
+
+.modal.active .modal-content {
+    animation: modal-content-in 0.28s cubic-bezier(0.34, 1.1, 0.64, 1);
+}
+
+/* Exit: .active keeps display:flex; .is-closing plays the out-animation;
+   JS removes both classes once the animation completes. */
+.modal.is-closing {
+    animation: modal-backdrop-out 0.18s ease-in forwards;
+    pointer-events: none;
+}
+
+.modal.is-closing .modal-content {
+    animation: modal-content-out 0.18s ease-in forwards;
 }
 
 .modal-content {
@@ -2898,6 +2927,15 @@ html[data-theme='dark'] .showcase-eyebrow {
         max-height: 88dvh;
         border-radius: 20px 20px 0 0;
         padding: 18px 14px calc(20px + var(--safe-bottom));
+    }
+
+    /* Bottom-sheet slide for mobile */
+    .modal.active .modal-content {
+        animation: sheet-in 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .modal.is-closing .modal-content {
+        animation: sheet-out 0.22s cubic-bezier(0.32, 0.72, 0, 1) forwards;
     }
 
     .payment-methods {

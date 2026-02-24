@@ -149,6 +149,9 @@
     window.Piel = window.Piel || {};
     window.Piel.ThemeEngine = window.PielThemeEngine;
 
+    // Must match the longest CSS exit animation (modal-backdrop-out: 0.18s).
+    const CLOSE_ANIMATION_MS = 180;
+
     let deps$2 = null;
     let initialized$1 = false;
     let escapeListenerBound = false;
@@ -167,8 +170,19 @@
             return;
         }
 
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
+        // Already animating out — avoid stacking another timeout.
+        if (modal.classList.contains('is-closing')) {
+            return;
+        }
+
+        modal.classList.add('is-closing');
+        setTimeout(() => {
+            modal.classList.remove('active', 'is-closing');
+            // Only clear body overflow when no other modal remains open.
+            if (!document.querySelector('.modal.active')) {
+                document.body.style.overflow = '';
+            }
+        }, CLOSE_ANIMATION_MS);
     }
 
     function bindBackdropClose() {
@@ -196,17 +210,10 @@
                 return;
             }
 
-            document.querySelectorAll('.modal').forEach((modal) => {
-                if (modal.id === 'paymentModal' && modal.classList.contains('active')) {
-                    if (deps$2 && typeof deps$2.closePaymentModal === 'function') {
-                        deps$2.closePaymentModal();
-                    }
-                    return;
-                }
-                modal.classList.remove('active');
+            document.querySelectorAll('.modal.active').forEach((modal) => {
+                closeModalElement(modal);
             });
 
-            document.body.style.overflow = '';
             if (deps$2 && typeof deps$2.toggleMobileMenu === 'function') {
                 deps$2.toggleMobileMenu(false);
             }
@@ -230,7 +237,7 @@
                         deps$2.closePaymentModal({ skipAbandonTrack: false, reason: 'back_gesture' });
                     }
                 } else {
-                    modal.classList.remove('active');
+                    closeModalElement(modal);
                 }
             });
 
@@ -244,7 +251,9 @@
                 }
             }
 
-            if (closedAny) {
+            // Overflow is restored inside closeModalElement after the exit animation.
+            // Restore immediately for mobile-menu-only closes (no animation delay).
+            if (closedAny && !document.querySelector('.modal.active:not(.is-closing)')) {
                 document.body.style.overflow = '';
             }
 
