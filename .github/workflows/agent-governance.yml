@@ -1,0 +1,41 @@
+name: Agent Governance
+
+on:
+    push:
+        branches: [main, staging]
+    pull_request:
+        branches: [main, staging]
+    workflow_dispatch:
+
+concurrency:
+    group: agent-governance-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    governance:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'npm'
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.2'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Agent status snapshot
+              run: node agent-orchestrator.js status
+
+            - name: Conflict gate
+              run: node agent-orchestrator.js conflicts --strict
+
+            - name: Validate governance contract
+              run: php bin/validate-agent-governance.php

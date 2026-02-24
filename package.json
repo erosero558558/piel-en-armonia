@@ -28,6 +28,11 @@
         "monitor:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./MONITOR-PRODUCCION.ps1 -Domain https://pielarmonia.com",
         "report:weekly:prod": "powershell -NoProfile -ExecutionPolicy Bypass -File ./REPORTE-SEMANAL-PRODUCCION.ps1 -Domain https://pielarmonia.com",
         "format": "prettier --write .",
+        "agent:sync": "node agent-orchestrator.js sync",
+        "agent:status": "node agent-orchestrator.js status",
+        "agent:conflicts": "node agent-orchestrator.js conflicts --strict",
+        "agent:metrics": "node agent-orchestrator.js metrics",
+        "agent:validate": "php bin/validate-agent-governance.php",
         "prepare": "husky"
     },
     "lint-staged": {

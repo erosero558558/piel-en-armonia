@@ -181,4 +181,25 @@ Ejecucion:
 - Usa `dry_run = true` para validar sin subir.
 - Si falla `Timeout (control socket)`, prueba `protocol=ftp`, `server_port=21`.
 
+## Orquestacion de agentes (2026)
+
+Fuente de verdad operativa:
+
+- `AGENTS.md` (canonico)
+- `CLAUDE.md` (guia de rol, no canonica)
+- `AGENT_BOARD.yaml` (backlog unico)
+
+Colas derivadas:
+
+- `JULES_TASKS.md`
+- `KIMI_TASKS.md`
+
+Comandos:
+
+- `npm run agent:status`
+- `npm run agent:conflicts`
+- `npm run agent:sync`
+- `npm run agent:metrics`
+- `npm run agent:validate`
+
 

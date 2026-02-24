@@ -1,24 +1,8 @@
-# KIMI_TASKS.md — Backlog local para Kimi Code
+# KIMI_TASKS.md — Cola derivada desde AGENT_BOARD.yaml
 
-> Kimi ejecuta tareas **directamente en el repo local** (no crea PRs).
-> Revisar con `git diff` antes de commitear.
->
-> Correr una tarea: `node kimi-run.js "prompt"`
-> Correr todas las pendientes: `node kimi-run.js --dispatch`
-> Ver estado: `node kimi-run.js --list`
->
-> Con auto-commit: `node kimi-run.js --dispatch --commit`
-
----
-
-## Diferencia vs Jules
-
-| Criterio | Jules | Kimi |
-|---|---|---|
-| Ejecución | Async, en la nube | Local, inmediata |
-| Resultado | PR en GitHub | Archivos modificados |
-| Revisión | Merge del PR | `git diff` + commit manual |
-| Ideal para | Backend aislado, tests | Refactoring rápido, análisis |
+> Archivo generado por `node agent-orchestrator.js sync`.
+> No editar manualmente; los cambios se sobrescriben.
+> Ejecutar cola: `node kimi-run.js --dispatch`
 
 ---
 
@@ -27,10 +11,16 @@
 ```
 <!-- TASK
 status: pending | running | done | failed
+task_id: AG-XXX
+risk: low|medium|high
+scope: docs|frontend|backend|platform|security|ops
+files: path1,path2
+acceptance_ref: verification/agent-runs/AG-XXX.md
+dispatched_by: agent-orchestrator
 -->
-### Título de la tarea
+### Titulo
 
-Prompt completo aquí...
+Prompt...
 
 <!-- /TASK -->
 ```
@@ -41,60 +31,45 @@ Prompt completo aquí...
 
 <!-- TASK
 status: pending
+task_id: AG-005
+risk: low
+scope: audit
+files: js/engines,docs/dead-code-audit.md
+acceptance_ref: verification/agent-runs/AG-005.md
+dispatched_by: agent-orchestrator
 -->
-### Audit: dead code in js/engines/
+### Audit dead code in js engines
 
-Analyze all files in js/engines/ and identify:
-1. Functions/variables that are defined but never called within the bundle
-2. Console.log or debug statements that should not be in production
-3. Any TODO/FIXME comments with their file and line number
-
-Output a markdown report saved to docs/dead-code-audit.md. Do not modify
-any JS files — analysis only.
+Auditar js/engines y generar docs/dead-code-audit.md sin tocar logica de JS.
 
 <!-- /TASK -->
 
 <!-- TASK
 status: pending
+task_id: AG-006
+risk: low
+scope: tooling
+files: .editorconfig,.gitattributes
+acceptance_ref: verification/agent-runs/AG-006.md
+dispatched_by: agent-orchestrator
 -->
-### Add .editorconfig and normalize indentation
+### Add editorconfig and normalize line-end policy
 
-Create a .editorconfig file for this project with:
-- indent_style = space, indent_size = 4 for PHP and JS
-- indent_style = space, indent_size = 2 for JSON, YAML, TOML
-- end_of_line = lf
-- charset = utf-8
-- trim_trailing_whitespace = true
-- insert_final_newline = true
-
-Also check if .gitattributes exists and ensure it has:
-  * text=auto
-  *.php text eol=lf
-  *.js text eol=lf
-  *.css text eol=lf
-  *.json text eol=lf
-
-Do NOT modify any source files — only create/update config files.
+Crear/ajustar .editorconfig y .gitattributes para estandarizar indentacion y finales de linea.
 
 <!-- /TASK -->
 
 <!-- TASK
 status: pending
+task_id: AG-007
+risk: low
+scope: docs
+files: lib/audit.php,lib/ratelimit.php,lib/appointments.php,lib/payments.php,lib/email.php
+acceptance_ref: verification/agent-runs/AG-007.md
+dispatched_by: agent-orchestrator
 -->
-### JSDoc: document all public functions in lib/
+### Add missing PHPDoc in core lib files
 
-Read every PHP file in lib/ and add PHPDoc blocks to any public/protected
-function that lacks one. Format:
-  /**
-   * Brief description.
-   *
-   * @param type $name Description
-   * @return type Description
-   * @throws ExceptionType When condition
-   */
-
-Only add missing docs — do not modify existing ones. Do not change logic.
-Focus on: lib/audit.php, lib/ratelimit.php, lib/appointments.php,
-lib/payments.php, lib/email.php
+Agregar PHPDoc faltantes en librerias core sin modificar comportamiento funcional.
 
 <!-- /TASK -->

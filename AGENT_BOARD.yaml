@@ -1,0 +1,112 @@
+version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  updated_at: 2026-02-24
+
+tasks:
+  - id: AG-001
+    title: Backup integrity verification and at-rest encryption
+    owner: ernesto
+    executor: jules
+    status: in_progress
+    risk: high
+    scope: platform
+    files: ["backup-receiver.php", "verify-backup.php", "tests/BackupReceiverTest.php"]
+    acceptance: "Validar checksum SHA-256, cifrado en reposo y limpieza por retencion."
+    acceptance_ref: ""
+    depends_on: []
+    prompt: "Implementar checksum SHA-256 por header, cifrado AES-256-CBC y prueba de integridad con test."
+    created_at: 2026-02-24
+    updated_at: 2026-02-24
+
+  - id: AG-002
+    title: PHP rate-limiter sliding window and per-user limits
+    owner: ernesto
+    executor: jules
+    status: in_progress
+    risk: medium
+    scope: backend
+    files: ["lib/ratelimit.php", "tests/RateLimiterTest.php"]
+    acceptance: "Aplicar sliding window real, limites por usuario e instrumentacion de eventos."
+    acceptance_ref: ""
+    depends_on: []
+    prompt: "Actualizar rate-limiter a sliding window, incluir limite por user token y pruebas de regresion."
+    created_at: 2026-02-24
+    updated_at: 2026-02-24
+
+  - id: AG-003
+    title: OpenAPI 3.1 specification for public API resources
+    owner: ernesto
+    executor: jules
+    status: in_progress
+    risk: low
+    scope: docs
+    files: ["docs/openapi.yaml", "README.md"]
+    acceptance: "Especificacion OpenAPI 3.1 completa y utilizable en preview local."
+    acceptance_ref: ""
+    depends_on: []
+    prompt: "Generar OpenAPI 3.1 para api.php recursos principales y documentar como visualizarla localmente."
+    created_at: 2026-02-24
+    updated_at: 2026-02-24
+
+  - id: AG-004
+    title: Email notification system for appointment confirmations
+    owner: ernesto
+    executor: jules
+    status: in_progress
+    risk: medium
+    scope: backend
+    files: ["lib/mailer.php", "templates/email", "tests/MailerTest.php"]
+    acceptance: "Envio de confirmaciones y cola de reintentos de email con pruebas."
+    acceptance_ref: ""
+    depends_on: []
+    prompt: "Implementar wrapper PHPMailer para confirmaciones y recordatorios con templates HTML y test."
+    created_at: 2026-02-24
+    updated_at: 2026-02-24
+
+  - id: AG-005
+    title: Audit dead code in js engines
+    owner: ernesto
+    executor: kimi
+    status: ready
+    risk: low
+    scope: audit
+    files: ["js/engines", "docs/dead-code-audit.md"]
+    acceptance: "Reporte en markdown con codigo muerto, logs y TODO/FIXME."
+    acceptance_ref: ""
+    depends_on: []
+    prompt: "Auditar js/engines y generar docs/dead-code-audit.md sin tocar logica de JS."
+    created_at: 2026-02-24
+    updated_at: 2026-02-24
+
+  - id: AG-006
+    title: Add editorconfig and normalize line-end policy
+    owner: ernesto
+    executor: kimi
+    status: ready
+    risk: low
+    scope: tooling
+    files: [".editorconfig", ".gitattributes"]
+    acceptance: "Normalizar reglas de indentacion y EOL sin tocar codigo de aplicacion."
+    acceptance_ref: ""
+    depends_on: []
+    prompt: "Crear/ajustar .editorconfig y .gitattributes para estandarizar indentacion y finales de linea."
+    created_at: 2026-02-24
+    updated_at: 2026-02-24
+
+  - id: AG-007
+    title: Add missing PHPDoc in core lib files
+    owner: ernesto
+    executor: kimi
+    status: backlog
+    risk: low
+    scope: docs
+    files: ["lib/audit.php", "lib/ratelimit.php", "lib/appointments.php", "lib/payments.php", "lib/email.php"]
+    acceptance: "Agregar PHPDoc faltante en funciones public/protected sin cambiar logica."
+    acceptance_ref: ""
+    depends_on: []
+    prompt: "Agregar PHPDoc faltantes en librerias core sin modificar comportamiento funcional."
+    created_at: 2026-02-24
+    updated_at: 2026-02-24

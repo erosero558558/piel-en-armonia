@@ -34,3 +34,15 @@ If any tool fails, the commit will be aborted. You can bypass this with `git com
 1. Install PHP dependencies: `composer install`
 2. Install Node dependencies: `npm install`
 3. Initialize Husky (should happen automatically via `prepare` script): `npm run prepare`
+
+## Multi-agent governance
+
+- Canonical policy: `AGENTS.md`
+- Canonical backlog: `AGENT_BOARD.yaml`
+- Derived queues: `JULES_TASKS.md`, `KIMI_TASKS.md`
+
+Before opening a PR:
+
+1. `npm run agent:status`
+2. `npm run agent:conflicts`
+3. `npm run agent:validate`

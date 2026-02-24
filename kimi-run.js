@@ -4,6 +4,7 @@
  *
  * Runs Kimi Code CLI in non-interactive mode against this repo,
  * then shows the git diff so you can review before committing.
+ * Queue source is derived from AGENT_BOARD.yaml via agent-orchestrator.js.
  *
  * Usage:
  *   node kimi-run.js "Fix the bug in lib/ratelimit.php"

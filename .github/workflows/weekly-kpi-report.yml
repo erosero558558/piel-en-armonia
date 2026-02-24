@@ -42,6 +42,18 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'npm'
+
+            - name: Instalar dependencias Node
+              run: npm ci
+
+            - name: Actualizar metricas de agentes
+              run: npm run agent:metrics
+
             - name: Ejecutar reporte semanal
               shell: pwsh
               run: |
@@ -94,6 +106,7 @@ jobs:
                   path: |
                       ${{ steps.report.outputs.report_json_path }}
                       ${{ steps.report.outputs.report_md_path }}
+                      verification/agent-metrics.json
                   if-no-files-found: warn
                   retention-days: 30
 
@@ -106,6 +119,7 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Bench runs: ``$env:BENCH_RUNS``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Fail on warnings: ``$env:FAIL_ON_WARNINGS``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Warnings count: ``${{ steps.report.outputs.warnings_count }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Agent metrics file: ``verification/agent-metrics.json``"
                   if ("${{ steps.report.outputs.report_md_path }}" -ne "") {
                     Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Report file: ``${{ steps.report.outputs.report_md_path }}``"
                   }

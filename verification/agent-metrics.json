@@ -1,0 +1,33 @@
+{
+    "version": 1,
+    "period": {
+        "timezone": "America/Guayaquil",
+        "window_days": 7,
+        "updated_at": "2026-02-24T19:01:29.697Z"
+    },
+    "targets": {
+        "rework_reduction_pct": 40,
+        "file_conflict_rate_pct_max": 5,
+        "non_critical_lead_time_hours_max": 24,
+        "coordination_gate_red_rate_pct_max": 10,
+        "traceability_pct": 100
+    },
+    "baseline": {
+        "tasks_total": 7,
+        "tasks_with_rework": 0,
+        "file_conflicts": 0,
+        "non_critical_lead_time_hours_avg": null,
+        "coordination_gate_red_rate_pct": null,
+        "traceability_pct": 0
+    },
+    "current": {
+        "tasks_total": 7,
+        "tasks_in_progress": 4,
+        "tasks_done": 0,
+        "tasks_with_rework": 0,
+        "file_conflicts": 0,
+        "non_critical_lead_time_hours_avg": null,
+        "coordination_gate_red_rate_pct": null,
+        "traceability_pct": 0
+    }
+}

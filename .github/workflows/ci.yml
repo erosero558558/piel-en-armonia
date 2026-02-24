@@ -33,6 +33,12 @@ jobs:
               run: npm run lint:php
             - name: Validate Plan Operativo anti-loop
               run: php bin/validate-plan-operativo.php
+            - name: Agent Orchestrator status
+              run: node agent-orchestrator.js status
+            - name: Agent conflict gate
+              run: node agent-orchestrator.js conflicts --strict
+            - name: Validate Agent Governance
+              run: php bin/validate-agent-governance.php
             - name: Lint Prometheus Config
               run: |
                   docker run --rm \

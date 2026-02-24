@@ -8,7 +8,7 @@
  *   JULES_API_KEY=xxx node jules-dispatch.js status
  *   JULES_API_KEY=xxx node jules-dispatch.js dispatch
  *   JULES_API_KEY=xxx node jules-dispatch.js watch
- *   JULES_API_KEY=xxx node jules-dispatch.js add "Task title" "Prompt text"
+ *   JULES_API_KEY=xxx node jules-dispatch.js add   (deprecated; managed by AGENT_BOARD.yaml)
  */
 
 const { readFileSync, writeFileSync } = require('fs');
@@ -267,30 +267,13 @@ async function cmdWatch(intervalSec = 60) {
     setInterval(poll, intervalSec * 1000);
 }
 
-async function cmdAdd(title, prompt) {
-    if (!title || !prompt) {
-        console.error('Usage: node jules-dispatch.js add "Title" "Prompt"');
-        process.exit(1);
-    }
-
-    const today = new Date().toISOString().slice(0, 10);
-    const newTask = `
-<!-- TASK
-status: pending
-session:
-dispatched:
--->
-### ${title}
-
-${prompt}
-
-<!-- /TASK -->
-`;
-
-    const content = readFileSync(TASKS_FILE, 'utf8');
-    writeFileSync(TASKS_FILE, content.trimEnd() + '\n' + newTask + '\n', 'utf8');
-    console.log(`Added task: ${title}`);
-    console.log(`Run "node jules-dispatch.js dispatch" to send it to Jules.`);
+async function cmdAdd() {
+    console.error('`add` deshabilitado: JULES_TASKS.md es cola derivada.');
+    console.error('Agregar tareas en AGENT_BOARD.yaml y ejecutar:');
+    console.error('  node agent-orchestrator.js sync');
+    console.error('Luego despachar:');
+    console.error('  JULES_API_KEY=xxx node jules-dispatch.js dispatch');
+    process.exit(1);
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
