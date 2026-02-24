@@ -57,7 +57,7 @@ Criterio de salida:
 - [x] `TEST_REQUIRE_GOOGLE_CALENDAR=true npm run test:calendar-contract` en verde contra produccion (evidenciado en `Post-Deploy Gate` run `22337042395`, paso `Validar contrato Google Calendar (no destructivo)`).
 
 ## Fase 2 - Consistencia web/chat/reprogramacion
-Estado: `IN_PROGRESS`
+Estado: `COMPLETED`
 Entregables:
 - [x] Duracion por servicio centralizada (30/60 min).
 - [x] `indiferente` por menor carga + round-robin.
@@ -66,11 +66,12 @@ Entregables:
 - [x] API normaliza conflicto a `slot_conflict` en 409.
 
 Criterio de salida:
-- [ ] Test de concurrencia: 1x `201`, 1x `409 slot_conflict`.
-- [ ] Misma oferta de slots entre web y chat para misma fecha/servicio.
+- [x] Test de concurrencia: 1x `201`, 1x `409 slot_conflict`.
+- [x] Misma oferta de slots entre web y chat para misma fecha/servicio.
+- [x] Evidencia de cierre: `TEST_BASE_URL=https://pielarmonia.com TEST_ENABLE_CALENDAR_WRITE=true npm run test:phase2` en verde (2026-02-24).
 
 ## Fase 3 - Embudo de conversion y errores accionables
-Estado: `PENDING`
+Estado: `IN_PROGRESS`
 Entregables:
 - [ ] Eventos GA4 obligatorios en todo el embudo.
 - [ ] Registro de abandono por paso y razon.
