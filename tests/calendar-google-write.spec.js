@@ -7,6 +7,10 @@ function getEnv(name, fallback = '') {
     return typeof value === 'string' ? value.trim() : fallback;
 }
 
+function requireGoogleCalendar() {
+    return getEnv('TEST_REQUIRE_GOOGLE_CALENDAR', 'false') === 'true';
+}
+
 function pickFirstSlot(data, excludeDate = '', excludeTime = '') {
     if (!data || typeof data !== 'object') {
         return null;
@@ -85,14 +89,25 @@ test.describe('Google Calendar E2E write flow', () => {
         const health = await healthResp.json();
         expect(health.ok).toBe(true);
 
-        test.skip(
-            String(health.calendarSource) !== 'google',
-            'La agenda activa no es Google.'
-        );
-        test.skip(
-            health.calendarReachable !== true,
-            'Google Calendar no esta reachable.'
-        );
+        if (requireGoogleCalendar()) {
+            expect(
+                String(health.calendarSource),
+                'TEST_REQUIRE_GOOGLE_CALENDAR=true pero calendarSource != google'
+            ).toBe('google');
+            expect(
+                health.calendarReachable,
+                'TEST_REQUIRE_GOOGLE_CALENDAR=true pero calendarReachable != true'
+            ).toBe(true);
+        } else {
+            test.skip(
+                String(health.calendarSource) !== 'google',
+                'La agenda activa no es Google.'
+            );
+            test.skip(
+                health.calendarReachable !== true,
+                'Google Calendar no esta reachable.'
+            );
+        }
 
         const login = await adminLogin(request, adminPassword);
         test.skip(!login.ok, `No se pudo autenticar admin: ${login.reason}`);
@@ -226,4 +241,3 @@ test.describe('Google Calendar E2E write flow', () => {
         }
     });
 });
-

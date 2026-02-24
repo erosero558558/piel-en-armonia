@@ -24,6 +24,7 @@ jobs:
         env:
             TEST_BASE_URL: ${{ github.event.inputs.domain || 'https://pielarmonia.com' }}
             TEST_ENABLE_CALENDAR_WRITE: ${{ github.event.inputs.enable_write || 'false' }}
+            TEST_REQUIRE_GOOGLE_CALENDAR: 'true'
             TEST_ADMIN_PASSWORD: ${{ secrets.PIELARMONIA_ADMIN_PASSWORD }}
         steps:
             - name: Checkout
@@ -73,5 +74,6 @@ jobs:
                     echo "## Calendar write smoke";
                     echo "- Dominio: \`${TEST_BASE_URL}\`";
                     echo "- Escritura habilitada: \`${TEST_ENABLE_CALENDAR_WRITE}\`";
+                    echo "- Require Google calendar: \`${TEST_REQUIRE_GOOGLE_CALENDAR}\`";
                     echo "- Resultado: \`${{ job.status }}\`";
                   } >> "${GITHUB_STEP_SUMMARY}"

@@ -52,6 +52,7 @@ Efecto:
    - `Actions -> Post-Deploy Gate (Git Sync)` debe pasar.
 3. Escritura real:
    - `Actions -> Calendar Write Smoke (Manual)` con `enable_write=true`.
+   - Ese workflow ya corre en modo estricto Google (`TEST_REQUIRE_GOOGLE_CALENDAR=true`).
 
 ## 4) Criterio de aprobado
 
@@ -63,4 +64,3 @@ Efecto:
 - `Post-Deploy Gate` en verde.
 - `Production Monitor` en verde.
 - `Calendar Write Smoke` en verde.
-
