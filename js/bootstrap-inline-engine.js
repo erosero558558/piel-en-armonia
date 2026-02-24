@@ -16,6 +16,48 @@
         // Debug logging removed
     }
 
+    function readJsonPayload(elementId) {
+        const element = document.getElementById(elementId);
+        if (!element) {
+            return null;
+        }
+
+        const raw = String(element.textContent || '').trim();
+        if (!raw) {
+            return null;
+        }
+
+        try {
+            return JSON.parse(raw);
+        } catch (error) {
+            debugLog('Invalid JSON payload:', elementId, error);
+            return null;
+        }
+    }
+
+    function hydrateRuntimePayloads() {
+        const contentPayload = readJsonPayload('piel-content-payload');
+        if (
+            contentPayload &&
+            typeof contentPayload === 'object' &&
+            !Array.isArray(contentPayload)
+        ) {
+            window.PIEL_CONTENT = window.PIEL_CONTENT || contentPayload;
+        }
+
+        const runtimePayload = readJsonPayload('piel-runtime-config');
+        if (
+            runtimePayload &&
+            typeof runtimePayload === 'object' &&
+            !Array.isArray(runtimePayload)
+        ) {
+            window.Piel = window.Piel || {};
+            if (!window.Piel.config || typeof window.Piel.config !== 'object') {
+                window.Piel.config = runtimePayload;
+            }
+        }
+    }
+
     function loadDeferredModule(options) {
         const safeOptions = options || {};
         const cacheKey = safeOptions.cacheKey;
@@ -355,6 +397,8 @@
                 });
         });
     }
+
+    hydrateRuntimePayloads();
 
     window.debugLog = debugLog;
     window.loadDeferredModule = loadDeferredModule;

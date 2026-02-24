@@ -66,9 +66,11 @@ if (is_file($contentFile)) {
             // Inject content payload for client-side hydration
             $head = $dom->getElementsByTagName('head')->item(0);
             if ($head) {
-                $script = $dom->createElement('script');
-                $script->textContent = 'window.PIEL_CONTENT = ' . $contentJson . ';';
-                $head->appendChild($script);
+                $contentPayload = $dom->createElement('template');
+                $contentPayload->setAttribute('id', 'piel-content-payload');
+                $contentPayload->setAttribute('data-role', 'runtime-json');
+                $contentPayload->appendChild($dom->createTextNode($contentJson));
+                $head->appendChild($contentPayload);
 
                 $captchaProvider = function_exists('captcha_get_provider') ? captcha_get_provider() : null;
                 $captchaSiteKey = function_exists('captcha_get_site_key') ? captcha_get_site_key() : null;
@@ -87,9 +89,11 @@ if (is_file($contentFile)) {
                     JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
                 );
                 if (is_string($runtimeJson)) {
-                    $configScript = $dom->createElement('script');
-                    $configScript->textContent = 'window.Piel = window.Piel || {}; window.Piel.config = ' . $runtimeJson . ';';
-                    $head->appendChild($configScript);
+                    $runtimePayload = $dom->createElement('template');
+                    $runtimePayload->setAttribute('id', 'piel-runtime-config');
+                    $runtimePayload->setAttribute('data-role', 'runtime-json');
+                    $runtimePayload->appendChild($dom->createTextNode($runtimeJson));
+                    $head->appendChild($runtimePayload);
                 }
             }
 
