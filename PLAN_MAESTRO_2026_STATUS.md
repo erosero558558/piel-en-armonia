@@ -13,7 +13,7 @@ Dominio: https://pielarmonia.com
 - Estado general: En curso. CI desbloqueado y pipeline activo tras fix de calendar runtime.
 - Chatbot: Operativo en Trinity/OpenRouter (cola OpenClaw deshabilitada por decision de producto).
 - Agenda real: Flujo create/reschedule/cancel validado contra Google Calendar en produccion.
-- Gate de produccion: push gate en verde; pendiente corrida hash-strict manual para cierre operativo de Fase 5.
+- Gate de produccion: push gate en verde + hash-strict manual en verde (2026-02-23 21:52 hora local del servidor / 2026-02-24 UTC).
 - Smoke: 19/19 OK. Latencias: figo-post p95=582ms, core p95=553ms. Error rate=0.
 - Umbral operativo `figo-post` endurecido a p95 <= `2500 ms` en gate/benchmark/workflow.
 - Gate hash estricto: validado en 3 corridas consecutivas (pre code-split).
@@ -67,6 +67,17 @@ Dominio: https://pielarmonia.com
   - `figo-get` p95: `568.26 ms`
   - `figo-post` p95: `815.7 ms`
 - Nota: el warning de `deploy freshness` se mantiene en modo advisory porque este commit no cambia frontend.
+
+8. Hash gate estricto manual post-fix compat
+- Comando: `powershell -NoProfile -ExecutionPolicy Bypass -File .\GATE-POSTDEPLOY.ps1 -Domain https://pielarmonia.com -ForceAssetHashChecks`
+- Resultado: OK (`Gate OK: despliegue validado`).
+- Smoke: `19/19` checks OK.
+- Bench API (25 runs):
+  - `health` p95: `367.42 ms`
+  - `reviews` p95: `352.08 ms`
+  - `availability` p95: `715.56 ms` (max puntual: `3350.09 ms`, sin incumplir p95)
+  - `figo-get` p95: `397.69 ms`
+  - `figo-post` p95: `396.83 ms`
 
 ## Estado por fases del plan unico
 
@@ -140,7 +151,7 @@ Dominio: https://pielarmonia.com
 
 ## Siguiente ejecucion recomendada
 
-1. Ejecutar validacion hash estricta manual: `npm run gate:prod:hash-strict` (workflow_dispatch con `force_asset_hash_checks=true`).
+1. Ejecutar 2 corridas adicionales de hash estricto para cierre formal consecutivo de Fase 5.
 2. Confirmar despliegue del `script.js` ES module y chunks asociados en produccion.
 3. Confirmar primer evento en Sentry dashboard (Sentry ya activo en produccion).
 4. Reporte semanal ejecutado: booking_confirmed=1, error_rate=0, figo-post p95=582ms. Verde.
