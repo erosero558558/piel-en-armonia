@@ -80,7 +80,7 @@ on:
                 type: boolean
 
 concurrency:
-    group: post-deploy-gate-main
+    group: post-deploy-gate-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && 'manual' || 'auto' }}
     cancel-in-progress: true
 
 permissions:
