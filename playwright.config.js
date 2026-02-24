@@ -34,6 +34,7 @@ module.exports = defineConfig({
         baseURL,
         headless: true,
         screenshot: 'only-on-failure',
+        locale: 'es-ES',
     },
     webServer: shouldStartLocalServer
         ? {
