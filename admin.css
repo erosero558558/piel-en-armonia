@@ -268,11 +268,57 @@
     display: flex;
     align-items: center;
     gap: 16px;
+    flex-wrap: wrap;
 }
 
 .current-date {
     color: var(--color-text-secondary);
     font-size: 0.9rem;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.status-pill::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.8;
+}
+
+.status-pill-muted {
+    color: #607086;
+    background: #f3f6fb;
+    border-color: #dbe6f5;
+}
+
+.status-pill-ok {
+    color: #1f8a45;
+    background: #ecf8f0;
+    border-color: #b8e6c7;
+}
+
+.status-pill-warn {
+    color: #8f5b00;
+    background: #fff8e8;
+    border-color: #f2ddad;
+}
+
+.status-pill-error {
+    color: #ad2d2d;
+    background: #fff1f1;
+    border-color: #f0c9c9;
 }
 
 /* Admin Sections */
@@ -1121,6 +1167,14 @@
 
     .admin-header {
         padding: 12px 16px;
+    }
+
+    .header-actions {
+        gap: 10px;
+    }
+
+    .status-pill {
+        order: 99;
     }
 
     .admin-section {

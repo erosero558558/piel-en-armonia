@@ -886,6 +886,20 @@ function loadReviews() {
 
 let initialized = false;
 
+function setPushStatus(label, tone = 'muted') {
+    const indicator = document.getElementById('pushStatusIndicator');
+    if (!indicator) return;
+
+    indicator.classList.remove(
+        'status-pill-muted',
+        'status-pill-ok',
+        'status-pill-warn',
+        'status-pill-error'
+    );
+    indicator.classList.add(`status-pill-${tone}`);
+    indicator.textContent = `Push: ${label}`;
+}
+
 function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const normalized = (base64String + padding)
@@ -949,6 +963,7 @@ async function checkSubscriptionState() {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
     updateSubscribeButton(Boolean(subscription));
+    setPushStatus(subscription ? 'activo' : 'disponible', subscription ? 'ok' : 'muted');
     return subscription;
 }
 
@@ -1005,12 +1020,15 @@ async function onToggleSubscription() {
     try {
         if (action === 'unsubscribe') {
             await unsubscribe();
+            setPushStatus('disponible', 'muted');
             showToast('Notificaciones desactivadas', 'info');
         } else {
             await subscribe();
+            setPushStatus('activo', 'ok');
             showToast('Notificaciones activadas', 'success');
         }
     } catch (error) {
+        setPushStatus('error', 'error');
         showToast(`Push: ${error.message || 'error desconocido'}`, 'error');
     } finally {
         subscribeBtn.disabled = false;
@@ -1073,6 +1091,7 @@ async function initPushNotifications() {
 
     if (!supported) {
         setButtonsVisibility(false);
+        setPushStatus('no soportado', 'warn');
         return;
     }
 
@@ -1080,11 +1099,13 @@ async function initPushNotifications() {
         await navigator.serviceWorker.register('/sw.js');
         await getPushConfig();
         setButtonsVisibility(true);
+        setPushStatus('disponible', 'muted');
         subscribeBtn.addEventListener('click', onToggleSubscription);
         testBtn.addEventListener('click', onTestNotification);
         await checkSubscriptionState();
     } catch (error) {
         setButtonsVisibility(false);
+        setPushStatus('sin configurar', 'warn');
         // Keep admin UX clean when push is not enabled in this environment.
         // The controls stay hidden and the dashboard remains fully functional.
         console.info('Push no configurado en servidor:', error?.message || error);

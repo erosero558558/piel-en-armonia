@@ -11,7 +11,7 @@
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="stylesheet" href="styles.min.css" />
         <link rel="stylesheet" href="admin.min.css" />
-        <link rel="stylesheet" href="admin.css?v=admin-css-fix-login1" />
+        <link rel="stylesheet" href="admin.css?v=admin-css-fix-login2" />
         <link
             href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
             rel="stylesheet"
@@ -142,6 +142,13 @@
                     <h2 id="pageTitle">Dashboard</h2>
                     <div class="header-actions">
                         <span class="current-date" id="currentDate"></span>
+                        <span
+                            id="pushStatusIndicator"
+                            class="status-pill status-pill-muted"
+                            aria-live="polite"
+                        >
+                            Push: verificando...
+                        </span>
                         <button
                             type="button"
                             class="btn btn-secondary btn-sm"
