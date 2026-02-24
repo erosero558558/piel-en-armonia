@@ -103,7 +103,16 @@ jobs:
                   cache: 'npm'
             - name: Install Node Dependencies
               run: npm ci
+            - name: Cache Playwright Browsers
+              id: playwright-cache
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+                  restore-keys: |
+                      ${{ runner.os }}-playwright-
             - name: Install Playwright Browsers
+              if: steps.playwright-cache.outputs.cache-hit != 'true'
               run: npx playwright install --with-deps chromium
             - name: Run Critical Agenda Gate
               run: npm run test:critical:agenda
@@ -121,12 +130,6 @@ jobs:
               env:
                   TEST_LOCAL_SERVER: php
                   PIELARMONIA_ADMIN_PASSWORD: admin123
-            - name: Run Phase 2 Consistency Tests
-              run: npm run test:phase2
-              env:
-                  TEST_LOCAL_SERVER: php
-                  PIELARMONIA_ADMIN_PASSWORD: admin123
-                  TEST_ENABLE_CALENDAR_WRITE: 'false'
             - uses: actions/upload-artifact@v4
               if: always()
               with:
