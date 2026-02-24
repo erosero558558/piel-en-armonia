@@ -6,6 +6,9 @@ declare(strict_types=1);
  * Rate limiting logic.
  */
 
+/**
+ * Resolves the best client IP candidate from request headers.
+ */
 function rate_limit_client_ip(): string
 {
     $candidates = [
@@ -36,12 +39,18 @@ function rate_limit_client_ip(): string
     return 'unknown';
 }
 
+/**
+ * Builds a stable hash key for an action and IP pair.
+ */
 function rate_limit_key(string $action, ?string $ip = null): string
 {
     $clientIp = is_string($ip) && trim($ip) !== '' ? trim($ip) : rate_limit_client_ip();
     return md5($clientIp . ':' . $action);
 }
 
+/**
+ * Returns the shard-based file path used to persist hit timestamps.
+ */
 function rate_limit_file_path(string $action, ?string $ip = null): string
 {
     $key = rate_limit_key($action, $ip);
@@ -56,6 +65,11 @@ function rate_limit_file_path(string $action, ?string $ip = null): string
     return $shardDir . DIRECTORY_SEPARATOR . $key . '.json';
 }
 
+/**
+ * Reads persisted timestamps and normalizes them to positive integers.
+ *
+ * @return int[]
+ */
 function rate_limit_read_entries(string $filePath): array
 {
     if (!is_file($filePath)) {
@@ -83,6 +97,12 @@ function rate_limit_read_entries(string $filePath): array
     return $entries;
 }
 
+/**
+ * Keeps only timestamps that still belong to the active rate-limit window.
+ *
+ * @param int[] $entries
+ * @return int[]
+ */
 function rate_limit_filter_window(array $entries, int $now, int $windowSeconds): array
 {
     return array_values(array_filter($entries, static function (int $ts) use ($now, $windowSeconds): bool {
@@ -90,11 +110,19 @@ function rate_limit_filter_window(array $entries, int $now, int $windowSeconds):
     }));
 }
 
+/**
+ * Persists normalized timestamps for a rate-limit key.
+ *
+ * @param int[] $entries
+ */
 function rate_limit_write_entries(string $filePath, array $entries): void
 {
     @file_put_contents($filePath, json_encode($entries), LOCK_EX);
 }
 
+/**
+ * Performs probabilistic shard cleanup to avoid full-directory scans per request.
+ */
 function rate_limit_cleanup_random_shard(string $rateDir, int $now): void
 {
     // Limpieza probabilistica: evita escanear todo el arbol en cada request.
@@ -116,6 +144,9 @@ function rate_limit_cleanup_random_shard(string $rateDir, int $now): void
     }
 }
 
+/**
+ * Returns true when the request count is already above the configured threshold.
+ */
 function is_rate_limited(string $action, int $maxRequests = 10, int $windowSeconds = 60): bool
 {
     $maxRequests = max(1, $maxRequests);
@@ -129,6 +160,9 @@ function is_rate_limited(string $action, int $maxRequests = 10, int $windowSecon
     return count($entries) >= $maxRequests;
 }
 
+/**
+ * Registers the current request in the time window and returns whether it is allowed.
+ */
 function check_rate_limit(string $action, int $maxRequests = 10, int $windowSeconds = 60): bool
 {
     $maxRequests = max(1, $maxRequests);
@@ -154,6 +188,9 @@ function check_rate_limit(string $action, int $maxRequests = 10, int $windowSeco
     return true;
 }
 
+/**
+ * Clears persisted rate-limit state for the given action and current IP.
+ */
 function reset_rate_limit(string $action): void
 {
     $filePath = rate_limit_file_path($action);
@@ -162,6 +199,9 @@ function reset_rate_limit(string $action): void
     }
 }
 
+/**
+ * Enforces rate limits and emits an API 429 response when exceeded.
+ */
 function require_rate_limit(string $action, int $maxRequests = 10, int $windowSeconds = 60): void
 {
     if (!check_rate_limit($action, $maxRequests, $windowSeconds)) {

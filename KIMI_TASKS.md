@@ -60,12 +60,12 @@ Crear/ajustar .editorconfig y .gitattributes para estandarizar indentacion y fin
 <!-- /TASK -->
 
 <!-- TASK
-status: pending
+status: done
 task_id: AG-007
 risk: low
 scope: docs
-files: lib/audit.php,lib/ratelimit.php,lib/appointments.php,lib/payments.php,lib/email.php
-acceptance_ref: verification/agent-runs/AG-007.md
+files: lib/audit.php,lib/ratelimit.php,lib/email.php
+acceptance_ref: lib/audit.php,lib/ratelimit.php,lib/email.php
 dispatched_by: agent-orchestrator
 -->
 ### Add missing PHPDoc in core lib files

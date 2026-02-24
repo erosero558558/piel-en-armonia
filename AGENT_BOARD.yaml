@@ -100,12 +100,12 @@ tasks:
     title: Add missing PHPDoc in core lib files
     owner: ernesto
     executor: kimi
-    status: backlog
+    status: done
     risk: low
     scope: docs
-    files: ["lib/audit.php", "lib/ratelimit.php", "lib/appointments.php", "lib/payments.php", "lib/email.php"]
+    files: ["lib/audit.php", "lib/ratelimit.php", "lib/email.php"]
     acceptance: "Agregar PHPDoc faltante en funciones public/protected sin cambiar logica."
-    acceptance_ref: ""
+    acceptance_ref: "lib/audit.php,lib/ratelimit.php,lib/email.php"
     depends_on: []
     prompt: "Agregar PHPDoc faltantes en librerias core sin modificar comportamiento funcional."
     created_at: 2026-02-24

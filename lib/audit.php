@@ -9,6 +9,12 @@ require_once __DIR__ . '/storage.php';
  * Audit Logging Helpers
  */
 
+/**
+ * Writes an audit record to the persistent log and structured logger.
+ *
+ * @param string $event Event identifier (example: booking.created).
+ * @param array<string,mixed> $details Additional context persisted with the event.
+ */
 function audit_log_event(string $event, array $details = []): void
 {
     $line = [

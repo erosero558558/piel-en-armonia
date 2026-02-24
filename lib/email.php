@@ -9,6 +9,11 @@ require_once __DIR__ . '/models.php';
  * Email sending logic.
  */
 
+/**
+ * Reads SMTP configuration from environment variables.
+ *
+ * @return array{host:string,port:int,user:string,pass:string,from:string,from_name:string}
+ */
 function smtp_config(): array
 {
     return [
@@ -21,6 +26,9 @@ function smtp_config(): array
     ];
 }
 
+/**
+ * Returns true when SMTP credentials are configured.
+ */
 function smtp_enabled(): bool
 {
     $cfg = smtp_config();
@@ -125,6 +133,11 @@ function send_mail(string $to, string $subject, string $body, bool $isHtml = fal
     return $sent;
 }
 
+/**
+ * Generates an ICS calendar payload for an appointment.
+ *
+ * @param array<string,mixed> $appointment
+ */
 function generate_ics_content(array $appointment): string
 {
     $date = trim((string) ($appointment['date'] ?? ''));
@@ -178,6 +191,11 @@ function generate_ics_content(array $appointment): string
     return implode("\r\n", $lines) . "\r\n";
 }
 
+/**
+ * Builds the HTML confirmation template for patient appointment emails.
+ *
+ * @param array<string,mixed> $appointment
+ */
 function build_appointment_email_html(array $appointment): string
 {
     $name = htmlspecialchars((string) ($appointment['name'] ?? 'Paciente'), ENT_QUOTES, 'UTF-8');
@@ -218,6 +236,11 @@ function build_appointment_email_html(array $appointment): string
         . '</div></body></html>';
 }
 
+/**
+ * Sends patient confirmation email and optional ICS attachment.
+ *
+ * @param array<string,mixed> $appointment
+ */
 function maybe_send_appointment_email(array $appointment): bool
 {
     $to = trim((string) ($appointment['email'] ?? ''));
@@ -242,6 +265,11 @@ function maybe_send_appointment_email(array $appointment): bool
     return send_mail($to, $subject, $htmlBody, true, $attachments);
 }
 
+/**
+ * Sends a plain-text admin notification when a new appointment is created.
+ *
+ * @param array<string,mixed> $appointment
+ */
 function maybe_send_admin_notification(array $appointment): bool
 {
     $adminEmail = getenv('PIELARMONIA_ADMIN_EMAIL');
@@ -289,6 +317,11 @@ function maybe_send_admin_notification(array $appointment): bool
     return send_mail($adminEmail, $subject, $body);
 }
 
+/**
+ * Sends patient cancellation confirmation email.
+ *
+ * @param array<string,mixed> $appointment
+ */
 function maybe_send_cancellation_email(array $appointment): bool
 {
     $to = trim((string) ($appointment['email'] ?? ''));
@@ -315,6 +348,11 @@ function maybe_send_cancellation_email(array $appointment): bool
     return send_mail($to, $subject, $message);
 }
 
+/**
+ * Sends callback-request notification to admin email.
+ *
+ * @param array<string,mixed> $callback
+ */
 function maybe_send_callback_admin_notification(array $callback): bool
 {
     $adminEmail = getenv('PIELARMONIA_ADMIN_EMAIL');
@@ -336,6 +374,11 @@ function maybe_send_callback_admin_notification(array $callback): bool
     return send_mail($adminEmail, $subject, $body);
 }
 
+/**
+ * Sends appointment reminder email to the patient.
+ *
+ * @param array<string,mixed> $appointment
+ */
 function maybe_send_reminder_email(array $appointment): bool
 {
     $to = trim((string) ($appointment['email'] ?? ''));
@@ -369,6 +412,11 @@ function maybe_send_reminder_email(array $appointment): bool
     return send_mail($to, $subject, $body);
 }
 
+/**
+ * Sends patient notification after an appointment is rescheduled.
+ *
+ * @param array<string,mixed> $appointment
+ */
 function maybe_send_reschedule_email(array $appointment): bool
 {
     $to = trim((string) ($appointment['email'] ?? ''));
