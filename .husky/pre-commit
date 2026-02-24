@@ -1,1 +1,27 @@
+if ! command -v node >/dev/null 2>&1; then
+    if [ -x "/c/Program Files/nodejs/node.exe" ]; then
+        PATH="/c/Program Files/nodejs:$PATH"
+    fi
+fi
+
+if [ -n "${PHP_BIN:-}" ] && [ -f "$PHP_BIN" ]; then
+    PHP_DIR="$(cd "$(dirname "$PHP_BIN")" && pwd 2>/dev/null)"
+    if [ -n "$PHP_DIR" ]; then
+        PATH="$PHP_DIR:$PATH"
+    fi
+fi
+
+for php_dir in \
+    "/c/xampp/php" \
+    "/c/php" \
+    "/c/tools/php" \
+    "/c/Program Files/PHP" \
+    "/c/Program Files/php"
+do
+    if [ -x "$php_dir/php.exe" ]; then
+        PATH="$php_dir:$PATH"
+        break
+    fi
+done
+
 node ./bin/run-lint-staged.js

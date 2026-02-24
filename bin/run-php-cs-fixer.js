@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 'use strict';
 
-const { existsSync } = require('fs');
-const { resolve } = require('path');
+const { existsSync, readdirSync } = require('fs');
+const { resolve, dirname, join } = require('path');
+const { homedir } = require('os');
 const { spawnSync } = require('child_process');
 
 const root = resolve(__dirname, '..');
@@ -22,8 +23,8 @@ function run(command, commandArgs, options = {}) {
     });
 }
 
-function tryPhpInPath() {
-    const probe = spawnSync('php', ['-v'], {
+function probePhp(command) {
+    const probe = spawnSync(command, ['-v'], {
         cwd: root,
         stdio: 'ignore',
         shell: false,
@@ -31,22 +32,82 @@ function tryPhpInPath() {
     return !probe.error && probe.status === 0;
 }
 
-if (args.length === 0) {
-    fail('Uso: node bin/run-php-cs-fixer.js <args...>');
+function uniqueList(values) {
+    const seen = new Set();
+    const out = [];
+    for (const raw of values) {
+        const value = String(raw || '').trim();
+        if (!value) continue;
+        const key = isWin ? value.toLowerCase() : value;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(value);
+    }
+    return out;
 }
 
-// Prefer the Windows launcher to avoid "vendor/bin/php-cs-fixer" spawn issues in lint-staged.
-if (isWin) {
-    const batPath = resolve(root, 'vendor', 'bin', 'php-cs-fixer.bat');
-    if (existsSync(batPath)) {
-        const result = run(batPath, args, { shell: true });
-        if (result.error) {
-            fail(
-                `no se pudo ejecutar php-cs-fixer.bat: ${result.error.message}`
-            );
+function listLaragonPhpCandidates() {
+    if (!isWin) return [];
+    const base = 'C:\\laragon\\bin\\php';
+    if (!existsSync(base)) return [];
+
+    const candidates = [];
+    try {
+        for (const entry of readdirSync(base, { withFileTypes: true })) {
+            if (!entry.isDirectory()) continue;
+            const phpExe = join(base, entry.name, 'php.exe');
+            if (existsSync(phpExe)) {
+                candidates.push(phpExe);
+            }
         }
-        process.exit(result.status === null ? 1 : result.status);
+    } catch {
+        return [];
     }
+    // Prefer lexicographically latest first (often newest version).
+    return candidates.sort((a, b) => b.localeCompare(a));
+}
+
+function buildPhpCandidates() {
+    const home = homedir();
+    const winCandidates = isWin
+        ? [
+              process.env.PHP_BIN || '',
+              'php',
+              'C:\\xampp\\php\\php.exe',
+              'C:\\php\\php.exe',
+              'C:\\tools\\php\\php.exe',
+              'C:\\Program Files\\PHP\\php.exe',
+              'C:\\Program Files\\php\\php.exe',
+              'C:\\ProgramData\\chocolatey\\bin\\php.exe',
+              home
+                  ? join(home, 'scoop', 'apps', 'php', 'current', 'php.exe')
+                  : '',
+              home
+                  ? join(home, 'AppData', 'Local', 'Programs', 'PHP', 'php.exe')
+                  : '',
+              ...listLaragonPhpCandidates(),
+          ]
+        : [process.env.PHP_BIN || '', 'php'];
+
+    return uniqueList(winCandidates);
+}
+
+function resolvePhpBinary() {
+    const tried = [];
+    for (const candidate of buildPhpCandidates()) {
+        tried.push(candidate);
+        if (candidate !== 'php' && !existsSync(candidate)) {
+            continue;
+        }
+        if (probePhp(candidate)) {
+            return { ok: true, command: candidate, tried };
+        }
+    }
+    return { ok: false, command: null, tried };
+}
+
+if (args.length === 0) {
+    fail('Uso: node bin/run-php-cs-fixer.js <args...>');
 }
 
 const fixerPath = resolve(root, 'vendor', 'bin', 'php-cs-fixer');
@@ -54,13 +115,16 @@ if (!existsSync(fixerPath)) {
     fail('No existe vendor/bin/php-cs-fixer. Ejecuta `composer install`.');
 }
 
-if (!tryPhpInPath()) {
+const phpRuntime = resolvePhpBinary();
+if (!phpRuntime.ok || !phpRuntime.command) {
+    const tried =
+        phpRuntime.tried.length > 0 ? phpRuntime.tried.join(', ') : 'php';
     fail(
-        'PHP no esta disponible en PATH. Configura PATH o instala PHP para ejecutar php-cs-fixer.'
+        `PHP no esta disponible. Configura PATH o define PHP_BIN (ej: setx PHP_BIN "C:\\\\ruta\\\\php.exe"). Candidatos probados: ${tried}`
     );
 }
 
-const result = run('php', [fixerPath, ...args]);
+const result = run(phpRuntime.command, [fixerPath, ...args]);
 if (result.error) {
     fail(`no se pudo ejecutar php-cs-fixer: ${result.error.message}`);
 }
