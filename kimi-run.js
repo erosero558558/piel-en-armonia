@@ -40,6 +40,10 @@ function parsePositiveIntEnv(name, fallback) {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function escapeCmdArg(value) {
+    return `"${String(value).replace(/"/g, '""')}"`;
+}
+
 // ── Arg parsing ───────────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
@@ -147,11 +151,37 @@ function runKimi(prompt) {
         `Prompt: ${prompt.slice(0, 120)}${prompt.length > 120 ? '...' : ''}\n`
     );
 
-    const result = spawnSync(KIMI_BIN, kimiArgs, {
-        cwd: WORK_DIR,
-        stdio: 'inherit',
-        encoding: 'utf8',
-    });
+    const childEnv = {
+        ...process.env,
+        PYTHONUTF8: process.env.PYTHONUTF8 || '1',
+        PYTHONIOENCODING: process.env.PYTHONIOENCODING || 'utf-8',
+        LANG: process.env.LANG || 'C.UTF-8',
+    };
+
+    let result;
+    if (process.platform === 'win32') {
+        const cmdLine = [
+            escapeCmdArg(KIMI_BIN),
+            ...kimiArgs.map(escapeCmdArg),
+        ].join(' ');
+        result = spawnSync(
+            'cmd.exe',
+            ['/d', '/s', '/c', `chcp 65001 >nul && ${cmdLine}`],
+            {
+                cwd: WORK_DIR,
+                stdio: 'inherit',
+                encoding: 'utf8',
+                env: childEnv,
+            }
+        );
+    } else {
+        result = spawnSync(KIMI_BIN, kimiArgs, {
+            cwd: WORK_DIR,
+            stdio: 'inherit',
+            encoding: 'utf8',
+            env: childEnv,
+        });
+    }
 
     if (result.status !== 0) {
         console.error(`\nKimi exited with code ${result.status}`);
