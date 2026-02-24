@@ -578,7 +578,8 @@ try {
         $localHead = Get-LocalGitHeadInfo
         if ($null -ne $localHead) {
             $deployFreshnessChecked = $true
-            $scriptHeadResp = Invoke-WebRequest -Uri $deployFreshnessProbeUrl -Method HEAD -TimeoutSec 20 -UseBasicParsing -Headers @{
+            $deployFreshnessCheckUrl = Get-CacheBypassUrl -Url $deployFreshnessProbeUrl -AssetName 'deploy-freshness' -Attempt 0
+            $scriptHeadResp = Invoke-WebRequest -Uri $deployFreshnessCheckUrl -Method HEAD -TimeoutSec 20 -UseBasicParsing -Headers @{
                 'Cache-Control' = 'no-cache'
                 'User-Agent' = 'PielArmoniaDeployCheck/1.0'
             }
