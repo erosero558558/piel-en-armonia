@@ -400,7 +400,6 @@
 
     hydrateRuntimePayloads();
 
-    window.debugLog = debugLog;
     window.loadDeferredModule = loadDeferredModule;
     window.isConstrainedNetworkConnection = isConstrainedNetworkConnection;
     window.scheduleDeferredTask = scheduleDeferredTask;
