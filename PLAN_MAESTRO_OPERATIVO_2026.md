@@ -107,6 +107,7 @@ Criterio de salida:
 - Validacion strict hash (manual): `npm run gate:prod:hash-strict`
 - Contrato calendario: `npm run test:calendar-contract`
 - Escritura calendario: `npm run test:calendar-write`
+- Consistencia fase 2 (concurrencia + paridad web/chat): `npm run test:phase2`
 - Errores chat agenda: `npm run test:chat-booking-calendar-errors`
 - Smoke produccion: `npm run smoke:prod`
 
