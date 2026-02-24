@@ -9,6 +9,7 @@
  *   node agent-orchestrator.js status [--json]
  *   node agent-orchestrator.js conflicts [--strict]
  *   node agent-orchestrator.js handoffs <status|lint|create|close>
+ *   node agent-orchestrator.js policy lint [--json]
  *   node agent-orchestrator.js codex-check
  *   node agent-orchestrator.js codex <start|stop> <CDX-ID> [--block C1] [--to done]
  *   node agent-orchestrator.js task <claim|start|finish> <AG-ID> [...]
@@ -114,6 +115,173 @@ function getGovernancePolicy() {
     }
     GOVERNANCE_POLICY_CACHE = shallowMerge(DEFAULT_GOVERNANCE_POLICY, loaded);
     return GOVERNANCE_POLICY_CACHE;
+}
+
+function readGovernancePolicyStrict() {
+    if (!existsSync(GOVERNANCE_POLICY_PATH)) {
+        throw new Error(`No existe ${GOVERNANCE_POLICY_PATH}`);
+    }
+    return JSON.parse(readFileSync(GOVERNANCE_POLICY_PATH, 'utf8'));
+}
+
+function validateGovernancePolicy(rawPolicy) {
+    const errors = [];
+    const warnings = [];
+    const merged = shallowMerge(DEFAULT_GOVERNANCE_POLICY, rawPolicy || {});
+
+    const version = Number(merged?.version);
+    if (!Number.isFinite(version) || version !== 1) {
+        errors.push(
+            `version invalida (${merged?.version ?? 'vacio'}), esperado 1`
+        );
+    }
+
+    const priorityDomains = Array.isArray(
+        merged?.domain_health?.priority_domains
+    )
+        ? merged.domain_health.priority_domains.map((v) => String(v).trim())
+        : null;
+    if (!priorityDomains || priorityDomains.length === 0) {
+        errors.push('domain_health.priority_domains debe ser array no vacio');
+    } else {
+        const seen = new Set();
+        for (const domain of priorityDomains) {
+            if (!domain) {
+                errors.push(
+                    'domain_health.priority_domains contiene dominio vacio'
+                );
+                continue;
+            }
+            const key = domain.toLowerCase();
+            if (seen.has(key)) {
+                errors.push(
+                    `domain_health.priority_domains duplicado (${domain})`
+                );
+            }
+            seen.add(key);
+        }
+    }
+
+    const domainWeights = merged?.domain_health?.domain_weights;
+    if (
+        !domainWeights ||
+        typeof domainWeights !== 'object' ||
+        Array.isArray(domainWeights)
+    ) {
+        errors.push('domain_health.domain_weights debe ser objeto');
+    } else {
+        const defaultWeight = Number(domainWeights.default);
+        if (!Number.isFinite(defaultWeight) || defaultWeight <= 0) {
+            errors.push(
+                `domain_health.domain_weights.default invalido (${domainWeights.default ?? 'vacio'})`
+            );
+        }
+        for (const [key, rawValue] of Object.entries(domainWeights)) {
+            const weight = Number(rawValue);
+            if (!Number.isFinite(weight) || weight <= 0) {
+                errors.push(
+                    `domain_health.domain_weights.${key} invalido (${rawValue})`
+                );
+            }
+        }
+        for (const domain of priorityDomains || []) {
+            if (
+                !Object.prototype.hasOwnProperty.call(
+                    domainWeights,
+                    String(domain)
+                )
+            ) {
+                warnings.push(
+                    `domain_health.domain_weights sin peso explicito para ${domain} (usa default)`
+                );
+            }
+        }
+    }
+
+    const signalScores = merged?.domain_health?.signal_scores;
+    if (
+        !signalScores ||
+        typeof signalScores !== 'object' ||
+        Array.isArray(signalScores)
+    ) {
+        errors.push('domain_health.signal_scores debe ser objeto');
+    } else {
+        const green = Number(signalScores.GREEN);
+        const yellow = Number(signalScores.YELLOW);
+        const red = Number(signalScores.RED);
+        for (const [name, value] of [
+            ['GREEN', green],
+            ['YELLOW', yellow],
+            ['RED', red],
+        ]) {
+            if (!Number.isFinite(value)) {
+                errors.push(
+                    `domain_health.signal_scores.${name} invalido (${signalScores[name]})`
+                );
+            }
+        }
+        if (
+            Number.isFinite(green) &&
+            Number.isFinite(yellow) &&
+            Number.isFinite(red) &&
+            !(green >= yellow && yellow >= red)
+        ) {
+            errors.push(
+                'domain_health.signal_scores debe cumplir GREEN >= YELLOW >= RED'
+            );
+        }
+    }
+
+    const threshold = Number(
+        merged?.summary?.thresholds?.domain_score_priority_yellow_below
+    );
+    if (!Number.isFinite(threshold) || threshold < 0) {
+        errors.push(
+            `summary.thresholds.domain_score_priority_yellow_below invalido (${merged?.summary?.thresholds?.domain_score_priority_yellow_below ?? 'vacio'})`
+        );
+    }
+
+    return {
+        version: 1,
+        ok: errors.length === 0,
+        error_count: errors.length,
+        warning_count: warnings.length,
+        errors,
+        warnings,
+        effective: {
+            version,
+            domain_health: {
+                priority_domains: Array.isArray(priorityDomains)
+                    ? priorityDomains
+                    : [],
+                domain_weights:
+                    domainWeights &&
+                    typeof domainWeights === 'object' &&
+                    !Array.isArray(domainWeights)
+                        ? domainWeights
+                        : {},
+                signal_scores:
+                    signalScores &&
+                    typeof signalScores === 'object' &&
+                    !Array.isArray(signalScores)
+                        ? signalScores
+                        : {},
+            },
+            summary: {
+                thresholds: {
+                    domain_score_priority_yellow_below: Number.isFinite(
+                        threshold
+                    )
+                        ? threshold
+                        : null,
+                },
+            },
+        },
+        source: {
+            path: 'governance-policy.json',
+            exists: existsSync(GOVERNANCE_POLICY_PATH),
+        },
+    };
 }
 
 function unquote(value) {
@@ -1684,7 +1852,113 @@ function toConflictJsonRecord(item) {
     };
 }
 
+function buildStatusRedExplanation({
+    conflictAnalysis,
+    handoffData,
+    handoffLintErrors,
+    codexCheckReport,
+    domainHealth,
+    domainHealthHistory,
+}) {
+    const blockingConflicts = Array.isArray(conflictAnalysis?.blocking)
+        ? conflictAnalysis.blocking
+        : [];
+    const handoffCovered = Array.isArray(conflictAnalysis?.handoffCovered)
+        ? conflictAnalysis.handoffCovered
+        : [];
+    const handoffs = Array.isArray(handoffData?.handoffs)
+        ? handoffData.handoffs
+        : [];
+    const activeExpiredHandoffs = handoffs.filter(
+        (item) =>
+            String(item.status || '').toLowerCase() === 'active' &&
+            isExpired(item.expires_at)
+    );
+    const redDomains = Array.isArray(domainHealth?.ranking)
+        ? domainHealth.ranking.filter(
+              (row) => String(row.signal || '') === 'RED'
+          )
+        : [];
+    const greenToRedRegressions = Array.isArray(
+        domainHealthHistory?.regressions?.green_to_red
+    )
+        ? domainHealthHistory.regressions.green_to_red
+        : [];
+
+    const blockers = [];
+    const reasons = [];
+    if (blockingConflicts.length > 0) {
+        blockers.push('conflicts');
+        reasons.push(`blocking_conflicts:${blockingConflicts.length}`);
+    }
+    if (Array.isArray(handoffLintErrors) && handoffLintErrors.length > 0) {
+        blockers.push('handoffs_lint');
+        reasons.push(`handoffs_lint:${handoffLintErrors.length}`);
+    }
+    if (codexCheckReport?.ok === false) {
+        blockers.push('codex_check');
+        reasons.push(`codex_check:${codexCheckReport.error_count || 0}`);
+    }
+    if (greenToRedRegressions.length > 0) {
+        blockers.push('domain_regression_green_to_red');
+        reasons.push(
+            `domain_regression_green_to_red:${greenToRedRegressions.length}`
+        );
+    }
+    if (redDomains.length > 0) {
+        reasons.push(
+            `domain_red:${redDomains.map((row) => String(row.domain)).join(',')}`
+        );
+    }
+    if (activeExpiredHandoffs.length > 0) {
+        reasons.push(`handoffs_active_expired:${activeExpiredHandoffs.length}`);
+    }
+    if (handoffCovered.length > 0) {
+        reasons.push(`handoff_conflicts:${handoffCovered.length}`);
+    }
+    if (reasons.length === 0) {
+        reasons.push('no_red_conditions_detected');
+    }
+
+    return {
+        version: 1,
+        signal: blockers.length > 0 ? 'RED' : 'NOT_RED',
+        blockers,
+        reasons,
+        counts: {
+            blocking_conflicts: blockingConflicts.length,
+            handoff_conflicts: handoffCovered.length,
+            handoff_lint_errors: Array.isArray(handoffLintErrors)
+                ? handoffLintErrors.length
+                : 0,
+            codex_check_errors: Number(codexCheckReport?.error_count || 0),
+            active_expired_handoffs: activeExpiredHandoffs.length,
+            red_domains: redDomains.length,
+            domain_regression_green_to_red: greenToRedRegressions.length,
+        },
+        top_blocking_conflicts: blockingConflicts
+            .slice(0, 5)
+            .map((item) => toConflictJsonRecord(item)),
+        handoff_lint_errors: Array.isArray(handoffLintErrors)
+            ? handoffLintErrors.slice(0, 10)
+            : [],
+        codex_check_errors: Array.isArray(codexCheckReport?.errors)
+            ? codexCheckReport.errors.slice(0, 10)
+            : [],
+        red_domains: redDomains.slice(0, 10).map((row) => ({
+            domain: String(row.domain || ''),
+            signal: String(row.signal || ''),
+            blocking_conflicts: Number(row.blocking_conflicts || 0),
+            handoff_conflicts: Number(row.handoff_conflicts || 0),
+            reasons: Array.isArray(row.reasons) ? row.reasons : [],
+        })),
+        domain_regression_green_to_red: greenToRedRegressions.slice(0, 10),
+    };
+}
+
 function cmdStatus(args) {
+    const wantsJson = args.includes('--json');
+    const wantsExplainRed = args.includes('--explain-red');
     const board = parseBoard();
     const handoffData = parseHandoffs();
     const conflictAnalysis = analyzeConflicts(
@@ -1703,6 +1977,11 @@ function cmdStatus(args) {
         conflictAnalysis,
         handoffData.handoffs
     );
+    const handoffLintErrors = wantsExplainRed ? getHandoffLintErrors() : [];
+    const codexCheckReport = wantsExplainRed ? buildCodexCheckReport() : null;
+    const domainHealthHistory = wantsExplainRed
+        ? buildDomainHealthHistorySummary(loadDomainHealthHistory(), 7)
+        : null;
     const data = {
         version: board.version,
         policy: board.policy,
@@ -1722,7 +2001,18 @@ function cmdStatus(args) {
         },
     };
 
-    if (args.includes('--json')) {
+    if (wantsExplainRed) {
+        data.red_explanation = buildStatusRedExplanation({
+            conflictAnalysis,
+            handoffData,
+            handoffLintErrors,
+            codexCheckReport,
+            domainHealth,
+            domainHealthHistory,
+        });
+    }
+
+    if (wantsJson) {
         console.log(JSON.stringify(data, null, 2));
         return;
     }
@@ -1794,6 +2084,41 @@ function cmdStatus(args) {
             console.log(
                 `- [${signal}] #${row.rank} ${row.executor}: ${row.weighted_done_points_pct}% (done ponderado, delta ${weightedDoneDelta} vs baseline), ${row.done_tasks_pct}% (tareas done)`
             );
+        }
+    }
+
+    if (wantsExplainRed) {
+        const explain = data.red_explanation || {};
+        console.log('');
+        console.log('Explain RED (status):');
+        console.log(`- Signal: ${explain.signal || 'n/a'}`);
+        console.log(
+            `- Blockers: ${
+                Array.isArray(explain.blockers) && explain.blockers.length > 0
+                    ? explain.blockers.join(', ')
+                    : 'none'
+            }`
+        );
+        console.log(
+            `- Reasons: ${
+                Array.isArray(explain.reasons) && explain.reasons.length > 0
+                    ? explain.reasons.join(', ')
+                    : 'none'
+            }`
+        );
+        if (
+            Array.isArray(explain.top_blocking_conflicts) &&
+            explain.top_blocking_conflicts.length > 0
+        ) {
+            console.log('- Top blocking conflicts:');
+            for (const item of explain.top_blocking_conflicts) {
+                const files = Array.isArray(item.overlap_files)
+                    ? item.overlap_files.join(', ')
+                    : '';
+                console.log(
+                    `  - ${item.left?.id || 'n/a'} <-> ${item.right?.id || 'n/a'} :: ${files || '(wildcard ambiguo)'}`
+                );
+            }
         }
     }
 }
@@ -2097,6 +2422,56 @@ function cmdConflicts(args) {
     if (strict && analysis.blocking.length > 0) {
         process.exitCode = 1;
     }
+}
+
+function cmdPolicy(args = []) {
+    const subcommand = String(args[0] || '').trim() || 'lint';
+    const wantsJson = args.includes('--json');
+
+    if (subcommand !== 'lint') {
+        throw new Error('Uso: node agent-orchestrator.js policy lint [--json]');
+    }
+
+    let rawPolicy;
+    let report;
+    try {
+        rawPolicy = readGovernancePolicyStrict();
+        report = validateGovernancePolicy(rawPolicy);
+    } catch (error) {
+        report = {
+            version: 1,
+            ok: false,
+            error_count: 1,
+            warning_count: 0,
+            errors: [String(error.message || error)],
+            warnings: [],
+            effective: null,
+            source: {
+                path: 'governance-policy.json',
+                exists: existsSync(GOVERNANCE_POLICY_PATH),
+            },
+        };
+    }
+
+    if (wantsJson) {
+        console.log(JSON.stringify(report, null, 2));
+        if (!report.ok) process.exitCode = 1;
+        return report;
+    }
+
+    if (!report.ok) {
+        throw new Error(
+            `Governance policy invalida:\n- ${report.errors.join('\n- ')}`
+        );
+    }
+
+    console.log('OK: governance-policy.json valido.');
+    if (report.warning_count > 0) {
+        for (const warning of report.warnings) {
+            console.log(`WARN: ${warning}`);
+        }
+    }
+    return report;
 }
 
 function getHandoffLintErrors() {
@@ -2955,6 +3330,7 @@ function main() {
         status: () => cmdStatus(args),
         conflicts: () => cmdConflicts(args),
         handoffs: () => cmdHandoffs(args),
+        policy: () => cmdPolicy(args),
         'codex-check': () => cmdCodexCheck(args),
         codex: () => cmdCodex(args),
         task: () => cmdTask(args),

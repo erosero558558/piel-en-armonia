@@ -102,12 +102,16 @@ Comandos canonicos:
 
 ```bash
 node agent-orchestrator.js status
+node agent-orchestrator.js status --explain-red
+node agent-orchestrator.js status --json --explain-red
 node agent-orchestrator.js conflicts
 node agent-orchestrator.js conflicts --json
 node agent-orchestrator.js handoffs status
 node agent-orchestrator.js handoffs lint
 node agent-orchestrator.js handoffs status --json
 node agent-orchestrator.js handoffs lint --json
+node agent-orchestrator.js policy lint
+node agent-orchestrator.js policy lint --json
 node agent-orchestrator.js handoffs create --from AG-001 --to CDX-001 --files path/a,path/b --reason soporte --approved-by ernesto
 node agent-orchestrator.js handoffs close HO-001 --reason handoff_done
 node agent-orchestrator.js codex-check
@@ -126,6 +130,7 @@ node agent-orchestrator.js metrics --json
 php bin/validate-agent-governance.php
 npm run agent:test
 npm run agent:summary
+npm run agent:policy:lint
 npm run agent:gate
 ```
 
@@ -143,6 +148,7 @@ Nota:
 
 - Preferir `--json` para dashboards, comentarios automáticos en PR y tooling externo; usar salida texto para operación manual.
 - `npm run agent:summary` genera resumen consolidado (Markdown/JSON) para CI/PR usando los comandos `--json`.
+- `agent-governance-summary --explain-red` agrega una seccion de explicacion del estado rojo (conflicts/handoffs/codex/regresiones) en Markdown y JSON.
 - Scripts utiles: `npm run agent:summary:local` (read-only) y `npm run agent:summary:ci` (persiste snapshots runtime).
 - El summary soporta `--profile local|ci` (default `local`); en `local` usa metrics read-only para no ensuciar el arbol local.
 - El summary soporta `--strict` (falla por blockers) y `--fail-on-red` (falla si el semaforo global queda en `RED`).
@@ -153,6 +159,7 @@ Nota:
 - El summary/PR comment incluye delta corto de conflictos (`blocking`/`handoff`) vs baseline usando `metrics --json`.
 - El summary/PR comment incluye semaforo (`GREEN/YELLOW/RED`) y razones de estado para lectura rapida.
 - La politica de pesos/umbrales de gobernanza vive en `governance-policy.json` (p. ej. pesos por dominio y threshold de score para `YELLOW` en summary).
+- Validar cambios de politica con `node agent-orchestrator.js policy lint` (incluido en `npm run agent:gate` y CI de gobernanza).
 - `status --json` y `metrics --json` incluyen `contribution` por ejecutor (porcentaje de tareas `done` y porcentaje ponderado por riesgo) para identificar quien aporta mas.
 - `metrics --json` persiste historico diario de aporte en `verification/agent-contribution-history.json` y el summary muestra tabla de tendencia (ventana 7d).
 - `status --json` y el summary exponen `domain_health` con semaforo por dominio (incluye `calendar`, `chat`, `payments`).

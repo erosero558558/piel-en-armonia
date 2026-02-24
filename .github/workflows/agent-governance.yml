@@ -48,6 +48,9 @@ jobs:
             - name: Handoffs lint
               run: node agent-orchestrator.js handoffs lint
 
+            - name: Governance policy lint
+              run: node agent-orchestrator.js policy lint
+
             - name: Codex mirror check
               run: node agent-orchestrator.js codex-check
 
@@ -58,7 +61,7 @@ jobs:
               if: always()
               run: |
                   mkdir -p verification
-                  node bin/agent-governance-summary.js --profile local --write-json verification/agent-governance-summary.json --write-md verification/agent-governance-summary.md --format markdown > /tmp/agent-governance-summary.md
+                  node bin/agent-governance-summary.js --profile local --explain-red --write-json verification/agent-governance-summary.json --write-md verification/agent-governance-summary.md --format markdown > /tmp/agent-governance-summary.md
                   cat /tmp/agent-governance-summary.md >> "$GITHUB_STEP_SUMMARY"
 
             - name: Evaluate governance red-signal policy (non-blocking)

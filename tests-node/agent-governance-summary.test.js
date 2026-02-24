@@ -371,6 +371,59 @@ test('agent-governance-summary alerta regresion de dominio GREEN->RED en PR summ
     assert.match(md, /`chat`: `GREEN` -> `RED`/);
 });
 
+test('agent-governance-summary soporta --explain-red en JSON y Markdown', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+    writeFixtureFilesWithChatFailure(dir);
+
+    const verificationDir = join(dir, 'verification');
+    require('fs').mkdirSync(verificationDir, { recursive: true });
+    writeFileSync(
+        join(verificationDir, 'agent-domain-health-history.json'),
+        `${JSON.stringify(
+            {
+                version: 1,
+                updated_at: '2026-02-23T10:00:00Z',
+                snapshots: [
+                    {
+                        date: '2026-02-23',
+                        captured_at: '2026-02-23T10:00:00Z',
+                        counts_by_signal: { GREEN: 3, YELLOW: 0, RED: 0 },
+                        domains: [
+                            { domain: 'calendar', signal: 'GREEN' },
+                            { domain: 'chat', signal: 'GREEN' },
+                            { domain: 'payments', signal: 'GREEN' },
+                        ],
+                    },
+                ],
+            },
+            null,
+            2
+        )}\n`,
+        'utf8'
+    );
+
+    let result = runSummary(dir, ['--format', 'json', '--explain-red']);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    let parsed = JSON.parse(result.stdout);
+    assert.ok(parsed.red_explanation);
+    assert.equal(parsed.red_explanation.signal, 'RED');
+    assert.ok(Array.isArray(parsed.red_explanation.blockers));
+    assert.ok(
+        Array.isArray(parsed.red_explanation.domain_regression_green_to_red)
+    );
+    assert.equal(
+        parsed.red_explanation.domain_regression_green_to_red.length >= 1,
+        true
+    );
+
+    result = runSummary(dir, ['--format', 'markdown', '--explain-red']);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.match(result.stdout, /### Explain RED/);
+    assert.match(result.stdout, /Signal:\s+`RED`/);
+    assert.match(result.stdout, /Regresiones GREEN->RED:/);
+});
+
 test('agent-governance-summary lee governance-policy.json para umbral de semaforo', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));

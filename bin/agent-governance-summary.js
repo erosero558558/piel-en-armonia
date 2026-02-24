@@ -296,6 +296,65 @@ function ensurePolicies(report) {
     };
 }
 
+function buildRedExplanation(report) {
+    const conflicts = report?.conflicts || {};
+    const handoffLint = report?.handoffs?.lint || {};
+    const handoffStatus = report?.handoffs?.status || {};
+    const codexCheck = report?.codex_check || {};
+    const domainHealth = report?.domain_health || {};
+    const domainHealthHistory = report?.domain_health_history || {};
+    const topBlocking = Array.isArray(report?.top_blocking_conflicts)
+        ? report.top_blocking_conflicts
+        : [];
+    const regressions = Array.isArray(
+        domainHealthHistory?.regressions?.green_to_red
+    )
+        ? domainHealthHistory.regressions.green_to_red
+        : [];
+    const redDomains = Array.isArray(domainHealth?.ranking)
+        ? domainHealth.ranking
+              .filter((row) => String(row.signal || '') === 'RED')
+              .map((row) => ({
+                  domain: String(row.domain || ''),
+                  signal: String(row.signal || ''),
+                  blocking_conflicts: Number(row.blocking_conflicts || 0),
+                  handoff_conflicts: Number(row.handoff_conflicts || 0),
+                  reasons: Array.isArray(row.reasons) ? row.reasons : [],
+              }))
+        : [];
+
+    return {
+        version: 1,
+        signal: String(report?.overall?.signal || 'n/a'),
+        blockers: Array.isArray(report?.overall?.blockers)
+            ? report.overall.blockers
+            : [],
+        reasons: Array.isArray(report?.overall?.reasons)
+            ? report.overall.reasons
+            : [],
+        counts: {
+            blocking_conflicts: Number(conflicts?.totals?.blocking ?? 0),
+            handoff_conflicts: Number(conflicts?.totals?.handoff ?? 0),
+            handoff_lint_errors: Number(handoffLint?.error_count ?? 0),
+            codex_check_errors: Number(codexCheck?.error_count ?? 0),
+            active_expired_handoffs: Number(
+                handoffStatus?.summary?.active_expired ?? 0
+            ),
+            red_domains: redDomains.length,
+            domain_regression_green_to_red: regressions.length,
+        },
+        top_blocking_conflicts: topBlocking.slice(0, 5),
+        handoff_lint_errors: Array.isArray(handoffLint?.errors)
+            ? handoffLint.errors.slice(0, 10)
+            : [],
+        codex_check_errors: Array.isArray(codexCheck?.errors)
+            ? codexCheck.errors.slice(0, 10)
+            : [],
+        red_domains: redDomains.slice(0, 10),
+        domain_regression_green_to_red: regressions.slice(0, 10),
+    };
+}
+
 function runPolicyCheck(report, policyName, { annotate = false } = {}) {
     const key = String(policyName || '')
         .trim()
@@ -749,6 +808,63 @@ function toMarkdown(report) {
         lines.push('');
     }
 
+    if (report.red_explanation) {
+        const explain = report.red_explanation;
+        lines.push('### Explain RED');
+        lines.push(`- Signal: \`${explain.signal || 'n/a'}\``);
+        lines.push(
+            `- Blockers: ${
+                Array.isArray(explain.blockers) && explain.blockers.length > 0
+                    ? explain.blockers.map((b) => `\`${b}\``).join(', ')
+                    : 'none'
+            }`
+        );
+        lines.push(
+            `- Reasons: ${
+                Array.isArray(explain.reasons) && explain.reasons.length > 0
+                    ? explain.reasons.map((r) => `\`${r}\``).join(', ')
+                    : 'none'
+            }`
+        );
+        if (
+            Array.isArray(explain.red_domains) &&
+            explain.red_domains.length > 0
+        ) {
+            lines.push('- Dominios en rojo:');
+            for (const row of explain.red_domains) {
+                lines.push(
+                    `  - \`${row.domain}\`: blocking=\`${row.blocking_conflicts}\`, handoff=\`${row.handoff_conflicts}\`, reasons=${Array.isArray(row.reasons) && row.reasons.length > 0 ? row.reasons.join(', ') : 'n/a'}`
+                );
+            }
+        }
+        if (
+            Array.isArray(explain.domain_regression_green_to_red) &&
+            explain.domain_regression_green_to_red.length > 0
+        ) {
+            lines.push('- Regresiones GREEN->RED:');
+            for (const row of explain.domain_regression_green_to_red) {
+                lines.push(
+                    `  - \`${row.domain}\`: ${row.from_date} -> ${row.to_date}`
+                );
+            }
+        }
+        if (
+            Array.isArray(explain.top_blocking_conflicts) &&
+            explain.top_blocking_conflicts.length > 0
+        ) {
+            lines.push('- Top blocking conflicts:');
+            for (const item of explain.top_blocking_conflicts) {
+                const files = Array.isArray(item.overlap_files)
+                    ? item.overlap_files.join(', ')
+                    : '';
+                lines.push(
+                    `  - \`${item.left}\` <-> \`${item.right}\` :: ${files || '(wildcard ambiguo)'}`
+                );
+            }
+        }
+        lines.push('');
+    }
+
     lines.push('### Command Exit Codes');
     for (const [key, data] of Object.entries(report.commands || {})) {
         lines.push(`- \`${key}\`: exit=\`${data.exit_code}\``);
@@ -801,6 +917,12 @@ function main() {
             results[key] = runOrchestratorJson(args);
         }
         report = summarize(results);
+    }
+    if (flags['explain-red']) {
+        report = {
+            ...report,
+            red_explanation: buildRedExplanation(report),
+        };
     }
     const markdown = toMarkdown(report);
     const jsonText = `${JSON.stringify(report, null, 2)}\n`;

@@ -107,6 +107,14 @@ function readDomainHealthHistory(dir) {
     );
 }
 
+function writeGovernancePolicy(dir, policy) {
+    writeFileSync(
+        join(dir, 'governance-policy.json'),
+        `${JSON.stringify(policy, null, 2)}\n`,
+        'utf8'
+    );
+}
+
 function baseHandoffs() {
     return `
 version: 1
@@ -795,6 +803,100 @@ test('status texto muestra leaderboard con semaforo y delta vs baseline cuando h
     assert.match(result.stdout, /delta \+100pp vs baseline/);
     assert.match(result.stdout, /\[YELLOW\]\s+#2 jules/);
     assert.match(result.stdout, /delta -100pp vs baseline/);
+});
+
+test('status --json --explain-red expone causas de rojo por conflictos activos', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForConflictFixture({ codexStatus: 'in_progress' }),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithCodexBlock({ status: 'in_progress' }),
+    });
+
+    const result = runCli(dir, ['status', '--json', '--explain-red']);
+    const json = parseJsonStdout(result);
+
+    assert.ok(json.red_explanation);
+    assert.equal(json.red_explanation.signal, 'RED');
+    assert.ok(Array.isArray(json.red_explanation.blockers));
+    assert.ok(json.red_explanation.blockers.includes('conflicts'));
+    assert.equal(json.red_explanation.counts.blocking_conflicts, 1);
+    assert.equal(
+        Array.isArray(json.red_explanation.top_blocking_conflicts),
+        true
+    );
+    assert.equal(json.red_explanation.top_blocking_conflicts.length >= 1, true);
+});
+
+test('policy lint valida governance-policy.json y falla con schema invalido', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    writeGovernancePolicy(dir, {
+        version: 1,
+        domain_health: {
+            priority_domains: ['calendar', 'chat', 'payments'],
+            domain_weights: {
+                calendar: 5,
+                chat: 3,
+                payments: 2,
+                default: 1,
+            },
+            signal_scores: {
+                GREEN: 100,
+                YELLOW: 60,
+                RED: 0,
+            },
+        },
+        summary: {
+            thresholds: {
+                domain_score_priority_yellow_below: 80,
+            },
+        },
+    });
+
+    let result = runCli(dir, ['policy', 'lint', '--json']);
+    let json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(json.error_count, 0);
+    assert.equal(json.source.path, 'governance-policy.json');
+
+    writeGovernancePolicy(dir, {
+        version: 1,
+        domain_health: {
+            priority_domains: ['calendar', 'calendar'],
+            domain_weights: {
+                default: 0,
+            },
+            signal_scores: {
+                GREEN: 10,
+                YELLOW: 20,
+                RED: 0,
+            },
+        },
+        summary: {
+            thresholds: {
+                domain_score_priority_yellow_below: 'bad',
+            },
+        },
+    });
+
+    result = runCli(dir, ['policy', 'lint', '--json'], 1);
+    json = parseJsonStdout(result);
+    assert.equal(json.ok, false);
+    assert.ok(json.error_count >= 1);
+    assert.match(
+        json.errors.join(' | '),
+        /priority_domains duplicado|domain_weights\.default invalido|signal_scores debe cumplir|domain_score_priority_yellow_below invalido/i
+    );
 });
 
 test('conflicts, handoffs y codex-check soportan --json con salida estable', (t) => {
