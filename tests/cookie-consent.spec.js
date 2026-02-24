@@ -24,7 +24,7 @@ test.describe('Consentimiento de cookies', () => {
         const acceptBtn = page.locator('#cookieAcceptBtn');
         await acceptBtn.click({ force: true });
 
-        await expect(banner).not.toBeVisible();
+        await expect(banner).toBeHidden();
 
         // Verificar que se guardó el consentimiento
         const consent = await page.evaluate(() => {
@@ -42,7 +42,7 @@ test.describe('Consentimiento de cookies', () => {
         const rejectBtn = page.locator('#cookieRejectBtn');
         await rejectBtn.click({ force: true });
 
-        await expect(banner).not.toBeVisible();
+        await expect(banner).toBeHidden();
 
         const consent = await page.evaluate(() => {
             const raw = localStorage.getItem('pa_cookie_consent_v1');
@@ -66,7 +66,7 @@ test.describe('Consentimiento de cookies', () => {
         await page.reload();
 
         const banner = page.locator('#cookieBanner');
-        await expect(banner).not.toBeVisible();
+        await expect(banner).toBeHidden();
     });
 
     test('GA4 no se carga sin consentimiento', async ({ page }) => {

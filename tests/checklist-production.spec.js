@@ -108,7 +108,7 @@ test.describe('Checklist de Pruebas en Producción', () => {
         // Debería mostrar error o no redirigir al dashboard
         // Asumimos que el dashboard tiene un ID específico o clase
         const dashboard = page.locator('#dashboard-view, .dashboard-container');
-        await expect(dashboard).not.toBeVisible();
+        await expect(dashboard).toBeHidden();
 
         // El input de password debería seguir visible
         await expect(page.locator('input[type="password"]')).toBeVisible();

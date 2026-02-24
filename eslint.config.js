@@ -15,7 +15,14 @@ module.exports = [
     },
     js.configs.recommended,
     {
-        ignores: ['admin.js', 'script.js', 'booking-ui.js', 'booking-engine.js', 'vendor/**']
+        ignores: [
+            'admin.js',
+            'script.js',
+            'booking-ui.js',
+            'booking-engine.js',
+            'vendor/**',
+            'js/chunks/**',
+        ]
     },
     {
         files: ['**/*.js', '**/*.mjs'],

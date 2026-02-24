@@ -3,16 +3,16 @@ const { test } = require('@playwright/test');
 test('debug deferred root load', async ({ page }) => {
     page.on('console', (msg) => {
         if (['error', 'warning'].includes(msg.type())) {
-            // eslint-disable-next-line no-console
+             
             console.log(`[console:${msg.type()}] ${msg.text()}`);
         }
     });
     page.on('pageerror', (err) => {
-        // eslint-disable-next-line no-console
+         
         console.log(`[pageerror] ${err.message}`);
     });
     page.on('requestfailed', (req) => {
-        // eslint-disable-next-line no-console
+         
         console.log(
             `[requestfailed] ${req.url()} :: ${req.failure()?.errorText || ''}`
         );
@@ -24,7 +24,7 @@ test('debug deferred root load', async ({ page }) => {
             url.includes('script.js') ||
             url.includes('styles-deferred')
         ) {
-            // eslint-disable-next-line no-console
+             
             console.log(`[res ${res.status()}] ${url}`);
         }
     });
@@ -48,6 +48,6 @@ test('debug deferred root load', async ({ page }) => {
         return output;
     });
 
-    // eslint-disable-next-line no-console
+     
     console.log('STATE', JSON.stringify(state));
 });

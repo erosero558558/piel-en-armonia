@@ -112,7 +112,7 @@ async function dismissCookieBannerIfVisible(page) {
         const rejectButton = page.locator('#cookieRejectBtn');
         if (await rejectButton.isVisible().catch(() => false)) {
             await rejectButton.click();
-            await expect(banner).not.toBeVisible();
+            await expect(banner).toBeHidden();
         }
     }
 }
