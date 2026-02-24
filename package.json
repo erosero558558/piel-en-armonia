@@ -31,12 +31,17 @@
         "agent:sync": "node agent-orchestrator.js sync",
         "agent:status": "node agent-orchestrator.js status",
         "agent:conflicts": "node agent-orchestrator.js conflicts --strict",
+        "agent:handoffs": "node agent-orchestrator.js handoffs",
+        "agent:handoffs:lint": "node agent-orchestrator.js handoffs lint",
+        "agent:codex": "node agent-orchestrator.js codex",
+        "agent:codex-check": "node agent-orchestrator.js codex-check",
         "agent:metrics": "node agent-orchestrator.js metrics",
         "agent:validate": "php bin/validate-agent-governance.php",
+        "agent:gate": "npm run agent:conflicts && npm run agent:handoffs:lint && npm run agent:codex-check && npm run agent:validate",
         "prepare": "husky"
     },
     "lint-staged": {
-        "*.php": "vendor/bin/php-cs-fixer fix",
+        "*.php": "node bin/run-php-cs-fixer.js fix",
         "*.{js,mjs,cjs,json,md}": "prettier --write",
         "*.{js,mjs,cjs}": "eslint --fix"
     },

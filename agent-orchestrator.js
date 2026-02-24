@@ -8,8 +8,9 @@
  * Commands:
  *   node agent-orchestrator.js status [--json]
  *   node agent-orchestrator.js conflicts [--strict]
- *   node agent-orchestrator.js handoffs <status|lint>
+ *   node agent-orchestrator.js handoffs <status|lint|create|close>
  *   node agent-orchestrator.js codex-check
+ *   node agent-orchestrator.js codex <start|stop> <CDX-ID> [--block C1] [--to done]
  *   node agent-orchestrator.js sync
  *   node agent-orchestrator.js close <task_id> [--evidence path]
  *   node agent-orchestrator.js metrics
@@ -74,8 +75,10 @@ function parseScalar(value) {
     if (trimmed === 'true') return true;
     if (trimmed === 'false') return false;
     if (trimmed === '[]') return [];
-    if (trimmed.startsWith('[') && trimmed.endsWith(']')) return parseInlineArray(trimmed);
-    if (trimmed.startsWith('"') && trimmed.endsWith('"')) return unquote(trimmed);
+    if (trimmed.startsWith('[') && trimmed.endsWith(']'))
+        return parseInlineArray(trimmed);
+    if (trimmed.startsWith('"') && trimmed.endsWith('"'))
+        return unquote(trimmed);
     return trimmed;
 }
 
@@ -149,13 +152,16 @@ function parseBoard() {
     if (task) board.tasks.push(task);
 
     for (const item of board.tasks) {
-        if (!Array.isArray(item.files)) item.files = item.files ? [String(item.files)] : [];
+        if (!Array.isArray(item.files))
+            item.files = item.files ? [String(item.files)] : [];
         if (!Array.isArray(item.depends_on)) {
             item.depends_on = item.depends_on ? [String(item.depends_on)] : [];
         }
         item.status = String(item.status || '').trim();
         if (!ALLOWED_STATUSES.has(item.status)) {
-            throw new Error(`Estado no permitido en ${item.id}: ${item.status}`);
+            throw new Error(
+                `Estado no permitido en ${item.id}: ${item.status}`
+            );
         }
     }
 
@@ -214,8 +220,11 @@ function parseHandoffs() {
     if (handoff) data.handoffs.push(handoff);
 
     for (const item of data.handoffs) {
-        if (!Array.isArray(item.files)) item.files = item.files ? [String(item.files)] : [];
-        item.status = String(item.status || '').trim().toLowerCase();
+        if (!Array.isArray(item.files))
+            item.files = item.files ? [String(item.files)] : [];
+        item.status = String(item.status || '')
+            .trim()
+            .toLowerCase();
     }
 
     return data;
@@ -249,6 +258,143 @@ function parseCodexActiveBlocks() {
     return blocks;
 }
 
+function serializeHandoffs(data) {
+    const safe = data || { version: 1, handoffs: [] };
+    const lines = [];
+    lines.push(`version: ${safe.version || 1}`);
+    lines.push('handoffs:');
+
+    const handoffs = Array.isArray(safe.handoffs) ? safe.handoffs : [];
+    for (const handoff of handoffs) {
+        lines.push(`  - id: ${handoff.id}`);
+        lines.push(`    status: ${handoff.status || 'active'}`);
+        lines.push(`    from_task: ${handoff.from_task || ''}`);
+        lines.push(`    to_task: ${handoff.to_task || ''}`);
+        lines.push(`    reason: ${handoff.reason || ''}`);
+        lines.push(`    files: ${serializeArrayInline(handoff.files || [])}`);
+        lines.push(`    approved_by: ${handoff.approved_by || ''}`);
+        lines.push(`    created_at: ${handoff.created_at || ''}`);
+        lines.push(`    expires_at: ${handoff.expires_at || ''}`);
+        if (handoff.closed_at) {
+            lines.push(`    closed_at: ${handoff.closed_at}`);
+        }
+        if (handoff.close_reason) {
+            lines.push(`    close_reason: ${quote(handoff.close_reason)}`);
+        }
+    }
+
+    return `${lines.join('\n').trimEnd()}\n`;
+}
+
+function parseFlags(args) {
+    const positionals = [];
+    const flags = {};
+    for (let i = 0; i < args.length; i++) {
+        const arg = String(args[i]);
+        if (!arg.startsWith('--')) {
+            positionals.push(arg);
+            continue;
+        }
+        const key = arg.slice(2);
+        const next = args[i + 1];
+        if (next === undefined || String(next).startsWith('--')) {
+            flags[key] = true;
+            continue;
+        }
+        flags[key] = String(next);
+        i += 1;
+    }
+    return { positionals, flags };
+}
+
+function parseCsvList(value) {
+    if (!value) return [];
+    return String(value)
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+}
+
+function isoNow() {
+    return new Date().toISOString();
+}
+
+function plusHoursIso(hours) {
+    const safeHours = Number.isFinite(Number(hours)) ? Number(hours) : 24;
+    return new Date(Date.now() + safeHours * 60 * 60 * 1000).toISOString();
+}
+
+function ensureTask(board, taskId) {
+    const task = board.tasks.find((item) => String(item.id) === String(taskId));
+    if (!task) {
+        throw new Error(`No existe task_id ${taskId} en AGENT_BOARD.yaml`);
+    }
+    return task;
+}
+
+function writeBoard(board) {
+    board.policy = board.policy || {};
+    board.policy.updated_at = currentDate();
+    writeFileSync(BOARD_PATH, serializeBoard(board), 'utf8');
+}
+
+function buildCodexActiveComment(block) {
+    if (!block) return '';
+    const lines = [];
+    lines.push('<!-- CODEX_ACTIVE');
+    lines.push(`block: ${block.block || 'C1'}`);
+    lines.push(`task_id: ${block.task_id}`);
+    lines.push(`status: ${block.status}`);
+    lines.push(`files: ${serializeArrayInline(block.files || [])}`);
+    lines.push(`updated_at: ${block.updated_at || currentDate()}`);
+    lines.push('-->');
+    return lines.join('\n');
+}
+
+function upsertCodexActiveBlock(planRaw, block) {
+    const regex = /<!--\s*CODEX_ACTIVE\s*\n[\s\S]*?-->\s*/g;
+    const withoutBlocks = String(planRaw || '').replace(regex, '');
+    if (!block) {
+        return withoutBlocks.replace(/\n{3,}/g, '\n\n');
+    }
+
+    const comment = `${buildCodexActiveComment(block)}\n\n`;
+    const anchor = 'Relacion con Operativo 2026:';
+    const anchorIndex = withoutBlocks.indexOf(anchor);
+    if (anchorIndex === -1) {
+        return `${comment}${withoutBlocks}`.replace(/\n{3,}/g, '\n\n');
+    }
+    const lineEnd = withoutBlocks.indexOf('\n', anchorIndex);
+    if (lineEnd === -1) {
+        return `${withoutBlocks}\n\n${comment}`.replace(/\n{3,}/g, '\n\n');
+    }
+    return (
+        withoutBlocks.slice(0, lineEnd + 1) +
+        '\n' +
+        comment +
+        withoutBlocks.slice(lineEnd + 1)
+    ).replace(/\n{3,}/g, '\n\n');
+}
+
+function writeCodexActiveBlock(block) {
+    if (!existsSync(CODEX_PLAN_PATH)) {
+        throw new Error(`No existe ${CODEX_PLAN_PATH}`);
+    }
+    const raw = readFileSync(CODEX_PLAN_PATH, 'utf8');
+    const next = upsertCodexActiveBlock(raw, block);
+    writeFileSync(CODEX_PLAN_PATH, next, 'utf8');
+}
+
+function nextHandoffId(handoffs) {
+    let max = 0;
+    for (const handoff of handoffs || []) {
+        const match = String(handoff.id || '').match(/^HO-(\d+)$/);
+        if (!match) continue;
+        max = Math.max(max, Number(match[1]));
+    }
+    return `HO-${String(max + 1).padStart(3, '0')}`;
+}
+
 function quote(value) {
     return `"${String(value).replace(/"/g, '\\"')}"`;
 }
@@ -263,7 +409,9 @@ function serializeBoard(board) {
     lines.push(`version: ${board.version}`);
     lines.push('policy:');
     lines.push(`  canonical: ${board.policy.canonical || 'AGENTS.md'}`);
-    lines.push(`  autonomy: ${board.policy.autonomy || 'semi_autonomous_guardrails'}`);
+    lines.push(
+        `  autonomy: ${board.policy.autonomy || 'semi_autonomous_guardrails'}`
+    );
     lines.push(`  kpi: ${board.policy.kpi || 'reduce_rework'}`);
     lines.push(`  updated_at: ${board.policy.updated_at || currentDate()}`);
     lines.push('');
@@ -280,7 +428,9 @@ function serializeBoard(board) {
         lines.push(`    files: ${serializeArrayInline(task.files || [])}`);
         lines.push(`    acceptance: ${quote(task.acceptance || '')}`);
         lines.push(`    acceptance_ref: ${quote(task.acceptance_ref || '')}`);
-        lines.push(`    depends_on: ${serializeArrayInline(task.depends_on || [])}`);
+        lines.push(
+            `    depends_on: ${serializeArrayInline(task.depends_on || [])}`
+        );
         lines.push(`    prompt: ${quote(task.prompt || task.title || '')}`);
         lines.push(`    created_at: ${task.created_at || currentDate()}`);
         lines.push(`    updated_at: ${task.updated_at || currentDate()}`);
@@ -393,7 +543,8 @@ function renderQueueFile(executor, tasks, existingMeta) {
         const meta = existingMeta.get(task.id) || {};
         const queueStatus = boardToQueueStatus(task.status, executor);
         const files = Array.isArray(task.files) ? task.files.join(',') : '';
-        const acceptanceRef = task.acceptance_ref || `verification/agent-runs/${task.id}.md`;
+        const acceptanceRef =
+            task.acceptance_ref || `verification/agent-runs/${task.id}.md`;
 
         lines.push('<!-- TASK');
         lines.push(`status: ${queueStatus}`);
@@ -498,7 +649,10 @@ function isExpired(dateValue) {
 }
 
 function isActiveHandoff(handoff) {
-    return String(handoff.status || '').toLowerCase() === 'active' && !isExpired(handoff.expires_at);
+    return (
+        String(handoff.status || '').toLowerCase() === 'active' &&
+        !isExpired(handoff.expires_at)
+    );
 }
 
 function sameTaskPair(handoff, leftTask, rightTask) {
@@ -513,7 +667,9 @@ function sameTaskPair(handoff, leftTask, rightTask) {
 }
 
 function analyzeConflicts(tasks, handoffs = []) {
-    const activeTasks = tasks.filter((task) => ACTIVE_STATUSES.has(task.status));
+    const activeTasks = tasks.filter((task) =>
+        ACTIVE_STATUSES.has(task.status)
+    );
     const activeHandoffs = (handoffs || []).filter(isActiveHandoff);
     const all = [];
     const blocking = [];
@@ -551,7 +707,9 @@ function analyzeConflicts(tasks, handoffs = []) {
                 right,
                 overlap_files: overlap.overlapFiles,
                 ambiguous_wildcard_overlap: overlap.ambiguousWildcardOverlap,
-                handoff_ids: matchingHandoffs.map((handoff) => String(handoff.id || '')),
+                handoff_ids: matchingHandoffs.map((handoff) =>
+                    String(handoff.id || '')
+                ),
                 exempted_by_handoff: fullyCovered,
             };
 
@@ -574,7 +732,10 @@ function detectConflicts(tasks, handoffs = []) {
 function cmdStatus(args) {
     const board = parseBoard();
     const handoffData = parseHandoffs();
-    const conflictAnalysis = analyzeConflicts(board.tasks, handoffData.handoffs);
+    const conflictAnalysis = analyzeConflicts(
+        board.tasks,
+        handoffData.handoffs
+    );
     const data = {
         version: board.version,
         policy: board.policy,
@@ -600,7 +761,9 @@ function cmdStatus(args) {
     console.log(`Version board: ${data.version}`);
     console.log(`Total tasks: ${data.totals.tasks}`);
     console.log(`Conflicts activos (blocking): ${data.conflicts}`);
-    console.log(`Conflicts eximidos por handoff: ${data.conflicts_breakdown.handoff}`);
+    console.log(
+        `Conflicts eximidos por handoff: ${data.conflicts_breakdown.handoff}`
+    );
     console.log('');
     console.log('Por estado:');
     for (const [status, count] of Object.entries(data.totals.byStatus)) {
@@ -621,12 +784,17 @@ function safeNumber(value, fallback = 0) {
 function cmdMetrics() {
     const board = parseBoard();
     const handoffData = parseHandoffs();
-    const conflictAnalysis = analyzeConflicts(board.tasks, handoffData.handoffs);
+    const conflictAnalysis = analyzeConflicts(
+        board.tasks,
+        handoffData.handoffs
+    );
     const blockingConflicts = conflictAnalysis.blocking.length;
     const handoffConflicts = conflictAnalysis.handoffCovered.length;
     const total = board.tasks.length;
     const done = board.tasks.filter((task) => task.status === 'done').length;
-    const inProgress = board.tasks.filter((task) => task.status === 'in_progress').length;
+    const inProgress = board.tasks.filter(
+        (task) => task.status === 'in_progress'
+    ).length;
 
     let existing = null;
     if (existsSync(METRICS_PATH)) {
@@ -637,20 +805,28 @@ function cmdMetrics() {
         }
     }
 
-    const baseline = existing && existing.baseline ? existing.baseline : {
-        tasks_total: total,
-        tasks_with_rework: 0,
-        file_conflicts: blockingConflicts,
-        non_critical_lead_time_hours_avg: null,
-        coordination_gate_red_rate_pct: null,
-        traceability_pct: 0,
-    };
+    const baseline =
+        existing && existing.baseline
+            ? existing.baseline
+            : {
+                  tasks_total: total,
+                  tasks_with_rework: 0,
+                  file_conflicts: blockingConflicts,
+                  non_critical_lead_time_hours_avg: null,
+                  coordination_gate_red_rate_pct: null,
+                  traceability_pct: 0,
+              };
 
-    const traceability = total === 0
-        ? 100
-        : Math.round(
-              (board.tasks.filter((task) => String(task.acceptance_ref || '').trim() !== '').length / total) * 100
-          );
+    const traceability =
+        total === 0
+            ? 100
+            : Math.round(
+                  (board.tasks.filter(
+                      (task) => String(task.acceptance_ref || '').trim() !== ''
+                  ).length /
+                      total) *
+                      100
+              );
 
     const metrics = {
         version: 1,
@@ -659,17 +835,23 @@ function cmdMetrics() {
             window_days: 7,
             updated_at: new Date().toISOString(),
         },
-        targets: existing && existing.targets ? existing.targets : {
-            rework_reduction_pct: 40,
-            file_conflict_rate_pct_max: 5,
-            non_critical_lead_time_hours_max: 24,
-            coordination_gate_red_rate_pct_max: 10,
-            traceability_pct: 100,
-        },
+        targets:
+            existing && existing.targets
+                ? existing.targets
+                : {
+                      rework_reduction_pct: 40,
+                      file_conflict_rate_pct_max: 5,
+                      non_critical_lead_time_hours_max: 24,
+                      coordination_gate_red_rate_pct_max: 10,
+                      traceability_pct: 100,
+                  },
         baseline: {
             tasks_total: safeNumber(baseline.tasks_total, total),
             tasks_with_rework: safeNumber(baseline.tasks_with_rework, 0),
-            file_conflicts: safeNumber(baseline.file_conflicts, blockingConflicts),
+            file_conflicts: safeNumber(
+                baseline.file_conflicts,
+                blockingConflicts
+            ),
             non_critical_lead_time_hours_avg:
                 baseline.non_critical_lead_time_hours_avg === null
                     ? null
@@ -693,7 +875,11 @@ function cmdMetrics() {
         },
     };
 
-    writeFileSync(METRICS_PATH, `${JSON.stringify(metrics, null, 4)}\n`, 'utf8');
+    writeFileSync(
+        METRICS_PATH,
+        `${JSON.stringify(metrics, null, 4)}\n`,
+        'utf8'
+    );
     console.log(`Metricas actualizadas en ${METRICS_PATH}`);
 }
 
@@ -724,7 +910,9 @@ function cmdConflicts(args) {
             console.log(`  handoffs: ${item.handoff_ids.join(', ')}`);
         }
         if (item.ambiguous_wildcard_overlap) {
-            console.log('  note: wildcard overlap ambiguo, no eximible automaticamente');
+            console.log(
+                '  note: wildcard overlap ambiguo, no eximible automaticamente'
+            );
         }
     }
 
@@ -737,12 +925,16 @@ function getHandoffLintErrors() {
     const errors = [];
     const board = parseBoard();
     const handoffData = parseHandoffs();
-    const handoffs = Array.isArray(handoffData.handoffs) ? handoffData.handoffs : [];
+    const handoffs = Array.isArray(handoffData.handoffs)
+        ? handoffData.handoffs
+        : [];
     const byId = new Map(board.tasks.map((task) => [String(task.id), task]));
     const seenHandoffIds = new Set();
 
     if (String(handoffData.version) !== '1') {
-        errors.push(`AGENT_HANDOFFS.yaml version invalida: ${handoffData.version}`);
+        errors.push(
+            `AGENT_HANDOFFS.yaml version invalida: ${handoffData.version}`
+        );
     }
 
     for (const handoff of handoffs) {
@@ -768,8 +960,12 @@ function getHandoffLintErrors() {
         const toTaskId = String(handoff.to_task || '');
         const fromTask = byId.get(fromTaskId);
         const toTask = byId.get(toTaskId);
-        if (!fromTask) errors.push(`${id}: from_task inexistente (${fromTaskId || 'vacio'})`);
-        if (!toTask) errors.push(`${id}: to_task inexistente (${toTaskId || 'vacio'})`);
+        if (!fromTask)
+            errors.push(
+                `${id}: from_task inexistente (${fromTaskId || 'vacio'})`
+            );
+        if (!toTask)
+            errors.push(`${id}: to_task inexistente (${toTaskId || 'vacio'})`);
         if (fromTaskId && toTaskId && fromTaskId === toTaskId) {
             errors.push(`${id}: from_task y to_task no pueden ser iguales`);
         }
@@ -815,10 +1011,14 @@ function getHandoffLintErrors() {
                 errors.push(`${id}: handoff activo pero expirado`);
             }
             if (fromTask && !ACTIVE_STATUSES.has(fromTask.status)) {
-                errors.push(`${id}: from_task no esta activo (${fromTask.id}:${fromTask.status})`);
+                errors.push(
+                    `${id}: from_task no esta activo (${fromTask.id}:${fromTask.status})`
+                );
             }
             if (toTask && !ACTIVE_STATUSES.has(toTask.status)) {
-                errors.push(`${id}: to_task no esta activo (${toTask.id}:${toTask.status})`);
+                errors.push(
+                    `${id}: to_task no esta activo (${toTask.id}:${toTask.status})`
+                );
             }
         }
 
@@ -845,9 +1045,15 @@ function cmdHandoffs(args) {
 
     if (subcommand === 'status') {
         const total = handoffData.handoffs.length;
-        const active = handoffData.handoffs.filter((item) => String(item.status) === 'active');
-        const closed = handoffData.handoffs.filter((item) => String(item.status) === 'closed');
-        const expiredActive = active.filter((item) => isExpired(item.expires_at));
+        const active = handoffData.handoffs.filter(
+            (item) => String(item.status) === 'active'
+        );
+        const closed = handoffData.handoffs.filter(
+            (item) => String(item.status) === 'closed'
+        );
+        const expiredActive = active.filter((item) =>
+            isExpired(item.expires_at)
+        );
         console.log('== Agent Handoffs ==');
         console.log(`Total: ${total}`);
         console.log(`Active: ${active.length}`);
@@ -868,19 +1074,146 @@ function cmdHandoffs(args) {
         return;
     }
 
-    throw new Error('Uso: node agent-orchestrator.js handoffs <status|lint>');
+    if (subcommand === 'create') {
+        const { flags } = parseFlags(args.slice(1));
+        const board = parseBoard();
+        const handoffs = parseHandoffs();
+
+        const fromTaskId = String(flags.from || flags.from_task || '').trim();
+        const toTaskId = String(flags.to || flags.to_task || '').trim();
+        const reason = String(flags.reason || '').trim();
+        const approvedBy = String(
+            flags['approved-by'] || flags.approved_by || ''
+        ).trim();
+        const files = parseCsvList(flags.files || '');
+        const ttlHours = Number(flags['ttl-hours'] || flags.ttl_hours || 24);
+
+        if (!fromTaskId || !toTaskId) {
+            throw new Error(
+                'Uso: node agent-orchestrator.js handoffs create --from AG-001 --to CDX-001 --files path1,path2 --reason motivo --approved-by ernesto [--ttl-hours 24]'
+            );
+        }
+        if (!reason) {
+            throw new Error('handoffs create requiere --reason');
+        }
+        if (!approvedBy) {
+            throw new Error('handoffs create requiere --approved-by');
+        }
+        if (files.length === 0) {
+            throw new Error('handoffs create requiere --files con lista CSV');
+        }
+        if (!Number.isFinite(ttlHours) || ttlHours <= 0 || ttlHours > 48) {
+            throw new Error('--ttl-hours debe estar en rango 1..48');
+        }
+
+        const fromTask = ensureTask(board, fromTaskId);
+        const toTask = ensureTask(board, toTaskId);
+        if (
+            !ACTIVE_STATUSES.has(fromTask.status) ||
+            !ACTIVE_STATUSES.has(toTask.status)
+        ) {
+            throw new Error(
+                `Ambas tareas deben estar activas (from=${fromTask.status}, to=${toTask.status})`
+            );
+        }
+
+        const overlap = analyzeFileOverlap(fromTask.files, toTask.files);
+        if (!overlap.anyOverlap) {
+            throw new Error(
+                `No hay solape de archivos entre ${fromTaskId} y ${toTaskId}`
+            );
+        }
+        if (overlap.ambiguousWildcardOverlap) {
+            throw new Error(
+                'No se puede crear handoff automatico con overlap ambiguo por wildcards; usa files concretos'
+            );
+        }
+        const overlapSet = new Set(overlap.overlapFiles);
+        const normalizedFiles = files.map(normalizePathToken);
+        for (let i = 0; i < normalizedFiles.length; i++) {
+            if (!overlapSet.has(normalizedFiles[i])) {
+                throw new Error(
+                    `File fuera del solape real: ${files[i]} (solape: ${overlap.overlapFiles.join(', ') || 'ninguno'})`
+                );
+            }
+        }
+
+        const handoff = {
+            id: nextHandoffId(handoffs.handoffs),
+            status: 'active',
+            from_task: fromTaskId,
+            to_task: toTaskId,
+            reason,
+            files,
+            approved_by: approvedBy,
+            created_at: isoNow(),
+            expires_at: plusHoursIso(ttlHours),
+        };
+
+        handoffs.handoffs.push(handoff);
+        writeFileSync(HANDOFFS_PATH, serializeHandoffs(handoffs), 'utf8');
+
+        const errors = getHandoffLintErrors();
+        if (errors.length > 0) {
+            throw new Error(
+                `Handoff creado pero invalido:\n- ${errors.join('\n- ')}`
+            );
+        }
+
+        console.log(`Handoff creado: ${handoff.id}`);
+        console.log(
+            `${handoff.from_task} -> ${handoff.to_task} :: ${handoff.files.join(', ')} (expira ${handoff.expires_at})`
+        );
+        return;
+    }
+
+    if (subcommand === 'close') {
+        const { positionals, flags } = parseFlags(args.slice(1));
+        const handoffId = String(positionals[0] || flags.id || '').trim();
+        const closeReason = String(flags.reason || 'closed_manual').trim();
+        if (!handoffId) {
+            throw new Error(
+                'Uso: node agent-orchestrator.js handoffs close <HO-001> [--reason motivo]'
+            );
+        }
+        const handoffs = parseHandoffs();
+        const handoff = handoffs.handoffs.find(
+            (item) => String(item.id) === handoffId
+        );
+        if (!handoff) {
+            throw new Error(`No existe handoff ${handoffId}`);
+        }
+        handoff.status = 'closed';
+        handoff.closed_at = isoNow();
+        handoff.close_reason = closeReason;
+        writeFileSync(HANDOFFS_PATH, serializeHandoffs(handoffs), 'utf8');
+        console.log(`Handoff cerrado: ${handoffId}`);
+        return;
+    }
+
+    throw new Error(
+        'Uso: node agent-orchestrator.js handoffs <status|lint|create|close>'
+    );
 }
 
 function cmdCodexCheck() {
     const board = parseBoard();
     const blocks = parseCodexActiveBlocks();
     const errors = [];
-    const codexTasks = board.tasks.filter((task) => /^CDX-\d+$/.test(String(task.id || '')));
-    const codexInProgress = codexTasks.filter((task) => task.status === 'in_progress');
-    const activeCodexTasks = codexTasks.filter((task) => ACTIVE_STATUSES.has(task.status));
+    const codexTasks = board.tasks.filter((task) =>
+        /^CDX-\d+$/.test(String(task.id || ''))
+    );
+    const codexInProgress = codexTasks.filter(
+        (task) => task.status === 'in_progress'
+    );
+    const activeCodexTasks = codexTasks.filter((task) =>
+        ACTIVE_STATUSES.has(task.status)
+    );
 
     if (codexInProgress.length > 1) {
-        errors.push(`Mas de un CDX in_progress (${codexInProgress.map((t) => t.id).join(', ')})`);
+        errors.push(
+            `Mas de un CDX in_progress (${codexInProgress.map((t) => t.id).join(', ')})`
+        );
     }
 
     if (blocks.length > 1) {
@@ -899,7 +1232,9 @@ function cmdCodexCheck() {
         const block = blocks[0];
         const taskId = String(block.task_id || '').trim();
         const blockStatus = String(block.status || '').trim();
-        const blockFiles = Array.isArray(block.files) ? block.files.map(normalizePathToken) : [];
+        const blockFiles = Array.isArray(block.files)
+            ? block.files.map(normalizePathToken)
+            : [];
         const task = board.tasks.find((item) => String(item.id) === taskId);
 
         if (!taskId) {
@@ -909,26 +1244,36 @@ function cmdCodexCheck() {
             errors.push(`CODEX_ACTIVE.task_id invalido (${taskId || 'vacio'})`);
         }
         if (!task) {
-            errors.push(`CODEX_ACTIVE.task_id no existe en board: ${taskId || 'vacio'}`);
+            errors.push(
+                `CODEX_ACTIVE.task_id no existe en board: ${taskId || 'vacio'}`
+            );
         } else {
             if (String(task.executor) !== 'codex') {
-                errors.push(`${task.id}: executor debe ser codex (actual: ${task.executor})`);
+                errors.push(
+                    `${task.id}: executor debe ser codex (actual: ${task.executor})`
+                );
             }
             if (blockStatus !== String(task.status)) {
                 errors.push(
                     `${task.id}: status desalineado plan(${blockStatus || 'vacio'}) != board(${task.status})`
                 );
             }
-            const boardFiles = new Set((task.files || []).map(normalizePathToken));
+            const boardFiles = new Set(
+                (task.files || []).map(normalizePathToken)
+            );
             for (const file of blockFiles) {
                 if (!boardFiles.has(file)) {
-                    errors.push(`${task.id}: file del bloque CODEX_ACTIVE no reservado en board (${file})`);
+                    errors.push(
+                        `${task.id}: file del bloque CODEX_ACTIVE no reservado en board (${file})`
+                    );
                 }
             }
         }
 
         if (activeCodexTasks.length === 0 && ACTIVE_STATUSES.has(blockStatus)) {
-            errors.push('CODEX_ACTIVE indica tarea activa pero no hay CDX activo en board');
+            errors.push(
+                'CODEX_ACTIVE indica tarea activa pero no hay CDX activo en board'
+            );
         }
     }
 
@@ -937,6 +1282,89 @@ function cmdCodexCheck() {
     }
 
     console.log('OK: espejo Codex valido.');
+}
+
+function cmdCodex(args) {
+    const subcommand = args[0];
+    const { positionals, flags } = parseFlags(args.slice(1));
+    const taskId = String(positionals[0] || flags.id || '').trim();
+    if (!subcommand || !['start', 'stop'].includes(subcommand)) {
+        throw new Error(
+            'Uso: node agent-orchestrator.js codex <start|stop> <CDX-001> [--block C1] [--to review|done|blocked]'
+        );
+    }
+    if (!taskId) {
+        throw new Error('Codex command requiere task_id (CDX-###)');
+    }
+    if (!/^CDX-\d+$/.test(taskId)) {
+        throw new Error(`task_id Codex invalido: ${taskId}`);
+    }
+
+    const board = parseBoard();
+    const task = ensureTask(board, taskId);
+    if (String(task.executor) !== 'codex') {
+        throw new Error(`Task ${taskId} no pertenece a executor codex`);
+    }
+
+    if (subcommand === 'start') {
+        const block = String(flags.block || 'C1').trim();
+        const filesOverride = flags.files ? parseCsvList(flags.files) : null;
+        const codexTasks = board.tasks.filter(
+            (item) =>
+                /^CDX-\d+$/.test(String(item.id || '')) &&
+                item.id !== taskId &&
+                item.status === 'in_progress'
+        );
+        if (codexTasks.length > 0) {
+            throw new Error(
+                `No se puede iniciar ${taskId}; ya hay CDX in_progress: ${codexTasks
+                    .map((item) => item.id)
+                    .join(', ')}`
+            );
+        }
+
+        if (filesOverride && filesOverride.length > 0) {
+            task.files = filesOverride;
+        }
+        task.status = 'in_progress';
+        task.updated_at = currentDate();
+        writeBoard(board);
+        writeCodexActiveBlock({
+            block,
+            task_id: taskId,
+            status: 'in_progress',
+            files: task.files || [],
+            updated_at: currentDate(),
+        });
+        cmdCodexCheck();
+        console.log(`Codex start OK: ${taskId} (${block})`);
+        return;
+    }
+
+    if (subcommand === 'stop') {
+        const nextStatus = String(flags.to || 'review').trim();
+        if (!ALLOWED_STATUSES.has(nextStatus)) {
+            throw new Error(`Status destino invalido: ${nextStatus}`);
+        }
+        task.status = nextStatus;
+        task.updated_at = currentDate();
+        writeBoard(board);
+
+        if (ACTIVE_STATUSES.has(nextStatus)) {
+            const existingBlock = parseCodexActiveBlocks()[0] || {};
+            writeCodexActiveBlock({
+                block: String(flags.block || existingBlock.block || 'C1'),
+                task_id: taskId,
+                status: nextStatus,
+                files: task.files || [],
+                updated_at: currentDate(),
+            });
+        } else {
+            writeCodexActiveBlock(null);
+        }
+        cmdCodexCheck();
+        console.log(`Codex stop OK: ${taskId} -> ${nextStatus}`);
+    }
 }
 
 function cmdSync() {
@@ -953,13 +1381,17 @@ function cmdSync() {
     writeFileSync(JULES_PATH, julesContent, 'utf8');
     writeFileSync(KIMI_PATH, kimiContent, 'utf8');
 
-    console.log(`Sync completado: ${julesTasks.length} tareas Jules, ${kimiTasks.length} tareas Kimi.`);
+    console.log(
+        `Sync completado: ${julesTasks.length} tareas Jules, ${kimiTasks.length} tareas Kimi.`
+    );
 }
 
 function cmdClose(args) {
     const taskId = args[0];
     if (!taskId) {
-        throw new Error('Uso: node agent-orchestrator.js close <task_id> [--evidence path]');
+        throw new Error(
+            'Uso: node agent-orchestrator.js close <task_id> [--evidence path]'
+        );
     }
 
     const evidenceFlagIdx = args.findIndex((arg) => arg === '--evidence');
@@ -1000,6 +1432,7 @@ function main() {
         conflicts: () => cmdConflicts(args),
         handoffs: () => cmdHandoffs(args),
         'codex-check': () => cmdCodexCheck(),
+        codex: () => cmdCodex(args),
         sync: () => cmdSync(),
         close: () => cmdClose(args),
         metrics: () => cmdMetrics(),

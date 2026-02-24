@@ -22,6 +22,7 @@ Reducir retrabajo, conflictos y bucles de implementacion entre agentes,
 manteniendo trazabilidad de tareas y gates de calidad en verde.
 
 Metas de operacion:
+
 - Retrabajo semanal: -40% en 4 semanas.
 - Conflictos por solape de archivos: < 5% de tareas.
 - Lead time en tareas no criticas: < 1 dia.
@@ -54,6 +55,7 @@ La tarea cambia comportamiento runtime?
 ## Zonas criticas con guardrails
 
 Las siguientes zonas no se ejecutan en modo ciego:
+
 - Flujo de pagos Stripe.
 - Autenticacion y sesion admin.
 - Booking/reprogramacion contra Google Calendar en produccion.
@@ -62,6 +64,7 @@ Las siguientes zonas no se ejecutan en modo ciego:
 - Configuracion sensible (`env.php`, secrets, tokens).
 
 Para zona critica es obligatorio:
+
 1. Plan aprobado en markdown.
 2. Checklist de pruebas.
 3. Evidencia de gate/smoke.
@@ -80,13 +83,16 @@ Para zona critica es obligatorio:
 El tablero unico vive en `AGENT_BOARD.yaml`.
 
 Campos obligatorios por tarea:
+
 - `id`, `title`, `owner`, `executor`, `status`, `risk`, `scope`, `files`,
   `acceptance`, `depends_on`, `created_at`, `updated_at`.
 
 Estados permitidos:
+
 - `backlog`, `ready`, `in_progress`, `review`, `done`, `blocked`, `failed`.
 
 Los cierres requieren evidencia:
+
 - `verification/agent-runs/<task_id>.md`
 - `acceptance_ref` en el task board.
 
@@ -99,19 +105,25 @@ node agent-orchestrator.js status
 node agent-orchestrator.js conflicts
 node agent-orchestrator.js handoffs status
 node agent-orchestrator.js handoffs lint
+node agent-orchestrator.js handoffs create --from AG-001 --to CDX-001 --files path/a,path/b --reason soporte --approved-by ernesto
+node agent-orchestrator.js handoffs close HO-001 --reason handoff_done
 node agent-orchestrator.js codex-check
+node agent-orchestrator.js codex start CDX-001 --block C1
+node agent-orchestrator.js codex stop CDX-001 --to review
 node agent-orchestrator.js sync
 node agent-orchestrator.js close <task_id>
 node agent-orchestrator.js metrics
 php bin/validate-agent-governance.php
+npm run agent:gate
 ```
 
 Flujo recomendado:
-1. Actualizar `AGENT_BOARD.yaml`.
-2. Ejecutar `node agent-orchestrator.js conflicts`.
+
+1. Reservar trabajo en board (`AGENT_BOARD.yaml`) o usar `codex start` / `handoffs create`.
+2. Ejecutar `npm run agent:gate` (o al menos `conflicts`, `handoffs lint`, `codex-check`).
 3. Ejecutar `node agent-orchestrator.js sync`.
-4. Ejecutar validaciones (`npm run lint`, tests aplicables).
-5. Confirmar evidencia de cierre para tareas runtime.
+4. Ejecutar validaciones del cambio (`npm run lint`, tests aplicables).
+5. Confirmar evidencia y cerrar (`close`, `codex stop`, `handoffs close`) cuando aplique.
 
 ## Reglas de edicion
 
@@ -133,6 +145,7 @@ Flujo recomendado:
 ## CI y gobernanza
 
 CI valida automaticamente:
+
 - Consistencia `AGENTS.md` vs `CLAUDE.md`.
 - Integridad de `AGENT_BOARD.yaml`.
 - Integridad de `AGENT_HANDOFFS.yaml`.
