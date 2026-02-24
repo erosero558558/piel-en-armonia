@@ -96,6 +96,7 @@ jobs:
             TARGET_DOMAIN: ${{ github.event.inputs.domain || vars.TARGET_DOMAIN || 'https://pielarmonia.com' }}
             BENCH_RUNS: ${{ github.event.inputs.bench_runs || vars.BENCH_RUNS || '25' }}
             WAIT_SECONDS: ${{ github.event.inputs.wait_seconds || vars.WAIT_SECONDS || '90' }}
+            WAIT_SECONDS_LIGHT: ${{ vars.WAIT_SECONDS_LIGHT || '30' }}
             ASSET_HASH_RETRY_COUNT: ${{ github.event.inputs.asset_hash_retry_count || vars.ASSET_HASH_RETRY_COUNT || '2' }}
             ASSET_HASH_RETRY_DELAY_SEC: ${{ github.event.inputs.asset_hash_retry_delay_sec || vars.ASSET_HASH_RETRY_DELAY_SEC || '4' }}
             VERIFY_RETRY_ATTEMPTS: ${{ github.event.inputs.verify_retry_attempts || vars.VERIFY_RETRY_ATTEMPTS || '2' }}
@@ -126,8 +127,62 @@ jobs:
               run: |
                   $waitSeconds = [int]$env:WAIT_SECONDS
                   if ($waitSeconds -lt 0) { $waitSeconds = 0 }
-                  Write-Host "Esperando $waitSeconds segundos para que el servidor termine el pull..."
-                  Start-Sleep -Seconds $waitSeconds
+                  $lightWaitSeconds = [int]$env:WAIT_SECONDS_LIGHT
+                  if ($lightWaitSeconds -lt 0) { $lightWaitSeconds = 0 }
+                  $effectiveWaitSeconds = $waitSeconds
+
+                  try {
+                    $changedFiles = New-Object System.Collections.Generic.List[string]
+                    if (Test-Path $env:GITHUB_EVENT_PATH) {
+                      $eventPayload = Get-Content -Raw $env:GITHUB_EVENT_PATH | ConvertFrom-Json
+                      if ($null -ne $eventPayload.commits) {
+                        foreach ($commit in $eventPayload.commits) {
+                          foreach ($field in @('added', 'modified', 'removed')) {
+                            $entries = $commit.$field
+                            if ($entries -is [System.Array]) {
+                              foreach ($entry in $entries) {
+                                if (![string]::IsNullOrWhiteSpace([string]$entry)) {
+                                  $changedFiles.Add([string]$entry)
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+
+                    $uniqueChangedFiles = $changedFiles | Sort-Object -Unique
+                    if (($uniqueChangedFiles | Measure-Object).Count -gt 0) {
+                      $runtimePattern = '(^controllers/)|(^lib/)|(^src/)|(^js/)|(^api\.php$)|(^figo-chat\.php$)|(^admin\.html$)|(^admin\.js$)|(^script\.js$)|(^styles.*\.css$)|(\.(php|js|css|html)$)'
+                      $hasRuntimeChanges = $false
+                      foreach ($file in $uniqueChangedFiles) {
+                        if ([string]$file -match $runtimePattern) {
+                          $hasRuntimeChanges = $true
+                          break
+                        }
+                      }
+
+                      if (-not $hasRuntimeChanges) {
+                        $effectiveWaitSeconds = [Math]::Min($waitSeconds, $lightWaitSeconds)
+                        Write-Host "Cambios no-runtime detectados: se reduce espera a $effectiveWaitSeconds segundos."
+                      } else {
+                        Write-Host "Cambios runtime detectados: se mantiene espera completa de $waitSeconds segundos."
+                      }
+
+                      $preview = ($uniqueChangedFiles | Select-Object -First 12) -join ', '
+                      if ($preview -ne '') {
+                        Write-Host "Cambios detectados (muestra): $preview"
+                      }
+                    } else {
+                      Write-Host "No se detectaron cambios en payload del push. Se mantiene espera completa."
+                    }
+                  } catch {
+                    Write-Host "[WARN] No se pudo clasificar cambios para espera adaptativa: $($_.Exception.Message)"
+                    Write-Host "Se mantiene espera completa por seguridad."
+                  }
+
+                  Write-Host "Esperando $effectiveWaitSeconds segundos para que el servidor termine el pull..."
+                  Start-Sleep -Seconds $effectiveWaitSeconds
 
             - name: Ejecutar gate estricto
               id: gate
