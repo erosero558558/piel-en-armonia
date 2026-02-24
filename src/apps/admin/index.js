@@ -17,8 +17,22 @@ import {
 } from './modules/callbacks.js';
 import { loadReviews } from './modules/reviews.js';
 import { initPushNotifications } from './modules/push.js';
-import { loadAppointments } from './modules/appointments.js';
-import { initAvailabilityCalendar } from './modules/availability.js';
+import {
+    loadAppointments,
+    filterAppointments,
+    searchAppointments,
+    exportAppointmentsCSV,
+    approveTransfer,
+    rejectTransfer,
+    cancelAppointment,
+    markNoShow,
+} from './modules/appointments.js';
+import {
+    initAvailabilityCalendar,
+    changeMonth,
+    addTimeSlot,
+    removeTimeSlot,
+} from './modules/availability.js';
 
 async function renderSection(section) {
     const titles = {
@@ -145,7 +159,14 @@ async function updateDate() {
         dateEl.textContent = new Date().toLocaleDateString('es-EC', options);
     }
 
-    await refreshData();
+    try {
+        await refreshData();
+    } catch (error) {
+        showToast(
+            `No se pudo actualizar datos en vivo: ${error?.message || 'error desconocido'}`,
+            'warning'
+        );
+    }
     const activeItem = document.querySelector('.nav-item.active');
     const section = activeItem?.dataset.section || 'dashboard';
     await renderSection(section);
@@ -252,25 +273,21 @@ function attachGlobalListeners() {
         try {
             if (action === 'export-csv') {
                 event.preventDefault();
-                const { exportAppointmentsCSV } = await loadAppointmentsModule();
                 exportAppointmentsCSV();
                 return;
             }
             if (action === 'change-month') {
                 event.preventDefault();
-                const { changeMonth } = await loadAvailabilityModule();
                 changeMonth(Number(actionEl.dataset.delta || 0));
                 return;
             }
             if (action === 'add-time-slot') {
                 event.preventDefault();
-                const { addTimeSlot } = await loadAvailabilityModule();
                 await addTimeSlot();
                 return;
             }
             if (action === 'remove-time-slot') {
                 event.preventDefault();
-                const { removeTimeSlot } = await loadAvailabilityModule();
                 await removeTimeSlot(
                     decodeURIComponent(actionEl.dataset.date || ''),
                     decodeURIComponent(actionEl.dataset.time || '')
@@ -279,25 +296,21 @@ function attachGlobalListeners() {
             }
             if (action === 'approve-transfer') {
                 event.preventDefault();
-                const { approveTransfer } = await loadAppointmentsModule();
                 await approveTransfer(Number(actionEl.dataset.id || 0));
                 return;
             }
             if (action === 'reject-transfer') {
                 event.preventDefault();
-                const { rejectTransfer } = await loadAppointmentsModule();
                 await rejectTransfer(Number(actionEl.dataset.id || 0));
                 return;
             }
             if (action === 'cancel-appointment') {
                 event.preventDefault();
-                const { cancelAppointment } = await loadAppointmentsModule();
                 await cancelAppointment(Number(actionEl.dataset.id || 0));
                 return;
             }
             if (action === 'mark-no-show') {
                 event.preventDefault();
-                const { markNoShow } = await loadAppointmentsModule();
                 await markNoShow(Number(actionEl.dataset.id || 0));
                 return;
             }
@@ -315,16 +328,14 @@ function attachGlobalListeners() {
 
     const appointmentFilter = document.getElementById('appointmentFilter');
     if (appointmentFilter) {
-        appointmentFilter.addEventListener('change', async () => {
-            const { filterAppointments } = await loadAppointmentsModule();
+        appointmentFilter.addEventListener('change', () => {
             filterAppointments();
         });
     }
 
     const searchInput = document.getElementById('searchAppointments');
     if (searchInput) {
-        searchInput.addEventListener('input', async () => {
-            const { searchAppointments } = await loadAppointmentsModule();
+        searchInput.addEventListener('input', () => {
             searchAppointments();
         });
     }
@@ -349,7 +360,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             event.preventDefault();
             navItems.forEach((nav) => nav.classList.remove('active'));
             this.classList.add('active');
-            await refreshData();
+            try {
+                await refreshData();
+            } catch (error) {
+                showToast(
+                    `No se pudo actualizar datos en vivo: ${error?.message || 'error desconocido'}`,
+                    'warning'
+                );
+            }
             await renderSection(this.dataset.section);
         });
     });

@@ -1089,6 +1089,18 @@ async function initPushNotifications() {
     }
 }
 
+function getWeekRange() {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(now.getDate() - now.getDay());
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return {
+        start: start.toISOString().split('T')[0],
+        end: end.toISOString().split('T')[0]
+    };
+}
+
 function renderAppointments(appointments) {
     const tbody = document.getElementById('appointmentsTableBody');
     if (!tbody) return;
@@ -1157,6 +1169,178 @@ function renderAppointments(appointments) {
 
 function loadAppointments() {
     renderAppointments(currentAppointments);
+}
+
+function filterAppointments() {
+    const filter = document.getElementById('appointmentFilter').value;
+    let filtered = [...currentAppointments];
+
+    const today = new Date().toISOString().split('T')[0];
+    const currentWeek = getWeekRange();
+    const currentMonthNumber = new Date().getMonth();
+
+    switch (filter) {
+        case 'today':
+            filtered = filtered.filter(a => a.date === today);
+            break;
+        case 'week':
+            filtered = filtered.filter(a => a.date >= currentWeek.start && a.date <= currentWeek.end);
+            break;
+        case 'month':
+            filtered = filtered.filter(a => new Date(a.date).getMonth() === currentMonthNumber);
+            break;
+        case 'confirmed':
+        case 'cancelled':
+        case 'no_show':
+            filtered = filtered.filter(a => (a.status || 'confirmed') === filter);
+            break;
+        case 'pending_transfer':
+            filtered = filtered.filter(a => a.paymentStatus === 'pending_transfer_review');
+            break;
+    }
+
+    renderAppointments(filtered);
+}
+
+function searchAppointments() {
+    const search = document.getElementById('searchAppointments').value.toLowerCase();
+    const filtered = currentAppointments.filter(a =>
+        String(a.name || '').toLowerCase().includes(search) ||
+        String(a.email || '').toLowerCase().includes(search) ||
+        String(a.phone || '').includes(search)
+    );
+    renderAppointments(filtered);
+}
+
+async function cancelAppointment(id) {
+    if (!confirm('¿Estas seguro de cancelar esta cita?')) return;
+    if (!id) {
+        showToast('Id de cita invalido', 'error');
+        return;
+    }
+    try {
+        await apiRequest('appointments', {
+            method: 'PATCH',
+            body: { id: id, status: 'cancelled' }
+        });
+        await refreshData();
+        loadAppointments();
+        loadDashboardData();
+        showToast('Cita cancelada correctamente', 'success');
+    } catch (error) {
+        showToast(`No se pudo cancelar la cita: ${error.message}`, 'error');
+    }
+}
+
+async function markNoShow(id) {
+    if (!confirm('Marcar esta cita como "No asistio"?')) return;
+    if (!id) {
+        showToast('Id de cita invalido', 'error');
+        return;
+    }
+    try {
+        await apiRequest('appointments', {
+            method: 'PATCH',
+            body: { id: id, status: 'no_show' }
+        });
+        await refreshData();
+        loadAppointments();
+        loadDashboardData();
+        showToast('Cita marcada como no asistio', 'success');
+    } catch (error) {
+        showToast(`No se pudo marcar no-show: ${error.message}`, 'error');
+    }
+}
+
+async function approveTransfer(id) {
+    if (!confirm('¿Aprobar el comprobante de transferencia de esta cita?')) return;
+    if (!id) { showToast('Id de cita invalido', 'error'); return; }
+    try {
+        await apiRequest('appointments', {
+            method: 'PATCH',
+            body: { id: id, paymentStatus: 'paid', paymentPaidAt: new Date().toISOString() }
+        });
+        await refreshData();
+        loadAppointments();
+        loadDashboardData();
+        showToast('Transferencia aprobada', 'success');
+    } catch (error) {
+        showToast(`No se pudo aprobar: ${error.message}`, 'error');
+    }
+}
+
+async function rejectTransfer(id) {
+    if (!confirm('¿Rechazar el comprobante de transferencia? La cita quedará como pago fallido.')) return;
+    if (!id) { showToast('Id de cita invalido', 'error'); return; }
+    try {
+        await apiRequest('appointments', {
+            method: 'PATCH',
+            body: { id: id, paymentStatus: 'failed' }
+        });
+        await refreshData();
+        loadAppointments();
+        loadDashboardData();
+        showToast('Transferencia rechazada', 'warning');
+    } catch (error) {
+        showToast(`No se pudo rechazar: ${error.message}`, 'error');
+    }
+}
+
+function csvSafe(value) {
+    let text = String(value ?? '');
+    if (/^[=+\-@]/.test(text)) {
+        text = "'" + text;
+    }
+    return `"${text.replace(/"/g, '""')}"`;
+}
+
+function exportAppointmentsCSV() {
+    if (!Array.isArray(currentAppointments) || currentAppointments.length === 0) {
+        showToast('No hay citas para exportar', 'warning');
+        return;
+    }
+
+    const headers = [
+        'ID',
+        'Fecha',
+        'Hora',
+        'Paciente',
+        'Email',
+        'Telefono',
+        'Servicio',
+        'Doctor',
+        'Precio',
+        'Estado',
+        'Estado pago',
+        'Metodo pago'
+    ];
+
+    const rows = currentAppointments.map((a) => [
+        Number(a.id) || 0,
+        a.date || '',
+        a.time || '',
+        csvSafe(a.name || ''),
+        csvSafe(a.email || ''),
+        csvSafe(a.phone || ''),
+        csvSafe(getServiceName(a.service)),
+        csvSafe(getDoctorName(a.doctor)),
+        a.price || '',
+        csvSafe(getStatusText(a.status || 'confirmed')),
+        csvSafe(getPaymentStatusText(a.paymentStatus)),
+        csvSafe(getPaymentMethodText(a.paymentMethod))
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `citas-pielarmonia-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('CSV exportado correctamente', 'success');
 }
 
 let selectedDate = null;
@@ -1444,6 +1628,11 @@ async function initAvailabilityCalendar() {
     }
 }
 
+function changeMonth(delta) {
+    currentMonth.setMonth(currentMonth.getMonth() + delta);
+    renderAvailabilityCalendar();
+}
+
 function selectDate(dateStr) {
     selectedDate = dateStr;
     renderAvailabilityCalendar();
@@ -1491,6 +1680,68 @@ function loadTimeSlots(dateStr) {
     `
         )
         .join('');
+}
+
+async function saveAvailability() {
+    if (availabilityReadOnly) {
+        throw new Error('Disponibilidad en solo lectura (Google Calendar).');
+    }
+    await apiRequest('availability', {
+        method: 'POST',
+        body: { availability: currentAvailability },
+    });
+}
+
+async function addTimeSlot() {
+    if (availabilityReadOnly) {
+        showToast('Disponibilidad en solo lectura: gestionala desde Google Calendar.', 'warning');
+        return;
+    }
+    if (!selectedDate) {
+        showToast('Selecciona una fecha primero', 'warning');
+        return;
+    }
+    const time = document.getElementById('newSlotTime').value;
+    if (!time) {
+        showToast('Ingresa un horario', 'warning');
+        return;
+    }
+
+    if (!currentAvailability[selectedDate]) {
+        currentAvailability[selectedDate] = [];
+    }
+
+    if (currentAvailability[selectedDate].includes(time)) {
+        showToast('Este horario ya existe', 'warning');
+        return;
+    }
+
+    try {
+        currentAvailability[selectedDate].push(time);
+        await saveAvailability();
+        loadTimeSlots(selectedDate);
+        renderAvailabilityCalendar();
+        document.getElementById('newSlotTime').value = '';
+        showToast('Horario agregado', 'success');
+    } catch (error) {
+        showToast(`No se pudo guardar el horario: ${error.message}`, 'error');
+    }
+}
+
+async function removeTimeSlot(dateStr, time) {
+    if (availabilityReadOnly) {
+        showToast('Disponibilidad en solo lectura: gestionala desde Google Calendar.', 'warning');
+        return;
+    }
+    try {
+        currentAvailability[dateStr] = (currentAvailability[dateStr] || []).filter((t) => t !== time);
+        await saveAvailability();
+        loadTimeSlots(dateStr);
+        renderAvailabilityCalendar();
+        showToast('Horario eliminado', 'success');
+    } catch (error) {
+        showToast(`No se pudo eliminar el horario: ${error.message}`, 'error');
+    }
 }
 
 async function renderSection(section) {
@@ -1618,7 +1869,14 @@ async function updateDate() {
         dateEl.textContent = new Date().toLocaleDateString('es-EC', options);
     }
 
-    await refreshData();
+    try {
+        await refreshData();
+    } catch (error) {
+        showToast(
+            `No se pudo actualizar datos en vivo: ${error?.message || 'error desconocido'}`,
+            'warning'
+        );
+    }
     const activeItem = document.querySelector('.nav-item.active');
     const section = activeItem?.dataset.section || 'dashboard';
     await renderSection(section);
@@ -1725,25 +1983,21 @@ function attachGlobalListeners() {
         try {
             if (action === 'export-csv') {
                 event.preventDefault();
-                const { exportAppointmentsCSV } = await loadAppointmentsModule();
                 exportAppointmentsCSV();
                 return;
             }
             if (action === 'change-month') {
                 event.preventDefault();
-                const { changeMonth } = await loadAvailabilityModule();
                 changeMonth(Number(actionEl.dataset.delta || 0));
                 return;
             }
             if (action === 'add-time-slot') {
                 event.preventDefault();
-                const { addTimeSlot } = await loadAvailabilityModule();
                 await addTimeSlot();
                 return;
             }
             if (action === 'remove-time-slot') {
                 event.preventDefault();
-                const { removeTimeSlot } = await loadAvailabilityModule();
                 await removeTimeSlot(
                     decodeURIComponent(actionEl.dataset.date || ''),
                     decodeURIComponent(actionEl.dataset.time || '')
@@ -1752,25 +2006,21 @@ function attachGlobalListeners() {
             }
             if (action === 'approve-transfer') {
                 event.preventDefault();
-                const { approveTransfer } = await loadAppointmentsModule();
                 await approveTransfer(Number(actionEl.dataset.id || 0));
                 return;
             }
             if (action === 'reject-transfer') {
                 event.preventDefault();
-                const { rejectTransfer } = await loadAppointmentsModule();
                 await rejectTransfer(Number(actionEl.dataset.id || 0));
                 return;
             }
             if (action === 'cancel-appointment') {
                 event.preventDefault();
-                const { cancelAppointment } = await loadAppointmentsModule();
                 await cancelAppointment(Number(actionEl.dataset.id || 0));
                 return;
             }
             if (action === 'mark-no-show') {
                 event.preventDefault();
-                const { markNoShow } = await loadAppointmentsModule();
                 await markNoShow(Number(actionEl.dataset.id || 0));
                 return;
             }
@@ -1788,16 +2038,14 @@ function attachGlobalListeners() {
 
     const appointmentFilter = document.getElementById('appointmentFilter');
     if (appointmentFilter) {
-        appointmentFilter.addEventListener('change', async () => {
-            const { filterAppointments } = await loadAppointmentsModule();
+        appointmentFilter.addEventListener('change', () => {
             filterAppointments();
         });
     }
 
     const searchInput = document.getElementById('searchAppointments');
     if (searchInput) {
-        searchInput.addEventListener('input', async () => {
-            const { searchAppointments } = await loadAppointmentsModule();
+        searchInput.addEventListener('input', () => {
             searchAppointments();
         });
     }
@@ -1822,7 +2070,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             event.preventDefault();
             navItems.forEach((nav) => nav.classList.remove('active'));
             this.classList.add('active');
-            await refreshData();
+            try {
+                await refreshData();
+            } catch (error) {
+                showToast(
+                    `No se pudo actualizar datos en vivo: ${error?.message || 'error desconocido'}`,
+                    'warning'
+                );
+            }
             await renderSection(this.dataset.section);
         });
     });
