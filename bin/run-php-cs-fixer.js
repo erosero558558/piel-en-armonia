@@ -8,8 +8,6 @@ const { spawnSync } = require('child_process');
 
 const root = resolve(__dirname, '..');
 const isWin = process.platform === 'win32';
-const args = process.argv.slice(2);
-
 function fail(message) {
     console.error(`ERROR: ${message}`);
     process.exit(1);
@@ -152,28 +150,44 @@ function buildPhpCsFixerArgs(argv) {
     return [...out, ...rest];
 }
 
-if (args.length === 0) {
-    fail('Uso: node bin/run-php-cs-fixer.js <args...>');
-}
-
 const fixerPath = resolve(root, 'vendor', 'bin', 'php-cs-fixer');
-if (!existsSync(fixerPath)) {
-    fail('No existe vendor/bin/php-cs-fixer. Ejecuta `composer install`.');
+
+function main(argv = process.argv.slice(2)) {
+    const args = Array.isArray(argv) ? argv : [];
+    if (args.length === 0) {
+        fail('Uso: node bin/run-php-cs-fixer.js <args...>');
+    }
+
+    if (!existsSync(fixerPath)) {
+        fail('No existe vendor/bin/php-cs-fixer. Ejecuta `composer install`.');
+    }
+
+    const phpRuntime = resolvePhpBinary();
+    if (!phpRuntime.ok || !phpRuntime.command) {
+        const tried =
+            phpRuntime.tried.length > 0 ? phpRuntime.tried.join(', ') : 'php';
+        fail(
+            `PHP no esta disponible. Configura PATH o define PHP_BIN (ej: setx PHP_BIN "C:\\\\ruta\\\\php.exe"). Candidatos probados: ${tried}`
+        );
+    }
+
+    const fixerArgs = buildPhpCsFixerArgs(args);
+    const result = run(phpRuntime.command, [fixerPath, ...fixerArgs]);
+    if (result.error) {
+        fail(`no se pudo ejecutar php-cs-fixer: ${result.error.message}`);
+    }
+
+    process.exit(result.status === null ? 1 : result.status);
 }
 
-const phpRuntime = resolvePhpBinary();
-if (!phpRuntime.ok || !phpRuntime.command) {
-    const tried =
-        phpRuntime.tried.length > 0 ? phpRuntime.tried.join(', ') : 'php';
-    fail(
-        `PHP no esta disponible. Configura PATH o define PHP_BIN (ej: setx PHP_BIN "C:\\\\ruta\\\\php.exe"). Candidatos probados: ${tried}`
-    );
+if (require.main === module) {
+    main();
 }
 
-const fixerArgs = buildPhpCsFixerArgs(args);
-const result = run(phpRuntime.command, [fixerPath, ...fixerArgs]);
-if (result.error) {
-    fail(`no se pudo ejecutar php-cs-fixer: ${result.error.message}`);
-}
-
-process.exit(result.status === null ? 1 : result.status);
+module.exports = {
+    buildPhpCsFixerArgs,
+    hasOption,
+    findPhpCsFixerConfig,
+    resolvePhpBinary,
+    main,
+};
