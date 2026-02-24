@@ -71,27 +71,29 @@ Criterio de salida:
 - [x] Evidencia de cierre: `TEST_BASE_URL=https://pielarmonia.com TEST_ENABLE_CALENDAR_WRITE=true npm run test:phase2` en verde (2026-02-24).
 
 ## Fase 3 - Embudo de conversion y errores accionables
-Estado: `IN_PROGRESS`
+Estado: `COMPLETED`
 Entregables:
-- [ ] Eventos GA4 obligatorios en todo el embudo.
-- [ ] Registro de abandono por paso y razon.
-- [ ] Mensajes UX claros para calendar unavailable, slot conflict y pago.
+- [x] Eventos GA4 obligatorios en todo el embudo.
+- [x] Registro de abandono por paso y razon.
+- [x] Mensajes UX claros para calendar unavailable, slot conflict y pago.
 
 Criterio de salida:
-- [ ] Dashboard con embudo completo operativo.
-- [ ] Error rate de reserva < 2% (ventana 7 dias).
+- [x] Dashboard con embudo completo operativo.
+- [x] Error rate de reserva < 2% (ventana 7 dias).
+- [x] Evidencia de cierre: `npx playwright test tests/funnel-tracking.spec.js tests/funnel-event-api.spec.js --project=chromium` en verde y `npm run report:weekly:prod` con `error_rate_pct=0` (2026-02-24).
 
 ## Fase 4 - Mobile UX y rendimiento critico
-Estado: `PENDING`
+Estado: `COMPLETED`
 Entregables:
-- [ ] Correccion de solapes chat/header/nav movil.
-- [ ] Correccion de alineaciones y saltos tipograficos.
-- [ ] Resolucion de assets 404 declarados en smoke/gate.
-- [ ] Reduccion de carga JS/CSS no critica.
+- [x] Correccion de solapes chat/header/nav movil.
+- [x] Correccion de alineaciones y saltos tipograficos.
+- [x] Resolucion de assets 404 declarados en smoke/gate.
+- [x] Reduccion de carga JS/CSS no critica.
 
 Criterio de salida:
-- [ ] QA en 360x800, 390x844, 412x915 sin defectos criticos.
-- [ ] Smoke de assets sin 404 en componentes esperados.
+- [x] QA en 360x800, 390x844, 412x915 sin defectos criticos.
+- [x] Smoke de assets sin 404 en componentes esperados.
+- [x] Evidencia de cierre: `tests/mobile-overflow-regression.spec.js` y `tests/chat-mobile-layout.spec.js` (5 passed) + `npm run smoke:prod` (19/19 checks OK) el 2026-02-24.
 
 ## Fase 5 - Cierre hardening y vuelta a hash estricto
 Estado: `COMPLETED`

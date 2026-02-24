@@ -12,6 +12,11 @@ const SECTION_IDS = [
     'resenas',
     'citas',
 ];
+const MOBILE_VIEWPORTS = [
+    { width: 360, height: 800, label: '360x800' },
+    { width: 390, height: 844, label: '390x844' },
+    { width: 412, height: 915, label: '412x915' },
+];
 
 async function collectOverflowForSection(page, sectionId) {
     return page.evaluate((id) => {
@@ -76,55 +81,70 @@ test.describe('Mobile overflow regressions', () => {
     test('critical sections stay inside viewport on mobile width', async ({
         page,
     }) => {
-        await page.setViewportSize({ width: 360, height: 800 });
-        await page.goto('/', { timeout: 45000, waitUntil: 'domcontentloaded' });
-        await page.waitForLoadState('load', { timeout: 20000 }).catch(() => null);
-        await page.waitForTimeout(1500);
+        for (const viewport of MOBILE_VIEWPORTS) {
+            await page.setViewportSize({
+                width: viewport.width,
+                height: viewport.height,
+            });
+            await page.goto('/', {
+                timeout: 45000,
+                waitUntil: 'domcontentloaded',
+            });
+            await page
+                .waitForLoadState('load', { timeout: 20000 })
+                .catch(() => null);
+            await page.waitForTimeout(1500);
 
-        for (const sectionId of SECTION_IDS) {
-            await page.evaluate((id) => {
-                const section = document.getElementById(id);
-                if (section) {
-                    section.scrollIntoView({ block: 'start' });
-                }
-            }, sectionId);
-            await page.waitForTimeout(80);
+            for (const sectionId of SECTION_IDS) {
+                await page.evaluate((id) => {
+                    const section = document.getElementById(id);
+                    if (section) {
+                        section.scrollIntoView({ block: 'start' });
+                    }
+                }, sectionId);
+                await page.waitForTimeout(80);
 
-            const metrics = await collectOverflowForSection(page, sectionId);
-            expect(metrics.missing).toBeFalsy();
-            expect(
-                metrics.offenders,
-                `Overflow in section #${sectionId}`
-            ).toEqual([]);
+                const metrics = await collectOverflowForSection(page, sectionId);
+                expect(metrics.missing).toBeFalsy();
+                expect(
+                    metrics.offenders,
+                    `Overflow in section #${sectionId} (${viewport.label})`
+                ).toEqual([]);
+            }
         }
     });
 
     test('chat container stays fully visible when opened on mobile', async ({
         page,
     }) => {
-        await page.setViewportSize({ width: 360, height: 800 });
-        await page.goto('/');
-        await page.waitForTimeout(600);
+        for (const viewport of MOBILE_VIEWPORTS) {
+            await page.setViewportSize({
+                width: viewport.width,
+                height: viewport.height,
+            });
+            await page.goto('/');
+            await page.waitForTimeout(600);
 
-        const toggle = page.locator('.chatbot-toggle');
-        await expect(toggle).toBeVisible();
-        await toggle.click();
+            const toggle = page.locator('.chatbot-toggle');
+            await expect(toggle).toBeVisible();
+            await toggle.click();
 
-        const chatContainer = page.locator('#chatbotContainer');
-        await expect(chatContainer).toBeVisible();
+            const chatContainer = page.locator('#chatbotContainer');
+            await expect(chatContainer).toBeVisible();
 
-        const chatRect = await chatContainer.boundingBox();
-        expect(chatRect).not.toBeNull();
+            const chatRect = await chatContainer.boundingBox();
+            expect(chatRect).not.toBeNull();
 
-        const viewport = page.viewportSize();
-        expect(viewport).not.toBeNull();
+            const currentViewport = page.viewportSize();
+            expect(currentViewport).not.toBeNull();
 
-        expect(chatRect.x).toBeGreaterThanOrEqual(-1);
-        expect(chatRect.x + chatRect.width).toBeLessThanOrEqual(
-            viewport.width + 1
-        );
-        expect(chatRect.y + chatRect.height).toBeLessThanOrEqual(
-            viewport.height + 1
-        );
+            expect(chatRect.x).toBeGreaterThanOrEqual(-1);
+            expect(chatRect.x + chatRect.width).toBeLessThanOrEqual(
+                currentViewport.width + 1
+            );
+            expect(chatRect.y + chatRect.height).toBeLessThanOrEqual(
+                currentViewport.height + 1
+            );
+        }
     });
 });

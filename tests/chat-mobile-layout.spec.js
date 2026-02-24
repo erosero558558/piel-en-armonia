@@ -1,5 +1,9 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const MOBILE_VIEWPORTS = [
+    { width: 390, height: 844, label: '390x844' },
+    { width: 412, height: 915, label: '412x915' },
+];
 
 async function openChatbot(page) {
     await page.addInitScript(() => {
@@ -70,9 +74,16 @@ test.describe('Chat responsive layout', () => {
         await assertChatFitsViewport(page);
     });
 
-    test('chat stays within viewport on mobile width', async ({ page }) => {
-        await page.setViewportSize({ width: 390, height: 844 });
-        await openChatbot(page);
-        await assertChatFitsViewport(page);
-    });
+    for (const viewport of MOBILE_VIEWPORTS) {
+        test(`chat stays within viewport on mobile width ${viewport.label}`, async ({
+            page,
+        }) => {
+            await page.setViewportSize({
+                width: viewport.width,
+                height: viewport.height,
+            });
+            await openChatbot(page);
+            await assertChatFitsViewport(page);
+        });
+    }
 });
