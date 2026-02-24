@@ -1,0 +1,81 @@
+name: Phase 2 Concurrency Write (Manual)
+
+on:
+    workflow_dispatch:
+        inputs:
+            domain:
+                description: 'Dominio objetivo'
+                required: false
+                default: 'https://pielarmonia.com'
+                type: string
+            enable_write:
+                description: 'Confirmar escritura real para prueba de concurrencia'
+                required: false
+                default: false
+                type: boolean
+            require_google_calendar:
+                description: 'Exigir calendario Google activo'
+                required: false
+                default: true
+                type: boolean
+
+permissions:
+    contents: read
+
+jobs:
+    phase2-concurrency:
+        runs-on: ubuntu-latest
+        timeout-minutes: 25
+        env:
+            TEST_BASE_URL: ${{ github.event.inputs.domain || 'https://pielarmonia.com' }}
+            TEST_ENABLE_CALENDAR_WRITE: ${{ github.event.inputs.enable_write || 'false' }}
+            TEST_REQUIRE_GOOGLE_CALENDAR: ${{ github.event.inputs.require_google_calendar || 'true' }}
+            TEST_ADMIN_PASSWORD: ${{ secrets.PIELARMONIA_ADMIN_PASSWORD }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Validar habilitacion explicita
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if [ "${TEST_ENABLE_CALENDAR_WRITE}" != "true" ]; then
+                    echo "::error::Debes ejecutar con enable_write=true para permitir concurrencia real."
+                    exit 1
+                  fi
+
+            - name: Validar secret admin
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if [ -z "${TEST_ADMIN_PASSWORD}" ]; then
+                    echo "::error::Falta el secret PIELARMONIA_ADMIN_PASSWORD."
+                    exit 1
+                  fi
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'npm'
+
+            - name: Instalar dependencias
+              run: npm ci
+
+            - name: Instalar Playwright (chromium)
+              run: npx playwright install --with-deps chromium
+
+            - name: Ejecutar suite Fase 2 con concurrencia real
+              run: npm run test:phase2
+
+            - name: Resumen
+              if: ${{ always() }}
+              shell: bash
+              run: |
+                  {
+                    echo "## Phase 2 concurrency write";
+                    echo "- Dominio: \`${TEST_BASE_URL}\`";
+                    echo "- Escritura habilitada: \`${TEST_ENABLE_CALENDAR_WRITE}\`";
+                    echo "- Require Google calendar: \`${TEST_REQUIRE_GOOGLE_CALENDAR}\`";
+                    echo "- Resultado: \`${{ job.status }}\`";
+                  } >> "${GITHUB_STEP_SUMMARY}"

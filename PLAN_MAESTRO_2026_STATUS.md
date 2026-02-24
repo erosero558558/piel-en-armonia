@@ -39,6 +39,9 @@ Dominio: https://pielarmonia.com
 - CI run `22337574855` (commit `fe06cbc`): `success`.
 - Post-Deploy Gate run `22337574884` (commit `fe06cbc`): `success`.
 - Deploy Hosting (Canary) run `22337629002` (commit `fe06cbc`): `success`.
+- CI run `22337745655` (commit `e22dcda`): `success`.
+- Post-Deploy Gate run `22337745649` (commit `e22dcda`): `success`.
+- Deploy Hosting (Canary) run `22337800854` (commit `e22dcda`): `success`.
 - Convencion anti-bucle: este snapshot registra evidencia de cambios operativos/codigo; no se agregan corridas originadas solo por commits `docs(status)` para evitar recursividad documental.
 - Hardening workflows: override manual `require_google_calendar` habilitado en `Post-Deploy Gate` y `Production Monitor`.
 - Fase 2: suite `test:phase2` incorporada (paridad web/chat + concurrencia real opcional segun `TEST_ENABLE_CALENDAR_WRITE`).
@@ -182,6 +185,16 @@ Dominio: https://pielarmonia.com
   - Paridad de oferta de slots entre web y chat para misma fecha/servicio.
 - Ejecucion CI:
   - `npm run test:phase2` en job `e2e-tests` (con `TEST_ENABLE_CALENDAR_WRITE=false`, valida paridad y deja concurrencia real para corrida controlada).
+- Evidencia adicional:
+  - CI run `22337745655` (commit `e22dcda`) en verde con `test:phase2` integrado en pipeline.
+
+18. Workflow manual para concurrencia real de Fase 2
+- Archivo: `.github/workflows/phase2-concurrency-write.yml`.
+- Modo de uso: `workflow_dispatch` con `enable_write=true`.
+- Guardrails:
+  - Falla explicita si `enable_write` no esta activo.
+  - Requiere secret `PIELARMONIA_ADMIN_PASSWORD`.
+- Objetivo: ejecutar la evidencia de cierre pendiente (`201 + 409 slot_conflict`) en entorno real controlado.
 
 ## Estado por fases del plan unico
 
@@ -197,9 +210,10 @@ Dominio: https://pielarmonia.com
 3. Fase 2 - Consistencia reserva/chat/reprogramacion: Activa (IN_PROGRESS).
 - Duraciones por servicio verificadas (caso 60 min probado).
 - Flujo de reprogramacion real validado.
-- Pendientes de cierre:
-  - Test de concurrencia: 1x `201`, 1x `409 slot_conflict`.
-  - Paridad de oferta de slots entre web y chat para misma fecha/servicio.
+- Criterio cerrado:
+  - Paridad de oferta de slots entre web y chat para misma fecha/servicio (automatizada en CI con `test:phase2`, run `22337745655`).
+- Pendiente de cierre:
+  - Test de concurrencia: 1x `201`, 1x `409 slot_conflict` en corrida real con write habilitado.
 
 4. Fase 3 - Conversion y medicion: Completada.
 - Eventos funnel y contrato API validados.
@@ -267,7 +281,6 @@ Dominio: https://pielarmonia.com
 
 ## Siguiente ejecucion recomendada
 
-1. Ejecutar test de concurrencia de reservas para cierre de Fase 2 (esperado: `201` + `409 slot_conflict`) con `TEST_ENABLE_CALENDAR_WRITE=true TEST_ADMIN_PASSWORD=<secret> npm run test:phase2`.
-2. Ejecutar validacion de paridad web/chat para misma fecha y servicio.
-3. Confirmar primer evento en Sentry dashboard (Sentry ya activo en produccion).
-4. Mantener monitoreo semanal de p95 `availability` para detectar picos transitorios.
+1. Ejecutar workflow manual `Phase 2 Concurrency Write (Manual)` con `enable_write=true` para cierre de Fase 2 (esperado: `201` + `409 slot_conflict`).
+2. Confirmar primer evento en Sentry dashboard (Sentry ya activo en produccion).
+3. Mantener monitoreo semanal de p95 `availability` para detectar picos transitorios.

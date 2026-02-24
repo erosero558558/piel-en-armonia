@@ -111,6 +111,7 @@ Criterio de salida:
 - Contrato calendario: `npm run test:calendar-contract`
 - Escritura calendario: `npm run test:calendar-write`
 - Consistencia fase 2 (concurrencia + paridad web/chat): `npm run test:phase2`
+- Concurrencia real Fase 2 (manual en produccion): workflow `Phase 2 Concurrency Write (Manual)` con `enable_write=true`
 - Errores chat agenda: `npm run test:chat-booking-calendar-errors`
 - Smoke produccion: `npm run smoke:prod`
 
