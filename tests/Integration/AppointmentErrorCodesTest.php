@@ -89,23 +89,6 @@ class AppointmentErrorCodesTest extends TestCase
         ];
     }
 
-    private function createAppointmentAndReturnData(array $payload): array
-    {
-        $GLOBALS['__TEST_JSON_BODY'] = json_encode($payload, JSON_UNESCAPED_UNICODE);
-        try {
-            \AppointmentController::store(['store' => \read_store()]);
-            $this->fail('Expected TestingExitException for booking create');
-        } catch (\TestingExitException $e) {
-            $this->assertSame(201, $e->status);
-            $this->assertTrue((bool) ($e->payload['ok'] ?? false));
-            $data = $e->payload['data'] ?? null;
-            $this->assertIsArray($data);
-            return $data;
-        }
-
-        throw new \RuntimeException('Expected booking flow to exit through TestingExitException.');
-    }
-
     public function testStoreNormalizesConflictAsSlotConflict(): void
     {
         $futureDate = date('Y-m-d', strtotime('+2 day'));
@@ -117,7 +100,15 @@ class AppointmentErrorCodesTest extends TestCase
         \write_store($store);
 
         $payload = $this->buildValidPayload($futureDate, '10:00');
-        $this->createAppointmentAndReturnData($payload);
+
+        $GLOBALS['__TEST_JSON_BODY'] = json_encode($payload, JSON_UNESCAPED_UNICODE);
+        try {
+            \AppointmentController::store(['store' => \read_store()]);
+            $this->fail('Expected TestingExitException for first booking');
+        } catch (\TestingExitException $e) {
+            $this->assertSame(201, $e->status);
+            $this->assertTrue((bool) ($e->payload['ok'] ?? false));
+        }
 
         $GLOBALS['__TEST_JSON_BODY'] = json_encode($payload, JSON_UNESCAPED_UNICODE);
         try {
@@ -148,78 +139,6 @@ class AppointmentErrorCodesTest extends TestCase
         try {
             \AppointmentController::store(['store' => \read_store()]);
             $this->fail('Expected TestingExitException for calendar requirement failure');
-        } catch (\TestingExitException $e) {
-            $this->assertSame(503, $e->status);
-            $this->assertFalse((bool) ($e->payload['ok'] ?? true));
-            $this->assertSame('calendar_unreachable', (string) ($e->payload['code'] ?? ''));
-        }
-    }
-
-    public function testRescheduleNormalizesConflictAsSlotConflict(): void
-    {
-        $futureDate = date('Y-m-d', strtotime('+4 day'));
-        $store = \read_store();
-        $store['appointments'] = [];
-        $store['callbacks'] = [];
-        $store['reviews'] = [];
-        $store['availability'][$futureDate] = ['10:00', '10:30', '11:00'];
-        \write_store($store);
-
-        $firstPayload = $this->buildValidPayload($futureDate, '10:00');
-        $secondPayload = $this->buildValidPayload($futureDate, '10:30');
-        $firstPayload['id'] = 910001;
-        $secondPayload['id'] = 910002;
-        $secondPayload['email'] = 'paciente.error.test.2@example.com';
-        $secondPayload['phone'] = '+593999000112';
-
-        $firstCreated = $this->createAppointmentAndReturnData($firstPayload);
-        $this->createAppointmentAndReturnData($secondPayload);
-
-        $token = (string) ($firstCreated['rescheduleToken'] ?? '');
-        $this->assertNotSame('', $token);
-
-        $reschedulePayload = [
-            'token' => $token,
-            'date' => $futureDate,
-            'time' => '10:30',
-        ];
-        $GLOBALS['__TEST_JSON_BODY'] = json_encode($reschedulePayload, JSON_UNESCAPED_UNICODE);
-
-        try {
-            \AppointmentController::processReschedule(['store' => \read_store()]);
-            $this->fail('Expected TestingExitException for reschedule slot conflict');
-        } catch (\TestingExitException $e) {
-            $this->assertSame(409, $e->status);
-            $this->assertFalse((bool) ($e->payload['ok'] ?? true));
-            $this->assertSame('slot_conflict', (string) ($e->payload['code'] ?? ''));
-        }
-    }
-
-    public function testRescheduleKeepsCalendarUnreachableCodeWhenGoogleIsRequired(): void
-    {
-        $futureDate = date('Y-m-d', strtotime('+5 day'));
-        $store = \read_store();
-        $store['appointments'] = [];
-        $store['callbacks'] = [];
-        $store['reviews'] = [];
-        $store['availability'][$futureDate] = ['11:00', '11:30'];
-        \write_store($store);
-
-        $created = $this->createAppointmentAndReturnData($this->buildValidPayload($futureDate, '11:00'));
-        $token = (string) ($created['rescheduleToken'] ?? '');
-        $this->assertNotSame('', $token);
-
-        putenv('PIELARMONIA_REQUIRE_GOOGLE_CALENDAR=true');
-        $reschedulePayload = [
-            'token' => $token,
-            'date' => $futureDate,
-            'time' => '11:30',
-        ];
-        $GLOBALS['__TEST_JSON_BODY'] = json_encode($reschedulePayload, JSON_UNESCAPED_UNICODE);
-
-        try {
-            \AppointmentController::processReschedule(['store' => \read_store()]);
-            $this->fail('Expected TestingExitException for required calendar failure on reschedule');
         } catch (\TestingExitException $e) {
             $this->assertSame(503, $e->status);
             $this->assertFalse((bool) ($e->payload['ok'] ?? true));

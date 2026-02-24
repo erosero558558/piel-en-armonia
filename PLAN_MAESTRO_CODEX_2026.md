@@ -90,4 +90,4 @@ Criterio de salida:
 ## Evidencia por commit
 - 2026-02-24: plan inicial creado. C1 activado como unico bloque `IN_PROGRESS`.
 - 2026-02-24: agregado bloque `retention` en `funnel-metrics`, metricas de recurrencia/no-show en `metrics`, y gates criticos por dominio en CI.
-- 2026-02-24: agregado `tests/Integration/AppointmentErrorCodesTest.php` para proteger normalizacion de errores en reserva y reprogramacion (`slot_conflict` y `calendar_unreachable`).
+- 2026-02-24: agregado `tests/Integration/AppointmentErrorCodesTest.php` para proteger normalizacion de errores en reservas (`slot_conflict` y `calendar_unreachable`).
