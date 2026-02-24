@@ -39,7 +39,7 @@ Criterio de salida:
 - [x] Sin trabajo paralelo fuera de este documento.
 
 ## Fase 1 - Agenda real Google (OAuth refresh token)
-Estado: `IN_PROGRESS`
+Estado: `COMPLETED`
 Entregables:
 - [x] `availability` y `booked-slots` con `doctor + service + meta`.
 - [x] Bloqueo con `503 calendar_unreachable` cuando falla Google y `block_on_failure=true`.
@@ -54,10 +54,10 @@ Criterio de salida:
 - [x] `npm run test:calendar-contract` en verde.
 - [x] `npm run test:calendar-write` en verde contra produccion controlada.
 - [x] Verificacion manual: cita web + reprogramacion visibles en ambos calendarios.
-- [ ] `TEST_REQUIRE_GOOGLE_CALENDAR=true npm run test:calendar-contract` en verde contra produccion.
+- [x] `TEST_REQUIRE_GOOGLE_CALENDAR=true npm run test:calendar-contract` en verde contra produccion (evidenciado en `Post-Deploy Gate` run `22337042395`, paso `Validar contrato Google Calendar (no destructivo)`).
 
 ## Fase 2 - Consistencia web/chat/reprogramacion
-Estado: `PENDING`
+Estado: `IN_PROGRESS`
 Entregables:
 - [x] Duracion por servicio centralizada (30/60 min).
 - [x] `indiferente` por menor carga + round-robin.

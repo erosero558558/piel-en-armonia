@@ -33,6 +33,9 @@ Dominio: https://pielarmonia.com
 - CI run `22336491656` (commit `e565fe5`): `success`.
 - Post-Deploy Gate run `22336491643` (commit `e565fe5`): `success`.
 - Deploy Hosting (Canary) run `22336540658` (commit `e565fe5`): `success`.
+- CI run `22337042402` (commit `03c9ace`): `success`.
+- Post-Deploy Gate run `22337042395` (commit `03c9ace`): `success`.
+- Deploy Hosting (Canary) run `22337088362` (commit `03c9ace`): `success`.
 - Convencion anti-bucle: este snapshot registra evidencia de cambios operativos/codigo; no se agregan corridas originadas solo por commits `docs(status)` para evitar recursividad documental.
 - Hardening workflows: override manual `require_google_calendar` habilitado en `Post-Deploy Gate` y `Production Monitor`.
 - Estado general: En curso. CI desbloqueado y pipeline activo tras fix de calendar runtime.
@@ -160,20 +163,31 @@ Dominio: https://pielarmonia.com
   - `availability.meta.source=google`, `availability.meta.mode=live`
   - `booked-slots.meta.source=google`, `booked-slots.meta.mode=live`
 
+16. Gate estricto con contrato Google efectivo
+- Workflow: `Post-Deploy Gate (Git Sync)` run `22337042395` (commit `03c9ace`).
+- Resultado: OK.
+- Evidencia de pasos:
+  - `Resolver modo estricto de calendario desde health`: `success`
+  - `Validar contrato Google Calendar (no destructivo)`: `success`
+- Interpretacion operativa: se valida cierre del criterio estricto de calendario para Fase 1.
+
 ## Estado por fases del plan unico
 
 1. Fase 0 - Control unico y anti-bucle: Completada.
 - Un solo plan operativo activo.
 - Gate hibrido aplicado.
 
-2. Fase 1 - Agenda real Google (OAuth): En cierre de criterio estricto.
+2. Fase 1 - Agenda real Google (OAuth): Completada.
 - Disponibilidad y reserva con metadatos de calendario implementadas.
 - Cutover productivo activo y saludable (`calendarSource=google`, `calendarAuth=oauth_refresh`, `calendarMode=live`).
-- Pendiente de cierre: evidencia automatizada en verde de `TEST_REQUIRE_GOOGLE_CALENDAR=true npm run test:calendar-contract`.
+- Contrato estricto validado en pipeline (`Post-Deploy Gate` run `22337042395`).
 
-3. Fase 2 - Consistencia reserva/chat/reprogramacion: Completada en flujos criticos.
+3. Fase 2 - Consistencia reserva/chat/reprogramacion: Activa (IN_PROGRESS).
 - Duraciones por servicio verificadas (caso 60 min probado).
 - Flujo de reprogramacion real validado.
+- Pendientes de cierre:
+  - Test de concurrencia: 1x `201`, 1x `409 slot_conflict`.
+  - Paridad de oferta de slots entre web y chat para misma fecha/servicio.
 
 4. Fase 3 - Conversion y medicion: Completada.
 - Eventos funnel y contrato API validados.
@@ -232,18 +246,16 @@ Dominio: https://pielarmonia.com
 - Evidencia: CI run `22334259615` = `success`; Post-Deploy Gate run `22334259617` = `success`.
 - Seguimiento: incidente cerrado tecnicamente; mantener monitoreo de latencia para evitar falsos negativos en gate.
 
-9. Cutover Google Calendar activado en produccion (seguimiento de cierre).
+9. Cutover Google Calendar activado en produccion (cerrado en Fase 1).
 - Evidencia health actual (2026-02-23 23:34 -05:00): `calendarSource=google`, `calendarAuth=oauth_refresh`, `calendarMode=live`.
 - Evidencia adicional: `calendarRequired=true`, `calendarRequirementMet=true`.
 - Variables GitHub de control: validar y alinear a modo estricto si aun no estan aplicadas (`REQUIRE_GOOGLE_CALENDAR=true`, `PROD_MONITOR_ALLOW_STORE_CALENDAR=false`).
 - Override manual disponible: `workflow_dispatch` en `Post-Deploy Gate` y `Production Monitor` con `require_google_calendar=true`.
-- Impacto residual: falta registrar corrida automatizada strict de contrato para cerrar formalmente Fase 1.
+- Cierre automatizado: contrato Google estricto validado en run `22337042395`.
 
 ## Siguiente ejecucion recomendada
 
-1. Ejecutar `Post-Deploy Gate (Git Sync)` via `workflow_dispatch` con `require_google_calendar=true` y confirmar verde.
-2. Ejecutar `Production Monitor` via `workflow_dispatch` con `require_google_calendar=true` (sin `allow_store_calendar`) y confirmar verde.
-3. Registrar evidencia de `TEST_REQUIRE_GOOGLE_CALENDAR=true npm run test:calendar-contract` en verde (pipeline o runner con Node disponible).
-4. Si 1-3 estan en verde, cerrar Fase 1 en `PLAN_MAESTRO_OPERATIVO_2026.md` y reflejar snapshot final en este status.
-5. Confirmar primer evento en Sentry dashboard (Sentry ya activo en produccion).
-6. Mantener monitoreo semanal de p95 `availability` para detectar picos transitorios.
+1. Ejecutar test de concurrencia de reservas para cierre de Fase 2 (esperado: `201` + `409 slot_conflict`).
+2. Ejecutar validacion de paridad web/chat para misma fecha y servicio.
+3. Confirmar primer evento en Sentry dashboard (Sentry ya activo en produccion).
+4. Mantener monitoreo semanal de p95 `availability` para detectar picos transitorios.
