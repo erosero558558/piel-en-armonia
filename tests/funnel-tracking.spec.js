@@ -121,13 +121,26 @@ async function getTrackedEvents(page) {
     return page.evaluate(() => {
         const dl = Array.isArray(window.dataLayer) ? window.dataLayer : [];
         return dl
-            .filter(
-                (item) =>
+            .map((item) => {
+                if (
                     item &&
                     typeof item === 'object' &&
                     typeof item.event === 'string'
-            )
-            .map((item) => ({ ...item }));
+                ) {
+                    return { ...item };
+                }
+                // Handle gtag('event', 'name', params) pushed as arguments array
+                if (
+                    Array.isArray(item) &&
+                    item[0] === 'event' &&
+                    typeof item[1] === 'string'
+                ) {
+                    const params = item[2] || {};
+                    return { event: item[1], ...params };
+                }
+                return null;
+            })
+            .filter((item) => item !== null);
     });
 }
 
