@@ -176,7 +176,8 @@ jobs:
                   PIELARMONIA_ADMIN_PASSWORD: admin123
             - name: Skip e2e (no relevant changes)
               if: steps.changes.outputs.e2e != 'true'
-              run: echo "Skipping e2e-tests: no relevant source/test changes detected."
+              run: |
+                  echo "Skipping e2e-tests: no relevant source/test changes detected."
             - uses: actions/upload-artifact@v4
               if: always() && steps.changes.outputs.e2e == 'true'
               with:
