@@ -43,7 +43,9 @@ jobs:
 
             - name: Ejecutar suite Fase 2 en modo no destructivo
               id: phase2
-              run: npm run test:phase2
+              env:
+                  PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/phase2-readonly-report.json
+              run: npx playwright test tests/phase2-calendar-consistency.spec.js --project=chromium --reporter=line,json,html --output=test-results/phase2-readonly
 
             - name: Publicar reporte Playwright
               if: ${{ always() }}
