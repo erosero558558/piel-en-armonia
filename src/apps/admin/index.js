@@ -17,14 +17,8 @@ import {
 } from './modules/callbacks.js';
 import { loadReviews } from './modules/reviews.js';
 import { initPushNotifications } from './modules/push.js';
-
-// Modulos cargados bajo demanda (code splitting)
-function loadAppointmentsModule() {
-    return import('./modules/appointments.js');
-}
-function loadAvailabilityModule() {
-    return import('./modules/availability.js');
-}
+import { loadAppointments } from './modules/appointments.js';
+import { initAvailabilityCalendar } from './modules/availability.js';
 
 async function renderSection(section) {
     const titles = {
@@ -48,7 +42,6 @@ async function renderSection(section) {
             loadDashboardData();
             break;
         case 'appointments': {
-            const { loadAppointments } = await loadAppointmentsModule();
             loadAppointments();
             break;
         }
@@ -59,7 +52,6 @@ async function renderSection(section) {
             loadReviews();
             break;
         case 'availability': {
-            const { initAvailabilityCalendar } = await loadAvailabilityModule();
             await initAvailabilityCalendar();
             break;
         }
