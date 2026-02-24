@@ -95,7 +95,7 @@ jobs:
         env:
             TARGET_DOMAIN: ${{ github.event.inputs.domain || vars.TARGET_DOMAIN || 'https://pielarmonia.com' }}
             BENCH_RUNS: ${{ github.event.inputs.bench_runs || vars.BENCH_RUNS || '25' }}
-            WAIT_SECONDS: ${{ github.event.inputs.wait_seconds || vars.WAIT_SECONDS || '120' }}
+            WAIT_SECONDS: ${{ github.event.inputs.wait_seconds || vars.WAIT_SECONDS || '90' }}
             ASSET_HASH_RETRY_COUNT: ${{ github.event.inputs.asset_hash_retry_count || vars.ASSET_HASH_RETRY_COUNT || '2' }}
             ASSET_HASH_RETRY_DELAY_SEC: ${{ github.event.inputs.asset_hash_retry_delay_sec || vars.ASSET_HASH_RETRY_DELAY_SEC || '4' }}
             VERIFY_RETRY_ATTEMPTS: ${{ github.event.inputs.verify_retry_attempts || vars.VERIFY_RETRY_ATTEMPTS || '2' }}
