@@ -14,10 +14,13 @@ Dominio: https://pielarmonia.com
 - Post-Deploy Gate run `22334594761` (commit `916adde`): `cancelled` por concurrencia del workflow.
 - CI run `22334952338` (commit `e1a243d`): `success`.
 - Post-Deploy Gate run `22334952341` (commit `e1a243d`): `success`.
+- CI run `22335119857` (commit `4f32b2d`): `success`.
+- Post-Deploy Gate run `22335119858` (commit `4f32b2d`): `cancelled` por concurrencia del workflow.
 - Estado general: En curso. CI desbloqueado y pipeline activo tras fix de calendar runtime.
 - Chatbot: Operativo en Trinity/OpenRouter (cola OpenClaw deshabilitada por decision de producto).
 - Agenda real: implementada en codigo, pero produccion hoy reporta `calendarSource=store` y `calendarAuth=none`.
 - Gate de produccion: push gate en verde + hash-strict manual en verde (2026-02-23 21:52 hora local del servidor / 2026-02-24 UTC).
+- Gate backend manual (skip hash) tras `4f32b2d`: falla por `availability` en `503 calendar_unreachable` cuando se exige Google estricto (`requiredGoogle=true`).
 - Smoke: 19/19 OK. Latencias: figo-post p95=582ms, core p95=553ms. Error rate=0.
 - Umbral operativo `figo-post` endurecido a p95 <= `2500 ms` en gate/benchmark/workflow.
 - Gate hash estricto: validado en 3 corridas consecutivas (pre code-split).
@@ -119,6 +122,12 @@ Dominio: https://pielarmonia.com
 - Resultado: `2 failed, 1 passed`
 - Causa: `health.calendarSource != google`.
 
+14. Gate backend manual con Google estricto (skip hash)
+- Comando: `powershell -NoProfile -ExecutionPolicy Bypass -File .\GATE-POSTDEPLOY.ps1 -Domain https://pielarmonia.com -SkipAssetHashChecks`
+- Resultado: FAIL.
+- Hallazgo principal: `Availability API` devuelve `503` con `code=calendar_unreachable` y meta `requiredGoogle=true`.
+- Contexto health en el mismo periodo: `calendarSource=store`, `calendarAuth=none`.
+
 ## Estado por fases del plan unico
 
 1. Fase 0 - Control unico y anti-bucle: Completada.
@@ -200,5 +209,6 @@ Dominio: https://pielarmonia.com
 1. Completar cutover de Google Calendar en servidor (`calendarSource=google`, `calendarAuth=oauth_refresh`).
 2. Cambiar variables de control a modo estricto: `REQUIRE_GOOGLE_CALENDAR=true` y `PROD_MONITOR_ALLOW_STORE_CALENDAR=false`.
 3. Re-ejecutar: `TEST_REQUIRE_GOOGLE_CALENDAR=true npm run test:calendar-contract`.
-4. Confirmar primer evento en Sentry dashboard (Sentry ya activo en produccion).
-5. Mantener monitoreo semanal de p95 `availability` para detectar picos transitorios.
+4. Re-ejecutar gate post-deploy (`npm run gate:prod:backend` y `npm run gate:prod:hash-strict`) para validar que `availability` ya no responda `503`.
+5. Confirmar primer evento en Sentry dashboard (Sentry ya activo en produccion).
+6. Mantener monitoreo semanal de p95 `availability` para detectar picos transitorios.
