@@ -114,3 +114,4 @@ Criterio de salida:
 - 2026-02-24: validacion post-ajuste en run `22361957390` (`success`) con `ARTIFACT_TOTAL=2` (`phase2-readonly-playwright-report`, `phase2-readonly-test-results`), confirmando diagnostico reproducible en workflow manual.
 - 2026-02-24: ejecucion manual de `Post-Deploy Gate` validada (`22362170241`, `success`, `1.5 min`); se separo `concurrency` en `post-deploy-gate.yml` por tipo de evento (`manual` vs `auto`) para evitar cancelacion de corridas `workflow_dispatch` por pushes automaticos.
 - 2026-02-24: verificacion de `concurrency` separada en post-deploy: run manual `22362298070` (`workflow_dispatch`, `success`) completo sin cancelacion mientras coexistia un run automatico `push` en progreso (`22362271894`).
+- 2026-02-24: `CI` del commit `e4f3fdc` completo en `0.72 min` (run `22362374763`, `success` en `lint/security/unit-tests/e2e-tests/build`), consistente con reduccion de tiempo en cambios no runtime.
