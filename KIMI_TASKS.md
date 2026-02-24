@@ -75,12 +75,12 @@ Agregar PHPDoc faltantes en librerias core sin modificar comportamiento funciona
 <!-- /TASK -->
 
 <!-- TASK
-status: failed
+status: done
 task_id: AG-008
 risk: low
 scope: ops
 files: KIMI_TASKS.md
-acceptance_ref: verification/agent-runs/AG-008.md
+acceptance_ref: KIMI_TASKS.md
 dispatched_by: agent-orchestrator
 -->
 ### Kimi autopilot smoke task (no-op)

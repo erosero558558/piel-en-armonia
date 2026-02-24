@@ -7,7 +7,7 @@ policy:
 
 tasks:
   - id: AG-001
-    title: Backup integrity verification and at-rest encryption
+    title: "Backup integrity verification and at-rest encryption"
     owner: ernesto
     executor: jules
     status: done
@@ -22,7 +22,7 @@ tasks:
     updated_at: 2026-02-24
 
   - id: AG-002
-    title: PHP rate-limiter sliding window and per-user limits
+    title: "PHP rate-limiter sliding window and per-user limits"
     owner: ernesto
     executor: jules
     status: done
@@ -37,7 +37,7 @@ tasks:
     updated_at: 2026-02-24
 
   - id: AG-003
-    title: OpenAPI 3.1 specification for public API resources
+    title: "OpenAPI 3.1 specification for public API resources"
     owner: ernesto
     executor: jules
     status: done
@@ -52,22 +52,22 @@ tasks:
     updated_at: 2026-02-24
 
   - id: AG-004
-    title: Email notification system for appointment confirmations
+    title: "Email notification system for appointment confirmations"
     owner: ernesto
     executor: jules
-    status: in_progress
+    status: done
     risk: medium
     scope: backend
     files: ["lib/mailer.php", "templates/email", "tests/MailerTest.php"]
     acceptance: "Envio de confirmaciones y cola de reintentos de email con pruebas."
-    acceptance_ref: ""
+    acceptance_ref: "verification/agent-runs/AG-004.md"
     depends_on: []
     prompt: "Implementar wrapper PHPMailer para confirmaciones y recordatorios con templates HTML y test."
     created_at: 2026-02-24
     updated_at: 2026-02-24
 
   - id: AG-005
-    title: Audit dead code in js engines
+    title: "Audit dead code in js engines"
     owner: ernesto
     executor: kimi
     status: done
@@ -82,7 +82,7 @@ tasks:
     updated_at: 2026-02-24
 
   - id: AG-006
-    title: Add editorconfig and normalize line-end policy
+    title: "Add editorconfig and normalize line-end policy"
     owner: ernesto
     executor: kimi
     status: done
@@ -97,7 +97,7 @@ tasks:
     updated_at: 2026-02-24
 
   - id: AG-007
-    title: Add missing PHPDoc in core lib files
+    title: "Add missing PHPDoc in core lib files"
     owner: ernesto
     executor: kimi
     status: done
@@ -112,22 +112,22 @@ tasks:
     updated_at: 2026-02-24
 
   - id: AG-008
-    title: Kimi autopilot smoke task (no-op)
+    title: "Kimi autopilot smoke task (no-op)"
     owner: ernesto
     executor: kimi
-    status: ready
+    status: done
     risk: low
     scope: ops
     files: ["KIMI_TASKS.md"]
     acceptance: "La tarea se ejecuta por Kimi Autopilot y marca estado de cola sin cambios funcionales."
-    acceptance_ref: ""
+    acceptance_ref: "KIMI_TASKS.md"
     depends_on: []
     prompt: "Smoke test: no hagas cambios de codigo. Solo confirma ejecucion y finaliza sin modificar archivos."
     created_at: 2026-02-24
     updated_at: 2026-02-24
 
   - id: CDX-001
-    title: Codex governance coexistence guardrails (C4 support)
+    title: "Codex governance coexistence guardrails (C4 support)"
     owner: ernesto
     executor: codex
     status: in_progress
