@@ -115,6 +115,8 @@ jobs:
             TEST_FIGO_CHAT_LATENCY: ${{ vars.TEST_FIGO_CHAT_LATENCY || 'false' }}
             TEST_FIGO_CHAT_LATENCY_SAMPLES: ${{ vars.TEST_FIGO_CHAT_LATENCY_SAMPLES || '6' }}
             TEST_FIGO_CHAT_LATENCY_P95_MS: ${{ vars.TEST_FIGO_CHAT_LATENCY_P95_MS || '2500' }}
+            POSTDEPLOY_CHANGE_CLASS: runtime
+            POSTDEPLOY_EFFECTIVE_WAIT_SECONDS: '0'
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -192,8 +194,10 @@ jobs:
 
                       if (-not $hasRuntimeChanges) {
                         $effectiveWaitSeconds = [Math]::Min($waitSeconds, $lightWaitSeconds)
+                        "POSTDEPLOY_CHANGE_CLASS=non-runtime" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                         Write-Host "Cambios no-runtime detectados: se reduce espera a $effectiveWaitSeconds segundos."
                       } else {
+                        "POSTDEPLOY_CHANGE_CLASS=runtime" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                         Write-Host "Cambios runtime detectados: se mantiene espera completa de $waitSeconds segundos."
                       }
 
@@ -202,13 +206,16 @@ jobs:
                         Write-Host "Cambios detectados (muestra): $preview"
                       }
                     } else {
+                      "POSTDEPLOY_CHANGE_CLASS=unknown" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                       Write-Host "No se detectaron cambios en payload del push. Se mantiene espera completa."
                     }
                   } catch {
+                    "POSTDEPLOY_CHANGE_CLASS=unknown" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                     Write-Host "[WARN] No se pudo clasificar cambios para espera adaptativa: $($_.Exception.Message)"
                     Write-Host "Se mantiene espera completa por seguridad."
                   }
 
+                  "POSTDEPLOY_EFFECTIVE_WAIT_SECONDS=$effectiveWaitSeconds" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                   Write-Host "Esperando $effectiveWaitSeconds segundos para que el servidor termine el pull..."
                   Start-Sleep -Seconds $effectiveWaitSeconds
 
@@ -271,19 +278,19 @@ jobs:
                     -RequireCronReady
 
             - name: Setup Node para contrato calendario
-              if: ${{ steps.gate.outcome == 'success' }}
+              if: ${{ steps.gate.outcome == 'success' && env.POSTDEPLOY_CHANGE_CLASS != 'non-runtime' }}
               uses: actions/setup-node@v4
               with:
                   node-version: '20'
                   cache: 'npm'
 
             - name: Instalar dependencias Node
-              if: ${{ steps.gate.outcome == 'success' }}
+              if: ${{ steps.gate.outcome == 'success' && env.POSTDEPLOY_CHANGE_CLASS != 'non-runtime' }}
               shell: pwsh
               run: npm ci
 
             - name: Resolver modo estricto de calendario desde health
-              if: ${{ steps.gate.outcome == 'success' }}
+              if: ${{ steps.gate.outcome == 'success' && env.POSTDEPLOY_CHANGE_CLASS != 'non-runtime' }}
               shell: pwsh
               run: |
                   $effectiveRequireGoogle = ([string]$env:REQUIRE_GOOGLE_CALENDAR).ToLowerInvariant() -eq 'true'
@@ -307,7 +314,7 @@ jobs:
                   Write-Host "REQUIRE_GOOGLE_CALENDAR_EFFECTIVE=$effectiveValue"
 
             - name: Validar contrato Google Calendar (no destructivo)
-              if: ${{ steps.gate.outcome == 'success' }}
+              if: ${{ steps.gate.outcome == 'success' && env.POSTDEPLOY_CHANGE_CLASS != 'non-runtime' }}
               shell: pwsh
               env:
                   TEST_BASE_URL: ${{ env.TARGET_DOMAIN }}
@@ -315,7 +322,7 @@ jobs:
               run: npm run test:calendar-contract
 
             - name: Validar contrato Figo Chat (sin fallback silencioso)
-              if: ${{ steps.gate.outcome == 'success' && env.RUN_FIGO_CONTRACT == 'true' }}
+              if: ${{ steps.gate.outcome == 'success' && env.RUN_FIGO_CONTRACT == 'true' && env.POSTDEPLOY_CHANGE_CLASS != 'non-runtime' }}
               shell: pwsh
               env:
                   TEST_BASE_URL: ${{ env.TARGET_DOMAIN }}
@@ -339,13 +346,19 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input force asset hashes: ``$env:FORCE_ASSET_HASH_CHECKS_INPUT``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Asset hash warning until: ``$env:ASSET_HASH_WARNING_UNTIL_INPUT``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input skip figo-post bench: ``$env:SKIP_FIGO_POST_BENCH_INPUT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Change class: ``$env:POSTDEPLOY_CHANGE_CLASS``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Effective wait seconds: ``$env:POSTDEPLOY_EFFECTIVE_WAIT_SECONDS``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Require Google calendar (input/vars): ``$env:REQUIRE_GOOGLE_CALENDAR``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Require Google calendar (effective): ``$env:REQUIRE_GOOGLE_CALENDAR_EFFECTIVE``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Contrato figo-chat habilitado: ``$env:RUN_FIGO_CONTRACT``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Figo latency benchmark: ``$env:TEST_FIGO_CHAT_LATENCY`` (samples ``$env:TEST_FIGO_CHAT_LATENCY_SAMPLES``, p95 ``$env:TEST_FIGO_CHAT_LATENCY_P95_MS`` ms)"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Resultado: ``${{ steps.gate.outcome }}``"
-                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Contrato calendario: ejecutado con ``npm run test:calendar-contract``"
-                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Contrato figo-chat: ``npm run test:figo-contract``"
+                  if ($env:POSTDEPLOY_CHANGE_CLASS -eq 'non-runtime') {
+                    Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Contratos Node: omitidos por cambios no-runtime."
+                  } else {
+                    Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Contrato calendario: ejecutado con ``npm run test:calendar-contract``"
+                    Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Contrato figo-chat: ``npm run test:figo-contract``"
+                  }
 
             - name: Publicar reporte de verificacion
               if: ${{ always() }}
