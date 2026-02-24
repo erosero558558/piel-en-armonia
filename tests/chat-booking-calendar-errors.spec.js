@@ -168,6 +168,7 @@ async function openChatAndStartBooking(page) {
                 at: new Date().toISOString(),
             })
         );
+        localStorage.setItem('pa_lang', 'es');
     });
 
     await page.goto('/');
