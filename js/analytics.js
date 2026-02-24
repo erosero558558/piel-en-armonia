@@ -7,6 +7,18 @@ import {
 import { observeOnceWhenVisible } from './loader.js';
 import { loadAvailabilityData } from './data.js';
 import { loadPublicReviews } from './engagement.js';
+import {
+    state,
+    setCheckoutSessionActive,
+    setCheckoutSession,
+    getCheckoutSession,
+    setBookingViewTracked,
+    getBookingViewTracked,
+    setAvailabilityPrefetched,
+    getAvailabilityPrefetched,
+    setReviewsPrefetched,
+    getReviewsPrefetched,
+} from './state.js';
 
 const ANALYTICS_ENGINE_URL = withDeployAssetVersion(
     '/js/engines/analytics-engine.js?v=figo-analytics-20260219-phase2-funnelstep1'
@@ -136,6 +148,16 @@ function getAnalyticsEngineDeps() {
         loadAvailabilityData,
         loadPublicReviews,
         trackEventToServer: sendFunnelEventToServer,
+        // Inject state accessors
+        getCheckoutSession,
+        setCheckoutSession,
+    setCheckoutSessionActive: (active) => setCheckoutSessionActiveState(active),
+        getBookingViewTracked,
+        setBookingViewTracked,
+        getAvailabilityPrefetched,
+        setAvailabilityPrefetched,
+        getReviewsPrefetched,
+        setReviewsPrefetched,
     };
 }
 
