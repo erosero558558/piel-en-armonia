@@ -34,7 +34,14 @@ jobs:
               env:
                   KIMI_BIN: ${{ vars.KIMI_BIN }}
                   KIMI_MAX_DISPATCH_PER_RUN: ${{ vars.KIMI_MAX_DISPATCH_PER_RUN || '1' }}
-              run: node kimi-run.js --dispatch --no-diff
+              run: |
+                  [Console]::InputEncoding = [System.Text.UTF8Encoding]::UTF8
+                  [Console]::OutputEncoding = [System.Text.UTF8Encoding]::UTF8
+                  $env:PYTHONUTF8 = "1"
+                  $env:PYTHONIOENCODING = "utf-8"
+                  $env:LANG = "C.UTF-8"
+                  cmd /c "chcp 65001 > nul"
+                  node kimi-run.js --dispatch --no-diff
 
             - name: Commit queue state changes
               run: |
