@@ -564,11 +564,20 @@ END:VCALENDAR`;
         }
     }
 
+    function gtagCall() {
+        if (typeof window.gtag === 'function') {
+            window.gtag.apply(null, arguments);
+        }
+    }
+
     function initGA4() {
         if (window._ga4Loaded) return;
-        if (getCookieConsent() !== 'accepted') return;
 
         window._ga4Loaded = true;
+        window.dataLayer = window.dataLayer || [];
+        if (!window.gtag) {
+            window.gtag = function () { window.dataLayer.push(arguments); };
+        }
 
         const measurementId = getMeasurementId();
         const script = document.createElement('script');
@@ -576,12 +585,19 @@ END:VCALENDAR`;
         script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
         document.head.appendChild(script);
 
-        window.dataLayer = window.dataLayer || [];
-        function gtag() { window.dataLayer.push(arguments); }
-        window.gtag = gtag;
-        gtag('js', new Date());
-        gtag('consent', 'update', { analytics_storage: 'granted' });
-        gtag('config', measurementId);
+        gtagCall('js', new Date());
+
+        // Apply stored consent state immediately so GA4 respects it from first event.
+        if (getCookieConsent() === 'accepted') {
+            gtagCall('consent', 'update', {
+                analytics_storage: 'granted',
+                ad_storage: 'denied',
+                ad_user_data: 'denied',
+                ad_personalization: 'denied',
+            });
+        }
+
+        gtagCall('config', measurementId);
     }
 
     function setBannerActiveState(banner, isActive) {
@@ -600,17 +616,29 @@ END:VCALENDAR`;
         if (action === 'accepted') {
             setCookieConsent('accepted');
             setBannerActiveState(banner, false);
+            gtagCall('consent', 'update', {
+                analytics_storage: 'granted',
+                ad_storage: 'denied',
+                ad_user_data: 'denied',
+                ad_personalization: 'denied',
+            });
+            initGA4();
             showToastSafe(
                 getCurrentLang() === 'es'
                     ? 'Preferencias de cookies guardadas.'
                     : 'Cookie preferences saved.',
                 'success'
             );
-            initGA4();
             trackEventSafe('cookie_consent_update', { status: 'accepted' });
         } else if (action === 'rejected') {
             setCookieConsent('rejected');
             setBannerActiveState(banner, false);
+            gtagCall('consent', 'update', {
+                analytics_storage: 'denied',
+                ad_storage: 'denied',
+                ad_user_data: 'denied',
+                ad_personalization: 'denied',
+            });
             showToastSafe(
                 getCurrentLang() === 'es'
                     ? 'Solo se mantendran cookies esenciales.'
