@@ -1,4 +1,7 @@
 import resolve from '@rollup/plugin-node-resolve';
+import terser from '@rollup/plugin-terser';
+
+const minify = terser({ compress: { passes: 2 }, mangle: true, format: { comments: false } });
 
 export default [
     // Admin App (code-split: appointments y availability se cargan bajo demanda)
@@ -11,7 +14,7 @@ export default [
             format: 'es',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins: [resolve(), minify]
     },
     // Booking UI
     {
@@ -21,7 +24,7 @@ export default [
             format: 'es',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins: [resolve(), minify]
         // Removed external: ['booking-calendar-lazy'] to bundle it inline
     },
     // Booking Engine
@@ -32,7 +35,7 @@ export default [
             format: 'es',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins: [resolve(), minify]
     },
     // Booking Calendar
     {
@@ -42,7 +45,7 @@ export default [
             format: 'es',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins: [resolve(), minify]
     },
     // Chat UI Engine
     {
@@ -52,7 +55,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins: [resolve(), minify]
     },
     // Chat Widget Engine
     {
@@ -62,7 +65,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins: [resolve(), minify]
     },
     // Chat Booking Engine
     {
@@ -72,7 +75,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins: [resolve(), minify]
     },
     // Figo Chat Engine
     {
@@ -82,7 +85,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins: [resolve(), minify]
     },
     // Analytics Engine
     {
@@ -92,7 +95,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins: [resolve(), minify]
     },
     // Booking Utils Bundle
     {
@@ -102,7 +105,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins: [resolve(), minify]
     },
     // Data Bundle
     {
@@ -112,7 +115,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins: [resolve(), minify]
     },
     // UI Bundle
     {
@@ -122,7 +125,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins: [resolve(), minify]
     },
     // Engagement Bundle
     {
@@ -132,7 +135,7 @@ export default [
             format: 'iife',
             sourcemap: false
         },
-        plugins: [resolve()]
+        plugins: [resolve(), minify]
     },
     // Main Script (ES module for code splitting; requires type="module" in HTML)
     {
@@ -145,6 +148,6 @@ export default [
             sourcemap: false,
             banner: '/* GENERATED FILE - DO NOT EDIT DIRECTLY - Edit source in js/main.js and run npm run build */',
         },
-        plugins: [resolve()],
+        plugins: [resolve(), minify],
     },
 ];
