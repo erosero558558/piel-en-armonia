@@ -5,11 +5,13 @@ Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
 ## Proposito
+
 - Blindar confiabilidad de reserva/chat/reprogramacion.
 - Convertir no-show en una senal tecnica medible y accionable.
 - Elevar observabilidad y guardrails de release sin romper contratos publicos.
 
 ## Gobernanza
+
 - Este archivo es la fuente de control de la linea Codex.
 - Solo un bloque Codex puede estar `IN_PROGRESS`.
 - No se toman tareas del Operativo que ya esten `IN_PROGRESS`, salvo soporte de calidad (tests/guardrails).
@@ -19,6 +21,7 @@ Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite po
 - actualizacion del estado en este plan.
 
 ## Distribucion de esfuerzo
+
 - 70% Confiabilidad + tests de agenda/chat/reprogramacion.
 - 20% Retencion tecnica orientada a no-show/recurrencia.
 - 10% Observabilidad y calidad de senales para decision operativa.
@@ -26,69 +29,87 @@ Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite po
 ## Bloques
 
 ## C1 - Firewall de regresiones de agenda
+
 Estado: `IN_PROGRESS`
 Objetivo:
+
 - Eliminar regresiones silenciosas en `availability`, `appointments`, `booked-slots`, reprogramacion y conflictos de slot.
 
 Entregables:
+
 - [x] Suite critica de agenda por dominio en CI.
 - [x] Cobertura de codigos normalizados (`slot_conflict`, `calendar_unreachable`, etc.) en escenarios de error.
 - [x] Pruebas de concurrencia no destructivas y destructivas controladas (workflow manual).
 - [x] Sonda automatica de flakiness para `test:phase2` en modo readonly con umbral configurable.
 
 Criterio de salida:
+
 - [ ] Suite critica estable sin flakiness repetido.
 - [ ] Cualquier cambio de comportamiento en agenda protegido con test.
 
 ## C2 - Retencion tecnica enfocada en no-show
+
 Estado: `PENDING`
 Objetivo:
+
 - Estandarizar metricas de no-show/completed/confirmed y recurrencia para seguimiento continuo.
 
 Entregables:
+
 - [x] `funnel-metrics` expone bloque `retention` (aditivo, sin breaking changes).
 - [x] `REPORTE-SEMANAL-PRODUCCION.ps1` incluye seccion retention + delta vs reporte previo.
 - [ ] Indicadores de recurrencia/no-show disponibles sin trabajo manual extra.
 
 Criterio de salida:
+
 - [ ] Baseline y tendencia semanal de no-show disponibles en JSON y markdown.
 - [ ] Recurrencia de pacientes trazable por metrica.
 
 ## C3 - Observabilidad accionable
+
 Estado: `PENDING`
 Objetivo:
+
 - Detectar y clasificar incidentes de reserva/chat con menor tiempo de diagnostico.
 
 Entregables:
+
 - [x] Validacion automatica de configuracion de observabilidad en health/reportes.
 - [ ] Clasificacion de alertas por severidad e impacto.
 - [ ] Playbook operativo con ruta de diagnostico rapida.
 
 Criterio de salida:
+
 - [ ] Evidencia de verificacion automatica en pipeline semanal.
 - [ ] Ruta de diagnostico documentada y utilizable en menos de 15 min.
 
 ## C4 - Guardrails de release y CI
+
 Estado: `PENDING`
 Objetivo:
+
 - Evitar que cambios de bajo nivel rompan deploy o comportamiento critico.
 
 Entregables:
+
 - [x] Gates explicitos por dominio (agenda/funnel/chat/pagos) con nombres claros en CI.
 - [ ] Workflows destructivos solo en `workflow_dispatch` con guardrails fuertes.
 - [ ] Reglas claras de warning -> blocking segun impacto.
 
 Criterio de salida:
+
 - [ ] Pipeline con semaforos por dominio.
 - [ ] Fallback operativo documentado para picos transitorios sin relajar seguridad.
 
 ## Contratos publicos
+
 - No se introducen cambios breaking en contratos HTTP existentes.
 - Cambios aditivos permitidos:
 - `GET /api.php?resource=funnel-metrics`: objeto `retention`.
 - Reporte semanal JSON: bloque `retention` y `retentionTrend`.
 
 ## Evidencia por commit
+
 - 2026-02-24: plan inicial creado. C1 activado como unico bloque `IN_PROGRESS`.
 - 2026-02-24: agregado bloque `retention` en `funnel-metrics`, metricas de recurrencia/no-show en `metrics`, y gates criticos por dominio en CI.
 - 2026-02-24: agregado `tests/Integration/AppointmentErrorCodesTest.php` para proteger normalizacion de errores en reservas (`slot_conflict` y `calendar_unreachable`).
@@ -116,3 +137,5 @@ Criterio de salida:
 - 2026-02-24: verificacion de `concurrency` separada en post-deploy: run manual `22362298070` (`workflow_dispatch`, `success`) completo sin cancelacion mientras coexistia un run automatico `push` en progreso (`22362271894`).
 - 2026-02-24: `CI` del commit `e4f3fdc` completo en `0.72 min` (run `22362374763`, `success` en `lint/security/unit-tests/e2e-tests/build`), consistente con reduccion de tiempo en cambios no runtime.
 - 2026-02-24: endurecida prueba `tests/phase2-calendar-consistency.spec.js` para esperar sincronizacion real de slots web con la oferta mockeada (evita falso verde por opciones estaticas antes de `updateAvailableTimes`); verificado localmente con `npm run test:phase2` (`1 passed`, `1 skipped`).
+- 2026-02-24: reforzada sincronizacion de slots en chat para `phase2-calendar-consistency` (la espera ahora valida especificamente opciones `HH:MM` y no cualquier `chat-booking`), reduciendo falso avance antes de render de horarios; verificado localmente con `npm run test:phase2` (`1 passed`, `1 skipped`).
+- 2026-02-24: prueba de estabilidad local posterior al ajuste de sincronizacion chat (`npm run test:phase2` x5) sin fallas (`passes=5`, `fails=0`; concurrencia real permanece `skipped` sin `TEST_ENABLE_CALENDAR_WRITE=true`).

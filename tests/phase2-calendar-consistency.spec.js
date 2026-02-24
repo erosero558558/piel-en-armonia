@@ -30,7 +30,10 @@ function enforceOrSkipGoogleMode(testInfo, health) {
         ).toBe(true);
         return;
     }
-    testInfo.skip(!googleActive, 'La fuente de agenda no es Google en este entorno.');
+    testInfo.skip(
+        !googleActive,
+        'La fuente de agenda no es Google en este entorno.'
+    );
 }
 
 async function adminLogin(request, password) {
@@ -211,15 +214,16 @@ async function mockParityApi(page, dateKey) {
     });
 
     return {
-        expectedSlots: availabilitySlots.filter((slot) => !bookedSlots.includes(slot)),
+        expectedSlots: availabilitySlots.filter(
+            (slot) => !bookedSlots.includes(slot)
+        ),
     };
 }
 
 test.describe('Fase 2: consistencia calendario', () => {
-    test('concurrencia en mismo slot produce 201 + 409 slot_conflict', async (
-        { request },
-        testInfo
-    ) => {
+    test('concurrencia en mismo slot produce 201 + 409 slot_conflict', async ({
+        request,
+    }, testInfo) => {
         await skipIfPhpRuntimeMissing(test, request);
 
         const writeEnabled = getEnv('TEST_ENABLE_CALENDAR_WRITE') === 'true';
@@ -299,10 +303,16 @@ test.describe('Fase 2: consistencia calendario', () => {
                 const bodyA = await safeJson(responseA);
                 const bodyB = await safeJson(responseB);
 
-                if (statusA === 201 && Number.isFinite(Number(bodyA?.data?.id))) {
+                if (
+                    statusA === 201 &&
+                    Number.isFinite(Number(bodyA?.data?.id))
+                ) {
                     createdAppointmentIds.push(Number(bodyA.data.id));
                 }
-                if (statusB === 201 && Number.isFinite(Number(bodyB?.data?.id))) {
+                if (
+                    statusB === 201 &&
+                    Number.isFinite(Number(bodyB?.data?.id))
+                ) {
                     createdAppointmentIds.push(Number(bodyB.data.id));
                 }
 
@@ -431,7 +441,9 @@ test.describe('Fase 2: consistencia calendario', () => {
             .last()
             .click();
 
-        const chatDateInput = page.locator('#chatMessages #chatDateInput').last();
+        const chatDateInput = page
+            .locator('#chatMessages #chatDateInput')
+            .last();
         await expect(chatDateInput).toBeVisible();
         await chatDateInput.evaluate((input, value) => {
             input.value = String(value);
@@ -440,11 +452,25 @@ test.describe('Fase 2: consistencia calendario', () => {
 
         await expect
             .poll(async () => {
-                return await page
-                    .locator('#chatMessages button[data-action="chat-booking"]')
-                    .count();
+                return await page.$$eval(
+                    '#chatMessages button[data-action="chat-booking"]',
+                    (buttons) =>
+                        Array.from(
+                            new Set(
+                                buttons
+                                    .map(
+                                        (button) =>
+                                            button.getAttribute('data-value') ||
+                                            ''
+                                    )
+                                    .filter((value) =>
+                                        /^\d{2}:\d{2}$/.test(value)
+                                    )
+                            )
+                        ).sort()
+                );
             })
-            .toBeGreaterThan(0);
+            .toEqual(sortedExpected);
 
         const chatSlots = await page.$$eval(
             '#chatMessages button[data-action="chat-booking"]',
