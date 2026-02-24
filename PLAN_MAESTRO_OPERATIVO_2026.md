@@ -3,6 +3,10 @@
 Este documento reemplaza el seguimiento disperso en multiples planes.  
 Regla: toda tarea nueva debe mapearse a una fase de este documento.
 
+## Gobernanza documental
+- Este archivo es la unica fuente de control operativo.
+- `PLAN_MAESTRO_2026_STATUS.md` se mantiene solo como evidencia/snapshot historico de ejecuciones.
+
 ## Objetivo de negocio
 - KPI principal: `reservas netas` (+25% al 29 de marzo de 2026).
 - SLO operativos:
@@ -24,18 +28,18 @@ Regla: toda tarea nueva debe mapearse a una fase de este documento.
 ## Estado de fases
 
 ## Fase 0 - Control unico y hardening de flujo
-Estado: `IN_PROGRESS`
+Estado: `COMPLETED`
 Entregables:
 - [x] Script de gate con ventana temporal de warning para hash.
 - [x] Workflow con opcion de forzar hash estricto.
 - [x] Documento operativo unico.
 
 Criterio de salida:
-- [ ] 2 deploys consecutivos con `gate:prod:backend` en verde.
-- [ ] Sin trabajo paralelo fuera de este documento.
+- [x] 2 deploys consecutivos con `gate:prod:backend` en verde.
+- [x] Sin trabajo paralelo fuera de este documento.
 
 ## Fase 1 - Agenda real Google (OAuth refresh token)
-Estado: `IN_PROGRESS`
+Estado: `COMPLETED`
 Entregables:
 - [x] `availability` y `booked-slots` con `doctor + service + meta`.
 - [x] Bloqueo con `503 calendar_unreachable` cuando falla Google y `block_on_failure=true`.
@@ -46,9 +50,9 @@ Entregables:
 - [x] `health` expone `calendarTokenHealthy`.
 
 Criterio de salida:
-- [ ] `npm run test:calendar-contract` en verde.
-- [ ] `npm run test:calendar-write` en verde contra produccion controlada.
-- [ ] Verificacion manual: cita web + reprogramacion visibles en ambos calendarios.
+- [x] `npm run test:calendar-contract` en verde.
+- [x] `npm run test:calendar-write` en verde contra produccion controlada.
+- [x] Verificacion manual: cita web + reprogramacion visibles en ambos calendarios.
 
 ## Fase 2 - Consistencia web/chat/reprogramacion
 Estado: `PENDING`
@@ -87,7 +91,7 @@ Criterio de salida:
 - [ ] Smoke de assets sin 404 en componentes esperados.
 
 ## Fase 5 - Cierre hardening y vuelta a hash estricto
-Estado: `PENDING`
+Estado: `IN_PROGRESS`
 Entregables:
 - [ ] Eliminar drift de hashes local/remoto.
 - [ ] Reactivar hash gate bloqueante.

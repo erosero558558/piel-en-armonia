@@ -11,7 +11,6 @@ if (!function_exists('calendar_runtime_load')) {
         }
 
         $baseDir = __DIR__;
-        $compatFile = $baseDir . DIRECTORY_SEPARATOR . 'compat.php';
         $nativeFiles = [
             $baseDir . DIRECTORY_SEPARATOR . 'GoogleTokenProvider.php',
             $baseDir . DIRECTORY_SEPARATOR . 'GoogleCalendarClient.php',
@@ -19,22 +18,29 @@ if (!function_exists('calendar_runtime_load')) {
             $baseDir . DIRECTORY_SEPARATOR . 'CalendarBookingService.php',
         ];
 
-        $nativeLoaded = false;
-        if (PHP_VERSION_ID >= 70400) {
-            try {
-                foreach ($nativeFiles as $nativeFile) {
-                    if (is_file($nativeFile)) {
-                        require_once $nativeFile;
-                    }
-                }
-                $nativeLoaded = class_exists('CalendarAvailabilityService') && class_exists('CalendarBookingService');
-            } catch (Throwable $runtimeError) {
-                error_log('Piel en Armonia: calendar runtime native fallback - ' . $runtimeError->getMessage());
+        foreach ($nativeFiles as $nativeFile) {
+            if (!is_file($nativeFile)) {
+                throw new RuntimeException(
+                    'Piel en Armonia: calendar runtime missing file: ' . $nativeFile
+                );
             }
+
+            require_once $nativeFile;
         }
 
-        if (!$nativeLoaded && is_file($compatFile)) {
-            require_once $compatFile;
+        $requiredClasses = [
+            'GoogleTokenProvider',
+            'GoogleCalendarClient',
+            'CalendarAvailabilityService',
+            'CalendarBookingService',
+        ];
+
+        foreach ($requiredClasses as $requiredClass) {
+            if (!class_exists($requiredClass)) {
+                throw new RuntimeException(
+                    'Piel en Armonia: calendar runtime missing class: ' . $requiredClass
+                );
+            }
         }
 
         $loaded = true;

@@ -27,6 +27,8 @@ jobs:
               run: npm run lint:js
             - name: Lint PHP
               run: npm run lint:php
+            - name: Validate Plan Operativo anti-loop
+              run: php bin/validate-plan-operativo.php
             - name: Lint Prometheus Config
               run: |
                   docker run --rm \

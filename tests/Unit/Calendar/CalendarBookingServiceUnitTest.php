@@ -12,10 +12,7 @@ require_once __DIR__ . '/../../../lib/business.php';
 require_once __DIR__ . '/../../../lib/models.php';
 require_once __DIR__ . '/../../../lib/storage.php';
 require_once __DIR__ . '/../../../lib/audit.php';
-require_once __DIR__ . '/../../../lib/calendar/GoogleTokenProvider.php';
-require_once __DIR__ . '/../../../lib/calendar/GoogleCalendarClient.php';
-require_once __DIR__ . '/../../../lib/calendar/CalendarAvailabilityService.php';
-require_once __DIR__ . '/../../../lib/calendar/CalendarBookingService.php';
+require_once __DIR__ . '/../../../lib/calendar/runtime.php';
 
 class CalendarBookingServiceUnitTest extends TestCase
 {

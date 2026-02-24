@@ -1,5 +1,7 @@
 # Plan Maestro 2026 - Estado Operativo
 
+> Nota de gobernanza (2026-02-24): este documento se mantiene como snapshot historico; la fuente unica de control operativo es `PLAN_MAESTRO_OPERATIVO_2026.md`.
+
 Fecha de actualizacion: 2026-02-23 (sesion Claude noche)
 Dominio: https://pielarmonia.com
 
