@@ -464,7 +464,7 @@ window.subscribeToPushNotifications = async function() {
         const registration = await navigator.serviceWorker.ready;
         // VAPID public key required here
         const publicVapidKey = 'B...';
-        const subscription = await registration.pushManager.subscribe({
+        const _subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: publicVapidKey
         });

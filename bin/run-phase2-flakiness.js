@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
+ 
 const { spawnSync } = require('child_process');
 const { mkdirSync, writeFileSync } = require('fs');
 const { dirname, resolve } = require('path');

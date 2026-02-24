@@ -11,7 +11,7 @@ export async function checkAuth() {
         } else {
             return false;
         }
-    } catch (error) {
+    } catch (_e) {
         showToast('No se pudo verificar la sesion', 'warning');
         return false;
     }
@@ -20,7 +20,7 @@ export async function checkAuth() {
 export async function logout() {
     try {
         await authRequest('logout', { method: 'POST' });
-    } catch (error) {
+    } catch (_e) {
         // Continue
     }
     showToast('Sesion cerrada correctamente', 'info');

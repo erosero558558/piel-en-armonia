@@ -2,7 +2,6 @@ import { withDeployAssetVersion } from './utils.js';
 import {
     loadDeferredModule,
     createWarmupRunner,
-    bindWarmupTarget,
     scheduleDeferredTask,
     observeOnceWhenVisible,
 } from './loader.js';

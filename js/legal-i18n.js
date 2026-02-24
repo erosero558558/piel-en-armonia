@@ -230,7 +230,7 @@
         try {
             const value = localStorage.getItem(STORAGE_KEY);
             return SUPPORTED_LANGS.includes(value) ? value : null;
-        } catch (error) {
+        } catch (_e) {
             return null;
         }
     }
@@ -238,7 +238,7 @@
     function saveLanguage(lang) {
         try {
             localStorage.setItem(STORAGE_KEY, lang);
-        } catch (error) {
+        } catch (_e) {
             // Ignore storage failures in private mode.
         }
     }

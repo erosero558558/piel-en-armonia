@@ -59,7 +59,7 @@ export function showSuccessModal(emailSent = false) {
     if (appt) {
         try {
             localStorage.setItem('last_confirmed_appointment', JSON.stringify(appt));
-        } catch (e) {
+        } catch (_e) {
             // noop
         }
     }

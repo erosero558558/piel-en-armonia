@@ -154,7 +154,7 @@ async function loadPublicReviews(options = {}) {
         });
         const fetchedReviews = Array.isArray(payload.data) ? payload.data : [];
         reviewsCache = mergePublicReviews(fetchedReviews);
-    } catch (error) {
+    } catch (_e) {
         const localReviews = deps && typeof deps.storageGetJSON === 'function'
             ? deps.storageGetJSON('reviews', [])
             : [];

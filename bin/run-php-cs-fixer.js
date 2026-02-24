@@ -2,7 +2,7 @@
 'use strict';
 
 const { existsSync, readdirSync } = require('fs');
-const { resolve, dirname, join } = require('path');
+const { resolve, join } = require('path');
 const { homedir } = require('os');
 const { spawnSync } = require('child_process');
 

@@ -41,7 +41,7 @@ function getCookieConsent() {
         if (!raw) return '';
         const parsed = JSON.parse(raw);
         return typeof parsed?.status === 'string' ? parsed.status : '';
-    } catch (error) {
+    } catch (_e) {
         return '';
     }
 }
@@ -53,7 +53,7 @@ function setCookieConsent(status) {
             status: normalized,
             at: new Date().toISOString()
         }));
-    } catch (error) {
+    } catch (_e) {
         // noop
     }
 }

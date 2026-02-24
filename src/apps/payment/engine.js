@@ -123,7 +123,7 @@ async function uploadTransferProof(file) {
     const apiEndpoint = (deps && deps.apiEndpoint) || '/api.php';
 
     let response;
-    let text = '';
+    let text;
     try {
         response = await fetch(`${apiEndpoint}?${query.toString()}`, {
             method: 'POST',
@@ -146,10 +146,10 @@ async function uploadTransferProof(file) {
         clearTimeout(timeoutId);
     }
 
-    let payload = {};
+    let payload;
     try {
         payload = text ? JSON.parse(text) : {};
-    } catch (error) {
+    } catch (_e) {
         throw new Error('No se pudo interpretar la respuesta de subida');
     }
 

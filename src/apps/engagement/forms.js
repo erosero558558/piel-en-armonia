@@ -21,7 +21,7 @@ function getCaptchaToken(action) {
         return deps.getCaptchaToken
             ? deps.getCaptchaToken(action)
             : Promise.resolve(null);
-    } catch (e) {
+    } catch (_e) {
         return Promise.resolve(null);
     }
 }
@@ -89,7 +89,7 @@ function bindCallbackForm() {
                 );
             }
             this.reset();
-        } catch (error) {
+        } catch (_e) {
             if (deps && typeof deps.showToast === 'function') {
                 deps.showToast(
                     t(
@@ -191,7 +191,7 @@ function bindReviewForm() {
             this.reset();
             selectedRating = 0;
             resetStarVisuals();
-        } catch (error) {
+        } catch (_e) {
             if (deps && typeof deps.showToast === 'function') {
                 deps.showToast(
                     t(

@@ -1739,7 +1739,7 @@ function analyzeFileOverlap(filesA, filesB) {
     };
 }
 
-function filesOverlap(filesA, filesB) {
+function _filesOverlap(filesA, filesB) {
     return analyzeFileOverlap(filesA, filesB).anyOverlap;
 }
 
@@ -1826,7 +1826,7 @@ function analyzeConflicts(tasks, handoffs = []) {
     return { all, blocking, handoffCovered };
 }
 
-function detectConflicts(tasks, handoffs = []) {
+function _detectConflicts(tasks, handoffs = []) {
     return analyzeConflicts(tasks, handoffs).blocking;
 }
 

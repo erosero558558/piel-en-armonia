@@ -30,10 +30,10 @@ async function requestJson(url, options = {}) {
     const response = await fetch(url, init);
     const responseText = await response.text();
 
-    let payload = {};
+    let payload;
     try {
         payload = responseText ? JSON.parse(responseText) : {};
-    } catch (error) {
+    } catch (_e) {
         throw new Error('Respuesta no valida del servidor');
     }
 

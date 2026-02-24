@@ -101,7 +101,7 @@ async function changeLanguage(lang) {
     if (nextLang === 'en' && !translations.en) {
         try {
             await ensureEnglishTranslations();
-        } catch (error) {
+        } catch (_e) {
             showToastSafe('No se pudo cargar el paquete de idioma EN. Se mantiene Espanol.', 'warning');
         }
     }

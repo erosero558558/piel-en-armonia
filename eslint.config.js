@@ -18,10 +18,11 @@ module.exports = [
         ignores: [
             'admin.js',
             'script.js',
-            'booking-ui.js',
-            'booking-engine.js',
             'vendor/**',
             'js/chunks/**',
+            'js/admin-chunks/**',
+            'js/engines/**',
+            'js/booking-calendar.js',
         ]
     },
     {
@@ -34,7 +35,11 @@ module.exports = [
             },
         },
         rules: {
-            'no-unused-vars': 'warn',
+            'no-unused-vars': ['warn', {
+                varsIgnorePattern: '^_',
+                argsIgnorePattern: '^_',
+                caughtErrorsIgnorePattern: '^_',
+            }],
             'no-console': 'off',
             'no-undef': 'warn',
             'no-useless-assignment': 'warn',

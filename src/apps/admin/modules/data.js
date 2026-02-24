@@ -15,7 +15,7 @@ export function getLocalData(key, fallback) {
     try {
         const value = JSON.parse(localStorage.getItem(key) || 'null');
         return value === null ? fallback : value;
-    } catch (error) {
+    } catch (_e) {
         return fallback;
     }
 }
@@ -23,7 +23,7 @@ export function getLocalData(key, fallback) {
 function saveLocalData(key, data) {
     try {
         localStorage.setItem(key, JSON.stringify(data));
-    } catch (error) {
+    } catch (_e) {
         // storage quota full or disabled
     }
 }
@@ -87,7 +87,7 @@ export async function refreshData() {
         } else {
             setHealthStatus(null);
         }
-    } catch (error) {
+    } catch (_e) {
         loadFallbackState();
         showToast('No se pudo conectar al backend. Usando datos locales.', 'warning');
     }

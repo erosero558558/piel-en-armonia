@@ -63,7 +63,7 @@ function requireFn(name) {
     return fn;
 }
 
-function getCurrentLang() {
+function _getCurrentLang() {
     try {
         return requireFn('getCurrentLang')() || 'es';
     } catch (_) {

@@ -20,6 +20,6 @@ export function escapeHtml(text) {
         .replace(/'/g, '&#039;');
 }
 
-export function debugLog(...args) {
+export function debugLog(..._args) {
     // Debug logging removed
 }

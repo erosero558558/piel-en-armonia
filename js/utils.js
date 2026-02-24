@@ -331,7 +331,7 @@ export function setCookieConsent(status) {
                 at: new Date().toISOString(),
             })
         );
-    } catch (error) {
+    } catch (_e) {
         // noop
     }
 }
