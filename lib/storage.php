@@ -916,8 +916,10 @@ function write_store(array $store, bool $emitHttpErrors = true): bool
         // Delete missing
         $toDelete = array_diff_key($existingIds, $incomingIds);
         if (!empty($toDelete)) {
-            $idsToDelete = implode(',', array_keys($toDelete));
-            $pdo->exec("DELETE FROM appointments WHERE id IN ($idsToDelete)");
+            $keys = array_keys($toDelete);
+            $placeholders = implode(',', array_fill(0, count($keys), '?'));
+            $stmt = $pdo->prepare("DELETE FROM appointments WHERE id IN ($placeholders)");
+            $stmt->execute($keys);
         }
 
         // Sync Reviews
@@ -944,8 +946,10 @@ function write_store(array $store, bool $emitHttpErrors = true): bool
         }
         $toDelete = array_diff_key($existingIds, $incomingIds);
         if (!empty($toDelete)) {
-            $idsToDelete = implode(',', array_keys($toDelete));
-            $pdo->exec("DELETE FROM reviews WHERE id IN ($idsToDelete)");
+            $keys = array_keys($toDelete);
+            $placeholders = implode(',', array_fill(0, count($keys), '?'));
+            $stmt = $pdo->prepare("DELETE FROM reviews WHERE id IN ($placeholders)");
+            $stmt->execute($keys);
         }
 
         // Sync Callbacks
@@ -971,8 +975,10 @@ function write_store(array $store, bool $emitHttpErrors = true): bool
         }
         $toDelete = array_diff_key($existingIds, $incomingIds);
         if (!empty($toDelete)) {
-            $idsToDelete = implode(',', array_keys($toDelete));
-            $pdo->exec("DELETE FROM callbacks WHERE id IN ($idsToDelete)");
+            $keys = array_keys($toDelete);
+            $placeholders = implode(',', array_fill(0, count($keys), '?'));
+            $stmt = $pdo->prepare("DELETE FROM callbacks WHERE id IN ($placeholders)");
+            $stmt->execute($keys);
         }
 
         // Sync Availability (Full Replace)
