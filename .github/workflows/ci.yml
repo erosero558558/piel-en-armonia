@@ -46,16 +46,33 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
+            - name: Detect security relevant changes
+              id: changes
+              uses: dorny/paths-filter@v3
+              with:
+                  filters: |
+                      security:
+                        - 'controllers/**'
+                        - 'lib/**'
+                        - 'tests/**'
+                        - '*.php'
+                        - 'composer.json'
+                        - 'composer.lock'
+                        - 'psalm.xml'
             - name: Setup PHP
+              if: steps.changes.outputs.security == 'true'
               uses: shivammathur/setup-php@v2
               with:
                   php-version: '8.2'
                   tools: composer:v2
             - name: Install Composer Dependencies
+              if: steps.changes.outputs.security == 'true'
               run: composer install --prefer-dist --no-progress
             - name: Run Psalm Static Analysis
+              if: steps.changes.outputs.security == 'true'
               run: vendor/bin/psalm --no-cache
             - name: Run Trivy vulnerability scanner
+              if: steps.changes.outputs.security == 'true'
               uses: aquasecurity/trivy-action@master
               with:
                   scan-type: 'fs'
@@ -65,29 +82,55 @@ jobs:
                   ignore-unfixed: true
                   vuln-type: 'os,library'
                   severity: 'CRITICAL,HIGH'
+            - name: Skip security (no relevant changes)
+              if: steps.changes.outputs.security != 'true'
+              run: |
+                  echo "Skipping security: no relevant PHP/composer changes detected."
 
     unit-tests:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
+            - name: Detect unit-test relevant changes
+              id: changes
+              uses: dorny/paths-filter@v3
+              with:
+                  filters: |
+                      unit:
+                        - 'controllers/**'
+                        - 'lib/**'
+                        - 'tests/**'
+                        - '*.php'
+                        - 'composer.json'
+                        - 'composer.lock'
+                        - 'phpunit.xml'
             - name: Setup PHP
+              if: steps.changes.outputs.unit == 'true'
               uses: shivammathur/setup-php@v2
               with:
                   php-version: '8.2'
                   tools: composer:v2
                   coverage: pcov
             - name: Install Composer Dependencies
+              if: steps.changes.outputs.unit == 'true'
               run: composer install --prefer-dist --no-progress
             - name: Run PHPUnit with Coverage
+              if: steps.changes.outputs.unit == 'true'
               run: vendor/bin/phpunit --coverage-text --coverage-clover coverage.xml
             - name: Run Legacy PHP Tests
+              if: steps.changes.outputs.unit == 'true'
               run: npm run test:php
             - name: Upload Coverage Artifact
+              if: steps.changes.outputs.unit == 'true'
               uses: actions/upload-artifact@v4
               with:
                   name: code-coverage
                   path: coverage.xml
                   retention-days: 14
+            - name: Skip unit-tests (no relevant changes)
+              if: steps.changes.outputs.unit != 'true'
+              run: |
+                  echo "Skipping unit-tests: no relevant PHP/composer changes detected."
 
     e2e-tests:
         runs-on: ubuntu-latest

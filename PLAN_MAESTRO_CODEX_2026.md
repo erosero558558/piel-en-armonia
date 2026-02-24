@@ -105,3 +105,4 @@ Criterio de salida:
 - 2026-02-24: agregado modo de espera adaptativa en `post-deploy-gate.yml` (clasificacion de cambios via `GITHUB_EVENT_PATH`) para usar espera corta en cambios no-runtime y espera completa en cambios runtime.
 - 2026-02-24: reforzada deteccion de cambios para espera adaptativa con fallback `git diff before..after` cuando el payload del push no trae lista de archivos.
 - 2026-02-24: medicion con espera adaptativa reforzada: `Post-Deploy Gate` bajo de `3.00 min` (run `22341156450`) a `2.45 min` (run `22341273435`, delta `-0.55 min`).
+- 2026-02-24: `CI` ahora omite jobs `security` y `unit-tests` cuando no hay cambios PHP/composer/tests relevantes (via `dorny/paths-filter`), reduciendo tiempo en commits de frontend/docs/workflows sin perder cobertura en cambios backend.
