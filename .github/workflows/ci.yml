@@ -233,12 +233,35 @@ jobs:
         needs: [lint, security, unit-tests, e2e-tests]
         steps:
             - uses: actions/checkout@v4
+            - name: Detect build relevant changes
+              id: changes
+              uses: dorny/paths-filter@v3
+              with:
+                  filters: |
+                      build:
+                        - 'js/**'
+                        - 'src/**'
+                        - 'controllers/**'
+                        - 'lib/**'
+                        - '*.php'
+                        - '*.html'
+                        - '*.css'
+                        - 'rollup.config.mjs'
+                        - 'package.json'
+                        - 'package-lock.json'
+                        - 'PREPARAR-PAQUETE-DESPLIEGUE.ps1'
             - name: Build Deploy Bundle
+              if: steps.changes.outputs.build == 'true'
               shell: pwsh
               run: ./PREPARAR-PAQUETE-DESPLIEGUE.ps1
             - name: Upload Build Artifact
+              if: steps.changes.outputs.build == 'true'
               uses: actions/upload-artifact@v4
               with:
                   name: deploy-bundle
                   path: _deploy_bundle/**/*.zip
                   if-no-files-found: error
+            - name: Skip build (no relevant changes)
+              if: steps.changes.outputs.build != 'true'
+              run: |
+                  echo "Skipping build: no deploy-bundle relevant changes detected."
