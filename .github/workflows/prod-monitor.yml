@@ -21,9 +21,9 @@ on:
                 default: false
                 type: boolean
             allow_store_calendar:
-                description: 'Permitir agenda local/store en lugar de Google (solo emergencia)'
+                description: 'Permitir agenda local/store en lugar de Google (temporal hasta cutover)'
                 required: false
-                default: false
+                default: true
                 type: boolean
             allow_blocked_calendar:
                 description: 'Permitir calendarMode=blocked temporalmente'
