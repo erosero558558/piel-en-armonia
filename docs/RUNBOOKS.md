@@ -1,12 +1,12 @@
-# Runbooks Operacionales - Piel en Armonía
+﻿# Runbooks Operacionales - Piel en ArmonÃ­a
 
-Este documento detalla los procedimientos estándar para la operación, despliegue y respuesta a incidentes del sistema Piel en Armonía.
+Este documento detalla los procedimientos estÃ¡ndar para la operaciÃ³n, despliegue y respuesta a incidentes del sistema Piel en ArmonÃ­a.
 
 ## 1. Despliegue (Deployment)
 
-Para detalles técnicos profundos, ver `DESPLIEGUE-PIELARMONIA.md`.
+Para detalles tÃ©cnicos profundos, ver `DESPLIEGUE-PIELARMONIA.md`.
 
-### 1.1 Despliegue Automático (Recomendado)
+### 1.1 Despliegue AutomÃ¡tico (Recomendado)
 
 El repositorio cuenta con un flujo de GitHub Actions (`.github/workflows/deploy-hosting.yml`) que se dispara al hacer push a la rama `main`.
 
@@ -14,86 +14,113 @@ El repositorio cuenta con un flujo de GitHub Actions (`.github/workflows/deploy-
 
 1.  Realizar cambios en una rama de `feature`.
 2.  Crear Pull Request y fusionar a `main`.
-3.  Verificar la ejecución del Action en la pestaña "Actions" de GitHub.
-4.  Una vez completado (verde), ejecutar la validación post-despliegue.
+3.  Verificar la ejecuciÃ³n del Action en la pestaÃ±a "Actions" de GitHub.
+4.  Una vez completado (verde), ejecutar la validaciÃ³n post-despliegue.
 
 ### 1.2 Despliegue Manual (FTP)
 
-Si el despliegue automático falla, se puede subir manualmente.
+Si el despliegue automÃ¡tico falla, se puede subir manualmente.
 
 **Pasos:**
 
 1.  Ejecutar `npm run bundle:deploy` para generar el paquete ZIP en `_deploy_bundle/`.
-2.  Conectarse al servidor FTP (credenciales en gestor de contraseñas del equipo).
+2.  Conectarse al servidor FTP (credenciales en gestor de contraseÃ±as del equipo).
 3.  Subir el contenido del ZIP a `public_html/`.
-4.  **Importante:** No sobrescribir la carpeta `data/` si ya contiene datos de producción.
+4.  **Importante:** No sobrescribir la carpeta `data/` si ya contiene datos de producciÃ³n.
 
-### 1.3 Validación Post-Despliegue
+### 1.3 ValidaciÃ³n Post-Despliegue
 
-Después de cualquier despliegue, ejecutar el script de verificación:
+DespuÃ©s de cualquier despliegue, ejecutar el script de verificaciÃ³n:
 
 ```powershell
 .\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com"
 ```
 
-Esto verificará:
+Esto verificarÃ¡:
 
-- Estado HTTP 200 en páginas clave.
+- Estado HTTP 200 en pÃ¡ginas clave.
 - Respuesta de la API (`/health`).
-- Configuración de seguridad (Headers).
+- ConfiguraciÃ³n de seguridad (Headers).
 
+### 1.4 Cierre de Hardening (Fase 5)
+
+Para cerrar formalmente hardening y reactivar el gate estricto:
+
+1.  Verificar que CI este en verde para el commit objetivo.
+2.  Ejecutar validacion strict de hashes:
+
+```powershell
+.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -ForceAssetHashChecks
+```
+
+3.  Repetir hasta tener 3 corridas consecutivas en verde.
+4.  Si una corrida falla solo por p95 puntual (con hash + smoke en verde), tratar como pico transitorio y recomenzar el conteo de corridas consecutivas desde el siguiente OK.
+5.  Registrar evidencia (fecha/hora, p95 por endpoint y resultado) en `PLAN_MAESTRO_2026_STATUS.md`.
+6.  Actualizar el estado de fase en `PLAN_MAESTRO_OPERATIVO_2026.md`.
 ---
 
 ## 2. Respuesta a Incidentes (Emergency Response)
 
-### 2.1 Sitio Caído (HTTP 500 / Timeout)
+### 2.1 Sitio CaÃ­do (HTTP 500 / Timeout)
 
-**Síntoma:** El sitio no carga o muestra error de servidor.
+**SÃ­ntoma:** El sitio no carga o muestra error de servidor.
 
 **Acciones:**
 
-1.  **Verificar Logs:** Acceder por FTP y revisar `php.log` o `error_log` en la raíz.
+1.  **Verificar Logs:** Acceder por FTP y revisar `php.log` o `error_log` en la raÃ­z.
 2.  **Health Check:** Consultar `https://pielarmonia.com/api.php?resource=health` para ver si la API responde JSON.
-3.  **Revertir:** Si fue tras un despliegue, volver a desplegar la versión anterior (revert commit en Git y push).
+3.  **Revertir:** Si fue tras un despliegue, volver a desplegar la versiÃ³n anterior (revert commit en Git y push).
 4.  **Infraestructura:** Verificar estado del proveedor de hosting.
 
-### 2.2 Corrupción de Datos
+### 2.2 CorrupciÃ³n de Datos
 
-**Síntoma:** Datos faltantes, citas erróneas, JSON inválido en `store.json`.
+**SÃ­ntoma:** Datos faltantes, citas errÃ³neas, JSON invÃ¡lido en `store.json`.
 
 **Acciones:**
 
 1.  **Detener Escrituras:** Renombrar `api.php` temporalmente o poner el sitio en mantenimiento para evitar nuevas escrituras.
-2.  **Evaluar Daño:** Descargar `data/store.json` y validar su sintaxis JSON.
+2.  **Evaluar DaÃ±o:** Descargar `data/store.json` y validar su sintaxis JSON.
 3.  **Restaurar:** Seguir el procedimiento de **Disaster Recovery** (ver `docs/DISASTER_RECOVERY.md`).
 
 ### 2.3 Fallo en Pagos (Stripe)
 
-**Síntoma:** Usuarios reportan que no pueden pagar o citas no se confirman.
+**SÃ­ntoma:** Usuarios reportan que no pueden pagar o citas no se confirman.
 
 **Acciones:**
 
 1.  **Verificar Config:** `GET /payment-config` debe devolver `enabled: true`.
 2.  **Stripe Dashboard:** Verificar si hay errores en los logs de Stripe (API keys expiradas, webhooks fallidos).
-3.  **Logs de Auditoría:** Revisar `data/audit.log` buscando eventos `stripe.webhook_failed`.
+3.  **Logs de AuditorÃ­a:** Revisar `data/audit.log` buscando eventos `stripe.webhook_failed`.
 
 ### 2.4 Chatbot No Responde
 
-**Síntoma:** El chat se queda cargando o da error.
+**SÃ­ntoma:** El chat se queda cargando o da error.
 
 **Acciones:**
 
-1.  **Verificar Figo:** Consultar `https://pielarmonia.com/figo-chat.php`. Debe devolver diagnóstico.
+1.  **Verificar Figo:** Consultar `https://pielarmonia.com/figo-chat.php`. Debe devolver diagnÃ³stico.
 2.  **Reiniciar:** No aplica (PHP stateless), pero revisar si la variable de entorno `FIGO_CHAT_ENDPOINT` es correcta.
 
+### 2.5 Falso Negativo de Gate por Latencia p95
+
+**Sintoma:** `GATE-POSTDEPLOY.ps1 -ForceAssetHashChecks` falla por p95 alto en un endpoint (ej: `availability`), pero headers, hashes y smoke estan en verde.
+
+**Acciones:**
+
+1.  Re-ejecutar el gate strict inmediatamente para confirmar si es pico transitorio.
+2.  Si el segundo intento pasa, registrar el incidente como transitorio y continuar con corridas consecutivas.
+3.  Si falla de nuevo en el mismo endpoint:
+    - ejecutar benchmark dedicado para aislar el endpoint;
+    - verificar estado de infraestructura/hosting y saturacion de red;
+    - abrir incidente operativo y no cerrar fase.
 ---
 
 ## 3. Tareas Rutinarias (Routine Tasks)
 
 ### 3.1 Monitoreo Diario
 
-- Visitar el sitio y verificar carga rápida.
-- Verificar que `https://pielarmonia.com/api.php?resource=health` esté OK.
+- Visitar el sitio y verificar carga rÃ¡pida.
+- Verificar que `https://pielarmonia.com/api.php?resource=health` estÃ© OK.
 
 ### 3.2 Backups y Verificacion
 
@@ -127,7 +154,7 @@ curl -s "https://pielarmonia.com/cron.php?action=backup-offsite&dryRun=1" -H "Au
 
 Si no configuras endpoint remoto, `backup-offsite` replica localmente en `data/backups/offsite-local/`.
 
-Para réplica remota real:
+Para rÃ©plica remota real:
 
 - Publica `backup-receiver.php` en el servidor destino.
 - Configura `PIELARMONIA_BACKUP_RECEIVER_TOKEN` en destino.
@@ -136,7 +163,7 @@ Para réplica remota real:
   `PIELARMONIA_BACKUP_OFFSITE_TOKEN=<mismo_token>`
 - Usa `CONFIGURAR-BACKUP-OFFSITE.ps1` para generar token y comandos.
 
-### 3.3 Revisión de Auditoría
+### 3.3 RevisiÃ³n de AuditorÃ­a
 
 Revisar `data/audit.log` semanalmente en busca de:
 
@@ -148,75 +175,76 @@ Revisar `data/audit.log` semanalmente en busca de:
 
 ## 4. Monitoreo y Rendimiento
 
-Utilizar los scripts de PowerShell incluidos en el repositorio para métricas.
+Utilizar los scripts de PowerShell incluidos en el repositorio para mÃ©tricas.
 
 - **Latencia:** `.\BENCH-API-PRODUCCION.ps1` mide el tiempo de respuesta de la API.
-- **Disponibilidad:** `.\SMOKE-PRODUCCION.ps1` realiza un recorrido rápido por las URLs principales.
+- **Disponibilidad:** `.\SMOKE-PRODUCCION.ps1` realiza un recorrido rÃ¡pido por las URLs principales.
 
 ---
 
 ## 5. Procedimiento de Rollback
 
-### 5.1 Revertir Código (Deploy Fallido)
+### 5.1 Revertir CÃ³digo (Deploy Fallido)
 
-Si un despliegue introduce errores críticos (pantalla blanca, errores 500 generalizados), se debe revertir el código a la versión estable anterior.
+Si un despliegue introduce errores crÃ­ticos (pantalla blanca, errores 500 generalizados), se debe revertir el cÃ³digo a la versiÃ³n estable anterior.
 
-**Método A: Revertir vía GitHub (Recomendado)**
+**MÃ©todo A: Revertir vÃ­a GitHub (Recomendado)**
 
-1.  Identificar el commit problemático en la historia de `main`.
+1.  Identificar el commit problemÃ¡tico en la historia de `main`.
 2.  Crear un revert commit:
     ```bash
     git revert <commit-hash>
     git push origin main
     ```
-3.  Esto disparará automáticamente el workflow de despliegue (`deploy-hosting.yml`).
-4.  Monitorear la pestaña "Actions" en GitHub hasta que el deploy finalice (verde).
+3.  Esto dispararÃ¡ automÃ¡ticamente el workflow de despliegue (`deploy-hosting.yml`).
+4.  Monitorear la pestaÃ±a "Actions" en GitHub hasta que el deploy finalice (verde).
 
-**Método B: Revertir Manual (Emergencia)**
+**MÃ©todo B: Revertir Manual (Emergencia)**
 Si GitHub Actions no funciona:
 
 1.  Localizar el backup local o checkout del commit anterior.
-2.  Subir manualmente los archivos PHP/JS/HTML vía FTP/SFTP (ver sección 1.2).
+2.  Subir manualmente los archivos PHP/JS/HTML vÃ­a FTP/SFTP (ver secciÃ³n 1.2).
     - **NO** sobrescribir la carpeta `data/`.
     - **NO** subir `env.php` si no ha cambiado.
 
-### 5.2 Restauración de Base de Datos (Rollback de Datos)
+### 5.2 RestauraciÃ³n de Base de Datos (Rollback de Datos)
 
-Si el despliegue corrompió `store.json` o borró datos:
+Si el despliegue corrompiÃ³ `store.json` o borrÃ³ datos:
 
-**Punto de Restauración:**
-El sistema genera backups automáticos en `data/backups/` antes de cada escritura.
+**Punto de RestauraciÃ³n:**
+El sistema genera backups automÃ¡ticos en `data/backups/` antes de cada escritura.
 
 **Pasos:**
 
 1.  Acceder por SFTP a `data/backups/`.
 2.  Localizar el archivo `store-YYYYMMDD-HHMMSS-XXXXXX.json` con fecha/hora justo antes del incidente.
-3.  Descargar y verificar que el JSON es válido.
+3.  Descargar y verificar que el JSON es vÃ¡lido.
 4.  Renombrar `data/store.json` a `data/store.json.corrupt` (como evidencia).
 5.  Subir el backup seleccionado como `data/store.json`.
 6.  Verificar permisos (664 o 644).
 
 ### 5.3 Contactos de Emergencia
 
-En caso de incidentes críticos que no se pueden resolver con rollback:
+En caso de incidentes crÃ­ticos que no se pueden resolver con rollback:
 
-- **Líder Técnico:** [Nombre/Teléfono - Ver Gestor de Contraseñas]
+- **LÃ­der TÃ©cnico:** [Nombre/TelÃ©fono - Ver Gestor de ContraseÃ±as]
 - **Hosting Support:** [Link/Ticket]
 - **Stripe Support:** [Link]
 
-### 5.4 Checklist de Validación Post-Rollback
+### 5.4 Checklist de ValidaciÃ³n Post-Rollback
 
 Una vez revertido el cambio, ejecutar las siguientes validaciones:
 
 1.  **Smoke Test:**
-    - [ ] La página de inicio carga sin errores visuales.
+    - [ ] La pÃ¡gina de inicio carga sin errores visuales.
     - [ ] `/api.php?resource=health` devuelve `{"status":"ok", ...}`.
-    - [ ] `/api.php?resource=features` devuelve la configuración correcta.
+    - [ ] `/api.php?resource=features` devuelve la configuraciÃ³n correcta.
 
-2.  **Flujos Críticos:**
+2.  **Flujos CrÃ­ticos:**
     - [ ] El widget de reserva muestra horarios disponibles.
     - [ ] El formulario de "Telemedicina" carga correctamente.
-    - [ ] Iniciar sesión en `/admin.html` (si aplica).
+    - [ ] Iniciar sesiÃ³n en `/admin.html` (si aplica).
 
 3.  **Logs:**
     - [ ] Verificar que no hay nuevos errores fatales en `php.log` o `error_log`.
+
