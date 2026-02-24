@@ -33,7 +33,22 @@ function getEmptyFunnelMetrics() {
         eventSourceBreakdown: [],
         paymentMethodBreakdown: [],
         bookingStepBreakdown: [],
-        errorCodeBreakdown: []
+        errorCodeBreakdown: [],
+        retention: {
+            appointmentsTotal: 0,
+            appointmentsNonCancelled: 0,
+            statusCounts: {
+                confirmed: 0,
+                completed: 0,
+                noShow: 0,
+                cancelled: 0
+            },
+            noShowRatePct: 0,
+            completionRatePct: 0,
+            uniquePatients: 0,
+            recurrentPatients: 0,
+            recurrenceRatePct: 0
+        }
     };
 }
 

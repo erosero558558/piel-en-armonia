@@ -2449,6 +2449,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const initDeferredWarmups = createOnceTask(() => {
             initHighPriorityWarmups();
             initLowPriorityWarmups();
+            initBookingUiWarmup();
         });
 
         window.addEventListener('pointerdown', initDeferredWarmups, {
