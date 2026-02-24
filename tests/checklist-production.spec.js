@@ -6,6 +6,13 @@ const { skipIfPhpRuntimeMissing } = require('./helpers/php-backend');
 
 const ADMIN_PASSWORD = process.env.PIELARMONIA_ADMIN_PASSWORD || 'admin123';
 
+function toLocalDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 test.describe('Checklist de Pruebas en Producción', () => {
     test.beforeAll(async () => {
         // Clear rate limit directory to avoid 429 errors during testing
@@ -161,37 +168,52 @@ test.describe('Checklist de Pruebas en Producción', () => {
     test('3. Cita Pública - Carga de formulario', async ({ page }) => {
         await page.goto('/index.html');
 
-        // Verificar elementos clave
-        await expect(page.locator('#appointmentForm')).toBeVisible();
-        await expect(page.locator('select[name="service"]')).toBeVisible();
-        await expect(page.locator('input[name="date"]')).toBeVisible();
+        const appointmentForm = page.locator('#appointmentForm');
+        await expect(appointmentForm).toBeVisible({ timeout: 15000 });
+
+        const serviceSelect = page
+            .locator('#serviceSelect, select[name="service"]')
+            .first();
+        const dateInput = page
+            .locator('#dateInput, input[name="date"]')
+            .first();
+        await expect(serviceSelect).toBeVisible();
+        await expect(dateInput).toBeVisible();
     });
 
     test('3. Cita Pública - Flujo básico (mock)', async ({ page }) => {
         await page.goto('/index.html');
 
+        const appointmentForm = page.locator('#appointmentForm');
+        await expect(appointmentForm).toBeVisible({ timeout: 15000 });
+
         // Llenar formulario
-        await page.selectOption('select[name="service"]', { index: 1 }); // Seleccionar el primer servicio disponible (índice 1 porque 0 suele ser placeholder)
+        const serviceSelect = page
+            .locator('#serviceSelect, select[name="service"]')
+            .first();
+        await serviceSelect.selectOption({ index: 1 });
 
         // Seleccionar doctor si existe el campo y es visible
-        const doctorSelect = page.locator('select[name="doctor"]');
+        const doctorSelect = page
+            .locator('#doctorSelect, select[name="doctor"]')
+            .first();
         if (await doctorSelect.isVisible()) {
             await doctorSelect.selectOption({ index: 1 });
         }
 
         // Fecha futura
-        const dateInput = page.locator('input[name="date"]');
+        const dateInput = page.locator('#dateInput, input[name="date"]').first();
         const futureDate = new Date();
         futureDate.setDate(futureDate.getDate() + 2); // 2 días en el futuro
-        await dateInput.fill(futureDate.toISOString().split('T')[0]);
+        await dateInput.fill(toLocalDateKey(futureDate));
         await dateInput.dispatchEvent('change');
 
         // Esperar horarios
         // Esto puede variar según la implementación (select o botones)
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(1500);
 
         // Intentar seleccionar hora si aparece un select de hora
-        const timeSelect = page.locator('select[name="time"]');
+        const timeSelect = page.locator('#timeSelect, select[name="time"]').first();
         if (await timeSelect.isVisible()) {
             // Seleccionar primera opción válida
             const options = await timeSelect.locator('option').all();
@@ -201,12 +223,14 @@ test.describe('Checklist de Pruebas en Producción', () => {
         }
 
         // Llenar datos personales
-        await page.fill('input[name="name"]', 'Test Automático');
-        await page.fill('input[name="email"]', 'test@example.com');
-        await page.fill('input[name="phone"]', '0991234567');
+        await appointmentForm.locator('input[name="name"]').fill('Test Automático');
+        await appointmentForm
+            .locator('input[name="email"]')
+            .fill('test@example.com');
+        await appointmentForm.locator('input[name="phone"]').fill('0991234567');
 
         // Checkbox privacidad
-        const privacy = page.locator('input[name="privacyConsent"]');
+        const privacy = appointmentForm.locator('input[name="privacyConsent"]');
         if (await privacy.isVisible()) {
             await privacy.check();
         }

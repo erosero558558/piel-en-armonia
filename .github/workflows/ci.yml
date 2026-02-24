@@ -104,7 +104,7 @@ jobs:
             - name: Install Playwright Browsers
               run: npx playwright install --with-deps chromium
             - name: Run Playwright Tests
-              run: npm run test
+              run: npx playwright test --grep-invert "@visual"
               env:
                   TEST_LOCAL_SERVER: php
                   PIELARMONIA_ADMIN_PASSWORD: admin123

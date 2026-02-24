@@ -97,8 +97,16 @@ function isSlotUnavailableError(error) {
     );
 }
 
+function getTodayDateKey() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 function buildChatDateInput() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateKey();
     return `<input type="date" id="chatDateInput" min="${today}" data-action="chat-date-select" class="chat-date-input">`;
 }
 
@@ -296,7 +304,7 @@ async function processChatBookingStep(userInput) {
                 doctor: doctor.key,
             });
 
-            const today = new Date().toISOString().split('T')[0];
+            const today = getTodayDateKey();
             let msg = `${t('Doctor', 'Doctor')}: <strong>${escapeHtml(doctor.label)}</strong><br><br>`;
             msg += t(
                 '<strong>Paso 3/7:</strong> ¿Que fecha prefieres?<br><br>',
@@ -366,8 +374,7 @@ async function processChatBookingStep(userInput) {
                     availability[input].length > 0
                         ? availability[input]
                         : [];
-                const isToday =
-                    input === new Date().toISOString().split('T')[0];
+                const isToday = input === getTodayDateKey();
                 const nowMinutes = isToday
                     ? new Date().getHours() * 60 + new Date().getMinutes()
                     : -1;
@@ -395,7 +402,7 @@ async function processChatBookingStep(userInput) {
                             'No hay horarios disponibles para esa fecha. Por favor elige otra.<br><br>',
                             'No times are available for that date. Please choose another one.<br><br>'
                         ) +
-                            `<input type="date" id="chatDateInput" min="${new Date().toISOString().split('T')[0]}" data-action="chat-date-select" class="chat-date-input">`
+                            `<input type="date" id="chatDateInput" min="${getTodayDateKey()}" data-action="chat-date-select" class="chat-date-input">`
                     );
                     chatBooking.step = 'date';
                     return true;

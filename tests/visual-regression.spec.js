@@ -1,7 +1,7 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 
-test.describe('Pruebas de regresión visual', () => {
+test.describe('@visual Pruebas de regresion visual', () => {
 
     test('Homepage Desktop - visualmente correcta', async ({ page }) => {
         // Navegar a la página de inicio

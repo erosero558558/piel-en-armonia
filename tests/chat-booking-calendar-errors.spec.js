@@ -3,6 +3,13 @@ const { test, expect } = require('@playwright/test');
 
 test.use({ serviceWorkers: 'block' });
 
+function toLocalDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 function jsonResponse(route, payload, status = 200) {
     return route.fulfill({
         status,
@@ -14,7 +21,7 @@ function jsonResponse(route, payload, status = 200) {
 function nextDate(daysAhead = 4) {
     const date = new Date();
     date.setDate(date.getDate() + daysAhead);
-    return date.toISOString().split('T')[0];
+    return toLocalDateKey(date);
 }
 
 async function mockApiWithAppointmentError(page, errorCode, statusCode, message) {
@@ -209,15 +216,18 @@ async function completeChatBookingUntilCashSelection(page, dateValue) {
         .click();
 
     await sendChatText(page, 'Paciente Test Agenda Real');
+    await expect(page.locator('#chatMessages')).toContainText(/email/i);
     await sendChatText(page, 'agenda-real-test@example.com');
+    await expect(page.locator('#chatMessages')).toContainText(/telefono|phone/i);
     await sendChatText(page, '+593987654321');
 
-    await page
+    const cashButton = page
         .locator(
             '#chatMessages button[data-action="chat-booking"][data-value="efectivo"]'
         )
-        .last()
-        .click();
+        .last();
+    await expect(cashButton).toBeVisible({ timeout: 10000 });
+    await cashButton.click();
 
     return { beforeErrorDateInputCount };
 }

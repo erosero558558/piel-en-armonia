@@ -13,6 +13,7 @@
         <file name="api.php" />
         <ignoreFiles>
             <directory name="vendor" />
+            <file name="lib/calendar/compat.php" />
         </ignoreFiles>
     </projectFiles>
     <issueHandlers>

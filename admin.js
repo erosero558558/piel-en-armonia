@@ -1094,7 +1094,7 @@ function loadAppointmentsModule() {
     return import('./js/admin-chunks/appointments-ScVXm-lJ.js');
 }
 function loadAvailabilityModule() {
-    return import('./js/admin-chunks/availability-AXgzYhjZ.js');
+    return import('./js/admin-chunks/availability-WMIJLNyU.js');
 }
 
 async function renderSection(section) {

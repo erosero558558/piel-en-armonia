@@ -1,11 +1,4 @@
-import {
-    currentAvailability,
-    currentAvailabilityMeta,
-    setAvailability,
-    setAvailabilityMeta,
-} from './state.js';
-import { apiRequest } from './api.js';
-import { escapeHtml, showToast } from './ui.js';
+import { s as showToast, k as currentAvailability, a as apiRequest, m as currentAvailabilityMeta, n as setAvailability, o as setAvailabilityMeta, h as escapeHtml } from '../../admin.js';
 
 let selectedDate = null;
 let currentMonth = new Date();
@@ -222,7 +215,7 @@ async function refreshAvailabilitySnapshot() {
     }
 }
 
-export function renderAvailabilityCalendar() {
+function renderAvailabilityCalendar() {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const firstDay = new Date(year, month, 1).getDay();
@@ -284,7 +277,7 @@ export function renderAvailabilityCalendar() {
     }
 }
 
-export async function initAvailabilityCalendar() {
+async function initAvailabilityCalendar() {
     await refreshAvailabilitySnapshot();
     renderAvailabilityCalendar();
     if (!selectedDate) {
@@ -292,7 +285,7 @@ export async function initAvailabilityCalendar() {
     }
 }
 
-export function changeMonth(delta) {
+function changeMonth(delta) {
     currentMonth.setMonth(currentMonth.getMonth() + delta);
     renderAvailabilityCalendar();
 }
@@ -356,7 +349,7 @@ async function saveAvailability() {
     });
 }
 
-export async function addTimeSlot() {
+async function addTimeSlot() {
     if (availabilityReadOnly) {
         showToast('Disponibilidad en solo lectura: gestionala desde Google Calendar.', 'warning');
         return;
@@ -392,7 +385,7 @@ export async function addTimeSlot() {
     }
 }
 
-export async function removeTimeSlot(dateStr, time) {
+async function removeTimeSlot(dateStr, time) {
     if (availabilityReadOnly) {
         showToast('Disponibilidad en solo lectura: gestionala desde Google Calendar.', 'warning');
         return;
@@ -407,3 +400,5 @@ export async function removeTimeSlot(dateStr, time) {
         showToast(`No se pudo eliminar el horario: ${error.message}`, 'error');
     }
 }
+
+export { addTimeSlot, changeMonth, initAvailabilityCalendar, removeTimeSlot, renderAvailabilityCalendar };
