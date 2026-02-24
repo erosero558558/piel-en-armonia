@@ -658,16 +658,19 @@ function main() {
     writeMaybe(flags['write-md'], markdown);
 
     const format = String(flags.format || 'markdown').toLowerCase();
-    if (format === 'json') {
-        process.stdout.write(jsonText);
-        return;
-    }
     if (format === 'markdown' || format === 'md') {
         process.stdout.write(markdown);
-        return;
+    } else if (format === 'json') {
+        process.stdout.write(jsonText);
+    } else {
+        throw new Error(`Formato no soportado: ${format}`);
     }
-
-    throw new Error(`Formato no soportado: ${format}`);
+    if (flags.strict && report.overall.ok === false) {
+        process.exitCode = 1;
+    }
+    if (flags['fail-on-red'] && String(report.overall.signal) === 'RED') {
+        process.exitCode = 1;
+    }
 }
 
 try {

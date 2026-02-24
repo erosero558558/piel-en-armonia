@@ -385,3 +385,47 @@ test('agent-governance-summary soporta --profile ci y persiste metrics runtime',
         true
     );
 });
+
+test('agent-governance-summary soporta --strict y --fail-on-red con politicas distintas', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+    writeFixtureFilesWithChatFailure(dir);
+
+    const verificationDir = join(dir, 'verification');
+    require('fs').mkdirSync(verificationDir, { recursive: true });
+    writeFileSync(
+        join(verificationDir, 'agent-domain-health-history.json'),
+        `${JSON.stringify(
+            {
+                version: 1,
+                updated_at: '2026-02-23T10:00:00Z',
+                snapshots: [
+                    {
+                        date: '2026-02-23',
+                        captured_at: '2026-02-23T10:00:00Z',
+                        counts_by_signal: { GREEN: 3, YELLOW: 0, RED: 0 },
+                        domains: [
+                            { domain: 'calendar', signal: 'GREEN' },
+                            { domain: 'chat', signal: 'GREEN' },
+                            { domain: 'payments', signal: 'GREEN' },
+                        ],
+                    },
+                ],
+            },
+            null,
+            2
+        )}\n`,
+        'utf8'
+    );
+
+    let result = runSummary(dir, ['--format', 'json', '--strict']);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    let parsed = JSON.parse(result.stdout);
+    assert.equal(parsed.overall.ok, true);
+    assert.equal(parsed.overall.signal, 'RED');
+
+    result = runSummary(dir, ['--format', 'json', '--fail-on-red']);
+    assert.equal(result.status, 1, result.stderr || result.stdout);
+    parsed = JSON.parse(result.stdout);
+    assert.equal(parsed.overall.signal, 'RED');
+});
