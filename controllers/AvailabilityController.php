@@ -89,10 +89,10 @@ class AvailabilityController
     {
         // POST /availability
         $availabilityService = CalendarAvailabilityService::fromEnv();
-        if ($availabilityService->isGoogleActive()) {
+        if ($availabilityService->isGoogleActive() || $availabilityService->isGoogleRequired()) {
             json_response([
                 'ok' => false,
-                'error' => 'La disponibilidad es de solo lectura porque usa Google Calendar',
+                'error' => 'La disponibilidad es de solo lectura porque esta configurada para agenda real con Google Calendar',
                 'code' => 'availability_read_only',
             ], 403);
         }

@@ -26,6 +26,32 @@ class CalendarBookingService
         return $this->availabilityService->isGoogleActive();
     }
 
+    public function isGoogleRequired(): bool
+    {
+        return $this->availabilityService->isGoogleRequired();
+    }
+
+    public function isGoogleRequirementMet(): bool
+    {
+        return $this->availabilityService->isGoogleRequirementMet();
+    }
+
+    public function ensureGoogleRequirement(string $doctor = 'indiferente', string $service = 'consulta'): array
+    {
+        if ($this->isGoogleRequirementMet()) {
+            return ['ok' => true];
+        }
+
+        $blocked = $this->availabilityService->googleRequiredBlockedResult($doctor, $service);
+        return [
+            'ok' => false,
+            'status' => (int) ($blocked['status'] ?? 503),
+            'code' => (string) ($blocked['code'] ?? 'calendar_unreachable'),
+            'error' => (string) ($blocked['error'] ?? 'Agenda temporalmente no disponible'),
+            'meta' => isset($blocked['meta']) && is_array($blocked['meta']) ? $blocked['meta'] : [],
+        ];
+    }
+
     public function ensureSlotAvailable(array $store, string $date, string $time, string $doctor, string $service): array
     {
         $check = $this->availabilityService->isSlotAvailable($store, $date, $time, $doctor, $service, true);

@@ -6,6 +6,7 @@ class CalendarAvailabilityService
 {
     private GoogleCalendarClient $client;
     private string $source;
+    private bool $requireGoogle;
     private bool $blockOnFailure;
     private string $timezone;
     private int $slotStepMin;
@@ -15,6 +16,7 @@ class CalendarAvailabilityService
     public function __construct(
         GoogleCalendarClient $client,
         string $source,
+        bool $requireGoogle,
         bool $blockOnFailure,
         string $timezone,
         int $slotStepMin,
@@ -23,6 +25,7 @@ class CalendarAvailabilityService
     ) {
         $this->client = $client;
         $this->source = $source;
+        $this->requireGoogle = $requireGoogle;
         $this->blockOnFailure = $blockOnFailure;
         $this->timezone = $timezone !== '' ? $timezone : 'America/Guayaquil';
         $this->slotStepMin = max(15, min(60, $slotStepMin));
@@ -37,6 +40,7 @@ class CalendarAvailabilityService
             $source = 'store';
         }
 
+        $requireGoogle = self::parseBool((string) (getenv('PIELARMONIA_REQUIRE_GOOGLE_CALENDAR') ?: 'false'));
         $blockOnFailure = self::parseBool((string) (getenv('PIELARMONIA_CALENDAR_BLOCK_ON_FAILURE') ?: 'true'));
         $timezone = (string) (getenv('PIELARMONIA_CALENDAR_TIMEZONE') ?: 'America/Guayaquil');
         $slotStepMin = (int) (getenv('PIELARMONIA_CALENDAR_SLOT_STEP_MIN') ?: 30);
@@ -47,6 +51,7 @@ class CalendarAvailabilityService
         return new self(
             GoogleCalendarClient::fromEnv(),
             $source,
+            $requireGoogle,
             $blockOnFailure,
             $timezone,
             $slotStepMin,
@@ -63,6 +68,16 @@ class CalendarAvailabilityService
     public function getBlockOnFailure(): bool
     {
         return $this->blockOnFailure;
+    }
+
+    public function isGoogleRequired(): bool
+    {
+        return $this->requireGoogle;
+    }
+
+    public function isGoogleRequirementMet(): bool
+    {
+        return !$this->requireGoogle || $this->isGoogleActive();
     }
 
     public function getDurationMin(string $service): int
@@ -127,6 +142,10 @@ class CalendarAvailabilityService
         $template = $this->buildTemplateSlots($store, $dateFrom, $days);
         $durationFilteredTemplate = $this->applyDurationFilterToTemplate($template, $durationMin);
         if (!$this->isGoogleActive()) {
+            if ($this->isGoogleRequired()) {
+                $this->recordModeMetric('store', 'blocked');
+                return $this->buildGoogleRequiredBlockedResult($doctor, $service, $durationMin, $meta);
+            }
             $this->recordModeMetric('store', 'live');
             return [
                 'ok' => true,
@@ -237,6 +256,10 @@ class CalendarAvailabilityService
         $slotLookup = array_fill_keys($slots, true);
 
         if (!$this->isGoogleActive()) {
+            if ($this->isGoogleRequired()) {
+                $this->recordModeMetric('store', 'blocked');
+                return $this->buildGoogleRequiredBlockedResult($doctor, $service, $durationMin, $meta);
+            }
             $this->recordModeMetric('store', 'live');
             return [
                 'ok' => true,
@@ -359,6 +382,21 @@ class CalendarAvailabilityService
         return $this->client;
     }
 
+    public function googleRequiredBlockedResult(string $doctor, string $service): array
+    {
+        $doctor = strtolower(trim($doctor));
+        if (!in_array($doctor, ['rosero', 'narvaez', 'indiferente'], true)) {
+            $doctor = 'indiferente';
+        }
+        $service = strtolower(trim($service));
+        if ($service === '') {
+            $service = 'consulta';
+        }
+        $durationMin = $this->getDurationMin($service);
+        $meta = $this->buildMeta($doctor, $service, $durationMin, 'store', 'blocked');
+        return $this->buildGoogleRequiredBlockedResult($doctor, $service, $durationMin, $meta);
+    }
+
     private function buildMeta(string $doctor, string $service, int $durationMin, string $source, string $mode): array
     {
         return [
@@ -378,6 +416,28 @@ class CalendarAvailabilityService
             'source' => $source,
             'mode' => $mode,
         ]);
+    }
+
+    private function buildGoogleRequiredBlockedResult(
+        string $doctor,
+        string $service,
+        int $durationMin,
+        array $baseMeta
+    ): array {
+        return [
+            'ok' => false,
+            'status' => 503,
+            'code' => 'calendar_unreachable',
+            'error' => 'La agenda real de Google Calendar es obligatoria y no esta activa',
+            'meta' => array_merge($baseMeta, [
+                'source' => 'store',
+                'mode' => 'blocked',
+                'doctor' => $doctor,
+                'service' => $service,
+                'durationMin' => $durationMin,
+                'requiredGoogle' => true,
+            ]),
+        ];
     }
 
     private static function parseBool(string $raw): bool

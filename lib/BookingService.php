@@ -57,6 +57,16 @@ class BookingService
             return ['ok' => false, 'error' => 'Doctor invalido', 'code' => 400];
         }
 
+        $googleRequirement = $calendarBooking->ensureGoogleRequirement($requestedDoctor, $appointment['service']);
+        if (($googleRequirement['ok'] ?? false) !== true) {
+            return [
+                'ok' => false,
+                'error' => (string) ($googleRequirement['error'] ?? 'La agenda real no esta disponible'),
+                'code' => (int) ($googleRequirement['status'] ?? 503),
+                'errorCode' => (string) ($googleRequirement['code'] ?? 'calendar_unreachable'),
+            ];
+        }
+
         $effectiveDoctor = $requestedDoctor;
         if ($requestedDoctor === 'indiferente') {
             $assigned = $calendarBooking->assignDoctorForIndiferente(
@@ -295,6 +305,16 @@ class BookingService
             }
             if ($doctor === '') {
                 $doctor = 'indiferente';
+            }
+
+            $googleRequirement = $calendarBooking->ensureGoogleRequirement($doctor, $service);
+            if (($googleRequirement['ok'] ?? false) !== true) {
+                return [
+                    'ok' => false,
+                    'error' => (string) ($googleRequirement['error'] ?? 'La agenda real no esta disponible'),
+                    'code' => (int) ($googleRequirement['status'] ?? 503),
+                    'errorCode' => (string) ($googleRequirement['code'] ?? 'calendar_unreachable'),
+                ];
             }
 
             if ($doctor === 'indiferente') {

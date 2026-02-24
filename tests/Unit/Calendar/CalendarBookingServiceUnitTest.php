@@ -29,6 +29,7 @@ class CalendarBookingServiceUnitTest extends TestCase
 
         $this->rememberAndSetEnv('PIELARMONIA_DATA_DIR', $this->tempDir);
         $this->rememberAndSetEnv('PIELARMONIA_AVAILABILITY_SOURCE', 'store');
+        $this->rememberAndSetEnv('PIELARMONIA_REQUIRE_GOOGLE_CALENDAR', 'false');
         $this->rememberAndSetEnv('PIELARMONIA_CALENDAR_SLOT_STEP_MIN', '30');
         $this->rememberAndSetEnv('PIELARMONIA_SERVICE_DURATION_MAP', 'consulta:30,telefono:30,video:30,acne:30,cancer:30,laser:60,rejuvenecimiento:60');
     }
@@ -111,6 +112,35 @@ class CalendarBookingServiceUnitTest extends TestCase
         $resultFor60 = $availability->getBookedSlots($store, $date, 'rosero', 'laser');
         $this->assertTrue($resultFor60['ok']);
         $this->assertSame(['09:00', '09:30', '10:30'], $resultFor60['data']);
+    }
+
+    public function testGoogleRequirementBlocksStoreSource(): void
+    {
+        $this->rememberAndSetEnv('PIELARMONIA_REQUIRE_GOOGLE_CALENDAR', 'true');
+        $availability = \CalendarAvailabilityService::fromEnv();
+        $date = date('Y-m-d', strtotime('+2 day'));
+
+        $store = [
+            'appointments' => [],
+            'callbacks' => [],
+            'reviews' => [],
+            'availability' => [
+                $date => ['09:00', '09:30', '10:00'],
+            ],
+        ];
+
+        $result = $availability->getAvailability($store, [
+            'doctor' => 'indiferente',
+            'service' => 'consulta',
+            'dateFrom' => $date,
+            'days' => 1,
+        ]);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame(503, $result['status']);
+        $this->assertSame('calendar_unreachable', $result['code']);
+        $this->assertSame('blocked', $result['meta']['mode'] ?? '');
+        $this->assertTrue((bool) ($result['meta']['requiredGoogle'] ?? false));
     }
 
     public function testIndiferenteAssignsDoctorWithLeastLoad(): void

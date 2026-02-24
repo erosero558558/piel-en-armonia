@@ -134,6 +134,9 @@
 // -- Agenda Real (Google Calendar) --------------------------------------------
 // Fuente de agenda: "store" (local) o "google" (agenda real).
 // putenv('PIELARMONIA_AVAILABILITY_SOURCE=google');
+// Endurecimiento opcional: exigir Google Calendar activo. Si esta en true y la
+// fuente no es google, se bloquean availability/booked-slots/reserva/reprogramacion.
+// putenv('PIELARMONIA_REQUIRE_GOOGLE_CALENDAR=false');
 // Si Google falla: bloquear reservas/slots (true recomendado para evitar sobreventa).
 // putenv('PIELARMONIA_CALENDAR_BLOCK_ON_FAILURE=true');
 // Modo de autenticacion Google Calendar:

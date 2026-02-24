@@ -62,6 +62,7 @@ class BookingServiceUnitTest extends TestCase
     protected function setUp(): void
     {
         putenv('PIELARMONIA_AVAILABILITY_SOURCE=store');
+        putenv('PIELARMONIA_REQUIRE_GOOGLE_CALENDAR=false');
         $this->service = new BookingService();
         $this->emptyStore = [
             'appointments' => [],
@@ -74,6 +75,7 @@ class BookingServiceUnitTest extends TestCase
     protected function tearDown(): void
     {
         putenv('PIELARMONIA_AVAILABILITY_SOURCE');
+        putenv('PIELARMONIA_REQUIRE_GOOGLE_CALENDAR');
     }
 
     public function testCreateSuccess(): void
@@ -242,5 +244,32 @@ class BookingServiceUnitTest extends TestCase
             'No hay agenda disponible para la fecha seleccionada',
             $result['error']
         );
+    }
+
+    public function testCreateFailsWhenGoogleIsRequiredButSourceIsStore(): void
+    {
+        putenv('PIELARMONIA_REQUIRE_GOOGLE_CALENDAR=true');
+
+        $futureDate = date('Y-m-d', strtotime('+1 day'));
+        $store = $this->emptyStore;
+        $store['availability'][$futureDate] = ['10:00'];
+
+        $payload = [
+            'name' => 'John Doe',
+            'email' => 'john@example.com',
+            'phone' => '0991234567',
+            'date' => $futureDate,
+            'time' => '10:00',
+            'doctor' => 'rosero',
+            'service' => 'consulta',
+            'privacyConsent' => true,
+            'paymentMethod' => 'cash'
+        ];
+
+        $result = $this->service->create($store, $payload);
+
+        $this->assertFalse($result['ok']);
+        $this->assertEquals(503, $result['code']);
+        $this->assertEquals('calendar_unreachable', $result['errorCode']);
     }
 }

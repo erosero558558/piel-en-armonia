@@ -11,6 +11,8 @@ class AdminDataController
         $availabilityService = CalendarAvailabilityService::fromEnv();
         $calendarClient = $availabilityService->getClient();
         $calendarActive = $availabilityService->isGoogleActive();
+        $calendarRequired = $availabilityService->isGoogleRequired();
+        $calendarRequirementMet = $availabilityService->isGoogleRequirementMet();
         $calendarConfigured = $calendarActive ? $calendarClient->isConfigured() : true;
         $maskedCalendars = $availabilityService->getDoctorCalendarMapMasked();
         $rawCalendars = $calendarClient->getDoctorCalendarMap();
@@ -20,12 +22,14 @@ class AdminDataController
         $calendarLastErrorReason = (string) ($calendarStatus['lastErrorReason'] ?? '');
         $calendarReachable = self::resolveCalendarReachable(
             $calendarActive,
+            $calendarRequired,
             $calendarConfigured,
             $calendarLastSuccessAt,
             $calendarLastErrorAt
         );
         $calendarMode = self::resolveCalendarMode(
             $calendarActive,
+            $calendarRequired,
             $availabilityService->getBlockOnFailure(),
             $calendarReachable
         );
@@ -33,6 +37,7 @@ class AdminDataController
         $calendarTokenSnapshot = GoogleTokenProvider::readStatusSnapshot();
         $calendarTokenHealthy = self::resolveCalendarTokenHealthy(
             $calendarActive,
+            $calendarRequired,
             $calendarConfigured,
             $calendarAuth,
             $calendarTokenSnapshot
@@ -53,6 +58,8 @@ class AdminDataController
             'mode' => $calendarMode,
             'timezone' => $calendarClient->getTimezone(),
             'calendarAuth' => $calendarAuth,
+            'calendarRequired' => $calendarRequired,
+            'calendarRequirementMet' => $calendarRequirementMet,
             'calendarTokenHealthy' => $calendarTokenHealthy,
             'calendarConfigured' => $calendarConfigured,
             'calendarReachable' => $calendarReachable,
@@ -90,12 +97,13 @@ class AdminDataController
 
     private static function resolveCalendarReachable(
         bool $calendarActive,
+        bool $calendarRequired,
         bool $calendarConfigured,
         string $lastSuccessAt,
         string $lastErrorAt
     ): bool {
         if (!$calendarActive) {
-            return true;
+            return !$calendarRequired;
         }
         if (!$calendarConfigured) {
             return false;
@@ -112,10 +120,15 @@ class AdminDataController
         return !self::timestampGreater($lastErrorAt, $lastSuccessAt);
     }
 
-    private static function resolveCalendarMode(bool $calendarActive, bool $blockOnFailure, bool $calendarReachable): string
+    private static function resolveCalendarMode(
+        bool $calendarActive,
+        bool $calendarRequired,
+        bool $blockOnFailure,
+        bool $calendarReachable
+    ): string
     {
         if (!$calendarActive) {
-            return 'live';
+            return $calendarRequired ? 'blocked' : 'live';
         }
         if ($blockOnFailure && !$calendarReachable) {
             return 'blocked';
@@ -125,12 +138,13 @@ class AdminDataController
 
     private static function resolveCalendarTokenHealthy(
         bool $calendarActive,
+        bool $calendarRequired,
         bool $calendarConfigured,
         string $calendarAuth,
         array $tokenSnapshot
     ): bool {
         if (!$calendarActive) {
-            return true;
+            return !$calendarRequired;
         }
         if (!$calendarConfigured) {
             return false;

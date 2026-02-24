@@ -19,6 +19,8 @@ class HealthController
         $figoRecursive = self::is_figo_recursive_config($figoEndpoint);
         $calendarService = CalendarAvailabilityService::fromEnv();
         $calendarActive = $calendarService->isGoogleActive();
+        $calendarRequired = $calendarService->isGoogleRequired();
+        $calendarRequirementMet = $calendarService->isGoogleRequirementMet();
         $calendarClientConfigured = $calendarActive
             ? $calendarService->getClient()->isConfigured()
             : true;
@@ -28,12 +30,14 @@ class HealthController
         $calendarLastErrorReason = (string) ($calendarStatusSnapshot['lastErrorReason'] ?? '');
         $calendarReachable = self::resolveCalendarReachable(
             $calendarActive,
+            $calendarRequired,
             $calendarClientConfigured,
             $calendarLastSuccessAt,
             $calendarLastErrorAt
         );
         $calendarMode = self::resolveCalendarMode(
             $calendarActive,
+            $calendarRequired,
             $calendarService->getBlockOnFailure(),
             $calendarReachable
         );
@@ -42,6 +46,7 @@ class HealthController
         $calendarTokenSnapshot = GoogleTokenProvider::readStatusSnapshot();
         $calendarTokenHealthy = self::resolveCalendarTokenHealthy(
             $calendarActive,
+            $calendarRequired,
             $calendarClientConfigured,
             $calendarAuth,
             $calendarTokenSnapshot
@@ -105,6 +110,8 @@ class HealthController
             'calendarReachable' => $calendarReachable,
             'calendarMode' => $calendarMode,
             'calendarSource' => $calendarSource,
+            'calendarRequired' => $calendarRequired,
+            'calendarRequirementMet' => $calendarRequirementMet,
             'calendarLastSuccessAt' => $calendarLastSuccessAt,
             'calendarLastErrorAt' => $calendarLastErrorAt,
             'calendarLastErrorReason' => $calendarLastErrorReason,
@@ -126,6 +133,8 @@ class HealthController
             'calendarMode' => $calendarMode,
             'calendarSource' => $calendarSource,
             'calendarAuth' => $calendarAuth,
+            'calendarRequired' => $calendarRequired,
+            'calendarRequirementMet' => $calendarRequirementMet,
             'calendarTokenHealthy' => $calendarTokenHealthy,
             'calendarLastSuccessAt' => $calendarLastSuccessAt,
             'calendarLastErrorAt' => $calendarLastErrorAt,
@@ -145,6 +154,8 @@ class HealthController
                     'calendarMode' => $calendarMode,
                     'calendarSource' => $calendarSource,
                     'calendarAuth' => $calendarAuth,
+                    'calendarRequired' => $calendarRequired,
+                    'calendarRequirementMet' => $calendarRequirementMet,
                     'calendarTokenHealthy' => $calendarTokenHealthy,
                     'calendarLastSuccessAt' => $calendarLastSuccessAt,
                     'calendarLastErrorAt' => $calendarLastErrorAt,
@@ -159,12 +170,13 @@ class HealthController
 
     private static function resolveCalendarReachable(
         bool $calendarActive,
+        bool $calendarRequired,
         bool $calendarConfigured,
         string $lastSuccessAt,
         string $lastErrorAt
     ): bool {
         if (!$calendarActive) {
-            return true;
+            return !$calendarRequired;
         }
         if (!$calendarConfigured) {
             return false;
@@ -181,10 +193,15 @@ class HealthController
         return !self::timestampGreater($lastErrorAt, $lastSuccessAt);
     }
 
-    private static function resolveCalendarMode(bool $calendarActive, bool $blockOnFailure, bool $calendarReachable): string
+    private static function resolveCalendarMode(
+        bool $calendarActive,
+        bool $calendarRequired,
+        bool $blockOnFailure,
+        bool $calendarReachable
+    ): string
     {
         if (!$calendarActive) {
-            return 'live';
+            return $calendarRequired ? 'blocked' : 'live';
         }
         if ($blockOnFailure && !$calendarReachable) {
             return 'blocked';
@@ -194,12 +211,13 @@ class HealthController
 
     private static function resolveCalendarTokenHealthy(
         bool $calendarActive,
+        bool $calendarRequired,
         bool $calendarConfigured,
         string $calendarAuth,
         array $tokenSnapshot
     ): bool {
         if (!$calendarActive) {
-            return true;
+            return !$calendarRequired;
         }
         if (!$calendarConfigured) {
             return false;
