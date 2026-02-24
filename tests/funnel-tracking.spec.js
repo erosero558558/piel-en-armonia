@@ -120,14 +120,30 @@ async function dismissCookieBannerIfVisible(page) {
 async function getTrackedEvents(page) {
     return page.evaluate(() => {
         const dl = Array.isArray(window.dataLayer) ? window.dataLayer : [];
-        return dl
-            .filter(
-                (item) =>
-                    item &&
-                    typeof item === 'object' &&
-                    typeof item.event === 'string'
-            )
-            .map((item) => ({ ...item }));
+        const events = [];
+        dl.forEach((item) => {
+            // Handle plain object push: { event: 'name', ...params }
+            if (item && typeof item === 'object' && typeof item.event === 'string') {
+                events.push({ ...item });
+                return;
+            }
+            // Handle gtag style push: ['event', 'name', { ...params }]
+            // Arguments objects are array-like but not Arrays, so check length and index access
+            if (
+                item &&
+                typeof item === 'object' &&
+                item.length >= 2 &&
+                item[0] === 'event' &&
+                typeof item[1] === 'string'
+            ) {
+                const params = item[2] && typeof item[2] === 'object' ? item[2] : {};
+                events.push({
+                    event: item[1],
+                    ...params,
+                });
+            }
+        });
+        return events;
     });
 }
 
