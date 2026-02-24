@@ -209,6 +209,24 @@ Ejemplo recomendado de `data/figo-config.json`:
 - (Recomendado) `curl -s "https://pielarmonia.com/cron.php?action=backup-health" -H "Authorization: Bearer YOUR_CRON_SECRET"`
 - (Recomendado) `curl -s "https://pielarmonia.com/cron.php?action=backup-offsite&dryRun=1" -H "X-Cron-Token: YOUR_CRON_SECRET"`
 
+11. Cron de sync Git (evitar borrar `vendor/`):
+
+- Si usas sync por cron en servidor, evita `git clean -fd` sin exclusiones.
+- Comando recomendado:
+
+```bash
+* * * * * flock -n /tmp/pielarmonia-sync.lock bash -lc '
+cd /var/www/figo &&
+git fetch --prune origin &&
+git checkout -f main &&
+git reset --hard origin/main &&
+git clean -fd -e vendor/ -e data/ -e uploads/ -e env.php -e .env -e "*.log" &&
+if [ ! -f vendor/autoload.php ]; then
+  composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+fi
+' >> /var/log/pielarmonia-gitsync.log 2>&1
+```
+
 10. Replica remota real (opcional):
 
 - Publica `backup-receiver.php` en servidor destino.

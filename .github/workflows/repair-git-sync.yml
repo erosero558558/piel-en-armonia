@@ -142,7 +142,21 @@ jobs:
                       git -C "$TARGET_REPO" fetch --prune origin
                       git -C "$TARGET_REPO" checkout -f "$BRANCH"
                       git -C "$TARGET_REPO" reset --hard "origin/$BRANCH"
-                      git -C "$TARGET_REPO" clean -fd
+                      git -C "$TARGET_REPO" clean -fd \
+                        -e vendor/ \
+                        -e data/ \
+                        -e uploads/ \
+                        -e env.php \
+                        -e .env \
+                        -e '*.log'
+                      if [ ! -f "$TARGET_REPO/vendor/autoload.php" ]; then
+                        if command -v composer >/dev/null 2>&1; then
+                          echo "vendor/autoload.php ausente: ejecutando composer install..."
+                          composer -d "$TARGET_REPO" install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+                        else
+                          echo "WARN: composer no disponible y vendor/autoload.php ausente."
+                        fi
+                      fi
                       echo "HEAD remoto sincronizado:"
                       git -C "$TARGET_REPO" rev-parse --short HEAD
                       git -C "$TARGET_REPO" log -1 --format="%h %ci %s"
