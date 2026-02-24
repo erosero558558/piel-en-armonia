@@ -21,6 +21,9 @@ Dominio: https://pielarmonia.com
 - CI run `22335616088` (commit `7858f76`): `success`.
 - Post-Deploy Gate run `22335616092` (commit `7858f76`): `success`.
 - Deploy Hosting (Canary) run `22335659553` (commit `7858f76`): `success`.
+- CI run `22335963604` (commit `e7298ac`): `success`.
+- Post-Deploy Gate run `22335963619` (commit `e7298ac`): `success`.
+- Deploy Hosting (Canary) run `22336009664` (commit `e7298ac`): `success`.
 - Hardening workflows: override manual `require_google_calendar` habilitado en `Post-Deploy Gate` y `Production Monitor`.
 - Estado general: En curso. CI desbloqueado y pipeline activo tras fix de calendar runtime.
 - Chatbot: Operativo en Trinity/OpenRouter (cola OpenClaw deshabilitada por decision de producto).
