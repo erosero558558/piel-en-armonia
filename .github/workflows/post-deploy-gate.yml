@@ -110,6 +110,10 @@ jobs:
             ENVIRONMENT_NAME: ${{ vars.ENVIRONMENT_NAME || 'PROD' }}
             REQUIRE_GOOGLE_CALENDAR: ${{ github.event.inputs.require_google_calendar || vars.REQUIRE_GOOGLE_CALENDAR || 'false' }}
             REQUIRE_GOOGLE_CALENDAR_EFFECTIVE: ${{ github.event.inputs.require_google_calendar || vars.REQUIRE_GOOGLE_CALENDAR || 'false' }}
+            RUN_FIGO_CONTRACT: ${{ vars.RUN_FIGO_CONTRACT || 'true' }}
+            TEST_FIGO_CHAT_LATENCY: ${{ vars.TEST_FIGO_CHAT_LATENCY || 'false' }}
+            TEST_FIGO_CHAT_LATENCY_SAMPLES: ${{ vars.TEST_FIGO_CHAT_LATENCY_SAMPLES || '6' }}
+            TEST_FIGO_CHAT_LATENCY_P95_MS: ${{ vars.TEST_FIGO_CHAT_LATENCY_P95_MS || '2500' }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -227,6 +231,16 @@ jobs:
                   TEST_REQUIRE_GOOGLE_CALENDAR: ${{ env.REQUIRE_GOOGLE_CALENDAR_EFFECTIVE }}
               run: npm run test:calendar-contract
 
+            - name: Validar contrato Figo Chat (sin fallback silencioso)
+              if: ${{ steps.gate.outcome == 'success' && env.RUN_FIGO_CONTRACT == 'true' }}
+              shell: pwsh
+              env:
+                  TEST_BASE_URL: ${{ env.TARGET_DOMAIN }}
+                  TEST_FIGO_CHAT_LATENCY: ${{ env.TEST_FIGO_CHAT_LATENCY }}
+                  TEST_FIGO_CHAT_LATENCY_SAMPLES: ${{ env.TEST_FIGO_CHAT_LATENCY_SAMPLES }}
+                  TEST_FIGO_CHAT_LATENCY_P95_MS: ${{ env.TEST_FIGO_CHAT_LATENCY_P95_MS }}
+              run: npm run test:figo-contract
+
             - name: Resumen
               if: ${{ always() }}
               shell: pwsh
@@ -244,8 +258,11 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input skip figo-post bench: ``$env:SKIP_FIGO_POST_BENCH_INPUT``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Require Google calendar (input/vars): ``$env:REQUIRE_GOOGLE_CALENDAR``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Require Google calendar (effective): ``$env:REQUIRE_GOOGLE_CALENDAR_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Contrato figo-chat habilitado: ``$env:RUN_FIGO_CONTRACT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Figo latency benchmark: ``$env:TEST_FIGO_CHAT_LATENCY`` (samples ``$env:TEST_FIGO_CHAT_LATENCY_SAMPLES``, p95 ``$env:TEST_FIGO_CHAT_LATENCY_P95_MS`` ms)"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Resultado: ``${{ steps.gate.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Contrato calendario: ejecutado con ``npm run test:calendar-contract``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Contrato figo-chat: ``npm run test:figo-contract``"
 
             - name: Publicar reporte de verificacion
               if: ${{ always() }}
