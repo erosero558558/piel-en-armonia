@@ -39,7 +39,7 @@ Criterio de salida:
 - [x] Sin trabajo paralelo fuera de este documento.
 
 ## Fase 1 - Agenda real Google (OAuth refresh token)
-Estado: `COMPLETED`
+Estado: `IN_PROGRESS`
 Entregables:
 - [x] `availability` y `booked-slots` con `doctor + service + meta`.
 - [x] Bloqueo con `503 calendar_unreachable` cuando falla Google y `block_on_failure=true`.
@@ -48,11 +48,13 @@ Entregables:
 - [x] Lock por slot con compensacion de calendario.
 - [x] Soporte env `PIELARMONIA_CALENDAR_AUTH_MODE=oauth_refresh_token`.
 - [x] `health` expone `calendarTokenHealthy`.
+- [ ] Cutover productivo activo (`health.calendarSource=google` y `health.calendarAuth=oauth_refresh`).
 
 Criterio de salida:
 - [x] `npm run test:calendar-contract` en verde.
 - [x] `npm run test:calendar-write` en verde contra produccion controlada.
 - [x] Verificacion manual: cita web + reprogramacion visibles en ambos calendarios.
+- [ ] `TEST_REQUIRE_GOOGLE_CALENDAR=true npm run test:calendar-contract` en verde contra produccion.
 
 ## Fase 2 - Consistencia web/chat/reprogramacion
 Estado: `PENDING`
@@ -91,11 +93,11 @@ Criterio de salida:
 - [ ] Smoke de assets sin 404 en componentes esperados.
 
 ## Fase 5 - Cierre hardening y vuelta a hash estricto
-Estado: `IN_PROGRESS`
+Estado: `COMPLETED`
 Entregables:
 - [x] Eliminar drift de hashes local/remoto.
 - [x] Reactivar hash gate bloqueante.
-- [ ] Playbook de incidentes actualizado.
+- [x] Playbook de incidentes actualizado.
 
 Criterio de salida:
 - [x] `npm run gate:prod` en verde en 3 corridas consecutivas (validado con corridas strict manuales 2026-02-23 21:59, 22:00 y 22:02 hora local servidor).

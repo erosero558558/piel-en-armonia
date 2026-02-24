@@ -12,6 +12,8 @@ Dominio: https://pielarmonia.com
 - Post-Deploy Gate run `22334259617` (push a main): `success`.
 - CI run `22334594766` (commit `916adde`): `success`.
 - Post-Deploy Gate run `22334594761` (commit `916adde`): `cancelled` por concurrencia del workflow.
+- CI run `22334952338` (commit `e1a243d`): `success`.
+- Post-Deploy Gate run `22334952341` (commit `e1a243d`): `success`.
 - Estado general: En curso. CI desbloqueado y pipeline activo tras fix de calendar runtime.
 - Chatbot: Operativo en Trinity/OpenRouter (cola OpenClaw deshabilitada por decision de producto).
 - Agenda real: implementada en codigo, pero produccion hoy reporta `calendarSource=store` y `calendarAuth=none`.
@@ -143,10 +145,10 @@ Dominio: https://pielarmonia.com
 - admin.js code split: 71KB -> 49.7KB (bajo target <50KB). Chunks bajo demanda: appointments + availability.
 - script.js: 111KB -> 79.3KB (-29%). TARGET <80KB ALCANZADO. Commits: 842ee92, d3cde08.
 
-6. Fase 5 - Hardening final y hash gate estricto: En cierre operativo.
+6. Fase 5 - Hardening final y hash gate estricto: Completada.
 - 3 corridas hash estrictas consecutivas en verde (post-incidente transitorio).
 - Workflow principal (`post-deploy-gate.yml`) con hashes bloqueantes en eventos `push`.
-- Pendiente documental: actualizar playbook de incidentes para marcar cierre formal de fase.
+- Playbook de incidentes actualizado (`docs/RUNBOOKS.md`, secciones 1.4 y 2.5).
 
 ## Nudos reales pendientes (sin ruido)
 
@@ -198,6 +200,5 @@ Dominio: https://pielarmonia.com
 1. Completar cutover de Google Calendar en servidor (`calendarSource=google`, `calendarAuth=oauth_refresh`).
 2. Cambiar variables de control a modo estricto: `REQUIRE_GOOGLE_CALENDAR=true` y `PROD_MONITOR_ALLOW_STORE_CALENDAR=false`.
 3. Re-ejecutar: `TEST_REQUIRE_GOOGLE_CALENDAR=true npm run test:calendar-contract`.
-4. Actualizar playbook de incidentes para cerrar formalmente Fase 5.
-5. Confirmar primer evento en Sentry dashboard (Sentry ya activo en produccion).
-6. Mantener monitoreo semanal de p95 `availability` para detectar picos transitorios.
+4. Confirmar primer evento en Sentry dashboard (Sentry ya activo en produccion).
+5. Mantener monitoreo semanal de p95 `availability` para detectar picos transitorios.
