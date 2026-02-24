@@ -2,15 +2,18 @@
 
 > Nota de gobernanza (2026-02-24): este documento se mantiene como snapshot historico; la fuente unica de control operativo es `PLAN_MAESTRO_OPERATIVO_2026.md`.
 
-Fecha de actualizacion: 2026-02-23 (sesion Claude noche)
+Fecha de actualizacion: 2026-02-24 (sesion Codex post-fix compat)
 Dominio: https://pielarmonia.com
 
 ## Resumen rapido
 
-- Estado general: En curso. CI bloqueado por cambios PHP de Codex (ver Nudo 8).
+- Actualizacion 2026-02-24 (post-fix compat calendar): CI y Post-Deploy Gate en verde para commit `c4beac8`.
+- CI run `22334259615` (push a main): `success`.
+- Post-Deploy Gate run `22334259617` (push a main): `success`.
+- Estado general: En curso. CI desbloqueado y pipeline activo tras fix de calendar runtime.
 - Chatbot: Operativo en Trinity/OpenRouter (cola OpenClaw deshabilitada por decision de producto).
 - Agenda real: Flujo create/reschedule/cancel validado contra Google Calendar en produccion.
-- Gate de produccion: Hash-strict falla por deploy pendiente de script.js nuevo (esperado hasta que CI pase).
+- Gate de produccion: push gate en verde; pendiente corrida hash-strict manual para cierre operativo de Fase 5.
 - Smoke: 19/19 OK. Latencias: figo-post p95=582ms, core p95=553ms. Error rate=0.
 - Umbral operativo `figo-post` endurecido a p95 <= `2500 ms` en gate/benchmark/workflow.
 - Gate hash estricto: validado en 3 corridas consecutivas (pre code-split).
@@ -118,11 +121,11 @@ Dominio: https://pielarmonia.com
 - Chunks lazy: shell (15.2KB al primer uso del chat) + content-loader (7.2KB prefetch paralelo).
 - HTML actualizado a type="module". Pipeline Rollup en formato ES con code splitting.
 - asset-reference-integrity test cubre chunks via regex extendida (b0b45a1).
-- PENDIENTE DEPLOY: script.js nuevo aun no en produccion (CI bloqueado, ver Nudo 8).
+- DEPLOY EN VALIDACION: CI/Gate ya verdes post-fix; pendiente confirmacion final de hash estricto y version de assets en host.
 
 6. Cobertura de tests: ~5-35% actual vs 80% objetivo.
 - Jules (Google AI) trabajando en scaffolding de tests (BookingServiceTest, RateLimiterTest, AuthSessionTest).
-- PR de Jules ya en main pero genera fallas CI: CalendarBookingService/CalendarAvailabilityService no encontradas en namespace Tests\Unit\Calendar (conflicto con compat.php de Codex).
+- Nota: el bloqueo CI por `compat.php` quedo resuelto en commit `c4beac8`; mantener seguimiento de cobertura y calidad de tests nuevos.
 
 7. Monitoring/observabilidad: Sentry ACTIVO en produccion.
 - DSN backend (PHP) y DSN frontend (JS) configurados en env del servidor.
@@ -130,17 +133,14 @@ Dominio: https://pielarmonia.com
 - SDK carga lazy via monitoring-loader.js (async, no bloquea render).
 - Pendiente: confirmar primer evento recibido en dashboard de Sentry.
 
-8. CI bloqueado por cambios PHP de Codex (NUEVO - bloquea deploy).
-- Psalm: DuplicateClass en CalendarAvailabilityService, CalendarBookingService, GoogleCalendarClient, GoogleTokenProvider (definidas en archivos originales Y en lib/calendar/compat.php).
-- Psalm: RedundantFunctionCall en lib/PushService.php:32 y :51.
-- PHPUnit: 5 errores - clases del namespace Tests\Unit\Calendar no encontradas (interaccion Jules PR + compat.php).
-- Impacto: deploy-hosting.yml se salta porque CI no pasa. Remote script.js es el viejo IIFE (111KB).
-- Accion requerida: Codex debe resolver conflicto de definicion de clases en compat.php.
+8. Incidente CI por calendar compat (RESUELTO 2026-02-24).
+- Accion aplicada: eliminacion de `lib/calendar/compat.php`, runtime nativo estricto y alineacion de test unitario de calendario.
+- Evidencia: CI run `22334259615` = `success`; Post-Deploy Gate run `22334259617` = `success`.
+- Seguimiento: ejecutar `gate:prod:hash-strict` manual para cerrar Fase 5 con criterio estricto de hashes.
 
 ## Siguiente ejecucion recomendada
 
-1. PRIORITARIO: Codex debe resolver DuplicateClass en lib/calendar/compat.php para desbloquear CI y pipeline de deploy.
-2. Una vez CI verde: deploy automatico sube script.js nuevo (ES module, 79.3KB) + chunks a produccion.
-3. Post-deploy: correr `npm run gate:prod:hash-strict` para validar hashes.
-4. Confirmar primer evento en Sentry dashboard (Sentry ya activo en produccion).
-5. Reporte semanal ejecutado: booking_confirmed=1, error_rate=0, figo-post p95=582ms. Verde.
+1. Ejecutar validacion hash estricta manual: `npm run gate:prod:hash-strict` (workflow_dispatch con `force_asset_hash_checks=true`).
+2. Confirmar despliegue del `script.js` ES module y chunks asociados en produccion.
+3. Confirmar primer evento en Sentry dashboard (Sentry ya activo en produccion).
+4. Reporte semanal ejecutado: booking_confirmed=1, error_rate=0, figo-post p95=582ms. Verde.
