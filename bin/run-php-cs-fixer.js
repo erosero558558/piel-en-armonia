@@ -106,6 +106,52 @@ function resolvePhpBinary() {
     return { ok: false, command: null, tried };
 }
 
+function hasOption(argv, names) {
+    const wanted = new Set(names);
+    for (let i = 0; i < argv.length; i++) {
+        const token = String(argv[i] || '');
+        for (const name of wanted) {
+            if (token === name || token.startsWith(`${name}=`)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function findPhpCsFixerConfig() {
+    const candidates = ['.php-cs-fixer.php', '.php-cs-fixer.dist.php'];
+    for (const file of candidates) {
+        const full = resolve(root, file);
+        if (existsSync(full)) {
+            return file;
+        }
+    }
+    return null;
+}
+
+function buildPhpCsFixerArgs(argv) {
+    if (String(argv[0] || '').trim() !== 'fix') {
+        return argv.slice();
+    }
+
+    const out = [argv[0]];
+    const rest = argv.slice(1);
+
+    if (!hasOption(rest, ['--config', '-c'])) {
+        const configFile = findPhpCsFixerConfig();
+        if (configFile) {
+            out.push(`--config=${configFile}`);
+        }
+    }
+
+    if (!hasOption(rest, ['--path-mode'])) {
+        out.push('--path-mode=intersection');
+    }
+
+    return [...out, ...rest];
+}
+
 if (args.length === 0) {
     fail('Uso: node bin/run-php-cs-fixer.js <args...>');
 }
@@ -124,7 +170,8 @@ if (!phpRuntime.ok || !phpRuntime.command) {
     );
 }
 
-const result = run(phpRuntime.command, [fixerPath, ...args]);
+const fixerArgs = buildPhpCsFixerArgs(args);
+const result = run(phpRuntime.command, [fixerPath, ...fixerArgs]);
 if (result.error) {
     fail(`no se pudo ejecutar php-cs-fixer: ${result.error.message}`);
 }
