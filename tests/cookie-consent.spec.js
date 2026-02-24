@@ -69,7 +69,7 @@ test.describe('Consentimiento de cookies', () => {
         await expect(banner).toBeHidden();
     });
 
-    test('GA4 no se carga sin consentimiento', async ({ page }) => {
+    test('GA4 se carga sin consentimiento (Consent Mode v2)', async ({ page }) => {
         const banner = page.locator('#cookieBanner');
         await expect(banner).toBeVisible({ timeout: 10000 });
         // Rechazar cookies
@@ -77,8 +77,9 @@ test.describe('Consentimiento de cookies', () => {
         await rejectBtn.click({ force: true });
         await page.waitForTimeout(1000);
 
+        // Consent Mode v2 loads GTM with denied signals instead of blocking it
         const ga4Loaded = await page.evaluate(() => !!window._ga4Loaded);
-        expect(ga4Loaded).toBe(false);
+        expect(ga4Loaded).toBe(true);
     });
 
     test('GA4 se carga al aceptar cookies', async ({ page }) => {
