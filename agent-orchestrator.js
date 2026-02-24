@@ -14,7 +14,7 @@
  *   node agent-orchestrator.js task <claim|start|finish> <AG-ID> [...]
  *   node agent-orchestrator.js sync
  *   node agent-orchestrator.js close <task_id> [--evidence path]
- *   node agent-orchestrator.js metrics [--json] [--profile local|ci] [--write|--no-write]
+ *   node agent-orchestrator.js metrics [--json] [--profile local|ci] [--write|--no-write] [--dry-run]
  */
 
 const { readFileSync, writeFileSync, existsSync, mkdirSync } = require('fs');
@@ -1749,6 +1749,7 @@ function cmdMetrics(args = []) {
         .toLowerCase();
     const hasNoWriteFlag = args.includes('--no-write');
     const hasWriteFlag = args.includes('--write');
+    const hasDryRunFlag = args.includes('--dry-run');
 
     if (profile && !['local', 'ci'].includes(profile)) {
         throw new Error(
@@ -1760,12 +1761,16 @@ function cmdMetrics(args = []) {
             'metrics: no usar --write y --no-write al mismo tiempo'
         );
     }
+    if (hasDryRunFlag && hasWriteFlag) {
+        throw new Error('metrics: --dry-run no se puede combinar con --write');
+    }
 
     let noWrite = false;
     if (profile === 'local') noWrite = true;
     if (profile === 'ci') noWrite = false;
     if (hasNoWriteFlag) noWrite = true;
     if (hasWriteFlag) noWrite = false;
+    if (hasDryRunFlag) noWrite = true;
     const board = parseBoard();
     const handoffData = parseHandoffs();
     const conflictAnalysis = analyzeConflicts(
@@ -1844,6 +1849,12 @@ function cmdMetrics(args = []) {
                       100
               );
 
+    const outputFiles = [
+        'verification/agent-metrics.json',
+        'verification/agent-contribution-history.json',
+        'verification/agent-domain-health-history.json',
+    ];
+
     const metrics = {
         version: 1,
         period: {
@@ -1902,8 +1913,14 @@ function cmdMetrics(args = []) {
         io: {
             profile: profile || 'default',
             no_write: noWrite,
-            write_mode: noWrite ? 'no-write' : 'write',
-            persisted: !noWrite,
+            dry_run: hasDryRunFlag,
+            write_mode: hasDryRunFlag
+                ? 'dry-run'
+                : noWrite
+                  ? 'no-write'
+                  : 'write',
+            persisted: !noWrite && !hasDryRunFlag,
+            output_files: outputFiles,
         },
         delta: {
             tasks_total: total - safeNumber(baseline.tasks_total, total),
@@ -1939,6 +1956,16 @@ function cmdMetrics(args = []) {
     }
     if (wantsJson) {
         console.log(JSON.stringify(metrics, null, 2));
+        return;
+    }
+    if (hasDryRunFlag) {
+        console.log(
+            `Metricas calculadas (dry-run, profile=${profile || 'default'}).`
+        );
+        console.log('Archivos de salida (preview):');
+        for (const file of outputFiles) {
+            console.log(`- ${file}`);
+        }
         return;
     }
     if (noWrite) {

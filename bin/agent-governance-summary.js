@@ -629,13 +629,20 @@ function main() {
         throw new Error(`No existe orchestrator: ${ORCHESTRATOR}`);
     }
 
+    const metricsProfile = String(flags.profile || 'local')
+        .trim()
+        .toLowerCase();
+    if (!['local', 'ci'].includes(metricsProfile)) {
+        throw new Error(`--profile invalido (${metricsProfile}). Use local|ci`);
+    }
+
     const commands = {
         status: ['status', '--json'],
         conflicts: ['conflicts', '--json'],
         handoffsStatus: ['handoffs', 'status', '--json'],
         handoffsLint: ['handoffs', 'lint', '--json'],
         codexCheck: ['codex-check', '--json'],
-        metrics: ['metrics', '--json', '--profile', 'local'],
+        metrics: ['metrics', '--json', '--profile', metricsProfile],
     };
 
     const results = {};

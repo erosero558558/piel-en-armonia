@@ -677,6 +677,36 @@ test('metrics soporta --profile local|ci y override --write', (t) => {
     );
 });
 
+test('metrics --dry-run muestra preview de archivos y no persiste runtime', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForConflictFixture({ codexStatus: 'in_progress' }),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithCodexBlock({ status: 'in_progress' }),
+    });
+
+    const result = runCli(dir, ['metrics', '--dry-run']);
+    assert.match(result.stdout, /Metricas calculadas \(dry-run/);
+    assert.match(result.stdout, /Archivos de salida \(preview\):/);
+    assert.match(result.stdout, /verification\/agent-metrics\.json/);
+    assert.match(
+        result.stdout,
+        /verification\/agent-contribution-history\.json/
+    );
+    assert.match(
+        result.stdout,
+        /verification\/agent-domain-health-history\.json/
+    );
+    assert.equal(
+        require('fs').existsSync(
+            join(dir, 'verification', 'agent-metrics.json')
+        ),
+        false
+    );
+});
+
 test('status --json expone porcentajes de aporte por agente y ranking', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));

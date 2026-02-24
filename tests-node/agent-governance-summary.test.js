@@ -364,3 +364,24 @@ test('agent-governance-summary alerta regresion de dominio GREEN->RED en PR summ
     assert.match(md, /Alertas de Regresion de Dominio/);
     assert.match(md, /`chat`: `GREEN` -> `RED`/);
 });
+
+test('agent-governance-summary soporta --profile ci y persiste metrics runtime', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+    writeFixtureFiles(dir);
+
+    const result = runSummary(dir, ['--format', 'json', '--profile', 'ci']);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const parsed = JSON.parse(result.stdout);
+
+    assert.match(
+        parsed.commands.metrics.command,
+        /metrics --json --profile ci/
+    );
+    assert.equal(parsed.metrics?.io?.profile, 'ci');
+    assert.equal(parsed.metrics?.io?.persisted, true);
+    assert.equal(
+        existsSync(join(dir, 'verification', 'agent-metrics.json')),
+        true
+    );
+});
