@@ -85,12 +85,12 @@ tasks:
     title: Add editorconfig and normalize line-end policy
     owner: ernesto
     executor: kimi
-    status: ready
+    status: done
     risk: low
     scope: tooling
     files: [".editorconfig", ".gitattributes"]
     acceptance: "Normalizar reglas de indentacion y EOL sin tocar codigo de aplicacion."
-    acceptance_ref: ""
+    acceptance_ref: ".editorconfig,.gitattributes"
     depends_on: []
     prompt: "Crear/ajustar .editorconfig y .gitattributes para estandarizar indentacion y finales de linea."
     created_at: 2026-02-24

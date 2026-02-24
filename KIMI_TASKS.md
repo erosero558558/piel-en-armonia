@@ -45,12 +45,12 @@ Auditar js/engines y generar docs/dead-code-audit.md sin tocar logica de JS.
 <!-- /TASK -->
 
 <!-- TASK
-status: pending
+status: done
 task_id: AG-006
 risk: low
 scope: tooling
 files: .editorconfig,.gitattributes
-acceptance_ref: verification/agent-runs/AG-006.md
+acceptance_ref: .editorconfig,.gitattributes
 dispatched_by: agent-orchestrator
 -->
 ### Add editorconfig and normalize line-end policy

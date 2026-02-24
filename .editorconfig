@@ -16,3 +16,6 @@ indent_size = 2
 
 [*.{js,mjs,cjs,css,html,php}]
 indent_size = 4
+
+[*.{bat,cmd}]
+end_of_line = crlf

@@ -20,6 +20,8 @@
 *.ps1 text eol=lf
 *.psm1 text eol=lf
 *.psd1 text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
 
 # Binary assets
 *.png binary
