@@ -4,14 +4,6 @@ Inicio: 2026-02-24
 Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
-<!-- CODEX_ACTIVE
-block: C1
-task_id: CDX-001
-status: in_progress
-files: ["AGENTS.md", "AGENT_BOARD.yaml", "AGENT_HANDOFFS.yaml", "PLAN_MAESTRO_CODEX_2026.md", "agent-orchestrator.js", "bin/validate-agent-governance.php", ".github/workflows/agent-governance.yml"]
-updated_at: 2026-02-24
--->
-
 ## Proposito
 
 - Blindar confiabilidad de reserva/chat/reprogramacion.

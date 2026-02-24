@@ -130,7 +130,7 @@ tasks:
     title: "Codex governance coexistence guardrails (C4 support)"
     owner: ernesto
     executor: codex
-    status: in_progress
+    status: done
     risk: medium
     scope: codex-governance
     files: ["AGENTS.md", "AGENT_BOARD.yaml", "AGENT_HANDOFFS.yaml", "PLAN_MAESTRO_CODEX_2026.md", "agent-orchestrator.js", "bin/validate-agent-governance.php", ".github/workflows/agent-governance.yml"]
