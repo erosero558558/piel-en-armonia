@@ -2192,8 +2192,12 @@ function initGalleryInteractionsWarmup() {
 }
 
 // Chat shell cargado bajo demanda (code splitting)
+let chatShellPromise = null;
 function loadChatShell() {
-    return import('./js/chunks/shell-C8roVGfp.js');
+    if (!chatShellPromise) {
+        chatShellPromise = import('./js/chunks/shell-C8roVGfp.js');
+    }
+    return chatShellPromise;
 }
 // content-loader.js prefetch: empieza a descargar al instante (antes de DOMContentLoaded)
 // para que cuando se necesite en el handler ya este en cache.
@@ -2293,7 +2297,9 @@ function initBookingCalendarLazyInit() {
                 cacheKey: 'booking-utils-calendar',
                 src: BOOKING_UTILS_URL,
                 scriptDataAttribute: 'data-booking-utils',
-                resolveModule: () => window.PielBookingCalendarEngine
+                resolveModule: () =>
+                    window.PielBookingCalendarEngine ||
+                    (window.Piel && window.Piel.BookingCalendarEngine),
             }).then(function (moduleRef) {
                 if (moduleRef && typeof moduleRef.initCalendar === 'function') {
                     moduleRef.initCalendar();
@@ -2443,7 +2449,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const initDeferredWarmups = createOnceTask(() => {
             initHighPriorityWarmups();
             initLowPriorityWarmups();
-            initBookingUiWarmup();
         });
 
         window.addEventListener('pointerdown', initDeferredWarmups, {
@@ -2528,9 +2533,14 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // Legacy: Gallery Lazy Loading
-(function() {
+(function () {
+    const lazyImages = document.querySelectorAll('.gallery-img[data-src]');
+    if (!lazyImages.length) {
+        return;
+    }
+
     const galleryObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
+        entries.forEach((entry) => {
             if (entry.isIntersecting) {
                 const img = entry.target;
                 const src = img.dataset.src;
@@ -2545,7 +2555,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }, { rootMargin: '200px' });
 
-    document.querySelectorAll('.gallery-img[data-src]').forEach(img => {
+    lazyImages.forEach((img) => {
         galleryObserver.observe(img);
     });
 })();
@@ -2573,40 +2583,5 @@ window.subscribeToPushNotifications = async function() {
     } catch (error) {
     }
 };
-
-// Booking Calendar Lazy Init
-(function () {
-
-    function wireBookingCalendarLazyLoad(element) {
-        if (!element) {
-            return;
-        }
-
-        element.addEventListener('click', function () {
-            const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
-            loadDeferredModule({
-                cacheKey: 'booking-utils-calendar',
-                src: BOOKING_UTILS_URL,
-                scriptDataAttribute: 'data-booking-utils',
-                resolveModule: () => window.Piel && window.Piel.BookingCalendarEngine
-            }).then(function (moduleRef) {
-                if (moduleRef && typeof moduleRef.initCalendar === 'function') {
-                    moduleRef.initCalendar();
-                }
-            }).catch(function () {
-                // noop
-            });
-        });
-    }
-
-    const bookingBtn = document.getElementById('booking-btn');
-    wireBookingCalendarLazyLoad(bookingBtn);
-
-    document.querySelectorAll('a[href="#citas"]').forEach(function (button) {
-        if (button.id !== 'booking-btn') {
-            wireBookingCalendarLazyLoad(button);
-        }
-    });
-})();
 
 export { setCheckoutStep as A, startCheckoutSession as B, CLINIC_MAP_URL as C, DOCTOR_CAROLINA_EMAIL as D, getBookedSlots as E, loadAvailabilityData as F, scheduleDeferredTask as a, bindWarmupTarget as b, createWarmupRunner as c, setChatbotOpen as d, withDeployAssetVersion as e, DOCTOR_CAROLINA_PHONE as f, getChatbotOpen as g, CLINIC_ADDRESS as h, setChatHistory as i, getChatHistory as j, getCurrentAppointment as k, loadDeferredModule as l, setConversationContext as m, getConversationContext as n, debugLog as o, state as p, setCurrentAppointment as q, runDeferredModule as r, showToast as s, trackEvent as t, getCurrentLang as u, openPaymentModal as v, withDeferredModule as w, getCaptchaToken as x, createAppointmentRecord as y, completeCheckoutSession as z };
