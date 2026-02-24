@@ -95,6 +95,7 @@ jobs:
         env:
             TARGET_DOMAIN: ${{ github.event.inputs.domain || vars.TARGET_DOMAIN || 'https://pielarmonia.com' }}
             BENCH_RUNS: ${{ github.event.inputs.bench_runs || vars.BENCH_RUNS || '25' }}
+            BENCH_RUNS_LIGHT: ${{ vars.BENCH_RUNS_LIGHT || '10' }}
             WAIT_SECONDS: ${{ github.event.inputs.wait_seconds || vars.WAIT_SECONDS || '90' }}
             WAIT_SECONDS_LIGHT: ${{ vars.WAIT_SECONDS_LIGHT || '30' }}
             ASSET_HASH_RETRY_COUNT: ${{ github.event.inputs.asset_hash_retry_count || vars.ASSET_HASH_RETRY_COUNT || '2' }}
@@ -117,6 +118,7 @@ jobs:
             TEST_FIGO_CHAT_LATENCY_P95_MS: ${{ vars.TEST_FIGO_CHAT_LATENCY_P95_MS || '2500' }}
             POSTDEPLOY_CHANGE_CLASS: runtime
             POSTDEPLOY_EFFECTIVE_WAIT_SECONDS: '0'
+            BENCH_RUNS_EFFECTIVE: '0'
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -225,6 +227,13 @@ jobs:
               run: |
                   $benchRuns = [int]$env:BENCH_RUNS
                   if ($benchRuns -lt 10) { $benchRuns = 10 }
+                  $benchRunsLight = [int]$env:BENCH_RUNS_LIGHT
+                  if ($benchRunsLight -lt 10) { $benchRunsLight = 10 }
+                  if ($env:EVENT_NAME -eq 'push' -and $env:POSTDEPLOY_CHANGE_CLASS -eq 'non-runtime') {
+                    $benchRuns = [Math]::Min($benchRuns, $benchRunsLight)
+                    Write-Host "Cambios non-runtime: bench runs ajustado a $benchRuns (light cap=$benchRunsLight)."
+                  }
+                  "BENCH_RUNS_EFFECTIVE=$benchRuns" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                   $hashRetryCount = [int]$env:ASSET_HASH_RETRY_COUNT
                   if ($hashRetryCount -lt 0) { $hashRetryCount = 0 }
                   $hashRetryDelay = [int]$env:ASSET_HASH_RETRY_DELAY_SEC
@@ -338,6 +347,8 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Post-deploy gate"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Dominio: ``$env:TARGET_DOMAIN``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Bench runs: ``$env:BENCH_RUNS``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Bench runs light cap: ``$env:BENCH_RUNS_LIGHT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Bench runs efectivos: ``$env:BENCH_RUNS_EFFECTIVE``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Asset hash retries: ``$env:ASSET_HASH_RETRY_COUNT`` cada ``$env:ASSET_HASH_RETRY_DELAY_SEC``s"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Verify retries: ``$env:VERIFY_RETRY_ATTEMPTS`` cada ``$env:VERIFY_RETRY_DELAY_SEC``s"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- P95 core API max: ``$env:CORE_P95_MAX_MS`` ms"
