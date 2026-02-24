@@ -66,25 +66,25 @@ jobs:
                   $maxLatency = [int]$env:MAX_LATENCY_MS
                   if ($maxLatency -lt 500) { $maxLatency = 500 }
 
-                  $args = @(
-                    '-Domain', $env:TARGET_DOMAIN,
-                    '-MaxLatencyMs', $maxLatency
-                  )
+                  $monitorArgs = @{
+                    Domain = $env:TARGET_DOMAIN
+                    MaxLatencyMs = $maxLatency
+                  }
 
                   if ($env:ALLOW_DEGRADED_FIGO -eq 'true') {
-                    $args += '-AllowDegradedFigo'
+                    $monitorArgs.AllowDegradedFigo = $true
                   }
                   if ($env:ALLOW_STORE_CALENDAR -eq 'true') {
-                    $args += '-AllowStoreCalendar'
+                    $monitorArgs.AllowStoreCalendar = $true
                   }
                   if ($env:ALLOW_BLOCKED_CALENDAR -eq 'true') {
-                    $args += '-AllowBlockedCalendar'
+                    $monitorArgs.AllowBlockedCalendar = $true
                   }
                   if ($env:SKIP_BACKUP_CHECK -eq 'true') {
-                    $args += '-SkipBackupCheck'
+                    $monitorArgs.SkipBackupCheck = $true
                   }
 
-                  & ./MONITOR-PRODUCCION.ps1 @args
+                  & ./MONITOR-PRODUCCION.ps1 @monitorArgs
 
             - name: Resumen
               if: ${{ always() }}
