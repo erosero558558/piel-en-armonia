@@ -14,7 +14,7 @@
  *   node agent-orchestrator.js task <claim|start|finish> <AG-ID> [...]
  *   node agent-orchestrator.js sync
  *   node agent-orchestrator.js close <task_id> [--evidence path]
- *   node agent-orchestrator.js metrics [--json]
+ *   node agent-orchestrator.js metrics [--json] [--profile local|ci] [--write|--no-write]
  */
 
 const { readFileSync, writeFileSync, existsSync, mkdirSync } = require('fs');
@@ -1742,8 +1742,30 @@ function safeNumber(value, fallback = 0) {
 }
 
 function cmdMetrics(args = []) {
+    const { flags } = parseFlags(args);
     const wantsJson = args.includes('--json');
-    const noWrite = args.includes('--no-write');
+    const profile = String(flags.profile || '')
+        .trim()
+        .toLowerCase();
+    const hasNoWriteFlag = args.includes('--no-write');
+    const hasWriteFlag = args.includes('--write');
+
+    if (profile && !['local', 'ci'].includes(profile)) {
+        throw new Error(
+            `metrics: --profile invalido (${profile}). Use local|ci`
+        );
+    }
+    if (hasNoWriteFlag && hasWriteFlag) {
+        throw new Error(
+            'metrics: no usar --write y --no-write al mismo tiempo'
+        );
+    }
+
+    let noWrite = false;
+    if (profile === 'local') noWrite = true;
+    if (profile === 'ci') noWrite = false;
+    if (hasNoWriteFlag) noWrite = true;
+    if (hasWriteFlag) noWrite = false;
     const board = parseBoard();
     const handoffData = parseHandoffs();
     const conflictAnalysis = analyzeConflicts(
@@ -1877,6 +1899,12 @@ function cmdMetrics(args = []) {
         contribution_history: contributionHistorySummary,
         domain_health: domainHealth,
         domain_health_history: domainHealthHistorySummary,
+        io: {
+            profile: profile || 'default',
+            no_write: noWrite,
+            write_mode: noWrite ? 'no-write' : 'write',
+            persisted: !noWrite,
+        },
         delta: {
             tasks_total: total - safeNumber(baseline.tasks_total, total),
             file_conflicts:
@@ -1914,10 +1942,14 @@ function cmdMetrics(args = []) {
         return;
     }
     if (noWrite) {
-        console.log('Metricas calculadas (no-write).');
+        console.log(
+            `Metricas calculadas (no-write, profile=${profile || 'default'}).`
+        );
         return;
     }
-    console.log(`Metricas actualizadas en ${METRICS_PATH}`);
+    console.log(
+        `Metricas actualizadas en ${METRICS_PATH} (profile=${profile || 'default'})`
+    );
 }
 
 function cmdConflicts(args) {

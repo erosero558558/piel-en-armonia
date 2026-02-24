@@ -257,6 +257,10 @@ test('agent-governance-summary genera JSON/Markdown y escribe artefactos', (t) =
     assert.equal(typeof parsed.delta_summary.conflicts_handoff.delta, 'number');
     assert.equal(parsed.commands.status.exit_code, 0);
     assert.equal(parsed.commands.metrics.exit_code, 0);
+    assert.match(
+        parsed.commands.metrics.command,
+        /metrics --json --profile local/
+    );
 
     const jsonPath = join(dir, outJson);
     const mdPath = join(dir, outMd);

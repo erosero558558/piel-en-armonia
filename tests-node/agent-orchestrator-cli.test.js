@@ -532,6 +532,10 @@ test('metrics soporta --json, escribe archivo y expone delta/baseline handoff', 
     const json = parseJsonStdout(result);
 
     assert.equal(json.version, 1);
+    assert.ok(json.io);
+    assert.equal(json.io.profile, 'default');
+    assert.equal(json.io.write_mode, 'write');
+    assert.equal(json.io.persisted, true);
     assert.equal(json.current.file_conflicts, 1);
     assert.equal(json.current.file_conflicts_handoff, 0);
     assert.equal(typeof json.baseline.file_conflicts_handoff, 'number');
@@ -593,6 +597,11 @@ test('metrics soporta --no-write y no persiste archivos runtime', (t) => {
     assert.equal(json.version, 1);
     assert.ok(json.contribution_history);
     assert.ok(json.domain_health_history);
+    assert.ok(json.io);
+    assert.equal(json.io.profile, 'default');
+    assert.equal(json.io.no_write, true);
+    assert.equal(json.io.write_mode, 'no-write');
+    assert.equal(json.io.persisted, false);
     assert.equal(
         require('fs').existsSync(
             join(dir, 'verification', 'agent-metrics.json')
@@ -610,6 +619,61 @@ test('metrics soporta --no-write y no persiste archivos runtime', (t) => {
             join(dir, 'verification', 'agent-domain-health-history.json')
         ),
         false
+    );
+});
+
+test('metrics soporta --profile local|ci y override --write', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForConflictFixture({ codexStatus: 'in_progress' }),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithCodexBlock({ status: 'in_progress' }),
+    });
+
+    let result = runCli(dir, ['metrics', '--json', '--profile', 'local']);
+    let json = parseJsonStdout(result);
+    assert.equal(json.io.profile, 'local');
+    assert.equal(json.io.no_write, true);
+    assert.equal(
+        require('fs').existsSync(
+            join(dir, 'verification', 'agent-metrics.json')
+        ),
+        false
+    );
+
+    result = runCli(dir, ['metrics', '--json', '--profile', 'ci']);
+    json = parseJsonStdout(result);
+    assert.equal(json.io.profile, 'ci');
+    assert.equal(json.io.no_write, false);
+    assert.equal(
+        require('fs').existsSync(
+            join(dir, 'verification', 'agent-metrics.json')
+        ),
+        true
+    );
+
+    require('fs').rmSync(join(dir, 'verification'), {
+        recursive: true,
+        force: true,
+    });
+    result = runCli(dir, [
+        'metrics',
+        '--json',
+        '--profile',
+        'local',
+        '--write',
+    ]);
+    json = parseJsonStdout(result);
+    assert.equal(json.io.profile, 'local');
+    assert.equal(json.io.no_write, false);
+    assert.equal(json.io.write_mode, 'write');
+    assert.equal(
+        require('fs').existsSync(
+            join(dir, 'verification', 'agent-metrics.json')
+        ),
+        true
     );
 });
 
