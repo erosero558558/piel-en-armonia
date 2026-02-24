@@ -34,6 +34,19 @@ function Parse-JsonBody {
     }
 }
 
+function Read-JsonFileSafe {
+    param([string]$Path)
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path)) {
+        return $null
+    }
+    try {
+        $raw = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop
+        return Parse-JsonBody -Body $raw
+    } catch {
+        return $null
+    }
+}
+
 function Invoke-JsonGet {
     param(
         [string]$Name,
@@ -291,6 +304,28 @@ function Parse-PrometheusCounterSeries {
     return $series
 }
 
+function Get-ScalarMetricValue {
+    param(
+        [string]$MetricsText,
+        [string]$MetricName,
+        [double]$DefaultValue = 0
+    )
+
+    $series = Parse-PrometheusCounterSeries -MetricsText $MetricsText -MetricName $MetricName
+    if (-not $series -or $series.Count -eq 0) {
+        return [double]$DefaultValue
+    }
+
+    foreach ($row in $series) {
+        $labels = $row.Labels
+        if ($null -eq $labels -or $labels.Count -eq 0) {
+            return [double]$row.Value
+        }
+    }
+
+    return [double]$series[0].Value
+}
+
 function Get-EventCount {
     param(
         $Events,
@@ -345,11 +380,14 @@ if (-not $healthResult.Ok) {
 $health = $healthResult.Json
 $summary = $null
 $events = @{}
+$retention = $null
+$metricsText = ''
 $funnelSource = 'funnel-metrics'
 
 if ($funnelResult.Ok -and $null -ne $funnelResult.Json -and [bool]($funnelResult.Json.ok)) {
     $funnel = $funnelResult.Json.data
     $summary = $funnel.summary
+    $retention = Get-ObjectValueOrDefault -Object $funnel -Property 'retention' -DefaultValue $null
     $eventsObj = $funnel.events
     if ($null -ne $eventsObj) {
         $events = @{}
@@ -363,8 +401,9 @@ if ($funnelResult.Ok -and $null -ne $funnelResult.Json -and [bool]($funnelResult
         throw "No se pudo consultar funnel-metrics ni metrics: $($funnelResult.Error) / $($metricsResult.Error)"
     }
 
+    $metricsText = [string]$metricsResult.Body
     $funnelSource = 'metrics_counter'
-    $series = Parse-PrometheusCounterSeries -MetricsText $metricsResult.Body -MetricName 'conversion_funnel_events_total'
+    $series = Parse-PrometheusCounterSeries -MetricsText $metricsText -MetricName 'conversion_funnel_events_total'
     $events = @{}
     foreach ($row in $series) {
         $labels = $row.Labels
@@ -392,6 +431,87 @@ if ($funnelResult.Ok -and $null -ne $funnelResult.Json -and [bool]($funnelResult
         startCheckout = $startCheckoutFromEvents
         bookingConfirmed = $bookingConfirmedFromEvents
         checkoutAbandon = $checkoutAbandonFromEvents
+    }
+}
+
+if ($null -eq $retention) {
+    if ([string]::IsNullOrWhiteSpace($metricsText)) {
+        $metricsFallbackResult = Invoke-TextGet -Name 'metrics-retention' -Url "$base/api.php?resource=metrics"
+        if ($metricsFallbackResult.Ok) {
+            $metricsText = [string]$metricsFallbackResult.Body
+        }
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($metricsText)) {
+        $statusCounts = @{
+            confirmed = 0
+            completed = 0
+            noShow = 0
+            cancelled = 0
+        }
+        $statusSeries = Parse-PrometheusCounterSeries -MetricsText $metricsText -MetricName 'pielarmonia_appointments_total'
+        foreach ($row in $statusSeries) {
+            $labels = $row.Labels
+            if ($null -eq $labels -or -not $labels.ContainsKey('status')) {
+                continue
+            }
+            $status = [string]$labels['status']
+            $value = [int]([Math]::Round([double]$row.Value))
+            if ($value -lt 0) {
+                $value = 0
+            }
+            switch ($status) {
+                'confirmed' { $statusCounts.confirmed += $value }
+                'completed' { $statusCounts.completed += $value }
+                'no_show'   { $statusCounts.noShow += $value }
+                'cancelled' { $statusCounts.cancelled += $value }
+            }
+        }
+
+        $appointmentsNonCancelled = $statusCounts.confirmed + $statusCounts.completed + $statusCounts.noShow
+        $appointmentsTotal = $appointmentsNonCancelled + $statusCounts.cancelled
+        $noShowRatePct = [Math]::Round((Get-ScalarMetricValue -MetricsText $metricsText -MetricName 'pielarmonia_no_show_rate' -DefaultValue 0) * 100, 1)
+        $completionRatePct = if ($appointmentsNonCancelled -gt 0) {
+            [Math]::Round(($statusCounts.completed / [double]$appointmentsNonCancelled) * 100, 1)
+        } else {
+            0.0
+        }
+        $uniquePatients = [int]([Math]::Round((Get-ScalarMetricValue -MetricsText $metricsText -MetricName 'pielarmonia_patients_unique_total' -DefaultValue 0)))
+        $recurrentPatients = [int]([Math]::Round((Get-ScalarMetricValue -MetricsText $metricsText -MetricName 'pielarmonia_patients_recurrent_total' -DefaultValue 0)))
+        $recurrenceRateRaw = Get-ScalarMetricValue -MetricsText $metricsText -MetricName 'pielarmonia_patient_recurrence_rate' -DefaultValue 0
+        if ($recurrenceRateRaw -le 0 -and $uniquePatients -gt 0 -and $recurrentPatients -gt 0) {
+            $recurrenceRateRaw = $recurrentPatients / [double]$uniquePatients
+        }
+        $recurrenceRatePct = [Math]::Round($recurrenceRateRaw * 100, 1)
+
+        $retention = [pscustomobject]@{
+            appointmentsTotal = $appointmentsTotal
+            appointmentsNonCancelled = $appointmentsNonCancelled
+            statusCounts = [pscustomobject]$statusCounts
+            noShowRatePct = $noShowRatePct
+            completionRatePct = $completionRatePct
+            uniquePatients = $uniquePatients
+            recurrentPatients = $recurrentPatients
+            recurrenceRatePct = $recurrenceRatePct
+        }
+    }
+}
+
+if ($null -eq $retention) {
+    $retention = [pscustomobject]@{
+        appointmentsTotal = 0
+        appointmentsNonCancelled = 0
+        statusCounts = [pscustomobject]@{
+            confirmed = 0
+            completed = 0
+            noShow = 0
+            cancelled = 0
+        }
+        noShowRatePct = 0.0
+        completionRatePct = 0.0
+        uniquePatients = 0
+        recurrentPatients = 0
+        recurrenceRatePct = 0.0
     }
 }
 
@@ -439,6 +559,21 @@ $calendarMode = [string](Get-ObjectValueOrDefault -Object $health -Property 'cal
 $calendarReachable = [bool](Get-ObjectValueOrDefault -Object $health -Property 'calendarReachable' -DefaultValue $false)
 $calendarTokenHealthy = [bool](Get-ObjectValueOrDefault -Object $health -Property 'calendarTokenHealthy' -DefaultValue $false)
 $calendarLastSuccessAt = [string](Get-ObjectValueOrDefault -Object $health -Property 'calendarLastSuccessAt' -DefaultValue '')
+$sentryBackendConfigured = [bool](Get-ObjectValueOrDefault -Object $health -Property 'sentryBackendConfigured' -DefaultValue $false)
+$sentryFrontendConfigured = [bool](Get-ObjectValueOrDefault -Object $health -Property 'sentryFrontendConfigured' -DefaultValue $false)
+
+$retentionStatusCounts = Get-ObjectValueOrDefault -Object $retention -Property 'statusCounts' -DefaultValue $null
+$retentionAppointmentsTotal = [int](Get-ObjectValueOrDefault -Object $retention -Property 'appointmentsTotal' -DefaultValue 0)
+$retentionAppointmentsNonCancelled = [int](Get-ObjectValueOrDefault -Object $retention -Property 'appointmentsNonCancelled' -DefaultValue 0)
+$retentionConfirmed = [int](Get-ObjectValueOrDefault -Object $retentionStatusCounts -Property 'confirmed' -DefaultValue 0)
+$retentionCompleted = [int](Get-ObjectValueOrDefault -Object $retentionStatusCounts -Property 'completed' -DefaultValue 0)
+$retentionNoShow = [int](Get-ObjectValueOrDefault -Object $retentionStatusCounts -Property 'noShow' -DefaultValue 0)
+$retentionCancelled = [int](Get-ObjectValueOrDefault -Object $retentionStatusCounts -Property 'cancelled' -DefaultValue 0)
+$retentionNoShowRatePct = [double](Get-ObjectValueOrDefault -Object $retention -Property 'noShowRatePct' -DefaultValue 0)
+$retentionCompletionRatePct = [double](Get-ObjectValueOrDefault -Object $retention -Property 'completionRatePct' -DefaultValue 0)
+$retentionUniquePatients = [int](Get-ObjectValueOrDefault -Object $retention -Property 'uniquePatients' -DefaultValue 0)
+$retentionRecurrentPatients = [int](Get-ObjectValueOrDefault -Object $retention -Property 'recurrentPatients' -DefaultValue 0)
+$retentionRecurrenceRatePct = [double](Get-ObjectValueOrDefault -Object $retention -Property 'recurrenceRatePct' -DefaultValue 0)
 
 $warnings = New-Object System.Collections.Generic.List[string]
 if ($errorRatePct -ge 2.0) {
@@ -462,6 +597,15 @@ if (-not $calendarReachable) {
 if (-not $calendarTokenHealthy) {
     $warnings.Add('calendar_token_unhealthy')
 }
+if ($retentionNoShowRatePct -ge 20) {
+    $warnings.Add("no_show_rate_alta_${retentionNoShowRatePct}pct")
+}
+if (-not $sentryBackendConfigured) {
+    $warnings.Add('sentry_backend_no_configurado')
+}
+if (-not $sentryFrontendConfigured) {
+    $warnings.Add('sentry_frontend_no_configurado')
+}
 
 $reportGeneratedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 $reportDate = Get-Date -Format 'yyyy-MM-dd'
@@ -470,6 +614,40 @@ $reportDateCompact = Get-Date -Format 'yyyyMMdd'
 Ensure-Directory -Path $OutputDir
 $reportMdPath = Join-Path $OutputDir "weekly-report-$reportDateCompact.md"
 $reportJsonPath = Join-Path $OutputDir "weekly-report-$reportDateCompact.json"
+$previousReport = $null
+$previousReportDate = ''
+$reportCandidates = Get-ChildItem -Path $OutputDir -Filter 'weekly-report-*.json' -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTimeUtc -Descending
+foreach ($candidate in $reportCandidates) {
+    if ($candidate.FullName -eq $reportJsonPath) {
+        continue
+    }
+    $payload = Read-JsonFileSafe -Path $candidate.FullName
+    if ($null -ne $payload) {
+        $previousReport = $payload
+        break
+    }
+}
+if ($null -eq $previousReport -and (Test-Path -LiteralPath $reportJsonPath)) {
+    $previousReport = Read-JsonFileSafe -Path $reportJsonPath
+}
+if ($null -ne $previousReport) {
+    $previousReportDate = [string](Get-ObjectValueOrDefault -Object $previousReport -Property 'generatedAt' -DefaultValue '')
+}
+
+$previousRetention = if ($null -ne $previousReport) {
+    Get-ObjectValueOrDefault -Object $previousReport -Property 'retention' -DefaultValue $null
+} else {
+    $null
+}
+$retentionNoShowRateDeltaPct = $null
+$retentionRecurrenceRateDeltaPct = $null
+if ($null -ne $previousRetention) {
+    $previousNoShowRatePct = [double](Get-ObjectValueOrDefault -Object $previousRetention -Property 'noShowRatePct' -DefaultValue 0)
+    $previousRecurrenceRatePct = [double](Get-ObjectValueOrDefault -Object $previousRetention -Property 'recurrenceRatePct' -DefaultValue 0)
+    $retentionNoShowRateDeltaPct = [Math]::Round(($retentionNoShowRatePct - $previousNoShowRatePct), 2)
+    $retentionRecurrenceRateDeltaPct = [Math]::Round(($retentionRecurrenceRatePct - $previousRecurrenceRatePct), 2)
+}
 
 $warningBlock = if ($warnings.Count -eq 0) {
     '- none'
@@ -481,6 +659,8 @@ $benchTable = @()
 foreach ($row in $benchResults) {
     $benchTable += "| $($row.Name) | $($row.Samples) | $($row.AvgMs) | $($row.P95Ms) | $($row.MaxMs) | $($row.StatusFailures) | $($row.NetworkFailures) |"
 }
+$retentionNoShowRateDeltaLabel = if ($null -eq $retentionNoShowRateDeltaPct) { 'n/a' } else { [string]$retentionNoShowRateDeltaPct }
+$retentionRecurrenceRateDeltaLabel = if ($null -eq $retentionRecurrenceRateDeltaPct) { 'n/a' } else { [string]$retentionRecurrenceRateDeltaPct }
 
 $markdown = @"
 # Weekly Production Report - Piel en Armonia
@@ -507,6 +687,28 @@ $markdown = @"
 - calendar_reachable: $calendarReachable
 - calendar_token_healthy: $calendarTokenHealthy
 - calendar_last_success_at: $calendarLastSuccessAt
+
+## Observability
+
+- sentry_backend_configured: $sentryBackendConfigured
+- sentry_frontend_configured: $sentryFrontendConfigured
+
+## Retention
+
+- appointments_total: $retentionAppointmentsTotal
+- appointments_non_cancelled: $retentionAppointmentsNonCancelled
+- status_confirmed: $retentionConfirmed
+- status_completed: $retentionCompleted
+- status_no_show: $retentionNoShow
+- status_cancelled: $retentionCancelled
+- no_show_rate_pct: $retentionNoShowRatePct
+- completion_rate_pct: $retentionCompletionRatePct
+- unique_patients: $retentionUniquePatients
+- recurrent_patients: $retentionRecurrentPatients
+- recurrence_rate_pct: $retentionRecurrenceRatePct
+- previous_report_generated_at: $previousReportDate
+- no_show_rate_delta_pct: $retentionNoShowRateDeltaLabel
+- recurrence_rate_delta_pct: $retentionRecurrenceRateDeltaLabel
 
 ## Latency Bench
 
@@ -543,6 +745,30 @@ $reportPayload = [ordered]@{
         tokenHealthy = $calendarTokenHealthy
         lastSuccessAt = $calendarLastSuccessAt
     }
+    observability = [ordered]@{
+        sentryBackendConfigured = $sentryBackendConfigured
+        sentryFrontendConfigured = $sentryFrontendConfigured
+    }
+    retention = [ordered]@{
+        appointmentsTotal = $retentionAppointmentsTotal
+        appointmentsNonCancelled = $retentionAppointmentsNonCancelled
+        statusCounts = [ordered]@{
+            confirmed = $retentionConfirmed
+            completed = $retentionCompleted
+            noShow = $retentionNoShow
+            cancelled = $retentionCancelled
+        }
+        noShowRatePct = [Math]::Round([double]$retentionNoShowRatePct, 2)
+        completionRatePct = [Math]::Round([double]$retentionCompletionRatePct, 2)
+        uniquePatients = $retentionUniquePatients
+        recurrentPatients = $retentionRecurrentPatients
+        recurrenceRatePct = [Math]::Round([double]$retentionRecurrenceRatePct, 2)
+    }
+    retentionTrend = [ordered]@{
+        previousReportGeneratedAt = $previousReportDate
+        noShowRateDeltaPct = $retentionNoShowRateDeltaPct
+        recurrenceRateDeltaPct = $retentionRecurrenceRateDeltaPct
+    }
     latency = [ordered]@{
         coreP95MaxMs = $coreP95Max
         coreP95TargetMs = $CoreP95MaxMs
@@ -558,6 +784,7 @@ Write-Host ''
 Write-Host "Reporte markdown: $reportMdPath"
 Write-Host "Reporte json: $reportJsonPath"
 Write-Host "booking_confirmed=$bookingConfirmed error_rate_pct=$errorRatePct core_p95_max_ms=$coreP95Max figo_post_p95_ms=$figoPostP95"
+Write-Host "retention_no_show_rate_pct=$retentionNoShowRatePct retention_recurrence_rate_pct=$retentionRecurrenceRatePct sentry_backend=$sentryBackendConfigured sentry_frontend=$sentryFrontendConfigured"
 if ($warnings.Count -gt 0) {
     Write-Host "Warnings: $($warnings -join ', ')" -ForegroundColor Yellow
     if ($FailOnWarnings) {

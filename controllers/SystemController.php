@@ -52,6 +52,24 @@ class SystemController
         }
 
         $stats = ['confirmed' => 0, 'no_show' => 0, 'completed' => 0, 'cancelled' => 0];
+        $patientVisits = [];
+        $patientKeyResolver = static function (array $appointment): string {
+            $email = strtolower(trim((string) ($appointment['email'] ?? '')));
+            if ($email !== '' && strpos($email, '@') !== false) {
+                return 'email:' . $email;
+            }
+
+            $phoneRaw = trim((string) ($appointment['phone'] ?? ''));
+            if ($phoneRaw === '') {
+                return '';
+            }
+            $digits = preg_replace('/\D+/', '', $phoneRaw);
+            if (!is_string($digits) || $digits === '') {
+                return '';
+            }
+
+            return 'phone:' . $digits;
+        };
         if (isset($store['appointments']) && is_array($store['appointments'])) {
             foreach ($store['appointments'] as $appt) {
                 $st = function_exists('map_appointment_status')
@@ -61,6 +79,18 @@ class SystemController
                 if (isset($stats[$st])) {
                     $stats[$st]++;
                 }
+
+                if ($st === 'cancelled') {
+                    continue;
+                }
+                $patientKey = $patientKeyResolver(is_array($appt) ? $appt : []);
+                if ($patientKey === '') {
+                    continue;
+                }
+                if (!isset($patientVisits[$patientKey])) {
+                    $patientVisits[$patientKey] = 0;
+                }
+                $patientVisits[$patientKey]++;
             }
         }
 
@@ -80,8 +110,24 @@ class SystemController
 
         $totalValid = $stats['confirmed'] + $stats['no_show'] + $stats['completed'];
         $rate = $totalValid > 0 ? ($stats['no_show'] / $totalValid) : 0;
+        $uniquePatients = count($patientVisits);
+        $recurrentPatients = 0;
+        foreach ($patientVisits as $visits) {
+            if ((int) $visits >= 2) {
+                $recurrentPatients++;
+            }
+        }
+        $recurrenceRate = $uniquePatients > 0 ? ($recurrentPatients / $uniquePatients) : 0;
         echo "\n# TYPE pielarmonia_no_show_rate gauge";
-        echo "\npielarmonia_no_show_rate $rate\n";
+        echo "\npielarmonia_no_show_rate $rate";
+        echo "\n# TYPE pielarmonia_no_show_total gauge";
+        echo "\npielarmonia_no_show_total {$stats['no_show']}";
+        echo "\n# TYPE pielarmonia_patients_unique_total gauge";
+        echo "\npielarmonia_patients_unique_total $uniquePatients";
+        echo "\n# TYPE pielarmonia_patients_recurrent_total gauge";
+        echo "\npielarmonia_patients_recurrent_total $recurrentPatients";
+        echo "\n# TYPE pielarmonia_patient_recurrence_rate gauge";
+        echo "\npielarmonia_patient_recurrence_rate $recurrenceRate\n";
 
         // Store File Size
         $storeSize = @filesize(data_file_path());

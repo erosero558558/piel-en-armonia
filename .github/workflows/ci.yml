@@ -105,6 +105,17 @@ jobs:
               run: npm ci
             - name: Install Playwright Browsers
               run: npx playwright install --with-deps chromium
+            - name: Run Critical Agenda Gate
+              run: npm run test:critical:agenda
+              env:
+                  TEST_LOCAL_SERVER: php
+                  PIELARMONIA_ADMIN_PASSWORD: admin123
+                  TEST_ENABLE_CALENDAR_WRITE: 'false'
+            - name: Run Critical Funnel Gate
+              run: npm run test:critical:funnel
+              env:
+                  TEST_LOCAL_SERVER: php
+                  PIELARMONIA_ADMIN_PASSWORD: admin123
             - name: Run Playwright Tests
               run: npx playwright test --grep-invert "@visual"
               env:

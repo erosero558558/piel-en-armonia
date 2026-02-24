@@ -180,6 +180,8 @@ class AnalyticsController
         $startRate = $viewBooking > 0 ? round(($startCheckout / $viewBooking) * 100, 1) : 0.0;
         $confirmedRate = $startCheckout > 0 ? round(($bookingConfirmed / $startCheckout) * 100, 1) : 0.0;
         $abandonRate = $startCheckout > 0 ? round(($checkoutAbandon / $startCheckout) * 100, 1) : 0.0;
+        $store = isset($context['store']) && is_array($context['store']) ? $context['store'] : [];
+        $retention = self::buildRetentionSnapshot($store);
 
         $toList = static function (array $assoc): array {
             $rows = [];
@@ -212,9 +214,118 @@ class AnalyticsController
                 'paymentMethodBreakdown' => $toList($paymentMethodBreakdown),
                 'bookingStepBreakdown' => $toList($bookingStepBreakdown),
                 'errorCodeBreakdown' => $toList($errorCodeBreakdown),
+                'retention' => $retention,
                 'generatedAt' => gmdate('c')
             ]
         ]);
+    }
+
+    /**
+     * Build retention snapshot from appointment statuses.
+     */
+    private static function buildRetentionSnapshot(array $store): array
+    {
+        $appointments = isset($store['appointments']) && is_array($store['appointments'])
+            ? $store['appointments']
+            : [];
+
+        $statusCounts = [
+            'confirmed' => 0,
+            'completed' => 0,
+            'noShow' => 0,
+            'cancelled' => 0,
+        ];
+        $appointmentsNonCancelled = 0;
+        $patientVisits = [];
+
+        foreach ($appointments as $appointment) {
+            if (!is_array($appointment)) {
+                continue;
+            }
+
+            $rawStatus = (string) ($appointment['status'] ?? 'confirmed');
+            $status = function_exists('map_appointment_status')
+                ? map_appointment_status($rawStatus)
+                : strtolower(trim($rawStatus));
+            if ($status === 'noshow') {
+                $status = 'no_show';
+            }
+
+            if ($status === 'completed') {
+                $statusCounts['completed']++;
+            } elseif ($status === 'no_show') {
+                $statusCounts['noShow']++;
+            } elseif ($status === 'cancelled') {
+                $statusCounts['cancelled']++;
+            } else {
+                $statusCounts['confirmed']++;
+            }
+
+            if ($status === 'cancelled') {
+                continue;
+            }
+
+            $appointmentsNonCancelled++;
+            $patientKey = self::resolvePatientKey($appointment);
+            if ($patientKey === '') {
+                continue;
+            }
+            if (!isset($patientVisits[$patientKey])) {
+                $patientVisits[$patientKey] = 0;
+            }
+            $patientVisits[$patientKey]++;
+        }
+
+        $uniquePatients = count($patientVisits);
+        $recurrentPatients = 0;
+        foreach ($patientVisits as $visits) {
+            if ((int) $visits >= 2) {
+                $recurrentPatients++;
+            }
+        }
+
+        $noShowRate = $appointmentsNonCancelled > 0
+            ? round(($statusCounts['noShow'] / $appointmentsNonCancelled) * 100, 1)
+            : 0.0;
+        $completionRate = $appointmentsNonCancelled > 0
+            ? round(($statusCounts['completed'] / $appointmentsNonCancelled) * 100, 1)
+            : 0.0;
+        $recurrenceRate = $uniquePatients > 0
+            ? round(($recurrentPatients / $uniquePatients) * 100, 1)
+            : 0.0;
+
+        return [
+            'appointmentsTotal' => count($appointments),
+            'appointmentsNonCancelled' => $appointmentsNonCancelled,
+            'statusCounts' => $statusCounts,
+            'noShowRatePct' => $noShowRate,
+            'completionRatePct' => $completionRate,
+            'uniquePatients' => $uniquePatients,
+            'recurrentPatients' => $recurrentPatients,
+            'recurrenceRatePct' => $recurrenceRate,
+        ];
+    }
+
+    /**
+     * Resolve a stable patient key from appointment contact fields.
+     */
+    private static function resolvePatientKey(array $appointment): string
+    {
+        $email = strtolower(trim((string) ($appointment['email'] ?? '')));
+        if ($email !== '' && strpos($email, '@') !== false) {
+            return 'email:' . $email;
+        }
+
+        $phoneRaw = trim((string) ($appointment['phone'] ?? ''));
+        if ($phoneRaw === '') {
+            return '';
+        }
+        $digits = preg_replace('/\D+/', '', $phoneRaw);
+        if (!is_string($digits) || $digits === '') {
+            return '';
+        }
+
+        return 'phone:' . $digits;
     }
 
     /**

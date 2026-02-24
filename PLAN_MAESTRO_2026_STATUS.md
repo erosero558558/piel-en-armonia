@@ -45,6 +45,7 @@ Dominio: https://pielarmonia.com
 - Convencion anti-bucle: este snapshot registra evidencia de cambios operativos/codigo; no se agregan corridas originadas solo por commits `docs(status)` para evitar recursividad documental.
 - Hardening workflows: override manual `require_google_calendar` habilitado en `Post-Deploy Gate` y `Production Monitor`.
 - Fase 2: suite `test:phase2` incorporada (paridad web/chat + concurrencia real opcional segun `TEST_ENABLE_CALENDAR_WRITE`).
+- Plan complementario Codex 2026 creado (`PLAN_MAESTRO_CODEX_2026.md`) con foco tecnico en confiabilidad/tests y retencion no-show.
 - Estado general: En curso. CI desbloqueado y pipeline activo tras fix de calendar runtime.
 - Chatbot: Operativo en Trinity/OpenRouter (cola OpenClaw deshabilitada por decision de producto).
 - Agenda real: activa en produccion (`calendarSource=google`, `calendarAuth=oauth_refresh`, `calendarMode=live`).

@@ -51,6 +51,8 @@ class HealthController
             $calendarAuth,
             $calendarTokenSnapshot
         );
+        $sentryBackendConfigured = trim((string) getenv('PIELARMONIA_SENTRY_DSN')) !== '';
+        $sentryFrontendConfigured = trim((string) getenv('PIELARMONIA_SENTRY_DSN_PUBLIC')) !== '';
         $redisStatus = getenv('PIELARMONIA_REDIS_HOST') ? 'configured' : 'disabled';
         $store = isset($context['store']) && is_array($context['store']) ? $context['store'] : read_store();
         $appointments = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
@@ -116,6 +118,8 @@ class HealthController
             'calendarLastErrorAt' => $calendarLastErrorAt,
             'calendarLastErrorReason' => $calendarLastErrorReason,
             'calendarTokenHealthy' => $calendarTokenHealthy,
+            'sentryBackendConfigured' => $sentryBackendConfigured,
+            'sentryFrontendConfigured' => $sentryFrontendConfigured,
         ]);
         json_response([
             'ok' => true,
@@ -139,6 +143,8 @@ class HealthController
             'calendarLastSuccessAt' => $calendarLastSuccessAt,
             'calendarLastErrorAt' => $calendarLastErrorAt,
             'calendarLastErrorReason' => $calendarLastErrorReason,
+            'sentryBackendConfigured' => $sentryBackendConfigured,
+            'sentryFrontendConfigured' => $sentryFrontendConfigured,
             'checks' => [
                 'storage' => [
                     'ready' => $storageReady,
@@ -160,6 +166,10 @@ class HealthController
                     'calendarLastSuccessAt' => $calendarLastSuccessAt,
                     'calendarLastErrorAt' => $calendarLastErrorAt,
                     'calendarLastErrorReason' => $calendarLastErrorReason,
+                ],
+                'observability' => [
+                    'sentryBackendConfigured' => $sentryBackendConfigured,
+                    'sentryFrontendConfigured' => $sentryFrontendConfigured,
                 ],
                 'backup' => $backupCheck,
                 'storeCounts' => $storeCounts
