@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pielarmonia-v10-20260223-openclaw-queue1';
+const CACHE_NAME = 'pielarmonia-v11-20260224-swopt1';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -9,7 +9,17 @@ const STATIC_ASSETS = [
     '/styles-deferred.css?v=ui-20260223-clsfix1',
     '/js/bootstrap-inline-engine.js?v=figo-20260221-phase10-realagenda1',
     '/script.js?v=figo-20260222-slotservicefix1',
-    '/images/optimized/hero-woman.jpg',
+    // Fonts preloaded on every page
+    '/fonts/plus-jakarta-sans.woff2',
+    '/fonts/fraunces.woff2',
+    // Deferred section content — needed for offline
+    '/content/index.json',
+    '/content/es.json',
+    '/content/en.json',
+    // Hero image responsive set (WebP — what the HTML actually preloads)
+    '/images/optimized/hero-woman-640.webp',
+    '/images/optimized/hero-woman-1024.webp',
+    '/images/optimized/hero-woman-1344.webp',
     '/favicon.ico',
     '/manifest.json',
     '/images/icon-192.png',
@@ -94,7 +104,11 @@ async function networkFirst(request) {
 }
 
 async function cacheFirst(request) {
-    const cachedResponse = await caches.match(request);
+    // Try exact URL first, then fall back to ignoring the query string so cached
+    // assets are still served when a version bump changes only the ?v= param.
+    const cachedResponse =
+        (await caches.match(request)) ||
+        (await caches.match(request, { ignoreSearch: true }));
     if (cachedResponse) {
         return cachedResponse;
     }
@@ -104,11 +118,32 @@ async function cacheFirst(request) {
     return networkResponse;
 }
 
+// Serve from cache immediately while refreshing the cache entry in the background.
+// Best for images: fast paint on repeat visits, always eventually fresh.
+async function staleWhileRevalidate(request) {
+    const cachedResponse = await caches.match(request);
+    const networkFetch = fetch(request)
+        .then((networkResponse) => {
+            putInCache(request, networkResponse.clone());
+            return networkResponse;
+        })
+        .catch(() => null);
+    return cachedResponse || (await networkFetch);
+}
+
+function isImageAsset(pathname) {
+    return ['.png', '.jpg', '.jpeg', '.webp', '.avif', '.svg', '.gif', '.ico'].some(
+        (ext) => pathname.endsWith(ext)
+    );
+}
+
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
+        caches
+            .open(CACHE_NAME)
+            .then((cache) => cache.addAll(STATIC_ASSETS))
+            .then(() => self.skipWaiting())
     );
-    self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -148,11 +183,13 @@ self.addEventListener('fetch', (event) => {
     }
 
     if (isCacheableAsset(url.pathname)) {
-        event.respondWith(
-            shouldUseNetworkFirstForAsset(url.pathname)
-                ? networkFirst(request)
-                : cacheFirst(request)
-        );
+        if (shouldUseNetworkFirstForAsset(url.pathname)) {
+            event.respondWith(networkFirst(request));
+        } else if (isImageAsset(url.pathname)) {
+            event.respondWith(staleWhileRevalidate(request));
+        } else {
+            event.respondWith(cacheFirst(request));
+        }
         return;
     }
 
