@@ -8,7 +8,12 @@ import { initActionRouterEngine } from './router.js';
 import { initThemeMode } from './theme.js';
 import { changeLanguage, initEnglishBundleWarmup } from './i18n.js';
 import { state } from './state.js';
-import { bootstrapConsent, showConsentBanner, initGA4 } from './cookies.js';
+import {
+    bootstrapConsent,
+    showConsentBanner,
+    initGA4,
+    getCookieConsent,
+} from './cookies.js';
 import {
     initBookingFunnelObserver,
     initDeferredSectionPrefetch,
@@ -257,7 +262,9 @@ document.addEventListener('DOMContentLoaded', function () {
     initDeferredStylesheetLoading();
     initThemeMode();
     changeLanguage(state.currentLang);
-    initGA4();
+    if (getCookieConsent() === 'accepted') {
+        initGA4();
+    }
     initBookingFunnelObserver();
     initDeferredSectionPrefetch();
 

@@ -2138,6 +2138,25 @@ function loadConsentEngine() {
     });
 }
 
+function getCookieConsent() {
+    if (
+        window.Piel &&
+        window.Piel.ConsentEngine &&
+        typeof window.Piel.ConsentEngine.getCookieConsent === 'function'
+    ) {
+        return window.Piel.ConsentEngine.getCookieConsent();
+    }
+
+    try {
+        const raw = localStorage.getItem(COOKIE_CONSENT_KEY);
+        if (!raw) return '';
+        const parsed = JSON.parse(raw);
+        return typeof parsed?.status === 'string' ? parsed.status : '';
+    } catch {
+        return '';
+    }
+}
+
 function initGA4() {
     runDeferredModule(loadConsentEngine, (engine) => engine.initGA4());
 }
@@ -2453,7 +2472,9 @@ document.addEventListener('DOMContentLoaded', function () {
     initDeferredStylesheetLoading();
     initThemeMode();
     changeLanguage(state.currentLang);
-    initGA4();
+    if (getCookieConsent() === 'accepted') {
+        initGA4();
+    }
     initBookingFunnelObserver();
     initDeferredSectionPrefetch();
 
