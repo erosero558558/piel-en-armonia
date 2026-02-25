@@ -375,125 +375,125 @@ function closePaymentModal(options = {}) {
     clearPaymentError();
 }
 
-async function processCardPaymentFlow() {
-    const cardAvailable = await refreshCardPaymentAvailability();
-    if (!cardAvailable) {
-        throw new Error('Pago con tarjeta no disponible en este momento.');
-    }
-    if (!stripeClient || !stripeCardElement) {
-        throw new Error('No se pudo inicializar el formulario de tarjeta.');
-    }
+const paymentStrategies = {
+    card: async (appointment) => {
+        const cardAvailable = await refreshCardPaymentAvailability();
+        if (!cardAvailable) {
+            throw new Error('Pago con tarjeta no disponible en este momento.');
+        }
+        if (!stripeClient || !stripeCardElement) {
+            throw new Error('No se pudo inicializar el formulario de tarjeta.');
+        }
 
-    const cardholderName = (document.getElementById('cardholderName')?.value || '').trim();
-    if (cardholderName.length < 3) {
-        throw new Error('Ingresa el nombre del titular de la tarjeta.');
+        const cardholderName = (document.getElementById('cardholderName')?.value || '').trim();
+        if (cardholderName.length < 3) {
+            throw new Error('Ingresa el nombre del titular de la tarjeta.');
+        }
+
+        const captchaToken = await getCaptchaToken('payment_intent');
+        const intentPayload = requireFn('stripTransientAppointmentFields')(appointment);
+        intentPayload.captchaToken = captchaToken;
+
+        const intent = await requireFn('createPaymentIntent')(intentPayload);
+        if (!intent.clientSecret || !intent.paymentIntentId) {
+            throw new Error('No se pudo iniciar el cobro con tarjeta.');
+        }
+
+        const result = await stripeClient.confirmCardPayment(intent.clientSecret, {
+            payment_method: {
+                card: stripeCardElement,
+                billing_details: {
+                    name: cardholderName,
+                    email: appointment?.email || undefined,
+                    phone: appointment?.phone || undefined
+                }
+            }
+        });
+
+        if (result.error) {
+            throw new Error(result.error.message || 'No se pudo completar el pago con tarjeta.');
+        }
+
+        const paymentIntent = result.paymentIntent;
+        if (!paymentIntent || paymentIntent.status !== 'succeeded') {
+            throw new Error('El pago no fue confirmado por la pasarela.');
+        }
+
+        const verification = await requireFn('verifyPaymentIntent')(paymentIntent.id);
+        if (!verification.paid) {
+            throw new Error('No pudimos verificar el pago. Intenta nuevamente.');
+        }
+
+        trackEvent('payment_success', {
+            payment_method: 'card',
+            payment_provider: 'stripe',
+            payment_intent_id: paymentIntent.id
+        });
+
+        return {
+            paymentMethod: 'card',
+            paymentStatus: 'paid',
+            paymentProvider: 'stripe',
+            paymentIntentId: paymentIntent.id,
+            status: 'confirmed'
+        };
+    },
+    transfer: async () => {
+        const transferReference = (document.getElementById('transferReference')?.value || '').trim();
+        if (transferReference.length < 3) {
+            throw new Error('Ingresa el numero de referencia de la transferencia.');
+        }
+
+        const proofInput = document.getElementById('transferProofFile');
+        const proofFile = proofInput?.files && proofInput.files[0] ? proofInput.files[0] : null;
+        if (!proofFile) {
+            throw new Error('Adjunta el comprobante de transferencia.');
+        }
+        if (proofFile.size > 5 * 1024 * 1024) {
+            throw new Error('El comprobante supera el limite de 5 MB.');
+        }
+
+        const upload = await requireFn('uploadTransferProof')(proofFile, { retries: 2 });
+
+        return {
+            paymentMethod: 'transfer',
+            paymentStatus: 'pending_transfer_review',
+            transferReference,
+            transferProofPath: upload.transferProofPath || '',
+            transferProofUrl: upload.transferProofUrl || '',
+            transferProofName: upload.transferProofName || '',
+            transferProofMime: upload.transferProofMime || '',
+            status: 'confirmed'
+        };
+    },
+    cash: async () => {
+        return {
+            paymentMethod: 'cash',
+            paymentStatus: 'pending_cash',
+            status: 'confirmed'
+        };
+    }
+};
+
+async function processPaymentFlow(method) {
+    const strategy = paymentStrategies[method];
+    if (!strategy) {
+        throw new Error(`Unknown payment method: ${method}`);
     }
 
     const appointment = getCurrentAppointment();
+    const paymentDetails = await strategy(appointment);
+
     const appointmentPayload = await requireFn('buildAppointmentPayload')(appointment);
-
-    const captchaToken1 = await getCaptchaToken('payment_intent');
-    const intentPayload = requireFn('stripTransientAppointmentFields')(appointment);
-    intentPayload.captchaToken = captchaToken1;
-
-    const intent = await requireFn('createPaymentIntent')(intentPayload);
-    if (!intent.clientSecret || !intent.paymentIntentId) {
-        throw new Error('No se pudo iniciar el cobro con tarjeta.');
-    }
-
-    const result = await stripeClient.confirmCardPayment(intent.clientSecret, {
-        payment_method: {
-            card: stripeCardElement,
-            billing_details: {
-                name: cardholderName,
-                email: appointment?.email || undefined,
-                phone: appointment?.phone || undefined
-            }
-        }
-    });
-
-    if (result.error) {
-        throw new Error(result.error.message || 'No se pudo completar el pago con tarjeta.');
-    }
-
-    const paymentIntent = result.paymentIntent;
-    if (!paymentIntent || paymentIntent.status !== 'succeeded') {
-        throw new Error('El pago no fue confirmado por la pasarela.');
-    }
-
-    const verification = await requireFn('verifyPaymentIntent')(paymentIntent.id);
-    if (!verification.paid) {
-        throw new Error('No pudimos verificar el pago. Intenta nuevamente.');
-    }
-
-    trackEvent('payment_success', {
-        payment_method: 'card',
-        payment_provider: 'stripe',
-        payment_intent_id: paymentIntent.id
-    });
-
-    const captchaToken2 = await getCaptchaToken('appointment_submit');
-    const payload = {
-        ...appointmentPayload,
-        paymentMethod: 'card',
-        paymentStatus: 'paid',
-        paymentProvider: 'stripe',
-        paymentIntentId: paymentIntent.id,
-        status: 'confirmed',
-        captchaToken: captchaToken2
-    };
-
-    return requireFn('createAppointmentRecord')(payload, { allowLocalFallback: false });
-}
-
-async function processTransferPaymentFlow() {
-    const transferReference = (document.getElementById('transferReference')?.value || '').trim();
-    if (transferReference.length < 3) {
-        throw new Error('Ingresa el numero de referencia de la transferencia.');
-    }
-
-    const proofInput = document.getElementById('transferProofFile');
-    const proofFile = proofInput?.files && proofInput.files[0] ? proofInput.files[0] : null;
-    if (!proofFile) {
-        throw new Error('Adjunta el comprobante de transferencia.');
-    }
-    if (proofFile.size > 5 * 1024 * 1024) {
-        throw new Error('El comprobante supera el limite de 5 MB.');
-    }
-
-    const upload = await requireFn('uploadTransferProof')(proofFile, { retries: 2 });
-    const appointmentPayload = await requireFn('buildAppointmentPayload')(getCurrentAppointment());
-
     const captchaToken = await getCaptchaToken('appointment_submit');
 
-    const payload = {
+    const finalPayload = {
         ...appointmentPayload,
-        paymentMethod: 'transfer',
-        paymentStatus: 'pending_transfer_review',
-        transferReference,
-        transferProofPath: upload.transferProofPath || '',
-        transferProofUrl: upload.transferProofUrl || '',
-        transferProofName: upload.transferProofName || '',
-        transferProofMime: upload.transferProofMime || '',
-        status: 'confirmed',
+        ...paymentDetails,
         captchaToken
     };
 
-    return requireFn('createAppointmentRecord')(payload, { allowLocalFallback: false });
-}
-
-async function processCashPaymentFlow() {
-    const appointmentPayload = await requireFn('buildAppointmentPayload')(getCurrentAppointment());
-    const captchaToken = await getCaptchaToken('appointment_submit');
-    const payload = {
-        ...appointmentPayload,
-        paymentMethod: 'cash',
-        paymentStatus: 'pending_cash',
-        status: 'confirmed',
-        captchaToken
-    };
-
-    return requireFn('createAppointmentRecord')(payload, { allowLocalFallback: false });
+    return requireFn('createAppointmentRecord')(finalPayload, { allowLocalFallback: false });
 }
 
 /**
@@ -537,14 +537,7 @@ async function processPayment() {
             paymentMethod: paymentMethod || 'unknown'
         });
 
-        let result;
-        if (paymentMethod === 'card') {
-            result = await processCardPaymentFlow();
-        } else if (paymentMethod === 'transfer') {
-            result = await processTransferPaymentFlow();
-        } else {
-            result = await processCashPaymentFlow();
-        }
+        const result = await processPaymentFlow(paymentMethod);
 
         setCurrentAppointment(result.appointment);
 
