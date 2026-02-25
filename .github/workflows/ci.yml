@@ -240,6 +240,7 @@ jobs:
         timeout-minutes: 25
         env:
             TEST_BASE_URL: ${{ vars.STAGING_URL || 'https://staging.pielarmonia.com' }}
+            PROD_BASE_URL: ${{ vars.PROD_URL || 'https://pielarmonia.com' }}
         steps:
             - uses: actions/checkout@v4
             - name: Detect C1 gate relevant changes
@@ -266,6 +267,26 @@ jobs:
               with:
                   node-version: '20'
                   cache: 'npm'
+            - name: Resolve effective C1 base URL
+              if: steps.changes.outputs.c1 == 'true'
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  candidate="${TEST_BASE_URL%/}"
+                  host="$(node -e "const u=new URL(process.argv[1]);process.stdout.write(u.hostname);" "$candidate")"
+                  if getent hosts "$host" >/dev/null 2>&1; then
+                    effective="$candidate"
+                    echo "Using staging candidate: $effective"
+                  else
+                    effective="${PROD_BASE_URL%/}"
+                    fallback_host="$(node -e "const u=new URL(process.argv[1]);process.stdout.write(u.hostname);" "$effective")"
+                    if ! getent hosts "$fallback_host" >/dev/null 2>&1; then
+                      echo "::error::No se pudo resolver ni staging ($host) ni prod ($fallback_host)."
+                      exit 1
+                    fi
+                    echo "::warning::Staging no resolvio ($host). Se usa fallback PROD: $effective"
+                  fi
+                  echo "EFFECTIVE_TEST_BASE_URL=$effective" >> "$GITHUB_ENV"
             - name: Install Node Dependencies
               if: steps.changes.outputs.c1 == 'true'
               run: npm ci
@@ -276,14 +297,14 @@ jobs:
               if: steps.changes.outputs.c1 == 'true'
               run: npm run test:figo-contract
               env:
-                  TEST_BASE_URL: ${{ env.TEST_BASE_URL }}
+                  TEST_BASE_URL: ${{ env.EFFECTIVE_TEST_BASE_URL }}
                   TEST_FIGO_CHAT_LATENCY: 'false'
             - name: Smoke staging chat endpoints
               if: steps.changes.outputs.c1 == 'true'
               shell: bash
               run: |
                   set -euo pipefail
-                  base="${TEST_BASE_URL%/}"
+                  base="${EFFECTIVE_TEST_BASE_URL%/}"
                   echo "C1 smoke base: ${base}"
 
                   health_code="$(curl -sS -o /tmp/c1-health.json -w "%{http_code}" "${base}/api.php?resource=health")"
