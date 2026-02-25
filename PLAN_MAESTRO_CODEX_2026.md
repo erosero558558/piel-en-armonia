@@ -75,8 +75,8 @@ Objetivo:
 Entregables:
 
 - [x] Validacion automatica de configuracion de observabilidad en health/reportes.
-- [ ] Clasificacion de alertas por severidad e impacto.
-- [ ] Playbook operativo con ruta de diagnostico rapida.
+- [x] Clasificacion de alertas por severidad e impacto.
+- [x] Playbook operativo con ruta de diagnostico rapida.
 
 Criterio de salida:
 
@@ -145,3 +145,4 @@ Criterio de salida:
 - 2026-02-24: implementada convivencia Orquestador+Codex sin solapes con task espejo `CDX-001` en `AGENT_BOARD.yaml`, `AGENT_HANDOFFS.yaml`, bloque `CODEX_ACTIVE`, `handoffs lint` + `codex-check` en `agent-orchestrator.js`, validacion espejo/handoffs en `bin/validate-agent-governance.php` y gate CI actualizado (`agent-governance.yml`); validado con `agent-orchestrator.js` (`conflicts/handoffs/codex-check`) y `php bin/validate-agent-governance.php`.
 - 2026-02-24: endurecida sonda `phase2-flakiness-probe.yml` con runner dedicado `bin/run-phase2-flakiness.js` (reporte JSON + clasificacion `stable|intermittent|unstable` + artefacto `phase2-flakiness-report`) para convertir C1 en senal reproducible y trazable por ejecucion.
 - 2026-02-25: activado modo de operacion de estabilidad en 2 carriles (`post-deploy-fast.yml` para push diario y `nightly-stability.yml` para regresion pesada), con nuevo `gate:prod:fast` (verify+smoke sin benchmark) y `nightly:stability`; validado en produccion con `gate:prod:fast` exitoso (`DurationSec=14.1`, health/smoke OK, benchmark omitido en fast lane).
+- 2026-02-25: `REPORTE-SEMANAL-PRODUCCION.ps1` ahora expone `warningDetails` (code/severity/impact/runbookRef), `warningsByImpact` y `triagePlaybook` (SLA 15 min) en JSON/markdown para C3 sin cambios breaking.

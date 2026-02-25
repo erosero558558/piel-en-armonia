@@ -101,6 +101,61 @@ function Get-WarningSeverity {
     return 'critical'
 }
 
+function Get-WarningImpact {
+    param([string]$WarningCode)
+
+    if ([string]::IsNullOrWhiteSpace($WarningCode)) {
+        return 'platform'
+    }
+
+    if ($WarningCode.StartsWith('calendar_')) {
+        return 'agenda'
+    }
+    if ($WarningCode.StartsWith('figo_post_p95_alto_')) {
+        return 'chat'
+    }
+    if ($WarningCode.StartsWith('conversion_rate_') -or $WarningCode.StartsWith('start_checkout_rate_')) {
+        return 'conversion'
+    }
+    if ($WarningCode.StartsWith('recurrence_rate_') -or $WarningCode.StartsWith('no_show_rate_alta_')) {
+        return 'retention'
+    }
+    if ($WarningCode.StartsWith('sentry_')) {
+        return 'observability'
+    }
+
+    return 'platform'
+}
+
+function Get-WarningRunbookRef {
+    param([string]$WarningCode)
+
+    if ([string]::IsNullOrWhiteSpace($WarningCode)) {
+        return 'docs/RUNBOOKS.md#2-respuesta-a-incidentes-emergency-response'
+    }
+
+    if ($WarningCode -eq 'calendar_unreachable' -or $WarningCode -eq 'calendar_token_unhealthy' -or $WarningCode.StartsWith('calendar_')) {
+        return 'docs/RUNBOOKS.md#21-sitio-caido-http-500--timeout'
+    }
+    if ($WarningCode.StartsWith('figo_post_p95_alto_')) {
+        return 'docs/RUNBOOKS.md#24-chatbot-no-responde'
+    }
+    if ($WarningCode.StartsWith('core_p95_alto_') -or $WarningCode.StartsWith('error_rate_alta_')) {
+        return 'docs/RUNBOOKS.md#25-falso-negativo-de-gate-por-latencia-p95'
+    }
+    if ($WarningCode.StartsWith('sentry_')) {
+        return 'docs/MONITORING_SETUP.md'
+    }
+    if ($WarningCode.StartsWith('conversion_rate_') -or $WarningCode.StartsWith('start_checkout_rate_')) {
+        return 'docs/RUNBOOKS.md#31-monitoreo-diario'
+    }
+    if ($WarningCode.StartsWith('recurrence_rate_') -or $WarningCode.StartsWith('no_show_rate_alta_')) {
+        return 'docs/RUNBOOKS.md#31-monitoreo-diario'
+    }
+
+    return 'docs/RUNBOOKS.md#2-respuesta-a-incidentes-emergency-response'
+}
+
 function Invoke-JsonGet {
     param(
         [string]$Name,
@@ -812,13 +867,37 @@ if (
 }
 $warningsCritical = New-Object System.Collections.Generic.List[string]
 $warningsNonCritical = New-Object System.Collections.Generic.List[string]
+$warningDetails = New-Object System.Collections.Generic.List[object]
 foreach ($warningCode in $warnings) {
     $warningSeverity = Get-WarningSeverity -WarningCode $warningCode
+    $warningImpact = Get-WarningImpact -WarningCode $warningCode
+    $warningRunbookRef = Get-WarningRunbookRef -WarningCode $warningCode
+    $warningDetails.Add([pscustomobject]@{
+        code = $warningCode
+        severity = $warningSeverity
+        impact = $warningImpact
+        runbookRef = $warningRunbookRef
+    })
     if ($warningSeverity -eq 'non_critical') {
         $warningsNonCritical.Add($warningCode)
     } else {
         $warningsCritical.Add($warningCode)
     }
+}
+$warningsByImpact = [ordered]@{
+    agenda = @()
+    chat = @()
+    conversion = @()
+    retention = @()
+    observability = @()
+    platform = @()
+}
+foreach ($item in $warningDetails) {
+    $impactKey = [string]$item.impact
+    if (-not $warningsByImpact.Contains($impactKey)) {
+        $warningsByImpact[$impactKey] = @()
+    }
+    $warningsByImpact[$impactKey] += [string]$item.code
 }
 $warningCountsTotal = $warnings.Count
 $warningCountsCritical = $warningsCritical.Count
@@ -828,6 +907,25 @@ $warningBlock = if ($warnings.Count -eq 0) {
 } else {
     ($warnings | ForEach-Object { "- $_" }) -join "`n"
 }
+$warningDetailBlock = if ($warningDetails.Count -eq 0) {
+    '- none'
+} else {
+    ($warningDetails | ForEach-Object { "- code: $($_.code) | severity: $($_.severity) | impact: $($_.impact) | runbook: $($_.runbookRef)" }) -join "`n"
+}
+$warningsByImpactPayload = [ordered]@{}
+foreach ($impactKey in $warningsByImpact.Keys) {
+    $warningsByImpactPayload[$impactKey] = @($warningsByImpact[$impactKey])
+}
+$warningDetailsPayload = @(
+    $warningDetails | ForEach-Object {
+        [ordered]@{
+            code = [string]$_.code
+            severity = [string]$_.severity
+            impact = [string]$_.impact
+            runbookRef = [string]$_.runbookRef
+        }
+    }
+)
 
 $markdown = @"
 # Weekly Production Report - Piel en Armonia
@@ -908,6 +1006,16 @@ $($benchTable -join "`n")
 - warnings_non_critical: $warningCountsNonCritical
 
 $warningBlock
+
+## Warning Details
+
+$warningDetailBlock
+
+## Incident Triage (<= 15 min)
+
+- minute_0_5: run `npm run gate:prod:fast` and check health/availability/chat status.
+- minute_5_10: pick first critical warning and follow `runbookRef`.
+- minute_10_15: if still degraded, escalate and open/refresh incident issue `[ALERTA PROD]`.
 "@
 
 Set-Content -Path $reportMdPath -Value $markdown -Encoding UTF8
@@ -1000,9 +1108,21 @@ $reportPayload = [ordered]@{
         critical = @($warningsCritical)
         nonCritical = @($warningsNonCritical)
     }
+    warningsByImpact = $warningsByImpactPayload
+    warningDetails = $warningDetailsPayload
     warningsCritical = @($warningsCritical)
     warningsNonCritical = @($warningsNonCritical)
     warnings = @($warnings)
+    triagePlaybook = [ordered]@{
+        targetMinutes = 15
+        quickChecks = @(
+            'npm run gate:prod:fast',
+            'GET /api.php?resource=health',
+            'GET /api.php?resource=availability',
+            'POST /figo-chat.php'
+        )
+        defaultRunbook = 'docs/RUNBOOKS.md#2-respuesta-a-incidentes-emergency-response'
+    }
 }
 $reportPayload | ConvertTo-Json -Depth 10 | Set-Content -Path $reportJsonPath -Encoding UTF8
 
