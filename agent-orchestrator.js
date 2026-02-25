@@ -33,6 +33,7 @@ const domainTaskGuards = require('./tools/agent-orchestrator/domain/task-guards'
 const domainTaskCreate = require('./tools/agent-orchestrator/domain/task-create');
 const domainDiagnostics = require('./tools/agent-orchestrator/domain/diagnostics');
 const domainMetrics = require('./tools/agent-orchestrator/domain/metrics');
+const domainStatus = require('./tools/agent-orchestrator/domain/status');
 const taskCommandHandlers = require('./tools/agent-orchestrator/commands/task');
 
 const ROOT = __dirname;
@@ -560,268 +561,21 @@ function buildExecutorContribution(tasks) {
 }
 
 function inferTaskDomain(task) {
-    const scope = normalizePathToken(task?.scope || '');
-    const files = Array.isArray(task?.files)
-        ? task.files.map((item) => normalizePathToken(item))
-        : [];
-    const corpus = [scope, ...files].join(' ');
-
-    if (
-        corpus.includes('calendar') ||
-        corpus.includes('availability') ||
-        corpus.includes('booked-slots')
-    ) {
-        return 'calendar';
-    }
-    if (
-        corpus.includes('chat') ||
-        corpus.includes('figo') ||
-        corpus.includes('telegram')
-    ) {
-        return 'chat';
-    }
-    if (
-        corpus.includes('payment') ||
-        corpus.includes('payments') ||
-        corpus.includes('stripe')
-    ) {
-        return 'payments';
-    }
-
-    if (scope) {
-        const first = scope.split(/[/:]/)[0].trim();
-        if (first) return first;
-    }
-    return 'other';
+    return domainMetrics.inferTaskDomain(task, { normalizePathToken });
 }
 
 function buildDomainHealth(tasks, conflictAnalysis, handoffs = []) {
-    const governancePolicy = getGovernancePolicy();
-    const domainHealthPolicy = governancePolicy?.domain_health || {};
-    const priorityDomains = Array.isArray(domainHealthPolicy.priority_domains)
-        ? domainHealthPolicy.priority_domains.map((d) => String(d))
-        : DEFAULT_PRIORITY_DOMAINS.slice();
-    const domainWeights = shallowMerge(
-        DEFAULT_DOMAIN_HEALTH_WEIGHTS,
-        domainHealthPolicy.domain_weights || {}
-    );
-    const signalScores = shallowMerge(
-        DEFAULT_DOMAIN_SIGNAL_SCORES,
-        domainHealthPolicy.signal_scores || {}
-    );
-    const domainMap = new Map();
-    const taskById = new Map();
-
-    function ensureDomain(domain) {
-        const key = String(domain || 'other').trim() || 'other';
-        if (!domainMap.has(key)) {
-            domainMap.set(key, {
-                domain: key,
-                tasks_total: 0,
-                active_tasks: 0,
-                done_tasks: 0,
-                blocked_tasks: 0,
-                failed_tasks: 0,
-                ready_tasks: 0,
-                review_tasks: 0,
-                in_progress_tasks: 0,
-                blocking_conflicts: 0,
-                handoff_conflicts: 0,
-                active_expired_handoffs: 0,
-                reasons: [],
-                signal: 'GREEN',
-            });
-        }
-        return domainMap.get(key);
-    }
-
-    for (const domain of priorityDomains) {
-        ensureDomain(domain);
-    }
-
-    for (const task of tasks || []) {
-        const domain = inferTaskDomain(task);
-        const row = ensureDomain(domain);
-        const status = String(task.status || '');
-
-        row.tasks_total += 1;
-        if (ACTIVE_STATUSES.has(status)) row.active_tasks += 1;
-        if (status === 'done') row.done_tasks += 1;
-        if (status === 'blocked') row.blocked_tasks += 1;
-        if (status === 'failed') row.failed_tasks += 1;
-        if (status === 'ready') row.ready_tasks += 1;
-        if (status === 'review') row.review_tasks += 1;
-        if (status === 'in_progress') row.in_progress_tasks += 1;
-
-        taskById.set(String(task.id || ''), { task, domain });
-    }
-
-    for (const conflict of conflictAnalysis?.all || []) {
-        const leftDomain = inferTaskDomain(conflict.left);
-        const rightDomain = inferTaskDomain(conflict.right);
-        const domains = new Set([leftDomain, rightDomain]);
-        for (const domain of domains) {
-            const row = ensureDomain(domain);
-            if (conflict.exempted_by_handoff) {
-                row.handoff_conflicts += 1;
-            } else {
-                row.blocking_conflicts += 1;
-            }
-        }
-    }
-
-    for (const handoff of handoffs || []) {
-        if (String(handoff.status || '').toLowerCase() !== 'active') continue;
-        if (!isExpired(handoff.expires_at)) continue;
-
-        const from = taskById.get(String(handoff.from_task || ''));
-        const to = taskById.get(String(handoff.to_task || ''));
-        const domains = new Set([
-            from?.domain || 'other',
-            to?.domain || 'other',
-        ]);
-        for (const domain of domains) {
-            ensureDomain(domain).active_expired_handoffs += 1;
-        }
-    }
-
-    const rows = Array.from(domainMap.values()).map((row) => {
-        const reasons = [];
-        let signal = 'GREEN';
-
-        if (row.blocking_conflicts > 0) {
-            signal = 'RED';
-            reasons.push(`blocking_conflicts:${row.blocking_conflicts}`);
-        }
-        if (row.failed_tasks > 0) {
-            signal = 'RED';
-            reasons.push(`failed_tasks:${row.failed_tasks}`);
-        }
-        if (row.blocked_tasks > 0 && signal !== 'RED') {
-            signal = 'YELLOW';
-            reasons.push(`blocked_tasks:${row.blocked_tasks}`);
-        } else if (row.blocked_tasks > 0) {
-            reasons.push(`blocked_tasks:${row.blocked_tasks}`);
-        }
-        if (row.active_expired_handoffs > 0 && signal !== 'RED') {
-            signal = 'YELLOW';
-            reasons.push(
-                `active_expired_handoffs:${row.active_expired_handoffs}`
-            );
-        } else if (row.active_expired_handoffs > 0) {
-            reasons.push(
-                `active_expired_handoffs:${row.active_expired_handoffs}`
-            );
-        }
-        if (row.handoff_conflicts > 0 && signal === 'GREEN') {
-            signal = 'YELLOW';
-            reasons.push(`handoff_conflicts:${row.handoff_conflicts}`);
-        } else if (row.handoff_conflicts > 0) {
-            reasons.push(`handoff_conflicts:${row.handoff_conflicts}`);
-        }
-        if (signal === 'GREEN' && row.active_tasks > 0 && row.tasks_total > 0) {
-            signal = 'YELLOW';
-            reasons.push(`active_tasks:${row.active_tasks}`);
-        }
-        if (row.tasks_total === 0) {
-            reasons.push('no_tasks');
-        }
-        if (reasons.length === 0) {
-            reasons.push('stable');
-        }
-
-        return {
-            ...row,
-            weight: domainWeights[row.domain] ?? domainWeights.default,
-            signal_score_pct: 0,
-            weighted_score_points: 0,
-            signal,
-            reasons,
-        };
+    return domainMetrics.buildDomainHealth(tasks, conflictAnalysis, handoffs, {
+        getGovernancePolicy,
+        shallowMerge,
+        defaultPriorityDomains: DEFAULT_PRIORITY_DOMAINS,
+        defaultDomainHealthWeights: DEFAULT_DOMAIN_HEALTH_WEIGHTS,
+        defaultDomainSignalScores: DEFAULT_DOMAIN_SIGNAL_SCORES,
+        activeStatuses: ACTIVE_STATUSES,
+        isExpired,
+        normalizePathToken,
+        policyExists: existsSync(GOVERNANCE_POLICY_PATH),
     });
-
-    for (const row of rows) {
-        row.signal_score_pct = signalScores[row.signal] ?? signalScores.GREEN;
-        row.weighted_score_points = Math.round(
-            row.signal_score_pct * row.weight
-        );
-    }
-
-    const priorityIndex = new Map(priorityDomains.map((d, i) => [d, i]));
-    rows.sort((a, b) => {
-        const aPri = priorityIndex.has(a.domain)
-            ? priorityIndex.get(a.domain)
-            : 999;
-        const bPri = priorityIndex.has(b.domain)
-            ? priorityIndex.get(b.domain)
-            : 999;
-        return (
-            aPri - bPri ||
-            b.tasks_total - a.tasks_total ||
-            String(a.domain).localeCompare(String(b.domain))
-        );
-    });
-
-    const bySignal = rows.reduce(
-        (acc, row) => {
-            acc[row.signal] = (acc[row.signal] || 0) + 1;
-            return acc;
-        },
-        { GREEN: 0, YELLOW: 0, RED: 0 }
-    );
-
-    const totalWeight = rows.reduce(
-        (acc, row) => acc + Number(row.weight || 0),
-        0
-    );
-    const totalWeightedPoints = rows.reduce(
-        (acc, row) => acc + Number(row.weighted_score_points || 0),
-        0
-    );
-    const priorityRows = rows.filter((row) =>
-        priorityDomains.includes(row.domain)
-    );
-    const priorityWeight = priorityRows.reduce(
-        (acc, row) => acc + Number(row.weight || 0),
-        0
-    );
-    const priorityWeightedPoints = priorityRows.reduce(
-        (acc, row) => acc + Number(row.weighted_score_points || 0),
-        0
-    );
-    const overallWeightedScorePct =
-        totalWeight > 0
-            ? Math.round((totalWeightedPoints / totalWeight) * 10) / 10
-            : 100;
-    const priorityWeightedScorePct =
-        priorityWeight > 0
-            ? Math.round((priorityWeightedPoints / priorityWeight) * 10) / 10
-            : 100;
-
-    return {
-        version: 1,
-        priority_domains: priorityDomains.slice(),
-        scoring: {
-            signal_scores: { ...signalScores },
-            domain_weights: { ...domainWeights },
-            total_weight: totalWeight,
-            total_weighted_points: totalWeightedPoints,
-            overall_weighted_score_pct: overallWeightedScorePct,
-            priority_weight: priorityWeight,
-            priority_weighted_points: priorityWeightedPoints,
-            priority_weighted_score_pct: priorityWeightedScorePct,
-            primary_metric: 'priority_weighted_score_pct',
-            policy_source: existsSync(GOVERNANCE_POLICY_PATH)
-                ? 'governance-policy.json'
-                : 'defaults',
-        },
-        totals: {
-            domains: rows.length,
-            by_signal: bySignal,
-        },
-        domains: Object.fromEntries(rows.map((row) => [row.domain, row])),
-        ranking: rows,
-    };
 }
 
 function loadContributionHistory() {
@@ -855,185 +609,15 @@ function loadDomainHealthHistory() {
 }
 
 function sanitizeDomainHealthSnapshot(domainHealth) {
-    const rows = Array.isArray(domainHealth?.ranking)
-        ? domainHealth.ranking
-        : [];
-    return rows
-        .map((row) => ({
-            domain: String(row.domain || ''),
-            signal: String(row.signal || 'GREEN'),
-            tasks_total: Number(row.tasks_total || 0),
-            active_tasks: Number(row.active_tasks || 0),
-            done_tasks: Number(row.done_tasks || 0),
-            blocking_conflicts: Number(row.blocking_conflicts || 0),
-            handoff_conflicts: Number(row.handoff_conflicts || 0),
-            active_expired_handoffs: Number(row.active_expired_handoffs || 0),
-        }))
-        .sort((a, b) => String(a.domain).localeCompare(String(b.domain)));
+    return domainMetrics.sanitizeDomainHealthSnapshot(domainHealth);
 }
 
 function upsertDomainHealthHistory(history, domainHealth) {
-    const base = history && typeof history === 'object' ? history : {};
-    const snapshots = Array.isArray(base.snapshots)
-        ? base.snapshots.slice()
-        : [];
-    const nowIso = new Date().toISOString();
-    const date = nowIso.slice(0, 10);
-    const snapshotRows = sanitizeDomainHealthSnapshot(domainHealth);
-    const countsBySignal = snapshotRows.reduce(
-        (acc, row) => {
-            acc[row.signal] = (acc[row.signal] || 0) + 1;
-            return acc;
-        },
-        { GREEN: 0, YELLOW: 0, RED: 0 }
-    );
-    const snapshot = {
-        date,
-        captured_at: nowIso,
-        counts_by_signal: countsBySignal,
-        domains: snapshotRows,
-    };
-
-    const next = snapshots.filter((item) => String(item.date || '') !== date);
-    next.push(snapshot);
-    next.sort((a, b) =>
-        String(a.date || '').localeCompare(String(b.date || ''))
-    );
-
-    return {
-        version: 1,
-        updated_at: nowIso,
-        snapshots: next.slice(-365),
-    };
+    return domainMetrics.upsertDomainHealthHistory(history, domainHealth);
 }
 
 function buildDomainHealthHistorySummary(history, days = 7) {
-    const snapshots = Array.isArray(history?.snapshots)
-        ? history.snapshots
-        : [];
-    const ordered = snapshots
-        .filter((item) => item && typeof item === 'object' && item.date)
-        .sort((a, b) => String(a.date).localeCompare(String(b.date)));
-    const recent = ordered.slice(-Math.max(1, Number(days) || 7));
-
-    const domainSet = new Set();
-    for (const item of recent) {
-        for (const row of Array.isArray(item.domains) ? item.domains : []) {
-            domainSet.add(String(row.domain || ''));
-        }
-    }
-    const domains = Array.from(domainSet).filter(Boolean).sort();
-
-    const daily = recent.map((item) => {
-        const byDomain = {};
-        for (const row of Array.isArray(item.domains) ? item.domains : []) {
-            byDomain[String(row.domain || '')] = {
-                signal: String(row.signal || 'GREEN'),
-                tasks_total: Number(row.tasks_total || 0),
-                active_tasks: Number(row.active_tasks || 0),
-                done_tasks: Number(row.done_tasks || 0),
-                blocking_conflicts: Number(row.blocking_conflicts || 0),
-                handoff_conflicts: Number(row.handoff_conflicts || 0),
-                active_expired_handoffs: Number(
-                    row.active_expired_handoffs || 0
-                ),
-            };
-        }
-        return {
-            date: String(item.date),
-            captured_at: String(item.captured_at || ''),
-            counts_by_signal: item.counts_by_signal || {
-                GREEN: 0,
-                YELLOW: 0,
-                RED: 0,
-            },
-            domains: byDomain,
-        };
-    });
-
-    let windowDelta = { available: false, rows: [] };
-    let regressions = {
-        green_to_red: [],
-        worsened_signal: [],
-    };
-    if (daily.length >= 2) {
-        const first = daily[0];
-        const last = daily[daily.length - 1];
-        const union = Array.from(
-            new Set([
-                ...Object.keys(first.domains),
-                ...Object.keys(last.domains),
-            ])
-        ).sort();
-        windowDelta = {
-            available: true,
-            from_date: first.date,
-            to_date: last.date,
-            rows: union.map((domain) => {
-                const firstBlocking = Number(
-                    first.domains[domain]?.blocking_conflicts || 0
-                );
-                const lastBlocking = Number(
-                    last.domains[domain]?.blocking_conflicts || 0
-                );
-                const firstSignal = String(
-                    first.domains[domain]?.signal || 'GREEN'
-                );
-                const lastSignal = String(
-                    last.domains[domain]?.signal || 'GREEN'
-                );
-                return {
-                    domain,
-                    signal_from: firstSignal,
-                    signal_to: lastSignal,
-                    blocking_conflicts_from: firstBlocking,
-                    blocking_conflicts_to: lastBlocking,
-                    blocking_conflicts_delta: lastBlocking - firstBlocking,
-                };
-            }),
-        };
-
-        const severity = { GREEN: 0, YELLOW: 1, RED: 2 };
-        regressions = {
-            green_to_red: windowDelta.rows
-                .filter(
-                    (row) =>
-                        row.signal_from === 'GREEN' && row.signal_to === 'RED'
-                )
-                .map((row) => ({
-                    domain: row.domain,
-                    from_date: first.date,
-                    to_date: last.date,
-                    signal_from: row.signal_from,
-                    signal_to: row.signal_to,
-                    blocking_conflicts_delta: row.blocking_conflicts_delta,
-                })),
-            worsened_signal: windowDelta.rows
-                .filter((row) => {
-                    const from = severity[row.signal_from] ?? 0;
-                    const to = severity[row.signal_to] ?? 0;
-                    return to > from;
-                })
-                .map((row) => ({
-                    domain: row.domain,
-                    from_date: first.date,
-                    to_date: last.date,
-                    signal_from: row.signal_from,
-                    signal_to: row.signal_to,
-                })),
-        };
-    }
-
-    return {
-        version: 1,
-        source_file: 'verification/agent-domain-health-history.json',
-        window_days: Math.max(1, Number(days) || 7),
-        snapshots_total: ordered.length,
-        domains,
-        daily,
-        window_delta: windowDelta,
-        regressions,
-    };
+    return domainMetrics.buildDomainHealthHistorySummary(history, days);
 }
 
 function loadMetricsSnapshot() {
@@ -1274,24 +858,15 @@ function cmdStatus(args) {
     const domainHealthHistory = wantsExplainRed
         ? buildDomainHealthHistorySummary(loadDomainHealthHistory(), 7)
         : null;
-    const data = {
-        version: board.version,
-        policy: board.policy,
-        totals: {
-            tasks: board.tasks.length,
-            byStatus: getStatusCounts(board.tasks),
-            byExecutor: getExecutorCounts(board.tasks),
-        },
+    const data = domainStatus.buildStatusReport({
+        board,
+        conflictAnalysis,
         contribution,
-        contribution_trend: contributionTrend,
-        domain_health: domainHealth,
-        conflicts: conflictAnalysis.blocking.length,
-        conflicts_breakdown: {
-            blocking: conflictAnalysis.blocking.length,
-            handoff: conflictAnalysis.handoffCovered.length,
-            total_pairs: conflictAnalysis.all.length,
-        },
-    };
+        contributionTrend,
+        domainHealth,
+        byStatus: getStatusCounts(board.tasks),
+        byExecutor: getExecutorCounts(board.tasks),
+    });
 
     if (wantsExplainRed) {
         data.red_explanation = buildStatusRedExplanation({
@@ -1308,111 +883,13 @@ function cmdStatus(args) {
         coreOutput.printJson(data);
         return;
     }
-
-    console.log('== Agent Orchestrator Status ==');
-    console.log(`Version board: ${data.version}`);
-    console.log(`Total tasks: ${data.totals.tasks}`);
-    console.log(`Conflicts activos (blocking): ${data.conflicts}`);
-    console.log(
-        `Conflicts eximidos por handoff: ${data.conflicts_breakdown.handoff}`
+    process.stdout.write(
+        domainStatus.renderStatusText(data, {
+            wantsExplainRed,
+            getContributionSignal,
+            formatPpDelta,
+        })
     );
-    console.log('');
-    console.log('Por estado:');
-    for (const [status, count] of Object.entries(data.totals.byStatus)) {
-        console.log(`- ${status}: ${count}`);
-    }
-    console.log('');
-    console.log('Por ejecutor:');
-    for (const [executor, count] of Object.entries(data.totals.byExecutor)) {
-        console.log(`- ${executor}: ${count}`);
-    }
-    if (Array.isArray(data.domain_health?.ranking)) {
-        console.log('');
-        console.log('Semaforo por dominio:');
-        if (data.domain_health?.scoring) {
-            console.log(
-                `- Score dominios (ponderado priority): ${data.domain_health.scoring.priority_weighted_score_pct}%`
-            );
-            console.log(
-                `- Score dominios (ponderado global): ${data.domain_health.scoring.overall_weighted_score_pct}%`
-            );
-        }
-        for (const row of data.domain_health.ranking) {
-            console.log(
-                `- [${row.signal}] ${row.domain}: tasks=${row.tasks_total}, active=${row.active_tasks}, blocking=${row.blocking_conflicts}, handoff=${row.handoff_conflicts}`
-            );
-        }
-    }
-    if (data.contribution.top_executor) {
-        const executorsByName = new Map(
-            data.contribution.executors.map((row) => [row.executor, row])
-        );
-        const trendByExecutor = new Map(
-            Array.isArray(data.contribution_trend?.rows)
-                ? data.contribution_trend.rows.map((row) => [row.executor, row])
-                : []
-        );
-        console.log('');
-        console.log('Aporte (ranking por completado ponderado):');
-        if (data.contribution_trend) {
-            console.log(
-                `- Baseline de comparacion: ${data.contribution_trend.baseline_source}`
-            );
-        } else {
-            console.log(
-                '- Baseline de comparacion: n/a (ejecuta `node agent-orchestrator.js metrics` para fijarlo)'
-            );
-        }
-        for (const row of data.contribution.ranking) {
-            const fullRow = executorsByName.get(row.executor) || row;
-            const trendRow = trendByExecutor.get(row.executor);
-            const signal = getContributionSignal({
-                ...fullRow,
-                rank: row.rank,
-            });
-            const weightedDoneDelta = trendRow
-                ? formatPpDelta(trendRow.weighted_done_points_pct_delta)
-                : 'n/a';
-            console.log(
-                `- [${signal}] #${row.rank} ${row.executor}: ${row.weighted_done_points_pct}% (done ponderado, delta ${weightedDoneDelta} vs baseline), ${row.done_tasks_pct}% (tareas done)`
-            );
-        }
-    }
-
-    if (wantsExplainRed) {
-        const explain = data.red_explanation || {};
-        console.log('');
-        console.log('Explain RED (status):');
-        console.log(`- Signal: ${explain.signal || 'n/a'}`);
-        console.log(
-            `- Blockers: ${
-                Array.isArray(explain.blockers) && explain.blockers.length > 0
-                    ? explain.blockers.join(', ')
-                    : 'none'
-            }`
-        );
-        console.log(
-            `- Reasons: ${
-                Array.isArray(explain.reasons) && explain.reasons.length > 0
-                    ? explain.reasons.join(', ')
-                    : 'none'
-            }`
-        );
-        if (
-            Array.isArray(explain.top_blocking_conflicts) &&
-            explain.top_blocking_conflicts.length > 0
-        ) {
-            console.log('- Top blocking conflicts:');
-            for (const item of explain.top_blocking_conflicts) {
-                const files = Array.isArray(item.overlap_files)
-                    ? item.overlap_files.join(', ')
-                    : '';
-                console.log(
-                    `  - ${item.left?.id || 'n/a'} <-> ${item.right?.id || 'n/a'} :: ${files || '(wildcard ambiguo)'}`
-                );
-            }
-        }
-    }
 }
 
 function safeNumber(value, fallback = 0) {
