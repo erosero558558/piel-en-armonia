@@ -293,8 +293,25 @@ function normalizeTaskForCreateApply(rawTask, options = {}) {
         files: Array.isArray(rawTask.files)
             ? rawTask.files.map((v) => String(v || '').trim()).filter(Boolean)
             : [],
+        source_signal: String(rawTask.source_signal || 'manual')
+            .trim()
+            .toLowerCase(),
+        source_ref: String(rawTask.source_ref || '').trim(),
+        priority_score: Number.parseInt(
+            String(rawTask.priority_score ?? 0),
+            10
+        ),
+        sla_due_at: String(rawTask.sla_due_at || '').trim(),
+        last_attempt_at: String(rawTask.last_attempt_at || '').trim(),
+        attempts: Number.parseInt(String(rawTask.attempts ?? 0), 10),
+        blocked_reason: String(rawTask.blocked_reason || '').trim(),
+        runtime_impact: String(rawTask.runtime_impact || 'low')
+            .trim()
+            .toLowerCase(),
+        critical_zone: Boolean(rawTask.critical_zone),
         acceptance: String(rawTask.acceptance || rawTask.title || '').trim(),
         acceptance_ref: String(rawTask.acceptance_ref || '').trim(),
+        evidence_ref: String(rawTask.evidence_ref || '').trim(),
         depends_on: Array.isArray(rawTask.depends_on)
             ? rawTask.depends_on
                   .map((v) => String(v || '').trim())
@@ -333,6 +350,19 @@ function normalizeTaskForCreateApply(rawTask, options = {}) {
     }
     if (!['low', 'medium', 'high'].includes(task.risk)) {
         throw new Error(`task create --apply: risk invalido (${task.risk})`);
+    }
+    if (!['none', 'low', 'high'].includes(task.runtime_impact)) {
+        throw new Error(
+            `task create --apply: runtime_impact invalido (${task.runtime_impact})`
+        );
+    }
+    if (!Number.isFinite(task.priority_score)) {
+        task.priority_score = 0;
+    }
+    if (task.priority_score < 0) task.priority_score = 0;
+    if (task.priority_score > 100) task.priority_score = 100;
+    if (!Number.isFinite(task.attempts) || task.attempts < 0) {
+        task.attempts = 0;
     }
     if (task.files.length === 0) {
         throw new Error('task create --apply requiere task.files no vacio');
@@ -438,8 +468,18 @@ function buildTaskCreatePreviewDiff(existingTask, previewTask, options = {}) {
         'risk',
         'scope',
         'files',
+        'source_signal',
+        'source_ref',
+        'priority_score',
+        'sla_due_at',
+        'last_attempt_at',
+        'attempts',
+        'blocked_reason',
+        'runtime_impact',
+        'critical_zone',
         'acceptance',
         'acceptance_ref',
+        'evidence_ref',
         'depends_on',
         'prompt',
     ];

@@ -1,4 +1,4 @@
-name: Agent Autopilot
+name: Agent Intake
 
 on:
     workflow_dispatch:
@@ -6,19 +6,22 @@ on:
         - cron: '*/15 * * * *'
 
 concurrency:
-    group: agent-autopilot-${{ github.ref }}
+    group: agent-intake-${{ github.ref }}
     cancel-in-progress: true
 
 permissions:
     contents: write
+    actions: read
+    issues: read
+    pull-requests: read
 
 jobs:
-    autopilot-jules:
+    intake:
         runs-on: ubuntu-latest
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
-            JULES_MAX_DISPATCH_PER_RUN: ${{ vars.JULES_MAX_DISPATCH_PER_RUN || '1' }}
+            JULES_MAX_DISPATCH_PER_RUN: ${{ vars.JULES_MAX_DISPATCH_PER_RUN || '2' }}
             JULES_MAX_ACTIVE_SESSIONS: ${{ vars.JULES_MAX_ACTIVE_SESSIONS || '6' }}
         steps:
             - name: Checkout
@@ -28,52 +31,45 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version: '20'
+                  cache: 'npm'
 
             - name: Setup PHP
               uses: shivammathur/setup-php@v2
               with:
                   php-version: '8.2'
 
-            - name: Sync and governance validation
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Intake -> score -> stale -> conflict gate
               run: |
-                  node agent-orchestrator.js intake
+                  node agent-orchestrator.js intake --strict
                   node agent-orchestrator.js score
-                  node agent-orchestrator.js sync
                   node agent-orchestrator.js stale --strict
                   node agent-orchestrator.js conflicts --strict
-                  php bin/validate-agent-governance.php
 
-            - name: Dispatch pending Jules tasks
-              shell: bash
-              run: |
-                  if [ -z "${JULES_API_KEY:-}" ]; then
-                    echo "JULES_API_KEY no configurado. Se omite dispatch."
-                    exit 0
-                  fi
-                  node jules-dispatch.js dispatch
+            - name: Dispatch Jules queue from orchestrator
+              run: node agent-orchestrator.js dispatch --agent jules
 
-            - name: Reconcile Jules task states
-              shell: bash
-              run: |
-                  if [ -z "${JULES_API_KEY:-}" ]; then
-                    echo "JULES_API_KEY no configurado. Se omite reconcile."
-                    exit 0
-                  fi
-                  node jules-dispatch.js reconcile
+            - name: Reconcile queue and merged PR evidence
+              run: node agent-orchestrator.js reconcile --strict
 
-            - name: Print status snapshot
-              run: node agent-orchestrator.js status
+            - name: Governance validation
+              run: php bin/validate-agent-governance.php
 
-            - name: Commit queue state changes
+            - name: Status snapshot
+              run: node agent-orchestrator.js status --explain-red
+
+            - name: Commit state changes
               run: |
                   if git diff --quiet -- AGENT_BOARD.yaml AGENT_SIGNALS.yaml JULES_TASKS.md KIMI_TASKS.md; then
-                    echo "No queue changes to commit."
+                    echo "No orchestrator changes to commit."
                     exit 0
                   fi
 
                   git config user.name "github-actions[bot]"
                   git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
                   git add AGENT_BOARD.yaml AGENT_SIGNALS.yaml JULES_TASKS.md KIMI_TASKS.md
-                  git commit -m "chore(agents): autopilot queue sync [skip ci]"
+                  git commit -m "chore(agents): intake/score/reconcile sync [skip ci]"
                   git pull --rebase origin "${GITHUB_REF_NAME}"
                   git push origin "HEAD:${GITHUB_REF_NAME}"

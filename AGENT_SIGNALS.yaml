@@ -1,0 +1,94 @@
+version: 1
+updated_at: 2026-02-25T03:08:07.592Z
+signals:
+  - id: SIG-001
+    fingerprint: "issue:issue#279"
+    source: issue
+    source_ref: "issue#279"
+    title: "[ALERTA PROD] Monitor de produccion fallando"
+    severity: critical
+    critical: true
+    status: closed
+    runtime_impact: high
+    url: "https://github.com/erosero558558/piel-en-armonia/issues/279"
+    detected_at: "2026-02-24T23:54:38Z"
+    updated_at: "2026-02-25T03:08:07.592Z"
+    labels: []
+  - id: SIG-002
+    fingerprint: "issue:issue#263"
+    source: issue
+    source_ref: "issue#263"
+    title: "[ALERTA PROD] Repair git sync fallando"
+    severity: critical
+    critical: true
+    status: closed
+    runtime_impact: high
+    url: "https://github.com/erosero558558/piel-en-armonia/issues/263"
+    detected_at: "2026-02-24T05:28:45Z"
+    updated_at: "2026-02-25T03:08:07.592Z"
+    labels: []
+  - id: SIG-003
+    fingerprint: "workflow:run#22379873691"
+    source: workflow
+    source_ref: "run#22379873691"
+    title: "CI: refactor(governance): extract remaining commands and add php contract…"
+    severity: medium
+    critical: false
+    status: resolved
+    runtime_impact: low
+    url: "https://github.com/erosero558558/piel-en-armonia/actions/runs/22379873691"
+    detected_at: "2026-02-25T02:45:14Z"
+    updated_at: "2026-02-25T03:08:07.592Z"
+    labels: ["workflow:CI"]
+  - id: SIG-004
+    fingerprint: "workflow:run#22379426844"
+    source: workflow
+    source_ref: "run#22379426844"
+    title: "CI: feat(governance): add warn-first diagnostics and policy enforcement c…"
+    severity: medium
+    critical: false
+    status: resolved
+    runtime_impact: low
+    url: "https://github.com/erosero558558/piel-en-armonia/actions/runs/22379426844"
+    detected_at: "2026-02-25T02:26:25Z"
+    updated_at: "2026-02-25T03:08:07.592Z"
+    labels: ["workflow:CI"]
+  - id: SIG-005
+    fingerprint: "workflow:run#22379136316"
+    source: workflow
+    source_ref: "run#22379136316"
+    title: "CI: feat: automate calendar smoke and add hero AB conversion tracking"
+    severity: medium
+    critical: false
+    status: resolved
+    runtime_impact: low
+    url: "https://github.com/erosero558558/piel-en-armonia/actions/runs/22379136316"
+    detected_at: "2026-02-25T02:14:39Z"
+    updated_at: "2026-02-25T03:08:07.592Z"
+    labels: ["workflow:CI"]
+  - id: SIG-006
+    fingerprint: "workflow:run#22379059437"
+    source: workflow
+    source_ref: "run#22379059437"
+    title: "CI: refactor(orchestrator): extract contribution metrics engine"
+    severity: medium
+    critical: false
+    status: resolved
+    runtime_impact: low
+    url: "https://github.com/erosero558558/piel-en-armonia/actions/runs/22379059437"
+    detected_at: "2026-02-25T02:11:35Z"
+    updated_at: "2026-02-25T03:08:07.592Z"
+    labels: ["workflow:CI"]
+  - id: SIG-007
+    fingerprint: "workflow:ci:main"
+    source: workflow
+    source_ref: "workflow:ci:main"
+    title: "CI: refactor(orchestrator): extract contribution metrics engine"
+    severity: medium
+    critical: false
+    status: resolved
+    runtime_impact: low
+    url: "https://github.com/erosero558558/piel-en-armonia/actions/runs/22379059437"
+    detected_at: "2026-02-25T02:51:54Z"
+    updated_at: "2026-02-25T03:08:07.592Z"
+    labels: ["workflow:CI"]

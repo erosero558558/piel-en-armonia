@@ -85,7 +85,10 @@ El tablero unico vive en `AGENT_BOARD.yaml`.
 Campos obligatorios por tarea:
 
 - `id`, `title`, `owner`, `executor`, `status`, `risk`, `scope`, `files`,
-  `acceptance`, `depends_on`, `created_at`, `updated_at`.
+  `source_signal`, `source_ref`, `priority_score`, `sla_due_at`,
+  `last_attempt_at`, `attempts`, `blocked_reason`, `runtime_impact`,
+  `critical_zone`, `acceptance`, `acceptance_ref`, `evidence_ref`,
+  `depends_on`, `created_at`, `updated_at`.
 
 Estados permitidos:
 
@@ -104,6 +107,12 @@ Comandos canonicos:
 node agent-orchestrator.js status
 node agent-orchestrator.js status --explain-red
 node agent-orchestrator.js status --json --explain-red
+node agent-orchestrator.js intake --strict
+node agent-orchestrator.js score
+node agent-orchestrator.js stale --strict
+node agent-orchestrator.js reconcile --json
+node agent-orchestrator.js budget --json
+node agent-orchestrator.js dispatch --agent jules --json
 node agent-orchestrator.js conflicts
 node agent-orchestrator.js conflicts --json
 node agent-orchestrator.js handoffs status

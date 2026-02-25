@@ -98,3 +98,71 @@ dispatched:
 Implementar wrapper PHPMailer para confirmaciones y recordatorios con templates HTML y test.
 
 <!-- /TASK -->
+
+<!-- TASK
+status: done
+task_id: AG-014
+risk: medium
+scope: ops
+files: .github/workflows/ci.yml
+acceptance_ref: signal_resolved:auto
+dispatched_by: agent-orchestrator
+session: 
+dispatched: 
+-->
+### Resolver fallo workflow: CI: refactor(governance): extract remaining commands and add php contract…
+
+Resolver señal run#22379873691. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/.
+
+<!-- /TASK -->
+
+<!-- TASK
+status: done
+task_id: AG-015
+risk: medium
+scope: ops
+files: .github/workflows/ci.yml
+acceptance_ref: signal_resolved:auto
+dispatched_by: agent-orchestrator
+session: 
+dispatched: 
+-->
+### Resolver fallo workflow: CI: feat(governance): add warn-first diagnostics and policy enforcement c…
+
+Resolver señal run#22379426844. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/.
+
+<!-- /TASK -->
+
+<!-- TASK
+status: done
+task_id: AG-017
+risk: medium
+scope: ops
+files: .github/workflows/ci.yml
+acceptance_ref: signal_resolved:auto
+dispatched_by: agent-orchestrator
+session: 
+dispatched: 
+-->
+### Resolver fallo workflow: CI: refactor(orchestrator): extract contribution metrics engine
+
+Resolver señal run#22379059437. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/.
+
+<!-- /TASK -->
+
+<!-- TASK
+status: done
+task_id: AG-018
+risk: medium
+scope: ops
+files: .github/workflows/ci.yml
+acceptance_ref: signal_resolved:auto
+dispatched_by: agent-orchestrator
+session: 
+dispatched: 
+-->
+### Resolver fallo workflow: CI: refactor(orchestrator): extract contribution metrics engine
+
+Resolver señal workflow:ci:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/.
+
+<!-- /TASK -->

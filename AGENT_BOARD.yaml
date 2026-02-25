@@ -14,12 +14,22 @@ tasks:
     risk: high
     scope: platform
     files: ["backup-receiver.php", "verify-backup.php", "lib/backup.php", "tests/BackupReceiverTest.php", "env.example.php", "docs/RUNBOOKS.md"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 80
+    sla_due_at: "2026-02-25T14:50:15.243Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
     acceptance: "Validar checksum SHA-256, cifrado en reposo y limpieza por retencion."
     acceptance_ref: "tests/BackupReceiverTest.php"
+    evidence_ref: "queue:jules"
     depends_on: []
     prompt: "Implementar checksum SHA-256 por header, cifrado AES-256-CBC y prueba de integridad con test."
     created_at: 2026-02-24
-    updated_at: 2026-02-24
+    updated_at: 2026-02-25
 
   - id: AG-002
     title: "PHP rate-limiter sliding window and per-user limits"
@@ -29,12 +39,22 @@ tasks:
     risk: medium
     scope: backend
     files: ["lib/ratelimit.php", "tests/RateLimiterTest.php", "tests/Security/RateLimiterTest.php", "tests/Unit/Security/RateLimiterTest.php", "env.example.php"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 60
+    sla_due_at: "2026-02-27T02:50:15.243Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
     acceptance: "Aplicar sliding window real, limites por usuario e instrumentacion de eventos."
     acceptance_ref: "tests/RateLimiterTest.php"
+    evidence_ref: "queue:jules"
     depends_on: []
     prompt: "Actualizar rate-limiter a sliding window, incluir limite por user token y pruebas de regresion."
     created_at: 2026-02-24
-    updated_at: 2026-02-24
+    updated_at: 2026-02-25
 
   - id: AG-003
     title: "OpenAPI 3.1 specification for public API resources"
@@ -44,12 +64,22 @@ tasks:
     risk: low
     scope: docs
     files: ["docs/openapi.yaml", "README.md"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 35
+    sla_due_at: "2026-02-28T02:50:15.243Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
     acceptance: "Especificacion OpenAPI 3.1 completa y utilizable en preview local."
     acceptance_ref: "docs/openapi.yaml,README.md"
+    evidence_ref: "queue:jules"
     depends_on: []
     prompt: "Generar OpenAPI 3.1 para api.php recursos principales y documentar como visualizarla localmente."
     created_at: 2026-02-24
-    updated_at: 2026-02-24
+    updated_at: 2026-02-25
 
   - id: AG-004
     title: "Email notification system for appointment confirmations"
@@ -59,12 +89,22 @@ tasks:
     risk: medium
     scope: backend
     files: ["lib/mailer.php", "templates/email", "tests/MailerTest.php"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 60
+    sla_due_at: "2026-02-27T02:50:15.243Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
     acceptance: "Envio de confirmaciones y cola de reintentos de email con pruebas."
     acceptance_ref: "verification/agent-runs/AG-004.md"
+    evidence_ref: "queue:jules"
     depends_on: []
     prompt: "Implementar wrapper PHPMailer para confirmaciones y recordatorios con templates HTML y test."
     created_at: 2026-02-24
-    updated_at: 2026-02-24
+    updated_at: 2026-02-25
 
   - id: AG-005
     title: "Audit dead code in js engines"
@@ -74,12 +114,22 @@ tasks:
     risk: low
     scope: audit
     files: ["js/engines", "docs/dead-code-audit.md"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 35
+    sla_due_at: "2026-02-28T02:50:15.243Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
     acceptance: "Reporte en markdown con codigo muerto, logs y TODO/FIXME."
     acceptance_ref: "docs/dead-code-audit.md"
+    evidence_ref: "queue:kimi"
     depends_on: []
     prompt: "Auditar js/engines y generar docs/dead-code-audit.md sin tocar logica de JS."
     created_at: 2026-02-24
-    updated_at: 2026-02-24
+    updated_at: 2026-02-25
 
   - id: AG-006
     title: "Add editorconfig and normalize line-end policy"
@@ -89,12 +139,22 @@ tasks:
     risk: low
     scope: tooling
     files: [".editorconfig", ".gitattributes"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 35
+    sla_due_at: "2026-02-28T02:50:15.243Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
     acceptance: "Normalizar reglas de indentacion y EOL sin tocar codigo de aplicacion."
     acceptance_ref: ".editorconfig,.gitattributes"
+    evidence_ref: "queue:kimi"
     depends_on: []
     prompt: "Crear/ajustar .editorconfig y .gitattributes para estandarizar indentacion y finales de linea."
     created_at: 2026-02-24
-    updated_at: 2026-02-24
+    updated_at: 2026-02-25
 
   - id: AG-007
     title: "Add missing PHPDoc in core lib files"
@@ -104,12 +164,22 @@ tasks:
     risk: low
     scope: docs
     files: ["lib/audit.php", "lib/ratelimit.php", "lib/email.php"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 35
+    sla_due_at: "2026-02-28T02:50:15.243Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
     acceptance: "Agregar PHPDoc faltante en funciones public/protected sin cambiar logica."
     acceptance_ref: "lib/audit.php,lib/ratelimit.php,lib/email.php"
+    evidence_ref: "queue:kimi"
     depends_on: []
     prompt: "Agregar PHPDoc faltantes en librerias core sin modificar comportamiento funcional."
     created_at: 2026-02-24
-    updated_at: 2026-02-24
+    updated_at: 2026-02-25
 
   - id: AG-008
     title: "Kimi autopilot smoke task (no-op)"
@@ -119,12 +189,22 @@ tasks:
     risk: low
     scope: ops
     files: ["KIMI_TASKS.md"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 35
+    sla_due_at: "2026-02-28T02:50:15.243Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
     acceptance: "La tarea se ejecuta por Kimi Autopilot y marca estado de cola sin cambios funcionales."
     acceptance_ref: "KIMI_TASKS.md"
+    evidence_ref: "queue:kimi"
     depends_on: []
     prompt: "Smoke test: no hagas cambios de codigo. Solo confirma ejecucion y finaliza sin modificar archivos."
     created_at: 2026-02-24
-    updated_at: 2026-02-24
+    updated_at: 2026-02-25
 
   - id: CDX-001
     title: "Codex governance coexistence guardrails (C4 support)"
@@ -134,12 +214,22 @@ tasks:
     risk: medium
     scope: codex-governance
     files: ["AGENTS.md", "AGENT_BOARD.yaml", "AGENT_HANDOFFS.yaml", "PLAN_MAESTRO_CODEX_2026.md", "agent-orchestrator.js", "bin/validate-agent-governance.php", ".github/workflows/agent-governance.yml"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 60
+    sla_due_at: "2026-02-27T02:50:15.243Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
     acceptance: "Convivencia Codex/orquestador con espejo de tarea, handoffs y gates de gobernanza bloqueantes en CI."
     acceptance_ref: "PLAN_MAESTRO_CODEX_2026.md"
+    evidence_ref: "PLAN_MAESTRO_CODEX_2026.md"
     depends_on: []
     prompt: "Implementar guardrails de convivencia entre AGENT_BOARD y Plan Codex (handoffs, codex-check, conflict gate con excepciones temporales) alineado al bloque C4."
     created_at: 2026-02-24
-    updated_at: 2026-02-24
+    updated_at: 2026-02-25
 
   - id: AG-009
     title: "Mobile UX phase 4: fix chat/header overlap and spacing consistency"
@@ -149,8 +239,18 @@ tasks:
     risk: medium
     scope: mobile-ux
     files: ["index.html", "styles-deferred.css", "src/apps/chat/ui-engine.js", "src/apps/chat/widget-engine.js"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 60
+    sla_due_at: "2026-02-27T02:50:15.243Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
     acceptance: "Layout movil usable en 360x800/390x844/412x915 sin solapes de chat, header ni CTA dock."
     acceptance_ref: "verification/agent-runs/AG-009.md"
+    evidence_ref: "queue:kimi"
     depends_on: []
     prompt: "Corregir solapes y espaciado en mobile-first sin romper desktop."
     created_at: 2026-02-25
@@ -164,8 +264,18 @@ tasks:
     risk: high
     scope: conversion-funnel
     files: ["src/apps/analytics/engine.js", "src/apps/booking/engine.js", "api.php", "controllers/AdminDataController.php"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 80
+    sla_due_at: "2026-02-25T14:50:15.243Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
     acceptance: "Eventos de abandono por paso con reason/error_code visibles para analisis semanal."
     acceptance_ref: "verification/agent-runs/AG-010.md"
+    evidence_ref: "verification/agent-runs/AG-010.md"
     depends_on: []
     prompt: "Agregar medicion consistente de drop-off en checkout y exponer resumen para admin."
     created_at: 2026-02-25
@@ -179,9 +289,194 @@ tasks:
     risk: medium
     scope: performance
     files: ["js/main.js", "rollup.config.mjs", "src/bundles/ui.js", "src/bundles/engagement.js"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 60
+    sla_due_at: "2026-02-27T02:50:15.243Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
     acceptance: "Reducir peso inicial y mover inicializaciones no criticas a carga diferida sin regresion funcional."
     acceptance_ref: "verification/agent-runs/AG-011.md"
+    evidence_ref: "queue:kimi"
     depends_on: []
     prompt: "Aplicar particion adicional de JS no critico y verificar que no rompa interacciones clave."
+    created_at: 2026-02-25
+    updated_at: 2026-02-25
+
+  - id: AG-012
+    title: "Resolver alerta: [ALERTA PROD] Monitor de produccion fallando"
+    owner: ernes
+    executor: codex
+    status: done
+    risk: high
+    scope: ops
+    files: [".github/workflows/prod-monitor.yml"]
+    source_signal: issue
+    source_ref: "issue#279"
+    priority_score: 80
+    sla_due_at: "2026-02-25T06:56:24.270Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: high
+    critical_zone: true
+    acceptance: "Cerrar señal issue#279 con evidencia verificable."
+    acceptance_ref: "signal_resolved:auto"
+    evidence_ref: "signal_resolved:auto"
+    depends_on: []
+    prompt: "Resolver señal issue#279. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
+    created_at: 2026-02-25
+    updated_at: 2026-02-25
+
+  - id: AG-013
+    title: "Resolver alerta: [ALERTA PROD] Repair git sync fallando"
+    owner: ernes
+    executor: codex
+    status: done
+    risk: high
+    scope: ops
+    files: [".github/workflows/repair-git-sync.yml"]
+    source_signal: issue
+    source_ref: "issue#263"
+    priority_score: 80
+    sla_due_at: "2026-02-25T06:56:24.270Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: high
+    critical_zone: true
+    acceptance: "Cerrar señal issue#263 con evidencia verificable."
+    acceptance_ref: "signal_resolved:auto"
+    evidence_ref: "signal_resolved:auto"
+    depends_on: []
+    prompt: "Resolver señal issue#263. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
+    created_at: 2026-02-25
+    updated_at: 2026-02-25
+
+  - id: AG-014
+    title: "Resolver fallo workflow: CI: refactor(governance): extract remaining commands and add php contract…"
+    owner: ernes
+    executor: jules
+    status: done
+    risk: medium
+    scope: ops
+    files: [".github/workflows/ci.yml"]
+    source_signal: workflow
+    source_ref: "run#22379873691"
+    priority_score: 60
+    sla_due_at: "2026-02-27T02:52:05.878Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Cerrar señal run#22379873691 con evidencia verificable."
+    acceptance_ref: "signal_resolved:auto"
+    evidence_ref: "signal_resolved:auto"
+    depends_on: []
+    prompt: "Resolver señal run#22379873691. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
+    created_at: 2026-02-25
+    updated_at: 2026-02-25
+
+  - id: AG-015
+    title: "Resolver fallo workflow: CI: feat(governance): add warn-first diagnostics and policy enforcement c…"
+    owner: ernes
+    executor: jules
+    status: done
+    risk: medium
+    scope: ops
+    files: [".github/workflows/ci.yml"]
+    source_signal: workflow
+    source_ref: "run#22379426844"
+    priority_score: 60
+    sla_due_at: "2026-02-27T02:52:05.878Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Cerrar señal run#22379426844 con evidencia verificable."
+    acceptance_ref: "signal_resolved:auto"
+    evidence_ref: "signal_resolved:auto"
+    depends_on: []
+    prompt: "Resolver señal run#22379426844. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
+    created_at: 2026-02-25
+    updated_at: 2026-02-25
+
+  - id: AG-016
+    title: "Resolver fallo workflow: CI: feat: automate calendar smoke and add hero AB conversion tracking"
+    owner: ernes
+    executor: codex
+    status: done
+    risk: medium
+    scope: calendar
+    files: ["controllers/AvailabilityController.php", "controllers/AppointmentController.php", "lib/calendar/CalendarAvailabilityService.php", "lib/calendar/CalendarBookingService.php"]
+    source_signal: workflow
+    source_ref: "run#22379136316"
+    priority_score: 60
+    sla_due_at: "2026-02-27T02:52:05.878Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Cerrar señal run#22379136316 con evidencia verificable."
+    acceptance_ref: "signal_resolved:auto"
+    evidence_ref: "signal_resolved:auto"
+    depends_on: []
+    prompt: "Resolver señal run#22379136316. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
+    created_at: 2026-02-25
+    updated_at: 2026-02-25
+
+  - id: AG-017
+    title: "Resolver fallo workflow: CI: refactor(orchestrator): extract contribution metrics engine"
+    owner: ernes
+    executor: jules
+    status: done
+    risk: medium
+    scope: ops
+    files: [".github/workflows/ci.yml"]
+    source_signal: workflow
+    source_ref: "run#22379059437"
+    priority_score: 60
+    sla_due_at: "2026-02-27T02:52:05.878Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Cerrar señal run#22379059437 con evidencia verificable."
+    acceptance_ref: "signal_resolved:auto"
+    evidence_ref: "signal_resolved:auto"
+    depends_on: []
+    prompt: "Resolver señal run#22379059437. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
+    created_at: 2026-02-25
+    updated_at: 2026-02-25
+
+  - id: AG-018
+    title: "Resolver fallo workflow: CI: refactor(orchestrator): extract contribution metrics engine"
+    owner: ernes
+    executor: jules
+    status: done
+    risk: medium
+    scope: ops
+    files: [".github/workflows/ci.yml"]
+    source_signal: workflow
+    source_ref: "workflow:ci:main"
+    priority_score: 60
+    sla_due_at: "2026-02-27T02:56:24.270Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Cerrar señal workflow:ci:main con evidencia verificable."
+    acceptance_ref: "signal_resolved:auto"
+    evidence_ref: "signal_resolved:auto"
+    depends_on: []
+    prompt: "Resolver señal workflow:ci:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
     updated_at: 2026-02-25

@@ -556,6 +556,7 @@ function handleTaskFinish(ctx) {
             throw new Error(`No existe evidencia requerida: ${evidencePath}`);
         }
         task.acceptance_ref = toRelativeRepoPath(evidencePath);
+        task.evidence_ref = task.acceptance_ref;
     }
 
     task.status = nextStatus;
@@ -1119,6 +1120,17 @@ async function handleTaskCreate(ctx) {
     if (!['low', 'medium', 'high'].includes(risk)) {
         throw new Error(`task create: risk invalido (${risk})`);
     }
+    const runtimeImpact = String(
+        flags['runtime-impact'] || flags.runtime_impact || 'low'
+    )
+        .trim()
+        .toLowerCase();
+    if (!['none', 'low', 'high'].includes(runtimeImpact)) {
+        throw new Error(
+            `task create: runtime_impact invalido (${runtimeImpact})`
+        );
+    }
+    const criticalZoneFlag = isFlagEnabled(flags, 'critical-zone', 'critical_zone');
 
     const owner = String(
         flags.owner || detectDefaultOwner() || 'unassigned'
@@ -1193,8 +1205,20 @@ async function handleTaskCreate(ctx) {
         risk,
         scope,
         files,
+        source_signal: String(flags['source-signal'] || flags.source_signal || 'manual')
+            .trim()
+            .toLowerCase(),
+        source_ref: String(flags['source-ref'] || flags.source_ref || '').trim(),
+        priority_score: Number.parseInt(String(flags['priority-score'] || flags.priority_score || '0'), 10) || 0,
+        sla_due_at: String(flags['sla-due-at'] || flags.sla_due_at || '').trim(),
+        last_attempt_at: String(flags['last-attempt-at'] || flags.last_attempt_at || '').trim(),
+        attempts: Number.parseInt(String(flags.attempts || '0'), 10) || 0,
+        blocked_reason: String(flags['blocked-reason'] || flags.blocked_reason || '').trim(),
+        runtime_impact: runtimeImpact,
+        critical_zone: criticalZoneFlag,
         acceptance,
         acceptance_ref: acceptanceRef,
+        evidence_ref: '',
         depends_on: dependsOn,
         prompt,
         created_at: today,

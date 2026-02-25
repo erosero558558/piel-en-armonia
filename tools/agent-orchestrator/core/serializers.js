@@ -37,6 +37,19 @@ function serializeHandoffs(data) {
     return `${lines.join('\n').trimEnd()}\n`;
 }
 
+function normalizeTaskInt(value, fallback = 0) {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeTaskScore(value, fallback = 0) {
+    const parsed = Number.parseFloat(String(value ?? ''));
+    if (!Number.isFinite(parsed)) return fallback;
+    if (parsed < 0) return 0;
+    if (parsed > 100) return 100;
+    return Math.round(parsed);
+}
+
 function serializeBoard(board, options = {}) {
     const getDate = options.currentDate || currentDate;
     const lines = [];
@@ -60,8 +73,22 @@ function serializeBoard(board, options = {}) {
         lines.push(`    risk: ${task.risk || 'medium'}`);
         lines.push(`    scope: ${task.scope || 'general'}`);
         lines.push(`    files: ${serializeArrayInline(task.files || [])}`);
+        lines.push(`    source_signal: ${task.source_signal || 'manual'}`);
+        lines.push(`    source_ref: ${quote(task.source_ref || '')}`);
+        lines.push(
+            `    priority_score: ${normalizeTaskScore(task.priority_score, 0)}`
+        );
+        lines.push(`    sla_due_at: ${quote(task.sla_due_at || '')}`);
+        lines.push(`    last_attempt_at: ${quote(task.last_attempt_at || '')}`);
+        lines.push(`    attempts: ${normalizeTaskInt(task.attempts, 0)}`);
+        lines.push(`    blocked_reason: ${quote(task.blocked_reason || '')}`);
+        lines.push(`    runtime_impact: ${task.runtime_impact || 'low'}`);
+        lines.push(`    critical_zone: ${task.critical_zone ? 'true' : 'false'}`);
         lines.push(`    acceptance: ${quote(task.acceptance || '')}`);
         lines.push(`    acceptance_ref: ${quote(task.acceptance_ref || '')}`);
+        lines.push(
+            `    evidence_ref: ${quote(task.evidence_ref || task.acceptance_ref || '')}`
+        );
         lines.push(
             `    depends_on: ${serializeArrayInline(task.depends_on || [])}`
         );
@@ -74,9 +101,38 @@ function serializeBoard(board, options = {}) {
     return `${lines.join('\n').trimEnd()}\n`;
 }
 
+function serializeSignals(data, options = {}) {
+    const getDate = options.currentDate || currentDate;
+    const safe = data || { version: 1, updated_at: getDate(), signals: [] };
+    const lines = [];
+    lines.push(`version: ${safe.version || 1}`);
+    lines.push(`updated_at: ${safe.updated_at || getDate()}`);
+    lines.push('signals:');
+
+    const signals = Array.isArray(safe.signals) ? safe.signals : [];
+    for (const signal of signals) {
+        lines.push(`  - id: ${signal.id}`);
+        lines.push(`    fingerprint: ${quote(signal.fingerprint || '')}`);
+        lines.push(`    source: ${signal.source || 'manual'}`);
+        lines.push(`    source_ref: ${quote(signal.source_ref || '')}`);
+        lines.push(`    title: ${quote(signal.title || '')}`);
+        lines.push(`    severity: ${signal.severity || 'medium'}`);
+        lines.push(`    critical: ${signal.critical ? 'true' : 'false'}`);
+        lines.push(`    status: ${signal.status || 'open'}`);
+        lines.push(`    runtime_impact: ${signal.runtime_impact || 'low'}`);
+        lines.push(`    url: ${quote(signal.url || '')}`);
+        lines.push(`    detected_at: ${quote(signal.detected_at || '')}`);
+        lines.push(`    updated_at: ${quote(signal.updated_at || '')}`);
+        lines.push(`    labels: ${serializeArrayInline(signal.labels || [])}`);
+    }
+
+    return `${lines.join('\n').trimEnd()}\n`;
+}
+
 module.exports = {
     quote,
     serializeArrayInline,
     serializeHandoffs,
     serializeBoard,
+    serializeSignals,
 };

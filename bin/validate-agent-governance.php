@@ -21,6 +21,7 @@ $agentsPath = $root . '/AGENTS.md';
 $claudePath = $root . '/CLAUDE.md';
 $boardPath = $root . '/AGENT_BOARD.yaml';
 $handoffsPath = $root . '/AGENT_HANDOFFS.yaml';
+$signalsPath = $root . '/AGENT_SIGNALS.yaml';
 $governancePolicyPath = $root . '/governance-policy.json';
 $julesPath = $root . '/JULES_TASKS.md';
 $kimiPath = $root . '/KIMI_TASKS.md';
@@ -272,6 +273,82 @@ function parseHandoffsYaml(string $content): array
 }
 
 /**
+ * @return array{version:mixed, updated_at:mixed, signals:array<int,array<string,mixed>>}
+ */
+function parseSignalsYaml(string $content): array
+{
+    $lines = explode("\n", $content);
+    $data = [
+        'version' => 1,
+        'updated_at' => '',
+        'signals' => [],
+    ];
+    $inSignals = false;
+    $signal = null;
+
+    foreach ($lines as $lineRaw) {
+        $line = str_replace("\t", '    ', $lineRaw);
+        $trimmed = trim($line);
+        if ($trimmed === '' || str_starts_with($trimmed, '#')) {
+            continue;
+        }
+
+        if (!$inSignals && preg_match('/^version:\s*(.+)$/', $line, $m) === 1) {
+            $data['version'] = parseScalar((string) $m[1]);
+            continue;
+        }
+
+        if (!$inSignals && preg_match('/^updated_at:\s*(.+)$/', $line, $m) === 1) {
+            $data['updated_at'] = parseScalar((string) $m[1]);
+            continue;
+        }
+
+        if ($trimmed === 'signals:') {
+            $inSignals = true;
+            if (is_array($signal)) {
+                $data['signals'][] = $signal;
+                $signal = null;
+            }
+            continue;
+        }
+
+        if (!$inSignals) {
+            continue;
+        }
+
+        if (preg_match('/^\s{2}-\s+id:\s*(.+)$/', $line, $m) === 1) {
+            if (is_array($signal)) {
+                $data['signals'][] = $signal;
+            }
+            $signal = ['id' => parseScalar((string) $m[1])];
+            continue;
+        }
+
+        if (
+            is_array($signal) &&
+            preg_match('/^\s{4}([a-zA-Z_][\w-]*):\s*(.*)$/', $line, $m) === 1
+        ) {
+            $signal[(string) $m[1]] = parseScalar((string) $m[2]);
+        }
+    }
+
+    if (is_array($signal)) {
+        $data['signals'][] = $signal;
+    }
+
+    foreach ($data['signals'] as &$item) {
+        if (!is_array($item['labels'] ?? null)) {
+            $item['labels'] = isset($item['labels']) ? [(string) $item['labels']] : [];
+        }
+        $item['status'] = strtolower(trim((string) ($item['status'] ?? '')));
+        $item['critical'] = (bool) ($item['critical'] ?? false);
+    }
+    unset($item);
+
+    return $data;
+}
+
+/**
  * @return array<int,array<string,mixed>>
  */
 function parseCodexActiveBlocks(string $content): array
@@ -392,6 +469,7 @@ $agents = readFileStrict($agentsPath, $errors);
 $claude = readFileStrict($claudePath, $errors);
 $boardRaw = readFileStrict($boardPath, $errors);
 $handoffsRaw = readFileStrict($handoffsPath, $errors);
+$signalsRaw = readFileStrict($signalsPath, $errors);
 $governancePolicyRaw = readFileStrict($governancePolicyPath, $errors);
 $julesRaw = readFileStrict($julesPath, $errors);
 $kimiRaw = readFileStrict($kimiPath, $errors);
@@ -424,7 +502,18 @@ $requiredTaskKeys = [
     'risk',
     'scope',
     'files',
+    'source_signal',
+    'source_ref',
+    'priority_score',
+    'sla_due_at',
+    'last_attempt_at',
+    'attempts',
+    'blocked_reason',
+    'runtime_impact',
+    'critical_zone',
     'acceptance',
+    'acceptance_ref',
+    'evidence_ref',
     'depends_on',
     'created_at',
     'updated_at',
@@ -475,6 +564,24 @@ foreach ($board['tasks'] as $idx => $task) {
     }
 
     $scope = strtolower((string) ($task['scope'] ?? ''));
+    $runtimeImpact = strtolower((string) ($task['runtime_impact'] ?? ''));
+    if (!in_array($runtimeImpact, ['none', 'low', 'high'], true)) {
+        $errors[] = "Task {$id} tiene runtime_impact invalido: {$runtimeImpact}";
+    }
+    $attempts = is_numeric($task['attempts'] ?? null) ? (int) $task['attempts'] : -1;
+    if ($attempts < 0) {
+        $errors[] = "Task {$id} debe declarar attempts >= 0";
+    }
+    $priorityScore = is_numeric($task['priority_score'] ?? null) ? (int) $task['priority_score'] : -1;
+    if ($priorityScore < 0 || $priorityScore > 100) {
+        $errors[] = "Task {$id} debe declarar priority_score en rango 0..100";
+    }
+    $criticalZone = (bool) ($task['critical_zone'] ?? false);
+    if ($criticalZone || $runtimeImpact === 'high') {
+        if (!in_array($executor, ['codex', 'claude'], true)) {
+            $errors[] = "Task critica {$id} por runtime/critical_zone no puede asignarse a {$executor}";
+        }
+    }
     foreach ($criticalScopes as $keyword) {
         if (str_contains($scope, $keyword) && !in_array($executor, ['codex', 'claude'], true)) {
             $errors[] = "Task critica {$id} ({$scope}) no puede asignarse a executor {$executor}";
@@ -487,6 +594,12 @@ foreach ($board['tasks'] as $idx => $task) {
     }
     if (!is_array($task['depends_on'] ?? null)) {
         $errors[] = "Task {$id} debe definir depends_on como lista YAML inline.";
+    }
+    if ($status === 'done') {
+        $evidenceRef = trim((string) ($task['evidence_ref'] ?? ''));
+        if ($evidenceRef === '') {
+            $errors[] = "Task {$id} en done requiere evidence_ref";
+        }
     }
 }
 
@@ -501,6 +614,19 @@ $handoffs = [
 ];
 if ($handoffsRaw !== '') {
     $handoffs = parseHandoffsYaml($handoffsRaw);
+}
+
+$signals = [
+    'version' => 1,
+    'updated_at' => '',
+    'signals' => [],
+];
+if ($signalsRaw !== '') {
+    $signals = parseSignalsYaml($signalsRaw);
+}
+
+if ((string) ($signals['version'] ?? '') !== '1') {
+    $errors[] = 'AGENT_SIGNALS.yaml debe declarar version: 1';
 }
 
 if ((string) ($handoffs['version'] ?? '') !== '1') {
@@ -808,6 +934,29 @@ foreach ($activeQueueIds as $taskId => $queues) {
     if (count($uniqueQueues) > 1) {
         $errors[] = "task_id {$taskId} aparece activo en colas duplicadas: " . implode(', ', $uniqueQueues);
     }
+}
+
+$criticalSignals = array_values(
+    array_filter(
+        $signals['signals'] ?? [],
+        static function (array $signal): bool {
+            $status = strtolower(trim((string) ($signal['status'] ?? '')));
+            $isActive = in_array($status, ['open', 'active', 'failing'], true);
+            return $isActive && (bool) ($signal['critical'] ?? false);
+        }
+    )
+);
+
+$readyOrInProgressCount = 0;
+foreach ($board['tasks'] as $task) {
+    $status = strtolower(trim((string) ($task['status'] ?? '')));
+    if (in_array($status, ['ready', 'in_progress'], true)) {
+        $readyOrInProgressCount++;
+    }
+}
+
+if (count($criticalSignals) > 0 && $readyOrInProgressCount === 0) {
+    $errors[] = 'AGENT_BOARD invalido: hay señales críticas activas en AGENT_SIGNALS.yaml pero no existen tareas ready|in_progress';
 }
 
 if (!empty($errors)) {

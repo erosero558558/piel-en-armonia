@@ -188,6 +188,54 @@ function parseCodexActiveBlocksContent(content) {
     return blocks;
 }
 
+function parseSignalsContent(content) {
+    const lines = normalizeEol(content).split('\n');
+    const data = { version: 1, updated_at: '', signals: [] };
+    let inSignals = false;
+    let signal = null;
+
+    for (const rawLine of lines) {
+        const line = rawLine.replace(/\t/g, '    ');
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+
+        const versionMatch = line.match(/^version:\s*(.+)$/);
+        if (versionMatch && !inSignals) {
+            data.version = parseScalar(versionMatch[1]);
+            continue;
+        }
+        const updatedAtMatch = line.match(/^updated_at:\s*(.+)$/);
+        if (updatedAtMatch && !inSignals) {
+            data.updated_at = String(parseScalar(updatedAtMatch[1]) || '');
+            continue;
+        }
+        if (trimmed === 'signals:') {
+            inSignals = true;
+            if (signal) {
+                data.signals.push(signal);
+                signal = null;
+            }
+            continue;
+        }
+        if (!inSignals) continue;
+
+        const signalStart = line.match(/^\s{2}-\s+id:\s*(.+)$/);
+        if (signalStart) {
+            if (signal) data.signals.push(signal);
+            signal = { id: parseScalar(signalStart[1]) };
+            continue;
+        }
+
+        const prop = line.match(/^\s{4}([a-zA-Z_][\w-]*):\s*(.*)$/);
+        if (signal && prop) {
+            signal[prop[1]] = parseScalar(prop[2]);
+        }
+    }
+
+    if (signal) data.signals.push(signal);
+    return data;
+}
+
 module.exports = {
     normalizeEol,
     unquote,
@@ -196,4 +244,5 @@ module.exports = {
     parseBoardContent,
     parseHandoffsContent,
     parseCodexActiveBlocksContent,
+    parseSignalsContent,
 };
