@@ -20,22 +20,30 @@ jobs:
                   script: |
                       const owner = context.repo.owner;
                       const repo = context.repo.repo;
+                      const workflowName = context.payload.workflow_run.name;
 
-                      // Buscar issues abiertos de alertas de producción
+                      // Buscar issues abiertos de alertas de produccion.
+                      // No dependemos solo de labels porque historicamente hubo issues sin label.
                       const openIssues = await github.paginate(github.rest.issues.listForRepo, {
                         owner,
                         repo,
                         state: 'open',
-                        labels: 'production-alert',
                         per_page: 100
                       });
 
                       const now = new Date().toISOString();
-                      const workflowName = context.payload.workflow_run.name;
                       const runUrl = context.payload.workflow_run.html_url;
+                      const alertTitlePrefixes = ['[ALERTA PROD]'];
 
                       for (const issue of openIssues) {
                         if (issue.pull_request) continue; // Ignorar PRs
+                        const title = String(issue.title || '');
+                        const hasAlertPrefix = alertTitlePrefixes.some((prefix) => title.startsWith(prefix));
+                        const hasProdLabel = (issue.labels || []).some((label) => {
+                          const labelName = typeof label === 'string' ? label : (label && label.name ? String(label.name) : '');
+                          return labelName.toLowerCase() === 'production-alert';
+                        });
+                        if (!hasAlertPrefix && !hasProdLabel) continue;
 
                         // Cerrar issue con comentario
                         await github.rest.issues.createComment({
