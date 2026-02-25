@@ -6,6 +6,19 @@ declare(strict_types=1);
  * Security headers helper.
  */
 
+function should_emit_app_csp(): bool
+{
+    $raw = getenv('PIELARMONIA_DISABLE_APP_CSP');
+    if ($raw === false || trim((string) $raw) === '') {
+        return true;
+    }
+
+    $normalized = strtolower(trim((string) $raw));
+    $disabledValues = ['1', 'true', 'yes', 'on'];
+
+    return !in_array($normalized, $disabledValues, true);
+}
+
 function apply_security_headers(bool $isHtml = false): void
 {
     if (headers_sent()) {
@@ -34,26 +47,32 @@ function apply_security_headers(bool $isHtml = false): void
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
     }
 
-    if ($isHtml) {
-        // CSP for HTML pages (e.g., index.php)
-        // Replicating index.php's logic but centralized to ensure consistency
-        $csp = "default-src 'self'; ";
-        $csp .= "base-uri 'self'; ";
-        $csp .= "object-src 'none'; ";
-        $csp .= "frame-ancestors 'self'; ";
-        $csp .= "script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com https://browser.sentry-cdn.com https://static.cloudflareinsights.com; ";
-        $csp .= "style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; ";
-        $csp .= "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; ";
-        $csp .= "img-src 'self' https://images.unsplash.com https://www.google-analytics.com https://*.stripe.com data:; ";
-        $csp .= "frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; ";
-        $csp .= "connect-src 'self' https://api.stripe.com https://m.stripe.network https://r.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://cloudflareinsights.com https://browser.sentry-cdn.com https://*.ingest.sentry.io https://sentry.io; ";
-        $csp .= "worker-src 'self' blob:; ";
-        $csp .= "form-action 'self'";
+    $emitAppCsp = should_emit_app_csp();
+    if ($emitAppCsp) {
+        if ($isHtml) {
+            // CSP for HTML pages (e.g., index.php)
+            // Replicating index.php's logic but centralized to ensure consistency
+            $csp = "default-src 'self'; ";
+            $csp .= "base-uri 'self'; ";
+            $csp .= "object-src 'none'; ";
+            $csp .= "frame-ancestors 'self'; ";
+            $csp .= "script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com https://www.googletagmanager.com https://browser.sentry-cdn.com https://static.cloudflareinsights.com; ";
+            $csp .= "style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; ";
+            $csp .= "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; ";
+            $csp .= "img-src 'self' https://images.unsplash.com https://www.google-analytics.com https://*.stripe.com data:; ";
+            $csp .= "frame-src https://js.stripe.com https://hooks.stripe.com https://www.google.com; ";
+            $csp .= "connect-src 'self' https://api.stripe.com https://m.stripe.network https://r.stripe.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://cloudflareinsights.com https://browser.sentry-cdn.com https://*.ingest.sentry.io https://sentry.io; ";
+            $csp .= "worker-src 'self' blob:; ";
+            $csp .= "form-action 'self'";
 
-        header("Content-Security-Policy: $csp");
-    } else {
-        // CSP for API endpoints (JSON) - strict lockdown
-        header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; sandbox");
+            header("Content-Security-Policy: $csp");
+        } else {
+            // CSP for API endpoints (JSON) - strict lockdown
+            header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; sandbox");
+        }
+    }
+
+    if (!$isHtml) {
         // APIs should not be cached by browsers/proxies by default.
         header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
         header('Pragma: no-cache');

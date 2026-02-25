@@ -30,6 +30,9 @@
 
 // ── Orígenes permitidos (CORS) ────────────────────────
 // putenv('PIELARMONIA_ALLOWED_ORIGIN=https://pielarmonia.com');
+// Si Nginx/Cloudflare ya define CSP, puedes desactivar el CSP emitido por PHP
+// para evitar cabeceras duplicadas.
+// putenv('PIELARMONIA_DISABLE_APP_CSP=true');
 
 // ── CAPTCHA (Turnstile) ──────────────────────────────
 // putenv('PIELARMONIA_TURNSTILE_SITE_KEY=0x4AAAAAAABcDeFgHiJkLmNo');
