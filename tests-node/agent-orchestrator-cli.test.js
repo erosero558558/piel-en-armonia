@@ -1235,6 +1235,103 @@ test('task create --apply persiste un preview JSON sin recalcular task', (t) => 
     assert.match(board, /executor: codex/);
 });
 
+test('task create --apply - lee preview JSON desde stdin', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const preview = runCli(dir, [
+        'task',
+        'create',
+        '--title',
+        'Apply stdin task',
+        '--template',
+        'docs',
+        '--preview',
+        '--files',
+        'docs/stdin-preview.md',
+        '--json',
+    ]);
+    const previewJson = parseJsonStdout(preview);
+
+    const applyResult = runCliWithInput(
+        dir,
+        ['task', 'create', '--apply', '-', '--json'],
+        JSON.stringify(previewJson)
+    );
+    const applyJson = parseJsonStdout(applyResult);
+
+    assert.equal(applyJson.applied, true);
+    assert.equal(applyJson.applied_from, '-');
+    assert.equal(applyJson.applied_from_resolved, null);
+    assert.equal(applyJson.task.id, 'AG-011');
+    assert.equal(applyJson.task.title, 'Apply stdin task');
+
+    const board = readBoard(dir);
+    assert.match(board, /- id: AG-011/);
+    assert.match(board, /title: "Apply stdin task"/);
+});
+
+test('task create preview-file lint valida preview contra board actual', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const preview = runCli(dir, [
+        'task',
+        'create',
+        '--title',
+        'Lint preview task',
+        '--template',
+        'docs',
+        '--preview',
+        '--files',
+        'docs/lint-preview.md',
+        '--json',
+    ]);
+    const previewJson = parseJsonStdout(preview);
+    const previewPath = join(dir, 'preview-lint.json');
+    writeFileSync(
+        previewPath,
+        `${JSON.stringify(previewJson, null, 2)}\n`,
+        'utf8'
+    );
+
+    const result = runCli(dir, [
+        'task',
+        'create',
+        'preview-file',
+        'lint',
+        'preview-lint.json',
+        '--json',
+    ]);
+    const json = parseJsonStdout(result);
+
+    assert.equal(json.ok, true);
+    assert.equal(json.action, 'create-preview-lint');
+    assert.equal(json.preview_file, 'preview-lint.json');
+    assert.equal(json.checks.preview_payload_schema, 'passed');
+    assert.equal(json.checks.task_normalization, 'passed');
+    assert.equal(json.checks.duplicate_id, 'passed');
+    assert.equal(json.checks.governance_prechecks, 'passed');
+    assert.equal(json.checks.conflict_check, 'passed');
+    assert.equal(json.task.id, 'AG-011');
+
+    // lint should not persist the task
+    const board = readBoard(dir);
+    assert.doesNotMatch(board, /- id: AG-011/);
+});
+
 test('task claim bloquea pasar a estado activo si genera conflicto blocking', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));

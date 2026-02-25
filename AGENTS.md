@@ -129,6 +129,8 @@ node agent-orchestrator.js task create --interactive --json
 node agent-orchestrator.js task create --title "..." --template docs --from-files --explain --preview --files lib/calendar/CalendarAvailabilityService.php
 node agent-orchestrator.js task create --title "..." --template bugfix --from-files --validate-only --files controllers/FooController.php --json
 node agent-orchestrator.js task create --apply verification/task-create-preview.json --json
+node agent-orchestrator.js task create --apply - --json < verification/task-create-preview.json
+node agent-orchestrator.js task create preview-file lint verification/task-create-preview.json --json
 node agent-orchestrator.js task start AG-003 --status in_progress
 node agent-orchestrator.js task finish AG-003 --evidence verification/agent-runs/AG-003.md
 node agent-orchestrator.js task start AG-003 --json
@@ -182,6 +184,8 @@ Nota:
 - `task create --explain` imprime (o adjunta en JSON) una explicacion corta de como se resolvieron `scope/risk/executor` al usar plantilla/inferencia por files.
 - `task create --validate-only` ejecuta validaciones/gates locales y devuelve diagnostico (sin escribir board ni construir preview completo).
 - `task create --apply <preview.json>` persiste un payload previo de `task create --preview --json` (reutiliza `task_full` validado y vuelve a verificar conflictos/guardrails contra el board actual).
+- `task create --apply -` permite aplicar preview JSON desde `stdin` (util para pipes y automatizacion).
+- `task create preview-file lint <preview.json|->` valida un preview guardado contra el board actual (schema + normalizacion + guardrails + conflicto activo) sin persistir cambios.
 - El summary/PR comment incluye delta corto de conflictos (`blocking`/`handoff`) vs baseline usando `metrics --json`.
 - El summary/PR comment incluye semaforo (`GREEN/YELLOW/RED`) y razones de estado para lectura rapida.
 - La politica de pesos/umbrales de gobernanza vive en `governance-policy.json` (p. ej. pesos por dominio y threshold de score para `YELLOW` en summary).

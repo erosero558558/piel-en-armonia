@@ -1094,32 +1094,40 @@ function normalizeTaskForCreateApply(rawTask) {
     return task;
 }
 
-function loadTaskCreateApplyPayload(applyPathRaw) {
+function loadTaskCreateApplyPayload(applyPathRaw, options = {}) {
+    const modeLabel = String(options.modeLabel || 'task create --apply');
     const applyPath = String(applyPathRaw || '').trim();
     if (!applyPath || applyPath === 'true') {
         throw new Error(
-            'task create --apply requiere ruta al JSON de preview (ej: --apply verification/task-preview.json)'
+            `${modeLabel} requiere ruta al JSON de preview (ej: --apply verification/task-preview.json o - para stdin)`
         );
     }
-    const resolvedPath = resolve(ROOT, applyPath);
-    if (!existsSync(resolvedPath)) {
-        throw new Error(`No existe archivo de apply: ${resolvedPath}`);
+
+    let rawJson = '';
+    let resolvedPath = null;
+    if (applyPath === '-') {
+        rawJson = readFileSync(0, 'utf8');
+    } else {
+        resolvedPath = resolve(ROOT, applyPath);
+        if (!existsSync(resolvedPath)) {
+            throw new Error(`No existe archivo de apply: ${resolvedPath}`);
+        }
+        rawJson = readFileSync(resolvedPath, 'utf8');
     }
+
     let payload;
     try {
-        payload = JSON.parse(readFileSync(resolvedPath, 'utf8'));
+        payload = JSON.parse(rawJson);
     } catch (error) {
         throw new Error(
-            `JSON invalido en --apply (${applyPath}): ${error.message}`
+            `JSON invalido en ${modeLabel} (${applyPath}): ${error.message}`
         );
     }
     if (
         String(payload?.command || '') !== 'task' ||
         String(payload?.action || '') !== 'create'
     ) {
-        throw new Error(
-            'task create --apply requiere JSON generado por task create'
-        );
+        throw new Error(`${modeLabel} requiere JSON generado por task create`);
     }
     if (
         !(
@@ -1129,7 +1137,7 @@ function loadTaskCreateApplyPayload(applyPathRaw) {
         )
     ) {
         throw new Error(
-            'task create --apply requiere payload de preview/dry-run (persisted=false)'
+            `${modeLabel} requiere payload de preview/dry-run (persisted=false)`
         );
     }
     return {
@@ -3892,6 +3900,115 @@ async function cmdTask(args) {
     }
 
     if (normalizedSubcommand === 'create') {
+        const createNestedCommand = String(positionals[0] || '')
+            .trim()
+            .toLowerCase();
+        const createNestedAction = String(positionals[1] || '')
+            .trim()
+            .toLowerCase();
+
+        if (createNestedCommand === 'preview-file') {
+            if (createNestedAction !== 'lint') {
+                throw new Error(
+                    'Uso: node agent-orchestrator.js task create preview-file lint <preview.json|-> [--json]'
+                );
+            }
+
+            const previewPath = String(
+                positionals[2] || flags.file || flags.path || ''
+            ).trim();
+            const loaded = loadTaskCreateApplyPayload(previewPath, {
+                modeLabel: 'task create preview-file lint',
+            });
+            const board = parseBoard();
+            const task = normalizeTaskForCreateApply(
+                loaded.payload?.task_full || loaded.payload?.task
+            );
+
+            const errors = [];
+            const duplicateId = board.tasks.some(
+                (item) => String(item.id || '') === task.id
+            );
+            if (duplicateId) {
+                errors.push(`id duplicado en board: ${task.id}`);
+            }
+
+            let governanceOk = true;
+            try {
+                validateTaskGovernancePrechecks(board, task);
+            } catch (error) {
+                governanceOk = false;
+                errors.push(String(error.message || error));
+            }
+
+            let blockingConflicts = [];
+            if (errors.length === 0 && ACTIVE_STATUSES.has(task.status)) {
+                const handoffData = parseHandoffs();
+                blockingConflicts = getBlockingConflictsForTask(
+                    [...board.tasks, task],
+                    task.id,
+                    handoffData.handoffs
+                );
+                if (blockingConflicts.length > 0) {
+                    const details = blockingConflicts
+                        .map((item) => {
+                            const other =
+                                String(item.left.id) === task.id
+                                    ? item.right
+                                    : item.left;
+                            const filesText = item.overlap_files.length
+                                ? item.overlap_files.join(', ')
+                                : '(wildcard ambiguo)';
+                            return `${task.id} <-> ${other.id} :: ${filesText}`;
+                        })
+                        .join(' | ');
+                    errors.push(`conflicto activo blocking: ${details}`);
+                }
+            }
+
+            const lintPayload = {
+                version: 1,
+                ok: errors.length === 0,
+                command: 'task',
+                action: 'create-preview-lint',
+                preview_file: loaded.path,
+                preview_file_resolved: loaded.resolved_path
+                    ? toRelativeRepoPath(loaded.resolved_path)
+                    : null,
+                task: toTaskJson(task),
+                task_full: toTaskFullJson(task),
+                checks: {
+                    preview_payload_schema: 'passed',
+                    task_normalization: 'passed',
+                    duplicate_id: duplicateId ? 'failed' : 'passed',
+                    governance_prechecks: governanceOk ? 'passed' : 'failed',
+                    conflict_check:
+                        ACTIVE_STATUSES.has(task.status) &&
+                        blockingConflicts.length > 0
+                            ? 'failed'
+                            : 'passed',
+                },
+                errors,
+            };
+
+            if (wantsJson) {
+                console.log(JSON.stringify(lintPayload, null, 2));
+                if (!lintPayload.ok) process.exitCode = 1;
+                return;
+            }
+
+            console.log(
+                `Task create preview-file lint ${lintPayload.ok ? 'OK' : 'FAIL'}: ${task.id} (${loaded.path})`
+            );
+            if (!lintPayload.ok) {
+                for (const error of errors) {
+                    console.log(`- ${error}`);
+                }
+                process.exitCode = 1;
+            }
+            return;
+        }
+
         const applyPathRaw =
             flags.apply || flags['apply-from'] || flags.apply_from || '';
         const applyMode =
@@ -3941,7 +4058,9 @@ async function cmdTask(args) {
                 );
             }
 
-            const applyFile = loadTaskCreateApplyPayload(applyPathRaw);
+            const applyFile = loadTaskCreateApplyPayload(applyPathRaw, {
+                modeLabel: 'task create --apply',
+            });
             const sourcePayload = applyFile.payload || {};
             const board = parseBoard();
             const task = normalizeTaskForCreateApply(
@@ -3991,9 +4110,9 @@ async function cmdTask(args) {
                 applied: true,
                 apply: true,
                 applied_from: applyFile.path,
-                applied_from_resolved: toRelativeRepoPath(
-                    applyFile.resolved_path
-                ),
+                applied_from_resolved: applyFile.resolved_path
+                    ? toRelativeRepoPath(applyFile.resolved_path)
+                    : null,
                 template:
                     sourcePayload.template === undefined
                         ? null
