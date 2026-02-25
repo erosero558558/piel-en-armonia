@@ -731,7 +731,7 @@ function ensure_data_file(): bool
 }
 
 if (!function_exists('read_store')) {
-    function read_store(): array
+    function read_store(array $options = []): array
     {
         if (!ensure_data_file()) {
             return normalize_store_payload(storage_default_store_payload());
@@ -754,42 +754,77 @@ if (!function_exists('read_store')) {
                 'idx_appointments_date' => []
             ];
 
+            $tables = $options['tables'] ?? ['appointments', 'reviews', 'callbacks', 'availability'];
+            $tables = array_flip($tables); // For O(1) lookup
+
             // Fetch Appointments
-            $stmt = $pdo->query("SELECT json_data FROM appointments");
-            while ($row = $stmt->fetch()) {
-                $data = json_decode($row['json_data'], true);
-                if (is_array($data)) {
-                    $store['appointments'][] = $data;
+            if (isset($tables['appointments'])) {
+                $sql = "SELECT json_data FROM appointments";
+                $params = [];
+                if (isset($options['date_filter']['start'])) {
+                    $sql .= " WHERE date >= ?";
+                    $params[] = $options['date_filter']['start'];
+                    if (isset($options['date_filter']['end'])) {
+                        $sql .= " AND date <= ?";
+                        $params[] = $options['date_filter']['end'];
+                    }
+                }
+
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+                while ($row = $stmt->fetch()) {
+                    $data = json_decode($row['json_data'], true);
+                    if (is_array($data)) {
+                        $store['appointments'][] = $data;
+                    }
                 }
             }
 
             // Fetch Reviews
-            $stmt = $pdo->query("SELECT json_data FROM reviews");
-            while ($row = $stmt->fetch()) {
-                $data = json_decode($row['json_data'], true);
-                if (is_array($data)) {
-                    $store['reviews'][] = $data;
+            if (isset($tables['reviews'])) {
+                $stmt = $pdo->query("SELECT json_data FROM reviews");
+                while ($row = $stmt->fetch()) {
+                    $data = json_decode($row['json_data'], true);
+                    if (is_array($data)) {
+                        $store['reviews'][] = $data;
+                    }
                 }
             }
 
             // Fetch Callbacks
-            $stmt = $pdo->query("SELECT json_data FROM callbacks");
-            while ($row = $stmt->fetch()) {
-                $data = json_decode($row['json_data'], true);
-                if (is_array($data)) {
-                    $store['callbacks'][] = $data;
+            if (isset($tables['callbacks'])) {
+                $stmt = $pdo->query("SELECT json_data FROM callbacks");
+                while ($row = $stmt->fetch()) {
+                    $data = json_decode($row['json_data'], true);
+                    if (is_array($data)) {
+                        $store['callbacks'][] = $data;
+                    }
                 }
             }
 
             // Fetch Availability
-            $stmt = $pdo->query("SELECT date, time FROM availability");
-            while ($row = $stmt->fetch()) {
-                $date = $row['date'];
-                $time = $row['time'];
-                if (!isset($store['availability'][$date])) {
-                    $store['availability'][$date] = [];
+            if (isset($tables['availability'])) {
+                $sql = "SELECT date, time FROM availability";
+                $params = [];
+                if (isset($options['date_filter']['start'])) {
+                    $sql .= " WHERE date >= ?";
+                    $params[] = $options['date_filter']['start'];
+                    if (isset($options['date_filter']['end'])) {
+                        $sql .= " AND date <= ?";
+                        $params[] = $options['date_filter']['end'];
+                    }
                 }
-                $store['availability'][$date][] = $time;
+
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+                while ($row = $stmt->fetch()) {
+                    $date = $row['date'];
+                    $time = $row['time'];
+                    if (!isset($store['availability'][$date])) {
+                        $store['availability'][$date] = [];
+                    }
+                    $store['availability'][$date][] = $time;
+                }
             }
 
             // Fetch Metadata
