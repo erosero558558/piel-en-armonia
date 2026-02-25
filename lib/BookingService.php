@@ -98,13 +98,14 @@ class BookingService
             }
         }
 
-        if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $effectiveDoctor)) {
+        $idx = $store['idx_appointments_date'] ?? null;
+        if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $effectiveDoctor, $idx)) {
             if ($requestedDoctor !== 'indiferente') {
                 return ['ok' => false, 'error' => 'Ese horario ya fue reservado', 'code' => 409, 'errorCode' => 'slot_unavailable'];
             }
 
             $alternateDoctor = $effectiveDoctor === 'rosero' ? 'narvaez' : 'rosero';
-            if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $alternateDoctor)) {
+            if (appointment_slot_taken($store['appointments'], $appointment['date'], $appointment['time'], null, $alternateDoctor, $idx)) {
                 return ['ok' => false, 'error' => 'Ese horario ya fue reservado', 'code' => 409, 'errorCode' => 'slot_unavailable'];
             }
 
@@ -323,7 +324,8 @@ class BookingService
             }
 
             $excludeId = (int) ($appt['id'] ?? 0);
-            if (appointment_slot_taken($store['appointments'], $newDate, $newTime, $excludeId, $doctor)) {
+            $idx = $store['idx_appointments_date'] ?? null;
+            if (appointment_slot_taken($store['appointments'], $newDate, $newTime, $excludeId, $doctor, $idx)) {
                 return ['ok' => false, 'error' => 'El horario seleccionado ya no esta disponible', 'code' => 409, 'errorCode' => 'slot_unavailable'];
             }
 
