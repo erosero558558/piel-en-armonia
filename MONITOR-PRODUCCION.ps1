@@ -15,48 +15,67 @@ $todayDate = Get-Date -Format 'yyyy-MM-dd'
 function Invoke-EndpointCheck {
     param(
         [string]$Name,
-        [string]$Url
+        [string]$Url,
+        [int]$RetryOnNetworkError = 1,
+        [int]$RetryDelaySec = 3
     )
 
-    $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    try {
-        $response = Invoke-WebRequest -Uri $Url -Method Get -TimeoutSec $TimeoutSec -UseBasicParsing
-        $sw.Stop()
-        return [pscustomobject]@{
-            Name = $Name
-            Url = $Url
-            Ok = $true
-            StatusCode = [int]$response.StatusCode
-            DurationMs = [int]$sw.ElapsedMilliseconds
-            Body = [string]$response.Content
-            Error = ''
-        }
-    } catch {
-        $sw.Stop()
-        $statusCode = 0
-        $body = ''
-        if ($_.Exception.Response) {
-            try { $statusCode = [int]$_.Exception.Response.StatusCode.value__ } catch {}
-            try {
-                $stream = $_.Exception.Response.GetResponseStream()
-                if ($stream) {
-                    $reader = New-Object System.IO.StreamReader($stream)
-                    $body = $reader.ReadToEnd()
-                    $reader.Close()
-                }
-            } catch {}
+    $attempt = 0
+    $maxAttempts = 1 + $RetryOnNetworkError
+    $lastResult = $null
+
+    while ($attempt -lt $maxAttempts) {
+        $attempt++
+        if ($attempt -gt 1) {
+            Write-Host "[RETRY] $Name (intento $attempt/$maxAttempts) tras ${RetryDelaySec}s..."
+            Start-Sleep -Seconds $RetryDelaySec
         }
 
-        return [pscustomobject]@{
-            Name = $Name
-            Url = $Url
-            Ok = $false
-            StatusCode = $statusCode
-            DurationMs = [int]$sw.ElapsedMilliseconds
-            Body = $body
-            Error = $_.Exception.Message
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        try {
+            $response = Invoke-WebRequest -Uri $Url -Method Get -TimeoutSec $TimeoutSec -UseBasicParsing
+            $sw.Stop()
+            return [pscustomobject]@{
+                Name = $Name
+                Url = $Url
+                Ok = $true
+                StatusCode = [int]$response.StatusCode
+                DurationMs = [int]$sw.ElapsedMilliseconds
+                Body = [string]$response.Content
+                Error = ''
+            }
+        } catch {
+            $sw.Stop()
+            $statusCode = 0
+            $body = ''
+            if ($_.Exception.Response) {
+                try { $statusCode = [int]$_.Exception.Response.StatusCode.value__ } catch {}
+                try {
+                    $stream = $_.Exception.Response.GetResponseStream()
+                    if ($stream) {
+                        $reader = New-Object System.IO.StreamReader($stream)
+                        $body = $reader.ReadToEnd()
+                        $reader.Close()
+                    }
+                } catch {}
+            }
+
+            $lastResult = [pscustomobject]@{
+                Name = $Name
+                Url = $Url
+                Ok = $false
+                StatusCode = $statusCode
+                DurationMs = [int]$sw.ElapsedMilliseconds
+                Body = $body
+                Error = $_.Exception.Message
+            }
+
+            # Only retry on network-level errors (status=0: connection refused, timeout)
+            if ($statusCode -ne 0) { break }
         }
     }
+
+    return $lastResult
 }
 
 function Parse-JsonBody {
@@ -74,7 +93,7 @@ function Parse-JsonBody {
 }
 
 $checks = @(
-    @{ Name = 'home'; Url = "$base/" },
+    @{ Name = 'home'; Url = "$base/"; MaxLatencyMs = 5000 },  # full HTML page — higher threshold
     @{ Name = 'health'; Url = "$base/api.php?resource=health" },
     @{ Name = 'reviews'; Url = "$base/api.php?resource=reviews" },
     @{ Name = 'availability'; Url = "$base/api.php?resource=availability" },
@@ -116,8 +135,9 @@ foreach ($c in $checks) {
         continue
     }
 
-    if ($r.DurationMs -gt $MaxLatencyMs) {
-        $failures += "[FAIL] $($r.Name): latencia alta $($r.DurationMs)ms (max ${MaxLatencyMs}ms)"
+    $effectiveMaxLatencyMs = if ($c.MaxLatencyMs) { $c.MaxLatencyMs } else { $MaxLatencyMs }
+    if ($r.DurationMs -gt $effectiveMaxLatencyMs) {
+        $failures += "[FAIL] $($r.Name): latencia alta $($r.DurationMs)ms (max ${effectiveMaxLatencyMs}ms)"
     } else {
         Write-Host "[OK]  $($r.Name): $($r.StatusCode) en $($r.DurationMs)ms"
     }
