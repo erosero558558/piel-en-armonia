@@ -241,6 +241,7 @@ jobs:
         timeout-minutes: 20
         env:
             C1_EXIT_BASE_URL: ${{ vars.STAGING_URL || 'https://staging.pielarmonia.com' }}
+            C1_EXIT_FALLBACK_BASE_URL: ${{ vars.PROD_URL || 'https://pielarmonia.com' }}
             C1_EXIT_FIGO_CONTRACT_PATH: ${{ vars.C1_EXIT_FIGO_CONTRACT_PATH || '/figo-chat.php' }}
             C1_EXIT_CHAT_SMOKE_PATH: ${{ vars.C1_EXIT_CHAT_SMOKE_PATH || '/api/chat' }}
             C1_EXIT_CHAT_SMOKE_FALLBACK_PATH: ${{ vars.C1_EXIT_CHAT_SMOKE_FALLBACK_PATH || '/figo-chat.php' }}
@@ -285,11 +286,38 @@ jobs:
             - name: Install Playwright Browsers
               if: steps.changes.outputs.c1_exit == 'true' && steps.playwright-cache-c1.outputs.cache-hit != 'true'
               run: npx playwright install --with-deps chromium
+            - name: Resolve effective C1 base URL
+              if: steps.changes.outputs.c1_exit == 'true'
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  candidate="${C1_EXIT_BASE_URL%/}"
+                  fallback="${C1_EXIT_FALLBACK_BASE_URL%/}"
+
+                  host_for() {
+                    node -e "const u=new URL(process.argv[1]);process.stdout.write(u.hostname);" "$1"
+                  }
+
+                  candidate_host="$(host_for "$candidate")"
+                  if getent hosts "$candidate_host" >/dev/null 2>&1; then
+                    echo "EFFECTIVE_C1_EXIT_BASE_URL=$candidate" >> "$GITHUB_ENV"
+                    echo "Using staging C1 base URL: $candidate"
+                    exit 0
+                  fi
+
+                  fallback_host="$(host_for "$fallback")"
+                  if ! getent hosts "$fallback_host" >/dev/null 2>&1; then
+                    echo "::error::No se pudo resolver staging ($candidate_host) ni fallback ($fallback_host)."
+                    exit 1
+                  fi
+
+                  echo "::warning::Staging no resuelve ($candidate_host); usando fallback para C1 gate: $fallback"
+                  echo "EFFECTIVE_C1_EXIT_BASE_URL=$fallback" >> "$GITHUB_ENV"
             - name: Run C1 Figo contract gate (staging)
               if: steps.changes.outputs.c1_exit == 'true'
               run: npm run test:figo-contract
               env:
-                  TEST_BASE_URL: ${{ env.C1_EXIT_BASE_URL }}
+                  TEST_BASE_URL: ${{ env.EFFECTIVE_C1_EXIT_BASE_URL }}
                   TEST_FIGO_CHAT_ENDPOINT_PATH: ${{ env.C1_EXIT_FIGO_CONTRACT_PATH }}
                   TEST_FIGO_CHAT_LATENCY: 'true'
                   TEST_FIGO_CHAT_LATENCY_P95_MS: ${{ env.C1_EXIT_FIGO_P95_MS }}
@@ -299,7 +327,7 @@ jobs:
               shell: bash
               run: |
                   set -euo pipefail
-                  base_url="${C1_EXIT_BASE_URL%/}"
+                  base_url="${EFFECTIVE_C1_EXIT_BASE_URL%/}"
                   primary_path="${C1_EXIT_CHAT_SMOKE_PATH}"
                   fallback_path="${C1_EXIT_CHAT_SMOKE_FALLBACK_PATH}"
                   tmp_primary="$(mktemp)"
