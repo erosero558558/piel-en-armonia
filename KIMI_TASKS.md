@@ -118,3 +118,18 @@ dispatched_by: agent-orchestrator
 Aplicar particion adicional de JS no critico y verificar que no rompa interacciones clave.
 
 <!-- /TASK -->
+
+<!-- TASK
+status: running
+task_id: AG-023
+risk: low
+scope: tooling
+files: templates/partials/tele-head-links.html,telemedicina.html,styles.css,styles-critical.css
+acceptance_ref: templates/partials/tele-head-links.html
+dispatched_by: agent-orchestrator
+-->
+### Tech debt: unify telemedicina.html CSS to use canonical styles.css (extracted 2026-02-24)
+
+En templates/partials/tele-head-links.html reemplaza <link rel='stylesheet' href='styles-critical.css' /> y <link rel='stylesheet' href='styles-telemedicina.css' /> por <link rel='stylesheet' href='styles.css?v=inline-20260224-extracted1' />. El archivo styles.css es ahora el CSS critico canonico (extraido del monolito index.html el 2026-02-24, 1760 lineas). Ejecuta npm run build:html para regenerar telemedicina.html. Verifica que la pagina carga sin regresion visual (colores, fuentes, layout). styles-critical.css queda como archivo legacy no enlazado.
+
+<!-- /TASK -->

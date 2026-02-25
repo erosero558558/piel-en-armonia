@@ -151,7 +151,7 @@ Resolver señal run#22379059437. Verificar causa raíz, aplicar fix mínimo segu
 <!-- /TASK -->
 
 <!-- TASK
-status: pending
+status: done
 task_id: AG-018
 risk: medium
 scope: ops
@@ -161,7 +161,7 @@ dispatched_by: agent-orchestrator
 session: 
 dispatched: 
 -->
-### Resolver fallo workflow: CI: test(governance): add queue core coverage and metrics baseline contracts
+### Resolver fallo workflow: CI: feat(board): queue P1-P3 tech debt tasks (AG-019, AG-020, AG-021)
 
 Resolver señal workflow:ci:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/.
 

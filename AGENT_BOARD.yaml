@@ -310,22 +310,22 @@ tasks:
     title: "Resolver alerta: [ALERTA PROD] Monitor de produccion fallando"
     owner: ernes
     executor: codex
-    status: ready
+    status: done
     risk: high
     scope: ops
     files: [".github/workflows/prod-monitor.yml"]
     source_signal: issue
     source_ref: "issue#279"
     priority_score: 95
-    sla_due_at: "2026-02-25T07:43:37.482Z"
+    sla_due_at: "2026-02-25T08:07:39.697Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
     runtime_impact: high
     critical_zone: true
     acceptance: "Cerrar señal issue#279 con evidencia verificable."
-    acceptance_ref: ""
-    evidence_ref: ""
+    acceptance_ref: "signal_resolved:auto"
+    evidence_ref: "signal_resolved:auto"
     depends_on: []
     prompt: "Resolver señal issue#279. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
@@ -335,22 +335,22 @@ tasks:
     title: "Resolver alerta: [ALERTA PROD] Repair git sync fallando"
     owner: ernes
     executor: codex
-    status: ready
+    status: done
     risk: high
     scope: ops
     files: [".github/workflows/repair-git-sync.yml"]
     source_signal: issue
     source_ref: "issue#263"
     priority_score: 95
-    sla_due_at: "2026-02-25T07:43:37.482Z"
+    sla_due_at: "2026-02-25T08:07:39.697Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
     runtime_impact: high
     critical_zone: true
     acceptance: "Cerrar señal issue#263 con evidencia verificable."
-    acceptance_ref: ""
-    evidence_ref: ""
+    acceptance_ref: "signal_resolved:auto"
+    evidence_ref: "signal_resolved:auto"
     depends_on: []
     prompt: "Resolver señal issue#263. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
@@ -457,25 +457,25 @@ tasks:
     updated_at: 2026-02-25
 
   - id: AG-018
-    title: "Resolver fallo workflow: CI: test(governance): add queue core coverage and metrics baseline contracts"
+    title: "Resolver fallo workflow: CI: feat(board): queue P1-P3 tech debt tasks (AG-019, AG-020, AG-021)"
     owner: ernes
     executor: jules
-    status: ready
+    status: done
     risk: medium
     scope: ops
     files: [".github/workflows/ci.yml"]
     source_signal: workflow
     source_ref: "workflow:ci:main"
     priority_score: 60
-    sla_due_at: "2026-02-27T03:43:37.482Z"
+    sla_due_at: "2026-02-27T04:09:57.365Z"
     last_attempt_at: ""
     attempts: 0
-    blocked_reason: "file_overlap:AG-022"
+    blocked_reason: ""
     runtime_impact: low
     critical_zone: false
     acceptance: "Cerrar señal workflow:ci:main con evidencia verificable."
-    acceptance_ref: ""
-    evidence_ref: ""
+    acceptance_ref: "verification/agent-runs/AG-018.md"
+    evidence_ref: "verification/agent-runs/AG-018.md"
     depends_on: []
     prompt: "Resolver señal workflow:ci:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
@@ -556,6 +556,31 @@ tasks:
     created_at: 2026-02-24
     updated_at: 2026-02-25
 
+  - id: AG-023
+    title: "Tech debt: unify telemedicina.html CSS to use canonical styles.css (extracted 2026-02-24)"
+    owner: ernes
+    executor: kimi
+    status: in_progress
+    risk: low
+    scope: tooling
+    files: ["templates/partials/tele-head-links.html", "telemedicina.html", "styles.css", "styles-critical.css"]
+    source_signal: manual
+    source_ref: "html-monolith-refactor-2026-02-24"
+    priority_score: 55
+    sla_due_at: "2026-03-05T00:00:00.000Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "telemedicina.html carga styles.css (no styles-critical.css). npm run build:html produce telemedicina.html limpio. Pagina carga sin regresion visual."
+    acceptance_ref: "templates/partials/tele-head-links.html"
+    evidence_ref: "templates/partials/tele-head-links.html"
+    depends_on: []
+    prompt: "En templates/partials/tele-head-links.html reemplaza <link rel='stylesheet' href='styles-critical.css' /> y <link rel='stylesheet' href='styles-telemedicina.css' /> por <link rel='stylesheet' href='styles.css?v=inline-20260224-extracted1' />. El archivo styles.css es ahora el CSS critico canonico (extraido del monolito index.html el 2026-02-24, 1760 lineas). Ejecuta npm run build:html para regenerar telemedicina.html. Verifica que la pagina carga sin regresion visual (colores, fuentes, layout). styles-critical.css queda como archivo legacy no enlazado."
+    created_at: 2026-02-24
+    updated_at: 2026-02-25
+
   - id: AG-022
     title: "Resolver fallo workflow: Agent Governance: feat(board): queue P1-P3 tech debt tasks (AG-019, AG-020, AG-021)"
     owner: ernes
@@ -567,7 +592,7 @@ tasks:
     source_signal: workflow
     source_ref: "workflow:agent-governance:main"
     priority_score: 60
-    sla_due_at: "2026-02-27T03:43:37.482Z"
+    sla_due_at: "2026-02-27T04:09:57.365Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
