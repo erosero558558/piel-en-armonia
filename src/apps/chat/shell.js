@@ -1,4 +1,8 @@
-import { withDeployAssetVersion, debugLog, showToast } from '../../../js/utils.js';
+import {
+    withDeployAssetVersion,
+    debugLog,
+    showToast,
+} from '../../../js/utils.js';
 import {
     loadDeferredModule,
     runDeferredModule,
@@ -112,9 +116,13 @@ export function removeTypingIndicator() {
 function getChatUiEngineDeps() {
     return {
         getChatHistory: () => state.chatHistory,
-        setChatHistory: (h) => { state.chatHistory = h; },
+        setChatHistory: (h) => {
+            state.chatHistory = h;
+        },
         getConversationContext: () => state.conversationContext,
-        setConversationContext: (c) => { state.conversationContext = c; },
+        setConversationContext: (c) => {
+            state.conversationContext = c;
+        },
         historyStorageKey: CHAT_HISTORY_STORAGE_KEY,
         historyTtlMs: CHAT_HISTORY_TTL_MS,
         historyMaxItems: CHAT_HISTORY_MAX_ITEMS,
@@ -151,7 +159,9 @@ export function initChatUiEngineWarmup() {
 function getChatWidgetEngineDeps() {
     return {
         getChatbotOpen: () => state.chatbotOpen,
-        setChatbotOpen: (val) => { state.chatbotOpen = val; },
+        setChatbotOpen: (val) => {
+            state.chatbotOpen = val;
+        },
         getChatHistoryLength: () => state.chatHistory.length,
         warmChatUi: () => runDeferredModule(loadChatUiEngine, () => undefined),
         scrollToBottom,
@@ -161,6 +171,7 @@ function getChatWidgetEngineDeps() {
         addUserMessage,
         processWithKimi,
         startChatBooking,
+        isChatBookingActive,
     };
 }
 
@@ -397,7 +408,8 @@ export function loadFigoChatEngine() {
         src: FIGO_CHAT_ENGINE_URL,
         scriptDataAttribute: 'data-figo-chat-engine',
         resolveModule: () => window.Piel && window.Piel.FigoChatEngine,
-        isModuleReady: (module) => !!(module && typeof module.processWithKimi === 'function'),
+        isModuleReady: (module) =>
+            !!(module && typeof module.processWithKimi === 'function'),
         onModuleReady: (module) => {
             if (module && typeof module.init === 'function') {
                 module.init({
@@ -418,7 +430,7 @@ export function loadFigoChatEngine() {
                     clinicAddress: CLINIC_ADDRESS,
                     clinicMapUrl: CLINIC_MAP_URL,
                     doctorCarolinaPhone: DOCTOR_CAROLINA_PHONE,
-                    doctorCarolinaEmail: DOCTOR_CAROLINA_EMAIL
+                    doctorCarolinaEmail: DOCTOR_CAROLINA_EMAIL,
                 });
             }
         },

@@ -107,11 +107,17 @@ function startChatBookingSafe() {
     }
 }
 
+function isChatBookingActiveSafe() {
+    if (deps && typeof deps.isChatBookingActive === 'function') {
+        return deps.isChatBookingActive() === true;
+    }
+    return false;
+}
+
 function isMobileViewport() {
     if (typeof window.matchMedia === 'function') {
-        return window.matchMedia(
-            `(max-width: ${MOBILE_CHAT_BREAKPOINT}px)`
-        ).matches;
+        return window.matchMedia(`(max-width: ${MOBILE_CHAT_BREAKPOINT}px)`)
+            .matches;
     }
     return window.innerWidth <= MOBILE_CHAT_BREAKPOINT;
 }
@@ -135,12 +141,43 @@ function getVisibleHeaderBottom() {
     return Math.ceil(Math.max(maxBottom, 96));
 }
 
+function getQuickDockHeight() {
+    const dock = document.querySelector('.quick-dock');
+    if (!dock || typeof dock.getBoundingClientRect !== 'function') {
+        return 0;
+    }
+    const style = window.getComputedStyle
+        ? window.getComputedStyle(dock)
+        : null;
+    if (style && (style.display === 'none' || style.visibility === 'hidden')) {
+        return 0;
+    }
+    const rect = dock.getBoundingClientRect();
+    return Number.isFinite(rect.height)
+        ? Math.ceil(Math.max(rect.height, 0))
+        : 0;
+}
+
 function syncChatViewportLayout() {
     const root = document.documentElement;
     const body = document.body;
     if (!root || !body) {
         return;
     }
+
+    const quickDockHeight = getQuickDockHeight();
+    const quickDockExtra = Math.max(0, quickDockHeight - 56);
+    const compactMobile = window.innerWidth <= 640;
+    const widgetBaseBottom = compactMobile ? 76 : 82;
+    root.style.setProperty(
+        '--chat-widget-mobile-bottom',
+        `${widgetBaseBottom + quickDockExtra}px`
+    );
+    root.style.setProperty(
+        '--chat-container-mobile-bottom',
+        `${146 + quickDockExtra}px`
+    );
+    root.style.setProperty('--chat-quick-dock-height', `${quickDockHeight}px`);
 
     if (isMobileViewport()) {
         root.style.setProperty(
@@ -151,6 +188,11 @@ function syncChatViewportLayout() {
         root.style.removeProperty('--chat-mobile-top-offset');
     }
 
+    body.classList.toggle('chatbot-open', getChatbotOpen());
+    body.classList.toggle(
+        'chatbot-booking-active',
+        getChatbotOpen() && isChatBookingActiveSafe()
+    );
     body.classList.toggle(
         'chatbot-mobile-open',
         isMobileViewport() && getChatbotOpen()
@@ -220,8 +262,7 @@ function renderQuickSuggestions() {
         quickOptions += '</button>';
         quickOptions +=
             '<button class="chat-suggestion-btn" data-action="quick-message" data-value="appointment">';
-        quickOptions +=
-            '<i class="fas fa-calendar-check"></i> Agendar cita';
+        quickOptions += '<i class="fas fa-calendar-check"></i> Agendar cita';
         quickOptions += '</button>';
         quickOptions +=
             '<button class="chat-suggestion-btn" data-action="quick-message" data-value="prices">';
@@ -304,23 +345,20 @@ async function sendChatMessage() {
 
     ensureChatStartedTracked('first_message');
 
-    await Promise.resolve(addUserMessageSafe(message)).catch(
-        () => undefined
-    );
+    await Promise.resolve(addUserMessageSafe(message)).catch(() => undefined);
     input.value = '';
-    await Promise.resolve(processWithKimiSafe(message)).catch(
-        () => undefined
-    );
+    await Promise.resolve(processWithKimiSafe(message)).catch(() => undefined);
 }
 
 function sendQuickMessage(type) {
     ensureChatStartedTracked('quick_message');
 
     if (type === 'appointment') {
-        Promise.resolve(
-            addUserMessageSafe('Quiero agendar una cita')
-        ).catch(() => undefined);
+        Promise.resolve(addUserMessageSafe('Quiero agendar una cita')).catch(
+            () => undefined
+        );
         startChatBookingSafe();
+        syncChatViewportLayout();
         return;
     }
 
