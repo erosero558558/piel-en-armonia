@@ -9,6 +9,9 @@ param(
     [double]$RecurrenceRateMinWarnPct = 30,
     [double]$RecurrenceRateDropWarnPct = 15,
     [int]$RecurrenceWarnMinUniquePatients = 5,
+    [double]$ConversionRateMinWarnPct = 25,
+    [double]$ConversionRateDropWarnPct = 15,
+    [int]$ConversionWarnMinStartCheckout = 10,
     [switch]$FailOnWarnings
 )
 
@@ -532,6 +535,16 @@ $errorRatePct = if ($startCheckout -gt 0) {
 } else {
     0.0
 }
+$bookingConfirmedRatePct = if ($startCheckout -gt 0) {
+    [Math]::Round(($bookingConfirmed / [double]$startCheckout) * 100, 2)
+} else {
+    0.0
+}
+$checkoutAbandonRatePct = if ($startCheckout -gt 0) {
+    [Math]::Round(($checkoutAbandon / [double]$startCheckout) * 100, 2)
+} else {
+    0.0
+}
 
 $benchChecks = @(
     @{ Name = 'health'; Url = "$base/api.php?resource=health"; Method = 'GET'; Body = '' },
@@ -644,6 +657,11 @@ $previousRetention = if ($null -ne $previousReport) {
 } else {
     $null
 }
+$previousConversion = if ($null -ne $previousReport) {
+    Get-ObjectValueOrDefault -Object $previousReport -Property 'conversion' -DefaultValue $null
+} else {
+    $null
+}
 $retentionNoShowRateDeltaPct = $null
 $retentionRecurrenceRateDeltaPct = $null
 if ($null -ne $previousRetention) {
@@ -652,11 +670,30 @@ if ($null -ne $previousRetention) {
     $retentionNoShowRateDeltaPct = [Math]::Round(($retentionNoShowRatePct - $previousNoShowRatePct), 2)
     $retentionRecurrenceRateDeltaPct = [Math]::Round(($retentionRecurrenceRatePct - $previousRecurrenceRatePct), 2)
 }
-
-$warningBlock = if ($warnings.Count -eq 0) {
-    '- none'
-} else {
-    ($warnings | ForEach-Object { "- $_" }) -join "`n"
+$previousStartCheckout = $null
+$previousBookingConfirmed = $null
+$previousBookingConfirmedRatePct = $null
+if ($null -ne $previousConversion) {
+    $previousStartCheckout = [int](Get-ObjectValueOrDefault -Object $previousConversion -Property 'startCheckout' -DefaultValue 0)
+    $previousBookingConfirmed = [int](Get-ObjectValueOrDefault -Object $previousConversion -Property 'bookingConfirmed' -DefaultValue 0)
+    if (Get-ObjectValueOrDefault -Object $previousConversion -Property 'bookingConfirmedRatePct' -DefaultValue $null) {
+        $previousBookingConfirmedRatePct = [double](Get-ObjectValueOrDefault -Object $previousConversion -Property 'bookingConfirmedRatePct' -DefaultValue 0)
+    } elseif ($previousStartCheckout -gt 0) {
+        $previousBookingConfirmedRatePct = [Math]::Round(($previousBookingConfirmed / [double]$previousStartCheckout) * 100, 2)
+    }
+} elseif ($null -ne $previousReport) {
+    $previousSummary = Get-ObjectValueOrDefault -Object $previousReport -Property 'summary' -DefaultValue $null
+    if ($null -ne $previousSummary) {
+        $previousStartCheckout = [int](Get-ObjectValueOrDefault -Object $previousSummary -Property 'startCheckout' -DefaultValue 0)
+        $previousBookingConfirmed = [int](Get-ObjectValueOrDefault -Object $previousSummary -Property 'bookingConfirmed' -DefaultValue 0)
+        if ($previousStartCheckout -gt 0) {
+            $previousBookingConfirmedRatePct = [Math]::Round(($previousBookingConfirmed / [double]$previousStartCheckout) * 100, 2)
+        }
+    }
+}
+$bookingConfirmedRateDeltaPct = $null
+if ($null -ne $previousBookingConfirmedRatePct) {
+    $bookingConfirmedRateDeltaPct = [Math]::Round(($bookingConfirmedRatePct - $previousBookingConfirmedRatePct), 2)
 }
 
 $benchTable = @()
@@ -665,6 +702,7 @@ foreach ($row in $benchResults) {
 }
 $retentionNoShowRateDeltaLabel = if ($null -eq $retentionNoShowRateDeltaPct) { 'n/a' } else { [string]$retentionNoShowRateDeltaPct }
 $retentionRecurrenceRateDeltaLabel = if ($null -eq $retentionRecurrenceRateDeltaPct) { 'n/a' } else { [string]$retentionRecurrenceRateDeltaPct }
+$bookingConfirmedRateDeltaLabel = if ($null -eq $bookingConfirmedRateDeltaPct) { 'n/a' } else { [string]$bookingConfirmedRateDeltaPct }
 
 $retentionSampleSufficientForRecurrence = $retentionUniquePatients -ge $RecurrenceWarnMinUniquePatients
 if ($retentionSampleSufficientForRecurrence -and $retentionRecurrenceRatePct -lt $RecurrenceRateMinWarnPct) {
@@ -676,6 +714,24 @@ if (
     $retentionRecurrenceRateDeltaPct -le (-1 * [Math]::Abs($RecurrenceRateDropWarnPct))
 ) {
     $warnings.Add("recurrence_rate_caida_${retentionRecurrenceRateDeltaPct}pct")
+}
+$conversionSampleSufficient = $startCheckout -ge $ConversionWarnMinStartCheckout
+$previousConversionSampleSufficient = ($null -ne $previousStartCheckout) -and ($previousStartCheckout -ge $ConversionWarnMinStartCheckout)
+if ($conversionSampleSufficient -and $bookingConfirmedRatePct -lt $ConversionRateMinWarnPct) {
+    $warnings.Add("conversion_rate_baja_${bookingConfirmedRatePct}pct")
+}
+if (
+    $conversionSampleSufficient -and
+    $previousConversionSampleSufficient -and
+    $null -ne $bookingConfirmedRateDeltaPct -and
+    $bookingConfirmedRateDeltaPct -le (-1 * [Math]::Abs($ConversionRateDropWarnPct))
+) {
+    $warnings.Add("conversion_rate_caida_${bookingConfirmedRateDeltaPct}pct")
+}
+$warningBlock = if ($warnings.Count -eq 0) {
+    '- none'
+} else {
+    ($warnings | ForEach-Object { "- $_" }) -join "`n"
 }
 
 $markdown = @"
@@ -695,6 +751,13 @@ $markdown = @"
 - booking_error: $bookingError
 - checkout_error: $checkoutError
 - booking_error_rate_pct: $errorRatePct
+- booking_confirmed_rate_pct: $bookingConfirmedRatePct
+- checkout_abandon_rate_pct: $checkoutAbandonRatePct
+- conversion_warning_sample_sufficient: $conversionSampleSufficient (start_checkout >= $ConversionWarnMinStartCheckout)
+- conversion_min_warn_pct: $ConversionRateMinWarnPct
+- conversion_drop_warn_pct: $ConversionRateDropWarnPct
+- previous_report_generated_at: $previousReportDate
+- booking_confirmed_rate_delta_pct: $bookingConfirmedRateDeltaLabel
 
 ## Calendar Health
 
@@ -757,6 +820,24 @@ $reportPayload = [ordered]@{
         checkoutError = $checkoutError
         bookingErrorRatePct = $errorRatePct
     }
+    conversion = [ordered]@{
+        startCheckout = $startCheckout
+        bookingConfirmed = $bookingConfirmed
+        checkoutAbandon = $checkoutAbandon
+        bookingError = $bookingError
+        checkoutError = $checkoutError
+        bookingConfirmedRatePct = [Math]::Round([double]$bookingConfirmedRatePct, 2)
+        checkoutAbandonRatePct = [Math]::Round([double]$checkoutAbandonRatePct, 2)
+        errorRatePct = [Math]::Round([double]$errorRatePct, 2)
+        conversionWarningSampleSufficient = [bool]$conversionSampleSufficient
+        conversionWarnMinStartCheckout = $ConversionWarnMinStartCheckout
+        conversionMinWarnPct = [Math]::Round([double]$ConversionRateMinWarnPct, 2)
+        conversionDropWarnPct = [Math]::Round([double]$ConversionRateDropWarnPct, 2)
+    }
+    conversionTrend = [ordered]@{
+        previousReportGeneratedAt = $previousReportDate
+        bookingConfirmedRateDeltaPct = $bookingConfirmedRateDeltaPct
+    }
     calendar = [ordered]@{
         source = $calendarSource
         mode = $calendarMode
@@ -806,7 +887,7 @@ $reportPayload | ConvertTo-Json -Depth 10 | Set-Content -Path $reportJsonPath -E
 Write-Host ''
 Write-Host "Reporte markdown: $reportMdPath"
 Write-Host "Reporte json: $reportJsonPath"
-Write-Host "booking_confirmed=$bookingConfirmed error_rate_pct=$errorRatePct core_p95_max_ms=$coreP95Max figo_post_p95_ms=$figoPostP95"
+Write-Host "booking_confirmed=$bookingConfirmed booking_confirmed_rate_pct=$bookingConfirmedRatePct error_rate_pct=$errorRatePct core_p95_max_ms=$coreP95Max figo_post_p95_ms=$figoPostP95"
 Write-Host "retention_no_show_rate_pct=$retentionNoShowRatePct retention_recurrence_rate_pct=$retentionRecurrenceRatePct sentry_backend=$sentryBackendConfigured sentry_frontend=$sentryFrontendConfigured"
 if ($warnings.Count -gt 0) {
     Write-Host "Warnings: $($warnings -join ', ')" -ForegroundColor Yellow
