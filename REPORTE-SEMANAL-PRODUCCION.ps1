@@ -738,6 +738,7 @@ $reportDateCompact = Get-Date -Format 'yyyyMMdd'
 Ensure-Directory -Path $OutputDir
 $reportMdPath = Join-Path $OutputDir "weekly-report-$reportDateCompact.md"
 $reportJsonPath = Join-Path $OutputDir "weekly-report-$reportDateCompact.json"
+$retentionBaselinePath = Join-Path $OutputDir 'retention-baseline.json'
 $previousReport = $null
 $previousReportDate = ''
 $reportCandidates = Get-ChildItem -Path $OutputDir -Filter 'weekly-report-*.json' -ErrorAction SilentlyContinue |
@@ -759,6 +760,34 @@ if ($null -ne $previousReport) {
     $previousReportDate = [string](Get-ObjectValueOrDefault -Object $previousReport -Property 'generatedAt' -DefaultValue '')
 }
 
+$retentionBaselineRaw = Read-JsonFileSafe -Path $retentionBaselinePath
+$retentionBaselineGeneratedAt = ''
+$retentionBaselineNoShowRatePct = $null
+$retentionBaselineRecurrenceRatePct = $null
+$retentionBaselineSource = 'missing'
+if ($null -ne $retentionBaselineRaw) {
+    $retentionBaselineGeneratedAt = [string](Get-ObjectValueOrDefault -Object $retentionBaselineRaw -Property 'generatedAt' -DefaultValue '')
+    $baselineNoShowRaw = Get-ObjectValueOrDefault -Object $retentionBaselineRaw -Property 'noShowRatePct' -DefaultValue $null
+    if ($null -ne $baselineNoShowRaw -and [string]$baselineNoShowRaw -ne '') {
+        try {
+            $retentionBaselineNoShowRatePct = [Math]::Round([double]$baselineNoShowRaw, 2)
+        } catch {
+            $retentionBaselineNoShowRatePct = $null
+        }
+    }
+    $baselineRecurrenceRaw = Get-ObjectValueOrDefault -Object $retentionBaselineRaw -Property 'recurrenceRatePct' -DefaultValue $null
+    if ($null -ne $baselineRecurrenceRaw -and [string]$baselineRecurrenceRaw -ne '') {
+        try {
+            $retentionBaselineRecurrenceRatePct = [Math]::Round([double]$baselineRecurrenceRaw, 2)
+        } catch {
+            $retentionBaselineRecurrenceRatePct = $null
+        }
+    }
+    if ($null -ne $retentionBaselineNoShowRatePct -and $null -ne $retentionBaselineRecurrenceRatePct) {
+        $retentionBaselineSource = 'persisted_file'
+    }
+}
+
 $previousRetention = if ($null -ne $previousReport) {
     Get-ObjectValueOrDefault -Object $previousReport -Property 'retention' -DefaultValue $null
 } else {
@@ -777,6 +806,20 @@ if ($null -ne $previousRetention) {
     $retentionNoShowRateDeltaPct = [Math]::Round(($retentionNoShowRatePct - $previousNoShowRatePct), 2)
     $retentionRecurrenceRateDeltaPct = [Math]::Round(($retentionRecurrenceRatePct - $previousRecurrenceRatePct), 2)
 }
+if ($null -eq $retentionBaselineNoShowRatePct -or $null -eq $retentionBaselineRecurrenceRatePct) {
+    if ($null -ne $previousRetention) {
+        $retentionBaselineNoShowRatePct = [Math]::Round([double](Get-ObjectValueOrDefault -Object $previousRetention -Property 'noShowRatePct' -DefaultValue $retentionNoShowRatePct), 2)
+        $retentionBaselineRecurrenceRatePct = [Math]::Round([double](Get-ObjectValueOrDefault -Object $previousRetention -Property 'recurrenceRatePct' -DefaultValue $retentionRecurrenceRatePct), 2)
+        $retentionBaselineGeneratedAt = if ([string]::IsNullOrWhiteSpace($previousReportDate)) { $reportGeneratedAt } else { $previousReportDate }
+        $retentionBaselineSource = 'seeded_from_previous_report'
+    } else {
+        $retentionBaselineNoShowRatePct = [Math]::Round([double]$retentionNoShowRatePct, 2)
+        $retentionBaselineRecurrenceRatePct = [Math]::Round([double]$retentionRecurrenceRatePct, 2)
+        $retentionBaselineGeneratedAt = $reportGeneratedAt
+        $retentionBaselineSource = 'seeded_current_report'
+    }
+}
+$retentionTrendReady = ($null -ne $retentionNoShowRateDeltaPct) -and ($null -ne $retentionRecurrenceRateDeltaPct)
 $previousStartCheckout = $null
 $previousBookingConfirmed = $null
 $previousViewBooking = $null
@@ -825,6 +868,8 @@ foreach ($row in $benchResults) {
 }
 $retentionNoShowRateDeltaLabel = if ($null -eq $retentionNoShowRateDeltaPct) { 'n/a' } else { [string]$retentionNoShowRateDeltaPct }
 $retentionRecurrenceRateDeltaLabel = if ($null -eq $retentionRecurrenceRateDeltaPct) { 'n/a' } else { [string]$retentionRecurrenceRateDeltaPct }
+$retentionBaselineNoShowLabel = if ($null -eq $retentionBaselineNoShowRatePct) { 'n/a' } else { [string]$retentionBaselineNoShowRatePct }
+$retentionBaselineRecurrenceLabel = if ($null -eq $retentionBaselineRecurrenceRatePct) { 'n/a' } else { [string]$retentionBaselineRecurrenceRatePct }
 $bookingConfirmedRateDeltaLabel = if ($null -eq $bookingConfirmedRateDeltaPct) { 'n/a' } else { [string]$bookingConfirmedRateDeltaPct }
 $startCheckoutRateDeltaLabel = if ($null -eq $startCheckoutRateDeltaPct) { 'n/a' } else { [string]$startCheckoutRateDeltaPct }
 
@@ -1003,6 +1048,11 @@ $markdown = @"
 - previous_report_generated_at: $previousReportDate
 - no_show_rate_delta_pct: $retentionNoShowRateDeltaLabel
 - recurrence_rate_delta_pct: $retentionRecurrenceRateDeltaLabel
+- retention_baseline_source: $retentionBaselineSource
+- retention_baseline_generated_at: $retentionBaselineGeneratedAt
+- retention_baseline_no_show_rate_pct: $retentionBaselineNoShowLabel
+- retention_baseline_recurrence_rate_pct: $retentionBaselineRecurrenceLabel
+- retention_trend_ready: $retentionTrendReady
 
 ## Latency Bench
 
@@ -1038,7 +1088,15 @@ $warningDetailBlock
 - release_action: $releaseAction
 "@
 
+$retentionBaselinePayload = [ordered]@{
+    generatedAt = $retentionBaselineGeneratedAt
+    noShowRatePct = $retentionBaselineNoShowRatePct
+    recurrenceRatePct = $retentionBaselineRecurrenceRatePct
+    source = $retentionBaselineSource
+}
+
 Set-Content -Path $reportMdPath -Value $markdown -Encoding UTF8
+$retentionBaselinePayload | ConvertTo-Json -Depth 6 | Set-Content -Path $retentionBaselinePath -Encoding UTF8
 
 $reportPayload = [ordered]@{
     generatedAt = $reportGeneratedAt
@@ -1111,6 +1169,13 @@ $reportPayload = [ordered]@{
         previousReportGeneratedAt = $previousReportDate
         noShowRateDeltaPct = $retentionNoShowRateDeltaPct
         recurrenceRateDeltaPct = $retentionRecurrenceRateDeltaPct
+        trendReady = [bool]$retentionTrendReady
+    }
+    retentionBaseline = [ordered]@{
+        generatedAt = $retentionBaselineGeneratedAt
+        noShowRatePct = $retentionBaselineNoShowRatePct
+        recurrenceRatePct = $retentionBaselineRecurrenceRatePct
+        source = $retentionBaselineSource
     }
     latency = [ordered]@{
         coreP95MaxMs = $coreP95Max

@@ -70,12 +70,12 @@ Entregables:
 
 - [x] `funnel-metrics` expone bloque `retention` (aditivo, sin breaking changes).
 - [x] `REPORTE-SEMANAL-PRODUCCION.ps1` incluye seccion retention + delta vs reporte previo.
-- [ ] Indicadores de recurrencia/no-show disponibles sin trabajo manual extra.
+- [x] Indicadores de recurrencia/no-show disponibles sin trabajo manual extra.
 
 Criterio de salida:
 
-- [ ] Baseline y tendencia semanal de no-show disponibles en JSON y markdown.
-- [ ] Recurrencia de pacientes trazable por metrica.
+- [x] Baseline y tendencia semanal de no-show disponibles en JSON y markdown.
+- [x] Recurrencia de pacientes trazable por metrica.
 
 ## C3 - Observabilidad accionable
 
@@ -160,6 +160,7 @@ Criterio de salida:
 - 2026-02-25: `REPORTE-SEMANAL-PRODUCCION.ps1` ahora expone `warningDetails` (code/severity/impact/runbookRef), `warningsByImpact` y `triagePlaybook` (SLA 15 min) en JSON/markdown para C3 sin cambios breaking.
 - 2026-02-25: `REPORTE-SEMANAL-PRODUCCION.ps1` agrega `releaseGuardrails` (`decision: pass|warn|block`, `reason`, `action`) para hacer explicita la regla warning->blocking en C4.
 - 2026-02-25: activado protocolo backend-only para esta instancia Codex (dominio fijo `codex_backend_ops`) y creadas tareas iniciales de ejecucion `AG-035` (C1 flakiness agenda/chat/reprogramacion) y `AG-036` (C3 observabilidad accionable), ambas en `status=ready`, `domain_lane=backend_ops`, `lane_lock=strict`, `cross_domain=false`.
+- 2026-02-25: C2 completado con baseline automatico de retencion en `verification/weekly/c2/retention-baseline.json`, tendencia semanal en JSON/markdown (`retentionTrend.trendReady=true`) y deltas de no-show/recurrencia sin accion manual adicional.
 - 2026-02-25: cerrada evidencia de estabilidad C1 en `verification/agent-runs/AG-035.md` con `run-phase2-flakiness` (`runs=5`, `passes=5`, `failures=0`, `classification=stable`) y `npm run test:critical:agenda` en verde (`2 passed`, `3 skipped`).
 - 2026-02-25: cerrada evidencia C3 en `verification/agent-runs/AG-036.md` con reporte semanal de produccion (`verification/weekly/ag036/weekly-report-20260225.json`) validando `triagePlaybook.targetMinutes=15`, `calendarMode=live`, `releaseGuardrails.decision=pass` y p95 dentro de objetivo (`core=684.98`, `figo-post=1811.85`).
 - 2026-02-25: cerrado C4 con semaforos por dominio en summaries de `post-deploy-fast.yml`, `post-deploy-gate.yml` y `nightly-stability.yml` (`platform/agenda/chat/funnel`) y fallback operativo documentado en `docs/RUNBOOKS.md` seccion `1.5 Politica warning -> blocking y fallback operativo`.

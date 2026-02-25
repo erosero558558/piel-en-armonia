@@ -94,6 +94,11 @@ jobs:
                     "retention_recurrence_rate_pct=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "retention_no_show_rate_delta_pct=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "retention_recurrence_rate_delta_pct=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                    "retention_trend_ready=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                    "retention_baseline_source=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                    "retention_baseline_generated_at=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                    "retention_baseline_no_show_rate_pct=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                    "retention_baseline_recurrence_rate_pct=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "retention_appointments_total=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "retention_unique_patients=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "retention_recurrent_patients=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -138,6 +143,7 @@ jobs:
 
                     $retention = $payload.retention
                     $retentionTrend = $payload.retentionTrend
+                    $retentionBaseline = $payload.retentionBaseline
                     $conversion = $payload.conversion
                     $conversionTrend = $payload.conversionTrend
                     if ($null -eq $conversion -and $null -ne $payload.summary) {
@@ -170,6 +176,11 @@ jobs:
                     $recurrentPatients = if ($null -ne $retention) { $retention.recurrentPatients } else { 'n/a' }
                     $noShowRateDelta = if ($null -ne $retentionTrend -and $null -ne $retentionTrend.noShowRateDeltaPct) { $retentionTrend.noShowRateDeltaPct } else { 'n/a' }
                     $recurrenceRateDelta = if ($null -ne $retentionTrend -and $null -ne $retentionTrend.recurrenceRateDeltaPct) { $retentionTrend.recurrenceRateDeltaPct } else { 'n/a' }
+                    $retentionTrendReady = if ($null -ne $retentionTrend -and $null -ne $retentionTrend.trendReady) { $retentionTrend.trendReady } else { 'n/a' }
+                    $retentionBaselineSource = if ($null -ne $retentionBaseline -and $null -ne $retentionBaseline.source) { $retentionBaseline.source } else { 'n/a' }
+                    $retentionBaselineGeneratedAt = if ($null -ne $retentionBaseline -and $null -ne $retentionBaseline.generatedAt) { $retentionBaseline.generatedAt } else { 'n/a' }
+                    $retentionBaselineNoShowRate = if ($null -ne $retentionBaseline -and $null -ne $retentionBaseline.noShowRatePct) { $retentionBaseline.noShowRatePct } else { 'n/a' }
+                    $retentionBaselineRecurrenceRate = if ($null -ne $retentionBaseline -and $null -ne $retentionBaseline.recurrenceRatePct) { $retentionBaseline.recurrenceRatePct } else { 'n/a' }
                     $coreP95MaxMs = if ($null -ne $latency) { $latency.coreP95MaxMs } else { 'n/a' }
                     $figoPostP95Ms = if ($null -ne $latency) { $latency.figoPostP95Ms } else { 'n/a' }
                     $availabilityBench = $null
@@ -198,6 +209,11 @@ jobs:
                     $recurrentPatients = 'n/a'
                     $noShowRateDelta = 'n/a'
                     $recurrenceRateDelta = 'n/a'
+                    $retentionTrendReady = 'n/a'
+                    $retentionBaselineSource = 'n/a'
+                    $retentionBaselineGeneratedAt = 'n/a'
+                    $retentionBaselineNoShowRate = 'n/a'
+                    $retentionBaselineRecurrenceRate = 'n/a'
                     $coreP95MaxMs = 'n/a'
                     $figoPostP95Ms = 'n/a'
                     $availabilityP95Ms = 'n/a'
@@ -222,6 +238,11 @@ jobs:
                   "retention_recurrence_rate_pct=$recurrenceRate" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "retention_no_show_rate_delta_pct=$noShowRateDelta" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "retention_recurrence_rate_delta_pct=$recurrenceRateDelta" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "retention_trend_ready=$retentionTrendReady" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "retention_baseline_source=$retentionBaselineSource" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "retention_baseline_generated_at=$retentionBaselineGeneratedAt" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "retention_baseline_no_show_rate_pct=$retentionBaselineNoShowRate" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "retention_baseline_recurrence_rate_pct=$retentionBaselineRecurrenceRate" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "retention_appointments_total=$appointmentsTotal" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "retention_unique_patients=$uniquePatients" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "retention_recurrent_patients=$recurrentPatients" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -237,6 +258,7 @@ jobs:
                   path: |
                       ${{ steps.report.outputs.report_json_path }}
                       ${{ steps.report.outputs.report_md_path }}
+                      verification/weekly/retention-baseline.json
                       verification/agent-metrics.json
                   if-no-files-found: warn
                   retention-days: 30
@@ -273,6 +295,11 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- appointments_total: ``${{ steps.report.outputs.retention_appointments_total }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- no_show_rate_pct: ``${{ steps.report.outputs.retention_no_show_rate_pct }}`` (delta: ``${{ steps.report.outputs.retention_no_show_rate_delta_pct }}``)"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- recurrence_rate_pct: ``${{ steps.report.outputs.retention_recurrence_rate_pct }}`` (delta: ``${{ steps.report.outputs.retention_recurrence_rate_delta_pct }}``)"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- trend_ready: ``${{ steps.report.outputs.retention_trend_ready }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- baseline_source: ``${{ steps.report.outputs.retention_baseline_source }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- baseline_generated_at: ``${{ steps.report.outputs.retention_baseline_generated_at }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- baseline_no_show_rate_pct: ``${{ steps.report.outputs.retention_baseline_no_show_rate_pct }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- baseline_recurrence_rate_pct: ``${{ steps.report.outputs.retention_baseline_recurrence_rate_pct }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- unique_patients: ``${{ steps.report.outputs.retention_unique_patients }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- recurrent_patients: ``${{ steps.report.outputs.retention_recurrent_patients }}``"
                   if ("${{ steps.report.outputs.report_md_path }}" -ne "") {
