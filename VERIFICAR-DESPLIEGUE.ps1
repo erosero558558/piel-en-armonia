@@ -35,6 +35,14 @@ function Get-CurlBinary {
     throw 'No se encontro curl/curl.exe en el entorno de ejecucion.'
 }
 
+function New-CompatTemporaryFile {
+    try {
+        return [System.IO.Path]::GetTempFileName()
+    } catch {
+        throw "No se pudo crear archivo temporal: $($_.Exception.Message)"
+    }
+}
+
 function Invoke-CurlDownload {
     param(
         [string]$Url,
@@ -153,7 +161,7 @@ function Get-RemoteSha256 {
         return ''
     }
 
-    $tmp = New-TemporaryFile
+    $tmp = New-CompatTemporaryFile
     try {
         if (-not (Invoke-CurlDownload -Url $Url -OutputPath $tmp -MaxTimeSec 20 -ConnectTimeoutSec 8)) {
             throw "No se pudo descargar $Url"
@@ -257,7 +265,7 @@ function Get-RemoteText {
         return ''
     }
 
-    $tmp = New-TemporaryFile
+    $tmp = New-CompatTemporaryFile
     try {
         if (-not (Invoke-CurlDownload -Url $Url -OutputPath $tmp -MaxTimeSec 20 -ConnectTimeoutSec 8)) {
             return ''
@@ -506,7 +514,7 @@ if ($localStyleRef -eq '' -and $localDeferredStyleRef -eq '' -and -not $localHas
 $remoteIndexRaw = ''
 $remoteIndexCandidates = @("$base/", "$base/index.html")
 foreach ($candidateUrl in $remoteIndexCandidates) {
-    $remoteIndexTmp = New-TemporaryFile
+    $remoteIndexTmp = New-CompatTemporaryFile
     try {
         if (-not (Invoke-CurlDownload -Url $candidateUrl -OutputPath $remoteIndexTmp -MaxTimeSec 20 -ConnectTimeoutSec 8)) {
             continue
