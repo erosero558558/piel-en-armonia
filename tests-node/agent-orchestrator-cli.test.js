@@ -89,6 +89,37 @@ function runCliWithEnv(dir, args, envPatch, expectedStatus = 0) {
     return result;
 }
 
+function runCliWithInput(
+    dir,
+    args,
+    input,
+    expectedStatus = 0,
+    envPatch = null
+) {
+    const result = spawnSync(
+        process.execPath,
+        [join(dir, 'agent-orchestrator.js'), ...args],
+        {
+            cwd: dir,
+            encoding: 'utf8',
+            input: input == null ? '' : String(input),
+            env: envPatch ? { ...process.env, ...envPatch } : process.env,
+        }
+    );
+
+    if (result.error) {
+        throw result.error;
+    }
+
+    assert.equal(
+        result.status,
+        expectedStatus,
+        `Unexpected exit for ${args.join(' ')}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`
+    );
+
+    return result;
+}
+
 function parseJsonStdout(result) {
     try {
         return JSON.parse(result.stdout);
@@ -726,6 +757,41 @@ test('task create soporta --template docs y permite override de defaults', (t) =
     assert.match(board, /scope: docs/);
 });
 
+test('task create --from-files infiere scope/risk y puede sobreescribir template', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const result = runCli(dir, [
+        'task',
+        'create',
+        '--title',
+        'Calendar hardening',
+        '--template',
+        'docs',
+        '--executor',
+        'codex',
+        '--from-files',
+        '--files',
+        'lib/calendar/CalendarBookingService.php',
+        '--json',
+    ]);
+    const json = parseJsonStdout(result);
+
+    assert.equal(json.template, 'docs');
+    assert.equal(json.from_files, true);
+    assert.equal(json.file_inference.scope, 'calendar');
+    assert.equal(json.file_inference.risk, 'high');
+    assert.equal(json.task.scope, 'calendar');
+    assert.equal(json.task.risk, 'high');
+    assert.equal(json.task.executor, 'codex');
+});
+
 test('task create bloquea crear tarea activa con conflicto blocking', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));
@@ -887,6 +953,52 @@ test('task create template critical exige scope critico explicito', (t) => {
     assert.equal(json.task.risk, 'high');
     assert.equal(json.task.status, 'ready');
     assert.equal(json.task.scope, 'auth-prod');
+});
+
+test('task create --interactive solicita campos minimos y mantiene JSON limpio', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const input = [
+        'Interactive docs task', // title
+        'docs', // template
+        'docs/interactive.md', // files
+        'y', // from-files
+        '', // executor
+        '', // status
+        '', // risk
+        '', // scope
+        '', // depends-on
+        '',
+    ].join('\n');
+
+    const result = runCliWithInput(
+        dir,
+        ['task', 'create', '--interactive', '--json'],
+        input,
+        0,
+        { AGENT_OWNER: 'ernesto' }
+    );
+    const json = parseJsonStdout(result);
+
+    assert.equal(json.task.id, 'AG-011');
+    assert.equal(json.task.owner, 'ernesto');
+    assert.equal(json.task.executor, 'kimi');
+    assert.equal(json.task.scope, 'docs');
+    assert.equal(json.task.risk, 'low');
+    assert.equal(json.template, 'docs');
+    assert.equal(json.from_files, true);
+    assert.equal(json.file_inference.scope, 'docs');
+    assert.equal(json.file_inference.risk, 'low');
+    assert.equal(result.stdout.trim().startsWith('{'), true);
+    assert.match(result.stderr, /Titulo:/);
+    assert.match(result.stderr, /Inferir scope\/risk/);
 });
 
 test('task claim bloquea pasar a estado activo si genera conflicto blocking', (t) => {

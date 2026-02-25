@@ -20,6 +20,7 @@
  */
 
 const { readFileSync, writeFileSync, existsSync, mkdirSync } = require('fs');
+const readline = require('readline');
 const { resolve, dirname } = require('path');
 
 const ROOT = __dirname;
@@ -593,6 +594,25 @@ function parseCsvList(value) {
         .filter(Boolean);
 }
 
+function isTruthyFlagValue(value) {
+    if (value === true) return true;
+    const raw = String(value || '')
+        .trim()
+        .toLowerCase();
+    if (!raw) return false;
+    if (['1', 'true', 'yes', 'y', 'on'].includes(raw)) return true;
+    if (['0', 'false', 'no', 'n', 'off'].includes(raw)) return false;
+    return true;
+}
+
+function isFlagEnabled(flags, ...keys) {
+    for (const key of keys) {
+        if (!Object.prototype.hasOwnProperty.call(flags || {}, key)) continue;
+        return isTruthyFlagValue(flags[key]);
+    }
+    return false;
+}
+
 function isoNow() {
     return new Date().toISOString();
 }
@@ -695,6 +715,164 @@ function resolveTaskCreateTemplate(templateNameRaw) {
         );
     }
     return { name: templateName, ...template };
+}
+
+function inferTaskCreateFromFiles(files) {
+    const normalizedFiles = Array.isArray(files)
+        ? files.map((item) => normalizePathToken(item)).filter(Boolean)
+        : [];
+    if (normalizedFiles.length === 0) return null;
+
+    const criticalMatches = [];
+    for (const keyword of CRITICAL_SCOPE_KEYWORDS) {
+        if (normalizedFiles.some((file) => file.includes(keyword))) {
+            criticalMatches.push(keyword);
+        }
+    }
+
+    let scope = null;
+    if (criticalMatches.length > 0) {
+        scope = criticalMatches[0];
+    } else {
+        const domain = inferTaskDomain({ scope: '', files: normalizedFiles });
+        if (domain && domain !== 'other') {
+            scope = domain;
+        } else {
+            const firstTopLevel = String(normalizedFiles[0] || '')
+                .split('/')[0]
+                .trim();
+            scope = firstTopLevel || 'general';
+        }
+    }
+
+    const allDocsLike = normalizedFiles.every(
+        (file) =>
+            file.startsWith('docs/') ||
+            file.endsWith('.md') ||
+            file.endsWith('.txt')
+    );
+
+    const hasHighRiskPathSignals = normalizedFiles.some((file) => {
+        return (
+            file.startsWith('.github/workflows/') ||
+            file.includes('/deploy') ||
+            file.includes('deploy/') ||
+            file.includes('/auth') ||
+            file.includes('/security') ||
+            file.includes('/calendar') ||
+            file.includes('/payments') ||
+            file.includes('/payment') ||
+            file.includes('stripe') ||
+            file.endsWith('env.php') ||
+            file.includes('/secrets') ||
+            file.includes('/secret') ||
+            file.includes('/backup') ||
+            file.includes('/restore')
+        );
+    });
+
+    let risk = 'medium';
+    if (criticalMatches.length > 0 || hasHighRiskPathSignals) {
+        risk = 'high';
+    } else if (allDocsLike) {
+        risk = 'low';
+    }
+
+    return {
+        scope,
+        risk,
+        reasons: {
+            critical_keywords: criticalMatches,
+            all_docs_like: allDocsLike,
+            high_risk_path_signals: hasHighRiskPathSignals,
+        },
+    };
+}
+
+function createPromptInterface(wantsJson = false) {
+    return readline.createInterface({
+        input: process.stdin,
+        output: wantsJson ? process.stderr : process.stdout,
+    });
+}
+
+function askLine(rl, promptText) {
+    return new Promise((resolve) => {
+        rl.question(promptText, (answer) => resolve(String(answer || '')));
+    });
+}
+
+async function collectTaskCreateInteractiveFlags(
+    flags = {},
+    wantsJson = false
+) {
+    const merged = { ...(flags || {}) };
+    const promptWriter = wantsJson ? process.stderr : process.stdout;
+    const promptSteps = async (ask) => {
+        if (!String(merged.title || '').trim()) {
+            merged.title = (await ask('Titulo: ')).trim();
+        }
+
+        if (!String(merged.template || '').trim()) {
+            const answer = (
+                await ask('Template (docs|bugfix|critical, enter=none): ')
+            ).trim();
+            if (answer) merged.template = answer;
+        }
+
+        if (!String(merged.files || '').trim()) {
+            merged.files = (await ask('Files CSV: ')).trim();
+        }
+
+        if (
+            !Object.prototype.hasOwnProperty.call(merged, 'from-files') &&
+            !Object.prototype.hasOwnProperty.call(merged, 'from_files')
+        ) {
+            const answer = (
+                await ask('Inferir scope/risk desde files? (y/N): ')
+            )
+                .trim()
+                .toLowerCase();
+            if (['y', 'yes', 'si', 's', '1', 'true'].includes(answer)) {
+                merged['from-files'] = true;
+            }
+        }
+
+        const optionalPrompts = [
+            ['executor', 'Executor (enter=auto/template): '],
+            ['status', 'Status (enter=auto): '],
+            ['risk', 'Risk low|medium|high (enter=auto): '],
+            ['scope', 'Scope (enter=auto): '],
+            ['depends-on', 'Depends_on CSV (enter=none): '],
+        ];
+        for (const [key, label] of optionalPrompts) {
+            if (String(merged[key] || '').trim()) continue;
+            const answer = (await ask(label)).trim();
+            if (answer) merged[key] = answer;
+        }
+    };
+
+    if (!process.stdin.isTTY) {
+        const bufferedInput = readFileSync(0, 'utf8');
+        const lines = String(bufferedInput || '').split(/\r?\n/);
+        let cursor = 0;
+        await promptSteps(async (label) => {
+            promptWriter.write(label);
+            if (cursor >= lines.length) return '';
+            const answer = lines[cursor];
+            cursor += 1;
+            return answer;
+        });
+        return merged;
+    }
+
+    const rl = createPromptInterface(wantsJson);
+    try {
+        await promptSteps((label) => askLine(rl, label));
+    } finally {
+        rl.close();
+    }
+    return merged;
 }
 
 function writeBoard(board) {
@@ -3364,9 +3542,11 @@ function cmdCodex(args) {
     }
 }
 
-function cmdTask(args) {
+async function cmdTask(args) {
     const subcommand = args[0];
-    const { positionals, flags } = parseFlags(args.slice(1));
+    const parsed = parseFlags(args.slice(1));
+    const { positionals } = parsed;
+    let { flags } = parsed;
     const wantsJson = args.includes('--json');
     const normalizedSubcommand = String(subcommand || '').trim();
     const taskId = String(positionals[0] || flags.id || '').trim();
@@ -3520,6 +3700,10 @@ function cmdTask(args) {
     }
 
     if (normalizedSubcommand === 'create') {
+        if (isFlagEnabled(flags, 'interactive')) {
+            flags = await collectTaskCreateInteractiveFlags(flags, wantsJson);
+        }
+
         const board = parseBoard();
         const template = resolveTaskCreateTemplate(flags.template);
         const requestedId = String(flags.id || '').trim();
@@ -3556,13 +3740,6 @@ function cmdTask(args) {
             throw new Error(`task create: status invalido (${status})`);
         }
 
-        const risk = String(flags.risk || template?.risk || 'medium')
-            .trim()
-            .toLowerCase();
-        if (!['low', 'medium', 'high'].includes(risk)) {
-            throw new Error(`task create: risk invalido (${risk})`);
-        }
-
         const files = parseCsvList(flags.files || '');
         if (files.length === 0) {
             throw new Error(
@@ -3570,11 +3747,29 @@ function cmdTask(args) {
             );
         }
 
+        const fromFilesEnabled = isFlagEnabled(
+            flags,
+            'from-files',
+            'from_files'
+        );
+        const fileInference = fromFilesEnabled
+            ? inferTaskCreateFromFiles(files)
+            : null;
+
+        const risk = String(
+            flags.risk || fileInference?.risk || template?.risk || 'medium'
+        )
+            .trim()
+            .toLowerCase();
+        if (!['low', 'medium', 'high'].includes(risk)) {
+            throw new Error(`task create: risk invalido (${risk})`);
+        }
+
         const owner = String(
             flags.owner || detectDefaultOwner() || 'unassigned'
         ).trim();
         const scope = String(
-            flags.scope || template?.scope || 'general'
+            flags.scope || fileInference?.scope || template?.scope || 'general'
         ).trim();
         if (
             template?.requireCriticalScope &&
@@ -3654,6 +3849,8 @@ function cmdTask(args) {
                         command: 'task',
                         action: 'create',
                         template: template?.name || null,
+                        from_files: fromFilesEnabled,
+                        file_inference: fileInference,
                         task: toTaskJson(task),
                     },
                     null,
@@ -3664,7 +3861,7 @@ function cmdTask(args) {
         }
 
         console.log(
-            `Task create OK: ${newId} [${status}] exec=${executor}${template ? ` template=${template.name}` : ''}`
+            `Task create OK: ${newId} [${status}] exec=${executor}${template ? ` template=${template.name}` : ''}${fromFilesEnabled ? ' from-files=true' : ''}`
         );
         return;
     }
@@ -3976,7 +4173,7 @@ function cmdClose(args) {
     console.log(`Tarea cerrada: ${taskId}`);
 }
 
-function main() {
+async function main() {
     const [command = 'status', ...args] = process.argv.slice(2);
     const commands = {
         status: () => cmdStatus(args),
@@ -3994,12 +4191,10 @@ function main() {
     if (!commands[command]) {
         throw new Error(`Comando no soportado: ${command}`);
     }
-    commands[command]();
+    await commands[command]();
 }
 
-try {
-    main();
-} catch (error) {
+main().catch((error) => {
     console.error(`ERROR: ${error.message}`);
     process.exit(1);
-}
+});
