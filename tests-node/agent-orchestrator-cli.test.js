@@ -1277,6 +1277,63 @@ test('task create --apply - lee preview JSON desde stdin', (t) => {
     assert.match(board, /title: "Apply stdin task"/);
 });
 
+test('task create --apply --force-id-remap remapea AG duplicado al siguiente ID', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const preview = runCli(dir, [
+        'task',
+        'create',
+        '--title',
+        'Remap preview task',
+        '--template',
+        'docs',
+        '--status',
+        'backlog',
+        '--preview',
+        '--files',
+        'docs/remap-preview.md',
+        '--json',
+    ]);
+    const previewJson = parseJsonStdout(preview);
+    const previewPath = join(dir, 'preview-remap.json');
+    writeFileSync(
+        previewPath,
+        `${JSON.stringify(previewJson, null, 2)}\n`,
+        'utf8'
+    );
+
+    runCli(dir, ['task', 'create', '--apply', 'preview-remap.json', '--json']);
+
+    const remapApply = runCli(dir, [
+        'task',
+        'create',
+        '--apply',
+        'preview-remap.json',
+        '--force-id-remap',
+        '--json',
+    ]);
+    const json = parseJsonStdout(remapApply);
+
+    assert.equal(json.applied, true);
+    assert.equal(json.force_id_remap, true);
+    assert.equal(json.id_remapped, true);
+    assert.equal(json.original_task_id, 'AG-011');
+    assert.equal(json.task.id, 'AG-012');
+    assert.equal(json.task_full.id, 'AG-012');
+
+    const board = readBoard(dir);
+    assert.match(board, /- id: AG-011/);
+    assert.match(board, /- id: AG-012/);
+    assert.match(board, /title: "Remap preview task"/);
+});
+
 test('task create preview-file lint valida preview contra board actual', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));
@@ -1328,6 +1385,70 @@ test('task create preview-file lint valida preview contra board actual', (t) => 
     assert.equal(json.task.id, 'AG-011');
 
     // lint should not persist the task
+    const board = readBoard(dir);
+    assert.doesNotMatch(board, /- id: AG-011/);
+});
+
+test('task create preview-file diff compara preview con task existente y sugiere remap', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const preview = runCli(dir, [
+        'task',
+        'create',
+        '--title',
+        'Diff preview original',
+        '--template',
+        'docs',
+        '--preview',
+        '--files',
+        'docs/diff-preview.md',
+        '--json',
+    ]);
+    const previewJson = parseJsonStdout(preview);
+
+    previewJson.task.id = 'AG-010';
+    previewJson.task_full.id = 'AG-010';
+    previewJson.task.title = 'Task fixture changed';
+    previewJson.task_full.title = 'Task fixture changed';
+
+    const previewPath = join(dir, 'preview-diff.json');
+    writeFileSync(
+        previewPath,
+        `${JSON.stringify(previewJson, null, 2)}\n`,
+        'utf8'
+    );
+
+    const result = runCli(dir, [
+        'task',
+        'create',
+        'preview-file',
+        'diff',
+        'preview-diff.json',
+        '--json',
+    ]);
+    const json = parseJsonStdout(result);
+
+    assert.equal(json.ok, true);
+    assert.equal(json.action, 'create-preview-diff');
+    assert.equal(json.id_collision, true);
+    assert.equal(json.suggested_id_remap, 'AG-011');
+    assert.ok(json.board_task_same_id);
+    assert.equal(json.board_task_same_id.id, 'AG-010');
+    assert.equal(Array.isArray(json.field_diff_same_id), true);
+    assert.equal(
+        json.field_diff_same_id.some((row) => row.field === 'title'),
+        true
+    );
+    assert.equal(json.apply_projection.basis, 'remap_candidate');
+    assert.equal(json.apply_projection.projected_task_id, 'AG-011');
+
     const board = readBoard(dir);
     assert.doesNotMatch(board, /- id: AG-011/);
 });

@@ -1147,6 +1147,66 @@ function loadTaskCreateApplyPayload(applyPathRaw, options = {}) {
     };
 }
 
+function summarizeBlockingConflictsForTask(taskId, conflicts) {
+    const safeTaskId = String(taskId || '').trim();
+    return (Array.isArray(conflicts) ? conflicts : []).map((item) => {
+        const leftId = String(item?.left?.id || '');
+        const other = leftId === safeTaskId ? item?.right : item?.left;
+        const overlapFiles = Array.isArray(item?.overlap_files)
+            ? item.overlap_files
+            : [];
+        return {
+            other_id: String(other?.id || ''),
+            overlap_files: overlapFiles,
+            overlap_files_text: overlapFiles.length
+                ? overlapFiles.join(', ')
+                : '(wildcard ambiguo)',
+        };
+    });
+}
+
+function formatBlockingConflictSummary(taskId, conflicts) {
+    return summarizeBlockingConflictsForTask(taskId, conflicts)
+        .map(
+            (row) =>
+                `${taskId} <-> ${row.other_id} :: ${row.overlap_files_text}`
+        )
+        .join(' | ');
+}
+
+function buildTaskCreatePreviewDiff(existingTask, previewTask) {
+    if (!existingTask || !previewTask) return [];
+    const before = toTaskFullJson(existingTask);
+    const after = toTaskFullJson(previewTask);
+    const keys = [
+        'title',
+        'owner',
+        'executor',
+        'status',
+        'risk',
+        'scope',
+        'files',
+        'acceptance',
+        'acceptance_ref',
+        'depends_on',
+        'prompt',
+    ];
+    const diffs = [];
+    for (const key of keys) {
+        const left = before[key];
+        const right = after[key];
+        const leftJson = JSON.stringify(left);
+        const rightJson = JSON.stringify(right);
+        if (leftJson === rightJson) continue;
+        diffs.push({
+            field: key,
+            before: left,
+            after: right,
+        });
+    }
+    return diffs;
+}
+
 function buildCodexActiveComment(block) {
     if (!block) return '';
     const lines = [];
@@ -3908,9 +3968,9 @@ async function cmdTask(args) {
             .toLowerCase();
 
         if (createNestedCommand === 'preview-file') {
-            if (createNestedAction !== 'lint') {
+            if (!['lint', 'diff'].includes(createNestedAction)) {
                 throw new Error(
-                    'Uso: node agent-orchestrator.js task create preview-file lint <preview.json|-> [--json]'
+                    'Uso: node agent-orchestrator.js task create preview-file <lint|diff> <preview.json|-> [--json]'
                 );
             }
 
@@ -3926,9 +3986,10 @@ async function cmdTask(args) {
             );
 
             const errors = [];
-            const duplicateId = board.tasks.some(
-                (item) => String(item.id || '') === task.id
-            );
+            const duplicateTask =
+                board.tasks.find((item) => String(item.id || '') === task.id) ||
+                null;
+            const duplicateId = Boolean(duplicateTask);
             if (duplicateId) {
                 errors.push(`id duplicado en board: ${task.id}`);
             }
@@ -3966,17 +4027,24 @@ async function cmdTask(args) {
                 }
             }
 
-            const lintPayload = {
+            const basePreviewCheckPayload = {
                 version: 1,
                 ok: errors.length === 0,
                 command: 'task',
-                action: 'create-preview-lint',
+                action:
+                    createNestedAction === 'diff'
+                        ? 'create-preview-diff'
+                        : 'create-preview-lint',
                 preview_file: loaded.path,
                 preview_file_resolved: loaded.resolved_path
                     ? toRelativeRepoPath(loaded.resolved_path)
                     : null,
                 task: toTaskJson(task),
                 task_full: toTaskFullJson(task),
+                id_collision: duplicateId,
+                suggested_id_remap: duplicateId
+                    ? nextAgentTaskId(board.tasks)
+                    : null,
                 checks: {
                     preview_payload_schema: 'passed',
                     task_normalization: 'passed',
@@ -3991,16 +4059,100 @@ async function cmdTask(args) {
                 errors,
             };
 
+            if (createNestedAction === 'diff') {
+                const candidateTaskForConflictCheck = duplicateId
+                    ? { ...task, id: nextAgentTaskId(board.tasks) }
+                    : task;
+                let conflictErrors = [];
+                let conflictItems = [];
+                if (ACTIVE_STATUSES.has(candidateTaskForConflictCheck.status)) {
+                    const handoffData = parseHandoffs();
+                    const candidateConflicts = getBlockingConflictsForTask(
+                        [...board.tasks, candidateTaskForConflictCheck],
+                        candidateTaskForConflictCheck.id,
+                        handoffData.handoffs
+                    );
+                    conflictItems = summarizeBlockingConflictsForTask(
+                        candidateTaskForConflictCheck.id,
+                        candidateConflicts
+                    );
+                    if (candidateConflicts.length > 0) {
+                        conflictErrors.push(
+                            formatBlockingConflictSummary(
+                                candidateTaskForConflictCheck.id,
+                                candidateConflicts
+                            )
+                        );
+                    }
+                }
+
+                const diffPayload = {
+                    ...basePreviewCheckPayload,
+                    ok: true,
+                    errors: [],
+                    board_task_same_id: duplicateTask
+                        ? toTaskFullJson(duplicateTask)
+                        : null,
+                    field_diff_same_id: duplicateTask
+                        ? buildTaskCreatePreviewDiff(duplicateTask, task)
+                        : [],
+                    apply_projection: {
+                        basis: duplicateId ? 'remap_candidate' : 'preview_id',
+                        projected_task_id: candidateTaskForConflictCheck.id,
+                        projected_blocking_conflicts: conflictItems,
+                        projected_blocking_conflicts_count:
+                            conflictItems.length,
+                        projected_blocking_conflicts_error:
+                            conflictErrors[0] || null,
+                    },
+                };
+
+                if (wantsJson) {
+                    console.log(JSON.stringify(diffPayload, null, 2));
+                    return;
+                }
+
+                console.log(
+                    `Task create preview-file diff: ${task.id} (${loaded.path})`
+                );
+                console.log(`- id_collision: ${duplicateId ? 'yes' : 'no'}`);
+                if (duplicateId) {
+                    console.log(
+                        `- suggested_id_remap: ${diffPayload.suggested_id_remap}`
+                    );
+                    if (diffPayload.field_diff_same_id.length === 0) {
+                        console.log('- field_diff_same_id: (sin cambios)');
+                    } else {
+                        console.log('- field_diff_same_id:');
+                        for (const row of diffPayload.field_diff_same_id) {
+                            console.log(`  - ${row.field}`);
+                        }
+                    }
+                }
+                console.log(
+                    `- projected_blocking_conflicts: ${diffPayload.apply_projection.projected_blocking_conflicts_count}`
+                );
+                if (
+                    diffPayload.apply_projection
+                        .projected_blocking_conflicts_error
+                ) {
+                    console.log(
+                        `- projected_conflict_detail: ${diffPayload.apply_projection.projected_blocking_conflicts_error}`
+                    );
+                }
+                return;
+            }
+
             if (wantsJson) {
-                console.log(JSON.stringify(lintPayload, null, 2));
-                if (!lintPayload.ok) process.exitCode = 1;
+                console.log(JSON.stringify(basePreviewCheckPayload, null, 2));
+                if (!basePreviewCheckPayload.ok) process.exitCode = 1;
                 return;
             }
 
             console.log(
-                `Task create preview-file lint ${lintPayload.ok ? 'OK' : 'FAIL'}: ${task.id} (${loaded.path})`
+                `Task create preview-file lint ${basePreviewCheckPayload.ok ? 'OK' : 'FAIL'}: ${task.id} (${loaded.path})`
             );
-            if (!lintPayload.ok) {
+            if (!basePreviewCheckPayload.ok) {
                 for (const error of errors) {
                     console.log(`- ${error}`);
                 }
@@ -4015,6 +4167,11 @@ async function cmdTask(args) {
             Object.prototype.hasOwnProperty.call(flags, 'apply') ||
             Object.prototype.hasOwnProperty.call(flags, 'apply-from') ||
             Object.prototype.hasOwnProperty.call(flags, 'apply_from');
+        const forceIdRemap = isFlagEnabled(
+            flags,
+            'force-id-remap',
+            'force_id_remap'
+        );
         const validateOnly = isFlagEnabled(
             flags,
             'validate-only',
@@ -4066,8 +4223,15 @@ async function cmdTask(args) {
             const task = normalizeTaskForCreateApply(
                 sourcePayload.task_full || sourcePayload.task
             );
+            const originalTaskId = task.id;
 
-            if (board.tasks.some((item) => String(item.id || '') === task.id)) {
+            const duplicateId = board.tasks.some(
+                (item) => String(item.id || '') === task.id
+            );
+            if (duplicateId && forceIdRemap) {
+                task.id = nextAgentTaskId(board.tasks);
+                task.updated_at = currentDate();
+            } else if (duplicateId) {
                 throw new Error(`task create --apply: id duplicado ${task.id}`);
             }
 
@@ -4113,6 +4277,9 @@ async function cmdTask(args) {
                 applied_from_resolved: applyFile.resolved_path
                     ? toRelativeRepoPath(applyFile.resolved_path)
                     : null,
+                force_id_remap: forceIdRemap,
+                id_remapped: task.id !== originalTaskId,
+                original_task_id: originalTaskId,
                 template:
                     sourcePayload.template === undefined
                         ? null

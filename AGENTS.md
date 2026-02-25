@@ -131,6 +131,8 @@ node agent-orchestrator.js task create --title "..." --template bugfix --from-fi
 node agent-orchestrator.js task create --apply verification/task-create-preview.json --json
 node agent-orchestrator.js task create --apply - --json < verification/task-create-preview.json
 node agent-orchestrator.js task create preview-file lint verification/task-create-preview.json --json
+node agent-orchestrator.js task create preview-file diff verification/task-create-preview.json --json
+node agent-orchestrator.js task create --apply verification/task-create-preview.json --force-id-remap --json
 node agent-orchestrator.js task start AG-003 --status in_progress
 node agent-orchestrator.js task finish AG-003 --evidence verification/agent-runs/AG-003.md
 node agent-orchestrator.js task start AG-003 --json
@@ -186,6 +188,8 @@ Nota:
 - `task create --apply <preview.json>` persiste un payload previo de `task create --preview --json` (reutiliza `task_full` validado y vuelve a verificar conflictos/guardrails contra el board actual).
 - `task create --apply -` permite aplicar preview JSON desde `stdin` (util para pipes y automatizacion).
 - `task create preview-file lint <preview.json|->` valida un preview guardado contra el board actual (schema + normalizacion + guardrails + conflicto activo) sin persistir cambios.
+- `task create preview-file diff <preview.json|->` compara el preview con el board actual (colision de ID, diff de campos del mismo ID y proyeccion de conflictos si se aplicara).
+- `task create --apply --force-id-remap` permite aplicar un preview aunque el `AG-###` ya exista; remapea al siguiente `AG-###` disponible y lo reporta en JSON (`original_task_id`, `id_remapped`).
 - El summary/PR comment incluye delta corto de conflictos (`blocking`/`handoff`) vs baseline usando `metrics --json`.
 - El summary/PR comment incluye semaforo (`GREEN/YELLOW/RED`) y razones de estado para lectura rapida.
 - La politica de pesos/umbrales de gobernanza vive en `governance-policy.json` (p. ej. pesos por dominio y threshold de score para `YELLOW` en summary).
