@@ -229,6 +229,7 @@ npm run agent:leases
 npm run agent:board:doctor
 npm run agent:board:legacy:check
 npm run agent:board:legacy:normalize
+npm run agent:board:resolve-revision
 npm run agent:gate
 ```
 
@@ -250,6 +251,7 @@ Candado de concurrencia:
 - Toda mutacion de board/handoffs por CLI requiere `--expect-rev <n>` (claim/start/create/apply/finish/close/codex start-stop/leases/handoffs create-close).
 - Si no se envia `--expect-rev`, el comando debe fallar con `error_code=expect_rev_required`.
 - Obtener revision actual desde `AGENT_BOARD.yaml.policy.revision` o `node agent-orchestrator.js status --json`.
+- Si un `rebase` deja conflicto textual **solo** en `policy.revision`, resolver rapido con `npm run agent:board:resolve-revision` y continuar (`git add AGENT_BOARD.yaml && git rebase --continue`).
 
 Runbook operativo dual Codex:
 
