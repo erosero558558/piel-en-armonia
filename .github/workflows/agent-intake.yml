@@ -23,6 +23,9 @@ jobs:
             JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
             JULES_MAX_DISPATCH_PER_RUN: ${{ vars.JULES_MAX_DISPATCH_PER_RUN || '2' }}
             JULES_MAX_ACTIVE_SESSIONS: ${{ vars.JULES_MAX_ACTIVE_SESSIONS || '6' }}
+            JULES_DAILY_LIMIT: ${{ vars.JULES_DAILY_LIMIT || '80' }}
+            KIMI_DAILY_LIMIT: ${{ vars.KIMI_DAILY_LIMIT || '180' }}
+            CODEX_DAILY_LIMIT: ${{ vars.CODEX_DAILY_LIMIT || '999' }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -48,6 +51,7 @@ jobs:
                   node agent-orchestrator.js stale --strict
                   node agent-orchestrator.js conflicts --strict
                   node agent-orchestrator.js budget --strict --agent jules
+                  node agent-orchestrator.js budget --strict --agent kimi
 
             - name: Dispatch Jules queue from orchestrator
               run: node agent-orchestrator.js dispatch --agent jules

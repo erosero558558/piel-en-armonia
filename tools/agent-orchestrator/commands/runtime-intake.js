@@ -21,6 +21,36 @@ function createRuntimeIntakeCommands(ctx = {}) {
         return payload;
     }
 
+    function parseDailyLimitFromEnv(envValue, fallback) {
+        const parsed = Number.parseInt(String(envValue || ''), 10);
+        if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+        return parsed;
+    }
+
+    function buildBudgetSnapshot(board, today, procEnv) {
+        const limits = {
+            jules: parseDailyLimitFromEnv(procEnv.JULES_DAILY_LIMIT, 80),
+            kimi: parseDailyLimitFromEnv(procEnv.KIMI_DAILY_LIMIT, 180),
+            codex: parseDailyLimitFromEnv(procEnv.CODEX_DAILY_LIMIT, 999),
+        };
+        const usage = { jules: 0, kimi: 0, codex: 0 };
+        for (const task of board.tasks) {
+            const attemptAt = String(task.last_attempt_at || '');
+            const executor = String(task.executor || '').toLowerCase();
+            if (!attemptAt.startsWith(today)) continue;
+            if (Object.prototype.hasOwnProperty.call(usage, executor)) {
+                usage[executor] +=
+                    Number.parseInt(String(task.attempts || '0'), 10) || 0;
+            }
+        }
+        const remaining = {
+            jules: limits.jules - usage.jules,
+            kimi: limits.kimi - usage.kimi,
+            codex: limits.codex - usage.codex,
+        };
+        return { limits, usage, remaining };
+    }
+
     return {
         async intake(args = []) {
             const { flags } = ctx.parseFlags(args);
@@ -30,8 +60,7 @@ function createRuntimeIntakeCommands(ctx = {}) {
             const nowIso = new Date().toISOString();
             const board = ctx.parseBoard();
             const existingSignals = ctx.parseSignals();
-            let incomingSignals = [];
-            let normalizedIncomingSignals = [];
+            let incomingSignals;
             let source = 'local_only';
             let repository = ctx.getGitHubRepository(flags);
             if (!isValidRepositorySlug(repository)) {
@@ -54,14 +83,15 @@ function createRuntimeIntakeCommands(ctx = {}) {
                     ...(githubSignals.issues || []),
                     ...(githubSignals.workflows || []),
                 ];
-                source = githubSignals.source;
+                source = githubSignals.source || source;
                 repository = githubSignals.repository || repository;
             } catch (error) {
+                incomingSignals = [];
                 source = 'github_api_error';
                 if (strict) throw error;
             }
 
-            normalizedIncomingSignals = incomingSignals.map((i) =>
+            const normalizedIncomingSignals = incomingSignals.map((i) =>
                 ctx.domainIntake.normalizeSignal(i, { nowIso })
             );
             const mergedSignals = ctx.domainIntake.mergeSignals(
@@ -270,26 +300,11 @@ function createRuntimeIntakeCommands(ctx = {}) {
                 .toLowerCase();
             const today = ctx.currentDate();
             const board = ctx.parseBoard();
-            const limits = {
-                jules: Number.parseInt(proc.env.JULES_DAILY_LIMIT || '80', 10),
-                kimi: Number.parseInt(proc.env.KIMI_DAILY_LIMIT || '180', 10),
-                codex: Number.parseInt(proc.env.CODEX_DAILY_LIMIT || '999', 10),
-            };
-            const usage = { jules: 0, kimi: 0, codex: 0 };
-            for (const task of board.tasks) {
-                const attemptAt = String(task.last_attempt_at || '');
-                const executor = String(task.executor || '').toLowerCase();
-                if (!attemptAt.startsWith(today)) continue;
-                if (Object.prototype.hasOwnProperty.call(usage, executor)) {
-                    usage[executor] +=
-                        Number.parseInt(String(task.attempts || '0'), 10) || 0;
-                }
-            }
-            const remaining = {
-                jules: limits.jules - usage.jules,
-                kimi: limits.kimi - usage.kimi,
-                codex: limits.codex - usage.codex,
-            };
+            const { limits, usage, remaining } = buildBudgetSnapshot(
+                board,
+                today,
+                proc.env
+            );
             const agents = ['jules', 'kimi', 'codex'].filter(
                 (a) => agentFilter === 'all' || a === agentFilter
             );
@@ -339,6 +354,8 @@ function createRuntimeIntakeCommands(ctx = {}) {
             }
             const board = ctx.parseBoard();
             const signals = ctx.parseSignals();
+            const nowIso = new Date().toISOString();
+            const today = ctx.currentDate();
             if (
                 agent === 'kimi' &&
                 ctx.detectKimiRateLimitActive({
@@ -363,6 +380,16 @@ function createRuntimeIntakeCommands(ctx = {}) {
                 String(envPerRun || defaultPerRun),
                 10
             );
+            const { limits, usage, remaining } = buildBudgetSnapshot(
+                board,
+                today,
+                proc.env
+            );
+            const budgetRemaining = Number(remaining[agent] || 0);
+            const effectivePerRunLimit = Math.max(
+                0,
+                Math.min(perRunLimit, budgetRemaining)
+            );
             const runnable = board.tasks
                 .filter(
                     (t) =>
@@ -374,11 +401,15 @@ function createRuntimeIntakeCommands(ctx = {}) {
                         Number(b.priority_score || 0) -
                         Number(a.priority_score || 0)
                 )
-                .slice(0, perRunLimit);
+                .slice(0, effectivePerRunLimit);
             const dispatched = [];
             for (const task of runnable) {
                 task.status = 'in_progress';
                 task.updated_at = nowDate;
+                task.last_attempt_at = nowIso;
+                task.attempts =
+                    (Number.parseInt(String(task.attempts || '0'), 10) || 0) +
+                    1;
                 dispatched.push(task.id);
             }
             if (dispatched.length > 0) {
@@ -405,6 +436,10 @@ function createRuntimeIntakeCommands(ctx = {}) {
                 ok: true,
                 command: 'dispatch',
                 agent,
+                limit_per_run: perRunLimit,
+                budget_limit_daily: limits[agent],
+                budget_used_today: usage[agent],
+                budget_remaining_before_dispatch: budgetRemaining,
                 dispatched,
             };
             if (wantsJson) {

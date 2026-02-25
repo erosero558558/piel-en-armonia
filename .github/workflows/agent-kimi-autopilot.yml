@@ -18,6 +18,9 @@ jobs:
         runs-on: [self-hosted, windows, kimi]
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            JULES_DAILY_LIMIT: ${{ vars.JULES_DAILY_LIMIT || '80' }}
+            KIMI_DAILY_LIMIT: ${{ vars.KIMI_DAILY_LIMIT || '180' }}
+            CODEX_DAILY_LIMIT: ${{ vars.CODEX_DAILY_LIMIT || '999' }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
