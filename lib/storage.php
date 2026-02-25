@@ -401,7 +401,30 @@ function write_store_json_fallback(array $store): bool
 // Encryption functions retained for legacy support if needed, but not used for SQLite directly
 function data_encrypt_payload(string $plain): string
 {
-    return $plain;
+    $key = data_encryption_key();
+    if ($key === '') {
+        return $plain;
+    }
+
+    if (!function_exists('openssl_encrypt')) {
+        return $plain;
+    }
+
+    try {
+        $iv = random_bytes(12);
+    } catch (Exception $e) {
+        $iv = openssl_random_pseudo_bytes(12);
+    }
+
+    $tag = '';
+    $cipher = openssl_encrypt($plain, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
+
+    if ($cipher === false) {
+        return '';
+    }
+
+    $packed = $iv . $tag . $cipher;
+    return 'ENCv1:' . base64_encode($packed);
 }
 
 function data_encryption_key(): string
