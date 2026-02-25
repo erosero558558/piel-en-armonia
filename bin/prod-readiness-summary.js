@@ -18,6 +18,7 @@ const { tmpdir } = require('os');
 const ROOT = resolve(__dirname, '..');
 const DEFAULT_JSON_OUT = 'verification/runtime/prod-readiness-summary.json';
 const DEFAULT_MD_OUT = 'verification/runtime/prod-readiness-summary.md';
+const PHASE6_SCHEDULE_AT_RISK_THRESHOLD_MINUTES = 24 * 60;
 const WEEKLY_KPI_SCHEDULE_UTC = Object.freeze({
     cron: '0 14 * * 1',
     weekday: 1, // Monday (0=Sunday)
@@ -163,6 +164,81 @@ function computeNextWeeklyOccurrenceUtc(schedule, now = new Date()) {
         target.setUTCDate(target.getUTCDate() + 7);
     }
     return target.toISOString();
+}
+
+function computePhase6SchedulePace({
+    scheduleSuccessStreak,
+    scheduleCyclesTarget,
+    scheduleCyclesRemaining,
+    nextScheduleInMinutes,
+}) {
+    const target = Number.isFinite(Number(scheduleCyclesTarget))
+        ? Number(scheduleCyclesTarget)
+        : 2;
+    const remaining = Number.isFinite(Number(scheduleCyclesRemaining))
+        ? Number(scheduleCyclesRemaining)
+        : target;
+    const streak = Number.isFinite(Number(scheduleSuccessStreak))
+        ? Number(scheduleSuccessStreak)
+        : 0;
+    const nextIn = Number.isFinite(Number(nextScheduleInMinutes))
+        ? Number(nextScheduleInMinutes)
+        : null;
+
+    if (streak >= target || remaining <= 0) {
+        return {
+            signal: 'done',
+            reason: 'schedule_target_reached',
+            atRiskThresholdMinutes: PHASE6_SCHEDULE_AT_RISK_THRESHOLD_MINUTES,
+            atRiskThresholdLabel: formatMinutesDistance(
+                PHASE6_SCHEDULE_AT_RISK_THRESHOLD_MINUTES
+            ),
+        };
+    }
+    if (nextIn === null) {
+        return {
+            signal: 'on_track',
+            reason: 'next_schedule_unknown',
+            atRiskThresholdMinutes: PHASE6_SCHEDULE_AT_RISK_THRESHOLD_MINUTES,
+            atRiskThresholdLabel: formatMinutesDistance(
+                PHASE6_SCHEDULE_AT_RISK_THRESHOLD_MINUTES
+            ),
+        };
+    }
+    if (nextIn < 0 && remaining > 0) {
+        return {
+            signal: 'at_risk',
+            reason: 'next_schedule_overdue',
+            atRiskThresholdMinutes: PHASE6_SCHEDULE_AT_RISK_THRESHOLD_MINUTES,
+            atRiskThresholdLabel: formatMinutesDistance(
+                PHASE6_SCHEDULE_AT_RISK_THRESHOLD_MINUTES
+            ),
+        };
+    }
+    if (
+        remaining >= target &&
+        nextIn <= PHASE6_SCHEDULE_AT_RISK_THRESHOLD_MINUTES
+    ) {
+        return {
+            signal: 'at_risk',
+            reason: 'zero_schedule_progress_and_next_cycle_imminent',
+            atRiskThresholdMinutes: PHASE6_SCHEDULE_AT_RISK_THRESHOLD_MINUTES,
+            atRiskThresholdLabel: formatMinutesDistance(
+                PHASE6_SCHEDULE_AT_RISK_THRESHOLD_MINUTES
+            ),
+        };
+    }
+    return {
+        signal: 'on_track',
+        reason:
+            streak > 0
+                ? 'partial_schedule_progress'
+                : 'waiting_for_next_schedule_cycle',
+        atRiskThresholdMinutes: PHASE6_SCHEDULE_AT_RISK_THRESHOLD_MINUTES,
+        atRiskThresholdLabel: formatMinutesDistance(
+            PHASE6_SCHEDULE_AT_RISK_THRESHOLD_MINUTES
+        ),
+    };
 }
 
 function mapRun(raw) {
@@ -730,6 +806,12 @@ function computeWeeklyKpiHistory(weeklyRunsWrapper) {
             WEEKLY_KPI_SCHEDULE_UTC
         );
         const nextScheduleInMinutes = minutesUntilIso(nextScheduleExpectedAt);
+        const phase6SchedulePace = computePhase6SchedulePace({
+            scheduleSuccessStreak: 0,
+            scheduleCyclesTarget: 2,
+            scheduleCyclesRemaining: 2,
+            nextScheduleInMinutes,
+        });
         return {
             available: false,
             error: weeklyRunsWrapper?.error || 'unavailable',
@@ -745,6 +827,7 @@ function computeWeeklyKpiHistory(weeklyRunsWrapper) {
             nextScheduleExpectedAt,
             nextScheduleInMinutes,
             nextScheduleInLabel: formatMinutesDistance(nextScheduleInMinutes),
+            phase6SchedulePace,
             latestScheduleRunAgeMinutes: null,
             latestScheduleRunAgeLabel: 'n/a',
             latestScheduleRun: null,
@@ -775,6 +858,16 @@ function computeWeeklyKpiHistory(weeklyRunsWrapper) {
         WEEKLY_KPI_SCHEDULE_UTC
     );
     const nextScheduleInMinutes = minutesUntilIso(nextScheduleExpectedAt);
+    const scheduleCyclesRemaining = Math.max(
+        0,
+        scheduleCyclesTarget - scheduleSuccessStreak
+    );
+    const phase6SchedulePace = computePhase6SchedulePace({
+        scheduleSuccessStreak,
+        scheduleCyclesTarget,
+        scheduleCyclesRemaining,
+        nextScheduleInMinutes,
+    });
 
     return {
         available: true,
@@ -785,15 +878,13 @@ function computeWeeklyKpiHistory(weeklyRunsWrapper) {
         scheduleRunsCount: scheduleRuns.length,
         scheduleSuccessStreak,
         scheduleCyclesTarget,
-        scheduleCyclesRemaining: Math.max(
-            0,
-            scheduleCyclesTarget - scheduleSuccessStreak
-        ),
+        scheduleCyclesRemaining,
         scheduleCronUtc: WEEKLY_KPI_SCHEDULE_UTC.cron,
         scheduleTimezone: WEEKLY_KPI_SCHEDULE_UTC.timezone,
         nextScheduleExpectedAt,
         nextScheduleInMinutes,
         nextScheduleInLabel: formatMinutesDistance(nextScheduleInMinutes),
+        phase6SchedulePace,
         latestScheduleRunAgeMinutes,
         latestScheduleRunAgeLabel: formatAgeMinutes(
             latestScheduleRunAgeMinutes
@@ -887,6 +978,10 @@ function computePlanMasterProgress({
         weeklyKpiHistory?.scheduleCyclesRemaining ?? scheduleTarget
     );
     const latestScheduleRun = weeklyKpiHistory?.latestScheduleRun || null;
+    const phase6SchedulePaceSignal =
+        weeklyKpiHistory?.phase6SchedulePace?.signal || 'unknown';
+    const phase6SchedulePaceReason =
+        weeklyKpiHistory?.phase6SchedulePace?.reason || 'n/a';
     const f6Status =
         scheduleStreak >= scheduleTarget
             ? 'done'
@@ -899,7 +994,8 @@ function computePlanMasterProgress({
         f6Notes =
             `schedule_success_streak=${scheduleStreak}/${scheduleTarget}; ` +
             `schedule_cycles_remaining=${scheduleRemaining}; ` +
-            `any_event_success_streak=${anyEventStreak}.`;
+            `any_event_success_streak=${anyEventStreak}; ` +
+            `phase6_schedule_pace=${phase6SchedulePaceSignal} (${phase6SchedulePaceReason}).`;
         if (weeklyKpiHistory.nextScheduleExpectedAt) {
             f6Notes += ` Next schedule esperado (${weeklyKpiHistory.scheduleCronUtc} ${weeklyKpiHistory.scheduleTimezone}) en ${weeklyKpiHistory.nextScheduleInLabel} (${weeklyKpiHistory.nextScheduleExpectedAt}).`;
         }
@@ -1041,6 +1137,9 @@ function toMarkdown(summary) {
         );
         lines.push(
             `- schedule_cycles_remaining: ${weeklyKpiHistory.scheduleCyclesRemaining}`
+        );
+        lines.push(
+            `- phase6_schedule_pace: ${weeklyKpiHistory.phase6SchedulePace?.signal || 'n/a'} (${weeklyKpiHistory.phase6SchedulePace?.reason || 'n/a'})`
         );
         if (weeklyKpiHistory.latestScheduleRun) {
             lines.push(
