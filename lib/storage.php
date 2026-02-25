@@ -345,8 +345,7 @@ function ensure_json_store_file(): bool
         return false;
     }
 
-    $encoded = data_encrypt_payload($raw);
-    return @file_put_contents($jsonPath, $encoded, LOCK_EX) !== false;
+    return @file_put_contents($jsonPath, $raw, LOCK_EX) !== false;
 }
 
 function read_store_json_fallback(): array
@@ -394,14 +393,7 @@ function write_store_json_fallback(array $store): bool
         return false;
     }
 
-    $encoded = data_encrypt_payload($raw);
-    return @file_put_contents($jsonPath, $encoded, LOCK_EX) !== false;
-}
-
-// Encryption functions retained for legacy support if needed, but not used for SQLite directly
-function data_encrypt_payload(string $plain): string
-{
-    return $plain;
+    return @file_put_contents($jsonPath, $raw, LOCK_EX) !== false;
 }
 
 function data_encryption_key(): string

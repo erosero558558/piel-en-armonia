@@ -5,7 +5,7 @@ require_once __DIR__ . '/../api-lib.php';
 $functions = [
     'local_date', 'app_runtime_version', 'data_dir_path', 'data_file_path', 'data_dir_writable',
     'store_file_is_encrypted', 'backup_dir_path', 'audit_log_file_path', 'data_encryption_key',
-    'data_encrypt_payload', 'data_decrypt_payload', 'audit_log_event', 'json_response',
+    'data_decrypt_payload', 'audit_log_event', 'json_response',
     'is_https_request', 'start_secure_session', 'destroy_secure_session', 'ensure_backup_dir',
     'prune_backup_files', 'create_store_backup_locked', 'ensure_data_htaccess', 'ensure_data_file',
     'read_store', 'write_store', 'acquire_store_lock', 'sanitize_phone', 'validate_email',
