@@ -1009,6 +1009,136 @@ function toTaskJson(task) {
     };
 }
 
+function toTaskFullJson(task) {
+    return {
+        id: String(task.id || ''),
+        title: String(task.title || ''),
+        owner: String(task.owner || ''),
+        executor: String(task.executor || ''),
+        status: String(task.status || ''),
+        risk: String(task.risk || ''),
+        scope: String(task.scope || ''),
+        files: Array.isArray(task.files) ? task.files : [],
+        acceptance: String(task.acceptance || ''),
+        acceptance_ref: String(task.acceptance_ref || ''),
+        depends_on: Array.isArray(task.depends_on) ? task.depends_on : [],
+        prompt: String(task.prompt || ''),
+        created_at: String(task.created_at || ''),
+        updated_at: String(task.updated_at || ''),
+    };
+}
+
+function normalizeTaskForCreateApply(rawTask) {
+    if (!rawTask || typeof rawTask !== 'object') {
+        throw new Error(
+            'task create --apply requiere payload.task_full o payload.task valido'
+        );
+    }
+    const task = {
+        id: String(rawTask.id || '').trim(),
+        title: String(rawTask.title || '').trim(),
+        owner: String(rawTask.owner || 'unassigned').trim() || 'unassigned',
+        executor: String(rawTask.executor || '')
+            .trim()
+            .toLowerCase(),
+        status: String(rawTask.status || '').trim(),
+        risk: String(rawTask.risk || '')
+            .trim()
+            .toLowerCase(),
+        scope: String(rawTask.scope || '').trim(),
+        files: Array.isArray(rawTask.files)
+            ? rawTask.files.map((v) => String(v || '').trim()).filter(Boolean)
+            : [],
+        acceptance: String(rawTask.acceptance || rawTask.title || '').trim(),
+        acceptance_ref: String(rawTask.acceptance_ref || '').trim(),
+        depends_on: Array.isArray(rawTask.depends_on)
+            ? rawTask.depends_on
+                  .map((v) => String(v || '').trim())
+                  .filter(Boolean)
+            : [],
+        prompt: String(rawTask.prompt || rawTask.title || '').trim(),
+        created_at:
+            String(rawTask.created_at || currentDate()).trim() || currentDate(),
+        updated_at:
+            String(rawTask.updated_at || currentDate()).trim() || currentDate(),
+    };
+
+    if (!/^AG-\d+$/.test(task.id)) {
+        throw new Error(
+            `task create --apply requiere task.id AG-### (actual: ${task.id || 'vacio'})`
+        );
+    }
+    if (!task.title) {
+        throw new Error('task create --apply requiere task.title');
+    }
+    if (!task.executor) {
+        throw new Error('task create --apply requiere task.executor');
+    }
+    if (!ALLOWED_TASK_EXECUTORS.has(task.executor)) {
+        throw new Error(
+            `task create --apply: executor invalido (${task.executor})`
+        );
+    }
+    if (!ALLOWED_STATUSES.has(task.status)) {
+        throw new Error(
+            `task create --apply: status invalido (${task.status})`
+        );
+    }
+    if (!['low', 'medium', 'high'].includes(task.risk)) {
+        throw new Error(`task create --apply: risk invalido (${task.risk})`);
+    }
+    if (task.files.length === 0) {
+        throw new Error('task create --apply requiere task.files no vacio');
+    }
+
+    return task;
+}
+
+function loadTaskCreateApplyPayload(applyPathRaw) {
+    const applyPath = String(applyPathRaw || '').trim();
+    if (!applyPath || applyPath === 'true') {
+        throw new Error(
+            'task create --apply requiere ruta al JSON de preview (ej: --apply verification/task-preview.json)'
+        );
+    }
+    const resolvedPath = resolve(ROOT, applyPath);
+    if (!existsSync(resolvedPath)) {
+        throw new Error(`No existe archivo de apply: ${resolvedPath}`);
+    }
+    let payload;
+    try {
+        payload = JSON.parse(readFileSync(resolvedPath, 'utf8'));
+    } catch (error) {
+        throw new Error(
+            `JSON invalido en --apply (${applyPath}): ${error.message}`
+        );
+    }
+    if (
+        String(payload?.command || '') !== 'task' ||
+        String(payload?.action || '') !== 'create'
+    ) {
+        throw new Error(
+            'task create --apply requiere JSON generado por task create'
+        );
+    }
+    if (
+        !(
+            payload?.preview === true ||
+            payload?.dry_run === true ||
+            payload?.persisted === false
+        )
+    ) {
+        throw new Error(
+            'task create --apply requiere payload de preview/dry-run (persisted=false)'
+        );
+    }
+    return {
+        path: applyPath,
+        resolved_path: resolvedPath,
+        payload,
+    };
+}
+
 function buildCodexActiveComment(block) {
     if (!block) return '';
     const lines = [];
@@ -3762,6 +3892,161 @@ async function cmdTask(args) {
     }
 
     if (normalizedSubcommand === 'create') {
+        const applyPathRaw =
+            flags.apply || flags['apply-from'] || flags.apply_from || '';
+        const applyMode =
+            Object.prototype.hasOwnProperty.call(flags, 'apply') ||
+            Object.prototype.hasOwnProperty.call(flags, 'apply-from') ||
+            Object.prototype.hasOwnProperty.call(flags, 'apply_from');
+        const validateOnly = isFlagEnabled(
+            flags,
+            'validate-only',
+            'validate_only'
+        );
+        const previewMode = isFlagEnabled(
+            flags,
+            'preview',
+            'dry-run',
+            'dry_run'
+        );
+        const explainInference = isFlagEnabled(flags, 'explain');
+
+        if (applyMode) {
+            if (isFlagEnabled(flags, 'interactive')) {
+                throw new Error(
+                    'task create --apply no permite combinar --interactive'
+                );
+            }
+            if (previewMode) {
+                throw new Error(
+                    'task create --apply no permite combinar --preview/--dry-run'
+                );
+            }
+            if (validateOnly) {
+                throw new Error(
+                    'task create --apply no permite combinar --validate-only'
+                );
+            }
+            if (
+                flags.title ||
+                flags.template ||
+                flags.files ||
+                flags.executor ||
+                flags.status ||
+                flags.risk ||
+                flags.scope
+            ) {
+                throw new Error(
+                    'task create --apply no permite flags de construccion (--title/--template/--files/--executor/--status/--risk/--scope)'
+                );
+            }
+
+            const applyFile = loadTaskCreateApplyPayload(applyPathRaw);
+            const sourcePayload = applyFile.payload || {};
+            const board = parseBoard();
+            const task = normalizeTaskForCreateApply(
+                sourcePayload.task_full || sourcePayload.task
+            );
+
+            if (board.tasks.some((item) => String(item.id || '') === task.id)) {
+                throw new Error(`task create --apply: id duplicado ${task.id}`);
+            }
+
+            validateTaskGovernancePrechecks(board, task);
+            board.tasks.push(task);
+
+            if (ACTIVE_STATUSES.has(task.status)) {
+                const handoffData = parseHandoffs();
+                const blockingConflicts = getBlockingConflictsForTask(
+                    board.tasks,
+                    task.id,
+                    handoffData.handoffs
+                );
+                if (blockingConflicts.length > 0) {
+                    const details = blockingConflicts
+                        .map((item) => {
+                            const other =
+                                String(item.left.id) === task.id
+                                    ? item.right
+                                    : item.left;
+                            const filesText = item.overlap_files.length
+                                ? item.overlap_files.join(', ')
+                                : '(wildcard ambiguo)';
+                            return `${task.id} <-> ${other.id} :: ${filesText}`;
+                        })
+                        .join(' | ');
+                    throw new Error(
+                        `task create --apply bloqueado por conflicto activo: ${details}`
+                    );
+                }
+            }
+
+            writeBoardAndSync(board, { silentSync: wantsJson });
+
+            const applyPayload = {
+                version: 1,
+                ok: true,
+                command: 'task',
+                action: 'create',
+                applied: true,
+                apply: true,
+                applied_from: applyFile.path,
+                applied_from_resolved: toRelativeRepoPath(
+                    applyFile.resolved_path
+                ),
+                template:
+                    sourcePayload.template === undefined
+                        ? null
+                        : sourcePayload.template,
+                from_files: Boolean(sourcePayload.from_files),
+                file_inference: sourcePayload.file_inference || null,
+                executor_source: String(
+                    sourcePayload.executor_source || 'apply'
+                ),
+                scope_source: String(sourcePayload.scope_source || 'apply'),
+                risk_source: String(sourcePayload.risk_source || 'apply'),
+                preview: false,
+                dry_run: false,
+                validate_only: false,
+                persisted: true,
+                task: toTaskJson(task),
+                task_full: toTaskFullJson(task),
+            };
+            if (
+                explainInference &&
+                Array.isArray(sourcePayload.inference_explanation)
+            ) {
+                applyPayload.inference_explanation =
+                    sourcePayload.inference_explanation;
+            }
+
+            if (wantsJson) {
+                console.log(JSON.stringify(applyPayload, null, 2));
+                return;
+            }
+
+            if (
+                explainInference &&
+                Array.isArray(applyPayload.inference_explanation)
+            ) {
+                console.log('Task create explain (applied preview):');
+                for (const line of applyPayload.inference_explanation) {
+                    console.log(`  - ${line}`);
+                }
+            }
+
+            console.log(
+                `Task create APPLY OK: ${task.id} [${task.status}] exec=${task.executor} from=${applyFile.path}`
+            );
+            return;
+        }
+
+        if (previewMode && validateOnly) {
+            throw new Error(
+                'task create no permite combinar --preview/--dry-run con --validate-only'
+            );
+        }
+
         if (isFlagEnabled(flags, 'interactive')) {
             flags = await collectTaskCreateInteractiveFlags(flags, wantsJson);
         }
@@ -3808,13 +4093,6 @@ async function cmdTask(args) {
             'from-files',
             'from_files'
         );
-        const previewMode = isFlagEnabled(
-            flags,
-            'preview',
-            'dry-run',
-            'dry_run'
-        );
-        const explainInference = isFlagEnabled(flags, 'explain');
         const fileInference = fromFilesEnabled
             ? inferTaskCreateFromFiles(files)
             : null;
@@ -3976,14 +4254,25 @@ async function cmdTask(args) {
             risk_source: riskSource,
             preview: previewMode,
             dry_run: previewMode,
-            persisted: !previewMode,
+            validate_only: validateOnly,
+            persisted: !previewMode && !validateOnly,
             task: toTaskJson(task),
+            task_full: toTaskFullJson(task),
         };
         if (inferenceExplainLines) {
             createPayload.inference_explanation = inferenceExplainLines;
         }
 
-        if (!previewMode) {
+        if (validateOnly) {
+            createPayload.validation = {
+                active_status: ACTIVE_STATUSES.has(status),
+                governance_prechecks: 'passed',
+                conflict_check: 'passed',
+            };
+            delete createPayload.task_full;
+        }
+
+        if (!previewMode && !validateOnly) {
             writeBoardAndSync(board, { silentSync: wantsJson });
         }
 
@@ -4000,7 +4289,7 @@ async function cmdTask(args) {
         }
 
         console.log(
-            `Task create ${previewMode ? 'PREVIEW' : 'OK'}: ${newId} [${status}] exec=${executor}${template ? ` template=${template.name}` : ''}${fromFilesEnabled ? ' from-files=true' : ''}${executorSource !== 'flag' ? ` executor-source=${executorSource}` : ''}${previewMode ? ' (no-write)' : ''}`
+            `Task create ${validateOnly ? 'VALIDATE OK' : previewMode ? 'PREVIEW' : 'OK'}: ${newId} [${status}] exec=${executor}${template ? ` template=${template.name}` : ''}${fromFilesEnabled ? ' from-files=true' : ''}${executorSource !== 'flag' ? ` executor-source=${executorSource}` : ''}${previewMode || validateOnly ? ' (no-write)' : ''}`
         );
         return;
     }

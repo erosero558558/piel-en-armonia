@@ -863,13 +863,55 @@ test('task create --preview/--dry-run no escribe board ni colas derivadas', (t) 
     assert.equal(json.preview, true);
     assert.equal(json.dry_run, true);
     assert.equal(json.persisted, false);
+    assert.equal(json.validate_only, false);
     assert.equal(json.task.id, 'AG-011');
     assert.equal(json.task.scope, 'docs');
+    assert.ok(json.task_full);
+    assert.equal(json.task_full.id, 'AG-011');
+    assert.equal(json.task_full.title, 'Preview only task');
 
     const afterBoard = readBoard(dir);
     assert.equal(afterBoard, beforeBoard);
     assert.equal(existsSync(join(dir, 'JULES_TASKS.md')), false);
     assert.equal(existsSync(join(dir, 'KIMI_TASKS.md')), false);
+});
+
+test('task create --validate-only valida sin escribir board y devuelve diagnostico', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const beforeBoard = readBoard(dir);
+    const result = runCli(dir, [
+        'task',
+        'create',
+        '--title',
+        'Validate only task',
+        '--template',
+        'bugfix',
+        '--from-files',
+        '--validate-only',
+        '--files',
+        'tests/unit/foo.spec.js',
+        '--json',
+    ]);
+    const json = parseJsonStdout(result);
+
+    assert.equal(json.validate_only, true);
+    assert.equal(json.preview, false);
+    assert.equal(json.persisted, false);
+    assert.equal(json.task.id, 'AG-011');
+    assert.equal(json.validation.governance_prechecks, 'passed');
+    assert.equal(json.validation.conflict_check, 'passed');
+    assert.equal(json.task_full, undefined);
+
+    const afterBoard = readBoard(dir);
+    assert.equal(afterBoard, beforeBoard);
 });
 
 test('task create bloquea crear tarea activa con conflicto blocking', (t) => {
@@ -1130,6 +1172,67 @@ test('task create --explain imprime razon de inferencia y soporta JSON estable',
     assert.match(json.inference_explanation.join('\n'), /from-files=enabled/i);
     assert.equal(json.scope_source, 'from_files');
     assert.equal(json.risk_source, 'from_files');
+});
+
+test('task create --apply persiste un preview JSON sin recalcular task', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const preview = runCli(dir, [
+        'task',
+        'create',
+        '--title',
+        'Apply preview task',
+        '--template',
+        'docs',
+        '--from-files',
+        '--preview',
+        '--explain',
+        '--files',
+        'lib/calendar/GoogleTokenProvider.php',
+        '--json',
+    ]);
+    const previewJson = parseJsonStdout(preview);
+    assert.equal(previewJson.preview, true);
+    assert.ok(previewJson.task_full);
+
+    const previewPath = join(dir, 'task-preview.json');
+    writeFileSync(
+        previewPath,
+        `${JSON.stringify(previewJson, null, 2)}\n`,
+        'utf8'
+    );
+
+    const applyResult = runCli(dir, [
+        'task',
+        'create',
+        '--apply',
+        'task-preview.json',
+        '--explain',
+        '--json',
+    ]);
+    const applyJson = parseJsonStdout(applyResult);
+
+    assert.equal(applyJson.applied, true);
+    assert.equal(applyJson.preview, false);
+    assert.equal(applyJson.persisted, true);
+    assert.equal(applyJson.task.id, 'AG-011');
+    assert.equal(applyJson.task.executor, 'codex');
+    assert.equal(applyJson.task.scope, 'calendar');
+    assert.equal(applyJson.task_full.title, 'Apply preview task');
+    assert.equal(Array.isArray(applyJson.inference_explanation), true);
+    assert.match(String(applyJson.applied_from || ''), /task-preview\.json$/);
+
+    const board = readBoard(dir);
+    assert.match(board, /- id: AG-011/);
+    assert.match(board, /title: "Apply preview task"/);
+    assert.match(board, /executor: codex/);
 });
 
 test('task claim bloquea pasar a estado activo si genera conflicto blocking', (t) => {
