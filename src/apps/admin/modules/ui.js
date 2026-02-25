@@ -8,19 +8,23 @@ export function showToast(message, type = 'info', title = '') {
 
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
+    const isError = type === 'error';
+    toast.setAttribute('role', isError ? 'alert' : 'status');
+    toast.setAttribute('aria-live', isError ? 'assertive' : 'polite');
+    toast.setAttribute('aria-atomic', 'true');
 
     const icons = {
         success: 'fa-check-circle',
         error: 'fa-times-circle',
         warning: 'fa-exclamation-circle',
-        info: 'fa-info-circle'
+        info: 'fa-info-circle',
     };
 
     const titles = {
         success: title || 'Exito',
         error: title || 'Error',
         warning: title || 'Advertencia',
-        info: title || 'Información'
+        info: title || 'Información',
     };
 
     toast.innerHTML = `
@@ -29,7 +33,7 @@ export function showToast(message, type = 'info', title = '') {
             <div class="toast-title">${escapeHtml(titles[type])}</div>
             <div class="toast-message">${escapeHtml(message)}</div>
         </div>
-        <button type="button" class="toast-close" data-action="close-toast">
+        <button type="button" class="toast-close" data-action="close-toast" aria-label="Cerrar notificacion">
             <i class="fas fa-times"></i>
         </button>
         <div class="toast-progress"></div>
@@ -65,7 +69,11 @@ export function toPositiveNumber(value) {
 export function formatDate(dateStr) {
     const date = new Date(dateStr);
     if (Number.isNaN(date.getTime())) return dateStr;
-    return date.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' });
+    return date.toLocaleDateString('es-EC', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+    });
 }
 
 export function sanitizePublicHref(url) {
@@ -84,7 +92,7 @@ export function getServiceName(service) {
         laser: 'Tratamiento Láser',
         rejuvenecimiento: 'Rejuvenecimiento',
         acne: 'Tratamiento de Acne',
-        cancer: 'Deteccion de Cancer de Piel'
+        cancer: 'Deteccion de Cancer de Piel',
     };
     return names[service] || service;
 }
@@ -93,7 +101,7 @@ export function getDoctorName(doctor) {
     const names = {
         rosero: 'Dr. Rosero',
         narvaez: 'Dra. Narváez',
-        indiferente: 'Cualquiera disponible'
+        indiferente: 'Cualquiera disponible',
     };
     return names[doctor] || doctor;
 }
@@ -105,24 +113,28 @@ export function getStatusText(status) {
         cancelled: 'Cancelada',
         completed: 'Completada',
         no_show: 'No asistio',
-        noshow: 'No asistio'
+        noshow: 'No asistio',
     };
     return texts[status] || status;
 }
 
 export function getPaymentMethodText(method) {
-    const normalized = String(method || '').toLowerCase().trim();
+    const normalized = String(method || '')
+        .toLowerCase()
+        .trim();
     const texts = {
         card: 'Tarjeta',
         transfer: 'Transferencia',
         cash: 'Efectivo',
-        unpaid: 'Sin definir'
+        unpaid: 'Sin definir',
     };
-    return texts[normalized] || (method || 'Sin definir');
+    return texts[normalized] || method || 'Sin definir';
 }
 
 export function getPaymentStatusText(status) {
-    const normalized = String(status || '').toLowerCase().trim();
+    const normalized = String(status || '')
+        .toLowerCase()
+        .trim();
     const texts = {
         paid: 'Pagado',
         pending_cash: 'Pago en consultorio',
@@ -130,9 +142,9 @@ export function getPaymentStatusText(status) {
         pending_transfer_review: 'Comprobante por validar',
         pending_gateway: 'Pago en proceso',
         pending: 'Pendiente',
-        failed: 'Pago fallido'
+        failed: 'Pago fallido',
     };
-    return texts[normalized] || (status || 'Pendiente');
+    return texts[normalized] || status || 'Pendiente';
 }
 
 export function getPreferenceText(pref) {
@@ -140,15 +152,16 @@ export function getPreferenceText(pref) {
         ahora: 'Lo antes posible',
         '15min': 'En 15 minutos',
         '30min': 'En 30 minutos',
-        '1hora': 'En 1 hora'
+        '1hora': 'En 1 hora',
     };
     return texts[pref] || pref;
 }
 
 export function normalizeCallbackStatus(status) {
-    const normalized = String(status || '').toLowerCase().trim();
+    const normalized = String(status || '')
+        .toLowerCase()
+        .trim();
     if (normalized === 'pending') return 'pendiente';
     if (normalized === 'contacted') return 'contactado';
     return normalized === 'contactado' ? 'contactado' : 'pendiente';
 }
-
