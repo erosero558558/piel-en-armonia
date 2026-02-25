@@ -95,6 +95,27 @@ const CRITICAL_SCOPE_KEYWORDS = [
     'security',
 ];
 const CRITICAL_SCOPE_ALLOWED_EXECUTORS = new Set(['codex', 'claude']);
+const TASK_CREATE_TEMPLATES = {
+    docs: {
+        executor: 'kimi',
+        status: 'ready',
+        risk: 'low',
+        scope: 'docs',
+    },
+    bugfix: {
+        executor: 'codex',
+        status: 'ready',
+        risk: 'medium',
+        scope: 'backend',
+    },
+    critical: {
+        executor: 'codex',
+        status: 'ready',
+        risk: 'high',
+        scope: 'calendar',
+        requireCriticalScope: true,
+    },
+};
 
 function normalizeEol(value) {
     return value.replace(/\r\n/g, '\n');
@@ -658,6 +679,22 @@ function validateTaskDependsOn(board, task, options = {}) {
 function validateTaskGovernancePrechecks(board, task, options = {}) {
     validateTaskExecutorScopeGuard(task);
     validateTaskDependsOn(board, task, options);
+}
+
+function resolveTaskCreateTemplate(templateNameRaw) {
+    const templateName = String(templateNameRaw || '')
+        .trim()
+        .toLowerCase();
+    if (!templateName) return null;
+    const template = TASK_CREATE_TEMPLATES[templateName];
+    if (!template) {
+        throw new Error(
+            `task create: template invalido (${templateName}); disponibles: ${Object.keys(
+                TASK_CREATE_TEMPLATES
+            ).join(', ')}`
+        );
+    }
+    return { name: templateName, ...template };
 }
 
 function writeBoard(board) {
@@ -3484,6 +3521,7 @@ function cmdTask(args) {
 
     if (normalizedSubcommand === 'create') {
         const board = parseBoard();
+        const template = resolveTaskCreateTemplate(flags.template);
         const requestedId = String(flags.id || '').trim();
         const newId = requestedId || nextAgentTaskId(board.tasks);
 
@@ -3501,7 +3539,7 @@ function cmdTask(args) {
             throw new Error('task create requiere --title');
         }
 
-        const executor = String(flags.executor || '')
+        const executor = String(flags.executor || template?.executor || '')
             .trim()
             .toLowerCase();
         if (!executor) {
@@ -3511,12 +3549,14 @@ function cmdTask(args) {
             throw new Error(`task create: executor invalido (${executor})`);
         }
 
-        const status = String(flags.status || 'backlog').trim();
+        const status = String(
+            flags.status || template?.status || 'backlog'
+        ).trim();
         if (!ALLOWED_STATUSES.has(status)) {
             throw new Error(`task create: status invalido (${status})`);
         }
 
-        const risk = String(flags.risk || 'medium')
+        const risk = String(flags.risk || template?.risk || 'medium')
             .trim()
             .toLowerCase();
         if (!['low', 'medium', 'high'].includes(risk)) {
@@ -3533,7 +3573,19 @@ function cmdTask(args) {
         const owner = String(
             flags.owner || detectDefaultOwner() || 'unassigned'
         ).trim();
-        const scope = String(flags.scope || 'general').trim();
+        const scope = String(
+            flags.scope || template?.scope || 'general'
+        ).trim();
+        if (
+            template?.requireCriticalScope &&
+            !findCriticalScopeKeyword(scope)
+        ) {
+            throw new Error(
+                `task create: template ${template.name} requiere --scope critico (${CRITICAL_SCOPE_KEYWORDS.join(
+                    '|'
+                )})`
+            );
+        }
         const acceptance = String(flags.acceptance || title).trim();
         const acceptanceRef = String(
             flags['acceptance-ref'] || flags.acceptance_ref || ''
@@ -3601,6 +3653,7 @@ function cmdTask(args) {
                         ok: true,
                         command: 'task',
                         action: 'create',
+                        template: template?.name || null,
                         task: toTaskJson(task),
                     },
                     null,
@@ -3610,7 +3663,9 @@ function cmdTask(args) {
             return;
         }
 
-        console.log(`Task create OK: ${newId} [${status}] exec=${executor}`);
+        console.log(
+            `Task create OK: ${newId} [${status}] exec=${executor}${template ? ` template=${template.name}` : ''}`
+        );
         return;
     }
 

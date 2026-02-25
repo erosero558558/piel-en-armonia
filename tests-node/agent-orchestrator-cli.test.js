@@ -683,6 +683,49 @@ test('task create crea AG siguiente y sincroniza colas derivadas', (t) => {
     );
 });
 
+test('task create soporta --template docs y permite override de defaults', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const result = runCliWithEnv(
+        dir,
+        [
+            'task',
+            'create',
+            '--title',
+            'Docs template task',
+            '--template',
+            'docs',
+            '--executor',
+            'jules',
+            '--files',
+            'docs/template.md',
+            '--json',
+        ],
+        { AGENT_OWNER: 'ernesto' }
+    );
+    const json = parseJsonStdout(result);
+
+    assert.equal(json.template, 'docs');
+    assert.equal(json.task.id, 'AG-011');
+    assert.equal(json.task.owner, 'ernesto');
+    assert.equal(json.task.status, 'ready');
+    assert.equal(json.task.risk, 'low');
+    assert.equal(json.task.scope, 'docs');
+    assert.equal(json.task.executor, 'jules'); // explicit flag overrides template
+
+    const board = readBoard(dir);
+    assert.match(board, /executor: jules/);
+    assert.match(board, /risk: low/);
+    assert.match(board, /scope: docs/);
+});
+
 test('task create bloquea crear tarea activa con conflicto blocking', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));
@@ -795,6 +838,55 @@ test('task create bloquea scope critico para executor no permitido', (t) => {
 
     assert.match(result.stderr, /task critica/i);
     assert.match(result.stderr, /executor jules/i);
+});
+
+test('task create template critical exige scope critico explicito', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    let result = runCli(
+        dir,
+        [
+            'task',
+            'create',
+            '--title',
+            'Critical but wrong scope',
+            '--template',
+            'critical',
+            '--scope',
+            'backend',
+            '--files',
+            'lib/critical.php',
+        ],
+        1
+    );
+    assert.match(result.stderr, /template critical requiere --scope critico/i);
+
+    result = runCli(dir, [
+        'task',
+        'create',
+        '--title',
+        'Critical auth task',
+        '--template',
+        'critical',
+        '--scope',
+        'auth-prod',
+        '--files',
+        'controllers/AuthController.php',
+        '--json',
+    ]);
+    const json = parseJsonStdout(result);
+    assert.equal(json.template, 'critical');
+    assert.equal(json.task.executor, 'codex');
+    assert.equal(json.task.risk, 'high');
+    assert.equal(json.task.status, 'ready');
+    assert.equal(json.task.scope, 'auth-prod');
 });
 
 test('task claim bloquea pasar a estado activo si genera conflicto blocking', (t) => {
