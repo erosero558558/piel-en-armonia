@@ -207,6 +207,33 @@ test('JSON contract minimo estable para status/conflicts/handoffs/codex-check', 
     }
 });
 
+test('JSON contract minimo estable para metrics --json', () => {
+    const dir = createFixtureDir();
+    try {
+        writeFixtureFiles(dir);
+
+        const metrics = runJson(dir, ['metrics', '--profile', 'local']);
+        assertVersionLike(metrics.version);
+        assert.equal(typeof metrics.period, 'object');
+        assert.equal(typeof metrics.targets, 'object');
+        assert.equal(typeof metrics.baseline, 'object');
+        assert.equal(typeof metrics.current, 'object');
+        assert.equal(typeof metrics.delta, 'object');
+        assert.equal(typeof metrics.contribution, 'object');
+        assert.equal(typeof metrics.baseline_contribution, 'object');
+        assert.equal(typeof metrics.contribution_delta, 'object');
+        assert.equal(typeof metrics.domain_health, 'object');
+        assert.equal(typeof metrics.domain_health_history, 'object');
+        assert.equal(typeof metrics.io, 'object');
+        assert.equal(typeof metrics.io.profile, 'string');
+        assert.equal(typeof metrics.io.write_mode, 'string');
+        assert.equal(typeof metrics.io.persisted, 'boolean');
+        assert.equal(Array.isArray(metrics.io.output_files), true);
+    } finally {
+        cleanupFixtureDir(dir);
+    }
+});
+
 test('JSON contract minimo estable para task ls/create/claim/start/finish', () => {
     const dir = createFixtureDir();
     try {
