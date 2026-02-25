@@ -496,7 +496,7 @@ tasks:
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
-    runtime_impact: medium
+    runtime_impact: low
     critical_zone: false
     acceptance: "Un único bundle canónico de datos sin duplicación. Bundle size no incrementa. Tests pasan."
     acceptance_ref: "tests-node/"
@@ -534,7 +534,7 @@ tasks:
   - id: AG-021
     title: "Tech debt P3: automate C1 exit gates in CI (smoke + Playwright figo-contract)"
     owner: ernes
-    executor: jules
+    executor: codex
     status: backlog
     risk: medium
     scope: ops
