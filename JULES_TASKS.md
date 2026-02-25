@@ -190,7 +190,7 @@ task_id: AG-026
 risk: medium
 scope: ops
 files: .github/workflows/agent-autopilot.yml
-acceptance_ref: docs/agent-runs/AG-026.md
+acceptance_ref: verification/agent-runs/AG-026.md
 dispatched_by: agent-orchestrator
 session: sessions/8161501925126400906
 dispatched: 2026-02-25
