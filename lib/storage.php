@@ -880,137 +880,239 @@ if (!function_exists('write_store')) {
             return false;
         }
 
-        // Backup
-        create_store_backup_locked($dbPath);
-
         try {
             $pdo->beginTransaction();
 
-            $updatedAt = local_date('c');
+            // --- Phase 1: Read Current State ---
+            $currentAppointments = [];
+            $stmt = $pdo->query("SELECT id, json_data FROM appointments");
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $currentAppointments[$row['id']] = $row['json_data'];
+            }
 
-            // Sync Appointments
-            // Strategy: Get all IDs.
-            $existingIds = $pdo->query("SELECT id FROM appointments")->fetchAll(PDO::FETCH_COLUMN);
-            $existingIds = array_flip($existingIds); // id => index
+            $currentReviews = [];
+            $stmt = $pdo->query("SELECT id, json_data FROM reviews");
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $currentReviews[$row['id']] = $row['json_data'];
+            }
 
-            $incomingIds = [];
-            $stmtUpsert = $pdo->prepare("INSERT OR REPLACE INTO appointments (id, date, time, doctor, service, name, email, phone, status, paymentMethod, paymentStatus, paymentIntentId, rescheduleToken, json_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $currentCallbacks = [];
+            $stmt = $pdo->query("SELECT id, json_data FROM callbacks");
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $currentCallbacks[$row['id']] = $row['json_data'];
+            }
 
+            // Availability: "date|time|doctor"
+            $currentAvailability = [];
+            $stmt = $pdo->query("SELECT date, time, doctor FROM availability");
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $key = $row['date'] . '|' . $row['time'] . '|' . $row['doctor'];
+                $currentAvailability[$key] = true;
+            }
+
+            // --- Phase 2: Compute Diffs ---
+
+            // Appointments
+            $appointmentsToUpsert = [];
+            // Strategy: iterate store, remove from current if matches. what's left in current is deleted.
             foreach ($store['appointments'] as $appt) {
-                if (!isset($appt['id'])) {
-                    continue;
-                }
+                if (!isset($appt['id'])) continue;
                 $id = $appt['id'];
-                $incomingIds[$id] = true;
+                $json = json_encode($appt, JSON_UNESCAPED_UNICODE);
 
-                $stmtUpsert->execute([
-                    $id,
-                    $appt['date'] ?? '',
-                    $appt['time'] ?? '',
-                    $appt['doctor'] ?? '',
-                    $appt['service'] ?? '',
-                    $appt['name'] ?? '',
-                    $appt['email'] ?? '',
-                    $appt['phone'] ?? '',
-                    $appt['status'] ?? 'confirmed',
-                    $appt['paymentMethod'] ?? '',
-                    $appt['paymentStatus'] ?? '',
-                    $appt['paymentIntentId'] ?? '',
-                    $appt['rescheduleToken'] ?? '',
-                    json_encode($appt, JSON_UNESCAPED_UNICODE)
-                ]);
+                if (isset($currentAppointments[$id]) && $currentAppointments[$id] === $json) {
+                    unset($currentAppointments[$id]); // Matched, remove so we don't delete it
+                } else {
+                    // New or Changed
+                    $appointmentsToUpsert[] = ['appt' => $appt, 'json' => $json];
+                    if (isset($currentAppointments[$id])) {
+                        unset($currentAppointments[$id]); // Update, remove from delete list
+                    }
+                }
             }
+            $appointmentsToDelete = array_keys($currentAppointments);
 
-            // Delete missing
-            $toDelete = array_diff_key($existingIds, $incomingIds);
-            if (!empty($toDelete)) {
-                $keys = array_keys($toDelete);
-                $placeholders = implode(',', array_fill(0, count($keys), '?'));
-                $stmt = $pdo->prepare("DELETE FROM appointments WHERE id IN ($placeholders)");
-                $stmt->execute($keys);
-            }
-
-            // Sync Reviews
-            $existingIds = $pdo->query("SELECT id FROM reviews")->fetchAll(PDO::FETCH_COLUMN);
-            $existingIds = array_flip($existingIds);
-            $incomingIds = [];
-            $stmtUpsert = $pdo->prepare("INSERT OR REPLACE INTO reviews (id, name, rating, text, date, verified, json_data) VALUES (?, ?, ?, ?, ?, ?, ?)");
-
+            // Reviews
+            $reviewsToUpsert = [];
             foreach ($store['reviews'] as $review) {
-                if (!isset($review['id'])) {
-                    continue;
-                }
+                if (!isset($review['id'])) continue;
                 $id = $review['id'];
-                $incomingIds[$id] = true;
-                $stmtUpsert->execute([
-                    $id,
-                    $review['name'] ?? '',
-                    $review['rating'] ?? 0,
-                    $review['text'] ?? '',
-                    $review['date'] ?? '',
-                    isset($review['verified']) && $review['verified'] ? 1 : 0,
-                    json_encode($review, JSON_UNESCAPED_UNICODE)
-                ]);
-            }
-            $toDelete = array_diff_key($existingIds, $incomingIds);
-            if (!empty($toDelete)) {
-                $keys = array_keys($toDelete);
-                $placeholders = implode(',', array_fill(0, count($keys), '?'));
-                $stmt = $pdo->prepare("DELETE FROM reviews WHERE id IN ($placeholders)");
-                $stmt->execute($keys);
-            }
+                $json = json_encode($review, JSON_UNESCAPED_UNICODE);
 
-            // Sync Callbacks
-            $existingIds = $pdo->query("SELECT id FROM callbacks")->fetchAll(PDO::FETCH_COLUMN);
-            $existingIds = array_flip($existingIds);
-            $incomingIds = [];
-            $stmtUpsert = $pdo->prepare("INSERT OR REPLACE INTO callbacks (id, telefono, preferencia, fecha, status, json_data) VALUES (?, ?, ?, ?, ?, ?)");
-
-            foreach ($store['callbacks'] as $cb) {
-                if (!isset($cb['id'])) {
-                    continue;
+                if (isset($currentReviews[$id]) && $currentReviews[$id] === $json) {
+                    unset($currentReviews[$id]);
+                } else {
+                    $reviewsToUpsert[] = ['review' => $review, 'json' => $json];
+                    if (isset($currentReviews[$id])) {
+                        unset($currentReviews[$id]);
+                    }
                 }
-                $id = $cb['id'];
-                $incomingIds[$id] = true;
-                $stmtUpsert->execute([
-                    $id,
-                    $cb['telefono'] ?? '',
-                    $cb['preferencia'] ?? '',
-                    $cb['fecha'] ?? '',
-                    $cb['status'] ?? 'pendiente',
-                    json_encode($cb, JSON_UNESCAPED_UNICODE)
-                ]);
             }
-            $toDelete = array_diff_key($existingIds, $incomingIds);
-            if (!empty($toDelete)) {
-                $keys = array_keys($toDelete);
-                $placeholders = implode(',', array_fill(0, count($keys), '?'));
-                $stmt = $pdo->prepare("DELETE FROM callbacks WHERE id IN ($placeholders)");
-                $stmt->execute($keys);
-            }
+            $reviewsToDelete = array_keys($currentReviews);
 
-            // Sync Availability (Full Replace)
-            $pdo->exec("DELETE FROM availability");
-            $stmtInsert = $pdo->prepare("INSERT INTO availability (date, time, doctor) VALUES (?, ?, ?)");
+            // Callbacks
+            $callbacksToUpsert = [];
+            foreach ($store['callbacks'] as $cb) {
+                if (!isset($cb['id'])) continue;
+                $id = $cb['id'];
+                $json = json_encode($cb, JSON_UNESCAPED_UNICODE);
+
+                if (isset($currentCallbacks[$id]) && $currentCallbacks[$id] === $json) {
+                    unset($currentCallbacks[$id]);
+                } else {
+                    $callbacksToUpsert[] = ['cb' => $cb, 'json' => $json];
+                    if (isset($currentCallbacks[$id])) {
+                        unset($currentCallbacks[$id]);
+                    }
+                }
+            }
+            $callbacksToDelete = array_keys($currentCallbacks);
+
+            // Availability
+            $availabilityToInsert = [];
+            // Build incoming set. Assume doctor='global' for store items.
+            $incomingAvailability = [];
             if (isset($store['availability']) && is_array($store['availability'])) {
                 foreach ($store['availability'] as $date => $times) {
-                    if (!is_array($times)) {
-                        continue;
-                    }
+                    if (!is_array($times)) continue;
                     foreach ($times as $time) {
-                        $stmtInsert->execute([$date, $time, 'global']);
+                        $key = $date . '|' . $time . '|global';
+                        $incomingAvailability[$key] = true;
                     }
+                }
+            }
+
+            foreach ($incomingAvailability as $key => $dummy) {
+                if (isset($currentAvailability[$key])) {
+                    unset($currentAvailability[$key]); // Exists
+                } else {
+                    $availabilityToInsert[] = $key;
+                }
+            }
+            // Remainder in currentAvailability are deletes
+            $availabilityToDelete = array_keys($currentAvailability);
+
+            $dataChanged = !empty($appointmentsToUpsert) || !empty($appointmentsToDelete) ||
+                           !empty($reviewsToUpsert) || !empty($reviewsToDelete) ||
+                           !empty($callbacksToUpsert) || !empty($callbacksToDelete) ||
+                           !empty($availabilityToInsert) || !empty($availabilityToDelete);
+
+            if (!$dataChanged) {
+                $pdo->commit();
+                return true; // No changes, no write, no backup.
+            }
+
+            // --- Phase 4: Execute Changes ---
+
+            // Backup only if we are writing
+            create_store_backup_locked($dbPath);
+
+            // Already in transaction.
+
+            $newUpdatedAt = local_date('c');
+
+            // Appointments
+            if (!empty($appointmentsToUpsert)) {
+                $stmt = $pdo->prepare("INSERT OR REPLACE INTO appointments (id, date, time, doctor, service, name, email, phone, status, paymentMethod, paymentStatus, paymentIntentId, rescheduleToken, json_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                foreach ($appointmentsToUpsert as $item) {
+                    $appt = $item['appt'];
+                    $stmt->execute([
+                        $appt['id'],
+                        $appt['date'] ?? '',
+                        $appt['time'] ?? '',
+                        $appt['doctor'] ?? '',
+                        $appt['service'] ?? '',
+                        $appt['name'] ?? '',
+                        $appt['email'] ?? '',
+                        $appt['phone'] ?? '',
+                        $appt['status'] ?? 'confirmed',
+                        $appt['paymentMethod'] ?? '',
+                        $appt['paymentStatus'] ?? '',
+                        $appt['paymentIntentId'] ?? '',
+                        $appt['rescheduleToken'] ?? '',
+                        $item['json']
+                    ]);
+                }
+            }
+            if (!empty($appointmentsToDelete)) {
+                $stmt = $pdo->prepare("DELETE FROM appointments WHERE id = ?");
+                foreach ($appointmentsToDelete as $id) {
+                    $stmt->execute([$id]);
+                }
+            }
+
+            // Reviews
+            if (!empty($reviewsToUpsert)) {
+                $stmt = $pdo->prepare("INSERT OR REPLACE INTO reviews (id, name, rating, text, date, verified, json_data) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                foreach ($reviewsToUpsert as $item) {
+                    $review = $item['review'];
+                    $stmt->execute([
+                        $review['id'],
+                        $review['name'] ?? '',
+                        $review['rating'] ?? 0,
+                        $review['text'] ?? '',
+                        $review['date'] ?? '',
+                        isset($review['verified']) && $review['verified'] ? 1 : 0,
+                        $item['json']
+                    ]);
+                }
+            }
+            if (!empty($reviewsToDelete)) {
+                $stmt = $pdo->prepare("DELETE FROM reviews WHERE id = ?");
+                foreach ($reviewsToDelete as $id) {
+                    $stmt->execute([$id]);
+                }
+            }
+
+            // Callbacks
+            if (!empty($callbacksToUpsert)) {
+                $stmt = $pdo->prepare("INSERT OR REPLACE INTO callbacks (id, telefono, preferencia, fecha, status, json_data) VALUES (?, ?, ?, ?, ?, ?)");
+                foreach ($callbacksToUpsert as $item) {
+                    $cb = $item['cb'];
+                    $stmt->execute([
+                        $cb['id'],
+                        $cb['telefono'] ?? '',
+                        $cb['preferencia'] ?? '',
+                        $cb['fecha'] ?? '',
+                        $cb['status'] ?? 'pendiente',
+                        $item['json']
+                    ]);
+                }
+            }
+            if (!empty($callbacksToDelete)) {
+                $stmt = $pdo->prepare("DELETE FROM callbacks WHERE id = ?");
+                foreach ($callbacksToDelete as $id) {
+                    $stmt->execute([$id]);
+                }
+            }
+
+            // Availability
+            if (!empty($availabilityToInsert)) {
+                $stmt = $pdo->prepare("INSERT OR REPLACE INTO availability (date, time, doctor) VALUES (?, ?, ?)");
+                foreach ($availabilityToInsert as $key) {
+                    // key is date|time|doctor
+                    list($date, $time, $doctor) = explode('|', $key);
+                    $stmt->execute([$date, $time, $doctor]);
+                }
+            }
+            if (!empty($availabilityToDelete)) {
+                $stmt = $pdo->prepare("DELETE FROM availability WHERE date = ? AND time = ? AND doctor = ?");
+                foreach ($availabilityToDelete as $key) {
+                    list($date, $time, $doctor) = explode('|', $key);
+                    $stmt->execute([$date, $time, $doctor]);
                 }
             }
 
             // Metadata
             $stmt = $pdo->prepare("INSERT OR REPLACE INTO kv_store (key, value) VALUES (?, ?)");
-            $stmt->execute(['updatedAt', $updatedAt]);
+            $stmt->execute(['updatedAt', $newUpdatedAt]);
 
             $pdo->commit();
             return true;
         } catch (PDOException $e) {
-            $pdo->rollBack();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             error_log('Write Store Error: ' . $e->getMessage());
             if (write_store_json_fallback($store)) {
                 return true;

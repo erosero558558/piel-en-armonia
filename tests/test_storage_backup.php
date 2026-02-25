@@ -98,6 +98,15 @@ run_test('Backup rotation (max backups)', function () use ($tmpDataDir) {
 
     // Now trigger one write_store which will create one more real backup and then prune
     $store = read_store();
+    // Force a change to trigger write (optimization skips unchanged stores)
+    $store['kv_store_test_key'] = 'force_change_' . uniqid();
+    // Or just modify updatedAt if available, or just add a dummy key to kv_store?
+    // write_store only persists appointments, reviews, callbacks, availability, updatedAt.
+    // So modifying a random key in $store might be ignored by normalize_store_payload unless it's in the allowed list?
+    // normalize_store_payload returns specific keys.
+    // So we must modify one of them.
+    $store['appointments'][0]['name'] = 'Force Backup Rotation ' . uniqid();
+
     write_store($store);
 
     // Now count files
