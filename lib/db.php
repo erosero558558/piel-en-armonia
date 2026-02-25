@@ -163,7 +163,24 @@ function ensure_db_schema(): void
             last_error TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )",
-        "CREATE INDEX IF NOT EXISTS idx_cron_failures_retry ON cron_failures(next_retry_at)"
+        "CREATE INDEX IF NOT EXISTS idx_cron_failures_retry ON cron_failures(next_retry_at)",
+        "CREATE TABLE IF NOT EXISTS figo_queue_jobs (
+            job_id TEXT PRIMARY KEY,
+            status TEXT NOT NULL,
+            request_hash TEXT,
+            session_hash TEXT,
+            created_at DATETIME,
+            updated_at DATETIME,
+            expires_at DATETIME,
+            next_attempt_at DATETIME,
+            attempts INTEGER DEFAULT 0,
+            payload TEXT,
+            priority INTEGER DEFAULT 0
+        )",
+        "CREATE INDEX IF NOT EXISTS idx_figo_queue_status ON figo_queue_jobs(status)",
+        "CREATE INDEX IF NOT EXISTS idx_figo_queue_hashes ON figo_queue_jobs(request_hash, session_hash)",
+        "CREATE INDEX IF NOT EXISTS idx_figo_queue_expires ON figo_queue_jobs(expires_at)",
+        "CREATE INDEX IF NOT EXISTS idx_figo_queue_next_attempt ON figo_queue_jobs(next_attempt_at)"
     ];
 
     foreach ($queries as $sql) {

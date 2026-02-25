@@ -6,6 +6,74 @@ require_once __DIR__ . '/storage.php';
 require_once __DIR__ . '/audit.php';
 require_once __DIR__ . '/metrics.php';
 require_once __DIR__ . '/figo_utils.php';
+require_once __DIR__ . '/db.php';
+
+function figo_queue_ensure_schema(): bool
+{
+    $dbPath = data_file_path();
+    $pdo = get_db_connection($dbPath);
+    if (!$pdo) {
+        return false;
+    }
+    ensure_db_schema();
+    figo_queue_migrate_legacy_files();
+    return true;
+}
+
+function figo_queue_migrate_legacy_files(int $limit = 50): int
+{
+    $migrated = 0;
+    if (!is_dir(figo_queue_dir_jobs())) {
+        return 0;
+    }
+    $files = glob(figo_queue_dir_jobs() . DIRECTORY_SEPARATOR . '*.json');
+    if (!is_array($files)) {
+        return 0;
+    }
+
+    foreach ($files as $path) {
+        if ($migrated >= $limit) {
+            break;
+        }
+
+        $job = figo_queue_read_json_file($path);
+        if (!is_array($job)) {
+            continue;
+        }
+
+        $jobId = isset($job['jobId']) ? (string) $job['jobId'] : '';
+        if ($jobId === '') {
+            continue;
+        }
+
+        $sql = "INSERT OR REPLACE INTO figo_queue_jobs (
+            job_id, status, request_hash, session_hash,
+            created_at, updated_at, expires_at, next_attempt_at,
+            attempts, payload, priority
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        $params = [
+            $jobId,
+            (string) ($job['status'] ?? 'queued'),
+            (string) ($job['requestHash'] ?? ''),
+            (string) ($job['sessionIdHash'] ?? ''),
+            (string) ($job['createdAt'] ?? gmdate('c')),
+            (string) ($job['updatedAt'] ?? gmdate('c')),
+            (string) ($job['expiresAt'] ?? ''),
+            (string) ($job['nextAttemptAt'] ?? ''),
+            (int) ($job['attempts'] ?? 0),
+            json_encode($job, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            0
+        ];
+
+        if (db_query($sql, $params) !== false) {
+            @unlink($path);
+            $migrated++;
+        }
+    }
+
+    return $migrated;
+}
 
 function figo_queue_clamp_int($raw, int $default, int $min, int $max): int
 {
@@ -217,26 +285,59 @@ function figo_queue_write_json_file(string $path, array $data): bool
 
 function figo_queue_read_job(string $jobId): ?array
 {
-    $path = figo_queue_job_path($jobId);
-    if ($path === '') {
+    if ($jobId === '') {
         return null;
     }
-    return figo_queue_read_json_file($path);
+
+    if (!figo_queue_ensure_schema()) {
+        return null;
+    }
+
+    $sql = "SELECT payload FROM figo_queue_jobs WHERE job_id = ?";
+    $rows = db_query($sql, [$jobId]);
+
+    if (is_array($rows) && isset($rows[0]['payload'])) {
+        $data = json_decode($rows[0]['payload'], true);
+        if (is_array($data)) {
+            return $data;
+        }
+    }
+
+    return null;
 }
 
 function figo_queue_write_job(array $job): bool
 {
-    if (!figo_queue_ensure_dirs()) {
+    if (!figo_queue_ensure_schema()) {
         return false;
     }
 
     $jobId = isset($job['jobId']) ? (string) $job['jobId'] : '';
-    $path = figo_queue_job_path($jobId);
-    if ($path === '') {
+    if ($jobId === '') {
         return false;
     }
 
-    return figo_queue_write_json_file($path, $job);
+    $sql = "INSERT OR REPLACE INTO figo_queue_jobs (
+            job_id, status, request_hash, session_hash,
+            created_at, updated_at, expires_at, next_attempt_at,
+            attempts, payload, priority
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+    $params = [
+        $jobId,
+        (string) ($job['status'] ?? 'queued'),
+        (string) ($job['requestHash'] ?? ''),
+        (string) ($job['sessionIdHash'] ?? ''),
+        (string) ($job['createdAt'] ?? gmdate('c')),
+        (string) ($job['updatedAt'] ?? gmdate('c')),
+        (string) ($job['expiresAt'] ?? ''),
+        (string) ($job['nextAttemptAt'] ?? ''),
+        (int) ($job['attempts'] ?? 0),
+        json_encode($job, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        0
+    ];
+
+    return db_query($sql, $params) !== false;
 }
 
 function figo_queue_write_worker_meta(array $meta): void
@@ -424,48 +525,32 @@ function figo_queue_request_hash(array $request): string
 
 function figo_queue_find_recent_by_request_hash(string $requestHash, string $sessionHash, int $lookbackSec = 75): ?array
 {
-    if (!figo_queue_ensure_dirs()) {
-        return null;
-    }
-    $files = glob(figo_queue_dir_jobs() . DIRECTORY_SEPARATOR . '*.json');
-    if (!is_array($files) || $files === []) {
+    if (!figo_queue_ensure_schema()) {
         return null;
     }
 
     $now = figo_queue_now();
-    rsort($files, SORT_STRING);
-    $checked = 0;
-    foreach ($files as $path) {
-        $checked++;
-        if ($checked > 80) {
-            break;
-        }
+    $cutoff = gmdate('c', $now - $lookbackSec);
 
-        $mtime = (int) @filemtime($path);
-        if ($mtime > 0 && ($now - $mtime) > $lookbackSec) {
-            continue;
-        }
+    $sql = "SELECT payload FROM figo_queue_jobs
+            WHERE request_hash = ?
+            AND session_hash = ?
+            AND status IN ('queued', 'processing', 'completed')
+            AND created_at >= ?
+            AND (expires_at IS NULL OR expires_at = '' OR expires_at > ?)
+            ORDER BY created_at DESC
+            LIMIT 1";
 
-        $job = figo_queue_read_json_file($path);
-        if (!is_array($job)) {
-            continue;
-        }
-        if ((string) ($job['requestHash'] ?? '') !== $requestHash) {
-            continue;
-        }
-        if ((string) ($job['sessionIdHash'] ?? '') !== $sessionHash) {
-            continue;
-        }
-        $status = (string) ($job['status'] ?? '');
-        if (!in_array($status, ['queued', 'processing', 'completed'], true)) {
-            continue;
-        }
+    $params = [
+        $requestHash,
+        $sessionHash,
+        $cutoff,
+        gmdate('c', $now)
+    ];
 
-        $expiresAt = strtotime((string) ($job['expiresAt'] ?? ''));
-        if ($expiresAt > 0 && $expiresAt < $now) {
-            continue;
-        }
-        return $job;
+    $rows = db_query($sql, $params);
+    if (is_array($rows) && isset($rows[0]['payload'])) {
+        return json_decode($rows[0]['payload'], true);
     }
 
     return null;
@@ -747,23 +832,24 @@ function figo_queue_count_depth(): array
         'failed' => 0,
         'expired' => 0
     ];
-    if (!figo_queue_ensure_dirs()) {
+
+    if (!figo_queue_ensure_schema()) {
         return $counts;
     }
-    $files = glob(figo_queue_dir_jobs() . DIRECTORY_SEPARATOR . '*.json');
-    if (!is_array($files)) {
-        return $counts;
-    }
-    foreach ($files as $path) {
-        $job = figo_queue_read_json_file($path);
-        if (!is_array($job)) {
-            continue;
+
+    $sql = "SELECT status, COUNT(*) as cnt FROM figo_queue_jobs GROUP BY status";
+    $rows = db_query($sql);
+
+    if (is_array($rows)) {
+        foreach ($rows as $row) {
+            $status = (string) ($row['status'] ?? '');
+            $cnt = (int) ($row['cnt'] ?? 0);
+            if (isset($counts[$status])) {
+                $counts[$status] = $cnt;
+            }
         }
-        $status = (string) ($job['status'] ?? '');
-        if (array_key_exists($status, $counts)) {
-            $counts[$status]++;
-        }
     }
+
     return $counts;
 }
 
@@ -774,53 +860,52 @@ function figo_queue_purge_old_jobs(?int $nowTs = null): array
     $retention = figo_queue_retention_sec();
     $result = ['expiredNow' => 0, 'deleted' => 0];
 
-    if (!figo_queue_ensure_dirs()) {
+    if (!figo_queue_ensure_schema()) {
         return $result;
     }
 
-    $files = glob(figo_queue_dir_jobs() . DIRECTORY_SEPARATOR . '*.json');
-    if (!is_array($files)) {
-        return $result;
+    $expiryTime = gmdate('c', $now - $ttl);
+    $retentionTime = gmdate('c', $now - $retention);
+
+    // Expire old queued/processing jobs
+    $sqlExpire = "SELECT job_id, payload FROM figo_queue_jobs
+                  WHERE status IN ('queued', 'processing')
+                  AND created_at < ?";
+    $toExpire = db_query($sqlExpire, [$expiryTime]);
+
+    if (is_array($toExpire)) {
+        foreach ($toExpire as $row) {
+            $jobId = $row['job_id'];
+            $job = json_decode($row['payload'], true);
+            if (!is_array($job)) {
+                continue;
+            }
+
+            $job['status'] = 'expired';
+            $job['updatedAt'] = gmdate('c');
+            $job['expiredAt'] = gmdate('c');
+            $job['errorCode'] = 'queue_expired';
+            $job['errorMessage'] = 'Job vencido en cola';
+
+            figo_queue_write_job($job);
+
+            $result['expiredNow']++;
+            Metrics::increment('openclaw_queue_jobs_total', ['status' => 'expired']);
+            audit_log_event('figo.queue.expired', [
+                'jobId' => $jobId,
+                'reason' => 'ttl_exceeded'
+            ]);
+        }
     }
 
-    foreach ($files as $path) {
-        $job = figo_queue_read_json_file($path);
-        if (!is_array($job)) {
-            continue;
-        }
+    // Delete old jobs (excluding active ones)
+    $sqlDelete = "DELETE FROM figo_queue_jobs
+                  WHERE status NOT IN ('queued', 'processing')
+                  AND created_at < ?";
 
-        $status = (string) ($job['status'] ?? '');
-        $createdAtTs = strtotime((string) ($job['createdAt'] ?? ''));
-        if ($createdAtTs <= 0) {
-            $createdAtTs = (int) @filemtime($path);
-        }
-        if ($createdAtTs <= 0) {
-            $createdAtTs = $now;
-        }
-
-        if (in_array($status, ['queued', 'processing'], true)) {
-            if (($now - $createdAtTs) > $ttl) {
-                $job['status'] = 'expired';
-                $job['updatedAt'] = gmdate('c');
-                $job['expiredAt'] = gmdate('c');
-                $job['errorCode'] = 'queue_expired';
-                $job['errorMessage'] = 'Job vencido en cola';
-                figo_queue_write_json_file($path, $job);
-                $result['expiredNow']++;
-                Metrics::increment('openclaw_queue_jobs_total', ['status' => 'expired']);
-                audit_log_event('figo.queue.expired', [
-                    'jobId' => (string) ($job['jobId'] ?? ''),
-                    'reason' => 'ttl_exceeded'
-                ]);
-            }
-            continue;
-        }
-
-        if (($now - $createdAtTs) > $retention) {
-            if (@unlink($path)) {
-                $result['deleted']++;
-            }
-        }
+    $deleted = db_query($sqlDelete, [$retentionTime]);
+    if (is_int($deleted)) {
+        $result['deleted'] = $deleted;
     }
 
     return $result;
@@ -960,55 +1045,23 @@ function figo_queue_process_job(string $jobId, ?int $gatewayTimeoutSeconds = nul
 
 function figo_queue_pending_job_ids(): array
 {
-    $result = [];
-    if (!figo_queue_ensure_dirs()) {
-        return $result;
-    }
-    $files = glob(figo_queue_dir_jobs() . DIRECTORY_SEPARATOR . '*.json');
-    if (!is_array($files) || $files === []) {
-        return $result;
+    if (!figo_queue_ensure_schema()) {
+        return [];
     }
 
-    $now = figo_queue_now();
-    $scored = [];
-    foreach ($files as $path) {
-        $job = figo_queue_read_json_file($path);
-        if (!is_array($job)) {
-            continue;
-        }
-        $status = (string) ($job['status'] ?? '');
-        if (!in_array($status, ['queued', 'processing'], true)) {
-            continue;
-        }
-        $jobId = isset($job['jobId']) ? (string) $job['jobId'] : '';
-        if (!figo_queue_job_id_is_valid($jobId)) {
-            continue;
-        }
+    $now = gmdate('c', figo_queue_now());
 
-        $nextAttemptAtTs = strtotime((string) ($job['nextAttemptAt'] ?? ''));
-        if ($nextAttemptAtTs > $now) {
-            continue;
-        }
+    $sql = "SELECT job_id FROM figo_queue_jobs
+            WHERE status IN ('queued', 'processing')
+            AND (next_attempt_at IS NULL OR next_attempt_at = '' OR next_attempt_at <= ?)
+            ORDER BY created_at ASC";
 
-        $createdAtTs = strtotime((string) ($job['createdAt'] ?? ''));
-        if ($createdAtTs <= 0) {
-            $createdAtTs = (int) @filemtime($path);
-        }
-        if ($createdAtTs <= 0) {
-            $createdAtTs = $now;
-        }
-
-        $scored[] = ['jobId' => $jobId, 'createdAtTs' => $createdAtTs];
+    $rows = db_query($sql, [$now]);
+    if (!is_array($rows)) {
+        return [];
     }
 
-    usort($scored, static function (array $a, array $b): int {
-        return $a['createdAtTs'] <=> $b['createdAtTs'];
-    });
-    foreach ($scored as $row) {
-        $result[] = (string) $row['jobId'];
-    }
-
-    return $result;
+    return array_column($rows, 'job_id');
 }
 
 function figo_queue_process_worker(?int $maxJobs = null, ?int $timeBudgetMs = null, bool $fromCron = false): array
