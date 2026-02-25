@@ -878,6 +878,13 @@ function attachDiagnostics(report, diagnostics) {
     return domainDiagnostics.attachDiagnostics(report, diagnostics);
 }
 
+function buildTaskCreateWarnDiagnostics(input = {}) {
+    return domainDiagnostics.buildTaskCreateWarnDiagnostics({
+        ...input,
+        policy: getGovernancePolicy(),
+    });
+}
+
 function cmdStatus(args) {
     const wantsJson = args.includes('--json');
     const wantsExplainRed = args.includes('--explain-red');
@@ -2134,6 +2141,8 @@ async function cmdTask(args) {
         CRITICAL_SCOPE_KEYWORDS,
         CRITICAL_SCOPE_ALLOWED_EXECUTORS,
         buildTaskCreateInferenceExplainLines,
+        buildTaskCreateWarnDiagnostics,
+        attachDiagnostics,
         printJson: coreOutput.printJson,
     });
 }

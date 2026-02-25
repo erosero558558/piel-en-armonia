@@ -327,9 +327,58 @@ function buildWarnFirstDiagnostics(input = {}) {
     return diagnostics;
 }
 
+function buildTaskCreateWarnDiagnostics(input = {}) {
+    const {
+        source = 'task.create',
+        policy = null,
+        fromFilesEnabled = false,
+        fileInference = null,
+        scopeSource = 'default',
+        task = null,
+    } = input;
+    const diagnostics = [];
+    const warnPolicyMap = getWarnPolicyMap(policy);
+
+    if (
+        warnPolicyEnabled(warnPolicyMap, 'from_files_fallback_default_scope') &&
+        fromFilesEnabled &&
+        fileInference &&
+        String(fileInference.scope || '')
+            .trim()
+            .toLowerCase() === 'general' &&
+        scopeSource === 'from_files'
+    ) {
+        diagnostics.push(
+            makeDiagnostic({
+                code: 'warn.task.from_files_fallback_default_scope',
+                severity: warnPolicySeverity(
+                    warnPolicyMap,
+                    'from_files_fallback_default_scope'
+                ),
+                source,
+                message:
+                    'task create --from-files cayo en scope general (fallback heuristico)',
+                task_ids: task?.id ? [String(task.id)] : undefined,
+                files: Array.isArray(task?.files) ? task.files : undefined,
+                meta: {
+                    inferred_scope: String(fileInference.scope || ''),
+                    reasons:
+                        fileInference?.reasons &&
+                        typeof fileInference.reasons === 'object'
+                            ? fileInference.reasons
+                            : null,
+                },
+            })
+        );
+    }
+
+    return diagnostics;
+}
+
 module.exports = {
     buildStatusRedExplanation,
     buildWarnFirstDiagnostics,
+    buildTaskCreateWarnDiagnostics,
     summarizeDiagnostics,
     attachDiagnostics,
 };

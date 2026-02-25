@@ -735,19 +735,9 @@ foreach (($handoffs['handoffs'] ?? []) as $handoff) {
         }
     }
 
-    if (is_array($fromTask) && is_array($toTask)) {
-        $overlap = analyzeFileOverlap(
-            is_array($fromTask['files'] ?? null) ? $fromTask['files'] : [],
-            is_array($toTask['files'] ?? null) ? $toTask['files'] : []
-        );
-        $overlapSet = array_fill_keys($overlap['overlap_files'], true);
-        foreach ($handoffFiles as $rawFile) {
-            $normalizedFile = normalizePathToken((string) $rawFile);
-            if ($normalizedFile !== '' && !isset($overlapSet[$normalizedFile])) {
-                $errors[] = "Handoff {$handoffId} incluye file fuera del solape real: {$rawFile}";
-            }
-        }
-    }
+    // Nota H6: la validacion de solape real (subset de files del handoff contra el
+    // overlap concreto entre tareas) queda canonica en Node (`handoffs lint`).
+    // Este contrato PHP se mantiene en checks estructurales/conservadores.
 }
 
 $codexBlocks = $codexPlanRaw !== '' ? parseCodexActiveBlocks($codexPlanRaw) : [];
@@ -807,19 +797,8 @@ if (count($codexBlocks) === 0) {
             $errors[] = "Task {$blockTaskId} tiene status desalineado entre CODEX_ACTIVE y AGENT_BOARD";
         }
 
-        $boardFilesSet = [];
-        foreach ((array) ($boardTask['files'] ?? []) as $rawBoardFile) {
-            $boardFilesSet[normalizePathToken((string) $rawBoardFile)] = true;
-        }
-        foreach ($blockFiles as $rawBlockFile) {
-            $normalized = normalizePathToken((string) $rawBlockFile);
-            if ($normalized === '') {
-                continue;
-            }
-            if (!isset($boardFilesSet[$normalized])) {
-                $errors[] = "Task {$blockTaskId} no reserva en AGENT_BOARD file de CODEX_ACTIVE: {$rawBlockFile}";
-            }
-        }
+        // Nota H6: la comparacion detallada de files entre CODEX_ACTIVE y AGENT_BOARD
+        // queda canonica en Node (`codex-check`). PHP conserva existencia/estatus/executor.
     }
 
     if (isActiveStatus($blockStatus) && empty($codexActive)) {
