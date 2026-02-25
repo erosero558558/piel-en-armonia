@@ -49,6 +49,97 @@ if (!defined('BACKUP_RECEIVER_ENCRYPTION_ALGO')) {
     define('BACKUP_RECEIVER_ENCRYPTION_ALGO', 'aes-256-cbc');
 }
 
+if (!defined('MAX_STORE_BACKUPS')) {
+    define('MAX_STORE_BACKUPS', 30);
+}
+
+function ensure_backup_dir(): bool
+{
+    $backupDir = backup_dir_path();
+    if (is_dir($backupDir)) {
+        return true;
+    }
+    return @mkdir($backupDir, 0775, true) || is_dir($backupDir);
+}
+
+function prune_backup_files(): void
+{
+    $files = backup_list_files();
+    if (count($files) <= MAX_STORE_BACKUPS) {
+        return;
+    }
+    // backup_list_files returns newest first. Delete oldest (end of array).
+    $toDelete = array_slice($files, MAX_STORE_BACKUPS);
+    foreach ($toDelete as $file) {
+        @unlink($file);
+    }
+}
+
+function backup_list_files(int $limit = 0): array
+{
+    $patterns = [
+        backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.sqlite',
+        backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.json'
+    ];
+
+    $files = [];
+    foreach ($patterns as $pattern) {
+        $matches = glob($pattern);
+        if (!is_array($matches) || $matches === []) {
+            continue;
+        }
+        $files = array_merge($files, $matches);
+    }
+    if ($files === []) {
+        return [];
+    }
+
+    rsort($files, SORT_STRING);
+    $files = array_values(array_filter($files, static function ($file): bool {
+        return is_string($file) && $file !== '';
+    }));
+
+    if ($limit > 0 && count($files) > $limit) {
+        $files = array_slice($files, 0, $limit);
+    }
+
+    return $files;
+}
+
+function create_store_backup_locked($sourcePath): void
+{
+    if (!ensure_backup_dir()) {
+        error_log('Piel en Armonía: no se pudo crear el directorio de backups');
+        return;
+    }
+
+    if (!file_exists($sourcePath)) {
+        return;
+    }
+
+    try {
+        $suffix = bin2hex(random_bytes(3));
+    } catch (Throwable $e) {
+        $suffix = substr(md5((string) microtime(true)), 0, 6);
+    }
+
+    $extension = strtolower((string) pathinfo((string) $sourcePath, PATHINFO_EXTENSION));
+    if ($extension === '') {
+        $extension = 'sqlite';
+    }
+    if ($extension !== 'sqlite' && $extension !== 'json') {
+        $extension = 'sqlite';
+    }
+
+    $filename = backup_dir_path() . DIRECTORY_SEPARATOR . 'store-' . local_date('Ymd-His') . '-' . $suffix . '.' . $extension;
+    if (!copy($sourcePath, $filename)) {
+        error_log('Piel en Armonía: no se pudo guardar backup de store.sqlite');
+        return;
+    }
+
+    prune_backup_files();
+}
+
 function backup_receiver_storage_root(): string
 {
     return data_dir_path() . DIRECTORY_SEPARATOR . 'offsite-receiver';
@@ -698,37 +789,6 @@ function backup_create_initial_seed_if_missing(): array
     $result['path'] = (string) $after[0];
 
     return $result;
-}
-
-function backup_list_files(int $limit = 0): array
-{
-    $patterns = [
-        backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.sqlite',
-        backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.json'
-    ];
-
-    $files = [];
-    foreach ($patterns as $pattern) {
-        $matches = glob($pattern);
-        if (!is_array($matches) || $matches === []) {
-            continue;
-        }
-        $files = array_merge($files, $matches);
-    }
-    if ($files === []) {
-        return [];
-    }
-
-    rsort($files, SORT_STRING);
-    $files = array_values(array_filter($files, static function ($file): bool {
-        return is_string($file) && $file !== '';
-    }));
-
-    if ($limit > 0 && count($files) > $limit) {
-        $files = array_slice($files, 0, $limit);
-    }
-
-    return $files;
 }
 
 function backup_validate_store_shape(array $data): array

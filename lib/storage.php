@@ -19,15 +19,14 @@ if (!defined('DATA_FILE')) {
 if (!defined('BACKUP_DIR')) {
     define('BACKUP_DIR', DATA_DIR . DIRECTORY_SEPARATOR . 'backups');
 }
-if (!defined('MAX_STORE_BACKUPS')) {
-    define('MAX_STORE_BACKUPS', 30);
-}
 if (!defined('STORE_LOCK_TIMEOUT_MS')) {
     define('STORE_LOCK_TIMEOUT_MS', 1800);
 }
 if (!defined('STORE_LOCK_RETRY_DELAY_US')) {
     define('STORE_LOCK_RETRY_DELAY_US', 25000);
 }
+
+require_once __DIR__ . '/backup.php';
 
 function storage_sqlite_available(): bool
 {
@@ -488,75 +487,6 @@ function ensure_data_htaccess(string $dir): void
     @file_put_contents($htaccess, $rules, LOCK_EX);
 }
 
-function ensure_backup_dir(): bool
-{
-    $backupDir = backup_dir_path();
-    if (is_dir($backupDir)) {
-        return true;
-    }
-    return @mkdir($backupDir, 0775, true) || is_dir($backupDir);
-}
-
-function prune_backup_files(): void
-{
-    $patterns = [
-        backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.sqlite',
-        backup_dir_path() . DIRECTORY_SEPARATOR . 'store-*.json'
-    ];
-
-    $files = [];
-    foreach ($patterns as $pattern) {
-        $matches = glob($pattern);
-        if (!is_array($matches) || $matches === []) {
-            continue;
-        }
-        $files = array_merge($files, $matches);
-    }
-
-    if (!is_array($files) || count($files) <= MAX_STORE_BACKUPS) {
-        return;
-    }
-
-    sort($files, SORT_STRING);
-    $toDelete = array_slice($files, 0, count($files) - MAX_STORE_BACKUPS);
-    foreach ($toDelete as $file) {
-        @unlink($file);
-    }
-}
-
-function create_store_backup_locked($sourcePath): void
-{
-    if (!ensure_backup_dir()) {
-        error_log('Piel en Armonía: no se pudo crear el directorio de backups');
-        return;
-    }
-
-    if (!file_exists($sourcePath)) {
-        return;
-    }
-
-    try {
-        $suffix = bin2hex(random_bytes(3));
-    } catch (Throwable $e) {
-        $suffix = substr(md5((string) microtime(true)), 0, 6);
-    }
-
-    $extension = strtolower((string) pathinfo((string) $sourcePath, PATHINFO_EXTENSION));
-    if ($extension === '') {
-        $extension = 'sqlite';
-    }
-    if ($extension !== 'sqlite' && $extension !== 'json') {
-        $extension = 'sqlite';
-    }
-
-    $filename = backup_dir_path() . DIRECTORY_SEPARATOR . 'store-' . local_date('Ymd-His') . '-' . $suffix . '.' . $extension;
-    if (!copy($sourcePath, $filename)) {
-        error_log('Piel en Armonía: no se pudo guardar backup de store.sqlite');
-        return;
-    }
-
-    prune_backup_files();
-}
 
 function migrate_json_to_sqlite(string $jsonPath, string $sqlitePath): bool
 {
