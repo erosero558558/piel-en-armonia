@@ -144,8 +144,10 @@ Criterio de salida:
 Evidencia parcial (retencion consolidada):
 
 - `REPORTE-SEMANAL-PRODUCCION.ps1` publica `retention` + `retentionTrend` en JSON/Markdown semanal (incluye `noShowRatePct`, `recurrenceRatePct`, deltas vs reporte previo).
+- `REPORTE-SEMANAL-PRODUCCION.ps1` incorpora guardrails de retencion configurables (warning por `no_show` alto, `recurrence` baja y caida semanal de recurrencia con sample minimo).
 - `npm run report:weekly:prod` (2026-02-25) -> `Warnings: none`, con salida `retention_no_show_rate_pct=0` y `retention_recurrence_rate_pct=50`.
 - `.github/workflows/weekly-kpi-report.yml` resume metricas de retencion y deltas en `GITHUB_STEP_SUMMARY` para operacion semanal.
+- Validacion remota del workflow semanal (rama de validacion): `Weekly KPI Report` run `22407607517` -> `success` (retention/latency/warnings expuestos en resumen; artifact `weekly-kpi-report` generado).
 
 ## Comandos oficiales del plan
 
