@@ -159,13 +159,13 @@ tasks:
   - id: AG-010
     title: "Conversion phase 3: instrument booking drop-off reasons in funnel"
     owner: ernes
-    executor: jules
-    status: ready
+    executor: codex
+    status: done
     risk: high
     scope: conversion-funnel
     files: ["src/apps/analytics/engine.js", "src/apps/booking/engine.js", "api.php", "controllers/AdminDataController.php"]
     acceptance: "Eventos de abandono por paso con reason/error_code visibles para analisis semanal."
-    acceptance_ref: "PLAN_MAESTRO_CODEX_2026.md"
+    acceptance_ref: "verification/agent-runs/AG-010.md"
     depends_on: []
     prompt: "Agregar medicion consistente de drop-off en checkout y exponer resumen para admin."
     created_at: 2026-02-25

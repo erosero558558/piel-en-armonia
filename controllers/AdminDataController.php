@@ -69,6 +69,16 @@ class AdminDataController
             'doctorCalendars' => $doctorCalendars,
             'generatedAt' => local_date('c'),
         ];
+
+        if (class_exists('AnalyticsController') && method_exists('AnalyticsController', 'buildFunnelMetricsData')) {
+            try {
+                $store['funnelMetrics'] = AnalyticsController::buildFunnelMetricsData($context);
+            } catch (\Throwable $th) {
+                // Keep /data resilient if metrics export is temporarily unavailable.
+                $store['funnelMetrics'] = null;
+            }
+        }
+
         json_response([
             'ok' => true,
             'data' => $store

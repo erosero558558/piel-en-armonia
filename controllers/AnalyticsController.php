@@ -79,6 +79,19 @@ class AnalyticsController
      */
     public static function getFunnelMetrics(array $context): void
     {
+        json_response([
+            'ok' => true,
+            'data' => self::buildFunnelMetricsData($context)
+        ]);
+    }
+
+    /**
+     * Build funnel analytics payload without sending HTTP response.
+     *
+     * @return array<string,mixed>
+     */
+    public static function buildFunnelMetricsData(array $context): array
+    {
         $rawMetrics = class_exists('Metrics') ? Metrics::export() : '';
         $series = self::parsePrometheusCounterSeries($rawMetrics, 'conversion_funnel_events_total');
 
@@ -194,30 +207,27 @@ class AnalyticsController
             return $rows;
         };
 
-        json_response([
-            'ok' => true,
-            'data' => [
-                'summary' => [
-                    'viewBooking' => $viewBooking,
-                    'startCheckout' => $startCheckout,
-                    'bookingConfirmed' => $bookingConfirmed,
-                    'checkoutAbandon' => $checkoutAbandon,
-                    'startRatePct' => $startRate,
-                    'confirmedRatePct' => $confirmedRate,
-                    'abandonRatePct' => $abandonRate
-                ],
-                'events' => $eventTotals,
-                'checkoutAbandonByStep' => $toList($checkoutAbandonByStep),
-                'checkoutAbandonByReason' => $toList($checkoutAbandonByReason),
-                'checkoutEntryBreakdown' => $toList($checkoutEntryBreakdown),
-                'eventSourceBreakdown' => $toList($eventSourceBreakdown),
-                'paymentMethodBreakdown' => $toList($paymentMethodBreakdown),
-                'bookingStepBreakdown' => $toList($bookingStepBreakdown),
-                'errorCodeBreakdown' => $toList($errorCodeBreakdown),
-                'retention' => $retention,
-                'generatedAt' => gmdate('c')
-            ]
-        ]);
+        return [
+            'summary' => [
+                'viewBooking' => $viewBooking,
+                'startCheckout' => $startCheckout,
+                'bookingConfirmed' => $bookingConfirmed,
+                'checkoutAbandon' => $checkoutAbandon,
+                'startRatePct' => $startRate,
+                'confirmedRatePct' => $confirmedRate,
+                'abandonRatePct' => $abandonRate
+            ],
+            'events' => $eventTotals,
+            'checkoutAbandonByStep' => $toList($checkoutAbandonByStep),
+            'checkoutAbandonByReason' => $toList($checkoutAbandonByReason),
+            'checkoutEntryBreakdown' => $toList($checkoutEntryBreakdown),
+            'eventSourceBreakdown' => $toList($eventSourceBreakdown),
+            'paymentMethodBreakdown' => $toList($paymentMethodBreakdown),
+            'bookingStepBreakdown' => $toList($bookingStepBreakdown),
+            'errorCodeBreakdown' => $toList($errorCodeBreakdown),
+            'retention' => $retention,
+            'generatedAt' => gmdate('c')
+        ];
     }
 
     /**

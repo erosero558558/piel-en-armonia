@@ -43,9 +43,8 @@ function loadFallbackState() {
 
 export async function refreshData() {
     try {
-        const [payload, funnelPayload, healthPayload] = await Promise.all([
+        const [payload, healthPayload] = await Promise.all([
             apiRequest('data'),
-            apiRequest('funnel-metrics').catch(() => null),
             apiRequest('health').catch(() => null)
         ]);
 
@@ -75,10 +74,15 @@ export async function refreshData() {
         setAvailabilityMeta(availabilityMeta);
         saveLocalData('availability-meta', availabilityMeta);
 
-        if (funnelPayload && funnelPayload.data && typeof funnelPayload.data === 'object') {
-            setFunnelMetrics(funnelPayload.data);
+        if (data.funnelMetrics && typeof data.funnelMetrics === 'object') {
+            setFunnelMetrics(data.funnelMetrics);
         } else {
-            setFunnelMetrics(getEmptyFunnelMetrics());
+            const funnelPayload = await apiRequest('funnel-metrics').catch(() => null);
+            if (funnelPayload && funnelPayload.data && typeof funnelPayload.data === 'object') {
+                setFunnelMetrics(funnelPayload.data);
+            } else {
+                setFunnelMetrics(getEmptyFunnelMetrics());
+            }
         }
 
         if (healthPayload && healthPayload.ok) {
