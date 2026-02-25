@@ -38,6 +38,11 @@ function boardToQueueStatus(taskStatus, executor) {
     return 'pending';
 }
 
+function formatOptionalMetaLine(key, rawValue) {
+    const value = String(rawValue || '').trim();
+    return value ? `${key}: ${value}` : `${key}:`;
+}
+
 function renderQueueFile(executor, tasks, existingMeta) {
     const header =
         executor === 'jules'
@@ -105,8 +110,8 @@ function renderQueueFile(executor, tasks, existingMeta) {
         lines.push(`acceptance_ref: ${acceptanceRef}`);
         lines.push('dispatched_by: agent-orchestrator');
         if (executor === 'jules') {
-            lines.push(`session: ${meta.session || ''}`);
-            lines.push(`dispatched: ${meta.dispatched || ''}`);
+            lines.push(formatOptionalMetaLine('session', meta.session));
+            lines.push(formatOptionalMetaLine('dispatched', meta.dispatched));
         }
         lines.push('-->');
         lines.push(`### ${task.title}`);

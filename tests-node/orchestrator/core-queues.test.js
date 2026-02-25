@@ -125,3 +125,26 @@ test('core-queues renderQueueFile para Kimi usa running y no agrega campos de Ju
     assert.doesNotMatch(content, /session:/);
     assert.doesNotMatch(content, /dispatched:/);
 });
+
+test('core-queues renderQueueFile para Jules no agrega espacios finales en campos vacios', () => {
+    const content = coreQueues.renderQueueFile(
+        'jules',
+        [
+            {
+                id: 'AG-003',
+                title: 'Task without dispatch metadata',
+                status: 'ready',
+                risk: 'low',
+                scope: 'ops',
+                files: ['tools/agent-orchestrator/core/queues.js'],
+                prompt: 'Prompt',
+            },
+        ],
+        new Map([['AG-003', { session: '', dispatched: '' }]])
+    );
+
+    assert.match(content, /\nsession:\n/);
+    assert.match(content, /\ndispatched:\n/);
+    assert.doesNotMatch(content, /\nsession: \n/);
+    assert.doesNotMatch(content, /\ndispatched: \n/);
+});

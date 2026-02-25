@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 91
+  revision: 94
   updated_at: 2026-02-25
 
 tasks:
@@ -1945,5 +1945,43 @@ tasks:
     evidence_ref: "verification/agent-runs/AG-050.md"
     depends_on: []
     prompt: "Registrar evidencia de SLA operativo semanal en plan maestro"
+    created_at: 2026-02-25
+    updated_at: 2026-02-25
+
+  - id: AG-051
+    title: "Eliminar drift recurrente en JULES_TASKS (session/dispatched vacios)"
+    owner: ernes
+    executor: codex
+    status: done
+    status_since_at: "2026-02-25T23:39:45.740Z"
+    risk: low
+    scope: ops
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: ["tools/agent-orchestrator/core/queues.js", "tests-node/orchestrator/core-queues.test.js"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-02-25T23:39:45.740Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Eliminar drift recurrente en JULES_TASKS (session/dispatched vacios)"
+    acceptance_ref: "verification/agent-runs/AG-051.md"
+    evidence_ref: "verification/agent-runs/AG-051.md"
+    depends_on: []
+    prompt: "Eliminar drift recurrente en JULES_TASKS (session/dispatched vacios)"
     created_at: 2026-02-25
     updated_at: 2026-02-25
