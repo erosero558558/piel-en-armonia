@@ -79,6 +79,10 @@ jobs:
                     "report_md_path=" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "warnings_count=-1" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "warnings_list=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                    "conversion_start_checkout=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                    "conversion_booking_confirmed=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                    "conversion_booking_confirmed_rate_pct=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                    "conversion_booking_confirmed_rate_delta_pct=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "retention_no_show_rate_pct=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "retention_recurrence_rate_pct=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "retention_no_show_rate_delta_pct=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -105,7 +109,24 @@ jobs:
 
                     $retention = $payload.retention
                     $retentionTrend = $payload.retentionTrend
+                    $conversion = $payload.conversion
+                    $conversionTrend = $payload.conversionTrend
+                    if ($null -eq $conversion -and $null -ne $payload.summary) {
+                      $summary = $payload.summary
+                      $fallbackStartCheckout = if ($null -ne $summary.startCheckout) { [int]$summary.startCheckout } else { 0 }
+                      $fallbackBookingConfirmed = if ($null -ne $summary.bookingConfirmed) { [int]$summary.bookingConfirmed } else { 0 }
+                      $fallbackRate = if ($fallbackStartCheckout -gt 0) { [Math]::Round(($fallbackBookingConfirmed / [double]$fallbackStartCheckout) * 100, 2) } else { 0 }
+                      $conversion = [pscustomobject]@{
+                        startCheckout = $fallbackStartCheckout
+                        bookingConfirmed = $fallbackBookingConfirmed
+                        bookingConfirmedRatePct = $fallbackRate
+                      }
+                    }
                     $latency = $payload.latency
+                    $conversionStartCheckout = if ($null -ne $conversion) { $conversion.startCheckout } else { 'n/a' }
+                    $conversionBookingConfirmed = if ($null -ne $conversion) { $conversion.bookingConfirmed } else { 'n/a' }
+                    $conversionRate = if ($null -ne $conversion) { $conversion.bookingConfirmedRatePct } else { 'n/a' }
+                    $conversionRateDelta = if ($null -ne $conversionTrend -and $null -ne $conversionTrend.bookingConfirmedRateDeltaPct) { $conversionTrend.bookingConfirmedRateDeltaPct } else { 'n/a' }
                     $noShowRate = if ($null -ne $retention) { $retention.noShowRatePct } else { 'n/a' }
                     $recurrenceRate = if ($null -ne $retention) { $retention.recurrenceRatePct } else { 'n/a' }
                     $appointmentsTotal = if ($null -ne $retention) { $retention.appointmentsTotal } else { 'n/a' }
@@ -123,6 +144,10 @@ jobs:
                   } catch {
                     $warningsCount = -1
                     $warningsList = 'n/a'
+                    $conversionStartCheckout = 'n/a'
+                    $conversionBookingConfirmed = 'n/a'
+                    $conversionRate = 'n/a'
+                    $conversionRateDelta = 'n/a'
                     $noShowRate = 'n/a'
                     $recurrenceRate = 'n/a'
                     $appointmentsTotal = 'n/a'
@@ -139,6 +164,10 @@ jobs:
                   "report_md_path=$mdPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "warnings_count=$warningsCount" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "warnings_list=$warningsList" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "conversion_start_checkout=$conversionStartCheckout" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "conversion_booking_confirmed=$conversionBookingConfirmed" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "conversion_booking_confirmed_rate_pct=$conversionRate" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "conversion_booking_confirmed_rate_delta_pct=$conversionRateDelta" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "retention_no_show_rate_pct=$noShowRate" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "retention_recurrence_rate_pct=$recurrenceRate" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "retention_no_show_rate_delta_pct=$noShowRateDelta" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -173,6 +202,11 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Warnings count: ``${{ steps.report.outputs.warnings_count }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Warnings: ``${{ steps.report.outputs.warnings_list }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Agent metrics file: ``verification/agent-metrics.json``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Conversion"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- start_checkout: ``${{ steps.report.outputs.conversion_start_checkout }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- booking_confirmed: ``${{ steps.report.outputs.conversion_booking_confirmed }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- booking_confirmed_rate_pct: ``${{ steps.report.outputs.conversion_booking_confirmed_rate_pct }}`` (delta: ``${{ steps.report.outputs.conversion_booking_confirmed_rate_delta_pct }}``)"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Latency"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- core_p95_max_ms: ``${{ steps.report.outputs.latency_core_p95_max_ms }}``"
