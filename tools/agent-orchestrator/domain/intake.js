@@ -172,6 +172,12 @@ function mapWorkflowSlugToFile(slugRaw) {
     const slug = normalizeWorkflowSlug(slugRaw);
     if (!slug) return '';
 
+    if (slug.startsWith('post-deploy-gate')) {
+        return '.github/workflows/post-deploy-gate.yml';
+    }
+    if (slug.startsWith('repair-git-sync')) {
+        return '.github/workflows/repair-git-sync.yml';
+    }
     if (slug === 'ci') return '.github/workflows/ci.yml';
     if (slug === 'agent-governance') return '.github/workflows/agent-governance.yml';
     if (slug === 'agent-intake') return '.github/workflows/agent-intake.yml';
@@ -179,14 +185,12 @@ function mapWorkflowSlugToFile(slugRaw) {
     if (slug === 'kimi-autopilot' || slug === 'agent-kimi-autopilot') {
         return '.github/workflows/agent-kimi-autopilot.yml';
     }
-    if (slug === 'post-deploy-gate') return '.github/workflows/post-deploy-gate.yml';
     if (
         slug === 'production-monitor' ||
         slug === 'prod-monitor'
     ) {
         return '.github/workflows/prod-monitor.yml';
     }
-    if (slug === 'repair-git-sync') return '.github/workflows/repair-git-sync.yml';
     if (slug === 'jules-pr-automation' || slug === 'jules-pr') {
         return '.github/workflows/jules-pr.yml';
     }
@@ -226,11 +230,11 @@ function inferFilesFromSignal(signal, scope) {
         if (workflowFile) {
             return [workflowFile];
         }
-        if (corpus.includes('git sync')) {
-            return ['.github/workflows/repair-git-sync.yml'];
-        }
         if (corpus.includes('post-deploy')) {
             return ['.github/workflows/post-deploy-gate.yml'];
+        }
+        if (corpus.includes('git sync')) {
+            return ['.github/workflows/repair-git-sync.yml'];
         }
         if (corpus.includes('monitor')) {
             return ['.github/workflows/prod-monitor.yml'];

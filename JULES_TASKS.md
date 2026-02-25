@@ -183,3 +183,20 @@ dispatched:
 Resolver señal workflow:agent-governance:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/.
 
 <!-- /TASK -->
+
+<!-- TASK
+status: pending
+task_id: AG-026
+risk: medium
+scope: ops
+files: .github/workflows/agent-autopilot.yml
+acceptance_ref: verification/agent-runs/AG-026.md
+dispatched_by: agent-orchestrator
+session: 
+dispatched: 
+-->
+### Resolver fallo workflow: Agent Autopilot: Agent Autopilot
+
+Resolver señal workflow:agent-autopilot:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/.
+
+<!-- /TASK -->

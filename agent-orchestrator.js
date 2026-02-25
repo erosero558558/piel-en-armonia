@@ -1031,6 +1031,94 @@ function applySignalStateTransitions(mergedSignals, incomingSignals, nowIso) {
     }
 }
 
+function normalizeTaskFilesForOverlap(files) {
+    const next = new Set();
+    for (const file of Array.isArray(files) ? files : []) {
+        const normalized = String(file || '')
+            .trim()
+            .toLowerCase();
+        if (!normalized) continue;
+        next.add(normalized);
+    }
+    return next;
+}
+
+function hasFilesOverlap(leftFiles, rightFiles) {
+    const left = normalizeTaskFilesForOverlap(leftFiles);
+    const right = normalizeTaskFilesForOverlap(rightFiles);
+    if (left.size === 0 || right.size === 0) return false;
+    for (const file of left) {
+        if (right.has(file)) return true;
+    }
+    return false;
+}
+
+function findActiveOverlapTask(tasks, suggestedTask) {
+    const targetScope = String(suggestedTask?.scope || '')
+        .trim()
+        .toLowerCase();
+    for (const task of Array.isArray(tasks) ? tasks : []) {
+        if (isTerminalTaskStatus(task?.status)) continue;
+        const scope = String(task?.scope || '')
+            .trim()
+            .toLowerCase();
+        if (targetScope && scope !== targetScope) continue;
+        if (!hasFilesOverlap(task?.files, suggestedTask?.files)) continue;
+        return task;
+    }
+    return null;
+}
+
+function isCriticalTask(task) {
+    return (
+        Boolean(task?.critical_zone) ||
+        String(task?.runtime_impact || '').toLowerCase() === 'high' ||
+        String(task?.risk || '').toLowerCase() === 'high'
+    );
+}
+
+function collapseWorkflowTasksCoveredByIssueTasks(tasks, nowIso) {
+    const activeIssueTasks = (Array.isArray(tasks) ? tasks : []).filter(
+        (task) =>
+            !isTerminalTaskStatus(task?.status) &&
+            String(task?.source_signal || '').toLowerCase() === 'issue' &&
+            isCriticalTask(task)
+    );
+    let collapsed = 0;
+
+    for (const task of Array.isArray(tasks) ? tasks : []) {
+        if (isTerminalTaskStatus(task?.status)) continue;
+        if (String(task?.source_signal || '').toLowerCase() !== 'workflow')
+            continue;
+        if (!isCriticalTask(task)) continue;
+
+        const taskScope = String(task?.scope || '')
+            .trim()
+            .toLowerCase();
+        const coveredByIssue = activeIssueTasks.find((issueTask) => {
+            const issueScope = String(issueTask?.scope || '')
+                .trim()
+                .toLowerCase();
+            if (taskScope && issueScope && taskScope !== issueScope) {
+                return false;
+            }
+            return hasFilesOverlap(issueTask?.files, task?.files);
+        });
+        if (!coveredByIssue) continue;
+
+        task.status = 'done';
+        task.blocked_reason = '';
+        task.updated_at = String(nowIso).slice(0, 10);
+        task.evidence_ref = 'signal_deduped_to_issue:auto';
+        if (!String(task.acceptance_ref || '').trim()) {
+            task.acceptance_ref = task.evidence_ref;
+        }
+        collapsed += 1;
+    }
+
+    return collapsed;
+}
+
 function upsertTasksFromSignals(board, signals, options = {}) {
     const nowIso = String(options.nowIso || new Date().toISOString());
     const owner = String(options.owner || detectDefaultOwner('orchestrator'));
@@ -1056,6 +1144,76 @@ function upsertTasksFromSignals(board, signals, options = {}) {
             owner,
         });
         if (!existing) {
+            const overlapActiveTask = findActiveOverlapTask(
+                board.tasks,
+                suggestedTask
+            );
+            if (overlapActiveTask) {
+                const overlapSourceSignal = String(
+                    overlapActiveTask.source_signal || 'manual'
+                ).toLowerCase();
+
+                // Priorizamos señal de issue sobre workflow cuando ambos apuntan al mismo archivo activo.
+                if (
+                    sourceSignal === 'issue' &&
+                    overlapSourceSignal === 'workflow'
+                ) {
+                    Object.assign(overlapActiveTask, {
+                        ...suggestedTask,
+                        id: overlapActiveTask.id,
+                        status: 'ready',
+                        acceptance_ref: '',
+                        evidence_ref: '',
+                        blocked_reason: '',
+                        updated_at: String(nowIso).slice(0, 10),
+                    });
+                } else {
+                    const overlapPriority = Number.parseInt(
+                        String(overlapActiveTask.priority_score || '0'),
+                        10
+                    );
+                    const suggestedPriority = Number.parseInt(
+                        String(suggestedTask.priority_score || '0'),
+                        10
+                    );
+                    overlapActiveTask.priority_score = Number.isFinite(
+                        Math.max(overlapPriority, suggestedPriority)
+                    )
+                        ? Math.max(overlapPriority, suggestedPriority)
+                        : overlapActiveTask.priority_score;
+
+                    if (String(suggestedTask.sla_due_at || '').trim()) {
+                        if (
+                            !String(overlapActiveTask.sla_due_at || '').trim() ||
+                            String(suggestedTask.sla_due_at) <
+                                String(overlapActiveTask.sla_due_at)
+                        ) {
+                            overlapActiveTask.sla_due_at =
+                                suggestedTask.sla_due_at;
+                        }
+                    }
+
+                    if (suggestedTask.runtime_impact === 'high') {
+                        overlapActiveTask.runtime_impact = 'high';
+                    }
+                    if (suggestedTask.critical_zone) {
+                        overlapActiveTask.critical_zone = true;
+                    }
+                    if (
+                        (overlapActiveTask.critical_zone ||
+                            overlapActiveTask.runtime_impact === 'high' ||
+                            findCriticalScopeKeyword(overlapActiveTask.scope)) &&
+                        !['codex', 'claude'].includes(
+                            String(overlapActiveTask.executor || '').toLowerCase()
+                        )
+                    ) {
+                        overlapActiveTask.executor = 'codex';
+                    }
+                    overlapActiveTask.updated_at = String(nowIso).slice(0, 10);
+                }
+                refreshed += 1;
+                continue;
+            }
             board.tasks.push({
                 ...suggestedTask,
                 id: nextAgentTaskId(board.tasks),
@@ -1097,6 +1255,8 @@ function upsertTasksFromSignals(board, signals, options = {}) {
             existing.executor = 'codex';
         }
     }
+
+    collapseWorkflowTasksCoveredByIssueTasks(board.tasks, nowIso);
 
     for (const task of board.tasks || []) {
         const sourceSignal = String(task.source_signal || '').toLowerCase();

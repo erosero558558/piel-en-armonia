@@ -99,3 +99,28 @@ test('intake inferWorkflowFileFromSignal mapea agent-governance al workflow corr
 
     assert.deepEqual(files, ['.github/workflows/agent-governance.yml']);
 });
+
+test('intake inferWorkflowFileFromSignal mapea slugs extendidos de post-deploy y repair', () => {
+    const postDeploy = intake.inferWorkflowFileFromSignal({
+        source_ref: 'workflow:post-deploy-gate-git-sync:main',
+    });
+    const repair = intake.inferWorkflowFileFromSignal({
+        source_ref: 'workflow:repair-git-sync-self-heal:main',
+    });
+
+    assert.equal(postDeploy, '.github/workflows/post-deploy-gate.yml');
+    assert.equal(repair, '.github/workflows/repair-git-sync.yml');
+});
+
+test('intake inferFilesFromSignal prioriza post-deploy sobre token generico git sync', () => {
+    const files = intake.inferFilesFromSignal(
+        {
+            source: 'workflow',
+            title: 'Post-Deploy Gate (Git Sync): failing run',
+            labels: [],
+        },
+        'ops'
+    );
+
+    assert.deepEqual(files, ['.github/workflows/post-deploy-gate.yml']);
+});
