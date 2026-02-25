@@ -1334,6 +1334,71 @@ test('task create --apply --force-id-remap remapea AG duplicado al siguiente ID'
     assert.match(board, /title: "Remap preview task"/);
 });
 
+test('task create --apply --force-id-remap --to backlog evita conflicto activo al reaplicar preview activo', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const preview = runCli(dir, [
+        'task',
+        'create',
+        '--title',
+        'Active remap preview task',
+        '--template',
+        'docs', // ready (activo) por template
+        '--preview',
+        '--files',
+        'docs/remap-active-preview.md',
+        '--json',
+    ]);
+    const previewJson = parseJsonStdout(preview);
+    const previewPath = join(dir, 'preview-remap-active.json');
+    writeFileSync(
+        previewPath,
+        `${JSON.stringify(previewJson, null, 2)}\n`,
+        'utf8'
+    );
+
+    runCli(dir, [
+        'task',
+        'create',
+        '--apply',
+        'preview-remap-active.json',
+        '--json',
+    ]);
+
+    const remapApply = runCli(dir, [
+        'task',
+        'create',
+        '--apply',
+        'preview-remap-active.json',
+        '--force-id-remap',
+        '--to',
+        'backlog',
+        '--json',
+    ]);
+    const json = parseJsonStdout(remapApply);
+
+    assert.equal(json.applied, true);
+    assert.equal(json.force_id_remap, true);
+    assert.equal(json.id_remapped, true);
+    assert.equal(json.status_override_applied, true);
+    assert.equal(json.status_override_to, 'backlog');
+    assert.equal(json.original_task_status, 'ready');
+    assert.equal(json.task.id, 'AG-012');
+    assert.equal(json.task.status, 'backlog');
+
+    const board = readBoard(dir);
+    assert.match(board, /- id: AG-011/);
+    assert.match(board, /- id: AG-012/);
+    assert.match(board, /status: backlog/);
+});
+
 test('task create preview-file lint valida preview contra board actual', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));
@@ -1451,6 +1516,56 @@ test('task create preview-file diff compara preview con task existente y sugiere
 
     const board = readBoard(dir);
     assert.doesNotMatch(board, /- id: AG-011/);
+});
+
+test('task create preview-file diff --format full expone diff detallado en texto', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const preview = runCli(dir, [
+        'task',
+        'create',
+        '--title',
+        'Diff full preview original',
+        '--template',
+        'docs',
+        '--preview',
+        '--files',
+        'docs/diff-full-preview.md',
+        '--json',
+    ]);
+    const previewJson = parseJsonStdout(preview);
+    previewJson.task.id = 'AG-010';
+    previewJson.task_full.id = 'AG-010';
+    previewJson.task.scope = 'docs-v2';
+    previewJson.task_full.scope = 'docs-v2';
+
+    const previewPath = join(dir, 'preview-diff-full.json');
+    writeFileSync(
+        previewPath,
+        `${JSON.stringify(previewJson, null, 2)}\n`,
+        'utf8'
+    );
+
+    const result = runCli(dir, [
+        'task',
+        'create',
+        'preview-file',
+        'diff',
+        'preview-diff-full.json',
+        '--format',
+        'full',
+    ]);
+
+    assert.match(result.stdout, /format: full/i);
+    assert.match(result.stdout, /field_diff_same_id:/i);
+    assert.match(result.stdout, /scope: "docs" -> "docs-v2"/i);
 });
 
 test('task claim bloquea pasar a estado activo si genera conflicto blocking', (t) => {

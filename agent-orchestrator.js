@@ -3973,6 +3973,17 @@ async function cmdTask(args) {
                     'Uso: node agent-orchestrator.js task create preview-file <lint|diff> <preview.json|-> [--json]'
                 );
             }
+            const diffFormat = String(flags.format || 'compact')
+                .trim()
+                .toLowerCase();
+            if (
+                createNestedAction === 'diff' &&
+                !['compact', 'full'].includes(diffFormat)
+            ) {
+                throw new Error(
+                    `task create preview-file diff: --format invalido (${diffFormat}); permitidos: compact, full`
+                );
+            }
 
             const previewPath = String(
                 positionals[2] || flags.file || flags.path || ''
@@ -4090,6 +4101,7 @@ async function cmdTask(args) {
                     ...basePreviewCheckPayload,
                     ok: true,
                     errors: [],
+                    diff_format: diffFormat,
                     board_task_same_id: duplicateTask
                         ? toTaskFullJson(duplicateTask)
                         : null,
@@ -4115,6 +4127,7 @@ async function cmdTask(args) {
                 console.log(
                     `Task create preview-file diff: ${task.id} (${loaded.path})`
                 );
+                console.log(`- format: ${diffFormat}`);
                 console.log(`- id_collision: ${duplicateId ? 'yes' : 'no'}`);
                 if (duplicateId) {
                     console.log(
@@ -4125,7 +4138,13 @@ async function cmdTask(args) {
                     } else {
                         console.log('- field_diff_same_id:');
                         for (const row of diffPayload.field_diff_same_id) {
-                            console.log(`  - ${row.field}`);
+                            if (diffFormat === 'full') {
+                                console.log(
+                                    `  - ${row.field}: ${JSON.stringify(row.before)} -> ${JSON.stringify(row.after)}`
+                                );
+                            } else {
+                                console.log(`  - ${row.field}`);
+                            }
                         }
                     }
                 }
@@ -4172,6 +4191,7 @@ async function cmdTask(args) {
             'force-id-remap',
             'force_id_remap'
         );
+        const applyToStatusRaw = String(flags.to || '').trim();
         const validateOnly = isFlagEnabled(
             flags,
             'validate-only',
@@ -4201,6 +4221,11 @@ async function cmdTask(args) {
                     'task create --apply no permite combinar --validate-only'
                 );
             }
+            if (applyToStatusRaw && !ALLOWED_STATUSES.has(applyToStatusRaw)) {
+                throw new Error(
+                    `task create --apply: status invalido en --to (${applyToStatusRaw})`
+                );
+            }
             if (
                 flags.title ||
                 flags.template ||
@@ -4224,6 +4249,12 @@ async function cmdTask(args) {
                 sourcePayload.task_full || sourcePayload.task
             );
             const originalTaskId = task.id;
+            const originalTaskStatus = task.status;
+
+            if (applyToStatusRaw) {
+                task.status = applyToStatusRaw;
+                task.updated_at = currentDate();
+            }
 
             const duplicateId = board.tasks.some(
                 (item) => String(item.id || '') === task.id
@@ -4280,6 +4311,9 @@ async function cmdTask(args) {
                 force_id_remap: forceIdRemap,
                 id_remapped: task.id !== originalTaskId,
                 original_task_id: originalTaskId,
+                status_override_applied: Boolean(applyToStatusRaw),
+                status_override_to: applyToStatusRaw || null,
+                original_task_status: originalTaskStatus,
                 template:
                     sourcePayload.template === undefined
                         ? null
