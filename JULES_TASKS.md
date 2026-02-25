@@ -151,17 +151,17 @@ Resolver señal run#22379059437. Verificar causa raíz, aplicar fix mínimo segu
 <!-- /TASK -->
 
 <!-- TASK
-status: done
+status: dispatched
 task_id: AG-018
 risk: medium
 scope: ops
 files: .github/workflows/ci.yml
 acceptance_ref: verification/agent-runs/AG-018.md
 dispatched_by: agent-orchestrator
-session: 
-dispatched: 
+session: sessions/6593824734303087673
+dispatched: 2026-02-25
 -->
-### Resolver fallo workflow: CI: feat(board): queue P1-P3 tech debt tasks (AG-019, AG-020, AG-021)
+### Resolver fallo workflow: CI: feat(governance): add board leases doctor events and wip warnings
 
 Resolver señal workflow:ci:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/.
 
@@ -190,7 +190,7 @@ task_id: AG-026
 risk: medium
 scope: ops
 files: .github/workflows/agent-autopilot.yml
-acceptance_ref: signal_resolved:auto
+acceptance_ref: verification/agent-runs/AG-026.md
 dispatched_by: agent-orchestrator
 session: sessions/8161501925126400906
 dispatched: 2026-02-25
