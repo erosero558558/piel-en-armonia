@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 85
+  revision: 88
   updated_at: 2026-02-25
 
 tasks:
@@ -1869,5 +1869,43 @@ tasks:
     evidence_ref: "verification/agent-runs/AG-048.md"
     depends_on: []
     prompt: "Normalizar estado final del plan (C4) y validar fast gate"
+    created_at: 2026-02-25
+    updated_at: 2026-02-25
+
+  - id: AG-049
+    title: "Automatizar KPI de ciclo (fast lane <=10m y nightly success rate)"
+    owner: ernes
+    executor: codex
+    status: done
+    status_since_at: "2026-02-25T23:17:51.402Z"
+    risk: medium
+    scope: ops
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: [".github/workflows/weekly-kpi-report.yml"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-02-25T23:17:51.402Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Automatizar KPI de ciclo (fast lane <=10m y nightly success rate)"
+    acceptance_ref: "verification/agent-runs/AG-049.md"
+    evidence_ref: "verification/agent-runs/AG-049.md"
+    depends_on: []
+    prompt: "Automatizar KPI de ciclo (fast lane <=10m y nightly success rate)"
     created_at: 2026-02-25
     updated_at: 2026-02-25

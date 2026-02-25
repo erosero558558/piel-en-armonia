@@ -27,6 +27,7 @@ concurrency:
 
 permissions:
     contents: read
+    actions: read
     issues: write
 
 jobs:
@@ -263,6 +264,71 @@ jobs:
                   if-no-files-found: warn
                   retention-days: 30
 
+            - name: Calcular SLA operativo (14 dias)
+              if: ${{ always() }}
+              id: ops_sla
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const lookbackDays = 14;
+                      const since = Date.now() - (lookbackDays * 24 * 60 * 60 * 1000);
+
+                      function toMinutes(run) {
+                        const start = run.run_started_at || run.created_at;
+                        const end = run.updated_at;
+                        const startMs = Date.parse(start || '');
+                        const endMs = Date.parse(end || '');
+                        if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) {
+                          return null;
+                        }
+                        return (endMs - startMs) / 60000;
+                      }
+
+                      function percentile95(values) {
+                        if (!values.length) return null;
+                        const sorted = [...values].sort((a, b) => a - b);
+                        const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * 0.95) - 1));
+                        return sorted[idx];
+                      }
+
+                      async function getRecentCompletedRuns(workflowFile) {
+                        const runs = await github.paginate(github.rest.actions.listWorkflowRunsForWorkflow, {
+                          owner,
+                          repo,
+                          workflow_id: workflowFile,
+                          status: 'completed',
+                          per_page: 100
+                        });
+                        return runs.filter((run) => {
+                          const createdMs = Date.parse(run.created_at || '');
+                          return Number.isFinite(createdMs) && createdMs >= since;
+                        });
+                      }
+
+                      const fastRuns = await getRecentCompletedRuns('post-deploy-fast.yml');
+                      const nightlyRuns = await getRecentCompletedRuns('nightly-stability.yml');
+
+                      const fastDurations = fastRuns.map(toMinutes).filter((v) => v !== null);
+                      const fastP95 = percentile95(fastDurations);
+                      const fastSuccess = fastRuns.filter((run) => run.conclusion === 'success').length;
+                      const fastRate = fastRuns.length ? (fastSuccess / fastRuns.length) * 100 : null;
+                      const fastSlaOk = fastP95 !== null && fastP95 <= 10;
+
+                      const nightlySuccess = nightlyRuns.filter((run) => run.conclusion === 'success').length;
+                      const nightlyRate = nightlyRuns.length ? (nightlySuccess / nightlyRuns.length) * 100 : null;
+                      const nightlyTargetOk = nightlyRate !== null && nightlyRate >= 90;
+
+                      core.setOutput('lookback_days', String(lookbackDays));
+                      core.setOutput('ops_fast_runs', String(fastRuns.length));
+                      core.setOutput('ops_fast_success_rate_pct', fastRate === null ? 'n/a' : fastRate.toFixed(2));
+                      core.setOutput('ops_fast_p95_min', fastP95 === null ? 'n/a' : fastP95.toFixed(2));
+                      core.setOutput('ops_fast_sla_ok', fastSlaOk ? 'true' : 'false');
+                      core.setOutput('ops_nightly_runs', String(nightlyRuns.length));
+                      core.setOutput('ops_nightly_success_rate_pct', nightlyRate === null ? 'n/a' : nightlyRate.toFixed(2));
+                      core.setOutput('ops_nightly_target_ok', nightlyTargetOk ? 'true' : 'false');
+
             - name: Resumen
               if: ${{ always() }}
               shell: pwsh
@@ -302,12 +368,19 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- baseline_recurrence_rate_pct: ``${{ steps.report.outputs.retention_baseline_recurrence_rate_pct }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- unique_patients: ``${{ steps.report.outputs.retention_unique_patients }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- recurrent_patients: ``${{ steps.report.outputs.retention_recurrent_patients }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Operational SLA (last ``${{ steps.ops_sla.outputs.lookback_days }}`` days)"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- fast_runs: ``${{ steps.ops_sla.outputs.ops_fast_runs }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- fast_success_rate_pct: ``${{ steps.ops_sla.outputs.ops_fast_success_rate_pct }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- fast_p95_min: ``${{ steps.ops_sla.outputs.ops_fast_p95_min }}`` (target <=10m, ok: ``${{ steps.ops_sla.outputs.ops_fast_sla_ok }}``)"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- nightly_runs: ``${{ steps.ops_sla.outputs.ops_nightly_runs }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- nightly_success_rate_pct: ``${{ steps.ops_sla.outputs.ops_nightly_success_rate_pct }}`` (target >=90%, ok: ``${{ steps.ops_sla.outputs.ops_nightly_target_ok }}``)"
                   if ("${{ steps.report.outputs.report_md_path }}" -ne "") {
                     Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Report file: ``${{ steps.report.outputs.report_md_path }}``"
                   }
 
             - name: Crear/actualizar incidente semanal
-              if: ${{ github.event_name == 'schedule' && (steps.report.outputs.warnings_critical_count == '-1' || steps.report.outputs.warnings_critical_count != '0') }}
+              if: ${{ github.event_name == 'schedule' && (steps.report.outputs.warnings_critical_count == '-1' || steps.report.outputs.warnings_critical_count != '0' || steps.ops_sla.outputs.ops_fast_sla_ok != 'true' || steps.ops_sla.outputs.ops_nightly_target_ok != 'true') }}
               uses: actions/github-script@v7
               with:
                   script: |
@@ -327,7 +400,14 @@ jobs:
                         `- warnings_critical_count: ${{ steps.report.outputs.warnings_critical_count }}`,
                         `- warnings_non_critical_count: ${{ steps.report.outputs.warnings_non_critical_count }}`,
                         `- warnings_critical_list: ${{ steps.report.outputs.warnings_critical_list }}`,
-                        `- warnings_non_critical_list: ${{ steps.report.outputs.warnings_non_critical_list }}`
+                        `- warnings_non_critical_list: ${{ steps.report.outputs.warnings_non_critical_list }}`,
+                        `- fast_runs_last_${{ steps.ops_sla.outputs.lookback_days }}d: ${{ steps.ops_sla.outputs.ops_fast_runs }}`,
+                        `- fast_success_rate_pct: ${{ steps.ops_sla.outputs.ops_fast_success_rate_pct }}`,
+                        `- fast_p95_min: ${{ steps.ops_sla.outputs.ops_fast_p95_min }}`,
+                        `- fast_sla_ok: ${{ steps.ops_sla.outputs.ops_fast_sla_ok }}`,
+                        `- nightly_runs_last_${{ steps.ops_sla.outputs.lookback_days }}d: ${{ steps.ops_sla.outputs.ops_nightly_runs }}`,
+                        `- nightly_success_rate_pct: ${{ steps.ops_sla.outputs.ops_nightly_success_rate_pct }}`,
+                        `- nightly_target_ok: ${{ steps.ops_sla.outputs.ops_nightly_target_ok }}`
                       ].join('\n');
 
                       const openIssues = await github.paginate(github.rest.issues.listForRepo, {
@@ -357,7 +437,7 @@ jobs:
                       }
 
             - name: Cerrar incidente semanal al recuperar
-              if: ${{ success() && github.event_name == 'schedule' && steps.report.outputs.warnings_critical_count == '0' }}
+              if: ${{ success() && github.event_name == 'schedule' && steps.report.outputs.warnings_critical_count == '0' && steps.ops_sla.outputs.ops_fast_sla_ok == 'true' && steps.ops_sla.outputs.ops_nightly_target_ok == 'true' }}
               uses: actions/github-script@v7
               with:
                   script: |
