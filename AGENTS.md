@@ -123,10 +123,18 @@ node agent-orchestrator.js policy lint
 node agent-orchestrator.js policy lint --json
 node agent-orchestrator.js handoffs create --from AG-001 --to CDX-001 --files path/a,path/b --reason soporte --approved-by ernesto
 node agent-orchestrator.js handoffs close HO-001 --reason handoff_done
+node agent-orchestrator.js leases status
+node agent-orchestrator.js leases status --json
+node agent-orchestrator.js leases heartbeat AG-003 --ttl-hours 4 --json
+node agent-orchestrator.js leases clear AG-003 --reason manual_release --json
 node agent-orchestrator.js codex-check
 node agent-orchestrator.js codex-check --json
 node agent-orchestrator.js codex start CDX-001 --block C1
 node agent-orchestrator.js codex stop CDX-001 --to review
+node agent-orchestrator.js board doctor
+node agent-orchestrator.js board doctor --json --profile ci
+node agent-orchestrator.js board events tail --json
+node agent-orchestrator.js board events stats --days 7 --json
 node agent-orchestrator.js task claim AG-003 --owner ernesto
 node agent-orchestrator.js task ls --active --json
 node agent-orchestrator.js task ls --mine --active --json
@@ -163,6 +171,8 @@ npm run agent:test
 npm run agent:summary
 npm run agent:policy:lint
 npm run agent:metrics:baseline -- show --json
+npm run agent:leases
+npm run agent:board:doctor
 npm run agent:gate
 ```
 
@@ -174,6 +184,7 @@ Flujo recomendado:
    Para crear tareas AG nuevas sin editar YAML, usar `task create` (auto-asigna `AG-###` siguiente salvo `--id`).
 2. Ejecutar `npm run agent:test` si cambiaste el orquestador/validadores.
 3. Ejecutar `npm run agent:gate` (o al menos `conflicts`, `handoffs lint`, `codex-check`).
+   Para diagnostico semantico del board (leases, stale, WIP, evidencia), ejecutar `node agent-orchestrator.js board doctor --json` (warn-first, no bloqueante por defecto).
 4. Ejecutar `node agent-orchestrator.js sync`.
 5. Ejecutar validaciones del cambio (`npm run lint`, tests aplicables).
 6. Confirmar evidencia y cerrar (`close`, `codex stop`, `handoffs close`) cuando aplique.
@@ -217,6 +228,9 @@ Nota:
 - `metrics --json` persiste historico de salud por dominio en `verification/agent-domain-health-history.json` y el summary muestra tendencia (ventana 7d).
 - El summary/PR comment muestra score de salud por dominio ponderado (`calendar > chat > payments`) y alerta regresiones `GREEN->RED`.
 - `status/conflicts/handoffs lint/policy lint/codex-check` en `--json` incluyen `diagnostics` + `warnings_count/errors_count` (warn-first, aditivo, sin cambiar hard blockers actuales).
+- `leases status --json` y `board doctor --json` incluyen `diagnostics` + `warnings_count/errors_count`; `board doctor` agrega `checks` y `leases` para diagnostico semantico del board (warn-first).
+- `task claim/start --json` y `dispatch --json` pueden incluir warnings WIP (`warn.board.wip_limit_*`) en `diagnostics` sin cambiar exit code.
+- Operaciones mutantes del board generan trazabilidad append-only en `verification/agent-board-events.jsonl` (consultable con `board events tail/stats`).
 - `task create --json` incluye `diagnostics` + `warnings_count/errors_count` (p. ej. `warn.task.from_files_fallback_default_scope` cuando `--from-files` cae en `scope=general`).
 - El summary/PR comment agrega seccion `Warn-first Diagnostics` consolidando warnings de gobernanza (globs amplios activos, handoffs por expirar, baseline faltante, keys desconocidas de policy).
 - La seccion `enforcement` en `governance-policy.json` gobierna severidad/enable de warnings y perfiles de rama (`fail_on_red`), con validacion en Node y contrato PHP.

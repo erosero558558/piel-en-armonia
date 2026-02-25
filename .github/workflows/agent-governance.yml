@@ -65,6 +65,13 @@ jobs:
             - name: Validate governance contract
               run: php bin/validate-agent-governance.php
 
+            - name: Board doctor (non-blocking)
+              if: always()
+              continue-on-error: true
+              run: |
+                  mkdir -p verification
+                  node agent-orchestrator.js board doctor --json --profile ci > verification/agent-board-doctor.json
+
             - name: Build governance summary (JSON + Markdown)
               if: always()
               run: |
@@ -86,6 +93,7 @@ jobs:
                   path: |
                       verification/agent-governance-summary.json
                       verification/agent-governance-summary.md
+                      verification/agent-board-doctor.json
 
             - name: Comment governance summary on PR
               if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false

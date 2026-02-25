@@ -381,4 +381,9 @@ module.exports = {
     buildTaskCreateWarnDiagnostics,
     summarizeDiagnostics,
     attachDiagnostics,
+    makeDiagnostic,
+    getWarnPolicyMap,
+    warnPolicyEnabled,
+    warnPolicySeverity,
+    isBroadGlobPath,
 };

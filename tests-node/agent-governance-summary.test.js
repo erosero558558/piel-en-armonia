@@ -250,6 +250,7 @@ function assertSummaryJsonContractShape(parsed) {
         'handoffsLint',
         'policy',
         'codexCheck',
+        'boardDoctor',
         'metrics',
     ]) {
         assert.equal(typeof parsed.commands[key], 'object');
@@ -264,6 +265,7 @@ function assertSummaryJsonContractShape(parsed) {
     assert.equal(typeof parsed.handoffs.lint, 'object');
     assert.equal(typeof parsed.policy, 'object');
     assert.equal(typeof parsed.codex_check, 'object');
+    assert.equal(typeof parsed.board_doctor, 'object');
     assert.equal(typeof parsed.metrics, 'object');
     assert.equal(typeof parsed.domain_health, 'object');
     assert.equal(typeof parsed.contribution, 'object');
@@ -329,6 +331,7 @@ test('agent-governance-summary genera JSON/Markdown y escribe artefactos', (t) =
     assert.equal(typeof parsed.errors_count, 'number');
     assert.equal(parsed.commands.status.exit_code, 0);
     assert.equal(parsed.commands.policy.exit_code, 0);
+    assert.equal(parsed.commands.boardDoctor.exit_code, 0);
     assert.equal(parsed.commands.metrics.exit_code, 0);
     assert.match(
         parsed.commands.metrics.command,
@@ -358,6 +361,7 @@ test('agent-governance-summary genera JSON/Markdown y escribe artefactos', (t) =
     assert.match(writtenMd, /Historico Salud por Dominio/);
     assert.match(writtenMd, /Aporte Por Agente/);
     assert.match(writtenMd, /Historico Aporte/);
+    assert.match(writtenMd, /Board Doctor/);
     assert.match(writtenMd, /Warn-first Diagnostics/);
     assert.match(writtenMd, /\[GREEN\].*jules|\[GREEN\].*codex/);
 });

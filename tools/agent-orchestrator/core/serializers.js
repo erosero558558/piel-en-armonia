@@ -70,6 +70,7 @@ function serializeBoard(board, options = {}) {
         lines.push(`    owner: ${task.owner || 'unassigned'}`);
         lines.push(`    executor: ${task.executor || 'codex'}`);
         lines.push(`    status: ${task.status || 'backlog'}`);
+        lines.push(`    status_since_at: ${quote(task.status_since_at || '')}`);
         lines.push(`    risk: ${task.risk || 'medium'}`);
         lines.push(`    scope: ${task.scope || 'general'}`);
         lines.push(`    files: ${serializeArrayInline(task.files || [])}`);
@@ -82,8 +83,26 @@ function serializeBoard(board, options = {}) {
         lines.push(`    last_attempt_at: ${quote(task.last_attempt_at || '')}`);
         lines.push(`    attempts: ${normalizeTaskInt(task.attempts, 0)}`);
         lines.push(`    blocked_reason: ${quote(task.blocked_reason || '')}`);
+        lines.push(`    lease_id: ${quote(task.lease_id || '')}`);
+        lines.push(`    lease_owner: ${quote(task.lease_owner || '')}`);
+        lines.push(
+            `    lease_created_at: ${quote(task.lease_created_at || '')}`
+        );
+        lines.push(`    heartbeat_at: ${quote(task.heartbeat_at || '')}`);
+        lines.push(
+            `    lease_expires_at: ${quote(task.lease_expires_at || '')}`
+        );
+        lines.push(`    lease_reason: ${quote(task.lease_reason || '')}`);
+        lines.push(
+            `    lease_cleared_at: ${quote(task.lease_cleared_at || '')}`
+        );
+        lines.push(
+            `    lease_cleared_reason: ${quote(task.lease_cleared_reason || '')}`
+        );
         lines.push(`    runtime_impact: ${task.runtime_impact || 'low'}`);
-        lines.push(`    critical_zone: ${task.critical_zone ? 'true' : 'false'}`);
+        lines.push(
+            `    critical_zone: ${task.critical_zone ? 'true' : 'false'}`
+        );
         lines.push(`    acceptance: ${quote(task.acceptance || '')}`);
         lines.push(`    acceptance_ref: ${quote(task.acceptance_ref || '')}`);
         lines.push(

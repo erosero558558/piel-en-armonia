@@ -13,6 +13,8 @@ function handleCloseCommand(ctx) {
         serializeBoard,
         writeFileSync,
         syncDerivedQueues,
+        writeBoardAndSync,
+        getLastBoardWriteMeta,
         toTaskJson,
     } = ctx;
     const { positionals, flags } = parseFlags(args);
@@ -39,9 +41,25 @@ function handleCloseCommand(ctx) {
     task.updated_at = currentDate();
     task.acceptance_ref = toRelativeRepoPath(evidencePath);
     board.policy.updated_at = currentDate();
-
-    writeFileSync(BOARD_PATH, serializeBoard(board), 'utf8');
-    syncDerivedQueues({ silent: wantsJson });
+    if (typeof writeBoardAndSync === 'function') {
+        writeBoardAndSync(board, {
+            silentSync: wantsJson,
+            command: 'close',
+            actor: task.owner || task.executor || '',
+        });
+    } else {
+        writeFileSync(BOARD_PATH, serializeBoard(board), 'utf8');
+        syncDerivedQueues({ silent: wantsJson });
+    }
+    const writeMeta =
+        typeof getLastBoardWriteMeta === 'function'
+            ? getLastBoardWriteMeta()
+            : null;
+    const leaseMeta = Array.isArray(writeMeta?.lifecycle?.task_results)
+        ? writeMeta.lifecycle.task_results.find(
+              (row) => String(row.task_id || '') === String(taskId)
+          )
+        : null;
 
     if (wantsJson) {
         console.log(
@@ -53,6 +71,9 @@ function handleCloseCommand(ctx) {
                     action: 'close',
                     task: toTaskJson(task),
                     evidence_path: toRelativeRepoPath(evidencePath),
+                    lease_action: leaseMeta?.lease_action || 'none',
+                    lease: leaseMeta?.lease || null,
+                    status_since_at: leaseMeta?.status_since_at || null,
                 },
                 null,
                 2

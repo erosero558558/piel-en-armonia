@@ -40,6 +40,8 @@ async function handleTaskCommand(ctx) {
         buildTaskCreateInferenceExplainLines,
         buildTaskCreateWarnDiagnostics,
         attachDiagnostics,
+        getLastBoardWriteMeta,
+        buildBoardWipLimitDiagnostics,
         printJson,
     } = ctx;
 
@@ -115,6 +117,8 @@ async function handleTaskCommand(ctx) {
             buildTaskCreateInferenceExplainLines,
             buildTaskCreateWarnDiagnostics,
             attachDiagnostics,
+            buildBoardWipLimitDiagnostics,
+            getLastBoardWriteMeta,
             printJson,
         });
         return;
@@ -144,6 +148,9 @@ async function handleTaskCommand(ctx) {
             currentDate,
             writeBoardAndSync,
             toTaskJson,
+            attachDiagnostics,
+            buildBoardWipLimitDiagnostics,
+            getLastBoardWriteMeta,
             printJson,
         });
         return;
@@ -166,6 +173,9 @@ async function handleTaskCommand(ctx) {
             currentDate,
             writeBoardAndSync,
             toTaskJson,
+            attachDiagnostics,
+            buildBoardWipLimitDiagnostics,
+            getLastBoardWriteMeta,
             printJson,
         });
         return;
@@ -184,6 +194,7 @@ async function handleTaskCommand(ctx) {
             currentDate,
             writeBoardAndSync,
             toTaskJson,
+            getLastBoardWriteMeta,
             printJson,
         });
     }
@@ -349,6 +360,19 @@ function formatBlockingConflictDetails(taskId, blockingConflicts) {
         .join(' | ');
 }
 
+function getTaskWriteLeaseMeta(getLastBoardWriteMeta, taskId) {
+    const meta =
+        typeof getLastBoardWriteMeta === 'function'
+            ? getLastBoardWriteMeta()
+            : null;
+    const rows = Array.isArray(meta?.lifecycle?.task_results)
+        ? meta.lifecycle.task_results
+        : [];
+    return (
+        rows.find((row) => String(row.task_id || '') === String(taskId)) || null
+    );
+}
+
 function handleTaskClaim(ctx) {
     const {
         flags,
@@ -367,6 +391,9 @@ function handleTaskClaim(ctx) {
         currentDate,
         writeBoardAndSync,
         toTaskJson,
+        attachDiagnostics,
+        buildBoardWipLimitDiagnostics,
+        getLastBoardWriteMeta,
         printJson,
     } = ctx;
 
@@ -424,20 +451,45 @@ function handleTaskClaim(ctx) {
     }
 
     task.updated_at = currentDate();
-    writeBoardAndSync(board, { silentSync: wantsJson });
+    writeBoardAndSync(board, {
+        silentSync: wantsJson,
+        command: 'task claim',
+        actor: task.owner || task.executor || '',
+    });
+    const leaseMeta = getTaskWriteLeaseMeta(getLastBoardWriteMeta, taskId);
+    const wipDiagnostics =
+        typeof buildBoardWipLimitDiagnostics === 'function'
+            ? buildBoardWipLimitDiagnostics(board, {
+                  source: 'task claim',
+                  taskIds: [taskId],
+                  executors: [task.executor],
+                  scopes: [task.scope],
+              })
+            : [];
+    const basePayload = {
+        version: 1,
+        ok: true,
+        command: 'task',
+        action: 'claim',
+        task: toTaskJson(task),
+        lease_action: leaseMeta?.lease_action || 'none',
+        lease: leaseMeta?.lease || null,
+        status_since_at: leaseMeta?.status_since_at || null,
+    };
     if (wantsJson) {
-        printJson({
-            version: 1,
-            ok: true,
-            command: 'task',
-            action: 'claim',
-            task: toTaskJson(task),
-        });
+        printJson(
+            typeof attachDiagnostics === 'function'
+                ? attachDiagnostics(basePayload, wipDiagnostics)
+                : basePayload
+        );
         return;
     }
     console.log(
         `Task claim OK: ${taskId} owner=${task.owner} status=${task.status}`
     );
+    for (const diag of wipDiagnostics) {
+        console.log(`WARN [${diag.code}] ${diag.message}`);
+    }
 }
 
 function handleTaskStart(ctx) {
@@ -457,6 +509,9 @@ function handleTaskStart(ctx) {
         currentDate,
         writeBoardAndSync,
         toTaskJson,
+        attachDiagnostics,
+        buildBoardWipLimitDiagnostics,
+        getLastBoardWriteMeta,
         printJson,
     } = ctx;
 
@@ -513,18 +568,43 @@ function handleTaskStart(ctx) {
         );
     }
 
-    writeBoardAndSync(board, { silentSync: wantsJson });
+    writeBoardAndSync(board, {
+        silentSync: wantsJson,
+        command: 'task start',
+        actor: task.owner || task.executor || '',
+    });
+    const leaseMeta = getTaskWriteLeaseMeta(getLastBoardWriteMeta, taskId);
+    const wipDiagnostics =
+        typeof buildBoardWipLimitDiagnostics === 'function'
+            ? buildBoardWipLimitDiagnostics(board, {
+                  source: 'task start',
+                  taskIds: [taskId],
+                  executors: [task.executor],
+                  scopes: [task.scope],
+              })
+            : [];
+    const basePayload = {
+        version: 1,
+        ok: true,
+        command: 'task',
+        action: 'start',
+        task: toTaskJson(task),
+        lease_action: leaseMeta?.lease_action || 'none',
+        lease: leaseMeta?.lease || null,
+        status_since_at: leaseMeta?.status_since_at || null,
+    };
     if (wantsJson) {
-        printJson({
-            version: 1,
-            ok: true,
-            command: 'task',
-            action: 'start',
-            task: toTaskJson(task),
-        });
+        printJson(
+            typeof attachDiagnostics === 'function'
+                ? attachDiagnostics(basePayload, wipDiagnostics)
+                : basePayload
+        );
         return;
     }
     console.log(`Task start OK: ${taskId} -> ${nextStatus}`);
+    for (const diag of wipDiagnostics) {
+        console.log(`WARN [${diag.code}] ${diag.message}`);
+    }
 }
 
 function handleTaskFinish(ctx) {
@@ -540,6 +620,7 @@ function handleTaskFinish(ctx) {
         currentDate,
         writeBoardAndSync,
         toTaskJson,
+        getLastBoardWriteMeta,
         printJson,
     } = ctx;
 
@@ -565,7 +646,12 @@ function handleTaskFinish(ctx) {
 
     task.status = nextStatus;
     task.updated_at = currentDate();
-    writeBoardAndSync(board, { silentSync: wantsJson });
+    writeBoardAndSync(board, {
+        silentSync: wantsJson,
+        command: 'task finish',
+        actor: task.owner || task.executor || '',
+    });
+    const leaseMeta = getTaskWriteLeaseMeta(getLastBoardWriteMeta, taskId);
 
     if (wantsJson) {
         printJson({
@@ -577,6 +663,9 @@ function handleTaskFinish(ctx) {
             evidence_path: evidencePath
                 ? toRelativeRepoPath(evidencePath)
                 : null,
+            lease_action: leaseMeta?.lease_action || 'none',
+            lease: leaseMeta?.lease || null,
+            status_since_at: leaseMeta?.status_since_at || null,
         });
         return;
     }
@@ -619,6 +708,7 @@ async function handleTaskCreate(ctx) {
         buildTaskCreateInferenceExplainLines,
         buildTaskCreateWarnDiagnostics,
         attachDiagnostics,
+        getLastBoardWriteMeta,
         printJson,
     } = ctx;
     let { flags } = ctx;
@@ -996,7 +1086,12 @@ async function handleTaskCreate(ctx) {
             }
         }
 
-        writeBoardAndSync(board, { silentSync: wantsJson });
+        writeBoardAndSync(board, {
+            silentSync: wantsJson,
+            command: 'task create apply',
+            actor: task.owner || task.executor || '',
+        });
+        const leaseMeta = getTaskWriteLeaseMeta(getLastBoardWriteMeta, task.id);
 
         const applyPayload = {
             version: 1,
@@ -1033,6 +1128,9 @@ async function handleTaskCreate(ctx) {
             persisted: true,
             task: toTaskJson(task),
             task_full: toTaskFullJson(task),
+            lease_action: leaseMeta?.lease_action || 'none',
+            lease: leaseMeta?.lease || null,
+            status_since_at: leaseMeta?.status_since_at || null,
         };
         if (
             explainInference &&
@@ -1136,7 +1234,11 @@ async function handleTaskCreate(ctx) {
             `task create: runtime_impact invalido (${runtimeImpact})`
         );
     }
-    const criticalZoneFlag = isFlagEnabled(flags, 'critical-zone', 'critical_zone');
+    const criticalZoneFlag = isFlagEnabled(
+        flags,
+        'critical-zone',
+        'critical_zone'
+    );
 
     const owner = String(
         flags.owner || detectDefaultOwner() || 'unassigned'
@@ -1211,15 +1313,29 @@ async function handleTaskCreate(ctx) {
         risk,
         scope,
         files,
-        source_signal: String(flags['source-signal'] || flags.source_signal || 'manual')
+        source_signal: String(
+            flags['source-signal'] || flags.source_signal || 'manual'
+        )
             .trim()
             .toLowerCase(),
-        source_ref: String(flags['source-ref'] || flags.source_ref || '').trim(),
-        priority_score: Number.parseInt(String(flags['priority-score'] || flags.priority_score || '0'), 10) || 0,
-        sla_due_at: String(flags['sla-due-at'] || flags.sla_due_at || '').trim(),
-        last_attempt_at: String(flags['last-attempt-at'] || flags.last_attempt_at || '').trim(),
+        source_ref: String(
+            flags['source-ref'] || flags.source_ref || ''
+        ).trim(),
+        priority_score:
+            Number.parseInt(
+                String(flags['priority-score'] || flags.priority_score || '0'),
+                10
+            ) || 0,
+        sla_due_at: String(
+            flags['sla-due-at'] || flags.sla_due_at || ''
+        ).trim(),
+        last_attempt_at: String(
+            flags['last-attempt-at'] || flags.last_attempt_at || ''
+        ).trim(),
         attempts: Number.parseInt(String(flags.attempts || '0'), 10) || 0,
-        blocked_reason: String(flags['blocked-reason'] || flags.blocked_reason || '').trim(),
+        blocked_reason: String(
+            flags['blocked-reason'] || flags.blocked_reason || ''
+        ).trim(),
         runtime_impact: runtimeImpact,
         critical_zone: criticalZoneFlag,
         acceptance,
@@ -1303,8 +1419,19 @@ async function handleTaskCreate(ctx) {
     }
 
     if (!previewMode && !validateOnly) {
-        writeBoardAndSync(board, { silentSync: wantsJson });
+        writeBoardAndSync(board, {
+            silentSync: wantsJson,
+            command: 'task create',
+            actor: task.owner || task.executor || '',
+        });
     }
+    const leaseMeta =
+        !previewMode && !validateOnly
+            ? getTaskWriteLeaseMeta(getLastBoardWriteMeta, newId)
+            : null;
+    createPayload.lease_action = leaseMeta?.lease_action || 'none';
+    createPayload.lease = leaseMeta?.lease || null;
+    createPayload.status_since_at = leaseMeta?.status_since_at || null;
 
     const taskCreateDiagnostics = buildTaskCreateWarnDiagnostics({
         fromFilesEnabled,

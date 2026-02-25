@@ -21,6 +21,8 @@ function handleHandoffsCommand(ctx) {
         HANDOFFS_PATH,
         serializeHandoffs,
         writeFileSync,
+        appendHandoffBoardEvent,
+        parseBoardForEvents,
     } = ctx;
     const firstArg = String(args[0] || '');
     const subcommand =
@@ -178,6 +180,21 @@ function handleHandoffsCommand(ctx) {
 
         handoffs.handoffs.push(handoff);
         writeFileSync(HANDOFFS_PATH, serializeHandoffs(handoffs), 'utf8');
+        try {
+            if (typeof appendHandoffBoardEvent === 'function') {
+                appendHandoffBoardEvent('handoff_created', handoff, {
+                    actor: approvedBy,
+                    command: 'handoffs create',
+                    reason,
+                    board:
+                        typeof parseBoardForEvents === 'function'
+                            ? parseBoardForEvents()
+                            : null,
+                });
+            }
+        } catch {
+            // non-blocking event log
+        }
 
         const errors = getHandoffLintErrors();
         if (errors.length > 0) {
@@ -229,6 +246,21 @@ function handleHandoffsCommand(ctx) {
         handoff.closed_at = isoNow();
         handoff.close_reason = closeReason;
         writeFileSync(HANDOFFS_PATH, serializeHandoffs(handoffs), 'utf8');
+        try {
+            if (typeof appendHandoffBoardEvent === 'function') {
+                appendHandoffBoardEvent('handoff_closed', handoff, {
+                    actor: handoff.approved_by || '',
+                    command: 'handoffs close',
+                    reason: closeReason,
+                    board:
+                        typeof parseBoardForEvents === 'function'
+                            ? parseBoardForEvents()
+                            : null,
+                });
+            }
+        } catch {
+            // non-blocking event log
+        }
         if (wantsJson) {
             console.log(
                 JSON.stringify(

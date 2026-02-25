@@ -174,7 +174,7 @@ function assertVersionLike(value) {
     assert.equal(t === 'number' || t === 'string', true);
 }
 
-test('JSON contract minimo estable para status/conflicts/handoffs/codex-check', () => {
+test('JSON contract minimo estable para status/conflicts/handoffs/codex-check/leases/board doctor', () => {
     const dir = createFixtureDir();
     try {
         writeFixtureFiles(dir);
@@ -216,6 +216,24 @@ test('JSON contract minimo estable para status/conflicts/handoffs/codex-check', 
         assert.equal(typeof codexCheck.summary, 'object');
         assert.equal(Array.isArray(codexCheck.codex_task_ids), true);
         assert.equal(Array.isArray(codexCheck.diagnostics), true);
+
+        const leasesStatus = runJson(dir, ['leases', 'status']);
+        assertVersionLike(leasesStatus.version);
+        assert.equal(typeof leasesStatus.summary, 'object');
+        assert.equal(Array.isArray(leasesStatus.leases), true);
+        assert.equal(Array.isArray(leasesStatus.diagnostics), true);
+        assert.equal(typeof leasesStatus.warnings_count, 'number');
+        assert.equal(typeof leasesStatus.errors_count, 'number');
+
+        const boardDoctor = runJson(dir, ['board', 'doctor']);
+        assertVersionLike(boardDoctor.version);
+        assert.equal(typeof boardDoctor.command, 'string');
+        assert.equal(boardDoctor.command, 'board doctor');
+        assert.equal(typeof boardDoctor.summary, 'object');
+        assert.equal(Array.isArray(boardDoctor.checks), true);
+        assert.equal(Array.isArray(boardDoctor.diagnostics), true);
+        assert.equal(typeof boardDoctor.warnings_count, 'number');
+        assert.equal(typeof boardDoctor.errors_count, 'number');
     } finally {
         cleanupFixtureDir(dir);
     }
@@ -604,6 +622,28 @@ tasks:
         assert.equal(score.ok, false);
         assert.equal(typeof score.error, 'string');
         assert.equal(score.error_code, 'score_failed');
+    } finally {
+        cleanupFixtureDir(dir);
+    }
+});
+
+test('JSON contract minimo estable para board doctor --strict (falla con payload JSON)', () => {
+    const dir = createFixtureDir();
+    try {
+        writeFixtureFiles(dir);
+
+        const boardDoctor = runJsonExpectStatus(
+            dir,
+            ['board', 'doctor', '--strict'],
+            1
+        );
+        assertVersionLike(boardDoctor.version);
+        assert.equal(boardDoctor.command, 'board doctor');
+        assert.equal(Array.isArray(boardDoctor.checks), true);
+        assert.equal(Array.isArray(boardDoctor.diagnostics), true);
+        assert.equal(boardDoctor.diagnostics.length > 0, true);
+        assert.equal(typeof boardDoctor.warnings_count, 'number');
+        assert.equal(typeof boardDoctor.errors_count, 'number');
     } finally {
         cleanupFixtureDir(dir);
     }

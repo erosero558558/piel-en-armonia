@@ -187,6 +187,9 @@ function validateGovernancePolicy(rawPolicy, options = {}) {
         } else {
             const branchProfiles = enforcement.branch_profiles;
             const warningPolicies = enforcement.warning_policies;
+            const boardLeases = enforcement.board_leases;
+            const boardDoctor = enforcement.board_doctor;
+            const wipLimits = enforcement.wip_limits;
             if (
                 !branchProfiles ||
                 typeof branchProfiles !== 'object' ||
@@ -282,9 +285,241 @@ function validateGovernancePolicy(rawPolicy, options = {}) {
                     );
                 }
             }
+            if (
+                boardLeases !== undefined &&
+                (!boardLeases ||
+                    typeof boardLeases !== 'object' ||
+                    Array.isArray(boardLeases))
+            ) {
+                errors.push('enforcement.board_leases debe ser objeto');
+            } else if (
+                boardLeases &&
+                typeof boardLeases === 'object' &&
+                !Array.isArray(boardLeases)
+            ) {
+                for (const key of ['enabled', 'auto_clear_on_terminal']) {
+                    if (
+                        Object.prototype.hasOwnProperty.call(
+                            boardLeases,
+                            key
+                        ) &&
+                        typeof boardLeases[key] !== 'boolean'
+                    ) {
+                        errors.push(
+                            `enforcement.board_leases.${key} debe ser boolean`
+                        );
+                    }
+                }
+                for (const key of [
+                    'ttl_hours_default',
+                    'ttl_hours_max',
+                    'heartbeat_stale_minutes',
+                ]) {
+                    if (
+                        Object.prototype.hasOwnProperty.call(boardLeases, key)
+                    ) {
+                        const n = Number(boardLeases[key]);
+                        if (!Number.isFinite(n) || n <= 0) {
+                            errors.push(
+                                `enforcement.board_leases.${key} invalido (${boardLeases[key]})`
+                            );
+                        }
+                    }
+                }
+                for (const key of ['required_statuses', 'tracked_statuses']) {
+                    if (
+                        Object.prototype.hasOwnProperty.call(boardLeases, key)
+                    ) {
+                        if (!Array.isArray(boardLeases[key])) {
+                            errors.push(
+                                `enforcement.board_leases.${key} debe ser array`
+                            );
+                        } else if (boardLeases[key].length === 0) {
+                            errors.push(
+                                `enforcement.board_leases.${key} no puede ser vacio`
+                            );
+                        }
+                    }
+                }
+                warnUnknownKeys(
+                    sourcePolicy?.enforcement?.board_leases,
+                    [
+                        'enabled',
+                        'required_statuses',
+                        'tracked_statuses',
+                        'ttl_hours_default',
+                        'ttl_hours_max',
+                        'heartbeat_stale_minutes',
+                        'auto_clear_on_terminal',
+                    ],
+                    'enforcement.board_leases'
+                );
+            }
+            if (
+                boardDoctor !== undefined &&
+                (!boardDoctor ||
+                    typeof boardDoctor !== 'object' ||
+                    Array.isArray(boardDoctor))
+            ) {
+                errors.push('enforcement.board_doctor debe ser objeto');
+            } else if (
+                boardDoctor &&
+                typeof boardDoctor === 'object' &&
+                !Array.isArray(boardDoctor)
+            ) {
+                if (
+                    Object.prototype.hasOwnProperty.call(
+                        boardDoctor,
+                        'enabled'
+                    ) &&
+                    typeof boardDoctor.enabled !== 'boolean'
+                ) {
+                    errors.push(
+                        'enforcement.board_doctor.enabled debe ser boolean'
+                    );
+                }
+                if (
+                    Object.prototype.hasOwnProperty.call(
+                        boardDoctor,
+                        'strict_default'
+                    ) &&
+                    typeof boardDoctor.strict_default !== 'boolean'
+                ) {
+                    errors.push(
+                        'enforcement.board_doctor.strict_default debe ser boolean'
+                    );
+                }
+                if (
+                    Object.prototype.hasOwnProperty.call(
+                        boardDoctor,
+                        'thresholds'
+                    )
+                ) {
+                    if (
+                        !boardDoctor.thresholds ||
+                        typeof boardDoctor.thresholds !== 'object' ||
+                        Array.isArray(boardDoctor.thresholds)
+                    ) {
+                        errors.push(
+                            'enforcement.board_doctor.thresholds debe ser objeto'
+                        );
+                    } else {
+                        for (const [k, v] of Object.entries(
+                            boardDoctor.thresholds
+                        )) {
+                            const n = Number(v);
+                            if (!Number.isFinite(n) || n < 0) {
+                                errors.push(
+                                    `enforcement.board_doctor.thresholds.${k} invalido (${v})`
+                                );
+                            }
+                        }
+                    }
+                }
+                warnUnknownKeys(
+                    sourcePolicy?.enforcement?.board_doctor,
+                    ['enabled', 'strict_default', 'thresholds'],
+                    'enforcement.board_doctor'
+                );
+                warnUnknownKeys(
+                    sourcePolicy?.enforcement?.board_doctor?.thresholds,
+                    [
+                        'in_progress_stale_hours',
+                        'blocked_stale_hours',
+                        'review_stale_hours',
+                        'done_without_evidence_max_hours',
+                    ],
+                    'enforcement.board_doctor.thresholds'
+                );
+            }
+            if (
+                wipLimits !== undefined &&
+                (!wipLimits ||
+                    typeof wipLimits !== 'object' ||
+                    Array.isArray(wipLimits))
+            ) {
+                errors.push('enforcement.wip_limits debe ser objeto');
+            } else if (
+                wipLimits &&
+                typeof wipLimits === 'object' &&
+                !Array.isArray(wipLimits)
+            ) {
+                if (
+                    Object.prototype.hasOwnProperty.call(
+                        wipLimits,
+                        'enabled'
+                    ) &&
+                    typeof wipLimits.enabled !== 'boolean'
+                ) {
+                    errors.push(
+                        'enforcement.wip_limits.enabled debe ser boolean'
+                    );
+                }
+                if (
+                    Object.prototype.hasOwnProperty.call(wipLimits, 'mode') &&
+                    !['warn', 'error', 'ignore'].includes(
+                        String(wipLimits.mode || '').trim()
+                    )
+                ) {
+                    errors.push(
+                        `enforcement.wip_limits.mode invalido (${wipLimits.mode})`
+                    );
+                }
+                if (
+                    Object.prototype.hasOwnProperty.call(
+                        wipLimits,
+                        'count_statuses'
+                    ) &&
+                    !Array.isArray(wipLimits.count_statuses)
+                ) {
+                    errors.push(
+                        'enforcement.wip_limits.count_statuses debe ser array'
+                    );
+                }
+                for (const key of ['by_executor', 'by_scope']) {
+                    if (Object.prototype.hasOwnProperty.call(wipLimits, key)) {
+                        const value = wipLimits[key];
+                        if (
+                            !value ||
+                            typeof value !== 'object' ||
+                            Array.isArray(value)
+                        ) {
+                            errors.push(
+                                `enforcement.wip_limits.${key} debe ser objeto`
+                            );
+                            continue;
+                        }
+                        for (const [name, rawLimit] of Object.entries(value)) {
+                            const n = Number(rawLimit);
+                            if (!Number.isFinite(n) || n <= 0) {
+                                errors.push(
+                                    `enforcement.wip_limits.${key}.${name} invalido (${rawLimit})`
+                                );
+                            }
+                        }
+                    }
+                }
+                warnUnknownKeys(
+                    sourcePolicy?.enforcement?.wip_limits,
+                    [
+                        'enabled',
+                        'mode',
+                        'count_statuses',
+                        'by_executor',
+                        'by_scope',
+                    ],
+                    'enforcement.wip_limits'
+                );
+            }
             warnUnknownKeys(
                 sourcePolicy?.enforcement,
-                ['branch_profiles', 'warning_policies'],
+                [
+                    'branch_profiles',
+                    'warning_policies',
+                    'board_leases',
+                    'board_doctor',
+                    'wip_limits',
+                ],
                 'enforcement'
             );
         }
@@ -360,8 +595,32 @@ function validateGovernancePolicy(rawPolicy, options = {}) {
                               !Array.isArray(enforcement.warning_policies)
                                   ? enforcement.warning_policies
                                   : {},
+                          board_leases:
+                              enforcement.board_leases &&
+                              typeof enforcement.board_leases === 'object' &&
+                              !Array.isArray(enforcement.board_leases)
+                                  ? enforcement.board_leases
+                                  : {},
+                          board_doctor:
+                              enforcement.board_doctor &&
+                              typeof enforcement.board_doctor === 'object' &&
+                              !Array.isArray(enforcement.board_doctor)
+                                  ? enforcement.board_doctor
+                                  : {},
+                          wip_limits:
+                              enforcement.wip_limits &&
+                              typeof enforcement.wip_limits === 'object' &&
+                              !Array.isArray(enforcement.wip_limits)
+                                  ? enforcement.wip_limits
+                                  : {},
                       }
-                    : { branch_profiles: {}, warning_policies: {} },
+                    : {
+                          branch_profiles: {},
+                          warning_policies: {},
+                          board_leases: {},
+                          board_doctor: {},
+                          wip_limits: {},
+                      },
         },
         source: {
             path: 'governance-policy.json',

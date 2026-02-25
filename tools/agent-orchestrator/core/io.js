@@ -19,6 +19,34 @@ function writeJsonFile(path, value) {
     writeFileSync(path, `${JSON.stringify(value, null, 4)}\n`, 'utf8');
 }
 
+function appendJsonlFile(path, entries, deps = {}) {
+    const { ensureDir = ensureDirForFile, writeFile = writeFileSync } = deps;
+    if (!path) throw new Error('appendJsonlFile requiere path');
+    const list = Array.isArray(entries) ? entries : [entries];
+    const serializable = list.filter(
+        (item) => item && typeof item === 'object'
+    );
+    if (serializable.length === 0) return { appended: 0 };
+    ensureDir(path);
+    const payload = `${serializable.map((e) => JSON.stringify(e)).join('\n')}\n`;
+    writeFile(path, payload, { encoding: 'utf8', flag: 'a' });
+    return { appended: serializable.length };
+}
+
+function readJsonlFile(path, deps = {}) {
+    const { exists = existsSync, readFile = readFileSync } = deps;
+    if (!path) throw new Error('readJsonlFile requiere path');
+    if (!exists(path)) return [];
+    const raw = String(readFile(path, 'utf8') || '');
+    const out = [];
+    for (const line of raw.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        out.push(JSON.parse(trimmed));
+    }
+    return out;
+}
+
 function readSignalsFile(deps = {}) {
     const {
         signalsPath,
@@ -171,6 +199,8 @@ module.exports = {
     writeJsonFile,
     readSignalsFile,
     writeSignalsFile,
+    appendJsonlFile,
+    readJsonlFile,
     resolveTaskEvidencePath,
     toRelativeRepoPath,
     writeBoardFile,

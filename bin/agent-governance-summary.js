@@ -52,6 +52,50 @@ const DEFAULT_GOVERNANCE_POLICY = {
                 enabled: true,
             },
             policy_unknown_keys: { severity: 'warning', enabled: true },
+            lease_missing_active: { severity: 'warning', enabled: true },
+            lease_expired_active: { severity: 'warning', enabled: true },
+            heartbeat_stale: { severity: 'warning', enabled: true },
+            task_in_progress_stale: { severity: 'warning', enabled: true },
+            task_blocked_stale: { severity: 'warning', enabled: true },
+            done_without_evidence: { severity: 'warning', enabled: true },
+            wip_limit_executor: { severity: 'warning', enabled: true },
+            wip_limit_scope: { severity: 'warning', enabled: true },
+        },
+        board_leases: {
+            enabled: true,
+            required_statuses: ['in_progress', 'review'],
+            tracked_statuses: ['in_progress', 'review', 'blocked'],
+            ttl_hours_default: 4,
+            ttl_hours_max: 24,
+            heartbeat_stale_minutes: 30,
+            auto_clear_on_terminal: true,
+        },
+        board_doctor: {
+            enabled: true,
+            strict_default: false,
+            thresholds: {
+                in_progress_stale_hours: 24,
+                blocked_stale_hours: 24,
+                review_stale_hours: 48,
+                done_without_evidence_max_hours: 1,
+            },
+        },
+        wip_limits: {
+            enabled: true,
+            mode: 'warn',
+            count_statuses: ['in_progress', 'review', 'blocked'],
+            by_executor: {
+                codex: 3,
+                claude: 3,
+                jules: 5,
+                kimi: 5,
+            },
+            by_scope: {
+                calendar: 2,
+                payments: 2,
+                auth: 2,
+                default: 4,
+            },
         },
     },
 };
@@ -380,6 +424,7 @@ function summarize(resultMap) {
     const policyLint = resultMap.policy?.json || {};
     const codexCheck = resultMap.codexCheck?.json || {};
     const metrics = resultMap.metrics?.json || {};
+    const boardDoctor = resultMap.boardDoctor?.json || {};
     const contribution = status?.contribution ||
         metrics?.contribution || { executors: [], ranking: [] };
     const domainHealth =
@@ -401,6 +446,8 @@ function summarize(resultMap) {
         blockers.push('codex_check_parse');
     if (resultMap.policy?.json_parse_error) blockers.push('policy_parse');
     if (resultMap.metrics?.json_parse_error) blockers.push('metrics_parse');
+    if (resultMap.boardDoctor?.json_parse_error)
+        blockers.push('board_doctor_parse');
     if (policyLint && policyLint.ok === false) blockers.push('policy_lint');
 
     const topBlocking = Array.isArray(conflicts.conflicts)
@@ -461,6 +508,7 @@ function summarize(resultMap) {
         handoffLint,
         policyLint,
         codexCheck,
+        boardDoctor,
     ]);
 
     const baseReport = {
@@ -486,6 +534,7 @@ function summarize(resultMap) {
         },
         policy: policyLint || null,
         codex_check: codexCheck || null,
+        board_doctor: boardDoctor || null,
         metrics: metrics || null,
         contribution: contribution || null,
         contribution_history: contributionHistory || null,
@@ -519,6 +568,7 @@ function toMarkdown(report) {
     const handoffLint = report.handoffs?.lint || {};
     const policyLint = report.policy || {};
     const codexCheck = report.codex_check || {};
+    const boardDoctor = report.board_doctor || {};
     const delta = report.delta_summary || {};
     const contribution = report.contribution || {};
     const contributionHistory = report.contribution_history || {};
@@ -785,7 +835,23 @@ function toMarkdown(report) {
     lines.push(
         `- Handoffs summary: total=\`${handoffStatus.summary?.total ?? 'n/a'}\`, active=\`${handoffStatus.summary?.active ?? 'n/a'}\`, closed=\`${handoffStatus.summary?.closed ?? 'n/a'}\`, active_expired=\`${handoffStatus.summary?.active_expired ?? 'n/a'}\``
     );
+    lines.push(
+        `- Board doctor: findings=\`${Array.isArray(boardDoctor.diagnostics) ? boardDoctor.diagnostics.length : 'n/a'}\`, warnings=\`${boardDoctor.warnings_count ?? 'n/a'}\`, errors=\`${boardDoctor.errors_count ?? 'n/a'}\``
+    );
     lines.push('');
+
+    if (boardDoctor.summary || Array.isArray(boardDoctor.checks)) {
+        lines.push('### Board Doctor');
+        lines.push(
+            `- Tasks: \`${boardDoctor.summary?.total_tasks ?? 'n/a'}\` | Checks: \`${boardDoctor.summary?.checks ?? 'n/a'}\` | Findings: \`${boardDoctor.summary?.findings ?? 'n/a'}\` | Lease tracked: \`${boardDoctor.summary?.lease_tracked_tasks ?? 'n/a'}\``
+        );
+        if (boardDoctor.leases?.summary) {
+            lines.push(
+                `- Leases: tracked=\`${boardDoctor.leases.summary.active_tracked ?? boardDoctor.leases.summary.lease_tracked_tasks ?? 'n/a'}\`, missing_required=\`${boardDoctor.leases.summary.active_required_missing ?? 'n/a'}\`, expired=\`${boardDoctor.leases.summary.active_expired ?? 'n/a'}\``
+            );
+        }
+        lines.push('');
+    }
 
     if (
         Array.isArray(report.top_blocking_conflicts) &&
@@ -937,6 +1003,7 @@ function main() {
             handoffsLint: ['handoffs', 'lint', '--json'],
             policy: ['policy', 'lint', '--json'],
             codexCheck: ['codex-check', '--json'],
+            boardDoctor: ['board', 'doctor', '--json'],
             metrics: ['metrics', '--json', '--profile', metricsProfile],
         };
 

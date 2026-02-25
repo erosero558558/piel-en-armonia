@@ -168,6 +168,16 @@ function readDomainHealthHistory(dir) {
     );
 }
 
+function readBoardEvents(dir) {
+    const path = join(dir, 'verification', 'agent-board-events.jsonl');
+    if (!existsSync(path)) return [];
+    return readFileSync(path, 'utf8')
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => JSON.parse(line));
+}
+
 function writeGovernancePolicy(dir, policy) {
     writeFileSync(
         join(dir, 'governance-policy.json'),
@@ -1724,6 +1734,73 @@ test('task start bloquea scope critico para executor no permitido', (t) => {
     assert.match(result.stderr, /executor jules/i);
 });
 
+test('leases lifecycle: task start crea lease, heartbeat renueva y clear limpia', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const started = parseJsonStdout(
+        runCli(dir, ['task', 'start', 'AG-010', '--owner', 'ernesto', '--json'])
+    );
+    assert.equal(started.ok, true);
+    assert.equal(started.action, 'start');
+    assert.equal(typeof started.status_since_at, 'string');
+    assert.equal(started.status_since_at.length > 0, true);
+    assert.equal(
+        ['created', 'renewed', 'none'].includes(started.lease_action),
+        true
+    );
+    assert.equal(typeof started.lease, 'object');
+
+    const boardAfterStart = readBoard(dir);
+    assert.match(boardAfterStart, /status_since_at:/);
+    assert.match(boardAfterStart, /lease_id:/);
+    assert.match(boardAfterStart, /heartbeat_at:/);
+
+    const heartbeat = parseJsonStdout(
+        runCli(dir, ['leases', 'heartbeat', 'AG-010', '--json'])
+    );
+    assert.equal(heartbeat.ok, true);
+    assert.equal(heartbeat.action, 'heartbeat');
+    assert.equal(
+        ['created', 'renewed'].includes(String(heartbeat.lease_action)),
+        true
+    );
+    assert.equal(typeof heartbeat.lease.lease_expires_at, 'string');
+
+    const leasesStatus = parseJsonStdout(
+        runCli(dir, ['leases', 'status', '--active', '--json'])
+    );
+    assert.equal(leasesStatus.ok, true);
+    assert.equal(Array.isArray(leasesStatus.leases), true);
+    assert.equal(
+        leasesStatus.leases.some((row) => row.task_id === 'AG-010'),
+        true
+    );
+
+    const cleared = parseJsonStdout(
+        runCli(dir, [
+            'leases',
+            'clear',
+            'AG-010',
+            '--reason',
+            'manual_test',
+            '--json',
+        ])
+    );
+    assert.equal(cleared.ok, true);
+    assert.equal(cleared.action, 'clear');
+    assert.equal(
+        ['cleared', 'none'].includes(String(cleared.lease_action)),
+        true
+    );
+});
+
 test('close soporta --json y devuelve task + evidence_path', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));
@@ -2240,4 +2317,191 @@ test('conflicts, handoffs y codex-check soportan --json con salida estable', (t)
     assert.match(json.errors.join(' | '), /status desalineado/i);
     assert.equal(json.plan_block.task_id, 'CDX-001');
     assert.equal(json.board_task_for_plan_block.id, 'CDX-001');
+});
+
+test('handoffs create/close escriben eventos append-only en board events', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForConflictFixture({ codexStatus: 'in_progress' }),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithCodexBlock({ status: 'in_progress' }),
+    });
+
+    runCli(dir, [
+        'handoffs',
+        'create',
+        '--from',
+        'AG-001',
+        '--to',
+        'CDX-001',
+        '--files',
+        'tests/agenda.spec.js',
+        '--reason',
+        'soporte',
+        '--approved-by',
+        'ernesto',
+    ]);
+
+    let events = readBoardEvents(dir);
+    assert.equal(
+        events.some((e) => e.event_type === 'handoff_created'),
+        true
+    );
+    assert.equal(
+        events.some((e) => e.handoff_id === 'HO-001'),
+        true
+    );
+
+    runCli(dir, ['handoffs', 'close', 'HO-001', '--reason', 'done']);
+    events = readBoardEvents(dir);
+    assert.equal(
+        events.some((e) => e.event_type === 'handoff_closed'),
+        true
+    );
+
+    const tail = parseJsonStdout(
+        runCli(dir, ['board', 'events', 'tail', '--json'])
+    );
+    assert.equal(tail.ok, true);
+    assert.equal(Array.isArray(tail.events), true);
+    assert.equal(
+        tail.events.some((e) =>
+            /^handoff_(created|closed)$/.test(String(e.event_type || ''))
+        ),
+        true
+    );
+});
+
+test('task start y dispatch --json incluyen diagnostics WIP warn-first', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: `
+version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  updated_at: ${DATE}
+tasks:
+  - id: AG-001
+    title: "Task 1"
+    owner: ernesto
+    executor: jules
+    status: in_progress
+    risk: low
+    scope: docs
+    files: ["docs/a.md"]
+    acceptance: "a"
+    depends_on: []
+    prompt: "a"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+  - id: AG-002
+    title: "Task 2"
+    owner: ernesto
+    executor: jules
+    status: ready
+    risk: low
+    scope: docs
+    files: ["docs/b.md"]
+    acceptance: "b"
+    depends_on: []
+    prompt: "b"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+  - id: AG-003
+    title: "Task 3"
+    owner: ernesto
+    executor: jules
+    status: ready
+    risk: low
+    scope: docs
+    files: ["docs/c.md"]
+    acceptance: "c"
+    depends_on: []
+    prompt: "c"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+`.trim(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    writeGovernancePolicy(dir, {
+        version: 1,
+        domain_health: {
+            priority_domains: ['calendar', 'chat', 'payments'],
+            domain_weights: { calendar: 5, chat: 3, payments: 2, default: 1 },
+            signal_scores: { GREEN: 100, YELLOW: 60, RED: 0 },
+        },
+        summary: { thresholds: { domain_score_priority_yellow_below: 80 } },
+        enforcement: {
+            branch_profiles: { main: { fail_on_red: 'warn' } },
+            warning_policies: {
+                active_broad_glob: { enabled: true, severity: 'warning' },
+                lease_missing_active: { enabled: true, severity: 'warning' },
+                lease_expired_active: { enabled: true, severity: 'warning' },
+                heartbeat_stale: { enabled: true, severity: 'warning' },
+                task_in_progress_stale: { enabled: true, severity: 'warning' },
+                task_blocked_stale: { enabled: true, severity: 'warning' },
+                done_without_evidence: { enabled: true, severity: 'warning' },
+                wip_limit_executor: { enabled: true, severity: 'warning' },
+                wip_limit_scope: { enabled: true, severity: 'warning' },
+            },
+            board_leases: {
+                enabled: true,
+                required_statuses: ['in_progress', 'review'],
+                tracked_statuses: ['in_progress', 'review', 'blocked'],
+                ttl_hours_default: 4,
+                ttl_hours_max: 24,
+                heartbeat_stale_minutes: 30,
+                auto_clear_on_terminal: true,
+            },
+            board_doctor: {
+                enabled: true,
+                strict_default: false,
+                thresholds: {
+                    in_progress_stale_hours: 24,
+                    blocked_stale_hours: 24,
+                    review_stale_hours: 48,
+                    done_without_evidence_max_hours: 1,
+                },
+            },
+            wip_limits: {
+                enabled: true,
+                mode: 'warn',
+                count_statuses: ['in_progress', 'review', 'blocked'],
+                by_executor: { jules: 1, codex: 3, claude: 3, kimi: 5 },
+                by_scope: { docs: 1, default: 4 },
+            },
+        },
+    });
+
+    const startJson = parseJsonStdout(
+        runCli(dir, ['task', 'start', 'AG-002', '--json'])
+    );
+    assert.equal(Array.isArray(startJson.diagnostics), true);
+    assert.equal(
+        startJson.diagnostics.some(
+            (d) => d.code === 'warn.board.wip_limit_executor'
+        ),
+        true
+    );
+
+    const dispatchJson = parseJsonStdout(
+        runCli(dir, ['dispatch', '--agent', 'jules', '--json'])
+    );
+    assert.equal(Array.isArray(dispatchJson.diagnostics), true);
+    assert.equal(
+        dispatchJson.diagnostics.some(
+            (d) =>
+                d.code === 'warn.board.wip_limit_executor' ||
+                d.code === 'warn.board.wip_limit_scope'
+        ),
+        true
+    );
 });

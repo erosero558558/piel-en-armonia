@@ -39,6 +39,9 @@ const domainTaskShape = require('./tools/agent-orchestrator/domain/task-shape');
 const domainDiagnostics = require('./tools/agent-orchestrator/domain/diagnostics');
 const domainMetrics = require('./tools/agent-orchestrator/domain/metrics');
 const domainStatus = require('./tools/agent-orchestrator/domain/status');
+const domainBoardLeases = require('./tools/agent-orchestrator/domain/board-leases');
+const domainBoardDoctor = require('./tools/agent-orchestrator/domain/board-doctor');
+const domainBoardEvents = require('./tools/agent-orchestrator/domain/board-events');
 const domainGitHubSignals = require('./tools/agent-orchestrator/domain/github-signals');
 const statusCommandHandlers = require('./tools/agent-orchestrator/commands/status');
 const conflictsCommandHandlers = require('./tools/agent-orchestrator/commands/conflicts');
@@ -49,6 +52,8 @@ const metricsCommandHandlers = require('./tools/agent-orchestrator/commands/metr
 const syncCommandHandlers = require('./tools/agent-orchestrator/commands/sync');
 const closeCommandHandlers = require('./tools/agent-orchestrator/commands/close');
 const taskCommandHandlers = require('./tools/agent-orchestrator/commands/task');
+const leasesCommandHandlers = require('./tools/agent-orchestrator/commands/leases');
+const boardCommandHandlers = require('./tools/agent-orchestrator/commands/board');
 const domainIntake = require('./tools/agent-orchestrator/domain/intake');
 const runtimeGovernanceCommands = require('./tools/agent-orchestrator/commands/runtime-governance');
 const runtimeIntakeCommands = require('./tools/agent-orchestrator/commands/runtime-intake');
@@ -72,6 +77,11 @@ const DOMAIN_HEALTH_HISTORY_PATH = resolve(
     ROOT,
     'verification',
     'agent-domain-health-history.json'
+);
+const BOARD_EVENTS_PATH = resolve(
+    ROOT,
+    'verification',
+    'agent-board-events.jsonl'
 );
 const DEFAULT_GITHUB_REPOSITORY =
     process.env.AGENT_GITHUB_REPOSITORY ||
@@ -121,6 +131,50 @@ const DEFAULT_GOVERNANCE_POLICY = {
                 enabled: true,
             },
             policy_unknown_keys: { severity: 'warning', enabled: true },
+            lease_missing_active: { severity: 'warning', enabled: true },
+            lease_expired_active: { severity: 'warning', enabled: true },
+            heartbeat_stale: { severity: 'warning', enabled: true },
+            task_in_progress_stale: { severity: 'warning', enabled: true },
+            task_blocked_stale: { severity: 'warning', enabled: true },
+            done_without_evidence: { severity: 'warning', enabled: true },
+            wip_limit_executor: { severity: 'warning', enabled: true },
+            wip_limit_scope: { severity: 'warning', enabled: true },
+        },
+        board_leases: {
+            enabled: true,
+            required_statuses: ['in_progress', 'review'],
+            tracked_statuses: ['in_progress', 'review', 'blocked'],
+            ttl_hours_default: 4,
+            ttl_hours_max: 24,
+            heartbeat_stale_minutes: 30,
+            auto_clear_on_terminal: true,
+        },
+        board_doctor: {
+            enabled: true,
+            strict_default: false,
+            thresholds: {
+                in_progress_stale_hours: 24,
+                blocked_stale_hours: 24,
+                review_stale_hours: 48,
+                done_without_evidence_max_hours: 1,
+            },
+        },
+        wip_limits: {
+            enabled: true,
+            mode: 'warn',
+            count_statuses: ['in_progress', 'review', 'blocked'],
+            by_executor: {
+                codex: 3,
+                claude: 3,
+                jules: 5,
+                kimi: 5,
+            },
+            by_scope: {
+                calendar: 2,
+                payments: 2,
+                auth: 2,
+                default: 4,
+            },
         },
     },
 };
@@ -390,19 +444,177 @@ async function collectTaskCreateInteractiveFlags(
     );
 }
 
-function writeBoard(board) {
-    return coreIo.writeBoardFile(board, {
+function normalizeBoardLeasesPolicy(policy = getGovernancePolicy()) {
+    return domainBoardLeases.normalizeBoardLeasesPolicy(policy);
+}
+
+function getTaskLeaseSummary(task, options = {}) {
+    return domainBoardLeases.getTaskLeaseSummary(task, options);
+}
+
+function buildBoardWipLimitDiagnostics(board, options = {}) {
+    const {
+        taskIds = null,
+        executors = null,
+        scopes = null,
+        source = 'command',
+        now = new Date(),
+    } = options;
+    const policy = getGovernancePolicy();
+    const leasePolicy = normalizeBoardLeasesPolicy(policy);
+    const report = domainBoardDoctor.buildBoardDoctorReport(
+        {
+            board,
+            policy,
+            leasePolicy,
+            handoffData: { handoffs: [] },
+            conflictAnalysis: { blocking: [], handoffCovered: [] },
+            now,
+        },
+        {
+            getTaskLeaseSummary,
+            makeDiagnostic: domainDiagnostics.makeDiagnostic,
+            getWarnPolicyMap: domainDiagnostics.getWarnPolicyMap,
+            warnPolicyEnabled: domainDiagnostics.warnPolicyEnabled,
+            warnPolicySeverity: domainDiagnostics.warnPolicySeverity,
+            isBroadGlobPath: domainDiagnostics.isBroadGlobPath,
+        }
+    );
+
+    const taskIdSet = Array.isArray(taskIds)
+        ? new Set(taskIds.map((v) => String(v || '').trim()).filter(Boolean))
+        : null;
+    const executorSet = Array.isArray(executors)
+        ? new Set(
+              executors
+                  .map((v) =>
+                      String(v || '')
+                          .trim()
+                          .toLowerCase()
+                  )
+                  .filter(Boolean)
+          )
+        : null;
+    const scopeSet = Array.isArray(scopes)
+        ? new Set(
+              scopes
+                  .map((v) =>
+                      String(v || '')
+                          .trim()
+                          .toLowerCase()
+                  )
+                  .filter(Boolean)
+          )
+        : null;
+
+    return (Array.isArray(report?.diagnostics) ? report.diagnostics : [])
+        .filter((diag) =>
+            /^warn\.board\.wip_limit_/.test(String(diag.code || ''))
+        )
+        .filter((diag) => {
+            if (!taskIdSet && !executorSet && !scopeSet) return true;
+            const diagTaskIds = Array.isArray(diag.task_ids)
+                ? diag.task_ids.map((v) => String(v || '').trim())
+                : [];
+            const diagExecutor = String(diag?.meta?.executor || '')
+                .trim()
+                .toLowerCase();
+            const diagScope = String(diag?.meta?.scope || '')
+                .trim()
+                .toLowerCase();
+            if (taskIdSet && diagTaskIds.some((id) => taskIdSet.has(id)))
+                return true;
+            if (executorSet && diagExecutor && executorSet.has(diagExecutor))
+                return true;
+            if (scopeSet && diagScope && scopeSet.has(diagScope)) return true;
+            return false;
+        })
+        .map((diag) => ({ ...diag, source }));
+}
+
+function applyBoardLeasesBeforeWrite(board, options = {}) {
+    return domainBoardLeases.applyBoardLeasesBeforeWrite(board, {
+        policy: getGovernancePolicy(),
+        terminalStatuses: TERMINAL_STATUSES,
+        ...options,
+    });
+}
+
+let LAST_BOARD_WRITE_META = null;
+
+function getLastBoardWriteMeta() {
+    return LAST_BOARD_WRITE_META;
+}
+
+function writeBoard(board, options = {}) {
+    const { command = 'board_write', source = 'cli', actor = '' } = options;
+    const prevBoard = existsSync(BOARD_PATH) ? parseBoard() : null;
+    const nowIsoValue = isoNow();
+    const lifecycle = applyBoardLeasesBeforeWrite(board, {
+        prevBoard,
+        nowIso: nowIsoValue,
+        currentDate: currentDate(),
+    });
+    const writtenBoard = coreIo.writeBoardFile(board, {
         currentDate,
         boardPath: BOARD_PATH,
         serializeBoard,
         writeFile: writeFileSync,
     });
+    let boardEvents = { events: [], appended: 0 };
+    try {
+        if (prevBoard) {
+            boardEvents = domainBoardEvents.appendBoardEventsForDiff(
+                prevBoard,
+                writtenBoard,
+                {
+                    appendJsonlFile: coreIo.appendJsonlFile,
+                    eventsPath: BOARD_EVENTS_PATH,
+                    nowIso: nowIsoValue,
+                    command,
+                    source,
+                    actor,
+                }
+            );
+        }
+    } catch {
+        boardEvents = { events: [], appended: 0 };
+    }
+    LAST_BOARD_WRITE_META = {
+        now_iso: nowIsoValue,
+        lifecycle,
+        board_events: boardEvents,
+    };
+    return writtenBoard;
 }
 
 function writeBoardAndSync(board, options = {}) {
-    const { silentSync = false } = options;
-    writeBoard(board);
+    const { silentSync = false, ...writeOptions } = options;
+    writeBoard(board, writeOptions);
     syncDerivedQueues({ silent: silentSync });
+}
+
+function appendHandoffBoardEvent(eventType, handoff, options = {}) {
+    const {
+        actor = '',
+        command = 'handoffs',
+        source = 'cli',
+        reason = '',
+        nowIso = isoNow(),
+        board = null,
+    } = options;
+    return domainBoardEvents.appendHandoffEvent({
+        appendJsonlFile: coreIo.appendJsonlFile,
+        eventsPath: BOARD_EVENTS_PATH,
+        eventType,
+        handoff,
+        actor,
+        command,
+        source,
+        reason,
+        nowIso,
+        board: board || parseBoard(),
+    });
 }
 
 function detectDefaultOwner(currentValue = '') {
@@ -896,6 +1108,55 @@ function buildCodexCheckReport() {
     );
 }
 
+function cmdLeases(args) {
+    return leasesCommandHandlers.handleLeasesCommand({
+        args,
+        parseFlags,
+        parseBoard,
+        ensureTask,
+        currentDate,
+        isoNow,
+        writeBoardAndSync,
+        toTaskJson,
+        getGovernancePolicy,
+        listBoardLeases: domainBoardLeases.listBoardLeases,
+        renewTaskLease: domainBoardLeases.renewTaskLease,
+        clearTaskLease: domainBoardLeases.clearTaskLease,
+        normalizeBoardLeasesPolicy,
+        summarizeDiagnostics: domainDiagnostics.summarizeDiagnostics,
+        makeDiagnostic: domainDiagnostics.makeDiagnostic,
+        printJson: coreOutput.printJson,
+    });
+}
+
+function cmdBoard(args) {
+    return boardCommandHandlers.handleBoardCommand({
+        args,
+        parseFlags,
+        parseBoard,
+        parseHandoffs,
+        analyzeConflicts,
+        getGovernancePolicy,
+        buildBoardDoctorReport: domainBoardDoctor.buildBoardDoctorReport,
+        attachDiagnostics,
+        buildWarnFirstDiagnostics,
+        summarizeDiagnostics: domainDiagnostics.summarizeDiagnostics,
+        listBoardLeases: domainBoardLeases.listBoardLeases,
+        getTaskLeaseSummary,
+        makeDiagnostic: domainDiagnostics.makeDiagnostic,
+        getWarnPolicyMap: domainDiagnostics.getWarnPolicyMap,
+        warnPolicyEnabled: domainDiagnostics.warnPolicyEnabled,
+        warnPolicySeverity: domainDiagnostics.warnPolicySeverity,
+        isBroadGlobPath: domainDiagnostics.isBroadGlobPath,
+        normalizeBoardLeasesPolicy,
+        EVENTS_PATH: BOARD_EVENTS_PATH,
+        tailBoardEvents: domainBoardEvents.tailBoardEvents,
+        statsBoardEvents: domainBoardEvents.statsBoardEvents,
+        readJsonlFile: coreIo.readJsonlFile,
+        printJson: coreOutput.printJson,
+    });
+}
+
 async function cmdTask(args) {
     await taskCommandHandlers.handleTaskCommand({
         args,
@@ -936,6 +1197,8 @@ async function cmdTask(args) {
         buildTaskCreateInferenceExplainLines,
         buildTaskCreateWarnDiagnostics,
         attachDiagnostics,
+        getLastBoardWriteMeta,
+        buildBoardWipLimitDiagnostics,
         printJson: coreOutput.printJson,
     });
 }
@@ -976,6 +1239,8 @@ function cmdClose(args) {
         serializeBoard,
         writeFileSync,
         syncDerivedQueues,
+        writeBoardAndSync,
+        getLastBoardWriteMeta,
         toTaskJson,
     });
 }
@@ -1376,6 +1641,8 @@ const runtimeIntake = runtimeIntakeCommands.createRuntimeIntakeCommands({
     detectKimiRateLimitActive,
     getGitHubToken,
     fetchGitHubJson,
+    attachDiagnostics,
+    buildBoardWipLimitDiagnostics,
 });
 const governanceRuntime =
     runtimeGovernanceCommands.createRuntimeGovernanceCommands({
@@ -1407,12 +1674,14 @@ const governanceRuntime =
         HANDOFFS_PATH,
         serializeHandoffs,
         writeFileSync,
+        appendHandoffBoardEvent,
         buildCodexCheckReport,
         ALLOWED_STATUSES,
         currentDate,
         writeBoard,
         writeCodexActiveBlock,
         parseCodexActiveBlocks,
+        buildBoardWipLimitDiagnostics,
     });
 
 async function main() {
@@ -1430,6 +1699,8 @@ async function main() {
         policy: () => governanceRuntime.policy(args),
         'codex-check': () => governanceRuntime.codexCheck(args),
         codex: () => governanceRuntime.codex(args),
+        leases: () => cmdLeases(args),
+        board: () => cmdBoard(args),
         task: () => cmdTask(args),
         sync: () => cmdSync(),
         close: () => cmdClose(args),

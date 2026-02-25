@@ -47,6 +47,9 @@ function createRuntimeGovernanceCommands(ctx = {}) {
                 HANDOFFS_PATH: ctx.HANDOFFS_PATH,
                 serializeHandoffs: ctx.serializeHandoffs,
                 writeFileSync: ctx.writeFileSync,
+                appendHandoffBoardEvent: ctx.appendHandoffBoardEvent,
+                currentDate: ctx.currentDate,
+                parseBoardForEvents: ctx.parseBoard,
             });
         },
 
@@ -74,6 +77,8 @@ function createRuntimeGovernanceCommands(ctx = {}) {
                 writeBoard: ctx.writeBoard,
                 writeCodexActiveBlock: ctx.writeCodexActiveBlock,
                 parseCodexActiveBlocks: ctx.parseCodexActiveBlocks,
+                buildBoardWipLimitDiagnostics:
+                    ctx.buildBoardWipLimitDiagnostics,
                 runCodexCheck: () => runner.codexCheck([]),
             });
         },

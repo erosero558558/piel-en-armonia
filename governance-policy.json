@@ -55,6 +55,74 @@
             "policy_unknown_keys": {
                 "severity": "warning",
                 "enabled": true
+            },
+            "lease_missing_active": {
+                "severity": "warning",
+                "enabled": true
+            },
+            "lease_expired_active": {
+                "severity": "warning",
+                "enabled": true
+            },
+            "heartbeat_stale": {
+                "severity": "warning",
+                "enabled": true
+            },
+            "task_in_progress_stale": {
+                "severity": "warning",
+                "enabled": true
+            },
+            "task_blocked_stale": {
+                "severity": "warning",
+                "enabled": true
+            },
+            "done_without_evidence": {
+                "severity": "warning",
+                "enabled": true
+            },
+            "wip_limit_executor": {
+                "severity": "warning",
+                "enabled": true
+            },
+            "wip_limit_scope": {
+                "severity": "warning",
+                "enabled": true
+            }
+        },
+        "board_leases": {
+            "enabled": true,
+            "required_statuses": ["in_progress", "review"],
+            "tracked_statuses": ["in_progress", "review", "blocked"],
+            "ttl_hours_default": 4,
+            "ttl_hours_max": 24,
+            "heartbeat_stale_minutes": 30,
+            "auto_clear_on_terminal": true
+        },
+        "board_doctor": {
+            "enabled": true,
+            "strict_default": false,
+            "thresholds": {
+                "in_progress_stale_hours": 24,
+                "blocked_stale_hours": 24,
+                "review_stale_hours": 48,
+                "done_without_evidence_max_hours": 1
+            }
+        },
+        "wip_limits": {
+            "enabled": true,
+            "mode": "warn",
+            "count_statuses": ["in_progress", "review", "blocked"],
+            "by_executor": {
+                "codex": 3,
+                "claude": 3,
+                "jules": 5,
+                "kimi": 5
+            },
+            "by_scope": {
+                "calendar": 2,
+                "payments": 2,
+                "auth": 2,
+                "default": 4
             }
         }
     }

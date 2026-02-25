@@ -199,3 +199,45 @@ test('core-io syncDerivedQueuesFiles valida dependencias requeridas', () => {
         /parseTaskMetaMap/i
     );
 });
+
+test('core-io appendJsonlFile agrega objetos serializados en modo append', () => {
+    const writes = [];
+    const result = coreIo.appendJsonlFile(
+        'verification/agent-board-events.jsonl',
+        [{ a: 1 }, { b: 2 }],
+        {
+            ensureDir: (path) => writes.push(['ensureDir', path]),
+            writeFile: (...args) => writes.push(['writeFile', ...args]),
+        }
+    );
+
+    assert.equal(result.appended, 2);
+    assert.deepEqual(writes[0], [
+        'ensureDir',
+        'verification/agent-board-events.jsonl',
+    ]);
+    assert.equal(writes[1][0], 'writeFile');
+    assert.equal(writes[1][1], 'verification/agent-board-events.jsonl');
+    assert.match(String(writes[1][2]), /{"a":1}\n{"b":2}\n/);
+    assert.deepEqual(writes[1][3], { encoding: 'utf8', flag: 'a' });
+});
+
+test('core-io readJsonlFile parsea lineas JSON y devuelve [] si no existe', () => {
+    const empty = coreIo.readJsonlFile('verification/missing.jsonl', {
+        exists: () => false,
+    });
+    assert.deepEqual(empty, []);
+
+    const parsed = coreIo.readJsonlFile(
+        'verification/agent-board-events.jsonl',
+        {
+            exists: () => true,
+            readFile: (path, enc) => {
+                assert.equal(path, 'verification/agent-board-events.jsonl');
+                assert.equal(enc, 'utf8');
+                return '{"a":1}\n\n{"b":2}\n';
+            },
+        }
+    );
+    assert.deepEqual(parsed, [{ a: 1 }, { b: 2 }]);
+});

@@ -51,6 +51,7 @@ function handleCodexCommand(ctx) {
         writeBoard,
         writeCodexActiveBlock,
         parseCodexActiveBlocks,
+        buildBoardWipLimitDiagnostics,
         runCodexCheck,
     } = ctx;
     const subcommand = args[0];
@@ -96,7 +97,19 @@ function handleCodexCommand(ctx) {
         }
         task.status = 'in_progress';
         task.updated_at = currentDate();
-        writeBoard(board);
+        writeBoard(board, {
+            command: 'codex start',
+            actor: task.owner || task.executor || '',
+        });
+        const wipDiagnostics =
+            typeof buildBoardWipLimitDiagnostics === 'function'
+                ? buildBoardWipLimitDiagnostics(board, {
+                      source: 'codex start',
+                      taskIds: [taskId],
+                      executors: [task.executor],
+                      scopes: [task.scope],
+                  })
+                : [];
         writeCodexActiveBlock({
             block,
             task_id: taskId,
@@ -106,6 +119,9 @@ function handleCodexCommand(ctx) {
         });
         runCodexCheck();
         console.log(`Codex start OK: ${taskId} (${block})`);
+        for (const diag of wipDiagnostics) {
+            console.log(`WARN [${diag.code}] ${diag.message}`);
+        }
         return;
     }
 
@@ -115,7 +131,10 @@ function handleCodexCommand(ctx) {
     }
     task.status = nextStatus;
     task.updated_at = currentDate();
-    writeBoard(board);
+    writeBoard(board, {
+        command: 'codex stop',
+        actor: task.owner || task.executor || '',
+    });
 
     if (ACTIVE_STATUSES.has(nextStatus)) {
         const existingBlock = parseCodexActiveBlocks()[0] || {};

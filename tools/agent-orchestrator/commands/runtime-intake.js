@@ -89,7 +89,11 @@ function createRuntimeIntakeCommands(ctx = {}) {
                     updated_at: nowIso,
                     signals: mergedSignals,
                 });
-                ctx.writeBoardAndSync(board, { silentSync: wantsJson });
+                ctx.writeBoardAndSync(board, {
+                    silentSync: wantsJson,
+                    command: 'intake',
+                    actor: 'orchestrator',
+                });
             }
 
             const staleReport = ctx.buildStaleReport(board, mergedSignals);
@@ -191,7 +195,11 @@ function createRuntimeIntakeCommands(ctx = {}) {
                         changed += 1;
                 }
                 if (!noWrite && changed > 0) {
-                    ctx.writeBoardAndSync(board, { silentSync: wantsJson });
+                    ctx.writeBoardAndSync(board, {
+                        silentSync: wantsJson,
+                        command: 'score',
+                        actor: 'orchestrator',
+                    });
                 }
                 const report = {
                     version: 1,
@@ -374,8 +382,24 @@ function createRuntimeIntakeCommands(ctx = {}) {
                 dispatched.push(task.id);
             }
             if (dispatched.length > 0) {
-                ctx.writeBoardAndSync(board, { silentSync: wantsJson });
+                ctx.writeBoardAndSync(board, {
+                    silentSync: wantsJson,
+                    command: 'dispatch',
+                    actor: agent,
+                });
             }
+            const dispatchedTasks = board.tasks.filter((t) =>
+                dispatched.includes(String(t.id || ''))
+            );
+            const wipDiagnostics =
+                typeof ctx.buildBoardWipLimitDiagnostics === 'function'
+                    ? ctx.buildBoardWipLimitDiagnostics(board, {
+                          source: 'dispatch',
+                          taskIds: dispatched,
+                          executors: [agent],
+                          scopes: dispatchedTasks.map((t) => t.scope),
+                      })
+                    : [];
             const report = {
                 version: 1,
                 ok: true,
@@ -384,11 +408,18 @@ function createRuntimeIntakeCommands(ctx = {}) {
                 dispatched,
             };
             if (wantsJson) {
-                printJson(report);
-                return report;
+                const payload =
+                    typeof ctx.attachDiagnostics === 'function'
+                        ? ctx.attachDiagnostics(report, wipDiagnostics)
+                        : report;
+                printJson(payload);
+                return payload;
             }
             console.log(`== Agent Dispatch (${agent}) ==`);
             console.log(`Dispatched: ${dispatched.join(', ') || 'none'}`);
+            for (const diag of wipDiagnostics) {
+                console.log(`WARN [${diag.code}] ${diag.message}`);
+            }
             return report;
         },
 
@@ -474,7 +505,11 @@ function createRuntimeIntakeCommands(ctx = {}) {
                     `reconcile: tareas done sin evidencia_ref (${doneWithoutEvidence.map((t) => t.id).join(', ')})`
                 );
             }
-            ctx.writeBoardAndSync(board, { silentSync: wantsJson });
+            ctx.writeBoardAndSync(board, {
+                silentSync: wantsJson,
+                command: 'reconcile',
+                actor: 'orchestrator',
+            });
             const report = {
                 version: 1,
                 ok: doneWithoutEvidence.length === 0,

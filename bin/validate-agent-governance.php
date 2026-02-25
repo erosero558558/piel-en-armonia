@@ -595,6 +595,21 @@ foreach ($board['tasks'] as $idx => $task) {
     if (!is_array($task['depends_on'] ?? null)) {
         $errors[] = "Task {$id} debe definir depends_on como lista YAML inline.";
     }
+    foreach ([
+        'status_since_at',
+        'lease_id',
+        'lease_owner',
+        'lease_created_at',
+        'heartbeat_at',
+        'lease_expires_at',
+        'lease_reason',
+        'lease_cleared_at',
+        'lease_cleared_reason',
+    ] as $leaseField) {
+        if (array_key_exists($leaseField, $task) && !is_string($task[$leaseField])) {
+            $errors[] = "Task {$id} tiene {$leaseField} invalido (debe ser string)";
+        }
+    }
     if ($status === 'done') {
         $evidenceRef = trim((string) ($task['evidence_ref'] ?? ''));
         if ($evidenceRef === '') {
@@ -767,6 +782,87 @@ if (is_array($governancePolicy)) {
                         $hoursThreshold = $warningCfg['hours_threshold'];
                         if (!is_numeric($hoursThreshold) || (float) $hoursThreshold <= 0) {
                             $errors[] = "governance-policy.json tiene hours_threshold invalido en enforcement.warning_policies.{$warningKey}";
+                        }
+                    }
+                }
+            }
+
+            $boardLeases = $enforcement['board_leases'] ?? null;
+            if ($boardLeases !== null) {
+                if (!is_array($boardLeases)) {
+                    $errors[] = 'governance-policy.json requiere enforcement.board_leases como objeto';
+                } else {
+                    foreach (['enabled', 'auto_clear_on_terminal'] as $boolKey) {
+                        if (array_key_exists($boolKey, $boardLeases) && !is_bool($boardLeases[$boolKey])) {
+                            $errors[] = "governance-policy.json requiere enforcement.board_leases.{$boolKey} boolean";
+                        }
+                    }
+                    foreach (['ttl_hours_default', 'ttl_hours_max', 'heartbeat_stale_minutes'] as $numKey) {
+                        if (array_key_exists($numKey, $boardLeases)) {
+                            $v = $boardLeases[$numKey];
+                            if (!is_numeric($v) || (float) $v <= 0) {
+                                $errors[] = "governance-policy.json tiene enforcement.board_leases.{$numKey} invalido";
+                            }
+                        }
+                    }
+                    foreach (['required_statuses', 'tracked_statuses'] as $arrKey) {
+                        if (array_key_exists($arrKey, $boardLeases) && !is_array($boardLeases[$arrKey])) {
+                            $errors[] = "governance-policy.json requiere enforcement.board_leases.{$arrKey} como lista";
+                        }
+                    }
+                }
+            }
+
+            $boardDoctor = $enforcement['board_doctor'] ?? null;
+            if ($boardDoctor !== null) {
+                if (!is_array($boardDoctor)) {
+                    $errors[] = 'governance-policy.json requiere enforcement.board_doctor como objeto';
+                } else {
+                    foreach (['enabled', 'strict_default'] as $boolKey) {
+                        if (array_key_exists($boolKey, $boardDoctor) && !is_bool($boardDoctor[$boolKey])) {
+                            $errors[] = "governance-policy.json requiere enforcement.board_doctor.{$boolKey} boolean";
+                        }
+                    }
+                    $doctorThresholds = $boardDoctor['thresholds'] ?? null;
+                    if ($doctorThresholds !== null) {
+                        if (!is_array($doctorThresholds)) {
+                            $errors[] = 'governance-policy.json requiere enforcement.board_doctor.thresholds como objeto';
+                        } else {
+                            foreach ($doctorThresholds as $thresholdKey => $thresholdValue) {
+                                if (!is_numeric($thresholdValue) || (float) $thresholdValue < 0) {
+                                    $errors[] = "governance-policy.json tiene enforcement.board_doctor.thresholds.{$thresholdKey} invalido";
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            $wipLimits = $enforcement['wip_limits'] ?? null;
+            if ($wipLimits !== null) {
+                if (!is_array($wipLimits)) {
+                    $errors[] = 'governance-policy.json requiere enforcement.wip_limits como objeto';
+                } else {
+                    if (array_key_exists('enabled', $wipLimits) && !is_bool($wipLimits['enabled'])) {
+                        $errors[] = 'governance-policy.json requiere enforcement.wip_limits.enabled boolean';
+                    }
+                    if (array_key_exists('mode', $wipLimits) && !in_array((string) $wipLimits['mode'], ['warn', 'error', 'ignore'], true)) {
+                        $errors[] = 'governance-policy.json tiene enforcement.wip_limits.mode invalido';
+                    }
+                    if (array_key_exists('count_statuses', $wipLimits) && !is_array($wipLimits['count_statuses'])) {
+                        $errors[] = 'governance-policy.json requiere enforcement.wip_limits.count_statuses como lista';
+                    }
+                    foreach (['by_executor', 'by_scope'] as $mapKey) {
+                        if (array_key_exists($mapKey, $wipLimits)) {
+                            if (!is_array($wipLimits[$mapKey])) {
+                                $errors[] = "governance-policy.json requiere enforcement.wip_limits.{$mapKey} como objeto";
+                            } else {
+                                foreach ($wipLimits[$mapKey] as $limitKey => $limitValue) {
+                                    if (!is_numeric($limitValue) || (float) $limitValue <= 0) {
+                                        $errors[] = "governance-policy.json tiene enforcement.wip_limits.{$mapKey}.{$limitKey} invalido";
+                                    }
+                                }
+                            }
                         }
                     }
                 }
