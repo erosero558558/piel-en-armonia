@@ -133,13 +133,19 @@ Criterio de salida:
 Estado: `IN_PROGRESS`
 Entregables:
 
-- [ ] Consolidar metricas tecnicas de retencion (`no_show` y recurrencia) en reportes semanales.
+- [x] Consolidar metricas tecnicas de retencion (`no_show` y recurrencia) en reportes semanales.
 - [ ] Confirmar evidencia operativa de observabilidad (Sentry backend/frontend) en `health` y monitoreo.
 - [ ] Mantener gates criticos por dominio en CI sin degradar tiempos de deploy.
 
 Criterio de salida:
 
 - [ ] Dos ciclos semanales consecutivos con `REPORTE-SEMANAL-PRODUCCION.ps1` sin warnings criticos de agenda/observabilidad.
+
+Evidencia parcial (retencion consolidada):
+
+- `REPORTE-SEMANAL-PRODUCCION.ps1` publica `retention` + `retentionTrend` en JSON/Markdown semanal (incluye `noShowRatePct`, `recurrenceRatePct`, deltas vs reporte previo).
+- `npm run report:weekly:prod` (2026-02-25) -> `Warnings: none`, con salida `retention_no_show_rate_pct=0` y `retention_recurrence_rate_pct=50`.
+- `.github/workflows/weekly-kpi-report.yml` resume metricas de retencion y deltas en `GITHUB_STEP_SUMMARY` para operacion semanal.
 
 ## Comandos oficiales del plan
 
