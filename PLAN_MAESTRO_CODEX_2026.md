@@ -20,6 +20,18 @@ Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite po
 - evidencia en CI o prueba local reproducible.
 - actualizacion del estado en este plan.
 
+## Carril operativo backend-only (permanente)
+
+- Esta instancia Codex opera solo en `codex_backend_ops`.
+- Alcance permitido: `controllers/**`, `lib/**`, `api.php`, `figo-*.php`,
+  `.github/workflows/**`, `cron.php`, `env*.php`, `bin/**`, tests backend.
+- Alcance fuera de carril: `src/apps/**`, `js/**`, `styles*.css`,
+  `templates/**`, `content/**`, `*.html`.
+- Excepcion unica: cruce de dominio con `cross_domain=true` + `lane_lock=handoff_allowed`
+    - handoff `active` con expiracion en `AGENT_HANDOFFS.yaml`.
+- Regla critica: `critical_zone=true` solo en `codex_backend_ops`.
+- Prioridad tecnica inmediata: `C1 -> C3 -> C4 -> C2`.
+
 ## Distribucion de esfuerzo
 
 - 70% Confiabilidad + tests de agenda/chat/reprogramacion.
@@ -147,3 +159,4 @@ Criterio de salida:
 - 2026-02-25: activado modo de operacion de estabilidad en 2 carriles (`post-deploy-fast.yml` para push diario y `nightly-stability.yml` para regresion pesada), con nuevo `gate:prod:fast` (verify+smoke sin benchmark) y `nightly:stability`; validado en produccion con `gate:prod:fast` exitoso (`DurationSec=14.1`, health/smoke OK, benchmark omitido en fast lane).
 - 2026-02-25: `REPORTE-SEMANAL-PRODUCCION.ps1` ahora expone `warningDetails` (code/severity/impact/runbookRef), `warningsByImpact` y `triagePlaybook` (SLA 15 min) en JSON/markdown para C3 sin cambios breaking.
 - 2026-02-25: `REPORTE-SEMANAL-PRODUCCION.ps1` agrega `releaseGuardrails` (`decision: pass|warn|block`, `reason`, `action`) para hacer explicita la regla warning->blocking en C4.
+- 2026-02-25: activado protocolo backend-only para esta instancia Codex (dominio fijo `codex_backend_ops`) y creadas tareas iniciales de ejecucion `AG-035` (C1 flakiness agenda/chat/reprogramacion) y `AG-036` (C3 observabilidad accionable), ambas en `status=ready`, `domain_lane=backend_ops`, `lane_lock=strict`, `cross_domain=false`.

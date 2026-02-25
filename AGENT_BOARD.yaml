@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 58
+  revision: 60
   updated_at: 2026-02-25
 
 tasks:
@@ -18,6 +18,10 @@ tasks:
     status_since_at: "2026-02-24"
     risk: high
     scope: platform
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: ["backup-receiver.php", "verify-backup.php", "lib/backup.php", "tests/BackupReceiverTest.php", "env.example.php", "docs/RUNBOOKS.md"]
     source_signal: manual
     source_ref: ""
@@ -52,6 +56,10 @@ tasks:
     status_since_at: "2026-02-24"
     risk: medium
     scope: backend
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: ["lib/ratelimit.php", "tests/RateLimiterTest.php", "tests/Security/RateLimiterTest.php", "tests/Unit/Security/RateLimiterTest.php", "env.example.php"]
     source_signal: manual
     source_ref: ""
@@ -86,6 +94,10 @@ tasks:
     status_since_at: "2026-02-24"
     risk: low
     scope: docs
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: ["docs/openapi.yaml", "README.md"]
     source_signal: manual
     source_ref: ""
@@ -120,6 +132,10 @@ tasks:
     status_since_at: "2026-02-24"
     risk: medium
     scope: backend
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: handoff_allowed
+    cross_domain: true
     files: ["lib/mailer.php", "templates/email", "tests/MailerTest.php"]
     source_signal: manual
     source_ref: ""
@@ -141,7 +157,7 @@ tasks:
     acceptance: "Envio de confirmaciones y cola de reintentos de email con pruebas."
     acceptance_ref: "verification/agent-runs/AG-004.md"
     evidence_ref: "queue:jules"
-    depends_on: []
+    depends_on: ["CDX-001"]
     prompt: "Implementar wrapper PHPMailer para confirmaciones y recordatorios con templates HTML y test."
     created_at: 2026-02-24
     updated_at: 2026-02-25
@@ -154,6 +170,10 @@ tasks:
     status_since_at: "2026-02-24"
     risk: low
     scope: audit
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: handoff_allowed
+    cross_domain: true
     files: ["js/engines", "docs/dead-code-audit.md"]
     source_signal: manual
     source_ref: ""
@@ -175,7 +195,7 @@ tasks:
     acceptance: "Reporte en markdown con codigo muerto, logs y TODO/FIXME."
     acceptance_ref: "docs/dead-code-audit.md"
     evidence_ref: "queue:kimi"
-    depends_on: []
+    depends_on: ["CDX-001"]
     prompt: "Auditar js/engines y generar docs/dead-code-audit.md sin tocar logica de JS."
     created_at: 2026-02-24
     updated_at: 2026-02-25
@@ -188,6 +208,10 @@ tasks:
     status_since_at: "2026-02-24"
     risk: low
     scope: tooling
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: [".editorconfig", ".gitattributes"]
     source_signal: manual
     source_ref: ""
@@ -222,6 +246,10 @@ tasks:
     status_since_at: "2026-02-24"
     risk: low
     scope: docs
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: ["lib/audit.php", "lib/ratelimit.php", "lib/email.php"]
     source_signal: manual
     source_ref: ""
@@ -256,6 +284,10 @@ tasks:
     status_since_at: "2026-02-24"
     risk: low
     scope: ops
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: ["KIMI_TASKS.md"]
     source_signal: manual
     source_ref: ""
@@ -290,6 +322,10 @@ tasks:
     status_since_at: "2026-02-24"
     risk: medium
     scope: codex-governance
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: ["AGENTS.md", "AGENT_BOARD.yaml", "AGENT_HANDOFFS.yaml", "PLAN_MAESTRO_CODEX_2026.md", "agent-orchestrator.js", "bin/validate-agent-governance.php", ".github/workflows/agent-governance.yml"]
     source_signal: manual
     source_ref: ""
@@ -324,6 +360,10 @@ tasks:
     status_since_at: "2026-02-25"
     risk: medium
     scope: mobile-ux
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: handoff_allowed
+    cross_domain: true
     files: ["index.html", "styles-deferred.css", "src/apps/chat/ui-engine.js", "src/apps/chat/widget-engine.js"]
     source_signal: manual
     source_ref: ""
@@ -345,7 +385,7 @@ tasks:
     acceptance: "Layout movil usable en 360x800/390x844/412x915 sin solapes de chat, header ni CTA dock."
     acceptance_ref: "verification/agent-runs/AG-009.md"
     evidence_ref: "queue:kimi"
-    depends_on: []
+    depends_on: ["CDX-001"]
     prompt: "Corregir solapes y espaciado en mobile-first sin romper desktop."
     created_at: 2026-02-25
     updated_at: 2026-02-25
@@ -358,6 +398,10 @@ tasks:
     status_since_at: "2026-02-25"
     risk: high
     scope: conversion-funnel
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: handoff_allowed
+    cross_domain: true
     files: ["src/apps/analytics/engine.js", "src/apps/booking/engine.js", "api.php", "controllers/AdminDataController.php"]
     source_signal: manual
     source_ref: ""
@@ -379,7 +423,7 @@ tasks:
     acceptance: "Eventos de abandono por paso con reason/error_code visibles para analisis semanal."
     acceptance_ref: "verification/agent-runs/AG-010.md"
     evidence_ref: "verification/agent-runs/AG-010.md"
-    depends_on: []
+    depends_on: ["CDX-001"]
     prompt: "Agregar medicion consistente de drop-off en checkout y exponer resumen para admin."
     created_at: 2026-02-25
     updated_at: 2026-02-25
@@ -392,6 +436,10 @@ tasks:
     status_since_at: "2026-02-25"
     risk: medium
     scope: performance
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: handoff_allowed
+    cross_domain: true
     files: ["js/main.js", "rollup.config.mjs", "src/bundles/ui.js", "src/bundles/engagement.js"]
     source_signal: manual
     source_ref: ""
@@ -413,7 +461,7 @@ tasks:
     acceptance: "Reducir peso inicial y mover inicializaciones no criticas a carga diferida sin regresion funcional."
     acceptance_ref: "verification/agent-runs/AG-011.md"
     evidence_ref: "queue:kimi"
-    depends_on: []
+    depends_on: ["CDX-001"]
     prompt: "Aplicar particion adicional de JS no critico y verificar que no rompa interacciones clave."
     created_at: 2026-02-25
     updated_at: 2026-02-25
@@ -426,6 +474,10 @@ tasks:
     status_since_at: "2026-02-25"
     risk: high
     scope: ops
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: [".github/workflows/prod-monitor.yml"]
     source_signal: issue
     source_ref: "issue#279"
@@ -460,6 +512,10 @@ tasks:
     status_since_at: "2026-02-25"
     risk: high
     scope: ops
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: [".github/workflows/repair-git-sync.yml"]
     source_signal: issue
     source_ref: "issue#263"
@@ -494,6 +550,10 @@ tasks:
     status_since_at: "2026-02-25"
     risk: medium
     scope: ops
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: [".github/workflows/ci.yml"]
     source_signal: workflow
     source_ref: "run#22379873691"
@@ -528,6 +588,10 @@ tasks:
     status_since_at: "2026-02-25"
     risk: medium
     scope: ops
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: [".github/workflows/ci.yml"]
     source_signal: workflow
     source_ref: "run#22379426844"
@@ -562,6 +626,10 @@ tasks:
     status_since_at: "2026-02-25"
     risk: medium
     scope: calendar
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: ["controllers/AvailabilityController.php", "controllers/AppointmentController.php", "lib/calendar/CalendarAvailabilityService.php", "lib/calendar/CalendarBookingService.php"]
     source_signal: workflow
     source_ref: "run#22379136316"
@@ -596,6 +664,10 @@ tasks:
     status_since_at: "2026-02-25"
     risk: medium
     scope: ops
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: [".github/workflows/ci.yml"]
     source_signal: workflow
     source_ref: "run#22379059437"
@@ -630,6 +702,10 @@ tasks:
     status_since_at: "2026-02-25T06:30:08.031Z"
     risk: medium
     scope: chat
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: handoff_allowed
+    cross_domain: true
     files: ["figo-chat.php", "figo-backend.php", "src/apps/chat/engine.js", "src/apps/chat/ui-engine.js"]
     source_signal: workflow
     source_ref: "workflow:ci:main"
@@ -651,7 +727,7 @@ tasks:
     acceptance: "Cerrar señal workflow:ci:main con evidencia verificable."
     acceptance_ref: "signal_resolved:auto"
     evidence_ref: "signal_resolved:auto"
-    depends_on: []
+    depends_on: ["CDX-001"]
     prompt: "Resolver señal workflow:ci:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
     updated_at: 2026-02-25
@@ -664,6 +740,10 @@ tasks:
     status_since_at: "2026-02-25T00:20:00-05:00"
     risk: medium
     scope: tooling
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: handoff_allowed
+    cross_domain: true
     files: ["src/apps/shared/data-engine.js", "src/bundles/data.js", "js/data.js", "js/i18n.js", "js/router.js", "templates/partials/head-links.html"]
     source_signal: manual
     source_ref: "tech-debt-audit-2026-02-24"
@@ -685,7 +765,7 @@ tasks:
     acceptance: "Un único bundle canónico de datos sin duplicación. Bundle size no incrementa. Tests pasan."
     acceptance_ref: "docs/agent-runs/AG-019.md"
     evidence_ref: "docs/agent-runs/AG-019.md"
-    depends_on: []
+    depends_on: ["CDX-001"]
     prompt: "Auditar src/bundles/data-engine.js y src/bundles/data-bundle.js. Identificar exports duplicados. Consolidar en un único módulo canónico actualizado en rollup.config.mjs. Agregar test de no-regresión de tamaño de bundle."
     created_at: 2026-02-24
     updated_at: 2026-02-25
@@ -698,6 +778,10 @@ tasks:
     status_since_at: "2026-02-25T06:04:45.660Z"
     risk: low
     scope: tooling
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: ["rollup.config.mjs", "eslint.config.js", ".github/workflows/ci.yml"]
     source_signal: manual
     source_ref: "tech-debt-audit-2026-02-24"
@@ -732,6 +816,10 @@ tasks:
     status_since_at: "2026-02-25T05:55:59.423Z"
     risk: medium
     scope: ops
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: [".github/workflows/ci.yml", "tests/figo-chat-contract.spec.js", "GATE-POSTDEPLOY.ps1"]
     source_signal: manual
     source_ref: "tech-debt-audit-2026-02-24"
@@ -766,6 +854,10 @@ tasks:
     status_since_at: "2026-02-25T05:03:23.037Z"
     risk: low
     scope: tooling
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: handoff_allowed
+    cross_domain: true
     files: ["templates/partials/tele-head-links.html", "telemedicina.html", "styles.css", "styles-critical.css"]
     source_signal: manual
     source_ref: "html-monolith-refactor-2026-02-24"
@@ -787,7 +879,7 @@ tasks:
     acceptance: "telemedicina.html carga styles.css (no styles-critical.css). npm run build:html produce telemedicina.html limpio. Pagina carga sin regresion visual."
     acceptance_ref: "templates/partials/tele-head-links.html"
     evidence_ref: "templates/partials/tele-head-links.html"
-    depends_on: []
+    depends_on: ["CDX-001"]
     prompt: "En templates/partials/tele-head-links.html reemplaza <link rel='stylesheet' href='styles-critical.css' /> y <link rel='stylesheet' href='styles-telemedicina.css' /> por <link rel='stylesheet' href='styles.css?v=inline-20260224-extracted1' />. El archivo styles.css es ahora el CSS critico canonico (extraido del monolito index.html el 2026-02-24, 1760 lineas). Ejecuta npm run build:html para regenerar telemedicina.html. Verifica que la pagina carga sin regresion visual (colores, fuentes, layout). styles-critical.css queda como archivo legacy no enlazado."
     created_at: 2026-02-24
     updated_at: 2026-02-25
@@ -800,6 +892,10 @@ tasks:
     status_since_at: "2026-02-25"
     risk: medium
     scope: ops
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: [".github/workflows/agent-governance.yml"]
     source_signal: workflow
     source_ref: "workflow:agent-governance:main"
@@ -834,6 +930,10 @@ tasks:
     status_since_at: "2026-02-25T04:58:58.368Z"
     risk: high
     scope: ops
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: [".github/workflows/repair-git-sync.yml"]
     source_signal: issue
     source_ref: "issue#282"
@@ -868,6 +968,10 @@ tasks:
     status_since_at: "2026-02-25T04:58:58.368Z"
     risk: high
     scope: ops
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: [".github/workflows/post-deploy-gate.yml"]
     source_signal: issue
     source_ref: "issue#281"
@@ -902,6 +1006,10 @@ tasks:
     status_since_at: "2026-02-25T07:28:26.561Z"
     risk: medium
     scope: ops
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: [".github/workflows/agent-autopilot.yml"]
     source_signal: workflow
     source_ref: "workflow:agent-autopilot:main"
@@ -936,6 +1044,10 @@ tasks:
     status_since_at: "2026-02-25T05:49:40.562Z"
     risk: high
     scope: ops
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: [".github/workflows/post-deploy-gate.yml"]
     source_signal: workflow
     source_ref: "workflow:post-deploy-gate-git-sync:main"
@@ -970,6 +1082,10 @@ tasks:
     status_since_at: "2026-02-25T06:27:58.891Z"
     risk: high
     scope: ops
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: [".github/workflows/repair-git-sync.yml"]
     source_signal: workflow
     source_ref: "workflow:repair-git-sync-self-heal:main"
@@ -1004,6 +1120,10 @@ tasks:
     status_since_at: "2026-02-25T06:27:58.891Z"
     risk: medium
     scope: ops
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: [".github/workflows/ci.yml"]
     source_signal: workflow
     source_ref: "workflow:ci:codex/prod-readiness-workflows-20260225"
@@ -1038,6 +1158,10 @@ tasks:
     status_since_at: "2026-02-25T06:27:58.891Z"
     risk: high
     scope: ops
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: [".github/workflows/post-deploy-gate.yml"]
     source_signal: workflow
     source_ref: "workflow:post-deploy-gate-git-sync:codex/prod-readiness-workflows-20260225"
@@ -1072,6 +1196,10 @@ tasks:
     status_since_at: "2026-02-25T07:20:30.955Z"
     risk: medium
     scope: ci orchestration
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: ["tools/agent-orchestrator/domain/github-signals.js", "tools/agent-orchestrator/commands/runtime-intake.js", "tools/agent-orchestrator/domain/signals.js"]
     source_signal: workflow
     source_ref: "run#22385808120"
@@ -1106,6 +1234,10 @@ tasks:
     status_since_at: "2026-02-25T07:20:30.955Z"
     risk: low
     scope: autopilot reliability
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: [".github/workflows/agent-autopilot.yml", "AGENTS.md", "CLAUDE.md"]
     source_signal: workflow
     source_ref: "run#22381918604"
@@ -1140,6 +1272,10 @@ tasks:
     status_since_at: "2026-02-25T07:20:30.955Z"
     risk: medium
     scope: gate reliability
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: [".github/workflows/post-deploy-gate.yml", "GATE-POSTDEPLOY.ps1", "bin/verify-gate.php"]
     source_signal: workflow
     source_ref: "run#22385825677"
@@ -1174,6 +1310,10 @@ tasks:
     status_since_at: "2026-02-25T17:52:22.997Z"
     risk: low
     scope: docs
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: ["AGENT_BOARD.yaml", "verification/agent-runs/AG-034.md"]
     source_signal: manual
     source_ref: ""
@@ -1197,5 +1337,81 @@ tasks:
     evidence_ref: "verification/agent-runs/AG-034.md"
     depends_on: []
     prompt: "Record Fase 6 weekly KPI hardening evidence in board"
+    created_at: 2026-02-25
+    updated_at: 2026-02-25
+
+  - id: AG-035
+    title: "C1: cerrar flakiness residual en agenda/chat/reprogramacion"
+    owner: ernes
+    executor: codex
+    status: ready
+    status_since_at: "2026-02-25T21:45:05.740Z"
+    risk: high
+    scope: calendar
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: [".github/workflows/phase2-flakiness-probe.yml", "bin/run-phase2-flakiness.js", "tests/phase2-calendar-consistency.spec.js", "tests/chat-booking-calendar-errors.spec.js"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: high
+    critical_zone: true
+    acceptance: "Suite critica C1 estable sin flakiness repetido y con evidencia reproducible"
+    acceptance_ref: "verification/agent-runs/AG-035.md"
+    evidence_ref: "verification/agent-runs/AG-035.md"
+    depends_on: []
+    prompt: "Cerrar flakiness residual de agenda/chat/reprogramacion con evidencia reproducible y guardrails CI"
+    created_at: 2026-02-25
+    updated_at: 2026-02-25
+
+  - id: AG-036
+    title: "C3: cerrar observabilidad accionable y playbook de diagnostico <15m"
+    owner: ernes
+    executor: codex
+    status: ready
+    status_since_at: "2026-02-25T21:45:23.605Z"
+    risk: high
+    scope: observability
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: ["REPORTE-SEMANAL-PRODUCCION.ps1", "controllers/HealthController.php", ".github/workflows/nightly-stability.yml", ".github/workflows/post-deploy-fast.yml", "bin/verify-gate.php"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: high
+    critical_zone: true
+    acceptance: "C3 completo con severidad accionable, playbook operativo y verificacion automatica en pipeline"
+    acceptance_ref: "verification/agent-runs/AG-036.md"
+    evidence_ref: "verification/agent-runs/AG-036.md"
+    depends_on: []
+    prompt: "Cerrar C3 de observabilidad para diagnostico inicial en menos de 15 minutos"
     created_at: 2026-02-25
     updated_at: 2026-02-25
