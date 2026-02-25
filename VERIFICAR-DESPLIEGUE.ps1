@@ -425,6 +425,8 @@ $deployFreshnessLocalCommitUtc = ''
 $deployFreshnessRemoteLastModifiedUtc = ''
 $deployFreshnessProbeName = 'app-script'
 $deployFreshnessProbeUrl = ''
+$autoSkipAssetHashChecksForNonFrontend = $false
+$nonFrontendAdvisoryMode = $false
 
 $changedFiles = Get-HeadChangedFiles
 $changedFilesKnown = ($null -ne $changedFiles)
@@ -478,7 +480,14 @@ if ($changedFilesKnown) {
 
 if (-not $headTouchesFrontendAssets -and $changedFilesKnown) {
     $deployFreshnessFailRequired = $false
-    Write-Host "[INFO] Deploy freshness en modo advisory: HEAD no cambia assets frontend."
+    $nonFrontendAdvisoryMode = -not $ForceAssetHashChecks
+    if ($nonFrontendAdvisoryMode) {
+        if (-not $SkipAssetHashChecks) {
+            $SkipAssetHashChecks = $true
+            $autoSkipAssetHashChecksForNonFrontend = $true
+        }
+        Write-Host "[INFO] Verificacion frontend en modo advisory: HEAD no cambia assets frontend."
+    }
 }
 
 $indexRaw = Get-Content -Path 'index.html' -Raw
@@ -634,70 +643,74 @@ if ($deployAssetVersion -eq '') {
     }
 }
 
-try {
-    $deployFreshnessProbeName = 'app-script'
-    $deployFreshnessProbeUrl = $appScriptRemoteUrl
-    if ($headTouchesEngineAssets) {
-        $engineProbePath = [string]$changedEngineAssets[0]
-        $deployFreshnessProbeName = "engine:$engineProbePath"
-        $deployFreshnessProbeUrl = Get-Url -Base $base -Ref $engineProbePath
-    } elseif ($headTouchesAdminScriptFamily) {
-        $deployFreshnessProbeName = 'admin-script'
-        $deployFreshnessProbeUrl = "$base/admin.js"
-    } elseif ($headTouchesAdminHtml) {
-        $deployFreshnessProbeName = 'admin-index'
-        $deployFreshnessProbeUrl = "$base/admin.html"
-    } elseif (-not $headTouchesScriptFamily) {
-        if ($headTouchesDeferredStyles -and -not [string]::IsNullOrWhiteSpace($indexDeferredStylesRemoteUrl)) {
-            $deployFreshnessProbeName = 'styles-deferred'
-            $deployFreshnessProbeUrl = $indexDeferredStylesRemoteUrl
-        } elseif ($headTouchesStyles -and -not [string]::IsNullOrWhiteSpace($criticalCssRemoteUrl)) {
-            $deployFreshnessProbeName = 'styles'
-            $deployFreshnessProbeUrl = $criticalCssRemoteUrl
-        } elseif ($headTouchesIndex) {
-            $deployFreshnessProbeName = 'index'
-            $deployFreshnessProbeUrl = "$base/"
-        }
-    }
-
-    if (-not [string]::IsNullOrWhiteSpace($deployFreshnessProbeUrl)) {
-        $localHead = Get-LocalGitHeadInfo
-        if ($null -ne $localHead) {
-            $deployFreshnessChecked = $true
-            $deployFreshnessCheckUrl = Get-CacheBypassUrl -Url $deployFreshnessProbeUrl -AssetName 'deploy-freshness' -Attempt 0
-            $scriptHeadResp = Invoke-WebRequest -Uri $deployFreshnessCheckUrl -Method HEAD -TimeoutSec 20 -UseBasicParsing -Headers @{
-                'Cache-Control' = 'no-cache'
-                'User-Agent' = 'PielArmoniaDeployCheck/1.0'
+if ($nonFrontendAdvisoryMode) {
+    Write-Host '[INFO] Deploy freshness omitido: cambio actual no toca assets frontend.'
+} else {
+    try {
+        $deployFreshnessProbeName = 'app-script'
+        $deployFreshnessProbeUrl = $appScriptRemoteUrl
+        if ($headTouchesEngineAssets) {
+            $engineProbePath = [string]$changedEngineAssets[0]
+            $deployFreshnessProbeName = "engine:$engineProbePath"
+            $deployFreshnessProbeUrl = Get-Url -Base $base -Ref $engineProbePath
+        } elseif ($headTouchesAdminScriptFamily) {
+            $deployFreshnessProbeName = 'admin-script'
+            $deployFreshnessProbeUrl = "$base/admin.js"
+        } elseif ($headTouchesAdminHtml) {
+            $deployFreshnessProbeName = 'admin-index'
+            $deployFreshnessProbeUrl = "$base/admin.html"
+        } elseif (-not $headTouchesScriptFamily) {
+            if ($headTouchesDeferredStyles -and -not [string]::IsNullOrWhiteSpace($indexDeferredStylesRemoteUrl)) {
+                $deployFreshnessProbeName = 'styles-deferred'
+                $deployFreshnessProbeUrl = $indexDeferredStylesRemoteUrl
+            } elseif ($headTouchesStyles -and -not [string]::IsNullOrWhiteSpace($criticalCssRemoteUrl)) {
+                $deployFreshnessProbeName = 'styles'
+                $deployFreshnessProbeUrl = $criticalCssRemoteUrl
+            } elseif ($headTouchesIndex) {
+                $deployFreshnessProbeName = 'index'
+                $deployFreshnessProbeUrl = "$base/"
             }
-            $lastModifiedRaw = [string]$scriptHeadResp.Headers['Last-Modified']
-            $ageRaw = [string]$scriptHeadResp.Headers['Age']
-            if (-not [string]::IsNullOrWhiteSpace($lastModifiedRaw)) {
-                $remoteLastModifiedUtc = ([DateTimeOffset]::Parse($lastModifiedRaw)).UtcDateTime
-                $deltaSeconds = [int]([Math]::Round(($localHead.CommitUtc - $remoteLastModifiedUtc).TotalSeconds))
-                $deployFreshnessDeltaSeconds = $deltaSeconds
-                $deployFreshnessLocalHash = [string]$localHead.Hash
-                $deployFreshnessLocalCommitUtc = $localHead.CommitUtc.ToString('u')
-                $deployFreshnessRemoteLastModifiedUtc = $remoteLastModifiedUtc.ToString('u')
-                if ($deltaSeconds -gt 180) {
-                    $deployFreshnessStale = $true
-                    Write-Host "[WARN] deploy freshness ($deployFreshnessProbeName): remoto mas viejo que HEAD local"
-                    Write-Host "       Local HEAD : $($localHead.Hash) @ $($localHead.CommitUtc.ToString('u'))"
-                    Write-Host "       Remote LM  : $($remoteLastModifiedUtc.ToString('u'))"
-                    if (-not [string]::IsNullOrWhiteSpace($ageRaw)) {
-                        Write-Host "       CDN Age    : ${ageRaw}s"
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($deployFreshnessProbeUrl)) {
+            $localHead = Get-LocalGitHeadInfo
+            if ($null -ne $localHead) {
+                $deployFreshnessChecked = $true
+                $deployFreshnessCheckUrl = Get-CacheBypassUrl -Url $deployFreshnessProbeUrl -AssetName 'deploy-freshness' -Attempt 0
+                $scriptHeadResp = Invoke-WebRequest -Uri $deployFreshnessCheckUrl -Method HEAD -TimeoutSec 20 -UseBasicParsing -Headers @{
+                    'Cache-Control' = 'no-cache'
+                    'User-Agent' = 'PielArmoniaDeployCheck/1.0'
+                }
+                $lastModifiedRaw = [string]$scriptHeadResp.Headers['Last-Modified']
+                $ageRaw = [string]$scriptHeadResp.Headers['Age']
+                if (-not [string]::IsNullOrWhiteSpace($lastModifiedRaw)) {
+                    $remoteLastModifiedUtc = ([DateTimeOffset]::Parse($lastModifiedRaw)).UtcDateTime
+                    $deltaSeconds = [int]([Math]::Round(($localHead.CommitUtc - $remoteLastModifiedUtc).TotalSeconds))
+                    $deployFreshnessDeltaSeconds = $deltaSeconds
+                    $deployFreshnessLocalHash = [string]$localHead.Hash
+                    $deployFreshnessLocalCommitUtc = $localHead.CommitUtc.ToString('u')
+                    $deployFreshnessRemoteLastModifiedUtc = $remoteLastModifiedUtc.ToString('u')
+                    if ($deltaSeconds -gt 180) {
+                        $deployFreshnessStale = $true
+                        Write-Host "[WARN] deploy freshness ($deployFreshnessProbeName): remoto mas viejo que HEAD local"
+                        Write-Host "       Local HEAD : $($localHead.Hash) @ $($localHead.CommitUtc.ToString('u'))"
+                        Write-Host "       Remote LM  : $($remoteLastModifiedUtc.ToString('u'))"
+                        if (-not [string]::IsNullOrWhiteSpace($ageRaw)) {
+                            Write-Host "       CDN Age    : ${ageRaw}s"
+                        }
+                    } else {
+                        Write-Host "[OK]  deploy freshness ($deployFreshnessProbeName) dentro de margen (${deltaSeconds}s)"
                     }
                 } else {
-                    Write-Host "[OK]  deploy freshness ($deployFreshnessProbeName) dentro de margen (${deltaSeconds}s)"
+                    Write-Host '[WARN] deploy freshness: Last-Modified no disponible'
                 }
             } else {
-                Write-Host '[WARN] deploy freshness: Last-Modified no disponible'
+                Write-Host '[WARN] deploy freshness: no se pudo leer metadata de git local'
             }
-        } else {
-            Write-Host '[WARN] deploy freshness: no se pudo leer metadata de git local'
         }
+    } catch {
+        Write-Host "[WARN] No se pudo validar deploy freshness: $($_.Exception.Message)"
     }
-} catch {
-    Write-Host "[WARN] No se pudo validar deploy freshness: $($_.Exception.Message)"
 }
 
 if ($deployFreshnessChecked -and $deployFreshnessStale) {
@@ -1054,6 +1067,7 @@ if ([regex]::IsMatch([string]$remoteIndexRaw, $inlineExecutableScriptPattern, [S
 
 $frontendAssetDriftAdvisory = $changedFilesKnown -and -not $headTouchesFrontendAssets -and -not $ForceAssetHashChecks
 $indexAssetRefAdvisory = ($SkipAssetHashChecks -and -not $headTouchesFrontendAssets) -or ($deployFreshnessStale -and -not $ForceAssetHashChecks -and -not $headTouchesFrontendAssets) -or $frontendAssetDriftAdvisory
+$indexAssetRefAdvisoryAsInfo = $nonFrontendAdvisoryMode
 $indexAssetRefAdvisoryReason = if ($SkipAssetHashChecks -and -not $headTouchesFrontendAssets) {
     'advisory por SkipAssetHashChecks sin cambios frontend'
 } elseif ($deployFreshnessStale -and -not $ForceAssetHashChecks -and -not $headTouchesFrontendAssets) {
@@ -1066,7 +1080,11 @@ $indexAssetRefAdvisoryReason = if ($SkipAssetHashChecks -and -not $headTouchesFr
 
 if ($remoteScriptRef -eq '') {
     if ($indexAssetRefAdvisory) {
-        Write-Host "[WARN] No se pudo detectar referencia de script.js en index remoto ($indexAssetRefAdvisoryReason)"
+        if ($indexAssetRefAdvisoryAsInfo) {
+            Write-Host "[INFO] No se pudo detectar referencia de script.js en index remoto ($indexAssetRefAdvisoryReason)"
+        } else {
+            Write-Host "[WARN] No se pudo detectar referencia de script.js en index remoto ($indexAssetRefAdvisoryReason)"
+        }
         Write-Host "       Local : $localScriptRef"
     } else {
         Write-Host "[FAIL] No se pudo detectar referencia de script.js en index remoto"
@@ -1082,7 +1100,11 @@ if ($remoteScriptRef -eq '') {
     Write-Host "[OK]  index remoto usa misma referencia de script.js"
 } else {
     if ($indexAssetRefAdvisory) {
-        Write-Host "[WARN] index remoto script.js diferente ($indexAssetRefAdvisoryReason)"
+        if ($indexAssetRefAdvisoryAsInfo) {
+            Write-Host "[INFO] index remoto script.js diferente ($indexAssetRefAdvisoryReason)"
+        } else {
+            Write-Host "[WARN] index remoto script.js diferente ($indexAssetRefAdvisoryReason)"
+        }
         Write-Host "       Local : $localScriptRef"
         Write-Host "       Remote: $remoteScriptRef"
     } else {
@@ -1103,7 +1125,11 @@ if ($localStyleRef -ne '') {
     $styleRefAdvisory = $indexAssetRefAdvisory
     if ($remoteStyleRef -eq '') {
         if ($styleRefAdvisory) {
-            Write-Host "[WARN] index remoto sin referencia de styles.css ($indexAssetRefAdvisoryReason)"
+            if ($indexAssetRefAdvisoryAsInfo) {
+                Write-Host "[INFO] index remoto sin referencia de styles.css ($indexAssetRefAdvisoryReason)"
+            } else {
+                Write-Host "[WARN] index remoto sin referencia de styles.css ($indexAssetRefAdvisoryReason)"
+            }
             Write-Host "       Local : $localStyleRef"
         } else {
             Write-Host "[FAIL] index remoto sin referencia de styles.css"
@@ -1119,7 +1145,11 @@ if ($localStyleRef -ne '') {
         Write-Host "[OK]  index remoto usa misma referencia de styles.css"
     } else {
         if ($styleRefAdvisory) {
-            Write-Host "[WARN] index remoto styles.css diferente ($indexAssetRefAdvisoryReason)"
+            if ($indexAssetRefAdvisoryAsInfo) {
+                Write-Host "[INFO] index remoto styles.css diferente ($indexAssetRefAdvisoryReason)"
+            } else {
+                Write-Host "[WARN] index remoto styles.css diferente ($indexAssetRefAdvisoryReason)"
+            }
             Write-Host "       Local : $localStyleRef"
             Write-Host "       Remote: $remoteStyleRef"
         } else {
@@ -1155,7 +1185,11 @@ if ($localStyleRef -ne '') {
         $deferredStyleRefAdvisory = $indexAssetRefAdvisory
         if ($remoteDeferredStyleRef -eq '') {
             if ($deferredStyleRefAdvisory) {
-                Write-Host "[WARN] index remoto sin referencia de styles-deferred.css ($indexAssetRefAdvisoryReason)"
+                if ($indexAssetRefAdvisoryAsInfo) {
+                    Write-Host "[INFO] index remoto sin referencia de styles-deferred.css ($indexAssetRefAdvisoryReason)"
+                } else {
+                    Write-Host "[WARN] index remoto sin referencia de styles-deferred.css ($indexAssetRefAdvisoryReason)"
+                }
                 Write-Host "       Local : $localDeferredStyleRef"
             } else {
                 Write-Host "[FAIL] index remoto sin referencia de styles-deferred.css"
@@ -1171,7 +1205,11 @@ if ($localStyleRef -ne '') {
             Write-Host "[OK]  index remoto usa misma referencia de styles-deferred.css"
         } else {
             if ($deferredStyleRefAdvisory) {
-                Write-Host "[WARN] index remoto styles-deferred.css diferente ($indexAssetRefAdvisoryReason)"
+                if ($indexAssetRefAdvisoryAsInfo) {
+                    Write-Host "[INFO] index remoto styles-deferred.css diferente ($indexAssetRefAdvisoryReason)"
+                } else {
+                    Write-Host "[WARN] index remoto styles-deferred.css diferente ($indexAssetRefAdvisoryReason)"
+                }
                 Write-Host "       Local : $localDeferredStyleRef"
                 Write-Host "       Remote: $remoteDeferredStyleRef"
             } else {
@@ -1191,7 +1229,11 @@ if ($localStyleRef -ne '') {
 }
 
 if ($SkipAssetHashChecks) {
-    Write-Host '[WARN] Se omite verificacion de hashes de assets (SkipAssetHashChecks).'
+    if ($autoSkipAssetHashChecksForNonFrontend) {
+        Write-Host '[INFO] Se omite verificacion de hashes de assets (cambio actual sin frontend).'
+    } else {
+        Write-Host '[WARN] Se omite verificacion de hashes de assets (SkipAssetHashChecks).'
+    }
 } elseif ($deployFreshnessStale -and -not $ForceAssetHashChecks) {
     Write-Host '[WARN] Se omite verificacion de hashes de assets hasta que el deploy remoto se sincronice con HEAD.'
 } else {
