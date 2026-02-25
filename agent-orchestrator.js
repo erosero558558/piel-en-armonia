@@ -79,6 +79,22 @@ const ALLOWED_STATUSES = new Set([
 ]);
 
 const ACTIVE_STATUSES = new Set(['ready', 'in_progress', 'review', 'blocked']);
+const ALLOWED_TASK_EXECUTORS = new Set([
+    'codex',
+    'claude',
+    'jules',
+    'kimi',
+    'ci',
+]);
+const CRITICAL_SCOPE_KEYWORDS = [
+    'payments',
+    'auth',
+    'calendar',
+    'deploy',
+    'env',
+    'security',
+];
+const CRITICAL_SCOPE_ALLOWED_EXECUTORS = new Set(['codex', 'claude']);
 
 function normalizeEol(value) {
     return value.replace(/\r\n/g, '\n');
@@ -571,6 +587,77 @@ function ensureTask(board, taskId) {
         throw new Error(`No existe task_id ${taskId} en AGENT_BOARD.yaml`);
     }
     return task;
+}
+
+function findCriticalScopeKeyword(scopeValue) {
+    const scope = String(scopeValue || '')
+        .trim()
+        .toLowerCase();
+    if (!scope) return null;
+    for (const keyword of CRITICAL_SCOPE_KEYWORDS) {
+        if (scope.includes(keyword)) return keyword;
+    }
+    return null;
+}
+
+function validateTaskExecutorScopeGuard(task) {
+    const scope = String(task?.scope || '');
+    const executor = String(task?.executor || '')
+        .trim()
+        .toLowerCase();
+    const matchedKeyword = findCriticalScopeKeyword(scope);
+    if (!matchedKeyword) return;
+    if (CRITICAL_SCOPE_ALLOWED_EXECUTORS.has(executor)) return;
+    throw new Error(
+        `task critica (${scope}) no puede asignarse a executor ${executor}; permitidos: ${Array.from(
+            CRITICAL_SCOPE_ALLOWED_EXECUTORS
+        ).join(', ')}`
+    );
+}
+
+function validateTaskDependsOn(board, task, options = {}) {
+    const { allowSelf = false } = options;
+    const taskId = String(task?.id || '').trim();
+    const deps = Array.isArray(task?.depends_on) ? task.depends_on : [];
+    const seen = new Set();
+    const idsInBoard = new Set(
+        (board?.tasks || []).map((item) => String(item.id || ''))
+    );
+
+    for (const rawDep of deps) {
+        const dep = String(rawDep || '').trim();
+        if (!dep) {
+            throw new Error(
+                `task ${taskId || '(sin id)'}: depends_on contiene valor vacio`
+            );
+        }
+        if (!/^(AG|CDX)-\d+$/.test(dep)) {
+            throw new Error(
+                `task ${taskId || '(sin id)'}: depends_on invalido (${dep}), esperado AG-### o CDX-###`
+            );
+        }
+        if (seen.has(dep)) {
+            throw new Error(
+                `task ${taskId || '(sin id)'}: depends_on duplicado (${dep})`
+            );
+        }
+        seen.add(dep);
+        if (!allowSelf && dep === taskId) {
+            throw new Error(
+                `task ${taskId}: depends_on no puede referenciarse a si misma`
+            );
+        }
+        if (!idsInBoard.has(dep)) {
+            throw new Error(
+                `task ${taskId || '(sin id)'}: depends_on no existe en board (${dep})`
+            );
+        }
+    }
+}
+
+function validateTaskGovernancePrechecks(board, task, options = {}) {
+    validateTaskExecutorScopeGuard(task);
+    validateTaskDependsOn(board, task, options);
 }
 
 function writeBoard(board) {
@@ -3417,17 +3504,10 @@ function cmdTask(args) {
         const executor = String(flags.executor || '')
             .trim()
             .toLowerCase();
-        const allowedExecutors = new Set([
-            'codex',
-            'claude',
-            'jules',
-            'kimi',
-            'ci',
-        ]);
         if (!executor) {
             throw new Error('task create requiere --executor');
         }
-        if (!allowedExecutors.has(executor)) {
+        if (!ALLOWED_TASK_EXECUTORS.has(executor)) {
             throw new Error(`task create: executor invalido (${executor})`);
         }
 
@@ -3480,6 +3560,8 @@ function cmdTask(args) {
             created_at: today,
             updated_at: today,
         };
+
+        validateTaskGovernancePrechecks(board, task);
 
         board.tasks.push(task);
 
@@ -3552,7 +3634,11 @@ function cmdTask(args) {
         task.owner = ownerOverride;
 
         if (flags.executor) {
-            task.executor = String(flags.executor).trim();
+            const nextExecutor = String(flags.executor).trim().toLowerCase();
+            if (!ALLOWED_TASK_EXECUTORS.has(nextExecutor)) {
+                throw new Error(`Executor invalido: ${nextExecutor}`);
+            }
+            task.executor = nextExecutor;
         }
         if (flags.status) {
             const nextStatus = String(flags.status).trim();
@@ -3569,6 +3655,34 @@ function cmdTask(args) {
                 );
             }
             task.files = files;
+        }
+
+        validateTaskGovernancePrechecks(board, task, { allowSelf: true });
+
+        if (ACTIVE_STATUSES.has(String(task.status || '').trim())) {
+            const handoffData = parseHandoffs();
+            const blockingConflicts = getBlockingConflictsForTask(
+                board.tasks,
+                taskId,
+                handoffData.handoffs
+            );
+            if (blockingConflicts.length > 0) {
+                const details = blockingConflicts
+                    .map((item) => {
+                        const other =
+                            String(item.left.id) === taskId
+                                ? item.right
+                                : item.left;
+                        const files = item.overlap_files.length
+                            ? item.overlap_files.join(', ')
+                            : '(wildcard ambiguo)';
+                        return `${taskId} <-> ${other.id} :: ${files}`;
+                    })
+                    .join(' | ');
+                throw new Error(
+                    `task claim bloqueado por conflicto activo: ${details}`
+                );
+            }
         }
 
         task.updated_at = currentDate();
@@ -3609,7 +3723,11 @@ function cmdTask(args) {
             task.owner = detectDefaultOwner(task.owner) || 'unassigned';
         }
         if (flags.executor) {
-            task.executor = String(flags.executor).trim();
+            const nextExecutor = String(flags.executor).trim().toLowerCase();
+            if (!ALLOWED_TASK_EXECUTORS.has(nextExecutor)) {
+                throw new Error(`Executor invalido: ${nextExecutor}`);
+            }
+            task.executor = nextExecutor;
         }
         if (flags.scope) {
             task.scope = String(flags.scope).trim();
@@ -3626,6 +3744,8 @@ function cmdTask(args) {
 
         task.status = nextStatus;
         task.updated_at = currentDate();
+
+        validateTaskGovernancePrechecks(board, task, { allowSelf: true });
 
         const handoffData = parseHandoffs();
         const blockingConflicts = getBlockingConflictsForTask(

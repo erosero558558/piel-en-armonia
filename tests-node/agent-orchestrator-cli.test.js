@@ -649,6 +649,8 @@ test('task create crea AG siguiente y sincroniza colas derivadas', (t) => {
             'docs',
             '--files',
             'docs/nueva-tarea.md,docs/otra.md',
+            '--depends-on',
+            'AG-010',
             '--json',
         ],
         { AGENT_OWNER: 'ernesto' }
@@ -669,6 +671,7 @@ test('task create crea AG siguiente y sincroniza colas derivadas', (t) => {
     assert.match(board, /executor: kimi/);
     assert.match(board, /status: ready/);
     assert.match(board, /files: \["docs\/nueva-tarea\.md", "docs\/otra\.md"\]/);
+    assert.match(board, /depends_on: \["AG-010"\]/);
 
     assert.equal(
         typeof readFileSync(join(dir, 'JULES_TASKS.md'), 'utf8'),
@@ -713,6 +716,125 @@ test('task create bloquea crear tarea activa con conflicto blocking', (t) => {
 
     assert.match(result.stderr, /task create bloqueado por conflicto activo/i);
     assert.match(result.stderr, /tests\/MailerTest\.php/i);
+});
+
+test('task create valida depends_on existente y bloquea referencias invalidas', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    let result = runCli(
+        dir,
+        [
+            'task',
+            'create',
+            '--title',
+            'Deps invalidas',
+            '--executor',
+            'kimi',
+            '--files',
+            'docs/deps.md',
+            '--depends-on',
+            'AG-999',
+        ],
+        1
+    );
+    assert.match(result.stderr, /depends_on no existe en board/i);
+    assert.match(result.stderr, /AG-999/);
+
+    result = runCli(
+        dir,
+        [
+            'task',
+            'create',
+            '--title',
+            'Deps duplicadas',
+            '--executor',
+            'kimi',
+            '--files',
+            'docs/deps-dup.md',
+            '--depends-on',
+            'AG-010,AG-010',
+        ],
+        1
+    );
+    assert.match(result.stderr, /depends_on duplicado/i);
+});
+
+test('task create bloquea scope critico para executor no permitido', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const result = runCli(
+        dir,
+        [
+            'task',
+            'create',
+            '--title',
+            'Cambio deploy',
+            '--executor',
+            'jules',
+            '--scope',
+            'deploy-hotfix',
+            '--files',
+            '.github/workflows/deploy.yml',
+        ],
+        1
+    );
+
+    assert.match(result.stderr, /task critica/i);
+    assert.match(result.stderr, /executor jules/i);
+});
+
+test('task claim bloquea pasar a estado activo si genera conflicto blocking', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskStartConflictFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const result = runCli(
+        dir,
+        ['task', 'claim', 'AG-021', '--status', 'in_progress'],
+        1
+    );
+
+    assert.match(result.stderr, /task claim bloqueado por conflicto activo/i);
+    assert.match(result.stderr, /AG-021 <-> AG-020/i);
+});
+
+test('task start bloquea scope critico para executor no permitido', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const result = runCli(
+        dir,
+        ['task', 'start', 'AG-010', '--scope', 'payments-prod'],
+        1
+    );
+
+    assert.match(result.stderr, /task critica/i);
+    assert.match(result.stderr, /executor jules/i);
 });
 
 test('close soporta --json y devuelve task + evidence_path', (t) => {
