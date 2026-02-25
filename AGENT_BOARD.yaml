@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 73
+  revision: 74
   updated_at: 2026-02-25
 
 tasks:
@@ -1496,8 +1496,8 @@ tasks:
     title: "Frontend P0: Chat + Booking coexistence UX (mobile/desktop)"
     owner: Ernesto
     executor: codex
-    status: backlog
-    status_since_at: "2026-02-25T22:00:58.689Z"
+    status: done
+    status_since_at: "2026-02-25T22:26:58.423Z"
     risk: medium
     scope: frontend-public
     codex_instance: codex_frontend
@@ -1518,13 +1518,13 @@ tasks:
     heartbeat_at: ""
     lease_expires_at: ""
     lease_reason: ""
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_cleared_at: "2026-02-25T22:26:58.423Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
     acceptance: "Chat y booking coexisten sin solapes ni bloqueo de interaccion en movil y desktop."
-    acceptance_ref: ""
-    evidence_ref: ""
+    acceptance_ref: "verification/agent-runs/AG-039.md"
+    evidence_ref: "verification/agent-runs/AG-039.md"
     depends_on: ["AG-038"]
     prompt: "Mejorar coexistencia chat+booking: stacking/safe-area, reglas de apertura/cierre y handoff visual a booking, preservando comportamiento actual de errores y contratos."
     created_at: 2026-02-25

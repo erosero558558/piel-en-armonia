@@ -3368,6 +3368,9 @@ html[data-theme='dark'] .map-placeholder:hover .map-placeholder-content i {
     background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(10px);
     box-shadow: 0 12px 26px rgba(12, 25, 45, 0.16);
+    transition:
+        opacity 0.22s ease,
+        transform 0.22s ease;
 }
 
 .quick-dock-item {
@@ -4180,9 +4183,15 @@ html[data-theme='dark'] .payment-modal [data-action='process-payment'] {
 
 /* Chat viewport guardrails for small windows/mobile */
 @media (max-width: 1100px) {
+    body.chatbot-open .quick-dock {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(10px);
+    }
+
     .chatbot-widget {
         right: 12px !important;
-        bottom: calc(82px + var(--safe-bottom)) !important;
+        bottom: calc(var(--chat-widget-mobile-bottom, 82px) + var(--safe-bottom)) !important;
         z-index: 2300 !important;
     }
     .chatbot-container {
@@ -4190,7 +4199,7 @@ html[data-theme='dark'] .payment-modal [data-action='process-payment'] {
         right: 8px !important;
         width: auto !important;
         max-width: none !important;
-        bottom: calc(146px + var(--safe-bottom)) !important;
+        bottom: calc(var(--chat-container-mobile-bottom, 146px) + var(--safe-bottom)) !important;
         height: min(68dvh, 560px) !important;
         max-height: calc(100dvh - 170px - var(--safe-bottom)) !important;
         margin: 0 !important;
@@ -4202,7 +4211,7 @@ html[data-theme='dark'] .payment-modal [data-action='process-payment'] {
 @media (max-width: 640px) {
     .chatbot-widget {
         right: 10px !important;
-        bottom: calc(76px + var(--safe-bottom)) !important;
+        bottom: calc(var(--chat-widget-mobile-bottom, 76px) + var(--safe-bottom)) !important;
     }
     .chatbot-container {
         left: 0 !important;
