@@ -149,15 +149,112 @@ function figo_queue_gateway_status_path(): string
     return figo_queue_dir_base() . DIRECTORY_SEPARATOR . 'gateway-status.json';
 }
 
+function _figo_queue_write_job_internal(array $job, PDO $pdo): bool
+{
+    $jobId = isset($job['jobId']) ? (string) $job['jobId'] : '';
+    if (!figo_queue_job_id_is_valid($jobId)) {
+        return false;
+    }
+
+    $jsonData = json_encode($job, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if (!is_string($jsonData)) {
+        return false;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            INSERT OR REPLACE INTO figo_queue_jobs (
+                job_id, status, created_at, updated_at, expires_at, next_attempt_at,
+                session_id_hash, request_hash, attempts, model, messages,
+                temperature, max_tokens, response, error_code, error_message,
+                failed_at, completed_at, expired_at, json_data
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+
+        $stmt->execute([
+            $jobId,
+            $job['status'] ?? 'queued',
+            $job['createdAt'] ?? gmdate('c'),
+            $job['updatedAt'] ?? gmdate('c'),
+            $job['expiresAt'] ?? null,
+            $job['nextAttemptAt'] ?? null,
+            $job['sessionIdHash'] ?? '',
+            $job['requestHash'] ?? '',
+            (int) ($job['attempts'] ?? 0),
+            $job['model'] ?? '',
+            json_encode($job['messages'] ?? [], JSON_UNESCAPED_UNICODE),
+            (float) ($job['temperature'] ?? 0.7),
+            (int) ($job['maxTokens'] ?? 1000),
+            isset($job['response']) ? json_encode($job['response'], JSON_UNESCAPED_UNICODE) : null,
+            $job['errorCode'] ?? null,
+            $job['errorMessage'] ?? null,
+            $job['failedAt'] ?? null,
+            $job['completedAt'] ?? null,
+            $job['expiredAt'] ?? null,
+            $jsonData
+        ]);
+
+        return true;
+    } catch (PDOException $e) {
+        error_log("figo_queue_write_job error: " . $e->getMessage());
+        return false;
+    }
+}
+
+function figo_queue_migrate_legacy_jobs(): void
+{
+    $jobsDir = figo_queue_dir_jobs();
+    if (!is_dir($jobsDir)) {
+        return;
+    }
+
+    $flag = $jobsDir . DIRECTORY_SEPARATOR . '.migrated';
+    if (file_exists($flag)) {
+        return;
+    }
+
+    $files = glob($jobsDir . DIRECTORY_SEPARATOR . '*.json');
+    if (!is_array($files) || $files === []) {
+        @touch($flag);
+        return;
+    }
+
+    $pdo = get_db_connection(data_file_path());
+    if (!$pdo) {
+        return;
+    }
+
+    foreach ($files as $path) {
+        $job = figo_queue_read_json_file($path);
+        if (is_array($job) && isset($job['jobId'])) {
+            if (_figo_queue_write_job_internal($job, $pdo)) {
+                @unlink($path);
+            }
+        }
+    }
+
+    $remaining = glob($jobsDir . DIRECTORY_SEPARATOR . '*.json');
+    if ($remaining === [] || $remaining === false) {
+        @touch($flag);
+    }
+}
+
 function figo_queue_ensure_dirs(): bool
 {
-    $dirs = [figo_queue_dir_base(), figo_queue_dir_jobs(), figo_queue_dir_locks()];
+    if (!ensure_data_file()) {
+        return false;
+    }
+
+    $dirs = [figo_queue_dir_base(), figo_queue_dir_locks()];
     foreach ($dirs as $dir) {
         if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
             return false;
         }
         ensure_data_htaccess($dir);
     }
+
+    figo_queue_migrate_legacy_jobs();
+
     return true;
 }
 
@@ -173,14 +270,6 @@ function figo_queue_new_job_id(): string
     } catch (Throwable $e) {
         return substr(sha1((string) microtime(true) . (string) mt_rand()), 0, 32);
     }
-}
-
-function figo_queue_job_path(string $jobId): string
-{
-    if (!figo_queue_job_id_is_valid($jobId)) {
-        return '';
-    }
-    return figo_queue_dir_jobs() . DIRECTORY_SEPARATOR . $jobId . '.json';
 }
 
 function figo_queue_now(): int
@@ -215,13 +304,90 @@ function figo_queue_write_json_file(string $path, array $data): bool
     return @file_put_contents($path, $json, LOCK_EX) !== false;
 }
 
+function figo_queue_db_to_job(array $row): array
+{
+    $job = [];
+    if (isset($row['json_data']) && is_string($row['json_data'])) {
+        $decoded = json_decode($row['json_data'], true);
+        if (is_array($decoded)) {
+            $job = $decoded;
+        }
+    }
+
+    // Force consistency from DB columns
+    $job['jobId'] = $row['job_id'];
+    $job['status'] = $row['status'];
+    $job['createdAt'] = $row['created_at'];
+    $job['updatedAt'] = $row['updated_at'];
+    $job['expiresAt'] = $row['expires_at'];
+    $job['nextAttemptAt'] = $row['next_attempt_at'];
+    $job['sessionIdHash'] = $row['session_id_hash'];
+    $job['requestHash'] = $row['request_hash'];
+    $job['attempts'] = (int) $row['attempts'];
+    $job['model'] = $row['model'];
+    $job['temperature'] = (float) $row['temperature'];
+    $job['maxTokens'] = (int) $row['max_tokens'];
+
+    if (isset($row['messages']) && is_string($row['messages'])) {
+        $messages = json_decode($row['messages'], true);
+        if (is_array($messages)) {
+            $job['messages'] = $messages;
+        }
+    }
+
+    if (isset($row['response']) && is_string($row['response'])) {
+        $response = json_decode($row['response'], true);
+        if (is_array($response)) {
+            $job['response'] = $response;
+        }
+    }
+
+    if (isset($row['error_code'])) {
+        $job['errorCode'] = $row['error_code'];
+    }
+    if (isset($row['error_message'])) {
+        $job['errorMessage'] = $row['error_message'];
+    }
+    if (isset($row['failed_at'])) {
+        $job['failedAt'] = $row['failed_at'];
+    }
+    if (isset($row['completed_at'])) {
+        $job['completedAt'] = $row['completed_at'];
+    }
+    if (isset($row['expired_at'])) {
+        $job['expiredAt'] = $row['expired_at'];
+    }
+
+    return $job;
+}
+
 function figo_queue_read_job(string $jobId): ?array
 {
-    $path = figo_queue_job_path($jobId);
-    if ($path === '') {
+    if (!figo_queue_job_id_is_valid($jobId)) {
         return null;
     }
-    return figo_queue_read_json_file($path);
+
+    if (!figo_queue_ensure_dirs()) {
+        return null;
+    }
+
+    $pdo = get_db_connection(data_file_path());
+    if (!$pdo) {
+        return null;
+    }
+
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM figo_queue_jobs WHERE job_id = ?");
+        $stmt->execute([$jobId]);
+        $row = $stmt->fetch();
+
+        if ($row) {
+            return figo_queue_db_to_job($row);
+        }
+        return null;
+    } catch (PDOException $e) {
+        return null;
+    }
 }
 
 function figo_queue_write_job(array $job): bool
@@ -230,13 +396,12 @@ function figo_queue_write_job(array $job): bool
         return false;
     }
 
-    $jobId = isset($job['jobId']) ? (string) $job['jobId'] : '';
-    $path = figo_queue_job_path($jobId);
-    if ($path === '') {
+    $pdo = get_db_connection(data_file_path());
+    if (!$pdo) {
         return false;
     }
 
-    return figo_queue_write_json_file($path, $job);
+    return _figo_queue_write_job_internal($job, $pdo);
 }
 
 function figo_queue_write_worker_meta(array $meta): void
@@ -427,45 +592,35 @@ function figo_queue_find_recent_by_request_hash(string $requestHash, string $ses
     if (!figo_queue_ensure_dirs()) {
         return null;
     }
-    $files = glob(figo_queue_dir_jobs() . DIRECTORY_SEPARATOR . '*.json');
-    if (!is_array($files) || $files === []) {
+
+    $pdo = get_db_connection(data_file_path());
+    if (!$pdo) {
         return null;
     }
 
     $now = figo_queue_now();
-    rsort($files, SORT_STRING);
-    $checked = 0;
-    foreach ($files as $path) {
-        $checked++;
-        if ($checked > 80) {
-            break;
-        }
+    $cutoff = gmdate('c', $now - $lookbackSec);
+    $nowIso = gmdate('c', $now);
 
-        $mtime = (int) @filemtime($path);
-        if ($mtime > 0 && ($now - $mtime) > $lookbackSec) {
-            continue;
-        }
+    try {
+        $stmt = $pdo->prepare("
+            SELECT * FROM figo_queue_jobs
+            WHERE request_hash = ?
+            AND session_id_hash = ?
+            AND status IN ('queued', 'processing', 'completed')
+            AND (created_at >= ? OR updated_at >= ?)
+            AND (expires_at IS NULL OR expires_at > ?)
+            ORDER BY created_at DESC
+            LIMIT 1
+        ");
+        $stmt->execute([$requestHash, $sessionHash, $cutoff, $cutoff, $nowIso]);
+        $row = $stmt->fetch();
 
-        $job = figo_queue_read_json_file($path);
-        if (!is_array($job)) {
-            continue;
+        if ($row) {
+            return figo_queue_db_to_job($row);
         }
-        if ((string) ($job['requestHash'] ?? '') !== $requestHash) {
-            continue;
-        }
-        if ((string) ($job['sessionIdHash'] ?? '') !== $sessionHash) {
-            continue;
-        }
-        $status = (string) ($job['status'] ?? '');
-        if (!in_array($status, ['queued', 'processing', 'completed'], true)) {
-            continue;
-        }
-
-        $expiresAt = strtotime((string) ($job['expiresAt'] ?? ''));
-        if ($expiresAt > 0 && $expiresAt < $now) {
-            continue;
-        }
-        return $job;
+    } catch (PDOException $e) {
+        error_log("figo_queue_find_recent_by_request_hash error: " . $e->getMessage());
     }
 
     return null;
@@ -750,20 +905,24 @@ function figo_queue_count_depth(): array
     if (!figo_queue_ensure_dirs()) {
         return $counts;
     }
-    $files = glob(figo_queue_dir_jobs() . DIRECTORY_SEPARATOR . '*.json');
-    if (!is_array($files)) {
+
+    $pdo = get_db_connection(data_file_path());
+    if (!$pdo) {
         return $counts;
     }
-    foreach ($files as $path) {
-        $job = figo_queue_read_json_file($path);
-        if (!is_array($job)) {
-            continue;
+
+    try {
+        $stmt = $pdo->query("SELECT status, COUNT(*) as count FROM figo_queue_jobs GROUP BY status");
+        while ($row = $stmt->fetch()) {
+            $status = (string) $row['status'];
+            if (array_key_exists($status, $counts)) {
+                $counts[$status] = (int) $row['count'];
+            }
         }
-        $status = (string) ($job['status'] ?? '');
-        if (array_key_exists($status, $counts)) {
-            $counts[$status]++;
-        }
+    } catch (PDOException $e) {
+        error_log("figo_queue_count_depth error: " . $e->getMessage());
     }
+
     return $counts;
 }
 
@@ -778,49 +937,44 @@ function figo_queue_purge_old_jobs(?int $nowTs = null): array
         return $result;
     }
 
-    $files = glob(figo_queue_dir_jobs() . DIRECTORY_SEPARATOR . '*.json');
-    if (!is_array($files)) {
+    $pdo = get_db_connection(data_file_path());
+    if (!$pdo) {
         return $result;
     }
 
-    foreach ($files as $path) {
-        $job = figo_queue_read_json_file($path);
-        if (!is_array($job)) {
-            continue;
+    $nowIso = gmdate('c', $now);
+    $ttlCutoff = gmdate('c', $now - $ttl);
+    $retentionCutoff = gmdate('c', $now - $retention);
+
+    try {
+        // Expire jobs
+        $stmt = $pdo->prepare("
+            UPDATE figo_queue_jobs
+            SET status = 'expired',
+                updated_at = ?,
+                expired_at = ?,
+                error_code = 'queue_expired',
+                error_message = 'Job vencido en cola'
+            WHERE status IN ('queued', 'processing')
+            AND created_at < ?
+        ");
+        $stmt->execute([$nowIso, $nowIso, $ttlCutoff]);
+        $result['expiredNow'] = $stmt->rowCount();
+
+        if ($result['expiredNow'] > 0) {
+            Metrics::increment('openclaw_queue_jobs_total', ['status' => 'expired']);
+            // Audit log for each expired is hard with bulk update,
+            // so we skip individual audit logs or fetch first.
+            // For performance, we skip individual audit logs in bulk expire.
         }
 
-        $status = (string) ($job['status'] ?? '');
-        $createdAtTs = strtotime((string) ($job['createdAt'] ?? ''));
-        if ($createdAtTs <= 0) {
-            $createdAtTs = (int) @filemtime($path);
-        }
-        if ($createdAtTs <= 0) {
-            $createdAtTs = $now;
-        }
+        // Delete old jobs
+        $stmt = $pdo->prepare("DELETE FROM figo_queue_jobs WHERE created_at < ?");
+        $stmt->execute([$retentionCutoff]);
+        $result['deleted'] = $stmt->rowCount();
 
-        if (in_array($status, ['queued', 'processing'], true)) {
-            if (($now - $createdAtTs) > $ttl) {
-                $job['status'] = 'expired';
-                $job['updatedAt'] = gmdate('c');
-                $job['expiredAt'] = gmdate('c');
-                $job['errorCode'] = 'queue_expired';
-                $job['errorMessage'] = 'Job vencido en cola';
-                figo_queue_write_json_file($path, $job);
-                $result['expiredNow']++;
-                Metrics::increment('openclaw_queue_jobs_total', ['status' => 'expired']);
-                audit_log_event('figo.queue.expired', [
-                    'jobId' => (string) ($job['jobId'] ?? ''),
-                    'reason' => 'ttl_exceeded'
-                ]);
-            }
-            continue;
-        }
-
-        if (($now - $createdAtTs) > $retention) {
-            if (@unlink($path)) {
-                $result['deleted']++;
-            }
-        }
+    } catch (PDOException $e) {
+        error_log("figo_queue_purge_old_jobs error: " . $e->getMessage());
     }
 
     return $result;
@@ -964,51 +1118,28 @@ function figo_queue_pending_job_ids(): array
     if (!figo_queue_ensure_dirs()) {
         return $result;
     }
-    $files = glob(figo_queue_dir_jobs() . DIRECTORY_SEPARATOR . '*.json');
-    if (!is_array($files) || $files === []) {
+
+    $pdo = get_db_connection(data_file_path());
+    if (!$pdo) {
         return $result;
     }
 
-    $now = figo_queue_now();
-    $scored = [];
-    foreach ($files as $path) {
-        $job = figo_queue_read_json_file($path);
-        if (!is_array($job)) {
-            continue;
-        }
-        $status = (string) ($job['status'] ?? '');
-        if (!in_array($status, ['queued', 'processing'], true)) {
-            continue;
-        }
-        $jobId = isset($job['jobId']) ? (string) $job['jobId'] : '';
-        if (!figo_queue_job_id_is_valid($jobId)) {
-            continue;
-        }
+    $now = gmdate('c', figo_queue_now());
 
-        $nextAttemptAtTs = strtotime((string) ($job['nextAttemptAt'] ?? ''));
-        if ($nextAttemptAtTs > $now) {
-            continue;
-        }
-
-        $createdAtTs = strtotime((string) ($job['createdAt'] ?? ''));
-        if ($createdAtTs <= 0) {
-            $createdAtTs = (int) @filemtime($path);
-        }
-        if ($createdAtTs <= 0) {
-            $createdAtTs = $now;
-        }
-
-        $scored[] = ['jobId' => $jobId, 'createdAtTs' => $createdAtTs];
+    try {
+        $stmt = $pdo->prepare("
+            SELECT job_id
+            FROM figo_queue_jobs
+            WHERE status IN ('queued', 'processing')
+            AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
+            ORDER BY created_at ASC
+        ");
+        $stmt->execute([$now]);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    } catch (PDOException $e) {
+        error_log("figo_queue_pending_job_ids error: " . $e->getMessage());
+        return [];
     }
-
-    usort($scored, static function (array $a, array $b): int {
-        return $a['createdAtTs'] <=> $b['createdAtTs'];
-    });
-    foreach ($scored as $row) {
-        $result[] = (string) $row['jobId'];
-    }
-
-    return $result;
 }
 
 function figo_queue_process_worker(?int $maxJobs = null, ?int $timeBudgetMs = null, bool $fromCron = false): array
