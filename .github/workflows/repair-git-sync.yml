@@ -3,6 +3,7 @@ name: Repair Git Sync (Self-Heal)
 on:
     workflow_run:
         workflows:
+            - Post-Deploy Gate (Full Regression)
             - Post-Deploy Gate (Git Sync)
         types:
             - completed
@@ -45,7 +46,7 @@ jobs:
             SSH_PORT: ${{ vars.SSH_PORT || '22' }}
             SSH_USERNAME: ${{ secrets.SSH_USERNAME || vars.SSH_USERNAME || secrets.FTP_USERNAME || vars.FTP_USERNAME || '' }}
             SSH_PASSWORD: ${{ secrets.SSH_PASSWORD || vars.SSH_PASSWORD || secrets.FTP_PASSWORD || vars.FTP_PASSWORD || '' }}
-            SSH_REPO_DIR: ${{ github.event.inputs.repo_dir || vars.SSH_REPO_DIR || '' }}
+            SSH_REPO_DIR: ${{ github.event.inputs.repo_dir || vars.SSH_REPO_DIR || '/var/www/figo' }}
             REPO_GIT_URL: https://github.com/erosero558558/piel-en-armonia.git
 
         steps:

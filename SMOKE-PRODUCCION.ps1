@@ -34,19 +34,37 @@ if ([string]::IsNullOrWhiteSpace($tmpRoot)) {
 }
 $tmpFile = Join-Path $tmpRoot 'pielarmonia-smoke-body.tmp'
 $curlCommand = $null
-try {
-    $curlExe = Get-Command 'curl.exe' -ErrorAction SilentlyContinue
-    if ($curlExe) {
-        $curlCommand = $curlExe.Source
-    }
-} catch {}
-if (-not $curlCommand) {
+
+function Resolve-CurlCommand {
+    param(
+        [string]$Name,
+        [string]$Type = ''
+    )
+
     try {
-        $curlNative = Get-Command 'curl' -CommandType Application -ErrorAction SilentlyContinue
-        if ($curlNative) {
-            $curlCommand = $curlNative.Source
+        $commands = if ([string]::IsNullOrWhiteSpace($Type)) {
+            @(Get-Command $Name -ErrorAction SilentlyContinue)
+        } else {
+            @(Get-Command $Name -CommandType $Type -ErrorAction SilentlyContinue)
+        }
+
+        foreach ($cmd in $commands) {
+            if ($null -eq $cmd) {
+                continue
+            }
+            $source = [string]$cmd.Source
+            if (-not [string]::IsNullOrWhiteSpace($source)) {
+                return $source
+            }
         }
     } catch {}
+
+    return $null
+}
+
+$curlCommand = Resolve-CurlCommand -Name 'curl.exe'
+if (-not $curlCommand) {
+    $curlCommand = Resolve-CurlCommand -Name 'curl' -Type 'Application'
 }
 if (-not $curlCommand) {
     $curlCommand = 'curl'
