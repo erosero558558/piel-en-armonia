@@ -33,6 +33,57 @@ test('core-io writeBoardFile actualiza policy.updated_at y escribe serialized bo
     ]);
 });
 
+test('core-io readSignalsFile usa fallback cuando no existe y parsea cuando existe', () => {
+    const fallback = coreIo.readSignalsFile({
+        signalsPath: 'AGENT_SIGNALS.yaml',
+        exists: () => false,
+        parseSignalsContent: () => {
+            throw new Error('no deberia parsear');
+        },
+        currentDate: () => '2026-02-25',
+    });
+    assert.deepEqual(fallback, {
+        version: 1,
+        updated_at: '2026-02-25',
+        signals: [],
+    });
+
+    const parsed = coreIo.readSignalsFile({
+        signalsPath: 'AGENT_SIGNALS.yaml',
+        exists: () => true,
+        readFile: (path, enc) => {
+            assert.equal(path, 'AGENT_SIGNALS.yaml');
+            assert.equal(enc, 'utf8');
+            return 'version: 1\nupdated_at: 2026-02-25\nsignals: []\n';
+        },
+        parseSignalsContent: (content) => ({ version: 1, raw: content }),
+        currentDate: () => '2026-02-25',
+    });
+    assert.equal(parsed.version, 1);
+    assert.equal(typeof parsed.raw, 'string');
+});
+
+test('core-io writeSignalsFile serializa y persiste señales', () => {
+    const writes = [];
+    const payload = {
+        version: 1,
+        updated_at: '2026-02-25',
+        signals: [],
+    };
+    const result = coreIo.writeSignalsFile(payload, {
+        signalsPath: 'AGENT_SIGNALS.yaml',
+        serializeSignals: (data) => {
+            assert.equal(data, payload);
+            return 'serialized-signals\n';
+        },
+        writeFile: (...args) => writes.push(args),
+    });
+    assert.equal(result, payload);
+    assert.deepEqual(writes, [
+        ['AGENT_SIGNALS.yaml', 'serialized-signals\n', 'utf8'],
+    ]);
+});
+
 test('core-io resolveTaskEvidencePath respeta --evidence y fallback a evidenceDir', () => {
     const custom = coreIo.resolveTaskEvidencePath(
         'AG-001',

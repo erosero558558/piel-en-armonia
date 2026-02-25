@@ -115,12 +115,22 @@ function runJson(dir, args) {
 }
 
 function runJsonExpectStatus(dir, args, expectedStatus) {
+    return runJsonExpectStatusWithOptions(dir, args, expectedStatus);
+}
+
+function runJsonExpectStatusWithOptions(
+    dir,
+    args,
+    expectedStatus,
+    options = {}
+) {
     const result = spawnSync(
         process.execPath,
         [join(dir, 'agent-orchestrator.js'), ...args, '--json'],
         {
             cwd: dir,
             encoding: 'utf8',
+            env: options.env ? { ...process.env, ...options.env } : undefined,
         }
     );
 
@@ -446,6 +456,154 @@ signals: []
         assert.equal(reconcile.error_code, 'done_without_evidence');
         assert.equal(Array.isArray(reconcile.done_without_evidence), true);
         assert.equal(reconcile.done_without_evidence.includes('AG-001'), true);
+    } finally {
+        cleanupFixtureDir(dir);
+    }
+});
+
+test('JSON contract minimo estable para errores de stale/budget/score', () => {
+    const dir = createFixtureDir();
+    try {
+        writeFixtureFiles(dir);
+
+        writeFileSync(
+            join(dir, 'AGENT_BOARD.yaml'),
+            `version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  updated_at: ${DATE}
+tasks:
+  - id: AG-001
+    title: "Dormant fixture"
+    owner: ernesto
+    executor: jules
+    status: done
+    risk: low
+    scope: docs
+    files: ["README.md"]
+    acceptance: "Fixture"
+    acceptance_ref: "README.md"
+    depends_on: []
+    prompt: "Fixture"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+`,
+            'utf8'
+        );
+        writeFileSync(
+            join(dir, 'AGENT_SIGNALS.yaml'),
+            `version: 1
+updated_at: ${DATE}
+signals:
+  - id: SIG-001
+    fingerprint: "fixture-critical-stale"
+    source: manual
+    source_ref: "fixture"
+    title: "Critical fixture signal"
+    severity: high
+    critical: true
+    status: open
+    runtime_impact: high
+    url: ""
+    detected_at: "${DATE}T00:00:00.000Z"
+    updated_at: "${DATE}T00:00:00.000Z"
+    labels: ["fixture"]
+`,
+            'utf8'
+        );
+
+        const stale = runJsonExpectStatus(dir, ['stale', '--strict'], 1);
+        assertVersionLike(stale.version);
+        assert.equal(stale.command, 'stale');
+        assert.equal(stale.ok, false);
+        assert.equal(typeof stale.counts, 'object');
+        assert.equal(Array.isArray(stale.invalid_reasons), true);
+
+        writeFileSync(
+            join(dir, 'AGENT_BOARD.yaml'),
+            `version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  updated_at: ${DATE}
+tasks:
+  - id: AG-001
+    title: "Budget fixture"
+    owner: ernesto
+    executor: jules
+    status: in_progress
+    risk: low
+    scope: docs
+    files: ["README.md"]
+    acceptance: "Fixture"
+    acceptance_ref: "README.md"
+    depends_on: []
+    prompt: "Fixture"
+    attempts: 3
+    last_attempt_at: "${DATE}T10:00:00.000Z"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+`,
+            'utf8'
+        );
+        writeFileSync(
+            join(dir, 'AGENT_SIGNALS.yaml'),
+            `version: 1
+updated_at: ${DATE}
+signals: []
+`,
+            'utf8'
+        );
+
+        const budget = runJsonExpectStatusWithOptions(
+            dir,
+            ['budget', '--strict', '--agent', 'jules'],
+            1,
+            { env: { JULES_DAILY_LIMIT: '0' } }
+        );
+        assertVersionLike(budget.version);
+        assert.equal(budget.command, 'budget');
+        assert.equal(budget.ok, false);
+        assert.equal(Array.isArray(budget.exceeded), true);
+        assert.equal(budget.exceeded.includes('jules'), true);
+        assert.equal(typeof budget.usage, 'object');
+        assert.equal(typeof budget.remaining, 'object');
+
+        writeFileSync(
+            join(dir, 'AGENT_BOARD.yaml'),
+            `version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  updated_at: ${DATE}
+tasks:
+  - id: AG-001
+    title: "Score invalid fixture"
+    owner: ernesto
+    executor: jules
+    status: invalid_status
+    risk: low
+    scope: docs
+    files: ["README.md"]
+    acceptance: "Fixture"
+    acceptance_ref: "README.md"
+    depends_on: []
+    prompt: "Fixture"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+`,
+            'utf8'
+        );
+        const score = runJsonExpectStatus(dir, ['score'], 1);
+        assertVersionLike(score.version);
+        assert.equal(score.command, 'score');
+        assert.equal(score.ok, false);
+        assert.equal(typeof score.error, 'string');
+        assert.equal(score.error_code, 'score_failed');
     } finally {
         cleanupFixtureDir(dir);
     }

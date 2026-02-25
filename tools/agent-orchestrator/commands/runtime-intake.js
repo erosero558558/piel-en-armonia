@@ -134,82 +134,91 @@ function createRuntimeIntakeCommands(ctx = {}) {
 
         score(args = []) {
             const wantsJson = args.includes('--json');
-            const { flags } = ctx.parseFlags(args);
-            const noWrite = ctx.isFlagEnabled(flags, 'no-write', 'dry-run');
-            const nowTs = Date.now();
-            const nowDate = ctx.currentDate();
-            const board = ctx.parseBoard();
-            let changed = 0;
-            let escalated = 0;
-            let overdueBoosted = 0;
+            try {
+                const { flags } = ctx.parseFlags(args);
+                const noWrite = ctx.isFlagEnabled(flags, 'no-write', 'dry-run');
+                const nowTs = Date.now();
+                const nowDate = ctx.currentDate();
+                const board = ctx.parseBoard();
+                let changed = 0;
+                let escalated = 0;
+                let overdueBoosted = 0;
 
-            for (const task of board.tasks) {
-                const before = JSON.stringify(ctx.toTaskJson(task));
-                const normalized = ctx.domainIntake.normalizeTaskForScoring(
-                    task,
-                    {
-                        nowTs,
+                for (const task of board.tasks) {
+                    const before = JSON.stringify(ctx.toTaskJson(task));
+                    const normalized = ctx.domainIntake.normalizeTaskForScoring(
+                        task,
+                        {
+                            nowTs,
+                        }
+                    );
+                    task.priority_score = normalized.priority_score;
+                    task.sla_due_at = normalized.sla_due_at;
+                    task.attempts = normalized.attempts;
+                    task.runtime_impact = normalized.runtime_impact;
+                    task.critical_zone = normalized.critical_zone;
+                    task.blocked_reason = normalized.blocked_reason;
+                    if (
+                        ctx.findCriticalScopeKeyword(task.scope) &&
+                        !['codex', 'claude'].includes(
+                            String(task.executor || '').toLowerCase()
+                        )
+                    ) {
+                        task.executor = 'codex';
                     }
-                );
-                task.priority_score = normalized.priority_score;
-                task.sla_due_at = normalized.sla_due_at;
-                task.attempts = normalized.attempts;
-                task.runtime_impact = normalized.runtime_impact;
-                task.critical_zone = normalized.critical_zone;
-                task.blocked_reason = normalized.blocked_reason;
-                if (
-                    ctx.findCriticalScopeKeyword(task.scope) &&
-                    !['codex', 'claude'].includes(
-                        String(task.executor || '').toLowerCase()
-                    )
-                ) {
-                    task.executor = 'codex';
+                    if (
+                        normalized.executor === 'codex' &&
+                        String(task.executor || '').toLowerCase() !== 'codex'
+                    ) {
+                        task.executor = 'codex';
+                        task.status = ctx.isTerminalTaskStatus(task.status)
+                            ? 'ready'
+                            : task.status;
+                        escalated += 1;
+                    }
+                    const dueTs = Date.parse(String(task.sla_due_at || ''));
+                    if (
+                        Number.isFinite(dueTs) &&
+                        dueTs < nowTs &&
+                        !ctx.isTerminalTaskStatus(task.status) &&
+                        Number(task.priority_score || 0) < 100
+                    ) {
+                        task.priority_score = 100;
+                        overdueBoosted += 1;
+                    }
+                    task.updated_at = nowDate;
+                    if (JSON.stringify(ctx.toTaskJson(task)) !== before)
+                        changed += 1;
                 }
-                if (
-                    normalized.executor === 'codex' &&
-                    String(task.executor || '').toLowerCase() !== 'codex'
-                ) {
-                    task.executor = 'codex';
-                    task.status = ctx.isTerminalTaskStatus(task.status)
-                        ? 'ready'
-                        : task.status;
-                    escalated += 1;
+                if (!noWrite && changed > 0) {
+                    ctx.writeBoardAndSync(board, { silentSync: wantsJson });
                 }
-                const dueTs = Date.parse(String(task.sla_due_at || ''));
-                if (
-                    Number.isFinite(dueTs) &&
-                    dueTs < nowTs &&
-                    !ctx.isTerminalTaskStatus(task.status) &&
-                    Number(task.priority_score || 0) < 100
-                ) {
-                    task.priority_score = 100;
-                    overdueBoosted += 1;
+                const report = {
+                    version: 1,
+                    ok: true,
+                    command: 'score',
+                    no_write: noWrite,
+                    changed_tasks: changed,
+                    escalated_to_codex: escalated,
+                    overdue_boosted: overdueBoosted,
+                };
+                if (wantsJson) {
+                    printJson(report);
+                    return report;
                 }
-                task.updated_at = nowDate;
-                if (JSON.stringify(ctx.toTaskJson(task)) !== before)
-                    changed += 1;
-            }
-            if (!noWrite && changed > 0) {
-                ctx.writeBoardAndSync(board, { silentSync: wantsJson });
-            }
-            const report = {
-                version: 1,
-                ok: true,
-                command: 'score',
-                no_write: noWrite,
-                changed_tasks: changed,
-                escalated_to_codex: escalated,
-                overdue_boosted: overdueBoosted,
-            };
-            if (wantsJson) {
-                printJson(report);
+                console.log('== Agent Score ==');
+                console.log(`Tasks changed: ${changed}`);
+                console.log(`Escalated to codex: ${escalated}`);
+                console.log(`Overdue boosted: ${overdueBoosted}`);
                 return report;
+            } catch (error) {
+                if (wantsJson) {
+                    return printJsonError('score', error.message, {
+                        error_code: 'score_failed',
+                    });
+                }
+                throw error;
             }
-            console.log('== Agent Score ==');
-            console.log(`Tasks changed: ${changed}`);
-            console.log(`Escalated to codex: ${escalated}`);
-            console.log(`Overdue boosted: ${overdueBoosted}`);
-            return report;
         },
 
         stale(args = []) {

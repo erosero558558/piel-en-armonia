@@ -19,6 +19,34 @@ function writeJsonFile(path, value) {
     writeFileSync(path, `${JSON.stringify(value, null, 4)}\n`, 'utf8');
 }
 
+function readSignalsFile(deps = {}) {
+    const {
+        signalsPath,
+        exists = existsSync,
+        readFile = readFileSync,
+        parseSignalsContent,
+        currentDate = () => '',
+    } = deps;
+    if (!signalsPath) throw new Error('readSignalsFile requiere signalsPath');
+    if (typeof parseSignalsContent !== 'function') {
+        throw new Error('readSignalsFile requiere parseSignalsContent');
+    }
+    if (!exists(signalsPath)) {
+        return { version: 1, updated_at: currentDate(), signals: [] };
+    }
+    return parseSignalsContent(readFile(signalsPath, 'utf8'));
+}
+
+function writeSignalsFile(data, deps = {}) {
+    const { signalsPath, serializeSignals, writeFile = writeFileSync } = deps;
+    if (!signalsPath) throw new Error('writeSignalsFile requiere signalsPath');
+    if (typeof serializeSignals !== 'function') {
+        throw new Error('writeSignalsFile requiere serializeSignals');
+    }
+    writeFile(signalsPath, serializeSignals(data), 'utf8');
+    return data;
+}
+
 function resolveTaskEvidencePath(taskId, flags = {}, deps = {}) {
     const { rootPath = '', evidenceDirPath, resolvePath } = deps;
     if (typeof resolvePath !== 'function') {
@@ -141,6 +169,8 @@ module.exports = {
     readJsonFile,
     ensureDirForFile,
     writeJsonFile,
+    readSignalsFile,
+    writeSignalsFile,
     resolveTaskEvidencePath,
     toRelativeRepoPath,
     writeBoardFile,
