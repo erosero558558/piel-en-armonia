@@ -98,3 +98,20 @@ dispatched:
 Implementar wrapper PHPMailer para confirmaciones y recordatorios con templates HTML y test.
 
 <!-- /TASK -->
+
+<!-- TASK
+status: pending
+task_id: AG-010
+risk: high
+scope: conversion-funnel
+files: src/apps/analytics/engine.js,src/apps/booking/engine.js,api.php,controllers/AdminDataController.php
+acceptance_ref: PLAN_MAESTRO_CODEX_2026.md
+dispatched_by: agent-orchestrator
+session: 
+dispatched: 
+-->
+### Conversion phase 3: instrument booking drop-off reasons in funnel
+
+Agregar medicion consistente de drop-off en checkout y exponer resumen para admin.
+
+<!-- /TASK -->

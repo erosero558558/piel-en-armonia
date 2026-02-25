@@ -88,3 +88,33 @@ dispatched_by: agent-orchestrator
 Smoke test: no hagas cambios de codigo. Solo confirma ejecucion y finaliza sin modificar archivos.
 
 <!-- /TASK -->
+
+<!-- TASK
+status: pending
+task_id: AG-009
+risk: medium
+scope: mobile-ux
+files: index.html,styles-deferred.css,src/apps/chat/ui-engine.js,src/apps/chat/widget-engine.js
+acceptance_ref: FINAL_ANALYSIS_REPORT.md
+dispatched_by: agent-orchestrator
+-->
+### Mobile UX phase 4: fix chat/header overlap and spacing consistency
+
+Corregir solapes y espaciado en mobile-first sin romper desktop.
+
+<!-- /TASK -->
+
+<!-- TASK
+status: pending
+task_id: AG-011
+risk: medium
+scope: performance
+files: js/main.js,rollup.config.mjs,src/bundles/ui.js,src/bundles/engagement.js
+acceptance_ref: FINAL_ANALYSIS_REPORT.md
+dispatched_by: agent-orchestrator
+-->
+### Performance phase 4: split non-critical JS and lazy-init below-the-fold modules
+
+Aplicar particion adicional de JS no critico y verificar que no rompa interacciones clave.
+
+<!-- /TASK -->

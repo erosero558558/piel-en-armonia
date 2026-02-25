@@ -3,7 +3,7 @@ policy:
   canonical: AGENTS.md
   autonomy: semi_autonomous_guardrails
   kpi: reduce_rework
-  updated_at: 2026-02-24
+  updated_at: 2026-02-25
 
 tasks:
   - id: AG-001
@@ -140,3 +140,48 @@ tasks:
     prompt: "Implementar guardrails de convivencia entre AGENT_BOARD y Plan Codex (handoffs, codex-check, conflict gate con excepciones temporales) alineado al bloque C4."
     created_at: 2026-02-24
     updated_at: 2026-02-24
+
+  - id: AG-009
+    title: "Mobile UX phase 4: fix chat/header overlap and spacing consistency"
+    owner: ernes
+    executor: kimi
+    status: ready
+    risk: medium
+    scope: mobile-ux
+    files: ["index.html", "styles-deferred.css", "src/apps/chat/ui-engine.js", "src/apps/chat/widget-engine.js"]
+    acceptance: "Layout movil usable en 360x800/390x844/412x915 sin solapes de chat, header ni CTA dock."
+    acceptance_ref: "FINAL_ANALYSIS_REPORT.md"
+    depends_on: []
+    prompt: "Corregir solapes y espaciado en mobile-first sin romper desktop."
+    created_at: 2026-02-25
+    updated_at: 2026-02-25
+
+  - id: AG-010
+    title: "Conversion phase 3: instrument booking drop-off reasons in funnel"
+    owner: ernes
+    executor: jules
+    status: ready
+    risk: high
+    scope: conversion-funnel
+    files: ["src/apps/analytics/engine.js", "src/apps/booking/engine.js", "api.php", "controllers/AdminDataController.php"]
+    acceptance: "Eventos de abandono por paso con reason/error_code visibles para analisis semanal."
+    acceptance_ref: "PLAN_MAESTRO_CODEX_2026.md"
+    depends_on: []
+    prompt: "Agregar medicion consistente de drop-off en checkout y exponer resumen para admin."
+    created_at: 2026-02-25
+    updated_at: 2026-02-25
+
+  - id: AG-011
+    title: "Performance phase 4: split non-critical JS and lazy-init below-the-fold modules"
+    owner: ernes
+    executor: kimi
+    status: ready
+    risk: medium
+    scope: performance
+    files: ["js/main.js", "rollup.config.mjs", "src/bundles/ui.js", "src/bundles/engagement.js"]
+    acceptance: "Reducir peso inicial y mover inicializaciones no criticas a carga diferida sin regresion funcional."
+    acceptance_ref: "FINAL_ANALYSIS_REPORT.md"
+    depends_on: []
+    prompt: "Aplicar particion adicional de JS no critico y verificar que no rompa interacciones clave."
+    created_at: 2026-02-25
+    updated_at: 2026-02-25
