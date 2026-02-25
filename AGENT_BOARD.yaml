@@ -3,7 +3,7 @@ policy:
   canonical: AGENTS.md
   autonomy: semi_autonomous_guardrails
   kpi: reduce_rework
-  revision: 19
+  revision: 21
   updated_at: 2026-02-25
 
 tasks:
@@ -1058,5 +1058,107 @@ tasks:
     evidence_ref: "signal_resolved:auto"
     depends_on: []
     prompt: "Resolver señal workflow:post-deploy-gate-git-sync:codex/prod-readiness-workflows-20260225. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
+    created_at: 2026-02-25
+    updated_at: 2026-02-25
+
+  - id: AG-031
+    title: "Stabilize CI signal intake for transient branch failures"
+    owner: ernes
+    executor: kimi
+    status: ready
+    status_since_at: "2026-02-25T07:04:56.217Z"
+    risk: medium
+    scope: ci orchestration
+    files: ["tools/agent-orchestrator/domain/github-signals.js", "tools/agent-orchestrator/commands/runtime-intake.js", "tools/agent-orchestrator/domain/signals.js"]
+    source_signal: workflow
+    source_ref: "run#22385808120"
+    priority_score: 88
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Intake ignores transient branch failures and keeps latest main workflow state only"
+    acceptance_ref: ""
+    evidence_ref: ""
+    depends_on: []
+    prompt: "Stabilize CI signal intake for transient branch failures"
+    created_at: 2026-02-25
+    updated_at: 2026-02-25
+
+  - id: AG-032
+    title: "Harden autopilot run diagnostics for fast triage"
+    owner: ernes
+    executor: jules
+    status: ready
+    status_since_at: "2026-02-25T07:07:42.538Z"
+    risk: low
+    scope: autopilot reliability
+    files: [".github/workflows/agent-autopilot.yml", "AGENTS.md", "CLAUDE.md"]
+    source_signal: workflow
+    source_ref: "run#22381918604"
+    priority_score: 72
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Autopilot failures expose single-shot triage hints and owner action in run summary"
+    acceptance_ref: ""
+    evidence_ref: ""
+    depends_on: []
+    prompt: "Harden autopilot run diagnostics for fast triage"
+    created_at: 2026-02-25
+    updated_at: 2026-02-25
+
+  - id: AG-033
+    title: "Reduce post-deploy gate false failures from transient network delays"
+    owner: ernes
+    executor: kimi
+    status: ready
+    status_since_at: "2026-02-25T07:07:42.627Z"
+    risk: medium
+    scope: gate reliability
+    files: [".github/workflows/post-deploy-gate.yml", "GATE-POSTDEPLOY.ps1", "bin/verify-gate.php"]
+    source_signal: workflow
+    source_ref: "run#22385825677"
+    priority_score: 84
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Gate retries classify transient timeouts separately and avoid red status when contracts still pass"
+    acceptance_ref: ""
+    evidence_ref: ""
+    depends_on: []
+    prompt: "Reduce post-deploy gate false failures from transient network delays"
     created_at: 2026-02-25
     updated_at: 2026-02-25
