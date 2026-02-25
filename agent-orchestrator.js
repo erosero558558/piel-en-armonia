@@ -797,6 +797,60 @@ function inferTaskCreateFromFiles(files) {
     };
 }
 
+function buildTaskCreateInferenceExplainLines(context = {}) {
+    const lines = [];
+    const {
+        fromFilesEnabled = false,
+        fileInference = null,
+        scopeSource = 'default',
+        riskSource = 'default',
+        executorSource = 'default',
+        task = null,
+        templateName = null,
+    } = context;
+
+    if (templateName) {
+        lines.push(`template=${templateName}`);
+    } else {
+        lines.push('template=(none)');
+    }
+
+    if (!fromFilesEnabled) {
+        lines.push('from-files=disabled');
+        lines.push(
+            `scope=${task?.scope || 'n/a'} (source=${scopeSource}), risk=${task?.risk || 'n/a'} (source=${riskSource}), executor=${task?.executor || 'n/a'} (source=${executorSource})`
+        );
+        return lines;
+    }
+
+    if (!fileInference) {
+        lines.push('from-files=enabled sin inferencia (files vacio/no valido)');
+        lines.push(
+            `scope=${task?.scope || 'n/a'} (source=${scopeSource}), risk=${task?.risk || 'n/a'} (source=${riskSource}), executor=${task?.executor || 'n/a'} (source=${executorSource})`
+        );
+        return lines;
+    }
+
+    lines.push('from-files=enabled');
+    lines.push(
+        `inference.scope=${fileInference.scope || 'n/a'} (${fileInference.critical_scope ? `critical:${fileInference.critical_scope}` : 'non-critical'})`
+    );
+    lines.push(
+        `inference.risk=${fileInference.risk || 'n/a'} (docs_like=${Boolean(fileInference?.reasons?.all_docs_like)}, high_risk_signals=${Boolean(fileInference?.reasons?.high_risk_path_signals)})`
+    );
+    if (fileInference.suggested_executor) {
+        lines.push(
+            `inference.suggested_executor=${fileInference.suggested_executor} (allowed=${Array.isArray(fileInference.allowed_executors_for_scope) ? fileInference.allowed_executors_for_scope.join(',') : 'n/a'})`
+        );
+    } else {
+        lines.push('inference.suggested_executor=(none)');
+    }
+    lines.push(
+        `resolved.scope=${task?.scope || 'n/a'} (source=${scopeSource}), resolved.risk=${task?.risk || 'n/a'} (source=${riskSource}), resolved.executor=${task?.executor || 'n/a'} (source=${executorSource})`
+    );
+    return lines;
+}
+
 function createPromptInterface(wantsJson = false) {
     return readline.createInterface({
         input: process.stdin,
@@ -3754,10 +3808,24 @@ async function cmdTask(args) {
             'from-files',
             'from_files'
         );
+        const previewMode = isFlagEnabled(
+            flags,
+            'preview',
+            'dry-run',
+            'dry_run'
+        );
+        const explainInference = isFlagEnabled(flags, 'explain');
         const fileInference = fromFilesEnabled
             ? inferTaskCreateFromFiles(files)
             : null;
 
+        const riskSource = flags.risk
+            ? 'flag'
+            : fileInference?.risk
+              ? 'from_files'
+              : template?.risk
+                ? 'template'
+                : 'default';
         const risk = String(
             flags.risk || fileInference?.risk || template?.risk || 'medium'
         )
@@ -3770,6 +3838,13 @@ async function cmdTask(args) {
         const owner = String(
             flags.owner || detectDefaultOwner() || 'unassigned'
         ).trim();
+        const scopeSource = flags.scope
+            ? 'flag'
+            : fileInference?.scope
+              ? 'from_files'
+              : template?.scope
+                ? 'template'
+                : 'default';
         const scope = String(
             flags.scope || fileInference?.scope || template?.scope || 'general'
         ).trim();
@@ -3846,6 +3921,18 @@ async function cmdTask(args) {
             updated_at: today,
         };
 
+        const inferenceExplainLines = explainInference
+            ? buildTaskCreateInferenceExplainLines({
+                  fromFilesEnabled,
+                  fileInference,
+                  scopeSource,
+                  riskSource,
+                  executorSource,
+                  task,
+                  templateName: template?.name || null,
+              })
+            : null;
+
         validateTaskGovernancePrechecks(board, task);
 
         board.tasks.push(task);
@@ -3876,31 +3963,44 @@ async function cmdTask(args) {
             }
         }
 
-        writeBoardAndSync(board, { silentSync: wantsJson });
+        const createPayload = {
+            version: 1,
+            ok: true,
+            command: 'task',
+            action: 'create',
+            template: template?.name || null,
+            from_files: fromFilesEnabled,
+            file_inference: fileInference,
+            executor_source: executorSource,
+            scope_source: scopeSource,
+            risk_source: riskSource,
+            preview: previewMode,
+            dry_run: previewMode,
+            persisted: !previewMode,
+            task: toTaskJson(task),
+        };
+        if (inferenceExplainLines) {
+            createPayload.inference_explanation = inferenceExplainLines;
+        }
+
+        if (!previewMode) {
+            writeBoardAndSync(board, { silentSync: wantsJson });
+        }
 
         if (wantsJson) {
-            console.log(
-                JSON.stringify(
-                    {
-                        version: 1,
-                        ok: true,
-                        command: 'task',
-                        action: 'create',
-                        template: template?.name || null,
-                        from_files: fromFilesEnabled,
-                        file_inference: fileInference,
-                        executor_source: executorSource,
-                        task: toTaskJson(task),
-                    },
-                    null,
-                    2
-                )
-            );
+            console.log(JSON.stringify(createPayload, null, 2));
             return;
         }
 
+        if (explainInference && Array.isArray(inferenceExplainLines)) {
+            console.log('Task create explain:');
+            for (const line of inferenceExplainLines) {
+                console.log(`  - ${line}`);
+            }
+        }
+
         console.log(
-            `Task create OK: ${newId} [${status}] exec=${executor}${template ? ` template=${template.name}` : ''}${fromFilesEnabled ? ' from-files=true' : ''}${executorSource !== 'flag' ? ` executor-source=${executorSource}` : ''}`
+            `Task create ${previewMode ? 'PREVIEW' : 'OK'}: ${newId} [${status}] exec=${executor}${template ? ` template=${template.name}` : ''}${fromFilesEnabled ? ' from-files=true' : ''}${executorSource !== 'flag' ? ` executor-source=${executorSource}` : ''}${previewMode ? ' (no-write)' : ''}`
         );
         return;
     }

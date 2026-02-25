@@ -8,6 +8,7 @@ const {
     writeFileSync,
     readFileSync,
     copyFileSync,
+    existsSync,
     rmSync,
 } = require('fs');
 const { tmpdir } = require('os');
@@ -834,6 +835,43 @@ test('task create --from-files autoajusta executor para scope critico si no se p
     assert.equal(json.executor_source, 'from_files_auto');
 });
 
+test('task create --preview/--dry-run no escribe board ni colas derivadas', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const beforeBoard = readBoard(dir);
+    const result = runCli(dir, [
+        'task',
+        'create',
+        '--title',
+        'Preview only task',
+        '--template',
+        'docs',
+        '--dry-run',
+        '--files',
+        'docs/preview.md',
+        '--json',
+    ]);
+    const json = parseJsonStdout(result);
+
+    assert.equal(json.preview, true);
+    assert.equal(json.dry_run, true);
+    assert.equal(json.persisted, false);
+    assert.equal(json.task.id, 'AG-011');
+    assert.equal(json.task.scope, 'docs');
+
+    const afterBoard = readBoard(dir);
+    assert.equal(afterBoard, beforeBoard);
+    assert.equal(existsSync(join(dir, 'JULES_TASKS.md')), false);
+    assert.equal(existsSync(join(dir, 'KIMI_TASKS.md')), false);
+});
+
 test('task create bloquea crear tarea activa con conflicto blocking', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));
@@ -1042,6 +1080,56 @@ test('task create --interactive solicita campos minimos y mantiene JSON limpio',
     assert.equal(result.stdout.trim().startsWith('{'), true);
     assert.match(result.stderr, /Titulo:/);
     assert.match(result.stderr, /Inferir scope\/risk/);
+});
+
+test('task create --explain imprime razon de inferencia y soporta JSON estable', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    let result = runCli(dir, [
+        'task',
+        'create',
+        '--title',
+        'Explain text mode',
+        '--template',
+        'docs',
+        '--from-files',
+        '--explain',
+        '--preview',
+        '--files',
+        'lib/calendar/CalendarAvailabilityService.php',
+    ]);
+    assert.match(result.stdout, /Task create explain:/);
+    assert.match(result.stdout, /inference\.scope=calendar/);
+    assert.match(result.stdout, /inference\.suggested_executor=codex/);
+    assert.match(result.stdout, /Task create PREVIEW:/);
+
+    result = runCli(dir, [
+        'task',
+        'create',
+        '--title',
+        'Explain json mode',
+        '--from-files',
+        '--explain',
+        '--preview',
+        '--files',
+        'docs/explain.md',
+        '--executor',
+        'kimi',
+        '--json',
+    ]);
+    const json = parseJsonStdout(result);
+    assert.equal(json.preview, true);
+    assert.equal(Array.isArray(json.inference_explanation), true);
+    assert.match(json.inference_explanation.join('\n'), /from-files=enabled/i);
+    assert.equal(json.scope_source, 'from_files');
+    assert.equal(json.risk_source, 'from_files');
 });
 
 test('task claim bloquea pasar a estado activo si genera conflicto blocking', (t) => {
