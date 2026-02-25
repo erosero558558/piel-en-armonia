@@ -28,6 +28,7 @@ const coreSerializers = require('./tools/agent-orchestrator/core/serializers');
 const corePolicy = require('./tools/agent-orchestrator/core/policy');
 const coreTime = require('./tools/agent-orchestrator/core/time');
 const coreIo = require('./tools/agent-orchestrator/core/io');
+const coreQueues = require('./tools/agent-orchestrator/core/queues');
 const coreOutput = require('./tools/agent-orchestrator/core/output');
 const domainConflicts = require('./tools/agent-orchestrator/domain/conflicts');
 const domainHandoffs = require('./tools/agent-orchestrator/domain/handoffs');
@@ -649,118 +650,6 @@ function formatPpDelta(value) {
     return domainMetrics.formatPpDelta(value);
 }
 
-function parseTaskMetaMap(path) {
-    if (!existsSync(path)) return new Map();
-    const raw = normalizeEol(readFileSync(path, 'utf8'));
-    const regex = /<!-- TASK\n([\s\S]*?)-->([\s\S]*?)<!-- \/TASK -->/g;
-    const map = new Map();
-    let match;
-
-    while ((match = regex.exec(raw)) !== null) {
-        const meta = {};
-        for (const line of match[1].split('\n')) {
-            const m = line.match(/^([\w-]+):\s*(.*)$/);
-            if (m) meta[m[1]] = m[2].trim();
-        }
-
-        const id = meta.task_id;
-        if (id) map.set(id, meta);
-    }
-
-    return map;
-}
-
-function boardToQueueStatus(taskStatus, executor) {
-    if (taskStatus === 'done') return 'done';
-    if (taskStatus === 'failed' || taskStatus === 'blocked') return 'failed';
-    if (taskStatus === 'in_progress' || taskStatus === 'review') {
-        return executor === 'jules' ? 'dispatched' : 'running';
-    }
-    return 'pending';
-}
-
-function renderQueueFile(executor, tasks, existingMeta) {
-    const header =
-        executor === 'jules'
-            ? '# JULES_TASKS.md — Cola derivada desde AGENT_BOARD.yaml'
-            : '# KIMI_TASKS.md — Cola derivada desde AGENT_BOARD.yaml';
-    const runnerHint =
-        executor === 'jules'
-            ? 'JULES_API_KEY=xxx node jules-dispatch.js dispatch'
-            : 'node kimi-run.js --dispatch';
-    const validStatuses =
-        executor === 'jules'
-            ? 'pending | dispatched | done | failed'
-            : 'pending | running | done | failed';
-
-    const lines = [];
-    lines.push(header);
-    lines.push('');
-    lines.push('> Archivo generado por `node agent-orchestrator.js sync`.');
-    lines.push('> No editar manualmente; los cambios se sobrescriben.');
-    lines.push(`> Ejecutar cola: \`${runnerHint}\``);
-    lines.push('');
-    lines.push('---');
-    lines.push('');
-    lines.push('## Formato de tarea');
-    lines.push('');
-    lines.push('```');
-    lines.push('<!-- TASK');
-    lines.push(`status: ${validStatuses}`);
-    lines.push('task_id: AG-XXX');
-    lines.push('risk: low|medium|high');
-    lines.push('scope: docs|frontend|backend|platform|security|ops');
-    lines.push('files: path1,path2');
-    lines.push('acceptance_ref: verification/agent-runs/AG-XXX.md');
-    lines.push('dispatched_by: agent-orchestrator');
-    if (executor === 'jules') {
-        lines.push('session:');
-        lines.push('dispatched:');
-    }
-    lines.push('-->');
-    lines.push('### Titulo');
-    lines.push('');
-    lines.push('Prompt...');
-    lines.push('');
-    lines.push('<!-- /TASK -->');
-    lines.push('```');
-    lines.push('');
-    lines.push('---');
-    lines.push('');
-    lines.push('## Tareas');
-    lines.push('');
-
-    for (const task of tasks) {
-        const meta = existingMeta.get(task.id) || {};
-        const queueStatus = boardToQueueStatus(task.status, executor);
-        const files = Array.isArray(task.files) ? task.files.join(',') : '';
-        const acceptanceRef =
-            task.acceptance_ref || `verification/agent-runs/${task.id}.md`;
-
-        lines.push('<!-- TASK');
-        lines.push(`status: ${queueStatus}`);
-        lines.push(`task_id: ${task.id}`);
-        lines.push(`risk: ${task.risk || 'medium'}`);
-        lines.push(`scope: ${task.scope || 'general'}`);
-        lines.push(`files: ${files}`);
-        lines.push(`acceptance_ref: ${acceptanceRef}`);
-        lines.push('dispatched_by: agent-orchestrator');
-        if (executor === 'jules') {
-            lines.push(`session: ${meta.session || ''}`);
-            lines.push(`dispatched: ${meta.dispatched || ''}`);
-        }
-        lines.push('-->');
-        lines.push(`### ${task.title}`);
-        lines.push('');
-        lines.push(task.prompt || task.title);
-        lines.push('');
-        lines.push('<!-- /TASK -->');
-        lines.push('');
-    }
-
-    return `${lines.join('\n').trimEnd()}\n`;
-}
-
 function wildcardToRegex(pattern) {
     return domainConflicts.wildcardToRegex(pattern);
 }
@@ -892,98 +781,32 @@ function cmdStatus(args) {
 }
 
 function safeNumber(value, fallback = 0) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : fallback;
+    return domainMetrics.safeNumber(value, fallback);
 }
 
 function loadMetricsSnapshotStrict() {
-    if (!existsSync(METRICS_PATH)) {
-        throw new Error(
-            `No existe ${METRICS_PATH}. Ejecuta \`node agent-orchestrator.js metrics\` primero.`
-        );
-    }
-    try {
-        return JSON.parse(readFileSync(METRICS_PATH, 'utf8'));
-    } catch (error) {
-        throw new Error(
-            `No se pudo parsear ${METRICS_PATH}: ${error.message || error}`
-        );
-    }
+    return domainMetrics.loadMetricsSnapshotStrict({
+        existsSync,
+        readFileSync,
+        metricsPath: METRICS_PATH,
+    });
 }
 
 function baselineFromCurrentMetricsSnapshot(metrics) {
-    const current = metrics?.current || {};
-    const baseline = {
-        tasks_total: safeNumber(current.tasks_total, 0),
-        tasks_with_rework: safeNumber(current.tasks_with_rework, 0),
-        file_conflicts: safeNumber(current.file_conflicts, 0),
-        file_conflicts_handoff: safeNumber(current.file_conflicts_handoff, 0),
-        non_critical_lead_time_hours_avg:
-            current.non_critical_lead_time_hours_avg === null
-                ? null
-                : safeNumber(current.non_critical_lead_time_hours_avg, 0),
-        coordination_gate_red_rate_pct:
-            current.coordination_gate_red_rate_pct === null
-                ? null
-                : safeNumber(current.coordination_gate_red_rate_pct, 0),
-        traceability_pct: safeNumber(current.traceability_pct, 0),
-    };
-
-    const contribution =
-        metrics?.contribution && Array.isArray(metrics?.contribution?.executors)
-            ? metrics.contribution
-            : null;
-
-    return {
-        baseline,
-        baseline_contribution: contribution,
-    };
+    return domainMetrics.baselineFromCurrentMetricsSnapshot(metrics);
 }
 
 function recalcMetricsDeltaWithBaseline(metrics) {
-    const next = { ...(metrics || {}) };
-    const current = next.current || {};
-    const baseline = next.baseline || {};
-    const contribution = next.contribution || null;
-    const baselineContribution = normalizeContributionBaseline(next);
-
-    next.delta = {
-        tasks_total:
-            safeNumber(current.tasks_total, 0) -
-            safeNumber(baseline.tasks_total, 0),
-        file_conflicts:
-            safeNumber(current.file_conflicts, 0) -
-            safeNumber(baseline.file_conflicts, 0),
-        file_conflicts_handoff:
-            safeNumber(current.file_conflicts_handoff, 0) -
-            safeNumber(baseline.file_conflicts_handoff, 0),
-        traceability_pct:
-            safeNumber(current.traceability_pct, 0) -
-            safeNumber(baseline.traceability_pct, 0),
-    };
-
-    if (
-        contribution &&
-        Array.isArray(contribution.executors) &&
-        baselineContribution &&
-        Array.isArray(baselineContribution.executors)
-    ) {
-        next.contribution_delta = buildContributionTrend(
-            contribution,
-            baselineContribution
-        );
-    }
-
-    return next;
+    return domainMetrics.recalcMetricsDeltaWithBaseline(metrics);
 }
 
 function writeMetricsSnapshotFile(metrics) {
-    mkdirSync(dirname(METRICS_PATH), { recursive: true });
-    writeFileSync(
-        METRICS_PATH,
-        `${JSON.stringify(metrics, null, 4)}\n`,
-        'utf8'
-    );
+    return domainMetrics.writeMetricsSnapshotFile(metrics, {
+        mkdirSync,
+        dirname,
+        writeFileSync,
+        metricsPath: METRICS_PATH,
+    });
 }
 
 function cmdMetricsBaseline(args = []) {
@@ -1185,8 +1008,13 @@ async function cmdTask(args) {
 function syncDerivedQueues(options = {}) {
     return coreIo.syncDerivedQueuesFiles(options, {
         parseBoard,
-        parseTaskMetaMap,
-        renderQueueFile,
+        parseTaskMetaMap: (path) =>
+            coreQueues.parseTaskMetaMap(path, {
+                exists: existsSync,
+                readFile: readFileSync,
+                normalize: normalizeEol,
+            }),
+        renderQueueFile: coreQueues.renderQueueFile,
         julesPath: JULES_PATH,
         kimiPath: KIMI_PATH,
         writeFile: writeFileSync,
