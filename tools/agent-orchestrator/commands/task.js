@@ -1,5 +1,190 @@
 'use strict';
 
+async function handleTaskCommand(ctx) {
+    const {
+        args,
+        parseFlags,
+        parseBoard,
+        parseHandoffs,
+        parseCsvList,
+        detectDefaultOwner,
+        ACTIVE_STATUSES,
+        getStatusCounts,
+        getExecutorCounts,
+        toTaskJson,
+        toTaskFullJson,
+        ensureTask,
+        resolveTaskEvidencePath,
+        existsSync,
+        toRelativeRepoPath,
+        currentDate,
+        writeBoardAndSync,
+        assertNonCodexTaskForTaskCommand,
+        loadTaskCreateApplyPayload,
+        normalizeTaskForCreateApply,
+        validateTaskGovernancePrechecks,
+        getBlockingConflictsForTask,
+        nextAgentTaskId,
+        summarizeBlockingConflictsForTask,
+        formatBlockingConflictSummary,
+        buildTaskCreatePreviewDiff,
+        ALLOWED_STATUSES,
+        isFlagEnabled,
+        collectTaskCreateInteractiveFlags,
+        resolveTaskCreateTemplate,
+        inferTaskCreateFromFiles,
+        ALLOWED_TASK_EXECUTORS,
+        findCriticalScopeKeyword,
+        CRITICAL_SCOPE_KEYWORDS,
+        CRITICAL_SCOPE_ALLOWED_EXECUTORS,
+        buildTaskCreateInferenceExplainLines,
+        printJson,
+    } = ctx;
+
+    const subcommand = args[0];
+    const parsed = parseFlags(args.slice(1));
+    const { positionals } = parsed;
+    let { flags } = parsed;
+    const wantsJson = args.includes('--json');
+    const normalizedSubcommand = String(subcommand || '').trim();
+    const taskId = String(positionals[0] || flags.id || '').trim();
+
+    if (
+        !normalizedSubcommand ||
+        !['ls', 'create', 'claim', 'start', 'finish'].includes(
+            normalizedSubcommand
+        )
+    ) {
+        throw new Error(
+            'Uso: node agent-orchestrator.js task <ls|create|claim|start|finish> [AG-001] [--owner x] [--executor y] [--status z] [--files a,b] [--evidence path] [--active|--mine]'
+        );
+    }
+
+    if (normalizedSubcommand === 'ls') {
+        handleTaskList({
+            args,
+            flags,
+            wantsJson,
+            parseBoard,
+            parseCsvList,
+            detectDefaultOwner,
+            ACTIVE_STATUSES,
+            getStatusCounts,
+            getExecutorCounts,
+            toTaskJson,
+            printJson,
+        });
+        return;
+    }
+
+    if (normalizedSubcommand === 'create') {
+        await handleTaskCreate({
+            args,
+            positionals,
+            flags,
+            wantsJson,
+            parseBoard,
+            parseHandoffs,
+            loadTaskCreateApplyPayload,
+            normalizeTaskForCreateApply,
+            validateTaskGovernancePrechecks,
+            ACTIVE_STATUSES,
+            getBlockingConflictsForTask,
+            toRelativeRepoPath,
+            toTaskJson,
+            toTaskFullJson,
+            nextAgentTaskId,
+            summarizeBlockingConflictsForTask,
+            formatBlockingConflictSummary,
+            buildTaskCreatePreviewDiff,
+            detectDefaultOwner,
+            ALLOWED_STATUSES,
+            isFlagEnabled,
+            parseCsvList,
+            collectTaskCreateInteractiveFlags,
+            resolveTaskCreateTemplate,
+            inferTaskCreateFromFiles,
+            ALLOWED_TASK_EXECUTORS,
+            findCriticalScopeKeyword,
+            CRITICAL_SCOPE_KEYWORDS,
+            CRITICAL_SCOPE_ALLOWED_EXECUTORS,
+            currentDate,
+            writeBoardAndSync,
+            buildTaskCreateInferenceExplainLines,
+            printJson,
+        });
+        return;
+    }
+
+    if (!taskId) {
+        throw new Error('Task command requiere task_id');
+    }
+
+    assertNonCodexTaskForTaskCommand(taskId);
+
+    if (normalizedSubcommand === 'claim') {
+        handleTaskClaim({
+            flags,
+            wantsJson,
+            taskId,
+            ensureTask,
+            parseBoard,
+            detectDefaultOwner,
+            ALLOWED_TASK_EXECUTORS,
+            ALLOWED_STATUSES,
+            parseCsvList,
+            validateTaskGovernancePrechecks,
+            ACTIVE_STATUSES,
+            parseHandoffs,
+            getBlockingConflictsForTask,
+            currentDate,
+            writeBoardAndSync,
+            toTaskJson,
+            printJson,
+        });
+        return;
+    }
+
+    if (normalizedSubcommand === 'start') {
+        handleTaskStart({
+            flags,
+            wantsJson,
+            taskId,
+            ensureTask,
+            parseBoard,
+            detectDefaultOwner,
+            ALLOWED_TASK_EXECUTORS,
+            ACTIVE_STATUSES,
+            parseCsvList,
+            validateTaskGovernancePrechecks,
+            parseHandoffs,
+            getBlockingConflictsForTask,
+            currentDate,
+            writeBoardAndSync,
+            toTaskJson,
+            printJson,
+        });
+        return;
+    }
+
+    if (normalizedSubcommand === 'finish') {
+        handleTaskFinish({
+            flags,
+            wantsJson,
+            taskId,
+            ensureTask,
+            parseBoard,
+            resolveTaskEvidencePath,
+            existsSync,
+            toRelativeRepoPath,
+            currentDate,
+            writeBoardAndSync,
+            toTaskJson,
+            printJson,
+        });
+    }
+}
+
 function handleTaskList(ctx) {
     const {
         flags,
@@ -1109,6 +1294,7 @@ async function handleTaskCreate(ctx) {
 }
 
 module.exports = {
+    handleTaskCommand,
     handleTaskList,
     handleTaskClaim,
     handleTaskStart,
