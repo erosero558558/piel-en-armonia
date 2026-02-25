@@ -5,6 +5,10 @@ param(
     [string]$OutputDir = 'verification/weekly',
     [int]$CoreP95MaxMs = 800,
     [int]$FigoPostP95MaxMs = 2500,
+    [double]$NoShowRateWarnPct = 20,
+    [double]$RecurrenceRateMinWarnPct = 30,
+    [double]$RecurrenceRateDropWarnPct = 15,
+    [int]$RecurrenceWarnMinUniquePatients = 5,
     [switch]$FailOnWarnings
 )
 
@@ -597,7 +601,7 @@ if (-not $calendarReachable) {
 if (-not $calendarTokenHealthy) {
     $warnings.Add('calendar_token_unhealthy')
 }
-if ($retentionNoShowRatePct -ge 20) {
+if ($retentionNoShowRatePct -ge $NoShowRateWarnPct) {
     $warnings.Add("no_show_rate_alta_${retentionNoShowRatePct}pct")
 }
 if (-not $sentryBackendConfigured) {
@@ -662,6 +666,18 @@ foreach ($row in $benchResults) {
 $retentionNoShowRateDeltaLabel = if ($null -eq $retentionNoShowRateDeltaPct) { 'n/a' } else { [string]$retentionNoShowRateDeltaPct }
 $retentionRecurrenceRateDeltaLabel = if ($null -eq $retentionRecurrenceRateDeltaPct) { 'n/a' } else { [string]$retentionRecurrenceRateDeltaPct }
 
+$retentionSampleSufficientForRecurrence = $retentionUniquePatients -ge $RecurrenceWarnMinUniquePatients
+if ($retentionSampleSufficientForRecurrence -and $retentionRecurrenceRatePct -lt $RecurrenceRateMinWarnPct) {
+    $warnings.Add("recurrence_rate_baja_${retentionRecurrenceRatePct}pct")
+}
+if (
+    $retentionSampleSufficientForRecurrence -and
+    $null -ne $retentionRecurrenceRateDeltaPct -and
+    $retentionRecurrenceRateDeltaPct -le (-1 * [Math]::Abs($RecurrenceRateDropWarnPct))
+) {
+    $warnings.Add("recurrence_rate_caida_${retentionRecurrenceRateDeltaPct}pct")
+}
+
 $markdown = @"
 # Weekly Production Report - Piel en Armonia
 
@@ -706,6 +722,9 @@ $markdown = @"
 - unique_patients: $retentionUniquePatients
 - recurrent_patients: $retentionRecurrentPatients
 - recurrence_rate_pct: $retentionRecurrenceRatePct
+- recurrence_warning_sample_sufficient: $retentionSampleSufficientForRecurrence (unique_patients >= $RecurrenceWarnMinUniquePatients)
+- recurrence_min_warn_pct: $RecurrenceRateMinWarnPct
+- recurrence_drop_warn_pct: $RecurrenceRateDropWarnPct
 - previous_report_generated_at: $previousReportDate
 - no_show_rate_delta_pct: $retentionNoShowRateDeltaLabel
 - recurrence_rate_delta_pct: $retentionRecurrenceRateDeltaLabel
@@ -763,6 +782,10 @@ $reportPayload = [ordered]@{
         uniquePatients = $retentionUniquePatients
         recurrentPatients = $retentionRecurrentPatients
         recurrenceRatePct = [Math]::Round([double]$retentionRecurrenceRatePct, 2)
+        recurrenceWarningSampleSufficient = [bool]$retentionSampleSufficientForRecurrence
+        recurrenceWarnMinUniquePatients = $RecurrenceWarnMinUniquePatients
+        recurrenceMinWarnPct = [Math]::Round([double]$RecurrenceRateMinWarnPct, 2)
+        recurrenceDropWarnPct = [Math]::Round([double]$RecurrenceRateDropWarnPct, 2)
     }
     retentionTrend = [ordered]@{
         previousReportGeneratedAt = $previousReportDate
