@@ -807,6 +807,172 @@ function readWeeklyReportPreferred({ mode, weeklyDir, weeklyKpiRun }) {
     };
 }
 
+function fetchRecentRepositoryRuns(branch, limit = 100) {
+    const normalizedLimit =
+        Number.isFinite(Number(limit)) && Number(limit) > 0
+            ? String(Math.trunc(Number(limit)))
+            : '100';
+    const res = runGhJson(
+        [
+            'run',
+            'list',
+            '--branch',
+            branch,
+            '--limit',
+            normalizedLimit,
+            '--json',
+            'databaseId,displayTitle,workflowName,status,conclusion,url,createdAt,updatedAt,headBranch,headSha,event',
+        ],
+        { allowFailure: true }
+    );
+    if (!res.ok) {
+        return {
+            available: false,
+            error: res.stderr || res.stdout || `gh exit ${res.exitCode}`,
+            runs: [],
+        };
+    }
+    const list = Array.isArray(res.json) ? res.json : [];
+    return {
+        available: true,
+        error: null,
+        runs: list.map((item) => mapRun(item)).filter(Boolean),
+    };
+}
+
+function fetchRecentMergedPrs(baseBranch, limit = 50) {
+    const normalizedLimit =
+        Number.isFinite(Number(limit)) && Number(limit) > 0
+            ? String(Math.trunc(Number(limit)))
+            : '50';
+    const res = runGhJson(
+        [
+            'pr',
+            'list',
+            '--state',
+            'merged',
+            '--base',
+            baseBranch,
+            '--limit',
+            normalizedLimit,
+            '--json',
+            'number,title,url,mergedAt,author',
+        ],
+        { allowFailure: true }
+    );
+    if (!res.ok) {
+        return {
+            available: false,
+            error: res.stderr || res.stdout || `gh exit ${res.exitCode}`,
+            prs: [],
+        };
+    }
+    const list = Array.isArray(res.json) ? res.json : [];
+    return {
+        available: true,
+        error: null,
+        prs: list
+            .map((pr) => ({
+                number: pr.number ?? null,
+                title: pr.title || null,
+                url: pr.url || null,
+                mergedAt: toIso(pr.mergedAt),
+                author:
+                    pr?.author && typeof pr.author === 'object'
+                        ? pr.author.login || null
+                        : null,
+            }))
+            .filter(Boolean),
+    };
+}
+
+function isIsoAfterCutoff(iso, cutoffMs) {
+    const ts = Date.parse(String(iso || ''));
+    return Number.isFinite(ts) && ts >= cutoffMs;
+}
+
+function computeExecutionEfficiency({ branch, workflows, windowHours }) {
+    const hours =
+        Number.isFinite(Number(windowHours)) && Number(windowHours) > 0
+            ? Math.trunc(Number(windowHours))
+            : 24;
+    const cutoffMs = Date.now() - hours * 60 * 60 * 1000;
+    const cutoffIso = new Date(cutoffMs).toISOString();
+    const runsRes = fetchRecentRepositoryRuns(branch, 120);
+    const prsRes = fetchRecentMergedPrs(branch, 80);
+
+    const recentRuns = (runsRes.runs || []).filter((run) =>
+        isIsoAfterCutoff(run.createdAt || run.updatedAt, cutoffMs)
+    );
+    const recentMergedPrs = (prsRes.prs || []).filter((pr) =>
+        isIsoAfterCutoff(pr.mergedAt, cutoffMs)
+    );
+
+    const criticalWorkflowNames = new Set(
+        ['ci', 'postDeployGate', 'deployHosting', 'weeklyKpi', 'repairGitSync']
+            .map((key) => workflows?.[key])
+            .flatMap((wrapper) => {
+                const names = [];
+                if (wrapper?.workflowName)
+                    names.push(String(wrapper.workflowName));
+                if (wrapper?.latest?.workflowName)
+                    names.push(String(wrapper.latest.workflowName));
+                if (wrapper?.latestEffective?.workflowName)
+                    names.push(String(wrapper.latestEffective.workflowName));
+                return names;
+            })
+            .filter(Boolean)
+    );
+
+    const manualRuns = recentRuns.filter(
+        (run) => run.event === 'workflow_dispatch'
+    );
+    const scheduleRuns = recentRuns.filter((run) => run.event === 'schedule');
+    const pushRuns = recentRuns.filter((run) => run.event === 'push');
+    const criticalManualRuns = manualRuns.filter((run) =>
+        criticalWorkflowNames.has(String(run.workflowName || ''))
+    );
+
+    const signal =
+        recentMergedPrs.length >= 5 && manualRuns.length >= 5
+            ? 'YELLOW'
+            : 'GREEN';
+    const notes = [];
+    if (signal === 'YELLOW') {
+        notes.push(
+            `high_activity_window(merged_prs=${recentMergedPrs.length}, manual_runs=${manualRuns.length})`
+        );
+    }
+
+    return {
+        windowHours: hours,
+        cutoffIso,
+        signal,
+        notes,
+        mergedPrs: {
+            available: prsRes.available,
+            error: prsRes.error,
+            count: recentMergedPrs.length,
+            sampleLimit: 80,
+            items: recentMergedPrs.slice(0, 10),
+        },
+        workflowRuns: {
+            available: runsRes.available,
+            error: runsRes.error,
+            count: recentRuns.length,
+            sampleLimit: 120,
+            byEvent: {
+                workflow_dispatch: manualRuns.length,
+                schedule: scheduleRuns.length,
+                push: pushRuns.length,
+            },
+            criticalWorkflowNames: Array.from(criticalWorkflowNames).sort(),
+            criticalManualRunsCount: criticalManualRuns.length,
+            criticalManualRunsSample: criticalManualRuns.slice(0, 10),
+        },
+    };
+}
+
 function coerceRunHealth(runWrapper) {
     if (!runWrapper || !runWrapper.available) {
         return { signal: 'YELLOW', reason: 'unavailable' };
@@ -1569,6 +1735,61 @@ function toMarkdown(summary) {
     }
     lines.push('');
 
+    lines.push('## Execution Efficiency (recent)');
+    lines.push('');
+    if (!summary.executionEfficiency) {
+        lines.push('- unavailable');
+    } else {
+        const eff = summary.executionEfficiency;
+        lines.push(`- window_hours: ${eff.windowHours}`);
+        lines.push(`- cutoff_utc: ${eff.cutoffIso}`);
+        lines.push(`- signal: ${eff.signal}`);
+        lines.push(
+            `- merged_prs_count: ${
+                eff.mergedPrs?.available ? eff.mergedPrs.count : 'n/a'
+            }`
+        );
+        lines.push(
+            `- workflow_runs_count: ${
+                eff.workflowRuns?.available ? eff.workflowRuns.count : 'n/a'
+            }`
+        );
+        lines.push(
+            `- manual_workflow_dispatch_runs: ${
+                eff.workflowRuns?.available
+                    ? eff.workflowRuns.byEvent.workflow_dispatch
+                    : 'n/a'
+            }`
+        );
+        lines.push(
+            `- critical_manual_workflow_dispatch_runs: ${
+                eff.workflowRuns?.available
+                    ? eff.workflowRuns.criticalManualRunsCount
+                    : 'n/a'
+            }`
+        );
+        lines.push(
+            `- schedule_runs: ${
+                eff.workflowRuns?.available
+                    ? eff.workflowRuns.byEvent.schedule
+                    : 'n/a'
+            }`
+        );
+        lines.push(
+            `- push_runs: ${
+                eff.workflowRuns?.available
+                    ? eff.workflowRuns.byEvent.push
+                    : 'n/a'
+            }`
+        );
+        if (Array.isArray(eff.notes) && eff.notes.length > 0) {
+            lines.push(`- notes: ${eff.notes.join(', ')}`);
+        } else {
+            lines.push('- notes: none');
+        }
+    }
+    lines.push('');
+
     lines.push('## Usage');
     lines.push('');
     lines.push('- Command: `npm run prod:readiness:summary`');
@@ -1591,6 +1812,7 @@ function usage() {
         '  --branch=BRANCH     Rama para consultar workflows via gh (default main)',
         '  --weekly-source=MODE  Fuente del Weekly KPI: auto|remote|local (default auto)',
         '  --weekly-history-limit=N  Runs recientes de Weekly KPI para streak (default 12)',
+        '  --efficiency-hours=N  Ventana para metricas de ejecucion/fragmentacion (default 24)',
         '  --weekly-dir=PATH   Directorio de reportes semanales locales (default verification/weekly)',
         '  --runs-limit=N      Reservado para versiones futuras (default 1)',
         '  --print-json        Imprime JSON en stdout',
@@ -1609,6 +1831,7 @@ function main() {
     const branch = parseStringArg('branch', 'main');
     const weeklySource = parseStringArg('weekly-source', 'auto');
     const weeklyHistoryLimit = parseIntArg('weekly-history-limit', 12, 1);
+    const efficiencyHours = parseIntArg('efficiency-hours', 24, 1);
     const weeklyDir = parseStringArg('weekly-dir', 'verification/weekly');
     parseIntArg('runs-limit', 1, 1); // reservado; valida formato y deja contrato listo
     const jsonOut = resolve(ROOT, parseStringArg('json-out', DEFAULT_JSON_OUT));
@@ -1683,6 +1906,11 @@ function main() {
         planMasterProgress,
         productionStability,
     });
+    const executionEfficiency = computeExecutionEfficiency({
+        branch,
+        workflows,
+        windowHours: efficiencyHours,
+    });
 
     const summary = {
         generatedAt: new Date().toISOString(),
@@ -1693,9 +1921,11 @@ function main() {
         branch,
         weeklySourceMode: weeklySource,
         weeklyHistoryLimit,
+        efficiencyHours,
         productionStability,
         planMasterProgress,
         suggestedActions,
+        executionEfficiency,
         workflows,
         weeklyKpiHistory,
         openProdAlerts,
