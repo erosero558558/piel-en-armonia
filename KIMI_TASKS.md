@@ -120,7 +120,7 @@ Aplicar particion adicional de JS no critico y verificar que no rompa interaccio
 <!-- /TASK -->
 
 <!-- TASK
-status: running
+status: done
 task_id: AG-023
 risk: low
 scope: tooling
