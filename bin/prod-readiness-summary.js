@@ -18,6 +18,13 @@ const { tmpdir } = require('os');
 const ROOT = resolve(__dirname, '..');
 const DEFAULT_JSON_OUT = 'verification/runtime/prod-readiness-summary.json';
 const DEFAULT_MD_OUT = 'verification/runtime/prod-readiness-summary.md';
+const WEEKLY_KPI_SCHEDULE_UTC = Object.freeze({
+    cron: '0 14 * * 1',
+    weekday: 1, // Monday (0=Sunday)
+    hour: 14,
+    minute: 0,
+    timezone: 'UTC',
+});
 
 function hasFlag(name) {
     return process.argv.includes(`--${name}`);
@@ -118,12 +125,44 @@ function ageMinutesFromIso(isoText) {
     return Math.round((Date.now() - t) / 60000);
 }
 
+function minutesUntilIso(isoText) {
+    if (!isoText) return null;
+    const t = Date.parse(String(isoText));
+    if (!Number.isFinite(t)) return null;
+    return Math.round((t - Date.now()) / 60000);
+}
+
 function formatAgeMinutes(ageMinutes) {
     if (!Number.isFinite(ageMinutes)) return 'n/a';
     if (ageMinutes < 60) return `${ageMinutes}m`;
     const h = Math.floor(ageMinutes / 60);
     const m = ageMinutes % 60;
     return `${h}h${m}m`;
+}
+
+function formatMinutesDistance(minutes) {
+    if (!Number.isFinite(minutes)) return 'n/a';
+    const abs = Math.abs(minutes);
+    const base = formatAgeMinutes(abs);
+    if (base === 'n/a') return 'n/a';
+    return minutes < 0 ? `-${base}` : base;
+}
+
+function computeNextWeeklyOccurrenceUtc(schedule, now = new Date()) {
+    if (!schedule) return null;
+    const nowDate = now instanceof Date ? now : new Date(now);
+    if (!Number.isFinite(nowDate.getTime())) return null;
+
+    const target = new Date(nowDate.getTime());
+    target.setUTCSeconds(0, 0);
+    target.setUTCMinutes(schedule.minute);
+    target.setUTCHours(schedule.hour);
+    const deltaDays = (((schedule.weekday - nowDate.getUTCDay()) % 7) + 7) % 7;
+    target.setUTCDate(nowDate.getUTCDate() + deltaDays);
+    if (target.getTime() <= nowDate.getTime()) {
+        target.setUTCDate(target.getUTCDate() + 7);
+    }
+    return target.toISOString();
 }
 
 function mapRun(raw) {
@@ -687,6 +726,10 @@ function countConsecutiveRunsByPredicate(runs, predicate) {
 
 function computeWeeklyKpiHistory(weeklyRunsWrapper) {
     if (!weeklyRunsWrapper || !weeklyRunsWrapper.available) {
+        const nextScheduleExpectedAt = computeNextWeeklyOccurrenceUtc(
+            WEEKLY_KPI_SCHEDULE_UTC
+        );
+        const nextScheduleInMinutes = minutesUntilIso(nextScheduleExpectedAt);
         return {
             available: false,
             error: weeklyRunsWrapper?.error || 'unavailable',
@@ -697,6 +740,13 @@ function computeWeeklyKpiHistory(weeklyRunsWrapper) {
             scheduleSuccessStreak: 0,
             scheduleCyclesTarget: 2,
             scheduleCyclesRemaining: 2,
+            scheduleCronUtc: WEEKLY_KPI_SCHEDULE_UTC.cron,
+            scheduleTimezone: WEEKLY_KPI_SCHEDULE_UTC.timezone,
+            nextScheduleExpectedAt,
+            nextScheduleInMinutes,
+            nextScheduleInLabel: formatMinutesDistance(nextScheduleInMinutes),
+            latestScheduleRunAgeMinutes: null,
+            latestScheduleRunAgeLabel: 'n/a',
             latestScheduleRun: null,
             recentRuns: [],
         };
@@ -715,6 +765,16 @@ function computeWeeklyKpiHistory(weeklyRunsWrapper) {
         (run) => run.status === 'completed' && run.conclusion === 'success'
     );
     const scheduleCyclesTarget = 2;
+    const latestScheduleRun = scheduleRuns[0] || null;
+    const latestScheduleRefIso =
+        latestScheduleRun?.updatedAt || latestScheduleRun?.createdAt || null;
+    const latestScheduleRunAgeMinutes = latestScheduleRefIso
+        ? ageMinutesFromIso(latestScheduleRefIso)
+        : null;
+    const nextScheduleExpectedAt = computeNextWeeklyOccurrenceUtc(
+        WEEKLY_KPI_SCHEDULE_UTC
+    );
+    const nextScheduleInMinutes = minutesUntilIso(nextScheduleExpectedAt);
 
     return {
         available: true,
@@ -729,7 +789,16 @@ function computeWeeklyKpiHistory(weeklyRunsWrapper) {
             0,
             scheduleCyclesTarget - scheduleSuccessStreak
         ),
-        latestScheduleRun: scheduleRuns[0] || null,
+        scheduleCronUtc: WEEKLY_KPI_SCHEDULE_UTC.cron,
+        scheduleTimezone: WEEKLY_KPI_SCHEDULE_UTC.timezone,
+        nextScheduleExpectedAt,
+        nextScheduleInMinutes,
+        nextScheduleInLabel: formatMinutesDistance(nextScheduleInMinutes),
+        latestScheduleRunAgeMinutes,
+        latestScheduleRunAgeLabel: formatAgeMinutes(
+            latestScheduleRunAgeMinutes
+        ),
+        latestScheduleRun,
         recentRuns: recentRuns.slice(0, 8),
     };
 }
@@ -831,8 +900,13 @@ function computePlanMasterProgress({
             `schedule_success_streak=${scheduleStreak}/${scheduleTarget}; ` +
             `schedule_cycles_remaining=${scheduleRemaining}; ` +
             `any_event_success_streak=${anyEventStreak}.`;
+        if (weeklyKpiHistory.nextScheduleExpectedAt) {
+            f6Notes += ` Next schedule esperado (${weeklyKpiHistory.scheduleCronUtc} ${weeklyKpiHistory.scheduleTimezone}) en ${weeklyKpiHistory.nextScheduleInLabel} (${weeklyKpiHistory.nextScheduleExpectedAt}).`;
+        }
         if (latestScheduleRun) {
-            f6Notes += ` Latest schedule run ${latestScheduleRun.id} => ${latestScheduleRun.conclusion || latestScheduleRun.status}.`;
+            f6Notes +=
+                ` Latest schedule run ${latestScheduleRun.id} => ${latestScheduleRun.conclusion || latestScheduleRun.status}` +
+                ` (age=${weeklyKpiHistory.latestScheduleRunAgeLabel}).`;
         } else {
             f6Notes +=
                 ' Aun no hay runs `schedule` recientes del Weekly KPI en main (solo validaciones manuales).';
@@ -945,6 +1019,15 @@ function toMarkdown(summary) {
         lines.push(`- unavailable: ${weeklyKpiHistory?.error || 'n/a'}`);
     } else {
         lines.push(
+            `- schedule_cron_utc: ${weeklyKpiHistory.scheduleCronUtc} (${weeklyKpiHistory.scheduleTimezone})`
+        );
+        lines.push(
+            `- next_schedule_expected_at: ${weeklyKpiHistory.nextScheduleExpectedAt || 'n/a'}`
+        );
+        lines.push(
+            `- next_schedule_in: ${weeklyKpiHistory.nextScheduleInLabel || 'n/a'}`
+        );
+        lines.push(
             `- recent_runs_evaluated: ${weeklyKpiHistory.totalRecentRuns}`
         );
         lines.push(
@@ -962,6 +1045,9 @@ function toMarkdown(summary) {
         if (weeklyKpiHistory.latestScheduleRun) {
             lines.push(
                 `- latest_schedule_run: ${weeklyKpiHistory.latestScheduleRun.id} (${weeklyKpiHistory.latestScheduleRun.conclusion || weeklyKpiHistory.latestScheduleRun.status}) ${weeklyKpiHistory.latestScheduleRun.url || ''}`.trim()
+            );
+            lines.push(
+                `- latest_schedule_age: ${weeklyKpiHistory.latestScheduleRunAgeLabel || 'n/a'}`
             );
         } else {
             lines.push(
