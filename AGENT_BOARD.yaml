@@ -443,7 +443,7 @@ tasks:
     critical_zone: true
     acceptance: "Cerrar señal issue#279 con evidencia verificable."
     acceptance_ref: "signal_resolved:auto"
-    evidence_ref: "signal_resolved:auto"
+    evidence_ref: "verification/agent-runs/AG-026.md"
     depends_on: []
     prompt: "Resolver señal issue#279. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
@@ -714,8 +714,8 @@ tasks:
     runtime_impact: low
     critical_zone: false
     acceptance: "CI falla si console.log o debugger aparece en src/ fuera de zonas marcadas. Bundles de produccion no contienen logs de debug."
-    acceptance_ref: "docs/agent-runs/AG-020.md"
-    evidence_ref: ".github/workflows/ci.yml"
+    acceptance_ref: "verification/agent-runs/AG-020.md"
+    evidence_ref: "verification/agent-runs/AG-020.md"
     depends_on: ["AG-019"]
     prompt: "Configurar @rollup/plugin-strip o similar para eliminar console.log/debugger en builds de produccion. Agregar regla ESLint no-console (warn en dev, error en CI). Documentar escape hatch para logs intencionales."
     created_at: 2026-02-24
@@ -748,8 +748,8 @@ tasks:
     runtime_impact: high
     critical_zone: true
     acceptance: "CI workflow ejecuta figo-contract y smoke contra staging antes de allow-merge. Gate falla si latencia Figo > 3s o contrato falla."
-    acceptance_ref: "docs/agent-runs/AG-021.md"
-    evidence_ref: ".github/workflows/ci.yml"
+    acceptance_ref: "verification/agent-runs/AG-021.md"
+    evidence_ref: "verification/agent-runs/AG-021.md"
     depends_on: []
     prompt: "Agregar job 'c1-exit-gate' en ci.yml que: (1) ejecuta npx playwright test tests/figo-chat-contract.spec.js contra BASE_URL=staging, (2) ejecuta smoke check de endpoint /api/chat, (3) bloquea merge si cualquiera falla. Asegurar que el job tiene acceso a secrets necesarios y que no duplica el job de governance."
     created_at: 2026-02-24
@@ -816,8 +816,8 @@ tasks:
     runtime_impact: low
     critical_zone: false
     acceptance: "Cerrar señal workflow:agent-governance:main con evidencia verificable."
-    acceptance_ref: "signal_resolved:auto"
-    evidence_ref: "signal_resolved:auto"
+    acceptance_ref: "verification/agent-runs/AG-024.md"
+    evidence_ref: "verification/agent-runs/AG-024.md"
     depends_on: []
     prompt: "Resolver señal workflow:agent-governance:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
@@ -850,8 +850,8 @@ tasks:
     runtime_impact: high
     critical_zone: true
     acceptance: "Cerrar señal issue#282 con evidencia verificable."
-    acceptance_ref: "signal_resolved:auto"
-    evidence_ref: "signal_resolved:auto"
+    acceptance_ref: "verification/agent-runs/AG-025.md"
+    evidence_ref: "verification/agent-runs/AG-025.md"
     depends_on: []
     prompt: "Resolver señal issue#282. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
@@ -919,7 +919,11 @@ tasks:
     critical_zone: false
     acceptance: "Cerrar señal workflow:agent-autopilot:main con evidencia verificable."
     acceptance_ref: "verification/agent-runs/AG-026.md"
+<<<<<<< HEAD
     evidence_ref: "signal_resolved:auto"
+=======
+    evidence_ref: "verification/agent-runs/AG-026.md"
+>>>>>>> fe7be81 (docs(agents): record post-merge gate recovery and CI evidence)
     depends_on: []
     prompt: "Resolver señal workflow:agent-autopilot:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
