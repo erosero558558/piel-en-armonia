@@ -394,9 +394,724 @@ function handleTaskFinish(ctx) {
     console.log(`Task finish OK: ${taskId} -> ${nextStatus}`);
 }
 
+async function handleTaskCreate(ctx) {
+    const {
+        args,
+        positionals,
+        wantsJson,
+        parseBoard,
+        parseHandoffs,
+        loadTaskCreateApplyPayload,
+        normalizeTaskForCreateApply,
+        validateTaskGovernancePrechecks,
+        ACTIVE_STATUSES,
+        getBlockingConflictsForTask,
+        toRelativeRepoPath,
+        toTaskJson,
+        toTaskFullJson,
+        nextAgentTaskId,
+        summarizeBlockingConflictsForTask,
+        formatBlockingConflictSummary,
+        buildTaskCreatePreviewDiff,
+        detectDefaultOwner,
+        ALLOWED_STATUSES,
+        isFlagEnabled,
+        parseCsvList,
+        collectTaskCreateInteractiveFlags,
+        resolveTaskCreateTemplate,
+        inferTaskCreateFromFiles,
+        ALLOWED_TASK_EXECUTORS,
+        findCriticalScopeKeyword,
+        CRITICAL_SCOPE_KEYWORDS,
+        CRITICAL_SCOPE_ALLOWED_EXECUTORS,
+        currentDate,
+        writeBoardAndSync,
+        buildTaskCreateInferenceExplainLines,
+        printJson,
+    } = ctx;
+    let { flags } = ctx;
+
+    const createNestedCommand = String(positionals[0] || '')
+        .trim()
+        .toLowerCase();
+    const createNestedAction = String(positionals[1] || '')
+        .trim()
+        .toLowerCase();
+
+    if (createNestedCommand === 'preview-file') {
+        if (!['lint', 'diff'].includes(createNestedAction)) {
+            throw new Error(
+                'Uso: node agent-orchestrator.js task create preview-file <lint|diff> <preview.json|-> [--json]'
+            );
+        }
+        const diffFormat = String(flags.format || 'compact')
+            .trim()
+            .toLowerCase();
+        if (
+            createNestedAction === 'diff' &&
+            !['compact', 'full'].includes(diffFormat)
+        ) {
+            throw new Error(
+                `task create preview-file diff: --format invalido (${diffFormat}); permitidos: compact, full`
+            );
+        }
+
+        const previewPath = String(
+            positionals[2] || flags.file || flags.path || ''
+        ).trim();
+        const loaded = loadTaskCreateApplyPayload(previewPath, {
+            modeLabel: 'task create preview-file lint',
+        });
+        const board = parseBoard();
+        const task = normalizeTaskForCreateApply(
+            loaded.payload?.task_full || loaded.payload?.task
+        );
+
+        const errors = [];
+        const duplicateTask =
+            board.tasks.find((item) => String(item.id || '') === task.id) ||
+            null;
+        const duplicateId = Boolean(duplicateTask);
+        if (duplicateId) {
+            errors.push(`id duplicado en board: ${task.id}`);
+        }
+
+        let governanceOk = true;
+        try {
+            validateTaskGovernancePrechecks(board, task);
+        } catch (error) {
+            governanceOk = false;
+            errors.push(String(error.message || error));
+        }
+
+        let blockingConflicts = [];
+        if (errors.length === 0 && ACTIVE_STATUSES.has(task.status)) {
+            const handoffData = parseHandoffs();
+            blockingConflicts = getBlockingConflictsForTask(
+                [...board.tasks, task],
+                task.id,
+                handoffData.handoffs
+            );
+            if (blockingConflicts.length > 0) {
+                const details = blockingConflicts
+                    .map((item) => {
+                        const other =
+                            String(item.left.id) === task.id
+                                ? item.right
+                                : item.left;
+                        const filesText = item.overlap_files.length
+                            ? item.overlap_files.join(', ')
+                            : '(wildcard ambiguo)';
+                        return `${task.id} <-> ${other.id} :: ${filesText}`;
+                    })
+                    .join(' | ');
+                errors.push(`conflicto activo blocking: ${details}`);
+            }
+        }
+
+        const basePreviewCheckPayload = {
+            version: 1,
+            ok: errors.length === 0,
+            command: 'task',
+            action:
+                createNestedAction === 'diff'
+                    ? 'create-preview-diff'
+                    : 'create-preview-lint',
+            preview_file: loaded.path,
+            preview_file_resolved: loaded.resolved_path
+                ? toRelativeRepoPath(loaded.resolved_path)
+                : null,
+            task: toTaskJson(task),
+            task_full: toTaskFullJson(task),
+            id_collision: duplicateId,
+            suggested_id_remap: duplicateId
+                ? nextAgentTaskId(board.tasks)
+                : null,
+            checks: {
+                preview_payload_schema: 'passed',
+                task_normalization: 'passed',
+                duplicate_id: duplicateId ? 'failed' : 'passed',
+                governance_prechecks: governanceOk ? 'passed' : 'failed',
+                conflict_check:
+                    ACTIVE_STATUSES.has(task.status) &&
+                    blockingConflicts.length > 0
+                        ? 'failed'
+                        : 'passed',
+            },
+            errors,
+        };
+
+        if (createNestedAction === 'diff') {
+            const candidateTaskForConflictCheck = duplicateId
+                ? { ...task, id: nextAgentTaskId(board.tasks) }
+                : task;
+            let conflictErrors = [];
+            let conflictItems = [];
+            if (ACTIVE_STATUSES.has(candidateTaskForConflictCheck.status)) {
+                const handoffData = parseHandoffs();
+                const candidateConflicts = getBlockingConflictsForTask(
+                    [...board.tasks, candidateTaskForConflictCheck],
+                    candidateTaskForConflictCheck.id,
+                    handoffData.handoffs
+                );
+                conflictItems = summarizeBlockingConflictsForTask(
+                    candidateTaskForConflictCheck.id,
+                    candidateConflicts
+                );
+                if (candidateConflicts.length > 0) {
+                    conflictErrors.push(
+                        formatBlockingConflictSummary(
+                            candidateTaskForConflictCheck.id,
+                            candidateConflicts
+                        )
+                    );
+                }
+            }
+
+            const diffPayload = {
+                ...basePreviewCheckPayload,
+                ok: true,
+                errors: [],
+                diff_format: diffFormat,
+                board_task_same_id: duplicateTask
+                    ? toTaskFullJson(duplicateTask)
+                    : null,
+                field_diff_same_id: duplicateTask
+                    ? buildTaskCreatePreviewDiff(duplicateTask, task)
+                    : [],
+                apply_projection: {
+                    basis: duplicateId ? 'remap_candidate' : 'preview_id',
+                    projected_task_id: candidateTaskForConflictCheck.id,
+                    projected_blocking_conflicts: conflictItems,
+                    projected_blocking_conflicts_count: conflictItems.length,
+                    projected_blocking_conflicts_error:
+                        conflictErrors[0] || null,
+                },
+            };
+
+            if (wantsJson) {
+                if (diffFormat === 'compact') {
+                    const compactJsonPayload = {
+                        ...diffPayload,
+                        json_format: 'compact',
+                        task_full: undefined,
+                        board_task_same_id: duplicateTask
+                            ? toTaskJson(duplicateTask)
+                            : null,
+                        field_diff_same_id: Array.isArray(
+                            diffPayload.field_diff_same_id
+                        )
+                            ? diffPayload.field_diff_same_id.map((row) => ({
+                                  field: row.field,
+                              }))
+                            : [],
+                        field_diff_same_id_count: Array.isArray(
+                            diffPayload.field_diff_same_id
+                        )
+                            ? diffPayload.field_diff_same_id.length
+                            : 0,
+                    };
+                    printJson(compactJsonPayload);
+                    return;
+                }
+                printJson({ ...diffPayload, json_format: 'full' });
+                return;
+            }
+
+            console.log(
+                `Task create preview-file diff: ${task.id} (${loaded.path})`
+            );
+            console.log(`- format: ${diffFormat}`);
+            console.log(`- id_collision: ${duplicateId ? 'yes' : 'no'}`);
+            if (duplicateId) {
+                console.log(
+                    `- suggested_id_remap: ${diffPayload.suggested_id_remap}`
+                );
+                if (diffPayload.field_diff_same_id.length === 0) {
+                    console.log('- field_diff_same_id: (sin cambios)');
+                } else {
+                    console.log('- field_diff_same_id:');
+                    for (const row of diffPayload.field_diff_same_id) {
+                        if (diffFormat === 'full') {
+                            console.log(
+                                `  - ${row.field}: ${JSON.stringify(row.before)} -> ${JSON.stringify(row.after)}`
+                            );
+                        } else {
+                            console.log(`  - ${row.field}`);
+                        }
+                    }
+                }
+            }
+            console.log(
+                `- projected_blocking_conflicts: ${diffPayload.apply_projection.projected_blocking_conflicts_count}`
+            );
+            if (
+                diffPayload.apply_projection.projected_blocking_conflicts_error
+            ) {
+                console.log(
+                    `- projected_conflict_detail: ${diffPayload.apply_projection.projected_blocking_conflicts_error}`
+                );
+            }
+            return;
+        }
+
+        if (wantsJson) {
+            printJson(basePreviewCheckPayload);
+            if (!basePreviewCheckPayload.ok) process.exitCode = 1;
+            return;
+        }
+
+        console.log(
+            `Task create preview-file lint ${basePreviewCheckPayload.ok ? 'OK' : 'FAIL'}: ${task.id} (${loaded.path})`
+        );
+        if (!basePreviewCheckPayload.ok) {
+            for (const error of errors) {
+                console.log(`- ${error}`);
+            }
+            process.exitCode = 1;
+        }
+        return;
+    }
+
+    const applyPathRaw =
+        flags.apply || flags['apply-from'] || flags.apply_from || '';
+    const applyMode =
+        Object.prototype.hasOwnProperty.call(flags, 'apply') ||
+        Object.prototype.hasOwnProperty.call(flags, 'apply-from') ||
+        Object.prototype.hasOwnProperty.call(flags, 'apply_from');
+    const forceIdRemap = isFlagEnabled(
+        flags,
+        'force-id-remap',
+        'force_id_remap'
+    );
+    const applyToStatusRaw = String(flags.to || '').trim();
+    const claimOwnerFlagPresent =
+        Object.prototype.hasOwnProperty.call(flags, 'claim-owner') ||
+        Object.prototype.hasOwnProperty.call(flags, 'claim_owner');
+    const claimOwnerFlagValue =
+        flags['claim-owner'] !== undefined
+            ? flags['claim-owner']
+            : flags.claim_owner;
+    const validateOnly = isFlagEnabled(flags, 'validate-only', 'validate_only');
+    const previewMode = isFlagEnabled(flags, 'preview', 'dry-run', 'dry_run');
+    const explainInference = isFlagEnabled(flags, 'explain');
+
+    if (applyMode) {
+        if (isFlagEnabled(flags, 'interactive')) {
+            throw new Error(
+                'task create --apply no permite combinar --interactive'
+            );
+        }
+        if (previewMode) {
+            throw new Error(
+                'task create --apply no permite combinar --preview/--dry-run'
+            );
+        }
+        if (validateOnly) {
+            throw new Error(
+                'task create --apply no permite combinar --validate-only'
+            );
+        }
+        let claimOwner = '';
+        if (claimOwnerFlagPresent) {
+            if (claimOwnerFlagValue === true) {
+                claimOwner = detectDefaultOwner();
+            } else {
+                claimOwner = String(claimOwnerFlagValue || '').trim();
+            }
+            if (!claimOwner) {
+                throw new Error(
+                    'task create --apply: --claim-owner requiere valor o AGENT_OWNER/USERNAME/USER disponible'
+                );
+            }
+        }
+        if (applyToStatusRaw && !ALLOWED_STATUSES.has(applyToStatusRaw)) {
+            throw new Error(
+                `task create --apply: status invalido en --to (${applyToStatusRaw})`
+            );
+        }
+        if (
+            flags.title ||
+            flags.template ||
+            flags.files ||
+            flags.executor ||
+            flags.status ||
+            flags.risk ||
+            flags.scope
+        ) {
+            throw new Error(
+                'task create --apply no permite flags de construccion (--title/--template/--files/--executor/--status/--risk/--scope)'
+            );
+        }
+
+        const applyFile = loadTaskCreateApplyPayload(applyPathRaw, {
+            modeLabel: 'task create --apply',
+        });
+        const sourcePayload = applyFile.payload || {};
+        const board = parseBoard();
+        const task = normalizeTaskForCreateApply(
+            sourcePayload.task_full || sourcePayload.task
+        );
+        const originalTaskId = task.id;
+        const originalTaskStatus = task.status;
+        const originalTaskOwner = task.owner;
+
+        if (applyToStatusRaw) {
+            task.status = applyToStatusRaw;
+            task.updated_at = currentDate();
+        }
+        if (claimOwner) {
+            task.owner = claimOwner;
+            task.updated_at = currentDate();
+        }
+
+        const duplicateId = board.tasks.some(
+            (item) => String(item.id || '') === task.id
+        );
+        if (duplicateId && forceIdRemap) {
+            task.id = nextAgentTaskId(board.tasks);
+            task.updated_at = currentDate();
+        } else if (duplicateId) {
+            throw new Error(`task create --apply: id duplicado ${task.id}`);
+        }
+
+        validateTaskGovernancePrechecks(board, task);
+        board.tasks.push(task);
+
+        if (ACTIVE_STATUSES.has(task.status)) {
+            const handoffData = parseHandoffs();
+            const blockingConflicts = getBlockingConflictsForTask(
+                board.tasks,
+                task.id,
+                handoffData.handoffs
+            );
+            if (blockingConflicts.length > 0) {
+                const details = blockingConflicts
+                    .map((item) => {
+                        const other =
+                            String(item.left.id) === task.id
+                                ? item.right
+                                : item.left;
+                        const filesText = item.overlap_files.length
+                            ? item.overlap_files.join(', ')
+                            : '(wildcard ambiguo)';
+                        return `${task.id} <-> ${other.id} :: ${filesText}`;
+                    })
+                    .join(' | ');
+                throw new Error(
+                    `task create --apply bloqueado por conflicto activo: ${details}`
+                );
+            }
+        }
+
+        writeBoardAndSync(board, { silentSync: wantsJson });
+
+        const applyPayload = {
+            version: 1,
+            ok: true,
+            command: 'task',
+            action: 'create',
+            applied: true,
+            apply: true,
+            applied_from: applyFile.path,
+            applied_from_resolved: applyFile.resolved_path
+                ? toRelativeRepoPath(applyFile.resolved_path)
+                : null,
+            force_id_remap: forceIdRemap,
+            id_remapped: task.id !== originalTaskId,
+            original_task_id: originalTaskId,
+            status_override_applied: Boolean(applyToStatusRaw),
+            status_override_to: applyToStatusRaw || null,
+            original_task_status: originalTaskStatus,
+            owner_claim_applied: Boolean(claimOwner),
+            owner_claim_to: claimOwner || null,
+            original_task_owner: originalTaskOwner,
+            template:
+                sourcePayload.template === undefined
+                    ? null
+                    : sourcePayload.template,
+            from_files: Boolean(sourcePayload.from_files),
+            file_inference: sourcePayload.file_inference || null,
+            executor_source: String(sourcePayload.executor_source || 'apply'),
+            scope_source: String(sourcePayload.scope_source || 'apply'),
+            risk_source: String(sourcePayload.risk_source || 'apply'),
+            preview: false,
+            dry_run: false,
+            validate_only: false,
+            persisted: true,
+            task: toTaskJson(task),
+            task_full: toTaskFullJson(task),
+        };
+        if (
+            explainInference &&
+            Array.isArray(sourcePayload.inference_explanation)
+        ) {
+            applyPayload.inference_explanation =
+                sourcePayload.inference_explanation;
+        }
+
+        if (wantsJson) {
+            printJson(applyPayload);
+            return;
+        }
+
+        if (
+            explainInference &&
+            Array.isArray(applyPayload.inference_explanation)
+        ) {
+            console.log('Task create explain (applied preview):');
+            for (const line of applyPayload.inference_explanation) {
+                console.log(`  - ${line}`);
+            }
+        }
+
+        console.log(
+            `Task create APPLY OK: ${task.id} [${task.status}] exec=${task.executor} from=${applyFile.path}`
+        );
+        return;
+    }
+
+    if (previewMode && validateOnly) {
+        throw new Error(
+            'task create no permite combinar --preview/--dry-run con --validate-only'
+        );
+    }
+
+    if (isFlagEnabled(flags, 'interactive')) {
+        flags = await collectTaskCreateInteractiveFlags(flags, wantsJson);
+    }
+
+    const board = parseBoard();
+    const template = resolveTaskCreateTemplate(flags.template);
+    const requestedId = String(flags.id || '').trim();
+    const newId = requestedId || nextAgentTaskId(board.tasks);
+
+    if (!/^AG-\d+$/.test(newId)) {
+        throw new Error(
+            `task create requiere id AG-### (actual: ${newId || 'vacio'})`
+        );
+    }
+    if (board.tasks.some((item) => String(item.id || '') === newId)) {
+        throw new Error(`task create: id duplicado ${newId}`);
+    }
+
+    const title = String(flags.title || '').trim();
+    if (!title) {
+        throw new Error('task create requiere --title');
+    }
+
+    const explicitExecutor = String(flags.executor || '')
+        .trim()
+        .toLowerCase();
+
+    const status = String(flags.status || template?.status || 'backlog').trim();
+    if (!ALLOWED_STATUSES.has(status)) {
+        throw new Error(`task create: status invalido (${status})`);
+    }
+
+    const files = parseCsvList(flags.files || '');
+    if (files.length === 0) {
+        throw new Error('task create requiere --files con lista CSV no vacia');
+    }
+
+    const fromFilesEnabled = isFlagEnabled(flags, 'from-files', 'from_files');
+    const fileInference = fromFilesEnabled
+        ? inferTaskCreateFromFiles(files)
+        : null;
+
+    const riskSource = flags.risk
+        ? 'flag'
+        : fileInference?.risk
+          ? 'from_files'
+          : template?.risk
+            ? 'template'
+            : 'default';
+    const risk = String(
+        flags.risk || fileInference?.risk || template?.risk || 'medium'
+    )
+        .trim()
+        .toLowerCase();
+    if (!['low', 'medium', 'high'].includes(risk)) {
+        throw new Error(`task create: risk invalido (${risk})`);
+    }
+
+    const owner = String(
+        flags.owner || detectDefaultOwner() || 'unassigned'
+    ).trim();
+    const scopeSource = flags.scope
+        ? 'flag'
+        : fileInference?.scope
+          ? 'from_files'
+          : template?.scope
+            ? 'template'
+            : 'default';
+    const scope = String(
+        flags.scope || fileInference?.scope || template?.scope || 'general'
+    ).trim();
+    if (template?.requireCriticalScope && !findCriticalScopeKeyword(scope)) {
+        throw new Error(
+            `task create: template ${template.name} requiere --scope critico (${CRITICAL_SCOPE_KEYWORDS.join('|')})`
+        );
+    }
+
+    let executorSource = 'default';
+    let executor = String(template?.executor || '')
+        .trim()
+        .toLowerCase();
+    if (explicitExecutor) {
+        executor = explicitExecutor;
+        executorSource = 'flag';
+    } else if (!executor) {
+        executor = '';
+    } else {
+        executorSource = 'template';
+    }
+
+    const inferredCriticalScope = fileInference?.critical_scope
+        ? String(fileInference.critical_scope)
+        : null;
+    if (
+        !explicitExecutor &&
+        inferredCriticalScope &&
+        fileInference?.suggested_executor &&
+        !CRITICAL_SCOPE_ALLOWED_EXECUTORS.has(executor)
+    ) {
+        executor = String(fileInference.suggested_executor)
+            .trim()
+            .toLowerCase();
+        executorSource = 'from_files_auto';
+    }
+
+    if (!executor) {
+        throw new Error('task create requiere --executor');
+    }
+    if (!ALLOWED_TASK_EXECUTORS.has(executor)) {
+        throw new Error(`task create: executor invalido (${executor})`);
+    }
+
+    const acceptance = String(flags.acceptance || title).trim();
+    const acceptanceRef = String(
+        flags['acceptance-ref'] || flags.acceptance_ref || ''
+    ).trim();
+    const dependsOn = parseCsvList(
+        flags['depends-on'] || flags.depends_on || ''
+    );
+    const prompt = String(flags.prompt || title).trim();
+    const today = currentDate();
+
+    const task = {
+        id: newId,
+        title,
+        owner,
+        executor,
+        status,
+        risk,
+        scope,
+        files,
+        acceptance,
+        acceptance_ref: acceptanceRef,
+        depends_on: dependsOn,
+        prompt,
+        created_at: today,
+        updated_at: today,
+    };
+
+    const inferenceExplainLines = explainInference
+        ? buildTaskCreateInferenceExplainLines({
+              fromFilesEnabled,
+              fileInference,
+              scopeSource,
+              riskSource,
+              executorSource,
+              task,
+              templateName: template?.name || null,
+          })
+        : null;
+
+    validateTaskGovernancePrechecks(board, task);
+
+    board.tasks.push(task);
+
+    if (ACTIVE_STATUSES.has(status)) {
+        const handoffData = parseHandoffs();
+        const blockingConflicts = getBlockingConflictsForTask(
+            board.tasks,
+            newId,
+            handoffData.handoffs
+        );
+        if (blockingConflicts.length > 0) {
+            const details = blockingConflicts
+                .map((item) => {
+                    const other =
+                        String(item.left.id) === newId ? item.right : item.left;
+                    const filesText = item.overlap_files.length
+                        ? item.overlap_files.join(', ')
+                        : '(wildcard ambiguo)';
+                    return `${newId} <-> ${other.id} :: ${filesText}`;
+                })
+                .join(' | ');
+            throw new Error(
+                `task create bloqueado por conflicto activo: ${details}`
+            );
+        }
+    }
+
+    const createPayload = {
+        version: 1,
+        ok: true,
+        command: 'task',
+        action: 'create',
+        template: template?.name || null,
+        from_files: fromFilesEnabled,
+        file_inference: fileInference,
+        executor_source: executorSource,
+        scope_source: scopeSource,
+        risk_source: riskSource,
+        preview: previewMode,
+        dry_run: previewMode,
+        validate_only: validateOnly,
+        persisted: !previewMode && !validateOnly,
+        task: toTaskJson(task),
+        task_full: toTaskFullJson(task),
+    };
+    if (inferenceExplainLines) {
+        createPayload.inference_explanation = inferenceExplainLines;
+    }
+
+    if (validateOnly) {
+        createPayload.validation = {
+            active_status: ACTIVE_STATUSES.has(status),
+            governance_prechecks: 'passed',
+            conflict_check: 'passed',
+        };
+        delete createPayload.task_full;
+    }
+
+    if (!previewMode && !validateOnly) {
+        writeBoardAndSync(board, { silentSync: wantsJson });
+    }
+
+    if (wantsJson) {
+        printJson(createPayload);
+        return;
+    }
+
+    if (explainInference && Array.isArray(inferenceExplainLines)) {
+        console.log('Task create explain:');
+        for (const line of inferenceExplainLines) {
+            console.log(`  - ${line}`);
+        }
+    }
+
+    console.log(
+        `Task create ${validateOnly ? 'VALIDATE OK' : previewMode ? 'PREVIEW' : 'OK'}: ${newId} [${status}] exec=${executor}${template ? ` template=${template.name}` : ''}${fromFilesEnabled ? ' from-files=true' : ''}${executorSource !== 'flag' ? ` executor-source=${executorSource}` : ''}${previewMode || validateOnly ? ' (no-write)' : ''}`
+    );
+}
+
 module.exports = {
     handleTaskList,
     handleTaskClaim,
     handleTaskStart,
     handleTaskFinish,
+    handleTaskCreate,
 };
