@@ -19,6 +19,7 @@ const ROOT = resolve(__dirname, '..');
 const DEFAULT_JSON_OUT = 'verification/runtime/prod-readiness-summary.json';
 const DEFAULT_MD_OUT = 'verification/runtime/prod-readiness-summary.md';
 const PHASE6_SCHEDULE_AT_RISK_THRESHOLD_MINUTES = 24 * 60;
+const CRITICAL_WORKFLOW_INPROGRESS_GRACE_MINUTES = 4;
 const WEEKLY_KPI_SCHEDULE_UTC = Object.freeze({
     cron: '0 14 * * 1',
     weekday: 1, // Monday (0=Sunday)
@@ -302,6 +303,22 @@ function selectRepresentativeWorkflowRun(runs) {
 function getWorkflowRunForHealth(wrapper) {
     if (!wrapper) return null;
     return wrapper.latestEffective || wrapper.latest || null;
+}
+
+function isInProgressWithinGrace(
+    run,
+    graceMinutes = CRITICAL_WORKFLOW_INPROGRESS_GRACE_MINUTES
+) {
+    const normalizedGrace =
+        Number.isFinite(Number(graceMinutes)) && Number(graceMinutes) >= 0
+            ? Number(graceMinutes)
+            : CRITICAL_WORKFLOW_INPROGRESS_GRACE_MINUTES;
+    return Boolean(
+        run &&
+        String(run.status || '').toLowerCase() !== 'completed' &&
+        Number.isFinite(Number(run.ageMinutes)) &&
+        Number(run.ageMinutes) <= normalizedGrace
+    );
 }
 
 function fetchLatestWorkflowRun({ workflowRef, label }, branch) {
@@ -1111,7 +1128,20 @@ function computeProductionStability({
     let signal = 'GREEN';
 
     for (const key of criticalWorkflowKeys) {
-        const health = coerceRunHealth(workflows[key]);
+        const wrapper = workflows[key];
+        const run = getWorkflowRunForHealth(wrapper);
+        const health = coerceRunHealth(wrapper);
+        if (
+            run &&
+            health.signal === 'YELLOW' &&
+            health.reason === `status:${run.status}` &&
+            isInProgressWithinGrace(run)
+        ) {
+            advisories.push(
+                `${key}:in_progress_grace(age=${run.ageLabel};grace=${CRITICAL_WORKFLOW_INPROGRESS_GRACE_MINUTES}m;run=${run.id})`
+            );
+            continue;
+        }
         if (health.signal === 'RED') {
             signal = 'RED';
             reasons.push(`${key}:${health.reason}`);
@@ -1332,6 +1362,9 @@ function computeSuggestedActions({
             continue;
         }
         if (run.status !== 'completed') {
+            if (isInProgressWithinGrace(run)) {
+                continue;
+            }
             pushAction({
                 id: `ACT-P1-WF-${key.toUpperCase()}-INPROGRESS`,
                 priority: 'P1',
