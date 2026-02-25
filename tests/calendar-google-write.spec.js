@@ -11,16 +11,41 @@ function requireGoogleCalendar() {
     return getEnv('TEST_REQUIRE_GOOGLE_CALENDAR', 'false') === 'true';
 }
 
-function pickFirstSlot(data, excludeDate = '', excludeTime = '') {
+function parseSlotToUtcMs(date, time) {
+    if (
+        typeof date !== 'string' ||
+        typeof time !== 'string' ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+        !/^\d{2}:\d{2}$/.test(time)
+    ) {
+        return Number.NaN;
+    }
+
+    // Agenda operativa en Ecuador (America/Guayaquil, UTC-05:00).
+    return Date.parse(`${date}T${time}:00-05:00`);
+}
+
+function pickFirstSlot(
+    data,
+    excludeDate = '',
+    excludeTime = '',
+    minLeadMinutes = 0
+) {
     if (!data || typeof data !== 'object') {
         return null;
     }
 
+    const minLeadMs = Math.max(0, Number(minLeadMinutes) || 0) * 60 * 1000;
+    const minAllowedUtcMs = Date.now() + minLeadMs;
     const days = Object.keys(data).sort();
     for (const day of days) {
         const slots = Array.isArray(data[day]) ? [...data[day]].sort() : [];
         for (const slot of slots) {
             if (day === excludeDate && slot === excludeTime) {
+                continue;
+            }
+            const slotUtcMs = parseSlotToUtcMs(day, slot);
+            if (Number.isFinite(slotUtcMs) && slotUtcMs < minAllowedUtcMs) {
                 continue;
             }
             return { date: day, time: slot };
@@ -124,7 +149,12 @@ test.describe('Google Calendar E2E write flow', () => {
             expect(availabilityBefore.meta.source).toBe('google');
             expect(Number(availabilityBefore.meta.durationMin)).toBe(60);
 
-            const firstSlot = pickFirstSlot(availabilityBefore.data);
+            const firstSlot = pickFirstSlot(
+                availabilityBefore.data,
+                '',
+                '',
+                70
+            );
             expect(firstSlot).toBeTruthy();
 
             const stamp = Date.now();
@@ -185,7 +215,8 @@ test.describe('Google Calendar E2E write flow', () => {
             const nextSlot = pickFirstSlot(
                 availabilityForDoctor.data,
                 firstSlot.date,
-                firstSlot.time
+                firstSlot.time,
+                70
             );
             expect(nextSlot).toBeTruthy();
 
