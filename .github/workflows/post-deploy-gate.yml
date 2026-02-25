@@ -1,11 +1,6 @@
-name: Post-Deploy Gate (Git Sync)
+name: Post-Deploy Gate (Full Regression)
 
 on:
-    push:
-        branches:
-            - main
-    schedule:
-        - cron: '17 */6 * * *'
     workflow_dispatch:
         inputs:
             domain:

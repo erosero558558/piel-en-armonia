@@ -1,0 +1,39 @@
+name: Agent Board Weekly Snapshot
+
+on:
+    schedule:
+        # Domingo 23:30 America/Guayaquil (Lunes 04:30 UTC)
+        - cron: '30 4 * * 1'
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    snapshot:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+
+            - name: Generar snapshot semanal
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  mkdir -p verification/board-snapshots
+                  stamp="$(date -u +'%Y%m%d-%H%M%S')"
+                  cp AGENT_BOARD.yaml "verification/board-snapshots/AGENT_BOARD-${stamp}.yaml"
+                  node agent-orchestrator.js task ls --active --json > "verification/board-snapshots/AGENT_BOARD-active-${stamp}.json"
+
+            - name: Publicar artefacto
+              uses: actions/upload-artifact@v4
+              with:
+                  name: agent-board-weekly-snapshot
+                  path: verification/board-snapshots/
+                  if-no-files-found: error
+                  retention-days: 30

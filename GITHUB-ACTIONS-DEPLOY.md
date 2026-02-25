@@ -65,30 +65,26 @@ Si usas SFTP:
 
 ## 5) Si usas sincronizacion Git en servidor (sin FTP)
 
-Si tu hosting hace `git pull` automatico, usa este workflow para validar cada push:
+Si tu hosting hace `git pull` automatico, ahora se usa esquema de 2 carriles:
 
-- `Actions` -> `Post-Deploy Gate (Git Sync)`
-- O simplemente push a `main` y se ejecuta solo.
-- Adicionalmente corre cada 6 horas como monitoreo continuo.
-- Puedes ajustar tolerancia de propagacion de cache con:
-    - `asset_hash_retry_count`
-    - `asset_hash_retry_delay_sec`
+- Diurno (push a `main`): `Actions` -> `Post-Deploy Fast Lane`
+    - verify + smoke
+    - sin benchmark pesado
+    - objetivo de feedback: ciclo rapido
+- Nocturno (23:00 America/Guayaquil): `Actions` -> `Nightly Stability`
+    - gate completo (`verify + smoke + benchmark`)
+    - `test:critical:agenda`
+    - `test:critical:funnel`
+- Full regression/manual: `Actions` -> `Post-Deploy Gate (Full Regression)`
 
-Este gate corre:
-
-- verificacion de despliegue
-- smoke de endpoints
-- benchmark API
-
-en modo estricto (`RequireStableDataDir`, `RequireBackupHealthy`, `RequireBackupReceiverReady`, `RequireCronReady`).
-Si falla (push/schedule), crea o actualiza un issue de incidente automaticamente.
-Si luego recupera en una corrida exitosa, cierra ese issue automaticamente.
+El modo estricto de hardening se mantiene (`RequireStableDataDir`, `RequireBackupHealthy`, `RequireBackupReceiverReady`, `RequireCronReady`).
+Si falla un workflow de salud programado, crea/actualiza issue de incidente automaticamente; al recuperar, lo cierra.
 
 Variable recomendada para fase de agenda real:
 
 - `REQUIRE_GOOGLE_CALENDAR` (repo variable)
-  - `false`: permite rollout con agenda `store` sin romper contrato.
-  - `true`: exige `health.calendarSource=google` en `test:calendar-contract`.
+    - `false`: permite rollout con agenda `store` sin romper contrato.
+    - `true`: exige `health.calendarSource=google` en `test:calendar-contract`.
 
 ## 6) Monitoreo continuo de produccion
 

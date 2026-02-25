@@ -10,7 +10,9 @@ Si desde tu PC no puedes subir por FTP/SFTP, usa el workflow:
 Si tu hosting ya tiene sincronizacion por Git (pull automatico), ese metodo es el recomendado y mas seguro.
 En ese caso ejecuta el gate automatico con:
 
-- `.github/workflows/post-deploy-gate.yml` (se dispara en push a `main` y valida produccion en modo estricto).
+- `.github/workflows/post-deploy-fast.yml` (se dispara en push a `main`, valida `verify+smoke` en modo rapido).
+- `.github/workflows/nightly-stability.yml` (23:00 America/Guayaquil, corre gate completo + suites criticas).
+- `.github/workflows/post-deploy-gate.yml` (modo manual/full regression).
 - `.github/workflows/repair-git-sync.yml` (si el gate falla en `main`, intenta reparar sync por SSH con `git fetch/reset` en servidor).
   Para monitoreo continuo, habilita:
 - `.github/workflows/prod-monitor.yml` (salud + latencia cada 30 minutos).
@@ -247,43 +249,46 @@ Para desarrollo o pruebas locales con el stack completo (App, Redis, Prometheus,
     docker-compose up -d --build
     ```
 3.  Accede a:
-    -   App: http://localhost:8080
-    -   Grafana: http://localhost:3000 (admin/admin)
-    -   Prometheus: http://localhost:9090
+    - App: http://localhost:8080
+    - Grafana: http://localhost:3000 (admin/admin)
+    - Prometheus: http://localhost:9090
 
 ### Kubernetes (Produccion)
 
 Archivos de manifiesto en carpeta `k8s/`:
 
 1.  **Secretos**: Copia `k8s/secret.yaml.example` a `k8s/secret.yaml`, rellena los valores Base64 y aplica:
+
     ```bash
     kubectl apply -f k8s/namespace.yaml
     kubectl apply -f k8s/secret.yaml
     ```
 
 2.  **Configuracion**: Revisa `k8s/configmap.yaml` y aplica:
+
     ```bash
     kubectl apply -f k8s/configmap.yaml
     ```
 
 3.  **Volumenes y Servicios**:
+
     ```bash
     kubectl apply -f k8s/pvc.yaml
     kubectl apply -f k8s/redis.yaml
     ```
 
 4.  **Despliegue App**:
-    -   Construye y sube tu imagen Docker (`docker build -t tu-repo/app:latest . && docker push ...`).
-    -   Actualiza la imagen en `k8s/deployment.yaml`.
-    -   Aplica:
+    - Construye y sube tu imagen Docker (`docker build -t tu-repo/app:latest . && docker push ...`).
+    - Actualiza la imagen en `k8s/deployment.yaml`.
+    - Aplica:
         ```bash
         kubectl apply -f k8s/deployment.yaml
         kubectl apply -f k8s/service.yaml
         ```
 
 5.  **Ingress**:
-    -   Asegurate de tener un Ingress Controller (nginx) y Cert-Manager.
-    -   Aplica:
+    - Asegurate de tener un Ingress Controller (nginx) y Cert-Manager.
+    - Aplica:
         ```bash
         kubectl apply -f k8s/ingress.yaml
         ```

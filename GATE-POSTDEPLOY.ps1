@@ -15,6 +15,7 @@ param(
     [string]$AssetHashWarningUntil = '2026-03-08T23:59:59-05:00',
     [switch]$ForceAssetHashChecks,
     [switch]$SkipFigoPostBench,
+    [switch]$SkipBenchmark,
     [int]$AssetHashRetryCount = 2,
     [int]$AssetHashRetryDelaySec = 4,
     [int]$VerifyRetryAttempts = 1,
@@ -101,24 +102,29 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host ""
-Write-Host "[3/3] Benchmark API..." -ForegroundColor Yellow
-if ($SkipFigoPostBench) {
-    Write-Host "[WARN] Benchmark figo-post omitido para este gate."
-    & .\BENCH-API-PRODUCCION.ps1 `
-        -Domain $Domain `
-        -Runs $BenchRuns `
-        -CoreP95MaxMs $CoreP95MaxMs `
-        -FigoPostP95MaxMs $FigoPostP95MaxMs
+if ($SkipBenchmark) {
+    Write-Host "[3/3] Benchmark API..." -ForegroundColor Yellow
+    Write-Host "[WARN] Benchmark completo omitido (modo fast lane)."
 } else {
-    & .\BENCH-API-PRODUCCION.ps1 `
-        -Domain $Domain `
-        -Runs $BenchRuns `
-        -CoreP95MaxMs $CoreP95MaxMs `
-        -FigoPostP95MaxMs $FigoPostP95MaxMs `
-        -IncludeFigoPost
-}
-if ($LASTEXITCODE -ne 0) {
-    $failures += 1
+    Write-Host "[3/3] Benchmark API..." -ForegroundColor Yellow
+    if ($SkipFigoPostBench) {
+        Write-Host "[WARN] Benchmark figo-post omitido para este gate."
+        & .\BENCH-API-PRODUCCION.ps1 `
+            -Domain $Domain `
+            -Runs $BenchRuns `
+            -CoreP95MaxMs $CoreP95MaxMs `
+            -FigoPostP95MaxMs $FigoPostP95MaxMs
+    } else {
+        & .\BENCH-API-PRODUCCION.ps1 `
+            -Domain $Domain `
+            -Runs $BenchRuns `
+            -CoreP95MaxMs $CoreP95MaxMs `
+            -FigoPostP95MaxMs $FigoPostP95MaxMs `
+            -IncludeFigoPost
+    }
+    if ($LASTEXITCODE -ne 0) {
+        $failures += 1
+    }
 }
 
 Write-Host ""

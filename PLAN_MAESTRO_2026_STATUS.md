@@ -51,7 +51,7 @@ Dominio: https://pielarmonia.com
 - Estado general: En curso. CI desbloqueado y pipeline activo tras fix de calendar runtime.
 - Chatbot: Operativo en Trinity/OpenRouter (cola OpenClaw deshabilitada por decision de producto).
 - Agenda real: activa en produccion (`calendarSource=google`, `calendarAuth=oauth_refresh`, `calendarMode=live`).
-- Gate de produccion: push gate en verde + hash-strict manual en verde (2026-02-23 21:52 hora local del servidor / 2026-02-24 UTC).
+- Gate de produccion: `post-deploy-fast` en push/main (diurno) y `post-deploy-gate` en modo full regression/manual.
 - Gate backend manual (skip hash) tras `4f32b2d`: falla por `availability` en `503 calendar_unreachable` cuando se exige Google estricto (`requiredGoogle=true`).
 - Validacion live 2026-02-23 23:34 (-05:00): `health.calendarRequired=true` y `health.calendarRequirementMet=true`; `availability`/`booked-slots` responden con `meta.source=google` y `meta.mode=live`.
 - Smoke: 19/19 OK. Latencias: figo-post p95=582ms, core p95=553ms. Error rate=0.
@@ -259,7 +259,7 @@ Dominio: https://pielarmonia.com
 6. Fase 5 - Hardening final y hash gate estricto: Completada.
 
 - 3 corridas hash estrictas consecutivas en verde (post-incidente transitorio).
-- Workflow principal (`post-deploy-gate.yml`) con hashes bloqueantes en eventos `push`.
+- Workflow diurno principal (`post-deploy-fast.yml`) bloquea por verify+smoke; full regression queda en `nightly-stability`/manual.
 - Playbook de incidentes actualizado (`docs/RUNBOOKS.md`, secciones 1.4 y 2.5).
 
 ## Nudos reales pendientes (sin ruido)

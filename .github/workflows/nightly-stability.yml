@@ -1,0 +1,61 @@
+name: Nightly Stability
+
+on:
+    schedule:
+        # 23:00 America/Guayaquil (UTC-5)
+        - cron: '0 4 * * *'
+    workflow_dispatch:
+        inputs:
+            domain:
+                description: 'Dominio objetivo'
+                required: false
+                default: 'https://pielarmonia.com'
+                type: string
+
+concurrency:
+    group: nightly-stability-${{ github.ref }}
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+
+jobs:
+    nightly:
+        name: Full stability regression
+        runs-on: windows-latest
+        timeout-minutes: 90
+        env:
+            TARGET_DOMAIN: ${{ github.event.inputs.domain || vars.TARGET_DOMAIN || 'https://pielarmonia.com' }}
+            TEST_BASE_URL: ${{ github.event.inputs.domain || vars.TARGET_DOMAIN || 'https://pielarmonia.com' }}
+            TEST_REQUIRE_GOOGLE_CALENDAR: true
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'npm'
+
+            - name: Instalar dependencias
+              shell: pwsh
+              run: npm ci
+
+            - name: Instalar Playwright (chromium)
+              shell: pwsh
+              run: npx playwright install chromium
+
+            - name: Gate completo + suites criticas
+              shell: pwsh
+              run: npm run nightly:stability
+
+            - name: Resumen
+              if: ${{ always() }}
+              shell: pwsh
+              run: |
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Nightly Stability"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Dominio: ``$env:TARGET_DOMAIN``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Hora objetivo: ``23:00 America/Guayaquil``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Flujo: ``gate:prod`` + ``test:critical:agenda`` + ``test:critical:funnel``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Resultado: ``${{ job.status }}``"

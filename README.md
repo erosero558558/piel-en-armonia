@@ -112,15 +112,20 @@ El proyecto utiliza Playwright para pruebas de extremo a extremo (E2E).
 
 Para instrucciones detalladas sobre cÃ³mo desplegar en producciÃ³n, por favor revisa el archivo [DESPLIEGUE-PIELARMONIA.md](DESPLIEGUE-PIELARMONIA.md).
 Para el cutover de agenda local a Google real, usa [CALENDAR-CUTOVER.md](CALENDAR-CUTOVER.md).
+Para la operacion diaria de estabilidad (carril rapido + nightly), usa [PLAN_ESTABILIDAD_14DIAS.md](PLAN_ESTABILIDAD_14DIAS.md).
+Estado unico de operacion (producto vs agentes): [ESTADO_PRODUCTO_OPERATIVO.md](ESTADO_PRODUCTO_OPERATIVO.md).
 
 Comandos rÃ¡pidos post-deploy:
 
 **Windows (PowerShell):**
 
 - `npm run verify:prod`
+- `npm run verify:prod:fast`
 - `npm run smoke:prod`
 - `npm run gate:prod`
+- `npm run gate:prod:fast`
 - `npm run gate:prod:strict`
+- `npm run nightly:stability`
 - `npm run monitor:prod`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File .\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireBackupHealthy`
 
@@ -156,12 +161,14 @@ Este proyecto es privado y propiedad de Piel ArmonÃ­a.
 Si no puedes subir archivos manualmente, deploy con:
 
 - `.github/workflows/deploy-hosting.yml`
-- `.github/workflows/post-deploy-gate.yml` (valida prod despues del sync git)
+- `.github/workflows/post-deploy-fast.yml` (carril rapido bloqueante en `push/main`, verify+smoke)
+- `.github/workflows/nightly-stability.yml` (suite pesada diaria, 23:00 America/Guayaquil)
+- `.github/workflows/post-deploy-gate.yml` (full regression/manual)
 - `.github/workflows/repair-git-sync.yml` (autocura: forzar `git fetch/reset` por SSH cuando falla el gate)
 - `.github/workflows/prod-monitor.yml` (monitorea salud/latencia cada 30 min)
 - `GITHUB-ACTIONS-DEPLOY.md` (paso a paso)
 
-Nota: `post-deploy-gate` y `prod-monitor` crean/actualizan un issue de incidente cuando fallan y lo cierran automaticamente cuando recuperan.
+Nota: `post-deploy-fast`, `post-deploy-gate` y `prod-monitor` crean/actualizan un issue de incidente cuando fallan y lo cierran automaticamente cuando recuperan.
 
 Nota: si tu servidor ya hace `git pull`/sync automatico cada 5 minutos, usa ese flujo como principal y deja este workflow solo como respaldo manual.
 
