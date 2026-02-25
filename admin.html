@@ -11,7 +11,7 @@
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="stylesheet" href="styles.min.css" />
         <link rel="stylesheet" href="admin.min.css" />
-        <link rel="stylesheet" href="admin.css?v=admin-css-fix-login2" />
+        <link rel="stylesheet" href="admin.css?v=admin-20260225-adminux1" />
         <link
             href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
             rel="stylesheet"
@@ -23,6 +23,9 @@
         <script src="js/monitoring-loader.js" async></script>
     </head>
     <body class="admin-body">
+        <a href="#adminMainContent" class="admin-skip-link"
+            >Saltar al contenido principal</a
+        >
         <!-- Login Screen -->
         <div id="loginScreen" class="login-screen">
             <div class="login-box">
@@ -75,17 +78,32 @@
         <!-- Admin Dashboard -->
         <div id="adminDashboard" class="admin-dashboard is-hidden">
             <!-- Sidebar -->
-            <aside class="admin-sidebar">
+            <aside
+                class="admin-sidebar"
+                id="adminSidebar"
+                aria-label="Navegacion principal de administracion"
+            >
                 <div class="sidebar-header">
-                    <i class="fas fa-spa"></i>
-                    <span>Piel en Armonía</span>
+                    <div class="sidebar-brand">
+                        <i class="fas fa-spa"></i>
+                        <span>Piel en Armonía</span>
+                    </div>
+                    <button
+                        type="button"
+                        class="sidebar-close-btn"
+                        id="adminMenuClose"
+                        aria-label="Cerrar menu lateral"
+                    >
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
 
-                <nav class="sidebar-nav">
+                <nav class="sidebar-nav" id="adminSidebarNav">
                     <a
                         href="#dashboard"
                         class="nav-item active"
                         data-section="dashboard"
+                        aria-current="page"
                     >
                         <i class="fas fa-chart-line"></i>
                         <span>Dashboard</span>
@@ -134,12 +152,32 @@
                     </button>
                 </div>
             </aside>
+            <button
+                type="button"
+                id="adminSidebarBackdrop"
+                class="admin-sidebar-backdrop is-hidden"
+                aria-hidden="true"
+                tabindex="-1"
+            ></button>
 
             <!-- Main Content -->
-            <main class="admin-main">
+            <main class="admin-main" id="adminMainContent" tabindex="-1">
                 <!-- Header -->
                 <header class="admin-header">
-                    <h2 id="pageTitle">Dashboard</h2>
+                    <div class="admin-header-title-wrap">
+                        <button
+                            type="button"
+                            class="btn btn-secondary btn-sm admin-menu-toggle"
+                            id="adminMenuToggle"
+                            aria-controls="adminSidebar"
+                            aria-expanded="false"
+                            aria-label="Abrir menu lateral"
+                        >
+                            <i class="fas fa-bars"></i>
+                            <span>Menu</span>
+                        </button>
+                        <h2 id="pageTitle">Dashboard</h2>
+                    </div>
                     <div class="header-actions">
                         <span class="current-date" id="currentDate"></span>
                         <span
@@ -191,7 +229,11 @@
                 </header>
 
                 <!-- Dashboard Section -->
-                <section id="dashboard" class="admin-section active">
+                <section
+                    id="dashboard"
+                    class="admin-section active"
+                    tabindex="-1"
+                >
                     <div class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-icon blue">
@@ -409,7 +451,10 @@
                             </div>
                             <div class="funnel-breakdown">
                                 <h4>Errores por codigo</h4>
-                                <div class="funnel-list" id="funnelErrorCodeList">
+                                <div
+                                    class="funnel-list"
+                                    id="funnelErrorCodeList"
+                                >
                                     <p class="empty-message">
                                         Sin datos de error
                                     </p>
@@ -420,7 +465,7 @@
                 </section>
 
                 <!-- Appointments Section -->
-                <section id="appointments" class="admin-section">
+                <section id="appointments" class="admin-section" tabindex="-1">
                     <div class="section-toolbar">
                         <div class="filter-group">
                             <select id="appointmentFilter">
@@ -474,7 +519,7 @@
                 </section>
 
                 <!-- Callbacks Section -->
-                <section id="callbacks" class="admin-section">
+                <section id="callbacks" class="admin-section" tabindex="-1">
                     <div class="section-toolbar">
                         <div class="filter-group">
                             <select id="callbackFilter">
@@ -489,7 +534,7 @@
                 </section>
 
                 <!-- Reviews Section -->
-                <section id="reviews" class="admin-section">
+                <section id="reviews" class="admin-section" tabindex="-1">
                     <div class="reviews-stats">
                         <div class="rating-summary">
                             <span class="big-rating" id="adminAvgRating"
@@ -512,7 +557,7 @@
                 </section>
 
                 <!-- Availability Section -->
-                <section id="availability" class="admin-section">
+                <section id="availability" class="admin-section" tabindex="-1">
                     <div class="availability-container">
                         <div class="availability-calendar">
                             <h3>Configurar Horarios Disponibles</h3>
@@ -580,9 +625,14 @@
         </div>
 
         <!-- Toast Container -->
-        <div id="toastContainer" class="toast-container"></div>
+        <div
+            id="toastContainer"
+            class="toast-container"
+            aria-live="polite"
+            aria-relevant="additions"
+        ></div>
 
         <!-- utils.js is now bundled/imported by admin.js -->
-        <script src="admin.js?v=admin-20260224-cachefix3" type="module"></script>
+        <script src="admin.js?v=admin-20260225-adminux1" type="module"></script>
     </body>
 </html>

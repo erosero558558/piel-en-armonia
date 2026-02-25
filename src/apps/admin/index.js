@@ -34,6 +34,133 @@ import {
     removeTimeSlot,
 } from './modules/availability.js';
 
+const ADMIN_NAV_COMPACT_BREAKPOINT = 1024;
+
+function getNavItems() {
+    return Array.from(document.querySelectorAll('.nav-item[data-section]'));
+}
+
+function getSectionFromHash() {
+    const hashSection = window.location.hash.replace(/^#/, '').trim();
+    const sections = new Set(getNavItems().map((item) => item.dataset.section));
+    return sections.has(hashSection) ? hashSection : 'dashboard';
+}
+
+function getActiveSection() {
+    return (
+        document.querySelector('.nav-item.active')?.dataset.section ||
+        getSectionFromHash() ||
+        'dashboard'
+    );
+}
+
+function isCompactAdminViewport() {
+    return window.innerWidth <= ADMIN_NAV_COMPACT_BREAKPOINT;
+}
+
+function setNavActive(section) {
+    getNavItems().forEach((item) => {
+        const isActive = item.dataset.section === section;
+        item.classList.toggle('active', isActive);
+        if (isActive) {
+            item.setAttribute('aria-current', 'page');
+        } else {
+            item.removeAttribute('aria-current');
+        }
+    });
+}
+
+function syncHash(section) {
+    const nextHash = `#${section}`;
+    if (window.location.hash === nextHash) return;
+    if (window.history && typeof window.history.replaceState === 'function') {
+        window.history.replaceState(null, '', nextHash);
+        return;
+    }
+    window.location.hash = nextHash;
+}
+
+function getSidebarShellElements() {
+    return {
+        sidebar: document.getElementById('adminSidebar'),
+        backdrop: document.getElementById('adminSidebarBackdrop'),
+        toggleBtn: document.getElementById('adminMenuToggle'),
+    };
+}
+
+function setSidebarOpen(isOpen) {
+    const { sidebar, backdrop, toggleBtn } = getSidebarShellElements();
+    if (!sidebar || !backdrop || !toggleBtn) return;
+
+    const shouldOpen = Boolean(isOpen && isCompactAdminViewport());
+    sidebar.classList.toggle('is-open', shouldOpen);
+    backdrop.classList.toggle('is-hidden', !shouldOpen);
+    backdrop.setAttribute('aria-hidden', String(!shouldOpen));
+    document.body.classList.toggle('admin-sidebar-open', shouldOpen);
+    toggleBtn.setAttribute('aria-expanded', String(shouldOpen));
+}
+
+function closeSidebar({ restoreFocus = false } = {}) {
+    const { toggleBtn } = getSidebarShellElements();
+    const wasOpen = document
+        .getElementById('adminSidebar')
+        ?.classList.contains('is-open');
+    setSidebarOpen(false);
+    if (restoreFocus && wasOpen && toggleBtn) {
+        toggleBtn.focus();
+    }
+}
+
+function focusSection(section, { preventScroll = true } = {}) {
+    const sectionEl = document.getElementById(section);
+    if (!sectionEl) return;
+    if (!sectionEl.hasAttribute('tabindex')) {
+        sectionEl.setAttribute('tabindex', '-1');
+    }
+    window.requestAnimationFrame(() => {
+        if (typeof sectionEl.focus === 'function') {
+            sectionEl.focus({ preventScroll });
+        }
+    });
+}
+
+async function navigateToSection(section, options = {}) {
+    const {
+        refresh = true,
+        updateHash = true,
+        focus = true,
+        closeMobileNav = true,
+    } = options;
+    const targetSection = section || 'dashboard';
+
+    setNavActive(targetSection);
+
+    if (closeMobileNav) {
+        closeSidebar();
+    }
+
+    if (refresh) {
+        try {
+            await refreshData();
+        } catch (error) {
+            showToast(
+                `No se pudo actualizar datos en vivo: ${error?.message || 'error desconocido'}`,
+                'warning'
+            );
+        }
+    }
+
+    await renderSection(targetSection);
+
+    if (updateHash) {
+        syncHash(targetSection);
+    }
+
+    if (focus) {
+        focusSection(targetSection);
+    }
+}
+
 /**
  * Renders the specified section of the admin dashboard.
  * Loads the necessary data and updates the UI.
@@ -87,6 +214,7 @@ async function renderSection(section) {
 function showLogin() {
     const loginScreen = document.getElementById('loginScreen');
     const dashboard = document.getElementById('adminDashboard');
+    closeSidebar();
     if (loginScreen) loginScreen.classList.remove('is-hidden');
     if (dashboard) dashboard.classList.add('is-hidden');
 }
@@ -100,6 +228,8 @@ async function showDashboard() {
     const dashboard = document.getElementById('adminDashboard');
     if (loginScreen) loginScreen.classList.add('is-hidden');
     if (dashboard) dashboard.classList.remove('is-hidden');
+    setNavActive(getSectionFromHash());
+    closeSidebar();
     await updateDate();
     await initPushNotifications();
 }
@@ -134,7 +264,9 @@ async function handleLogin(event) {
         const loginResult = await login(password);
 
         if (loginResult.twoFactorRequired) {
-            document.getElementById('passwordGroup')?.classList.add('is-hidden');
+            document
+                .getElementById('passwordGroup')
+                ?.classList.add('is-hidden');
             group2FA?.classList.remove('is-hidden');
             document.getElementById('admin2FACode')?.focus();
             const btn = document.getElementById('loginBtn');
@@ -194,8 +326,7 @@ async function updateDate() {
             'warning'
         );
     }
-    const activeItem = document.querySelector('.nav-item.active');
-    const section = activeItem?.dataset.section || 'dashboard';
+    const section = getActiveSection();
     await renderSection(section);
 }
 
@@ -271,7 +402,10 @@ async function importData(input) {
         await refreshData();
         const activeItem = document.querySelector('.nav-item.active');
         await renderSection(activeItem?.dataset.section || 'dashboard');
-        showToast(`Datos importados: ${payload.appointments.length} citas`, 'success');
+        showToast(
+            `Datos importados: ${payload.appointments.length} citas`,
+            'success'
+        );
     } catch (error) {
         showToast(`Error al importar: ${error.message}`, 'error');
     }
@@ -390,34 +524,59 @@ document.addEventListener('DOMContentLoaded', async () => {
         loginForm.addEventListener('submit', handleLogin);
     }
 
-    const navItems = document.querySelectorAll('.nav-item');
+    const navItems = getNavItems();
     navItems.forEach((item) => {
-        item.addEventListener('click', async function onNavClick(event) {
+        item.addEventListener('click', async (event) => {
             event.preventDefault();
-            navItems.forEach((nav) => nav.classList.remove('active'));
-            this.classList.add('active');
-            try {
-                await refreshData();
-            } catch (error) {
-                showToast(
-                    `No se pudo actualizar datos en vivo: ${error?.message || 'error desconocido'}`,
-                    'warning'
-                );
-            }
-            await renderSection(this.dataset.section);
+            await navigateToSection(item.dataset.section || 'dashboard');
+        });
+    });
+
+    document
+        .getElementById('adminMenuToggle')
+        ?.addEventListener('click', () => {
+            const sidebar = document.getElementById('adminSidebar');
+            const isOpen = sidebar?.classList.contains('is-open');
+            setSidebarOpen(!isOpen);
+        });
+    document
+        .getElementById('adminMenuClose')
+        ?.addEventListener('click', () => closeSidebar({ restoreFocus: true }));
+    document
+        .getElementById('adminSidebarBackdrop')
+        ?.addEventListener('click', () => closeSidebar({ restoreFocus: true }));
+
+    window.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        closeSidebar({ restoreFocus: true });
+    });
+    window.addEventListener('resize', () => {
+        if (!isCompactAdminViewport()) {
+            closeSidebar();
+        }
+    });
+    window.addEventListener('hashchange', async () => {
+        const dashboard = document.getElementById('adminDashboard');
+        if (!dashboard || dashboard.classList.contains('is-hidden')) return;
+        await navigateToSection(getSectionFromHash(), {
+            refresh: false,
+            updateHash: false,
+            focus: false,
+            closeMobileNav: false,
         });
     });
 
     const importFileInput = document.getElementById('importFileInput');
     if (importFileInput) {
-        importFileInput.addEventListener('change', () => importData(importFileInput));
+        importFileInput.addEventListener('change', () =>
+            importData(importFileInput)
+        );
     }
 
     window.addEventListener('online', async () => {
         showToast('Conexion restaurada. Actualizando datos...', 'success');
         await refreshData();
-        const activeItem = document.querySelector('.nav-item.active');
-        await renderSection(activeItem?.dataset.section || 'dashboard');
+        await renderSection(getActiveSection());
     });
 
     await checkAuthAndBoot();

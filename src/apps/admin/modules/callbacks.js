@@ -6,7 +6,7 @@ import {
     escapeHtml,
     showToast,
     normalizeCallbackStatus,
-    getPreferenceText
+    getPreferenceText,
 } from './ui.js';
 
 export function renderCallbacks(callbacks) {
@@ -14,15 +14,22 @@ export function renderCallbacks(callbacks) {
     if (!grid) return;
 
     if (callbacks.length === 0) {
-        grid.innerHTML = '<p class="empty-message">No hay callbacks registrados</p>';
+        grid.innerHTML = `
+            <div class="card-empty-state">
+                <i class="fas fa-phone-slash" aria-hidden="true"></i>
+                <strong>No hay callbacks registrados</strong>
+                <p>Las solicitudes de llamada apareceran aqui para seguimiento rapido.</p>
+            </div>
+        `;
         return;
     }
 
-    grid.innerHTML = callbacks.map(c => {
-        const status = normalizeCallbackStatus(c.status);
-        const callbackId = Number(c.id) || 0;
-        const callbackDateKey = encodeURIComponent(String(c.fecha || ''));
-        return `
+    grid.innerHTML = callbacks
+        .map((c) => {
+            const status = normalizeCallbackStatus(c.status);
+            const callbackId = Number(c.id) || 0;
+            const callbackDateKey = encodeURIComponent(String(c.fecha || ''));
+            return `
             <div class="callback-card ${status}">
                 <div class="callback-header">
                     <span class="callback-phone">${escapeHtml(c.telefono)}</span>
@@ -39,20 +46,25 @@ export function renderCallbacks(callbacks) {
                     ${escapeHtml(new Date(c.fecha).toLocaleString('es-EC'))}
                 </p>
                 <div class="callback-actions">
-                    <a href="tel:${escapeHtml(c.telefono)}" class="btn btn-phone btn-sm">
+                    <a href="tel:${escapeHtml(c.telefono)}" class="btn btn-phone btn-sm" aria-label="Llamar al callback ${escapeHtml(c.telefono)}">
                         <i class="fas fa-phone"></i>
                         Llamar
                     </a>
-                    ${status === 'pendiente' ? `
+                    ${
+                        status === 'pendiente'
+                            ? `
                         <button type="button" class="btn btn-primary btn-sm" data-action="mark-contacted" data-callback-id="${callbackId}" data-callback-date="${callbackDateKey}">
                             <i class="fas fa-check"></i>
                             Marcar contactado
                         </button>
-                    ` : ''}
+                    `
+                            : ''
+                    }
                 </div>
             </div>
         `;
-    }).join('');
+        })
+        .join('');
 }
 
 export function loadCallbacks() {
@@ -64,9 +76,13 @@ export function filterCallbacks() {
     let callbacks = [...currentCallbacks];
 
     if (filter === 'pending') {
-        callbacks = callbacks.filter(c => normalizeCallbackStatus(c.status) === 'pendiente');
+        callbacks = callbacks.filter(
+            (c) => normalizeCallbackStatus(c.status) === 'pendiente'
+        );
     } else if (filter === 'contacted') {
-        callbacks = callbacks.filter(c => normalizeCallbackStatus(c.status) === 'contactado');
+        callbacks = callbacks.filter(
+            (c) => normalizeCallbackStatus(c.status) === 'contactado'
+        );
     }
 
     renderCallbacks(callbacks);
@@ -76,12 +92,12 @@ export async function markContacted(callbackId, callbackDate = '') {
     let callback = null;
     const normalizedId = Number(callbackId);
     if (normalizedId > 0) {
-        callback = currentCallbacks.find(c => Number(c.id) === normalizedId);
+        callback = currentCallbacks.find((c) => Number(c.id) === normalizedId);
     }
 
     const decodedDate = callbackDate ? decodeURIComponent(callbackDate) : '';
     if (!callback && decodedDate) {
-        callback = currentCallbacks.find(c => c.fecha === decodedDate);
+        callback = currentCallbacks.find((c) => c.fecha === decodedDate);
     }
 
     if (!callback) {
@@ -96,7 +112,7 @@ export async function markContacted(callbackId, callbackDate = '') {
         }
         await apiRequest('callbacks', {
             method: 'PATCH',
-            body: { id: Number(callbackId), status: 'contactado' }
+            body: { id: Number(callbackId), status: 'contactado' },
         });
         await refreshData();
         loadCallbacks();
