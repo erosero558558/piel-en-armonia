@@ -398,18 +398,17 @@ function getBlockingConflictsForTask(tasks, taskId, handoffs = []) {
 }
 
 function resolveTaskEvidencePath(taskId, flags = {}) {
-    if (flags.evidence) {
-        return resolve(ROOT, String(flags.evidence));
-    }
-    return resolve(EVIDENCE_DIR, `${taskId}.md`);
+    return coreIo.resolveTaskEvidencePath(taskId, flags, {
+        rootPath: ROOT,
+        evidenceDirPath: EVIDENCE_DIR,
+        resolvePath: resolve,
+    });
 }
 
 function toRelativeRepoPath(path) {
-    const normalizedRoot = ROOT.replace(/\\/g, '/');
-    const normalizedPath = String(path).replace(/\\/g, '/');
-    return normalizedPath.startsWith(`${normalizedRoot}/`)
-        ? normalizedPath.slice(normalizedRoot.length + 1)
-        : normalizedPath;
+    return coreIo.toRelativeRepoPath(path, {
+        rootPath: ROOT,
+    });
 }
 
 function toTaskJson(task) {

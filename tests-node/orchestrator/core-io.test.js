@@ -33,6 +33,43 @@ test('core-io writeBoardFile actualiza policy.updated_at y escribe serialized bo
     ]);
 });
 
+test('core-io resolveTaskEvidencePath respeta --evidence y fallback a evidenceDir', () => {
+    const custom = coreIo.resolveTaskEvidencePath(
+        'AG-001',
+        { evidence: 'verification/agent-runs/custom.md' },
+        {
+            rootPath: 'C:\\repo',
+            evidenceDirPath: 'C:\\repo\\verification\\agent-runs',
+            resolvePath: (...parts) => parts.join('|'),
+        }
+    );
+    assert.equal(custom, 'C:\\repo|verification/agent-runs/custom.md');
+
+    const fallback = coreIo.resolveTaskEvidencePath(
+        'AG-001',
+        {},
+        {
+            rootPath: 'C:\\repo',
+            evidenceDirPath: 'C:\\repo\\verification\\agent-runs',
+            resolvePath: (...parts) => parts.join('|'),
+        }
+    );
+    assert.equal(fallback, 'C:\\repo\\verification\\agent-runs|AG-001.md');
+});
+
+test('core-io toRelativeRepoPath normaliza slashes y recorta root', () => {
+    const rel = coreIo.toRelativeRepoPath(
+        'C:\\repo\\verification\\agent-runs\\AG-001.md',
+        { rootPath: 'C:\\repo' }
+    );
+    assert.equal(rel, 'verification/agent-runs/AG-001.md');
+
+    const passthrough = coreIo.toRelativeRepoPath('/tmp/file.txt', {
+        rootPath: 'C:\\repo',
+    });
+    assert.equal(passthrough, '/tmp/file.txt');
+});
+
 test('core-io writeCodexActiveBlockFile usa upsert y persiste contenido', () => {
     const writes = [];
     const next = coreIo.writeCodexActiveBlockFile(

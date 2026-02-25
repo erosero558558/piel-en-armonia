@@ -19,6 +19,31 @@ function writeJsonFile(path, value) {
     writeFileSync(path, `${JSON.stringify(value, null, 4)}\n`, 'utf8');
 }
 
+function resolveTaskEvidencePath(taskId, flags = {}, deps = {}) {
+    const { rootPath = '', evidenceDirPath, resolvePath } = deps;
+    if (typeof resolvePath !== 'function') {
+        throw new Error('resolveTaskEvidencePath requiere resolvePath');
+    }
+    if (flags && flags.evidence) {
+        return resolvePath(rootPath, String(flags.evidence));
+    }
+    if (!evidenceDirPath) {
+        throw new Error(
+            'resolveTaskEvidencePath requiere evidenceDirPath cuando no hay --evidence'
+        );
+    }
+    return resolvePath(evidenceDirPath, `${taskId}.md`);
+}
+
+function toRelativeRepoPath(path, deps = {}) {
+    const { rootPath = '' } = deps;
+    const normalizedRoot = String(rootPath).replace(/\\/g, '/');
+    const normalizedPath = String(path || '').replace(/\\/g, '/');
+    return normalizedPath.startsWith(`${normalizedRoot}/`)
+        ? normalizedPath.slice(normalizedRoot.length + 1)
+        : normalizedPath;
+}
+
 function writeBoardFile(board, deps = {}) {
     const {
         currentDate = () => '',
@@ -116,6 +141,8 @@ module.exports = {
     readJsonFile,
     ensureDirForFile,
     writeJsonFile,
+    resolveTaskEvidencePath,
+    toRelativeRepoPath,
     writeBoardFile,
     writeCodexActiveBlockFile,
     syncDerivedQueuesFiles,
