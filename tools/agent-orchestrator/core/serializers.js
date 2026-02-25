@@ -60,6 +60,15 @@ function serializeBoard(board, options = {}) {
         `  autonomy: ${board.policy.autonomy || 'semi_autonomous_guardrails'}`
     );
     lines.push(`  kpi: ${board.policy.kpi || 'reduce_rework'}`);
+    lines.push(
+        `  codex_partition_model: ${board.policy.codex_partition_model || 'dual_fixed_domains'}`
+    );
+    lines.push(
+        `  codex_backend_instance: ${board.policy.codex_backend_instance || 'codex_backend_ops'}`
+    );
+    lines.push(
+        `  codex_frontend_instance: ${board.policy.codex_frontend_instance || 'codex_frontend'}`
+    );
     lines.push(`  revision: ${normalizeTaskInt(board.policy.revision, 0)}`);
     lines.push(`  updated_at: ${board.policy.updated_at || getDate()}`);
     lines.push('');
@@ -74,6 +83,12 @@ function serializeBoard(board, options = {}) {
         lines.push(`    status_since_at: ${quote(task.status_since_at || '')}`);
         lines.push(`    risk: ${task.risk || 'medium'}`);
         lines.push(`    scope: ${task.scope || 'general'}`);
+        lines.push(
+            `    codex_instance: ${task.codex_instance || 'codex_backend_ops'}`
+        );
+        lines.push(`    domain_lane: ${task.domain_lane || 'backend_ops'}`);
+        lines.push(`    lane_lock: ${task.lane_lock || 'strict'}`);
+        lines.push(`    cross_domain: ${task.cross_domain ? 'true' : 'false'}`);
         lines.push(`    files: ${serializeArrayInline(task.files || [])}`);
         lines.push(`    source_signal: ${task.source_signal || 'manual'}`);
         lines.push(`    source_ref: ${quote(task.source_ref || '')}`);

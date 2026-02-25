@@ -136,3 +136,81 @@ test('codex-mirror engine detecta drift de status y file no reservado', () => {
         true
     );
 });
+
+test('codex-mirror engine detecta doble in_progress por codex_instance', () => {
+    const report = buildCodexCheckReport(
+        {
+            board: {
+                tasks: [
+                    {
+                        id: 'CDX-001',
+                        executor: 'codex',
+                        status: 'in_progress',
+                        codex_instance: 'codex_backend_ops',
+                        files: ['AGENTS.md'],
+                    },
+                    {
+                        id: 'AG-900',
+                        executor: 'codex',
+                        status: 'in_progress',
+                        codex_instance: 'codex_backend_ops',
+                        files: ['agent-orchestrator.js'],
+                    },
+                ],
+            },
+            blocks: [],
+            handoffs: [],
+            codexPlanPath: 'PLAN_MAESTRO_CODEX_2026.md',
+        },
+        {
+            normalizePathToken,
+            activeStatuses: ACTIVE_STATUSES,
+            isExpired: () => false,
+        }
+    );
+
+    assert.equal(report.ok, false);
+    assert.equal(
+        report.errors.some((e) =>
+            /Mas de una tarea in_progress para codex_backend_ops/i.test(
+                String(e)
+            )
+        ),
+        true
+    );
+});
+
+test('codex-mirror engine exige handoff activo para cross_domain activo', () => {
+    const report = buildCodexCheckReport(
+        {
+            board: {
+                tasks: [
+                    {
+                        id: 'AG-777',
+                        executor: 'codex',
+                        status: 'in_progress',
+                        codex_instance: 'codex_backend_ops',
+                        cross_domain: true,
+                        files: ['src/apps/chat/engine.js'],
+                    },
+                ],
+            },
+            blocks: [],
+            handoffs: [],
+            codexPlanPath: 'PLAN_MAESTRO_CODEX_2026.md',
+        },
+        {
+            normalizePathToken,
+            activeStatuses: ACTIVE_STATUSES,
+            isExpired: () => false,
+        }
+    );
+
+    assert.equal(report.ok, false);
+    assert.equal(
+        report.errors.some((e) =>
+            /cross_domain activo requiere handoff activo/i.test(String(e))
+        ),
+        true
+    );
+});

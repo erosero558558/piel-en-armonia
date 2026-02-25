@@ -99,6 +99,25 @@ Para zona critica es obligatorio:
 - Jules: tareas async con PR remoto y cambios aislados.
 - CI: arbitro de consistencia, conflictos y calidad minima.
 
+## Dual Codex Matrix (Dominios Fijos)
+
+Particion operativa obligatoria entre dos instancias de Codex:
+
+- `codex_backend_ops`: `controllers/**`, `lib/**`, `api.php`, `figo-*.php`,
+  `.github/workflows/**`, `cron.php`, `env*.php`, `bin/**`.
+- `codex_frontend`: `src/apps/**`, `js/**`, `styles*.css`, `templates/**`,
+  `content/**`, `*.html`.
+
+Reglas:
+
+- Si hay duda de ownership de archivo, gana criterio conservador:
+  `codex_backend_ops`.
+- `critical_zone=true` (o runtime alto equivalente) solo puede ejecutarse en
+  `codex_backend_ops`.
+- Cruces de dominio solo con handoff activo (`AGENT_HANDOFFS.yaml`) y
+  expiracion definida.
+- No se permite solape cross-lane sin handoff activo.
+
 ## Contrato canonico de tareas
 
 El tablero unico vive en `AGENT_BOARD.yaml`.
@@ -106,10 +125,18 @@ El tablero unico vive en `AGENT_BOARD.yaml`.
 Campos obligatorios por tarea:
 
 - `id`, `title`, `owner`, `executor`, `status`, `risk`, `scope`, `files`,
+  `codex_instance`, `domain_lane`, `lane_lock`, `cross_domain`,
   `source_signal`, `source_ref`, `priority_score`, `sla_due_at`,
   `last_attempt_at`, `attempts`, `blocked_reason`, `runtime_impact`,
   `critical_zone`, `acceptance`, `acceptance_ref`, `evidence_ref`,
   `depends_on`, `created_at`, `updated_at`.
+
+Valores validos para coordinacion dual:
+
+- `codex_instance`: `codex_backend_ops | codex_frontend`
+- `domain_lane`: `backend_ops | frontend_content`
+- `lane_lock`: `strict | handoff_allowed`
+- `cross_domain`: `true | false`
 
 Estados permitidos:
 
@@ -215,6 +242,10 @@ Flujo recomendado:
 4. Ejecutar `node agent-orchestrator.js sync`.
 5. Ejecutar validaciones del cambio (`npm run lint`, tests aplicables).
 6. Confirmar evidencia y cerrar (`close`, `codex stop`, `handoffs close`) cuando aplique.
+
+Runbook operativo dual Codex:
+
+- `DUAL_CODEX_RUNBOOK.md` define flujo diario, ownership por lane y comandos de handoff.
 
 Nota:
 

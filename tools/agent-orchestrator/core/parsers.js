@@ -38,6 +38,17 @@ function parseScalar(value) {
     return trimmed;
 }
 
+function parseBooleanLike(value, fallback = false) {
+    if (typeof value === 'boolean') return value;
+    const raw = String(value || '')
+        .trim()
+        .toLowerCase();
+    if (!raw) return fallback;
+    if (['true', '1', 'yes', 'y', 'si', 's', 'on'].includes(raw)) return true;
+    if (['false', '0', 'no', 'n', 'off'].includes(raw)) return false;
+    return fallback;
+}
+
 function parseBoardContent(content, options = {}) {
     const allowedStatuses = options.allowedStatuses || new Set();
     const lines = normalizeEol(content).split('\n');
@@ -101,6 +112,16 @@ function parseBoardContent(content, options = {}) {
             item.files = item.files ? [String(item.files)] : [];
         if (!Array.isArray(item.depends_on))
             item.depends_on = item.depends_on ? [String(item.depends_on)] : [];
+        item.codex_instance = String(item.codex_instance || '')
+            .trim()
+            .toLowerCase();
+        item.domain_lane = String(item.domain_lane || '')
+            .trim()
+            .toLowerCase();
+        item.lane_lock = String(item.lane_lock || '')
+            .trim()
+            .toLowerCase();
+        item.cross_domain = parseBooleanLike(item.cross_domain, false);
         item.status = String(item.status || '').trim();
         if (allowedStatuses.size > 0 && !allowedStatuses.has(item.status)) {
             throw new Error(

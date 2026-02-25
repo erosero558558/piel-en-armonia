@@ -112,3 +112,46 @@ test('handoffs-engine acepta handoff activo valido', () => {
 
     assert.deepEqual(errors, []);
 });
+
+test('handoffs-engine acepta status expired cuando expires_at ya vencio', () => {
+    const errors = getHandoffLintErrors(
+        {
+            board: {
+                tasks: [
+                    {
+                        id: 'AG-001',
+                        status: 'done',
+                        files: ['docs/a.md'],
+                    },
+                    {
+                        id: 'CDX-001',
+                        status: 'done',
+                        files: ['docs/a.md'],
+                    },
+                ],
+            },
+            handoffData: {
+                version: 1,
+                handoffs: [
+                    {
+                        id: 'HO-002',
+                        status: 'expired',
+                        from_task: 'AG-001',
+                        to_task: 'CDX-001',
+                        files: ['docs/a.md'],
+                        created_at: '2026-02-25T00:00:00.000Z',
+                        expires_at: '2026-02-25T01:00:00.000Z',
+                    },
+                ],
+            },
+        },
+        {
+            analyzeFileOverlap,
+            normalizePathToken,
+            isExpired: () => true,
+            activeStatuses: ACTIVE_STATUSES,
+        }
+    );
+
+    assert.deepEqual(errors, []);
+});

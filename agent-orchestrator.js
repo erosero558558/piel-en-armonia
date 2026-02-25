@@ -216,6 +216,14 @@ const CRITICAL_SCOPE_KEYWORDS = [
     'security',
 ];
 const CRITICAL_SCOPE_ALLOWED_EXECUTORS = new Set(['codex', 'claude']);
+const ALLOWED_CODEX_INSTANCES = new Set([
+    'codex_backend_ops',
+    'codex_frontend',
+]);
+const ALLOWED_DOMAIN_LANES = new Set(['backend_ops', 'frontend_content']);
+const ALLOWED_LANE_LOCKS = new Set(['strict', 'handoff_allowed']);
+const DUAL_CODEX_OWNERSHIP_MATRIX =
+    domainTaskGuards.DEFAULT_DUAL_CODEX_OWNERSHIP;
 const TASK_CREATE_TEMPLATES = {
     docs: {
         executor: 'kimi',
@@ -373,6 +381,18 @@ function findCriticalScopeKeyword(scopeValue) {
     );
 }
 
+function inferDomainLaneFromFiles(files) {
+    return domainTaskGuards.inferDomainLaneFromFiles(files, {
+        ownershipMatrix: DUAL_CODEX_OWNERSHIP_MATRIX,
+    });
+}
+
+function ensureTaskDualCodexDefaults(task) {
+    return domainTaskGuards.ensureTaskDualCodexDefaults(task, {
+        ownershipMatrix: DUAL_CODEX_OWNERSHIP_MATRIX,
+    });
+}
+
 function validateTaskExecutorScopeGuard(task) {
     return domainTaskGuards.validateTaskExecutorScopeGuard(task, {
         criticalScopeKeywords: CRITICAL_SCOPE_KEYWORDS,
@@ -389,6 +409,12 @@ function validateTaskGovernancePrechecks(board, task, options = {}) {
         ...options,
         criticalScopeKeywords: CRITICAL_SCOPE_KEYWORDS,
         allowedExecutors: CRITICAL_SCOPE_ALLOWED_EXECUTORS,
+        allowedCodexInstances: ALLOWED_CODEX_INSTANCES,
+        allowedDomainLanes: ALLOWED_DOMAIN_LANES,
+        allowedLaneLocks: ALLOWED_LANE_LOCKS,
+        ownershipMatrix: DUAL_CODEX_OWNERSHIP_MATRIX,
+        activeStatuses: ACTIVE_STATUSES,
+        isExpired,
     });
 }
 
@@ -1161,11 +1187,13 @@ function buildCodexCheckReport() {
         {
             board: parseBoard(),
             blocks: parseCodexActiveBlocks(),
+            handoffs: parseHandoffs().handoffs,
             codexPlanPath: CODEX_PLAN_PATH,
         },
         {
             normalizePathToken,
             activeStatuses: ACTIVE_STATUSES,
+            isExpired,
         }
     );
 }
@@ -1257,6 +1285,11 @@ async function cmdTask(args) {
         findCriticalScopeKeyword,
         CRITICAL_SCOPE_KEYWORDS,
         CRITICAL_SCOPE_ALLOWED_EXECUTORS,
+        ALLOWED_CODEX_INSTANCES,
+        ALLOWED_DOMAIN_LANES,
+        ALLOWED_LANE_LOCKS,
+        inferDomainLaneFromFiles,
+        ensureTaskDualCodexDefaults,
         buildTaskCreateInferenceExplainLines,
         buildTaskCreateWarnDiagnostics,
         attachDiagnostics,
@@ -1297,6 +1330,7 @@ function cmdClose(args) {
         resolveTaskEvidencePath,
         existsSync,
         parseBoard,
+        parseHandoffs,
         currentDate,
         toRelativeRepoPath,
         BOARD_PATH,

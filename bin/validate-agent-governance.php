@@ -97,6 +97,24 @@ function parseScalar(string $raw)
     return $value;
 }
 
+function parseBooleanLike($value, bool $fallback = false): bool
+{
+    if (is_bool($value)) {
+        return $value;
+    }
+    $raw = strtolower(trim((string) $value));
+    if ($raw === '') {
+        return $fallback;
+    }
+    if (in_array($raw, ['true', '1', 'yes', 'y', 'si', 's', 'on'], true)) {
+        return true;
+    }
+    if (in_array($raw, ['false', '0', 'no', 'n', 'off'], true)) {
+        return false;
+    }
+    return $fallback;
+}
+
 /**
  * @return array{version:mixed, policy:array<string,mixed>, tasks:array<int,array<string,mixed>>}
  */
@@ -396,6 +414,52 @@ function wildcardToRegex(string $pattern): string
     return '/^' . str_replace('\*', '.*', $quoted) . '$/i';
 }
 
+function classifyFileLaneForDualCodex(string $rawFile): string
+{
+    $file = normalizePathToken($rawFile);
+    if ($file === '') {
+        return 'backend_ops';
+    }
+    $backendPatterns = [
+        'controllers/**',
+        'lib/**',
+        'api.php',
+        'figo-*.php',
+        '.github/workflows/**',
+        'cron.php',
+        'env*.php',
+        'bin/**',
+    ];
+    $frontendPatterns = [
+        'src/apps/**',
+        'js/**',
+        'styles*.css',
+        'templates/**',
+        'content/**',
+        '*.html',
+    ];
+    $matchesBackend = false;
+    foreach ($backendPatterns as $pattern) {
+        if (preg_match(wildcardToRegex($pattern), $file) === 1) {
+            $matchesBackend = true;
+            break;
+        }
+    }
+    $matchesFrontend = false;
+    foreach ($frontendPatterns as $pattern) {
+        if (preg_match(wildcardToRegex($pattern), $file) === 1) {
+            $matchesFrontend = true;
+            break;
+        }
+    }
+
+    // Conservative fallback: dudas o no-match se asignan a backend_ops.
+    if (($matchesBackend && $matchesFrontend) || (!$matchesBackend && !$matchesFrontend)) {
+        return 'backend_ops';
+    }
+    return $matchesFrontend ? 'frontend_content' : 'backend_ops';
+}
+
 /**
  * @return array{any_overlap:bool, overlap_files:array<int,string>, ambiguous_wildcard_overlap:bool}
  */
@@ -518,8 +582,17 @@ $requiredTaskKeys = [
     'created_at',
     'updated_at',
 ];
+$requiredDualTaskKeys = [
+    'codex_instance',
+    'domain_lane',
+    'lane_lock',
+    'cross_domain',
+];
 $allowedStatuses = ['backlog', 'ready', 'in_progress', 'review', 'done', 'blocked', 'failed'];
 $allowedExecutors = ['codex', 'claude', 'kimi', 'jules', 'ci'];
+$allowedCodexInstances = ['codex_backend_ops', 'codex_frontend'];
+$allowedDomainLanes = ['backend_ops', 'frontend_content'];
+$allowedLaneLocks = ['strict', 'handoff_allowed'];
 $criticalScopes = ['payments', 'auth', 'calendar', 'deploy', 'env', 'security'];
 
 $board = [
@@ -564,6 +637,21 @@ foreach ($board['tasks'] as $idx => $task) {
     if (!in_array($status, $allowedStatuses, true)) {
         $errors[] = "Task {$id} tiene status invalido: {$status}";
     }
+    $requiresDualTaskKeys = in_array($status, ['ready', 'in_progress', 'review', 'blocked'], true);
+    $hasAnyDualKey = false;
+    foreach ($requiredDualTaskKeys as $dualKey) {
+        if (array_key_exists($dualKey, $task)) {
+            $hasAnyDualKey = true;
+            break;
+        }
+    }
+    if ($requiresDualTaskKeys || $hasAnyDualKey) {
+        foreach ($requiredDualTaskKeys as $dualKey) {
+            if (!array_key_exists($dualKey, $task)) {
+                $errors[] = "Task {$id} requiere campo dual-codex: {$dualKey}";
+            }
+        }
+    }
 
     $executor = (string) ($task['executor'] ?? '');
     if (!in_array($executor, $allowedExecutors, true)) {
@@ -596,8 +684,53 @@ foreach ($board['tasks'] as $idx => $task) {
         }
     }
 
+    $codexInstance = strtolower(trim((string) ($task['codex_instance'] ?? 'codex_backend_ops')));
+    $domainLane = strtolower(trim((string) ($task['domain_lane'] ?? 'backend_ops')));
+    $laneLock = strtolower(trim((string) ($task['lane_lock'] ?? 'strict')));
+    $crossDomain = parseBooleanLike($task['cross_domain'] ?? false, false);
+
+    $shouldValidateDual = $requiresDualTaskKeys || $hasAnyDualKey;
+    if ($shouldValidateDual && !in_array($codexInstance, $allowedCodexInstances, true)) {
+        $errors[] = "Task {$id} tiene codex_instance invalido: {$codexInstance}";
+    }
+    if ($shouldValidateDual && !in_array($domainLane, $allowedDomainLanes, true)) {
+        $errors[] = "Task {$id} tiene domain_lane invalido: {$domainLane}";
+    }
+    if ($shouldValidateDual && !in_array($laneLock, $allowedLaneLocks, true)) {
+        $errors[] = "Task {$id} tiene lane_lock invalido: {$laneLock}";
+    }
+
+    if ($shouldValidateDual) {
+        if ($domainLane === 'frontend_content' && $codexInstance !== 'codex_frontend') {
+            $errors[] = "Task {$id} con domain_lane=frontend_content requiere codex_instance=codex_frontend";
+        }
+        if ($domainLane === 'backend_ops' && $codexInstance !== 'codex_backend_ops') {
+            $errors[] = "Task {$id} con domain_lane=backend_ops requiere codex_instance=codex_backend_ops";
+        }
+        if (($criticalZone || $runtimeImpact === 'high') && $codexInstance !== 'codex_backend_ops') {
+            $errors[] = "Task critica {$id} requiere codex_instance=codex_backend_ops";
+        }
+        if ($crossDomain && $laneLock !== 'handoff_allowed') {
+            $errors[] = "Task {$id} con cross_domain=true requiere lane_lock=handoff_allowed";
+        }
+        if (!$crossDomain && $laneLock !== 'strict') {
+            $errors[] = "Task {$id} con cross_domain=false requiere lane_lock=strict";
+        }
+        if ($crossDomain && (!is_array($task['depends_on'] ?? null) || count($task['depends_on']) === 0)) {
+            $errors[] = "Task {$id} con cross_domain=true requiere depends_on no vacio";
+        }
+    }
+
     if (!is_array($task['files'] ?? null)) {
         $errors[] = "Task {$id} debe definir files como lista YAML inline.";
+    } elseif ($shouldValidateDual && !$crossDomain) {
+        foreach ($task['files'] as $rawFile) {
+            $fileLane = classifyFileLaneForDualCodex((string) $rawFile);
+            if ($fileLane !== $domainLane) {
+                $normalizedFile = normalizePathToken((string) $rawFile);
+                $errors[] = "Task {$id} tiene file fuera de lane {$domainLane}: {$normalizedFile}=>{$fileLane}";
+            }
+        }
     }
     if (!is_array($task['depends_on'] ?? null)) {
         $errors[] = "Task {$id} debe definir depends_on como lista YAML inline.";
@@ -895,7 +1028,7 @@ foreach (($handoffs['handoffs'] ?? []) as $handoff) {
     }
 
     $handoffStatus = strtolower(trim((string) ($handoff['status'] ?? '')));
-    if (!in_array($handoffStatus, ['active', 'closed'], true)) {
+    if (!in_array($handoffStatus, ['active', 'closed', 'expired'], true)) {
         $errors[] = "Handoff {$handoffId} tiene status invalido: {$handoffStatus}";
     }
 
@@ -963,10 +1096,42 @@ foreach (($handoffs['handoffs'] ?? []) as $handoff) {
             $errors[] = "Handoff {$handoffId} requiere to_task activo ({$toTaskId})";
         }
     }
+    if ($handoffStatus === 'expired' && $expiresTs !== false && $expiresTs > time()) {
+        $errors[] = "Handoff {$handoffId} con status expired requiere expires_at en pasado";
+    }
 
     // Nota H6: la validacion de solape real (subset de files del handoff contra el
     // overlap concreto entre tareas) queda canonica en Node (`handoffs lint`).
     // Este contrato PHP se mantiene en checks estructurales/conservadores.
+}
+
+foreach ($board['tasks'] as $task) {
+    $taskId = trim((string) ($task['id'] ?? ''));
+    $taskStatus = strtolower(trim((string) ($task['status'] ?? '')));
+    $crossDomain = parseBooleanLike($task['cross_domain'] ?? false, false);
+    if ($taskId === '' || !$crossDomain || !isActiveStatus($taskStatus)) {
+        continue;
+    }
+    $hasLinkedActiveHandoff = false;
+    foreach (($handoffs['handoffs'] ?? []) as $handoff) {
+        $handoffStatus = strtolower(trim((string) ($handoff['status'] ?? '')));
+        if ($handoffStatus !== 'active') {
+            continue;
+        }
+        $expiresTs = strtotime((string) ($handoff['expires_at'] ?? ''));
+        if ($expiresTs !== false && $expiresTs <= time()) {
+            continue;
+        }
+        $fromTask = trim((string) ($handoff['from_task'] ?? ''));
+        $toTask = trim((string) ($handoff['to_task'] ?? ''));
+        if ($fromTask === $taskId || $toTask === $taskId) {
+            $hasLinkedActiveHandoff = true;
+            break;
+        }
+    }
+    if (!$hasLinkedActiveHandoff) {
+        $errors[] = "Task {$taskId} cross_domain activa requiere handoff activo vinculado";
+    }
 }
 
 $codexBlocks = $codexPlanRaw !== '' ? parseCodexActiveBlocks($codexPlanRaw) : [];

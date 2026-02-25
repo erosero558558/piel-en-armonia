@@ -37,6 +37,11 @@ async function handleTaskCommand(ctx) {
         findCriticalScopeKeyword,
         CRITICAL_SCOPE_KEYWORDS,
         CRITICAL_SCOPE_ALLOWED_EXECUTORS,
+        ALLOWED_CODEX_INSTANCES,
+        ALLOWED_DOMAIN_LANES,
+        ALLOWED_LANE_LOCKS,
+        inferDomainLaneFromFiles,
+        ensureTaskDualCodexDefaults,
         buildTaskCreateInferenceExplainLines,
         buildTaskCreateWarnDiagnostics,
         attachDiagnostics,
@@ -61,7 +66,7 @@ async function handleTaskCommand(ctx) {
         )
     ) {
         throw new Error(
-            'Uso: node agent-orchestrator.js task <ls|create|claim|start|finish> [AG-001] [--owner x] [--executor y] [--status z] [--files a,b] [--evidence path] [--active|--mine]'
+            'Uso: node agent-orchestrator.js task <ls|create|claim|start|finish> [AG-001] [--owner x] [--executor y] [--status z] [--files a,b] [--codex-instance codex_backend_ops|codex_frontend] [--domain-lane backend_ops|frontend_content] [--lane-lock strict|handoff_allowed] [--cross-domain true|false] [--evidence path] [--active|--mine]'
         );
     }
 
@@ -113,6 +118,11 @@ async function handleTaskCommand(ctx) {
             findCriticalScopeKeyword,
             CRITICAL_SCOPE_KEYWORDS,
             CRITICAL_SCOPE_ALLOWED_EXECUTORS,
+            ALLOWED_CODEX_INSTANCES,
+            ALLOWED_DOMAIN_LANES,
+            ALLOWED_LANE_LOCKS,
+            inferDomainLaneFromFiles,
+            ensureTaskDualCodexDefaults,
             currentDate,
             writeBoardAndSync,
             buildTaskCreateInferenceExplainLines,
@@ -145,6 +155,9 @@ async function handleTaskCommand(ctx) {
             parseCsvList,
             validateTaskGovernancePrechecks,
             ACTIVE_STATUSES,
+            isFlagEnabled,
+            inferDomainLaneFromFiles,
+            ensureTaskDualCodexDefaults,
             parseHandoffs,
             getBlockingConflictsForTask,
             currentDate,
@@ -171,6 +184,9 @@ async function handleTaskCommand(ctx) {
             ACTIVE_STATUSES,
             parseCsvList,
             validateTaskGovernancePrechecks,
+            isFlagEnabled,
+            inferDomainLaneFromFiles,
+            ensureTaskDualCodexDefaults,
             parseHandoffs,
             getBlockingConflictsForTask,
             currentDate,
@@ -405,6 +421,79 @@ function printTaskJsonError(printJson, error, action = null) {
     return payload;
 }
 
+function readStringFlag(flags = {}, kebabName, snakeName) {
+    const kebabValue = flags[kebabName];
+    const snakeValue = flags[snakeName];
+    const value =
+        kebabValue !== undefined && kebabValue !== true
+            ? kebabValue
+            : snakeValue !== undefined && snakeValue !== true
+              ? snakeValue
+              : '';
+    return String(value || '')
+        .trim()
+        .toLowerCase();
+}
+
+function hasFlag(flags = {}, kebabName, snakeName) {
+    return (
+        Object.prototype.hasOwnProperty.call(flags, kebabName) ||
+        Object.prototype.hasOwnProperty.call(flags, snakeName)
+    );
+}
+
+function applyDualCodexOverrides(task, flags = {}, helpers = {}) {
+    if (!task || typeof task !== 'object') return;
+    const {
+        isFlagEnabled = () => false,
+        inferDomainLaneFromFiles = () => ({ lane: 'backend_ops' }),
+        ensureTaskDualCodexDefaults = () => task,
+    } = helpers;
+
+    const explicitCodexInstance = readStringFlag(
+        flags,
+        'codex-instance',
+        'codex_instance'
+    );
+    const explicitDomainLane = readStringFlag(
+        flags,
+        'domain-lane',
+        'domain_lane'
+    );
+    const explicitLaneLock = readStringFlag(flags, 'lane-lock', 'lane_lock');
+    const hasCrossDomainFlag = hasFlag(flags, 'cross-domain', 'cross_domain');
+
+    if (explicitDomainLane) {
+        task.domain_lane = explicitDomainLane;
+    }
+    if (explicitCodexInstance) {
+        task.codex_instance = explicitCodexInstance;
+    }
+    if (explicitLaneLock) {
+        task.lane_lock = explicitLaneLock;
+    }
+    if (hasCrossDomainFlag) {
+        task.cross_domain = isFlagEnabled(
+            flags,
+            'cross-domain',
+            'cross_domain'
+        );
+    }
+
+    if (
+        !explicitDomainLane &&
+        Array.isArray(task.files) &&
+        task.files.length > 0
+    ) {
+        const inferred = inferDomainLaneFromFiles(task.files);
+        if (inferred?.lane) {
+            task.domain_lane = String(inferred.lane);
+        }
+    }
+
+    ensureTaskDualCodexDefaults(task);
+}
+
 function handleTaskClaim(ctx) {
     const {
         flags,
@@ -418,6 +507,9 @@ function handleTaskClaim(ctx) {
         parseCsvList,
         validateTaskGovernancePrechecks,
         ACTIVE_STATUSES,
+        isFlagEnabled,
+        inferDomainLaneFromFiles,
+        ensureTaskDualCodexDefaults,
         parseHandoffs,
         getBlockingConflictsForTask,
         currentDate,
@@ -464,10 +556,18 @@ function handleTaskClaim(ctx) {
         task.files = files;
     }
 
-    validateTaskGovernancePrechecks(board, task, { allowSelf: true });
+    applyDualCodexOverrides(task, flags, {
+        isFlagEnabled,
+        inferDomainLaneFromFiles,
+        ensureTaskDualCodexDefaults,
+    });
+    const handoffData = parseHandoffs();
+    validateTaskGovernancePrechecks(board, task, {
+        allowSelf: true,
+        handoffs: handoffData.handoffs,
+    });
 
     if (ACTIVE_STATUSES.has(String(task.status || '').trim())) {
-        const handoffData = parseHandoffs();
         const blockingConflicts = getBlockingConflictsForTask(
             board.tasks,
             taskId,
@@ -550,6 +650,9 @@ function handleTaskStart(ctx) {
         ACTIVE_STATUSES,
         parseCsvList,
         validateTaskGovernancePrechecks,
+        isFlagEnabled,
+        inferDomainLaneFromFiles,
+        ensureTaskDualCodexDefaults,
         parseHandoffs,
         getBlockingConflictsForTask,
         currentDate,
@@ -598,9 +701,17 @@ function handleTaskStart(ctx) {
     task.status = nextStatus;
     task.updated_at = currentDate();
 
-    validateTaskGovernancePrechecks(board, task, { allowSelf: true });
-
     const handoffData = parseHandoffs();
+    applyDualCodexOverrides(task, flags, {
+        isFlagEnabled,
+        inferDomainLaneFromFiles,
+        ensureTaskDualCodexDefaults,
+    });
+    validateTaskGovernancePrechecks(board, task, {
+        allowSelf: true,
+        handoffs: handoffData.handoffs,
+    });
+
     const blockingConflicts = getBlockingConflictsForTask(
         board.tasks,
         taskId,
@@ -777,6 +888,11 @@ async function handleTaskCreate(ctx) {
         findCriticalScopeKeyword,
         CRITICAL_SCOPE_KEYWORDS,
         CRITICAL_SCOPE_ALLOWED_EXECUTORS,
+        ALLOWED_CODEX_INSTANCES,
+        ALLOWED_DOMAIN_LANES,
+        ALLOWED_LANE_LOCKS,
+        inferDomainLaneFromFiles,
+        ensureTaskDualCodexDefaults,
         currentDate,
         writeBoardAndSync,
         buildTaskCreateInferenceExplainLines,
@@ -820,8 +936,18 @@ async function handleTaskCreate(ctx) {
             modeLabel: 'task create preview-file lint',
         });
         const board = parseBoard();
+        const handoffData = parseHandoffs();
         const task = normalizeTaskForCreateApply(
             loaded.payload?.task_full || loaded.payload?.task
+        );
+        applyDualCodexOverrides(
+            task,
+            {},
+            {
+                isFlagEnabled,
+                inferDomainLaneFromFiles,
+                ensureTaskDualCodexDefaults,
+            }
         );
 
         const errors = [];
@@ -835,7 +961,9 @@ async function handleTaskCreate(ctx) {
 
         let governanceOk = true;
         try {
-            validateTaskGovernancePrechecks(board, task);
+            validateTaskGovernancePrechecks(board, task, {
+                handoffs: handoffData.handoffs,
+            });
         } catch (error) {
             governanceOk = false;
             errors.push(String(error.message || error));
@@ -843,7 +971,6 @@ async function handleTaskCreate(ctx) {
 
         let blockingConflicts = [];
         if (errors.length === 0 && ACTIVE_STATUSES.has(task.status)) {
-            const handoffData = parseHandoffs();
             blockingConflicts = getBlockingConflictsForTask(
                 [...board.tasks, task],
                 task.id,
@@ -1106,6 +1233,7 @@ async function handleTaskCreate(ctx) {
         });
         const sourcePayload = applyFile.payload || {};
         const board = parseBoard();
+        const handoffData = parseHandoffs();
         const task = normalizeTaskForCreateApply(
             sourcePayload.task_full || sourcePayload.task
         );
@@ -1132,11 +1260,17 @@ async function handleTaskCreate(ctx) {
             throw new Error(`task create --apply: id duplicado ${task.id}`);
         }
 
-        validateTaskGovernancePrechecks(board, task);
+        applyDualCodexOverrides(task, flags, {
+            isFlagEnabled,
+            inferDomainLaneFromFiles,
+            ensureTaskDualCodexDefaults,
+        });
+        validateTaskGovernancePrechecks(board, task, {
+            handoffs: handoffData.handoffs,
+        });
         board.tasks.push(task);
 
         if (ACTIVE_STATUSES.has(task.status)) {
-            const handoffData = parseHandoffs();
             const blockingConflicts = getBlockingConflictsForTask(
                 board.tasks,
                 task.id,
@@ -1382,6 +1516,47 @@ async function handleTaskCreate(ctx) {
         throw new Error(`task create: executor invalido (${executor})`);
     }
 
+    const explicitCodexInstance = readStringFlag(
+        flags,
+        'codex-instance',
+        'codex_instance'
+    );
+    const explicitDomainLane = readStringFlag(
+        flags,
+        'domain-lane',
+        'domain_lane'
+    );
+    const explicitLaneLock = readStringFlag(flags, 'lane-lock', 'lane_lock');
+    const hasCrossDomainFlag = hasFlag(flags, 'cross-domain', 'cross_domain');
+    const inferredLane = inferDomainLaneFromFiles(files);
+    const crossDomain = hasCrossDomainFlag
+        ? isFlagEnabled(flags, 'cross-domain', 'cross_domain')
+        : Boolean(inferredLane?.hasCrossDomainFiles);
+    const domainLane =
+        explicitDomainLane ||
+        String(inferredLane?.lane || '')
+            .trim()
+            .toLowerCase() ||
+        'backend_ops';
+    const codexInstance =
+        explicitCodexInstance ||
+        (domainLane === 'frontend_content'
+            ? 'codex_frontend'
+            : 'codex_backend_ops');
+    const laneLock =
+        explicitLaneLock || (crossDomain ? 'handoff_allowed' : 'strict');
+    if (!ALLOWED_DOMAIN_LANES.has(domainLane)) {
+        throw new Error(`task create: domain_lane invalido (${domainLane})`);
+    }
+    if (!ALLOWED_CODEX_INSTANCES.has(codexInstance)) {
+        throw new Error(
+            `task create: codex_instance invalido (${codexInstance})`
+        );
+    }
+    if (!ALLOWED_LANE_LOCKS.has(laneLock)) {
+        throw new Error(`task create: lane_lock invalido (${laneLock})`);
+    }
+
     const acceptance = String(flags.acceptance || title).trim();
     const acceptanceRef = String(
         flags['acceptance-ref'] || flags.acceptance_ref || ''
@@ -1400,6 +1575,10 @@ async function handleTaskCreate(ctx) {
         status,
         risk,
         scope,
+        codex_instance: codexInstance,
+        domain_lane: domainLane,
+        lane_lock: laneLock,
+        cross_domain: crossDomain,
         files,
         source_signal: String(
             flags['source-signal'] || flags.source_signal || 'manual'
@@ -1447,12 +1626,19 @@ async function handleTaskCreate(ctx) {
           })
         : null;
 
-    validateTaskGovernancePrechecks(board, task);
+    const handoffData = parseHandoffs();
+    applyDualCodexOverrides(task, flags, {
+        isFlagEnabled,
+        inferDomainLaneFromFiles,
+        ensureTaskDualCodexDefaults,
+    });
+    validateTaskGovernancePrechecks(board, task, {
+        handoffs: handoffData.handoffs,
+    });
 
     board.tasks.push(task);
 
     if (ACTIVE_STATUSES.has(status)) {
-        const handoffData = parseHandoffs();
         const blockingConflicts = getBlockingConflictsForTask(
             board.tasks,
             newId,

@@ -300,6 +300,16 @@ function normalizeTaskForCreateApply(rawTask, options = {}) {
             .trim()
             .toLowerCase(),
         scope: String(rawTask.scope || '').trim(),
+        codex_instance: String(rawTask.codex_instance || '')
+            .trim()
+            .toLowerCase(),
+        domain_lane: String(rawTask.domain_lane || '')
+            .trim()
+            .toLowerCase(),
+        lane_lock: String(rawTask.lane_lock || '')
+            .trim()
+            .toLowerCase(),
+        cross_domain: Boolean(rawTask.cross_domain),
         files: Array.isArray(rawTask.files)
             ? rawTask.files.map((v) => String(v || '').trim()).filter(Boolean)
             : [],
@@ -333,6 +343,19 @@ function normalizeTaskForCreateApply(rawTask, options = {}) {
         updated_at:
             String(rawTask.updated_at || currentDate()).trim() || currentDate(),
     };
+
+    if (!task.domain_lane) {
+        task.domain_lane = 'backend_ops';
+    }
+    if (!task.codex_instance) {
+        task.codex_instance =
+            task.domain_lane === 'frontend_content'
+                ? 'codex_frontend'
+                : 'codex_backend_ops';
+    }
+    if (!task.lane_lock) {
+        task.lane_lock = task.cross_domain ? 'handoff_allowed' : 'strict';
+    }
 
     if (!/^AG-\d+$/.test(task.id)) {
         throw new Error(
@@ -477,6 +500,10 @@ function buildTaskCreatePreviewDiff(existingTask, previewTask, options = {}) {
         'status',
         'risk',
         'scope',
+        'codex_instance',
+        'domain_lane',
+        'lane_lock',
+        'cross_domain',
         'files',
         'source_signal',
         'source_ref',

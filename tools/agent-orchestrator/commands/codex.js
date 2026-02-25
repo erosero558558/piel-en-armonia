@@ -93,15 +93,28 @@ function handleCodexCommand(ctx) {
             flags,
             parseExpectedBoardRevisionFlag
         );
-        const codexTasks = board.tasks.filter(
-            (item) =>
-                /^CDX-\d+$/.test(String(item.id || '')) &&
-                item.id !== taskId &&
-                item.status === 'in_progress'
-        );
+        const taskInstance = String(task.codex_instance || 'codex_backend_ops')
+            .trim()
+            .toLowerCase();
+        const codexTasks = board.tasks.filter((item) => {
+            if (String(item.id || '') === taskId) return false;
+            if (String(item.status || '') !== 'in_progress') return false;
+            if (
+                String(item.executor || '')
+                    .trim()
+                    .toLowerCase() !== 'codex'
+            )
+                return false;
+            const itemInstance = String(
+                item.codex_instance || 'codex_backend_ops'
+            )
+                .trim()
+                .toLowerCase();
+            return itemInstance === taskInstance;
+        });
         if (codexTasks.length > 0) {
             throw new Error(
-                `No se puede iniciar ${taskId}; ya hay CDX in_progress: ${codexTasks
+                `No se puede iniciar ${taskId}; ya hay task codex in_progress en ${taskInstance}: ${codexTasks
                     .map((item) => item.id)
                     .join(', ')}`
             );

@@ -50,11 +50,21 @@ function buildCodexCheckReport(input = {}, deps = {}) {
     const {
         board,
         blocks,
+        handoffs,
         codexPlanPath = 'PLAN_MAESTRO_CODEX_2026.md',
     } = input;
-    const { normalizePathToken, activeStatuses } = deps;
+    const { normalizePathToken, activeStatuses, isExpired } = deps;
     const tasks = Array.isArray(board?.tasks) ? board.tasks : [];
     const codexBlocks = Array.isArray(blocks) ? blocks : [];
+    const safeHandoffs = Array.isArray(handoffs) ? handoffs : [];
+    const isExpiredFn =
+        typeof isExpired === 'function'
+            ? isExpired
+            : (value) => {
+                  const parsed = Date.parse(String(value || ''));
+                  if (!Number.isFinite(parsed)) return true;
+                  return parsed <= Date.now();
+              };
     const errors = [];
     const codexTasks = tasks.filter((task) =>
         /^CDX-\d+$/.test(String(task.id || ''))
@@ -65,11 +75,76 @@ function buildCodexCheckReport(input = {}, deps = {}) {
     const activeCodexTasks = codexTasks.filter((task) =>
         activeStatuses.has(task.status)
     );
+    const codexExecutionTasks = tasks.filter(
+        (task) =>
+            String(task?.executor || '')
+                .trim()
+                .toLowerCase() === 'codex'
+    );
+    const codexInProgressByInstance = codexExecutionTasks
+        .filter((task) => String(task?.status || '') === 'in_progress')
+        .reduce((acc, task) => {
+            const key = String(task?.codex_instance || 'codex_backend_ops')
+                .trim()
+                .toLowerCase();
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {});
 
     if (codexInProgress.length > 1) {
         errors.push(
             `Mas de un CDX in_progress (${codexInProgress.map((t) => t.id).join(', ')})`
         );
+    }
+
+    for (const [instance, count] of Object.entries(codexInProgressByInstance)) {
+        if (count > 1) {
+            errors.push(
+                `Mas de una tarea in_progress para ${instance} (${count})`
+            );
+        }
+    }
+
+    for (const task of tasks) {
+        const taskId = String(task?.id || '');
+        const runtimeImpact = String(task?.runtime_impact || '')
+            .trim()
+            .toLowerCase();
+        const isCritical =
+            Boolean(task?.critical_zone) || runtimeImpact === 'high';
+        if (
+            isCritical &&
+            String(task?.codex_instance || 'codex_backend_ops')
+                .trim()
+                .toLowerCase() !== 'codex_backend_ops'
+        ) {
+            errors.push(
+                `${taskId || '(sin id)'}: critical_zone/runtime high requiere codex_instance=codex_backend_ops`
+            );
+        }
+    }
+
+    const activeCrossDomainTasks = tasks.filter(
+        (task) =>
+            Boolean(task?.cross_domain) &&
+            activeStatuses.has(String(task?.status || '').trim())
+    );
+    for (const task of activeCrossDomainTasks) {
+        const taskId = String(task?.id || '');
+        const hasActiveHandoff = safeHandoffs.some((handoff) => {
+            if (String(handoff?.status || '').toLowerCase() !== 'active')
+                return false;
+            if (isExpiredFn(handoff?.expires_at)) return false;
+            return (
+                String(handoff?.from_task || '') === taskId ||
+                String(handoff?.to_task || '') === taskId
+            );
+        });
+        if (!hasActiveHandoff) {
+            errors.push(
+                `${taskId || '(sin id)'}: cross_domain activo requiere handoff activo`
+            );
+        }
     }
 
     if (codexBlocks.length > 1) {
@@ -148,9 +223,11 @@ function buildCodexCheckReport(input = {}, deps = {}) {
         errors,
         summary: {
             codex_tasks_total: codexTasks.length,
+            codex_executor_tasks_total: codexExecutionTasks.length,
             codex_in_progress: codexInProgress.length,
             codex_active: activeCodexTasks.length,
             plan_blocks: codexBlocks.length,
+            codex_in_progress_by_instance: codexInProgressByInstance,
         },
         codex_task_ids: codexTasks.map((task) => String(task.id)),
         codex_in_progress_ids: codexInProgress.map((task) => String(task.id)),

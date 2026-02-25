@@ -139,10 +139,33 @@ function analyzeConflicts(tasks, handoffs = [], options = {}) {
                 !overlap.ambiguousWildcardOverlap &&
                 overlap.overlapFiles.length > 0 &&
                 overlap.overlapFiles.every((file) => coveredFiles.has(file));
+            const leftLane = String(left?.domain_lane || '')
+                .trim()
+                .toLowerCase();
+            const rightLane = String(right?.domain_lane || '')
+                .trim()
+                .toLowerCase();
+            const leftInstance = String(left?.codex_instance || '')
+                .trim()
+                .toLowerCase();
+            const rightInstance = String(right?.codex_instance || '')
+                .trim()
+                .toLowerCase();
+            const crossLane =
+                Boolean(leftLane && rightLane) && leftLane !== rightLane;
+            const crossCodexInstance =
+                Boolean(leftInstance && rightInstance) &&
+                leftInstance !== rightInstance;
 
             const record = {
                 left,
                 right,
+                left_lane: leftLane,
+                right_lane: rightLane,
+                left_codex_instance: leftInstance,
+                right_codex_instance: rightInstance,
+                cross_lane: crossLane,
+                cross_codex_instance: crossCodexInstance,
                 overlap_files: overlap.overlapFiles,
                 ambiguous_wildcard_overlap: overlap.ambiguousWildcardOverlap,
                 handoff_ids: matchingHandoffs.map((handoff) =>
@@ -174,13 +197,19 @@ function toConflictJsonRecord(item) {
             executor: String(item?.left?.executor || ''),
             status: String(item?.left?.status || ''),
             scope: String(item?.left?.scope || ''),
+            codex_instance: String(item?.left?.codex_instance || ''),
+            domain_lane: String(item?.left?.domain_lane || ''),
         },
         right: {
             id: String(item?.right?.id || ''),
             executor: String(item?.right?.executor || ''),
             status: String(item?.right?.status || ''),
             scope: String(item?.right?.scope || ''),
+            codex_instance: String(item?.right?.codex_instance || ''),
+            domain_lane: String(item?.right?.domain_lane || ''),
         },
+        cross_lane: Boolean(item?.cross_lane),
+        cross_codex_instance: Boolean(item?.cross_codex_instance),
         overlap_files: Array.isArray(item?.overlap_files)
             ? item.overlap_files
             : [],

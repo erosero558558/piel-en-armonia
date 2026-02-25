@@ -91,4 +91,8 @@ test('core-serializers serializeBoard roundtrip basico con currentDate inyectado
     assert.equal(parsed.policy.revision, '7');
     assert.equal(parsed.tasks[0].title, 'Task "uno"');
     assert.deepEqual(parsed.tasks[0].files, ['agent-orchestrator.js']);
+    assert.equal(parsed.tasks[0].codex_instance, 'codex_backend_ops');
+    assert.equal(parsed.tasks[0].domain_lane, 'backend_ops');
+    assert.equal(parsed.tasks[0].lane_lock, 'strict');
+    assert.equal(parsed.tasks[0].cross_domain, false);
 });

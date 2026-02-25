@@ -17,7 +17,28 @@ permissions:
     pull-requests: write
 
 jobs:
+    dual-codex-guard:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'npm'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Dual Codex check (JSON)
+              run: node agent-orchestrator.js codex-check --json
+
+            - name: Handoffs lint (JSON)
+              run: node agent-orchestrator.js handoffs lint --json
+
     governance:
+        needs: dual-codex-guard
         runs-on: ubuntu-latest
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

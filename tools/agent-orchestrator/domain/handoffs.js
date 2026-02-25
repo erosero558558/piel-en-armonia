@@ -47,7 +47,7 @@ function getHandoffLintErrors(input = {}, deps = {}) {
         seenHandoffIds.add(id);
 
         const status = String(handoff.status || '').toLowerCase();
-        if (!['active', 'closed'].includes(status)) {
+        if (!['active', 'closed', 'expired'].includes(status)) {
             errors.push(`${id}: status invalido (${status || 'vacio'})`);
         }
 
@@ -115,6 +115,10 @@ function getHandoffLintErrors(input = {}, deps = {}) {
                     `${id}: to_task no esta activo (${toTask.id}:${toTask.status})`
                 );
             }
+        }
+
+        if (status === 'expired' && !isExpired(handoff.expires_at)) {
+            errors.push(`${id}: status expired requiere expires_at en pasado`);
         }
 
         if (fromTask && toTask && files.length > 0) {

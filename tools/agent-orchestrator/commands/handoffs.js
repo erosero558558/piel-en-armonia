@@ -100,6 +100,9 @@ function handleHandoffsCommand(ctx) {
         const closed = handoffData.handoffs.filter(
             (item) => String(item.status) === 'closed'
         );
+        const expired = handoffData.handoffs.filter(
+            (item) => String(item.status) === 'expired'
+        );
         const expiredActive = active.filter((item) =>
             isExpired(item.expires_at)
         );
@@ -109,6 +112,7 @@ function handleHandoffsCommand(ctx) {
                 total,
                 active: active.length,
                 closed: closed.length,
+                expired: expired.length,
                 active_expired: expiredActive.length,
             },
             handoffs: handoffData.handoffs,
@@ -128,6 +132,7 @@ function handleHandoffsCommand(ctx) {
         console.log(`Total: ${total}`);
         console.log(`Active: ${active.length}`);
         console.log(`Closed: ${closed.length}`);
+        console.log(`Expired: ${expired.length}`);
         console.log(`Active expirados: ${expiredActive.length}`);
         return;
     }

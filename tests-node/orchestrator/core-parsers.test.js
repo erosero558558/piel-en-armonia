@@ -23,6 +23,10 @@ tasks:
     status: in_progress
     risk: high
     scope: calendar
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
     files: ["lib/calendar/A.php", "lib/calendar/B.php"]
     acceptance: "ok"
     acceptance_ref: "verification/agent-runs/AG-001.md"
@@ -45,6 +49,10 @@ tasks:
     ]);
     assert.deepEqual(board.tasks[0].depends_on, ['AG-000']);
     assert.equal(board.tasks[0].status, 'in_progress');
+    assert.equal(board.tasks[0].codex_instance, 'codex_backend_ops');
+    assert.equal(board.tasks[0].domain_lane, 'backend_ops');
+    assert.equal(board.tasks[0].lane_lock, 'strict');
+    assert.equal(board.tasks[0].cross_domain, false);
 });
 
 test('core-parsers parseBoardContent valida status permitido', () => {

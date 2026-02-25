@@ -34,6 +34,7 @@ function handleCloseCommand(ctx) {
         resolveTaskEvidencePath,
         existsSync,
         parseBoard,
+        parseHandoffs,
         currentDate,
         toRelativeRepoPath,
         BOARD_PATH,
@@ -63,6 +64,27 @@ function handleCloseCommand(ctx) {
     const task = board.tasks.find((item) => String(item.id) === String(taskId));
     if (!task) {
         throw new Error(`No existe task_id ${taskId} en AGENT_BOARD.yaml`);
+    }
+
+    if (task.cross_domain) {
+        const handoffData =
+            typeof parseHandoffs === 'function'
+                ? parseHandoffs()
+                : { handoffs: [] };
+        const closedForTask = (handoffData.handoffs || []).filter((handoff) => {
+            if (String(handoff?.status || '').toLowerCase() !== 'closed') {
+                return false;
+            }
+            return (
+                String(handoff?.from_task || '') === String(taskId) ||
+                String(handoff?.to_task || '') === String(taskId)
+            );
+        });
+        if (closedForTask.length === 0) {
+            throw new Error(
+                `No se puede cerrar ${taskId}: cross_domain=true requiere handoff cerrado vinculado`
+            );
+        }
     }
 
     task.status = 'done';
