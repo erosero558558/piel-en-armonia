@@ -519,7 +519,26 @@ class CalendarAvailabilityService
         $appointments = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
         $busyRanges = [];
 
-        foreach ($appointments as $appointment) {
+        $candidates = $appointments;
+        if (isset($store['idx_appointments_date']) && is_array($store['idx_appointments_date'])) {
+            $indices = $store['idx_appointments_date'][$date] ?? [];
+            if (is_array($indices)) {
+                $candidates = [];
+                foreach ($indices as $idx) {
+                    if (isset($appointments[$idx])) {
+                        $candidates[] = $appointments[$idx];
+                    }
+                }
+            } else {
+                // If the key exists but is not an array, it's weird, but safer to assume no appointments
+                // or fall back?
+                // Actually, if key is missing, it means NO appointments for this date.
+                // If indices is not array, treat as empty.
+                $candidates = [];
+            }
+        }
+
+        foreach ($candidates as $appointment) {
             $status = map_appointment_status((string) ($appointment['status'] ?? 'confirmed'));
             if ($status === 'cancelled') {
                 continue;
