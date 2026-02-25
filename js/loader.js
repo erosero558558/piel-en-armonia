@@ -26,8 +26,8 @@ export function loadDeferredModule(options) {
         );
     }
 
-    const getReadyModule = () => {
-        const module = resolveModule();
+    const getReadyModule = (moduleNamespace) => {
+        const module = resolveModule(moduleNamespace);
         if (!isModuleReady(module)) {
             return null;
         }
@@ -49,8 +49,8 @@ export function loadDeferredModule(options) {
     }
 
     const promise = new Promise((resolve, reject) => {
-        const handleLoad = () => {
-            const module = getReadyModule();
+        const handleLoad = (moduleNamespace) => {
+            const module = getReadyModule(moduleNamespace);
             if (module) {
                 resolve(module);
                 return;
@@ -59,7 +59,7 @@ export function loadDeferredModule(options) {
         };
 
         import(src)
-            .then(() => {
+            .then((moduleNamespace) => {
                 if (
                     !document.querySelector(
                         'script[' + scriptDataAttribute + '="true"]'
@@ -70,7 +70,7 @@ export function loadDeferredModule(options) {
                     marker.dataset.dynamicImport = 'true';
                     document.head.appendChild(marker);
                 }
-                handleLoad();
+                handleLoad(moduleNamespace);
             })
             .catch((err) => {
                 debugLog(logLabel + ' dynamic import failed:', err);

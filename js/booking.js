@@ -42,6 +42,7 @@ const BOOKING_UI_URL = withDeployAssetVersion(
 const BOOKING_UTILS_URL = withDeployAssetVersion('/js/engines/booking-utils.js');
 const CASE_PHOTO_UPLOAD_CONCURRENCY = 2;
 let successModalRuntimePromise = null;
+let bookingEngineInstance = null;
 
 function loadSuccessModalRuntime() {
     if (!successModalRuntimePromise) {
@@ -166,10 +167,14 @@ export function loadBookingEngine() {
         cacheKey: 'booking-engine',
         src: BOOKING_ENGINE_URL,
         scriptDataAttribute: 'data-booking-engine',
-        resolveModule: () => window.Piel && window.Piel.BookingEngine,
+        resolveModule: (ns) =>
+            ns?.default || (window.Piel && window.Piel.BookingEngine),
         isModuleReady: (module) =>
             !!(module && typeof module.init === 'function'),
-        onModuleReady: (module) => module.init(getBookingEngineDeps()),
+        onModuleReady: (module) => {
+            module.init(getBookingEngineDeps());
+            bookingEngineInstance = module;
+        },
         missingApiError: 'Booking engine loaded without API',
         loadError: 'No se pudo cargar booking-engine.js',
         logLabel: 'Booking engine',
@@ -375,6 +380,14 @@ export function openPaymentModal(appointmentData) {
 }
 
 export function closePaymentModal(options = {}) {
+    if (
+        bookingEngineInstance &&
+        typeof bookingEngineInstance.closePaymentModal === 'function'
+    ) {
+        bookingEngineInstance.closePaymentModal(options);
+        return;
+    }
+
     if (
         window.Piel &&
         window.Piel.BookingEngine &&

@@ -691,8 +691,4 @@ const api = {
     processPayment
 };
 
-window.Piel = window.Piel || {};
-window.Piel.BookingEngine = api;
-window.PielBookingEngine = api;
-
 export default api;
