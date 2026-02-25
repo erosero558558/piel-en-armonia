@@ -27,6 +27,7 @@ const coreParsers = require('./tools/agent-orchestrator/core/parsers');
 const coreSerializers = require('./tools/agent-orchestrator/core/serializers');
 const corePolicy = require('./tools/agent-orchestrator/core/policy');
 const coreTime = require('./tools/agent-orchestrator/core/time');
+const coreIo = require('./tools/agent-orchestrator/core/io');
 const coreOutput = require('./tools/agent-orchestrator/core/output');
 const domainConflicts = require('./tools/agent-orchestrator/domain/conflicts');
 const domainHandoffs = require('./tools/agent-orchestrator/domain/handoffs');
@@ -351,9 +352,12 @@ async function collectTaskCreateInteractiveFlags(
 }
 
 function writeBoard(board) {
-    board.policy = board.policy || {};
-    board.policy.updated_at = currentDate();
-    writeFileSync(BOARD_PATH, serializeBoard(board), 'utf8');
+    return coreIo.writeBoardFile(board, {
+        currentDate,
+        boardPath: BOARD_PATH,
+        serializeBoard,
+        writeFile: writeFileSync,
+    });
 }
 
 function writeBoardAndSync(board, options = {}) {
@@ -518,12 +522,13 @@ function upsertCodexActiveBlock(planRaw, block) {
 }
 
 function writeCodexActiveBlock(block) {
-    if (!existsSync(CODEX_PLAN_PATH)) {
-        throw new Error(`No existe ${CODEX_PLAN_PATH}`);
-    }
-    const raw = readFileSync(CODEX_PLAN_PATH, 'utf8');
-    const next = upsertCodexActiveBlock(raw, block);
-    writeFileSync(CODEX_PLAN_PATH, next, 'utf8');
+    return coreIo.writeCodexActiveBlockFile(block, {
+        codexPlanPath: CODEX_PLAN_PATH,
+        exists: existsSync,
+        readFile: readFileSync,
+        writeFile: writeFileSync,
+        upsertCodexActiveBlock,
+    });
 }
 
 function nextHandoffId(handoffs) {
@@ -1214,25 +1219,15 @@ async function cmdTask(args) {
 }
 
 function syncDerivedQueues(options = {}) {
-    const { silent = false } = options;
-    const board = parseBoard();
-    const julesMeta = parseTaskMetaMap(JULES_PATH);
-    const kimiMeta = parseTaskMetaMap(KIMI_PATH);
-
-    const julesTasks = board.tasks.filter((task) => task.executor === 'jules');
-    const kimiTasks = board.tasks.filter((task) => task.executor === 'kimi');
-
-    const julesContent = renderQueueFile('jules', julesTasks, julesMeta);
-    const kimiContent = renderQueueFile('kimi', kimiTasks, kimiMeta);
-
-    writeFileSync(JULES_PATH, julesContent, 'utf8');
-    writeFileSync(KIMI_PATH, kimiContent, 'utf8');
-
-    if (!silent) {
-        console.log(
-            `Sync completado: ${julesTasks.length} tareas Jules, ${kimiTasks.length} tareas Kimi.`
-        );
-    }
+    return coreIo.syncDerivedQueuesFiles(options, {
+        parseBoard,
+        parseTaskMetaMap,
+        renderQueueFile,
+        julesPath: JULES_PATH,
+        kimiPath: KIMI_PATH,
+        writeFile: writeFileSync,
+        log: (msg) => console.log(msg),
+    });
 }
 
 function cmdSync() {
