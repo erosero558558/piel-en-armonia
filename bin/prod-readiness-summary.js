@@ -898,9 +898,11 @@ function computeProductionStability({
     workflows,
     openProdAlerts,
     weeklyLocalReport,
+    weeklyKpiHistory,
 }) {
     const criticalWorkflowKeys = ['ci', 'postDeployGate', 'deployHosting'];
     const reasons = [];
+    const advisories = [];
     let signal = 'GREEN';
 
     for (const key of criticalWorkflowKeys) {
@@ -940,9 +942,24 @@ function computeProductionStability({
         }
     }
 
+    if (
+        weeklyKpiHistory &&
+        weeklyKpiHistory.available &&
+        weeklyKpiHistory.phase6SchedulePace
+    ) {
+        const pace = weeklyKpiHistory.phase6SchedulePace;
+        advisories.push(
+            `phase6_schedule_pace:${pace.signal}(${pace.reason || 'n/a'})`
+        );
+    }
+
     return {
         signal,
         reasons,
+        advisories,
+        operationalSignals: {
+            phase6_schedule_pace: weeklyKpiHistory?.phase6SchedulePace || null,
+        },
         criticalWorkflowKeys,
     };
 }
@@ -1082,6 +1099,16 @@ function toMarkdown(summary) {
         );
     } else {
         lines.push('- reasons: none');
+    }
+    if (
+        Array.isArray(summary.productionStability.advisories) &&
+        summary.productionStability.advisories.length > 0
+    ) {
+        lines.push(
+            `- advisories: ${summary.productionStability.advisories.join(', ')}`
+        );
+    } else {
+        lines.push('- advisories: none');
     }
     lines.push('');
 
@@ -1370,6 +1397,7 @@ function main() {
         workflows,
         openProdAlerts,
         weeklyLocalReport,
+        weeklyKpiHistory,
     });
     const planMasterProgress = computePlanMasterProgress({
         workflows,
