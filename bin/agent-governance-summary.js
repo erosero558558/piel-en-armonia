@@ -4,6 +4,7 @@
 const { writeFileSync, mkdirSync, existsSync, readFileSync } = require('fs');
 const { resolve, dirname } = require('path');
 const { spawnSync } = require('child_process');
+const domainMetrics = require('../tools/agent-orchestrator/domain/metrics');
 
 function parseFlags(argv) {
     const flags = {};
@@ -233,20 +234,11 @@ function computeHealthSignal({
 }
 
 function getContributionSignal(row) {
-    const rank = Number(row?.rank ?? 999);
-    const weightedDone = Number(row?.weighted_done_points_pct ?? 0);
-    const activeTasks = Number(row?.active_tasks ?? 0);
-
-    if (rank === 1 && weightedDone > 0) return 'GREEN';
-    if (weightedDone > 0 || activeTasks > 0) return 'YELLOW';
-    return 'RED';
+    return domainMetrics.getContributionSignal(row);
 }
 
 function formatPpDelta(value) {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return 'n/a';
-    if (n > 0) return `+${n}pp`;
-    return `${n}pp`;
+    return domainMetrics.formatPpDelta(value);
 }
 
 function buildContributionDeltaMap(metrics) {
