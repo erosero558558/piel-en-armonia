@@ -320,6 +320,36 @@ jobs:
                       const nightlyRate = nightlyRuns.length ? (nightlySuccess / nightlyRuns.length) * 100 : null;
                       const nightlyTargetOk = nightlyRate !== null && nightlyRate >= 90;
 
+                      const allIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'all',
+                        per_page: 100
+                      });
+                      const prodIncidents = allIssues.filter((issue) => {
+                        if (issue.pull_request) return false;
+                        const title = String(issue.title || '');
+                        if (!title.startsWith('[ALERTA PROD]')) return false;
+                        const createdMs = Date.parse(issue.created_at || '');
+                        return Number.isFinite(createdMs) && createdMs >= since;
+                      });
+                      const incidentsOpen = prodIncidents.filter((issue) => issue.state === 'open');
+                      const incidentsClosed = prodIncidents.filter((issue) => issue.state === 'closed');
+                      const mttrHours = incidentsClosed
+                        .map((issue) => {
+                          const createdMs = Date.parse(issue.created_at || '');
+                          const closedMs = Date.parse(issue.closed_at || '');
+                          if (!Number.isFinite(createdMs) || !Number.isFinite(closedMs) || closedMs < createdMs) {
+                            return null;
+                          }
+                          return (closedMs - createdMs) / 3600000;
+                        })
+                        .filter((value) => value !== null);
+                      const mttrAvg = mttrHours.length
+                        ? mttrHours.reduce((sum, value) => sum + value, 0) / mttrHours.length
+                        : null;
+                      const mttrTargetOk = mttrAvg === null || mttrAvg < 4;
+
                       core.setOutput('lookback_days', String(lookbackDays));
                       core.setOutput('ops_fast_runs', String(fastRuns.length));
                       core.setOutput('ops_fast_success_rate_pct', fastRate === null ? 'n/a' : fastRate.toFixed(2));
@@ -328,6 +358,11 @@ jobs:
                       core.setOutput('ops_nightly_runs', String(nightlyRuns.length));
                       core.setOutput('ops_nightly_success_rate_pct', nightlyRate === null ? 'n/a' : nightlyRate.toFixed(2));
                       core.setOutput('ops_nightly_target_ok', nightlyTargetOk ? 'true' : 'false');
+                      core.setOutput('ops_incidents_total', String(prodIncidents.length));
+                      core.setOutput('ops_incidents_open', String(incidentsOpen.length));
+                      core.setOutput('ops_incidents_closed', String(incidentsClosed.length));
+                      core.setOutput('ops_incidents_mttr_hours_avg', mttrAvg === null ? 'n/a' : mttrAvg.toFixed(2));
+                      core.setOutput('ops_incidents_mttr_target_ok', mttrTargetOk ? 'true' : 'false');
 
             - name: Resumen
               if: ${{ always() }}
@@ -375,12 +410,16 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- fast_p95_min: ``${{ steps.ops_sla.outputs.ops_fast_p95_min }}`` (target <=10m, ok: ``${{ steps.ops_sla.outputs.ops_fast_sla_ok }}``)"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- nightly_runs: ``${{ steps.ops_sla.outputs.ops_nightly_runs }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- nightly_success_rate_pct: ``${{ steps.ops_sla.outputs.ops_nightly_success_rate_pct }}`` (target >=90%, ok: ``${{ steps.ops_sla.outputs.ops_nightly_target_ok }}``)"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- incidents_total: ``${{ steps.ops_sla.outputs.ops_incidents_total }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- incidents_open: ``${{ steps.ops_sla.outputs.ops_incidents_open }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- incidents_closed: ``${{ steps.ops_sla.outputs.ops_incidents_closed }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- incidents_mttr_hours_avg: ``${{ steps.ops_sla.outputs.ops_incidents_mttr_hours_avg }}`` (target <4h, ok: ``${{ steps.ops_sla.outputs.ops_incidents_mttr_target_ok }}``)"
                   if ("${{ steps.report.outputs.report_md_path }}" -ne "") {
                     Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Report file: ``${{ steps.report.outputs.report_md_path }}``"
                   }
 
             - name: Crear/actualizar incidente semanal
-              if: ${{ github.event_name == 'schedule' && (steps.report.outputs.warnings_critical_count == '-1' || steps.report.outputs.warnings_critical_count != '0' || steps.ops_sla.outputs.ops_fast_sla_ok != 'true' || steps.ops_sla.outputs.ops_nightly_target_ok != 'true') }}
+              if: ${{ github.event_name == 'schedule' && (steps.report.outputs.warnings_critical_count == '-1' || steps.report.outputs.warnings_critical_count != '0' || steps.ops_sla.outputs.ops_fast_sla_ok != 'true' || steps.ops_sla.outputs.ops_nightly_target_ok != 'true' || steps.ops_sla.outputs.ops_incidents_mttr_target_ok != 'true' || steps.ops_sla.outputs.ops_incidents_open != '0') }}
               uses: actions/github-script@v7
               with:
                   script: |
@@ -407,7 +446,12 @@ jobs:
                         `- fast_sla_ok: ${{ steps.ops_sla.outputs.ops_fast_sla_ok }}`,
                         `- nightly_runs_last_${{ steps.ops_sla.outputs.lookback_days }}d: ${{ steps.ops_sla.outputs.ops_nightly_runs }}`,
                         `- nightly_success_rate_pct: ${{ steps.ops_sla.outputs.ops_nightly_success_rate_pct }}`,
-                        `- nightly_target_ok: ${{ steps.ops_sla.outputs.ops_nightly_target_ok }}`
+                        `- nightly_target_ok: ${{ steps.ops_sla.outputs.ops_nightly_target_ok }}`,
+                        `- incidents_total_last_${{ steps.ops_sla.outputs.lookback_days }}d: ${{ steps.ops_sla.outputs.ops_incidents_total }}`,
+                        `- incidents_open: ${{ steps.ops_sla.outputs.ops_incidents_open }}`,
+                        `- incidents_closed: ${{ steps.ops_sla.outputs.ops_incidents_closed }}`,
+                        `- incidents_mttr_hours_avg: ${{ steps.ops_sla.outputs.ops_incidents_mttr_hours_avg }}`,
+                        `- incidents_mttr_target_ok: ${{ steps.ops_sla.outputs.ops_incidents_mttr_target_ok }}`
                       ].join('\n');
 
                       const openIssues = await github.paginate(github.rest.issues.listForRepo, {
@@ -437,7 +481,7 @@ jobs:
                       }
 
             - name: Cerrar incidente semanal al recuperar
-              if: ${{ success() && github.event_name == 'schedule' && steps.report.outputs.warnings_critical_count == '0' && steps.ops_sla.outputs.ops_fast_sla_ok == 'true' && steps.ops_sla.outputs.ops_nightly_target_ok == 'true' }}
+              if: ${{ success() && github.event_name == 'schedule' && steps.report.outputs.warnings_critical_count == '0' && steps.ops_sla.outputs.ops_fast_sla_ok == 'true' && steps.ops_sla.outputs.ops_nightly_target_ok == 'true' && steps.ops_sla.outputs.ops_incidents_mttr_target_ok == 'true' && steps.ops_sla.outputs.ops_incidents_open == '0' }}
               uses: actions/github-script@v7
               with:
                   script: |
