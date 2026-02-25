@@ -281,6 +281,100 @@ handoffs:
     }
 });
 
+test('JSON contract minimo estable para errores de conflicts --strict y codex-check', () => {
+    const dir = createFixtureDir();
+    try {
+        writeFixtureFiles(dir);
+
+        writeFileSync(
+            join(dir, 'AGENT_BOARD.yaml'),
+            `version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  updated_at: ${DATE}
+tasks:
+  - id: AG-001
+    title: "Conflict fixture"
+    owner: ernesto
+    executor: jules
+    status: in_progress
+    risk: low
+    scope: docs
+    files: ["AGENTS.md"]
+    acceptance: "Fixture"
+    acceptance_ref: "README.md"
+    depends_on: []
+    prompt: "Fixture"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+
+  - id: CDX-001
+    title: "Codex fixture"
+    owner: ernesto
+    executor: codex
+    status: in_progress
+    risk: medium
+    scope: codex-governance
+    files: ["AGENTS.md", "agent-orchestrator.js"]
+    acceptance: "Fixture"
+    acceptance_ref: "PLAN_MAESTRO_CODEX_2026.md"
+    depends_on: []
+    prompt: "Fixture"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+`,
+            'utf8'
+        );
+
+        const conflicts = runJsonExpectStatus(
+            dir,
+            ['conflicts', '--strict'],
+            1
+        );
+        assertVersionLike(conflicts.version);
+        assert.equal(conflicts.strict, true);
+        assert.equal(typeof conflicts.totals, 'object');
+        assert.equal(Array.isArray(conflicts.conflicts), true);
+        assert.equal(conflicts.conflicts.length > 0, true);
+        assert.equal(Array.isArray(conflicts.diagnostics), true);
+        assert.equal(typeof conflicts.warnings_count, 'number');
+        assert.equal(typeof conflicts.errors_count, 'number');
+
+        writeFileSync(
+            join(dir, 'PLAN_MAESTRO_CODEX_2026.md'),
+            `# Plan Maestro Codex 2026 (Fixture)
+
+<!-- CODEX_ACTIVE
+block: C1
+task_id: CDX-001
+status: review
+files: ["AGENTS.md", "agent-orchestrator.js"]
+updated_at: ${DATE}
+-->
+
+Fixture con drift.
+`,
+            'utf8'
+        );
+
+        const codexCheck = runJsonExpectStatus(dir, ['codex-check'], 1);
+        assertVersionLike(codexCheck.version);
+        assert.equal(codexCheck.ok, false);
+        assert.equal(typeof codexCheck.error_count, 'number');
+        assert.equal(codexCheck.error_count > 0, true);
+        assert.equal(Array.isArray(codexCheck.errors), true);
+        assert.equal(typeof codexCheck.summary, 'object');
+        assert.equal(Array.isArray(codexCheck.codex_task_ids), true);
+        assert.equal(Array.isArray(codexCheck.diagnostics), true);
+        assert.equal(typeof codexCheck.warnings_count, 'number');
+        assert.equal(typeof codexCheck.errors_count, 'number');
+    } finally {
+        cleanupFixtureDir(dir);
+    }
+});
+
 test('JSON contract minimo estable para metrics --json', () => {
     const dir = createFixtureDir();
     try {
