@@ -3,7 +3,7 @@ policy:
   canonical: AGENTS.md
   autonomy: semi_autonomous_guardrails
   kpi: reduce_rework
-  revision: 28
+  revision: 29
   updated_at: 2026-02-25
 
 tasks:
@@ -919,11 +919,7 @@ tasks:
     critical_zone: false
     acceptance: "Cerrar señal workflow:agent-autopilot:main con evidencia verificable."
     acceptance_ref: "verification/agent-runs/AG-026.md"
-<<<<<<< HEAD
-    evidence_ref: "signal_resolved:auto"
-=======
     evidence_ref: "verification/agent-runs/AG-026.md"
->>>>>>> fe7be81 (docs(agents): record post-merge gate recovery and CI evidence)
     depends_on: []
     prompt: "Resolver señal workflow:agent-autopilot:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
