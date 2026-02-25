@@ -28,6 +28,9 @@ const coreSerializers = require('./tools/agent-orchestrator/core/serializers');
 const corePolicy = require('./tools/agent-orchestrator/core/policy');
 const coreTime = require('./tools/agent-orchestrator/core/time');
 const coreOutput = require('./tools/agent-orchestrator/core/output');
+const domainConflicts = require('./tools/agent-orchestrator/domain/conflicts');
+const domainTaskGuards = require('./tools/agent-orchestrator/domain/task-guards');
+const domainDiagnostics = require('./tools/agent-orchestrator/domain/diagnostics');
 
 const ROOT = __dirname;
 const BOARD_PATH = resolve(ROOT, 'AGENT_BOARD.yaml');
@@ -234,74 +237,29 @@ function ensureTask(board, taskId) {
 }
 
 function findCriticalScopeKeyword(scopeValue) {
-    const scope = String(scopeValue || '')
-        .trim()
-        .toLowerCase();
-    if (!scope) return null;
-    for (const keyword of CRITICAL_SCOPE_KEYWORDS) {
-        if (scope.includes(keyword)) return keyword;
-    }
-    return null;
+    return domainTaskGuards.findCriticalScopeKeyword(
+        scopeValue,
+        CRITICAL_SCOPE_KEYWORDS
+    );
 }
 
 function validateTaskExecutorScopeGuard(task) {
-    const scope = String(task?.scope || '');
-    const executor = String(task?.executor || '')
-        .trim()
-        .toLowerCase();
-    const matchedKeyword = findCriticalScopeKeyword(scope);
-    if (!matchedKeyword) return;
-    if (CRITICAL_SCOPE_ALLOWED_EXECUTORS.has(executor)) return;
-    throw new Error(
-        `task critica (${scope}) no puede asignarse a executor ${executor}; permitidos: ${Array.from(
-            CRITICAL_SCOPE_ALLOWED_EXECUTORS
-        ).join(', ')}`
-    );
+    return domainTaskGuards.validateTaskExecutorScopeGuard(task, {
+        criticalScopeKeywords: CRITICAL_SCOPE_KEYWORDS,
+        allowedExecutors: CRITICAL_SCOPE_ALLOWED_EXECUTORS,
+    });
 }
 
 function validateTaskDependsOn(board, task, options = {}) {
-    const { allowSelf = false } = options;
-    const taskId = String(task?.id || '').trim();
-    const deps = Array.isArray(task?.depends_on) ? task.depends_on : [];
-    const seen = new Set();
-    const idsInBoard = new Set(
-        (board?.tasks || []).map((item) => String(item.id || ''))
-    );
-
-    for (const rawDep of deps) {
-        const dep = String(rawDep || '').trim();
-        if (!dep) {
-            throw new Error(
-                `task ${taskId || '(sin id)'}: depends_on contiene valor vacio`
-            );
-        }
-        if (!/^(AG|CDX)-\d+$/.test(dep)) {
-            throw new Error(
-                `task ${taskId || '(sin id)'}: depends_on invalido (${dep}), esperado AG-### o CDX-###`
-            );
-        }
-        if (seen.has(dep)) {
-            throw new Error(
-                `task ${taskId || '(sin id)'}: depends_on duplicado (${dep})`
-            );
-        }
-        seen.add(dep);
-        if (!allowSelf && dep === taskId) {
-            throw new Error(
-                `task ${taskId}: depends_on no puede referenciarse a si misma`
-            );
-        }
-        if (!idsInBoard.has(dep)) {
-            throw new Error(
-                `task ${taskId || '(sin id)'}: depends_on no existe en board (${dep})`
-            );
-        }
-    }
+    return domainTaskGuards.validateTaskDependsOn(board, task, options);
 }
 
 function validateTaskGovernancePrechecks(board, task, options = {}) {
-    validateTaskExecutorScopeGuard(task);
-    validateTaskDependsOn(board, task, options);
+    return domainTaskGuards.validateTaskGovernancePrechecks(board, task, {
+        ...options,
+        criticalScopeKeywords: CRITICAL_SCOPE_KEYWORDS,
+        allowedExecutors: CRITICAL_SCOPE_ALLOWED_EXECUTORS,
+    });
 }
 
 function resolveTaskCreateTemplate(templateNameRaw) {
@@ -1816,185 +1774,51 @@ function renderQueueFile(executor, tasks, existingMeta) {
 }
 
 function wildcardToRegex(pattern) {
-    const escaped = pattern
-        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-        .replace(/\*/g, '.*');
-    return new RegExp(`^${escaped}$`, 'i');
+    return domainConflicts.wildcardToRegex(pattern);
 }
 
 function normalizePathToken(value) {
-    return String(value || '')
-        .trim()
-        .replace(/\\/g, '/')
-        .replace(/^\.\//, '')
-        .toLowerCase();
+    return domainConflicts.normalizePathToken(value);
 }
 
 function hasWildcard(value) {
-    return String(value || '').includes('*');
+    return domainConflicts.hasWildcard(value);
 }
 
 function analyzeFileOverlap(filesA, filesB) {
-    const overlapFiles = new Set();
-    let ambiguousWildcardOverlap = false;
-    let anyOverlap = false;
-
-    for (const rawA of filesA || []) {
-        for (const rawB of filesB || []) {
-            const a = normalizePathToken(rawA);
-            const b = normalizePathToken(rawB);
-            if (!a || !b) continue;
-
-            if (a === b) {
-                anyOverlap = true;
-                overlapFiles.add(a);
-                continue;
-            }
-
-            const aWild = hasWildcard(a);
-            const bWild = hasWildcard(b);
-
-            if (!aWild && bWild && wildcardToRegex(b).test(a)) {
-                anyOverlap = true;
-                overlapFiles.add(a);
-                continue;
-            }
-
-            if (aWild && !bWild && wildcardToRegex(a).test(b)) {
-                anyOverlap = true;
-                overlapFiles.add(b);
-                continue;
-            }
-
-            if (aWild && bWild) {
-                // Pattern-vs-pattern overlap is conservatively treated as ambiguous.
-                if (wildcardToRegex(a).test(b) || wildcardToRegex(b).test(a)) {
-                    anyOverlap = true;
-                    ambiguousWildcardOverlap = true;
-                }
-            }
-        }
-    }
-
-    return {
-        anyOverlap,
-        ambiguousWildcardOverlap,
-        overlapFiles: Array.from(overlapFiles).sort(),
-    };
+    return domainConflicts.analyzeFileOverlap(filesA, filesB);
 }
 
 function _filesOverlap(filesA, filesB) {
-    return analyzeFileOverlap(filesA, filesB).anyOverlap;
+    return domainConflicts.filesOverlap(filesA, filesB);
 }
 
 function isExpired(dateValue) {
-    const parsed = Date.parse(String(dateValue || ''));
-    if (!Number.isFinite(parsed)) return true;
-    return parsed <= Date.now();
+    return domainConflicts.isExpired(dateValue);
 }
 
 function isActiveHandoff(handoff) {
-    return (
-        String(handoff.status || '').toLowerCase() === 'active' &&
-        !isExpired(handoff.expires_at)
-    );
+    return domainConflicts.isActiveHandoff(handoff);
 }
 
 function sameTaskPair(handoff, leftTask, rightTask) {
-    const fromTask = String(handoff.from_task || '');
-    const toTask = String(handoff.to_task || '');
-    const leftId = String(leftTask.id || '');
-    const rightId = String(rightTask.id || '');
-    return (
-        (fromTask === leftId && toTask === rightId) ||
-        (fromTask === rightId && toTask === leftId)
-    );
+    return domainConflicts.sameTaskPair(handoff, leftTask, rightTask);
 }
 
 function analyzeConflicts(tasks, handoffs = []) {
-    const activeTasks = tasks.filter((task) =>
-        ACTIVE_STATUSES.has(task.status)
-    );
-    const activeHandoffs = (handoffs || []).filter(isActiveHandoff);
-    const all = [];
-    const blocking = [];
-    const handoffCovered = [];
-
-    for (let i = 0; i < activeTasks.length; i++) {
-        for (let j = i + 1; j < activeTasks.length; j++) {
-            const left = activeTasks[i];
-            const right = activeTasks[j];
-            const overlap = analyzeFileOverlap(left.files, right.files);
-            if (!overlap.anyOverlap) continue;
-
-            const matchingHandoffs = activeHandoffs.filter((handoff) =>
-                sameTaskPair(handoff, left, right)
-            );
-            const overlapSet = new Set(overlap.overlapFiles);
-            const coveredFiles = new Set();
-
-            for (const handoff of matchingHandoffs) {
-                for (const rawFile of handoff.files || []) {
-                    const file = normalizePathToken(rawFile);
-                    if (overlapSet.has(file)) {
-                        coveredFiles.add(file);
-                    }
-                }
-            }
-
-            const fullyCovered =
-                !overlap.ambiguousWildcardOverlap &&
-                overlap.overlapFiles.length > 0 &&
-                overlap.overlapFiles.every((file) => coveredFiles.has(file));
-
-            const record = {
-                left,
-                right,
-                overlap_files: overlap.overlapFiles,
-                ambiguous_wildcard_overlap: overlap.ambiguousWildcardOverlap,
-                handoff_ids: matchingHandoffs.map((handoff) =>
-                    String(handoff.id || '')
-                ),
-                exempted_by_handoff: fullyCovered,
-            };
-
-            all.push(record);
-            if (fullyCovered) {
-                handoffCovered.push(record);
-            } else {
-                blocking.push(record);
-            }
-        }
-    }
-
-    return { all, blocking, handoffCovered };
+    return domainConflicts.analyzeConflicts(tasks, handoffs, {
+        activeStatuses: ACTIVE_STATUSES,
+    });
 }
 
 function _detectConflicts(tasks, handoffs = []) {
-    return analyzeConflicts(tasks, handoffs).blocking;
+    return domainConflicts.detectConflicts(tasks, handoffs, {
+        activeStatuses: ACTIVE_STATUSES,
+    });
 }
 
 function toConflictJsonRecord(item) {
-    return {
-        left: {
-            id: String(item.left.id || ''),
-            executor: String(item.left.executor || ''),
-            status: String(item.left.status || ''),
-            scope: String(item.left.scope || ''),
-        },
-        right: {
-            id: String(item.right.id || ''),
-            executor: String(item.right.executor || ''),
-            status: String(item.right.status || ''),
-            scope: String(item.right.scope || ''),
-        },
-        overlap_files: Array.isArray(item.overlap_files)
-            ? item.overlap_files
-            : [],
-        ambiguous_wildcard_overlap: Boolean(item.ambiguous_wildcard_overlap),
-        handoff_ids: Array.isArray(item.handoff_ids) ? item.handoff_ids : [],
-        exempted_by_handoff: Boolean(item.exempted_by_handoff),
-    };
+    return domainConflicts.toConflictJsonRecord(item);
 }
 
 function buildStatusRedExplanation({
@@ -2005,100 +1829,20 @@ function buildStatusRedExplanation({
     domainHealth,
     domainHealthHistory,
 }) {
-    const blockingConflicts = Array.isArray(conflictAnalysis?.blocking)
-        ? conflictAnalysis.blocking
-        : [];
-    const handoffCovered = Array.isArray(conflictAnalysis?.handoffCovered)
-        ? conflictAnalysis.handoffCovered
-        : [];
-    const handoffs = Array.isArray(handoffData?.handoffs)
-        ? handoffData.handoffs
-        : [];
-    const activeExpiredHandoffs = handoffs.filter(
-        (item) =>
-            String(item.status || '').toLowerCase() === 'active' &&
-            isExpired(item.expires_at)
-    );
-    const redDomains = Array.isArray(domainHealth?.ranking)
-        ? domainHealth.ranking.filter(
-              (row) => String(row.signal || '') === 'RED'
-          )
-        : [];
-    const greenToRedRegressions = Array.isArray(
-        domainHealthHistory?.regressions?.green_to_red
-    )
-        ? domainHealthHistory.regressions.green_to_red
-        : [];
-
-    const blockers = [];
-    const reasons = [];
-    if (blockingConflicts.length > 0) {
-        blockers.push('conflicts');
-        reasons.push(`blocking_conflicts:${blockingConflicts.length}`);
-    }
-    if (Array.isArray(handoffLintErrors) && handoffLintErrors.length > 0) {
-        blockers.push('handoffs_lint');
-        reasons.push(`handoffs_lint:${handoffLintErrors.length}`);
-    }
-    if (codexCheckReport?.ok === false) {
-        blockers.push('codex_check');
-        reasons.push(`codex_check:${codexCheckReport.error_count || 0}`);
-    }
-    if (greenToRedRegressions.length > 0) {
-        blockers.push('domain_regression_green_to_red');
-        reasons.push(
-            `domain_regression_green_to_red:${greenToRedRegressions.length}`
-        );
-    }
-    if (redDomains.length > 0) {
-        reasons.push(
-            `domain_red:${redDomains.map((row) => String(row.domain)).join(',')}`
-        );
-    }
-    if (activeExpiredHandoffs.length > 0) {
-        reasons.push(`handoffs_active_expired:${activeExpiredHandoffs.length}`);
-    }
-    if (handoffCovered.length > 0) {
-        reasons.push(`handoff_conflicts:${handoffCovered.length}`);
-    }
-    if (reasons.length === 0) {
-        reasons.push('no_red_conditions_detected');
-    }
-
-    return {
-        version: 1,
-        signal: blockers.length > 0 ? 'RED' : 'NOT_RED',
-        blockers,
-        reasons,
-        counts: {
-            blocking_conflicts: blockingConflicts.length,
-            handoff_conflicts: handoffCovered.length,
-            handoff_lint_errors: Array.isArray(handoffLintErrors)
-                ? handoffLintErrors.length
-                : 0,
-            codex_check_errors: Number(codexCheckReport?.error_count || 0),
-            active_expired_handoffs: activeExpiredHandoffs.length,
-            red_domains: redDomains.length,
-            domain_regression_green_to_red: greenToRedRegressions.length,
+    return domainDiagnostics.buildStatusRedExplanation(
+        {
+            conflictAnalysis,
+            handoffData,
+            handoffLintErrors,
+            codexCheckReport,
+            domainHealth,
+            domainHealthHistory,
         },
-        top_blocking_conflicts: blockingConflicts
-            .slice(0, 5)
-            .map((item) => toConflictJsonRecord(item)),
-        handoff_lint_errors: Array.isArray(handoffLintErrors)
-            ? handoffLintErrors.slice(0, 10)
-            : [],
-        codex_check_errors: Array.isArray(codexCheckReport?.errors)
-            ? codexCheckReport.errors.slice(0, 10)
-            : [],
-        red_domains: redDomains.slice(0, 10).map((row) => ({
-            domain: String(row.domain || ''),
-            signal: String(row.signal || ''),
-            blocking_conflicts: Number(row.blocking_conflicts || 0),
-            handoff_conflicts: Number(row.handoff_conflicts || 0),
-            reasons: Array.isArray(row.reasons) ? row.reasons : [],
-        })),
-        domain_regression_green_to_red: greenToRedRegressions.slice(0, 10),
-    };
+        {
+            isExpired,
+            toConflictJsonRecord,
+        }
+    );
 }
 
 function cmdStatus(args) {
