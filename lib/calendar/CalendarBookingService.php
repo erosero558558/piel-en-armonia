@@ -52,9 +52,9 @@ class CalendarBookingService
         ];
     }
 
-    public function ensureSlotAvailable(array $store, string $date, string $time, string $doctor, string $service): array
+    public function ensureSlotAvailable(array $store, string $date, string $time, string $doctor, string $service, bool $forceFresh = true): array
     {
-        $check = $this->availabilityService->isSlotAvailable($store, $date, $time, $doctor, $service, true);
+        $check = $this->availabilityService->isSlotAvailable($store, $date, $time, $doctor, $service, $forceFresh);
         if (($check['ok'] ?? false) === true) {
             return [
                 'ok' => true,
@@ -77,10 +77,14 @@ class CalendarBookingService
     public function assignDoctorForIndiferente(array $store, string $date, string $time, string $service): array
     {
         $candidates = ['rosero', 'narvaez'];
+
+        // Optimization: Pre-heat availability cache in parallel
+        $this->availabilityService->warmUpCache($candidates, $date, 1, true);
+
         $available = [];
 
         foreach ($candidates as $candidate) {
-            $slot = $this->ensureSlotAvailable($store, $date, $time, $candidate, $service);
+            $slot = $this->ensureSlotAvailable($store, $date, $time, $candidate, $service, false);
             if (($slot['ok'] ?? false) === true) {
                 $available[] = $candidate;
             } elseif (($slot['code'] ?? '') === 'calendar_unreachable') {

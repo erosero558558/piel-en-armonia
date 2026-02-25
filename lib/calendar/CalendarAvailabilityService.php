@@ -118,6 +118,35 @@ class CalendarAvailabilityService
         return $masked;
     }
 
+    public function warmUpCache(array $doctors, string $date, int $days, bool $force = false): void
+    {
+        if (!$this->isGoogleActive() || !$this->client->isConfigured()) {
+            return;
+        }
+
+        $dateTo = $this->addDays($date, $days);
+        $timeMin = $this->toIsoStart($date);
+        $timeMax = $this->toIsoStart($dateTo);
+
+        $queries = [];
+        foreach ($doctors as $doctor) {
+            $calendarIds = $this->resolveCalendarIdsForDoctor($doctor);
+            if (empty($calendarIds)) {
+                continue;
+            }
+            $queries[] = [
+                'calendarIds' => $calendarIds,
+                'timeMin' => $timeMin,
+                'timeMax' => $timeMax,
+                'bypassCache' => $force,
+            ];
+        }
+
+        if (!empty($queries)) {
+            $this->client->batchFreeBusy($queries);
+        }
+    }
+
     public function getAvailability(array $store, array $options = []): array
     {
         $doctor = strtolower(trim((string) ($options['doctor'] ?? 'indiferente')));

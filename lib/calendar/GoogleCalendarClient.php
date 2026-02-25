@@ -92,54 +92,241 @@ class GoogleCalendarClient
 
     public function freeBusy(array $calendarIds, string $timeMinIso, string $timeMaxIso, bool $bypassCache = false): array
     {
-        $items = [];
-        foreach ($calendarIds as $calendarId) {
-            $id = trim((string) $calendarId);
-            if ($id === '') {
+        $query = [
+            'calendarIds' => $calendarIds,
+            'timeMin' => $timeMinIso,
+            'timeMax' => $timeMaxIso,
+            'bypassCache' => $bypassCache,
+        ];
+        $results = $this->batchFreeBusy([0 => $query]);
+        return $results[0] ?? [
+            'ok' => false,
+            'error' => 'Error interno en batchFreeBusy',
+            'code' => 'calendar_internal_error',
+            'status' => 500,
+        ];
+    }
+
+    public function batchFreeBusy(array $queries): array
+    {
+        $results = [];
+        $toFetch = [];
+        $cacheKeys = [];
+
+        // 1. Prepare and check cache
+        foreach ($queries as $key => $q) {
+            $calendarIds = $q['calendarIds'] ?? [];
+            $timeMin = (string)($q['timeMin'] ?? '');
+            $timeMax = (string)($q['timeMax'] ?? '');
+            $bypassCache = ($q['bypassCache'] ?? false) === true;
+
+            $items = [];
+            foreach ($calendarIds as $cid) {
+                $clean = trim((string)$cid);
+                if ($clean !== '') {
+                    $items[] = ['id' => $clean];
+                }
+            }
+
+            if (empty($items)) {
+                $results[$key] = [
+                    'ok' => false,
+                    'error' => 'Sin calendarios configurados',
+                    'code' => 'calendar_not_configured',
+                    'status' => 500,
+                ];
                 continue;
             }
-            $items[] = ['id' => $id];
-        }
-        if (count($items) === 0) {
-            return [
-                'ok' => false,
-                'error' => 'Sin calendarios configurados',
-                'code' => 'calendar_not_configured',
-                'status' => 500,
+
+            $cacheKey = $this->buildFreeBusyCacheKey($calendarIds, $timeMin, $timeMax);
+            $cacheKeys[$key] = $cacheKey;
+
+            if (!$bypassCache) {
+                $cached = $this->readFreeBusyCache($cacheKey);
+                if (is_array($cached)) {
+                    $results[$key] = [
+                        'ok' => true,
+                        'status' => 200,
+                        'data' => $cached,
+                        'cached' => true,
+                    ];
+                    continue;
+                }
+            }
+
+            $toFetch[$key] = [
+                'items' => $items,
+                'timeMin' => $timeMin,
+                'timeMax' => $timeMax,
             ];
         }
 
-        $cacheKey = $this->buildFreeBusyCacheKey($calendarIds, $timeMinIso, $timeMaxIso);
-        if (!$bypassCache) {
-            $cached = $this->readFreeBusyCache($cacheKey);
-            if (is_array($cached)) {
-                return [
-                    'ok' => true,
-                    'status' => 200,
-                    'data' => $cached,
-                    'cached' => true,
+        if (empty($toFetch)) {
+            return $results;
+        }
+
+        // 2. Prepare requests
+        $auth = $this->tokenProvider->getAccessToken();
+        if (($auth['ok'] ?? false) !== true) {
+            $err = [
+                'ok' => false,
+                'error' => (string)($auth['error'] ?? 'No se pudo autenticar con Google Calendar'),
+                'code' => (string)($auth['code'] ?? 'calendar_auth_failed'),
+                'status' => 503,
+            ];
+            foreach ($toFetch as $key => $unused) {
+                $results[$key] = $err;
+                $this->recordFailure('freebusy_query', (string)($auth['code'] ?? 'auth_failed'));
+            }
+            return $results;
+        }
+        $token = (string)($auth['accessToken'] ?? '');
+
+        $requests = [];
+        foreach ($toFetch as $key => $params) {
+            $url = $this->baseUrl . '/freeBusy';
+            $headers = [
+                'Accept: application/json',
+                'Authorization: Bearer ' . $token,
+                'Content-Type: application/json',
+            ];
+            $body = json_encode([
+                'timeMin' => $params['timeMin'],
+                'timeMax' => $params['timeMax'],
+                'timeZone' => $this->timezone,
+                'items' => $params['items'],
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+            $requests[$key] = [
+                'url' => $url,
+                'method' => 'POST',
+                'headers' => $headers,
+                'body' => (string)$body,
+            ];
+        }
+
+        // 3. Execute
+        $responses = $this->multiRequest($requests);
+
+        // 4. Process responses
+        foreach ($responses as $key => $resp) {
+            $operation = 'freebusy_query';
+            $ok = ($resp['ok'] ?? false) === true;
+            $status = (int)($resp['status'] ?? 0);
+            $rawBody = (string)($resp['body'] ?? '');
+
+            if (!$ok) {
+                Metrics::increment('calendar_api_errors_total', ['operation' => $operation, 'reason' => 'network']);
+                $this->recordFailure($operation, 'network');
+                $results[$key] = [
+                    'ok' => false,
+                    'error' => 'No se pudo conectar con Google Calendar',
+                    'code' => 'calendar_unreachable',
+                    'status' => 503,
                 ];
+                continue;
+            }
+
+            $json = [];
+            if ($rawBody !== '') {
+                $decoded = json_decode($rawBody, true);
+                if (is_array($decoded)) {
+                    $json = $decoded;
+                }
+            }
+
+            if ($status < 200 || $status >= 300) {
+                $reason = 'status_' . $status;
+                if (isset($json['error']['status']) && is_string($json['error']['status']) && trim($json['error']['status']) !== '') {
+                    $reason = strtolower(trim($json['error']['status']));
+                }
+                Metrics::increment('calendar_api_errors_total', ['operation' => $operation, 'reason' => $reason]);
+                $this->recordFailure($operation, $reason);
+
+                $code = ($status >= 500 || $status === 429) ? 'calendar_unreachable' : 'calendar_request_rejected';
+                $results[$key] = [
+                    'ok' => false,
+                    'error' => 'Google Calendar no aceptó la solicitud',
+                    'code' => $code,
+                    'status' => $status > 0 ? $status : 503,
+                    'raw' => $json,
+                ];
+                continue;
+            }
+
+            $this->recordSuccess($operation);
+            if (isset($cacheKeys[$key])) {
+                $this->writeFreeBusyCache($cacheKeys[$key], $json);
+            }
+            $results[$key] = [
+                'ok' => true,
+                'status' => $status,
+                'data' => $json,
+            ];
+        }
+
+        return $results;
+    }
+
+    public function multiRequest(array $requests): array
+    {
+        if (!function_exists('curl_multi_init') || !function_exists('curl_init')) {
+            // Fallback to sequential
+            $results = [];
+            foreach ($requests as $key => $req) {
+                $results[$key] = $this->httpRequest(
+                    $req['url'],
+                    $req['method'],
+                    $req['headers'],
+                    $req['body'] ?? ''
+                );
+            }
+            return $results;
+        }
+
+        $mh = curl_multi_init();
+        $handles = [];
+        $results = [];
+
+        foreach ($requests as $key => $req) {
+            $ch = $this->createCurlHandle(
+                $req['url'],
+                $req['method'],
+                $req['headers'],
+                $req['body'] ?? ''
+            );
+            if ($ch !== false) {
+                curl_multi_add_handle($mh, $ch);
+                $handles[$key] = $ch;
+            } else {
+                $results[$key] = ['ok' => false, 'status' => 0, 'error' => 'Failed to init curl'];
             }
         }
 
-        $response = $this->request(
-            'freebusy_query',
-            'POST',
-            '/freeBusy',
-            [],
-            [
-                'timeMin' => $timeMinIso,
-                'timeMax' => $timeMaxIso,
-                'timeZone' => $this->timezone,
-                'items' => $items,
-            ]
-        );
+        $active = null;
+        do {
+            $status = curl_multi_exec($mh, $active);
+            if ($active) {
+                curl_multi_select($mh);
+            }
+        } while ($active && $status == CURLM_OK);
 
-        if (!$bypassCache && ($response['ok'] ?? false) === true && isset($response['data']) && is_array($response['data'])) {
-            $this->writeFreeBusyCache($cacheKey, $response['data']);
+        foreach ($handles as $key => $ch) {
+            $responseBody = curl_multi_getcontent($ch);
+            $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            curl_multi_remove_handle($mh, $ch);
+            curl_close($ch);
+
+            if ($responseBody === false && $status === 0) {
+                $results[$key] = ['ok' => false, 'status' => $status, 'error' => $curlError];
+            } else {
+                $results[$key] = ['ok' => true, 'status' => $status, 'body' => (string) $responseBody];
+            }
         }
+        curl_multi_close($mh);
 
-        return $response;
+        return $results;
     }
 
     public function createEvent(string $calendarId, array $payload): array
@@ -333,19 +520,28 @@ class GoogleCalendarClient
         ];
     }
 
+    private function createCurlHandle(string $url, string $method, array $headers, string $body = '')
+    {
+        $ch = curl_init($url);
+        if ($ch === false) {
+            return false;
+        }
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_TIMEOUT_MS, $this->timeoutMs);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, min(3000, $this->timeoutMs));
+        if ($body !== '') {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+        }
+        return $ch;
+    }
+
     private function httpRequest(string $url, string $method, array $headers, string $body = ''): array
     {
         if (function_exists('curl_init')) {
-            $ch = curl_init($url);
+            $ch = $this->createCurlHandle($url, $method, $headers, $body);
             if ($ch !== false) {
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-                curl_setopt($ch, CURLOPT_TIMEOUT_MS, $this->timeoutMs);
-                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, min(3000, $this->timeoutMs));
-                if ($body !== '') {
-                    curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
-                }
                 $responseBody = curl_exec($ch);
                 $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 $curlError = curl_error($ch);
