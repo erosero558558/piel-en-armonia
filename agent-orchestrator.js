@@ -4120,7 +4120,39 @@ async function cmdTask(args) {
                 };
 
                 if (wantsJson) {
-                    console.log(JSON.stringify(diffPayload, null, 2));
+                    if (diffFormat === 'compact') {
+                        const compactJsonPayload = {
+                            ...diffPayload,
+                            json_format: 'compact',
+                            task_full: undefined,
+                            board_task_same_id: duplicateTask
+                                ? toTaskJson(duplicateTask)
+                                : null,
+                            field_diff_same_id: Array.isArray(
+                                diffPayload.field_diff_same_id
+                            )
+                                ? diffPayload.field_diff_same_id.map((row) => ({
+                                      field: row.field,
+                                  }))
+                                : [],
+                            field_diff_same_id_count: Array.isArray(
+                                diffPayload.field_diff_same_id
+                            )
+                                ? diffPayload.field_diff_same_id.length
+                                : 0,
+                        };
+                        console.log(
+                            JSON.stringify(compactJsonPayload, null, 2)
+                        );
+                        return;
+                    }
+                    console.log(
+                        JSON.stringify(
+                            { ...diffPayload, json_format: 'full' },
+                            null,
+                            2
+                        )
+                    );
                     return;
                 }
 
@@ -4192,6 +4224,13 @@ async function cmdTask(args) {
             'force_id_remap'
         );
         const applyToStatusRaw = String(flags.to || '').trim();
+        const claimOwnerFlagPresent =
+            Object.prototype.hasOwnProperty.call(flags, 'claim-owner') ||
+            Object.prototype.hasOwnProperty.call(flags, 'claim_owner');
+        const claimOwnerFlagValue =
+            flags['claim-owner'] !== undefined
+                ? flags['claim-owner']
+                : flags.claim_owner;
         const validateOnly = isFlagEnabled(
             flags,
             'validate-only',
@@ -4220,6 +4259,19 @@ async function cmdTask(args) {
                 throw new Error(
                     'task create --apply no permite combinar --validate-only'
                 );
+            }
+            let claimOwner = '';
+            if (claimOwnerFlagPresent) {
+                if (claimOwnerFlagValue === true) {
+                    claimOwner = detectDefaultOwner();
+                } else {
+                    claimOwner = String(claimOwnerFlagValue || '').trim();
+                }
+                if (!claimOwner) {
+                    throw new Error(
+                        'task create --apply: --claim-owner requiere valor o AGENT_OWNER/USERNAME/USER disponible'
+                    );
+                }
             }
             if (applyToStatusRaw && !ALLOWED_STATUSES.has(applyToStatusRaw)) {
                 throw new Error(
@@ -4250,9 +4302,14 @@ async function cmdTask(args) {
             );
             const originalTaskId = task.id;
             const originalTaskStatus = task.status;
+            const originalTaskOwner = task.owner;
 
             if (applyToStatusRaw) {
                 task.status = applyToStatusRaw;
+                task.updated_at = currentDate();
+            }
+            if (claimOwner) {
+                task.owner = claimOwner;
                 task.updated_at = currentDate();
             }
 
@@ -4314,6 +4371,9 @@ async function cmdTask(args) {
                 status_override_applied: Boolean(applyToStatusRaw),
                 status_override_to: applyToStatusRaw || null,
                 original_task_status: originalTaskStatus,
+                owner_claim_applied: Boolean(claimOwner),
+                owner_claim_to: claimOwner || null,
+                original_task_owner: originalTaskOwner,
                 template:
                     sourcePayload.template === undefined
                         ? null

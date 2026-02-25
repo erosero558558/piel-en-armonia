@@ -1357,6 +1357,7 @@ test('task create --apply --force-id-remap --to backlog evita conflicto activo a
         '--json',
     ]);
     const previewJson = parseJsonStdout(preview);
+    const previewOwner = String(previewJson.task.owner || '');
     const previewPath = join(dir, 'preview-remap-active.json');
     writeFileSync(
         previewPath,
@@ -1380,6 +1381,8 @@ test('task create --apply --force-id-remap --to backlog evita conflicto activo a
         '--force-id-remap',
         '--to',
         'backlog',
+        '--claim-owner',
+        'ernesto',
         '--json',
     ]);
     const json = parseJsonStdout(remapApply);
@@ -1390,12 +1393,17 @@ test('task create --apply --force-id-remap --to backlog evita conflicto activo a
     assert.equal(json.status_override_applied, true);
     assert.equal(json.status_override_to, 'backlog');
     assert.equal(json.original_task_status, 'ready');
+    assert.equal(json.owner_claim_applied, true);
+    assert.equal(json.owner_claim_to, 'ernesto');
+    assert.equal(json.original_task_owner, previewOwner);
     assert.equal(json.task.id, 'AG-012');
     assert.equal(json.task.status, 'backlog');
+    assert.equal(json.task.owner, 'ernesto');
 
     const board = readBoard(dir);
     assert.match(board, /- id: AG-011/);
     assert.match(board, /- id: AG-012/);
+    assert.match(board, /owner: ernesto/);
     assert.match(board, /status: backlog/);
 });
 
@@ -1516,6 +1524,71 @@ test('task create preview-file diff compara preview con task existente y sugiere
 
     const board = readBoard(dir);
     assert.doesNotMatch(board, /- id: AG-011/);
+});
+
+test('task create preview-file diff --json --format compact reduce payload y conserva resumen', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const preview = runCli(dir, [
+        'task',
+        'create',
+        '--title',
+        'Diff compact preview',
+        '--template',
+        'docs',
+        '--preview',
+        '--files',
+        'docs/diff-compact-preview.md',
+        '--json',
+    ]);
+    const previewJson = parseJsonStdout(preview);
+    previewJson.task.id = 'AG-010';
+    previewJson.task_full.id = 'AG-010';
+    previewJson.task.scope = 'docs-v3';
+    previewJson.task_full.scope = 'docs-v3';
+
+    const previewPath = join(dir, 'preview-diff-compact.json');
+    writeFileSync(
+        previewPath,
+        `${JSON.stringify(previewJson, null, 2)}\n`,
+        'utf8'
+    );
+
+    const result = runCli(dir, [
+        'task',
+        'create',
+        'preview-file',
+        'diff',
+        'preview-diff-compact.json',
+        '--json',
+        '--format',
+        'compact',
+    ]);
+    const json = parseJsonStdout(result);
+
+    assert.equal(json.ok, true);
+    assert.equal(json.action, 'create-preview-diff');
+    assert.equal(json.diff_format, 'compact');
+    assert.equal(json.json_format, 'compact');
+    assert.equal(json.id_collision, true);
+    assert.equal(json.suggested_id_remap, 'AG-011');
+    assert.equal(json.task_full, undefined);
+    assert.ok(json.board_task_same_id);
+    assert.equal(json.board_task_same_id.id, 'AG-010');
+    assert.equal(Array.isArray(json.field_diff_same_id), true);
+    assert.equal(json.field_diff_same_id_count >= 1, true);
+    assert.equal(json.field_diff_same_id[0].before, undefined);
+    assert.equal(
+        json.field_diff_same_id.some((row) => row.field === 'scope'),
+        true
+    );
 });
 
 test('task create preview-file diff --format full expone diff detallado en texto', (t) => {
