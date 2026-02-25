@@ -1495,6 +1495,8 @@ $analyticsChecks = @(
     }
 )
 
+$analyticsTokenAdvisory = $nonFrontendAdvisoryMode -and -not $ForceAssetHashChecks
+
 foreach ($check in $analyticsChecks) {
     $matched = $false
     if ($check.Sources -contains 'script' -and -not $matched -and [regex]::IsMatch($remoteScriptText, $check.Pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
@@ -1516,13 +1518,17 @@ foreach ($check in $analyticsChecks) {
     if ($matched) {
         Write-Host "[OK]  assets remotos contienen: $($check.Name)"
     } else {
-        Write-Host "[FAIL] assets remotos NO contienen: $($check.Name)"
-        $results += [PSCustomObject]@{
-            Asset = "script-token:$($check.Name)"
-            Match = $false
-            LocalHash = ''
-            RemoteHash = ''
-            RemoteUrl = (Get-Url -Base $base -Ref $localScriptRef)
+        if ($analyticsTokenAdvisory) {
+            Write-Host "[WARN] assets remotos NO contienen (advisory): $($check.Name)"
+        } else {
+            Write-Host "[FAIL] assets remotos NO contienen: $($check.Name)"
+            $results += [PSCustomObject]@{
+                Asset = "script-token:$($check.Name)"
+                Match = $false
+                LocalHash = ''
+                RemoteHash = ''
+                RemoteUrl = (Get-Url -Base $base -Ref $localScriptRef)
+            }
         }
     }
 }
