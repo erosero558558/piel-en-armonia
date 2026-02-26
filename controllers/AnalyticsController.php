@@ -30,6 +30,10 @@ class AnalyticsController
         'whatsapp_click'
     ];
 
+    private const RETENTION_REPORT_DEFAULT_DAYS = 30;
+    private const RETENTION_REPORT_MAX_DAYS = 120;
+    private const RETENTION_REPORT_NO_SHOW_MIN_SAMPLE = 10;
+
     /**
      * POST /funnel-event - Record a funnel event
      */
@@ -82,6 +86,25 @@ class AnalyticsController
         json_response([
             'ok' => true,
             'data' => self::buildFunnelMetricsData($context)
+        ]);
+    }
+
+    /**
+     * GET /retention-report - Daily retention/no-show report (JSON or CSV)
+     */
+    public static function getRetentionReport(array $context): void
+    {
+        $params = self::resolveRetentionReportParams();
+        $data = self::buildRetentionReportData($context, $params);
+
+        if ($params['format'] === 'csv') {
+            self::respondRetentionCsv($data);
+            return;
+        }
+
+        json_response([
+            'ok' => true,
+            'data' => $data,
         ]);
     }
 
@@ -316,6 +339,418 @@ class AnalyticsController
             'recurrentPatients' => $recurrentPatients,
             'recurrenceRatePct' => $recurrenceRate,
         ];
+    }
+
+    /**
+     * Build operational retention report scoped by date range and optional filters.
+     *
+     * @param array<string,mixed> $context
+     * @param array<string,mixed> $params
+     * @return array<string,mixed>
+     */
+    private static function buildRetentionReportData(array $context, array $params): array
+    {
+        $store = isset($context['store']) && is_array($context['store']) ? $context['store'] : [];
+        $appointments = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
+
+        /** @var DateTimeImmutable $dateFrom */
+        $dateFrom = $params['dateFrom'];
+        /** @var DateTimeImmutable $dateTo */
+        $dateTo = $params['dateTo'];
+        $doctorFilter = (string) ($params['doctor'] ?? '');
+        $serviceFilter = (string) ($params['service'] ?? '');
+        $timezone = (string) ($params['timezone'] ?? 'America/Guayaquil');
+
+        $daily = [];
+        $cursor = $dateFrom;
+        while ($cursor <= $dateTo) {
+            $key = $cursor->format('Y-m-d');
+            $daily[$key] = [
+                'date' => $key,
+                'appointmentsTotal' => 0,
+                'appointmentsNonCancelled' => 0,
+                'statusCounts' => [
+                    'confirmed' => 0,
+                    'completed' => 0,
+                    'noShow' => 0,
+                    'cancelled' => 0,
+                ],
+                'uniquePatients' => 0,
+                'noShowRatePct' => 0.0,
+                'completionRatePct' => 0.0,
+                '_patientSet' => [],
+            ];
+            $cursor = $cursor->modify('+1 day');
+        }
+
+        $summaryStatus = [
+            'confirmed' => 0,
+            'completed' => 0,
+            'noShow' => 0,
+            'cancelled' => 0,
+        ];
+        $summaryAppointmentsTotal = 0;
+        $summaryNonCancelled = 0;
+        $patientVisits = [];
+
+        foreach ($appointments as $appointment) {
+            if (!is_array($appointment)) {
+                continue;
+            }
+
+            $appointmentDateRaw = trim((string) ($appointment['date'] ?? ''));
+            $appointmentDate = self::parseIsoDate($appointmentDateRaw, $timezone);
+            if ($appointmentDate === null) {
+                continue;
+            }
+
+            if ($appointmentDate < $dateFrom || $appointmentDate > $dateTo) {
+                continue;
+            }
+
+            if ($doctorFilter !== '') {
+                $doctorValue = self::normalizeLabel($appointment['doctor'] ?? '', '');
+                if ($doctorValue !== $doctorFilter) {
+                    continue;
+                }
+            }
+            if ($serviceFilter !== '') {
+                $serviceValue = self::normalizeLabel($appointment['service'] ?? '', '');
+                if ($serviceValue !== $serviceFilter) {
+                    continue;
+                }
+            }
+
+            $dayKey = $appointmentDate->format('Y-m-d');
+            if (!isset($daily[$dayKey])) {
+                continue;
+            }
+
+            $status = (string) ($appointment['status'] ?? 'confirmed');
+            if (function_exists('map_appointment_status')) {
+                $status = map_appointment_status($status);
+            } else {
+                $status = strtolower(trim($status));
+            }
+            if ($status === 'noshow') {
+                $status = 'no_show';
+            }
+
+            $statusKey = 'confirmed';
+            if ($status === 'completed') {
+                $statusKey = 'completed';
+            } elseif ($status === 'no_show') {
+                $statusKey = 'noShow';
+            } elseif ($status === 'cancelled') {
+                $statusKey = 'cancelled';
+            }
+
+            $daily[$dayKey]['appointmentsTotal']++;
+            $daily[$dayKey]['statusCounts'][$statusKey]++;
+            $summaryAppointmentsTotal++;
+            $summaryStatus[$statusKey]++;
+
+            if ($statusKey !== 'cancelled') {
+                $daily[$dayKey]['appointmentsNonCancelled']++;
+                $summaryNonCancelled++;
+                $patientKey = self::resolvePatientKey($appointment);
+                if ($patientKey !== '') {
+                    $daily[$dayKey]['_patientSet'][$patientKey] = true;
+                    if (!isset($patientVisits[$patientKey])) {
+                        $patientVisits[$patientKey] = 0;
+                    }
+                    $patientVisits[$patientKey]++;
+                }
+            }
+        }
+
+        $series = [];
+        foreach ($daily as $row) {
+            $nonCancelled = (int) $row['appointmentsNonCancelled'];
+            $row['uniquePatients'] = count($row['_patientSet']);
+            $row['noShowRatePct'] = $nonCancelled > 0
+                ? round((((int) $row['statusCounts']['noShow']) / $nonCancelled) * 100, 2)
+                : 0.0;
+            $row['completionRatePct'] = $nonCancelled > 0
+                ? round((((int) $row['statusCounts']['completed']) / $nonCancelled) * 100, 2)
+                : 0.0;
+            unset($row['_patientSet']);
+            $series[] = $row;
+        }
+
+        $uniquePatients = count($patientVisits);
+        $recurrentPatients = 0;
+        foreach ($patientVisits as $visits) {
+            if ((int) $visits >= 2) {
+                $recurrentPatients++;
+            }
+        }
+
+        $noShowRatePct = $summaryNonCancelled > 0
+            ? round(($summaryStatus['noShow'] / $summaryNonCancelled) * 100, 2)
+            : 0.0;
+        $completionRatePct = $summaryNonCancelled > 0
+            ? round(($summaryStatus['completed'] / $summaryNonCancelled) * 100, 2)
+            : 0.0;
+        $recurrenceRatePct = $uniquePatients > 0
+            ? round(($recurrentPatients / $uniquePatients) * 100, 2)
+            : 0.0;
+
+        $noShowWarnPct = self::getEnvFloat('PIELARMONIA_RETENTION_NO_SHOW_WARN_PCT', 20.0);
+        $recurrenceMinWarnPct = self::getEnvFloat('PIELARMONIA_RETENTION_RECURRENCE_MIN_WARN_PCT', 30.0);
+        $recurrenceMinUniquePatients = self::getEnvInt('PIELARMONIA_RETENTION_RECURRENCE_MIN_UNIQUE_PATIENTS', 5);
+        $alerts = [];
+        if ($summaryNonCancelled >= self::RETENTION_REPORT_NO_SHOW_MIN_SAMPLE && $noShowRatePct >= $noShowWarnPct) {
+            $alerts[] = [
+                'code' => 'no_show_rate_high',
+                'severity' => 'warn',
+                'impact' => 'retention',
+                'thresholdPct' => $noShowWarnPct,
+                'actualPct' => $noShowRatePct,
+            ];
+        }
+        if ($uniquePatients >= $recurrenceMinUniquePatients && $recurrenceRatePct < $recurrenceMinWarnPct) {
+            $alerts[] = [
+                'code' => 'recurrence_rate_low',
+                'severity' => 'warn',
+                'impact' => 'retention',
+                'thresholdPct' => $recurrenceMinWarnPct,
+                'actualPct' => $recurrenceRatePct,
+            ];
+        }
+
+        return [
+            'meta' => [
+                'dateFrom' => $dateFrom->format('Y-m-d'),
+                'dateTo' => $dateTo->format('Y-m-d'),
+                'days' => count($series),
+                'timezone' => $timezone,
+                'doctor' => $doctorFilter,
+                'service' => $serviceFilter,
+                'format' => (string) ($params['format'] ?? 'json'),
+                'generatedAt' => gmdate('c'),
+            ],
+            'summary' => [
+                'appointmentsTotal' => $summaryAppointmentsTotal,
+                'appointmentsNonCancelled' => $summaryNonCancelled,
+                'statusCounts' => $summaryStatus,
+                'noShowRatePct' => $noShowRatePct,
+                'completionRatePct' => $completionRatePct,
+                'uniquePatients' => $uniquePatients,
+                'recurrentPatients' => $recurrentPatients,
+                'recurrenceRatePct' => $recurrenceRatePct,
+            ],
+            'series' => $series,
+            'alerts' => $alerts,
+        ];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private static function resolveRetentionReportParams(): array
+    {
+        $timezone = trim((string) getenv('PIELARMONIA_CALENDAR_TIMEZONE'));
+        if ($timezone === '') {
+            $timezone = 'America/Guayaquil';
+        }
+
+        $today = new DateTimeImmutable('today', new DateTimeZone($timezone));
+        $format = strtolower(trim((string) ($_GET['format'] ?? 'json')));
+        if (!in_array($format, ['json', 'csv'], true)) {
+            json_response([
+                'ok' => false,
+                'error' => 'Formato invalido. Usa format=json o format=csv'
+            ], 400);
+        }
+
+        $daysRaw = (string) ($_GET['days'] ?? self::RETENTION_REPORT_DEFAULT_DAYS);
+        $days = (int) $daysRaw;
+        if ($days < 1) {
+            $days = self::RETENTION_REPORT_DEFAULT_DAYS;
+        }
+        if ($days > self::RETENTION_REPORT_MAX_DAYS) {
+            json_response([
+                'ok' => false,
+                'error' => 'Parametro days excede el maximo permitido'
+            ], 400);
+        }
+
+        $dateToRaw = trim((string) ($_GET['dateTo'] ?? ''));
+        $dateFromRaw = trim((string) ($_GET['dateFrom'] ?? ''));
+
+        $dateTo = $dateToRaw !== ''
+            ? self::parseIsoDate($dateToRaw, $timezone)
+            : $today;
+        if ($dateTo === null) {
+            json_response([
+                'ok' => false,
+                'error' => 'dateTo debe tener formato YYYY-MM-DD'
+            ], 400);
+        }
+
+        $dateFrom = $dateFromRaw !== ''
+            ? self::parseIsoDate($dateFromRaw, $timezone)
+            : $dateTo->modify('-' . ($days - 1) . ' days');
+        if ($dateFrom === null) {
+            json_response([
+                'ok' => false,
+                'error' => 'dateFrom debe tener formato YYYY-MM-DD'
+            ], 400);
+        }
+
+        if ($dateFrom > $dateTo) {
+            json_response([
+                'ok' => false,
+                'error' => 'dateFrom no puede ser mayor que dateTo'
+            ], 400);
+        }
+
+        $rangeDays = ((int) $dateFrom->diff($dateTo)->format('%a')) + 1;
+        if ($rangeDays > self::RETENTION_REPORT_MAX_DAYS) {
+            json_response([
+                'ok' => false,
+                'error' => 'Rango de fechas excede el maximo permitido'
+            ], 400);
+        }
+
+        return [
+            'format' => $format,
+            'timezone' => $timezone,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'doctor' => self::normalizeLabel($_GET['doctor'] ?? '', ''),
+            'service' => self::normalizeLabel($_GET['service'] ?? '', ''),
+        ];
+    }
+
+    private static function respondRetentionCsv(array $data): void
+    {
+        $csv = self::buildRetentionCsv($data);
+
+        if (defined('TESTING_ENV')) {
+            $payload = [
+                'ok' => true,
+                'format' => 'csv',
+                'data' => $data,
+                'csv' => $csv,
+            ];
+            $GLOBALS['__TEST_RESPONSE'] = ['payload' => $payload, 'status' => 200];
+            if (!defined('TESTING_FORCE_EXIT')) {
+                throw new TestingExitException($payload, 200);
+            }
+        }
+
+        $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
+        $from = (string) ($meta['dateFrom'] ?? local_date('Y-m-d'));
+        $to = (string) ($meta['dateTo'] ?? local_date('Y-m-d'));
+        $filename = 'retention-report-' . $from . '-to-' . $to . '.csv';
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        echo $csv;
+        exit();
+    }
+
+    private static function buildRetentionCsv(array $data): string
+    {
+        $rows = [];
+        $rows[] = implode(',', [
+            'date',
+            'appointments_total',
+            'appointments_non_cancelled',
+            'status_confirmed',
+            'status_completed',
+            'status_no_show',
+            'status_cancelled',
+            'no_show_rate_pct',
+            'completion_rate_pct',
+            'unique_patients',
+        ]);
+
+        $series = isset($data['series']) && is_array($data['series']) ? $data['series'] : [];
+        foreach ($series as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $statusCounts = isset($row['statusCounts']) && is_array($row['statusCounts']) ? $row['statusCounts'] : [];
+            $rows[] = implode(',', [
+                self::csvValue((string) ($row['date'] ?? '')),
+                (string) ((int) ($row['appointmentsTotal'] ?? 0)),
+                (string) ((int) ($row['appointmentsNonCancelled'] ?? 0)),
+                (string) ((int) ($statusCounts['confirmed'] ?? 0)),
+                (string) ((int) ($statusCounts['completed'] ?? 0)),
+                (string) ((int) ($statusCounts['noShow'] ?? 0)),
+                (string) ((int) ($statusCounts['cancelled'] ?? 0)),
+                (string) ((float) ($row['noShowRatePct'] ?? 0)),
+                (string) ((float) ($row['completionRatePct'] ?? 0)),
+                (string) ((int) ($row['uniquePatients'] ?? 0)),
+            ]);
+        }
+
+        $summary = isset($data['summary']) && is_array($data['summary']) ? $data['summary'] : [];
+        $summaryStatus = isset($summary['statusCounts']) && is_array($summary['statusCounts']) ? $summary['statusCounts'] : [];
+        $rows[] = implode(',', [
+            'TOTAL',
+            (string) ((int) ($summary['appointmentsTotal'] ?? 0)),
+            (string) ((int) ($summary['appointmentsNonCancelled'] ?? 0)),
+            (string) ((int) ($summaryStatus['confirmed'] ?? 0)),
+            (string) ((int) ($summaryStatus['completed'] ?? 0)),
+            (string) ((int) ($summaryStatus['noShow'] ?? 0)),
+            (string) ((int) ($summaryStatus['cancelled'] ?? 0)),
+            (string) ((float) ($summary['noShowRatePct'] ?? 0)),
+            (string) ((float) ($summary['completionRatePct'] ?? 0)),
+            (string) ((int) ($summary['uniquePatients'] ?? 0)),
+        ]);
+
+        return implode("\n", $rows) . "\n";
+    }
+
+    private static function csvValue(string $value): string
+    {
+        $escaped = str_replace('"', '""', $value);
+        return '"' . $escaped . '"';
+    }
+
+    private static function parseIsoDate(string $rawDate, string $timezone): ?DateTimeImmutable
+    {
+        if ($rawDate === '') {
+            return null;
+        }
+        $dt = DateTimeImmutable::createFromFormat('!Y-m-d', $rawDate, new DateTimeZone($timezone));
+        if (!$dt instanceof DateTimeImmutable) {
+            return null;
+        }
+        if ($dt->format('Y-m-d') !== $rawDate) {
+            return null;
+        }
+        return $dt;
+    }
+
+    private static function getEnvFloat(string $name, float $default): float
+    {
+        $raw = getenv($name);
+        if ($raw === false) {
+            return $default;
+        }
+        $value = trim((string) $raw);
+        if ($value === '' || !is_numeric($value)) {
+            return $default;
+        }
+        return (float) $value;
+    }
+
+    private static function getEnvInt(string $name, int $default): int
+    {
+        $raw = getenv($name);
+        if ($raw === false) {
+            return $default;
+        }
+        $value = trim((string) $raw);
+        if ($value === '' || !preg_match('/^-?\d+$/', $value)) {
+            return $default;
+        }
+        return (int) $value;
     }
 
     /**

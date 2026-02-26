@@ -20,6 +20,7 @@ class ApiConfig
             'monitoring-config:GET' => [60, 60],
             'metrics:GET' => [60, 60],
             'funnel-metrics:GET' => [60, 60],
+            'retention-report:GET' => [30, 60],
 
             // Public POST - Actionable, lower volume to prevent spam
             'payment-intent:POST' => [10, 60],

@@ -715,6 +715,74 @@ paths:
                                         type: object
                                         additionalProperties: true
 
+    /api.php?resource=retention-report:
+        get:
+            summary: Get Retention Report
+            description: Returns daily no-show/retention report in JSON or CSV format for admin operations.
+            tags: [Analytics, Admin]
+            security:
+                - cookieAuth: []
+            parameters:
+                - in: query
+                  name: dateFrom
+                  schema:
+                      type: string
+                      format: date
+                  description: Start date (YYYY-MM-DD), inclusive.
+                - in: query
+                  name: dateTo
+                  schema:
+                      type: string
+                      format: date
+                  description: End date (YYYY-MM-DD), inclusive.
+                - in: query
+                  name: days
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 120
+                  description: Used when dateFrom is omitted. Default 30.
+                - in: query
+                  name: doctor
+                  schema:
+                      type: string
+                  description: Optional doctor filter.
+                - in: query
+                  name: service
+                  schema:
+                      type: string
+                  description: Optional service filter.
+                - in: query
+                  name: format
+                  schema:
+                      type: string
+                      enum: [json, csv]
+                      default: json
+                  description: Response format.
+            responses:
+                '200':
+                    description: Retention report generated.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    ok:
+                                        type: boolean
+                                    data:
+                                        type: object
+                                        additionalProperties: true
+                        text/csv:
+                            schema:
+                                type: string
+                                description: CSV export with daily rows and TOTAL summary row.
+                '400':
+                    description: Invalid query parameters.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiError'
+
     /api.php?resource=payment-intent:
         post:
             summary: Create Payment Intent
