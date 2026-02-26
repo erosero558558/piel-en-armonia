@@ -69,6 +69,10 @@ import {
     stopQueueRealtimeSync,
     callNextForConsultorio,
     applyQueueTicketAction,
+    runQueueBulkAction,
+    setQueueFilter,
+    focusQueueSearch,
+    isQueueSectionActive,
     reprintQueueTicket,
 } from './modules/queue.js';
 
@@ -795,6 +799,54 @@ function handleAdminKeyboardShortcuts(event) {
         }
     }
 
+    if (isQueueSectionActive()) {
+        if (code === 'keyj') {
+            event.preventDefault();
+            void callNextForConsultorio(1);
+            return;
+        }
+        if (code === 'keyk') {
+            event.preventDefault();
+            void callNextForConsultorio(2);
+            return;
+        }
+        if (code === 'keyu') {
+            event.preventDefault();
+            void refreshQueueRealtime({ silent: false });
+            return;
+        }
+        if (code === 'keyf') {
+            event.preventDefault();
+            focusQueueSearch();
+            return;
+        }
+        if (code === 'keyl') {
+            event.preventDefault();
+            setQueueFilter('sla_risk');
+            return;
+        }
+        if (code === 'keyo') {
+            event.preventDefault();
+            setQueueFilter('all');
+            return;
+        }
+        if (code === 'keyg') {
+            event.preventDefault();
+            void runQueueBulkAction('completar');
+            return;
+        }
+        if (code === 'keyh') {
+            event.preventDefault();
+            void runQueueBulkAction('no_show');
+            return;
+        }
+        if (code === 'keyb') {
+            event.preventDefault();
+            void runQueueBulkAction('cancelar');
+            return;
+        }
+    }
+
     const appointmentShortcutFilters = {
         keya: 'all',
         keyh: 'today',
@@ -953,7 +1005,7 @@ async function runAdminQuickCommand(rawCommand) {
 
     if (command === 'help' || command === 'ayuda') {
         showToast(
-            'Comandos: citas hoy, citas por validar, callbacks pendientes, disponibilidad hoy, exportar csv.',
+            'Comandos: citas hoy, citas por validar, callbacks pendientes, turnero c1/c2, turnero sla, disponibilidad hoy, exportar csv.',
             'info'
         );
         return true;
@@ -979,6 +1031,26 @@ async function runAdminQuickCommand(rawCommand) {
         await navigateToSection('queue', { focus: false });
         if (command.includes('c1') || command.includes('consultorio 1')) {
             await callNextForConsultorio(1);
+        } else if (
+            command.includes('completar visibles') ||
+            command.includes('bulk completar')
+        ) {
+            await runQueueBulkAction('completar');
+        } else if (
+            command.includes('no show visibles') ||
+            command.includes('bulk no show')
+        ) {
+            await runQueueBulkAction('no_show');
+        } else if (
+            command.includes('cancelar visibles') ||
+            command.includes('bulk cancelar')
+        ) {
+            await runQueueBulkAction('cancelar');
+        } else if (command.includes('sla')) {
+            setQueueFilter('sla_risk');
+            focusQueueSearch();
+        } else if (command.includes('buscar')) {
+            focusQueueSearch();
         } else if (
             command.includes('c2') ||
             command.includes('consultorio 2')

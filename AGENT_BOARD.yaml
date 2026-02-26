@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 235
+  revision: 238
   updated_at: 2026-02-26
 
 tasks:
@@ -4035,5 +4035,43 @@ tasks:
     evidence_ref: "verification/agent-runs/AG-105.md"
     depends_on: []
     prompt: "Turnero sala I: triage SLA con filtros y busqueda en admin"
+    created_at: 2026-02-26
+    updated_at: 2026-02-26
+
+  - id: AG-106
+    title: "Turnero sala J: atajos operativos y bulk workflow en admin queue"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-02-26T18:58:16.758Z"
+    risk: medium
+    scope: frontend-admin
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    files: ["src/apps/admin/index.js", "src/apps/admin/modules/queue.js"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-02-26T18:58:16.758Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Turnero sala J: atajos operativos y bulk workflow en admin queue"
+    acceptance_ref: "verification/agent-runs/AG-106.md"
+    evidence_ref: "verification/agent-runs/AG-106.md"
+    depends_on: []
+    prompt: "Turnero sala J: atajos operativos y bulk workflow en admin queue"
     created_at: 2026-02-26
     updated_at: 2026-02-26

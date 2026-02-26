@@ -27,6 +27,53 @@ function buildQueueMetaFromState(state) {
     };
 }
 
+function buildQueueStateFromTickets(queueTickets) {
+    const waiting = queueTickets.filter(
+        (ticket) => ticket.status === 'waiting'
+    );
+    const called = queueTickets.filter((ticket) => ticket.status === 'called');
+
+    const callingNowByConsultorio = new Map();
+    for (const ticket of called) {
+        const room = Number(ticket.assignedConsultorio || 0);
+        if ((room === 1 || room === 2) && !callingNowByConsultorio.has(room)) {
+            callingNowByConsultorio.set(room, {
+                id: ticket.id,
+                ticketCode: ticket.ticketCode,
+                patientInitials: ticket.patientInitials,
+                assignedConsultorio: room,
+                calledAt: ticket.calledAt || new Date().toISOString(),
+            });
+        }
+    }
+
+    return {
+        updatedAt: new Date().toISOString(),
+        waitingCount: waiting.length,
+        calledCount: called.length,
+        counts: {
+            waiting: waiting.length,
+            called: called.length,
+            completed: queueTickets.filter(
+                (ticket) => ticket.status === 'completed'
+            ).length,
+            no_show: queueTickets.filter(
+                (ticket) => ticket.status === 'no_show'
+            ).length,
+            cancelled: queueTickets.filter(
+                (ticket) => ticket.status === 'cancelled'
+            ).length,
+        },
+        callingNow: Array.from(callingNowByConsultorio.values()),
+        nextTickets: waiting.map((ticket, index) => ({
+            id: ticket.id,
+            ticketCode: ticket.ticketCode,
+            patientInitials: ticket.patientInitials,
+            position: index + 1,
+        })),
+    };
+}
+
 test.describe('Admin turnero sala', () => {
     test('permite llamar siguiente ticket en consultorio 1', async ({
         page,
@@ -363,5 +410,172 @@ test.describe('Admin turnero sala', () => {
         await page.locator('[data-action="queue-clear-search"]').click();
         await expect(page.locator('#queueSearchInput')).toHaveValue('');
         await expect(page.locator('#queueTableBody')).toContainText('A-900');
+    });
+
+    test('atajos de teclado en turnero aplican filtro SLA y accion masiva', async ({
+        page,
+    }) => {
+        let queueTickets = [
+            {
+                id: 910,
+                ticketCode: 'A-910',
+                queueType: 'appointment',
+                patientInitials: 'ER',
+                priorityClass: 'appt_overdue',
+                status: 'waiting',
+                assignedConsultorio: null,
+                createdAt: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
+            },
+            {
+                id: 911,
+                ticketCode: 'A-911',
+                queueType: 'walk_in',
+                patientInitials: 'JP',
+                priorityClass: 'walk_in',
+                status: 'waiting',
+                assignedConsultorio: null,
+                createdAt: new Date(Date.now() - 8 * 60 * 1000).toISOString(),
+            },
+            {
+                id: 912,
+                ticketCode: 'A-912',
+                queueType: 'appointment',
+                patientInitials: 'MC',
+                priorityClass: 'appt_current',
+                status: 'called',
+                assignedConsultorio: 2,
+                calledAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+                createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+            },
+        ];
+
+        let queueState = buildQueueStateFromTickets(queueTickets);
+
+        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
+            json(route, {
+                ok: true,
+                authenticated: true,
+                csrfToken: 'csrf_queue_shortcuts',
+            })
+        );
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const request = route.request();
+            const url = new URL(request.url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'data') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        appointments: [],
+                        callbacks: [],
+                        reviews: [],
+                        availability: {},
+                        availabilityMeta: {
+                            source: 'store',
+                            mode: 'live',
+                            timezone: 'America/Guayaquil',
+                            calendarConfigured: true,
+                            calendarReachable: true,
+                            generatedAt: new Date().toISOString(),
+                        },
+                        queue_tickets: queueTickets,
+                        queueMeta: buildQueueMetaFromState(queueState),
+                    },
+                });
+            }
+
+            if (resource === 'queue-ticket') {
+                const body = JSON.parse(request.postData() || '{}');
+                const ticketId = Number(body.id || 0);
+                const action = String(body.action || '').toLowerCase();
+                const idx = queueTickets.findIndex(
+                    (ticket) => Number(ticket.id) === ticketId
+                );
+                if (idx >= 0) {
+                    if (action === 'no_show') {
+                        queueTickets[idx] = {
+                            ...queueTickets[idx],
+                            status: 'no_show',
+                            assignedConsultorio: null,
+                            completedAt: new Date().toISOString(),
+                        };
+                    } else if (action === 'cancelar') {
+                        queueTickets[idx] = {
+                            ...queueTickets[idx],
+                            status: 'cancelled',
+                            assignedConsultorio: null,
+                            completedAt: new Date().toISOString(),
+                        };
+                    } else if (action === 'completar') {
+                        queueTickets[idx] = {
+                            ...queueTickets[idx],
+                            status: 'completed',
+                            completedAt: new Date().toISOString(),
+                        };
+                    }
+                }
+                queueState = buildQueueStateFromTickets(queueTickets);
+                return json(route, {
+                    ok: true,
+                    data: {
+                        ticket: queueTickets[idx],
+                        queueState,
+                    },
+                });
+            }
+
+            if (resource === 'health') {
+                return json(route, { ok: true, status: 'ok' });
+            }
+
+            if (resource === 'funnel-metrics') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto('/admin.html');
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+
+        await page.keyboard.press('Alt+Shift+L');
+        await expect(page.locator('#queueTableBody tr')).toHaveCount(1);
+        await expect(page.locator('#queueTableBody')).toContainText('A-910');
+
+        let dialogMessage = '';
+        page.once('dialog', async (dialog) => {
+            dialogMessage = dialog.message();
+            await dialog.accept();
+        });
+        await page
+            .locator(
+                '[data-action="queue-bulk-action"][data-queue-action="no_show"]'
+            )
+            .evaluate((element) => {
+                element.dispatchEvent(
+                    new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                    })
+                );
+            });
+        await expect.poll(() => dialogMessage).toContain('No show');
+
+        await expect(page.locator('#queueTableBody')).toContainText(
+            'Sin tickets en cola'
+        );
+        await expect(page.locator('#queueWaitingCountAdmin')).toHaveText('1');
+
+        await page.keyboard.press('Alt+Shift+O');
+        await expect(page.locator('#queueTableBody')).toContainText('A-910');
+        await expect(page.locator('#queueTableBody')).toContainText(
+            'No asistio'
+        );
+        await expect(page.locator('#queueTableBody')).toContainText('A-911');
     });
 });

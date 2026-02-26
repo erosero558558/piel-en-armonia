@@ -22,9 +22,16 @@ const QUEUE_PRIORITY_LABELS = {
 };
 
 const TERMINAL_QUEUE_STATUSES = new Set(['completed', 'no_show', 'cancelled']);
+const NON_TERMINAL_QUEUE_STATUSES = new Set(['waiting', 'called']);
 const QUEUE_REALTIME_BASE_MS = 2500;
 const QUEUE_REALTIME_MAX_MS = 15000;
 const QUEUE_SLA_RISK_MINUTES = 20;
+const QUEUE_BULK_ACTION_ORDER = ['completar', 'no_show', 'cancelar'];
+const QUEUE_BULK_ACTION_LABELS = {
+    completar: 'Completar',
+    no_show: 'No show',
+    cancelar: 'Cancelar',
+};
 const QUEUE_FILTER_ORDER = [
     'all',
     'waiting',
@@ -42,6 +49,8 @@ const queueUiState = {
     activeFilter: 'all',
     searchTerm: '',
     triageControlsBound: false,
+    bulkActionInFlight: false,
+    lastViewState: null,
 };
 
 function getQueueSyncStatusEl() {
@@ -285,6 +294,40 @@ function buildQueueViewState() {
     };
 }
 
+function getBulkActionLabel(action) {
+    const key = String(action || '').toLowerCase();
+    return QUEUE_BULK_ACTION_LABELS[key] || 'Accion';
+}
+
+function isBulkActionAllowedForStatus(action, status) {
+    const normalizedAction = String(action || '').toLowerCase();
+    const normalizedStatus = String(status || '').toLowerCase();
+    if (!NON_TERMINAL_QUEUE_STATUSES.has(normalizedStatus)) {
+        return false;
+    }
+    if (normalizedAction === 'completar') {
+        return normalizedStatus === 'called' || normalizedStatus === 'waiting';
+    }
+    if (normalizedAction === 'no_show') {
+        return normalizedStatus === 'called' || normalizedStatus === 'waiting';
+    }
+    if (normalizedAction === 'cancelar') {
+        return normalizedStatus === 'called' || normalizedStatus === 'waiting';
+    }
+    return false;
+}
+
+function getBulkEligibleTickets(action, viewState) {
+    const normalizedAction = String(action || '').toLowerCase();
+    if (!QUEUE_BULK_ACTION_ORDER.includes(normalizedAction)) {
+        return [];
+    }
+    const tickets = Array.isArray(viewState?.tickets) ? viewState.tickets : [];
+    return tickets.filter((ticket) =>
+        isBulkActionAllowedForStatus(normalizedAction, ticket?.status)
+    );
+}
+
 function updateTicketInState(nextTicket) {
     if (!nextTicket || typeof nextTicket !== 'object') return;
     const ticketId = Number(nextTicket.id || 0);
@@ -476,7 +519,24 @@ function ensureQueueTriageControls() {
                     Limpiar
                 </button>
             </div>
+            <div class="queue-triage-filters" role="group" aria-label="Acciones masivas sobre tickets visibles">
+                ${QUEUE_BULK_ACTION_ORDER.map(
+                    (action) => `
+                        <button
+                            type="button"
+                            class="btn btn-secondary btn-sm"
+                            data-action="queue-bulk-action"
+                            data-queue-action="${action}"
+                        >
+                            ${escapeHtml(getBulkActionLabel(action))}
+                        </button>
+                    `
+                ).join('')}
+            </div>
             <p id="queueTriageSummary" class="queue-triage-summary">Sin datos de cola</p>
+            <p class="queue-triage-summary">
+                Atajos: Alt+Shift+J (C1), Alt+Shift+K (C2), Alt+Shift+F (buscar), Alt+Shift+L (SLA), Alt+Shift+U (refrescar)
+            </p>
         `;
         const kpis = shell.querySelector('.queue-admin-kpis');
         if (kpis?.parentElement === shell) {
@@ -504,6 +564,14 @@ function ensureQueueTriageControls() {
                 filterButton.dataset.queueFilter || 'all'
             );
             renderQueueSection();
+            return;
+        }
+        const bulkButton = event.target.closest(
+            '[data-action="queue-bulk-action"]'
+        );
+        if (bulkButton instanceof HTMLElement) {
+            const action = bulkButton.dataset.queueAction || '';
+            void runQueueBulkAction(action);
             return;
         }
         const clearButton = event.target.closest(
@@ -545,13 +613,34 @@ function syncQueueTriageControls(viewState) {
         searchInput.value = String(viewState?.searchTerm || '');
     }
 
+    toolbar
+        .querySelectorAll('[data-action="queue-bulk-action"]')
+        .forEach((button) => {
+            if (!(button instanceof HTMLButtonElement)) return;
+            const action = String(
+                button.dataset.queueAction || ''
+            ).toLowerCase();
+            const eligibleCount = getBulkEligibleTickets(
+                action,
+                viewState
+            ).length;
+            const label = getBulkActionLabel(action);
+            button.textContent = `${label} visibles (${eligibleCount})`;
+            button.disabled =
+                queueUiState.bulkActionInFlight || eligibleCount === 0;
+            button.setAttribute('aria-disabled', String(button.disabled));
+        });
+
     const summary = document.getElementById('queueTriageSummary');
     if (summary instanceof HTMLElement) {
         const visibleCount = Number(viewState?.tickets?.length || 0);
         const totalCount = Number(viewState?.totalCount || 0);
         const riskCount = Number(viewState?.riskCount || 0);
         const waitingCount = Number(viewState?.waitingCount || 0);
-        summary.textContent = `${visibleCount}/${totalCount} visibles · ${waitingCount} en espera · ${riskCount} en riesgo SLA`;
+        const progressText = queueUiState.bulkActionInFlight
+            ? ' · ejecutando accion masiva...'
+            : '';
+        summary.textContent = `${visibleCount}/${totalCount} visibles · ${waitingCount} en espera · ${riskCount} en riesgo SLA${progressText}`;
     }
 }
 
@@ -722,6 +811,7 @@ function renderQueueTable(viewState) {
 function renderQueueSection() {
     ensureQueueTriageControls();
     const viewState = buildQueueViewState();
+    queueUiState.lastViewState = viewState;
     syncQueueTriageControls(viewState);
     renderQueueOverview();
     renderQueueTable(viewState);
@@ -914,15 +1004,10 @@ export async function callNextForConsultorio(consultorio) {
     }
 }
 
-export async function applyQueueTicketAction(
-    ticketId,
-    action,
-    consultorio = null
-) {
+async function requestQueueTicketAction(ticketId, action, consultorio = null) {
     const id = Number(ticketId || 0);
     if (!id || !action) {
-        showToast('Accion de ticket invalida', 'error');
-        return;
+        throw new Error('Accion de ticket invalida');
     }
 
     const body = { id, action };
@@ -931,32 +1016,143 @@ export async function applyQueueTicketAction(
         body.consultorio = room;
     }
 
+    const payload = await apiRequest('queue-ticket', {
+        method: 'PATCH',
+        body,
+    });
+    const ticket = payload?.data?.ticket || null;
+    updateTicketInState(ticket);
+    setQueueMeta(normalizeQueueMetaFromState(payload?.data?.queueState || {}));
+    return ticket;
+}
+
+export async function applyQueueTicketAction(
+    ticketId,
+    action,
+    consultorio = null,
+    { silent = false, skipRender = false } = {}
+) {
     try {
-        const payload = await apiRequest('queue-ticket', {
-            method: 'PATCH',
-            body,
-        });
-        const ticket = payload?.data?.ticket || null;
-        updateTicketInState(ticket);
-        setQueueMeta(
-            normalizeQueueMetaFromState(payload?.data?.queueState || {})
+        const ticket = await requestQueueTicketAction(
+            ticketId,
+            action,
+            consultorio
         );
-        renderQueueSection();
-        showToast(
-            queueActionSuccessMessage(action, ticket?.ticketCode || ''),
-            'success'
-        );
+        if (!skipRender) {
+            renderQueueSection();
+        }
+        if (!silent) {
+            showToast(
+                queueActionSuccessMessage(action, ticket?.ticketCode || ''),
+                'success'
+            );
+        }
+        return true;
     } catch (error) {
         if (isConsultorioBusyError(error)) {
             await refreshQueueRealtime({ silent: true });
-            showToast(normalizeErrorMessage(error), 'warning');
-            return;
+            if (!silent) {
+                showToast(normalizeErrorMessage(error), 'warning');
+            }
+            return false;
         }
-        showToast(
-            `No se pudo actualizar ticket: ${normalizeErrorMessage(error)}`,
-            'error'
-        );
+        if (!silent) {
+            showToast(
+                `No se pudo actualizar ticket: ${normalizeErrorMessage(error)}`,
+                'error'
+            );
+        }
+        return false;
     }
+}
+
+export async function runQueueBulkAction(action) {
+    const normalizedAction = String(action || '').toLowerCase();
+    if (!QUEUE_BULK_ACTION_ORDER.includes(normalizedAction)) {
+        showToast('Accion masiva invalida', 'error');
+        return { ok: false, success: 0, failed: 0 };
+    }
+    if (queueUiState.bulkActionInFlight) {
+        return { ok: false, success: 0, failed: 0 };
+    }
+
+    const viewState = queueUiState.lastViewState || buildQueueViewState();
+    const eligibleTickets = getBulkEligibleTickets(normalizedAction, viewState);
+    if (eligibleTickets.length === 0) {
+        showToast(
+            `No hay tickets visibles para ${getBulkActionLabel(normalizedAction).toLowerCase()}.`,
+            'info'
+        );
+        return { ok: false, success: 0, failed: 0 };
+    }
+
+    const confirmed = window.confirm(
+        `Se aplicara "${getBulkActionLabel(normalizedAction)}" a ${eligibleTickets.length} ticket(s) visibles. Deseas continuar?`
+    );
+    if (!confirmed) {
+        return { ok: false, success: 0, failed: 0 };
+    }
+
+    queueUiState.bulkActionInFlight = true;
+    renderQueueSection();
+
+    let success = 0;
+    let failed = 0;
+    try {
+        for (const ticket of eligibleTickets) {
+            const ok = await applyQueueTicketAction(
+                Number(ticket?.id || 0),
+                normalizedAction,
+                null,
+                {
+                    silent: true,
+                    skipRender: true,
+                }
+            );
+            if (ok) {
+                success += 1;
+            } else {
+                failed += 1;
+            }
+        }
+        await refreshQueueRealtime({ silent: true });
+    } finally {
+        queueUiState.bulkActionInFlight = false;
+        renderQueueSection();
+    }
+
+    if (success > 0 && failed === 0) {
+        showToast(
+            `${getBulkActionLabel(normalizedAction)} aplicado a ${success} ticket(s).`,
+            'success'
+        );
+        return { ok: true, success, failed };
+    }
+    if (success > 0) {
+        showToast(
+            `${getBulkActionLabel(normalizedAction)} parcial: ${success} exitos, ${failed} fallos.`,
+            'warning'
+        );
+        return { ok: true, success, failed };
+    }
+    showToast(
+        `No se pudo aplicar ${getBulkActionLabel(normalizedAction).toLowerCase()} en tickets visibles.`,
+        'error'
+    );
+    return { ok: false, success, failed };
+}
+
+export function setQueueFilter(filter) {
+    queueUiState.activeFilter = normalizeQueueFilter(filter);
+    renderQueueSection();
+}
+
+export function focusQueueSearch() {
+    ensureQueueTriageControls();
+    const input = document.getElementById('queueSearchInput');
+    if (!(input instanceof HTMLInputElement)) return;
+    input.focus({ preventScroll: true });
+    input.select();
 }
 
 export async function reprintQueueTicket(ticketId) {
