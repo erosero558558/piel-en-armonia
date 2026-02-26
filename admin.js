@@ -2793,8 +2793,18 @@ async function Dn(e, t = {}) {
             focus: o = !0,
             closeMobileNav: i = !0,
         } = t,
-        r = e || 'dashboard';
-    if ((hn(r), i && Bn(), n))
+        r = sn(ln(), 'dashboard'),
+        s = sn(e, 'dashboard');
+    if (
+        'availability' === r &&
+        'availability' !== s &&
+        ct() &&
+        !confirm(
+            'Tienes cambios pendientes en disponibilidad sin guardar. Si continuas se mantendran como borrador. Deseas salir de esta seccion?'
+        )
+    )
+        return (hn(r), a || yn(r), o && $n(r), !1);
+    if ((hn(s), i && Bn(), n))
         try {
             (await N(), vn());
         } catch (e) {
@@ -2803,7 +2813,7 @@ async function Dn(e, t = {}) {
                 'warning'
             );
         }
-    (await Nn(r), a && yn(r), o && $n(r));
+    return (await Nn(s), a && yn(s), o && $n(s), !0);
 }
 async function In(e) {
     (await Dn('appointments', { focus: !1 }),

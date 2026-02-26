@@ -173,4 +173,74 @@ test.describe('Admin navigation responsive (tablet)', () => {
             'false'
         );
     });
+
+    test('bloquea salida de disponibilidad con borrador pendiente hasta confirmar', async ({
+        page,
+    }) => {
+        await setupAdminApiMocks(page);
+        await page.goto('/admin.html');
+
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await page.locator('#adminMenuToggle').click();
+        await expect(page.locator('#adminSidebar')).toHaveClass(/is-open/);
+
+        await page
+            .locator('#adminSidebar .nav-item[data-section="availability"]')
+            .click();
+        await expect(page.locator('#availability')).toHaveClass(/active/);
+        await expect(page).toHaveURL(/#availability$/);
+
+        const anyCalendarDay = page
+            .locator('#availabilityCalendar .calendar-day:not(.other-month)')
+            .first();
+        await expect(anyCalendarDay).toBeVisible();
+        await anyCalendarDay.click();
+        await page
+            .locator(
+                '#availabilityQuickSlotPresets .slot-preset-btn[data-time="09:00"]'
+            )
+            .click();
+        await page.locator('[data-action="add-time-slot"]').click();
+        await expect(
+            page.locator('#timeSlotsList .time-slot-item')
+        ).toHaveCount(1);
+        await expect(page.locator('#availabilitySaveDraftBtn')).toBeEnabled();
+        await expect(page.locator('#availabilityDraftStatus')).toContainText(
+            'cambios pendientes'
+        );
+
+        await page.locator('#adminMenuToggle').click();
+        await expect(page.locator('#adminSidebar')).toHaveClass(/is-open/);
+
+        let dismissedNavigationPrompt = false;
+        page.once('dialog', async (dialog) => {
+            dismissedNavigationPrompt = true;
+            expect(dialog.message()).toContain('cambios pendientes');
+            await dialog.dismiss();
+        });
+
+        await page
+            .locator('#adminSidebar .nav-item[data-section="appointments"]')
+            .click();
+        expect(dismissedNavigationPrompt).toBe(true);
+
+        await expect(page.locator('#availability')).toHaveClass(/active/);
+        await expect(page).toHaveURL(/#availability$/);
+        await expect(page.locator('#adminSidebar')).toHaveClass(/is-open/);
+
+        let acceptedNavigationPrompt = false;
+        page.once('dialog', async (dialog) => {
+            acceptedNavigationPrompt = true;
+            await dialog.accept();
+        });
+
+        await page
+            .locator('#adminSidebar .nav-item[data-section="appointments"]')
+            .click();
+        expect(acceptedNavigationPrompt).toBe(true);
+
+        await expect(page.locator('#appointments')).toHaveClass(/active/);
+        await expect(page).toHaveURL(/#appointments$/);
+        await expect(page.locator('#adminSidebar')).not.toHaveClass(/is-open/);
+    });
 });

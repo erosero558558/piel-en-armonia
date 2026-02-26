@@ -48,6 +48,7 @@ import {
     jumpAvailabilityToNextWithSlots,
     focusAvailabilityTimeInput,
     isAvailabilitySectionActive,
+    hasAvailabilityDraftChanges,
     addTimeSlot,
     prefillTimeSlot,
     removeTimeSlot,
@@ -804,7 +805,31 @@ async function navigateToSection(section, options = {}) {
         focus = true,
         closeMobileNav = true,
     } = options;
-    const targetSection = section || 'dashboard';
+    const currentSection = normalizeAdminSection(
+        getActiveSection(),
+        'dashboard'
+    );
+    const targetSection = normalizeAdminSection(section, 'dashboard');
+
+    if (
+        currentSection === 'availability' &&
+        targetSection !== 'availability' &&
+        hasAvailabilityDraftChanges()
+    ) {
+        const shouldDiscardPendingChanges = confirm(
+            'Tienes cambios pendientes en disponibilidad sin guardar. Si continuas se mantendran como borrador. Deseas salir de esta seccion?'
+        );
+        if (!shouldDiscardPendingChanges) {
+            setNavActive(currentSection);
+            if (!updateHash) {
+                syncHash(currentSection);
+            }
+            if (focus) {
+                focusSection(currentSection);
+            }
+            return false;
+        }
+    }
 
     setNavActive(targetSection);
 
@@ -833,6 +858,8 @@ async function navigateToSection(section, options = {}) {
     if (focus) {
         focusSection(targetSection);
     }
+
+    return true;
 }
 
 async function navigateToAppointmentsWithQuickFilter(filter) {
