@@ -87,6 +87,7 @@ test('calendar-write-smoke incluye preflight, artefactos y ciclo de incidente', 
         'Preflight calendar health',
         'Verificar contrato de agenda real (read-only)',
         'Ejecutar smoke write calendar',
+        'Ejecutar smoke API write calendar',
         'Publicar artefactos Playwright de calendar smoke',
         'Crear/actualizar incidente calendar write smoke',
         'Cerrar incidente calendar write smoke al recuperar',
@@ -114,5 +115,22 @@ test('calendar-write-smoke incluye preflight, artefactos y ciclo de incidente', 
         raw.includes('Calendar Write Smoke fallando'),
         true,
         'falta titulo canonico de incidente calendar smoke'
+    );
+    assert.equal(
+        raw.includes(
+            'verification/calendar-write-smoke/api-write-smoke-last.json'
+        ),
+        true,
+        'falta artefacto JSON de smoke API-only'
+    );
+    assert.equal(
+        raw.includes('steps.api_write_test.outputs.api_write_status'),
+        true,
+        'falta resumen/senal de salida de api_write_status'
+    );
+    assert.equal(
+        raw.includes('steps.api_write_test.outcome'),
+        true,
+        'falta outcome de api_write_test en summary/incidente'
     );
 });
