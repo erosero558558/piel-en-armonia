@@ -589,6 +589,154 @@
     border-color: #f0c9c9;
 }
 
+.admin-productivity-strip {
+    margin: 18px 24px 0;
+    padding: 16px;
+    border: 1px solid #dce6f4;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    display: grid;
+    grid-template-columns: minmax(260px, 1.4fr) minmax(220px, 1fr) auto;
+    gap: 14px;
+    align-items: start;
+}
+
+.admin-command-bar {
+    min-width: 0;
+}
+
+.admin-command-label {
+    display: inline-flex;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #536b88;
+    margin-bottom: 8px;
+}
+
+.admin-command-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #d4e1f2;
+    border-radius: 14px;
+    background: #ffffff;
+    padding: 8px 10px;
+    box-shadow: 0 6px 16px rgba(19, 53, 107, 0.08);
+}
+
+.admin-command-input-wrap i {
+    color: #5b7699;
+    font-size: 0.9rem;
+}
+
+.admin-command-input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #1e2f47;
+    font-size: 0.9rem;
+}
+
+.admin-command-input::placeholder {
+    color: #7d90a8;
+}
+
+.admin-command-input-wrap:focus-within {
+    border-color: #2b69e7;
+    box-shadow:
+        0 0 0 3px rgba(43, 105, 231, 0.18),
+        0 6px 16px rgba(19, 53, 107, 0.1);
+}
+
+.admin-command-help {
+    margin: 8px 0 0;
+    font-size: 0.75rem;
+    color: #647e9e;
+}
+
+.admin-context-panel {
+    min-width: 0;
+}
+
+.admin-context-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.admin-context-head h3 {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #1b2f4e;
+}
+
+.admin-context-shortcut {
+    font-size: 0.72rem;
+    color: #6b819f;
+}
+
+.admin-context-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.admin-context-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 34px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    border: 1px solid #cedbf0;
+    background: #ffffff;
+    color: #27476c;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+.admin-context-action-btn:hover {
+    border-color: #acc3e3;
+    background: #eef5ff;
+}
+
+.admin-context-action-btn:focus-visible {
+    outline: 3px solid rgba(43, 105, 231, 0.28);
+    outline-offset: 1px;
+}
+
+.admin-refresh-panel {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.status-pill.status-pill-live {
+    color: #145f34;
+    background: #e9f8ef;
+    border-color: #aaddbd;
+}
+
+.status-pill.status-pill-stale {
+    color: #925d00;
+    background: #fff7e6;
+    border-color: #f3d69a;
+}
+
 /* ========================================
    ADMIN THEME (DARK)
    ======================================== */
@@ -666,6 +814,63 @@ html[data-theme='dark'] .toast-title {
 html[data-theme='dark'] .admin-theme-switcher {
     background: #0f1724;
     border-color: #2a3a52;
+}
+
+html[data-theme='dark'] .admin-productivity-strip {
+    border-color: #2b405f;
+    background: linear-gradient(180deg, #121e31 0%, #0f1a2a 100%);
+}
+
+html[data-theme='dark'] .admin-command-label,
+html[data-theme='dark'] .admin-context-shortcut,
+html[data-theme='dark'] .admin-command-help {
+    color: #9db2cf;
+}
+
+html[data-theme='dark'] .admin-command-input-wrap {
+    border-color: #324b6f;
+    background: #16263d;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+}
+
+html[data-theme='dark'] .admin-command-input-wrap i {
+    color: #8ea7c8;
+}
+
+html[data-theme='dark'] .admin-command-input {
+    color: #eaf2ff;
+}
+
+html[data-theme='dark'] .admin-command-input::placeholder {
+    color: #7d96b7;
+}
+
+html[data-theme='dark'] .admin-context-head h3 {
+    color: #e7f0ff;
+}
+
+html[data-theme='dark'] .admin-context-action-btn {
+    border-color: #36527a;
+    background: #17283f;
+    color: #d0def2;
+}
+
+html[data-theme='dark'] .admin-context-action-btn:hover {
+    border-color: #496897;
+    background: #203654;
+    color: #e6f1ff;
+}
+
+html[data-theme='dark'] .status-pill.status-pill-live {
+    color: #7fdfaa;
+    background: #122a1d;
+    border-color: #2b6a46;
+}
+
+html[data-theme='dark'] .status-pill.status-pill-stale {
+    color: #f4cb7d;
+    background: #2c220d;
+    border-color: #6a4f1d;
 }
 
 html[data-theme='dark'] .admin-quick-nav-item {
@@ -2534,6 +2739,16 @@ html[data-theme='dark'] .card-empty-state i {
     .admin-quick-nav {
         display: none;
     }
+
+    .admin-productivity-strip {
+        margin: 14px 16px 0;
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .admin-refresh-panel {
+        justify-content: flex-start;
+    }
 }
 
 @media (min-width: 1280px) {
@@ -2681,6 +2896,25 @@ html[data-theme='dark'] .card-empty-state i {
         order: 10;
     }
 
+    .admin-productivity-strip {
+        margin-top: 10px;
+        padding: 12px;
+    }
+
+    .admin-command-input-wrap {
+        flex-wrap: wrap;
+    }
+
+    .admin-command-input-wrap .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .admin-context-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
     .section-toolbar {
         flex-direction: column;
         align-items: stretch;
@@ -2807,6 +3041,11 @@ html[data-theme='dark'] .card-empty-state i {
 
     .status-pill {
         order: 99;
+    }
+
+    .admin-context-action-btn {
+        flex: 1 1 calc(50% - 8px);
+        justify-content: center;
     }
 
     .admin-section {

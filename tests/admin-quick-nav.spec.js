@@ -137,4 +137,33 @@ test.describe('Admin quick nav desktop', () => {
         await expect(page.locator('#availability')).toHaveClass(/active/);
         await expect(page).toHaveURL(/#availability$/);
     });
+
+    test('quick command enfoca con Ctrl+K y ejecuta acciones contextuales', async ({
+        page,
+    }) => {
+        await setupAdminApiMocks(page);
+        await page.goto('/admin.html');
+
+        const commandInput = page.locator('#adminQuickCommand');
+        await expect(commandInput).toBeVisible();
+
+        await page.keyboard.press('Control+K');
+        await expect(commandInput).toBeFocused();
+
+        await commandInput.fill('callbacks pendientes');
+        await page.keyboard.press('Enter');
+
+        await expect(page.locator('#callbacks')).toHaveClass(/active/);
+        await expect(
+            page.locator(
+                '.callback-quick-filter-btn[data-filter-value="pending"]'
+            )
+        ).toHaveClass(/is-active/);
+        await expect(page.locator('#adminContextTitle')).toContainText(
+            /callbacks/i
+        );
+        await expect(page.locator('#adminRefreshStatus')).toContainText(
+            /Datos:/
+        );
+    });
 });

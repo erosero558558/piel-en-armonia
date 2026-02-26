@@ -74,6 +74,132 @@ const SIDEBAR_FOCUSABLE_SELECTOR = [
     'button:not([disabled])',
     '[tabindex]:not([tabindex="-1"])',
 ].join(',');
+const ADMIN_REFRESH_STALE_AFTER_MS = 5 * 60 * 1000;
+const ADMIN_REFRESH_STATUS_TICK_MS = 30 * 1000;
+const ADMIN_CONTEXT_ACTIONS = {
+    dashboard: {
+        title: 'Acciones rápidas: dashboard',
+        actions: [
+            {
+                action: 'refresh-admin-data',
+                icon: 'fa-rotate-right',
+                label: 'Actualizar datos',
+            },
+            {
+                action: 'context-open-appointments-today',
+                icon: 'fa-calendar-day',
+                label: 'Citas de hoy',
+            },
+            {
+                action: 'context-open-callbacks-pending',
+                icon: 'fa-phone',
+                label: 'Callbacks pendientes',
+            },
+        ],
+    },
+    appointments: {
+        title: 'Acciones rápidas: citas',
+        actions: [
+            {
+                action: 'appointment-quick-filter',
+                filterValue: 'today',
+                icon: 'fa-calendar-day',
+                label: 'Filtrar hoy',
+            },
+            {
+                action: 'appointment-quick-filter',
+                filterValue: 'pending_transfer',
+                icon: 'fa-money-check-dollar',
+                label: 'Por validar',
+            },
+            {
+                action: 'clear-appointment-filters',
+                icon: 'fa-filter-circle-xmark',
+                label: 'Limpiar filtros',
+            },
+            {
+                action: 'export-csv',
+                icon: 'fa-file-csv',
+                label: 'Exportar CSV',
+            },
+        ],
+    },
+    callbacks: {
+        title: 'Acciones rápidas: callbacks',
+        actions: [
+            {
+                action: 'callback-quick-filter',
+                filterValue: 'pending',
+                icon: 'fa-phone',
+                label: 'Pendientes',
+            },
+            {
+                action: 'callback-quick-filter',
+                filterValue: 'today',
+                icon: 'fa-calendar-day',
+                label: 'Hoy',
+            },
+            {
+                action: 'clear-callback-filters',
+                icon: 'fa-filter-circle-xmark',
+                label: 'Limpiar filtros',
+            },
+            {
+                action: 'context-open-appointments-transfer',
+                icon: 'fa-calendar-check',
+                label: 'Ver citas por validar',
+            },
+        ],
+    },
+    reviews: {
+        title: 'Acciones rápidas: reseñas',
+        actions: [
+            {
+                action: 'refresh-admin-data',
+                icon: 'fa-rotate-right',
+                label: 'Actualizar datos',
+            },
+            {
+                action: 'context-open-dashboard',
+                icon: 'fa-chart-line',
+                label: 'Volver a dashboard',
+            },
+            {
+                action: 'context-open-callbacks-pending',
+                icon: 'fa-headset',
+                label: 'Revisar callbacks',
+            },
+        ],
+    },
+    availability: {
+        title: 'Acciones rápidas: disponibilidad',
+        actions: [
+            {
+                action: 'availability-today',
+                icon: 'fa-calendar-day',
+                label: 'Ir a hoy',
+            },
+            {
+                action: 'availability-next-with-slots',
+                icon: 'fa-forward',
+                label: 'Siguiente con horarios',
+            },
+            {
+                action: 'context-focus-slot-input',
+                icon: 'fa-clock',
+                label: 'Agregar horario',
+            },
+            {
+                action: 'copy-availability-day',
+                icon: 'fa-copy',
+                label: 'Copiar día',
+            },
+        ],
+    },
+};
+
+let adminLastRefreshAt = 0;
+let adminRefreshStatusTimerId = 0;
 
 function getNavItems() {
     return Array.from(
@@ -138,6 +264,99 @@ function syncHash(section) {
         return;
     }
     window.location.hash = nextHash;
+}
+
+function normalizeCommandText(value) {
+    return String(value || '')
+        .toLocaleLowerCase('es')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+}
+
+function formatRefreshAge(nowTimestamp) {
+    if (!adminLastRefreshAt) return 'sin actualizar';
+    const elapsedMs = Math.max(0, nowTimestamp - adminLastRefreshAt);
+    const elapsedMinutes = Math.floor(elapsedMs / 60000);
+    if (elapsedMinutes <= 0) return 'hace menos de 1 min';
+    if (elapsedMinutes === 1) return 'hace 1 min';
+    return `hace ${elapsedMinutes} min`;
+}
+
+function updateAdminRefreshStatus() {
+    const statusEl = document.getElementById('adminRefreshStatus');
+    if (!statusEl) return;
+
+    statusEl.classList.remove('status-pill-live', 'status-pill-stale');
+
+    if (!adminLastRefreshAt) {
+        statusEl.classList.add('status-pill-muted');
+        statusEl.textContent = 'Datos: sin actualizar';
+        return;
+    }
+
+    const now = Date.now();
+    const elapsedMs = Math.max(0, now - adminLastRefreshAt);
+    const refreshAge = formatRefreshAge(now);
+    const isStale = elapsedMs >= ADMIN_REFRESH_STALE_AFTER_MS;
+    statusEl.classList.remove('status-pill-muted');
+    statusEl.classList.add(isStale ? 'status-pill-stale' : 'status-pill-live');
+    statusEl.textContent = `Datos: ${refreshAge}`;
+}
+
+function markAdminDataRefreshed() {
+    adminLastRefreshAt = Date.now();
+    updateAdminRefreshStatus();
+}
+
+function ensureAdminRefreshStatusTicker() {
+    if (adminRefreshStatusTimerId) return;
+    adminRefreshStatusTimerId = window.setInterval(() => {
+        updateAdminRefreshStatus();
+    }, ADMIN_REFRESH_STATUS_TICK_MS);
+}
+
+function focusAdminQuickCommand({ select = true } = {}) {
+    const commandInput = document.getElementById('adminQuickCommand');
+    if (!(commandInput instanceof HTMLInputElement)) {
+        return false;
+    }
+    commandInput.focus({ preventScroll: true });
+    if (select) {
+        commandInput.select();
+    }
+    return true;
+}
+
+function createContextActionButton(actionDef) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'admin-context-action-btn';
+    button.dataset.action = actionDef.action;
+    if (actionDef.filterValue) {
+        button.dataset.filterValue = actionDef.filterValue;
+    }
+    if (actionDef.targetSection) {
+        button.dataset.targetSection = actionDef.targetSection;
+    }
+    button.title = actionDef.hint || actionDef.label;
+    button.innerHTML = `<i class="fas ${actionDef.icon}" aria-hidden="true"></i><span>${actionDef.label}</span>`;
+    return button;
+}
+
+function renderAdminContextActions(section) {
+    const contextTitle = document.getElementById('adminContextTitle');
+    const contextActions = document.getElementById('adminContextActions');
+    if (!contextTitle || !contextActions) return;
+
+    const normalizedSection =
+        section && ADMIN_CONTEXT_ACTIONS[section] ? section : 'dashboard';
+    const config = ADMIN_CONTEXT_ACTIONS[normalizedSection];
+    contextTitle.textContent = config.title;
+    contextActions.innerHTML = '';
+    config.actions.forEach((actionDef) => {
+        contextActions.appendChild(createContextActionButton(actionDef));
+    });
 }
 
 function getSidebarShellElements() {
@@ -273,6 +492,20 @@ function closeSidebar({ restoreFocus = false } = {}) {
 function handleAdminKeyboardShortcuts(event) {
     const dashboard = document.getElementById('adminDashboard');
     if (!dashboard || dashboard.classList.contains('is-hidden')) return;
+    const isTyping = isTypingContextTarget(event.target);
+    const key = String(event.key || '').toLowerCase();
+    const code = String(event.code || '').toLowerCase();
+
+    if (
+        (event.ctrlKey || event.metaKey) &&
+        key === 'k' &&
+        !event.altKey &&
+        !event.shiftKey
+    ) {
+        event.preventDefault();
+        focusAdminQuickCommand();
+        return;
+    }
 
     if (
         event.key === '/' &&
@@ -280,7 +513,7 @@ function handleAdminKeyboardShortcuts(event) {
         !event.ctrlKey &&
         !event.metaKey &&
         isAppointmentsSectionActive() &&
-        !isTypingContextTarget(event.target)
+        !isTyping
     ) {
         event.preventDefault();
         focusAppointmentSearch();
@@ -293,7 +526,7 @@ function handleAdminKeyboardShortcuts(event) {
         !event.ctrlKey &&
         !event.metaKey &&
         isCallbacksSectionActive() &&
-        !isTypingContextTarget(event.target)
+        !isTyping
     ) {
         event.preventDefault();
         focusCallbackSearch();
@@ -306,18 +539,34 @@ function handleAdminKeyboardShortcuts(event) {
         !event.ctrlKey &&
         !event.metaKey &&
         isAvailabilitySectionActive() &&
-        !isTypingContextTarget(event.target)
+        !isTyping
     ) {
         event.preventDefault();
         focusAvailabilityTimeInput();
         return;
     }
 
-    if (!event.altKey || !event.shiftKey) return;
-    if (isTypingContextTarget(event.target)) return;
+    if (
+        event.key === '/' &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !isTyping
+    ) {
+        event.preventDefault();
+        focusAdminQuickCommand();
+        return;
+    }
 
-    const key = String(event.key || '').toLowerCase();
-    const code = String(event.code || '').toLowerCase();
+    if (!event.altKey || !event.shiftKey) return;
+    if (isTyping) return;
+
+    if (code === 'keyr') {
+        event.preventDefault();
+        void refreshAdminDataAndRender({ showSuccessToast: true });
+        return;
+    }
+
     if (key === 'm' || code === 'keym') {
         event.preventDefault();
         setSidebarOpen(!isSidebarOpen());
@@ -425,6 +674,7 @@ async function navigateToSection(section, options = {}) {
     if (refresh) {
         try {
             await refreshData();
+            markAdminDataRefreshed();
         } catch (error) {
             showToast(
                 `No se pudo actualizar datos en vivo: ${error?.message || 'error desconocido'}`,
@@ -456,6 +706,134 @@ async function navigateToCallbacksWithQuickFilter(filter) {
     focusSection('callbacks');
 }
 
+async function refreshAdminDataAndRender({
+    showSuccessToast = false,
+    showErrorToast = true,
+} = {}) {
+    try {
+        await refreshData();
+        markAdminDataRefreshed();
+        await renderSection(getActiveSection());
+        if (showSuccessToast) {
+            showToast('Datos actualizados', 'success');
+        }
+        return true;
+    } catch (error) {
+        if (showErrorToast) {
+            showToast(
+                `No se pudo actualizar datos en vivo: ${error?.message || 'error desconocido'}`,
+                'warning'
+            );
+        }
+        return false;
+    }
+}
+
+async function runAdminQuickCommand(rawCommand) {
+    const commandInput = document.getElementById('adminQuickCommand');
+    const command = normalizeCommandText(rawCommand);
+    if (!command) {
+        showToast(
+            'Escribe un comando. Ejemplo: "citas hoy" o "callbacks pendientes".',
+            'info'
+        );
+        focusAdminQuickCommand();
+        return false;
+    }
+
+    if (command === 'help' || command === 'ayuda') {
+        showToast(
+            'Comandos: citas hoy, citas por validar, callbacks pendientes, disponibilidad hoy, exportar csv.',
+            'info'
+        );
+        return true;
+    }
+
+    if (command.includes('exportar') && command.includes('csv')) {
+        await navigateToSection('appointments', { focus: false });
+        exportAppointmentsCSV();
+        focusSection('appointments');
+        return true;
+    }
+
+    if (command.includes('dashboard') || command.includes('inicio')) {
+        await navigateToSection('dashboard');
+        return true;
+    }
+
+    if (command.includes('resena') || command.includes('review')) {
+        await navigateToSection('reviews');
+        return true;
+    }
+
+    if (command.includes('callback')) {
+        await navigateToCallbacksWithQuickFilter(
+            command.includes('hoy')
+                ? 'today'
+                : command.includes('contactado')
+                  ? 'contacted'
+                  : 'pending'
+        );
+        return true;
+    }
+
+    if (command.includes('cita') || command.includes('agenda')) {
+        const quickFilter = command.includes('hoy')
+            ? 'today'
+            : command.includes('validar') ||
+                command.includes('transferencia') ||
+                command.includes('por validar')
+              ? 'pending_transfer'
+              : command.includes('no show') || command.includes('no asistio')
+                ? 'no_show'
+                : 'all';
+        await navigateToAppointmentsWithQuickFilter(quickFilter);
+        if (command.includes('limpiar')) {
+            resetAppointmentFilters();
+        }
+        return true;
+    }
+
+    if (
+        command.includes('disponibilidad') ||
+        command.includes('horario') ||
+        command.includes('calendario')
+    ) {
+        await navigateToSection('availability', { focus: false });
+        if (command.includes('hoy')) {
+            jumpAvailabilityToToday();
+        } else if (command.includes('siguiente')) {
+            jumpAvailabilityToNextWithSlots();
+        } else if (
+            command.includes('agregar') ||
+            command.includes('nuevo horario')
+        ) {
+            focusAvailabilityTimeInput();
+        }
+        focusSection('availability');
+        return true;
+    }
+
+    if (
+        command.includes('actualizar') ||
+        command.includes('refrescar') ||
+        command === 'refresh'
+    ) {
+        await refreshAdminDataAndRender({ showSuccessToast: true });
+        return true;
+    }
+
+    showToast(
+        'Comando no reconocido. Usa "ayuda" para ver ejemplos disponibles.',
+        'warning'
+    );
+    if (commandInput instanceof HTMLInputElement) {
+        commandInput.focus({ preventScroll: true });
+        commandInput.select();
+    }
+    return false;
+}
+
 /**
  * Renders the specified section of the admin dashboard.
  * Loads the necessary data and updates the UI.
@@ -472,6 +850,7 @@ async function renderSection(section) {
     };
     const titleEl = document.getElementById('pageTitle');
     if (titleEl) titleEl.textContent = titles[section] || 'Dashboard';
+    renderAdminContextActions(section);
 
     document
         .querySelectorAll('.admin-section')
@@ -615,6 +994,7 @@ async function updateDate() {
 
     try {
         await refreshData();
+        markAdminDataRefreshed();
     } catch (error) {
         showToast(
             `No se pudo actualizar datos en vivo: ${error?.message || 'error desconocido'}`,
@@ -695,6 +1075,7 @@ async function importData(input) {
         });
 
         await refreshData();
+        markAdminDataRefreshed();
         const activeItem = document.querySelector('.nav-item.active');
         await renderSection(activeItem?.dataset.section || 'dashboard');
         showToast(
@@ -738,6 +1119,54 @@ function attachGlobalListeners() {
         if (action === 'set-admin-theme') {
             event.preventDefault();
             setAdminThemeMode(actionEl.dataset.themeMode || 'system');
+            return;
+        }
+
+        if (action === 'run-admin-command') {
+            event.preventDefault();
+            const commandInput = document.getElementById('adminQuickCommand');
+            await runAdminQuickCommand(
+                commandInput instanceof HTMLInputElement
+                    ? commandInput.value
+                    : ''
+            );
+            return;
+        }
+
+        if (action === 'refresh-admin-data') {
+            event.preventDefault();
+            await refreshAdminDataAndRender({ showSuccessToast: true });
+            return;
+        }
+
+        if (action === 'context-open-dashboard') {
+            event.preventDefault();
+            await navigateToSection('dashboard');
+            return;
+        }
+
+        if (action === 'context-open-appointments-today') {
+            event.preventDefault();
+            await navigateToAppointmentsWithQuickFilter('today');
+            return;
+        }
+
+        if (action === 'context-open-appointments-transfer') {
+            event.preventDefault();
+            await navigateToAppointmentsWithQuickFilter('pending_transfer');
+            return;
+        }
+
+        if (action === 'context-open-callbacks-pending') {
+            event.preventDefault();
+            await navigateToCallbacksWithQuickFilter('pending');
+            return;
+        }
+
+        if (action === 'context-focus-slot-input') {
+            event.preventDefault();
+            await navigateToSection('availability', { focus: false });
+            focusAvailabilityTimeInput();
             return;
         }
 
@@ -891,12 +1320,24 @@ function attachGlobalListeners() {
     if (callbackSearchInput) {
         callbackSearchInput.addEventListener('input', searchCallbacks);
     }
+
+    const quickCommandInput = document.getElementById('adminQuickCommand');
+    if (quickCommandInput instanceof HTMLInputElement) {
+        quickCommandInput.addEventListener('keydown', async (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            await runAdminQuickCommand(quickCommandInput.value);
+        });
+    }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
     initAdminThemeMode();
     attachGlobalListeners();
     initAppointmentsToolbarPreferences();
+    ensureAdminRefreshStatusTicker();
+    updateAdminRefreshStatus();
+    renderAdminContextActions(getSectionFromHash());
 
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
@@ -960,9 +1401,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     window.addEventListener('online', async () => {
-        showToast('Conexion restaurada. Actualizando datos...', 'success');
-        await refreshData();
-        await renderSection(getActiveSection());
+        const refreshed = await refreshAdminDataAndRender({
+            showSuccessToast: false,
+            showErrorToast: false,
+        });
+        if (refreshed) {
+            showToast('Conexion restaurada. Datos actualizados.', 'success');
+            return;
+        }
+        showToast(
+            'Conexion restaurada, pero no se pudieron refrescar datos.',
+            'warning'
+        );
     });
 
     syncSidebarOverlayA11yState(false);

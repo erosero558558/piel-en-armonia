@@ -11,7 +11,7 @@
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="stylesheet" href="styles.min.css" />
         <link rel="stylesheet" href="admin.min.css" />
-        <link rel="stylesheet" href="admin.css?v=admin-20260226-nav5" />
+        <link rel="stylesheet" href="admin.css?v=admin-20260226-nav6" />
         <link
             href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
             rel="stylesheet"
@@ -380,6 +380,76 @@
                         />
                     </div>
                 </header>
+                <section
+                    class="admin-productivity-strip"
+                    id="adminProductivityStrip"
+                    aria-label="Comandos y acciones rápidas del panel"
+                >
+                    <div class="admin-command-bar">
+                        <label for="adminQuickCommand" class="admin-command-label"
+                            >Comando rápido</label
+                        >
+                        <div class="admin-command-input-wrap">
+                            <i class="fas fa-terminal" aria-hidden="true"></i>
+                            <input
+                                type="text"
+                                id="adminQuickCommand"
+                                class="admin-command-input"
+                                placeholder="Escribe: citas hoy, callbacks pendientes, disponibilidad hoy..."
+                                autocomplete="off"
+                                spellcheck="false"
+                                inputmode="text"
+                            />
+                            <button
+                                type="button"
+                                class="btn btn-primary btn-sm"
+                                data-action="run-admin-command"
+                                id="adminRunQuickCommandBtn"
+                            >
+                                <i class="fas fa-play"></i>
+                                Ejecutar
+                            </button>
+                        </div>
+                        <p class="admin-command-help">
+                            Atajos: <strong>Ctrl+K</strong> para enfocar comando
+                            | <strong>Alt+Shift+R</strong> para actualizar datos.
+                        </p>
+                    </div>
+                    <div class="admin-context-panel">
+                        <div class="admin-context-head">
+                            <h3 id="adminContextTitle">
+                                Acciones rápidas: dashboard
+                            </h3>
+                            <span class="admin-context-shortcut"
+                                >Contexto activo por sección</span
+                            >
+                        </div>
+                        <div
+                            class="admin-context-actions"
+                            id="adminContextActions"
+                            role="group"
+                            aria-label="Acciones rápidas contextuales"
+                        ></div>
+                    </div>
+                    <div class="admin-refresh-panel">
+                        <span
+                            id="adminRefreshStatus"
+                            class="status-pill status-pill-muted"
+                            aria-live="polite"
+                        >
+                            Datos: sin actualizar
+                        </span>
+                        <button
+                            type="button"
+                            class="btn btn-secondary btn-sm"
+                            data-action="refresh-admin-data"
+                            id="refreshAdminDataBtn"
+                        >
+                            <i class="fas fa-rotate-right"></i>
+                            Actualizar
+                        </button>
+                    </div>
+                </section>
 
                 <!-- Dashboard Section -->
                 <section
@@ -1201,6 +1271,6 @@
         ></div>
 
         <!-- utils.js is now bundled/imported by admin.js -->
-        <script src="admin.js?v=admin-20260226-nav5" type="module"></script>
+        <script src="admin.js?v=admin-20260226-nav6" type="module"></script>
     </body>
 </html>
