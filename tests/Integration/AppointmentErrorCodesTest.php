@@ -18,6 +18,7 @@ class AppointmentErrorCodesTest extends TestCase
         unset($GLOBALS['__TEST_JSON_BODY']);
         unset($GLOBALS['__TEST_RESPONSE']);
         $_GET = [];
+        unset($_SERVER['HTTP_IDEMPOTENCY_KEY'], $_SERVER['HTTP_X_IDEMPOTENCY_KEY']);
 
         $this->tempDir = sys_get_temp_dir() . '/test_appointment_errors_' . bin2hex(random_bytes(6));
         if (!is_dir($this->tempDir)) {
@@ -54,6 +55,7 @@ class AppointmentErrorCodesTest extends TestCase
         unset($GLOBALS['__TEST_JSON_BODY']);
         unset($GLOBALS['__TEST_RESPONSE']);
         $_GET = [];
+        unset($_SERVER['HTTP_IDEMPOTENCY_KEY'], $_SERVER['HTTP_X_IDEMPOTENCY_KEY']);
         $this->removeDirectory($this->tempDir);
     }
 
@@ -184,5 +186,84 @@ class AppointmentErrorCodesTest extends TestCase
             $this->assertFalse((bool) ($e->payload['ok'] ?? true));
             $this->assertSame('calendar_unreachable', (string) ($e->payload['code'] ?? ''));
         }
+    }
+
+    public function testStoreReplaysExistingAppointmentForSameIdempotencyKey(): void
+    {
+        $futureDate = date('Y-m-d', strtotime('+5 day'));
+        $store = \read_store();
+        $store['appointments'] = [];
+        $store['callbacks'] = [];
+        $store['reviews'] = [];
+        $store['availability'][$futureDate] = ['09:00', '09:30'];
+        \write_store($store);
+
+        $payload = $this->buildValidPayload($futureDate, '09:00');
+        $_SERVER['HTTP_IDEMPOTENCY_KEY'] = 'appt-key-replay-001';
+
+        $firstId = 0;
+        $GLOBALS['__TEST_JSON_BODY'] = json_encode($payload, JSON_UNESCAPED_UNICODE);
+        try {
+            \AppointmentController::store(['store' => \read_store()]);
+            $this->fail('Expected TestingExitException for first booking');
+        } catch (\TestingExitException $e) {
+            $this->assertSame(201, $e->status);
+            $this->assertTrue((bool) ($e->payload['ok'] ?? false));
+            $this->assertFalse((bool) ($e->payload['idempotentReplay'] ?? true));
+            $firstId = (int) ($e->payload['data']['id'] ?? 0);
+            $this->assertGreaterThan(0, $firstId);
+        }
+
+        $GLOBALS['__TEST_JSON_BODY'] = json_encode($payload, JSON_UNESCAPED_UNICODE);
+        try {
+            \AppointmentController::store(['store' => \read_store()]);
+            $this->fail('Expected TestingExitException for idempotent replay');
+        } catch (\TestingExitException $e) {
+            $this->assertSame(200, $e->status);
+            $this->assertTrue((bool) ($e->payload['ok'] ?? false));
+            $this->assertTrue((bool) ($e->payload['idempotentReplay'] ?? false));
+            $this->assertSame($firstId, (int) ($e->payload['data']['id'] ?? 0));
+        }
+
+        $after = \read_store();
+        $this->assertCount(1, $after['appointments']);
+        $this->assertSame('appt-key-replay-001', (string) ($after['appointments'][0]['idempotencyKey'] ?? ''));
+    }
+
+    public function testStoreRejectsIdempotencyKeyReuseWithDifferentFingerprint(): void
+    {
+        $futureDate = date('Y-m-d', strtotime('+6 day'));
+        $store = \read_store();
+        $store['appointments'] = [];
+        $store['callbacks'] = [];
+        $store['reviews'] = [];
+        $store['availability'][$futureDate] = ['12:00', '12:30'];
+        \write_store($store);
+
+        $_SERVER['HTTP_IDEMPOTENCY_KEY'] = 'appt-key-conflict-001';
+        $payload = $this->buildValidPayload($futureDate, '12:00');
+        $GLOBALS['__TEST_JSON_BODY'] = json_encode($payload, JSON_UNESCAPED_UNICODE);
+        try {
+            \AppointmentController::store(['store' => \read_store()]);
+            $this->fail('Expected TestingExitException for first booking');
+        } catch (\TestingExitException $e) {
+            $this->assertSame(201, $e->status);
+            $this->assertTrue((bool) ($e->payload['ok'] ?? false));
+        }
+
+        $changed = $payload;
+        $changed['time'] = '12:30';
+        $GLOBALS['__TEST_JSON_BODY'] = json_encode($changed, JSON_UNESCAPED_UNICODE);
+        try {
+            \AppointmentController::store(['store' => \read_store()]);
+            $this->fail('Expected TestingExitException for idempotency conflict');
+        } catch (\TestingExitException $e) {
+            $this->assertSame(409, $e->status);
+            $this->assertFalse((bool) ($e->payload['ok'] ?? true));
+            $this->assertSame('idempotency_conflict', (string) ($e->payload['code'] ?? ''));
+        }
+
+        $after = \read_store();
+        $this->assertCount(1, $after['appointments']);
     }
 }

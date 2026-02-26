@@ -164,6 +164,8 @@ function normalize_appointment(array $appointment): array
         'transferProofUrl' => truncate_field(trim((string) ($appointment['transferProofUrl'] ?? '')), 300),
         'transferProofName' => truncate_field(sanitize_xss(trim((string) ($appointment['transferProofName'] ?? ''))), 200),
         'transferProofMime' => truncate_field(trim((string) ($appointment['transferProofMime'] ?? '')), 50),
+        'idempotencyKey' => truncate_field(trim((string) ($appointment['idempotencyKey'] ?? '')), 128),
+        'idempotencyFingerprint' => truncate_field(strtolower(trim((string) ($appointment['idempotencyFingerprint'] ?? ''))), 128),
         'dateBooked' => isset($appointment['dateBooked']) ? (string) $appointment['dateBooked'] : local_date('c'),
         'rescheduleToken' => isset($appointment['rescheduleToken']) && $appointment['rescheduleToken'] !== ''
             ? (string) $appointment['rescheduleToken']

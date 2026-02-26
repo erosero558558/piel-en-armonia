@@ -87,15 +87,48 @@ class AppointmentController
         // Ignoring $context['store'] to use fresh read inside lock
         require_rate_limit('appointments', 5, 60);
         $payload = require_json_body();
+        $idempotencyKey = self::resolveIdempotencyKey($payload);
+        if ($idempotencyKey !== '') {
+            $payload['idempotencyKey'] = $idempotencyKey;
+            $payload['idempotencyFingerprint'] = self::buildIdempotencyFingerprint($payload);
+        }
         $bookingService = new BookingService();
 
         $normalized = normalize_appointment($payload);
         $lockDate = (string) ($normalized['date'] ?? '');
         $lockTime = (string) ($normalized['time'] ?? '');
 
-        $runCreate = static function () use ($bookingService, $payload): array {
-            $lockResult = with_store_lock(function () use ($bookingService, $payload) {
+        $runCreate = static function () use ($bookingService, $payload, $idempotencyKey): array {
+            $lockResult = with_store_lock(function () use ($bookingService, $payload, $idempotencyKey) {
                 $freshStore = read_store();
+                if ($idempotencyKey !== '') {
+                    $existing = self::findAppointmentByIdempotencyKey($freshStore, $idempotencyKey);
+                    if (is_array($existing)) {
+                        $incomingFingerprint = strtolower(trim((string) ($payload['idempotencyFingerprint'] ?? '')));
+                        $storedFingerprint = strtolower(trim((string) ($existing['idempotencyFingerprint'] ?? '')));
+                        if (
+                            $incomingFingerprint !== '' &&
+                            $storedFingerprint !== '' &&
+                            !hash_equals($storedFingerprint, $incomingFingerprint)
+                        ) {
+                            return [
+                                'ok' => false,
+                                'error' => 'La clave de idempotencia ya fue usada con otra reserva',
+                                'code' => 409,
+                                'errorCode' => 'idempotency_conflict',
+                            ];
+                        }
+
+                        return [
+                            'ok' => true,
+                            'store' => $freshStore,
+                            'data' => $existing,
+                            'code' => 200,
+                            'idempotentReplay' => true,
+                        ];
+                    }
+                }
+
                 $createResult = $bookingService->create($freshStore, $payload);
 
                 if (($createResult['ok'] ?? false) === true) {
@@ -170,6 +203,7 @@ class AppointmentController
         }
 
         $appointment = $result['data'];
+        $idempotentReplay = (bool) ($result['idempotentReplay'] ?? false);
 
         // Redundant checks removed as BookingService handles them now
         // But keeping slotDurationMin just in case
@@ -190,8 +224,9 @@ class AppointmentController
         json_response([
             'ok' => true,
             'data' => $appointment,
-            'emailSent' => $emailSent
-        ], 201);
+            'emailSent' => $emailSent,
+            'idempotentReplay' => $idempotentReplay,
+        ], $idempotentReplay ? 200 : 201);
     }
 
     public static function update(array $context): void
@@ -414,10 +449,10 @@ class AppointmentController
             });
 
             if (($lockResult['ok'] ?? false) !== true) {
-                 return [
-                    'ok' => false,
-                    'error' => (string) ($lockResult['error'] ?? 'Store lock failed'),
-                    'code' => (int) ($lockResult['code'] ?? 503),
+                return [
+                   'ok' => false,
+                   'error' => (string) ($lockResult['error'] ?? 'Store lock failed'),
+                   'code' => (int) ($lockResult['code'] ?? 503),
                 ];
             }
             return is_array($lockResult['result']) ? $lockResult['result'] : ['ok' => false, 'code' => 500];
@@ -504,6 +539,84 @@ class AppointmentController
             error_log('Piel en Armonia: event dispatch fallback - ' . $e->getMessage());
             return null;
         }
+    }
+
+    private static function resolveIdempotencyKey(array $payload): string
+    {
+        $candidate = '';
+        if (isset($_SERVER['HTTP_IDEMPOTENCY_KEY'])) {
+            $candidate = (string) $_SERVER['HTTP_IDEMPOTENCY_KEY'];
+        } elseif (isset($_SERVER['HTTP_X_IDEMPOTENCY_KEY'])) {
+            $candidate = (string) $_SERVER['HTTP_X_IDEMPOTENCY_KEY'];
+        } elseif (isset($payload['idempotencyKey'])) {
+            $candidate = (string) $payload['idempotencyKey'];
+        }
+
+        return self::normalizeIdempotencyKey($candidate);
+    }
+
+    private static function normalizeIdempotencyKey(string $raw): string
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return '';
+        }
+
+        $safe = preg_replace('/[^A-Za-z0-9._:-]/', '', $raw);
+        if (!is_string($safe)) {
+            return '';
+        }
+
+        $safe = trim($safe);
+        if ($safe === '' || strlen($safe) < 8) {
+            return '';
+        }
+
+        if (strlen($safe) > 128) {
+            $safe = substr($safe, 0, 128);
+        }
+
+        return $safe;
+    }
+
+    private static function buildIdempotencyFingerprint(array $payload): string
+    {
+        $normalized = [
+            strtolower(trim((string) ($payload['service'] ?? ''))),
+            strtolower(trim((string) ($payload['doctor'] ?? ''))),
+            trim((string) ($payload['date'] ?? '')),
+            trim((string) ($payload['time'] ?? '')),
+            trim((string) ($payload['name'] ?? '')),
+            strtolower(trim((string) ($payload['email'] ?? ''))),
+            preg_replace('/\D+/', '', (string) ($payload['phone'] ?? '')) ?: '',
+            strtolower(trim((string) ($payload['paymentMethod'] ?? ''))),
+            trim((string) ($payload['paymentIntentId'] ?? '')),
+            trim((string) ($payload['transferReference'] ?? '')),
+        ];
+
+        return hash('sha256', implode('|', $normalized));
+    }
+
+    private static function findAppointmentByIdempotencyKey(array $store, string $idempotencyKey): ?array
+    {
+        $appointments = isset($store['appointments']) && is_array($store['appointments'])
+            ? $store['appointments']
+            : [];
+        for ($i = count($appointments) - 1; $i >= 0; $i--) {
+            $appointment = $appointments[$i];
+            if (!is_array($appointment)) {
+                continue;
+            }
+            $storedKey = trim((string) ($appointment['idempotencyKey'] ?? ''));
+            if ($storedKey === '' || !hash_equals($storedKey, $idempotencyKey)) {
+                continue;
+            }
+            if (($appointment['status'] ?? '') === 'cancelled') {
+                continue;
+            }
+            return $appointment;
+        }
+        return null;
     }
 
     private static function inferErrorCode(int $statusCode, string $errorMessage): string
