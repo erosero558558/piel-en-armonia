@@ -45,6 +45,58 @@ async function setupAuthenticatedAdminMocks(page, overrides = {}) {
     await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
         const url = new URL(route.request().url());
         const resource = url.searchParams.get('resource') || '';
+        const method = route.request().method().toUpperCase();
+        let payload = {};
+        if (method === 'PATCH' || method === 'POST' || method === 'PUT') {
+            try {
+                payload = route.request().postDataJSON() || {};
+            } catch (_error) {
+                const rawBody = route.request().postData() || '';
+                const params = new URLSearchParams(rawBody);
+                payload = Object.fromEntries(params.entries());
+            }
+        }
+
+        const intendedMethod = String(payload._method || method).toUpperCase();
+
+        if (
+            resource === 'callbacks' &&
+            (method === 'PATCH' ||
+                method === 'POST' ||
+                intendedMethod === 'PATCH')
+        ) {
+            const callbackId = Number(payload.id || 0);
+            let callback = mergedData.callbacks.find(
+                (item) => Number(item.id || 0) === callbackId
+            );
+            if (callbackId > 0 && callback) {
+                callback.status = String(payload.status || callback.status);
+            } else {
+                mergedData.callbacks.forEach((item) => {
+                    if (String(item.status || '').toLowerCase() === 'pending') {
+                        item.status = String(payload.status || 'contactado');
+                    }
+                });
+                callback = mergedData.callbacks[0] || null;
+            }
+            return jsonResponse(route, { ok: true, data: callback || {} });
+        }
+
+        if (
+            resource === 'appointments' &&
+            (method === 'PATCH' ||
+                method === 'POST' ||
+                intendedMethod === 'PATCH')
+        ) {
+            const appointmentId = Number(payload.id || 0);
+            const appointment = mergedData.appointments.find(
+                (item) => Number(item.id || 0) === appointmentId
+            );
+            if (appointment) {
+                Object.assign(appointment, payload);
+            }
+            return jsonResponse(route, { ok: true, data: appointment || {} });
+        }
 
         if (resource === 'data') {
             return jsonResponse(route, { ok: true, data: mergedData });
@@ -360,6 +412,73 @@ test.describe('Panel de administracion', () => {
             'Sin teléfono'
         );
         await expect(page.locator('#callbacks')).not.toContainText(/[ÃÂ]/);
+    });
+
+    test('callbacks permite seleccion visible y marcado masivo', async ({
+        page,
+    }) => {
+        const callbackWriteRequests = [];
+        page.on('request', (request) => {
+            if (
+                request.url().includes('/api.php?resource=callbacks') &&
+                request.method() !== 'GET'
+            ) {
+                callbackWriteRequests.push(request.method());
+            }
+        });
+
+        await setupAuthenticatedAdminMocks(page, {
+            callbacks: [
+                {
+                    id: 301,
+                    telefono: '+593955111222',
+                    preferencia: 'ahora',
+                    fecha: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
+                    status: 'pending',
+                },
+                {
+                    id: 302,
+                    telefono: '+593955333444',
+                    preferencia: '30min',
+                    fecha: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
+                    status: 'pending',
+                },
+                {
+                    id: 303,
+                    telefono: '+593955555666',
+                    preferencia: '1hora',
+                    fecha: new Date().toISOString(),
+                    status: 'contacted',
+                },
+            ],
+        });
+
+        await page.goto('/admin.html');
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+
+        await page
+            .locator('.admin-quick-nav-item[data-section="callbacks"]')
+            .click();
+        await expect(page.locator('#callbacks')).toHaveClass(/active/);
+        await expect(
+            page.locator(
+                '#callbacksGrid .callback-card[data-callback-status="pendiente"]'
+            )
+        ).toHaveCount(2);
+
+        await page.locator('#callbacksBulkSelectVisibleBtn').click();
+        await expect(page.locator('#callbacksSelectionChip')).not.toHaveClass(
+            /is-hidden/
+        );
+        await expect(page.locator('#callbacksSelectedCount')).toHaveText('2');
+
+        await page.locator('#callbacksBulkMarkBtn').click();
+        await expect
+            .poll(() => callbackWriteRequests.length)
+            .toBeGreaterThan(0);
+        await expect(page.locator('#callbacksSelectionChip')).toHaveClass(
+            /is-hidden/
+        );
     });
 
     test('tema tambien funciona en dashboard autenticado', async ({ page }) => {

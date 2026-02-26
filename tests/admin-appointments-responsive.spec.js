@@ -258,6 +258,42 @@ test.describe('Admin appointments responsive triage', () => {
         ).toHaveCount(6);
     });
 
+    test('habilita filtro de triage accionable y muestra chips contextuales', async ({
+        page,
+    }) => {
+        await openAppointmentsSection(page);
+
+        await expect(
+            page.locator('#appointmentFilter option[value="triage_attention"]')
+        ).toHaveCount(1);
+        await expect(
+            page.locator(
+                '.appointment-quick-filter-btn[data-filter-value="triage_attention"]'
+            )
+        ).toBeVisible();
+
+        await page
+            .locator('#appointmentFilter')
+            .selectOption('triage_attention');
+        await expect(page.locator('#appointmentsToolbarState')).toContainText(
+            'Triage accionable'
+        );
+        await expect(page.locator('#appointmentsTableBody')).toContainText(
+            'Ana Transfer'
+        );
+
+        const anaRow = page
+            .locator('#appointmentsTableBody tr.appointment-row')
+            .filter({ hasText: 'Ana Transfer' })
+            .first();
+        await expect(anaRow).toContainText('Validar pago');
+        await expect(
+            anaRow.locator(
+                'a[title="WhatsApp para validar pago"], a[aria-label*="WhatsApp de Ana Transfer"]'
+            )
+        ).toHaveCount(1);
+    });
+
     test('permite ordenar y guardar densidad de la tabla entre recargas', async ({
         page,
     }) => {

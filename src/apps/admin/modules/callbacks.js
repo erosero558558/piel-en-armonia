@@ -10,18 +10,22 @@ import {
 } from './ui.js';
 
 const DEFAULT_CALLBACK_FILTER = 'all';
+const DEFAULT_CALLBACK_SORT = 'recent_desc';
 const CALLBACK_FILTER_OPTIONS = new Set([
     'all',
     'pending',
     'contacted',
     'today',
+    'sla_urgent',
 ]);
+const CALLBACK_SORT_OPTIONS = new Set(['recent_desc', 'waiting_desc']);
 const CALLBACK_URGENT_THRESHOLD_MINUTES = 120;
 const CALLBACK_ATTENTION_THRESHOLD_MINUTES = 45;
 
 const callbackCriteriaState = {
     filter: DEFAULT_CALLBACK_FILTER,
     search: '',
+    sort: DEFAULT_CALLBACK_SORT,
 };
 
 const CALLBACK_FILTER_LABELS = {
@@ -29,11 +33,23 @@ const CALLBACK_FILTER_LABELS = {
     pending: 'Pendientes',
     contacted: 'Contactados',
     today: 'Hoy',
+    sla_urgent: 'Urgentes SLA',
 };
+
+const CALLBACK_SORT_LABELS = {
+    recent_desc: 'Más recientes',
+    waiting_desc: 'Mayor espera (SLA)',
+};
+
+let lastFilteredCallbacks = [];
+const selectedCallbackKeys = new Set();
+let callbacksEnhancementsBootstrapped = false;
+let callbacksBindingsAttached = false;
 
 function getCallbacksControls() {
     return {
         filterSelect: document.getElementById('callbackFilter'),
+        sortSelect: document.getElementById('callbackSort'),
         searchInput: document.getElementById('searchCallbacks'),
         quickFilterButtons: Array.from(
             document.querySelectorAll(
@@ -43,6 +59,13 @@ function getCallbacksControls() {
         toolbarMeta: document.getElementById('callbacksToolbarMeta'),
         toolbarState: document.getElementById('callbacksToolbarState'),
         clearFiltersBtn: document.getElementById('clearCallbacksFiltersBtn'),
+        selectVisibleBtn: document.getElementById(
+            'callbacksBulkSelectVisibleBtn'
+        ),
+        clearSelectionBtn: document.getElementById('callbacksBulkClearBtn'),
+        markSelectedBtn: document.getElementById('callbacksBulkMarkBtn'),
+        selectedCountEl: document.getElementById('callbacksSelectedCount'),
+        selectionChipEl: document.getElementById('callbacksSelectionChip'),
     };
 }
 
@@ -53,6 +76,247 @@ function normalizeCallbackFilter(value) {
     return CALLBACK_FILTER_OPTIONS.has(normalized)
         ? normalized
         : DEFAULT_CALLBACK_FILTER;
+}
+
+function normalizeCallbackSort(value) {
+    const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+    return CALLBACK_SORT_OPTIONS.has(normalized)
+        ? normalized
+        : DEFAULT_CALLBACK_SORT;
+}
+
+function getCallbackSelectionKey(callback) {
+    const callbackId = Number(callback?.id || 0);
+    if (callbackId > 0) return `id:${callbackId}`;
+    const dateKey = String(callback?.fecha || '').trim();
+    const phoneKey = String(callback?.telefono || '').trim();
+    const prefKey = String(callback?.preferencia || '').trim();
+    return `fallback:${dateKey}|${phoneKey}|${prefKey}`;
+}
+
+function decodeSelectionKey(value) {
+    if (!value) return '';
+    try {
+        return decodeURIComponent(String(value));
+    } catch (_error) {
+        return String(value);
+    }
+}
+
+function isCallbackPending(callback) {
+    return normalizeCallbackStatus(callback?.status) === 'pendiente';
+}
+
+function ensureCallbacksToolbarEnhancements() {
+    const callbacksSection = document.getElementById('callbacks');
+    if (!callbacksSection) return false;
+
+    const toolbar = callbacksSection.querySelector(
+        '.section-toolbar-callbacks'
+    );
+    if (!toolbar) return false;
+
+    const callbackFilterSelect = document.getElementById('callbackFilter');
+    if (
+        callbackFilterSelect instanceof HTMLSelectElement &&
+        !callbackFilterSelect.querySelector('option[value="sla_urgent"]')
+    ) {
+        const urgentOption = document.createElement('option');
+        urgentOption.value = 'sla_urgent';
+        urgentOption.textContent = 'Urgentes SLA';
+        callbackFilterSelect.appendChild(urgentOption);
+    }
+
+    let sortSelect = document.getElementById('callbackSort');
+    if (!(sortSelect instanceof HTMLSelectElement)) {
+        const sortGroup = document.createElement('div');
+        sortGroup.className = 'filter-group callbacks-sort-group';
+
+        const sortLabel = document.createElement('label');
+        sortLabel.className = 'sr-only';
+        sortLabel.htmlFor = 'callbackSort';
+        sortLabel.textContent = 'Orden de callbacks';
+
+        sortSelect = document.createElement('select');
+        sortSelect.id = 'callbackSort';
+        Object.entries(CALLBACK_SORT_LABELS).forEach(([value, label]) => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = label;
+            sortSelect.appendChild(option);
+        });
+        sortSelect.value = callbackCriteriaState.sort;
+
+        sortGroup.appendChild(sortLabel);
+        sortGroup.appendChild(sortSelect);
+
+        const quickFiltersNode = toolbar.querySelector(
+            '.callbacks-quick-filters'
+        );
+        if (quickFiltersNode) {
+            toolbar.insertBefore(sortGroup, quickFiltersNode);
+        } else {
+            toolbar.appendChild(sortGroup);
+        }
+    } else if (sortSelect.options.length === 0) {
+        Object.entries(CALLBACK_SORT_LABELS).forEach(([value, label]) => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = label;
+            sortSelect.appendChild(option);
+        });
+    }
+
+    const quickFiltersGroup = toolbar.querySelector('.callbacks-quick-filters');
+    if (
+        quickFiltersGroup &&
+        !quickFiltersGroup.querySelector('[data-filter-value="sla_urgent"]')
+    ) {
+        const urgentButton = document.createElement('button');
+        urgentButton.type = 'button';
+        urgentButton.className = 'callback-quick-filter-btn';
+        urgentButton.dataset.action = 'callback-quick-filter';
+        urgentButton.dataset.filterValue = 'sla_urgent';
+        urgentButton.setAttribute('aria-pressed', 'false');
+        urgentButton.title = 'Pendientes con espera mayor a 2 horas';
+        urgentButton.textContent = 'Urgentes SLA';
+        quickFiltersGroup.appendChild(urgentButton);
+    }
+
+    const opsActions = callbacksSection.querySelector('.callbacks-ops-actions');
+    if (opsActions) {
+        if (!document.getElementById('callbacksBulkSelectVisibleBtn')) {
+            const selectVisibleButton = document.createElement('button');
+            selectVisibleButton.type = 'button';
+            selectVisibleButton.className = 'btn btn-secondary btn-sm';
+            selectVisibleButton.id = 'callbacksBulkSelectVisibleBtn';
+            selectVisibleButton.innerHTML =
+                '<i class="fas fa-list-check"></i> Seleccionar visibles';
+            opsActions.appendChild(selectVisibleButton);
+        }
+
+        if (!document.getElementById('callbacksBulkClearBtn')) {
+            const clearSelectionButton = document.createElement('button');
+            clearSelectionButton.type = 'button';
+            clearSelectionButton.className = 'btn btn-secondary btn-sm';
+            clearSelectionButton.id = 'callbacksBulkClearBtn';
+            clearSelectionButton.innerHTML =
+                '<i class="fas fa-eraser"></i> Limpiar selección';
+            opsActions.appendChild(clearSelectionButton);
+        }
+
+        if (!document.getElementById('callbacksBulkMarkBtn')) {
+            const markSelectionButton = document.createElement('button');
+            markSelectionButton.type = 'button';
+            markSelectionButton.className = 'btn btn-primary btn-sm';
+            markSelectionButton.id = 'callbacksBulkMarkBtn';
+            markSelectionButton.innerHTML =
+                '<i class="fas fa-check-double"></i> Marcar seleccionados';
+            opsActions.appendChild(markSelectionButton);
+        }
+    }
+
+    return true;
+}
+
+function ensureCallbacksEnhancements() {
+    if (callbacksEnhancementsBootstrapped) return true;
+    callbacksEnhancementsBootstrapped = ensureCallbacksToolbarEnhancements();
+    return callbacksEnhancementsBootstrapped;
+}
+
+function getCallbackKeySetFromList(list) {
+    return new Set(
+        list
+            .filter((callback) => isCallbackPending(callback))
+            .map((callback) => getCallbackSelectionKey(callback))
+    );
+}
+
+function reconcileCallbackSelection(filteredCallbacks) {
+    const visiblePendingKeys = getCallbackKeySetFromList(filteredCallbacks);
+    Array.from(selectedCallbackKeys).forEach((key) => {
+        if (!visiblePendingKeys.has(key)) {
+            selectedCallbackKeys.delete(key);
+        }
+    });
+}
+
+function getSelectedPendingCallbacks() {
+    if (selectedCallbackKeys.size === 0) return [];
+    return currentCallbacks.filter(
+        (callback) =>
+            isCallbackPending(callback) &&
+            selectedCallbackKeys.has(getCallbackSelectionKey(callback))
+    );
+}
+
+function updateCallbackSelectionUi(filteredCallbacks) {
+    const controls = getCallbacksControls();
+    const pendingVisibleCount = filteredCallbacks.filter((callback) =>
+        isCallbackPending(callback)
+    ).length;
+    const selectedVisibleCount = filteredCallbacks.filter(
+        (callback) =>
+            isCallbackPending(callback) &&
+            selectedCallbackKeys.has(getCallbackSelectionKey(callback))
+    ).length;
+    const hasSelection = selectedVisibleCount > 0;
+
+    if (controls.selectedCountEl) {
+        controls.selectedCountEl.textContent = String(selectedVisibleCount);
+    }
+    if (controls.selectionChipEl) {
+        controls.selectionChipEl.classList.toggle('is-hidden', !hasSelection);
+    }
+    if (controls.selectVisibleBtn instanceof HTMLButtonElement) {
+        controls.selectVisibleBtn.disabled = pendingVisibleCount === 0;
+    }
+    if (controls.clearSelectionBtn instanceof HTMLButtonElement) {
+        controls.clearSelectionBtn.disabled = !hasSelection;
+    }
+    if (controls.markSelectedBtn instanceof HTMLButtonElement) {
+        controls.markSelectedBtn.disabled = !hasSelection;
+    }
+}
+
+function clearCallbackSelection() {
+    selectedCallbackKeys.clear();
+    updateCallbackSelectionUi(lastFilteredCallbacks);
+}
+
+function selectVisiblePendingCallbacks() {
+    const pendingVisible = lastFilteredCallbacks.filter((callback) =>
+        isCallbackPending(callback)
+    );
+    if (pendingVisible.length === 0) {
+        showToast(
+            'No hay callbacks pendientes visibles para seleccionar.',
+            'info'
+        );
+        return;
+    }
+    pendingVisible.forEach((callback) => {
+        selectedCallbackKeys.add(getCallbackSelectionKey(callback));
+    });
+    applyCallbackFilterCriteria({
+        filter: callbackCriteriaState.filter,
+        search: callbackCriteriaState.search,
+        sort: callbackCriteriaState.sort,
+    });
+}
+
+function toggleCallbackSelectionByKey(encodedKey, checked) {
+    const decodedKey = decodeSelectionKey(encodedKey);
+    if (!decodedKey) return;
+    if (checked) {
+        selectedCallbackKeys.add(decodedKey);
+    } else {
+        selectedCallbackKeys.delete(decodedKey);
+    }
+    updateCallbackSelectionUi(lastFilteredCallbacks);
 }
 
 function toLocalDateKey(date) {
@@ -112,8 +376,33 @@ function formatMinutesWaiting(minutes) {
     return `${hours} h ${rest} min`;
 }
 
-function getSortedCallbacks(list) {
-    return [...list].sort((a, b) => {
+function getSortedCallbacks(list, sortValue = DEFAULT_CALLBACK_SORT) {
+    const sort = normalizeCallbackSort(sortValue);
+    const sortable = [...list];
+
+    if (sort === 'waiting_desc') {
+        return sortable.sort((a, b) => {
+            const pendingA = isCallbackPending(a);
+            const pendingB = isCallbackPending(b);
+            if (pendingA !== pendingB) {
+                return pendingA ? -1 : 1;
+            }
+
+            const waitingA = pendingA ? getCallbackMinutesSince(a.fecha) : 0;
+            const waitingB = pendingB ? getCallbackMinutesSince(b.fecha) : 0;
+            if (waitingB !== waitingA) {
+                return waitingB - waitingA;
+            }
+
+            const dateA = parseCallbackDateTime(a.fecha);
+            const dateB = parseCallbackDateTime(b.fecha);
+            const timestampA = dateA ? dateA.getTime() : 0;
+            const timestampB = dateB ? dateB.getTime() : 0;
+            return timestampA - timestampB;
+        });
+    }
+
+    return sortable.sort((a, b) => {
         const dateA = parseCallbackDateTime(a.fecha);
         const dateB = parseCallbackDateTime(b.fecha);
         const timestampA = dateA ? dateA.getTime() : 0;
@@ -128,12 +417,12 @@ function getCallbackFilterResult(criteria) {
         search: String(criteria.search || '')
             .trim()
             .toLowerCase(),
+        sort: normalizeCallbackSort(criteria.sort),
     };
 
     const now = new Date();
     const todayKey = toLocalDateKey(now);
-    const sorted = getSortedCallbacks(currentCallbacks);
-    const filtered = sorted.filter((callback) => {
+    const filtered = currentCallbacks.filter((callback) => {
         const normalizedStatus = normalizeCallbackStatus(callback.status);
         const callbackDate = parseCallbackDateTime(callback.fecha);
         const callbackDateKey = callbackDate
@@ -158,6 +447,15 @@ function getCallbackFilterResult(criteria) {
             return false;
         }
 
+        if (
+            nextCriteria.filter === 'sla_urgent' &&
+            (!isCallbackPending(callback) ||
+                getCallbackMinutesSince(callback.fecha) <
+                    CALLBACK_URGENT_THRESHOLD_MINUTES)
+        ) {
+            return false;
+        }
+
         if (nextCriteria.search === '') {
             return true;
         }
@@ -174,7 +472,10 @@ function getCallbackFilterResult(criteria) {
         return searchTarget.includes(nextCriteria.search);
     });
 
-    return { filtered, criteria: nextCriteria };
+    return {
+        filtered: getSortedCallbacks(filtered, nextCriteria.sort),
+        criteria: nextCriteria,
+    };
 }
 
 function setCallbackQuickFilterButtonState(buttons, currentFilter) {
@@ -193,6 +494,7 @@ function updateCallbacksToolbar(filteredCallbacks, allCallbacks, criteria) {
         clearFiltersBtn,
         quickFilterButtons,
         filterSelect,
+        sortSelect,
         searchInput,
     } = controls;
 
@@ -210,14 +512,16 @@ function updateCallbacksToolbar(filteredCallbacks, allCallbacks, criteria) {
             `<span class="toolbar-chip is-accent">Mostrando ${escapeHtml(String(visibleCount))}${allCount !== visibleCount ? ` de ${escapeHtml(String(allCount))}` : ''}</span>`,
             `<span class="toolbar-chip">Pendientes: ${escapeHtml(String(pendingVisible))}</span>`,
             `<span class="toolbar-chip">Contactados: ${escapeHtml(String(contactedVisible))}</span>`,
+            '<span class="toolbar-chip is-hidden" id="callbacksSelectionChip">Seleccionados: <strong id="callbacksSelectedCount">0</strong></span>',
         ].join('');
     }
 
     const hasFilter = criteria.filter !== DEFAULT_CALLBACK_FILTER;
     const hasSearch = criteria.search !== '';
+    const hasSort = criteria.sort !== DEFAULT_CALLBACK_SORT;
 
     if (toolbarState) {
-        if (!hasFilter && !hasSearch) {
+        if (!hasFilter && !hasSearch && !hasSort) {
             toolbarState.innerHTML =
                 '<span class="toolbar-state-empty">Sin filtros activos</span>';
         } else {
@@ -240,6 +544,14 @@ function updateCallbacksToolbar(filteredCallbacks, allCallbacks, criteria) {
                 );
             }
 
+            if (hasSort) {
+                stateTokens.push(
+                    `<span class="toolbar-state-value is-sort">Orden: ${escapeHtml(
+                        CALLBACK_SORT_LABELS[criteria.sort] || criteria.sort
+                    )}</span>`
+                );
+            }
+
             stateTokens.push(
                 `<span class="toolbar-state-value">Resultados: ${escapeHtml(String(visibleCount))}</span>`
             );
@@ -249,11 +561,17 @@ function updateCallbacksToolbar(filteredCallbacks, allCallbacks, criteria) {
     }
 
     if (clearFiltersBtn) {
-        clearFiltersBtn.classList.toggle('is-hidden', !hasFilter && !hasSearch);
+        clearFiltersBtn.classList.toggle(
+            'is-hidden',
+            !hasFilter && !hasSearch && !hasSort
+        );
     }
 
     if (filterSelect) {
         filterSelect.value = criteria.filter;
+    }
+    if (sortSelect) {
+        sortSelect.value = criteria.sort;
     }
     if (searchInput) {
         searchInput.value = criteria.search;
@@ -340,7 +658,62 @@ function renderCallbacksOpsPanel(allCallbacks) {
     }
 }
 
+function ensureCallbacksBindings() {
+    if (callbacksBindingsAttached) return;
+    const callbacksGrid = document.getElementById('callbacksGrid');
+    if (!callbacksGrid) return;
+
+    const controls = getCallbacksControls();
+    if (controls.sortSelect instanceof HTMLSelectElement) {
+        controls.sortSelect.addEventListener('change', () => {
+            applyCallbackFilterCriteria({
+                filter: callbackCriteriaState.filter,
+                search: callbackCriteriaState.search,
+                sort: controls.sortSelect.value || DEFAULT_CALLBACK_SORT,
+            });
+        });
+    }
+
+    if (controls.selectVisibleBtn instanceof HTMLButtonElement) {
+        controls.selectVisibleBtn.addEventListener('click', () => {
+            selectVisiblePendingCallbacks();
+        });
+    }
+
+    if (controls.clearSelectionBtn instanceof HTMLButtonElement) {
+        controls.clearSelectionBtn.addEventListener('click', () => {
+            clearCallbackSelection();
+            applyCallbackFilterCriteria({
+                filter: callbackCriteriaState.filter,
+                search: callbackCriteriaState.search,
+                sort: callbackCriteriaState.sort,
+            });
+        });
+    }
+
+    if (controls.markSelectedBtn instanceof HTMLButtonElement) {
+        controls.markSelectedBtn.addEventListener('click', () => {
+            void markSelectedCallbacksAsContacted();
+        });
+    }
+
+    callbacksGrid.addEventListener('change', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLInputElement)) return;
+        if (!target.matches('input[data-callback-select-key]')) return;
+        toggleCallbackSelectionByKey(
+            target.dataset.callbackSelectKey || '',
+            target.checked
+        );
+    });
+
+    callbacksBindingsAttached = true;
+}
+
 export function renderCallbacks(callbacks) {
+    ensureCallbacksEnhancements();
+    ensureCallbacksBindings();
+
     const grid = document.getElementById('callbacksGrid');
     if (!grid) return;
 
@@ -361,9 +734,15 @@ export function renderCallbacks(callbacks) {
             const callbackId = Number(c.id) || 0;
             const callbackDateKey = encodeURIComponent(String(c.fecha || ''));
             const callbackDateValue = String(c.fecha || '');
+            const callbackSelectionKey = getCallbackSelectionKey(c);
+            const callbackSelectionEncoded =
+                encodeURIComponent(callbackSelectionKey);
             const callbackTimestamp =
                 parseCallbackDateTime(callbackDateValue)?.getTime() || 0;
             const minutesWaiting = getCallbackMinutesSince(callbackDateValue);
+            const isPending = status === 'pendiente';
+            const isSelected =
+                isPending && selectedCallbackKeys.has(callbackSelectionKey);
             const waitingTone =
                 minutesWaiting >= CALLBACK_URGENT_THRESHOLD_MINUTES
                     ? 'is-warning'
@@ -371,7 +750,9 @@ export function renderCallbacks(callbacks) {
                       ? 'is-accent'
                       : 'is-muted';
             return `
-            <div class="callback-card ${status}" data-callback-status="${status}" data-callback-id="${callbackId}" data-callback-date="${escapeHtml(
+            <div class="callback-card ${status}${isSelected ? ' is-selected' : ''}" data-callback-status="${status}" data-callback-id="${callbackId}" data-callback-key="${escapeHtml(
+                callbackSelectionEncoded
+            )}" data-callback-date="${escapeHtml(
                 callbackDateKey
             )}" data-callback-ts="${escapeHtml(String(callbackTimestamp))}">
                 <div class="callback-header">
@@ -384,12 +765,19 @@ export function renderCallbacks(callbacks) {
                     <i class="fas fa-clock"></i>
                     ${escapeHtml(getPreferenceText(c.preferencia))}
                 </span>
+                ${
+                    isPending
+                        ? `<label class="toolbar-chip callback-select-chip"><input type="checkbox" data-callback-select-key="${escapeHtml(
+                              callbackSelectionEncoded
+                          )}" ${isSelected ? 'checked' : ''} /> Seleccionar</label>`
+                        : ''
+                }
                 <p class="callback-time">
                     <i class="fas fa-calendar"></i>
                     ${escapeHtml(new Date(c.fecha).toLocaleString('es-EC'))}
                 </p>
                 ${
-                    status === 'pendiente'
+                    isPending
                         ? `<span class="toolbar-chip callback-wait-chip ${waitingTone}">En cola: ${escapeHtml(
                               formatMinutesWaiting(minutesWaiting)
                           )}</span>`
@@ -401,7 +789,7 @@ export function renderCallbacks(callbacks) {
                         Llamar
                     </a>
                     ${
-                        status === 'pendiente'
+                        isPending
                             ? `
                         <button type="button" class="btn btn-primary btn-sm" data-action="mark-contacted" data-callback-id="${callbackId}" data-callback-date="${callbackDateKey}">
                             <i class="fas fa-check"></i>
@@ -418,10 +806,16 @@ export function renderCallbacks(callbacks) {
 }
 
 export function loadCallbacks() {
+    ensureCallbacksEnhancements();
+    ensureCallbacksBindings();
+
     applyCallbackFilterCriteria({
         filter:
             getCallbacksControls().filterSelect?.value ||
             callbackCriteriaState.filter,
+        sort:
+            getCallbacksControls().sortSelect?.value ||
+            callbackCriteriaState.sort,
         search:
             getCallbacksControls().searchInput?.value ||
             callbackCriteriaState.search,
@@ -433,13 +827,21 @@ export function filterCallbacks() {
         filter:
             getCallbacksControls().filterSelect?.value ||
             DEFAULT_CALLBACK_FILTER,
+        sort:
+            getCallbacksControls().sortSelect?.value ||
+            callbackCriteriaState.sort,
     });
 }
 
 function applyCallbackFilterCriteria(criteria, { preserveSearch = true } = {}) {
+    ensureCallbacksEnhancements();
+    ensureCallbacksBindings();
+
     const controls = getCallbacksControls();
     const currentSearch =
         controls.searchInput?.value ?? callbackCriteriaState.search;
+    const currentSort =
+        controls.sortSelect?.value ?? callbackCriteriaState.sort;
     const nextSearch = preserveSearch
         ? (criteria.search ?? currentSearch)
         : (criteria.search ?? '');
@@ -449,15 +851,20 @@ function applyCallbackFilterCriteria(criteria, { preserveSearch = true } = {}) {
             criteria.filter ??
             controls.filterSelect?.value ??
             callbackCriteriaState.filter,
+        sort: criteria.sort ?? currentSort,
         search: nextSearch,
     };
 
     const result = getCallbackFilterResult(nextCriteria);
     callbackCriteriaState.filter = result.criteria.filter;
+    callbackCriteriaState.sort = result.criteria.sort;
     callbackCriteriaState.search = result.criteria.search;
+    lastFilteredCallbacks = result.filtered;
+    reconcileCallbackSelection(result.filtered);
 
     renderCallbacks(result.filtered);
     updateCallbacksToolbar(result.filtered, currentCallbacks, result.criteria);
+    updateCallbackSelectionUi(result.filtered);
     renderCallbacksOpsPanel(currentCallbacks);
 }
 
@@ -483,6 +890,7 @@ export function resetCallbackFilters() {
     applyCallbackFilterCriteria(
         {
             filter: DEFAULT_CALLBACK_FILTER,
+            sort: DEFAULT_CALLBACK_SORT,
             search: '',
         },
         { preserveSearch: false }
@@ -539,6 +947,64 @@ export function focusNextPendingCallback() {
     return true;
 }
 
+async function markSelectedCallbacksAsContacted() {
+    const selectedCallbacks = getSelectedPendingCallbacks();
+    if (selectedCallbacks.length === 0) {
+        showToast('No hay callbacks seleccionados para actualizar.', 'info');
+        return;
+    }
+
+    let updatedCount = 0;
+    let failedCount = 0;
+
+    for (const callback of selectedCallbacks) {
+        try {
+            let callbackId = Number(callback.id || 0);
+            if (callbackId <= 0) {
+                callbackId = Date.now() + updatedCount;
+                callback.id = callbackId;
+            }
+            await apiRequest('callbacks', {
+                method: 'PATCH',
+                body: { id: Number(callbackId), status: 'contactado' },
+            });
+            updatedCount += 1;
+        } catch (_error) {
+            failedCount += 1;
+        }
+    }
+
+    if (updatedCount <= 0) {
+        showToast(
+            'No se pudieron actualizar los callbacks seleccionados.',
+            'error'
+        );
+        return;
+    }
+
+    await refreshData();
+    selectedCallbackKeys.clear();
+    applyCallbackFilterCriteria({
+        filter: callbackCriteriaState.filter,
+        sort: callbackCriteriaState.sort,
+        search: callbackCriteriaState.search,
+    });
+    loadDashboardData();
+
+    if (failedCount > 0) {
+        showToast(
+            `Actualizados ${updatedCount}; con error ${failedCount}.`,
+            'info'
+        );
+        return;
+    }
+
+    showToast(
+        `Marcados ${updatedCount} callbacks como contactados.`,
+        'success'
+    );
+}
+
 export async function markContacted(callbackId, callbackDate = '') {
     let callback = null;
     const normalizedId = Number(callbackId);
@@ -557,6 +1023,7 @@ export async function markContacted(callbackId, callbackDate = '') {
     }
 
     try {
+        selectedCallbackKeys.delete(getCallbackSelectionKey(callback));
         const callbackId = callback.id || Date.now();
         if (!callback.id) {
             callback.id = callbackId;
@@ -568,6 +1035,7 @@ export async function markContacted(callbackId, callbackDate = '') {
         await refreshData();
         applyCallbackFilterCriteria({
             filter: callbackCriteriaState.filter,
+            sort: callbackCriteriaState.sort,
             search: callbackCriteriaState.search,
         });
         loadDashboardData();

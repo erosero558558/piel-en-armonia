@@ -19,6 +19,8 @@ const APPOINTMENT_DENSITY_STORAGE_KEY = 'admin-appointments-density';
 const DEFAULT_APPOINTMENT_SORT = 'datetime_desc';
 const DEFAULT_APPOINTMENT_DENSITY = 'comfortable';
 const DEFAULT_APPOINTMENT_FILTER = 'all';
+const TRIAGE_IMMINENT_WINDOW_HOURS = 24;
+const TRIAGE_NO_SHOW_WINDOW_DAYS = 7;
 const APPOINTMENT_SORT_OPTIONS = new Set([
     'datetime_desc',
     'datetime_asc',
@@ -36,6 +38,7 @@ const APPOINTMENT_FILTER_OPTIONS = new Set([
     'cancelled',
     'no_show',
     'pending_transfer',
+    'triage_attention',
 ]);
 
 function toLocalDateKey(date) {
@@ -101,6 +104,39 @@ function getAppointmentControls() {
     };
 }
 
+function ensureAppointmentTriageEnhancements() {
+    const filterSelect = document.getElementById('appointmentFilter');
+    if (
+        filterSelect instanceof HTMLSelectElement &&
+        !filterSelect.querySelector('option[value="triage_attention"]')
+    ) {
+        const option = document.createElement('option');
+        option.value = 'triage_attention';
+        option.textContent = 'Triage accionable';
+        filterSelect.appendChild(option);
+    }
+
+    const quickFiltersContainer = document.querySelector(
+        '.appointments-quick-filters'
+    );
+    if (
+        quickFiltersContainer &&
+        !quickFiltersContainer.querySelector(
+            '[data-filter-value="triage_attention"]'
+        )
+    ) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'appointment-quick-filter-btn';
+        button.dataset.action = 'appointment-quick-filter';
+        button.dataset.filterValue = 'triage_attention';
+        button.setAttribute('aria-pressed', 'false');
+        button.title = 'Citas con accion prioritaria';
+        button.textContent = 'Triage';
+        quickFiltersContainer.appendChild(button);
+    }
+}
+
 function getAppointmentFilterLabel(value) {
     const labels = {
         all: 'Todas las citas',
@@ -112,6 +148,7 @@ function getAppointmentFilterLabel(value) {
         cancelled: 'Canceladas',
         no_show: 'No asistio',
         pending_transfer: 'Transferencias por validar',
+        triage_attention: 'Triage accionable',
     };
     return labels[String(value || DEFAULT_APPOINTMENT_FILTER)] || labels.all;
 }
@@ -279,6 +316,17 @@ function applyAppointmentFilterCriteria(appointments, filter) {
                 (a) => a.paymentStatus === 'pending_transfer_review'
             );
             break;
+        case 'triage_attention':
+            filtered = filtered.filter((a) => {
+                const triage = getAppointmentTriageContext(a, now);
+                return (
+                    triage.isPendingTransfer ||
+                    triage.isOverdue ||
+                    triage.isImminent ||
+                    triage.requiresNoShowFollowUp
+                );
+            });
+            break;
         default:
             break;
     }
@@ -304,6 +352,85 @@ function applyAppointmentSearchCriteria(appointments, search) {
                 .includes(normalizedSearch) ||
             String(a.phone || '').includes(normalizedSearch)
     );
+}
+
+function getAppointmentHoursUntil(appointment, now = new Date()) {
+    const dateTime = parseAppointmentDateTime(appointment);
+    if (!dateTime) return Number.POSITIVE_INFINITY;
+    return (dateTime.getTime() - now.getTime()) / 3600000;
+}
+
+function getAppointmentTriageContext(appointment, now = new Date()) {
+    const paymentStatus = String(appointment?.paymentStatus || '');
+    const status = String(appointment?.status || 'confirmed');
+    const normalizedStatus = status === 'noshow' ? 'no_show' : status;
+    const hoursUntil = getAppointmentHoursUntil(appointment, now);
+    const isPendingTransfer = paymentStatus === 'pending_transfer_review';
+    const isNoShow = normalizedStatus === 'no_show';
+    const isCompleted = normalizedStatus === 'completed';
+    const isCancelled = normalizedStatus === 'cancelled';
+    const isActionableStatus = !isCompleted && !isCancelled && !isNoShow;
+    const isOverdue =
+        isActionableStatus && Number.isFinite(hoursUntil) && hoursUntil < -2;
+    const isImminent =
+        isActionableStatus &&
+        Number.isFinite(hoursUntil) &&
+        hoursUntil >= -2 &&
+        hoursUntil <= TRIAGE_IMMINENT_WINDOW_HOURS;
+
+    const appointmentDateTime = parseAppointmentDateTime(appointment);
+    const daysSinceNoShow =
+        isNoShow && appointmentDateTime
+            ? (now.getTime() - appointmentDateTime.getTime()) / 86400000
+            : Number.POSITIVE_INFINITY;
+    const requiresNoShowFollowUp =
+        isNoShow &&
+        Number.isFinite(daysSinceNoShow) &&
+        daysSinceNoShow >= 0 &&
+        daysSinceNoShow <= TRIAGE_NO_SHOW_WINDOW_DAYS;
+
+    let priorityScore = 8;
+    if (isPendingTransfer) {
+        priorityScore = 0;
+    } else if (isOverdue) {
+        priorityScore = 1;
+    } else if (isImminent) {
+        priorityScore = 2;
+    } else if (requiresNoShowFollowUp) {
+        priorityScore = 3;
+    } else if (normalizedStatus === 'confirmed') {
+        priorityScore = 4;
+    } else if (normalizedStatus === 'pending') {
+        priorityScore = 5;
+    } else if (isNoShow) {
+        priorityScore = 6;
+    } else if (isCompleted) {
+        priorityScore = 7;
+    }
+
+    const badges = [];
+    if (isPendingTransfer) {
+        badges.push({ tone: 'is-warning', label: 'Validar pago' });
+    }
+    if (isOverdue) {
+        badges.push({ tone: 'is-warning', label: 'Atrasada' });
+    } else if (isImminent) {
+        badges.push({ tone: 'is-accent', label: 'Proxima <24h' });
+    }
+    if (requiresNoShowFollowUp) {
+        badges.push({ tone: 'is-muted', label: 'Reagendar no-show' });
+    }
+
+    return {
+        status: normalizedStatus,
+        isPendingTransfer,
+        isOverdue,
+        isImminent,
+        requiresNoShowFollowUp,
+        priorityScore,
+        hoursUntil,
+        badges,
+    };
 }
 
 function renderAppointmentsToolbarState(criteria, visibleAppointments) {
@@ -374,19 +501,7 @@ function renderAppointmentsToolbarState(criteria, visibleAppointments) {
 }
 
 function getAppointmentTriagePriority(appointment) {
-    const paymentStatus = String(appointment?.paymentStatus || '');
-    const status = String(appointment?.status || 'confirmed');
-    const today = new Date().toISOString().split('T')[0];
-    const dateValue = String(appointment?.date || '');
-
-    if (paymentStatus === 'pending_transfer_review') return 0;
-    if (status === 'confirmed' && dateValue === today) return 1;
-    if (status === 'confirmed') return 2;
-    if (status === 'pending') return 3;
-    if (status === 'no_show' || status === 'noshow') return 4;
-    if (status === 'completed') return 5;
-    if (status === 'cancelled') return 6;
-    return 7;
+    return getAppointmentTriageContext(appointment).priorityScore;
 }
 
 function sortAppointmentsByCriteria(appointments, sortValue) {
@@ -416,6 +531,11 @@ function sortAppointmentsByCriteria(appointments, sortValue) {
                 getAppointmentTriagePriority(a) -
                 getAppointmentTriagePriority(b);
             if (priorityDiff !== 0) return priorityDiff;
+            const triageA = getAppointmentTriageContext(a);
+            const triageB = getAppointmentTriageContext(b);
+            if (triageA.hoursUntil !== triageB.hoursUntil) {
+                return triageA.hoursUntil - triageB.hoursUntil;
+            }
             return byDateAsc(a, b);
         }
 
@@ -424,6 +544,7 @@ function sortAppointmentsByCriteria(appointments, sortValue) {
 }
 
 function applyAndRenderAppointments() {
+    ensureAppointmentTriageEnhancements();
     const criteria = getAppointmentCriteria();
     setAppointmentQuickFilterButtonState(criteria.filter);
     const filteredByFilter = applyAppointmentFilterCriteria(
@@ -451,6 +572,15 @@ function renderAppointmentsToolbarMeta(visibleAppointments) {
     const allCount = all.length;
     const pendingTransferVisible = countPendingTransfers(visible);
     const todayVisible = countAppointmentsForToday(visible);
+    const triageAttentionVisible = visible.filter((item) => {
+        const triage = getAppointmentTriageContext(item);
+        return (
+            triage.isPendingTransfer ||
+            triage.isOverdue ||
+            triage.isImminent ||
+            triage.requiresNoShowFollowUp
+        );
+    }).length;
     const actionableVisible = visible.filter((item) => {
         const status = String(item?.status || 'confirmed');
         return (
@@ -470,6 +600,11 @@ function renderAppointmentsToolbarMeta(visibleAppointments) {
     if (pendingTransferVisible > 0) {
         chips.push(
             `<span class="toolbar-chip is-warning">Por validar: ${escapeHtml(String(pendingTransferVisible))}</span>`
+        );
+    }
+    if (triageAttentionVisible > 0) {
+        chips.push(
+            `<span class="toolbar-chip is-accent">Triage: ${escapeHtml(String(triageAttentionVisible))}</span>`
         );
     }
 
@@ -508,11 +643,18 @@ export function renderAppointments(appointments, options = {}) {
             const isPaymentReview = paymentStatus === 'pending_transfer_review';
             const isCancelled = status === 'cancelled';
             const isNoShow = status === 'no_show' || status === 'noshow';
+            const triage = getAppointmentTriageContext(appointment);
+            const requiresTriageAttention =
+                triage.isPendingTransfer ||
+                triage.isOverdue ||
+                triage.isImminent ||
+                triage.requiresNoShowFollowUp;
             const rowClassName = [
                 'appointment-row',
                 isPaymentReview ? 'is-payment-review' : '',
                 isCancelled ? 'is-cancelled' : '',
                 isNoShow ? 'is-noshow' : '',
+                requiresTriageAttention ? 'is-triage-attention' : '',
             ]
                 .filter(Boolean)
                 .join(' ');
@@ -535,6 +677,22 @@ export function renderAppointments(appointments, options = {}) {
                 /\D/g,
                 ''
             );
+            const triageBadgesMarkup = triage.badges
+                .map(
+                    (badge) =>
+                        `<span class="toolbar-chip ${escapeHtml(badge.tone)}">${escapeHtml(badge.label)}</span>`
+                )
+                .join('');
+            const whatsappMessage = triage.isPendingTransfer
+                ? `Hola ${String(appointment.name || '').trim()}, estamos validando tu comprobante de pago para la cita de ${String(appointment.date || '').trim()} ${String(appointment.time || '').trim()}.`
+                : triage.isOverdue
+                  ? `Hola ${String(appointment.name || '').trim()}, notamos que tu cita de ${String(appointment.date || '').trim()} ${String(appointment.time || '').trim()} quedo pendiente. Te ayudamos a reprogramar.`
+                  : triage.requiresNoShowFollowUp
+                    ? `Hola ${String(appointment.name || '').trim()}, podemos ayudarte a reagendar tu consulta cuando te convenga.`
+                    : '';
+            const whatsappHref = `https://wa.me/${encodeURIComponent(
+                normalizedPhone
+            )}${whatsappMessage ? `?text=${encodeURIComponent(whatsappMessage)}` : ''}`;
 
             return `
         <tr class="${rowClassName}">
@@ -545,6 +703,7 @@ export function renderAppointments(appointments, options = {}) {
                     <span class="toolbar-chip">${escapeHtml(
                         String(appointment.phone || 'Sin telefono')
                     )}</span>
+                    ${triageBadgesMarkup}
                 </div>
             </td>
             <td data-label="Servicio">${escapeHtml(getServiceName(appointment.service))}</td>
@@ -582,8 +741,16 @@ export function renderAppointments(appointments, options = {}) {
                         <i class="fas fa-phone"></i>
                     </a>
                     <a href="https://wa.me/${escapeHtml(
-                        normalizedPhone
-                    )}" target="_blank" rel="noopener noreferrer" class="btn-icon" title="WhatsApp" aria-label="Abrir WhatsApp de ${escapeHtml(appointment.name)}">
+                        whatsappHref
+                    )}" target="_blank" rel="noopener noreferrer" class="btn-icon" title="${escapeHtml(
+                        triage.isPendingTransfer
+                            ? 'WhatsApp para validar pago'
+                            : triage.isOverdue
+                              ? 'WhatsApp para reprogramar cita atrasada'
+                              : triage.requiresNoShowFollowUp
+                                ? 'WhatsApp para seguimiento no-show'
+                                : 'WhatsApp'
+                    )}" aria-label="Abrir WhatsApp de ${escapeHtml(appointment.name)}">
                         <i class="fab fa-whatsapp"></i>
                     </a>
                     <button type="button" class="btn-icon danger" data-action="cancel-appointment" data-id="${Number(appointment.id) || 0}" title="Cancelar">
