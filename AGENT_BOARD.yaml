@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 181
+  revision: 184
   updated_at: 2026-02-26
 
 tasks:
@@ -3197,6 +3197,44 @@ tasks:
     acceptance: "Frontend admin UX: collapsible sidebar + nav persistence + keyboard responsive polish"
     acceptance_ref: "verification/agent-runs/AG-083.md"
     evidence_ref: "verification/agent-runs/AG-083.md"
+    depends_on: []
+    prompt: "Frontend admin UX: collapsible sidebar + nav persistence + keyboard responsive polish"
+    created_at: 2026-02-26
+    updated_at: 2026-02-26
+
+  - id: AG-084
+    title: "Frontend admin UX: collapsible sidebar + nav persistence + keyboard responsive polish"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-02-26T06:59:38.885Z"
+    risk: medium
+    scope: frontend-admin
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    files: ["admin.html"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-02-26T06:59:38.885Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Frontend admin UX: collapsible sidebar + nav persistence + keyboard responsive polish"
+    acceptance_ref: "verification/agent-runs/AG-084.md"
+    evidence_ref: "verification/agent-runs/AG-084.md"
     depends_on: []
     prompt: "Frontend admin UX: collapsible sidebar + nav persistence + keyboard responsive polish"
     created_at: 2026-02-26
