@@ -19,6 +19,7 @@ on:
 
 permissions:
     contents: read
+    issues: write
 
 jobs:
     calendar-write-smoke:
@@ -67,11 +68,97 @@ jobs:
             - name: Instalar Playwright (chromium)
               run: npx playwright install --with-deps chromium
 
+            - name: Preflight calendar health
+              id: health
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const baseUrl = String(process.env.TEST_BASE_URL || 'https://pielarmonia.com').replace(/\/$/, '');
+                      const requireGoogle =
+                        String(process.env.TEST_REQUIRE_GOOGLE_CALENDAR || 'false').toLowerCase() === 'true';
+
+                      let response;
+                      let body = null;
+                      try {
+                        response = await fetch(`${baseUrl}/api.php?resource=health`, {
+                          headers: { accept: 'application/json' }
+                        });
+                      } catch (error) {
+                        core.setOutput('http_status', 'network_error');
+                        core.setOutput('calendar_source', 'n/a');
+                        core.setOutput('calendar_mode', 'n/a');
+                        core.setOutput('calendar_reachable', 'false');
+                        core.setOutput('calendar_configured', 'false');
+                        core.setOutput('calendar_auth', 'n/a');
+                        core.setFailed(`Health request fallo: ${error.message}`);
+                        return;
+                      }
+
+                      core.setOutput('http_status', String(response.status));
+                      if (response.ok) {
+                        try {
+                          body = await response.json();
+                        } catch (error) {
+                          core.setFailed(`Health JSON invalido: ${error.message}`);
+                          return;
+                        }
+                      } else {
+                        core.setFailed(`Health endpoint HTTP ${response.status}`);
+                        return;
+                      }
+
+                      const calendarSource = String(body?.calendarSource || 'n/a');
+                      const calendarMode = String(body?.calendarMode || 'n/a');
+                      const calendarReachable = body?.calendarReachable === true;
+                      const calendarConfigured = body?.calendarConfigured === true;
+                      const calendarAuth = String(body?.calendarAuth || 'n/a');
+
+                      core.setOutput('calendar_source', calendarSource);
+                      core.setOutput('calendar_mode', calendarMode);
+                      core.setOutput('calendar_reachable', String(calendarReachable));
+                      core.setOutput('calendar_configured', String(calendarConfigured));
+                      core.setOutput('calendar_auth', calendarAuth);
+
+                      if (requireGoogle && calendarSource !== 'google') {
+                        core.setFailed(
+                          `Calendar source invalido para write smoke: esperado google, recibido ${calendarSource}`
+                        );
+                        return;
+                      }
+
+                      if (requireGoogle && !calendarConfigured) {
+                        core.setFailed('Calendar no configurado para write smoke en modo google');
+                        return;
+                      }
+
+                      if (requireGoogle && !calendarReachable) {
+                        core.setFailed('Calendar unreachable en preflight');
+                        return;
+                      }
+
+                      if (requireGoogle && calendarMode !== 'live') {
+                        core.setFailed(`Calendar mode no-live (${calendarMode}) durante write smoke`);
+                        return;
+                      }
+
             - name: Verificar contrato de agenda real (read-only)
+              id: contract_test
               run: npm run test:calendar-contract
 
             - name: Ejecutar smoke write calendar
+              id: write_test
               run: npm run test:calendar-write
+
+            - name: Publicar artefactos Playwright de calendar smoke
+              if: ${{ always() }}
+              uses: actions/upload-artifact@v4
+              with:
+                  name: calendar-write-smoke-artifacts
+                  path: |
+                      playwright-report
+                      test-results
+                  if-no-files-found: warn
+                  retention-days: 14
 
             - name: Resumen
               if: ${{ always() }}
@@ -82,5 +169,145 @@ jobs:
                     echo "- Dominio: \`${TEST_BASE_URL}\`";
                     echo "- Escritura habilitada: \`${TEST_ENABLE_CALENDAR_WRITE}\`";
                     echo "- Require Google calendar: \`${TEST_REQUIRE_GOOGLE_CALENDAR}\`";
+                    echo "- Health HTTP: \`${{ steps.health.outputs.http_status || 'n/a' }}\`";
+                    echo "- calendarSource: \`${{ steps.health.outputs.calendar_source || 'n/a' }}\`";
+                    echo "- calendarMode: \`${{ steps.health.outputs.calendar_mode || 'n/a' }}\`";
+                    echo "- calendarReachable: \`${{ steps.health.outputs.calendar_reachable || 'n/a' }}\`";
+                    echo "- contract_test: \`${{ steps.contract_test.outcome || 'n/a' }}\`";
+                    echo "- write_test: \`${{ steps.write_test.outcome || 'n/a' }}\`";
                     echo "- Resultado: \`${{ job.status }}\`";
                   } >> "${GITHUB_STEP_SUMMARY}"
+
+            - name: Crear/actualizar incidente calendar write smoke
+              if: ${{ failure() && github.event_name != 'workflow_dispatch' }}
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const title = '[ALERTA PROD] Calendar Write Smoke fallando';
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+                      const signal = [
+                        `health:${'${{ steps.health.outputs.http_status || 'n/a' }}'}`,
+                        `source:${'${{ steps.health.outputs.calendar_source || 'n/a' }}'}`,
+                        `mode:${'${{ steps.health.outputs.calendar_mode || 'n/a' }}'}`,
+                        `reachable:${'${{ steps.health.outputs.calendar_reachable || 'n/a' }}'}`,
+                        `contract:${'${{ steps.contract_test.outcome || 'n/a' }}'}`,
+                        `write:${'${{ steps.write_test.outcome || 'n/a' }}'}`
+                      ].join('|');
+                      const signalMarker = `<!-- calendar-write-smoke-signal:${signal} -->`;
+                      const incidentBody = [
+                        'El workflow `Calendar Write Smoke` detecto fallo en verificacion de agenda real Google.',
+                        '',
+                        `- Fecha: ${now}`,
+                        `- Run: ${runUrl}`,
+                        `- Workflow: ${context.workflow}`,
+                        `- Branch: ${context.ref}`,
+                        `- health_http_status: ${{ steps.health.outputs.http_status || 'n/a' }}`,
+                        `- calendar_source: ${{ steps.health.outputs.calendar_source || 'n/a' }}`,
+                        `- calendar_mode: ${{ steps.health.outputs.calendar_mode || 'n/a' }}`,
+                        `- calendar_reachable: ${{ steps.health.outputs.calendar_reachable || 'n/a' }}`,
+                        `- calendar_configured: ${{ steps.health.outputs.calendar_configured || 'n/a' }}`,
+                        `- calendar_auth: ${{ steps.health.outputs.calendar_auth || 'n/a' }}`,
+                        `- contract_test_outcome: ${{ steps.contract_test.outcome || 'n/a' }}`,
+                        `- write_test_outcome: ${{ steps.write_test.outcome || 'n/a' }}`,
+                        '',
+                        signalMarker
+                      ].join('\n');
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+
+                      if (existing) {
+                        const existingBody = String(existing.body || '');
+                        if (existingBody.includes(signalMarker)) {
+                          core.info(`Incidente ya actualizado con misma senal: #${existing.number}`);
+                          return;
+                        }
+                        await github.rest.issues.update({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body: incidentBody
+                        });
+                        await github.rest.issues.createComment({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body: [
+                            'Incidente calendar write smoke actualizado por cambio de senal.',
+                            '',
+                            `- Fecha: ${now}`,
+                            `- Run: ${runUrl}`,
+                            `- contract_test_outcome: ${{ steps.contract_test.outcome || 'n/a' }}`,
+                            `- write_test_outcome: ${{ steps.write_test.outcome || 'n/a' }}`,
+                            `- calendar_mode: ${{ steps.health.outputs.calendar_mode || 'n/a' }}`,
+                            `- calendar_reachable: ${{ steps.health.outputs.calendar_reachable || 'n/a' }}`
+                          ].join('\n')
+                        });
+                        core.info(`Incidente actualizado: #${existing.number}`);
+                        return;
+                      }
+
+                      const created = await github.rest.issues.create({
+                        owner,
+                        repo,
+                        title,
+                        body: incidentBody,
+                        labels: ['production-alert', 'calendar-smoke', 'severity:critical']
+                      });
+                      core.info(`Incidente creado: #${created.data.number}`);
+
+            - name: Cerrar incidente calendar write smoke al recuperar
+              if: ${{ success() && github.event_name != 'workflow_dispatch' }}
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const title = '[ALERTA PROD] Calendar Write Smoke fallando';
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (!existing) {
+                        core.info('No hay incidente calendar write smoke abierto para cerrar.');
+                        return;
+                      }
+
+                      await github.rest.issues.createComment({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        body: [
+                          'Recuperado automaticamente por corrida calendar write smoke.',
+                          '',
+                          `- Fecha: ${now}`,
+                          `- Run: ${runUrl}`,
+                          `- calendar_mode: ${{ steps.health.outputs.calendar_mode || 'n/a' }}`,
+                          `- calendar_reachable: ${{ steps.health.outputs.calendar_reachable || 'n/a' }}`,
+                          `- contract_test_outcome: ${{ steps.contract_test.outcome || 'n/a' }}`,
+                          `- write_test_outcome: ${{ steps.write_test.outcome || 'n/a' }}`
+                        ].join('\n')
+                      });
+
+                      await github.rest.issues.update({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        state: 'closed'
+                      });
+                      core.info(`Incidente calendar write smoke cerrado: #${existing.number}`);
