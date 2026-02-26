@@ -121,7 +121,11 @@ test('weekly-kpi workflow separa incidentes general, SLA y retencion', () => {
         "steps.ops_sla.outputs.ops_fast_sla_ok != 'true' || steps.ops_sla.outputs.ops_nightly_target_ok != 'true' || steps.ops_sla.outputs.ops_incidents_mttr_target_ok != 'true' || steps.ops_sla.outputs.ops_incidents_open_external != '0'",
         '[ALERTA PROD] Weekly KPI SLA operativo degradado',
         'Crear/actualizar incidente semanal de retencion',
+        "steps.report.outputs.retention_incident_required == 'true'",
         '[ALERTA PROD] Weekly KPI retencion degradada',
+        'retention-signal:',
+        'Issue de retencion ya refleja la misma senal',
+        "steps.report.outputs.retention_incident_recovered == 'true'",
     ];
 
     for (const snippet of requiredSnippets) {
@@ -129,6 +133,23 @@ test('weekly-kpi workflow separa incidentes general, SLA y retencion', () => {
             raw.includes(snippet),
             true,
             `falta evidencia de separacion de incidente: ${snippet}`
+        );
+    }
+});
+
+test('weekly-kpi workflow expone outputs normalizados para semaforo de retencion', () => {
+    const { raw } = loadWorkflow();
+    const requiredOutputs = [
+        'retention_report_alert_count_int',
+        'retention_alert_data_valid',
+        'retention_incident_required',
+        'retention_incident_recovered',
+    ];
+    for (const outputKey of requiredOutputs) {
+        assert.equal(
+            raw.includes(`"${outputKey}=`),
+            true,
+            `falta output normalizado de retencion: ${outputKey}`
         );
     }
 });
