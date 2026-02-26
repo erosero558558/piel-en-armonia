@@ -137,8 +137,14 @@ test('weekly-kpi workflow separa incidentes general, SLA y retencion', () => {
         'Issue de retencion ya refleja la misma senal',
         "steps.report.outputs.retention_incident_recovered == 'true'",
         'general_incident_reason_codes',
+        'general_incident_severity',
         'retention_incident_reason_codes',
+        'retention_incident_severity',
         'ops_sla_failure_axes',
+        'ops_sla_severity',
+        'severity:critical',
+        'severity:warning',
+        'actualizo labels de severidad',
         "retentionIncidentRecovered = if ($retentionAlertCountInt -eq 0 -and $reportStale -ne 'true')",
     ];
 
@@ -162,10 +168,12 @@ test('weekly-kpi workflow expone outputs normalizados para semaforo general y SL
         'general_incident_required',
         'general_incident_recovered',
         'general_incident_reason_codes',
+        'general_incident_severity',
         'general_signal_key',
         'ops_sla_degraded',
         'ops_sla_recovered',
         'ops_sla_failure_axes',
+        'ops_sla_severity',
         'ops_sla_signal_key',
     ];
     for (const outputKey of requiredOutputs) {
@@ -186,6 +194,7 @@ test('weekly-kpi workflow expone outputs normalizados para semaforo de retencion
         'retention_incident_required',
         'retention_incident_recovered',
         'retention_incident_reason_codes',
+        'retention_incident_severity',
         'retention_signal_key',
     ];
     for (const outputKey of requiredOutputs) {

@@ -310,6 +310,7 @@ jobs:
                     "general_incident_required=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "general_incident_recovered=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "general_incident_reason_codes=report_missing,warnings_invalid" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                    "general_incident_severity=critical" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "general_signal_key=missing_report" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "conversion_view_booking=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "conversion_start_checkout=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -340,6 +341,7 @@ jobs:
                     "retention_incident_required=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "retention_incident_recovered=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "retention_incident_reason_codes=report_missing,retention_alert_invalid" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                    "retention_incident_severity=critical" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "retention_signal_key=missing_report" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "latency_core_p95_max_ms=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "latency_figo_post_p95_ms=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -530,12 +532,14 @@ jobs:
                     $generalReasonCodes.Add('none') | Out-Null
                   }
                   $generalIncidentReasonCodes = @($generalReasonCodes) -join ','
+                  $generalIncidentSeverity = if ($reportStale -eq 'true' -or $warningsCriticalCountInt -eq -1) { 'critical' } elseif ($warningsCriticalCountInt -gt 0) { 'warning' } else { 'warning' }
                   $generalSignalKey = "wcc:$warningsCriticalCountInt|stale:$reportStale|reasons:$generalIncidentReasonCodes"
                   "warnings_critical_count_int=$warningsCriticalCountInt" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "warnings_alert_data_valid=$warningsAlertDataValid" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "general_incident_required=$generalIncidentRequired" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "general_incident_recovered=$generalIncidentRecovered" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "general_incident_reason_codes=$generalIncidentReasonCodes" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "general_incident_severity=$generalIncidentSeverity" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "general_signal_key=$generalSignalKey" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "conversion_view_booking=$conversionViewBooking" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "conversion_start_checkout=$conversionStartCheckout" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -566,6 +570,11 @@ jobs:
                   if ([int]::TryParse([string]$retentionReportAlertCount, [ref]$tmpRetentionAlertCount)) {
                     $retentionAlertCountInt = $tmpRetentionAlertCount
                   }
+                  $retentionAlertCriticalCountInt = -1
+                  $tmpRetentionAlertCriticalCount = 0
+                  if ([int]::TryParse([string]$retentionReportAlertCriticalCount, [ref]$tmpRetentionAlertCriticalCount)) {
+                    $retentionAlertCriticalCountInt = $tmpRetentionAlertCriticalCount
+                  }
                   $retentionAlertDataValid = if ($retentionAlertCountInt -ge 0) { 'true' } else { 'false' }
                   $retentionIncidentRequired = if ($retentionAlertCountInt -eq -1 -or $retentionAlertCountInt -gt 0) { 'true' } else { 'false' }
                   $retentionIncidentRecovered = if ($retentionAlertCountInt -eq 0 -and $reportStale -ne 'true') { 'true' } else { 'false' }
@@ -580,12 +589,14 @@ jobs:
                     $retentionReasonCodes.Add('none') | Out-Null
                   }
                   $retentionIncidentReasonCodes = @($retentionReasonCodes) -join ','
+                  $retentionIncidentSeverity = if ($reportStale -eq 'true' -or $retentionAlertCountInt -eq -1 -or $retentionAlertCriticalCountInt -gt 0) { 'critical' } elseif ($retentionAlertCountInt -gt 0) { 'warning' } else { 'warning' }
                   $retentionSignalKey = "count:$retentionAlertCountInt|stale:$reportStale|reasons:$retentionIncidentReasonCodes|src:$retentionReportSource"
                   "retention_report_alert_count_int=$retentionAlertCountInt" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "retention_alert_data_valid=$retentionAlertDataValid" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "retention_incident_required=$retentionIncidentRequired" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "retention_incident_recovered=$retentionIncidentRecovered" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "retention_incident_reason_codes=$retentionIncidentReasonCodes" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "retention_incident_severity=$retentionIncidentSeverity" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "retention_signal_key=$retentionSignalKey" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "latency_core_p95_max_ms=$coreP95MaxMs" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "latency_figo_post_p95_ms=$figoPostP95Ms" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -697,6 +708,10 @@ jobs:
                       const mttrTargetOk = mttrAvg === null || mttrAvg < 4;
                       const slaDegraded = !fastSlaOk || !nightlyTargetOk || !mttrTargetOk || incidentsOpenExternal.length !== 0;
                       const slaRecovered = fastSlaOk && nightlyTargetOk && mttrTargetOk && incidentsOpenExternal.length === 0;
+                      const opsSlaSeverity =
+                        incidentsOpenExternal.length !== 0 || !mttrTargetOk
+                          ? 'critical'
+                          : (!fastSlaOk || !nightlyTargetOk ? 'warning' : 'warning');
                       const slaFailureAxes = [];
                       if (!fastSlaOk) slaFailureAxes.push('fast_lane');
                       if (!nightlyTargetOk) slaFailureAxes.push('nightly_success');
@@ -732,6 +747,7 @@ jobs:
                       core.setOutput('ops_sla_degraded', slaDegraded ? 'true' : 'false');
                       core.setOutput('ops_sla_recovered', slaRecovered ? 'true' : 'false');
                       core.setOutput('ops_sla_failure_axes', opsSlaFailureAxes);
+                      core.setOutput('ops_sla_severity', opsSlaSeverity);
                       core.setOutput('ops_sla_signal_key', opsSlaSignalKey);
 
             - name: Resumen
@@ -770,6 +786,7 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- general_incident_required: ``${{ steps.report.outputs.general_incident_required }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- general_incident_recovered: ``${{ steps.report.outputs.general_incident_recovered }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- general_incident_reason_codes: ``${{ steps.report.outputs.general_incident_reason_codes }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- general_incident_severity: ``${{ steps.report.outputs.general_incident_severity }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- general_signal_key: ``${{ steps.report.outputs.general_signal_key }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Warnings non_critical: ``${{ steps.report.outputs.warnings_non_critical_count }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Warnings: ``${{ steps.report.outputs.warnings_list }}``"
@@ -807,6 +824,7 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- retention_incident_required: ``${{ steps.report.outputs.retention_incident_required }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- retention_incident_recovered: ``${{ steps.report.outputs.retention_incident_recovered }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- retention_incident_reason_codes: ``${{ steps.report.outputs.retention_incident_reason_codes }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- retention_incident_severity: ``${{ steps.report.outputs.retention_incident_severity }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- retention_signal_key: ``${{ steps.report.outputs.retention_signal_key }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Operational SLA (last ``${{ steps.ops_sla.outputs.lookback_days }}`` days)"
@@ -823,6 +841,7 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- ops_sla_degraded: ``${{ steps.ops_sla.outputs.ops_sla_degraded }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- ops_sla_recovered: ``${{ steps.ops_sla.outputs.ops_sla_recovered }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- ops_sla_failure_axes: ``${{ steps.ops_sla.outputs.ops_sla_failure_axes }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- ops_sla_severity: ``${{ steps.ops_sla.outputs.ops_sla_severity }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- ops_sla_signal_key: ``${{ steps.ops_sla.outputs.ops_sla_signal_key }}``"
                   if ("${{ steps.report.outputs.report_md_path }}" -ne "") {
                     Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Report file: ``${{ steps.report.outputs.report_md_path }}``"
@@ -840,6 +859,23 @@ jobs:
                       const now = new Date().toISOString();
                       const signal = '${{ steps.report.outputs.general_signal_key }}';
                       const signalMarker = `<!-- weekly-general-signal:${signal} -->`;
+                      const incidentSeverity = '${{ steps.report.outputs.general_incident_severity }}' || 'warning';
+                      const severityLabel = incidentSeverity === 'critical' ? 'severity:critical' : 'severity:warning';
+                      const baseLabels = ['production-alert', 'weekly-kpi', severityLabel];
+                      const normalizeLabels = (labels) =>
+                        (labels || [])
+                          .map((item) => (typeof item === 'string' ? item : item?.name))
+                          .filter(Boolean);
+                      const buildMergedLabels = (labels) => {
+                        const existing = normalizeLabels(labels).filter(
+                          (label) => label !== 'severity:critical' && label !== 'severity:warning'
+                        );
+                        return Array.from(new Set([...existing, ...baseLabels]));
+                      };
+                      const sameLabels = (a, b) => {
+                        const norm = (values) => Array.from(new Set(values)).sort();
+                        return JSON.stringify(norm(a)) === JSON.stringify(norm(b));
+                      };
                       const incidentBody = [
                         'El workflow `Weekly KPI Report` fallo o detecto warnings criticos en ejecucion programada.',
                         '',
@@ -856,6 +892,7 @@ jobs:
                         `- report_age_hours: ${{ steps.report.outputs.report_age_hours }}`,
                         `- report_stale: ${{ steps.report.outputs.report_stale }}`,
                         `- general_incident_reason_codes: ${{ steps.report.outputs.general_incident_reason_codes }}`,
+                        `- general_incident_severity: ${{ steps.report.outputs.general_incident_severity }}`,
                         `- general_signal_key: ${{ steps.report.outputs.general_signal_key }}`,
                         '',
                         'Thresholds efectivos en esta corrida:',
@@ -904,7 +941,18 @@ jobs:
                       const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
                       if (existing) {
                         const existingBody = String(existing.body || '');
+                        const mergedLabels = buildMergedLabels(existing.labels);
+                        const labelsAlreadyApplied = sameLabels(normalizeLabels(existing.labels), mergedLabels);
                         if (existingBody.includes(signalMarker)) {
+                          if (!labelsAlreadyApplied) {
+                            await github.rest.issues.update({
+                              owner,
+                              repo,
+                              issue_number: existing.number,
+                              labels: mergedLabels
+                            });
+                            core.info(`Issue general actualizo labels de severidad: #${existing.number}`);
+                          }
                           core.info(`Issue general ya refleja la misma senal: #${existing.number}`);
                           return;
                         }
@@ -912,7 +960,8 @@ jobs:
                           owner,
                           repo,
                           issue_number: existing.number,
-                          body: incidentBody
+                          body: incidentBody,
+                          labels: mergedLabels
                         });
                         await github.rest.issues.createComment({
                           owner,
@@ -927,6 +976,7 @@ jobs:
                             `- warnings_critical_list: ${{ steps.report.outputs.warnings_critical_list }}`,
                             `- report_stale: ${{ steps.report.outputs.report_stale }}`,
                             `- general_incident_reason_codes: ${{ steps.report.outputs.general_incident_reason_codes }}`,
+                            `- general_incident_severity: ${{ steps.report.outputs.general_incident_severity }}`,
                             `- general_signal_key: ${{ steps.report.outputs.general_signal_key }}`
                           ].join('\n')
                         });
@@ -937,7 +987,7 @@ jobs:
                           repo,
                           title,
                           body: incidentBody,
-                          labels: ['production-alert', 'weekly-kpi']
+                          labels: baseLabels
                         });
                         core.info(`Issue creado: #${created.data.number}`);
                       }
@@ -998,6 +1048,23 @@ jobs:
                       const now = new Date().toISOString();
                       const signal = '${{ steps.ops_sla.outputs.ops_sla_signal_key }}';
                       const signalMarker = `<!-- weekly-sla-signal:${signal} -->`;
+                      const incidentSeverity = '${{ steps.ops_sla.outputs.ops_sla_severity }}' || 'warning';
+                      const severityLabel = incidentSeverity === 'critical' ? 'severity:critical' : 'severity:warning';
+                      const baseLabels = ['production-alert', 'weekly-kpi', 'ops-sla', severityLabel];
+                      const normalizeLabels = (labels) =>
+                        (labels || [])
+                          .map((item) => (typeof item === 'string' ? item : item?.name))
+                          .filter(Boolean);
+                      const buildMergedLabels = (labels) => {
+                        const existing = normalizeLabels(labels).filter(
+                          (label) => label !== 'severity:critical' && label !== 'severity:warning'
+                        );
+                        return Array.from(new Set([...existing, ...baseLabels]));
+                      };
+                      const sameLabels = (a, b) => {
+                        const norm = (values) => Array.from(new Set(values)).sort();
+                        return JSON.stringify(norm(a)) === JSON.stringify(norm(b));
+                      };
                       const incidentBody = [
                         'El workflow `Weekly KPI Report` detecto degradacion de SLA operativo en la ventana semanal.',
                         '',
@@ -1019,6 +1086,7 @@ jobs:
                         `- incidents_mttr_hours_avg: ${{ steps.ops_sla.outputs.ops_incidents_mttr_hours_avg }}`,
                         `- incidents_mttr_target_ok: ${{ steps.ops_sla.outputs.ops_incidents_mttr_target_ok }}`,
                         `- ops_sla_failure_axes: ${{ steps.ops_sla.outputs.ops_sla_failure_axes }}`,
+                        `- ops_sla_severity: ${{ steps.ops_sla.outputs.ops_sla_severity }}`,
                         `- ops_sla_signal_key: ${{ steps.ops_sla.outputs.ops_sla_signal_key }}`,
                         '',
                         signalMarker
@@ -1034,7 +1102,18 @@ jobs:
                       const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
                       if (existing) {
                         const existingBody = String(existing.body || '');
+                        const mergedLabels = buildMergedLabels(existing.labels);
+                        const labelsAlreadyApplied = sameLabels(normalizeLabels(existing.labels), mergedLabels);
                         if (existingBody.includes(signalMarker)) {
+                          if (!labelsAlreadyApplied) {
+                            await github.rest.issues.update({
+                              owner,
+                              repo,
+                              issue_number: existing.number,
+                              labels: mergedLabels
+                            });
+                            core.info(`Issue de SLA operativo actualizo labels de severidad: #${existing.number}`);
+                          }
                           core.info(`Issue de SLA operativo ya refleja la misma senal: #${existing.number}`);
                           return;
                         }
@@ -1042,7 +1121,8 @@ jobs:
                           owner,
                           repo,
                           issue_number: existing.number,
-                          body: incidentBody
+                          body: incidentBody,
+                          labels: mergedLabels
                         });
                         await github.rest.issues.createComment({
                           owner,
@@ -1057,6 +1137,7 @@ jobs:
                             `- nightly_target_ok: ${{ steps.ops_sla.outputs.ops_nightly_target_ok }}`,
                             `- incidents_open_external: ${{ steps.ops_sla.outputs.ops_incidents_open_external }}`,
                             `- ops_sla_failure_axes: ${{ steps.ops_sla.outputs.ops_sla_failure_axes }}`,
+                            `- ops_sla_severity: ${{ steps.ops_sla.outputs.ops_sla_severity }}`,
                             `- ops_sla_signal_key: ${{ steps.ops_sla.outputs.ops_sla_signal_key }}`
                           ].join('\n')
                         });
@@ -1067,7 +1148,7 @@ jobs:
                           repo,
                           title,
                           body: incidentBody,
-                          labels: ['production-alert', 'weekly-kpi', 'ops-sla']
+                          labels: baseLabels
                         });
                         core.info(`Issue de SLA operativo creado: #${created.data.number}`);
                       }
@@ -1128,6 +1209,23 @@ jobs:
                       const now = new Date().toISOString();
                       const signal = '${{ steps.report.outputs.retention_signal_key }}';
                       const signalMarker = `<!-- retention-signal:${signal} -->`;
+                      const incidentSeverity = '${{ steps.report.outputs.retention_incident_severity }}' || 'warning';
+                      const severityLabel = incidentSeverity === 'critical' ? 'severity:critical' : 'severity:warning';
+                      const baseLabels = ['production-alert', 'weekly-kpi', 'retention', severityLabel];
+                      const normalizeLabels = (labels) =>
+                        (labels || [])
+                          .map((item) => (typeof item === 'string' ? item : item?.name))
+                          .filter(Boolean);
+                      const buildMergedLabels = (labels) => {
+                        const existing = normalizeLabels(labels).filter(
+                          (label) => label !== 'severity:critical' && label !== 'severity:warning'
+                        );
+                        return Array.from(new Set([...existing, ...baseLabels]));
+                      };
+                      const sameLabels = (a, b) => {
+                        const norm = (values) => Array.from(new Set(values)).sort();
+                        return JSON.stringify(norm(a)) === JSON.stringify(norm(b));
+                      };
                       const incidentBody = [
                         'El workflow `Weekly KPI Report` detecto alertas de retencion (`retention-report`).',
                         '',
@@ -1144,6 +1242,7 @@ jobs:
                         `- report_age_hours: ${{ steps.report.outputs.report_age_hours }}`,
                         `- report_stale: ${{ steps.report.outputs.report_stale }}`,
                         `- retention_incident_reason_codes: ${{ steps.report.outputs.retention_incident_reason_codes }}`,
+                        `- retention_incident_severity: ${{ steps.report.outputs.retention_incident_severity }}`,
                         `- retention_signal_key: ${{ steps.report.outputs.retention_signal_key }}`,
                         '',
                         'Thresholds efectivos de retencion en esta corrida:',
@@ -1171,7 +1270,18 @@ jobs:
                       const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
                       if (existing) {
                         const existingBody = String(existing.body || '');
+                        const mergedLabels = buildMergedLabels(existing.labels);
+                        const labelsAlreadyApplied = sameLabels(normalizeLabels(existing.labels), mergedLabels);
                         if (existingBody.includes(signalMarker)) {
+                          if (!labelsAlreadyApplied) {
+                            await github.rest.issues.update({
+                              owner,
+                              repo,
+                              issue_number: existing.number,
+                              labels: mergedLabels
+                            });
+                            core.info(`Issue de retencion actualizo labels de severidad: #${existing.number}`);
+                          }
                           core.info(`Issue de retencion ya refleja la misma senal: #${existing.number}`);
                           return;
                         }
@@ -1179,7 +1289,8 @@ jobs:
                           owner,
                           repo,
                           issue_number: existing.number,
-                          body: incidentBody
+                          body: incidentBody,
+                          labels: mergedLabels
                         });
                         await github.rest.issues.createComment({
                           owner,
@@ -1194,6 +1305,7 @@ jobs:
                             `- retention_report_alert_list: ${{ steps.report.outputs.retention_report_alert_list }}`,
                             `- report_stale: ${{ steps.report.outputs.report_stale }}`,
                             `- retention_incident_reason_codes: ${{ steps.report.outputs.retention_incident_reason_codes }}`,
+                            `- retention_incident_severity: ${{ steps.report.outputs.retention_incident_severity }}`,
                             `- retention_signal_key: ${{ steps.report.outputs.retention_signal_key }}`
                           ].join('\n')
                         });
@@ -1204,7 +1316,7 @@ jobs:
                           repo,
                           title,
                           body: incidentBody,
-                          labels: ['production-alert', 'weekly-kpi', 'retention']
+                          labels: baseLabels
                         });
                         core.info(`Issue de retencion creado: #${created.data.number}`);
                       }
