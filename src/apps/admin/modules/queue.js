@@ -22,6 +22,9 @@ const QUEUE_PRIORITY_LABELS = {
 };
 
 const TERMINAL_QUEUE_STATUSES = new Set(['completed', 'no_show', 'cancelled']);
+const queueUiState = {
+    pendingCallByConsultorio: new Set(),
+};
 
 function formatDateTime(value) {
     const ts = Date.parse(String(value || ''));
@@ -149,6 +152,83 @@ function queueActionSuccessMessage(action, ticketCode = '') {
     }
 }
 
+function getHeaderCallButton(consultorio) {
+    return document.querySelector(
+        `[data-action="queue-call-next"][data-queue-consultorio="${consultorio}"]`
+    );
+}
+
+function ensureHeaderReleaseButton(consultorio) {
+    const buttonId = `queueReleaseC${consultorio}`;
+    const existing = document.getElementById(buttonId);
+    if (existing instanceof HTMLButtonElement) {
+        return existing;
+    }
+
+    const headerActions = document.querySelector(
+        '#queue .queue-admin-header-actions'
+    );
+    if (!(headerActions instanceof HTMLElement)) {
+        return null;
+    }
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.id = buttonId;
+    button.className = 'btn btn-secondary btn-sm';
+    button.dataset.action = 'queue-ticket-action';
+    button.dataset.queueAction = 'liberar';
+    button.dataset.queueConsultorio = String(consultorio);
+    button.disabled = true;
+    button.innerHTML = `<i class="fas fa-rotate-left"></i> Liberar C${consultorio}`;
+
+    const callButton = getHeaderCallButton(consultorio);
+    if (callButton?.parentElement === headerActions && callButton.nextSibling) {
+        headerActions.insertBefore(button, callButton.nextSibling);
+    } else {
+        headerActions.appendChild(button);
+    }
+    return button;
+}
+
+function syncHeaderConsultorioControls(consultorio, activeTicket) {
+    const callButton = getHeaderCallButton(consultorio);
+    const releaseButton = ensureHeaderReleaseButton(consultorio);
+    const roomLabel = `Consultorio ${consultorio}`;
+    const hasActiveTicket = Boolean(activeTicket && activeTicket.id);
+    const callPending = queueUiState.pendingCallByConsultorio.has(
+        String(consultorio)
+    );
+
+    if (callButton instanceof HTMLButtonElement) {
+        const disabled = hasActiveTicket || callPending;
+        callButton.disabled = disabled;
+        if (callPending) {
+            callButton.title = `Procesando llamado para ${roomLabel}`;
+        } else if (hasActiveTicket) {
+            const ticketCode = String(activeTicket?.ticketCode || '--');
+            callButton.title = `${roomLabel} ocupado por ${ticketCode}`;
+        } else {
+            callButton.title = `Llamar siguiente turno en ${roomLabel}`;
+        }
+    }
+
+    if (!(releaseButton instanceof HTMLButtonElement)) return;
+
+    releaseButton.disabled = !hasActiveTicket;
+    if (!hasActiveTicket) {
+        delete releaseButton.dataset.queueId;
+        releaseButton.title = `Sin turno activo en ${roomLabel}`;
+        releaseButton.innerHTML = `<i class="fas fa-rotate-left"></i> Liberar C${consultorio}`;
+        return;
+    }
+
+    const ticketCode = String(activeTicket?.ticketCode || '--');
+    releaseButton.dataset.queueId = String(activeTicket?.id || '');
+    releaseButton.title = `Liberar ${ticketCode} de ${roomLabel}`;
+    releaseButton.innerHTML = `<i class="fas fa-rotate-left"></i> Liberar C${consultorio} (${escapeHtml(ticketCode)})`;
+}
+
 function renderQueueOverview() {
     const queueMeta =
         currentQueueMeta && typeof currentQueueMeta === 'object'
@@ -191,6 +271,9 @@ function renderQueueOverview() {
             ? `${consultorio2.ticketCode || '--'} · ${consultorio2.patientInitials || '--'}`
             : 'Sin llamado';
     }
+
+    syncHeaderConsultorioControls(1, consultorio1);
+    syncHeaderConsultorioControls(2, consultorio2);
 
     if (nextListEl) {
         const nextTickets = Array.isArray(queueMeta.nextTickets)
@@ -341,6 +424,13 @@ export async function callNextForConsultorio(consultorio) {
         showToast('Consultorio invalido', 'error');
         return;
     }
+    const roomKey = String(room);
+    if (queueUiState.pendingCallByConsultorio.has(roomKey)) {
+        return;
+    }
+
+    queueUiState.pendingCallByConsultorio.add(roomKey);
+    renderQueueOverview();
 
     try {
         const payload = await apiRequest('queue-call-next', {
@@ -371,6 +461,9 @@ export async function callNextForConsultorio(consultorio) {
             `No se pudo llamar siguiente turno: ${normalizeErrorMessage(error)}`,
             'error'
         );
+    } finally {
+        queueUiState.pendingCallByConsultorio.delete(roomKey);
+        renderQueueOverview();
     }
 }
 
