@@ -825,6 +825,26 @@ function handleAdminKeyboardShortcuts(event) {
             setQueueFilter('sla_risk');
             return;
         }
+        if (code === 'keyw') {
+            event.preventDefault();
+            setQueueFilter('waiting');
+            return;
+        }
+        if (code === 'keyc') {
+            event.preventDefault();
+            setQueueFilter('called');
+            return;
+        }
+        if (code === 'keya') {
+            event.preventDefault();
+            setQueueFilter('all');
+            return;
+        }
+        if (code === 'keyi') {
+            event.preventDefault();
+            setQueueFilter('walk_in');
+            return;
+        }
         if (code === 'keyo') {
             event.preventDefault();
             setQueueFilter('all');

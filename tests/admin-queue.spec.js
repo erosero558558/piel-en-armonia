@@ -412,6 +412,115 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueTableBody')).toContainText('A-900');
     });
 
+    test('watchdog realtime marca cola estancada y deja traza operativa', async ({
+        page,
+    }) => {
+        const staleUpdatedAt = new Date(Date.now() - 75 * 1000).toISOString();
+        const queueTickets = [
+            {
+                id: 930,
+                ticketCode: 'A-930',
+                queueType: 'appointment',
+                patientInitials: 'LR',
+                priorityClass: 'appt_current',
+                status: 'waiting',
+                assignedConsultorio: null,
+                createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+            },
+        ];
+        const queueState = {
+            updatedAt: staleUpdatedAt,
+            waitingCount: 1,
+            calledCount: 0,
+            counts: {
+                waiting: 1,
+                called: 0,
+                completed: 0,
+                no_show: 0,
+                cancelled: 0,
+            },
+            callingNow: [],
+            nextTickets: [
+                {
+                    id: 930,
+                    ticketCode: 'A-930',
+                    patientInitials: 'LR',
+                    position: 1,
+                },
+            ],
+        };
+
+        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
+            json(route, {
+                ok: true,
+                authenticated: true,
+                csrfToken: 'csrf_queue_watchdog',
+            })
+        );
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const url = new URL(route.request().url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'data') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        appointments: [],
+                        callbacks: [],
+                        reviews: [],
+                        availability: {},
+                        availabilityMeta: {
+                            source: 'store',
+                            mode: 'live',
+                            timezone: 'America/Guayaquil',
+                            calendarConfigured: true,
+                            calendarReachable: true,
+                            generatedAt: new Date().toISOString(),
+                        },
+                        queue_tickets: queueTickets,
+                        queueMeta: buildQueueMetaFromState(queueState),
+                    },
+                });
+            }
+
+            if (resource === 'health') {
+                return json(route, { ok: true, status: 'ok' });
+            }
+
+            if (resource === 'funnel-metrics') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto('/admin.html');
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await page.locator('.nav-item[data-section="queue"]').click();
+
+        await expect(page.locator('#queueActivityPanel')).toBeVisible();
+        await expect
+            .poll(async () => {
+                const text = await page
+                    .locator('#queueSyncStatus')
+                    .textContent();
+                return text || '';
+            })
+            .toContain('Watchdog');
+        await expect
+            .poll(async () => {
+                const state = await page
+                    .locator('#queueSyncStatus')
+                    .getAttribute('data-state');
+                return state || '';
+            })
+            .toContain('reconnecting');
+        await expect(page.locator('#queueActivityList')).toContainText(
+            'Watchdog de cola'
+        );
+    });
+
     test('atajos de teclado en turnero aplican filtro SLA y accion masiva', async ({
         page,
     }) => {
@@ -542,6 +651,19 @@ test.describe('Admin turnero sala', () => {
 
         await page.locator('.nav-item[data-section="queue"]').click();
         await expect(page.locator('#queue')).toHaveClass(/active/);
+
+        await page.keyboard.press('Alt+Shift+W');
+        await expect(page.locator('#queueTableBody tr')).toHaveCount(2);
+        await expect(page.locator('#queueTableBody')).toContainText('A-910');
+        await expect(page.locator('#queueTableBody')).toContainText('A-911');
+
+        await page.keyboard.press('Alt+Shift+C');
+        await expect(page.locator('#queueTableBody tr')).toHaveCount(1);
+        await expect(page.locator('#queueTableBody')).toContainText('A-912');
+
+        await page.keyboard.press('Alt+Shift+A');
+        await expect(page.locator('#queueTableBody')).toContainText('A-910');
+        await expect(page.locator('#queueTableBody')).toContainText('A-912');
 
         await page.keyboard.press('Alt+Shift+L');
         await expect(page.locator('#queueTableBody tr')).toHaveCount(1);

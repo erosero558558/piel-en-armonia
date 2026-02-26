@@ -25,7 +25,9 @@ const TERMINAL_QUEUE_STATUSES = new Set(['completed', 'no_show', 'cancelled']);
 const NON_TERMINAL_QUEUE_STATUSES = new Set(['waiting', 'called']);
 const QUEUE_REALTIME_BASE_MS = 2500;
 const QUEUE_REALTIME_MAX_MS = 15000;
+const QUEUE_STALE_THRESHOLD_MS = 30000;
 const QUEUE_SLA_RISK_MINUTES = 20;
+const QUEUE_ACTIVITY_LOG_LIMIT = 15;
 const QUEUE_BULK_ACTION_ORDER = ['completar', 'no_show', 'cancelar'];
 const QUEUE_BULK_ACTION_LABELS = {
     completar: 'Completar',
@@ -51,6 +53,11 @@ const queueUiState = {
     triageControlsBound: false,
     bulkActionInFlight: false,
     lastViewState: null,
+    activityPanelBound: false,
+    activityLog: [],
+    activitySeq: 0,
+    syncState: 'paused',
+    syncMessage: '',
 };
 
 function getQueueSyncStatusEl() {
@@ -59,8 +66,6 @@ function getQueueSyncStatusEl() {
 
 function setQueueSyncStatus(state, message) {
     const statusEl = getQueueSyncStatusEl();
-    if (!statusEl) return;
-
     const normalizedState = String(state || 'paused').toLowerCase();
     const fallbackMessageByState = {
         live: 'Cola en vivo',
@@ -68,12 +73,210 @@ function setQueueSyncStatus(state, message) {
         offline: 'Sin conexion al backend',
         paused: 'Cola en pausa',
     };
-
-    statusEl.dataset.state = normalizedState;
-    statusEl.textContent =
+    const normalizedMessage =
         String(message || '').trim() ||
         fallbackMessageByState[normalizedState] ||
         fallbackMessageByState.paused;
+
+    queueUiState.syncState = normalizedState;
+    queueUiState.syncMessage = normalizedMessage;
+
+    if (!statusEl) {
+        renderQueueActivityPanel();
+        return;
+    }
+
+    statusEl.dataset.state = normalizedState;
+    statusEl.textContent = normalizedMessage;
+    renderQueueActivityPanel();
+}
+
+function formatElapsedQueueAge(ms) {
+    const normalizedMs = Math.max(0, Number(ms || 0));
+    const totalSeconds = Math.round(normalizedMs / 1000);
+    if (totalSeconds < 60) {
+        return `${totalSeconds}s`;
+    }
+    const totalMinutes = Math.floor(totalSeconds / 60);
+    const remSeconds = totalSeconds % 60;
+    if (remSeconds <= 0) {
+        return `${totalMinutes}m`;
+    }
+    return `${totalMinutes}m ${remSeconds}s`;
+}
+
+function formatQueueActivityTime(ts) {
+    if (!Number.isFinite(ts)) return '--:--:--';
+    return new Date(ts).toLocaleTimeString('es-EC', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+    });
+}
+
+function ensureQueueActivityPanel() {
+    const shell = document.querySelector('#queue .queue-admin-shell');
+    if (!(shell instanceof HTMLElement)) {
+        return null;
+    }
+
+    let panel = document.getElementById('queueActivityPanel');
+    if (!(panel instanceof HTMLElement)) {
+        panel = document.createElement('section');
+        panel.id = 'queueActivityPanel';
+        panel.className = 'queue-admin-next';
+        panel.innerHTML = `
+            <h4>Historial operativo</h4>
+            <p id="queueActivitySyncHint" class="queue-triage-summary">Sincronizacion en espera.</p>
+            <ol id="queueActivityList">
+                <li class="empty-message">Sin eventos operativos recientes.</li>
+            </ol>
+            <p class="queue-triage-summary">
+                Atajos estado: Alt+Shift+W (espera), Alt+Shift+C (llamados), Alt+Shift+A (todos), Alt+Shift+I (walk-in)
+            </p>
+        `;
+
+        const grid = shell.querySelector('.queue-admin-grid');
+        if (grid?.parentElement === shell) {
+            grid.insertAdjacentElement('afterend', panel);
+        } else {
+            shell.appendChild(panel);
+        }
+    }
+
+    return panel;
+}
+
+function renderQueueActivityPanel() {
+    const panel = ensureQueueActivityPanel();
+    if (!(panel instanceof HTMLElement)) {
+        return;
+    }
+
+    const syncHintEl = panel.querySelector('#queueActivitySyncHint');
+    if (syncHintEl instanceof HTMLElement) {
+        const syncStateLabel = {
+            live: 'en vivo',
+            reconnecting: 'reconectando',
+            offline: 'sin conexion',
+            paused: 'en pausa',
+        }[queueUiState.syncState || 'paused'];
+        const syncMessage = String(queueUiState.syncMessage || '').trim();
+        syncHintEl.textContent = `Sync ${syncStateLabel}: ${syncMessage || 'sin detalle'}`;
+    }
+
+    const listEl = panel.querySelector('#queueActivityList');
+    if (!(listEl instanceof HTMLElement)) {
+        return;
+    }
+
+    if (
+        !Array.isArray(queueUiState.activityLog) ||
+        !queueUiState.activityLog.length
+    ) {
+        listEl.innerHTML =
+            '<li class="empty-message">Sin eventos operativos recientes.</li>';
+        return;
+    }
+
+    listEl.innerHTML = queueUiState.activityLog
+        .map((entry) => {
+            const levelLabel = {
+                info: 'INFO',
+                warning: 'WARN',
+                error: 'ERROR',
+            }[entry.level || 'info'];
+            return `
+                <li>
+                    <strong>${escapeHtml(formatQueueActivityTime(entry.ts))}</strong>
+                    <span>[${escapeHtml(levelLabel)}] ${escapeHtml(entry.message || 'Evento sin detalle')}</span>
+                </li>
+            `;
+        })
+        .join('');
+}
+
+function pushQueueActivity(message, { level = 'info' } = {}) {
+    const text = String(message || '').trim();
+    if (!text) return;
+
+    const now = Date.now();
+    const normalizedLevel = ['info', 'warning', 'error'].includes(level)
+        ? level
+        : 'info';
+    const previous = queueUiState.activityLog[0] || null;
+    if (
+        previous &&
+        previous.message === text &&
+        previous.level === normalizedLevel &&
+        now - Number(previous.ts || 0) < 2000
+    ) {
+        return;
+    }
+
+    queueUiState.activitySeq = Number(queueUiState.activitySeq || 0) + 1;
+    queueUiState.activityLog.unshift({
+        id: queueUiState.activitySeq,
+        ts: now,
+        level: normalizedLevel,
+        message: text,
+    });
+    queueUiState.activityLog = queueUiState.activityLog.slice(
+        0,
+        QUEUE_ACTIVITY_LOG_LIMIT
+    );
+    renderQueueActivityPanel();
+}
+
+function updateQueueSyncState(
+    state,
+    message,
+    { log = false, level = 'info', reason = '' } = {}
+) {
+    const nextState = String(state || 'paused').toLowerCase();
+    const nextMessage = String(message || '').trim();
+    const changed =
+        nextState !== String(queueUiState.syncState || 'paused') ||
+        nextMessage !== String(queueUiState.syncMessage || '');
+
+    setQueueSyncStatus(nextState, nextMessage);
+
+    if (!log || !changed) {
+        return changed;
+    }
+
+    const reasonPrefix = String(reason || '').trim();
+    const activityMessage = reasonPrefix
+        ? `${reasonPrefix}: ${nextMessage || nextState}`
+        : nextMessage || nextState;
+    pushQueueActivity(activityMessage, { level });
+    return changed;
+}
+
+function evaluateQueueFreshness({ log = false } = {}) {
+    if (!isQueueSectionActive()) {
+        return { stale: false, ageMs: 0 };
+    }
+    if (String(queueUiState.syncState || '').toLowerCase() === 'offline') {
+        return { stale: false, ageMs: 0 };
+    }
+    const updatedAtTs = Date.parse(String(currentQueueMeta?.updatedAt || ''));
+    if (!Number.isFinite(updatedAtTs)) {
+        return { stale: false, ageMs: 0 };
+    }
+    const ageMs = Math.max(0, Date.now() - updatedAtTs);
+    if (ageMs < QUEUE_STALE_THRESHOLD_MS) {
+        return { stale: false, ageMs };
+    }
+
+    const message = `Watchdog: datos de cola estancados (${formatElapsedQueueAge(ageMs)})`;
+    updateQueueSyncState('reconnecting', message, {
+        log,
+        level: 'warning',
+        reason: 'Watchdog de cola',
+    });
+    return { stale: true, ageMs, message };
 }
 
 function getRealtimeDelayMs() {
@@ -535,7 +738,7 @@ function ensureQueueTriageControls() {
             </div>
             <p id="queueTriageSummary" class="queue-triage-summary">Sin datos de cola</p>
             <p class="queue-triage-summary">
-                Atajos: Alt+Shift+J (C1), Alt+Shift+K (C2), Alt+Shift+F (buscar), Alt+Shift+L (SLA), Alt+Shift+U (refrescar)
+                Atajos: Alt+Shift+J (C1), Alt+Shift+K (C2), Alt+Shift+F (buscar), Alt+Shift+L (SLA), Alt+Shift+U (refrescar), Alt+Shift+W/C/A/I (estado)
             </p>
         `;
         const kpis = shell.querySelector('.queue-admin-kpis');
@@ -810,6 +1013,7 @@ function renderQueueTable(viewState) {
 
 function renderQueueSection() {
     ensureQueueTriageControls();
+    renderQueueActivityPanel();
     const viewState = buildQueueViewState();
     queueUiState.lastViewState = viewState;
     syncQueueTriageControls(viewState);
@@ -821,20 +1025,24 @@ async function runQueueRealtimeTick() {
     if (!queueUiState.realtimeEnabled) return;
 
     if (!isQueueSectionActive()) {
-        setQueueSyncStatus('paused', 'Cola en pausa');
+        updateQueueSyncState('paused', 'Cola en pausa');
         clearQueueRealtimeTimer();
         return;
     }
 
     if (document.hidden) {
-        setQueueSyncStatus('paused', 'Cola en pausa (pestana oculta)');
+        updateQueueSyncState('paused', 'Cola en pausa (pestana oculta)');
         scheduleQueueRealtimeTick();
         return;
     }
 
     if (navigator.onLine === false) {
         queueUiState.realtimeFailureStreak += 1;
-        setQueueSyncStatus('offline', 'Sin conexion al backend');
+        updateQueueSyncState('offline', 'Sin conexion al backend', {
+            log: true,
+            level: 'warning',
+            reason: 'Realtime',
+        });
         scheduleQueueRealtimeTick();
         return;
     }
@@ -853,14 +1061,27 @@ async function runQueueRealtimeTick() {
 
     if (refreshed) {
         queueUiState.realtimeFailureStreak = 0;
-        setQueueSyncStatus('live', 'Cola en vivo');
+        updateQueueSyncState('live', 'Cola en vivo', {
+            log: true,
+            level: 'info',
+            reason: 'Realtime',
+        });
+        evaluateQueueFreshness({ log: true });
     } else {
         queueUiState.realtimeFailureStreak += 1;
         const retrySeconds = Math.max(
             1,
             Math.ceil(getRealtimeDelayMs() / 1000)
         );
-        setQueueSyncStatus('reconnecting', `Reintentando en ${retrySeconds}s`);
+        updateQueueSyncState(
+            'reconnecting',
+            `Reintentando en ${retrySeconds}s`,
+            {
+                log: true,
+                level: 'warning',
+                reason: 'Realtime',
+            }
+        );
     }
 
     scheduleQueueRealtimeTick();
@@ -888,17 +1109,29 @@ export async function refreshQueueRealtime({
                 : null
         );
         renderQueueSection();
-        if (!fromRealtime && isQueueSectionActive()) {
-            setQueueSyncStatus('live', 'Cola sincronizada');
+        const freshness = evaluateQueueFreshness({
+            log: !fromRealtime && isQueueSectionActive(),
+        });
+        if (!fromRealtime && isQueueSectionActive() && !freshness.stale) {
+            updateQueueSyncState('live', 'Cola sincronizada', {
+                log: true,
+                level: 'info',
+                reason: 'Sincronizacion manual',
+            });
         }
         return true;
     } catch (error) {
         if (!fromRealtime && isQueueSectionActive()) {
-            setQueueSyncStatus(
+            updateQueueSyncState(
                 navigator.onLine === false ? 'offline' : 'reconnecting',
                 navigator.onLine === false
                     ? 'Sin conexion al backend'
-                    : 'No se pudo sincronizar cola'
+                    : 'No se pudo sincronizar cola',
+                {
+                    log: true,
+                    level: navigator.onLine === false ? 'warning' : 'error',
+                    reason: 'Sincronizacion manual',
+                }
             );
         }
         if (!silent) {
@@ -913,7 +1146,12 @@ export async function refreshQueueRealtime({
 
 export function loadQueueSection() {
     renderQueueSection();
-    setQueueSyncStatus('paused', 'Sincronizacion lista');
+    updateQueueSyncState('paused', 'Sincronizacion lista');
+    if (!queueUiState.activityLog.length) {
+        pushQueueActivity('Consola de turnero lista para operacion', {
+            level: 'info',
+        });
+    }
     void refreshQueueRealtime({ silent: true });
 }
 
@@ -921,19 +1159,19 @@ export function startQueueRealtimeSync({ immediate = true } = {}) {
     queueUiState.realtimeEnabled = true;
     queueUiState.realtimeFailureStreak = 0;
     if (!isQueueSectionActive()) {
-        setQueueSyncStatus('paused', 'Cola en pausa');
+        updateQueueSyncState('paused', 'Cola en pausa');
         clearQueueRealtimeTimer();
         return;
     }
 
     if (immediate) {
-        setQueueSyncStatus('live', 'Sincronizando cola...');
+        updateQueueSyncState('live', 'Sincronizando cola...');
         clearQueueRealtimeTimer();
         void runQueueRealtimeTick();
         return;
     }
 
-    setQueueSyncStatus('live', 'Cola en vivo');
+    updateQueueSyncState('live', 'Cola en vivo');
     scheduleQueueRealtimeTick();
 }
 
@@ -945,14 +1183,14 @@ export function stopQueueRealtimeSync({ reason = 'paused' } = {}) {
 
     const reasonText = String(reason || 'paused').toLowerCase();
     if (reasonText === 'offline') {
-        setQueueSyncStatus('offline', 'Sin conexion al backend');
+        updateQueueSyncState('offline', 'Sin conexion al backend');
         return;
     }
     if (reasonText === 'hidden') {
-        setQueueSyncStatus('paused', 'Cola en pausa (pestana oculta)');
+        updateQueueSyncState('paused', 'Cola en pausa (pestana oculta)');
         return;
     }
-    setQueueSyncStatus('paused', 'Cola en pausa');
+    updateQueueSyncState('paused', 'Cola en pausa');
 }
 
 export async function callNextForConsultorio(consultorio) {
@@ -981,19 +1219,34 @@ export async function callNextForConsultorio(consultorio) {
         );
         renderQueueSection();
         if (ticket && ticket.ticketCode) {
+            pushQueueActivity(
+                `Llamado en C${room}: ${ticket.ticketCode} (${ticket.patientInitials || '--'})`,
+                { level: 'info' }
+            );
             showToast(
                 `Llamando ${ticket.ticketCode} en Consultorio ${room}`,
                 'success'
             );
         } else {
+            pushQueueActivity(`Llamado en C${room} sin ticket asignado`, {
+                level: 'warning',
+            });
             showToast(`Consultorio ${room} actualizado`, 'success');
         }
     } catch (error) {
         if (isConsultorioBusyError(error)) {
             await refreshQueueRealtime({ silent: true });
+            pushQueueActivity(
+                `C${room} ocupado: ${normalizeErrorMessage(error)}`,
+                { level: 'warning' }
+            );
             showToast(normalizeErrorMessage(error), 'warning');
             return;
         }
+        pushQueueActivity(
+            `Error llamando siguiente en C${room}: ${normalizeErrorMessage(error)}`,
+            { level: 'error' }
+        );
         showToast(
             `No se pudo llamar siguiente turno: ${normalizeErrorMessage(error)}`,
             'error'
@@ -1042,6 +1295,10 @@ export async function applyQueueTicketAction(
             renderQueueSection();
         }
         if (!silent) {
+            pushQueueActivity(
+                queueActionSuccessMessage(action, ticket?.ticketCode || ''),
+                { level: 'info' }
+            );
             showToast(
                 queueActionSuccessMessage(action, ticket?.ticketCode || ''),
                 'success'
@@ -1052,11 +1309,18 @@ export async function applyQueueTicketAction(
         if (isConsultorioBusyError(error)) {
             await refreshQueueRealtime({ silent: true });
             if (!silent) {
+                pushQueueActivity(normalizeErrorMessage(error), {
+                    level: 'warning',
+                });
                 showToast(normalizeErrorMessage(error), 'warning');
             }
             return false;
         }
         if (!silent) {
+            pushQueueActivity(
+                `Error al actualizar ticket: ${normalizeErrorMessage(error)}`,
+                { level: 'error' }
+            );
             showToast(
                 `No se pudo actualizar ticket: ${normalizeErrorMessage(error)}`,
                 'error'
@@ -1079,6 +1343,10 @@ export async function runQueueBulkAction(action) {
     const viewState = queueUiState.lastViewState || buildQueueViewState();
     const eligibleTickets = getBulkEligibleTickets(normalizedAction, viewState);
     if (eligibleTickets.length === 0) {
+        pushQueueActivity(
+            `Bulk ${normalizedAction}: sin tickets visibles elegibles`,
+            { level: 'info' }
+        );
         showToast(
             `No hay tickets visibles para ${getBulkActionLabel(normalizedAction).toLowerCase()}.`,
             'info'
@@ -1122,6 +1390,10 @@ export async function runQueueBulkAction(action) {
     }
 
     if (success > 0 && failed === 0) {
+        pushQueueActivity(
+            `Bulk ${normalizedAction}: ${success} ticket(s) procesados`,
+            { level: 'info' }
+        );
         showToast(
             `${getBulkActionLabel(normalizedAction)} aplicado a ${success} ticket(s).`,
             'success'
@@ -1129,12 +1401,19 @@ export async function runQueueBulkAction(action) {
         return { ok: true, success, failed };
     }
     if (success > 0) {
+        pushQueueActivity(
+            `Bulk ${normalizedAction}: ${success} exitos y ${failed} fallos`,
+            { level: 'warning' }
+        );
         showToast(
             `${getBulkActionLabel(normalizedAction)} parcial: ${success} exitos, ${failed} fallos.`,
             'warning'
         );
         return { ok: true, success, failed };
     }
+    pushQueueActivity(`Bulk ${normalizedAction}: fallo total`, {
+        level: 'error',
+    });
     showToast(
         `No se pudo aplicar ${getBulkActionLabel(normalizedAction).toLowerCase()} en tickets visibles.`,
         'error'
@@ -1168,12 +1447,21 @@ export async function reprintQueueTicket(ticketId) {
             body: { id },
         });
         if (payload?.printed) {
+            pushQueueActivity(`Ticket #${id} reimpreso`, { level: 'info' });
             showToast('Ticket reimpreso', 'success');
         } else {
             const detail = payload?.print?.message || 'sin detalle';
+            pushQueueActivity(
+                `Ticket #${id} generado sin impresion (${detail})`,
+                { level: 'warning' }
+            );
             showToast(`Ticket generado sin impresion: ${detail}`, 'warning');
         }
     } catch (error) {
+        pushQueueActivity(
+            `Error al reimprimir ticket #${id}: ${error.message}`,
+            { level: 'error' }
+        );
         showToast(`No se pudo reimprimir ticket: ${error.message}`, 'error');
     }
 }

@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 238
+  revision: 241
   updated_at: 2026-02-26
 
 tasks:
@@ -4073,5 +4073,43 @@ tasks:
     evidence_ref: "verification/agent-runs/AG-106.md"
     depends_on: []
     prompt: "Turnero sala J: atajos operativos y bulk workflow en admin queue"
+    created_at: 2026-02-26
+    updated_at: 2026-02-26
+
+  - id: AG-107
+    title: "Turnero sala K: consola operativa admin (historial + watchdog + atajos de estado)"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-02-26T19:11:51.548Z"
+    risk: medium
+    scope: frontend-admin
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    files: ["src/apps/admin/modules/queue.js", "src/apps/admin/index.js", "admin.js", "tests/admin-queue.spec.js"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-02-26T19:11:51.548Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Turnero sala K: consola operativa admin (historial + watchdog + atajos de estado)"
+    acceptance_ref: "verification/agent-runs/AG-107.md"
+    evidence_ref: "verification/agent-runs/AG-107.md"
+    depends_on: ["AG-106"]
+    prompt: "Turnero sala K: consola operativa admin (historial + watchdog + atajos de estado)"
     created_at: 2026-02-26
     updated_at: 2026-02-26
