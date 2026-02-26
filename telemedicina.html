@@ -271,7 +271,13 @@
                     </li>
                 </ul>
                 <div class="nav-actions">
-                    <a href="#citas" class="nav-cta" data-i18n="nav_book"
+                    <a
+                        href="#citas"
+                        class="nav-cta"
+                        data-i18n="nav_book"
+                        data-action="select-service"
+                        data-value="video"
+                        data-qa="tele-nav-booking-cta"
                         >Reservar Cita</a
                     >
                 </div>
@@ -333,12 +339,13 @@
             <a
                 href="#citas"
                 data-action="toggle-mobile-menu"
+                data-booking-service="video"
                 class="mobile-cta"
+                data-qa="tele-mobile-booking-cta"
                 data-i18n="nav_book"
                 >Reservar Cita</a
             >
         </div>
-
         <!-- Hero Section -->
         <section class="hero" id="inicio">
             <div class="hero-image-container">
@@ -389,6 +396,9 @@
                         href="#citas"
                         class="btn btn-primary"
                         data-i18n="hero_cta_primary"
+                        data-action="select-service"
+                        data-value="video"
+                        data-qa="tele-hero-booking-cta"
                         >Reservar Consulta</a
                     >
                     <a
@@ -972,7 +982,13 @@
                         navegador.
                     </p>
                     <div class="tele-cta-row">
-                        <a href="#citas" class="btn btn-primary btn-sm">
+                        <a
+                            href="#citas"
+                            class="btn btn-primary btn-sm"
+                            data-action="select-service"
+                            data-value="video"
+                            data-qa="tele-panel-booking-cta"
+                        >
                             <i class="fas fa-calendar-check"></i>
                             <span data-i18n="tele_cta_booking"
                                 >Ver horarios y reservar</span
@@ -1794,6 +1810,7 @@
                                 <option
                                     value="consulta"
                                     data-price="40"
+                                    data-service-tax="0"
                                     data-i18n="opt_consulta"
                                     selected
                                 >
@@ -1802,6 +1819,7 @@
                                 <option
                                     value="telefono"
                                     data-price="25"
+                                    data-service-tax="0"
                                     data-i18n="opt_telefono"
                                 >
                                     Consulta Telefónica - $25
@@ -1809,6 +1827,7 @@
                                 <option
                                     value="video"
                                     data-price="30"
+                                    data-service-tax="0"
                                     data-i18n="opt_video"
                                 >
                                     Video Consulta - $30
@@ -1816,6 +1835,7 @@
                                 <option
                                     value="laser"
                                     data-price="150"
+                                    data-service-tax="0.15"
                                     data-i18n="opt_laser"
                                 >
                                     Tratamiento Láser - desde $150
@@ -1823,9 +1843,26 @@
                                 <option
                                     value="rejuvenecimiento"
                                     data-price="120"
+                                    data-service-tax="0.15"
                                     data-i18n="opt_rejuvenation"
                                 >
                                     Rejuvenecimiento - desde $120
+                                </option>
+                                <option
+                                    value="acne"
+                                    data-price="80"
+                                    data-service-tax="0"
+                                    data-i18n="opt_acne"
+                                >
+                                    Tratamiento de Acne - desde $80
+                                </option>
+                                <option
+                                    value="cancer"
+                                    data-price="70"
+                                    data-service-tax="0"
+                                    data-i18n="opt_cancer"
+                                >
+                                    Deteccion de Cancer - desde $70
                                 </option>
                             </select>
                         </div>
@@ -2110,7 +2147,14 @@
                     <a href="#consultorio" data-i18n="nav_clinic"
                         >Consultorio</a
                     >
-                    <a href="#citas" data-i18n="nav_book">Reservar</a>
+                    <a
+                        href="#citas"
+                        data-i18n="nav_book"
+                        data-action="select-service"
+                        data-value="video"
+                    >
+                        Reservar
+                    </a>
                 </div>
 
                 <div class="footer-legal">
@@ -2171,7 +2215,6 @@
                 </p>
             </div>
         </footer>
-
         <!-- Video Options Modal -->
         <div class="modal" id="videoModal">
             <div class="modal-content">
@@ -2603,7 +2646,13 @@
         </div>
 
         <div class="quick-dock" aria-label="Acciones rapidas">
-            <a href="#citas" class="quick-dock-item">
+            <a
+                href="#citas"
+                class="quick-dock-item"
+                data-action="select-service"
+                data-value="video"
+                data-qa="tele-quickdock-booking-cta"
+            >
                 <i class="fas fa-calendar-check"></i>
                 <span>Reservar</span>
             </a>

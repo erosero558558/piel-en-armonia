@@ -180,4 +180,87 @@ test.describe('Telemedicina conversion QA', () => {
             `Overflow en #telemedicina (${JSON.stringify(overflowMetrics.offenders)})`
         ).toEqual([]);
     });
+
+    test('CTAs de telemedicina preseleccionan video en el formulario de citas', async ({
+        page,
+    }) => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await gotoTelemedicina(page);
+
+        await page.evaluate(() =>
+            window.scrollTo({ top: 0, behavior: 'auto' })
+        );
+        const heroBookingCta = page
+            .locator('[data-qa="tele-hero-booking-cta"]')
+            .first();
+        await expect(heroBookingCta).toBeVisible();
+        await heroBookingCta.click({ force: true });
+
+        await expect
+            .poll(
+                async () =>
+                    page.evaluate(() => {
+                        const select = document.getElementById('serviceSelect');
+                        return select ? select.value : null;
+                    }),
+                { timeout: 12000 }
+            )
+            .toBe('video');
+
+        await page.evaluate(() => {
+            const select = document.getElementById('serviceSelect');
+            if (!select) return;
+            select.value = 'consulta';
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        await page.locator('#telemedicina').scrollIntoViewIfNeeded();
+        const panelBookingCta = page
+            .locator('[data-qa="tele-panel-booking-cta"]')
+            .first();
+        await expect(panelBookingCta).toBeVisible();
+        await panelBookingCta.click({ force: true });
+
+        await expect
+            .poll(
+                async () =>
+                    page.evaluate(() => {
+                        const select = document.getElementById('serviceSelect');
+                        return select ? select.value : null;
+                    }),
+                { timeout: 8000 }
+            )
+            .toBe('video');
+
+        await page.evaluate(() => {
+            const select = document.getElementById('serviceSelect');
+            if (!select) return;
+            select.value = 'consulta';
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        await page.evaluate(() =>
+            window.scrollTo({ top: 0, behavior: 'auto' })
+        );
+        await page.locator('.nav-mobile-toggle').click();
+        await expect(page.locator('#mobileMenu')).toHaveClass(/active/);
+
+        const mobileBookingCta = page
+            .locator('[data-qa="tele-mobile-booking-cta"]')
+            .first();
+        await expect(mobileBookingCta).toBeVisible();
+        await mobileBookingCta.click({ force: true });
+
+        await expect(page.locator('#mobileMenu')).not.toHaveClass(/active/);
+        await expect
+            .poll(
+                async () =>
+                    page.evaluate(() => {
+                        const select = document.getElementById('serviceSelect');
+                        return select ? select.value : null;
+                    }),
+                { timeout: 8000 }
+            )
+            .toBe('video');
+    });
 });
