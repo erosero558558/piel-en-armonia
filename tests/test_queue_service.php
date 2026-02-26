@@ -141,7 +141,96 @@ $patched = $service->patchTicket(($call2['store'] ?? []), [
 qs_assert_true(($patched['ok'] ?? false) === true, 'patch complete should succeed');
 qs_assert_equals('completed', (string) ($patched['ticket']['status'] ?? ''), 'patched ticket should be completed');
 
-// 5) Printer fallback behavior when disabled
+// 5) Consultorio busy guard + release action
+$busyStore = qs_base_store();
+$busyStore['appointments'][] = [
+    'id' => 9301,
+    'date' => $today,
+    'time' => '08:00',
+    'name' => 'Paciente Uno',
+    'phone' => '0991010101',
+    'status' => 'confirmed',
+];
+$busyStore['appointments'][] = [
+    'id' => 9302,
+    'date' => $today,
+    'time' => '08:30',
+    'name' => 'Paciente Dos',
+    'phone' => '0992020202',
+    'status' => 'confirmed',
+];
+
+$busyCheckin1 = $service->checkInAppointment($busyStore, [
+    'telefono' => '0991010101',
+    'hora' => '08:00',
+    'fecha' => $today,
+], 'kiosk');
+qs_assert_true(($busyCheckin1['ok'] ?? false) === true, 'busy checkin 1 should succeed');
+
+$busyCheckin2 = $service->checkInAppointment(($busyCheckin1['store'] ?? []), [
+    'telefono' => '0992020202',
+    'hora' => '08:30',
+    'fecha' => $today,
+], 'kiosk');
+qs_assert_true(($busyCheckin2['ok'] ?? false) === true, 'busy checkin 2 should succeed');
+
+$busyCall1 = $service->callNext(($busyCheckin2['store'] ?? []), 1);
+qs_assert_true(($busyCall1['ok'] ?? false) === true, 'first busy call should succeed');
+
+$busyCallConflict = $service->callNext(($busyCall1['store'] ?? []), 1);
+qs_assert_true(($busyCallConflict['ok'] ?? true) === false, 'second call on same consultorio should fail while busy');
+qs_assert_equals('queue_consultorio_busy', (string) ($busyCallConflict['errorCode'] ?? ''), 'busy consultorio should return queue_consultorio_busy');
+
+$releasedTicket = $service->patchTicket(($busyCall1['store'] ?? []), [
+    'id' => (int) ($busyCall1['ticket']['id'] ?? 0),
+    'action' => 'liberar',
+]);
+qs_assert_true(($releasedTicket['ok'] ?? false) === true, 'release action should succeed');
+qs_assert_equals('waiting', (string) ($releasedTicket['ticket']['status'] ?? ''), 'released ticket should return to waiting');
+qs_assert_equals('', (string) ($releasedTicket['ticket']['calledAt'] ?? ''), 'released ticket should clear calledAt');
+
+$busyCallAfterRelease = $service->callNext(($releasedTicket['store'] ?? []), 1);
+qs_assert_true(($busyCallAfterRelease['ok'] ?? false) === true, 'call after release should succeed');
+
+// 6) Priority class is recalculated from appointment data before state/call
+$priorityStore = qs_base_store();
+$priorityStore['appointments'][] = [
+    'id' => 9401,
+    'date' => date('Y-m-d', strtotime('-1 day')),
+    'time' => '07:00',
+    'name' => 'Paciente Priority Drift',
+    'phone' => '0993030303',
+    'status' => 'confirmed',
+];
+
+$priorityCheckin = $service->checkInAppointment($priorityStore, [
+    'telefono' => '0993030303',
+    'hora' => '07:00',
+    'fecha' => date('Y-m-d', strtotime('-1 day')),
+], 'kiosk');
+qs_assert_true(($priorityCheckin['ok'] ?? false) === true, 'priority checkin should succeed');
+
+$tamperedStore = $priorityCheckin['store'] ?? [];
+if (isset($tamperedStore['queue_tickets'][0]) && is_array($tamperedStore['queue_tickets'][0])) {
+    $tamperedStore['queue_tickets'][0]['priorityClass'] = 'walk_in';
+}
+
+$refreshedState = $service->getQueueState($tamperedStore);
+qs_assert_equals(
+    'appt_overdue',
+    (string) ($refreshedState['data']['nextTickets'][0]['priorityClass'] ?? ''),
+    'queue-state should refresh overdue priority'
+);
+
+$priorityCall = $service->callNext($tamperedStore, 2);
+qs_assert_true(($priorityCall['ok'] ?? false) === true, 'priority call should succeed');
+qs_assert_equals(
+    'appt_overdue',
+    (string) ($priorityCall['ticket']['priorityClass'] ?? ''),
+    'call-next should use refreshed overdue priority'
+);
+
+// 7) Printer fallback behavior when disabled
 putenv('PIELARMONIA_TICKET_PRINTER_ENABLED=false');
 $printer = TicketPrinter::fromEnv();
 $printed = $printer->printQueueTicket([
@@ -157,4 +246,3 @@ qs_assert_equals('printer_disabled', (string) ($printed['errorCode'] ?? ''), 'di
 
 echo "All queue service tests passed." . PHP_EOL;
 exit(0);
-

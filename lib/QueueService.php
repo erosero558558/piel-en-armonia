@@ -22,6 +22,8 @@ class QueueService
      */
     public function getQueueState(array $store): array
     {
+        $store = $this->normalizeStore($store);
+        $store = $this->refreshWaitingAppointmentPriorities($store);
         $tickets = $this->normalizeTickets($store['queue_tickets'] ?? []);
         $waiting = [];
         $called = [];
@@ -261,6 +263,19 @@ class QueueService
         }
 
         $store = $this->normalizeStore($store);
+        $store = $this->refreshWaitingAppointmentPriorities($store);
+
+        $busyTicket = $this->findActiveCalledByConsultorio($store['queue_tickets'] ?? [], $consultorio);
+        if (is_array($busyTicket)) {
+            $ticketCode = (string) ($busyTicket['ticketCode'] ?? '--');
+            return [
+                'ok' => false,
+                'error' => "Consultorio {$consultorio} ocupado por {$ticketCode}. Libera o completa ese turno antes de llamar otro.",
+                'status' => 409,
+                'errorCode' => 'queue_consultorio_busy',
+            ];
+        }
+
         $waiting = array_values(array_filter($store['queue_tickets'], static function ($ticket): bool {
             return is_array($ticket) && (($ticket['status'] ?? '') === self::STATUS_WAITING);
         }));
@@ -297,6 +312,7 @@ class QueueService
             $ticket['status'] = self::STATUS_CALLED;
             $ticket['assignedConsultorio'] = $consultorio;
             $ticket['calledAt'] = $nowIso;
+            $ticket['completedAt'] = '';
             $store['queue_tickets'][$idx] = normalize_queue_ticket($ticket);
             $updatedTicket = $store['queue_tickets'][$idx];
             break;
@@ -347,6 +363,7 @@ class QueueService
                 continue;
             }
             $found = true;
+            $currentStatus = (string) ($ticket['status'] ?? self::STATUS_WAITING);
 
             if ($action !== '') {
                 switch ($action) {
@@ -354,11 +371,31 @@ class QueueService
                     case 'rellamar':
                     case 'recall':
                     case 'llamar':
+                        if ($this->isTerminalStatus($currentStatus)) {
+                            return [
+                                'ok' => false,
+                                'error' => 'No puedes re-llamar un ticket en estado terminal',
+                                'status' => 409,
+                                'errorCode' => 'queue_transition_invalid',
+                            ];
+                        }
+                        $targetConsultorio = $consultorio ?? $this->normalizeConsultorio($ticket['assignedConsultorio'] ?? null);
+                        if ($targetConsultorio !== null) {
+                            $busyTicket = $this->findActiveCalledByConsultorio($store['queue_tickets'], $targetConsultorio, $ticketId);
+                            if (is_array($busyTicket)) {
+                                $busyCode = (string) ($busyTicket['ticketCode'] ?? '--');
+                                return [
+                                    'ok' => false,
+                                    'error' => "Consultorio {$targetConsultorio} ocupado por {$busyCode}",
+                                    'status' => 409,
+                                    'errorCode' => 'queue_consultorio_busy',
+                                ];
+                            }
+                            $ticket['assignedConsultorio'] = $targetConsultorio;
+                        }
                         $ticket['status'] = self::STATUS_CALLED;
                         $ticket['calledAt'] = $nowIso;
-                        if ($consultorio !== null) {
-                            $ticket['assignedConsultorio'] = $consultorio;
-                        }
+                        $ticket['completedAt'] = '';
                         break;
                     case 'completar':
                     case 'complete':
@@ -377,6 +414,13 @@ class QueueService
                         $ticket['status'] = self::STATUS_CANCELLED;
                         $ticket['completedAt'] = $nowIso;
                         break;
+                    case 'liberar':
+                    case 'release':
+                        $ticket['status'] = self::STATUS_WAITING;
+                        $ticket['assignedConsultorio'] = null;
+                        $ticket['calledAt'] = '';
+                        $ticket['completedAt'] = '';
+                        break;
                     case 'reasignar':
                     case 'reassign':
                         if ($consultorio === null) {
@@ -385,6 +429,16 @@ class QueueService
                                 'error' => 'Consultorio invalido para reasignar',
                                 'status' => 400,
                                 'errorCode' => 'queue_bad_request',
+                            ];
+                        }
+                        $busyTicket = $this->findActiveCalledByConsultorio($store['queue_tickets'], $consultorio, $ticketId);
+                        if (is_array($busyTicket)) {
+                            $busyCode = (string) ($busyTicket['ticketCode'] ?? '--');
+                            return [
+                                'ok' => false,
+                                'error' => "Consultorio {$consultorio} ocupado por {$busyCode}",
+                                'status' => 409,
+                                'errorCode' => 'queue_consultorio_busy',
                             ];
                         }
                         $ticket['assignedConsultorio'] = $consultorio;
@@ -415,10 +469,26 @@ class QueueService
 
                 $ticket['status'] = $status;
                 if ($status === self::STATUS_CALLED) {
-                    $ticket['calledAt'] = $nowIso;
-                    if ($consultorio !== null) {
-                        $ticket['assignedConsultorio'] = $consultorio;
+                    $targetConsultorio = $consultorio ?? $this->normalizeConsultorio($ticket['assignedConsultorio'] ?? null);
+                    if ($targetConsultorio !== null) {
+                        $busyTicket = $this->findActiveCalledByConsultorio($store['queue_tickets'], $targetConsultorio, $ticketId);
+                        if (is_array($busyTicket)) {
+                            $busyCode = (string) ($busyTicket['ticketCode'] ?? '--');
+                            return [
+                                'ok' => false,
+                                'error' => "Consultorio {$targetConsultorio} ocupado por {$busyCode}",
+                                'status' => 409,
+                                'errorCode' => 'queue_consultorio_busy',
+                            ];
+                        }
+                        $ticket['assignedConsultorio'] = $targetConsultorio;
                     }
+                    $ticket['calledAt'] = $nowIso;
+                    $ticket['completedAt'] = '';
+                } elseif ($status === self::STATUS_WAITING) {
+                    $ticket['assignedConsultorio'] = null;
+                    $ticket['calledAt'] = '';
+                    $ticket['completedAt'] = '';
                 }
                 if (in_array($status, [self::STATUS_COMPLETED, self::STATUS_NO_SHOW, self::STATUS_CANCELLED], true)) {
                     $ticket['completedAt'] = $nowIso;
@@ -676,6 +746,64 @@ class QueueService
         return null;
     }
 
+    private function findAppointmentById(array $appointments, int $appointmentId): ?array
+    {
+        if ($appointmentId <= 0) {
+            return null;
+        }
+        foreach ($appointments as $appointment) {
+            if (!is_array($appointment)) {
+                continue;
+            }
+            if ((int) ($appointment['id'] ?? 0) === $appointmentId) {
+                return $appointment;
+            }
+        }
+        return null;
+    }
+
+    private function refreshWaitingAppointmentPriorities(array $store): array
+    {
+        $store = $this->normalizeStore($store);
+        $updated = false;
+
+        foreach ($store['queue_tickets'] as $idx => $ticket) {
+            if (!is_array($ticket)) {
+                continue;
+            }
+
+            $normalized = normalize_queue_ticket($ticket);
+            $status = (string) ($normalized['status'] ?? self::STATUS_WAITING);
+            $queueType = (string) ($normalized['queueType'] ?? 'walk_in');
+            if ($status !== self::STATUS_WAITING || $queueType !== 'appointment') {
+                $store['queue_tickets'][$idx] = $normalized;
+                continue;
+            }
+
+            $appointmentId = (int) ($normalized['appointmentId'] ?? 0);
+            $appointment = $this->findAppointmentById($store['appointments'] ?? [], $appointmentId);
+            if (!is_array($appointment)) {
+                $store['queue_tickets'][$idx] = $normalized;
+                continue;
+            }
+
+            $nextPriority = $this->resolveAppointmentPriority(
+                (string) ($appointment['date'] ?? ''),
+                (string) ($appointment['time'] ?? '')
+            );
+            if ((string) ($normalized['priorityClass'] ?? '') !== $nextPriority) {
+                $normalized['priorityClass'] = $nextPriority;
+                $updated = true;
+            }
+            $store['queue_tickets'][$idx] = normalize_queue_ticket($normalized);
+        }
+
+        if ($updated) {
+            $store['updatedAt'] = local_date('c');
+        }
+        return $store;
+    }
+
     private function resolveAppointmentPriority(string $appointmentDate, string $appointmentTime): string
     {
         $normalizedTime = $this->normalizeHour($appointmentTime);
@@ -740,6 +868,35 @@ class QueueService
             return 0;
         }
         return $ts;
+    }
+
+    private function isTerminalStatus(string $status): bool
+    {
+        return in_array($status, [
+            self::STATUS_COMPLETED,
+            self::STATUS_NO_SHOW,
+            self::STATUS_CANCELLED,
+        ], true);
+    }
+
+    private function findActiveCalledByConsultorio(array $tickets, int $consultorio, int $excludeTicketId = 0): ?array
+    {
+        foreach ($tickets as $ticket) {
+            if (!is_array($ticket)) {
+                continue;
+            }
+            if ((string) ($ticket['status'] ?? '') !== self::STATUS_CALLED) {
+                continue;
+            }
+            if ((int) ($ticket['id'] ?? 0) === $excludeTicketId) {
+                continue;
+            }
+            $ticketConsultorio = $this->normalizeConsultorio($ticket['assignedConsultorio'] ?? null);
+            if ($ticketConsultorio === $consultorio) {
+                return normalize_queue_ticket($ticket);
+            }
+        }
+        return null;
     }
 
     private function normalizeConsultorio($value): ?int
