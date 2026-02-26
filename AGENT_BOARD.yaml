@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 125
+  revision: 126
   updated_at: 2026-02-26
 
 tasks:
@@ -2249,5 +2249,43 @@ tasks:
     evidence_ref: "verification/agent-runs/AG-058.md"
     depends_on: []
     prompt: "Backend C2 operativo: retention-report JSON+CSV con alertas"
+    created_at: 2026-02-26
+    updated_at: 2026-02-26
+
+  - id: AG-059
+    title: "Frontend P1: Service pages conversion UX + QA hardening (acne/laser)"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-02-26T02:17:39.853Z"
+    risk: medium
+    scope: frontend-public
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    files: ["servicios/acne.html", "servicios/laser.html", "styles.css", "styles-deferred.css"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-02-26T02:17:39.853Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Frontend P1: Service pages conversion UX + QA hardening (acne/laser)"
+    acceptance_ref: "verification/agent-runs/AG-059.md"
+    evidence_ref: "verification/agent-runs/AG-059.md"
+    depends_on: ["AG-045"]
+    prompt: "Frontend P1: Service pages conversion UX + QA hardening (acne/laser)"
     created_at: 2026-02-26
     updated_at: 2026-02-26
