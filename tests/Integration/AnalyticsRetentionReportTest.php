@@ -157,4 +157,52 @@ class AnalyticsRetentionReportTest extends TestCase
             $this->assertStringContainsString('TOTAL,1,1,0,1,0,0,0,100,1', $csv);
         }
     }
+
+    public function testRetentionReportIncludesAlertsWhenThresholdsAreExceeded(): void
+    {
+        $_GET['dateFrom'] = '2026-02-20';
+        $_GET['dateTo'] = '2026-02-22';
+
+        $appointments = [];
+        for ($i = 0; $i < 12; $i++) {
+            $appointments[] = [
+                'id' => 100 + $i,
+                'date' => '2026-02-20',
+                'status' => $i < 4 ? 'no_show' : 'completed',
+                'email' => 'patient' . $i . '@example.com',
+                'doctor' => $i % 2 === 0 ? 'rosero' : 'narvaez',
+                'service' => 'consulta',
+            ];
+        }
+
+        $context = [
+            'store' => [
+                'appointments' => $appointments,
+            ],
+        ];
+
+        try {
+            \AnalyticsController::getRetentionReport($context);
+            $this->fail('Should have thrown TestingExitException');
+        } catch (\TestingExitException $e) {
+            $this->assertSame(200, $e->status);
+            $payload = $e->payload;
+            $this->assertTrue((bool) ($payload['ok'] ?? false));
+
+            $data = is_array($payload['data'] ?? null) ? $payload['data'] : [];
+            $summary = is_array($data['summary'] ?? null) ? $data['summary'] : [];
+            $alerts = is_array($data['alerts'] ?? null) ? $data['alerts'] : [];
+
+            $this->assertSame(12, (int) ($summary['appointmentsNonCancelled'] ?? -1));
+            $this->assertGreaterThanOrEqual(30.0, (float) ($summary['noShowRatePct'] ?? 0));
+            $this->assertLessThan(30.0, (float) ($summary['recurrenceRatePct'] ?? 100));
+
+            $alertCodes = array_map(
+                static fn (array $row): string => (string) ($row['code'] ?? ''),
+                $alerts
+            );
+            $this->assertContains('no_show_rate_high', $alertCodes);
+            $this->assertContains('recurrence_rate_low', $alertCodes);
+        }
+    }
 }

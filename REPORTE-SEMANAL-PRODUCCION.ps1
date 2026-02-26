@@ -3,6 +3,7 @@ param(
     [int]$BenchRuns = 15,
     [int]$TimeoutSec = 20,
     [string]$OutputDir = 'verification/weekly',
+    [int]$RetentionReportDays = 30,
     [int]$CoreP95MaxMs = 800,
     [int]$FigoPostP95MaxMs = 2500,
     [double]$NoShowRateWarnPct = 20,
@@ -89,6 +90,7 @@ function Get-WarningSeverity {
         'core_p95_alto_',
         'figo_post_p95_alto_',
         'no_show_rate_alta_',
+        'retention_report_',
         'idempotency_conflict_rate_alta_',
         'recurrence_rate_',
         'conversion_rate_',
@@ -125,6 +127,9 @@ function Get-WarningImpact {
     if ($WarningCode.StartsWith('recurrence_rate_') -or $WarningCode.StartsWith('no_show_rate_alta_')) {
         return 'retention'
     }
+    if ($WarningCode.StartsWith('retention_report_')) {
+        return 'retention'
+    }
     if ($WarningCode.StartsWith('sentry_')) {
         return 'observability'
     }
@@ -158,6 +163,9 @@ function Get-WarningRunbookRef {
         return 'docs/RUNBOOKS.md#31-monitoreo-diario'
     }
     if ($WarningCode.StartsWith('recurrence_rate_') -or $WarningCode.StartsWith('no_show_rate_alta_')) {
+        return 'docs/RUNBOOKS.md#31-monitoreo-diario'
+    }
+    if ($WarningCode.StartsWith('retention_report_')) {
         return 'docs/RUNBOOKS.md#31-monitoreo-diario'
     }
 
@@ -490,6 +498,7 @@ Write-Host "Fecha: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 
 $healthResult = Invoke-JsonGet -Name 'health' -Url "$base/api.php?resource=health"
 $funnelResult = Invoke-JsonGet -Name 'funnel-metrics' -Url "$base/api.php?resource=funnel-metrics"
+$retentionReportResult = Invoke-JsonGet -Name 'retention-report' -Url "$base/api.php?resource=retention-report&days=$RetentionReportDays"
 
 if (-not $healthResult.Ok) {
     throw "No se pudo consultar health: $($healthResult.Error)"
@@ -501,6 +510,16 @@ $retention = $null
 $idempotency = $null
 $metricsText = ''
 $funnelSource = 'funnel-metrics'
+$retentionReportSource = 'uninitialized'
+$retentionReportError = ''
+$retentionReportMeta = [ordered]@{}
+$retentionReportSummary = [ordered]@{}
+$retentionReportAlerts = @()
+$retentionReportAlertCodes = @()
+$retentionReportAlertCount = 0
+$retentionReportAlertWarnCount = 0
+$retentionReportAlertCriticalCount = 0
+$retentionReportWarningCode = ''
 
 if ($funnelResult.Ok -and $null -ne $funnelResult.Json -and [bool]($funnelResult.Json.ok)) {
     $funnel = $funnelResult.Json.data
@@ -551,6 +570,78 @@ if ($funnelResult.Ok -and $null -ne $funnelResult.Json -and [bool]($funnelResult
         bookingConfirmed = $bookingConfirmedFromEvents
         checkoutAbandon = $checkoutAbandonFromEvents
     }
+}
+
+if ($retentionReportResult.Ok -and $null -ne $retentionReportResult.Json -and [bool]($retentionReportResult.Json.ok)) {
+    $retentionReportSource = 'retention-report'
+    $retentionReportData = Get-ObjectValueOrDefault -Object $retentionReportResult.Json -Property 'data' -DefaultValue $null
+    $retentionReportMetaRaw = Get-ObjectValueOrDefault -Object $retentionReportData -Property 'meta' -DefaultValue $null
+    $retentionReportSummaryRaw = Get-ObjectValueOrDefault -Object $retentionReportData -Property 'summary' -DefaultValue $null
+    $retentionReportAlertsRaw = Get-ObjectValueOrDefault -Object $retentionReportData -Property 'alerts' -DefaultValue @()
+
+    $retentionReportMeta = [ordered]@{
+        dateFrom = [string](Get-ObjectValueOrDefault -Object $retentionReportMetaRaw -Property 'dateFrom' -DefaultValue '')
+        dateTo = [string](Get-ObjectValueOrDefault -Object $retentionReportMetaRaw -Property 'dateTo' -DefaultValue '')
+        days = [int](Get-ObjectValueOrDefault -Object $retentionReportMetaRaw -Property 'days' -DefaultValue 0)
+        format = [string](Get-ObjectValueOrDefault -Object $retentionReportMetaRaw -Property 'format' -DefaultValue 'json')
+        timezone = [string](Get-ObjectValueOrDefault -Object $retentionReportMetaRaw -Property 'timezone' -DefaultValue 'America/Guayaquil')
+        generatedAt = [string](Get-ObjectValueOrDefault -Object $retentionReportMetaRaw -Property 'generatedAt' -DefaultValue '')
+    }
+    $retentionReportSummary = [ordered]@{
+        appointmentsTotal = [int](Get-ObjectValueOrDefault -Object $retentionReportSummaryRaw -Property 'appointmentsTotal' -DefaultValue 0)
+        appointmentsNonCancelled = [int](Get-ObjectValueOrDefault -Object $retentionReportSummaryRaw -Property 'appointmentsNonCancelled' -DefaultValue 0)
+        noShowRatePct = [Math]::Round([double](Get-ObjectValueOrDefault -Object $retentionReportSummaryRaw -Property 'noShowRatePct' -DefaultValue 0), 2)
+        recurrenceRatePct = [Math]::Round([double](Get-ObjectValueOrDefault -Object $retentionReportSummaryRaw -Property 'recurrenceRatePct' -DefaultValue 0), 2)
+        uniquePatients = [int](Get-ObjectValueOrDefault -Object $retentionReportSummaryRaw -Property 'uniquePatients' -DefaultValue 0)
+        recurrentPatients = [int](Get-ObjectValueOrDefault -Object $retentionReportSummaryRaw -Property 'recurrentPatients' -DefaultValue 0)
+    }
+
+    foreach ($retentionReportAlertItem in @($retentionReportAlertsRaw)) {
+        if ($null -eq $retentionReportAlertItem) {
+            continue
+        }
+        $alertCode = [string](Get-ObjectValueOrDefault -Object $retentionReportAlertItem -Property 'code' -DefaultValue '')
+        if ([string]::IsNullOrWhiteSpace($alertCode)) {
+            $alertCode = 'unknown_alert'
+        }
+        $alertSeverity = [string](Get-ObjectValueOrDefault -Object $retentionReportAlertItem -Property 'severity' -DefaultValue 'warn')
+        if ([string]::IsNullOrWhiteSpace($alertSeverity)) {
+            $alertSeverity = 'warn'
+        }
+        $alertImpact = [string](Get-ObjectValueOrDefault -Object $retentionReportAlertItem -Property 'impact' -DefaultValue 'retention')
+        if ([string]::IsNullOrWhiteSpace($alertImpact)) {
+            $alertImpact = 'retention'
+        }
+        $alertThresholdPct = [Math]::Round([double](Get-ObjectValueOrDefault -Object $retentionReportAlertItem -Property 'thresholdPct' -DefaultValue 0), 2)
+        $alertActualPct = [Math]::Round([double](Get-ObjectValueOrDefault -Object $retentionReportAlertItem -Property 'actualPct' -DefaultValue 0), 2)
+        $alertMinSample = [int](Get-ObjectValueOrDefault -Object $retentionReportAlertItem -Property 'minSample' -DefaultValue 0)
+
+        if ($alertSeverity -eq 'critical') {
+            $retentionReportAlertCriticalCount++
+        } else {
+            $retentionReportAlertWarnCount++
+        }
+
+        $retentionReportAlertCodes += $alertCode
+        $retentionReportAlerts += [ordered]@{
+            code = $alertCode
+            severity = $alertSeverity
+            impact = $alertImpact
+            thresholdPct = $alertThresholdPct
+            actualPct = $alertActualPct
+            minSample = $alertMinSample
+        }
+    }
+
+    $retentionReportAlertCount = $retentionReportAlerts.Count
+} elseif ($retentionReportResult.Ok) {
+    $retentionReportSource = 'invalid_payload'
+    $retentionReportError = 'retention-report payload invalido'
+    $retentionReportWarningCode = 'retention_report_invalid_payload'
+} else {
+    $retentionReportSource = 'unreachable'
+    $retentionReportError = [string]$retentionReportResult.Error
+    $retentionReportWarningCode = 'retention_report_unreachable'
 }
 
 if ($null -eq $retention) {
@@ -809,6 +900,9 @@ if (-not $calendarTokenHealthy) {
 if ($retentionNoShowRatePct -ge $NoShowRateWarnPct) {
     $warnings.Add("no_show_rate_alta_${retentionNoShowRatePct}pct")
 }
+if (-not [string]::IsNullOrWhiteSpace($retentionReportWarningCode)) {
+    $warnings.Add($retentionReportWarningCode)
+}
 if (-not $sentryBackendConfigured) {
     $warnings.Add('sentry_backend_no_configurado')
 }
@@ -959,6 +1053,14 @@ $retentionNoShowRateDeltaLabel = if ($null -eq $retentionNoShowRateDeltaPct) { '
 $retentionRecurrenceRateDeltaLabel = if ($null -eq $retentionRecurrenceRateDeltaPct) { 'n/a' } else { [string]$retentionRecurrenceRateDeltaPct }
 $retentionBaselineNoShowLabel = if ($null -eq $retentionBaselineNoShowRatePct) { 'n/a' } else { [string]$retentionBaselineNoShowRatePct }
 $retentionBaselineRecurrenceLabel = if ($null -eq $retentionBaselineRecurrenceRatePct) { 'n/a' } else { [string]$retentionBaselineRecurrenceRatePct }
+$retentionReportAlertCodesLabel = if ($retentionReportAlertCodes.Count -eq 0) { 'none' } else { ($retentionReportAlertCodes -join ', ') }
+$retentionReportAlertBlock = if ($retentionReportAlerts.Count -eq 0) {
+    '- none'
+} else {
+    ($retentionReportAlerts | ForEach-Object {
+        "- code: $($_.code) | severity: $($_.severity) | actualPct: $($_.actualPct) | thresholdPct: $($_.thresholdPct) | minSample: $($_.minSample)"
+    }) -join "`n"
+}
 $bookingConfirmedRateDeltaLabel = if ($null -eq $bookingConfirmedRateDeltaPct) { 'n/a' } else { [string]$bookingConfirmedRateDeltaPct }
 $startCheckoutRateDeltaLabel = if ($null -eq $startCheckoutRateDeltaPct) { 'n/a' } else { [string]$startCheckoutRateDeltaPct }
 
@@ -1143,6 +1245,18 @@ $markdown = @"
 - retention_baseline_recurrence_rate_pct: $retentionBaselineRecurrenceLabel
 - retention_trend_ready: $retentionTrendReady
 
+## Retention Report Alerts
+
+- source: $retentionReportSource
+- days: $RetentionReportDays
+- alert_count: $retentionReportAlertCount
+- warn_count: $retentionReportAlertWarnCount
+- critical_count: $retentionReportAlertCriticalCount
+- alert_codes: $retentionReportAlertCodesLabel
+- error: $retentionReportError
+
+$retentionReportAlertBlock
+
 ## Idempotency
 
 - requests_with_key: $idempotencyRequestsWithKey
@@ -1266,6 +1380,20 @@ $reportPayload = [ordered]@{
         recurrenceMinWarnPct = [Math]::Round([double]$RecurrenceRateMinWarnPct, 2)
         recurrenceDropWarnPct = [Math]::Round([double]$RecurrenceRateDropWarnPct, 2)
     }
+    retentionReport = [ordered]@{
+        source = $retentionReportSource
+        days = $RetentionReportDays
+        error = $retentionReportError
+        meta = $retentionReportMeta
+        summary = $retentionReportSummary
+        alertCounts = [ordered]@{
+            total = $retentionReportAlertCount
+            warn = $retentionReportAlertWarnCount
+            critical = $retentionReportAlertCriticalCount
+        }
+        alerts = @($retentionReportAlerts)
+        alertCodes = @($retentionReportAlertCodes)
+    }
     idempotency = [ordered]@{
         requestsWithKey = $idempotencyRequestsWithKey
         new = $idempotencyNew
@@ -1334,7 +1462,7 @@ Write-Host ''
 Write-Host "Reporte markdown: $reportMdPath"
 Write-Host "Reporte json: $reportJsonPath"
 Write-Host "start_checkout_rate_pct=$startCheckoutRatePct booking_confirmed=$bookingConfirmed booking_confirmed_rate_pct=$bookingConfirmedRatePct error_rate_pct=$errorRatePct core_p95_max_ms=$coreP95Max figo_post_p95_ms=$figoPostP95"
-Write-Host "retention_no_show_rate_pct=$retentionNoShowRatePct retention_recurrence_rate_pct=$retentionRecurrenceRatePct sentry_backend=$sentryBackendConfigured sentry_frontend=$sentryFrontendConfigured"
+Write-Host "retention_no_show_rate_pct=$retentionNoShowRatePct retention_recurrence_rate_pct=$retentionRecurrenceRatePct retention_report_alert_count=$retentionReportAlertCount sentry_backend=$sentryBackendConfigured sentry_frontend=$sentryFrontendConfigured"
 Write-Host "idempotency_requests_with_key=$idempotencyRequestsWithKey idempotency_conflict_rate_pct=$idempotencyConflictRatePct idempotency_replay_rate_pct=$idempotencyReplayRatePct"
 Write-Host "release_decision=$releaseDecision release_reason=$releaseReason"
 if ($warnings.Count -gt 0) {

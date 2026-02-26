@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 127
+  revision: 128
   updated_at: 2026-02-26
 
 tasks:
@@ -2287,5 +2287,43 @@ tasks:
     evidence_ref: "verification/agent-runs/AG-059.md"
     depends_on: ["AG-045"]
     prompt: "Frontend P1: Service pages conversion UX + QA hardening (acne/laser)"
+    created_at: 2026-02-26
+    updated_at: 2026-02-26
+
+  - id: AG-060
+    title: "C2 ops: alerta automatica de retencion semanal"
+    owner: ernes
+    executor: codex
+    status: done
+    status_since_at: "2026-02-26T02:52:59.870Z"
+    risk: high
+    scope: .github
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: [".github/workflows/weekly-kpi-report.yml", "REPORTE-SEMANAL-PRODUCCION.ps1"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-02-26T02:52:59.870Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "C2 ops: alerta automatica de retencion semanal"
+    acceptance_ref: "verification/agent-runs/AG-060.md"
+    evidence_ref: "verification/agent-runs/AG-060.md"
+    depends_on: []
+    prompt: "C2 ops: alerta automatica de retencion semanal"
     created_at: 2026-02-26
     updated_at: 2026-02-26
