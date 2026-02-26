@@ -521,20 +521,24 @@ class CalendarAvailabilityService
 
         $candidates = $appointments;
         if (isset($store['idx_appointments_date']) && is_array($store['idx_appointments_date'])) {
-            $indices = $store['idx_appointments_date'][$date] ?? [];
-            if (is_array($indices)) {
+            if (!array_key_exists($date, $store['idx_appointments_date'])) {
+                // If the date key is missing from the index, we can safely assume there are no appointments for this date
+                // provided the index is authoritative.
                 $candidates = [];
-                foreach ($indices as $idx) {
-                    if (isset($appointments[$idx])) {
-                        $candidates[] = $appointments[$idx];
-                    }
-                }
             } else {
-                // If the key exists but is not an array, it's weird, but safer to assume no appointments
-                // or fall back?
-                // Actually, if key is missing, it means NO appointments for this date.
-                // If indices is not array, treat as empty.
-                $candidates = [];
+                $indices = $store['idx_appointments_date'][$date];
+                if (is_array($indices)) {
+                    // Valid index entry found
+                    $candidates = [];
+                    foreach ($indices as $idx) {
+                        if (isset($appointments[$idx])) {
+                            $candidates[] = $appointments[$idx];
+                        }
+                    }
+                } else {
+                    // If the index entry exists but is malformed (not an array),
+                    // we cannot trust it. Fall back to the full linear scan (default $candidates = $appointments).
+                }
             }
         }
 

@@ -118,6 +118,74 @@ class CalendarAvailabilityServiceTest extends TestCase
         $this->assertEmpty($result['data']);
     }
 
+    public function testGetBookedSlotsFallsBackToLinearScanWhenIndexIsMalformedString(): void
+    {
+        $availability = \CalendarAvailabilityService::fromEnv();
+        $date = '2023-10-25';
+
+        $store = [
+            'appointments' => [
+                ['date' => $date, 'time' => '10:00', 'doctor' => 'rosero', 'status' => 'confirmed'],
+            ],
+            'idx_appointments_date' => 'this-should-be-an-array', // Malformed top-level index
+            'availability' => [
+                $date => ['10:00']
+            ]
+        ];
+
+        $result = $availability->getBookedSlots($store, $date, 'rosero');
+
+        $this->assertTrue($result['ok']);
+        $this->assertContains('10:00', $result['data']);
+    }
+
+    public function testGetBookedSlotsFallsBackToLinearScanWhenDateEntryIsMalformed(): void
+    {
+        $availability = \CalendarAvailabilityService::fromEnv();
+        $date = '2023-10-25';
+
+        $store = [
+            'appointments' => [
+                ['date' => $date, 'time' => '10:00', 'doctor' => 'rosero', 'status' => 'confirmed'],
+            ],
+            'idx_appointments_date' => [
+                $date => 'not-an-array-of-indices', // Malformed date entry
+            ],
+            'availability' => [
+                $date => ['10:00']
+            ]
+        ];
+
+        $result = $availability->getBookedSlots($store, $date, 'rosero');
+
+        $this->assertTrue($result['ok']);
+        $this->assertContains('10:00', $result['data']);
+    }
+
+    public function testGetBookedSlotsIgnoresNonExistentIndices(): void
+    {
+        $availability = \CalendarAvailabilityService::fromEnv();
+        $date = '2023-10-25';
+
+        $store = [
+            'appointments' => [
+                ['date' => $date, 'time' => '10:00', 'doctor' => 'rosero', 'status' => 'confirmed'],
+            ],
+            'idx_appointments_date' => [
+                $date => [0, 999], // 999 does not exist
+            ],
+            'availability' => [
+                $date => ['10:00']
+            ]
+        ];
+
+        $result = $availability->getBookedSlots($store, $date, 'rosero');
+
+        $this->assertTrue($result['ok']);
+        $this->assertContains('10:00', $result['data']);
+        $this->assertCount(1, $result['data']);
+    }
+
     private function rememberAndSetEnv(string $key, string $value): void
     {
         if (!array_key_exists($key, $this->originalEnv)) {
