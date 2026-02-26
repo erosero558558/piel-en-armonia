@@ -49,6 +49,87 @@ function parseRevisionLine(segment) {
     };
 }
 
+function parseTaskIdLine(segment) {
+    const matches = String(segment || '')
+        .split('\n')
+        .map((line) => line.replace(/\r$/, ''))
+        .join('\n')
+        .match(/^(\s*-\s*id:\s*)(AG-(\d+))\s*$/m);
+    if (!matches) return null;
+    return {
+        prefix: matches[1] || '',
+        id: matches[2],
+        numericId: Number(matches[3]),
+    };
+}
+
+function buildTaskId(idNumber) {
+    return `AG-${String(Math.max(0, Number(idNumber) || 0)).padStart(3, '0')}`;
+}
+
+function collectMaxTaskId(raw) {
+    const pattern = /^\s*-\s*id:\s*AG-(\d+)\s*$/gm;
+    let max = 0;
+    let match = pattern.exec(String(raw || ''));
+    while (match) {
+        const value = Number(match[1]);
+        if (Number.isFinite(value) && value > max) {
+            max = value;
+        }
+        match = pattern.exec(String(raw || ''));
+    }
+    return max;
+}
+
+function rewriteFirstTaskId(segment, replacementId) {
+    let replaced = false;
+    const content = String(segment || '');
+    return content.replace(/^(\s*-\s*id:\s*)(AG-\d+)\s*$/m, (full, prefix) => {
+        if (replaced) return full;
+        replaced = true;
+        return `${prefix}${replacementId}`;
+    });
+}
+
+function trimOuterNewlines(value) {
+    return String(value || '').replace(/^\n+|\n+$/g, '');
+}
+
+function mergeTaskBlocks(left, right, options) {
+    const leftTask = parseTaskIdLine(left);
+    const rightTask = parseTaskIdLine(right);
+    if (!leftTask || !rightTask) return null;
+
+    const leftContent = trimOuterNewlines(left);
+    const rightContent = trimOuterNewlines(right);
+    if (!leftContent || !rightContent) return null;
+
+    if (leftTask.id === rightTask.id) {
+        const nextValue = options.nextTaskNumericId;
+        const remappedId = buildTaskId(nextValue);
+        options.nextTaskNumericId += 1;
+        const rightRemapped = rewriteFirstTaskId(rightContent, remappedId);
+        return {
+            content: `${leftContent}\n\n${rightRemapped}\n`,
+            diagnostics: {
+                kind: 'task_id_conflict_resolved',
+                left_id: leftTask.id,
+                right_id: rightTask.id,
+                remapped_to: remappedId,
+            },
+        };
+    }
+
+    return {
+        content: `${leftContent}\n\n${rightContent}\n`,
+        diagnostics: {
+            kind: 'task_blocks_merged',
+            left_id: leftTask.id,
+            right_id: rightTask.id,
+        },
+    };
+}
+
 function resolveRevisionConflicts(raw) {
     const input = String(raw || '');
     const conflictPattern =
@@ -57,35 +138,49 @@ function resolveRevisionConflicts(raw) {
     let replaced = 0;
     let remaining = 0;
     const diagnostics = [];
+    const mergeOptions = {
+        nextTaskNumericId: collectMaxTaskId(input) + 1,
+    };
 
     resolved = resolved.replace(
         conflictPattern,
         (fullMatch, left, right, offset) => {
             const leftRevision = parseRevisionLine(left);
             const rightRevision = parseRevisionLine(right);
-            if (!leftRevision || !rightRevision) {
-                remaining += 1;
+            if (leftRevision && rightRevision) {
+                replaced += 1;
+                const revision = Math.max(
+                    leftRevision.revision,
+                    rightRevision.revision
+                );
+                const indent =
+                    leftRevision.indent || rightRevision.indent || '  ';
                 diagnostics.push({
-                    kind: 'non_revision_conflict',
+                    kind: 'revision_conflict_resolved',
                     offset,
+                    left_revision: leftRevision.revision,
+                    right_revision: rightRevision.revision,
+                    resolved_revision: revision,
                 });
-                return fullMatch;
+                return `${indent}revision: ${revision}\n`;
             }
 
-            replaced += 1;
-            const revision = Math.max(
-                leftRevision.revision,
-                rightRevision.revision
-            );
-            const indent = leftRevision.indent || rightRevision.indent || '  ';
+            const mergedTask = mergeTaskBlocks(left, right, mergeOptions);
+            if (mergedTask) {
+                replaced += 1;
+                diagnostics.push({
+                    offset,
+                    ...mergedTask.diagnostics,
+                });
+                return mergedTask.content;
+            }
+
+            remaining += 1;
             diagnostics.push({
-                kind: 'revision_conflict_resolved',
+                kind: 'non_revision_conflict',
                 offset,
-                left_revision: leftRevision.revision,
-                right_revision: rightRevision.revision,
-                resolved_revision: revision,
             });
-            return `${indent}revision: ${revision}\n`;
+            return fullMatch;
         }
     );
 
@@ -120,6 +215,14 @@ function print(payload, asJson) {
             if (item.kind === 'revision_conflict_resolved') {
                 console.log(
                     `- resolved revision conflict at ${item.offset}: ${item.left_revision} vs ${item.right_revision} -> ${item.resolved_revision}`
+                );
+            } else if (item.kind === 'task_id_conflict_resolved') {
+                console.log(
+                    `- resolved task id conflict at ${item.offset}: ${item.left_id} + ${item.right_id} -> ${item.remapped_to}`
+                );
+            } else if (item.kind === 'task_blocks_merged') {
+                console.log(
+                    `- merged task blocks at ${item.offset}: ${item.left_id} + ${item.right_id}`
                 );
             } else {
                 console.log(
@@ -175,6 +278,9 @@ if (require.main === module) {
 module.exports = {
     parseArgs,
     parseRevisionLine,
+    parseTaskIdLine,
+    collectMaxTaskId,
+    mergeTaskBlocks,
     resolveRevisionConflicts,
     run,
 };

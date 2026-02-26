@@ -69,3 +69,57 @@ policy:
     assert.match(updated, /\n {2}revision: 102\n/);
     assert.doesNotMatch(updated, /<<<<<<<|=======|>>>>>>>/);
 });
+
+test('resolveRevisionConflicts remapea task id duplicado y conserva ambos bloques', () => {
+    const raw = `version: 1
+tasks:
+  - id: AG-070
+    title: "previo"
+<<<<<<< HEAD
+  - id: AG-071
+    title: "frontend"
+=======
+  - id: AG-071
+    title: "backend"
+>>>>>>> incoming
+`;
+    const result = resolver.resolveRevisionConflicts(raw);
+    assert.equal(result.remaining, 0);
+    assert.equal(result.hasUnresolvedMarkers, false);
+    assert.match(
+        result.resolvedContent,
+        /- id: AG-071\s*\n\s*title: "frontend"/
+    );
+    assert.match(
+        result.resolvedContent,
+        /- id: AG-072\s*\n\s*title: "backend"/
+    );
+    assert.equal(
+        result.diagnostics.some(
+            (item) => item.kind === 'task_id_conflict_resolved'
+        ),
+        true
+    );
+});
+
+test('resolveRevisionConflicts mergea bloques de task con ids distintos', () => {
+    const raw = `version: 1
+tasks:
+<<<<<<< HEAD
+  - id: AG-071
+    title: "frontend"
+=======
+  - id: AG-072
+    title: "backend"
+>>>>>>> incoming
+`;
+    const result = resolver.resolveRevisionConflicts(raw);
+    assert.equal(result.remaining, 0);
+    assert.equal(result.hasUnresolvedMarkers, false);
+    assert.match(result.resolvedContent, /- id: AG-071/);
+    assert.match(result.resolvedContent, /- id: AG-072/);
+    assert.equal(
+        result.diagnostics.some((item) => item.kind === 'task_blocks_merged'),
+        true
+    );
+});
