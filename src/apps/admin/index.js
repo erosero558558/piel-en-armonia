@@ -44,6 +44,9 @@ import {
     initAvailabilityCalendar,
     changeMonth,
     jumpAvailabilityToToday,
+    jumpAvailabilityToNextWithSlots,
+    focusAvailabilityTimeInput,
+    isAvailabilitySectionActive,
     addTimeSlot,
     prefillTimeSlot,
     removeTimeSlot,
@@ -297,6 +300,19 @@ function handleAdminKeyboardShortcuts(event) {
         return;
     }
 
+    if (
+        event.key === '/' &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        isAvailabilitySectionActive() &&
+        !isTypingContextTarget(event.target)
+    ) {
+        event.preventDefault();
+        focusAvailabilityTimeInput();
+        return;
+    }
+
     if (!event.altKey || !event.shiftKey) return;
     if (isTypingContextTarget(event.target)) return;
 
@@ -306,6 +322,44 @@ function handleAdminKeyboardShortcuts(event) {
         event.preventDefault();
         setSidebarOpen(!isSidebarOpen());
         return;
+    }
+
+    if (isAvailabilitySectionActive()) {
+        if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            changeMonth(-1);
+            return;
+        }
+        if (event.key === 'ArrowRight') {
+            event.preventDefault();
+            changeMonth(1);
+            return;
+        }
+        if (code === 'keyy') {
+            event.preventDefault();
+            jumpAvailabilityToToday();
+            return;
+        }
+        if (code === 'keys') {
+            event.preventDefault();
+            jumpAvailabilityToNextWithSlots();
+            return;
+        }
+        if (code === 'keyd') {
+            event.preventDefault();
+            void duplicateAvailabilityDayToNext();
+            return;
+        }
+        if (code === 'keyv') {
+            event.preventDefault();
+            void pasteAvailabilityDay();
+            return;
+        }
+        if (code === 'keyx') {
+            event.preventDefault();
+            void clearAvailabilityDay();
+            return;
+        }
     }
 
     const appointmentShortcutFilters = {
@@ -730,6 +784,11 @@ function attachGlobalListeners() {
             if (action === 'availability-today') {
                 event.preventDefault();
                 jumpAvailabilityToToday();
+                return;
+            }
+            if (action === 'availability-next-with-slots') {
+                event.preventDefault();
+                jumpAvailabilityToNextWithSlots();
                 return;
             }
             if (action === 'prefill-time-slot') {

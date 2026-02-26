@@ -11,7 +11,7 @@
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="stylesheet" href="styles.min.css" />
         <link rel="stylesheet" href="admin.min.css" />
-        <link rel="stylesheet" href="admin.css?v=admin-20260226-nav4" />
+        <link rel="stylesheet" href="admin.css?v=admin-20260226-nav5" />
         <link
             href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
             rel="stylesheet"
@@ -963,6 +963,14 @@
                                     <i class="fas fa-calendar-day"></i>
                                     Hoy
                                 </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-secondary btn-sm availability-today-btn"
+                                    data-action="availability-next-with-slots"
+                                >
+                                    <i class="fas fa-forward"></i>
+                                    Siguiente con horarios
+                                </button>
                             </div>
                             <div class="calendar-legend" aria-hidden="true">
                                 <span class="calendar-legend-chip">
@@ -984,6 +992,13 @@
                                     Hoy
                                 </span>
                             </div>
+                            <p class="appointments-shortcut-hint">
+                                Atajos: / horario | Alt+Shift+Y hoy |
+                                Alt+Shift+S siguiente con horarios |
+                                Alt+Shift+flechas cambia mes |
+                                Alt+Shift+D duplicar | Alt+Shift+V pegar |
+                                Alt+Shift+X limpiar
+                            </p>
                             <div
                                 class="calendar-grid"
                                 id="availabilityCalendar"
@@ -1186,6 +1201,6 @@
         ></div>
 
         <!-- utils.js is now bundled/imported by admin.js -->
-        <script src="admin.js?v=admin-20260226-nav4" type="module"></script>
+        <script src="admin.js?v=admin-20260226-nav5" type="module"></script>
     </body>
 </html>

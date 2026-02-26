@@ -14,6 +14,8 @@ let availabilityDayClipboard = null;
 
 const AVAILABILITY_DAY_CLIPBOARD_STORAGE_KEY =
     'admin-availability-day-clipboard';
+const AVAILABILITY_LAST_SELECTED_DATE_STORAGE_KEY =
+    'admin-availability-last-selected-date';
 
 function toLocalDateKey(date) {
     const year = date.getFullYear();
@@ -34,6 +36,39 @@ function parseLocalDateKey(value) {
     }
     const parsed = new Date(normalized);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function isValidDateKey(value) {
+    return Boolean(parseLocalDateKey(value));
+}
+
+function readLastSelectedDateFromStorage() {
+    try {
+        const stored = localStorage.getItem(
+            AVAILABILITY_LAST_SELECTED_DATE_STORAGE_KEY
+        );
+        return isValidDateKey(stored) ? String(stored).trim() : '';
+    } catch (_error) {
+        return '';
+    }
+}
+
+function persistLastSelectedDateToStorage(dateValue) {
+    try {
+        const normalized = String(dateValue || '').trim();
+        if (!isValidDateKey(normalized)) {
+            localStorage.removeItem(
+                AVAILABILITY_LAST_SELECTED_DATE_STORAGE_KEY
+            );
+            return;
+        }
+        localStorage.setItem(
+            AVAILABILITY_LAST_SELECTED_DATE_STORAGE_KEY,
+            normalized
+        );
+    } catch (_error) {
+        // localStorage unavailable
+    }
 }
 
 function readAvailabilityClipboardFromStorage() {
@@ -139,6 +174,47 @@ function setCurrentMonthFromDateKey(dateValue) {
     const parsedDate = parseLocalDateKey(dateValue);
     if (!parsedDate) return;
     currentMonth = new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1);
+}
+
+function getDatesWithSlotsSorted() {
+    return Object.keys(currentAvailability || {})
+        .filter((dateKey) => {
+            if (!isValidDateKey(dateKey)) return false;
+            const slots = currentAvailability[dateKey];
+            return Array.isArray(slots) && slots.length > 0;
+        })
+        .sort();
+}
+
+function findNextDateWithSlots({
+    referenceDate = '',
+    includeReference = false,
+} = {}) {
+    const datesWithSlots = getDatesWithSlotsSorted();
+    if (datesWithSlots.length === 0) return '';
+
+    const reference = isValidDateKey(referenceDate)
+        ? String(referenceDate).trim()
+        : toLocalDateKey(new Date());
+
+    const comparator = includeReference
+        ? (dateKey) => dateKey >= reference
+        : (dateKey) => dateKey > reference;
+    const nextDate = datesWithSlots.find(comparator);
+    return nextDate || datesWithSlots[0];
+}
+
+function navigateAvailabilityDateByOffset(dateValue, dayOffset) {
+    const baseDate = parseLocalDateKey(dateValue);
+    if (!baseDate) return;
+    const offset = Number(dayOffset);
+    if (!Number.isFinite(offset) || offset === 0) return;
+
+    const nextDate = new Date(baseDate);
+    nextDate.setDate(baseDate.getDate() + offset);
+    const nextDateKey = toLocalDateKey(nextDate);
+    setCurrentMonthFromDateKey(nextDateKey);
+    selectDate(nextDateKey);
 }
 
 function ensureStatusElements() {
@@ -511,8 +587,16 @@ async function refreshAvailabilitySnapshot() {
         availabilityReadOnly = String(mergedMeta.source || '') === 'google';
         renderStatus();
         toggleReadOnlyUi();
-        if (selectedDate && !currentAvailability[selectedDate]) {
+        if (selectedDate && !isValidDateKey(selectedDate)) {
             selectedDate = null;
+            persistLastSelectedDateToStorage('');
+            clearSelectedDateState();
+            return;
+        }
+
+        if (selectedDate) {
+            loadTimeSlots(selectedDate);
+        } else {
             clearSelectedDateState();
         }
     } catch (error) {
@@ -583,9 +667,34 @@ export function renderAvailabilityCalendar() {
 
         dayEl.addEventListener('click', () => selectDate(dateStr));
         dayEl.addEventListener('keydown', (event) => {
-            if (event.key !== 'Enter' && event.key !== ' ') return;
-            event.preventDefault();
-            selectDate(dateStr);
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                selectDate(dateStr);
+                return;
+            }
+
+            if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                navigateAvailabilityDateByOffset(dateStr, -1);
+                return;
+            }
+
+            if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                navigateAvailabilityDateByOffset(dateStr, 1);
+                return;
+            }
+
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                navigateAvailabilityDateByOffset(dateStr, -7);
+                return;
+            }
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                navigateAvailabilityDateByOffset(dateStr, 7);
+            }
         });
         calendar.appendChild(dayEl);
     }
@@ -602,12 +711,24 @@ export function renderAvailabilityCalendar() {
 
 export async function initAvailabilityCalendar() {
     await refreshAvailabilitySnapshot();
+    if (!selectedDate) {
+        const rememberedDate = readLastSelectedDateFromStorage();
+        if (isValidDateKey(rememberedDate)) {
+            selectedDate = rememberedDate;
+        }
+    }
+
+    if (selectedDate && !isValidDateKey(selectedDate)) {
+        selectedDate = null;
+    }
+    if (selectedDate) {
+        setCurrentMonthFromDateKey(selectedDate);
+    }
     renderAvailabilityCalendar();
     if (!selectedDate) {
         clearSelectedDateState();
     } else {
-        toggleReadOnlyUi();
-        renderAvailabilitySelectionSummary();
+        selectDate(selectedDate, { persist: false });
     }
 }
 
@@ -623,8 +744,43 @@ export function jumpAvailabilityToToday() {
     selectDate(toLocalDateKey(today));
 }
 
-function selectDate(dateStr) {
+export function jumpAvailabilityToNextWithSlots() {
+    const nextDateKey = findNextDateWithSlots({
+        referenceDate: selectedDate || toLocalDateKey(new Date()),
+        includeReference: false,
+    });
+
+    if (!nextDateKey) {
+        showToast('No hay fechas con horarios configurados', 'warning');
+        return;
+    }
+
+    setCurrentMonthFromDateKey(nextDateKey);
+    selectDate(nextDateKey);
+}
+
+export function focusAvailabilityTimeInput() {
+    const input = document.getElementById('newSlotTime');
+    if (!(input instanceof HTMLInputElement)) return;
+    if (availabilityReadOnly || input.closest('.is-hidden')) {
+        return;
+    }
+    input.focus({ preventScroll: true });
+}
+
+export function isAvailabilitySectionActive() {
+    return (
+        document.getElementById('availability')?.classList.contains('active') ||
+        false
+    );
+}
+
+function selectDate(dateStr, { persist = true } = {}) {
+    if (!isValidDateKey(dateStr)) return;
     selectedDate = dateStr;
+    if (persist) {
+        persistLastSelectedDateToStorage(dateStr);
+    }
     renderAvailabilityCalendar();
     const date = parseLocalDateKey(dateStr) || new Date(dateStr);
     document.getElementById('selectedDate').textContent =

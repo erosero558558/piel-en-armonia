@@ -21,10 +21,10 @@ function u(e) {
 function m(e) {
     o = e || {};
 }
-function p(e) {
+function f(e) {
     i = e;
 }
-function f(e) {
+function p(e) {
     r = e || null;
 }
 function g(e) {
@@ -160,7 +160,7 @@ function C(e) {
         'Sin definir'
     );
 }
-function I(e) {
+function D(e) {
     return (
         {
             paid: 'Pagado',
@@ -179,7 +179,7 @@ function I(e) {
         'Pendiente'
     );
 }
-function A(e) {
+function I(e) {
     return (
         {
             ahora: 'Lo antes posible',
@@ -189,7 +189,7 @@ function A(e) {
         }[e] || e
     );
 }
-function D(e) {
+function A(e) {
     const t = String(e || '')
         .toLowerCase()
         .trim();
@@ -222,7 +222,7 @@ async function N() {
             a = Array.isArray(n.appointments) ? n.appointments : [];
         (c(a), M('appointments', a));
         const o = Array.isArray(n.callbacks)
-            ? n.callbacks.map((e) => ({ ...e, status: D(e.status) }))
+            ? n.callbacks.map((e) => ({ ...e, status: A(e.status) }))
             : [];
         (l(o), M('callbacks', o));
         const i = Array.isArray(n.reviews) ? n.reviews : [];
@@ -245,12 +245,12 @@ async function N() {
             M('availability-meta', s),
             n.funnelMetrics && 'object' == typeof n.funnelMetrics)
         )
-            p(n.funnelMetrics);
+            f(n.funnelMetrics);
         else {
             const e = await y('funnel-metrics').catch(() => null);
             e && e.data && 'object' == typeof e.data
-                ? p(e.data)
-                : p({
+                ? f(e.data)
+                : f({
                       summary: {
                           viewBooking: 0,
                           startCheckout: 0,
@@ -284,14 +284,14 @@ async function N() {
                       },
                   });
         }
-        t && t.ok ? (f(t), M('health-status', t)) : f(null);
+        t && t.ok ? (p(t), M('health-status', t)) : p(null);
     } catch (e) {
         (c(T('appointments', [])),
-            l(T('callbacks', []).map((e) => ({ ...e, status: D(e.status) }))),
+            l(T('callbacks', []).map((e) => ({ ...e, status: A(e.status) }))),
             d(T('reviews', [])),
             u(T('availability', {})),
             m(T('availability-meta', {})),
-            p({
+            f({
                 summary: {
                     viewBooking: 0,
                     startCheckout: 0,
@@ -324,7 +324,7 @@ async function N() {
                     recurrenceRatePct: 0,
                 },
             }),
-            f(T('health-status', null)),
+            p(T('health-status', null)),
             w(
                 'No se pudo conectar al backend. Usando datos locales.',
                 'warning'
@@ -491,7 +491,7 @@ function q() {
     const d = document.getElementById('totalNoShows');
     d && (d.textContent = k(l));
     const u = [];
-    for (const e of t) 'pendiente' === D(e.status) && u.push(e);
+    for (const e of t) 'pendiente' === A(e.status) && u.push(e);
     document.getElementById('pendingCallbacks').textContent = u.length;
     let m = 0;
     (n.length > 0 &&
@@ -503,24 +503,24 @@ function q() {
             s > 0 ? `${c} (${s} por validar)` : c),
         (document.getElementById('callbacksBadge').textContent = u.length),
         (document.getElementById('reviewsBadge').textContent = n.length));
-    const p = document.getElementById('todayAppointmentsList');
+    const f = document.getElementById('todayAppointmentsList');
     0 === o.length
-        ? (p.innerHTML = '<p class="empty-message">No hay citas para hoy</p>')
-        : (p.innerHTML = o
+        ? (f.innerHTML = '<p class="empty-message">No hay citas para hoy</p>')
+        : (f.innerHTML = o
               .map(
                   (e) =>
                       `\n            <div class="upcoming-item">\n                <div class="upcoming-time">\n                    <span class="time">${v(e.time)}</span>\n                </div>\n                <div class="upcoming-info">\n                    <span class="name">${v(e.name)}</span>\n                    <span class="service">${v(L(e.service))}</span>\n                </div>\n                <div class="upcoming-actions">\n                    <a href="tel:${v(e.phone)}" class="btn-icon" title="Llamar">\n                        <i class="fas fa-phone"></i>\n                    </a>\n                    <a href="https://wa.me/${v(String(e.phone || '').replace(/\D/g, ''))}" target="_blank" rel="noopener noreferrer" class="btn-icon" title="WhatsApp">\n                        <i class="fab fa-whatsapp"></i>\n                    </a>\n                </div>\n            </div>\n        `
               )
               .join(''));
-    const f = document.getElementById('recentCallbacksList'),
+    const p = document.getElementById('recentCallbacksList'),
         g = t.slice(-5).reverse();
     (0 === g.length
-        ? (f.innerHTML =
+        ? (p.innerHTML =
               '<p class="empty-message">No hay callbacks pendientes</p>')
-        : (f.innerHTML = g
+        : (p.innerHTML = g
               .map(
                   (e) =>
-                      `\n            <div class="upcoming-item">\n                <div class="upcoming-info">\n                    <span class="name">${v(e.telefono)}</span>\n                    <span class="service">${v(A(e.preferencia))}</span>\n                </div>\n                <div class="upcoming-actions">\n                    <a href="tel:${v(e.telefono)}" class="btn-icon" title="Llamar">\n                        <i class="fas fa-phone"></i>\n                    </a>\n                </div>\n            </div>\n        `
+                      `\n            <div class="upcoming-item">\n                <div class="upcoming-info">\n                    <span class="name">${v(e.telefono)}</span>\n                    <span class="service">${v(I(e.preferencia))}</span>\n                </div>\n                <div class="upcoming-actions">\n                    <a href="tel:${v(e.telefono)}" class="btn-icon" title="Llamar">\n                        <i class="fas fa-phone"></i>\n                    </a>\n                </div>\n            </div>\n        `
               )
               .join('')),
         (function () {
@@ -574,10 +574,10 @@ function q() {
             u && (u.textContent = k(a));
             const m = document.getElementById('funnelBookingConfirmed');
             m && (m.textContent = k(o));
-            const p = document.getElementById('funnelAbandonRate');
-            p && (p.textContent = S(l));
-            const f = document.getElementById('checkoutConversionRate');
-            f && (f.textContent = S(c));
+            const f = document.getElementById('funnelAbandonRate');
+            f && (f.textContent = S(l));
+            const p = document.getElementById('checkoutConversionRate');
+            p && (p.textContent = S(c));
             const g = E(e.events && e.events.booking_error),
                 h = E(e.events && e.events.checkout_error),
                 y = a > 0 ? ((g + h) / a) * 100 : 0,
@@ -654,7 +654,7 @@ const O = 'all',
         contacted: 'Contactados',
         today: 'Hoy',
     };
-function V() {
+function K() {
     return {
         filterSelect: document.getElementById('callbackFilter'),
         searchInput: document.getElementById('searchCallbacks'),
@@ -668,7 +668,7 @@ function V() {
         clearFiltersBtn: document.getElementById('clearCallbacksFiltersBtn'),
     };
 }
-function K(e) {
+function V(e) {
     const t = String(e || '')
         .trim()
         .toLowerCase();
@@ -683,15 +683,15 @@ function J(e) {
     return Number.isNaN(t.getTime()) ? null : t;
 }
 function Y() {
-    Z({ filter: V().filterSelect?.value || O });
+    Z({ filter: K().filterSelect?.value || O });
 }
 function Z(e, { preserveSearch: n = !0 } = {}) {
-    const a = V(),
+    const a = K(),
         o = a.searchInput?.value ?? z.search,
         i = n ? (e.search ?? o) : (e.search ?? ''),
         r = (function (e) {
             const n = {
-                    filter: K(e.filter),
+                    filter: V(e.filter),
                     search: String(e.search || '')
                         .trim()
                         .toLowerCase(),
@@ -706,7 +706,7 @@ function Z(e, { preserveSearch: n = !0 } = {}) {
                         o = n ? n.getTime() : 0;
                     return (a ? a.getTime() : 0) - o;
                 })).filter((e) => {
-                    const t = D(e.status),
+                    const t = A(e.status),
                         o = J(e.fecha),
                         i = o ? W(o) : '';
                     return (
@@ -734,17 +734,17 @@ function Z(e, { preserveSearch: n = !0 } = {}) {
                 (0 !== e.length
                     ? (t.innerHTML = e
                           .map((e) => {
-                              const t = D(e.status),
+                              const t = A(e.status),
                                   n = Number(e.id) || 0,
                                   a = encodeURIComponent(String(e.fecha || ''));
-                              return `\n            <div class="callback-card ${t}">\n                <div class="callback-header">\n                    <span class="callback-phone">${v(e.telefono)}</span>\n                    <span class="status-badge status-${t}">\n                        ${'pendiente' === t ? 'Pendiente' : 'Contactado'}\n                    </span>\n                </div>\n                <span class="callback-preference">\n                    <i class="fas fa-clock"></i>\n                    ${v(A(e.preferencia))}\n                </span>\n                <p class="callback-time">\n                    <i class="fas fa-calendar"></i>\n                    ${v(new Date(e.fecha).toLocaleString('es-EC'))}\n                </p>\n                <div class="callback-actions">\n                    <a href="tel:${v(e.telefono)}" class="btn btn-phone btn-sm" aria-label="Llamar al callback ${v(e.telefono)}">\n                        <i class="fas fa-phone"></i>\n                        Llamar\n                    </a>\n                    ${'pendiente' === t ? `\n                        <button type="button" class="btn btn-primary btn-sm" data-action="mark-contacted" data-callback-id="${n}" data-callback-date="${a}">\n                            <i class="fas fa-check"></i>\n                            Marcar contactado\n                        </button>\n                    ` : ''}\n                </div>\n            </div>\n        `;
+                              return `\n            <div class="callback-card ${t}">\n                <div class="callback-header">\n                    <span class="callback-phone">${v(e.telefono)}</span>\n                    <span class="status-badge status-${t}">\n                        ${'pendiente' === t ? 'Pendiente' : 'Contactado'}\n                    </span>\n                </div>\n                <span class="callback-preference">\n                    <i class="fas fa-clock"></i>\n                    ${v(I(e.preferencia))}\n                </span>\n                <p class="callback-time">\n                    <i class="fas fa-calendar"></i>\n                    ${v(new Date(e.fecha).toLocaleString('es-EC'))}\n                </p>\n                <div class="callback-actions">\n                    <a href="tel:${v(e.telefono)}" class="btn btn-phone btn-sm" aria-label="Llamar al callback ${v(e.telefono)}">\n                        <i class="fas fa-phone"></i>\n                        Llamar\n                    </a>\n                    ${'pendiente' === t ? `\n                        <button type="button" class="btn btn-primary btn-sm" data-action="mark-contacted" data-callback-id="${n}" data-callback-date="${a}">\n                            <i class="fas fa-check"></i>\n                            Marcar contactado\n                        </button>\n                    ` : ''}\n                </div>\n            </div>\n        `;
                           })
                           .join(''))
                     : (t.innerHTML =
                           '\n            <div class="card-empty-state">\n                <i class="fas fa-phone-slash" aria-hidden="true"></i>\n                <strong>No hay callbacks registrados</strong>\n                <p>Las solicitudes de llamada apareceran aqui para seguimiento rapido.</p>\n                </div>\n        '));
         })(r.filtered),
         (function (e, t, n) {
-            const a = V(),
+            const a = K(),
                 {
                     toolbarMeta: o,
                     toolbarState: i,
@@ -755,22 +755,22 @@ function Z(e, { preserveSearch: n = !0 } = {}) {
                 } = a,
                 d = e.length,
                 u = t.length,
-                m = e.filter((e) => 'pendiente' === D(e.status)).length,
-                p = e.filter((e) => 'contactado' === D(e.status)).length;
+                m = e.filter((e) => 'pendiente' === A(e.status)).length,
+                f = e.filter((e) => 'contactado' === A(e.status)).length;
             o &&
                 (o.innerHTML = [
                     `<span class="toolbar-chip is-accent">Mostrando ${v(String(d))}${u !== d ? ` de ${v(String(u))}` : ''}</span>`,
                     `<span class="toolbar-chip">Pendientes: ${v(String(m))}</span>`,
-                    `<span class="toolbar-chip">Contactados: ${v(String(p))}</span>`,
+                    `<span class="toolbar-chip">Contactados: ${v(String(f))}</span>`,
                 ].join(''));
-            const f = n.filter !== O,
+            const p = n.filter !== O,
                 g = '' !== n.search;
             if (i)
-                if (f || g) {
+                if (p || g) {
                     const e = [
                         '<span class="toolbar-state-label">Criterios activos:</span>',
                     ];
-                    (f &&
+                    (p &&
                         e.push(
                             `<span class="toolbar-state-value">${v(G[n.filter] || n.filter)}</span>`
                         ),
@@ -786,7 +786,7 @@ function Z(e, { preserveSearch: n = !0 } = {}) {
                     i.innerHTML =
                         '<span class="toolbar-state-empty">Sin filtros activos</span>';
             var h, y;
-            (r && r.classList.toggle('is-hidden', !f && !g),
+            (r && r.classList.toggle('is-hidden', !p && !g),
                 c && (c.value = n.filter),
                 l && (l.value = n.search),
                 (h = s),
@@ -802,7 +802,7 @@ function Q(e, { preserveSearch: t = !0 } = {}) {
     Z({ filter: e }, { preserveSearch: t });
 }
 function X() {
-    Z({ search: V().searchInput?.value || '' });
+    Z({ search: K().searchInput?.value || '' });
 }
 let ee = !1;
 function te(e, t = 'muted') {
@@ -949,16 +949,16 @@ async function le() {
 const de = 'themeMode',
     ue = new Set(['light', 'dark', 'system']);
 let me = 'system',
-    pe = null,
-    fe = !1,
+    fe = null,
+    pe = !1,
     ge = !1,
     he = null;
 function ye() {
     return (
-        pe ||
+        fe ||
             'function' != typeof window.matchMedia ||
-            (pe = window.matchMedia('(prefers-color-scheme: dark)')),
-        pe
+            (fe = window.matchMedia('(prefers-color-scheme: dark)')),
+        fe
     );
 }
 function be(e) {
@@ -1026,9 +1026,9 @@ function Le(e) {
 const Be = 'admin-appointments-sort',
     $e = 'admin-appointments-density',
     Ce = 'datetime_desc',
-    Ie = 'comfortable',
-    Ae = 'all',
-    De = new Set(['datetime_desc', 'datetime_asc', 'triage', 'patient_az']),
+    De = 'comfortable',
+    Ie = 'all',
+    Ae = new Set(['datetime_desc', 'datetime_asc', 'triage', 'patient_az']),
     Te = new Set(['comfortable', 'compact']),
     Me = new Set([
         'all',
@@ -1063,15 +1063,15 @@ function Ne() {
 }
 function _e(e) {
     const t = String(e || '').trim();
-    return Me.has(t) ? t : Ae;
+    return Me.has(t) ? t : Ie;
 }
 function Pe(e) {
     const t = String(e || '').trim();
-    return De.has(t) ? t : Ce;
+    return Ae.has(t) ? t : Ce;
 }
 function He(e) {
     const t = String(e || '').trim();
-    return Te.has(t) ? t : Ie;
+    return Te.has(t) ? t : De;
 }
 function Re(e, t) {
     try {
@@ -1117,7 +1117,7 @@ function Fe() {
     const t = (function () {
         const { filterSelect: e, sortSelect: t, searchInput: n } = Ne();
         return {
-            filter: _e(e?.value || Ae),
+            filter: _e(e?.value || Ie),
             sort: Pe(t?.value || Ce),
             search: String(n?.value || '').trim(),
         };
@@ -1328,14 +1328,14 @@ function Fe() {
                                   year: 'numeric',
                               });
                     })(e.date)
-                )}</td>\n            <td data-label="Hora">${v(e.time)}</td>\n            <td data-label="Pago" class="appointment-payment-cell">\n                <strong>${v(e.price || '$0.00')}</strong>\n                <small>${v(C(e.paymentMethod))} - ${v(I(n))}</small>\n                ${r}\n                ${c}\n            </td>\n            <td data-label="Estado">\n                <span class="status-badge status-${v(t)}">\n                    ${v($(t))}\n                </span>\n            </td>\n            <td data-label="Acciones">\n                <div class="table-actions">\n                    ${a ? `\n                    <button type="button" class="btn-icon success" data-action="approve-transfer" data-id="${Number(e.id) || 0}" title="Aprobar transferencia">\n                        <i class="fas fa-check"></i>\n                    </button>\n                    <button type="button" class="btn-icon danger" data-action="reject-transfer" data-id="${Number(e.id) || 0}" title="Rechazar transferencia">\n                        <i class="fas fa-ban"></i>\n                    </button>\n                    ` : ''}\n                    <a href="tel:${v(e.phone)}" class="btn-icon" title="Llamar" aria-label="Llamar a ${v(e.name)}">\n                        <i class="fas fa-phone"></i>\n                    </a>\n                    <a href="https://wa.me/${v(l)}" target="_blank" rel="noopener noreferrer" class="btn-icon" title="WhatsApp" aria-label="Abrir WhatsApp de ${v(e.name)}">\n                        <i class="fab fa-whatsapp"></i>\n                    </a>\n                    <button type="button" class="btn-icon danger" data-action="cancel-appointment" data-id="${Number(e.id) || 0}" title="Cancelar">\n                        <i class="fas fa-times"></i>\n                    </button>\n                    ${'cancelled' !== t && 'completed' !== t && 'no_show' !== t ? `\n                    <button type="button" class="btn-icon warning" data-action="mark-no-show" data-id="${Number(e.id) || 0}" title="Marcar no asistio">\n                        <i class="fas fa-user-slash"></i>\n                    </button>\n                    ` : ''}\n                </div>\n            </td>\n        </tr>\n    `;
+                )}</td>\n            <td data-label="Hora">${v(e.time)}</td>\n            <td data-label="Pago" class="appointment-payment-cell">\n                <strong>${v(e.price || '$0.00')}</strong>\n                <small>${v(C(e.paymentMethod))} - ${v(D(n))}</small>\n                ${r}\n                ${c}\n            </td>\n            <td data-label="Estado">\n                <span class="status-badge status-${v(t)}">\n                    ${v($(t))}\n                </span>\n            </td>\n            <td data-label="Acciones">\n                <div class="table-actions">\n                    ${a ? `\n                    <button type="button" class="btn-icon success" data-action="approve-transfer" data-id="${Number(e.id) || 0}" title="Aprobar transferencia">\n                        <i class="fas fa-check"></i>\n                    </button>\n                    <button type="button" class="btn-icon danger" data-action="reject-transfer" data-id="${Number(e.id) || 0}" title="Rechazar transferencia">\n                        <i class="fas fa-ban"></i>\n                    </button>\n                    ` : ''}\n                    <a href="tel:${v(e.phone)}" class="btn-icon" title="Llamar" aria-label="Llamar a ${v(e.name)}">\n                        <i class="fas fa-phone"></i>\n                    </a>\n                    <a href="https://wa.me/${v(l)}" target="_blank" rel="noopener noreferrer" class="btn-icon" title="WhatsApp" aria-label="Abrir WhatsApp de ${v(e.name)}">\n                        <i class="fab fa-whatsapp"></i>\n                    </a>\n                    <button type="button" class="btn-icon danger" data-action="cancel-appointment" data-id="${Number(e.id) || 0}" title="Cancelar">\n                        <i class="fas fa-times"></i>\n                    </button>\n                    ${'cancelled' !== t && 'completed' !== t && 'no_show' !== t ? `\n                    <button type="button" class="btn-icon warning" data-action="mark-no-show" data-id="${Number(e.id) || 0}" title="Marcar no asistio">\n                        <i class="fas fa-user-slash"></i>\n                    </button>\n                    ` : ''}\n                </div>\n            </td>\n        </tr>\n    `;
             })
             .join('');
     })(n, { sort: t.sort }),
         (function (e, t) {
             const { stateRow: n, clearBtn: a } = Ne();
             if (!n) return;
-            const o = _e(e?.filter || Ae),
+            const o = _e(e?.filter || Ie),
                 i = Pe(e?.sort || Ce),
                 r = String(e?.search || '').trim(),
                 s = (function () {
@@ -1344,9 +1344,9 @@ function Fe() {
                         ? 'compact'
                         : 'comfortable';
                 })(),
-                c = o !== Ae,
+                c = o !== Ie,
                 l = r.length > 0,
-                d = i !== Ce || s !== Ie;
+                d = i !== Ce || s !== De;
             if (
                 (a &&
                     (a.classList.toggle('is-hidden', !c && !l),
@@ -1374,7 +1374,7 @@ function Fe() {
                                 no_show: 'No asistio',
                                 pending_transfer: 'Transferencias por validar',
                             };
-                            return t[String(e || Ae)] || t.all;
+                            return t[String(e || Ie)] || t.all;
                         })(o)
                     )}</span>`
                 ),
@@ -1427,22 +1427,33 @@ function Ue(e) {
 }
 let ze = null,
     Ge = new Date(),
-    Ve = !1,
-    Ke = null;
-const We = 'admin-availability-day-clipboard';
-function Je(e) {
+    Ke = !1,
+    Ve = null;
+const We = 'admin-availability-day-clipboard',
+    Je = 'admin-availability-last-selected-date';
+function Ye(e) {
     return `${e.getFullYear()}-${String(e.getMonth() + 1).padStart(2, '0')}-${String(e.getDate()).padStart(2, '0')}`;
 }
-function Ye(e) {
+function Ze(e) {
     const t = String(e || '').trim(),
         n = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (n) return new Date(Number(n[1]), Number(n[2]) - 1, Number(n[3]));
     const a = new Date(t);
     return Number.isNaN(a.getTime()) ? null : a;
 }
-function Ze() {
-    Ke ||
-        (Ke = (function () {
+function Qe(e) {
+    return Boolean(Ze(e));
+}
+function Xe(e) {
+    try {
+        const t = String(e || '').trim();
+        if (!Qe(t)) return void localStorage.removeItem(Je);
+        localStorage.setItem(Je, t);
+    } catch (e) {}
+}
+function et() {
+    Ve ||
+        (Ve = (function () {
             try {
                 const e = JSON.parse(localStorage.getItem(We) || 'null');
                 if (!e || 'object' != typeof e) return null;
@@ -1460,19 +1471,19 @@ function Ze() {
             }
         })());
 }
-function Qe() {
+function tt() {
     try {
         if (
-            Ke &&
-            'object' == typeof Ke &&
-            Array.isArray(Ke.slots) &&
-            Ke.slots.length > 0
+            Ve &&
+            'object' == typeof Ve &&
+            Array.isArray(Ve.slots) &&
+            Ve.slots.length > 0
         )
-            return void localStorage.setItem(We, JSON.stringify(Ke));
+            return void localStorage.setItem(We, JSON.stringify(Ve));
         localStorage.removeItem(We);
     } catch (e) {}
 }
-function Xe(e) {
+function nt(e) {
     return Array.from(
         new Set(
             (Array.isArray(e) ? e : [])
@@ -1481,17 +1492,17 @@ function Xe(e) {
         )
     ).sort();
 }
-function et(e, t) {
+function at(e, t) {
     const n = String(e || '').trim(),
-        a = Xe(t);
-    if (!n || 0 === a.length) return ((Ke = null), void Qe());
-    ((Ke = { sourceDate: n, slots: a, copiedAt: new Date().toISOString() }),
-        Qe());
+        a = nt(t);
+    if (!n || 0 === a.length) return ((Ve = null), void tt());
+    ((Ve = { sourceDate: n, slots: a, copiedAt: new Date().toISOString() }),
+        tt());
 }
-function tt(e) {
+function ot(e) {
     const t = String(e || '').trim();
     if (!t) return 'n/d';
-    const n = Ye(t);
+    const n = Ze(t);
     return n
         ? n.toLocaleDateString('es-EC', {
               weekday: 'short',
@@ -1500,53 +1511,63 @@ function tt(e) {
           })
         : t;
 }
-function nt() {
-    return ze ? Xe(a[ze] || []) : [];
+function it() {
+    return ze ? nt(a[ze] || []) : [];
 }
-function at(e, t) {
+function rt(e, t) {
     const n = String(e || '').trim();
     if (!n) return;
-    const o = Xe(t);
+    const o = nt(t);
     0 !== o.length ? (a[n] = o) : delete a[n];
 }
-function ot(e) {
-    const t = Ye(e);
+function st(e) {
+    const t = Ze(e);
     t && (Ge = new Date(t.getFullYear(), t.getMonth(), 1));
 }
-function it(e) {
+function ct(e, t) {
+    const n = Ze(e);
+    if (!n) return;
+    const a = Number(t);
+    if (!Number.isFinite(a) || 0 === a) return;
+    const o = new Date(n);
+    o.setDate(n.getDate() + a);
+    const i = Ye(o);
+    (st(i), kt(i));
+}
+function lt(e) {
     const t = String(e || '').trim();
     if (!t) return 'n/d';
     const n = new Date(t);
     return Number.isNaN(n.getTime()) ? 'n/d' : n.toLocaleString('es-EC');
 }
-function rt(e) {
+function dt(e) {
     const t = document.getElementById('availabilityHelperText');
     t && (t.textContent = String(e || '').trim());
 }
-function st(e) {
+function ut(e) {
     const t = document.getElementById('timeSlotsCountBadge');
     if (!t) return;
     const n =
         Number.isFinite(Number(e)) && Number(e) > 0 ? Math.round(Number(e)) : 0;
     t.textContent = `${n} horario${1 === n ? '' : 's'}`;
 }
-function ct() {
+function mt() {
     const e = document.getElementById('availabilitySelectionSummary');
     if (!e) return;
     const t =
             'google' === String(o.source || 'store')
                 ? 'Google Calendar'
                 : 'Local',
-        n = Ve ? 'Solo lectura' : 'Editable',
+        n = Ke ? 'Solo lectura' : 'Editable',
         i = String(ze || '').trim(),
         r = i ? (Array.isArray(a[i]) ? a[i].length : 0) : null;
     if (!i)
         return void (e.innerHTML = [
             `<span class="availability-summary-chip"><strong>Fuente:</strong> ${v(t)}</span>`,
-            `<span class="availability-summary-chip ${Ve ? 'is-readonly' : 'is-editable'}"><strong>Modo:</strong> ${v(n)}</span>`,
+            `<span class="availability-summary-chip ${Ke ? 'is-readonly' : 'is-editable'}"><strong>Modo:</strong> ${v(n)}</span>`,
             '<span class="toolbar-state-empty">Selecciona una fecha para ver el detalle del dia</span>',
         ].join(''));
-    const s = Ye(i),
+    const s = Ze(i),
         c = s
             ? s.toLocaleDateString('es-EC', {
                   weekday: 'short',
@@ -1556,20 +1577,20 @@ function ct() {
             : i;
     e.innerHTML = [
         `<span class="availability-summary-chip"><strong>Fuente:</strong> ${v(t)}</span>`,
-        `<span class="availability-summary-chip ${Ve ? 'is-readonly' : 'is-editable'}"><strong>Modo:</strong> ${v(n)}</span>`,
+        `<span class="availability-summary-chip ${Ke ? 'is-readonly' : 'is-editable'}"><strong>Modo:</strong> ${v(n)}</span>`,
         `<span class="availability-summary-chip"><strong>Fecha:</strong> ${v(c)}</span>`,
         `<span class="availability-summary-chip"><strong>Slots:</strong> ${v(String(r ?? 0))}</span>`,
     ].join('');
 }
-function lt() {
-    Ze();
+function ft() {
+    et();
     const e = document.getElementById('availabilityDayActions'),
         t = document.getElementById('availabilityDayActionsStatus');
     if (!e || !t) return;
     const n = Boolean(String(ze || '').trim()),
-        a = nt(),
+        a = it(),
         o = a.length > 0,
-        i = Xe(Ke?.slots || []),
+        i = nt(Ve?.slots || []),
         r = i.length > 0,
         s = e.querySelector('[data-action="copy-availability-day"]'),
         c = e.querySelector('[data-action="paste-availability-day"]'),
@@ -1577,9 +1598,9 @@ function lt() {
         d = e.querySelector('[data-action="clear-availability-day"]');
     if (
         (s instanceof HTMLButtonElement && (s.disabled = !n || !o),
-        c instanceof HTMLButtonElement && (c.disabled = !n || !r || Ve),
-        l instanceof HTMLButtonElement && (l.disabled = !n || !o || Ve),
-        d instanceof HTMLButtonElement && (d.disabled = !n || !o || Ve),
+        c instanceof HTMLButtonElement && (c.disabled = !n || !r || Ke),
+        l instanceof HTMLButtonElement && (l.disabled = !n || !o || Ke),
+        d instanceof HTMLButtonElement && (d.disabled = !n || !o || Ke),
         e.classList.toggle('is-hidden', !n && !r),
         !n && !r)
     )
@@ -1588,25 +1609,25 @@ function lt() {
     const u = [];
     (n &&
         (u.push(
-            `<span class="toolbar-chip is-info">Fecha activa: ${v(tt(ze))}</span>`
+            `<span class="toolbar-chip is-info">Fecha activa: ${v(ot(ze))}</span>`
         ),
         u.push(
             `<span class="toolbar-chip is-muted">Slots: ${v(String(a.length))}</span>`
         )),
         r
             ? u.push(
-                  `<span class="toolbar-chip">Portapapeles: ${v(String(i.length))} (${v(tt(Ke?.sourceDate))})</span>`
+                  `<span class="toolbar-chip">Portapapeles: ${v(String(i.length))} (${v(ot(Ve?.sourceDate))})</span>`
               )
             : u.push(
                   '<span class="toolbar-chip is-muted">Portapapeles vacio</span>'
               ),
-        Ve &&
+        Ke &&
             u.push(
                 '<span class="toolbar-chip is-danger">Edicion bloqueada por Google Calendar</span>'
             ),
         (t.innerHTML = u.join('')));
 }
-function dt() {
+function pt() {
     const {
         statusEl: e,
         detailsEl: t,
@@ -1646,10 +1667,10 @@ function dt() {
         c = !1 === o.calendarTokenHealthy ? 'no' : 'si',
         l = !1 === o.calendarConfigured ? 'no' : 'si',
         d = !1 === o.calendarReachable ? 'no' : 'si',
-        u = it(o.generatedAt),
-        m = it(o.calendarLastSuccessAt),
-        p = it(o.calendarLastErrorAt),
-        f = String(o.calendarLastErrorReason || '').trim();
+        u = lt(o.generatedAt),
+        m = lt(o.calendarLastSuccessAt),
+        f = lt(o.calendarLastErrorAt),
+        p = String(o.calendarLastErrorReason || '').trim();
     if ('google' === a) {
         const n = 'blocked' === i ? 'bloqueado' : 'live';
         if (
@@ -1658,17 +1679,17 @@ function dt() {
         ) {
             let e = `Auth: <strong>${v(s)}</strong> | Token OK: <strong>${v(c)}</strong> | Configurado: <strong>${v(l)}</strong> | Reachable: <strong>${v(d)}</strong> | Ultimo exito: <strong>${v(m)}</strong> | Snapshot: <strong>${v(u)}</strong>`;
             ('blocked' === i &&
-                f &&
-                (e += ` | Ultimo error: <strong>${v(p)}</strong> (${v(f)})`),
+                p &&
+                (e += ` | Ultimo error: <strong>${v(f)}</strong> (${v(p)})`),
                 (t.innerHTML = e));
         }
-        rt(
+        dt(
             'Modo solo lectura: gestiona horarios directamente en Google Calendar.'
         );
     } else
         ((e.innerHTML = 'Fuente: <strong>Configuracion local</strong>'),
             t && (t.innerHTML = `Snapshot: <strong>${v(u)}</strong>`),
-            rt(
+            dt(
                 'Selecciona un dia para revisar horarios y agregar o eliminar slots.'
             ));
     if (
@@ -1690,8 +1711,8 @@ function dt() {
                         ? 'Horarios del Dia (solo lectura)'
                         : 'Horarios del Dia');
         })(a),
-        ct(),
-        lt(),
+        mt(),
+        ft(),
         !n)
     )
         return;
@@ -1711,30 +1732,30 @@ function dt() {
         h('narvaez', 'Dra. Narvaez'),
     ].join(' | ');
 }
-function ut() {
+function gt() {
     const e = document.getElementById('selectedDate');
-    (e && (e.textContent = 'Selecciona una fecha'), st(0));
+    (e && (e.textContent = 'Selecciona una fecha'), ut(0));
     const t = document.getElementById('timeSlotsList');
     (t &&
         (t.innerHTML =
             '<p class="empty-message">Selecciona una fecha para ver los horarios</p>'),
+        ht(),
         mt(),
-        ct(),
-        lt());
+        ft());
 }
-function mt() {
+function ht() {
     const e = Boolean(String(ze || '').trim()),
         t = document.getElementById('addSlotForm');
-    t && t.classList.toggle('is-hidden', Ve || !e);
+    t && t.classList.toggle('is-hidden', Ke || !e);
     const n = document.getElementById('availabilityQuickSlotPresets');
     (n &&
-        (n.classList.toggle('is-hidden', Ve || !e),
+        (n.classList.toggle('is-hidden', Ke || !e),
         n.querySelectorAll('.slot-preset-btn').forEach((t) => {
-            t.disabled = Ve || !e;
+            t.disabled = Ke || !e;
         })),
-        lt());
+        ft());
 }
-function pt() {
+function yt() {
     const e = Ge.getFullYear(),
         t = Ge.getMonth(),
         n = new Date(e, t, 1).getDay(),
@@ -1746,7 +1767,7 @@ function pt() {
     ).toLocaleDateString('es-EC', { month: 'long', year: 'numeric' });
     const r = document.getElementById('availabilityCalendar');
     r.innerHTML = '';
-    const s = Je(new Date());
+    const s = Ye(new Date());
     ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'].forEach((e) => {
         const t = document.createElement('div');
         ((t.className = 'calendar-day-header'),
@@ -1761,7 +1782,7 @@ function pt() {
             r.appendChild(n));
     }
     for (let n = 1; n <= o; n += 1) {
-        const o = Je(new Date(e, t, n)),
+        const o = Ye(new Date(e, t, n)),
             i = document.createElement('div');
         ((i.className = 'calendar-day'),
             (i.textContent = n),
@@ -1771,11 +1792,21 @@ function pt() {
             ze === o && i.classList.add('selected'),
             s === o && i.classList.add('today'),
             a[o] && a[o].length > 0 && i.classList.add('has-slots'),
-            i.addEventListener('click', () => ft(o)),
-            i.addEventListener('keydown', (e) => {
-                ('Enter' !== e.key && ' ' !== e.key) ||
-                    (e.preventDefault(), ft(o));
-            }),
+            i.addEventListener('click', () => kt(o)),
+            i.addEventListener('keydown', (e) =>
+                'Enter' === e.key || ' ' === e.key
+                    ? (e.preventDefault(), void kt(o))
+                    : 'ArrowLeft' === e.key
+                      ? (e.preventDefault(), void ct(o, -1))
+                      : 'ArrowRight' === e.key
+                        ? (e.preventDefault(), void ct(o, 1))
+                        : 'ArrowUp' === e.key
+                          ? (e.preventDefault(), void ct(o, -7))
+                          : void (
+                                'ArrowDown' === e.key &&
+                                (e.preventDefault(), ct(o, 7))
+                            )
+            ),
             r.appendChild(i));
     }
     const c = 42 - (n + o);
@@ -1786,29 +1817,64 @@ function pt() {
             r.appendChild(t));
     }
 }
-function ft(e) {
-    ((ze = e), pt());
-    const t = Ye(e) || new Date(e);
+function bt(e) {
+    (Ge.setMonth(Ge.getMonth() + e), yt());
+}
+function vt() {
+    const e = new Date();
+    ((Ge = new Date(e.getFullYear(), e.getMonth(), 1)), yt(), kt(Ye(e)));
+}
+function wt() {
+    const e = (function ({
+        referenceDate: e = '',
+        includeReference: t = !1,
+    } = {}) {
+        const n = Object.keys(a || {})
+            .filter((e) => {
+                if (!Qe(e)) return !1;
+                const t = a[e];
+                return Array.isArray(t) && t.length > 0;
+            })
+            .sort();
+        if (0 === n.length) return '';
+        const o = Qe(e) ? String(e).trim() : Ye(new Date()),
+            i = t ? (e) => e >= o : (e) => e > o;
+        return n.find(i) || n[0];
+    })({ referenceDate: ze || Ye(new Date()), includeReference: !1 });
+    e
+        ? (st(e), kt(e))
+        : w('No hay fechas con horarios configurados', 'warning');
+}
+function St() {
+    return (
+        document.getElementById('availability')?.classList.contains('active') ||
+        !1
+    );
+}
+function kt(e, { persist: t = !0 } = {}) {
+    if (!Qe(e)) return;
+    ((ze = e), t && Xe(e), yt());
+    const n = Ze(e) || new Date(e);
     ((document.getElementById('selectedDate').textContent =
-        t.toLocaleDateString('es-EC', {
+        n.toLocaleDateString('es-EC', {
             weekday: 'long',
             day: 'numeric',
             month: 'long',
             year: 'numeric',
         })),
+        ht(),
         mt(),
-        ct(),
-        gt(e));
+        Et(e));
 }
-function gt(e) {
+function Et(e) {
     const t = a[e] || [],
         n = document.getElementById('timeSlotsList');
-    if ((st(t.length), 0 === t.length))
+    if ((ut(t.length), 0 === t.length))
         return (
             (n.innerHTML =
                 '<p class="empty-message">No hay horarios configurados para este dia</p>'),
-            ct(),
-            void lt()
+            mt(),
+            void ft()
         );
     const o = encodeURIComponent(String(e || ''));
     ((n.innerHTML = t
@@ -1816,19 +1882,19 @@ function gt(e) {
         .sort()
         .map(
             (e) =>
-                `\n        <div class="time-slot-item${Ve ? ' is-readonly' : ''}">\n            <span class="time">${v(e)}</span>\n            <div class="slot-actions">\n                ${Ve ? '<span class="slot-readonly-tag">Solo lectura</span>' : `<button type="button" class="btn-icon danger" data-action="remove-time-slot" data-date="${o}" data-time="${encodeURIComponent(String(e || ''))}">\n                    <i class="fas fa-trash"></i>\n                </button>`}\n            </div>\n        </div>\n    `
+                `\n        <div class="time-slot-item${Ke ? ' is-readonly' : ''}">\n            <span class="time">${v(e)}</span>\n            <div class="slot-actions">\n                ${Ke ? '<span class="slot-readonly-tag">Solo lectura</span>' : `<button type="button" class="btn-icon danger" data-action="remove-time-slot" data-date="${o}" data-time="${encodeURIComponent(String(e || ''))}">\n                    <i class="fas fa-trash"></i>\n                </button>`}\n            </div>\n        </div>\n    `
         )
         .join('')),
-        ct(),
-        lt());
+        mt(),
+        ft());
 }
-async function ht() {
-    if (Ve)
+async function Lt() {
+    if (Ke)
         throw new Error('Disponibilidad en solo lectura (Google Calendar).');
     await y('availability', { method: 'POST', body: { availability: a } });
 }
-function yt() {
-    return Ve
+function Bt() {
+    return Ke
         ? (w(
               'Disponibilidad en solo lectura: gestionala desde Google Calendar.',
               'warning'
@@ -1836,7 +1902,78 @@ function yt() {
           !1)
         : !!ze || (w('Selecciona una fecha primero', 'warning'), !1);
 }
-const bt = new Map([
+async function $t() {
+    if ((et(), !Bt())) return;
+    const e = nt(Ve?.slots || []);
+    if (0 === e.length) return void w('Portapapeles vacio', 'warning');
+    const t = it();
+    if (t.length === e.length && t.every((t, n) => t === e[n]))
+        w('La fecha ya tiene esos mismos horarios', 'warning');
+    else if (
+        !(t.length > 0) ||
+        confirm(
+            `Reemplazar ${t.length} horario${1 === t.length ? '' : 's'} en ${ot(ze)} con ${e.length}?`
+        )
+    )
+        try {
+            (rt(ze, e),
+                await Lt(),
+                st(ze),
+                kt(ze),
+                w('Horarios pegados en la fecha seleccionada', 'success'));
+        } catch (e) {
+            w(`No se pudieron pegar los horarios: ${e.message}`, 'error');
+        }
+}
+async function Ct() {
+    if (!Bt()) return;
+    const e = it();
+    if (0 === e.length)
+        return void w('No hay horarios para duplicar en este dia', 'warning');
+    const t = Ze(ze);
+    if (!t) return void w('Fecha seleccionada invalida', 'error');
+    const n = new Date(t);
+    n.setDate(t.getDate() + 1);
+    const o = Ye(n),
+        i = nt(a[o] || []);
+    if (
+        !(i.length > 0) ||
+        confirm(
+            `${ot(o)} ya tiene ${i.length} horario${1 === i.length ? '' : 's'}. Deseas reemplazarlos?`
+        )
+    )
+        try {
+            (rt(o, e),
+                at(ze, e),
+                await Lt(),
+                st(o),
+                kt(o),
+                w(`Horarios duplicados a ${ot(o)}`, 'success'));
+        } catch (e) {
+            w(`No se pudo duplicar el dia: ${e.message}`, 'error');
+        }
+}
+async function Dt() {
+    if (!Bt()) return;
+    const e = it();
+    if (0 !== e.length) {
+        if (
+            confirm(
+                `Eliminar ${e.length} horario${1 === e.length ? '' : 's'} de ${ot(ze)}?`
+            )
+        )
+            try {
+                (rt(ze, []),
+                    await Lt(),
+                    st(ze),
+                    kt(ze),
+                    w('Horarios del dia eliminados', 'success'));
+            } catch (e) {
+                w(`No se pudo limpiar el dia: ${e.message}`, 'error');
+            }
+    } else w('No hay horarios que limpiar en este dia', 'warning');
+}
+const It = new Map([
         ['digit1', 'dashboard'],
         ['digit2', 'appointments'],
         ['digit3', 'callbacks'],
@@ -1848,39 +1985,39 @@ const bt = new Map([
         ['4', 'reviews'],
         ['5', 'availability'],
     ]),
-    vt = [
+    At = [
         'a[href]',
         'button:not([disabled])',
         '[tabindex]:not([tabindex="-1"])',
     ].join(',');
-function wt() {
+function Tt() {
     return Array.from(
         document.querySelectorAll(
             '.nav-item[data-section], .admin-quick-nav-item[data-section]'
         )
     );
 }
-function St() {
+function Mt() {
     const e = window.location.hash.replace(/^#/, '').trim();
-    return new Set(wt().map((e) => e.dataset.section)).has(e) ? e : 'dashboard';
+    return new Set(Tt().map((e) => e.dataset.section)).has(e) ? e : 'dashboard';
 }
-function kt() {
+function Nt() {
     return (
         document.querySelector('.nav-item.active')?.dataset.section ||
-        St() ||
+        Mt() ||
         'dashboard'
     );
 }
-function Et() {
+function _t() {
     return window.innerWidth <= 1024;
 }
-function Lt() {
+function Pt() {
     return Boolean(
         document.getElementById('adminSidebar')?.classList.contains('is-open')
     );
 }
-function Bt(e) {
-    wt().forEach((t) => {
+function Ht(e) {
+    Tt().forEach((t) => {
         const n = t.dataset.section === e;
         (t.classList.toggle('active', n),
             n
@@ -1890,7 +2027,7 @@ function Bt(e) {
                 t.setAttribute('aria-pressed', String(n)));
     });
 }
-function $t(e) {
+function Rt(e) {
     return (
         e instanceof HTMLElement &&
         (!!e.isContentEditable ||
@@ -1899,17 +2036,17 @@ function $t(e) {
             ))
     );
 }
-function Ct() {
+function xt() {
     return {
         sidebar: document.getElementById('adminSidebar'),
         backdrop: document.getElementById('adminSidebarBackdrop'),
         toggleBtn: document.getElementById('adminMenuToggle'),
     };
 }
-function It() {
+function jt() {
     const e = document.getElementById('adminSidebar');
     return e
-        ? Array.from(e.querySelectorAll(vt)).filter(
+        ? Array.from(e.querySelectorAll(At)).filter(
               (e) =>
                   e instanceof HTMLElement &&
                   !e.hasAttribute('disabled') &&
@@ -1917,10 +2054,10 @@ function It() {
           )
         : [];
 }
-function At(e) {
+function Ft(e) {
     const t = document.getElementById('adminSidebar'),
         n = document.getElementById('adminMainContent'),
-        a = Et(),
+        a = _t(),
         o = Boolean(a && e);
     (t && t.setAttribute('aria-hidden', String(!o && a)),
         n &&
@@ -1928,16 +2065,16 @@ function At(e) {
                 ? n.setAttribute('aria-hidden', 'true')
                 : n.removeAttribute('aria-hidden')));
 }
-function Dt(e) {
-    const { sidebar: t, backdrop: n, toggleBtn: a } = Ct();
+function qt(e) {
+    const { sidebar: t, backdrop: n, toggleBtn: a } = xt();
     if (!t || !n || !a) return;
-    const o = Boolean(e && Et());
+    const o = Boolean(e && _t());
     (t.classList.toggle('is-open', o),
         n.classList.toggle('is-hidden', !o),
         n.setAttribute('aria-hidden', String(!o)),
         document.body.classList.toggle('admin-sidebar-open', o),
         a.setAttribute('aria-expanded', String(o)),
-        At(o),
+        Ft(o),
         o &&
             (function () {
                 const e = document.getElementById('adminSidebar');
@@ -1948,18 +2085,18 @@ function Dt(e) {
                         t.scrollIntoView({ block: 'nearest' }),
                         void t.focus()
                     );
-                const n = It();
+                const n = jt();
                 n[0] instanceof HTMLElement ? n[0].focus() : e.focus();
             })());
 }
-function Tt({ restoreFocus: e = !1 } = {}) {
-    const { toggleBtn: t } = Ct(),
+function Ot({ restoreFocus: e = !1 } = {}) {
+    const { toggleBtn: t } = xt(),
         n = document
             .getElementById('adminSidebar')
             ?.classList.contains('is-open');
-    (Dt(!1), e && n && t && t.focus());
+    (qt(!1), e && n && t && t.focus());
 }
-function Mt(e, { preventScroll: t = !0 } = {}) {
+function Ut(e, { preventScroll: t = !0 } = {}) {
     const n = document.getElementById(e);
     n &&
         (n.hasAttribute('tabindex') || n.setAttribute('tabindex', '-1'),
@@ -1967,7 +2104,7 @@ function Mt(e, { preventScroll: t = !0 } = {}) {
             'function' == typeof n.focus && n.focus({ preventScroll: t });
         }));
 }
-async function Nt(e, t = {}) {
+async function zt(e, t = {}) {
     const {
             refresh: n = !0,
             updateHash: a = !0,
@@ -1975,7 +2112,7 @@ async function Nt(e, t = {}) {
             closeMobileNav: i = !0,
         } = t,
         r = e || 'dashboard';
-    if ((Bt(r), i && Tt(), n))
+    if ((Ht(r), i && Ot(), n))
         try {
             await N();
         } catch (e) {
@@ -1984,7 +2121,7 @@ async function Nt(e, t = {}) {
                 'warning'
             );
         }
-    (await _t(r),
+    (await Gt(r),
         a &&
             (function (e) {
                 const t = `#${e}`;
@@ -1994,9 +2131,9 @@ async function Nt(e, t = {}) {
                         ? window.history.replaceState(null, '', t)
                         : (window.location.hash = t));
             })(r),
-        o && Mt(r));
+        o && Ut(r));
 }
-async function _t(e) {
+async function Gt(e) {
     const t = document.getElementById('pageTitle');
     (t &&
         (t.textContent =
@@ -2010,8 +2147,8 @@ async function _t(e) {
         document
             .querySelectorAll('.admin-section')
             .forEach((e) => e.classList.remove('active')));
-    const i = document.getElementById(e);
-    switch ((i && i.classList.add('active'), e)) {
+    const a = document.getElementById(e);
+    switch ((a && a.classList.add('active'), e)) {
         case 'dashboard':
         default:
             q();
@@ -2021,8 +2158,8 @@ async function _t(e) {
             break;
         case 'callbacks':
             Z({
-                filter: V().filterSelect?.value || z.filter,
-                search: V().searchInput?.value || z.search,
+                filter: K().filterSelect?.value || z.filter,
+                search: K().searchInput?.value || z.search,
             });
             break;
         case 'reviews':
@@ -2067,69 +2204,90 @@ async function _t(e) {
             break;
         case 'availability':
             await (async function () {
-                (await (async function () {
-                    try {
-                        const e = await y('availability', {
-                                query: {
-                                    doctor: 'indiferente',
-                                    service: 'consulta',
-                                    days: 45,
-                                },
-                            }),
-                            t =
-                                e && e.data && 'object' == typeof e.data
-                                    ? e.data
-                                    : {},
-                            n =
-                                e && e.meta && 'object' == typeof e.meta
-                                    ? e.meta
-                                    : {},
-                            i = o && 'object' == typeof o ? o : {},
-                            r = {
-                                ...i,
-                                ...n,
-                                source: String(n.source || i.source || 'store'),
-                                mode: String(n.mode || i.mode || 'live'),
-                                timezone: String(
-                                    n.timezone ||
-                                        i.timezone ||
-                                        'America/Guayaquil'
+                if (
+                    (await (async function () {
+                        try {
+                            const e = await y('availability', {
+                                    query: {
+                                        doctor: 'indiferente',
+                                        service: 'consulta',
+                                        days: 45,
+                                    },
+                                }),
+                                t =
+                                    e && e.data && 'object' == typeof e.data
+                                        ? e.data
+                                        : {},
+                                n =
+                                    e && e.meta && 'object' == typeof e.meta
+                                        ? e.meta
+                                        : {},
+                                a = o && 'object' == typeof o ? o : {},
+                                i = {
+                                    ...a,
+                                    ...n,
+                                    source: String(
+                                        n.source || a.source || 'store'
+                                    ),
+                                    mode: String(n.mode || a.mode || 'live'),
+                                    timezone: String(
+                                        n.timezone ||
+                                            a.timezone ||
+                                            'America/Guayaquil'
+                                    ),
+                                    generatedAt: String(
+                                        n.generatedAt ||
+                                            a.generatedAt ||
+                                            new Date().toISOString()
+                                    ),
+                                };
+                            if (
+                                (u(t),
+                                m(i),
+                                (Ke = 'google' === String(i.source || '')),
+                                pt(),
+                                ht(),
+                                ze && !Qe(ze))
+                            )
+                                return ((ze = null), Xe(''), void gt());
+                            ze ? Et(ze) : gt();
+                        } catch (e) {
+                            (console.error('Error refreshing availability:', e),
+                                w(
+                                    `Error al actualizar disponibilidad: ${e?.message || 'error desconocido'}`,
+                                    'error'
                                 ),
-                                generatedAt: String(
-                                    n.generatedAt ||
-                                        i.generatedAt ||
-                                        new Date().toISOString()
-                                ),
-                            };
-                        (u(t),
-                            m(r),
-                            (Ve = 'google' === String(r.source || '')),
-                            dt(),
-                            mt(),
-                            ze && !a[ze] && ((ze = null), ut()));
-                    } catch (e) {
-                        (console.error('Error refreshing availability:', e),
-                            w(
-                                `Error al actualizar disponibilidad: ${e?.message || 'error desconocido'}`,
-                                'error'
-                            ),
-                            (Ve = 'google' === String(o.source || '')),
-                            dt(),
-                            mt());
-                    }
-                })(),
-                    pt(),
-                    ze ? (mt(), ct()) : ut());
+                                (Ke = 'google' === String(o.source || '')),
+                                pt(),
+                                ht());
+                        }
+                    })(),
+                    !ze)
+                ) {
+                    const e = (function () {
+                        try {
+                            const e = localStorage.getItem(Je);
+                            return Qe(e) ? String(e).trim() : '';
+                        } catch (e) {
+                            return '';
+                        }
+                    })();
+                    Qe(e) && (ze = e);
+                }
+                (ze && !Qe(ze) && (ze = null),
+                    ze && st(ze),
+                    yt(),
+                    ze ? kt(ze, { persist: !1 }) : gt());
             })();
     }
 }
-async function Pt() {
+async function Kt() {
     const e = document.getElementById('loginScreen'),
         t = document.getElementById('adminDashboard');
     (e && e.classList.add('is-hidden'),
         t && t.classList.remove('is-hidden'),
-        Bt(St()),
-        Tt(),
+        Ht(Mt()),
+        Ot(),
         await (async function () {
             const e = document.getElementById('currentDate');
             if (e) {
@@ -2149,8 +2307,8 @@ async function Pt() {
                     'warning'
                 );
             }
-            const t = kt();
-            await _t(t);
+            const t = Nt();
+            await Gt(t);
         })(),
         await (async function () {
             if (ee) return;
@@ -2178,7 +2336,7 @@ async function Pt() {
             }
         })());
 }
-async function Ht(e) {
+async function Vt(e) {
     e.preventDefault();
     const t = document.getElementById('group2FA');
     if (t && !t.classList.contains('is-hidden')) {
@@ -2189,7 +2347,7 @@ async function Ht(e) {
             })(e);
             (t.csrfToken && g(t.csrfToken),
                 w('Bienvenido al panel de administracion', 'success'),
-                await Pt());
+                await Kt());
         } catch {
             w('Codigo incorrecto o sesion expirada', 'error');
         }
@@ -2214,7 +2372,7 @@ async function Ht(e) {
         }
         (e.csrfToken && g(e.csrfToken),
             w('Bienvenido al panel de administracion', 'success'),
-            await Pt());
+            await Kt());
     } catch {
         w('Contrasena incorrecta', 'error');
     }
@@ -2223,13 +2381,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     ((me = ve()),
         ke(me, { persist: !1, animate: !1 }),
         (function () {
-            if (fe) return;
+            if (pe) return;
             const e = ye();
             e &&
                 ('function' == typeof e.addEventListener
-                    ? (e.addEventListener('change', Ee), (fe = !0))
+                    ? (e.addEventListener('change', Ee), (pe = !0))
                     : 'function' == typeof e.addListener &&
-                      (e.addListener(Ee), (fe = !0)));
+                      (e.addListener(Ee), (pe = !0)));
         })(),
         ge ||
             'function' != typeof window.addEventListener ||
@@ -2297,7 +2455,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 animate: !0,
                             })
                         );
-                    var s;
                     try {
                         if ('export-csv' === r)
                             return (
@@ -2319,7 +2476,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                             Ue(B(e.doctor)),
                                             e.price || '',
                                             Ue($(e.status || 'confirmed')),
-                                            Ue(I(e.paymentStatus)),
+                                            Ue(D(e.paymentStatus)),
                                             Ue(C(e.paymentMethod)),
                                         ]),
                                         n = [
@@ -2369,7 +2526,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if ('clear-appointment-filters' === r)
                             return (
                                 o.preventDefault(),
-                                void Oe(Ae, { preserveSearch: !1 })
+                                void Oe(Ie, { preserveSearch: !1 })
                             );
                         if ('clear-callback-filters' === r)
                             return (
@@ -2396,29 +2553,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if ('change-month' === r)
                             return (
                                 o.preventDefault(),
-                                (s = Number(i.dataset.delta || 0)),
-                                Ge.setMonth(Ge.getMonth() + s),
-                                void pt()
+                                void bt(Number(i.dataset.delta || 0))
                             );
                         if ('availability-today' === r)
-                            return (
-                                o.preventDefault(),
-                                void (function () {
-                                    const e = new Date();
-                                    ((Ge = new Date(
-                                        e.getFullYear(),
-                                        e.getMonth(),
-                                        1
-                                    )),
-                                        pt(),
-                                        ft(Je(e)));
-                                })()
-                            );
+                            return (o.preventDefault(), void vt());
+                        if ('availability-next-with-slots' === r)
+                            return (o.preventDefault(), void wt());
                         if ('prefill-time-slot' === r)
                             return (
                                 o.preventDefault(),
                                 void (function (e) {
-                                    if (Ve)
+                                    if (Ke)
                                         return void w(
                                             'Disponibilidad en solo lectura: gestionala desde Google Calendar.',
                                             'warning'
@@ -2439,10 +2584,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                                             'Selecciona una fecha para copiar',
                                             'warning'
                                         );
-                                    const e = nt();
+                                    const e = it();
                                     0 !== e.length
-                                        ? (et(ze, e),
-                                          lt(),
+                                        ? (at(ze, e),
+                                          ft(),
                                           w(
                                               `Dia copiado (${e.length} horario${1 === e.length ? '' : 's'})`,
                                               'success'
@@ -2454,132 +2599,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 })()
                             );
                         if ('paste-availability-day' === r)
-                            return (
-                                o.preventDefault(),
-                                void (await (async function () {
-                                    if ((Ze(), !yt())) return;
-                                    const e = Xe(Ke?.slots || []);
-                                    if (0 === e.length)
-                                        return void w(
-                                            'Portapapeles vacio',
-                                            'warning'
-                                        );
-                                    const t = nt();
-                                    if (
-                                        t.length === e.length &&
-                                        t.every((t, n) => t === e[n])
-                                    )
-                                        w(
-                                            'La fecha ya tiene esos mismos horarios',
-                                            'warning'
-                                        );
-                                    else if (
-                                        !(t.length > 0) ||
-                                        confirm(
-                                            `Reemplazar ${t.length} horario${1 === t.length ? '' : 's'} en ${tt(ze)} con ${e.length}?`
-                                        )
-                                    )
-                                        try {
-                                            (at(ze, e),
-                                                await ht(),
-                                                ot(ze),
-                                                ft(ze),
-                                                w(
-                                                    'Horarios pegados en la fecha seleccionada',
-                                                    'success'
-                                                ));
-                                        } catch (e) {
-                                            w(
-                                                `No se pudieron pegar los horarios: ${e.message}`,
-                                                'error'
-                                            );
-                                        }
-                                })())
-                            );
+                            return (o.preventDefault(), void (await $t()));
                         if ('duplicate-availability-day-next' === r)
-                            return (
-                                o.preventDefault(),
-                                void (await (async function () {
-                                    if (!yt()) return;
-                                    const e = nt();
-                                    if (0 === e.length)
-                                        return void w(
-                                            'No hay horarios para duplicar en este dia',
-                                            'warning'
-                                        );
-                                    const t = Ye(ze);
-                                    if (!t)
-                                        return void w(
-                                            'Fecha seleccionada invalida',
-                                            'error'
-                                        );
-                                    const n = new Date(t);
-                                    n.setDate(t.getDate() + 1);
-                                    const o = Je(n),
-                                        i = Xe(a[o] || []);
-                                    if (
-                                        !(i.length > 0) ||
-                                        confirm(
-                                            `${tt(o)} ya tiene ${i.length} horario${1 === i.length ? '' : 's'}. Deseas reemplazarlos?`
-                                        )
-                                    )
-                                        try {
-                                            (at(o, e),
-                                                et(ze, e),
-                                                await ht(),
-                                                ot(o),
-                                                ft(o),
-                                                w(
-                                                    `Horarios duplicados a ${tt(o)}`,
-                                                    'success'
-                                                ));
-                                        } catch (e) {
-                                            w(
-                                                `No se pudo duplicar el dia: ${e.message}`,
-                                                'error'
-                                            );
-                                        }
-                                })())
-                            );
+                            return (o.preventDefault(), void (await Ct()));
                         if ('clear-availability-day' === r)
-                            return (
-                                o.preventDefault(),
-                                void (await (async function () {
-                                    if (!yt()) return;
-                                    const e = nt();
-                                    if (0 !== e.length) {
-                                        if (
-                                            confirm(
-                                                `Eliminar ${e.length} horario${1 === e.length ? '' : 's'} de ${tt(ze)}?`
-                                            )
-                                        )
-                                            try {
-                                                (at(ze, []),
-                                                    await ht(),
-                                                    ot(ze),
-                                                    ft(ze),
-                                                    w(
-                                                        'Horarios del dia eliminados',
-                                                        'success'
-                                                    ));
-                                            } catch (e) {
-                                                w(
-                                                    `No se pudo limpiar el dia: ${e.message}`,
-                                                    'error'
-                                                );
-                                            }
-                                    } else
-                                        w(
-                                            'No hay horarios que limpiar en este dia',
-                                            'warning'
-                                        );
-                                })())
-                            );
+                            return (o.preventDefault(), void (await Dt()));
                         if ('add-time-slot' === r)
                             return (
                                 o.preventDefault(),
                                 void (await (async function () {
-                                    if (Ve)
+                                    if (Ke)
                                         return void w(
                                             'Disponibilidad en solo lectura: gestionala desde Google Calendar.',
                                             'warning'
@@ -2605,9 +2634,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                                         else
                                             try {
                                                 (a[ze].push(e),
-                                                    await ht(),
-                                                    gt(ze),
-                                                    pt(),
+                                                    await Lt(),
+                                                    Et(ze),
+                                                    yt(),
                                                     (document.getElementById(
                                                         'newSlotTime'
                                                     ).value = ''),
@@ -2628,7 +2657,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             return (
                                 o.preventDefault(),
                                 void (await (async function (e, t) {
-                                    if (Ve)
+                                    if (Ke)
                                         w(
                                             'Disponibilidad en solo lectura: gestionala desde Google Calendar.',
                                             'warning'
@@ -2638,9 +2667,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                                             ((a[e] = (a[e] || []).filter(
                                                 (e) => e !== t
                                             )),
-                                                await ht(),
-                                                gt(e),
-                                                pt(),
+                                                await Lt(),
+                                                Et(e),
+                                                yt(),
                                                 w(
                                                     'Horario eliminado',
                                                     'success'
@@ -2869,16 +2898,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             c && c.addEventListener('input', X);
         })(),
         (function () {
-            const e = { sort: Pe(T(Be, Ce)), density: He(T($e, Ie)) },
+            const e = { sort: Pe(T(Be, Ce)), density: He(T($e, De)) },
                 { sortSelect: t } = Ne();
             (t && (t.value = e.sort), xe(e.density));
         })());
     const o = document.getElementById('loginForm');
-    (o && o.addEventListener('submit', Ht),
-        wt().forEach((e) => {
+    (o && o.addEventListener('submit', Vt),
+        Tt().forEach((e) => {
             e.addEventListener('click', async (t) => {
                 (t.preventDefault(),
-                    await Nt(e.dataset.section || 'dashboard'));
+                    await zt(e.dataset.section || 'dashboard'));
             });
         }),
         document
@@ -2886,21 +2915,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             ?.addEventListener('click', () => {
                 const e = document.getElementById('adminSidebar'),
                     t = e?.classList.contains('is-open');
-                Dt(!t);
+                qt(!t);
             }),
         document
             .getElementById('adminMenuClose')
-            ?.addEventListener('click', () => Tt({ restoreFocus: !0 })),
+            ?.addEventListener('click', () => Ot({ restoreFocus: !0 })),
         document
             .getElementById('adminSidebarBackdrop')
-            ?.addEventListener('click', () => Tt({ restoreFocus: !0 })),
+            ?.addEventListener('click', () => Ot({ restoreFocus: !0 })),
         window.addEventListener('keydown', (e) => {
             (!(function (e) {
                 if ('Tab' !== e.key) return;
-                if (!Et() || !Lt()) return;
+                if (!_t() || !Pt()) return;
                 const t = document.getElementById('adminSidebar');
                 if (!t) return;
-                const n = It();
+                const n = jt();
                 if (0 === n.length) return (e.preventDefault(), void t.focus());
                 const a = n[0],
                     o = n[n.length - 1],
@@ -2925,7 +2954,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                               document
                                   .getElementById('appointments')
                                   ?.classList.contains('active') &&
-                              !$t(e.target)
+                              !Rt(e.target)
                           )
                               return (
                                   e.preventDefault(),
@@ -2944,23 +2973,60 @@ document.addEventListener('DOMContentLoaded', async () => {
                               document
                                   .getElementById('callbacks')
                                   ?.classList.contains('active') &&
-                              !$t(e.target)
+                              !Rt(e.target)
                           )
                               return (
                                   e.preventDefault(),
                                   void (function () {
-                                      const e = V().searchInput;
+                                      const e = K().searchInput;
                                       e instanceof HTMLInputElement &&
                                           (e.focus({ preventScroll: !0 }),
                                           e.select());
                                   })()
                               );
+                          if (
+                              '/' === e.key &&
+                              !e.altKey &&
+                              !e.ctrlKey &&
+                              !e.metaKey &&
+                              St() &&
+                              !Rt(e.target)
+                          )
+                              return (
+                                  e.preventDefault(),
+                                  void (function () {
+                                      const e =
+                                          document.getElementById(
+                                              'newSlotTime'
+                                          );
+                                      e instanceof HTMLInputElement &&
+                                          (Ke ||
+                                              e.closest('.is-hidden') ||
+                                              e.focus({ preventScroll: !0 }));
+                                  })()
+                              );
                           if (!e.altKey || !e.shiftKey) return;
-                          if ($t(e.target)) return;
+                          if (Rt(e.target)) return;
                           const n = String(e.key || '').toLowerCase(),
                               a = String(e.code || '').toLowerCase();
                           if ('m' === n || 'keym' === a)
-                              return (e.preventDefault(), void Dt(!Lt()));
+                              return (e.preventDefault(), void qt(!Pt()));
+                          if (St()) {
+                              if ('ArrowLeft' === e.key)
+                                  return (e.preventDefault(), void bt(-1));
+                              if ('ArrowRight' === e.key)
+                                  return (e.preventDefault(), void bt(1));
+                              if ('keyy' === a)
+                                  return (e.preventDefault(), void vt());
+                              if ('keys' === a)
+                                  return (e.preventDefault(), void wt());
+                              if ('keyd' === a)
+                                  return (e.preventDefault(), void Ct());
+                              if ('keyv' === a)
+                                  return (e.preventDefault(), void $t());
+                              if ('keyx' === a)
+                                  return (e.preventDefault(), void Dt());
+                          }
                           const o =
                               {
                                   keya: 'all',
@@ -2972,9 +3038,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                               return (
                                   e.preventDefault(),
                                   void (async function (e) {
-                                      (await Nt('appointments', { focus: !1 }),
+                                      (await zt('appointments', { focus: !1 }),
                                           Oe(e, { preserveSearch: !1 }),
-                                          Mt('appointments'));
+                                          Ut('appointments'));
                                   })(o)
                               );
                           const i =
@@ -2983,24 +3049,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                               return (
                                   e.preventDefault(),
                                   void (async function (e) {
-                                      (await Nt('callbacks', { focus: !1 }),
+                                      (await zt('callbacks', { focus: !1 }),
                                           Q(e, { preserveSearch: !1 }),
-                                          Mt('callbacks'));
+                                          Ut('callbacks'));
                                   })(i)
                               );
-                          const r = bt.get(a) || bt.get(n);
-                          r && (e.preventDefault(), Nt(r));
+                          const r = It.get(a) || It.get(n);
+                          r && (e.preventDefault(), zt(r));
                       })(e)
-                    : Tt({ restoreFocus: !0 }));
+                    : Ot({ restoreFocus: !0 }));
         }),
         window.addEventListener('resize', () => {
-            (Et() || Tt(), At(Lt()));
+            (_t() || Ot(), Ft(Pt()));
         }),
         window.addEventListener('hashchange', async () => {
             const e = document.getElementById('adminDashboard');
             e &&
                 !e.classList.contains('is-hidden') &&
-                (await Nt(St(), {
+                (await zt(Mt(), {
                     refresh: !1,
                     updateHash: !1,
                     focus: !1,
@@ -3043,7 +3109,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         (await y('import', { method: 'POST', body: a }),
                             await N());
                         const o = document.querySelector('.nav-item.active');
-                        (await _t(o?.dataset.section || 'dashboard'),
+                        (await Gt(o?.dataset.section || 'dashboard'),
                             w(
                                 `Datos importados: ${a.appointments.length} citas`,
                                 'success'
@@ -3056,14 +3122,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.addEventListener('online', async () => {
             (w('Conexion restaurada. Actualizando datos...', 'success'),
                 await N(),
-                await _t(kt()));
+                await Gt(Nt()));
         }),
-        At(!1),
+        Ft(!1),
         await (async function () {
             if (!navigator.onLine && T('appointments', null))
                 return (
                     w('Modo offline: mostrando datos locales', 'info'),
-                    void (await Pt())
+                    void (await Kt())
                 );
             (await (async function () {
                 try {
@@ -3075,11 +3141,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return (w('No se pudo verificar la sesion', 'warning'), !1);
                 }
             })())
-                ? await Pt()
+                ? await Kt()
                 : (function () {
                       const e = document.getElementById('loginScreen'),
                           t = document.getElementById('adminDashboard');
-                      (Tt(),
+                      (Ot(),
                           e && e.classList.remove('is-hidden'),
                           t && t.classList.add('is-hidden'));
                   })();
