@@ -127,6 +127,7 @@ Comandos rÃ¡pidos post-deploy:
 - `npm run gate:prod:strict`
 - `npm run nightly:stability`
 - `npm run monitor:prod`
+- `npm run git:sync:main:safe` (sincroniza con `origin/main` y auto-resuelve conflicto de `revision` en `AGENT_BOARD.yaml`)
 - `powershell -NoProfile -ExecutionPolicy Bypass -File .\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireBackupHealthy`
 
 **Linux/Mac:**
