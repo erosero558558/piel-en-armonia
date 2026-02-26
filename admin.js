@@ -770,7 +770,7 @@ function Z(e) {
 }
 function X(e) {
     const t = Number(e);
-    if (!Number.isFinite(t) || t <= 0) return 'reciÃ©n';
+    if (!Number.isFinite(t) || t <= 0) return 'recién';
     if (t < 60) return `${t} min`;
     const n = Math.floor(t / 60),
         a = t % 60;
@@ -938,7 +938,7 @@ function te(e, { preserveSearch: n = !0 } = {}) {
                       (t.textContent = 'Cola: prioridad alta'))
                     : u >= 2 || l >= 3
                       ? (t.classList.add('is-accent'),
-                        (t.textContent = 'Cola: atenciÃ³n requerida'))
+                        (t.textContent = 'Cola: atención requerida'))
                       : (t.classList.add('is-muted'),
                         (t.textContent = 'Cola: estable')));
             const p = s[0] || null;
@@ -950,7 +950,7 @@ function te(e, { preserveSearch: n = !0 } = {}) {
                 );
             const g = Y(p.callback.fecha),
                 h = g ? g.toLocaleString('es-EC') : 'Fecha no disponible';
-            ((i.innerHTML = `\n        <div class="callbacks-ops-next-card">\n            <span class="callbacks-ops-next-title">Siguiente contacto sugerido</span>\n            <strong class="callbacks-ops-next-phone">${v(p.callback.telefono || 'Sin telÃ©fono')}</strong>\n            <span class="callbacks-ops-next-meta">Espera: ${v(X(p.minutesWaiting))} | Preferencia: ${v(I(p.callback.preferencia))}</span>\n            <span class="callbacks-ops-next-meta">Registrado: ${v(h)}</span>\n        </div>\n    `),
+            ((i.innerHTML = `\n        <div class="callbacks-ops-next-card">\n            <span class="callbacks-ops-next-title">Siguiente contacto sugerido</span>\n            <strong class="callbacks-ops-next-phone">${v(p.callback.telefono || 'Sin teléfono')}</strong>\n            <span class="callbacks-ops-next-meta">Espera: ${v(X(p.minutesWaiting))} | Preferencia: ${v(I(p.callback.preferencia))}</span>\n            <span class="callbacks-ops-next-meta">Registrado: ${v(h)}</span>\n        </div>\n    `),
                 r instanceof HTMLButtonElement && (r.disabled = !1));
         })(t));
 }

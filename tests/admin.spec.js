@@ -295,12 +295,13 @@ test.describe('Panel de administracion', () => {
         await expect(page.locator('#callbacks')).toHaveClass(/active/);
         await expect(page.locator('#callbacksOpsPendingCount')).toHaveText('2');
         await expect(page.locator('#callbacksOpsUrgentCount')).toHaveText('1');
-        await expect(page.locator('#callbacksOpsQueueHealth')).toContainText(
-            /prioridad|atenci/i
+        await expect(page.locator('#callbacksOpsQueueHealth')).toHaveText(
+            'Cola: prioridad alta'
         );
         await expect(page.locator('#callbacksOpsNext')).toContainText(
             '+593988111222'
         );
+        await expect(page.locator('#callbacks')).not.toContainText(/[ÃÂ]/);
 
         await page.locator('#callbacksOpsNextBtn').click();
         await expect(
@@ -314,6 +315,51 @@ test.describe('Panel de administracion', () => {
             )
         ).toBeVisible();
         await expect(page.locator('#callbacksOpsNextBtn')).toBeEnabled();
+    });
+
+    test('callbacks triage muestra copy UTF-8 correcto en estado de atencion y fallback de telefono', async ({
+        page,
+    }) => {
+        const mediumPendingDateA = new Date(
+            Date.now() - 65 * 60 * 1000
+        ).toISOString();
+        const mediumPendingDateB = new Date(
+            Date.now() - 50 * 60 * 1000
+        ).toISOString();
+
+        await setupAuthenticatedAdminMocks(page, {
+            callbacks: [
+                {
+                    id: 201,
+                    telefono: '',
+                    preferencia: 'ahora',
+                    fecha: mediumPendingDateA,
+                    status: 'pending',
+                },
+                {
+                    id: 202,
+                    telefono: '+593977111222',
+                    preferencia: '30min',
+                    fecha: mediumPendingDateB,
+                    status: 'pending',
+                },
+            ],
+        });
+
+        await page.goto('/admin.html');
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+
+        await page
+            .locator('.admin-quick-nav-item[data-section="callbacks"]')
+            .click();
+        await expect(page.locator('#callbacks')).toHaveClass(/active/);
+        await expect(page.locator('#callbacksOpsQueueHealth')).toHaveText(
+            'Cola: atención requerida'
+        );
+        await expect(page.locator('#callbacksOpsNext')).toContainText(
+            'Sin teléfono'
+        );
+        await expect(page.locator('#callbacks')).not.toContainText(/[ÃÂ]/);
     });
 
     test('tema tambien funciona en dashboard autenticado', async ({ page }) => {

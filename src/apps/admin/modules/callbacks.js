@@ -104,7 +104,7 @@ function getPendingCallbacksSortedByUrgency(list) {
 
 function formatMinutesWaiting(minutes) {
     const normalized = Number(minutes);
-    if (!Number.isFinite(normalized) || normalized <= 0) return 'reciÃ©n';
+    if (!Number.isFinite(normalized) || normalized <= 0) return 'recién';
     if (normalized < 60) return `${normalized} min`;
     const hours = Math.floor(normalized / 60);
     const rest = normalized % 60;
@@ -303,7 +303,7 @@ function renderCallbacksOpsPanel(allCallbacks) {
         queueHealthEl.textContent = 'Cola: prioridad alta';
     } else if (attentionCount >= 2 || pendingCount >= 3) {
         queueHealthEl.classList.add('is-accent');
-        queueHealthEl.textContent = 'Cola: atenciÃ³n requerida';
+        queueHealthEl.textContent = 'Cola: atención requerida';
     } else {
         queueHealthEl.classList.add('is-muted');
         queueHealthEl.textContent = 'Cola: estable';
@@ -327,7 +327,7 @@ function renderCallbacksOpsPanel(allCallbacks) {
     nextTargetEl.innerHTML = `
         <div class="callbacks-ops-next-card">
             <span class="callbacks-ops-next-title">Siguiente contacto sugerido</span>
-            <strong class="callbacks-ops-next-phone">${escapeHtml(nextEntry.callback.telefono || 'Sin telÃ©fono')}</strong>
+            <strong class="callbacks-ops-next-phone">${escapeHtml(nextEntry.callback.telefono || 'Sin teléfono')}</strong>
             <span class="callbacks-ops-next-meta">Espera: ${escapeHtml(formatMinutesWaiting(nextEntry.minutesWaiting))} | Preferencia: ${escapeHtml(
                 getPreferenceText(nextEntry.callback.preferencia)
             )}</span>
