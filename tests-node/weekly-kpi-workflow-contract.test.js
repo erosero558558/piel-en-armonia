@@ -40,6 +40,7 @@ test('weekly-kpi workflow expone inputs de umbrales esperados', () => {
         'start_checkout_min_view_booking',
         'core_p95_max_ms',
         'figo_post_p95_max_ms',
+        'max_report_age_hours',
     ];
 
     for (const inputKey of requiredInputs) {
@@ -69,6 +70,7 @@ test('weekly-kpi workflow mantiene fallback por vars WEEKLY_KPI_*', () => {
         'WEEKLY_KPI_START_CHECKOUT_MIN_VIEW_BOOKING',
         'WEEKLY_KPI_CORE_P95_MAX_MS',
         'WEEKLY_KPI_FIGO_POST_P95_MAX_MS',
+        'WEEKLY_KPI_MAX_REPORT_AGE_HOURS',
     ];
 
     for (const envKey of requiredVars) {
@@ -87,6 +89,7 @@ test('weekly-kpi workflow publica thresholds efectivos en resumen', () => {
         'effective_retention_days',
         'effective_core_p95_max_ms',
         'effective_figo_post_p95_max_ms',
+        'effective_max_report_age_hours',
         'effective_no_show_warn_pct',
         'effective_recurrence_min_warn_pct',
         'effective_recurrence_drop_warn_pct',
@@ -116,16 +119,24 @@ test('weekly-kpi workflow separa incidentes general, SLA y retencion', () => {
 
     const requiredSnippets = [
         'Crear/actualizar incidente semanal general',
-        "steps.report.outputs.warnings_critical_count == '-1' || steps.report.outputs.warnings_critical_count != '0'",
+        "steps.report.outputs.general_incident_required == 'true'",
+        '[ALERTA PROD] Weekly KPI report con warnings',
+        'weekly-general-signal:',
+        'Issue general ya refleja la misma senal',
+        "steps.report.outputs.general_incident_recovered == 'true'",
         'Crear/actualizar incidente semanal de SLA operativo',
-        "steps.ops_sla.outputs.ops_fast_sla_ok != 'true' || steps.ops_sla.outputs.ops_nightly_target_ok != 'true' || steps.ops_sla.outputs.ops_incidents_mttr_target_ok != 'true' || steps.ops_sla.outputs.ops_incidents_open_external != '0'",
+        "steps.ops_sla.outputs.ops_sla_degraded == 'true'",
         '[ALERTA PROD] Weekly KPI SLA operativo degradado',
+        'weekly-sla-signal:',
+        'Issue de SLA operativo ya refleja la misma senal',
+        "steps.ops_sla.outputs.ops_sla_recovered == 'true'",
         'Crear/actualizar incidente semanal de retencion',
         "steps.report.outputs.retention_incident_required == 'true'",
         '[ALERTA PROD] Weekly KPI retencion degradada',
         'retention-signal:',
         'Issue de retencion ya refleja la misma senal',
         "steps.report.outputs.retention_incident_recovered == 'true'",
+        "retentionIncidentRecovered = if ($retentionAlertCountInt -eq 0 -and $reportStale -ne 'true')",
     ];
 
     for (const snippet of requiredSnippets) {
@@ -137,6 +148,31 @@ test('weekly-kpi workflow separa incidentes general, SLA y retencion', () => {
     }
 });
 
+test('weekly-kpi workflow expone outputs normalizados para semaforo general y SLA', () => {
+    const { raw } = loadWorkflow();
+    const requiredOutputs = [
+        'warnings_critical_count_int',
+        'warnings_alert_data_valid',
+        'report_generated_at_utc',
+        'report_age_hours',
+        'report_stale',
+        'general_incident_required',
+        'general_incident_recovered',
+        'general_signal_key',
+        'ops_sla_degraded',
+        'ops_sla_recovered',
+        'ops_sla_signal_key',
+    ];
+    for (const outputKey of requiredOutputs) {
+        assert.equal(
+            raw.includes(`"${outputKey}=`) ||
+                raw.includes(`core.setOutput('${outputKey}'`),
+            true,
+            `falta output normalizado general/SLA: ${outputKey}`
+        );
+    }
+});
+
 test('weekly-kpi workflow expone outputs normalizados para semaforo de retencion', () => {
     const { raw } = loadWorkflow();
     const requiredOutputs = [
@@ -144,6 +180,7 @@ test('weekly-kpi workflow expone outputs normalizados para semaforo de retencion
         'retention_alert_data_valid',
         'retention_incident_required',
         'retention_incident_recovered',
+        'retention_signal_key',
     ];
     for (const outputKey of requiredOutputs) {
         assert.equal(
