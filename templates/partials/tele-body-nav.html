@@ -102,7 +102,13 @@
                     </li>
                 </ul>
                 <div class="nav-actions">
-                    <a href="#citas" class="nav-cta" data-i18n="nav_book"
+                    <a
+                        href="#citas"
+                        class="nav-cta"
+                        data-i18n="nav_book"
+                        data-action="select-service"
+                        data-value="video"
+                        data-qa="tele-nav-booking-cta"
                         >Reservar Cita</a
                     >
                 </div>
@@ -164,9 +170,10 @@
             <a
                 href="#citas"
                 data-action="toggle-mobile-menu"
+                data-booking-service="video"
                 class="mobile-cta"
+                data-qa="tele-mobile-booking-cta"
                 data-i18n="nav_book"
                 >Reservar Cita</a
             >
         </div>
-

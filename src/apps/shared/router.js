@@ -38,6 +38,7 @@ function handleActionClick(event) {
 
     const action = String(actionEl.getAttribute('data-action') || '').trim();
     const value = actionEl.getAttribute('data-value') || '';
+    const bookingService = actionEl.getAttribute('data-booking-service') || '';
     if (!action) {
         return;
     }
@@ -54,6 +55,9 @@ function handleActionClick(event) {
             break;
         case 'toggle-mobile-menu':
             callDep('toggleMobileMenu');
+            if (bookingService) {
+                callDep('selectService', bookingService);
+            }
             break;
         case 'start-web-video':
             callDep('startWebVideo');
@@ -130,7 +134,7 @@ function bindListeners() {
 
 window.Piel = window.Piel || {};
 window.Piel.ActionRouterEngine = {
-    init
+    init,
 };
 // Legacy global kept for compatibility with older loaders.
 window.PielActionRouterEngine = window.Piel.ActionRouterEngine;
