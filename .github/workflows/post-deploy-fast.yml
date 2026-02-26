@@ -23,6 +23,7 @@ concurrency:
 
 permissions:
     contents: read
+    issues: write
 
 jobs:
     gate-fast:
@@ -30,6 +31,7 @@ jobs:
         runs-on: windows-latest
         timeout-minutes: 15
         env:
+            ENVIRONMENT_NAME: ${{ vars.ENVIRONMENT_NAME || 'PROD' }}
             TARGET_DOMAIN: ${{ github.event.inputs.domain || vars.TARGET_DOMAIN || 'https://pielarmonia.com' }}
             WAIT_SECONDS_FAST: ${{ github.event.inputs.wait_seconds || vars.WAIT_SECONDS_FAST || '45' }}
         steps:
@@ -74,3 +76,106 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Modo: ``verify+smoke`` (sin benchmark pesado)"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Semaforo platform: ``${{ steps.gate_fast.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Resultado: ``${{ job.status }}``"
+
+            - name: Crear/actualizar incidente fast lane
+              if: ${{ failure() && github.event_name != 'workflow_dispatch' }}
+              uses: actions/github-script@v7
+              env:
+                  GATE_FAST_OUTCOME: ${{ steps.gate_fast.outcome }}
+                  JOB_STATUS: ${{ job.status }}
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const envName = process.env.ENVIRONMENT_NAME || 'PROD';
+                      const title = `[ALERTA ${envName}] Post-Deploy Fast Lane fallando`;
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+                      const body = [
+                        'El workflow `Post-Deploy Fast Lane` fallo en el carril diario de verificacion rapida.',
+                        '',
+                        `- Fecha: ${now}`,
+                        `- Run: ${runUrl}`,
+                        `- Workflow: ${context.workflow}`,
+                        `- Branch: ${context.ref}`,
+                        `- gate_fast_outcome: ${process.env.GATE_FAST_OUTCOME || 'n/a'}`,
+                        `- job_status: ${process.env.JOB_STATUS || 'n/a'}`
+                      ].join('\n');
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (existing) {
+                        await github.rest.issues.createComment({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body
+                        });
+                        await github.rest.issues.addLabels({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          labels: ['production-alert', 'fast-lane']
+                        });
+                        core.info(`Issue existente actualizado: #${existing.number}`);
+                      } else {
+                        const created = await github.rest.issues.create({
+                          owner,
+                          repo,
+                          title,
+                          body,
+                          labels: ['production-alert', 'fast-lane']
+                        });
+                        core.info(`Issue creado: #${created.data.number}`);
+                      }
+
+            - name: Cerrar incidente fast lane al recuperar
+              if: ${{ success() && github.event_name != 'workflow_dispatch' }}
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const envName = process.env.ENVIRONMENT_NAME || 'PROD';
+                      const title = `[ALERTA ${envName}] Post-Deploy Fast Lane fallando`;
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (!existing) {
+                        core.info('No hay incidente fast lane abierto para cerrar.');
+                        return;
+                      }
+
+                      await github.rest.issues.createComment({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        body: [
+                          'Recuperado automaticamente por `Post-Deploy Fast Lane`.',
+                          '',
+                          `- Fecha: ${now}`,
+                          `- Run: ${runUrl}`
+                        ].join('\n')
+                      });
+
+                      await github.rest.issues.update({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        state: 'closed'
+                      });
+                      core.info(`Issue cerrado: #${existing.number}`);
