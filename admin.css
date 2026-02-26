@@ -3577,6 +3577,49 @@ html[data-theme='dark'] .card-empty-state i {
     align-items: center;
 }
 
+.queue-triage-toolbar {
+    border: 1px solid var(--admin-surface-border, #e6ebf3);
+    border-radius: 0.85rem;
+    background: var(--color-bg-white, #ffffff);
+    padding: 0.65rem 0.75rem;
+    display: grid;
+    gap: 0.55rem;
+}
+
+.queue-triage-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.queue-triage-filter.is-active {
+    border-color: var(--color-primary, #2f7cf6);
+    box-shadow: inset 0 0 0 1px var(--color-primary, #2f7cf6);
+}
+
+.queue-triage-search-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    align-items: center;
+}
+
+.queue-triage-search {
+    flex: 1;
+    min-width: 220px;
+    border: 1px solid var(--admin-surface-border, #e6ebf3);
+    border-radius: 0.6rem;
+    padding: 0.48rem 0.6rem;
+    background: var(--color-bg-white, #ffffff);
+    color: var(--color-text, #111827);
+}
+
+.queue-triage-summary {
+    margin: 0;
+    color: var(--color-text-secondary, #6b7280);
+    font-size: 0.8rem;
+}
+
 .queue-sync-pill {
     border: 1px solid var(--admin-surface-border, #e6ebf3);
     border-radius: 999px;
@@ -3671,6 +3714,27 @@ html[data-theme='dark'] .card-empty-state i {
     display: inline-flex;
     flex-wrap: wrap;
     gap: 0.35rem;
+}
+
+.queue-status-cell {
+    display: grid;
+    gap: 0.15rem;
+}
+
+.queue-risk-note,
+.queue-wait-note {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--color-text-secondary, #6b7280);
+}
+
+.queue-row-risk td {
+    background: rgb(245 158 11 / 8%);
+}
+
+.queue-row-risk .queue-risk-note {
+    color: #b45309;
+    font-weight: 600;
 }
 
 @media (max-width: 1300px) {

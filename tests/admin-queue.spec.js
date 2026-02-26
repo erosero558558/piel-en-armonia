@@ -225,4 +225,143 @@ test.describe('Admin turnero sala', () => {
         ).toBeDisabled();
         await expect(page.locator('#queueReleaseC1')).toContainText('A-501');
     });
+
+    test('triage de cola aplica filtros SLA y busqueda por ticket', async ({
+        page,
+    }) => {
+        const queueTickets = [
+            {
+                id: 900,
+                ticketCode: 'A-900',
+                queueType: 'appointment',
+                patientInitials: 'ER',
+                priorityClass: 'appt_overdue',
+                status: 'waiting',
+                assignedConsultorio: null,
+                createdAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+            },
+            {
+                id: 901,
+                ticketCode: 'A-901',
+                queueType: 'walk_in',
+                patientInitials: 'JP',
+                priorityClass: 'walk_in',
+                status: 'waiting',
+                assignedConsultorio: null,
+                createdAt: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
+            },
+            {
+                id: 902,
+                ticketCode: 'A-902',
+                queueType: 'appointment',
+                patientInitials: 'MC',
+                priorityClass: 'appt_current',
+                status: 'called',
+                assignedConsultorio: 1,
+                createdAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+                calledAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+            },
+        ];
+
+        const queueState = {
+            updatedAt: new Date().toISOString(),
+            waitingCount: 2,
+            calledCount: 1,
+            counts: {
+                waiting: 2,
+                called: 1,
+                completed: 0,
+                no_show: 0,
+                cancelled: 0,
+            },
+            callingNow: [queueTickets[2]],
+            nextTickets: [
+                {
+                    id: 900,
+                    ticketCode: 'A-900',
+                    patientInitials: 'ER',
+                    position: 1,
+                },
+                {
+                    id: 901,
+                    ticketCode: 'A-901',
+                    patientInitials: 'JP',
+                    position: 2,
+                },
+            ],
+        };
+
+        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
+            json(route, {
+                ok: true,
+                authenticated: true,
+                csrfToken: 'csrf_queue_triage',
+            })
+        );
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const url = new URL(route.request().url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'data') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        appointments: [],
+                        callbacks: [],
+                        reviews: [],
+                        availability: {},
+                        availabilityMeta: {
+                            source: 'store',
+                            mode: 'live',
+                            timezone: 'America/Guayaquil',
+                            calendarConfigured: true,
+                            calendarReachable: true,
+                            generatedAt: new Date().toISOString(),
+                        },
+                        queue_tickets: queueTickets,
+                        queueMeta: buildQueueMetaFromState(queueState),
+                    },
+                });
+            }
+
+            if (resource === 'health') {
+                return json(route, { ok: true, status: 'ok' });
+            }
+
+            if (resource === 'funnel-metrics') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto('/admin.html');
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await expect(page.locator('#queueTriageToolbar')).toBeVisible();
+        await expect(page.locator('#queueTriageSummary')).toContainText(
+            'riesgo'
+        );
+
+        await page.locator('[data-queue-filter="sla_risk"]').click();
+        await expect(page.locator('#queueTableBody tr')).toHaveCount(1);
+        await expect(page.locator('#queueTableBody')).toContainText('A-900');
+        await expect(page.locator('#queueTableBody')).not.toContainText(
+            'A-901'
+        );
+
+        await page.locator('[data-queue-filter="all"]').click();
+        await page.fill('#queueSearchInput', 'A-901');
+        await expect(page.locator('#queueTableBody')).toContainText('A-901');
+        await expect(page.locator('#queueTableBody')).not.toContainText(
+            'A-900'
+        );
+
+        await page.locator('[data-action="queue-clear-search"]').click();
+        await expect(page.locator('#queueSearchInput')).toHaveValue('');
+        await expect(page.locator('#queueTableBody')).toContainText('A-900');
+    });
 });

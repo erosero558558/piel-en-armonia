@@ -24,12 +24,24 @@ const QUEUE_PRIORITY_LABELS = {
 const TERMINAL_QUEUE_STATUSES = new Set(['completed', 'no_show', 'cancelled']);
 const QUEUE_REALTIME_BASE_MS = 2500;
 const QUEUE_REALTIME_MAX_MS = 15000;
+const QUEUE_SLA_RISK_MINUTES = 20;
+const QUEUE_FILTER_ORDER = [
+    'all',
+    'waiting',
+    'called',
+    'sla_risk',
+    'appointments',
+    'walk_in',
+];
 const queueUiState = {
     pendingCallByConsultorio: new Set(),
     realtimeTimerId: 0,
     realtimeEnabled: false,
     realtimeFailureStreak: 0,
     realtimeRequestInFlight: false,
+    activeFilter: 'all',
+    searchTerm: '',
+    triageControlsBound: false,
 };
 
 function getQueueSyncStatusEl() {
@@ -120,21 +132,115 @@ function normalizeQueueMetaFromState(queueState) {
     };
 }
 
-function getSortedTickets() {
-    const statusRank = {
+function getTicketStatusRank(status) {
+    const rankByStatus = {
         waiting: 0,
         called: 1,
         completed: 2,
         no_show: 3,
         cancelled: 4,
     };
+    return rankByStatus[String(status || '').toLowerCase()] ?? 9;
+}
 
-    return [
-        ...(Array.isArray(currentQueueTickets) ? currentQueueTickets : []),
-    ].sort((a, b) => {
-        const rankDiff =
-            (statusRank[a?.status] ?? 9) - (statusRank[b?.status] ?? 9);
-        if (rankDiff !== 0) return rankDiff;
+function getTicketPriorityRank(priorityClass) {
+    const rankByPriority = {
+        appt_overdue: 0,
+        appt_current: 1,
+        walk_in: 2,
+    };
+    return rankByPriority[String(priorityClass || '').toLowerCase()] ?? 9;
+}
+
+function normalizeQueueFilter(filter) {
+    const normalized = String(filter || '')
+        .trim()
+        .toLowerCase();
+    return QUEUE_FILTER_ORDER.includes(normalized) ? normalized : 'all';
+}
+
+function getTicketWaitMinutes(ticket) {
+    const createdTs = Date.parse(String(ticket?.createdAt || ''));
+    if (!Number.isFinite(createdTs)) return null;
+
+    const calledTs = Date.parse(String(ticket?.calledAt || ''));
+    const status = String(ticket?.status || '').toLowerCase();
+    const endTs =
+        status === 'called' && Number.isFinite(calledTs)
+            ? calledTs
+            : Date.now();
+    const minutes = Math.round((endTs - createdTs) / 60000);
+    return minutes >= 0 ? minutes : 0;
+}
+
+function isSlaRiskTicket(ticket) {
+    const status = String(ticket?.status || '').toLowerCase();
+    if (status !== 'waiting') return false;
+    const waitMinutes = getTicketWaitMinutes(ticket);
+    return (
+        Number.isFinite(waitMinutes) && waitMinutes >= QUEUE_SLA_RISK_MINUTES
+    );
+}
+
+function matchesQueueFilter(ticket, filter) {
+    const normalizedFilter = normalizeQueueFilter(filter);
+    const status = String(ticket?.status || '').toLowerCase();
+    const queueType = String(ticket?.queueType || '').toLowerCase();
+    if (normalizedFilter === 'all') return true;
+    if (normalizedFilter === 'waiting') return status === 'waiting';
+    if (normalizedFilter === 'called') return status === 'called';
+    if (normalizedFilter === 'sla_risk') return isSlaRiskTicket(ticket);
+    if (normalizedFilter === 'appointments') return queueType === 'appointment';
+    if (normalizedFilter === 'walk_in') return queueType === 'walk_in';
+    return true;
+}
+
+function normalizeSearchText(value) {
+    return String(value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+}
+
+function matchesQueueSearch(ticket, searchTerm) {
+    const normalizedTerm = normalizeSearchText(searchTerm);
+    if (!normalizedTerm) return true;
+    const haystack = [
+        ticket?.ticketCode,
+        ticket?.patientInitials,
+        ticket?.phoneLast4,
+        ticket?.queueType,
+        ticket?.priorityClass,
+        ticket?.status,
+    ]
+        .map((value) => normalizeSearchText(value))
+        .filter(Boolean)
+        .join(' ');
+    return haystack.includes(normalizedTerm);
+}
+
+function getSortedTickets(tickets) {
+    return [...tickets].sort((a, b) => {
+        const statusDiff =
+            getTicketStatusRank(a?.status) - getTicketStatusRank(b?.status);
+        if (statusDiff !== 0) return statusDiff;
+
+        const priorityDiff =
+            getTicketPriorityRank(a?.priorityClass) -
+            getTicketPriorityRank(b?.priorityClass);
+        if (priorityDiff !== 0) return priorityDiff;
+
+        const waitA = getTicketWaitMinutes(a);
+        const waitB = getTicketWaitMinutes(b);
+        if (
+            Number.isFinite(waitA) &&
+            Number.isFinite(waitB) &&
+            waitA !== waitB
+        ) {
+            return waitB - waitA;
+        }
+
         const aTs = Date.parse(String(a?.createdAt || ''));
         const bTs = Date.parse(String(b?.createdAt || ''));
         if (Number.isFinite(aTs) && Number.isFinite(bTs) && aTs !== bTs) {
@@ -142,6 +248,41 @@ function getSortedTickets() {
         }
         return Number(a?.id || 0) - Number(b?.id || 0);
     });
+}
+
+function buildQueueViewState() {
+    const sourceTickets = Array.isArray(currentQueueTickets)
+        ? currentQueueTickets
+        : [];
+    const sortedTickets = getSortedTickets(sourceTickets);
+    const activeFilter = normalizeQueueFilter(queueUiState.activeFilter);
+    const searchTerm = String(queueUiState.searchTerm || '');
+
+    const filteredTickets = sortedTickets.filter(
+        (ticket) =>
+            matchesQueueFilter(ticket, activeFilter) &&
+            matchesQueueSearch(ticket, searchTerm)
+    );
+
+    const waitingCount = sortedTickets.filter(
+        (ticket) => String(ticket?.status || '').toLowerCase() === 'waiting'
+    ).length;
+    const calledCount = sortedTickets.filter(
+        (ticket) => String(ticket?.status || '').toLowerCase() === 'called'
+    ).length;
+    const riskCount = sortedTickets.filter((ticket) =>
+        isSlaRiskTicket(ticket)
+    ).length;
+
+    return {
+        tickets: filteredTickets,
+        totalCount: sortedTickets.length,
+        waitingCount,
+        calledCount,
+        riskCount,
+        activeFilter,
+        searchTerm,
+    };
 }
 
 function updateTicketInState(nextTicket) {
@@ -282,6 +423,138 @@ function syncHeaderConsultorioControls(consultorio, activeTicket) {
     releaseButton.innerHTML = `<i class="fas fa-rotate-left"></i> Liberar C${consultorio} (${escapeHtml(ticketCode)})`;
 }
 
+function getQueueFilterLabel(filter) {
+    const labels = {
+        all: 'Todos',
+        waiting: 'En espera',
+        called: 'Llamados',
+        sla_risk: `SLA +${QUEUE_SLA_RISK_MINUTES}m`,
+        appointments: 'Cita',
+        walk_in: 'Walk-in',
+    };
+    return labels[normalizeQueueFilter(filter)] || labels.all;
+}
+
+function ensureQueueTriageControls() {
+    const shell = document.querySelector('#queue .queue-admin-shell');
+    if (!(shell instanceof HTMLElement)) return;
+
+    let toolbar = document.getElementById('queueTriageToolbar');
+    if (!(toolbar instanceof HTMLElement)) {
+        toolbar = document.createElement('section');
+        toolbar.id = 'queueTriageToolbar';
+        toolbar.className = 'queue-triage-toolbar';
+        toolbar.innerHTML = `
+            <div class="queue-triage-filters" role="group" aria-label="Filtros de turnero">
+                ${QUEUE_FILTER_ORDER.map(
+                    (filter) => `
+                        <button
+                            type="button"
+                            class="btn btn-secondary btn-sm queue-triage-filter"
+                            data-queue-filter="${filter}"
+                        >
+                            ${escapeHtml(getQueueFilterLabel(filter))}
+                        </button>
+                    `
+                ).join('')}
+            </div>
+            <div class="queue-triage-search-wrap">
+                <input
+                    id="queueSearchInput"
+                    class="queue-triage-search"
+                    type="search"
+                    inputmode="search"
+                    autocomplete="off"
+                    placeholder="Buscar ticket, iniciales o ultimos 4"
+                    aria-label="Buscar en cola"
+                />
+                <button
+                    type="button"
+                    class="btn btn-secondary btn-sm"
+                    data-action="queue-clear-search"
+                >
+                    Limpiar
+                </button>
+            </div>
+            <p id="queueTriageSummary" class="queue-triage-summary">Sin datos de cola</p>
+        `;
+        const kpis = shell.querySelector('.queue-admin-kpis');
+        if (kpis?.parentElement === shell) {
+            shell.insertBefore(toolbar, kpis);
+        } else {
+            shell.appendChild(toolbar);
+        }
+    }
+
+    const searchInput = document.getElementById('queueSearchInput');
+    if (
+        searchInput instanceof HTMLInputElement &&
+        searchInput.value !== String(queueUiState.searchTerm || '')
+    ) {
+        searchInput.value = String(queueUiState.searchTerm || '');
+    }
+
+    if (queueUiState.triageControlsBound) return;
+    queueUiState.triageControlsBound = true;
+
+    toolbar.addEventListener('click', (event) => {
+        const filterButton = event.target.closest('[data-queue-filter]');
+        if (filterButton instanceof HTMLElement) {
+            queueUiState.activeFilter = normalizeQueueFilter(
+                filterButton.dataset.queueFilter || 'all'
+            );
+            renderQueueSection();
+            return;
+        }
+        const clearButton = event.target.closest(
+            '[data-action="queue-clear-search"]'
+        );
+        if (clearButton instanceof HTMLElement) {
+            queueUiState.searchTerm = '';
+            renderQueueSection();
+        }
+    });
+
+    if (searchInput instanceof HTMLInputElement) {
+        searchInput.addEventListener('input', () => {
+            queueUiState.searchTerm = searchInput.value || '';
+            renderQueueSection();
+        });
+    }
+}
+
+function syncQueueTriageControls(viewState) {
+    const toolbar = document.getElementById('queueTriageToolbar');
+    if (!(toolbar instanceof HTMLElement)) return;
+
+    const activeFilter = normalizeQueueFilter(viewState?.activeFilter || 'all');
+    toolbar.querySelectorAll('[data-queue-filter]').forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) return;
+        const isActive =
+            normalizeQueueFilter(button.dataset.queueFilter || '') ===
+            activeFilter;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', String(isActive));
+    });
+
+    const searchInput = document.getElementById('queueSearchInput');
+    if (
+        searchInput instanceof HTMLInputElement &&
+        searchInput.value !== String(viewState?.searchTerm || '')
+    ) {
+        searchInput.value = String(viewState?.searchTerm || '');
+    }
+
+    const summary = document.getElementById('queueTriageSummary');
+    if (summary instanceof HTMLElement) {
+        const visibleCount = Number(viewState?.tickets?.length || 0);
+        const totalCount = Number(viewState?.totalCount || 0);
+        const riskCount = Number(viewState?.riskCount || 0);
+        const waitingCount = Number(viewState?.waitingCount || 0);
+        summary.textContent = `${visibleCount}/${totalCount} visibles · ${waitingCount} en espera · ${riskCount} en riesgo SLA`;
+    }
+}
+
 function renderQueueOverview() {
     const queueMeta =
         currentQueueMeta && typeof currentQueueMeta === 'object'
@@ -351,11 +624,11 @@ function renderQueueOverview() {
     }
 }
 
-function renderQueueTable() {
+function renderQueueTable(viewState) {
     const tableBody = document.getElementById('queueTableBody');
     if (!tableBody) return;
 
-    const tickets = getSortedTickets();
+    const tickets = Array.isArray(viewState?.tickets) ? viewState.tickets : [];
     if (tickets.length === 0) {
         tableBody.innerHTML = `
             <tr>
@@ -374,15 +647,31 @@ function renderQueueTable() {
             const isTerminal = TERMINAL_QUEUE_STATUSES.has(status);
             const canResolve = !isTerminal;
             const canAssignConsultorio = !isTerminal;
+            const waitMinutes = getTicketWaitMinutes(ticket);
+            const hasSlaRisk = isSlaRiskTicket(ticket);
+            const rowClass = hasSlaRisk ? 'queue-row-risk' : '';
+            const waitLabel = Number.isFinite(waitMinutes)
+                ? `${waitMinutes}m`
+                : '--';
 
             return `
-                <tr>
+                <tr class="${rowClass}">
                     <td>${escapeHtml(ticket.ticketCode || '--')}</td>
                     <td>${escapeHtml(ticket.queueType || '--')}</td>
                     <td>${escapeHtml(QUEUE_PRIORITY_LABELS[ticket.priorityClass] || ticket.priorityClass || '--')}</td>
-                    <td>${escapeHtml(QUEUE_STATUS_LABELS[status] || status)}</td>
+                    <td class="queue-status-cell">
+                        <span>${escapeHtml(QUEUE_STATUS_LABELS[status] || status)}</span>
+                        ${
+                            hasSlaRisk
+                                ? `<small class="queue-risk-note">SLA > ${QUEUE_SLA_RISK_MINUTES}m</small>`
+                                : ''
+                        }
+                    </td>
                     <td>${escapeHtml(ticket.assignedConsultorio || '-')}</td>
-                    <td>${escapeHtml(formatDateTime(ticket.createdAt))}</td>
+                    <td>
+                        <span>${escapeHtml(formatDateTime(ticket.createdAt))}</span>
+                        <small class="queue-wait-note">Espera: ${escapeHtml(waitLabel)}</small>
+                    </td>
                     <td>${escapeHtml(ticket.patientInitials || '--')}</td>
                     <td>
                         <div class="queue-actions">
@@ -431,8 +720,11 @@ function renderQueueTable() {
 }
 
 function renderQueueSection() {
+    ensureQueueTriageControls();
+    const viewState = buildQueueViewState();
+    syncQueueTriageControls(viewState);
     renderQueueOverview();
-    renderQueueTable();
+    renderQueueTable(viewState);
 }
 
 async function runQueueRealtimeTick() {
