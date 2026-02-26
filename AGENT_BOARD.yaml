@@ -3005,8 +3005,8 @@ tasks:
     runtime_impact: low
     critical_zone: false
     acceptance: "Frontend P0: Hero service intent shortcuts + booking prefill conversion block"
-    acceptance_ref: "verification/agent-runs/AG-078.md"
-    evidence_ref: "verification/agent-runs/AG-078.md"
+    acceptance_ref: "verification/agent-runs/AG-079.md"
+    evidence_ref: "verification/agent-runs/AG-079.md"
     depends_on: []
     prompt: "Frontend P0: Hero service intent shortcuts + booking prefill conversion block"
     created_at: 2026-02-26
