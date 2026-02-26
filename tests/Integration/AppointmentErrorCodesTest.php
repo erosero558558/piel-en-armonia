@@ -19,6 +19,7 @@ class AppointmentErrorCodesTest extends TestCase
         unset($GLOBALS['__TEST_RESPONSE']);
         $_GET = [];
         unset($_SERVER['HTTP_IDEMPOTENCY_KEY'], $_SERVER['HTTP_X_IDEMPOTENCY_KEY']);
+        $_SERVER['REMOTE_ADDR'] = '10.0.0.10';
 
         $this->tempDir = sys_get_temp_dir() . '/test_appointment_errors_' . bin2hex(random_bytes(6));
         if (!is_dir($this->tempDir)) {
@@ -44,6 +45,7 @@ class AppointmentErrorCodesTest extends TestCase
         require_once __DIR__ . '/../../controllers/AppointmentController.php';
 
         \ensure_data_file();
+        \reset_rate_limit('appointments');
     }
 
     protected function tearDown(): void
@@ -56,6 +58,7 @@ class AppointmentErrorCodesTest extends TestCase
         unset($GLOBALS['__TEST_RESPONSE']);
         $_GET = [];
         unset($_SERVER['HTTP_IDEMPOTENCY_KEY'], $_SERVER['HTTP_X_IDEMPOTENCY_KEY']);
+        unset($_SERVER['REMOTE_ADDR']);
         $this->removeDirectory($this->tempDir);
     }
 
