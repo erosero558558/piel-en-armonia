@@ -20,6 +20,76 @@ on:
                 required: false
                 default: true
                 type: boolean
+            retention_days:
+                description: 'Ventana de dias para retention-report'
+                required: false
+                default: '30'
+                type: string
+            no_show_warn_pct:
+                description: 'Umbral no-show (%)'
+                required: false
+                default: '20'
+                type: string
+            recurrence_min_warn_pct:
+                description: 'Umbral minimo recurrencia (%)'
+                required: false
+                default: '30'
+                type: string
+            recurrence_drop_warn_pct:
+                description: 'Umbral de caida de recurrencia (pp)'
+                required: false
+                default: '15'
+                type: string
+            recurrence_min_unique_patients:
+                description: 'Muestra minima para alertar recurrencia'
+                required: false
+                default: '5'
+                type: string
+            idempotency_conflict_warn_pct:
+                description: 'Umbral conflicto idempotencia (%)'
+                required: false
+                default: '5'
+                type: string
+            conversion_min_warn_pct:
+                description: 'Umbral minimo conversion booking_confirmed (%)'
+                required: false
+                default: '25'
+                type: string
+            conversion_drop_warn_pct:
+                description: 'Umbral de caida de conversion (pp)'
+                required: false
+                default: '15'
+                type: string
+            conversion_min_start_checkout:
+                description: 'Muestra minima start_checkout para alertar conversion'
+                required: false
+                default: '10'
+                type: string
+            start_checkout_min_warn_pct:
+                description: 'Umbral minimo start_checkout_rate (%)'
+                required: false
+                default: '0.25'
+                type: string
+            start_checkout_drop_warn_pct:
+                description: 'Umbral de caida start_checkout_rate (pp)'
+                required: false
+                default: '0.2'
+                type: string
+            start_checkout_min_view_booking:
+                description: 'Muestra minima view_booking para alertar start_checkout_rate'
+                required: false
+                default: '100'
+                type: string
+            core_p95_max_ms:
+                description: 'Umbral p95 core (ms)'
+                required: false
+                default: '800'
+                type: string
+            figo_post_p95_max_ms:
+                description: 'Umbral p95 figo-post (ms)'
+                required: false
+                default: '2500'
+                type: string
 
 concurrency:
     group: weekly-kpi-report
@@ -39,6 +109,20 @@ jobs:
             TARGET_DOMAIN: ${{ github.event.inputs.domain || 'https://pielarmonia.com' }}
             BENCH_RUNS: ${{ github.event.inputs.bench_runs || '15' }}
             FAIL_ON_WARNINGS: ${{ github.event.inputs.fail_on_warnings || 'true' }}
+            REPORT_RETENTION_DAYS: ${{ github.event.inputs.retention_days || vars.WEEKLY_KPI_RETENTION_DAYS || '30' }}
+            REPORT_NO_SHOW_WARN_PCT: ${{ github.event.inputs.no_show_warn_pct || vars.WEEKLY_KPI_NO_SHOW_WARN_PCT || '20' }}
+            REPORT_RECURRENCE_MIN_WARN_PCT: ${{ github.event.inputs.recurrence_min_warn_pct || vars.WEEKLY_KPI_RECURRENCE_MIN_WARN_PCT || '30' }}
+            REPORT_RECURRENCE_DROP_WARN_PCT: ${{ github.event.inputs.recurrence_drop_warn_pct || vars.WEEKLY_KPI_RECURRENCE_DROP_WARN_PCT || '15' }}
+            REPORT_RECURRENCE_MIN_UNIQUE_PATIENTS: ${{ github.event.inputs.recurrence_min_unique_patients || vars.WEEKLY_KPI_RECURRENCE_MIN_UNIQUE_PATIENTS || '5' }}
+            REPORT_IDEMPOTENCY_CONFLICT_WARN_PCT: ${{ github.event.inputs.idempotency_conflict_warn_pct || vars.WEEKLY_KPI_IDEMPOTENCY_CONFLICT_WARN_PCT || '5' }}
+            REPORT_CONVERSION_MIN_WARN_PCT: ${{ github.event.inputs.conversion_min_warn_pct || vars.WEEKLY_KPI_CONVERSION_MIN_WARN_PCT || '25' }}
+            REPORT_CONVERSION_DROP_WARN_PCT: ${{ github.event.inputs.conversion_drop_warn_pct || vars.WEEKLY_KPI_CONVERSION_DROP_WARN_PCT || '15' }}
+            REPORT_CONVERSION_MIN_START_CHECKOUT: ${{ github.event.inputs.conversion_min_start_checkout || vars.WEEKLY_KPI_CONVERSION_MIN_START_CHECKOUT || '10' }}
+            REPORT_START_CHECKOUT_MIN_WARN_PCT: ${{ github.event.inputs.start_checkout_min_warn_pct || vars.WEEKLY_KPI_START_CHECKOUT_MIN_WARN_PCT || '0.25' }}
+            REPORT_START_CHECKOUT_DROP_WARN_PCT: ${{ github.event.inputs.start_checkout_drop_warn_pct || vars.WEEKLY_KPI_START_CHECKOUT_DROP_WARN_PCT || '0.2' }}
+            REPORT_START_CHECKOUT_MIN_VIEW_BOOKING: ${{ github.event.inputs.start_checkout_min_view_booking || vars.WEEKLY_KPI_START_CHECKOUT_MIN_VIEW_BOOKING || '100' }}
+            REPORT_CORE_P95_MAX_MS: ${{ github.event.inputs.core_p95_max_ms || vars.WEEKLY_KPI_CORE_P95_MAX_MS || '800' }}
+            REPORT_FIGO_POST_P95_MAX_MS: ${{ github.event.inputs.figo_post_p95_max_ms || vars.WEEKLY_KPI_FIGO_POST_P95_MAX_MS || '2500' }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -56,15 +140,100 @@ jobs:
               run: npm run agent:metrics
 
             - name: Ejecutar reporte semanal
+              id: run_report
               shell: pwsh
               run: |
+                  function Parse-IntValue {
+                    param(
+                      [string]$Raw,
+                      [int]$DefaultValue,
+                      [int]$MinValue = 0
+                    )
+                    $parsed = $DefaultValue
+                    if (-not [string]::IsNullOrWhiteSpace($Raw)) {
+                      $tmp = 0
+                      if ([int]::TryParse($Raw, [ref]$tmp)) {
+                        $parsed = $tmp
+                      }
+                    }
+                    if ($parsed -lt $MinValue) { $parsed = $MinValue }
+                    return $parsed
+                  }
+
+                  function Parse-DoubleValue {
+                    param(
+                      [string]$Raw,
+                      [double]$DefaultValue,
+                      [double]$MinValue = 0
+                    )
+                    $parsed = $DefaultValue
+                    if (-not [string]::IsNullOrWhiteSpace($Raw)) {
+                      $tmp = 0.0
+                      if ([double]::TryParse($Raw, [System.Globalization.NumberStyles]::Float, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$tmp)) {
+                        $parsed = $tmp
+                      }
+                    }
+                    if ($parsed -lt $MinValue) { $parsed = $MinValue }
+                    return $parsed
+                  }
+
                   $benchRuns = [int]$env:BENCH_RUNS
                   if ($benchRuns -lt 5) { $benchRuns = 5 }
+                  $retentionDays = Parse-IntValue -Raw $env:REPORT_RETENTION_DAYS -DefaultValue 30 -MinValue 1
+                  $coreP95MaxMs = Parse-IntValue -Raw $env:REPORT_CORE_P95_MAX_MS -DefaultValue 800 -MinValue 1
+                  $figoPostP95MaxMs = Parse-IntValue -Raw $env:REPORT_FIGO_POST_P95_MAX_MS -DefaultValue 2500 -MinValue 1
+                  $noShowWarnPct = Parse-DoubleValue -Raw $env:REPORT_NO_SHOW_WARN_PCT -DefaultValue 20.0 -MinValue 0
+                  $idempotencyConflictWarnPct = Parse-DoubleValue -Raw $env:REPORT_IDEMPOTENCY_CONFLICT_WARN_PCT -DefaultValue 5.0 -MinValue 0
+                  $recurrenceMinWarnPct = Parse-DoubleValue -Raw $env:REPORT_RECURRENCE_MIN_WARN_PCT -DefaultValue 30.0 -MinValue 0
+                  $recurrenceDropWarnPct = Parse-DoubleValue -Raw $env:REPORT_RECURRENCE_DROP_WARN_PCT -DefaultValue 15.0 -MinValue 0
+                  $recurrenceMinUniquePatients = Parse-IntValue -Raw $env:REPORT_RECURRENCE_MIN_UNIQUE_PATIENTS -DefaultValue 5 -MinValue 1
+                  $conversionMinWarnPct = Parse-DoubleValue -Raw $env:REPORT_CONVERSION_MIN_WARN_PCT -DefaultValue 25.0 -MinValue 0
+                  $conversionDropWarnPct = Parse-DoubleValue -Raw $env:REPORT_CONVERSION_DROP_WARN_PCT -DefaultValue 15.0 -MinValue 0
+                  $conversionMinStartCheckout = Parse-IntValue -Raw $env:REPORT_CONVERSION_MIN_START_CHECKOUT -DefaultValue 10 -MinValue 1
+                  $startCheckoutMinWarnPct = Parse-DoubleValue -Raw $env:REPORT_START_CHECKOUT_MIN_WARN_PCT -DefaultValue 0.25 -MinValue 0
+                  $startCheckoutDropWarnPct = Parse-DoubleValue -Raw $env:REPORT_START_CHECKOUT_DROP_WARN_PCT -DefaultValue 0.2 -MinValue 0
+                  $startCheckoutMinViewBooking = Parse-IntValue -Raw $env:REPORT_START_CHECKOUT_MIN_VIEW_BOOKING -DefaultValue 100 -MinValue 1
+
+                  "effective_retention_days=$retentionDays" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "effective_core_p95_max_ms=$coreP95MaxMs" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "effective_figo_post_p95_max_ms=$figoPostP95MaxMs" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "effective_no_show_warn_pct=$noShowWarnPct" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "effective_recurrence_min_warn_pct=$recurrenceMinWarnPct" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "effective_recurrence_drop_warn_pct=$recurrenceDropWarnPct" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "effective_recurrence_min_unique_patients=$recurrenceMinUniquePatients" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "effective_idempotency_conflict_warn_pct=$idempotencyConflictWarnPct" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "effective_conversion_min_warn_pct=$conversionMinWarnPct" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "effective_conversion_drop_warn_pct=$conversionDropWarnPct" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "effective_conversion_min_start_checkout=$conversionMinStartCheckout" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "effective_start_checkout_min_warn_pct=$startCheckoutMinWarnPct" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "effective_start_checkout_drop_warn_pct=$startCheckoutDropWarnPct" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "effective_start_checkout_min_view_booking=$startCheckoutMinViewBooking" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+                  $args = @(
+                    '-Domain', $env:TARGET_DOMAIN,
+                    '-BenchRuns', $benchRuns,
+                    '-RetentionReportDays', $retentionDays,
+                    '-CoreP95MaxMs', $coreP95MaxMs,
+                    '-FigoPostP95MaxMs', $figoPostP95MaxMs,
+                    '-NoShowRateWarnPct', $noShowWarnPct,
+                    '-IdempotencyConflictRateWarnPct', $idempotencyConflictWarnPct,
+                    '-RecurrenceRateMinWarnPct', $recurrenceMinWarnPct,
+                    '-RecurrenceRateDropWarnPct', $recurrenceDropWarnPct,
+                    '-RecurrenceWarnMinUniquePatients', $recurrenceMinUniquePatients,
+                    '-ConversionRateMinWarnPct', $conversionMinWarnPct,
+                    '-ConversionRateDropWarnPct', $conversionDropWarnPct,
+                    '-ConversionWarnMinStartCheckout', $conversionMinStartCheckout,
+                    '-StartCheckoutRateMinWarnPct', $startCheckoutMinWarnPct,
+                    '-StartCheckoutRateDropWarnPct', $startCheckoutDropWarnPct,
+                    '-StartCheckoutWarnMinViewBooking', $startCheckoutMinViewBooking
+                  )
+
                   if ($env:FAIL_ON_WARNINGS -eq 'true') {
-                    & ./REPORTE-SEMANAL-PRODUCCION.ps1 -Domain $env:TARGET_DOMAIN -BenchRuns $benchRuns -FailOnCriticalWarnings
+                    $args += '-FailOnCriticalWarnings'
                   } else {
-                    & ./REPORTE-SEMANAL-PRODUCCION.ps1 -Domain $env:TARGET_DOMAIN -BenchRuns $benchRuns
+                    Write-Host 'FailOnCriticalWarnings desactivado para esta corrida.'
                   }
+                  & ./REPORTE-SEMANAL-PRODUCCION.ps1 @args
 
             - name: Detectar ultimo reporte
               if: ${{ always() }}
@@ -413,6 +582,22 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Dominio: ``$env:TARGET_DOMAIN``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Bench runs: ``$env:BENCH_RUNS``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Fail on warnings (critical-only gate): ``$env:FAIL_ON_WARNINGS``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Thresholds efectivos"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- retention_days: ``${{ steps.run_report.outputs.effective_retention_days }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- core_p95_max_ms: ``${{ steps.run_report.outputs.effective_core_p95_max_ms }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- figo_post_p95_max_ms: ``${{ steps.run_report.outputs.effective_figo_post_p95_max_ms }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- no_show_warn_pct: ``${{ steps.run_report.outputs.effective_no_show_warn_pct }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- recurrence_min_warn_pct: ``${{ steps.run_report.outputs.effective_recurrence_min_warn_pct }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- recurrence_drop_warn_pct: ``${{ steps.run_report.outputs.effective_recurrence_drop_warn_pct }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- recurrence_min_unique_patients: ``${{ steps.run_report.outputs.effective_recurrence_min_unique_patients }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- idempotency_conflict_warn_pct: ``${{ steps.run_report.outputs.effective_idempotency_conflict_warn_pct }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- conversion_min_warn_pct: ``${{ steps.run_report.outputs.effective_conversion_min_warn_pct }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- conversion_drop_warn_pct: ``${{ steps.run_report.outputs.effective_conversion_drop_warn_pct }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- conversion_min_start_checkout: ``${{ steps.run_report.outputs.effective_conversion_min_start_checkout }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- start_checkout_min_warn_pct: ``${{ steps.run_report.outputs.effective_start_checkout_min_warn_pct }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- start_checkout_drop_warn_pct: ``${{ steps.run_report.outputs.effective_start_checkout_drop_warn_pct }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- start_checkout_min_view_booking: ``${{ steps.run_report.outputs.effective_start_checkout_min_view_booking }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Warnings count: ``${{ steps.report.outputs.warnings_count }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Warnings critical: ``${{ steps.report.outputs.warnings_critical_count }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Warnings non_critical: ``${{ steps.report.outputs.warnings_non_critical_count }}``"
@@ -485,6 +670,23 @@ jobs:
                         `- warnings_non_critical_count: ${{ steps.report.outputs.warnings_non_critical_count }}`,
                         `- warnings_critical_list: ${{ steps.report.outputs.warnings_critical_list }}`,
                         `- warnings_non_critical_list: ${{ steps.report.outputs.warnings_non_critical_list }}`,
+                        '',
+                        'Thresholds efectivos en esta corrida:',
+                        `- retention_days: ${{ steps.run_report.outputs.effective_retention_days }}`,
+                        `- core_p95_max_ms: ${{ steps.run_report.outputs.effective_core_p95_max_ms }}`,
+                        `- figo_post_p95_max_ms: ${{ steps.run_report.outputs.effective_figo_post_p95_max_ms }}`,
+                        `- no_show_warn_pct: ${{ steps.run_report.outputs.effective_no_show_warn_pct }}`,
+                        `- recurrence_min_warn_pct: ${{ steps.run_report.outputs.effective_recurrence_min_warn_pct }}`,
+                        `- recurrence_drop_warn_pct: ${{ steps.run_report.outputs.effective_recurrence_drop_warn_pct }}`,
+                        `- recurrence_min_unique_patients: ${{ steps.run_report.outputs.effective_recurrence_min_unique_patients }}`,
+                        `- idempotency_conflict_warn_pct: ${{ steps.run_report.outputs.effective_idempotency_conflict_warn_pct }}`,
+                        `- conversion_min_warn_pct: ${{ steps.run_report.outputs.effective_conversion_min_warn_pct }}`,
+                        `- conversion_drop_warn_pct: ${{ steps.run_report.outputs.effective_conversion_drop_warn_pct }}`,
+                        `- conversion_min_start_checkout: ${{ steps.run_report.outputs.effective_conversion_min_start_checkout }}`,
+                        `- start_checkout_min_warn_pct: ${{ steps.run_report.outputs.effective_start_checkout_min_warn_pct }}`,
+                        `- start_checkout_drop_warn_pct: ${{ steps.run_report.outputs.effective_start_checkout_drop_warn_pct }}`,
+                        `- start_checkout_min_view_booking: ${{ steps.run_report.outputs.effective_start_checkout_min_view_booking }}`,
+                        '',
                         `- fast_runs_last_${{ steps.ops_sla.outputs.lookback_days }}d: ${{ steps.ops_sla.outputs.ops_fast_runs }}`,
                         `- fast_success_rate_pct: ${{ steps.ops_sla.outputs.ops_fast_success_rate_pct }}`,
                         `- fast_p95_min: ${{ steps.ops_sla.outputs.ops_fast_p95_min }}`,
@@ -593,6 +795,13 @@ jobs:
                         `- retention_report_alert_warn_count: ${{ steps.report.outputs.retention_report_alert_warn_count }}`,
                         `- retention_report_alert_critical_count: ${{ steps.report.outputs.retention_report_alert_critical_count }}`,
                         `- retention_report_alert_list: ${{ steps.report.outputs.retention_report_alert_list }}`,
+                        '',
+                        'Thresholds efectivos de retencion en esta corrida:',
+                        `- retention_days: ${{ steps.run_report.outputs.effective_retention_days }}`,
+                        `- no_show_warn_pct: ${{ steps.run_report.outputs.effective_no_show_warn_pct }}`,
+                        `- recurrence_min_warn_pct: ${{ steps.run_report.outputs.effective_recurrence_min_warn_pct }}`,
+                        `- recurrence_drop_warn_pct: ${{ steps.run_report.outputs.effective_recurrence_drop_warn_pct }}`,
+                        `- recurrence_min_unique_patients: ${{ steps.run_report.outputs.effective_recurrence_min_unique_patients }}`,
                         '',
                         'Accion recomendada: revisar runbook de monitoreo diario y ejecutar hardening en agenda/recordatorios.'
                       ].join('\n');
