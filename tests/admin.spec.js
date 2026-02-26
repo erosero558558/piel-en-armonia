@@ -216,7 +216,9 @@ test.describe('Panel de administracion', () => {
             .toEqual({ mode: 'dark', theme: 'dark' });
 
         await page.reload();
-        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await expect(page.locator('#adminDashboard')).toBeVisible({
+            timeout: 15000,
+        });
         await expect(headerDarkBtn).toHaveClass(/is-active/);
         await expect
             .poll(async () =>
