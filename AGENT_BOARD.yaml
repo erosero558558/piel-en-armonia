@@ -2973,3 +2973,41 @@ tasks:
     prompt: "Higiene workspace: desversionar caches PHP y blindar colas derivadas"
     created_at: 2026-02-26
     updated_at: 2026-02-26
+
+  - id: AG-078
+    title: "Frontend P0: Hero service intent shortcuts + booking prefill conversion block"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-02-26T05:57:27.178Z"
+    risk: medium
+    scope: frontend-public
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    files: ["templates/partials/body-hero.html", "content/es.json", "content/en.json", "js/main.js"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-02-26T05:57:27.178Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Frontend P0: Hero service intent shortcuts + booking prefill conversion block"
+    acceptance_ref: "verification/agent-runs/AG-078.md"
+    evidence_ref: "verification/agent-runs/AG-078.md"
+    depends_on: []
+    prompt: "Frontend P0: Hero service intent shortcuts + booking prefill conversion block"
+    created_at: 2026-02-26
+    updated_at: 2026-02-26
