@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 256
+  revision: 259
   updated_at: 2026-02-27
 
 tasks:
@@ -4301,5 +4301,43 @@ tasks:
     evidence_ref: "verification/agent-runs/AG-112.md"
     depends_on: []
     prompt: "Turnero sala P: consola de contingencia kiosco+TV (gestionar pendientes/snapshot)"
+    created_at: 2026-02-27
+    updated_at: 2026-02-27
+
+  - id: AG-113
+    title: "Turnero sala Q: QA E2E integrado kiosco-admin-tv con privacidad"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-02-27T01:44:07.624Z"
+    risk: low
+    scope: frontend-qa
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: ["tests/queue-integrated-flow.spec.js", "verification/agent-runs/AG-113.md"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-02-27T01:44:07.624Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "E2E integrado valida ciclo kiosco-admin-tv y privacidad de datos en sala"
+    acceptance_ref: "verification/agent-runs/AG-113.md"
+    evidence_ref: "verification/agent-runs/AG-113.md"
+    depends_on: []
+    prompt: "Turnero sala Q: QA E2E integrado kiosco-admin-tv con privacidad"
     created_at: 2026-02-27
     updated_at: 2026-02-27
