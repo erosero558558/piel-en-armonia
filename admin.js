@@ -3513,7 +3513,7 @@ function ca(e, t = '') {
 }
 function la(e) {
     return document.querySelector(
-        `[data-action="queue-call-next"][data-queue-consultorio="${e}"]`
+        `#queue .queue-admin-header-actions [data-action="queue-call-next"][data-queue-consultorio="${e}"]`
     );
 }
 function ua(e, t) {

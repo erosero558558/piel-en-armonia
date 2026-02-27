@@ -1,11 +1,17 @@
-const CACHE_NAME = 'pielarmonia-v12-figo-20260226-themefix2';
+const CACHE_NAME = 'pielarmonia-v13-queuefix-20260227-1';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/telemedicina.html',
     '/admin.html',
-    '/admin.css',
-    '/admin.js',
+    '/kiosco-turnos.html',
+    '/sala-turnos.html',
+    '/admin.css?v=admin-20260227-queuefix1',
+    '/admin.js?v=admin-20260227-queuefix1',
+    '/queue-kiosk.css?v=queue-20260227-fix1',
+    '/js/queue-kiosk.js?v=queue-20260227-fix1',
+    '/queue-display.css?v=queue-20260227-fix1',
+    '/js/queue-display.js?v=queue-20260227-fix1',
     '/styles-deferred.css?v=ui-20260227-deferredfix1',
     '/js/bootstrap-inline-engine.js?v=figo-20260221-phase10-realagenda1',
     '/script.js?v=figo-20260226-themefix2',

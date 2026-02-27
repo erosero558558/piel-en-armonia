@@ -11,7 +11,7 @@
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="stylesheet" href="styles.min.css" />
         <link rel="stylesheet" href="admin.min.css" />
-        <link rel="stylesheet" href="admin.css?v=admin-20260226-nav9" />
+        <link rel="stylesheet" href="admin.css?v=admin-20260227-queuefix1" />
         <link
             href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
             rel="stylesheet"
@@ -1249,6 +1249,74 @@
                             </div>
                         </div>
 
+                        <section
+                            id="queueStationControl"
+                            class="queue-station-control"
+                            aria-label="Control de estación de turnero"
+                        >
+                            <div class="queue-station-control-header">
+                                <h4>Control de estación</h4>
+                                <span
+                                    id="queueStationModeBadge"
+                                    class="queue-station-mode-badge"
+                                    data-mode="free"
+                                    >Libre</span
+                                >
+                            </div>
+                            <p
+                                id="queueStationHint"
+                                class="queue-triage-summary"
+                                aria-live="polite"
+                            >
+                                Modo libre: Numpad 1/2 selecciona consultorio, Numpad Enter llama.
+                            </p>
+                            <div class="queue-station-control-meta">
+                                <span
+                                    id="queueStationBadge"
+                                    class="queue-station-badge"
+                                    data-consultorio="1"
+                                    >Estación C1</span
+                                >
+                                <span class="queue-station-provision-hint">
+                                    Provisionar:
+                                    <code>?station=c1|c2&amp;lock=1</code>
+                                </span>
+                            </div>
+                            <div class="queue-station-control-actions">
+                                <button
+                                    type="button"
+                                    class="btn btn-secondary btn-sm"
+                                    data-action="queue-lock-station"
+                                    data-queue-consultorio="1"
+                                >
+                                    Bloquear C1
+                                </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-secondary btn-sm"
+                                    data-action="queue-lock-station"
+                                    data-queue-consultorio="2"
+                                >
+                                    Bloquear C2
+                                </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-secondary btn-sm"
+                                    data-action="queue-set-station-mode"
+                                    data-queue-mode="free"
+                                >
+                                    Modo libre
+                                </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-secondary btn-sm"
+                                    data-action="queue-reconfigure-station"
+                                >
+                                    Reconfigurar estación
+                                </button>
+                            </div>
+                        </section>
+
                         <div class="queue-admin-kpis">
                             <article>
                                 <span>En espera</span>
@@ -1682,6 +1750,6 @@
         ></div>
 
         <!-- utils.js is now bundled/imported by admin.js -->
-        <script src="admin.js?v=admin-20260226-nav9" type="module"></script>
+        <script src="admin.js?v=admin-20260227-queuefix1" type="module"></script>
     </body>
 </html>

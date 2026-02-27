@@ -1186,7 +1186,7 @@ function queueActionSuccessMessage(action, ticketCode = '') {
 
 function getHeaderCallButton(consultorio) {
     return document.querySelector(
-        `[data-action="queue-call-next"][data-queue-consultorio="${consultorio}"]`
+        `#queue .queue-admin-header-actions [data-action="queue-call-next"][data-queue-consultorio="${consultorio}"]`
     );
 }
 
