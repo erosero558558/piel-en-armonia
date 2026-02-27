@@ -2,19 +2,19 @@
 const { test, expect } = require('@playwright/test');
 
 const PREMIUM_SERVICE_ROUTES = [
-    '/servicios/diagnostico-integral',
-    '/servicios/acne-rosacea',
-    '/servicios/verrugas',
-    '/servicios/granitos-brazos-piernas',
-    '/servicios/cicatrices',
-    '/servicios/cancer-piel',
-    '/servicios/peeling-quimico',
-    '/servicios/mesoterapia',
-    '/servicios/laser-dermatologico',
-    '/servicios/botox',
-    '/servicios/bioestimuladores-colageno',
-    '/servicios/piel-cabello-unas',
-    '/ninos/dermatologia-pediatrica',
+    '/servicios/diagnostico-integral.html',
+    '/servicios/acne-rosacea.html',
+    '/servicios/verrugas.html',
+    '/servicios/granitos-brazos-piernas.html',
+    '/servicios/cicatrices.html',
+    '/servicios/cancer-piel.html',
+    '/servicios/peeling-quimico.html',
+    '/servicios/mesoterapia.html',
+    '/servicios/laser-dermatologico.html',
+    '/servicios/botox.html',
+    '/servicios/bioestimuladores-colageno.html',
+    '/servicios/piel-cabello-unas.html',
+    '/ninos/dermatologia-pediatrica.html',
 ];
 
 test.describe('Premium service routes', () => {

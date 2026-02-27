@@ -214,7 +214,9 @@ function runPremiumGenerator(options = {}) {
         if (!slug) continue;
 
         const isPediatric = slug === 'dermatologia-pediatrica';
-        const hrefPath = isPediatric ? `/ninos/${slug}` : `/servicios/${slug}`;
+        const hrefPath = isPediatric
+            ? `/ninos/${slug}.html`
+            : `/servicios/${slug}.html`;
         const canonical = getCanonical(hrefPath);
         const page = buildPage(
             service.hero || slug,

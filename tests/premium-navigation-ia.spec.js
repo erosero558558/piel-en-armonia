@@ -83,7 +83,7 @@ test.describe('Premium IA navigation', () => {
             mobileMenu.locator('summary', { hasText: /Ni.nos|Niños/i })
         ).toHaveCount(1);
         await expect(
-            mobileMenu.locator('a[href="/ninos/dermatologia-pediatrica"]')
+            mobileMenu.locator('a[href="/ninos/dermatologia-pediatrica.html"]')
         ).toHaveCount(1);
     });
 

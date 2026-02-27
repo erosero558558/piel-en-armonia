@@ -49,81 +49,82 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/servicios/diagnostico-integral</loc>
+    <loc>https://pielarmonia.com/servicios/diagnostico-integral.html</loc>
     <lastmod>2026-02-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/servicios/acne-rosacea</loc>
+    <loc>https://pielarmonia.com/servicios/acne-rosacea.html</loc>
     <lastmod>2026-02-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/servicios/verrugas</loc>
+    <loc>https://pielarmonia.com/servicios/verrugas.html</loc>
     <lastmod>2026-02-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/servicios/granitos-brazos-piernas</loc>
+    <loc>https://pielarmonia.com/servicios/granitos-brazos-piernas.html</loc>
     <lastmod>2026-02-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/servicios/cicatrices</loc>
+    <loc>https://pielarmonia.com/servicios/cicatrices.html</loc>
     <lastmod>2026-02-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/servicios/cancer-piel</loc>
+    <loc>https://pielarmonia.com/servicios/cancer-piel.html</loc>
     <lastmod>2026-02-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/servicios/peeling-quimico</loc>
+    <loc>https://pielarmonia.com/servicios/peeling-quimico.html</loc>
     <lastmod>2026-02-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/servicios/mesoterapia</loc>
+    <loc>https://pielarmonia.com/servicios/mesoterapia.html</loc>
     <lastmod>2026-02-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/servicios/laser-dermatologico</loc>
+    <loc>https://pielarmonia.com/servicios/laser-dermatologico.html</loc>
     <lastmod>2026-02-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/servicios/botox</loc>
+    <loc>https://pielarmonia.com/servicios/botox.html</loc>
     <lastmod>2026-02-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/servicios/bioestimuladores-colageno</loc>
+    <loc>https://pielarmonia.com/servicios/bioestimuladores-colageno.html</loc>
     <lastmod>2026-02-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/servicios/piel-cabello-unas</loc>
+    <loc>https://pielarmonia.com/servicios/piel-cabello-unas.html</loc>
     <lastmod>2026-02-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://pielarmonia.com/ninos/dermatologia-pediatrica</loc>
+    <loc>https://pielarmonia.com/ninos/dermatologia-pediatrica.html</loc>
     <lastmod>2026-02-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
 </urlset>
+

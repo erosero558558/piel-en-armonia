@@ -82,8 +82,8 @@ function buildLaserFromAcne(sourceHtml) {
     );
     output = replaceLiteral(
         output,
-        'href="https://pielarmonia.com/servicios/acne"',
-        'href="https://pielarmonia.com/servicios/laser"',
+        'href="https://pielarmonia.com/servicios/acne.html"',
+        'href="https://pielarmonia.com/servicios/laser.html"',
         'canonical'
     );
     output = replaceOnce(
@@ -100,8 +100,8 @@ function buildLaserFromAcne(sourceHtml) {
     );
     output = replaceLiteral(
         output,
-        'content="https://pielarmonia.com/servicios/acne"',
-        'content="https://pielarmonia.com/servicios/laser"',
+        'content="https://pielarmonia.com/servicios/acne.html"',
+        'content="https://pielarmonia.com/servicios/laser.html"',
         'og:url'
     );
 
