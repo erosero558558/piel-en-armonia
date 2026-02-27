@@ -3,6 +3,8 @@ const POLL_MS = 2500;
 const POLL_MAX_MS = 15000;
 const POLL_STALE_THRESHOLD_MS = 30000;
 const DISPLAY_BELL_MUTED_STORAGE_KEY = 'queueDisplayBellMuted';
+const DISPLAY_LAST_SNAPSHOT_STORAGE_KEY = 'queueDisplayLastSnapshot';
+const DISPLAY_LAST_SNAPSHOT_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
 const state = {
     lastCalledSignature: '',
@@ -15,6 +17,7 @@ const state = {
     manualRefreshBusy: false,
     lastHealthySyncAt: 0,
     bellMuted: false,
+    lastSnapshot: null,
 };
 
 function getById(id) {
@@ -192,6 +195,80 @@ function setBellMuted(nextMuted, { announce = false } = {}) {
 
 function toggleBellMuted() {
     setBellMuted(!state.bellMuted, { announce: true });
+}
+
+function normalizeQueueStateSnapshot(queueState) {
+    const safeState =
+        queueState && typeof queueState === 'object' ? queueState : {};
+    return {
+        updatedAt: String(safeState.updatedAt || new Date().toISOString()),
+        callingNow: Array.isArray(safeState.callingNow)
+            ? safeState.callingNow
+            : [],
+        nextTickets: Array.isArray(safeState.nextTickets)
+            ? safeState.nextTickets
+            : [],
+    };
+}
+
+function persistLastSnapshot(queueState) {
+    const data = normalizeQueueStateSnapshot(queueState);
+    const snapshot = {
+        savedAt: new Date().toISOString(),
+        data,
+    };
+    state.lastSnapshot = snapshot;
+    try {
+        localStorage.setItem(
+            DISPLAY_LAST_SNAPSHOT_STORAGE_KEY,
+            JSON.stringify(snapshot)
+        );
+    } catch (_error) {
+        // Ignore storage write failures.
+    }
+}
+
+function loadLastSnapshot() {
+    try {
+        const raw = localStorage.getItem(DISPLAY_LAST_SNAPSHOT_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return null;
+
+        const savedAtTs = Date.parse(String(parsed.savedAt || ''));
+        if (!Number.isFinite(savedAtTs)) return null;
+        if (Date.now() - savedAtTs > DISPLAY_LAST_SNAPSHOT_MAX_AGE_MS) {
+            return null;
+        }
+
+        const data = normalizeQueueStateSnapshot(parsed.data || {});
+        const snapshot = {
+            savedAt: new Date(savedAtTs).toISOString(),
+            data,
+        };
+        state.lastSnapshot = snapshot;
+        return snapshot;
+    } catch (_error) {
+        return null;
+    }
+}
+
+function renderFromSnapshot(snapshot, { mode = 'restore' } = {}) {
+    if (!snapshot?.data) return false;
+
+    renderState(snapshot.data);
+    const ageMs = Math.max(
+        0,
+        Date.now() - Date.parse(String(snapshot.savedAt || ''))
+    );
+    const ageLabel = formatElapsedAge(ageMs);
+    setConnectionStatus('reconnecting', 'Respaldo local activo');
+    setDisplayOpsHint(
+        mode === 'startup'
+            ? `Mostrando respaldo local (${ageLabel}) mientras conecta.`
+            : `Sin backend. Mostrando ultimo estado local (${ageLabel}).`
+    );
+    return true;
 }
 
 function formatElapsedAge(ms) {
@@ -409,23 +486,31 @@ async function refreshDisplayState() {
         const payload = await apiRequest('queue-state');
         const queueState = payload.data || {};
         renderState(queueState);
+        persistLastSnapshot(queueState);
         const freshness = evaluateQueueFreshness(queueState);
         return {
             ok: true,
             stale: Boolean(freshness.stale),
             missingTimestamp: Boolean(freshness.missingTimestamp),
             ageMs: freshness.ageMs,
+            usedSnapshot: false,
         };
     } catch (error) {
-        const list = getById('displayNextList');
-        if (list) {
-            list.innerHTML = `<li class="display-empty">Sin conexion: ${escapeHtml(error.message)}</li>`;
+        const snapshotRestored = renderFromSnapshot(state.lastSnapshot, {
+            mode: 'restore',
+        });
+        if (!snapshotRestored) {
+            const list = getById('displayNextList');
+            if (list) {
+                list.innerHTML = `<li class="display-empty">Sin conexion: ${escapeHtml(error.message)}</li>`;
+            }
         }
         return {
             ok: false,
             stale: false,
             reason: 'fetch_error',
             errorMessage: error.message,
+            usedSnapshot: snapshotRestored,
         };
     } finally {
         state.refreshBusy = false;
@@ -444,10 +529,15 @@ async function runDisplayPollTick() {
 
     if (navigator.onLine === false) {
         state.failureStreak += 1;
-        setConnectionStatus('offline', 'Sin conexion');
-        setDisplayOpsHint(
-            'Sin conexion. Mantener llamado por voz desde recepcion hasta recuperar enlace.'
-        );
+        const restored = renderFromSnapshot(state.lastSnapshot, {
+            mode: 'restore',
+        });
+        if (!restored) {
+            setConnectionStatus('offline', 'Sin conexion');
+            setDisplayOpsHint(
+                'Sin conexion. Mantener llamado por voz desde recepcion hasta recuperar enlace.'
+            );
+        }
         scheduleNextPoll();
         return;
     }
@@ -470,6 +560,10 @@ async function runDisplayPollTick() {
         );
     } else {
         state.failureStreak += 1;
+        if (refreshResult.usedSnapshot) {
+            scheduleNextPoll();
+            return;
+        }
         const retrySeconds = Math.max(1, Math.ceil(getPollDelayMs() / 1000));
         setConnectionStatus('reconnecting', `Reconectando en ${retrySeconds}s`);
         setDisplayOpsHint(
@@ -503,6 +597,9 @@ async function runDisplayManualRefresh() {
                 `Watchdog: datos estancados ${staleAge}`
             );
             setDisplayOpsHint(`Persisten datos estancados (${staleAge}).`);
+            return;
+        }
+        if (refreshResult.usedSnapshot) {
             return;
         }
         const retrySeconds = Math.max(1, Math.ceil(getPollDelayMs() / 1000));
@@ -566,6 +663,7 @@ function updateClock() {
 
 function initDisplay() {
     loadBellPreference();
+    loadLastSnapshot();
     updateClock();
     state.clockId = window.setInterval(updateClock, 1000);
 
@@ -585,7 +683,9 @@ function initDisplay() {
     renderBellToggle();
 
     setConnectionStatus('paused', 'Sincronizacion lista');
-    setDisplayOpsHint('Esperando primera sincronizacion...');
+    if (!renderFromSnapshot(state.lastSnapshot, { mode: 'startup' })) {
+        setDisplayOpsHint('Esperando primera sincronizacion...');
+    }
     startDisplayPolling({ immediate: true });
 
     document.addEventListener('visibilitychange', () => {

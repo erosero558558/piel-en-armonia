@@ -12,6 +12,9 @@ const KIOSK_IDLE_POSTPONE_MS = 15000;
 const KIOSK_IDLE_TICK_MS = 1000;
 const ASSISTANT_WELCOME_TEXT =
     'Hola. Soy el asistente de sala. Puedo ayudarte con check-in, turnos y ubicacion de consultorios.';
+const KIOSK_OFFLINE_OUTBOX_STORAGE_KEY = 'queueKioskOfflineOutbox';
+const KIOSK_OFFLINE_OUTBOX_MAX_ITEMS = 25;
+const KIOSK_OFFLINE_OUTBOX_FLUSH_BATCH = 4;
 
 const state = {
     queueState: null,
@@ -29,6 +32,8 @@ const state = {
     idleTickId: 0,
     idleDeadlineTs: 0,
     idleResetMs: KIOSK_IDLE_RESET_DEFAULT_MS,
+    offlineOutbox: [],
+    offlineOutboxFlushBusy: false,
 };
 
 function escapeHtml(value) {
@@ -300,6 +305,7 @@ function resetKioskSession({ reason = 'manual' } = {}) {
             ? 'Sesion reiniciada por inactividad para proteger privacidad.'
             : 'Pantalla limpiada. Lista para el siguiente paciente.';
     setKioskStatus(reasonText, 'info');
+    renderOfflineOutboxHint();
     beginIdleSessionGuard();
 }
 
@@ -323,6 +329,99 @@ function setQueueOpsHint(message) {
     const el = ensureQueueOpsHintEl();
     if (!el) return;
     el.textContent = String(message || '').trim() || 'Estado operativo';
+}
+
+function ensureQueueOutboxHintEl() {
+    let el = getById('queueOutboxHint');
+    if (el) return el;
+
+    const queueOpsHint = ensureQueueOpsHintEl();
+    if (!queueOpsHint?.parentElement) return null;
+
+    el = document.createElement('p');
+    el.id = 'queueOutboxHint';
+    el.className = 'queue-updated-at';
+    el.textContent = 'Pendientes offline: 0';
+    queueOpsHint.insertAdjacentElement('afterend', el);
+    return el;
+}
+
+function setQueueOutboxHint(message) {
+    const el = ensureQueueOutboxHintEl();
+    if (!el) return;
+    el.textContent = String(message || '').trim() || 'Pendientes offline: 0';
+}
+
+function saveOfflineOutbox() {
+    try {
+        localStorage.setItem(
+            KIOSK_OFFLINE_OUTBOX_STORAGE_KEY,
+            JSON.stringify(state.offlineOutbox)
+        );
+    } catch (_error) {
+        // Ignore localStorage write failures.
+    }
+}
+
+function loadOfflineOutbox() {
+    try {
+        const raw = localStorage.getItem(KIOSK_OFFLINE_OUTBOX_STORAGE_KEY);
+        if (!raw) {
+            state.offlineOutbox = [];
+            return;
+        }
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) {
+            state.offlineOutbox = [];
+            return;
+        }
+        state.offlineOutbox = parsed
+            .map((item) => ({
+                id: String(item?.id || ''),
+                resource: String(item?.resource || ''),
+                body:
+                    item && typeof item.body === 'object' && item.body
+                        ? item.body
+                        : {},
+                originLabel: String(item?.originLabel || 'Solicitud offline'),
+                patientInitials: String(item?.patientInitials || '--'),
+                queueType: String(item?.queueType || '--'),
+                queuedAt: String(item?.queuedAt || new Date().toISOString()),
+                attempts: Number(item?.attempts || 0),
+                lastError: String(item?.lastError || ''),
+            }))
+            .filter(
+                (item) =>
+                    item.id &&
+                    (item.resource === 'queue-ticket' ||
+                        item.resource === 'queue-checkin')
+            )
+            .slice(0, KIOSK_OFFLINE_OUTBOX_MAX_ITEMS);
+    } catch (_error) {
+        state.offlineOutbox = [];
+    }
+}
+
+function renderOfflineOutboxHint() {
+    const pendingCount = state.offlineOutbox.length;
+    if (pendingCount <= 0) {
+        setQueueOutboxHint('Pendientes offline: 0 (sin pendientes).');
+        return;
+    }
+
+    const firstQueuedAt = Date.parse(
+        String(state.offlineOutbox[0]?.queuedAt || '')
+    );
+    const ageLabel = Number.isFinite(firstQueuedAt)
+        ? ` · mas antiguo ${formatElapsedAge(Date.now() - firstQueuedAt)}`
+        : '';
+    setQueueOutboxHint(
+        `Pendientes offline: ${pendingCount} · sincronizacion automatica al reconectar${ageLabel}`
+    );
+}
+
+function buildPendingLocalCode() {
+    return `PEND-${String(state.offlineOutbox.length).padStart(2, '0')}`;
 }
 
 function ensureQueueManualRefreshButton() {
@@ -559,6 +658,151 @@ function renderTicketResult(payload, originLabel) {
     `;
 }
 
+function renderPendingTicketResult({
+    originLabel,
+    patientInitials,
+    queueType,
+    queuedAt,
+}) {
+    const container = getById('ticketResult');
+    if (!container) return;
+
+    container.innerHTML = `
+        <article class="ticket-result-card">
+            <h3>Solicitud guardada offline</h3>
+            <p class="ticket-result-origin">${escapeHtml(originLabel)}</p>
+            <div class="ticket-result-main">
+                <strong>${escapeHtml(buildPendingLocalCode())}</strong>
+                <span>${escapeHtml(patientInitials || '--')}</span>
+            </div>
+            <dl>
+                <div><dt>Posicion</dt><dd>Pendiente sync</dd></div>
+                <div><dt>Tipo</dt><dd>${escapeHtml(queueType || '--')}</dd></div>
+                <div><dt>Guardado</dt><dd>${escapeHtml(formatIsoDateTime(queuedAt))}</dd></div>
+            </dl>
+            <p class="ticket-result-print">Se sincronizara automaticamente al recuperar conexion.</p>
+        </article>
+    `;
+}
+
+function isRecoverableTransportError(error) {
+    if (navigator.onLine === false) {
+        return true;
+    }
+    const message = String(error?.message || '').toLowerCase();
+    if (!message) return false;
+    return (
+        message.includes('failed to fetch') ||
+        message.includes('networkerror') ||
+        message.includes('network request failed') ||
+        message.includes('load failed') ||
+        message.includes('network')
+    );
+}
+
+function queueOfflineRequest({
+    resource,
+    body,
+    originLabel,
+    patientInitials,
+    queueType,
+}) {
+    const safeResource = String(resource || '');
+    if (safeResource !== 'queue-ticket' && safeResource !== 'queue-checkin') {
+        return null;
+    }
+
+    const item = {
+        id: `offline_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
+        resource: safeResource,
+        body: body && typeof body === 'object' ? body : {},
+        originLabel: String(originLabel || 'Solicitud offline'),
+        patientInitials: String(patientInitials || '--'),
+        queueType: String(queueType || '--'),
+        queuedAt: new Date().toISOString(),
+        attempts: 0,
+        lastError: '',
+    };
+
+    state.offlineOutbox = [item, ...state.offlineOutbox].slice(
+        0,
+        KIOSK_OFFLINE_OUTBOX_MAX_ITEMS
+    );
+    saveOfflineOutbox();
+    renderOfflineOutboxHint();
+    return item;
+}
+
+async function flushOfflineOutbox({
+    source = 'auto',
+    force = false,
+    maxItems = KIOSK_OFFLINE_OUTBOX_FLUSH_BATCH,
+} = {}) {
+    if (state.offlineOutboxFlushBusy) return;
+    if (!state.offlineOutbox.length) return;
+    if (!force && navigator.onLine === false) return;
+
+    state.offlineOutboxFlushBusy = true;
+    let processed = 0;
+    try {
+        while (
+            state.offlineOutbox.length &&
+            processed < Math.max(1, Number(maxItems || 1))
+        ) {
+            const item = state.offlineOutbox[0];
+            try {
+                const payload = await apiRequest(item.resource, {
+                    method: 'POST',
+                    body: item.body,
+                });
+
+                state.offlineOutbox.shift();
+                saveOfflineOutbox();
+                renderOfflineOutboxHint();
+
+                renderTicketResult(
+                    payload,
+                    `${item.originLabel} (sincronizado)`
+                );
+                setKioskStatus(
+                    `Pendiente sincronizado (${item.originLabel})`,
+                    'success'
+                );
+                processed += 1;
+            } catch (error) {
+                item.attempts = Number(item.attempts || 0) + 1;
+                item.lastError = String(error?.message || '').slice(0, 180);
+                item.lastAttemptAt = new Date().toISOString();
+                saveOfflineOutbox();
+                renderOfflineOutboxHint();
+
+                const retryingOffline = isRecoverableTransportError(error);
+                setKioskStatus(
+                    retryingOffline
+                        ? 'Sincronizacion offline pendiente: esperando reconexion.'
+                        : `Pendiente con error: ${error.message}`,
+                    retryingOffline ? 'info' : 'error'
+                );
+                break;
+            }
+        }
+
+        if (processed > 0) {
+            state.queueFailureStreak = 0;
+            const refreshResult = await refreshQueueState();
+            if (refreshResult.ok) {
+                state.queueLastHealthySyncAt = Date.now();
+                setQueueConnectionStatus('live', 'Cola conectada');
+                setQueueOpsHint(
+                    `Outbox sincronizado desde ${source}. (${formatLastHealthySyncAge()})`
+                );
+            }
+        }
+    } finally {
+        state.offlineOutboxFlushBusy = false;
+    }
+}
+
 async function submitCheckin(event) {
     event.preventDefault();
     registerKioskActivity();
@@ -595,14 +839,15 @@ async function submitCheckin(event) {
     }
 
     try {
+        const body = {
+            telefono: phone,
+            hora: time,
+            fecha: date,
+            patientInitials,
+        };
         const payload = await apiRequest('queue-checkin', {
             method: 'POST',
-            body: {
-                telefono: phone,
-                hora: time,
-                fecha: date,
-                patientInitials,
-            },
+            body,
         });
         setKioskStatus('Check-in registrado correctamente', 'success');
         renderTicketResult(
@@ -618,6 +863,37 @@ async function submitCheckin(event) {
             );
         }
     } catch (error) {
+        if (isRecoverableTransportError(error)) {
+            const queued = queueOfflineRequest({
+                resource: 'queue-checkin',
+                body: {
+                    telefono: phone,
+                    hora: time,
+                    fecha: date,
+                    patientInitials,
+                },
+                originLabel: 'Check-in de cita',
+                patientInitials: patientInitials || phone.slice(-2),
+                queueType: 'appointment',
+            });
+            if (queued) {
+                setQueueConnectionStatus('offline', 'Sin conexion al backend');
+                setQueueOpsHint(
+                    'Modo offline: check-ins/turnos se guardan localmente hasta reconectar.'
+                );
+                renderPendingTicketResult({
+                    originLabel: queued.originLabel,
+                    patientInitials: queued.patientInitials,
+                    queueType: queued.queueType,
+                    queuedAt: queued.queuedAt,
+                });
+                setKioskStatus(
+                    'Check-in guardado offline. Se sincronizara automaticamente.',
+                    'info'
+                );
+                return;
+            }
+        }
         setKioskStatus(
             `No se pudo registrar el check-in: ${error.message}`,
             'error'
@@ -660,13 +936,14 @@ async function submitWalkIn(event) {
     }
 
     try {
+        const body = {
+            patientInitials,
+            name,
+            phone,
+        };
         const payload = await apiRequest('queue-ticket', {
             method: 'POST',
-            body: {
-                patientInitials,
-                name,
-                phone,
-            },
+            body,
         });
         setKioskStatus('Turno walk-in registrado correctamente', 'success');
         renderTicketResult(payload, 'Turno sin cita');
@@ -679,6 +956,36 @@ async function submitWalkIn(event) {
             );
         }
     } catch (error) {
+        if (isRecoverableTransportError(error)) {
+            const queued = queueOfflineRequest({
+                resource: 'queue-ticket',
+                body: {
+                    patientInitials,
+                    name,
+                    phone,
+                },
+                originLabel: 'Turno sin cita',
+                patientInitials,
+                queueType: 'walk_in',
+            });
+            if (queued) {
+                setQueueConnectionStatus('offline', 'Sin conexion al backend');
+                setQueueOpsHint(
+                    'Modo offline: check-ins/turnos se guardan localmente hasta reconectar.'
+                );
+                renderPendingTicketResult({
+                    originLabel: queued.originLabel,
+                    patientInitials: queued.patientInitials,
+                    queueType: queued.queueType,
+                    queuedAt: queued.queuedAt,
+                });
+                setKioskStatus(
+                    'Turno guardado offline. Se sincronizara automaticamente.',
+                    'info'
+                );
+                return;
+            }
+        }
         setKioskStatus(`No se pudo crear el turno: ${error.message}`, 'error');
     } finally {
         if (submitBtn instanceof HTMLButtonElement) {
@@ -880,9 +1187,12 @@ async function runQueuePollingTick() {
         setQueueOpsHint(
             'Sin internet. Deriva check-in/turnos a recepcion mientras se recupera conexion.'
         );
+        renderOfflineOutboxHint();
         scheduleQueuePolling();
         return;
     }
+
+    await flushOfflineOutbox({ source: 'poll' });
 
     const refreshResult = await refreshQueueState();
     if (refreshResult.ok && !refreshResult.stale) {
@@ -916,6 +1226,7 @@ async function runQueuePollingTick() {
             `Conexion inestable. Reintento automatico en ${retrySeconds}s.`
         );
     }
+    renderOfflineOutboxHint();
     scheduleQueuePolling();
 }
 
@@ -927,6 +1238,7 @@ async function runQueueManualRefresh() {
     setQueueConnectionStatus('reconnecting', 'Refrescando manualmente...');
 
     try {
+        await flushOfflineOutbox({ source: 'manual' });
         const refreshResult = await refreshQueueState();
         if (refreshResult.ok && !refreshResult.stale) {
             state.queueFailureStreak = 0;
@@ -964,6 +1276,7 @@ async function runQueueManualRefresh() {
                 : `Refresh manual sin exito. Reintento automatico en ${retrySeconds}s.`
         );
     } finally {
+        renderOfflineOutboxHint();
         state.queueManualRefreshBusy = false;
         setQueueManualRefreshLoading(false);
     }
@@ -990,6 +1303,7 @@ function stopQueuePolling({ reason = 'paused' } = {}) {
         setQueueOpsHint(
             'Sin conexion. Esperando reconexion para reanudar cola.'
         );
+        renderOfflineOutboxHint();
         return;
     }
     if (normalizedReason === 'hidden') {
@@ -999,6 +1313,7 @@ function stopQueuePolling({ reason = 'paused' } = {}) {
     }
     setQueueConnectionStatus('paused', 'Cola en pausa');
     setQueueOpsHint('Sincronizacion pausada por navegacion.');
+    renderOfflineOutboxHint();
 }
 
 function initKiosk() {
@@ -1034,6 +1349,9 @@ function initKiosk() {
     beginIdleSessionGuard();
 
     ensureQueueOpsHintEl();
+    ensureQueueOutboxHintEl();
+    loadOfflineOutbox();
+    renderOfflineOutboxHint();
     const manualRefreshButton = ensureQueueManualRefreshButton();
     if (manualRefreshButton instanceof HTMLButtonElement) {
         manualRefreshButton.addEventListener('click', () => {
@@ -1044,6 +1362,9 @@ function initKiosk() {
     setQueueConnectionStatus('paused', 'Sincronizacion lista');
     setQueueOpsHint('Esperando primera sincronizacion de cola...');
     renderQueueUpdatedAt('');
+    if (navigator.onLine !== false) {
+        void flushOfflineOutbox({ source: 'startup', force: true });
+    }
     startQueuePolling({ immediate: true });
 
     document.addEventListener('visibilitychange', () => {
@@ -1055,11 +1376,13 @@ function initKiosk() {
     });
 
     window.addEventListener('online', () => {
+        void flushOfflineOutbox({ source: 'online', force: true });
         startQueuePolling({ immediate: true });
     });
 
     window.addEventListener('offline', () => {
         stopQueuePolling({ reason: 'offline' });
+        renderOfflineOutboxHint();
     });
 
     window.addEventListener('beforeunload', () => {

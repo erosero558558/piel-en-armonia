@@ -196,4 +196,57 @@ test.describe('Sala turnos display', () => {
         await page.keyboard.press('Alt+Shift+KeyM');
         await expect(page.locator('#displayBellToggleBtn')).toContainText('On');
     });
+
+    test('usa snapshot local cuando backend no responde', async ({ page }) => {
+        await page.addInitScript(() => {
+            localStorage.setItem(
+                'queueDisplayLastSnapshot',
+                JSON.stringify({
+                    savedAt: new Date().toISOString(),
+                    data: {
+                        updatedAt: new Date().toISOString(),
+                        callingNow: [
+                            {
+                                id: 1,
+                                ticketCode: 'A-777',
+                                patientInitials: 'EP',
+                                assignedConsultorio: 1,
+                                calledAt: new Date().toISOString(),
+                            },
+                        ],
+                        nextTickets: [
+                            {
+                                id: 2,
+                                ticketCode: 'A-778',
+                                patientInitials: 'MC',
+                                position: 1,
+                            },
+                        ],
+                    },
+                })
+            );
+        });
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const url = new URL(route.request().url());
+            const resource = url.searchParams.get('resource') || '';
+            if (resource !== 'queue-state') {
+                return json(route, { ok: true, data: {} });
+            }
+            return route.abort('failed');
+        });
+
+        await page.goto('/sala-turnos.html');
+
+        await expect(page.locator('#displayConsultorio1')).toContainText(
+            'A-777'
+        );
+        await expect(page.locator('#displayNextList')).toContainText('A-778');
+        await expect(page.locator('#displayConnectionState')).toContainText(
+            'Respaldo local'
+        );
+        await expect(page.locator('#displayOpsHint')).toContainText(
+            'estado local'
+        );
+    });
 });

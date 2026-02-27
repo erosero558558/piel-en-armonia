@@ -302,4 +302,110 @@ test.describe('Kiosco turnos', () => {
             'Todavia no se ha generado ningun ticket.'
         );
     });
+
+    test('guarda solicitudes en outbox offline y sincroniza al reconectar', async ({
+        page,
+    }) => {
+        let offlineTicketMode = true;
+        let ticketSeq = 0;
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const url = new URL(route.request().url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'queue-state') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        updatedAt: new Date().toISOString(),
+                        waitingCount: ticketSeq ? 1 : 0,
+                        calledCount: 0,
+                        callingNow: [],
+                        nextTickets: ticketSeq
+                            ? [
+                                  {
+                                      id: 331,
+                                      ticketCode: 'A-331',
+                                      patientInitials: 'EP',
+                                      position: 1,
+                                  },
+                              ]
+                            : [],
+                    },
+                });
+            }
+
+            if (resource === 'queue-ticket') {
+                if (offlineTicketMode) {
+                    return route.abort('failed');
+                }
+                ticketSeq += 1;
+                return json(
+                    route,
+                    {
+                        ok: true,
+                        data: {
+                            id: 331,
+                            ticketCode: 'A-331',
+                            patientInitials: 'EP',
+                            queueType: 'walk_in',
+                            createdAt: new Date().toISOString(),
+                        },
+                        printed: false,
+                        print: {
+                            ok: true,
+                            errorCode: 'printer_disabled',
+                            message: 'disabled',
+                        },
+                    },
+                    201
+                );
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto('/kiosco-turnos.html');
+
+        await page.fill('#walkinInitials', 'EP');
+        await page.click('#walkinSubmit');
+
+        await expect(page.locator('#ticketResult')).toContainText(
+            'Solicitud guardada offline'
+        );
+        await expect(page.locator('#kioskStatus')).toContainText(
+            'guardado offline'
+        );
+        await expect(page.locator('#queueOutboxHint')).toContainText(
+            'Pendientes offline: 1'
+        );
+
+        offlineTicketMode = false;
+        await page.evaluate(() => {
+            window.dispatchEvent(new Event('online'));
+        });
+
+        await expect
+            .poll(
+                async () => {
+                    const text = await page
+                        .locator('#queueOutboxHint')
+                        .textContent();
+                    return text || '';
+                },
+                { timeout: 12000 }
+            )
+            .toContain('Pendientes offline: 0');
+        await expect
+            .poll(
+                async () => {
+                    const text = await page
+                        .locator('#kioskStatus')
+                        .textContent();
+                    return text || '';
+                },
+                { timeout: 12000 }
+            )
+            .toContain('sincronizado');
+    });
 });
