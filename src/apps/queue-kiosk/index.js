@@ -16,6 +16,8 @@ const KIOSK_OFFLINE_OUTBOX_STORAGE_KEY = 'queueKioskOfflineOutbox';
 const KIOSK_OFFLINE_OUTBOX_MAX_ITEMS = 25;
 const KIOSK_OFFLINE_OUTBOX_FLUSH_BATCH = 4;
 const KIOSK_OFFLINE_OUTBOX_RENDER_LIMIT = 6;
+const KIOSK_OFFLINE_OUTBOX_DEDUPE_MS = 90 * 1000;
+const KIOSK_PRINTER_STATE_STORAGE_KEY = 'queueKioskPrinterState';
 
 const state = {
     queueState: null,
@@ -35,7 +37,27 @@ const state = {
     idleResetMs: KIOSK_IDLE_RESET_DEFAULT_MS,
     offlineOutbox: [],
     offlineOutboxFlushBusy: false,
+    lastConnectionState: '',
+    lastConnectionMessage: '',
+    printerState: null,
 };
+
+function emitQueueOpsEvent(eventName, detail = {}) {
+    try {
+        window.dispatchEvent(
+            new CustomEvent('piel:queue-ops', {
+                detail: {
+                    surface: 'kiosk',
+                    event: String(eventName || 'unknown'),
+                    at: new Date().toISOString(),
+                    ...detail,
+                },
+            })
+        );
+    } catch (_error) {
+        // no-op
+    }
+}
 
 function escapeHtml(value) {
     return String(value || '')
@@ -104,8 +126,19 @@ function deriveInitials(rawName) {
 function setKioskStatus(message, type = 'info') {
     const el = getById('kioskStatus');
     if (!el) return;
-    el.textContent = message;
-    el.dataset.status = type;
+    const nextMessage = String(message || '').trim() || 'Estado operativo';
+    const nextType = String(type || 'info').toLowerCase();
+    const changed =
+        nextMessage !== String(el.textContent || '').trim() ||
+        nextType !== String(el.dataset.status || '').toLowerCase();
+    el.textContent = nextMessage;
+    el.dataset.status = nextType;
+    if (changed) {
+        emitQueueOpsEvent('kiosk_status', {
+            status: nextType,
+            message: nextMessage,
+        });
+    }
 }
 
 function setQueueConnectionStatus(stateLabel, message) {
@@ -120,11 +153,27 @@ function setQueueConnectionStatus(stateLabel, message) {
         paused: 'Cola en pausa',
     };
 
-    el.dataset.state = normalized;
-    el.textContent =
+    const normalizedMessage =
         String(message || '').trim() ||
         fallbackByState[normalized] ||
         fallbackByState.live;
+
+    const changed =
+        normalized !== state.lastConnectionState ||
+        normalizedMessage !== state.lastConnectionMessage;
+
+    state.lastConnectionState = normalized;
+    state.lastConnectionMessage = normalizedMessage;
+
+    el.dataset.state = normalized;
+    el.textContent = normalizedMessage;
+
+    if (changed) {
+        emitQueueOpsEvent('connection_state', {
+            state: normalized,
+            message: normalizedMessage,
+        });
+    }
 }
 
 function resolveIdleResetMs() {
@@ -353,6 +402,93 @@ function setQueueOutboxHint(message) {
     el.textContent = String(message || '').trim() || 'Pendientes offline: 0';
 }
 
+function ensureQueuePrinterHintEl() {
+    let el = getById('queuePrinterHint');
+    if (el) return el;
+
+    const outboxHint = ensureQueueOutboxHintEl();
+    if (!outboxHint?.parentElement) return null;
+
+    el = document.createElement('p');
+    el.id = 'queuePrinterHint';
+    el.className = 'queue-updated-at';
+    el.textContent = 'Impresora: estado pendiente.';
+    outboxHint.insertAdjacentElement('afterend', el);
+    return el;
+}
+
+function savePrinterState() {
+    try {
+        localStorage.setItem(
+            KIOSK_PRINTER_STATE_STORAGE_KEY,
+            JSON.stringify(state.printerState)
+        );
+    } catch (_error) {
+        // ignore storage write failures
+    }
+}
+
+function loadPrinterState() {
+    try {
+        const raw = localStorage.getItem(KIOSK_PRINTER_STATE_STORAGE_KEY);
+        if (!raw) {
+            state.printerState = null;
+            return;
+        }
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') {
+            state.printerState = null;
+            return;
+        }
+        state.printerState = {
+            ok: Boolean(parsed.ok),
+            printed: Boolean(parsed.printed),
+            errorCode: String(parsed.errorCode || ''),
+            message: String(parsed.message || ''),
+            at: String(parsed.at || new Date().toISOString()),
+        };
+    } catch (_error) {
+        state.printerState = null;
+    }
+}
+
+function renderPrinterHint() {
+    const el = ensureQueuePrinterHintEl();
+    if (!el) return;
+
+    const current = state.printerState;
+    if (!current) {
+        el.textContent = 'Impresora: estado pendiente.';
+        return;
+    }
+
+    const statusLabel = current.printed
+        ? 'impresion OK'
+        : current.errorCode || 'sin impresion';
+    const message = current.message ? ` (${current.message})` : '';
+    const atLabel = formatIsoDateTime(current.at);
+    el.textContent = `Impresora: ${statusLabel}${message} · ${atLabel}`;
+}
+
+function updatePrinterStateFromPayload(payload, { origin = 'ticket' } = {}) {
+    const print = payload?.print || {};
+    state.printerState = {
+        ok: Boolean(print.ok),
+        printed: Boolean(payload?.printed),
+        errorCode: String(print.errorCode || ''),
+        message: String(print.message || ''),
+        at: new Date().toISOString(),
+    };
+    savePrinterState();
+    renderPrinterHint();
+    emitQueueOpsEvent('printer_result', {
+        origin,
+        ok: state.printerState.ok,
+        printed: state.printerState.printed,
+        errorCode: state.printerState.errorCode,
+    });
+}
+
 function ensureQueueOutboxConsoleEl() {
     let panel = getById('queueOutboxConsole');
     if (panel instanceof HTMLElement) {
@@ -497,6 +633,7 @@ function loadOfflineOutbox() {
                 queuedAt: String(item?.queuedAt || new Date().toISOString()),
                 attempts: Number(item?.attempts || 0),
                 lastError: String(item?.lastError || ''),
+                fingerprint: String(item?.fingerprint || ''),
             }))
             .filter(
                 (item) =>
@@ -504,6 +641,12 @@ function loadOfflineOutbox() {
                     (item.resource === 'queue-ticket' ||
                         item.resource === 'queue-checkin')
             )
+            .map((item) => ({
+                ...item,
+                fingerprint:
+                    item.fingerprint ||
+                    buildOutboxFingerprint(item.resource, item.body),
+            }))
             .slice(0, KIOSK_OFFLINE_OUTBOX_MAX_ITEMS);
     } catch (_error) {
         state.offlineOutbox = [];
@@ -739,6 +882,7 @@ function renderTicketResult(payload, originLabel) {
 
     const ticket = payload?.data || {};
     const print = payload?.print || {};
+    updatePrinterStateFromPayload(payload, { origin: originLabel });
     const nextTickets = Array.isArray(state.queueState?.nextTickets)
         ? state.queueState.nextTickets
         : [];
@@ -810,6 +954,22 @@ function isRecoverableTransportError(error) {
     );
 }
 
+function normalizeOutboxBody(body) {
+    const source = body && typeof body === 'object' ? body : {};
+    return Object.keys(source)
+        .sort()
+        .reduce((acc, key) => {
+            acc[key] = source[key];
+            return acc;
+        }, {});
+}
+
+function buildOutboxFingerprint(resource, body) {
+    const normalizedResource = String(resource || '').toLowerCase();
+    const normalizedBody = normalizeOutboxBody(body);
+    return `${normalizedResource}:${JSON.stringify(normalizedBody)}`;
+}
+
 function queueOfflineRequest({
     resource,
     body,
@@ -822,6 +982,23 @@ function queueOfflineRequest({
         return null;
     }
 
+    const fingerprint = buildOutboxFingerprint(safeResource, body);
+    const nowTs = Date.now();
+    const duplicate = state.offlineOutbox.find((item) => {
+        const sameFingerprint = String(item?.fingerprint || '') === fingerprint;
+        if (!sameFingerprint) return false;
+        const queuedAtTs = Date.parse(String(item?.queuedAt || ''));
+        if (!Number.isFinite(queuedAtTs)) return false;
+        return nowTs - queuedAtTs <= KIOSK_OFFLINE_OUTBOX_DEDUPE_MS;
+    });
+    if (duplicate) {
+        emitQueueOpsEvent('offline_queued_duplicate', {
+            resource: safeResource,
+            fingerprint,
+        });
+        return { ...duplicate, deduped: true };
+    }
+
     const item = {
         id: `offline_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
         resource: safeResource,
@@ -832,6 +1009,7 @@ function queueOfflineRequest({
         queuedAt: new Date().toISOString(),
         attempts: 0,
         lastError: '',
+        fingerprint,
     };
 
     state.offlineOutbox = [item, ...state.offlineOutbox].slice(
@@ -840,6 +1018,10 @@ function queueOfflineRequest({
     );
     saveOfflineOutbox();
     renderOfflineOutboxHint();
+    emitQueueOpsEvent('offline_queued', {
+        resource: safeResource,
+        queueSize: state.offlineOutbox.length,
+    });
     return item;
 }
 
@@ -879,6 +1061,11 @@ async function flushOfflineOutbox({
                     `Pendiente sincronizado (${item.originLabel})`,
                     'success'
                 );
+                emitQueueOpsEvent('offline_synced_item', {
+                    resource: item.resource,
+                    originLabel: item.originLabel,
+                    pendingAfter: state.offlineOutbox.length,
+                });
                 processed += 1;
             } catch (error) {
                 item.attempts = Number(item.attempts || 0) + 1;
@@ -894,6 +1081,11 @@ async function flushOfflineOutbox({
                         : `Pendiente con error: ${error.message}`,
                     retryingOffline ? 'info' : 'error'
                 );
+                emitQueueOpsEvent('offline_sync_error', {
+                    resource: item.resource,
+                    retryingOffline,
+                    error: String(error?.message || ''),
+                });
                 break;
             }
         }
@@ -907,6 +1099,11 @@ async function flushOfflineOutbox({
                 setQueueOpsHint(
                     `Outbox sincronizado desde ${source}. (${formatLastHealthySyncAge()})`
                 );
+                emitQueueOpsEvent('offline_synced_batch', {
+                    source,
+                    processed,
+                    pendingAfter: state.offlineOutbox.length,
+                });
             }
         }
     } finally {
@@ -1000,7 +1197,9 @@ async function submitCheckin(event) {
                     queuedAt: queued.queuedAt,
                 });
                 setKioskStatus(
-                    'Check-in guardado offline. Se sincronizara automaticamente.',
+                    queued.deduped
+                        ? 'Check-in ya pendiente offline. Se sincronizara automaticamente.'
+                        : 'Check-in guardado offline. Se sincronizara automaticamente.',
                     'info'
                 );
                 return;
@@ -1092,7 +1291,9 @@ async function submitWalkIn(event) {
                     queuedAt: queued.queuedAt,
                 });
                 setKioskStatus(
-                    'Turno guardado offline. Se sincronizara automaticamente.',
+                    queued.deduped
+                        ? 'Turno ya pendiente offline. Se sincronizara automaticamente.'
+                        : 'Turno guardado offline. Se sincronizara automaticamente.',
                     'info'
                 );
                 return;
@@ -1462,8 +1663,11 @@ function initKiosk() {
 
     ensureQueueOpsHintEl();
     ensureQueueOutboxHintEl();
+    ensureQueuePrinterHintEl();
     ensureQueueOutboxConsoleEl();
     loadOfflineOutbox();
+    loadPrinterState();
+    renderPrinterHint();
     renderOfflineOutboxHint();
     const manualRefreshButton = ensureQueueManualRefreshButton();
     if (manualRefreshButton instanceof HTMLButtonElement) {

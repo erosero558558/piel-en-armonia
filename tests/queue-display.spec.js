@@ -304,4 +304,51 @@ test.describe('Sala turnos display', () => {
             'Sin respaldo local disponible.'
         );
     });
+
+    test('expone controles y regiones con atributos A11y esperados', async ({
+        page,
+    }) => {
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const url = new URL(route.request().url());
+            const resource = url.searchParams.get('resource') || '';
+            if (resource !== 'queue-state') {
+                return json(route, { ok: true, data: {} });
+            }
+            return json(route, {
+                ok: true,
+                data: {
+                    updatedAt: new Date().toISOString(),
+                    callingNow: [],
+                    nextTickets: [],
+                },
+            });
+        });
+
+        await page.goto('/sala-turnos.html');
+
+        await expect(page.locator('#displayConnectionState')).toHaveAttribute(
+            'role',
+            'status'
+        );
+        await expect(page.locator('#displayConsultorio1')).toHaveAttribute(
+            'aria-live',
+            'assertive'
+        );
+        await expect(page.locator('#displayNextList')).toHaveAttribute(
+            'aria-live',
+            'polite'
+        );
+        await expect(page.locator('#displayManualRefreshBtn')).toHaveAttribute(
+            'aria-label',
+            /Refrescar estado/
+        );
+        await expect(page.locator('#displayBellToggleBtn')).toHaveAttribute(
+            'aria-label',
+            /campanilla/i
+        );
+        await expect(page.locator('#displaySnapshotClearBtn')).toHaveAttribute(
+            'aria-label',
+            /respaldo/i
+        );
+    });
 });

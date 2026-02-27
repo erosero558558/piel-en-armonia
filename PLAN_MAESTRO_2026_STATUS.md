@@ -2,7 +2,7 @@
 
 > Nota de gobernanza (2026-02-24): este documento se mantiene como snapshot historico; la fuente unica de control operativo es `PLAN_MAESTRO_OPERATIVO_2026.md`.
 
-Fecha de actualizacion: 2026-02-26 (sesion Codex frontend closeout por bloques: QA + dark/light publico/admin)
+Fecha de actualizacion: 2026-02-27 (sesion Codex turnero sala: hardening + QA + runbook)
 Dominio: https://pielarmonia.com
 
 ## Resumen rapido
@@ -11,6 +11,7 @@ Dominio: https://pielarmonia.com
 - Actualizacion 2026-02-25 (weekly KPI hardening): guardrails de conversion y funnel temprano en `main`, con validaciones remotas `Weekly KPI Report` runs `22408343562` y `22408612570`.
 - Ajuste operativo 2026-02-25: se adopta modo de ejecucion por bloques (45-90 min) con validacion remota por hitos para reducir fragmentacion y tiempo muerto de checks.
 - Actualizacion 2026-02-26 (frontend closeout): se completa lote frontend (`AG-037..AG-045`) con QA de cierre (`npm run test:frontend:qa:closeout`) y soporte de tema oscuro/claro operativo en sitio publico y administrador.
+- Actualizacion 2026-02-27 (turnero sala, `AG-117`): bloque unico de 6 frentes cerrado con hardening de reimpresion, recovery/snapshot, observabilidad funcional (`piel:queue-ops`), mejoras A11y/performance, nuevos escenarios de estres QA y runbook dedicado (`docs/RUNBOOK_TURNERO_SALA.md`).
 - CI run `22334259615` (push a main): `success`.
 - Post-Deploy Gate run `22334259617` (push a main): `success`.
 - CI run `22334594766` (commit `916adde`): `success`.

@@ -1,5 +1,6 @@
 ﻿import { apiRequest } from './api.js';
 import {
+    csrfToken,
     currentQueueMeta,
     currentQueueTickets,
     setQueueMeta,
@@ -34,6 +35,7 @@ const QUEUE_BULK_ACTION_LABELS = {
     no_show: 'No show',
     cancelar: 'Cancelar',
 };
+const QUEUE_BULK_REPRINT_MAX = 20;
 const QUEUE_FILTER_ORDER = [
     'all',
     'waiting',
@@ -42,6 +44,8 @@ const QUEUE_FILTER_ORDER = [
     'appointments',
     'walk_in',
 ];
+const QUEUE_ADMIN_SNAPSHOT_STORAGE_KEY = 'queueAdminLastSnapshot';
+const QUEUE_ADMIN_SNAPSHOT_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 const queueUiState = {
     pendingCallByConsultorio: new Set(),
     realtimeTimerId: 0,
@@ -52,13 +56,35 @@ const queueUiState = {
     searchTerm: '',
     triageControlsBound: false,
     bulkActionInFlight: false,
+    bulkReprintInFlight: false,
+    reprintInFlightIds: new Set(),
     lastViewState: null,
     activityPanelBound: false,
     activityLog: [],
     activitySeq: 0,
     syncState: 'paused',
     syncMessage: '',
+    lastRefreshMode: 'idle',
+    lastHealthySyncAt: 0,
+    snapshotLoaded: false,
 };
+
+function emitQueueOpsEvent(eventName, detail = {}) {
+    try {
+        window.dispatchEvent(
+            new CustomEvent('piel:queue-ops', {
+                detail: {
+                    surface: 'admin',
+                    event: String(eventName || 'unknown'),
+                    at: new Date().toISOString(),
+                    ...detail,
+                },
+            })
+        );
+    } catch (_error) {
+        // no-op: telemetry is best effort in runtime UI
+    }
+}
 
 function getQueueSyncStatusEl() {
     return document.getElementById('queueSyncStatus');
@@ -115,6 +141,104 @@ function formatQueueActivityTime(ts) {
     });
 }
 
+function normalizeQueueSnapshot(rawSnapshot) {
+    if (!rawSnapshot || typeof rawSnapshot !== 'object') return null;
+
+    const savedAtTs = Date.parse(String(rawSnapshot.savedAt || ''));
+    if (!Number.isFinite(savedAtTs)) return null;
+    if (Date.now() - savedAtTs > QUEUE_ADMIN_SNAPSHOT_MAX_AGE_MS) return null;
+
+    const data =
+        rawSnapshot.data && typeof rawSnapshot.data === 'object'
+            ? rawSnapshot.data
+            : {};
+    return {
+        savedAt: new Date(savedAtTs).toISOString(),
+        data: {
+            queueTickets: Array.isArray(data.queueTickets)
+                ? data.queueTickets
+                : [],
+            queueMeta:
+                data.queueMeta && typeof data.queueMeta === 'object'
+                    ? data.queueMeta
+                    : null,
+        },
+    };
+}
+
+function loadQueueSnapshot() {
+    try {
+        const raw = localStorage.getItem(QUEUE_ADMIN_SNAPSHOT_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return normalizeQueueSnapshot(parsed);
+    } catch (_error) {
+        return null;
+    }
+}
+
+function persistQueueSnapshot() {
+    try {
+        const snapshot = {
+            savedAt: new Date().toISOString(),
+            data: {
+                queueTickets: Array.isArray(currentQueueTickets)
+                    ? currentQueueTickets
+                    : [],
+                queueMeta:
+                    currentQueueMeta && typeof currentQueueMeta === 'object'
+                        ? currentQueueMeta
+                        : null,
+            },
+        };
+        localStorage.setItem(
+            QUEUE_ADMIN_SNAPSHOT_STORAGE_KEY,
+            JSON.stringify(snapshot)
+        );
+    } catch (_error) {
+        // ignore storage write failures
+    }
+}
+
+function restoreQueueSnapshot(snapshot, { source = 'fallback' } = {}) {
+    const normalized = normalizeQueueSnapshot(snapshot);
+    if (!normalized) return false;
+
+    const queueTickets = Array.isArray(normalized.data.queueTickets)
+        ? normalized.data.queueTickets
+        : [];
+    const queueMeta =
+        normalized.data.queueMeta &&
+        typeof normalized.data.queueMeta === 'object'
+            ? normalized.data.queueMeta
+            : null;
+
+    setQueueTickets(queueTickets);
+    setQueueMeta(queueMeta);
+    renderQueueSection();
+
+    const ageMs = Math.max(
+        0,
+        Date.now() - Date.parse(String(normalized.savedAt || ''))
+    );
+    const ageLabel = formatElapsedQueueAge(ageMs);
+    updateQueueSyncState(
+        'reconnecting',
+        `Respaldo local activo (${ageLabel})`,
+        {
+            log: true,
+            level: 'warning',
+            reason: 'Respaldo local',
+        }
+    );
+    emitQueueOpsEvent('snapshot_restored', {
+        source,
+        ageMs,
+        queueCount: queueTickets.length,
+    });
+    return true;
+}
+
 function ensureQueueActivityPanel() {
     const shell = document.querySelector('#queue .queue-admin-shell');
     if (!(shell instanceof HTMLElement)) {
@@ -128,8 +252,8 @@ function ensureQueueActivityPanel() {
         panel.className = 'queue-admin-next';
         panel.innerHTML = `
             <h4>Historial operativo</h4>
-            <p id="queueActivitySyncHint" class="queue-triage-summary">Sincronizacion en espera.</p>
-            <ol id="queueActivityList">
+            <p id="queueActivitySyncHint" class="queue-triage-summary" role="status" aria-live="polite">Sincronizacion en espera.</p>
+            <ol id="queueActivityList" role="log" aria-live="polite" aria-relevant="additions text">
                 <li class="empty-message">Sin eventos operativos recientes.</li>
             </ol>
             <p class="queue-triage-summary">
@@ -241,6 +365,13 @@ function updateQueueSyncState(
         nextMessage !== String(queueUiState.syncMessage || '');
 
     setQueueSyncStatus(nextState, nextMessage);
+
+    if (changed) {
+        emitQueueOpsEvent('sync_state', {
+            state: nextState,
+            message: nextMessage,
+        });
+    }
 
     if (!log || !changed) {
         return changed;
@@ -554,6 +685,72 @@ function normalizeErrorMessage(error) {
     return String(error?.message || 'Error desconocido');
 }
 
+function getPrinterErrorMessage(payload, { fallback = '' } = {}) {
+    const errorCode = String(payload?.print?.errorCode || '').toLowerCase();
+    const message = String(payload?.print?.message || '').trim();
+    const statusCode = Number(payload?.statusCode || 0);
+
+    if (errorCode === 'printer_disabled') {
+        return 'Impresora deshabilitada: ticket generado sin impresion';
+    }
+    if (errorCode === 'printer_host_missing') {
+        return 'Impresora sin host configurado';
+    }
+    if (errorCode === 'printer_connect_failed') {
+        return 'No se pudo conectar con la impresora termica';
+    }
+    if (errorCode === 'printer_write_failed') {
+        return 'Conexion con impresora abierta, pero fallo la impresion';
+    }
+
+    if (message) return message;
+    if (statusCode >= 500) return 'Fallo de impresion termica';
+    return String(fallback || 'sin detalle');
+}
+
+async function requestQueueReprint(ticketId) {
+    const id = Number(ticketId || 0);
+    const params = new URLSearchParams();
+    params.set('resource', 'queue-reprint');
+    params.set('t', String(Date.now()));
+
+    const response = await fetch(`/api.php?${params.toString()}`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+        },
+        body: JSON.stringify({ id }),
+    });
+
+    const raw = await response.text();
+    let payload;
+    try {
+        payload = raw ? JSON.parse(raw) : {};
+    } catch (_error) {
+        throw new Error('Respuesta invalida del servidor');
+    }
+
+    const mergedPayload =
+        payload && typeof payload === 'object'
+            ? {
+                  ...payload,
+                  statusCode: response.status,
+              }
+            : { statusCode: response.status };
+
+    return {
+        ok:
+            response.ok &&
+            mergedPayload.ok !== false &&
+            Boolean(mergedPayload.printed),
+        responseOk: response.ok,
+        payload: mergedPayload,
+    };
+}
+
 function isConsultorioBusyError(error) {
     const normalized = normalizeErrorMessage(error)
         .toLowerCase()
@@ -735,10 +932,17 @@ function ensureQueueTriageControls() {
                         </button>
                     `
                 ).join('')}
+                <button
+                    type="button"
+                    class="btn btn-secondary btn-sm"
+                    data-action="queue-bulk-reprint"
+                >
+                    Reimprimir visibles
+                </button>
             </div>
-            <p id="queueTriageSummary" class="queue-triage-summary">Sin datos de cola</p>
+            <p id="queueTriageSummary" class="queue-triage-summary" role="status" aria-live="polite">Sin datos de cola</p>
             <p class="queue-triage-summary">
-                Atajos: Alt+Shift+J (C1), Alt+Shift+K (C2), Alt+Shift+F (buscar), Alt+Shift+L (SLA), Alt+Shift+U (refrescar), Alt+Shift+W/C/A/I (estado)
+                Atajos: Alt+Shift+J (C1), Alt+Shift+K (C2), Alt+Shift+F (buscar), Alt+Shift+L (SLA), Alt+Shift+U (refrescar), Alt+Shift+P (reimprimir visibles), Alt+Shift+W/C/A/I (estado)
             </p>
         `;
         const kpis = shell.querySelector('.queue-admin-kpis');
@@ -775,6 +979,13 @@ function ensureQueueTriageControls() {
         if (bulkButton instanceof HTMLElement) {
             const action = bulkButton.dataset.queueAction || '';
             void runQueueBulkAction(action);
+            return;
+        }
+        const bulkReprintButton = event.target.closest(
+            '[data-action="queue-bulk-reprint"]'
+        );
+        if (bulkReprintButton instanceof HTMLElement) {
+            void runQueueBulkReprint();
             return;
         }
         const clearButton = event.target.closest(
@@ -834,15 +1045,37 @@ function syncQueueTriageControls(viewState) {
             button.setAttribute('aria-disabled', String(button.disabled));
         });
 
+    const bulkReprintButton = toolbar.querySelector(
+        '[data-action="queue-bulk-reprint"]'
+    );
+    if (bulkReprintButton instanceof HTMLButtonElement) {
+        const visibleTickets = Array.isArray(viewState?.tickets)
+            ? viewState.tickets
+            : [];
+        const visibleCount = visibleTickets.length;
+        bulkReprintButton.textContent = `Reimprimir visibles (${visibleCount})`;
+        bulkReprintButton.disabled =
+            queueUiState.bulkReprintInFlight ||
+            queueUiState.bulkActionInFlight ||
+            visibleCount === 0;
+        bulkReprintButton.setAttribute(
+            'aria-disabled',
+            String(bulkReprintButton.disabled)
+        );
+    }
+
     const summary = document.getElementById('queueTriageSummary');
     if (summary instanceof HTMLElement) {
         const visibleCount = Number(viewState?.tickets?.length || 0);
         const totalCount = Number(viewState?.totalCount || 0);
         const riskCount = Number(viewState?.riskCount || 0);
         const waitingCount = Number(viewState?.waitingCount || 0);
-        const progressText = queueUiState.bulkActionInFlight
-            ? ' · ejecutando accion masiva...'
-            : '';
+        let progressText = '';
+        if (queueUiState.bulkActionInFlight) {
+            progressText = ' · ejecutando accion masiva...';
+        } else if (queueUiState.bulkReprintInFlight) {
+            progressText = ' · reimprimiendo tickets visibles...';
+        }
         summary.textContent = `${visibleCount}/${totalCount} visibles · ${waitingCount} en espera · ${riskCount} en riesgo SLA${progressText}`;
     }
 }
@@ -939,6 +1172,7 @@ function renderQueueTable(viewState) {
             const isTerminal = TERMINAL_QUEUE_STATUSES.has(status);
             const canResolve = !isTerminal;
             const canAssignConsultorio = !isTerminal;
+            const reprintBusy = queueUiState.reprintInFlightIds.has(String(id));
             const waitMinutes = getTicketWaitMinutes(ticket);
             const hasSlaRisk = isSlaRiskTicket(ticket);
             const rowClass = hasSlaRisk ? 'queue-row-risk' : '';
@@ -967,8 +1201,14 @@ function renderQueueTable(viewState) {
                     <td>${escapeHtml(ticket.patientInitials || '--')}</td>
                     <td>
                         <div class="queue-actions">
-                            <button type="button" class="btn btn-secondary btn-sm" data-action="queue-reprint-ticket" data-queue-id="${id}">
-                                Reimprimir
+                            <button
+                                type="button"
+                                class="btn btn-secondary btn-sm"
+                                data-action="queue-reprint-ticket"
+                                data-queue-id="${id}"
+                                ${reprintBusy ? 'disabled aria-disabled="true"' : ''}
+                            >
+                                ${reprintBusy ? 'Reimprimiendo...' : 'Reimprimir'}
                             </button>
                             ${
                                 canCall
@@ -1019,6 +1259,16 @@ function renderQueueSection() {
     syncQueueTriageControls(viewState);
     renderQueueOverview();
     renderQueueTable(viewState);
+    const tableWrap = document.querySelector('#queue .queue-admin-table-wrap');
+    if (tableWrap instanceof HTMLElement) {
+        tableWrap.setAttribute(
+            'aria-busy',
+            String(
+                queueUiState.bulkActionInFlight ||
+                    queueUiState.bulkReprintInFlight
+            )
+        );
+    }
 }
 
 async function runQueueRealtimeTick() {
@@ -1059,7 +1309,7 @@ async function runQueueRealtimeTick() {
     });
     queueUiState.realtimeRequestInFlight = false;
 
-    if (refreshed) {
+    if (refreshed && queueUiState.lastRefreshMode === 'live') {
         queueUiState.realtimeFailureStreak = 0;
         updateQueueSyncState('live', 'Cola en vivo', {
             log: true,
@@ -1067,6 +1317,21 @@ async function runQueueRealtimeTick() {
             reason: 'Realtime',
         });
         evaluateQueueFreshness({ log: true });
+    } else if (refreshed && queueUiState.lastRefreshMode === 'snapshot') {
+        queueUiState.realtimeFailureStreak += 1;
+        const retrySeconds = Math.max(
+            1,
+            Math.ceil(getRealtimeDelayMs() / 1000)
+        );
+        updateQueueSyncState(
+            'reconnecting',
+            `Respaldo local activo · reconectando en ${retrySeconds}s`,
+            {
+                log: true,
+                level: 'warning',
+                reason: 'Realtime',
+            }
+        );
     } else {
         queueUiState.realtimeFailureStreak += 1;
         const retrySeconds = Math.max(
@@ -1108,6 +1373,15 @@ export async function refreshQueueRealtime({
                 ? data.queueMeta
                 : null
         );
+        queueUiState.lastRefreshMode = 'live';
+        queueUiState.lastHealthySyncAt = Date.now();
+        persistQueueSnapshot();
+        emitQueueOpsEvent('sync_success', {
+            source: fromRealtime ? 'realtime' : 'manual',
+            queueCount: Array.isArray(data.queue_tickets)
+                ? data.queue_tickets.length
+                : 0,
+        });
         renderQueueSection();
         const freshness = evaluateQueueFreshness({
             log: !fromRealtime && isQueueSectionActive(),
@@ -1121,30 +1395,63 @@ export async function refreshQueueRealtime({
         }
         return true;
     } catch (error) {
+        const restoredSnapshot = restoreQueueSnapshot(loadQueueSnapshot(), {
+            source: fromRealtime ? 'realtime_error' : 'manual_error',
+        });
+        queueUiState.lastRefreshMode = restoredSnapshot ? 'snapshot' : 'error';
+        if (restoredSnapshot) {
+            emitQueueOpsEvent('sync_fallback_snapshot', {
+                source: fromRealtime ? 'realtime' : 'manual',
+            });
+        } else {
+            emitQueueOpsEvent('sync_failed', {
+                source: fromRealtime ? 'realtime' : 'manual',
+                error: normalizeErrorMessage(error),
+            });
+        }
+
         if (!fromRealtime && isQueueSectionActive()) {
             updateQueueSyncState(
                 navigator.onLine === false ? 'offline' : 'reconnecting',
-                navigator.onLine === false
-                    ? 'Sin conexion al backend'
-                    : 'No se pudo sincronizar cola',
+                restoredSnapshot
+                    ? 'Respaldo local activo'
+                    : navigator.onLine === false
+                      ? 'Sin conexion al backend'
+                      : 'No se pudo sincronizar cola',
                 {
                     log: true,
-                    level: navigator.onLine === false ? 'warning' : 'error',
+                    level: restoredSnapshot
+                        ? 'warning'
+                        : navigator.onLine === false
+                          ? 'warning'
+                          : 'error',
                     reason: 'Sincronizacion manual',
                 }
             );
         }
-        if (!silent) {
+        if (!silent && !restoredSnapshot) {
             showToast(
                 `No se pudo actualizar turnero: ${error.message}`,
                 'warning'
             );
         }
-        return false;
+        return restoredSnapshot;
     }
 }
 
 export function loadQueueSection() {
+    if (!queueUiState.snapshotLoaded) {
+        queueUiState.snapshotLoaded = true;
+        const snapshot = loadQueueSnapshot();
+        if (
+            snapshot &&
+            (!Array.isArray(currentQueueTickets) ||
+                currentQueueTickets.length === 0)
+        ) {
+            restoreQueueSnapshot(snapshot, { source: 'startup' });
+        }
+    }
+
     renderQueueSection();
     updateQueueSyncState('paused', 'Sincronizacion lista');
     if (!queueUiState.activityLog.length) {
@@ -1227,11 +1534,19 @@ export async function callNextForConsultorio(consultorio) {
                 `Llamando ${ticket.ticketCode} en Consultorio ${room}`,
                 'success'
             );
+            emitQueueOpsEvent('call_next_success', {
+                consultorio: room,
+                ticketId: Number(ticket.id || 0),
+                ticketCode: String(ticket.ticketCode || ''),
+            });
         } else {
             pushQueueActivity(`Llamado en C${room} sin ticket asignado`, {
                 level: 'warning',
             });
             showToast(`Consultorio ${room} actualizado`, 'success');
+            emitQueueOpsEvent('call_next_empty', {
+                consultorio: room,
+            });
         }
     } catch (error) {
         if (isConsultorioBusyError(error)) {
@@ -1241,6 +1556,10 @@ export async function callNextForConsultorio(consultorio) {
                 { level: 'warning' }
             );
             showToast(normalizeErrorMessage(error), 'warning');
+            emitQueueOpsEvent('call_next_busy', {
+                consultorio: room,
+                error: normalizeErrorMessage(error),
+            });
             return;
         }
         pushQueueActivity(
@@ -1251,6 +1570,10 @@ export async function callNextForConsultorio(consultorio) {
             `No se pudo llamar siguiente turno: ${normalizeErrorMessage(error)}`,
             'error'
         );
+        emitQueueOpsEvent('call_next_failed', {
+            consultorio: room,
+            error: normalizeErrorMessage(error),
+        });
     } finally {
         queueUiState.pendingCallByConsultorio.delete(roomKey);
         renderQueueOverview();
@@ -1304,6 +1627,11 @@ export async function applyQueueTicketAction(
                 'success'
             );
         }
+        emitQueueOpsEvent('ticket_action_success', {
+            action: String(action || ''),
+            ticketId: Number(ticketId || 0),
+            consultorio: Number(consultorio || 0) || null,
+        });
         return true;
     } catch (error) {
         if (isConsultorioBusyError(error)) {
@@ -1314,6 +1642,11 @@ export async function applyQueueTicketAction(
                 });
                 showToast(normalizeErrorMessage(error), 'warning');
             }
+            emitQueueOpsEvent('ticket_action_busy', {
+                action: String(action || ''),
+                ticketId: Number(ticketId || 0),
+                error: normalizeErrorMessage(error),
+            });
             return false;
         }
         if (!silent) {
@@ -1326,6 +1659,11 @@ export async function applyQueueTicketAction(
                 'error'
             );
         }
+        emitQueueOpsEvent('ticket_action_failed', {
+            action: String(action || ''),
+            ticketId: Number(ticketId || 0),
+            error: normalizeErrorMessage(error),
+        });
         return false;
     }
 }
@@ -1363,6 +1701,10 @@ export async function runQueueBulkAction(action) {
 
     queueUiState.bulkActionInFlight = true;
     renderQueueSection();
+    emitQueueOpsEvent('bulk_action_started', {
+        action: normalizedAction,
+        requested: eligibleTickets.length,
+    });
 
     let success = 0;
     let failed = 0;
@@ -1398,6 +1740,11 @@ export async function runQueueBulkAction(action) {
             `${getBulkActionLabel(normalizedAction)} aplicado a ${success} ticket(s).`,
             'success'
         );
+        emitQueueOpsEvent('bulk_action_success', {
+            action: normalizedAction,
+            success,
+            failed,
+        });
         return { ok: true, success, failed };
     }
     if (success > 0) {
@@ -1409,6 +1756,11 @@ export async function runQueueBulkAction(action) {
             `${getBulkActionLabel(normalizedAction)} parcial: ${success} exitos, ${failed} fallos.`,
             'warning'
         );
+        emitQueueOpsEvent('bulk_action_partial', {
+            action: normalizedAction,
+            success,
+            failed,
+        });
         return { ok: true, success, failed };
     }
     pushQueueActivity(`Bulk ${normalizedAction}: fallo total`, {
@@ -1418,6 +1770,101 @@ export async function runQueueBulkAction(action) {
         `No se pudo aplicar ${getBulkActionLabel(normalizedAction).toLowerCase()} en tickets visibles.`,
         'error'
     );
+    emitQueueOpsEvent('bulk_action_failed', {
+        action: normalizedAction,
+        success,
+        failed,
+    });
+    return { ok: false, success, failed };
+}
+
+export async function runQueueBulkReprint() {
+    if (queueUiState.bulkReprintInFlight) {
+        return { ok: false, success: 0, failed: 0 };
+    }
+
+    const viewState = queueUiState.lastViewState || buildQueueViewState();
+    const visibleTickets = Array.isArray(viewState?.tickets)
+        ? viewState.tickets
+        : [];
+    if (visibleTickets.length <= 0) {
+        showToast('No hay tickets visibles para reimprimir.', 'info');
+        return { ok: false, success: 0, failed: 0 };
+    }
+
+    const targetTickets = visibleTickets.slice(0, QUEUE_BULK_REPRINT_MAX);
+    const confirmed = window.confirm(
+        `Se reimprimiran ${targetTickets.length} ticket(s) visibles. Deseas continuar?`
+    );
+    if (!confirmed) {
+        return { ok: false, success: 0, failed: 0 };
+    }
+
+    queueUiState.bulkReprintInFlight = true;
+    renderQueueSection();
+    emitQueueOpsEvent('bulk_reprint_started', {
+        requested: targetTickets.length,
+    });
+
+    let success = 0;
+    let failed = 0;
+    try {
+        for (const ticket of targetTickets) {
+            const ticketId = Number(ticket?.id || 0);
+            if (!ticketId) {
+                failed += 1;
+                continue;
+            }
+            try {
+                const response = await requestQueueReprint(ticketId);
+                if (response.payload?.printed) {
+                    success += 1;
+                } else {
+                    failed += 1;
+                }
+            } catch (_error) {
+                failed += 1;
+            }
+        }
+    } finally {
+        queueUiState.bulkReprintInFlight = false;
+        renderQueueSection();
+    }
+
+    if (success > 0 && failed === 0) {
+        pushQueueActivity(`Bulk reimpresion: ${success} ticket(s) reimpresos`, {
+            level: 'info',
+        });
+        showToast(`Reimpresion completa: ${success} ticket(s).`, 'success');
+        emitQueueOpsEvent('bulk_reprint_success', {
+            success,
+            failed,
+        });
+        return { ok: true, success, failed };
+    }
+
+    if (success > 0) {
+        pushQueueActivity(
+            `Bulk reimpresion parcial: ${success} exitos y ${failed} fallos`,
+            { level: 'warning' }
+        );
+        showToast(
+            `Reimpresion parcial: ${success} exitos, ${failed} fallos.`,
+            'warning'
+        );
+        emitQueueOpsEvent('bulk_reprint_partial', {
+            success,
+            failed,
+        });
+        return { ok: true, success, failed };
+    }
+
+    pushQueueActivity('Bulk reimpresion: fallo total', { level: 'error' });
+    showToast('No se pudo reimprimir tickets visibles.', 'error');
+    emitQueueOpsEvent('bulk_reprint_failed', {
+        success,
+        failed,
+    });
     return { ok: false, success, failed };
 }
 
@@ -1440,28 +1887,53 @@ export async function reprintQueueTicket(ticketId) {
         showToast('Ticket invalido para reimpresion', 'error');
         return;
     }
+    const ticketKey = String(id);
+    if (queueUiState.reprintInFlightIds.has(ticketKey)) {
+        return;
+    }
+
+    queueUiState.reprintInFlightIds.add(ticketKey);
+    renderQueueSection();
+    emitQueueOpsEvent('reprint_started', { ticketId: id });
 
     try {
-        const payload = await apiRequest('queue-reprint', {
-            method: 'POST',
-            body: { id },
-        });
+        const response = await requestQueueReprint(id);
+        const payload = response.payload || {};
         if (payload?.printed) {
             pushQueueActivity(`Ticket #${id} reimpreso`, { level: 'info' });
             showToast('Ticket reimpreso', 'success');
+            emitQueueOpsEvent('reprint_success', { ticketId: id });
         } else {
-            const detail = payload?.print?.message || 'sin detalle';
+            const detail = getPrinterErrorMessage(payload, {
+                fallback: 'sin detalle',
+            });
             pushQueueActivity(
                 `Ticket #${id} generado sin impresion (${detail})`,
                 { level: 'warning' }
             );
             showToast(`Ticket generado sin impresion: ${detail}`, 'warning');
+            emitQueueOpsEvent('reprint_degraded', {
+                ticketId: id,
+                detail,
+                statusCode: Number(payload?.statusCode || 0),
+            });
         }
     } catch (error) {
+        const normalizedMessage = normalizeErrorMessage(error);
         pushQueueActivity(
-            `Error al reimprimir ticket #${id}: ${error.message}`,
+            `Error al reimprimir ticket #${id}: ${normalizedMessage}`,
             { level: 'error' }
         );
-        showToast(`No se pudo reimprimir ticket: ${error.message}`, 'error');
+        showToast(
+            `No se pudo reimprimir ticket: ${normalizedMessage}`,
+            'error'
+        );
+        emitQueueOpsEvent('reprint_failed', {
+            ticketId: id,
+            error: normalizedMessage,
+        });
+    } finally {
+        queueUiState.reprintInFlightIds.delete(ticketKey);
+        renderQueueSection();
     }
 }

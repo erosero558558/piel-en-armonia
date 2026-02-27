@@ -3708,6 +3708,8 @@ html[data-theme='dark'] .card-empty-state i {
     background: var(--color-bg-white, #ffffff);
     padding: 0.5rem;
     overflow-x: auto;
+    content-visibility: auto;
+    contain-intrinsic-size: 360px;
 }
 
 .queue-actions {
@@ -3735,6 +3737,14 @@ html[data-theme='dark'] .card-empty-state i {
 .queue-row-risk .queue-risk-note {
     color: #b45309;
     font-weight: 600;
+}
+
+.queue-triage-toolbar button:focus-visible,
+.queue-admin-header-actions button:focus-visible,
+.queue-actions button:focus-visible,
+.queue-triage-search:focus-visible {
+    outline: 3px solid var(--color-primary, #2f7cf6);
+    outline-offset: 2px;
 }
 
 @media (max-width: 1300px) {

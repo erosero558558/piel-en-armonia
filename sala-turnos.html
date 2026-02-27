@@ -22,6 +22,8 @@
                     id="displayConnectionState"
                     class="display-connection-state"
                     data-state="live"
+                    role="status"
+                    aria-live="polite"
                 >
                     Conectado
                 </span>
@@ -35,14 +37,14 @@
             <section class="display-panel">
                 <h1>Llamando ahora</h1>
                 <div class="display-called-grid">
-                    <div id="displayConsultorio1"></div>
-                    <div id="displayConsultorio2"></div>
+                    <div id="displayConsultorio1" aria-live="assertive"></div>
+                    <div id="displayConsultorio2" aria-live="assertive"></div>
                 </div>
             </section>
 
             <section class="display-panel">
                 <h2>Siguientes turnos</h2>
-                <ol id="displayNextList" class="display-next-list">
+                <ol id="displayNextList" class="display-next-list" aria-live="polite">
                     <li class="display-empty">No hay turnos pendientes.</li>
                 </ol>
                 <p class="display-privacy-note">

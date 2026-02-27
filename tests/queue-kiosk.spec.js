@@ -461,4 +461,52 @@ test.describe('Kiosco turnos', () => {
             'Sin pendientes offline.'
         );
     });
+
+    test('evita duplicar pendientes offline identicos en ventana corta', async ({
+        page,
+    }) => {
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const url = new URL(route.request().url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'queue-state') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        updatedAt: new Date().toISOString(),
+                        waitingCount: 0,
+                        calledCount: 0,
+                        callingNow: [],
+                        nextTickets: [],
+                    },
+                });
+            }
+
+            if (resource === 'queue-ticket') {
+                return route.abort('failed');
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto('/kiosco-turnos.html');
+
+        await page.fill('#walkinInitials', 'EP');
+        await page.fill('#walkinPhone', '0999123456');
+        await page.click('#walkinSubmit');
+        await expect(page.locator('#queueOutboxHint')).toContainText(
+            'Pendientes offline: 1'
+        );
+
+        await page.fill('#walkinInitials', 'EP');
+        await page.fill('#walkinPhone', '0999123456');
+        await page.click('#walkinSubmit');
+
+        await expect(page.locator('#queueOutboxHint')).toContainText(
+            'Pendientes offline: 1'
+        );
+        await expect(page.locator('#kioskStatus')).toContainText(
+            'ya pendiente offline'
+        );
+    });
 });

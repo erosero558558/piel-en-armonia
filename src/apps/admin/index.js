@@ -70,6 +70,7 @@ import {
     callNextForConsultorio,
     applyQueueTicketAction,
     runQueueBulkAction,
+    runQueueBulkReprint,
     setQueueFilter,
     focusQueueSearch,
     isQueueSectionActive,
@@ -863,6 +864,11 @@ function handleAdminKeyboardShortcuts(event) {
         if (code === 'keyb') {
             event.preventDefault();
             void runQueueBulkAction('cancelar');
+            return;
+        }
+        if (code === 'keyp') {
+            event.preventDefault();
+            void runQueueBulkReprint();
             return;
         }
     }

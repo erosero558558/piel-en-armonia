@@ -180,6 +180,15 @@ body {
     cursor: not-allowed;
 }
 
+.kiosk-form button:focus-visible,
+.assistant-form button:focus-visible,
+.kiosk-theme-toggle button:focus-visible,
+.assistant-form input:focus-visible,
+.kiosk-form input:focus-visible {
+    outline: 3px solid var(--primary-strong);
+    outline-offset: 2px;
+}
+
 .ticket-result {
     margin-top: 0.95rem;
 }
@@ -439,5 +448,15 @@ body {
 @media (max-width: 760px) {
     .kiosk-form-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
     }
 }

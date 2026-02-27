@@ -36,7 +36,13 @@
                     Selecciona tu opcion para generar turno o confirmar cita.
                 </p>
 
-                <div id="kioskStatus" class="kiosk-status" data-status="info">
+                <div
+                    id="kioskStatus"
+                    class="kiosk-status"
+                    data-status="info"
+                    role="status"
+                    aria-live="polite"
+                >
                     Listo para registrar turnos.
                 </div>
 
@@ -100,7 +106,12 @@
                     </form>
                 </div>
 
-                <div id="ticketResult" class="ticket-result">
+                <div
+                    id="ticketResult"
+                    class="ticket-result"
+                    aria-live="polite"
+                    aria-atomic="true"
+                >
                     <p class="ticket-empty">Todavia no se ha generado ningun ticket.</p>
                 </div>
             </section>
@@ -112,6 +123,8 @@
                         id="queueConnectionState"
                         class="queue-connection-state"
                         data-state="live"
+                        role="status"
+                        aria-live="polite"
                     >
                         Cola conectada
                     </p>
@@ -130,12 +143,17 @@
                     </div>
 
                     <h3>Llamando ahora</h3>
-                    <div id="queueCallingNow" class="queue-calling-now">
+                    <div
+                        id="queueCallingNow"
+                        class="queue-calling-now"
+                        aria-live="polite"
+                        aria-atomic="true"
+                    >
                         <p class="queue-empty">Sin llamados activos.</p>
                     </div>
 
                     <h3>Siguientes turnos</h3>
-                    <ol id="queueNextList" class="queue-next-list">
+                    <ol id="queueNextList" class="queue-next-list" aria-live="polite">
                         <li class="queue-empty">No hay turnos en espera.</li>
                     </ol>
                 </section>
@@ -145,13 +163,20 @@
                     <p class="assistant-note">
                         Solo orientacion operativa de sala. No reemplaza consulta medica.
                     </p>
-                    <div id="assistantMessages" class="assistant-messages"></div>
+                    <div
+                        id="assistantMessages"
+                        class="assistant-messages"
+                        role="log"
+                        aria-live="polite"
+                        aria-relevant="additions text"
+                    ></div>
                     <form id="assistantForm" class="assistant-form">
                         <input
                             id="assistantInput"
                             type="text"
                             placeholder="Ejemplo: donde espero para consultorio 2"
                             autocomplete="off"
+                            aria-label="Mensaje para asistente de sala"
                         />
                         <button id="assistantSend" type="submit">Enviar</button>
                     </form>

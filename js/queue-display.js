@@ -15,11 +15,27 @@
             bellMuted: !1,
             lastSnapshot: null,
             connectionState: 'paused',
+            lastConnectionMessage: '',
+            lastRenderedSignature: '',
         };
-    function a(e) {
-        return document.getElementById(e);
+    function a(e, t = {}) {
+        try {
+            window.dispatchEvent(
+                new CustomEvent('piel:queue-ops', {
+                    detail: {
+                        surface: 'display',
+                        event: String(e || 'unknown'),
+                        at: new Date().toISOString(),
+                        ...t,
+                    },
+                })
+            );
+        } catch (e) {}
     }
     function o(e) {
+        return document.getElementById(e);
+    }
+    function i(e) {
         return String(e || '')
             .replaceAll('&', '&amp;')
             .replaceAll('<', '&lt;')
@@ -27,24 +43,28 @@
             .replaceAll('"', '&quot;')
             .replaceAll("'", '&#39;');
     }
-    function i(e, t) {
-        const o = a('displayConnectionState');
-        if (!o) return;
-        const i = String(e || 'live').toLowerCase(),
+    function s(e, t) {
+        const i = o('displayConnectionState');
+        if (!i) return;
+        const s = String(e || 'live').toLowerCase(),
             l = {
                 live: 'Conectado',
                 reconnecting: 'Reconectando',
                 offline: 'Sin conexion',
                 paused: 'En pausa',
-            };
-        ((n.connectionState = i),
-            (o.dataset.state = i),
-            (o.textContent = String(t || '').trim() || l[i] || l.live));
+            },
+            r = String(t || '').trim() || l[s] || l.live,
+            c = s !== n.connectionState || r !== n.lastConnectionMessage;
+        ((n.connectionState = s),
+            (n.lastConnectionMessage = r),
+            (i.dataset.state = s),
+            (i.textContent = r),
+            c && a('connection_state', { state: s, message: r }));
     }
     function l() {
-        let e = a('displayOpsHint');
+        let e = o('displayOpsHint');
         if (e) return e;
-        const t = a('displayUpdatedAt');
+        const t = o('displayUpdatedAt');
         return t?.parentElement
             ? ((e = document.createElement('span')),
               (e.id = 'displayOpsHint'),
@@ -54,12 +74,12 @@
               e)
             : null;
     }
-    function s(e) {
+    function r(e) {
         const t = l();
         t && (t.textContent = String(e || '').trim() || 'Estado operativo');
     }
-    function r() {
-        let e = a('displayManualRefreshBtn');
+    function c() {
+        let e = o('displayManualRefreshBtn');
         if (e instanceof HTMLButtonElement) return e;
         const t = document.querySelector('.display-clock-wrap');
         return t
@@ -67,6 +87,10 @@
               (e.id = 'displayManualRefreshBtn'),
               (e.type = 'button'),
               (e.textContent = 'Refrescar panel'),
+              e.setAttribute(
+                  'aria-label',
+                  'Refrescar estado de turnos en pantalla'
+              ),
               (e.style.justifySelf = 'end'),
               (e.style.border = '1px solid var(--border)'),
               (e.style.borderRadius = '0.6rem'),
@@ -78,14 +102,14 @@
               e)
             : null;
     }
-    function c(e) {
-        const t = r();
+    function d(e) {
+        const t = c();
         t instanceof HTMLButtonElement &&
             ((t.disabled = Boolean(e)),
             (t.textContent = e ? 'Refrescando...' : 'Refrescar panel'));
     }
-    function d() {
-        let e = a('displayBellToggleBtn');
+    function u() {
+        let e = o('displayBellToggleBtn');
         if (e instanceof HTMLButtonElement) return e;
         const t = document.querySelector('.display-clock-wrap');
         return t
@@ -101,12 +125,13 @@
               (e.style.cursor = 'pointer'),
               (e.style.fontSize = '0.8rem'),
               (e.style.fontWeight = '600'),
+              e.setAttribute('aria-label', 'Alternar campanilla de llamados'),
               t.appendChild(e),
               e)
             : null;
     }
-    function u() {
-        const e = d();
+    function p() {
+        const e = u();
         e instanceof HTMLButtonElement &&
             ((e.textContent = n.bellMuted
                 ? 'Campanilla: Off'
@@ -117,13 +142,14 @@
                 ? 'Campanilla en silencio'
                 : 'Campanilla activa'));
     }
-    function p() {
-        !(function (t, { announce: a = !1 } = {}) {
+    function m() {
+        !(function (t, { announce: o = !1 } = {}) {
             ((n.bellMuted = Boolean(t)),
                 localStorage.setItem(e, n.bellMuted ? '1' : '0'),
-                u(),
-                a &&
-                    s(
+                p(),
+                a('bell_muted_changed', { muted: n.bellMuted, announce: o }),
+                o &&
+                    r(
                         n.bellMuted
                             ? 'Campanilla en silencio. Puedes reactivarla con Alt+Shift+M.'
                             : 'Campanilla activa para nuevos llamados.'
@@ -138,24 +164,24 @@
             nextTickets: Array.isArray(t.nextTickets) ? t.nextTickets : [],
         };
     }
-    function m(e, { mode: t = 'restore' } = {}) {
+    function g(e, { mode: t = 'restore' } = {}) {
         if (!e?.data) return !1;
-        b(e.data);
-        const n = h(
-            Math.max(0, Date.now() - Date.parse(String(e.savedAt || '')))
-        );
+        w(e.data);
+        const n = Math.max(0, Date.now() - Date.parse(String(e.savedAt || ''))),
+            o = b(n);
         return (
-            i('reconnecting', 'Respaldo local activo'),
-            s(
+            s('reconnecting', 'Respaldo local activo'),
+            r(
                 'startup' === t
-                    ? `Mostrando respaldo local (${n}) mientras conecta.`
-                    : `Sin backend. Mostrando ultimo estado local (${n}).`
+                    ? `Mostrando respaldo local (${o}) mientras conecta.`
+                    : `Sin backend. Mostrando ultimo estado local (${o}).`
             ),
+            a('snapshot_restored', { mode: t, ageMs: n }),
             !0
         );
     }
     function y() {
-        let e = a('displaySnapshotHint');
+        let e = o('displaySnapshotHint');
         if (e instanceof HTMLElement) return e;
         const t = l();
         return t?.parentElement
@@ -167,39 +193,41 @@
               e)
             : null;
     }
-    function g() {
+    function S() {
         const e = y();
         if (!(e instanceof HTMLElement)) return;
         if (!n.lastSnapshot?.savedAt)
             return void (e.textContent = 'Respaldo: sin datos locales');
         const t = Date.parse(String(n.lastSnapshot.savedAt || ''));
         Number.isFinite(t)
-            ? (e.textContent = `Respaldo: ${h(Date.now() - t)} de antiguedad`)
+            ? (e.textContent = `Respaldo: ${b(Date.now() - t)} de antiguedad`)
             : (e.textContent = 'Respaldo: sin datos locales');
     }
-    function S({ announce: e = !1 } = {}) {
-        n.lastSnapshot = null;
+    function h({ announce: e = !1 } = {}) {
+        ((n.lastSnapshot = null), (n.lastRenderedSignature = ''));
         try {
             localStorage.removeItem(t);
         } catch (e) {}
-        (g(),
+        (S(),
             'live' !== n.connectionState &&
                 ((function (e = 'No hay turnos pendientes.') {
-                    (C('displayConsultorio1', null, 'Consultorio 1'),
+                    ((n.lastRenderedSignature = ''),
+                        C('displayConsultorio1', null, 'Consultorio 1'),
                         C('displayConsultorio2', null, 'Consultorio 2'));
-                    const t = a('displayNextList');
+                    const t = o('displayNextList');
                     t &&
-                        (t.innerHTML = `<li class="display-empty">${o(e)}</li>`);
+                        (t.innerHTML = `<li class="display-empty">${i(e)}</li>`);
                 })('Sin respaldo local disponible.'),
                 !1 === navigator.onLine
-                    ? i('offline', 'Sin conexion')
-                    : i('reconnecting', 'Sin respaldo local')),
+                    ? s('offline', 'Sin conexion')
+                    : s('reconnecting', 'Sin respaldo local')),
             e &&
-                s(
+                r(
                     'Respaldo local limpiado. Esperando datos en vivo del backend.'
-                ));
+                ),
+            a('snapshot_cleared', { announce: e }));
     }
-    function h(e) {
+    function b(e) {
         const t = Math.max(0, Number(e || 0)),
             n = Math.round(t / 1e3);
         if (n < 60) return `${n}s`;
@@ -209,48 +237,86 @@
     }
     function v() {
         return n.lastHealthySyncAt
-            ? `hace ${h(Date.now() - n.lastHealthySyncAt)}`
+            ? `hace ${b(Date.now() - n.lastHealthySyncAt)}`
             : 'sin sincronizacion confirmada';
     }
     function C(e, t, n) {
-        const i = a(e);
-        i &&
-            (i.innerHTML = t
-                ? `\n        <article class="display-called-card">\n            <h3>${n}</h3>\n            <strong>${o(t.ticketCode || '--')}</strong>\n            <span>${o(t.patientInitials || '--')}</span>\n        </article>\n    `
+        const a = o(e);
+        a &&
+            (a.innerHTML = t
+                ? `\n        <article class="display-called-card">\n            <h3>${n}</h3>\n            <strong>${i(t.ticketCode || '--')}</strong>\n            <span>${i(t.patientInitials || '--')}</span>\n        </article>\n    `
                 : `\n            <article class="display-called-card is-empty">\n                <h3>${n}</h3>\n                <p>Sin llamado activo</p>\n            </article>\n        `);
     }
-    function b(e) {
-        const t = Array.isArray(e?.callingNow) ? e.callingNow : [],
-            i = { 1: null, 2: null };
-        for (const e of t) {
+    function w(e) {
+        const t = (function (e) {
+                const t = Array.isArray(e?.callingNow)
+                        ? e.callingNow.map((e) => ({
+                              id: Number(e?.id || 0),
+                              ticketCode: String(e?.ticketCode || ''),
+                              patientInitials: String(e?.patientInitials || ''),
+                              consultorio: Number(e?.assignedConsultorio || 0),
+                              calledAt: String(e?.calledAt || ''),
+                          }))
+                        : [],
+                    n = Array.isArray(e?.nextTickets)
+                        ? e.nextTickets
+                              .slice(0, 8)
+                              .map((e) => ({
+                                  id: Number(e?.id || 0),
+                                  ticketCode: String(e?.ticketCode || ''),
+                                  patientInitials: String(
+                                      e?.patientInitials || ''
+                                  ),
+                                  position: Number(e?.position || 0),
+                              }))
+                        : [],
+                    a = String(e?.updatedAt || '');
+                return JSON.stringify({
+                    updatedAt: a,
+                    callingNow: t,
+                    nextTickets: n,
+                });
+            })(e),
+            s = t === n.lastRenderedSignature,
+            l = Array.isArray(e?.callingNow) ? e.callingNow : [],
+            r = { 1: null, 2: null };
+        for (const e of l) {
             const t = Number(e?.assignedConsultorio || 0);
-            (1 !== t && 2 !== t) || (i[t] = e);
+            (1 !== t && 2 !== t) || (r[t] = e);
         }
-        (C('displayConsultorio1', i[1], 'Consultorio 1'),
-            C('displayConsultorio2', i[2], 'Consultorio 2'),
+        s ||
+            (C('displayConsultorio1', r[1], 'Consultorio 1'),
+            C('displayConsultorio2', r[2], 'Consultorio 2'),
             (function (e) {
-                const t = a('displayNextList');
+                const t = o('displayNextList');
                 t &&
                     (Array.isArray(e) && 0 !== e.length
                         ? (t.innerHTML = e
                               .slice(0, 8)
                               .map(
                                   (e) =>
-                                      `\n                <li>\n                    <span class="next-code">${o(e.ticketCode || '--')}</span>\n                    <span class="next-initials">${o(e.patientInitials || '--')}</span>\n                    <span class="next-position">#${o(e.position || '-')}</span>\n                </li>\n            `
+                                      `\n                <li>\n                    <span class="next-code">${i(e.ticketCode || '--')}</span>\n                    <span class="next-initials">${i(e.patientInitials || '--')}</span>\n                    <span class="next-position">#${i(e.position || '-')}</span>\n                </li>\n            `
                               )
                               .join(''))
                         : (t.innerHTML =
                               '<li class="display-empty">No hay turnos pendientes.</li>'));
             })(e?.nextTickets || []),
             (function (e) {
-                const t = a('displayUpdatedAt');
+                const t = o('displayUpdatedAt');
                 if (!t) return;
                 const n = Date.parse(String(e?.updatedAt || ''));
                 Number.isFinite(n)
                     ? (t.textContent = `Actualizado ${new Date(n).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`)
                     : (t.textContent = 'Actualizacion pendiente');
-            })(e));
-        const l = (function (e) {
+            })(e),
+            (n.lastRenderedSignature = t),
+            a('render_update', {
+                callingNowCount: l.length,
+                nextCount: Array.isArray(e?.nextTickets)
+                    ? e.nextTickets.length
+                    : 0,
+            }));
+        const c = (function (e) {
             return Array.isArray(e) && 0 !== e.length
                 ? e
                       .map(
@@ -260,10 +326,10 @@
                       .sort()
                       .join('|')
                 : '';
-        })(t);
-        (l &&
-            l !== n.lastCalledSignature &&
-            (function () {
+        })(l);
+        (c &&
+            c !== n.lastCalledSignature &&
+            ((function () {
                 if (!n.bellMuted)
                     try {
                         n.audioContext ||
@@ -285,24 +351,25 @@
                             a.stop(t + 0.24));
                     } catch (e) {}
             })(),
-            (n.lastCalledSignature = l));
+            a('called_signature_changed', { signature: c })),
+            (n.lastCalledSignature = c));
     }
-    function w() {
+    function x() {
         const e = Math.max(0, Number(n.failureStreak || 0)),
             t = 2500 * Math.pow(2, Math.min(e, 3));
         return Math.min(15e3, t);
     }
-    function x() {
+    function A() {
         n.pollingId && (window.clearTimeout(n.pollingId), (n.pollingId = 0));
     }
     function M({ immediate: e = !1 } = {}) {
-        if ((x(), !n.pollingEnabled)) return;
-        const t = e ? 0 : w();
+        if ((A(), !n.pollingEnabled)) return;
+        const t = e ? 0 : x();
         n.pollingId = window.setTimeout(() => {
-            k();
+            E();
         }, t);
     }
-    async function E() {
+    async function k() {
         if (n.refreshBusy) return { ok: !1, stale: !1, reason: 'busy' };
         n.refreshBusy = !0;
         try {
@@ -329,7 +396,7 @@
                         return a;
                     })()
                 ).data || {};
-            (b(e),
+            (w(e),
                 (function (e) {
                     const a = f(e),
                         o = { savedAt: new Date().toISOString(), data: a };
@@ -337,7 +404,7 @@
                     try {
                         localStorage.setItem(t, JSON.stringify(o));
                     } catch (e) {}
-                    g();
+                    S();
                 })(e));
             const a = (function (e) {
                 const t = Date.parse(String(e?.updatedAt || ''));
@@ -354,11 +421,11 @@
                 usedSnapshot: !1,
             };
         } catch (e) {
-            const t = m(n.lastSnapshot, { mode: 'restore' });
+            const t = g(n.lastSnapshot, { mode: 'restore' });
             if (!t) {
-                const t = a('displayNextList');
+                const t = o('displayNextList');
                 t &&
-                    (t.innerHTML = `<li class="display-empty">Sin conexion: ${o(e.message)}</li>`);
+                    (t.innerHTML = `<li class="display-empty">Sin conexion: ${i(e.message)}</li>`);
             }
             return {
                 ok: !1,
@@ -371,100 +438,100 @@
             n.refreshBusy = !1;
         }
     }
-    async function k() {
+    async function E() {
         if (!n.pollingEnabled) return;
         if (document.hidden)
             return (
-                i('paused', 'En pausa (pestana oculta)'),
-                s('Pantalla en pausa por pestana oculta.'),
+                s('paused', 'En pausa (pestana oculta)'),
+                r('Pantalla en pausa por pestana oculta.'),
                 void M()
             );
         if (!1 === navigator.onLine)
             return (
                 (n.failureStreak += 1),
-                m(n.lastSnapshot, { mode: 'restore' }) ||
-                    (i('offline', 'Sin conexion'),
-                    s(
+                g(n.lastSnapshot, { mode: 'restore' }) ||
+                    (s('offline', 'Sin conexion'),
+                    r(
                         'Sin conexion. Mantener llamado por voz desde recepcion hasta recuperar enlace.'
                     )),
                 void M()
             );
-        const e = await E();
+        const e = await k();
         if (e.ok && !e.stale)
             ((n.failureStreak = 0),
                 (n.lastHealthySyncAt = Date.now()),
-                i('live', 'Conectado'),
-                s(`Panel estable (${v()}).`));
+                s('live', 'Conectado'),
+                r(`Panel estable (${v()}).`));
         else if (e.ok && e.stale) {
             n.failureStreak += 1;
-            const t = h(e.ageMs || 0);
-            (i('reconnecting', `Watchdog: datos estancados ${t}`),
-                s(`Datos estancados ${t}. Verifica fuente de cola.`));
+            const t = b(e.ageMs || 0);
+            (s('reconnecting', `Watchdog: datos estancados ${t}`),
+                r(`Datos estancados ${t}. Verifica fuente de cola.`));
         } else {
             if (((n.failureStreak += 1), e.usedSnapshot)) return void M();
-            const t = Math.max(1, Math.ceil(w() / 1e3));
-            (i('reconnecting', `Reconectando en ${t}s`),
-                s(`Conexion inestable. Reintento automatico en ${t}s.`));
+            const t = Math.max(1, Math.ceil(x() / 1e3));
+            (s('reconnecting', `Reconectando en ${t}s`),
+                r(`Conexion inestable. Reintento automatico en ${t}s.`));
         }
         M();
     }
-    async function A() {
+    async function T() {
         if (!n.manualRefreshBusy) {
             ((n.manualRefreshBusy = !0),
-                c(!0),
-                i('reconnecting', 'Refrescando panel...'));
+                d(!0),
+                s('reconnecting', 'Refrescando panel...'));
             try {
-                const e = await E();
+                const e = await k();
                 if (e.ok && !e.stale)
                     return (
                         (n.failureStreak = 0),
                         (n.lastHealthySyncAt = Date.now()),
-                        i('live', 'Conectado'),
-                        void s(`Sincronizacion manual exitosa (${v()}).`)
+                        s('live', 'Conectado'),
+                        void r(`Sincronizacion manual exitosa (${v()}).`)
                     );
                 if (e.ok && e.stale) {
-                    const t = h(e.ageMs || 0);
+                    const t = b(e.ageMs || 0);
                     return (
-                        i('reconnecting', `Watchdog: datos estancados ${t}`),
-                        void s(`Persisten datos estancados (${t}).`)
+                        s('reconnecting', `Watchdog: datos estancados ${t}`),
+                        void r(`Persisten datos estancados (${t}).`)
                     );
                 }
                 if (e.usedSnapshot) return;
-                const t = Math.max(1, Math.ceil(w() / 1e3));
-                (i(
+                const t = Math.max(1, Math.ceil(x() / 1e3));
+                (s(
                     !1 === navigator.onLine ? 'offline' : 'reconnecting',
                     !1 === navigator.onLine
                         ? 'Sin conexion'
                         : `Reconectando en ${t}s`
                 ),
-                    s(
+                    r(
                         !1 === navigator.onLine
                             ? 'Sin internet. Llamado manual temporal.'
                             : `Refresh manual sin exito. Reintento automatico en ${t}s.`
                     ));
             } finally {
-                ((n.manualRefreshBusy = !1), c(!1));
+                ((n.manualRefreshBusy = !1), d(!1));
             }
         }
     }
     function L({ immediate: e = !0 } = {}) {
         if (((n.pollingEnabled = !0), e))
-            return (i('live', 'Sincronizando...'), void k());
+            return (s('live', 'Sincronizando...'), void E());
         M();
     }
-    function T({ reason: e = 'paused' } = {}) {
-        ((n.pollingEnabled = !1), (n.failureStreak = 0), x());
+    function R({ reason: e = 'paused' } = {}) {
+        ((n.pollingEnabled = !1), (n.failureStreak = 0), A());
         const t = String(e || 'paused').toLowerCase();
         return 'offline' === t
-            ? (i('offline', 'Sin conexion'),
-              void s('Sin conexion. Mantener protocolo manual de llamados.'))
+            ? (s('offline', 'Sin conexion'),
+              void r('Sin conexion. Mantener protocolo manual de llamados.'))
             : 'hidden' === t
-              ? (i('paused', 'En pausa (pestana oculta)'),
-                void s('Pantalla oculta. Reanuda al volver al frente.'))
-              : (i('paused', 'En pausa'), void s('Sincronizacion pausada.'));
+              ? (s('paused', 'En pausa (pestana oculta)'),
+                void r('Pantalla oculta. Reanuda al volver al frente.'))
+              : (s('paused', 'En pausa'), void r('Sincronizacion pausada.'));
     }
     function $() {
-        const e = a('displayClock');
+        const e = o('displayClock');
         e &&
             (e.textContent = new Date().toLocaleTimeString('es-EC', {
                 hour: '2-digit',
@@ -480,35 +547,35 @@
                 n.lastSnapshot = null;
                 try {
                     const e = localStorage.getItem(t);
-                    if (!e) return (g(), null);
+                    if (!e) return (S(), null);
                     const a = JSON.parse(e);
-                    if (!a || 'object' != typeof a) return (g(), null);
+                    if (!a || 'object' != typeof a) return (S(), null);
                     const o = Date.parse(String(a.savedAt || ''));
-                    if (!Number.isFinite(o)) return (g(), null);
-                    if (Date.now() - o > 216e5) return (g(), null);
+                    if (!Number.isFinite(o)) return (S(), null);
+                    if (Date.now() - o > 216e5) return (S(), null);
                     const i = f(a.data || {}),
-                        l = { savedAt: new Date(o).toISOString(), data: i };
-                    return ((n.lastSnapshot = l), g(), l);
+                        s = { savedAt: new Date(o).toISOString(), data: i };
+                    return ((n.lastSnapshot = s), S(), s);
                 } catch (e) {
-                    return (g(), null);
+                    return (S(), null);
                 }
             })(),
             $(),
             (n.clockId = window.setInterval($, 1e3)),
             l(),
             y());
-        const o = r();
-        o instanceof HTMLButtonElement &&
-            o.addEventListener('click', () => {
-                A();
+        const a = c();
+        a instanceof HTMLButtonElement &&
+            a.addEventListener('click', () => {
+                T();
             });
-        const c = d();
-        c instanceof HTMLButtonElement &&
-            c.addEventListener('click', () => {
-                p();
+        const i = u();
+        i instanceof HTMLButtonElement &&
+            i.addEventListener('click', () => {
+                m();
             });
-        const h = (function () {
-            let e = a('displaySnapshotClearBtn');
+        const d = (function () {
+            let e = o('displaySnapshotClearBtn');
             if (e instanceof HTMLButtonElement) return e;
             const t = document.querySelector('.display-clock-wrap');
             return t
@@ -525,33 +592,37 @@
                   (e.style.fontSize = '0.8rem'),
                   (e.style.fontWeight = '600'),
                   (e.textContent = 'Limpiar respaldo'),
+                  e.setAttribute(
+                      'aria-label',
+                      'Limpiar respaldo local del panel'
+                  ),
                   t.appendChild(e),
                   e)
                 : null;
         })();
-        (h instanceof HTMLButtonElement &&
-            h.addEventListener('click', () => {
-                S({ announce: !0 });
+        (d instanceof HTMLButtonElement &&
+            d.addEventListener('click', () => {
+                h({ announce: !0 });
             }),
-            u(),
-            g(),
-            i('paused', 'Sincronizacion lista'),
-            m(n.lastSnapshot, { mode: 'startup' }) ||
-                s('Esperando primera sincronizacion...'),
+            p(),
+            S(),
+            s('paused', 'Sincronizacion lista'),
+            g(n.lastSnapshot, { mode: 'startup' }) ||
+                r('Esperando primera sincronizacion...'),
             L({ immediate: !0 }),
             document.addEventListener('visibilitychange', () => {
                 document.hidden
-                    ? T({ reason: 'hidden' })
+                    ? R({ reason: 'hidden' })
                     : L({ immediate: !0 });
             }),
             window.addEventListener('online', () => {
                 L({ immediate: !0 });
             }),
             window.addEventListener('offline', () => {
-                T({ reason: 'offline' });
+                R({ reason: 'offline' });
             }),
             window.addEventListener('beforeunload', () => {
-                (T({ reason: 'paused' }),
+                (R({ reason: 'paused' }),
                     n.clockId &&
                         (window.clearInterval(n.clockId), (n.clockId = 0)));
             }),
@@ -559,12 +630,12 @@
                 if (!e.altKey || !e.shiftKey) return;
                 const t = String(e.code || '').toLowerCase();
                 return 'keyr' === t
-                    ? (e.preventDefault(), void A())
+                    ? (e.preventDefault(), void T())
                     : 'keym' === t
-                      ? (e.preventDefault(), void p())
+                      ? (e.preventDefault(), void m())
                       : void (
                             'keyx' === t &&
-                            (e.preventDefault(), S({ announce: !0 }))
+                            (e.preventDefault(), h({ announce: !0 }))
                         );
             }));
     });

@@ -19,7 +19,26 @@ const state = {
     bellMuted: false,
     lastSnapshot: null,
     connectionState: 'paused',
+    lastConnectionMessage: '',
+    lastRenderedSignature: '',
 };
+
+function emitQueueOpsEvent(eventName, detail = {}) {
+    try {
+        window.dispatchEvent(
+            new CustomEvent('piel:queue-ops', {
+                detail: {
+                    surface: 'display',
+                    event: String(eventName || 'unknown'),
+                    at: new Date().toISOString(),
+                    ...detail,
+                },
+            })
+        );
+    } catch (_error) {
+        // no-op
+    }
+}
 
 function getById(id) {
     return document.getElementById(id);
@@ -73,12 +92,25 @@ function setConnectionStatus(stateLabel, message) {
         paused: 'En pausa',
     };
 
-    state.connectionState = normalized;
-    el.dataset.state = normalized;
-    el.textContent =
+    const normalizedMessage =
         String(message || '').trim() ||
         fallbackByState[normalized] ||
         fallbackByState.live;
+    const changed =
+        normalized !== state.connectionState ||
+        normalizedMessage !== state.lastConnectionMessage;
+
+    state.connectionState = normalized;
+    state.lastConnectionMessage = normalizedMessage;
+    el.dataset.state = normalized;
+    el.textContent = normalizedMessage;
+
+    if (changed) {
+        emitQueueOpsEvent('connection_state', {
+            state: normalized,
+            message: normalizedMessage,
+        });
+    }
 }
 
 function ensureDisplayOpsHintEl() {
@@ -115,6 +147,7 @@ function ensureDisplayManualRefreshButton() {
     button.id = 'displayManualRefreshBtn';
     button.type = 'button';
     button.textContent = 'Refrescar panel';
+    button.setAttribute('aria-label', 'Refrescar estado de turnos en pantalla');
     button.style.justifySelf = 'end';
     button.style.border = '1px solid var(--border)';
     button.style.borderRadius = '0.6rem';
@@ -154,6 +187,7 @@ function ensureDisplayBellToggleButton() {
     button.style.cursor = 'pointer';
     button.style.fontSize = '0.8rem';
     button.style.fontWeight = '600';
+    button.setAttribute('aria-label', 'Alternar campanilla de llamados');
     clockWrap.appendChild(button);
     return button;
 }
@@ -186,6 +220,10 @@ function setBellMuted(nextMuted, { announce = false } = {}) {
     state.bellMuted = Boolean(nextMuted);
     persistBellPreference();
     renderBellToggle();
+    emitQueueOpsEvent('bell_muted_changed', {
+        muted: state.bellMuted,
+        announce,
+    });
     if (announce) {
         setDisplayOpsHint(
             state.bellMuted
@@ -284,6 +322,10 @@ function renderFromSnapshot(snapshot, { mode = 'restore' } = {}) {
             ? `Mostrando respaldo local (${ageLabel}) mientras conecta.`
             : `Sin backend. Mostrando ultimo estado local (${ageLabel}).`
     );
+    emitQueueOpsEvent('snapshot_restored', {
+        mode,
+        ageMs,
+    });
     return true;
 }
 
@@ -343,11 +385,13 @@ function ensureDisplaySnapshotClearButton() {
     button.style.fontSize = '0.8rem';
     button.style.fontWeight = '600';
     button.textContent = 'Limpiar respaldo';
+    button.setAttribute('aria-label', 'Limpiar respaldo local del panel');
     clockWrap.appendChild(button);
     return button;
 }
 
 function renderNoDataFallback(message = 'No hay turnos pendientes.') {
+    state.lastRenderedSignature = '';
     renderCalledTicket('displayConsultorio1', null, 'Consultorio 1');
     renderCalledTicket('displayConsultorio2', null, 'Consultorio 2');
     const list = getById('displayNextList');
@@ -358,6 +402,7 @@ function renderNoDataFallback(message = 'No hay turnos pendientes.') {
 
 function clearLastSnapshot({ announce = false } = {}) {
     state.lastSnapshot = null;
+    state.lastRenderedSignature = '';
     try {
         localStorage.removeItem(DISPLAY_LAST_SNAPSHOT_STORAGE_KEY);
     } catch (_error) {
@@ -377,6 +422,7 @@ function clearLastSnapshot({ announce = false } = {}) {
             'Respaldo local limpiado. Esperando datos en vivo del backend.'
         );
     }
+    emitQueueOpsEvent('snapshot_cleared', { announce });
 }
 
 function formatElapsedAge(ms) {
@@ -529,7 +575,32 @@ function renderUpdatedAt(queueState) {
     )}`;
 }
 
+function computeDisplayRenderSignature(queueState) {
+    const callingNow = Array.isArray(queueState?.callingNow)
+        ? queueState.callingNow.map((ticket) => ({
+              id: Number(ticket?.id || 0),
+              ticketCode: String(ticket?.ticketCode || ''),
+              patientInitials: String(ticket?.patientInitials || ''),
+              consultorio: Number(ticket?.assignedConsultorio || 0),
+              calledAt: String(ticket?.calledAt || ''),
+          }))
+        : [];
+    const nextTickets = Array.isArray(queueState?.nextTickets)
+        ? queueState.nextTickets.slice(0, 8).map((ticket) => ({
+              id: Number(ticket?.id || 0),
+              ticketCode: String(ticket?.ticketCode || ''),
+              patientInitials: String(ticket?.patientInitials || ''),
+              position: Number(ticket?.position || 0),
+          }))
+        : [];
+    const updatedAt = String(queueState?.updatedAt || '');
+    return JSON.stringify({ updatedAt, callingNow, nextTickets });
+}
+
 function renderState(queueState) {
+    const renderSignature = computeDisplayRenderSignature(queueState);
+    const isSameRender = renderSignature === state.lastRenderedSignature;
+
     const callingNow = Array.isArray(queueState?.callingNow)
         ? queueState.callingNow
         : [];
@@ -544,22 +615,34 @@ function renderState(queueState) {
         }
     }
 
-    renderCalledTicket(
-        'displayConsultorio1',
-        byConsultorio[1],
-        'Consultorio 1'
-    );
-    renderCalledTicket(
-        'displayConsultorio2',
-        byConsultorio[2],
-        'Consultorio 2'
-    );
-    renderNextTickets(queueState?.nextTickets || []);
-    renderUpdatedAt(queueState);
+    if (!isSameRender) {
+        renderCalledTicket(
+            'displayConsultorio1',
+            byConsultorio[1],
+            'Consultorio 1'
+        );
+        renderCalledTicket(
+            'displayConsultorio2',
+            byConsultorio[2],
+            'Consultorio 2'
+        );
+        renderNextTickets(queueState?.nextTickets || []);
+        renderUpdatedAt(queueState);
+        state.lastRenderedSignature = renderSignature;
+        emitQueueOpsEvent('render_update', {
+            callingNowCount: callingNow.length,
+            nextCount: Array.isArray(queueState?.nextTickets)
+                ? queueState.nextTickets.length
+                : 0,
+        });
+    }
 
     const signature = computeCalledSignature(callingNow);
     if (signature && signature !== state.lastCalledSignature) {
         playBell();
+        emitQueueOpsEvent('called_signature_changed', {
+            signature,
+        });
     }
     state.lastCalledSignature = signature;
 }

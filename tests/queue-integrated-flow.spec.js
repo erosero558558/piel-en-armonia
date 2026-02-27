@@ -976,4 +976,76 @@ test.describe('Turnero integrado kiosco-admin-tv', () => {
             'A-003'
         );
     });
+
+    test('stress operativo: lote de turnos + llamados C1/C2 + cierre masivo estable', async ({
+        page,
+    }) => {
+        const context = page.context();
+        await installSharedQueueMocks(context);
+
+        const adminPage = page;
+        const kioskPage = await context.newPage();
+        const displayPage = await context.newPage();
+
+        await Promise.all([
+            adminPage.goto('/admin.html'),
+            kioskPage.goto('/kiosco-turnos.html'),
+            displayPage.goto('/sala-turnos.html'),
+        ]);
+
+        for (const initials of ['S1', 'S2', 'S3', 'S4', 'S5', 'S6']) {
+            await kioskPage.fill('#walkinInitials', initials);
+            await kioskPage.click('#walkinSubmit');
+        }
+        await expect(kioskPage.locator('#ticketResult')).toContainText('A-006');
+
+        await adminPage.locator('.nav-item[data-section="queue"]').click();
+        await expect(adminPage.locator('#queue')).toHaveClass(/active/);
+        await expect(adminPage.locator('#queueWaitingCountAdmin')).toHaveText(
+            '6'
+        );
+
+        await adminPage
+            .locator(
+                '[data-action="queue-call-next"][data-queue-consultorio="1"]'
+            )
+            .first()
+            .click();
+        await adminPage
+            .locator(
+                '[data-action="queue-call-next"][data-queue-consultorio="2"]'
+            )
+            .first()
+            .click();
+
+        await expect(adminPage.locator('#queueWaitingCountAdmin')).toHaveText(
+            '4'
+        );
+        await expect(adminPage.locator('#queueC1Now')).not.toContainText(
+            'Sin llamado'
+        );
+        await expect(adminPage.locator('#queueC2Now')).not.toContainText(
+            'Sin llamado'
+        );
+
+        adminPage.on('dialog', (dialog) => dialog.accept());
+        await adminPage
+            .locator(
+                '[data-action="queue-bulk-action"][data-queue-action="completar"]'
+            )
+            .click();
+
+        await expect(adminPage.locator('#queueWaitingCountAdmin')).toHaveText(
+            '0'
+        );
+        await expect(adminPage.locator('#queueC1Now')).toContainText(
+            'Sin llamado'
+        );
+        await expect(adminPage.locator('#queueC2Now')).toContainText(
+            'Sin llamado'
+        );
+        await expect(displayPage.locator('#displayNextList')).toContainText(
+            'No hay turnos pendientes.'
+        );
+    });
 });

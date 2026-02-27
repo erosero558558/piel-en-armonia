@@ -1329,4 +1329,144 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueC1Now')).toContainText('A-982');
         await expect(page.locator('#queueWaitingCountAdmin')).toHaveText('0');
     });
+
+    test('reimprime tickets visibles en bloque y deja traza operativa', async ({
+        page,
+    }) => {
+        const queueTickets = [
+            {
+                id: 991,
+                ticketCode: 'A-991',
+                queueType: 'appointment',
+                patientInitials: 'AA',
+                priorityClass: 'appt_overdue',
+                status: 'waiting',
+                assignedConsultorio: null,
+                createdAt: new Date(Date.now() - 9 * 60 * 1000).toISOString(),
+            },
+            {
+                id: 992,
+                ticketCode: 'A-992',
+                queueType: 'appointment',
+                patientInitials: 'BB',
+                priorityClass: 'appt_current',
+                status: 'waiting',
+                assignedConsultorio: null,
+                createdAt: new Date(Date.now() - 7 * 60 * 1000).toISOString(),
+            },
+            {
+                id: 993,
+                ticketCode: 'A-993',
+                queueType: 'walk_in',
+                patientInitials: 'CC',
+                priorityClass: 'walk_in',
+                status: 'waiting',
+                assignedConsultorio: null,
+                createdAt: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
+            },
+        ];
+        const queueState = buildQueueStateFromTickets(queueTickets);
+        let reprintRequests = 0;
+
+        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
+            json(route, {
+                ok: true,
+                authenticated: true,
+                csrfToken: 'csrf_queue_reprint_bulk',
+            })
+        );
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const request = route.request();
+            const url = new URL(request.url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'data') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        appointments: [],
+                        callbacks: [],
+                        reviews: [],
+                        availability: {},
+                        availabilityMeta: {
+                            source: 'store',
+                            mode: 'live',
+                            timezone: 'America/Guayaquil',
+                            calendarConfigured: true,
+                            calendarReachable: true,
+                            generatedAt: new Date().toISOString(),
+                        },
+                        queue_tickets: queueTickets,
+                        queueMeta: buildQueueMetaFromState(queueState),
+                    },
+                });
+            }
+
+            if (resource === 'queue-reprint' && request.method() === 'POST') {
+                reprintRequests += 1;
+                const body = JSON.parse(request.postData() || '{}');
+                const id = Number(body.id || 0);
+                if (id === 992) {
+                    return json(
+                        route,
+                        {
+                            ok: false,
+                            data: {
+                                ticket: queueTickets.find(
+                                    (ticket) => Number(ticket.id || 0) === id
+                                ),
+                            },
+                            printed: false,
+                            print: {
+                                ok: false,
+                                errorCode: 'printer_connect_failed',
+                                message: 'connect_failed',
+                            },
+                        },
+                        503
+                    );
+                }
+                return json(route, {
+                    ok: true,
+                    data: {
+                        ticket: queueTickets.find(
+                            (ticket) => Number(ticket.id || 0) === id
+                        ),
+                    },
+                    printed: true,
+                    print: {
+                        ok: true,
+                        errorCode: '',
+                        message: 'ok',
+                    },
+                });
+            }
+
+            if (resource === 'health') {
+                return json(route, { ok: true, status: 'ok' });
+            }
+
+            if (resource === 'funnel-metrics') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        page.on('dialog', (dialog) => dialog.accept());
+
+        await page.goto('/admin.html');
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await expect(page.locator('#queueTableBody tr')).toHaveCount(3);
+
+        await page.locator('[data-action="queue-bulk-reprint"]').click();
+
+        await expect.poll(() => reprintRequests).toBe(3);
+        await expect(page.locator('#queueActivityList')).toContainText(
+            'Bulk reimpresion'
+        );
+    });
 });
