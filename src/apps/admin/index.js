@@ -101,6 +101,11 @@ const ADMIN_REFRESH_STALE_AFTER_MS = 5 * 60 * 1000;
 const ADMIN_REFRESH_STATUS_TICK_MS = 30 * 1000;
 const ADMIN_LAST_SECTION_STORAGE_KEY = 'adminLastSection';
 const ADMIN_SIDEBAR_COLLAPSED_STORAGE_KEY = 'adminSidebarCollapsed';
+const QUEUE_STATION_MODE_STORAGE_KEY = 'queueStationMode';
+const QUEUE_STATION_CONSULTORIO_STORAGE_KEY = 'queueStationConsultorio';
+const QUEUE_STATION_MODE_LOCKED = 'locked';
+const QUEUE_STATION_MODE_FREE = 'free';
+const NUMPAD_KEY_LOCATION = 3;
 const ADMIN_CONTEXT_ACTIONS = {
     dashboard: {
         title: 'Acciones rápidas: dashboard',
@@ -257,6 +262,27 @@ const ADMIN_CONTEXT_ACTIONS = {
 
 let adminLastRefreshAt = 0;
 let adminRefreshStatusTimerId = 0;
+const queueStationState = {
+    mode: QUEUE_STATION_MODE_FREE,
+    consultorio: 1,
+};
+
+function emitQueueOpsStationEvent(eventName, detail = {}) {
+    try {
+        window.dispatchEvent(
+            new CustomEvent('piel:queue-ops', {
+                detail: {
+                    surface: 'admin',
+                    event: String(eventName || 'unknown'),
+                    at: new Date().toISOString(),
+                    ...detail,
+                },
+            })
+        );
+    } catch (_error) {
+        // no-op: operational telemetry is best effort
+    }
+}
 
 function getNavItems() {
     return Array.from(
@@ -409,6 +435,432 @@ function isTypingContextTarget(target) {
     );
 }
 
+function normalizeQueueStationMode(mode, fallback = QUEUE_STATION_MODE_FREE) {
+    const normalized = String(mode || '')
+        .trim()
+        .toLowerCase();
+    if (
+        normalized === QUEUE_STATION_MODE_LOCKED ||
+        normalized === QUEUE_STATION_MODE_FREE
+    ) {
+        return normalized;
+    }
+    return fallback;
+}
+
+function normalizeQueueStationConsultorio(consultorio, fallback = 1) {
+    const normalized = Number(consultorio || 0);
+    return normalized === 1 || normalized === 2 ? normalized : fallback;
+}
+
+function readQueueStationConfigFromStorage() {
+    try {
+        const mode = normalizeQueueStationMode(
+            localStorage.getItem(QUEUE_STATION_MODE_STORAGE_KEY),
+            QUEUE_STATION_MODE_FREE
+        );
+        const consultorio = normalizeQueueStationConsultorio(
+            localStorage.getItem(QUEUE_STATION_CONSULTORIO_STORAGE_KEY),
+            1
+        );
+        return { mode, consultorio };
+    } catch (_error) {
+        return {
+            mode: QUEUE_STATION_MODE_FREE,
+            consultorio: 1,
+        };
+    }
+}
+
+function persistQueueStationConfig(mode, consultorio) {
+    try {
+        localStorage.setItem(
+            QUEUE_STATION_MODE_STORAGE_KEY,
+            normalizeQueueStationMode(mode, QUEUE_STATION_MODE_FREE)
+        );
+        localStorage.setItem(
+            QUEUE_STATION_CONSULTORIO_STORAGE_KEY,
+            String(normalizeQueueStationConsultorio(consultorio, 1))
+        );
+    } catch (_error) {
+        // no-op
+    }
+}
+
+function readQueueStationProvisioningFromUrl() {
+    try {
+        const url = new URL(window.location.href);
+        const stationRaw = String(url.searchParams.get('station') || '')
+            .trim()
+            .toLowerCase();
+        const lockRaw = String(url.searchParams.get('lock') || '')
+            .trim()
+            .toLowerCase();
+        const hasStationParam = stationRaw !== '';
+        const hasLockParam = lockRaw !== '';
+
+        if (!hasStationParam && !hasLockParam) {
+            return null;
+        }
+
+        let consultorio = null;
+        if (stationRaw === 'c1' || stationRaw === '1') {
+            consultorio = 1;
+        } else if (stationRaw === 'c2' || stationRaw === '2') {
+            consultorio = 2;
+        }
+
+        let mode = null;
+        if (['1', 'true', 'locked', 'yes'].includes(lockRaw)) {
+            mode = QUEUE_STATION_MODE_LOCKED;
+        } else if (['0', 'false', 'free', 'no'].includes(lockRaw)) {
+            mode = QUEUE_STATION_MODE_FREE;
+        }
+
+        return {
+            consultorio,
+            mode,
+            hadStationParam: hasStationParam,
+            hadLockParam: hasLockParam,
+        };
+    } catch (_error) {
+        return null;
+    }
+}
+
+function clearQueueStationProvisioningParams() {
+    try {
+        const url = new URL(window.location.href);
+        const hadStation = url.searchParams.has('station');
+        const hadLock = url.searchParams.has('lock');
+        if (!hadStation && !hadLock) return;
+        url.searchParams.delete('station');
+        url.searchParams.delete('lock');
+        const nextPath = `${url.pathname}${url.search}${url.hash}`;
+        if (
+            window.history &&
+            typeof window.history.replaceState === 'function'
+        ) {
+            window.history.replaceState(null, '', nextPath || url.pathname);
+        }
+    } catch (_error) {
+        // no-op
+    }
+}
+
+function isQueueStationLocked() {
+    return queueStationState.mode === QUEUE_STATION_MODE_LOCKED;
+}
+
+function isQueueStationCallAllowed(consultorio) {
+    const room = normalizeQueueStationConsultorio(consultorio, 0);
+    if (![1, 2].includes(room)) return false;
+    if (!isQueueStationLocked()) return true;
+    return room === queueStationState.consultorio;
+}
+
+function syncQueueStationUi() {
+    const queueSection = document.getElementById('queue');
+    if (!(queueSection instanceof HTMLElement)) return;
+
+    const mode = normalizeQueueStationMode(
+        queueStationState.mode,
+        QUEUE_STATION_MODE_FREE
+    );
+    const consultorio = normalizeQueueStationConsultorio(
+        queueStationState.consultorio,
+        1
+    );
+
+    queueSection.dataset.stationMode = mode;
+    queueSection.dataset.stationConsultorio = String(consultorio);
+
+    const stationBadge = document.getElementById('queueStationBadge');
+    if (stationBadge instanceof HTMLElement) {
+        stationBadge.textContent = `Estación C${consultorio}`;
+        stationBadge.dataset.consultorio = String(consultorio);
+    }
+
+    const modeBadge = document.getElementById('queueStationModeBadge');
+    if (modeBadge instanceof HTMLElement) {
+        const locked = mode === QUEUE_STATION_MODE_LOCKED;
+        modeBadge.dataset.mode = locked
+            ? QUEUE_STATION_MODE_LOCKED
+            : QUEUE_STATION_MODE_FREE;
+        modeBadge.textContent = locked ? 'Bloqueado' : 'Libre';
+    }
+
+    const stationHint = document.getElementById('queueStationHint');
+    if (stationHint instanceof HTMLElement) {
+        stationHint.textContent =
+            mode === QUEUE_STATION_MODE_LOCKED
+                ? `Numpad Enter llama siempre en C${consultorio}.`
+                : `Modo libre: Numpad 1/2 selecciona consultorio, Numpad Enter llama.`;
+    }
+
+    document
+        .querySelectorAll('[data-action="queue-lock-station"]')
+        .forEach((button) => {
+            if (!(button instanceof HTMLButtonElement)) return;
+            const targetConsultorio = normalizeQueueStationConsultorio(
+                button.dataset.queueConsultorio || 0,
+                0
+            );
+            const isActive =
+                mode === QUEUE_STATION_MODE_LOCKED &&
+                targetConsultorio === consultorio;
+            button.classList.toggle('is-active', isActive);
+            button.disabled = mode === QUEUE_STATION_MODE_LOCKED;
+            button.setAttribute('aria-pressed', String(isActive));
+        });
+
+    const freeModeButton = document.querySelector(
+        '[data-action="queue-set-station-mode"][data-queue-mode="free"]'
+    );
+    if (freeModeButton instanceof HTMLButtonElement) {
+        const isFreeMode = mode === QUEUE_STATION_MODE_FREE;
+        freeModeButton.classList.toggle('is-active', isFreeMode);
+        freeModeButton.disabled = isFreeMode;
+        freeModeButton.setAttribute('aria-pressed', String(isFreeMode));
+    }
+
+    const reconfigureButton = document.querySelector(
+        '[data-action="queue-reconfigure-station"]'
+    );
+    if (reconfigureButton instanceof HTMLButtonElement) {
+        reconfigureButton.disabled = mode !== QUEUE_STATION_MODE_LOCKED;
+    }
+
+    document
+        .querySelectorAll(
+            '[data-action="queue-call-next"][data-queue-consultorio]'
+        )
+        .forEach((button) => {
+            if (!(button instanceof HTMLElement)) return;
+            if (!button.dataset.stationDefaultTitle) {
+                button.dataset.stationDefaultTitle = String(
+                    button.getAttribute('title') || ''
+                ).trim();
+            }
+            const room = normalizeQueueStationConsultorio(
+                button.dataset.queueConsultorio || 0,
+                0
+            );
+            const blocked =
+                mode === QUEUE_STATION_MODE_LOCKED && room !== consultorio;
+            button.classList.toggle('is-station-blocked', blocked);
+            if (button instanceof HTMLButtonElement) {
+                button.setAttribute('aria-disabled', String(button.disabled));
+            }
+            if (blocked) {
+                button.setAttribute(
+                    'title',
+                    `Estación bloqueada en C${consultorio}. Click para llamado manual en C${room}.`
+                );
+            } else {
+                const defaultTitle = String(
+                    button.dataset.stationDefaultTitle || ''
+                ).trim();
+                if (defaultTitle) {
+                    button.setAttribute('title', defaultTitle);
+                } else {
+                    button.removeAttribute('title');
+                }
+            }
+        });
+}
+
+function setQueueStationConfig(
+    {
+        mode = queueStationState.mode,
+        consultorio = queueStationState.consultorio,
+    },
+    { persist = true, announce = false, source = 'manual' } = {}
+) {
+    const nextMode = normalizeQueueStationMode(mode, queueStationState.mode);
+    const nextConsultorio = normalizeQueueStationConsultorio(
+        consultorio,
+        queueStationState.consultorio
+    );
+    const changedMode = nextMode !== queueStationState.mode;
+    const changedConsultorio =
+        nextConsultorio !== queueStationState.consultorio;
+
+    queueStationState.mode = nextMode;
+    queueStationState.consultorio = nextConsultorio;
+
+    if (persist) {
+        persistQueueStationConfig(nextMode, nextConsultorio);
+    }
+
+    syncQueueStationUi();
+
+    if (announce && (changedMode || changedConsultorio)) {
+        if (nextMode === QUEUE_STATION_MODE_LOCKED) {
+            showToast(`Estación bloqueada en C${nextConsultorio}`, 'success');
+        } else {
+            showToast(`Estación en modo libre (C${nextConsultorio})`, 'info');
+        }
+    }
+
+    if (changedMode || changedConsultorio) {
+        emitQueueOpsStationEvent('station_config_updated', {
+            source,
+            mode: nextMode,
+            consultorio: nextConsultorio,
+            changedMode,
+            changedConsultorio,
+        });
+    }
+}
+
+function bootstrapQueueStationConfig() {
+    const storedConfig = readQueueStationConfigFromStorage();
+    queueStationState.mode = storedConfig.mode;
+    queueStationState.consultorio = storedConfig.consultorio;
+
+    const provisioningConfig = readQueueStationProvisioningFromUrl();
+    if (provisioningConfig) {
+        queueStationState.mode = normalizeQueueStationMode(
+            provisioningConfig.mode,
+            queueStationState.mode
+        );
+        queueStationState.consultorio = normalizeQueueStationConsultorio(
+            provisioningConfig.consultorio,
+            queueStationState.consultorio
+        );
+        persistQueueStationConfig(
+            queueStationState.mode,
+            queueStationState.consultorio
+        );
+        emitQueueOpsStationEvent('station_bootstrap', {
+            source: 'query',
+            mode: queueStationState.mode,
+            consultorio: queueStationState.consultorio,
+        });
+        clearQueueStationProvisioningParams();
+    } else {
+        emitQueueOpsStationEvent('station_bootstrap', {
+            source: 'storage',
+            mode: queueStationState.mode,
+            consultorio: queueStationState.consultorio,
+        });
+    }
+
+    syncQueueStationUi();
+}
+
+function isQueueNumpadEnterEvent(event) {
+    const code = String(event.code || '').toLowerCase();
+    if (code === 'numpadenter') return true;
+    const key = String(event.key || '').toLowerCase();
+    return (
+        Number(event.location || 0) === NUMPAD_KEY_LOCATION && key === 'enter'
+    );
+}
+
+function isQueueNumpadDigitEvent(event, digit) {
+    const expectedDigit = String(digit || '');
+    if (!expectedDigit) return false;
+    const code = String(event.code || '').toLowerCase();
+    if (code === `numpad${expectedDigit}`) return true;
+    const key = String(event.key || '');
+    return (
+        Number(event.location || 0) === NUMPAD_KEY_LOCATION &&
+        key === expectedDigit
+    );
+}
+
+function blockQueueStationChange(
+    attemptedConsultorio,
+    { source = 'manual' } = {}
+) {
+    const attempted = normalizeQueueStationConsultorio(attemptedConsultorio, 0);
+    showToast(
+        `Cambio bloqueado por modo estación (C${queueStationState.consultorio}). Usa "Reconfigurar estación" para cambiar.`,
+        'warning'
+    );
+    emitQueueOpsStationEvent('station_change_blocked', {
+        source,
+        attemptedConsultorio: attempted || null,
+        stationConsultorio: queueStationState.consultorio,
+        stationMode: queueStationState.mode,
+    });
+    syncQueueStationUi();
+}
+
+function selectQueueStationConsultorioViaNumpad(
+    consultorio,
+    { source = 'numpad' } = {}
+) {
+    const room = normalizeQueueStationConsultorio(consultorio, 0);
+    if (![1, 2].includes(room)) return;
+    if (isQueueStationLocked()) {
+        blockQueueStationChange(room, { source });
+        return;
+    }
+    setQueueStationConfig(
+        {
+            mode: QUEUE_STATION_MODE_FREE,
+            consultorio: room,
+        },
+        {
+            persist: true,
+            announce: false,
+            source,
+        }
+    );
+    showToast(`Consultorio objetivo C${room}`, 'info');
+}
+
+async function runQueueCallNext(consultorio, { source = 'manual' } = {}) {
+    const room = normalizeQueueStationConsultorio(consultorio, 0);
+    if (![1, 2].includes(room)) {
+        showToast('Consultorio invalido', 'error');
+        return false;
+    }
+
+    const normalizedSource = String(source || 'manual').toLowerCase();
+    const enforceLock =
+        normalizedSource === 'numpad' ||
+        normalizedSource === 'shortcut' ||
+        normalizedSource === 'command';
+
+    if (!isQueueStationCallAllowed(room) && enforceLock) {
+        blockQueueStationChange(room, { source });
+        return false;
+    }
+
+    if (!isQueueStationCallAllowed(room) && isQueueStationLocked()) {
+        showToast(
+            `Estación bloqueada en C${queueStationState.consultorio}. Llamando manualmente C${room}.`,
+            'warning'
+        );
+        emitQueueOpsStationEvent('station_manual_override', {
+            source,
+            consultorio: room,
+            stationConsultorio: queueStationState.consultorio,
+        });
+    }
+
+    if (isQueueStationLocked()) {
+        emitQueueOpsStationEvent('station_locked_call', {
+            source,
+            consultorio: room,
+        });
+    }
+
+    if (source === 'numpad') {
+        showToast(`Llamando siguiente en C${room}`, 'info');
+    }
+
+    await callNextForConsultorio(room);
+    window.requestAnimationFrame(() => {
+        syncQueueStationUi();
+    });
+    return true;
+}
+
 function syncHash(section) {
     const nextHash = `#${section}`;
     if (window.location.hash === nextHash) return;
@@ -513,6 +965,7 @@ function renderAdminContextActions(section) {
     config.actions.forEach((actionDef) => {
         contextActions.appendChild(createContextActionButton(actionDef));
     });
+    syncQueueStationUi();
 }
 
 function getSidebarShellElements() {
@@ -723,6 +1176,35 @@ function handleAdminKeyboardShortcuts(event) {
         return;
     }
 
+    if (
+        isQueueSectionActive() &&
+        !isTyping &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        !event.shiftKey
+    ) {
+        if (event.repeat) return;
+
+        if (isQueueNumpadDigitEvent(event, 1)) {
+            event.preventDefault();
+            selectQueueStationConsultorioViaNumpad(1, { source: 'numpad' });
+            return;
+        }
+        if (isQueueNumpadDigitEvent(event, 2)) {
+            event.preventDefault();
+            selectQueueStationConsultorioViaNumpad(2, { source: 'numpad' });
+            return;
+        }
+        if (isQueueNumpadEnterEvent(event)) {
+            event.preventDefault();
+            void runQueueCallNext(queueStationState.consultorio, {
+                source: 'numpad',
+            });
+            return;
+        }
+    }
+
     if (!event.altKey || !event.shiftKey) return;
     if (isTyping) return;
 
@@ -803,12 +1285,12 @@ function handleAdminKeyboardShortcuts(event) {
     if (isQueueSectionActive()) {
         if (code === 'keyj') {
             event.preventDefault();
-            void callNextForConsultorio(1);
+            void runQueueCallNext(1, { source: 'shortcut' });
             return;
         }
         if (code === 'keyk') {
             event.preventDefault();
-            void callNextForConsultorio(2);
+            void runQueueCallNext(2, { source: 'shortcut' });
             return;
         }
         if (code === 'keyu') {
@@ -1056,7 +1538,7 @@ async function runAdminQuickCommand(rawCommand) {
     ) {
         await navigateToSection('queue', { focus: false });
         if (command.includes('c1') || command.includes('consultorio 1')) {
-            await callNextForConsultorio(1);
+            await runQueueCallNext(1, { source: 'command' });
         } else if (
             command.includes('completar visibles') ||
             command.includes('bulk completar')
@@ -1081,7 +1563,7 @@ async function runAdminQuickCommand(rawCommand) {
             command.includes('c2') ||
             command.includes('consultorio 2')
         ) {
-            await callNextForConsultorio(2);
+            await runQueueCallNext(2, { source: 'command' });
         } else {
             await refreshQueueRealtime({ silent: true });
         }
@@ -1212,6 +1694,7 @@ async function renderSection(section) {
         case 'queue': {
             loadQueueSection();
             startQueueRealtimeSync({ immediate: true });
+            syncQueueStationUi();
             break;
         }
         default:
@@ -1529,13 +2012,76 @@ function attachGlobalListeners() {
         if (action === 'queue-refresh-state') {
             event.preventDefault();
             await refreshQueueRealtime({ silent: false });
+            syncQueueStationUi();
+            return;
+        }
+
+        if (action === 'queue-lock-station') {
+            event.preventDefault();
+            const targetConsultorio = normalizeQueueStationConsultorio(
+                actionEl.dataset.queueConsultorio || 0,
+                0
+            );
+            if (![1, 2].includes(targetConsultorio)) return;
+            setQueueStationConfig(
+                {
+                    mode: QUEUE_STATION_MODE_LOCKED,
+                    consultorio: targetConsultorio,
+                },
+                { persist: true, announce: true, source: 'station_panel' }
+            );
+            return;
+        }
+
+        if (action === 'queue-set-station-mode') {
+            event.preventDefault();
+            const targetMode = normalizeQueueStationMode(
+                actionEl.dataset.queueMode || QUEUE_STATION_MODE_FREE,
+                QUEUE_STATION_MODE_FREE
+            );
+            setQueueStationConfig(
+                {
+                    mode: targetMode,
+                    consultorio: queueStationState.consultorio,
+                },
+                { persist: true, announce: true, source: 'station_panel' }
+            );
+            return;
+        }
+
+        if (action === 'queue-reconfigure-station') {
+            event.preventDefault();
+            const confirmPrimary = confirm(
+                'Reconfigurar estación desbloqueará el consultorio fijo. ¿Deseas continuar?'
+            );
+            if (!confirmPrimary) return;
+            const confirmSecondary = confirm(
+                'Confirmación final: la estación pasará a modo libre.'
+            );
+            if (!confirmSecondary) return;
+            setQueueStationConfig(
+                {
+                    mode: QUEUE_STATION_MODE_FREE,
+                    consultorio: queueStationState.consultorio,
+                },
+                {
+                    persist: true,
+                    announce: true,
+                    source: 'station_reconfigure',
+                }
+            );
+            showToast(
+                'Modo libre activo. Usa Numpad 1/2 y luego bloquea la estación.',
+                'warning'
+            );
             return;
         }
 
         if (action === 'queue-call-next') {
             event.preventDefault();
-            await callNextForConsultorio(
-                Number(actionEl.dataset.queueConsultorio || 0)
+            await runQueueCallNext(
+                Number(actionEl.dataset.queueConsultorio || 0),
+                { source: 'button' }
             );
             return;
         }
@@ -1772,6 +2318,7 @@ function attachGlobalListeners() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     initAdminThemeMode();
+    bootstrapQueueStationConfig();
     attachGlobalListeners();
     initAppointmentsToolbarPreferences();
     ensureAdminRefreshStatusTicker();
@@ -1877,7 +2424,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    window.addEventListener('piel:queue-ops', () => {
+        window.requestAnimationFrame(() => {
+            syncQueueStationUi();
+        });
+    });
+
     syncSidebarOverlayA11yState(false);
     syncSidebarCollapseButtonState(isSidebarCollapsed());
     await checkAuthAndBoot();
+    syncQueueStationUi();
 });

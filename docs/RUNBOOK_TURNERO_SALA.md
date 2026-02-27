@@ -20,12 +20,33 @@ Operacion estable del turnero de sala para 2 consultorios con cola unica, llamad
 1. Operador abre `admin.html` y valida:
     - `#queueSyncStatus` en `live` o `reconnecting`.
     - KPIs de espera/llamados coherentes.
+    - Panel `Control de estación` visible con `Estación C1` o `Estación C2`.
 2. En kiosco, validar:
     - `#queueConnectionState` en `live`.
     - `#queuePrinterHint` sin errores persistentes.
 3. En TV, validar:
     - `#displayConnectionState` en `live`.
     - campanilla activa si se requiere audio.
+
+## Provisionamiento por estación (2 PCs)
+
+Configurar cada computadora una sola vez en navegador estable (no incógnito):
+
+1. PC consultorio 1:
+    - abrir `admin.html?station=c1&lock=1`
+2. PC consultorio 2:
+    - abrir `admin.html?station=c2&lock=1`
+3. El sistema guarda localmente:
+    - `queueStationMode=locked`
+    - `queueStationConsultorio=1|2`
+4. Después del primer arranque, la URL se limpia automáticamente (`history.replaceState`) y la estación queda persistida en `localStorage`.
+
+Recuperación rápida (si borran caché o cambian navegador):
+
+1. Repetir URL de provisión de la estación correspondiente.
+2. Confirmar en panel `Control de estación`:
+    - badge `Estación C1/C2`
+    - estado `Bloqueado`.
 
 ## Contingencias
 
@@ -59,6 +80,15 @@ Operacion estable del turnero de sala para 2 consultorios con cola unica, llamad
 - `Alt+Shift+L`: filtro SLA
 - `Alt+Shift+G/H/B`: bulk completar/no_show/cancelar
 - `Alt+Shift+P`: reimprimir tickets visibles
+- `Numpad Enter`: llamar siguiente del consultorio de la estación activa
+- `Numpad 1/2`: solo en modo libre, seleccionar consultorio objetivo
+
+Reglas operativas de estación:
+
+- En `modo bloqueado`, atajos de teclado (`Numpad Enter`, `Alt+Shift+J/K`) llaman solo el consultorio asignado.
+- Si intentan cambiar consultorio en lock, se muestra toast `Cambio bloqueado por modo estación`.
+- El botón manual del consultorio opuesto permanece disponible como override explícito y muestra aviso operativo.
+- `Enter` normal (teclado principal) no dispara llamado de turnos.
 
 ### Kiosco
 

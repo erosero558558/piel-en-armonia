@@ -258,7 +258,7 @@ function ensureQueueActivityPanel() {
                 <li class="empty-message">Sin eventos operativos recientes.</li>
             </ol>
             <p class="queue-triage-summary">
-                Atajos estado: Alt+Shift+W (espera), Alt+Shift+C (llamados), Alt+Shift+A (todos), Alt+Shift+I (walk-in)
+                Atajos estado: Alt+Shift+W (espera), Alt+Shift+C (llamados), Alt+Shift+A (todos), Alt+Shift+I (walk-in), Numpad Enter (llamar estación)
             </p>
         `;
 
@@ -755,6 +755,78 @@ function normalizeQueueMetaFromState(queueState) {
     };
 }
 
+function mapQueueStateToTickets(queueState, previousTickets = []) {
+    const prevById = new Map();
+    if (Array.isArray(previousTickets)) {
+        for (const ticket of previousTickets) {
+            const ticketId = Number(ticket?.id || 0);
+            if (!ticketId) continue;
+            prevById.set(ticketId, ticket);
+        }
+    }
+
+    const nextById = new Map();
+    const fallbackUpdatedAt =
+        String(queueState?.updatedAt || '').trim() || new Date().toISOString();
+
+    const upsertTicket = (ticket, status) => {
+        const ticketId = Number(ticket?.id || 0);
+        if (!ticketId) return;
+        const previous = prevById.get(ticketId) || {};
+        const normalizedStatus = String(status || 'waiting').toLowerCase();
+        const assignedConsultorio = Number(
+            ticket?.assignedConsultorio || previous.assignedConsultorio || 0
+        );
+        const createdAt = String(
+            ticket?.createdAt || previous.createdAt || fallbackUpdatedAt
+        );
+        const calledAtRaw = String(
+            ticket?.calledAt || previous.calledAt || fallbackUpdatedAt
+        );
+
+        nextById.set(ticketId, {
+            id: ticketId,
+            ticketCode: String(
+                ticket?.ticketCode || previous.ticketCode || `#${ticketId}`
+            ),
+            queueType: String(
+                ticket?.queueType || previous.queueType || 'walk_in'
+            ),
+            priorityClass: String(
+                ticket?.priorityClass || previous.priorityClass || 'walk_in'
+            ),
+            status: normalizedStatus,
+            assignedConsultorio:
+                assignedConsultorio === 1 || assignedConsultorio === 2
+                    ? assignedConsultorio
+                    : null,
+            createdAt,
+            calledAt: normalizedStatus === 'called' ? calledAtRaw : '',
+            completedAt: '',
+            patientInitials: String(
+                ticket?.patientInitials || previous.patientInitials || '--'
+            ),
+            phoneLast4: String(ticket?.phoneLast4 || previous.phoneLast4 || ''),
+        });
+    };
+
+    const nextTickets = Array.isArray(queueState?.nextTickets)
+        ? queueState.nextTickets
+        : [];
+    for (const ticket of nextTickets) {
+        upsertTicket(ticket, 'waiting');
+    }
+
+    const callingNow = Array.isArray(queueState?.callingNow)
+        ? queueState.callingNow
+        : [];
+    for (const ticket of callingNow) {
+        upsertTicket(ticket, 'called');
+    }
+
+    return Array.from(nextById.values());
+}
+
 function getTicketStatusRank(status) {
     const rankByStatus = {
         waiting: 0,
@@ -1222,7 +1294,7 @@ function ensureQueueTriageControls() {
             </div>
             <p id="queueTriageSummary" class="queue-triage-summary" role="status" aria-live="polite">Sin datos de cola</p>
             <p class="queue-triage-summary">
-                Atajos: Alt+Shift+J (C1), Alt+Shift+K (C2), Alt+Shift+F (buscar), Alt+Shift+L (SLA), Alt+Shift+U (refrescar), Alt+Shift+P (reimprimir visibles), Alt+Shift+W/C/A/I (estado)
+                Atajos: Alt+Shift+J (C1), Alt+Shift+K (C2), Alt+Shift+F (buscar), Alt+Shift+L (SLA), Alt+Shift+U (refrescar), Alt+Shift+P (reimprimir visibles), Alt+Shift+W/C/A/I (estado), Numpad 1/2 + Enter (estación)
             </p>
         `;
         const kpis = shell.querySelector('.queue-admin-kpis');
@@ -1435,9 +1507,25 @@ function renderQueueTable(viewState) {
 
     const tickets = Array.isArray(viewState?.tickets) ? viewState.tickets : [];
     if (tickets.length === 0) {
+        const totalCount = Number(viewState?.totalCount || 0);
+        const activeFilter = normalizeQueueFilter(
+            viewState?.activeFilter || 'all'
+        );
+        const searchTerm = String(viewState?.searchTerm || '').trim();
+        let emptyMessage = 'Sin tickets en cola.';
+        if (totalCount > 0 && (activeFilter !== 'all' || searchTerm !== '')) {
+            const criteria = [];
+            if (activeFilter !== 'all') {
+                criteria.push(`filtro "${getQueueFilterLabel(activeFilter)}"`);
+            }
+            if (searchTerm !== '') {
+                criteria.push(`búsqueda "${searchTerm}"`);
+            }
+            emptyMessage = `No hay tickets para ${criteria.join(' y ')}.`;
+        }
         tableBody.innerHTML = `
             <tr>
-                <td colspan="8" class="empty-message">Sin tickets en cola.</td>
+                <td colspan="8" class="empty-message">${escapeHtml(emptyMessage)}</td>
             </tr>
         `;
         return;
@@ -1598,21 +1686,25 @@ async function runQueueRealtimeTick() {
             reason: 'Realtime',
         });
         evaluateQueueFreshness({ log: true });
-    } else if (refreshed && queueUiState.lastRefreshMode === 'snapshot') {
+    } else if (
+        refreshed &&
+        (queueUiState.lastRefreshMode === 'snapshot' ||
+            queueUiState.lastRefreshMode === 'state_fallback')
+    ) {
         queueUiState.realtimeFailureStreak += 1;
         const retrySeconds = Math.max(
             1,
             Math.ceil(getRealtimeDelayMs() / 1000)
         );
-        updateQueueSyncState(
-            'reconnecting',
-            `Respaldo local activo · reconectando en ${retrySeconds}s`,
-            {
-                log: true,
-                level: 'warning',
-                reason: 'Realtime',
-            }
-        );
+        const degradedMessage =
+            queueUiState.lastRefreshMode === 'state_fallback'
+                ? `Cola visible (fallback) · reconectando en ${retrySeconds}s`
+                : `Respaldo local activo · reconectando en ${retrySeconds}s`;
+        updateQueueSyncState('reconnecting', degradedMessage, {
+            log: true,
+            level: 'warning',
+            reason: 'Realtime',
+        });
     } else {
         queueUiState.realtimeFailureStreak += 1;
         const retrySeconds = Math.max(
@@ -1639,6 +1731,42 @@ export function isQueueSectionActive() {
     );
 }
 
+async function applyQueueStateFallback({
+    fromRealtime = false,
+    silent = false,
+    reason = 'data_error',
+} = {}) {
+    try {
+        const queueStatePayload = await apiRequest('queue-state');
+        const queueStateData = queueStatePayload?.data || {};
+        setQueueTickets(
+            mapQueueStateToTickets(queueStateData, currentQueueTickets)
+        );
+        setQueueMeta(normalizeQueueMetaFromState(queueStateData));
+        queueUiState.lastRefreshMode = 'state_fallback';
+        emitQueueOpsEvent('sync_fallback_queue_state', {
+            source: fromRealtime ? 'realtime' : 'manual',
+            reason: String(reason || 'data_error'),
+            queueCount: Number(queueStateData?.waitingCount || 0),
+        });
+        renderQueueSection();
+        if (!silent && isQueueSectionActive()) {
+            updateQueueSyncState(
+                'reconnecting',
+                'Cola visible (fallback). Reintentando sincronización completa...',
+                {
+                    log: true,
+                    level: 'warning',
+                    reason: 'Fallback queue-state',
+                }
+            );
+        }
+        return true;
+    } catch (_fallbackError) {
+        return false;
+    }
+}
+
 export async function refreshQueueRealtime({
     silent = false,
     fromRealtime = false,
@@ -1646,9 +1774,19 @@ export async function refreshQueueRealtime({
     try {
         const payload = await apiRequest('data');
         const data = payload.data || {};
-        setQueueTickets(
-            Array.isArray(data.queue_tickets) ? data.queue_tickets : []
-        );
+        const dataHasQueueTickets = Array.isArray(data.queue_tickets);
+        if (!dataHasQueueTickets) {
+            const queueStateHydrated = await applyQueueStateFallback({
+                silent,
+                fromRealtime,
+                reason: 'data_missing_queue_tickets',
+            });
+            if (queueStateHydrated) {
+                return true;
+            }
+        }
+
+        setQueueTickets(dataHasQueueTickets ? data.queue_tickets : []);
         setQueueMeta(
             data.queueMeta && typeof data.queueMeta === 'object'
                 ? data.queueMeta
@@ -1676,6 +1814,16 @@ export async function refreshQueueRealtime({
         }
         return true;
     } catch (error) {
+        const queueStateHydrated = await applyQueueStateFallback({
+            silent,
+            fromRealtime,
+            reason: 'data_request_error',
+        });
+        if (queueStateHydrated) {
+            return true;
+        }
+
+        // queue-state fallback exhausted -> continue to snapshot recovery
         const restoredSnapshot = restoreQueueSnapshot(loadQueueSnapshot(), {
             source: fromRealtime ? 'realtime_error' : 'manual_error',
         });
