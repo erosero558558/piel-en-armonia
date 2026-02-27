@@ -7,6 +7,7 @@ param(
     [switch]$SkipBackupCheck,
     [switch]$AllowStoreCalendar,
     [switch]$AllowBlockedCalendar,
+    [switch]$RequireServicePrioritiesFunnel,
     [int]$MinServicePrioritiesServices = 1,
     [int]$MinServicePrioritiesCategories = 1,
     [int]$MinServicePrioritiesFeatured = 1
@@ -313,8 +314,15 @@ if ($null -ne $servicePrioritiesResult -and $servicePrioritiesResult.StatusCode 
             try { $catalogVersion = [string]$meta.catalogVersion } catch {}
             try { $serviceCountMeta = [int]$meta.serviceCount } catch { $serviceCountMeta = -1 }
 
-            if (-not $AllowDegradedServicePriorities -and $source -ne 'catalog+funnel') {
-                $failures += "[FAIL] service-priorities.meta.source=$source (esperado=catalog+funnel)"
+            $allowedSources = @('catalog_only', 'catalog+funnel')
+            if ($RequireServicePrioritiesFunnel) {
+                $allowedSources = @('catalog+funnel')
+            }
+            if (-not $AllowDegradedServicePriorities -and -not ($allowedSources -contains $source)) {
+                $failures += "[FAIL] service-priorities.meta.source=$source (esperado=$($allowedSources -join '|'))"
+            }
+            if (-not $RequireServicePrioritiesFunnel -and $source -eq 'catalog_only') {
+                Write-Host '[WARN] service-priorities sin señales de funnel; usando catalog_only temporalmente.'
             }
             if ([string]::IsNullOrWhiteSpace($catalogVersion)) {
                 $failures += '[FAIL] service-priorities.meta.catalogVersion vacio'

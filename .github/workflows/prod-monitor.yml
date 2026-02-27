@@ -60,6 +60,11 @@ on:
                 required: false
                 default: '1'
                 type: string
+            require_service_priorities_funnel:
+                description: 'Exigir source=catalog+funnel para service-priorities'
+                required: false
+                default: false
+                type: boolean
 
 concurrency:
     group: prod-monitor
@@ -86,6 +91,7 @@ jobs:
             MIN_SERVICE_PRIORITIES_SERVICES: ${{ github.event.inputs.min_service_priorities_services || vars.PROD_MONITOR_MIN_SERVICE_PRIORITIES_SERVICES || '1' }}
             MIN_SERVICE_PRIORITIES_CATEGORIES: ${{ github.event.inputs.min_service_priorities_categories || vars.PROD_MONITOR_MIN_SERVICE_PRIORITIES_CATEGORIES || '1' }}
             MIN_SERVICE_PRIORITIES_FEATURED: ${{ github.event.inputs.min_service_priorities_featured || vars.PROD_MONITOR_MIN_SERVICE_PRIORITIES_FEATURED || '1' }}
+            REQUIRE_SERVICE_PRIORITIES_FUNNEL: ${{ github.event.inputs.require_service_priorities_funnel || vars.PROD_MONITOR_REQUIRE_SERVICE_PRIORITIES_FUNNEL || 'false' }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -122,6 +128,9 @@ jobs:
                   if ($env:ALLOW_DEGRADED_SERVICE_PRIORITIES -eq 'true') {
                     $monitorArgs.AllowDegradedServicePriorities = $true
                   }
+                  if ($env:REQUIRE_SERVICE_PRIORITIES_FUNNEL -eq 'true') {
+                    $monitorArgs.RequireServicePrioritiesFunnel = $true
+                  }
 
                   $minServices = [int]$env:MIN_SERVICE_PRIORITIES_SERVICES
                   if ($minServices -lt 0) { $minServices = 0 }
@@ -153,6 +162,7 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- min_service_priorities_services: ``$env:MIN_SERVICE_PRIORITIES_SERVICES``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- min_service_priorities_categories: ``$env:MIN_SERVICE_PRIORITIES_CATEGORIES``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- min_service_priorities_featured: ``$env:MIN_SERVICE_PRIORITIES_FEATURED``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- require_service_priorities_funnel: ``$env:REQUIRE_SERVICE_PRIORITIES_FUNNEL``"
 
             - name: Crear/actualizar incidente (solo schedule)
               if: ${{ failure() && github.event_name == 'schedule' }}

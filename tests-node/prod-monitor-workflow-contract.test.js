@@ -28,6 +28,7 @@ test('prod-monitor workflow expone inputs de service priorities', () => {
         'min_service_priorities_services',
         'min_service_priorities_categories',
         'min_service_priorities_featured',
+        'require_service_priorities_funnel',
     ];
 
     for (const inputKey of requiredInputs) {
@@ -46,7 +47,9 @@ test('prod-monitor workflow propaga env de service priorities a monitor script',
         'MIN_SERVICE_PRIORITIES_SERVICES',
         'MIN_SERVICE_PRIORITIES_CATEGORIES',
         'MIN_SERVICE_PRIORITIES_FEATURED',
+        'REQUIRE_SERVICE_PRIORITIES_FUNNEL',
         '$monitorArgs.AllowDegradedServicePriorities = $true',
+        '$monitorArgs.RequireServicePrioritiesFunnel = $true',
         '$monitorArgs.MinServicePrioritiesServices = $minServices',
         '$monitorArgs.MinServicePrioritiesCategories = $minCategories',
         '$monitorArgs.MinServicePrioritiesFeatured = $minFeatured',
@@ -68,6 +71,7 @@ test('prod-monitor workflow publica parametros de service priorities en summary'
         '- min_service_priorities_services: ``$env:MIN_SERVICE_PRIORITIES_SERVICES``',
         '- min_service_priorities_categories: ``$env:MIN_SERVICE_PRIORITIES_CATEGORIES``',
         '- min_service_priorities_featured: ``$env:MIN_SERVICE_PRIORITIES_FEATURED``',
+        '- require_service_priorities_funnel: ``$env:REQUIRE_SERVICE_PRIORITIES_FUNNEL``',
     ];
 
     for (const snippet of requiredSummaryLines) {
