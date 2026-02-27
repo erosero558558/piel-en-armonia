@@ -659,7 +659,7 @@
     border-color: rgba(31, 167, 95, 0.36);
 }
 
-.telemedicine-price-note {
+.telemedicine-note {
     margin: 0 auto 18px;
     padding: 10px 14px;
     border-radius: 14px;
@@ -702,7 +702,7 @@
         justify-content: center;
     }
 
-    .telemedicine-price-note {
+    .telemedicine-note {
         margin-bottom: 16px;
         padding: 10px 12px;
         border-radius: 12px;
@@ -2273,7 +2273,7 @@ html[data-theme='dark'] .review-card,
 html[data-theme='dark'] .appointment-form-container,
 html[data-theme='dark'] .tele-quick-card,
 html[data-theme='dark'] .tele-decision-panel,
-html[data-theme='dark'] .telemedicine-price-note {
+html[data-theme='dark'] .telemedicine-note {
     background: rgba(15, 26, 44, 0.9);
     border-color: rgba(122, 156, 207, 0.35);
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
@@ -2331,7 +2331,7 @@ html[data-theme='dark'] .clinic-item p,
 html[data-theme='dark'] .review-date,
 html[data-theme='dark'] .tele-quick-copy p,
 html[data-theme='dark'] .tele-decision-copy,
-html[data-theme='dark'] .telemedicine-price-note {
+html[data-theme='dark'] .telemedicine-note {
     color: #aac1e2;
 }
 
@@ -4564,3 +4564,4 @@ html[data-theme='dark'] .payment-modal [data-action='process-payment'] {
         border-radius: 16px !important;
     }
 }
+

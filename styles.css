@@ -132,7 +132,7 @@ img {
 .services-grid,
 .telemedicine-conversion-grid,
 .telemedicine-options,
-.telemedicine-price-note,
+.telemedicine-note,
 .callback-box,
 .team-grid,
 .gallery-filter,
@@ -1365,7 +1365,7 @@ html[data-theme='dark'] .cookie-link {
     .services-grid,
     .telemedicine-conversion-grid,
     .telemedicine-options,
-    .telemedicine-price-note,
+    .telemedicine-note,
     .callback-box,
     .team-grid,
     .gallery-filter,
@@ -1396,7 +1396,7 @@ html[data-theme='dark'] .cookie-link {
     .services-grid,
     .telemedicine-conversion-grid,
     .telemedicine-options,
-    .telemedicine-price-note,
+    .telemedicine-note,
     .callback-box,
     .team-grid,
     .gallery-filter,
@@ -2395,3 +2395,4 @@ body.service-page-premium {
         padding: 22px;
     }
 }
+
