@@ -255,7 +255,7 @@ test.describe('Admin turnero sala', () => {
 
         await page
             .locator(
-                '[data-action="queue-call-next"][data-queue-consultorio="1"]'
+                '#queue .queue-admin-header-actions [data-action="queue-call-next"][data-queue-consultorio="1"]'
             )
             .first()
             .click();
@@ -266,7 +266,7 @@ test.describe('Admin turnero sala', () => {
         await expect(
             page
                 .locator(
-                    '[data-action="queue-call-next"][data-queue-consultorio="1"]'
+                    '#queue .queue-admin-header-actions [data-action="queue-call-next"][data-queue-consultorio="1"]'
                 )
                 .first()
         ).toBeDisabled();
@@ -806,6 +806,129 @@ test.describe('Admin turnero sala', () => {
         await expect.poll(() => queueStateRequests).toBeGreaterThan(0);
     });
 
+    test('usa queueMeta como fallback local cuando /data no trae queue_tickets', async ({
+        page,
+    }) => {
+        const nowIso = new Date().toISOString();
+        let queueStateRequests = 0;
+        const queueMetaPayload = {
+            updatedAt: nowIso,
+            waitingCount: 6,
+            calledCount: 1,
+            counts: {
+                waiting: 6,
+                called: 1,
+                completed: 0,
+                no_show: 0,
+                cancelled: 0,
+            },
+            callingNowByConsultorio: {
+                1: {
+                    id: 2601,
+                    ticketCode: 'A-2601',
+                    patientInitials: 'CV',
+                    assignedConsultorio: 1,
+                    calledAt: nowIso,
+                    status: 'called',
+                },
+                2: null,
+            },
+            nextTickets: [
+                {
+                    id: 2602,
+                    ticketCode: 'A-2602',
+                    patientInitials: 'JP',
+                    queueType: 'appointment',
+                    priorityClass: 'appt_overdue',
+                    position: 1,
+                    createdAt: nowIso,
+                },
+                {
+                    id: 2603,
+                    ticketCode: 'A-2603',
+                    patientInitials: 'LM',
+                    queueType: 'walk_in',
+                    priorityClass: 'walk_in',
+                    position: 2,
+                    createdAt: nowIso,
+                },
+            ],
+        };
+
+        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
+            json(route, {
+                ok: true,
+                authenticated: true,
+                csrfToken: 'csrf_queue_meta_fallback',
+            })
+        );
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const request = route.request();
+            const url = new URL(request.url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'data') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        appointments: [],
+                        callbacks: [],
+                        reviews: [],
+                        availability: {},
+                        availabilityMeta: {
+                            source: 'store',
+                            mode: 'live',
+                            timezone: 'America/Guayaquil',
+                            calendarConfigured: true,
+                            calendarReachable: true,
+                            generatedAt: new Date().toISOString(),
+                        },
+                        queueMeta: queueMetaPayload,
+                    },
+                });
+            }
+
+            if (resource === 'queue-state') {
+                queueStateRequests += 1;
+                return json(
+                    route,
+                    {
+                        ok: false,
+                        error: 'queue-state should not be needed in this case',
+                    },
+                    500
+                );
+            }
+
+            if (resource === 'health') {
+                return json(route, { ok: true, status: 'ok' });
+            }
+
+            if (resource === 'funnel-metrics') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto('/admin.html');
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await expect(page.locator('#queueWaitingCountAdmin')).toHaveText('6');
+        await expect(page.locator('#queueTableBody')).toContainText('A-2602');
+        await expect(page.locator('#queueTableBody')).toContainText('A-2603');
+        await expect(page.locator('#queueC1Now')).toContainText('A-2601');
+        await expect(page.locator('#queueTriageSummary')).toContainText(
+            'fallback parcial'
+        );
+        await expect(page.locator('#queueSyncStatus')).toContainText(
+            'fallback'
+        );
+        await expect.poll(() => queueStateRequests).toBe(0);
+    });
+
     test('evita duplicar llamado cuando hay doble clic en rafaga para el mismo consultorio', async ({
         page,
     }) => {
@@ -899,7 +1022,7 @@ test.describe('Admin turnero sala', () => {
 
         await page
             .locator(
-                '[data-action="queue-call-next"][data-queue-consultorio="1"]'
+                '#queue .queue-admin-header-actions [data-action="queue-call-next"][data-queue-consultorio="1"]'
             )
             .first()
             .evaluate((button) => {
@@ -1017,7 +1140,7 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queue')).toHaveClass(/active/);
 
         const callC1Button = page.locator(
-            '[data-action="queue-call-next"][data-queue-consultorio="1"]'
+            '#queue .queue-admin-header-actions [data-action="queue-call-next"][data-queue-consultorio="1"]'
         );
 
         await callC1Button.first().click();
@@ -1162,12 +1285,12 @@ test.describe('Admin turnero sala', () => {
 
         const callC1Button = page
             .locator(
-                '[data-action="queue-call-next"][data-queue-consultorio="1"]'
+                '#queue .queue-admin-header-actions [data-action="queue-call-next"][data-queue-consultorio="1"]'
             )
             .first();
         const callC2Button = page
             .locator(
-                '[data-action="queue-call-next"][data-queue-consultorio="2"]'
+                '#queue .queue-admin-header-actions [data-action="queue-call-next"][data-queue-consultorio="2"]'
             )
             .first();
 
@@ -1175,10 +1298,10 @@ test.describe('Admin turnero sala', () => {
         await expect(callC2Button).toBeVisible();
         await page.evaluate(() => {
             const c1 = document.querySelector(
-                '[data-action="queue-call-next"][data-queue-consultorio="1"]'
+                '#queue .queue-admin-header-actions [data-action="queue-call-next"][data-queue-consultorio="1"]'
             );
             const c2 = document.querySelector(
-                '[data-action="queue-call-next"][data-queue-consultorio="2"]'
+                '#queue .queue-admin-header-actions [data-action="queue-call-next"][data-queue-consultorio="2"]'
             );
             if (!c1 || !c2) return;
             const clickC1 = new MouseEvent('click', {
@@ -1426,7 +1549,7 @@ test.describe('Admin turnero sala', () => {
 
         await page
             .locator(
-                '[data-action="queue-call-next"][data-queue-consultorio="1"]'
+                '#queue .queue-admin-header-actions [data-action="queue-call-next"][data-queue-consultorio="1"]'
             )
             .first()
             .click();
@@ -1790,7 +1913,7 @@ test.describe('Admin turnero sala', () => {
 
         await page
             .locator(
-                '[data-action="queue-call-next"][data-queue-consultorio="1"]'
+                '#queue .queue-admin-header-actions [data-action="queue-call-next"][data-queue-consultorio="1"]'
             )
             .first()
             .click();
