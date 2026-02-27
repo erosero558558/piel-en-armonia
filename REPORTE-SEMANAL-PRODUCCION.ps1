@@ -1561,7 +1561,8 @@ foreach ($candidate in $reportCandidates) {
     }) | Out-Null
 }
 
-$weeklyCycleEval = Get-WeeklyCycleEvaluation -History @($weeklyCycleHistory) -Target $CriticalFreeCycleTarget
+$weeklyCycleHistoryArray = if ($null -eq $weeklyCycleHistory) { @() } else { $weeklyCycleHistory.ToArray() }
+$weeklyCycleEval = Get-WeeklyCycleEvaluation -History $weeklyCycleHistoryArray -Target $CriticalFreeCycleTarget
 $weeklyCycleTarget = [int](Get-ObjectValueOrDefault -Object $weeklyCycleEval -Property 'targetConsecutiveNoCritical' -DefaultValue $CriticalFreeCycleTarget)
 $weeklyCycleConsecutiveNoCritical = [int](Get-ObjectValueOrDefault -Object $weeklyCycleEval -Property 'consecutiveNoCritical' -DefaultValue 0)
 $weeklyCycleReady = [bool](Get-ObjectValueOrDefault -Object $weeklyCycleEval -Property 'ready' -DefaultValue $false)
