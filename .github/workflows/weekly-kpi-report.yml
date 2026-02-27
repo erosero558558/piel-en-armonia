@@ -20,6 +20,11 @@ on:
                 required: false
                 default: true
                 type: boolean
+            fail_on_cycle_not_ready:
+                description: 'Fallar workflow si no se cumplen semanas consecutivas sin warnings criticos'
+                required: false
+                default: false
+                type: boolean
             fail_on_invalid_thresholds:
                 description: 'Fallar workflow si detecta umbrales invalidos y aplica defaults/clamp'
                 required: false
@@ -120,6 +125,11 @@ on:
                 required: false
                 default: '36'
                 type: string
+            cycle_target_weeks:
+                description: 'Semanas consecutivas objetivo sin warnings criticos'
+                required: false
+                default: '2'
+                type: string
 
 concurrency:
     group: weekly-kpi-report
@@ -139,6 +149,7 @@ jobs:
             TARGET_DOMAIN: ${{ github.event.inputs.domain || 'https://pielarmonia.com' }}
             BENCH_RUNS: ${{ github.event.inputs.bench_runs || '15' }}
             FAIL_ON_WARNINGS: ${{ github.event.inputs.fail_on_warnings || 'true' }}
+            FAIL_ON_CYCLE_NOT_READY: ${{ github.event.inputs.fail_on_cycle_not_ready || vars.WEEKLY_KPI_FAIL_ON_CYCLE_NOT_READY || 'false' }}
             FAIL_ON_INVALID_THRESHOLDS: ${{ github.event.inputs.fail_on_invalid_thresholds || vars.WEEKLY_KPI_FAIL_ON_INVALID_THRESHOLDS || 'false' }}
             REPORT_RETENTION_DAYS: ${{ github.event.inputs.retention_days || vars.WEEKLY_KPI_RETENTION_DAYS || '30' }}
             REPORT_NO_SHOW_WARN_PCT: ${{ github.event.inputs.no_show_warn_pct || vars.WEEKLY_KPI_NO_SHOW_WARN_PCT || '20' }}
@@ -159,6 +170,7 @@ jobs:
             REPORT_CORE_P95_MAX_MS: ${{ github.event.inputs.core_p95_max_ms || vars.WEEKLY_KPI_CORE_P95_MAX_MS || '800' }}
             REPORT_FIGO_POST_P95_MAX_MS: ${{ github.event.inputs.figo_post_p95_max_ms || vars.WEEKLY_KPI_FIGO_POST_P95_MAX_MS || '2500' }}
             REPORT_MAX_REPORT_AGE_HOURS: ${{ github.event.inputs.max_report_age_hours || vars.WEEKLY_KPI_MAX_REPORT_AGE_HOURS || '36' }}
+            REPORT_CYCLE_TARGET_WEEKS: ${{ github.event.inputs.cycle_target_weeks || vars.WEEKLY_KPI_CYCLE_TARGET_WEEKS || '2' }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -245,6 +257,7 @@ jobs:
                   $coreP95MaxMs = Parse-IntValue -Name 'core_p95_max_ms' -Raw $env:REPORT_CORE_P95_MAX_MS -DefaultValue 800 -MinValue 1 -Warnings $thresholdWarnings
                   $figoPostP95MaxMs = Parse-IntValue -Name 'figo_post_p95_max_ms' -Raw $env:REPORT_FIGO_POST_P95_MAX_MS -DefaultValue 2500 -MinValue 1 -Warnings $thresholdWarnings
                   $maxReportAgeHours = Parse-IntValue -Name 'max_report_age_hours' -Raw $env:REPORT_MAX_REPORT_AGE_HOURS -DefaultValue 36 -MinValue 1 -Warnings $thresholdWarnings
+                  $cycleTargetWeeks = Parse-IntValue -Name 'cycle_target_weeks' -Raw $env:REPORT_CYCLE_TARGET_WEEKS -DefaultValue 2 -MinValue 1 -Warnings $thresholdWarnings
                   $noShowWarnPct = Parse-DoubleValue -Name 'no_show_warn_pct' -Raw $env:REPORT_NO_SHOW_WARN_PCT -DefaultValue 20.0 -MinValue 0 -Warnings $thresholdWarnings
                   $idempotencyConflictWarnPct = Parse-DoubleValue -Name 'idempotency_conflict_warn_pct' -Raw $env:REPORT_IDEMPOTENCY_CONFLICT_WARN_PCT -DefaultValue 5.0 -MinValue 0 -Warnings $thresholdWarnings
                   $recurrenceMinWarnPct = Parse-DoubleValue -Name 'recurrence_min_warn_pct' -Raw $env:REPORT_RECURRENCE_MIN_WARN_PCT -DefaultValue 30.0 -MinValue 0 -Warnings $thresholdWarnings
@@ -267,6 +280,8 @@ jobs:
                   "effective_core_p95_max_ms=$coreP95MaxMs" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "effective_figo_post_p95_max_ms=$figoPostP95MaxMs" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "effective_max_report_age_hours=$maxReportAgeHours" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "effective_cycle_target_weeks=$cycleTargetWeeks" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "effective_fail_on_cycle_not_ready=$env:FAIL_ON_CYCLE_NOT_READY" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "effective_no_show_warn_pct=$noShowWarnPct" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "effective_recurrence_min_warn_pct=$recurrenceMinWarnPct" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "effective_recurrence_drop_warn_pct=$recurrenceDropWarnPct" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -310,13 +325,19 @@ jobs:
                     '-ServiceFunnelWarnMinDetailViews', $serviceFunnelMinDetailViews,
                     '-ServiceFunnelWarnMinCheckoutStarts', $serviceFunnelMinCheckoutStarts,
                     '-ServiceFunnelCheckoutToConfirmedMinWarnPct', $serviceFunnelCheckoutToConfirmedMinWarnPct,
-                    '-ServiceFunnelDetailToConfirmedMinWarnPct', $serviceFunnelDetailToConfirmedMinWarnPct
+                    '-ServiceFunnelDetailToConfirmedMinWarnPct', $serviceFunnelDetailToConfirmedMinWarnPct,
+                    '-CriticalFreeCycleTarget', $cycleTargetWeeks
                   )
 
                   if ($env:FAIL_ON_WARNINGS -eq 'true') {
                     $args += '-FailOnCriticalWarnings'
                   } else {
                     Write-Host 'FailOnCriticalWarnings desactivado para esta corrida.'
+                  }
+                  if ($env:FAIL_ON_CYCLE_NOT_READY -eq 'true') {
+                    $args += '-FailOnCycleNotReady'
+                  } else {
+                    Write-Host 'FailOnCycleNotReady desactivado para esta corrida.'
                   }
                   & ./REPORTE-SEMANAL-PRODUCCION.ps1 @args
 
@@ -341,6 +362,12 @@ jobs:
                     "warnings_critical_list=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "warnings_non_critical_count=-1" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "warnings_non_critical_list=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                    "weekly_cycle_target=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                    "weekly_cycle_consecutive_no_critical=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                    "weekly_cycle_ready=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                    "weekly_cycle_status=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                    "weekly_cycle_reason=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                    "weekly_cycle_last_critical_generated_at=n/a" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "warnings_critical_count_int=-1" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "warnings_alert_data_valid=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                     "general_incident_required=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -431,6 +458,12 @@ jobs:
                   $warningsNonCriticalCount = 0
                   $warningsCriticalList = 'none'
                   $warningsNonCriticalList = 'none'
+                  $weeklyCycleTarget = 'n/a'
+                  $weeklyCycleConsecutiveNoCritical = 'n/a'
+                  $weeklyCycleReady = 'n/a'
+                  $weeklyCycleStatus = 'n/a'
+                  $weeklyCycleReason = 'n/a'
+                  $weeklyCycleLastCriticalGeneratedAt = 'n/a'
                   $maxReportAgeHours = 36
                   $tmpMaxReportAgeHours = 0
                   if ([int]::TryParse([string]$env:REPORT_MAX_REPORT_AGE_HOURS, [ref]$tmpMaxReportAgeHours) -and $tmpMaxReportAgeHours -gt 0) {
@@ -472,6 +505,15 @@ jobs:
                     } else {
                       $warningsCriticalList = $warningsList
                       $warningsNonCriticalList = 'none'
+                    }
+                    $weeklyCycle = $payload.weeklyCycle
+                    if ($null -ne $weeklyCycle) {
+                      if ($null -ne $weeklyCycle.targetConsecutiveNoCritical) { $weeklyCycleTarget = [string]$weeklyCycle.targetConsecutiveNoCritical }
+                      if ($null -ne $weeklyCycle.consecutiveNoCritical) { $weeklyCycleConsecutiveNoCritical = [string]$weeklyCycle.consecutiveNoCritical }
+                      if ($null -ne $weeklyCycle.ready) { $weeklyCycleReady = [string]$weeklyCycle.ready }
+                      if ($null -ne $weeklyCycle.status) { $weeklyCycleStatus = [string]$weeklyCycle.status }
+                      if ($null -ne $weeklyCycle.reason) { $weeklyCycleReason = [string]$weeklyCycle.reason }
+                      if ($null -ne $weeklyCycle.lastCriticalGeneratedAt) { $weeklyCycleLastCriticalGeneratedAt = [string]$weeklyCycle.lastCriticalGeneratedAt }
                     }
 
                     $retention = $payload.retention
@@ -578,6 +620,12 @@ jobs:
                     $warningsNonCriticalCount = -1
                     $warningsCriticalList = 'n/a'
                     $warningsNonCriticalList = 'n/a'
+                    $weeklyCycleTarget = 'n/a'
+                    $weeklyCycleConsecutiveNoCritical = 'n/a'
+                    $weeklyCycleReady = 'n/a'
+                    $weeklyCycleStatus = 'n/a'
+                    $weeklyCycleReason = 'n/a'
+                    $weeklyCycleLastCriticalGeneratedAt = 'n/a'
                     $conversionViewBooking = 'n/a'
                     $conversionStartCheckout = 'n/a'
                     $conversionStartCheckoutRate = 'n/a'
@@ -635,6 +683,12 @@ jobs:
                   "warnings_critical_list=$warningsCriticalList" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "warnings_non_critical_count=$warningsNonCriticalCount" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   "warnings_non_critical_list=$warningsNonCriticalList" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "weekly_cycle_target=$weeklyCycleTarget" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "weekly_cycle_consecutive_no_critical=$weeklyCycleConsecutiveNoCritical" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "weekly_cycle_ready=$weeklyCycleReady" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "weekly_cycle_status=$weeklyCycleStatus" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "weekly_cycle_reason=$weeklyCycleReason" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+                  "weekly_cycle_last_critical_generated_at=$weeklyCycleLastCriticalGeneratedAt" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
                   $warningsCriticalCountInt = -1
                   $tmpWarningsCriticalCount = 0
                   if ([int]::TryParse([string]$warningsCriticalCount, [ref]$tmpWarningsCriticalCount)) {
@@ -1036,12 +1090,14 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Bench runs: ``$env:BENCH_RUNS``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Fail on warnings (critical-only gate): ``$env:FAIL_ON_WARNINGS``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Fail on invalid thresholds: ``${{ steps.run_report.outputs.effective_fail_on_invalid_thresholds }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Fail on cycle not ready: ``${{ steps.run_report.outputs.effective_fail_on_cycle_not_ready }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Thresholds efectivos"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- retention_days: ``${{ steps.run_report.outputs.effective_retention_days }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- core_p95_max_ms: ``${{ steps.run_report.outputs.effective_core_p95_max_ms }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- figo_post_p95_max_ms: ``${{ steps.run_report.outputs.effective_figo_post_p95_max_ms }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- max_report_age_hours: ``${{ steps.run_report.outputs.effective_max_report_age_hours }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- cycle_target_weeks: ``${{ steps.run_report.outputs.effective_cycle_target_weeks }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- no_show_warn_pct: ``${{ steps.run_report.outputs.effective_no_show_warn_pct }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- recurrence_min_warn_pct: ``${{ steps.run_report.outputs.effective_recurrence_min_warn_pct }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- recurrence_drop_warn_pct: ``${{ steps.run_report.outputs.effective_recurrence_drop_warn_pct }}``"
@@ -1061,6 +1117,12 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- threshold_warnings_list: ``${{ steps.run_report.outputs.threshold_warnings_list }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Warnings count: ``${{ steps.report.outputs.warnings_count }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Warnings critical: ``${{ steps.report.outputs.warnings_critical_count }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- weekly_cycle_target: ``${{ steps.report.outputs.weekly_cycle_target }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- weekly_cycle_consecutive_no_critical: ``${{ steps.report.outputs.weekly_cycle_consecutive_no_critical }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- weekly_cycle_ready: ``${{ steps.report.outputs.weekly_cycle_ready }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- weekly_cycle_status: ``${{ steps.report.outputs.weekly_cycle_status }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- weekly_cycle_reason: ``${{ steps.report.outputs.weekly_cycle_reason }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- weekly_cycle_last_critical_generated_at: ``${{ steps.report.outputs.weekly_cycle_last_critical_generated_at }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- report_generated_at_utc: ``${{ steps.report.outputs.report_generated_at_utc }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- report_age_hours: ``${{ steps.report.outputs.report_age_hours }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- report_stale: ``${{ steps.report.outputs.report_stale }}``"

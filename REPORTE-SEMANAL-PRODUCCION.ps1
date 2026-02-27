@@ -22,11 +22,16 @@ param(
     [double]$ServiceFunnelCheckoutToConfirmedMinWarnPct = 35,
     [double]$ServiceFunnelDetailToConfirmedMinWarnPct = 8,
     [switch]$FailOnWarnings,
-    [switch]$FailOnCriticalWarnings
+    [switch]$FailOnCriticalWarnings,
+    [int]$CriticalFreeCycleTarget = 2,
+    [switch]$FailOnCycleNotReady
 )
 
 $ErrorActionPreference = 'Stop'
 $base = $Domain.TrimEnd('/')
+if ($CriticalFreeCycleTarget -lt 1) {
+    $CriticalFreeCycleTarget = 1
+}
 
 function Ensure-Directory {
     param([string]$Path)
@@ -529,6 +534,114 @@ function Get-ObjectValueOrDefault {
         return $value
     } catch {
         return $DefaultValue
+    }
+}
+
+function Get-WarningCriticalCountFromReportPayload {
+    param(
+        $ReportPayload
+    )
+
+    if ($null -eq $ReportPayload) {
+        return -1
+    }
+
+    $warningCounts = Get-ObjectValueOrDefault -Object $ReportPayload -Property 'warningCounts' -DefaultValue $null
+    if ($null -ne $warningCounts) {
+        $criticalRaw = Get-ObjectValueOrDefault -Object $warningCounts -Property 'critical' -DefaultValue $null
+        if ($null -ne $criticalRaw -and -not [string]::IsNullOrWhiteSpace([string]$criticalRaw)) {
+            try {
+                $criticalParsed = [int]$criticalRaw
+                if ($criticalParsed -ge 0) {
+                    return $criticalParsed
+                }
+            } catch {
+                # continue with fallbacks
+            }
+        }
+    }
+
+    $warningsBySeverity = Get-ObjectValueOrDefault -Object $ReportPayload -Property 'warningsBySeverity' -DefaultValue $null
+    if ($null -ne $warningsBySeverity) {
+        $criticalRows = Convert-ToArraySafe -Value (Get-ObjectValueOrDefault -Object $warningsBySeverity -Property 'critical' -DefaultValue @())
+        return $criticalRows.Count
+    }
+
+    $warningsLegacy = Convert-ToArraySafe -Value (Get-ObjectValueOrDefault -Object $ReportPayload -Property 'warnings' -DefaultValue @())
+    if ($warningsLegacy.Count -gt 0) {
+        # Fallback conservador para reportes historicos sin severidad.
+        return $warningsLegacy.Count
+    }
+
+    return 0
+}
+
+function Get-WeeklyCycleEvaluation {
+    param(
+        [array]$History,
+        [int]$Target
+    )
+
+    $safeTarget = if ($Target -lt 1) { 1 } else { $Target }
+    $historyRows = Convert-ToArraySafe -Value $History
+    $consecutiveNoCritical = 0
+    $breakReason = 'none'
+    $lastCriticalGeneratedAt = ''
+
+    foreach ($entry in $historyRows) {
+        $criticalWarnings = [int](Get-ObjectValueOrDefault -Object $entry -Property 'criticalWarnings' -DefaultValue -1)
+        $generatedAt = [string](Get-ObjectValueOrDefault -Object $entry -Property 'generatedAt' -DefaultValue '')
+
+        if ($criticalWarnings -lt 0) {
+            $breakReason = 'history_invalid'
+            break
+        }
+        if ($criticalWarnings -gt 0) {
+            if ([string]::IsNullOrWhiteSpace($lastCriticalGeneratedAt) -and -not [string]::IsNullOrWhiteSpace($generatedAt)) {
+                $lastCriticalGeneratedAt = $generatedAt
+            }
+            $breakReason = 'critical_warning_found'
+            break
+        }
+        $consecutiveNoCritical++
+    }
+
+    if ([string]::IsNullOrWhiteSpace($lastCriticalGeneratedAt)) {
+        foreach ($entry in $historyRows) {
+            $criticalWarnings = [int](Get-ObjectValueOrDefault -Object $entry -Property 'criticalWarnings' -DefaultValue -1)
+            if ($criticalWarnings -gt 0) {
+                $lastCriticalGeneratedAt = [string](Get-ObjectValueOrDefault -Object $entry -Property 'generatedAt' -DefaultValue '')
+                break
+            }
+        }
+    }
+
+    $ready = $consecutiveNoCritical -ge $safeTarget
+    $status = 'in_progress'
+    $reason = 'awaiting_clean_cycles'
+
+    if ($ready) {
+        $status = 'ready'
+        $reason = 'target_met'
+    } elseif ($historyRows.Count -eq 0) {
+        $status = 'in_progress'
+        $reason = 'history_missing'
+    } elseif ($breakReason -eq 'history_invalid') {
+        $status = 'blocked'
+        $reason = 'history_invalid'
+    } elseif ([int](Get-ObjectValueOrDefault -Object $historyRows[0] -Property 'criticalWarnings' -DefaultValue -1) -gt 0) {
+        $status = 'blocked'
+        $reason = 'current_has_critical'
+    }
+
+    return [ordered]@{
+        targetConsecutiveNoCritical = $safeTarget
+        consecutiveNoCritical = $consecutiveNoCritical
+        ready = [bool]$ready
+        status = $status
+        reason = $reason
+        lastCriticalGeneratedAt = $lastCriticalGeneratedAt
+        historyCount = $historyRows.Count
     }
 }
 
@@ -1398,6 +1511,78 @@ $releaseAction = switch ($releaseDecision) {
     'warn' { 'Allow release with monitoring and follow-up hardening task.' }
     default { 'Release allowed.' }
 }
+$weeklyCycleHistoryLimit = [Math]::Max(6, $CriticalFreeCycleTarget + 4)
+$weeklyCycleHistory = New-Object System.Collections.Generic.List[object]
+$weeklyCycleHistory.Add([ordered]@{
+    generatedAt = $reportGeneratedAt
+    criticalWarnings = $warningCountsCritical
+    totalWarnings = $warningCountsTotal
+    source = 'current_run'
+}) | Out-Null
+
+foreach ($candidate in $reportCandidates) {
+    if ($weeklyCycleHistory.Count -ge $weeklyCycleHistoryLimit) {
+        break
+    }
+    if ($candidate.FullName -eq $reportJsonPath) {
+        continue
+    }
+    $historyPayload = Read-JsonFileSafe -Path $candidate.FullName
+    if ($null -eq $historyPayload) {
+        continue
+    }
+    $historyGeneratedAt = [string](Get-ObjectValueOrDefault -Object $historyPayload -Property 'generatedAt' -DefaultValue '')
+    if ([string]::IsNullOrWhiteSpace($historyGeneratedAt)) {
+        try {
+            $historyGeneratedAt = ([DateTimeOffset]$candidate.LastWriteTimeUtc).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        } catch {
+            $historyGeneratedAt = ''
+        }
+    }
+    $historyCriticalWarnings = Get-WarningCriticalCountFromReportPayload -ReportPayload $historyPayload
+    $historyWarningCounts = Get-ObjectValueOrDefault -Object $historyPayload -Property 'warningCounts' -DefaultValue $null
+    $historyTotalWarningsRaw = Get-ObjectValueOrDefault -Object $historyWarningCounts -Property 'total' -DefaultValue $null
+    $historyTotalWarnings = 0
+    if ($null -ne $historyTotalWarningsRaw -and -not [string]::IsNullOrWhiteSpace([string]$historyTotalWarningsRaw)) {
+        try {
+            $historyTotalWarnings = [int]$historyTotalWarningsRaw
+        } catch {
+            $historyTotalWarnings = 0
+        }
+    } else {
+        $historyWarningsLegacy = Convert-ToArraySafe -Value (Get-ObjectValueOrDefault -Object $historyPayload -Property 'warnings' -DefaultValue @())
+        $historyTotalWarnings = $historyWarningsLegacy.Count
+    }
+    $weeklyCycleHistory.Add([ordered]@{
+        generatedAt = $historyGeneratedAt
+        criticalWarnings = $historyCriticalWarnings
+        totalWarnings = $historyTotalWarnings
+        source = 'history_file'
+    }) | Out-Null
+}
+
+$weeklyCycleEval = Get-WeeklyCycleEvaluation -History @($weeklyCycleHistory) -Target $CriticalFreeCycleTarget
+$weeklyCycleTarget = [int](Get-ObjectValueOrDefault -Object $weeklyCycleEval -Property 'targetConsecutiveNoCritical' -DefaultValue $CriticalFreeCycleTarget)
+$weeklyCycleConsecutiveNoCritical = [int](Get-ObjectValueOrDefault -Object $weeklyCycleEval -Property 'consecutiveNoCritical' -DefaultValue 0)
+$weeklyCycleReady = [bool](Get-ObjectValueOrDefault -Object $weeklyCycleEval -Property 'ready' -DefaultValue $false)
+$weeklyCycleStatus = [string](Get-ObjectValueOrDefault -Object $weeklyCycleEval -Property 'status' -DefaultValue 'in_progress')
+$weeklyCycleReason = [string](Get-ObjectValueOrDefault -Object $weeklyCycleEval -Property 'reason' -DefaultValue 'awaiting_clean_cycles')
+$weeklyCycleLastCriticalGeneratedAt = [string](Get-ObjectValueOrDefault -Object $weeklyCycleEval -Property 'lastCriticalGeneratedAt' -DefaultValue '')
+$weeklyCycleHistoryCount = [int](Get-ObjectValueOrDefault -Object $weeklyCycleEval -Property 'historyCount' -DefaultValue $weeklyCycleHistory.Count)
+$weeklyCycleLastCriticalGeneratedAtLabel = if ([string]::IsNullOrWhiteSpace($weeklyCycleLastCriticalGeneratedAt)) { 'none' } else { $weeklyCycleLastCriticalGeneratedAt }
+$weeklyCycleHistoryBlock = if ($weeklyCycleHistory.Count -eq 0) {
+    '- none'
+} else {
+    @(
+        $weeklyCycleHistory | ForEach-Object {
+            $cycleGeneratedAt = [string](Get-ObjectValueOrDefault -Object $_ -Property 'generatedAt' -DefaultValue 'n/a')
+            $cycleCritical = [string](Get-ObjectValueOrDefault -Object $_ -Property 'criticalWarnings' -DefaultValue 'n/a')
+            $cycleTotal = [string](Get-ObjectValueOrDefault -Object $_ -Property 'totalWarnings' -DefaultValue 'n/a')
+            $cycleSource = [string](Get-ObjectValueOrDefault -Object $_ -Property 'source' -DefaultValue 'unknown')
+            "- generatedAt: $cycleGeneratedAt | critical: $cycleCritical | total: $cycleTotal | source: $cycleSource"
+        }
+    ) -join "`n"
+}
 $warningBlock = if ($warnings.Count -eq 0) {
     '- none'
 } else {
@@ -1567,6 +1752,18 @@ $warningBlock
 ## Warning Details
 
 $warningDetailBlock
+
+## Weekly Cycle Guardrail
+
+- critical_free_cycle_target: $weeklyCycleTarget
+- consecutive_no_critical_weeks: $weeklyCycleConsecutiveNoCritical
+- cycle_ready: $weeklyCycleReady
+- cycle_status: $weeklyCycleStatus
+- cycle_reason: $weeklyCycleReason
+- last_critical_generated_at: $weeklyCycleLastCriticalGeneratedAtLabel
+- history_count: $weeklyCycleHistoryCount
+
+$weeklyCycleHistoryBlock
 
 ## Incident Triage (<= 15 min)
 
@@ -1746,6 +1943,26 @@ $releaseGuardrailsPayload.action = $releaseAction
 $releaseGuardrailsPayload.criticalWarnings = @($warningsCritical)
 $releaseGuardrailsPayload.nonCriticalWarnings = @($warningsNonCritical)
 
+$weeklyCycleHistoryPayload = @(
+    $weeklyCycleHistory | ForEach-Object {
+        [ordered]@{
+            generatedAt = [string](Get-ObjectValueOrDefault -Object $_ -Property 'generatedAt' -DefaultValue '')
+            criticalWarnings = [int](Get-ObjectValueOrDefault -Object $_ -Property 'criticalWarnings' -DefaultValue -1)
+            totalWarnings = [int](Get-ObjectValueOrDefault -Object $_ -Property 'totalWarnings' -DefaultValue 0)
+            source = [string](Get-ObjectValueOrDefault -Object $_ -Property 'source' -DefaultValue 'unknown')
+        }
+    }
+)
+$weeklyCyclePayload = [ordered]@{}
+$weeklyCyclePayload.targetConsecutiveNoCritical = $weeklyCycleTarget
+$weeklyCyclePayload.consecutiveNoCritical = $weeklyCycleConsecutiveNoCritical
+$weeklyCyclePayload.ready = [bool]$weeklyCycleReady
+$weeklyCyclePayload.status = $weeklyCycleStatus
+$weeklyCyclePayload.reason = $weeklyCycleReason
+$weeklyCyclePayload.lastCriticalGeneratedAt = $weeklyCycleLastCriticalGeneratedAtLabel
+$weeklyCyclePayload.historyCount = $weeklyCycleHistoryCount
+$weeklyCyclePayload.history = $weeklyCycleHistoryPayload
+
 $warningsBySeverityPayload = [ordered]@{}
 $warningsBySeverityPayload.critical = @($warningsCritical)
 $warningsBySeverityPayload.nonCritical = @($warningsNonCritical)
@@ -1779,6 +1996,7 @@ $reportPayload.retentionBaseline = $retentionBaselinePayloadForReport
 $reportPayload.latency = $latencyPayload
 $reportPayload.warningCounts = $warningCountsPayload
 $reportPayload.releaseGuardrails = $releaseGuardrailsPayload
+$reportPayload.weeklyCycle = $weeklyCyclePayload
 $reportPayload.warningsBySeverity = $warningsBySeverityPayload
 $reportPayload.warningsByImpact = $warningsByImpactPayload
 $reportPayload.warningDetails = $warningDetailsPayload
@@ -1798,6 +2016,7 @@ Write-Host "service_funnel_source=$serviceFunnelSource service_funnel_rows=$serv
 Write-Host "services_catalog_source=$servicesCatalogSource services_catalog_version=$servicesCatalogVersion services_catalog_count=$servicesCatalogCount services_catalog_configured=$servicesCatalogConfigured"
 Write-Host "service_priorities_source=$servicePrioritiesSource service_priorities_catalog_source=$servicePrioritiesCatalogSource service_priorities_services_count=$servicePrioritiesServiceCount service_priorities_categories_count=$servicePrioritiesCategoryCount service_priorities_featured_count=$servicePrioritiesFeaturedCount"
 Write-Host "release_decision=$releaseDecision release_reason=$releaseReason"
+Write-Host "weekly_cycle_target=$weeklyCycleTarget weekly_cycle_consecutive_no_critical=$weeklyCycleConsecutiveNoCritical weekly_cycle_ready=$weeklyCycleReady weekly_cycle_status=$weeklyCycleStatus weekly_cycle_reason=$weeklyCycleReason"
 if ($warnings.Count -gt 0) {
     Write-Host "Warnings: $($warnings -join ', ')" -ForegroundColor Yellow
     Write-Host "Warnings by severity: critical=$warningCountsCritical non_critical=$warningCountsNonCritical" -ForegroundColor Yellow
@@ -1814,4 +2033,9 @@ if ($warnings.Count -gt 0) {
     }
 } else {
     Write-Host 'Warnings: none' -ForegroundColor Green
+}
+
+if ($FailOnCycleNotReady -and -not $weeklyCycleReady) {
+    Write-Host "FailOnCycleNotReady activo: ciclo semanal no listo (consecutive=$weeklyCycleConsecutiveNoCritical target=$weeklyCycleTarget)." -ForegroundColor Red
+    exit 2
 }

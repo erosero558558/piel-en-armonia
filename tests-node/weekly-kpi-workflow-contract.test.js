@@ -25,6 +25,7 @@ test('weekly-kpi workflow expone inputs de umbrales esperados', () => {
     const inputs = parsed?.on?.workflow_dispatch?.inputs || {};
 
     const requiredInputs = [
+        'fail_on_cycle_not_ready',
         'fail_on_invalid_thresholds',
         'retention_days',
         'no_show_warn_pct',
@@ -41,6 +42,7 @@ test('weekly-kpi workflow expone inputs de umbrales esperados', () => {
         'core_p95_max_ms',
         'figo_post_p95_max_ms',
         'max_report_age_hours',
+        'cycle_target_weeks',
     ];
 
     for (const inputKey of requiredInputs) {
@@ -55,6 +57,7 @@ test('weekly-kpi workflow expone inputs de umbrales esperados', () => {
 test('weekly-kpi workflow mantiene fallback por vars WEEKLY_KPI_*', () => {
     const { raw } = loadWorkflow();
     const requiredVars = [
+        'WEEKLY_KPI_FAIL_ON_CYCLE_NOT_READY',
         'WEEKLY_KPI_FAIL_ON_INVALID_THRESHOLDS',
         'WEEKLY_KPI_RETENTION_DAYS',
         'WEEKLY_KPI_NO_SHOW_WARN_PCT',
@@ -71,6 +74,7 @@ test('weekly-kpi workflow mantiene fallback por vars WEEKLY_KPI_*', () => {
         'WEEKLY_KPI_CORE_P95_MAX_MS',
         'WEEKLY_KPI_FIGO_POST_P95_MAX_MS',
         'WEEKLY_KPI_MAX_REPORT_AGE_HOURS',
+        'WEEKLY_KPI_CYCLE_TARGET_WEEKS',
     ];
 
     for (const envKey of requiredVars) {
@@ -85,11 +89,13 @@ test('weekly-kpi workflow mantiene fallback por vars WEEKLY_KPI_*', () => {
 test('weekly-kpi workflow publica thresholds efectivos en resumen', () => {
     const { raw } = loadWorkflow();
     const requiredOutputs = [
+        'effective_fail_on_cycle_not_ready',
         'effective_fail_on_invalid_thresholds',
         'effective_retention_days',
         'effective_core_p95_max_ms',
         'effective_figo_post_p95_max_ms',
         'effective_max_report_age_hours',
+        'effective_cycle_target_weeks',
         'effective_no_show_warn_pct',
         'effective_recurrence_min_warn_pct',
         'effective_recurrence_drop_warn_pct',
@@ -186,6 +192,12 @@ test('weekly-kpi workflow expone outputs normalizados para semaforo general y SL
     const requiredOutputs = [
         'warnings_critical_count_int',
         'warnings_alert_data_valid',
+        'weekly_cycle_target',
+        'weekly_cycle_consecutive_no_critical',
+        'weekly_cycle_ready',
+        'weekly_cycle_status',
+        'weekly_cycle_reason',
+        'weekly_cycle_last_critical_generated_at',
         'report_generated_at_utc',
         'report_age_hours',
         'report_stale',
