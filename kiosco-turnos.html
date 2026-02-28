@@ -28,6 +28,34 @@
             </div>
             <div class="kiosk-header-tools">
                 <p class="kiosk-header-note">Pensado para uso simple y seguro</p>
+                <div
+                    class="kiosk-header-controls"
+                    role="group"
+                    aria-label="Controles de accesibilidad y soporte"
+                >
+                    <button
+                        id="kioskSeniorToggle"
+                        type="button"
+                        class="kiosk-header-help-btn"
+                        aria-pressed="false"
+                    >
+                        Modo lectura grande: Off
+                    </button>
+                    <button
+                        id="kioskVoiceGuideBtn"
+                        type="button"
+                        class="kiosk-header-help-btn"
+                    >
+                        Leer instrucciones
+                    </button>
+                    <button
+                        id="kioskReceptionHelpBtn"
+                        type="button"
+                        class="kiosk-header-help-btn"
+                    >
+                        Necesito apoyo
+                    </button>
+                </div>
                 <button
                     id="kioskHelpToggle"
                     type="button"
@@ -90,6 +118,15 @@
                 >
                     Paso 1 de 2: selecciona una opcion para comenzar.
                 </p>
+                <p
+                    id="kioskSeniorHint"
+                    class="kiosk-progress-hint"
+                    data-tone="info"
+                    role="status"
+                    aria-live="polite"
+                >
+                    Si necesitas letra mas grande, usa "Modo lectura grande".
+                </p>
 
                 <div
                     id="kioskStatus"
@@ -112,7 +149,14 @@
                         <li>Completa datos y pulsa el boton azul.</li>
                         <li>Toma tu ticket y espera el llamado en la TV.</li>
                     </ol>
-                    <p>Atajos: <strong>Alt+Shift+1</strong> cita, <strong>Alt+Shift+2</strong> sin cita, <strong>Alt+Shift+H</strong> ayuda.</p>
+                    <p>
+                        Atajos: <strong>Alt+Shift+1</strong> cita,
+                        <strong>Alt+Shift+2</strong> sin cita,
+                        <strong>Alt+Shift+H</strong> ayuda,
+                        <strong>Alt+Shift+S</strong> lectura grande,
+                        <strong>Alt+Shift+V</strong> voz guia,
+                        <strong>Alt+Shift+A</strong> apoyo.
+                    </p>
                     <button id="kioskHelpClose" type="button">Cerrar ayuda</button>
                 </section>
 

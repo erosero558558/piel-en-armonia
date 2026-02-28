@@ -4,6 +4,7 @@ const QUEUE_POLL_MS = 2500;
 const QUEUE_POLL_MAX_MS = 15000;
 const QUEUE_STALE_THRESHOLD_MS = 30000;
 const THEME_STORAGE_KEY = 'kioskThemeMode';
+const KIOSK_SENIOR_MODE_STORAGE_KEY = 'queueKioskSeniorMode';
 const KIOSK_IDLE_RESET_DEFAULT_MS = 90000;
 const KIOSK_IDLE_RESET_MIN_MS = 5000;
 const KIOSK_IDLE_RESET_MAX_MS = 15 * 60 * 1000;
@@ -21,6 +22,7 @@ const KIOSK_PRINTER_STATE_STORAGE_KEY = 'queueKioskPrinterState';
 const KIOSK_STAR_STYLE_ID = 'kioskStarInlineStyles';
 const KIOSK_WELCOME_HIDE_MS = 1800;
 const KIOSK_WELCOME_REMOVE_MS = 2600;
+const KIOSK_VOICE_GUIDE_LANG = 'es-EC';
 
 const state = {
     queueState: null,
@@ -46,6 +48,10 @@ const state = {
     quickHelpOpen: false,
     selectedFlow: 'checkin',
     welcomeDismissed: false,
+    seniorMode: false,
+    voiceGuideSupported: false,
+    voiceGuideBusy: false,
+    voiceGuideUtterance: null,
 };
 
 function emitQueueOpsEvent(eventName, detail = {}) {
@@ -95,6 +101,13 @@ function ensureKioskStarStyles() {
             gap: 0.35rem;
             justify-items: end;
         }
+        .kiosk-header-controls {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.45rem;
+            width: 100%;
+            max-width: 620px;
+        }
         .kiosk-header-help-btn {
             border: 1px solid var(--border);
             border-radius: 999px;
@@ -106,10 +119,26 @@ function ensureKioskStarStyles() {
             cursor: pointer;
             min-height: 44px;
         }
+        .kiosk-header-help-btn[data-variant='warning'] {
+            border-color: color-mix(in srgb, #b45309 32%, #fff 68%);
+            background: color-mix(in srgb, #fef3c7 88%, #fff 12%);
+            color: #92400e;
+        }
         .kiosk-header-help-btn[data-open='true'] {
             border-color: color-mix(in srgb, var(--primary) 38%, #fff 62%);
             background: color-mix(in srgb, var(--surface-strong) 84%, #fff 16%);
             color: var(--primary-strong);
+        }
+        .kiosk-header-help-btn[data-active='true'] {
+            border-color: color-mix(in srgb, var(--primary) 42%, #fff 58%);
+            background: color-mix(in srgb, var(--surface-strong) 84%, #fff 16%);
+            color: var(--primary-strong);
+            box-shadow: 0 10px 24px rgb(15 107 220 / 15%);
+        }
+        .kiosk-header-help-btn[disabled] {
+            opacity: 0.65;
+            cursor: not-allowed;
+            box-shadow: none;
         }
         .kiosk-quick-actions {
             display: grid;
@@ -184,6 +213,49 @@ function ensureKioskStarStyles() {
             border-color: color-mix(in srgb, var(--primary) 32%, var(--border) 68%);
             box-shadow: 0 14px 28px rgb(15 107 220 / 11%);
         }
+        body[data-kiosk-senior='on'] {
+            font-size: 18px;
+        }
+        body[data-kiosk-senior='on'] .kiosk-layout {
+            gap: 1.2rem;
+        }
+        body[data-kiosk-senior='on'] h1 {
+            font-size: clamp(2rem, 3vw, 2.55rem);
+            line-height: 1.15;
+        }
+        body[data-kiosk-senior='on'] .kiosk-form label,
+        body[data-kiosk-senior='on'] .kiosk-progress-hint,
+        body[data-kiosk-senior='on'] .kiosk-status {
+            font-size: 1.08rem;
+        }
+        body[data-kiosk-senior='on'] .kiosk-form input,
+        body[data-kiosk-senior='on'] .assistant-form input {
+            min-height: 64px;
+            font-size: 1.18rem;
+        }
+        body[data-kiosk-senior='on'] .kiosk-form button,
+        body[data-kiosk-senior='on'] .assistant-form button {
+            min-height: 68px;
+            font-size: 1.16rem;
+        }
+        body[data-kiosk-senior='on'] .kiosk-quick-action {
+            min-height: 76px;
+            font-size: 1.13rem;
+        }
+        body[data-kiosk-senior='on'] .kiosk-header-help-btn {
+            min-height: 52px;
+            font-size: 0.97rem;
+            padding: 0.45rem 0.84rem;
+        }
+        body[data-kiosk-senior='on'] .queue-kpi-row article strong {
+            font-size: 2.3rem;
+        }
+        body[data-kiosk-senior='on'] .ticket-result-main strong {
+            font-size: 2.6rem;
+        }
+        body[data-kiosk-senior='on'] #kioskSeniorHint {
+            color: color-mix(in srgb, var(--primary) 72%, #1f2937 28%);
+        }
         .kiosk-quick-action:focus-visible,
         .kiosk-header-help-btn:focus-visible,
         .kiosk-quick-help-panel button:focus-visible {
@@ -193,6 +265,9 @@ function ensureKioskStarStyles() {
         @media (max-width: 760px) {
             .kiosk-header-tools {
                 justify-items: start;
+            }
+            .kiosk-header-controls {
+                grid-template-columns: 1fr;
             }
             .kiosk-quick-actions {
                 grid-template-columns: 1fr;
@@ -222,6 +297,217 @@ function setKioskProgressHint(message, tone = 'info') {
         'Paso 1 de 2: selecciona una opcion para comenzar.';
     hintEl.dataset.tone = normalizedTone;
     hintEl.textContent = nextText;
+}
+
+function setKioskSeniorHint(message, tone = 'info') {
+    const hintEl = getById('kioskSeniorHint');
+    if (!(hintEl instanceof HTMLElement)) return;
+    const normalizedTone = ['info', 'warn', 'success'].includes(
+        String(tone || '').toLowerCase()
+    )
+        ? String(tone || '').toLowerCase()
+        : 'info';
+    hintEl.dataset.tone = normalizedTone;
+    hintEl.textContent =
+        String(message || '').trim() ||
+        'Si necesitas letra mas grande, usa "Modo lectura grande".';
+}
+
+function readSeniorModePreference() {
+    try {
+        return localStorage.getItem(KIOSK_SENIOR_MODE_STORAGE_KEY) === '1';
+    } catch (_error) {
+        return false;
+    }
+}
+
+function persistSeniorModePreference(enabled) {
+    try {
+        localStorage.setItem(
+            KIOSK_SENIOR_MODE_STORAGE_KEY,
+            enabled ? '1' : '0'
+        );
+    } catch (_error) {
+        // ignore storage failures
+    }
+}
+
+function syncSeniorModeButton() {
+    const seniorToggle = getById('kioskSeniorToggle');
+    if (!(seniorToggle instanceof HTMLButtonElement)) return;
+    const enabled = Boolean(state.seniorMode);
+    seniorToggle.dataset.active = enabled ? 'true' : 'false';
+    seniorToggle.setAttribute('aria-pressed', String(enabled));
+    seniorToggle.textContent = `Modo lectura grande: ${enabled ? 'On' : 'Off'}`;
+}
+
+function setSeniorModeEnabled(
+    nextEnabled,
+    { persist = true, source = 'ui' } = {}
+) {
+    const enabled = Boolean(nextEnabled);
+    state.seniorMode = enabled;
+    document.body.dataset.kioskSenior = enabled ? 'on' : 'off';
+    syncSeniorModeButton();
+    if (persist) {
+        persistSeniorModePreference(enabled);
+    }
+    setKioskSeniorHint(
+        enabled
+            ? 'Modo lectura grande activo. Botones y textos ampliados.'
+            : 'Modo lectura grande desactivado.',
+        enabled ? 'success' : 'info'
+    );
+    emitQueueOpsEvent('senior_mode_changed', {
+        enabled,
+        source,
+    });
+}
+
+function toggleSeniorMode({ source = 'ui' } = {}) {
+    setSeniorModeEnabled(!state.seniorMode, { persist: true, source });
+}
+
+function supportsVoiceGuide() {
+    return (
+        typeof window !== 'undefined' &&
+        'speechSynthesis' in window &&
+        typeof window.speechSynthesis?.speak === 'function' &&
+        typeof window.SpeechSynthesisUtterance === 'function'
+    );
+}
+
+function syncVoiceGuideButton() {
+    const voiceBtn = getById('kioskVoiceGuideBtn');
+    if (!(voiceBtn instanceof HTMLButtonElement)) return;
+
+    const supported = Boolean(state.voiceGuideSupported);
+    const busy = Boolean(state.voiceGuideBusy);
+    voiceBtn.disabled = !supported && !busy;
+    voiceBtn.textContent = !supported
+        ? 'Voz guia no disponible'
+        : busy
+          ? 'Leyendo instrucciones...'
+          : 'Leer instrucciones';
+}
+
+function stopVoiceGuide({ source = 'manual' } = {}) {
+    if (!supportsVoiceGuide()) {
+        state.voiceGuideBusy = false;
+        state.voiceGuideUtterance = null;
+        syncVoiceGuideButton();
+        return;
+    }
+    try {
+        window.speechSynthesis.cancel();
+    } catch (_error) {
+        // ignore platform errors
+    }
+    state.voiceGuideBusy = false;
+    state.voiceGuideUtterance = null;
+    syncVoiceGuideButton();
+    emitQueueOpsEvent('voice_guide_stopped', { source });
+}
+
+function buildVoiceGuideText() {
+    const flowHint =
+        state.selectedFlow === 'walkin'
+            ? 'Si no tienes cita, escribe iniciales y pulsa Generar turno.'
+            : 'Si tienes cita, escribe telefono, fecha y hora y pulsa Confirmar check in.';
+    return `Bienvenida al kiosco de turnos de Piel en Armonia. ${flowHint} Si necesitas ayuda, pulsa Necesito apoyo y recepcion te asistira. Conserva tu ticket y espera el llamado en la pantalla de sala.`;
+}
+
+function runVoiceGuide({ source = 'button' } = {}) {
+    if (!state.voiceGuideSupported) {
+        setKioskStatus(
+            'Guia por voz no disponible en este navegador. Usa ayuda rapida en pantalla.',
+            'info'
+        );
+        setKioskSeniorHint(
+            'Sin voz guia en este equipo. Usa ayuda rapida o pide apoyo.',
+            'warn'
+        );
+        emitQueueOpsEvent('voice_guide_unavailable', { source });
+        return;
+    }
+
+    stopVoiceGuide({ source: 'restart' });
+    const text = buildVoiceGuideText();
+    let utterance;
+    try {
+        utterance = new window.SpeechSynthesisUtterance(text);
+    } catch (_error) {
+        setKioskStatus(
+            'No se pudo iniciar guia por voz en este equipo.',
+            'error'
+        );
+        emitQueueOpsEvent('voice_guide_error', {
+            source,
+            reason: 'utterance_create_failed',
+        });
+        return;
+    }
+
+    utterance.lang = KIOSK_VOICE_GUIDE_LANG;
+    utterance.rate = 0.92;
+    utterance.pitch = 1.0;
+    utterance.onstart = () => {
+        state.voiceGuideBusy = true;
+        syncVoiceGuideButton();
+    };
+    utterance.onend = () => {
+        state.voiceGuideBusy = false;
+        state.voiceGuideUtterance = null;
+        syncVoiceGuideButton();
+        emitQueueOpsEvent('voice_guide_finished', { source });
+    };
+    utterance.onerror = () => {
+        state.voiceGuideBusy = false;
+        state.voiceGuideUtterance = null;
+        syncVoiceGuideButton();
+        setKioskStatus(
+            'La guia por voz se interrumpio. Puedes intentar nuevamente.',
+            'error'
+        );
+        emitQueueOpsEvent('voice_guide_error', {
+            source,
+            reason: 'speech_error',
+        });
+    };
+
+    try {
+        state.voiceGuideUtterance = utterance;
+        state.voiceGuideBusy = true;
+        syncVoiceGuideButton();
+        window.speechSynthesis.speak(utterance);
+        setKioskStatus('Guia por voz iniciada.', 'info');
+        setKioskSeniorHint(
+            'Escuchando guia por voz. Puedes seguir los pasos en pantalla.',
+            'success'
+        );
+        emitQueueOpsEvent('voice_guide_started', { source });
+    } catch (_error) {
+        state.voiceGuideBusy = false;
+        state.voiceGuideUtterance = null;
+        syncVoiceGuideButton();
+        setKioskStatus('No se pudo reproducir guia por voz.', 'error');
+        emitQueueOpsEvent('voice_guide_error', {
+            source,
+            reason: 'speech_start_failed',
+        });
+    }
+}
+
+function requestReceptionSupport({ source = 'button' } = {}) {
+    const supportMessage =
+        'Recepcion te ayudara enseguida. Mantente frente al kiosco o acude al mostrador.';
+    setKioskStatus(supportMessage, 'info');
+    setKioskProgressHint(
+        'Apoyo solicitado: recepcion te asistira para completar el turno.',
+        'warn'
+    );
+    appendAssistantMessage('bot', supportMessage);
+    emitQueueOpsEvent('reception_support_requested', { source });
 }
 
 function setKioskHelpPanelOpen(nextOpen, { source = 'ui' } = {}) {
@@ -710,6 +996,7 @@ function registerKioskActivity() {
 }
 
 function resetKioskSession({ reason = 'manual' } = {}) {
+    stopVoiceGuide({ source: 'session_reset' });
     resetKioskForms();
     resetAssistantConversation();
     renderTicketEmptyState();
@@ -1897,6 +2184,9 @@ function bindKioskStarControls() {
     const quickWalkin = getById('kioskQuickWalkin');
     const helpToggle = getById('kioskHelpToggle');
     const helpClose = getById('kioskHelpClose');
+    const seniorToggle = getById('kioskSeniorToggle');
+    const voiceGuideBtn = getById('kioskVoiceGuideBtn');
+    const receptionHelpBtn = getById('kioskReceptionHelpBtn');
 
     if (quickCheckin instanceof HTMLButtonElement) {
         quickCheckin.addEventListener('click', () => {
@@ -1920,6 +2210,25 @@ function bindKioskStarControls() {
         helpClose.addEventListener('click', () => {
             registerKioskActivity();
             setKioskHelpPanelOpen(false, { source: 'close_button' });
+        });
+    }
+    if (seniorToggle instanceof HTMLButtonElement) {
+        seniorToggle.addEventListener('click', () => {
+            registerKioskActivity();
+            toggleSeniorMode({ source: 'button' });
+        });
+    }
+    if (voiceGuideBtn instanceof HTMLButtonElement) {
+        voiceGuideBtn.addEventListener('click', () => {
+            registerKioskActivity();
+            runVoiceGuide({ source: 'button' });
+        });
+    }
+    if (receptionHelpBtn instanceof HTMLButtonElement) {
+        receptionHelpBtn.dataset.variant = 'warning';
+        receptionHelpBtn.addEventListener('click', () => {
+            registerKioskActivity();
+            requestReceptionSupport({ source: 'button' });
         });
     }
 }
@@ -2089,7 +2398,13 @@ function initKiosk() {
     document.body.dataset.kioskMode = 'star';
     ensureKioskStarStyles();
     state.idleResetMs = resolveIdleResetMs();
+    state.voiceGuideSupported = supportsVoiceGuide();
     initTheme();
+    setSeniorModeEnabled(readSeniorModePreference(), {
+        persist: false,
+        source: 'init',
+    });
+    syncVoiceGuideButton();
     runWelcomeSequence();
     initDefaultDate();
 
@@ -2191,6 +2506,7 @@ function initKiosk() {
     });
 
     window.addEventListener('beforeunload', () => {
+        stopVoiceGuide({ source: 'beforeunload' });
         stopQueuePolling({ reason: 'paused' });
     });
 
@@ -2217,6 +2533,21 @@ function initKiosk() {
         if (keyCode === 'digit2') {
             event.preventDefault();
             focusFlowTarget('walkin');
+            return;
+        }
+        if (keyCode === 'keys') {
+            event.preventDefault();
+            toggleSeniorMode({ source: 'shortcut' });
+            return;
+        }
+        if (keyCode === 'keyv') {
+            event.preventDefault();
+            runVoiceGuide({ source: 'shortcut' });
+            return;
+        }
+        if (keyCode === 'keya') {
+            event.preventDefault();
+            requestReceptionSupport({ source: 'shortcut' });
             return;
         }
         if (keyCode === 'keyl') {

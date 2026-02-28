@@ -134,6 +134,13 @@ const QUEUE_SENSITIVE_ACTIONS = new Set([
     'reasignar',
 ]);
 const QUEUE_PRACTICE_COACH_STYLE_ID = 'queuePracticeCoachInlineStyles';
+const QUEUE_SENSITIVE_CONFIRM_STYLE_ID = 'queueSensitiveConfirmInlineStyles';
+const QUEUE_SENSITIVE_ACTION_LABELS = Object.freeze({
+    completar: 'completar atencion',
+    no_show: 'marcar como no_show',
+    cancelar: 'cancelar ticket',
+    reasignar: 'reasignar ticket',
+});
 const QUEUE_PRACTICE_STEPS = Object.freeze([
     Object.freeze({
         id: 'call_next',
@@ -338,6 +345,8 @@ const queueStarUiState = {
     lastOneTapAt: 0,
     customCallKey: null,
     captureCallKeyMode: false,
+    pendingSensitiveAction: null,
+    pendingSensitiveActionBusy: false,
 };
 
 function emitQueueOpsStationEvent(eventName, detail = {}) {
@@ -1579,6 +1588,10 @@ function syncQueueStationUi() {
             hintText +=
                 ' Calibración en curso: presiona la tecla deseada o Esc para cancelar.';
         }
+        if (queueStarUiState.pendingSensitiveAction) {
+            hintText +=
+                ' Accion sensible pendiente: Numpad Enter confirma y Esc cancela.';
+        }
         stationHint.textContent = hintText;
     }
 
@@ -1666,6 +1679,11 @@ function syncQueueStationUi() {
                     button.getAttribute('title') || ''
                 ).trim();
             }
+            if (!button.dataset.stationBaseDisabled) {
+                button.dataset.stationBaseDisabled = button.matches(':disabled')
+                    ? '1'
+                    : '0';
+            }
             const room = normalizeQueueStationConsultorio(
                 button.dataset.queueConsultorio || 0,
                 0
@@ -1674,12 +1692,16 @@ function syncQueueStationUi() {
                 mode === QUEUE_STATION_MODE_LOCKED && room !== consultorio;
             button.classList.toggle('is-station-blocked', blocked);
             if (button instanceof HTMLButtonElement) {
-                button.setAttribute('aria-disabled', String(button.disabled));
+                const baseDisabled = button.dataset.stationBaseDisabled === '1';
+                const shouldDisable =
+                    baseDisabled || blocked || button.disabled;
+                button.disabled = shouldDisable;
+                button.setAttribute('aria-disabled', String(shouldDisable));
             }
             if (blocked) {
                 button.setAttribute(
                     'title',
-                    `Estación bloqueada en C${consultorio}. Click para llamado manual en C${room}.`
+                    `Estación bloqueada en C${consultorio}. Reconfigura estación para llamar C${room}.`
                 );
             } else {
                 const defaultTitle = String(
@@ -1694,6 +1716,7 @@ function syncQueueStationUi() {
         });
 
     syncQueueHelpPanel();
+    syncQueueSensitiveConfirmDialog();
 }
 
 function setQueueOneTapAdvanceEnabled(
@@ -1869,6 +1892,17 @@ function setQueueStationConfig(
     const changedConsultorio =
         nextConsultorio !== queueStationState.consultorio;
 
+    if (
+        (changedMode || changedConsultorio) &&
+        queueStarUiState.pendingSensitiveAction
+    ) {
+        dismissQueueSensitiveActionGuard({
+            source,
+            reason: 'station_config_changed',
+            announce: false,
+        });
+    }
+
     queueStationState.mode = nextMode;
     queueStationState.consultorio = nextConsultorio;
 
@@ -1924,6 +1958,8 @@ function bootstrapQueueStationConfig() {
     queueStarUiState.oneTapInFlight = false;
     queueStarUiState.lastOneTapAt = 0;
     queueStarUiState.captureCallKeyMode = false;
+    queueStarUiState.pendingSensitiveAction = null;
+    queueStarUiState.pendingSensitiveActionBusy = false;
     try {
         window.__PIEL_QUEUE_PRACTICE_MODE = false;
     } catch (_error) {
@@ -1969,6 +2005,7 @@ function bootstrapQueueStationConfig() {
 
     syncQueueStationUi();
     syncQueueHelpPanel();
+    syncQueueSensitiveConfirmDialog();
     if (queueStationState.mode === QUEUE_STATION_MODE_LOCKED) {
         markQueueOnboardingStepCompleted('station_locked', {
             source: 'bootstrap',
@@ -2109,6 +2146,332 @@ function requiresQueueSensitiveConfirmation(action) {
     return QUEUE_SENSITIVE_ACTIONS.has(String(action || '').toLowerCase());
 }
 
+function getQueueSensitiveActionLabel(action) {
+    const normalizedAction = String(action || '').toLowerCase();
+    return (
+        QUEUE_SENSITIVE_ACTION_LABELS[normalizedAction] ||
+        normalizedAction ||
+        'ejecutar accion'
+    );
+}
+
+function ensureQueueSensitiveConfirmStyles() {
+    if (document.getElementById(QUEUE_SENSITIVE_CONFIRM_STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = QUEUE_SENSITIVE_CONFIRM_STYLE_ID;
+    style.textContent = `
+        #queueSensitiveConfirmDialog {
+            position: fixed;
+            inset: 0;
+            z-index: 1200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1.25rem;
+        }
+        #queueSensitiveConfirmDialog.is-open {
+            display: flex;
+        }
+        #queueSensitiveConfirmDialog .queue-sensitive-confirm-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgb(15 23 42 / 55%);
+            backdrop-filter: blur(2px);
+        }
+        #queueSensitiveConfirmDialog .queue-sensitive-confirm-card {
+            position: relative;
+            width: min(520px, 100%);
+            border-radius: 20px;
+            border: 1px solid rgb(15 23 42 / 14%);
+            background: #fff;
+            box-shadow: 0 22px 50px rgb(15 23 42 / 22%);
+            padding: 1.25rem;
+            color: #0f172a;
+        }
+        #queueSensitiveConfirmDialog .queue-sensitive-confirm-card h4 {
+            margin: 0 0 0.5rem;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+        #queueSensitiveConfirmDialog .queue-sensitive-confirm-card p {
+            margin: 0;
+            line-height: 1.5;
+        }
+        #queueSensitiveConfirmDialog .queue-sensitive-confirm-hint {
+            margin-top: 0.65rem;
+            color: #475569;
+            font-size: 0.92rem;
+        }
+        #queueSensitiveConfirmDialog .queue-sensitive-confirm-actions {
+            display: flex;
+            gap: 0.6rem;
+            justify-content: flex-end;
+            margin-top: 1rem;
+        }
+        #queueSensitiveConfirmDialog .queue-sensitive-confirm-actions .btn {
+            min-width: 128px;
+        }
+        [data-theme='dark'] #queueSensitiveConfirmDialog .queue-sensitive-confirm-card {
+            background: #111c33;
+            color: #e7edf9;
+            border-color: rgb(148 163 184 / 24%);
+            box-shadow: 0 24px 55px rgb(2 8 23 / 55%);
+        }
+        [data-theme='dark'] #queueSensitiveConfirmDialog .queue-sensitive-confirm-hint {
+            color: #b6c5de;
+        }
+        @media (max-width: 720px) {
+            #queueSensitiveConfirmDialog .queue-sensitive-confirm-card {
+                padding: 1rem;
+                border-radius: 16px;
+            }
+            #queueSensitiveConfirmDialog .queue-sensitive-confirm-actions .btn {
+                min-width: 0;
+                flex: 1 1 auto;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #queueSensitiveConfirmDialog,
+            #queueSensitiveConfirmDialog * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+function ensureQueueSensitiveConfirmDialog() {
+    ensureQueueSensitiveConfirmStyles();
+    let dialog = document.getElementById('queueSensitiveConfirmDialog');
+    if (dialog instanceof HTMLElement) return dialog;
+
+    dialog = document.createElement('div');
+    dialog.id = 'queueSensitiveConfirmDialog';
+    dialog.hidden = true;
+    dialog.setAttribute('aria-hidden', 'true');
+    dialog.innerHTML = `
+        <div class="queue-sensitive-confirm-backdrop" data-action="queue-sensitive-cancel"></div>
+        <div
+            class="queue-sensitive-confirm-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="queueSensitiveConfirmTitle"
+            aria-describedby="queueSensitiveConfirmMessage"
+        >
+            <h4 id="queueSensitiveConfirmTitle">Confirmar accion sensible</h4>
+            <p id="queueSensitiveConfirmMessage"></p>
+            <p class="queue-sensitive-confirm-hint">
+                Numpad Enter confirma. Esc cancela.
+            </p>
+            <div class="queue-sensitive-confirm-actions">
+                <button type="button" class="btn btn-secondary btn-sm" data-action="queue-sensitive-cancel">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" data-action="queue-sensitive-confirm">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(dialog);
+    return dialog;
+}
+
+function syncQueueSensitiveConfirmDialog() {
+    const dialog = ensureQueueSensitiveConfirmDialog();
+    if (!(dialog instanceof HTMLElement)) return;
+
+    const pending = queueStarUiState.pendingSensitiveAction;
+    const isOpen = Boolean(pending);
+    dialog.hidden = !isOpen;
+    dialog.classList.toggle('is-open', isOpen);
+    dialog.setAttribute('aria-hidden', String(!isOpen));
+
+    const messageEl = document.getElementById('queueSensitiveConfirmMessage');
+    const confirmBtn = dialog.querySelector(
+        '[data-action="queue-sensitive-confirm"]'
+    );
+    const cancelBtn = dialog.querySelector(
+        '[data-action="queue-sensitive-cancel"]'
+    );
+
+    if (!(messageEl instanceof HTMLElement)) return;
+    if (!isOpen) {
+        messageEl.textContent = '';
+        if (confirmBtn instanceof HTMLButtonElement) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Confirmar';
+        }
+        if (cancelBtn instanceof HTMLButtonElement) {
+            cancelBtn.disabled = false;
+        }
+        return;
+    }
+
+    const actionLabel = getQueueSensitiveActionLabel(pending.action);
+    const ticketContext =
+        pending.ticketLabel && pending.ticketLabel !== '--'
+            ? ` (${pending.ticketLabel})`
+            : '';
+    messageEl.textContent = `Vas a ${actionLabel}${ticketContext} en C${pending.consultorio}.`;
+
+    if (confirmBtn instanceof HTMLButtonElement) {
+        confirmBtn.disabled = queueStarUiState.pendingSensitiveActionBusy;
+        confirmBtn.textContent = queueStarUiState.pendingSensitiveActionBusy
+            ? 'Procesando...'
+            : 'Confirmar';
+    }
+    if (cancelBtn instanceof HTMLButtonElement) {
+        cancelBtn.disabled = queueStarUiState.pendingSensitiveActionBusy;
+    }
+}
+
+function dismissQueueSensitiveActionGuard({
+    source = 'manual',
+    reason = 'dismissed',
+    announce = false,
+} = {}) {
+    const pending = queueStarUiState.pendingSensitiveAction;
+    if (!pending) return false;
+
+    queueStarUiState.pendingSensitiveAction = null;
+    queueStarUiState.pendingSensitiveActionBusy = false;
+    syncQueueSensitiveConfirmDialog();
+
+    if (reason !== 'confirmed') {
+        emitQueueOpsStationEvent('action_cancelled', {
+            source,
+            action: pending.action,
+            consultorio: pending.consultorio,
+            ticketId: pending.ticketId,
+            reason,
+        });
+    }
+
+    if (announce) {
+        showToast('Accion sensible cancelada', 'info');
+    }
+    return true;
+}
+
+function prepareQueueSensitiveActionGuard(action, { source = 'numpad' } = {}) {
+    const normalizedAction = String(action || '').toLowerCase();
+    if (!requiresQueueSensitiveConfirmation(normalizedAction)) return false;
+
+    const room = normalizeQueueStationConsultorio(
+        queueStationState.consultorio,
+        0
+    );
+    if (![1, 2].includes(room)) {
+        showToast('Consultorio de estacion invalido', 'error');
+        return false;
+    }
+
+    const ticketId = getQueueActiveTicketIdForConsultorio(room);
+    if (!ticketId) {
+        showToast(`No hay ticket activo en C${room}`, 'warning');
+        return false;
+    }
+    const ticketLabel = getQueueActiveTicketLabelForConsultorio(room);
+
+    queueStarUiState.pendingSensitiveAction = {
+        action: normalizedAction,
+        consultorio: room,
+        ticketId,
+        ticketLabel,
+        source: String(source || 'manual'),
+        preparedAt: new Date().toISOString(),
+    };
+    queueStarUiState.pendingSensitiveActionBusy = false;
+    syncQueueSensitiveConfirmDialog();
+
+    emitQueueOpsStationEvent('sensitive_action_prepared', {
+        source,
+        action: normalizedAction,
+        consultorio: room,
+        ticketId,
+    });
+    showToast(
+        `${getQueueSensitiveActionLabel(
+            normalizedAction
+        )} listo. Numpad Enter para confirmar o Esc para cancelar.`,
+        'warning'
+    );
+    return true;
+}
+
+async function confirmQueueSensitiveActionGuard({
+    source = 'guard_confirm',
+} = {}) {
+    const pending = queueStarUiState.pendingSensitiveAction;
+    if (!pending) return false;
+    if (queueStarUiState.pendingSensitiveActionBusy) return false;
+
+    queueStarUiState.pendingSensitiveActionBusy = true;
+    syncQueueSensitiveConfirmDialog();
+    try {
+        if (queueStarUiState.practiceMode) {
+            showToast(
+                `Modo practica: accion "${pending.action}" simulada en C${pending.consultorio}.`,
+                'info'
+            );
+            registerQueuePracticeAction(pending.action, {
+                source,
+                consultorio: pending.consultorio,
+                ticketId: pending.ticketId,
+            });
+            emitQueueOpsStationEvent('action_confirmed', {
+                source,
+                action: pending.action,
+                consultorio: pending.consultorio,
+                ticketId: pending.ticketId,
+                practiceMode: true,
+            });
+            dismissQueueSensitiveActionGuard({
+                source,
+                reason: 'confirmed',
+                announce: false,
+            });
+            return true;
+        }
+
+        const success = await applyQueueTicketAction(
+            pending.ticketId,
+            pending.action,
+            pending.consultorio
+        );
+        if (!success) {
+            syncQueueSensitiveConfirmDialog();
+            return false;
+        }
+
+        emitQueueOpsStationEvent('action_confirmed', {
+            source,
+            action: pending.action,
+            consultorio: pending.consultorio,
+            ticketId: pending.ticketId,
+            practiceMode: false,
+        });
+        emitQueueOpsStationEvent('station_ticket_action', {
+            source,
+            action: pending.action,
+            consultorio: pending.consultorio,
+            ticketId: pending.ticketId,
+        });
+
+        dismissQueueSensitiveActionGuard({
+            source,
+            reason: 'confirmed',
+            announce: false,
+        });
+        return true;
+    } finally {
+        queueStarUiState.pendingSensitiveActionBusy = false;
+        syncQueueSensitiveConfirmDialog();
+    }
+}
+
 function confirmQueueSensitiveAction({
     action,
     consultorio,
@@ -2150,7 +2513,10 @@ function confirmQueueSensitiveAction({
     return true;
 }
 
-async function runQueueStationTicketAction(action, { source = 'numpad' } = {}) {
+async function runQueueStationTicketAction(
+    action,
+    { source = 'numpad', requirePreparation = false } = {}
+) {
     const normalizedAction = String(action || '').toLowerCase();
     const room = normalizeQueueStationConsultorio(
         queueStationState.consultorio,
@@ -2168,6 +2534,11 @@ async function runQueueStationTicketAction(action, { source = 'numpad' } = {}) {
     }
 
     if (requiresQueueSensitiveConfirmation(normalizedAction)) {
+        if (requirePreparation) {
+            return prepareQueueSensitiveActionGuard(normalizedAction, {
+                source,
+            });
+        }
         const confirmed = confirmQueueSensitiveAction({
             action: normalizedAction,
             consultorio: room,
@@ -2207,6 +2578,15 @@ async function runQueueStationTicketAction(action, { source = 'numpad' } = {}) {
 
 function handleQueueEscapeKey(event) {
     if (!isQueueSectionActive()) return false;
+    if (queueStarUiState.pendingSensitiveAction) {
+        event.preventDefault();
+        dismissQueueSensitiveActionGuard({
+            source: 'keyboard_escape',
+            reason: 'keyboard_escape',
+            announce: true,
+        });
+        return true;
+    }
     if (queueStarUiState.onboardingVisible) {
         event.preventDefault();
         setQueueOnboardingVisible(false, {
@@ -2275,14 +2655,7 @@ async function runQueueCallNext(consultorio, { source = 'manual' } = {}) {
         return false;
     }
 
-    const normalizedSource = String(source || 'manual').toLowerCase();
-    const isNumpadSource = normalizedSource.startsWith('numpad');
-    const enforceLock =
-        isNumpadSource ||
-        normalizedSource === 'shortcut' ||
-        normalizedSource === 'command';
-
-    if (!isQueueStationCallAllowed(room) && enforceLock) {
+    if (isQueueStationLocked() && !isQueueStationCallAllowed(room)) {
         blockQueueStationChange(room, { source });
         return false;
     }
@@ -2294,18 +2667,6 @@ async function runQueueCallNext(consultorio, { source = 'manual' } = {}) {
             consultorio: room,
         });
         return true;
-    }
-
-    if (!isQueueStationCallAllowed(room) && isQueueStationLocked()) {
-        showToast(
-            `Estación bloqueada en C${queueStationState.consultorio}. Llamando manualmente C${room}.`,
-            'warning'
-        );
-        emitQueueOpsStationEvent('station_manual_override', {
-            source,
-            consultorio: room,
-            stationConsultorio: queueStationState.consultorio,
-        });
     }
 
     if (isQueueStationLocked()) {
@@ -2749,6 +3110,17 @@ function handleAdminKeyboardShortcuts(event) {
         }
         if (event.repeat) return;
 
+        if (
+            queueStarUiState.pendingSensitiveAction &&
+            isQueueNumpadEnterEvent(event)
+        ) {
+            event.preventDefault();
+            void confirmQueueSensitiveActionGuard({
+                source: 'numpad_enter_confirm',
+            });
+            return;
+        }
+
         if (isQueueNumpadZeroEvent(event)) {
             event.preventDefault();
             toggleQueueHelpPanel({ source: 'numpad', announce: true });
@@ -2765,6 +3137,7 @@ function handleAdminKeyboardShortcuts(event) {
             event.preventDefault();
             void runQueueStationTicketAction('completar', {
                 source: 'numpad_decimal',
+                requirePreparation: true,
             });
             return;
         }
@@ -2772,6 +3145,7 @@ function handleAdminKeyboardShortcuts(event) {
             event.preventDefault();
             void runQueueStationTicketAction('no_show', {
                 source: 'numpad_subtract',
+                requirePreparation: true,
             });
             return;
         }
@@ -3719,6 +4093,24 @@ function attachGlobalListeners() {
             event.preventDefault();
             await refreshQueueRealtime({ silent: false });
             syncQueueStationUi();
+            return;
+        }
+
+        if (action === 'queue-sensitive-confirm') {
+            event.preventDefault();
+            await confirmQueueSensitiveActionGuard({
+                source: 'dialog_button',
+            });
+            return;
+        }
+
+        if (action === 'queue-sensitive-cancel') {
+            event.preventDefault();
+            dismissQueueSensitiveActionGuard({
+                source: 'dialog_button',
+                reason: 'dialog_cancel',
+                announce: false,
+            });
             return;
         }
 

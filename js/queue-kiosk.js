@@ -1,10 +1,11 @@
 !(function () {
     'use strict';
-    const e = 9e5,
-        n = 'queueKioskOfflineOutbox',
-        t = 'queueKioskPrinterState',
-        i = 'kioskStarInlineStyles',
-        o = {
+    const e = 'queueKioskSeniorMode',
+        n = 9e5,
+        t = 'queueKioskOfflineOutbox',
+        i = 'queueKioskPrinterState',
+        o = 'kioskStarInlineStyles',
+        a = {
             queueState: null,
             chatHistory: [],
             assistantBusy: !1,
@@ -28,8 +29,12 @@
             quickHelpOpen: !1,
             selectedFlow: 'checkin',
             welcomeDismissed: !1,
+            seniorMode: !1,
+            voiceGuideSupported: !1,
+            voiceGuideBusy: !1,
+            voiceGuideUtterance: null,
         };
-    function a(e, n = {}) {
+    function r(e, n = {}) {
         try {
             window.dispatchEvent(
                 new CustomEvent('piel:queue-ops', {
@@ -43,7 +48,7 @@
             );
         } catch (e) {}
     }
-    function r(e) {
+    function s(e) {
         return String(e || '')
             .replaceAll('&', '&amp;')
             .replaceAll('<', '&lt;')
@@ -51,11 +56,11 @@
             .replaceAll('"', '&quot;')
             .replaceAll("'", '&#39;');
     }
-    function s(e) {
+    function c(e) {
         return document.getElementById(e);
     }
-    function c(e, n = 'info') {
-        const t = s('kioskProgressHint');
+    function u(e, n = 'info') {
+        const t = c('kioskProgressHint');
         if (!(t instanceof HTMLElement)) return;
         const i = ['info', 'warn', 'success'].includes(
                 String(n || '').toLowerCase()
@@ -67,63 +72,226 @@
                 'Paso 1 de 2: selecciona una opcion para comenzar.';
         ((t.dataset.tone = i), (t.textContent = o));
     }
-    function u(e, { source: n = 'ui' } = {}) {
-        const t = s('kioskQuickHelpPanel'),
-            i = s('kioskHelpToggle');
+    function l(e, n = 'info') {
+        const t = c('kioskSeniorHint');
+        if (!(t instanceof HTMLElement)) return;
+        const i = ['info', 'warn', 'success'].includes(
+            String(n || '').toLowerCase()
+        )
+            ? String(n || '').toLowerCase()
+            : 'info';
+        ((t.dataset.tone = i),
+            (t.textContent =
+                String(e || '').trim() ||
+                'Si necesitas letra mas grande, usa "Modo lectura grande".'));
+    }
+    function d(n, { persist: t = !0, source: i = 'ui' } = {}) {
+        const o = Boolean(n);
+        ((a.seniorMode = o),
+            (document.body.dataset.kioskSenior = o ? 'on' : 'off'),
+            (function () {
+                const e = c('kioskSeniorToggle');
+                if (!(e instanceof HTMLButtonElement)) return;
+                const n = Boolean(a.seniorMode);
+                ((e.dataset.active = n ? 'true' : 'false'),
+                    e.setAttribute('aria-pressed', String(n)),
+                    (e.textContent =
+                        'Modo lectura grande: ' + (n ? 'On' : 'Off')));
+            })(),
+            t &&
+                (function (n) {
+                    try {
+                        localStorage.setItem(e, n ? '1' : '0');
+                    } catch (e) {}
+                })(o),
+            l(
+                o
+                    ? 'Modo lectura grande activo. Botones y textos ampliados.'
+                    : 'Modo lectura grande desactivado.',
+                o ? 'success' : 'info'
+            ),
+            r('senior_mode_changed', { enabled: o, source: i }));
+    }
+    function f({ source: e = 'ui' } = {}) {
+        d(!a.seniorMode, { persist: !0, source: e });
+    }
+    function p() {
+        return (
+            'undefined' != typeof window &&
+            'speechSynthesis' in window &&
+            'function' == typeof window.speechSynthesis?.speak &&
+            'function' == typeof window.SpeechSynthesisUtterance
+        );
+    }
+    function m() {
+        const e = c('kioskVoiceGuideBtn');
+        if (!(e instanceof HTMLButtonElement)) return;
+        const n = Boolean(a.voiceGuideSupported),
+            t = Boolean(a.voiceGuideBusy);
+        ((e.disabled = !n && !t),
+            (e.textContent = n
+                ? t
+                    ? 'Leyendo instrucciones...'
+                    : 'Leer instrucciones'
+                : 'Voz guia no disponible'));
+    }
+    function g({ source: e = 'manual' } = {}) {
+        if (!p())
+            return (
+                (a.voiceGuideBusy = !1),
+                (a.voiceGuideUtterance = null),
+                void m()
+            );
+        try {
+            window.speechSynthesis.cancel();
+        } catch (e) {}
+        ((a.voiceGuideBusy = !1),
+            (a.voiceGuideUtterance = null),
+            m(),
+            r('voice_guide_stopped', { source: e }));
+    }
+    function k({ source: e = 'button' } = {}) {
+        if (!a.voiceGuideSupported)
+            return (
+                T(
+                    'Guia por voz no disponible en este navegador. Usa ayuda rapida en pantalla.',
+                    'info'
+                ),
+                l(
+                    'Sin voz guia en este equipo. Usa ayuda rapida o pide apoyo.',
+                    'warn'
+                ),
+                void r('voice_guide_unavailable', { source: e })
+            );
+        g({ source: 'restart' });
+        const n = `Bienvenida al kiosco de turnos de Piel en Armonia. ${'walkin' === a.selectedFlow ? 'Si no tienes cita, escribe iniciales y pulsa Generar turno.' : 'Si tienes cita, escribe telefono, fecha y hora y pulsa Confirmar check in.'} Si necesitas ayuda, pulsa Necesito apoyo y recepcion te asistira. Conserva tu ticket y espera el llamado en la pantalla de sala.`;
+        let t;
+        try {
+            t = new window.SpeechSynthesisUtterance(n);
+        } catch (n) {
+            return (
+                T('No se pudo iniciar guia por voz en este equipo.', 'error'),
+                void r('voice_guide_error', {
+                    source: e,
+                    reason: 'utterance_create_failed',
+                })
+            );
+        }
+        ((t.lang = 'es-EC'),
+            (t.rate = 0.92),
+            (t.pitch = 1),
+            (t.onstart = () => {
+                ((a.voiceGuideBusy = !0), m());
+            }),
+            (t.onend = () => {
+                ((a.voiceGuideBusy = !1),
+                    (a.voiceGuideUtterance = null),
+                    m(),
+                    r('voice_guide_finished', { source: e }));
+            }),
+            (t.onerror = () => {
+                ((a.voiceGuideBusy = !1),
+                    (a.voiceGuideUtterance = null),
+                    m(),
+                    T(
+                        'La guia por voz se interrumpio. Puedes intentar nuevamente.',
+                        'error'
+                    ),
+                    r('voice_guide_error', {
+                        source: e,
+                        reason: 'speech_error',
+                    }));
+            }));
+        try {
+            ((a.voiceGuideUtterance = t),
+                (a.voiceGuideBusy = !0),
+                m(),
+                window.speechSynthesis.speak(t),
+                T('Guia por voz iniciada.', 'info'),
+                l(
+                    'Escuchando guia por voz. Puedes seguir los pasos en pantalla.',
+                    'success'
+                ),
+                r('voice_guide_started', { source: e }));
+        } catch (n) {
+            ((a.voiceGuideBusy = !1),
+                (a.voiceGuideUtterance = null),
+                m(),
+                T('No se pudo reproducir guia por voz.', 'error'),
+                r('voice_guide_error', {
+                    source: e,
+                    reason: 'speech_start_failed',
+                }));
+        }
+    }
+    function b({ source: e = 'button' } = {}) {
+        const n =
+            'Recepcion te ayudara enseguida. Mantente frente al kiosco o acude al mostrador.';
+        (T(n, 'info'),
+            u(
+                'Apoyo solicitado: recepcion te asistira para completar el turno.',
+                'warn'
+            ),
+            ce('bot', n),
+            r('reception_support_requested', { source: e }));
+    }
+    function h(e, { source: n = 'ui' } = {}) {
+        const t = c('kioskQuickHelpPanel'),
+            i = c('kioskHelpToggle');
         if (!(t instanceof HTMLElement && i instanceof HTMLButtonElement))
             return;
-        const r = Boolean(e);
-        ((o.quickHelpOpen = r),
-            (t.hidden = !r),
-            (i.dataset.open = r ? 'true' : 'false'),
-            i.setAttribute('aria-expanded', String(r)),
-            a('quick_help_toggled', { open: r, source: n }),
-            c(
-                r
+        const o = Boolean(e);
+        ((a.quickHelpOpen = o),
+            (t.hidden = !o),
+            (i.dataset.open = o ? 'true' : 'false'),
+            i.setAttribute('aria-expanded', String(o)),
+            r('quick_help_toggled', { open: o, source: n }),
+            u(
+                o
                     ? 'Guia abierta: elige opcion, completa datos y confirma ticket.'
                     : 'Paso 1 de 2: selecciona una opcion para comenzar.',
                 'info'
             ));
     }
-    function l(e, { announce: n = !0 } = {}) {
+    function y(e, { announce: n = !0 } = {}) {
         const t =
             'walkin' === String(e || '').toLowerCase() ? 'walkin' : 'checkin';
-        o.selectedFlow = t;
-        const i = s('checkinForm'),
-            r = s('walkinForm');
+        a.selectedFlow = t;
+        const i = c('checkinForm'),
+            o = c('walkinForm');
         (i instanceof HTMLElement &&
             i.classList.toggle('is-flow-active', 'checkin' === t),
-            r instanceof HTMLElement &&
-                r.classList.toggle('is-flow-active', 'walkin' === t));
-        const u = s('kioskQuickCheckin'),
-            l = s('kioskQuickWalkin');
-        if (u instanceof HTMLButtonElement) {
+            o instanceof HTMLElement &&
+                o.classList.toggle('is-flow-active', 'walkin' === t));
+        const s = c('kioskQuickCheckin'),
+            l = c('kioskQuickWalkin');
+        if (s instanceof HTMLButtonElement) {
             const e = 'checkin' === t;
-            ((u.dataset.active = e ? 'true' : 'false'),
-                u.setAttribute('aria-pressed', String(e)));
+            ((s.dataset.active = e ? 'true' : 'false'),
+                s.setAttribute('aria-pressed', String(e)));
         }
         if (l instanceof HTMLButtonElement) {
             const e = 'walkin' === t;
             ((l.dataset.active = e ? 'true' : 'false'),
                 l.setAttribute('aria-pressed', String(e)));
         }
-        const d = s('walkin' === t ? 'walkinInitials' : 'checkinPhone');
+        const d = c('walkin' === t ? 'walkinInitials' : 'checkinPhone');
         (d instanceof HTMLInputElement && d.focus({ preventScroll: !1 }),
             n &&
-                c(
+                u(
                     'walkin' === t
                         ? 'Paso 2: escribe iniciales y pulsa "Generar turno".'
                         : 'Paso 2: escribe telefono, fecha y hora para check-in.',
                     'info'
                 ),
-            a('flow_focus', { target: t }));
+            r('flow_focus', { target: t }));
     }
-    function d(e, n) {
+    function v(e, n) {
         if (!e || 'object' != typeof e || !Array.isArray(n)) return [];
         for (const t of n) if (t && Array.isArray(e[t])) return e[t];
         return [];
     }
-    function f(e, n) {
+    function S(e, n) {
         if (!e || 'object' != typeof e || !Array.isArray(n)) return null;
         for (const t of n) {
             if (!t) continue;
@@ -132,7 +300,7 @@
         }
         return null;
     }
-    function m(e, n, t = 0) {
+    function w(e, n, t = 0) {
         if (!e || 'object' != typeof e || !Array.isArray(n))
             return Number(t || 0);
         for (const t of n) {
@@ -142,25 +310,25 @@
         }
         return Number(t || 0);
     }
-    function p(e) {
+    function x(e) {
         const n = e && 'object' == typeof e ? e : {},
-            t = f(n, ['counts']) || {},
-            i = m(n, ['waitingCount', 'waiting_count'], Number.NaN),
-            o = m(n, ['calledCount', 'called_count'], Number.NaN);
-        let a = d(n, [
+            t = S(n, ['counts']) || {},
+            i = w(n, ['waitingCount', 'waiting_count'], Number.NaN),
+            o = w(n, ['calledCount', 'called_count'], Number.NaN);
+        let a = v(n, [
             'callingNow',
             'calling_now',
             'calledTickets',
             'called_tickets',
         ]);
         if (0 === a.length) {
-            const e = f(n, [
+            const e = S(n, [
                 'callingNowByConsultorio',
                 'calling_now_by_consultorio',
             ]);
             e && (a = Object.values(e).filter(Boolean));
         }
-        const r = d(n, [
+        const r = v(n, [
                 'nextTickets',
                 'next_tickets',
                 'waitingTickets',
@@ -168,10 +336,10 @@
             ]),
             s = Number.isFinite(i)
                 ? i
-                : m(t, ['waiting', 'waiting_count'], r.length),
+                : w(t, ['waiting', 'waiting_count'], r.length),
             c = Number.isFinite(o)
                 ? o
-                : m(t, ['called', 'called_count'], a.length);
+                : w(t, ['called', 'called_count'], a.length);
         return {
             updatedAt:
                 String(n.updatedAt || n.updated_at || '').trim() ||
@@ -221,7 +389,7 @@
                 : [],
         };
     }
-    async function g(e, { method: n = 'GET', body: t } = {}) {
+    async function q(e, { method: n = 'GET', body: t } = {}) {
         const i = new URLSearchParams();
         (i.set('resource', e), i.set('t', String(Date.now())));
         const o = await fetch(`/api.php?${i.toString()}`, {
@@ -246,45 +414,45 @@
             throw new Error(r.error || `HTTP ${o.status}`);
         return r;
     }
-    function k(e, n = 'info') {
-        const t = s('kioskStatus');
+    function T(e, n = 'info') {
+        const t = c('kioskStatus');
         if (!t) return;
         const i = String(e || '').trim() || 'Estado operativo',
             o = String(n || 'info').toLowerCase(),
-            r =
+            a =
                 i !== String(t.textContent || '').trim() ||
                 o !== String(t.dataset.status || '').toLowerCase();
         ((t.textContent = i),
             (t.dataset.status = o),
-            r && a('kiosk_status', { status: o, message: i }));
+            a && r('kiosk_status', { status: o, message: i }));
     }
-    function b(e, n) {
-        const t = s('queueConnectionState');
+    function L(e, n) {
+        const t = c('queueConnectionState');
         if (!t) return;
         const i = String(e || 'live').toLowerCase(),
-            r = {
+            o = {
                 live: 'Cola conectada',
                 reconnecting: 'Reintentando conexion',
                 offline: 'Sin conexion al backend',
                 paused: 'Cola en pausa',
             },
-            c = String(n || '').trim() || r[i] || r.live,
-            u = i !== o.lastConnectionState || c !== o.lastConnectionMessage;
-        ((o.lastConnectionState = i),
-            (o.lastConnectionMessage = c),
+            s = String(n || '').trim() || o[i] || o.live,
+            u = i !== a.lastConnectionState || s !== a.lastConnectionMessage;
+        ((a.lastConnectionState = i),
+            (a.lastConnectionMessage = s),
             (t.dataset.state = i),
-            (t.textContent = c),
-            u && a('connection_state', { state: i, message: c }));
+            (t.textContent = s),
+            u && r('connection_state', { state: i, message: s }));
     }
-    function h() {
-        const e = s('kioskSessionCountdown');
+    function M() {
+        const e = c('kioskSessionCountdown');
         if (!(e instanceof HTMLElement)) return;
-        if (!o.idleDeadlineTs)
+        if (!a.idleDeadlineTs)
             return (
                 (e.textContent = 'Privacidad auto: --:--'),
                 void (e.dataset.state = 'normal')
             );
-        const n = Math.max(0, o.idleDeadlineTs - Date.now());
+        const n = Math.max(0, a.idleDeadlineTs - Date.now());
         e.textContent = `Privacidad auto: ${(function (e) {
             const n = Math.max(0, Number(e || 0)),
                 t = Math.ceil(n / 1e3);
@@ -293,84 +461,85 @@
         const t = n <= 2e4;
         e.dataset.state = t ? 'warning' : 'normal';
     }
-    function y() {
-        const e = s('ticketResult');
+    function E() {
+        const e = c('ticketResult');
         e &&
             (e.innerHTML =
                 '<p class="ticket-empty">Todavia no se ha generado ningun ticket.</p>');
     }
-    function S() {
-        const e = s('assistantMessages');
+    function C() {
+        const e = c('assistantMessages');
         (e && (e.innerHTML = ''),
-            (o.chatHistory = []),
-            X(
+            (a.chatHistory = []),
+            ce(
                 'bot',
                 'Hola. Soy el asistente de sala. Puedo ayudarte con check-in, turnos y ubicacion de consultorios.'
             ));
-        const n = s('assistantInput');
+        const n = c('assistantInput');
         n instanceof HTMLInputElement && (n.value = '');
     }
-    function v({ durationMs: n = null } = {}) {
+    function H({ durationMs: e = null } = {}) {
         const t = Math.min(
-            e,
+            n,
             Math.max(
                 5e3,
                 Math.round(
-                    Number.isFinite(Number(n)) ? Number(n) : o.idleResetMs
+                    Number.isFinite(Number(e)) ? Number(e) : a.idleResetMs
                 )
             )
         );
-        (o.idleTimerId &&
-            (window.clearTimeout(o.idleTimerId), (o.idleTimerId = 0)),
-            o.idleTickId &&
-                (window.clearInterval(o.idleTickId), (o.idleTickId = 0)),
-            (o.idleDeadlineTs = Date.now() + t),
-            h(),
-            (o.idleTickId = window.setInterval(() => {
-                h();
+        (a.idleTimerId &&
+            (window.clearTimeout(a.idleTimerId), (a.idleTimerId = 0)),
+            a.idleTickId &&
+                (window.clearInterval(a.idleTickId), (a.idleTickId = 0)),
+            (a.idleDeadlineTs = Date.now() + t),
+            M(),
+            (a.idleTickId = window.setInterval(() => {
+                M();
             }, 1e3)),
-            (o.idleTimerId = window.setTimeout(() => {
-                if (o.assistantBusy || o.queueManualRefreshBusy)
+            (a.idleTimerId = window.setTimeout(() => {
+                if (a.assistantBusy || a.queueManualRefreshBusy)
                     return (
-                        k(
+                        T(
                             'Sesion activa. Reprogramando limpieza automatica.',
                             'info'
                         ),
-                        void v({ durationMs: 15e3 })
+                        void H({ durationMs: 15e3 })
                     );
-                w({ reason: 'idle_timeout' });
+                B({ reason: 'idle_timeout' });
             }, t)));
     }
-    function x() {
-        (ne({ reason: 'activity' }), v());
+    function O() {
+        (le({ reason: 'activity' }), H());
     }
-    function w({ reason: e = 'manual' } = {}) {
-        (!(function () {
-            const e = s('checkinForm'),
-                n = s('walkinForm');
-            (e instanceof HTMLFormElement && e.reset(),
-                n instanceof HTMLFormElement && n.reset(),
-                te());
-        })(),
-            S(),
-            y(),
-            u(!1, { source: 'session_reset' }),
-            l('checkin', { announce: !1 }),
-            k(
+    function B({ reason: e = 'manual' } = {}) {
+        (g({ source: 'session_reset' }),
+            (function () {
+                const e = c('checkinForm'),
+                    n = c('walkinForm');
+                (e instanceof HTMLFormElement && e.reset(),
+                    n instanceof HTMLFormElement && n.reset(),
+                    de());
+            })(),
+            C(),
+            E(),
+            h(!1, { source: 'session_reset' }),
+            y('checkin', { announce: !1 }),
+            T(
                 'idle_timeout' === e
                     ? 'Sesion reiniciada por inactividad para proteger privacidad.'
                     : 'Pantalla limpiada. Lista para el siguiente paciente.',
                 'info'
             ),
-            c('Paso 1 de 2: selecciona una opcion para comenzar.', 'info'),
-            B(),
-            v());
+            u('Paso 1 de 2: selecciona una opcion para comenzar.', 'info'),
+            j(),
+            H());
     }
-    function q() {
-        let e = s('queueOpsHint');
+    function _() {
+        let e = c('queueOpsHint');
         if (e) return e;
         const n = document.querySelector('.kiosk-side .kiosk-card'),
-            t = s('queueUpdatedAt');
+            t = c('queueUpdatedAt');
         return n && t
             ? ((e = document.createElement('p')),
               (e.id = 'queueOpsHint'),
@@ -380,14 +549,14 @@
               e)
             : null;
     }
-    function T(e) {
-        const n = q();
+    function I(e) {
+        const n = _();
         n && (n.textContent = String(e || '').trim() || 'Estado operativo');
     }
-    function L() {
-        let e = s('queueOutboxHint');
+    function A() {
+        let e = c('queueOutboxHint');
         if (e) return e;
-        const n = q();
+        const n = _();
         return n?.parentElement
             ? ((e = document.createElement('p')),
               (e.id = 'queueOutboxHint'),
@@ -397,15 +566,15 @@
               e)
             : null;
     }
-    function E(e) {
-        const n = L();
+    function N(e) {
+        const n = A();
         n &&
             (n.textContent = String(e || '').trim() || 'Pendientes offline: 0');
     }
-    function M() {
-        let e = s('queuePrinterHint');
+    function $() {
+        let e = c('queuePrinterHint');
         if (e) return e;
-        const n = L();
+        const n = A();
         return n?.parentElement
             ? ((e = document.createElement('p')),
               (e.id = 'queuePrinterHint'),
@@ -415,20 +584,20 @@
               e)
             : null;
     }
-    function C() {
-        const e = M();
+    function D() {
+        const e = $();
         if (!e) return;
-        const n = o.printerState;
+        const n = a.printerState;
         if (!n) return void (e.textContent = 'Impresora: estado pendiente.');
         const t = n.printed ? 'impresion OK' : n.errorCode || 'sin impresion',
             i = n.message ? ` (${n.message})` : '',
-            a = j(n.at);
-        e.textContent = `Impresora: ${t}${i} · ${a}`;
+            o = Z(n.at);
+        e.textContent = `Impresora: ${t}${i} · ${o}`;
     }
-    function O() {
-        let e = s('queueOutboxConsole');
+    function z() {
+        let e = c('queueOutboxConsole');
         if (e instanceof HTMLElement) return e;
-        const n = L();
+        const n = A();
         return n?.parentElement
             ? ((e = document.createElement('section')),
               (e.id = 'queueOutboxConsole'),
@@ -439,25 +608,25 @@
               e)
             : null;
     }
-    function H(e) {
-        const n = s('queueOutboxRetryBtn'),
-            t = s('queueOutboxClearBtn'),
-            i = s('queueOutboxDropOldestBtn');
+    function P(e) {
+        const n = c('queueOutboxRetryBtn'),
+            t = c('queueOutboxClearBtn'),
+            i = c('queueOutboxDropOldestBtn');
         (n instanceof HTMLButtonElement &&
-            ((n.disabled = Boolean(e) || !o.offlineOutbox.length),
+            ((n.disabled = Boolean(e) || !a.offlineOutbox.length),
             (n.textContent = e
                 ? 'Sincronizando...'
                 : 'Sincronizar pendientes')),
             t instanceof HTMLButtonElement &&
-                (t.disabled = Boolean(e) || !o.offlineOutbox.length),
+                (t.disabled = Boolean(e) || !a.offlineOutbox.length),
             i instanceof HTMLButtonElement &&
-                (i.disabled = Boolean(e) || o.offlineOutbox.length <= 0));
+                (i.disabled = Boolean(e) || a.offlineOutbox.length <= 0));
     }
-    function I() {
-        O();
-        const e = s('queueOutboxSummary'),
-            n = s('queueOutboxList'),
-            t = o.offlineOutbox.length;
+    function F() {
+        z();
+        const e = c('queueOutboxSummary'),
+            n = c('queueOutboxList'),
+            t = a.offlineOutbox.length;
         (e instanceof HTMLElement &&
             (e.textContent =
                 t <= 0 ? 'Outbox: 0 pendientes' : `Outbox: ${t} pendiente(s)`),
@@ -465,43 +634,43 @@
                 (n.innerHTML =
                     t <= 0
                         ? '<li class="queue-empty">Sin pendientes offline.</li>'
-                        : o.offlineOutbox
+                        : a.offlineOutbox
                               .slice(0, 6)
                               .map((e, n) => {
-                                  const t = j(e.queuedAt),
+                                  const t = Z(e.queuedAt),
                                       i = Number(e.attempts || 0);
-                                  return `<li><strong>${r(e.originLabel)}</strong> · ${r(e.patientInitials || '--')} · ${r(e.queueType || '--')} · ${r(t)} · intento ${n + 1}/${Math.max(1, i + 1)}</li>`;
+                                  return `<li><strong>${s(e.originLabel)}</strong> · ${s(e.patientInitials || '--')} · ${s(e.queueType || '--')} · ${s(t)} · intento ${n + 1}/${Math.max(1, i + 1)}</li>`;
                               })
                               .join('')),
-            H(!1));
+            P(!1));
     }
-    function A({ reason: e = 'manual' } = {}) {
-        ((o.offlineOutbox = []),
-            N(),
-            B(),
-            I(),
+    function R({ reason: e = 'manual' } = {}) {
+        ((a.offlineOutbox = []),
+            G(),
+            j(),
+            F(),
             'manual' === e &&
-                k('Pendientes offline limpiados manualmente.', 'info'));
+                T('Pendientes offline limpiados manualmente.', 'info'));
     }
-    function N() {
+    function G() {
         try {
-            localStorage.setItem(n, JSON.stringify(o.offlineOutbox));
+            localStorage.setItem(t, JSON.stringify(a.offlineOutbox));
         } catch (e) {}
     }
-    function B() {
-        const e = o.offlineOutbox.length;
+    function j() {
+        const e = a.offlineOutbox.length;
         if (e <= 0)
-            return (E('Pendientes offline: 0 (sin pendientes).'), void I());
-        const n = Date.parse(String(o.offlineOutbox[0]?.queuedAt || ''));
-        (E(
-            `Pendientes offline: ${e} - sincronizacion automatica al reconectar${Number.isFinite(n) ? ` - mas antiguo ${D(Date.now() - n)}` : ''}`
+            return (N('Pendientes offline: 0 (sin pendientes).'), void F());
+        const n = Date.parse(String(a.offlineOutbox[0]?.queuedAt || ''));
+        (N(
+            `Pendientes offline: ${e} - sincronizacion automatica al reconectar${Number.isFinite(n) ? ` - mas antiguo ${J(Date.now() - n)}` : ''}`
         ),
-            I());
+            F());
     }
-    function $() {
-        let e = s('queueManualRefreshBtn');
+    function U() {
+        let e = c('queueManualRefreshBtn');
         if (e instanceof HTMLButtonElement) return e;
-        const n = s('queueUpdatedAt');
+        const n = c('queueUpdatedAt');
         return n?.parentElement
             ? ((e = document.createElement('button')),
               (e.id = 'queueManualRefreshBtn'),
@@ -512,15 +681,15 @@
               e)
             : null;
     }
-    function _(e) {
-        const n = $();
+    function K(e) {
+        const n = U();
         n instanceof HTMLButtonElement &&
             ((n.disabled = Boolean(e)),
             (n.textContent = e
                 ? 'Actualizando cola...'
                 : 'Reintentar sincronizacion'));
     }
-    function D(e) {
+    function J(e) {
         const n = Math.max(0, Number(e || 0)),
             t = Math.round(n / 1e3);
         if (t < 60) return `${t}s`;
@@ -528,30 +697,30 @@
             o = t % 60;
         return o <= 0 ? `${i}m` : `${i}m ${o}s`;
     }
-    function P() {
-        return o.queueLastHealthySyncAt
-            ? `hace ${D(Date.now() - o.queueLastHealthySyncAt)}`
+    function Q() {
+        return a.queueLastHealthySyncAt
+            ? `hace ${J(Date.now() - a.queueLastHealthySyncAt)}`
             : 'sin sincronizacion confirmada';
     }
-    function z(e) {
-        const n = s('queueUpdatedAt');
+    function W(e) {
+        const n = c('queueUpdatedAt');
         if (!n) return;
-        const t = p({ updatedAt: e }),
+        const t = x({ updatedAt: e }),
             i = Date.parse(String(t.updatedAt || ''));
         Number.isFinite(i)
             ? (n.textContent = `Actualizado ${new Date(i).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`)
             : (n.textContent = 'Actualizacion pendiente');
     }
-    function F() {
-        const e = Math.max(0, Number(o.queueFailureStreak || 0)),
+    function V() {
+        const e = Math.max(0, Number(a.queueFailureStreak || 0)),
             n = 2500 * Math.pow(2, Math.min(e, 3));
         return Math.min(15e3, n);
     }
-    function R() {
-        o.queueTimerId &&
-            (window.clearTimeout(o.queueTimerId), (o.queueTimerId = 0));
+    function Y() {
+        a.queueTimerId &&
+            (window.clearTimeout(a.queueTimerId), (a.queueTimerId = 0));
     }
-    function j(e) {
+    function Z(e) {
         const n = Date.parse(String(e || ''));
         return Number.isFinite(n)
             ? new Date(n).toLocaleString('es-EC', {
@@ -562,18 +731,18 @@
               })
             : '--';
     }
-    async function K() {
-        if (o.queueRefreshBusy) return { ok: !1, stale: !1, reason: 'busy' };
-        o.queueRefreshBusy = !0;
+    async function X() {
+        if (a.queueRefreshBusy) return { ok: !1, stale: !1, reason: 'busy' };
+        a.queueRefreshBusy = !0;
         try {
-            const e = await g('queue-state');
-            ((o.queueState = p(e.data || {})),
+            const e = await q('queue-state');
+            ((a.queueState = x(e.data || {})),
                 (function (e) {
-                    const n = p(e),
-                        t = s('queueWaitingCount'),
-                        i = s('queueCalledCount'),
-                        o = s('queueCallingNow'),
-                        a = s('queueNextList');
+                    const n = x(e),
+                        t = c('queueWaitingCount'),
+                        i = c('queueCalledCount'),
+                        o = c('queueCallingNow'),
+                        a = c('queueNextList');
                     if (
                         (t && (t.textContent = String(n.waitingCount || 0)),
                         i && (i.textContent = String(n.calledCount || 0)),
@@ -588,7 +757,7 @@
                             : (o.innerHTML = e
                                   .map(
                                       (e) =>
-                                          `\n                        <article class="queue-called-card">\n                            <header>Consultorio ${r(e.assignedConsultorio)}</header>\n                            <strong>${r(e.ticketCode || '--')}</strong>\n                            <span>${r(e.patientInitials || '--')}</span>\n                        </article>\n                    `
+                                          `\n                        <article class="queue-called-card">\n                            <header>Consultorio ${s(e.assignedConsultorio)}</header>\n                            <strong>${s(e.ticketCode || '--')}</strong>\n                            <span>${s(e.patientInitials || '--')}</span>\n                        </article>\n                    `
                                   )
                                   .join(''));
                     }
@@ -602,20 +771,20 @@
                             : (a.innerHTML = e
                                   .map(
                                       (e) =>
-                                          `\n                        <li>\n                            <span class="ticket-code">${r(e.ticketCode || '--')}</span>\n                            <span class="ticket-meta">${r(e.patientInitials || '--')}</span>\n                            <span class="ticket-position">#${r(e.position || '-')}</span>\n                        </li>\n                    `
+                                          `\n                        <li>\n                            <span class="ticket-code">${s(e.ticketCode || '--')}</span>\n                            <span class="ticket-meta">${s(e.patientInitials || '--')}</span>\n                            <span class="ticket-position">#${s(e.position || '-')}</span>\n                        </li>\n                    `
                                   )
                                   .join(''));
                     }
-                })(o.queueState),
-                z(o.queueState?.updatedAt));
+                })(a.queueState),
+                W(a.queueState?.updatedAt));
             const n = (function (e) {
-                const n = p(e),
+                const n = x(e),
                     t = Date.parse(String(n.updatedAt || ''));
                 if (!Number.isFinite(t))
                     return { stale: !1, missingTimestamp: !0, ageMs: null };
                 const i = Math.max(0, Date.now() - t);
                 return { stale: i >= 3e4, missingTimestamp: !1, ageMs: i };
-            })(o.queueState);
+            })(a.queueState);
             return {
                 ok: !0,
                 stale: Boolean(n.stale),
@@ -630,68 +799,68 @@
                 errorMessage: e.message,
             };
         } finally {
-            o.queueRefreshBusy = !1;
+            a.queueRefreshBusy = !1;
         }
     }
-    function J(e, n) {
-        const i = s('ticketResult');
-        if (!i) return;
-        const c = e?.data || {},
+    function ee(e, n) {
+        const t = c('ticketResult');
+        if (!t) return;
+        const o = e?.data || {},
             u = {
-                ...c,
-                id: Number(c?.id || c?.ticket_id || 0) || 0,
-                ticketCode: String(c?.ticketCode || c?.ticket_code || '--'),
+                ...o,
+                id: Number(o?.id || o?.ticket_id || 0) || 0,
+                ticketCode: String(o?.ticketCode || o?.ticket_code || '--'),
                 patientInitials: String(
-                    c?.patientInitials || c?.patient_initials || '--'
+                    o?.patientInitials || o?.patient_initials || '--'
                 ),
-                queueType: String(c?.queueType || c?.queue_type || 'walk_in'),
+                queueType: String(o?.queueType || o?.queue_type || 'walk_in'),
                 createdAt: String(
-                    c?.createdAt || c?.created_at || new Date().toISOString()
+                    o?.createdAt || o?.created_at || new Date().toISOString()
                 ),
             },
             l = e?.print || {};
         !(function (e, { origin: n = 'ticket' } = {}) {
-            const i = e?.print || {};
-            ((o.printerState = {
-                ok: Boolean(i.ok),
+            const t = e?.print || {};
+            ((a.printerState = {
+                ok: Boolean(t.ok),
                 printed: Boolean(e?.printed),
-                errorCode: String(i.errorCode || ''),
-                message: String(i.message || ''),
+                errorCode: String(t.errorCode || ''),
+                message: String(t.message || ''),
                 at: new Date().toISOString(),
             }),
                 (function () {
                     try {
-                        localStorage.setItem(t, JSON.stringify(o.printerState));
+                        localStorage.setItem(i, JSON.stringify(a.printerState));
                     } catch (e) {}
                 })(),
-                C(),
-                a('printer_result', {
+                D(),
+                r('printer_result', {
                     origin: n,
-                    ok: o.printerState.ok,
-                    printed: o.printerState.printed,
-                    errorCode: o.printerState.errorCode,
+                    ok: a.printerState.ok,
+                    printed: a.printerState.printed,
+                    errorCode: a.printerState.errorCode,
                 }));
         })(e, { origin: n });
-        const d = Array.isArray(o.queueState?.nextTickets)
-                ? o.queueState.nextTickets
+        const d = Array.isArray(a.queueState?.nextTickets)
+                ? a.queueState.nextTickets
                 : [],
             f = d.find((e) => Number(e.id) === Number(u.id))?.position || '-',
-            m = e?.printed
+            p = e?.printed
                 ? 'Impresion enviada a termica'
-                : `Ticket generado sin impresion (${r(l.message || 'sin detalle')})`;
-        i.innerHTML = `\n        <article class="ticket-result-card">\n            <h3>Turno generado</h3>\n            <p class="ticket-result-origin">${r(n)}</p>\n            <div class="ticket-result-main">\n                <strong>${r(u.ticketCode || '--')}</strong>\n                <span>${r(u.patientInitials || '--')}</span>\n            </div>\n            <dl>\n                <div><dt>Posicion</dt><dd>#${r(f)}</dd></div>\n                <div><dt>Tipo</dt><dd>${r(u.queueType || '--')}</dd></div>\n                <div><dt>Creado</dt><dd>${r(j(u.createdAt))}</dd></div>\n            </dl>\n            <p class="ticket-result-print">${m}</p>\n        </article>\n    `;
+                : `Ticket generado sin impresion (${s(l.message || 'sin detalle')})`;
+        t.innerHTML = `\n        <article class="ticket-result-card">\n            <h3>Turno generado</h3>\n            <p class="ticket-result-origin">${s(n)}</p>\n            <div class="ticket-result-main">\n                <strong>${s(u.ticketCode || '--')}</strong>\n                <span>${s(u.patientInitials || '--')}</span>\n            </div>\n            <dl>\n                <div><dt>Posicion</dt><dd>#${s(f)}</dd></div>\n                <div><dt>Tipo</dt><dd>${s(u.queueType || '--')}</dd></div>\n                <div><dt>Creado</dt><dd>${s(Z(u.createdAt))}</dd></div>\n            </dl>\n            <p class="ticket-result-print">${p}</p>\n        </article>\n    `;
     }
-    function U({
+    function ne({
         originLabel: e,
         patientInitials: n,
         queueType: t,
         queuedAt: i,
     }) {
-        const a = s('ticketResult');
-        a &&
-            (a.innerHTML = `\n        <article class="ticket-result-card">\n            <h3>Solicitud guardada offline</h3>\n            <p class="ticket-result-origin">${r(e)}</p>\n            <div class="ticket-result-main">\n                <strong>${r(`PEND-${String(o.offlineOutbox.length).padStart(2, '0')}`)}</strong>\n                <span>${r(n || '--')}</span>\n            </div>\n            <dl>\n                <div><dt>Posicion</dt><dd>Pendiente sync</dd></div>\n                <div><dt>Tipo</dt><dd>${r(t || '--')}</dd></div>\n                <div><dt>Guardado</dt><dd>${r(j(i))}</dd></div>\n            </dl>\n            <p class="ticket-result-print">Se sincronizara automaticamente al recuperar conexion.</p>\n        </article>\n    `);
+        const o = c('ticketResult');
+        o &&
+            (o.innerHTML = `\n        <article class="ticket-result-card">\n            <h3>Solicitud guardada offline</h3>\n            <p class="ticket-result-origin">${s(e)}</p>\n            <div class="ticket-result-main">\n                <strong>${s(`PEND-${String(a.offlineOutbox.length).padStart(2, '0')}`)}</strong>\n                <span>${s(n || '--')}</span>\n            </div>\n            <dl>\n                <div><dt>Posicion</dt><dd>Pendiente sync</dd></div>\n                <div><dt>Tipo</dt><dd>${s(t || '--')}</dd></div>\n                <div><dt>Guardado</dt><dd>${s(Z(i))}</dd></div>\n            </dl>\n            <p class="ticket-result-print">Se sincronizara automaticamente al recuperar conexion.</p>\n        </article>\n    `);
     }
-    function Q(e) {
+    function te(e) {
         if (!1 === navigator.onLine) return !0;
         const n = String(e?.message || '').toLowerCase();
         return (
@@ -703,7 +872,7 @@
                 n.includes('network'))
         );
     }
-    function W(e, n) {
+    function ie(e, n) {
         const t = String(e || '').toLowerCase(),
             i = (function (e) {
                 const n = e && 'object' == typeof e ? e : {};
@@ -713,25 +882,25 @@
             })(n);
         return `${t}:${JSON.stringify(i)}`;
     }
-    function G({
+    function oe({
         resource: e,
         body: n,
         originLabel: t,
         patientInitials: i,
-        queueType: r,
+        queueType: o,
     }) {
         const s = String(e || '');
         if ('queue-ticket' !== s && 'queue-checkin' !== s) return null;
-        const c = W(s, n),
+        const c = ie(s, n),
             u = Date.now(),
-            l = o.offlineOutbox.find((e) => {
+            l = a.offlineOutbox.find((e) => {
                 if (String(e?.fingerprint || '') !== c) return !1;
                 const n = Date.parse(String(e?.queuedAt || ''));
                 return !!Number.isFinite(n) && u - n <= 9e4;
             });
         if (l)
             return (
-                a('offline_queued_duplicate', { resource: s, fingerprint: c }),
+                r('offline_queued_duplicate', { resource: s, fingerprint: c }),
                 { ...l, deduped: !0 }
             );
         const d = {
@@ -740,72 +909,72 @@
             body: n && 'object' == typeof n ? n : {},
             originLabel: String(t || 'Solicitud offline'),
             patientInitials: String(i || '--'),
-            queueType: String(r || '--'),
+            queueType: String(o || '--'),
             queuedAt: new Date().toISOString(),
             attempts: 0,
             lastError: '',
             fingerprint: c,
         };
         return (
-            (o.offlineOutbox = [d, ...o.offlineOutbox].slice(0, 25)),
-            N(),
-            B(),
-            a('offline_queued', {
+            (a.offlineOutbox = [d, ...a.offlineOutbox].slice(0, 25)),
+            G(),
+            j(),
+            r('offline_queued', {
                 resource: s,
-                queueSize: o.offlineOutbox.length,
+                queueSize: a.offlineOutbox.length,
             }),
             d
         );
     }
-    async function V({
+    async function ae({
         source: e = 'auto',
         force: n = !1,
         maxItems: t = 4,
     } = {}) {
-        if (o.offlineOutboxFlushBusy) return;
-        if (!o.offlineOutbox.length) return;
+        if (a.offlineOutboxFlushBusy) return;
+        if (!a.offlineOutbox.length) return;
         if (!n && !1 === navigator.onLine) return;
-        ((o.offlineOutboxFlushBusy = !0), H(!0));
+        ((a.offlineOutboxFlushBusy = !0), P(!0));
         let i = 0;
         try {
             for (
                 ;
-                o.offlineOutbox.length && i < Math.max(1, Number(t || 1));
+                a.offlineOutbox.length && i < Math.max(1, Number(t || 1));
             ) {
-                const e = o.offlineOutbox[0];
+                const e = a.offlineOutbox[0];
                 try {
-                    const n = await g(e.resource, {
+                    const n = await q(e.resource, {
                         method: 'POST',
                         body: e.body,
                     });
-                    (o.offlineOutbox.shift(),
-                        N(),
-                        B(),
-                        J(n, `${e.originLabel} (sincronizado)`),
-                        k(
+                    (a.offlineOutbox.shift(),
+                        G(),
+                        j(),
+                        ee(n, `${e.originLabel} (sincronizado)`),
+                        T(
                             `Pendiente sincronizado (${e.originLabel})`,
                             'success'
                         ),
-                        a('offline_synced_item', {
+                        r('offline_synced_item', {
                             resource: e.resource,
                             originLabel: e.originLabel,
-                            pendingAfter: o.offlineOutbox.length,
+                            pendingAfter: a.offlineOutbox.length,
                         }),
                         (i += 1));
                 } catch (n) {
                     ((e.attempts = Number(e.attempts || 0) + 1),
                         (e.lastError = String(n?.message || '').slice(0, 180)),
                         (e.lastAttemptAt = new Date().toISOString()),
-                        N(),
-                        B());
-                    const t = Q(n);
-                    (k(
+                        G(),
+                        j());
+                    const t = te(n);
+                    (T(
                         t
                             ? 'Sincronizacion offline pendiente: esperando reconexion.'
                             : `Pendiente con error: ${n.message}`,
                         t ? 'info' : 'error'
                     ),
-                        a('offline_sync_error', {
+                        r('offline_sync_error', {
                             resource: e.resource,
                             retryingOffline: t,
                             error: String(n?.message || ''),
@@ -814,104 +983,104 @@
                 }
             }
             i > 0 &&
-                ((o.queueFailureStreak = 0),
-                (await K()).ok &&
-                    ((o.queueLastHealthySyncAt = Date.now()),
-                    b('live', 'Cola conectada'),
-                    T(`Outbox sincronizado desde ${e}. (${P()})`),
-                    a('offline_synced_batch', {
+                ((a.queueFailureStreak = 0),
+                (await X()).ok &&
+                    ((a.queueLastHealthySyncAt = Date.now()),
+                    L('live', 'Cola conectada'),
+                    I(`Outbox sincronizado desde ${e}. (${Q()})`),
+                    r('offline_synced_batch', {
                         source: e,
                         processed: i,
-                        pendingAfter: o.offlineOutbox.length,
+                        pendingAfter: a.offlineOutbox.length,
                     })));
         } finally {
-            ((o.offlineOutboxFlushBusy = !1), I());
+            ((a.offlineOutboxFlushBusy = !1), F());
         }
     }
-    async function Y(e) {
+    async function re(e) {
         if (
             (e.preventDefault(),
-            x(),
-            ne({ reason: 'form_submit' }),
+            O(),
+            le({ reason: 'form_submit' }),
             !(e.currentTarget instanceof HTMLFormElement))
         )
             return;
-        const n = s('checkinPhone'),
-            t = s('checkinTime'),
-            i = s('checkinDate'),
-            a = s('checkinInitials'),
-            r = s('checkinSubmit'),
-            u = n instanceof HTMLInputElement ? n.value.trim() : '',
+        const n = c('checkinPhone'),
+            t = c('checkinTime'),
+            i = c('checkinDate'),
+            o = c('checkinInitials'),
+            r = c('checkinSubmit'),
+            s = n instanceof HTMLInputElement ? n.value.trim() : '',
             l = t instanceof HTMLInputElement ? t.value.trim() : '',
             d = i instanceof HTMLInputElement ? i.value.trim() : '',
-            f = a instanceof HTMLInputElement ? a.value.trim() : '';
-        if (!u || !l || !d)
+            f = o instanceof HTMLInputElement ? o.value.trim() : '';
+        if (!s || !l || !d)
             return (
-                k(
+                T(
                     'Telefono, fecha y hora son obligatorios para check-in',
                     'error'
                 ),
-                void c(
+                void u(
                     'Completa telefono, fecha y hora para continuar.',
                     'warn'
                 )
             );
         r instanceof HTMLButtonElement && (r.disabled = !0);
         try {
-            const e = { telefono: u, hora: l, fecha: d, patientInitials: f },
-                n = await g('queue-checkin', { method: 'POST', body: e });
-            (k('Check-in registrado correctamente', 'success'),
-                c(
+            const e = { telefono: s, hora: l, fecha: d, patientInitials: f },
+                n = await q('queue-checkin', { method: 'POST', body: e });
+            (T('Check-in registrado correctamente', 'success'),
+                u(
                     'Check-in completado. Conserva tu ticket y espera llamado.',
                     'success'
                 ),
-                J(n, n.replay ? 'Check-in ya existente' : 'Check-in de cita'),
-                (o.queueFailureStreak = 0),
-                (await K()).ok ||
-                    b(
+                ee(n, n.replay ? 'Check-in ya existente' : 'Check-in de cita'),
+                (a.queueFailureStreak = 0),
+                (await X()).ok ||
+                    L(
                         'reconnecting',
                         'Check-in registrado; pendiente sincronizar cola'
                     ));
         } catch (e) {
-            if (Q(e)) {
-                const e = G({
+            if (te(e)) {
+                const e = oe({
                     resource: 'queue-checkin',
                     body: {
-                        telefono: u,
+                        telefono: s,
                         hora: l,
                         fecha: d,
                         patientInitials: f,
                     },
                     originLabel: 'Check-in de cita',
-                    patientInitials: f || u.slice(-2),
+                    patientInitials: f || s.slice(-2),
                     queueType: 'appointment',
                 });
                 if (e)
                     return (
-                        b('offline', 'Sin conexion al backend'),
-                        T(
+                        L('offline', 'Sin conexion al backend'),
+                        I(
                             'Modo offline: check-ins/turnos se guardan localmente hasta reconectar.'
                         ),
-                        U({
+                        ne({
                             originLabel: e.originLabel,
                             patientInitials: e.patientInitials,
                             queueType: e.queueType,
                             queuedAt: e.queuedAt,
                         }),
-                        k(
+                        T(
                             e.deduped
                                 ? 'Check-in ya pendiente offline. Se sincronizara automaticamente.'
                                 : 'Check-in guardado offline. Se sincronizara automaticamente.',
                             'info'
                         ),
-                        void c(
+                        void u(
                             'Check-in guardado offline. Recepcion confirmara al reconectar.',
                             'warn'
                         )
                     );
             }
-            (k(`No se pudo registrar el check-in: ${e.message}`, 'error'),
-                c(
+            (T(`No se pudo registrar el check-in: ${e.message}`, 'error'),
+                u(
                     'No se pudo confirmar check-in. Intenta de nuevo o pide apoyo.',
                     'warn'
                 ));
@@ -919,14 +1088,14 @@
             r instanceof HTMLButtonElement && (r.disabled = !1);
         }
     }
-    async function Z(e) {
-        (e.preventDefault(), x(), ne({ reason: 'form_submit' }));
-        const n = s('walkinName'),
-            t = s('walkinInitials'),
-            i = s('walkinPhone'),
-            a = s('walkinSubmit'),
+    async function se(e) {
+        (e.preventDefault(), O(), le({ reason: 'form_submit' }));
+        const n = c('walkinName'),
+            t = c('walkinInitials'),
+            i = c('walkinPhone'),
+            o = c('walkinSubmit'),
             r = n instanceof HTMLInputElement ? n.value.trim() : '',
-            u =
+            s =
                 (t instanceof HTMLInputElement ? t.value.trim() : '') ||
                 (function (e) {
                     const n = String(e || '').trim();
@@ -943,88 +1112,88 @@
                     return i.slice(0, 4);
                 })(r),
             l = i instanceof HTMLInputElement ? i.value.trim() : '';
-        if (!u)
+        if (!s)
             return (
-                k('Ingresa iniciales o nombre para generar el turno', 'error'),
-                void c('Escribe iniciales para generar tu turno.', 'warn')
+                T('Ingresa iniciales o nombre para generar el turno', 'error'),
+                void u('Escribe iniciales para generar tu turno.', 'warn')
             );
-        a instanceof HTMLButtonElement && (a.disabled = !0);
+        o instanceof HTMLButtonElement && (o.disabled = !0);
         try {
-            const e = { patientInitials: u, name: r, phone: l },
-                n = await g('queue-ticket', { method: 'POST', body: e });
-            (k('Turno walk-in registrado correctamente', 'success'),
-                c(
+            const e = { patientInitials: s, name: r, phone: l },
+                n = await q('queue-ticket', { method: 'POST', body: e });
+            (T('Turno walk-in registrado correctamente', 'success'),
+                u(
                     'Turno generado. Conserva tu ticket y espera llamado.',
                     'success'
                 ),
-                J(n, 'Turno sin cita'),
-                (o.queueFailureStreak = 0),
-                (await K()).ok ||
-                    b(
+                ee(n, 'Turno sin cita'),
+                (a.queueFailureStreak = 0),
+                (await X()).ok ||
+                    L(
                         'reconnecting',
                         'Turno creado; pendiente sincronizar cola'
                     ));
         } catch (e) {
-            if (Q(e)) {
-                const e = G({
+            if (te(e)) {
+                const e = oe({
                     resource: 'queue-ticket',
-                    body: { patientInitials: u, name: r, phone: l },
+                    body: { patientInitials: s, name: r, phone: l },
                     originLabel: 'Turno sin cita',
-                    patientInitials: u,
+                    patientInitials: s,
                     queueType: 'walk_in',
                 });
                 if (e)
                     return (
-                        b('offline', 'Sin conexion al backend'),
-                        T(
+                        L('offline', 'Sin conexion al backend'),
+                        I(
                             'Modo offline: check-ins/turnos se guardan localmente hasta reconectar.'
                         ),
-                        U({
+                        ne({
                             originLabel: e.originLabel,
                             patientInitials: e.patientInitials,
                             queueType: e.queueType,
                             queuedAt: e.queuedAt,
                         }),
-                        k(
+                        T(
                             e.deduped
                                 ? 'Turno ya pendiente offline. Se sincronizara automaticamente.'
                                 : 'Turno guardado offline. Se sincronizara automaticamente.',
                             'info'
                         ),
-                        void c(
+                        void u(
                             'Turno guardado offline. Recepcion lo sincronizara al reconectar.',
                             'warn'
                         )
                     );
             }
-            (k(`No se pudo crear el turno: ${e.message}`, 'error'),
-                c(
+            (T(`No se pudo crear el turno: ${e.message}`, 'error'),
+                u(
                     'No se pudo generar turno. Intenta de nuevo o pide apoyo.',
                     'warn'
                 ));
         } finally {
-            a instanceof HTMLButtonElement && (a.disabled = !1);
+            o instanceof HTMLButtonElement && (o.disabled = !1);
         }
     }
-    function X(e, n) {
-        const t = s('assistantMessages');
+    function ce(e, n) {
+        const t = c('assistantMessages');
         if (!t) return;
         const i = document.createElement('article');
         ((i.className = `assistant-message assistant-message-${e}`),
-            (i.innerHTML = `<p>${r(n)}</p>`),
+            (i.innerHTML = `<p>${s(n)}</p>`),
             t.appendChild(i),
             (t.scrollTop = t.scrollHeight));
     }
-    async function ee(e) {
-        if ((e.preventDefault(), x(), o.assistantBusy)) return;
-        const n = s('assistantInput'),
-            t = s('assistantSend');
+    async function ue(e) {
+        if ((e.preventDefault(), O(), a.assistantBusy)) return;
+        const n = c('assistantInput'),
+            t = c('assistantSend');
         if (!(n instanceof HTMLInputElement)) return;
         const i = n.value.trim();
         if (i) {
-            (X('user', i),
+            (ce('user', i),
                 (n.value = ''),
-                (o.assistantBusy = !0),
+                (a.assistantBusy = !0),
                 t instanceof HTMLButtonElement && (t.disabled = !0));
             try {
                 const e = [
@@ -1033,7 +1202,7 @@
                             content:
                                 'Modo kiosco de sala de espera. Solo orientar sobre turnos, check-in, consultorios y recepcion. No dar consejo clinico.',
                         },
-                        ...o.chatHistory.slice(-6),
+                        ...a.chatHistory.slice(-6),
                         { role: 'user', content: i },
                     ],
                     n = await fetch(`/figo-chat.php?t=${Date.now()}`, {
@@ -1052,7 +1221,7 @@
                         }),
                     }),
                     t = await n.json(),
-                    a = (function (e) {
+                    o = (function (e) {
                         const n = String(e || '')
                             .toLowerCase()
                             .normalize('NFD')
@@ -1068,171 +1237,172 @@
                             'Puedo ayudarte con turnos, check-in y ubicacion de consultorios.'
                         );
                     })(String(t?.choices?.[0]?.message?.content || '').trim());
-                (X('bot', a),
-                    (o.chatHistory = [
-                        ...o.chatHistory,
+                (ce('bot', o),
+                    (a.chatHistory = [
+                        ...a.chatHistory,
                         { role: 'user', content: i },
-                        { role: 'assistant', content: a },
+                        { role: 'assistant', content: o },
                     ].slice(-8)));
             } catch (e) {
-                X(
+                ce(
                     'bot',
                     'No pude conectar con el asistente. Te ayudo en recepcion para continuar con tu turno.'
                 );
             } finally {
-                ((o.assistantBusy = !1),
+                ((a.assistantBusy = !1),
                     t instanceof HTMLButtonElement && (t.disabled = !1));
             }
         }
     }
-    function ne({ reason: e = 'auto' } = {}) {
-        if (o.welcomeDismissed) return;
-        o.welcomeDismissed = !0;
-        const n = s('kioskWelcomeScreen');
+    function le({ reason: e = 'auto' } = {}) {
+        if (a.welcomeDismissed) return;
+        a.welcomeDismissed = !0;
+        const n = c('kioskWelcomeScreen');
         n instanceof HTMLElement &&
             (n.classList.add('is-hidden'),
             window.setTimeout(() => {
                 n.parentElement && n.remove();
             }, 700),
-            a('welcome_dismissed', { reason: e }));
+            r('welcome_dismissed', { reason: e }));
     }
-    function te() {
-        const e = s('checkinDate');
+    function de() {
+        const e = c('checkinDate');
         e instanceof HTMLInputElement &&
             !e.value &&
             (e.value = new Date().toISOString().slice(0, 10));
     }
-    function ie({ immediate: e = !1 } = {}) {
-        if ((R(), !o.queuePollingEnabled)) return;
-        const n = e ? 0 : F();
-        o.queueTimerId = window.setTimeout(() => {
-            oe();
+    function fe({ immediate: e = !1 } = {}) {
+        if ((Y(), !a.queuePollingEnabled)) return;
+        const n = e ? 0 : V();
+        a.queueTimerId = window.setTimeout(() => {
+            pe();
         }, n);
     }
-    async function oe() {
-        if (!o.queuePollingEnabled) return;
+    async function pe() {
+        if (!a.queuePollingEnabled) return;
         if (document.hidden)
             return (
-                b('paused', 'Cola en pausa (pestana oculta)'),
-                T('Pestana oculta. Turnero en pausa temporal.'),
-                void ie()
+                L('paused', 'Cola en pausa (pestana oculta)'),
+                I('Pestana oculta. Turnero en pausa temporal.'),
+                void fe()
             );
         if (!1 === navigator.onLine)
             return (
-                (o.queueFailureStreak += 1),
-                b('offline', 'Sin conexion al backend'),
-                T(
+                (a.queueFailureStreak += 1),
+                L('offline', 'Sin conexion al backend'),
+                I(
                     'Sin internet. Deriva check-in/turnos a recepcion mientras se recupera conexion.'
                 ),
-                B(),
-                void ie()
+                j(),
+                void fe()
             );
-        await V({ source: 'poll' });
-        const e = await K();
+        await ae({ source: 'poll' });
+        const e = await X();
         if (e.ok && !e.stale)
-            ((o.queueFailureStreak = 0),
-                (o.queueLastHealthySyncAt = Date.now()),
-                b('live', 'Cola conectada'),
-                T(
-                    `Operacion estable (${P()}). Kiosco disponible para turnos.`
+            ((a.queueFailureStreak = 0),
+                (a.queueLastHealthySyncAt = Date.now()),
+                L('live', 'Cola conectada'),
+                I(
+                    `Operacion estable (${Q()}). Kiosco disponible para turnos.`
                 ));
         else if (e.ok && e.stale) {
-            o.queueFailureStreak += 1;
-            const n = D(e.ageMs || 0);
-            (b('reconnecting', `Watchdog: cola estancada ${n}`),
-                T(
+            a.queueFailureStreak += 1;
+            const n = J(e.ageMs || 0);
+            (L('reconnecting', `Watchdog: cola estancada ${n}`),
+                I(
                     `Cola degradada: sin cambios en ${n}. Usa "Reintentar sincronizacion" o apoyo de recepcion.`
                 ));
         } else {
-            o.queueFailureStreak += 1;
-            const e = Math.max(1, Math.ceil(F() / 1e3));
-            (b('reconnecting', `Reintentando en ${e}s`),
-                T(`Conexion inestable. Reintento automatico en ${e}s.`));
+            a.queueFailureStreak += 1;
+            const e = Math.max(1, Math.ceil(V() / 1e3));
+            (L('reconnecting', `Reintentando en ${e}s`),
+                I(`Conexion inestable. Reintento automatico en ${e}s.`));
         }
-        (B(), ie());
+        (j(), fe());
     }
-    async function ae() {
-        if (!o.queueManualRefreshBusy) {
-            (x(),
-                (o.queueManualRefreshBusy = !0),
-                _(!0),
-                b('reconnecting', 'Refrescando manualmente...'));
+    async function me() {
+        if (!a.queueManualRefreshBusy) {
+            (O(),
+                (a.queueManualRefreshBusy = !0),
+                K(!0),
+                L('reconnecting', 'Refrescando manualmente...'));
             try {
-                await V({ source: 'manual' });
-                const e = await K();
+                await ae({ source: 'manual' });
+                const e = await X();
                 if (e.ok && !e.stale)
                     return (
-                        (o.queueFailureStreak = 0),
-                        (o.queueLastHealthySyncAt = Date.now()),
-                        b('live', 'Cola conectada'),
-                        void T(`Sincronizacion manual exitosa (${P()}).`)
+                        (a.queueFailureStreak = 0),
+                        (a.queueLastHealthySyncAt = Date.now()),
+                        L('live', 'Cola conectada'),
+                        void I(`Sincronizacion manual exitosa (${Q()}).`)
                     );
                 if (e.ok && e.stale) {
-                    const n = D(e.ageMs || 0);
+                    const n = J(e.ageMs || 0);
                     return (
-                        b('reconnecting', `Watchdog: cola estancada ${n}`),
-                        void T(
+                        L('reconnecting', `Watchdog: cola estancada ${n}`),
+                        void I(
                             `Persisten datos estancados (${n}). Verifica backend o recepcion.`
                         )
                     );
                 }
-                const n = Math.max(1, Math.ceil(F() / 1e3));
-                (b(
+                const n = Math.max(1, Math.ceil(V() / 1e3));
+                (L(
                     !1 === navigator.onLine ? 'offline' : 'reconnecting',
                     !1 === navigator.onLine
                         ? 'Sin conexion al backend'
                         : `Reintentando en ${n}s`
                 ),
-                    T(
+                    I(
                         !1 === navigator.onLine
                             ? 'Sin internet. Opera manualmente en recepcion.'
                             : `Refresh manual sin exito. Reintento automatico en ${n}s.`
                     ));
             } finally {
-                (B(), (o.queueManualRefreshBusy = !1), _(!1));
+                (j(), (a.queueManualRefreshBusy = !1), K(!1));
             }
         }
     }
-    function re({ immediate: e = !0 } = {}) {
-        if (((o.queuePollingEnabled = !0), e))
-            return (b('live', 'Sincronizando cola...'), void oe());
-        ie();
+    function ge({ immediate: e = !0 } = {}) {
+        if (((a.queuePollingEnabled = !0), e))
+            return (L('live', 'Sincronizando cola...'), void pe());
+        fe();
     }
-    function se({ reason: e = 'paused' } = {}) {
-        ((o.queuePollingEnabled = !1), (o.queueFailureStreak = 0), R());
+    function ke({ reason: e = 'paused' } = {}) {
+        ((a.queuePollingEnabled = !1), (a.queueFailureStreak = 0), Y());
         const n = String(e || 'paused').toLowerCase();
         return 'offline' === n
-            ? (b('offline', 'Sin conexion al backend'),
-              T('Sin conexion. Esperando reconexion para reanudar cola.'),
-              void B())
+            ? (L('offline', 'Sin conexion al backend'),
+              I('Sin conexion. Esperando reconexion para reanudar cola.'),
+              void j())
             : 'hidden' === n
-              ? (b('paused', 'Cola en pausa (pestana oculta)'),
-                void T('Pestana oculta. Reanudando al volver a primer plano.'))
-              : (b('paused', 'Cola en pausa'),
-                T('Sincronizacion pausada por navegacion.'),
-                void B());
+              ? (L('paused', 'Cola en pausa (pestana oculta)'),
+                void I('Pestana oculta. Reanudando al volver a primer plano.'))
+              : (L('paused', 'Cola en pausa'),
+                I('Sincronizacion pausada por navegacion.'),
+                void j());
     }
     document.addEventListener('DOMContentLoaded', function () {
         ((document.body.dataset.kioskMode = 'star'),
             (function () {
-                if (document.getElementById(i)) return;
+                if (document.getElementById(o)) return;
                 const e = document.createElement('style');
-                ((e.id = i),
+                ((e.id = o),
                     (e.textContent =
-                        "\n        body[data-kiosk-mode='star'] .kiosk-header {\n            border-bottom-color: color-mix(in srgb, var(--primary) 18%, var(--border));\n            box-shadow: 0 10px 28px rgb(15 31 54 / 10%);\n        }\n        .kiosk-header-tools {\n            display: grid;\n            gap: 0.35rem;\n            justify-items: end;\n        }\n        .kiosk-header-help-btn {\n            border: 1px solid var(--border);\n            border-radius: 999px;\n            padding: 0.34rem 0.72rem;\n            background: var(--surface-soft);\n            color: var(--text);\n            font-size: 0.86rem;\n            font-weight: 600;\n            cursor: pointer;\n            min-height: 44px;\n        }\n        .kiosk-header-help-btn[data-open='true'] {\n            border-color: color-mix(in srgb, var(--primary) 38%, #fff 62%);\n            background: color-mix(in srgb, var(--surface-strong) 84%, #fff 16%);\n            color: var(--primary-strong);\n        }\n        .kiosk-quick-actions {\n            display: grid;\n            grid-template-columns: repeat(2, minmax(0, 1fr));\n            gap: 0.65rem;\n            margin: 0.45rem 0 0.6rem;\n        }\n        .kiosk-quick-action {\n            border: 1px solid var(--border);\n            border-radius: 16px;\n            padding: 0.8rem 0.92rem;\n            background: var(--surface-soft);\n            color: var(--text);\n            font-size: 1rem;\n            font-weight: 700;\n            letter-spacing: 0.01em;\n            cursor: pointer;\n            min-height: 64px;\n            text-align: left;\n        }\n        .kiosk-quick-action[data-active='true'] {\n            border-color: color-mix(in srgb, var(--primary) 42%, #fff 58%);\n            background: color-mix(in srgb, var(--surface-strong) 86%, #fff 14%);\n            color: var(--primary-strong);\n            box-shadow: 0 12px 26px rgb(15 107 220 / 14%);\n        }\n        .kiosk-progress-hint {\n            margin: 0 0 0.72rem;\n            color: var(--muted);\n            font-size: 0.95rem;\n            font-weight: 600;\n        }\n        .kiosk-progress-hint[data-tone='success'] {\n            color: var(--success);\n        }\n        .kiosk-progress-hint[data-tone='warn'] {\n            color: #9a6700;\n        }\n        .kiosk-quick-help-panel {\n            margin: 0 0 0.9rem;\n            border: 1px solid color-mix(in srgb, var(--primary) 24%, #fff 76%);\n            border-radius: 16px;\n            padding: 0.88rem 0.95rem;\n            background: color-mix(in srgb, var(--surface-strong) 86%, #fff 14%);\n        }\n        .kiosk-quick-help-panel h2 {\n            margin: 0 0 0.46rem;\n            font-size: 1.08rem;\n        }\n        .kiosk-quick-help-panel ol {\n            margin: 0 0 0.56rem;\n            padding-left: 1.12rem;\n            color: var(--text);\n            line-height: 1.45;\n        }\n        .kiosk-quick-help-panel p {\n            margin: 0 0 0.6rem;\n            color: var(--muted);\n            font-size: 0.9rem;\n        }\n        .kiosk-quick-help-panel button {\n            border: 1px solid var(--border);\n            border-radius: 12px;\n            padding: 0.46rem 0.74rem;\n            background: #fff;\n            color: var(--text);\n            font-weight: 600;\n            cursor: pointer;\n            min-height: 44px;\n        }\n        .kiosk-form.is-flow-active {\n            border-color: color-mix(in srgb, var(--primary) 32%, var(--border) 68%);\n            box-shadow: 0 14px 28px rgb(15 107 220 / 11%);\n        }\n        .kiosk-quick-action:focus-visible,\n        .kiosk-header-help-btn:focus-visible,\n        .kiosk-quick-help-panel button:focus-visible {\n            outline: 3px solid color-mix(in srgb, var(--primary) 62%, #fff 38%);\n            outline-offset: 2px;\n        }\n        @media (max-width: 760px) {\n            .kiosk-header-tools {\n                justify-items: start;\n            }\n            .kiosk-quick-actions {\n                grid-template-columns: 1fr;\n            }\n        }\n        @media (prefers-reduced-motion: reduce) {\n            .kiosk-quick-action,\n            .kiosk-header-help-btn,\n            .kiosk-form {\n                transition: none !important;\n            }\n        }\n    "),
+                        "\n        body[data-kiosk-mode='star'] .kiosk-header {\n            border-bottom-color: color-mix(in srgb, var(--primary) 18%, var(--border));\n            box-shadow: 0 10px 28px rgb(15 31 54 / 10%);\n        }\n        .kiosk-header-tools {\n            display: grid;\n            gap: 0.35rem;\n            justify-items: end;\n        }\n        .kiosk-header-controls {\n            display: grid;\n            grid-template-columns: repeat(3, minmax(0, 1fr));\n            gap: 0.45rem;\n            width: 100%;\n            max-width: 620px;\n        }\n        .kiosk-header-help-btn {\n            border: 1px solid var(--border);\n            border-radius: 999px;\n            padding: 0.34rem 0.72rem;\n            background: var(--surface-soft);\n            color: var(--text);\n            font-size: 0.86rem;\n            font-weight: 600;\n            cursor: pointer;\n            min-height: 44px;\n        }\n        .kiosk-header-help-btn[data-variant='warning'] {\n            border-color: color-mix(in srgb, #b45309 32%, #fff 68%);\n            background: color-mix(in srgb, #fef3c7 88%, #fff 12%);\n            color: #92400e;\n        }\n        .kiosk-header-help-btn[data-open='true'] {\n            border-color: color-mix(in srgb, var(--primary) 38%, #fff 62%);\n            background: color-mix(in srgb, var(--surface-strong) 84%, #fff 16%);\n            color: var(--primary-strong);\n        }\n        .kiosk-header-help-btn[data-active='true'] {\n            border-color: color-mix(in srgb, var(--primary) 42%, #fff 58%);\n            background: color-mix(in srgb, var(--surface-strong) 84%, #fff 16%);\n            color: var(--primary-strong);\n            box-shadow: 0 10px 24px rgb(15 107 220 / 15%);\n        }\n        .kiosk-header-help-btn[disabled] {\n            opacity: 0.65;\n            cursor: not-allowed;\n            box-shadow: none;\n        }\n        .kiosk-quick-actions {\n            display: grid;\n            grid-template-columns: repeat(2, minmax(0, 1fr));\n            gap: 0.65rem;\n            margin: 0.45rem 0 0.6rem;\n        }\n        .kiosk-quick-action {\n            border: 1px solid var(--border);\n            border-radius: 16px;\n            padding: 0.8rem 0.92rem;\n            background: var(--surface-soft);\n            color: var(--text);\n            font-size: 1rem;\n            font-weight: 700;\n            letter-spacing: 0.01em;\n            cursor: pointer;\n            min-height: 64px;\n            text-align: left;\n        }\n        .kiosk-quick-action[data-active='true'] {\n            border-color: color-mix(in srgb, var(--primary) 42%, #fff 58%);\n            background: color-mix(in srgb, var(--surface-strong) 86%, #fff 14%);\n            color: var(--primary-strong);\n            box-shadow: 0 12px 26px rgb(15 107 220 / 14%);\n        }\n        .kiosk-progress-hint {\n            margin: 0 0 0.72rem;\n            color: var(--muted);\n            font-size: 0.95rem;\n            font-weight: 600;\n        }\n        .kiosk-progress-hint[data-tone='success'] {\n            color: var(--success);\n        }\n        .kiosk-progress-hint[data-tone='warn'] {\n            color: #9a6700;\n        }\n        .kiosk-quick-help-panel {\n            margin: 0 0 0.9rem;\n            border: 1px solid color-mix(in srgb, var(--primary) 24%, #fff 76%);\n            border-radius: 16px;\n            padding: 0.88rem 0.95rem;\n            background: color-mix(in srgb, var(--surface-strong) 86%, #fff 14%);\n        }\n        .kiosk-quick-help-panel h2 {\n            margin: 0 0 0.46rem;\n            font-size: 1.08rem;\n        }\n        .kiosk-quick-help-panel ol {\n            margin: 0 0 0.56rem;\n            padding-left: 1.12rem;\n            color: var(--text);\n            line-height: 1.45;\n        }\n        .kiosk-quick-help-panel p {\n            margin: 0 0 0.6rem;\n            color: var(--muted);\n            font-size: 0.9rem;\n        }\n        .kiosk-quick-help-panel button {\n            border: 1px solid var(--border);\n            border-radius: 12px;\n            padding: 0.46rem 0.74rem;\n            background: #fff;\n            color: var(--text);\n            font-weight: 600;\n            cursor: pointer;\n            min-height: 44px;\n        }\n        .kiosk-form.is-flow-active {\n            border-color: color-mix(in srgb, var(--primary) 32%, var(--border) 68%);\n            box-shadow: 0 14px 28px rgb(15 107 220 / 11%);\n        }\n        body[data-kiosk-senior='on'] {\n            font-size: 18px;\n        }\n        body[data-kiosk-senior='on'] .kiosk-layout {\n            gap: 1.2rem;\n        }\n        body[data-kiosk-senior='on'] h1 {\n            font-size: clamp(2rem, 3vw, 2.55rem);\n            line-height: 1.15;\n        }\n        body[data-kiosk-senior='on'] .kiosk-form label,\n        body[data-kiosk-senior='on'] .kiosk-progress-hint,\n        body[data-kiosk-senior='on'] .kiosk-status {\n            font-size: 1.08rem;\n        }\n        body[data-kiosk-senior='on'] .kiosk-form input,\n        body[data-kiosk-senior='on'] .assistant-form input {\n            min-height: 64px;\n            font-size: 1.18rem;\n        }\n        body[data-kiosk-senior='on'] .kiosk-form button,\n        body[data-kiosk-senior='on'] .assistant-form button {\n            min-height: 68px;\n            font-size: 1.16rem;\n        }\n        body[data-kiosk-senior='on'] .kiosk-quick-action {\n            min-height: 76px;\n            font-size: 1.13rem;\n        }\n        body[data-kiosk-senior='on'] .kiosk-header-help-btn {\n            min-height: 52px;\n            font-size: 0.97rem;\n            padding: 0.45rem 0.84rem;\n        }\n        body[data-kiosk-senior='on'] .queue-kpi-row article strong {\n            font-size: 2.3rem;\n        }\n        body[data-kiosk-senior='on'] .ticket-result-main strong {\n            font-size: 2.6rem;\n        }\n        body[data-kiosk-senior='on'] #kioskSeniorHint {\n            color: color-mix(in srgb, var(--primary) 72%, #1f2937 28%);\n        }\n        .kiosk-quick-action:focus-visible,\n        .kiosk-header-help-btn:focus-visible,\n        .kiosk-quick-help-panel button:focus-visible {\n            outline: 3px solid color-mix(in srgb, var(--primary) 62%, #fff 38%);\n            outline-offset: 2px;\n        }\n        @media (max-width: 760px) {\n            .kiosk-header-tools {\n                justify-items: start;\n            }\n            .kiosk-header-controls {\n                grid-template-columns: 1fr;\n            }\n            .kiosk-quick-actions {\n                grid-template-columns: 1fr;\n            }\n        }\n        @media (prefers-reduced-motion: reduce) {\n            .kiosk-quick-action,\n            .kiosk-header-help-btn,\n            .kiosk-form {\n                transition: none !important;\n            }\n        }\n    "),
                     document.head.appendChild(e));
             })(),
-            (o.idleResetMs = (function () {
-                const n = Number(window.__PIEL_QUEUE_KIOSK_IDLE_RESET_MS),
-                    t = Number.isFinite(n) ? n : 9e4;
-                return Math.min(e, Math.max(5e3, Math.round(t)));
+            (a.idleResetMs = (function () {
+                const e = Number(window.__PIEL_QUEUE_KIOSK_IDLE_RESET_MS),
+                    t = Number.isFinite(e) ? e : 9e4;
+                return Math.min(n, Math.max(5e3, Math.round(t)));
             })()),
+            (a.voiceGuideSupported = p()),
             (function () {
                 const e = 'light';
                 var n;
                 (localStorage.setItem('kioskThemeMode', e),
                     (n = e),
-                    (o.themeMode = n),
+                    (a.themeMode = n),
                     (document.documentElement.dataset.theme = 'light'),
                     document
                         .querySelectorAll('[data-theme-mode]')
@@ -1245,55 +1415,82 @@
                                 ));
                         }));
             })(),
+            d(
+                (function () {
+                    try {
+                        return '1' === localStorage.getItem(e);
+                    } catch (e) {
+                        return !1;
+                    }
+                })(),
+                { persist: !1, source: 'init' }
+            ),
+            m(),
             (function () {
-                const e = s('kioskWelcomeScreen');
+                const e = c('kioskWelcomeScreen');
                 e instanceof HTMLElement &&
                     (e.classList.add('is-visible'),
-                    c(
+                    u(
                         'Bienvenida: en segundos podras elegir tu tipo de atencion.',
                         'info'
                     ),
                     window.setTimeout(() => {
-                        ne({ reason: 'auto' });
+                        le({ reason: 'auto' });
                     }, 1800),
                     window.setTimeout(() => {
-                        ne({ reason: 'safety_timeout' });
+                        le({ reason: 'safety_timeout' });
                     }, 2600));
             })(),
-            te());
-        const a = s('checkinForm'),
-            r = s('walkinForm'),
-            d = s('assistantForm');
-        (a instanceof HTMLFormElement && a.addEventListener('submit', Y),
-            r instanceof HTMLFormElement && r.addEventListener('submit', Z),
-            d instanceof HTMLFormElement && d.addEventListener('submit', ee),
+            de());
+        const r = c('checkinForm'),
+            s = c('walkinForm'),
+            l = c('assistantForm');
+        (r instanceof HTMLFormElement && r.addEventListener('submit', re),
+            s instanceof HTMLFormElement && s.addEventListener('submit', se),
+            l instanceof HTMLFormElement && l.addEventListener('submit', ue),
             (function () {
-                const e = s('kioskQuickCheckin'),
-                    n = s('kioskQuickWalkin'),
-                    t = s('kioskHelpToggle'),
-                    i = s('kioskHelpClose');
+                const e = c('kioskQuickCheckin'),
+                    n = c('kioskQuickWalkin'),
+                    t = c('kioskHelpToggle'),
+                    i = c('kioskHelpClose'),
+                    o = c('kioskSeniorToggle'),
+                    r = c('kioskVoiceGuideBtn'),
+                    s = c('kioskReceptionHelpBtn');
                 (e instanceof HTMLButtonElement &&
                     e.addEventListener('click', () => {
-                        (x(), l('checkin'));
+                        (O(), y('checkin'));
                     }),
                     n instanceof HTMLButtonElement &&
                         n.addEventListener('click', () => {
-                            (x(), l('walkin'));
+                            (O(), y('walkin'));
                         }),
                     t instanceof HTMLButtonElement &&
                         t.addEventListener('click', () => {
-                            (x(), u(!o.quickHelpOpen, { source: 'toggle' }));
+                            (O(), h(!a.quickHelpOpen, { source: 'toggle' }));
                         }),
                     i instanceof HTMLButtonElement &&
                         i.addEventListener('click', () => {
-                            (x(), u(!1, { source: 'close_button' }));
-                        }));
+                            (O(), h(!1, { source: 'close_button' }));
+                        }),
+                    o instanceof HTMLButtonElement &&
+                        o.addEventListener('click', () => {
+                            (O(), f({ source: 'button' }));
+                        }),
+                    r instanceof HTMLButtonElement &&
+                        r.addEventListener('click', () => {
+                            (O(), k({ source: 'button' }));
+                        }),
+                    s instanceof HTMLButtonElement &&
+                        ((s.dataset.variant = 'warning'),
+                        s.addEventListener('click', () => {
+                            (O(), b({ source: 'button' }));
+                        })));
             })(),
-            u(!1, { source: 'init' }),
+            h(!1, { source: 'init' }),
             (function () {
-                let e = s('kioskSessionGuard');
+                let e = c('kioskSessionGuard');
                 if (e instanceof HTMLElement) return e;
-                const n = s('kioskStatus');
+                const n = c('kioskStatus');
                 if (!(n instanceof HTMLElement)) return null;
                 ((e = document.createElement('div')),
                     (e.id = 'kioskSessionGuard'),
@@ -1311,36 +1508,36 @@
                     e.appendChild(i),
                     n.insertAdjacentElement('afterend', e));
             })());
-        const f = s('kioskSessionResetBtn');
-        (f instanceof HTMLButtonElement &&
-            f.addEventListener('click', () => {
-                w({ reason: 'manual' });
+        const v = c('kioskSessionResetBtn');
+        (v instanceof HTMLButtonElement &&
+            v.addEventListener('click', () => {
+                B({ reason: 'manual' });
             }),
-            S(),
-            y(),
-            l('checkin', { announce: !1 }),
-            c('Paso 1 de 2: selecciona una opcion para comenzar.', 'info'),
+            C(),
+            E(),
+            y('checkin', { announce: !1 }),
+            u('Paso 1 de 2: selecciona una opcion para comenzar.', 'info'),
             ['pointerdown', 'keydown', 'input', 'touchstart'].forEach((e) => {
                 document.addEventListener(
                     e,
                     () => {
-                        x();
+                        O();
                     },
                     !0
                 );
             }),
-            v(),
-            q(),
-            L(),
-            M(),
-            O(),
+            H(),
+            _(),
+            A(),
+            $(),
+            z(),
             (function () {
                 try {
-                    const e = localStorage.getItem(n);
-                    if (!e) return void (o.offlineOutbox = []);
-                    const t = JSON.parse(e);
-                    if (!Array.isArray(t)) return void (o.offlineOutbox = []);
-                    o.offlineOutbox = t
+                    const e = localStorage.getItem(t);
+                    if (!e) return void (a.offlineOutbox = []);
+                    const n = JSON.parse(e);
+                    if (!Array.isArray(n)) return void (a.offlineOutbox = []);
+                    a.offlineOutbox = n
                         .map((e) => ({
                             id: String(e?.id || ''),
                             resource: String(e?.resource || ''),
@@ -1368,21 +1565,22 @@
                         )
                         .map((e) => ({
                             ...e,
-                            fingerprint: e.fingerprint || W(e.resource, e.body),
+                            fingerprint:
+                                e.fingerprint || ie(e.resource, e.body),
                         }))
                         .slice(0, 25);
                 } catch (e) {
-                    o.offlineOutbox = [];
+                    a.offlineOutbox = [];
                 }
             })(),
             (function () {
                 try {
-                    const e = localStorage.getItem(t);
-                    if (!e) return void (o.printerState = null);
+                    const e = localStorage.getItem(i);
+                    if (!e) return void (a.printerState = null);
                     const n = JSON.parse(e);
                     if (!n || 'object' != typeof n)
-                        return void (o.printerState = null);
-                    o.printerState = {
+                        return void (a.printerState = null);
+                    a.printerState = {
                         ok: Boolean(n.ok),
                         printed: Boolean(n.printed),
                         errorCode: String(n.errorCode || ''),
@@ -1390,87 +1588,97 @@
                         at: String(n.at || new Date().toISOString()),
                     };
                 } catch (e) {
-                    o.printerState = null;
+                    a.printerState = null;
                 }
             })(),
-            C(),
-            B());
-        const m = $();
-        m instanceof HTMLButtonElement &&
-            m.addEventListener('click', () => {
-                ae();
+            D(),
+            j());
+        const S = U();
+        S instanceof HTMLButtonElement &&
+            S.addEventListener('click', () => {
+                me();
             });
-        const p = s('queueOutboxRetryBtn');
-        p instanceof HTMLButtonElement &&
-            p.addEventListener('click', () => {
-                V({ source: 'operator', force: !0, maxItems: 25 });
+        const w = c('queueOutboxRetryBtn');
+        w instanceof HTMLButtonElement &&
+            w.addEventListener('click', () => {
+                ae({ source: 'operator', force: !0, maxItems: 25 });
             });
-        const g = s('queueOutboxDropOldestBtn');
-        g instanceof HTMLButtonElement &&
-            g.addEventListener('click', () => {
+        const x = c('queueOutboxDropOldestBtn');
+        x instanceof HTMLButtonElement &&
+            x.addEventListener('click', () => {
                 !(function () {
-                    if (!o.offlineOutbox.length) return;
-                    const e = o.offlineOutbox[o.offlineOutbox.length - 1];
-                    (o.offlineOutbox.pop(),
-                        N(),
-                        B(),
-                        I(),
-                        k(
+                    if (!a.offlineOutbox.length) return;
+                    const e = a.offlineOutbox[a.offlineOutbox.length - 1];
+                    (a.offlineOutbox.pop(),
+                        G(),
+                        j(),
+                        F(),
+                        T(
                             `Descartado pendiente antiguo (${e?.originLabel || 'sin detalle'}).`,
                             'info'
                         ));
                 })();
             });
-        const h = s('queueOutboxClearBtn');
-        (h instanceof HTMLButtonElement &&
-            h.addEventListener('click', () => {
-                A({ reason: 'manual' });
+        const q = c('queueOutboxClearBtn');
+        (q instanceof HTMLButtonElement &&
+            q.addEventListener('click', () => {
+                R({ reason: 'manual' });
             }),
-            b('paused', 'Sincronizacion lista'),
-            T('Esperando primera sincronizacion de cola...'),
-            z(''),
-            !1 !== navigator.onLine && V({ source: 'startup', force: !0 }),
-            re({ immediate: !0 }),
+            L('paused', 'Sincronizacion lista'),
+            I('Esperando primera sincronizacion de cola...'),
+            W(''),
+            !1 !== navigator.onLine && ae({ source: 'startup', force: !0 }),
+            ge({ immediate: !0 }),
             document.addEventListener('visibilitychange', () => {
                 document.hidden
-                    ? se({ reason: 'hidden' })
-                    : re({ immediate: !0 });
+                    ? ke({ reason: 'hidden' })
+                    : ge({ immediate: !0 });
             }),
             window.addEventListener('online', () => {
-                (V({ source: 'online', force: !0 }), re({ immediate: !0 }));
+                (ae({ source: 'online', force: !0 }), ge({ immediate: !0 }));
             }),
             window.addEventListener('offline', () => {
-                (se({ reason: 'offline' }), B());
+                (ke({ reason: 'offline' }), j());
             }),
             window.addEventListener('beforeunload', () => {
-                se({ reason: 'paused' });
+                (g({ source: 'beforeunload' }), ke({ reason: 'paused' }));
             }),
             window.addEventListener('keydown', (e) => {
                 if (!e.altKey || !e.shiftKey) return;
                 const n = String(e.code || '').toLowerCase();
                 return 'keyr' === n
-                    ? (e.preventDefault(), void ae())
+                    ? (e.preventDefault(), void me())
                     : 'keyh' === n
                       ? (e.preventDefault(),
-                        void u(!o.quickHelpOpen, { source: 'shortcut' }))
+                        void h(!a.quickHelpOpen, { source: 'shortcut' }))
                       : 'digit1' === n
-                        ? (e.preventDefault(), void l('checkin'))
+                        ? (e.preventDefault(), void y('checkin'))
                         : 'digit2' === n
-                          ? (e.preventDefault(), void l('walkin'))
-                          : 'keyl' === n
-                            ? (e.preventDefault(), void w({ reason: 'manual' }))
-                            : 'keyy' === n
+                          ? (e.preventDefault(), void y('walkin'))
+                          : 'keys' === n
+                            ? (e.preventDefault(),
+                              void f({ source: 'shortcut' }))
+                            : 'keyv' === n
                               ? (e.preventDefault(),
-                                void V({
-                                    source: 'shortcut',
-                                    force: !0,
-                                    maxItems: 25,
-                                }))
-                              : void (
-                                    'keyk' === n &&
-                                    (e.preventDefault(),
-                                    A({ reason: 'manual' }))
-                                );
+                                void k({ source: 'shortcut' }))
+                              : 'keya' === n
+                                ? (e.preventDefault(),
+                                  void b({ source: 'shortcut' }))
+                                : 'keyl' === n
+                                  ? (e.preventDefault(),
+                                    void B({ reason: 'manual' }))
+                                  : 'keyy' === n
+                                    ? (e.preventDefault(),
+                                      void ae({
+                                          source: 'shortcut',
+                                          force: !0,
+                                          maxItems: 25,
+                                      }))
+                                    : void (
+                                          'keyk' === n &&
+                                          (e.preventDefault(),
+                                          R({ reason: 'manual' }))
+                                      );
             }));
     });
 })();

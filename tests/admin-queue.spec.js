@@ -272,13 +272,6 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueWaitingCountAdmin')).toHaveText('1');
         await expect(page.locator('#queueC1Now')).toContainText('A-501');
         await expect(page.locator('#queueTableBody')).toContainText('A-501');
-        await expect(
-            page
-                .locator(
-                    '#queue .queue-admin-header-actions [data-action="queue-call-next"][data-queue-consultorio="1"]'
-                )
-                .first()
-        ).toBeDisabled();
         await expect(page.locator('#queueReleaseC1')).toContainText('A-501');
     });
 
@@ -2262,7 +2255,7 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueC1Now')).toContainText('A-1511');
     });
 
-    test('modo bloqueado permite override manual con boton del consultorio opuesto', async ({
+    test('modo bloqueado impide llamado del consultorio opuesto', async ({
         page,
     }) => {
         const queueCallNextRequests = [];
@@ -2357,18 +2350,14 @@ test.describe('Admin turnero sala', () => {
             'Bloqueado'
         );
 
-        await page
-            .locator(
-                '#queue .queue-admin-header-actions [data-action="queue-call-next"][data-queue-consultorio="1"]'
-            )
-            .first()
-            .click();
-
-        await expect.poll(() => queueCallNextRequests.length).toBe(1);
-        await expect.poll(() => queueCallNextRequests[0]).toBe(1);
-        await expect(page.locator('#toastContainer')).toContainText(
-            'Llamando manualmente C1'
-        );
+        await expect(
+            page
+                .locator(
+                    '#queue .queue-admin-header-actions [data-action="queue-call-next"][data-queue-consultorio="1"]'
+                )
+                .first()
+        ).toBeDisabled();
+        await expect.poll(() => queueCallNextRequests.length).toBe(0);
     });
 
     test('panel de ayuda se abre/cierra con atajo 0 y numpad + re-llama ticket activo en la estacion', async ({
@@ -2520,7 +2509,7 @@ test.describe('Admin turnero sala', () => {
             .toBe('re-llamar');
     });
 
-    test('numpad . y - exigen confirmacion doble y respetan cancelacion', async ({
+    test('numpad . y - preparan accion sensible y permiten confirmar/cancelar', async ({
         page,
     }) => {
         const queueTicketActions = [];
@@ -2649,23 +2638,24 @@ test.describe('Admin turnero sala', () => {
         await page.locator('.nav-item[data-section="queue"]').click();
         await expect(page.locator('#queue')).toHaveClass(/active/);
 
-        const dismissDialogs = async (dialog) => {
-            await dialog.dismiss();
-        };
-        page.on('dialog', dismissDialogs);
         await page.keyboard.press('NumpadDecimal');
         await expect.poll(() => queueTicketActions.length).toBe(0);
-        page.off('dialog', dismissDialogs);
+        await expect(
+            page.locator('#queueSensitiveConfirmDialog')
+        ).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(page.locator('#queueSensitiveConfirmDialog')).toBeHidden();
+        await expect.poll(() => queueTicketActions.length).toBe(0);
 
-        const acceptDialogs = async (dialog) => {
-            await dialog.accept();
-        };
-        page.on('dialog', acceptDialogs);
         await page.keyboard.press('NumpadSubtract');
+        await expect(
+            page.locator('#queueSensitiveConfirmDialog')
+        ).toBeVisible();
+        await page.keyboard.press('NumpadEnter');
         await expect.poll(() => queueTicketActions.length).toBe(1);
         await expect.poll(() => queueTicketActions[0]?.action).toBe('no_show');
         await expect.poll(() => queueTicketActions[0]?.ticketId).toBe(1293);
-        page.off('dialog', acceptDialogs);
+        await expect(page.locator('#queueSensitiveConfirmDialog')).toBeHidden();
     });
 
     test('numpad cross-platform soporta Enter por location=3 y decimal regional', async ({
@@ -2855,11 +2845,6 @@ test.describe('Admin turnero sala', () => {
         await expect.poll(() => queueCallNextRequests.length).toBe(1);
         await expect.poll(() => queueCallNextRequests[0]).toBe(1);
 
-        const acceptDialogs = async (dialog) => {
-            await dialog.accept();
-        };
-        page.on('dialog', acceptDialogs);
-
         await page.evaluate(() => {
             document.dispatchEvent(
                 new KeyboardEvent('keydown', {
@@ -2871,10 +2856,17 @@ test.describe('Admin turnero sala', () => {
                 })
             );
         });
+        await expect.poll(() => queueTicketActions.length).toBe(0);
+        await expect(
+            page.locator('#queueSensitiveConfirmDialog')
+        ).toBeVisible();
+        await page.keyboard.press('NumpadEnter');
         await expect.poll(() => queueTicketActions.length).toBe(1);
         await expect
             .poll(() => queueTicketActions[0]?.action)
             .toBe('completar');
+        await expect.poll(() => queueCallNextRequests.length).toBe(1);
+        await expect(page.locator('#queueSensitiveConfirmDialog')).toBeHidden();
 
         await page.evaluate(() => {
             document.dispatchEvent(
@@ -2902,12 +2894,16 @@ test.describe('Admin turnero sala', () => {
                 })
             );
         });
+        await expect.poll(() => queueTicketActions.length).toBe(1);
+        await expect(
+            page.locator('#queueSensitiveConfirmDialog')
+        ).toBeVisible();
+        await page.keyboard.press('NumpadEnter');
         await expect.poll(() => queueTicketActions.length).toBe(2);
         await expect
             .poll(() => queueTicketActions[1]?.action)
             .toBe('completar');
-
-        page.off('dialog', acceptDialogs);
+        await expect(page.locator('#queueSensitiveConfirmDialog')).toBeHidden();
     });
 
     test('calibra tecla externa para llamado y persiste por estacion hasta limpiar binding', async ({

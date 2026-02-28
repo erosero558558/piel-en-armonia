@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 319
+  revision: 325
   updated_at: 2026-02-28
 
 tasks:
@@ -5099,5 +5099,81 @@ tasks:
     evidence_ref: "verification/agent-runs/AG-133.md"
     depends_on: []
     prompt: "Turnero sala XV: TV estrella de sala (claridad, privacidad y audio confiable)"
+    created_at: 2026-02-28
+    updated_at: 2026-02-28
+
+  - id: AG-134
+    title: "Turnero sala XVI: kiosco senior-first (lectura grande, voz guiada y ayuda rapida)"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-02-28T03:21:05.056Z"
+    risk: medium
+    scope: frontend-public
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    files: ["kiosco-turnos.html", "src/apps/queue-kiosk/index.js"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-02-28T03:21:05.056Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Turnero sala XVI: kiosco senior-first (lectura grande, voz guiada y ayuda rapida)"
+    acceptance_ref: "verification/agent-runs/AG-134.md"
+    evidence_ref: "verification/agent-runs/AG-134.md"
+    depends_on: []
+    prompt: "Turnero sala XVI: kiosco senior-first (lectura grande, voz guiada y ayuda rapida)"
+    created_at: 2026-02-28
+    updated_at: 2026-02-28
+
+  - id: AG-135
+    title: "Turnero sala XVII: lock estricto C1/C2 + seguridad numpad en admin"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-02-28T03:44:32.066Z"
+    risk: medium
+    scope: frontend-admin
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    files: ["src/apps/admin/index.js"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-02-28T03:44:32.066Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Turnero sala XVII: lock estricto C1/C2 + seguridad numpad en admin"
+    acceptance_ref: "verification/agent-runs/AG-135.md"
+    evidence_ref: "verification/agent-runs/AG-135.md"
+    depends_on: []
+    prompt: "Turnero sala XVII: lock estricto C1/C2 + seguridad numpad en admin"
     created_at: 2026-02-28
     updated_at: 2026-02-28
