@@ -367,7 +367,7 @@ function shouldRunManualFlow(env) {
     if (process.platform === 'win32' && env.LIGHTHOUSE_FORCE_WINDOWS === '1') {
         return true;
     }
-    return env.GITHUB_ACTIONS === 'true';
+    return false;
 }
 
 const repoRoot = path.resolve(__dirname, '..');

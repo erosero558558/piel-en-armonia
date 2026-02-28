@@ -13,6 +13,7 @@
                 "http://127.0.0.1:8088/es/servicios/botox/"
             ],
             "settings": {
+                "chromeFlags": "--no-sandbox --disable-dev-shm-usage",
                 "formFactor": "mobile",
                 "screenEmulation": {
                     "mobile": true,
