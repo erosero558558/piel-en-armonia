@@ -120,7 +120,13 @@ jobs:
               shell: bash
               run: |
                   set -euo pipefail
-                  echo "path=$(node -e \"const { chromium } = require('playwright'); process.stdout.write(chromium.executablePath());\")" >> "$GITHUB_OUTPUT"
+                  chromium_path="$(
+                    node - <<'NODE'
+                    const { chromium } = require('playwright');
+                    process.stdout.write(chromium.executablePath());
+                    NODE
+                  )"
+                  printf 'path=%s\n' "$chromium_path" >> "$GITHUB_OUTPUT"
 
             - name: Run Lighthouse premium thresholds
               env:
