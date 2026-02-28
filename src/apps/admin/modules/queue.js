@@ -16,6 +16,14 @@ const QUEUE_STATUS_LABELS = {
     cancelled: 'Cancelado',
 };
 
+function isQueuePracticeModeEnabled() {
+    try {
+        return Boolean(window.__PIEL_QUEUE_PRACTICE_MODE);
+    } catch (_error) {
+        return false;
+    }
+}
+
 const QUEUE_PRIORITY_LABELS = {
     appt_overdue: 'Cita vencida',
     appt_current: 'Cita vigente',
@@ -71,6 +79,122 @@ const queueUiState = {
     opsActionsBound: false,
 };
 
+function getQueueStateArray(source, keys) {
+    if (!source || typeof source !== 'object' || !Array.isArray(keys)) {
+        return [];
+    }
+    for (const key of keys) {
+        if (!key) continue;
+        const value = source[key];
+        if (Array.isArray(value)) {
+            return value;
+        }
+    }
+    return [];
+}
+
+function getQueueStateObject(source, keys) {
+    if (!source || typeof source !== 'object' || !Array.isArray(keys)) {
+        return null;
+    }
+    for (const key of keys) {
+        if (!key) continue;
+        const value = source[key];
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+            return value;
+        }
+    }
+    return null;
+}
+
+function getQueueStateNumber(source, keys, fallback = 0) {
+    if (!source || typeof source !== 'object' || !Array.isArray(keys)) {
+        return Number(fallback || 0);
+    }
+    for (const key of keys) {
+        if (!key) continue;
+        const raw = source[key];
+        const value = Number(raw);
+        if (Number.isFinite(value)) {
+            return value;
+        }
+    }
+    return Number(fallback || 0);
+}
+
+function normalizeQueueStatePayload(queueState) {
+    const safeState =
+        queueState && typeof queueState === 'object' ? queueState : {};
+    const counts = getQueueStateObject(safeState, ['counts']) || {};
+    const queueTickets = getQueueStateArray(safeState, [
+        'queue_tickets',
+        'queueTickets',
+        'tickets',
+    ]);
+    let callingNow = getQueueStateArray(safeState, [
+        'callingNow',
+        'calling_now',
+        'calledTickets',
+        'called_tickets',
+    ]);
+    if (callingNow.length === 0) {
+        const mapByConsultorio = getQueueStateObject(safeState, [
+            'callingNowByConsultorio',
+            'calling_now_by_consultorio',
+        ]);
+        if (mapByConsultorio) {
+            callingNow = Object.values(mapByConsultorio).filter(Boolean);
+        }
+    }
+    const nextTickets = getQueueStateArray(safeState, [
+        'nextTickets',
+        'next_tickets',
+        'waitingTickets',
+        'waiting_tickets',
+    ]);
+    const waitingTickets = getQueueStateArray(safeState, [
+        'waitingTickets',
+        'waiting_tickets',
+        'waiting',
+    ]);
+    const calledTickets = getQueueStateArray(safeState, [
+        'calledTickets',
+        'called_tickets',
+        'called',
+    ]);
+
+    const waitingCountRaw = getQueueStateNumber(
+        safeState,
+        ['waitingCount', 'waiting_count'],
+        Number.NaN
+    );
+    const calledCountRaw = getQueueStateNumber(
+        safeState,
+        ['calledCount', 'called_count'],
+        Number.NaN
+    );
+    const waitingCount = Number.isFinite(waitingCountRaw)
+        ? waitingCountRaw
+        : getQueueStateNumber(counts, ['waiting', 'waiting_count'], 0);
+    const calledCount = Number.isFinite(calledCountRaw)
+        ? calledCountRaw
+        : getQueueStateNumber(counts, ['called', 'called_count'], 0);
+
+    return {
+        updatedAt:
+            String(safeState.updatedAt || safeState.updated_at || '').trim() ||
+            new Date().toISOString(),
+        counts,
+        waitingCount: Math.max(0, waitingCount),
+        calledCount: Math.max(0, calledCount),
+        queueTickets,
+        waitingTickets,
+        calledTickets,
+        callingNow: Array.isArray(callingNow) ? callingNow : [],
+        nextTickets: Array.isArray(nextTickets) ? nextTickets : [],
+    };
+}
+
 function clearQueueFallbackContext() {
     queueUiState.fallbackContext = null;
 }
@@ -79,13 +203,14 @@ function setQueueFallbackContextFromState(
     queueState,
     { reason = 'state_fallback' } = {}
 ) {
-    const waitingCount = Number(queueState?.waitingCount || 0);
-    const calledCount = Number(queueState?.calledCount || 0);
-    const nextTicketsCount = Array.isArray(queueState?.nextTickets)
-        ? queueState.nextTickets.length
+    const normalizedState = normalizeQueueStatePayload(queueState);
+    const waitingCount = Number(normalizedState.waitingCount || 0);
+    const calledCount = Number(normalizedState.calledCount || 0);
+    const nextTicketsCount = Array.isArray(normalizedState.nextTickets)
+        ? normalizedState.nextTickets.length
         : 0;
-    const callingNowCount = Array.isArray(queueState?.callingNow)
-        ? queueState.callingNow.length
+    const callingNowCount = Array.isArray(normalizedState.callingNow)
+        ? normalizedState.callingNow.length
         : 0;
     const knownCount = Math.max(0, waitingCount + calledCount);
     const sampledCount = Math.max(0, nextTicketsCount + callingNowCount);
@@ -99,9 +224,7 @@ function setQueueFallbackContextFromState(
         knownCount,
         sampledCount,
         partial: knownCount > sampledCount,
-        updatedAt:
-            String(queueState?.updatedAt || '').trim() ||
-            new Date().toISOString(),
+        updatedAt: normalizedState.updatedAt,
     };
 }
 
@@ -771,34 +894,73 @@ function renderQueueOperationalInsights() {
 }
 
 function normalizeQueueMetaFromState(queueState) {
+    const normalizedState = normalizeQueueStatePayload(queueState);
+    const normalizeQueueTicket = (ticket, { positionFallback = null } = {}) => {
+        const positionValue = Number(ticket?.position || 0);
+        return {
+            ...ticket,
+            id: Number(ticket?.id || ticket?.ticket_id || 0) || 0,
+            ticketCode: String(
+                ticket?.ticketCode || ticket?.ticket_code || '--'
+            ),
+            patientInitials: String(
+                ticket?.patientInitials || ticket?.patient_initials || '--'
+            ),
+            assignedConsultorio:
+                Number(
+                    ticket?.assignedConsultorio ??
+                        ticket?.assigned_consultorio ??
+                        0
+                ) || null,
+            calledAt: String(ticket?.calledAt || ticket?.called_at || ''),
+            queueType: String(
+                ticket?.queueType || ticket?.queue_type || 'walk_in'
+            ),
+            priorityClass: String(
+                ticket?.priorityClass || ticket?.priority_class || 'walk_in'
+            ),
+            position:
+                positionValue > 0
+                    ? positionValue
+                    : Number(positionFallback || 0) > 0
+                      ? Number(positionFallback)
+                      : null,
+        };
+    };
     const callingNowByConsultorio = {
         1: null,
         2: null,
     };
 
-    const callingNow = Array.isArray(queueState?.callingNow)
-        ? queueState.callingNow
+    const callingNow = Array.isArray(normalizedState.callingNow)
+        ? normalizedState.callingNow
         : [];
     for (const ticket of callingNow) {
-        const consultorio = Number(ticket?.assignedConsultorio || 0);
+        const consultorio = Number(
+            ticket?.assignedConsultorio ?? ticket?.assigned_consultorio ?? 0
+        );
         if (consultorio === 1 || consultorio === 2) {
-            callingNowByConsultorio[String(consultorio)] = ticket;
+            callingNowByConsultorio[String(consultorio)] =
+                normalizeQueueTicket(ticket);
         }
     }
 
     return {
-        updatedAt: queueState?.updatedAt || new Date().toISOString(),
-        waitingCount: Number(queueState?.waitingCount || 0),
-        calledCount: Number(queueState?.calledCount || 0),
-        counts: queueState?.counts || {},
+        updatedAt: normalizedState.updatedAt,
+        waitingCount: Number(normalizedState.waitingCount || 0),
+        calledCount: Number(normalizedState.calledCount || 0),
+        counts: normalizedState.counts || {},
         callingNowByConsultorio,
-        nextTickets: Array.isArray(queueState?.nextTickets)
-            ? queueState.nextTickets
+        nextTickets: Array.isArray(normalizedState.nextTickets)
+            ? normalizedState.nextTickets.map((ticket, index) =>
+                  normalizeQueueTicket(ticket, { positionFallback: index + 1 })
+              )
             : [],
     };
 }
 
 function mapQueueStateToTickets(queueState, previousTickets = []) {
+    const normalizedState = normalizeQueueStatePayload(queueState);
     const prevById = new Map();
     if (Array.isArray(previousTickets)) {
         for (const ticket of previousTickets) {
@@ -810,33 +972,62 @@ function mapQueueStateToTickets(queueState, previousTickets = []) {
 
     const nextById = new Map();
     const fallbackUpdatedAt =
-        String(queueState?.updatedAt || '').trim() || new Date().toISOString();
+        String(normalizedState.updatedAt || '').trim() ||
+        new Date().toISOString();
 
     const upsertTicket = (ticket, status) => {
-        const ticketId = Number(ticket?.id || 0);
+        if (!ticket || typeof ticket !== 'object') return;
+        const ticketId = Number(ticket.id || ticket.ticket_id || 0);
         if (!ticketId) return;
         const previous = prevById.get(ticketId) || {};
         const normalizedStatus = String(status || 'waiting').toLowerCase();
         const assignedConsultorio = Number(
-            ticket?.assignedConsultorio || previous.assignedConsultorio || 0
+            ticket.assignedConsultorio ??
+                ticket.assigned_consultorio ??
+                previous.assignedConsultorio ??
+                0
         );
         const createdAt = String(
-            ticket?.createdAt || previous.createdAt || fallbackUpdatedAt
+            ticket.createdAt ??
+                ticket.created_at ??
+                previous.createdAt ??
+                fallbackUpdatedAt
         );
         const calledAtRaw = String(
-            ticket?.calledAt || previous.calledAt || fallbackUpdatedAt
+            ticket.calledAt ??
+                ticket.called_at ??
+                previous.calledAt ??
+                fallbackUpdatedAt
         );
+        const completedAtRaw = String(
+            ticket.completedAt ??
+                ticket.completed_at ??
+                previous.completedAt ??
+                ''
+        );
+        const fallbackTicketCode = Number.isFinite(ticketId)
+            ? `#${ticketId}`
+            : '--';
 
         nextById.set(ticketId, {
             id: ticketId,
             ticketCode: String(
-                ticket?.ticketCode || previous.ticketCode || `#${ticketId}`
+                ticket.ticketCode ??
+                    ticket.ticket_code ??
+                    previous.ticketCode ??
+                    fallbackTicketCode
             ),
             queueType: String(
-                ticket?.queueType || previous.queueType || 'walk_in'
+                ticket.queueType ??
+                    ticket.queue_type ??
+                    previous.queueType ??
+                    'walk_in'
             ),
             priorityClass: String(
-                ticket?.priorityClass || previous.priorityClass || 'walk_in'
+                ticket.priorityClass ??
+                    ticket.priority_class ??
+                    previous.priorityClass ??
+                    'walk_in'
             ),
             status: normalizedStatus,
             assignedConsultorio:
@@ -845,29 +1036,171 @@ function mapQueueStateToTickets(queueState, previousTickets = []) {
                     : null,
             createdAt,
             calledAt: normalizedStatus === 'called' ? calledAtRaw : '',
-            completedAt: '',
+            completedAt: TERMINAL_QUEUE_STATUSES.has(normalizedStatus)
+                ? completedAtRaw || fallbackUpdatedAt
+                : '',
             patientInitials: String(
-                ticket?.patientInitials || previous.patientInitials || '--'
+                ticket.patientInitials ??
+                    ticket.patient_initials ??
+                    previous.patientInitials ??
+                    '--'
             ),
-            phoneLast4: String(ticket?.phoneLast4 || previous.phoneLast4 || ''),
+            phoneLast4: String(
+                ticket.phoneLast4 ??
+                    ticket.phone_last4 ??
+                    previous.phoneLast4 ??
+                    ''
+            ),
         });
     };
 
-    const nextTickets = Array.isArray(queueState?.nextTickets)
-        ? queueState.nextTickets
+    const queueTickets = Array.isArray(normalizedState.queueTickets)
+        ? normalizedState.queueTickets
         : [];
-    for (const ticket of nextTickets) {
+    for (const ticket of queueTickets) {
+        upsertTicket(ticket, String(ticket?.status || 'waiting'));
+    }
+
+    const waitingTickets = Array.isArray(normalizedState.waitingTickets)
+        ? normalizedState.waitingTickets
+        : [];
+    for (const ticket of waitingTickets) {
         upsertTicket(ticket, 'waiting');
     }
 
-    const callingNow = Array.isArray(queueState?.callingNow)
-        ? queueState.callingNow
+    const calledTickets = Array.isArray(normalizedState.calledTickets)
+        ? normalizedState.calledTickets
+        : [];
+    for (const ticket of calledTickets) {
+        upsertTicket(ticket, 'called');
+    }
+
+    const nextTickets = Array.isArray(normalizedState.nextTickets)
+        ? normalizedState.nextTickets
+        : [];
+    for (const ticket of nextTickets) {
+        if (!ticket || typeof ticket !== 'object') continue;
+        const ticketId = Number(ticket.id || ticket.ticket_id || 0);
+        const previous = ticketId ? prevById.get(ticketId) || {} : {};
+        upsertTicket(
+            {
+                ...previous,
+                ...ticket,
+                queueType: ticket.queueType ?? previous.queueType ?? 'walk_in',
+                priorityClass:
+                    ticket.priorityClass ?? previous.priorityClass ?? 'walk_in',
+            },
+            'waiting'
+        );
+    }
+
+    const callingNow = Array.isArray(normalizedState.callingNow)
+        ? normalizedState.callingNow
         : [];
     for (const ticket of callingNow) {
         upsertTicket(ticket, 'called');
     }
 
+    if (
+        nextById.size === 0 &&
+        Number(normalizedState.waitingCount || 0) +
+            Number(normalizedState.calledCount || 0) >
+            0
+    ) {
+        for (const previousTicket of prevById.values()) {
+            const status = String(previousTicket?.status || '').toLowerCase();
+            if (!NON_TERMINAL_QUEUE_STATUSES.has(status)) continue;
+            upsertTicket(previousTicket, status);
+        }
+    }
+
     return Array.from(nextById.values());
+}
+
+function buildQueueMetaFromTickets(tickets, fallbackUpdatedAt = '') {
+    const rows = Array.isArray(tickets) ? tickets : [];
+    const waiting = [];
+    const called = [];
+
+    for (const ticket of rows) {
+        const status = String(ticket?.status || '').toLowerCase();
+        if (status === 'waiting') {
+            waiting.push(ticket);
+        } else if (status === 'called') {
+            called.push(ticket);
+        }
+    }
+
+    waiting.sort((a, b) => {
+        const priorityDiff =
+            getTicketPriorityRank(a?.priorityClass) -
+            getTicketPriorityRank(b?.priorityClass);
+        if (priorityDiff !== 0) return priorityDiff;
+
+        const aTs = Date.parse(String(a?.createdAt || ''));
+        const bTs = Date.parse(String(b?.createdAt || ''));
+        if (Number.isFinite(aTs) && Number.isFinite(bTs) && aTs !== bTs) {
+            return aTs - bTs;
+        }
+        return Number(a?.id || 0) - Number(b?.id || 0);
+    });
+    called.sort((a, b) => {
+        const aTs = Date.parse(String(a?.calledAt || a?.updatedAt || ''));
+        const bTs = Date.parse(String(b?.calledAt || b?.updatedAt || ''));
+        if (Number.isFinite(aTs) && Number.isFinite(bTs) && aTs !== bTs) {
+            return bTs - aTs;
+        }
+        return Number(b?.id || 0) - Number(a?.id || 0);
+    });
+
+    const callingNowByConsultorio = {
+        1: null,
+        2: null,
+    };
+    for (const ticket of called) {
+        const consultorio = Number(ticket?.assignedConsultorio || 0);
+        if (
+            (consultorio === 1 || consultorio === 2) &&
+            !callingNowByConsultorio[String(consultorio)]
+        ) {
+            callingNowByConsultorio[String(consultorio)] = ticket;
+        }
+    }
+
+    return {
+        updatedAt:
+            String(fallbackUpdatedAt || '').trim() || new Date().toISOString(),
+        waitingCount: waiting.length,
+        calledCount: called.length,
+        counts: {
+            waiting: waiting.length,
+            called: called.length,
+            completed: rows.filter(
+                (ticket) =>
+                    String(ticket?.status || '').toLowerCase() === 'completed'
+            ).length,
+            no_show: rows.filter(
+                (ticket) =>
+                    String(ticket?.status || '').toLowerCase() === 'no_show'
+            ).length,
+            cancelled: rows.filter(
+                (ticket) =>
+                    String(ticket?.status || '').toLowerCase() === 'cancelled'
+            ).length,
+        },
+        callingNowByConsultorio,
+        nextTickets: waiting.slice(0, 10).map((ticket, index) => ({
+            id: Number(ticket?.id || 0),
+            ticketCode: String(ticket?.ticketCode || '--'),
+            patientInitials: String(ticket?.patientInitials || '--'),
+            queueType: String(ticket?.queueType || 'walk_in'),
+            priorityClass: String(ticket?.priorityClass || 'walk_in'),
+            position: index + 1,
+            createdAt:
+                String(ticket?.createdAt || '').trim() ||
+                new Date().toISOString(),
+        })),
+    };
 }
 
 function getTicketStatusRank(status) {
@@ -1337,7 +1670,7 @@ function ensureQueueTriageControls() {
             </div>
             <p id="queueTriageSummary" class="queue-triage-summary" role="status" aria-live="polite">Sin datos de cola</p>
             <p class="queue-triage-summary">
-                Atajos: Alt+Shift+J (C1), Alt+Shift+K (C2), Alt+Shift+F (buscar), Alt+Shift+L (SLA), Alt+Shift+U (refrescar), Alt+Shift+P (reimprimir visibles), Alt+Shift+W/C/A/I (estado), Numpad 1/2 + Enter (estación)
+                Atajos: Alt+Shift+J (C1), Alt+Shift+K (C2), Alt+Shift+F (buscar), Alt+Shift+L (SLA), Alt+Shift+U (refrescar), Alt+Shift+P (reimprimir visibles), Alt+Shift+W/C/A/I (estado), Numpad Enter / + / . / - / 0 (estación)
             </p>
         `;
         const kpis = shell.querySelector('.queue-admin-kpis');
@@ -1800,16 +2133,17 @@ async function applyQueueStateFallback({
     try {
         const queueStatePayload = await apiRequest('queue-state');
         const queueStateData = queueStatePayload?.data || {};
+        const normalizedState = normalizeQueueStatePayload(queueStateData);
         setQueueTickets(
-            mapQueueStateToTickets(queueStateData, currentQueueTickets)
+            mapQueueStateToTickets(normalizedState, currentQueueTickets)
         );
-        setQueueMeta(normalizeQueueMetaFromState(queueStateData));
-        setQueueFallbackContextFromState(queueStateData, { reason });
+        setQueueMeta(normalizeQueueMetaFromState(normalizedState));
+        setQueueFallbackContextFromState(normalizedState, { reason });
         queueUiState.lastRefreshMode = 'state_fallback';
         emitQueueOpsEvent('sync_fallback_queue_state', {
             source: fromRealtime ? 'realtime' : 'manual',
             reason: String(reason || 'data_error'),
-            queueCount: Number(queueStateData?.waitingCount || 0),
+            queueCount: Number(normalizedState.waitingCount || 0),
         });
         renderQueueSection();
         if (!silent && isQueueSectionActive()) {
@@ -1836,8 +2170,100 @@ export async function refreshQueueRealtime({
     try {
         const payload = await apiRequest('data');
         const data = payload.data || {};
-        const dataHasQueueTickets = Array.isArray(data.queue_tickets);
-        if (!dataHasQueueTickets) {
+        const dataQueueState =
+            data.queueState && typeof data.queueState === 'object'
+                ? data.queueState
+                : data.queue_state && typeof data.queue_state === 'object'
+                  ? data.queue_state
+                  : null;
+        const rawQueueTickets = Array.isArray(data.queue_tickets)
+            ? data.queue_tickets
+            : Array.isArray(data.queueTickets)
+              ? data.queueTickets
+              : Array.isArray(dataQueueState?.queue_tickets)
+                ? dataQueueState.queue_tickets
+                : Array.isArray(dataQueueState?.queueTickets)
+                  ? dataQueueState.queueTickets
+                  : Array.isArray(dataQueueState?.tickets)
+                    ? dataQueueState.tickets
+                    : null;
+        const dataHasQueueTickets = Array.isArray(rawQueueTickets);
+        const dataTicketsAreEmpty =
+            dataHasQueueTickets && rawQueueTickets.length === 0;
+        const rawQueueMeta =
+            data.queueMeta && typeof data.queueMeta === 'object'
+                ? data.queueMeta
+                : data.queue_meta && typeof data.queue_meta === 'object'
+                  ? data.queue_meta
+                  : dataQueueState && typeof dataQueueState === 'object'
+                    ? dataQueueState
+                    : null;
+        const normalizedQueueMeta = rawQueueMeta
+            ? normalizeQueueMetaFromState(rawQueueMeta)
+            : null;
+        let queueTickets = dataHasQueueTickets
+            ? mapQueueStateToTickets(
+                  { queue_tickets: rawQueueTickets },
+                  currentQueueTickets
+              )
+            : [];
+        let usedMetaFallback = false;
+
+        if (
+            (!dataHasQueueTickets || dataTicketsAreEmpty) &&
+            normalizedQueueMeta
+        ) {
+            const queueMetaActiveCount =
+                Number(normalizedQueueMeta.waitingCount || 0) +
+                Number(normalizedQueueMeta.calledCount || 0);
+            if (queueMetaActiveCount > 0) {
+                queueTickets = mapQueueStateToTickets(
+                    normalizedQueueMeta,
+                    currentQueueTickets
+                );
+                setQueueFallbackContextFromState(normalizedQueueMeta, {
+                    reason: 'data_missing_queue_tickets_meta',
+                });
+                usedMetaFallback = true;
+                emitQueueOpsEvent('sync_fallback_queue_meta', {
+                    source: fromRealtime ? 'realtime' : 'manual',
+                    queueCount: queueMetaActiveCount,
+                });
+            }
+        }
+
+        const previousActiveTickets = Array.isArray(currentQueueTickets)
+            ? currentQueueTickets.filter((ticket) =>
+                  NON_TERMINAL_QUEUE_STATUSES.has(
+                      String(ticket?.status || '').toLowerCase()
+                  )
+              ).length
+            : 0;
+        const declaredMetaActiveCount = normalizedQueueMeta
+            ? Number(normalizedQueueMeta.waitingCount || 0) +
+              Number(normalizedQueueMeta.calledCount || 0)
+            : 0;
+
+        if (
+            dataTicketsAreEmpty &&
+            !usedMetaFallback &&
+            previousActiveTickets > 0 &&
+            declaredMetaActiveCount === 0
+        ) {
+            const queueStateHydrated = await applyQueueStateFallback({
+                silent,
+                fromRealtime,
+                reason: 'data_empty_queue_tickets',
+            });
+            if (queueStateHydrated) {
+                return true;
+            }
+        }
+
+        if (
+            (!dataHasQueueTickets || dataTicketsAreEmpty) &&
+            queueTickets.length === 0
+        ) {
             const queueStateHydrated = await applyQueueStateFallback({
                 silent,
                 fromRealtime,
@@ -1848,21 +2274,25 @@ export async function refreshQueueRealtime({
             }
         }
 
-        setQueueTickets(dataHasQueueTickets ? data.queue_tickets : []);
+        setQueueTickets(queueTickets);
         setQueueMeta(
-            data.queueMeta && typeof data.queueMeta === 'object'
-                ? data.queueMeta
-                : null
+            normalizedQueueMeta ||
+                buildQueueMetaFromTickets(
+                    queueTickets,
+                    data?.updatedAt || new Date().toISOString()
+                )
         );
-        clearQueueFallbackContext();
-        queueUiState.lastRefreshMode = 'live';
+        if (!usedMetaFallback) {
+            clearQueueFallbackContext();
+        }
+        queueUiState.lastRefreshMode = usedMetaFallback
+            ? 'state_fallback'
+            : 'live';
         queueUiState.lastHealthySyncAt = Date.now();
         persistQueueSnapshot();
         emitQueueOpsEvent('sync_success', {
             source: fromRealtime ? 'realtime' : 'manual',
-            queueCount: Array.isArray(data.queue_tickets)
-                ? data.queue_tickets.length
-                : 0,
+            queueCount: queueTickets.length,
         });
         renderQueueSection();
         const freshness = evaluateQueueFreshness({
@@ -2016,9 +2446,25 @@ export async function callNextForConsultorio(consultorio) {
         });
         const ticket = payload?.data?.ticket || null;
         updateTicketInState(ticket);
+        const queueStatePayload =
+            payload?.data?.queueState ||
+            payload?.data?.queue_state ||
+            payload?.data?.queueMeta ||
+            payload?.data?.queue_meta ||
+            null;
         setQueueMeta(
-            normalizeQueueMetaFromState(payload?.data?.queueState || {})
+            queueStatePayload
+                ? normalizeQueueMetaFromState(queueStatePayload)
+                : buildQueueMetaFromTickets(
+                      currentQueueTickets,
+                      new Date().toISOString()
+                  )
         );
+        try {
+            await refreshQueueRealtime({ silent: true });
+        } catch (_syncError) {
+            // best effort: keep optimistic queue update even if background sync fails
+        }
         renderQueueSection();
         if (ticket && ticket.ticketCode) {
             pushQueueActivity(
@@ -2093,7 +2539,20 @@ async function requestQueueTicketAction(ticketId, action, consultorio = null) {
     });
     const ticket = payload?.data?.ticket || null;
     updateTicketInState(ticket);
-    setQueueMeta(normalizeQueueMetaFromState(payload?.data?.queueState || {}));
+    const queueStatePayload =
+        payload?.data?.queueState ||
+        payload?.data?.queue_state ||
+        payload?.data?.queueMeta ||
+        payload?.data?.queue_meta ||
+        null;
+    setQueueMeta(
+        queueStatePayload
+            ? normalizeQueueMetaFromState(queueStatePayload)
+            : buildQueueMetaFromTickets(
+                  currentQueueTickets,
+                  new Date().toISOString()
+              )
+    );
     return ticket;
 }
 
@@ -2168,6 +2627,20 @@ export async function runQueueBulkAction(action) {
     if (!QUEUE_BULK_ACTION_ORDER.includes(normalizedAction)) {
         showToast('Accion masiva invalida', 'error');
         return { ok: false, success: 0, failed: 0 };
+    }
+    if (isQueuePracticeModeEnabled()) {
+        pushQueueActivity(
+            `Modo práctica: bulk ${normalizedAction} simulado (sin cambios reales)`,
+            { level: 'info' }
+        );
+        showToast(
+            `Modo práctica: bulk ${getBulkActionLabel(normalizedAction).toLowerCase()} simulado.`,
+            'info'
+        );
+        emitQueueOpsEvent('bulk_action_practice_simulated', {
+            action: normalizedAction,
+        });
+        return { ok: true, success: 0, failed: 0, simulated: true };
     }
     if (queueUiState.bulkActionInFlight) {
         return { ok: false, success: 0, failed: 0 };
@@ -2274,6 +2747,15 @@ export async function runQueueBulkAction(action) {
 }
 
 export async function runQueueBulkReprint() {
+    if (isQueuePracticeModeEnabled()) {
+        pushQueueActivity(
+            'Modo práctica: reimpresión visible simulada (sin impresión real)',
+            { level: 'info' }
+        );
+        showToast('Modo práctica: reimpresión simulada.', 'info');
+        emitQueueOpsEvent('bulk_reprint_practice_simulated', {});
+        return { ok: true, success: 0, failed: 0, simulated: true };
+    }
     if (queueUiState.bulkReprintInFlight) {
         return { ok: false, success: 0, failed: 0 };
     }
