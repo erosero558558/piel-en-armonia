@@ -49,7 +49,9 @@ function cleanRoutePath(pathname) {
 function joinWithBasePath(baseUrl, routePath, query = '') {
     const basePath = String(baseUrl.pathname || '').replace(/^\/+|\/+$/g, '');
     const normalizedRoute = cleanRoutePath(routePath);
-    const combinedPath = basePath ? `/${basePath}${normalizedRoute}` : normalizedRoute;
+    const combinedPath = basePath
+        ? `/${basePath}${normalizedRoute}`
+        : normalizedRoute;
     const result = new URL(baseUrl.origin);
     result.pathname = combinedPath;
     result.search = query ? `?${query.replace(/^\?/, '')}` : '';
@@ -83,11 +85,27 @@ function writeReport(outputPath, report) {
         return;
     }
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-    fs.writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+    fs.writeFileSync(
+        outputPath,
+        `${JSON.stringify(report, null, 2)}\n`,
+        'utf8'
+    );
 }
 
 function hasMatch(text, pattern) {
     return pattern.test(String(text || ''));
+}
+
+function escapeForRegex(value) {
+    return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildLanguageSwitchPattern(targetHref) {
+    const escapedHref = escapeForRegex(targetHref);
+    return new RegExp(
+        `<a[^>]*(?:class=["'][^"']*sony-lang[^"']*["'][^>]*href=["']${escapedHref}["']|href=["']${escapedHref}["'][^>]*class=["'][^"']*sony-lang[^"']*["'])`,
+        'i'
+    );
 }
 
 function expectMatch(failures, route, html, pattern, description) {
@@ -116,13 +134,13 @@ async function checkHomeConversionHooks(baseUrl, failures) {
             route: '/es/',
             lang: /<html[^>]+lang=["']es["']/i,
             bookingHref: /href=["']\/es\/#citas["']/i,
-            switchHref: /class=["'][^"']*sony-lang[^"']*["'][^>]*href=["']\/en\//i,
+            switchHref: buildLanguageSwitchPattern('/en/'),
         },
         {
             route: '/en/',
             lang: /<html[^>]+lang=["']en["']/i,
             bookingHref: /href=["']\/en\/#citas["']/i,
-            switchHref: /class=["'][^"']*sony-lang[^"']*["'][^>]*href=["']\/es\//i,
+            switchHref: buildLanguageSwitchPattern('/es/'),
         },
     ];
     const checks = [];
@@ -277,7 +295,13 @@ async function checkTelemedicineCtas(baseUrl, failures) {
         }
 
         const beforeCount = failures.length;
-        expectMatch(failures, item.route, html, item.href, 'telemedicine booking CTA');
+        expectMatch(
+            failures,
+            item.route,
+            html,
+            item.href,
+            'telemedicine booking CTA'
+        );
         expectMatch(
             failures,
             item.route,
@@ -345,7 +369,11 @@ async function checkPublicRuntimeConfig(baseUrl, failures) {
         status: 'passed',
         issues: [],
     };
-    const url = joinWithBasePath(baseUrl, '/api.php', 'resource=public-runtime-config');
+    const url = joinWithBasePath(
+        baseUrl,
+        '/api.php',
+        'resource=public-runtime-config'
+    );
     const response = await requestWithRetry(url, {
         method: 'GET',
         redirect: 'manual',
@@ -357,7 +385,9 @@ async function checkPublicRuntimeConfig(baseUrl, failures) {
             `Route /api.php?resource=public-runtime-config expected 2xx but got ${response.status}`
         );
         check.status = 'failed';
-        check.issues = failures.filter((entry) => entry.includes('public-runtime-config'));
+        check.issues = failures.filter((entry) =>
+            entry.includes('public-runtime-config')
+        );
         return check;
     }
 
@@ -367,7 +397,9 @@ async function checkPublicRuntimeConfig(baseUrl, failures) {
     } catch (_error) {
         failures.push('public-runtime-config response is not valid JSON');
         check.status = 'failed';
-        check.issues = failures.filter((entry) => entry.includes('public-runtime-config'));
+        check.issues = failures.filter((entry) =>
+            entry.includes('public-runtime-config')
+        );
         return check;
     }
 
@@ -375,7 +407,9 @@ async function checkPublicRuntimeConfig(baseUrl, failures) {
     if (!data || typeof data !== 'object') {
         failures.push('public-runtime-config missing data object');
         check.status = 'failed';
-        check.issues = failures.filter((entry) => entry.includes('public-runtime-config'));
+        check.issues = failures.filter((entry) =>
+            entry.includes('public-runtime-config')
+        );
         return check;
     }
     const captcha = data.captcha;
@@ -389,13 +423,17 @@ async function checkPublicRuntimeConfig(baseUrl, failures) {
         failures.push('public-runtime-config missing deployVersion field');
     }
 
-    check.issues = failures.filter((entry) => entry.includes('public-runtime-config'));
+    check.issues = failures.filter((entry) =>
+        entry.includes('public-runtime-config')
+    );
     if (check.issues.length > 0) {
         check.status = 'failed';
     }
 
     if (check.status === 'passed') {
-        console.log('[conversion-smoke] runtime config OK /api.php?resource=public-runtime-config');
+        console.log(
+            '[conversion-smoke] runtime config OK /api.php?resource=public-runtime-config'
+        );
     }
 
     return check;
@@ -403,7 +441,11 @@ async function checkPublicRuntimeConfig(baseUrl, failures) {
 
 async function main() {
     const args = parseArgs(process.argv.slice(2));
-    const baseInput = args.baseUrl || process.env.PUBLIC_BASE_URL || process.env.PROD_URL || '';
+    const baseInput =
+        args.baseUrl ||
+        process.env.PUBLIC_BASE_URL ||
+        process.env.PROD_URL ||
+        '';
     const baseUrl = ensureUrl(baseInput);
 
     if (!baseUrl) {
@@ -438,7 +480,9 @@ async function main() {
     writeReport(args.output, report);
 
     if (failures.length > 0) {
-        console.error(`[conversion-smoke] FAILED with ${failures.length} issue(s):`);
+        console.error(
+            `[conversion-smoke] FAILED with ${failures.length} issue(s):`
+        );
         for (const failure of failures) {
             console.error(` - ${failure}`);
         }
