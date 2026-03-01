@@ -104,14 +104,39 @@ test('post-deploy-fast integra gate admin rollout con resumen operativo', () => 
         'falta linea de stage profile en resumen fast lane'
     );
     assert.equal(
+        raw.includes('Public V4 rollout stage (effective):'),
+        true,
+        'falta linea de stage efectivo public_v4 en resumen fast lane'
+    );
+    assert.equal(
+        raw.includes('Public V4 rollout policy source (effective):'),
+        true,
+        'falta linea de policy source efectivo public_v4 en resumen fast lane'
+    );
+    assert.equal(
         stepNames.includes('Publicar reporte gate admin rollout (fast)'),
         true,
         'falta publicacion de artefacto de reporte admin rollout en fast lane'
     );
     assert.equal(
+        stepNames.includes('Escribir reporte rollout publico V4 (fast)'),
+        true,
+        'falta step de escritura de reporte public_v4 rollout en fast lane'
+    );
+    assert.equal(
+        stepNames.includes('Publicar reporte rollout publico V4 (fast)'),
+        true,
+        'falta step de publicacion de reporte public_v4 rollout en fast lane'
+    );
+    assert.equal(
         raw.includes('verification/last-admin-ui-rollout-gate-fast.json'),
         true,
         'falta ruta canonica del reporte admin rollout fast'
+    );
+    assert.equal(
+        raw.includes('verification/last-public-v4-rollout-fast.json'),
+        true,
+        'falta ruta canonica del reporte public_v4 rollout fast'
     );
 });
 
@@ -152,9 +177,31 @@ test('post-deploy-fast usa resolver central de politica admin rollout', () => {
         true,
         'falta trazabilidad de policy source en incidente fast lane'
     );
+    assert.equal(
+        raw.includes('node ./bin/resolve-public-v4-rollout-policy.js'),
+        true,
+        'falta uso del resolver central de politica public_v4 en fast lane'
+    );
+    assert.equal(
+        raw.includes(
+            '--enable-monitor "$env:ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_FAST"'
+        ),
+        true,
+        'falta propagacion de enable_monitor al resolver politica public_v4 en fast lane'
+    );
+    assert.equal(
+        raw.includes('public_v4_stage_profile'),
+        true,
+        'falta trazabilidad de stage profile public_v4 en incidente fast lane'
+    );
+    assert.equal(
+        raw.includes('public_v4_policy_source'),
+        true,
+        'falta trazabilidad de policy source public_v4 en incidente fast lane'
+    );
 });
 
-test('post-deploy-fast expone inputs para propagacion de admin rollout', () => {
+test('post-deploy-fast expone inputs para propagacion de admin rollout y public_v4 rollout', () => {
     const { parsed } = loadWorkflow();
     const inputs = parsed?.on?.workflow_dispatch?.inputs || {};
 
@@ -163,6 +210,15 @@ test('post-deploy-fast expone inputs para propagacion de admin rollout', () => {
         'admin_rollout_skip_runtime_smoke',
         'admin_rollout_allow_feature_api_failure',
         'admin_rollout_allow_missing_flag',
+        'enable_public_v4_rollout_monitor',
+        'public_v4_rollout_stage',
+        'public_v4_rollout_surface_test',
+        'public_v4_rollout_surface_control',
+        'public_v4_rollout_min_view_booking',
+        'public_v4_rollout_min_start_checkout',
+        'public_v4_rollout_max_confirmed_drop_pp',
+        'public_v4_rollout_min_confirmed_rate_pct',
+        'public_v4_rollout_allow_missing_control',
     ];
 
     for (const inputName of requiredInputs) {

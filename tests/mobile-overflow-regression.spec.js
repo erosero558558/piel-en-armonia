@@ -35,6 +35,12 @@ test.describe('Mobile overflow regressions V3', () => {
         for (const viewport of MOBILE_VIEWPORTS) {
             await page.setViewportSize(viewport);
             await gotoPublicRoute(page, '/es/');
+            await page.evaluate(() => {
+                const banner = document.getElementById('cookieBanner');
+                if (banner instanceof HTMLElement) {
+                    banner.style.display = 'none';
+                }
+            });
 
             const toggle = page.locator('.chatbot-toggle');
             await expect(toggle).toBeVisible();

@@ -46,35 +46,160 @@
     function bootFamilyTabs() {
         var url = new URL(window.location.href);
         var category = url.searchParams.get('category');
-        if (!category) return;
-
         document.querySelectorAll('[data-family-tabs]').forEach(function (nav) {
             if (!nav || nav.dataset.familyTabsReady === 'true') return;
             nav.dataset.familyTabsReady = 'true';
-            var link = nav.querySelector(
-                '[data-family-tab="' + category + '"]'
-            );
-            if (!link) return;
-            link.dataset.familyActive = 'true';
-            link.setAttribute('aria-current', 'page');
+            if (category) {
+                var link = nav.querySelector(
+                    '[data-family-tab="' + category + '"]'
+                );
+                if (link) {
+                    link.dataset.familyActive = 'true';
+                    link.setAttribute('aria-current', 'page');
+                }
+            }
+
+            nav.addEventListener('click', function (event) {
+                var target =
+                    event.target instanceof Element ? event.target : null;
+                var tab = target ? target.closest('[data-family-tab]') : null;
+                if (!tab) return;
+                var nextCategory = String(
+                    tab.getAttribute('data-family-tab') || ''
+                ).trim();
+                var nextUrl = new URL(window.location.href);
+                if (nextCategory) {
+                    nextUrl.searchParams.set('category', nextCategory);
+                } else {
+                    nextUrl.searchParams.delete('category');
+                }
+                window.history.replaceState({}, '', nextUrl.toString());
+            });
         });
     }
 
     function bootServiceGrid() {
         var url = new URL(window.location.href);
         var category = url.searchParams.get('category');
-        if (!category) return;
+        var intent = url.searchParams.get('intent');
+        var audience = url.searchParams.get('audience');
+
+        function hasToken(payload, token) {
+            if (!token) return true;
+            return (
+                String(payload || '')
+                    .split(',')
+                    .map(function (value) {
+                        return value.trim();
+                    })
+                    .filter(Boolean)
+                    .indexOf(token) !== -1
+            );
+        }
+
+        function applyFilters(
+            root,
+            currentCategory,
+            currentIntent,
+            currentAudience
+        ) {
+            if (!root) return;
+            var cards = Array.from(
+                root.querySelectorAll('[data-service-card]')
+            );
+            cards.forEach(function (card) {
+                var matchesCategory =
+                    !currentCategory ||
+                    String(card.dataset.cardCategory || '') === currentCategory;
+                var matchesIntent = hasToken(
+                    card.dataset.cardIntents || '',
+                    currentIntent
+                );
+                var matchesAudience = hasToken(
+                    card.dataset.cardAudience || '',
+                    currentAudience
+                );
+                var visible =
+                    matchesCategory && matchesIntent && matchesAudience;
+                card.hidden = !visible;
+            });
+
+            Array.from(root.querySelectorAll('[data-family-section]')).forEach(
+                function (section) {
+                    var visibleCards = section.querySelectorAll(
+                        '[data-service-card]:not([hidden])'
+                    );
+                    section.hidden = visibleCards.length === 0;
+                    if (
+                        !section.hidden &&
+                        currentCategory &&
+                        section.getAttribute('data-family-section') ===
+                            currentCategory
+                    ) {
+                        section.dataset.familyActive = 'true';
+                    }
+                }
+            );
+        }
 
         document
             .querySelectorAll('[data-services-grid]')
             .forEach(function (root) {
                 if (!root || root.dataset.familyReady === 'true') return;
                 root.dataset.familyReady = 'true';
-                var section = root.querySelector(
-                    '[data-family-section="' + category + '"]'
+
+                var filterIntent = root.querySelector('[data-filter-intent]');
+                var filterAudience = root.querySelector(
+                    '[data-filter-audience]'
                 );
-                if (!section) return;
-                section.dataset.familyActive = 'true';
+
+                if (filterIntent) {
+                    filterIntent.value = intent || '';
+                }
+                if (filterAudience) {
+                    filterAudience.value = audience || '';
+                }
+
+                function syncFilterQuery() {
+                    var nextUrl = new URL(window.location.href);
+                    var selectedIntent = filterIntent ? filterIntent.value : '';
+                    var selectedAudience = filterAudience
+                        ? filterAudience.value
+                        : '';
+
+                    if (selectedIntent) {
+                        nextUrl.searchParams.set('intent', selectedIntent);
+                    } else {
+                        nextUrl.searchParams.delete('intent');
+                    }
+                    if (selectedAudience) {
+                        nextUrl.searchParams.set('audience', selectedAudience);
+                    } else {
+                        nextUrl.searchParams.delete('audience');
+                    }
+
+                    window.history.replaceState({}, '', nextUrl.toString());
+                    applyFilters(
+                        root,
+                        category,
+                        selectedIntent,
+                        selectedAudience
+                    );
+                }
+
+                if (filterIntent) {
+                    filterIntent.addEventListener('change', syncFilterQuery);
+                }
+                if (filterAudience) {
+                    filterAudience.addEventListener('change', syncFilterQuery);
+                }
+
+                applyFilters(
+                    root,
+                    category,
+                    filterIntent ? filterIntent.value : intent,
+                    filterAudience ? filterAudience.value : audience
+                );
             });
     }
 
@@ -213,20 +338,9 @@
             document.body.dataset.publicShellVersion = 'v3';
         }
 
-        var legacyStylesHref = '/styles.css?v=public-v3-bridge';
-        var bootstrapHref = '/js/bootstrap-inline-engine.js?v=public-v3-bridge';
-        var runtimeHref = '/script.js?v=public-v3-bridge';
+        var bootstrapHref = '/js/bootstrap-inline-engine.js?v=public-v4-bridge';
+        var runtimeHref = '/script.js?v=public-v4-bridge';
         var booted = false;
-
-        function ensureStyles() {
-            if (document.querySelector('link[data-public-v3-legacy="true"]'))
-                return;
-            var link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = legacyStylesHref;
-            link.dataset.publicV3Legacy = 'true';
-            document.head.appendChild(link);
-        }
 
         function applyServiceHint() {
             var booking = document.getElementById('citas');
@@ -273,7 +387,6 @@
             if (booted) return;
             booted = true;
             root.dataset.publicV3RuntimeBooted = 'true';
-            ensureStyles();
             applyServiceHint();
             appendScript(bootstrapHref, 'classic');
             appendScript(runtimeHref, 'module');

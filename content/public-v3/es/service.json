@@ -1,7 +1,7 @@
 {
     "heroTone": "ink",
     "storyEyebrow": "Programa medico",
-    "storySummary": "Esta ficha se presenta como una capacidad clinica con fit, tiempo, contraindicaciones y continuidad.",
+    "storySummary": "Ficha clinica con indicaciones, audiencia, cautelas, duracion y precio consistente con el checkout.",
     "storyTone": "porcelain",
     "evidenceEyebrow": "Fit y evidencia",
     "evidenceTitle": "Que suele indicar ajuste, que exige cautela y como se interpreta el siguiente paso.",
@@ -24,8 +24,8 @@
     ],
     "booking": {
         "eyebrow": "Reserva",
-        "title": "Conserva la pista del programa y entra al booking existente.",
-        "deck": "La ruta actual mantiene service hint, continuidad de conversion y UI encapsulada dentro del shell V3.",
+        "title": "Reserva esta ruta con precio, impuesto, politica y soporte visibles.",
+        "deck": "La reserva conserva service hint, coherencia de precio y trazabilidad operativa desde disponibilidad hasta pago.",
         "actionLabel": "Reservar esta ruta",
         "tone": "silver"
     }

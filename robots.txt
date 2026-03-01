@@ -5,6 +5,7 @@ Disallow: /admin.html
 Disallow: /admin-auth.php
 Disallow: /figo-chat.php
 Disallow: /cron.php
+Disallow: /legacy.php
 Disallow: /data/
 Disallow: /uploads/
 

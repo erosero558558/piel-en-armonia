@@ -7,10 +7,13 @@
             "url": [
                 "http://127.0.0.1:8088/es/",
                 "http://127.0.0.1:8088/en/",
+                "http://127.0.0.1:8088/es/servicios/",
+                "http://127.0.0.1:8088/en/services/",
                 "http://127.0.0.1:8088/es/telemedicina/",
+                "http://127.0.0.1:8088/en/telemedicine/",
                 "http://127.0.0.1:8088/es/servicios/diagnostico-integral/",
                 "http://127.0.0.1:8088/es/servicios/acne-rosacea/",
-                "http://127.0.0.1:8088/es/servicios/botox/"
+                "http://127.0.0.1:8088/en/services/acne-rosacea/"
             ],
             "settings": {
                 "chromeFlags": "--no-sandbox --disable-dev-shm-usage",

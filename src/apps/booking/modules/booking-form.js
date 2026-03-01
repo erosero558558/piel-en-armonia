@@ -313,6 +313,14 @@ export function init(inputDeps) {
     const subtotalEl = document.getElementById('subtotalPrice');
     const ivaEl = document.getElementById('ivaPrice');
     const totalEl = document.getElementById('totalPrice');
+    const selectedPriceLabelEl = document.getElementById('selectedPriceLabel');
+    const selectedPriceRuleEl = document.getElementById('selectedPriceRule');
+    const selectedServiceMetaEl = document.getElementById(
+        'selectedServiceMeta'
+    );
+    const selectedPriceDisclaimerEl = document.getElementById(
+        'selectedPriceDisclaimer'
+    );
     const dateInput = document.querySelector('input[name="date"]');
     const timeSelect = document.querySelector('select[name="time"]');
     const doctorSelect = document.querySelector('select[name="doctor"]');
@@ -365,23 +373,85 @@ export function init(inputDeps) {
         }
     }
 
+    function serviceTypeLabel(serviceType) {
+        const normalized = String(serviceType || '')
+            .trim()
+            .toLowerCase();
+        if (!normalized) {
+            return t(
+                'Selecciona una ruta para ver detalles',
+                'Select a route to see details'
+            );
+        }
+        if (normalized === 'clinical')
+            return t('Ruta clínica', 'Clinical route');
+        if (normalized === 'telemedicine')
+            return t('Ruta remota', 'Remote-first route');
+        if (normalized === 'procedure')
+            return t('Ruta de procedimiento', 'Procedure route');
+        if (normalized === 'aesthetic')
+            return t('Ruta de estética médica', 'Medical aesthetics route');
+        return t('Ruta especializada', 'Specialized route');
+    }
+
     serviceSelect.addEventListener('change', function () {
         const selected = this.options[this.selectedIndex];
         const price = parseFloat(selected.dataset.price) || 0;
         const taxRate = parseFloat(selected.dataset.serviceTax) || 0;
+        const priceTotal = parseFloat(selected.dataset.priceTotal) || 0;
+        const priceLabelShort = String(
+            selected.dataset.priceLabelShort || ''
+        ).trim();
+        const priceRule = String(selected.dataset.priceRule || '').trim();
+        const priceDisclaimer = String(
+            selected.dataset.priceDisclaimer || ''
+        ).trim();
+        const serviceType = String(selected.dataset.serviceType || '').trim();
+        const durationMin = Number(selected.dataset.durationMin || 0);
         const priceHint = document.getElementById('priceHint');
 
         const iva = price * taxRate;
-        const total = price + iva;
+        const total = priceTotal > 0 ? priceTotal : price + iva;
         subtotalEl.textContent = `$${price.toFixed(2)}`;
         ivaEl.textContent = `$${iva.toFixed(2)}`;
         totalEl.textContent = `$${total.toFixed(2)}`;
+
+        if (selectedPriceLabelEl) {
+            selectedPriceLabelEl.textContent = priceLabelShort || '-';
+        }
+        if (selectedPriceRuleEl) {
+            selectedPriceRuleEl.textContent =
+                priceRule === 'base_plus_tax'
+                    ? t(
+                          'Total = precio base + impuesto aplicable',
+                          'Total = base price + applicable tax'
+                      )
+                    : t(
+                          'Regla de precio según catálogo',
+                          'Pricing rule according to catalogue'
+                      );
+        }
+        if (selectedServiceMetaEl) {
+            const typeLabel = serviceTypeLabel(serviceType);
+            selectedServiceMetaEl.textContent =
+                durationMin > 0
+                    ? `${typeLabel} · ${durationMin} min`
+                    : typeLabel;
+        }
+        if (selectedPriceDisclaimerEl) {
+            selectedPriceDisclaimerEl.textContent =
+                priceDisclaimer ||
+                t(
+                    'El valor final se confirma antes de autorizar el pago.',
+                    'Final amount is confirmed before payment authorization.'
+                );
+        }
 
         if (price > 0) {
             priceSummary.classList.remove('is-hidden');
             if (priceHint) priceHint.classList.add('is-hidden');
         } else {
-            priceSummary.classList.remove('is-hidden');
+            priceSummary.classList.add('is-hidden');
             if (priceHint) priceHint.classList.remove('is-hidden');
         }
 

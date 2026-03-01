@@ -1,6 +1,6 @@
 {
     "title": "Servicios | Piel en Armonia",
-    "description": "Catalogo publico de programas dermatologicos con lectura por familia y continuidad de reserva.",
+    "description": "Catalogo dermatologico con filtros por categoria, intencion y audiencia, con continuidad de reserva.",
     "hero": {
         "eyebrow": "Catalogo de programas",
         "title": "Un hub de servicios tratado como portfolio clinico.",
@@ -22,8 +22,8 @@
     },
     "booking": {
         "eyebrow": "Puente de reserva",
-        "title": "Cada programa puede caer en booking sin perder contexto.",
-        "deck": "Los CTA siguen cargando la pista de servicio correcta y mantienen la taxonomia analitica del nuevo shell.",
+        "title": "Cada programa puede caer en booking con confianza operativa visible.",
+        "deck": "Cada CTA conserva contexto de servicio y alinea precio, impuesto, politica y soporte en el mismo flujo.",
         "actionLabel": "Abrir reserva",
         "serviceHint": "consulta",
         "tone": "silver"

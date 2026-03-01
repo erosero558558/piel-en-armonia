@@ -1,6 +1,6 @@
 {
-    "title": "Piel en Armonia | Sony V3",
-    "description": "Public dermatology frontend with a cinematic stage, program catalogue, and integrated booking.",
+    "title": "Piel en Armonia | Precision Dermatology in Quito",
+    "description": "Clinical and medical aesthetics dermatology with clear pathways, transparent pricing, and integrated booking.",
     "slides": [
         {
             "id": "clinical-stage",
@@ -124,12 +124,12 @@
     "telemedicine": {
         "eyebrow": "Telemedicine",
         "title": "Remote care inside the same clinical system.",
-        "deck": "Use video, phone, or WhatsApp for first guidance, acne or dermatitis follow-up, and structured escalation to clinic.",
+        "deck": "Use video, phone, or WhatsApp for first guidance and escalate to in-person care when medically needed.",
         "tone": "ink",
         "points": [
             "Video, phone, or WhatsApp as the entry point",
             "In-person escalation when the case requires it",
-            "Booking continuity and support inside the same shell"
+            "Booking continuity and support inside the same clinical journey"
         ],
         "href": "/en/telemedicine/"
     },
@@ -155,8 +155,8 @@
     ],
     "booking": {
         "eyebrow": "Booking",
-        "title": "Booking no longer defines the page, but it stays ready to convert.",
-        "deck": "You can enter from general assessment, a specific detail page, or telemedicine without losing the same operational runtime.",
+        "title": "Integrated booking with transparent pricing and clinical continuity.",
+        "deck": "Start booking from diagnosis, service detail, or telemedicine while keeping a single operational flow.",
         "actionLabel": "Open booking",
         "tone": "silver",
         "serviceHint": "consulta"

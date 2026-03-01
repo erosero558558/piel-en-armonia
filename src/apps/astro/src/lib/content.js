@@ -17,6 +17,14 @@ function readJson(relativePath) {
     return JSON.parse(payload);
 }
 
+function readJsonOptional(relativePath) {
+    try {
+        return readJson(relativePath);
+    } catch (_error) {
+        return null;
+    }
+}
+
 let cache = null;
 
 const EN_SERVICE_COPY = {
@@ -352,14 +360,208 @@ function loadCache() {
         return cache;
     }
 
+    const v4Catalog = readJsonOptional(
+        path.join('content', 'public-v4', 'catalog.json')
+    );
+    const v4AssetsManifest = readJsonOptional(
+        path.join('content', 'public-v4', 'assets-manifest.json')
+    );
     cache = {
         es: readJson(path.join('content', 'es.json')),
         en: readJson(path.join('content', 'en.json')),
         nav: readJson(path.join('content', 'navigation.json')),
         services: readJson(path.join('content', 'services.json')),
         deferred: readJson(path.join('content', 'index.json')),
+        v4Catalog,
+        v4AssetsManifest,
     };
     return cache;
+}
+
+export function getV4Catalog() {
+    const data = loadCache();
+    const catalog = data.v4Catalog;
+    if (!catalog || typeof catalog !== 'object' || Array.isArray(catalog)) {
+        return null;
+    }
+    return catalog;
+}
+
+export function getV4AssetsManifest() {
+    const data = loadCache();
+    const manifest = data.v4AssetsManifest;
+    if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
+        return null;
+    }
+    return manifest;
+}
+
+function normalizeAssetPath(value) {
+    const normalized = String(value || '').trim();
+    if (!normalized) return '';
+    return normalized.replace(/\\/g, '/');
+}
+
+function inferMimeType(assetPath) {
+    const ext = normalizeAssetPath(assetPath).split('.').pop()?.toLowerCase();
+    if (!ext) return '';
+    if (ext === 'avif') return 'image/avif';
+    if (ext === 'webp') return 'image/webp';
+    if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+    if (ext === 'png') return 'image/png';
+    return '';
+}
+
+function inferAssetWidth(assetPath) {
+    const normalized = normalizeAssetPath(assetPath);
+    const match = normalized.match(/-(\d+)\.(avif|webp|jpe?g|png)$/i);
+    if (!match) {
+        return null;
+    }
+    const width = Number(match[1]);
+    return Number.isFinite(width) && width > 0 ? width : null;
+}
+
+function buildSrcSet(entries) {
+    const withWidth = entries
+        .map((item) => ({
+            src: normalizeAssetPath(item),
+            width: inferAssetWidth(item),
+        }))
+        .filter((item) => item.src);
+
+    const byWidth = withWidth.filter((item) => Number.isFinite(item.width));
+    if (byWidth.length > 0) {
+        return byWidth
+            .sort((left, right) => left.width - right.width)
+            .map((item) => `${item.src} ${item.width}w`)
+            .join(', ');
+    }
+
+    return withWidth.map((item) => item.src).join(', ');
+}
+
+export function getPublicAssetById(assetId) {
+    const normalized = String(assetId || '')
+        .trim()
+        .toLowerCase();
+    if (!normalized) {
+        return null;
+    }
+    const manifest = getV4AssetsManifest();
+    const assets = Array.isArray(manifest?.assets) ? manifest.assets : [];
+    return (
+        assets.find(
+            (asset) =>
+                String(asset?.id || '')
+                    .trim()
+                    .toLowerCase() === normalized
+        ) || null
+    );
+}
+
+export function getPublicAssetBySrc(assetSrc) {
+    const normalized = normalizeAssetPath(assetSrc);
+    if (!normalized) {
+        return null;
+    }
+    const manifest = getV4AssetsManifest();
+    const assets = Array.isArray(manifest?.assets) ? manifest.assets : [];
+    return (
+        assets.find((asset) => normalizeAssetPath(asset?.src) === normalized) ||
+        null
+    );
+}
+
+function localizeAssetAlt(
+    asset,
+    locale,
+    fallbackAlt = '',
+    preferFallbackAlt = false
+) {
+    const fallback = String(fallbackAlt || '').trim();
+    if (preferFallbackAlt && fallback) {
+        return fallback;
+    }
+    const lang = locale === 'en' ? 'en' : 'es';
+    const localized = String(
+        lang === 'en' ? asset?.alt_en || '' : asset?.alt_es || ''
+    ).trim();
+    if (localized) {
+        return localized;
+    }
+    return fallback;
+}
+
+export function resolvePublicMedia({
+    assetId = '',
+    src = '',
+    alt = '',
+    locale = 'es',
+    sizes = '',
+    kind = 'image',
+    preferProvidedAlt = false,
+} = {}) {
+    const asset =
+        getPublicAssetById(assetId) || getPublicAssetBySrc(src) || null;
+    const fallbackSrc = normalizeAssetPath(src);
+    const fallbackAlt = String(alt || '').trim();
+    const mediaSizes = String(sizes || '').trim();
+
+    if (!asset) {
+        return {
+            src: fallbackSrc,
+            alt: fallbackAlt,
+            kind,
+            sizes: mediaSizes || undefined,
+            sources: [],
+        };
+    }
+
+    const candidates = [
+        normalizeAssetPath(asset.src),
+        ...(Array.isArray(asset.derivatives) ? asset.derivatives : []).map(
+            (item) => normalizeAssetPath(item)
+        ),
+    ].filter(Boolean);
+    const uniqueCandidates = Array.from(new Set(candidates));
+
+    const sourceGroups = new Map();
+    for (const candidate of uniqueCandidates) {
+        const mime = inferMimeType(candidate);
+        if (!mime) continue;
+        if (!sourceGroups.has(mime)) {
+            sourceGroups.set(mime, []);
+        }
+        sourceGroups.get(mime).push(candidate);
+    }
+
+    const sourceOrder = ['image/avif', 'image/webp', 'image/jpeg', 'image/png'];
+    const sources = sourceOrder
+        .filter((mime) => sourceGroups.has(mime))
+        .map((mime) => ({
+            type: mime,
+            srcset: buildSrcSet(sourceGroups.get(mime)),
+        }))
+        .filter((item) => item.srcset);
+
+    const srcValue = normalizeAssetPath(asset.src) || fallbackSrc;
+    const srcMime = inferMimeType(srcValue);
+    const fallbackCandidates = srcMime
+        ? sourceGroups.get(srcMime) || [srcValue]
+        : [srcValue];
+
+    return {
+        assetId: String(asset.id || '').trim(),
+        src: srcValue,
+        srcset: buildSrcSet(fallbackCandidates),
+        alt: localizeAssetAlt(asset, locale, fallbackAlt, preferProvidedAlt),
+        kind,
+        license: String(asset.license || '').trim(),
+        usageScope: Array.isArray(asset.usage_scope) ? asset.usage_scope : [],
+        sizes: mediaSizes || undefined,
+        sources,
+    };
 }
 
 export function getDictionary(locale) {
@@ -373,7 +575,189 @@ export function getNavigation() {
 
 export function getServices() {
     const data = loadCache();
+    const catalogServices = Array.isArray(data.v4Catalog?.services)
+        ? data.v4Catalog.services
+        : null;
+    if (catalogServices) {
+        return catalogServices;
+    }
     return Array.isArray(data.services?.services) ? data.services.services : [];
+}
+
+export function getBookingOptions() {
+    const catalog = getV4Catalog();
+    if (catalog && Array.isArray(catalog.booking_options)) {
+        return catalog.booking_options;
+    }
+    return [
+        {
+            id: 'consulta',
+            label_es: 'Consulta Dermatológica',
+            label_en: 'Dermatology Consultation',
+            base_price_usd: 40,
+            tax_rate: 0,
+            duration_min: 30,
+            service_type: 'clinical',
+            final_price_rule: 'base_plus_tax',
+            price_label_short: 'USD 40.00 + IVA 0%',
+            price_disclaimer_es:
+                'El valor final se confirma antes de autorizar el pago.',
+            price_disclaimer_en:
+                'Final amount is confirmed before payment authorization.',
+        },
+        {
+            id: 'telefono',
+            label_es: 'Consulta Telefónica',
+            label_en: 'Phone Consultation',
+            base_price_usd: 25,
+            tax_rate: 0,
+            duration_min: 30,
+            service_type: 'telemedicine',
+            final_price_rule: 'base_plus_tax',
+            price_label_short: 'USD 25.00 + IVA 0%',
+            price_disclaimer_es:
+                'El valor final se confirma antes de autorizar el pago.',
+            price_disclaimer_en:
+                'Final amount is confirmed before payment authorization.',
+        },
+        {
+            id: 'video',
+            label_es: 'Video Consulta',
+            label_en: 'Video Consultation',
+            base_price_usd: 30,
+            tax_rate: 0,
+            duration_min: 30,
+            service_type: 'telemedicine',
+            final_price_rule: 'base_plus_tax',
+            price_label_short: 'USD 30.00 + IVA 0%',
+            price_disclaimer_es:
+                'El valor final se confirma antes de autorizar el pago.',
+            price_disclaimer_en:
+                'Final amount is confirmed before payment authorization.',
+        },
+        {
+            id: 'laser',
+            label_es: 'Láser Dermatológico',
+            label_en: 'Dermatology Laser',
+            base_price_usd: 150,
+            tax_rate: 0.15,
+            duration_min: 60,
+            service_type: 'procedure',
+            final_price_rule: 'base_plus_tax',
+            price_label_short: 'USD 150.00 + IVA 15%',
+            price_disclaimer_es:
+                'El valor final se calcula con precio base e impuesto aplicable.',
+            price_disclaimer_en:
+                'Final amount is calculated from base price and applicable tax.',
+        },
+        {
+            id: 'rejuvenecimiento',
+            label_es: 'Rejuvenecimiento Facial',
+            label_en: 'Facial Rejuvenation',
+            base_price_usd: 120,
+            tax_rate: 0.15,
+            duration_min: 60,
+            service_type: 'aesthetic',
+            final_price_rule: 'base_plus_tax',
+            price_label_short: 'USD 120.00 + IVA 15%',
+            price_disclaimer_es:
+                'El valor final se calcula con precio base e impuesto aplicable.',
+            price_disclaimer_en:
+                'Final amount is calculated from base price and applicable tax.',
+        },
+        {
+            id: 'acne',
+            label_es: 'Tratamiento de Acné',
+            label_en: 'Acne Treatment',
+            base_price_usd: 80,
+            tax_rate: 0,
+            duration_min: 30,
+            service_type: 'clinical',
+            final_price_rule: 'base_plus_tax',
+            price_label_short: 'USD 80.00 + IVA 0%',
+            price_disclaimer_es:
+                'El valor final se confirma antes de autorizar el pago.',
+            price_disclaimer_en:
+                'Final amount is confirmed before payment authorization.',
+        },
+        {
+            id: 'cancer',
+            label_es: 'Detección de Cáncer de Piel',
+            label_en: 'Skin Cancer Screening',
+            base_price_usd: 70,
+            tax_rate: 0,
+            duration_min: 30,
+            service_type: 'clinical',
+            final_price_rule: 'base_plus_tax',
+            price_label_short: 'USD 70.00 + IVA 0%',
+            price_disclaimer_es:
+                'El valor final se confirma antes de autorizar el pago.',
+            price_disclaimer_en:
+                'Final amount is confirmed before payment authorization.',
+        },
+    ];
+}
+
+export function getBookingOptionById(serviceId) {
+    const normalized = String(serviceId || '')
+        .trim()
+        .toLowerCase();
+    if (!normalized) {
+        return null;
+    }
+    return (
+        getBookingOptions().find(
+            (option) =>
+                String(option.id || '')
+                    .trim()
+                    .toLowerCase() === normalized
+        ) || null
+    );
+}
+
+export function getLocalizedBookingOptions(locale) {
+    const isEnglish = locale === 'en';
+    return getBookingOptions().map((option) => {
+        const base = Number(option.base_price_usd || 0);
+        const taxRate = Number(option.tax_rate || 0);
+        const taxPct = Math.round(taxRate * 100);
+        const total = Number((base * (1 + taxRate)).toFixed(2));
+        const label = isEnglish
+            ? option.label_en || option.label_es || option.id
+            : option.label_es || option.label_en || option.id;
+        const shortLabel =
+            (isEnglish
+                ? option.price_label_short_en
+                : option.price_label_short_es) ||
+            option.price_label_short ||
+            (isEnglish
+                ? `USD ${base.toFixed(2)} + Tax ${taxPct}%`
+                : `USD ${base.toFixed(2)} + IVA ${taxPct}%`);
+        const disclaimer =
+            (isEnglish
+                ? option.price_disclaimer_en
+                : option.price_disclaimer_es) ||
+            (isEnglish
+                ? 'Final amount is confirmed before payment authorization.'
+                : 'El valor final se confirma antes de autorizar el pago.');
+        const priceLabel = isEnglish
+            ? `${label} - USD ${base.toFixed(2)} + Tax ${taxPct}%`
+            : `${label} - USD ${base.toFixed(2)} + IVA ${taxPct}%`;
+        return {
+            id: option.id,
+            label,
+            price: base,
+            total,
+            taxRate,
+            taxPercent: taxPct,
+            finalPriceRule: String(option.final_price_rule || 'base_plus_tax'),
+            priceLabelShort: shortLabel,
+            priceDisclaimer: disclaimer,
+            serviceType: String(option.service_type || 'clinical'),
+            durationMin: Number(option.duration_min || 0),
+            optionLabel: priceLabel,
+        };
+    });
 }
 
 export function localizeService(service, locale) {
@@ -501,6 +885,12 @@ export function localizeDoctorProfiles(doctors, locale) {
 
 export function mapServiceHint(slug) {
     const service = getServiceBySlug(slug);
+    const runtimeServiceId = String(
+        service?.runtime_service_id || service?.booking_service_id || ''
+    ).trim();
+    if (runtimeServiceId) {
+        return runtimeServiceId;
+    }
     const contentHint = String(service?.cta?.service_hint || '').trim();
     if (contentHint) {
         return contentHint;
@@ -601,12 +991,13 @@ export function getRelatedServices(slug, locale, limit = 3) {
 
             score += overlapScore(current.audience, candidate.audience) * 2;
             score +=
-                overlapScore(
-                    current.doctor_profile,
-                    candidate.doctor_profile
-                ) * 2;
+                overlapScore(current.doctor_profile, candidate.doctor_profile) *
+                2;
 
-            if (candidate.category === 'children' && current.category !== 'children') {
+            if (
+                candidate.category === 'children' &&
+                current.category !== 'children'
+            ) {
                 score -= 1;
             }
 
@@ -620,7 +1011,9 @@ export function getRelatedServices(slug, locale, limit = 3) {
                 return right.score - left.score;
             }
 
-            return String(left.candidate.hero || left.candidate.slug).localeCompare(
+            return String(
+                left.candidate.hero || left.candidate.slug
+            ).localeCompare(
                 String(right.candidate.hero || right.candidate.slug),
                 locale === 'en' ? 'en' : 'es'
             );

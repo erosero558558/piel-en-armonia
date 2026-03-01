@@ -71,6 +71,51 @@ on:
                 required: false
                 default: true
                 type: boolean
+            enable_public_v4_rollout_monitor:
+                description: 'Habilitar gate de rollout publico V4 en prod-monitor post-deploy'
+                required: false
+                default: false
+                type: boolean
+            public_v4_rollout_stage:
+                description: 'Etapa de rollout publico V4 (internal|canary|general|rollback)'
+                required: false
+                default: 'canary'
+                type: string
+            public_v4_rollout_surface_test:
+                description: 'Superficie test para rollout publico V4'
+                required: false
+                default: 'v4'
+                type: string
+            public_v4_rollout_surface_control:
+                description: 'Superficie control para rollout publico V4'
+                required: false
+                default: 'legacy'
+                type: string
+            public_v4_rollout_min_view_booking:
+                description: 'Minimo de view_booking por superficie para evaluar rollout'
+                required: false
+                default: '20'
+                type: string
+            public_v4_rollout_min_start_checkout:
+                description: 'Minimo de start_checkout por superficie para evaluar rollout'
+                required: false
+                default: '10'
+                type: string
+            public_v4_rollout_max_confirmed_drop_pp:
+                description: 'Drop maximo permitido (pp) en confirmed_rate test vs control'
+                required: false
+                default: '8'
+                type: string
+            public_v4_rollout_min_confirmed_rate_pct:
+                description: 'Tasa minima de confirmed (%) para superficie test'
+                required: false
+                default: '20'
+                type: string
+            public_v4_rollout_allow_missing_control:
+                description: 'Permitir ausencia de data para superficie control'
+                required: false
+                default: false
+                type: boolean
             run_postdeploy_fast:
                 description: 'Disparar post-deploy-fast al finalizar deploy'
                 required: false
@@ -411,6 +456,15 @@ jobs:
             ENABLE_PUBLIC_CUTOVER_MONITOR: ${{ github.event.inputs.enable_public_cutover_monitor || vars.PROD_MONITOR_ENABLE_PUBLIC_CUTOVER || 'true' }}
             PUBLIC_CUTOVER_WINDOW_HOURS: ${{ github.event.inputs.public_cutover_window_hours || vars.PUBLIC_CUTOVER_WINDOW_HOURS || '72' }}
             DISPATCH_PUBLIC_CUTOVER_MONITOR: ${{ github.event.inputs.dispatch_public_cutover_monitor || 'true' }}
+            ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_PROPAGATED: ${{ github.event.inputs.enable_public_v4_rollout_monitor || vars.PROD_MONITOR_ENABLE_PUBLIC_V4_ROLLOUT || 'false' }}
+            PUBLIC_V4_ROLLOUT_STAGE_PROPAGATED: ${{ github.event.inputs.public_v4_rollout_stage || vars.PUBLIC_V4_ROLLOUT_STAGE || 'canary' }}
+            PUBLIC_V4_ROLLOUT_SURFACE_TEST_PROPAGATED: ${{ github.event.inputs.public_v4_rollout_surface_test || vars.PUBLIC_V4_ROLLOUT_SURFACE_TEST || 'v4' }}
+            PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_PROPAGATED: ${{ github.event.inputs.public_v4_rollout_surface_control || vars.PUBLIC_V4_ROLLOUT_SURFACE_CONTROL || 'legacy' }}
+            PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_PROPAGATED: ${{ github.event.inputs.public_v4_rollout_min_view_booking || vars.PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING || '20' }}
+            PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_PROPAGATED: ${{ github.event.inputs.public_v4_rollout_min_start_checkout || vars.PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT || '10' }}
+            PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_PROPAGATED: ${{ github.event.inputs.public_v4_rollout_max_confirmed_drop_pp || vars.PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP || '8' }}
+            PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_PROPAGATED: ${{ github.event.inputs.public_v4_rollout_min_confirmed_rate_pct || vars.PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT || '20' }}
+            PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_PROPAGATED: ${{ github.event.inputs.public_v4_rollout_allow_missing_control || vars.PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL || 'false' }}
             PUBLIC_CUTOVER_STARTED_AT: ''
             DISPATCH_EVENT_NAME: ${{ github.event_name }}
             RUN_POSTDEPLOY_FAST_INPUT: ${{ github.event.inputs.run_postdeploy_fast || '' }}
@@ -671,6 +725,30 @@ jobs:
                   allow_missing_flag_gate="$(json_field "$gate_policy_json" allow_missing_flag_effective)"
                   policy_source_gate="$(json_field "$gate_policy_json" policy_source)"
 
+                  public_v4_policy_json="$(node ./bin/resolve-public-v4-rollout-policy.js \
+                    --stage "${PUBLIC_V4_ROLLOUT_STAGE_PROPAGATED}" \
+                    --default-stage canary \
+                    --enable-monitor "${ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_PROPAGATED}" \
+                    --surface-test "${PUBLIC_V4_ROLLOUT_SURFACE_TEST_PROPAGATED}" \
+                    --surface-control "${PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_PROPAGATED}" \
+                    --min-view-booking "${PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_PROPAGATED}" \
+                    --min-start-checkout "${PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_PROPAGATED}" \
+                    --max-confirmed-drop-pp "${PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_PROPAGATED}" \
+                    --min-confirmed-rate-pct "${PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_PROPAGATED}" \
+                    --allow-missing-control "${PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_PROPAGATED}")"
+
+                  public_v4_enable_monitor="$(json_field "$public_v4_policy_json" enable_monitor_effective)"
+                  public_v4_stage="$(json_field "$public_v4_policy_json" stage_effective)"
+                  public_v4_stage_profile="$(json_field "$public_v4_policy_json" stage_profile)"
+                  public_v4_policy_source="$(json_field "$public_v4_policy_json" policy_source)"
+                  public_v4_surface_test="$(json_field "$public_v4_policy_json" surface_test_effective)"
+                  public_v4_surface_control="$(json_field "$public_v4_policy_json" surface_control_effective)"
+                  public_v4_min_view_booking="$(json_field "$public_v4_policy_json" min_view_booking_effective)"
+                  public_v4_min_start_checkout="$(json_field "$public_v4_policy_json" min_start_checkout_effective)"
+                  public_v4_max_confirmed_drop_pp="$(json_field "$public_v4_policy_json" max_confirmed_drop_pp_effective)"
+                  public_v4_min_confirmed_rate_pct="$(json_field "$public_v4_policy_json" min_confirmed_rate_pct_effective)"
+                  public_v4_allow_missing_control="$(json_field "$public_v4_policy_json" allow_missing_control_effective)"
+
                   precheck_policy_source="stage-default"
                   precheck_allow_feature_api_failure="$(json_field "$base_policy_json" allow_feature_api_failure_effective)"
                   precheck_allow_missing_flag="$(json_field "$base_policy_json" allow_missing_flag_effective)"
@@ -699,11 +777,22 @@ jobs:
                   echo "allow_feature_api_failure_gate=$allow_feature_api_failure_gate" >> "$GITHUB_OUTPUT"
                   echo "allow_missing_flag_gate=$allow_missing_flag_gate" >> "$GITHUB_OUTPUT"
                   echo "policy_source_gate=$policy_source_gate" >> "$GITHUB_OUTPUT"
+                  echo "public_v4_enable_monitor=$public_v4_enable_monitor" >> "$GITHUB_OUTPUT"
+                  echo "public_v4_stage=$public_v4_stage" >> "$GITHUB_OUTPUT"
+                  echo "public_v4_stage_profile=$public_v4_stage_profile" >> "$GITHUB_OUTPUT"
+                  echo "public_v4_policy_source=$public_v4_policy_source" >> "$GITHUB_OUTPUT"
+                  echo "public_v4_surface_test=$public_v4_surface_test" >> "$GITHUB_OUTPUT"
+                  echo "public_v4_surface_control=$public_v4_surface_control" >> "$GITHUB_OUTPUT"
+                  echo "public_v4_min_view_booking=$public_v4_min_view_booking" >> "$GITHUB_OUTPUT"
+                  echo "public_v4_min_start_checkout=$public_v4_min_start_checkout" >> "$GITHUB_OUTPUT"
+                  echo "public_v4_max_confirmed_drop_pp=$public_v4_max_confirmed_drop_pp" >> "$GITHUB_OUTPUT"
+                  echo "public_v4_min_confirmed_rate_pct=$public_v4_min_confirmed_rate_pct" >> "$GITHUB_OUTPUT"
+                  echo "public_v4_allow_missing_control=$public_v4_allow_missing_control" >> "$GITHUB_OUTPUT"
                   echo "precheck_policy_source=$precheck_policy_source" >> "$GITHUB_OUTPUT"
                   echo "allow_feature_api_failure_precheck=$precheck_allow_feature_api_failure" >> "$GITHUB_OUTPUT"
                   echo "allow_missing_flag_precheck=$precheck_allow_missing_flag" >> "$GITHUB_OUTPUT"
 
-                  echo "Dispatch config -> mode=$dispatch_mode fast=$run_fast gate=$run_gate stage=$stage stage_profile=$stage_profile precheck_source=$precheck_policy_source"
+                  echo "Dispatch config -> mode=$dispatch_mode fast=$run_fast gate=$run_gate stage=$stage stage_profile=$stage_profile precheck_source=$precheck_policy_source public_v4_enable_monitor=$public_v4_enable_monitor public_v4_stage=$public_v4_stage public_v4_profile=$public_v4_stage_profile"
 
             - name: Validar contrato features admin_sony_ui (post-deploy)
               if: ${{ env.FTP_DRY_RUN != 'true' }}
@@ -751,18 +840,36 @@ jobs:
                           admin_rollout_stage: process.env.ADMIN_ROLLOUT_STAGE_EFFECTIVE,
                           admin_rollout_skip_runtime_smoke: process.env.ADMIN_ROLLOUT_SKIP_RUNTIME_SMOKE_FAST_EFFECTIVE,
                           admin_rollout_allow_feature_api_failure: process.env.ADMIN_ROLLOUT_ALLOW_FEATURE_API_FAILURE_FAST_EFFECTIVE,
-                          admin_rollout_allow_missing_flag: process.env.ADMIN_ROLLOUT_ALLOW_MISSING_FLAG_FAST_EFFECTIVE
+                          admin_rollout_allow_missing_flag: process.env.ADMIN_ROLLOUT_ALLOW_MISSING_FLAG_FAST_EFFECTIVE,
+                          enable_public_v4_rollout_monitor: process.env.PUBLIC_V4_ENABLE_MONITOR_EFFECTIVE,
+                          public_v4_rollout_stage: process.env.PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE,
+                          public_v4_rollout_surface_test: process.env.PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE,
+                          public_v4_rollout_surface_control: process.env.PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE,
+                          public_v4_rollout_min_view_booking: process.env.PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE,
+                          public_v4_rollout_min_start_checkout: process.env.PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE,
+                          public_v4_rollout_max_confirmed_drop_pp: process.env.PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE,
+                          public_v4_rollout_min_confirmed_rate_pct: process.env.PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE,
+                          public_v4_rollout_allow_missing_control: process.env.PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE
                         }
                       });
 
                       core.info(
-                        `Workflow post-deploy-fast.yml disparado (domain=${process.env.PROD_URL}, stage=${process.env.ADMIN_ROLLOUT_STAGE_EFFECTIVE}).`
+                        `Workflow post-deploy-fast.yml disparado (domain=${process.env.PROD_URL}, admin_stage=${process.env.ADMIN_ROLLOUT_STAGE_EFFECTIVE}, public_v4_stage=${process.env.PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE}, public_v4_monitor=${process.env.PUBLIC_V4_ENABLE_MONITOR_EFFECTIVE}).`
                       );
               env:
                   ADMIN_ROLLOUT_STAGE_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.stage }}
                   ADMIN_ROLLOUT_SKIP_RUNTIME_SMOKE_FAST_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.skip_runtime_smoke_fast }}
                   ADMIN_ROLLOUT_ALLOW_FEATURE_API_FAILURE_FAST_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.allow_feature_api_failure_fast }}
                   ADMIN_ROLLOUT_ALLOW_MISSING_FLAG_FAST_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.allow_missing_flag_fast }}
+                  PUBLIC_V4_ENABLE_MONITOR_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_enable_monitor }}
+                  PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_stage }}
+                  PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_surface_test }}
+                  PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_surface_control }}
+                  PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_min_view_booking }}
+                  PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_min_start_checkout }}
+                  PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_max_confirmed_drop_pp }}
+                  PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_min_confirmed_rate_pct }}
+                  PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_allow_missing_control }}
 
             - name: Disparar Post-Deploy Gate (Full Regression)
               if: ${{ env.FTP_DRY_RUN != 'true' && steps.resolve_postdeploy.outputs.run_gate == 'true' }}
@@ -782,18 +889,36 @@ jobs:
                           admin_rollout_stage: process.env.ADMIN_ROLLOUT_STAGE_EFFECTIVE,
                           admin_rollout_skip_runtime_smoke: process.env.ADMIN_ROLLOUT_SKIP_RUNTIME_SMOKE_GATE_EFFECTIVE,
                           admin_rollout_allow_feature_api_failure: process.env.ADMIN_ROLLOUT_ALLOW_FEATURE_API_FAILURE_GATE_EFFECTIVE,
-                          admin_rollout_allow_missing_flag: process.env.ADMIN_ROLLOUT_ALLOW_MISSING_FLAG_GATE_EFFECTIVE
+                          admin_rollout_allow_missing_flag: process.env.ADMIN_ROLLOUT_ALLOW_MISSING_FLAG_GATE_EFFECTIVE,
+                          enable_public_v4_rollout_monitor: process.env.PUBLIC_V4_ENABLE_MONITOR_EFFECTIVE,
+                          public_v4_rollout_stage: process.env.PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE,
+                          public_v4_rollout_surface_test: process.env.PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE,
+                          public_v4_rollout_surface_control: process.env.PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE,
+                          public_v4_rollout_min_view_booking: process.env.PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE,
+                          public_v4_rollout_min_start_checkout: process.env.PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE,
+                          public_v4_rollout_max_confirmed_drop_pp: process.env.PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE,
+                          public_v4_rollout_min_confirmed_rate_pct: process.env.PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE,
+                          public_v4_rollout_allow_missing_control: process.env.PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE
                         }
                       });
 
                       core.info(
-                        `Workflow post-deploy-gate.yml disparado (domain=${process.env.PROD_URL}, stage=${process.env.ADMIN_ROLLOUT_STAGE_EFFECTIVE}).`
+                        `Workflow post-deploy-gate.yml disparado (domain=${process.env.PROD_URL}, admin_stage=${process.env.ADMIN_ROLLOUT_STAGE_EFFECTIVE}, public_v4_stage=${process.env.PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE}, public_v4_monitor=${process.env.PUBLIC_V4_ENABLE_MONITOR_EFFECTIVE}).`
                       );
               env:
                   ADMIN_ROLLOUT_STAGE_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.stage }}
                   ADMIN_ROLLOUT_SKIP_RUNTIME_SMOKE_GATE_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.skip_runtime_smoke_gate }}
                   ADMIN_ROLLOUT_ALLOW_FEATURE_API_FAILURE_GATE_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.allow_feature_api_failure_gate }}
                   ADMIN_ROLLOUT_ALLOW_MISSING_FLAG_GATE_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.allow_missing_flag_gate }}
+                  PUBLIC_V4_ENABLE_MONITOR_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_enable_monitor }}
+                  PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_stage }}
+                  PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_surface_test }}
+                  PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_surface_control }}
+                  PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_min_view_booking }}
+                  PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_min_start_checkout }}
+                  PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_max_confirmed_drop_pp }}
+                  PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_min_confirmed_rate_pct }}
+                  PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_allow_missing_control }}
 
             - name: Resumen dispatch post-deploy
               if: ${{ env.FTP_DRY_RUN != 'true' }}
@@ -815,6 +940,27 @@ jobs:
                     echo "- admin rollout precheck policy source (effective): \`${{ steps.resolve_postdeploy.outputs.precheck_policy_source }}\`"
                     echo "- admin rollout allow feature API failure precheck (effective): \`${{ steps.resolve_postdeploy.outputs.allow_feature_api_failure_precheck }}\`"
                     echo "- admin rollout allow missing flag precheck (effective): \`${{ steps.resolve_postdeploy.outputs.allow_missing_flag_precheck }}\`"
+                    echo "- enable_public_v4_rollout_monitor (propagated): \`${ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_PROPAGATED}\`"
+                    echo "- public_v4_rollout_stage (propagated): \`${PUBLIC_V4_ROLLOUT_STAGE_PROPAGATED}\`"
+                    echo "- public_v4_rollout_surface_test (propagated): \`${PUBLIC_V4_ROLLOUT_SURFACE_TEST_PROPAGATED}\`"
+                    echo "- public_v4_rollout_surface_control (propagated): \`${PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_PROPAGATED}\`"
+                    echo "- public_v4_rollout_min_view_booking (propagated): \`${PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_PROPAGATED}\`"
+                    echo "- public_v4_rollout_min_start_checkout (propagated): \`${PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_PROPAGATED}\`"
+                    echo "- public_v4_rollout_max_confirmed_drop_pp (propagated): \`${PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_PROPAGATED}\`"
+                    echo "- public_v4_rollout_min_confirmed_rate_pct (propagated): \`${PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_PROPAGATED}\`"
+                    echo "- public_v4_rollout_allow_missing_control (propagated): \`${PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_PROPAGATED}\`"
+                    echo "- enable_public_v4_rollout_monitor (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_enable_monitor }}\`"
+                    echo "- public_v4_rollout_stage (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_stage }}\`"
+                    echo "- public_v4_rollout_stage_profile (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_stage_profile }}\`"
+                    echo "- public_v4_rollout_policy_source (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_policy_source }}\`"
+                    echo "- public_v4_rollout_surface_test (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_surface_test }}\`"
+                    echo "- public_v4_rollout_surface_control (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_surface_control }}\`"
+                    echo "- public_v4_rollout_min_view_booking (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_min_view_booking }}\`"
+                    echo "- public_v4_rollout_min_start_checkout (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_min_start_checkout }}\`"
+                    echo "- public_v4_rollout_max_confirmed_drop_pp (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_max_confirmed_drop_pp }}\`"
+                    echo "- public_v4_rollout_min_confirmed_rate_pct (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_min_confirmed_rate_pct }}\`"
+                    echo "- public_v4_rollout_allow_missing_control (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_allow_missing_control }}\`"
+                    echo "- postdeploy_rollout_dispatch_manifest: \`.public-cutover/postdeploy-rollout-dispatch.json\`"
                     echo "- reporte admin rollout deploy-hosting: \`verification/last-admin-ui-rollout-gate-deploy-hosting.json\`"
                   } >> "$GITHUB_STEP_SUMMARY"
 
@@ -856,6 +1002,66 @@ jobs:
                     --routing-report ".public-cutover/routing-smoke.json" \
                     --conversion-report ".public-cutover/conversion-smoke.json"
 
+            - name: Write post-deploy rollout dispatch manifest
+              if: ${{ env.FTP_DRY_RUN != 'true' }}
+              shell: bash
+              env:
+                  DISPATCH_MODE_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.dispatch_mode }}
+                  RUN_POSTDEPLOY_FAST_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.run_fast }}
+                  RUN_POSTDEPLOY_GATE_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.run_gate }}
+                  ADMIN_ROLLOUT_STAGE_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.stage }}
+                  ADMIN_ROLLOUT_STAGE_PROFILE_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.stage_profile }}
+                  ADMIN_ROLLOUT_POLICY_SOURCE_FAST_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.policy_source_fast }}
+                  ADMIN_ROLLOUT_POLICY_SOURCE_GATE_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.policy_source_gate }}
+                  PUBLIC_V4_ENABLE_MONITOR_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_enable_monitor }}
+                  PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_stage }}
+                  PUBLIC_V4_ROLLOUT_STAGE_PROFILE_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_stage_profile }}
+                  PUBLIC_V4_ROLLOUT_POLICY_SOURCE_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_policy_source }}
+                  PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_surface_test }}
+                  PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_surface_control }}
+                  PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_min_view_booking }}
+                  PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_min_start_checkout }}
+                  PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_max_confirmed_drop_pp }}
+                  PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_min_confirmed_rate_pct }}
+                  PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_allow_missing_control }}
+              run: |
+                  set -euo pipefail
+                  mkdir -p .public-cutover
+                  node <<'NODE'
+                  const fs = require('node:fs');
+
+                  const manifest = {
+                    generated_at: new Date().toISOString(),
+                    domain: process.env.PROD_URL || 'https://pielarmonia.com',
+                    dispatch_mode_effective: process.env.DISPATCH_MODE_EFFECTIVE || 'unknown',
+                    run_postdeploy_fast_effective: process.env.RUN_POSTDEPLOY_FAST_EFFECTIVE || 'false',
+                    run_postdeploy_gate_effective: process.env.RUN_POSTDEPLOY_GATE_EFFECTIVE || 'false',
+                    admin_rollout: {
+                      stage_effective: process.env.ADMIN_ROLLOUT_STAGE_EFFECTIVE || 'general',
+                      stage_profile_effective: process.env.ADMIN_ROLLOUT_STAGE_PROFILE_EFFECTIVE || 'n/a',
+                      policy_source_fast_effective: process.env.ADMIN_ROLLOUT_POLICY_SOURCE_FAST_EFFECTIVE || 'n/a',
+                      policy_source_gate_effective: process.env.ADMIN_ROLLOUT_POLICY_SOURCE_GATE_EFFECTIVE || 'n/a'
+                    },
+                    public_v4_rollout: {
+                      enable_monitor_effective: process.env.PUBLIC_V4_ENABLE_MONITOR_EFFECTIVE || 'false',
+                      stage_effective: process.env.PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE || 'canary',
+                      stage_profile_effective: process.env.PUBLIC_V4_ROLLOUT_STAGE_PROFILE_EFFECTIVE || 'n/a',
+                      policy_source_effective: process.env.PUBLIC_V4_ROLLOUT_POLICY_SOURCE_EFFECTIVE || 'n/a',
+                      surface_test_effective: process.env.PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE || 'v4',
+                      surface_control_effective: process.env.PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE || 'legacy',
+                      min_view_booking_effective: process.env.PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE || '20',
+                      min_start_checkout_effective: process.env.PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE || '10',
+                      max_confirmed_drop_pp_effective: process.env.PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE || '8',
+                      min_confirmed_rate_pct_effective: process.env.PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE || '20',
+                      allow_missing_control_effective: process.env.PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE || 'false'
+                    }
+                  };
+
+                  const outPath = '.public-cutover/postdeploy-rollout-dispatch.json';
+                  fs.writeFileSync(outPath, JSON.stringify(manifest, null, 2));
+                  console.log(`Wrote ${outPath}`);
+                  NODE
+
             - name: Upload public cutover evidence
               if: ${{ always() && env.FTP_DRY_RUN != 'true' }}
               uses: actions/upload-artifact@v4
@@ -869,6 +1075,16 @@ jobs:
               if: ${{ env.FTP_DRY_RUN != 'true' && env.ENABLE_PUBLIC_CUTOVER_MONITOR == 'true' }}
               continue-on-error: true
               uses: actions/github-script@v7
+              env:
+                  PUBLIC_V4_ENABLE_MONITOR_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_enable_monitor }}
+                  PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_stage }}
+                  PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_surface_test }}
+                  PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_surface_control }}
+                  PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_min_view_booking }}
+                  PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_min_start_checkout }}
+                  PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_max_confirmed_drop_pp }}
+                  PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_min_confirmed_rate_pct }}
+                  PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_allow_missing_control }}
               with:
                   script: |
                       const owner = context.repo.owner;
@@ -886,6 +1102,42 @@ jobs:
                         {
                           name: 'PUBLIC_CUTOVER_WINDOW_HOURS',
                           value: process.env.PUBLIC_CUTOVER_WINDOW_HOURS
+                        },
+                        {
+                          name: 'PROD_MONITOR_ENABLE_PUBLIC_V4_ROLLOUT',
+                          value: process.env.PUBLIC_V4_ENABLE_MONITOR_EFFECTIVE || 'false'
+                        },
+                        {
+                          name: 'PUBLIC_V4_ROLLOUT_STAGE',
+                          value: process.env.PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE || 'canary'
+                        },
+                        {
+                          name: 'PUBLIC_V4_ROLLOUT_SURFACE_TEST',
+                          value: process.env.PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE || 'v4'
+                        },
+                        {
+                          name: 'PUBLIC_V4_ROLLOUT_SURFACE_CONTROL',
+                          value: process.env.PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE || 'legacy'
+                        },
+                        {
+                          name: 'PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING',
+                          value: process.env.PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE || '20'
+                        },
+                        {
+                          name: 'PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT',
+                          value: process.env.PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE || '10'
+                        },
+                        {
+                          name: 'PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP',
+                          value: process.env.PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE || '8'
+                        },
+                        {
+                          name: 'PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT',
+                          value: process.env.PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE || '20'
+                        },
+                        {
+                          name: 'PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL',
+                          value: process.env.PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE || 'false'
                         }
                       ];
 
@@ -932,6 +1184,16 @@ jobs:
               if: ${{ env.FTP_DRY_RUN != 'true' && env.ENABLE_PUBLIC_CUTOVER_MONITOR == 'true' && env.DISPATCH_PUBLIC_CUTOVER_MONITOR == 'true' }}
               continue-on-error: true
               uses: actions/github-script@v7
+              env:
+                  PUBLIC_V4_ENABLE_MONITOR_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_enable_monitor }}
+                  PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_stage }}
+                  PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_surface_test }}
+                  PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_surface_control }}
+                  PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_min_view_booking }}
+                  PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_min_start_checkout }}
+                  PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_max_confirmed_drop_pp }}
+                  PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_min_confirmed_rate_pct }}
+                  PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_allow_missing_control }}
               with:
                   script: |
                       const owner = context.repo.owner;
@@ -950,10 +1212,21 @@ jobs:
                             domain: process.env.PROD_URL,
                             enable_public_cutover_monitor: 'true',
                             public_cutover_started_at: process.env.PUBLIC_CUTOVER_STARTED_AT,
-                            public_cutover_window_hours: process.env.PUBLIC_CUTOVER_WINDOW_HOURS
+                            public_cutover_window_hours: process.env.PUBLIC_CUTOVER_WINDOW_HOURS,
+                            enable_public_v4_rollout_monitor: process.env.PUBLIC_V4_ENABLE_MONITOR_EFFECTIVE || 'false',
+                            public_v4_rollout_stage: process.env.PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE || 'canary',
+                            public_v4_rollout_surface_test: process.env.PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE || 'v4',
+                            public_v4_rollout_surface_control: process.env.PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE || 'legacy',
+                            public_v4_rollout_min_view_booking: process.env.PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE || '20',
+                            public_v4_rollout_min_start_checkout: process.env.PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE || '10',
+                            public_v4_rollout_max_confirmed_drop_pp: process.env.PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE || '8',
+                            public_v4_rollout_min_confirmed_rate_pct: process.env.PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE || '20',
+                            public_v4_rollout_allow_missing_control: process.env.PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE || 'false'
                           }
                         });
-                        core.info(`prod-monitor.yml dispatched for ref ${ref}`);
+                        core.info(
+                          `prod-monitor.yml dispatched for ref ${ref} (public_v4_stage=${process.env.PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE || 'canary'}, public_v4_monitor=${process.env.PUBLIC_V4_ENABLE_MONITOR_EFFECTIVE || 'false'})`
+                        );
                       } catch (error) {
                         if (error.status === 403 || error.status === 404) {
                           core.warning(
@@ -979,8 +1252,29 @@ jobs:
                     echo "- dispatch_public_cutover_monitor: \`${DISPATCH_PUBLIC_CUTOVER_MONITOR}\`";
                     echo "- public_cutover_started_at: \`${PUBLIC_CUTOVER_STARTED_AT}\`";
                     echo "- public_cutover_window_hours: \`${PUBLIC_CUTOVER_WINDOW_HOURS}\`";
+                    echo "- enable_public_v4_rollout_monitor (propagated): \`${ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_PROPAGATED}\`";
+                    echo "- public_v4_rollout_stage (propagated): \`${PUBLIC_V4_ROLLOUT_STAGE_PROPAGATED}\`";
+                    echo "- public_v4_rollout_surface_test (propagated): \`${PUBLIC_V4_ROLLOUT_SURFACE_TEST_PROPAGATED}\`";
+                    echo "- public_v4_rollout_surface_control (propagated): \`${PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_PROPAGATED}\`";
+                    echo "- public_v4_rollout_min_view_booking (propagated): \`${PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_PROPAGATED}\`";
+                    echo "- public_v4_rollout_min_start_checkout (propagated): \`${PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_PROPAGATED}\`";
+                    echo "- public_v4_rollout_max_confirmed_drop_pp (propagated): \`${PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_PROPAGATED}\`";
+                    echo "- public_v4_rollout_min_confirmed_rate_pct (propagated): \`${PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_PROPAGATED}\`";
+                    echo "- public_v4_rollout_allow_missing_control (propagated): \`${PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_PROPAGATED}\`";
+                    echo "- enable_public_v4_rollout_monitor (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_enable_monitor }}\`";
+                    echo "- public_v4_rollout_stage (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_stage }}\`";
+                    echo "- public_v4_rollout_stage_profile (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_stage_profile }}\`";
+                    echo "- public_v4_rollout_policy_source (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_policy_source }}\`";
+                    echo "- public_v4_rollout_surface_test (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_surface_test }}\`";
+                    echo "- public_v4_rollout_surface_control (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_surface_control }}\`";
+                    echo "- public_v4_rollout_min_view_booking (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_min_view_booking }}\`";
+                    echo "- public_v4_rollout_min_start_checkout (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_min_start_checkout }}\`";
+                    echo "- public_v4_rollout_max_confirmed_drop_pp (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_max_confirmed_drop_pp }}\`";
+                    echo "- public_v4_rollout_min_confirmed_rate_pct (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_min_confirmed_rate_pct }}\`";
+                    echo "- public_v4_rollout_allow_missing_control (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_allow_missing_control }}\`";
+                    echo "- postdeploy_rollout_dispatch_manifest: \`.public-cutover/postdeploy-rollout-dispatch.json\`";
                     echo "- public_cutover_artifact: \`public-cutover-evidence\`";
-                    echo "- public_cutover_repo_vars: \`PROD_MONITOR_ENABLE_PUBLIC_CUTOVER,PUBLIC_CUTOVER_STARTED_AT,PUBLIC_CUTOVER_WINDOW_HOURS\`";
+                    echo "- public_cutover_repo_vars: \`PROD_MONITOR_ENABLE_PUBLIC_CUTOVER,PUBLIC_CUTOVER_STARTED_AT,PUBLIC_CUTOVER_WINDOW_HOURS,PROD_MONITOR_ENABLE_PUBLIC_V4_ROLLOUT,PUBLIC_V4_ROLLOUT_STAGE,PUBLIC_V4_ROLLOUT_SURFACE_TEST,PUBLIC_V4_ROLLOUT_SURFACE_CONTROL,PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING,PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT,PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP,PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT,PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL\`";
                     echo "- dry_run: \`${FTP_DRY_RUN}\`";
                     echo "- Result: \`${{ job.status }}\`";
                   } >> "$GITHUB_STEP_SUMMARY"

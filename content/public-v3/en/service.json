@@ -1,7 +1,7 @@
 {
     "heroTone": "ink",
     "storyEyebrow": "Medical program",
-    "storySummary": "This detail page is framed as a clinical capability with fit, timing, contraindications, and continuity.",
+    "storySummary": "Clinical detail with indications, audience, cautions, duration, and pricing consistent with checkout.",
     "storyTone": "porcelain",
     "evidenceEyebrow": "Fit and evidence",
     "evidenceTitle": "What usually indicates fit, what requires caution, and how the next step should be read.",
@@ -24,8 +24,8 @@
     ],
     "booking": {
         "eyebrow": "Booking",
-        "title": "Keep the current program hint and enter the existing booking runtime.",
-        "deck": "The current route preserves service hint, conversion continuity, and UI ownership inside the V3 shell.",
+        "title": "Book this route with visible pricing, policy, and support.",
+        "deck": "Booking keeps service hint, pricing consistency, and operational traceability from availability to payment.",
         "actionLabel": "Book this route",
         "tone": "silver"
     }

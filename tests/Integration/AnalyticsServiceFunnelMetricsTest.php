@@ -168,6 +168,111 @@ class AnalyticsServiceFunnelMetricsTest extends TestCase
         $this->assertSame(15.0, (float) ($botox['detailToConfirmedPct'] ?? -1));
     }
 
+    public function testRecordEventAcceptsRolloutContextLabels(): void
+    {
+        $GLOBALS['__TEST_JSON_BODY'] = json_encode([
+            'event' => 'start_booking_from_service',
+            'params' => [
+                'source' => 'service_page',
+                'service_slug' => 'botox',
+                'service_category' => 'aesthetic',
+                'service_intent' => 'rejuvenation',
+                'entry_surface' => 'nav_primary_booking',
+                'funnel_step' => 'booking_intent',
+                'intent' => 'rejuvenation',
+                'locale' => 'en',
+                'public_surface' => 'v4',
+            ],
+        ], JSON_UNESCAPED_UNICODE);
+
+        try {
+            \AnalyticsController::recordEvent([]);
+            $this->fail('Should have thrown TestingExitException');
+        } catch (\TestingExitException $e) {
+            $this->assertSame(202, $e->status);
+            $this->assertTrue((bool) ($e->payload['ok'] ?? false));
+            $this->assertTrue((bool) ($e->payload['recorded'] ?? false));
+        }
+
+        $metricsText = \Metrics::export();
+        $this->assertStringContainsString('event="start_booking_from_service"', $metricsText);
+        $this->assertStringContainsString('service_slug="botox"', $metricsText);
+        $this->assertStringContainsString('service_category="aesthetic"', $metricsText);
+        $this->assertStringContainsString('service_intent="rejuvenation"', $metricsText);
+        $this->assertStringContainsString('entry_surface="nav_primary_booking"', $metricsText);
+        $this->assertStringContainsString('funnel_step="booking_intent"', $metricsText);
+        $this->assertStringContainsString('intent="rejuvenation"', $metricsText);
+        $this->assertStringContainsString('locale="en"', $metricsText);
+        $this->assertStringContainsString('public_surface="v4"', $metricsText);
+    }
+
+    public function testBuildFunnelMetricsDataIncludesPublicSurfaceBreakdowns(): void
+    {
+        $this->incrementFunnel('view_booking', 'booking_form', 100, [
+            'public_surface' => 'v4',
+            'locale' => 'es',
+            'entry_surface' => 'booking_bridge_primary',
+            'intent' => 'diagnosis',
+        ]);
+        $this->incrementFunnel('start_checkout', 'booking_form', 50, [
+            'public_surface' => 'v4',
+            'locale' => 'es',
+            'entry_surface' => 'booking_bridge_primary',
+            'intent' => 'diagnosis',
+        ]);
+        $this->incrementFunnel('booking_confirmed', 'booking_form', 25, [
+            'public_surface' => 'v4',
+            'locale' => 'es',
+            'entry_surface' => 'booking_bridge_primary',
+            'intent' => 'diagnosis',
+        ]);
+
+        $this->incrementFunnel('view_booking', 'booking_form', 100, [
+            'public_surface' => 'legacy',
+            'locale' => 'es',
+            'entry_surface' => 'booking_bridge_primary',
+            'intent' => 'diagnosis',
+        ]);
+        $this->incrementFunnel('start_checkout', 'booking_form', 50, [
+            'public_surface' => 'legacy',
+            'locale' => 'es',
+            'entry_surface' => 'booking_bridge_primary',
+            'intent' => 'diagnosis',
+        ]);
+        $this->incrementFunnel('booking_confirmed', 'booking_form', 32, [
+            'public_surface' => 'legacy',
+            'locale' => 'es',
+            'entry_surface' => 'booking_bridge_primary',
+            'intent' => 'diagnosis',
+        ]);
+
+        $payload = \AnalyticsController::buildFunnelMetricsData(['store' => ['appointments' => []]]);
+
+        $this->assertArrayHasKey('publicSurfaceBreakdown', $payload);
+        $this->assertArrayHasKey('localeBreakdown', $payload);
+        $this->assertArrayHasKey('entrySurfaceBreakdown', $payload);
+        $this->assertArrayHasKey('intentBreakdown', $payload);
+        $this->assertArrayHasKey('surfaceFunnel', $payload);
+
+        $surfaceMap = $this->labelCountMap($payload['publicSurfaceBreakdown']);
+        $this->assertSame(175, (int) ($surfaceMap['v4'] ?? -1));
+        $this->assertSame(182, (int) ($surfaceMap['legacy'] ?? -1));
+
+        $funnelRows = [];
+        foreach ($payload['surfaceFunnel'] as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $surface = (string) ($row['surface'] ?? '');
+            if ($surface !== '') {
+                $funnelRows[$surface] = $row;
+            }
+        }
+
+        $this->assertSame(50.0, (float) ($funnelRows['v4']['confirmedRatePct'] ?? -1));
+        $this->assertSame(64.0, (float) ($funnelRows['legacy']['confirmedRatePct'] ?? -1));
+    }
+
     /**
      * @param array<string,string> $extraLabels
      */

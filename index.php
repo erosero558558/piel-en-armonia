@@ -9,172 +9,286 @@ if (!headers_sent()) {
     apply_security_headers(true);
 }
 
-$indexPath = __DIR__ . DIRECTORY_SEPARATOR . 'index.html';
-if (!is_file($indexPath)) {
-    http_response_code(500);
-    echo 'index.html no disponible';
-    exit;
-}
-
-$indexHtml = @file_get_contents($indexPath);
-if (!is_string($indexHtml) || $indexHtml === '') {
-    http_response_code(500);
-    echo 'No se pudo cargar index.html';
-    exit;
-}
-
-// --- Server-Side Rendering (SSR) of Content ---
-$contentFile = __DIR__ . '/content/es.json';
-if (is_file($contentFile)) {
-    $contentJson = file_get_contents($contentFile);
-    $content = json_decode($contentJson, true);
-
-    if (is_array($content) && class_exists('DOMDocument') && class_exists('DOMXPath')) {
-        try {
-            // Use DOMDocument to inject content
-            $dom = new DOMDocument();
-            // Suppress warnings for HTML5 tags
-            libxml_use_internal_errors(true);
-            // Force UTF-8
-            $dom->loadHTML('<?xml encoding="UTF-8">' . $indexHtml, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-            libxml_clear_errors();
-
-            $xpath = new DOMXPath($dom);
-            $nodes = $xpath->query('//*[@data-i18n]');
-
-            foreach ($nodes as $node) {
-                $key = $node->getAttribute('data-i18n');
-                if (isset($content[$key])) {
-                    $text = $content[$key];
-
-                    if ($node->nodeName === 'input' || $node->nodeName === 'textarea') {
-                        $node->setAttribute('placeholder', $text);
-                    } else {
-                        // Use fragment to support HTML in content (like <br>)
-                        $fragment = $dom->createDocumentFragment();
-                        if (@$fragment->appendXML($text)) {
-                            $node->nodeValue = ''; // Clear existing
-                            $node->appendChild($fragment);
-                        } else {
-                            // Fallback to text if XML parsing fails
-                            $node->nodeValue = $text;
-                        }
-                    }
-                }
-            }
-
-            // Inject content payload for client-side hydration
-            $head = $dom->getElementsByTagName('head')->item(0);
-            if ($head) {
-                $contentPayload = $dom->createElement('template');
-                $contentPayload->setAttribute('id', 'piel-content-payload');
-                $contentPayload->setAttribute('data-role', 'runtime-json');
-                $contentPayload->appendChild($dom->createTextNode($contentJson));
-                $head->appendChild($contentPayload);
-
-                $captchaProvider = function_exists('captcha_get_provider') ? captcha_get_provider() : null;
-                $captchaSiteKey = function_exists('captcha_get_site_key') ? captcha_get_site_key() : null;
-                $captchaScriptUrl = function_exists('captcha_get_script_url') ? captcha_get_script_url() : null;
-
-                $runtimeConfig = [
-                    'captcha' => [
-                        'provider' => $captchaProvider,
-                        'siteKey' => $captchaSiteKey,
-                        'scriptUrl' => $captchaScriptUrl,
-                    ],
-                ];
-
-                $runtimeJson = json_encode(
-                    $runtimeConfig,
-                    JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
-                );
-                if (is_string($runtimeJson)) {
-                    $runtimePayload = $dom->createElement('template');
-                    $runtimePayload->setAttribute('id', 'piel-runtime-config');
-                    $runtimePayload->setAttribute('data-role', 'runtime-json');
-                    $runtimePayload->appendChild($dom->createTextNode($runtimeJson));
-                    $head->appendChild($runtimePayload);
-                }
-            }
-
-            $indexHtml = $dom->saveHTML();
-
-            // Cleanup artifacts from DOMDocument loadHTML hack
-            $indexHtml = str_replace('<?xml encoding="UTF-8">', '', $indexHtml);
-        } catch (Throwable $e) {
-            error_log('Piel en Armonia SSR fallback: ' . $e->getMessage());
-        }
+function public_env_bool(string $name, bool $default): bool
+{
+    $raw = getenv($name);
+    if (!is_string($raw) || trim($raw) === '') {
+        return $default;
     }
-}
-// ----------------------------------------------
 
-$assetVersion = '';
-if (preg_match('#script\.js\?v=([^"&\']+)#i', $indexHtml, $versionMatch)) {
-    $assetVersion = rawurlencode((string) $versionMatch[1]);
-}
-if ($assetVersion === '') {
-    $assetVersion = rawurlencode(app_runtime_version());
-}
-$bootstrapScriptUrl = 'js/bootstrap-inline-engine.js?v=' . $assetVersion;
-$bootstrapScriptTag = '<script src="' . $bootstrapScriptUrl . '" defer></script>';
-
-// Elimina bootstrap inline legado para reducir superficie CSP.
-$inlineBootstrapPattern = '#<script>\s*const\s+DEFERRED_STYLESHEET_URL[\s\S]*?</script>#i';
-$indexHtml = (string) preg_replace($inlineBootstrapPattern, '', $indexHtml, 1);
-
-// Remueve tags bootstrap existentes para evitar duplicados y cache stale.
-$bootstrapTagPattern = '#\s*<script[^>]+src=["\']js/bootstrap-inline-engine\.js(?:\?[^"\']*)?["\'][^>]*>\s*</script>#i';
-$indexHtml = (string) preg_replace($bootstrapTagPattern, '', $indexHtml);
-
-// Fuerza versionado del bundle principal para invalidar cache en cada deploy.
-$mainScriptPattern = '#<script([^>]+src=["\'])script\.js(?:\?[^"\']*)?(["\'][^>]*)></script>#i';
-$mainScriptReplacement = '<script$1script.js?v=' . $assetVersion . '$2></script>';
-$indexHtml = (string) preg_replace($mainScriptPattern, $mainScriptReplacement, $indexHtml, 1);
-
-// Inyecta la misma versión en el link de styles.css para invalidar cache CSS junto con JS.
-$cssLinkPattern = '#<link([^>]+href=["\'])styles\.css(?:\?[^"\']*)?(["\'][^>]*)>#i';
-$cssLinkReplacement = '<link$1styles.css?v=' . $assetVersion . '$2>';
-$indexHtml = (string) preg_replace($cssLinkPattern, $cssLinkReplacement, $indexHtml, 1);
-
-// Inyecta bootstrap antes del script principal (idempotente tras limpieza).
-$mainScriptInsertPattern = '#<script[^>]+src=["\']script\.js(?:\?[^"\']*)?["\'][^>]*></script>#i';
-$mainScriptInsertCount = 0;
-$indexHtml = (string) preg_replace(
-    $mainScriptInsertPattern,
-    $bootstrapScriptTag . "\n    \$0",
-    $indexHtml,
-    1,
-    $mainScriptInsertCount
-);
-
-if ($mainScriptInsertCount === 0) {
-    $indexHtml = (string) preg_replace(
-        '#</body>#i',
-        '    ' . $bootstrapScriptTag . "\n</body>",
-        $indexHtml,
-        1
-    );
+    $normalized = strtolower(trim($raw));
+    return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
 }
 
-// Prepare HTTP/2 Server Push (Preload) headers
-$preloadLinks = [];
+/**
+ * @param mixed $value
+ */
+function public_parse_bool($value, bool $default): bool
+{
+    if (is_bool($value)) {
+        return $value;
+    }
 
-// 1. Critical CSS (styles.css) - Extract from HTML to get version
-if (preg_match('/href=["\'](styles\.css[^"\']*)["\']/i', $indexHtml, $matches)) {
-    $preloadLinks[] = "<{$matches[1]}>; rel=preload; as=style";
+    if (!is_string($value) && !is_numeric($value)) {
+        return $default;
+    }
+
+    $normalized = strtolower(trim((string) $value));
+    if ($normalized === '') {
+        return $default;
+    }
+
+    if (in_array($normalized, ['1', 'true', 'yes', 'on'], true)) {
+        return true;
+    }
+    if (in_array($normalized, ['0', 'false', 'no', 'off'], true)) {
+        return false;
+    }
+    return $default;
 }
 
-// 2. Critical Image (hero-woman.jpg) - LCP
-$preloadLinks[] = "</images/optimized/hero-woman.jpg>; rel=preload; as=image";
+/**
+ * @param mixed $value
+ */
+function public_parse_ratio($value, float $default): float
+{
+    if (!is_numeric($value)) {
+        return $default;
+    }
 
-// 3. Critical JS (bootstrap-inline-engine.js) - Versioned
-$preloadLinks[] = "<{$bootstrapScriptUrl}>; rel=preload; as=script";
+    $parsed = (float) $value;
+    if (!is_finite($parsed)) {
+        return $default;
+    }
+    if ($parsed < 0.0) {
+        return 0.0;
+    }
+    if ($parsed > 1.0) {
+        return 1.0;
+    }
 
-// 4. Main JS (script.js) - Versioned
-$preloadLinks[] = "<script.js?v={$assetVersion}>; rel=preload; as=script";
-
-if (!empty($preloadLinks)) {
-    header('Link: ' . implode(', ', $preloadLinks), false);
+    return $parsed;
 }
 
-echo $indexHtml;
+/**
+ * @return array{
+ *   public_v4_enabled:bool,
+ *   public_v4_ratio:float,
+ *   public_v4_force_locale:string,
+ *   public_v4_kill_switch:bool
+ * }
+ */
+function read_public_v4_catalog_defaults(): array
+{
+    $defaults = [
+        'public_v4_enabled' => true,
+        'public_v4_ratio' => 1.0,
+        'public_v4_force_locale' => '',
+        'public_v4_kill_switch' => false,
+    ];
+
+    $catalogPath = __DIR__ . DIRECTORY_SEPARATOR . 'content' . DIRECTORY_SEPARATOR . 'public-v4' . DIRECTORY_SEPARATOR . 'catalog.json';
+    if (!is_file($catalogPath)) {
+        return $defaults;
+    }
+
+    $raw = @file_get_contents($catalogPath);
+    if (!is_string($raw) || trim($raw) === '') {
+        return $defaults;
+    }
+
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) {
+        return $defaults;
+    }
+
+    $featureFlags = isset($decoded['feature_flags_defaults']) && is_array($decoded['feature_flags_defaults'])
+        ? $decoded['feature_flags_defaults']
+        : [];
+
+    $forceLocaleRaw = strtolower(trim((string) ($featureFlags['public_v4_force_locale'] ?? '')));
+    $forceLocale = in_array($forceLocaleRaw, ['es', 'en'], true) ? $forceLocaleRaw : '';
+
+    return [
+        'public_v4_enabled' => public_parse_bool(
+            $featureFlags['public_v4_enabled'] ?? $defaults['public_v4_enabled'],
+            $defaults['public_v4_enabled']
+        ),
+        'public_v4_ratio' => public_parse_ratio(
+            $featureFlags['public_v4_ratio'] ?? $defaults['public_v4_ratio'],
+            $defaults['public_v4_ratio']
+        ),
+        'public_v4_force_locale' => $forceLocale,
+        'public_v4_kill_switch' => public_parse_bool(
+            $featureFlags['public_v4_kill_switch'] ?? $defaults['public_v4_kill_switch'],
+            $defaults['public_v4_kill_switch']
+        ),
+    ];
+}
+
+function public_env_ratio(string $name, float $default): float
+{
+    $raw = getenv($name);
+    if (!is_string($raw) || trim($raw) === '') {
+        return $default;
+    }
+
+    $value = (float) trim($raw);
+    if (!is_finite($value)) {
+        return $default;
+    }
+
+    if ($value < 0.0) {
+        return 0.0;
+    }
+    if ($value > 1.0) {
+        return 1.0;
+    }
+    return $value;
+}
+
+function resolve_public_locale(string $forced): string
+{
+    if ($forced === 'en' || $forced === 'es') {
+        return $forced;
+    }
+
+    $acceptLanguage = strtolower((string) ($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? ''));
+    if (strpos($acceptLanguage, 'en') === 0) {
+        return 'en';
+    }
+
+    return 'es';
+}
+
+function persist_surface_cookie(string $surface): void
+{
+    $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    setcookie('pa_public_surface', $surface, [
+        'expires' => time() + (60 * 60 * 8),
+        'path' => '/',
+        'secure' => $secure,
+        'httponly' => false,
+        'samesite' => 'Lax',
+    ]);
+}
+
+function clear_surface_cookie(): void
+{
+    $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    setcookie('pa_public_surface', '', [
+        'expires' => time() - (60 * 60),
+        'path' => '/',
+        'secure' => $secure,
+        'httponly' => false,
+        'samesite' => 'Lax',
+    ]);
+}
+
+function persist_rollout_cookie(string $surface, float $ratio): void
+{
+    $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    $cohort = 'legacy';
+    if ($surface === 'v4') {
+        $cohort = $ratio < 1.0 ? 'v4_canary' : 'v4_general';
+    } elseif ($ratio > 0.0) {
+        $cohort = 'legacy_control';
+    }
+
+    setcookie('pa_public_rollout', $cohort, [
+        'expires' => time() + (60 * 60 * 8),
+        'path' => '/',
+        'secure' => $secure,
+        'httponly' => false,
+        'samesite' => 'Lax',
+    ]);
+}
+
+function emit_public_gateway_headers(
+    string $surface,
+    bool $enabled,
+    float $ratio,
+    bool $killSwitch,
+    string $forcedLocale
+): void {
+    header('X-Public-Surface: ' . $surface);
+    header('X-Public-V4-Enabled: ' . ($enabled ? 'true' : 'false'));
+    header('X-Public-V4-Ratio: ' . sprintf('%.4F', $ratio));
+    header('X-Public-V4-Kill-Switch: ' . ($killSwitch ? 'true' : 'false'));
+    header('X-Public-V4-Force-Locale: ' . ($forcedLocale !== '' ? $forcedLocale : 'auto'));
+}
+
+$catalogDefaults = read_public_v4_catalog_defaults();
+$enabled = public_env_bool('PIELARMONIA_PUBLIC_V4_ENABLED', $catalogDefaults['public_v4_enabled']);
+$ratio = public_env_ratio('PIELARMONIA_PUBLIC_V4_RATIO', $catalogDefaults['public_v4_ratio']);
+$killSwitch = public_env_bool('PIELARMONIA_PUBLIC_V4_KILL_SWITCH', $catalogDefaults['public_v4_kill_switch']);
+
+$forcedLocaleEnvRaw = getenv('PIELARMONIA_PUBLIC_V4_FORCE_LOCALE');
+$forcedLocaleRaw = '';
+if (is_string($forcedLocaleEnvRaw) && trim($forcedLocaleEnvRaw) !== '') {
+    $forcedLocaleRaw = strtolower(trim($forcedLocaleEnvRaw));
+} else {
+    $forcedLocaleRaw = strtolower(trim((string) ($catalogDefaults['public_v4_force_locale'] ?? '')));
+}
+$forcedLocale = in_array($forcedLocaleRaw, ['es', 'en'], true) ? $forcedLocaleRaw : '';
+
+$surfaceOverride = strtolower(trim((string) ($_GET['surface'] ?? '')));
+$legacyOverride = trim((string) ($_GET['legacy'] ?? ''));
+$surfaceOverrideAuto = $surfaceOverride === 'auto';
+
+if ($surfaceOverrideAuto) {
+    clear_surface_cookie();
+}
+
+if ($legacyOverride === '1' || $surfaceOverride === 'legacy') {
+    persist_surface_cookie('legacy');
+    persist_rollout_cookie('legacy', $ratio);
+    emit_public_gateway_headers('legacy', $enabled, $ratio, $killSwitch, $forcedLocale);
+    header('Location: /legacy.php', true, 302);
+    exit;
+}
+
+$surface = '';
+if ($surfaceOverride === 'v4') {
+    $surface = 'v4';
+    persist_surface_cookie('v4');
+    persist_rollout_cookie('v4', $ratio);
+} elseif ($surfaceOverrideAuto) {
+    $surface = '';
+} else {
+    $surface = strtolower(trim((string) ($_COOKIE['pa_public_surface'] ?? '')));
+}
+
+if (!in_array($surface, ['v4', 'legacy'], true)) {
+    if (!$enabled || $killSwitch || $ratio <= 0) {
+        $surface = 'legacy';
+    } elseif ($ratio >= 1) {
+        $surface = 'v4';
+    } else {
+        $sample = random_int(1, 10000) / 10000;
+        $surface = $sample <= $ratio ? 'v4' : 'legacy';
+    }
+    persist_surface_cookie($surface);
+    persist_rollout_cookie($surface, $ratio);
+}
+
+if (!$enabled || $killSwitch) {
+    $surface = 'legacy';
+    persist_surface_cookie('legacy');
+    persist_rollout_cookie('legacy', $ratio);
+}
+
+if ($surface === 'legacy') {
+    emit_public_gateway_headers('legacy', $enabled, $ratio, $killSwitch, $forcedLocale);
+    header('Location: /legacy.php', true, 302);
+    exit;
+}
+
+$targetLocale = resolve_public_locale($forcedLocale);
+$targetPath = $targetLocale === 'en' ? '/en/' : '/es/';
+
+header('Cache-Control: no-store, private, max-age=0');
+emit_public_gateway_headers('v4', $enabled, $ratio, $killSwitch, $forcedLocale);
+header('X-Public-Target-Locale: ' . $targetLocale);
+header('Location: ' . $targetPath, true, 302);
+exit;

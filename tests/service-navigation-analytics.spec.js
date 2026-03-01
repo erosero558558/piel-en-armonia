@@ -60,6 +60,15 @@ test.describe('Public V3 analytics bridge', () => {
                     item.cta_target === 'booking'
             )
         ).toBeTruthy();
+        expect(
+            events.some(
+                (item) =>
+                    item.source === 'home' &&
+                    item.locale === 'es' &&
+                    item.public_surface === 'v4' &&
+                    item.funnel_step === 'cta_click'
+            )
+        ).toBeTruthy();
     });
 
     test('service detail CTA keeps service metadata in the analytics bridge', async ({
@@ -105,7 +114,11 @@ test.describe('Public V3 analytics bridge', () => {
                     item.source === 'service_page' &&
                     item.service_slug === 'botox' &&
                     item.service_category === 'aesthetic' &&
-                    item.service_intent === 'rejuvenation'
+                    item.service_intent === 'rejuvenation' &&
+                    item.intent === 'rejuvenation' &&
+                    item.funnel_step === 'booking_intent' &&
+                    item.locale === 'en' &&
+                    item.public_surface === 'v4'
             )
         ).toBeTruthy();
     });
@@ -165,6 +178,14 @@ test.describe('Public V3 analytics bridge', () => {
                     item.source === 'legal' &&
                     item.entry_point === 'support_band_telemedicine' &&
                     item.cta_target === 'telemedicine'
+            )
+        ).toBeTruthy();
+        expect(
+            events.some(
+                (item) =>
+                    item.source === 'legal' &&
+                    item.entry_surface === 'support_band_booking' &&
+                    item.funnel_step === 'cta_click'
             )
         ).toBeTruthy();
     });

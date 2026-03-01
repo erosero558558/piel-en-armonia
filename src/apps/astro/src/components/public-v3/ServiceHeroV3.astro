@@ -1,11 +1,19 @@
 ---
 import { mapServiceHint } from '../../lib/content.js';
+import ResponsiveMediaImageV3 from './ResponsiveMediaImageV3.astro';
 
 const { hero, locale = 'es' } = Astro.props;
+const media = hero?.mediaMeta || hero?.media || null;
 const mediaSrc = hero?.mediaMeta?.src || hero?.media || '';
 const mediaAlt = hero?.mediaMeta?.alt || hero?.title || '';
 const tone = hero?.tone || 'ink';
 const bookingHref = `${locale === 'en' ? '/en/' : '/es/'}?service=${encodeURIComponent(mapServiceHint(hero.slug))}#citas`;
+const basePrice = Number(hero?.price || 0);
+const totalPrice = Number(hero?.priceTotal || basePrice);
+const taxPercent = Number(hero?.taxPercent || 0);
+const priceLabel = hero?.priceLabel || (locale === 'en' ? `USD ${basePrice.toFixed(2)} + Tax ${taxPercent}%` : `USD ${basePrice.toFixed(2)} + IVA ${taxPercent}%`);
+const priceFormula = locale === 'en' ? `Base USD ${basePrice.toFixed(2)} -> Total USD ${totalPrice.toFixed(2)}` : `Base USD ${basePrice.toFixed(2)} -> Total USD ${totalPrice.toFixed(2)}`;
+const priceDisclaimer = hero?.priceDisclaimer || (locale === 'en' ? 'Final amount is confirmed before payment authorization.' : 'El valor final se confirma antes de autorizar el pago.');
 ---
 
 <section class="service-hero-v3" data-service-hero data-section-tone={tone}>
@@ -13,8 +21,22 @@ const bookingHref = `${locale === 'en' ? '/en/' : '/es/'}?service=${encodeURICom
         <p>{hero.eyebrow}</p>
         <h1>{hero.title}</h1>
         <p>{hero.deck}</p>
-        <div class="service-hero-v3__meta"><span>{hero.duration}</span><span>{`$${hero.price}`}</span></div>
+        <div class="service-hero-v3__meta">
+            <span>{hero.duration}</span>
+            <span>{priceLabel}</span>
+        </div>
+        <p class="service-hero-v3__price-formula">{priceFormula}</p>
+        <p class="service-hero-v3__price-note">{priceDisclaimer}</p>
         <a href={bookingHref} class="hero-stage__cta hero-stage__cta--primary" data-analytics-event="start_booking_from_service" data-cta-target="booking" data-service-slug={hero.slug} data-service-category={hero.category} data-service-intent={hero.intent} data-catalog-category={hero.category} data-catalog-intent={hero.intent}>{locale === 'en' ? 'Book route' : 'Reservar ruta'}</a>
     </div>
-    <div class="service-hero-v3__media"><img src={mediaSrc} alt={mediaAlt} loading="eager" /></div>
+    <div class="service-hero-v3__media">
+        <ResponsiveMediaImageV3
+            media={media}
+            fallbackSrc={mediaSrc}
+            fallbackAlt={mediaAlt}
+            loading="eager"
+            fetchpriority="high"
+            sizes="(max-width: 1024px) 100vw, 46vw"
+        />
+    </div>
 </section>

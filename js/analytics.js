@@ -1,8 +1,5 @@
 import { withDeployAssetVersion } from './utils.js';
-import {
-    loadDeferredModule,
-    runDeferredModule,
-} from './loader.js';
+import { loadDeferredModule, runDeferredModule } from './loader.js';
 import { observeOnceWhenVisible } from './loader.js';
 import { loadAvailabilityData } from './data.js';
 
@@ -15,8 +12,9 @@ function loadEngagementRuntime() {
 }
 
 function loadPublicReviews(options = {}) {
-    return loadEngagementRuntime()
-        .then((mod) => mod.loadPublicReviews(options));
+    return loadEngagementRuntime().then((mod) =>
+        mod.loadPublicReviews(options)
+    );
 }
 
 const ANALYTICS_ENGINE_URL = withDeployAssetVersion(
@@ -25,6 +23,9 @@ const ANALYTICS_ENGINE_URL = withDeployAssetVersion(
 const FUNNEL_EVENT_ENDPOINT = '/api.php?resource=funnel-event';
 const FUNNEL_SERVER_EVENTS = new Set([
     'view_booking',
+    'view_service_category',
+    'view_service_detail',
+    'start_booking_from_service',
     'start_checkout',
     'payment_method_selected',
     'payment_success',
@@ -45,12 +46,30 @@ const FUNNEL_SERVER_ALLOWED_PARAMS = new Set([
     'checkout_step',
     'reason',
     'error_code',
+    'service_slug',
+    'service_category',
+    'service_intent',
+    'entry_point',
+    'entry_surface',
+    'route_profile',
+    'route_id',
+    'route_variant',
+    'catalog_category',
+    'catalog_intent',
+    'booking_hint',
+    'locale',
+    'funnel_step',
+    'intent',
+    'public_surface',
 ]);
 const FUNNEL_EVENT_DEDUP_MS = 1200;
 const funnelEventLastSentAt = new Map();
 
 function getExperimentContext() {
-    if (!window.Piel || typeof window.Piel.getExperimentContext !== 'function') {
+    if (
+        !window.Piel ||
+        typeof window.Piel.getExperimentContext !== 'function'
+    ) {
         return null;
     }
     try {
@@ -69,13 +88,175 @@ function withExperimentParams(params = {}) {
     }
 
     const heroVariant = normalizeFunnelLabelClient(context.heroVariant, '');
-    if (heroVariant && !Object.prototype.hasOwnProperty.call(enriched, 'ab_variant')) {
+    if (
+        heroVariant &&
+        !Object.prototype.hasOwnProperty.call(enriched, 'ab_variant')
+    ) {
         enriched.ab_variant = heroVariant;
     }
 
     const contextSource = normalizeFunnelLabelClient(context.source, '');
-    if (contextSource && !Object.prototype.hasOwnProperty.call(enriched, 'source')) {
+    if (
+        contextSource &&
+        !Object.prototype.hasOwnProperty.call(enriched, 'source')
+    ) {
         enriched.source = contextSource;
+    }
+
+    return enriched;
+}
+
+function readCookie(name) {
+    const key = String(name || '').trim();
+    if (!key || typeof document === 'undefined') {
+        return '';
+    }
+    const all = String(document.cookie || '');
+    if (!all) return '';
+    const pairs = all.split(';');
+    for (const rawPair of pairs) {
+        const pair = String(rawPair || '').trim();
+        if (!pair) continue;
+        const separator = pair.indexOf('=');
+        const cookieName =
+            separator >= 0 ? pair.slice(0, separator).trim() : pair;
+        if (cookieName !== key) continue;
+        const rawValue = separator >= 0 ? pair.slice(separator + 1).trim() : '';
+        try {
+            return decodeURIComponent(rawValue);
+        } catch (_error) {
+            return rawValue;
+        }
+    }
+    return '';
+}
+
+function resolvePublicSurfaceFromPath(pathname) {
+    const normalized = String(pathname || '')
+        .trim()
+        .toLowerCase();
+    if (normalized === '/legacy.php' || normalized === '/legacy') {
+        return 'legacy';
+    }
+    return 'v4';
+}
+
+function getPublicRuntimeContext() {
+    const locale = (() => {
+        const lang = String(
+            (typeof document !== 'undefined' && document.documentElement
+                ? document.documentElement.lang
+                : '') || ''
+        )
+            .trim()
+            .toLowerCase();
+        if (lang.startsWith('en')) return 'en';
+        if (lang.startsWith('es')) return 'es';
+        return String(window.location.pathname || '').startsWith('/en/')
+            ? 'en'
+            : 'es';
+    })();
+
+    const cookieSurface = normalizeFunnelLabelClient(
+        readCookie('pa_public_surface'),
+        ''
+    );
+    const publicSurface =
+        cookieSurface === 'legacy' || cookieSurface === 'v4'
+            ? cookieSurface
+            : resolvePublicSurfaceFromPath(window.location.pathname || '/');
+
+    return {
+        locale,
+        publicSurface,
+    };
+}
+
+function inferFunnelStep(eventName, params = {}) {
+    const explicit = normalizeFunnelLabelClient(params.funnel_step, '');
+    if (explicit) return explicit;
+
+    const normalizedEvent = normalizeFunnelLabelClient(eventName, '');
+    switch (normalizedEvent) {
+        case 'view_booking':
+            return 'booking_view';
+        case 'view_service_category':
+            return 'service_category';
+        case 'view_service_detail':
+            return 'service_detail';
+        case 'start_booking_from_service':
+            return 'booking_intent';
+        case 'start_checkout':
+            return 'checkout_start';
+        case 'booking_confirmed':
+            return 'booking_confirmed';
+        case 'checkout_abandon':
+            return 'checkout_abandon';
+        case 'booking_step_completed':
+            return normalizeFunnelLabelClient(params.step, 'booking_step');
+        case 'payment_method_selected':
+            return 'payment_method_selected';
+        case 'payment_success':
+            return 'payment_success';
+        case 'booking_error':
+        case 'checkout_error':
+            return normalizedEvent;
+        default:
+            return 'interaction';
+    }
+}
+
+function inferIntent(params = {}) {
+    const direct = normalizeFunnelLabelClient(params.intent, '');
+    if (direct) return direct;
+
+    const serviceIntent = normalizeFunnelLabelClient(
+        params.service_intent || params.catalog_intent,
+        ''
+    );
+    if (serviceIntent) return serviceIntent;
+
+    const routeProfile = normalizeFunnelLabelClient(params.route_profile, '');
+    if (routeProfile === 'remote') return 'remote';
+    if (routeProfile === 'pediatric') return 'pediatric';
+    if (routeProfile === 'diagnosis') return 'diagnosis';
+    if (routeProfile === 'procedure') return 'procedures';
+    return '';
+}
+
+function withPublicRuntimeParams(eventName, params = {}) {
+    const enriched = params && typeof params === 'object' ? { ...params } : {};
+    const context = getPublicRuntimeContext();
+
+    if (!Object.prototype.hasOwnProperty.call(enriched, 'locale')) {
+        enriched.locale = context.locale;
+    }
+    if (!Object.prototype.hasOwnProperty.call(enriched, 'public_surface')) {
+        enriched.public_surface = context.publicSurface;
+    }
+
+    if (
+        !Object.prototype.hasOwnProperty.call(enriched, 'entry_surface') &&
+        Object.prototype.hasOwnProperty.call(enriched, 'entry_point')
+    ) {
+        enriched.entry_surface = enriched.entry_point;
+    }
+    if (
+        !Object.prototype.hasOwnProperty.call(enriched, 'entry_point') &&
+        Object.prototype.hasOwnProperty.call(enriched, 'entry_surface')
+    ) {
+        enriched.entry_point = enriched.entry_surface;
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(enriched, 'funnel_step')) {
+        enriched.funnel_step = inferFunnelStep(eventName, enriched);
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(enriched, 'intent')) {
+        const intent = inferIntent(enriched);
+        if (intent) {
+            enriched.intent = intent;
+        }
     }
 
     return enriched;
@@ -129,7 +310,9 @@ function sendFunnelEventToServer(eventName, params = {}) {
         return;
     }
 
-    const serverParams = buildFunnelServerParams(withExperimentParams(params));
+    const serverParams = buildFunnelServerParams(
+        withPublicRuntimeParams(eventName, withExperimentParams(params))
+    );
     const dedupKey = [
         normalizedEvent,
         serverParams.step || '',
@@ -137,6 +320,10 @@ function sendFunnelEventToServer(eventName, params = {}) {
         serverParams.checkout_step || serverParams.step || '',
         serverParams.reason || '',
         serverParams.source || '',
+        serverParams.service_slug || '',
+        serverParams.entry_surface || serverParams.entry_point || '',
+        serverParams.locale || '',
+        serverParams.public_surface || '',
     ].join('|');
 
     const now = Date.now();
@@ -159,7 +346,9 @@ function sendFunnelEventToServer(eventName, params = {}) {
                 return;
             }
         }
-    } catch (_error) { /* noop */ }
+    } catch (_error) {
+        /* noop */
+    }
 
     fetch(FUNNEL_EVENT_ENDPOINT, {
         method: 'POST',

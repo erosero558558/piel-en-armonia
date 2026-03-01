@@ -1,5 +1,5 @@
 {
-    "brandEyebrow": "Dermatology systems",
+    "brandEyebrow": "Dermatologia de precision",
     "brandLine1": "Piel en",
     "brandLine2": "Armonia",
     "labels": {
@@ -16,7 +16,7 @@
         "intro": {
             "eyebrow": "Programas",
             "title": "Dermatologia organizada como sistema, no como pagina de folletos.",
-            "deck": "Explora diagnostico, estetica medica, pediatria y telemedicina desde una sola shell publica con continuidad de booking."
+            "deck": "Explora diagnostico, estetica medica, pediatria y telemedicina desde una sola experiencia publica con continuidad de booking."
         },
         "families": {
             "clinical": {
@@ -34,9 +34,9 @@
         }
     },
     "footer": {
-        "eyebrow": "Public system",
+        "eyebrow": "Experiencia publica",
         "title": "Piel en Armonia",
-        "deck": "Una experiencia publica unificada para diagnostico, programas de cuidado, telemedicina y reserva.",
+        "deck": "Experiencia publica unificada para diagnostico, tratamiento, telemedicina y reserva con precios claros.",
         "ctaLabel": "Abrir reserva",
         "catalogTitle": "Catalogo",
         "careModesTitle": "Modos de atencion",

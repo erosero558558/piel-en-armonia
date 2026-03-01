@@ -1,4 +1,6 @@
-﻿---
+---
+import ResponsiveMediaImageV3 from './ResponsiveMediaImageV3.astro';
+
 const { stories = [], locale = 'es' } = Astro.props;
 ---
 
@@ -6,7 +8,15 @@ const { stories = [], locale = 'es' } = Astro.props;
     {
         stories.map((story) => (
             <article class:list={['featured-story', story.alignment === 'right' && 'is-reverse']}>
-                <div class="featured-story__media"><img src={story.media} alt={story.title} loading="lazy" /></div>
+                <div class="featured-story__media">
+                    <ResponsiveMediaImageV3
+                        media={story.mediaMeta || story.media}
+                        fallbackSrc={story.media}
+                        fallbackAlt={story.title}
+                        loading="lazy"
+                        sizes="(max-width: 1000px) 100vw, 52vw"
+                    />
+                </div>
                 <div class="featured-story__copy">
                     <p>{story.eyebrow}</p>
                     <h2>{story.title}</h2>
@@ -17,4 +27,3 @@ const { stories = [], locale = 'es' } = Astro.props;
         ))
     }
 </section>
-

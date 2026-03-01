@@ -36,10 +36,17 @@ test.describe('Service booking hints parity ES/EN', () => {
             await expect(bookingCta).toBeVisible();
 
             const href = String((await bookingCta.getAttribute('href')) || '');
-            expect(href, `CTA href mismatch for ${entry.route}`).toBe('#citas');
+            expect(href, `CTA href mismatch for ${entry.route}`).toMatch(
+                new RegExp(`\\?service=${entry.expectedHint}#citas$`)
+            );
 
             await bookingCta.click();
-            await expect(page).toHaveURL(new RegExp(`${entry.route}#citas$`));
+            const rootPath = entry.route.startsWith('/en/') ? '/en/' : '/es/';
+            await expect(page).toHaveURL(
+                new RegExp(
+                    `${rootPath.replace(/\//g, '\\/')}\\?service=${entry.expectedHint}#citas$`
+                )
+            );
             await waitForBookingHooks(page, entry.expectedHint);
         }
     });

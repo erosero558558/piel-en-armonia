@@ -1,4 +1,6 @@
-﻿---
+---
+import ResponsiveMediaImageV3 from './ResponsiveMediaImageV3.astro';
+
 const { families = [], locale = 'es' } = Astro.props;
 ---
 
@@ -11,7 +13,13 @@ const { families = [], locale = 'es' } = Astro.props;
         {
             families.map((family) => (
                 <article class="program-grid__card">
-                    <img src={family.media} alt={family.eyebrow} loading="lazy" />
+                    <ResponsiveMediaImageV3
+                        media={family.mediaMeta || family.media}
+                        fallbackSrc={family.media}
+                        fallbackAlt={family.eyebrow}
+                        loading="lazy"
+                        sizes="(max-width: 800px) 100vw, 320px"
+                    />
                     <div>
                         <p>{family.eyebrow}</p>
                         <h3>{family.title}</h3>
@@ -23,4 +31,3 @@ const { families = [], locale = 'es' } = Astro.props;
         }
     </div>
 </section>
-

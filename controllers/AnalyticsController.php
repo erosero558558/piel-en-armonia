@@ -133,6 +133,11 @@ class AnalyticsController
         $paymentMethodBreakdown = [];
         $bookingStepBreakdown = [];
         $errorCodeBreakdown = [];
+        $entrySurfaceBreakdown = [];
+        $localeBreakdown = [];
+        $intentBreakdown = [];
+        $publicSurfaceBreakdown = [];
+        $surfaceFunnelBreakdown = [];
         $serviceCategoryBreakdown = [];
         $serviceDetailBreakdown = [];
         $serviceBookingIntentBreakdown = [];
@@ -160,6 +165,53 @@ class AnalyticsController
                 $eventSourceBreakdown[$source] = 0;
             }
             $eventSourceBreakdown[$source] += $value;
+
+            $entrySurface = self::normalizeLabel($labels['entry_surface'] ?? '', '');
+            if ($entrySurface !== '') {
+                if (!isset($entrySurfaceBreakdown[$entrySurface])) {
+                    $entrySurfaceBreakdown[$entrySurface] = 0;
+                }
+                $entrySurfaceBreakdown[$entrySurface] += $value;
+            }
+
+            $locale = self::normalizeLabel($labels['locale'] ?? '', '');
+            if ($locale !== '') {
+                if (!isset($localeBreakdown[$locale])) {
+                    $localeBreakdown[$locale] = 0;
+                }
+                $localeBreakdown[$locale] += $value;
+            }
+
+            $intent = self::normalizeLabel($labels['intent'] ?? '', '');
+            if ($intent !== '') {
+                if (!isset($intentBreakdown[$intent])) {
+                    $intentBreakdown[$intent] = 0;
+                }
+                $intentBreakdown[$intent] += $value;
+            }
+
+            $publicSurface = self::normalizeLabel($labels['public_surface'] ?? '', '');
+            if ($publicSurface !== '') {
+                if (!isset($publicSurfaceBreakdown[$publicSurface])) {
+                    $publicSurfaceBreakdown[$publicSurface] = 0;
+                }
+                $publicSurfaceBreakdown[$publicSurface] += $value;
+
+                if (!isset($surfaceFunnelBreakdown[$publicSurface])) {
+                    $surfaceFunnelBreakdown[$publicSurface] = [
+                        'viewBooking' => 0,
+                        'startCheckout' => 0,
+                        'bookingConfirmed' => 0,
+                    ];
+                }
+                if ($eventName === 'view_booking') {
+                    $surfaceFunnelBreakdown[$publicSurface]['viewBooking'] += $value;
+                } elseif ($eventName === 'start_checkout') {
+                    $surfaceFunnelBreakdown[$publicSurface]['startCheckout'] += $value;
+                } elseif ($eventName === 'booking_confirmed') {
+                    $surfaceFunnelBreakdown[$publicSurface]['bookingConfirmed'] += $value;
+                }
+            }
 
             $serviceCategory = self::normalizeLabel($labels['service_category'] ?? '', '');
             if ($serviceCategory !== '') {
@@ -251,6 +303,10 @@ class AnalyticsController
         arsort($checkoutAbandonByReason);
         arsort($checkoutEntryBreakdown);
         arsort($eventSourceBreakdown);
+        arsort($entrySurfaceBreakdown);
+        arsort($localeBreakdown);
+        arsort($intentBreakdown);
+        arsort($publicSurfaceBreakdown);
         arsort($paymentMethodBreakdown);
         arsort($bookingStepBreakdown);
         arsort($errorCodeBreakdown);
@@ -289,6 +345,7 @@ class AnalyticsController
             $serviceCheckoutBreakdown,
             $serviceConfirmedBreakdown
         );
+        $surfaceFunnel = self::buildSurfaceFunnelBreakdown($surfaceFunnelBreakdown);
 
         return [
             'summary' => [
@@ -305,6 +362,10 @@ class AnalyticsController
             'checkoutAbandonByReason' => $toList($checkoutAbandonByReason),
             'checkoutEntryBreakdown' => $toList($checkoutEntryBreakdown),
             'eventSourceBreakdown' => $toList($eventSourceBreakdown),
+            'entrySurfaceBreakdown' => $toList($entrySurfaceBreakdown),
+            'localeBreakdown' => $toList($localeBreakdown),
+            'intentBreakdown' => $toList($intentBreakdown),
+            'publicSurfaceBreakdown' => $toList($publicSurfaceBreakdown),
             'paymentMethodBreakdown' => $toList($paymentMethodBreakdown),
             'bookingStepBreakdown' => $toList($bookingStepBreakdown),
             'errorCodeBreakdown' => $toList($errorCodeBreakdown),
@@ -314,6 +375,7 @@ class AnalyticsController
             'serviceCheckoutBreakdown' => $toList($serviceCheckoutBreakdown),
             'serviceConfirmedBreakdown' => $toList($serviceConfirmedBreakdown),
             'serviceFunnel' => $serviceFunnel,
+            'surfaceFunnel' => $surfaceFunnel,
             'retention' => $retention,
             'idempotency' => $idempotency,
             'generatedAt' => gmdate('c')
@@ -860,9 +922,45 @@ class AnalyticsController
             $labels['service_audience'] = $serviceAudience;
         }
 
+        $serviceIntent = self::normalizeLabel($params['service_intent'] ?? ($params['catalog_intent'] ?? ''), '');
+        if ($serviceIntent !== '') {
+            $labels['service_intent'] = $serviceIntent;
+        }
+
         $entryPoint = self::normalizeLabel($params['entry_point'] ?? '', '');
         if ($entryPoint !== '') {
             $labels['entry_point'] = $entryPoint;
+        }
+
+        $entrySurface = self::normalizeLabel(
+            $params['entry_surface'] ?? ($params['entry_point'] ?? ''),
+            ''
+        );
+        if ($entrySurface !== '') {
+            $labels['entry_surface'] = $entrySurface;
+        }
+
+        $locale = self::normalizeLabel($params['locale'] ?? '', '');
+        if ($locale !== '') {
+            $labels['locale'] = $locale;
+        }
+
+        $funnelStep = self::normalizeLabel($params['funnel_step'] ?? '', '');
+        if ($funnelStep !== '') {
+            $labels['funnel_step'] = $funnelStep;
+        }
+
+        $intent = self::normalizeLabel(
+            $params['intent'] ?? ($params['service_intent'] ?? ($params['catalog_intent'] ?? '')),
+            ''
+        );
+        if ($intent !== '') {
+            $labels['intent'] = $intent;
+        }
+
+        $publicSurface = self::normalizeLabel($params['public_surface'] ?? '', '');
+        if ($publicSurface !== '') {
+            $labels['public_surface'] = $publicSurface;
         }
 
         switch ($event) {
@@ -888,6 +986,53 @@ class AnalyticsController
                 break;
         }
         return $labels;
+    }
+
+    /**
+     * Build public surface conversion rows from event totals grouped by surface.
+     *
+     * @param array<string,array{viewBooking:int,startCheckout:int,bookingConfirmed:int}> $surfaceFunnelBreakdown
+     * @return array<int,array<string,int|float|string>>
+     */
+    private static function buildSurfaceFunnelBreakdown(array $surfaceFunnelBreakdown): array
+    {
+        $rows = [];
+        foreach ($surfaceFunnelBreakdown as $surface => $totals) {
+            $viewBooking = (int) ($totals['viewBooking'] ?? 0);
+            $startCheckout = (int) ($totals['startCheckout'] ?? 0);
+            $bookingConfirmed = (int) ($totals['bookingConfirmed'] ?? 0);
+
+            $rows[] = [
+                'surface' => (string) $surface,
+                'viewBooking' => $viewBooking,
+                'startCheckout' => $startCheckout,
+                'bookingConfirmed' => $bookingConfirmed,
+                'startRatePct' => $viewBooking > 0
+                    ? round(($startCheckout / $viewBooking) * 100, 1)
+                    : 0.0,
+                'confirmedRatePct' => $startCheckout > 0
+                    ? round(($bookingConfirmed / $startCheckout) * 100, 1)
+                    : 0.0,
+            ];
+        }
+
+        usort($rows, static function (array $a, array $b): int {
+            $confirmedA = (int) ($a['bookingConfirmed'] ?? 0);
+            $confirmedB = (int) ($b['bookingConfirmed'] ?? 0);
+            if ($confirmedA !== $confirmedB) {
+                return $confirmedB <=> $confirmedA;
+            }
+
+            $startA = (int) ($a['startCheckout'] ?? 0);
+            $startB = (int) ($b['startCheckout'] ?? 0);
+            if ($startA !== $startB) {
+                return $startB <=> $startA;
+            }
+
+            return strcmp((string) ($a['surface'] ?? ''), (string) ($b['surface'] ?? ''));
+        });
+
+        return $rows;
     }
 
     /**

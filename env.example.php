@@ -195,6 +195,17 @@
 // TTL cache de disponibilidad (segundos).
 // putenv('PIELARMONIA_CALENDAR_CACHE_TTL_SEC=60');
 
+// ── Public Web V4 (superficie canónica) ───────────────
+// Controla el gateway de "/" hacia /es o /en.
+// true = V4 habilitado como superficie pública por defecto.
+// putenv('PIELARMONIA_PUBLIC_V4_ENABLED=true');
+// Ratio de tráfico a V4 entre 0 y 1 (usado cuando enabled=true).
+// putenv('PIELARMONIA_PUBLIC_V4_RATIO=1');
+// Fuerza locale de salida en root gateway: es | en (vacío = auto por Accept-Language).
+// putenv('PIELARMONIA_PUBLIC_V4_FORCE_LOCALE=es');
+// Kill-switch inmediato: true devuelve tráfico a /legacy.php.
+// putenv('PIELARMONIA_PUBLIC_V4_KILL_SWITCH=false');
+
 // ── Feature Flags ───────────────────────────────────
 // putenv('FEATURE_NEW_BOOKING_UI=true');
 // putenv('FEATURE_STRIPE_ELEMENTS=true');

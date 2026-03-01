@@ -70,7 +70,10 @@ test.describe('Service detail V3', () => {
             const cta = page.locator(
                 '[data-service-hero] a[data-analytics-event="start_booking_from_service"]'
             );
-            await expect(cta).toHaveAttribute('href', '#citas');
+            await expect(cta).toHaveAttribute(
+                'href',
+                new RegExp(`\\?service=${item.expectedValue}#citas$`)
+            );
             await expect(cta).toHaveAttribute('data-service-slug', item.slug);
             await expect(page.locator('.sony-detail-hero')).toHaveCount(0);
         }
@@ -88,9 +91,7 @@ test.describe('Service detail V3', () => {
                 )
                 .click();
             await expect(page).toHaveURL(
-                new RegExp(
-                    `${item.route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}#citas$`
-                )
+                new RegExp(`/es/\\?service=${item.expectedValue}#citas$`)
             );
             await waitForBookingHooks(page, item.expectedValue);
         }

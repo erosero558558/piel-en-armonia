@@ -28,6 +28,15 @@ test('deploy-hosting expone inputs de dispatch post-deploy', () => {
         'run_postdeploy_fast',
         'run_postdeploy_gate',
         'postdeploy_fast_wait_seconds',
+        'enable_public_v4_rollout_monitor',
+        'public_v4_rollout_stage',
+        'public_v4_rollout_surface_test',
+        'public_v4_rollout_surface_control',
+        'public_v4_rollout_min_view_booking',
+        'public_v4_rollout_min_start_checkout',
+        'public_v4_rollout_max_confirmed_drop_pp',
+        'public_v4_rollout_min_confirmed_rate_pct',
+        'public_v4_rollout_allow_missing_control',
         'admin_rollout_stage',
         'admin_rollout_skip_runtime_smoke_fast',
         'admin_rollout_allow_feature_api_failure_fast',
@@ -92,6 +101,20 @@ test('deploy-hosting contiene pasos de dispatch hacia post-deploy', () => {
         true,
         'falta gate admin rollout reutilizado en deploy-hosting'
     );
+    assert.equal(
+        raw.includes(
+            'public_v4_rollout_stage: process.env.PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE'
+        ),
+        true,
+        'falta propagacion de stage public_v4 al dispatch de post-deploy-fast'
+    );
+    assert.equal(
+        raw.includes(
+            'Workflow post-deploy-gate.yml disparado (domain=${process.env.PROD_URL}, admin_stage=${process.env.ADMIN_ROLLOUT_STAGE_EFFECTIVE}, public_v4_stage=${process.env.PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE}, public_v4_monitor=${process.env.PUBLIC_V4_ENABLE_MONITOR_EFFECTIVE}).'
+        ),
+        true,
+        'falta propagacion de stage public_v4 al dispatch de post-deploy-gate'
+    );
 });
 
 test('deploy-hosting aplica guardrail de dispatch por tipo de evento', () => {
@@ -143,9 +166,35 @@ test('deploy-hosting aplica guardrail de dispatch por tipo de evento', () => {
         'falta uso del resolver central de politica en deploy-hosting'
     );
     assert.equal(
+        raw.includes('node ./bin/resolve-public-v4-rollout-policy.js'),
+        true,
+        'falta uso del resolver central de politica public V4 en deploy-hosting'
+    );
+    assert.equal(
         raw.includes('--default-stage general'),
         true,
         'falta default-stage general al resolver politica en deploy-hosting'
+    );
+    assert.equal(
+        raw.includes(
+            'public_v4_stage_profile="$(json_field "$public_v4_policy_json" stage_profile)"'
+        ),
+        true,
+        'falta salida public_v4 stage_profile efectiva en deploy-hosting'
+    );
+    assert.equal(
+        raw.includes(
+            'public_v4_policy_source="$(json_field "$public_v4_policy_json" policy_source)"'
+        ),
+        true,
+        'falta captura de public_v4 policy_source desde resolver central'
+    );
+    assert.equal(
+        raw.includes(
+            'public_v4_allow_missing_control="$(json_field "$public_v4_policy_json" allow_missing_control_effective)"'
+        ),
+        true,
+        'falta captura de allow_missing_control efectivo para public_v4 en deploy-hosting'
     );
     assert.equal(
         raw.includes(
@@ -199,5 +248,37 @@ test('deploy-hosting aplica guardrail de dispatch por tipo de evento', () => {
         raw.includes('admin rollout policy source gate (effective)'),
         true,
         'falta policy source gate en resumen de deploy-hosting'
+    );
+    assert.equal(
+        raw.includes('Write post-deploy rollout dispatch manifest'),
+        true,
+        'falta step para generar manifest de dispatch de rollout en deploy-hosting'
+    );
+    assert.equal(
+        raw.includes('.public-cutover/postdeploy-rollout-dispatch.json'),
+        true,
+        'falta ruta canonica del manifest de dispatch de rollout en deploy-hosting'
+    );
+    assert.equal(
+        raw.includes('public_v4_rollout_stage (effective)'),
+        true,
+        'falta stage efectivo de public_v4 en resumen de deploy-hosting'
+    );
+    assert.equal(
+        raw.includes('public_v4_rollout_policy_source (effective)'),
+        true,
+        'falta policy source efectivo de public_v4 en resumen de deploy-hosting'
+    );
+    assert.equal(
+        raw.includes('PROD_MONITOR_ENABLE_PUBLIC_V4_ROLLOUT'),
+        true,
+        'falta persistencia de variable de monitor public_v4 en deploy-hosting'
+    );
+    assert.equal(
+        raw.includes(
+            "enable_public_v4_rollout_monitor: process.env.PUBLIC_V4_ENABLE_MONITOR_EFFECTIVE || 'false'"
+        ),
+        true,
+        'falta propagacion de monitor public_v4 al dispatch de prod-monitor'
     );
 });

@@ -96,6 +96,51 @@ on:
                 required: false
                 default: false
                 type: boolean
+            enable_public_v4_rollout_monitor:
+                description: 'Habilitar monitor de rollout publico V4 (trazabilidad en gate)'
+                required: false
+                default: false
+                type: boolean
+            public_v4_rollout_stage:
+                description: 'Etapa rollout publico V4 (internal|canary|general|rollback)'
+                required: false
+                default: 'canary'
+                type: string
+            public_v4_rollout_surface_test:
+                description: 'Superficie test rollout publico V4'
+                required: false
+                default: 'v4'
+                type: string
+            public_v4_rollout_surface_control:
+                description: 'Superficie control rollout publico V4'
+                required: false
+                default: 'legacy'
+                type: string
+            public_v4_rollout_min_view_booking:
+                description: 'Minimo de view_booking por superficie'
+                required: false
+                default: '20'
+                type: string
+            public_v4_rollout_min_start_checkout:
+                description: 'Minimo de start_checkout por superficie'
+                required: false
+                default: '10'
+                type: string
+            public_v4_rollout_max_confirmed_drop_pp:
+                description: 'Drop maximo permitido (pp) test vs control'
+                required: false
+                default: '8'
+                type: string
+            public_v4_rollout_min_confirmed_rate_pct:
+                description: 'Tasa minima de confirmed (%) superficie test'
+                required: false
+                default: '20'
+                type: string
+            public_v4_rollout_allow_missing_control:
+                description: 'Permitir ausencia de superficie control'
+                required: false
+                default: false
+                type: boolean
 
 concurrency:
     group: post-deploy-gate-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && 'manual' || 'auto' }}
@@ -140,6 +185,15 @@ jobs:
             ADMIN_ROLLOUT_SKIP_RUNTIME_SMOKE_INPUT: ${{ github.event.inputs.admin_rollout_skip_runtime_smoke || vars.ADMIN_ROLLOUT_SKIP_RUNTIME_SMOKE || 'false' }}
             ADMIN_ROLLOUT_ALLOW_FEATURE_API_FAILURE_INPUT: ${{ github.event.inputs.admin_rollout_allow_feature_api_failure || vars.ADMIN_ROLLOUT_ALLOW_FEATURE_API_FAILURE || 'false' }}
             ADMIN_ROLLOUT_ALLOW_MISSING_FLAG_INPUT: ${{ github.event.inputs.admin_rollout_allow_missing_flag || vars.ADMIN_ROLLOUT_ALLOW_MISSING_FLAG || 'false' }}
+            ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_INPUT: ${{ github.event.inputs.enable_public_v4_rollout_monitor || vars.PROD_MONITOR_ENABLE_PUBLIC_V4_ROLLOUT || 'false' }}
+            PUBLIC_V4_ROLLOUT_STAGE_INPUT: ${{ github.event.inputs.public_v4_rollout_stage || vars.PUBLIC_V4_ROLLOUT_STAGE || 'canary' }}
+            PUBLIC_V4_ROLLOUT_SURFACE_TEST_INPUT: ${{ github.event.inputs.public_v4_rollout_surface_test || vars.PUBLIC_V4_ROLLOUT_SURFACE_TEST || 'v4' }}
+            PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_INPUT: ${{ github.event.inputs.public_v4_rollout_surface_control || vars.PUBLIC_V4_ROLLOUT_SURFACE_CONTROL || 'legacy' }}
+            PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_INPUT: ${{ github.event.inputs.public_v4_rollout_min_view_booking || vars.PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING || '20' }}
+            PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_INPUT: ${{ github.event.inputs.public_v4_rollout_min_start_checkout || vars.PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT || '10' }}
+            PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_INPUT: ${{ github.event.inputs.public_v4_rollout_max_confirmed_drop_pp || vars.PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP || '8' }}
+            PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_INPUT: ${{ github.event.inputs.public_v4_rollout_min_confirmed_rate_pct || vars.PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT || '20' }}
+            PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_INPUT: ${{ github.event.inputs.public_v4_rollout_allow_missing_control || vars.PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL || 'false' }}
             POSTDEPLOY_CHANGE_CLASS: runtime
             POSTDEPLOY_TRIGGER_MODE: manual
             POSTDEPLOY_EFFECTIVE_WAIT_SECONDS: '0'
@@ -150,6 +204,17 @@ jobs:
             ADMIN_ROLLOUT_ALLOW_FEATURE_API_FAILURE_EFFECTIVE: 'false'
             ADMIN_ROLLOUT_ALLOW_MISSING_FLAG_EFFECTIVE: 'false'
             ADMIN_ROLLOUT_POLICY_SOURCE_EFFECTIVE: stage-default
+            ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_EFFECTIVE: 'false'
+            PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE: canary
+            PUBLIC_V4_ROLLOUT_STAGE_PROFILE_EFFECTIVE: progressive
+            PUBLIC_V4_ROLLOUT_POLICY_SOURCE_EFFECTIVE: stage-default
+            PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE: v4
+            PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE: legacy
+            PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE: '20'
+            PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE: '10'
+            PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE: '8'
+            PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE: '20'
+            PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE: 'false'
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -370,6 +435,80 @@ jobs:
                   "ADMIN_ROLLOUT_POLICY_SOURCE_EFFECTIVE=$($policy.policy_source)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                   Write-Host "Admin rollout => stage=$($policy.stage_effective) profile=$($policy.stage_profile) skip_runtime_smoke=$skipRuntimeSmokeText allow_feature_api_failure=$allowFeatureApiFailureText allow_missing_flag=$allowMissingFlagText policy_source=$($policy.policy_source)"
 
+            - name: Resolver configuracion rollout publico V4
+              if: ${{ steps.gate.outcome == 'success' && env.POSTDEPLOY_CHANGE_CLASS != 'non-runtime' }}
+              shell: pwsh
+              run: |
+                  $policyJson = node ./bin/resolve-public-v4-rollout-policy.js `
+                    --stage "$env:PUBLIC_V4_ROLLOUT_STAGE_INPUT" `
+                    --default-stage canary `
+                    --enable-monitor "$env:ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_INPUT" `
+                    --surface-test "$env:PUBLIC_V4_ROLLOUT_SURFACE_TEST_INPUT" `
+                    --surface-control "$env:PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_INPUT" `
+                    --min-view-booking "$env:PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_INPUT" `
+                    --min-start-checkout "$env:PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_INPUT" `
+                    --max-confirmed-drop-pp "$env:PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_INPUT" `
+                    --min-confirmed-rate-pct "$env:PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_INPUT" `
+                    --allow-missing-control "$env:PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_INPUT"
+
+                  if ($LASTEXITCODE -ne 0) {
+                    throw 'No se pudo resolver politica rollout publico V4 (gate).'
+                  }
+
+                  $policy = $policyJson | ConvertFrom-Json
+                  $enableMonitorText = if ([bool]$policy.enable_monitor_effective) { 'true' } else { 'false' }
+                  $allowMissingControlText = if ([bool]$policy.allow_missing_control_effective) { 'true' } else { 'false' }
+
+                  "ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_EFFECTIVE=$enableMonitorText" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE=$($policy.stage_effective)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_STAGE_PROFILE_EFFECTIVE=$($policy.stage_profile)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_POLICY_SOURCE_EFFECTIVE=$($policy.policy_source)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE=$($policy.surface_test_effective)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE=$($policy.surface_control_effective)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE=$($policy.min_view_booking_effective)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE=$($policy.min_start_checkout_effective)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE=$($policy.max_confirmed_drop_pp_effective)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE=$($policy.min_confirmed_rate_pct_effective)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE=$allowMissingControlText" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  Write-Host "Public V4 rollout => enable_monitor=$enableMonitorText stage=$($policy.stage_effective) profile=$($policy.stage_profile) surface_test=$($policy.surface_test_effective) surface_control=$($policy.surface_control_effective) policy_source=$($policy.policy_source)"
+
+            - name: Escribir reporte rollout publico V4
+              if: ${{ steps.gate.outcome == 'success' && env.POSTDEPLOY_CHANGE_CLASS != 'non-runtime' }}
+              shell: pwsh
+              run: |
+                  New-Item -ItemType Directory -Path verification -Force | Out-Null
+                  $report = [ordered]@{
+                    generated_at = (Get-Date).ToUniversalTime().ToString('o')
+                    domain = [string]$env:TARGET_DOMAIN
+                    trigger_mode = [string]$env:POSTDEPLOY_TRIGGER_MODE
+                    input = [ordered]@{
+                      enable_monitor = [string]$env:ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_INPUT
+                      stage = [string]$env:PUBLIC_V4_ROLLOUT_STAGE_INPUT
+                      surface_test = [string]$env:PUBLIC_V4_ROLLOUT_SURFACE_TEST_INPUT
+                      surface_control = [string]$env:PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_INPUT
+                      min_view_booking = [string]$env:PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_INPUT
+                      min_start_checkout = [string]$env:PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_INPUT
+                      max_confirmed_drop_pp = [string]$env:PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_INPUT
+                      min_confirmed_rate_pct = [string]$env:PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_INPUT
+                      allow_missing_control = [string]$env:PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_INPUT
+                    }
+                    effective = [ordered]@{
+                      enable_monitor = [string]$env:ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_EFFECTIVE
+                      stage = [string]$env:PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE
+                      stage_profile = [string]$env:PUBLIC_V4_ROLLOUT_STAGE_PROFILE_EFFECTIVE
+                      policy_source = [string]$env:PUBLIC_V4_ROLLOUT_POLICY_SOURCE_EFFECTIVE
+                      surface_test = [string]$env:PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE
+                      surface_control = [string]$env:PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE
+                      min_view_booking = [string]$env:PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE
+                      min_start_checkout = [string]$env:PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE
+                      max_confirmed_drop_pp = [string]$env:PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE
+                      min_confirmed_rate_pct = [string]$env:PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE
+                      allow_missing_control = [string]$env:PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE
+                    }
+                  }
+                  $report | ConvertTo-Json -Depth 8 | Set-Content -Path 'verification/last-public-v4-rollout-gate.json' -Encoding utf8
+                  Write-Host 'Reporte rollout publico V4 escrito en verification/last-public-v4-rollout-gate.json'
+
             - name: Instalar Playwright (chromium) para gate admin UI
               if: ${{ steps.gate.outcome == 'success' && env.POSTDEPLOY_CHANGE_CLASS != 'non-runtime' && env.ADMIN_ROLLOUT_SKIP_RUNTIME_SMOKE_EFFECTIVE != 'true' }}
               shell: pwsh
@@ -464,6 +603,15 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input admin rollout skip runtime smoke: ``$env:ADMIN_ROLLOUT_SKIP_RUNTIME_SMOKE_INPUT``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input admin rollout allow feature API failure: ``$env:ADMIN_ROLLOUT_ALLOW_FEATURE_API_FAILURE_INPUT``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input admin rollout allow missing flag: ``$env:ADMIN_ROLLOUT_ALLOW_MISSING_FLAG_INPUT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input public V4 rollout monitor: ``$env:ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_INPUT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input public V4 rollout stage: ``$env:PUBLIC_V4_ROLLOUT_STAGE_INPUT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input public V4 rollout surface test: ``$env:PUBLIC_V4_ROLLOUT_SURFACE_TEST_INPUT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input public V4 rollout surface control: ``$env:PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_INPUT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input public V4 rollout min view booking: ``$env:PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_INPUT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input public V4 rollout min start checkout: ``$env:PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_INPUT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input public V4 rollout max confirmed drop pp: ``$env:PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_INPUT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input public V4 rollout min confirmed rate pct: ``$env:PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_INPUT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input public V4 rollout allow missing control: ``$env:PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_INPUT``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Change class: ``$env:POSTDEPLOY_CHANGE_CLASS``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Effective wait seconds: ``$env:POSTDEPLOY_EFFECTIVE_WAIT_SECONDS``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Semaforo platform: ``${{ steps.gate.outcome }}``"
@@ -473,8 +621,20 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Admin rollout allow feature API failure (effective): ``$env:ADMIN_ROLLOUT_ALLOW_FEATURE_API_FAILURE_EFFECTIVE``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Admin rollout allow missing flag (effective): ``$env:ADMIN_ROLLOUT_ALLOW_MISSING_FLAG_EFFECTIVE``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Admin rollout policy source (effective): ``$env:ADMIN_ROLLOUT_POLICY_SOURCE_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public V4 rollout monitor (effective): ``$env:ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public V4 rollout stage (effective): ``$env:PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public V4 rollout stage profile (effective): ``$env:PUBLIC_V4_ROLLOUT_STAGE_PROFILE_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public V4 rollout policy source (effective): ``$env:PUBLIC_V4_ROLLOUT_POLICY_SOURCE_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public V4 rollout surface test (effective): ``$env:PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public V4 rollout surface control (effective): ``$env:PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public V4 rollout min view booking (effective): ``$env:PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public V4 rollout min start checkout (effective): ``$env:PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public V4 rollout max confirmed drop pp (effective): ``$env:PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public V4 rollout min confirmed rate pct (effective): ``$env:PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public V4 rollout allow missing control (effective): ``$env:PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Semaforo admin rollout: ``$adminRolloutOutcome``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Reporte admin rollout: ``verification/last-admin-ui-rollout-gate.json``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Reporte public V4 rollout: ``verification/last-public-v4-rollout-gate.json``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Semaforo agenda(calendar): ``${{ steps.calendar_contract.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Semaforo chat(figo): ``${{ steps.figo_contract.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Require Google calendar (input/vars): ``$env:REQUIRE_GOOGLE_CALENDAR``"
@@ -507,6 +667,15 @@ jobs:
                   if-no-files-found: warn
                   retention-days: 14
 
+            - name: Publicar reporte rollout publico V4
+              if: ${{ always() }}
+              uses: actions/upload-artifact@v4
+              with:
+                  name: post-deploy-public-v4-rollout-report
+                  path: verification/last-public-v4-rollout-gate.json
+                  if-no-files-found: warn
+                  retention-days: 14
+
             - name: Crear/actualizar incidente de gate
               if: ${{ failure() && github.event_name != 'workflow_dispatch' }}
               uses: actions/github-script@v7
@@ -519,6 +688,17 @@ jobs:
                   ADMIN_ROLLOUT_ALLOW_FEATURE_API_FAILURE_EFFECTIVE: ${{ env.ADMIN_ROLLOUT_ALLOW_FEATURE_API_FAILURE_EFFECTIVE }}
                   ADMIN_ROLLOUT_ALLOW_MISSING_FLAG_EFFECTIVE: ${{ env.ADMIN_ROLLOUT_ALLOW_MISSING_FLAG_EFFECTIVE }}
                   ADMIN_ROLLOUT_POLICY_SOURCE_EFFECTIVE: ${{ env.ADMIN_ROLLOUT_POLICY_SOURCE_EFFECTIVE }}
+                  ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_EFFECTIVE: ${{ env.ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_EFFECTIVE }}
+                  PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE: ${{ env.PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE }}
+                  PUBLIC_V4_ROLLOUT_STAGE_PROFILE_EFFECTIVE: ${{ env.PUBLIC_V4_ROLLOUT_STAGE_PROFILE_EFFECTIVE }}
+                  PUBLIC_V4_ROLLOUT_POLICY_SOURCE_EFFECTIVE: ${{ env.PUBLIC_V4_ROLLOUT_POLICY_SOURCE_EFFECTIVE }}
+                  PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE: ${{ env.PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE }}
+                  PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE: ${{ env.PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE }}
+                  PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE: ${{ env.PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE }}
+                  PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE: ${{ env.PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE }}
+                  PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE: ${{ env.PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE }}
+                  PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE: ${{ env.PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE }}
+                  PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE: ${{ env.PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE }}
                   POSTDEPLOY_CHANGE_CLASS: ${{ env.POSTDEPLOY_CHANGE_CLASS }}
                   POSTDEPLOY_EFFECTIVE_WAIT_SECONDS: ${{ env.POSTDEPLOY_EFFECTIVE_WAIT_SECONDS }}
                   BENCH_RUNS_EFFECTIVE: ${{ env.BENCH_RUNS_EFFECTIVE }}
@@ -546,6 +726,17 @@ jobs:
                         `- admin_rollout_allow_feature_api_failure_effective: ${process.env.ADMIN_ROLLOUT_ALLOW_FEATURE_API_FAILURE_EFFECTIVE || 'n/a'}`,
                         `- admin_rollout_allow_missing_flag_effective: ${process.env.ADMIN_ROLLOUT_ALLOW_MISSING_FLAG_EFFECTIVE || 'n/a'}`,
                         `- admin_rollout_policy_source_effective: ${process.env.ADMIN_ROLLOUT_POLICY_SOURCE_EFFECTIVE || 'n/a'}`,
+                        `- public_v4_rollout_monitor_effective: ${process.env.ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_EFFECTIVE || 'n/a'}`,
+                        `- public_v4_rollout_stage_effective: ${process.env.PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE || 'n/a'}`,
+                        `- public_v4_rollout_stage_profile_effective: ${process.env.PUBLIC_V4_ROLLOUT_STAGE_PROFILE_EFFECTIVE || 'n/a'}`,
+                        `- public_v4_rollout_policy_source_effective: ${process.env.PUBLIC_V4_ROLLOUT_POLICY_SOURCE_EFFECTIVE || 'n/a'}`,
+                        `- public_v4_rollout_surface_test_effective: ${process.env.PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE || 'n/a'}`,
+                        `- public_v4_rollout_surface_control_effective: ${process.env.PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE || 'n/a'}`,
+                        `- public_v4_rollout_min_view_booking_effective: ${process.env.PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE || 'n/a'}`,
+                        `- public_v4_rollout_min_start_checkout_effective: ${process.env.PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE || 'n/a'}`,
+                        `- public_v4_rollout_max_confirmed_drop_pp_effective: ${process.env.PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE || 'n/a'}`,
+                        `- public_v4_rollout_min_confirmed_rate_pct_effective: ${process.env.PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE || 'n/a'}`,
+                        `- public_v4_rollout_allow_missing_control_effective: ${process.env.PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE || 'n/a'}`,
                         `- change_class: ${process.env.POSTDEPLOY_CHANGE_CLASS || 'n/a'}`,
                         `- effective_wait_seconds: ${process.env.POSTDEPLOY_EFFECTIVE_WAIT_SECONDS || 'n/a'}`,
                         `- bench_runs_effective: ${process.env.BENCH_RUNS_EFFECTIVE || 'n/a'}`,

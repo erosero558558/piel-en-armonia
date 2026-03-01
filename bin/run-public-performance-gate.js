@@ -18,7 +18,16 @@ function parseArgs(argv) {
         baseUrl: '',
         outDir: path.join('verification', 'performance-gate'),
         label: 'public-performance',
-        routes: ['/es/', '/en/'],
+        routes: [
+            '/es/',
+            '/en/',
+            '/es/servicios/',
+            '/en/services/',
+            '/es/servicios/acne-rosacea/',
+            '/en/services/acne-rosacea/',
+            '/es/telemedicina/',
+            '/en/telemedicine/',
+        ],
         thresholds: {
             performance: Number(process.env.PERF_SCORE_MIN || '0.85'),
             accessibility: Number(process.env.A11Y_SCORE_MIN || '0.95'),
@@ -38,7 +47,8 @@ function parseArgs(argv) {
             continue;
         }
         if (token === '--out-dir') {
-            parsed.outDir = String(argv[index + 1] || '').trim() || parsed.outDir;
+            parsed.outDir =
+                String(argv[index + 1] || '').trim() || parsed.outDir;
             index += 1;
             continue;
         }
@@ -161,7 +171,9 @@ function requestOnce(urlString) {
             },
             (response) => {
                 response.resume();
-                resolve(response.statusCode >= 200 && response.statusCode < 500);
+                resolve(
+                    response.statusCode >= 200 && response.statusCode < 500
+                );
             }
         );
         request.on('timeout', () => {
@@ -195,8 +207,13 @@ function startLocalPhpServer(repoRoot, host, port) {
 
 function joinRoute(baseUrl, routePath) {
     const cleanRoute = `/${String(routePath || '/').replace(/^\/+/, '')}`;
-    const cleanBasePath = String(baseUrl.pathname || '').replace(/^\/+|\/+$/g, '');
-    const resolvedPath = cleanBasePath ? `/${cleanBasePath}${cleanRoute}` : cleanRoute;
+    const cleanBasePath = String(baseUrl.pathname || '').replace(
+        /^\/+|\/+$/g,
+        ''
+    );
+    const resolvedPath = cleanBasePath
+        ? `/${cleanBasePath}${cleanRoute}`
+        : cleanRoute;
     const target = new URL(baseUrl.origin);
     target.pathname = resolvedPath;
     return target.toString();
@@ -231,16 +248,24 @@ function evaluateRoute(result, thresholds) {
         );
     }
     if (result.scores.seo < thresholds.seo) {
-        failures.push(`seo ${formatNumber(result.scores.seo)} < ${formatNumber(thresholds.seo)}`);
+        failures.push(
+            `seo ${formatNumber(result.scores.seo)} < ${formatNumber(thresholds.seo)}`
+        );
     }
     if (result.metrics.lcpMs > thresholds.lcpMs) {
-        failures.push(`LCP ${Math.round(result.metrics.lcpMs)}ms > ${Math.round(thresholds.lcpMs)}ms`);
+        failures.push(
+            `LCP ${Math.round(result.metrics.lcpMs)}ms > ${Math.round(thresholds.lcpMs)}ms`
+        );
     }
     if (result.metrics.cls > thresholds.cls) {
-        failures.push(`CLS ${formatNumber(result.metrics.cls, 3)} > ${formatNumber(thresholds.cls, 3)}`);
+        failures.push(
+            `CLS ${formatNumber(result.metrics.cls, 3)} > ${formatNumber(thresholds.cls, 3)}`
+        );
     }
     if (result.metrics.inpMs > thresholds.inpMs) {
-        failures.push(`INP ${Math.round(result.metrics.inpMs)}ms > ${Math.round(thresholds.inpMs)}ms`);
+        failures.push(
+            `INP ${Math.round(result.metrics.inpMs)}ms > ${Math.round(thresholds.inpMs)}ms`
+        );
     }
     return failures;
 }
@@ -283,8 +308,12 @@ function writeSummary(runDir, summary) {
         lines.push(`### ${route.route}`);
         lines.push(`- status: ${route.status}`);
         lines.push(`- performance: ${formatNumber(route.scores.performance)}`);
-        lines.push(`- accessibility: ${formatNumber(route.scores.accessibility)}`);
-        lines.push(`- best-practices: ${formatNumber(route.scores.bestPractices)}`);
+        lines.push(
+            `- accessibility: ${formatNumber(route.scores.accessibility)}`
+        );
+        lines.push(
+            `- best-practices: ${formatNumber(route.scores.bestPractices)}`
+        );
         lines.push(`- seo: ${formatNumber(route.scores.seo)}`);
         lines.push(`- LCP: ${Math.round(route.metrics.lcpMs)} ms`);
         lines.push(`- CLS: ${formatNumber(route.metrics.cls, 3)}`);
@@ -326,15 +355,21 @@ async function run() {
             DEFAULT_LOCAL_HOST,
             DEFAULT_LOCAL_PORT
         );
-        serverProcess.stdout.on('data', (chunk) => process.stdout.write(chunk.toString()));
-        serverProcess.stderr.on('data', (chunk) => process.stderr.write(chunk.toString()));
+        serverProcess.stdout.on('data', (chunk) =>
+            process.stdout.write(chunk.toString())
+        );
+        serverProcess.stderr.on('data', (chunk) =>
+            process.stderr.write(chunk.toString())
+        );
         const ready = await waitForHttpReady(
             joinRoute(baseUrl, '/es/'),
             DEFAULT_TIMEOUT_MS
         );
         if (!ready) {
             killProcess(serverProcess);
-            console.error('[performance-gate] Local PHP server did not become ready.');
+            console.error(
+                '[performance-gate] Local PHP server did not become ready.'
+            );
             process.exitCode = 1;
             return;
         }
@@ -342,7 +377,9 @@ async function run() {
 
     const chromeProfileDir = path.join(runDir, 'chrome-profile');
     fs.mkdirSync(chromeProfileDir, { recursive: true });
-    const debugPort = Number(process.env.LIGHTHOUSE_DEBUG_PORT || DEFAULT_DEBUG_PORT);
+    const debugPort = Number(
+        process.env.LIGHTHOUSE_DEBUG_PORT || DEFAULT_DEBUG_PORT
+    );
 
     const chromeProcess = spawn(
         chromePath,
@@ -380,7 +417,10 @@ async function run() {
 
         for (const routePath of args.routes) {
             const targetUrl = joinRoute(baseUrl, routePath);
-            const slug = routePath.replace(/^\/+|\/+$/g, '').replace(/[^a-zA-Z0-9_-]+/g, '_') || 'home';
+            const slug =
+                routePath
+                    .replace(/^\/+|\/+$/g, '')
+                    .replace(/[^a-zA-Z0-9_-]+/g, '_') || 'home';
             const outputBase = path.join(runDir, `lighthouse-${slug}`);
             const reportPath = `${outputBase}.report.json`;
 
@@ -429,7 +469,11 @@ async function run() {
                         bestPractices: 0,
                         seo: 0,
                     },
-                    metrics: { lcpMs: Infinity, cls: Infinity, inpMs: Infinity },
+                    metrics: {
+                        lcpMs: Infinity,
+                        cls: Infinity,
+                        inpMs: Infinity,
+                    },
                 });
                 continue;
             }
@@ -439,7 +483,8 @@ async function run() {
             const audits = report.audits || {};
             const inpCandidate =
                 audits['interaction-to-next-paint']?.numericValue ??
-                audits['experimental-interaction-to-next-paint']?.numericValue ??
+                audits['experimental-interaction-to-next-paint']
+                    ?.numericValue ??
                 audits['max-potential-fid']?.numericValue ??
                 audits['total-blocking-time']?.numericValue;
             const routeSummary = {
@@ -448,7 +493,9 @@ async function run() {
                 scores: {
                     performance: Number(categories.performance?.score || 0),
                     accessibility: Number(categories.accessibility?.score || 0),
-                    bestPractices: Number(categories['best-practices']?.score || 0),
+                    bestPractices: Number(
+                        categories['best-practices']?.score || 0
+                    ),
                     seo: Number(categories.seo?.score || 0),
                 },
                 metrics: {

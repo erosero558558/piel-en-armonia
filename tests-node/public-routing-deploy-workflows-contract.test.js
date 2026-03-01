@@ -174,6 +174,7 @@ test('deploy-hosting valida routing y conversion publica en canary y produccion'
     for (const expectedStepName of [
         'Stamp public cutover start',
         'Write public cutover manifest',
+        'Write post-deploy rollout dispatch manifest',
         'Upload public cutover evidence',
         'Persist public cutover monitor window',
         'Bootstrap prod-monitor post-cutover',
@@ -190,7 +191,14 @@ test('deploy-hosting valida routing y conversion publica en canary y produccion'
         'PROD_MONITOR_ENABLE_PUBLIC_CUTOVER',
         'PUBLIC_CUTOVER_STARTED_AT',
         'PUBLIC_CUTOVER_WINDOW_HOURS',
+        '.public-cutover/postdeploy-rollout-dispatch.json',
         "workflow_id: 'prod-monitor.yml'",
+        'PROD_MONITOR_ENABLE_PUBLIC_V4_ROLLOUT',
+        'PUBLIC_V4_ROLLOUT_STAGE',
+        'PUBLIC_V4_ROLLOUT_SURFACE_TEST',
+        'PUBLIC_V4_ROLLOUT_SURFACE_CONTROL',
+        "enable_public_v4_rollout_monitor: process.env.PUBLIC_V4_ENABLE_MONITOR_EFFECTIVE || 'false'",
+        "public_v4_rollout_stage: process.env.PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE || 'canary'",
     ]) {
         assert.equal(
             raw.includes(snippet),
@@ -212,6 +220,15 @@ test('deploy-hosting aplica politica bloqueante de staging antes de produccion',
         'enable_public_cutover_monitor',
         'public_cutover_window_hours',
         'dispatch_public_cutover_monitor',
+        'enable_public_v4_rollout_monitor',
+        'public_v4_rollout_stage',
+        'public_v4_rollout_surface_test',
+        'public_v4_rollout_surface_control',
+        'public_v4_rollout_min_view_booking',
+        'public_v4_rollout_min_start_checkout',
+        'public_v4_rollout_max_confirmed_drop_pp',
+        'public_v4_rollout_min_confirmed_rate_pct',
+        'public_v4_rollout_allow_missing_control',
     ]) {
         assert.equal(
             Object.prototype.hasOwnProperty.call(inputs, inputName),

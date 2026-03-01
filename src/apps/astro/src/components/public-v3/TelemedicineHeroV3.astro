@@ -1,5 +1,8 @@
-﻿---
+---
+import ResponsiveMediaImageV3 from './ResponsiveMediaImageV3.astro';
+
 const { hero } = Astro.props;
+const media = hero?.mediaMeta || hero?.media || null;
 const mediaSrc = hero?.mediaMeta?.src || hero?.media || '';
 const mediaAlt = hero?.mediaMeta?.alt || hero?.title || '';
 const tone = hero?.tone || 'ink';
@@ -11,6 +14,14 @@ const tone = hero?.tone || 'ink';
         <h1>{hero.title}</h1>
         <p>{hero.deck}</p>
     </div>
-    <div class="hub-hero-v3__media"><img src={mediaSrc} alt={mediaAlt} loading="eager" /></div>
+    <div class="hub-hero-v3__media">
+        <ResponsiveMediaImageV3
+            media={media}
+            fallbackSrc={mediaSrc}
+            fallbackAlt={mediaAlt}
+            loading="eager"
+            fetchpriority="high"
+            sizes="(max-width: 1024px) 100vw, 46vw"
+        />
+    </div>
 </section>
-

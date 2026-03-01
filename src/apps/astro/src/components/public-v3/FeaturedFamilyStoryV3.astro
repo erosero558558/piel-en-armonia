@@ -1,4 +1,6 @@
-﻿---
+---
+import ResponsiveMediaImageV3 from './ResponsiveMediaImageV3.astro';
+
 const { families = [] } = Astro.props;
 ---
 
@@ -6,7 +8,15 @@ const { families = [] } = Astro.props;
     {
         families.map((family) => (
             <article class="featured-story">
-                <div class="featured-story__media"><img src={family.media} alt={family.label} loading="lazy" /></div>
+                <div class="featured-story__media">
+                    <ResponsiveMediaImageV3
+                        media={family.mediaMeta || family.media}
+                        fallbackSrc={family.media}
+                        fallbackAlt={family.label}
+                        loading="lazy"
+                        sizes="(max-width: 1000px) 100vw, 52vw"
+                    />
+                </div>
                 <div class="featured-story__copy">
                     <p>{family.label}</p>
                     <h2>{family.featured.title}</h2>
@@ -17,4 +27,3 @@ const { families = [] } = Astro.props;
         ))
     }
 </section>
-

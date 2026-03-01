@@ -111,4 +111,32 @@ test('frontend premium QA publica contrato de aprobacion Public V3 en el summary
         true,
         'falta contrato de aprobacion Public V3 en summary de frontend premium QA'
     );
+    assert.equal(
+        raw.includes(
+            'echo "- V4 hardening: \\`npm run test:frontend:qa:v4\\`";'
+        ),
+        true,
+        'falta referencia de hardening V4 en summary de frontend premium QA'
+    );
+});
+
+test('frontend premium QA observa cambios en contratos V4 de contenido, rollout y analytics', () => {
+    const { raw } = loadWorkflow();
+
+    const expectedPaths = [
+        'tests-node/public-v4-content-contract.test.js',
+        'tests-node/public-v4-service-static-parity.test.js',
+        'tests-node/public-v4-rollout-gate.test.js',
+        'tests-node/analytics-rollout-contract.test.js',
+        'bin/run-public-v4-rollout-gate.js',
+        'bin/validate-public-v4-catalog.js',
+    ];
+
+    for (const expectedPath of expectedPaths) {
+        assert.equal(
+            raw.includes(`- '${expectedPath}'`),
+            true,
+            `falta trigger de workflow para ${expectedPath}`
+        );
+    }
 });

@@ -18,7 +18,7 @@ const navModel = getPublicNavigationModel(locale, pathname);
     <HubHeroV3 hero={page.hero} />
     <FamilyTabsV3 families={page.families} />
     <FeaturedFamilyStoryV3 families={page.families.slice(0, 2)} />
-    <ServicesEditorialGridV3 families={page.families} locale={locale} />
+    <ServicesEditorialGridV3 families={page.families} filters={page.filters} locale={locale} />
     <TelemedicineExperienceBandV3 eyebrow={page.telemedicine.eyebrow} title={page.telemedicine.title} deck={page.telemedicine.deck} points={[page.telemedicine.deck]} href={page.telemedicine.href} tone={page.telemedicine.tone} locale={locale} />
     <BookingBridgeBandV3 eyebrow={page.booking.eyebrow} title={page.booking.title} deck={page.booking.deck} actionLabel={page.booking.actionLabel} serviceHint={page.booking.serviceHint} tone={page.booking.tone} locale={locale} />
 </PublicShellV3>

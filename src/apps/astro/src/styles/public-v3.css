@@ -333,6 +333,29 @@ main > nav { width: var(--public-width); margin: 0 auto; }
 .legal-hero-v3,
 .legal-article-v3__sections article { padding: 22px; }
 .services-editorial-grid { display: grid; gap: 34px; }
+.services-editorial-grid__filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 280px));
+    gap: 14px;
+    justify-content: start;
+}
+.services-editorial-grid__filters label {
+    display: grid;
+    gap: 8px;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--public-muted);
+}
+.services-editorial-grid__filters select {
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid var(--public-line);
+    background: #fff;
+    color: var(--public-ink);
+    font: inherit;
+}
 .services-editorial-grid__family { display: grid; gap: 18px; }
 .services-editorial-grid__family[data-family-active='true'] .services-editorial-grid__feature,
 .family-tabs-v3__link[data-family-active='true'] {
@@ -358,6 +381,17 @@ main > nav { width: var(--public-width); margin: 0 auto; }
 .service-evidence-v3__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 18px; }
 .service-card-v3__meta,
 .service-hero-v3__meta { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; color: var(--public-muted); }
+.service-hero-v3__price-formula,
+.service-hero-v3__price-note {
+    margin: 0;
+    color: var(--public-muted);
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+.service-hero-v3__price-note {
+    margin-top: 6px;
+    margin-bottom: 18px;
+}
 .experience-band,
 .support-band-v3 {
     display: grid;
@@ -404,9 +438,76 @@ main > nav { width: var(--public-width); margin: 0 auto; }
     font-size: 1rem;
     line-height: 1.7;
 }
+.booking-bridge__mount .booking-assurance {
+    display: grid;
+    gap: 10px;
+}
+.booking-bridge__mount .booking-assurance > p {
+    margin: 0;
+    font-size: 0.78rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--public-muted);
+}
+.booking-bridge__mount .booking-assurance__grid {
+    display: grid;
+    gap: 10px;
+}
+.booking-bridge__mount .booking-assurance__item {
+    display: grid;
+    grid-template-columns: 16px 1fr;
+    column-gap: 10px;
+    row-gap: 4px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(13, 15, 17, 0.1);
+    background: rgba(13, 15, 17, 0.03);
+}
+.booking-bridge__mount .booking-assurance__item i {
+    margin-top: 2px;
+    color: #0f1728;
+}
+.booking-bridge__mount .booking-assurance__item h3 {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+.booking-bridge__mount .booking-assurance__item p {
+    grid-column: 2 / -1;
+    margin: 0;
+    font-size: 0.86rem;
+    line-height: 1.5;
+    color: var(--public-muted);
+}
 .booking-bridge__mount .appointment-benefits {
     display: grid;
     gap: 14px;
+}
+.booking-bridge__mount .booking-companion-routes {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 18px;
+    border: 1px solid rgba(13, 15, 17, 0.1);
+    background: rgba(13, 15, 17, 0.03);
+}
+.booking-bridge__mount .booking-companion-routes > p {
+    margin: 0;
+}
+.booking-bridge__mount .booking-companion-routes > p:first-child {
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--public-muted);
+}
+.booking-bridge__mount .booking-companion-routes__note {
+    font-size: 0.85rem;
+    color: var(--public-muted);
+}
+.booking-bridge__mount .booking-companion-routes__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 .booking-bridge__mount .benefit-item {
     display: grid;
@@ -433,6 +534,58 @@ main > nav { width: var(--public-width); margin: 0 auto; }
 .booking-bridge__mount .appointment-form {
     display: grid;
     gap: 16px;
+}
+.booking-bridge__mount .booking-pricing-model {
+    display: grid;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    border: 1px solid rgba(13, 15, 17, 0.1);
+    background: linear-gradient(180deg, rgba(13, 15, 17, 0.03), rgba(13, 15, 17, 0.01));
+}
+.booking-bridge__mount .booking-pricing-model > p {
+    margin: 0;
+}
+.booking-bridge__mount .booking-pricing-model > p:first-child {
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--public-muted);
+}
+.booking-bridge__mount .booking-pricing-model__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+}
+.booking-bridge__mount .booking-pricing-model__row span {
+    color: var(--public-muted);
+    font-size: 0.9rem;
+}
+.booking-bridge__mount .booking-pricing-model__row strong {
+    text-align: right;
+    font-size: 0.9rem;
+}
+.booking-bridge__mount #selectedPriceDisclaimer {
+    color: var(--public-muted);
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+.booking-bridge__mount .booking-pricing-model__notes {
+    display: grid;
+    gap: 6px;
+    padding-top: 4px;
+    border-top: 1px dashed rgba(13, 15, 17, 0.14);
+}
+.booking-bridge__mount .booking-pricing-model__note {
+    margin: 0;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    color: var(--public-muted);
+}
+.booking-bridge__mount .booking-pricing-model__policy {
+    font-size: 0.86rem;
+    font-weight: 600;
 }
 .booking-bridge__mount .appointment-form h3 {
     margin: 0;
@@ -512,6 +665,9 @@ main > nav { width: var(--public-width); margin: 0 auto; }
 }
 .booking-bridge__mount .form-privacy-note {
     margin: 0;
+}
+.booking-bridge__mount .booking-policy-note {
+    margin: -4px 0 0;
 }
 .booking-bridge__mount .price-summary {
     display: grid;
@@ -744,6 +900,59 @@ main > nav { width: var(--public-width); margin: 0 auto; }
 .public-runtime-bridge #rescheduleInfo {
     padding: 16px 18px;
     margin-top: 14px;
+}
+.public-runtime-bridge .payment-trust,
+.public-runtime-bridge .payment-faq {
+    margin-top: 14px;
+    padding: 16px 18px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.82);
+    border: 1px solid rgba(13, 15, 17, 0.08);
+}
+.public-runtime-bridge .payment-trust__eyebrow,
+.public-runtime-bridge .payment-faq__eyebrow {
+    margin: 0 0 10px;
+    font-size: 0.74rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #5b6167;
+}
+.public-runtime-bridge .payment-trust__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 8px;
+}
+.public-runtime-bridge .payment-trust__list li {
+    display: grid;
+    grid-template-columns: 16px 1fr;
+    gap: 10px;
+    align-items: start;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: #213047;
+}
+.public-runtime-bridge .payment-trust__policy {
+    display: inline-flex;
+    margin-top: 10px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #0b4aa3;
+}
+.public-runtime-bridge .payment-faq details + details {
+    margin-top: 10px;
+}
+.public-runtime-bridge .payment-faq summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #152238;
+}
+.public-runtime-bridge .payment-faq p {
+    margin: 8px 0 0;
+    color: #3f4f64;
+    font-size: 0.9rem;
+    line-height: 1.55;
 }
 .public-runtime-bridge .payment-total,
 .public-runtime-bridge .success-details-line {
@@ -1496,4 +1705,3 @@ body[data-public-shell-version='v3'] .hub-hero-v3[data-section-tone] a:not(.hero
         padding: 22px;
     }
 }
-

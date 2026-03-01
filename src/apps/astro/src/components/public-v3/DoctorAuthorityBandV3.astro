@@ -1,4 +1,6 @@
-﻿---
+---
+import ResponsiveMediaImageV3 from './ResponsiveMediaImageV3.astro';
+
 const { doctors = [], locale = 'es' } = Astro.props;
 ---
 
@@ -11,7 +13,13 @@ const { doctors = [], locale = 'es' } = Astro.props;
         {
             doctors.map((doctor) => (
                 <article class="doctor-band__card">
-                    <img src={doctor.media} alt={doctor.name} loading="lazy" />
+                    <ResponsiveMediaImageV3
+                        media={doctor.mediaMeta || doctor.media}
+                        fallbackSrc={doctor.media}
+                        fallbackAlt={doctor.name}
+                        loading="lazy"
+                        sizes="(max-width: 800px) 100vw, 280px"
+                    />
                     <div>
                         <p>{doctor.role}</p>
                         <h3>{doctor.name}</h3>
@@ -25,4 +33,3 @@ const { doctors = [], locale = 'es' } = Astro.props;
         }
     </div>
 </section>
-

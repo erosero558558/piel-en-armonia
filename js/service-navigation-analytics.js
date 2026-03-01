@@ -71,6 +71,14 @@
     };
     var lastTrackedRoutePlannerKey = '';
     var lastTrackedSharedContextKey = '';
+    var pendingEngineEvents = [];
+    var pendingEngineFlushTimer = null;
+
+    var SERVER_BRIDGE_EVENTS = {
+        view_service_category: true,
+        view_service_detail: true,
+        start_booking_from_service: true,
+    };
 
     function normalizePath(pathname) {
         var value = String(pathname || '').trim();
@@ -90,7 +98,7 @@
         var parts = cleanPath.split('/');
         if (parts.length < 1) return '';
 
-        var slug = '';
+        var slug;
         if (
             (parts[0] === 'es' && parts[1] === 'servicios') ||
             (parts[0] === 'en' && parts[1] === 'services')
@@ -126,7 +134,7 @@
     }
 
     function parseCatalogState(target) {
-        var url = null;
+        var url;
         try {
             url =
                 target instanceof URL
@@ -248,7 +256,7 @@
         if (!value) return 'navigation';
         if (value.indexOf('wa.me/') !== -1) return 'whatsapp';
 
-        var destination = null;
+        var destination;
         try {
             destination = new URL(value, window.location.origin);
         } catch (_error) {
@@ -287,6 +295,159 @@
             .replace(/[^a-z0-9]+/g, '_')
             .replace(/^_+|_+$/g, '')
             .replace(/_+/g, '_');
+    }
+
+    function readCookie(name) {
+        var key = String(name || '').trim();
+        if (!key) return '';
+        var payload = String(document.cookie || '');
+        if (!payload) return '';
+        var parts = payload.split(';');
+        for (var index = 0; index < parts.length; index += 1) {
+            var item = String(parts[index] || '').trim();
+            if (!item) continue;
+            var separator = item.indexOf('=');
+            var cookieName =
+                separator >= 0 ? item.slice(0, separator).trim() : item;
+            if (cookieName !== key) continue;
+            var rawValue =
+                separator >= 0 ? item.slice(separator + 1).trim() : '';
+            try {
+                return decodeURIComponent(rawValue);
+            } catch (_error) {
+                return rawValue;
+            }
+        }
+        return '';
+    }
+
+    function resolvePublicSurface() {
+        var fromCookie = String(readCookie('pa_public_surface') || '')
+            .trim()
+            .toLowerCase();
+        if (fromCookie === 'legacy' || fromCookie === 'v4') {
+            return fromCookie;
+        }
+        var path = normalizePath(window.location.pathname);
+        if (path === '/legacy.php/' || path === '/legacy/') {
+            return 'legacy';
+        }
+        return 'v4';
+    }
+
+    function inferFunnelStep(eventName, payload) {
+        var params = payload || {};
+        var explicit = String(params.funnel_step || '')
+            .trim()
+            .toLowerCase();
+        if (explicit) {
+            return explicit;
+        }
+        switch (
+            String(eventName || '')
+                .trim()
+                .toLowerCase()
+        ) {
+            case 'view_service_category':
+                return 'service_category';
+            case 'view_service_detail':
+                return 'service_detail';
+            case 'start_booking_from_service':
+                return 'booking_intent';
+            case 'open_public_cta':
+                return 'cta_click';
+            case 'service_catalog_filter_applied':
+                return 'catalog_filter';
+            case 'service_navigation_context_updated':
+                return 'navigation_context';
+            case 'route_planner_profile_selected':
+                return 'route_selection';
+            default:
+                return 'interaction';
+        }
+    }
+
+    function inferIntentForPayload(payload) {
+        var details = payload || {};
+        var fromIntent = String(
+            details.intent ||
+                details.service_intent ||
+                details.catalog_intent ||
+                ''
+        )
+            .trim()
+            .toLowerCase();
+        if (fromIntent) return fromIntent;
+        var fromRoute = String(details.route_profile || '')
+            .trim()
+            .toLowerCase();
+        if (fromRoute === 'remote') return 'remote';
+        if (fromRoute === 'pediatric') return 'pediatric';
+        if (fromRoute === 'diagnosis') return 'diagnosis';
+        if (fromRoute === 'procedure') return 'procedures';
+        return '';
+    }
+
+    function withRuntimeContext(eventName, payload) {
+        var params =
+            payload && typeof payload === 'object'
+                ? Object.assign({}, payload)
+                : {};
+        if (!params.locale) {
+            params.locale = getLocaleFromPath(window.location.pathname);
+        }
+        if (!params.entry_surface && params.entry_point) {
+            params.entry_surface = params.entry_point;
+        }
+        if (!params.entry_point && params.entry_surface) {
+            params.entry_point = params.entry_surface;
+        }
+        if (!params.funnel_step) {
+            params.funnel_step = inferFunnelStep(eventName, params);
+        }
+        if (!params.intent) {
+            var inferredIntent = inferIntentForPayload(params);
+            if (inferredIntent) {
+                params.intent = inferredIntent;
+            }
+        }
+        if (!params.public_surface) {
+            params.public_surface = resolvePublicSurface();
+        }
+        return params;
+    }
+
+    function flushPendingEngineEvents() {
+        if (!pendingEngineEvents.length) {
+            return;
+        }
+        var engine =
+            window.Piel &&
+            window.Piel.AnalyticsEngine &&
+            typeof window.Piel.AnalyticsEngine.trackEvent === 'function'
+                ? window.Piel.AnalyticsEngine
+                : null;
+
+        if (!engine) {
+            if (pendingEngineFlushTimer) {
+                return;
+            }
+            pendingEngineFlushTimer = window.setTimeout(function () {
+                pendingEngineFlushTimer = null;
+                flushPendingEngineEvents();
+            }, 600);
+            return;
+        }
+
+        var queue = pendingEngineEvents.slice(0);
+        pendingEngineEvents = [];
+        queue.forEach(function (item) {
+            try {
+                engine.trackEvent(item.eventName, item.payload || {});
+            } catch (_error) {
+                // keep bridge best effort
+            }
+        });
     }
 
     function inferServiceIntent(payload) {
@@ -398,6 +559,7 @@
     }
 
     function trackEvent(eventName, payload) {
+        var enrichedPayload = withRuntimeContext(eventName, payload || {});
         try {
             if (
                 window.Piel &&
@@ -406,22 +568,36 @@
             ) {
                 window.Piel.AnalyticsEngine.trackEvent(
                     eventName,
-                    payload || {}
+                    enrichedPayload
                 );
                 return;
             }
         } catch (_error) {
-            return;
+            // continue with fallback tracker
+        }
+
+        if (
+            SERVER_BRIDGE_EVENTS[
+                String(eventName || '')
+                    .trim()
+                    .toLowerCase()
+            ]
+        ) {
+            pendingEngineEvents.push({
+                eventName: eventName,
+                payload: enrichedPayload,
+            });
+            flushPendingEngineEvents();
         }
 
         if (typeof window.gtag === 'function') {
-            window.gtag('event', eventName, payload || {});
+            window.gtag('event', eventName, enrichedPayload);
             return;
         }
 
         window.dataLayer = window.dataLayer || [];
         window.dataLayer.push(
-            Object.assign({ event: eventName }, payload || {})
+            Object.assign({ event: eventName }, enrichedPayload)
         );
     }
 
@@ -480,7 +656,7 @@
                 var link = target.closest('a[href]');
                 if (!link) return;
 
-                var destination = null;
+                var destination;
                 try {
                     destination = new URL(
                         link.getAttribute('href') || '',
@@ -521,7 +697,7 @@
                 var href = link.getAttribute('href') || '';
                 if (!href) return;
 
-                var destination = null;
+                var destination;
                 try {
                     destination = new URL(href, window.location.origin);
                 } catch (_error) {
@@ -570,11 +746,11 @@
                     cta.getAttribute('data-catalog-category') || '';
                 var explicitCatalogIntent =
                     cta.getAttribute('data-catalog-intent') || '';
-                var destination = null;
+                var destination;
                 try {
                     destination = new URL(href, window.location.origin);
                 } catch (_error) {
-                    destination = null;
+                    destination = undefined;
                 }
                 var bookingHint = '';
                 if (destination) {
@@ -877,6 +1053,7 @@
         trackSharedContextEvents();
         trackRoutePlannerChanges();
         applyServiceSelectionFromQuery();
+        flushPendingEngineEvents();
     }
 
     if (document.readyState === 'loading') {

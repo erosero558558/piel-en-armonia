@@ -80,6 +80,51 @@ on:
                 required: false
                 default: '72'
                 type: string
+            enable_public_v4_rollout_monitor:
+                description: 'Habilitar gate de rollout V4 por conversion (A/B)'
+                required: false
+                default: false
+                type: boolean
+            public_v4_rollout_stage:
+                description: 'Etapa de rollout V4 (internal|canary|general|rollback)'
+                required: false
+                default: 'canary'
+                type: string
+            public_v4_rollout_surface_test:
+                description: 'Surface test para el gate de rollout (ej. v4)'
+                required: false
+                default: 'v4'
+                type: string
+            public_v4_rollout_surface_control:
+                description: 'Surface control para comparar conversion (ej. legacy)'
+                required: false
+                default: 'legacy'
+                type: string
+            public_v4_rollout_min_view_booking:
+                description: 'Muestra minima de view_booking para canary'
+                required: false
+                default: '20'
+                type: string
+            public_v4_rollout_min_start_checkout:
+                description: 'Muestra minima de start_checkout para canary/control'
+                required: false
+                default: '10'
+                type: string
+            public_v4_rollout_max_confirmed_drop_pp:
+                description: 'Drop maximo permitido (pp) en confirmedRate test vs control'
+                required: false
+                default: '8'
+                type: string
+            public_v4_rollout_min_confirmed_rate_pct:
+                description: 'Confirmed rate minimo absoluto para surface test'
+                required: false
+                default: '20'
+                type: string
+            public_v4_rollout_allow_missing_control:
+                description: 'Permitir ausencia temporal de surface control'
+                required: false
+                default: false
+                type: boolean
 
 concurrency:
     group: prod-monitor
@@ -113,6 +158,26 @@ jobs:
             PUBLIC_CUTOVER_WINDOW_ACTIVE: 'false'
             PUBLIC_CUTOVER_WINDOW_REASON: 'disabled'
             PUBLIC_CUTOVER_ELAPSED_HOURS: ''
+            ENABLE_PUBLIC_V4_ROLLOUT_MONITOR: ${{ github.event.inputs.enable_public_v4_rollout_monitor || vars.PROD_MONITOR_ENABLE_PUBLIC_V4_ROLLOUT || 'false' }}
+            ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_EFFECTIVE: ${{ github.event.inputs.enable_public_v4_rollout_monitor || vars.PROD_MONITOR_ENABLE_PUBLIC_V4_ROLLOUT || 'false' }}
+            PUBLIC_V4_ROLLOUT_STAGE: ${{ github.event.inputs.public_v4_rollout_stage || vars.PUBLIC_V4_ROLLOUT_STAGE || 'canary' }}
+            PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE: canary
+            PUBLIC_V4_ROLLOUT_STAGE_PROFILE_EFFECTIVE: progressive
+            PUBLIC_V4_ROLLOUT_POLICY_SOURCE_EFFECTIVE: input_or_var
+            PUBLIC_V4_ROLLOUT_SURFACE_TEST: ${{ github.event.inputs.public_v4_rollout_surface_test || vars.PUBLIC_V4_ROLLOUT_SURFACE_TEST || 'v4' }}
+            PUBLIC_V4_ROLLOUT_SURFACE_CONTROL: ${{ github.event.inputs.public_v4_rollout_surface_control || vars.PUBLIC_V4_ROLLOUT_SURFACE_CONTROL || 'legacy' }}
+            PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING: ${{ github.event.inputs.public_v4_rollout_min_view_booking || vars.PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING || '20' }}
+            PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT: ${{ github.event.inputs.public_v4_rollout_min_start_checkout || vars.PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT || '10' }}
+            PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP: ${{ github.event.inputs.public_v4_rollout_max_confirmed_drop_pp || vars.PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP || '8' }}
+            PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT: ${{ github.event.inputs.public_v4_rollout_min_confirmed_rate_pct || vars.PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT || '20' }}
+            PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL: ${{ github.event.inputs.public_v4_rollout_allow_missing_control || vars.PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL || 'false' }}
+            PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE: ${{ github.event.inputs.public_v4_rollout_surface_test || vars.PUBLIC_V4_ROLLOUT_SURFACE_TEST || 'v4' }}
+            PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE: ${{ github.event.inputs.public_v4_rollout_surface_control || vars.PUBLIC_V4_ROLLOUT_SURFACE_CONTROL || 'legacy' }}
+            PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE: ${{ github.event.inputs.public_v4_rollout_min_view_booking || vars.PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING || '20' }}
+            PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE: ${{ github.event.inputs.public_v4_rollout_min_start_checkout || vars.PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT || '10' }}
+            PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE: ${{ github.event.inputs.public_v4_rollout_max_confirmed_drop_pp || vars.PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP || '8' }}
+            PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE: ${{ github.event.inputs.public_v4_rollout_min_confirmed_rate_pct || vars.PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT || '20' }}
+            PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE: ${{ github.event.inputs.public_v4_rollout_allow_missing_control || vars.PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL || 'false' }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -226,11 +291,71 @@ jobs:
                   "elapsed_hours=$elapsedHours" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
                   Write-Host "Cutover window => enabled=$enabled active=$activeValue reason=$reason elapsed_hours=$elapsedHours window_hours=$windowHours"
 
-            - name: Setup Node para smoke publico post-cutover
-              if: ${{ env.PUBLIC_CUTOVER_WINDOW_ACTIVE == 'true' }}
+            - name: Setup Node para smoke/gates publicos
+              if: ${{ env.PUBLIC_CUTOVER_WINDOW_ACTIVE == 'true' || env.ENABLE_PUBLIC_V4_ROLLOUT_MONITOR == 'true' }}
               uses: actions/setup-node@v4
               with:
                   node-version: '20'
+
+            - name: Resolver politica rollout publico V4
+              id: resolve_public_v4_rollout
+              if: ${{ env.ENABLE_PUBLIC_V4_ROLLOUT_MONITOR == 'true' }}
+              shell: pwsh
+              run: |
+                  $policyJson = node ./bin/resolve-public-v4-rollout-policy.js `
+                    --stage "$env:PUBLIC_V4_ROLLOUT_STAGE" `
+                    --default-stage canary `
+                    --enable-monitor "$env:ENABLE_PUBLIC_V4_ROLLOUT_MONITOR" `
+                    --surface-test "$env:PUBLIC_V4_ROLLOUT_SURFACE_TEST" `
+                    --surface-control "$env:PUBLIC_V4_ROLLOUT_SURFACE_CONTROL" `
+                    --min-view-booking "$env:PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING" `
+                    --min-start-checkout "$env:PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT" `
+                    --max-confirmed-drop-pp "$env:PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP" `
+                    --min-confirmed-rate-pct "$env:PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT" `
+                    --allow-missing-control "$env:PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL"
+
+                  if ([string]::IsNullOrWhiteSpace($policyJson)) {
+                    throw 'No se pudo resolver politica rollout V4.'
+                  }
+
+                  $policy = $policyJson | ConvertFrom-Json
+                  $enableMonitorEffective = if ($policy.enable_monitor_effective) { 'true' } else { 'false' }
+                  $allowMissingControlEffective = if ($policy.allow_missing_control_effective) { 'true' } else { 'false' }
+                  $stageEffective = [string]$policy.stage_effective
+                  $stageProfileEffective = [string]$policy.stage_profile
+                  $policySourceEffective = [string]$policy.policy_source
+                  $surfaceTestEffective = [string]$policy.surface_test_effective
+                  $surfaceControlEffective = [string]$policy.surface_control_effective
+                  $minViewEffective = [string]$policy.min_view_booking_effective
+                  $minStartEffective = [string]$policy.min_start_checkout_effective
+                  $maxDropEffective = [string]$policy.max_confirmed_drop_pp_effective
+                  $minConfirmedEffective = [string]$policy.min_confirmed_rate_pct_effective
+
+                  "ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_EFFECTIVE=$enableMonitorEffective" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE=$stageEffective" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_STAGE_PROFILE_EFFECTIVE=$stageProfileEffective" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_POLICY_SOURCE_EFFECTIVE=$policySourceEffective" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE=$surfaceTestEffective" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE=$surfaceControlEffective" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE=$minViewEffective" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE=$minStartEffective" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE=$maxDropEffective" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE=$minConfirmedEffective" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE=$allowMissingControlEffective" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+                  "enable_monitor_effective=$enableMonitorEffective" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "stage_effective=$stageEffective" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "stage_profile_effective=$stageProfileEffective" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "policy_source_effective=$policySourceEffective" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "surface_test_effective=$surfaceTestEffective" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "surface_control_effective=$surfaceControlEffective" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "min_view_booking_effective=$minViewEffective" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "min_start_checkout_effective=$minStartEffective" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "max_confirmed_drop_pp_effective=$maxDropEffective" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "min_confirmed_rate_pct_effective=$minConfirmedEffective" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "allow_missing_control_effective=$allowMissingControlEffective" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+                  Write-Host "Public V4 rollout policy => stage=$stageEffective profile=$stageProfileEffective policy_source=$policySourceEffective monitor=$enableMonitorEffective"
 
             - name: Validar routing + conversion publica post-cutover (ES/EN)
               id: public_cutover
@@ -248,6 +373,38 @@ jobs:
               with:
                   name: public-cutover-monitor-evidence
                   path: .public-cutover-monitor/
+                  if-no-files-found: warn
+                  retention-days: 7
+
+            - name: Validar rollout publico V4 (A/B + kill-switch readiness)
+              id: public_v4_rollout
+              if: ${{ env.ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_EFFECTIVE == 'true' }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  mkdir -p .public-v4-rollout-monitor
+                  gate_args=(
+                    --base-url "${TARGET_DOMAIN}"
+                    --label "prod-monitor-v4-rollout"
+                    --surface-test "${PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE}"
+                    --surface-control "${PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE}"
+                    --min-view-booking "${PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE}"
+                    --min-start-checkout "${PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE}"
+                    --max-confirmed-drop-pp "${PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE}"
+                    --min-confirmed-rate-pct "${PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE}"
+                    --out ".public-v4-rollout-monitor/rollout-gate.json"
+                  )
+                  if [ "${PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE}" = "true" ]; then
+                    gate_args+=(--allow-missing-control)
+                  fi
+                  node bin/run-public-v4-rollout-gate.js "${gate_args[@]}"
+
+            - name: Upload public V4 rollout evidence
+              if: ${{ always() && env.ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_EFFECTIVE == 'true' }}
+              uses: actions/upload-artifact@v4
+              with:
+                  name: public-v4-rollout-monitor-evidence
+                  path: .public-v4-rollout-monitor/
                   if-no-files-found: warn
                   retention-days: 7
 
@@ -274,9 +431,30 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_cutover_window_active: ``$env:PUBLIC_CUTOVER_WINDOW_ACTIVE`` (reason ``$env:PUBLIC_CUTOVER_WINDOW_REASON``)"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_cutover_elapsed_hours: ``$env:PUBLIC_CUTOVER_ELAPSED_HOURS``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_cutover_step_outcome: ``${{ steps.public_cutover.outcome }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- enable_public_v4_rollout_monitor: ``$env:ENABLE_PUBLIC_V4_ROLLOUT_MONITOR``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_stage: ``$env:PUBLIC_V4_ROLLOUT_STAGE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_surface_test: ``$env:PUBLIC_V4_ROLLOUT_SURFACE_TEST``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_surface_control: ``$env:PUBLIC_V4_ROLLOUT_SURFACE_CONTROL``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_min_view_booking: ``$env:PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_min_start_checkout: ``$env:PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_max_confirmed_drop_pp: ``$env:PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_min_confirmed_rate_pct: ``$env:PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_allow_missing_control: ``$env:PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- enable_public_v4_rollout_monitor_effective: ``$env:ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_stage_effective: ``$env:PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_stage_profile_effective: ``$env:PUBLIC_V4_ROLLOUT_STAGE_PROFILE_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_policy_source_effective: ``$env:PUBLIC_V4_ROLLOUT_POLICY_SOURCE_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_surface_test_effective: ``$env:PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_surface_control_effective: ``$env:PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_min_view_booking_effective: ``$env:PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_min_start_checkout_effective: ``$env:PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_max_confirmed_drop_pp_effective: ``$env:PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_min_confirmed_rate_pct_effective: ``$env:PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_allow_missing_control_effective: ``$env:PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_step_outcome: ``${{ steps.public_v4_rollout.outcome }}``"
 
             - name: Crear/actualizar incidente (solo schedule)
-              if: ${{ failure() && github.event_name == 'schedule' && steps.public_cutover.outcome != 'failure' }}
+              if: ${{ failure() && github.event_name == 'schedule' && steps.public_cutover.outcome != 'failure' && steps.public_v4_rollout.outcome != 'failure' }}
               uses: actions/github-script@v7
               with:
                   script: |
@@ -383,6 +561,68 @@ jobs:
                         core.info(`Issue creado: #${created.data.number}`);
                       }
 
+            - name: Crear/actualizar incidente rollout publico V4 (solo schedule)
+              if: ${{ failure() && github.event_name == 'schedule' && steps.public_v4_rollout.outcome == 'failure' }}
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const title = '[ALERTA PROD] Monitor rollout publico V4 degradado';
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+                      const body = [
+                        'El gate de rollout publico V4 (A/B) fallo en ejecucion programada.',
+                        '',
+                        `- Fecha: ${now}`,
+                        `- Run: ${runUrl}`,
+                        `- Workflow: ${context.workflow}`,
+                        `- Branch: ${context.ref}`,
+                        `- target_domain: ${process.env.TARGET_DOMAIN || 'n/a'}`,
+                        `- rollout_stage: ${process.env.PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE || process.env.PUBLIC_V4_ROLLOUT_STAGE || 'canary'}`,
+                        `- rollout_stage_profile: ${process.env.PUBLIC_V4_ROLLOUT_STAGE_PROFILE_EFFECTIVE || 'n/a'}`,
+                        `- rollout_policy_source: ${process.env.PUBLIC_V4_ROLLOUT_POLICY_SOURCE_EFFECTIVE || 'n/a'}`,
+                        `- surface_test: ${process.env.PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE || process.env.PUBLIC_V4_ROLLOUT_SURFACE_TEST || 'v4'}`,
+                        `- surface_control: ${process.env.PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE || process.env.PUBLIC_V4_ROLLOUT_SURFACE_CONTROL || 'legacy'}`,
+                        `- min_view_booking: ${process.env.PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE || process.env.PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING || 'n/a'}`,
+                        `- min_start_checkout: ${process.env.PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE || process.env.PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT || 'n/a'}`,
+                        `- max_confirmed_drop_pp: ${process.env.PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE || process.env.PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP || 'n/a'}`,
+                        `- min_confirmed_rate_pct: ${process.env.PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE || process.env.PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT || 'n/a'}`
+                      ].join('\n');
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (existing) {
+                        await github.rest.issues.createComment({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body
+                        });
+                        await github.rest.issues.addLabels({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          labels: ['production-alert', 'public-rollout-v4']
+                        });
+                        core.info(`Issue existente actualizado: #${existing.number}`);
+                      } else {
+                        const created = await github.rest.issues.create({
+                          owner,
+                          repo,
+                          title,
+                          body,
+                          labels: ['production-alert', 'public-rollout-v4']
+                        });
+                        core.info(`Issue creado: #${created.data.number}`);
+                      }
+
             - name: Cerrar incidente al recuperar (solo schedule)
               if: ${{ success() && github.event_name == 'schedule' }}
               uses: actions/github-script@v7
@@ -473,3 +713,52 @@ jobs:
                         state: 'closed'
                       });
                       core.info(`Issue post-cutover cerrado: #${existing.number}`);
+
+            - name: Cerrar incidente rollout V4 al recuperar (solo schedule)
+              if: ${{ success() && github.event_name == 'schedule' && env.ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_EFFECTIVE == 'true' && steps.public_v4_rollout.outcome != 'failure' }}
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const title = '[ALERTA PROD] Monitor rollout publico V4 degradado';
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (!existing) {
+                        core.info('No hay incidente rollout V4 abierto para cerrar.');
+                        return;
+                      }
+
+                      await github.rest.issues.createComment({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        body: [
+                          'Recuperado automaticamente por monitor programado.',
+                          '',
+                          `- Fecha: ${now}`,
+                          `- Run: ${runUrl}`,
+                          `- rollout_stage: ${process.env.PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE || process.env.PUBLIC_V4_ROLLOUT_STAGE || 'canary'}`,
+                          `- rollout_stage_profile: ${process.env.PUBLIC_V4_ROLLOUT_STAGE_PROFILE_EFFECTIVE || 'n/a'}`,
+                          `- rollout_policy_source: ${process.env.PUBLIC_V4_ROLLOUT_POLICY_SOURCE_EFFECTIVE || 'n/a'}`,
+                          `- surface_test: ${process.env.PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE || process.env.PUBLIC_V4_ROLLOUT_SURFACE_TEST || 'v4'}`,
+                          `- surface_control: ${process.env.PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE || process.env.PUBLIC_V4_ROLLOUT_SURFACE_CONTROL || 'legacy'}`
+                        ].join('\n')
+                      });
+
+                      await github.rest.issues.update({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        state: 'closed'
+                      });
+                      core.info(`Issue rollout V4 cerrado: #${existing.number}`);

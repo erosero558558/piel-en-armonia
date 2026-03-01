@@ -13,11 +13,22 @@ const DEFAULT_TIMEOUT_MS = 30000;
 const ROUTES = [
     { id: 'home-es', path: '/es/' },
     { id: 'home-en', path: '/en/' },
+    { id: 'hub-es', path: '/es/servicios/' },
+    { id: 'hub-en', path: '/en/services/' },
     { id: 'telemedicina-es', path: '/es/telemedicina/' },
     { id: 'telemedicine-en', path: '/en/telemedicine/' },
-    { id: 'service-diagnostico-es', path: '/es/servicios/diagnostico-integral/' },
+    {
+        id: 'service-diagnostico-es',
+        path: '/es/servicios/diagnostico-integral/',
+    },
+    {
+        id: 'service-diagnostico-en',
+        path: '/en/services/diagnostico-integral/',
+    },
     { id: 'service-acne-es', path: '/es/servicios/acne-rosacea/' },
+    { id: 'service-acne-en', path: '/en/services/acne-rosacea/' },
     { id: 'service-botox-es', path: '/es/servicios/botox/' },
+    { id: 'service-botox-en', path: '/en/services/botox/' },
 ];
 
 const VIEWPORTS = [
@@ -50,7 +61,8 @@ function parseArgs(argv) {
             continue;
         }
         if (token === '--out-dir') {
-            parsed.outDir = String(argv[index + 1] || '').trim() || parsed.outDir;
+            parsed.outDir =
+                String(argv[index + 1] || '').trim() || parsed.outDir;
             index += 1;
             continue;
         }
@@ -166,13 +178,15 @@ async function captureRouteScreenshot(page, targetUrl, outputFile, fullPage) {
             document.head.appendChild(style);
         }
 
-        ['#cookieBanner', '#chatbotWidget', '.quick-dock'].forEach((selector) => {
-            document.querySelectorAll(selector).forEach((node) => {
-                if (node instanceof HTMLElement) {
-                    node.style.display = 'none';
-                }
-            });
-        });
+        ['#cookieBanner', '#chatbotWidget', '.quick-dock'].forEach(
+            (selector) => {
+                document.querySelectorAll(selector).forEach((node) => {
+                    if (node instanceof HTMLElement) {
+                        node.style.display = 'none';
+                    }
+                });
+            }
+        );
     });
     await page.screenshot({
         path: outputFile,
@@ -184,7 +198,9 @@ async function captureRouteScreenshot(page, targetUrl, outputFile, fullPage) {
 async function run() {
     const args = parseArgs(process.argv.slice(2));
     const repoRoot = process.cwd();
-    let baseUrl = normalizeBaseUrl(args.baseUrl || process.env.TEST_BASE_URL || '');
+    let baseUrl = normalizeBaseUrl(
+        args.baseUrl || process.env.TEST_BASE_URL || ''
+    );
     let serverProcess = null;
 
     if (!baseUrl) {
@@ -193,8 +209,12 @@ async function run() {
             `[baseline-capture] Starting local PHP server on ${baseUrl.toString()}`
         );
         serverProcess = startLocalPhpServer(repoRoot);
-        serverProcess.stdout.on('data', (chunk) => process.stdout.write(chunk.toString()));
-        serverProcess.stderr.on('data', (chunk) => process.stderr.write(chunk.toString()));
+        serverProcess.stdout.on('data', (chunk) =>
+            process.stdout.write(chunk.toString())
+        );
+        serverProcess.stderr.on('data', (chunk) =>
+            process.stderr.write(chunk.toString())
+        );
 
         const ready = await waitForHttpReady(
             joinRoute(baseUrl, '/es/'),
@@ -270,7 +290,9 @@ async function run() {
                     manifest.routes.push({
                         viewport: viewport.id,
                         route: route.path,
-                        file: path.relative(outputRoot, filePath).replace(/\\/g, '/'),
+                        file: path
+                            .relative(outputRoot, filePath)
+                            .replace(/\\/g, '/'),
                         status: 'ok',
                     });
                 } catch (error) {
@@ -294,7 +316,11 @@ async function run() {
     }
 
     const manifestPath = path.join(outputRoot, 'manifest.json');
-    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+    fs.writeFileSync(
+        manifestPath,
+        `${JSON.stringify(manifest, null, 2)}\n`,
+        'utf8'
+    );
     console.log(`[baseline-capture] Done. Manifest: ${manifestPath}`);
 }
 

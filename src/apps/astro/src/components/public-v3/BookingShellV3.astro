@@ -1,33 +1,128 @@
 ---
-import { getDictionary, legalBasePath } from '../../lib/content.js';
+import {
+    getDictionary,
+    getLocalizedBookingOptions,
+    legalBasePath,
+} from '../../lib/content.js';
 
-const { locale = 'es' } = Astro.props;
+const { locale = 'es', serviceHint = 'consulta' } = Astro.props;
 
 const dict = getDictionary(locale);
 const legalPath = legalBasePath(locale);
 const termsHref = `${legalPath}${locale === 'en' ? 'terms/' : 'terminos/'}`;
 const privacyHref = `${legalPath}${locale === 'en' ? 'privacy/' : 'privacidad/'}`;
+const cancellationPolicyHref = `${termsHref}${locale === 'en' ? '#cancellations' : '#cancelaciones'}`;
 
 const serviceOptions = [
-    { value: '', label: dict.select_service },
     {
-        value: 'consulta',
-        price: '40',
+        value: '',
+        label: dict.select_service,
+        price: '0',
         tax: '0',
-        label: dict.opt_consulta,
-        selected: true,
+        total: '0',
+        priceRule: '',
+        priceLabelShort: '',
+        priceDisclaimer: '',
+        serviceType: '',
+        durationMin: '0',
+        selected: false,
     },
-    { value: 'telefono', price: '25', tax: '0', label: dict.opt_telefono },
-    { value: 'video', price: '30', tax: '0', label: dict.opt_video },
-    { value: 'laser', price: '150', tax: '0.15', label: dict.opt_laser },
+    ...getLocalizedBookingOptions(locale).map((option) => ({
+        value: option.id,
+        label: option.optionLabel,
+        price: String(option.price),
+        tax: String(option.taxRate),
+        total: String(option.total),
+        priceRule: option.finalPriceRule,
+        priceLabelShort: option.priceLabelShort,
+        priceDisclaimer: option.priceDisclaimer,
+        serviceType: option.serviceType,
+        durationMin: String(option.durationMin || 0),
+        selected: option.id === serviceHint,
+    })),
+];
+
+const activeServiceOption =
+    serviceOptions.find((option) => option.selected && option.value) ||
+    serviceOptions.find((option) => option.value) ||
+    serviceOptions[0];
+
+const serviceTypeLabelByValue =
+    locale === 'en'
+        ? {
+              clinical: 'Clinical route',
+              telemedicine: 'Remote-first route',
+              procedure: 'Procedure route',
+              aesthetic: 'Medical aesthetics route',
+          }
+        : {
+              clinical: 'Ruta clínica',
+              telemedicine: 'Ruta remota',
+              procedure: 'Ruta de procedimiento',
+              aesthetic: 'Ruta de estética médica',
+          };
+
+const bookingPricingModelTitle =
+    locale === 'en'
+        ? 'Transparent pricing model'
+        : 'Modelo de precio transparente';
+const bookingPricingLabelShort =
+    locale === 'en' ? 'Public route price' : 'Precio público de la ruta';
+const bookingPricingRuleLabel =
+    locale === 'en' ? 'Calculation rule' : 'Regla de cálculo';
+const bookingPricingMetaLabel =
+    locale === 'en' ? 'Care type and duration' : 'Tipo de atención y duración';
+const bookingPricingRuleValue =
+    locale === 'en'
+        ? 'Total = base price + applicable tax'
+        : 'Total = precio base + impuesto aplicable';
+const bookingServiceTypeFallback =
+    locale === 'en' ? 'Select a route to see details' : 'Selecciona una ruta para ver detalles';
+
+const companionTitle =
+    locale === 'en'
+        ? 'Complementary routes'
+        : 'Rutas complementarias';
+const companionDeck =
+    locale === 'en'
+        ? 'Use telemedicine or WhatsApp for orientation, then continue in the same booking and clinical flow.'
+        : 'Usa telemedicina o WhatsApp para orientación y continúa en el mismo flujo clínico y de reserva.';
+const companionNote =
+    locale === 'en'
+        ? 'If warning signs are present, move directly to booking for priority triage.'
+        : 'Si hay señales de alarma, pasa directo a reserva para triage prioritario.';
+const companionTelemedicineHref =
+    locale === 'en' ? '/en/telemedicine/' : '/es/telemedicina/';
+const companionTelemedicineLabel =
+    locale === 'en' ? 'Open telemedicine' : 'Abrir telemedicina';
+const companionWhatsAppLabel = 'WhatsApp';
+
+const bookingAssuranceTitle =
+    locale === 'en'
+        ? 'Operational trust layer'
+        : 'Capa operativa de confianza';
+const bookingAssuranceItems = [
     {
-        value: 'rejuvenecimiento',
-        price: '120',
-        tax: '0.15',
-        label: dict.opt_rejuvenation,
+        icon: 'fas fa-check-circle',
+        title: locale === 'en' ? 'Real-time slot validation' : 'Validación de cupo en tiempo real',
+        deck:
+            locale === 'en'
+                ? 'We confirm schedule before payment authorization.'
+                : 'Confirmamos la agenda antes de autorizar el pago.',
     },
-    { value: 'acne', price: '80', tax: '0', label: dict.opt_acne },
-    { value: 'cancer', price: '70', tax: '0', label: dict.opt_cancer },
+    {
+        icon: 'fas fa-lock',
+        title: locale === 'en' ? 'Secure payment path' : 'Ruta de pago segura',
+        deck: `${dict.payment_trust_ssl} · ${dict.payment_trust_stripe}`,
+    },
+    {
+        icon: 'fas fa-user-shield',
+        title: locale === 'en' ? 'Visible policy and support' : 'Política visible y soporte humano',
+        deck:
+            locale === 'en'
+                ? 'Rescheduling and cancellation terms remain visible before checkout.'
+                : 'Los términos de reprogramación y cancelación están visibles antes del checkout.',
+    },
 ];
 
 const doctorOptions = [
@@ -63,6 +158,25 @@ const evolutionOptions = [
         <h2 class="section-title" data-i18n="appointment_title">{dict.appointment_title}</h2>
         <p class="appointment-desc" data-i18n="appointment_desc">{dict.appointment_desc}</p>
 
+        <section
+            class="booking-assurance"
+            aria-label={bookingAssuranceTitle}
+            data-booking-assurance
+        >
+            <p>{bookingAssuranceTitle}</p>
+            <div class="booking-assurance__grid">
+                {
+                    bookingAssuranceItems.map((item) => (
+                        <article class="booking-assurance__item">
+                            <i class={item.icon} aria-hidden="true"></i>
+                            <h3>{item.title}</h3>
+                            <p>{item.deck}</p>
+                        </article>
+                    ))
+                }
+            </div>
+        </section>
+
         <div class="appointment-benefits">
             <div class="benefit-item">
                 <i class="fas fa-calendar-check" aria-hidden="true"></i>
@@ -85,6 +199,44 @@ const evolutionOptions = [
                 </div>
             </div>
         </div>
+
+        <section class="booking-companion-routes" aria-label={companionTitle}>
+            <p>{companionTitle}</p>
+            <p>{companionDeck}</p>
+            <div class="booking-companion-routes__actions">
+                <a
+                    href={companionTelemedicineHref}
+                    class="hero-stage__cta hero-stage__cta--secondary"
+                    data-analytics-event="open_public_cta"
+                    data-entry-surface="booking_companion_telemedicine"
+                    data-cta-target="telemedicine"
+                    data-booking-hint={serviceHint}
+                    data-service-category="all"
+                    data-service-intent="remote"
+                    data-catalog-category="all"
+                    data-catalog-intent="remote"
+                >
+                    {companionTelemedicineLabel}
+                </a>
+                <a
+                    href="https://wa.me/593982453672"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="hero-stage__cta hero-stage__cta--secondary"
+                    data-analytics-event="open_public_cta"
+                    data-entry-surface="booking_companion_whatsapp"
+                    data-cta-target="whatsapp"
+                    data-booking-hint={serviceHint}
+                    data-service-category="all"
+                    data-service-intent="remote"
+                    data-catalog-category="all"
+                    data-catalog-intent="remote"
+                >
+                    {companionWhatsAppLabel}
+                </a>
+            </div>
+            <small class="booking-companion-routes__note">{companionNote}</small>
+        </section>
     </div>
 
     <div class="appointment-form-container">
@@ -123,6 +275,12 @@ const evolutionOptions = [
                             value={option.value}
                             data-price={option.price}
                             data-service-tax={option.tax}
+                            data-price-total={option.total}
+                            data-price-rule={option.priceRule}
+                            data-price-label-short={option.priceLabelShort}
+                            data-price-disclaimer={option.priceDisclaimer}
+                            data-service-type={option.serviceType}
+                            data-duration-min={option.durationMin}
                             selected={option.selected}
                         >
                             {option.label}
@@ -130,6 +288,51 @@ const evolutionOptions = [
                     ))}
                 </select>
             </div>
+
+            <section class="booking-pricing-model" aria-live="polite" aria-atomic="true">
+                <p>{bookingPricingModelTitle}</p>
+                <div class="booking-pricing-model__row">
+                    <span>{bookingPricingLabelShort}</span>
+                    <strong id="selectedPriceLabel">
+                        {activeServiceOption?.priceLabelShort || '-'}
+                    </strong>
+                </div>
+                <div class="booking-pricing-model__row">
+                    <span>{bookingPricingRuleLabel}</span>
+                    <strong id="selectedPriceRule">{bookingPricingRuleValue}</strong>
+                </div>
+                <div class="booking-pricing-model__row">
+                    <span>{bookingPricingMetaLabel}</span>
+                    <strong id="selectedServiceMeta">
+                        {
+                            activeServiceOption?.serviceType
+                                ? `${serviceTypeLabelByValue[activeServiceOption.serviceType] || bookingServiceTypeFallback}${
+                                      Number(activeServiceOption.durationMin || 0) > 0
+                                          ? ` · ${activeServiceOption.durationMin} min`
+                                          : ''
+                                  }`
+                                : bookingServiceTypeFallback
+                        }
+                    </strong>
+                </div>
+                <p id="selectedPriceDisclaimer">
+                    {activeServiceOption?.priceDisclaimer || dict.booking_price_hint}
+                </p>
+                <div class="booking-pricing-model__notes">
+                    <p class="booking-pricing-model__note">{dict.summary_includes}</p>
+                    <p class="booking-pricing-model__note">{dict.summary_excludes}</p>
+                </div>
+                <a
+                    href={cancellationPolicyHref}
+                    class="booking-pricing-model__policy"
+                    data-analytics-event="open_public_cta"
+                    data-entry-surface="booking_pricing_policy"
+                    data-cta-target="legal"
+                    data-booking-hint={serviceHint}
+                >
+                    {dict.payment_policy_link}
+                </a>
+            </section>
 
             <div class="form-group">
                 <label for="doctorSelect" data-i18n="label_doctor">{dict.label_doctor}</label>
@@ -238,6 +441,23 @@ const evolutionOptions = [
                     <a href={privacyHref} data-i18n="privacy_link_label">{dict.privacy_link_label}</a>
                 </p>
             </div>
+            <p class="form-help booking-policy-note">
+                {
+                    locale === 'en'
+                        ? 'Free rescheduling or cancellation up to 24 hours before.'
+                        : 'Reprogramacion o cancelacion sin costo hasta 24 horas antes.'
+                }
+                {' '}
+                <a
+                    href={cancellationPolicyHref}
+                    data-analytics-event="open_public_cta"
+                    data-entry-surface="booking_form_policy_note"
+                    data-cta-target="legal"
+                    data-booking-hint={serviceHint}
+                >
+                    {locale === 'en' ? 'View policy' : 'Ver politica'}
+                </a>
+            </p>
 
             <div class="price-summary is-hidden" id="priceSummary">
                 <div class="price-row">

@@ -52,30 +52,31 @@ test('post-deploy-gate soporta modo dual (push + manual) con guardrail de activa
     );
 });
 
-test('post-deploy-gate expone inputs de admin rollout', () => {
+test('post-deploy-gate expone inputs de admin rollout y public_v4 rollout', () => {
     const { parsed } = loadWorkflow();
     const inputs = parsed?.on?.workflow_dispatch?.inputs || {};
 
-    assert.equal(
-        typeof inputs.admin_rollout_stage === 'object',
-        true,
-        'falta input admin_rollout_stage'
-    );
-    assert.equal(
-        typeof inputs.admin_rollout_skip_runtime_smoke === 'object',
-        true,
-        'falta input admin_rollout_skip_runtime_smoke'
-    );
-    assert.equal(
-        typeof inputs.admin_rollout_allow_feature_api_failure === 'object',
-        true,
-        'falta input admin_rollout_allow_feature_api_failure'
-    );
-    assert.equal(
-        typeof inputs.admin_rollout_allow_missing_flag === 'object',
-        true,
-        'falta input admin_rollout_allow_missing_flag'
-    );
+    for (const inputName of [
+        'admin_rollout_stage',
+        'admin_rollout_skip_runtime_smoke',
+        'admin_rollout_allow_feature_api_failure',
+        'admin_rollout_allow_missing_flag',
+        'enable_public_v4_rollout_monitor',
+        'public_v4_rollout_stage',
+        'public_v4_rollout_surface_test',
+        'public_v4_rollout_surface_control',
+        'public_v4_rollout_min_view_booking',
+        'public_v4_rollout_min_start_checkout',
+        'public_v4_rollout_max_confirmed_drop_pp',
+        'public_v4_rollout_min_confirmed_rate_pct',
+        'public_v4_rollout_allow_missing_control',
+    ]) {
+        assert.equal(
+            typeof inputs[inputName] === 'object',
+            true,
+            `falta input ${inputName}`
+        );
+    }
 });
 
 test('post-deploy-gate ejecuta gate admin rollout y lo reporta en summary', () => {
@@ -119,6 +120,16 @@ test('post-deploy-gate ejecuta gate admin rollout y lo reporta en summary', () =
         'falta linea de stage profile en summary del gate'
     );
     assert.equal(
+        raw.includes('Public V4 rollout stage (effective):'),
+        true,
+        'falta linea de stage efectivo public_v4 en summary del gate'
+    );
+    assert.equal(
+        raw.includes('Public V4 rollout policy source (effective):'),
+        true,
+        'falta linea de policy source efectivo public_v4 en summary del gate'
+    );
+    assert.equal(
         raw.includes('Trigger mode:'),
         true,
         'falta linea de trigger mode en summary del gate'
@@ -129,9 +140,24 @@ test('post-deploy-gate ejecuta gate admin rollout y lo reporta en summary', () =
         'falta step para publicar reporte admin rollout en post-deploy-gate'
     );
     assert.equal(
+        stepNames.includes('Escribir reporte rollout publico V4'),
+        true,
+        'falta step para escribir reporte public_v4 rollout en post-deploy-gate'
+    );
+    assert.equal(
+        stepNames.includes('Publicar reporte rollout publico V4'),
+        true,
+        'falta step para publicar reporte public_v4 rollout en post-deploy-gate'
+    );
+    assert.equal(
         raw.includes('verification/last-admin-ui-rollout-gate.json'),
         true,
         'falta ruta canonica de reporte admin rollout en post-deploy-gate'
+    );
+    assert.equal(
+        raw.includes('verification/last-public-v4-rollout-gate.json'),
+        true,
+        'falta ruta canonica de reporte public_v4 rollout en post-deploy-gate'
     );
 });
 
@@ -190,6 +216,18 @@ test('post-deploy-gate usa resolver central de politica admin rollout con trazab
         'falta propagacion de allow_missing_flag al resolver politica en post-deploy-gate'
     );
     assert.equal(
+        raw.includes('node ./bin/resolve-public-v4-rollout-policy.js'),
+        true,
+        'falta uso del resolver central de politica public_v4 en post-deploy-gate'
+    );
+    assert.equal(
+        raw.includes(
+            '--enable-monitor "$env:ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_INPUT"'
+        ),
+        true,
+        'falta propagacion de enable_monitor al resolver politica public_v4 en post-deploy-gate'
+    );
+    assert.equal(
         raw.includes('admin_rollout_stage_profile_effective'),
         true,
         'falta trazabilidad de stage profile en incidente de post-deploy-gate'
@@ -198,5 +236,15 @@ test('post-deploy-gate usa resolver central de politica admin rollout con trazab
         raw.includes('admin_rollout_policy_source_effective'),
         true,
         'falta trazabilidad de policy source en incidente de post-deploy-gate'
+    );
+    assert.equal(
+        raw.includes('public_v4_rollout_stage_profile_effective'),
+        true,
+        'falta trazabilidad de stage profile public_v4 en incidente de post-deploy-gate'
+    );
+    assert.equal(
+        raw.includes('public_v4_rollout_policy_source_effective'),
+        true,
+        'falta trazabilidad de policy source public_v4 en incidente de post-deploy-gate'
     );
 });

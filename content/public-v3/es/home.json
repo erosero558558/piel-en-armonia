@@ -1,6 +1,6 @@
 {
-    "title": "Piel en Armonia | Sony V3",
-    "description": "Frontend publico de dermatologia con stage cinematica, catalogo de programas y booking integrado.",
+    "title": "Piel en Armonia | Dermatologia de precision en Quito",
+    "description": "Dermatologia clinica y estetica con rutas claras, precios transparentes y reserva integrada.",
     "slides": [
         {
             "id": "clinical-stage",
@@ -124,12 +124,12 @@
     "telemedicine": {
         "eyebrow": "Telemedicina",
         "title": "Atencion remota dentro del mismo sistema clinico.",
-        "deck": "Usa video, llamada o WhatsApp para orientacion inicial, control de acne o dermatitis y escalamiento estructurado a consultorio.",
+        "deck": "Video, llamada o WhatsApp para orientacion inicial y escalamiento presencial cuando el caso lo requiere.",
         "tone": "ink",
         "points": [
             "Video, llamada o WhatsApp como punto de entrada",
             "Escalamiento presencial cuando el caso lo pide",
-            "Continuidad de booking y soporte en la misma shell"
+            "Continuidad de booking y soporte en la misma experiencia clinica"
         ],
         "href": "/es/telemedicina/"
     },
@@ -155,8 +155,8 @@
     ],
     "booking": {
         "eyebrow": "Reserva",
-        "title": "El booking ya no define la pagina, pero sigue listo para convertir.",
-        "deck": "Puedes entrar desde valoracion general, una ficha especifica o telemedicina sin perder el mismo runtime operativo.",
+        "title": "Reserva integrada con precio claro y continuidad clinica.",
+        "deck": "Puedes reservar desde diagnostico, servicio especifico o telemedicina con el mismo flujo operativo.",
         "actionLabel": "Abrir reserva",
         "tone": "silver",
         "serviceHint": "consulta"

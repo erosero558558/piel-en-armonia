@@ -125,20 +125,31 @@ test('prod-monitor workflow cablea ventana y smoke post-cutover publico', () => 
         );
     }
 
-    for (const expectedStepName of [
+    const requiredStepNames = [
         'Evaluar ventana post-cutover publico',
-        'Setup Node para smoke publico post-cutover',
         'Validar routing + conversion publica post-cutover (ES/EN)',
         'Upload public cutover monitor evidence',
         'Crear/actualizar incidente post-cutover publico (solo schedule)',
         'Cerrar incidente post-cutover al recuperar (solo schedule)',
-    ]) {
+    ];
+
+    for (const expectedStepName of requiredStepNames) {
         assert.equal(
             stepNames.includes(expectedStepName),
             true,
             `falta step post-cutover: ${expectedStepName}`
         );
     }
+
+    assert.equal(
+        stepNames.some(
+            (name) =>
+                name === 'Setup Node para smoke publico post-cutover' ||
+                name === 'Setup Node para smoke/gates publicos'
+        ),
+        true,
+        'falta step de setup node para checks publicos'
+    );
 
     assert.equal(
         raw.includes("'[ALERTA PROD] Monitor post-cutover publico degradado'"),
@@ -163,6 +174,122 @@ test('prod-monitor workflow publica estado de cutover en summary', () => {
             raw.includes(snippet),
             true,
             `falta linea de summary post-cutover: ${snippet}`
+        );
+    }
+});
+
+test('prod-monitor workflow expone inputs de gate rollout V4', () => {
+    const { parsed } = loadWorkflow();
+    const inputs = parsed?.on?.workflow_dispatch?.inputs || {};
+    const requiredInputs = [
+        'enable_public_v4_rollout_monitor',
+        'public_v4_rollout_stage',
+        'public_v4_rollout_surface_test',
+        'public_v4_rollout_surface_control',
+        'public_v4_rollout_min_view_booking',
+        'public_v4_rollout_min_start_checkout',
+        'public_v4_rollout_max_confirmed_drop_pp',
+        'public_v4_rollout_min_confirmed_rate_pct',
+        'public_v4_rollout_allow_missing_control',
+    ];
+
+    for (const inputKey of requiredInputs) {
+        assert.equal(
+            Object.prototype.hasOwnProperty.call(inputs, inputKey),
+            true,
+            `falta input workflow_dispatch: ${inputKey}`
+        );
+    }
+});
+
+test('prod-monitor workflow cablea script y artefacto de gate rollout V4', () => {
+    const { raw, parsed } = loadWorkflow();
+    const steps = parsed?.jobs?.monitor?.steps || [];
+    const stepNames = steps.map((step) => String(step?.name || ''));
+    const requiredSnippets = [
+        'ENABLE_PUBLIC_V4_ROLLOUT_MONITOR',
+        'ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_EFFECTIVE',
+        'PUBLIC_V4_ROLLOUT_STAGE',
+        'PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE',
+        'PUBLIC_V4_ROLLOUT_STAGE_PROFILE_EFFECTIVE',
+        'PUBLIC_V4_ROLLOUT_POLICY_SOURCE_EFFECTIVE',
+        'PUBLIC_V4_ROLLOUT_SURFACE_TEST',
+        'PUBLIC_V4_ROLLOUT_SURFACE_CONTROL',
+        'PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING',
+        'PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT',
+        'PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP',
+        'PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT',
+        'PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL',
+        'node ./bin/resolve-public-v4-rollout-policy.js',
+        '--stage "$env:PUBLIC_V4_ROLLOUT_STAGE"',
+        '--default-stage canary',
+        'node bin/run-public-v4-rollout-gate.js',
+        '--surface-test "${PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE}"',
+        '--surface-control "${PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE}"',
+        'public-v4-rollout-monitor-evidence',
+        'rollout-gate.json',
+    ];
+
+    for (const snippet of requiredSnippets) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring rollout V4 en workflow: ${snippet}`
+        );
+    }
+
+    for (const expectedStepName of [
+        'Resolver politica rollout publico V4',
+        'Validar rollout publico V4 (A/B + kill-switch readiness)',
+        'Upload public V4 rollout evidence',
+        'Crear/actualizar incidente rollout publico V4 (solo schedule)',
+        'Cerrar incidente rollout V4 al recuperar (solo schedule)',
+    ]) {
+        assert.equal(
+            stepNames.includes(expectedStepName),
+            true,
+            `falta step rollout V4: ${expectedStepName}`
+        );
+    }
+
+    assert.equal(
+        raw.includes("'[ALERTA PROD] Monitor rollout publico V4 degradado'"),
+        true,
+        'falta titulo de incidente rollout V4'
+    );
+});
+
+test('prod-monitor workflow publica parametros y outcome de rollout V4 en summary', () => {
+    const { raw } = loadWorkflow();
+    const requiredSummaryLines = [
+        '- enable_public_v4_rollout_monitor: ``$env:ENABLE_PUBLIC_V4_ROLLOUT_MONITOR``',
+        '- public_v4_rollout_stage: ``$env:PUBLIC_V4_ROLLOUT_STAGE``',
+        '- public_v4_rollout_surface_test: ``$env:PUBLIC_V4_ROLLOUT_SURFACE_TEST``',
+        '- public_v4_rollout_surface_control: ``$env:PUBLIC_V4_ROLLOUT_SURFACE_CONTROL``',
+        '- public_v4_rollout_min_view_booking: ``$env:PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING``',
+        '- public_v4_rollout_min_start_checkout: ``$env:PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT``',
+        '- public_v4_rollout_max_confirmed_drop_pp: ``$env:PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP``',
+        '- public_v4_rollout_min_confirmed_rate_pct: ``$env:PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT``',
+        '- public_v4_rollout_allow_missing_control: ``$env:PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL``',
+        '- enable_public_v4_rollout_monitor_effective: ``$env:ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_EFFECTIVE``',
+        '- public_v4_rollout_stage_effective: ``$env:PUBLIC_V4_ROLLOUT_STAGE_EFFECTIVE``',
+        '- public_v4_rollout_stage_profile_effective: ``$env:PUBLIC_V4_ROLLOUT_STAGE_PROFILE_EFFECTIVE``',
+        '- public_v4_rollout_policy_source_effective: ``$env:PUBLIC_V4_ROLLOUT_POLICY_SOURCE_EFFECTIVE``',
+        '- public_v4_rollout_surface_test_effective: ``$env:PUBLIC_V4_ROLLOUT_SURFACE_TEST_EFFECTIVE``',
+        '- public_v4_rollout_surface_control_effective: ``$env:PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_EFFECTIVE``',
+        '- public_v4_rollout_min_view_booking_effective: ``$env:PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_EFFECTIVE``',
+        '- public_v4_rollout_min_start_checkout_effective: ``$env:PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_EFFECTIVE``',
+        '- public_v4_rollout_max_confirmed_drop_pp_effective: ``$env:PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_EFFECTIVE``',
+        '- public_v4_rollout_min_confirmed_rate_pct_effective: ``$env:PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_EFFECTIVE``',
+        '- public_v4_rollout_allow_missing_control_effective: ``$env:PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE``',
+        '- public_v4_rollout_step_outcome: ``${{ steps.public_v4_rollout.outcome }}``',
+    ];
+
+    for (const snippet of requiredSummaryLines) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta linea de summary rollout V4: ${snippet}`
         );
     }
 });

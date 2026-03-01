@@ -28,10 +28,19 @@ on:
             - 'tests/service-pages-qa.spec.js'
             - 'tests/deferred-content-fallback.spec.js'
             - 'tests/mobile-overflow-regression.spec.js'
+            - 'tests/public-v4-pricing-localization.spec.js'
+            - 'tests-node/public-v4-gateway-flags.test.js'
+            - 'tests-node/public-v4-shell-contract.test.js'
+            - 'tests-node/public-v4-content-contract.test.js'
+            - 'tests-node/public-v4-service-static-parity.test.js'
+            - 'tests-node/public-v4-rollout-gate.test.js'
+            - 'tests-node/analytics-rollout-contract.test.js'
             - 'lighthouserc.premium.json'
             - 'bin/capture-public-baseline.js'
             - 'bin/run-public-performance-gate.js'
+            - 'bin/run-public-v4-rollout-gate.js'
             - 'bin/run-staging-acceptance-gate.js'
+            - 'bin/validate-public-v4-catalog.js'
             - 'playwright.config.js'
             - 'tests/staging-acceptance-gate.spec.js'
             - 'package.json'
@@ -63,10 +72,19 @@ on:
             - 'tests/service-pages-qa.spec.js'
             - 'tests/deferred-content-fallback.spec.js'
             - 'tests/mobile-overflow-regression.spec.js'
+            - 'tests/public-v4-pricing-localization.spec.js'
+            - 'tests-node/public-v4-gateway-flags.test.js'
+            - 'tests-node/public-v4-shell-contract.test.js'
+            - 'tests-node/public-v4-content-contract.test.js'
+            - 'tests-node/public-v4-service-static-parity.test.js'
+            - 'tests-node/public-v4-rollout-gate.test.js'
+            - 'tests-node/analytics-rollout-contract.test.js'
             - 'lighthouserc.premium.json'
             - 'bin/capture-public-baseline.js'
             - 'bin/run-public-performance-gate.js'
+            - 'bin/run-public-v4-rollout-gate.js'
             - 'bin/run-staging-acceptance-gate.js'
+            - 'bin/validate-public-v4-catalog.js'
             - 'playwright.config.js'
             - 'tests/staging-acceptance-gate.spec.js'
             - 'package.json'
@@ -181,6 +199,7 @@ jobs:
                     echo "- approval_contract: \`premium_frontend_qa + lighthouse + performance_gate + visual_baseline\`";
                     echo "- Workflow: premium UX + lighthouse gate";
                     echo "- QA command: \`npm run test:frontend:qa:premium\`";
+                    echo "- V4 hardening: \`npm run test:frontend:qa:v4\`";
                     echo "- Lighthouse command: \`npm run test:frontend:lighthouse:premium\`";
                     echo "- Performance gate: \`npm run test:frontend:performance:gate\`";
                     echo "- Visual baseline: \`node bin/capture-public-baseline.js --out-dir .visual-baseline --label ci\`";
