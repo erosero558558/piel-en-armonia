@@ -1,8 +1,9 @@
 const t = 'adminUiVariant',
-    e = 'admin_ui_reset',
-    n = new Set(['legacy', 'sony_v2']),
-    a = new Set(['1', 'true', 'yes', 'on', 'clear', 'reset']),
-    i = new Map([
+    n = 'admin_ui_reset',
+    e = 'legacy',
+    a = new Set(['legacy', 'sony_v2', 'sony_v3']),
+    i = new Set(['1', 'true', 'yes', 'on', 'clear', 'reset']),
+    o = new Map([
         ['digit1', 'dashboard'],
         ['digit2', 'appointments'],
         ['digit3', 'callbacks'],
@@ -22,7 +23,7 @@ const t = 'adminUiVariant',
         ['5', 'availability'],
         ['6', 'queue'],
     ]),
-    o = Object.freeze({
+    c = Object.freeze({
         '!': 'digit1',
         '@': 'digit2',
         '#': 'digit3',
@@ -33,71 +34,128 @@ const t = 'adminUiVariant',
         '&': 'digit6',
     });
 function r(t) {
-    const e = String(t || '')
+    const n = String(t || '')
         .trim()
         .toLowerCase();
-    return n.has(e) ? e : '';
+    return a.has(n) ? n : '';
 }
-function c(e) {
-    const n = r(e);
-    if (n)
+function s(n) {
+    const e = r(n);
+    if (e)
         try {
-            localStorage.setItem(t, n);
+            localStorage.setItem(t, e);
         } catch (t) {}
 }
-function s(t) {
+async function u() {
+    const t =
+            'function' == typeof AbortController ? new AbortController() : null,
+        n = window.setTimeout(() => {
+            t && t.abort();
+        }, 3500);
+    try {
+        const n = await fetch('/api.php?resource=features', {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+            ...(t ? { signal: t.signal } : {}),
+        });
+        if (!n.ok) return { sony_v2: null, sony_v3: null };
+        const e = await n.json(),
+            a =
+                e && !0 === e.ok && e.data && 'object' == typeof e.data
+                    ? e.data
+                    : null;
+        return {
+            sony_v2:
+                a && Object.prototype.hasOwnProperty.call(a, 'admin_sony_ui')
+                    ? !0 === a.admin_sony_ui
+                    : null,
+            sony_v3:
+                a && Object.prototype.hasOwnProperty.call(a, 'admin_sony_ui_v3')
+                    ? !0 === a.admin_sony_ui_v3
+                    : null,
+        };
+    } catch (t) {
+        return { sony_v2: null, sony_v3: null };
+    } finally {
+        window.clearTimeout(n);
+    }
+}
+async function l(t, n, a = {}) {
+    const i = r(t);
+    if (!i) return e;
+    const { persistAllowed: o = !1 } = a;
+    if ('legacy' === i) return (o && s('legacy'), 'legacy');
+    const c = await n(),
+        u = c.sony_v2,
+        l = c.sony_v3;
+    if ('sony_v2' === i && !1 === u) return (s('legacy'), 'legacy');
+    if ('sony_v3' === i) {
+        if (!1 === l) {
+            const t = !0 === u ? 'sony_v2' : 'legacy';
+            return (s(t), t);
+        }
+        if (!1 === u) return (s('legacy'), 'legacy');
+    }
+    return (o && s(i), i);
+}
+function d(t) {
     document.documentElement.setAttribute('data-admin-ui', t);
 }
-function u(t) {
+function y(t) {
     document.documentElement.setAttribute(
         'data-admin-ready',
         t ? 'true' : 'false'
     );
 }
-function d(t) {
-    const e = 'sony_v2' === t;
-    Array.from(document.querySelectorAll('link[rel="stylesheet"]')).forEach(
-        (t) => {
-            const n = String(t.getAttribute('href') || '').toLowerCase(),
-                a =
-                    n.includes('styles.min.css') ||
-                    n.includes('admin.min.css') ||
-                    n.includes('admin.css'),
-                i =
-                    'adminLegacyFonts' === t.id ||
-                    'adminLegacyFontAwesome' === t.id;
-            a || i
-                ? (t.disabled = e)
-                : 'adminV2Styles' === t.id && (t.disabled = !e);
-        }
-    );
+function f(t) {
+    const n = [
+            document.getElementById('adminLegacyBaseStyles'),
+            document.getElementById('adminLegacyMinStyles'),
+            document.getElementById('adminLegacyStyles'),
+        ],
+        e = document.getElementById('adminV2Styles'),
+        a = document.getElementById('adminV3Styles'),
+        i = 'legacy' === t,
+        o = 'sony_v2' === t,
+        c = 'sony_v3' === t;
+    (n.forEach((t) => {
+        t instanceof HTMLLinkElement && (t.disabled = !i);
+    }),
+        e instanceof HTMLLinkElement && (e.disabled = !o),
+        a instanceof HTMLLinkElement && (a.disabled = !c));
 }
-async function l(t, e = '') {
+async function m(t, n = '') {
     if (!t || 'object' != typeof t) return;
-    if (e) {
-        const n = t[e];
-        if ('function' == typeof n) return void (await n());
+    if (n) {
+        const e = t[n];
+        if ('function' == typeof e) return void (await e());
     }
-    const n = t.default;
-    'function' != typeof n
-        ? n && 'function' == typeof n.then && (await n)
-        : await n();
+    const e = t.default;
+    'function' != typeof e
+        ? e && 'function' == typeof e.then && (await e)
+        : await e();
 }
-async function y(t) {
-    'sony_v2' !== t
-        ? await (async function () {
-              const t =
-                  await import('./js/admin-chunks/legacy-index-CzSo9Nse.js');
-              await l(t, 'bootLegacyAdminAuto');
-          })()
+async function w(t) {
+    'sony_v3' !== t
+        ? 'sony_v2' !== t
+            ? await (async function () {
+                  const t =
+                      await import('./js/admin-chunks/legacy-index-CzSo9Nse.js');
+                  await m(t, 'bootLegacyAdminAuto');
+              })()
+            : await (async function () {
+                  const t = await import('./js/admin-chunks/index-DmNBGj5Z.js');
+                  await m(t);
+              })()
         : await (async function () {
-              const t = await import('./js/admin-chunks/index-Bdrs7ruR.js');
-              await l(t);
+              const t = await import('./js/admin-chunks/index-BszXcN71.js');
+              await m(t);
           })();
 }
 !(async function () {
-    u(!1);
-    const n = (function () {
+    y(!1);
+    const a = (function () {
             const t = (t) => {
                 if (
                     'true' ===
@@ -105,128 +163,93 @@ async function y(t) {
                 )
                     return;
                 if (
-                    (e = t.target) instanceof HTMLElement &&
-                    (e.isContentEditable ||
+                    (n = t.target) instanceof HTMLElement &&
+                    (n.isContentEditable ||
                         Boolean(
-                            e.closest(
+                            n.closest(
                                 'input, textarea, select, [contenteditable="true"]'
                             )
                         ))
                 )
                     return;
-                var e;
-                const n = (function (t) {
+                var n;
+                const e = (function (t) {
                     if (!t.altKey || !t.shiftKey || t.ctrlKey || t.metaKey)
                         return '';
-                    const e = String(t.key || '').toLowerCase(),
-                        n = String(t.code || '').toLowerCase(),
+                    const n = String(t.key || '').toLowerCase(),
+                        e = String(t.code || '').toLowerCase(),
                         a = [];
-                    (n && a.push(n), e && a.push(e));
-                    const r = o[e];
-                    r && a.push(r);
+                    (e && a.push(e), n && a.push(n));
+                    const i = c[n];
+                    i && a.push(i);
                     for (const t of a) {
-                        const e = i.get(t);
-                        if (e) return e;
+                        const n = o.get(t);
+                        if (n) return n;
                     }
                     return '';
                 })(t);
-                n &&
+                e &&
                     (t.preventDefault(),
                     (function (t) {
                         if (t)
                             try {
                                 localStorage.setItem('adminLastSection', t);
                             } catch (t) {}
-                    })(n),
+                    })(e),
                     (function (t) {
                         if (t)
                             try {
-                                const e = new URL(window.location.href);
-                                ((e.hash = `#${t}`),
+                                const n = new URL(window.location.href);
+                                ((n.hash = `#${t}`),
                                     window.history.replaceState(
                                         null,
                                         '',
-                                        `${e.pathname}${e.search}${e.hash}`
+                                        `${n.pathname}${n.search}${n.hash}`
                                     ));
                             } catch (t) {}
-                    })(n));
+                    })(e));
             };
             return (
                 window.addEventListener('keydown', t, !0),
                 () => window.removeEventListener('keydown', t, !0)
             );
         })(),
-        l = (function () {
+        m = (function () {
             try {
                 const t = new URL(window.location.href);
-                if (!t.searchParams.has(e)) return !1;
-                const n = String(t.searchParams.get(e) || '')
+                if (!t.searchParams.has(n)) return !1;
+                const e = String(t.searchParams.get(n) || '')
                     .trim()
                     .toLowerCase();
-                return !n || a.has(n);
+                return !e || i.has(e);
             } catch (t) {
                 return !1;
             }
         })();
-    l &&
+    m &&
         (function (t) {
             try {
-                const e = new URL(window.location.href);
-                if (!e.searchParams.has(t)) return;
-                e.searchParams.delete(t);
-                const n = e.searchParams.toString(),
-                    a = `${e.pathname}${n ? `?${n}` : ''}${e.hash}`;
+                const n = new URL(window.location.href);
+                if (!n.searchParams.has(t)) return;
+                n.searchParams.delete(t);
+                const e = n.searchParams.toString(),
+                    a = `${n.pathname}${e ? `?${e}` : ''}${n.hash}`;
                 window.history.replaceState(null, '', a);
             } catch (t) {}
-        })(e);
+        })(n);
     try {
-        const e = await (async function (
-            { resetStorage: e } = { resetStorage: !1 }
+        const n = await (async function (
+            { resetStorage: n } = { resetStorage: !1 }
         ) {
-            let n;
-            e &&
+            let a;
+            n &&
                 (function () {
                     try {
                         localStorage.removeItem(t);
                     } catch (t) {}
                 })();
-            const a = async () => (
-                    void 0 !== n ||
-                        (n = await (async function () {
-                            const t =
-                                    'function' == typeof AbortController
-                                        ? new AbortController()
-                                        : null,
-                                e = window.setTimeout(() => {
-                                    t && t.abort();
-                                }, 3500);
-                            try {
-                                const e = await fetch(
-                                    '/api.php?resource=features',
-                                    {
-                                        method: 'GET',
-                                        credentials: 'same-origin',
-                                        headers: { Accept: 'application/json' },
-                                        ...(t ? { signal: t.signal } : {}),
-                                    }
-                                );
-                                if (!e.ok) return null;
-                                const n = await e.json();
-                                return !(
-                                    !n ||
-                                    !0 !== n.ok ||
-                                    !n.data ||
-                                    !0 !== n.data.admin_sony_ui
-                                );
-                            } catch (t) {
-                                return null;
-                            } finally {
-                                window.clearTimeout(e);
-                            }
-                        })()),
-                    n
-                ),
-                i = (function () {
+            const i = async () => (void 0 !== a || (a = await u()), a),
+                o = (function () {
                     try {
                         return r(
                             new URL(window.location.href).searchParams.get(
@@ -237,11 +260,8 @@ async function y(t) {
                         return '';
                     }
                 })();
-            if (i)
-                return 'sony_v2' === i && !1 === (await a())
-                    ? (e || c('legacy'), 'legacy')
-                    : (e || c(i), i);
-            const o = e
+            if (o) return l(o, i, { persistAllowed: !n });
+            const c = n
                 ? ''
                 : (function () {
                       try {
@@ -250,30 +270,29 @@ async function y(t) {
                           return '';
                       }
                   })();
-            return o
-                ? 'sony_v2' === o && !1 === (await a())
-                    ? (c('legacy'), 'legacy')
-                    : o
-                : !0 === (await a())
-                  ? (c('sony_v2'), 'sony_v2')
-                  : 'legacy';
-        })({ resetStorage: l });
-        (s(e), d(e));
+            if (c) return l(c, i, { persistAllowed: !1 });
+            const d = await i();
+            return !0 === d.sony_v3
+                ? (s('sony_v3'), 'sony_v3')
+                : !0 === d.sony_v2
+                  ? (s('sony_v2'), 'sony_v2')
+                  : e;
+        })({ resetStorage: m });
+        (d(n), f(n));
         try {
-            (await y(e), u(!0));
+            (await w(n), y(!0));
         } catch (t) {
-            if ('legacy' !== e)
-                return (
-                    s('legacy'),
-                    d('legacy'),
-                    await y('legacy'),
-                    void u(!0)
-                );
-            throw (u(!1), t);
+            const e = await (async function (t) {
+                return 'sony_v3' === t && !1 !== (await u()).sony_v2
+                    ? 'sony_v2'
+                    : 'legacy';
+            })(n);
+            if (e !== n) return (d(e), f(e), s(e), await w(e), void y(!0));
+            throw (y(!1), t);
         }
     } catch (t) {
-        throw (u(!1), t);
+        throw (y(!1), t);
     } finally {
-        n();
+        a();
     }
 })();

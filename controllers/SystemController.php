@@ -23,6 +23,7 @@ class SystemController
         $requiredKeys = [
             'new_booking_ui',
             'admin_sony_ui',
+            'admin_sony_ui_v3',
             'stripe_elements',
             'dark_mode',
             'chatgpt_integration',

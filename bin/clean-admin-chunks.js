@@ -74,8 +74,8 @@ function parseModuleSpecifiers(source) {
     const specifiers = [];
     const patterns = [
         /\bimport\s*\(\s*(['"`])([^'"`]+)\1\s*\)/g,
-        /\bfrom\s+(['"`])([^'"`]+)\1/g,
-        /\bimport\s+(['"`])([^'"`]+)\1/g,
+        /\bfrom\s*(['"`])([^'"`]+)\1/g,
+        /\bimport\s*(['"`])([^'"`]+)\1/g,
     ];
 
     for (const pattern of patterns) {

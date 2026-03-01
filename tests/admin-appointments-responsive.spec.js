@@ -170,12 +170,9 @@ async function openAppointmentsSection(page) {
     await setupAdminApiMocks(page);
     await page.goto('/admin.html?admin_ui=sony_v2&admin_ui_reset=1');
     await expect(page.locator('#adminDashboard')).toBeVisible();
-    const menuToggle = page.locator('#adminMenuToggle');
-    if (await menuToggle.isVisible()) {
-        await menuToggle.click();
-        await expect(page.locator('#adminSidebar')).toHaveClass(/is-open/);
-    }
-    await page.locator('.nav-item[data-section="appointments"]').click();
+    await page
+        .locator('.admin-quick-nav-item[data-section="appointments"]')
+        .click();
     await expect(page.locator('#appointments')).toHaveClass(/active/);
     await expect(
         page.locator('#appointmentsTableBody tr.appointment-row')
@@ -344,11 +341,9 @@ test.describe('Admin appointments responsive triage', () => {
 
         await page.reload();
         await expect(page.locator('#adminDashboard')).toBeVisible();
-        const menuToggle = page.locator('#adminMenuToggle');
-        if (await menuToggle.isVisible()) {
-            await menuToggle.click();
-        }
-        await page.locator('.nav-item[data-section="appointments"]').click();
+        await page
+            .locator('.admin-quick-nav-item[data-section="appointments"]')
+            .click();
         await expect(page.locator('#appointments')).toHaveClass(/active/);
         await expect(page.locator('#appointmentSort')).toHaveValue(
             'patient_az'

@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 328
+  revision: 340
   updated_at: 2026-03-01
 
 tasks:
@@ -5177,3 +5177,155 @@ tasks:
     prompt: "Turnero sala XVII: lock estricto C1/C2 + seguridad numpad en admin"
     created_at: 2026-02-28
     updated_at: 2026-02-28
+
+  - id: AG-136
+    title: "Admin sony_v3 claro-editorial rollout inicial"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-01T22:07:56.429Z"
+    risk: medium
+    scope: frontend-admin
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    files: ["admin.html", "src/apps/admin/index.js", "src/apps/admin-v2/core/flags.js", "src/apps/admin-v3/index.js", "src/apps/admin-v3/core/boot.js"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-01T22:07:56.429Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Admin sony_v3 claro-editorial rollout inicial"
+    acceptance_ref: "verification/agent-runs/AG-136.md"
+    evidence_ref: "verification/agent-runs/AG-136.md"
+    depends_on: []
+    prompt: "Admin sony_v3 claro-editorial rollout inicial"
+    created_at: 2026-03-01
+    updated_at: 2026-03-01
+
+  - id: AG-137
+    title: "Admin sony_v3 QA ampliada y closeout"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-01T22:26:02.809Z"
+    risk: medium
+    scope: frontend-qa
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    files: ["admin.html", "src/apps/admin/index.js", "src/apps/admin-v3/index.js"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-01T22:26:02.809Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Admin sony_v3 QA ampliada y closeout"
+    acceptance_ref: "verification/agent-runs/AG-137.md"
+    evidence_ref: "verification/agent-runs/AG-137.md"
+    depends_on: []
+    prompt: "Admin sony_v3 QA ampliada y closeout"
+    created_at: 2026-03-01
+    updated_at: 2026-03-01
+
+  - id: AG-138
+    title: "Admin sony_v3 canary flag contract"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-01T22:32:13.327Z"
+    risk: medium
+    scope: deploy
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: ["lib/features.php", "controllers/SystemController.php", "GATE-ADMIN-ROLLOUT.ps1", "ADMIN-UI-CONTINGENCIA.ps1", "tests/test_system_features_endpoint.php", "tests/test_features_class.php", "tests/test-features.php"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-01T22:32:13.327Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Admin sony_v3 canary flag contract"
+    acceptance_ref: "verification/agent-runs/AG-138.md"
+    evidence_ref: "verification/agent-runs/AG-138.md"
+    depends_on: []
+    prompt: "Admin sony_v3 canary flag contract"
+    created_at: 2026-03-01
+    updated_at: 2026-03-01
+
+  - id: AG-139
+    title: "Admin sony_v3 canary smoke docs and clean commit"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-01T22:36:35.040Z"
+    risk: medium
+    scope: frontend-admin
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: ["docs/ADMIN-UI-ROLLOUT.md", "docs/DEPLOYMENT.md", "tests/admin-ui-runtime-smoke.spec.js", "tests/admin-ui-variant.spec.js"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-01T22:36:35.040Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Admin sony_v3 canary smoke docs and clean commit"
+    acceptance_ref: "verification/agent-runs/AG-139.md"
+    evidence_ref: "verification/agent-runs/AG-139.md"
+    depends_on: ["AG-138"]
+    prompt: "Admin sony_v3 canary smoke docs and clean commit"
+    created_at: 2026-03-01
+    updated_at: 2026-03-01

@@ -9,7 +9,10 @@ function jsonResponse(route, payload, status = 200) {
     });
 }
 
-async function setupVariantBootstrapMocks(page, featureFlagValue) {
+async function setupVariantBootstrapMocks(
+    page,
+    featureFlags = { admin_sony_ui: true, admin_sony_ui_v3: false }
+) {
     await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) => {
         const url = new URL(route.request().url());
         const action = String(
@@ -31,18 +34,15 @@ async function setupVariantBootstrapMocks(page, featureFlagValue) {
         ).toLowerCase();
 
         if (resource === 'features') {
-            if (featureFlagValue === null) {
-                return jsonResponse(
-                    route,
-                    { ok: false, error: 'unavailable' },
-                    503
-                );
+            const data = {
+                admin_sony_ui: featureFlags.admin_sony_ui === true,
+            };
+            if (typeof featureFlags.admin_sony_ui_v3 === 'boolean') {
+                data.admin_sony_ui_v3 = featureFlags.admin_sony_ui_v3;
             }
             return jsonResponse(route, {
                 ok: true,
-                data: {
-                    admin_sony_ui: featureFlagValue === true,
-                },
+                data,
             });
         }
 
@@ -58,13 +58,16 @@ async function expectResolvedVariant(page, variant) {
 }
 
 test.describe('Admin UI variant loader', () => {
-    test('query=legacy overrides storage and feature flag', async ({
+    test('query=legacy overrides storage and feature flags', async ({
         page,
     }) => {
         await page.addInitScript(() => {
             localStorage.setItem('adminUiVariant', 'sony_v2');
         });
-        await setupVariantBootstrapMocks(page, true);
+        await setupVariantBootstrapMocks(page, {
+            admin_sony_ui: true,
+            admin_sony_ui_v3: true,
+        });
 
         await page.goto('/admin.html?admin_ui=legacy');
         await expectResolvedVariant(page, 'legacy');
@@ -81,7 +84,9 @@ test.describe('Admin UI variant loader', () => {
         await page.addInitScript(() => {
             localStorage.setItem('adminUiVariant', 'legacy');
         });
-        await setupVariantBootstrapMocks(page, false);
+        await setupVariantBootstrapMocks(page, {
+            admin_sony_ui: false,
+        });
 
         await page.goto('/admin.html?admin_ui=sony_v2');
         await expectResolvedVariant(page, 'legacy');
@@ -92,15 +97,32 @@ test.describe('Admin UI variant loader', () => {
             .toBe('legacy');
     });
 
-    test('stored sony_v2 is forced to legacy when feature kill-switch is off', async ({
+    test('query=sony_v3 downgrades to sony_v2 when v3 kill-switch is off but v2 stays enabled', async ({
         page,
     }) => {
-        await page.addInitScript(() => {
-            localStorage.setItem('adminUiVariant', 'sony_v2');
+        await setupVariantBootstrapMocks(page, {
+            admin_sony_ui: true,
+            admin_sony_ui_v3: false,
         });
-        await setupVariantBootstrapMocks(page, false);
 
-        await page.goto('/admin.html');
+        await page.goto('/admin.html?admin_ui=sony_v3');
+        await expectResolvedVariant(page, 'sony_v2');
+        await expect
+            .poll(() =>
+                page.evaluate(() => localStorage.getItem('adminUiVariant'))
+            )
+            .toBe('sony_v2');
+    });
+
+    test('query=sony_v3 downgrades to legacy when both sony flags are off', async ({
+        page,
+    }) => {
+        await setupVariantBootstrapMocks(page, {
+            admin_sony_ui: false,
+            admin_sony_ui_v3: false,
+        });
+
+        await page.goto('/admin.html?admin_ui=sony_v3');
         await expectResolvedVariant(page, 'legacy');
         await expect
             .poll(() =>
@@ -109,13 +131,36 @@ test.describe('Admin UI variant loader', () => {
             .toBe('legacy');
     });
 
-    test('admin_ui_reset=1 clears storage and keeps query override session-only', async ({
+    test('stored sony_v3 is forced to sony_v2 when v3 kill-switch is off', async ({
         page,
     }) => {
         await page.addInitScript(() => {
-            localStorage.setItem('adminUiVariant', 'sony_v2');
+            localStorage.setItem('adminUiVariant', 'sony_v3');
         });
-        await setupVariantBootstrapMocks(page, false);
+        await setupVariantBootstrapMocks(page, {
+            admin_sony_ui: true,
+            admin_sony_ui_v3: false,
+        });
+
+        await page.goto('/admin.html');
+        await expectResolvedVariant(page, 'sony_v2');
+        await expect
+            .poll(() =>
+                page.evaluate(() => localStorage.getItem('adminUiVariant'))
+            )
+            .toBe('sony_v2');
+    });
+
+    test('admin_ui_reset=1 clears storage and keeps legacy query override session-only', async ({
+        page,
+    }) => {
+        await page.addInitScript(() => {
+            localStorage.setItem('adminUiVariant', 'sony_v3');
+        });
+        await setupVariantBootstrapMocks(page, {
+            admin_sony_ui: true,
+            admin_sony_ui_v3: true,
+        });
 
         await page.goto('/admin.html?admin_ui=legacy&admin_ui_reset=1');
         await expectResolvedVariant(page, 'legacy');
@@ -127,17 +172,19 @@ test.describe('Admin UI variant loader', () => {
             .toBe(null);
     });
 
-    test('admin_ui_reset=1 clears storage and uses fallback legacy when feature is off', async ({
+    test('admin_ui_reset=1 keeps sony_v3 query override session-only when v3 is enabled', async ({
         page,
     }) => {
         await page.addInitScript(() => {
             localStorage.setItem('adminUiVariant', 'sony_v2');
         });
-        await setupVariantBootstrapMocks(page, false);
+        await setupVariantBootstrapMocks(page, {
+            admin_sony_ui: true,
+            admin_sony_ui_v3: true,
+        });
 
-        await page.goto('/admin.html?admin_ui_reset=1');
-        await expectResolvedVariant(page, 'legacy');
-        await expect(page).toHaveURL(/\/admin\.html$/);
+        await page.goto('/admin.html?admin_ui=sony_v3&admin_ui_reset=1');
+        await expectResolvedVariant(page, 'sony_v3');
         await expect
             .poll(() =>
                 page.evaluate(() => localStorage.getItem('adminUiVariant'))
@@ -145,43 +192,47 @@ test.describe('Admin UI variant loader', () => {
             .toBe(null);
     });
 
-    test('admin_ui_reset=1 still allows canary auto-enable when feature is on', async ({
+    test('feature flag enables sony_v3 when no query and no storage variant', async ({
         page,
     }) => {
-        await page.addInitScript(() => {
-            localStorage.setItem('adminUiVariant', 'legacy');
+        await setupVariantBootstrapMocks(page, {
+            admin_sony_ui: true,
+            admin_sony_ui_v3: true,
         });
-        await setupVariantBootstrapMocks(page, true);
-
-        await page.goto('/admin.html?admin_ui_reset=1');
-        await expectResolvedVariant(page, 'sony_v2');
-        await expect(page).toHaveURL(/\/admin\.html(?:#dashboard)?$/);
-        await expect
-            .poll(() =>
-                page.evaluate(() => localStorage.getItem('adminUiVariant'))
-            )
-            .toBe('sony_v2');
-    });
-
-    test('feature flag enables sony_v2 when no query and no storage variant', async ({
-        page,
-    }) => {
-        await setupVariantBootstrapMocks(page, true);
 
         await page.goto('/admin.html');
-        await expectResolvedVariant(page, 'sony_v2');
-        await expect(page.locator('body')).toHaveClass(/admin-v2-mode/);
+        await expectResolvedVariant(page, 'sony_v3');
+        await expect(page.locator('body')).toHaveClass(/admin-v3-mode/);
         await expect
             .poll(() =>
                 page.evaluate(() => localStorage.getItem('adminUiVariant'))
             )
-            .toBe('sony_v2');
+            .toBe('sony_v3');
     });
 
     test('loader falls back to legacy when features endpoint is unavailable', async ({
         page,
     }) => {
-        await setupVariantBootstrapMocks(page, null);
+        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
+            jsonResponse(route, {
+                ok: true,
+                authenticated: false,
+            })
+        );
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const url = new URL(route.request().url());
+            const resource = String(
+                url.searchParams.get('resource') || ''
+            ).toLowerCase();
+            if (resource === 'features') {
+                return jsonResponse(
+                    route,
+                    { ok: false, error: 'unavailable' },
+                    503
+                );
+            }
+            return jsonResponse(route, { ok: true, data: {} });
+        });
 
         await page.goto('/admin.html');
         await expectResolvedVariant(page, 'legacy');

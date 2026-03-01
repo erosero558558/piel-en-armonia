@@ -1,4 +1,4 @@
-(function installAdminPrebootShortcuts() {
+(function installAdminPreboot() {
     const SECTION_BY_SHORTCUT = new Map([
         ['digit1', 'dashboard'],
         ['digit2', 'appointments'],
@@ -30,6 +30,62 @@
         '&': 'digit6',
     });
     const LAST_SECTION_KEY = 'adminLastSection';
+    const VARIANT_STORAGE_KEY = 'adminUiVariant';
+    const RESET_QUERY_KEY = 'admin_ui_reset';
+    const VARIANT_QUERY_KEY = 'admin_ui';
+    const VARIANTS = new Set(['legacy', 'sony_v2', 'sony_v3']);
+
+    function normalizeVariant(value) {
+        const normalized = String(value || '')
+            .trim()
+            .toLowerCase();
+        return VARIANTS.has(normalized) ? normalized : '';
+    }
+
+    function readVariantFromLocation() {
+        try {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has(RESET_QUERY_KEY)) {
+                return '';
+            }
+            const queryVariant = normalizeVariant(
+                url.searchParams.get(VARIANT_QUERY_KEY)
+            );
+            if (queryVariant) return queryVariant;
+            return normalizeVariant(localStorage.getItem(VARIANT_STORAGE_KEY));
+        } catch (_error) {
+            return '';
+        }
+    }
+
+    function applyPrebootVariantStyles(variant) {
+        if (!variant) return;
+
+        const legacyStyles = [
+            document.getElementById('adminLegacyBaseStyles'),
+            document.getElementById('adminLegacyMinStyles'),
+            document.getElementById('adminLegacyStyles'),
+        ];
+        const v2Styles = document.getElementById('adminV2Styles');
+        const v3Styles = document.getElementById('adminV3Styles');
+        const enableLegacy = variant === 'legacy';
+        const enableV2 = variant === 'sony_v2';
+        const enableV3 = variant === 'sony_v3';
+
+        legacyStyles.forEach((node) => {
+            if (node instanceof HTMLLinkElement) {
+                node.disabled = !enableLegacy;
+            }
+        });
+        if (v2Styles instanceof HTMLLinkElement) {
+            v2Styles.disabled = !enableV2;
+        }
+        if (v3Styles instanceof HTMLLinkElement) {
+            v3Styles.disabled = !enableV3;
+        }
+
+        document.documentElement.setAttribute('data-admin-ui', variant);
+    }
 
     function isTypingTarget(target) {
         if (!(target instanceof HTMLElement)) return false;
@@ -86,6 +142,8 @@
             // no-op
         }
     }
+
+    applyPrebootVariantStyles(readVariantFromLocation());
 
     window.addEventListener(
         'keydown',

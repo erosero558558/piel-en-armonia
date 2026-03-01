@@ -38,6 +38,7 @@ function run_features_request(): array
 }
 
 putenv('FEATURE_ADMIN_SONY_UI');
+putenv('FEATURE_ADMIN_SONY_UI_V3');
 putenv('FEATURE_NEW_BOOKING_UI');
 putenv('FEATURE_STRIPE_ELEMENTS');
 putenv('FEATURE_DARK_MODE');
@@ -51,14 +52,19 @@ $data = is_array($payload['data'] ?? null) ? $payload['data'] : [];
 assert_true(($payload['ok'] ?? false) === true, 'features endpoint returns ok=true');
 assert_true(array_key_exists('admin_sony_ui', $data), 'features endpoint includes admin_sony_ui key');
 assert_true(is_bool($data['admin_sony_ui'] ?? null), 'admin_sony_ui is boolean');
+assert_true(array_key_exists('admin_sony_ui_v3', $data), 'features endpoint includes admin_sony_ui_v3 key');
+assert_true(is_bool($data['admin_sony_ui_v3'] ?? null), 'admin_sony_ui_v3 is boolean');
 assert_true(array_key_exists('new_booking_ui', $data), 'features endpoint includes new_booking_ui key');
 
 putenv('FEATURE_ADMIN_SONY_UI=1');
+putenv('FEATURE_ADMIN_SONY_UI_V3=1');
 $responseEnabled = run_features_request();
 $enabledData = $responseEnabled['payload']['data'] ?? [];
 assert_true(($enabledData['admin_sony_ui'] ?? false) === true, 'FEATURE_ADMIN_SONY_UI=1 is reflected in features endpoint');
+assert_true(($enabledData['admin_sony_ui_v3'] ?? false) === true, 'FEATURE_ADMIN_SONY_UI_V3=1 is reflected in features endpoint');
 
 putenv('FEATURE_ADMIN_SONY_UI');
+putenv('FEATURE_ADMIN_SONY_UI_V3');
 FeatureFlags::reset();
 
 echo "All tests passed.\n";

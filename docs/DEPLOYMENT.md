@@ -82,7 +82,8 @@ El sistema soporta despliegues porcentuales para probar con un subconjunto de us
 }
 ```
 
-Admin UI Sony-like v2 usa este mismo modelo con la flag `admin_sony_ui`.
+Admin UI admin `sony_v2/sony_v3` usa este mismo modelo con las flags `admin_sony_ui` y `admin_sony_ui_v3`.
+Para canary de `sony_v3`, mantener `admin_sony_ui=true` y activar `admin_sony_ui_v3` por env, storage de flags o rollout porcentual.
 Runbook operativo: `docs/ADMIN-UI-ROLLOUT.md`.
 Gate operativo por etapa: `GATE-ADMIN-ROLLOUT.ps1`.
 
@@ -130,8 +131,9 @@ php bin/verify-gate.php
 4.  [ ] `https://pielarmonia.com/telemedicina.html` redirige a `/es/telemedicina/`.
 5.  [ ] El bridge de reserva (`#citas`, `#appointmentForm`, `#serviceSelect`) sigue visible.
 6.  [ ] El formulario de contacto/reserva se abre correctamente.
-7.  [ ] `admin.html` resuelve variante correcta (`legacy` o `sony_v2`) segun `admin_ui`, storage y `admin_sony_ui`.
-8.  [ ] Chunks admin sin residuos:
+7.  [ ] `admin.html` resuelve variante correcta (`legacy`, `sony_v2` o `sony_v3`) segun `admin_ui`, storage y flags admin.
+8.  [ ] `/api.php?resource=features` expone `admin_sony_ui` y `admin_sony_ui_v3` como boolean y alineados con la etapa (`internal`, `canary`, `general`, `rollback`).
+9.  [ ] Chunks admin sin residuos:
     - `npm run chunks:admin:prune` (incluido en `npm run build`)
     - opcional: `node bin/clean-admin-chunks.js --dry-run`
-9.  [ ] No hay errores de consola (F12) rojos.
+10. [ ] No hay errores de consola (F12) rojos.

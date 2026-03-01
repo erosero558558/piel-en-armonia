@@ -2,7 +2,7 @@ const ADMIN_UI_QUERY_KEY = 'admin_ui';
 const ADMIN_UI_STORAGE_KEY = 'adminUiVariant';
 const ADMIN_UI_RESET_QUERY_KEY = 'admin_ui_reset';
 const ADMIN_UI_FALLBACK = 'legacy';
-const ADMIN_UI_VARIANTS = new Set(['legacy', 'sony_v2']);
+const ADMIN_UI_VARIANTS = new Set(['legacy', 'sony_v2', 'sony_v3']);
 const TRUTHY_QUERY_VALUES = new Set([
     '1',
     'true',
@@ -201,7 +201,7 @@ function stripQueryParam(name) {
     }
 }
 
-async function readVariantFromFeatureFlag() {
+async function readFeatureFlags() {
     const supportsAbortController = typeof AbortController === 'function';
     const controller = supportsAbortController ? new AbortController() : null;
     const timeoutId = window.setTimeout(() => {
@@ -219,19 +219,87 @@ async function readVariantFromFeatureFlag() {
             },
             ...(controller ? { signal: controller.signal } : {}),
         });
-        if (!response.ok) return null;
+        if (!response.ok) {
+            return {
+                sony_v2: null,
+                sony_v3: null,
+            };
+        }
+
         const payload = await response.json();
-        const featureEnabled =
+        const data =
             payload &&
             payload.ok === true &&
             payload.data &&
-            payload.data.admin_sony_ui === true;
-        return featureEnabled ? true : false;
+            typeof payload.data === 'object'
+                ? payload.data
+                : null;
+
+        return {
+            sony_v2:
+                data &&
+                Object.prototype.hasOwnProperty.call(data, 'admin_sony_ui')
+                    ? data.admin_sony_ui === true
+                    : null,
+            sony_v3:
+                data &&
+                Object.prototype.hasOwnProperty.call(data, 'admin_sony_ui_v3')
+                    ? data.admin_sony_ui_v3 === true
+                    : null,
+        };
     } catch (_error) {
-        return null;
+        return {
+            sony_v2: null,
+            sony_v3: null,
+        };
     } finally {
         window.clearTimeout(timeoutId);
     }
+}
+
+async function resolveRequestedVariant(
+    requested,
+    getFeatureFlags,
+    options = {}
+) {
+    const normalized = normalizeVariant(requested);
+    if (!normalized) {
+        return ADMIN_UI_FALLBACK;
+    }
+
+    const { persistAllowed = false } = options;
+    if (normalized === 'legacy') {
+        if (persistAllowed) {
+            persistVariant('legacy');
+        }
+        return 'legacy';
+    }
+
+    const featureFlags = await getFeatureFlags();
+    const sonyV2Enabled = featureFlags.sony_v2;
+    const sonyV3Enabled = featureFlags.sony_v3;
+
+    if (normalized === 'sony_v2' && sonyV2Enabled === false) {
+        persistVariant('legacy');
+        return 'legacy';
+    }
+
+    if (normalized === 'sony_v3') {
+        if (sonyV3Enabled === false) {
+            const degraded = sonyV2Enabled === true ? 'sony_v2' : 'legacy';
+            persistVariant(degraded);
+            return degraded;
+        }
+        if (sonyV2Enabled === false) {
+            persistVariant('legacy');
+            return 'legacy';
+        }
+    }
+
+    if (persistAllowed) {
+        persistVariant(normalized);
+    }
+    return normalized;
 }
 
 async function resolveVariant({ resetStorage } = { resetStorage: false }) {
@@ -239,46 +307,35 @@ async function resolveVariant({ resetStorage } = { resetStorage: false }) {
         clearStoredVariant();
     }
 
-    let featureFlagCache = undefined;
-    const getFeatureFlagEnabled = async () => {
-        if (featureFlagCache !== undefined) {
-            return featureFlagCache;
+    let featureFlagsCache;
+    const getFeatureFlags = async () => {
+        if (featureFlagsCache !== undefined) {
+            return featureFlagsCache;
         }
-        featureFlagCache = await readVariantFromFeatureFlag();
-        return featureFlagCache;
+        featureFlagsCache = await readFeatureFlags();
+        return featureFlagsCache;
     };
 
     const queryVariant = readVariantFromQuery();
     if (queryVariant) {
-        if (queryVariant === 'sony_v2') {
-            const featureFlagEnabled = await getFeatureFlagEnabled();
-            if (featureFlagEnabled === false) {
-                if (!resetStorage) {
-                    persistVariant('legacy');
-                }
-                return 'legacy';
-            }
-        }
-        if (!resetStorage) {
-            persistVariant(queryVariant);
-        }
-        return queryVariant;
+        return resolveRequestedVariant(queryVariant, getFeatureFlags, {
+            persistAllowed: !resetStorage,
+        });
     }
 
     const storageVariant = resetStorage ? '' : readVariantFromStorage();
     if (storageVariant) {
-        if (storageVariant === 'sony_v2') {
-            const featureFlagEnabled = await getFeatureFlagEnabled();
-            if (featureFlagEnabled === false) {
-                persistVariant('legacy');
-                return 'legacy';
-            }
-        }
-        return storageVariant;
+        return resolveRequestedVariant(storageVariant, getFeatureFlags, {
+            persistAllowed: false,
+        });
     }
 
-    const featureFlagEnabled = await getFeatureFlagEnabled();
-    if (featureFlagEnabled === true) {
+    const featureFlags = await getFeatureFlags();
+    if (featureFlags.sony_v3 === true) {
+        persistVariant('sony_v3');
+        return 'sony_v3';
+    }
+    if (featureFlags.sony_v2 === true) {
         persistVariant('sony_v2');
         return 'sony_v2';
     }
@@ -298,30 +355,29 @@ function setDocumentReadyState(ready) {
 }
 
 function toggleStylesheets(variant) {
-    const isV2 = variant === 'sony_v2';
-    const links = Array.from(
-        document.querySelectorAll('link[rel="stylesheet"]')
-    );
+    const legacyStyles = [
+        document.getElementById('adminLegacyBaseStyles'),
+        document.getElementById('adminLegacyMinStyles'),
+        document.getElementById('adminLegacyStyles'),
+    ];
+    const v2Styles = document.getElementById('adminV2Styles');
+    const v3Styles = document.getElementById('adminV3Styles');
 
-    links.forEach((linkEl) => {
-        const href = String(linkEl.getAttribute('href') || '').toLowerCase();
-        const isLegacyStyle =
-            href.includes('styles.min.css') ||
-            href.includes('admin.min.css') ||
-            href.includes('admin.css');
-        const isLegacyAuxStyle =
-            linkEl.id === 'adminLegacyFonts' ||
-            linkEl.id === 'adminLegacyFontAwesome';
+    const legacyEnabled = variant === 'legacy';
+    const v2Enabled = variant === 'sony_v2';
+    const v3Enabled = variant === 'sony_v3';
 
-        if (isLegacyStyle || isLegacyAuxStyle) {
-            linkEl.disabled = isV2;
-            return;
-        }
-
-        if (linkEl.id === 'adminV2Styles') {
-            linkEl.disabled = !isV2;
+    legacyStyles.forEach((node) => {
+        if (node instanceof HTMLLinkElement) {
+            node.disabled = !legacyEnabled;
         }
     });
+    if (v2Styles instanceof HTMLLinkElement) {
+        v2Styles.disabled = !v2Enabled;
+    }
+    if (v3Styles instanceof HTMLLinkElement) {
+        v3Styles.disabled = !v3Enabled;
+    }
 }
 
 async function bootModuleExport(module, preferredExportName = '') {
@@ -346,8 +402,13 @@ async function bootModuleExport(module, preferredExportName = '') {
     }
 }
 
-async function loadSonyVariant() {
+async function loadSonyV2Variant() {
     const module = await import('../admin-v2/index.js');
+    await bootModuleExport(module);
+}
+
+async function loadSonyV3Variant() {
+    const module = await import('../admin-v3/index.js');
     await bootModuleExport(module);
 }
 
@@ -357,11 +418,25 @@ async function loadLegacyVariant() {
 }
 
 async function loadVariant(variant) {
+    if (variant === 'sony_v3') {
+        await loadSonyV3Variant();
+        return;
+    }
     if (variant === 'sony_v2') {
-        await loadSonyVariant();
+        await loadSonyV2Variant();
         return;
     }
     await loadLegacyVariant();
+}
+
+async function resolveFallbackVariant(variant) {
+    if (variant === 'sony_v3') {
+        const featureFlags = await readFeatureFlags();
+        if (featureFlags.sony_v2 !== false) {
+            return 'sony_v2';
+        }
+    }
+    return 'legacy';
 }
 
 (async function bootstrapAdminVariant() {
@@ -380,10 +455,12 @@ async function loadVariant(variant) {
             await loadVariant(variant);
             setDocumentReadyState(true);
         } catch (error) {
-            if (variant !== 'legacy') {
-                setDocumentVariant('legacy');
-                toggleStylesheets('legacy');
-                await loadVariant('legacy');
+            const fallbackVariant = await resolveFallbackVariant(variant);
+            if (fallbackVariant !== variant) {
+                setDocumentVariant(fallbackVariant);
+                toggleStylesheets(fallbackVariant);
+                persistVariant(fallbackVariant);
+                await loadVariant(fallbackVariant);
                 setDocumentReadyState(true);
                 return;
             }

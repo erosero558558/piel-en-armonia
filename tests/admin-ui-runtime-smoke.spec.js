@@ -2,7 +2,7 @@
 const { test, expect } = require('@playwright/test');
 const { skipIfPhpRuntimeMissing } = require('./helpers/php-backend');
 
-async function readFeatureFlag(request) {
+async function readFeatureFlags(request) {
     const response = await request.get('/api.php?resource=features');
     expect(response.ok()).toBeTruthy();
     const payload = await response.json();
@@ -11,8 +11,12 @@ async function readFeatureFlag(request) {
     expect(payload.ok).toBe(true);
     expect(payload.data).toBeTruthy();
     expect(typeof payload.data.admin_sony_ui).toBe('boolean');
+    expect(typeof payload.data.admin_sony_ui_v3).toBe('boolean');
 
-    return payload.data.admin_sony_ui === true;
+    return {
+        sonyV2: payload.data.admin_sony_ui === true,
+        sonyV3: payload.data.admin_sony_ui_v3 === true,
+    };
 }
 
 async function expectVariant(page, variant) {
@@ -26,16 +30,26 @@ async function expectVariant(page, variant) {
     );
 }
 
+function resolveExpectedVariants(flags) {
+    return {
+        defaultVariant: flags.sonyV3
+            ? 'sony_v3'
+            : flags.sonyV2
+              ? 'sony_v2'
+              : 'legacy',
+        queryV2: flags.sonyV2 ? 'sony_v2' : 'legacy',
+        queryV3: flags.sonyV3 ? 'sony_v3' : flags.sonyV2 ? 'sony_v2' : 'legacy',
+    };
+}
+
 test.describe('Admin UI runtime smoke', () => {
-    test('resuelve variante correctamente segun query, reset y feature flag real', async ({
+    test('resuelve variante correctamente segun query, reset y feature flags reales', async ({
         page,
         request,
     }) => {
         await skipIfPhpRuntimeMissing(test, request);
-        const featureEnabled = await readFeatureFlag(request);
-        const expectedSonyVariant = ['legacy', 'sony_v2'][
-            Number(featureEnabled)
-        ];
+        const flags = await readFeatureFlags(request);
+        const expected = resolveExpectedVariants(flags);
 
         await page.goto('/admin.html?admin_ui=legacy&admin_ui_reset=1');
         await expectVariant(page, 'legacy');
@@ -46,10 +60,13 @@ test.describe('Admin UI runtime smoke', () => {
             .toBe(null);
 
         await page.goto('/admin.html?admin_ui=sony_v2&admin_ui_reset=1');
-        await expectVariant(page, expectedSonyVariant);
+        await expectVariant(page, expected.queryV2);
+
+        await page.goto('/admin.html?admin_ui=sony_v3&admin_ui_reset=1');
+        await expectVariant(page, expected.queryV3);
 
         await page.goto('/admin.html?admin_ui_reset=1');
-        await expectVariant(page, expectedSonyVariant);
+        await expectVariant(page, expected.defaultVariant);
     });
 
     test('mantiene CSP admin endurecida en meta (self-only para script/style/font)', async ({

@@ -34,8 +34,12 @@ $report = [ordered]@{
         response_ok = $false
         has_admin_sony_ui = $false
         admin_sony_ui = $null
+        has_admin_sony_ui_v3 = $false
+        admin_sony_ui_v3 = $null
         expected_admin_sony_ui = $null
-        stage_expectation_match = $null
+        expected_admin_sony_ui_v3 = $null
+        stage_expectation_match_admin_sony_ui = $null
+        stage_expectation_match_admin_sony_ui_v3 = $null
         warning = $null
         error = $null
     }
@@ -138,18 +142,37 @@ function Invoke-HttpCheck {
     }
 }
 
-function Get-ExpectedFeatureValueByStage {
+function Get-ExpectedFeatureFlagsByStage {
     param(
         [string]$CurrentStage
     )
 
-    if ($CurrentStage -eq 'canary' -or $CurrentStage -eq 'general') {
-        return $true
+    switch ($CurrentStage) {
+        'canary' {
+            return [PSCustomObject]@{
+                admin_sony_ui = $true
+                admin_sony_ui_v3 = $true
+            }
+        }
+        'general' {
+            return [PSCustomObject]@{
+                admin_sony_ui = $true
+                admin_sony_ui_v3 = $true
+            }
+        }
+        'rollback' {
+            return [PSCustomObject]@{
+                admin_sony_ui = $false
+                admin_sony_ui_v3 = $false
+            }
+        }
+        default {
+            return [PSCustomObject]@{
+                admin_sony_ui = $null
+                admin_sony_ui_v3 = $null
+            }
+        }
     }
-    if ($CurrentStage -eq 'rollback') {
-        return $false
-    }
-    return $null
 }
 
 Write-Host "== Gate Admin UI Rollout =="
@@ -160,28 +183,61 @@ Write-Host ""
 
 $featuresUrl = "$base/api.php?resource=features"
 $featuresResult = Invoke-JsonGet -Url $featuresUrl
-$featureValue = $null
+$featureValueV2 = $null
+$featureValueV3 = $null
 
 if ($featuresResult.Ok -and $null -ne $featuresResult.Json -and $featuresResult.Json.ok -eq $true) {
     $report.features.request_ok = $true
     $report.features.http_status = [int]$featuresResult.Status
     $report.features.response_ok = $true
-    if ($null -eq $featuresResult.Json.data -or $null -eq $featuresResult.Json.data.admin_sony_ui) {
+    Write-Host "[OK]  Features API -> HTTP $($featuresResult.Status)"
+    if ($null -eq $featuresResult.Json.data) {
         if ($allowMissingAdminFlagEffective) {
-            Write-Host "[WARN] Features API no contiene data.admin_sony_ui (permitido por politica efectiva de stage/flag)."
-            $report.features.warning = 'missing_admin_sony_ui_allowed'
+            Write-Host "[WARN] Features API no contiene bloque data de flags admin (permitido por politica efectiva de stage/flag)."
+            $report.features.warning = 'missing_admin_flag_block_allowed'
         } else {
-            Write-Host "[FAIL] Features API no contiene data.admin_sony_ui"
+            Write-Host "[FAIL] Features API no contiene bloque data de flags admin"
             $failures += 1
-            $report.features.error = 'missing_admin_sony_ui'
+            $report.features.error = 'missing_admin_flag_block'
         }
     } else {
-        $featureValue = [bool]$featuresResult.Json.data.admin_sony_ui
-        $featureText = if ($featureValue) { 'true' } else { 'false' }
-        $report.features.has_admin_sony_ui = $true
-        $report.features.admin_sony_ui = [bool]$featureValue
-        Write-Host "[OK]  Features API -> HTTP $($featuresResult.Status)"
-        Write-Host "[INFO] admin_sony_ui actual: $featureText"
+        if ($null -eq $featuresResult.Json.data.admin_sony_ui) {
+            if ($allowMissingAdminFlagEffective) {
+                Write-Host "[WARN] Features API no contiene data.admin_sony_ui (permitido por politica efectiva de stage/flag)."
+                $report.features.warning = 'missing_admin_sony_ui_allowed'
+            } else {
+                Write-Host "[FAIL] Features API no contiene data.admin_sony_ui"
+                $failures += 1
+                $report.features.error = 'missing_admin_sony_ui'
+            }
+        } else {
+            $featureValueV2 = [bool]$featuresResult.Json.data.admin_sony_ui
+            $featureTextV2 = if ($featureValueV2) { 'true' } else { 'false' }
+            $report.features.has_admin_sony_ui = $true
+            $report.features.admin_sony_ui = [bool]$featureValueV2
+            Write-Host "[INFO] admin_sony_ui actual: $featureTextV2"
+        }
+
+        if ($null -eq $featuresResult.Json.data.admin_sony_ui_v3) {
+            if ($allowMissingAdminFlagEffective) {
+                Write-Host "[WARN] Features API no contiene data.admin_sony_ui_v3 (permitido por politica efectiva de stage/flag)."
+                if ($null -eq $report.features.warning) {
+                    $report.features.warning = 'missing_admin_sony_ui_v3_allowed'
+                }
+            } else {
+                Write-Host "[FAIL] Features API no contiene data.admin_sony_ui_v3"
+                $failures += 1
+                if ($null -eq $report.features.error) {
+                    $report.features.error = 'missing_admin_sony_ui_v3'
+                }
+            }
+        } else {
+            $featureValueV3 = [bool]$featuresResult.Json.data.admin_sony_ui_v3
+            $featureTextV3 = if ($featureValueV3) { 'true' } else { 'false' }
+            $report.features.has_admin_sony_ui_v3 = $true
+            $report.features.admin_sony_ui_v3 = [bool]$featureValueV3
+            Write-Host "[INFO] admin_sony_ui_v3 actual: $featureTextV3"
+        }
     }
 } else {
     $report.features.request_ok = [bool]$featuresResult.Ok
@@ -199,22 +255,39 @@ if ($featuresResult.Ok -and $null -ne $featuresResult.Json -and $featuresResult.
     }
 }
 
-$expectedFeatureValue = Get-ExpectedFeatureValueByStage -CurrentStage $Stage
-$report.features.expected_admin_sony_ui = $expectedFeatureValue
-if ($null -ne $expectedFeatureValue -and $null -ne $featureValue) {
-    if ([bool]$featureValue -ne [bool]$expectedFeatureValue) {
-        $expectedText = if ($expectedFeatureValue) { 'true' } else { 'false' }
-        $actualText = if ($featureValue) { 'true' } else { 'false' }
+$expectedFeatures = Get-ExpectedFeatureFlagsByStage -CurrentStage $Stage
+$report.features.expected_admin_sony_ui = $expectedFeatures.admin_sony_ui
+$report.features.expected_admin_sony_ui_v3 = $expectedFeatures.admin_sony_ui_v3
+if ($null -ne $expectedFeatures.admin_sony_ui -and $null -ne $featureValueV2) {
+    if ([bool]$featureValueV2 -ne [bool]$expectedFeatures.admin_sony_ui) {
+        $expectedText = if ($expectedFeatures.admin_sony_ui) { 'true' } else { 'false' }
+        $actualText = if ($featureValueV2) { 'true' } else { 'false' }
         Write-Host "[FAIL] Stage '$Stage' requiere admin_sony_ui=$expectedText, actual=$actualText"
         $failures += 1
-        $report.features.stage_expectation_match = $false
+        $report.features.stage_expectation_match_admin_sony_ui = $false
     } else {
         Write-Host "[OK]  Stage '$Stage' coincide con admin_sony_ui esperado"
-        $report.features.stage_expectation_match = $true
+        $report.features.stage_expectation_match_admin_sony_ui = $true
     }
 } elseif ($Stage -eq 'internal') {
     Write-Host "[INFO] Stage internal: no se fuerza valor de admin_sony_ui"
-    $report.features.stage_expectation_match = $null
+    $report.features.stage_expectation_match_admin_sony_ui = $null
+}
+
+if ($null -ne $expectedFeatures.admin_sony_ui_v3 -and $null -ne $featureValueV3) {
+    if ([bool]$featureValueV3 -ne [bool]$expectedFeatures.admin_sony_ui_v3) {
+        $expectedText = if ($expectedFeatures.admin_sony_ui_v3) { 'true' } else { 'false' }
+        $actualText = if ($featureValueV3) { 'true' } else { 'false' }
+        Write-Host "[FAIL] Stage '$Stage' requiere admin_sony_ui_v3=$expectedText, actual=$actualText"
+        $failures += 1
+        $report.features.stage_expectation_match_admin_sony_ui_v3 = $false
+    } else {
+        Write-Host "[OK]  Stage '$Stage' coincide con admin_sony_ui_v3 esperado"
+        $report.features.stage_expectation_match_admin_sony_ui_v3 = $true
+    }
+} elseif ($Stage -eq 'internal') {
+    Write-Host "[INFO] Stage internal: no se fuerza valor de admin_sony_ui_v3"
+    $report.features.stage_expectation_match_admin_sony_ui_v3 = $null
 }
 
 Write-Host ""
@@ -222,6 +295,7 @@ $urlChecks = @(
     @{ Name = 'Admin base'; Url = "$base/admin.html" },
     @{ Name = 'Admin query legacy'; Url = "$base/admin.html?admin_ui=legacy" },
     @{ Name = 'Admin query sony_v2'; Url = "$base/admin.html?admin_ui=sony_v2" },
+    @{ Name = 'Admin query sony_v3'; Url = "$base/admin.html?admin_ui=sony_v3" },
     @{ Name = 'Admin contingency reset'; Url = "$base/admin.html?admin_ui_reset=1" }
 )
 

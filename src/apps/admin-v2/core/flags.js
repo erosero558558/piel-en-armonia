@@ -7,12 +7,13 @@ import {
 const VARIANT_STORAGE_KEY = 'adminUiVariant';
 const THEME_STORAGE_KEY = 'themeMode';
 const THEMES = new Set(['light', 'dark', 'system']);
+const RUNTIME_VARIANTS = new Set(['legacy', 'sony_v2', 'sony_v3']);
 
 export function readRuntimeVariant() {
     const queryVariant = String(getQueryParam('admin_ui') || '')
         .trim()
         .toLowerCase();
-    if (queryVariant === 'legacy' || queryVariant === 'sony_v2') {
+    if (RUNTIME_VARIANTS.has(queryVariant)) {
         setStorageItem(VARIANT_STORAGE_KEY, queryVariant);
         return queryVariant;
     }
@@ -20,7 +21,7 @@ export function readRuntimeVariant() {
     const stored = String(getStorageItem(VARIANT_STORAGE_KEY, 'sony_v2') || '')
         .trim()
         .toLowerCase();
-    return stored === 'legacy' ? 'legacy' : 'sony_v2';
+    return RUNTIME_VARIANTS.has(stored) ? stored : 'sony_v2';
 }
 
 export function readThemeMode() {

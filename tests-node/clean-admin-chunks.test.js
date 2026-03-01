@@ -91,6 +91,48 @@ test('clean-admin-chunks elimina solo chunks huerfanos con import graph recursiv
     }
 });
 
+test('clean-admin-chunks conserva chunks compartidos importados desde codigo minificado', () => {
+    const sandbox = createSandboxRoot('admin-chunks-minified-');
+    try {
+        writeFile(
+            resolve(sandbox.base, 'admin.js'),
+            "import('./js/admin-chunks/index-live.js');\n"
+        );
+        writeFile(
+            resolve(sandbox.chunksDir, 'index-live.js'),
+            'import{a as live}from"./shared-live.js";export{live};\n'
+        );
+        writeFile(
+            resolve(sandbox.chunksDir, 'shared-live.js'),
+            'export const a = true;\n'
+        );
+        writeFile(
+            resolve(sandbox.chunksDir, 'stale.js'),
+            'export const stale = true;\n'
+        );
+
+        const result = runCleaner(sandbox.base);
+        assert.equal(
+            result.status,
+            0,
+            `salida inesperada: ${result.stderr || result.stdout}`
+        );
+
+        assert.equal(
+            existsSync(resolve(sandbox.chunksDir, 'shared-live.js')),
+            true,
+            'chunk compartido minificado no debe eliminarse'
+        );
+        assert.equal(
+            existsSync(resolve(sandbox.chunksDir, 'stale.js')),
+            false,
+            'chunk huerfano debe eliminarse'
+        );
+    } finally {
+        removeSandbox(sandbox.base);
+    }
+});
+
 test('clean-admin-chunks dry-run reporta sin borrar archivos', () => {
     const sandbox = createSandboxRoot('admin-chunks-dry-');
     try {

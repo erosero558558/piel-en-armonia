@@ -9,6 +9,7 @@ function test_defaults()
     $flags = get_feature_flags();
     assert($flags['new_booking_ui'] === false, 'Default new_booking_ui should be false');
     assert($flags['admin_sony_ui'] === true, 'Default admin_sony_ui should be true');
+    assert($flags['admin_sony_ui_v3'] === false, 'Default admin_sony_ui_v3 should be false');
     assert($flags['stripe_elements'] === false, 'Default stripe_elements should be false');
     assert($flags['dark_mode'] === false, 'Default dark_mode should be false');
     assert($flags['chatgpt_integration'] === false, 'Default chatgpt_integration should be false');
@@ -19,6 +20,7 @@ function test_env_override()
 {
     putenv('FEATURE_NEW_BOOKING_UI=true');
     putenv('FEATURE_ADMIN_SONY_UI=1');
+    putenv('FEATURE_ADMIN_SONY_UI_V3=true');
     putenv('FEATURE_DARK_MODE=1');
     putenv('FEATURE_STRIPE_ELEMENTS=on');
     putenv('FEATURE_CHATGPT_INTEGRATION=yes');
@@ -26,6 +28,7 @@ function test_env_override()
     $flags = get_feature_flags();
     assert($flags['new_booking_ui'] === true, 'FEATURE_NEW_BOOKING_UI override failed');
     assert($flags['admin_sony_ui'] === true, 'FEATURE_ADMIN_SONY_UI override failed');
+    assert($flags['admin_sony_ui_v3'] === true, 'FEATURE_ADMIN_SONY_UI_V3 override failed');
     assert($flags['dark_mode'] === true, 'FEATURE_DARK_MODE override failed');
     assert($flags['stripe_elements'] === true, 'FEATURE_STRIPE_ELEMENTS override failed');
     assert($flags['chatgpt_integration'] === true, 'FEATURE_CHATGPT_INTEGRATION override failed');
@@ -34,6 +37,7 @@ function test_env_override()
     // Clean up
     putenv('FEATURE_NEW_BOOKING_UI');
     putenv('FEATURE_ADMIN_SONY_UI');
+    putenv('FEATURE_ADMIN_SONY_UI_V3');
     putenv('FEATURE_DARK_MODE');
     putenv('FEATURE_STRIPE_ELEMENTS');
     putenv('FEATURE_CHATGPT_INTEGRATION');
