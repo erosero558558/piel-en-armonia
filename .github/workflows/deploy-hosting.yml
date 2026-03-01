@@ -564,9 +564,10 @@ jobs:
               run: |
                   {
                     echo "## Manual fallback";
-                    echo "- Si el host sigue sin publicar \`/es/\` o \`/en/\`, ejecutar en el VPS: \`bash ./bin/deploy-public-v2-live.sh\`";
+                    echo "- Si el host sigue sin publicar \`/es/\` o \`/en/\`, ejecutar en el VPS: \`bash ./bin/deploy-public-v3-live.sh\`";
                     echo "- El script recompone \`es/\`, \`en/\`, \`_astro/\`, valida \`/usr/sbin/nginx -t\` y recarga Nginx.";
                     echo "- Tambien corrige redirects canonicos para evitar \`:8080\` detras de Cloudflare.";
+                    echo "- Compat temporal: \`deploy-public-v2-live.sh\` existe como shim y delega a V3.";
                   } >> "$GITHUB_STEP_SUMMARY"
 
             - name: Smoke Tests (Prod)
@@ -866,11 +867,13 @@ jobs:
 
             - name: Persist public cutover monitor window
               if: ${{ env.FTP_DRY_RUN != 'true' && env.ENABLE_PUBLIC_CUTOVER_MONITOR == 'true' }}
+              continue-on-error: true
               uses: actions/github-script@v7
               with:
                   script: |
                       const owner = context.repo.owner;
                       const repo = context.repo.repo;
+                      let writeDenied = false;
                       const variables = [
                         {
                           name: 'PROD_MONITOR_ENABLE_PUBLIC_CUTOVER',
@@ -901,6 +904,13 @@ jobs:
                           });
                           core.info(`Updated repo variable ${variable.name}`);
                         } catch (error) {
+                          if (error.status === 403) {
+                            writeDenied = true;
+                            core.warning(
+                              'Skipping repository variable persistence: token lacks actions_variables=write permissions.'
+                            );
+                            break;
+                          }
                           if (error.status !== 404) {
                             throw error;
                           }
@@ -914,8 +924,13 @@ jobs:
                         }
                       }
 
+                      if (writeDenied) {
+                        core.notice('Public cutover monitor variables were not persisted. Deploy is still valid.');
+                      }
+
             - name: Bootstrap prod-monitor post-cutover
               if: ${{ env.FTP_DRY_RUN != 'true' && env.ENABLE_PUBLIC_CUTOVER_MONITOR == 'true' && env.DISPATCH_PUBLIC_CUTOVER_MONITOR == 'true' }}
+              continue-on-error: true
               uses: actions/github-script@v7
               with:
                   script: |
@@ -925,20 +940,29 @@ jobs:
                         context.payload.workflow_run?.head_branch ||
                         (context.ref || '').replace('refs/heads/', '') ||
                         'main';
-
-                      await github.rest.actions.createWorkflowDispatch({
-                        owner,
-                        repo,
-                        workflow_id: 'prod-monitor.yml',
-                        ref,
-                        inputs: {
-                          domain: process.env.PROD_URL,
-                          enable_public_cutover_monitor: 'true',
-                          public_cutover_started_at: process.env.PUBLIC_CUTOVER_STARTED_AT,
-                          public_cutover_window_hours: process.env.PUBLIC_CUTOVER_WINDOW_HOURS
+                      try {
+                        await github.rest.actions.createWorkflowDispatch({
+                          owner,
+                          repo,
+                          workflow_id: 'prod-monitor.yml',
+                          ref,
+                          inputs: {
+                            domain: process.env.PROD_URL,
+                            enable_public_cutover_monitor: 'true',
+                            public_cutover_started_at: process.env.PUBLIC_CUTOVER_STARTED_AT,
+                            public_cutover_window_hours: process.env.PUBLIC_CUTOVER_WINDOW_HOURS
+                          }
+                        });
+                        core.info(`prod-monitor.yml dispatched for ref ${ref}`);
+                      } catch (error) {
+                        if (error.status === 403 || error.status === 404) {
+                          core.warning(
+                            `Skipping prod-monitor dispatch due to insufficient permissions or missing workflow (${error.status}).`
+                          );
+                          return;
                         }
-                      });
-                      core.info(`prod-monitor.yml dispatched for ref ${ref}`);
+                        throw error;
+                      }
 
             - name: Production summary
               if: ${{ always() }}
