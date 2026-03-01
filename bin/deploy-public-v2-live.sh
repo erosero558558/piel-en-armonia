@@ -6,6 +6,7 @@ TARGET_COMMIT="${TARGET_COMMIT:-$(git -C "$REPO" rev-parse --short origin/main 2
 SITE_PATH="${SITE_PATH:-/etc/nginx/sites-enabled/pielarmonia}"
 NGINX_BIN="${NGINX_BIN:-/usr/sbin/nginx}"
 INSTALL_DEPS="${INSTALL_DEPS:-true}"
+DISABLE_DESTRUCTIVE_SYNC_CRON="${DISABLE_DESTRUCTIVE_SYNC_CRON:-true}"
 
 require_cmd() {
     local command_name="$1"
@@ -24,6 +25,30 @@ test -x "$NGINX_BIN"
 test -d "$REPO"
 
 cd "$REPO"
+
+if [ "$DISABLE_DESTRUCTIVE_SYNC_CRON" = "true" ] && command -v crontab >/dev/null 2>&1; then
+    echo "== Cron guard =="
+    current_crontab="$(mktemp)"
+    filtered_crontab="$(mktemp)"
+
+    if crontab -l >"$current_crontab" 2>/dev/null; then
+        awk -v repo="$REPO" '
+            index($0, repo) && index($0, "git clean -fd") { next }
+            { print }
+        ' "$current_crontab" >"$filtered_crontab"
+
+        if ! cmp -s "$current_crontab" "$filtered_crontab"; then
+            crontab "$filtered_crontab"
+            echo "Removed destructive cron entries targeting $REPO with git clean -fd."
+        else
+            echo "No destructive git clean cron entries found for $REPO."
+        fi
+    else
+        echo "No user crontab present."
+    fi
+
+    rm -f "$current_crontab" "$filtered_crontab"
+fi
 
 echo "== Repo =="
 git fetch origin --prune

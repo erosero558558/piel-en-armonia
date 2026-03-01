@@ -50,6 +50,24 @@ test('deploy-public-v2-live endurece nginx sin depender de PATH', () => {
     }
 });
 
+test('deploy-public-v2-live neutraliza cron destructivo que borra artefactos no versionados', () => {
+    const raw = loadScript();
+
+    for (const snippet of [
+        'DISABLE_DESTRUCTIVE_SYNC_CRON="${DISABLE_DESTRUCTIVE_SYNC_CRON:-true}"',
+        '== Cron guard ==',
+        'command -v crontab',
+        'index($0, repo) && index($0, "git clean -fd") { next }',
+        'Removed destructive cron entries targeting $REPO with git clean -fd.',
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta guard contra cron destructivo en script live: ${snippet}`
+        );
+    }
+});
+
 test('deploy-public-v2-live corrige redirects canonicos y valida rutas publicas criticas', () => {
     const raw = loadScript();
 
