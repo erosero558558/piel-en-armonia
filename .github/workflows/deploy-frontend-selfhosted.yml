@@ -1,0 +1,349 @@
+name: Deploy Frontend (Self-Hosted)
+
+on:
+    workflow_dispatch:
+        inputs:
+            protocol:
+                description: 'Protocolo (auto|sftp|ftps|ftp)'
+                required: false
+                default: 'auto'
+                type: choice
+                options:
+                    - auto
+                    - sftp
+                    - ftps
+                    - ftp
+            remote_dir:
+                description: 'Directorio remoto de publicación'
+                required: false
+                default: '/public_html/'
+                type: string
+            run_build:
+                description: 'Construir Astro antes de publicar'
+                required: false
+                default: true
+                type: boolean
+
+permissions:
+    contents: read
+
+jobs:
+    deploy:
+        name: Publicar frontend via self-hosted
+        runs-on: [self-hosted, Windows, kimi]
+        timeout-minutes: 40
+        env:
+            TARGET_DOMAIN: https://pielarmonia.com
+            DEPLOY_PROTOCOL_INPUT: ${{ github.event.inputs.protocol || 'auto' }}
+            REMOTE_DIR_INPUT: ${{ github.event.inputs.remote_dir || '/public_html/' }}
+            RUN_BUILD_INPUT: ${{ github.event.inputs.run_build || 'true' }}
+            FTP_SERVER_SECRET: ${{ secrets.FTP_SERVER }}
+            FTP_USERNAME_SECRET: ${{ secrets.FTP_USERNAME }}
+            FTP_PASSWORD_SECRET: ${{ secrets.FTP_PASSWORD }}
+            SSH_HOST_SECRET: ${{ secrets.SSH_HOST }}
+            SSH_USERNAME_SECRET: ${{ secrets.SSH_USERNAME }}
+            SSH_PASSWORD_SECRET: ${{ secrets.SSH_PASSWORD }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 2
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'npm'
+
+            - name: Install project dependencies
+              shell: pwsh
+              run: npm ci
+
+            - name: Build Astro routes
+              if: ${{ env.RUN_BUILD_INPUT == 'true' }}
+              shell: pwsh
+              run: |
+                  npm run astro:build
+                  npm run astro:sync
+
+            - name: Install deploy transport dependencies
+              shell: pwsh
+              run: npm install --no-save basic-ftp@5 ssh2-sftp-client@11
+
+            - name: Deploy frontend bundle (auto protocol)
+              shell: pwsh
+              run: |
+                  @'
+                  const fs = require('node:fs');
+                  const path = require('node:path');
+                  const ftp = require('basic-ftp');
+                  const SftpClient = require('ssh2-sftp-client');
+
+                  const protocolInput = String(process.env.DEPLOY_PROTOCOL_INPUT || 'auto').toLowerCase();
+                  const remoteDirInput = String(process.env.REMOTE_DIR_INPUT || '/public_html/');
+                  const hostRaw = process.env.FTP_SERVER_SECRET || process.env.SSH_HOST_SECRET || '';
+                  const ftpUser = process.env.FTP_USERNAME_SECRET || '';
+                  const ftpPassword = process.env.FTP_PASSWORD_SECRET || '';
+                  const sftpUser = process.env.SSH_USERNAME_SECRET || ftpUser;
+                  const sftpPassword = process.env.SSH_PASSWORD_SECRET || ftpPassword;
+
+                  function sanitizeHost(value) {
+                    return String(value || '').replace(/^\w+:\/\//, '').replace(/\/+$/, '').trim();
+                  }
+
+                  function normalizeRemoteDir(value) {
+                    const raw = String(value || '/public_html/').replace(/\\/g, '/');
+                    const prefixed = raw.startsWith('/') ? raw : `/${raw}`;
+                    return prefixed.endsWith('/') ? prefixed : `${prefixed}/`;
+                  }
+
+                  function walkFiles(rootPath) {
+                    const out = [];
+                    function visit(currentPath) {
+                      const stat = fs.statSync(currentPath);
+                      if (stat.isDirectory()) {
+                        for (const child of fs.readdirSync(currentPath)) {
+                          visit(path.join(currentPath, child));
+                        }
+                        return;
+                      }
+                      out.push(currentPath);
+                    }
+                    visit(rootPath);
+                    return out;
+                  }
+
+                  function collectDeployFiles() {
+                    const candidates = ['es', 'en', '_astro', 'index.php', 'index.html'];
+                    const files = [];
+                    for (const entry of candidates) {
+                      const full = path.resolve(entry);
+                      if (!fs.existsSync(full)) continue;
+                      const stat = fs.statSync(full);
+                      if (stat.isDirectory()) {
+                        files.push(...walkFiles(full));
+                      } else {
+                        files.push(full);
+                      }
+                    }
+                    return files;
+                  }
+
+                  function toRemotePath(localFile, remoteBase, cwd) {
+                    const rel = path.relative(cwd, localFile).replace(/\\/g, '/');
+                    return `${remoteBase}${rel}`;
+                  }
+
+                  async function ensureSftpDir(client, remoteDir) {
+                    const segments = remoteDir.replace(/\\/g, '/').split('/').filter(Boolean);
+                    let current = '';
+                    for (const segment of segments) {
+                      current += `/${segment}`;
+                      const exists = await client.exists(current);
+                      if (!exists) {
+                        await client.mkdir(current);
+                      }
+                    }
+                  }
+
+                  async function deployViaSftp({ host, port, username, password, remoteBase, files, cwd }) {
+                    const client = new SftpClient();
+                    await client.connect({
+                      host,
+                      port,
+                      username,
+                      password,
+                      readyTimeout: 30000,
+                    });
+                    try {
+                      await ensureSftpDir(client, remoteBase);
+                      for (const localFile of files) {
+                        const remotePath = toRemotePath(localFile, remoteBase, cwd);
+                        const remoteParent = path.posix.dirname(remotePath);
+                        await ensureSftpDir(client, remoteParent);
+                        await client.fastPut(localFile, remotePath);
+                        console.log(`[SFTP] uploaded ${remotePath}`);
+                      }
+                    } finally {
+                      await client.end();
+                    }
+                  }
+
+                  async function deployViaFtp({ host, port, username, password, secure, remoteBase, files, cwd }) {
+                    const client = new ftp.Client(30000);
+                    client.ftp.verbose = false;
+                    await client.access({
+                      host,
+                      port,
+                      user: username,
+                      password,
+                      secure,
+                    });
+                    try {
+                      await client.ensureDir(remoteBase);
+                      await client.cd('/');
+                      for (const localFile of files) {
+                        const remotePath = toRemotePath(localFile, remoteBase, cwd);
+                        const remoteParent = path.posix.dirname(remotePath);
+                        await client.ensureDir(remoteParent);
+                        await client.uploadFrom(localFile, remotePath);
+                        console.log(`[${secure ? 'FTPS' : 'FTP'}] uploaded ${remotePath}`);
+                        await client.cd('/');
+                      }
+                    } finally {
+                      client.close();
+                    }
+                  }
+
+                  async function testSftp({ host, port, username, password }) {
+                    const client = new SftpClient();
+                    try {
+                      await client.connect({
+                        host,
+                        port,
+                        username,
+                        password,
+                        readyTimeout: 12000,
+                      });
+                      return true;
+                    } catch {
+                      return false;
+                    } finally {
+                      try { await client.end(); } catch {}
+                    }
+                  }
+
+                  async function testFtp({ host, port, username, password, secure }) {
+                    const client = new ftp.Client(12000);
+                    try {
+                      await client.access({
+                        host,
+                        port,
+                        user: username,
+                        password,
+                        secure,
+                      });
+                      return true;
+                    } catch {
+                      return false;
+                    } finally {
+                      client.close();
+                    }
+                  }
+
+                  async function resolveMode() {
+                    const host = sanitizeHost(hostRaw);
+                    if (!host) {
+                      throw new Error('No se encontro host de deploy (FTP_SERVER/SSH_HOST).');
+                    }
+
+                    const attempts = [];
+                    const protocol = protocolInput;
+                    if (protocol === 'sftp' || protocol === 'auto') {
+                      for (const port of [65002, 22, 2222, 22022, 21098]) {
+                        attempts.push({ mode: 'sftp', port, user: sftpUser, pass: sftpPassword });
+                      }
+                    }
+                    if (protocol === 'ftps' || protocol === 'auto') {
+                      for (const port of [21, 990, 2121]) {
+                        attempts.push({ mode: 'ftps', port, user: ftpUser, pass: ftpPassword });
+                      }
+                    }
+                    if (protocol === 'ftp' || protocol === 'auto') {
+                      for (const port of [21, 2121]) {
+                        attempts.push({ mode: 'ftp', port, user: ftpUser, pass: ftpPassword });
+                      }
+                    }
+
+                    for (const attempt of attempts) {
+                      let ok = false;
+                      if (attempt.mode === 'sftp') {
+                        ok = await testSftp({
+                          host,
+                          port: attempt.port,
+                          username: attempt.user,
+                          password: attempt.pass,
+                        });
+                      } else {
+                        ok = await testFtp({
+                          host,
+                          port: attempt.port,
+                          username: attempt.user,
+                          password: attempt.pass,
+                          secure: attempt.mode === 'ftps',
+                        });
+                      }
+                      console.log(`[probe] mode=${attempt.mode} port=${attempt.port} => ${ok ? 'OPEN' : 'closed'}`);
+                      if (ok) {
+                        return {
+                          host,
+                          mode: attempt.mode,
+                          port: attempt.port,
+                          username: attempt.user,
+                          password: attempt.pass,
+                        };
+                      }
+                    }
+
+                    throw new Error('No se encontro un protocolo/puerto de deploy accesible en self-hosted.');
+                  }
+
+                  (async () => {
+                    const cwd = process.cwd();
+                    const files = collectDeployFiles();
+                    if (!files.length) {
+                      throw new Error('No hay archivos frontend para publicar.');
+                    }
+
+                    const remoteBase = normalizeRemoteDir(remoteDirInput);
+                    const selected = await resolveMode();
+                    console.log(`selected_mode=${selected.mode} selected_port=${selected.port}`);
+                    console.log(`files_to_upload=${files.length}`);
+
+                    if (selected.mode === 'sftp') {
+                      await deployViaSftp({
+                        host: selected.host,
+                        port: selected.port,
+                        username: selected.username,
+                        password: selected.password,
+                        remoteBase,
+                        files,
+                        cwd,
+                      });
+                    } else {
+                      await deployViaFtp({
+                        host: selected.host,
+                        port: selected.port,
+                        username: selected.username,
+                        password: selected.password,
+                        secure: selected.mode === 'ftps',
+                        remoteBase,
+                        files,
+                        cwd,
+                      });
+                    }
+                  })().catch((error) => {
+                    console.error(error?.stack || String(error));
+                    process.exit(1);
+                  });
+                  '@ | node -
+
+            - name: Validate public frontend after deploy
+              shell: pwsh
+              run: |
+                  node bin/check-public-routing-smoke.js `
+                    --base-url $env:TARGET_DOMAIN `
+                    --expect-routes /es/,/en/ `
+                    --expect-redirect /,/es/ `
+                    --expect-canonical /es/ `
+                    --expect-hreflang es:/es/,en:/en/
+
+                  $resp = Invoke-WebRequest -Uri "$env:TARGET_DOMAIN/es/" -UseBasicParsing
+                  $title = [regex]::Match($resp.Content,'<title>(.*?)</title>','IgnoreCase').Groups[1].Value
+                  $css = [regex]::Matches($resp.Content,'_astro/index\\.[A-Za-z0-9_-]+\\.css') | Select-Object -First 1 | ForEach-Object { $_.Value }
+                  $hasV4 = if ($resp.Content -match '__PUBLIC_V4_FLAGS') { 'true' } else { 'false' }
+
+                  "title=$title" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "css=$css" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "has_public_v4_flags=$hasV4" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+
