@@ -83,6 +83,7 @@ export function attachKeyboardShortcuts(options) {
                 keyn: 'appointments_no_show',
                 keyp: 'callbacks_pending',
                 keyc: 'callbacks_contacted',
+                keyu: 'callbacks_sla_urgent',
                 keyw: 'queue_sla_risk',
                 keyl: 'queue_call_next',
             };

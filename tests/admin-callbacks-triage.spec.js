@@ -127,6 +127,15 @@ async function setupAdminApiMocks(page) {
         const url = new URL(route.request().url());
         const resource = url.searchParams.get('resource') || '';
 
+        if (resource === 'features') {
+            return jsonResponse(route, {
+                ok: true,
+                data: {
+                    admin_sony_ui: true,
+                },
+            });
+        }
+
         if (resource === 'data') {
             return jsonResponse(route, buildDataPayload());
         }
@@ -149,7 +158,7 @@ async function setupAdminApiMocks(page) {
 
 async function openCallbacksSection(page) {
     await setupAdminApiMocks(page);
-    await page.goto('/admin.html');
+    await page.goto('/admin.html?admin_ui=sony_v2&admin_ui_reset=1');
     await expect(page.locator('#adminDashboard')).toBeVisible();
     await page.keyboard.press('Alt+Shift+Digit3');
     await expect(page.locator('#callbacks')).toHaveClass(/active/);

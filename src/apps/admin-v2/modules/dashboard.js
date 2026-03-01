@@ -10,6 +10,18 @@ function listItem(label, value) {
     return `<li><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></li>`;
 }
 
+function attentionItem(title, value, meta, tone = 'neutral') {
+    return `
+        <li class="dashboard-attention-item" data-tone="${escapeHtml(tone)}">
+            <div>
+                <span>${escapeHtml(title)}</span>
+                <small>${escapeHtml(meta)}</small>
+            </div>
+            <strong>${escapeHtml(value)}</strong>
+        </li>
+    `;
+}
+
 export function renderDashboard(state) {
     const appointments = Array.isArray(state.data.appointments)
         ? state.data.appointments
@@ -39,6 +51,11 @@ export function renderDashboard(state) {
               reviews.length
           ).toFixed(1)
         : '0.0';
+    const recentReviews = reviews.filter((item) => {
+        const createdAt = new Date(item.date || item.createdAt || '');
+        if (Number.isNaN(createdAt.getTime())) return false;
+        return Date.now() - createdAt.getTime() <= 30 * 24 * 60 * 60 * 1000;
+    }).length;
 
     setText('#todayAppointments', todayAppointments);
     setText('#totalAppointments', appointments.length);
@@ -47,6 +64,8 @@ export function renderDashboard(state) {
     setText('#totalNoShows', noShows);
     setText('#avgRating', avgRating);
     setText('#adminAvgRating', avgRating);
+    setText('#dashboardHeroRating', avgRating);
+    setText('#dashboardHeroRecentReviews', recentReviews);
 
     const summary = funnel.summary || {};
     setText('#funnelViewBooking', formatNumber(summary.viewBooking || 0));
@@ -124,9 +143,43 @@ export function renderDashboard(state) {
     setText('#operationPendingReviewCount', pendingTransferCount);
     setText('#operationPendingCallbacksCount', pendingCallbacks);
     setText('#operationTodayLoadCount', todayAppointments);
+    setText('#dashboardHeroPendingTransfers', pendingTransferCount);
+    setText('#dashboardHeroUrgentCallbacks', callbacksUrgentCount);
     setText(
         '#operationQueueHealth',
         callbacksUrgentCount > 0 ? 'Cola: atencion requerida' : 'Cola: estable'
+    );
+    setText(
+        '#dashboardQueueHealth',
+        callbacksUrgentCount > 0 ? 'Cola: atencion requerida' : 'Cola: estable'
+    );
+    setText(
+        '#dashboardLiveStatus',
+        pendingTransferCount > 0 || callbacksUrgentCount > 0
+            ? 'Atencion'
+            : 'Estable'
+    );
+    setText(
+        '#dashboardLiveMeta',
+        pendingTransferCount > 0
+            ? 'Existen transferencias pendientes por validar.'
+            : callbacksUrgentCount > 0
+              ? 'Hay callbacks fuera de SLA que requieren contacto.'
+              : 'Sin alertas criticas en la operacion actual.'
+    );
+    setText(
+        '#dashboardFlowStatus',
+        todayAppointments > 6
+            ? 'Agenda con demanda alta'
+            : noShows > 0
+              ? 'Revisar ausencias del dia'
+              : 'Flujo operativo bajo control'
+    );
+    setText(
+        '#dashboardHeroSummary',
+        pendingTransferCount > 0 || callbacksUrgentCount > 0
+            ? `Prioriza ${pendingTransferCount} transferencia(s) y ${callbacksUrgentCount} callback(s) urgentes.`
+            : 'Agenda, callbacks y disponibilidad en una sola vista de control.'
     );
 
     const actions = [
@@ -160,4 +213,48 @@ export function renderDashboard(state) {
             )
             .join('')
     );
+
+    const refreshAt = Number(state.ui?.lastRefreshAt || 0);
+    setText(
+        '#operationRefreshSignal',
+        refreshAt
+            ? `Sync ${new Date(refreshAt).toLocaleTimeString('es-EC', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+              })}`
+            : 'Tiempo real'
+    );
+    setText(
+        '#operationDeckMeta',
+        pendingTransferCount > 0 || pendingCallbacks > 0
+            ? 'Prioridades activas'
+            : 'Operacion estable'
+    );
+
+    const attentionItems = [
+        attentionItem(
+            'Transferencias',
+            String(pendingTransferCount),
+            pendingTransferCount > 0
+                ? 'Comprobantes por revisar'
+                : 'Sin pendientes',
+            pendingTransferCount > 0 ? 'warning' : 'neutral'
+        ),
+        attentionItem(
+            'Callbacks urgentes',
+            String(callbacksUrgentCount),
+            callbacksUrgentCount > 0
+                ? 'Mayores a 60 minutos'
+                : 'SLA dentro de rango',
+            callbacksUrgentCount > 0 ? 'danger' : 'neutral'
+        ),
+        attentionItem(
+            'No show',
+            String(noShows),
+            noShows > 0 ? 'Requiere seguimiento' : 'Sin ausencias recientes',
+            noShows > 0 ? 'warning' : 'neutral'
+        ),
+    ];
+
+    setHtml('#dashboardAttentionList', attentionItems.join(''));
 }

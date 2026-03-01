@@ -13,14 +13,119 @@ function toDateTime(value) {
     return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }
 
+function appointmentStamp(item) {
+    return toDateTime(`${item?.date || ''}T${item?.time || '00:00'}:00`);
+}
+
 function normalizePaymentStatus(item) {
     return normalize(item.paymentStatus || item.payment_status || '');
 }
 
+function normalizeAppointmentStatus(status) {
+    return normalize(status);
+}
+
+function humanizeToken(value, fallback = '-') {
+    const source = String(value || '')
+        .replace(/[_-]+/g, ' ')
+        .trim();
+    if (!source) return fallback;
+    return source
+        .split(/\s+/)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+}
+
+function paymentMethodLabel(method) {
+    const map = {
+        transfer: 'Transferencia',
+        cash: 'Consultorio',
+        card: 'Tarjeta',
+        gateway: 'Pasarela',
+    };
+    const key = normalize(method);
+    return map[key] || humanizeToken(method, 'Metodo no definido');
+}
+
+function paymentLabel(status) {
+    const map = {
+        pending_transfer_review: 'Validar pago',
+        pending_transfer: 'Transferencia',
+        pending_cash: 'Pago en consultorio',
+        pending_gateway: 'Pago en proceso',
+        paid: 'Pagado',
+        failed: 'Fallido',
+    };
+    const key = normalize(status);
+    return map[key] || humanizeToken(status, 'Pendiente');
+}
+
+function statusLabel(status) {
+    const map = {
+        confirmed: 'Confirmada',
+        pending: 'Pendiente',
+        completed: 'Completada',
+        cancelled: 'Cancelada',
+        no_show: 'No show',
+    };
+    const key = normalize(status);
+    return map[key] || humanizeToken(status, 'Pendiente');
+}
+
+function paymentTone(status) {
+    const key = normalize(status);
+    if (key === 'paid') return 'success';
+    if (key === 'failed') return 'danger';
+    if (key === 'pending_cash') return 'neutral';
+    return 'warning';
+}
+
+function statusTone(status) {
+    const key = normalize(status);
+    if (key === 'completed') return 'success';
+    if (key === 'cancelled' || key === 'no_show') return 'danger';
+    if (key === 'pending') return 'warning';
+    return 'neutral';
+}
+
+function formatRelativeWindow(stamp) {
+    if (!stamp) return 'Sin fecha';
+    const diffMinutes = Math.round((stamp - Date.now()) / 60000);
+    const absoluteMinutes = Math.abs(diffMinutes);
+
+    if (diffMinutes < 0) {
+        if (absoluteMinutes < 60) {
+            return `Hace ${absoluteMinutes} min`;
+        }
+        if (absoluteMinutes < 24 * 60) {
+            return `Hace ${Math.round(absoluteMinutes / 60)} h`;
+        }
+        return 'Ya ocurrio';
+    }
+
+    if (diffMinutes < 60) {
+        return `En ${Math.max(diffMinutes, 0)} min`;
+    }
+    if (diffMinutes < 24 * 60) {
+        return `En ${Math.round(diffMinutes / 60)} h`;
+    }
+    return `En ${Math.round(diffMinutes / (24 * 60))} d`;
+}
+
+function isToday(item) {
+    const stamp = appointmentStamp(item);
+    if (!stamp) return false;
+    const date = new Date(stamp);
+    const now = new Date();
+    return (
+        date.getFullYear() === now.getFullYear() &&
+        date.getMonth() === now.getMonth() &&
+        date.getDate() === now.getDate()
+    );
+}
+
 function isUpcoming48h(item) {
-    const date = String(item.date || '').trim();
-    const time = String(item.time || '00:00').trim();
-    const stamp = toDateTime(`${date}T${time}:00`);
+    const stamp = appointmentStamp(item);
     if (!stamp) return false;
     const diff = stamp - Date.now();
     return diff >= 0 && diff <= 48 * 60 * 60 * 1000;
@@ -28,7 +133,7 @@ function isUpcoming48h(item) {
 
 function isTriageAttention(item) {
     const paymentStatus = normalizePaymentStatus(item);
-    const appointmentStatus = normalize(item.status);
+    const appointmentStatus = normalizeAppointmentStatus(item.status);
     if (
         paymentStatus === 'pending_transfer_review' ||
         paymentStatus === 'pending_transfer'
@@ -56,7 +161,9 @@ function applyFilter(items, filter) {
         return items.filter(isUpcoming48h);
     }
     if (normalized === 'no_show') {
-        return items.filter((item) => normalize(item.status) === 'no_show');
+        return items.filter(
+            (item) => normalizeAppointmentStatus(item.status) === 'no_show'
+        );
     }
     if (normalized === 'triage_attention') {
         return items.filter(isTriageAttention);
@@ -75,6 +182,7 @@ function applySearch(items, searchTerm) {
             item.service,
             item.doctor,
             item.paymentStatus,
+            item.payment_status,
         ];
         return fields.some((field) => normalize(field).includes(term));
     });
@@ -92,49 +200,113 @@ function sortItems(items, sort) {
     }
 
     if (normalized === 'datetime_asc') {
-        list.sort((a, b) => {
-            const aStamp = toDateTime(
-                `${a.date || ''}T${a.time || '00:00'}:00`
-            );
-            const bStamp = toDateTime(
-                `${b.date || ''}T${b.time || '00:00'}:00`
-            );
-            return aStamp - bStamp;
-        });
+        list.sort((a, b) => appointmentStamp(a) - appointmentStamp(b));
         return list;
     }
 
-    list.sort((a, b) => {
-        const aStamp = toDateTime(`${a.date || ''}T${a.time || '00:00'}:00`);
-        const bStamp = toDateTime(`${b.date || ''}T${b.time || '00:00'}:00`);
-        return bStamp - aStamp;
-    });
+    list.sort((a, b) => appointmentStamp(b) - appointmentStamp(a));
     return list;
 }
 
-function paymentLabel(status) {
-    const map = {
-        pending_transfer_review: 'Validar pago',
-        pending_transfer: 'Transferencia',
-        pending_cash: 'Pago en consultorio',
-        pending_gateway: 'Pago en proceso',
-        paid: 'Pagado',
-        failed: 'Fallido',
+function buildFocusAppointment(items) {
+    const pendingTransfer = items
+        .filter((item) => applyFilter([item], 'pending_transfer').length > 0)
+        .sort((a, b) => appointmentStamp(a) - appointmentStamp(b))[0];
+    if (pendingTransfer) {
+        return {
+            item: pendingTransfer,
+            label: 'Transferencia prioritaria',
+            hint: 'Valida pago y libera la agenda antes del check-in.',
+            tags: ['Pago por validar', 'WhatsApp listo'],
+        };
+    }
+
+    const noShow = items
+        .filter((item) => normalizeAppointmentStatus(item.status) === 'no_show')
+        .sort((a, b) => appointmentStamp(a) - appointmentStamp(b))[0];
+    if (noShow) {
+        return {
+            item: noShow,
+            label: 'Incidencia abierta',
+            hint: 'Confirma si requiere seguimiento o reprogramacion.',
+            tags: ['No show', 'Seguimiento'],
+        };
+    }
+
+    const nextAppointment = items
+        .filter((item) => appointmentStamp(item) > 0)
+        .sort((a, b) => appointmentStamp(a) - appointmentStamp(b))[0];
+    if (nextAppointment) {
+        return {
+            item: nextAppointment,
+            label: 'Siguiente ingreso',
+            hint: 'Revisa contexto y deja la atencion preparada.',
+            tags: ['Agenda viva'],
+        };
+    }
+
+    return {
+        item: null,
+        label: 'Sin foco activo',
+        hint: 'Cuando entren citas accionables apareceran aqui.',
+        tags: [],
     };
-    const key = normalize(status);
-    return map[key] || status || 'Pendiente';
 }
 
-function statusLabel(status) {
-    const map = {
-        confirmed: 'Confirmada',
-        pending: 'Pendiente',
-        completed: 'Completada',
-        cancelled: 'Cancelada',
-        no_show: 'No show',
+function computeOps(items) {
+    const pendingTransfers = applyFilter(items, 'pending_transfer');
+    const upcoming48h = applyFilter(items, 'upcoming_48h');
+    const noShows = applyFilter(items, 'no_show');
+    const triage = applyFilter(items, 'triage_attention');
+    const today = items.filter(isToday);
+
+    return {
+        pendingTransferCount: pendingTransfers.length,
+        upcomingCount: upcoming48h.length,
+        noShowCount: noShows.length,
+        todayCount: today.length,
+        triageCount: triage.length,
+        focus: buildFocusAppointment(items),
     };
-    const key = normalize(status);
-    return map[key] || status || 'Pendiente';
+}
+
+function paymentCell(item) {
+    const paymentStatus = item.paymentStatus || item.payment_status || '';
+    const proofUrl = String(
+        item.transferProofUrl ||
+            item.transferProofURL ||
+            item.transfer_proof_url ||
+            ''
+    ).trim();
+    return `
+        <div class="appointment-payment-stack">
+            <span class="appointment-pill" data-tone="${escapeHtml(paymentTone(paymentStatus))}">${escapeHtml(paymentLabel(paymentStatus))}</span>
+            <small>Metodo: ${escapeHtml(paymentMethodLabel(item.paymentMethod || item.payment_method || ''))}</small>
+            ${proofUrl ? `<a href="${escapeHtml(proofUrl)}" target="_blank" rel="noopener">Ver comprobante</a>` : '<small>Sin comprobante adjunto</small>'}
+        </div>
+    `;
+}
+
+function statusCell(item) {
+    const status = normalizeAppointmentStatus(item.status);
+    const paymentStatus = normalizePaymentStatus(item);
+    const notes = [];
+    if (paymentStatus === 'pending_transfer_review') {
+        notes.push('Transferencia en espera');
+    }
+    if (status === 'no_show') {
+        notes.push('Paciente ausente');
+    }
+    if (status === 'cancelled') {
+        notes.push('Bloqueo operativo');
+    }
+
+    return `
+        <div class="appointment-status-stack">
+            <span class="appointment-pill" data-tone="${escapeHtml(statusTone(status))}">${escapeHtml(statusLabel(status))}</span>
+            <small>${escapeHtml(notes[0] || 'Sin alertas abiertas')}</small>
+        </div>
+    `;
 }
 
 function rowActions(item) {
@@ -161,14 +333,32 @@ function renderRows(items) {
 
     return items
         .map((item) => {
-            const dateText = `${formatDate(item.date)} ${escapeHtml(item.time || '')}`;
+            const stamp = appointmentStamp(item);
             return `
                 <tr class="appointment-row" data-appointment-id="${Number(item.id || 0)}">
-                    <td data-label="Paciente">${escapeHtml(item.name || 'Sin nombre')}</td>
-                    <td data-label="Servicio">${escapeHtml(item.service || '-')}</td>
-                    <td data-label="Fecha">${dateText}</td>
-                    <td data-label="Pago">${escapeHtml(paymentLabel(item.paymentStatus || item.payment_status))}</td>
-                    <td data-label="Estado">${escapeHtml(statusLabel(item.status))}</td>
+                    <td data-label="Paciente">
+                        <div class="appointment-person">
+                            <strong>${escapeHtml(item.name || 'Sin nombre')}</strong>
+                            <span>${escapeHtml(item.email || 'Sin email')}</span>
+                            <small>${escapeHtml(item.phone || 'Sin telefono')}</small>
+                        </div>
+                    </td>
+                    <td data-label="Servicio">
+                        <div class="appointment-service">
+                            <strong>${escapeHtml(humanizeToken(item.service, 'Servicio pendiente'))}</strong>
+                            <span>Especialista: ${escapeHtml(humanizeToken(item.doctor, 'Sin asignar'))}</span>
+                            <small>${escapeHtml(item.price || 'Sin tarifa')}</small>
+                        </div>
+                    </td>
+                    <td data-label="Fecha">
+                        <div class="appointment-date-stack">
+                            <strong>${escapeHtml(formatDate(item.date))}</strong>
+                            <span>${escapeHtml(item.time || '--:--')}</span>
+                            <small>${escapeHtml(formatRelativeWindow(stamp))}</small>
+                        </div>
+                    </td>
+                    <td data-label="Pago">${paymentCell(item)}</td>
+                    <td data-label="Estado">${statusCell(item)}</td>
                     <td data-label="Acciones">${rowActions(item)}</td>
                 </tr>
             `;
@@ -200,6 +390,107 @@ function persistPreferences(appointmentsState) {
     } catch (_error) {
         // no-op
     }
+}
+
+function renderOpsDeck(ops, visibleCount, totalCount) {
+    setText('#appointmentsOpsPendingTransfer', ops.pendingTransferCount);
+    setText(
+        '#appointmentsOpsPendingTransferMeta',
+        ops.pendingTransferCount > 0
+            ? `${ops.pendingTransferCount} pago(s) detenidos`
+            : 'Nada por validar'
+    );
+    setText('#appointmentsOpsUpcomingCount', ops.upcomingCount);
+    setText(
+        '#appointmentsOpsUpcomingMeta',
+        ops.upcomingCount > 0
+            ? `${ops.upcomingCount} cita(s) bajo ventana inmediata`
+            : 'Sin presion inmediata'
+    );
+    setText('#appointmentsOpsNoShowCount', ops.noShowCount);
+    setText(
+        '#appointmentsOpsNoShowMeta',
+        ops.noShowCount > 0
+            ? `${ops.noShowCount} caso(s) requieren seguimiento`
+            : 'Sin incidencias'
+    );
+    setText('#appointmentsOpsTodayCount', ops.todayCount);
+    setText(
+        '#appointmentsOpsTodayMeta',
+        ops.todayCount > 0
+            ? `${ops.todayCount} cita(s) en agenda de hoy`
+            : 'Carga diaria limpia'
+    );
+
+    const summary =
+        totalCount > 0
+            ? `${ops.pendingTransferCount} transferencias, ${ops.triageCount} frentes accionables y ${visibleCount} cita(s) visibles.`
+            : 'Sin citas cargadas.';
+    setText('#appointmentsDeckSummary', summary);
+    setText(
+        '#appointmentsWorkbenchHint',
+        ops.pendingTransferCount > 0
+            ? 'Hay pagos por validar antes de liberar la agenda.'
+            : 'Triage, pagos y seguimiento sin salir de la mesa.'
+    );
+
+    const chip = document.getElementById('appointmentsDeckChip');
+    if (chip) {
+        chip.textContent =
+            ops.pendingTransferCount > 0 || ops.noShowCount > 0
+                ? 'Atencion operativa'
+                : 'Agenda estable';
+        chip.setAttribute(
+            'data-state',
+            ops.pendingTransferCount > 0 || ops.noShowCount > 0
+                ? 'warning'
+                : 'success'
+        );
+    }
+
+    const focus = ops.focus;
+    setText('#appointmentsFocusLabel', focus.label);
+    if (!focus.item) {
+        setText('#appointmentsFocusPatient', 'Sin citas activas');
+        setText(
+            '#appointmentsFocusMeta',
+            'Cuando entren citas accionables apareceran aqui.'
+        );
+        setText('#appointmentsFocusWindow', '-');
+        setText('#appointmentsFocusPayment', '-');
+        setText('#appointmentsFocusStatus', '-');
+        setText('#appointmentsFocusContact', '-');
+        setHtml('#appointmentsFocusTags', '');
+        setText('#appointmentsFocusHint', focus.hint);
+        return;
+    }
+
+    const item = focus.item;
+    setText('#appointmentsFocusPatient', item.name || 'Sin nombre');
+    setText(
+        '#appointmentsFocusMeta',
+        `${humanizeToken(item.service, 'Servicio pendiente')} | ${formatDate(item.date)} ${item.time || '--:--'}`
+    );
+    setText(
+        '#appointmentsFocusWindow',
+        formatRelativeWindow(appointmentStamp(item))
+    );
+    setText(
+        '#appointmentsFocusPayment',
+        paymentLabel(item.paymentStatus || item.payment_status)
+    );
+    setText('#appointmentsFocusStatus', statusLabel(item.status));
+    setText('#appointmentsFocusContact', item.phone || 'Sin telefono');
+    setHtml(
+        '#appointmentsFocusTags',
+        focus.tags
+            .map(
+                (tag) =>
+                    `<span class="appointments-focus-tag">${escapeHtml(tag)}</span>`
+            )
+            .join('')
+    );
+    setText('#appointmentsFocusHint', focus.hint);
 }
 
 export function hydrateAppointmentPreferences() {
@@ -262,6 +553,18 @@ export function renderAppointmentsSection() {
     if (normalize(state.appointments.search)) {
         stateParts.push(`Busqueda: ${state.appointments.search}`);
     }
+    if (normalize(state.appointments.sort) === 'patient_az') {
+        stateParts.push('Paciente (A-Z)');
+    } else if (normalize(state.appointments.sort) === 'datetime_asc') {
+        stateParts.push('Fecha ascendente');
+    }
+    if (
+        sorted.length === 0 &&
+        (normalize(state.appointments.filter) !== 'all' ||
+            normalize(state.appointments.search))
+    ) {
+        stateParts.push('Resultados: 0');
+    }
 
     setText(
         '#appointmentsToolbarState',
@@ -270,7 +573,10 @@ export function renderAppointmentsSection() {
 
     const clearButton = document.getElementById('clearAppointmentsFiltersBtn');
     if (clearButton) {
-        clearButton.classList.toggle('is-hidden', stateParts.length === 0);
+        const hasResettableFilters =
+            normalize(state.appointments.filter) !== 'all' ||
+            normalize(state.appointments.search);
+        clearButton.classList.toggle('is-hidden', !hasResettableFilters);
     }
 
     const filterSelect = document.getElementById('appointmentFilter');
@@ -310,6 +616,7 @@ export function renderAppointmentsSection() {
 
     updateQuickFilterButtons(state.appointments.filter);
     persistPreferences(state.appointments);
+    renderOpsDeck(computeOps(source), sorted.length, source.length);
 }
 
 function updateAppointmentState(patch) {

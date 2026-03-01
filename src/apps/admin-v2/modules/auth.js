@@ -1,6 +1,5 @@
 import { authRequest, setApiCsrfToken } from '../core/api-client.js';
-import { getState, patchState } from '../core/store.js';
-import { createToast } from '../ui/render.js';
+import { updateState } from '../core/store.js';
 
 export async function checkAuthStatus() {
     try {
@@ -9,14 +8,17 @@ export async function checkAuthStatus() {
         const csrfToken = authenticated ? String(payload.csrfToken || '') : '';
         setApiCsrfToken(csrfToken);
 
-        patchState({
-            ...getState(),
+        updateState((state) => ({
+            ...state,
             auth: {
+                ...state.auth,
                 authenticated,
                 csrfToken,
                 requires2FA: false,
+                lastAuthAt: authenticated ? Date.now() : 0,
+                authMethod: authenticated ? 'session' : '',
             },
-        });
+        }));
 
         return authenticated;
     } catch (_error) {
@@ -37,28 +39,31 @@ export async function loginWithPassword(password) {
 
     const requires2FA = payload.twoFactorRequired === true;
     if (requires2FA) {
-        patchState({
-            ...getState(),
+        updateState((state) => ({
+            ...state,
             auth: {
-                ...getState().auth,
+                ...state.auth,
                 requires2FA: true,
+                authMethod: 'password',
             },
-        });
-        createToast('Codigo 2FA requerido', 'info');
+        }));
         return { authenticated: false, requires2FA: true };
     }
 
     const csrfToken = String(payload.csrfToken || '');
     setApiCsrfToken(csrfToken);
 
-    patchState({
-        ...getState(),
+    updateState((state) => ({
+        ...state,
         auth: {
+            ...state.auth,
             authenticated: true,
             csrfToken,
             requires2FA: false,
+            lastAuthAt: Date.now(),
+            authMethod: 'password',
         },
-    });
+    }));
 
     return { authenticated: true, requires2FA: false };
 }
@@ -77,14 +82,17 @@ export async function loginWith2FA(code) {
     const csrfToken = String(payload.csrfToken || '');
     setApiCsrfToken(csrfToken);
 
-    patchState({
-        ...getState(),
+    updateState((state) => ({
+        ...state,
         auth: {
+            ...state.auth,
             authenticated: true,
             csrfToken,
             requires2FA: false,
+            lastAuthAt: Date.now(),
+            authMethod: '2fa',
         },
-    });
+    }));
 
     return { authenticated: true };
 }
@@ -96,12 +104,15 @@ export async function logoutSession() {
         // no-op
     }
     setApiCsrfToken('');
-    patchState({
-        ...getState(),
+    updateState((state) => ({
+        ...state,
         auth: {
+            ...state.auth,
             authenticated: false,
             csrfToken: '',
             requires2FA: false,
+            lastAuthAt: 0,
+            authMethod: '',
         },
-    });
+    }));
 }

@@ -8,6 +8,10 @@ import {
     toIsoDateKey,
 } from '../ui/render.js';
 
+const AVAILABILITY_SELECTED_DATE_STORAGE_KEY =
+    'admin-availability-selected-date';
+const AVAILABILITY_MONTH_ANCHOR_STORAGE_KEY = 'admin-availability-month-anchor';
+
 function normalizeTime(value) {
     const match = String(value || '')
         .trim()
@@ -20,12 +24,228 @@ function sortTimes(times) {
     return [...new Set(times.map(normalizeTime).filter(Boolean))].sort();
 }
 
-function cloneAvailability(map) {
+function normalizeDateKey(value) {
+    const raw = String(value || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return '';
+    const date = new Date(`${raw}T12:00:00`);
+    if (Number.isNaN(date.getTime())) return '';
+    return toIsoDateKey(date) === raw ? raw : '';
+}
+
+function toDateFromKey(dateKey) {
+    const normalized = normalizeDateKey(dateKey);
+    if (!normalized) return null;
+    const parsed = new Date(`${normalized}T12:00:00`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function normalizeAvailabilityMap(map) {
     const next = {};
-    Object.entries(map || {}).forEach(([date, times]) => {
-        next[date] = sortTimes(Array.isArray(times) ? times : []);
-    });
+    Object.keys(map || {})
+        .sort()
+        .forEach((date) => {
+            const normalizedDate = normalizeDateKey(date);
+            if (!normalizedDate) return;
+            const slots = sortTimes(Array.isArray(map[date]) ? map[date] : []);
+            if (!slots.length) return;
+            next[normalizedDate] = slots;
+        });
     return next;
+}
+
+function cloneAvailability(map) {
+    return normalizeAvailabilityMap(map || {});
+}
+
+function serializeAvailability(map) {
+    return JSON.stringify(normalizeAvailabilityMap(map || {}));
+}
+
+function draftIsDirty(draft) {
+    const base = cloneAvailability(getState().data.availability || {});
+    return serializeAvailability(draft) !== serializeAvailability(base);
+}
+
+function normalizeMonthAnchor(value, fallbackDate = '') {
+    let date = null;
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+        date = new Date(value);
+    } else {
+        const normalized = normalizeDateKey(value);
+        if (normalized) {
+            date = new Date(`${normalized}T12:00:00`);
+        }
+    }
+
+    if (!date) {
+        const fallback = toDateFromKey(fallbackDate);
+        date = fallback ? new Date(fallback) : new Date();
+    }
+
+    date.setDate(1);
+    date.setHours(12, 0, 0, 0);
+    return date;
+}
+
+function resolveSelectedDate(preferredDate, draftMap) {
+    const preferred = normalizeDateKey(preferredDate);
+    if (preferred) return preferred;
+
+    const firstDate = Object.keys(draftMap || {})[0];
+    if (firstDate) {
+        const normalized = normalizeDateKey(firstDate);
+        if (normalized) return normalized;
+    }
+
+    return toIsoDateKey(new Date());
+}
+
+function persistAvailabilityPreferences() {
+    const state = getState();
+    const selectedDate = normalizeDateKey(state.availability.selectedDate);
+    const monthAnchor = normalizeMonthAnchor(
+        state.availability.monthAnchor,
+        selectedDate
+    );
+
+    try {
+        if (selectedDate) {
+            localStorage.setItem(
+                AVAILABILITY_SELECTED_DATE_STORAGE_KEY,
+                selectedDate
+            );
+        } else {
+            localStorage.removeItem(AVAILABILITY_SELECTED_DATE_STORAGE_KEY);
+        }
+        localStorage.setItem(
+            AVAILABILITY_MONTH_ANCHOR_STORAGE_KEY,
+            toIsoDateKey(monthAnchor)
+        );
+    } catch (_error) {
+        // no-op
+    }
+}
+
+export function hydrateAvailabilityPreferences() {
+    let selectedDate = '';
+    let monthAnchor = '';
+    try {
+        selectedDate = String(
+            localStorage.getItem(AVAILABILITY_SELECTED_DATE_STORAGE_KEY) || ''
+        );
+        monthAnchor = String(
+            localStorage.getItem(AVAILABILITY_MONTH_ANCHOR_STORAGE_KEY) || ''
+        );
+    } catch (_error) {
+        // no-op
+    }
+
+    const normalizedSelected = normalizeDateKey(selectedDate);
+    const normalizedAnchor = normalizeMonthAnchor(
+        monthAnchor,
+        normalizedSelected
+    );
+
+    updateState((state) => ({
+        ...state,
+        availability: {
+            ...state.availability,
+            ...(normalizedSelected ? { selectedDate: normalizedSelected } : {}),
+            monthAnchor: normalizedAnchor,
+        },
+    }));
+}
+
+function setAvailabilityPatch(patch, { render = false } = {}) {
+    updateState((state) => ({
+        ...state,
+        availability: {
+            ...state.availability,
+            ...patch,
+        },
+    }));
+    if (render) {
+        renderAvailabilitySection();
+    } else {
+        persistAvailabilityPreferences();
+    }
+}
+
+function setDraftAndRender(draft, patch = {}) {
+    const normalizedDraft = cloneAvailability(draft);
+    const selectedDate = resolveSelectedDate(
+        patch.selectedDate || getState().availability.selectedDate,
+        normalizedDraft
+    );
+    const monthAnchor = normalizeMonthAnchor(
+        patch.monthAnchor || getState().availability.monthAnchor,
+        selectedDate
+    );
+
+    setAvailabilityPatch(
+        {
+            draft: normalizedDraft,
+            selectedDate,
+            monthAnchor,
+            draftDirty: draftIsDirty(normalizedDraft),
+            ...patch,
+        },
+        { render: true }
+    );
+}
+
+function setActionStatus(statusMessage) {
+    setAvailabilityPatch(
+        {
+            lastAction: String(statusMessage || ''),
+        },
+        { render: true }
+    );
+}
+
+function writeSlotsForDate(dateKey, slots, lastAction = '') {
+    const normalizedDate =
+        normalizeDateKey(dateKey) || readSelectedDateOrDefault();
+    if (!normalizedDate) return;
+
+    const draft = currentDraftMap();
+    const nextSlots = sortTimes(Array.isArray(slots) ? slots : []);
+    if (nextSlots.length) {
+        draft[normalizedDate] = nextSlots;
+    } else {
+        delete draft[normalizedDate];
+    }
+
+    setDraftAndRender(draft, {
+        selectedDate: normalizedDate,
+        monthAnchor: normalizedDate,
+        lastAction,
+    });
+}
+
+function getCalendarModeSummary() {
+    const meta = getState().data.availabilityMeta || {};
+    const readOnly = isReadOnlyMode();
+    const sourceText = readOnly ? 'Google Calendar' : 'Local';
+    const modeText = readOnly ? 'Solo lectura' : 'Editable';
+    const timezone = String(
+        meta.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || '-'
+    );
+    return { sourceText, modeText, timezone };
+}
+
+function resolveWeekBounds(dateKey) {
+    const selectedDate = toDateFromKey(dateKey);
+    if (!selectedDate) return null;
+    const mondayOffset = (selectedDate.getDay() + 6) % 7;
+    const weekStart = new Date(selectedDate);
+    weekStart.setDate(selectedDate.getDate() - mondayOffset);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    return {
+        start: weekStart,
+        end: weekEnd,
+    };
 }
 
 function currentDraftMap() {
@@ -62,23 +282,14 @@ function buildMonthDays(anchorDate) {
 
 function readSelectedDateOrDefault() {
     const state = getState();
-    if (state.availability.selectedDate) return state.availability.selectedDate;
+    const selected = normalizeDateKey(state.availability.selectedDate);
+    if (selected) return selected;
 
-    const draft = state.availability.draft || {};
-    const firstDate = Object.keys(draft).sort()[0];
+    const draft = cloneAvailability(state.availability.draft || {});
+    const firstDate = Object.keys(draft)[0];
     if (firstDate) return firstDate;
 
     return toIsoDateKey(new Date());
-}
-
-function updateDraftState(patch) {
-    updateState((state) => ({
-        ...state,
-        availability: {
-            ...state.availability,
-            ...patch,
-        },
-    }));
 }
 
 function renderSlotList() {
@@ -92,7 +303,11 @@ function renderSlotList() {
     if (!slots.length) {
         setHtml(
             '#timeSlotsList',
-            '<p class="empty-message">No hay horarios configurados</p>'
+            `<p class="empty-message">${
+                isReadOnlyMode()
+                    ? 'No hay horarios configurados (Solo lectura)'
+                    : 'No hay horarios configurados'
+            }</p>`
         );
         return;
     }
@@ -114,7 +329,10 @@ function renderSlotList() {
 
 function renderCalendar() {
     const state = getState();
-    const anchor = new Date(state.availability.monthAnchor || new Date());
+    const anchor = normalizeMonthAnchor(
+        state.availability.monthAnchor,
+        state.availability.selectedDate
+    );
     const selectedDate = readSelectedDateOrDefault();
     const currentMonth = anchor.getMonth();
     const draft = cloneAvailability(state.availability.draft);
@@ -157,13 +375,21 @@ function refreshAvailabilityHeader() {
         ? draft[selectedDate].length
         : 0;
     const readOnly = isReadOnlyMode();
+    const { sourceText, modeText, timezone } = getCalendarModeSummary();
 
-    const sourceText = readOnly ? 'Google Calendar' : 'Local';
-    const modeText = readOnly ? 'Solo lectura' : 'Editable';
+    setText(
+        '#availabilityHeading',
+        readOnly
+            ? 'Configurar Horarios Disponibles · Solo lectura'
+            : 'Configurar Horarios Disponibles'
+    );
+    setText('#availabilitySourceBadge', `Fuente: ${sourceText}`);
+    setText('#availabilityModeBadge', `Modo: ${modeText}`);
+    setText('#availabilityTimezoneBadge', `TZ: ${timezone}`);
 
     setText(
         '#availabilitySelectionSummary',
-        `Fuente: ${sourceText} | Modo: ${modeText} | Slots: ${slotsCount}`
+        `Fecha: ${selectedDate} | Fuente: ${sourceText} | Modo: ${modeText} | Slots: ${slotsCount}`
     );
     setText(
         '#availabilityDraftStatus',
@@ -173,21 +399,36 @@ function refreshAvailabilityHeader() {
     );
     setText(
         '#availabilitySyncStatus',
-        readOnly ? 'Google Calendar' : 'Store local'
-    );
-    setText(
-        '#availabilityDayActionsStatus',
-        readOnly
-            ? 'Edicion bloqueada por proveedor Google'
-            : state.availability.clipboard.length
-              ? `Portapapeles: ${state.availability.clipboard.length} slots`
-              : 'Sin acciones pendientes'
+        readOnly ? `Google Calendar | ${timezone}` : `Store local | ${timezone}`
     );
 
     const addSlotForm = qs('#addSlotForm');
     const presets = qs('#availabilityQuickSlotPresets');
     if (addSlotForm) addSlotForm.classList.toggle('is-hidden', readOnly);
     if (presets) presets.classList.toggle('is-hidden', readOnly);
+
+    const addSlotInput = qs('#newSlotTime');
+    if (addSlotInput instanceof HTMLInputElement) {
+        addSlotInput.disabled = readOnly;
+    }
+
+    const addSlotButton = qs('[data-action="add-time-slot"]');
+    if (addSlotButton instanceof HTMLButtonElement) {
+        addSlotButton.disabled = readOnly;
+    }
+
+    const clipboardSize = Array.isArray(state.availability.clipboard)
+        ? state.availability.clipboard.length
+        : 0;
+    let dayActionStatus = 'Sin acciones pendientes';
+    if (readOnly) {
+        dayActionStatus = 'Edicion bloqueada por proveedor Google';
+    } else if (state.availability.lastAction) {
+        dayActionStatus = String(state.availability.lastAction);
+    } else if (clipboardSize) {
+        dayActionStatus = `Portapapeles: ${clipboardSize} slots`;
+    }
+    setText('#availabilityDayActionsStatus', dayActionStatus);
 
     const actionButtons = document.querySelectorAll(
         '#availabilityDayActions [data-action], #availabilitySaveDraftBtn, #availabilityDiscardDraftBtn'
@@ -202,20 +443,63 @@ function refreshAvailabilityHeader() {
             button.disabled = readOnly || !state.availability.draftDirty;
             return;
         }
+        const action = String(button.dataset.action || '');
+        if (action === 'paste-availability-day') {
+            button.disabled = readOnly || clipboardSize === 0;
+            return;
+        }
         button.disabled = readOnly;
     });
+}
+
+function jumpToAvailabilityDate(dateKey, label) {
+    const normalized = normalizeDateKey(dateKey);
+    if (!normalized) return;
+    setAvailabilityPatch(
+        {
+            selectedDate: normalized,
+            monthAnchor: normalizeMonthAnchor(normalized, normalized),
+            lastAction: label || '',
+        },
+        { render: true }
+    );
+}
+
+function findDateWithSlots(direction = 1) {
+    const draft = currentDraftMap();
+    const keys = Object.keys(draft).filter((date) => draft[date]?.length > 0);
+    if (!keys.length) return '';
+
+    const reference =
+        normalizeDateKey(getState().availability.selectedDate) ||
+        toIsoDateKey(new Date());
+
+    const ordered = direction >= 0 ? keys.sort() : keys.sort().reverse();
+    return (
+        ordered.find((date) =>
+            direction >= 0 ? date >= reference : date <= reference
+        ) || ''
+    );
 }
 
 export function syncAvailabilityFromData() {
     const state = getState();
     const baseMap = cloneAvailability(state.data.availability || {});
-    const selectedDate = readSelectedDateOrDefault();
+    const selectedDate = resolveSelectedDate(
+        state.availability.selectedDate,
+        baseMap
+    );
+    const monthAnchor = normalizeMonthAnchor(
+        state.availability.monthAnchor,
+        selectedDate
+    );
 
-    updateDraftState({
+    setAvailabilityPatch({
         draft: baseMap,
         selectedDate,
-        monthAnchor: new Date(selectedDate || new Date()),
+        monthAnchor,
         draftDirty: false,
+        lastAction: '',
     });
     renderAvailabilitySection();
 }
@@ -224,6 +508,7 @@ export function renderAvailabilitySection() {
     renderCalendar();
     renderSlotList();
     refreshAvailabilityHeader();
+    persistAvailabilityPreferences();
 }
 
 export function hasPendingAvailabilityChanges() {
@@ -231,86 +516,68 @@ export function hasPendingAvailabilityChanges() {
 }
 
 export function selectAvailabilityDate(dateKey) {
-    const normalized = String(dateKey || '').trim();
+    const normalized = normalizeDateKey(dateKey);
     if (!normalized) return;
-    updateDraftState({ selectedDate: normalized });
-    renderAvailabilitySection();
+    setAvailabilityPatch(
+        {
+            selectedDate: normalized,
+            monthAnchor: normalizeMonthAnchor(normalized, normalized),
+            lastAction: '',
+        },
+        { render: true }
+    );
 }
 
 export function changeAvailabilityMonth(delta) {
     const amount = Number(delta || 0);
     if (!Number.isFinite(amount) || amount === 0) return;
-    updateState((state) => {
-        const nextDate = new Date(state.availability.monthAnchor || new Date());
-        nextDate.setMonth(nextDate.getMonth() + amount);
-        return {
-            ...state,
-            availability: {
-                ...state.availability,
-                monthAnchor: nextDate,
-            },
-        };
-    });
-    renderAvailabilitySection();
+    const current = normalizeMonthAnchor(
+        getState().availability.monthAnchor,
+        getState().availability.selectedDate
+    );
+    current.setMonth(current.getMonth() + amount);
+    setAvailabilityPatch(
+        {
+            monthAnchor: current,
+            lastAction: '',
+        },
+        { render: true }
+    );
 }
 
 export function jumpAvailabilityToday() {
-    const today = new Date();
-    updateState((state) => ({
-        ...state,
-        availability: {
-            ...state.availability,
-            selectedDate: toIsoDateKey(today),
-            monthAnchor: new Date(today),
-        },
-    }));
-    renderAvailabilitySection();
+    const today = toIsoDateKey(new Date());
+    jumpToAvailabilityDate(today, 'Hoy');
 }
 
 export function jumpAvailabilityNextWithSlots() {
-    const draft = currentDraftMap();
-    const today = toIsoDateKey(new Date());
-    const candidate = Object.keys(draft)
-        .filter(
-            (date) =>
-                date >= today &&
-                Array.isArray(draft[date]) &&
-                draft[date].length > 0
-        )
-        .sort()[0];
+    const candidate = findDateWithSlots(1);
+    if (!candidate) {
+        setActionStatus('No hay fechas siguientes con slots');
+        return;
+    }
+    jumpToAvailabilityDate(
+        candidate,
+        `Siguiente fecha con slots: ${candidate}`
+    );
+}
 
-    if (!candidate) return;
-    updateState((state) => ({
-        ...state,
-        availability: {
-            ...state.availability,
-            selectedDate: candidate,
-            monthAnchor: new Date(candidate),
-        },
-    }));
-    renderAvailabilitySection();
+export function jumpAvailabilityPrevWithSlots() {
+    const candidate = findDateWithSlots(-1);
+    if (!candidate) {
+        setActionStatus('No hay fechas anteriores con slots');
+        return;
+    }
+    jumpToAvailabilityDate(candidate, `Fecha previa con slots: ${candidate}`);
 }
 
 export function prefillAvailabilityTime(time) {
+    if (isReadOnlyMode()) return;
     const input = qs('#newSlotTime');
     if (input instanceof HTMLInputElement) {
         input.value = normalizeTime(time);
         input.focus();
     }
-}
-
-function writeSlotsForDate(dateKey, slots) {
-    const draft = currentDraftMap();
-    const normalizedDate = String(dateKey || '').trim();
-    if (!normalizedDate) return;
-    draft[normalizedDate] = sortTimes(slots);
-
-    updateDraftState({
-        draft,
-        selectedDate: normalizedDate,
-        draftDirty: true,
-    });
-    renderAvailabilitySection();
 }
 
 export function addAvailabilitySlot() {
@@ -323,23 +590,35 @@ export function addAvailabilitySlot() {
 
     const state = getState();
     const dateKey =
-        state.availability.selectedDate || readSelectedDateOrDefault();
+        normalizeDateKey(state.availability.selectedDate) ||
+        readSelectedDateOrDefault();
+    if (!dateKey) return;
+
     const current = Array.isArray(state.availability.draft[dateKey])
         ? state.availability.draft[dateKey]
         : [];
-    writeSlotsForDate(dateKey, [...current, time]);
+    writeSlotsForDate(
+        dateKey,
+        [...current, time],
+        `Slot ${time} agregado en ${dateKey}`
+    );
     input.value = '';
 }
 
 export function removeAvailabilitySlot(dateKey, time) {
     if (isReadOnlyMode()) return;
+    const normalizedDate = normalizeDateKey(dateKey);
+    if (!normalizedDate) return;
+
     const state = getState();
-    const slots = Array.isArray(state.availability.draft[dateKey])
-        ? state.availability.draft[dateKey]
+    const slots = Array.isArray(state.availability.draft[normalizedDate])
+        ? state.availability.draft[normalizedDate]
         : [];
+    const normalizedTime = normalizeTime(time);
     writeSlotsForDate(
-        dateKey,
-        slots.filter((item) => normalizeTime(item) !== normalizeTime(time))
+        normalizedDate,
+        slots.filter((item) => normalizeTime(item) !== normalizedTime),
+        `Slot ${normalizedTime || '-'} removido en ${normalizedDate}`
     );
 }
 
@@ -347,109 +626,188 @@ export function copyAvailabilityDay() {
     if (isReadOnlyMode()) return;
     const state = getState();
     const dateKey =
-        state.availability.selectedDate || readSelectedDateOrDefault();
+        normalizeDateKey(state.availability.selectedDate) ||
+        readSelectedDateOrDefault();
     const slots = Array.isArray(state.availability.draft[dateKey])
-        ? state.availability.draft[dateKey]
+        ? sortTimes(state.availability.draft[dateKey])
         : [];
-    updateDraftState({ clipboard: sortTimes(slots) });
-    renderAvailabilitySection();
+
+    setAvailabilityPatch(
+        {
+            clipboard: slots,
+            clipboardDate: dateKey,
+            lastAction: slots.length
+                ? `Portapapeles: ${slots.length} slots (${dateKey})`
+                : 'Portapapeles vacio',
+        },
+        { render: true }
+    );
 }
 
 export function pasteAvailabilityDay() {
     if (isReadOnlyMode()) return;
     const state = getState();
+    const clipboard = Array.isArray(state.availability.clipboard)
+        ? sortTimes(state.availability.clipboard)
+        : [];
+    if (!clipboard.length) {
+        setActionStatus('Portapapeles vacio');
+        return;
+    }
+
     const dateKey =
-        state.availability.selectedDate || readSelectedDateOrDefault();
-    writeSlotsForDate(dateKey, state.availability.clipboard || []);
+        normalizeDateKey(state.availability.selectedDate) ||
+        readSelectedDateOrDefault();
+    writeSlotsForDate(
+        dateKey,
+        clipboard,
+        `Pegado ${clipboard.length} slots en ${dateKey}`
+    );
 }
 
 export function duplicateAvailabilityDay(daysOffset) {
     if (isReadOnlyMode()) return;
     const state = getState();
     const selected =
-        state.availability.selectedDate || readSelectedDateOrDefault();
+        normalizeDateKey(state.availability.selectedDate) ||
+        readSelectedDateOrDefault();
     const slots = Array.isArray(state.availability.draft[selected])
         ? state.availability.draft[selected]
         : [];
-    const baseDate = new Date(selected);
-    if (Number.isNaN(baseDate.getTime())) return;
+    const baseDate = toDateFromKey(selected);
+    if (!baseDate) return;
 
     baseDate.setDate(baseDate.getDate() + Number(daysOffset || 0));
     const targetDate = toIsoDateKey(baseDate);
-
-    const draft = currentDraftMap();
-    draft[targetDate] = sortTimes(slots);
-
-    updateDraftState({
-        draft,
-        selectedDate: targetDate,
-        draftDirty: true,
-        monthAnchor: new Date(baseDate),
-    });
-    renderAvailabilitySection();
+    writeSlotsForDate(
+        targetDate,
+        slots,
+        `Duplicado ${slots.length} slots en ${targetDate}`
+    );
 }
 
 export function clearAvailabilityDay() {
     if (isReadOnlyMode()) return;
     const state = getState();
     const selected =
-        state.availability.selectedDate || readSelectedDateOrDefault();
-    writeSlotsForDate(selected, []);
+        normalizeDateKey(state.availability.selectedDate) ||
+        readSelectedDateOrDefault();
+    if (!selected) return;
+
+    const confirmed = window.confirm(
+        `Se eliminaran los slots del dia ${selected}. ¿Continuar?`
+    );
+    if (!confirmed) return;
+
+    writeSlotsForDate(selected, [], `Dia ${selected} limpiado`);
 }
 
 export function clearAvailabilityWeek() {
     if (isReadOnlyMode()) return;
     const state = getState();
     const selected =
-        state.availability.selectedDate || readSelectedDateOrDefault();
-    const start = new Date(selected);
-    if (Number.isNaN(start.getTime())) return;
+        normalizeDateKey(state.availability.selectedDate) ||
+        readSelectedDateOrDefault();
+    if (!selected) return;
+
+    const bounds = resolveWeekBounds(selected);
+    if (!bounds) return;
+    const startKey = toIsoDateKey(bounds.start);
+    const endKey = toIsoDateKey(bounds.end);
+
+    const confirmed = window.confirm(
+        `Se eliminaran los slots de la semana ${startKey} a ${endKey}. ¿Continuar?`
+    );
+    if (!confirmed) return;
 
     const draft = currentDraftMap();
     for (let i = 0; i < 7; i += 1) {
-        const date = new Date(start);
-        date.setDate(start.getDate() + i);
-        draft[toIsoDateKey(date)] = [];
+        const date = new Date(bounds.start);
+        date.setDate(bounds.start.getDate() + i);
+        delete draft[toIsoDateKey(date)];
     }
 
-    updateDraftState({ draft, draftDirty: true });
-    renderAvailabilitySection();
+    setDraftAndRender(draft, {
+        selectedDate: selected,
+        lastAction: `Semana limpiada (${startKey} - ${endKey})`,
+    });
 }
 
 export async function saveAvailabilityDraft() {
     if (isReadOnlyMode()) return;
     const draft = currentDraftMap();
-    await apiRequest('availability', {
+    const response = await apiRequest('availability', {
         method: 'POST',
         body: {
             availability: draft,
         },
     });
 
+    const serverDraft =
+        response?.data && typeof response.data === 'object'
+            ? cloneAvailability(response.data)
+            : draft;
+    const responseMeta =
+        response?.meta && typeof response.meta === 'object'
+            ? response.meta
+            : null;
+
     updateState((state) => ({
         ...state,
         data: {
             ...state.data,
-            availability: draft,
+            availability: serverDraft,
+            availabilityMeta: responseMeta
+                ? {
+                      ...state.data.availabilityMeta,
+                      ...responseMeta,
+                  }
+                : state.data.availabilityMeta,
         },
         availability: {
             ...state.availability,
-            draft,
+            draft: serverDraft,
             draftDirty: false,
+            lastAction: `Cambios guardados ${new Date().toLocaleTimeString(
+                'es-EC',
+                {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                }
+            )}`,
         },
     }));
     renderAvailabilitySection();
 }
 
 export function discardAvailabilityDraft() {
-    const base = cloneAvailability(getState().data.availability || {});
-    updateState((state) => ({
-        ...state,
-        availability: {
-            ...state.availability,
+    if (isReadOnlyMode()) return;
+    const state = getState();
+    if (state.availability.draftDirty) {
+        const confirmed = window.confirm(
+            'Se descartaran los cambios pendientes de disponibilidad. ¿Continuar?'
+        );
+        if (!confirmed) return;
+    }
+
+    const base = cloneAvailability(state.data.availability || {});
+    const selectedDate = resolveSelectedDate(
+        state.availability.selectedDate,
+        base
+    );
+    const monthAnchor = normalizeMonthAnchor(
+        state.availability.monthAnchor,
+        selectedDate
+    );
+    setAvailabilityPatch(
+        {
             draft: base,
+            selectedDate,
+            monthAnchor,
             draftDirty: false,
+            lastAction: 'Borrador descartado',
         },
-    }));
-    renderAvailabilitySection();
+        { render: true }
+    );
 }

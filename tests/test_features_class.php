@@ -44,7 +44,7 @@ if (!class_exists('FeatureFlags')) {
 FeatureFlags::reset();
 
 assert_false(FeatureFlags::isEnabled('new_booking_ui'), 'Default new_booking_ui should be false');
-assert_false(FeatureFlags::isEnabled('admin_sony_ui'), 'Default admin_sony_ui should be false');
+assert_true(FeatureFlags::isEnabled('admin_sony_ui'), 'Default admin_sony_ui should be true');
 
 // 2. Test Enable
 FeatureFlags::enable('new_booking_ui');

@@ -23,7 +23,7 @@
         "baseline:public:screenshots": "node bin/capture-public-baseline.js",
         "gate:staging:acceptance": "node bin/run-staging-acceptance-gate.js",
         "test:frontend:qa:public": "npx playwright test tests/homepage.spec.js tests/telemedicina-conversion-qa.spec.js tests/service-pages-qa.spec.js tests/mobile-overflow-regression.spec.js tests/deferred-content-fallback.spec.js tests/home-deferred-hydration.spec.js tests/cookie-consent.spec.js tests/legal.spec.js",
-        "test:frontend:qa:admin": "npx playwright test tests/admin-ui-variant.spec.js tests/admin.spec.js tests/admin-navigation-responsive.spec.js tests/admin-appointments-responsive.spec.js tests/admin-availability-responsive.spec.js tests/admin-availability-readonly.spec.js tests/funnel-retention-admin.spec.js",
+        "test:frontend:qa:admin": "npx playwright test tests/admin-ui-variant.spec.js tests/admin.spec.js tests/admin-navigation-responsive.spec.js tests/admin-appointments-responsive.spec.js tests/admin-callbacks-triage.spec.js tests/admin-v2-callbacks-triage.spec.js tests/admin-v2-availability-workflow.spec.js tests/admin-availability-responsive.spec.js tests/admin-availability-readonly.spec.js tests/funnel-retention-admin.spec.js",
         "test:frontend:qa:block": "npm run test:frontend:qa:public && npm run test:frontend:qa:admin",
         "test:frontend:qa:closeout": "npm run test:frontend:qa:block && npx playwright test tests/booking.spec.js tests/pricing-layout.spec.js tests/funnel-tracking.spec.js tests/chat-mobile-layout.spec.js tests/chat-booking-calendar-errors.spec.js tests/version-consistency.spec.js",
         "test:headed": "npx playwright test --headed",

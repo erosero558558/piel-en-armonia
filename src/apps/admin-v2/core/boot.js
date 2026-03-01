@@ -16,9 +16,14 @@ import {
 } from '../modules/auth.js';
 import {
     renderV2Shell,
+    renderAdminChrome,
+    setLoginFeedback,
+    setLoginSubmittingState,
     setActiveSection,
     setSidebarState,
     setLogin2FAVisibility,
+    resetLoginForm,
+    focusLoginField,
     showDashboardView,
     showLoginView,
 } from '../modules/shell.js';
@@ -40,20 +45,25 @@ import {
 import {
     renderCallbacksSection,
     setCallbacksFilter,
+    setCallbacksSort,
     setCallbacksSearch,
     clearCallbacksFilters,
+    clearCallbacksSelection,
     markCallbackContacted,
     selectVisibleCallbacks,
     markSelectedCallbacksContacted,
     focusNextPendingCallback,
+    hydrateCallbacksPreferences,
 } from '../modules/callbacks.js';
 import {
     renderAvailabilitySection,
     syncAvailabilityFromData,
     hasPendingAvailabilityChanges,
+    hydrateAvailabilityPreferences,
     selectAvailabilityDate,
     changeAvailabilityMonth,
     jumpAvailabilityToday,
+    jumpAvailabilityPrevWithSlots,
     jumpAvailabilityNextWithSlots,
     prefillAvailabilityTime,
     addAvailabilitySlot,
@@ -73,8 +83,12 @@ import {
     setQueueFilter,
     setQueueSearch,
     clearQueueSearch,
+    toggleQueueTicketSelection,
+    selectVisibleQueueTickets,
+    clearQueueSelection,
     callNextForConsultorio,
     runQueueTicketAction,
+    runQueueReleaseStation,
     runQueueBulkAction,
     runQueueBulkReprint,
     reprintQueueTicket,
@@ -147,10 +161,7 @@ function restoreUiPrefs() {
 
     setActiveSection(lastSection);
     setSectionHash(lastSection);
-    setSidebarState({
-        open: false,
-        collapsed,
-    });
+    renderSidebarState();
 }
 
 function persistUiPrefs() {
@@ -163,10 +174,48 @@ function persistUiPrefs() {
 }
 
 function refreshHeaderStatus() {
-    setText('#adminRefreshStatus', refreshStatusLabel());
+    const label = refreshStatusLabel();
+    setText('#adminRefreshStatus', label);
+    setText(
+        '#adminSyncState',
+        label === 'Datos: sin sincronizar'
+            ? 'Listo para primera sincronizacion'
+            : label.replace('Datos: ', 'Estado: ')
+    );
+}
+
+function primeLoginSurface() {
+    setLogin2FAVisibility(false);
+    resetLoginForm();
+    setLoginSubmittingState(false);
+    setLoginFeedback({
+        tone: 'neutral',
+        title: 'Proteccion activa',
+        message:
+            'Usa tu clave de administrador para acceder al centro operativo.',
+    });
+}
+
+function resetTwoFactorStage() {
+    updateState((state) => ({
+        ...state,
+        auth: {
+            ...state.auth,
+            requires2FA: false,
+        },
+    }));
+    setLogin2FAVisibility(false);
+    resetLoginForm();
+    setLoginFeedback({
+        tone: 'neutral',
+        title: 'Ingreso protegido',
+        message: 'Volviste al paso de clave. Puedes reintentar el acceso.',
+    });
+    focusLoginField('password');
 }
 
 function renderAllSections() {
+    renderAdminChrome(getState());
     renderDashboard(getState());
     renderAppointmentsSection();
     renderCallbacksSection();
@@ -186,6 +235,7 @@ function showSection(section) {
         },
     }));
     setActiveSection(normalized);
+    renderAdminChrome(getState());
     setSectionHash(normalized);
     persistUiPrefs();
 }
@@ -228,11 +278,7 @@ function toggleSidebarCollapsed() {
         },
     }));
 
-    const state = getState();
-    setSidebarState({
-        open: state.ui.sidebarOpen,
-        collapsed: state.ui.sidebarCollapsed,
-    });
+    renderSidebarState();
     persistUiPrefs();
 }
 
@@ -245,11 +291,7 @@ function toggleSidebarOpen() {
         },
     }));
 
-    const state = getState();
-    setSidebarState({
-        open: state.ui.sidebarOpen,
-        collapsed: state.ui.sidebarCollapsed,
-    });
+    renderSidebarState();
 }
 
 function closeSidebar() {
@@ -261,10 +303,15 @@ function closeSidebar() {
         },
     }));
 
+    renderSidebarState();
+}
+
+function renderSidebarState() {
     const state = getState();
+    const compactViewport = window.matchMedia('(max-width: 1024px)').matches;
     setSidebarState({
-        open: false,
-        collapsed: state.ui.sidebarCollapsed,
+        open: compactViewport ? state.ui.sidebarOpen : false,
+        collapsed: compactViewport ? false : state.ui.sidebarCollapsed,
     });
 }
 
@@ -296,14 +343,17 @@ async function runQuickAction(action) {
         case 'appointments_pending_transfer':
             await navigateToSection('appointments');
             setAppointmentFilter('pending_transfer');
+            setAppointmentSearch('');
             break;
         case 'appointments_all':
             await navigateToSection('appointments');
             setAppointmentFilter('all');
+            setAppointmentSearch('');
             break;
         case 'appointments_no_show':
             await navigateToSection('appointments');
             setAppointmentFilter('no_show');
+            setAppointmentSearch('');
             break;
         case 'callbacks_pending':
             await navigateToSection('callbacks');
@@ -312,6 +362,10 @@ async function runQuickAction(action) {
         case 'callbacks_contacted':
             await navigateToSection('callbacks');
             setCallbacksFilter('contacted');
+            break;
+        case 'callbacks_sla_urgent':
+            await navigateToSection('callbacks');
+            setCallbacksFilter('sla_urgent');
             break;
         case 'queue_sla_risk':
             await navigateToSection('queue');
@@ -363,6 +417,12 @@ function parseQuickCommand(value) {
     if (command.includes('callbacks') && command.includes('pend')) {
         return 'callbacks_pending';
     }
+    if (
+        command.includes('callback') &&
+        (command.includes('urg') || command.includes('sla'))
+    ) {
+        return 'callbacks_sla_urgent';
+    }
     if (command.includes('citas') && command.includes('transfer')) {
         return 'appointments_pending_transfer';
     }
@@ -401,6 +461,13 @@ function attachInputListeners() {
     if (callbackFilter instanceof HTMLSelectElement) {
         callbackFilter.addEventListener('change', () => {
             setCallbacksFilter(callbackFilter.value);
+        });
+    }
+
+    const callbackSort = document.getElementById('callbackSort');
+    if (callbackSort instanceof HTMLSelectElement) {
+        callbackSort.addEventListener('change', () => {
+            setCallbacksSort(callbackSort.value);
         });
     }
 
@@ -460,7 +527,11 @@ async function handleAction(action, element) {
         case 'logout':
             await logoutSession();
             showLoginView();
+            primeLoginSurface();
             createToast('Sesion cerrada', 'info');
+            return;
+        case 'reset-login-2fa':
+            resetTwoFactorStage();
             return;
         case 'appointment-quick-filter':
             setAppointmentFilter(String(element.dataset.filterValue || 'all'));
@@ -517,6 +588,9 @@ async function handleAction(action, element) {
         case 'context-availability-today':
             jumpAvailabilityToday();
             return;
+        case 'availability-prev-with-slots':
+            jumpAvailabilityPrevWithSlots();
+            return;
         case 'availability-next-with-slots':
         case 'context-availability-next':
             jumpAvailabilityNextWithSlots();
@@ -571,6 +645,20 @@ async function handleAction(action, element) {
                 Number(element.dataset.queueConsultorio || 0)
             );
             return;
+        case 'queue-release-station':
+            await runQueueReleaseStation(
+                Number(element.dataset.queueConsultorio || 0)
+            );
+            return;
+        case 'queue-toggle-ticket-select':
+            toggleQueueTicketSelection(Number(element.dataset.queueId || 0));
+            return;
+        case 'queue-select-visible':
+            selectVisibleQueueTickets();
+            return;
+        case 'queue-clear-selection':
+            clearQueueSelection();
+            return;
         case 'queue-ticket-action':
             await runQueueTicketAction(
                 Number(element.dataset.queueId || 0),
@@ -624,6 +712,9 @@ async function handleAction(action, element) {
             return;
         case 'callbacks-bulk-select-visible':
             selectVisibleCallbacks();
+            return;
+        case 'callbacks-bulk-clear':
+            clearCallbacksSelection();
             return;
         case 'callbacks-bulk-mark':
             await markSelectedCallbacksContacted();
@@ -711,6 +802,11 @@ function attachActionListeners() {
         );
     }
 
+    const callbacksBulkClear = document.getElementById('callbacksBulkClearBtn');
+    if (callbacksBulkClear) {
+        callbacksBulkClear.setAttribute('data-action', 'callbacks-bulk-clear');
+    }
+
     const callbacksBulkMark = document.getElementById('callbacksBulkMarkBtn');
     if (callbacksBulkMark) {
         callbacksBulkMark.setAttribute('data-action', 'callbacks-bulk-mark');
@@ -736,7 +832,9 @@ function attachLayoutListeners() {
     window.addEventListener('resize', () => {
         if (!window.matchMedia('(max-width: 1024px)').matches) {
             closeSidebar();
+            return;
         }
+        renderSidebarState();
     });
 
     window.addEventListener('hashchange', async () => {
@@ -751,6 +849,14 @@ function attachLayoutListeners() {
     });
 }
 
+function attachExitGuards() {
+    window.addEventListener('beforeunload', (event) => {
+        if (!hasPendingAvailabilityChanges()) return;
+        event.preventDefault();
+        event.returnValue = '';
+    });
+}
+
 async function handleLoginSubmit(event) {
     event.preventDefault();
 
@@ -762,23 +868,58 @@ async function handleLoginSubmit(event) {
     const code = codeInput instanceof HTMLInputElement ? codeInput.value : '';
 
     try {
+        setLoginSubmittingState(true);
         const state = getState();
+
+        setLoginFeedback({
+            tone: state.auth.requires2FA ? 'warning' : 'neutral',
+            title: state.auth.requires2FA
+                ? 'Validando segundo factor'
+                : 'Validando credenciales',
+            message: state.auth.requires2FA
+                ? 'Comprobando el codigo 2FA antes de abrir el panel.'
+                : 'Comprobando clave y proteccion de sesion.',
+        });
+
         if (state.auth.requires2FA) {
             await loginWith2FA(code);
         } else {
             const result = await loginWithPassword(password);
             if (result.requires2FA) {
                 setLogin2FAVisibility(true);
+                setLoginFeedback({
+                    tone: 'warning',
+                    title: 'Codigo 2FA requerido',
+                    message:
+                        'El backend valido la clave. Ingresa ahora el codigo de seis digitos.',
+                });
+                focusLoginField('2fa');
                 return;
             }
         }
 
+        setLoginFeedback({
+            tone: 'success',
+            title: 'Acceso concedido',
+            message: 'Sesion autenticada. Cargando centro operativo.',
+        });
         showDashboardView();
         setLogin2FAVisibility(false);
+        resetLoginForm({ clearPassword: true });
         await refreshDataAndRender(false);
         createToast('Sesion iniciada', 'success');
     } catch (error) {
+        setLoginFeedback({
+            tone: 'danger',
+            title: 'No se pudo iniciar sesion',
+            message:
+                error?.message ||
+                'Verifica la clave o el codigo e intenta nuevamente.',
+        });
+        focusLoginField(getState().auth.requires2FA ? '2fa' : 'password');
         createToast(error?.message || 'No se pudo iniciar sesion', 'error');
+    } finally {
+        setLoginSubmittingState(false);
     }
 }
 
@@ -793,14 +934,18 @@ export async function bootAdminV2() {
     document.body.classList.add('admin-v2-mode');
     attachActionListeners();
     hydrateAppointmentPreferences();
+    hydrateCallbacksPreferences();
+    hydrateAvailabilityPreferences();
     restoreUiPrefs();
     applyQueueRuntimeDefaults();
 
     const initialTheme = readThemeMode();
     setThemeMode(initialTheme);
+    primeLoginSurface();
 
     attachInputListeners();
     attachLayoutListeners();
+    attachExitGuards();
 
     const loginForm = document.getElementById('loginForm');
     if (loginForm instanceof HTMLFormElement) {
@@ -830,6 +975,7 @@ export async function bootAdminV2() {
         await bootAuthenticatedUi();
     } else {
         showLoginView();
+        primeLoginSurface();
     }
 
     initPushModule();

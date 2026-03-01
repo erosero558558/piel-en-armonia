@@ -27,7 +27,7 @@ const CALL_NEXT_IN_FLIGHT = new Map([
     [2, false],
 ]);
 let LAST_WATCHDOG_BUCKET = '';
-const SENSITIVE_QUEUE_ACTIONS = new Set(['completar', 'no_show', 'cancelar']);
+const SENSITIVE_QUEUE_ACTIONS = new Set(['no_show', 'cancelar']);
 
 function normalize(value) {
     return String(value || '')
@@ -543,6 +543,87 @@ function getVisibleTickets() {
     );
 }
 
+function normalizeSelectedQueueIds(ids, tickets = null) {
+    const sourceTickets = Array.isArray(tickets)
+        ? tickets
+        : getQueueSource().queueTickets;
+    const allowedIds = new Set(
+        sourceTickets
+            .map((ticket) => Number(ticket.id || 0))
+            .filter((id) => id > 0)
+    );
+
+    return [...new Set(asArray(ids).map((id) => Number(id || 0)))]
+        .filter((id) => id > 0 && allowedIds.has(id))
+        .sort((a, b) => a - b);
+}
+
+function getSelectedQueueIds() {
+    return normalizeSelectedQueueIds(getState().queue.selected || []);
+}
+
+function getSelectedQueueTickets() {
+    const selectedIds = new Set(getSelectedQueueIds());
+    if (!selectedIds.size) return [];
+    return getQueueSource().queueTickets.filter((ticket) =>
+        selectedIds.has(Number(ticket.id || 0))
+    );
+}
+
+function getQueueTicketById(ticketId) {
+    const targetId = Number(ticketId || 0);
+    if (!targetId) return null;
+    return (
+        getQueueSource().queueTickets.find(
+            (ticket) => Number(ticket.id || 0) === targetId
+        ) || null
+    );
+}
+
+function getBulkTargetTickets() {
+    const selectedTickets = getSelectedQueueTickets();
+    if (selectedTickets.length) return selectedTickets;
+    return getVisibleTickets();
+}
+
+function setQueueSelection(nextSelected, { render = true } = {}) {
+    updateState((state) => ({
+        ...state,
+        queue: {
+            ...state.queue,
+            selected: normalizeSelectedQueueIds(
+                nextSelected,
+                state.data.queueTickets || []
+            ),
+        },
+    }));
+
+    if (render) {
+        renderQueueSection();
+    }
+}
+
+export function toggleQueueTicketSelection(ticketId) {
+    const targetId = Number(ticketId || 0);
+    if (!targetId) return;
+    const selectedIds = getSelectedQueueIds();
+    const nextSelected = selectedIds.includes(targetId)
+        ? selectedIds.filter((id) => id !== targetId)
+        : [...selectedIds, targetId];
+    setQueueSelection(nextSelected);
+}
+
+export function selectVisibleQueueTickets() {
+    const visibleIds = getVisibleTickets().map((ticket) =>
+        Number(ticket.id || 0)
+    );
+    setQueueSelection(visibleIds);
+}
+
+export function clearQueueSelection() {
+    setQueueSelection([]);
+}
+
 function queueRow(ticket) {
     const consultorio = ticket.assignedConsultorio
         ? `C${ticket.assignedConsultorio}`
@@ -552,9 +633,19 @@ function queueRow(ticket) {
         Math.round((Date.now() - toMillis(ticket.createdAt)) / 60000)
     );
     const id = Number(ticket.id || 0);
+    const selectedIds = new Set(getSelectedQueueIds());
+    const isSelected = selectedIds.has(id);
+    const isCalled = ticket.status === 'called';
+    const showRelease = isCalled && ticket.assignedConsultorio;
+    const showRecall = isCalled;
 
     return `
-        <tr data-queue-id="${id}">
+        <tr data-queue-id="${id}" class="${isSelected ? 'is-selected' : ''}">
+            <td>
+                <label class="queue-select-cell">
+                    <input type="checkbox" data-action="queue-toggle-ticket-select" data-queue-id="${id}" ${isSelected ? 'checked' : ''} />
+                </label>
+            </td>
             <td>${escapeHtml(ticket.ticketCode)}</td>
             <td>${escapeHtml(ticket.queueType)}</td>
             <td>${escapeHtml(statusLabel(ticket.status))}</td>
@@ -564,6 +655,8 @@ function queueRow(ticket) {
                 <div class="table-actions">
                     <button type="button" data-action="queue-ticket-action" data-queue-id="${id}" data-queue-action="reasignar" data-queue-consultorio="1">Reasignar C1</button>
                     <button type="button" data-action="queue-ticket-action" data-queue-id="${id}" data-queue-action="reasignar" data-queue-consultorio="2">Reasignar C2</button>
+                    ${showRecall ? `<button type="button" data-action="queue-ticket-action" data-queue-id="${id}" data-queue-action="re-llamar" data-queue-consultorio="${Number(ticket.assignedConsultorio || 1) === 2 ? 2 : 1}">Re-llamar</button>` : ''}
+                    ${showRelease ? `<button type="button" data-action="queue-ticket-action" data-queue-id="${id}" data-queue-action="liberar">Liberar</button>` : ''}
                     <button type="button" data-action="queue-ticket-action" data-queue-id="${id}" data-queue-action="completar">Completar</button>
                     <button type="button" data-action="queue-ticket-action" data-queue-id="${id}" data-queue-action="no_show">No show</button>
                     <button type="button" data-action="queue-ticket-action" data-queue-id="${id}" data-queue-action="cancelar">Cancelar</button>
@@ -664,6 +757,10 @@ function setQueueStateWithTickets(tickets, queueMeta = null, options = {}) {
         },
         queue: {
             ...state.queue,
+            selected: normalizeSelectedQueueIds(
+                state.queue.selected || [],
+                normalized
+            ),
             fallbackPartial,
             syncMode,
         },
@@ -705,6 +802,37 @@ function updateQueueUi(patch) {
     renderQueueSection();
 }
 
+function getCalledTicketForConsultorio(consultorio) {
+    const target = Number(consultorio || 0) === 2 ? 2 : 1;
+    return (
+        getQueueSource().queueTickets.find(
+            (ticket) =>
+                ticket.status === 'called' &&
+                Number(ticket.assignedConsultorio || 0) === target
+        ) || null
+    );
+}
+
+function requiresSensitiveConfirm(action, ticket) {
+    const normalizedAction = normalizeQueueAction(action);
+    if (normalizedAction === 'cancelar') {
+        return true;
+    }
+    if (normalizedAction !== 'no_show') {
+        return false;
+    }
+
+    const currentTicket = ticket || null;
+    if (!currentTicket) {
+        return true;
+    }
+
+    return (
+        normalizeStatus(currentTicket.status) === 'called' ||
+        Number(currentTicket.assignedConsultorio || 0) > 0
+    );
+}
+
 function setQueueNowMeta(queueMeta) {
     const state = getState();
     const meta = normalizeQueueMeta(queueMeta, state.data.queueTickets || []);
@@ -733,7 +861,28 @@ function setQueueNowMeta(queueMeta) {
     );
     setText('#queueC1Now', c1Code);
     setText('#queueC2Now', c2Code);
-    setText('#queueReleaseC1', c1Code);
+
+    const releaseC1 = document.getElementById('queueReleaseC1');
+    if (releaseC1 instanceof HTMLButtonElement) {
+        releaseC1.hidden = !c1;
+        releaseC1.textContent = c1 ? `Liberar C1 · ${c1Code}` : 'Release C1';
+        if (c1) {
+            releaseC1.setAttribute('data-queue-id', String(Number(c1.id || 0)));
+        } else {
+            releaseC1.removeAttribute('data-queue-id');
+        }
+    }
+
+    const releaseC2 = document.getElementById('queueReleaseC2');
+    if (releaseC2 instanceof HTMLButtonElement) {
+        releaseC2.hidden = !c2;
+        releaseC2.textContent = c2 ? `Liberar C2 · ${c2Code}` : 'Release C2';
+        if (c2) {
+            releaseC2.setAttribute('data-queue-id', String(Number(c2.id || 0)));
+        } else {
+            releaseC2.removeAttribute('data-queue-id');
+        }
+    }
 
     const syncNode = document.getElementById('queueSyncStatus');
     if (normalize(state.queue.syncMode) === 'fallback') {
@@ -785,6 +934,9 @@ export function renderQueueSection() {
     const state = getState();
     const { queueMeta } = getQueueSource();
     const visible = getVisibleTickets();
+    const selectedIds = getSelectedQueueIds();
+    const selectedCount = selectedIds.length;
+    const bulkTargets = getBulkTargetTickets();
     const nextTickets = asArray(queueMeta.nextTickets);
     const waitingCount = Number(
         queueMeta.waitingCount || queueMeta.counts?.waiting || 0
@@ -796,7 +948,7 @@ export function renderQueueSection() {
         '#queueTableBody',
         visible.length
             ? visible.map(queueRow).join('')
-            : '<tr><td colspan="6">No hay tickets para filtro</td></tr>'
+            : '<tr><td colspan="7">No hay tickets para filtro</td></tr>'
     );
 
     const nextSummary =
@@ -835,8 +987,35 @@ export function renderQueueSection() {
     const summaryParts = [
         riskCount > 0 ? `riesgo: ${riskCount}` : 'sin riesgo',
     ];
+    if (selectedCount > 0) summaryParts.push(`seleccion: ${selectedCount}`);
     if (state.queue.fallbackPartial) summaryParts.push('fallback parcial');
     setText('#queueTriageSummary', summaryParts.join(' | '));
+    setText('#queueSelectedCount', selectedCount);
+
+    const selectionChip = document.getElementById('queueSelectionChip');
+    if (selectionChip instanceof HTMLElement) {
+        selectionChip.classList.toggle('is-hidden', selectedCount === 0);
+    }
+
+    const selectVisibleBtn = document.getElementById('queueSelectVisibleBtn');
+    if (selectVisibleBtn instanceof HTMLButtonElement) {
+        selectVisibleBtn.disabled = visible.length === 0;
+    }
+
+    const clearSelectionBtn = document.getElementById('queueClearSelectionBtn');
+    if (clearSelectionBtn instanceof HTMLButtonElement) {
+        clearSelectionBtn.disabled = selectedCount === 0;
+    }
+
+    document
+        .querySelectorAll(
+            '[data-action="queue-bulk-action"], [data-action="queue-bulk-reprint"]'
+        )
+        .forEach((button) => {
+            if (!(button instanceof HTMLButtonElement)) return;
+            button.disabled = bulkTargets.length === 0;
+        });
+
     setText(
         '#queueStationBadge',
         `Estación C${state.queue.stationConsultorio}`
@@ -888,6 +1067,33 @@ export function renderQueueSection() {
                 state.queue.stationMode === 'locked' &&
                 target !== Number(state.queue.stationConsultorio || 1);
         });
+
+    const activeStationTicket = getCalledTicketForConsultorio(
+        state.queue.stationConsultorio
+    );
+    const releaseStationButtons = document.querySelectorAll(
+        '[data-action="queue-release-station"][data-queue-consultorio]'
+    );
+    releaseStationButtons.forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) return;
+        const target =
+            Number(button.dataset.queueConsultorio || 1) === 2 ? 2 : 1;
+        const calledTicket = getCalledTicketForConsultorio(target);
+        button.disabled = !calledTicket;
+        if (
+            state.queue.stationMode === 'locked' &&
+            target !== Number(state.queue.stationConsultorio || 1)
+        ) {
+            button.disabled = true;
+        }
+    });
+
+    if (activeStationTicket) {
+        summaryParts.push(
+            `activo: ${activeStationTicket.ticketCode} en C${state.queue.stationConsultorio}`
+        );
+        setText('#queueTriageSummary', summaryParts.join(' | '));
+    }
 
     renderQueueActivity();
 }
@@ -1213,12 +1419,26 @@ function setTicketCalledLocal(ticketId, consultorio) {
     }));
 }
 
-function setTicketStatusLocal(ticketId, status, consultorio = null) {
+function setTicketStatusLocal(ticketId, status, consultorio = undefined) {
     mutateTicketLocal(ticketId, (ticket) => ({
         ...ticket,
         status,
-        assignedConsultorio: consultorio ?? ticket.assignedConsultorio,
-        completedAt: new Date().toISOString(),
+        assignedConsultorio:
+            consultorio === undefined
+                ? ticket.assignedConsultorio
+                : consultorio,
+        calledAt:
+            status === 'called'
+                ? new Date().toISOString()
+                : status === 'waiting'
+                  ? ''
+                  : ticket.calledAt,
+        completedAt:
+            status === 'completed' ||
+            status === 'no_show' ||
+            status === 'cancelled'
+                ? new Date().toISOString()
+                : '',
     }));
 }
 
@@ -1244,15 +1464,15 @@ export async function refreshQueueState() {
 }
 
 export function setQueueFilter(filter) {
-    updateQueueUi({ filter: normalize(filter) || 'all' });
+    updateQueueUi({ filter: normalize(filter) || 'all', selected: [] });
 }
 
 export function setQueueSearch(search) {
-    updateQueueUi({ search: String(search || '') });
+    updateQueueUi({ search: String(search || ''), selected: [] });
 }
 
 export function clearQueueSearch() {
-    updateQueueUi({ search: '' });
+    updateQueueUi({ search: '', selected: [] });
     const input = document.getElementById('queueSearchInput');
     if (input instanceof HTMLInputElement) input.value = '';
 }
@@ -1326,6 +1546,8 @@ async function executeTicketAction({ ticketId, action, consultorio }) {
                 'called',
                 Number(consultorio || 1) === 2 ? 2 : 1
             );
+        } else if (targetAction === 'liberar') {
+            setTicketStatusLocal(targetId, 'waiting', null);
         } else if (targetAction === 'completar') {
             setTicketStatusLocal(targetId, 'completed');
         } else if (targetAction === 'no_show') {
@@ -1359,15 +1581,27 @@ export async function runQueueTicketAction(ticketId, action, consultorio = 0) {
         consultorio: Number(consultorio || 0),
     };
     const state = getState();
+    const currentTicket = getQueueTicketById(payload.ticketId);
     if (
         !state.queue.practiceMode &&
-        SENSITIVE_QUEUE_ACTIONS.has(payload.action)
+        SENSITIVE_QUEUE_ACTIONS.has(payload.action) &&
+        requiresSensitiveConfirm(payload.action, currentTicket)
     ) {
         showSensitiveConfirm(payload);
         appendActivity(`Accion ${payload.action} pendiente de confirmacion`);
         return;
     }
     await executeTicketAction(payload);
+}
+
+export async function runQueueReleaseStation(consultorio) {
+    const target = Number(consultorio || 0) === 2 ? 2 : 1;
+    const activeTicket = getCalledTicketForConsultorio(target);
+    if (!activeTicket) {
+        appendActivity(`Sin ticket activo para liberar en C${target}`);
+        return;
+    }
+    await runQueueTicketAction(activeTicket.id, 'liberar', target);
 }
 
 export async function confirmQueueSensitiveAction() {
@@ -1402,9 +1636,9 @@ export function dismissQueueSensitiveDialog() {
 }
 
 export async function runQueueBulkAction(action) {
-    const visible = getVisibleTickets();
+    const targets = getBulkTargetTickets();
     const normalizedAction = normalizeQueueAction(action);
-    if (!visible.length) return;
+    if (!targets.length) return;
 
     if (SENSITIVE_QUEUE_ACTIONS.has(normalizedAction)) {
         const actionLabel =
@@ -1420,7 +1654,7 @@ export async function runQueueBulkAction(action) {
         if (!confirmed) return;
     }
 
-    for (const ticket of visible) {
+    for (const ticket of targets) {
         try {
             await executeTicketAction({
                 ticketId: ticket.id,
@@ -1433,7 +1667,8 @@ export async function runQueueBulkAction(action) {
             // continue
         }
     }
-    appendActivity(`Bulk ${normalizedAction} sobre ${visible.length} tickets`);
+    clearQueueSelection();
+    appendActivity(`Bulk ${normalizedAction} sobre ${targets.length} tickets`);
 }
 
 export async function reprintQueueTicket(ticketId) {
@@ -1453,15 +1688,16 @@ export async function reprintQueueTicket(ticketId) {
 }
 
 export async function runQueueBulkReprint() {
-    const visible = getVisibleTickets();
-    for (const ticket of visible) {
+    const targets = getBulkTargetTickets();
+    for (const ticket of targets) {
         try {
             await reprintQueueTicket(ticket.id);
         } catch (_error) {
             // continue
         }
     }
-    appendActivity(`Bulk reimpresion ${visible.length}`);
+    clearQueueSelection();
+    appendActivity(`Bulk reimpresion ${targets.length}`);
 }
 
 export function toggleQueueHelpPanel() {

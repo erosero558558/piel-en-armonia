@@ -91,7 +91,7 @@ async function y(t) {
               await l(t, 'bootLegacyAdminAuto');
           })()
         : await (async function () {
-              const t = await import('./js/admin-chunks/index-D6Z6dOAt.js');
+              const t = await import('./js/admin-chunks/index-Bdrs7ruR.js');
               await l(t);
           })();
 }

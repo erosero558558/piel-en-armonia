@@ -102,6 +102,15 @@ async function setupAuthenticatedAdminMocks(page, overrides = {}) {
             return jsonResponse(route, { ok: true, data: mergedData });
         }
 
+        if (resource === 'features') {
+            return jsonResponse(route, {
+                ok: true,
+                data: {
+                    admin_sony_ui: true,
+                },
+            });
+        }
+
         if (resource === 'funnel-metrics') {
             return jsonResponse(route, {
                 ok: true,
@@ -142,6 +151,130 @@ async function setupAuthenticatedAdminMocks(page, overrides = {}) {
     });
 }
 
+async function setupLoginAdminMocks(
+    page,
+    { twoFactorRequired = false, dataOverrides = {} } = {}
+) {
+    const baseData = {
+        appointments: [],
+        callbacks: [],
+        reviews: [],
+        availability: {},
+        availabilityMeta: {
+            source: 'store',
+            mode: 'live',
+            timezone: 'America/Guayaquil',
+            calendarConfigured: true,
+            calendarReachable: true,
+            generatedAt: new Date().toISOString(),
+        },
+    };
+
+    const mergedData = {
+        ...baseData,
+        ...dataOverrides,
+        availabilityMeta: {
+            ...baseData.availabilityMeta,
+            ...(dataOverrides.availabilityMeta || {}),
+        },
+    };
+
+    await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) => {
+        const url = new URL(route.request().url());
+        const action = String(
+            url.searchParams.get('action') || ''
+        ).toLowerCase();
+
+        if (action === 'status') {
+            return jsonResponse(route, {
+                ok: true,
+                authenticated: false,
+            });
+        }
+
+        if (action === 'login') {
+            return jsonResponse(route, {
+                ok: true,
+                twoFactorRequired,
+                csrfToken: twoFactorRequired ? '' : 'csrf_login_test',
+            });
+        }
+
+        if (action === 'login-2fa') {
+            return jsonResponse(route, {
+                ok: true,
+                csrfToken: 'csrf_login_test',
+            });
+        }
+
+        if (action === 'logout') {
+            return jsonResponse(route, { ok: true });
+        }
+
+        return jsonResponse(route, { ok: true });
+    });
+
+    await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+        const url = new URL(route.request().url());
+        const resource = url.searchParams.get('resource') || '';
+
+        if (resource === 'features') {
+            return jsonResponse(route, {
+                ok: true,
+                data: {
+                    admin_sony_ui: true,
+                },
+            });
+        }
+
+        if (resource === 'data') {
+            return jsonResponse(route, { ok: true, data: mergedData });
+        }
+
+        if (resource === 'funnel-metrics') {
+            return jsonResponse(route, {
+                ok: true,
+                data: {
+                    summary: {
+                        viewBooking: 0,
+                        startCheckout: 0,
+                        bookingConfirmed: 0,
+                        checkoutAbandon: 0,
+                        startRatePct: 0,
+                        confirmedRatePct: 0,
+                        abandonRatePct: 0,
+                    },
+                    checkoutAbandonByStep: [],
+                    checkoutEntryBreakdown: [],
+                    paymentMethodBreakdown: [],
+                    bookingStepBreakdown: [],
+                    sourceBreakdown: [],
+                    abandonReasonBreakdown: [],
+                    errorCodeBreakdown: [],
+                },
+            });
+        }
+
+        if (resource === 'availability') {
+            return jsonResponse(route, {
+                ok: true,
+                data: mergedData.availability,
+                meta: mergedData.availabilityMeta,
+            });
+        }
+
+        if (resource === 'monitoring-config') {
+            return jsonResponse(route, { ok: true, data: {} });
+        }
+
+        if (resource === 'health') {
+            return jsonResponse(route, { ok: true, data: {} });
+        }
+
+        return jsonResponse(route, { ok: true, data: {} });
+    });
+}
+
 async function waitForAdminReady(page) {
     await expect(page.locator('html')).toHaveAttribute(
         'data-admin-ready',
@@ -166,7 +299,7 @@ test.describe('Panel de administracion', () => {
     test('tema claro/oscuro funciona en login y persiste tras recarga', async ({
         page,
     }) => {
-        await page.goto('/admin.html');
+        await page.goto('/admin.html?admin_ui=sony_v2&admin_ui_reset=1');
         await waitForAdminReady(page);
 
         const darkThemeBtn = page
@@ -205,7 +338,7 @@ test.describe('Panel de administracion', () => {
     });
 
     test('login con contrasena vacia no funciona', async ({ page }) => {
-        await page.goto('/admin.html');
+        await page.goto('/admin.html?admin_ui=sony_v2&admin_ui_reset=1');
         await waitForAdminReady(page);
         const passwordInput = page.locator('input[type="password"]').first();
         const loginBtn = page
@@ -239,6 +372,52 @@ test.describe('Panel de administracion', () => {
             .first();
         await expect(errorMsg).toBeVisible();
         await expect(page.locator('#adminDashboard')).toHaveClass(/is-hidden/);
+    });
+
+    test('login con 2FA muestra etapa dedicada y permite volver al paso de clave', async ({
+        page,
+    }) => {
+        await setupLoginAdminMocks(page, { twoFactorRequired: true });
+
+        await page.goto('/admin.html');
+        await waitForAdminReady(page);
+
+        await page.locator('#adminPassword').fill('clave-test');
+        await page.locator('#loginBtn').click();
+
+        await expect(page.locator('#group2FA')).toBeVisible();
+        await expect(page.locator('#loginBtn')).toHaveText(
+            /Verificar y entrar/
+        );
+        await expect(page.locator('#adminLoginStatusTitle')).toHaveText(
+            /Codigo 2FA requerido/
+        );
+
+        await page.locator('#loginReset2FABtn').click();
+
+        await expect(page.locator('#group2FA')).toBeHidden();
+        await expect(page.locator('#loginBtn')).toHaveText(/Ingresar/);
+        await expect(page.locator('#adminPassword')).toBeEnabled();
+    });
+
+    test('login exitoso actualiza el estado de sesion en el chrome v2', async ({
+        page,
+    }) => {
+        await setupLoginAdminMocks(page, { twoFactorRequired: false });
+
+        await page.goto('/admin.html');
+        await waitForAdminReady(page);
+
+        await page.locator('#adminPassword').fill('clave-test');
+        await page.locator('#loginBtn').click();
+
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await expect(page.locator('#adminSessionState')).toHaveText(
+            /Sesion activa/
+        );
+        await expect(page.locator('#adminSessionMeta')).toContainText(
+            /Protegida/
+        );
     });
 
     test('dashboard incluye desgloses de embudo extendidos', async ({

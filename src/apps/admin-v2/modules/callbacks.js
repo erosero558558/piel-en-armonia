@@ -2,17 +2,76 @@ import { apiRequest } from '../core/api-client.js';
 import { getState, updateState } from '../core/store.js';
 import { escapeHtml, formatDateTime, setHtml, setText } from '../ui/render.js';
 
+const CALLBACK_SORT_STORAGE_KEY = 'admin-callbacks-sort';
+const CALLBACK_FILTER_STORAGE_KEY = 'admin-callbacks-filter';
+const CALLBACK_URGENT_THRESHOLD_MINUTES = 120;
+const CALLBACK_FILTER_OPTIONS = new Set([
+    'all',
+    'pending',
+    'contacted',
+    'today',
+    'sla_urgent',
+]);
+const CALLBACK_SORT_OPTIONS = new Set(['recent_desc', 'waiting_desc']);
+
 function normalize(value) {
     return String(value || '')
         .toLowerCase()
         .trim();
 }
 
+function normalizeFilter(value) {
+    const normalized = normalize(value);
+    return CALLBACK_FILTER_OPTIONS.has(normalized) ? normalized : 'all';
+}
+
+function normalizeSort(value) {
+    const normalized = normalize(value);
+    return CALLBACK_SORT_OPTIONS.has(normalized) ? normalized : 'recent_desc';
+}
+
 function normalizeStatus(status) {
     const value = normalize(status);
-    if (value === 'contacted') return 'contacted';
-    if (value === 'contactado') return 'contacted';
-    return value === 'pending' || value === 'pendiente' ? 'pending' : 'pending';
+    if (
+        value === 'contacted' ||
+        value === 'contactado' ||
+        value === 'completed' ||
+        value === 'done' ||
+        value === 'resolved' ||
+        value === 'called' ||
+        value === 'atendido'
+    ) {
+        return 'contacted';
+    }
+    if (
+        value === 'pending' ||
+        value === 'pendiente' ||
+        value === 'waiting' ||
+        value === 'open' ||
+        value === 'new' ||
+        value === 'nuevo'
+    ) {
+        return 'pending';
+    }
+    return 'pending';
+}
+
+function createdAtMs(item) {
+    const date = new Date(item?.fecha || item?.createdAt || '');
+    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function waitingMinutes(item) {
+    const stamp = createdAtMs(item);
+    if (!stamp) return 0;
+    return Math.max(0, Math.round((Date.now() - stamp) / 60000));
+}
+
+function phoneLabel(item) {
+    return (
+        String(item?.telefono || item?.phone || 'Sin teléfono').trim() ||
+        'Sin teléfono'
+    );
 }
 
 function inToday(value) {
@@ -27,7 +86,7 @@ function inToday(value) {
 }
 
 function applyFilter(items, filter) {
-    const normalized = normalize(filter);
+    const normalized = normalizeFilter(filter);
     if (normalized === 'pending' || normalized === 'contacted') {
         return items.filter(
             (item) => normalizeStatus(item.status) === normalized
@@ -35,6 +94,12 @@ function applyFilter(items, filter) {
     }
     if (normalized === 'today') {
         return items.filter((item) => inToday(item.fecha || item.createdAt));
+    }
+    if (normalized === 'sla_urgent') {
+        return items.filter((item) => {
+            if (normalizeStatus(item.status) !== 'pending') return false;
+            return waitingMinutes(item) >= CALLBACK_URGENT_THRESHOLD_MINUTES;
+        });
     }
     return items;
 }
@@ -53,6 +118,41 @@ function applySearch(items, search) {
     });
 }
 
+function sortItems(items, sort) {
+    const normalized = normalizeSort(sort);
+    const list = [...items];
+
+    if (normalized === 'waiting_desc') {
+        list.sort((a, b) => createdAtMs(a) - createdAtMs(b));
+        return list;
+    }
+
+    list.sort((a, b) => createdAtMs(b) - createdAtMs(a));
+    return list;
+}
+
+function waitBand(minutes) {
+    if (minutes >= CALLBACK_URGENT_THRESHOLD_MINUTES) {
+        return {
+            label: 'Critico SLA',
+            tone: 'danger',
+            note: 'Escala inmediata',
+        };
+    }
+    if (minutes >= 45) {
+        return {
+            label: 'En ventana',
+            tone: 'warning',
+            note: 'Conviene atender pronto',
+        };
+    }
+    return {
+        label: 'Reciente',
+        tone: 'neutral',
+        note: 'Todavia dentro de margen',
+    };
+}
+
 function callbackCard(item, selected) {
     const status = normalizeStatus(item.status);
     const cardClass =
@@ -61,27 +161,26 @@ function callbackCard(item, selected) {
             : 'callback-card contactado';
     const cardStatus = status === 'pending' ? 'pendiente' : 'contactado';
     const id = Number(item.id || 0);
-    const phone =
-        String(item.telefono || item.phone || 'Sin telefono').trim() ||
-        'Sin telefono';
-    const ageMinutes = (() => {
-        const createdAt = new Date(item.fecha || item.createdAt || '');
-        if (Number.isNaN(createdAt.getTime())) return 0;
-        return Math.max(
-            0,
-            Math.round((Date.now() - createdAt.getTime()) / 60000)
-        );
-    })();
+    const phone = phoneLabel(item);
+    const ageMinutes = waitingMinutes(item);
+    const band = waitBand(ageMinutes);
 
     return `
         <article class="${cardClass}${selected ? ' is-selected' : ''}" data-callback-id="${id}" data-callback-status="${cardStatus}">
             <header>
-                <h4>${escapeHtml(phone)}</h4>
-                <span>${status === 'pending' ? 'Pendiente' : 'Contactado'}</span>
+                <div class="callback-card-heading">
+                    <span class="callback-status-pill" data-tone="${escapeHtml(status === 'pending' ? band.tone : 'success')}">${status === 'pending' ? 'Pendiente' : 'Contactado'}</span>
+                    <h4>${escapeHtml(phone)}</h4>
+                </div>
+                <span class="callback-card-wait" data-tone="${escapeHtml(band.tone)}">${escapeHtml(band.label)}</span>
             </header>
-            <p>Preferencia: ${escapeHtml(item.preferencia || '-')}</p>
-            <p>Fecha: ${escapeHtml(formatDateTime(item.fecha || item.createdAt || ''))}</p>
-            <p>Espera: ${ageMinutes} min</p>
+            <div class="callback-card-grid">
+                <p><span>Preferencia</span><strong>${escapeHtml(item.preferencia || '-')}</strong></p>
+                <p><span>Fecha</span><strong>${escapeHtml(formatDateTime(item.fecha || item.createdAt || ''))}</strong></p>
+                <p><span>Espera</span><strong>${ageMinutes} min</strong></p>
+                <p><span>Estado</span><strong>${escapeHtml(status === 'pending' ? 'Pendiente' : 'Contactado')}</strong></p>
+            </div>
+            <p class="callback-card-note">${escapeHtml(status === 'pending' ? band.note : 'Callback resuelto y fuera de cola operativa.')}</p>
             <div class="callback-actions">
                 <button type="button" data-action="mark-contacted" data-callback-id="${id}" data-callback-date="${escapeHtml(item.fecha || '')}">Marcar contactado</button>
             </div>
@@ -99,22 +198,55 @@ function updateQuickFilterButtons(filter) {
         });
 }
 
+function persistPreferences(callbacksState) {
+    try {
+        localStorage.setItem(
+            CALLBACK_FILTER_STORAGE_KEY,
+            JSON.stringify(normalizeFilter(callbacksState.filter))
+        );
+        localStorage.setItem(
+            CALLBACK_SORT_STORAGE_KEY,
+            JSON.stringify(normalizeSort(callbacksState.sort))
+        );
+    } catch (_error) {
+        // no-op
+    }
+}
+
+export function hydrateCallbacksPreferences() {
+    let filter = 'all';
+    let sort = 'recent_desc';
+    try {
+        filter = JSON.parse(
+            localStorage.getItem(CALLBACK_FILTER_STORAGE_KEY) || '"all"'
+        );
+        sort = JSON.parse(
+            localStorage.getItem(CALLBACK_SORT_STORAGE_KEY) || '"recent_desc"'
+        );
+    } catch (_error) {
+        // no-op
+    }
+
+    updateState((state) => ({
+        ...state,
+        callbacks: {
+            ...state.callbacks,
+            filter: normalizeFilter(filter),
+            sort: normalizeSort(sort),
+        },
+    }));
+}
+
 function computeOps(items) {
     const pending = items.filter(
         (item) => normalizeStatus(item.status) === 'pending'
     );
     const urgent = pending.filter((item) => {
-        const createdAt = new Date(item.fecha || item.createdAt || '');
-        if (Number.isNaN(createdAt.getTime())) return false;
-        return Date.now() - createdAt.getTime() >= 60 * 60 * 1000;
+        return waitingMinutes(item) >= CALLBACK_URGENT_THRESHOLD_MINUTES;
     });
     const next = pending
         .slice()
-        .sort(
-            (a, b) =>
-                new Date(a.fecha || a.createdAt || 0).getTime() -
-                new Date(b.fecha || b.createdAt || 0).getTime()
-        )[0];
+        .sort((a, b) => createdAtMs(a) - createdAtMs(b))[0];
 
     return {
         pendingCount: pending.length,
@@ -127,9 +259,69 @@ function computeOps(items) {
             urgent.length > 0
                 ? 'Cola: prioridad alta'
                 : pending.length > 0
-                  ? 'Cola: atencion requerida'
+                  ? 'Cola: atención requerida'
                   : 'Cola: estable',
+        queueState:
+            urgent.length > 0
+                ? 'danger'
+                : pending.length > 0
+                  ? 'warning'
+                  : 'success',
     };
+}
+
+function renderCallbackDeck(ops, visibleCount, totalCount, selectedCount) {
+    setText(
+        '#callbacksDeckSummary',
+        totalCount > 0
+            ? `${ops.pendingCount} pendiente(s), ${ops.urgentCount} fuera de SLA y ${visibleCount} visibles.`
+            : 'Sin callbacks pendientes.'
+    );
+    setText(
+        '#callbacksDeckHint',
+        ops.urgentCount > 0
+            ? 'Escala primero los casos criticos.'
+            : ops.pendingCount > 0
+              ? 'La cola se puede drenar en esta misma vista.'
+              : 'Sin bloqueos'
+    );
+
+    const queueChip = document.getElementById('callbacksQueueChip');
+    if (queueChip) {
+        queueChip.textContent =
+            ops.queueState === 'danger'
+                ? 'SLA comprometido'
+                : ops.queueState === 'warning'
+                  ? 'Cola activa'
+                  : 'Cola estable';
+        queueChip.setAttribute('data-state', ops.queueState);
+    }
+
+    const queueHealth = document.getElementById('callbacksOpsQueueHealth');
+    if (queueHealth) {
+        queueHealth.setAttribute('data-state', ops.queueState);
+    }
+
+    const next = ops.next;
+    setText('#callbacksOpsNext', next ? phoneLabel(next) : 'Sin teléfono');
+    setText(
+        '#callbacksNextSummary',
+        next
+            ? `Prioriza ${phoneLabel(next)} antes de seguir con la cola.`
+            : 'La siguiente llamada prioritaria aparecerá aqui.'
+    );
+    setText('#callbacksNextWait', `${next ? waitingMinutes(next) : 0} min`);
+    setText('#callbacksNextPreference', next ? next.preferencia || '-' : '-');
+    setText(
+        '#callbacksNextState',
+        next ? waitBand(waitingMinutes(next)).label : 'Pendiente'
+    );
+
+    const selectionChip = document.getElementById('callbacksSelectionChip');
+    if (selectionChip) {
+        selectionChip.classList.toggle('is-hidden', selectedCount === 0);
+    }
+    setText('#callbacksSelectedCount', selectedCount);
 }
 
 export function renderCallbacksSection() {
@@ -140,6 +332,7 @@ export function renderCallbacksSection() {
 
     const filtered = applyFilter(source, state.callbacks.filter);
     const searched = applySearch(filtered, state.callbacks.search);
+    const sorted = sortItems(searched, state.callbacks.sort);
 
     const selectedSet = new Set(
         (state.callbacks.selected || []).map((value) => Number(value || 0))
@@ -147,32 +340,37 @@ export function renderCallbacksSection() {
 
     setHtml(
         '#callbacksGrid',
-        searched.length
-            ? searched
+        sorted.length
+            ? sorted
                   .map((item) =>
                       callbackCard(item, selectedSet.has(Number(item.id || 0)))
                   )
                   .join('')
-            : '<p>No hay callbacks para el filtro actual.</p>'
+            : '<p class="callbacks-grid-empty">No hay callbacks para el filtro actual.</p>'
     );
 
     setText(
         '#callbacksToolbarMeta',
-        `Mostrando ${searched.length} de ${source.length}`
+        `Mostrando ${sorted.length} de ${source.length}`
     );
 
     const stateParts = [];
-    if (normalize(state.callbacks.filter) !== 'all') {
+    if (normalizeFilter(state.callbacks.filter) !== 'all') {
         stateParts.push(
-            normalize(state.callbacks.filter) === 'pending'
+            normalizeFilter(state.callbacks.filter) === 'pending'
                 ? 'Pendientes'
-                : normalize(state.callbacks.filter) === 'contacted'
+                : normalizeFilter(state.callbacks.filter) === 'contacted'
                   ? 'Contactados'
-                  : 'Hoy'
+                  : normalizeFilter(state.callbacks.filter) === 'today'
+                    ? 'Hoy'
+                    : 'Urgentes SLA'
         );
     }
     if (normalize(state.callbacks.search)) {
         stateParts.push(`Busqueda: ${state.callbacks.search}`);
+    }
+    if (normalizeSort(state.callbacks.sort) === 'waiting_desc') {
+        stateParts.push('Orden: Mayor espera (SLA)');
     }
 
     setText(
@@ -180,9 +378,14 @@ export function renderCallbacksSection() {
         stateParts.length ? stateParts.join(' | ') : 'Sin filtros activos'
     );
 
-    const select = document.getElementById('callbackFilter');
-    if (select instanceof HTMLSelectElement) {
-        select.value = state.callbacks.filter;
+    const filterSelect = document.getElementById('callbackFilter');
+    if (filterSelect instanceof HTMLSelectElement) {
+        filterSelect.value = normalizeFilter(state.callbacks.filter);
+    }
+
+    const sortSelect = document.getElementById('callbackSort');
+    if (sortSelect instanceof HTMLSelectElement) {
+        sortSelect.value = normalizeSort(state.callbacks.sort);
     }
 
     const search = document.getElementById('searchCallbacks');
@@ -200,21 +403,28 @@ export function renderCallbacksSection() {
     setText('#callbacksOpsUrgentCount', ops.urgentCount);
     setText('#callbacksOpsTodayCount', ops.todayCount);
     setText('#callbacksOpsQueueHealth', ops.queueHealth);
-    setText(
-        '#callbacksOpsNext',
-        ops.next
-            ? String(ops.next.telefono || ops.next.phone || 'Sin telefono')
-            : 'Sin telefono'
-    );
 
-    const selectionChip = document.getElementById('callbacksSelectionChip');
-    if (selectionChip) {
-        selectionChip.classList.toggle('is-hidden', selectedSet.size === 0);
+    const selectVisibleBtn = document.getElementById(
+        'callbacksBulkSelectVisibleBtn'
+    );
+    if (selectVisibleBtn instanceof HTMLButtonElement) {
+        selectVisibleBtn.disabled = sorted.length === 0;
     }
-    setText('#callbacksSelectedCount', selectedSet.size);
+
+    const clearSelectionBtn = document.getElementById('callbacksBulkClearBtn');
+    if (clearSelectionBtn instanceof HTMLButtonElement) {
+        clearSelectionBtn.disabled = selectedSet.size === 0;
+    }
+
+    const markSelectedBtn = document.getElementById('callbacksBulkMarkBtn');
+    if (markSelectedBtn instanceof HTMLButtonElement) {
+        markSelectedBtn.disabled = selectedSet.size === 0;
+    }
+
+    renderCallbackDeck(ops, sorted.length, source.length, selectedSet.size);
 }
 
-function updateCallbacksState(patch) {
+function updateCallbacksState(patch, { persist = true } = {}) {
     updateState((state) => ({
         ...state,
         callbacks: {
@@ -222,33 +432,56 @@ function updateCallbacksState(patch) {
             ...patch,
         },
     }));
+    if (persist) {
+        persistPreferences(getState().callbacks);
+    }
     renderCallbacksSection();
 }
 
 export function setCallbacksFilter(filter) {
-    updateCallbacksState({ filter: normalize(filter) || 'all' });
+    updateCallbacksState({
+        filter: normalizeFilter(filter),
+        selected: [],
+    });
+}
+
+export function setCallbacksSort(sort) {
+    updateCallbacksState({
+        sort: normalizeSort(sort),
+        selected: [],
+    });
 }
 
 export function setCallbacksSearch(search) {
-    updateCallbacksState({ search: String(search || '') });
+    updateCallbacksState({
+        search: String(search || ''),
+        selected: [],
+    });
 }
 
 export function clearCallbacksFilters() {
     updateCallbacksState({
         filter: 'all',
+        sort: 'recent_desc',
         search: '',
         selected: [],
     });
 }
 
+export function clearCallbacksSelection() {
+    updateCallbacksState({ selected: [] }, { persist: false });
+}
+
 export function selectVisibleCallbacks() {
     const cards = Array.from(
-        document.querySelectorAll('#callbacksGrid .callback-card')
+        document.querySelectorAll(
+            '#callbacksGrid .callback-card[data-callback-status="pendiente"]'
+        )
     );
     const ids = cards
         .map((card) => Number(card.getAttribute('data-callback-id') || 0))
         .filter((id) => id > 0);
-    updateCallbacksState({ selected: ids });
+    updateCallbacksState({ selected: ids }, { persist: false });
 }
 
 function mutateCallbackStatus(id, status) {

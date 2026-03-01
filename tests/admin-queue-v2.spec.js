@@ -219,6 +219,28 @@ async function installAdminV2QueueMocks(page, initialTickets, options = {}) {
                         calledAt: ticket.calledAt || new Date().toISOString(),
                     };
                 }
+                if (action === 're-llamar' || action === 'rellamar') {
+                    return {
+                        ...ticket,
+                        status: 'called',
+                        assignedConsultorio:
+                            consultorio === 2
+                                ? 2
+                                : Number(ticket.assignedConsultorio || 0) === 2
+                                  ? 2
+                                  : 1,
+                        calledAt: new Date().toISOString(),
+                    };
+                }
+                if (action === 'liberar') {
+                    return {
+                        ...ticket,
+                        status: 'waiting',
+                        assignedConsultorio: null,
+                        calledAt: '',
+                        completedAt: '',
+                    };
+                }
                 if (action === 'completar') {
                     return {
                         ...ticket,
@@ -471,5 +493,234 @@ test.describe('Admin queue sony_v2', () => {
         await expect(
             page.locator('#queueSensitiveConfirmDialog')
         ).not.toHaveAttribute('open', '');
+    });
+
+    test('no_show sobre ticket en espera ejecuta directo y limpia siguiente cola', async ({
+        page,
+    }) => {
+        await installAdminV2QueueMocks(page, [
+            {
+                id: 931,
+                ticketCode: 'A-931',
+                queueType: 'appointment',
+                patientInitials: 'NX',
+                priorityClass: 'appt_current',
+                status: 'called',
+                assignedConsultorio: 1,
+                calledAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+                createdAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
+            },
+            {
+                id: 932,
+                ticketCode: 'A-932',
+                queueType: 'walk_in',
+                patientInitials: 'WY',
+                priorityClass: 'walk_in',
+                status: 'waiting',
+                createdAt: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
+            },
+        ]);
+
+        await page.goto('/admin.html?admin_ui=sony_v2&admin_ui_reset=1');
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+
+        await page
+            .locator(
+                '#queueTableBody tr:has-text("A-932") [data-action="queue-ticket-action"][data-queue-action="no_show"]'
+            )
+            .click();
+
+        await expect(
+            page.locator('#queueSensitiveConfirmDialog')
+        ).not.toHaveAttribute('open', '');
+        await expect(page.locator('#queueWaitingCountAdmin')).toHaveText('0');
+        await expect(page.locator('#queueTableBody')).toContainText(
+            'No asistio'
+        );
+    });
+
+    test('seleccion visible aplica bulk solo sobre seleccion y limpia chip', async ({
+        page,
+    }) => {
+        await installAdminV2QueueMocks(page, [
+            {
+                id: 951,
+                ticketCode: 'A-951',
+                queueType: 'appointment',
+                patientInitials: 'AX',
+                priorityClass: 'appt_overdue',
+                status: 'waiting',
+                createdAt: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
+            },
+            {
+                id: 952,
+                ticketCode: 'A-952',
+                queueType: 'walk_in',
+                patientInitials: 'BY',
+                priorityClass: 'walk_in',
+                status: 'waiting',
+                createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+            },
+            {
+                id: 953,
+                ticketCode: 'A-953',
+                queueType: 'walk_in',
+                patientInitials: 'CZ',
+                priorityClass: 'walk_in',
+                status: 'waiting',
+                createdAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+            },
+        ]);
+
+        await page.goto('/admin.html?admin_ui=sony_v2&admin_ui_reset=1');
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await expect(page.locator('#queueTableBody tr')).toHaveCount(3);
+
+        await page.locator('#queueSelectVisibleBtn').click();
+        await expect(page.locator('#queueSelectedCount')).toHaveText('3');
+        await expect(page.locator('#queueSelectionChip')).not.toHaveClass(
+            /is-hidden/
+        );
+
+        await page.locator('#queueSearchInput').fill('A-952');
+        await expect(page.locator('#queueTableBody tr')).toHaveCount(1);
+        await expect(page.locator('#queueSelectedCount')).toHaveText('0');
+
+        await page.locator('#queueSelectVisibleBtn').click();
+        await expect(page.locator('#queueSelectedCount')).toHaveText('1');
+
+        page.once('dialog', async (dialog) => {
+            await dialog.accept();
+        });
+        await page
+            .locator(
+                '[data-action="queue-bulk-action"][data-queue-action="no_show"]'
+            )
+            .click();
+
+        await expect(page.locator('#queueSelectionChip')).toHaveClass(
+            /is-hidden/
+        );
+        await page.locator('[data-action="queue-clear-search"]').click();
+        await expect(page.locator('#queueTableBody')).toContainText('A-952');
+        await expect(page.locator('#queueTableBody')).toContainText(
+            'No asistio'
+        );
+    });
+
+    test('release por estacion y re-llamar actualizan ticket activo', async ({
+        page,
+    }) => {
+        await installAdminV2QueueMocks(page, [
+            {
+                id: 981,
+                ticketCode: 'A-981',
+                queueType: 'appointment',
+                patientInitials: 'RL',
+                priorityClass: 'appt_current',
+                status: 'called',
+                assignedConsultorio: 1,
+                calledAt: new Date(Date.now() - 60 * 1000).toISOString(),
+                createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+            },
+            {
+                id: 982,
+                ticketCode: 'A-982',
+                queueType: 'walk_in',
+                patientInitials: 'NW',
+                priorityClass: 'walk_in',
+                status: 'waiting',
+                createdAt: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
+            },
+        ]);
+
+        await page.goto('/admin.html?admin_ui=sony_v2&admin_ui_reset=1');
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await expect(page.locator('#queueReleaseC1')).toBeVisible();
+        await expect(page.locator('#queueReleaseC1')).toContainText('A-981');
+
+        await page.locator('#queueReleaseC1').click();
+        await expect(page.locator('#queueC1Now')).toContainText('Sin llamado');
+        await expect(page.locator('#queueReleaseC1')).toBeHidden();
+        await expect(page.locator('#queueTableBody')).toContainText('A-981');
+
+        await page
+            .locator(
+                '#queueTableBody [data-action="queue-ticket-action"][data-queue-action="reasignar"][data-queue-consultorio="1"]'
+            )
+            .first()
+            .click();
+        await expect(page.locator('#queueC1Now')).toContainText('A-981');
+
+        await page
+            .locator(
+                '#queueTableBody [data-action="queue-ticket-action"][data-queue-action="re-llamar"]'
+            )
+            .first()
+            .click();
+        await expect(page.locator('#queueC1Now')).toContainText('A-981');
+        await expect(page.locator('#queueActivityList')).toContainText(
+            're-llamar'
+        );
+    });
+
+    test('completar despues de reasignar libera consultorio sin dialogo sensible', async ({
+        page,
+    }) => {
+        await installAdminV2QueueMocks(page, [
+            {
+                id: 991,
+                ticketCode: 'A-991',
+                queueType: 'appointment',
+                patientInitials: 'QA',
+                priorityClass: 'appt_current',
+                status: 'called',
+                assignedConsultorio: 1,
+                calledAt: new Date(Date.now() - 60 * 1000).toISOString(),
+                createdAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
+            },
+            {
+                id: 992,
+                ticketCode: 'A-992',
+                queueType: 'walk_in',
+                patientInitials: 'QB',
+                priorityClass: 'walk_in',
+                status: 'waiting',
+                createdAt: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
+            },
+        ]);
+
+        await page.goto('/admin.html?admin_ui=sony_v2&admin_ui_reset=1');
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+
+        await page
+            .locator(
+                '#queueTableBody [data-action="queue-ticket-action"][data-queue-action="reasignar"][data-queue-consultorio="2"]'
+            )
+            .first()
+            .click();
+
+        await expect(page.locator('#queueC2Now')).toContainText('A-991');
+        await expect(page.locator('#queueC1Now')).toContainText('Sin llamado');
+
+        await page
+            .locator(
+                '#queueTableBody [data-action="queue-ticket-action"][data-queue-action="completar"]'
+            )
+            .first()
+            .click();
+
+        await expect(
+            page.locator('#queueSensitiveConfirmDialog')
+        ).not.toHaveAttribute('open', '');
+        await expect(page.locator('#queueC2Now')).toContainText('Sin llamado');
+        await expect(page.locator('#queueWaitingCountAdmin')).toHaveText('1');
+        await expect(page.locator('#queueTableBody')).toContainText(
+            'Completado'
+        );
     });
 });

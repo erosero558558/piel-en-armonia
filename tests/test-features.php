@@ -8,7 +8,7 @@ function test_defaults()
 {
     $flags = get_feature_flags();
     assert($flags['new_booking_ui'] === false, 'Default new_booking_ui should be false');
-    assert($flags['admin_sony_ui'] === false, 'Default admin_sony_ui should be false');
+    assert($flags['admin_sony_ui'] === true, 'Default admin_sony_ui should be true');
     assert($flags['stripe_elements'] === false, 'Default stripe_elements should be false');
     assert($flags['dark_mode'] === false, 'Default dark_mode should be false');
     assert($flags['chatgpt_integration'] === false, 'Default chatgpt_integration should be false');
