@@ -178,6 +178,7 @@ jobs:
               run: |
                   {
                     echo "## Frontend Premium QA";
+                    echo "- approval_contract: \`premium_frontend_qa + lighthouse + performance_gate + visual_baseline\`";
                     echo "- Workflow: premium UX + lighthouse gate";
                     echo "- QA command: \`npm run test:frontend:qa:premium\`";
                     echo "- Lighthouse command: \`npm run test:frontend:lighthouse:premium\`";

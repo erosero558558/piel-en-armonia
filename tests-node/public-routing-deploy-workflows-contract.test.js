@@ -106,12 +106,16 @@ test('deploy-hosting valida routing y conversion publica en canary y produccion'
         'falta step de conversion en deploy-canary'
     );
     assert.equal(
-        stepNames(prodSteps).includes('Validate public routing ES/EN + redirects (Prod)'),
+        stepNames(prodSteps).includes(
+            'Validate public routing ES/EN + redirects (Prod)'
+        ),
         true,
         'falta step de routing en deploy-prod'
     );
     assert.equal(
-        stepNames(prodSteps).includes('Validate public conversion hooks ES/EN (Prod)'),
+        stepNames(prodSteps).includes(
+            'Validate public conversion hooks ES/EN (Prod)'
+        ),
         true,
         'falta step de conversion en deploy-prod'
     );
@@ -249,6 +253,87 @@ test('deploy-hosting aplica politica bloqueante de staging antes de produccion',
             raw.includes(snippet),
             true,
             `falta wiring de politica staging/prod: ${snippet}`
+        );
+    }
+});
+
+test('deploy-hosting publica fallback manual cuando git-sync no materializa Public V2', () => {
+    const { raw, parsed } = loadWorkflow(HOSTING_WORKFLOW_PATH);
+    const prodSteps = parsed?.jobs?.['deploy-prod']?.steps || [];
+    const prodNames = stepNames(prodSteps);
+
+    assert.equal(
+        prodNames.includes('Manual fallback notes for git-sync'),
+        true,
+        'falta step de fallback manual para git-sync en produccion'
+    );
+
+    for (const snippet of [
+        'bash ./bin/deploy-public-v2-live.sh',
+        'El script recompone \\`es/\\`, \\`en/\\`, \\`_astro/\\`, valida \\`/usr/sbin/nginx -t\\` y recarga Nginx.',
+        'Tambien corrige redirects canonicos para evitar \\`:8080\\` detras de Cloudflare.',
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta detalle de fallback manual en workflow: ${snippet}`
+        );
+    }
+});
+
+test('deploy staging y hosting publican el contrato de aprobacion Public V2 en sus summaries', () => {
+    const { raw: stagingRaw, parsed: stagingParsed } = loadWorkflow(
+        STAGING_WORKFLOW_PATH
+    );
+    const { raw: hostingRaw, parsed: hostingParsed } = loadWorkflow(
+        HOSTING_WORKFLOW_PATH
+    );
+    const stagingSteps = stagingParsed?.jobs?.deploy?.steps || [];
+    const canarySteps = hostingParsed?.jobs?.['deploy-canary']?.steps || [];
+    const prodSteps = hostingParsed?.jobs?.['deploy-prod']?.steps || [];
+
+    assert.equal(
+        stepNames(stagingSteps).includes('Staging summary'),
+        true,
+        'falta Staging summary en deploy-staging'
+    );
+    assert.equal(
+        stepNames(canarySteps).includes('Canary summary'),
+        true,
+        'falta Canary summary en deploy-hosting'
+    );
+    assert.equal(
+        stepNames(prodSteps).includes('Production summary'),
+        true,
+        'falta Production summary en deploy-hosting'
+    );
+
+    for (const [workflowName, raw, snippet] of [
+        [
+            'deploy-staging',
+            stagingRaw,
+            'echo "- approval_contract: \\`routing_smoke + conversion_smoke + staging_acceptance_gate + artifact:staging-acceptance-evidence\\`";',
+        ],
+        [
+            'deploy-hosting canary',
+            hostingRaw,
+            'echo "- approval_contract: \\`routing_smoke + conversion_smoke + staging_acceptance_gate + artifact:canary-staging-acceptance-evidence\\`";',
+        ],
+        [
+            'deploy-hosting production dependency',
+            hostingRaw,
+            'echo "- approval_contract_dependency: \\`deploy-canary + canary-staging-acceptance-evidence\\`";',
+        ],
+        [
+            'deploy-hosting production cutover',
+            hostingRaw,
+            'echo "- production_cutover_contract: \\`routing_smoke + conversion_smoke + artifact:public-cutover-evidence\\`";',
+        ],
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta contrato de aprobacion Public V2 en ${workflowName}`
         );
     }
 });

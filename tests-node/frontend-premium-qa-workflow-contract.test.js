@@ -93,3 +93,22 @@ test('frontend premium QA incluye gate de performance con evidencia', () => {
         'falta path de artefacto de performance gate'
     );
 });
+
+test('frontend premium QA publica contrato de aprobacion Public V2 en el summary', () => {
+    const { raw, parsed } = loadWorkflow();
+    const steps = parsed?.jobs?.['premium-qa']?.steps || [];
+    const stepNames = getStepNames(steps);
+
+    assert.equal(
+        stepNames.includes('Summary'),
+        true,
+        'falta step Summary en frontend premium QA'
+    );
+    assert.equal(
+        raw.includes(
+            'echo "- approval_contract: \\`premium_frontend_qa + lighthouse + performance_gate + visual_baseline\\`";'
+        ),
+        true,
+        'falta contrato de aprobacion Public V2 en summary de frontend premium QA'
+    );
+});

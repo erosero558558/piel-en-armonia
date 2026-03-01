@@ -203,6 +203,7 @@ jobs:
               run: |
                   {
                     echo "## Staging acceptance";
+                    echo "- approval_contract: \`routing_smoke + conversion_smoke + staging_acceptance_gate + artifact:staging-acceptance-evidence\`";
                     echo "- routing_smoke_report: \`.staging-acceptance/routing-smoke.json\`";
                     echo "- conversion_smoke_report: \`.staging-acceptance/conversion-smoke.json\`";
                     echo "- manual_checklist: \`.staging-acceptance/*/staging-manual-checklist.md\`";

@@ -15,7 +15,9 @@ test.describe('Public routing redirect maps', () => {
         const htaccess = readFile('.htaccess');
 
         expect(htaccess).toContain('RewriteRule ^$ /es/ [R=301,L]');
-        expect(htaccess).toContain('RewriteRule ^index\\.html$ /es/ [R=301,L,NC]');
+        expect(htaccess).toContain(
+            'RewriteRule ^index\\.html$ /es/ [R=301,L,NC]'
+        );
         expect(htaccess).toContain(
             'RewriteRule ^telemedicina(?:\\.html)?$ /es/telemedicina/ [R=301,L,NC]'
         );
@@ -31,12 +33,17 @@ test.describe('Public routing redirect maps', () => {
         const nginxConf = readFile('nginx-pielarmonia.conf');
 
         expect(nginxConf).toContain('location = / {');
-        expect(nginxConf).toContain('return 301 /es/$is_args$args;');
         expect(nginxConf).toContain(
-            'return 301 /es/servicios/$1/$is_args$args;'
+            'return 301 https://$host/es/$is_args$args;'
         );
         expect(nginxConf).toContain(
-            'return 301 /es/legal/aviso-medico/$is_args$args;'
+            'return 301 https://$host/es/telemedicina/$is_args$args;'
+        );
+        expect(nginxConf).toContain(
+            'return 301 https://$host/es/servicios/$1/$is_args$args;'
+        );
+        expect(nginxConf).toContain(
+            'return 301 https://$host/es/legal/aviso-medico/$is_args$args;'
         );
     });
 });

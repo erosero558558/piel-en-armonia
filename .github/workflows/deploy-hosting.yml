@@ -331,6 +331,7 @@ jobs:
               run: |
                   {
                     echo "## Canary gate";
+                    echo "- approval_contract: \`routing_smoke + conversion_smoke + staging_acceptance_gate + artifact:canary-staging-acceptance-evidence\`";
                     echo "- require_staging_canary: \`${REQUIRE_STAGING_CANARY}\`";
                     echo "- allow_prod_without_staging: \`${ALLOW_PROD_WITHOUT_STAGING}\`";
                     echo "- staging_secrets_missing: \`${{ steps.staging_secrets.outputs.missing || 'unknown' }}\`";
@@ -494,6 +495,17 @@ jobs:
                   echo "Modo deploy git-sync activo. Esperando ${GIT_SYNC_WAIT_SEC}s para sincronizacion remota."
                   sleep "${GIT_SYNC_WAIT_SEC}"
 
+            - name: Manual fallback notes for git-sync
+              if: ${{ always() && env.DEPLOY_METHOD == 'git-sync' && env.FTP_DRY_RUN != 'true' }}
+              shell: bash
+              run: |
+                  {
+                    echo "## Manual fallback";
+                    echo "- Si el host sigue sin publicar \`/es/\` o \`/en/\`, ejecutar en el VPS: \`bash ./bin/deploy-public-v2-live.sh\`";
+                    echo "- El script recompone \`es/\`, \`en/\`, \`_astro/\`, valida \`/usr/sbin/nginx -t\` y recarga Nginx.";
+                    echo "- Tambien corrige redirects canonicos para evitar \`:8080\` detras de Cloudflare.";
+                  } >> "$GITHUB_STEP_SUMMARY"
+
             - name: Smoke Tests (Prod)
               if: ${{ env.FTP_DRY_RUN != 'true' }}
               shell: bash
@@ -634,6 +646,8 @@ jobs:
               run: |
                   {
                     echo "## Production deploy";
+                    echo "- approval_contract_dependency: \`deploy-canary + canary-staging-acceptance-evidence\`";
+                    echo "- production_cutover_contract: \`routing_smoke + conversion_smoke + artifact:public-cutover-evidence\`";
                     echo "- require_staging_canary: \`${REQUIRE_STAGING_CANARY}\`";
                     echo "- allow_prod_without_staging: \`${ALLOW_PROD_WITHOUT_STAGING}\`";
                     echo "- needs.deploy-canary.result: \`${{ needs.deploy-canary.result }}\`";

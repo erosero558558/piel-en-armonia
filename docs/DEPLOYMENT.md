@@ -10,9 +10,10 @@ El proceso de despliegue está completamente automatizado y basado en **Integrac
 graph LR
     Dev[Desarrollador] -->|Git Push| Main[Rama Main]
     Main -->|Trigger| CI[GitHub Actions CI]
-    CI -->|Lint & Test| Build[Build Artifacts]
-    Build -->|FTP Upload| Server[Servidor Producción]
-    Server -->|Smoke Test| Valid[Validación]
+    CI -->|Lint + QA + Build| Build[Astro and PHP Artifacts]
+    Build -->|Canary + Prod Deploy| Server[Servidor Produccion]
+    Server -->|Routing + Conversion Smoke| Valid[Validacion]
+    Server -->|Fallback Manual| VPS[OpenClaw or SSH]
 ```
 
 ## 2. Estrategia de Despliegue (Deployment Strategy)
@@ -24,14 +25,18 @@ Utilizamos un modelo de **Blue/Green simplificado** (donde el "Blue" es el códi
 El workflow `.github/workflows/deploy-hosting.yml` se encarga de:
 
 1.  Checkout del código.
-2.  Instalación de dependencias de producción (`npm ci --omit=dev`).
-3.  Empaquetado (`npm run bundle:deploy`).
-4.  Subida segura por FTP/SFTP (excluyendo `data/` y `env.php`).
-5.  Limpieza de caché en servidor (si aplica).
+2.  Instalación de dependencias (`npm ci` + `composer install --no-dev`).
+3.  Build estático de `Public V2` (`npm run astro:build` + `npm run astro:sync`).
+4.  Canary de staging y gate de aceptación cuando staging está configurado.
+5.  Publicación a producción por `git-sync`, FTP o SFTP según la configuración activa.
+6.  Smoke post-deploy de routing público, conversión pública y manifiesto de cutover.
 
 ### Despliegue Manual (Emergencia)
 
-Ver `docs/RUNBOOKS.md` sección 1.2 para instrucciones paso a paso en caso de fallo del CI.
+Si `git-sync` no replica `origin/main` o GitHub runners no alcanzan el hosting, usar el runbook del VPS:
+
+- [PUBLIC_V2_MANUAL_DEPLOY.md](./PUBLIC_V2_MANUAL_DEPLOY.md)
+- Script reusable: `bin/deploy-public-v2-live.sh`
 
 ## 3. Feature Flags (Banderas de Funcionalidad)
 
@@ -98,7 +103,9 @@ php bin/verify-gate.php
 
 ### Checklist Manual (Smoke Test)
 
-1.  [ ] La página de inicio carga en < 2 segundos.
+1.  [ ] `https://pielarmonia.com/` redirige a `/es/`.
 2.  [ ] `/api.php?resource=health` retorna `status: ok`.
-3.  [ ] El formulario de contacto/reserva se abre correctamente.
-4.  [ ] No hay errores de consola (F12) rojos.
+3.  [ ] `https://pielarmonia.com/es/` y `https://pielarmonia.com/en/` retornan `200`.
+4.  [ ] `https://pielarmonia.com/telemedicina.html` redirige a `/es/telemedicina/`.
+5.  [ ] El bridge de reserva (`#citas`, `#appointmentForm`, `#serviceSelect`) sigue visible.
+6.  [ ] No hay errores de consola (F12) rojos.
