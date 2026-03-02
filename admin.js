@@ -145,11 +145,11 @@ async function w(t) {
                   await m(t, 'bootLegacyAdminAuto');
               })()
             : await (async function () {
-                  const t = await import('./js/admin-chunks/index-DmNBGj5Z.js');
+                  const t = await import('./js/admin-chunks/index-CDhIDYG9.js');
                   await m(t);
               })()
         : await (async function () {
-              const t = await import('./js/admin-chunks/index-BszXcN71.js');
+              const t = await import('./js/admin-chunks/index-Dsug4dp8.js');
               await m(t);
           })();
 }

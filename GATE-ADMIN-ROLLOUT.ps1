@@ -51,6 +51,7 @@ $report = [ordered]@{
     runtime_smoke = [ordered]@{
         executed = $false
         ok = $null
+        suites = @()
     }
     failures = 0
 }
@@ -172,6 +173,46 @@ function Get-ExpectedFeatureFlagsByStage {
                 admin_sony_ui_v3 = $null
             }
         }
+    }
+}
+
+function Invoke-PlaywrightSmokeSuite {
+    param(
+        [string]$Name,
+        [string[]]$Specs
+    )
+
+    $specList = @($Specs | Where-Object {
+        -not [string]::IsNullOrWhiteSpace([string]$_)
+    })
+
+    if ($specList.Count -eq 0) {
+        return [PSCustomObject]@{
+            name = $Name
+            ok = $true
+            exit_code = 0
+            specs = @()
+        }
+    }
+
+    Write-Host "[SMOKE] $Name -> $($specList -join ', ')"
+
+    $args = @('playwright', 'test') + $specList + @('--workers=1')
+    & npx @args
+    $exitCode = $LASTEXITCODE
+    $ok = ($exitCode -eq 0)
+
+    if ($ok) {
+        Write-Host "[OK]  $Name en verde."
+    } else {
+        Write-Host "[FAIL] $Name fallo."
+    }
+
+    return [PSCustomObject]@{
+        name = $Name
+        ok = $ok
+        exit_code = $exitCode
+        specs = $specList
     }
 }
 
@@ -335,19 +376,48 @@ if ($null -ne $adminBaseResult -and $adminBaseResult.Ok) {
 
 if (-not $SkipRuntimeSmoke) {
     Write-Host ""
-    Write-Host "[SMOKE] Ejecutando runtime smoke Playwright admin-ui..."
+    Write-Host "[SMOKE] Ejecutando suite Playwright admin-ui por etapa..."
     $report.runtime_smoke.executed = $true
 
     $previousBaseUrl = $env:TEST_BASE_URL
     $env:TEST_BASE_URL = $base
     try {
-        npx playwright test tests/admin-ui-runtime-smoke.spec.js --workers=1
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "[FAIL] Runtime smoke Playwright fallo."
-            $failures += 1
+        $suites = @(
+            @{
+                Name = 'admin-ui-runtime'
+                Specs = @('tests/admin-ui-runtime-smoke.spec.js')
+            }
+        )
+
+        if (
+            $Stage -eq 'canary' -or
+            $Stage -eq 'general' -or
+            ($Stage -eq 'internal' -and $featureValueV3 -eq $true)
+        ) {
+            $suites += @{
+                Name = 'admin-v3-canary-runtime'
+                Specs = @('tests/admin-v3-canary-runtime.spec.js')
+            }
+        }
+
+        $suiteFailures = 0
+        foreach ($suite in $suites) {
+            $suiteResult = Invoke-PlaywrightSmokeSuite -Name $suite.Name -Specs $suite.Specs
+            $report.runtime_smoke.suites += [ordered]@{
+                name = [string]$suiteResult.name
+                ok = [bool]$suiteResult.ok
+                exit_code = [int]$suiteResult.exit_code
+                specs = @($suiteResult.specs)
+            }
+            if (-not $suiteResult.ok) {
+                $suiteFailures += 1
+            }
+        }
+
+        if ($suiteFailures -gt 0) {
+            $failures += $suiteFailures
             $report.runtime_smoke.ok = $false
         } else {
-            Write-Host "[OK]  Runtime smoke Playwright en verde."
             $report.runtime_smoke.ok = $true
         }
     } finally {

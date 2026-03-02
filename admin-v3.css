@@ -2,17 +2,19 @@ html[data-admin-ui='sony_v3'] {
     --admin3-bg: #f3f4f1;
     --admin3-bg-soft: #eceee7;
     --admin3-surface: #ffffff;
-    --admin3-surface-alt: #f8f8f5;
-    --admin3-stage: #0f1215;
-    --admin3-stage-soft: #171b20;
-    --admin3-ink: #111418;
-    --admin3-muted: #616871;
-    --admin3-line: rgba(17, 20, 24, 0.11);
-    --admin3-line-strong: rgba(17, 20, 24, 0.18);
-    --admin3-shadow: 0 18px 40px rgba(17, 20, 24, 0.08);
+    --admin3-surface-alt: #eceee8;
+    --admin3-stage: #0d1014;
+    --admin3-stage-soft: #161a20;
+    --admin3-ink: #0d0f11;
+    --admin3-muted: #5b6167;
+    --admin3-line: rgba(13, 15, 17, 0.12);
+    --admin3-line-strong: rgba(13, 15, 17, 0.2);
+    --admin3-shadow: 0 18px 44px rgba(15, 19, 28, 0.1);
+    --admin3-shadow-soft: 0 10px 24px rgba(15, 19, 28, 0.06);
     --admin3-radius: 26px;
     --admin3-radius-sm: 18px;
-    --admin3-font: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --admin3-width: min(1340px, calc(100vw - 56px));
+    --admin3-font: 'Inter', 'Plus Jakarta Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     --admin3-focus: #1742d1;
     --admin3-success: #1f7a4f;
     --admin3-warning: #9d6a10;
@@ -32,6 +34,7 @@ html[data-admin-ui='sony_v3'][data-theme='dark'] {
     --admin3-line: rgba(255, 255, 255, 0.1);
     --admin3-line-strong: rgba(255, 255, 255, 0.18);
     --admin3-shadow: 0 18px 44px rgba(0, 0, 0, 0.25);
+    --admin3-shadow-soft: 0 10px 24px rgba(0, 0, 0, 0.18);
 }
 
 html[data-admin-ui='sony_v3'] body {
@@ -45,6 +48,7 @@ body.admin-v3-mode {
     min-height: 100vh;
     background: linear-gradient(180deg, var(--admin3-bg) 0%, var(--admin3-bg-soft) 100%);
     color: var(--admin3-ink);
+    line-height: 1.45;
 }
 
 body.admin-v3-mode *,
@@ -122,6 +126,11 @@ body.admin-v3-mode .queue-sensitive-confirm-dialog form {
     border: 1px solid var(--admin3-line);
     border-radius: var(--admin3-radius);
     box-shadow: var(--admin3-shadow);
+    transition:
+        transform 140ms ease,
+        box-shadow 140ms ease,
+        border-color 140ms ease,
+        background 140ms ease;
 }
 
 body.admin-v3-mode .sony-panel.soft,
@@ -134,6 +143,7 @@ body.admin-v3-mode .admin-v3-login__fact {
     background: var(--admin3-surface-alt);
     border: 1px solid var(--admin3-line);
     border-radius: var(--admin3-radius-sm);
+    box-shadow: none;
 }
 
 body.admin-v3-mode .sony-grid,
@@ -157,13 +167,13 @@ body.admin-v3-mode .sony-grid-three {
 }
 
 body.admin-v3-mode .sony-grid-kpi {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 body.admin-v3-mode .sony-kpi {
-    padding: 20px;
+    padding: 22px;
     display: grid;
-    gap: 10px;
+    gap: 12px;
 }
 
 body.admin-v3-mode .sony-kpi h3,
@@ -182,6 +192,14 @@ body.admin-v3-mode #adminContextTitle {
 body.admin-v3-mode .sony-kpi strong {
     font-size: clamp(1.65rem, 2vw, 2.3rem);
     letter-spacing: -0.05em;
+}
+
+body.admin-v3-mode .sony-kpi h3,
+body.admin-v3-mode .sony-kpi h4 {
+    font-size: 0.8rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--admin3-muted);
 }
 
 body.admin-v3-mode .section-header,
@@ -229,6 +247,7 @@ body.admin-v3-mode .logout-btn {
     color: var(--admin3-ink);
     min-height: 42px;
     padding: 0 16px;
+    font-weight: 600;
     transition: transform 140ms ease, background 140ms ease, border-color 140ms ease, color 140ms ease;
 }
 
@@ -319,9 +338,8 @@ body.admin-v3-mode .admin-v3-login__fact strong {
 body.admin-v3-mode .admin-v3-login__panel {
     display: grid;
     gap: 24px;
-    background: rgba(255, 255, 255, 0.84);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(17, 20, 24, 0.08);
+    background: var(--admin3-surface);
+    border: 1px solid var(--admin3-line);
     box-shadow: var(--admin3-shadow);
 }
 
@@ -400,6 +418,7 @@ body.admin-v3-mode .admin-sidebar {
     gap: 18px;
     background: linear-gradient(180deg, #111418 0%, #181c21 100%);
     color: #fff;
+    box-shadow: 18px 0 40px rgba(15, 18, 21, 0.12);
 }
 
 body.admin-v3-mode.admin-sidebar-collapsed .admin-sidebar {
@@ -447,7 +466,8 @@ body.admin-v3-mode .logout-btn {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 0 14px;
+    min-height: 48px;
+    padding: 0 16px;
     color: rgba(255, 255, 255, 0.84);
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.08);
@@ -464,6 +484,7 @@ body.admin-v3-mode .logout-btn:hover {
     background: #fff;
     color: #111418;
     border-color: #fff;
+    box-shadow: 0 14px 28px rgba(15, 18, 21, 0.2);
 }
 
 body.admin-v3-mode .badge {
@@ -491,10 +512,15 @@ body.admin-v3-mode .admin-sidebar-backdrop {
 }
 
 body.admin-v3-mode .admin-v3-main {
-    padding: 24px;
+    padding: 30px 28px 48px;
     display: grid;
     gap: 24px;
     align-content: start;
+}
+
+body.admin-v3-mode .admin-v3-main > * {
+    width: min(100%, var(--admin3-width));
+    margin-inline: auto;
 }
 
 body.admin-v3-mode .admin-v3-topbar {
@@ -502,6 +528,14 @@ body.admin-v3-mode .admin-v3-topbar {
     align-items: center;
     justify-content: space-between;
     gap: 18px;
+    position: sticky;
+    top: 18px;
+    z-index: 20;
+    padding: 18px 22px;
+    background: var(--admin3-surface);
+    border: 1px solid var(--admin3-line);
+    border-radius: 26px;
+    box-shadow: var(--admin3-shadow-soft);
 }
 
 body.admin-v3-mode .admin-v3-topbar__copy {
@@ -514,6 +548,12 @@ body.admin-v3-mode .admin-v3-topbar__actions {
 }
 
 body.admin-v3-mode .admin-v3-topbar__menu,
+body.admin-v3-mode .admin-theme-btn {
+    background: transparent;
+    color: var(--admin3-ink);
+    border-color: var(--admin3-line);
+}
+
 body.admin-v3-mode .admin-v3-command-btn,
 body.admin-v3-mode #refreshAdminDataBtn,
 body.admin-v3-mode #loginBtn {
@@ -525,20 +565,21 @@ body.admin-v3-mode #loginBtn {
 body.admin-v3-mode .admin-v3-context-strip {
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
-    gap: 18px;
+    gap: 20px;
 }
 
 body.admin-v3-mode .admin-v3-context-copy,
 body.admin-v3-mode .admin-v3-status-rail {
     border-radius: 30px;
-    padding: 24px;
+    padding: 28px;
 }
 
 body.admin-v3-mode .admin-v3-context-copy {
     background: linear-gradient(180deg, #161a1f 0%, #101418 100%);
     color: #fff;
     display: grid;
-    gap: 16px;
+    gap: 18px;
+    min-height: 100%;
 }
 
 body.admin-v3-mode .admin-v3-context-copy .sony-kicker,
@@ -547,25 +588,40 @@ body.admin-v3-mode .admin-v3-context-copy p {
 }
 
 body.admin-v3-mode .admin-v3-context-copy h3 {
-    font-size: clamp(2rem, 3vw, 3rem);
+    max-width: 12ch;
+    font-size: clamp(2.2rem, 3.5vw, 3.35rem);
 }
 
 body.admin-v3-mode .sony-context-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
 }
 
 body.admin-v3-mode .sony-context-action {
-    min-height: auto;
-    padding: 14px 16px;
+    min-height: 96px;
+    width: 100%;
+    padding: 16px 18px;
     border-radius: 22px;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     gap: 16px;
-    width: calc(50% - 7px);
     background: rgba(255, 255, 255, 0.08);
     color: #fff;
     border-color: rgba(255, 255, 255, 0.1);
+    text-align: left;
+}
+
+body.admin-v3-mode .sony-context-action:first-child {
+    background: var(--admin3-surface);
+    color: var(--admin3-ink);
+    border-color: var(--admin3-surface);
+}
+
+body.admin-v3-mode .sony-context-action:first-child .sony-context-action-copy small,
+body.admin-v3-mode .sony-context-action:first-child .sony-context-action-key {
+    color: var(--admin3-muted);
 }
 
 body.admin-v3-mode .sony-context-action-copy {
@@ -587,9 +643,10 @@ body.admin-v3-mode .admin-v3-status-rail {
 }
 
 body.admin-v3-mode .sony-status-tile {
-    padding: 18px;
+    padding: 20px;
     display: grid;
     gap: 8px;
+    min-height: 92px;
 }
 
 body.admin-v3-mode .sony-status-tile strong {
@@ -617,32 +674,66 @@ body.admin-v3-mode .appointments-command-deck,
 body.admin-v3-mode .callbacks-command-deck,
 body.admin-v3-mode .reviews-summary-panel,
 body.admin-v3-mode .availability-container {
-    padding: 24px;
+    padding: 28px;
+}
+
+body.admin-v3-mode .dashboard-hero-panel,
+body.admin-v3-mode .appointments-command-deck,
+body.admin-v3-mode .callbacks-command-deck,
+body.admin-v3-mode .reviews-summary-panel {
+    display: grid;
+    gap: 22px;
+    background: linear-gradient(180deg, #161a20 0%, #0d1014 100%);
+    color: #fff;
 }
 
 body.admin-v3-mode .dashboard-hero-panel {
-    background: linear-gradient(180deg, #161a1f 0%, #101418 100%);
-    color: #fff;
+    min-height: 100%;
 }
 
 body.admin-v3-mode .dashboard-hero-panel .sony-kicker,
 body.admin-v3-mode .dashboard-hero-panel p,
 body.admin-v3-mode .dashboard-hero-panel span,
-body.admin-v3-mode .dashboard-hero-panel small {
+body.admin-v3-mode .dashboard-hero-panel small,
+body.admin-v3-mode .appointments-command-deck .sony-kicker,
+body.admin-v3-mode .appointments-command-deck p,
+body.admin-v3-mode .appointments-command-deck small,
+body.admin-v3-mode .callbacks-command-deck .sony-kicker,
+body.admin-v3-mode .callbacks-command-deck p,
+body.admin-v3-mode .callbacks-command-deck small,
+body.admin-v3-mode .reviews-summary-panel p,
+body.admin-v3-mode .reviews-summary-panel small {
     color: rgba(255, 255, 255, 0.76);
+}
+
+body.admin-v3-mode .dashboard-hero-panel h3,
+body.admin-v3-mode .appointments-command-deck h3,
+body.admin-v3-mode .callbacks-command-deck h3,
+body.admin-v3-mode .reviews-summary-panel h3,
+body.admin-v3-mode .availability-header h3 {
+    font-size: clamp(2rem, 3vw, 2.95rem);
 }
 
 body.admin-v3-mode .dashboard-hero-actions button,
 body.admin-v3-mode .appointments-command-actions button:first-child,
 body.admin-v3-mode .callbacks-command-actions button:first-child {
-    background: #fff;
-    color: #111418;
-    border-color: #fff;
+    background: var(--admin3-surface);
+    color: var(--admin3-ink);
+    border-color: var(--admin3-surface);
+}
+
+body.admin-v3-mode .dashboard-hero-actions button:not(:first-child),
+body.admin-v3-mode .appointments-command-actions button:not(:first-child),
+body.admin-v3-mode .callbacks-command-actions button:not(:first-child) {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 body.admin-v3-mode .dashboard-hero-metrics,
 body.admin-v3-mode .sony-panel-stats,
 body.admin-v3-mode .appointments-ops-grid,
+body.admin-v3-mode .callbacks-ops-grid,
 body.admin-v3-mode .reviews-summary-grid,
 body.admin-v3-mode .appointments-focus-grid,
 body.admin-v3-mode .callbacks-next-grid {
@@ -652,6 +743,7 @@ body.admin-v3-mode .callbacks-next-grid {
 
 body.admin-v3-mode .dashboard-hero-metrics,
 body.admin-v3-mode .appointments-ops-grid,
+body.admin-v3-mode .callbacks-ops-grid,
 body.admin-v3-mode .reviews-summary-grid,
 body.admin-v3-mode .appointments-focus-grid,
 body.admin-v3-mode .callbacks-next-grid {
@@ -662,7 +754,7 @@ body.admin-v3-mode .dashboard-hero-metric,
 body.admin-v3-mode .dashboard-signal-card,
 body.admin-v3-mode .appointments-focus-stat,
 body.admin-v3-mode .callbacks-next-stat {
-    padding: 16px;
+    padding: 18px;
     border-radius: 20px;
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -678,6 +770,50 @@ body.admin-v3-mode .appointments-workbench,
 body.admin-v3-mode .callbacks-workbench,
 body.admin-v3-mode .sony-panel {
     padding: 22px;
+}
+
+body.admin-v3-mode .appointments-command-deck .appointments-ops-card,
+body.admin-v3-mode .callbacks-command-deck .callbacks-ops-card,
+body.admin-v3-mode .reviews-summary-panel .reviews-summary-stat {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+body.admin-v3-mode .appointments-command-deck .appointments-deck-chip,
+body.admin-v3-mode .callbacks-command-deck .callbacks-queue-chip,
+body.admin-v3-mode .reviews-summary-panel .reviews-score-pill {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.14);
+    color: #fff;
+}
+
+body.admin-v3-mode .dashboard-hero-metric strong,
+body.admin-v3-mode .appointments-ops-card strong,
+body.admin-v3-mode .callbacks-ops-card strong,
+body.admin-v3-mode .reviews-summary-stat strong,
+body.admin-v3-mode .appointments-focus-stat strong,
+body.admin-v3-mode .callbacks-next-stat strong {
+    display: block;
+    margin-top: 10px;
+    font-size: clamp(1.35rem, 1.7vw, 1.85rem);
+    letter-spacing: -0.04em;
+}
+
+body.admin-v3-mode .callbacks-ops-card.wide {
+    grid-column: span 2;
+}
+
+body.admin-v3-mode .dashboard-signal-panel,
+body.admin-v3-mode .appointments-focus-panel,
+body.admin-v3-mode .callbacks-next-panel,
+body.admin-v3-mode .reviews-spotlight-panel,
+body.admin-v3-mode .dashboard-card-operations,
+body.admin-v3-mode #funnelSummary,
+body.admin-v3-mode .appointments-workbench,
+body.admin-v3-mode .callbacks-workbench,
+body.admin-v3-mode .availability-container {
+    box-shadow: var(--admin3-shadow);
 }
 
 body.admin-v3-mode .dashboard-signal-stack {
@@ -761,12 +897,14 @@ body.admin-v3-mode .operations-action-item {
     width: 100%;
     justify-content: space-between;
     background: var(--admin3-surface-alt);
+    text-align: left;
 }
 
 body.admin-v3-mode .table-scroll {
     overflow: auto;
     border: 1px solid var(--admin3-line);
     border-radius: 22px;
+    background: var(--admin3-surface);
 }
 
 body.admin-v3-mode .sony-table {
@@ -790,6 +928,9 @@ body.admin-v3-mode .sony-table thead th {
     text-transform: uppercase;
     color: var(--admin3-muted);
     background: var(--admin3-surface-alt);
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
 body.admin-v3-mode .appointment-person,
@@ -809,6 +950,34 @@ body.admin-v3-mode .time-slots-list {
     gap: 6px;
 }
 
+body.admin-v3-mode .operations-action-list,
+body.admin-v3-mode .reviews-summary-rail,
+body.admin-v3-mode .appointments-focus-tags,
+body.admin-v3-mode .availability-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+body.admin-v3-mode .appointments-toolbar,
+body.admin-v3-mode .callbacks-toolbar,
+body.admin-v3-mode .toolbar-row:not(.slim) {
+    padding: 16px;
+    border-radius: 22px;
+    border: 1px solid var(--admin3-line);
+    background: var(--admin3-surface-alt);
+}
+
+body.admin-v3-mode .appointments-toolbar label,
+body.admin-v3-mode .callbacks-toolbar label {
+    min-width: 180px;
+}
+
+body.admin-v3-mode .appointments-toolbar input,
+body.admin-v3-mode .callbacks-toolbar input {
+    flex: 1 1 240px;
+}
+
 body.admin-v3-mode .table-actions,
 body.admin-v3-mode .callback-actions {
     align-items: flex-start;
@@ -819,6 +988,8 @@ body.admin-v3-mode .callback-card:hover,
 body.admin-v3-mode .review-card:hover,
 body.admin-v3-mode .calendar-day:hover {
     background: var(--admin3-surface-alt);
+    transform: translateY(-1px);
+    box-shadow: var(--admin3-shadow-soft);
 }
 
 body.admin-v3-mode .appointment-quick-filter-btn.is-active,
@@ -843,7 +1014,7 @@ body.admin-v3-mode #availabilityDayActions {
 body.admin-v3-mode .callbacks-grid,
 body.admin-v3-mode .reviews-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 16px;
 }
 
@@ -856,12 +1027,33 @@ body.admin-v3-mode .reviews-empty-state {
 
 body.admin-v3-mode .callback-card.is-selected {
     border-color: rgba(23, 66, 209, 0.32);
-    box-shadow: 0 0 0 1px rgba(23, 66, 209, 0.12);
+    background: rgba(23, 66, 209, 0.06);
+    box-shadow:
+        0 0 0 1px rgba(23, 66, 209, 0.12),
+        0 18px 32px rgba(23, 66, 209, 0.08);
 }
 
 body.admin-v3-mode .callback-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
+}
+
+body.admin-v3-mode .callback-card-grid p,
+body.admin-v3-mode .review-card p,
+body.admin-v3-mode .reviews-spotlight-card p {
+    margin: 0;
+}
+
+body.admin-v3-mode .callback-card-grid span,
+body.admin-v3-mode .callback-card-note,
+body.admin-v3-mode .review-card small,
+body.admin-v3-mode .review-card p,
+body.admin-v3-mode .empty-message,
+body.admin-v3-mode #availabilitySelectionSummary,
+body.admin-v3-mode #availabilityDraftStatus,
+body.admin-v3-mode #availabilitySyncStatus,
+body.admin-v3-mode #availabilityDayActionsStatus {
+    color: var(--admin3-muted);
 }
 
 body.admin-v3-mode .review-avatar {
@@ -876,6 +1068,24 @@ body.admin-v3-mode .review-avatar {
     font-weight: 700;
 }
 
+body.admin-v3-mode .review-card.is-featured {
+    border-color: rgba(23, 66, 209, 0.18);
+    box-shadow: 0 16px 32px rgba(23, 66, 209, 0.08);
+}
+
+body.admin-v3-mode .reviews-spotlight-card {
+    display: grid;
+    gap: 16px;
+    border-radius: 24px;
+    background: linear-gradient(180deg, #161a20 0%, #0d1014 100%);
+    color: #fff;
+}
+
+body.admin-v3-mode .reviews-spotlight-card small,
+body.admin-v3-mode .reviews-spotlight-card p {
+    color: rgba(255, 255, 255, 0.76);
+}
+
 body.admin-v3-mode .availability-container {
     display: grid;
     gap: 18px;
@@ -883,6 +1093,8 @@ body.admin-v3-mode .availability-container {
 
 body.admin-v3-mode .availability-header {
     align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--admin3-line);
 }
 
 body.admin-v3-mode .calendar-header,
@@ -895,6 +1107,10 @@ body.admin-v3-mode .availability-detail-grid {
     grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
 }
 
+body.admin-v3-mode .availability-detail-grid > .sony-panel.soft {
+    padding: 24px;
+}
+
 body.admin-v3-mode .availability-calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -902,7 +1118,7 @@ body.admin-v3-mode .availability-calendar-grid {
 }
 
 body.admin-v3-mode .calendar-day {
-    min-height: 94px;
+    min-height: 104px;
     border-radius: 22px;
     border: 1px solid var(--admin3-line);
     background: var(--admin3-surface);
@@ -910,6 +1126,7 @@ body.admin-v3-mode .calendar-day {
     display: grid;
     align-content: space-between;
     justify-items: start;
+    text-align: left;
 }
 
 body.admin-v3-mode .calendar-day.has-slots {
@@ -926,6 +1143,7 @@ body.admin-v3-mode .calendar-day.is-today {
 }
 
 body.admin-v3-mode .time-slot-item {
+    display: grid;
     grid-template-columns: 1fr auto;
     align-items: center;
     padding: 12px 14px;
@@ -936,6 +1154,19 @@ body.admin-v3-mode .time-slot-item {
 
 body.admin-v3-mode .slot-presets {
     grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+body.admin-v3-mode .add-slot-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: end;
+}
+
+body.admin-v3-mode #availabilityDayActions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
 }
 
 body.admin-v3-mode .queue-sensitive-confirm-dialog {
@@ -1054,6 +1285,7 @@ body.admin-v3-mode .toast-close {
     body.admin-v3-mode .sony-grid-kpi,
     body.admin-v3-mode .dashboard-hero-metrics,
     body.admin-v3-mode .appointments-ops-grid,
+    body.admin-v3-mode .callbacks-ops-grid,
     body.admin-v3-mode .callbacks-next-grid,
     body.admin-v3-mode .reviews-summary-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1062,6 +1294,10 @@ body.admin-v3-mode .toast-close {
     body.admin-v3-mode .sony-grid-three,
     body.admin-v3-mode .callbacks-grid,
     body.admin-v3-mode .reviews-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body.admin-v3-mode .sony-context-actions {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
@@ -1106,6 +1342,10 @@ body.admin-v3-mode .toast-close {
     body.admin-v3-mode .slot-presets {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
+
+    body.admin-v3-mode #availabilityDayActions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 768px) {
@@ -1135,6 +1375,7 @@ body.admin-v3-mode .toast-close {
     body.admin-v3-mode .reviews-summary-grid,
     body.admin-v3-mode .appointments-focus-grid,
     body.admin-v3-mode .callbacks-next-grid,
+    body.admin-v3-mode .callbacks-ops-grid,
     body.admin-v3-mode .sony-grid-kpi,
     body.admin-v3-mode .dashboard-hero-metrics,
     body.admin-v3-mode .appointments-ops-grid,
@@ -1142,9 +1383,14 @@ body.admin-v3-mode .toast-close {
         grid-template-columns: 1fr;
     }
 
+    body.admin-v3-mode .callbacks-ops-card.wide {
+        grid-column: auto;
+    }
+
     body.admin-v3-mode .admin-v3-topbar {
         align-items: flex-start;
         flex-direction: column;
+        top: 12px;
     }
 
     body.admin-v3-mode .admin-v3-topbar__actions {
@@ -1195,6 +1441,12 @@ body.admin-v3-mode .toast-close {
     }
 
     body.admin-v3-mode .admin-command-box {
+        grid-template-columns: 1fr;
+    }
+
+    body.admin-v3-mode .sony-context-actions,
+    body.admin-v3-mode #availabilityDayActions,
+    body.admin-v3-mode .add-slot-form {
         grid-template-columns: 1fr;
     }
 }
