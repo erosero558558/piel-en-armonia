@@ -976,7 +976,10 @@ jobs:
                   const fs = require('node:fs');
                   const payload = {
                     label: 'production-conversion',
+                    passed: true,
                     skipped: true,
+                    failures: [],
+                    checks: [],
                     reason: 'manual_override_skip_public_conversion_smoke',
                     generated_at: new Date().toISOString(),
                   };
