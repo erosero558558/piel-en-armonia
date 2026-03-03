@@ -253,15 +253,18 @@ function build_appointment_email_html(array $appointment): string
     $name = htmlspecialchars((string) ($appointment['name'] ?? 'Paciente'), ENT_QUOTES, 'UTF-8');
     $serviceLabel = htmlspecialchars(
         function_exists('get_service_label') ? get_service_label((string) ($appointment['service'] ?? '')) : (string) ($appointment['service'] ?? ''),
-        ENT_QUOTES, 'UTF-8'
+        ENT_QUOTES,
+        'UTF-8'
     );
     $doctorLabel = htmlspecialchars(
         function_exists('get_doctor_label') ? get_doctor_label((string) ($appointment['doctor'] ?? '')) : (string) ($appointment['doctor'] ?? ''),
-        ENT_QUOTES, 'UTF-8'
+        ENT_QUOTES,
+        'UTF-8'
     );
     $dateLabel = htmlspecialchars(
         function_exists('format_date_label') ? format_date_label((string) ($appointment['date'] ?? '')) : (string) ($appointment['date'] ?? ''),
-        ENT_QUOTES, 'UTF-8'
+        ENT_QUOTES,
+        'UTF-8'
     );
     $timeLabel = htmlspecialchars((string) ($appointment['time'] ?? ''), ENT_QUOTES, 'UTF-8');
     $token = trim((string) ($appointment['rescheduleToken'] ?? ''));
@@ -325,15 +328,18 @@ function build_reminder_email_html(array $appointment): string
     $name = htmlspecialchars((string) ($appointment['name'] ?? 'Paciente'), ENT_QUOTES, 'UTF-8');
     $serviceLabel = htmlspecialchars(
         function_exists('get_service_label') ? get_service_label((string) ($appointment['service'] ?? '')) : (string) ($appointment['service'] ?? ''),
-        ENT_QUOTES, 'UTF-8'
+        ENT_QUOTES,
+        'UTF-8'
     );
     $doctorLabel = htmlspecialchars(
         function_exists('get_doctor_label') ? get_doctor_label((string) ($appointment['doctor'] ?? '')) : (string) ($appointment['doctor'] ?? ''),
-        ENT_QUOTES, 'UTF-8'
+        ENT_QUOTES,
+        'UTF-8'
     );
     $dateLabel = htmlspecialchars(
         function_exists('format_date_label') ? format_date_label((string) ($appointment['date'] ?? '')) : (string) ($appointment['date'] ?? ''),
-        ENT_QUOTES, 'UTF-8'
+        ENT_QUOTES,
+        'UTF-8'
     );
     $timeLabel = htmlspecialchars((string) ($appointment['time'] ?? ''), ENT_QUOTES, 'UTF-8');
     $token = trim((string) ($appointment['rescheduleToken'] ?? ''));
@@ -397,15 +403,18 @@ function build_cancellation_email_html(array $appointment): string
     $name = htmlspecialchars((string) ($appointment['name'] ?? 'Paciente'), ENT_QUOTES, 'UTF-8');
     $serviceLabel = htmlspecialchars(
         function_exists('get_service_label') ? get_service_label((string) ($appointment['service'] ?? '')) : (string) ($appointment['service'] ?? ''),
-        ENT_QUOTES, 'UTF-8'
+        ENT_QUOTES,
+        'UTF-8'
     );
     $doctorLabel = htmlspecialchars(
         function_exists('get_doctor_label') ? get_doctor_label((string) ($appointment['doctor'] ?? '')) : (string) ($appointment['doctor'] ?? ''),
-        ENT_QUOTES, 'UTF-8'
+        ENT_QUOTES,
+        'UTF-8'
     );
     $dateLabel = htmlspecialchars(
         function_exists('format_date_label') ? format_date_label((string) ($appointment['date'] ?? '')) : (string) ($appointment['date'] ?? ''),
-        ENT_QUOTES, 'UTF-8'
+        ENT_QUOTES,
+        'UTF-8'
     );
     $timeLabel = htmlspecialchars((string) ($appointment['time'] ?? ''), ENT_QUOTES, 'UTF-8');
     $bookingUrl = AppConfig::BASE_URL . '/#citas';
@@ -516,14 +525,13 @@ function maybe_send_admin_notification(array $appointment): bool
     $body .= "Metodo de pago: " . ($appointment['paymentMethod'] ?? '-') . "\n";
     $body .= "Estado de pago: " . ($appointment['paymentStatus'] ?? '-') . "\n";
     $body .= "Fotos adjuntas: " . (int) ($appointment['casePhotoCount'] ?? 0) . "\n";
-    if (isset($appointment['casePhotoUrls']) && is_array($appointment['casePhotoUrls']) && count($appointment['casePhotoUrls']) > 0) {
-        $body .= "URLs de fotos:\n";
-        foreach ($appointment['casePhotoUrls'] as $photoUrl) {
-            $url = trim((string) $photoUrl);
-            if ($url !== '') {
-                $body .= "- " . $url . "\n";
-            }
-        }
+    if (!empty($appointment['telemedicineChannel'])) {
+        $body .= "Canal telemedicina: " . ($appointment['telemedicineChannel'] ?? '-') . "\n";
+        $body .= "Telemedicine intake id: " . ($appointment['telemedicineIntakeId'] ?? '-') . "\n";
+        $body .= "Suitability: " . ($appointment['telemedicineSuitability'] ?? '-') . "\n";
+        $body .= "Revision humana: " . ((isset($appointment['telemedicineReviewRequired']) && $appointment['telemedicineReviewRequired']) ? 'si' : 'no') . "\n";
+        $body .= "Escalamiento: " . ($appointment['telemedicineEscalationRecommendation'] ?? '-') . "\n";
+        $body .= "Media clinica privada: " . count(is_array($appointment['clinicalMediaIds'] ?? null) ? $appointment['clinicalMediaIds'] : []) . " archivo(s)\n";
     }
     $body .= "\nFecha de registro: " . local_date('d/m/Y H:i') . "\n";
 

@@ -127,6 +127,13 @@ if (!function_exists('backup_dir_path')) {
     }
 }
 
+if (!function_exists('clinical_media_dir_path')) {
+    function clinical_media_dir_path(): string
+    {
+        return StorePaths::clinicalMediaDirPath();
+    }
+}
+
 if (!function_exists('audit_log_file_path')) {
     function audit_log_file_path(): string
     {
@@ -208,6 +215,13 @@ if (!function_exists('ensure_backup_dir')) {
     function ensure_backup_dir(): bool
     {
         return StorePaths::ensureBackupDir();
+    }
+}
+
+if (!function_exists('ensure_clinical_media_dir')) {
+    function ensure_clinical_media_dir(): bool
+    {
+        return StorePaths::ensureClinicalMediaDir();
     }
 }
 

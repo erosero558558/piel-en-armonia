@@ -4,15 +4,6 @@ Inicio: 2026-02-24
 Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
-<!-- CODEX_ACTIVE
-codex_instance: codex_backend_ops
-block: C16
-task_id: CDX-006
-status: in_progress
-files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "lib/figo_queue.php", "lib/QueueService.php", "lib/figo_queue/QueueConfig.php", "lib/figo_queue/JobRepository.php", "lib/figo_queue/GatewayClient.php", "lib/figo_queue/JobProcessor.php", "lib/queue/TicketFactory.php", "lib/queue/TicketPriorityPolicy.php", "lib/queue/QueueSummaryBuilder.php", "figo-backend.php", "figo-chat.php", "tests/test_queue_service.php", "verification/agent-runs/CDX-006.md"]
-updated_at: 2026-03-03
--->
-
 ## Proposito
 
 - Blindar confiabilidad de reserva/chat/reprogramacion.

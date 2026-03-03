@@ -227,8 +227,11 @@ final class BackupHealthService
     public static function validateStoreShape(array $data): array
     {
         $issues = [];
-        foreach (['appointments', 'callbacks', 'reviews', 'availability'] as $key) {
+        foreach (['appointments', 'callbacks', 'reviews', 'availability', 'telemedicine_intakes', 'clinical_uploads'] as $key) {
             if (!array_key_exists($key, $data)) {
+                if (in_array($key, ['telemedicine_intakes', 'clinical_uploads'], true)) {
+                    continue;
+                }
                 $issues[] = 'missing_' . $key;
                 continue;
             }
@@ -245,6 +248,8 @@ final class BackupHealthService
                 'callbacks' => isset($data['callbacks']) && is_array($data['callbacks']) ? count($data['callbacks']) : 0,
                 'reviews' => isset($data['reviews']) && is_array($data['reviews']) ? count($data['reviews']) : 0,
                 'availability' => isset($data['availability']) && is_array($data['availability']) ? count($data['availability']) : 0,
+                'telemedicine_intakes' => isset($data['telemedicine_intakes']) && is_array($data['telemedicine_intakes']) ? count($data['telemedicine_intakes']) : 0,
+                'clinical_uploads' => isset($data['clinical_uploads']) && is_array($data['clinical_uploads']) ? count($data['clinical_uploads']) : 0,
             ],
         ];
     }
@@ -299,6 +304,8 @@ final class BackupHealthService
                     'callbacks' => (int) $pdo->query("SELECT COUNT(*) FROM callbacks")->fetchColumn(),
                     'reviews' => (int) $pdo->query("SELECT COUNT(*) FROM reviews")->fetchColumn(),
                     'availability' => (int) $pdo->query("SELECT COUNT(*) FROM availability")->fetchColumn(),
+                    'telemedicine_intakes' => (int) $pdo->query("SELECT COUNT(*) FROM telemedicine_intakes")->fetchColumn(),
+                    'clinical_uploads' => (int) $pdo->query("SELECT COUNT(*) FROM clinical_uploads")->fetchColumn(),
                 ];
                 $result['ok'] = true;
                 $result['reason'] = '';
@@ -511,6 +518,8 @@ final class BackupHealthService
                 'callbacks' => 0,
                 'reviews' => 0,
                 'availability' => 0,
+                'telemedicine_intakes' => 0,
+                'clinical_uploads' => 0,
             ],
             'reason' => '',
         ];

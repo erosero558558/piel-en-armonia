@@ -164,8 +164,28 @@ function normalize_appointment(array $appointment): array
         'transferProofUrl' => truncate_field(trim((string) ($appointment['transferProofUrl'] ?? '')), 300),
         'transferProofName' => truncate_field(sanitize_xss(trim((string) ($appointment['transferProofName'] ?? ''))), 200),
         'transferProofMime' => truncate_field(trim((string) ($appointment['transferProofMime'] ?? '')), 50),
+        'transferProofUploadId' => isset($appointment['transferProofUploadId']) ? (int) $appointment['transferProofUploadId'] : 0,
         'idempotencyKey' => truncate_field(trim((string) ($appointment['idempotencyKey'] ?? '')), 128),
         'idempotencyFingerprint' => truncate_field(strtolower(trim((string) ($appointment['idempotencyFingerprint'] ?? ''))), 128),
+        'telemedicineIntakeId' => isset($appointment['telemedicineIntakeId']) ? (int) $appointment['telemedicineIntakeId'] : 0,
+        'telemedicineChannel' => truncate_field(trim((string) ($appointment['telemedicineChannel'] ?? '')), 50),
+        'telemedicineSuitability' => truncate_field(trim((string) ($appointment['telemedicineSuitability'] ?? '')), 50),
+        'telemedicineSuitabilityReasons' => normalize_string_list($appointment['telemedicineSuitabilityReasons'] ?? [], 10, 120),
+        'telemedicineReviewRequired' => isset($appointment['telemedicineReviewRequired']) ? parse_bool($appointment['telemedicineReviewRequired']) : false,
+        'telemedicineEscalationRecommendation' => truncate_field(trim((string) ($appointment['telemedicineEscalationRecommendation'] ?? '')), 100),
+        'telemedicineConsentSnapshot' => isset($appointment['telemedicineConsentSnapshot']) && is_array($appointment['telemedicineConsentSnapshot'])
+            ? $appointment['telemedicineConsentSnapshot']
+            : [],
+        'telemedicineEncounterPlan' => isset($appointment['telemedicineEncounterPlan']) && is_array($appointment['telemedicineEncounterPlan'])
+            ? $appointment['telemedicineEncounterPlan']
+            : [],
+        'clinicalMediaIds' => array_values(array_filter(array_map('intval', is_array($appointment['clinicalMediaIds'] ?? null) ? $appointment['clinicalMediaIds'] : []), static function (int $id): bool {
+            return $id > 0;
+        })),
+        'doctorRequested' => truncate_field(sanitize_xss((string) ($appointment['doctorRequested'] ?? '')), 100),
+        'doctorAssigned' => truncate_field(sanitize_xss((string) ($appointment['doctorAssigned'] ?? '')), 100),
+        'visitMode' => truncate_field(trim((string) ($appointment['visitMode'] ?? '')), 50),
+        'supportContactMethod' => truncate_field(trim((string) ($appointment['supportContactMethod'] ?? '')), 50),
         'dateBooked' => isset($appointment['dateBooked']) ? (string) $appointment['dateBooked'] : local_date('c'),
         'rescheduleToken' => isset($appointment['rescheduleToken']) && $appointment['rescheduleToken'] !== ''
             ? (string) $appointment['rescheduleToken']

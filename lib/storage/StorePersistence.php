@@ -254,6 +254,53 @@ final class StorePersistence
                 }
             );
 
+            self::importJsonTable(
+                $pdo,
+                $data['telemedicine_intakes'] ?? [],
+                "INSERT OR REPLACE INTO telemedicine_intakes (id, appointmentId, channel, legacyService, requestedDate, requestedTime, doctor, patientEmail, patientPhone, status, suitability, reviewRequired, paymentStatus, json_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                static function (array $intake): array {
+                    $patient = isset($intake['patient']) && is_array($intake['patient']) ? $intake['patient'] : [];
+                    return [
+                        $intake['id'],
+                        $intake['linkedAppointmentId'] ?? null,
+                        $intake['channel'] ?? '',
+                        $intake['legacyService'] ?? '',
+                        $intake['requestedDate'] ?? '',
+                        $intake['requestedTime'] ?? '',
+                        $intake['requestedDoctor'] ?? '',
+                        $patient['email'] ?? '',
+                        $patient['phone'] ?? '',
+                        $intake['status'] ?? 'draft',
+                        $intake['suitability'] ?? 'review_required',
+                        isset($intake['reviewRequired']) && $intake['reviewRequired'] ? 1 : 0,
+                        $intake['paymentContext']['status'] ?? '',
+                        json_encode($intake, JSON_UNESCAPED_UNICODE),
+                    ];
+                }
+            );
+
+            self::importJsonTable(
+                $pdo,
+                $data['clinical_uploads'] ?? [],
+                "INSERT OR REPLACE INTO clinical_uploads (id, intakeId, appointmentId, kind, storageMode, privatePath, legacyPublicPath, mime, size, sha256, originalName, json_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                static function (array $upload): array {
+                    return [
+                        $upload['id'],
+                        $upload['intakeId'] ?? null,
+                        $upload['appointmentId'] ?? null,
+                        $upload['kind'] ?? 'legacy_unclassified',
+                        $upload['storageMode'] ?? 'staging_legacy',
+                        $upload['privatePath'] ?? '',
+                        $upload['legacyPublicPath'] ?? '',
+                        $upload['mime'] ?? '',
+                        $upload['size'] ?? 0,
+                        $upload['sha256'] ?? '',
+                        $upload['originalName'] ?? '',
+                        json_encode($upload, JSON_UNESCAPED_UNICODE),
+                    ];
+                }
+            );
+
             if (isset($data['availability']) && is_array($data['availability'])) {
                 $stmt = $pdo->prepare("INSERT OR REPLACE INTO availability (date, time, doctor) VALUES (?, ?, ?)");
                 foreach ($data['availability'] as $date => $times) {
@@ -367,6 +414,8 @@ final class StorePersistence
                 'callbacks' => self::fetchJsonDataRows($pdo, 'callbacks'),
                 'reviews' => self::fetchJsonDataRows($pdo, 'reviews'),
                 'queue_tickets' => self::fetchJsonDataRows($pdo, 'queue_tickets'),
+                'telemedicine_intakes' => self::fetchJsonDataRows($pdo, 'telemedicine_intakes'),
+                'clinical_uploads' => self::fetchJsonDataRows($pdo, 'clinical_uploads'),
                 'availability' => self::fetchAvailability($pdo),
                 'updatedAt' => local_date('c'),
                 'idx_appointments_date' => [],
@@ -532,6 +581,55 @@ final class StorePersistence
                         $ticket['completedAt'] ?? '',
                         $ticket['createdSource'] ?? 'kiosk',
                         json_encode($ticket, JSON_UNESCAPED_UNICODE),
+                    ];
+                }
+            );
+
+            self::syncJsonTable(
+                $pdo,
+                'telemedicine_intakes',
+                $store['telemedicine_intakes'],
+                "INSERT OR REPLACE INTO telemedicine_intakes (id, appointmentId, channel, legacyService, requestedDate, requestedTime, doctor, patientEmail, patientPhone, status, suitability, reviewRequired, paymentStatus, json_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                static function (array $intake): array {
+                    $patient = isset($intake['patient']) && is_array($intake['patient']) ? $intake['patient'] : [];
+                    return [
+                        $intake['id'],
+                        $intake['linkedAppointmentId'] ?? null,
+                        $intake['channel'] ?? '',
+                        $intake['legacyService'] ?? '',
+                        $intake['requestedDate'] ?? '',
+                        $intake['requestedTime'] ?? '',
+                        $intake['requestedDoctor'] ?? '',
+                        $patient['email'] ?? '',
+                        $patient['phone'] ?? '',
+                        $intake['status'] ?? 'draft',
+                        $intake['suitability'] ?? 'review_required',
+                        isset($intake['reviewRequired']) && $intake['reviewRequired'] ? 1 : 0,
+                        $intake['paymentContext']['status'] ?? '',
+                        json_encode($intake, JSON_UNESCAPED_UNICODE),
+                    ];
+                }
+            );
+
+            self::syncJsonTable(
+                $pdo,
+                'clinical_uploads',
+                $store['clinical_uploads'],
+                "INSERT OR REPLACE INTO clinical_uploads (id, intakeId, appointmentId, kind, storageMode, privatePath, legacyPublicPath, mime, size, sha256, originalName, json_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                static function (array $upload): array {
+                    return [
+                        $upload['id'],
+                        $upload['intakeId'] ?? null,
+                        $upload['appointmentId'] ?? null,
+                        $upload['kind'] ?? 'legacy_unclassified',
+                        $upload['storageMode'] ?? 'staging_legacy',
+                        $upload['privatePath'] ?? '',
+                        $upload['legacyPublicPath'] ?? '',
+                        $upload['mime'] ?? '',
+                        $upload['size'] ?? 0,
+                        $upload['sha256'] ?? '',
+                        $upload['originalName'] ?? '',
+                        json_encode($upload, JSON_UNESCAPED_UNICODE),
                     ];
                 }
             );

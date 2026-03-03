@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../lib/storage.php';
+require_once __DIR__ . '/../lib/telemedicine/LegacyTelemedicineBridge.php';
+require_once __DIR__ . '/../lib/telemedicine/ClinicalMediaService.php';
+
 class PaymentController
 {
     public static function config(array $context): void
@@ -201,6 +205,19 @@ class PaymentController
             ], 502);
         }
 
+        if (TelemedicineChannelMapper::isTelemedicineService($appointment['service'])) {
+            with_store_lock(static function () use ($appointment, $intent): array {
+                $freshStore = read_store();
+                $bridge = new LegacyTelemedicineBridge();
+                $draftResult = $bridge->createPaymentIntentDraft($freshStore, $appointment, $intent);
+                if (!write_store($draftResult['store'], false)) {
+                    error_log('Telemedicine draft persistence failed during payment-intent.');
+                }
+
+                return ['ok' => true];
+            });
+        }
+
         json_response([
             'ok' => true,
             'clientSecret' => isset($intent['client_secret']) ? (string) $intent['client_secret'] : '',
@@ -278,6 +295,34 @@ class PaymentController
             ], 400);
         }
 
+        $stageResult = with_store_lock(static function () use ($upload): array {
+            $freshStore = read_store();
+            $staged = ClinicalMediaService::stageLegacyUpload($freshStore, $upload, ['source' => 'transfer-proof']);
+            if (!write_store($staged['store'], false)) {
+                return [
+                    'ok' => false,
+                    'error' => 'No se pudo registrar el archivo subido',
+                    'code' => 503,
+                ];
+            }
+
+            return [
+                'ok' => true,
+                'upload' => $staged['upload'],
+            ];
+        });
+        if (($stageResult['ok'] ?? false) !== true || !is_array($stageResult['result'] ?? null) || (($stageResult['result']['ok'] ?? false) !== true)) {
+            $diskPath = (string) ($upload['diskPath'] ?? '');
+            if ($diskPath !== '' && is_file($diskPath)) {
+                @unlink($diskPath);
+            }
+            json_response([
+                'ok' => false,
+                'error' => 'No se pudo registrar el archivo subido'
+            ], 503);
+        }
+
+        $stagedUpload = $stageResult['result']['upload'] ?? [];
         json_response([
             'ok' => true,
             'data' => [
@@ -285,7 +330,8 @@ class PaymentController
                 'transferProofUrl' => (string) ($upload['url'] ?? ''),
                 'transferProofName' => (string) ($upload['name'] ?? ''),
                 'transferProofMime' => (string) ($upload['mime'] ?? ''),
-                'transferProofSize' => (int) ($upload['size'] ?? 0)
+                'transferProofSize' => (int) ($upload['size'] ?? 0),
+                'transferProofUploadId' => (int) ($stagedUpload['id'] ?? 0),
             ]
         ], 201);
     }

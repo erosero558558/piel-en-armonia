@@ -108,6 +108,12 @@ class AdminDataController
         $store['callbacks'] = isset($payload['callbacks']) && is_array($payload['callbacks']) ? $payload['callbacks'] : [];
         $store['reviews'] = isset($payload['reviews']) && is_array($payload['reviews']) ? $payload['reviews'] : [];
         $store['queue_tickets'] = isset($payload['queue_tickets']) && is_array($payload['queue_tickets']) ? $payload['queue_tickets'] : [];
+        if (isset($payload['telemedicine_intakes']) && is_array($payload['telemedicine_intakes'])) {
+            $store['telemedicine_intakes'] = $payload['telemedicine_intakes'];
+        }
+        if (isset($payload['clinical_uploads']) && is_array($payload['clinical_uploads'])) {
+            $store['clinical_uploads'] = $payload['clinical_uploads'];
+        }
         $store['availability'] = isset($payload['availability']) && is_array($payload['availability']) ? $payload['availability'] : [];
         write_store($store);
         json_response([
@@ -145,8 +151,7 @@ class AdminDataController
         bool $calendarRequired,
         bool $blockOnFailure,
         bool $calendarReachable
-    ): string
-    {
+    ): string {
         if (!$calendarActive) {
             return $calendarRequired ? 'blocked' : 'live';
         }

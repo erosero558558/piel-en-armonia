@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d
+class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
 {
     public static $files = array (
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
@@ -361,10 +361,15 @@ class ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d
     );
 
     public static $classMap = array (
+        'AnalyticsLabelNormalizer' => __DIR__ . '/../..' . '/lib/analytics/AnalyticsLabelNormalizer.php',
         'ApiConfig' => __DIR__ . '/../..' . '/lib/ApiConfig.php',
         'ApiKernel' => __DIR__ . '/../..' . '/lib/ApiKernel.php',
         'AppConfig' => __DIR__ . '/../..' . '/lib/AppConfig.php',
         'Attribute' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',
+        'BackupConfig' => __DIR__ . '/../..' . '/lib/backup/BackupConfig.php',
+        'BackupCrypto' => __DIR__ . '/../..' . '/lib/backup/BackupCrypto.php',
+        'BackupHealthService' => __DIR__ . '/../..' . '/lib/backup/BackupHealthService.php',
+        'BackupReplicationService' => __DIR__ . '/../..' . '/lib/backup/BackupReplicationService.php',
         'BookingCancelled' => __DIR__ . '/../..' . '/lib/events/BookingCancelled.php',
         'BookingCreated' => __DIR__ . '/../..' . '/lib/events/BookingCreated.php',
         'BookingRescheduled' => __DIR__ . '/../..' . '/lib/events/BookingRescheduled.php',
@@ -372,14 +377,17 @@ class ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d
         'CURLStringFile' => __DIR__ . '/..' . '/symfony/polyfill-php81/Resources/stubs/CURLStringFile.php',
         'CalendarAvailabilityService' => __DIR__ . '/../..' . '/lib/calendar/CalendarAvailabilityService.php',
         'CalendarBookingService' => __DIR__ . '/../..' . '/lib/calendar/CalendarBookingService.php',
+        'ClinicalMediaService' => __DIR__ . '/../..' . '/lib/telemedicine/ClinicalMediaService.php',
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'Deprecated' => __DIR__ . '/..' . '/symfony/polyfill-php84/Resources/stubs/Deprecated.php',
         'EmailListener' => __DIR__ . '/../..' . '/lib/listeners/EmailListener.php',
         'Event' => __DIR__ . '/../..' . '/lib/events/Event.php',
         'EventDispatcher' => __DIR__ . '/../..' . '/lib/events/EventDispatcher.php',
         'FeatureFlags' => __DIR__ . '/../..' . '/lib/features.php',
+        'FunnelMetricsService' => __DIR__ . '/../..' . '/lib/analytics/FunnelMetricsService.php',
         'GoogleCalendarClient' => __DIR__ . '/../..' . '/lib/calendar/GoogleCalendarClient.php',
         'GoogleTokenProvider' => __DIR__ . '/../..' . '/lib/calendar/GoogleTokenProvider.php',
+        'LegacyTelemedicineBridge' => __DIR__ . '/../..' . '/lib/telemedicine/LegacyTelemedicineBridge.php',
         'Metrics' => __DIR__ . '/../..' . '/lib/metrics.php',
         'NoShowPredictor' => __DIR__ . '/../..' . '/lib/prediction.php',
         'Normalizer' => __DIR__ . '/..' . '/symfony/polyfill-intl-normalizer/Resources/stubs/Normalizer.php',
@@ -1349,8 +1357,12 @@ class ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d
         'PharIo\\Version\\VersionConstraintValue' => __DIR__ . '/..' . '/phar-io/version/src/VersionConstraintValue.php',
         'PharIo\\Version\\VersionNumber' => __DIR__ . '/..' . '/phar-io/version/src/VersionNumber.php',
         'PhpToken' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/PhpToken.php',
+        'PrometheusCounterParser' => __DIR__ . '/../..' . '/lib/analytics/PrometheusCounterParser.php',
         'PushService' => __DIR__ . '/../..' . '/lib/PushService.php',
+        'QueueService' => __DIR__ . '/../..' . '/lib/QueueService.php',
         'ReflectionConstant' => __DIR__ . '/..' . '/symfony/polyfill-php84/Resources/stubs/ReflectionConstant.php',
+        'RetentionCsvExporter' => __DIR__ . '/../..' . '/lib/analytics/RetentionCsvExporter.php',
+        'RetentionReportService' => __DIR__ . '/../..' . '/lib/analytics/RetentionReportService.php',
         'ReturnTypeWillChange' => __DIR__ . '/..' . '/symfony/polyfill-php81/Resources/stubs/ReturnTypeWillChange.php',
         'Router' => __DIR__ . '/../..' . '/lib/Router.php',
         'SebastianBergmann\\CliParser\\AmbiguousOptionException' => __DIR__ . '/..' . '/sebastian/cli-parser/src/exceptions/AmbiguousOptionException.php',
@@ -1556,8 +1568,19 @@ class ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d
         'SebastianBergmann\\Type\\UnknownType' => __DIR__ . '/..' . '/sebastian/type/src/type/UnknownType.php',
         'SebastianBergmann\\Type\\VoidType' => __DIR__ . '/..' . '/sebastian/type/src/type/VoidType.php',
         'SebastianBergmann\\Version' => __DIR__ . '/..' . '/sebastian/version/src/Version.php',
+        'StorageConfig' => __DIR__ . '/../..' . '/lib/storage/StorageConfig.php',
+        'StoreCrypto' => __DIR__ . '/../..' . '/lib/storage/StoreCrypto.php',
+        'StorePaths' => __DIR__ . '/../..' . '/lib/storage/StorePaths.php',
+        'StorePersistence' => __DIR__ . '/../..' . '/lib/storage/StorePersistence.php',
         'Stringable' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Stringable.php',
         'TOTP' => __DIR__ . '/../..' . '/lib/totp.php',
+        'TelemedicineBackfillService' => __DIR__ . '/../..' . '/lib/telemedicine/TelemedicineBackfillService.php',
+        'TelemedicineChannelMapper' => __DIR__ . '/../..' . '/lib/telemedicine/TelemedicineChannelMapper.php',
+        'TelemedicineConsentSnapshot' => __DIR__ . '/../..' . '/lib/telemedicine/TelemedicineConsentSnapshot.php',
+        'TelemedicineEncounterPlanner' => __DIR__ . '/../..' . '/lib/telemedicine/TelemedicineEncounterPlanner.php',
+        'TelemedicineIntakeService' => __DIR__ . '/../..' . '/lib/telemedicine/TelemedicineIntakeService.php',
+        'TelemedicineRepository' => __DIR__ . '/../..' . '/lib/telemedicine/TelemedicineRepository.php',
+        'TelemedicineSuitabilityEvaluator' => __DIR__ . '/../..' . '/lib/telemedicine/TelemedicineSuitabilityEvaluator.php',
         'TestingExitException' => __DIR__ . '/../..' . '/lib/http.php',
         'TheSeer\\Tokenizer\\Exception' => __DIR__ . '/..' . '/theseer/tokenizer/src/Exception.php',
         'TheSeer\\Tokenizer\\NamespaceUri' => __DIR__ . '/..' . '/theseer/tokenizer/src/NamespaceUri.php',
@@ -1567,6 +1590,7 @@ class ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d
         'TheSeer\\Tokenizer\\TokenCollectionException' => __DIR__ . '/..' . '/theseer/tokenizer/src/TokenCollectionException.php',
         'TheSeer\\Tokenizer\\Tokenizer' => __DIR__ . '/..' . '/theseer/tokenizer/src/Tokenizer.php',
         'TheSeer\\Tokenizer\\XMLSerializer' => __DIR__ . '/..' . '/theseer/tokenizer/src/XMLSerializer.php',
+        'TicketPrinter' => __DIR__ . '/../..' . '/lib/TicketPrinter.php',
         'UnhandledMatchError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/UnhandledMatchError.php',
         'ValueError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/ValueError.php',
     );
@@ -1574,10 +1598,10 @@ class ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d::$prefixDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d::$prefixesPsr0;
-            $loader->classMap = ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$prefixesPsr0;
+            $loader->classMap = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$classMap;
 
         }, null, ClassLoader::class);
     }

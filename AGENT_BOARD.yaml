@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 396
+  revision: 402
   updated_at: 2026-03-03
 
 tasks:
@@ -508,8 +508,8 @@ tasks:
     title: "Package P5: queue and figo chat core extraction"
     owner: Ernesto
     executor: codex
-    status: in_progress
-    status_since_at: "2026-03-03T03:06:48.944Z"
+    status: backlog
+    status_since_at: "2026-03-03T16:56:10.000Z"
     risk: high
     scope: chat
     codex_instance: codex_backend_ops
@@ -524,12 +524,12 @@ tasks:
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
-    lease_id: "lease_CDX-006_20260303030648944_259fc7"
-    lease_owner: "Ernesto"
-    lease_created_at: "2026-03-03T03:06:48.944Z"
-    heartbeat_at: "2026-03-03T16:28:35.019Z"
-    lease_expires_at: "2026-03-03T20:28:35.019Z"
-    lease_reason: "leases_heartbeat"
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
     lease_cleared_at: ""
     lease_cleared_reason: ""
     runtime_impact: high
@@ -539,6 +539,44 @@ tasks:
     evidence_ref: "verification/agent-runs/CDX-006.md"
     depends_on: ["CDX-005"]
     prompt: "Ejecutar Package P5: extraer configuracion, repositorio, gateway y procesamiento desde figo_queue.php, y politica de prioridad/resumen desde QueueService.php, manteniendo contratos de chat, backend y cola."
+    created_at: 2026-03-03
+    updated_at: 2026-03-03
+
+  - id: CDX-007
+    title: "Telemedicine backend rebuild: intake, suitability and clinical media separation"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-03T18:11:16.966Z"
+    risk: high
+    scope: telemedicine
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "controllers/AppointmentController.php", "controllers/PaymentController.php", "lib/BookingService.php", "lib/models.php", "lib/validation.php", "lib/db.php", "lib/storage/StorageConfig.php", "lib/storage/StorePersistence.php", "controllers/AdminDataController.php", "lib/calendar/CalendarBookingService.php", "lib/email.php", "lib/backup/BackupHealthService.php", "payment-lib.php", "lib/telemedicine/TelemedicineIntakeService.php", "lib/telemedicine/TelemedicineRepository.php", "lib/telemedicine/TelemedicineSuitabilityEvaluator.php", "lib/telemedicine/TelemedicineConsentSnapshot.php", "lib/telemedicine/TelemedicineChannelMapper.php", "lib/telemedicine/TelemedicineEncounterPlanner.php", "lib/telemedicine/ClinicalMediaService.php", "lib/telemedicine/LegacyTelemedicineBridge.php", "lib/telemedicine/TelemedicineBackfillService.php", "tests/Unit/TelemedicineSuitabilityEvaluatorTest.php", "tests/Unit/TelemedicineChannelMapperTest.php", "tests/Integration/TelemedicineLegacyBridgeTest.php", "tests/Integration/TelemedicineStorageParityTest.php", "tests/Integration/TelemedicineBackfillTest.php", "bin/backfill-telemedicine-intakes.php", "verification/agent-runs/CDX-007.md"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 90
+    sla_due_at: "2026-03-10T23:59:59.000Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-03T18:11:16.966Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: high
+    critical_zone: true
+    acceptance: "telemedicina deja de depender solo de service=telefono|video: existe intake persistido, suitability shadow, media clinica separada del pago, bridge legacy compatible y backfill historico sin romper appointments ni admin."
+    acceptance_ref: "verification/agent-runs/CDX-007.md"
+    evidence_ref: "verification/agent-runs/CDX-007.md"
+    depends_on: ["CDX-005"]
+    prompt: "Rehacer telemedicina backend desde cero con dominio propio de intake, suitability shadow, media clinica separada de payment proof, persistencia JSON/SQLite, bridge legacy sobre payment-intent/appointments/transfer-proof y backfill historico sin tocar frontend."
     created_at: 2026-03-03
     updated_at: 2026-03-03
 

@@ -55,6 +55,8 @@ final class StorageConfig
             'callbacks' => [],
             'reviews' => [],
             'queue_tickets' => [],
+            'telemedicine_intakes' => [],
+            'clinical_uploads' => [],
             'availability' => [],
             'updatedAt' => local_date('c'),
         ];
@@ -116,6 +118,12 @@ final class StorageConfig
         $callbacks = isset($store['callbacks']) && is_array($store['callbacks']) ? $store['callbacks'] : [];
         $reviews = isset($store['reviews']) && is_array($store['reviews']) ? $store['reviews'] : [];
         $queueTickets = isset($store['queue_tickets']) && is_array($store['queue_tickets']) ? $store['queue_tickets'] : [];
+        $telemedicineIntakes = isset($store['telemedicine_intakes']) && is_array($store['telemedicine_intakes'])
+            ? $store['telemedicine_intakes']
+            : [];
+        $clinicalUploads = isset($store['clinical_uploads']) && is_array($store['clinical_uploads'])
+            ? $store['clinical_uploads']
+            : [];
         $availability = isset($store['availability']) && is_array($store['availability']) ? $store['availability'] : [];
         $updatedAt = isset($store['updatedAt']) && is_string($store['updatedAt']) && trim($store['updatedAt']) !== ''
             ? trim($store['updatedAt'])
@@ -125,12 +133,16 @@ final class StorageConfig
         $callbacks = self::normalizeStoreRecordsWithNumericId($callbacks, 'callbacks');
         $reviews = self::normalizeStoreRecordsWithNumericId($reviews, 'reviews');
         $queueTickets = self::normalizeStoreRecordsWithNumericId($queueTickets, 'queue_tickets');
+        $telemedicineIntakes = self::normalizeStoreRecordsWithNumericId($telemedicineIntakes, 'telemedicine_intakes');
+        $clinicalUploads = self::normalizeStoreRecordsWithNumericId($clinicalUploads, 'clinical_uploads');
 
         return [
             'appointments' => array_values($appointments),
             'callbacks' => array_values($callbacks),
             'reviews' => array_values($reviews),
             'queue_tickets' => array_values($queueTickets),
+            'telemedicine_intakes' => array_values($telemedicineIntakes),
+            'clinical_uploads' => array_values($clinicalUploads),
             'availability' => $availability,
             'updatedAt' => $updatedAt,
             'idx_appointments_date' => build_appointment_index($appointments),

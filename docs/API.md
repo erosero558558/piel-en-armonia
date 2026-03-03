@@ -73,6 +73,22 @@ La API sigue los estándares HTTP para códigos de estado. Las respuestas de err
 
 ## Ejemplos de Uso
 
+## Telemedicina Backend v2
+
+Sin cambiar el frontend actual, los flujos legacy con `service=telefono` y
+`service=video` ahora se procesan internamente como telemedicina:
+
+- `payment-intent` crea o actualiza un intake borrador en shadow mode.
+- `transfer-proof` actua como upload legacy staged; el backend decide despues si
+  el archivo termina siendo `payment_proof` o `case_photo`.
+- `appointments` vincula el intake con la cita real y persiste metadata
+  telemedicina aditiva (`telemedicineIntakeId`, `telemedicineChannel`,
+  `telemedicineSuitability`, `telemedicineReviewRequired`,
+  `telemedicineEscalationRecommendation`).
+
+La compatibilidad publica se mantiene: no hay endpoints breaking ni cambios
+obligatorios de frontend en esta fase.
+
 ### Consultar Disponibilidad
 
 ```http

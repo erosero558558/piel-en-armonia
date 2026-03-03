@@ -177,6 +177,11 @@ final class StorePaths
         return self::dataDirPath() . DIRECTORY_SEPARATOR . 'backups';
     }
 
+    public static function clinicalMediaDirPath(): string
+    {
+        return self::dataDirPath() . DIRECTORY_SEPARATOR . 'clinical-media';
+    }
+
     public static function auditLogFilePath(): string
     {
         return self::dataDirPath() . DIRECTORY_SEPARATOR . 'audit.log';
@@ -203,5 +208,16 @@ final class StorePaths
         }
 
         return @mkdir($backupDir, 0775, true) || is_dir($backupDir);
+    }
+
+    public static function ensureClinicalMediaDir(): bool
+    {
+        $dir = self::clinicalMediaDirPath();
+        if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+            return false;
+        }
+
+        self::ensureDataHtaccess($dir);
+        return true;
     }
 }

@@ -66,6 +66,7 @@ components:
                     type: array
                     items:
                         type: string
+                    description: Legacy staged uploads. Case photos are moved to private clinical storage after booking.
                 status:
                     type: string
                     enum: [confirmed, pending, cancelled, completed, no_show]
@@ -92,6 +93,18 @@ components:
                     type: string
                 slotDurationMin:
                     type: integer
+                telemedicineIntakeId:
+                    type: integer
+                telemedicineChannel:
+                    type: string
+                    enum: [phone, secure_video]
+                telemedicineSuitability:
+                    type: string
+                    enum: [fit, review_required, unsuitable]
+                telemedicineReviewRequired:
+                    type: boolean
+                telemedicineEscalationRecommendation:
+                    type: string
             required:
                 - service
                 - date
@@ -873,7 +886,12 @@ paths:
     /api.php?resource=transfer-proof:
         post:
             summary: Upload Transfer Proof
-            description: Upload a proof of bank transfer.
+            description: |
+                Upload a legacy staged file used by the current frontend.
+
+                In telemedicine flows the backend later reclassifies the staged
+                file as `case_photo` or `payment_proof` without changing the
+                public request contract.
             tags: [Payment]
             requestBody:
                 content:
@@ -899,6 +917,8 @@ paths:
                                         properties:
                                             transferProofUrl:
                                                 type: string
+                                            transferProofUploadId:
+                                                type: integer
 
     /api.php?resource=stripe-webhook:
         post:

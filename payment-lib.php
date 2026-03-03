@@ -253,12 +253,19 @@ function save_transfer_proof_upload(array $file): array
     }
     $trimmedPublicPath = trim($publicPath, '/');
     $logicalPath = ($trimmedPublicPath !== '' ? '/' . $trimmedPublicPath : '') . '/' . $filename;
+    $sha256 = @hash_file('sha256', $diskPath);
+    if (!is_string($sha256)) {
+        $sha256 = '';
+    }
 
     return [
         'path' => $logicalPath,
         'url' => $publicUrl,
         'name' => $safeOriginal,
+        'originalName' => $originalName,
         'mime' => $mime,
         'size' => $size,
+        'sha256' => $sha256,
+        'diskPath' => $diskPath,
     ];
 }

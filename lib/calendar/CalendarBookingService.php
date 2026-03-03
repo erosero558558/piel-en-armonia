@@ -424,6 +424,14 @@ class CalendarBookingService
         if ($reason !== '') {
             $lines[] = 'Motivo: ' . $reason;
         }
+        $telemedicineChannel = trim((string) ($appointment['telemedicineChannel'] ?? ''));
+        if ($telemedicineChannel !== '') {
+            $lines[] = 'Visit mode: ' . $telemedicineChannel;
+            $lines[] = 'Telemedicine intake id: ' . (string) ($appointment['telemedicineIntakeId'] ?? '');
+            $lines[] = 'Suitability: ' . (string) ($appointment['telemedicineSuitability'] ?? 'review_required');
+            $lines[] = 'Clinical media count: ' . (string) count(is_array($appointment['clinicalMediaIds'] ?? null) ? $appointment['clinicalMediaIds'] : []);
+            $lines[] = 'Escalation recommendation: ' . (string) ($appointment['telemedicineEscalationRecommendation'] ?? 'manual_review');
+        }
         return implode("\n", $lines);
     }
 }

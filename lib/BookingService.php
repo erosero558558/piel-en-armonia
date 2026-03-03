@@ -7,6 +7,7 @@ require_once __DIR__ . '/models.php';
 require_once __DIR__ . '/validation.php';
 require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/calendar/runtime.php';
+require_once __DIR__ . '/telemedicine/LegacyTelemedicineBridge.php';
 
 class BookingService
 {
@@ -182,13 +183,29 @@ class BookingService
             $appointment['paymentStatus'] = 'pending';
         }
 
+        $appointment['doctorRequested'] = $requestedDoctor;
         $appointment['slotDurationMin'] = $calendarBooking->getDurationMin((string) ($appointment['service'] ?? 'consulta'));
         if ($requestedDoctor === 'indiferente') {
-            $appointment['doctorRequested'] = 'indiferente';
             $appointment['doctorAssigned'] = $effectiveDoctor;
             $calendarBooking->advanceIndiferenteCursor($store, $effectiveDoctor);
         }
         $appointment['doctor'] = $effectiveDoctor;
+
+        if (TelemedicineChannelMapper::isTelemedicineService($appointment['service'])) {
+            try {
+                $telemedicineBridge = new LegacyTelemedicineBridge();
+                $telemedicineResult = $telemedicineBridge->finalizeBookedAppointment($store, $appointment);
+                $store = $telemedicineResult['store'];
+                $appointment = $telemedicineResult['appointment'];
+            } catch (Throwable $e) {
+                return [
+                    'ok' => false,
+                    'error' => 'No se pudo consolidar la telemedicina en este momento',
+                    'code' => 503,
+                    'errorCode' => 'telemedicine_bridge_failed',
+                ];
+            }
+        }
 
         if ($calendarBooking->isGoogleActive()) {
             $calendarEvent = $calendarBooking->createCalendarEvent($appointment, $effectiveDoctor);
