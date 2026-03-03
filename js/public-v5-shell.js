@@ -15,31 +15,190 @@
             var triggers = Array.from(
                 root.querySelectorAll('[data-stage-trigger]')
             );
-            if (!slides.length || slides.length !== triggers.length) return;
+            if (!slides.length) return;
 
-            var current = 0;
+            var prevButton = root.querySelector('[data-stage-prev]');
+            var nextButton = root.querySelector('[data-stage-next]');
+            var toggleButton = root.querySelector('[data-stage-toggle]');
+            var autoplayMs = Number(
+                root.getAttribute('data-stage-autoplay-ms') || 7000
+            );
+            if (!Number.isFinite(autoplayMs) || autoplayMs < 2000) {
+                autoplayMs = 7000;
+            }
+
+            var current = slides.findIndex(function (slide) {
+                return slide.classList.contains('is-active');
+            });
+            if (current < 0) current = 0;
+
+            var timer = null;
+            var paused = false;
+            var focusableSelector =
+                'a[href], button, input, select, textarea, [tabindex]';
+
+            var syncSlideInteractivity = function (slide, isActive) {
+                if (!slide) return;
+                if (isActive) {
+                    slide.removeAttribute('inert');
+                } else {
+                    slide.setAttribute('inert', '');
+                }
+
+                Array.from(slide.querySelectorAll(focusableSelector)).forEach(
+                    function (node) {
+                        var previous = node.getAttribute(
+                            'data-stage-prev-tabindex'
+                        );
+
+                        if (isActive) {
+                            if (previous !== null) {
+                                if (previous) {
+                                    node.setAttribute('tabindex', previous);
+                                } else {
+                                    node.removeAttribute('tabindex');
+                                }
+                                node.removeAttribute(
+                                    'data-stage-prev-tabindex'
+                                );
+                            }
+                            return;
+                        }
+
+                        if (previous === null) {
+                            var current = node.getAttribute('tabindex');
+                            node.setAttribute(
+                                'data-stage-prev-tabindex',
+                                current === null ? '' : current
+                            );
+                        }
+                        node.setAttribute('tabindex', '-1');
+                    }
+                );
+            };
+
+            var syncState = function () {
+                var state = paused ? 'paused' : 'playing';
+                root.setAttribute('data-stage-state', state);
+                root.dataset.stageState = state;
+
+                if (!toggleButton) return;
+
+                var ariaPlaying =
+                    toggleButton.getAttribute('data-stage-label-playing') ||
+                    'Pause autoplay';
+                var ariaPaused =
+                    toggleButton.getAttribute('data-stage-label-paused') ||
+                    'Resume autoplay';
+                var textPlaying =
+                    toggleButton.getAttribute('data-stage-text-playing') ||
+                    'Pause';
+                var textPaused =
+                    toggleButton.getAttribute('data-stage-text-paused') ||
+                    'Play';
+
+                toggleButton.setAttribute('data-stage-state', state);
+                toggleButton.dataset.stageState = state;
+                toggleButton.setAttribute(
+                    'aria-label',
+                    paused ? ariaPaused : ariaPlaying
+                );
+                toggleButton.setAttribute(
+                    'aria-pressed',
+                    paused ? 'true' : 'false'
+                );
+                toggleButton.textContent = paused ? textPaused : textPlaying;
+            };
+
             var activate = function (index) {
-                current = index;
+                if (!slides.length) return;
+                var nextIndex = index;
+                if (nextIndex < 0) {
+                    nextIndex = slides.length - 1;
+                }
+                if (nextIndex >= slides.length) {
+                    nextIndex = 0;
+                }
+
+                current = nextIndex;
                 slides.forEach(function (slide, slideIndex) {
-                    slide.classList.toggle('is-active', slideIndex === index);
+                    var isActive = slideIndex === nextIndex;
+                    slide.classList.toggle('is-active', isActive);
+                    slide.hidden = !isActive;
+                    slide.setAttribute(
+                        'aria-hidden',
+                        isActive ? 'false' : 'true'
+                    );
+                    syncSlideInteractivity(slide, isActive);
                 });
                 triggers.forEach(function (trigger, triggerIndex) {
-                    trigger.classList.toggle(
-                        'is-active',
-                        triggerIndex === index
-                    );
+                    var isActive = triggerIndex === nextIndex;
+                    trigger.classList.toggle('is-active', isActive);
+                    if (isActive) {
+                        trigger.setAttribute('aria-current', 'true');
+                    } else {
+                        trigger.removeAttribute('aria-current');
+                    }
                 });
+            };
+
+            var stopAutoplay = function () {
+                if (timer === null) return;
+                window.clearInterval(timer);
+                timer = null;
+            };
+
+            var startAutoplay = function () {
+                stopAutoplay();
+                if (paused || slides.length < 2) return;
+                timer = window.setInterval(function () {
+                    activate(current + 1);
+                }, autoplayMs);
             };
 
             triggers.forEach(function (trigger, index) {
                 trigger.addEventListener('click', function () {
                     activate(index);
+                    startAutoplay();
                 });
             });
 
-            window.setInterval(function () {
-                activate((current + 1) % slides.length);
-            }, 7000);
+            if (prevButton) {
+                prevButton.addEventListener('click', function () {
+                    activate(current - 1);
+                    startAutoplay();
+                });
+            }
+
+            if (nextButton) {
+                nextButton.addEventListener('click', function () {
+                    activate(current + 1);
+                    startAutoplay();
+                });
+            }
+
+            if (toggleButton) {
+                toggleButton.addEventListener('click', function () {
+                    paused = !paused;
+                    syncState();
+                    if (paused) {
+                        stopAutoplay();
+                    } else {
+                        startAutoplay();
+                    }
+                });
+            }
+
+            if (slides.length < 2) {
+                paused = true;
+                if (prevButton) prevButton.disabled = true;
+                if (nextButton) nextButton.disabled = true;
+                if (toggleButton) toggleButton.disabled = true;
+            }
+
+            activate(current);
+            syncState();
+            startAutoplay();
         });
     }
 
@@ -330,6 +489,55 @@
         });
     }
 
+    function bootNavDrawer() {
+        var nav = document.querySelector('[data-public-nav]');
+        if (!nav || nav.dataset.publicV5NavReady === 'true') return;
+        nav.dataset.publicV5NavReady = 'true';
+
+        var drawer = nav.querySelector('[data-public-nav-drawer]');
+        if (!drawer) return;
+
+        var openButtons = Array.from(
+            nav.querySelectorAll('[data-action="open-nav-drawer"]')
+        );
+        var closeTargets = Array.from(
+            drawer.querySelectorAll('[data-action="close-nav-drawer"]')
+        );
+
+        var setOpen = function (open) {
+            drawer.hidden = !open;
+            drawer.classList.toggle('is-open', open);
+            nav.setAttribute('data-nav-drawer-open', open ? 'true' : 'false');
+            document.body.classList.toggle('public-nav-drawer-open', open);
+        };
+
+        openButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                setOpen(true);
+            });
+        });
+
+        closeTargets.forEach(function (target) {
+            target.addEventListener('click', function () {
+                setOpen(false);
+            });
+        });
+
+        drawer.addEventListener('click', function (event) {
+            var target = event.target instanceof Element ? event.target : null;
+            if (!target) return;
+            if (target.closest('a[href]')) {
+                setOpen(false);
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && !drawer.hidden) {
+                setOpen(false);
+            }
+        });
+    }
+
     function bootLegacyRuntimeBridge() {
         var runtimeRoot = document.querySelector('.public-runtime-bridge');
         if (!runtimeRoot) return;
@@ -346,13 +554,14 @@
         var booted = false;
 
         function applyServiceHint() {
-            var booking = document.getElementById('citas');
-            var select = document.getElementById('serviceSelect');
+            var booking = document.getElementById('v5-booking');
+            var select = document.getElementById('v5-service-select');
             if (!booking || !select) return;
 
             var url = new URL(window.location.href);
             var hint =
                 url.searchParams.get('service') ||
+                booking.dataset.v5ServiceHint ||
                 booking.dataset.serviceHint ||
                 '';
             if (!hint) return;
@@ -412,7 +621,9 @@
 
         function shouldBootImmediately() {
             var url = new URL(window.location.href);
-            return url.hash === '#citas' || url.searchParams.has('service');
+            return (
+                url.hash === '#v5-booking' || url.searchParams.has('service')
+            );
         }
 
         if (shouldBootImmediately()) {
@@ -427,7 +638,7 @@
                     event.target instanceof Element ? event.target : null;
                 if (!target) return;
                 if (
-                    target.closest('a[href="#citas"]') ||
+                    target.closest('a[href="#v5-booking"]') ||
                     target.closest('[data-cta-target="booking"]') ||
                     target.closest('#chatbotWidget')
                 ) {
@@ -443,7 +654,7 @@
                 var target =
                     event.target instanceof Element ? event.target : null;
                 if (!target) return;
-                if (target.closest('#citas')) {
+                if (target.closest('#v5-booking')) {
                     requestBoot();
                 }
             },
@@ -507,6 +718,7 @@
         bootHeroStage();
         bootFamilyTabs();
         bootServiceGrid();
+        bootNavDrawer();
         bootCookieBanner();
         bootChatFallback();
         bootLegacyRuntimeBridge();

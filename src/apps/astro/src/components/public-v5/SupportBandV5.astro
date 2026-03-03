@@ -22,13 +22,13 @@ const telemedicineHref = locale === 'en' ? '/en/telemedicine/' : '/es/telemedici
     </div>
     <div class="support-band-v5__actions support-band-v3__actions">
         <a
-            href="#citas"
+            href="#v5-booking"
             class="hero-stage__cta hero-stage__cta--primary"
             data-analytics-event="open_public_cta"
             data-entry-surface="support_band_booking"
             data-cta-target="booking"
         >
-            {locale === 'en' ? 'Open booking' : 'Abrir reserva'}
+            {locale === 'en' ? 'Open secure booking' : 'Abrir booking seguro'}
         </a>
         <a
             href={telemedicineHref}
@@ -41,7 +41,7 @@ const telemedicineHref = locale === 'en' ? '/en/telemedicine/' : '/es/telemedici
             data-catalog-category="all"
             data-catalog-intent="remote"
         >
-            {locale === 'en' ? 'Telemedicine' : 'Telemedicina'}
+            {locale === 'en' ? 'Open telemedicine' : 'Abrir telemedicina'}
         </a>
         <a
             href="https://wa.me/593982453672"
@@ -52,8 +52,7 @@ const telemedicineHref = locale === 'en' ? '/en/telemedicine/' : '/es/telemedici
             data-entry-surface="support_band_whatsapp"
             data-cta-target="whatsapp"
         >
-            WhatsApp
+            {locale === 'en' ? 'WhatsApp support' : 'Soporte por WhatsApp'}
         </a>
     </div>
 </section>
-

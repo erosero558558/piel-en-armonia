@@ -1,7 +1,6 @@
-@import '../public-v3.css';
-@import '../public-v3-motion.css';
+@import './v3-compat-snapshot.css';
+@import './v3-motion-compat-snapshot.css';
 @import './tokens.css';
 @import './primitives.css';
 @import './layout.css';
 @import './components.css';
-

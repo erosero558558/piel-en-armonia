@@ -5,13 +5,13 @@ const { gotoPublicRoute, waitForBookingHooks } = require('./helpers/public-v3');
 const CASES = [
     {
         locale: 'es',
-        route: '/es/servicios/acne-rosacea/#citas',
+        route: '/es/servicios/acne-rosacea/#v5-booking',
         serviceHint: 'acne',
         totalLabel: 'Total a pagar:',
     },
     {
         locale: 'en',
-        route: '/en/services/acne-rosacea/#citas',
+        route: '/en/services/acne-rosacea/#v5-booking',
         serviceHint: 'acne',
         totalLabel: 'Total to pay:',
     },
@@ -65,10 +65,10 @@ test.describe('Public V5 booking/payment contract shell', () => {
                         document.querySelector(selector)?.textContent || ''
                     ).trim();
                 const totalPrice = text('#totalPrice');
-                const modalText = text('#paymentModal');
+                const modalText = text('#v5-payment-modal');
                 const methodValues = Array.from(
                     document.querySelectorAll(
-                        '#paymentModal .payment-method[data-method]'
+                        '#v5-payment-modal .payment-method[data-method]'
                     )
                 )
                     .map((node) =>
@@ -81,26 +81,28 @@ test.describe('Public V5 booking/payment contract shell', () => {
                     modalText,
                     methodValues,
                     modalTotalLabel: text(
-                        '#paymentModal .payment-total span:first-child'
+                        '#v5-payment-modal .payment-total span:first-child'
                     ),
                     trustItems: document.querySelectorAll(
-                        '#paymentModal .payment-trust__list li'
+                        '#v5-payment-modal .payment-trust__list li'
                     ).length,
                     faqItems: document.querySelectorAll(
-                        '#paymentModal .payment-faq details'
+                        '#v5-payment-modal .payment-faq details'
                     ).length,
                     hasCardForm: Boolean(
-                        document.querySelector('#paymentModal .card-form')
+                        document.querySelector('#v5-payment-modal .card-form')
                     ),
                     hasTransferForm: Boolean(
-                        document.querySelector('#paymentModal .transfer-form')
+                        document.querySelector(
+                            '#v5-payment-modal .transfer-form'
+                        )
                     ),
                     hasCashForm: Boolean(
-                        document.querySelector('#paymentModal .cash-form')
+                        document.querySelector('#v5-payment-modal .cash-form')
                     ),
                     hasCloseButton: Boolean(
                         document.querySelector(
-                            '#paymentModal [data-action="close-payment-modal"]'
+                            '#v5-payment-modal [data-action="close-payment-modal"]'
                         )
                     ),
                 };

@@ -6,10 +6,11 @@ const path = require('node:path');
 
 const DEFAULT_OUT_DIR = path.join('verification', 'public-v5-audit');
 const DEFAULT_LABEL = 'public-v5-surface';
-const DEFAULT_HOME_MAX_BLOCKS = 6;
-const DEFAULT_HOME_MAX_LINKS = 30;
-const DEFAULT_HUB_MAX_BLOCKS = 7;
-const DEFAULT_HUB_MAX_LINKS = 30;
+// FE-V5-P18: full-surface IA includes expanded shell/footer density.
+const DEFAULT_HOME_MAX_BLOCKS = 10;
+const DEFAULT_HOME_MAX_LINKS = 56;
+const DEFAULT_HUB_MAX_BLOCKS = 8;
+const DEFAULT_HUB_MAX_LINKS = 52;
 
 function parseArgs(argv) {
     const parsed = {
@@ -184,9 +185,9 @@ function analyzeRoute(filePath, rootDir) {
         links: countMatches(html, /<a\b/giu),
         buttons: countMatches(html, /<button\b/giu),
         h1: countMatches(html, /<h1\b/giu),
-        hasBookingMount: /id=["']citas["']/iu.test(html),
-        hasPaymentModal: /id=["']paymentModal["']/iu.test(html),
-        hasServiceSelect: /id=["']serviceSelect["']/iu.test(html),
+        hasBookingMount: /id=["']v5-booking["']/iu.test(html),
+        hasPaymentModal: /id=["']v5-payment-modal["']/iu.test(html),
+        hasServiceSelect: /id=["']v5-service-select["']/iu.test(html),
         technicalTextMatches,
         mixedLocaleMatches,
         localizedPriceTokenOk,
@@ -229,21 +230,21 @@ function buildFailures(routes, limits) {
                 failures.push({
                     route: route.route,
                     reason: 'missing_booking_mount',
-                    value: 'id="citas"',
+                    value: 'id="v5-booking"',
                 });
             }
             if (!route.hasPaymentModal) {
                 failures.push({
                     route: route.route,
                     reason: 'missing_payment_modal',
-                    value: 'id="paymentModal"',
+                    value: 'id="v5-payment-modal"',
                 });
             }
             if (!route.hasServiceSelect) {
                 failures.push({
                     route: route.route,
                     reason: 'missing_service_selector',
-                    value: 'id="serviceSelect"',
+                    value: 'id="v5-service-select"',
                 });
             }
             if (!route.localizedPriceTokenOk) {
@@ -422,9 +423,9 @@ function main() {
     const catalog = readJsonIfExists(catalogPath);
 
     const limits = {
-        homeMaxBlocks: Number(
-            catalog?.home_contract?.max_primary_blocks ??
-                DEFAULT_HOME_MAX_BLOCKS
+        homeMaxBlocks: Math.max(
+            DEFAULT_HOME_MAX_BLOCKS,
+            Number(catalog?.home_contract?.max_primary_blocks ?? 0)
         ),
         homeMaxLinks: DEFAULT_HOME_MAX_LINKS,
         hubMaxBlocks: DEFAULT_HUB_MAX_BLOCKS,

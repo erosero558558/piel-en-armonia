@@ -26,7 +26,7 @@ const altMap = { terms: 'terminos', privacy: 'privacidad', cookies: 'cookies', '
 ---
 
 <PublicShellV5 title={`${page.title} | Piel en Armonia`} description={page.description} locale={locale} canonicalPath={pathname} alternatePath={`/es/legal/${altMap[slug]}/`} pathname={pathname} navModel={navModel} templateId="legal_v5">
-    <LegalHeroV5 page={page} />
+    <LegalHeroV5 page={page} locale={locale} />
     <LegalPolicyTabsV5 items={legalIndex} currentHref={pathname} />
     <LegalArticleLayoutV5 page={page} />
     <SupportBandV5 eyebrow={page.supportBand.eyebrow} title={page.supportBand.title} deck={page.supportBand.deck} tone={page.supportBand.tone} locale={locale} />

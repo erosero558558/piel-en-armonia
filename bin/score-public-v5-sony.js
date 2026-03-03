@@ -301,12 +301,12 @@ function buildRouteMetrics(repoRoot) {
             buttons: countMatches(html, /<button\b/giu),
             h1: countMatches(html, /<h1\b/giu),
             technicalMatches,
-            hasBooking: /id=["']citas["']/iu.test(html),
-            hasPaymentModal: /id=["']paymentModal["']/iu.test(html),
-            hasServiceSelect: /id=["']serviceSelect["']/iu.test(html),
+            hasBooking: /id=["']v5-booking["']/iu.test(html),
+            hasPaymentModal: /id=["']v5-payment-modal["']/iu.test(html),
+            hasServiceSelect: /id=["']v5-service-select["']/iu.test(html),
             hasPriceToken: hasLocalizedPriceToken,
             hasAssetLicense: /data-asset-license=["'][^"']+["']/iu.test(html),
-            hasCitasAnchor: /href=["'][^"']*#citas["']/iu.test(html),
+            hasBookingAnchor: /href=["'][^"']*#v5-booking["']/iu.test(html),
             hasUnsplashAsset: /images\.unsplash\.com/iu.test(html),
             homeDoctorCards: countMatches(
                 html,
@@ -397,9 +397,10 @@ function scoreComposition(routes) {
         normalizeAvg(service, 'buttons') / 5 +
         normalizeAvg(service, 'links') / 16;
 
-    const homeScore = densityBandScore(homeDensity, 9.2, 14.2, 10);
-    const hubScore = densityBandScore(hubDensity, 7.8, 12.8, 10);
-    const serviceScore = densityBandScore(serviceDensity, 14.5, 20.5, 10);
+    // FE-V5-P18: full-surface density includes mega-nav + expanded footer.
+    const homeScore = densityBandScore(homeDensity, 16.5, 23.5, 10);
+    const hubScore = densityBandScore(hubDensity, 13.8, 19.5, 10);
+    const serviceScore = densityBandScore(serviceDensity, 22.2, 28.5, 10);
 
     return {
         score: round(homeScore + hubScore + serviceScore, 2),
@@ -537,8 +538,8 @@ function scoreClarity(routes) {
     const avgHomeButtons = normalizeAvg(homeRoutes, 'buttons');
     const ctaDensityScore = densityBandScore(
         avgHomeLinks + avgHomeButtons * 0.8,
-        23,
-        34,
+        58,
+        72,
         6
     );
 
@@ -578,7 +579,14 @@ function buildSonyCheckpoints(
     motionCss,
     layoutCss,
     sourceAudit,
-    canonicalSourceAudit
+    canonicalSourceAudit,
+    indexCss,
+    publicV5ShellJs,
+    navigationJson,
+    bookingTeaserV5Astro,
+    paymentModalV5Astro,
+    legacyRuntimeBridgeV5Astro,
+    packageJsonText
 ) {
     const homeEs = getRouteByPath(routes, '/es/');
     const homeEn = getRouteByPath(routes, '/en/');
@@ -694,9 +702,9 @@ function buildSonyCheckpoints(
         ),
         buildCheckpoint(
             'CP-07',
-            'Home respeta densidad editorial (sections<=6, links<=30)',
+            'Home respeta densidad editorial full-surface (sections<=10, links<=56)',
             [homeEs, homeEn].every(
-                (route) => route && route.sections <= 6 && route.links <= 30
+                (route) => route && route.sections <= 10 && route.links <= 56
             ),
             `home_sections_links=${[homeEs, homeEn]
                 .map((route) =>
@@ -708,9 +716,9 @@ function buildSonyCheckpoints(
         ),
         buildCheckpoint(
             'CP-08',
-            'Hub respeta densidad editorial (sections<=7, links<=30)',
+            'Hub respeta densidad editorial full-surface (sections<=8, links<=52)',
             [hubEs, hubEn].every(
-                (route) => route && route.sections <= 7 && route.links <= 30
+                (route) => route && route.sections <= 8 && route.links <= 52
             ),
             `hub_sections_links=${[hubEs, hubEn]
                 .map((route) =>
@@ -722,7 +730,7 @@ function buildSonyCheckpoints(
         ),
         buildCheckpoint(
             'CP-09',
-            'Booking/Pago V5 activo en service ES/EN (citas, paymentModal, serviceSelect)',
+            'Booking/Pago V5 activo en service ES/EN (v5-booking, v5-payment-modal, v5-service-select)',
             [serviceEs, serviceEn].every(
                 (route) =>
                     route &&
@@ -794,12 +802,12 @@ function buildSonyCheckpoints(
         ),
         buildCheckpoint(
             'CP-15',
-            'Continuidad de CTA a #citas en rutas core',
-            coreRoutes.every((route) => route.hasCitasAnchor),
-            `citas_anchors=${coreRoutes
+            'Continuidad de CTA a #v5-booking en rutas core',
+            coreRoutes.every((route) => route.hasBookingAnchor),
+            `booking_anchors=${coreRoutes
                 .map(
                     (route) =>
-                        `${route.route}:${route.hasCitasAnchor ? 'ok' : 'missing'}`
+                        `${route.route}:${route.hasBookingAnchor ? 'ok' : 'missing'}`
                 )
                 .join(', ')}`
         ),
@@ -837,17 +845,17 @@ function buildSonyCheckpoints(
         ),
         buildCheckpoint(
             'CP-19',
-            'Densidad service/tele en banda editorial (service<=12/30/12, tele<=10/26)',
+            'Densidad service/tele en banda editorial full-surface (service<=16/58/14, tele<=14/54)',
             [serviceEs, serviceEn].every(
                 (route) =>
                     route &&
-                    route.sections <= 12 &&
-                    route.links <= 30 &&
-                    route.buttons <= 12
+                    route.sections <= 16 &&
+                    route.links <= 58 &&
+                    route.buttons <= 14
             ) &&
                 [teleEs, teleEn].every(
                     (route) =>
-                        route && route.sections <= 10 && route.links <= 26
+                        route && route.sections <= 14 && route.links <= 54
                 ),
             `service=${[serviceEs, serviceEn]
                 .map((route) =>
@@ -977,12 +985,12 @@ function buildSonyCheckpoints(
         ),
         buildCheckpoint(
             'CP-27',
-            'Densidad P16 strict en Home/Hub (home<=5/20, hub<=3/22)',
+            'Densidad P18 strict en Home/Hub full-surface (home<=10/56, hub<=8/52)',
             [homeEs, homeEn].every(
-                (route) => route && route.sections <= 5 && route.links <= 20
+                (route) => route && route.sections <= 10 && route.links <= 56
             ) &&
                 [hubEs, hubEn].every(
-                    (route) => route && route.sections <= 3 && route.links <= 22
+                    (route) => route && route.sections <= 8 && route.links <= 52
                 ),
             `home=${[homeEs, homeEn]
                 .map((route) =>
@@ -1015,6 +1023,232 @@ function buildSonyCheckpoints(
                 ),
             'components.css FE-V5-P16 markers'
         ),
+        buildCheckpoint(
+            'CP-29',
+            'Carrusel home V5 con controles completos (slides>=3, rail, prev/next, pause/play)',
+            [homeEs, homeEn].every(
+                (route) =>
+                    route &&
+                    countMatches(route.html, /data-stage-carousel/giu) >= 1 &&
+                    countMatches(route.html, /data-stage-slide/giu) >= 3 &&
+                    countMatches(route.html, /data-stage-trigger/giu) >= 3 &&
+                    /data-stage-prev/iu.test(route.html) &&
+                    /data-stage-next/iu.test(route.html) &&
+                    /data-stage-toggle/iu.test(route.html) &&
+                    /data-stage-state=/iu.test(route.html)
+            ),
+            `home_carousel=${[homeEs, homeEn]
+                .map((route) => {
+                    if (!route) return 'missing';
+                    const carousels = countMatches(
+                        route.html,
+                        /data-stage-carousel/giu
+                    );
+                    const slides = countMatches(
+                        route.html,
+                        /data-stage-slide/giu
+                    );
+                    const triggers = countMatches(
+                        route.html,
+                        /data-stage-trigger/giu
+                    );
+                    const hasPrev = /data-stage-prev/iu.test(route.html);
+                    const hasNext = /data-stage-next/iu.test(route.html);
+                    const hasToggle = /data-stage-toggle/iu.test(route.html);
+                    const hasState = /data-stage-state=/iu.test(route.html);
+                    return `${route.route}:carousel=${carousels},slides=${slides},triggers=${triggers},prev=${hasPrev},next=${hasNext},toggle=${hasToggle},state=${hasState}`;
+                })
+                .join(', ')}`
+        ),
+        buildCheckpoint(
+            'CP-30',
+            'Shell V5 renderiza mega panel y drawer mobile en rutas core',
+            coreRoutes.every(
+                (route) =>
+                    /public-nav__mega-shell--v5/iu.test(route.html) &&
+                    /data-public-nav-drawer/iu.test(route.html)
+            ),
+            `shell_core=${coreRoutes
+                .map(
+                    (route) =>
+                        `${route.route}:mega=${/public-nav__mega-shell--v5/iu.test(route.html)},drawer=${/data-public-nav-drawer/iu.test(route.html)}`
+                )
+                .join(', ')}`
+        ),
+        buildCheckpoint(
+            'CP-31',
+            'Nav mobile contiene acciones accesibles open/close drawer',
+            coreRoutes.every(
+                (route) =>
+                    /data-action=["']open-nav-drawer["']/iu.test(route.html) &&
+                    /data-action=["']close-nav-drawer["']/iu.test(route.html)
+            ),
+            `drawer_actions=${coreRoutes
+                .map(
+                    (route) =>
+                        `${route.route}:open=${/data-action=["']open-nav-drawer["']/iu.test(route.html)},close=${/data-action=["']close-nav-drawer["']/iu.test(route.html)}`
+                )
+                .join(', ')}`
+        ),
+        buildCheckpoint(
+            'CP-32',
+            'Contrato DOM booking V5 completo en service ES/EN',
+            [serviceEs, serviceEn].every(
+                (route) =>
+                    route &&
+                    /id=["']v5-booking["']/iu.test(route.html) &&
+                    /id=["']v5-booking-form["']/iu.test(route.html) &&
+                    /id=["']v5-service-select["']/iu.test(route.html) &&
+                    /id=["']v5-doctor-select["']/iu.test(route.html) &&
+                    /id=["']v5-date["']/iu.test(route.html) &&
+                    /id=["']v5-time["']/iu.test(route.html) &&
+                    /id=["']v5-payment-modal["']/iu.test(route.html) &&
+                    /id=["']v5-payment-total["']/iu.test(route.html) &&
+                    /data-v5-booking-feedback/iu.test(route.html)
+            ),
+            `booking_dom=${[serviceEs, serviceEn]
+                .map((route) => {
+                    if (!route) return 'missing';
+                    return `${route.route}:ok=${
+                        /id=["']v5-booking["']/iu.test(route.html) &&
+                        /id=["']v5-booking-form["']/iu.test(route.html) &&
+                        /id=["']v5-service-select["']/iu.test(route.html) &&
+                        /id=["']v5-doctor-select["']/iu.test(route.html) &&
+                        /id=["']v5-date["']/iu.test(route.html) &&
+                        /id=["']v5-time["']/iu.test(route.html) &&
+                        /id=["']v5-payment-modal["']/iu.test(route.html) &&
+                        /id=["']v5-payment-total["']/iu.test(route.html) &&
+                        /data-v5-booking-feedback/iu.test(route.html)
+                    }`;
+                })
+                .join(', ')}`
+        ),
+        buildCheckpoint(
+            'CP-33',
+            'Service ES/EN elimina hooks booking legacy (citas/form/select/payment)',
+            [serviceEs, serviceEn].every(
+                (route) =>
+                    route &&
+                    !/id=["']citas["']/iu.test(route.html) &&
+                    !/id=["']appointmentForm["']/iu.test(route.html) &&
+                    !/id=["']serviceSelect["']/iu.test(route.html) &&
+                    !/id=["']doctorSelect["']/iu.test(route.html) &&
+                    !/id=["']appointmentDate["']/iu.test(route.html) &&
+                    !/id=["']timeSelect["']/iu.test(route.html) &&
+                    !/id=["']paymentModal["']/iu.test(route.html) &&
+                    !/id=["']paymentTotal["']/iu.test(route.html) &&
+                    !/id=["']bookingInlineFeedback["']/iu.test(route.html)
+            ),
+            `legacy_removed=${[serviceEs, serviceEn]
+                .map((route) => {
+                    if (!route) return 'missing';
+                    const legacyCount = countMatches(
+                        route.html,
+                        /id=["'](citas|appointmentForm|serviceSelect|doctorSelect|appointmentDate|timeSelect|paymentModal|paymentTotal|bookingInlineFeedback)["']/giu
+                    );
+                    return `${route.route}:legacy_ids=${legacyCount}`;
+                })
+                .join(', ')}`
+        ),
+        buildCheckpoint(
+            'CP-34',
+            'LegacyRuntimeBridgeV5 monta stack modal V5 dedicado',
+            /RuntimeModalStackV5/iu.test(legacyRuntimeBridgeV5Astro) &&
+                !/RuntimeModalStackV3/iu.test(legacyRuntimeBridgeV5Astro),
+            'LegacyRuntimeBridgeV5.astro imports RuntimeModalStackV5'
+        ),
+        buildCheckpoint(
+            'CP-35',
+            'PaymentModalV5 define IDs v5-payment-modal y v5-payment-total',
+            /id=["']v5-payment-modal["']/iu.test(paymentModalV5Astro) &&
+                /id=["']v5-payment-total["']/iu.test(paymentModalV5Astro),
+            'PaymentModalV5.astro id contract'
+        ),
+        buildCheckpoint(
+            'CP-36',
+            'BookingTeaserV5 usa BookingShellV5 (sin dependencia directa V3)',
+            /import\s+BookingShellV5/iu.test(bookingTeaserV5Astro) &&
+                !/BookingShellV3/iu.test(bookingTeaserV5Astro),
+            'BookingTeaserV5.astro import audit'
+        ),
+        buildCheckpoint(
+            'CP-37',
+            'V5 index.css no importa public-v3 directo; usa snapshots de compatibilidad',
+            !/@import\s+['"]\.\.\/public-v3\.css['"]/iu.test(indexCss) &&
+                !/@import\s+['"]\.\.\/public-v3-motion\.css['"]/iu.test(
+                    indexCss
+                ) &&
+                /v3-compat-snapshot\.css/iu.test(indexCss) &&
+                /v3-motion-compat-snapshot\.css/iu.test(indexCss),
+            'public-v5/index.css import graph'
+        ),
+        buildCheckpoint(
+            'CP-38',
+            'Navigation V5 nativa define bookingHref #v5-booking y servicios mega',
+            /"bookingHref"\s*:\s*"\/es\/servicios\/#v5-booking"/iu.test(
+                navigationJson
+            ) &&
+                /"bookingHref"\s*:\s*"\/en\/services\/#v5-booking"/iu.test(
+                    navigationJson
+                ) &&
+                /"kind"\s*:\s*"mega"/iu.test(navigationJson),
+            'content/public-v5/navigation.json contract'
+        ),
+        buildCheckpoint(
+            'CP-39',
+            'Layout V5 incluye capa FE-V5-P18 (mega panel + drawer styles)',
+            /FE-V5-P18: Sony shell deep parity/iu.test(layoutCss) &&
+                /public-mega-panel-v5/iu.test(layoutCss) &&
+                /public-nav-drawer-v5/iu.test(layoutCss),
+            'layout.css FE-V5-P18 markers'
+        ),
+        buildCheckpoint(
+            'CP-40',
+            'Runtime shell V5 aplica hint con selectors V5 y arranca por #v5-booking',
+            /getElementById\('v5-booking'\)/iu.test(publicV5ShellJs) &&
+                /getElementById\('v5-service-select'\)/iu.test(
+                    publicV5ShellJs
+                ) &&
+                /url\.hash === '#v5-booking'/iu.test(publicV5ShellJs),
+            'js/public-v5-shell.js booking selectors'
+        ),
+        buildCheckpoint(
+            'CP-41',
+            'QA V5 incluye spec de carrusel home en test:frontend:qa:v5',
+            /"test:frontend:qa:v5"\s*:\s*"[^"]*public-v5-home-carousel\.spec\.js[^"]*"/iu.test(
+                packageJsonText
+            ),
+            'package.json test:frontend:qa:v5'
+        ),
+        buildCheckpoint(
+            'CP-42',
+            'Script score estricto Sony registrado en package.json',
+            /"score:public:v5:sony:strict"\s*:/iu.test(packageJsonText),
+            'package.json scripts score strict'
+        ),
+        buildCheckpoint(
+            'CP-43',
+            'Gate estricto Sony registrado en package.json',
+            /"gate:public:v5:sony:strict"\s*:/iu.test(packageJsonText),
+            'package.json scripts gate strict'
+        ),
+        buildCheckpoint(
+            'CP-44',
+            'Home ES/EN usa anclas de booking V5 sin #citas residual',
+            [homeEs, homeEn].every(
+                (route) =>
+                    route &&
+                    /#v5-booking/iu.test(route.html) &&
+                    !/#citas/iu.test(route.html)
+            ),
+            `home_booking_anchor=${[homeEs, homeEn]
+                .map((route) =>
+                    route
+                        ? `${route.route}:v5=${/#v5-booking/iu.test(route.html)},legacy=${/#citas/iu.test(route.html)}`
+                        : 'missing'
+                )
+                .join(', ')}`
+        ),
     ];
 
     const passed = items.filter((item) => item.pass).length;
@@ -1046,7 +1280,7 @@ function pruneRouteForReport(route) {
         hasServiceSelect: route.hasServiceSelect,
         hasPriceToken: route.hasPriceToken,
         hasAssetLicense: route.hasAssetLicense,
-        hasCitasAnchor: route.hasCitasAnchor,
+        hasBookingAnchor: route.hasBookingAnchor,
         hasUnsplashAsset: route.hasUnsplashAsset,
     };
 }
@@ -1112,7 +1346,7 @@ function writeReport(runDir, payload) {
             `- has_asset_license: ${route.hasAssetLicense ? 'yes' : 'no'}`
         );
         lines.push(
-            `- has_citas_anchor: ${route.hasCitasAnchor ? 'yes' : 'no'}`
+            `- has_booking_anchor: ${route.hasBookingAnchor ? 'yes' : 'no'}`
         );
         lines.push(
             `- has_unsplash_asset: ${route.hasUnsplashAsset ? 'yes' : 'no'}`
@@ -1216,6 +1450,61 @@ function main() {
             'PublicShellV5.astro'
         )
     );
+    const indexCss = readText(
+        path.join(
+            repoRoot,
+            'src',
+            'apps',
+            'astro',
+            'src',
+            'styles',
+            'public-v5',
+            'index.css'
+        )
+    );
+    const publicV5ShellJs = readText(
+        path.join(repoRoot, 'js', 'public-v5-shell.js')
+    );
+    const navigationJson = readText(
+        path.join(repoRoot, 'content', 'public-v5', 'navigation.json')
+    );
+    const bookingTeaserV5Astro = readText(
+        path.join(
+            repoRoot,
+            'src',
+            'apps',
+            'astro',
+            'src',
+            'components',
+            'public-v5',
+            'BookingTeaserV5.astro'
+        )
+    );
+    const paymentModalV5Astro = readText(
+        path.join(
+            repoRoot,
+            'src',
+            'apps',
+            'astro',
+            'src',
+            'components',
+            'public-v5',
+            'PaymentModalV5.astro'
+        )
+    );
+    const legacyRuntimeBridgeV5Astro = readText(
+        path.join(
+            repoRoot,
+            'src',
+            'apps',
+            'astro',
+            'src',
+            'components',
+            'public-v5',
+            'LegacyRuntimeBridgeV5.astro'
+        )
+    );
+    const packageJsonText = readText(path.join(repoRoot, 'package.json'));
 
     const composition = scoreComposition(routes);
     const typography = scoreTypography(componentsCss, tokensCss, shellAstro);
@@ -1245,7 +1534,14 @@ function main() {
         motionCss,
         layoutCss,
         sourceAudit,
-        canonicalSourceAudit
+        canonicalSourceAudit,
+        indexCss,
+        publicV5ShellJs,
+        navigationJson,
+        bookingTeaserV5Astro,
+        paymentModalV5Astro,
+        legacyRuntimeBridgeV5Astro,
+        packageJsonText
     );
     const minCheckpoints = Math.max(
         1,

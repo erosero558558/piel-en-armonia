@@ -15,8 +15,8 @@ const ROUTES = [
     { id: 'home-en', path: '/en/' },
     { id: 'hub-es', path: '/es/servicios/' },
     { id: 'hub-en', path: '/en/services/' },
-    { id: 'booking-es', path: '/es/servicios/#citas' },
-    { id: 'booking-en', path: '/en/services/#citas' },
+    { id: 'booking-es', path: '/es/servicios/#v5-booking' },
+    { id: 'booking-en', path: '/en/services/#v5-booking' },
     { id: 'telemedicina-es', path: '/es/telemedicina/' },
     { id: 'telemedicine-en', path: '/en/telemedicine/' },
     {

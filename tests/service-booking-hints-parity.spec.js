@@ -36,11 +36,13 @@ test.describe('Service booking hints parity ES/EN', () => {
             await expect(bookingCta).toBeVisible();
 
             const href = String((await bookingCta.getAttribute('href')) || '');
-            expect(href, `CTA href mismatch for ${entry.route}`).toBe('#citas');
+            expect(href, `CTA href mismatch for ${entry.route}`).toBe(
+                '#v5-booking'
+            );
 
             await bookingCta.click();
             await expect(page).toHaveURL(
-                new RegExp(`${entry.route.replace(/\//g, '\\/')}#citas$`)
+                new RegExp(`${entry.route.replace(/\//g, '\\/')}#v5-booking$`)
             );
             await waitForBookingHooks(page, entry.expectedHint);
         }
@@ -51,11 +53,11 @@ test.describe('Service booking hints parity ES/EN', () => {
     }) => {
         const directCases = [
             {
-                route: '/es/servicios/botox/?service=rejuvenecimiento#citas',
+                route: '/es/servicios/botox/?service=rejuvenecimiento#v5-booking',
                 expected: 'rejuvenecimiento',
             },
             {
-                route: '/en/services/cancer-piel/?service=cancer#citas',
+                route: '/en/services/cancer-piel/?service=cancer#v5-booking',
                 expected: 'cancer',
             },
         ];

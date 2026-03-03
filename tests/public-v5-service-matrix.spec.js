@@ -95,7 +95,7 @@ test.describe('Public V5 service matrix parity (all service routes)', () => {
                         document.querySelector(selector)?.textContent || ''
                     ).trim();
 
-                const select = document.getElementById('serviceSelect');
+                const select = document.getElementById('v5-service-select');
                 const selected =
                     select instanceof HTMLSelectElement
                         ? select.options[select.selectedIndex]
@@ -119,11 +119,11 @@ test.describe('Public V5 service matrix parity (all service routes)', () => {
                     tax: text('#ivaPrice'),
                     total: text('#totalPrice'),
                     modalTotalLabel: text(
-                        '#paymentModal .payment-total span:first-child'
+                        '#v5-payment-modal .payment-total span:first-child'
                     ),
                     paymentMethods: Array.from(
                         document.querySelectorAll(
-                            '#paymentModal .payment-method[data-method]'
+                            '#v5-payment-modal .payment-method[data-method]'
                         )
                     )
                         .map((node) =>

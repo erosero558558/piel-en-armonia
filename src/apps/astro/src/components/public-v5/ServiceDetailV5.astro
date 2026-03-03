@@ -22,7 +22,7 @@ const serviceHint = page?.bookingHint || hero?.serviceHint || 'consulta';
         </div>
         <p class="sony-service-hero__disclaimer">{hero.priceDisclaimer}</p>
         <a
-            href="#citas"
+            href="#v5-booking"
             class="hero-stage__cta hero-stage__cta--primary"
             data-analytics-event="start_booking_from_service"
             data-entry-surface="v5_service_hero_primary"
@@ -34,7 +34,7 @@ const serviceHint = page?.bookingHint || hero?.serviceHint || 'consulta';
             data-catalog-category={hero.category}
             data-catalog-intent={hero.intent}
         >
-            {locale === 'en' ? 'Book route' : 'Reservar ruta'}
+            {locale === 'en' ? 'Book this clinical route' : 'Reservar esta ruta clinica'}
         </a>
     </div>
     <div class="sony-service-hero__media">
@@ -68,7 +68,7 @@ const serviceHint = page?.bookingHint || hero?.serviceHint || 'consulta';
             <ul>{(story.doctors || []).slice(0, 3).map((item) => <li>{item}</li>)}</ul>
         </article>
         <article>
-            <h3>FAQ</h3>
+            <h3>{locale === 'en' ? 'Frequently asked questions' : 'Preguntas frecuentes'}</h3>
             <ul>{(story.faq || []).slice(0, 4).map((item) => <li>{item}</li>)}</ul>
         </article>
     </div>
@@ -102,7 +102,7 @@ const serviceHint = page?.bookingHint || hero?.serviceHint || 'consulta';
         <section class="sony-service-related" data-template-block="service_related_v5">
             <div class="sony-service-related__head">
                 <p>{locale === 'en' ? 'Related routes' : 'Rutas relacionadas'}</p>
-                <h2>{locale === 'en' ? 'Continue inside the same care direction.' : 'Continua dentro de la misma direccion de cuidado.'}</h2>
+                <h2>{locale === 'en' ? 'Continue within the same medical direction.' : 'Continue dentro de la misma direccion medica.'}</h2>
             </div>
             <div class="sony-service-related__grid">
                 {

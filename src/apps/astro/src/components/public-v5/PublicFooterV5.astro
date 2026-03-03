@@ -3,7 +3,7 @@ const {
     locale = 'es',
     footer = {},
     compact = false,
-    bookingHref = '#citas',
+    bookingHref = '#v5-booking',
 } = Astro.props;
 const serviceHubHref = locale === 'en' ? '/en/services/' : '/es/servicios/';
 const telemedicineHref = locale === 'en' ? '/en/telemedicine/' : '/es/telemedicina/';
@@ -11,6 +11,28 @@ const termsHref = locale === 'en' ? '/en/legal/terms/' : '/es/legal/terminos/';
 const privacyHref = locale === 'en' ? '/en/legal/privacy/' : '/es/legal/privacidad/';
 const cookiesHref = locale === 'en' ? '/en/legal/cookies/' : '/es/legal/cookies/';
 const medicalHref = locale === 'en' ? '/en/legal/medical-disclaimer/' : '/es/legal/aviso-medico/';
+const labels =
+    locale === 'en'
+        ? {
+              services: 'Services',
+              telemedicine: 'Telemedicine',
+              bookNow: 'Book now',
+              terms: 'Terms',
+              privacy: 'Privacy',
+              cookies: 'Cookie policy',
+              medical: 'Medical disclaimer',
+              whatsapp: 'WhatsApp support',
+          }
+        : {
+              services: 'Servicios',
+              telemedicine: 'Telemedicina',
+              bookNow: 'Reservar',
+              terms: 'Terminos',
+              privacy: 'Privacidad',
+              cookies: 'Politica de cookies',
+              medical: 'Aviso medico',
+              whatsapp: 'Soporte por WhatsApp',
+          };
 ---
 
 <footer class:list={['public-footer', 'public-footer--v5', compact && 'is-compact']} data-public-footer>
@@ -33,7 +55,7 @@ const medicalHref = locale === 'en' ? '/en/legal/medical-disclaimer/' : '/es/leg
     <div class="public-footer__grid">
         <div>
             <h3>{footer.catalogTitle}</h3>
-            <a href={serviceHubHref}>{locale === 'en' ? 'Services' : 'Servicios'}</a>
+            <a href={serviceHubHref}>{labels.services}</a>
             {
                 compact ? null : (
                     <>
@@ -46,19 +68,19 @@ const medicalHref = locale === 'en' ? '/en/legal/medical-disclaimer/' : '/es/leg
         </div>
         <div>
             <h3>{footer.careModesTitle}</h3>
-            <a href={telemedicineHref}>{locale === 'en' ? 'Telemedicine' : 'Telemedicina'}</a>
-            {compact ? null : <a href={bookingHref}>{locale === 'en' ? 'Book now' : 'Reservar'}</a>}
-            <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+            <a href={telemedicineHref}>{labels.telemedicine}</a>
+            {compact ? null : <a href={bookingHref}>{labels.bookNow}</a>}
+            <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">{labels.whatsapp}</a>
         </div>
         <div>
             <h3>{footer.legalTitle}</h3>
-            <a href={termsHref}>{locale === 'en' ? 'Terms' : 'Terminos'}</a>
+            <a href={termsHref}>{labels.terms}</a>
             {
                 compact ? null : (
                     <>
-                        <a href={privacyHref}>{locale === 'en' ? 'Privacy' : 'Privacidad'}</a>
-                        <a href={cookiesHref}>Cookies</a>
-                        <a href={medicalHref}>{locale === 'en' ? 'Medical disclaimer' : 'Aviso medico'}</a>
+                        <a href={privacyHref}>{labels.privacy}</a>
+                        <a href={cookiesHref}>{labels.cookies}</a>
+                        <a href={medicalHref}>{labels.medical}</a>
                     </>
                 )
             }

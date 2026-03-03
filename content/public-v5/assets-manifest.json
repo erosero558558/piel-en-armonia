@@ -1,39 +1,38 @@
 {
     "version": "2026.03-v5",
-    "updated_at": "2026-03-02",
+    "updated_at": "2026-03-03",
     "source_policy": "stock_premium_only",
     "default_license": "premium-stock-commercial-license",
     "assets": [
         {
             "id": "hero-clinical-stage",
-            "src": "/images/optimized/showcase-hero.webp",
+            "src": "/images/optimized/showcase-diagnostic.webp",
             "derivatives": [
-                "/images/optimized/showcase-hero.avif",
-                "/images/optimized/showcase-hero-640.webp",
-                "/images/optimized/showcase-hero-1024.webp",
-                "/images/optimized/showcase-hero-1400.webp",
-                "/images/optimized/showcase-hero.jpg"
+                "/images/optimized/showcase-diagnostic.avif",
+                "/images/optimized/showcase-diagnostic-640.webp",
+                "/images/optimized/showcase-diagnostic-800.webp",
+                "/images/optimized/showcase-diagnostic.jpg"
             ],
             "license": "premium-stock-commercial-license",
             "usage_scope": ["home", "hub", "service-detail"],
-            "focal_point": "center 35%",
-            "alt_es": "Consulta dermatologica con enfoque diagnostico y entorno clinico moderno",
-            "alt_en": "Dermatology consultation with diagnostic focus in a modern clinical setting"
+            "focal_point": "center 42%",
+            "alt_es": "Diagnostico dermatologico en consultorio con lectura clinica prioritaria",
+            "alt_en": "Dermatology diagnosis in clinic with clinical-first review"
         },
         {
             "id": "hero-aesthetic-stage",
-            "src": "/images/optimized/hero-woman.webp",
+            "src": "/images/optimized/showcase-treatment.webp",
             "derivatives": [
-                "/images/optimized/hero-woman-640.webp",
-                "/images/optimized/hero-woman-1024.webp",
-                "/images/optimized/hero-woman-1344.webp",
-                "/images/optimized/hero-woman.jpg"
+                "/images/optimized/showcase-treatment.avif",
+                "/images/optimized/showcase-treatment-640.webp",
+                "/images/optimized/showcase-treatment-900.webp",
+                "/images/optimized/showcase-treatment.jpg"
             ],
             "license": "premium-stock-commercial-license",
-            "usage_scope": ["home", "services", "telemedicine"],
-            "focal_point": "center 40%",
-            "alt_es": "Paciente en protocolo dermatologico estetico con iluminacion clinica",
-            "alt_en": "Patient in a medical dermatology aesthetics protocol with clinical lighting"
+            "usage_scope": ["home", "services", "service-detail"],
+            "focal_point": "center 44%",
+            "alt_es": "Procedimiento de estetica medica con enfoque dermatologico",
+            "alt_en": "Medical aesthetics procedure with dermatology-first framing"
         },
         {
             "id": "hero-telemedicine",

@@ -104,7 +104,7 @@ const preloadImageTypeAttr = String(preloadImageType || '').trim();
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
         <meta property="og:url" content={canonical} />
-        <meta property="og:image" content="https://pielarmonia.com/images/optimized/showcase-hero.jpg" />
+        <meta property="og:image" content="https://pielarmonia.com/images/optimized/showcase-diagnostic.jpg" />
         <meta name="theme-color" content="#0a0f1b" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="manifest" href="/manifest.json" />
@@ -129,8 +129,30 @@ const preloadImageTypeAttr = String(preloadImageType || '').trim();
             ) : null
         }
         <script src="/js/public-v5-shell.js?v=public-v5-shell-20260302-v1" defer></script>
-        <script src="/js/service-navigation-analytics.js?v=service-analytics-20260302-v7" defer></script>
         <script is:inline set:html={`window.__PUBLIC_V5_FLAGS = ${publicV5FlagsJson};`}></script>
+        <script is:inline>
+            window.addEventListener(
+                'load',
+                function () {
+                    window.setTimeout(function () {
+                        if (
+                            document.querySelector(
+                                'script[data-public-analytics-shell="v5"]'
+                            )
+                        ) {
+                            return;
+                        }
+                        var script = document.createElement('script');
+                        script.defer = true;
+                        script.src =
+                            '/js/service-navigation-analytics.js?v=service-analytics-20260302-v7';
+                        script.dataset.publicAnalyticsShell = 'v5';
+                        document.head.appendChild(script);
+                    }, 3000);
+                },
+                { once: true }
+            );
+        </script>
     </head>
     <body
         data-public-shell
@@ -151,7 +173,7 @@ const preloadImageTypeAttr = String(preloadImageType || '').trim();
             locale={locale}
             footer={navModel.footer}
             compact={compactFooter}
-            bookingHref={navModel?.bookingHref || '#citas'}
+            bookingHref={navModel?.bookingHref || '#v5-booking'}
         />
         {enableRuntimeBridge ? <LegacyRuntimeBridgeV5 locale={locale} /> : null}
     </body>

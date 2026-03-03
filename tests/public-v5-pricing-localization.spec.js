@@ -130,7 +130,7 @@ test.describe('Public V5 pricing + localization parity', () => {
             await waitForBookingHooks(page, item.serviceHint);
 
             const snapshot = await page.evaluate(() => {
-                const select = document.getElementById('serviceSelect');
+                const select = document.getElementById('v5-service-select');
                 const selected =
                     select instanceof HTMLSelectElement
                         ? select.options[select.selectedIndex]

@@ -38,7 +38,7 @@ const heroMedia =
     <div class="sony-hub-hero__media">
         <ResponsiveMediaImageV5
             media={heroMedia}
-            fallbackSrc={hero?.media || '/images/optimized/showcase-hero.webp'}
+            fallbackSrc={hero?.media || '/images/optimized/showcase-diagnostic.webp'}
             fallbackAlt={hero?.title || (locale === 'en' ? 'Dermatology route overview' : 'Resumen de rutas dermatologicas')}
             loading="eager"
             fetchpriority="high"
@@ -50,7 +50,7 @@ const heroMedia =
 <section class="sony-hub-grid" data-services-grid data-template-block="hub_grid_v5">
     <div class="sony-hub-grid__head">
         <p>{locale === 'en' ? 'Route selection' : 'Seleccion de ruta'}</p>
-        <h2>{locale === 'en' ? 'Filter by intent and audience, then open one route.' : 'Filtra por intencion y audiencia, luego abre una ruta.'}</h2>
+        <h2>{locale === 'en' ? 'Filter by intent and audience, then open one route.' : 'Filtre por intencion y audiencia, luego abra una ruta.'}</h2>
     </div>
     <div class="sony-hub-grid__filters" data-services-filters>
         <label>

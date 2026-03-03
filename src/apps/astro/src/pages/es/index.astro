@@ -1,6 +1,6 @@
 ---
 import PublicShellV5 from '../../layouts/PublicShellV5.astro';
-import ResponsiveMediaImageV5 from '../../components/public-v5/ResponsiveMediaImageV5.astro';
+import HeroStageCarouselV5 from '../../components/public-v5/HeroStageCarouselV5.astro';
 import { getLocalizedBookingOptions } from '../../lib/content.js';
 import { getHomeV5Data, getPublicNavigationModel } from '../../lib/public-v5.js';
 
@@ -10,10 +10,11 @@ const page = getHomeV5Data(locale);
 const navModelBase = getPublicNavigationModel(locale, pathname);
 const navModel = {
     ...navModelBase,
-    bookingHref: '/es/servicios/#citas',
+    bookingHref: '/es/servicios/#v5-booking',
 };
 
-const hero = page.slides?.[0] || null;
+const homeSlides = Array.isArray(page.slides) ? page.slides.slice(0, 3) : [];
+const hero = homeSlides[0] || null;
 const families = Array.isArray(page.families) ? page.families.slice(0, 3) : [];
 const doctors = Array.isArray(page.doctors) ? page.doctors.slice(0, 2) : [];
 const pricing = getLocalizedBookingOptions(locale).slice(0, 4);
@@ -24,25 +25,31 @@ const heroMediaSources = Array.isArray(heroMediaMeta?.sources)
 const preferredHeroSource =
     heroMediaSources.find((source) => source?.type === 'image/webp') ||
     heroMediaSources.find((source) => source?.type === 'image/avif') ||
+    heroMediaSources[0] ||
     null;
 const preferredHeroSrcSet = String(preferredHeroSource?.srcset || '').trim();
+const preferredHeroCandidates = preferredHeroSrcSet
+    .split(',')
+    .map((entry) => {
+        const parts = String(entry || '')
+            .trim()
+            .split(/\s+/u);
+        return {
+            src: parts[0] || '',
+            descriptor: parts[1] || '',
+        };
+    })
+    .filter((entry) => entry.src);
 const preloadImageSrc =
-    (preferredHeroSrcSet.split(',')[0] || '').trim().split(/\s+/u)[0] ||
+    preferredHeroCandidates.find((entry) => entry.descriptor === '1024w')?.src ||
+    preferredHeroCandidates[Math.min(1, preferredHeroCandidates.length - 1)]?.src ||
+    preferredHeroCandidates[0]?.src ||
     heroMediaMeta?.src ||
     hero?.media ||
-    '/images/optimized/showcase-hero.webp';
+    '/images/optimized/showcase-diagnostic.webp';
 const preloadImageSrcSet = preferredHeroSrcSet || heroMediaMeta?.srcset || '';
-const preloadImageSizes = '(max-width: 1120px) 85vw, 50vw';
+const preloadImageSizes = '(max-width: 1120px) 100vw, 50vw';
 const preloadImageType = String(preferredHeroSource?.type || 'image/webp').trim();
-const heroMedia =
-    hero?.mediaMeta && typeof hero.mediaMeta === 'object'
-        ? {
-              ...hero.mediaMeta,
-              sources: heroMediaSources.filter(
-                  (source) => source?.type !== 'image/avif'
-              ),
-          }
-        : hero?.media;
 ---
 
 <PublicShellV5
@@ -61,51 +68,17 @@ const heroMedia =
     preloadImageSizes={preloadImageSizes}
     preloadImageType={preloadImageType}
 >
-    <section class="sony-home-hero" data-template-block="home_hero_v5">
-        <div class="sony-home-hero__copy">
-            <p>{hero?.eyebrow || 'Dermatologia de precision'}</p>
-            <h1>{hero?.title || 'Dermatologia clinica con decisiones claras.'}</h1>
-            <p>{hero?.deck || 'Diagnostico, evidencia y reserva con continuidad en una sola experiencia.'}</p>
-            <ul class="sony-home-hero__chips">
-                {(hero?.stats || []).slice(0, 3).map((item) => <li>{item}</li>)}
-            </ul>
-            <div class="sony-home-hero__actions">
-                <a
-                    href="/es/servicios/#citas"
-                    class="hero-stage__cta hero-stage__cta--primary"
-                    data-analytics-event="open_public_cta"
-                    data-entry-surface="home_hero_primary"
-                    data-cta-target="booking"
-                >
-                    Reservar valoracion
-                </a>
-                <a
-                    href="/es/servicios/"
-                    class="sony-quiet-link"
-                    data-analytics-event="open_public_cta"
-                    data-entry-surface="home_hero_secondary"
-                    data-cta-target="service_hub"
-                >
-                    Ver servicios
-                </a>
-            </div>
-        </div>
-        <div class="sony-home-hero__media">
-            <ResponsiveMediaImageV5
-                media={heroMedia}
-                fallbackSrc={hero?.media || '/images/optimized/showcase-hero.webp'}
-                fallbackAlt={hero?.mediaMeta?.alt || 'Consulta dermatologica con enfoque diagnostico'}
-                loading="eager"
-                fetchpriority="high"
-                sizes={preloadImageSizes}
-            />
-        </div>
-    </section>
+    <HeroStageCarouselV5
+        slides={homeSlides}
+        locale={locale}
+        bookingHref="/es/servicios/#v5-booking"
+        serviceHubHref="/es/servicios/"
+    />
 
     <section class="sony-home-paths" data-template-block="home_paths_v5">
         <div class="sony-home-head">
             <p>Rutas clinicas</p>
-            <h2>Elige la ruta correcta desde la primera lectura.</h2>
+            <h2>Elija la ruta adecuada desde la primera lectura medica.</h2>
         </div>
         <div class="sony-home-paths__grid">
             {
@@ -122,7 +95,7 @@ const heroMedia =
                             data-catalog-category={family.id}
                             data-catalog-intent="all"
                         >
-                            Abrir ruta
+                            Abrir ruta clinica
                         </a>
                     </article>
                 ))
@@ -133,7 +106,7 @@ const heroMedia =
     <section class="sony-home-authority" data-template-block="home_authority_v5">
         <div class="sony-home-head">
             <p>Autoridad medica</p>
-            <h2>Direccion clinica visible y conectada con cada programa.</h2>
+            <h2>Direccion clinica visible y conectada con cada programa de atencion.</h2>
         </div>
         <div class="sony-home-authority__grid">
             {
@@ -144,6 +117,7 @@ const heroMedia =
                             alt={doctor?.name || 'Especialista dermatologico'}
                             loading="lazy"
                             decoding="async"
+                            fetchpriority="low"
                         />
                         <div>
                             <p>{doctor.role}</p>
@@ -158,8 +132,8 @@ const heroMedia =
 
     <section class="sony-home-pricing" data-template-block="home_pricing_v5">
         <div class="sony-home-head">
-            <p>Precio transparente</p>
-            <h2>Precios publicos exactos antes de reservar.</h2>
+            <p>Precio clinico visible</p>
+            <h2>Valores publicos claros antes de autorizar reserva y pago.</h2>
         </div>
         <div class="sony-home-pricing__grid">
             {
@@ -173,19 +147,19 @@ const heroMedia =
             }
         </div>
         <p class="sony-home-pricing__policy-note">
-            Politica de cancelacion y reprogramacion disponible en la seccion legal.
+            Politica de cancelacion, reprogramacion y reembolso disponible en la seccion legal.
         </p>
     </section>
 
     <section class="sony-home-booking" data-template-block="home_booking_v5">
         <div>
             <p>Reserva</p>
-            <h2>Reserva inmediata con continuidad clinica.</h2>
-            <p>La reserva completa y el pago seguro estan en la ruta de servicios para mantener una experiencia limpia.</p>
+            <h2>Reserva con continuidad clinica y seguridad operativa.</h2>
+            <p>La reserva completa y el pago seguro viven en la ruta de servicios para mantener una superficie inicial clara.</p>
         </div>
         <div class="sony-home-booking__actions">
             <a
-                href="/es/servicios/#citas"
+                href="/es/servicios/#v5-booking"
                 class="hero-stage__cta hero-stage__cta--primary"
                 data-analytics-event="open_public_cta"
                 data-entry-surface="home_booking_primary"
@@ -200,7 +174,7 @@ const heroMedia =
                 data-entry-surface="home_booking_secondary"
                 data-cta-target="telemedicine"
             >
-                Telemedicina
+                Telemedicina clinica
             </a>
         </div>
     </section>
