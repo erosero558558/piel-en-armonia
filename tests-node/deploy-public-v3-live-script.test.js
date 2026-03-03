@@ -37,6 +37,27 @@ test('deploy-public-v3-live recompone artefactos Astro ES/EN y verifica output',
     }
 });
 
+test('deploy-public-v3-live resetea metadata tracked de Composer para no dejar dirty tree persistente', () => {
+    const raw = loadScript(SCRIPT_PATH);
+
+    for (const snippet of [
+        'reset_generated_vendor_metadata() {',
+        '"vendor/composer/autoload_real.php"',
+        '"vendor/composer/autoload_static.php"',
+        '"vendor/composer/installed.php"',
+        'git checkout -- "${tracked_files[@]}"',
+        'Reset tracked Composer-generated metadata.',
+        'composer install --no-dev --optimize-autoloader --prefer-dist --no-progress',
+        'reset_generated_vendor_metadata',
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta saneamiento de metadata Composer en script live V3: ${snippet}`
+        );
+    }
+});
+
 test('deploy-public-v3-live endurece nginx sin depender de PATH', () => {
     const raw = loadScript(SCRIPT_PATH);
 
