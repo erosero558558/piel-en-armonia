@@ -101,7 +101,7 @@ test('deploy-public-v2-live se mantiene como shim de compatibilidad hacia V3', (
     for (const snippet of [
         'DEPRECATED: deploy-public-v2-live.sh now delegates to deploy-public-v3-live.sh',
         'deploy-public-v3-live.sh',
-        'exec "$SCRIPT_DIR/deploy-public-v3-live.sh" "$@"',
+        'exec bash "$SCRIPT_DIR/deploy-public-v3-live.sh" "$@"',
     ]) {
         assert.equal(
             raw.includes(snippet),
