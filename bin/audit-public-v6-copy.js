@@ -56,6 +56,10 @@ const terminologyDeprecatedByLocale = {
     es: [/bloque corporativo/i, /extension de programa/i],
     en: [/corporate block/i, /program extension/i],
 };
+const bookingStatusExpectedTitleByLocale = {
+    es: 'reserva online en mantenimiento',
+    en: 'online booking under maintenance',
+};
 
 function isPathLike(text) {
     const value = String(text || '').trim();
@@ -102,6 +106,20 @@ function checkMaxWords(locale, file, findings, value, maxWords, type) {
             file,
             type,
             message: `Word count ${words} exceeds max ${maxWords}`,
+            text: value,
+        });
+    }
+}
+
+function checkMinWords(locale, file, findings, value, minWords, type) {
+    if (typeof value !== 'string' || !value.trim()) return;
+    const words = countWords(value);
+    if (words < minWords) {
+        findings.push({
+            locale,
+            file,
+            type,
+            message: `Word count ${words} is below min ${minWords}`,
             text: value,
         });
     }
@@ -265,6 +283,14 @@ function inspectStructuredCopy(locale, rel, payload, findings) {
                 24,
                 'copy_length.service_lead'
             );
+            checkMinWords(
+                locale,
+                rel,
+                findings,
+                service?.lead,
+                12,
+                'copy_density.service_lead'
+            );
 
             if (faqAnswers.length !== faq.length) {
                 findings.push({
@@ -283,6 +309,14 @@ function inspectStructuredCopy(locale, rel, payload, findings) {
                     answer,
                     34,
                     'copy_length.faq_answer'
+                );
+                checkMinWords(
+                    locale,
+                    rel,
+                    findings,
+                    answer,
+                    12,
+                    'copy_density.faq_answer'
                 );
 
                 const normalized = String(answer || '')
@@ -422,6 +456,44 @@ function inspectTerminologyConsistency(locale, dir, findings) {
     });
 }
 
+function inspectBookingStatusConsistency(locale, dir, findings) {
+    const expected = bookingStatusExpectedTitleByLocale[locale];
+    const checks = [
+        ['home.json', (json) => json?.bookingStatus?.title],
+        ['hub.json', (json) => json?.bookingStatus?.title],
+        ['telemedicine.json', (json) => json?.bookingStatus?.title],
+        ['service.json', (json) => json?.ui?.bookingStatus?.title],
+    ];
+
+    checks.forEach(([name, reader]) => {
+        const filePath = path.join(dir, name);
+        if (!fs.existsSync(filePath)) return;
+        const rel = path.relative(ROOT, filePath).replace(/\\/g, '/');
+        const payload = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        const raw = String(reader(payload) || '')
+            .trim()
+            .toLowerCase();
+        if (!raw) {
+            findings.push({
+                locale,
+                file: rel,
+                type: 'booking_status_missing',
+                message: 'Missing booking status title',
+            });
+            return;
+        }
+        if (raw !== expected) {
+            findings.push({
+                locale,
+                file: rel,
+                type: 'booking_status_inconsistent',
+                message: `Expected booking status title "${expected}"`,
+                text: raw,
+            });
+        }
+    });
+}
+
 function inspectLocale(locale, dir) {
     const files = walkJsonFiles(dir);
     const findings = [];
@@ -535,6 +607,7 @@ function inspectLocale(locale, dir) {
     });
 
     inspectTerminologyConsistency(locale, dir, findings);
+    inspectBookingStatusConsistency(locale, dir, findings);
 
     return { locale, files: files.length, findings };
 }

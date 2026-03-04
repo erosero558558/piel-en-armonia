@@ -27,6 +27,13 @@ function assertString(obj, file, pathExpr) {
     assert.ok(value.trim(), `${file}: ${pathExpr} must not be empty`);
 }
 
+function countWords(text) {
+    return String(text || '')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean).length;
+}
+
 test('public-v6 copy contract: required ui labels exist in ES and EN', () => {
     const files = [
         'content/public-v6/es/navigation.json',
@@ -144,6 +151,10 @@ test('public-v6 copy contract: service FAQ answers are explicit per route', () =
                 service.lead.trim().length > 0,
                 `${label}: lead must not be empty`
             );
+            assert.ok(
+                countWords(service.lead) >= 12,
+                `${label}: lead must include at least 12 words`
+            );
             if (internalFallback) {
                 assert.notEqual(
                     service.lead.trim().toLowerCase(),
@@ -168,6 +179,10 @@ test('public-v6 copy contract: service FAQ answers are explicit per route', () =
                     answer.trim().length > 0,
                     `${label}: faqAnswers[${index}] must not be empty`
                 );
+                assert.ok(
+                    countWords(answer) >= 12,
+                    `${label}: faqAnswers[${index}] must include at least 12 words`
+                );
                 if (fallback) {
                     assert.notEqual(
                         answer.trim().toLowerCase(),
@@ -178,6 +193,71 @@ test('public-v6 copy contract: service FAQ answers are explicit per route', () =
             }
         }
     }
+});
+
+test('public-v6 copy contract: booking status title is unified across key surfaces', () => {
+    const checks = [
+        {
+            locale: 'es',
+            expected: 'reserva online en mantenimiento',
+            file: 'content/public-v6/es/home.json',
+            pathExpr: 'bookingStatus.title',
+        },
+        {
+            locale: 'es',
+            expected: 'reserva online en mantenimiento',
+            file: 'content/public-v6/es/hub.json',
+            pathExpr: 'bookingStatus.title',
+        },
+        {
+            locale: 'es',
+            expected: 'reserva online en mantenimiento',
+            file: 'content/public-v6/es/telemedicine.json',
+            pathExpr: 'bookingStatus.title',
+        },
+        {
+            locale: 'es',
+            expected: 'reserva online en mantenimiento',
+            file: 'content/public-v6/es/service.json',
+            pathExpr: 'ui.bookingStatus.title',
+        },
+        {
+            locale: 'en',
+            expected: 'online booking under maintenance',
+            file: 'content/public-v6/en/home.json',
+            pathExpr: 'bookingStatus.title',
+        },
+        {
+            locale: 'en',
+            expected: 'online booking under maintenance',
+            file: 'content/public-v6/en/hub.json',
+            pathExpr: 'bookingStatus.title',
+        },
+        {
+            locale: 'en',
+            expected: 'online booking under maintenance',
+            file: 'content/public-v6/en/telemedicine.json',
+            pathExpr: 'bookingStatus.title',
+        },
+        {
+            locale: 'en',
+            expected: 'online booking under maintenance',
+            file: 'content/public-v6/en/service.json',
+            pathExpr: 'ui.bookingStatus.title',
+        },
+    ];
+
+    checks.forEach((item) => {
+        const json = readJson(item.file);
+        const value = String(pick(json, item.pathExpr) || '')
+            .trim()
+            .toLowerCase();
+        assert.equal(
+            value,
+            item.expected,
+            `${item.locale}: ${item.file}:${item.pathExpr} must be "${item.expected}"`
+        );
+    });
 });
 
 test('public-v6 copy contract: anti-robot legacy phrases removed', () => {

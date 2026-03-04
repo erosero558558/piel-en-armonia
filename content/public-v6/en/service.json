@@ -1,7 +1,7 @@
 {
     "title": "Service detail | Piel en Armonia",
     "description": "Dermatology route files with clinical criteria, clear stages, and measurable follow-up.",
-    "voiceNote": "In every route, you receive clear clinical explanation before any intervention is decided.",
+    "voiceNote": "Each route explains risk, options, and next step in clear clinical language so decisions feel confident and informed.",
     "ui": {
         "menu": {
             "glance": "Clinical glance",
@@ -18,7 +18,7 @@
         "thesis": {
             "eyebrow": "Clinical editorial",
             "titleSuffix": "with criteria and continuity",
-            "body": "Each stage defines what to observe, what to decide, and when to escalate to protect progression."
+            "body": "Each stage shows what to watch, how to decide, and when to escalate to protect progression."
         },
         "statement": {
             "eyebrow": "Medical direction",
@@ -62,7 +62,7 @@
             "summary": "Full skin, hair, and nail reading to define priorities from the first consultation.",
             "heroImage": "/images/optimized/service-consulta.webp",
             "heroAlt": "Comprehensive dermatology consultation",
-            "lead": "This is where your case is ordered: risk, therapeutic focus, and follow-up timing.",
+            "lead": "The first consultation organizes your case: what needs action now, what can wait, and how progress will be measured.",
             "bullets": [
                 "Structured history intake",
                 "Full dermatology examination",
@@ -82,9 +82,9 @@
             ],
             "related": ["acne-rosacea", "piel-cabello-unas"],
             "faqAnswers": [
-                "Bring your medication list, allergy history, key conditions, and recent progression photos if available.",
-                "Not always. Additional tests are requested only when clinical evaluation shows they add decision value.",
-                "The first follow-up is usually scheduled in 3 to 6 weeks, or earlier if warning signs appear."
+                "Bring your current medications, allergy history, previous treatments, and recent photos. That baseline lets us decide faster and with better context.",
+                "Only when they add a concrete decision point. If needed, tests are requested after the initial clinical evaluation.",
+                "First follow-up is commonly set between weeks 3 and 6, or sooner if pain, bleeding, or rapid worsening appears."
             ]
         },
         {
@@ -94,7 +94,7 @@
             "summary": "Control of inflammatory flares and sensitivity with realistic medical goals.",
             "heroImage": "/images/optimized/service-acne.webp",
             "heroAlt": "Medical acne and rosacea control",
-            "lead": "Treatment and routine are adjusted by response, not by rigid calendar.",
+            "lead": "We aim for calmer skin and fewer relapses through timely adjustments, not abrupt plan changes.",
             "bullets": [
                 "Anti-inflammatory control",
                 "Relapse management",
@@ -114,9 +114,9 @@
             ],
             "related": ["peeling-quimico", "diagnostico-integral"],
             "faqAnswers": [
-                "Initial change is commonly visible between weeks 4 and 8, depending on inflammation and adherence.",
-                "Yes, once the skin is stable and phototype assessment has defined safe treatment parameters.",
-                "Pause irritants, keep baseline care, and request a medical adjustment within 48 to 72 hours."
+                "Most patients see less inflammation between weeks 4 and 8 when the routine is followed consistently.",
+                "Yes, once the skin barrier is stable and phototype evaluation supports safe parameter selection.",
+                "Pause irritants, keep gentle cleansing, and request medical adjustment within 48 to 72 hours."
             ]
         },
         {
@@ -126,7 +126,7 @@
             "summary": "Management of common, plantar, and periungual warts by type and location.",
             "heroImage": "/images/optimized/showcase-treatment.webp",
             "heroAlt": "Dermatology wart procedure",
-            "lead": "Technique selection is defined by depth, location, and skin tolerance.",
+            "lead": "Technique is selected by wart type and location so treatment is effective without harming healthy skin.",
             "bullets": [
                 "Differential diagnosis",
                 "Technique selection",
@@ -146,9 +146,9 @@
             ],
             "related": ["diagnostico-integral", "cancer-piel"],
             "faqAnswers": [
-                "It depends on type and depth: many cases respond in 1 to 3 sessions, while others require more.",
-                "Mild short discomfort may occur. Technique is adjusted to keep treatment tolerable and controlled.",
-                "Recurrence is possible, but risk drops with follow-up control and practical prevention measures."
+                "Many warts respond in 1 to 3 sessions, while deeper plantar lesions may need extra controls.",
+                "Short discomfort can occur. We adjust technique and timing to keep treatment controlled and tolerable.",
+                "Recurrence is possible, but risk falls when follow-up is completed and hygiene measures are maintained."
             ]
         },
         {
@@ -158,7 +158,7 @@
             "summary": "Route for rough texture and persistent follicular changes.",
             "heroImage": "/images/optimized/showcase-clinic.webp",
             "heroAlt": "Clinical skin texture care",
-            "lead": "The strategy combines barrier repair and follicular inflammation control.",
+            "lead": "Barrier repair and follicular control are combined to improve texture in a stable, realistic way.",
             "bullets": [
                 "Texture-focused assessment",
                 "Active hydration plan",
@@ -178,9 +178,9 @@
             ],
             "related": ["acne-rosacea", "piel-cabello-unas"],
             "faqAnswers": [
-                "Keratosis pilaris is common, but we also rule out eczema, folliculitis, or other inflammatory causes.",
-                "With consistent routine, visible texture improvement is often seen within 6 to 10 weeks.",
-                "Avoid aggressive exfoliation and products with fragrance or drying alcohols that disrupt barrier balance."
+                "Keratosis pilaris is common, but we also evaluate eczema, folliculitis, and other inflammatory causes.",
+                "With daily consistency, texture often improves between week 6 and week 10.",
+                "Avoid harsh exfoliants, strong fragrance products, and drying cleansers that disrupt barrier balance."
             ]
         },
         {
@@ -190,7 +190,7 @@
             "summary": "Combined strategy to improve contour, tone, and texture by scar type.",
             "heroImage": "/images/optimized/service-laser.webp",
             "heroAlt": "Dermatology scar treatment",
-            "lead": "A staged sequence of technology and care is defined to consolidate progress.",
+            "lead": "Real scar improvement is layered: contour, tone, and texture are treated in a clear sequence.",
             "bullets": [
                 "Scar classification",
                 "Phased combined route",
@@ -210,9 +210,9 @@
             ],
             "related": ["laser-dermatologico", "peeling-quimico"],
             "faqAnswers": [
-                "No. Response varies by scar type, age of the lesion, skin tone, and selected treatment strategy.",
-                "Many plans run through 3 to 6 sessions, with reassessment and adjustment at each stage.",
-                "Daily photoprotection, barrier care, and friction control are critical to protect improvement."
+                "No. Response changes with scar type, lesion age, phototype, and adherence to the planned sequence.",
+                "Plans often include 3 to 6 sessions, with reassessment at every stage to adjust intensity.",
+                "Daily photoprotection, barrier hydration, and friction control are essential to protect improvement."
             ]
         },
         {
@@ -222,7 +222,7 @@
             "summary": "Suspicious lesion assessment for early risk detection.",
             "heroImage": "/images/optimized/service-cancer.webp",
             "heroAlt": "Early skin cancer screening",
-            "lead": "Priority is warning-sign reading and timely medical direction.",
+            "lead": "Warning signs are prioritized early so we decide quickly between close follow-up and referral.",
             "bullets": [
                 "Lesion review",
                 "Warning-sign detection",
@@ -242,9 +242,9 @@
             ],
             "related": ["diagnostico-integral", "telemedicina"],
             "faqAnswers": [
-                "In higher-risk profiles, checks are often every 6 to 12 months, then personalized by findings.",
-                "Asymmetry, irregular borders, rapid color or size change, bleeding, or a lesion that does not heal.",
-                "Yes for first triage, but suspicious lesions should be escalated to priority in-clinic assessment."
+                "In higher-risk profiles, checks are usually every 6 to 12 months, then personalized by findings.",
+                "Seek prompt review for asymmetry, irregular borders, fast color change, or non-healing bleeding lesions.",
+                "Yes for first triage. If risk signs are detected, we prioritize in-clinic evaluation without delay."
             ]
         },
         {
@@ -254,7 +254,7 @@
             "summary": "Skin renewal for tone, texture, and selected pigmentation concerns.",
             "heroImage": "/images/optimized/showcase-treatment.webp",
             "heroAlt": "Dermatology chemical peel",
-            "lead": "Formula and intensity are chosen by phototype, sensitivity, and treatment objective.",
+            "lead": "Peel intensity is calibrated to renew skin safely while respecting your phototype and daily rhythm.",
             "bullets": [
                 "Formula selection",
                 "Tolerance control",
@@ -274,9 +274,9 @@
             ],
             "related": ["mesoterapia", "laser-dermatologico"],
             "faqAnswers": [
-                "Typical recovery is 3 to 7 days, depending on peel depth and individual skin tolerance.",
-                "Yes, when sequenced in medically timed protocols designed around skin response and safety.",
-                "Active irritation, pregnancy, poor sun-protection adherence, or high sensitivity may limit indication."
+                "Recovery usually lasts 3 to 7 days depending on peel depth and individual sensitivity.",
+                "Yes, but only in medically sequenced timing windows that prevent cumulative irritation on sensitive skin.",
+                "Pregnancy, active irritation, poor sun-protection adherence, or high sensitivity can delay indication."
             ]
         },
         {
@@ -286,7 +286,7 @@
             "summary": "Micro-interventions for deep hydration and skin quality.",
             "heroImage": "/images/optimized/service-rejuvenecimiento.webp",
             "heroAlt": "Dermatology mesotherapy",
-            "lead": "It is integrated into a progressive medical plan with response controls.",
+            "lead": "Short sessions plus close follow-up are integrated to improve hydration, glow, and skin quality.",
             "bullets": [
                 "Skin quality assessment",
                 "Session planning",
@@ -306,9 +306,9 @@
             ],
             "related": ["bioestimuladores-colageno", "peeling-quimico"],
             "faqAnswers": [
-                "Mild redness may appear for 24 to 48 hours, then most patients return to normal routine.",
-                "Many plans use 3 to 5 sessions spaced every 3 to 4 weeks based on clinical response.",
-                "It often combines well with medical hydration, biostimulators, or gentle peels once skin is stable."
+                "Mild redness may appear for 24 to 48 hours, then most patients return to routine.",
+                "A common plan is 3 to 5 sessions spaced every 3 to 4 weeks.",
+                "It often pairs well with medical hydration, gentle peels, or biostimulators once skin is stable."
             ]
         },
         {
@@ -318,7 +318,7 @@
             "summary": "Laser treatments with traceable clinical parameters and post-session follow-up.",
             "heroImage": "/images/optimized/service-laser.webp",
             "heroAlt": "Medical dermatology laser",
-            "lead": "Energy, frequency, and session count are defined by your skin objective.",
+            "lead": "Every laser parameter is chosen by clinical objective and skin response, never by generic templates.",
             "bullets": [
                 "Phototype-based indication",
                 "Safety control",
@@ -338,9 +338,9 @@
             ],
             "related": ["cicatrices", "peeling-quimico"],
             "faqAnswers": [
-                "Parameters are tuned by phototype and treatment goal to reduce post-inflammatory pigmentation risk.",
-                "It depends on indication: vascular concerns, pigment, texture, scars, or medical hair reduction.",
-                "Initial review is often set 2 to 4 weeks later to calibrate the next treatment step."
+                "Yes, with parameters adjusted by phototype and goal to reduce post-inflammatory pigmentation risk.",
+                "It varies by indication: pigment, vascular concerns, texture, scars, or medical hair reduction.",
+                "Strict photoprotection and early control are mandatory; first review is often set in 2 to 4 weeks."
             ]
         },
         {
@@ -350,7 +350,7 @@
             "summary": "Expression-line management with natural look and responsible dosing.",
             "heroImage": "/images/optimized/service-rejuvenecimiento.webp",
             "heroAlt": "Medical botox application",
-            "lead": "We prioritize facial harmony and early follow-up for precise adjustments.",
+            "lead": "Precise dosing softens expression lines while preserving natural movement and facial identity.",
             "bullets": [
                 "Dynamic facial assessment",
                 "Targeted application",
@@ -370,9 +370,9 @@
             ],
             "related": ["bioestimuladores-colageno", "mesoterapia"],
             "faqAnswers": [
-                "Onset is usually noticed between days 3 and 5, with peak effect around days 10 to 14.",
-                "Average duration is 3 to 4 months, varying by metabolism, target area, and dose plan.",
-                "Avoid intense massage and strenuous exercise for 24 hours, and follow all aftercare guidance."
+                "Initial softening appears around days 3 to 5, with full effect commonly seen by days 10 to 14.",
+                "Average duration is 3 to 4 months, varying with metabolism, area, and dosing strategy.",
+                "Avoid intense massage and strenuous training for 24 hours, and follow all aftercare instructions."
             ]
         },
         {
@@ -382,7 +382,7 @@
             "summary": "Progressive stimulation for support and firmness in mild to moderate structural loss.",
             "heroImage": "/images/optimized/service-rejuvenecimiento.webp",
             "heroAlt": "Collagen biostimulation",
-            "lead": "The route is scheduled by zone, tissue response, and medical aesthetic objective.",
+            "lead": "Zone-based planning stimulates collagen progressively and keeps outcomes coherent over time for each treated area.",
             "bullets": [
                 "Laxity assessment",
                 "Zone-based planning",
@@ -402,9 +402,9 @@
             ],
             "related": ["botox", "mesoterapia"],
             "faqAnswers": [
-                "Results are progressive, often starting around week 6 and maturing over 3 to 6 months.",
-                "Most plans use 2 or 3 sessions depending on laxity level, treated zones, and tissue response.",
-                "Yes. It can be combined with medical botox within an integrated facial plan and clear timing."
+                "Change is progressive, often starting around week 6 and consolidating over 3 to 6 months.",
+                "Most plans use 2 or 3 sessions, defined by laxity level, treated zones, and tissue response.",
+                "Yes, it combines well within an integrated facial plan with clear timing and supervision."
             ]
         },
         {
@@ -414,7 +414,7 @@
             "summary": "Cross-route care for combined, chronic, or variable progression symptoms.",
             "heroImage": "/images/optimized/showcase-diagnostic.webp",
             "heroAlt": "Integrated dermatology",
-            "lead": "We coordinate multidimensional reading and continuity to avoid losing clinical context.",
+            "lead": "When multiple symptoms overlap, we coordinate one integrated reading instead of treating isolated pieces.",
             "bullets": [
                 "Integrated assessment",
                 "Mixed-symptom control",
@@ -434,9 +434,9 @@
             ],
             "related": ["diagnostico-integral", "dermatologia-pediatrica"],
             "faqAnswers": [
-                "It includes mixed cases such as hair shedding, nail changes, and skin symptoms occurring together.",
-                "Yes. Telemedicine works as first triage and helps define when in-clinic evaluation is necessary.",
-                "Early follow-up is commonly planned in 4 to 8 weeks, based on findings and initial response."
+                "This route includes mixed cases: hair shedding, nail changes, and skin symptoms appearing together.",
+                "Yes. Telemedicine works as first triage and defines when direct in-clinic examination is needed.",
+                "First follow-up is commonly planned in 4 to 8 weeks based on findings and early response."
             ]
         },
         {
@@ -446,7 +446,7 @@
             "summary": "Dermatology care for children and adolescents with clear family communication.",
             "heroImage": "/images/optimized/showcase-clinic.webp",
             "heroAlt": "Pediatric dermatology consultation",
-            "lead": "The plan is adapted to age, context, and family routine to improve adherence.",
+            "lead": "Medical decisions are translated into simple steps for home, school, and family routine.",
             "bullets": [
                 "Pediatric diagnosis",
                 "Caregiver guidance",
@@ -466,9 +466,9 @@
             ],
             "related": ["diagnostico-integral", "acne-rosacea"],
             "faqAnswers": [
-                "Bring a symptom timeline, previous treatments, allergy history, and recent skin photos when available.",
-                "The plan is explained in simple language with practical daily routines for family and school.",
-                "Yes, it works well for between-visit questions and follow-up when no warning signs are present."
+                "Bring a symptom timeline, previous treatments, allergy history, and recent photos to speed clinical reading.",
+                "We explain the plan in plain language with practical steps for home, school, and daily routine.",
+                "Yes, it works well for interim questions and follow-up when no warning signs are present."
             ]
         }
     ]

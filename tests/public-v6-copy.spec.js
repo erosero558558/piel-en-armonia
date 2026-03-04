@@ -32,6 +32,9 @@ test.describe('Public V6 copy integrity', () => {
             const text = await page.locator('body').innerText();
             expect(text.toLowerCase()).toContain('usted');
             expect(text.toLowerCase()).toContain('telemedicina');
+            expect(text.toLowerCase()).toContain(
+                'reserva online en mantenimiento'
+            );
             prohibited.forEach((pattern) => {
                 expect(text).not.toMatch(pattern);
             });
@@ -48,6 +51,9 @@ test.describe('Public V6 copy integrity', () => {
             await gotoPublicRoute(page, route);
             const text = await page.locator('body').innerText();
             expect(text.toLowerCase()).toContain('telemedicine');
+            expect(text.toLowerCase()).toContain(
+                'online booking under maintenance'
+            );
             expect(text.toLowerCase()).not.toContain(' usted ');
             prohibited.forEach((pattern) => {
                 expect(text).not.toMatch(pattern);

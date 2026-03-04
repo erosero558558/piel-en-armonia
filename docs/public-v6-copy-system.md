@@ -1,6 +1,6 @@
-# Public V6 Copy System (R4)
+# Public V6 Copy System (R5)
 
-Version: 2026-03-04-r4
+Version: 2026-03-04-r5
 Scope: public-v6 ES/EN (home, hub, service, telemedicine, legal, navigation, shell labels)
 
 ## Editorial goal
@@ -33,6 +33,8 @@ Deliver a premium, sober dermatology voice that feels human, precise, and trustw
 - News strip headline: 10-20 words.
 - Booking status title: 3-7 words.
 - Booking status description: 14-28 words.
+- Service lead: 12-24 words.
+- Service FAQ answer: 12-34 words.
 
 ## Clinical/legal guardrails
 
@@ -79,6 +81,9 @@ Template:
 - Same promise from hero to booking status.
 - Same terminology for key routes across home/hub/service/tele/legal.
 - ES always uses `usted` in public route narratives.
+- Booking status title must remain unified across surfaces:
+    - ES: `Reserva online en mantenimiento`
+    - EN: `Online booking under maintenance`
 
 ## QA contract
 
