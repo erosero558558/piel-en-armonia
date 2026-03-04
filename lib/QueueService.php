@@ -6,6 +6,9 @@ require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/validation.php';
 require_once __DIR__ . '/models.php';
 require_once __DIR__ . '/storage.php';
+require_once __DIR__ . '/queue/TicketFactory.php';
+require_once __DIR__ . '/queue/TicketPriorityPolicy.php';
+require_once __DIR__ . '/queue/QueueSummaryBuilder.php';
 
 class QueueService
 {
@@ -17,94 +20,31 @@ class QueueService
 
     private const ACTIVE_APPOINTMENT_STATUSES = ['confirmed', 'pending'];
 
-    /**
-     * @return array{ok:bool,data:array}
-     */
+    private TicketFactory $ticketFactory;
+    private TicketPriorityPolicy $priorityPolicy;
+    private QueueSummaryBuilder $summaryBuilder;
+
+    public function __construct(
+        ?TicketFactory $ticketFactory = null,
+        ?TicketPriorityPolicy $priorityPolicy = null,
+        ?QueueSummaryBuilder $summaryBuilder = null
+    ) {
+        $this->ticketFactory = $ticketFactory ?? new TicketFactory();
+        $this->priorityPolicy = $priorityPolicy ?? new TicketPriorityPolicy();
+        $this->summaryBuilder = $summaryBuilder ?? new QueueSummaryBuilder($this->priorityPolicy);
+    }
+
     public function getQueueState(array $store): array
     {
         $store = $this->normalizeStore($store);
-        $store = $this->refreshWaitingAppointmentPriorities($store);
-        $tickets = $this->normalizeTickets($store['queue_tickets'] ?? []);
-        $waiting = [];
-        $called = [];
-        $counts = [
-            self::STATUS_WAITING => 0,
-            self::STATUS_CALLED => 0,
-            self::STATUS_COMPLETED => 0,
-            self::STATUS_NO_SHOW => 0,
-            self::STATUS_CANCELLED => 0,
-        ];
-
-        foreach ($tickets as $ticket) {
-            $status = (string) ($ticket['status'] ?? self::STATUS_WAITING);
-            if (isset($counts[$status])) {
-                $counts[$status]++;
-            }
-            if ($status === self::STATUS_WAITING) {
-                $waiting[] = $ticket;
-            } elseif ($status === self::STATUS_CALLED) {
-                $called[] = $ticket;
-            }
-        }
-
-        usort($waiting, fn(array $a, array $b): int => $this->compareWaitingTickets($a, $b));
-        usort($called, fn(array $a, array $b): int => $this->compareCalledTickets($a, $b));
-
-        $callingNowByConsultorio = [];
-        foreach ($called as $ticket) {
-            $consultorio = $this->normalizeConsultorio($ticket['assignedConsultorio'] ?? null);
-            if ($consultorio === null || isset($callingNowByConsultorio[$consultorio])) {
-                continue;
-            }
-            $callingNowByConsultorio[$consultorio] = [
-                'id' => (int) ($ticket['id'] ?? 0),
-                'ticketCode' => (string) ($ticket['ticketCode'] ?? ''),
-                'patientInitials' => (string) ($ticket['patientInitials'] ?? ''),
-                'assignedConsultorio' => $consultorio,
-                'calledAt' => (string) ($ticket['calledAt'] ?? ''),
-                'status' => self::STATUS_CALLED,
-            ];
-        }
-
-        ksort($callingNowByConsultorio);
-        $callingNow = array_values($callingNowByConsultorio);
-        $nextTickets = [];
-        foreach ($waiting as $index => $ticket) {
-            if ($index >= 10) {
-                break;
-            }
-            $nextTickets[] = [
-                'id' => (int) ($ticket['id'] ?? 0),
-                'ticketCode' => (string) ($ticket['ticketCode'] ?? ''),
-                'patientInitials' => (string) ($ticket['patientInitials'] ?? ''),
-                'queueType' => (string) ($ticket['queueType'] ?? 'walk_in'),
-                'priorityClass' => (string) ($ticket['priorityClass'] ?? 'walk_in'),
-                'position' => $index + 1,
-                'createdAt' => (string) ($ticket['createdAt'] ?? ''),
-            ];
-        }
-
-        return [
-            'ok' => true,
-            'data' => [
-                'updatedAt' => local_date('c'),
-                'callingNow' => $callingNow,
-                'nextTickets' => $nextTickets,
-                'counts' => $counts,
-                'waitingCount' => count($waiting),
-                'calledCount' => count($called),
-            ],
-        ];
+        $store = $this->priorityPolicy->refreshWaitingAppointmentPriorities($store);
+        return $this->summaryBuilder->buildQueueState($store['queue_tickets'] ?? [], local_date('c'));
     }
 
-    /**
-     * @return array{ok:bool,store?:array,ticket?:array,error?:string,status?:int,errorCode?:string,replay?:bool}
-     */
     public function createWalkInTicket(array $store, array $payload, string $createdSource = 'kiosk'): array
     {
         $store = $this->normalizeStore($store);
-        $initials = $this->resolveInitials($payload);
-        if ($initials === '') {
+        if ($this->ticketFactory->resolveInitials($payload) === '') {
             return [
                 'ok' => false,
                 'error' => 'Iniciales del paciente requeridas',
@@ -114,24 +54,7 @@ class QueueService
         }
 
         $nowIso = local_date('c');
-        $dailySeq = $this->nextDailySequence($store['queue_tickets'] ?? [], $nowIso);
-        $ticket = normalize_queue_ticket([
-            'id' => $this->nextTicketId($store['queue_tickets'] ?? []),
-            'ticketCode' => $this->buildTicketCode($dailySeq),
-            'dailySeq' => $dailySeq,
-            'queueType' => 'walk_in',
-            'appointmentId' => null,
-            'patientInitials' => $initials,
-            'phoneLast4' => $this->extractPhoneLast4((string) ($payload['phone'] ?? ($payload['telefono'] ?? ''))),
-            'priorityClass' => 'walk_in',
-            'status' => self::STATUS_WAITING,
-            'assignedConsultorio' => null,
-            'createdAt' => $nowIso,
-            'calledAt' => '',
-            'completedAt' => '',
-            'createdSource' => $this->normalizeCreatedSource($createdSource),
-        ]);
-
+        $ticket = $this->ticketFactory->createWalkInTicket($store['queue_tickets'] ?? [], $payload, $createdSource, $nowIso);
         $store['queue_tickets'][] = $ticket;
         $store['updatedAt'] = $nowIso;
 
@@ -143,14 +66,11 @@ class QueueService
         ];
     }
 
-    /**
-     * @return array{ok:bool,store?:array,ticket?:array,error?:string,status?:int,errorCode?:string,replay?:bool}
-     */
     public function checkInAppointment(array $store, array $payload, string $createdSource = 'kiosk'): array
     {
         $store = $this->normalizeStore($store);
         $phoneRaw = (string) ($payload['phone'] ?? ($payload['telefono'] ?? ''));
-        $phoneLast4 = $this->extractPhoneLast4($phoneRaw);
+        $phoneLast4 = $this->ticketFactory->extractPhoneLast4($phoneRaw);
         if (strlen($phoneLast4) !== 4) {
             return [
                 'ok' => false,
@@ -211,31 +131,17 @@ class QueueService
         }
 
         $nowIso = local_date('c');
-        $dailySeq = $this->nextDailySequence($store['queue_tickets'] ?? [], $nowIso);
-        $initials = $this->resolveInitials([
-            'patientInitials' => $payload['patientInitials'] ?? '',
-            'name' => $appointment['name'] ?? '',
-        ]);
-        if ($initials === '') {
-            $initials = 'PA';
-        }
-
-        $ticket = normalize_queue_ticket([
-            'id' => $this->nextTicketId($store['queue_tickets'] ?? []),
-            'ticketCode' => $this->buildTicketCode($dailySeq),
-            'dailySeq' => $dailySeq,
-            'queueType' => 'appointment',
-            'appointmentId' => $appointmentId,
-            'patientInitials' => $initials,
-            'phoneLast4' => $phoneLast4,
-            'priorityClass' => $this->resolveAppointmentPriority((string) ($appointment['date'] ?? $date), (string) ($appointment['time'] ?? $time)),
-            'status' => self::STATUS_WAITING,
-            'assignedConsultorio' => null,
-            'createdAt' => $nowIso,
-            'calledAt' => '',
-            'completedAt' => '',
-            'createdSource' => $this->normalizeCreatedSource($createdSource),
-        ]);
+        $ticket = $this->ticketFactory->createAppointmentTicket(
+            $store['queue_tickets'] ?? [],
+            $appointment,
+            $payload,
+            $createdSource,
+            $this->priorityPolicy->resolveAppointmentPriority(
+                (string) ($appointment['date'] ?? $date),
+                (string) ($appointment['time'] ?? $time)
+            ),
+            $nowIso
+        );
 
         $store['queue_tickets'][] = $ticket;
         $store['updatedAt'] = $nowIso;
@@ -248,9 +154,6 @@ class QueueService
         ];
     }
 
-    /**
-     * @return array{ok:bool,store?:array,ticket?:array,error?:string,status?:int,errorCode?:string}
-     */
     public function callNext(array $store, int $consultorio): array
     {
         if (!in_array($consultorio, [1, 2], true)) {
@@ -263,7 +166,7 @@ class QueueService
         }
 
         $store = $this->normalizeStore($store);
-        $store = $this->refreshWaitingAppointmentPriorities($store);
+        $store = $this->priorityPolicy->refreshWaitingAppointmentPriorities($store);
 
         $busyTicket = $this->findActiveCalledByConsultorio($store['queue_tickets'] ?? [], $consultorio);
         if (is_array($busyTicket)) {
@@ -279,8 +182,7 @@ class QueueService
         $waiting = array_values(array_filter($store['queue_tickets'], static function ($ticket): bool {
             return is_array($ticket) && (($ticket['status'] ?? '') === self::STATUS_WAITING);
         }));
-
-        usort($waiting, fn(array $a, array $b): int => $this->compareWaitingTickets($a, $b));
+        $waiting = $this->priorityPolicy->sortWaitingTickets($waiting);
         if ($waiting === []) {
             return [
                 'ok' => false,
@@ -303,10 +205,7 @@ class QueueService
         $updatedTicket = null;
         $nowIso = local_date('c');
         foreach ($store['queue_tickets'] as $idx => $ticket) {
-            if (!is_array($ticket)) {
-                continue;
-            }
-            if ((int) ($ticket['id'] ?? 0) !== $selectedId) {
+            if (!is_array($ticket) || (int) ($ticket['id'] ?? 0) !== $selectedId) {
                 continue;
             }
             $ticket['status'] = self::STATUS_CALLED;
@@ -335,9 +234,6 @@ class QueueService
         ];
     }
 
-    /**
-     * @return array{ok:bool,store?:array,ticket?:array,error?:string,status?:int,errorCode?:string}
-     */
     public function patchTicket(array $store, array $payload): array
     {
         $store = $this->normalizeStore($store);
@@ -457,7 +353,7 @@ class QueueService
                     self::STATUS_CALLED,
                     self::STATUS_COMPLETED,
                     self::STATUS_NO_SHOW,
-                    self::STATUS_CANCELLED
+                    self::STATUS_CANCELLED,
                 ], true)) {
                     return [
                         'ok' => false,
@@ -526,8 +422,7 @@ class QueueService
 
     public function findTicketById(array $store, int $ticketId): ?array
     {
-        $tickets = $this->normalizeTickets($store['queue_tickets'] ?? []);
-        foreach ($tickets as $ticket) {
+        foreach ($this->normalizeTickets($store['queue_tickets'] ?? []) as $ticket) {
             if ((int) ($ticket['id'] ?? 0) === $ticketId) {
                 return $ticket;
             }
@@ -537,33 +432,7 @@ class QueueService
 
     public function buildAdminSummary(array $store): array
     {
-        $state = $this->getQueueState($store);
-        $data = is_array($state['data'] ?? null) ? $state['data'] : [];
-        $consultorio1 = null;
-        $consultorio2 = null;
-        foreach ($data['callingNow'] ?? [] as $ticket) {
-            if (!is_array($ticket)) {
-                continue;
-            }
-            $consultorio = (int) ($ticket['assignedConsultorio'] ?? 0);
-            if ($consultorio === 1) {
-                $consultorio1 = $ticket;
-            } elseif ($consultorio === 2) {
-                $consultorio2 = $ticket;
-            }
-        }
-
-        return [
-            'updatedAt' => (string) ($data['updatedAt'] ?? local_date('c')),
-            'waitingCount' => (int) ($data['waitingCount'] ?? 0),
-            'calledCount' => (int) ($data['calledCount'] ?? 0),
-            'counts' => is_array($data['counts'] ?? null) ? $data['counts'] : [],
-            'callingNowByConsultorio' => [
-                '1' => $consultorio1,
-                '2' => $consultorio2,
-            ],
-            'nextTickets' => is_array($data['nextTickets'] ?? null) ? $data['nextTickets'] : [],
-        ];
+        return $this->summaryBuilder->buildAdminSummary($this->getQueueState($store));
     }
 
     private function normalizeStore(array $store): array
@@ -573,10 +442,6 @@ class QueueService
         return $store;
     }
 
-    /**
-     * @param array<int,mixed> $rawTickets
-     * @return array<int,array>
-     */
     private function normalizeTickets(array $rawTickets): array
     {
         $tickets = [];
@@ -587,101 +452,6 @@ class QueueService
             $tickets[] = normalize_queue_ticket($ticket);
         }
         return $tickets;
-    }
-
-    private function nextTicketId(array $tickets): int
-    {
-        $maxId = 0;
-        foreach ($tickets as $ticket) {
-            if (!is_array($ticket)) {
-                continue;
-            }
-            $candidate = (int) ($ticket['id'] ?? 0);
-            if ($candidate > $maxId) {
-                $maxId = $candidate;
-            }
-        }
-        $seed = (int) round(microtime(true) * 1000);
-        return max($seed, $maxId + 1);
-    }
-
-    private function nextDailySequence(array $tickets, string $createdAt): int
-    {
-        $targetDate = $this->dateKeyFromIso($createdAt);
-        $maxSeq = 0;
-        foreach ($tickets as $ticket) {
-            if (!is_array($ticket)) {
-                continue;
-            }
-            $ticketDate = $this->dateKeyFromIso((string) ($ticket['createdAt'] ?? ''));
-            if ($ticketDate !== $targetDate) {
-                continue;
-            }
-            $seq = (int) ($ticket['dailySeq'] ?? 0);
-            if ($seq > $maxSeq) {
-                $maxSeq = $seq;
-            }
-        }
-        return $maxSeq + 1;
-    }
-
-    private function buildTicketCode(int $dailySeq): string
-    {
-        $width = $dailySeq > 999 ? 4 : 3;
-        return 'A-' . str_pad((string) $dailySeq, $width, '0', STR_PAD_LEFT);
-    }
-
-    private function dateKeyFromIso(string $iso): string
-    {
-        $ts = strtotime($iso);
-        if ($ts === false) {
-            return local_date('Y-m-d');
-        }
-        return date('Y-m-d', $ts);
-    }
-
-    private function resolveInitials(array $payload): string
-    {
-        $rawInitials = trim((string) ($payload['patientInitials'] ?? ''));
-        if ($rawInitials !== '') {
-            $clean = strtoupper((string) preg_replace('/[^A-Za-z]/', '', $rawInitials));
-            if ($clean !== '') {
-                return substr($clean, 0, 4);
-            }
-        }
-
-        $name = trim((string) ($payload['name'] ?? ($payload['patientName'] ?? '')));
-        if ($name === '') {
-            return '';
-        }
-
-        $parts = preg_split('/\s+/', strtoupper($name));
-        if (!is_array($parts)) {
-            return '';
-        }
-
-        $letters = '';
-        foreach ($parts as $part) {
-            $part = preg_replace('/[^A-Z]/', '', $part ?? '');
-            if (!is_string($part) || $part === '') {
-                continue;
-            }
-            $letters .= substr($part, 0, 1);
-            if (strlen($letters) >= 3) {
-                break;
-            }
-        }
-
-        return substr($letters, 0, 4);
-    }
-
-    private function extractPhoneLast4(string $phone): string
-    {
-        $digits = preg_replace('/\D+/', '', sanitize_phone($phone));
-        if (!is_string($digits) || strlen($digits) < 4) {
-            return '';
-        }
-        return substr($digits, -4);
     }
 
     private function normalizeHour(string $hour): string
@@ -718,7 +488,7 @@ class QueueService
                 continue;
             }
 
-            $apptLast4 = $this->extractPhoneLast4((string) ($appointment['phone'] ?? ''));
+            $apptLast4 = $this->ticketFactory->extractPhoneLast4((string) ($appointment['phone'] ?? ''));
             if ($apptLast4 === '' || $apptLast4 !== $phoneLast4) {
                 continue;
             }
@@ -732,10 +502,7 @@ class QueueService
     private function findActiveTicketByAppointment(array $tickets, int $appointmentId): ?array
     {
         foreach ($tickets as $ticket) {
-            if (!is_array($ticket)) {
-                continue;
-            }
-            if ((int) ($ticket['appointmentId'] ?? 0) !== $appointmentId) {
+            if (!is_array($ticket) || (int) ($ticket['appointmentId'] ?? 0) !== $appointmentId) {
                 continue;
             }
             $status = (string) ($ticket['status'] ?? '');
@@ -746,137 +513,9 @@ class QueueService
         return null;
     }
 
-    private function findAppointmentById(array $appointments, int $appointmentId): ?array
-    {
-        if ($appointmentId <= 0) {
-            return null;
-        }
-        foreach ($appointments as $appointment) {
-            if (!is_array($appointment)) {
-                continue;
-            }
-            if ((int) ($appointment['id'] ?? 0) === $appointmentId) {
-                return $appointment;
-            }
-        }
-        return null;
-    }
-
-    private function refreshWaitingAppointmentPriorities(array $store): array
-    {
-        $store = $this->normalizeStore($store);
-        $updated = false;
-
-        foreach ($store['queue_tickets'] as $idx => $ticket) {
-            if (!is_array($ticket)) {
-                continue;
-            }
-
-            $normalized = normalize_queue_ticket($ticket);
-            $status = (string) ($normalized['status'] ?? self::STATUS_WAITING);
-            $queueType = (string) ($normalized['queueType'] ?? 'walk_in');
-            if ($status !== self::STATUS_WAITING || $queueType !== 'appointment') {
-                $store['queue_tickets'][$idx] = $normalized;
-                continue;
-            }
-
-            $appointmentId = (int) ($normalized['appointmentId'] ?? 0);
-            $appointment = $this->findAppointmentById($store['appointments'] ?? [], $appointmentId);
-            if (!is_array($appointment)) {
-                $store['queue_tickets'][$idx] = $normalized;
-                continue;
-            }
-
-            $nextPriority = $this->resolveAppointmentPriority(
-                (string) ($appointment['date'] ?? ''),
-                (string) ($appointment['time'] ?? '')
-            );
-            if ((string) ($normalized['priorityClass'] ?? '') !== $nextPriority) {
-                $normalized['priorityClass'] = $nextPriority;
-                $updated = true;
-            }
-            $store['queue_tickets'][$idx] = normalize_queue_ticket($normalized);
-        }
-
-        if ($updated) {
-            $store['updatedAt'] = local_date('c');
-        }
-        return $store;
-    }
-
-    private function resolveAppointmentPriority(string $appointmentDate, string $appointmentTime): string
-    {
-        $normalizedTime = $this->normalizeHour($appointmentTime);
-        if ($normalizedTime === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $appointmentDate)) {
-            return 'appt_current';
-        }
-
-        $appointmentTs = strtotime($appointmentDate . ' ' . $normalizedTime);
-        if ($appointmentTs === false) {
-            return 'appt_current';
-        }
-
-        $now = time();
-        if ($appointmentTs <= ($now - 300)) {
-            return 'appt_overdue';
-        }
-        return 'appt_current';
-    }
-
-    private function compareWaitingTickets(array $a, array $b): int
-    {
-        $priorityDiff = $this->priorityWeight((string) ($a['priorityClass'] ?? 'walk_in'))
-            <=> $this->priorityWeight((string) ($b['priorityClass'] ?? 'walk_in'));
-        if ($priorityDiff !== 0) {
-            return $priorityDiff;
-        }
-
-        $timeDiff = $this->ticketTimestamp($a, 'createdAt') <=> $this->ticketTimestamp($b, 'createdAt');
-        if ($timeDiff !== 0) {
-            return $timeDiff;
-        }
-
-        return ((int) ($a['id'] ?? 0)) <=> ((int) ($b['id'] ?? 0));
-    }
-
-    private function compareCalledTickets(array $a, array $b): int
-    {
-        $timeDiff = $this->ticketTimestamp($b, 'calledAt') <=> $this->ticketTimestamp($a, 'calledAt');
-        if ($timeDiff !== 0) {
-            return $timeDiff;
-        }
-        return ((int) ($b['id'] ?? 0)) <=> ((int) ($a['id'] ?? 0));
-    }
-
-    private function priorityWeight(string $priorityClass): int
-    {
-        switch ($priorityClass) {
-            case 'appt_overdue':
-                return 0;
-            case 'appt_current':
-                return 1;
-            default:
-                return 2;
-        }
-    }
-
-    private function ticketTimestamp(array $ticket, string $field): int
-    {
-        $value = (string) ($ticket[$field] ?? '');
-        $ts = strtotime($value);
-        if ($ts === false) {
-            return 0;
-        }
-        return $ts;
-    }
-
     private function isTerminalStatus(string $status): bool
     {
-        return in_array($status, [
-            self::STATUS_COMPLETED,
-            self::STATUS_NO_SHOW,
-            self::STATUS_CANCELLED,
-        ], true);
+        return in_array($status, [self::STATUS_COMPLETED, self::STATUS_NO_SHOW, self::STATUS_CANCELLED], true);
     }
 
     private function findActiveCalledByConsultorio(array $tickets, int $consultorio, int $excludeTicketId = 0): ?array
@@ -906,11 +545,5 @@ class QueueService
         }
         $candidate = (int) $value;
         return in_array($candidate, [1, 2], true) ? $candidate : null;
-    }
-
-    private function normalizeCreatedSource(string $source): string
-    {
-        $source = strtolower(trim($source));
-        return in_array($source, ['kiosk', 'admin'], true) ? $source : 'kiosk';
     }
 }

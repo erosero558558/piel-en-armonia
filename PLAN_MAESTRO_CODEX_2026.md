@@ -336,24 +336,24 @@ Criterio de salida:
 
 ## C16 - Package P5: cola y servicio de turnos
 
-Estado: `IN_PROGRESS`
+Estado: `COMPLETED`
 Objetivo:
 
 - Reducir acoplamiento procedural en `lib/figo_queue.php` y complejidad de priorizacion/resumen en `lib/QueueService.php`, manteniendo contratos de bridge, payloads y estados.
 
 Entregables:
 
-- [ ] `lib/figo_queue/QueueConfig.php`, `lib/figo_queue/JobRepository.php`, `lib/figo_queue/GatewayClient.php` y `lib/figo_queue/JobProcessor.php` absorben config, acceso a archivos, gateway y reintentos/procesamiento.
-- [ ] `lib/queue/TicketFactory.php`, `lib/queue/TicketPriorityPolicy.php` y `lib/queue/QueueSummaryBuilder.php` absorben creacion, prioridad y resumen de tickets.
-- [ ] `lib/figo_queue.php` queda como facade procedural estable.
-- [ ] `lib/QueueService.php` conserva API publica y delega construccion/prioridad/resumen a modulos puros.
+- [x] `lib/figo_queue/QueueConfig.php`, `lib/figo_queue/JobRepository.php`, `lib/figo_queue/GatewayClient.php` y `lib/figo_queue/JobProcessor.php` absorben config, acceso a archivos, gateway y reintentos/procesamiento.
+- [x] `lib/queue/TicketFactory.php`, `lib/queue/TicketPriorityPolicy.php` y `lib/queue/QueueSummaryBuilder.php` absorben creacion, prioridad y resumen de tickets.
+- [x] `lib/figo_queue.php` queda como facade procedural estable.
+- [x] `lib/QueueService.php` conserva API publica y delega construccion/prioridad/resumen a modulos puros.
 
 Criterio de salida:
 
-- [ ] `lib/figo_queue.php` queda en `<= 650` lineas.
-- [ ] `lib/QueueService.php` queda en `<= 500` lineas.
-- [ ] Se preservan estados de ticket, payloads de cola, bridge Figo y codigos de error.
-- [ ] Tests PHP/Node/smoke de queue y chat quedan verdes.
+- [x] `lib/figo_queue.php` queda en `<= 650` lineas.
+- [x] `lib/QueueService.php` queda en `<= 500` lineas.
+- [x] Se preservan estados de ticket, payloads de cola, bridge Figo y codigos de error.
+- [x] Tests PHP/Node/smoke de queue y chat quedan verdes.
 
 ## Contratos publicos
 
