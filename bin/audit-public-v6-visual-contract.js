@@ -141,7 +141,7 @@ function addCheck(checks, id, desc, pass, meta) {
 }
 
 async function run() {
-    const minCheckpoints = Number(parseArg('--min-checkpoints', 96));
+    const minCheckpoints = Number(parseArg('--min-checkpoints', 100));
     const strict = process.argv.includes('--strict');
     const baseURL = process.env.TEST_BASE_URL || 'http://127.0.0.1:8000';
 
@@ -178,6 +178,9 @@ async function run() {
                 document.querySelectorAll('.v6-header__nav .v6-header__link')
             );
             const mega = document.querySelector('[data-v6-mega]');
+            const megaBackdrop = document.querySelector(
+                '[data-v6-mega-backdrop]'
+            );
             const trigger = document.querySelector('[data-v6-mega-trigger]');
             const hero = document.querySelector('[data-v6-hero]');
             const stage = document.querySelector('.v6-hero__stage');
@@ -301,6 +304,8 @@ async function run() {
                 ),
                 hasMega: Boolean(mega),
                 megaHidden: mega ? mega.hidden : null,
+                hasMegaBackdrop: Boolean(megaBackdrop),
+                megaBackdropHidden: megaBackdrop ? megaBackdrop.hidden : null,
                 hasTrigger: Boolean(trigger),
                 megaColumns: document.querySelectorAll(
                     '.v6-mega__menu [data-v6-mega-section]'
@@ -415,6 +420,9 @@ async function run() {
 
         const trigger = desktopPage.locator('[data-v6-mega-trigger]').first();
         const mega = desktopPage.locator('[data-v6-mega]').first();
+        const megaBackdrop = desktopPage
+            .locator('[data-v6-mega-backdrop]')
+            .first();
         await trigger.click();
         const megaOpen = await mega.evaluate((node) => !node.hidden);
         const megaRuntime = await desktopPage.evaluate(() => {
@@ -422,6 +430,8 @@ async function run() {
             const tabs = Array.from(
                 document.querySelectorAll('[data-v6-mega-tab]')
             );
+            const backdrop = document.querySelector('[data-v6-mega-backdrop]');
+            const header = document.querySelector('[data-v6-header]');
             const activeDetail = document.querySelector(
                 '[data-v6-mega-detail]:not([hidden])'
             );
@@ -443,6 +453,20 @@ async function run() {
                     ? activeDetail.getAttribute('data-v6-column-id') || ''
                     : '',
                 contextFields,
+                backdropVisible: Boolean(
+                    backdrop &&
+                    !backdrop.hidden &&
+                    backdrop.classList.contains('is-visible')
+                ),
+                headerMegaOpen: Boolean(
+                    header && header.classList.contains('is-mega-open')
+                ),
+                backdropTop: backdrop
+                    ? Math.round(backdrop.getBoundingClientRect().top)
+                    : -1,
+                headerHeight: header
+                    ? Math.round(header.getBoundingClientRect().height)
+                    : 0,
             };
         });
         await desktopPage.locator('[data-v6-mega-tab]').nth(1).hover();
@@ -467,6 +491,27 @@ async function run() {
         });
         await desktopPage.keyboard.press('Escape');
         const megaClosedEsc = await mega.evaluate((node) => node.hidden);
+        const megaBackdropHiddenEsc = await megaBackdrop.evaluate(
+            (node) => node.hidden
+        );
+
+        await trigger.click();
+        await desktopPage.evaluate(() => {
+            const backdrop = document.querySelector('[data-v6-mega-backdrop]');
+            if (!backdrop) return false;
+            backdrop.dispatchEvent(
+                new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                })
+            );
+            return true;
+        });
+        const megaClosedBackdrop = await mega.evaluate((node) => node.hidden);
+        const megaBackdropHiddenBackdrop = await megaBackdrop.evaluate(
+            (node) => node.hidden
+        );
 
         const activeIndexBeforeAuto = await desktopPage.evaluate(() =>
             Array.from(document.querySelectorAll('[data-v6-slide]')).findIndex(
@@ -1849,6 +1894,54 @@ async function run() {
             'mega category keyboard arrow switches active detail panel',
             megaActiveAfterArrow === 'procedures',
             { activeColumnAfterArrow: megaActiveAfterArrow }
+        );
+        addCheck(
+            checks,
+            'VC-97',
+            'mega backdrop exists and is hidden by default',
+            desktopHome.hasMegaBackdrop &&
+                desktopHome.megaBackdropHidden === true,
+            {
+                hasMegaBackdrop: desktopHome.hasMegaBackdrop,
+                megaBackdropHidden: desktopHome.megaBackdropHidden,
+            }
+        );
+        addCheck(
+            checks,
+            'VC-98',
+            'opening mega toggles backdrop and header open state',
+            megaOpen &&
+                megaRuntime.backdropVisible &&
+                megaRuntime.headerMegaOpen,
+            {
+                megaOpen,
+                backdropVisible: megaRuntime.backdropVisible,
+                headerMegaOpen: megaRuntime.headerMegaOpen,
+            }
+        );
+        addCheck(
+            checks,
+            'VC-99',
+            'mega backdrop click closes panel and backdrop',
+            megaClosedBackdrop && megaBackdropHiddenBackdrop,
+            {
+                megaClosedBackdrop,
+                megaBackdropHiddenBackdrop,
+            }
+        );
+        addCheck(
+            checks,
+            'VC-100',
+            'mega backdrop aligns with header bottom and stays hidden after Escape',
+            Math.abs(megaRuntime.backdropTop - megaRuntime.headerHeight) <= 4 &&
+                megaClosedEsc &&
+                megaBackdropHiddenEsc,
+            {
+                backdropTop: megaRuntime.backdropTop,
+                headerHeight: megaRuntime.headerHeight,
+                megaClosedEsc,
+                megaBackdropHiddenEsc,
+            }
         );
 
         await desktop.close();

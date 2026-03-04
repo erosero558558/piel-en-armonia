@@ -46,7 +46,7 @@ function runLocalContractAudit() {
         [
             path.join(ROOT, 'bin', 'audit-public-v6-visual-contract.js'),
             '--min-checkpoints',
-            '96',
+            '100',
             '--strict',
         ],
         { cwd: ROOT, stdio: 'inherit' }

@@ -16,15 +16,20 @@ test.describe('Public V6 header and mega menu', () => {
 
         const trigger = header.locator('[data-v6-mega-trigger]').first();
         const mega = header.locator('[data-v6-mega]').first();
+        const backdrop = header.locator('[data-v6-mega-backdrop]').first();
         const tabs = mega.locator('[data-v6-mega-tab]');
         const sections = mega.locator('[data-v6-mega-section]');
         const focusables = mega.locator('[data-v6-mega-focusable]');
 
         await expect(mega).toBeHidden();
+        await expect(backdrop).toBeHidden();
         await trigger.click();
         await expect(mega).toBeVisible();
+        await expect(backdrop).toBeVisible();
+        await expect(backdrop).toHaveClass(/is-visible/);
         await expect(tabs).toHaveCount(3);
         await expect(sections).toHaveCount(3);
+        await expect(header).toHaveClass(/is-mega-open/);
         const megaCols = await mega
             .locator('[data-v6-mega-layout]')
             .evaluate(
@@ -53,6 +58,27 @@ test.describe('Public V6 header and mega menu', () => {
 
         await page.keyboard.press('Escape');
         await expect(mega).toBeHidden();
+        await expect(backdrop).toBeHidden();
+        await expect(header).not.toHaveClass(/is-mega-open/);
+
+        await trigger.click();
+        await expect(mega).toBeVisible();
+        const outsidePoint = await page.evaluate(() => {
+            const panel = document.querySelector('[data-v6-mega]');
+            if (!panel) {
+                return { x: 8, y: 120 };
+            }
+            const rect = panel.getBoundingClientRect();
+            const x = Math.min(window.innerWidth - 8, rect.right + 12);
+            const y = Math.min(
+                window.innerHeight - 8,
+                Math.max(rect.top + 20, 120)
+            );
+            return { x, y };
+        });
+        await page.mouse.click(outsidePoint.x, outsidePoint.y);
+        await expect(mega).toBeHidden();
+        await expect(backdrop).toBeHidden();
     });
 
     test('mobile drawer opens and closes with scroll lock', async ({

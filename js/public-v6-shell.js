@@ -15,6 +15,7 @@
 
         var trigger = header.querySelector('[data-v6-mega-trigger]');
         var panel = header.querySelector('[data-v6-mega]');
+        var backdrop = header.querySelector('[data-v6-mega-backdrop]');
         var closeButton = header.querySelector('[data-v6-mega-close]');
         var tabs = panel
             ? Array.from(panel.querySelectorAll('[data-v6-mega-tab]'))
@@ -84,17 +85,39 @@
         }
 
         function openPanel() {
+            if (!panel.hidden) return;
+            if (hoverIntent) {
+                window.clearTimeout(hoverIntent);
+                hoverIntent = null;
+            }
             panel.hidden = false;
             trigger.setAttribute('aria-expanded', 'true');
             panel.classList.add('is-open');
+            header.classList.add('is-mega-open');
+            if (backdrop) {
+                backdrop.hidden = false;
+                window.requestAnimationFrame(function () {
+                    backdrop.classList.add('is-visible');
+                });
+            }
             syncFocusables();
             window.requestAnimationFrame(alignPointer);
         }
 
         function closePanel() {
+            if (panel.hidden) return;
+            if (hoverIntent) {
+                window.clearTimeout(hoverIntent);
+                hoverIntent = null;
+            }
             panel.hidden = true;
             trigger.setAttribute('aria-expanded', 'false');
             panel.classList.remove('is-open');
+            header.classList.remove('is-mega-open');
+            if (backdrop) {
+                backdrop.classList.remove('is-visible');
+                backdrop.hidden = true;
+            }
         }
 
         trigger.addEventListener('click', function () {
@@ -261,6 +284,13 @@
                 closePanel();
             }
         });
+
+        if (backdrop) {
+            backdrop.addEventListener('click', function () {
+                closePanel();
+                trigger.focus();
+            });
+        }
 
         document.addEventListener('keydown', function (event) {
             if (event.key === 'Escape') {

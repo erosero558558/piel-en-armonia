@@ -6,6 +6,10 @@
     border-bottom: 1px solid #12151b;
 }
 
+.v6-header.is-mega-open {
+    border-bottom-color: #2a2f3a;
+}
+
 .v6-header__bar {
     position: relative;
     max-width: min(1680px, 100vw);
@@ -356,6 +360,25 @@
 .v6-mega__subitems a:hover,
 .v6-mega__subitems a:focus-visible {
     border-bottom-color: #dfe7f8;
+}
+
+.v6-mega-backdrop {
+    position: fixed;
+    top: 74px;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: rgba(5, 8, 14, 0.52);
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    transition: opacity 160ms ease;
+    pointer-events: none;
+    z-index: 170;
+}
+
+.v6-mega-backdrop.is-visible {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .v6-drawer {
@@ -817,6 +840,10 @@
     .v6-header__search,
     .v6-mega {
         display: none;
+    }
+
+    .v6-mega-backdrop {
+        top: 68px;
     }
 
     .v6-header__menu {

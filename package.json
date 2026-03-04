@@ -27,7 +27,7 @@
         "score:public:v5:sony:strict": "node bin/score-public-v5-sony.js --min-score 90 --min-checkpoints 44",
         "audit:public:v5:surface": "node bin/audit-public-v5-surface.js --strict",
         "audit:public:v5:copy": "node bin/audit-public-v5-copy.js --strict",
-        "audit:public:v6:visual-contract": "node bin/audit-public-v6-visual-contract.js --min-checkpoints 96 --strict",
+        "audit:public:v6:visual-contract": "node bin/audit-public-v6-visual-contract.js --min-checkpoints 100 --strict",
         "audit:public:v6:zero-reuse": "node bin/assert-public-v6-zero-reuse.js",
         "audit:public:v6:copy": "node bin/audit-public-v6-copy.js --strict",
         "audit:public:v6:sony-evidence": "node bin/audit-public-v6-sony-evidence.js --strict",
