@@ -1,6 +1,6 @@
-# Public V6 Copy System (R3)
+# Public V6 Copy System (R4)
 
-Version: 2026-03-04-r3
+Version: 2026-03-04-r4
 Scope: public-v6 ES/EN (home, hub, service, telemedicine, legal, navigation, shell labels)
 
 ## Editorial goal
@@ -15,6 +15,7 @@ Deliver a premium, sober dermatology voice that feels human, precise, and trustw
 - Rhythm: short and sharp.
 - Frame per block: `impacto -> criterio medico -> siguiente paso`.
 - Lexicon: clear, modern clinical language. No bureaucratic or robotic phrasing.
+- Product-style cadence: lead with user benefit, then medical criteria, then action.
 
 ### EN (Global premium)
 
@@ -57,6 +58,7 @@ Deliver a premium, sober dermatology voice that feels human, precise, and trustw
 - Inflated jargon without decision meaning.
 - Contradictory tone between home and internal pages.
 - Technical internal wording visible to users.
+- Legacy freeze wording such as `agenda transaccional en actualizacion` or `transactional schedule in update`.
 
 ## Navigation language
 

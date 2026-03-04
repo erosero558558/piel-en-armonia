@@ -27,7 +27,7 @@
             "image": "/images/optimized/team-rosero.webp",
             "alt": "Direccion clinica de Piel en Armonia"
         },
-        "internalMessageFallback": "Ruta clinica con ejecucion por etapas y seguimiento medible.",
+        "internalMessageFallback": "Su ruta se confirma en consulta, con explicacion medica clara.",
         "rail": {
             "title": "Mapa de ruta",
             "aria": "Secciones de ruta"
@@ -44,12 +44,12 @@
             "relatedTitle": "Rutas relacionadas"
         },
         "faqPrefix": "P",
-        "faqAnswerNote": "Respuesta de referencia; su plan final se confirma en consulta.",
+        "faqAnswerNote": "Respuesta orientativa; su plan final se confirma en consulta.",
         "relatedCta": "Abrir ruta",
         "bookingStatus": {
             "eyebrow": "Estado de agenda",
-            "title": "Agenda transaccional en actualizacion",
-            "description": "La reserva digital vuelve en la siguiente fase. Mientras tanto, usted puede continuar por telemedicina.",
+            "title": "Reserva online en mantenimiento",
+            "description": "La agenda web vuelve pronto. Mientras tanto, usted puede iniciar por telemedicina.",
             "ctaLabel": "Abrir telemedicina",
             "ctaHref": "/es/telemedicina/"
         }
@@ -306,9 +306,9 @@
             ],
             "related": ["bioestimuladores-colageno", "peeling-quimico"],
             "faqAnswers": [
-                "La piel puede presentar enrojecimiento leve 24 a 48 horas; la recuperacion suele ser rapida.",
-                "Con frecuencia se indican 3 a 5 sesiones, separadas por 3 a 4 semanas.",
-                "No reemplaza cirugia. Su valor esta en mejorar hidratacion, textura y calidad de piel."
+                "La piel puede presentar enrojecimiento leve por 24 a 48 horas y luego retomar su rutina habitual.",
+                "Con frecuencia indicamos 3 a 5 sesiones, separadas por 3 a 4 semanas segun respuesta clinica.",
+                "Suele combinarse con hidratacion medica, bioestimuladores o peelings suaves cuando su piel ya esta estable."
             ]
         },
         {
@@ -398,8 +398,8 @@
             "related": ["botox", "mesoterapia"],
             "faqAnswers": [
                 "El resultado es progresivo: suele iniciar hacia la semana 6 y consolidarse entre 3 y 6 meses.",
-                "Si, cuando hay evaluacion facial integral para mantener armonia y evitar sobrecorreccion.",
-                "Puede postergarse en inflamacion activa, gestacion o lactancia, segun criterio medico individual."
+                "En la mayoria de casos se planifican 2 o 3 sesiones, segun flacidez, zonas y respuesta tisular.",
+                "Si, puede combinarse con botox medico dentro de un plan facial integral y tiempos bien definidos."
             ]
         },
         {
@@ -429,9 +429,9 @@
             ],
             "related": ["diagnostico-integral", "dermatologia-pediatrica"],
             "faqAnswers": [
-                "Si. Se solicitan estudios dirigidos solo cuando aportan informacion util para confirmar diagnostico.",
-                "Si, porque cuero cabelludo y unas forman parte del mismo mapa dermatologico de decision.",
-                "El control inicial suele ser entre 4 y 8 semanas, segun hallazgos y respuesta temprana."
+                "Incluye casos mixtos: caida de cabello, cambios de unas y sintomas cutaneos que aparecen al mismo tiempo.",
+                "Si, la telemedicina sirve como triage inicial y define cuando se requiere evaluacion presencial.",
+                "El primer control suele programarse entre 4 y 8 semanas, segun hallazgos y respuesta temprana."
             ]
         },
         {
@@ -461,9 +461,9 @@
             ],
             "related": ["diagnostico-integral", "acne-rosacea"],
             "faqAnswers": [
-                "Si, y es recomendable para mejorar observacion diaria y adherencia al plan en casa.",
-                "Si, cuando estan indicados; se ajustan por edad, peso y sensibilidad de la piel infantil.",
-                "Fiebre, dolor, extension rapida, secrecion o decaimiento general requieren evaluacion prioritaria."
+                "Traiga resumen de sintomas, tratamientos previos, alergias y fotos recientes de la piel si las tiene.",
+                "Explicamos el plan con lenguaje simple, ejemplos cotidianos y tareas concretas para casa.",
+                "Si, funciona bien para controles y dudas entre visitas, siempre que no existan senales de alarma."
             ]
         }
     ]

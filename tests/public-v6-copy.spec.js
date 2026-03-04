@@ -17,6 +17,10 @@ const roboticPhrases = [
     /bloque corporativo/i,
     /v6 recalibration/i,
     /corporate block/i,
+    /agenda transaccional en actualizacion/i,
+    /transactional schedule in update/i,
+    /respuesta de referencia/i,
+    /reference answer/i,
 ];
 
 test.describe('Public V6 copy integrity', () => {

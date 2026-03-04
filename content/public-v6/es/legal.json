@@ -1,6 +1,6 @@
 {
     "title": "Legal | Piel en Armonia",
-    "description": "Marco legal claro para uso del sitio, privacidad, cookies y limites de orientacion medica.",
+    "description": "Marco legal claro para uso del sitio, privacidad, cookies y limites de orientacion medica digital.",
     "index": [
         {
             "slug": "terminos",
@@ -36,17 +36,17 @@
         "thesis": {
             "eyebrow": "Arquitectura legal",
             "title": "Reglas claras para decisiones medicas y digitales responsables",
-            "body": "Cada politica define derechos, limites y responsabilidades para que usted entienda que aplica en cada canal."
+            "body": "Cada politica explica derechos, limites y responsabilidades para que usted sepa que aplica en cada canal."
         },
         "statement": {
             "eyebrow": "Direccion legal",
-            "title": "El texto legal debe orientar, no confundir",
+            "title": "El lenguaje legal debe orientar, no confundir",
             "signature": "Oficina de cumplimiento y politica",
             "image": "/images/optimized/team-rosero.webp",
             "alt": "Direccion legal de Piel en Armonia"
         },
         "internalMessage": {
-            "description": "Este marco legal protege su consentimiento, su privacidad y la operacion responsable de cada ruta."
+            "description": "Este marco protege su consentimiento, su privacidad y el uso responsable de cada canal de atencion."
         },
         "sectionLabel": "Seccion",
         "blockLabel": "Bloque",
@@ -78,7 +78,7 @@
         },
         "privacidad": {
             "heading": "Politica de privacidad",
-            "summary": "Tratamiento responsable de datos personales bajo principio de minima exposicion.",
+            "summary": "Tratamiento responsable de datos personales bajo un principio de minima exposicion.",
             "heroImage": "/images/optimized/showcase-clinic.webp",
             "sections": [
                 {
@@ -101,7 +101,7 @@
         },
         "cookies": {
             "heading": "Politica de cookies",
-            "summary": "Uso de cookies para funciones tecnicas, analitica agregada y preferencias de experiencia.",
+            "summary": "Uso de cookies para funciones tecnicas, analitica agregada y preferencias de navegacion.",
             "heroImage": "/images/optimized/showcase-diagnostic.webp",
             "sections": [
                 {
@@ -124,7 +124,7 @@
         },
         "aviso-medico": {
             "heading": "Aviso medico",
-            "summary": "La informacion publica no reemplaza diagnostico ni conducta terapeutica personalizada.",
+            "summary": "El contenido publico orienta, pero no reemplaza diagnostico ni tratamiento personalizado.",
             "heroImage": "/images/optimized/service-consulta.webp",
             "sections": [
                 {

@@ -32,6 +32,7 @@ const megaColumns = Array.isArray(mega.columns) ? mega.columns : [];
 const megaPanelId = 'v6-mega-panel';
 const megaLabel = mega.title || '';
 const megaRootHref = megaLink?.href || homeHref;
+const menuLabel = header.menuLabel || '';
 
 const getColumnContext = (column) => (column?.context && typeof column.context === 'object' ? column.context : null);
 ---
@@ -75,7 +76,7 @@ const getColumnContext = (column) => (column?.context && typeof column.context =
             <button class="v6-header__search" type="button" aria-label={header.searchLabel || ''}>
                 <span aria-hidden="true">&#9906;</span>
             </button>
-            <button class="v6-header__menu" type="button" data-v6-drawer-open aria-label={header.menuLabel || 'Menu'}>{header.menuLabel || 'Menu'}</button>
+            <button class="v6-header__menu" type="button" data-v6-drawer-open aria-label={menuLabel}>{menuLabel}</button>
         </div>
     </div>
 

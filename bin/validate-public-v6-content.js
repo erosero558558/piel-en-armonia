@@ -175,6 +175,9 @@ function run() {
                 'header.contactLabel',
                 'header.searchLabel',
                 'header.menuLabel',
+                'header.closeMenuLabel',
+                'header.switchLabel',
+                'header.switchHref',
                 'mega.title',
                 'mega.closeLabel',
                 'footer.headline',
@@ -219,6 +222,7 @@ function run() {
                 'bookingStatus.title',
                 'bookingStatus.description',
                 'bookingStatus.ctaLabel',
+                'bookingStatus.ctaHref',
             ].forEach((field) =>
                 requireStringField(issues, file, json, field, 'home_schema')
             );
@@ -257,6 +261,7 @@ function run() {
                 'bookingStatus.title',
                 'bookingStatus.description',
                 'bookingStatus.ctaLabel',
+                'bookingStatus.ctaHref',
             ].forEach((field) =>
                 requireStringField(issues, file, json, field, 'hub_schema')
             );
@@ -301,6 +306,7 @@ function run() {
                 'ui.bookingStatus.title',
                 'ui.bookingStatus.description',
                 'ui.bookingStatus.ctaLabel',
+                'ui.bookingStatus.ctaHref',
             ].forEach((field) =>
                 requireStringField(issues, file, json, field, 'service_schema')
             );
@@ -339,6 +345,59 @@ function run() {
                             });
                         }
                     });
+
+                    [
+                        'slug',
+                        'category',
+                        'title',
+                        'summary',
+                        'heroImage',
+                        'heroAlt',
+                        'lead',
+                    ].forEach((field) => {
+                        if (
+                            typeof service?.[field] !== 'string' ||
+                            !service[field].trim()
+                        ) {
+                            issues.push({
+                                type: 'service_schema',
+                                file,
+                                detail: `${label}: ${field} must be a non-empty string`,
+                            });
+                        }
+                    });
+
+                    const bullets = Array.isArray(service?.bullets)
+                        ? service.bullets
+                        : [];
+                    const process = Array.isArray(service?.process)
+                        ? service.process
+                        : [];
+                    const related = Array.isArray(service?.related)
+                        ? service.related
+                        : [];
+
+                    if (bullets.length < 3) {
+                        issues.push({
+                            type: 'service_schema',
+                            file,
+                            detail: `${label}: bullets must contain at least 3 items`,
+                        });
+                    }
+                    if (process.length < 3) {
+                        issues.push({
+                            type: 'service_schema',
+                            file,
+                            detail: `${label}: process must contain at least 3 items`,
+                        });
+                    }
+                    if (!related.length) {
+                        issues.push({
+                            type: 'service_schema',
+                            file,
+                            detail: `${label}: related must contain at least 1 slug`,
+                        });
+                    }
                 });
             }
         }
@@ -367,6 +426,7 @@ function run() {
                 'bookingStatus.title',
                 'bookingStatus.description',
                 'bookingStatus.ctaLabel',
+                'bookingStatus.ctaHref',
             ].forEach((field) =>
                 requireStringField(
                     issues,

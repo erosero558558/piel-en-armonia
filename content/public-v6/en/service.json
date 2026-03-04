@@ -27,7 +27,7 @@
             "image": "/images/optimized/team-rosero.webp",
             "alt": "Clinical direction at Piel en Armonia"
         },
-        "internalMessageFallback": "Clinical route with staged execution and measurable follow-up.",
+        "internalMessageFallback": "Your route is confirmed in consultation with clear clinical explanation.",
         "rail": {
             "title": "Route map",
             "aria": "Route sections"
@@ -44,12 +44,12 @@
             "relatedTitle": "Related routes"
         },
         "faqPrefix": "Q",
-        "faqAnswerNote": "Reference answer; your final plan is confirmed during consultation.",
+        "faqAnswerNote": "Guidance answer; your final plan is confirmed in consultation.",
         "relatedCta": "Open route",
         "bookingStatus": {
             "eyebrow": "Schedule status",
-            "title": "Transactional schedule in update",
-            "description": "Digital booking returns in the next phase. Until then, you can continue through telemedicine.",
+            "title": "Online booking under maintenance",
+            "description": "Web scheduling returns soon. Until then, you can begin through telemedicine.",
             "ctaLabel": "Open telemedicine",
             "ctaHref": "/en/telemedicine/"
         }
@@ -306,9 +306,9 @@
             ],
             "related": ["bioestimuladores-colageno", "peeling-quimico"],
             "faqAnswers": [
-                "Mild redness can appear for 24 to 48 hours, and recovery is usually fast.",
-                "Many plans use 3 to 5 sessions, commonly spaced every 3 to 4 weeks.",
-                "It does not replace surgery; its value is improved hydration, texture, and skin quality."
+                "Mild redness may appear for 24 to 48 hours, then most patients return to normal routine.",
+                "Many plans use 3 to 5 sessions spaced every 3 to 4 weeks based on clinical response.",
+                "It often combines well with medical hydration, biostimulators, or gentle peels once skin is stable."
             ]
         },
         {
@@ -403,8 +403,8 @@
             "related": ["botox", "mesoterapia"],
             "faqAnswers": [
                 "Results are progressive, often starting around week 6 and maturing over 3 to 6 months.",
-                "Yes, with full facial assessment to preserve balance and prevent overcorrection.",
-                "It may be deferred in active inflammation, pregnancy, or lactation based on individual medical criteria."
+                "Most plans use 2 or 3 sessions depending on laxity level, treated zones, and tissue response.",
+                "Yes. It can be combined with medical botox within an integrated facial plan and clear timing."
             ]
         },
         {
@@ -434,9 +434,9 @@
             ],
             "related": ["diagnostico-integral", "dermatologia-pediatrica"],
             "faqAnswers": [
-                "Yes. Targeted studies are requested only when they contribute meaningful diagnostic direction.",
-                "Yes, because scalp and nails are part of the same dermatology decision map.",
-                "Early follow-up is typically planned in 4 to 8 weeks, depending on findings and response."
+                "It includes mixed cases such as hair shedding, nail changes, and skin symptoms occurring together.",
+                "Yes. Telemedicine works as first triage and helps define when in-clinic evaluation is necessary.",
+                "Early follow-up is commonly planned in 4 to 8 weeks, based on findings and initial response."
             ]
         },
         {
@@ -466,9 +466,9 @@
             ],
             "related": ["diagnostico-integral", "acne-rosacea"],
             "faqAnswers": [
-                "Yes, and it is recommended to improve home observation and treatment adherence.",
-                "Yes when indicated, adjusted by age, weight, and pediatric skin sensitivity.",
-                "Fever, pain, rapid spread, discharge, or systemic decline require priority evaluation."
+                "Bring a symptom timeline, previous treatments, allergy history, and recent skin photos when available.",
+                "The plan is explained in simple language with practical daily routines for family and school.",
+                "Yes, it works well for between-visit questions and follow-up when no warning signs are present."
             ]
         }
     ]

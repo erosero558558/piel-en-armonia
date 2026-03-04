@@ -1,6 +1,6 @@
 {
     "title": "Legal | Piel en Armonia",
-    "description": "Clear legal framework for website use, privacy, cookies, and limits of public medical guidance.",
+    "description": "Clear legal framework for website use, privacy, cookies, and limits of digital medical guidance.",
     "index": [
         {
             "slug": "terms",
@@ -36,7 +36,7 @@
         "thesis": {
             "eyebrow": "Legal architecture",
             "title": "Clear rules for responsible medical and digital decisions",
-            "body": "Each policy defines rights, limits, and responsibilities so patients understand what applies in each channel."
+            "body": "Each policy states rights, limits, and responsibilities so patients know what applies in each channel."
         },
         "statement": {
             "eyebrow": "Legal direction",
@@ -46,7 +46,7 @@
             "alt": "Legal direction at Piel en Armonia"
         },
         "internalMessage": {
-            "description": "This framework protects consent, privacy, and responsible operation across all public routes."
+            "description": "This framework protects consent, privacy, and responsible use across every public care channel."
         },
         "sectionLabel": "Section",
         "blockLabel": "Block",
@@ -78,7 +78,7 @@
         },
         "privacy": {
             "heading": "Privacy policy",
-            "summary": "Responsible personal data handling under a minimal exposure principle.",
+            "summary": "Responsible personal data handling under a minimum-exposure principle.",
             "heroImage": "/images/optimized/showcase-clinic.webp",
             "sections": [
                 {
@@ -124,7 +124,7 @@
         },
         "medical-disclaimer": {
             "heading": "Medical disclaimer",
-            "summary": "Public content does not replace diagnosis or personalized treatment direction.",
+            "summary": "Public content informs but does not replace diagnosis or personalized treatment direction.",
             "heroImage": "/images/optimized/service-consulta.webp",
             "sections": [
                 {

@@ -2,7 +2,7 @@
     "locale": "en",
     "brand": {
         "logo": "Piel en Armonia",
-        "tag": "Precision dermatology"
+        "tag": "Medical dermatology in Quito"
     },
     "ui": {
         "header": {
@@ -25,9 +25,9 @@
     "header": {
         "contactLabel": "Contact",
         "contactHref": "https://wa.me/593982453672",
-        "searchLabel": "Search route",
+        "searchLabel": "Search services",
         "menuLabel": "Menu",
-        "closeMenuLabel": "Close",
+        "closeMenuLabel": "Close menu",
         "switchLabel": "ES",
         "switchHref": "/es/",
         "links": [
@@ -39,7 +39,7 @@
             },
             {
                 "id": "programs",
-                "label": "Dermatology routes",
+                "label": "Dermatology services",
                 "href": "/en/services/",
                 "kind": "mega"
             },
@@ -51,7 +51,7 @@
             },
             {
                 "id": "procedures",
-                "label": "Procedures",
+                "label": "Treatments",
                 "href": "/en/services/laser-dermatologico/",
                 "kind": "standard"
             },
@@ -76,16 +76,16 @@
         ]
     },
     "mega": {
-        "title": "Dermatology routes",
+        "title": "Dermatology services",
         "closeLabel": "Close panel",
         "columns": [
             {
                 "id": "entry-routes",
                 "heading": "First consultation",
                 "context": {
-                    "eyebrow": "Initial reading",
-                    "title": "Start where your case becomes clear",
-                    "deck": "The first consultation defines risk, priority, and the follow-up sequence so you can move forward with confidence.",
+                    "eyebrow": "Initial evaluation",
+                    "title": "Start with the route that clarifies your case",
+                    "deck": "The first visit defines priority, risk profile, and follow-up timing so you can move forward with confidence.",
                     "href": "/en/services/diagnostico-integral/"
                 },
                 "items": [
@@ -135,11 +135,11 @@
             },
             {
                 "id": "procedures",
-                "heading": "Medical procedures",
+                "heading": "Medical treatments",
                 "context": {
-                    "eyebrow": "Intervention",
-                    "title": "Technology guided by criteria, never impulse",
-                    "deck": "Each procedure is indicated by phototype, tolerance, and objective to protect long-term outcomes.",
+                    "eyebrow": "Indicated intervention",
+                    "title": "Technology and procedures guided by dermatology criteria",
+                    "deck": "Every treatment is indicated by phototype, tolerance, and objective, with defined post-care follow-up.",
                     "href": "/en/services/laser-dermatologico/"
                 },
                 "items": [
@@ -189,11 +189,11 @@
             },
             {
                 "id": "extended-care",
-                "heading": "Continuity",
+                "heading": "Continuity and support",
                 "context": {
-                    "eyebrow": "Follow-up",
-                    "title": "Telemedicine and legal clarity for calmer decisions",
-                    "deck": "When continuity matters, this layer combines remote guidance, clear consent, and practical next steps.",
+                    "eyebrow": "Continuity",
+                    "title": "Telemedicine and legal clarity for informed decisions",
+                    "deck": "This layer combines remote guidance, clear consent, and practical next steps.",
                     "href": "/en/telemedicine/"
                 },
                 "items": [
@@ -226,11 +226,11 @@
                         ]
                     },
                     {
-                        "label": "Schedule in update",
+                        "label": "Online booking under maintenance",
                         "href": "/en/services/",
                         "children": [
                             {
-                                "label": "View active routes",
+                                "label": "Review active routes",
                                 "href": "/en/services/"
                             },
                             {
@@ -244,17 +244,17 @@
         ],
         "featured": {
             "eyebrow": "Medical direction",
-            "title": "Each route explains what to read, decide, and escalate",
-            "deck": "The promise is clear: less noise, sharper clinical judgment, and follow-up you can trust.",
+            "title": "Each route explains what to observe, decide, and escalate",
+            "deck": "Our promise: medical clarity, human language, and follow-up you can trust.",
             "href": "/en/services/"
         }
     },
     "footer": {
-        "headline": "Precision dermatology for Quito",
-        "deck": "Contemporary clinical care with clear decisions, human language, and real continuity of follow-up.",
+        "headline": "Precision medical dermatology for Quito",
+        "deck": "Contemporary clinical care with clear decisions, human communication, and real continuity.",
         "columns": [
             {
-                "title": "Active routes",
+                "title": "Active services",
                 "links": [
                     {
                         "label": "Services",

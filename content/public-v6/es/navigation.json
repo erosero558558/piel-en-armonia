@@ -2,7 +2,7 @@
     "locale": "es",
     "brand": {
         "logo": "Piel en Armonia",
-        "tag": "Dermatologia de precision"
+        "tag": "Dermatologia medica en Quito"
     },
     "ui": {
         "header": {
@@ -25,9 +25,9 @@
     "header": {
         "contactLabel": "Contacto",
         "contactHref": "https://wa.me/593982453672",
-        "searchLabel": "Buscar ruta",
+        "searchLabel": "Buscar servicio",
         "menuLabel": "Menu",
-        "closeMenuLabel": "Cerrar",
+        "closeMenuLabel": "Cerrar menu",
         "switchLabel": "EN",
         "switchHref": "/en/",
         "links": [
@@ -39,7 +39,7 @@
             },
             {
                 "id": "programs",
-                "label": "Rutas dermatologicas",
+                "label": "Servicios dermatologicos",
                 "href": "/es/servicios/",
                 "kind": "mega"
             },
@@ -51,7 +51,7 @@
             },
             {
                 "id": "procedures",
-                "label": "Procedimientos",
+                "label": "Tratamientos",
                 "href": "/es/servicios/laser-dermatologico/",
                 "kind": "standard"
             },
@@ -76,16 +76,16 @@
         ]
     },
     "mega": {
-        "title": "Rutas dermatologicas",
+        "title": "Servicios dermatologicos",
         "closeLabel": "Cerrar panel",
         "columns": [
             {
                 "id": "entry-routes",
                 "heading": "Consulta inicial",
                 "context": {
-                    "eyebrow": "Primera lectura",
+                    "eyebrow": "Primera evaluacion",
                     "title": "Empiece por la ruta que aclara su caso",
-                    "deck": "La primera consulta define riesgo, prioridad y la secuencia de controles para que usted avance con criterio.",
+                    "deck": "En la primera consulta definimos prioridad, riesgo y seguimiento para que usted avance con confianza.",
                     "href": "/es/servicios/diagnostico-integral/"
                 },
                 "items": [
@@ -135,11 +135,11 @@
             },
             {
                 "id": "procedures",
-                "heading": "Procedimientos medicos",
+                "heading": "Tratamientos medicos",
                 "context": {
-                    "eyebrow": "Intervencion",
-                    "title": "Tecnologia con criterio, no por impulso",
-                    "deck": "Cada procedimiento se indica segun fototipo, tolerancia y objetivo clinico para proteger resultados en el tiempo.",
+                    "eyebrow": "Intervencion indicada",
+                    "title": "Tecnologia y procedimientos con criterio dermatologico",
+                    "deck": "Indicamos cada tratamiento por fototipo, tolerancia y objetivo clinico, con control posterior definido.",
                     "href": "/es/servicios/laser-dermatologico/"
                 },
                 "items": [
@@ -189,11 +189,11 @@
             },
             {
                 "id": "extended-care",
-                "heading": "Continuidad",
+                "heading": "Seguimiento y soporte",
                 "context": {
-                    "eyebrow": "Seguimiento",
-                    "title": "Telemedicina y marco legal para decidir con calma",
-                    "deck": "Cuando usted necesita continuidad, esta capa une orientacion remota, consentimiento claro y proximos pasos concretos.",
+                    "eyebrow": "Continuidad",
+                    "title": "Telemedicina y legal para decisiones informadas",
+                    "deck": "Esta capa une orientacion remota, consentimiento claro y proximos pasos concretos.",
                     "href": "/es/telemedicina/"
                 },
                 "items": [
@@ -226,15 +226,15 @@
                         ]
                     },
                     {
-                        "label": "Agenda en actualizacion",
+                        "label": "Reserva online en mantenimiento",
                         "href": "/es/servicios/",
                         "children": [
                             {
-                                "label": "Ver rutas activas",
+                                "label": "Revisar rutas activas",
                                 "href": "/es/servicios/"
                             },
                             {
-                                "label": "Escribir por contacto",
+                                "label": "Contactar al consultorio",
                                 "href": "https://wa.me/593982453672"
                             }
                         ]
@@ -245,16 +245,16 @@
         "featured": {
             "eyebrow": "Direccion medica",
             "title": "Cada ruta explica que observar, que decidir y cuando escalar",
-            "deck": "La promesa es simple: menos ruido, mas criterio clinico y seguimiento que usted pueda entender.",
+            "deck": "Nuestra promesa: claridad medica, lenguaje humano y seguimiento que usted puede entender.",
             "href": "/es/servicios/"
         }
     },
     "footer": {
-        "headline": "Dermatologia de precision para Quito",
-        "deck": "Atencion clinica contemporanea con decisiones claras, lenguaje humano y continuidad real de seguimiento.",
+        "headline": "Dermatologia medica de precision para Quito",
+        "deck": "Cuidado clinico contemporaneo con decisiones claras, trato humano y continuidad real.",
         "columns": [
             {
-                "title": "Rutas activas",
+                "title": "Servicios activos",
                 "links": [
                     {
                         "label": "Servicios",

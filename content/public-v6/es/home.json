@@ -1,6 +1,6 @@
 {
-    "title": "Piel en Armonia | Dermatologia de precision en Quito",
-    "description": "Dermatologia contemporanea para Quito: lectura clinica precisa, lenguaje claro y rutas de tratamiento con seguimiento.",
+    "title": "Piel en Armonia | Dermatologia medica en Quito",
+    "description": "Dermatologia de precision en Quito con diagnostico claro, tratamientos medicos personalizados y seguimiento continuo.",
     "hero": {
         "autoplayMs": 7000,
         "labels": {
@@ -15,8 +15,8 @@
             {
                 "id": "s1",
                 "category": "Diagnostico",
-                "title": "Toda buena decision empieza con una lectura precisa.",
-                "description": "Evaluamos piel, cabello y unas para que usted entienda su caso antes de iniciar cualquier intervencion.",
+                "title": "Su piel merece una lectura exacta desde el inicio.",
+                "description": "Antes de tratar, escuchamos su historia y examinamos piel, cabello y unas para decidir con fundamento.",
                 "image": "/images/optimized/showcase-diagnostic.webp",
                 "srcset": "/images/optimized/showcase-diagnostic-640.webp 640w, /images/optimized/showcase-diagnostic-800.webp 800w, /images/optimized/showcase-diagnostic.webp 1200w",
                 "alt": "Evaluacion dermatologica integral",
@@ -25,8 +25,8 @@
             {
                 "id": "s2",
                 "category": "Procedimientos",
-                "title": "Tecnologia medica cuando aporta, no cuando impresiona.",
-                "description": "Peeling, laser y bioestimulacion se indican con criterio dermatologico y tiempos de control definidos.",
+                "title": "Tecnologia medica al servicio de su resultado.",
+                "description": "Laser, peeling y bioestimulacion solo cuando suman valor clinico y pueden seguirse con seguridad.",
                 "image": "/images/optimized/showcase-treatment.webp",
                 "srcset": "/images/optimized/showcase-treatment-640.webp 640w, /images/optimized/showcase-treatment-900.webp 900w, /images/optimized/showcase-treatment.webp 1200w",
                 "alt": "Procedimiento dermatologico guiado",
@@ -35,8 +35,8 @@
             {
                 "id": "s3",
                 "category": "Telemedicina",
-                "title": "Remoto para orientar. Presencial para confirmar.",
-                "description": "La consulta online filtra urgencia y define cuando conviene escalar al consultorio en Quito.",
+                "title": "Telemedicina para orientar. Consultorio para confirmar.",
+                "description": "La consulta remota acelera decisiones y define cuando conviene verle en Quito sin perder continuidad.",
                 "image": "/images/optimized/service-telemedicina.webp",
                 "srcset": "/images/optimized/service-telemedicina-400.webp 400w, /images/optimized/service-telemedicina.webp 900w",
                 "alt": "Consulta dermatologica remota",
@@ -45,8 +45,8 @@
             {
                 "id": "s4",
                 "category": "Seguimiento",
-                "title": "La continuidad clinica evita dudas y acelera mejoras.",
-                "description": "Cada control documenta evolucion, ajusta el plan y mantiene una decision medica trazable.",
+                "title": "El seguimiento convierte avances en resultados duraderos.",
+                "description": "Cada control compara evolucion real, ajusta el plan y mantiene una ruta medica trazable.",
                 "image": "/images/optimized/showcase-clinic.webp",
                 "srcset": "/images/optimized/showcase-clinic-640.webp 640w, /images/optimized/showcase-clinic-800.webp 800w, /images/optimized/showcase-clinic.webp 1200w",
                 "alt": "Control dermatologico presencial",
@@ -55,8 +55,8 @@
             {
                 "id": "s5",
                 "category": "Equipo",
-                "title": "Dermatologia humana, precisa y contemporanea para Quito.",
-                "description": "Nuestro equipo combina criterio medico, trato claro y protocolos actuales para cuidar su piel con respeto.",
+                "title": "Un equipo que explica, cuida y acompana.",
+                "description": "Usted recibe criterio dermatologico actualizado y comunicacion clara en cada etapa del tratamiento.",
                 "image": "/images/optimized/team-rosero.webp",
                 "srcset": "/images/optimized/team-rosero-500.webp 500w, /images/optimized/team-rosero.webp 900w",
                 "alt": "Equipo dermatologico de Piel en Armonia",
@@ -65,25 +65,25 @@
         ]
     },
     "newsStrip": {
-        "label": "Actualidad clinica",
-        "headline": "Rutas medicas y telemedicina continúan activas mientras la agenda transaccional termina su actualizacion.",
+        "label": "Agenda y actualizaciones",
+        "headline": "La reserva web entra en mantenimiento temporal; telemedicina y rutas clinicas siguen activas para que usted no pierda continuidad.",
         "href": "/es/servicios/",
         "expandLabel": "Expandir",
         "localeAria": "Selector de idioma"
     },
     "editorial": {
-        "eyebrow": "Direccion editorial",
-        "title": "Decisiones dermatologicas con menos ruido y mas criterio.",
-        "deck": "Cada bloque conecta lo que usted siente, lo que el medico observa y el siguiente paso util para su caso.",
-        "ctaLabel": "Conocer mas",
+        "eyebrow": "Criterio dermatologico",
+        "title": "Menos ruido. Mas claridad para decidir su cuidado.",
+        "deck": "Cada bloque responde tres preguntas: que esta pasando, que haremos y cual es su siguiente paso.",
+        "ctaLabel": "Ver ruta",
         "cards": [
             {
                 "id": "c1",
                 "type": "video",
                 "size": "tall",
                 "category": "Consulta inicial",
-                "title": "De la primera duda al plan completo",
-                "copy": "Ruta integral para lesiones nuevas, brotes recurrentes y cambios de textura que requieren lectura clinica.",
+                "title": "De la primera consulta al plan completo",
+                "copy": "Si su piel cambio de forma reciente, iniciamos con diagnostico integral y objetivos claros por etapa.",
                 "href": "/es/servicios/diagnostico-integral/",
                 "image": "/images/optimized/service-consulta.webp",
                 "alt": "Consulta integral de dermatologia"
@@ -93,8 +93,8 @@
                 "type": "info",
                 "size": "wide",
                 "category": "Inflamacion",
-                "title": "Acne y rosacea con control sostenible",
-                "copy": "Metas por etapa, controles visuales y ajustes medicos para reducir recaidas sin falsas promesas.",
+                "title": "Acne y rosacea bajo control continuo",
+                "copy": "Tratamos inflamacion activa y prevenimos recaidas con ajustes oportunos, no con recetas repetidas.",
                 "href": "/es/servicios/acne-rosacea/",
                 "image": "/images/optimized/service-acne.webp",
                 "alt": "Ruta clinica para acne y rosacea"
@@ -105,7 +105,7 @@
                 "size": "standard",
                 "category": "Tecnologia",
                 "title": "Laser con parametros medicos trazables",
-                "copy": "Indicamos energia y frecuencia por fototipo, lesion y tolerancia para proteger su resultado.",
+                "copy": "Elegimos energia y frecuencia por fototipo, lesion y tolerancia para proteger su piel.",
                 "href": "/es/servicios/laser-dermatologico/",
                 "image": "/images/optimized/service-laser.webp",
                 "alt": "Plataforma laser dermatologica"
@@ -115,8 +115,8 @@
                 "type": "info",
                 "size": "tall",
                 "category": "Telemedicina",
-                "title": "Orientacion remota cuando usted la necesita",
-                "copy": "Si la evolucion lo exige, escalamos a consulta presencial sin perder continuidad del caso.",
+                "title": "Telemedicina cuando el tiempo importa",
+                "copy": "Usted recibe orientacion temprana y, si hace falta, escalamos a consulta presencial sin retrasos.",
                 "href": "/es/telemedicina/",
                 "image": "/images/optimized/service-telemedicina.webp",
                 "alt": "Telemedicina dermatologica"
@@ -126,8 +126,8 @@
                 "type": "info",
                 "size": "standard",
                 "category": "Pediatria",
-                "title": "Dermatologia pediatrica con guia familiar clara",
-                "copy": "Explicamos el plan en lenguaje comprensible para madres, padres y cuidadores.",
+                "title": "Pediatria con lenguaje claro para familias",
+                "copy": "Traducimos cada decision medica en indicaciones simples para casa y para el colegio.",
                 "href": "/es/servicios/dermatologia-pediatrica/",
                 "image": "/images/optimized/showcase-clinic.webp",
                 "alt": "Atencion dermatologica pediatrica"
@@ -137,8 +137,8 @@
                 "type": "video",
                 "size": "wide",
                 "category": "Direccion medica",
-                "title": "Cada ruta se documenta y se ajusta",
-                "copy": "No improvisamos su tratamiento: lo medimos, lo explicamos y lo corregimos con evidencia.",
+                "title": "Seguimiento que muestra avances reales",
+                "copy": "Comparamos imagenes y sintomas entre controles para ajustar su tratamiento con precision.",
                 "href": "/es/servicios/piel-cabello-unas/",
                 "image": "/images/optimized/team-narvaez.webp",
                 "alt": "Direccion medica dermatologica"
@@ -146,16 +146,16 @@
         ]
     },
     "corporateMatrix": {
-        "eyebrow": "Programas activos",
-        "title": "Unidades dermatologicas para casos reales",
-        "deck": "Cada ficha resume indicacion, criterio clinico y siguiente accion para que usted elija con claridad.",
-        "ctaLabel": "Conocer mas",
+        "eyebrow": "Programas clinicos",
+        "title": "Unidades medicas disenadas para casos reales",
+        "deck": "Cada ficha resume para quien aplica, como se trabaja y cual es el siguiente paso recomendado.",
+        "ctaLabel": "Ver ruta",
         "cards": [
             {
                 "id": "m1",
                 "category": "Diagnostico",
                 "title": "Unidad de diagnostico integral",
-                "copy": "Lectura transversal de piel, cabello y unas con plan de seguimiento desde la primera consulta.",
+                "copy": "Primera lectura completa para definir prioridades, riesgo y cronograma de control.",
                 "href": "/es/servicios/diagnostico-integral/",
                 "image": "/images/optimized/service-consulta.webp",
                 "alt": "Unidad de diagnostico integral"
@@ -164,7 +164,7 @@
                 "id": "m2",
                 "category": "Inflamacion",
                 "title": "Programa acne y rosacea",
-                "copy": "Control de brotes y sensibilidad con estrategia medica por fases.",
+                "copy": "Plan por fases para reducir brotes, calmar piel sensible y prevenir recaidas visibles.",
                 "href": "/es/servicios/acne-rosacea/",
                 "image": "/images/optimized/service-acne.webp",
                 "alt": "Programa acne y rosacea"
@@ -173,7 +173,7 @@
                 "id": "m3",
                 "category": "Tecnologia",
                 "title": "Plataforma laser dermatologica",
-                "copy": "Protocolos trazables por objetivo cutaneo, fototipo y respuesta real.",
+                "copy": "Plataforma laser indicada por fototipo y objetivo, con control de respuesta en cada sesion.",
                 "href": "/es/servicios/laser-dermatologico/",
                 "image": "/images/optimized/service-laser.webp",
                 "alt": "Plataforma laser"
@@ -182,7 +182,7 @@
                 "id": "m4",
                 "category": "Tamizaje",
                 "title": "Lectura temprana de lesiones de riesgo",
-                "copy": "Ruta de evaluacion para senales de alarma y escalamiento oportuno.",
+                "copy": "Evaluacion temprana de lesiones que cambian para actuar con oportunidad y criterio medico.",
                 "href": "/es/servicios/cancer-piel/",
                 "image": "/images/optimized/service-cancer.webp",
                 "alt": "Tamizaje de lesiones"
@@ -191,7 +191,7 @@
                 "id": "m5",
                 "category": "Telemedicina",
                 "title": "Triage remoto y continuidad",
-                "copy": "Orientacion inicial y decision de escalamiento para pacientes en Quito.",
+                "copy": "Orientacion remota para decidir si continuar online o pasar a evaluacion presencial en Quito.",
                 "href": "/es/telemedicina/",
                 "image": "/images/optimized/service-telemedicina.webp",
                 "alt": "Triage remoto"
@@ -200,7 +200,7 @@
                 "id": "m6",
                 "category": "Rejuvenecimiento",
                 "title": "Soporte dermoestetico medico",
-                "copy": "Mesoterapia, bioestimulacion y planes combinados con indicacion responsable.",
+                "copy": "Soporte dermoestetico con protocolos medicos y tiempos realistas de evolucion.",
                 "href": "/es/servicios/bioestimuladores-colageno/",
                 "image": "/images/optimized/service-rejuvenecimiento.webp",
                 "alt": "Soporte dermoestetico"
@@ -209,9 +209,9 @@
     },
     "bookingStatus": {
         "eyebrow": "Estado de agenda",
-        "title": "Agenda transaccional en actualizacion",
-        "description": "La reserva online se reactiva pronto. Hoy usted puede revisar rutas clinicas y usar telemedicina para orientacion inicial.",
-        "ctaLabel": "Explorar servicios",
+        "title": "Reserva online en mantenimiento",
+        "description": "La agenda web vuelve pronto. Mientras tanto, usted puede iniciar por servicios o solicitar orientacion por telemedicina.",
+        "ctaLabel": "Ver servicios",
         "ctaHref": "/es/servicios/"
     }
 }

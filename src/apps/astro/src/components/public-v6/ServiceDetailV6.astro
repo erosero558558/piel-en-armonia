@@ -76,7 +76,7 @@ const statementTitleTemplate = statementUi.titleTemplate || '{service}';
 const statement = {
     eyebrow: statementUi.eyebrow || '',
     title: statementTitleTemplate.replace('{service}', service.title || ''),
-    body: service.lead || ui.internalMessageFallback || '',
+    body: service.lead || '',
     signature: statementUi.signature || '',
     image: statementUi.image || '',
     alt: statementUi.alt || '',
@@ -103,7 +103,7 @@ const faqPrefix = ui.faqPrefix || '';
 
 <section class="v6-internal-message" data-v6-internal-message>
     <h2>{service.summary}</h2>
-    <p>{service.lead || ui.internalMessageFallback || ''}</p>
+    <p>{service.lead || ''}</p>
 </section>
 
 <InternalStatementBandV6 statement={statement} variant="service" />

@@ -34,12 +34,18 @@ const mechanicalPatternsByLocale = {
         /\bnunca promesas vacias\b/i,
         /\bbloque corporativo\b/i,
         /\brecalibracion v6\b/i,
+        /\bagenda transaccional en actualizacion\b/i,
+        /\bruta clinica con ejecucion por etapas\b/i,
+        /\brespuesta de referencia\b/i,
     ],
     en: [
         /\bprotocol,\s*evidence,\s*follow-up\b/i,
         /\bnever empty promises\b/i,
         /\bcorporate block\b/i,
         /\bv6 recalibration\b/i,
+        /\btransactional schedule in update\b/i,
+        /\bclinical route with staged execution\b/i,
+        /\breference answer\b/i,
     ],
 };
 const terminologyRequiredByLocale = {
@@ -136,6 +142,14 @@ function inspectStructuredCopy(locale, rel, payload, findings) {
             locale,
             rel,
             findings,
+            payload?.bookingStatus?.title,
+            8,
+            'copy_length.booking_title'
+        );
+        checkMaxWords(
+            locale,
+            rel,
+            findings,
             payload?.bookingStatus?.description,
             30,
             'copy_length.booking_description'
@@ -167,6 +181,22 @@ function inspectStructuredCopy(locale, rel, payload, findings) {
         const sections = Array.isArray(payload?.sections)
             ? payload.sections
             : [];
+        checkMaxWords(
+            locale,
+            rel,
+            findings,
+            payload?.introTitle,
+            16,
+            'copy_length.hub_intro_title'
+        );
+        checkMaxWords(
+            locale,
+            rel,
+            findings,
+            payload?.introDeck,
+            26,
+            'copy_length.hub_intro_deck'
+        );
         sections.forEach((section) => {
             checkMaxWords(
                 locale,
@@ -196,6 +226,22 @@ function inspectStructuredCopy(locale, rel, payload, findings) {
                 );
             });
         });
+        checkMaxWords(
+            locale,
+            rel,
+            findings,
+            payload?.bookingStatus?.title,
+            8,
+            'copy_length.booking_title'
+        );
+        checkMaxWords(
+            locale,
+            rel,
+            findings,
+            payload?.bookingStatus?.description,
+            30,
+            'copy_length.booking_description'
+        );
     }
 
     if (rel.endsWith('/service.json')) {
@@ -211,6 +257,14 @@ function inspectStructuredCopy(locale, rel, payload, findings) {
             const faqAnswers = Array.isArray(service?.faqAnswers)
                 ? service.faqAnswers
                 : [];
+            checkMaxWords(
+                locale,
+                rel,
+                findings,
+                service?.lead,
+                24,
+                'copy_length.service_lead'
+            );
 
             if (faqAnswers.length !== faq.length) {
                 findings.push({
@@ -257,6 +311,22 @@ function inspectStructuredCopy(locale, rel, payload, findings) {
                 answerUsage.set(normalized, prev + 1);
             });
         });
+        checkMaxWords(
+            locale,
+            rel,
+            findings,
+            payload?.ui?.bookingStatus?.title,
+            8,
+            'copy_length.booking_title'
+        );
+        checkMaxWords(
+            locale,
+            rel,
+            findings,
+            payload?.ui?.bookingStatus?.description,
+            30,
+            'copy_length.booking_description'
+        );
 
         for (const [answer, count] of answerUsage.entries()) {
             if (count > 2) {
@@ -269,6 +339,41 @@ function inspectStructuredCopy(locale, rel, payload, findings) {
                 });
             }
         }
+    }
+
+    if (rel.endsWith('/telemedicine.json')) {
+        checkMaxWords(
+            locale,
+            rel,
+            findings,
+            payload?.lead,
+            22,
+            'copy_length.tele_lead'
+        );
+        checkMaxWords(
+            locale,
+            rel,
+            findings,
+            payload?.ui?.thesis?.title,
+            12,
+            'copy_length.tele_thesis_title'
+        );
+        checkMaxWords(
+            locale,
+            rel,
+            findings,
+            payload?.bookingStatus?.title,
+            8,
+            'copy_length.booking_title'
+        );
+        checkMaxWords(
+            locale,
+            rel,
+            findings,
+            payload?.bookingStatus?.description,
+            30,
+            'copy_length.booking_description'
+        );
     }
 }
 

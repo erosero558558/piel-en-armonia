@@ -51,6 +51,10 @@ test('public-v6 copy contract: required ui labels exist in ES and EN', () => {
             'ui.pageHead.breadcrumbAria',
             'ui.pageHead.pageNavigationTitle',
             'ui.footer.policyAria',
+            'header.menuLabel',
+            'header.closeMenuLabel',
+            'header.switchLabel',
+            'header.switchHref',
         ],
         'home.json': [
             'hero.labels.prev',
@@ -61,6 +65,7 @@ test('public-v6 copy contract: required ui labels exist in ES and EN', () => {
             'editorial.ctaLabel',
             'corporateMatrix.ctaLabel',
             'bookingStatus.eyebrow',
+            'bookingStatus.ctaHref',
         ],
         'hub.json': [
             'ui.menu.featured',
@@ -68,6 +73,7 @@ test('public-v6 copy contract: required ui labels exist in ES and EN', () => {
             'ui.ctaLabel',
             'ui.railAria',
             'bookingStatus.eyebrow',
+            'bookingStatus.ctaHref',
         ],
         'service.json': [
             'ui.menu.glance',
@@ -76,6 +82,7 @@ test('public-v6 copy contract: required ui labels exist in ES and EN', () => {
             'ui.sections.relatedTitle',
             'ui.relatedCta',
             'ui.bookingStatus.title',
+            'ui.bookingStatus.ctaHref',
         ],
         'telemedicine.json': [
             'ui.menu.initiatives',
@@ -83,6 +90,7 @@ test('public-v6 copy contract: required ui labels exist in ES and EN', () => {
             'ui.initiatives.ctaLabel',
             'ui.blockCtaLabel',
             'bookingStatus.eyebrow',
+            'bookingStatus.ctaHref',
         ],
         'legal.json': [
             'ui.breadcrumb.home',
@@ -114,6 +122,9 @@ test('public-v6 copy contract: service FAQ answers are explicit per route', () =
         const fallback = String(json?.ui?.faqAnswerNote || '')
             .trim()
             .toLowerCase();
+        const internalFallback = String(json?.ui?.internalMessageFallback || '')
+            .trim()
+            .toLowerCase();
         const services = Array.isArray(json.services) ? json.services : [];
         assert.ok(services.length > 0, `${file}: services must not be empty`);
 
@@ -123,6 +134,23 @@ test('public-v6 copy contract: service FAQ answers are explicit per route', () =
             const faqAnswers = Array.isArray(service.faqAnswers)
                 ? service.faqAnswers
                 : [];
+
+            assert.equal(
+                typeof service.lead,
+                'string',
+                `${label}: lead must be string`
+            );
+            assert.ok(
+                service.lead.trim().length > 0,
+                `${label}: lead must not be empty`
+            );
+            if (internalFallback) {
+                assert.notEqual(
+                    service.lead.trim().toLowerCase(),
+                    internalFallback,
+                    `${label}: lead must not fallback to generic internal message`
+                );
+            }
 
             assert.equal(
                 faqAnswers.length,
