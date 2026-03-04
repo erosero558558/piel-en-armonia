@@ -30,11 +30,15 @@ const menuPanelId = 'v6-page-menu-panel';
                     ))
                 }
             </nav>
-            <div class="v6-corp-head__tools">
+            <div class="v6-corp-head__tools" data-v6-page-tools>
                 <div class="v6-corp-head__lang" aria-label={locale === 'en' ? 'Language switch' : 'Selector de idioma'}>
-                    {switchLabel ? <a href={switchHref}>{switchLabel}</a> : null}
-                    <span aria-hidden="true">|</span>
-                    <strong>{activeLang}</strong>
+                    {switchLabel ? (
+                        <a class="v6-corp-head__lang-option" href={switchHref}>
+                            {switchLabel}
+                        </a>
+                    ) : null}
+                    <span aria-hidden="true">/</span>
+                    <strong class="v6-corp-head__lang-option is-active">{activeLang}</strong>
                 </div>
                 <button
                     class="v6-corp-head__menu"
@@ -45,7 +49,7 @@ const menuPanelId = 'v6-page-menu-panel';
                     aria-controls={menuPanelId}
                 >
                     {menuLabel}
-                    <span aria-hidden="true">v</span>
+                    <span class="v6-corp-head__menu-icon" aria-hidden="true">v</span>
                 </button>
                 <div
                     id={menuPanelId}

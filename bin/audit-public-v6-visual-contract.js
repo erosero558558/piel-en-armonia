@@ -141,7 +141,7 @@ function addCheck(checks, id, desc, pass, meta) {
 }
 
 async function run() {
-    const minCheckpoints = Number(parseArg('--min-checkpoints', 100));
+    const minCheckpoints = Number(parseArg('--min-checkpoints', 104));
     const strict = process.argv.includes('--strict');
     const baseURL = process.env.TEST_BASE_URL || 'http://127.0.0.1:8000';
 
@@ -624,6 +624,28 @@ async function run() {
                 ? (pageHead.querySelector('h1') || {}).textContent || ''
                 : '';
             const langControl = document.querySelector('.v6-corp-head__lang');
+            const pageTools = document.querySelector('[data-v6-page-tools]');
+            const pageMenuButton = document.querySelector(
+                '[data-v6-page-menu]'
+            );
+            const pageMenuPanel = document.querySelector(
+                '[data-v6-page-menu-panel]'
+            );
+            const pageHeadInner = document.querySelector(
+                '.v6-corp-head__inner'
+            );
+            const toolsRect = pageTools
+                ? pageTools.getBoundingClientRect()
+                : null;
+            const innerRect = pageHeadInner
+                ? pageHeadInner.getBoundingClientRect()
+                : null;
+            const langStyle = langControl
+                ? getComputedStyle(langControl)
+                : null;
+            const menuButtonStyle = pageMenuButton
+                ? getComputedStyle(pageMenuButton)
+                : null;
             const heroImage = document.querySelector('.v6-page-hero-media img');
             const heroRect = heroImage
                 ? heroImage.getBoundingClientRect()
@@ -718,6 +740,30 @@ async function run() {
                 crumbCount: crumbs,
                 title,
                 hasLangControl: Boolean(langControl),
+                hasPageTools: Boolean(pageTools),
+                hasPageMenuButton: Boolean(pageMenuButton),
+                pageMenuPanelHasLinks: Boolean(
+                    pageMenuPanel &&
+                    pageMenuPanel.querySelectorAll('[data-v6-page-menu-link]')
+                        .length > 0
+                ),
+                pageMenuButtonHeight: menuButtonStyle
+                    ? Number.parseFloat(menuButtonStyle.height || '0')
+                    : 0,
+                pageMenuButtonWidth: menuButtonStyle
+                    ? Number.parseFloat(menuButtonStyle.width || '0')
+                    : 0,
+                langFontSize: langStyle
+                    ? Number.parseFloat(langStyle.fontSize || '0')
+                    : 0,
+                langHasSlash: Boolean(
+                    langControl && /\/|\|/.test(langControl.textContent || '')
+                ),
+                toolsRightAligned: Boolean(
+                    toolsRect &&
+                    innerRect &&
+                    Math.abs(toolsRect.right - innerRect.right) <= 28
+                ),
                 heroFullBleed: Boolean(
                     heroRect && heroRect.width >= viewportW * 0.9
                 ),
@@ -740,6 +786,52 @@ async function run() {
                 hasInitiativesMenuLink,
                 hasFeaturedMenuLink,
                 featuredBeforeCatalog,
+            };
+        });
+
+        const hubMenuButton = desktopPage
+            .locator('[data-v6-page-menu]')
+            .first();
+        const hubMenuPanel = desktopPage
+            .locator('[data-v6-page-menu-panel]')
+            .first();
+        await hubMenuButton.click();
+        const hubMenuOpen = await desktopPage.evaluate(() => {
+            const button = document.querySelector('[data-v6-page-menu]');
+            const panel = document.querySelector('[data-v6-page-menu-panel]');
+            return {
+                buttonExpanded: Boolean(
+                    button && button.getAttribute('aria-expanded') === 'true'
+                ),
+                panelVisible: Boolean(panel && !panel.hidden),
+            };
+        });
+        await hubMenuButton.focus();
+        await desktopPage.keyboard.press('ArrowDown');
+        const hubMenuKeyboard = await desktopPage.evaluate(() => {
+            const panel = document.querySelector('[data-v6-page-menu-panel]');
+            const active = document.activeElement;
+            const firstLink = panel
+                ? panel.querySelector('[data-v6-page-menu-link]')
+                : null;
+            return {
+                firstLinkFocused: Boolean(firstLink && active === firstLink),
+                focusedTag: active ? active.tagName.toLowerCase() : '',
+                panelVisible: Boolean(panel && !panel.hidden),
+            };
+        });
+        await desktopPage.keyboard.press('Escape');
+        const hubMenuEsc = await desktopPage.evaluate(() => {
+            const button = document.querySelector('[data-v6-page-menu]');
+            const panel = document.querySelector('[data-v6-page-menu-panel]');
+            return {
+                buttonExpanded: Boolean(
+                    button && button.getAttribute('aria-expanded') === 'true'
+                ),
+                panelHidden: Boolean(panel && panel.hidden),
+                focusReturned: Boolean(
+                    button && document.activeElement === button
+                ),
             };
         });
 
@@ -1941,6 +2033,62 @@ async function run() {
                 headerHeight: megaRuntime.headerHeight,
                 megaClosedEsc,
                 megaBackdropHiddenEsc,
+            }
+        );
+        addCheck(
+            checks,
+            'VC-101',
+            'internal page tools expose language switch and page menu controls',
+            desktopHub.hasPageTools &&
+                desktopHub.hasLangControl &&
+                desktopHub.hasPageMenuButton &&
+                desktopHub.pageMenuPanelHasLinks,
+            {
+                hasPageTools: desktopHub.hasPageTools,
+                hasLangControl: desktopHub.hasLangControl,
+                hasPageMenuButton: desktopHub.hasPageMenuButton,
+                pageMenuPanelHasLinks: desktopHub.pageMenuPanelHasLinks,
+            }
+        );
+        addCheck(
+            checks,
+            'VC-102',
+            'page menu click toggles expanded state and opens panel',
+            hubMenuOpen.buttonExpanded && hubMenuOpen.panelVisible,
+            hubMenuOpen
+        );
+        addCheck(
+            checks,
+            'VC-103',
+            'page menu keyboard open focuses first link and Escape returns focus',
+            hubMenuKeyboard.firstLinkFocused &&
+                hubMenuKeyboard.panelVisible &&
+                hubMenuEsc.panelHidden &&
+                !hubMenuEsc.buttonExpanded &&
+                hubMenuEsc.focusReturned,
+            {
+                hubMenuKeyboard,
+                hubMenuEsc,
+            }
+        );
+        addCheck(
+            checks,
+            'VC-104',
+            'page tools keep sony-like geometry for language and menu button',
+            desktopHub.toolsRightAligned &&
+                desktopHub.langHasSlash &&
+                desktopHub.langFontSize >= 11 &&
+                desktopHub.langFontSize <= 14.5 &&
+                desktopHub.pageMenuButtonHeight >= 24 &&
+                desktopHub.pageMenuButtonHeight <= 34 &&
+                desktopHub.pageMenuButtonWidth >= 44 &&
+                desktopHub.pageMenuButtonWidth <= 110,
+            {
+                toolsRightAligned: desktopHub.toolsRightAligned,
+                langHasSlash: desktopHub.langHasSlash,
+                langFontSize: desktopHub.langFontSize,
+                pageMenuButtonHeight: desktopHub.pageMenuButtonHeight,
+                pageMenuButtonWidth: desktopHub.pageMenuButtonWidth,
             }
         );
 

@@ -11,10 +11,10 @@ Contrato estricto para `/es/` y `/en/` con extensiones a hub/service/tele/legal.
 ## Scoring rule
 
 - 1 punto por checkpoint cumplido.
-- `pass` requiere `>= 100/100` checkpoints obligatorios.
+- `pass` requiere `>= 104/104` checkpoints obligatorios.
 - Auditoria automatica: `bin/audit-public-v6-visual-contract.js`.
 
-## 100 Checkpoints
+## 104 Checkpoints
 
 | ID     | Bloque          | Criterio estricto                                                         | Evidencia |
 | ------ | --------------- | ------------------------------------------------------------------------- | --------- |
@@ -118,6 +118,10 @@ Contrato estricto para `/es/` y `/en/` con extensiones a hub/service/tele/legal.
 | VC-98  | Header          | Abrir mega activa backdrop visible y estado abierto del header            | D         |
 | VC-99  | Header          | Click en backdrop cierra mega y limpia backdrop                           | D         |
 | VC-100 | Header          | Top del backdrop alinea con base del header y Escape lo oculta            | D         |
+| VC-101 | Internas        | Barra de herramientas interna muestra idioma + menu de pagina             | F,G       |
+| VC-102 | Internas        | Click en menu de pagina abre panel y actualiza estado expandido           | F,G       |
+| VC-103 | Internas        | Teclado abre menu, enfoca primer link y Escape devuelve foco al boton     | F,G       |
+| VC-104 | Internas        | Geometria de idioma/menu en rango Sony-like (tamano/posicion)             | F,G       |
 
 ## Geometry tolerances
 
