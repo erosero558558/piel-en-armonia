@@ -1,20 +1,20 @@
 ---
 const { item = {}, navModel = {}, locale = 'es' } = Astro.props;
-const switchLabel = navModel?.header?.switchLabel || (locale === 'en' ? 'ES' : 'EN');
-const switchHref = navModel?.header?.switchHref || (locale === 'en' ? '/es/' : '/en/');
+const switchLabel = navModel?.header?.switchLabel || '';
+const switchHref = navModel?.header?.switchHref || '#';
 const activeLang = locale === 'en' ? 'EN' : 'ES';
 ---
 
 <section class="v6-news-strip" data-v6-news-strip>
     <div class="v6-news-strip__left">
-        <span>{item.label || (locale === 'en' ? 'Latest News' : 'Novedad') }</span>
-        <button type="button" aria-label={locale === 'en' ? 'Expand' : 'Expandir'}>
+        <span>{item.label || ''}</span>
+        <button type="button" aria-label={item.expandLabel || ''}>
             <span aria-hidden="true">v</span>
         </button>
     </div>
     <div class="v6-news-strip__right">
         <a class="v6-news-strip__headline" href={item.href || '#'}>{item.headline || ''}</a>
-        <div class="v6-news-strip__locale" aria-label={locale === 'en' ? 'Language switch' : 'Selector de idioma'}>
+        <div class="v6-news-strip__locale" aria-label={item.localeAria || ''}>
             <strong>{activeLang}</strong>
             <span aria-hidden="true">/</span>
             <a class="v6-news-strip__lang" href={switchHref}>{switchLabel}</a>

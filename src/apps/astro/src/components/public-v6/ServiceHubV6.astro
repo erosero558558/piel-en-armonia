@@ -7,6 +7,11 @@ const breadcrumb = Array.isArray(page.breadcrumb) ? page.breadcrumb : [];
 const sections = Array.isArray(page.sections) ? page.sections : [];
 const featured = Array.isArray(page.featured) ? page.featured : [];
 const initiatives = Array.isArray(page.initiatives) ? page.initiatives : [];
+const ui = page?.ui && typeof page.ui === 'object' ? page.ui : {};
+const menuUi = ui.menu && typeof ui.menu === 'object' ? ui.menu : {};
+const featuredUi = ui.featured && typeof ui.featured === 'object' ? ui.featured : {};
+const initiativesUi = ui.initiatives && typeof ui.initiatives === 'object' ? ui.initiatives : {};
+const pageHeadUi = navModel?.ui?.pageHead && typeof navModel.ui.pageHead === 'object' ? navModel.ui.pageHead : {};
 const sectionLinks = sections.map((section, index) => ({
     id: section.id || `section-${index + 1}`,
     title: section.title || '',
@@ -14,7 +19,7 @@ const sectionLinks = sections.map((section, index) => ({
 const pageMenuItems = [];
 if (featured.length) {
     pageMenuItems.push({
-        label: locale === 'en' ? 'Featured programs' : 'Programas destacados',
+        label: menuUi.featured || '',
         href: '#v6-hub-featured',
     });
 }
@@ -24,15 +29,17 @@ pageMenuItems.push(...sectionLinks.map((section) => ({
 })));
 if (initiatives.length) {
     pageMenuItems.push({
-        label: locale === 'en' ? 'New initiatives' : 'Nuevas iniciativas',
+        label: menuUi.initiatives || '',
         href: '#v6-hub-initiatives',
     });
 }
-const switchLabel = navModel?.header?.switchLabel || (locale === 'en' ? 'ES' : 'EN');
-const switchHref = navModel?.header?.switchHref || (locale === 'en' ? '/es/' : '/en/');
-const menuLabel = navModel?.header?.menuLabel || 'Menu';
-const ctaLabel = locale === 'en' ? 'Learn more' : 'Conocer mas';
-const routeLabel = locale === 'en' ? 'routes' : 'rutas';
+const switchLabel = navModel?.header?.switchLabel || '';
+const switchHref = navModel?.header?.switchHref || '#';
+const menuLabel = navModel?.header?.menuLabel || '';
+const ctaLabel = ui.ctaLabel || '';
+const routeLabel = ui.routeLabel || '';
+const sectionLabelPrefix = ui.sectionLabelPrefix || '';
+const railAria = ui.railAria || '';
 ---
 
 <PageHeadV6
@@ -43,6 +50,7 @@ const routeLabel = locale === 'en' ? 'routes' : 'rutas';
     switchHref={switchHref}
     menuLabel={menuLabel}
     menuItems={pageMenuItems}
+    copy={pageHeadUi}
 />
 
 <section class="v6-page-hero-media">
@@ -58,8 +66,8 @@ const routeLabel = locale === 'en' ? 'routes' : 'rutas';
     featured.length ? (
         <section id="v6-hub-featured" class="v6-hub-featured" data-v6-hub-featured>
             <header class="v6-hub-featured__head">
-                <p>{locale === 'en' ? 'Business highlights' : 'Destacados corporativos'}</p>
-                <h2>{locale === 'en' ? 'Core programs' : 'Programas principales'}</h2>
+                <p>{featuredUi.eyebrow || ''}</p>
+                <h2>{featuredUi.title || ''}</h2>
             </header>
             <div class="v6-hub-featured__grid">
                 {
@@ -87,7 +95,7 @@ const routeLabel = locale === 'en' ? 'routes' : 'rutas';
 
 {
     sectionLinks.length ? (
-        <nav class="v6-catalog-rail" data-v6-catalog-rail aria-label={locale === 'en' ? 'Service sections' : 'Secciones de servicios'}>
+        <nav class="v6-catalog-rail" data-v6-catalog-rail aria-label={railAria}>
             {
                 sectionLinks.map((section) => (
                     <a href={`#v6-${section.id}`}>{section.title}</a>
@@ -103,7 +111,7 @@ const routeLabel = locale === 'en' ? 'routes' : 'rutas';
             <article class="v6-catalog-block" id={`v6-${section.id || `section-${sectionIndex + 1}`}`} data-v6-catalog-block>
                 <header class="v6-catalog-block__head">
                     <div>
-                        <p>{locale === 'en' ? `Section ${String(sectionIndex + 1).padStart(2, '0')}` : `Seccion ${String(sectionIndex + 1).padStart(2, '0')}`}</p>
+                        <p>{sectionLabelPrefix} {String(sectionIndex + 1).padStart(2, '0')}</p>
                         <h2>{section.title}</h2>
                         {section.deck ? <span class="v6-catalog-block__deck">{section.deck}</span> : null}
                     </div>
@@ -148,8 +156,8 @@ const routeLabel = locale === 'en' ? 'routes' : 'rutas';
     initiatives.length ? (
         <section id="v6-hub-initiatives" class="v6-hub-initiatives" data-v6-hub-initiatives>
             <header class="v6-hub-initiatives__head">
-                <p>{locale === 'en' ? 'Program extension' : 'Extension de programa'}</p>
-                <h2>{locale === 'en' ? 'New Initiatives' : 'Nuevas iniciativas'}</h2>
+                <p>{initiativesUi.eyebrow || ''}</p>
+                <h2>{initiativesUi.title || ''}</h2>
             </header>
             <div class="v6-hub-initiatives__grid">
                 {

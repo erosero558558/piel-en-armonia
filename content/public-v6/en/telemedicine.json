@@ -1,75 +1,118 @@
 {
     "title": "Telemedicine | Piel en Armonia",
-    "description": "Remote dermatology route with triage, escalation criteria, and clinical continuity.",
+    "description": "Remote dermatology consultation with triage, escalation criteria, and clinical continuity in Quito.",
     "breadcrumb": [
-        { "label": "Home", "href": "/en/" },
-        { "label": "Telemedicine", "href": "/en/telemedicine/" }
+        {
+            "label": "Home",
+            "href": "/en/"
+        },
+        {
+            "label": "Telemedicine",
+            "href": "/en/telemedicine/"
+        }
     ],
-    "heading": "Dermatology Telemedicine",
+    "heading": "Dermatology telemedicine",
     "heroImage": {
         "src": "/images/optimized/service-telemedicina.webp",
         "srcset": "/images/optimized/service-telemedicina-400.webp 400w, /images/optimized/service-telemedicina.webp 900w",
         "alt": "Remote dermatology consultation"
     },
-    "lead": "Remote consultation works when it increases diagnostic clarity and lowers decision friction.",
+    "lead": "Telemedicine works when it adds diagnosis clarity and shortens decision time.",
+    "ui": {
+        "menu": {
+            "initiatives": "Remote initiatives",
+            "bookingStatus": "Schedule status"
+        },
+        "thesis": {
+            "eyebrow": "Remote clinical design",
+            "title": "Online consultation when criteria supports it",
+            "body": "The remote route defines clear limits: what can be managed online, what needs monitoring, and when to escalate in clinic."
+        },
+        "statement": {
+            "eyebrow": "Remote clinical direction",
+            "title": "Useful telemedicine with timely escalation",
+            "signature": "Hybrid protocol in Quito",
+            "image": "/images/optimized/team-narvaez.webp",
+            "alt": "Telemedicine clinical direction"
+        },
+        "internalMessage": {
+            "description": "We assess context, risk, and progression to decide whether you continue remotely or need in-clinic care."
+        },
+        "rail": {
+            "title": "Flow map",
+            "aria": "Telemedicine sections"
+        },
+        "kpis": {
+            "blocks": "Route blocks",
+            "criteria": "Clinical criteria",
+            "model": "Escalation model",
+            "modelValue": "Hybrid"
+        },
+        "initiatives": {
+            "aria": "Telemedicine initiatives",
+            "ctaLabel": "Open section"
+        },
+        "blockCtaLabel": "Review schedule status"
+    },
     "blocks": [
         {
             "title": "How it works",
             "items": [
-                "You share background information and clinical photos with context.",
-                "Medical priority and remote resolution probability are defined.",
-                "Initial plan, prescription when needed, and review timing are set.",
-                "Risk signals trigger immediate in-person escalation."
+                "You share clinical history and contextual photos.",
+                "We define priority and probability of remote resolution.",
+                "We provide an initial plan and review timing when needed.",
+                "If risk signals appear, we escalate to immediate in-clinic care."
             ]
         },
         {
             "title": "When it usually fits",
             "items": [
-                "Known inflammatory flares",
-                "Active treatment follow-up",
-                "Questions about symptom evolution",
+                "Previously diagnosed inflammatory flares",
+                "Follow-up of active treatment plans",
+                "Questions about progression between visits",
                 "Guidance before traveling to clinic"
             ]
         },
         {
-            "title": "When to escalate",
+            "title": "When escalation is required",
             "items": [
                 "Rapidly changing or bleeding lesions",
                 "Intense pain or accelerated spread",
                 "Insufficient response to remote protocol",
-                "Need for in-clinic diagnostic procedure"
+                "Need for an in-clinic diagnostic procedure"
             ]
         }
     ],
     "initiatives": [
         {
             "title": "Visual triage",
-            "copy": "Early classification with contextual clinical images to prioritize risk.",
+            "copy": "Early reading with clinical images to prioritize risk and response time.",
             "image": "/images/optimized/showcase-diagnostic.webp",
             "href": "#v6-tele-block-1"
         },
         {
             "title": "Flare control",
-            "copy": "Remote follow-up for inflammatory cases with response-based adjustments.",
+            "copy": "Remote adjustments in inflammatory cases to avoid progression between reviews.",
             "image": "/images/optimized/service-acne.webp",
             "href": "#v6-tele-block-2"
         },
         {
             "title": "In-clinic escalation",
-            "copy": "Referral to the clinic when warning signs appear or procedures are required.",
+            "copy": "Referral to clinic when lesion behavior or pain requires direct evaluation.",
             "image": "/images/optimized/showcase-clinic.webp",
             "href": "#v6-tele-block-3"
         },
         {
             "title": "Quito continuity",
-            "copy": "Clinical sequencing for patients in Quito with remote review and in-person care when needed.",
+            "copy": "Hybrid route for Quito patients with remote follow-up and timely in-clinic review.",
             "image": "/images/optimized/service-telemedicina.webp",
             "href": "#v6-booking-status"
         }
     ],
     "bookingStatus": {
+        "eyebrow": "Schedule status",
         "title": "Transactional schedule in update",
-        "description": "Booking form and payment return in the next V6 phase. Medical guidance and triage criteria remain active now.",
+        "description": "Booking form returns in the next phase. For now, this route stays active for first clinical guidance.",
         "ctaLabel": "Open services",
         "ctaHref": "/en/services/"
     }

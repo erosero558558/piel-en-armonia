@@ -5,6 +5,7 @@ const locale = navModel?.locale === 'en' ? 'en' : 'es';
 const header = navModel?.header && typeof navModel.header === 'object' ? navModel.header : {};
 const mega = navModel?.mega && typeof navModel.mega === 'object' ? navModel.mega : {};
 const brand = navModel?.brand && typeof navModel.brand === 'object' ? navModel.brand : {};
+const headerUi = navModel?.ui?.header && typeof navModel.ui.header === 'object' ? navModel.ui.header : {};
 const links = Array.isArray(header.links) ? header.links : [];
 
 const normalizePath = (value) => {
@@ -29,7 +30,7 @@ const megaLink = links.find((item) => item.kind === 'mega') || null;
 const standardLinks = links.filter((item) => item.kind !== 'mega');
 const megaColumns = Array.isArray(mega.columns) ? mega.columns : [];
 const megaPanelId = 'v6-mega-panel';
-const megaLabel = mega.title || (locale === 'en' ? 'Programs & Protocols' : 'Programas y Protocolos');
+const megaLabel = mega.title || '';
 const megaRootHref = megaLink?.href || homeHref;
 
 const getColumnContext = (column) => (column?.context && typeof column.context === 'object' ? column.context : null);
@@ -38,11 +39,11 @@ const getColumnContext = (column) => (column?.context && typeof column.context =
 <header class="v6-header" data-v6-header>
     <div class="v6-header__bar">
         <a class="v6-header__logo" href={homeHref}>
-            <span class="v6-header__logo-mark">{brand.logo || 'Piel en Armonia'}</span>
-            <small class="v6-header__logo-tag">{brand.tag || (locale === 'en' ? 'Precision dermatology' : 'Dermatologia de precision')}</small>
+            <span class="v6-header__logo-mark">{brand.logo || ''}</span>
+            <small class="v6-header__logo-tag">{brand.tag || ''}</small>
         </a>
 
-        <nav class="v6-header__nav" aria-label={locale === 'en' ? 'Primary navigation' : 'Navegacion principal'}>
+        <nav class="v6-header__nav" aria-label={headerUi.primaryNavAria || ''}>
             {
                 standardLinks.slice(0, 1).map((link) => (
                     <a class:list={['v6-header__link', isActive(link.href) && 'is-active']} href={link.href}>{link.label}</a>
@@ -70,8 +71,8 @@ const getColumnContext = (column) => (column?.context && typeof column.context =
         </nav>
 
         <div class="v6-header__actions">
-            <a class="v6-header__contact" href={header.contactHref || '#'} target="_blank" rel="noopener noreferrer">{header.contactLabel || (locale === 'en' ? 'Contact Us' : 'Contacto')}</a>
-            <button class="v6-header__search" type="button" aria-label={header.searchLabel || (locale === 'en' ? 'Search' : 'Buscar')}>
+            <a class="v6-header__contact" href={header.contactHref || '#'} target="_blank" rel="noopener noreferrer">{header.contactLabel || ''}</a>
+            <button class="v6-header__search" type="button" aria-label={header.searchLabel || ''}>
                 <span aria-hidden="true">&#9906;</span>
             </button>
             <button class="v6-header__menu" type="button" data-v6-drawer-open aria-label={header.menuLabel || 'Menu'}>{header.menuLabel || 'Menu'}</button>
@@ -85,14 +86,14 @@ const getColumnContext = (column) => (column?.context && typeof column.context =
                     <span>{megaLabel}</span>
                     <span class="v6-mega__arrow" aria-hidden="true">&gt;</span>
                 </a>
-                <button type="button" data-v6-mega-close aria-label={mega.closeLabel || (locale === 'en' ? 'Close panel' : 'Cerrar panel')}>&times;</button>
+                <button type="button" data-v6-mega-close aria-label={mega.closeLabel || ''}>&times;</button>
             </div>
 
             <div class="v6-mega__menu" data-v6-mega-layout>
                 <nav
                     class="v6-mega__categories"
                     data-v6-mega-categories
-                    aria-label={locale === 'en' ? 'Mega category tabs' : 'Pestanas de categoria del mega menu'}
+                    aria-label={headerUi.megaCategoryTabsAria || ''}
                 >
                     {
                         megaColumns.map((column, index) => {
@@ -131,11 +132,11 @@ const getColumnContext = (column) => (column?.context && typeof column.context =
                                     hidden={index !== 0}
                                 >
                                     <a class="v6-mega__context" href={sectionHref} data-v6-mega-focusable>
-                                        <p>{context?.eyebrow || (locale === 'en' ? 'Category context' : 'Contexto de categoria')}</p>
+                                        <p>{context?.eyebrow || ''}</p>
                                         <h3>{context?.title || column.heading}</h3>
                                         {context?.deck ? <p>{context.deck}</p> : null}
                                         <strong>
-                                            {locale === 'en' ? 'Open category' : 'Abrir categoria'}
+                                            {headerUi.openCategoryLabel || ''}
                                             <span aria-hidden="true">&gt;</span>
                                         </strong>
                                     </a>
@@ -176,10 +177,10 @@ const getColumnContext = (column) => (column?.context && typeof column.context =
 
     <div class="v6-drawer" data-v6-drawer hidden>
         <div class="v6-drawer__scrim" data-v6-drawer-close></div>
-        <aside class="v6-drawer__panel" aria-label={locale === 'en' ? 'Mobile navigation' : 'Navegacion movil'}>
+        <aside class="v6-drawer__panel" aria-label={headerUi.mobileNavAria || ''}>
             <header>
-                <strong>{brand.logo || 'Piel en Armonia'}</strong>
-                <button type="button" data-v6-drawer-close>{header.closeMenuLabel || (locale === 'en' ? 'Close' : 'Cerrar')}</button>
+                <strong>{brand.logo || ''}</strong>
+                <button type="button" data-v6-drawer-close>{header.closeMenuLabel || ''}</button>
             </header>
             <nav>
                 {
@@ -231,8 +232,8 @@ const getColumnContext = (column) => (column?.context && typeof column.context =
                 }
             </section>
             <footer>
-                <a href={header.switchHref || (locale === 'en' ? '/es/' : '/en/')}>{header.switchLabel || (locale === 'en' ? 'ES' : 'EN')}</a>
-                <a href={header.contactHref || '#'} target="_blank" rel="noopener noreferrer">{header.contactLabel || (locale === 'en' ? 'Contact Us' : 'Contacto')}</a>
+                <a href={header.switchHref || '#'}>{header.switchLabel || ''}</a>
+                <a href={header.contactHref || '#'} target="_blank" rel="noopener noreferrer">{header.contactLabel || ''}</a>
             </footer>
         </aside>
     </div>

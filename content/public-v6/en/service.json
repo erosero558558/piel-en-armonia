@@ -1,31 +1,84 @@
 {
-    "title": "Service Detail | Piel en Armonia",
-    "description": "V6 dermatology route files with premium narrative and clinical decision criteria.",
+    "title": "Service detail | Piel en Armonia",
+    "description": "Dermatology route files with clinical criteria, clear stages, and measurable follow-up.",
+    "voiceNote": "In every route, you receive clear clinical explanation before any intervention is decided.",
+    "ui": {
+        "menu": {
+            "glance": "Clinical glance",
+            "checkpoints": "Clinical checkpoints",
+            "process": "Process",
+            "faq": "Frequently asked questions",
+            "related": "Related routes",
+            "booking": "Schedule status"
+        },
+        "breadcrumb": {
+            "home": "Home",
+            "hub": "Services"
+        },
+        "thesis": {
+            "eyebrow": "Clinical editorial",
+            "titleSuffix": "with criteria and continuity",
+            "body": "Each stage defines what to observe, what to decide, and when to escalate to protect progression."
+        },
+        "statement": {
+            "eyebrow": "Medical direction",
+            "titleTemplate": "{service} starts with criteria before intervention",
+            "signature": "Clinical direction, Quito",
+            "image": "/images/optimized/team-rosero.webp",
+            "alt": "Clinical direction at Piel en Armonia"
+        },
+        "internalMessageFallback": "Clinical route with staged execution and measurable follow-up.",
+        "rail": {
+            "title": "Route map",
+            "aria": "Route sections"
+        },
+        "glance": {
+            "routeType": "Route type",
+            "checkpoints": "Clinical checkpoints",
+            "processStages": "Process stages"
+        },
+        "sections": {
+            "checkpointsTitle": "Clinical checkpoints",
+            "processTitle": "Clinical process",
+            "faqTitle": "Frequently asked questions",
+            "relatedTitle": "Related routes"
+        },
+        "faqPrefix": "Q",
+        "faqAnswerNote": "Each answer is resolved in consultation with your clinical context.",
+        "relatedCta": "Open route",
+        "bookingStatus": {
+            "eyebrow": "Schedule status",
+            "title": "Transactional schedule in update",
+            "description": "Digital booking returns in the next phase. Until then, you can continue through telemedicine.",
+            "ctaLabel": "Open telemedicine",
+            "ctaHref": "/en/telemedicine/"
+        }
+    },
     "services": [
         {
             "slug": "diagnostico-integral",
             "category": "Diagnosis",
             "title": "Comprehensive diagnosis",
-            "summary": "Full skin, hair, and nail assessment to build the first care plan.",
+            "summary": "Full skin, hair, and nail reading to define priorities from the first consultation.",
             "heroImage": "/images/optimized/service-consulta.webp",
             "heroAlt": "Comprehensive dermatology consultation",
-            "lead": "The first appointment defines priorities, risk factors, and treatment sequence.",
+            "lead": "This is where your case is ordered: risk, therapeutic focus, and follow-up timing.",
             "bullets": [
                 "Structured history intake",
-                "Active lesion review",
-                "Follow-up map",
-                "Daily care guidance"
+                "Full dermatology examination",
+                "Stage-based follow-up map",
+                "Daily care indications"
             ],
             "process": [
-                "Entry triage",
+                "Entry and triage",
                 "Clinical reading",
                 "Plan definition",
-                "Scheduled review"
+                "First review"
             ],
             "faq": [
-                "What should I bring?",
-                "Do I need tests before the visit?",
-                "When is progress reviewed?"
+                "What should I bring to the visit?",
+                "Do I need tests before attending?",
+                "When is early progression reviewed?"
             ],
             "related": ["acne-rosacea", "piel-cabello-unas"]
         },
@@ -33,26 +86,26 @@
             "slug": "acne-rosacea",
             "category": "Inflammation",
             "title": "Acne and rosacea",
-            "summary": "Medical control of inflammatory flares and vascular sensitivity.",
+            "summary": "Control of inflammatory flares and sensitivity with realistic medical goals.",
             "heroImage": "/images/optimized/service-acne.webp",
-            "heroAlt": "Medical acne and rosacea route",
-            "lead": "Medication, routine, and review timing are adjusted with realistic goals.",
+            "heroAlt": "Medical acne and rosacea control",
+            "lead": "Treatment and routine are adjusted by response, not by rigid calendar.",
             "bullets": [
                 "Anti-inflammatory control",
-                "Recurrent flare management",
+                "Relapse management",
                 "Mark prevention",
                 "Routine education"
             ],
             "process": [
                 "Severity classification",
-                "Treatment start",
+                "Therapeutic start",
                 "Response adjustment",
                 "Maintenance"
             ],
             "faq": [
                 "When are changes usually visible?",
-                "Can it combine with laser?",
-                "What happens in relapse?"
+                "Can this combine with laser?",
+                "What to do during an intense relapse?"
             ],
             "related": ["peeling-quimico", "diagnostico-integral"]
         },
@@ -60,26 +113,26 @@
             "slug": "verrugas",
             "category": "Procedures",
             "title": "Warts",
-            "summary": "Management of common, plantar, and periungual warts by location.",
+            "summary": "Management of common, plantar, and periungual warts by type and location.",
             "heroImage": "/images/optimized/showcase-treatment.webp",
             "heroAlt": "Dermatology wart procedure",
-            "lead": "Route combines wart classification and the right intervention technique.",
+            "lead": "Technique selection is defined by depth, location, and skin tolerance.",
             "bullets": [
                 "Differential diagnosis",
                 "Technique selection",
-                "Post procedure check",
+                "Post-procedure check",
                 "Recurrence prevention"
             ],
             "process": [
                 "Case review",
-                "Intervention",
-                "Evolution control",
-                "Discharge and watch"
+                "Indicated intervention",
+                "Progress check",
+                "Discharge with watch"
             ],
             "faq": [
                 "How many sessions are common?",
-                "Is it painful?",
-                "Can warts return?"
+                "Is there discomfort during treatment?",
+                "Can the wart come back?"
             ],
             "related": ["diagnostico-integral", "cancer-piel"]
         },
@@ -90,23 +143,23 @@
             "summary": "Route for rough texture and persistent follicular changes.",
             "heroImage": "/images/optimized/showcase-clinic.webp",
             "heroAlt": "Clinical skin texture care",
-            "lead": "Focus is follicular inflammation control and barrier restoration.",
+            "lead": "The strategy combines barrier repair and follicular inflammation control.",
             "bullets": [
-                "Texture diagnosis",
-                "Active hydration routine",
+                "Texture-focused assessment",
+                "Active hydration plan",
                 "Irritant control",
                 "Monthly follow-up"
             ],
             "process": [
-                "Initial review",
+                "Initial evaluation",
                 "Home protocol",
-                "Control and adjustment",
+                "Routine adjustment",
                 "Maintenance"
             ],
             "faq": [
-                "Is this keratosis pilaris?",
-                "How long does treatment take?",
-                "Which products should I avoid?"
+                "Is this always keratosis pilaris?",
+                "How long does texture improvement take?",
+                "Which products should be avoided?"
             ],
             "related": ["acne-rosacea", "piel-cabello-unas"]
         },
@@ -114,26 +167,26 @@
             "slug": "cicatrices",
             "category": "Repair",
             "title": "Scars",
-            "summary": "Combined strategy to improve contour, tone, and texture.",
+            "summary": "Combined strategy to improve contour, tone, and texture by scar type.",
             "heroImage": "/images/optimized/service-laser.webp",
             "heroAlt": "Dermatology scar treatment",
-            "lead": "Technology sequence and home care are defined by scar profile.",
+            "lead": "A staged sequence of technology and care is defined to consolidate progress.",
             "bullets": [
                 "Scar classification",
-                "Combined route",
+                "Phased combined route",
                 "Progress measurement",
                 "New mark prevention"
             ],
             "process": [
                 "Lesion mapping",
-                "Phased intervention",
+                "Sequential intervention",
                 "Visual control",
-                "Result reinforcement"
+                "Outcome reinforcement"
             ],
             "faq": [
-                "Do all scars respond equally?",
-                "How many sessions are expected?",
-                "What aftercare is critical?"
+                "Do all scars respond the same?",
+                "How many sessions are usually required?",
+                "What aftercare is essential?"
             ],
             "related": ["laser-dermatologico", "peeling-quimico"]
         },
@@ -141,26 +194,26 @@
             "slug": "cancer-piel",
             "category": "Screening",
             "title": "Skin cancer",
-            "summary": "Evaluation of suspicious lesions with early reading focus.",
+            "summary": "Suspicious lesion assessment for early risk detection.",
             "heroImage": "/images/optimized/service-cancer.webp",
             "heroAlt": "Early skin cancer screening",
-            "lead": "Priority is risk detection and immediate medical route definition.",
+            "lead": "Priority is warning-sign reading and timely medical direction.",
             "bullets": [
                 "Lesion review",
-                "Warning signs",
-                "Follow-up plan",
+                "Warning-sign detection",
+                "Follow-up planning",
                 "Referral when required"
             ],
             "process": [
-                "Triage",
+                "Initial triage",
                 "Dermatology exam",
-                "Clinical direction",
+                "Direction definition",
                 "Periodic review"
             ],
             "faq": [
                 "How often should moles be checked?",
-                "What signs require urgent consultation?",
-                "Can this start via telemedicine?"
+                "Which signs require urgent consultation?",
+                "Can this route start through telemedicine?"
             ],
             "related": ["diagnostico-integral", "telemedicina"]
         },
@@ -168,26 +221,26 @@
             "slug": "peeling-quimico",
             "category": "Procedures",
             "title": "Chemical peel",
-            "summary": "Skin renewal route for tone, texture, and selected pigmentation issues.",
+            "summary": "Skin renewal for tone, texture, and selected pigmentation concerns.",
             "heroImage": "/images/optimized/showcase-treatment.webp",
             "heroAlt": "Dermatology chemical peel",
-            "lead": "Protocol adapts to phototype, sensitivity, and treatment objective.",
+            "lead": "Formula and intensity are chosen by phototype, sensitivity, and treatment objective.",
             "bullets": [
                 "Formula selection",
                 "Tolerance control",
                 "Recovery guidance",
-                "Session schedule"
+                "Session planning"
             ],
             "process": [
                 "Skin assessment",
                 "Controlled application",
-                "Post care",
+                "Post-care",
                 "Reassessment"
             ],
             "faq": [
-                "How many recovery days are typical?",
-                "Can it combine with laser?",
-                "What limits eligibility?"
+                "How many recovery days are common?",
+                "Can this combine with laser?",
+                "What factors limit indication?"
             ],
             "related": ["mesoterapia", "laser-dermatologico"]
         },
@@ -195,26 +248,26 @@
             "slug": "mesoterapia",
             "category": "Rejuvenation",
             "title": "Mesotherapy",
-            "summary": "Micro interventions for hydration and skin quality.",
+            "summary": "Micro-interventions for deep hydration and skin quality.",
             "heroImage": "/images/optimized/service-rejuvenecimiento.webp",
             "heroAlt": "Dermatology mesotherapy",
-            "lead": "Used as part of a medically guided progressive improvement route.",
+            "lead": "It is integrated into a progressive medical plan with response controls.",
             "bullets": [
-                "Skin quality review",
-                "Session plan",
+                "Skin quality assessment",
+                "Session planning",
                 "Complementary care",
-                "Response tracking"
+                "Response follow-up"
             ],
             "process": [
                 "Consultation",
                 "Initial session",
-                "Follow-up",
+                "Review",
                 "Maintenance"
             ],
             "faq": [
-                "Is there downtime?",
-                "How often should it repeat?",
-                "What can it combine with?"
+                "Is downtime needed?",
+                "How often is it repeated?",
+                "Which routes combine best with it?"
             ],
             "related": ["bioestimuladores-colageno", "peeling-quimico"]
         },
@@ -222,25 +275,25 @@
             "slug": "laser-dermatologico",
             "category": "Technology",
             "title": "Dermatology laser",
-            "summary": "Laser-based treatment with traceable medical parameters.",
+            "summary": "Laser treatments with traceable clinical parameters and post-session follow-up.",
             "heroImage": "/images/optimized/service-laser.webp",
             "heroAlt": "Medical dermatology laser",
-            "lead": "Energy, frequency, and session count are set by case profile.",
+            "lead": "Energy, frequency, and session count are defined by your skin objective.",
             "bullets": [
-                "Phototype indication",
+                "Phototype-based indication",
                 "Safety control",
-                "Target by lesion",
-                "Post-session follow-up"
+                "Lesion-focused objective",
+                "Post-procedure follow-up"
             ],
             "process": [
-                "Entry evaluation",
+                "Initial evaluation",
                 "First session",
                 "Parameter adjustment",
                 "Cycle close"
             ],
             "faq": [
-                "Is it valid for all phototypes?",
-                "How many sessions are usual?",
+                "Is it suitable for all phototypes?",
+                "How many sessions are common?",
                 "What aftercare is mandatory?"
             ],
             "related": ["cicatrices", "peeling-quimico"]
@@ -249,26 +302,26 @@
             "slug": "botox",
             "category": "Rejuvenation",
             "title": "Medical botox",
-            "summary": "Expression line management with natural and safe outcomes.",
+            "summary": "Expression-line management with natural look and responsible dosing.",
             "heroImage": "/images/optimized/service-rejuvenecimiento.webp",
-            "heroAlt": "Medical botox route",
-            "lead": "Facial harmony, responsible dosing, and follow-up define the route.",
+            "heroAlt": "Medical botox application",
+            "lead": "We prioritize facial harmony and early follow-up for precise adjustments.",
             "bullets": [
-                "Dynamic facial review",
+                "Dynamic facial assessment",
                 "Targeted application",
-                "Outcome control",
+                "Early control",
                 "Periodic reassessment"
             ],
             "process": [
                 "Consultation",
                 "Application",
-                "Early check",
+                "Control",
                 "Maintenance"
             ],
             "faq": [
-                "When does effect appear?",
-                "How often should it repeat?",
-                "What should be avoided after?"
+                "When does the effect appear?",
+                "How often is it usually repeated?",
+                "What care should be maintained after treatment?"
             ],
             "related": ["bioestimuladores-colageno", "mesoterapia"]
         },
@@ -276,15 +329,15 @@
             "slug": "bioestimuladores-colageno",
             "category": "Rejuvenation",
             "title": "Collagen biostimulators",
-            "summary": "Progressive stimulation for skin support and firmness.",
+            "summary": "Progressive stimulation for support and firmness in mild to moderate structural loss.",
             "heroImage": "/images/optimized/service-rejuvenecimiento.webp",
             "heroAlt": "Collagen biostimulation",
-            "lead": "Route for mild to moderate support loss under medical criteria.",
+            "lead": "The route is scheduled by zone, tissue response, and medical aesthetic objective.",
             "bullets": [
                 "Laxity assessment",
-                "Zone planning",
-                "Evolution control",
-                "Combined pathways"
+                "Zone-based planning",
+                "Progress control",
+                "Combination with other routes"
             ],
             "process": [
                 "Facial diagnosis",
@@ -293,9 +346,9 @@
                 "Complement session"
             ],
             "faq": [
-                "How long until changes appear?",
-                "How many sessions are suggested?",
-                "Can it combine with botox?"
+                "How long until changes are visible?",
+                "How many sessions are commonly suggested?",
+                "Can this combine with medical botox?"
             ],
             "related": ["botox", "mesoterapia"]
         },
@@ -303,13 +356,13 @@
             "slug": "piel-cabello-unas",
             "category": "Integral",
             "title": "Skin, hair and nails",
-            "summary": "Cross-route care for combined or chronic symptoms.",
+            "summary": "Cross-route care for combined, chronic, or variable progression symptoms.",
             "heroImage": "/images/optimized/showcase-diagnostic.webp",
             "heroAlt": "Integrated dermatology",
-            "lead": "Coordinates multidimensional evaluation with long-term continuity.",
+            "lead": "We coordinate multidimensional reading and continuity to avoid losing clinical context.",
             "bullets": [
-                "Integrated reading",
-                "Mixed symptom control",
+                "Integrated assessment",
+                "Mixed-symptom control",
                 "Coordinated plan",
                 "Periodic review"
             ],
@@ -321,8 +374,8 @@
             ],
             "faq": [
                 "Which cases fit this route?",
-                "Can it start with telemedicine?",
-                "How often is follow-up needed?"
+                "Can this start through telemedicine?",
+                "How often should follow-up be scheduled?"
             ],
             "related": ["diagnostico-integral", "dermatologia-pediatrica"]
         },
@@ -330,15 +383,15 @@
             "slug": "dermatologia-pediatrica",
             "category": "Pediatric",
             "title": "Pediatric dermatology",
-            "summary": "Dermatology care for children and teenagers.",
+            "summary": "Dermatology care for children and adolescents with clear family communication.",
             "heroImage": "/images/optimized/showcase-clinic.webp",
             "heroAlt": "Pediatric dermatology consultation",
-            "lead": "Family communication and age-adapted plans are central to the route.",
+            "lead": "The plan is adapted to age, context, and family routine to improve adherence.",
             "bullets": [
                 "Pediatric diagnosis",
                 "Caregiver guidance",
                 "Progressive follow-up",
-                "Escalation when needed"
+                "Escalation when required"
             ],
             "process": [
                 "Initial consultation",
@@ -347,9 +400,9 @@
                 "Adjustments"
             ],
             "faq": [
-                "What should we bring?",
-                "How is the plan explained to children?",
-                "Can telemedicine be combined?"
+                "What should we bring to the first visit?",
+                "How is the plan explained to children and adolescents?",
+                "Can this combine with telemedicine?"
             ],
             "related": ["diagnostico-integral", "acne-rosacea"]
         }

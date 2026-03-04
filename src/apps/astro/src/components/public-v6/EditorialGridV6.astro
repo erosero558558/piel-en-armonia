@@ -1,7 +1,7 @@
 ---
-const { section = {}, locale = 'es' } = Astro.props;
+const { section = {} } = Astro.props;
 const cards = Array.isArray(section.cards) ? section.cards : [];
-const ctaLabel = locale === 'en' ? 'Learn more' : 'Conocer mas';
+const ctaLabel = section.ctaLabel || '';
 ---
 
 <section class="v6-editorial" data-v6-editorial>

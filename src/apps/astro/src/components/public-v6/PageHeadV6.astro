@@ -3,10 +3,11 @@ const {
     breadcrumb = [],
     heading = '',
     locale = 'es',
-    switchHref = locale === 'en' ? '/es/' : '/en/',
-    switchLabel = locale === 'en' ? 'ES' : 'EN',
-    menuLabel = 'Menu',
+    switchHref = '#',
+    switchLabel = '',
+    menuLabel = '',
     menuItems = [],
+    copy = {},
 } = Astro.props;
 
 const crumbs = Array.isArray(breadcrumb) ? breadcrumb : [];
@@ -15,12 +16,17 @@ const safeMenuItems = Array.isArray(menuItems)
     ? menuItems.filter((item) => item && item.href && item.label)
     : [];
 const menuPanelId = 'v6-page-menu-panel';
+const breadcrumbAria = copy.breadcrumbAria || '';
+const languageSwitchAria = copy.languageSwitchAria || '';
+const pageNavigationLabel = copy.pageNavigationLabel || '';
+const pageNavigationTitle = copy.pageNavigationTitle || '';
+const noSections = copy.noSections || '';
 ---
 
 <section class="v6-corp-head" data-v6-page-head>
     <div class="v6-corp-head__inner">
         <div class="v6-corp-head__top">
-            <nav class="v6-corp-head__crumbs" aria-label={locale === 'en' ? 'Breadcrumb' : 'Miga de pan'}>
+            <nav class="v6-corp-head__crumbs" aria-label={breadcrumbAria}>
                 {
                     crumbs.map((item, index) => (
                         <>
@@ -31,7 +37,7 @@ const menuPanelId = 'v6-page-menu-panel';
                 }
             </nav>
             <div class="v6-corp-head__tools" data-v6-page-tools>
-                <div class="v6-corp-head__lang" aria-label={locale === 'en' ? 'Language switch' : 'Selector de idioma'}>
+                <div class="v6-corp-head__lang" aria-label={languageSwitchAria}>
                     {switchLabel ? (
                         <a class="v6-corp-head__lang-option" href={switchHref}>
                             {switchLabel}
@@ -55,9 +61,10 @@ const menuPanelId = 'v6-page-menu-panel';
                     id={menuPanelId}
                     class="v6-corp-head__menu-panel"
                     data-v6-page-menu-panel
+                    aria-label={pageNavigationLabel}
                     hidden
                 >
-                    <p>{locale === 'en' ? 'Page navigation' : 'Navegacion de pagina'}</p>
+                    <p>{pageNavigationTitle}</p>
                     {
                         safeMenuItems.length ? (
                             <ul>
@@ -71,7 +78,7 @@ const menuPanelId = 'v6-page-menu-panel';
                             </ul>
                         ) : (
                             <p class="v6-corp-head__menu-empty">
-                                {locale === 'en' ? 'No sections available' : 'Sin secciones disponibles'}
+                                {noSections}
                             </p>
                         )
                     }

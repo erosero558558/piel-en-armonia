@@ -11,6 +11,13 @@ const prohibited = [
     /definitive cure/i,
     /risk[- ]free/i,
 ];
+const roboticPhrases = [
+    /protocolo,\s*evidencia\s*y\s*seguimiento/i,
+    /nunca promesas vacias/i,
+    /bloque corporativo/i,
+    /v6 recalibration/i,
+    /corporate block/i,
+];
 
 test.describe('Public V6 copy integrity', () => {
     test('ES routes keep usted register and avoid prohibited claims', async ({
@@ -20,7 +27,11 @@ test.describe('Public V6 copy integrity', () => {
             await gotoPublicRoute(page, route);
             const text = await page.locator('body').innerText();
             expect(text.toLowerCase()).toContain('usted');
+            expect(text.toLowerCase()).toContain('telemedicina');
             prohibited.forEach((pattern) => {
+                expect(text).not.toMatch(pattern);
+            });
+            roboticPhrases.forEach((pattern) => {
                 expect(text).not.toMatch(pattern);
             });
         }
@@ -32,8 +43,12 @@ test.describe('Public V6 copy integrity', () => {
         for (const route of ['/en/', '/en/services/', '/en/telemedicine/']) {
             await gotoPublicRoute(page, route);
             const text = await page.locator('body').innerText();
+            expect(text.toLowerCase()).toContain('telemedicine');
             expect(text.toLowerCase()).not.toContain(' usted ');
             prohibited.forEach((pattern) => {
+                expect(text).not.toMatch(pattern);
+            });
+            roboticPhrases.forEach((pattern) => {
                 expect(text).not.toMatch(pattern);
             });
         }

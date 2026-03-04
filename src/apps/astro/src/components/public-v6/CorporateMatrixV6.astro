@@ -1,15 +1,15 @@
 ---
-const { section = {}, locale = 'es' } = Astro.props;
+const { section = {} } = Astro.props;
 const cards = Array.isArray(section.cards) ? section.cards : [];
-const ctaLabel = locale === 'en' ? 'Learn more' : 'Conocer mas';
+const ctaLabel = section.ctaLabel || '';
 ---
 
 {
     cards.length ? (
         <section class="v6-corporate-matrix" data-v6-corporate-matrix>
             <div class="v6-corporate-matrix__head">
-                <p>{section.eyebrow || (locale === 'en' ? 'Business Surface' : 'Superficie Corporativa')}</p>
-                <h2>{section.title || (locale === 'en' ? 'Clinical Programs' : 'Programas Clinicos')}</h2>
+                <p>{section.eyebrow || ''}</p>
+                <h2>{section.title || ''}</h2>
                 {section.deck ? <p>{section.deck}</p> : null}
             </div>
             <div class="v6-corporate-matrix__grid">

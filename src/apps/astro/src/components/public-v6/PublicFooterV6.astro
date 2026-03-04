@@ -1,8 +1,9 @@
 ---
-const { navModel = {}, locale = 'es' } = Astro.props;
+const { navModel = {} } = Astro.props;
 const footer = navModel?.footer && typeof navModel.footer === 'object' ? navModel.footer : {};
 const columns = Array.isArray(footer.columns) ? footer.columns : [];
 const policies = Array.isArray(footer.policies) ? footer.policies : [];
+const policyAria = navModel?.ui?.footer?.policyAria || '';
 ---
 
 <footer class="v6-footer" data-v6-footer>
@@ -32,7 +33,7 @@ const policies = Array.isArray(footer.policies) ? footer.policies : [];
             }
         </div>
 
-        <nav class="v6-footer__policy" aria-label={locale === 'en' ? 'Policies' : 'Politicas'}>
+        <nav class="v6-footer__policy" aria-label={policyAria}>
             {
                 policies.map((policy) => (
                     <a href={policy.href}>{policy.label}</a>

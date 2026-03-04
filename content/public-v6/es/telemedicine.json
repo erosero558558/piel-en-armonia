@@ -1,38 +1,80 @@
 {
     "title": "Telemedicina | Piel en Armonia",
-    "description": "Ruta remota dermatologica con triage, criterios de escalamiento y continuidad clinica.",
+    "description": "Consulta dermatologica remota con criterios de triage, escalamiento y continuidad clinica en Quito.",
     "breadcrumb": [
-        { "label": "Inicio", "href": "/es/" },
-        { "label": "Telemedicina", "href": "/es/telemedicina/" }
+        {
+            "label": "Inicio",
+            "href": "/es/"
+        },
+        {
+            "label": "Telemedicina",
+            "href": "/es/telemedicina/"
+        }
     ],
-    "heading": "Telemedicina Dermatologica",
+    "heading": "Telemedicina dermatologica",
     "heroImage": {
         "src": "/images/optimized/service-telemedicina.webp",
         "srcset": "/images/optimized/service-telemedicina-400.webp 400w, /images/optimized/service-telemedicina.webp 900w",
         "alt": "Consulta dermatologica remota"
     },
-    "lead": "La consulta remota funciona cuando aporta claridad diagnostica y permite decidir con menos friccion.",
+    "lead": "La telemedicina funciona cuando aporta claridad clinica y acorta el tiempo para decidir.",
+    "ui": {
+        "menu": {
+            "initiatives": "Iniciativas remotas",
+            "bookingStatus": "Estado de agenda"
+        },
+        "thesis": {
+            "eyebrow": "Diseno clinico remoto",
+            "title": "Consulta online cuando hay criterio para sostenerla",
+            "body": "La ruta remota define limites claros: que se resuelve online, que se vigila y cuando debe pasar a consulta presencial."
+        },
+        "statement": {
+            "eyebrow": "Direccion clinica remota",
+            "title": "Telemedicina util, con escalamiento oportuno",
+            "signature": "Protocolo hibrido en Quito",
+            "image": "/images/optimized/team-narvaez.webp",
+            "alt": "Direccion clinica de telemedicina"
+        },
+        "internalMessage": {
+            "description": "Evaluamos contexto, riesgo y evolucion para decidir si usted continua remoto o necesita atencion presencial."
+        },
+        "rail": {
+            "title": "Mapa de flujo",
+            "aria": "Secciones de telemedicina"
+        },
+        "kpis": {
+            "blocks": "Bloques de ruta",
+            "criteria": "Criterios clinicos",
+            "model": "Modelo de escalamiento",
+            "modelValue": "Hibrido"
+        },
+        "initiatives": {
+            "aria": "Iniciativas de telemedicina",
+            "ctaLabel": "Abrir seccion"
+        },
+        "blockCtaLabel": "Revisar estado de agenda"
+    },
     "blocks": [
         {
             "title": "Como funciona",
             "items": [
-                "Usted comparte antecedentes y fotografias clinicas con contexto.",
-                "Se establece prioridad y probabilidad de resolucion remota.",
-                "Se define plan inicial, receta cuando aplica y fecha de control.",
-                "Si hay senales de riesgo, se escala a consulta presencial inmediata."
+                "Usted comparte antecedentes y fotos clinicas en contexto.",
+                "Definimos prioridad y probabilidad de resolucion remota.",
+                "Entregamos plan inicial y fecha de control cuando aplica.",
+                "Si hay senales de riesgo, escalamos a consulta presencial inmediata."
             ]
         },
         {
             "title": "Cuando suele encajar",
             "items": [
-                "Brotes inflamatorios conocidos",
+                "Brotes inflamatorios ya diagnosticados",
                 "Seguimiento de tratamientos activos",
-                "Dudas sobre evolucion de sintomas",
+                "Dudas sobre evolucion entre controles",
                 "Orientacion previa antes de desplazarse"
             ]
         },
         {
-            "title": "Cuando escalar",
+            "title": "Cuando debe escalar",
             "items": [
                 "Lesiones de cambio rapido o sangrado",
                 "Dolor intenso o extension acelerada",
@@ -44,32 +86,33 @@
     "initiatives": [
         {
             "title": "Triage visual",
-            "copy": "Clasificacion preliminar con imagenes clinicas de contexto para priorizar riesgo.",
+            "copy": "Lectura preliminar con imagenes clinicas para priorizar riesgo y tiempo de respuesta.",
             "image": "/images/optimized/showcase-diagnostic.webp",
             "href": "#v6-tele-block-1"
         },
         {
-            "title": "Control de brotes",
-            "copy": "Seguimiento remoto para casos inflamatorios con ajustes por respuesta.",
+            "title": "Control de brote",
+            "copy": "Ajustes remotos en casos inflamatorios para evitar progresion entre controles.",
             "image": "/images/optimized/service-acne.webp",
             "href": "#v6-tele-block-2"
         },
         {
-            "title": "Escala presencial",
-            "copy": "Derivacion al consultorio cuando hay senales de alarma o necesidad de procedimiento.",
+            "title": "Escalamiento presencial",
+            "copy": "Derivamos al consultorio cuando la lesion o el dolor exigen examen directo.",
             "image": "/images/optimized/showcase-clinic.webp",
             "href": "#v6-tele-block-3"
         },
         {
             "title": "Continuidad Quito",
-            "copy": "Secuencia clinica para pacientes en Quito con control remoto y cita cuando corresponde.",
+            "copy": "Ruta hibrida para pacientes en Quito con seguimiento remoto y control presencial oportuno.",
             "image": "/images/optimized/service-telemedicina.webp",
             "href": "#v6-booking-status"
         }
     ],
     "bookingStatus": {
+        "eyebrow": "Estado de agenda",
         "title": "Agenda transaccional en actualizacion",
-        "description": "El formulario y pago se reactivan en siguiente fase V6. Esta ruta mantiene contenido medico y criterios de decision activos.",
+        "description": "El formulario de reserva vuelve en la siguiente fase. Mientras tanto, usted puede usar esta ruta para orientacion clinica inicial.",
         "ctaLabel": "Ir a servicios",
         "ctaHref": "/es/servicios/"
     }

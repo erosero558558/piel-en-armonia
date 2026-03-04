@@ -4,6 +4,7 @@ import ServiceDetailV6 from '../../../components/public-v6/ServiceDetailV6.astro
 import {
     getV6NavigationModel,
     getV6ServiceBySlug,
+    getV6ServiceData,
     getV6ServiceSlugs,
     v6ServicePath,
 } from '../../../lib/public-v6.js';
@@ -16,6 +17,7 @@ const locale = 'en';
 const { slug } = Astro.params;
 const pathname = v6ServicePath(locale, slug);
 const navModel = getV6NavigationModel(locale, pathname);
+const serviceData = getV6ServiceData(locale);
 const service = getV6ServiceBySlug(locale, slug);
 if (!service) throw new Error(`Service not found in V6: ${slug}`);
 const related = (service.related || [])
@@ -44,5 +46,6 @@ const related = (service.related || [])
         servicePath={pathname}
         hubPath="/en/services/"
         related={related}
+        ui={serviceData?.ui || {}}
     />
 </PublicShellV6>

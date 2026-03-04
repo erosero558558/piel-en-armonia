@@ -1,26 +1,10 @@
 ---
-const { hero = {}, locale = 'es' } = Astro.props;
+const { hero = {} } = Astro.props;
 const slides = Array.isArray(hero.slides) ? hero.slides : [];
 const autoplayMs = Number(hero.autoplayMs || 7000);
 const safeAutoplay = Number.isFinite(autoplayMs) && autoplayMs > 1000 ? autoplayMs : 7000;
 const first = slides[0] || {};
-const labels = locale === 'en'
-    ? {
-        prev: 'Previous',
-        next: 'Next',
-        pause: 'Pause',
-        play: 'Play',
-        openRoute: 'Open route',
-        indicators: 'Slide indicators',
-    }
-    : {
-        prev: 'Anterior',
-        next: 'Siguiente',
-        pause: 'Pausar',
-        play: 'Reproducir',
-        openRoute: 'Abrir ruta',
-        indicators: 'Indicadores del carrusel',
-    };
+const labels = hero.labels && typeof hero.labels === 'object' ? hero.labels : {};
 ---
 
 <section

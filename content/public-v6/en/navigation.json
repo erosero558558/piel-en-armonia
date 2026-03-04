@@ -4,70 +4,88 @@
         "logo": "Piel en Armonia",
         "tag": "Precision dermatology"
     },
+    "ui": {
+        "header": {
+            "primaryNavAria": "Primary navigation",
+            "megaCategoryTabsAria": "Mega menu categories",
+            "openCategoryLabel": "Explore category",
+            "mobileNavAria": "Mobile navigation"
+        },
+        "footer": {
+            "policyAria": "Policies"
+        },
+        "pageHead": {
+            "breadcrumbAria": "Breadcrumb",
+            "languageSwitchAria": "Language switch",
+            "pageNavigationLabel": "Page navigation",
+            "pageNavigationTitle": "Sections on this page",
+            "noSections": "No sections available"
+        }
+    },
     "header": {
-        "contactLabel": "Contact Us",
+        "contactLabel": "Contact",
         "contactHref": "https://wa.me/593982453672",
-        "searchLabel": "Search routes",
+        "searchLabel": "Search route",
         "menuLabel": "Menu",
         "closeMenuLabel": "Close",
         "switchLabel": "ES",
         "switchHref": "/es/",
         "links": [
             {
-                "id": "diagnosis",
-                "label": "Clinical",
+                "id": "home",
+                "label": "Home",
                 "href": "/en/",
                 "kind": "standard"
             },
             {
                 "id": "programs",
-                "label": "Programs & Protocols",
+                "label": "Dermatology routes",
                 "href": "/en/services/",
                 "kind": "mega"
             },
             {
-                "id": "technology",
-                "label": "Technology",
-                "href": "/en/services/?category=technology",
+                "id": "diagnosis",
+                "label": "Diagnosis",
+                "href": "/en/services/diagnostico-integral/",
                 "kind": "standard"
             },
             {
-                "id": "sustainability",
-                "label": "Sustainability",
-                "href": "/en/legal/privacy/",
+                "id": "procedures",
+                "label": "Procedures",
+                "href": "/en/services/laser-dermatologico/",
                 "kind": "standard"
             },
             {
-                "id": "design",
-                "label": "Design",
+                "id": "telemedicine",
+                "label": "Telemedicine",
                 "href": "/en/telemedicine/",
                 "kind": "standard"
             },
             {
                 "id": "team",
-                "label": "Team / Careers",
-                "href": "/en/legal/terms/",
+                "label": "Medical team",
+                "href": "/en/services/piel-cabello-unas/",
                 "kind": "standard"
             },
             {
-                "id": "transparency",
-                "label": "Transparency",
-                "href": "/en/legal/cookies/",
+                "id": "legal",
+                "label": "Legal",
+                "href": "/en/legal/terms/",
                 "kind": "standard"
             }
         ]
     },
     "mega": {
-        "title": "Programs & Protocols",
+        "title": "Dermatology routes",
         "closeLabel": "Close panel",
         "columns": [
             {
                 "id": "entry-routes",
-                "heading": "Entry routes",
+                "heading": "First consultation",
                 "context": {
-                    "eyebrow": "Clinical triage",
-                    "title": "Entry by medical priority and risk reading",
-                    "deck": "The first layer defines urgency, diagnostic depth, and whether immediate escalation is required.",
+                    "eyebrow": "Initial reading",
+                    "title": "Start where your case becomes clear",
+                    "deck": "The first consultation defines risk, priority, and the follow-up sequence so you can move forward with confidence.",
                     "href": "/en/services/diagnostico-integral/"
                 },
                 "items": [
@@ -104,11 +122,11 @@
                         "href": "/en/services/dermatologia-pediatrica/",
                         "children": [
                             {
-                                "label": "Telemedicine",
-                                "href": "/en/telemedicine/"
+                                "label": "Family pathway",
+                                "href": "/en/services/dermatologia-pediatrica/"
                             },
                             {
-                                "label": "Family follow-up route",
+                                "label": "Progress follow-up",
                                 "href": "/en/services/"
                             }
                         ]
@@ -117,11 +135,11 @@
             },
             {
                 "id": "procedures",
-                "heading": "Procedures",
+                "heading": "Medical procedures",
                 "context": {
-                    "eyebrow": "Interventions",
-                    "title": "Technology and protocols by therapeutic objective",
-                    "deck": "Each intervention is sequenced by phototype, severity, tolerance, and follow-up to avoid isolated decisions.",
+                    "eyebrow": "Intervention",
+                    "title": "Technology guided by criteria, never impulse",
+                    "deck": "Each procedure is indicated by phototype, tolerance, and objective to protect long-term outcomes.",
                     "href": "/en/services/laser-dermatologico/"
                 },
                 "items": [
@@ -158,12 +176,12 @@
                         "href": "/en/services/bioestimuladores-colageno/",
                         "children": [
                             {
-                                "label": "Medical botox",
-                                "href": "/en/services/botox/"
+                                "label": "Firmness support",
+                                "href": "/en/services/bioestimuladores-colageno/"
                             },
                             {
-                                "label": "Mesotherapy",
-                                "href": "/en/services/mesoterapia/"
+                                "label": "Combined plan",
+                                "href": "/en/services/"
                             }
                         ]
                     }
@@ -171,11 +189,11 @@
             },
             {
                 "id": "extended-care",
-                "heading": "Extended care",
+                "heading": "Continuity",
                 "context": {
-                    "eyebrow": "Continuity",
-                    "title": "Telemedicine, legal guidance, and operational clarity",
-                    "deck": "When continuity is required, this layer integrates remote guidance, consent, and clear legal navigation.",
+                    "eyebrow": "Follow-up",
+                    "title": "Telemedicine and legal clarity for calmer decisions",
+                    "deck": "When continuity matters, this layer combines remote guidance, clear consent, and practical next steps.",
                     "href": "/en/telemedicine/"
                 },
                 "items": [
@@ -188,7 +206,7 @@
                                 "href": "/en/telemedicine/"
                             },
                             {
-                                "label": "Escalation to clinic",
+                                "label": "Escalation criteria",
                                 "href": "/en/telemedicine/"
                             }
                         ]
@@ -201,7 +219,10 @@
                                 "label": "Privacy",
                                 "href": "/en/legal/privacy/"
                             },
-                            { "label": "Cookies", "href": "/en/legal/cookies/" }
+                            {
+                                "label": "Cookies",
+                                "href": "/en/legal/cookies/"
+                            }
                         ]
                     },
                     {
@@ -209,11 +230,11 @@
                         "href": "/en/services/",
                         "children": [
                             {
-                                "label": "Clinical catalogue",
+                                "label": "View active routes",
                                 "href": "/en/services/"
                             },
                             {
-                                "label": "Contact",
+                                "label": "Contact the clinic",
                                 "href": "https://wa.me/593982453672"
                             }
                         ]
@@ -223,29 +244,47 @@
         ],
         "featured": {
             "eyebrow": "Medical direction",
-            "title": "Clinical decision map with continuity",
-            "deck": "Each route keeps medical criteria, follow-up timing, and escalation signals.",
+            "title": "Each route explains what to read, decide, and escalate",
+            "deck": "The promise is clear: less noise, sharper clinical judgment, and follow-up you can trust.",
             "href": "/en/services/"
         }
     },
     "footer": {
         "headline": "Precision dermatology for Quito",
-        "deck": "V6 surface inspired by corporate editorial language: clear hierarchy, clinical decision support, and visible evidence.",
+        "deck": "Contemporary clinical care with clear decisions, human language, and real continuity of follow-up.",
         "columns": [
             {
-                "title": "Services",
+                "title": "Active routes",
                 "links": [
-                    { "label": "Catalogue", "href": "/en/services/" },
-                    { "label": "Telemedicine", "href": "/en/telemedicine/" },
-                    { "label": "Schedule update", "href": "/en/services/" }
+                    {
+                        "label": "Services",
+                        "href": "/en/services/"
+                    },
+                    {
+                        "label": "Telemedicine",
+                        "href": "/en/telemedicine/"
+                    },
+                    {
+                        "label": "Schedule status",
+                        "href": "/en/services/"
+                    }
                 ]
             },
             {
-                "title": "Legal",
+                "title": "Legal framework",
                 "links": [
-                    { "label": "Terms", "href": "/en/legal/terms/" },
-                    { "label": "Privacy", "href": "/en/legal/privacy/" },
-                    { "label": "Cookies", "href": "/en/legal/cookies/" },
+                    {
+                        "label": "Terms",
+                        "href": "/en/legal/terms/"
+                    },
+                    {
+                        "label": "Privacy",
+                        "href": "/en/legal/privacy/"
+                    },
+                    {
+                        "label": "Cookies",
+                        "href": "/en/legal/cookies/"
+                    },
                     {
                         "label": "Medical disclaimer",
                         "href": "/en/legal/medical-disclaimer/"
@@ -262,15 +301,30 @@
             }
         ],
         "policies": [
-            { "label": "Terms and Conditions", "href": "/en/legal/terms/" },
-            { "label": "Privacy Policy", "href": "/en/legal/privacy/" },
-            { "label": "Cookie Policy", "href": "/en/legal/cookies/" },
+            {
+                "label": "Terms and Conditions",
+                "href": "/en/legal/terms/"
+            },
+            {
+                "label": "Privacy Policy",
+                "href": "/en/legal/privacy/"
+            },
+            {
+                "label": "Cookie Policy",
+                "href": "/en/legal/cookies/"
+            },
             {
                 "label": "Web Accessibility Statement",
                 "href": "/en/legal/medical-disclaimer/"
             },
-            { "label": "About this Site", "href": "/en/legal/terms/" },
-            { "label": "Site Map", "href": "/en/" }
+            {
+                "label": "About this Site",
+                "href": "/en/legal/terms/"
+            },
+            {
+                "label": "Site Map",
+                "href": "/en/"
+            }
         ],
         "copyright": "Copyright 2026 Piel en Armonia"
     }

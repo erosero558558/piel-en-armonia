@@ -76,6 +76,24 @@ function existsWebAsset(webPath) {
     return fs.existsSync(local);
 }
 
+function readPath(obj, pathExpr) {
+    return pathExpr.split('.').reduce((acc, key) => {
+        if (acc === null || acc === undefined) return undefined;
+        return acc[key];
+    }, obj);
+}
+
+function requireStringField(issues, file, json, pathExpr, type) {
+    const value = readPath(json, pathExpr);
+    if (typeof value !== 'string' || !value.trim()) {
+        issues.push({
+            type,
+            file,
+            detail: `missing string: ${pathExpr}`,
+        });
+    }
+}
+
 function run() {
     const issues = [];
 
@@ -143,6 +161,33 @@ function run() {
                     detail: 'header.links invalid',
                 });
             }
+            [
+                'ui.header.primaryNavAria',
+                'ui.header.megaCategoryTabsAria',
+                'ui.header.openCategoryLabel',
+                'ui.header.mobileNavAria',
+                'ui.footer.policyAria',
+                'ui.pageHead.breadcrumbAria',
+                'ui.pageHead.languageSwitchAria',
+                'ui.pageHead.pageNavigationLabel',
+                'ui.pageHead.pageNavigationTitle',
+                'ui.pageHead.noSections',
+                'header.contactLabel',
+                'header.searchLabel',
+                'header.menuLabel',
+                'mega.title',
+                'mega.closeLabel',
+                'footer.headline',
+                'footer.deck',
+            ].forEach((field) =>
+                requireStringField(
+                    issues,
+                    file,
+                    json,
+                    field,
+                    'navigation_schema'
+                )
+            );
         }
 
         if (file.endsWith('home.json')) {
@@ -157,6 +202,26 @@ function run() {
                     detail: 'hero.slides must be >= 3',
                 });
             }
+            [
+                'hero.labels.prev',
+                'hero.labels.next',
+                'hero.labels.pause',
+                'hero.labels.play',
+                'hero.labels.openRoute',
+                'hero.labels.indicators',
+                'newsStrip.label',
+                'newsStrip.headline',
+                'newsStrip.expandLabel',
+                'newsStrip.localeAria',
+                'editorial.ctaLabel',
+                'corporateMatrix.ctaLabel',
+                'bookingStatus.eyebrow',
+                'bookingStatus.title',
+                'bookingStatus.description',
+                'bookingStatus.ctaLabel',
+            ].forEach((field) =>
+                requireStringField(issues, file, json, field, 'home_schema')
+            );
         }
 
         if (file.endsWith('hub.json')) {
@@ -177,6 +242,24 @@ function run() {
                     detail: 'initiatives must be >= 8',
                 });
             }
+            [
+                'ui.menu.featured',
+                'ui.menu.initiatives',
+                'ui.featured.eyebrow',
+                'ui.featured.title',
+                'ui.sectionLabelPrefix',
+                'ui.routeLabel',
+                'ui.ctaLabel',
+                'ui.railAria',
+                'ui.initiatives.eyebrow',
+                'ui.initiatives.title',
+                'bookingStatus.eyebrow',
+                'bookingStatus.title',
+                'bookingStatus.description',
+                'bookingStatus.ctaLabel',
+            ].forEach((field) =>
+                requireStringField(issues, file, json, field, 'hub_schema')
+            );
         }
 
         if (file.endsWith('service.json')) {
@@ -187,6 +270,75 @@ function run() {
                     detail: 'services missing',
                 });
             }
+            [
+                'ui.menu.glance',
+                'ui.menu.checkpoints',
+                'ui.menu.process',
+                'ui.menu.faq',
+                'ui.menu.related',
+                'ui.menu.booking',
+                'ui.breadcrumb.home',
+                'ui.breadcrumb.hub',
+                'ui.thesis.eyebrow',
+                'ui.thesis.titleSuffix',
+                'ui.thesis.body',
+                'ui.statement.eyebrow',
+                'ui.statement.titleTemplate',
+                'ui.statement.signature',
+                'ui.rail.title',
+                'ui.rail.aria',
+                'ui.glance.routeType',
+                'ui.glance.checkpoints',
+                'ui.glance.processStages',
+                'ui.sections.checkpointsTitle',
+                'ui.sections.processTitle',
+                'ui.sections.faqTitle',
+                'ui.sections.relatedTitle',
+                'ui.faqPrefix',
+                'ui.faqAnswerNote',
+                'ui.relatedCta',
+                'ui.bookingStatus.eyebrow',
+                'ui.bookingStatus.title',
+                'ui.bookingStatus.description',
+                'ui.bookingStatus.ctaLabel',
+            ].forEach((field) =>
+                requireStringField(issues, file, json, field, 'service_schema')
+            );
+        }
+
+        if (file.endsWith('telemedicine.json')) {
+            [
+                'ui.menu.initiatives',
+                'ui.menu.bookingStatus',
+                'ui.thesis.eyebrow',
+                'ui.thesis.title',
+                'ui.thesis.body',
+                'ui.statement.eyebrow',
+                'ui.statement.title',
+                'ui.statement.signature',
+                'ui.internalMessage.description',
+                'ui.rail.title',
+                'ui.rail.aria',
+                'ui.kpis.blocks',
+                'ui.kpis.criteria',
+                'ui.kpis.model',
+                'ui.kpis.modelValue',
+                'ui.initiatives.aria',
+                'ui.initiatives.ctaLabel',
+                'ui.blockCtaLabel',
+                'bookingStatus.eyebrow',
+                'bookingStatus.title',
+                'bookingStatus.description',
+                'bookingStatus.ctaLabel',
+            ].forEach((field) =>
+                requireStringField(
+                    issues,
+                    file,
+                    json,
+                    field,
+                    'telemedicine_schema'
+                )
+            );
         }
 
         if (file.endsWith('legal.json')) {
@@ -201,6 +353,25 @@ function run() {
                     detail: 'index/pages missing',
                 });
             }
+            [
+                'ui.breadcrumb.home',
+                'ui.breadcrumb.legal',
+                'ui.menu.legalIndex',
+                'ui.menu.clausesSummary',
+                'ui.menu.policyIndex',
+                'ui.thesis.eyebrow',
+                'ui.thesis.title',
+                'ui.thesis.body',
+                'ui.statement.eyebrow',
+                'ui.statement.title',
+                'ui.statement.signature',
+                'ui.internalMessage.description',
+                'ui.sectionLabel',
+                'ui.blockLabel',
+                'ui.clausesLabel',
+            ].forEach((field) =>
+                requireStringField(issues, file, json, field, 'legal_schema')
+            );
         }
     });
 

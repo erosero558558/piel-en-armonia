@@ -9,11 +9,22 @@ const {
     currentSlug = '',
     locale = 'es',
     navModel = {},
+    ui = {},
 } = Astro.props;
 
-const switchLabel = navModel?.header?.switchLabel || (locale === 'en' ? 'ES' : 'EN');
-const switchHref = navModel?.header?.switchHref || (locale === 'en' ? '/es/' : '/en/');
-const menuLabel = navModel?.header?.menuLabel || 'Menu';
+const pageHeadUi = navModel?.ui?.pageHead && typeof navModel.ui.pageHead === 'object' ? navModel.ui.pageHead : {};
+const menuUi = ui?.menu && typeof ui.menu === 'object' ? ui.menu : {};
+const thesisUi = ui?.thesis && typeof ui.thesis === 'object' ? ui.thesis : {};
+const statementUi = ui?.statement && typeof ui.statement === 'object' ? ui.statement : {};
+const internalMessageUi = ui?.internalMessage && typeof ui.internalMessage === 'object' ? ui.internalMessage : {};
+const breadcrumbUi = ui?.breadcrumb && typeof ui.breadcrumb === 'object' ? ui.breadcrumb : {};
+const sectionLabel = ui.sectionLabel || '';
+const blockLabel = ui.blockLabel || '';
+const clausesLabel = ui.clausesLabel || '';
+
+const switchLabel = navModel?.header?.switchLabel || '';
+const switchHref = navModel?.header?.switchHref || '#';
+const menuLabel = navModel?.header?.menuLabel || '';
 const sections = Array.isArray(page.sections) ? page.sections : [];
 const safeLegalPages = legalPages && typeof legalPages === 'object' ? legalPages : {};
 const sectionHighlights = sections.slice(0, 3).map((section) => ({
@@ -36,10 +47,7 @@ const indexCards = indexItems.map((item, index) => {
         href: item.href,
         summary: source.summary || '',
         image: source.heroImage || page.heroImage,
-        sectionLabel:
-            locale === 'en'
-                ? `Policy ${String(index + 1).padStart(2, '0')}`
-                : `Politica ${String(index + 1).padStart(2, '0')}`,
+        sectionLabel: `${sectionLabel} ${String(index + 1).padStart(2, '0')}`.trim(),
         clauses,
     };
 });
@@ -50,21 +58,21 @@ const sectionModels = sections.map((section, index) => ({
 }));
 const pageMenuItems = [
     {
-        label: locale === 'en' ? 'Legal index' : 'Indice legal',
+        label: menuUi.legalIndex || '',
         href: '#v6-legal-tabs',
     },
 ];
 
 if (sectionHighlights.length) {
     pageMenuItems.push({
-        label: locale === 'en' ? 'Clauses summary' : 'Resumen de clausulas',
+        label: menuUi.clausesSummary || '',
         href: '#v6-legal-summary',
     });
 }
 
 if (indexCards.length) {
     pageMenuItems.push({
-        label: locale === 'en' ? 'Policy index' : 'Indice de politicas',
+        label: menuUi.policyIndex || '',
         href: '#v6-legal-index-grid',
     });
 }
@@ -79,38 +87,19 @@ sectionModels.forEach((section) => {
 });
 
 const breadcrumb = [
-    { label: locale === 'en' ? 'Home' : 'Inicio', href: locale === 'en' ? '/en/' : '/es/' },
-    { label: 'Legal', href: locale === 'en' ? '/en/legal/terms/' : '/es/legal/terminos/' },
+    { label: breadcrumbUi.home || '', href: locale === 'en' ? '/en/' : '/es/' },
+    { label: breadcrumbUi.legal || '', href: locale === 'en' ? '/en/legal/terms/' : '/es/legal/terminos/' },
 ];
-const thesisEyebrow = locale === 'en' ? 'Legal architecture' : 'Arquitectura legal';
-const thesisTitle =
-    locale === 'en'
-        ? 'Clear clauses, explicit duties, and predictable patient decisions'
-        : 'Clausulas claras, deberes explicitos y decisiones predecibles para el paciente';
-const thesisBody =
-    locale === 'en'
-        ? 'Each policy is structured to reduce ambiguity in consent, privacy, and operational expectations across digital and in-clinic journeys.'
-        : 'Cada politica esta estructurada para reducir ambiguedad en consentimiento, privacidad y expectativas operativas en recorridos digitales y presenciales.';
+const thesisEyebrow = thesisUi.eyebrow || '';
+const thesisTitle = thesisUi.title || '';
+const thesisBody = thesisUi.body || '';
 const statement = {
-    eyebrow: locale === 'en' ? 'Legal direction' : 'Direccion legal',
-    title:
-        locale === 'en'
-            ? 'Legal language should guide action, not add friction'
-            : 'El lenguaje legal debe guiar accion, no sumar friccion',
-    body:
-        page.summary ||
-        (locale === 'en'
-            ? 'The legal framework clarifies responsibilities, patient rights, and operational limits for every route.'
-            : 'El marco legal aclara responsabilidades, derechos del paciente y limites operativos para cada ruta.'),
-    signature:
-        locale === 'en'
-            ? 'Policy and compliance office'
-            : 'Oficina de politica y cumplimiento',
-    image: '/images/optimized/team-rosero.webp',
-    alt:
-        locale === 'en'
-            ? 'Legal and compliance direction portrait'
-            : 'Retrato de direccion legal y cumplimiento',
+    eyebrow: statementUi.eyebrow || '',
+    title: statementUi.title || '',
+    body: page.summary || internalMessageUi.description || '',
+    signature: statementUi.signature || '',
+    image: statementUi.image || '',
+    alt: statementUi.alt || '',
 };
 ---
 
@@ -122,13 +111,14 @@ const statement = {
     switchHref={switchHref}
     menuLabel={menuLabel}
     menuItems={pageMenuItems}
+    copy={pageHeadUi}
 />
 
 <section class="v6-page-hero-media is-internal" data-v6-internal-hero>
     <img src={page.heroImage} alt={page.heading} loading="eager" fetchpriority="high" />
 </section>
 
-<nav id="v6-legal-tabs" class="v6-legal-tabs" aria-label={locale === 'en' ? 'Legal index' : 'Indice legal'}>
+<nav id="v6-legal-tabs" class="v6-legal-tabs" aria-label={menuUi.legalIndex || ''}>
     {
         indexItems.map((item) => (
             <a class:list={[item.slug === currentSlug && 'is-active']} href={item.href}>{item.title}</a>
@@ -138,16 +128,10 @@ const statement = {
 
 <section class="v6-internal-message" data-v6-internal-message>
     <h2>{page.summary}</h2>
-    <p>
-        {
-            locale === 'en'
-                ? 'Operational policies are written for clarity, consent traceability, and responsible patient decisions.'
-                : 'Las politicas operativas estan redactadas para claridad, trazabilidad de consentimiento y decisiones responsables del paciente.'
-        }
-    </p>
+    <p>{internalMessageUi.description || ''}</p>
 </section>
 
-<InternalStatementBandV6 locale={locale} statement={statement} variant="legal" />
+<InternalStatementBandV6 statement={statement} variant="legal" />
 
 <section class="v6-internal-thesis" data-v6-internal-thesis>
     <p>{thesisEyebrow}</p>
@@ -169,7 +153,7 @@ const statement = {
                             <h3>{item.title}</h3>
                             <p>{item.summary}</p>
                             <strong>
-                                {locale === 'en' ? `${item.clauses} clauses` : `${item.clauses} clausulas`}
+                                {`${item.clauses} ${clausesLabel}`.trim()}
                             </strong>
                         </div>
                     </a>
@@ -185,10 +169,10 @@ const statement = {
             {
                 sectionHighlights.map((item, index) => (
                     <article>
-                        <p>{locale === 'en' ? 'Section' : 'Seccion'}</p>
+                        <p>{sectionLabel}</p>
                         <h3>{item.title}</h3>
-                        <small>{locale === 'en' ? `Block ${String(index + 1).padStart(2, '0')}` : `Bloque ${String(index + 1).padStart(2, '0')}`}</small>
-                        <strong>{locale === 'en' ? `${item.count} clauses` : `${item.count} clausulas`}</strong>
+                        <small>{`${blockLabel} ${String(index + 1).padStart(2, '0')}`.trim()}</small>
+                        <strong>{`${item.count} ${clausesLabel}`.trim()}</strong>
                     </article>
                 ))
             }
@@ -201,9 +185,9 @@ const statement = {
         sectionModels.map((section, sectionIndex) => (
             <article id={section.anchorId} data-v6-legal-block>
                 <header>
-                    <p>{locale === 'en' ? `Section ${String(sectionIndex + 1).padStart(2, '0')}` : `Seccion ${String(sectionIndex + 1).padStart(2, '0')}`}</p>
+                    <p>{`${sectionLabel} ${String(sectionIndex + 1).padStart(2, '0')}`.trim()}</p>
                     <h3>{section.title}</h3>
-                    <strong>{locale === 'en' ? `${section.items.length} clauses` : `${section.items.length} clausulas`}</strong>
+                    <strong>{`${section.items.length} ${clausesLabel}`.trim()}</strong>
                 </header>
                 <ol>
                     {section.items.map((item, itemIndex) => (
