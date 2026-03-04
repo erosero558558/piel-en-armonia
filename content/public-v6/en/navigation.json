@@ -39,7 +39,7 @@
             },
             {
                 "id": "programs",
-                "label": "Dermatology services",
+                "label": "Services",
                 "href": "/en/services/",
                 "kind": "mega"
             },
@@ -85,7 +85,7 @@
                 "context": {
                     "eyebrow": "Initial evaluation",
                     "title": "Start with the route that clarifies your case",
-                    "deck": "The first visit defines priority, risk profile, and follow-up timing so you can move forward with confidence.",
+                    "deck": "The first visit defines priority, risk profile, and follow-up timing so you can move ahead with confidence.",
                     "href": "/en/services/diagnostico-integral/"
                 },
                 "items": [
@@ -139,7 +139,7 @@
                 "context": {
                     "eyebrow": "Indicated intervention",
                     "title": "Technology and procedures guided by dermatology criteria",
-                    "deck": "Every treatment is indicated by phototype, tolerance, and objective, with defined post-care follow-up.",
+                    "deck": "Each treatment is indicated by phototype, tolerance, and objective, with defined post-care follow-up.",
                     "href": "/en/services/laser-dermatologico/"
                 },
                 "items": [

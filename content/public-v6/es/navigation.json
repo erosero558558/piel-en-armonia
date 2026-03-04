@@ -39,7 +39,7 @@
             },
             {
                 "id": "programs",
-                "label": "Servicios dermatologicos",
+                "label": "Servicios",
                 "href": "/es/servicios/",
                 "kind": "mega"
             },
@@ -245,7 +245,7 @@
         "featured": {
             "eyebrow": "Direccion medica",
             "title": "Cada ruta explica que observar, que decidir y cuando escalar",
-            "deck": "Nuestra promesa: claridad medica, lenguaje humano y seguimiento que usted puede entender.",
+            "deck": "Nuestra promesa: claridad medica, lenguaje humano y seguimiento que usted puede comprender.",
             "href": "/es/servicios/"
         }
     },

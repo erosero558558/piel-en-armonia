@@ -1,6 +1,6 @@
 {
     "title": "Legal | Piel en Armonia",
-    "description": "Clear legal framework for website use, privacy, cookies, and limits of digital medical guidance.",
+    "description": "Clear legal framework for website use, privacy, cookies, and the limits of digital medical guidance.",
     "index": [
         {
             "slug": "terms",
@@ -36,12 +36,12 @@
         "thesis": {
             "eyebrow": "Legal architecture",
             "title": "Clear rules for responsible medical and digital decisions",
-            "body": "Each policy states rights, limits, and responsibilities so patients know what applies in each channel."
+            "body": "Each policy states rights, limits, and responsibilities so patients know what applies in every channel."
         },
         "statement": {
             "eyebrow": "Legal direction",
             "title": "Legal language should guide, never confuse",
-            "signature": "Compliance and policy office",
+            "signature": "Compliance and policy",
             "image": "/images/optimized/team-rosero.webp",
             "alt": "Legal direction at Piel en Armonia"
         },
@@ -69,7 +69,7 @@
                 {
                     "title": "Intellectual property",
                     "items": [
-                        "Text, design, and imagery belong to Piel en Armonia or authorized holders.",
+                        "Text, design, and imagery belong to Piel en Armonia or authorized rights holders.",
                         "Full reproduction is not permitted without written authorization.",
                         "Third-party marks are referenced only for informational or comparative purposes."
                     ]
@@ -107,8 +107,8 @@
                 {
                     "title": "Cookie categories",
                     "items": [
-                        "Essential: required for navigation and stability.",
-                        "Analytics: used for aggregate route measurement.",
+                        "Essential: required for navigation and site stability.",
+                        "Analytics: used for aggregate route measurement and improvement.",
                         "Preferences: remember interface configuration."
                     ]
                 },

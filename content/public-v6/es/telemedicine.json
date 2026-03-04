@@ -17,7 +17,7 @@
         "srcset": "/images/optimized/service-telemedicina-400.webp 400w, /images/optimized/service-telemedicina.webp 900w",
         "alt": "Consulta dermatologica remota"
     },
-    "lead": "La telemedicina funciona cuando le ayuda a decidir con rapidez, criterio y tranquilidad.",
+    "lead": "La telemedicina sirve cuando acelera decisiones sin perder criterio medico ni continuidad para usted.",
     "ui": {
         "menu": {
             "initiatives": "Iniciativas remotas",
@@ -25,8 +25,8 @@
         },
         "thesis": {
             "eyebrow": "Modelo clinico remoto",
-            "title": "Atencion online cuando realmente aporta valor",
-            "body": "Definimos con claridad que se puede resolver a distancia, que debe vigilarse y cuando conviene pasar al consultorio."
+            "title": "Atencion remota cuando aporta valor clinico real",
+            "body": "Definimos que puede resolverse a distancia, que debe vigilarse y cuando conviene pasar al consultorio."
         },
         "statement": {
             "eyebrow": "Direccion clinica remota",
@@ -36,7 +36,7 @@
             "alt": "Direccion clinica de telemedicina"
         },
         "internalMessage": {
-            "description": "Analizamos contexto, riesgo y evolucion para decidir si usted continua remoto o requiere examen presencial."
+            "description": "Revisamos contexto, riesgo y evolucion para definir si usted continua remoto o necesita examen presencial."
         },
         "rail": {
             "title": "Recorrido de atencion",
@@ -58,8 +58,8 @@
         {
             "title": "Como funciona",
             "items": [
-                "Usted comparte antecedentes clinicos y fotografias en contexto.",
-                "Priorizamos riesgo y estimamos si el caso puede resolverse de forma remota.",
+                "Usted comparte antecedentes relevantes y fotografias en contexto clinico.",
+                "Priorizamos riesgo y estimamos si su caso puede resolverse de forma remota.",
                 "Entregamos plan inicial, cuidados y fecha de control cuando corresponde.",
                 "Si aparecen senales de alarma, escalamos de inmediato a consulta presencial."
             ]
@@ -104,7 +104,7 @@
         },
         {
             "title": "Continuidad Quito",
-            "copy": "Ruta hibrida para Quito con continuidad remota y control presencial oportuno.",
+            "copy": "Ruta hibrida para Quito con seguimiento remoto y control presencial oportuno.",
             "image": "/images/optimized/service-telemedicina.webp",
             "href": "#v6-booking-status"
         }

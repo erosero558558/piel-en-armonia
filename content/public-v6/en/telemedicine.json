@@ -17,7 +17,7 @@
         "srcset": "/images/optimized/service-telemedicina-400.webp 400w, /images/optimized/service-telemedicina.webp 900w",
         "alt": "Remote dermatology consultation"
     },
-    "lead": "Telemedicine works best when it improves diagnosis clarity and helps you decide quickly, safely, and with confidence.",
+    "lead": "Telemedicine works best when it speeds decisions, supports diagnosis clarity, and preserves continuity.",
     "ui": {
         "menu": {
             "initiatives": "Remote initiatives",
@@ -25,8 +25,8 @@
         },
         "thesis": {
             "eyebrow": "Remote clinical model",
-            "title": "Online care when it truly adds value",
-            "body": "We define what can be solved remotely, what must be monitored, and when in-clinic review is necessary."
+            "title": "Online care when it adds real clinical value",
+            "body": "We define what can be solved remotely, what must be monitored, and when in-clinic review becomes necessary."
         },
         "statement": {
             "eyebrow": "Remote clinical direction",
@@ -59,7 +59,7 @@
             "title": "How it works",
             "items": [
                 "You share relevant history and contextual clinical images.",
-                "We prioritize risk and estimate if remote resolution is appropriate.",
+                "We prioritize risk and estimate whether remote resolution is appropriate.",
                 "We provide an initial plan, care guidance, and review timing when needed.",
                 "If warning signs appear, we escalate immediately to in-clinic consultation."
             ]
@@ -98,7 +98,7 @@
         },
         {
             "title": "In-clinic escalation",
-            "copy": "Referral to clinic when lesion behavior, pain, or progression needs direct examination.",
+            "copy": "Referral to clinic when lesion behavior, pain, or progression requires direct examination.",
             "image": "/images/optimized/showcase-clinic.webp",
             "href": "#v6-tele-block-3"
         },
