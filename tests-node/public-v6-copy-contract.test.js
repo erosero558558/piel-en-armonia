@@ -103,6 +103,55 @@ test('public-v6 copy contract: required ui labels exist in ES and EN', () => {
     }
 });
 
+test('public-v6 copy contract: service FAQ answers are explicit per route', () => {
+    const files = [
+        'content/public-v6/es/service.json',
+        'content/public-v6/en/service.json',
+    ];
+
+    for (const file of files) {
+        const json = readJson(file);
+        const fallback = String(json?.ui?.faqAnswerNote || '')
+            .trim()
+            .toLowerCase();
+        const services = Array.isArray(json.services) ? json.services : [];
+        assert.ok(services.length > 0, `${file}: services must not be empty`);
+
+        for (const service of services) {
+            const label = `${file}:${service.slug || 'service'}`;
+            const faq = Array.isArray(service.faq) ? service.faq : [];
+            const faqAnswers = Array.isArray(service.faqAnswers)
+                ? service.faqAnswers
+                : [];
+
+            assert.equal(
+                faqAnswers.length,
+                faq.length,
+                `${label}: faqAnswers length must match faq length`
+            );
+
+            for (const [index, answer] of faqAnswers.entries()) {
+                assert.equal(
+                    typeof answer,
+                    'string',
+                    `${label}: faqAnswers[${index}] must be string`
+                );
+                assert.ok(
+                    answer.trim().length > 0,
+                    `${label}: faqAnswers[${index}] must not be empty`
+                );
+                if (fallback) {
+                    assert.notEqual(
+                        answer.trim().toLowerCase(),
+                        fallback,
+                        `${label}: faqAnswers[${index}] must not use generic fallback`
+                    );
+                }
+            }
+        }
+    }
+});
+
 test('public-v6 copy contract: anti-robot legacy phrases removed', () => {
     const files = [
         'content/public-v6/es/home.json',

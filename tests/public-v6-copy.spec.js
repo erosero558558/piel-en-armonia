@@ -53,4 +53,33 @@ test.describe('Public V6 copy integrity', () => {
             });
         }
     });
+
+    test('service FAQs expose explicit answers in ES and EN', async ({
+        page,
+    }) => {
+        const checks = [
+            {
+                route: '/es/servicios/diagnostico-integral/',
+                forbidden: /respuesta de referencia/i,
+                required: /senal de alarma|consulta/i,
+            },
+            {
+                route: '/en/services/diagnostico-integral/',
+                forbidden: /reference answer/i,
+                required: /warning signs|consultation/i,
+            },
+        ];
+
+        for (const check of checks) {
+            await gotoPublicRoute(page, check.route);
+            const answers = page.locator('.v6-service-faq-grid article small');
+            await expect(answers).toHaveCount(3);
+            const firstAnswer = (await answers.first().innerText()).trim();
+            expect(firstAnswer.length).toBeGreaterThan(40);
+            expect(firstAnswer).not.toMatch(check.forbidden);
+
+            const bodyText = await page.locator('body').innerText();
+            expect(bodyText).toMatch(check.required);
+        }
+    });
 });

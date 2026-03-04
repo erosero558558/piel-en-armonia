@@ -44,7 +44,7 @@
             "relatedTitle": "Related routes"
         },
         "faqPrefix": "Q",
-        "faqAnswerNote": "Each answer is resolved in consultation with your clinical context.",
+        "faqAnswerNote": "Reference answer; your final plan is confirmed during consultation.",
         "relatedCta": "Open route",
         "bookingStatus": {
             "eyebrow": "Schedule status",
@@ -80,7 +80,12 @@
                 "Do I need tests before attending?",
                 "When is early progression reviewed?"
             ],
-            "related": ["acne-rosacea", "piel-cabello-unas"]
+            "related": ["acne-rosacea", "piel-cabello-unas"],
+            "faqAnswers": [
+                "Bring your medication list, allergy history, key conditions, and recent progression photos if available.",
+                "Not always. Additional tests are requested only when clinical evaluation shows they add decision value.",
+                "The first follow-up is usually scheduled in 3 to 6 weeks, or earlier if warning signs appear."
+            ]
         },
         {
             "slug": "acne-rosacea",
@@ -107,7 +112,12 @@
                 "Can this combine with laser?",
                 "What to do during an intense relapse?"
             ],
-            "related": ["peeling-quimico", "diagnostico-integral"]
+            "related": ["peeling-quimico", "diagnostico-integral"],
+            "faqAnswers": [
+                "Initial change is commonly visible between weeks 4 and 8, depending on inflammation and adherence.",
+                "Yes, once the skin is stable and phototype assessment has defined safe treatment parameters.",
+                "Pause irritants, keep baseline care, and request a medical adjustment within 48 to 72 hours."
+            ]
         },
         {
             "slug": "verrugas",
@@ -134,7 +144,12 @@
                 "Is there discomfort during treatment?",
                 "Can the wart come back?"
             ],
-            "related": ["diagnostico-integral", "cancer-piel"]
+            "related": ["diagnostico-integral", "cancer-piel"],
+            "faqAnswers": [
+                "It depends on type and depth: many cases respond in 1 to 3 sessions, while others require more.",
+                "Mild short discomfort may occur. Technique is adjusted to keep treatment tolerable and controlled.",
+                "Recurrence is possible, but risk drops with follow-up control and practical prevention measures."
+            ]
         },
         {
             "slug": "granitos-brazos-piernas",
@@ -161,7 +176,12 @@
                 "How long does texture improvement take?",
                 "Which products should be avoided?"
             ],
-            "related": ["acne-rosacea", "piel-cabello-unas"]
+            "related": ["acne-rosacea", "piel-cabello-unas"],
+            "faqAnswers": [
+                "Keratosis pilaris is common, but we also rule out eczema, folliculitis, or other inflammatory causes.",
+                "With consistent routine, visible texture improvement is often seen within 6 to 10 weeks.",
+                "Avoid aggressive exfoliation and products with fragrance or drying alcohols that disrupt barrier balance."
+            ]
         },
         {
             "slug": "cicatrices",
@@ -188,7 +208,12 @@
                 "How many sessions are usually required?",
                 "What aftercare is essential?"
             ],
-            "related": ["laser-dermatologico", "peeling-quimico"]
+            "related": ["laser-dermatologico", "peeling-quimico"],
+            "faqAnswers": [
+                "No. Response varies by scar type, age of the lesion, skin tone, and selected treatment strategy.",
+                "Many plans run through 3 to 6 sessions, with reassessment and adjustment at each stage.",
+                "Daily photoprotection, barrier care, and friction control are critical to protect improvement."
+            ]
         },
         {
             "slug": "cancer-piel",
@@ -215,7 +240,12 @@
                 "Which signs require urgent consultation?",
                 "Can this route start through telemedicine?"
             ],
-            "related": ["diagnostico-integral", "telemedicina"]
+            "related": ["diagnostico-integral", "telemedicina"],
+            "faqAnswers": [
+                "In higher-risk profiles, checks are often every 6 to 12 months, then personalized by findings.",
+                "Asymmetry, irregular borders, rapid color or size change, bleeding, or a lesion that does not heal.",
+                "Yes for first triage, but suspicious lesions should be escalated to priority in-clinic assessment."
+            ]
         },
         {
             "slug": "peeling-quimico",
@@ -242,7 +272,12 @@
                 "Can this combine with laser?",
                 "What factors limit indication?"
             ],
-            "related": ["mesoterapia", "laser-dermatologico"]
+            "related": ["mesoterapia", "laser-dermatologico"],
+            "faqAnswers": [
+                "Typical recovery is 3 to 7 days, depending on peel depth and individual skin tolerance.",
+                "Yes, when sequenced in medically timed protocols designed around skin response and safety.",
+                "Active irritation, pregnancy, poor sun-protection adherence, or high sensitivity may limit indication."
+            ]
         },
         {
             "slug": "mesoterapia",
@@ -269,7 +304,12 @@
                 "How often is it repeated?",
                 "Which routes combine best with it?"
             ],
-            "related": ["bioestimuladores-colageno", "peeling-quimico"]
+            "related": ["bioestimuladores-colageno", "peeling-quimico"],
+            "faqAnswers": [
+                "Mild redness can appear for 24 to 48 hours, and recovery is usually fast.",
+                "Many plans use 3 to 5 sessions, commonly spaced every 3 to 4 weeks.",
+                "It does not replace surgery; its value is improved hydration, texture, and skin quality."
+            ]
         },
         {
             "slug": "laser-dermatologico",
@@ -296,7 +336,12 @@
                 "How many sessions are common?",
                 "What aftercare is mandatory?"
             ],
-            "related": ["cicatrices", "peeling-quimico"]
+            "related": ["cicatrices", "peeling-quimico"],
+            "faqAnswers": [
+                "Parameters are tuned by phototype and treatment goal to reduce post-inflammatory pigmentation risk.",
+                "It depends on indication: vascular concerns, pigment, texture, scars, or medical hair reduction.",
+                "Initial review is often set 2 to 4 weeks later to calibrate the next treatment step."
+            ]
         },
         {
             "slug": "botox",
@@ -323,7 +368,12 @@
                 "How often is it usually repeated?",
                 "What care should be maintained after treatment?"
             ],
-            "related": ["bioestimuladores-colageno", "mesoterapia"]
+            "related": ["bioestimuladores-colageno", "mesoterapia"],
+            "faqAnswers": [
+                "Onset is usually noticed between days 3 and 5, with peak effect around days 10 to 14.",
+                "Average duration is 3 to 4 months, varying by metabolism, target area, and dose plan.",
+                "Avoid intense massage and strenuous exercise for 24 hours, and follow all aftercare guidance."
+            ]
         },
         {
             "slug": "bioestimuladores-colageno",
@@ -350,7 +400,12 @@
                 "How many sessions are commonly suggested?",
                 "Can this combine with medical botox?"
             ],
-            "related": ["botox", "mesoterapia"]
+            "related": ["botox", "mesoterapia"],
+            "faqAnswers": [
+                "Results are progressive, often starting around week 6 and maturing over 3 to 6 months.",
+                "Yes, with full facial assessment to preserve balance and prevent overcorrection.",
+                "It may be deferred in active inflammation, pregnancy, or lactation based on individual medical criteria."
+            ]
         },
         {
             "slug": "piel-cabello-unas",
@@ -377,7 +432,12 @@
                 "Can this start through telemedicine?",
                 "How often should follow-up be scheduled?"
             ],
-            "related": ["diagnostico-integral", "dermatologia-pediatrica"]
+            "related": ["diagnostico-integral", "dermatologia-pediatrica"],
+            "faqAnswers": [
+                "Yes. Targeted studies are requested only when they contribute meaningful diagnostic direction.",
+                "Yes, because scalp and nails are part of the same dermatology decision map.",
+                "Early follow-up is typically planned in 4 to 8 weeks, depending on findings and response."
+            ]
         },
         {
             "slug": "dermatologia-pediatrica",
@@ -404,7 +464,12 @@
                 "How is the plan explained to children and adolescents?",
                 "Can this combine with telemedicine?"
             ],
-            "related": ["diagnostico-integral", "acne-rosacea"]
+            "related": ["diagnostico-integral", "acne-rosacea"],
+            "faqAnswers": [
+                "Yes, and it is recommended to improve home observation and treatment adherence.",
+                "Yes when indicated, adjusted by age, weight, and pediatric skin sensitivity.",
+                "Fever, pain, rapid spread, discharge, or systemic decline require priority evaluation."
+            ]
         }
     ]
 }

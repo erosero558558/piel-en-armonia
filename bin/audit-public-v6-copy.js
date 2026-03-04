@@ -197,6 +197,79 @@ function inspectStructuredCopy(locale, rel, payload, findings) {
             });
         });
     }
+
+    if (rel.endsWith('/service.json')) {
+        const fallback = String(payload?.ui?.faqAnswerNote || '').trim();
+        const services = Array.isArray(payload?.services)
+            ? payload.services
+            : [];
+        const answerUsage = new Map();
+
+        services.forEach((service) => {
+            const label = `${service?.slug || 'service'}`;
+            const faq = Array.isArray(service?.faq) ? service.faq : [];
+            const faqAnswers = Array.isArray(service?.faqAnswers)
+                ? service.faqAnswers
+                : [];
+
+            if (faqAnswers.length !== faq.length) {
+                findings.push({
+                    locale,
+                    file: rel,
+                    type: 'service_faq_contract',
+                    message: `${label}: faqAnswers length (${faqAnswers.length}) must match faq length (${faq.length})`,
+                });
+            }
+
+            faqAnswers.forEach((answer, index) => {
+                checkMaxWords(
+                    locale,
+                    rel,
+                    findings,
+                    answer,
+                    34,
+                    'copy_length.faq_answer'
+                );
+
+                const normalized = String(answer || '')
+                    .trim()
+                    .toLowerCase();
+                if (!normalized) {
+                    findings.push({
+                        locale,
+                        file: rel,
+                        type: 'service_faq_contract',
+                        message: `${label}: faqAnswers[${index}] must not be empty`,
+                    });
+                    return;
+                }
+
+                if (fallback && normalized === fallback.toLowerCase()) {
+                    findings.push({
+                        locale,
+                        file: rel,
+                        type: 'service_faq_generic',
+                        message: `${label}: faqAnswers[${index}] matches generic fallback text`,
+                    });
+                }
+
+                const prev = answerUsage.get(normalized) || 0;
+                answerUsage.set(normalized, prev + 1);
+            });
+        });
+
+        for (const [answer, count] of answerUsage.entries()) {
+            if (count > 2) {
+                findings.push({
+                    locale,
+                    file: rel,
+                    type: 'service_faq_repetition',
+                    message: `Repeated FAQ answer appears ${count} times`,
+                    text: answer,
+                });
+            }
+        }
+    }
 }
 
 function inspectTerminologyConsistency(locale, dir, findings) {

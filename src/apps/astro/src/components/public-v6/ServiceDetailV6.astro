@@ -32,6 +32,7 @@ const menuLabel = navModel?.header?.menuLabel || '';
 const checkpoints = Array.isArray(service.bullets) ? service.bullets : [];
 const processSteps = Array.isArray(service.process) ? service.process : [];
 const faqItems = Array.isArray(service.faq) ? service.faq : [];
+const faqAnswers = Array.isArray(service.faqAnswers) ? service.faqAnswers : [];
 const sectionMenuItems = [
     {
         label: menuUi.glance || '',
@@ -178,7 +179,7 @@ const faqPrefix = ui.faqPrefix || '';
                             <article>
                                 <p>{`${faqPrefix}${index + 1}`}</p>
                                 <h4>{item}</h4>
-                                <small>{faqAnswerNote}</small>
+                                <small>{faqAnswers[index] || faqAnswerNote}</small>
                             </article>
                         ))
                     }

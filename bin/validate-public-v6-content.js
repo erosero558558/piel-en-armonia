@@ -304,6 +304,43 @@ function run() {
             ].forEach((field) =>
                 requireStringField(issues, file, json, field, 'service_schema')
             );
+
+            if (Array.isArray(json.services)) {
+                json.services.forEach((service, index) => {
+                    const label = `${service?.slug || `service_${index + 1}`}`;
+                    const faq = Array.isArray(service?.faq) ? service.faq : [];
+                    const faqAnswers = Array.isArray(service?.faqAnswers)
+                        ? service.faqAnswers
+                        : [];
+
+                    if (!faq.length) {
+                        issues.push({
+                            type: 'service_schema',
+                            file,
+                            detail: `${label}: faq missing`,
+                        });
+                        return;
+                    }
+
+                    if (faqAnswers.length !== faq.length) {
+                        issues.push({
+                            type: 'service_schema',
+                            file,
+                            detail: `${label}: faqAnswers length (${faqAnswers.length}) must match faq length (${faq.length})`,
+                        });
+                    }
+
+                    faqAnswers.forEach((answer, answerIndex) => {
+                        if (typeof answer !== 'string' || !answer.trim()) {
+                            issues.push({
+                                type: 'service_schema',
+                                file,
+                                detail: `${label}: faqAnswers[${answerIndex}] must be a non-empty string`,
+                            });
+                        }
+                    });
+                });
+            }
         }
 
         if (file.endsWith('telemedicine.json')) {

@@ -44,7 +44,7 @@
             "relatedTitle": "Rutas relacionadas"
         },
         "faqPrefix": "P",
-        "faqAnswerNote": "Se responde en consulta segun su contexto clinico.",
+        "faqAnswerNote": "Respuesta de referencia; su plan final se confirma en consulta.",
         "relatedCta": "Abrir ruta",
         "bookingStatus": {
             "eyebrow": "Estado de agenda",
@@ -80,7 +80,12 @@
                 "Necesito examenes previos?",
                 "Cuando se revisa la evolucion inicial?"
             ],
-            "related": ["acne-rosacea", "piel-cabello-unas"]
+            "related": ["acne-rosacea", "piel-cabello-unas"],
+            "faqAnswers": [
+                "Lleve lista de medicamentos, alergias, antecedentes y fotografias recientes de evolucion si dispone de ellas.",
+                "No siempre. Se solicitan examenes complementarios solo cuando la evaluacion clinica lo justifica.",
+                "El primer control suele programarse entre 3 y 6 semanas, o antes si aparece una senal de alarma."
+            ]
         },
         {
             "slug": "acne-rosacea",
@@ -107,7 +112,12 @@
                 "Puede combinarse con laser?",
                 "Que hacer en una recaida intensa?"
             ],
-            "related": ["peeling-quimico", "diagnostico-integral"]
+            "related": ["peeling-quimico", "diagnostico-integral"],
+            "faqAnswers": [
+                "Los primeros cambios suelen observarse entre la semana 4 y 8, segun inflamacion y adherencia al plan.",
+                "Si, cuando la piel ya esta estable y el fototipo fue evaluado para elegir parametros seguros.",
+                "Suspenda irritantes, mantenga cuidados base y solicite ajuste medico dentro de 48 a 72 horas."
+            ]
         },
         {
             "slug": "verrugas",
@@ -134,7 +144,12 @@
                 "Hay molestias durante el procedimiento?",
                 "Puede reaparecer la verruga?"
             ],
-            "related": ["diagnostico-integral", "cancer-piel"]
+            "related": ["diagnostico-integral", "cancer-piel"],
+            "faqAnswers": [
+                "Depende del tipo y profundidad: muchos casos responden en 1 a 3 sesiones, otros requieren mas.",
+                "Puede haber molestia breve y controlada. Ajustamos la tecnica para mantener tolerancia adecuada.",
+                "Puede recurrir, pero disminuye con control posterior y medidas de cuidado en piel y entorno."
+            ]
         },
         {
             "slug": "granitos-brazos-piernas",
@@ -161,7 +176,12 @@
                 "En cuanto tiempo mejora la textura?",
                 "Que productos conviene evitar?"
             ],
-            "related": ["acne-rosacea", "piel-cabello-unas"]
+            "related": ["acne-rosacea", "piel-cabello-unas"],
+            "faqAnswers": [
+                "Con frecuencia corresponde a queratosis pilar, pero evaluamos otras causas como eczema o foliculitis.",
+                "Con rutina constante, los cambios visibles suelen aparecer entre 6 y 10 semanas.",
+                "Evite exfoliacion agresiva y productos con fragancias o alcoholes que alteren la barrera cutanea."
+            ]
         },
         {
             "slug": "cicatrices",
@@ -188,7 +208,12 @@
                 "Cuantas sesiones suelen requerirse?",
                 "Que cuidados son clave despues?"
             ],
-            "related": ["laser-dermatologico", "peeling-quimico"]
+            "related": ["laser-dermatologico", "peeling-quimico"],
+            "faqAnswers": [
+                "No. La respuesta depende del tipo, antiguedad de la cicatriz, tono de piel y protocolo indicado.",
+                "En muchos casos se planifican 3 a 6 sesiones, con reevaluacion en cada etapa.",
+                "Fotoproteccion diaria, hidratacion de barrera y control de friccion son claves para consolidar avances."
+            ]
         },
         {
             "slug": "cancer-piel",
@@ -215,7 +240,12 @@
                 "Que signos exigen consulta inmediata?",
                 "Puede comenzar por telemedicina?"
             ],
-            "related": ["diagnostico-integral", "telemedicina"]
+            "related": ["diagnostico-integral", "telemedicina"],
+            "faqAnswers": [
+                "En riesgo elevado, la revision suele ser cada 6 a 12 meses; el intervalo final se personaliza.",
+                "Asimetria, bordes irregulares, cambios rapidos de color o tamano, sangrado o lesion que no cicatriza.",
+                "Si para triage inicial; si hay sospecha de riesgo, se indica evaluacion presencial prioritaria."
+            ]
         },
         {
             "slug": "peeling-quimico",
@@ -242,7 +272,12 @@
                 "Puede combinarse con laser?",
                 "Que factores limitan su indicacion?"
             ],
-            "related": ["mesoterapia", "laser-dermatologico"]
+            "related": ["mesoterapia", "laser-dermatologico"],
+            "faqAnswers": [
+                "La recuperacion habitual va de 3 a 7 dias, segun profundidad y tolerancia individual.",
+                "Si, dentro de protocolos secuenciales y tiempos de seguridad definidos por su dermatologo.",
+                "Embarazo, irritacion activa, baja adherencia a fotoproteccion o hipersensibilidad pueden limitar la indicacion."
+            ]
         },
         {
             "slug": "mesoterapia",
@@ -269,7 +304,12 @@
                 "Cada cuanto se repite?",
                 "Con que rutas se combina mejor?"
             ],
-            "related": ["bioestimuladores-colageno", "peeling-quimico"]
+            "related": ["bioestimuladores-colageno", "peeling-quimico"],
+            "faqAnswers": [
+                "La piel puede presentar enrojecimiento leve 24 a 48 horas; la recuperacion suele ser rapida.",
+                "Con frecuencia se indican 3 a 5 sesiones, separadas por 3 a 4 semanas.",
+                "No reemplaza cirugia. Su valor esta en mejorar hidratacion, textura y calidad de piel."
+            ]
         },
         {
             "slug": "laser-dermatologico",
@@ -296,7 +336,12 @@
                 "Cuantas sesiones son frecuentes?",
                 "Que cuidados posteriores son obligatorios?"
             ],
-            "related": ["cicatrices", "peeling-quimico"]
+            "related": ["cicatrices", "peeling-quimico"],
+            "faqAnswers": [
+                "Trabajamos con parametros ajustados por fototipo y objetivo clinico para minimizar riesgo pigmentario.",
+                "Depende del caso: vascular, pigmento, textura, cicatriz o depilacion medica.",
+                "El control inicial suele realizarse entre 2 y 4 semanas para ajustar la siguiente etapa."
+            ]
         },
         {
             "slug": "botox",
@@ -318,7 +363,12 @@
                 "Cada cuanto suele repetirse?",
                 "Que cuidados debo mantener despues?"
             ],
-            "related": ["bioestimuladores-colageno", "mesoterapia"]
+            "related": ["bioestimuladores-colageno", "mesoterapia"],
+            "faqAnswers": [
+                "El inicio suele notarse entre 3 y 5 dias, con efecto maximo alrededor de 10 a 14 dias.",
+                "La duracion promedio es de 3 a 4 meses y varia segun metabolismo, zona y dosis.",
+                "Evite masaje intenso y ejercicio vigoroso durante 24 horas, y siga las indicaciones post procedimiento."
+            ]
         },
         {
             "slug": "bioestimuladores-colageno",
@@ -345,7 +395,12 @@
                 "Cuantas sesiones se recomiendan?",
                 "Puede combinarse con botox medico?"
             ],
-            "related": ["botox", "mesoterapia"]
+            "related": ["botox", "mesoterapia"],
+            "faqAnswers": [
+                "El resultado es progresivo: suele iniciar hacia la semana 6 y consolidarse entre 3 y 6 meses.",
+                "Si, cuando hay evaluacion facial integral para mantener armonia y evitar sobrecorreccion.",
+                "Puede postergarse en inflamacion activa, gestacion o lactancia, segun criterio medico individual."
+            ]
         },
         {
             "slug": "piel-cabello-unas",
@@ -372,7 +427,12 @@
                 "Puede iniciar por telemedicina?",
                 "Cada cuanto se realiza control?"
             ],
-            "related": ["diagnostico-integral", "dermatologia-pediatrica"]
+            "related": ["diagnostico-integral", "dermatologia-pediatrica"],
+            "faqAnswers": [
+                "Si. Se solicitan estudios dirigidos solo cuando aportan informacion util para confirmar diagnostico.",
+                "Si, porque cuero cabelludo y unas forman parte del mismo mapa dermatologico de decision.",
+                "El control inicial suele ser entre 4 y 8 semanas, segun hallazgos y respuesta temprana."
+            ]
         },
         {
             "slug": "dermatologia-pediatrica",
@@ -399,7 +459,12 @@
                 "Como se explica el plan al nino o adolescente?",
                 "Puede combinarse con telemedicina?"
             ],
-            "related": ["diagnostico-integral", "acne-rosacea"]
+            "related": ["diagnostico-integral", "acne-rosacea"],
+            "faqAnswers": [
+                "Si, y es recomendable para mejorar observacion diaria y adherencia al plan en casa.",
+                "Si, cuando estan indicados; se ajustan por edad, peso y sensibilidad de la piel infantil.",
+                "Fiebre, dolor, extension rapida, secrecion o decaimiento general requieren evaluacion prioritaria."
+            ]
         }
     ]
 }
