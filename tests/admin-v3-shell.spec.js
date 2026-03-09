@@ -204,7 +204,7 @@ async function setupSonyV3Mocks(page) {
 
 async function openAdminSonyV3(page) {
     await setupSonyV3Mocks(page);
-    await page.goto('/admin.html?admin_ui=sony_v3&admin_ui_reset=1');
+    await page.goto('/admin.html');
     await expect(page.locator('html')).toHaveAttribute(
         'data-admin-ui',
         'sony_v3'
@@ -225,16 +225,14 @@ test.describe('Admin sony_v3 shell', () => {
         );
 
         const styles = await page.evaluate(() => ({
-            legacy: [
-                document.getElementById('adminLegacyBaseStyles')?.disabled,
-                document.getElementById('adminLegacyMinStyles')?.disabled,
-                document.getElementById('adminLegacyStyles')?.disabled,
-            ],
-            v3: document.getElementById('adminV3Styles')?.disabled,
+            legacyCount: document.querySelectorAll(
+                '#adminLegacyBaseStyles, #adminLegacyMinStyles, #adminLegacyStyles, #adminV2Styles'
+            ).length,
+            v3Count: document.querySelectorAll('#adminV3Styles').length,
         }));
 
-        expect(styles.legacy).toEqual([true, true, true]);
-        expect(styles.v3).toBe(false);
+        expect(styles.legacyCount).toBe(0);
+        expect(styles.v3Count).toBe(1);
 
         await page.keyboard.press('Control+K');
         await expect(page.locator('#adminCommandPalette')).not.toHaveClass(

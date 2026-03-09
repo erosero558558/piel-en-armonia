@@ -1,11 +1,5 @@
-import { icon } from '../../admin-v2/ui/icons.js';
-import {
-    escapeHtml,
-    qs,
-    qsa,
-    setHtml,
-    setText,
-} from '../../admin-v2/ui/render.js';
+import { icon } from '../shared/ui/icons.js';
+import { escapeHtml, qs, qsa, setHtml, setText } from '../shared/ui/render.js';
 
 const SECTION_TITLES = {
     dashboard: 'Dashboard',

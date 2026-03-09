@@ -1,27 +1,29 @@
-# Admin DOM and API Contract (Frozen)
+# Admin DOM and API Contract (V3 Only)
 
 ## Scope
 
-This document freezes the public admin contract used by Playwright suites and operational scripts.
+This document freezes the active admin frontend contract after the total cutover to `sony_v3`.
 
 ## Route Contract
 
 - `GET /admin.html`
-- Variant selector precedence:
-
-1. `admin_ui=sony_v3|sony_v2|legacy` query param
-2. `localStorage.adminUiVariant`
-3. backend feature flag `admin_sony_ui_v3 === true` from `GET /api.php?resource=features`
-4. backend feature flag `admin_sony_ui === true` from `GET /api.php?resource=features`
-5. fallback `legacy`
-
-- Optional contingency query: `admin_ui_reset=1` clears `localStorage.adminUiVariant` before variant resolution.
-- Kill-switch hard rules:
-    - If `admin_sony_ui=false`, any requested/stored `sony_v2` must be downgraded to `legacy` and persisted as `legacy`.
-    - If `admin_sony_ui_v3=false`, any requested/stored `sony_v3` must be downgraded to `sony_v2` when `admin_sony_ui=true`; otherwise it must fall back to `legacy`.
-    - If `admin_sony_ui_v3` is absent, `sony_v3` remains available by explicit query/storage for internal preview while default auto-enable stays disabled.
+- The admin always boots in `sony_v3`.
+- Legacy compatibility inputs are ignored and cleaned from the URL:
+    - `admin_ui=legacy|sony_v2|sony_v3`
+    - `admin_ui_reset=1`
+- Legacy storage compatibility:
+    - `localStorage.adminUiVariant` is removed opportunistically during preboot/runtime boot.
 - Admin CSP hardening:
-  `script-src 'self'`, `style-src 'self'`, `font-src 'self'` (sin dependencias externas).
+    - `script-src 'self'`
+    - `style-src 'self'`
+    - `font-src 'self'`
+
+## Runtime Contract
+
+- `html[data-admin-ui="sony_v3"]`
+- `html[data-admin-ready="true"]` after boot completes
+- `body.admin-v3-mode`
+- `[data-admin-frame="sony_v3"]`
 
 ## Auth/API Contract
 
@@ -77,23 +79,25 @@ This document freezes the public admin contract used by Playwright suites and op
 - `data-filter-value`: `all`, `pending_transfer`, `upcoming_48h`, `no_show`, `triage_attention`, `pending`, `contacted`, `today`, `sla_urgent`
 - `data-queue-filter`: `all`, `called`, `sla_risk`
 
-## Storage Keys (compat)
+## Storage Keys
 
-- `themeMode`
-- `adminLastSection`
-- `adminSidebarCollapsed`
-- `admin-appointments-sort`
-- `admin-appointments-density`
-- `admin-callbacks-filter`
-- `admin-callbacks-sort`
-- `admin-availability-selected-date`
-- `admin-availability-month-anchor`
-- `queueStationMode`
-- `queueStationConsultorio`
-- `queueOneTapAdvance`
-- `queueCallKeyBindingV1`
-- `queueNumpadHelpOpen`
-- `adminUiVariant`
+- Active:
+    - `themeMode`
+    - `adminLastSection`
+    - `adminSidebarCollapsed`
+    - `admin-appointments-sort`
+    - `admin-appointments-density`
+    - `admin-callbacks-filter`
+    - `admin-callbacks-sort`
+    - `admin-availability-selected-date`
+    - `admin-availability-month-anchor`
+    - `queueStationMode`
+    - `queueStationConsultorio`
+    - `queueOneTapAdvance`
+    - `queueCallKeyBindingV1`
+    - `queueNumpadHelpOpen`
+- Retired compatibility key:
+    - `adminUiVariant`
 
 ## Keyboard Contract
 
@@ -105,11 +109,13 @@ This document freezes the public admin contract used by Playwright suites and op
 
 ## Query Params (queue ops)
 
-- `/admin.html?station=c1|c2&lock=1|0&one_tap=1|0`
-- `/admin.html?admin_ui=sony_v3|sony_v2|legacy`
-- `/admin.html?admin_ui_reset=1` (contingency: clear `adminUiVariant`)
+- Active:
+    - `/admin.html?station=c1|c2&lock=1|0&one_tap=1|0`
+- Retired compatibility params:
+    - `/admin.html?admin_ui=sony_v3|sony_v2|legacy`
+    - `/admin.html?admin_ui_reset=1`
 
-## sony_v3 non-blocking hooks
+## Non-blocking hooks
 
 - `[data-admin-frame]`
 - `[data-admin-section-hero]`
@@ -120,5 +126,6 @@ This document freezes the public admin contract used by Playwright suites and op
 
 ## Notes
 
-- Contract is additive and must stay backward compatible while legacy, `sony_v2` and `sony_v3` coexist.
-- Any contract break requires explicit test migration in `tests/admin*.spec.js` and `tests/queue-integrated-flow.spec.js`.
+- `sony_v3` is the only supported admin runtime.
+- Rollback is operational (`revert + deploy`), not a runtime variant switch.
+- Any DOM contract break requires explicit test migration in active admin suites.

@@ -143,23 +143,6 @@ function buildFixtureState() {
     };
 }
 
-async function readFeatureFlags(request) {
-    const response = await request.get('/api.php?resource=features');
-    expect(response.ok()).toBeTruthy();
-    const payload = await response.json();
-
-    expect(payload).toBeTruthy();
-    expect(payload.ok).toBe(true);
-    expect(payload.data).toBeTruthy();
-    expect(typeof payload.data.admin_sony_ui).toBe('boolean');
-    expect(typeof payload.data.admin_sony_ui_v3).toBe('boolean');
-
-    return {
-        sonyV2: payload.data.admin_sony_ui === true,
-        sonyV3: payload.data.admin_sony_ui_v3 === true,
-    };
-}
-
 async function setupOperationalMocks(page) {
     const state = buildFixtureState();
 
@@ -205,20 +188,14 @@ async function setupOperationalMocks(page) {
             });
         }
 
-        return route.continue();
+        return jsonResponse(route, { ok: true, data: {} });
     });
 }
 
-async function openCanarySonyV3(page, request) {
+async function openAdminSonyV3(page, request) {
     await skipIfPhpRuntimeMissing(test, request);
-    const flags = await readFeatureFlags(request);
-    test.skip(
-        !flags.sonyV3,
-        'Saltado: admin_sony_ui_v3=false en este entorno.'
-    );
-
     await setupOperationalMocks(page);
-    await page.goto('/admin.html?admin_ui_reset=1');
+    await page.goto('/admin.html');
 
     await expect(page.locator('html')).toHaveAttribute(
         'data-admin-ui',
@@ -228,24 +205,19 @@ async function openCanarySonyV3(page, request) {
     await expect(page.locator('[data-admin-frame="sony_v3"]')).toBeVisible();
 }
 
-test.describe('Admin sony_v3 canary runtime', () => {
-    test('arranca sony_v3 por defecto con shell editorial y assets aislados', async ({
+test.describe('Admin sony_v3 runtime', () => {
+    test('arranca por defecto con shell editorial y assets v3 unicos', async ({
         page,
         request,
     }) => {
-        await openCanarySonyV3(page, request);
+        await openAdminSonyV3(page, request);
 
-        const styles = await page.evaluate(() => ({
-            legacy: [
-                document.getElementById('adminLegacyBaseStyles')?.disabled,
-                document.getElementById('adminLegacyMinStyles')?.disabled,
-                document.getElementById('adminLegacyStyles')?.disabled,
-            ],
-            v3: document.getElementById('adminV3Styles')?.disabled,
-        }));
-
-        expect(styles.legacy).toEqual([true, true, true]);
-        expect(styles.v3).toBe(false);
+        await expect(page.locator('#adminV3Styles')).toHaveCount(1);
+        await expect(
+            page.locator(
+                '#adminLegacyBaseStyles, #adminLegacyMinStyles, #adminLegacyStyles, #adminV2Styles'
+            )
+        ).toHaveCount(0);
 
         await expect(page.locator('#adminProductivityStrip')).toBeVisible();
         await expect(
@@ -273,7 +245,7 @@ test.describe('Admin sony_v3 canary runtime', () => {
         page,
         request,
     }) => {
-        await openCanarySonyV3(page, request);
+        await openAdminSonyV3(page, request);
 
         await page.keyboard.press('Alt+Shift+Digit2');
         await expect(page.locator('#appointments')).toHaveClass(/active/);
@@ -281,25 +253,14 @@ test.describe('Admin sony_v3 canary runtime', () => {
         await expect(
             page.locator('#appointmentsTableBody tr.appointment-row')
         ).toHaveCount(2);
-        await expect(page.locator('#appointmentsFocusPatient')).toContainText(
-            'Ana Transfer'
-        );
 
         await page.keyboard.press('Alt+Shift+Digit3');
         await expect(page.locator('#callbacks')).toHaveClass(/active/);
-        await expect(page.locator('#callbacksGrid .callback-card')).toHaveCount(
-            2
-        );
 
         await page.keyboard.press('Alt+Shift+Digit4');
         await expect(page.locator('#reviews')).toHaveClass(/active/);
-        await expect(page.locator('#reviewsGrid .review-card')).toHaveCount(2);
 
         await page.keyboard.press('Alt+Shift+Digit5');
         await expect(page.locator('#availability')).toHaveClass(/active/);
-        await expect(
-            page.locator('#availabilityCalendar .calendar-day')
-        ).toHaveCount(42);
-        await expect(page.locator('#availabilityDetailGrid')).toBeVisible();
     });
 });

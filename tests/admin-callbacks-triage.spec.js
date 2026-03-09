@@ -158,7 +158,7 @@ async function setupAdminApiMocks(page) {
 
 async function openCallbacksSection(page) {
     await setupAdminApiMocks(page);
-    await page.goto('/admin.html?admin_ui=sony_v2&admin_ui_reset=1');
+    await page.goto('/admin.html');
     await expect(page.locator('#adminDashboard')).toBeVisible();
     await page.keyboard.press('Alt+Shift+Digit3');
     await expect(page.locator('#callbacks')).toHaveClass(/active/);
@@ -207,7 +207,7 @@ test.describe('Admin callbacks triage', () => {
             4
         );
         await expect(page.locator('#callbacksToolbarState')).toContainText(
-            'Sin filtros activos'
+            'Orden: Mas recientes'
         );
     });
 

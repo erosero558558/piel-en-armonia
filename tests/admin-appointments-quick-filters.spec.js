@@ -185,7 +185,7 @@ async function setupAdminApiMocks(page) {
 
 async function gotoAppointments(page) {
     await setupAdminApiMocks(page);
-    await page.goto('/admin.html?admin_ui=sony_v2&admin_ui_reset=1');
+    await page.goto('/admin.html');
     await expect(page.locator('#adminDashboard')).toBeVisible();
     await page.locator('.nav-item[data-section="appointments"]').click();
     await expect(page.locator('#appointments')).toHaveClass(/active/);
@@ -244,7 +244,7 @@ test.describe('Admin appointments quick filters + shortcuts', () => {
         page,
     }) => {
         await setupAdminApiMocks(page);
-        await page.goto('/admin.html?admin_ui=sony_v2&admin_ui_reset=1');
+        await page.goto('/admin.html');
         await expect(page.locator('#adminDashboard')).toBeVisible();
 
         await page.keyboard.press('Alt+Shift+T');

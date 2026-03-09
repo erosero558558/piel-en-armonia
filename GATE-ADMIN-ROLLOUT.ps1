@@ -1,10 +1,8 @@
 param(
     [string]$Domain = 'https://pielarmonia.com',
-    [ValidateSet('internal', 'canary', 'general', 'rollback')]
-    [string]$Stage = 'canary',
+    [ValidateSet('stable')]
+    [string]$Stage = 'stable',
     [switch]$SkipRuntimeSmoke,
-    [switch]$AllowFeatureApiFailure,
-    [switch]$AllowMissingAdminFlag,
     [string]$ReportPath = 'verification/last-admin-ui-rollout-gate.json'
 )
 
@@ -12,41 +10,27 @@ $ErrorActionPreference = 'Stop'
 $base = $Domain.TrimEnd('/')
 $failures = 0
 $timestampUtc = (Get-Date).ToUniversalTime().ToString('o')
-$allowFeatureApiFailureEffective = [bool]$AllowFeatureApiFailure -or $Stage -eq 'internal'
-$allowMissingAdminFlagEffective = [bool]$AllowMissingAdminFlag -or $Stage -eq 'internal'
 
 $report = [ordered]@{
     ok = $false
     timestamp_utc = $timestampUtc
     domain = $base
     stage = $Stage
-    options = [ordered]@{
-        skip_runtime_smoke = [bool]$SkipRuntimeSmoke
-        allow_feature_api_failure = [bool]$AllowFeatureApiFailure
-        allow_missing_admin_flag = [bool]$AllowMissingAdminFlag
-        allow_feature_api_failure_effective = [bool]$allowFeatureApiFailureEffective
-        allow_missing_admin_flag_effective = [bool]$allowMissingAdminFlagEffective
-    }
-    features = [ordered]@{
-        url = "$base/api.php?resource=features"
-        request_ok = $false
+    page = [ordered]@{
+        url = "$base/admin.html"
+        ok = $false
         http_status = 0
-        response_ok = $false
-        has_admin_sony_ui = $false
-        admin_sony_ui = $null
-        has_admin_sony_ui_v3 = $false
-        admin_sony_ui_v3 = $null
-        expected_admin_sony_ui = $null
-        expected_admin_sony_ui_v3 = $null
-        stage_expectation_match_admin_sony_ui = $null
-        stage_expectation_match_admin_sony_ui_v3 = $null
-        warning = $null
-        error = $null
     }
-    url_checks = @()
+    assets = [ordered]@{
+        has_admin_v3_css = $false
+        references_legacy_styles = $false
+    }
     csp = [ordered]@{
         checked = $false
         meta_present = $false
+        self_only_script = $false
+        self_only_style = $false
+        self_only_font = $false
     }
     runtime_smoke = [ordered]@{
         executed = $false
@@ -56,29 +40,22 @@ $report = [ordered]@{
     failures = 0
 }
 
-function Invoke-JsonGet {
+function Invoke-HttpCheck {
     param(
         [string]$Url
     )
 
     try {
         $response = Invoke-WebRequest -Uri $Url -Method GET -TimeoutSec 20 -UseBasicParsing -Headers @{
-            'Accept' = 'application/json'
-            'User-Agent' = 'AdminUiRolloutGate/1.0'
-        }
-
-        $payload = $null
-        try {
-            $payload = $response.Content | ConvertFrom-Json
-        } catch {
-            $payload = $null
+            'Accept' = 'text/html,application/json;q=0.9,*/*;q=0.8'
+            'User-Agent' = 'AdminUiRolloutGate/2.0'
         }
 
         return [PSCustomObject]@{
             Ok = $true
             Status = [int]$response.StatusCode
-            Json = $payload
-            Raw = [string]$response.Content
+            Headers = $response.Headers
+            Body = [string]$response.Content
             Error = ''
         }
     } catch {
@@ -97,81 +74,9 @@ function Invoke-JsonGet {
         return [PSCustomObject]@{
             Ok = $false
             Status = $status
-            Json = $null
-            Raw = $raw
-            Error = $_.Exception.Message
-        }
-    }
-}
-
-function Invoke-HttpCheck {
-    param(
-        [string]$Name,
-        [string]$Url
-    )
-
-    try {
-        $response = Invoke-WebRequest -Uri $Url -Method GET -TimeoutSec 20 -UseBasicParsing -Headers @{
-            'Accept' = 'text/html,application/json;q=0.9,*/*;q=0.8'
-            'User-Agent' = 'AdminUiRolloutGate/1.0'
-        }
-        $status = [int]$response.StatusCode
-        if ($status -ge 200 -and $status -lt 400) {
-            Write-Host "[OK]  $Name -> HTTP $status"
-            return [PSCustomObject]@{
-                Ok = $true
-                Status = $status
-                Headers = $response.Headers
-                Body = [string]$response.Content
-            }
-        }
-        Write-Host "[FAIL] $Name -> HTTP $status"
-        return [PSCustomObject]@{
-            Ok = $false
-            Status = $status
-            Headers = $response.Headers
-            Body = [string]$response.Content
-        }
-    } catch {
-        Write-Host "[FAIL] $Name -> $($_.Exception.Message)"
-        return [PSCustomObject]@{
-            Ok = $false
-            Status = 0
             Headers = @{}
-            Body = ''
-        }
-    }
-}
-
-function Get-ExpectedFeatureFlagsByStage {
-    param(
-        [string]$CurrentStage
-    )
-
-    switch ($CurrentStage) {
-        'canary' {
-            return [PSCustomObject]@{
-                admin_sony_ui = $true
-                admin_sony_ui_v3 = $true
-            }
-        }
-        'general' {
-            return [PSCustomObject]@{
-                admin_sony_ui = $true
-                admin_sony_ui_v3 = $true
-            }
-        }
-        'rollback' {
-            return [PSCustomObject]@{
-                admin_sony_ui = $false
-                admin_sony_ui_v3 = $false
-            }
-        }
-        default {
-            return [PSCustomObject]@{
-                admin_sony_ui = $null
-                admin_sony_ui_v3 = $null
-            }
+            Body = $raw
+            Error = $_.Exception.Message
         }
     }
 }
@@ -219,242 +124,107 @@ function Invoke-PlaywrightSmokeSuite {
 Write-Host "== Gate Admin UI Rollout =="
 Write-Host "Dominio: $base"
 Write-Host "Stage: $Stage"
-Write-Host "Fecha: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-Write-Host ""
 
-$featuresUrl = "$base/api.php?resource=features"
-$featuresResult = Invoke-JsonGet -Url $featuresUrl
-$featureValueV2 = $null
-$featureValueV3 = $null
+$pageResult = Invoke-HttpCheck -Url $report.page.url
+$report.page.ok = [bool]$pageResult.Ok
+$report.page.http_status = [int]$pageResult.Status
 
-if ($featuresResult.Ok -and $null -ne $featuresResult.Json -and $featuresResult.Json.ok -eq $true) {
-    $report.features.request_ok = $true
-    $report.features.http_status = [int]$featuresResult.Status
-    $report.features.response_ok = $true
-    Write-Host "[OK]  Features API -> HTTP $($featuresResult.Status)"
-    if ($null -eq $featuresResult.Json.data) {
-        if ($allowMissingAdminFlagEffective) {
-            Write-Host "[WARN] Features API no contiene bloque data de flags admin (permitido por politica efectiva de stage/flag)."
-            $report.features.warning = 'missing_admin_flag_block_allowed'
-        } else {
-            Write-Host "[FAIL] Features API no contiene bloque data de flags admin"
-            $failures += 1
-            $report.features.error = 'missing_admin_flag_block'
-        }
-    } else {
-        if ($null -eq $featuresResult.Json.data.admin_sony_ui) {
-            if ($allowMissingAdminFlagEffective) {
-                Write-Host "[WARN] Features API no contiene data.admin_sony_ui (permitido por politica efectiva de stage/flag)."
-                $report.features.warning = 'missing_admin_sony_ui_allowed'
-            } else {
-                Write-Host "[FAIL] Features API no contiene data.admin_sony_ui"
-                $failures += 1
-                $report.features.error = 'missing_admin_sony_ui'
-            }
-        } else {
-            $featureValueV2 = [bool]$featuresResult.Json.data.admin_sony_ui
-            $featureTextV2 = if ($featureValueV2) { 'true' } else { 'false' }
-            $report.features.has_admin_sony_ui = $true
-            $report.features.admin_sony_ui = [bool]$featureValueV2
-            Write-Host "[INFO] admin_sony_ui actual: $featureTextV2"
-        }
-
-        if ($null -eq $featuresResult.Json.data.admin_sony_ui_v3) {
-            if ($allowMissingAdminFlagEffective) {
-                Write-Host "[WARN] Features API no contiene data.admin_sony_ui_v3 (permitido por politica efectiva de stage/flag)."
-                if ($null -eq $report.features.warning) {
-                    $report.features.warning = 'missing_admin_sony_ui_v3_allowed'
-                }
-            } else {
-                Write-Host "[FAIL] Features API no contiene data.admin_sony_ui_v3"
-                $failures += 1
-                if ($null -eq $report.features.error) {
-                    $report.features.error = 'missing_admin_sony_ui_v3'
-                }
-            }
-        } else {
-            $featureValueV3 = [bool]$featuresResult.Json.data.admin_sony_ui_v3
-            $featureTextV3 = if ($featureValueV3) { 'true' } else { 'false' }
-            $report.features.has_admin_sony_ui_v3 = $true
-            $report.features.admin_sony_ui_v3 = [bool]$featureValueV3
-            Write-Host "[INFO] admin_sony_ui_v3 actual: $featureTextV3"
-        }
-    }
+if (-not $pageResult.Ok) {
+    Write-Host "[FAIL] admin.html -> HTTP $($pageResult.Status)"
+    $failures += 1
 } else {
-    $report.features.request_ok = [bool]$featuresResult.Ok
-    $report.features.http_status = [int]$featuresResult.Status
-    if ($allowFeatureApiFailureEffective) {
-        Write-Host "[WARN] Features API no disponible (HTTP $($featuresResult.Status)); se continua por politica efectiva de stage/flag."
-        $report.features.warning = 'features_api_failure_allowed'
-    } else {
-        Write-Host "[FAIL] Features API no disponible (HTTP $($featuresResult.Status))"
-        if ($featuresResult.Error) {
-            Write-Host "       $($featuresResult.Error)"
-        }
-        $failures += 1
-        $report.features.error = 'features_api_failure'
-    }
+    Write-Host "[OK]  admin.html -> HTTP $($pageResult.Status)"
 }
 
-$expectedFeatures = Get-ExpectedFeatureFlagsByStage -CurrentStage $Stage
-$report.features.expected_admin_sony_ui = $expectedFeatures.admin_sony_ui
-$report.features.expected_admin_sony_ui_v3 = $expectedFeatures.admin_sony_ui_v3
-if ($null -ne $expectedFeatures.admin_sony_ui -and $null -ne $featureValueV2) {
-    if ([bool]$featureValueV2 -ne [bool]$expectedFeatures.admin_sony_ui) {
-        $expectedText = if ($expectedFeatures.admin_sony_ui) { 'true' } else { 'false' }
-        $actualText = if ($featureValueV2) { 'true' } else { 'false' }
-        Write-Host "[FAIL] Stage '$Stage' requiere admin_sony_ui=$expectedText, actual=$actualText"
-        $failures += 1
-        $report.features.stage_expectation_match_admin_sony_ui = $false
-    } else {
-        Write-Host "[OK]  Stage '$Stage' coincide con admin_sony_ui esperado"
-        $report.features.stage_expectation_match_admin_sony_ui = $true
-    }
-} elseif ($Stage -eq 'internal') {
-    Write-Host "[INFO] Stage internal: no se fuerza valor de admin_sony_ui"
-    $report.features.stage_expectation_match_admin_sony_ui = $null
-}
-
-if ($null -ne $expectedFeatures.admin_sony_ui_v3 -and $null -ne $featureValueV3) {
-    if ([bool]$featureValueV3 -ne [bool]$expectedFeatures.admin_sony_ui_v3) {
-        $expectedText = if ($expectedFeatures.admin_sony_ui_v3) { 'true' } else { 'false' }
-        $actualText = if ($featureValueV3) { 'true' } else { 'false' }
-        Write-Host "[FAIL] Stage '$Stage' requiere admin_sony_ui_v3=$expectedText, actual=$actualText"
-        $failures += 1
-        $report.features.stage_expectation_match_admin_sony_ui_v3 = $false
-    } else {
-        Write-Host "[OK]  Stage '$Stage' coincide con admin_sony_ui_v3 esperado"
-        $report.features.stage_expectation_match_admin_sony_ui_v3 = $true
-    }
-} elseif ($Stage -eq 'internal') {
-    Write-Host "[INFO] Stage internal: no se fuerza valor de admin_sony_ui_v3"
-    $report.features.stage_expectation_match_admin_sony_ui_v3 = $null
-}
-
-Write-Host ""
-$urlChecks = @(
-    @{ Name = 'Admin base'; Url = "$base/admin.html" },
-    @{ Name = 'Admin query legacy'; Url = "$base/admin.html?admin_ui=legacy" },
-    @{ Name = 'Admin query sony_v2'; Url = "$base/admin.html?admin_ui=sony_v2" },
-    @{ Name = 'Admin query sony_v3'; Url = "$base/admin.html?admin_ui=sony_v3" },
-    @{ Name = 'Admin contingency reset'; Url = "$base/admin.html?admin_ui_reset=1" }
+$rawHtml = [string]$pageResult.Body
+$report.assets.has_admin_v3_css = $rawHtml.Contains('admin-v3.css')
+$report.assets.references_legacy_styles = (
+    $rawHtml.Contains('styles.min.css') -or
+    $rawHtml.Contains('admin.min.css') -or
+    $rawHtml.Contains('admin.css') -or
+    $rawHtml.Contains('admin-v2.css')
 )
 
-$adminBaseResult = $null
-foreach ($check in $urlChecks) {
-    $result = Invoke-HttpCheck -Name $check.Name -Url $check.Url
-    $report.url_checks += [ordered]@{
-        name = [string]$check.Name
-        url = [string]$check.Url
-        ok = [bool]$result.Ok
-        http_status = [int]$result.Status
-    }
-    if (-not $result.Ok) {
-        $failures += 1
-    }
-    if ($check.Name -eq 'Admin base') {
-        $adminBaseResult = $result
-    }
+if ($report.assets.has_admin_v3_css) {
+    Write-Host "[OK]  shell referencia admin-v3.css"
+} else {
+    Write-Host "[FAIL] shell no referencia admin-v3.css"
+    $failures += 1
 }
 
-if ($null -ne $adminBaseResult -and $adminBaseResult.Ok) {
-    $report.csp.checked = $true
-    $cspMetaFound = [regex]::IsMatch(
-        [string]$adminBaseResult.Body,
-        '<meta[^>]+http-equiv\s*=\s*["'']Content-Security-Policy["''][^>]*>',
-        [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
-    )
-    if ($cspMetaFound) {
-        Write-Host "[OK]  Admin base incluye meta CSP"
-        $report.csp.meta_present = $true
-    } else {
-        Write-Host "[FAIL] Admin base no incluye meta CSP"
-        $failures += 1
-        $report.csp.meta_present = $false
-    }
+if (-not $report.assets.references_legacy_styles) {
+    Write-Host "[OK]  shell sin referencias CSS legacy"
+} else {
+    Write-Host "[FAIL] shell mantiene referencias CSS legacy"
+    $failures += 1
+}
+
+$report.csp.checked = $true
+$report.csp.meta_present = $rawHtml.Contains('Content-Security-Policy')
+$report.csp.self_only_script = $rawHtml.Contains("script-src 'self'")
+$report.csp.self_only_style = $rawHtml.Contains("style-src 'self'")
+$report.csp.self_only_font = $rawHtml.Contains("font-src 'self'")
+
+if ($report.csp.meta_present -and $report.csp.self_only_script -and $report.csp.self_only_style -and $report.csp.self_only_font) {
+    Write-Host "[OK]  CSP admin endurecida"
+} else {
+    Write-Host "[FAIL] CSP admin incompleta"
+    $failures += 1
 }
 
 if (-not $SkipRuntimeSmoke) {
-    Write-Host ""
-    Write-Host "[SMOKE] Ejecutando suite Playwright admin-ui por etapa..."
     $report.runtime_smoke.executed = $true
 
-    $previousBaseUrl = $env:TEST_BASE_URL
-    $env:TEST_BASE_URL = $base
-    try {
-        $suites = @(
-            @{
-                Name = 'admin-ui-runtime'
-                Specs = @('tests/admin-ui-runtime-smoke.spec.js')
-            }
-        )
+    $runtimeSuites = @(
+        @{
+            Name = 'admin-ui-runtime'
+            Specs = @('tests/admin-ui-runtime-smoke.spec.js')
+        },
+        @{
+            Name = 'admin-v3-runtime'
+            Specs = @('tests/admin-v3-canary-runtime.spec.js')
+        }
+    )
 
-        if (
-            $Stage -eq 'canary' -or
-            $Stage -eq 'general' -or
-            ($Stage -eq 'internal' -and $featureValueV3 -eq $true)
-        ) {
-            $suites += @{
-                Name = 'admin-v3-canary-runtime'
-                Specs = @('tests/admin-v3-canary-runtime.spec.js')
-            }
+    $runtimeOk = $true
+    foreach ($suite in $runtimeSuites) {
+        $suiteResult = Invoke-PlaywrightSmokeSuite -Name $suite.Name -Specs $suite.Specs
+        $report.runtime_smoke.suites += [ordered]@{
+            name = $suiteResult.name
+            ok = [bool]$suiteResult.ok
+            exit_code = [int]$suiteResult.exit_code
+            specs = @($suiteResult.specs)
         }
 
-        $suiteFailures = 0
-        foreach ($suite in $suites) {
-            $suiteResult = Invoke-PlaywrightSmokeSuite -Name $suite.Name -Specs $suite.Specs
-            $report.runtime_smoke.suites += [ordered]@{
-                name = [string]$suiteResult.name
-                ok = [bool]$suiteResult.ok
-                exit_code = [int]$suiteResult.exit_code
-                specs = @($suiteResult.specs)
-            }
-            if (-not $suiteResult.ok) {
-                $suiteFailures += 1
-            }
-        }
-
-        if ($suiteFailures -gt 0) {
-            $failures += $suiteFailures
-            $report.runtime_smoke.ok = $false
-        } else {
-            $report.runtime_smoke.ok = $true
-        }
-    } finally {
-        if ($null -eq $previousBaseUrl) {
-            Remove-Item Env:TEST_BASE_URL -ErrorAction SilentlyContinue
-        } else {
-            $env:TEST_BASE_URL = $previousBaseUrl
+        if (-not $suiteResult.ok) {
+            $runtimeOk = $false
+            $failures += 1
         }
     }
+
+    $report.runtime_smoke.ok = [bool]$runtimeOk
 } else {
-    Write-Host ""
-    Write-Host "[WARN] Runtime smoke Playwright omitido por bandera -SkipRuntimeSmoke."
-    $report.runtime_smoke.executed = $false
-    $report.runtime_smoke.ok = $null
+    Write-Host "[INFO] Runtime smoke omitido por flag."
 }
 
 $report.failures = [int]$failures
 $report.ok = ($failures -eq 0)
 
-if (-not [string]::IsNullOrWhiteSpace($ReportPath)) {
-    try {
-        $reportDirectory = Split-Path -Parent $ReportPath
-        if (-not [string]::IsNullOrWhiteSpace($reportDirectory)) {
-            New-Item -ItemType Directory -Path $reportDirectory -Force | Out-Null
-        }
-        $report | ConvertTo-Json -Depth 12 | Out-File -FilePath $ReportPath -Encoding utf8
-        Write-Host "[INFO] Reporte JSON guardado en: $ReportPath"
-    } catch {
-        Write-Host "[WARN] No se pudo guardar reporte JSON en '$ReportPath': $($_.Exception.Message)"
+try {
+    $directory = Split-Path -Parent $ReportPath
+    if ($directory) {
+        New-Item -ItemType Directory -Path $directory -Force | Out-Null
     }
+    $report | ConvertTo-Json -Depth 6 | Set-Content -Path $ReportPath -Encoding UTF8
+    Write-Host "[INFO] Reporte escrito en $ReportPath"
+} catch {
+    Write-Host "[WARN] No se pudo escribir reporte: $($_.Exception.Message)"
 }
 
-Write-Host ""
-if ($failures -gt 0) {
-    Write-Host "Gate Admin UI Rollout: FALLIDO ($failures fallo(s))." -ForegroundColor Red
-    exit 1
+if ($report.ok) {
+    Write-Host "[OK]  Gate admin rollout en verde."
+    exit 0
 }
 
-Write-Host "Gate Admin UI Rollout: OK." -ForegroundColor Green
-exit 0
+Write-Host "[FAIL] Gate admin rollout fallo con $failures incidencia(s)."
+exit 1

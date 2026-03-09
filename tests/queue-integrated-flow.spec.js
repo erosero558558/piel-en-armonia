@@ -9,19 +9,10 @@ function json(route, payload, status = 200) {
     });
 }
 
-const ADMIN_UI_VARIANT =
-    String(process.env.ADMIN_UI_VARIANT || 'legacy')
-        .trim()
-        .toLowerCase() === 'sony_v2'
-        ? 'sony_v2'
-        : 'legacy';
+const ADMIN_UI_VARIANT = 'sony_v3';
 
 function adminUrl(query = '') {
     const params = new URLSearchParams(String(query || ''));
-    if (ADMIN_UI_VARIANT === 'sony_v2') {
-        params.set('admin_ui', 'sony_v2');
-        params.set('admin_ui_reset', '1');
-    }
     const search = params.toString();
     return `/admin.html${search ? `?${search}` : ''}`;
 }

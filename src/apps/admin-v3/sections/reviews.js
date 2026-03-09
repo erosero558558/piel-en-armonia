@@ -1,10 +1,10 @@
-import { getState } from '../../admin-v2/core/store.js';
+import { getState } from '../shared/core/store.js';
 import {
     escapeHtml,
     formatDateTime,
     setHtml,
     setText,
-} from '../../admin-v2/ui/render.js';
+} from '../shared/ui/render.js';
 
 function normalize(value) {
     return String(value || '')

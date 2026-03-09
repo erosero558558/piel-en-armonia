@@ -139,14 +139,18 @@ async function openAvailabilitySection(page) {
     await page.locator('.nav-item[data-section="availability"]').click();
     await expect(page.locator('#availability')).toHaveClass(/active/);
 
-    const slotDay = page.locator('#availabilityCalendar .calendar-day.has-slots').first();
+    const slotDay = page
+        .locator('#availabilityCalendar .calendar-day.has-slots')
+        .first();
     if ((await slotDay.count()) > 0) {
         await expect(slotDay).toBeVisible();
         await slotDay.click();
         return;
     }
 
-    const anyDay = page.locator('#availabilityCalendar .calendar-day:not(.other-month)').first();
+    const anyDay = page
+        .locator('#availabilityCalendar .calendar-day:not(.other-month)')
+        .first();
     await expect(anyDay).toBeVisible();
     await anyDay.click();
 }
@@ -165,26 +169,20 @@ test.describe('Admin disponibilidad: modo Google solo lectura', () => {
         const addSlotForm = page.locator('#addSlotForm').first();
 
         await expect(syncStatus).toBeVisible();
-
-        const statusText = (
-            (await syncStatus.textContent()) || ''
-        ).toLowerCase();
-        if (statusText.includes('google calendar')) {
-            await expect(heading).toContainText('Solo lectura');
-            await expect(addSlotForm).toHaveClass(/is-hidden/);
-        } else {
-            await expect(heading).toContainText('Configurar Horarios Disponibles');
-            await expect(addSlotForm).not.toHaveClass(/is-hidden/);
-        }
+        await expect(syncStatus).toContainText('Google Calendar');
+        await expect(heading).toContainText('Solo lectura');
+        await expect(addSlotForm).toHaveClass(/is-hidden/);
     });
 
-    test('en fuente local habilita formulario de horarios', async ({ page }) => {
+    test('en fuente local habilita formulario de horarios', async ({
+        page,
+    }) => {
         await setupAdminApiMocks(page, 'store');
         await openAvailabilitySection(page);
 
         await expect(
             page.locator('#availability .availability-calendar h3')
-        ).toContainText('Configurar Horarios Disponibles');
+        ).toContainText('Calendario de disponibilidad');
         await expect(page.locator('#addSlotForm')).not.toHaveClass(/is-hidden/);
         await expect(page.locator('#timeSlotsList')).not.toContainText(
             'Solo lectura'
@@ -206,7 +204,7 @@ test.describe('Admin disponibilidad: modo Google solo lectura', () => {
             .format(new Date())
             .toLowerCase();
         const currentYear = String(new Date().getFullYear());
-        const text = (((await label.textContent()) || '').trim()).toLowerCase();
+        const text = ((await label.textContent()) || '').trim().toLowerCase();
 
         expect(text).toContain(currentMonth);
         expect(text).toContain(currentYear);

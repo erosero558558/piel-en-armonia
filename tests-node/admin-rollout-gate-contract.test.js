@@ -12,29 +12,32 @@ function loadScript() {
     return readFileSync(SCRIPT_PATH, 'utf8');
 }
 
-test('admin rollout gate expone stages canonicos y contrato v3', () => {
+test('admin rollout gate expone stage estable y contrato v3-only', () => {
     const raw = loadScript();
 
     assert.equal(
-        raw.includes(
-            "[ValidateSet('internal', 'canary', 'general', 'rollback')]"
-        ),
+        raw.includes("[ValidateSet('stable')]"),
         true,
-        'falta validate set canonico de stages'
+        'falta stage estable canonico'
     );
     assert.equal(
-        raw.includes('has_admin_sony_ui_v3 = $false'),
+        raw.includes('url = "$base/admin.html"'),
         true,
-        'falta contrato de flag admin_sony_ui_v3 en el reporte'
+        'falta chequeo canonico de admin.html'
     );
     assert.equal(
-        raw.includes('expected_admin_sony_ui_v3 = $null'),
+        raw.includes('has_admin_v3_css = $false'),
         true,
-        'falta expectativa stage-aware para admin_sony_ui_v3'
+        'falta flag de admin-v3.css en el reporte'
+    );
+    assert.equal(
+        raw.includes('references_legacy_styles = $false'),
+        true,
+        'falta flag de referencias legacy en el reporte'
     );
 });
 
-test('admin rollout gate registra suites runtime stage-aware', () => {
+test('admin rollout gate registra suites runtime v3-only', () => {
     const raw = loadScript();
 
     assert.equal(
@@ -58,24 +61,14 @@ test('admin rollout gate registra suites runtime stage-aware', () => {
         'falta spec base admin-ui-runtime-smoke'
     );
     assert.equal(
-        raw.includes("Name = 'admin-v3-canary-runtime'"),
+        raw.includes("Name = 'admin-v3-runtime'"),
         true,
-        'falta suite admin-v3-canary-runtime'
+        'falta suite estable admin-v3-runtime'
     );
     assert.equal(
         raw.includes("Specs = @('tests/admin-v3-canary-runtime.spec.js')"),
         true,
-        'falta spec admin-v3-canary-runtime'
-    );
-    assert.equal(
-        raw.includes("$Stage -eq 'canary' -or"),
-        true,
-        'falta condicion stage-aware para canary/general'
-    );
-    assert.equal(
-        raw.includes("($Stage -eq 'internal' -and $featureValueV3 -eq $true)"),
-        true,
-        'falta condicion interna dependiente de admin_sony_ui_v3'
+        'falta spec estable de runtime V3'
     );
 });
 

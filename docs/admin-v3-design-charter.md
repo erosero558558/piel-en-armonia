@@ -40,7 +40,7 @@ Definir la gramatica de `sony_v3` para que el admin comparta lenguaje con la hom
 - Variant loader: `legacy | sony_v2 | sony_v3`
 - Shell propio: `src/apps/admin-v3/**`
 - CSS dedicada: `admin-v3.css`
-- Reuso del core probado de `admin-v2` para auth, store, data y acciones
+- Runtime compartido absorbido dentro de `admin-v3` para evitar dependencia estructural del shell `sony_v3` sobre `admin-v2`
 
 ## Criterios de aceptacion
 

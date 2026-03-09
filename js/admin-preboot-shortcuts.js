@@ -30,61 +30,37 @@
         '&': 'digit6',
     });
     const LAST_SECTION_KEY = 'adminLastSection';
-    const VARIANT_STORAGE_KEY = 'adminUiVariant';
-    const RESET_QUERY_KEY = 'admin_ui_reset';
-    const VARIANT_QUERY_KEY = 'admin_ui';
-    const VARIANTS = new Set(['legacy', 'sony_v2', 'sony_v3']);
+    const LEGACY_VARIANT_STORAGE_KEY = 'adminUiVariant';
+    const LEGACY_VARIANT_QUERY_KEYS = ['admin_ui', 'admin_ui_reset'];
 
-    function normalizeVariant(value) {
-        const normalized = String(value || '')
-            .trim()
-            .toLowerCase();
-        return VARIANTS.has(normalized) ? normalized : '';
-    }
-
-    function readVariantFromLocation() {
+    function normalizeUrl() {
         try {
             const url = new URL(window.location.href);
-            if (url.searchParams.has(RESET_QUERY_KEY)) {
-                return '';
-            }
-            const queryVariant = normalizeVariant(
-                url.searchParams.get(VARIANT_QUERY_KEY)
-            );
-            if (queryVariant) return queryVariant;
-            return normalizeVariant(localStorage.getItem(VARIANT_STORAGE_KEY));
+            let mutated = false;
+
+            LEGACY_VARIANT_QUERY_KEYS.forEach((key) => {
+                if (url.searchParams.has(key)) {
+                    url.searchParams.delete(key);
+                    mutated = true;
+                }
+            });
+
+            if (!mutated) return;
+
+            const search = url.searchParams.toString();
+            const nextUrl = `${url.pathname}${search ? `?${search}` : ''}${url.hash}`;
+            window.history.replaceState(null, '', nextUrl);
         } catch (_error) {
-            return '';
+            // no-op
         }
     }
 
-    function applyPrebootVariantStyles(variant) {
-        if (!variant) return;
-
-        const legacyStyles = [
-            document.getElementById('adminLegacyBaseStyles'),
-            document.getElementById('adminLegacyMinStyles'),
-            document.getElementById('adminLegacyStyles'),
-        ];
-        const v2Styles = document.getElementById('adminV2Styles');
-        const v3Styles = document.getElementById('adminV3Styles');
-        const enableLegacy = variant === 'legacy';
-        const enableV2 = variant === 'sony_v2';
-        const enableV3 = variant === 'sony_v3';
-
-        legacyStyles.forEach((node) => {
-            if (node instanceof HTMLLinkElement) {
-                node.disabled = !enableLegacy;
-            }
-        });
-        if (v2Styles instanceof HTMLLinkElement) {
-            v2Styles.disabled = !enableV2;
+    function clearLegacyVariantStorage() {
+        try {
+            localStorage.removeItem(LEGACY_VARIANT_STORAGE_KEY);
+        } catch (_error) {
+            // no-op
         }
-        if (v3Styles instanceof HTMLLinkElement) {
-            v3Styles.disabled = !enableV3;
-        }
-
-        document.documentElement.setAttribute('data-admin-ui', variant);
     }
 
     function isTypingTarget(target) {
@@ -143,7 +119,9 @@
         }
     }
 
-    applyPrebootVariantStyles(readVariantFromLocation());
+    document.documentElement.setAttribute('data-admin-ui', 'sony_v3');
+    normalizeUrl();
+    clearLegacyVariantStorage();
 
     window.addEventListener(
         'keydown',

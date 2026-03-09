@@ -112,6 +112,19 @@ async function setupAdminApiMocks(page, sourceMode) {
         if (resource === 'funnel-metrics')
             return jsonResponse(route, buildFunnelPayload());
         if (resource === 'availability') {
+            const method = route.request().method().toUpperCase();
+            if (method === 'POST') {
+                const body = route.request().postDataJSON() || {};
+                return jsonResponse(route, {
+                    ok: true,
+                    data:
+                        body.availability &&
+                        typeof body.availability === 'object'
+                            ? body.availability
+                            : dataPayload.data.availability,
+                    meta: dataPayload.data.availabilityMeta,
+                });
+            }
             return jsonResponse(route, {
                 ok: true,
                 data: dataPayload.data.availability,
@@ -198,7 +211,7 @@ test.describe('Admin availability responsive tablet layout', () => {
         ).toBe(1);
         expect(
             detailGridColumns.trim().split(/\s+/).filter(Boolean).length
-        ).toBeGreaterThan(1);
+        ).toBe(1);
 
         await expect(
             page.locator('#availabilitySelectionSummary')
@@ -350,7 +363,7 @@ test.describe('Admin availability responsive tablet layout', () => {
             .click();
         await expect(slotItems).toHaveCount(0);
         await expect(page.locator('#timeSlotsList')).toContainText(
-            'No hay horarios configurados'
+            'Agrega slots o copia una jornada existente.'
         );
         await expect(page.locator('#availabilityDraftStatus')).toContainText(
             'cambios pendientes'

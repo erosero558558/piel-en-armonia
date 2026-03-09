@@ -2,74 +2,59 @@
 const { test, expect } = require('@playwright/test');
 const { skipIfPhpRuntimeMissing } = require('./helpers/php-backend');
 
-async function readFeatureFlags(request) {
-    const response = await request.get('/api.php?resource=features');
-    expect(response.ok()).toBeTruthy();
-    const payload = await response.json();
-
-    expect(payload).toBeTruthy();
-    expect(payload.ok).toBe(true);
-    expect(payload.data).toBeTruthy();
-    expect(typeof payload.data.admin_sony_ui).toBe('boolean');
-    expect(typeof payload.data.admin_sony_ui_v3).toBe('boolean');
-
-    return {
-        sonyV2: payload.data.admin_sony_ui === true,
-        sonyV3: payload.data.admin_sony_ui_v3 === true,
-    };
-}
-
-async function expectVariant(page, variant) {
+async function expectSonyV3Runtime(page, expectedPathname = '/admin.html') {
     await expect(page.locator('html')).toHaveAttribute(
         'data-admin-ui',
-        variant
+        'sony_v3'
     );
     await expect(page.locator('html')).toHaveAttribute(
         'data-admin-ready',
         'true'
     );
-}
+    await expect(page.locator('body')).toHaveClass(/admin-v3-mode/);
+    await expect(page.locator('[data-admin-frame="sony_v3"]')).toHaveCount(1);
 
-function resolveExpectedVariants(flags) {
-    return {
-        defaultVariant: flags.sonyV3
-            ? 'sony_v3'
-            : flags.sonyV2
-              ? 'sony_v2'
-              : 'legacy',
-        queryV2: flags.sonyV2 ? 'sony_v2' : 'legacy',
-        queryV3: flags.sonyV3 ? 'sony_v3' : flags.sonyV2 ? 'sony_v2' : 'legacy',
-    };
+    await expect
+        .poll(() =>
+            page.evaluate(() => ({
+                pathname: window.location.pathname,
+                search: window.location.search,
+                staleVariant: localStorage.getItem('adminUiVariant'),
+            }))
+        )
+        .toEqual({
+            pathname: expectedPathname,
+            search: '',
+            staleVariant: null,
+        });
 }
 
 test.describe('Admin UI runtime smoke', () => {
-    test('resuelve variante correctamente segun query, reset y feature flags reales', async ({
+    test('siempre arranca en sony_v3 y limpia parametros legacy', async ({
         page,
         request,
     }) => {
         await skipIfPhpRuntimeMissing(test, request);
-        const flags = await readFeatureFlags(request);
-        const expected = resolveExpectedVariants(flags);
 
-        await page.goto('/admin.html?admin_ui=legacy&admin_ui_reset=1');
-        await expectVariant(page, 'legacy');
-        await expect
-            .poll(() =>
-                page.evaluate(() => localStorage.getItem('adminUiVariant'))
-            )
-            .toBe(null);
+        await page.addInitScript(() => {
+            localStorage.setItem('adminUiVariant', 'legacy');
+        });
 
-        await page.goto('/admin.html?admin_ui=sony_v2&admin_ui_reset=1');
-        await expectVariant(page, expected.queryV2);
+        const legacyUrls = [
+            '/admin.html',
+            '/admin.html?admin_ui=legacy',
+            '/admin.html?admin_ui=sony_v2',
+            '/admin.html?admin_ui=sony_v3',
+            '/admin.html?admin_ui=legacy&admin_ui_reset=1',
+        ];
 
-        await page.goto('/admin.html?admin_ui=sony_v3&admin_ui_reset=1');
-        await expectVariant(page, expected.queryV3);
-
-        await page.goto('/admin.html?admin_ui_reset=1');
-        await expectVariant(page, expected.defaultVariant);
+        for (const url of legacyUrls) {
+            await page.goto(url);
+            await expectSonyV3Runtime(page);
+        }
     });
 
-    test('mantiene CSP admin endurecida en meta (self-only para script/style/font)', async ({
+    test('mantiene CSP admin endurecida y sin estilos legacy en el shell', async ({
         page,
         request,
     }) => {
@@ -85,5 +70,12 @@ test.describe('Admin UI runtime smoke', () => {
         expect(cspContent).toContain("script-src 'self'");
         expect(cspContent).toContain("style-src 'self'");
         expect(cspContent).toContain("font-src 'self'");
+
+        await expect(page.locator('#adminV3Styles')).toHaveCount(1);
+        await expect(
+            page.locator(
+                '#adminLegacyBaseStyles, #adminLegacyMinStyles, #adminLegacyStyles, #adminV2Styles'
+            )
+        ).toHaveCount(0);
     });
 });

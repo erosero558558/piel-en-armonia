@@ -299,7 +299,7 @@ test.describe('Panel de administracion', () => {
     test('tema claro/oscuro funciona en login y persiste tras recarga', async ({
         page,
     }) => {
-        await page.goto('/admin.html?admin_ui=sony_v2&admin_ui_reset=1');
+        await page.goto('/admin.html');
         await waitForAdminReady(page);
 
         const darkThemeBtn = page
@@ -338,7 +338,7 @@ test.describe('Panel de administracion', () => {
     });
 
     test('login con contrasena vacia no funciona', async ({ page }) => {
-        await page.goto('/admin.html?admin_ui=sony_v2&admin_ui_reset=1');
+        await page.goto('/admin.html');
         await waitForAdminReady(page);
         const passwordInput = page.locator('input[type="password"]').first();
         const loginBtn = page
@@ -530,9 +530,7 @@ test.describe('Panel de administracion', () => {
         await page.goto('/admin.html');
         await expect(page.locator('#adminDashboard')).toBeVisible();
 
-        await page
-            .locator('.admin-quick-nav-item[data-section="callbacks"]')
-            .click();
+        await page.locator('.nav-item[data-section="callbacks"]').click();
         await expect(page.locator('#callbacks')).toHaveClass(/active/);
         await expect(page.locator('#callbacksOpsPendingCount')).toHaveText('2');
         await expect(page.locator('#callbacksOpsUrgentCount')).toHaveText('1');
@@ -590,15 +588,13 @@ test.describe('Panel de administracion', () => {
         await page.goto('/admin.html');
         await expect(page.locator('#adminDashboard')).toBeVisible();
 
-        await page
-            .locator('.admin-quick-nav-item[data-section="callbacks"]')
-            .click();
+        await page.locator('.nav-item[data-section="callbacks"]').click();
         await expect(page.locator('#callbacks')).toHaveClass(/active/);
         await expect(page.locator('#callbacksOpsQueueHealth')).toHaveText(
-            'Cola: atención requerida'
+            'Cola: atencion requerida'
         );
         await expect(page.locator('#callbacksOpsNext')).toContainText(
-            'Sin teléfono'
+            'Sin telefono'
         );
         await expect(page.locator('#callbacks')).not.toContainText(/[ÃÂ]/);
     });
@@ -645,9 +641,7 @@ test.describe('Panel de administracion', () => {
         await page.goto('/admin.html');
         await expect(page.locator('#adminDashboard')).toBeVisible();
 
-        await page
-            .locator('.admin-quick-nav-item[data-section="callbacks"]')
-            .click();
+        await page.locator('.nav-item[data-section="callbacks"]').click();
         await expect(page.locator('#callbacks')).toHaveClass(/active/);
         await expect(
             page.locator(

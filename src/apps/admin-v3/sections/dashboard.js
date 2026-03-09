@@ -4,7 +4,7 @@ import {
     formatNumber,
     setHtml,
     setText,
-} from '../../admin-v2/ui/render.js';
+} from '../shared/ui/render.js';
 
 const CALLBACK_URGENT_THRESHOLD_MINUTES = 120;
 

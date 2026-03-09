@@ -1,4 +1,4 @@
-import { qs } from '../../admin-v2/ui/render.js';
+import { qs } from '../shared/ui/render.js';
 
 const SECTION_HOOKS = {
     dashboard: {

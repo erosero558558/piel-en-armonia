@@ -142,7 +142,7 @@ async function setupVisualMocks(page) {
 
 async function openSonyV3(page) {
     await setupVisualMocks(page);
-    await page.goto('/admin.html?admin_ui=sony_v3&admin_ui_reset=1');
+    await page.goto('/admin.html');
     await expect(page.locator('html')).toHaveAttribute(
         'data-admin-ui',
         'sony_v3'

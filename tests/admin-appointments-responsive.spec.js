@@ -168,11 +168,11 @@ async function setupAdminApiMocks(page) {
 
 async function openAppointmentsSection(page) {
     await setupAdminApiMocks(page);
-    await page.goto('/admin.html?admin_ui=sony_v2&admin_ui_reset=1');
+    await page.goto('/admin.html');
     await expect(page.locator('#adminDashboard')).toBeVisible();
-    await page
-        .locator('.admin-quick-nav-item[data-section="appointments"]')
-        .click();
+    await page.locator('#adminMenuToggle').click();
+    await expect(page.locator('#adminSidebar')).toHaveClass(/is-open/);
+    await page.locator('.nav-item[data-section="appointments"]').click();
     await expect(page.locator('#appointments')).toHaveClass(/active/);
     await expect(
         page.locator('#appointmentsTableBody tr.appointment-row')
@@ -189,7 +189,7 @@ test.describe('Admin appointments responsive triage', () => {
             'Mostrando 3'
         );
         await expect(page.locator('#appointmentsToolbarState')).toContainText(
-            'Sin filtros activos'
+            'Fecha reciente'
         );
         await expect(page.locator('#clearAppointmentsFiltersBtn')).toHaveClass(
             /is-hidden/
@@ -234,7 +234,7 @@ test.describe('Admin appointments responsive triage', () => {
             page.locator('#appointmentsTableBody tr.appointment-row')
         ).toHaveCount(3);
         await expect(page.locator('#appointmentsToolbarState')).toContainText(
-            'Sin filtros activos'
+            'Fecha reciente'
         );
         await expect(page.locator('#clearAppointmentsFiltersBtn')).toHaveClass(
             /is-hidden/
@@ -261,7 +261,7 @@ test.describe('Admin appointments responsive triage', () => {
             targetRow.locator(
                 'td[data-label="Acciones"] .table-actions button, td[data-label="Acciones"] .table-actions a'
             )
-        ).toHaveCount(6);
+        ).toHaveCount(5);
     });
 
     test('habilita filtro de triage accionable y muestra chips contextuales', async ({
@@ -341,9 +341,9 @@ test.describe('Admin appointments responsive triage', () => {
 
         await page.reload();
         await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page
-            .locator('.admin-quick-nav-item[data-section="appointments"]')
-            .click();
+        await page.locator('#adminMenuToggle').click();
+        await expect(page.locator('#adminSidebar')).toHaveClass(/is-open/);
+        await page.locator('.nav-item[data-section="appointments"]').click();
         await expect(page.locator('#appointments')).toHaveClass(/active/);
         await expect(page.locator('#appointmentSort')).toHaveValue(
             'patient_az'
