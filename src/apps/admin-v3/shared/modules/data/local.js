@@ -1,0 +1,30 @@
+import { getStorageJson, setStorageJson } from '../../core/persistence.js';
+import { EMPTY_FUNNEL_METRICS, LOCAL_DATA_KEYS } from './constants.js';
+
+export function persistLocalAdminData(data) {
+    setStorageJson(LOCAL_DATA_KEYS.appointments, data.appointments || []);
+    setStorageJson(LOCAL_DATA_KEYS.callbacks, data.callbacks || []);
+    setStorageJson(LOCAL_DATA_KEYS.reviews, data.reviews || []);
+    setStorageJson(LOCAL_DATA_KEYS.availability, data.availability || {});
+    setStorageJson(
+        LOCAL_DATA_KEYS.availabilityMeta,
+        data.availabilityMeta || {}
+    );
+    setStorageJson(LOCAL_DATA_KEYS.queueTickets, data.queueTickets || []);
+    setStorageJson(LOCAL_DATA_KEYS.queueMeta, data.queueMeta || null);
+    setStorageJson(LOCAL_DATA_KEYS.health, data.health || null);
+}
+
+export function loadLocalAdminFallback() {
+    return {
+        appointments: getStorageJson(LOCAL_DATA_KEYS.appointments, []),
+        callbacks: getStorageJson(LOCAL_DATA_KEYS.callbacks, []),
+        reviews: getStorageJson(LOCAL_DATA_KEYS.reviews, []),
+        availability: getStorageJson(LOCAL_DATA_KEYS.availability, {}),
+        availabilityMeta: getStorageJson(LOCAL_DATA_KEYS.availabilityMeta, {}),
+        queueTickets: getStorageJson(LOCAL_DATA_KEYS.queueTickets, []),
+        queueMeta: getStorageJson(LOCAL_DATA_KEYS.queueMeta, null),
+        health: getStorageJson(LOCAL_DATA_KEYS.health, null),
+        funnelMetrics: EMPTY_FUNNEL_METRICS,
+    };
+}
