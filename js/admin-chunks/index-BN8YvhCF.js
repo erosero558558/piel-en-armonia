@@ -719,18 +719,12 @@ function G(t) {
         .trim();
 }
 function J(t) {
-    return (function (t) {
-        const e = new Date(t || '');
-        return Number.isNaN(e.getTime()) ? 0 : e.getTime();
-    })(`${t?.date || ''}T${t?.time || '00:00'}:00`);
-}
-function Y(t) {
     return G(t.paymentStatus || t.payment_status || '');
 }
-function Z(t) {
+function Y(t) {
     return G(t);
 }
-function X(t, e = '-') {
+function Z(t, e = '-') {
     const n = String(t || '')
         .replace(/[_-]+/g, ' ')
         .trim();
@@ -741,30 +735,13 @@ function X(t, e = '-') {
               .join(' ')
         : e;
 }
+function X(t) {
+    return (function (t) {
+        const e = new Date(t || '');
+        return Number.isNaN(e.getTime()) ? 0 : e.getTime();
+    })(`${t?.date || ''}T${t?.time || '00:00'}:00`);
+}
 function tt(t) {
-    return (
-        {
-            pending_transfer_review: 'Validar pago',
-            pending_transfer: 'Transferencia',
-            pending_cash: 'Pago en consultorio',
-            pending_gateway: 'Pago en proceso',
-            paid: 'Pagado',
-            failed: 'Fallido',
-        }[G(t)] || X(t, 'Pendiente')
-    );
-}
-function et(t) {
-    return (
-        {
-            confirmed: 'Confirmada',
-            pending: 'Pendiente',
-            completed: 'Completada',
-            cancelled: 'Cancelada',
-            no_show: 'No show',
-        }[G(t)] || X(t, 'Pendiente')
-    );
-}
-function nt(t) {
     if (!t) return 'Sin fecha';
     const e = Math.round((t - Date.now()) / 6e4),
         n = Math.abs(e);
@@ -780,8 +757,8 @@ function nt(t) {
             ? `En ${Math.round(e / 60)} h`
             : `En ${Math.round(e / 1440)} d`;
 }
-function at(t) {
-    const e = J(t);
+function et(t) {
+    const e = X(t);
     if (!e) return !1;
     const n = new Date(e),
         a = new Date();
@@ -791,15 +768,38 @@ function at(t) {
         n.getDate() === a.getDate()
     );
 }
-function it(t) {
-    const e = J(t);
+function nt(t) {
+    const e = X(t);
     if (!e) return !1;
     const n = e - Date.now();
     return n >= 0 && n <= 1728e5;
 }
+function at(t) {
+    return (
+        {
+            pending_transfer_review: 'Validar pago',
+            pending_transfer: 'Transferencia',
+            pending_cash: 'Pago en consultorio',
+            pending_gateway: 'Pago en proceso',
+            paid: 'Pagado',
+            failed: 'Fallido',
+        }[G(t)] || Z(t, 'Pendiente')
+    );
+}
+function it(t) {
+    return (
+        {
+            confirmed: 'Confirmada',
+            pending: 'Pendiente',
+            completed: 'Completada',
+            cancelled: 'Cancelada',
+            no_show: 'No show',
+        }[G(t)] || Z(t, 'Pendiente')
+    );
+}
 function ot(t) {
-    const e = Y(t),
-        n = Z(t.status);
+    const e = J(t),
+        n = Y(t.status);
     return (
         'pending_transfer_review' === e ||
         'pending_transfer' === e ||
@@ -811,23 +811,23 @@ function st(t, e) {
     const n = G(e);
     return 'pending_transfer' === n
         ? t.filter((t) => {
-              const e = Y(t);
+              const e = J(t);
               return (
                   'pending_transfer_review' === e || 'pending_transfer' === e
               );
           })
         : 'upcoming_48h' === n
-          ? t.filter(it)
+          ? t.filter(nt)
           : 'no_show' === n
-            ? t.filter((t) => 'no_show' === Z(t.status))
+            ? t.filter((t) => 'no_show' === Y(t.status))
             : 'triage_attention' === n
               ? t.filter(ot)
               : t;
 }
 function rt(t) {
-    const e = Y(t),
-        n = Z(t.status),
-        a = J(t);
+    const e = J(t),
+        n = Y(t.status),
+        a = X(t);
     return 'pending_transfer_review' === e || 'pending_transfer' === e
         ? {
               label: 'Transferencia',
@@ -846,13 +846,13 @@ function rt(t) {
                   tone: 'danger',
                   note: 'Bloqueo operativo cerrado.',
               }
-            : at(t)
+            : et(t)
               ? {
                     label: 'Hoy',
                     tone: 'success',
-                    note: a ? nt(a) : 'Agenda del dia',
+                    note: a ? tt(a) : 'Agenda del dia',
                 }
-              : it(t)
+              : nt(t)
                 ? {
                       label: '48h',
                       tone: 'neutral',
@@ -866,10 +866,10 @@ function rt(t) {
 }
 function ct(t) {
     const e = t
-            .map((t) => ({ item: t, stamp: J(t) }))
+            .map((t) => ({ item: t, stamp: X(t) }))
             .sort((t, e) => t.stamp - e.stamp),
         n = e.find(({ item: t }) => {
-            const e = Y(t);
+            const e = J(t);
             return 'pending_transfer_review' === e || 'pending_transfer' === e;
         });
     if (n)
@@ -879,7 +879,7 @@ function ct(t) {
             hint: 'Valida pago y confirma al paciente antes del check-in.',
             tags: ['Pago por validar', 'Liberar agenda'],
         };
-    const a = e.find(({ item: t }) => 'no_show' === Z(t.status));
+    const a = e.find(({ item: t }) => 'no_show' === Y(t.status));
     if (a)
         return {
             item: a.item,
@@ -906,15 +906,15 @@ function lt(e) {
     return e.length
         ? e
               .map((e) => {
-                  const n = J(e);
+                  const n = X(e);
                   return `\n                <tr class="appointment-row" data-appointment-id="${Number(e.id || 0)}">\n                    <td data-label="Paciente">\n                        <div class="appointment-person">\n                            <strong>${t(e.name || 'Sin nombre')}</strong>\n                            <span>${t(e.email || 'Sin email')}</span>\n                            <small>${t(e.phone || 'Sin telefono')}</small>\n                        </div>\n                    </td>\n                    <td data-label="Servicio">${(function (
                       e
                   ) {
                       const n = rt(e);
-                      return `\n        <div class="appointment-service">\n            <strong>${t(X(e.service, 'Servicio pendiente'))}</strong>\n            <span>Especialista: ${t(X(e.doctor, 'Sin asignar'))}</span>\n            <small>${t(n.label)} | ${t(n.note)}</small>\n        </div>\n    `;
+                      return `\n        <div class="appointment-service">\n            <strong>${t(Z(e.service, 'Servicio pendiente'))}</strong>\n            <span>Especialista: ${t(Z(e.doctor, 'Sin asignar'))}</span>\n            <small>${t(n.label)} | ${t(n.note)}</small>\n        </div>\n    `;
                   })(
                       e
-                  )}</td>\n                    <td data-label="Fecha">\n                        <div class="appointment-date-stack">\n                            <strong>${t(a(e.date))}</strong>\n                            <span>${t(e.time || '--:--')}</span>\n                            <small>${t(nt(n))}</small>\n                        </div>\n                    </td>\n                    <td data-label="Pago">${(function (
+                  )}</td>\n                    <td data-label="Fecha">\n                        <div class="appointment-date-stack">\n                            <strong>${t(a(e.date))}</strong>\n                            <span>${t(e.time || '--:--')}</span>\n                            <small>${t(tt(n))}</small>\n                        </div>\n                    </td>\n                    <td data-label="Pago">${(function (
                       e
                   ) {
                       const n = e.paymentStatus || e.payment_status || '',
@@ -935,15 +935,15 @@ function lt(e) {
                                       ? 'neutral'
                                       : 'warning';
                           })(n)
-                      )}">${t(tt(n))}</span>\n            <small>Metodo: ${t(((i = e.paymentMethod || e.payment_method || ''), { transfer: 'Transferencia', cash: 'Consultorio', card: 'Tarjeta', gateway: 'Pasarela' }[G(i)] || X(i, 'Metodo pendiente')))}</small>\n            ${a ? `<a href="${t(a)}" target="_blank" rel="noopener">Ver comprobante</a>` : '<small>Sin comprobante adjunto</small>'}\n        </div>\n    `;
+                      )}">${t(at(n))}</span>\n            <small>Metodo: ${t(((i = e.paymentMethod || e.payment_method || ''), { transfer: 'Transferencia', cash: 'Consultorio', card: 'Tarjeta', gateway: 'Pasarela' }[G(i)] || Z(i, 'Metodo pendiente')))}</small>\n            ${a ? `<a href="${t(a)}" target="_blank" rel="noopener">Ver comprobante</a>` : '<small>Sin comprobante adjunto</small>'}\n        </div>\n    `;
                       var i;
                   })(
                       e
                   )}</td>\n                    <td data-label="Estado">${(function (
                       e
                   ) {
-                      const n = Z(e.status),
-                          a = Y(e),
+                      const n = Y(e.status),
+                          a = J(e),
                           i = rt(e),
                           o = [];
                       return (
@@ -962,7 +962,7 @@ function lt(e) {
                                           ? 'warning'
                                           : 'neutral';
                               })(n)
-                          )}">${t(et(n))}</span>\n            <small>${t(o[0] || i.note)}</small>\n        </div>\n    `
+                          )}">${t(it(n))}</span>\n            <small>${t(o[0] || i.note)}</small>\n        </div>\n    `
                       );
                   })(
                       e
@@ -970,7 +970,7 @@ function lt(e) {
                       e
                   ) {
                       const n = Number(e.id || 0),
-                          a = Y(e),
+                          a = J(e),
                           i = (function (t) {
                               const e = String(t || '').replace(/\D+/g, '');
                               return e ? `https://wa.me/${e}` : '';
@@ -1018,8 +1018,8 @@ function ut() {
                 ? (a.sort((t, e) => G(t.name).localeCompare(G(e.name), 'es')),
                   a)
                 : 'datetime_asc' === n
-                  ? (a.sort((t, e) => J(t) - J(e)), a)
-                  : (a.sort((t, e) => J(e) - J(t)), a);
+                  ? (a.sort((t, e) => X(t) - X(e)), a)
+                  : (a.sort((t, e) => X(e) - X(t)), a);
         })(
             (function (t, e) {
                 const n = G(e);
@@ -1185,14 +1185,14 @@ function ut() {
             (r('#appointmentsFocusPatient', l.name || 'Sin nombre'),
                 r(
                     '#appointmentsFocusMeta',
-                    `${X(l.service, 'Servicio pendiente')} | ${a(l.date)} ${l.time || '--:--'}`
+                    `${Z(l.service, 'Servicio pendiente')} | ${a(l.date)} ${l.time || '--:--'}`
                 ),
-                r('#appointmentsFocusWindow', nt(J(l))),
+                r('#appointmentsFocusWindow', tt(X(l))),
                 r(
                     '#appointmentsFocusPayment',
-                    tt(l.paymentStatus || l.payment_status)
+                    at(l.paymentStatus || l.payment_status)
                 ),
-                r('#appointmentsFocusStatus', et(l.status)),
+                r('#appointmentsFocusStatus', it(l.status)),
                 r('#appointmentsFocusContact', l.phone || 'Sin telefono'),
                 c(
                     '#appointmentsFocusTags',
@@ -1210,7 +1210,7 @@ function ut() {
                     n = st(t, 'upcoming_48h'),
                     a = st(t, 'no_show'),
                     i = st(t, 'triage_attention'),
-                    o = t.filter(at);
+                    o = t.filter(et);
                 return {
                     pendingTransferCount: e.length,
                     upcomingCount: n.length,
