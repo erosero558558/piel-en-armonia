@@ -1,17 +1,43 @@
 ---
 const { navModel = {} } = Astro.props;
 const footer = navModel?.footer && typeof navModel.footer === 'object' ? navModel.footer : {};
-const columns = Array.isArray(footer.columns) ? footer.columns : [];
-const policies = Array.isArray(footer.policies) ? footer.policies : [];
-const policyAria = navModel?.ui?.footer?.policyAria || '';
+const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
+const headline = hasText(footer.headline) ? footer.headline.trim() : '';
+const deck = hasText(footer.deck) ? footer.deck.trim() : '';
+const columns = (Array.isArray(footer.columns) ? footer.columns : [])
+    .map((column) => ({
+        title: hasText(column?.title) ? column.title.trim() : '',
+        links: (Array.isArray(column?.links) ? column.links : [])
+            .map((link) => ({
+                label: hasText(link?.label) ? link.label.trim() : '',
+                href: hasText(link?.href) ? link.href.trim() : '',
+            }))
+            .filter((link) => link.label && link.href),
+        lines: (Array.isArray(column?.lines) ? column.lines : [])
+            .map((line) => (hasText(line) ? line.trim() : ''))
+            .filter(Boolean),
+    }))
+    .filter((column) => column.title && (column.links.length || column.lines.length));
+const policies = (Array.isArray(footer.policies) ? footer.policies : [])
+    .map((policy) => ({
+        label: hasText(policy?.label) ? policy.label.trim() : '',
+        href: hasText(policy?.href) ? policy.href.trim() : '',
+    }))
+    .filter((policy) => policy.label && policy.href);
+const policyAria = hasText(navModel?.ui?.footer?.policyAria) ? navModel.ui.footer.policyAria.trim() : '';
+const copyright = hasText(footer.copyright) ? footer.copyright.trim() : '';
 ---
 
 <footer class="v6-footer" data-v6-footer>
     <div class="v6-footer__inner">
-        <section class="v6-footer__intro">
-            <h2>{footer.headline}</h2>
-            <p>{footer.deck}</p>
-        </section>
+        {
+            headline || deck ? (
+                <section class="v6-footer__intro">
+                    {headline ? <h2>{headline}</h2> : null}
+                    {deck ? <p>{deck}</p> : null}
+                </section>
+            ) : null
+        }
 
         <div class="v6-footer__cols">
             {
@@ -33,14 +59,18 @@ const policyAria = navModel?.ui?.footer?.policyAria || '';
             }
         </div>
 
-        <nav class="v6-footer__policy" aria-label={policyAria}>
-            {
-                policies.map((policy) => (
-                    <a href={policy.href}>{policy.label}</a>
-                ))
-            }
-        </nav>
+        {
+            policies.length ? (
+                <nav class="v6-footer__policy" aria-label={policyAria}>
+                    {
+                        policies.map((policy) => (
+                            <a href={policy.href}>{policy.label}</a>
+                        ))
+                    }
+                </nav>
+            ) : null
+        }
 
-        <p class="v6-footer__copy">{footer.copyright}</p>
+        {copyright ? <p class="v6-footer__copy">{copyright}</p> : null}
     </div>
 </footer>

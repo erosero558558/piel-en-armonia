@@ -1,43 +1,74 @@
 ---
 const { item = {}, navModel = {}, locale = 'es' } = Astro.props;
-const switchLabel = navModel?.header?.switchLabel || '';
-const switchHref = navModel?.header?.switchHref || '#';
+const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
+const switchLabel = hasText(navModel?.header?.switchLabel) ? navModel.header.switchLabel.trim() : '';
+const switchHref = hasText(navModel?.header?.switchHref) ? navModel.header.switchHref.trim() : '';
 const activeLang = locale === 'en' ? 'EN' : 'ES';
 const panelId = 'v6-news-strip-panel';
+const label = hasText(item.label) ? item.label.trim() : '';
+const headline = hasText(item.headline) ? item.headline.trim() : '';
+const href = hasText(item.href) ? item.href.trim() : '';
+const expandLabel = hasText(item.expandLabel) ? item.expandLabel.trim() : '';
+const collapseLabel = hasText(item.collapseLabel) ? item.collapseLabel.trim() : expandLabel;
+const localeAria = hasText(item.localeAria) ? item.localeAria.trim() : '';
+const detail = hasText(item.detail) ? item.detail.trim() : headline;
+const ctaLabel = hasText(item.ctaLabel) ? item.ctaLabel.trim() : '';
+const hasSwitch = Boolean(switchLabel && switchHref);
+const hasPanel = Boolean((detail || (ctaLabel && href)) && expandLabel && collapseLabel);
 ---
 
 <section
     class="v6-news-strip"
     data-v6-news-strip
-    data-v6-expand-label={item.expandLabel || ''}
-    data-v6-collapse-label={item.collapseLabel || item.expandLabel || ''}
+    data-v6-expand-label={expandLabel}
+    data-v6-collapse-label={collapseLabel}
     data-v6-expanded="false"
 >
     <div class="v6-news-strip__left">
-        <span>{item.label || ''}</span>
-        <button
-            type="button"
-            data-v6-news-toggle
-            aria-label={item.expandLabel || ''}
-            aria-expanded="false"
-            aria-controls={panelId}
-        >
-            <span aria-hidden="true">v</span>
-        </button>
+        {label ? <span>{label}</span> : null}
+        {
+            hasPanel && expandLabel ? (
+                <button
+                    type="button"
+                    data-v6-news-toggle
+                    aria-label={expandLabel}
+                    aria-expanded="false"
+                    aria-controls={panelId}
+                >
+                    <span aria-hidden="true">v</span>
+                </button>
+            ) : null
+        }
     </div>
     <div class="v6-news-strip__right">
-        <a class="v6-news-strip__headline" href={item.href || '#'}>{item.headline || ''}</a>
-        <div class="v6-news-strip__locale" aria-label={item.localeAria || ''}>
+        {
+            href ? (
+                <a class="v6-news-strip__headline" href={href}>{headline}</a>
+            ) : (
+                <span class="v6-news-strip__headline">{headline}</span>
+            )
+        }
+        <div class="v6-news-strip__locale" aria-label={localeAria}>
             <strong>{activeLang}</strong>
-            <span aria-hidden="true">/</span>
-            <a class="v6-news-strip__lang" href={switchHref}>{switchLabel}</a>
+            {
+                hasSwitch ? (
+                    <>
+                        <span aria-hidden="true">/</span>
+                        <a class="v6-news-strip__lang" href={switchHref}>{switchLabel}</a>
+                    </>
+                ) : null
+            }
         </div>
     </div>
-    <div id={panelId} class="v6-news-strip__panel" data-v6-news-panel hidden>
-        <div class="v6-news-strip__panel-spacer" aria-hidden="true"></div>
-        <div class="v6-news-strip__panel-copy">
-            <p>{item.detail || item.headline || ''}</p>
-            <a href={item.href || '#'}>{item.ctaLabel || item.label || ''}</a>
-        </div>
-    </div>
+    {
+        hasPanel ? (
+            <div id={panelId} class="v6-news-strip__panel" data-v6-news-panel hidden>
+                <div class="v6-news-strip__panel-spacer" aria-hidden="true"></div>
+                <div class="v6-news-strip__panel-copy">
+                    {detail ? <p>{detail}</p> : null}
+                    {href && ctaLabel ? <a href={href}>{ctaLabel}</a> : null}
+                </div>
+            </div>
+        ) : null
+    }
 </section>
