@@ -8,6 +8,7 @@ require_once __DIR__ . '/validation.php';
 require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/calendar/runtime.php';
 require_once __DIR__ . '/telemedicine/LegacyTelemedicineBridge.php';
+require_once __DIR__ . '/telemedicine/TelemedicineEnforcementPolicy.php';
 
 class BookingService
 {
@@ -197,6 +198,26 @@ class BookingService
                 $telemedicineResult = $telemedicineBridge->finalizeBookedAppointment($store, $appointment);
                 $store = $telemedicineResult['store'];
                 $appointment = $telemedicineResult['appointment'];
+                $intake = isset($telemedicineResult['intake']) && is_array($telemedicineResult['intake'])
+                    ? $telemedicineResult['intake']
+                    : null;
+                $enforcement = TelemedicineEnforcementPolicy::evaluateBooking($intake, $appointment);
+                if (($enforcement['allowed'] ?? true) !== true) {
+                    return [
+                        'ok' => false,
+                        'error' => (string) ($enforcement['error'] ?? 'No se pudo validar elegibilidad de telemedicina'),
+                        'code' => (int) ($enforcement['status'] ?? 409),
+                        'errorCode' => (string) ($enforcement['errorCode'] ?? 'telemedicine_blocked'),
+                        'meta' => [
+                            'telemedicine' => [
+                                'reason' => (string) ($enforcement['reason'] ?? ''),
+                                'suitability' => (string) ($enforcement['suitability'] ?? ''),
+                                'reviewDecision' => (string) ($enforcement['reviewDecision'] ?? ''),
+                                'policy' => is_array($enforcement['policy'] ?? null) ? $enforcement['policy'] : [],
+                            ],
+                        ],
+                    ];
+                }
             } catch (Throwable $e) {
                 return [
                     'ok' => false,

@@ -61,6 +61,17 @@ final class TelemedicineRepository
         return null;
     }
 
+    public static function findIntakeById(array $store, int $intakeId): ?array
+    {
+        foreach (($store['telemedicine_intakes'] ?? []) as $intake) {
+            if ((int) ($intake['id'] ?? 0) === $intakeId) {
+                return $intake;
+            }
+        }
+
+        return null;
+    }
+
     public static function findDraftByFingerprint(array $store, array $appointment): ?array
     {
         $fingerprint = self::draftFingerprint($appointment);
@@ -71,6 +82,29 @@ final class TelemedicineRepository
         }
 
         return null;
+    }
+
+    public static function replaceAppointment(array $store, array $appointment): array
+    {
+        $records = isset($store['appointments']) && is_array($store['appointments'])
+            ? $store['appointments']
+            : [];
+
+        $targetId = (int) ($appointment['id'] ?? 0);
+        if ($targetId <= 0) {
+            return $store;
+        }
+
+        foreach ($records as $index => $existing) {
+            if ((int) ($existing['id'] ?? 0) !== $targetId) {
+                continue;
+            }
+            $records[$index] = $appointment;
+            $store['appointments'] = array_values($records);
+            return $store;
+        }
+
+        return $store;
     }
 
     public static function upsertClinicalUpload(array $store, array $upload): array

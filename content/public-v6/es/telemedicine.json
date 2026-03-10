@@ -1,6 +1,6 @@
 {
     "title": "Telemedicina | Piel en Armonia",
-    "description": "Consulta dermatologica remota con triage claro, escalamiento responsable y continuidad en Quito.",
+    "description": "Consulta dermatologica a distancia con orientacion clara, diagnostico inicial y seguimiento serio en Quito.",
     "breadcrumb": [
         {
             "label": "Inicio",
@@ -17,97 +17,97 @@
         "srcset": "/images/optimized/service-telemedicina-400.webp 400w, /images/optimized/service-telemedicina.webp 900w",
         "alt": "Consulta dermatologica remota"
     },
-    "lead": "La telemedicina vale cuando ahorra tiempo sin diluir criterio medico ni continuidad para usted.",
+    "lead": "La telemedicina sirve cuando ahorra tiempo sin debilitar diagnostico, seguimiento ni criterio medico.",
     "ui": {
         "menu": {
-            "initiatives": "Iniciativas remotas",
-            "bookingStatus": "Estado de agenda"
+            "initiatives": "Como puede ayudar",
+            "bookingStatus": "Agenda"
         },
         "thesis": {
-            "eyebrow": "Modelo clinico remoto",
-            "title": "Atencion remota cuando aporta valor clinico real",
-            "body": "Definimos que puede resolverse a distancia, que debe observarse de cerca y cuando conviene pasar al consultorio."
+            "eyebrow": "Antes de decidir",
+            "title": "Atencion a distancia cuando realmente le simplifica el proceso",
+            "body": "La idea es sencilla: resolver lo que puede orientarse bien en linea y pasar a consulta cuando mirar de cerca cambia la decision."
         },
         "statement": {
-            "eyebrow": "Direccion clinica remota",
-            "title": "Telemedicina util, sin perder criterio medico",
+            "eyebrow": "Consulta remota",
+            "title": "Telemedicina clara, con limites bien explicados",
             "signature": "Modelo hibrido, Quito",
             "image": "/images/optimized/team-narvaez.webp",
             "alt": "Direccion clinica de telemedicina"
         },
         "internalMessage": {
-            "description": "Revisamos contexto, riesgo y evolucion para decidir si usted puede seguir remoto o si el examen presencial ya es necesario."
+            "description": "Revisamos contexto, riesgo y evolucion para decidir si usted puede seguir a distancia o si conviene verle aqui."
         },
         "rail": {
-            "title": "Recorrido de atencion",
+            "title": "Secciones de esta consulta",
             "aria": "Secciones de telemedicina"
         },
         "kpis": {
-            "blocks": "Bloques de ruta",
-            "criteria": "Criterios clinicos",
-            "model": "Modelo de escalamiento",
-            "modelValue": "Hibrido"
+            "blocks": "Momentos clave",
+            "criteria": "Criterios medicos",
+            "model": "Modalidad",
+            "modelValue": "Hibrida"
         },
         "initiatives": {
-            "aria": "Iniciativas de telemedicina",
+            "aria": "Bloques de telemedicina",
             "ctaLabel": "Abrir seccion"
         },
-        "blockCtaLabel": "Ver estado de agenda"
+        "blockCtaLabel": "Ver agenda actual"
     },
     "blocks": [
         {
             "title": "Como funciona",
             "image": "/images/optimized/service-telemedicina.webp",
             "items": [
-                "Usted comparte antecedentes clave y fotografias tomadas con contexto clinico.",
-                "Priorizamos riesgo para definir si su caso puede resolverse de forma remota.",
-                "Entregamos un plan inicial, cuidados y ventana de control cuando corresponde.",
-                "Si aparecen senales de alarma, aceleramos el paso a consulta presencial."
+                "Usted comparte antecedentes, sintomas y fotos tomadas con la mayor claridad posible.",
+                "Revisamos si el problema puede orientarse bien a distancia o si hace falta examinarlo aqui.",
+                "Recibe una recomendacion inicial, cuidados basicos y un plazo razonable para seguimiento.",
+                "Si aparecen senales de alarma, adelantamos el paso a consulta presencial."
             ]
         },
         {
-            "title": "Cuando suele encajar",
+            "title": "Cuando suele ayudar",
             "image": "/images/optimized/showcase-diagnostic.webp",
             "items": [
-                "Brotes inflamatorios ya evaluados que requieren ajuste",
-                "Seguimiento de tratamientos activos con cambios recientes",
-                "Dudas sobre evolucion entre controles programados",
-                "Orientacion inicial antes de desplazarse al consultorio"
+                "Brotes ya conocidos que necesitan ajuste",
+                "Dudas entre controles programados",
+                "Primera orientacion antes de desplazarse",
+                "Seguimiento de tratamientos activos con cambios recientes"
             ]
         },
         {
-            "title": "Cuando debe escalar",
+            "title": "Cuando conviene verle aqui",
             "image": "/images/optimized/showcase-clinic.webp",
             "items": [
-                "Lesiones que cambian rapido, sangran o no cicatrizan",
-                "Dolor intenso, extension acelerada o compromiso funcional",
-                "Respuesta insuficiente al plan remoto inicial",
-                "Necesidad de procedimientos o examen diagnostico presencial"
+                "Lesiones que cambian rapido o sangran",
+                "Dolor fuerte o empeoramiento marcado",
+                "Respuesta pobre al plan inicial",
+                "Necesidad de examen directo o procedimiento"
             ]
         }
     ],
     "initiatives": [
         {
-            "title": "Triage visual",
-            "copy": "Una primera lectura con imagenes clinicas para priorizar riesgo y tiempo de respuesta.",
+            "title": "Leer fotos con contexto",
+            "copy": "Las imagenes ayudan mas cuando vienen con tiempo de evolucion y sintomas claros.",
             "image": "/images/optimized/showcase-diagnostic.webp",
             "href": "#v6-tele-block-1"
         },
         {
-            "title": "Control de brote",
-            "copy": "Ajustes remotos para contener brotes entre controles y evitar dias perdidos.",
+            "title": "Ajustar antes de que empeore",
+            "copy": "La consulta remota permite mover el plan sin esperar al siguiente control presencial.",
             "image": "/images/optimized/service-acne.webp",
             "href": "#v6-tele-block-2"
         },
         {
-            "title": "Escalamiento presencial",
-            "copy": "Derivacion al consultorio cuando el comportamiento de la lesion exige examen directo.",
+            "title": "Pasar a consulta sin perder tiempo",
+            "copy": "Si el caso cambia o deja dudas, la prioridad pasa a verle en persona.",
             "image": "/images/optimized/showcase-clinic.webp",
             "href": "#v6-tele-block-3"
         },
         {
-            "title": "Continuidad Quito",
-            "copy": "Ruta hibrida pensada para Quito, con seguimiento remoto y control presencial oportuno.",
+            "title": "Seguimiento pensado para Quito",
+            "copy": "La telemedicina y la consulta presencial pueden complementarse cuando eso ayuda mas.",
             "image": "/images/optimized/service-telemedicina.webp",
             "href": "#v6-booking-status"
         }
@@ -115,7 +115,7 @@
     "bookingStatus": {
         "eyebrow": "Estado de agenda",
         "title": "Reserva online en mantenimiento",
-        "description": "El formulario vuelve pronto. Mientras tanto, esta ruta sigue disponible para orientar su primer paso.",
+        "description": "El formulario vuelve pronto. Mientras tanto, usted puede usar esta opcion para decidir mejor el primer paso.",
         "ctaLabel": "Ver servicios",
         "ctaHref": "/es/servicios/"
     }

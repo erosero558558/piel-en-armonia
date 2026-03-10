@@ -30,6 +30,10 @@ jobs:
             TEST_ENABLE_CALENDAR_WRITE: ${{ github.event_name == 'schedule' && 'true' || github.event.inputs.enable_write || 'false' }}
             TEST_REQUIRE_GOOGLE_CALENDAR: 'true'
             TEST_ADMIN_PASSWORD: ${{ secrets.PIELARMONIA_ADMIN_PASSWORD }}
+            TELEMEDICINE_CALENDAR_STATUS: unknown
+            TELEMEDICINE_CALENDAR_REASON: not_evaluated
+            TELEMEDICINE_CALENDAR_FAILURES: '0'
+            TELEMEDICINE_CALENDAR_NON_TELE_FAILURES: '0'
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -77,6 +81,12 @@ jobs:
                       const requireGoogle =
                         String(process.env.TEST_REQUIRE_GOOGLE_CALENDAR || 'false').toLowerCase() === 'true';
 
+                      core.setOutput('telemedicine_health', 'unknown');
+                      core.setOutput('telemedicine_reason', 'not_evaluated');
+                      core.setOutput('telemedicine_configured', 'false');
+                      core.setOutput('telemedicine_diagnostics_status', 'unknown');
+                      core.setOutput('telemedicine_hard_failures', '0');
+
                       let response;
                       let body = null;
                       try {
@@ -119,6 +129,50 @@ jobs:
                       core.setOutput('calendar_configured', String(calendarConfigured));
                       core.setOutput('calendar_auth', calendarAuth);
 
+                      const telemedicine = body?.checks?.telemedicine ?? null;
+                      let telemedicineHealth = 'unknown';
+                      let telemedicineReason = 'telemedicine_missing';
+                      let telemedicineConfigured = false;
+                      let telemedicineDiagnosticsStatus = 'unknown';
+                      let telemedicineHardFailures = 0;
+
+                      if (telemedicine && typeof telemedicine === 'object') {
+                        telemedicineConfigured = telemedicine.configured === true;
+                        telemedicineDiagnosticsStatus = String(telemedicine?.diagnostics?.status || 'unknown');
+                        telemedicineHardFailures = Number(telemedicine?.integrity?.hardFailures || 0);
+
+                        const teleReasons = [];
+                        if (!telemedicineConfigured) {
+                          teleReasons.push('unconfigured');
+                        }
+                        if (telemedicineDiagnosticsStatus === 'critical') {
+                          teleReasons.push('diagnostics_critical');
+                        }
+                        if (telemedicineHardFailures > 0) {
+                          teleReasons.push(`hard_failures:${telemedicineHardFailures}`);
+                        }
+
+                        if (teleReasons.length === 0) {
+                          telemedicineHealth = 'healthy';
+                          telemedicineReason = 'ok';
+                        } else {
+                          telemedicineHealth = 'degraded';
+                          telemedicineReason = teleReasons.join(';');
+                        }
+                      }
+
+                      core.setOutput('telemedicine_health', telemedicineHealth);
+                      core.setOutput('telemedicine_reason', telemedicineReason);
+                      core.setOutput('telemedicine_configured', String(telemedicineConfigured));
+                      core.setOutput(
+                        'telemedicine_diagnostics_status',
+                        telemedicineDiagnosticsStatus
+                      );
+                      core.setOutput(
+                        'telemedicine_hard_failures',
+                        String(telemedicineHardFailures)
+                      );
+
                       if (requireGoogle && calendarSource !== 'google') {
                         core.setFailed(
                           `Calendar source invalido para write smoke: esperado google, recibido ${calendarSource}`
@@ -157,6 +211,60 @@ jobs:
                   --service=laser
                   --require-google="${TEST_REQUIRE_GOOGLE_CALENDAR}"
 
+            - name: Clasificar estado telemedicina calendar smoke
+              id: telemedicine_calendar
+              if: ${{ always() }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  tele_health='${{ steps.health.outputs.telemedicine_health || 'unknown' }}'
+                  tele_reason='${{ steps.health.outputs.telemedicine_reason || 'unknown' }}'
+
+                  non_tele_failures=0
+                  for outcome in \
+                    '${{ steps.health.outcome || 'n/a' }}' \
+                    '${{ steps.contract_test.outcome || 'n/a' }}' \
+                    '${{ steps.write_test.outcome || 'n/a' }}' \
+                    '${{ steps.api_write_test.outcome || 'n/a' }}'
+                  do
+                    if [ "${outcome}" != "success" ] && [ "${outcome}" != "skipped" ] && [ "${outcome}" != "n/a" ]; then
+                      non_tele_failures=$((non_tele_failures + 1))
+                    fi
+                  done
+
+                  tele_failures=0
+                  status='unknown'
+
+                  if [ "${tele_health}" = "degraded" ]; then
+                    tele_failures=1
+                    if [ "${non_tele_failures}" -eq 0 ]; then
+                      status='degraded_only'
+                    else
+                      status='degraded_mixed'
+                    fi
+                  elif [ "${tele_health}" = "healthy" ]; then
+                    status='healthy'
+                  else
+                    status='unknown'
+                  fi
+
+                  {
+                    echo "TELEMEDICINE_CALENDAR_STATUS=${status}"
+                    echo "TELEMEDICINE_CALENDAR_REASON=${tele_reason}"
+                    echo "TELEMEDICINE_CALENDAR_FAILURES=${tele_failures}"
+                    echo "TELEMEDICINE_CALENDAR_NON_TELE_FAILURES=${non_tele_failures}"
+                  } >> "${GITHUB_ENV}"
+
+                  {
+                    echo "status=${status}"
+                    echo "reason=${tele_reason}"
+                    echo "tele_failures=${tele_failures}"
+                    echo "non_tele_failures=${non_tele_failures}"
+                  } >> "${GITHUB_OUTPUT}"
+
+                  echo "Telemedicine calendar => status=${status} reason=${tele_reason} tele_failures=${tele_failures} non_tele_failures=${non_tele_failures}"
+
             - name: Publicar artefactos Playwright de calendar smoke
               if: ${{ always() }}
               uses: actions/upload-artifact@v4
@@ -192,11 +300,18 @@ jobs:
                     echo "- api_write_create_slot: \`${{ steps.api_write_test.outputs.api_write_create_slot || 'n/a' }}\`";
                     echo "- api_write_reschedule_slot: \`${{ steps.api_write_test.outputs.api_write_reschedule_slot || 'n/a' }}\`";
                     echo "- api_write_report_path: \`${{ steps.api_write_test.outputs.api_write_report_path || 'n/a' }}\`";
+                    echo "- telemedicine_health: \`${{ steps.health.outputs.telemedicine_health || 'n/a' }}\`";
+                    echo "- telemedicine_reason: \`${{ steps.health.outputs.telemedicine_reason || 'n/a' }}\`";
+                    echo "- telemedicine_calendar_status: \`${TELEMEDICINE_CALENDAR_STATUS}\`";
+                    echo "- telemedicine_calendar_reason: \`${TELEMEDICINE_CALENDAR_REASON}\`";
+                    echo "- telemedicine_calendar_failures: \`${TELEMEDICINE_CALENDAR_FAILURES}\`";
+                    echo "- telemedicine_calendar_non_tele_failures: \`${TELEMEDICINE_CALENDAR_NON_TELE_FAILURES}\`";
+                    echo "- telemedicine_calendar_step_outcome: \`${{ steps.telemedicine_calendar.outcome || 'n/a' }}\`";
                     echo "- Resultado: \`${{ job.status }}\`";
                   } >> "${GITHUB_STEP_SUMMARY}"
 
             - name: Crear/actualizar incidente calendar write smoke
-              if: ${{ failure() && github.event_name != 'workflow_dispatch' }}
+              if: ${{ failure() && github.event_name != 'workflow_dispatch' && ((env.TELEMEDICINE_CALENDAR_STATUS != 'degraded_only' && env.TELEMEDICINE_CALENDAR_STATUS != 'unknown') || env.TELEMEDICINE_CALENDAR_NON_TELE_FAILURES != '0') }}
               uses: actions/github-script@v7
               with:
                   script: |
@@ -210,6 +325,9 @@ jobs:
                         `source:${'${{ steps.health.outputs.calendar_source || 'n/a' }}'}`,
                         `mode:${'${{ steps.health.outputs.calendar_mode || 'n/a' }}'}`,
                         `reachable:${'${{ steps.health.outputs.calendar_reachable || 'n/a' }}'}`,
+                        `tele_status:${'${{ env.TELEMEDICINE_CALENDAR_STATUS || 'n/a' }}'}`,
+                        `tele_reason:${'${{ env.TELEMEDICINE_CALENDAR_REASON || 'n/a' }}'}`,
+                        `tele_non_tele:${'${{ env.TELEMEDICINE_CALENDAR_NON_TELE_FAILURES || '0' }}'}`,
                         `contract:${'${{ steps.contract_test.outcome || 'n/a' }}'}`,
                         `write:${'${{ steps.write_test.outcome || 'n/a' }}'}`,
                         `api_write:${'${{ steps.api_write_test.outcome || 'n/a' }}'}`,
@@ -230,6 +348,12 @@ jobs:
                         `- calendar_reachable: ${{ steps.health.outputs.calendar_reachable || 'n/a' }}`,
                         `- calendar_configured: ${{ steps.health.outputs.calendar_configured || 'n/a' }}`,
                         `- calendar_auth: ${{ steps.health.outputs.calendar_auth || 'n/a' }}`,
+                        `- telemedicine_health: ${{ steps.health.outputs.telemedicine_health || 'n/a' }}`,
+                        `- telemedicine_reason: ${{ steps.health.outputs.telemedicine_reason || 'n/a' }}`,
+                        `- telemedicine_calendar_status: ${{ env.TELEMEDICINE_CALENDAR_STATUS || 'n/a' }}`,
+                        `- telemedicine_calendar_reason: ${{ env.TELEMEDICINE_CALENDAR_REASON || 'n/a' }}`,
+                        `- telemedicine_calendar_failures: ${{ env.TELEMEDICINE_CALENDAR_FAILURES || '0' }}`,
+                        `- telemedicine_calendar_non_tele_failures: ${{ env.TELEMEDICINE_CALENDAR_NON_TELE_FAILURES || '0' }}`,
                         `- contract_test_outcome: ${{ steps.contract_test.outcome || 'n/a' }}`,
                         `- write_test_outcome: ${{ steps.write_test.outcome || 'n/a' }}`,
                         `- api_write_test_outcome: ${{ steps.api_write_test.outcome || 'n/a' }}`,
@@ -279,7 +403,9 @@ jobs:
                             `- api_write_status: ${{ steps.api_write_test.outputs.api_write_status || 'n/a' }}`,
                             `- api_write_cleanup_status: ${{ steps.api_write_test.outputs.api_write_cleanup_status || 'n/a' }}`,
                             `- calendar_mode: ${{ steps.health.outputs.calendar_mode || 'n/a' }}`,
-                            `- calendar_reachable: ${{ steps.health.outputs.calendar_reachable || 'n/a' }}`
+                            `- calendar_reachable: ${{ steps.health.outputs.calendar_reachable || 'n/a' }}`,
+                            `- telemedicine_calendar_status: ${{ env.TELEMEDICINE_CALENDAR_STATUS || 'n/a' }}`,
+                            `- telemedicine_calendar_reason: ${{ env.TELEMEDICINE_CALENDAR_REASON || 'n/a' }}`
                           ].join('\n')
                         });
                         core.info(`Incidente actualizado: #${existing.number}`);
@@ -294,6 +420,132 @@ jobs:
                         labels: ['production-alert', 'calendar-smoke', 'severity:critical']
                       });
                       core.info(`Incidente creado: #${created.data.number}`);
+
+            - name: Crear/actualizar incidente telemedicina calendar write smoke
+              if: ${{ failure() && github.event_name != 'workflow_dispatch' && (env.TELEMEDICINE_CALENDAR_STATUS == 'degraded_only' || env.TELEMEDICINE_CALENDAR_STATUS == 'degraded_mixed' || env.TELEMEDICINE_CALENDAR_STATUS == 'unknown') }}
+              uses: actions/github-script@v7
+              env:
+                  TELEMEDICINE_CALENDAR_STATUS: ${{ env.TELEMEDICINE_CALENDAR_STATUS }}
+                  TELEMEDICINE_CALENDAR_REASON: ${{ env.TELEMEDICINE_CALENDAR_REASON }}
+                  TELEMEDICINE_CALENDAR_FAILURES: ${{ env.TELEMEDICINE_CALENDAR_FAILURES }}
+                  TELEMEDICINE_CALENDAR_NON_TELE_FAILURES: ${{ env.TELEMEDICINE_CALENDAR_NON_TELE_FAILURES }}
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const title = '[ALERTA PROD] Calendar Write Smoke telemedicina degradado';
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+                      const status = String(process.env.TELEMEDICINE_CALENDAR_STATUS || 'n/a');
+                      const reason = String(process.env.TELEMEDICINE_CALENDAR_REASON || 'n/a');
+                      const failures = String(process.env.TELEMEDICINE_CALENDAR_FAILURES || '0');
+                      const signal = `status:${status}|reason:${reason}|failures:${failures}|non_tele:${process.env.TELEMEDICINE_CALENDAR_NON_TELE_FAILURES || '0'}`;
+                      const signalMarker = `<!-- calendar-write-smoke-telemedicine-signal:${signal} -->`;
+
+                      const severity = (status === 'degraded_mixed' ||
+                        reason.includes('diagnostics_critical') ||
+                        reason.includes('hard_failures:'))
+                        ? 'severity:critical'
+                        : 'severity:warning';
+                      const baseLabels = ['production-alert', 'calendar-smoke', 'telemedicine', severity];
+
+                      const normalizeLabels = (labels) =>
+                        (labels || [])
+                          .map((item) => (typeof item === 'string' ? item : item?.name))
+                          .filter(Boolean);
+                      const mergedLabels = (labels) => {
+                        const existing = normalizeLabels(labels).filter(
+                          (label) => label !== 'severity:critical' && label !== 'severity:warning'
+                        );
+                        return Array.from(new Set([...existing, ...baseLabels]));
+                      };
+                      const sameLabels = (a, b) => {
+                        const norm = (values) => Array.from(new Set(values)).sort();
+                        return JSON.stringify(norm(a)) === JSON.stringify(norm(b));
+                      };
+
+                      const body = [
+                        'El workflow `Calendar Write Smoke` detecto degradacion en checks de telemedicina.',
+                        '',
+                        `- Fecha: ${now}`,
+                        `- Run: ${runUrl}`,
+                        `- Workflow: ${context.workflow}`,
+                        `- Branch: ${context.ref}`,
+                        `- telemedicine_health: ${{ steps.health.outputs.telemedicine_health || 'n/a' }}`,
+                        `- telemedicine_reason: ${{ steps.health.outputs.telemedicine_reason || 'n/a' }}`,
+                        `- telemedicine_calendar_status: ${status}`,
+                        `- telemedicine_calendar_reason: ${reason}`,
+                        `- telemedicine_calendar_failures: ${failures}`,
+                        `- telemedicine_calendar_non_tele_failures: ${process.env.TELEMEDICINE_CALENDAR_NON_TELE_FAILURES || '0'}`,
+                        `- contract_test_outcome: ${{ steps.contract_test.outcome || 'n/a' }}`,
+                        `- write_test_outcome: ${{ steps.write_test.outcome || 'n/a' }}`,
+                        `- api_write_test_outcome: ${{ steps.api_write_test.outcome || 'n/a' }}`,
+                        `- api_write_status: ${{ steps.api_write_test.outputs.api_write_status || 'n/a' }}`,
+                        `- api_write_cleanup_status: ${{ steps.api_write_test.outputs.api_write_cleanup_status || 'n/a' }}`,
+                        '',
+                        signalMarker
+                      ].join('\n');
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (existing) {
+                        const existingBody = String(existing.body || '');
+                        const labels = mergedLabels(existing.labels);
+                        const labelsAlreadyApplied = sameLabels(normalizeLabels(existing.labels), labels);
+                        if (existingBody.includes(signalMarker)) {
+                          if (!labelsAlreadyApplied) {
+                            await github.rest.issues.update({
+                              owner,
+                              repo,
+                              issue_number: existing.number,
+                              labels
+                            });
+                            core.info(`Incidente telemedicina calendar smoke actualizo labels: #${existing.number}`);
+                          }
+                          core.info(`Incidente telemedicina calendar smoke ya refleja la misma senal: #${existing.number}`);
+                          return;
+                        }
+
+                        await github.rest.issues.update({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body,
+                          labels
+                        });
+                        await github.rest.issues.createComment({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body: [
+                            'Incidente telemedicina calendar smoke actualizado por cambio de senal.',
+                            '',
+                            `- Fecha: ${now}`,
+                            `- Run: ${runUrl}`,
+                            `- telemedicine_calendar_status: ${status}`,
+                            `- telemedicine_calendar_reason: ${reason}`,
+                            `- telemedicine_calendar_failures: ${failures}`,
+                            `- telemedicine_calendar_non_tele_failures: ${process.env.TELEMEDICINE_CALENDAR_NON_TELE_FAILURES || '0'}`
+                          ].join('\n')
+                        });
+                        core.info(`Incidente telemedicina actualizado: #${existing.number}`);
+                        return;
+                      }
+
+                      const created = await github.rest.issues.create({
+                        owner,
+                        repo,
+                        title,
+                        body,
+                        labels: baseLabels
+                      });
+                      core.info(`Incidente telemedicina creado: #${created.data.number}`);
 
             - name: Cerrar incidente calendar write smoke al recuperar
               if: ${{ success() && github.event_name != 'workflow_dispatch' }}
@@ -345,3 +597,51 @@ jobs:
                         state: 'closed'
                       });
                       core.info(`Incidente calendar write smoke cerrado: #${existing.number}`);
+
+            - name: Cerrar incidente telemedicina calendar write smoke al recuperar
+              if: ${{ success() && github.event_name != 'workflow_dispatch' }}
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const title = '[ALERTA PROD] Calendar Write Smoke telemedicina degradado';
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (!existing) {
+                        core.info('No hay incidente telemedicina calendar write smoke abierto para cerrar.');
+                        return;
+                      }
+
+                      await github.rest.issues.createComment({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        body: [
+                          'Recuperado automaticamente por corrida calendar write smoke.',
+                          '',
+                          `- Fecha: ${now}`,
+                          `- Run: ${runUrl}`,
+                          `- telemedicine_health: ${{ steps.health.outputs.telemedicine_health || 'n/a' }}`,
+                          `- telemedicine_reason: ${{ steps.health.outputs.telemedicine_reason || 'n/a' }}`,
+                          `- telemedicine_calendar_status: ${{ env.TELEMEDICINE_CALENDAR_STATUS || 'n/a' }}`,
+                          `- telemedicine_calendar_reason: ${{ env.TELEMEDICINE_CALENDAR_REASON || 'n/a' }}`
+                        ].join('\n')
+                      });
+
+                      await github.rest.issues.update({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        state: 'closed'
+                      });
+                      core.info(`Incidente telemedicina calendar write smoke cerrado: #${existing.number}`);

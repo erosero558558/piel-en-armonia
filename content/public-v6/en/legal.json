@@ -1,6 +1,6 @@
 {
     "title": "Legal | Piel en Armonia",
-    "description": "A clear legal framework for website use, privacy, cookies, and the limits of digital medical guidance.",
+    "description": "Clear legal information about site use, privacy, cookies, and the limits of digital medical guidance.",
     "index": [
         {
             "slug": "terms",
@@ -30,23 +30,23 @@
         },
         "menu": {
             "legalIndex": "Legal index",
-            "clausesSummary": "Clauses summary",
-            "policyIndex": "Policy index"
+            "clausesSummary": "Quick summary",
+            "policyIndex": "Documents"
         },
         "thesis": {
-            "eyebrow": "Legal architecture",
-            "title": "Clear rules for responsible digital and medical decisions",
-            "body": "Each policy explains what it protects, what it limits, and which responsibility applies in each channel."
+            "eyebrow": "Site use",
+            "title": "Simple rules for using the site and medical channels",
+            "body": "These pages explain what each policy protects, which limits exist, and what you can expect when sharing information."
         },
         "statement": {
-            "eyebrow": "Legal direction",
-            "title": "Legal language should guide, never confuse",
+            "eyebrow": "Plain language",
+            "title": "Legal information should still be easy to understand",
             "signature": "Compliance and policy",
             "image": "/images/optimized/team-rosero.webp",
-            "alt": "Legal direction at Piel en Armonia"
+            "alt": "Legal information at Piel en Armonia"
         },
         "internalMessage": {
-            "description": "This framework organizes consent, privacy, and responsible use across digital care channels."
+            "description": "These pages organize privacy, consent, and responsible use of digital channels."
         },
         "sectionLabel": "Section",
         "blockLabel": "Block",
@@ -59,64 +59,64 @@
             "heroImage": "/images/optimized/showcase-hero.webp",
             "sections": [
                 {
-                    "title": "Website usage",
+                    "title": "Using the site",
                     "items": [
-                        "Public information guides decisions, but it does not replace personalized medical consultation.",
-                        "You agree to provide accurate information when using forms or official channels.",
-                        "Misuse of the platform may limit access in order to protect the service and other users."
+                        "Public information can guide choices, but it does not replace personalized medical consultation.",
+                        "When you use forms or official channels, the information shared should be real and current.",
+                        "If the site is misused, access may be limited to protect the service and other people."
                     ]
                 },
                 {
-                    "title": "Intellectual property",
+                    "title": "Content and ownership",
                     "items": [
-                        "Text, design, and imagery belong to Piel en Armonia or rights holders with valid authorization.",
-                        "Full or partial commercial reproduction is not allowed without written permission.",
-                        "Third-party marks are referenced only for informational, comparative, or contextual purposes."
+                        "Texts, images, and designs belong to Piel en Armonia or to authorized third parties.",
+                        "Commercial reproduction in whole or in part is not allowed without written permission.",
+                        "References to third-party marks or services are used only for informational purposes."
                     ]
                 }
             ]
         },
         "privacy": {
             "heading": "Privacy policy",
-            "summary": "Responsible personal data handling built on the principle of using only what is necessary.",
+            "summary": "Responsible handling of personal data, using only what is needed to care for and protect people better.",
             "heroImage": "/images/optimized/showcase-clinic.webp",
             "sections": [
                 {
-                    "title": "Data collected",
+                    "title": "What data we may receive",
                     "items": [
-                        "Contact details you share through official channels.",
-                        "Technical metadata used for security, stability, and service improvement.",
-                        "Clinical information only when you provide it for orientation or continuity of care."
+                        "Contact details you share through WhatsApp, forms, or other official channels.",
+                        "Minimum technical data used for security, site stability, and service improvement.",
+                        "Clinical information only when you send it for guidance or follow-up."
                     ]
                 },
                 {
-                    "title": "Usage and protection",
+                    "title": "How it is used and protected",
                     "items": [
-                        "Data is used for continuity of care, operational support, and necessary communications.",
-                        "Technical and organizational safeguards are applied to limit unauthorized access.",
-                        "You may request correction or deletion under applicable regulation."
+                        "Data supports continuity of care, operational follow-through, and necessary communication.",
+                        "Technical and organizational safeguards are applied to reduce unauthorized access.",
+                        "You may request correction or deletion of data under applicable regulation."
                     ]
                 }
             ]
         },
         "cookies": {
             "heading": "Cookie policy",
-            "summary": "Cookie use for technical functions, aggregate measurement, and browsing preferences.",
+            "summary": "Cookies are used for technical functions, aggregate measurement, and basic browsing preferences.",
             "heroImage": "/images/optimized/showcase-diagnostic.webp",
             "sections": [
                 {
-                    "title": "Cookie categories",
+                    "title": "Types of cookies",
                     "items": [
-                        "Essential: support navigation, security, and site stability.",
-                        "Analytics: measure aggregate use to improve content, pathways, and performance.",
-                        "Preferences: remember interface and language settings."
+                        "Essential: help the site function with security and stability.",
+                        "Analytics: show aggregate use so content, performance, and navigation can improve.",
+                        "Preferences: remember language or simple interface choices."
                     ]
                 },
                 {
-                    "title": "Consent management",
+                    "title": "Your choice",
                     "items": [
-                        "You may accept or reject non-essential cookies.",
-                        "Preferences can be updated through your browser or system tools.",
+                        "You may accept or reject cookies that are not essential.",
+                        "Settings can be changed through the browser or system tools.",
                         "Rejecting optional cookies does not block access to the main site content."
                     ]
                 }
@@ -124,23 +124,23 @@
         },
         "medical-disclaimer": {
             "heading": "Medical disclaimer",
-            "summary": "Public content informs, but it does not replace personalized diagnosis or treatment direction.",
+            "summary": "Site content can inform, but it does not replace a personalized diagnosis or direct consultation.",
             "heroImage": "/images/optimized/service-consulta.webp",
             "sections": [
                 {
                     "title": "Limits of digital guidance",
                     "items": [
-                        "Public text is not a prescription, a final indication, or a promise of outcome.",
-                        "Any treatment decision requires individualized evaluation by qualified health professionals.",
-                        "Warning signs should be addressed immediately through urgent care when appropriate."
+                        "Site text is not a prescription, a treatment order, or a promise of outcome.",
+                        "Any treatment decision should be confirmed through individual evaluation by health professionals.",
+                        "If warning signs appear, in-person or urgent care may be the right next step."
                     ]
                 },
                 {
                     "title": "Shared responsibility",
                     "items": [
-                        "You should report history and symptoms with reasonable accuracy.",
-                        "Clinical direction is defined through evidence, history, and medical examination.",
-                        "Adherence to the plan directly influences how a case progresses."
+                        "You should report symptoms, history, and recent changes as accurately as possible.",
+                        "Clinical decisions are made through history, examination, and the evidence available.",
+                        "Following the plan given has a direct effect on how the case evolves."
                     ]
                 }
             ]

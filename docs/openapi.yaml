@@ -239,6 +239,44 @@ components:
                 latestActivityAt:
                     type: string
                     format: date-time
+                policy:
+                    type: object
+                    properties:
+                        shadowModeEnabled:
+                            type: boolean
+                        enforceUnsuitable:
+                            type: boolean
+                        enforceReviewRequired:
+                            type: boolean
+                        allowDecisionOverride:
+                            type: boolean
+                    additionalProperties: false
+                diagnostics:
+                    $ref: '#/components/schemas/TelemedicineDiagnosticsSummary'
+            additionalProperties: true
+
+        TelemedicineDiagnosticsSummary:
+            type: object
+            properties:
+                status:
+                    type: string
+                    enum: [healthy, degraded, critical, unknown]
+                healthy:
+                    type: boolean
+                summary:
+                    type: object
+                    properties:
+                        critical:
+                            type: integer
+                        warning:
+                            type: integer
+                        info:
+                            type: integer
+                        totalChecks:
+                            type: integer
+                        totalIssues:
+                            type: integer
+                    additionalProperties: true
             additionalProperties: true
 
         TelemedicineReviewQueueItem:
@@ -279,12 +317,223 @@ components:
                     type: string
                 clinicalMediaCount:
                     type: integer
+                reviewDecision:
+                    type: string
+                    enum: [approve_remote, request_more_info, escalate_presential]
+                reviewStatus:
+                    type: string
+                    enum: [pending, awaiting_patient, resolved]
+                reviewNotes:
+                    type: string
+                reviewedBy:
+                    type: string
+                reviewedAt:
+                    type: string
+                    format: date-time
                 createdAt:
                     type: string
                     format: date-time
                 updatedAt:
                     type: string
                     format: date-time
+            additionalProperties: true
+
+        TelemedicineIntakeAdminRecord:
+            type: object
+            description: Full intake payload for admin triage (internal-only, additive).
+            additionalProperties: true
+
+        TelemedicineDecisionRequest:
+            type: object
+            required: [intakeId, decision]
+            properties:
+                intakeId:
+                    type: integer
+                decision:
+                    type: string
+                    enum: [approve_remote, request_more_info, escalate_presential]
+                notes:
+                    type: string
+                reviewedBy:
+                    type: string
+
+        TelemedicinePolicySimulationRequest:
+            type: object
+            description: Admin simulation payload for telemedicine enforcement without persisting changes.
+            properties:
+                intakeId:
+                    type: integer
+                intake:
+                    type: object
+                    additionalProperties: true
+                appointment:
+                    type: object
+                    additionalProperties: true
+                policyOverride:
+                    type: object
+                    properties:
+                        shadowModeEnabled:
+                            type: boolean
+                        enforceUnsuitable:
+                            type: boolean
+                        enforceReviewRequired:
+                            type: boolean
+                        allowDecisionOverride:
+                            type: boolean
+                    additionalProperties: false
+
+        TelemedicinePolicySimulationResponse:
+            type: object
+            properties:
+                ok:
+                    type: boolean
+                data:
+                    type: object
+                    properties:
+                        intakeId:
+                            type: integer
+                        linkedAppointmentId:
+                            type: integer
+                        service:
+                            type: string
+                        suitability:
+                            type: string
+                            enum: [fit, review_required, unsuitable]
+                        reviewDecision:
+                            type: string
+                        reviewRequired:
+                            type: boolean
+                        effectivePolicy:
+                            type: object
+                            additionalProperties: true
+                        evaluation:
+                            type: object
+                            properties:
+                                allowed:
+                                    type: boolean
+                                status:
+                                    type: integer
+                                errorCode:
+                                    type: string
+                                error:
+                                    type: string
+                                reason:
+                                    type: string
+                            additionalProperties: true
+                    additionalProperties: true
+
+        TelemedicineRolloutReadinessResponse:
+            type: object
+            properties:
+                ok:
+                    type: boolean
+                generatedAt:
+                    type: string
+                    format: date-time
+                currentPolicy:
+                    type: object
+                    properties:
+                        shadowModeEnabled:
+                            type: boolean
+                        enforceUnsuitable:
+                            type: boolean
+                        enforceReviewRequired:
+                            type: boolean
+                        allowDecisionOverride:
+                            type: boolean
+                    additionalProperties: false
+                intakesTotal:
+                    type: integer
+                reviewQueueCount:
+                    type: integer
+                suitabilityCounts:
+                    type: object
+                    additionalProperties:
+                        type: integer
+                scenarios:
+                    type: object
+                    additionalProperties:
+                        type: object
+                        properties:
+                            policy:
+                                type: object
+                                additionalProperties: true
+                            allowed:
+                                type: integer
+                            blocked:
+                                type: integer
+                            blockedByReason:
+                                type: object
+                                additionalProperties:
+                                    type: integer
+                        additionalProperties: true
+            additionalProperties: true
+
+        TelemedicineOpsDiagnosticsCheck:
+            type: object
+            properties:
+                code:
+                    type: string
+                severity:
+                    type: string
+                    enum: [critical, warning, info]
+                count:
+                    type: integer
+                threshold:
+                    type: integer
+                triggered:
+                    type: boolean
+                status:
+                    type: string
+                    enum: [ok, alert]
+                message:
+                    type: string
+                recommendation:
+                    type: string
+            additionalProperties: true
+
+        TelemedicineOpsDiagnosticsPayload:
+            type: object
+            properties:
+                status:
+                    type: string
+                    enum: [healthy, degraded, critical, unknown]
+                healthy:
+                    type: boolean
+                summary:
+                    type: object
+                    properties:
+                        critical:
+                            type: integer
+                        warning:
+                            type: integer
+                        info:
+                            type: integer
+                        totalChecks:
+                            type: integer
+                        totalIssues:
+                            type: integer
+                    additionalProperties: true
+                checks:
+                    type: object
+                    additionalProperties:
+                        $ref: '#/components/schemas/TelemedicineOpsDiagnosticsCheck'
+                issues:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/TelemedicineOpsDiagnosticsCheck'
+            additionalProperties: true
+
+        TelemedicineOpsDiagnosticsResponse:
+            type: object
+            properties:
+                ok:
+                    type: boolean
+                generatedAt:
+                    type: string
+                    format: date-time
+                data:
+                    $ref: '#/components/schemas/TelemedicineOpsDiagnosticsPayload'
             additionalProperties: true
 
         TelemedicineAdminMeta:
@@ -296,6 +545,8 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/TelemedicineReviewQueueItem'
+                diagnostics:
+                    $ref: '#/components/schemas/TelemedicineOpsDiagnosticsPayload'
             additionalProperties: true
 
 paths:
@@ -618,7 +869,13 @@ paths:
                                             $ref: '#/components/schemas/Appointment'
         post:
             summary: Create Appointment
-            description: Book a new appointment.
+            description: |
+                Book a new appointment.
+
+                Telemedicine services (`telefono`, `video`) keep backward compatibility and can optionally
+                enforce backend suitability policy through flags:
+                - `PIELARMONIA_TELEMED_V2_ENFORCE_UNSUITABLE`
+                - `PIELARMONIA_TELEMED_V2_ENFORCE_REVIEW_REQUIRED`
             tags: [Appointments]
             requestBody:
                 required: true
@@ -647,7 +904,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ApiError'
                 '409':
-                    description: Slot conflict.
+                    description: Slot conflict or telemedicine manual review required.
                     content:
                         application/json:
                             schema:
@@ -657,7 +914,19 @@ paths:
                                       properties:
                                           code:
                                               type: string
-                                              enum: [slot_conflict]
+                                              enum: [slot_conflict, telemedicine_review_required]
+                '422':
+                    description: Telemedicine unsuitable for remote consultation (when enforcement is enabled).
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                    - $ref: '#/components/schemas/ApiError'
+                                    - type: object
+                                      properties:
+                                          code:
+                                              type: string
+                                              enum: [telemedicine_unsuitable]
                 '503':
                     description: Google/store unavailable in blocked mode.
                     content:
@@ -1189,6 +1458,183 @@ paths:
                                             telemedicineMeta:
                                                 $ref: '#/components/schemas/TelemedicineAdminMeta'
                                         additionalProperties: true
+
+    /api.php?resource=telemedicine-intakes:
+        get:
+            summary: List Telemedicine Intakes for Admin Triage
+            description: Returns telemedicine intake records, summary and triage queue. Admin authentication required.
+            tags: [Telemedicine, Admin]
+            security:
+                - cookieAuth: []
+            parameters:
+                - in: query
+                  name: status
+                  schema:
+                      type: string
+                - in: query
+                  name: channel
+                  schema:
+                      type: string
+                      enum: [phone, secure_video]
+                - in: query
+                  name: suitability
+                  schema:
+                      type: string
+                      enum: [fit, review_required, unsuitable]
+                - in: query
+                  name: decision
+                  schema:
+                      type: string
+                      enum: [approve_remote, request_more_info, escalate_presential]
+                - in: query
+                  name: reviewOnly
+                  schema:
+                      type: boolean
+                - in: query
+                  name: includeResolved
+                  schema:
+                      type: boolean
+            responses:
+                '200':
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    ok:
+                                        type: boolean
+                                    data:
+                                        type: object
+                                        properties:
+                                            summary:
+                                                $ref: '#/components/schemas/TelemedicineOpsSummary'
+                                            reviewQueue:
+                                                type: array
+                                                items:
+                                                    $ref: '#/components/schemas/TelemedicineReviewQueueItem'
+                                            intakes:
+                                                type: array
+                                                items:
+                                                    $ref: '#/components/schemas/TelemedicineIntakeAdminRecord'
+                                        additionalProperties: true
+        patch:
+            summary: Resolve Telemedicine Intake Review Decision
+            description: Persists triage decision for a telemedicine intake and syncs linked appointment metadata.
+            tags: [Telemedicine, Admin]
+            security:
+                - cookieAuth: []
+                - csrfToken: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/TelemedicineDecisionRequest'
+            responses:
+                '200':
+                    description: Decision persisted
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    ok:
+                                        type: boolean
+                                    data:
+                                        type: object
+                                        properties:
+                                            intake:
+                                                $ref: '#/components/schemas/TelemedicineIntakeAdminRecord'
+                                            appointment:
+                                                $ref: '#/components/schemas/Appointment'
+                                            summary:
+                                                $ref: '#/components/schemas/TelemedicineOpsSummary'
+                                            reviewQueueCount:
+                                                type: integer
+                                        additionalProperties: true
+                '400':
+                    description: Invalid intake ID or decision payload.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiError'
+                '404':
+                    description: Intake not found.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiError'
+                '503':
+                    description: Store unavailable.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiError'
+
+    /api.php?resource=telemedicine-policy-simulate:
+        post:
+            summary: Simulate Telemedicine Enforcement Policy (Admin)
+            description: Simulates telemedicine enforcement decision (`allowed/blocked`) without persisting data changes.
+            tags: [Telemedicine, Admin]
+            security:
+                - cookieAuth: []
+                - csrfToken: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/TelemedicinePolicySimulationRequest'
+            responses:
+                '200':
+                    description: Simulation result
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TelemedicinePolicySimulationResponse'
+                '400':
+                    description: Invalid payload (not a telemedicine case)
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiError'
+                '404':
+                    description: Intake not found.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiError'
+
+    /api.php?resource=telemedicine-rollout-readiness:
+        get:
+            summary: Telemedicine Rollout Readiness Projection (Admin)
+            description: Projects blocking impact for rollout scenarios using current telemedicine intakes.
+            tags: [Telemedicine, Admin]
+            security:
+                - cookieAuth: []
+            responses:
+                '200':
+                    description: Readiness projection generated
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TelemedicineRolloutReadinessResponse'
+
+    /api.php?resource=telemedicine-ops-diagnostics:
+        get:
+            summary: Telemedicine Ops Diagnostics (Admin)
+            description: Returns post-backfill integrity diagnostics with severity, triggered checks and remediation hints.
+            tags: [Telemedicine, Admin]
+            security:
+                - cookieAuth: []
+            responses:
+                '200':
+                    description: Diagnostics generated
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TelemedicineOpsDiagnosticsResponse'
 
     /api.php?resource=import:
         post:

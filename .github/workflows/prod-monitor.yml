@@ -65,6 +65,31 @@ on:
                 required: false
                 default: false
                 type: boolean
+            allow_degraded_telemedicine_diagnostics:
+                description: 'Permitir diagnostics telemedicina degradado temporalmente'
+                required: false
+                default: false
+                type: boolean
+            require_telemedicine_configured:
+                description: 'Exigir checks.telemedicine.configured=true'
+                required: false
+                default: true
+                type: boolean
+            max_telemedicine_review_queue:
+                description: 'Maximo permitido para reviewQueue telemedicina'
+                required: false
+                default: '12'
+                type: string
+            max_telemedicine_staged_uploads:
+                description: 'Maximo permitido de staged legacy uploads telemedicina'
+                required: false
+                default: '1'
+                type: string
+            max_telemedicine_unlinked_intakes:
+                description: 'Maximo permitido de intakes sin linkage telemedicina'
+                required: false
+                default: '5'
+                type: string
             enable_public_cutover_monitor:
                 description: 'Habilitar smoke publico post-cutover (routing + conversion)'
                 required: false
@@ -152,6 +177,14 @@ jobs:
             MIN_SERVICE_PRIORITIES_CATEGORIES: ${{ github.event.inputs.min_service_priorities_categories || vars.PROD_MONITOR_MIN_SERVICE_PRIORITIES_CATEGORIES || '1' }}
             MIN_SERVICE_PRIORITIES_FEATURED: ${{ github.event.inputs.min_service_priorities_featured || vars.PROD_MONITOR_MIN_SERVICE_PRIORITIES_FEATURED || '1' }}
             REQUIRE_SERVICE_PRIORITIES_FUNNEL: ${{ github.event.inputs.require_service_priorities_funnel || vars.PROD_MONITOR_REQUIRE_SERVICE_PRIORITIES_FUNNEL || 'false' }}
+            ALLOW_DEGRADED_TELEMEDICINE_DIAGNOSTICS: ${{ github.event.inputs.allow_degraded_telemedicine_diagnostics || vars.PROD_MONITOR_ALLOW_DEGRADED_TELEMEDICINE_DIAGNOSTICS || 'false' }}
+            REQUIRE_TELEMEDICINE_CONFIGURED: ${{ github.event.inputs.require_telemedicine_configured || vars.PROD_MONITOR_REQUIRE_TELEMEDICINE_CONFIGURED || 'true' }}
+            MAX_TELEMEDICINE_REVIEW_QUEUE: ${{ github.event.inputs.max_telemedicine_review_queue || vars.PROD_MONITOR_MAX_TELEMEDICINE_REVIEW_QUEUE || '12' }}
+            MAX_TELEMEDICINE_STAGED_UPLOADS: ${{ github.event.inputs.max_telemedicine_staged_uploads || vars.PROD_MONITOR_MAX_TELEMEDICINE_STAGED_UPLOADS || '1' }}
+            MAX_TELEMEDICINE_UNLINKED_INTAKES: ${{ github.event.inputs.max_telemedicine_unlinked_intakes || vars.PROD_MONITOR_MAX_TELEMEDICINE_UNLINKED_INTAKES || '5' }}
+            TELEMEDICINE_MONITOR_STATUS: unknown
+            TELEMEDICINE_MONITOR_REASON: not_evaluated
+            TELEMEDICINE_MONITOR_NON_TELE_FAILURES: '0'
             ENABLE_PUBLIC_CUTOVER_MONITOR: ${{ github.event.inputs.enable_public_cutover_monitor || vars.PROD_MONITOR_ENABLE_PUBLIC_CUTOVER || 'false' }}
             PUBLIC_CUTOVER_STARTED_AT: ${{ github.event.inputs.public_cutover_started_at || vars.PUBLIC_CUTOVER_STARTED_AT || '' }}
             PUBLIC_CUTOVER_WINDOW_HOURS: ${{ github.event.inputs.public_cutover_window_hours || vars.PUBLIC_CUTOVER_WINDOW_HOURS || '72' }}
@@ -183,6 +216,7 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Ejecutar monitor de produccion
+              id: monitor_prod
               shell: pwsh
               run: |
                   $maxLatency = [int]$env:MAX_LATENCY_MS
@@ -217,6 +251,12 @@ jobs:
                   if ($env:REQUIRE_SERVICE_PRIORITIES_FUNNEL -eq 'true') {
                     $monitorArgs.RequireServicePrioritiesFunnel = $true
                   }
+                  if ($env:ALLOW_DEGRADED_TELEMEDICINE_DIAGNOSTICS -eq 'true') {
+                    $monitorArgs.AllowDegradedTelemedicineDiagnostics = $true
+                  }
+                  if ($env:REQUIRE_TELEMEDICINE_CONFIGURED -eq 'false') {
+                    $monitorArgs.RequireTelemedicineConfigured = $false
+                  }
 
                   $minServices = [int]$env:MIN_SERVICE_PRIORITIES_SERVICES
                   if ($minServices -lt 0) { $minServices = 0 }
@@ -230,7 +270,126 @@ jobs:
                   if ($minFeatured -lt 0) { $minFeatured = 0 }
                   $monitorArgs.MinServicePrioritiesFeatured = $minFeatured
 
+                  $maxTelemedicineReviewQueue = [int]$env:MAX_TELEMEDICINE_REVIEW_QUEUE
+                  if ($maxTelemedicineReviewQueue -lt 0) { $maxTelemedicineReviewQueue = 0 }
+                  $monitorArgs.MaxTelemedicineReviewQueue = $maxTelemedicineReviewQueue
+
+                  $maxTelemedicineStagedUploads = [int]$env:MAX_TELEMEDICINE_STAGED_UPLOADS
+                  if ($maxTelemedicineStagedUploads -lt 0) { $maxTelemedicineStagedUploads = 0 }
+                  $monitorArgs.MaxTelemedicineStagedUploads = $maxTelemedicineStagedUploads
+
+                  $maxTelemedicineUnlinkedIntakes = [int]$env:MAX_TELEMEDICINE_UNLINKED_INTAKES
+                  if ($maxTelemedicineUnlinkedIntakes -lt 0) { $maxTelemedicineUnlinkedIntakes = 0 }
+                  $monitorArgs.MaxTelemedicineUnlinkedIntakes = $maxTelemedicineUnlinkedIntakes
+
                   & ./MONITOR-PRODUCCION.ps1 @monitorArgs
+
+            - name: Evaluar estado telemedicina para incidente dedicado
+              id: telemedicine_monitor
+              if: ${{ always() }}
+              shell: pwsh
+              run: |
+                  $status = 'healthy'
+                  $reasons = New-Object System.Collections.Generic.List[string]
+                  $nonTeleFailures = 0
+                  $monitorOutcome = '${{ steps.monitor_prod.outcome || 'n/a' }}'
+                  if ($monitorOutcome -ne 'success' -and $monitorOutcome -ne 'skipped' -and $monitorOutcome -ne 'n/a') {
+                    $nonTeleFailures = 1
+                  }
+                  $health = $null
+                  $base = ($env:TARGET_DOMAIN ?? '').TrimEnd('/')
+                  $healthUrl = "$base/api.php?resource=health"
+
+                  try {
+                    $response = Invoke-WebRequest -Uri $healthUrl -TimeoutSec 20 -UseBasicParsing -Headers @{
+                      'Accept' = 'application/json'
+                      'User-Agent' = 'PielArmoniaTelemedicineMonitor/1.0'
+                    }
+                    $health = $response.Content | ConvertFrom-Json -Depth 20
+                  } catch {
+                    $status = 'failed'
+                    $reasons.Add('health_unreachable')
+                  }
+
+                  $allowDegradedDiagnostics = ([string]$env:ALLOW_DEGRADED_TELEMEDICINE_DIAGNOSTICS).ToLowerInvariant() -eq 'true'
+                  $requireConfigured = ([string]$env:REQUIRE_TELEMEDICINE_CONFIGURED).ToLowerInvariant() -ne 'false'
+                  $maxReviewQueue = 12
+                  $maxStagedUploads = 1
+                  $maxUnlinkedIntakes = 5
+
+                  try { $maxReviewQueue = [int]$env:MAX_TELEMEDICINE_REVIEW_QUEUE } catch {}
+                  try { $maxStagedUploads = [int]$env:MAX_TELEMEDICINE_STAGED_UPLOADS } catch {}
+                  try { $maxUnlinkedIntakes = [int]$env:MAX_TELEMEDICINE_UNLINKED_INTAKES } catch {}
+                  if ($maxReviewQueue -lt 0) { $maxReviewQueue = 0 }
+                  if ($maxStagedUploads -lt 0) { $maxStagedUploads = 0 }
+                  if ($maxUnlinkedIntakes -lt 0) { $maxUnlinkedIntakes = 0 }
+
+                  if ($null -ne $health) {
+                    $telemedicine = $null
+                    try { $telemedicine = $health.checks.telemedicine } catch { $telemedicine = $null }
+                    if ($null -eq $telemedicine) {
+                      if ($requireConfigured) {
+                        $reasons.Add('telemedicine_missing')
+                      }
+                    } else {
+                      $configured = $false
+                      $diagnosticsStatus = ''
+                      $criticalCount = 0
+                      $reviewQueueCount = 0
+                      $stagedLegacyUploadsCount = 0
+                      $unlinkedIntakesCount = 0
+                      $danglingAppointmentLinksCount = 0
+                      $casePhotosWithoutPrivatePathCount = 0
+
+                      try { $configured = [bool]$telemedicine.configured } catch { $configured = $false }
+                      try { $diagnosticsStatus = [string]$telemedicine.diagnostics.status } catch { $diagnosticsStatus = '' }
+                      try { $criticalCount = [int]$telemedicine.diagnostics.summary.critical } catch { $criticalCount = 0 }
+                      try { $reviewQueueCount = [int]$telemedicine.reviewQueueCount } catch { $reviewQueueCount = 0 }
+                      try { $stagedLegacyUploadsCount = [int]$telemedicine.integrity.stagedLegacyUploadsCount } catch { $stagedLegacyUploadsCount = 0 }
+                      try { $unlinkedIntakesCount = [int]$telemedicine.integrity.unlinkedIntakesCount } catch { $unlinkedIntakesCount = 0 }
+                      try { $danglingAppointmentLinksCount = [int]$telemedicine.integrity.danglingAppointmentLinksCount } catch { $danglingAppointmentLinksCount = 0 }
+                      try { $casePhotosWithoutPrivatePathCount = [int]$telemedicine.integrity.casePhotosWithoutPrivatePathCount } catch { $casePhotosWithoutPrivatePathCount = 0 }
+
+                      if ($requireConfigured -and -not $configured) {
+                        $reasons.Add('telemedicine_unconfigured')
+                      }
+                      if (-not $allowDegradedDiagnostics -and ($diagnosticsStatus -eq 'critical' -or $criticalCount -gt 0)) {
+                        $reasons.Add("diagnostics_critical:$diagnosticsStatus/$criticalCount")
+                      }
+                      if ($reviewQueueCount -gt $maxReviewQueue) {
+                        $reasons.Add("review_queue_high:$reviewQueueCount>$maxReviewQueue")
+                      }
+                      if ($stagedLegacyUploadsCount -gt $maxStagedUploads) {
+                        $reasons.Add("staged_uploads_high:$stagedLegacyUploadsCount>$maxStagedUploads")
+                      }
+                      if ($unlinkedIntakesCount -gt $maxUnlinkedIntakes) {
+                        $reasons.Add("unlinked_intakes_high:$unlinkedIntakesCount>$maxUnlinkedIntakes")
+                      }
+                      if ($danglingAppointmentLinksCount -gt 0) {
+                        $reasons.Add("dangling_links:$danglingAppointmentLinksCount")
+                      }
+                      if ($casePhotosWithoutPrivatePathCount -gt 0) {
+                        $reasons.Add("case_photos_missing_private_path:$casePhotosWithoutPrivatePathCount")
+                      }
+                    }
+                  }
+
+                  if ($reasons.Count -gt 0) {
+                    $status = 'failed'
+                  }
+
+                  $reasonText = if ($reasons.Count -gt 0) {
+                    ($reasons | Select-Object -Unique) -join ';'
+                  } else {
+                    'ok'
+                  }
+                  "TELEMEDICINE_MONITOR_STATUS=$status" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TELEMEDICINE_MONITOR_REASON=$reasonText" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TELEMEDICINE_MONITOR_NON_TELE_FAILURES=$nonTeleFailures" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "status=$status" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "reason=$reasonText" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "non_tele_failures=$nonTeleFailures" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  Write-Host "telemedicine monitor => status=$status reason=$reasonText non_tele_failures=$nonTeleFailures"
 
             - name: Evaluar ventana post-cutover publico
               id: cutover_window
@@ -425,6 +584,15 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- min_service_priorities_categories: ``$env:MIN_SERVICE_PRIORITIES_CATEGORIES``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- min_service_priorities_featured: ``$env:MIN_SERVICE_PRIORITIES_FEATURED``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- require_service_priorities_funnel: ``$env:REQUIRE_SERVICE_PRIORITIES_FUNNEL``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- allow_degraded_telemedicine_diagnostics: ``$env:ALLOW_DEGRADED_TELEMEDICINE_DIAGNOSTICS``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- require_telemedicine_configured: ``$env:REQUIRE_TELEMEDICINE_CONFIGURED``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- max_telemedicine_review_queue: ``$env:MAX_TELEMEDICINE_REVIEW_QUEUE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- max_telemedicine_staged_uploads: ``$env:MAX_TELEMEDICINE_STAGED_UPLOADS``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- max_telemedicine_unlinked_intakes: ``$env:MAX_TELEMEDICINE_UNLINKED_INTAKES``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- telemedicine_monitor_status: ``$env:TELEMEDICINE_MONITOR_STATUS``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- telemedicine_monitor_reason: ``$env:TELEMEDICINE_MONITOR_REASON``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- telemedicine_monitor_non_tele_failures: ``$env:TELEMEDICINE_MONITOR_NON_TELE_FAILURES``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- telemedicine_monitor_step_outcome: ``${{ steps.telemedicine_monitor.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- enable_public_cutover_monitor: ``$env:ENABLE_PUBLIC_CUTOVER_MONITOR``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_cutover_started_at: ``$env:PUBLIC_CUTOVER_STARTED_AT``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_cutover_window_hours: ``$env:PUBLIC_CUTOVER_WINDOW_HOURS``"
@@ -454,7 +622,7 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_v4_rollout_step_outcome: ``${{ steps.public_v4_rollout.outcome }}``"
 
             - name: Crear/actualizar incidente (solo schedule)
-              if: ${{ failure() && github.event_name == 'schedule' && steps.public_cutover.outcome != 'failure' && steps.public_v4_rollout.outcome != 'failure' }}
+              if: ${{ failure() && github.event_name == 'schedule' && steps.public_cutover.outcome != 'failure' && steps.public_v4_rollout.outcome != 'failure' && ((env.TELEMEDICINE_MONITOR_STATUS != 'failed' && env.TELEMEDICINE_MONITOR_STATUS != 'unknown') || env.TELEMEDICINE_MONITOR_NON_TELE_FAILURES != '0') }}
               uses: actions/github-script@v7
               with:
                   script: |
@@ -503,6 +671,124 @@ jobs:
                           labels: ['production-alert']
                         });
                         core.info(`Issue creado: #${created.data.number}`);
+                      }
+
+            - name: Crear/actualizar incidente telemedicina (solo schedule)
+              if: ${{ failure() && github.event_name == 'schedule' && (env.TELEMEDICINE_MONITOR_STATUS == 'failed' || env.TELEMEDICINE_MONITOR_STATUS == 'unknown') }}
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const title = '[ALERTA PROD] Monitor telemedicina degradado';
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+                      const reason = String(process.env.TELEMEDICINE_MONITOR_REASON || 'n/a');
+                      const signal = `status:${process.env.TELEMEDICINE_MONITOR_STATUS || 'n/a'}|reason:${reason}|non_tele:${process.env.TELEMEDICINE_MONITOR_NON_TELE_FAILURES || '0'}`;
+                      const signalMarker = `<!-- prod-monitor-telemedicine-signal:${signal} -->`;
+
+                      const severity = (reason.includes('diagnostics_critical') ||
+                        reason.includes('telemedicine_missing') ||
+                        reason.includes('telemedicine_unconfigured') ||
+                        reason.includes('dangling_links') ||
+                        reason.includes('case_photos_missing_private_path') ||
+                        reason.includes('health_unreachable'))
+                        ? 'severity:critical'
+                        : 'severity:warning';
+                      const baseLabels = ['production-alert', 'telemedicine', 'prod-monitor', severity];
+
+                      const normalizeLabels = (labels) =>
+                        (labels || [])
+                          .map((item) => (typeof item === 'string' ? item : item?.name))
+                          .filter(Boolean);
+                      const mergedLabels = (labels) => {
+                        const existing = normalizeLabels(labels).filter(
+                          (label) => label !== 'severity:critical' && label !== 'severity:warning'
+                        );
+                        return Array.from(new Set([...existing, ...baseLabels]));
+                      };
+                      const sameLabels = (a, b) => {
+                        const norm = (values) => Array.from(new Set(values)).sort();
+                        return JSON.stringify(norm(a)) === JSON.stringify(norm(b));
+                      };
+
+                      const body = [
+                        'El monitor diario detecto degradacion en checks de telemedicina.',
+                        '',
+                        `- Fecha: ${now}`,
+                        `- Run: ${runUrl}`,
+                        `- Workflow: ${context.workflow}`,
+                        `- Branch: ${context.ref}`,
+                        `- target_domain: ${process.env.TARGET_DOMAIN || 'n/a'}`,
+                        `- telemedicine_monitor_status: ${process.env.TELEMEDICINE_MONITOR_STATUS || 'n/a'}`,
+                        `- telemedicine_monitor_reason: ${process.env.TELEMEDICINE_MONITOR_REASON || 'n/a'}`,
+                        `- telemedicine_monitor_non_tele_failures: ${process.env.TELEMEDICINE_MONITOR_NON_TELE_FAILURES || '0'}`,
+                        `- allow_degraded_telemedicine_diagnostics: ${process.env.ALLOW_DEGRADED_TELEMEDICINE_DIAGNOSTICS || 'n/a'}`,
+                        `- require_telemedicine_configured: ${process.env.REQUIRE_TELEMEDICINE_CONFIGURED || 'n/a'}`,
+                        `- max_telemedicine_review_queue: ${process.env.MAX_TELEMEDICINE_REVIEW_QUEUE || 'n/a'}`,
+                        `- max_telemedicine_staged_uploads: ${process.env.MAX_TELEMEDICINE_STAGED_UPLOADS || 'n/a'}`,
+                        `- max_telemedicine_unlinked_intakes: ${process.env.MAX_TELEMEDICINE_UNLINKED_INTAKES || 'n/a'}`,
+                        '',
+                        signalMarker
+                      ].join('\n');
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (existing) {
+                        const existingBody = String(existing.body || '');
+                        const labels = mergedLabels(existing.labels);
+                        const labelsAlreadyApplied = sameLabels(normalizeLabels(existing.labels), labels);
+                        if (existingBody.includes(signalMarker)) {
+                          if (!labelsAlreadyApplied) {
+                            await github.rest.issues.update({
+                              owner,
+                              repo,
+                              issue_number: existing.number,
+                              labels
+                            });
+                            core.info(`Issue telemedicina actualizo labels: #${existing.number}`);
+                          }
+                          core.info(`Issue telemedicina ya refleja la misma senal: #${existing.number}`);
+                          return;
+                        }
+
+                        await github.rest.issues.update({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body,
+                          labels
+                        });
+                        await github.rest.issues.createComment({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body: [
+                            'Incidente telemedicina actualizado por cambio de senal.',
+                            '',
+                            `- Fecha: ${now}`,
+                            `- Run: ${runUrl}`,
+                            `- telemedicine_monitor_status: ${process.env.TELEMEDICINE_MONITOR_STATUS || 'n/a'}`,
+                            `- telemedicine_monitor_reason: ${process.env.TELEMEDICINE_MONITOR_REASON || 'n/a'}`,
+                            `- telemedicine_monitor_non_tele_failures: ${process.env.TELEMEDICINE_MONITOR_NON_TELE_FAILURES || '0'}`
+                          ].join('\n')
+                        });
+                        core.info(`Issue telemedicina existente actualizado: #${existing.number}`);
+                      } else {
+                        const created = await github.rest.issues.create({
+                          owner,
+                          repo,
+                          title,
+                          body,
+                          labels: baseLabels
+                        });
+                        core.info(`Issue telemedicina creado: #${created.data.number}`);
                       }
 
             - name: Crear/actualizar incidente post-cutover publico (solo schedule)
@@ -666,6 +952,52 @@ jobs:
                         state: 'closed'
                       });
                       core.info(`Issue cerrado: #${existing.number}`);
+
+            - name: Cerrar incidente telemedicina al recuperar (solo schedule)
+              if: ${{ always() && github.event_name == 'schedule' && env.TELEMEDICINE_MONITOR_STATUS == 'healthy' }}
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const title = '[ALERTA PROD] Monitor telemedicina degradado';
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (!existing) {
+                        core.info('No hay incidente telemedicina abierto para cerrar.');
+                        return;
+                      }
+
+                      await github.rest.issues.createComment({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        body: [
+                          'Recuperado automaticamente por monitor programado.',
+                          '',
+                          `- Fecha: ${now}`,
+                          `- Run: ${runUrl}`,
+                          `- telemedicine_monitor_status: ${process.env.TELEMEDICINE_MONITOR_STATUS || 'n/a'}`,
+                          `- telemedicine_monitor_reason: ${process.env.TELEMEDICINE_MONITOR_REASON || 'n/a'}`
+                        ].join('\n')
+                      });
+
+                      await github.rest.issues.update({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        state: 'closed'
+                      });
+                      core.info(`Issue telemedicina cerrado: #${existing.number}`);
 
             - name: Cerrar incidente post-cutover al recuperar (solo schedule)
               if: ${{ success() && github.event_name == 'schedule' && steps.public_cutover.outcome != 'failure' }}

@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/TelemedicineEnforcementPolicy.php';
+require_once __DIR__ . '/TelemedicineOpsDiagnostics.php';
+
 final class TelemedicineOpsSnapshot
 {
     private const STATUS_KEYS = [
@@ -25,6 +28,19 @@ final class TelemedicineOpsSnapshot
     private const CHANNEL_KEYS = [
         'phone',
         'secure_video',
+    ];
+
+    private const REVIEW_DECISION_KEYS = [
+        'none',
+        'approve_remote',
+        'request_more_info',
+        'escalate_presential',
+    ];
+
+    private const REVIEW_STATE_KEYS = [
+        'pending',
+        'awaiting_patient',
+        'resolved',
     ];
 
     private const MEDIA_KIND_KEYS = [
@@ -73,6 +89,8 @@ final class TelemedicineOpsSnapshot
         $statusCounts = self::initializeCounters(self::STATUS_KEYS);
         $suitabilityCounts = self::initializeCounters(self::SUITABILITY_KEYS);
         $channelCounts = self::initializeCounters(self::CHANNEL_KEYS);
+        $reviewDecisionCounts = self::initializeCounters(self::REVIEW_DECISION_KEYS);
+        $reviewStateCounts = self::initializeCounters(self::REVIEW_STATE_KEYS);
         $kindCounts = self::initializeCounters(self::MEDIA_KIND_KEYS);
         $storageCounts = self::initializeCounters(self::STORAGE_MODE_KEYS);
 
@@ -100,6 +118,24 @@ final class TelemedicineOpsSnapshot
                 $channelCounts[$channel] = ($channelCounts[$channel] ?? 0) + 1;
             }
 
+            $reviewDecision = trim((string) ($intake['reviewDecision'] ?? ''));
+            if ($reviewDecision === '') {
+                $reviewDecision = 'none';
+            }
+            $reviewDecisionCounts[$reviewDecision] = ($reviewDecisionCounts[$reviewDecision] ?? 0) + 1;
+
+            $reviewState = trim((string) ($intake['reviewStatus'] ?? ''));
+            if ($reviewState === '') {
+                if ($reviewDecision === 'request_more_info') {
+                    $reviewState = 'awaiting_patient';
+                } elseif ($reviewDecision !== 'none') {
+                    $reviewState = 'resolved';
+                } else {
+                    $reviewState = 'pending';
+                }
+            }
+            $reviewStateCounts[$reviewState] = ($reviewStateCounts[$reviewState] ?? 0) + 1;
+
             $linkedAppointmentId = (int) ($intake['linkedAppointmentId'] ?? 0);
             if ($linkedAppointmentId > 0) {
                 if (isset($appointmentIds[$linkedAppointmentId])) {
@@ -114,11 +150,7 @@ final class TelemedicineOpsSnapshot
             $updatedAt = (string) ($intake['updatedAt'] ?? $intake['createdAt'] ?? '');
             $latestActivityAt = self::maxTimestamp($latestActivityAt, $updatedAt);
 
-            $needsReview = (bool) ($intake['reviewRequired'] ?? false)
-                || $suitability === 'review_required'
-                || $suitability === 'unsuitable'
-                || $status === 'review_required'
-                || $status === 'unsuitable';
+            $needsReview = self::intakeNeedsReviewQueue($intake, $suitability, $status, $reviewState);
             if ($needsReview) {
                 $reviewQueue[] = self::buildReviewQueueRow($intake);
             }
@@ -162,13 +194,15 @@ final class TelemedicineOpsSnapshot
             return strcmp((string) ($left['updatedAt'] ?? ''), (string) ($right['updatedAt'] ?? ''));
         });
 
-        return [
+        $snapshot = [
             'configured' => true,
             'intakes' => [
                 'total' => count($intakes),
                 'byStatus' => $statusCounts,
                 'bySuitability' => $suitabilityCounts,
                 'byChannel' => $channelCounts,
+                'byReviewDecision' => $reviewDecisionCounts,
+                'byReviewState' => $reviewStateCounts,
             ],
             'media' => [
                 'total' => count($uploads),
@@ -191,10 +225,51 @@ final class TelemedicineOpsSnapshot
             ],
             'latestActivityAt' => $latestActivityAt,
         ];
+
+        $snapshot['diagnostics'] = class_exists('TelemedicineOpsDiagnostics')
+            ? TelemedicineOpsDiagnostics::buildFromSnapshot($snapshot)
+            : [
+                'status' => 'unknown',
+                'healthy' => false,
+                'summary' => [
+                    'critical' => 0,
+                    'warning' => 0,
+                    'info' => 0,
+                    'totalChecks' => 0,
+                    'totalIssues' => 0,
+                ],
+                'checks' => [],
+                'issues' => [],
+            ];
+
+        return $snapshot;
     }
 
     public static function forHealth(array $snapshot): array
     {
+        $policy = class_exists('TelemedicineEnforcementPolicy')
+            ? TelemedicineEnforcementPolicy::snapshot()
+            : [
+                'shadowModeEnabled' => true,
+                'enforceUnsuitable' => false,
+                'enforceReviewRequired' => false,
+                'allowDecisionOverride' => true,
+            ];
+
+        $diagnostics = isset($snapshot['diagnostics']) && is_array($snapshot['diagnostics'])
+            ? $snapshot['diagnostics']
+            : [
+                'status' => 'unknown',
+                'healthy' => false,
+                'summary' => [
+                    'critical' => 0,
+                    'warning' => 0,
+                    'info' => 0,
+                    'totalChecks' => 0,
+                    'totalIssues' => 0,
+                ],
+            ];
+
         return [
             'configured' => (bool) ($snapshot['configured'] ?? false),
             'intakes' => $snapshot['intakes'] ?? [],
@@ -202,6 +277,20 @@ final class TelemedicineOpsSnapshot
             'integrity' => $snapshot['integrity'] ?? [],
             'reviewQueueCount' => (int) ($snapshot['reviewQueue']['count'] ?? 0),
             'latestActivityAt' => (string) ($snapshot['latestActivityAt'] ?? ''),
+            'policy' => $policy,
+            'diagnostics' => [
+                'status' => (string) ($diagnostics['status'] ?? 'unknown'),
+                'healthy' => (bool) ($diagnostics['healthy'] ?? false),
+                'summary' => isset($diagnostics['summary']) && is_array($diagnostics['summary'])
+                    ? $diagnostics['summary']
+                    : [
+                        'critical' => 0,
+                        'warning' => 0,
+                        'info' => 0,
+                        'totalChecks' => 0,
+                        'totalIssues' => 0,
+                    ],
+            ],
         ];
     }
 
@@ -210,6 +299,9 @@ final class TelemedicineOpsSnapshot
         return [
             'summary' => self::forHealth($snapshot),
             'reviewQueue' => $snapshot['reviewQueue']['items'] ?? [],
+            'diagnostics' => isset($snapshot['diagnostics']) && is_array($snapshot['diagnostics'])
+                ? $snapshot['diagnostics']
+                : [],
         ];
     }
 
@@ -219,6 +311,14 @@ final class TelemedicineOpsSnapshot
         $intakes = is_array($snapshot['intakes'] ?? null) ? $snapshot['intakes'] : [];
         $media = is_array($snapshot['media'] ?? null) ? $snapshot['media'] : [];
         $integrity = is_array($snapshot['integrity'] ?? null) ? $snapshot['integrity'] : [];
+        $policy = class_exists('TelemedicineEnforcementPolicy')
+            ? TelemedicineEnforcementPolicy::snapshot()
+            : [
+                'shadowModeEnabled' => true,
+                'enforceUnsuitable' => false,
+                'enforceReviewRequired' => false,
+                'allowDecisionOverride' => true,
+            ];
 
         $lines[] = '# TYPE pielarmonia_telemedicine_intakes_total gauge';
         $lines[] = 'pielarmonia_telemedicine_intakes_total ' . (int) ($intakes['total'] ?? 0);
@@ -234,6 +334,14 @@ final class TelemedicineOpsSnapshot
         foreach ((array) ($intakes['byChannel'] ?? []) as $channel => $count) {
             $lines[] = '# TYPE pielarmonia_telemedicine_intakes_by_channel_total gauge';
             $lines[] = 'pielarmonia_telemedicine_intakes_by_channel_total{channel="' . self::escapeLabel((string) $channel) . '"} ' . (int) $count;
+        }
+        foreach ((array) ($intakes['byReviewDecision'] ?? []) as $decision => $count) {
+            $lines[] = '# TYPE pielarmonia_telemedicine_review_decisions_total gauge';
+            $lines[] = 'pielarmonia_telemedicine_review_decisions_total{decision="' . self::escapeLabel((string) $decision) . '"} ' . (int) $count;
+        }
+        foreach ((array) ($intakes['byReviewState'] ?? []) as $reviewState => $count) {
+            $lines[] = '# TYPE pielarmonia_telemedicine_review_state_total gauge';
+            $lines[] = 'pielarmonia_telemedicine_review_state_total{state="' . self::escapeLabel((string) $reviewState) . '"} ' . (int) $count;
         }
         foreach ((array) ($media['byKind'] ?? []) as $kind => $count) {
             $lines[] = '# TYPE pielarmonia_telemedicine_media_by_kind_total gauge';
@@ -256,6 +364,32 @@ final class TelemedicineOpsSnapshot
         $lines[] = 'pielarmonia_telemedicine_case_photos_missing_private_path_total ' . (int) ($integrity['casePhotosWithoutPrivatePathCount'] ?? 0);
         $lines[] = '# TYPE pielarmonia_telemedicine_staged_legacy_uploads_total gauge';
         $lines[] = 'pielarmonia_telemedicine_staged_legacy_uploads_total ' . (int) ($integrity['stagedLegacyUploadsCount'] ?? 0);
+        $lines[] = '# TYPE pielarmonia_telemedicine_shadow_mode_enabled gauge';
+        $lines[] = 'pielarmonia_telemedicine_shadow_mode_enabled ' . ((bool) ($policy['shadowModeEnabled'] ?? true) ? 1 : 0);
+        $lines[] = '# TYPE pielarmonia_telemedicine_enforce_unsuitable_enabled gauge';
+        $lines[] = 'pielarmonia_telemedicine_enforce_unsuitable_enabled ' . ((bool) ($policy['enforceUnsuitable'] ?? false) ? 1 : 0);
+        $lines[] = '# TYPE pielarmonia_telemedicine_enforce_review_required_enabled gauge';
+        $lines[] = 'pielarmonia_telemedicine_enforce_review_required_enabled ' . ((bool) ($policy['enforceReviewRequired'] ?? false) ? 1 : 0);
+        $lines[] = '# TYPE pielarmonia_telemedicine_allow_decision_override_enabled gauge';
+        $lines[] = 'pielarmonia_telemedicine_allow_decision_override_enabled ' . ((bool) ($policy['allowDecisionOverride'] ?? true) ? 1 : 0);
+        $diagnostics = isset($snapshot['diagnostics']) && is_array($snapshot['diagnostics'])
+            ? $snapshot['diagnostics']
+            : [];
+        $diagnosticsSummary = isset($diagnostics['summary']) && is_array($diagnostics['summary'])
+            ? $diagnostics['summary']
+            : [];
+        $diagnosticsStatus = (string) ($diagnostics['status'] ?? 'unknown');
+        $statusLabels = ['healthy', 'degraded', 'critical', 'unknown'];
+        foreach ($statusLabels as $statusLabel) {
+            $lines[] = '# TYPE pielarmonia_telemedicine_diagnostics_status gauge';
+            $lines[] = 'pielarmonia_telemedicine_diagnostics_status{status="' . self::escapeLabel($statusLabel) . '"} ' . ($diagnosticsStatus === $statusLabel ? 1 : 0);
+        }
+        foreach (['critical', 'warning', 'info'] as $severityLabel) {
+            $lines[] = '# TYPE pielarmonia_telemedicine_diagnostics_issues_total gauge';
+            $lines[] = 'pielarmonia_telemedicine_diagnostics_issues_total{severity="' . self::escapeLabel($severityLabel) . '"} ' . (int) ($diagnosticsSummary[$severityLabel] ?? 0);
+        }
+        $lines[] = '# TYPE pielarmonia_telemedicine_diagnostics_healthy gauge';
+        $lines[] = 'pielarmonia_telemedicine_diagnostics_healthy ' . ((bool) ($diagnostics['healthy'] ?? false) ? 1 : 0);
 
         return "\n" . implode("\n", $lines);
     }
@@ -281,9 +415,30 @@ final class TelemedicineOpsSnapshot
             'patientEmail' => (string) ($patient['email'] ?? ''),
             'patientPhone' => (string) ($patient['phone'] ?? ''),
             'clinicalMediaCount' => count(is_array($intake['clinicalMediaIds'] ?? null) ? $intake['clinicalMediaIds'] : []),
+            'reviewDecision' => (string) ($intake['reviewDecision'] ?? ''),
+            'reviewStatus' => (string) ($intake['reviewStatus'] ?? 'pending'),
+            'reviewNotes' => (string) ($intake['reviewNotes'] ?? ''),
+            'reviewedBy' => (string) ($intake['reviewedBy'] ?? ''),
+            'reviewedAt' => (string) ($intake['reviewedAt'] ?? ''),
             'createdAt' => (string) ($intake['createdAt'] ?? ''),
             'updatedAt' => (string) ($intake['updatedAt'] ?? ''),
         ];
+    }
+
+    private static function intakeNeedsReviewQueue(array $intake, string $suitability, string $status, string $reviewState): bool
+    {
+        if ($reviewState === 'resolved') {
+            return false;
+        }
+        if ($reviewState === 'awaiting_patient') {
+            return true;
+        }
+
+        return (bool) ($intake['reviewRequired'] ?? false)
+            || $suitability === 'review_required'
+            || $suitability === 'unsuitable'
+            || $status === 'review_required'
+            || $status === 'unsuitable';
     }
 
     private static function initializeCounters(array $keys): array

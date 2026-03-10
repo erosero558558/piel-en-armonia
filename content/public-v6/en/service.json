@@ -1,55 +1,55 @@
 {
-    "title": "Service detail | Piel en Armonia",
-    "description": "Dermatology route files with clinical judgment, clear stages, and measurable follow-through.",
-    "voiceNote": "Each route turns medical judgment, options, and next steps into language you can understand without losing precision.",
+    "title": "Dermatology consultations | Piel en Armonia",
+    "description": "Dermatology pages with clear explanations, careful decisions, and follow-up that stays grounded.",
+    "voiceNote": "Each page covers the essentials so you understand what the consultation is for and what usually comes next.",
     "ui": {
         "menu": {
-            "glance": "Clinical glance",
-            "checkpoints": "Clinical checkpoints",
-            "process": "Process",
-            "faq": "Frequently asked questions",
-            "related": "Related routes",
-            "booking": "Schedule status"
+            "glance": "At a glance",
+            "checkpoints": "What we review",
+            "process": "How it works",
+            "faq": "Common questions",
+            "related": "You may also review",
+            "booking": "Booking"
         },
         "breadcrumb": {
             "home": "Home",
             "hub": "Services"
         },
         "thesis": {
-            "eyebrow": "Clinical editorial",
-            "titleSuffix": "with criteria and continuity",
-            "body": "Each stage clarifies what to watch, what to expect, and when escalation protects the outcome."
+            "eyebrow": "Before deciding",
+            "titleSuffix": "explained clearly",
+            "body": "Each consultation summarizes what we observe, what options we usually consider, and what follow-up tends to make sense."
         },
         "statement": {
-            "eyebrow": "Medical direction",
-            "titleTemplate": "{service} is decided with judgment before any intervention",
-            "signature": "Clinical direction, Quito",
+            "eyebrow": "Medical consultation",
+            "titleTemplate": "{service} is discussed first and decided carefully",
+            "signature": "Dermatology team, Quito",
             "image": "/images/optimized/team-rosero.webp",
             "alt": "Clinical direction at Piel en Armonia"
         },
-        "internalMessageFallback": "Your final plan is confirmed in consultation, with clear medical explanation and no shortcuts.",
+        "internalMessageFallback": "The final decision is confirmed in consultation, with examination and clear medical explanation.",
         "rail": {
-            "title": "Route map",
-            "aria": "Route sections"
+            "title": "Page guide",
+            "aria": "Sections on this page"
         },
         "glance": {
-            "routeType": "Route type",
-            "checkpoints": "Clinical checkpoints",
-            "processStages": "Process stages"
+            "routeType": "Consultation type",
+            "checkpoints": "Main points",
+            "processStages": "Usual steps"
         },
         "sections": {
-            "checkpointsTitle": "Clinical checkpoints",
-            "processTitle": "Clinical process",
+            "checkpointsTitle": "What we usually review",
+            "processTitle": "How it usually progresses",
             "faqTitle": "Frequently asked questions",
-            "relatedTitle": "Related routes"
+            "relatedTitle": "You may also review"
         },
         "faqPrefix": "Q",
-        "faqAnswerNote": "Guidance answer; the final plan is confirmed in consultation.",
-        "relatedCta": "Open route",
+        "faqAnswerNote": "General guidance; the final plan is defined during consultation.",
+        "relatedCta": "View consultation",
         "bookingStatus": {
-            "eyebrow": "Schedule status",
+            "eyebrow": "Booking status",
             "title": "Online booking under maintenance",
-            "description": "Web scheduling returns soon. Until then, you can begin with telemedicine guidance.",
+            "description": "Web booking returns soon. Until then, you can begin through telemedicine.",
             "ctaLabel": "Open telemedicine",
             "ctaHref": "/en/telemedicine/"
         }
@@ -58,456 +58,407 @@
         {
             "slug": "diagnostico-integral",
             "category": "Diagnosis",
-            "title": "Comprehensive diagnosis",
-            "summary": "A full reading of skin, hair, and nails to set priorities from the first consultation.",
+            "title": "Comprehensive diagnosis consultation",
+            "summary": "A broad first consultation to sort findings, priorities, and next steps.",
             "heroImage": "/images/optimized/service-consulta.webp",
             "heroAlt": "Comprehensive dermatology consultation",
-            "lead": "The first consultation creates order: what needs attention now, what can wait, and how progress should be measured.",
+            "lead": "The first consultation brings order, clears confusion, and shows what deserves attention before anything else.",
             "bullets": [
-                "Structured history intake",
-                "Full dermatology examination",
-                "Stage-based follow-up map",
-                "Daily care indications"
+                "Clinical history",
+                "Full examination",
+                "Clear priorities",
+                "Initial plan"
             ],
             "process": [
-                "Entry and triage",
-                "Clinical reading",
-                "Plan definition",
-                "First review"
+                "First conversation",
+                "Dermatology review",
+                "Plan explained",
+                "First follow-up"
             ],
             "faq": [
-                "What should I bring to the visit?",
-                "Do I need tests before attending?",
-                "When is early progression reviewed?"
+                "What is helpful to bring to the consultation?",
+                "Is a diagnosis usually defined during that visit?",
+                "When should I return before the planned review?"
             ],
-            "related": [
-                "acne-rosacea",
-                "piel-cabello-unas"
-            ],
+            "related": ["acne-rosacea", "piel-cabello-unas"],
             "faqAnswers": [
-                "Bring your current medications, allergy history, previous treatments, and recent photos. That baseline lets us decide faster and with better context.",
-                "Only when they add a concrete decision point. If needed, tests are requested after the initial clinical evaluation.",
-                "First follow-up is commonly set between weeks 3 and 6, or sooner if pain, bleeding, or rapid worsening appears."
+                "It helps to bring medications, previous treatments, allergy history, and recent photos so the consultation starts with useful context.",
+                "Often yes; if the case needs more detail, you still leave with a clear working diagnosis and next step.",
+                "Move the consultation forward if warning signs appear, pain changes, bleeding starts, or the lesion shifts quickly."
             ]
         },
         {
             "slug": "acne-rosacea",
-            "category": "Inflammation",
+            "category": "Flares",
             "title": "Acne and rosacea",
-            "summary": "Control of inflammatory flares and sensitivity with realistic, sustainable medical goals.",
+            "summary": "Medical care for flares, sensitivity, and marks with realistic goals.",
             "heroImage": "/images/optimized/service-acne.webp",
-            "heroAlt": "Medical acne and rosacea control",
-            "lead": "We aim for calmer skin, fewer flares, and fewer marks through timely adjustments rather than abrupt changes.",
+            "heroAlt": "Medical acne and rosacea care",
+            "lead": "We aim for calmer skin, less inflammation, and a routine that you can realistically keep up.",
             "bullets": [
-                "Anti-inflammatory control",
-                "Relapse management",
+                "Flare control",
+                "Barrier care",
                 "Mark prevention",
-                "Routine education"
+                "Timely follow-up"
             ],
             "process": [
-                "Severity classification",
-                "Therapeutic start",
-                "Response adjustment",
-                "Maintenance"
+                "Initial review",
+                "Treatment start",
+                "Adjustment by response",
+                "Maintenance plan"
             ],
             "faq": [
-                "When are changes usually visible?",
-                "Can this combine with laser?",
-                "What to do during an intense relapse?"
+                "When do changes usually start to show?",
+                "Can it be combined with laser?",
+                "What should I do during a strong flare?"
             ],
-            "related": [
-                "peeling-quimico",
-                "diagnostico-integral"
-            ],
+            "related": ["peeling-quimico", "diagnostico-integral"],
             "faqAnswers": [
-                "Most patients see less inflammation between weeks 4 and 8 when the routine is followed consistently.",
-                "Yes, once the skin barrier is stable and phototype evaluation supports safe parameter selection.",
-                "Pause irritants, keep gentle cleansing, and request medical adjustment within 48 to 72 hours."
+                "Changes often begin between weeks four and eight when the treatment plan is followed consistently.",
+                "Yes, but only once the skin is calmer and the procedure timing will not push irritation higher.",
+                "If the flare worsens, write in or bring the review forward so the plan changes before more marks appear."
             ]
         },
         {
             "slug": "verrugas",
             "category": "Procedures",
             "title": "Warts",
-            "summary": "Management of common, plantar, and periungual warts by type, site, and recurrence pattern.",
+            "summary": "Wart care based on location, thickness, and tendency to come back.",
             "heroImage": "/images/optimized/showcase-treatment.webp",
             "heroAlt": "Dermatology wart procedure",
-            "lead": "Technique is chosen by wart type and location so treatment resolves the lesion without punishing healthy skin.",
+            "lead": "The technique is chosen by wart type and location so treatment does not punish healthy skin.",
             "bullets": [
-                "Differential diagnosis",
-                "Technique selection",
-                "Post-procedure check",
-                "Recurrence prevention"
+                "Type review",
+                "Right technique",
+                "Aftercare check",
+                "Relapse prevention"
             ],
             "process": [
-                "Case review",
-                "Indicated intervention",
-                "Progress check",
-                "Discharge with watch"
+                "Assessment",
+                "Treatment",
+                "Area check",
+                "Short follow-up"
             ],
             "faq": [
-                "How many sessions are common?",
-                "Is there discomfort during treatment?",
+                "How many sessions are usually needed?",
+                "Is treatment painful?",
                 "Can the wart come back?"
             ],
-            "related": [
-                "diagnostico-integral",
-                "cancer-piel"
-            ],
+            "related": ["diagnostico-integral", "cancer-piel"],
             "faqAnswers": [
-                "Many warts respond in 1 to 3 sessions, while deeper plantar lesions may need extra controls.",
-                "Short discomfort can occur. We adjust technique and timing to keep treatment controlled and tolerable.",
-                "Recurrence is possible, but risk falls when follow-up is completed and hygiene measures are maintained."
+                "Some improve in one or two sessions, while deeper plantar warts often need more follow-up and patience.",
+                "There can be brief discomfort, but the procedure is adjusted so it stays tolerable and safe for that area.",
+                "Yes, recurrence can happen, especially when the lesion is deep or the skin keeps facing exposure."
             ]
         },
         {
             "slug": "granitos-brazos-piernas",
             "category": "Texture",
             "title": "Bumps on arms and legs",
-            "summary": "Route for rough texture and persistent follicular changes.",
+            "summary": "Consultation for rough texture, visible follicles, and small recurring bumps.",
             "heroImage": "/images/optimized/showcase-clinic.webp",
-            "heroAlt": "Clinical skin texture care",
-            "lead": "Barrier repair and follicular control are combined to improve texture steadily, without overtreating the skin.",
+            "heroAlt": "Clinical care for rough skin texture",
+            "lead": "Barrier care and follicular treatment work together to improve texture without overworking the skin.",
             "bullets": [
-                "Texture-focused assessment",
-                "Active hydration plan",
+                "Texture reading",
+                "Barrier routine",
                 "Irritant control",
                 "Monthly follow-up"
             ],
             "process": [
-                "Initial evaluation",
-                "Home protocol",
+                "Evaluation",
+                "Home plan",
                 "Routine adjustment",
                 "Maintenance"
             ],
             "faq": [
                 "Is this always keratosis pilaris?",
                 "How long does texture improvement take?",
-                "Which products should be avoided?"
+                "Which products are best avoided?"
             ],
-            "related": [
-                "acne-rosacea",
-                "piel-cabello-unas"
-            ],
+            "related": ["acne-rosacea", "piel-cabello-unas"],
             "faqAnswers": [
-                "Keratosis pilaris is common, but we also evaluate eczema, folliculitis, and other inflammatory causes.",
-                "With daily consistency, texture often improves between week 6 and week 10.",
-                "Avoid harsh exfoliants, strong fragrance products, and drying cleansers that disrupt barrier balance."
+                "Not always; we also look for eczema, folliculitis, or other causes that can look similar at first.",
+                "Improvement is often felt between six and ten weeks when the routine stays steady and simple.",
+                "It is best to avoid harsh exfoliants, very drying soaps, and heavy fragrance if the area is reactive."
             ]
         },
         {
             "slug": "cicatrices",
-            "category": "Repair",
+            "category": "Recovery",
             "title": "Scars",
-            "summary": "Combined strategy to improve contour, tone, and texture by scar type.",
+            "summary": "A staged plan to improve contour, color, and texture in scars.",
             "heroImage": "/images/optimized/service-laser.webp",
             "heroAlt": "Dermatology scar treatment",
-            "lead": "Meaningful scar improvement is layered: contour, tone, and texture are treated in a deliberate clinical sequence.",
+            "lead": "Meaningful scar improvement usually comes in layers, with honest timing and combinations matched to scar type.",
             "bullets": [
-                "Scar classification",
-                "Phased combined route",
-                "Progress measurement",
-                "New mark prevention"
+                "Contour review",
+                "Staged plan",
+                "Change comparison",
+                "Home care"
             ],
             "process": [
-                "Lesion mapping",
-                "Sequential intervention",
-                "Visual control",
-                "Outcome reinforcement"
+                "Initial review",
+                "Treatment sequence",
+                "Visual check",
+                "Plan refinement"
             ],
             "faq": [
-                "Do all scars respond the same?",
-                "How many sessions are usually required?",
-                "What aftercare is essential?"
+                "Do all scars respond in the same way?",
+                "How many sessions are often suggested?",
+                "Which habits help most afterwards?"
             ],
-            "related": [
-                "laser-dermatologico",
-                "peeling-quimico"
-            ],
+            "related": ["laser-dermatologico", "peeling-quimico"],
             "faqAnswers": [
-                "No. Response changes with scar type, lesion age, phototype, and adherence to the planned sequence.",
-                "Plans often include 3 to 6 sessions, with reassessment at every stage to adjust intensity.",
-                "Daily photoprotection, barrier hydration, and friction control are essential to protect improvement."
+                "No; scar age, scar type, skin tone, and response over time all shape how the plan performs.",
+                "Several sessions are common, but the exact number changes with progress and treatment tolerance.",
+                "Daily sun protection, good hydration, and avoiding early friction help preserve what has been gained."
             ]
         },
         {
             "slug": "cancer-piel",
-            "category": "Screening",
+            "category": "Early review",
             "title": "Skin cancer",
-            "summary": "Suspicious lesion assessment to detect risk early and decide without delay.",
+            "summary": "Early evaluation for lesions that change or raise concern.",
             "heroImage": "/images/optimized/service-cancer.webp",
             "heroAlt": "Early skin cancer screening",
-            "lead": "Warning signs are prioritized early so we can decide quickly between surveillance and referral.",
+            "lead": "When a mole or lesion changes, the priority is reviewing it soon and deciding without avoidable delay.",
             "bullets": [
                 "Lesion review",
-                "Warning-sign detection",
-                "Follow-up planning",
-                "Referral when required"
+                "Warning signs",
+                "Next step",
+                "Risk-based follow-up"
             ],
             "process": [
                 "Initial triage",
                 "Dermatology exam",
-                "Direction definition",
-                "Periodic review"
+                "Decision explained",
+                "Control by findings"
             ],
             "faq": [
-                "How often should moles be checked?",
-                "Which signs require urgent consultation?",
-                "Can this route start through telemedicine?"
+                "How often should moles be reviewed?",
+                "Which signs call for prompt consultation?",
+                "Can this start through telemedicine?"
             ],
-            "related": [
-                "diagnostico-integral",
-                "telemedicina"
-            ],
+            "related": ["diagnostico-integral", "telemedicina"],
             "faqAnswers": [
-                "In higher-risk profiles, checks are usually every 6 to 12 months, then personalized by findings.",
-                "Seek prompt review for asymmetry, irregular borders, fast color change, or non-healing bleeding lesions.",
-                "Yes for first triage. If risk signs are detected, we prioritize in-clinic evaluation without delay."
+                "It depends on personal risk, but many people need periodic review when there is history or prior findings.",
+                "Seek consultation promptly for asymmetry, irregular borders, bleeding, lasting itch, or a fast color change.",
+                "Telemedicine can help set priority, although many lesions still need direct examination during consultation."
             ]
         },
         {
             "slug": "peeling-quimico",
-            "category": "Procedures",
+            "category": "Renewal",
             "title": "Chemical peel",
-            "summary": "Skin renewal for tone, texture, and selected pigmentation concerns with precise indication.",
+            "summary": "Supervised renewal for spots, texture, and some surface marks.",
             "heroImage": "/images/optimized/showcase-treatment.webp",
             "heroAlt": "Dermatology chemical peel",
-            "lead": "Intensity is calibrated to renew the skin safely while respecting phototype and daily rhythm.",
+            "lead": "The peel is adjusted to your skin tone, sensitivity, and the result we are realistically trying to reach.",
             "bullets": [
-                "Formula selection",
-                "Tolerance control",
-                "Recovery guidance",
-                "Session planning"
+                "Formula choice",
+                "Careful application",
+                "Guided recovery",
+                "Skin follow-up"
             ],
-            "process": [
-                "Skin assessment",
-                "Controlled application",
-                "Post-care",
-                "Reassessment"
-            ],
+            "process": ["Assessment", "Application", "Aftercare", "New review"],
             "faq": [
-                "How many recovery days are common?",
-                "Can this combine with laser?",
-                "What factors limit indication?"
+                "How many days does recovery usually take?",
+                "Can it be combined with laser?",
+                "Which situations make us wait?"
             ],
-            "related": [
-                "mesoterapia",
-                "laser-dermatologico"
-            ],
+            "related": ["mesoterapia", "laser-dermatologico"],
             "faqAnswers": [
-                "Recovery usually lasts 3 to 7 days depending on peel depth and individual sensitivity.",
-                "Yes, but only in medically sequenced timing windows that prevent cumulative irritation on sensitive skin.",
-                "Pregnancy, active irritation, poor sun-protection adherence, or high sensitivity can delay indication."
+                "Recovery usually lasts three to seven days, depending on peel depth and how your skin responds.",
+                "It can, but only when session timing protects the skin and keeps irritation from stacking up.",
+                "We wait when there is active irritation, pregnancy, or little chance of keeping sun protection well."
             ]
         },
         {
             "slug": "mesoterapia",
-            "category": "Rejuvenation",
+            "category": "Skin care",
             "title": "Mesotherapy",
-            "summary": "Micro-interventions for deeper hydration and better skin quality.",
+            "summary": "Short sessions that improve hydration, glow, and skin quality.",
             "heroImage": "/images/optimized/service-rejuvenecimiento.webp",
             "heroAlt": "Dermatology mesotherapy",
-            "lead": "Short sessions and close follow-up work together to improve hydration, radiance, and overall skin quality.",
+            "lead": "It helps when we want localized support and better skin quality without long or heavy procedures.",
             "bullets": [
-                "Skin quality assessment",
-                "Session planning",
-                "Complementary care",
-                "Response follow-up"
+                "Skin review",
+                "Session plan",
+                "Home support",
+                "Close follow-up"
             ],
             "process": [
                 "Consultation",
-                "Initial session",
-                "Review",
+                "First session",
+                "Check-in",
                 "Maintenance"
             ],
             "faq": [
-                "Is downtime needed?",
-                "How often is it repeated?",
-                "Which routes combine best with it?"
+                "Is there any downtime?",
+                "How often is it usually repeated?",
+                "Which treatments pair well with it?"
             ],
-            "related": [
-                "bioestimuladores-colageno",
-                "peeling-quimico"
-            ],
+            "related": ["bioestimuladores-colageno", "peeling-quimico"],
             "faqAnswers": [
-                "Mild redness may appear for 24 to 48 hours, then most patients return to routine.",
-                "A common plan is 3 to 5 sessions spaced every 3 to 4 weeks.",
-                "It often pairs well with medical hydration, gentle peels, or biostimulators once skin is stable."
+                "There may be mild redness for a day or two, but most people return to routine very quickly.",
+                "A series of sessions spaced by weeks is common, depending on the response that begins to show.",
+                "It often pairs well with medical hydration, gentle peels, or staged rejuvenation plans."
             ]
         },
         {
             "slug": "laser-dermatologico",
-            "category": "Technology",
+            "category": "Laser",
             "title": "Dermatology laser",
-            "summary": "Laser treatments with traceable clinical settings and follow-up after every session.",
+            "summary": "Laser treatments with medical settings reviewed at every session.",
             "heroImage": "/images/optimized/service-laser.webp",
             "heroAlt": "Medical dermatology laser",
-            "lead": "Every laser parameter is chosen by clinical objective and skin response, never by generic templates.",
+            "lead": "Every setting is defined by clinical goal and by real skin response, never by a fixed recipe.",
             "bullets": [
-                "Phototype-based indication",
-                "Safety control",
-                "Lesion-focused objective",
-                "Post-procedure follow-up"
+                "Skin-tone indication",
+                "Clear objective",
+                "Aftercare plan",
+                "Progress follow-up"
             ],
             "process": [
-                "Initial evaluation",
+                "Assessment",
                 "First session",
-                "Parameter adjustment",
+                "Response adjustment",
                 "Cycle close"
             ],
             "faq": [
-                "Is it suitable for all phototypes?",
-                "How many sessions are common?",
-                "What aftercare is mandatory?"
+                "Does it work for every skin tone?",
+                "How many sessions are usually needed?",
+                "Which aftercare cannot be skipped?"
             ],
-            "related": [
-                "cicatrices",
-                "peeling-quimico"
-            ],
+            "related": ["cicatrices", "peeling-quimico"],
             "faqAnswers": [
-                "Yes, with parameters adjusted by phototype and goal to reduce post-inflammatory pigmentation risk.",
-                "It varies by indication: pigment, vascular concerns, texture, scars, or medical hair reduction.",
-                "Strict photoprotection and early control are mandatory; first review is often set in 2 to 4 weeks."
+                "Yes, but settings shift greatly between skin tones, which is why careful evaluation matters first.",
+                "The number depends on the problem being treated; pigment, vessels, and scars each move at different speeds.",
+                "After laser we insist on sun protection, gentle care, and closer review if irritation appears."
             ]
         },
         {
             "slug": "botox",
             "category": "Rejuvenation",
             "title": "Medical botox",
-            "summary": "Expression-line management with natural look and responsible dosing.",
+            "summary": "Medical treatment for expression lines that keeps a natural look.",
             "heroImage": "/images/optimized/service-rejuvenecimiento.webp",
             "heroAlt": "Medical botox application",
-            "lead": "The goal is to soften expression without erasing movement or facial identity.",
+            "lead": "The aim is to refresh expression without erasing movement or creating a look that feels unlike you.",
             "bullets": [
-                "Dynamic facial assessment",
-                "Targeted application",
+                "Expression review",
+                "Precise application",
                 "Early control",
-                "Periodic reassessment"
+                "Regular follow-up"
             ],
             "process": [
                 "Consultation",
                 "Application",
-                "Control",
+                "Check-in",
                 "Maintenance"
             ],
             "faq": [
-                "When does the effect appear?",
+                "When does the change begin to show?",
                 "How often is it usually repeated?",
-                "What care should be maintained after treatment?"
+                "Which same-day care matters most?"
             ],
-            "related": [
-                "bioestimuladores-colageno",
-                "mesoterapia"
-            ],
+            "related": ["bioestimuladores-colageno", "mesoterapia"],
             "faqAnswers": [
-                "Initial softening appears around days 3 to 5, with full effect commonly seen by days 10 to 14.",
-                "Average duration is 3 to 4 months, varying with metabolism, area, and dosing strategy.",
-                "Avoid intense massage and strenuous training for 24 hours, and follow all aftercare instructions."
+                "Early change is often noticed within days, with fuller effect appearing around the second week.",
+                "For many people it lasts around three or four months, though timing changes by area and metabolism.",
+                "During the first day it is best to avoid heavy massage, intense heat, or demanding exercise."
             ]
         },
         {
             "slug": "bioestimuladores-colageno",
             "category": "Rejuvenation",
             "title": "Collagen biostimulators",
-            "summary": "Progressive stimulation for support and firmness when the skin has begun to lose structure.",
+            "summary": "Gradual support for firmness when the skin begins to lose structure.",
             "heroImage": "/images/optimized/service-rejuvenecimiento.webp",
             "heroAlt": "Collagen biostimulation",
-            "lead": "Zone-by-zone planning supports gradual collagen stimulation and keeps outcomes coherent over time.",
+            "lead": "We plan by area to improve support and skin quality through gradual changes that still feel natural.",
             "bullets": [
-                "Laxity assessment",
-                "Zone-based planning",
-                "Progress control",
-                "Combination with other routes"
+                "Firmness review",
+                "Zone planning",
+                "Serial check-ins",
+                "Follow-up on change"
             ],
             "process": [
-                "Facial diagnosis",
+                "Assessment",
                 "Application",
-                "Follow-up",
-                "Complement session"
+                "Control",
+                "Complementary session"
             ],
             "faq": [
-                "How long until changes are visible?",
-                "How many sessions are commonly suggested?",
-                "Can this combine with medical botox?"
+                "How long before changes can be noticed?",
+                "How many sessions are often suggested?",
+                "Can it be paired with medical botox?"
             ],
-            "related": [
-                "botox",
-                "mesoterapia"
-            ],
+            "related": ["botox", "mesoterapia"],
             "faqAnswers": [
-                "Change is progressive, often starting around week 6 and consolidating over 3 to 6 months.",
-                "Most plans use 2 or 3 sessions, defined by laxity level, treated zones, and tissue response.",
-                "Yes, it combines well within an integrated facial plan with clear timing and supervision."
+                "Change is not immediate; it usually starts to show after several weeks and keeps building over time.",
+                "Two or three sessions are common, although the exact number depends on laxity and individual response.",
+                "Yes, it can be part of a broader facial plan when timing is organized carefully."
             ]
         },
         {
             "slug": "piel-cabello-unas",
-            "category": "Integral",
+            "category": "Comprehensive",
             "title": "Skin, hair and nails",
-            "summary": "Cross-route care for combined, chronic, or variable progression symptoms.",
+            "summary": "A broad consultation for mixed symptoms involving skin, hair, and nails.",
             "heroImage": "/images/optimized/showcase-diagnostic.webp",
-            "heroAlt": "Integrated dermatology",
-            "lead": "When several symptoms coexist, we build one integrated reading instead of treating disconnected pieces.",
+            "heroAlt": "Comprehensive dermatology",
+            "lead": "When several symptoms appear together, it helps to read the full picture instead of treating separate pieces.",
             "bullets": [
-                "Integrated assessment",
-                "Mixed-symptom control",
+                "Broad review",
+                "Mixed concerns",
                 "Coordinated plan",
-                "Periodic review"
+                "Regular follow-up"
             ],
-            "process": [
-                "Entry",
-                "Integrated diagnosis",
-                "Sequential plan",
-                "Monitoring"
-            ],
+            "process": ["Intake", "Full review", "Shared plan", "Monitoring"],
             "faq": [
-                "Which cases fit this route?",
-                "Can this start through telemedicine?",
-                "How often should follow-up be scheduled?"
+                "Which situations usually fit here?",
+                "Can it begin through telemedicine?",
+                "How often is it reviewed afterward?"
             ],
-            "related": [
-                "diagnostico-integral",
-                "dermatologia-pediatrica"
-            ],
+            "related": ["diagnostico-integral", "dermatologia-pediatrica"],
             "faqAnswers": [
-                "This route includes mixed cases: hair shedding, nail changes, and skin symptoms appearing together.",
-                "Yes. Telemedicine works as first triage and defines when direct in-clinic examination is needed.",
-                "First follow-up is commonly planned in 4 to 8 weeks based on findings and early response."
+                "It fits hair shedding, nail changes, and skin symptoms that overlap or last for a long time.",
+                "Yes; telemedicine can help organize the start, although some cases benefit quickly from direct examination.",
+                "Follow-up is often planned between four and eight weeks, depending on findings and early response."
             ]
         },
         {
             "slug": "dermatologia-pediatrica",
-            "category": "Pediatric",
+            "category": "Family care",
             "title": "Pediatric dermatology",
-            "summary": "Dermatology care for children and adolescents with communication a family can actually use.",
+            "summary": "Care for children and adolescents with clear explanations for the family.",
             "heroImage": "/images/optimized/showcase-clinic.webp",
             "heroAlt": "Pediatric dermatology consultation",
-            "lead": "Medical decisions are translated into simple steps for home, school, and daily routine.",
+            "lead": "We translate medical decisions into steps that are manageable at home, at school, and in daily life.",
             "bullets": [
-                "Pediatric diagnosis",
+                "Pediatric review",
                 "Caregiver guidance",
-                "Progressive follow-up",
-                "Escalation when required"
+                "Home plan",
+                "Progress follow-up"
             ],
             "process": [
-                "Initial consultation",
+                "First consultation",
                 "Family plan",
-                "Control",
+                "Review",
                 "Adjustments"
             ],
             "faq": [
-                "What should we bring to the first visit?",
-                "How is the plan explained to children and adolescents?",
-                "Can this combine with telemedicine?"
+                "What is helpful to bring to the first visit?",
+                "How is the plan explained to the family?",
+                "Can it be combined with telemedicine?"
             ],
-            "related": [
-                "diagnostico-integral",
-                "acne-rosacea"
-            ],
+            "related": ["diagnostico-integral", "acne-rosacea"],
             "faqAnswers": [
-                "Bring a symptom timeline, previous treatments, allergy history, and recent photos to speed clinical reading.",
-                "We explain the plan in plain language with practical steps for home, school, and daily routine.",
-                "Yes, it works well for interim questions and follow-up when no warning signs are present."
+                "It helps to bring a symptom summary, creams already used, allergy history, and recent photos.",
+                "We explain it in plain language and turn it into clear tasks for home and school.",
+                "Yes, it can help between visits when there is no fever, intense pain, or other warning signs."
             ]
         }
     ]

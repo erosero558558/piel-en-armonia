@@ -57,6 +57,7 @@ test('post-deploy-gate expone inputs de admin rollout y public_v4 rollout', () =
     const inputs = parsed?.on?.workflow_dispatch?.inputs || {};
 
     for (const inputName of [
+        'require_telemedicine_ready',
         'admin_rollout_stage',
         'admin_rollout_skip_runtime_smoke',
         'admin_rollout_allow_feature_api_failure',
@@ -130,6 +131,16 @@ test('post-deploy-gate ejecuta gate admin rollout y lo reporta en summary', () =
         'falta linea de policy source efectivo public_v4 en summary del gate'
     );
     assert.equal(
+        raw.includes('Require telemedicine ready (input/vars):'),
+        true,
+        'falta linea de require telemedicine input en summary del gate'
+    );
+    assert.equal(
+        raw.includes('Require telemedicine ready (effective):'),
+        true,
+        'falta linea de require telemedicine effective en summary del gate'
+    );
+    assert.equal(
         raw.includes('Trigger mode:'),
         true,
         'falta linea de trigger mode en summary del gate'
@@ -179,6 +190,101 @@ test('post-deploy-gate ejecuta gate admin rollout y lo reporta en summary', () =
         true,
         'falta propagacion de allow missing admin flag al gate admin rollout'
     );
+    assert.equal(
+        raw.includes('REQUIRE_TELEMEDICINE_READY_INPUT'),
+        true,
+        'falta input env REQUIRE_TELEMEDICINE_READY_INPUT en post-deploy-gate'
+    );
+    assert.equal(
+        raw.includes('REQUIRE_TELEMEDICINE_READY_EFFECTIVE'),
+        true,
+        'falta env REQUIRE_TELEMEDICINE_READY_EFFECTIVE en post-deploy-gate'
+    );
+    assert.equal(
+        raw.includes('-RequireTelemedicineReady:$requireTelemedicineReady'),
+        true,
+        'falta propagacion de RequireTelemedicineReady al gate post-deploy'
+    );
+    assert.equal(
+        stepNames.includes('Evaluar estado telemedicina del gate'),
+        true,
+        'falta step de evaluacion telemedicina en post-deploy-gate'
+    );
+    assert.equal(
+        stepNames.includes('Resumen telemedicina gate'),
+        true,
+        'falta step de resumen telemedicina en post-deploy-gate'
+    );
+    assert.equal(
+        raw.includes('health-telemedicine-*'),
+        true,
+        'falta clasificacion de fallas telemedicina por prefijo de asset'
+    );
+    assert.equal(
+        raw.includes(
+            "failure() && github.event_name != 'workflow_dispatch' && ((env.TELEMEDICINE_GATE_STATUS != 'degraded_only' && env.TELEMEDICINE_GATE_STATUS != 'unknown') || env.TELEMEDICINE_GATE_NON_TELE_FAILURES != '0')"
+        ),
+        true,
+        'falta condicion del incidente general excluyendo tele-only unknown/degraded_only'
+    );
+    assert.equal(
+        raw.includes('Gate post-deploy telemedicina degradado'),
+        true,
+        'falta titulo dedicado para incidente telemedicina de gate'
+    );
+    assert.equal(
+        raw.includes('TELEMEDICINE_GATE_NON_TELE_FAILURES'),
+        true,
+        'falta trazabilidad de non-tele failures en gate telemedicina'
+    );
+    assert.equal(
+        raw.includes('post-deploy-gate-telemedicine-signal'),
+        true,
+        'falta marker de senal para dedupe en incidente telemedicina de gate'
+    );
+    assert.equal(
+        raw.includes(
+            "non_tele:${process.env.TELEMEDICINE_GATE_NON_TELE_FAILURES || '0'}"
+        ),
+        true,
+        'falta non_tele en signal de dedupe para incidente telemedicina de gate'
+    );
+    assert.equal(
+        raw.includes(
+            "telemedicine_gate_non_tele_failures: ${process.env.TELEMEDICINE_GATE_NON_TELE_FAILURES || '0'}"
+        ),
+        true,
+        'falta trazabilidad de non_tele_failures en updates de incidente telemedicina de gate'
+    );
+    assert.equal(
+        raw.includes(
+            "const baseLabels = ['production-alert', 'telemedicine', 'post-deploy-gate', severity];"
+        ),
+        true,
+        'falta set canonico de labels base con severidad en incidente telemedicina de gate'
+    );
+    assert.equal(
+        raw.includes('severity:critical'),
+        true,
+        'falta label de severidad critica en incidente telemedicina de gate'
+    );
+    assert.equal(
+        raw.includes('severity:warning'),
+        true,
+        'falta label de severidad warning en incidente telemedicina de gate'
+    );
+    assert.equal(
+        raw.includes('Issue telemedicina gate ya refleja la misma senal'),
+        true,
+        'falta deduplicacion idempotente cuando la senal no cambia en gate telemedicina'
+    );
+    assert.equal(
+        raw.includes(
+            'Incidente telemedicina gate actualizado por cambio de senal.'
+        ),
+        true,
+        'falta comentario de auditoria por cambio de senal en incidente telemedicina de gate'
+    );
 });
 
 test('post-deploy-gate mantiene ciclo de incidentes solo en modo no-manual', () => {
@@ -197,6 +303,18 @@ test('post-deploy-gate mantiene ciclo de incidentes solo en modo no-manual', () 
         'falta step de cierre de incidente de gate'
     );
     assert.equal(
+        stepNames.includes('Crear/actualizar incidente telemedicina de gate'),
+        true,
+        'falta step dedicado para incidente telemedicina de gate'
+    );
+    assert.equal(
+        stepNames.includes(
+            'Cerrar incidente telemedicina de gate al recuperar'
+        ),
+        true,
+        'falta step de cierre de incidente telemedicina de gate'
+    );
+    assert.equal(
         raw.includes("failure() && github.event_name != 'workflow_dispatch'"),
         true,
         'falta condicion de apertura de incidente para modo no-manual'
@@ -205,6 +323,13 @@ test('post-deploy-gate mantiene ciclo de incidentes solo en modo no-manual', () 
         raw.includes("success() && github.event_name != 'workflow_dispatch'"),
         true,
         'falta condicion de cierre de incidente para modo no-manual'
+    );
+    assert.equal(
+        raw.includes(
+            "failure() && github.event_name != 'workflow_dispatch' && (env.TELEMEDICINE_GATE_STATUS == 'degraded_only' || env.TELEMEDICINE_GATE_STATUS == 'degraded_mixed' || env.TELEMEDICINE_GATE_STATUS == 'unknown')"
+        ),
+        true,
+        'falta condicion de incidente telemedicina por degradacion dedicada/mixta/unknown'
     );
 });
 
@@ -273,4 +398,3 @@ test('post-deploy-gate usa resolver central de politica admin rollout con trazab
         'falta trazabilidad de policy source public_v4 en incidente de post-deploy-gate'
     );
 });
-

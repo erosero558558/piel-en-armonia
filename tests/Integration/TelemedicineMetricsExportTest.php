@@ -21,6 +21,8 @@ final class TelemedicineMetricsExportTest extends TestCase
         putenv('PIELARMONIA_DATA_DIR=' . $this->tempDir);
         putenv('PIELARMONIA_AVAILABILITY_SOURCE=store');
         putenv('PIELARMONIA_TELEMED_V2_SHADOW=true');
+        putenv('PIELARMONIA_TELEMED_V2_ENFORCE_UNSUITABLE=true');
+        putenv('PIELARMONIA_TELEMED_V2_ENFORCE_REVIEW_REQUIRED=false');
         ini_set('log_errors', '1');
         ini_set('error_log', $this->tempDir . DIRECTORY_SEPARATOR . 'php-error.log');
 
@@ -40,6 +42,8 @@ final class TelemedicineMetricsExportTest extends TestCase
             'PIELARMONIA_DATA_DIR',
             'PIELARMONIA_AVAILABILITY_SOURCE',
             'PIELARMONIA_TELEMED_V2_SHADOW',
+            'PIELARMONIA_TELEMED_V2_ENFORCE_UNSUITABLE',
+            'PIELARMONIA_TELEMED_V2_ENFORCE_REVIEW_REQUIRED',
         ] as $key) {
             putenv($key);
         }
@@ -93,9 +97,18 @@ final class TelemedicineMetricsExportTest extends TestCase
         $this->assertStringContainsString('pielarmonia_telemedicine_intakes_total 1', $output);
         $this->assertStringContainsString('pielarmonia_telemedicine_intakes_by_status_total{status="review_required"} 1', $output);
         $this->assertStringContainsString('pielarmonia_telemedicine_intakes_by_channel_total{channel="secure_video"} 1', $output);
+        $this->assertStringContainsString('pielarmonia_telemedicine_review_decisions_total{decision="none"} 1', $output);
+        $this->assertStringContainsString('pielarmonia_telemedicine_review_state_total{state="pending"} 1', $output);
         $this->assertStringContainsString('pielarmonia_telemedicine_media_by_kind_total{kind="case_photo"} 1', $output);
         $this->assertStringContainsString('pielarmonia_telemedicine_media_by_storage_total{storage_mode="private_clinical"} 1', $output);
         $this->assertStringContainsString('pielarmonia_telemedicine_review_queue_total 1', $output);
+        $this->assertStringContainsString('pielarmonia_telemedicine_shadow_mode_enabled 1', $output);
+        $this->assertStringContainsString('pielarmonia_telemedicine_enforce_unsuitable_enabled 1', $output);
+        $this->assertStringContainsString('pielarmonia_telemedicine_enforce_review_required_enabled 0', $output);
+        $this->assertStringContainsString('pielarmonia_telemedicine_allow_decision_override_enabled 1', $output);
+        $this->assertStringContainsString('pielarmonia_telemedicine_diagnostics_status{status="healthy"} 1', $output);
+        $this->assertStringContainsString('pielarmonia_telemedicine_diagnostics_issues_total{severity="critical"} 0', $output);
+        $this->assertStringContainsString('pielarmonia_telemedicine_diagnostics_healthy 1', $output);
     }
 
     private function removeDirectory(string $dir): void

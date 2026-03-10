@@ -66,3 +66,41 @@ test('weekly report script soporta fail opcional por ciclo no listo', () => {
         );
     }
 });
+
+test('weekly report script integra bloque telemedicina operativo', () => {
+    const rawReport = loadScript();
+    const rawWarnings = readFileSync(
+        resolve(__dirname, '..', 'bin', 'powershell', 'Common.Warnings.ps1'),
+        'utf8'
+    );
+    const requiredReportSnippets = [
+        '[int]$TelemedicineReviewQueueWarnCount = 12',
+        '[int]$TelemedicineStagedUploadsWarnCount = 1',
+        '[int]$TelemedicineUnlinkedIntakesWarnCount = 5',
+        'telemedicine_diagnostics_status',
+        'telemedicine_diagnostics_critical_',
+        'telemedicine_case_photos_missing_private_path_',
+    ];
+    const requiredWarningsSnippets = [
+        '## Telemedicine Ops',
+        'telemedicine = [ordered]@{',
+        "if ($WarningCode.StartsWith('telemedicine_')) {",
+        'telemedicine = @()',
+    ];
+
+    for (const snippet of requiredReportSnippets) {
+        assert.equal(
+            rawReport.includes(snippet),
+            true,
+            `falta snippet telemedicina en REPORTE-SEMANAL-PRODUCCION.ps1: ${snippet}`
+        );
+    }
+
+    for (const snippet of requiredWarningsSnippets) {
+        assert.equal(
+            rawWarnings.includes(snippet),
+            true,
+            `falta snippet telemedicina en Common.Warnings.ps1: ${snippet}`
+        );
+    }
+});

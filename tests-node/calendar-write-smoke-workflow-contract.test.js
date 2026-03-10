@@ -88,9 +88,12 @@ test('calendar-write-smoke incluye preflight, artefactos y ciclo de incidente', 
         'Verificar contrato de agenda real (read-only)',
         'Ejecutar smoke write calendar',
         'Ejecutar smoke API write calendar',
+        'Clasificar estado telemedicina calendar smoke',
         'Publicar artefactos Playwright de calendar smoke',
         'Crear/actualizar incidente calendar write smoke',
+        'Crear/actualizar incidente telemedicina calendar write smoke',
         'Cerrar incidente calendar write smoke al recuperar',
+        'Cerrar incidente telemedicina calendar write smoke al recuperar',
     ];
 
     for (const stepName of requiredStepNames) {
@@ -102,9 +105,18 @@ test('calendar-write-smoke incluye preflight, artefactos y ciclo de incidente', 
     }
 
     assert.equal(
-        raw.includes("failure() && github.event_name != 'workflow_dispatch'"),
+        raw.includes(
+            "failure() && github.event_name != 'workflow_dispatch' && ((env.TELEMEDICINE_CALENDAR_STATUS != 'degraded_only' && env.TELEMEDICINE_CALENDAR_STATUS != 'unknown') || env.TELEMEDICINE_CALENDAR_NON_TELE_FAILURES != '0')"
+        ),
         true,
-        'falta condicion de apertura de incidente solo en fallos no manuales'
+        'falta condicion de incidente general excluyendo tele-only unknown/degraded_only'
+    );
+    assert.equal(
+        raw.includes(
+            "failure() && github.event_name != 'workflow_dispatch' && (env.TELEMEDICINE_CALENDAR_STATUS == 'degraded_only' || env.TELEMEDICINE_CALENDAR_STATUS == 'degraded_mixed' || env.TELEMEDICINE_CALENDAR_STATUS == 'unknown')"
+        ),
+        true,
+        'falta condicion de apertura de incidente dedicado telemedicina con unknown'
     );
     assert.equal(
         raw.includes("success() && github.event_name != 'workflow_dispatch'"),
@@ -115,6 +127,11 @@ test('calendar-write-smoke incluye preflight, artefactos y ciclo de incidente', 
         raw.includes('Calendar Write Smoke fallando'),
         true,
         'falta titulo canonico de incidente calendar smoke'
+    );
+    assert.equal(
+        raw.includes('Calendar Write Smoke telemedicina degradado'),
+        true,
+        'falta titulo canonico de incidente telemedicina calendar smoke'
     );
     assert.equal(
         raw.includes(
@@ -132,5 +149,65 @@ test('calendar-write-smoke incluye preflight, artefactos y ciclo de incidente', 
         raw.includes('steps.api_write_test.outcome'),
         true,
         'falta outcome de api_write_test en summary/incidente'
+    );
+    assert.equal(
+        raw.includes('steps.health.outputs.telemedicine_health'),
+        true,
+        'falta trazabilidad de telemedicine_health desde preflight'
+    );
+    assert.equal(
+        raw.includes('TELEMEDICINE_CALENDAR_NON_TELE_FAILURES'),
+        true,
+        'falta trazabilidad de non-tele failures en calendar smoke'
+    );
+    assert.equal(
+        raw.includes('calendar-write-smoke-telemedicine-signal'),
+        true,
+        'falta marker de senal para dedupe en incidente telemedicina calendar smoke'
+    );
+    assert.equal(
+        raw.includes(
+            "non_tele:${process.env.TELEMEDICINE_CALENDAR_NON_TELE_FAILURES || '0'}"
+        ),
+        true,
+        'falta non_tele en signal de dedupe para incidente telemedicina calendar smoke'
+    );
+    assert.equal(
+        raw.includes(
+            "telemedicine_calendar_non_tele_failures: ${process.env.TELEMEDICINE_CALENDAR_NON_TELE_FAILURES || '0'}"
+        ),
+        true,
+        'falta trazabilidad de non_tele_failures en updates de incidente telemedicina calendar smoke'
+    );
+    assert.equal(
+        raw.includes(
+            "const baseLabels = ['production-alert', 'calendar-smoke', 'telemedicine', severity];"
+        ),
+        true,
+        'falta set canonico de labels base con severidad en incidente telemedicina calendar smoke'
+    );
+    assert.equal(
+        raw.includes('severity:critical'),
+        true,
+        'falta label de severidad critica en incidente telemedicina calendar smoke'
+    );
+    assert.equal(
+        raw.includes('severity:warning'),
+        true,
+        'falta label de severidad warning en incidente telemedicina calendar smoke'
+    );
+    assert.equal(
+        raw.includes(
+            'Incidente telemedicina calendar smoke ya refleja la misma senal'
+        ),
+        true,
+        'falta deduplicacion idempotente cuando la senal no cambia en incidente telemedicina calendar smoke'
+    );
+    assert.equal(
+        raw.includes(
+            'Incidente telemedicina calendar smoke actualizado por cambio de senal.'
+        ),
+        true,
+        'falta comentario de auditoria por cambio de senal en incidente telemedicina calendar smoke'
     );
 });

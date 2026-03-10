@@ -129,6 +129,10 @@ jobs:
             PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_FAST_EFFECTIVE: '8'
             PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_FAST_EFFECTIVE: '20'
             PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_FAST_EFFECTIVE: 'false'
+            TELEMEDICINE_FAST_STATUS: unknown
+            TELEMEDICINE_FAST_REASON: not_evaluated
+            TELEMEDICINE_FAST_FAILURES: '0'
+            TELEMEDICINE_FAST_NON_TELE_FAILURES: '0'
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -319,6 +323,61 @@ jobs:
                   if-no-files-found: warn
                   retention-days: 14
 
+            - name: Evaluar estado telemedicina fast lane
+              id: telemedicine_fast
+              if: ${{ always() }}
+              shell: pwsh
+              run: |
+                  $status = 'unknown'
+                  $reason = 'verify_report_missing'
+                  $teleFailures = 0
+                  $nonTeleFailures = 0
+                  $reportPath = 'verification/last-deploy-verify.json'
+
+                  if (Test-Path $reportPath) {
+                    try {
+                      $report = Get-Content -Raw $reportPath | ConvertFrom-Json -Depth 20
+                      $failures = @()
+                      try { $failures = @($report.failures) } catch { $failures = @() }
+
+                      $teleFailureAssets = New-Object System.Collections.Generic.List[string]
+                      foreach ($failure in $failures) {
+                        $asset = ''
+                        try { $asset = [string]$failure.Asset } catch { $asset = '' }
+                        if ($asset -like 'health-telemedicine-*') {
+                          $teleFailureAssets.Add($asset)
+                        }
+                      }
+
+                      $teleFailures = $teleFailureAssets.Count
+                      $nonTeleFailures = [Math]::Max(0, @($failures).Count - $teleFailures)
+
+                      if ($teleFailures -gt 0 -and $nonTeleFailures -eq 0) {
+                        $status = 'degraded_only'
+                        $reason = ($teleFailureAssets | Select-Object -Unique) -join ';'
+                      } elseif ($teleFailures -gt 0) {
+                        $status = 'degraded_mixed'
+                        $reason = ($teleFailureAssets | Select-Object -Unique) -join ';'
+                      } else {
+                        $status = 'healthy'
+                        $reason = 'ok'
+                      }
+                    } catch {
+                      $status = 'unknown'
+                      $reason = 'verify_report_unreadable'
+                    }
+                  }
+
+                  "TELEMEDICINE_FAST_STATUS=$status" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TELEMEDICINE_FAST_REASON=$reason" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TELEMEDICINE_FAST_FAILURES=$teleFailures" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TELEMEDICINE_FAST_NON_TELE_FAILURES=$nonTeleFailures" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "status=$status" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "reason=$reason" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "tele_failures=$teleFailures" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "non_tele_failures=$nonTeleFailures" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  Write-Host "Telemedicine fast => status=$status reason=$reason tele_failures=$teleFailures non_tele_failures=$nonTeleFailures"
+
             - name: Resumen
               if: ${{ always() }}
               shell: pwsh
@@ -361,10 +420,15 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Semaforo admin rollout (fast): ``$adminRolloutOutcome``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Reporte admin rollout (fast): ``verification/last-admin-ui-rollout-gate-fast.json``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Reporte public V4 rollout (fast): ``verification/last-public-v4-rollout-fast.json``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine fast status: ``$env:TELEMEDICINE_FAST_STATUS``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine fast reason: ``$env:TELEMEDICINE_FAST_REASON``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine fast failures: ``$env:TELEMEDICINE_FAST_FAILURES``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine fast non-tele failures: ``$env:TELEMEDICINE_FAST_NON_TELE_FAILURES``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine fast step outcome: ``${{ steps.telemedicine_fast.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Resultado: ``${{ job.status }}``"
 
             - name: Crear/actualizar incidente fast lane
-              if: ${{ failure() && github.event_name != 'workflow_dispatch' }}
+              if: ${{ failure() && github.event_name != 'workflow_dispatch' && ((env.TELEMEDICINE_FAST_STATUS != 'degraded_only' && env.TELEMEDICINE_FAST_STATUS != 'unknown') || env.TELEMEDICINE_FAST_NON_TELE_FAILURES != '0') }}
               uses: actions/github-script@v7
               env:
                   GATE_FAST_OUTCOME: ${{ steps.gate_fast.outcome }}
@@ -386,6 +450,10 @@ jobs:
                   PUBLIC_V4_MAX_CONFIRMED_DROP_PP: ${{ env.PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_FAST_EFFECTIVE }}
                   PUBLIC_V4_MIN_CONFIRMED_RATE_PCT: ${{ env.PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_FAST_EFFECTIVE }}
                   PUBLIC_V4_ALLOW_MISSING_CONTROL: ${{ env.PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_FAST_EFFECTIVE }}
+                  TELEMEDICINE_FAST_STATUS: ${{ env.TELEMEDICINE_FAST_STATUS }}
+                  TELEMEDICINE_FAST_REASON: ${{ env.TELEMEDICINE_FAST_REASON }}
+                  TELEMEDICINE_FAST_FAILURES: ${{ env.TELEMEDICINE_FAST_FAILURES }}
+                  TELEMEDICINE_FAST_NON_TELE_FAILURES: ${{ env.TELEMEDICINE_FAST_NON_TELE_FAILURES }}
                   JOB_STATUS: ${{ job.status }}
               with:
                   script: |
@@ -420,6 +488,10 @@ jobs:
                         `- public_v4_max_confirmed_drop_pp: ${process.env.PUBLIC_V4_MAX_CONFIRMED_DROP_PP || 'n/a'}`,
                         `- public_v4_min_confirmed_rate_pct: ${process.env.PUBLIC_V4_MIN_CONFIRMED_RATE_PCT || 'n/a'}`,
                         `- public_v4_allow_missing_control: ${process.env.PUBLIC_V4_ALLOW_MISSING_CONTROL || 'n/a'}`,
+                        `- telemedicine_fast_status: ${process.env.TELEMEDICINE_FAST_STATUS || 'n/a'}`,
+                        `- telemedicine_fast_reason: ${process.env.TELEMEDICINE_FAST_REASON || 'n/a'}`,
+                        `- telemedicine_fast_failures: ${process.env.TELEMEDICINE_FAST_FAILURES || '0'}`,
+                        `- telemedicine_fast_non_tele_failures: ${process.env.TELEMEDICINE_FAST_NON_TELE_FAILURES || '0'}`,
                         `- admin_rollout_outcome: ${process.env.ADMIN_ROLLOUT_OUTCOME || 'skipped'}`,
                         `- job_status: ${process.env.JOB_STATUS || 'n/a'}`
                       ].join('\n');
@@ -455,6 +527,129 @@ jobs:
                           labels: ['production-alert', 'fast-lane']
                         });
                         core.info(`Issue creado: #${created.data.number}`);
+                      }
+
+            - name: Crear/actualizar incidente telemedicina fast lane
+              if: ${{ failure() && github.event_name != 'workflow_dispatch' && (env.TELEMEDICINE_FAST_STATUS == 'degraded_only' || env.TELEMEDICINE_FAST_STATUS == 'degraded_mixed' || env.TELEMEDICINE_FAST_STATUS == 'unknown') }}
+              uses: actions/github-script@v7
+              env:
+                  TELEMEDICINE_FAST_STATUS: ${{ env.TELEMEDICINE_FAST_STATUS }}
+                  TELEMEDICINE_FAST_REASON: ${{ env.TELEMEDICINE_FAST_REASON }}
+                  TELEMEDICINE_FAST_FAILURES: ${{ env.TELEMEDICINE_FAST_FAILURES }}
+                  TELEMEDICINE_FAST_NON_TELE_FAILURES: ${{ env.TELEMEDICINE_FAST_NON_TELE_FAILURES }}
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const envName = process.env.ENVIRONMENT_NAME || 'PROD';
+                      const title = `[ALERTA ${envName}] Post-Deploy Fast Lane telemedicina degradado`;
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+                      const status = String(process.env.TELEMEDICINE_FAST_STATUS || 'n/a');
+                      const reason = String(process.env.TELEMEDICINE_FAST_REASON || 'n/a');
+                      const failures = String(process.env.TELEMEDICINE_FAST_FAILURES || '0');
+                      const signal = `status:${status}|reason:${reason}|failures:${failures}|non_tele:${process.env.TELEMEDICINE_FAST_NON_TELE_FAILURES || '0'}`;
+                      const signalMarker = `<!-- post-deploy-fast-telemedicine-signal:${signal} -->`;
+
+                      const severity = (status === 'degraded_mixed' ||
+                        reason.includes('diagnostics_critical') ||
+                        reason.includes('health_unreachable') ||
+                        reason.includes('health_missing') ||
+                        reason.includes('health_parse_error') ||
+                        reason.includes('verify_report_missing') ||
+                        reason.includes('verify_report_unreadable'))
+                        ? 'severity:critical'
+                        : 'severity:warning';
+                      const baseLabels = ['production-alert', 'fast-lane', 'telemedicine', severity];
+
+                      const normalizeLabels = (labels) =>
+                        (labels || [])
+                          .map((item) => (typeof item === 'string' ? item : item?.name))
+                          .filter(Boolean);
+                      const mergedLabels = (labels) => {
+                        const existing = normalizeLabels(labels).filter(
+                          (label) => label !== 'severity:critical' && label !== 'severity:warning'
+                        );
+                        return Array.from(new Set([...existing, ...baseLabels]));
+                      };
+                      const sameLabels = (a, b) => {
+                        const norm = (values) => Array.from(new Set(values)).sort();
+                        return JSON.stringify(norm(a)) === JSON.stringify(norm(b));
+                      };
+
+                      const body = [
+                        'El workflow `Post-Deploy Fast Lane` detecto degradacion en checks de telemedicina.',
+                        '',
+                        `- Fecha: ${now}`,
+                        `- Run: ${runUrl}`,
+                        `- Workflow: ${context.workflow}`,
+                        `- Branch: ${context.ref}`,
+                        `- telemedicine_fast_status: ${status}`,
+                        `- telemedicine_fast_reason: ${reason}`,
+                        `- telemedicine_fast_failures: ${failures}`,
+                        `- telemedicine_fast_non_tele_failures: ${process.env.TELEMEDICINE_FAST_NON_TELE_FAILURES || '0'}`,
+                        '',
+                        signalMarker
+                      ].join('\n');
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (existing) {
+                        const existingBody = String(existing.body || '');
+                        const labels = mergedLabels(existing.labels);
+                        const labelsAlreadyApplied = sameLabels(normalizeLabels(existing.labels), labels);
+                        if (existingBody.includes(signalMarker)) {
+                          if (!labelsAlreadyApplied) {
+                            await github.rest.issues.update({
+                              owner,
+                              repo,
+                              issue_number: existing.number,
+                              labels
+                            });
+                            core.info(`Issue telemedicina fast actualizo labels: #${existing.number}`);
+                          }
+                          core.info(`Issue telemedicina fast ya refleja la misma senal: #${existing.number}`);
+                          return;
+                        }
+
+                        await github.rest.issues.update({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body,
+                          labels
+                        });
+                        await github.rest.issues.createComment({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body: [
+                            'Incidente telemedicina fast actualizado por cambio de senal.',
+                            '',
+                            `- Fecha: ${now}`,
+                            `- Run: ${runUrl}`,
+                            `- telemedicine_fast_status: ${status}`,
+                            `- telemedicine_fast_reason: ${reason}`,
+                            `- telemedicine_fast_failures: ${failures}`,
+                            `- telemedicine_fast_non_tele_failures: ${process.env.TELEMEDICINE_FAST_NON_TELE_FAILURES || '0'}`
+                          ].join('\n')
+                        });
+                        core.info(`Issue telemedicina fast existente actualizado: #${existing.number}`);
+                      } else {
+                        const created = await github.rest.issues.create({
+                          owner,
+                          repo,
+                          title,
+                          body,
+                          labels: baseLabels
+                        });
+                        core.info(`Issue telemedicina fast creado: #${created.data.number}`);
                       }
 
             - name: Cerrar incidente fast lane al recuperar
@@ -501,3 +696,53 @@ jobs:
                         state: 'closed'
                       });
                       core.info(`Issue cerrado: #${existing.number}`);
+
+            - name: Cerrar incidente telemedicina fast lane al recuperar
+              if: ${{ success() && github.event_name != 'workflow_dispatch' }}
+              uses: actions/github-script@v7
+              env:
+                  TELEMEDICINE_FAST_STATUS: ${{ env.TELEMEDICINE_FAST_STATUS }}
+                  TELEMEDICINE_FAST_REASON: ${{ env.TELEMEDICINE_FAST_REASON }}
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const envName = process.env.ENVIRONMENT_NAME || 'PROD';
+                      const title = `[ALERTA ${envName}] Post-Deploy Fast Lane telemedicina degradado`;
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (!existing) {
+                        core.info('No hay incidente telemedicina fast abierto para cerrar.');
+                        return;
+                      }
+
+                      await github.rest.issues.createComment({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        body: [
+                          'Recuperado automaticamente por `Post-Deploy Fast Lane`.',
+                          '',
+                          `- Fecha: ${now}`,
+                          `- Run: ${runUrl}`,
+                          `- telemedicine_fast_status: ${process.env.TELEMEDICINE_FAST_STATUS || 'n/a'}`,
+                          `- telemedicine_fast_reason: ${process.env.TELEMEDICINE_FAST_REASON || 'n/a'}`
+                        ].join('\n')
+                      });
+
+                      await github.rest.issues.update({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        state: 'closed'
+                      });
+                      core.info(`Issue telemedicina fast cerrado: #${existing.number}`);

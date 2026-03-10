@@ -14,9 +14,16 @@ const WORKFLOW_PATH = resolve(
     'workflows',
     'deploy-hosting.yml'
 );
+const REPAIR_WORKFLOW_PATH = resolve(
+    __dirname,
+    '..',
+    '.github',
+    'workflows',
+    'repair-git-sync.yml'
+);
 
-function loadWorkflow() {
-    const raw = readFileSync(WORKFLOW_PATH, 'utf8');
+function loadWorkflow(filePath = WORKFLOW_PATH) {
+    const raw = readFileSync(filePath, 'utf8');
     return { raw, parsed: yaml.parse(raw) };
 }
 
@@ -61,6 +68,11 @@ test('deploy-hosting habilita permisos para dispatch de workflows', () => {
         permissions.contents,
         'read',
         'deploy-hosting debe mantener contents: read'
+    );
+    assert.equal(
+        permissions.issues,
+        'write',
+        'deploy-hosting debe tener issues: write para incidentes automaticos'
     );
 });
 
@@ -109,7 +121,9 @@ test('deploy-hosting contiene pasos de dispatch hacia post-deploy', () => {
         'falta propagacion de stage public_v4 al dispatch de post-deploy-gate'
     );
     assert.equal(
-        raw.includes('verification/last-admin-ui-rollout-gate-deploy-hosting.json'),
+        raw.includes(
+            'verification/last-admin-ui-rollout-gate-deploy-hosting.json'
+        ),
         true,
         'falta reporte canonico admin rollout para deploy-hosting'
     );
@@ -118,6 +132,60 @@ test('deploy-hosting contiene pasos de dispatch hacia post-deploy', () => {
         true,
         'falta publicacion de artefacto admin rollout en deploy-hosting'
     );
+});
+
+test('deploy-hosting evalua y gestiona incidente dedicado de telemedicina post-cutover', () => {
+    const { raw, parsed } = loadWorkflow();
+    const steps = parsed?.jobs?.['deploy-prod']?.steps || [];
+    const stepNames = steps.map((step) => String(step?.name || ''));
+
+    const requiredStepNames = [
+        'Evaluar estado telemedicina deploy-hosting',
+        'Crear/actualizar incidente telemedicina deploy-hosting',
+        'Cerrar incidente telemedicina deploy-hosting al recuperar',
+    ];
+    for (const expectedStepName of requiredStepNames) {
+        assert.equal(
+            stepNames.includes(expectedStepName),
+            true,
+            `falta step de telemedicina en deploy-hosting: ${expectedStepName}`
+        );
+    }
+
+    const requiredSnippets = [
+        'TELEMEDICINE_DEPLOY_STATUS: unknown',
+        "if: ${{ always() && env.FTP_DRY_RUN != 'true' }}",
+        'VALIDATE_SECRETS_OUTCOME: ${{ steps.validate_secrets_prod.outcome }}',
+        'PREFLIGHT_OUTCOME: ${{ steps.preflight_prod.outcome }}',
+        'SMOKE_PROD_OUTCOME: ${{ steps.smoke_prod.outcome }}',
+        'countNonTeleFailures',
+        'process.env.SMOKE_PROD_OUTCOME,',
+        "non_tele:${process.env.TELEMEDICINE_DEPLOY_NON_TELE_FAILURES || '-1'}",
+        "const title = '[ALERTA PROD] Deploy Hosting telemedicina degradada';",
+        "if: ${{ always() && env.FTP_DRY_RUN != 'true' && github.event_name != 'workflow_dispatch' && (env.TELEMEDICINE_DEPLOY_STATUS == 'degraded' || env.TELEMEDICINE_DEPLOY_STATUS == 'unknown') }}",
+        "if: ${{ success() && env.FTP_DRY_RUN != 'true' && github.event_name != 'workflow_dispatch' && env.TELEMEDICINE_DEPLOY_STATUS == 'healthy' }}",
+        'deploy-hosting-telemedicine-signal:',
+        'telemedicine_deploy_status: \\`${TELEMEDICINE_DEPLOY_STATUS}\\`',
+        'telemedicine_deploy_reason: \\`${TELEMEDICINE_DEPLOY_REASON}\\`',
+        'telemedicine_deploy_non_tele_failures: \\`${TELEMEDICINE_DEPLOY_NON_TELE_FAILURES}\\`',
+        'telemedicine_deploy_step_outcome: \\`${{ steps.telemedicine_deploy.outcome }}\\`',
+        "reason.includes('diagnostics_critical')",
+        "reason.includes('hard_failures:')",
+        "reason.includes('hard_failures_invalid')",
+        "reason.includes('health_unavailable')",
+        "reason.includes('health_parse_error')",
+        "reason.includes('telemedicine_missing')",
+        "reason.includes('not_configured')",
+        ": 'severity:warning';",
+    ];
+
+    for (const snippet of requiredSnippets) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring de telemedicina deploy-hosting: ${snippet}`
+        );
+    }
 });
 
 test('deploy-hosting aplica guardrail de dispatch por tipo de evento', () => {
@@ -328,4 +396,59 @@ test('deploy-hosting aplica guardrail de dispatch por tipo de evento', () => {
     );
 });
 
+test('repair-git-sync evalua y gestiona incidente dedicado de telemedicina post-repair', () => {
+    const { raw, parsed } = loadWorkflow(REPAIR_WORKFLOW_PATH);
+    const steps = parsed?.jobs?.repair?.steps || [];
+    const stepNames = steps.map((step) => String(step?.name || ''));
+    const permissions = parsed?.permissions || {};
 
+    assert.equal(
+        permissions.issues,
+        'write',
+        'repair-git-sync debe mantener issues: write para incidentes automaticos'
+    );
+
+    for (const expectedStepName of [
+        'Evaluar estado telemedicina post-repair',
+        'Crear/actualizar incidente telemedicina de repair',
+        'Cerrar incidente telemedicina de repair al recuperar',
+        'Repair summary',
+    ]) {
+        assert.equal(
+            stepNames.includes(expectedStepName),
+            true,
+            `falta step de telemedicina en repair-git-sync: ${expectedStepName}`
+        );
+    }
+
+    for (const snippet of [
+        'TELEMEDICINE_REPAIR_STATUS: unknown',
+        'TELEMEDICINE_REPAIR_NON_TELE_FAILURES: -1',
+        'countNonTeleFailures',
+        "non_tele:${process.env.TELEMEDICINE_REPAIR_NON_TELE_FAILURES || '-1'}",
+        "const title = '[ALERTA PROD] Repair git sync telemedicina degradado';",
+        "if: ${{ always() && github.event_name != 'workflow_dispatch' && (env.TELEMEDICINE_REPAIR_STATUS == 'degraded' || env.TELEMEDICINE_REPAIR_STATUS == 'unknown') }}",
+        "if: ${{ success() && github.event_name != 'workflow_dispatch' && env.TELEMEDICINE_REPAIR_STATUS == 'healthy' }}",
+        "if: ${{ failure() && github.event_name != 'workflow_dispatch' && ((env.TELEMEDICINE_REPAIR_STATUS != 'degraded' && env.TELEMEDICINE_REPAIR_STATUS != 'unknown') || env.TELEMEDICINE_REPAIR_NON_TELE_FAILURES != '0') }}",
+        'repair-git-sync-telemedicine-signal:',
+        'telemedicine_repair_status: \\`${TELEMEDICINE_REPAIR_STATUS}\\`',
+        'telemedicine_repair_reason: \\`${TELEMEDICINE_REPAIR_REASON}\\`',
+        'telemedicine_repair_non_tele_failures: \\`${TELEMEDICINE_REPAIR_NON_TELE_FAILURES}\\`',
+        "telemedicine_repair_non_tele_failures: ${process.env.TELEMEDICINE_REPAIR_NON_TELE_FAILURES || '-1'}",
+        'telemedicine_repair_step_outcome: \\`${{ steps.telemedicine_repair.outcome }}\\`',
+        "reason.includes('diagnostics_critical')",
+        "reason.includes('hard_failures:')",
+        "reason.includes('hard_failures_invalid')",
+        "reason.includes('health_unavailable')",
+        "reason.includes('health_parse_error')",
+        "reason.includes('telemedicine_missing')",
+        "reason.includes('not_configured')",
+        ": 'severity:warning';",
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring de telemedicina en repair-git-sync: ${snippet}`
+        );
+    }
+});

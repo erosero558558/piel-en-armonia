@@ -120,7 +120,7 @@ test('weekly-kpi workflow publica thresholds efectivos en resumen', () => {
     }
 });
 
-test('weekly-kpi workflow separa incidentes general, SLA y retencion', () => {
+test('weekly-kpi workflow separa incidentes general, SLA, retencion y telemedicina', () => {
     const { raw } = loadWorkflow();
 
     const requiredSnippets = [
@@ -160,6 +160,17 @@ test('weekly-kpi workflow separa incidentes general, SLA y retencion', () => {
         'service-priorities-signal:',
         'Issue de service priorities ya refleja la misma senal',
         "steps.report.outputs.service_priorities_incident_recovered == 'true'",
+        'Crear/actualizar incidente semanal de telemedicina',
+        "steps.report.outputs.telemedicine_incident_required == 'true'",
+        "steps.report.outputs.telemedicine_weekly_status == 'degraded_only' || steps.report.outputs.telemedicine_weekly_status == 'degraded_mixed' || steps.report.outputs.telemedicine_weekly_status == 'unknown'",
+        '[ALERTA PROD] Weekly KPI telemedicina degradada',
+        'weekly-telemedicine-signal:',
+        'Issue de telemedicina semanal ya refleja la misma senal',
+        "steps.report.outputs.telemedicine_incident_recovered == 'true'",
+        "((steps.report.outputs.telemedicine_weekly_status != 'degraded_only' && steps.report.outputs.telemedicine_weekly_status != 'unknown') || steps.report.outputs.telemedicine_weekly_non_tele_failures != '0')",
+        'telemedicine_signal_key=status:unknown|reason:report_missing|failures:-1|non_tele:-1|reasons:report_missing,telemedicine_warning_invalid|stale:true',
+        'status:$telemedicineWeeklyStatus|reason:$telemedicineWeeklyReason|failures:$telemedicineWarningCountInt|non_tele:$telemedicineNonTeleWarningCountInt|reasons:$telemedicineIncidentReasonCodes|stale:$reportStale',
+        'telemedicine_weekly_non_tele_failures: ${{ steps.report.outputs.telemedicine_weekly_non_tele_failures }}',
         'general_incident_reason_codes',
         'general_incident_severity',
         'retention_incident_reason_codes',
@@ -170,6 +181,8 @@ test('weekly-kpi workflow separa incidentes general, SLA y retencion', () => {
         'services_catalog_incident_severity',
         'service_priorities_incident_reason_codes',
         'service_priorities_incident_severity',
+        'telemedicine_incident_reason_codes',
+        'telemedicine_incident_severity',
         'ops_sla_failure_axes',
         'ops_sla_severity',
         'severity:critical',
@@ -218,6 +231,33 @@ test('weekly-kpi workflow expone outputs normalizados para semaforo general y SL
                 raw.includes(`core.setOutput('${outputKey}'`),
             true,
             `falta output normalizado general/SLA: ${outputKey}`
+        );
+    }
+});
+
+test('weekly-kpi workflow expone outputs normalizados para semaforo semanal de telemedicina', () => {
+    const { raw } = loadWorkflow();
+    const requiredOutputs = [
+        'telemedicine_warning_codes',
+        'telemedicine_warning_count_int',
+        'telemedicine_warning_critical_count_int',
+        'telemedicine_warning_non_critical_count_int',
+        'telemedicine_warning_data_valid',
+        'telemedicine_incident_required',
+        'telemedicine_incident_recovered',
+        'telemedicine_incident_reason_codes',
+        'telemedicine_incident_severity',
+        'telemedicine_signal_key',
+        'telemedicine_weekly_status',
+        'telemedicine_weekly_reason',
+        'telemedicine_weekly_failures',
+        'telemedicine_weekly_non_tele_failures',
+    ];
+    for (const outputKey of requiredOutputs) {
+        assert.equal(
+            raw.includes(`"${outputKey}=`),
+            true,
+            `falta output normalizado de telemedicina semanal: ${outputKey}`
         );
     }
 });

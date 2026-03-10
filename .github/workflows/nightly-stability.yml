@@ -30,6 +30,10 @@ jobs:
             TARGET_DOMAIN: ${{ github.event.inputs.domain || vars.TARGET_DOMAIN || 'https://pielarmonia.com' }}
             TEST_BASE_URL: ${{ github.event.inputs.domain || vars.TARGET_DOMAIN || 'https://pielarmonia.com' }}
             TEST_REQUIRE_GOOGLE_CALENDAR: true
+            TELEMEDICINE_NIGHTLY_STATUS: unknown
+            TELEMEDICINE_NIGHTLY_REASON: not_evaluated
+            TELEMEDICINE_NIGHTLY_FAILURES: '0'
+            TELEMEDICINE_NIGHTLY_NON_TELE_FAILURES: '0'
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -65,6 +69,61 @@ jobs:
               shell: pwsh
               run: npm run test:critical:funnel
 
+            - name: Evaluar estado telemedicina nightly
+              id: telemedicine_nightly
+              if: ${{ always() }}
+              shell: pwsh
+              run: |
+                  $status = 'unknown'
+                  $reason = 'verify_report_missing'
+                  $teleFailures = 0
+                  $nonTeleFailures = 0
+                  $reportPath = 'verification/last-deploy-verify.json'
+
+                  if (Test-Path $reportPath) {
+                    try {
+                      $report = Get-Content -Raw $reportPath | ConvertFrom-Json -Depth 20
+                      $failures = @()
+                      try { $failures = @($report.failures) } catch { $failures = @() }
+
+                      $teleFailureAssets = New-Object System.Collections.Generic.List[string]
+                      foreach ($failure in $failures) {
+                        $asset = ''
+                        try { $asset = [string]$failure.Asset } catch { $asset = '' }
+                        if ($asset -like 'health-telemedicine-*') {
+                          $teleFailureAssets.Add($asset)
+                        }
+                      }
+
+                      $teleFailures = $teleFailureAssets.Count
+                      $nonTeleFailures = [Math]::Max(0, @($failures).Count - $teleFailures)
+
+                      if ($teleFailures -gt 0 -and $nonTeleFailures -eq 0) {
+                        $status = 'degraded_only'
+                        $reason = ($teleFailureAssets | Select-Object -Unique) -join ';'
+                      } elseif ($teleFailures -gt 0) {
+                        $status = 'degraded_mixed'
+                        $reason = ($teleFailureAssets | Select-Object -Unique) -join ';'
+                      } else {
+                        $status = 'healthy'
+                        $reason = 'ok'
+                      }
+                    } catch {
+                      $status = 'unknown'
+                      $reason = 'verify_report_unreadable'
+                    }
+                  }
+
+                  "TELEMEDICINE_NIGHTLY_STATUS=$status" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TELEMEDICINE_NIGHTLY_REASON=$reason" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TELEMEDICINE_NIGHTLY_FAILURES=$teleFailures" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TELEMEDICINE_NIGHTLY_NON_TELE_FAILURES=$nonTeleFailures" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "status=$status" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "reason=$reason" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "tele_failures=$teleFailures" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "non_tele_failures=$nonTeleFailures" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  Write-Host "Telemedicine nightly => status=$status reason=$reason tele_failures=$teleFailures non_tele_failures=$nonTeleFailures"
+
             - name: Resumen
               if: ${{ always() }}
               shell: pwsh
@@ -76,15 +135,24 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Semaforo platform: ``${{ steps.gate_full.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Semaforo agenda: ``${{ steps.agenda_critical.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Semaforo funnel: ``${{ steps.funnel_critical.outcome }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine nightly status: ``$env:TELEMEDICINE_NIGHTLY_STATUS``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine nightly reason: ``$env:TELEMEDICINE_NIGHTLY_REASON``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine nightly failures: ``$env:TELEMEDICINE_NIGHTLY_FAILURES``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine nightly non-tele failures: ``$env:TELEMEDICINE_NIGHTLY_NON_TELE_FAILURES``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine nightly step outcome: ``${{ steps.telemedicine_nightly.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Resultado: ``${{ job.status }}``"
 
             - name: Crear/actualizar incidente nightly
-              if: ${{ failure() && github.event_name != 'workflow_dispatch' }}
+              if: ${{ failure() && github.event_name != 'workflow_dispatch' && ((env.TELEMEDICINE_NIGHTLY_STATUS != 'degraded_only' && env.TELEMEDICINE_NIGHTLY_STATUS != 'unknown') || env.TELEMEDICINE_NIGHTLY_NON_TELE_FAILURES != '0') }}
               uses: actions/github-script@v7
               env:
                   GATE_FULL_OUTCOME: ${{ steps.gate_full.outcome }}
                   AGENDA_CRITICAL_OUTCOME: ${{ steps.agenda_critical.outcome }}
                   FUNNEL_CRITICAL_OUTCOME: ${{ steps.funnel_critical.outcome }}
+                  TELEMEDICINE_NIGHTLY_STATUS: ${{ env.TELEMEDICINE_NIGHTLY_STATUS }}
+                  TELEMEDICINE_NIGHTLY_REASON: ${{ env.TELEMEDICINE_NIGHTLY_REASON }}
+                  TELEMEDICINE_NIGHTLY_FAILURES: ${{ env.TELEMEDICINE_NIGHTLY_FAILURES }}
+                  TELEMEDICINE_NIGHTLY_NON_TELE_FAILURES: ${{ env.TELEMEDICINE_NIGHTLY_NON_TELE_FAILURES }}
                   JOB_STATUS: ${{ job.status }}
               with:
                   script: |
@@ -104,6 +172,10 @@ jobs:
                         `- gate_full_outcome: ${process.env.GATE_FULL_OUTCOME || 'n/a'}`,
                         `- agenda_critical_outcome: ${process.env.AGENDA_CRITICAL_OUTCOME || 'n/a'}`,
                         `- funnel_critical_outcome: ${process.env.FUNNEL_CRITICAL_OUTCOME || 'n/a'}`,
+                        `- telemedicine_nightly_status: ${process.env.TELEMEDICINE_NIGHTLY_STATUS || 'n/a'}`,
+                        `- telemedicine_nightly_reason: ${process.env.TELEMEDICINE_NIGHTLY_REASON || 'n/a'}`,
+                        `- telemedicine_nightly_failures: ${process.env.TELEMEDICINE_NIGHTLY_FAILURES || '0'}`,
+                        `- telemedicine_nightly_non_tele_failures: ${process.env.TELEMEDICINE_NIGHTLY_NON_TELE_FAILURES || '0'}`,
                         `- job_status: ${process.env.JOB_STATUS || 'n/a'}`
                       ].join('\n');
 
@@ -138,6 +210,125 @@ jobs:
                           labels: ['production-alert', 'nightly-stability']
                         });
                         core.info(`Issue creado: #${created.data.number}`);
+                      }
+
+            - name: Crear/actualizar incidente telemedicina nightly
+              if: ${{ failure() && github.event_name != 'workflow_dispatch' && (env.TELEMEDICINE_NIGHTLY_STATUS == 'degraded_only' || env.TELEMEDICINE_NIGHTLY_STATUS == 'degraded_mixed' || env.TELEMEDICINE_NIGHTLY_STATUS == 'unknown') }}
+              uses: actions/github-script@v7
+              env:
+                  TELEMEDICINE_NIGHTLY_STATUS: ${{ env.TELEMEDICINE_NIGHTLY_STATUS }}
+                  TELEMEDICINE_NIGHTLY_REASON: ${{ env.TELEMEDICINE_NIGHTLY_REASON }}
+                  TELEMEDICINE_NIGHTLY_FAILURES: ${{ env.TELEMEDICINE_NIGHTLY_FAILURES }}
+                  TELEMEDICINE_NIGHTLY_NON_TELE_FAILURES: ${{ env.TELEMEDICINE_NIGHTLY_NON_TELE_FAILURES }}
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const envName = process.env.ENVIRONMENT_NAME || 'PROD';
+                      const title = `[ALERTA ${envName}] Nightly stability telemedicina degradado`;
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+                      const reason = String(process.env.TELEMEDICINE_NIGHTLY_REASON || 'n/a');
+                      const signal = `status:${process.env.TELEMEDICINE_NIGHTLY_STATUS || 'n/a'}|reason:${reason}|failures:${process.env.TELEMEDICINE_NIGHTLY_FAILURES || '0'}|non_tele:${process.env.TELEMEDICINE_NIGHTLY_NON_TELE_FAILURES || '0'}`;
+                      const signalMarker = `<!-- nightly-telemedicine-signal:${signal} -->`;
+
+                      const severity = (reason.includes('diagnostics_critical') ||
+                        reason.includes('health_unreachable') ||
+                        reason.includes('health_missing') ||
+                        reason.includes('health_parse_error') ||
+                        reason.includes('degraded_mixed'))
+                        ? 'severity:critical'
+                        : 'severity:warning';
+                      const baseLabels = ['production-alert', 'nightly-stability', 'telemedicine', severity];
+
+                      const normalizeLabels = (labels) =>
+                        (labels || [])
+                          .map((item) => (typeof item === 'string' ? item : item?.name))
+                          .filter(Boolean);
+                      const mergedLabels = (labels) => {
+                        const existing = normalizeLabels(labels).filter(
+                          (label) => label !== 'severity:critical' && label !== 'severity:warning'
+                        );
+                        return Array.from(new Set([...existing, ...baseLabels]));
+                      };
+                      const sameLabels = (a, b) => {
+                        const norm = (values) => Array.from(new Set(values)).sort();
+                        return JSON.stringify(norm(a)) === JSON.stringify(norm(b));
+                      };
+
+                      const body = [
+                        'El workflow `Nightly Stability` detecto degradacion en checks de telemedicina.',
+                        '',
+                        `- Fecha: ${now}`,
+                        `- Run: ${runUrl}`,
+                        `- Workflow: ${context.workflow}`,
+                        `- Branch: ${context.ref}`,
+                        `- telemedicine_nightly_status: ${process.env.TELEMEDICINE_NIGHTLY_STATUS || 'n/a'}`,
+                        `- telemedicine_nightly_reason: ${process.env.TELEMEDICINE_NIGHTLY_REASON || 'n/a'}`,
+                        `- telemedicine_nightly_failures: ${process.env.TELEMEDICINE_NIGHTLY_FAILURES || '0'}`,
+                        `- telemedicine_nightly_non_tele_failures: ${process.env.TELEMEDICINE_NIGHTLY_NON_TELE_FAILURES || '0'}`,
+                        '',
+                        signalMarker
+                      ].join('\n');
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (existing) {
+                        const existingBody = String(existing.body || '');
+                        const labels = mergedLabels(existing.labels);
+                        const labelsAlreadyApplied = sameLabels(normalizeLabels(existing.labels), labels);
+                        if (existingBody.includes(signalMarker)) {
+                          if (!labelsAlreadyApplied) {
+                            await github.rest.issues.update({
+                              owner,
+                              repo,
+                              issue_number: existing.number,
+                              labels
+                            });
+                            core.info(`Issue telemedicina nightly actualizo labels: #${existing.number}`);
+                          }
+                          core.info(`Issue telemedicina nightly ya refleja la misma senal: #${existing.number}`);
+                          return;
+                        }
+
+                        await github.rest.issues.update({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body,
+                          labels
+                        });
+                        await github.rest.issues.createComment({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body: [
+                            'Incidente telemedicina nightly actualizado por cambio de senal.',
+                            '',
+                            `- Fecha: ${now}`,
+                            `- Run: ${runUrl}`,
+                            `- telemedicine_nightly_status: ${process.env.TELEMEDICINE_NIGHTLY_STATUS || 'n/a'}`,
+                            `- telemedicine_nightly_reason: ${process.env.TELEMEDICINE_NIGHTLY_REASON || 'n/a'}`,
+                            `- telemedicine_nightly_failures: ${process.env.TELEMEDICINE_NIGHTLY_FAILURES || '0'}`,
+                            `- telemedicine_nightly_non_tele_failures: ${process.env.TELEMEDICINE_NIGHTLY_NON_TELE_FAILURES || '0'}`
+                          ].join('\n')
+                        });
+                        core.info(`Issue telemedicina nightly existente actualizado: #${existing.number}`);
+                      } else {
+                        const created = await github.rest.issues.create({
+                          owner,
+                          repo,
+                          title,
+                          body,
+                          labels: baseLabels
+                        });
+                        core.info(`Issue telemedicina nightly creado: #${created.data.number}`);
                       }
 
             - name: Cerrar incidente nightly al recuperar
@@ -184,3 +375,53 @@ jobs:
                         state: 'closed'
                       });
                       core.info(`Issue cerrado: #${existing.number}`);
+
+            - name: Cerrar incidente telemedicina nightly al recuperar
+              if: ${{ success() && github.event_name != 'workflow_dispatch' }}
+              uses: actions/github-script@v7
+              env:
+                  TELEMEDICINE_NIGHTLY_STATUS: ${{ env.TELEMEDICINE_NIGHTLY_STATUS }}
+                  TELEMEDICINE_NIGHTLY_REASON: ${{ env.TELEMEDICINE_NIGHTLY_REASON }}
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const envName = process.env.ENVIRONMENT_NAME || 'PROD';
+                      const title = `[ALERTA ${envName}] Nightly stability telemedicina degradado`;
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (!existing) {
+                        core.info('No hay incidente telemedicina nightly abierto para cerrar.');
+                        return;
+                      }
+
+                      await github.rest.issues.createComment({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        body: [
+                          'Recuperado automaticamente por `Nightly Stability`.',
+                          '',
+                          `- Fecha: ${now}`,
+                          `- Run: ${runUrl}`,
+                          `- telemedicine_nightly_status: ${process.env.TELEMEDICINE_NIGHTLY_STATUS || 'n/a'}`,
+                          `- telemedicine_nightly_reason: ${process.env.TELEMEDICINE_NIGHTLY_REASON || 'n/a'}`
+                        ].join('\n')
+                      });
+
+                      await github.rest.issues.update({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        state: 'closed'
+                      });
+                      core.info(`Issue telemedicina nightly cerrado: #${existing.number}`);

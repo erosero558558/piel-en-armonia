@@ -83,6 +83,114 @@ test('prod-monitor workflow publica parametros de service priorities en summary'
     }
 });
 
+test('prod-monitor workflow expone inputs de guardrails telemedicina', () => {
+    const { parsed } = loadWorkflow();
+    const inputs = parsed?.on?.workflow_dispatch?.inputs || {};
+    const requiredInputs = [
+        'allow_degraded_telemedicine_diagnostics',
+        'require_telemedicine_configured',
+        'max_telemedicine_review_queue',
+        'max_telemedicine_staged_uploads',
+        'max_telemedicine_unlinked_intakes',
+    ];
+
+    for (const inputKey of requiredInputs) {
+        assert.equal(
+            Object.prototype.hasOwnProperty.call(inputs, inputKey),
+            true,
+            `falta input workflow_dispatch: ${inputKey}`
+        );
+    }
+});
+
+test('prod-monitor workflow propaga env de telemedicina a monitor script', () => {
+    const { raw } = loadWorkflow();
+    const requiredEnvRefs = [
+        'ALLOW_DEGRADED_TELEMEDICINE_DIAGNOSTICS',
+        'REQUIRE_TELEMEDICINE_CONFIGURED',
+        'MAX_TELEMEDICINE_REVIEW_QUEUE',
+        'MAX_TELEMEDICINE_STAGED_UPLOADS',
+        'MAX_TELEMEDICINE_UNLINKED_INTAKES',
+        '$monitorArgs.AllowDegradedTelemedicineDiagnostics = $true',
+        '$monitorArgs.RequireTelemedicineConfigured = $false',
+        '$monitorArgs.MaxTelemedicineReviewQueue = $maxTelemedicineReviewQueue',
+        '$monitorArgs.MaxTelemedicineStagedUploads = $maxTelemedicineStagedUploads',
+        '$monitorArgs.MaxTelemedicineUnlinkedIntakes = $maxTelemedicineUnlinkedIntakes',
+    ];
+
+    for (const snippet of requiredEnvRefs) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring de telemedicina en workflow: ${snippet}`
+        );
+    }
+});
+
+test('prod-monitor workflow publica parametros de telemedicina en summary', () => {
+    const { raw } = loadWorkflow();
+    const requiredSummaryLines = [
+        '- allow_degraded_telemedicine_diagnostics: ``$env:ALLOW_DEGRADED_TELEMEDICINE_DIAGNOSTICS``',
+        '- require_telemedicine_configured: ``$env:REQUIRE_TELEMEDICINE_CONFIGURED``',
+        '- max_telemedicine_review_queue: ``$env:MAX_TELEMEDICINE_REVIEW_QUEUE``',
+        '- max_telemedicine_staged_uploads: ``$env:MAX_TELEMEDICINE_STAGED_UPLOADS``',
+        '- max_telemedicine_unlinked_intakes: ``$env:MAX_TELEMEDICINE_UNLINKED_INTAKES``',
+        '- telemedicine_monitor_status: ``$env:TELEMEDICINE_MONITOR_STATUS``',
+        '- telemedicine_monitor_reason: ``$env:TELEMEDICINE_MONITOR_REASON``',
+        '- telemedicine_monitor_non_tele_failures: ``$env:TELEMEDICINE_MONITOR_NON_TELE_FAILURES``',
+        '- telemedicine_monitor_step_outcome: ``${{ steps.telemedicine_monitor.outcome }}``',
+    ];
+
+    for (const snippet of requiredSummaryLines) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta linea de summary telemedicina: ${snippet}`
+        );
+    }
+});
+
+test('prod-monitor workflow maneja incidente dedicado de telemedicina', () => {
+    const { raw, parsed } = loadWorkflow();
+    const steps = parsed?.jobs?.monitor?.steps || [];
+    const stepNames = steps.map((step) => String(step?.name || ''));
+
+    for (const expectedStepName of [
+        'Evaluar estado telemedicina para incidente dedicado',
+        'Crear/actualizar incidente telemedicina (solo schedule)',
+        'Cerrar incidente telemedicina al recuperar (solo schedule)',
+    ]) {
+        assert.equal(
+            stepNames.includes(expectedStepName),
+            true,
+            `falta step telemedicina: ${expectedStepName}`
+        );
+    }
+
+    const requiredSnippets = [
+        'TELEMEDICINE_MONITOR_STATUS',
+        'TELEMEDICINE_MONITOR_REASON',
+        'TELEMEDICINE_MONITOR_NON_TELE_FAILURES',
+        "((env.TELEMEDICINE_MONITOR_STATUS != 'failed' && env.TELEMEDICINE_MONITOR_STATUS != 'unknown') || env.TELEMEDICINE_MONITOR_NON_TELE_FAILURES != '0')",
+        "(env.TELEMEDICINE_MONITOR_STATUS == 'failed' || env.TELEMEDICINE_MONITOR_STATUS == 'unknown')",
+        "'[ALERTA PROD] Monitor telemedicina degradado'",
+        'prod-monitor-telemedicine-signal:',
+        "non_tele:${process.env.TELEMEDICINE_MONITOR_NON_TELE_FAILURES || '0'}",
+        "telemedicine_monitor_non_tele_failures: ${process.env.TELEMEDICINE_MONITOR_NON_TELE_FAILURES || '0'}",
+        "baseLabels = ['production-alert', 'telemedicine', 'prod-monitor', severity]",
+        'severity:critical',
+        'severity:warning',
+    ];
+
+    for (const snippet of requiredSnippets) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring de incidente telemedicina en workflow: ${snippet}`
+        );
+    }
+});
+
 test('prod-monitor workflow expone inputs de monitoreo post-cutover publico', () => {
     const { parsed } = loadWorkflow();
     const inputs = parsed?.on?.workflow_dispatch?.inputs || {};

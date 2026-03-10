@@ -76,6 +76,9 @@ class BookingServiceUnitTest extends TestCase
     {
         putenv('PIELARMONIA_AVAILABILITY_SOURCE');
         putenv('PIELARMONIA_REQUIRE_GOOGLE_CALENDAR');
+        putenv('PIELARMONIA_TELEMED_V2_ENFORCE_UNSUITABLE');
+        putenv('PIELARMONIA_TELEMED_V2_ENFORCE_REVIEW_REQUIRED');
+        putenv('PIELARMONIA_TELEMED_V2_ALLOW_DECISION_OVERRIDE');
     }
 
     public function testCreateSuccess(): void
@@ -271,5 +274,67 @@ class BookingServiceUnitTest extends TestCase
         $this->assertFalse($result['ok']);
         $this->assertEquals(503, $result['code']);
         $this->assertEquals('calendar_unreachable', $result['errorCode']);
+    }
+
+    public function testCreateTelemedicineUnsuitableIsBlockedWhenEnforcementEnabled(): void
+    {
+        putenv('PIELARMONIA_TELEMED_V2_ENFORCE_UNSUITABLE=true');
+
+        $futureDate = date('Y-m-d', strtotime('+2 day'));
+        $store = $this->emptyStore;
+        $store['availability'][$futureDate] = ['10:00'];
+
+        $payload = [
+            'name' => 'Paciente Riesgo',
+            'email' => 'riesgo@example.com',
+            'phone' => '0991234567',
+            'date' => $futureDate,
+            'time' => '10:00',
+            'doctor' => 'rosero',
+            'service' => 'video',
+            'reason' => 'Paciente con dolor severo y sangrado activo en lesion.',
+            'affectedArea' => 'rostro',
+            'evolutionTime' => '2 dias',
+            'privacyConsent' => true,
+            'paymentMethod' => 'cash',
+            'casePhotoCount' => 1,
+        ];
+
+        $result = $this->service->create($store, $payload);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame(422, $result['code']);
+        $this->assertSame('telemedicine_unsuitable', $result['errorCode']);
+    }
+
+    public function testCreateTelemedicineReviewRequiredIsBlockedWhenReviewEnforcementEnabled(): void
+    {
+        putenv('PIELARMONIA_TELEMED_V2_ENFORCE_REVIEW_REQUIRED=true');
+
+        $futureDate = date('Y-m-d', strtotime('+3 day'));
+        $store = $this->emptyStore;
+        $store['availability'][$futureDate] = ['11:00'];
+
+        $payload = [
+            'name' => 'Paciente Review',
+            'email' => 'review-required@example.com',
+            'phone' => '0991234568',
+            'date' => $futureDate,
+            'time' => '11:00',
+            'doctor' => 'rosero',
+            'service' => 'video',
+            'reason' => 'Brote inflamatorio persistente en mejilla y frente.',
+            'affectedArea' => 'rostro',
+            'evolutionTime' => '3 semanas',
+            'privacyConsent' => true,
+            'paymentMethod' => 'cash',
+            'casePhotoCount' => 0,
+        ];
+
+        $result = $this->service->create($store, $payload);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame(409, $result['code']);
+        $this->assertSame('telemedicine_review_required', $result['errorCode']);
     }
 }

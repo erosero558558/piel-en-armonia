@@ -117,9 +117,9 @@ Runbook rapido para ajuste:
 4. Confirmar que el comportamiento de incidentes semanales coincide con los nuevos umbrales.
 5. Si el cambio no es el esperado, volver a defaults y re-ejecutar.
 
-### 1.7 Admin UI sony_v2/sony_v3 rollout y rollback
+### 1.7 Admin UI sony_v3
 
-Para el despliegue del admin Sony-like `sony_v2/sony_v3` usar el runbook dedicado:
+Para el despliegue del admin `sony_v3` usar el runbook dedicado:
 
 - `docs/ADMIN-UI-ROLLOUT.md`
 
@@ -129,36 +129,19 @@ Comando operativo rapido:
 npm run admin:ui:contingency
 ```
 
-Este comando consulta los flags actuales (`admin_sony_ui`, `admin_sony_ui_v3`) y muestra URLs de canary/rollback:
-
-- limpiar variante local: `admin_ui_reset=1`
-- sony_v2 session-only: `admin_ui=sony_v2&admin_ui_reset=1`
-- sony_v3 session-only: `admin_ui=sony_v3&admin_ui_reset=1`
-- legacy session-only: `admin_ui=legacy&admin_ui_reset=1`
+Este comando muestra el estado operativo del admin y recuerda el flujo de rollback por deploy revert.
 
 Gate recomendado por etapa:
 
 ```powershell
 npm run gate:admin:rollout
-npm run gate:admin:rollout:general
-npm run gate:admin:rollout:rollback
 ```
 
-Reglas operativas por etapa:
+Reglas operativas:
 
-1. `internal`
-    - permite QA con `admin_ui=sony_v3`.
-    - el gate puede tolerar `features API`/flags faltantes segun la politica efectiva del stage.
-2. `canary`
-    - requiere `admin_sony_ui=true` y `admin_sony_ui_v3=true`.
-    - el gate corre `admin-ui-runtime-smoke` y `admin-v3-canary-runtime`.
-    - en `post-deploy-fast`, el runtime smoke puede seguir omitido por default para mantener SLA corto.
-3. `general`
-    - requiere `admin_sony_ui=true` y `admin_sony_ui_v3=true`.
-    - el gate completo corre `admin-ui-runtime-smoke` y `admin-v3-canary-runtime`.
-4. `rollback`
-    - requiere `admin_sony_ui=false` y `admin_sony_ui_v3=false`.
-    - el gate vuelve al smoke base de variantes/CSP sin exigir shell `sony_v3`.
+1. `admin.html` siempre debe resolver a `sony_v3`.
+2. El gate corre `admin-ui-runtime-smoke` y `admin-v3-runtime`.
+3. Si el admin falla, no se reactiva `legacy` ni `sony_v2`; se hace `revert + deploy`.
 
 Higiene de bundles admin (post-build / troubleshooting):
 

@@ -21,6 +21,9 @@ param(
     [int]$ServiceFunnelWarnMinCheckoutStarts = 5,
     [double]$ServiceFunnelCheckoutToConfirmedMinWarnPct = 35,
     [double]$ServiceFunnelDetailToConfirmedMinWarnPct = 8,
+    [int]$TelemedicineReviewQueueWarnCount = 12,
+    [int]$TelemedicineStagedUploadsWarnCount = 1,
+    [int]$TelemedicineUnlinkedIntakesWarnCount = 5,
     [switch]$FailOnWarnings,
     [switch]$FailOnCriticalWarnings,
     [int]$CriticalFreeCycleTarget = 2,
@@ -406,6 +409,34 @@ $servicesCatalogSource = [string](Get-ObjectValueOrDefault -Object $health -Prop
 $servicesCatalogVersion = [string](Get-ObjectValueOrDefault -Object $health -Property 'servicesCatalogVersion' -DefaultValue 'unknown')
 $servicesCatalogCount = [int](Get-ObjectValueOrDefault -Object $health -Property 'servicesCatalogCount' -DefaultValue 0)
 $servicesCatalogConfigured = [bool](Get-ObjectValueOrDefault -Object $health -Property 'servicesCatalogConfigured' -DefaultValue $false)
+$healthChecks = Get-ObjectValueOrDefault -Object $health -Property 'checks' -DefaultValue $null
+$telemedicineCheck = Get-ObjectValueOrDefault -Object $healthChecks -Property 'telemedicine' -DefaultValue $null
+$telemedicineConfigured = [bool](Get-ObjectValueOrDefault -Object $telemedicineCheck -Property 'configured' -DefaultValue $false)
+$telemedicineIntakesObj = Get-ObjectValueOrDefault -Object $telemedicineCheck -Property 'intakes' -DefaultValue $null
+$telemedicineIntegrityObj = Get-ObjectValueOrDefault -Object $telemedicineCheck -Property 'integrity' -DefaultValue $null
+$telemedicineDiagnosticsObj = Get-ObjectValueOrDefault -Object $telemedicineCheck -Property 'diagnostics' -DefaultValue $null
+$telemedicinePolicyObj = Get-ObjectValueOrDefault -Object $telemedicineCheck -Property 'policy' -DefaultValue $null
+$telemedicineIntakesTotal = [int](Get-ObjectValueOrDefault -Object $telemedicineIntakesObj -Property 'total' -DefaultValue 0)
+$telemedicineReviewQueueCount = [int](Get-ObjectValueOrDefault -Object $telemedicineCheck -Property 'reviewQueueCount' -DefaultValue 0)
+$telemedicineLatestActivityAt = [string](Get-ObjectValueOrDefault -Object $telemedicineCheck -Property 'latestActivityAt' -DefaultValue '')
+$telemedicineDiagnosticsStatus = [string](Get-ObjectValueOrDefault -Object $telemedicineDiagnosticsObj -Property 'status' -DefaultValue 'unknown')
+$telemedicineDiagnosticsHealthy = [bool](Get-ObjectValueOrDefault -Object $telemedicineDiagnosticsObj -Property 'healthy' -DefaultValue $false)
+$telemedicineDiagnosticsSummaryObj = Get-ObjectValueOrDefault -Object $telemedicineDiagnosticsObj -Property 'summary' -DefaultValue $null
+$telemedicineDiagnosticsCriticalCount = [int](Get-ObjectValueOrDefault -Object $telemedicineDiagnosticsSummaryObj -Property 'critical' -DefaultValue 0)
+$telemedicineDiagnosticsWarningCount = [int](Get-ObjectValueOrDefault -Object $telemedicineDiagnosticsSummaryObj -Property 'warning' -DefaultValue 0)
+$telemedicineDiagnosticsInfoCount = [int](Get-ObjectValueOrDefault -Object $telemedicineDiagnosticsSummaryObj -Property 'info' -DefaultValue 0)
+$telemedicineDiagnosticsTotalChecks = [int](Get-ObjectValueOrDefault -Object $telemedicineDiagnosticsSummaryObj -Property 'totalChecks' -DefaultValue 0)
+$telemedicineDiagnosticsTotalIssues = [int](Get-ObjectValueOrDefault -Object $telemedicineDiagnosticsSummaryObj -Property 'totalIssues' -DefaultValue 0)
+$telemedicineShadowModeEnabled = [bool](Get-ObjectValueOrDefault -Object $telemedicinePolicyObj -Property 'shadowModeEnabled' -DefaultValue $true)
+$telemedicineEnforceUnsuitable = [bool](Get-ObjectValueOrDefault -Object $telemedicinePolicyObj -Property 'enforceUnsuitable' -DefaultValue $false)
+$telemedicineEnforceReviewRequired = [bool](Get-ObjectValueOrDefault -Object $telemedicinePolicyObj -Property 'enforceReviewRequired' -DefaultValue $false)
+$telemedicineAllowDecisionOverride = [bool](Get-ObjectValueOrDefault -Object $telemedicinePolicyObj -Property 'allowDecisionOverride' -DefaultValue $true)
+$telemedicineUnlinkedIntakesCount = [int](Get-ObjectValueOrDefault -Object $telemedicineIntegrityObj -Property 'unlinkedIntakesCount' -DefaultValue 0)
+$telemedicineStagedLegacyUploadsCount = [int](Get-ObjectValueOrDefault -Object $telemedicineIntegrityObj -Property 'stagedLegacyUploadsCount' -DefaultValue 0)
+$telemedicineDanglingLinksCount = [int](Get-ObjectValueOrDefault -Object $telemedicineIntegrityObj -Property 'danglingAppointmentLinksCount' -DefaultValue 0)
+$telemedicineCasePhotosMissingPrivatePathCount = [int](Get-ObjectValueOrDefault -Object $telemedicineIntegrityObj -Property 'casePhotosWithoutPrivatePathCount' -DefaultValue 0)
+$telemedicineOrphanedClinicalUploadsCount = [int](Get-ObjectValueOrDefault -Object $telemedicineIntegrityObj -Property 'orphanedClinicalUploadsCount' -DefaultValue 0)
+$telemedicineAppointmentsWithoutIntakeCount = [int](Get-ObjectValueOrDefault -Object $telemedicineIntegrityObj -Property 'telemedAppointmentsWithoutIntakeCount' -DefaultValue 0)
 $servicePrioritiesSource = 'unreachable'
 $servicePrioritiesCatalogSource = 'unknown'
 $servicePrioritiesCatalogVersion = 'unknown'
@@ -656,6 +687,30 @@ if ($servicePrioritiesCategoryCount -le 0) {
 if ($servicePrioritiesFeaturedCount -le 0) {
     $warnings.Add('service_priorities_featured_empty')
 }
+if (-not $telemedicineConfigured) {
+    $warnings.Add('telemedicine_not_configured')
+}
+if ($telemedicineDiagnosticsCriticalCount -gt 0 -or $telemedicineDiagnosticsStatus -eq 'critical') {
+    $warnings.Add("telemedicine_diagnostics_critical_${telemedicineDiagnosticsCriticalCount}")
+}
+if ($telemedicineDiagnosticsWarningCount -gt 0) {
+    $warnings.Add("telemedicine_diagnostics_warning_${telemedicineDiagnosticsWarningCount}")
+}
+if ($telemedicineReviewQueueCount -ge $TelemedicineReviewQueueWarnCount) {
+    $warnings.Add("telemedicine_review_queue_alta_${telemedicineReviewQueueCount}")
+}
+if ($telemedicineStagedLegacyUploadsCount -ge $TelemedicineStagedUploadsWarnCount) {
+    $warnings.Add("telemedicine_staged_legacy_uploads_${telemedicineStagedLegacyUploadsCount}")
+}
+if ($telemedicineUnlinkedIntakesCount -ge $TelemedicineUnlinkedIntakesWarnCount) {
+    $warnings.Add("telemedicine_unlinked_intakes_alta_${telemedicineUnlinkedIntakesCount}")
+}
+if ($telemedicineDanglingLinksCount -gt 0) {
+    $warnings.Add("telemedicine_dangling_links_${telemedicineDanglingLinksCount}")
+}
+if ($telemedicineCasePhotosMissingPrivatePathCount -gt 0) {
+    $warnings.Add("telemedicine_case_photos_missing_private_path_${telemedicineCasePhotosMissingPrivatePathCount}")
+}
 $idempotencySampleSufficient = $idempotencyRequestsWithKey -ge 10
 if ($idempotencySampleSufficient -and $idempotencyConflictRatePct -ge $IdempotencyConflictRateWarnPct) {
     $warnings.Add("idempotency_conflict_rate_alta_${idempotencyConflictRatePct}pct")
@@ -902,6 +957,7 @@ Write-Host "idempotency_requests_with_key=$idempotencyRequestsWithKey idempotenc
 Write-Host "service_funnel_source=$serviceFunnelSource service_funnel_rows=$serviceFunnelRowsCount service_funnel_alert_count=$serviceFunnelAlertCount"
 Write-Host "services_catalog_source=$servicesCatalogSource services_catalog_version=$servicesCatalogVersion services_catalog_count=$servicesCatalogCount services_catalog_configured=$servicesCatalogConfigured"
 Write-Host "service_priorities_source=$servicePrioritiesSource service_priorities_catalog_source=$servicePrioritiesCatalogSource service_priorities_services_count=$servicePrioritiesServiceCount service_priorities_categories_count=$servicePrioritiesCategoryCount service_priorities_featured_count=$servicePrioritiesFeaturedCount"
+Write-Host "telemedicine_configured=$telemedicineConfigured telemedicine_intakes_total=$telemedicineIntakesTotal telemedicine_review_queue_count=$telemedicineReviewQueueCount telemedicine_diagnostics_status=$telemedicineDiagnosticsStatus telemedicine_diagnostics_critical_count=$telemedicineDiagnosticsCriticalCount telemedicine_diagnostics_warning_count=$telemedicineDiagnosticsWarningCount"
 Write-Host "release_decision=$releaseDecision release_reason=$releaseReason"
 Write-Host "weekly_cycle_target=$weeklyCycleTarget weekly_cycle_consecutive_no_critical=$weeklyCycleConsecutiveNoCritical weekly_cycle_ready=$weeklyCycleReady weekly_cycle_status=$weeklyCycleStatus weekly_cycle_reason=$weeklyCycleReason"
 if ($warnings.Count -gt 0) {

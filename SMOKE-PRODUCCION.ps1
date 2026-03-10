@@ -8,6 +8,7 @@ param(
     [switch]$RequireWebhookSecret,
     [switch]$RequireBackupReceiverReady,
     [switch]$RequireCronReady,
+    [switch]$RequireTelemedicineReady,
     [int]$MaxHealthTimingMs = 2000,
     [int]$FigoPostRetries = 3,
     [int]$FigoPostRetryDelaySec = 2
@@ -673,6 +674,43 @@ if ($null -ne $healthResult -and $healthResult.Ok) {
                 }
                 if ($ageSeconds -gt 120) {
                     Write-Host "[FAIL] checks.publicSync.ageSeconds alto: $ageSeconds"
+                    $contractFailures += 1
+                }
+            }
+        }
+
+        if ($RequireTelemedicineReady) {
+            $telemedicine = $null
+            try { $telemedicine = $healthJson.checks.telemedicine } catch { $telemedicine = $null }
+            if ($null -eq $telemedicine) {
+                Write-Host "[FAIL] Health API sin checks.telemedicine"
+                $contractFailures += 1
+            } else {
+                $telemedicineConfigured = $false
+                $telemedicineDiagnosticsStatus = ''
+                $telemedicineCriticalCount = 0
+                $telemedicineDanglingLinks = 0
+                $telemedicineCasePhotosMissingPrivatePath = 0
+                try { $telemedicineConfigured = [bool]$telemedicine.configured } catch { $telemedicineConfigured = $false }
+                try { $telemedicineDiagnosticsStatus = [string]$telemedicine.diagnostics.status } catch { $telemedicineDiagnosticsStatus = '' }
+                try { $telemedicineCriticalCount = [int]$telemedicine.diagnostics.summary.critical } catch { $telemedicineCriticalCount = 0 }
+                try { $telemedicineDanglingLinks = [int]$telemedicine.integrity.danglingAppointmentLinksCount } catch { $telemedicineDanglingLinks = 0 }
+                try { $telemedicineCasePhotosMissingPrivatePath = [int]$telemedicine.integrity.casePhotosWithoutPrivatePathCount } catch { $telemedicineCasePhotosMissingPrivatePath = 0 }
+
+                if (-not $telemedicineConfigured) {
+                    Write-Host "[FAIL] checks.telemedicine.configured=false"
+                    $contractFailures += 1
+                }
+                if ($telemedicineDiagnosticsStatus -eq 'critical' -or $telemedicineCriticalCount -gt 0) {
+                    Write-Host "[FAIL] checks.telemedicine diagnostics critico (status=$telemedicineDiagnosticsStatus, critical=$telemedicineCriticalCount)"
+                    $contractFailures += 1
+                }
+                if ($telemedicineDanglingLinks -gt 0) {
+                    Write-Host "[FAIL] checks.telemedicine danglingAppointmentLinksCount=$telemedicineDanglingLinks"
+                    $contractFailures += 1
+                }
+                if ($telemedicineCasePhotosMissingPrivatePath -gt 0) {
+                    Write-Host "[FAIL] checks.telemedicine casePhotosWithoutPrivatePathCount=$telemedicineCasePhotosMissingPrivatePath"
                     $contractFailures += 1
                 }
             }

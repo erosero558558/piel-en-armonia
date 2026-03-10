@@ -22,6 +22,11 @@ function register_api_routes(Router $router): void
 
     $router->add('GET', 'data', [AdminDataController::class, 'index']);
     $router->add('POST', 'import', [AdminDataController::class, 'import']);
+    $router->add('GET', 'telemedicine-intakes', [TelemedicineAdminController::class, 'index']);
+    $router->add('PATCH', 'telemedicine-intakes', [TelemedicineAdminController::class, 'patch']);
+    $router->add('GET', 'telemedicine-ops-diagnostics', [TelemedicinePolicyController::class, 'diagnostics']);
+    $router->add('GET', 'telemedicine-rollout-readiness', [TelemedicinePolicyController::class, 'readiness']);
+    $router->add('POST', 'telemedicine-policy-simulate', [TelemedicinePolicyController::class, 'simulate']);
 
     $router->add('GET', 'queue-state', [QueueController::class, 'state']);
     $router->add('POST', 'queue-checkin', [QueueController::class, 'checkin']);

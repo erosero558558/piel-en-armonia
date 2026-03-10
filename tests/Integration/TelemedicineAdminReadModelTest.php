@@ -106,10 +106,16 @@ final class TelemedicineAdminReadModelTest extends TestCase
         $telemedicineMeta = $payload['data']['telemedicineMeta'];
         $this->assertSame(1, (int) ($telemedicineMeta['summary']['reviewQueueCount'] ?? -1));
         $this->assertSame(1, (int) ($telemedicineMeta['summary']['intakes']['total'] ?? -1));
+        $this->assertSame(1, (int) ($telemedicineMeta['summary']['intakes']['byReviewDecision']['none'] ?? -1));
+        $this->assertSame(1, (int) ($telemedicineMeta['summary']['intakes']['byReviewState']['pending'] ?? -1));
+        $this->assertArrayHasKey('diagnostics', $telemedicineMeta['summary']);
+        $this->assertSame('healthy', (string) ($telemedicineMeta['summary']['diagnostics']['status'] ?? ''));
+        $this->assertArrayHasKey('diagnostics', $telemedicineMeta);
         $this->assertCount(1, $telemedicineMeta['reviewQueue']);
         $this->assertSame('Paciente Admin', $telemedicineMeta['reviewQueue'][0]['patientName']);
         $this->assertSame('admin@example.com', $telemedicineMeta['reviewQueue'][0]['patientEmail']);
         $this->assertSame('manual_review', $telemedicineMeta['reviewQueue'][0]['escalationRecommendation']);
+        $this->assertSame('pending', $telemedicineMeta['reviewQueue'][0]['reviewStatus']);
     }
 
     private function removeDirectory(string $dir): void

@@ -39,6 +39,7 @@ function Get-WarningSeverity {
     if (
         $WarningCode -eq 'calendar_unreachable' -or
         $WarningCode -eq 'calendar_token_unhealthy' -or
+        $WarningCode -eq 'telemedicine_not_configured' -or
         $WarningCode -eq 'sentry_backend_no_configurado' -or
         $WarningCode -eq 'sentry_frontend_no_configurado'
     ) {
@@ -48,7 +49,10 @@ function Get-WarningSeverity {
     foreach ($prefix in @(
         'error_rate_alta_',
         'calendar_source_',
-        'calendar_mode_'
+        'calendar_mode_',
+        'telemedicine_diagnostics_critical_',
+        'telemedicine_dangling_links_',
+        'telemedicine_case_photos_missing_private_path_'
     )) {
         if ($WarningCode.StartsWith($prefix)) {
             return 'critical'
@@ -66,7 +70,11 @@ function Get-WarningSeverity {
         'recurrence_rate_',
         'conversion_rate_',
         'start_checkout_rate_',
-        'service_funnel_'
+        'service_funnel_',
+        'telemedicine_diagnostics_warning_',
+        'telemedicine_review_queue_alta_',
+        'telemedicine_staged_legacy_uploads_',
+        'telemedicine_unlinked_intakes_alta_'
     )) {
         if ($WarningCode.StartsWith($prefix)) {
             return 'non_critical'
@@ -109,6 +117,9 @@ function Get-WarningImpact {
     if ($WarningCode.StartsWith('retention_report_')) {
         return 'retention'
     }
+    if ($WarningCode.StartsWith('telemedicine_')) {
+        return 'telemedicine'
+    }
     if ($WarningCode.StartsWith('sentry_')) {
         return 'observability'
     }
@@ -133,6 +144,9 @@ function Get-WarningRunbookRef {
     }
     if ($WarningCode.StartsWith('sentry_')) {
         return 'docs/MONITORING_SETUP.md'
+    }
+    if ($WarningCode.StartsWith('telemedicine_')) {
+        return 'docs/API.md#observabilidad-operativa-de-telemedicina'
     }
     if (
         $WarningCode.StartsWith('conversion_rate_') -or
@@ -306,6 +320,7 @@ function New-WeeklyWarningAnalysis {
         chat = @()
         conversion = @()
         retention = @()
+        telemedicine = @()
         observability = @()
         platform = @()
     }
@@ -624,6 +639,33 @@ $serviceFunnelTopRowsBlock
 - service_priorities_sort: $servicePrioritiesSort
 - service_priorities_audience: $servicePrioritiesAudience
 
+## Telemedicine Ops
+
+- telemedicine_configured: $telemedicineConfigured
+- telemedicine_intakes_total: $telemedicineIntakesTotal
+- telemedicine_review_queue_count: $telemedicineReviewQueueCount
+- telemedicine_latest_activity_at: $telemedicineLatestActivityAt
+- telemedicine_diagnostics_status: $telemedicineDiagnosticsStatus
+- telemedicine_diagnostics_healthy: $telemedicineDiagnosticsHealthy
+- telemedicine_diagnostics_critical_count: $telemedicineDiagnosticsCriticalCount
+- telemedicine_diagnostics_warning_count: $telemedicineDiagnosticsWarningCount
+- telemedicine_diagnostics_info_count: $telemedicineDiagnosticsInfoCount
+- telemedicine_diagnostics_total_checks: $telemedicineDiagnosticsTotalChecks
+- telemedicine_diagnostics_total_issues: $telemedicineDiagnosticsTotalIssues
+- telemedicine_shadow_mode_enabled: $telemedicineShadowModeEnabled
+- telemedicine_enforce_unsuitable: $telemedicineEnforceUnsuitable
+- telemedicine_enforce_review_required: $telemedicineEnforceReviewRequired
+- telemedicine_allow_decision_override: $telemedicineAllowDecisionOverride
+- telemedicine_unlinked_intakes_count: $telemedicineUnlinkedIntakesCount
+- telemedicine_staged_legacy_uploads_count: $telemedicineStagedLegacyUploadsCount
+- telemedicine_dangling_links_count: $telemedicineDanglingLinksCount
+- telemedicine_case_photos_missing_private_path_count: $telemedicineCasePhotosMissingPrivatePathCount
+- telemedicine_orphaned_clinical_uploads_count: $telemedicineOrphanedClinicalUploadsCount
+- telemedicine_appointments_without_intake_count: $telemedicineAppointmentsWithoutIntakeCount
+- telemedicine_review_queue_warn_threshold: $TelemedicineReviewQueueWarnCount
+- telemedicine_staged_uploads_warn_threshold: $TelemedicineStagedUploadsWarnCount
+- telemedicine_unlinked_intakes_warn_threshold: $TelemedicineUnlinkedIntakesWarnCount
+
 ## Retention
 
 - appointments_total: $retentionAppointmentsTotal
@@ -831,6 +873,40 @@ function New-WeeklyReportPayload {
             featuredCount = $servicePrioritiesFeaturedCount
             sort = $servicePrioritiesSort
             audience = $servicePrioritiesAudience
+        }
+        telemedicine = [ordered]@{
+            configured = [bool]$telemedicineConfigured
+            intakesTotal = $telemedicineIntakesTotal
+            reviewQueueCount = $telemedicineReviewQueueCount
+            latestActivityAt = $telemedicineLatestActivityAt
+            diagnostics = [ordered]@{
+                status = $telemedicineDiagnosticsStatus
+                healthy = [bool]$telemedicineDiagnosticsHealthy
+                criticalCount = $telemedicineDiagnosticsCriticalCount
+                warningCount = $telemedicineDiagnosticsWarningCount
+                infoCount = $telemedicineDiagnosticsInfoCount
+                totalChecks = $telemedicineDiagnosticsTotalChecks
+                totalIssues = $telemedicineDiagnosticsTotalIssues
+            }
+            policy = [ordered]@{
+                shadowModeEnabled = [bool]$telemedicineShadowModeEnabled
+                enforceUnsuitable = [bool]$telemedicineEnforceUnsuitable
+                enforceReviewRequired = [bool]$telemedicineEnforceReviewRequired
+                allowDecisionOverride = [bool]$telemedicineAllowDecisionOverride
+            }
+            integrity = [ordered]@{
+                unlinkedIntakesCount = $telemedicineUnlinkedIntakesCount
+                stagedLegacyUploadsCount = $telemedicineStagedLegacyUploadsCount
+                danglingLinksCount = $telemedicineDanglingLinksCount
+                casePhotosMissingPrivatePathCount = $telemedicineCasePhotosMissingPrivatePathCount
+                orphanedClinicalUploadsCount = $telemedicineOrphanedClinicalUploadsCount
+                appointmentsWithoutIntakeCount = $telemedicineAppointmentsWithoutIntakeCount
+            }
+            thresholds = [ordered]@{
+                reviewQueueWarnCount = $TelemedicineReviewQueueWarnCount
+                stagedUploadsWarnCount = $TelemedicineStagedUploadsWarnCount
+                unlinkedIntakesWarnCount = $TelemedicineUnlinkedIntakesWarnCount
+            }
         }
         retention = $retentionPayload
         retentionReport = [ordered]@{

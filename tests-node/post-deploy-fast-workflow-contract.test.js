@@ -47,6 +47,18 @@ test('post-deploy-fast incluye cierre de ciclo de incidente', () => {
         'falta step de cierre de incidente fast lane'
     );
     assert.equal(
+        stepNames.includes('Crear/actualizar incidente telemedicina fast lane'),
+        true,
+        'falta step de incidente dedicado telemedicina fast lane'
+    );
+    assert.equal(
+        stepNames.includes(
+            'Cerrar incidente telemedicina fast lane al recuperar'
+        ),
+        true,
+        'falta step de cierre de incidente dedicado telemedicina fast lane'
+    );
+    assert.equal(
         raw.includes("failure() && github.event_name != 'workflow_dispatch'"),
         true,
         'falta condicion de apertura de incidente en fallo no manual'
@@ -57,9 +69,76 @@ test('post-deploy-fast incluye cierre de ciclo de incidente', () => {
         'falta condicion de cierre de incidente en recuperacion no manual'
     );
     assert.equal(
+        raw.includes(
+            "failure() && github.event_name != 'workflow_dispatch' && ((env.TELEMEDICINE_FAST_STATUS != 'degraded_only' && env.TELEMEDICINE_FAST_STATUS != 'unknown') || env.TELEMEDICINE_FAST_NON_TELE_FAILURES != '0')"
+        ),
+        true,
+        'falta condicion de incidente generico fast lane excluyendo tele-only unknown/degraded_only'
+    );
+    assert.equal(
+        raw.includes(
+            "failure() && github.event_name != 'workflow_dispatch' && (env.TELEMEDICINE_FAST_STATUS == 'degraded_only' || env.TELEMEDICINE_FAST_STATUS == 'degraded_mixed' || env.TELEMEDICINE_FAST_STATUS == 'unknown')"
+        ),
+        true,
+        'falta condicion de incidente telemedicina dedicada/mixta/unknown en fast lane'
+    );
+    assert.equal(
         raw.includes('Post-Deploy Fast Lane fallando'),
         true,
         'falta titulo canonico de incidente fast lane'
+    );
+    assert.equal(
+        raw.includes('Post-Deploy Fast Lane telemedicina degradado'),
+        true,
+        'falta titulo canonico de incidente telemedicina fast lane'
+    );
+    assert.equal(
+        raw.includes('post-deploy-fast-telemedicine-signal'),
+        true,
+        'falta marker de senal para dedupe en incidente telemedicina fast lane'
+    );
+    assert.equal(
+        raw.includes(
+            "non_tele:${process.env.TELEMEDICINE_FAST_NON_TELE_FAILURES || '0'}"
+        ),
+        true,
+        'falta non_tele en signal de dedupe para incidente telemedicina fast lane'
+    );
+    assert.equal(
+        raw.includes(
+            "telemedicine_fast_non_tele_failures: ${process.env.TELEMEDICINE_FAST_NON_TELE_FAILURES || '0'}"
+        ),
+        true,
+        'falta trazabilidad de non_tele_failures en updates de incidente telemedicina fast lane'
+    );
+    assert.equal(
+        raw.includes(
+            "const baseLabels = ['production-alert', 'fast-lane', 'telemedicine', severity];"
+        ),
+        true,
+        'falta set canonico de labels base con severidad en incidente telemedicina fast lane'
+    );
+    assert.equal(
+        raw.includes('severity:critical'),
+        true,
+        'falta label de severidad critica en incidente telemedicina fast lane'
+    );
+    assert.equal(
+        raw.includes('severity:warning'),
+        true,
+        'falta label de severidad warning en incidente telemedicina fast lane'
+    );
+    assert.equal(
+        raw.includes('Issue telemedicina fast ya refleja la misma senal'),
+        true,
+        'falta deduplicacion idempotente cuando la senal no cambia en fast lane'
+    );
+    assert.equal(
+        raw.includes(
+            'Incidente telemedicina fast actualizado por cambio de senal.'
+        ),
+        true,
+        'falta comentario de auditoria por cambio de senal en incidente telemedicina fast lane'
     );
 });
 
@@ -72,6 +151,11 @@ test('post-deploy-fast integra gate admin rollout con resumen operativo', () => 
         stepNames.includes('Ejecutar gate admin UI rollout (fast)'),
         true,
         'falta step de gate admin UI rollout en fast lane'
+    );
+    assert.equal(
+        stepNames.includes('Evaluar estado telemedicina fast lane'),
+        true,
+        'falta step de evaluacion telemedicina en fast lane'
     );
     assert.equal(
         raw.includes('ADMIN_ROLLOUT_STAGE_FAST'),
@@ -112,6 +196,26 @@ test('post-deploy-fast integra gate admin rollout con resumen operativo', () => 
         raw.includes('Public V4 rollout policy source (effective):'),
         true,
         'falta linea de policy source efectivo public_v4 en resumen fast lane'
+    );
+    assert.equal(
+        raw.includes('Telemedicine fast status:'),
+        true,
+        'falta linea de estado telemedicina en resumen fast lane'
+    );
+    assert.equal(
+        raw.includes('Telemedicine fast step outcome:'),
+        true,
+        'falta linea de outcome telemedicina en resumen fast lane'
+    );
+    assert.equal(
+        raw.includes('TELEMEDICINE_FAST_NON_TELE_FAILURES'),
+        true,
+        'falta trazabilidad de non-tele failures en fast lane'
+    );
+    assert.equal(
+        raw.includes('health-telemedicine-*'),
+        true,
+        'falta clasificacion de fallas telemedicina por prefijo de asset en fast lane'
     );
     assert.equal(
         stepNames.includes('Publicar reporte gate admin rollout (fast)'),
@@ -254,4 +358,3 @@ test('post-deploy-fast expone inputs para propagacion de admin rollout y public_
         );
     }
 });
-

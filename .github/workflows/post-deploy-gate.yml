@@ -66,6 +66,11 @@ on:
                 required: false
                 default: false
                 type: boolean
+            require_telemedicine_ready:
+                description: 'Exigir salud telemedicina en verify/smoke (config + diagnostics + integridad)'
+                required: false
+                default: true
+                type: boolean
             admin_rollout_stage:
                 description: 'Etapa gate admin UI (internal|canary|general|rollback)'
                 required: false
@@ -166,6 +171,12 @@ jobs:
             ENVIRONMENT_NAME: ${{ vars.ENVIRONMENT_NAME || 'PROD' }}
             REQUIRE_GOOGLE_CALENDAR: ${{ github.event.inputs.require_google_calendar || vars.REQUIRE_GOOGLE_CALENDAR || 'false' }}
             REQUIRE_GOOGLE_CALENDAR_EFFECTIVE: ${{ github.event.inputs.require_google_calendar || vars.REQUIRE_GOOGLE_CALENDAR || 'false' }}
+            REQUIRE_TELEMEDICINE_READY_INPUT: ${{ github.event.inputs.require_telemedicine_ready || vars.REQUIRE_TELEMEDICINE_READY || 'true' }}
+            REQUIRE_TELEMEDICINE_READY_EFFECTIVE: ${{ github.event.inputs.require_telemedicine_ready || vars.REQUIRE_TELEMEDICINE_READY || 'true' }}
+            TELEMEDICINE_GATE_STATUS: unknown
+            TELEMEDICINE_GATE_REASON: not_evaluated
+            TELEMEDICINE_GATE_FAILURES: '0'
+            TELEMEDICINE_GATE_NON_TELE_FAILURES: '0'
             RUN_FIGO_CONTRACT: ${{ vars.RUN_FIGO_CONTRACT || 'true' }}
             TEST_FIGO_CHAT_LATENCY: ${{ vars.TEST_FIGO_CHAT_LATENCY || 'false' }}
             TEST_FIGO_CHAT_LATENCY_SAMPLES: ${{ vars.TEST_FIGO_CHAT_LATENCY_SAMPLES || '6' }}
@@ -364,6 +375,14 @@ jobs:
                   if ($skipFigoPostBenchInput.ToLowerInvariant() -eq 'true') {
                     $skipFigoPostBench = $true
                   }
+                  $requireTelemedicineReady = $true
+                  $requireTelemedicineReadyInput = [string]$env:REQUIRE_TELEMEDICINE_READY_INPUT
+                  if ($requireTelemedicineReadyInput.ToLowerInvariant() -eq 'false') {
+                    $requireTelemedicineReady = $false
+                  }
+                  $requireTelemedicineReadyEffective = if ($requireTelemedicineReady) { 'true' } else { 'false' }
+                  "REQUIRE_TELEMEDICINE_READY_EFFECTIVE=$requireTelemedicineReadyEffective" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  Write-Host "Require telemedicine ready => input=$requireTelemedicineReadyInput effective=$requireTelemedicineReadyEffective"
                   ./GATE-POSTDEPLOY.ps1 `
                     -Domain $env:TARGET_DOMAIN `
                     -BenchRuns $benchRuns `
@@ -380,7 +399,8 @@ jobs:
                     -RequireStableDataDir `
                     -RequireBackupHealthy `
                     -RequireBackupReceiverReady `
-                    -RequireCronReady
+                    -RequireCronReady `
+                    -RequireTelemedicineReady:$requireTelemedicineReady
 
             - name: Setup Node para contrato calendario
               if: ${{ steps.gate.outcome == 'success' && env.POSTDEPLOY_CHANGE_CLASS != 'non-runtime' }}
@@ -629,6 +649,8 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Semaforo chat(figo): ``${{ steps.figo_contract.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Require Google calendar (input/vars): ``$env:REQUIRE_GOOGLE_CALENDAR``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Require Google calendar (effective): ``$env:REQUIRE_GOOGLE_CALENDAR_EFFECTIVE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Require telemedicine ready (input/vars): ``$env:REQUIRE_TELEMEDICINE_READY_INPUT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Require telemedicine ready (effective): ``$env:REQUIRE_TELEMEDICINE_READY_EFFECTIVE``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Contrato figo-chat habilitado: ``$env:RUN_FIGO_CONTRACT``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Figo latency benchmark: ``$env:TEST_FIGO_CHAT_LATENCY`` (samples ``$env:TEST_FIGO_CHAT_LATENCY_SAMPLES``, p95 ``$env:TEST_FIGO_CHAT_LATENCY_P95_MS`` ms)"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Resultado: ``${{ steps.gate.outcome }}``"
@@ -666,8 +688,73 @@ jobs:
                   if-no-files-found: warn
                   retention-days: 14
 
+            - name: Evaluar estado telemedicina del gate
+              id: telemedicine_gate
+              if: ${{ always() }}
+              shell: pwsh
+              run: |
+                  $status = 'unknown'
+                  $reason = 'verify_report_missing'
+                  $teleFailures = 0
+                  $nonTeleFailures = 0
+                  $reportPath = 'verification/last-deploy-verify.json'
+
+                  if (Test-Path $reportPath) {
+                    try {
+                      $report = Get-Content -Raw $reportPath | ConvertFrom-Json -Depth 20
+                      $failures = @()
+                      try { $failures = @($report.failures) } catch { $failures = @() }
+
+                      $teleFailureAssets = New-Object System.Collections.Generic.List[string]
+                      foreach ($failure in $failures) {
+                        $asset = ''
+                        try { $asset = [string]$failure.Asset } catch { $asset = '' }
+                        if ($asset -like 'health-telemedicine-*') {
+                          $teleFailureAssets.Add($asset)
+                        }
+                      }
+
+                      $teleFailures = $teleFailureAssets.Count
+                      $nonTeleFailures = [Math]::Max(0, @($failures).Count - $teleFailures)
+
+                      if ($teleFailures -gt 0 -and $nonTeleFailures -eq 0) {
+                        $status = 'degraded_only'
+                        $reason = ($teleFailureAssets | Select-Object -Unique) -join ';'
+                      } elseif ($teleFailures -gt 0) {
+                        $status = 'degraded_mixed'
+                        $reason = ($teleFailureAssets | Select-Object -Unique) -join ';'
+                      } else {
+                        $status = 'healthy'
+                        $reason = 'ok'
+                      }
+                    } catch {
+                      $status = 'unknown'
+                      $reason = 'verify_report_unreadable'
+                    }
+                  }
+
+                  "TELEMEDICINE_GATE_STATUS=$status" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TELEMEDICINE_GATE_REASON=$reason" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TELEMEDICINE_GATE_FAILURES=$teleFailures" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TELEMEDICINE_GATE_NON_TELE_FAILURES=$nonTeleFailures" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "status=$status" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "reason=$reason" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "tele_failures=$teleFailures" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "non_tele_failures=$nonTeleFailures" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  Write-Host "Telemedicine gate => status=$status reason=$reason tele_failures=$teleFailures non_tele_failures=$nonTeleFailures"
+
+            - name: Resumen telemedicina gate
+              if: ${{ always() }}
+              shell: pwsh
+              run: |
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine gate status: ``$env:TELEMEDICINE_GATE_STATUS``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine gate reason: ``$env:TELEMEDICINE_GATE_REASON``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine gate failures: ``$env:TELEMEDICINE_GATE_FAILURES``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine gate non-tele failures: ``$env:TELEMEDICINE_GATE_NON_TELE_FAILURES``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine gate step outcome: ``${{ steps.telemedicine_gate.outcome }}``"
+
             - name: Crear/actualizar incidente de gate
-              if: ${{ failure() && github.event_name != 'workflow_dispatch' }}
+              if: ${{ failure() && github.event_name != 'workflow_dispatch' && ((env.TELEMEDICINE_GATE_STATUS != 'degraded_only' && env.TELEMEDICINE_GATE_STATUS != 'unknown') || env.TELEMEDICINE_GATE_NON_TELE_FAILURES != '0') }}
               uses: actions/github-script@v7
               env:
                   GATE_OUTCOME: ${{ steps.gate.outcome }}
@@ -693,6 +780,10 @@ jobs:
                   POSTDEPLOY_EFFECTIVE_WAIT_SECONDS: ${{ env.POSTDEPLOY_EFFECTIVE_WAIT_SECONDS }}
                   BENCH_RUNS_EFFECTIVE: ${{ env.BENCH_RUNS_EFFECTIVE }}
                   REQUIRE_GOOGLE_CALENDAR_EFFECTIVE: ${{ env.REQUIRE_GOOGLE_CALENDAR_EFFECTIVE }}
+                  TELEMEDICINE_GATE_STATUS: ${{ env.TELEMEDICINE_GATE_STATUS }}
+                  TELEMEDICINE_GATE_REASON: ${{ env.TELEMEDICINE_GATE_REASON }}
+                  TELEMEDICINE_GATE_FAILURES: ${{ env.TELEMEDICINE_GATE_FAILURES }}
+                  TELEMEDICINE_GATE_NON_TELE_FAILURES: ${{ env.TELEMEDICINE_GATE_NON_TELE_FAILURES }}
               with:
                   script: |
                       const owner = context.repo.owner;
@@ -730,7 +821,11 @@ jobs:
                         `- change_class: ${process.env.POSTDEPLOY_CHANGE_CLASS || 'n/a'}`,
                         `- effective_wait_seconds: ${process.env.POSTDEPLOY_EFFECTIVE_WAIT_SECONDS || 'n/a'}`,
                         `- bench_runs_effective: ${process.env.BENCH_RUNS_EFFECTIVE || 'n/a'}`,
-                        `- require_google_calendar_effective: ${process.env.REQUIRE_GOOGLE_CALENDAR_EFFECTIVE || 'n/a'}`
+                        `- require_google_calendar_effective: ${process.env.REQUIRE_GOOGLE_CALENDAR_EFFECTIVE || 'n/a'}`,
+                        `- telemedicine_gate_status: ${process.env.TELEMEDICINE_GATE_STATUS || 'n/a'}`,
+                        `- telemedicine_gate_reason: ${process.env.TELEMEDICINE_GATE_REASON || 'n/a'}`,
+                        `- telemedicine_gate_failures: ${process.env.TELEMEDICINE_GATE_FAILURES || '0'}`,
+                        `- telemedicine_gate_non_tele_failures: ${process.env.TELEMEDICINE_GATE_NON_TELE_FAILURES || '0'}`
                       ].join('\n');
 
                       const diagnosticHints = [];
@@ -774,6 +869,131 @@ jobs:
                           labels: ['production-alert']
                         });
                         core.info(`Issue creado: #${created.data.number}`);
+                      }
+
+            - name: Crear/actualizar incidente telemedicina de gate
+              if: ${{ failure() && github.event_name != 'workflow_dispatch' && (env.TELEMEDICINE_GATE_STATUS == 'degraded_only' || env.TELEMEDICINE_GATE_STATUS == 'degraded_mixed' || env.TELEMEDICINE_GATE_STATUS == 'unknown') }}
+              uses: actions/github-script@v7
+              env:
+                  TELEMEDICINE_GATE_STATUS: ${{ env.TELEMEDICINE_GATE_STATUS }}
+                  TELEMEDICINE_GATE_REASON: ${{ env.TELEMEDICINE_GATE_REASON }}
+                  TELEMEDICINE_GATE_FAILURES: ${{ env.TELEMEDICINE_GATE_FAILURES }}
+                  TELEMEDICINE_GATE_NON_TELE_FAILURES: ${{ env.TELEMEDICINE_GATE_NON_TELE_FAILURES }}
+                  REQUIRE_TELEMEDICINE_READY_EFFECTIVE: ${{ env.REQUIRE_TELEMEDICINE_READY_EFFECTIVE }}
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const envName = process.env.ENVIRONMENT_NAME || 'PROD';
+                      const title = `[ALERTA ${envName}] Gate post-deploy telemedicina degradado`;
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+                      const status = String(process.env.TELEMEDICINE_GATE_STATUS || 'n/a');
+                      const reason = String(process.env.TELEMEDICINE_GATE_REASON || 'n/a');
+                      const failures = String(process.env.TELEMEDICINE_GATE_FAILURES || '0');
+                      const signal = `status:${status}|reason:${reason}|failures:${failures}|non_tele:${process.env.TELEMEDICINE_GATE_NON_TELE_FAILURES || '0'}`;
+                      const signalMarker = `<!-- post-deploy-gate-telemedicine-signal:${signal} -->`;
+
+                      const severity = (status === 'degraded_mixed' ||
+                        reason.includes('diagnostics_critical') ||
+                        reason.includes('health_unreachable') ||
+                        reason.includes('health_missing') ||
+                        reason.includes('health_parse_error') ||
+                        reason.includes('verify_report_missing') ||
+                        reason.includes('verify_report_unreadable'))
+                        ? 'severity:critical'
+                        : 'severity:warning';
+                      const baseLabels = ['production-alert', 'telemedicine', 'post-deploy-gate', severity];
+
+                      const normalizeLabels = (labels) =>
+                        (labels || [])
+                          .map((item) => (typeof item === 'string' ? item : item?.name))
+                          .filter(Boolean);
+                      const mergedLabels = (labels) => {
+                        const existing = normalizeLabels(labels).filter(
+                          (label) => label !== 'severity:critical' && label !== 'severity:warning'
+                        );
+                        return Array.from(new Set([...existing, ...baseLabels]));
+                      };
+                      const sameLabels = (a, b) => {
+                        const norm = (values) => Array.from(new Set(values)).sort();
+                        return JSON.stringify(norm(a)) === JSON.stringify(norm(b));
+                      };
+
+                      const body = [
+                        'El workflow `Post-Deploy Gate (Full Regression)` detecto degradacion en checks de telemedicina.',
+                        '',
+                        `- Fecha: ${now}`,
+                        `- Run: ${runUrl}`,
+                        `- Workflow: ${context.workflow}`,
+                        `- Branch: ${context.ref}`,
+                        `- telemedicine_gate_status: ${status}`,
+                        `- telemedicine_gate_reason: ${reason}`,
+                        `- telemedicine_gate_failures: ${failures}`,
+                        `- telemedicine_gate_non_tele_failures: ${process.env.TELEMEDICINE_GATE_NON_TELE_FAILURES || '0'}`,
+                        `- require_telemedicine_ready_effective: ${process.env.REQUIRE_TELEMEDICINE_READY_EFFECTIVE || 'n/a'}`,
+                        '',
+                        signalMarker
+                      ].join('\n');
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (existing) {
+                        const existingBody = String(existing.body || '');
+                        const labels = mergedLabels(existing.labels);
+                        const labelsAlreadyApplied = sameLabels(normalizeLabels(existing.labels), labels);
+                        if (existingBody.includes(signalMarker)) {
+                          if (!labelsAlreadyApplied) {
+                            await github.rest.issues.update({
+                              owner,
+                              repo,
+                              issue_number: existing.number,
+                              labels
+                            });
+                            core.info(`Issue telemedicina gate actualizo labels: #${existing.number}`);
+                          }
+                          core.info(`Issue telemedicina gate ya refleja la misma senal: #${existing.number}`);
+                          return;
+                        }
+
+                        await github.rest.issues.update({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body,
+                          labels
+                        });
+                        await github.rest.issues.createComment({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body: [
+                            'Incidente telemedicina gate actualizado por cambio de senal.',
+                            '',
+                            `- Fecha: ${now}`,
+                            `- Run: ${runUrl}`,
+                            `- telemedicine_gate_status: ${status}`,
+                            `- telemedicine_gate_reason: ${reason}`,
+                            `- telemedicine_gate_failures: ${failures}`,
+                            `- telemedicine_gate_non_tele_failures: ${process.env.TELEMEDICINE_GATE_NON_TELE_FAILURES || '0'}`
+                          ].join('\n')
+                        });
+                        core.info(`Issue telemedicina existente actualizado: #${existing.number}`);
+                      } else {
+                        const created = await github.rest.issues.create({
+                          owner,
+                          repo,
+                          title,
+                          body,
+                          labels: baseLabels
+                        });
+                        core.info(`Issue telemedicina creado: #${created.data.number}`);
                       }
 
             - name: Cerrar incidente de gate al recuperar
@@ -820,3 +1040,53 @@ jobs:
                         state: 'closed'
                       });
                       core.info(`Issue cerrado: #${existing.number}`);
+
+            - name: Cerrar incidente telemedicina de gate al recuperar
+              if: ${{ success() && github.event_name != 'workflow_dispatch' }}
+              uses: actions/github-script@v7
+              env:
+                  TELEMEDICINE_GATE_STATUS: ${{ env.TELEMEDICINE_GATE_STATUS }}
+                  TELEMEDICINE_GATE_REASON: ${{ env.TELEMEDICINE_GATE_REASON }}
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const envName = process.env.ENVIRONMENT_NAME || 'PROD';
+                      const title = `[ALERTA ${envName}] Gate post-deploy telemedicina degradado`;
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (!existing) {
+                        core.info('No hay incidente telemedicina abierto para cerrar.');
+                        return;
+                      }
+
+                      await github.rest.issues.createComment({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        body: [
+                          'Recuperado automaticamente por gate post-deploy.',
+                          '',
+                          `- Fecha: ${now}`,
+                          `- Run: ${runUrl}`,
+                          `- telemedicine_gate_status: ${process.env.TELEMEDICINE_GATE_STATUS || 'n/a'}`,
+                          `- telemedicine_gate_reason: ${process.env.TELEMEDICINE_GATE_REASON || 'n/a'}`
+                        ].join('\n')
+                      });
+
+                      await github.rest.issues.update({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        state: 'closed'
+                      });
+                      core.info(`Issue telemedicina cerrado: #${existing.number}`);

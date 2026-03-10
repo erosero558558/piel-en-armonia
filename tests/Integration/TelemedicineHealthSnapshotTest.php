@@ -23,6 +23,8 @@ final class TelemedicineHealthSnapshotTest extends TestCase
         putenv('PIELARMONIA_DATA_DIR=' . $this->tempDir);
         putenv('PIELARMONIA_AVAILABILITY_SOURCE=store');
         putenv('PIELARMONIA_TELEMED_V2_SHADOW=true');
+        putenv('PIELARMONIA_TELEMED_V2_ENFORCE_UNSUITABLE=true');
+        putenv('PIELARMONIA_TELEMED_V2_ENFORCE_REVIEW_REQUIRED=false');
         ini_set('log_errors', '1');
         ini_set('error_log', $this->tempDir . DIRECTORY_SEPARATOR . 'php-error.log');
 
@@ -42,6 +44,8 @@ final class TelemedicineHealthSnapshotTest extends TestCase
             'PIELARMONIA_DATA_DIR',
             'PIELARMONIA_AVAILABILITY_SOURCE',
             'PIELARMONIA_TELEMED_V2_SHADOW',
+            'PIELARMONIA_TELEMED_V2_ENFORCE_UNSUITABLE',
+            'PIELARMONIA_TELEMED_V2_ENFORCE_REVIEW_REQUIRED',
         ] as $key) {
             putenv($key);
         }
@@ -119,6 +123,13 @@ final class TelemedicineHealthSnapshotTest extends TestCase
         $this->assertSame(1, (int) ($telemedicine['intakes']['total'] ?? -1));
         $this->assertSame(1, (int) ($telemedicine['reviewQueueCount'] ?? -1));
         $this->assertSame(1, (int) ($telemedicine['integrity']['linkedAppointmentsCount'] ?? -1));
+        $this->assertSame(true, (bool) ($telemedicine['policy']['shadowModeEnabled'] ?? false));
+        $this->assertSame(true, (bool) ($telemedicine['policy']['enforceUnsuitable'] ?? false));
+        $this->assertSame(false, (bool) ($telemedicine['policy']['enforceReviewRequired'] ?? true));
+        $this->assertArrayHasKey('diagnostics', $telemedicine);
+        $this->assertSame('healthy', (string) ($telemedicine['diagnostics']['status'] ?? ''));
+        $this->assertTrue((bool) ($telemedicine['diagnostics']['healthy'] ?? false));
+        $this->assertSame(0, (int) ($telemedicine['diagnostics']['summary']['critical'] ?? -1));
         $this->assertArrayNotHasKey('reviewQueue', $telemedicine);
         $this->assertStringNotContainsString('review@example.com', json_encode($telemedicine, JSON_UNESCAPED_UNICODE));
         $this->assertStringNotContainsString('Paciente Review', json_encode($telemedicine, JSON_UNESCAPED_UNICODE));

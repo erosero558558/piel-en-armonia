@@ -10,6 +10,7 @@ param(
     [switch]$RequireBackupHealthy,
     [switch]$RequireBackupReceiverReady,
     [switch]$RequireCronReady,
+    [switch]$RequireTelemedicineReady,
     [switch]$RequireStableDataDir,
     [switch]$SkipAssetHashChecks,
     [string]$AssetHashWarningUntil = '2026-03-08T23:59:59-05:00',
@@ -64,6 +65,7 @@ while ($verifyAttempts -lt $verifyMaxAttempts) {
         -RequireWebhookSecret:$RequireWebhookSecret `
         -RequireBackupHealthy:$RequireBackupHealthy `
         -RequireCronReady:$RequireCronReady `
+        -RequireTelemedicineReady:$RequireTelemedicineReady `
         -RequireStableDataDir:$RequireStableDataDir `
         -SkipAssetHashChecks:$effectiveSkipAssetHashChecks `
         -ForceAssetHashChecks:$ForceAssetHashChecks `
@@ -97,7 +99,8 @@ Write-Host "[2/3] Smoke de produccion..." -ForegroundColor Yellow
     -AllowMetaCspFallback:$AllowMetaCspFallback `
     -RequireWebhookSecret:$RequireWebhookSecret `
     -RequireBackupReceiverReady:$RequireBackupReceiverReady `
-    -RequireCronReady:$RequireCronReady
+    -RequireCronReady:$RequireCronReady `
+    -RequireTelemedicineReady:$RequireTelemedicineReady
 if ($LASTEXITCODE -ne 0) {
     $failures += 1
 }

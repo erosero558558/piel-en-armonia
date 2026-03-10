@@ -7,6 +7,11 @@ param(
     [switch]$RequireWebhookSecret,
     [switch]$RequireBackupHealthy,
     [switch]$RequireCronReady,
+    [switch]$RequireTelemedicineReady,
+    [switch]$AllowDegradedTelemedicineDiagnostics,
+    [int]$MaxTelemedicineReviewQueue = 12,
+    [int]$MaxTelemedicineStagedUploads = 1,
+    [int]$MaxTelemedicineUnlinkedIntakes = 5,
     [switch]$RequireStableDataDir,
     [int]$MaxHealthTimingMs = 2000,
     [int]$AssetHashRetryCount = 2,
@@ -1051,6 +1056,122 @@ try {
         Write-Host "[WARN] health no incluye checks.storeCounts"
     } else {
         Write-Host "[OK]  health incluye checks.storeCounts"
+    }
+
+    $telemedicineNode = $null
+    try {
+        $telemedicineNode = $healthResp.Json.checks.telemedicine
+    } catch {
+        $telemedicineNode = $null
+    }
+    if ($null -eq $telemedicineNode) {
+        Write-Host "[WARN] health no incluye checks.telemedicine"
+        if ($RequireTelemedicineReady) {
+            $results += [PSCustomObject]@{
+                Asset = 'health-telemedicine-missing'
+                Match = $false
+                LocalHash = 'present'
+                RemoteHash = 'missing'
+                RemoteUrl = $healthUrl
+            }
+        }
+    } else {
+        $telemedicineConfigured = $false
+        $telemedicineReviewQueueCount = 0
+        $telemedicineDiagnosticsStatus = ''
+        $telemedicineCriticalCount = 0
+        $telemedicineWarningCount = 0
+        $telemedicineStagedLegacyCount = 0
+        $telemedicineUnlinkedIntakesCount = 0
+        $telemedicineDanglingCount = 0
+        $telemedicineCasePhotosMissingPrivatePathCount = 0
+        try { $telemedicineConfigured = [bool]$telemedicineNode.configured } catch { $telemedicineConfigured = $false }
+        try { $telemedicineReviewQueueCount = [int]$telemedicineNode.reviewQueueCount } catch { $telemedicineReviewQueueCount = 0 }
+        try { $telemedicineDiagnosticsStatus = [string]$telemedicineNode.diagnostics.status } catch { $telemedicineDiagnosticsStatus = '' }
+        try { $telemedicineCriticalCount = [int]$telemedicineNode.diagnostics.summary.critical } catch { $telemedicineCriticalCount = 0 }
+        try { $telemedicineWarningCount = [int]$telemedicineNode.diagnostics.summary.warning } catch { $telemedicineWarningCount = 0 }
+        try { $telemedicineStagedLegacyCount = [int]$telemedicineNode.integrity.stagedLegacyUploadsCount } catch { $telemedicineStagedLegacyCount = 0 }
+        try { $telemedicineUnlinkedIntakesCount = [int]$telemedicineNode.integrity.unlinkedIntakesCount } catch { $telemedicineUnlinkedIntakesCount = 0 }
+        try { $telemedicineDanglingCount = [int]$telemedicineNode.integrity.danglingAppointmentLinksCount } catch { $telemedicineDanglingCount = 0 }
+        try { $telemedicineCasePhotosMissingPrivatePathCount = [int]$telemedicineNode.integrity.casePhotosWithoutPrivatePathCount } catch { $telemedicineCasePhotosMissingPrivatePathCount = 0 }
+
+        if ($telemedicineConfigured) {
+            Write-Host "[OK]  telemedicine configurado (diag=$telemedicineDiagnosticsStatus, reviewQueue=$telemedicineReviewQueueCount)"
+        } else {
+            Write-Host "[WARN] telemedicine no configurado"
+        }
+        if ($telemedicineWarningCount -gt 0) {
+            Write-Host "[WARN] telemedicine diagnostics warning=$telemedicineWarningCount"
+        }
+
+        if ($RequireTelemedicineReady) {
+            if (-not $telemedicineConfigured) {
+                $results += [PSCustomObject]@{
+                    Asset = 'health-telemedicine-configured'
+                    Match = $false
+                    LocalHash = 'true'
+                    RemoteHash = 'false'
+                    RemoteUrl = $healthUrl
+                }
+            }
+            if (
+                -not $AllowDegradedTelemedicineDiagnostics -and
+                ($telemedicineDiagnosticsStatus -eq 'critical' -or $telemedicineCriticalCount -gt 0)
+            ) {
+                $results += [PSCustomObject]@{
+                    Asset = 'health-telemedicine-diagnostics-critical'
+                    Match = $false
+                    LocalHash = 'healthy'
+                    RemoteHash = "status=$telemedicineDiagnosticsStatus;critical=$telemedicineCriticalCount"
+                    RemoteUrl = $healthUrl
+                }
+            }
+            if ($telemedicineReviewQueueCount -gt $MaxTelemedicineReviewQueue) {
+                $results += [PSCustomObject]@{
+                    Asset = 'health-telemedicine-review-queue'
+                    Match = $false
+                    LocalHash = "<=$MaxTelemedicineReviewQueue"
+                    RemoteHash = [string]$telemedicineReviewQueueCount
+                    RemoteUrl = $healthUrl
+                }
+            }
+            if ($telemedicineStagedLegacyCount -gt $MaxTelemedicineStagedUploads) {
+                $results += [PSCustomObject]@{
+                    Asset = 'health-telemedicine-staged-uploads'
+                    Match = $false
+                    LocalHash = "<=$MaxTelemedicineStagedUploads"
+                    RemoteHash = [string]$telemedicineStagedLegacyCount
+                    RemoteUrl = $healthUrl
+                }
+            }
+            if ($telemedicineUnlinkedIntakesCount -gt $MaxTelemedicineUnlinkedIntakes) {
+                $results += [PSCustomObject]@{
+                    Asset = 'health-telemedicine-unlinked-intakes'
+                    Match = $false
+                    LocalHash = "<=$MaxTelemedicineUnlinkedIntakes"
+                    RemoteHash = [string]$telemedicineUnlinkedIntakesCount
+                    RemoteUrl = $healthUrl
+                }
+            }
+            if ($telemedicineDanglingCount -gt 0) {
+                $results += [PSCustomObject]@{
+                    Asset = 'health-telemedicine-dangling-links'
+                    Match = $false
+                    LocalHash = '0'
+                    RemoteHash = [string]$telemedicineDanglingCount
+                    RemoteUrl = $healthUrl
+                }
+            }
+            if ($telemedicineCasePhotosMissingPrivatePathCount -gt 0) {
+                $results += [PSCustomObject]@{
+                    Asset = 'health-telemedicine-case-photo-private-path'
+                    Match = $false
+                    LocalHash = '0'
+                    RemoteHash = [string]$telemedicineCasePhotosMissingPrivatePathCount
+                    RemoteUrl = $healthUrl
+                }
+            }
+        }
     }
 } catch {
     Write-Host "[FAIL] No se pudo validar health: $($_.Exception.Message)"

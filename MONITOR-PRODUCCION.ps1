@@ -8,6 +8,11 @@ param(
     [switch]$AllowStoreCalendar,
     [switch]$AllowBlockedCalendar,
     [switch]$RequireServicePrioritiesFunnel,
+    [switch]$AllowDegradedTelemedicineDiagnostics,
+    [bool]$RequireTelemedicineConfigured = $true,
+    [int]$MaxTelemedicineReviewQueue = 12,
+    [int]$MaxTelemedicineStagedUploads = 1,
+    [int]$MaxTelemedicineUnlinkedIntakes = 5,
     [int]$MinServicePrioritiesServices = 1,
     [int]$MinServicePrioritiesCategories = 1,
     [int]$MinServicePrioritiesFeatured = 1
@@ -130,6 +135,60 @@ if ($null -ne $healthResult -and $healthResult.StatusCode -eq 200) {
                 }
                 if (-not $AllowBlockedCalendar -and $calendarMode -ne 'live') {
                     $failures += "[FAIL] health.calendarMode=$calendarMode (reason=$calendarLastErrorReason at=$calendarLastErrorAt)"
+                }
+            }
+
+            $telemedicineNode = $null
+            try { $telemedicineNode = $health.checks.telemedicine } catch { $telemedicineNode = $null }
+            if ($null -eq $telemedicineNode) {
+                if ($RequireTelemedicineConfigured) {
+                    $failures += '[FAIL] health.checks.telemedicine ausente'
+                } else {
+                    Write-Host '[WARN] health.checks.telemedicine ausente (modo permisivo)'
+                }
+            } else {
+                $telemedicineConfigured = $false
+                $telemedicineReviewQueueCount = 0
+                $telemedicineDiagnosticsStatus = ''
+                $telemedicineCriticalCount = 0
+                $telemedicineWarningCount = 0
+                $telemedicineStagedLegacyCount = 0
+                $telemedicineUnlinkedIntakesCount = 0
+                $telemedicineDanglingLinksCount = 0
+                $telemedicineCasePhotosWithoutPrivatePathCount = 0
+
+                try { $telemedicineConfigured = [bool]$telemedicineNode.configured } catch { $telemedicineConfigured = $false }
+                try { $telemedicineReviewQueueCount = [int]$telemedicineNode.reviewQueueCount } catch { $telemedicineReviewQueueCount = 0 }
+                try { $telemedicineDiagnosticsStatus = [string]$telemedicineNode.diagnostics.status } catch { $telemedicineDiagnosticsStatus = '' }
+                try { $telemedicineCriticalCount = [int]$telemedicineNode.diagnostics.summary.critical } catch { $telemedicineCriticalCount = 0 }
+                try { $telemedicineWarningCount = [int]$telemedicineNode.diagnostics.summary.warning } catch { $telemedicineWarningCount = 0 }
+                try { $telemedicineStagedLegacyCount = [int]$telemedicineNode.integrity.stagedLegacyUploadsCount } catch { $telemedicineStagedLegacyCount = 0 }
+                try { $telemedicineUnlinkedIntakesCount = [int]$telemedicineNode.integrity.unlinkedIntakesCount } catch { $telemedicineUnlinkedIntakesCount = 0 }
+                try { $telemedicineDanglingLinksCount = [int]$telemedicineNode.integrity.danglingAppointmentLinksCount } catch { $telemedicineDanglingLinksCount = 0 }
+                try { $telemedicineCasePhotosWithoutPrivatePathCount = [int]$telemedicineNode.integrity.casePhotosWithoutPrivatePathCount } catch { $telemedicineCasePhotosWithoutPrivatePathCount = 0 }
+
+                Write-Host "[INFO] telemedicine diagnostics=$telemedicineDiagnosticsStatus critical=$telemedicineCriticalCount warning=$telemedicineWarningCount reviewQueue=$telemedicineReviewQueueCount"
+
+                if ($RequireTelemedicineConfigured -and -not $telemedicineConfigured) {
+                    $failures += '[FAIL] health.checks.telemedicine.configured=false'
+                }
+                if (-not $AllowDegradedTelemedicineDiagnostics -and ($telemedicineDiagnosticsStatus -eq 'critical' -or $telemedicineCriticalCount -gt 0)) {
+                    $failures += "[FAIL] health.telemedicine diagnostics en estado critico (status=$telemedicineDiagnosticsStatus, critical=$telemedicineCriticalCount)"
+                }
+                if ($telemedicineReviewQueueCount -gt $MaxTelemedicineReviewQueue) {
+                    $failures += "[FAIL] health.telemedicine.reviewQueueCount=$telemedicineReviewQueueCount (> $MaxTelemedicineReviewQueue)"
+                }
+                if ($telemedicineStagedLegacyCount -gt $MaxTelemedicineStagedUploads) {
+                    $failures += "[FAIL] health.telemedicine.integrity.stagedLegacyUploadsCount=$telemedicineStagedLegacyCount (> $MaxTelemedicineStagedUploads)"
+                }
+                if ($telemedicineUnlinkedIntakesCount -gt $MaxTelemedicineUnlinkedIntakes) {
+                    $failures += "[FAIL] health.telemedicine.integrity.unlinkedIntakesCount=$telemedicineUnlinkedIntakesCount (> $MaxTelemedicineUnlinkedIntakes)"
+                }
+                if ($telemedicineDanglingLinksCount -gt 0) {
+                    $failures += "[FAIL] health.telemedicine.integrity.danglingAppointmentLinksCount=$telemedicineDanglingLinksCount (> 0)"
+                }
+                if ($telemedicineCasePhotosWithoutPrivatePathCount -gt 0) {
+                    $failures += "[FAIL] health.telemedicine.integrity.casePhotosWithoutPrivatePathCount=$telemedicineCasePhotosWithoutPrivatePathCount (> 0)"
                 }
             }
         } catch {

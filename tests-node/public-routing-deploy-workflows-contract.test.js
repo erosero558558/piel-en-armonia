@@ -86,6 +86,72 @@ test('deploy-staging incluye validacion de routing y conversion ES/EN post-deplo
     );
 });
 
+test('deploy-staging evalua y gestiona incidente dedicado de telemedicina post-smoke', () => {
+    const { raw, parsed } = loadWorkflow(STAGING_WORKFLOW_PATH);
+    const steps = parsed?.jobs?.deploy?.steps || [];
+    const names = stepNames(steps);
+
+    assert.equal(
+        parsed?.permissions?.issues,
+        'write',
+        'falta permiso issues: write en deploy-staging'
+    );
+    assert.equal(
+        names.includes('Evaluar estado telemedicina deploy-staging'),
+        true,
+        'falta step de evaluacion telemedicina en deploy-staging'
+    );
+    assert.equal(
+        names.includes(
+            'Crear/actualizar incidente telemedicina deploy-staging'
+        ),
+        true,
+        'falta step para abrir/actualizar incidente dedicado de telemedicina en deploy-staging'
+    );
+    assert.equal(
+        names.includes(
+            'Cerrar incidente telemedicina deploy-staging al recuperar'
+        ),
+        true,
+        'falta step para cerrar incidente dedicado de telemedicina en deploy-staging'
+    );
+
+    for (const snippet of [
+        'TELEMEDICINE_STAGING_STATUS',
+        'TELEMEDICINE_STAGING_REASON',
+        'TELEMEDICINE_STAGING_FAILURES',
+        'TELEMEDICINE_STAGING_NON_TELE_FAILURES',
+        'id: validate_secrets_staging',
+        'id: preflight_staging',
+        'id: deploy_staging_ftp',
+        'id: smoke_staging',
+        'VALIDATE_SECRETS_OUTCOME: ${{ steps.validate_secrets_staging.outcome }}',
+        'DEPLOY_STAGING_OUTCOME: ${{ steps.deploy_staging_ftp.outcome }}',
+        'countNonTeleFailures',
+        'process.env.SMOKE_STAGING_OUTCOME,',
+        "non_tele:${process.env.TELEMEDICINE_STAGING_NON_TELE_FAILURES || '-1'}",
+        '[ALERTA PROD] Deploy Staging telemedicina degradada',
+        "github.event_name != 'workflow_dispatch' && (env.TELEMEDICINE_STAGING_STATUS == 'degraded' || env.TELEMEDICINE_STAGING_STATUS == 'unknown')",
+        "github.event_name != 'workflow_dispatch' && env.TELEMEDICINE_STAGING_STATUS == 'healthy'",
+        'telemedicine_staging_non_tele_failures: \\`${TELEMEDICINE_STAGING_NON_TELE_FAILURES}\\`',
+        'telemedicine_staging_step_outcome',
+        "reason.includes('diagnostics_critical')",
+        "reason.includes('hard_failures:')",
+        "reason.includes('hard_failures_invalid')",
+        "reason.includes('health_unavailable')",
+        "reason.includes('health_parse_error')",
+        "reason.includes('telemedicine_missing')",
+        "reason.includes('not_configured')",
+        ": 'severity:warning';",
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring telemedicina staging: ${snippet}`
+        );
+    }
+});
+
 test('deploy-hosting valida routing y conversion publica en canary y produccion', () => {
     const { raw, parsed } = loadWorkflow(HOSTING_WORKFLOW_PATH);
     const inputs = parsed?.on?.workflow_dispatch?.inputs || {};

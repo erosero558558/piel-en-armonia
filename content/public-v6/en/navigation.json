@@ -11,18 +11,18 @@
         },
         "header": {
             "primaryNavAria": "Primary navigation",
-            "megaCategoryTabsAria": "Mega menu categories",
-            "openCategoryLabel": "Explore category",
+            "megaCategoryTabsAria": "Menu categories",
+            "openCategoryLabel": "See more",
             "mobileNavAria": "Mobile navigation",
             "search": {
-                "dialogAria": "Dermatology route search",
+                "dialogAria": "Dermatology service search",
                 "eyebrow": "Quick search",
-                "inputLabel": "Type a service or topic",
-                "placeholder": "Acne, laser, telemedicine, scars...",
-                "hint": "Use simple terms. We show active clinical routes and the next useful step.",
+                "inputLabel": "Type a service or reason for consultation",
+                "placeholder": "Acne, spots, moles, telemedicine...",
+                "hint": "Use simple words. We show active care options and the clearest next step.",
                 "resultsAria": "Search results",
-                "emptyTitle": "We could not find an active route for that search",
-                "emptyBody": "Try diagnosis, acne, laser, or telemedicine to open a current route.",
+                "emptyTitle": "We could not find an active option for that search",
+                "emptyBody": "Try diagnosis, acne, laser, or telemedicine to open a current consultation.",
                 "closeLabel": "Close search",
                 "resultsLimit": 8
             }
@@ -41,7 +41,7 @@
     "header": {
         "contactLabel": "Contact",
         "contactHref": "https://wa.me/593982453672",
-        "searchLabel": "Search routes",
+        "searchLabel": "Search",
         "menuLabel": "Menu",
         "closeMenuLabel": "Close menu",
         "switchLabel": "ES",
@@ -79,7 +79,7 @@
             },
             {
                 "id": "team",
-                "label": "Team",
+                "label": "Specialties",
                 "href": "/en/services/piel-cabello-unas/",
                 "kind": "standard"
             },
@@ -92,88 +92,88 @@
         ],
         "searchEntries": [
             {
-                "label": "Comprehensive diagnosis",
+                "label": "Comprehensive diagnosis consultation",
                 "href": "/en/services/diagnostico-integral/",
-                "eyebrow": "First consultation",
-                "deck": "A complete first reading to define priority, risk, and the next clear step."
+                "eyebrow": "First visit",
+                "deck": "A broad first evaluation to understand what matters and decide the first step calmly."
             },
             {
                 "label": "Acne and rosacea",
                 "href": "/en/services/acne-rosacea/",
-                "eyebrow": "Inflammation",
-                "deck": "Flare control through medical adjustments and steady follow-up."
+                "eyebrow": "Flares",
+                "deck": "Medical care to calm inflammation and support the skin between follow-up visits."
             },
             {
                 "label": "Dermatology laser",
                 "href": "/en/services/laser-dermatologico/",
-                "eyebrow": "Medical treatments",
-                "deck": "Technology indicated by phototype, lesion profile, and safety of progression."
+                "eyebrow": "Procedures",
+                "deck": "Technology explained before it is offered, with timing and aftercare that make sense."
             },
             {
                 "label": "Chemical peel",
                 "href": "/en/services/peeling-quimico/",
-                "eyebrow": "Medical treatments",
-                "deck": "Protocols calibrated by texture, pigment, and skin tolerance."
+                "eyebrow": "Renewal",
+                "deck": "An option for texture or spots when the skin is ready to do it safely."
             },
             {
                 "label": "Collagen biostimulators",
                 "href": "/en/services/bioestimuladores-colageno/",
-                "eyebrow": "Medical rejuvenation",
-                "deck": "Firmness support with medical review and realistic timing."
+                "eyebrow": "Rejuvenation",
+                "deck": "Gradual support for firmness, with honest expectations and close follow-up."
             },
             {
                 "label": "Medical botox",
                 "href": "/en/services/botox/",
-                "eyebrow": "Medical treatments",
-                "deck": "Precise indication for facial balance with clinical follow-through."
+                "eyebrow": "Rejuvenation",
+                "deck": "Softens expression lines without losing natural movement or clear explanations."
             },
             {
                 "label": "Mesotherapy",
                 "href": "/en/services/mesoterapia/",
-                "eyebrow": "Medical treatments",
-                "deck": "Localized dermal support when the case needs reinforcement."
+                "eyebrow": "Skin care",
+                "deck": "Short sessions that support hydration and skin quality when the case calls for it."
             },
             {
                 "label": "Skin, hair and nails",
                 "href": "/en/services/piel-cabello-unas/",
-                "eyebrow": "Comprehensive route",
-                "deck": "An integrated route for symptoms, visible change, and continuity."
+                "eyebrow": "Comprehensive consultation",
+                "deck": "One consultation when symptoms overlap and the whole picture matters."
             },
             {
                 "label": "Skin cancer",
                 "href": "/en/services/cancer-piel/",
-                "eyebrow": "Screening",
-                "deck": "Early reading for lesions that change, bleed, or fail to heal."
+                "eyebrow": "Early review",
+                "deck": "Assessment for lesions that change, bleed, or raise questions and should be seen soon."
             },
             {
                 "label": "Pediatric dermatology",
                 "href": "/en/services/dermatologia-pediatrica/",
-                "eyebrow": "Pediatrics",
-                "deck": "Clear instructions for families, school routines, and home care."
+                "eyebrow": "Family care",
+                "deck": "Clear explanations for children, caregivers, school, and follow-up visits."
             },
             {
                 "label": "Scars",
                 "href": "/en/services/cicatrices/",
-                "eyebrow": "Skin sequelae",
-                "deck": "A route for texture, contour, and combined treatment planning."
+                "eyebrow": "Recovery",
+                "deck": "A staged plan to improve contour, color, and texture without unrealistic promises."
             },
             {
                 "label": "Bumps on arms and legs",
                 "href": "/en/services/granitos-brazos-piernas/",
-                "eyebrow": "Comprehensive route",
-                "deck": "Assessment for small persistent lesions with dermatology judgment."
+                "eyebrow": "Texture",
+                "deck": "Consultation for rough texture, visible follicles, and small recurring bumps."
             },
             {
                 "label": "Telemedicine",
                 "href": "/en/telemedicine/",
-                "eyebrow": "Continuity",
-                "deck": "Remote guidance when it speeds decisions without losing clinical judgment."
+                "eyebrow": "Remote care",
+                "deck": "Helps you start sooner when the case can be guided without losing medical judgment."
             },
             {
-                "label": "Legal and consent",
+                "label": "Terms and privacy",
                 "href": "/en/legal/terms/",
-                "eyebrow": "Legal framework",
-                "deck": "Terms, privacy, and consent foundations for care delivery."
+                "eyebrow": "Legal information",
+                "deck": "Clear rules for using the site, sharing data, and understanding the limits of digital guidance."
             }
         ]
     },
@@ -185,14 +185,14 @@
                 "id": "entry-routes",
                 "heading": "First consultation",
                 "context": {
-                    "eyebrow": "Initial evaluation",
-                    "title": "Start with the route that brings order to your case",
-                    "deck": "The first consultation defines priority, risk, and follow-up so you can move forward with judgment from the start.",
+                    "eyebrow": "Where to begin",
+                    "title": "Start with the consultation that best organizes what is worrying you today",
+                    "deck": "The first visit helps separate urgency, common concerns, and the follow-up that makes sense from the start.",
                     "href": "/en/services/diagnostico-integral/"
                 },
                 "items": [
                     {
-                        "label": "Comprehensive diagnosis",
+                        "label": "Comprehensive diagnosis consultation",
                         "href": "/en/services/diagnostico-integral/",
                         "children": [
                             {
@@ -224,11 +224,11 @@
                         "href": "/en/services/dermatologia-pediatrica/",
                         "children": [
                             {
-                                "label": "Family pathway",
+                                "label": "Family consultation",
                                 "href": "/en/services/dermatologia-pediatrica/"
                             },
                             {
-                                "label": "Active routes",
+                                "label": "See all services",
                                 "href": "/en/services/"
                             }
                         ]
@@ -237,11 +237,11 @@
             },
             {
                 "id": "procedures",
-                "heading": "Medical treatments",
+                "heading": "Treatments",
                 "context": {
-                    "eyebrow": "Indicated intervention",
-                    "title": "Treatments and technology guided by dermatology judgment",
-                    "deck": "Each treatment is indicated by phototype, tolerance, and clinical objective, with defined follow-up after care.",
+                    "eyebrow": "When intervention helps",
+                    "title": "Well-indicated procedures, explained before anything begins",
+                    "deck": "We suggest technology or procedures only when they add real value and can be followed safely.",
                     "href": "/en/services/laser-dermatologico/"
                 },
                 "items": [
@@ -254,7 +254,7 @@
                                 "href": "/en/services/cicatrices/"
                             },
                             {
-                                "label": "Lesion screening",
+                                "label": "Lesion review",
                                 "href": "/en/services/cancer-piel/"
                             }
                         ]
@@ -278,11 +278,11 @@
                         "href": "/en/services/bioestimuladores-colageno/",
                         "children": [
                             {
-                                "label": "Firmness support",
+                                "label": "Gradual rejuvenation",
                                 "href": "/en/services/bioestimuladores-colageno/"
                             },
                             {
-                                "label": "View all routes",
+                                "label": "More procedures",
                                 "href": "/en/services/"
                             }
                         ]
@@ -291,11 +291,11 @@
             },
             {
                 "id": "extended-care",
-                "heading": "Continuity and clarity",
+                "heading": "Telemedicine and follow-up",
                 "context": {
-                    "eyebrow": "Continuity",
-                    "title": "Telemedicine, consent, and next steps made clear",
-                    "deck": "This layer brings together remote guidance, understandable consent, and concrete actions to continue care.",
+                    "eyebrow": "Remote care",
+                    "title": "Telemedicine to guide the start and support what comes next",
+                    "deck": "This explains when remote consultation helps, when in-person review matters, and how follow-up is organized.",
                     "href": "/en/telemedicine/"
                 },
                 "items": [
@@ -308,13 +308,13 @@
                                 "href": "/en/telemedicine/"
                             },
                             {
-                                "label": "Escalation criteria",
+                                "label": "When to move into clinic",
                                 "href": "/en/telemedicine/"
                             }
                         ]
                     },
                     {
-                        "label": "Legal and consent",
+                        "label": "Terms and privacy",
                         "href": "/en/legal/terms/",
                         "children": [
                             {
@@ -345,18 +345,18 @@
             }
         ],
         "featured": {
-            "eyebrow": "Medical direction",
-            "title": "Each route explains what to observe, how to decide, and when to escalate",
-            "deck": "The promise is simple: medical judgment, human language, and follow-up that stays understandable.",
+            "eyebrow": "How we work",
+            "title": "Serious dermatology, explained without fog",
+            "deck": "The idea is simple: review carefully, speak clearly, and leave each person with a plan they can understand.",
             "href": "/en/services/"
         }
     },
     "footer": {
-        "headline": "Clear medical dermatology for Quito",
-        "deck": "Contemporary clinical care with explained decisions, human communication, and real continuity.",
+        "headline": "Medical dermatology with clear explanations",
+        "deck": "Consultation, treatments, and follow-up built so you understand what matters from the beginning.",
         "columns": [
             {
-                "title": "Active routes",
+                "title": "Active services",
                 "links": [
                     {
                         "label": "Services",
@@ -367,13 +367,13 @@
                         "href": "/en/telemedicine/"
                     },
                     {
-                        "label": "Schedule status",
+                        "label": "Booking status",
                         "href": "/en/services/"
                     }
                 ]
             },
             {
-                "title": "Policies and consent",
+                "title": "Useful information",
                 "links": [
                     {
                         "label": "Terms",
@@ -404,27 +404,27 @@
         ],
         "policies": [
             {
-                "label": "Terms and Conditions",
+                "label": "Terms and conditions",
                 "href": "/en/legal/terms/"
             },
             {
-                "label": "Privacy Policy",
+                "label": "Privacy policy",
                 "href": "/en/legal/privacy/"
             },
             {
-                "label": "Cookie Policy",
+                "label": "Cookie policy",
                 "href": "/en/legal/cookies/"
             },
             {
-                "label": "Web Accessibility Statement",
+                "label": "Site accessibility",
                 "href": "/en/legal/medical-disclaimer/"
             },
             {
-                "label": "About this Site",
+                "label": "About this site",
                 "href": "/en/legal/terms/"
             },
             {
-                "label": "Site Map",
+                "label": "Site map",
                 "href": "/en/"
             }
         ],
