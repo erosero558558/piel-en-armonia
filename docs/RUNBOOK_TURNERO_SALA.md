@@ -183,6 +183,9 @@ Para separar operación por equipo:
 - `Turnero Kiosco` empaqueta `kiosco-turnos.html` como app Electron para Windows (`.exe`) y macOS (`.dmg`).
 - `Turnero Sala TV` vive como app Android TV nativa en `src/apps/turnero-sala-tv-android/` y carga `sala-turnos.html` dentro de un WebView controlado.
 - `admin.html#queue` queda como hub de descargas, configuración y fallback operativo.
+- El hub `Apps operativas` ahora incluye un asistente para preparar `Operador`, `Kiosco` o `Sala TV` con la descarga y la ruta exacta de cada equipo.
+- En `Turnero Operador`, el primer arranque abre una configuración guiada para dejar el equipo en `C1 fijo`, `C2 fijo` o `modo libre`; luego puede reabrirse con `F10` o `Ctrl/Cmd + ,`.
+- `/app-downloads/` expone el mismo catálogo de apps para instalar fuera del admin con presets por equipo.
 
 Comandos base:
 

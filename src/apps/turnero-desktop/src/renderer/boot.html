@@ -35,6 +35,112 @@
                 <div class="boot-actions">
                     <button id="bootRetryBtn" type="button">Reintentar</button>
                 </div>
+                <section class="boot-config" aria-labelledby="bootConfigTitle">
+                    <div class="boot-config__header">
+                        <div>
+                            <p class="boot-eyebrow">Configuracion del equipo</p>
+                            <h2 id="bootConfigTitle">Deja esta app lista para operar</h2>
+                        </div>
+                        <p id="bootConfigMode" class="boot-config__mode">
+                            Primer arranque
+                        </p>
+                    </div>
+                    <form id="bootConfigForm" class="boot-config__form">
+                        <label class="boot-field" for="bootConfigBaseUrl">
+                            <span>Servidor</span>
+                            <input
+                                id="bootConfigBaseUrl"
+                                type="url"
+                                inputmode="url"
+                                autocomplete="url"
+                                placeholder="https://pielarmonia.com"
+                                required
+                            />
+                        </label>
+                        <div
+                            id="bootConfigOperatorFields"
+                            class="boot-config__grid"
+                        >
+                            <label class="boot-field" for="bootConfigProfile">
+                                <span>Perfil de operador</span>
+                                <select id="bootConfigProfile">
+                                    <option value="free">Modo libre</option>
+                                    <option value="c1_locked">C1 fijo</option>
+                                    <option value="c2_locked">C2 fijo</option>
+                                </select>
+                            </label>
+                            <div class="boot-field">
+                                <span>Flujo rapido</span>
+                                <label class="boot-checkbox">
+                                    <input id="bootConfigOneTap" type="checkbox" />
+                                    Activar modo 1 tecla
+                                </label>
+                            </div>
+                        </div>
+                        <div class="boot-config__grid">
+                            <label class="boot-field" for="bootConfigLaunchMode">
+                                <span>Ventana</span>
+                                <select id="bootConfigLaunchMode">
+                                    <option value="fullscreen">Pantalla completa</option>
+                                    <option value="windowed">Ventana</option>
+                                </select>
+                            </label>
+                            <div class="boot-field">
+                                <span>Arranque</span>
+                                <label class="boot-checkbox">
+                                    <input id="bootConfigAutoStart" type="checkbox" />
+                                    Abrir con el equipo
+                                </label>
+                            </div>
+                        </div>
+                        <div class="boot-config__preview">
+                            <span>Ruta resultante</span>
+                            <code id="bootConfigLaunchUrl">-</code>
+                        </div>
+                        <section
+                            class="boot-preflight"
+                            aria-labelledby="bootPreflightTitle"
+                        >
+                            <div class="boot-preflight__header">
+                                <div>
+                                    <p class="boot-eyebrow">Checklist de arranque</p>
+                                    <h3 id="bootPreflightTitle">Comprueba si este equipo ya está listo</h3>
+                                </div>
+                                <button
+                                    id="bootRunPreflightBtn"
+                                    type="button"
+                                    class="boot-btn-secondary"
+                                >
+                                    Comprobar equipo
+                                </button>
+                            </div>
+                            <div
+                                id="bootPreflightSummary"
+                                class="boot-preflight__summary"
+                                data-state="warning"
+                            >
+                                Ejecuta la comprobación para validar servidor, superficie y perfil del equipo.
+                            </div>
+                            <div id="bootPreflightChecks" class="boot-preflight__checks"></div>
+                        </section>
+                        <div class="boot-config__actions">
+                            <button id="bootSaveBtn" type="submit">
+                                Guardar y abrir
+                            </button>
+                            <button
+                                id="bootOpenSurfaceBtn"
+                                type="button"
+                                class="boot-btn-secondary"
+                            >
+                                Abrir superficie
+                            </button>
+                        </div>
+                    </form>
+                    <p id="bootConfigHint" class="boot-config__hint">
+                        Presiona <code>F10</code> o <code>Ctrl/Cmd + ,</code> para
+                        volver a esta configuracion.
+                    </p>
+                </section>
                 <p class="boot-hint">
                     Si esta pantalla persiste, revisa internet, servidor y canal
                     de actualizacion.

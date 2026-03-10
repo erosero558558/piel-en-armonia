@@ -153,6 +153,89 @@ body {
     letter-spacing: 0.01em;
 }
 
+.display-setup-panel {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 0.72rem;
+}
+
+.display-setup-card__header {
+    display: grid;
+    gap: 0.22rem;
+}
+
+.display-setup-card__header span {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+}
+
+.display-setup-card__header strong {
+    font-size: 1.08rem;
+    letter-spacing: 0.01em;
+}
+
+.display-setup-summary,
+.display-setup-note {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.88rem;
+}
+
+.display-setup-checks {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.56rem;
+}
+
+.display-setup-check {
+    display: grid;
+    gap: 0.14rem;
+    border: 1px solid rgb(255 255 255 / 12%);
+    border-radius: 13px;
+    padding: 0.64rem 0.74rem;
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 5%), rgb(255 255 255 / 0%)),
+        var(--surface-soft);
+}
+
+.display-setup-check strong {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.42rem;
+    font-size: 0.9rem;
+    letter-spacing: 0.01em;
+}
+
+.display-setup-check strong::before {
+    content: '';
+    width: 0.68rem;
+    height: 0.68rem;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 18%);
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 8%);
+}
+
+.display-setup-check[data-state='ready'] strong::before {
+    background: var(--success);
+}
+
+.display-setup-check[data-state='warning'] strong::before {
+    background: var(--warning);
+}
+
+.display-setup-check[data-state='danger'] strong::before {
+    background: var(--danger);
+}
+
+.display-setup-check span {
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
 .display-called-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -341,6 +424,10 @@ body[data-display-mode='star'] .display-metric-chip[data-kind='active'] strong {
     .display-layout {
         grid-template-columns: 1fr;
     }
+
+    .display-setup-checks {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 760px) {
@@ -350,6 +437,10 @@ body[data-display-mode='star'] .display-metric-chip[data-kind='active'] strong {
     }
 
     .display-called-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .display-setup-checks {
         grid-template-columns: 1fr;
     }
 

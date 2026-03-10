@@ -58,6 +58,15 @@ export function readBuildMetadata(env = process.env) {
             env.TURNERO_LAUNCH_MODE,
             raw.launchMode
         ),
+        stationMode: pickConfiguredValue(
+            env.TURNERO_STATION_MODE,
+            raw.stationMode
+        ),
+        stationConsultorio: pickConfiguredValue(
+            env.TURNERO_STATION,
+            raw.stationConsultorio
+        ),
+        oneTap: pickConfiguredValue(env.TURNERO_ONE_TAP, raw.oneTap),
         autoStart: pickConfiguredValue(
             env.TURNERO_AUTO_START,
             raw.autoStart
@@ -76,13 +85,17 @@ export function readBuildMetadata(env = process.env) {
 export function ensureRuntimeConfig(app, env = process.env) {
     const buildConfig = readBuildMetadata(env);
     const configPath = path.join(app.getPath('userData'), 'turnero-desktop.json');
-    const persisted = readJson(configPath) || {};
+    const persistedRaw = readJson(configPath);
+    const persisted = persistedRaw || {};
     const runtimeConfig = mergeRuntimeConfig(buildConfig, persisted);
 
     writeJson(configPath, {
         surface: normalizeSurface(buildConfig.surface),
         baseUrl: runtimeConfig.baseUrl,
         launchMode: runtimeConfig.launchMode,
+        stationMode: runtimeConfig.stationMode,
+        stationConsultorio: runtimeConfig.stationConsultorio,
+        oneTap: runtimeConfig.oneTap,
         autoStart: runtimeConfig.autoStart,
         updateChannel: runtimeConfig.updateChannel,
         updateBaseUrl: runtimeConfig.updateBaseUrl,
@@ -92,5 +105,28 @@ export function ensureRuntimeConfig(app, env = process.env) {
         buildConfig,
         runtimeConfig,
         configPath,
+        firstRun: !persistedRaw,
     };
+}
+
+export function persistRuntimeConfig(configPath, buildConfig, patch = {}) {
+    const persisted = readJson(configPath) || {};
+    const runtimeConfig = mergeRuntimeConfig(buildConfig, {
+        ...persisted,
+        ...patch,
+    });
+
+    writeJson(configPath, {
+        surface: normalizeSurface(buildConfig.surface),
+        baseUrl: runtimeConfig.baseUrl,
+        launchMode: runtimeConfig.launchMode,
+        stationMode: runtimeConfig.stationMode,
+        stationConsultorio: runtimeConfig.stationConsultorio,
+        oneTap: runtimeConfig.oneTap,
+        autoStart: runtimeConfig.autoStart,
+        updateChannel: runtimeConfig.updateChannel,
+        updateBaseUrl: runtimeConfig.updateBaseUrl,
+    });
+
+    return runtimeConfig;
 }

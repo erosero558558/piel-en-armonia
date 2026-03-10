@@ -3,6 +3,11 @@ plugins {
     kotlin("android")
 }
 
+val turneroVersionName =
+    providers.gradleProperty("turneroVersionName").orElse("0.1.0")
+val turneroVersionCode =
+    providers.gradleProperty("turneroVersionCode").orElse("1")
+
 android {
     namespace = "com.pielarmonia.turnerosalatv"
     compileSdk = 35
@@ -11,8 +16,8 @@ android {
         applicationId = "com.pielarmonia.turnerosalatv"
         minSdk = 28
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = turneroVersionCode.get().toInt()
+        versionName = turneroVersionName.get()
     }
 
     buildTypes {

@@ -541,6 +541,87 @@ body {
     align-content: start;
 }
 
+.kiosk-setup-card {
+    display: grid;
+    gap: 0.72rem;
+}
+
+.kiosk-setup-card__header {
+    display: grid;
+    gap: 0.22rem;
+}
+
+.kiosk-setup-card__header span {
+    color: var(--muted);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+}
+
+.kiosk-setup-card__header strong {
+    font-size: 1.06rem;
+    letter-spacing: 0.01em;
+}
+
+.kiosk-setup-summary,
+.kiosk-setup-note {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.88rem;
+}
+
+.kiosk-setup-checks {
+    display: grid;
+    gap: 0.48rem;
+}
+
+.kiosk-setup-check {
+    display: grid;
+    gap: 0.14rem;
+    border: 1px solid rgb(255 255 255 / 12%);
+    border-radius: 13px;
+    padding: 0.62rem 0.74rem;
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 5%), rgb(255 255 255 / 0%)),
+        var(--surface-soft);
+}
+
+.kiosk-setup-check strong {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.42rem;
+    font-size: 0.9rem;
+    letter-spacing: 0.01em;
+}
+
+.kiosk-setup-check strong::before {
+    content: '';
+    width: 0.68rem;
+    height: 0.68rem;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 18%);
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 8%);
+}
+
+.kiosk-setup-check[data-state='ready'] strong::before {
+    background: var(--success);
+}
+
+.kiosk-setup-check[data-state='warning'] strong::before {
+    background: var(--sony-warning);
+}
+
+.kiosk-setup-check[data-state='danger'] strong::before {
+    background: var(--danger);
+}
+
+.kiosk-setup-check span {
+    color: var(--muted);
+    font-size: 0.84rem;
+    line-height: 1.4;
+}
+
 .queue-kpi-row {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -797,6 +878,10 @@ body {
     .kiosk-form-grid,
     .kiosk-quick-actions {
         grid-template-columns: 1fr;
+    }
+
+    .kiosk-setup-check {
+        padding: 0.58rem 0.68rem;
     }
 }
 

@@ -111,7 +111,7 @@ class MainActivity : AppCompatActivity() {
             useWideViewPort = true
             builtInZoomControls = false
             displayZoomControls = false
-            userAgentString = "${userAgentString} ${TurneroConfig.USER_AGENT_SUFFIX}"
+            userAgentString = "${userAgentString} ${TurneroConfig.userAgentSuffix()}"
         }
 
         webView.isFocusable = true

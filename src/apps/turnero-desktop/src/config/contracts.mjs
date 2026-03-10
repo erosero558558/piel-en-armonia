@@ -30,6 +30,16 @@ export function normalizeLaunchMode(value) {
         : 'fullscreen';
 }
 
+export function normalizeStationMode(value, fallback = 'free') {
+    return String(value || fallback).trim().toLowerCase() === 'locked'
+        ? 'locked'
+        : 'free';
+}
+
+export function normalizeStationConsultorio(value, fallback = 1) {
+    return Number(value || fallback) === 2 ? 2 : 1;
+}
+
 export function normalizeAutoStart(value, fallback = true) {
     if (typeof value === 'boolean') {
         return value;
@@ -47,6 +57,21 @@ export function normalizeAutoStart(value, fallback = true) {
 
 export function normalizeUpdateChannel() {
     return 'stable';
+}
+
+export function normalizeOneTap(value, fallback = false) {
+    if (typeof value === 'boolean') {
+        return value;
+    }
+
+    const normalized = String(value || '').trim().toLowerCase();
+    if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+        return true;
+    }
+    if (['0', 'false', 'no', 'off'].includes(normalized)) {
+        return false;
+    }
+    return Boolean(fallback);
 }
 
 export function sanitizeBaseUrl(value, fallback = DEFAULT_BASE_URL) {
@@ -97,6 +122,12 @@ export function createBuildConfig(partial = {}) {
         surface,
         baseUrl,
         launchMode: normalizeLaunchMode(partial.launchMode),
+        stationMode: normalizeStationMode(partial.stationMode, 'free'),
+        stationConsultorio: normalizeStationConsultorio(
+            partial.stationConsultorio,
+            1
+        ),
+        oneTap: normalizeOneTap(partial.oneTap, false),
         autoStart: normalizeAutoStart(partial.autoStart, true),
         updateChannel: normalizeUpdateChannel(partial.updateChannel),
         updateBaseUrl: sanitizeUpdateBaseUrl(partial.updateBaseUrl, baseUrl),
@@ -108,6 +139,15 @@ export function mergeRuntimeConfig(buildConfig, persisted = {}) {
         surface: normalizeSurface(buildConfig.surface),
         baseUrl: sanitizeBaseUrl(persisted.baseUrl, buildConfig.baseUrl),
         launchMode: normalizeLaunchMode(persisted.launchMode || buildConfig.launchMode),
+        stationMode: normalizeStationMode(
+            persisted.stationMode,
+            buildConfig.stationMode
+        ),
+        stationConsultorio: normalizeStationConsultorio(
+            persisted.stationConsultorio,
+            buildConfig.stationConsultorio
+        ),
+        oneTap: normalizeOneTap(persisted.oneTap, buildConfig.oneTap),
         autoStart: normalizeAutoStart(persisted.autoStart, buildConfig.autoStart),
         updateChannel: normalizeUpdateChannel(
             persisted.updateChannel || buildConfig.updateChannel
@@ -120,10 +160,31 @@ export function mergeRuntimeConfig(buildConfig, persisted = {}) {
 }
 
 export function createSurfaceUrl(config) {
-    return new URL(
+    const url = new URL(
         getSurfaceRoute(config.surface),
         `${sanitizeBaseUrl(config.baseUrl)}/`
-    ).toString();
+    );
+
+    if (normalizeSurface(config.surface) === 'operator') {
+        url.searchParams.set(
+            'station',
+            normalizeStationConsultorio(config.stationConsultorio, 1) === 2
+                ? 'c2'
+                : 'c1'
+        );
+        url.searchParams.set(
+            'lock',
+            normalizeStationMode(config.stationMode, 'free') === 'locked'
+                ? '1'
+                : '0'
+        );
+        url.searchParams.set(
+            'one_tap',
+            normalizeOneTap(config.oneTap, false) ? '1' : '0'
+        );
+    }
+
+    return url.toString();
 }
 
 export function buildUpdateFeedUrl(config, platform = process.platform) {

@@ -1,1684 +1,2693 @@
-!(function () {
-    'use strict';
-    const e = 'queueKioskSeniorMode',
-        n = 9e5,
-        t = 'queueKioskOfflineOutbox',
-        i = 'queueKioskPrinterState',
-        o = 'kioskStarInlineStyles',
-        a = {
-            queueState: null,
-            chatHistory: [],
-            assistantBusy: !1,
-            queueTimerId: 0,
-            queuePollingEnabled: !1,
-            queueFailureStreak: 0,
-            queueRefreshBusy: !1,
-            queueManualRefreshBusy: !1,
-            queueLastHealthySyncAt: 0,
-            themeMode: 'system',
-            mediaQuery: null,
-            idleTimerId: 0,
-            idleTickId: 0,
-            idleDeadlineTs: 0,
-            idleResetMs: 9e4,
-            offlineOutbox: [],
-            offlineOutboxFlushBusy: !1,
-            lastConnectionState: '',
-            lastConnectionMessage: '',
-            printerState: null,
-            quickHelpOpen: !1,
-            selectedFlow: 'checkin',
-            welcomeDismissed: !1,
-            seniorMode: !1,
-            voiceGuideSupported: !1,
-            voiceGuideBusy: !1,
-            voiceGuideUtterance: null,
-        };
-    function r(e, n = {}) {
-        try {
-            window.dispatchEvent(
-                new CustomEvent('piel:queue-ops', {
-                    detail: {
-                        surface: 'kiosk',
-                        event: String(e || 'unknown'),
-                        at: new Date().toISOString(),
-                        ...n,
-                    },
-                })
-            );
-        } catch (e) {}
+const API_ENDPOINT = '/api.php';
+const CHAT_ENDPOINT = '/figo-chat.php';
+const QUEUE_POLL_MS = 2500;
+const QUEUE_POLL_MAX_MS = 15000;
+const QUEUE_STALE_THRESHOLD_MS = 30000;
+const THEME_STORAGE_KEY = 'kioskThemeMode';
+const KIOSK_SENIOR_MODE_STORAGE_KEY = 'queueKioskSeniorMode';
+const KIOSK_IDLE_RESET_DEFAULT_MS = 90000;
+const KIOSK_IDLE_RESET_MIN_MS = 5000;
+const KIOSK_IDLE_RESET_MAX_MS = 15 * 60 * 1000;
+const KIOSK_IDLE_WARNING_MS = 20000;
+const KIOSK_IDLE_POSTPONE_MS = 15000;
+const KIOSK_IDLE_TICK_MS = 1000;
+const ASSISTANT_WELCOME_TEXT =
+    'Hola. Soy el asistente de sala. Puedo ayudarte con check-in, turnos y ubicacion de consultorios.';
+const KIOSK_OFFLINE_OUTBOX_STORAGE_KEY = 'queueKioskOfflineOutbox';
+const KIOSK_OFFLINE_OUTBOX_MAX_ITEMS = 25;
+const KIOSK_OFFLINE_OUTBOX_FLUSH_BATCH = 4;
+const KIOSK_OFFLINE_OUTBOX_RENDER_LIMIT = 6;
+const KIOSK_OFFLINE_OUTBOX_DEDUPE_MS = 90 * 1000;
+const KIOSK_PRINTER_STATE_STORAGE_KEY = 'queueKioskPrinterState';
+const KIOSK_STAR_STYLE_ID = 'kioskStarInlineStyles';
+const KIOSK_WELCOME_HIDE_MS = 1800;
+const KIOSK_WELCOME_REMOVE_MS = 2600;
+const KIOSK_VOICE_GUIDE_LANG = 'es-EC';
+
+const state = {
+    queueState: null,
+    chatHistory: [],
+    assistantBusy: false,
+    queueTimerId: 0,
+    queuePollingEnabled: false,
+    queueFailureStreak: 0,
+    queueRefreshBusy: false,
+    queueManualRefreshBusy: false,
+    queueLastHealthySyncAt: 0,
+    themeMode: 'system',
+    mediaQuery: null,
+    idleTimerId: 0,
+    idleTickId: 0,
+    idleDeadlineTs: 0,
+    idleResetMs: KIOSK_IDLE_RESET_DEFAULT_MS,
+    offlineOutbox: [],
+    offlineOutboxFlushBusy: false,
+    lastConnectionState: '',
+    lastConnectionMessage: '',
+    printerState: null,
+    quickHelpOpen: false,
+    selectedFlow: 'checkin',
+    welcomeDismissed: false,
+    seniorMode: false,
+    voiceGuideSupported: false,
+    voiceGuideBusy: false,
+    voiceGuideUtterance: null,
+};
+
+function emitQueueOpsEvent(eventName, detail = {}) {
+    try {
+        window.dispatchEvent(
+            new CustomEvent('piel:queue-ops', {
+                detail: {
+                    surface: 'kiosk',
+                    event: String(eventName || 'unknown'),
+                    at: new Date().toISOString(),
+                    ...detail,
+                },
+            })
+        );
+    } catch (_error) {
+        // no-op
     }
-    function s(e) {
-        return String(e || '')
-            .replaceAll('&', '&amp;')
-            .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;')
-            .replaceAll('"', '&quot;')
-            .replaceAll("'", '&#39;');
+}
+
+function escapeHtml(value) {
+    return String(value || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+}
+
+function getById(id) {
+    return document.getElementById(id);
+}
+
+function ensureKioskStarStyles() {
+    if (document.getElementById(KIOSK_STAR_STYLE_ID)) {
+        return;
     }
-    function c(e) {
-        return document.getElementById(e);
+
+    const styleEl = document.createElement('style');
+    styleEl.id = KIOSK_STAR_STYLE_ID;
+    styleEl.textContent = `
+        body[data-kiosk-mode='star'] .kiosk-header {
+            border-bottom-color: color-mix(in srgb, var(--primary) 18%, var(--border));
+            box-shadow: 0 10px 28px rgb(15 31 54 / 10%);
+        }
+        .kiosk-header-tools {
+            display: grid;
+            gap: 0.35rem;
+            justify-items: end;
+        }
+        .kiosk-header-controls {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.45rem;
+            width: 100%;
+            max-width: 620px;
+        }
+        .kiosk-header-help-btn {
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 0.34rem 0.72rem;
+            background: var(--surface-soft);
+            color: var(--text);
+            font-size: 0.86rem;
+            font-weight: 600;
+            cursor: pointer;
+            min-height: 44px;
+        }
+        .kiosk-header-help-btn[data-variant='warning'] {
+            border-color: color-mix(in srgb, #b45309 32%, #fff 68%);
+            background: color-mix(in srgb, #fef3c7 88%, #fff 12%);
+            color: #92400e;
+        }
+        .kiosk-header-help-btn[data-open='true'] {
+            border-color: color-mix(in srgb, var(--primary) 38%, #fff 62%);
+            background: color-mix(in srgb, var(--surface-strong) 84%, #fff 16%);
+            color: var(--primary-strong);
+        }
+        .kiosk-header-help-btn[data-active='true'] {
+            border-color: color-mix(in srgb, var(--primary) 42%, #fff 58%);
+            background: color-mix(in srgb, var(--surface-strong) 84%, #fff 16%);
+            color: var(--primary-strong);
+            box-shadow: 0 10px 24px rgb(15 107 220 / 15%);
+        }
+        .kiosk-header-help-btn[disabled] {
+            opacity: 0.65;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .kiosk-quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.65rem;
+            margin: 0.45rem 0 0.6rem;
+        }
+        .kiosk-quick-action {
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 0.8rem 0.92rem;
+            background: var(--surface-soft);
+            color: var(--text);
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            cursor: pointer;
+            min-height: 64px;
+            text-align: left;
+        }
+        .kiosk-quick-action[data-active='true'] {
+            border-color: color-mix(in srgb, var(--primary) 42%, #fff 58%);
+            background: color-mix(in srgb, var(--surface-strong) 86%, #fff 14%);
+            color: var(--primary-strong);
+            box-shadow: 0 12px 26px rgb(15 107 220 / 14%);
+        }
+        .kiosk-progress-hint {
+            margin: 0 0 0.72rem;
+            color: var(--muted);
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        .kiosk-progress-hint[data-tone='success'] {
+            color: var(--success);
+        }
+        .kiosk-progress-hint[data-tone='warn'] {
+            color: #9a6700;
+        }
+        .kiosk-quick-help-panel {
+            margin: 0 0 0.9rem;
+            border: 1px solid color-mix(in srgb, var(--primary) 24%, #fff 76%);
+            border-radius: 16px;
+            padding: 0.88rem 0.95rem;
+            background: color-mix(in srgb, var(--surface-strong) 86%, #fff 14%);
+        }
+        .kiosk-quick-help-panel h2 {
+            margin: 0 0 0.46rem;
+            font-size: 1.08rem;
+        }
+        .kiosk-quick-help-panel ol {
+            margin: 0 0 0.56rem;
+            padding-left: 1.12rem;
+            color: var(--text);
+            line-height: 1.45;
+        }
+        .kiosk-quick-help-panel p {
+            margin: 0 0 0.6rem;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+        .kiosk-quick-help-panel button {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.46rem 0.74rem;
+            background: #fff;
+            color: var(--text);
+            font-weight: 600;
+            cursor: pointer;
+            min-height: 44px;
+        }
+        .kiosk-form.is-flow-active {
+            border-color: color-mix(in srgb, var(--primary) 32%, var(--border) 68%);
+            box-shadow: 0 14px 28px rgb(15 107 220 / 11%);
+        }
+        body[data-kiosk-senior='on'] {
+            font-size: 18px;
+        }
+        body[data-kiosk-senior='on'] .kiosk-layout {
+            gap: 1.2rem;
+        }
+        body[data-kiosk-senior='on'] h1 {
+            font-size: clamp(2rem, 3vw, 2.55rem);
+            line-height: 1.15;
+        }
+        body[data-kiosk-senior='on'] .kiosk-form label,
+        body[data-kiosk-senior='on'] .kiosk-progress-hint,
+        body[data-kiosk-senior='on'] .kiosk-status {
+            font-size: 1.08rem;
+        }
+        body[data-kiosk-senior='on'] .kiosk-form input,
+        body[data-kiosk-senior='on'] .assistant-form input {
+            min-height: 64px;
+            font-size: 1.18rem;
+        }
+        body[data-kiosk-senior='on'] .kiosk-form button,
+        body[data-kiosk-senior='on'] .assistant-form button {
+            min-height: 68px;
+            font-size: 1.16rem;
+        }
+        body[data-kiosk-senior='on'] .kiosk-quick-action {
+            min-height: 76px;
+            font-size: 1.13rem;
+        }
+        body[data-kiosk-senior='on'] .kiosk-header-help-btn {
+            min-height: 52px;
+            font-size: 0.97rem;
+            padding: 0.45rem 0.84rem;
+        }
+        body[data-kiosk-senior='on'] .queue-kpi-row article strong {
+            font-size: 2.3rem;
+        }
+        body[data-kiosk-senior='on'] .ticket-result-main strong {
+            font-size: 2.6rem;
+        }
+        body[data-kiosk-senior='on'] #kioskSeniorHint {
+            color: color-mix(in srgb, var(--primary) 72%, #1f2937 28%);
+        }
+        .kiosk-quick-action:focus-visible,
+        .kiosk-header-help-btn:focus-visible,
+        .kiosk-quick-help-panel button:focus-visible {
+            outline: 3px solid color-mix(in srgb, var(--primary) 62%, #fff 38%);
+            outline-offset: 2px;
+        }
+        @media (max-width: 760px) {
+            .kiosk-header-tools {
+                justify-items: start;
+            }
+            .kiosk-header-controls {
+                grid-template-columns: 1fr;
+            }
+            .kiosk-quick-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .kiosk-quick-action,
+            .kiosk-header-help-btn,
+            .kiosk-form {
+                transition: none !important;
+            }
+        }
+    `;
+    document.head.appendChild(styleEl);
+}
+
+function setKioskProgressHint(message, tone = 'info') {
+    const hintEl = getById('kioskProgressHint');
+    if (!(hintEl instanceof HTMLElement)) return;
+    const normalizedTone = ['info', 'warn', 'success'].includes(
+        String(tone || '').toLowerCase()
+    )
+        ? String(tone || '').toLowerCase()
+        : 'info';
+    const nextText =
+        String(message || '').trim() ||
+        'Paso 1 de 2: selecciona una opcion para comenzar.';
+    hintEl.dataset.tone = normalizedTone;
+    hintEl.textContent = nextText;
+}
+
+function setKioskSeniorHint(message, tone = 'info') {
+    const hintEl = getById('kioskSeniorHint');
+    if (!(hintEl instanceof HTMLElement)) return;
+    const normalizedTone = ['info', 'warn', 'success'].includes(
+        String(tone || '').toLowerCase()
+    )
+        ? String(tone || '').toLowerCase()
+        : 'info';
+    hintEl.dataset.tone = normalizedTone;
+    hintEl.textContent =
+        String(message || '').trim() ||
+        'Si necesitas letra mas grande, usa "Modo lectura grande".';
+}
+
+function readSeniorModePreference() {
+    try {
+        return localStorage.getItem(KIOSK_SENIOR_MODE_STORAGE_KEY) === '1';
+    } catch (_error) {
+        return false;
     }
-    function u(e, n = 'info') {
-        const t = c('kioskProgressHint');
-        if (!(t instanceof HTMLElement)) return;
-        const i = ['info', 'warn', 'success'].includes(
-                String(n || '').toLowerCase()
-            )
-                ? String(n || '').toLowerCase()
-                : 'info',
-            o =
-                String(e || '').trim() ||
-                'Paso 1 de 2: selecciona una opcion para comenzar.';
-        ((t.dataset.tone = i), (t.textContent = o));
+}
+
+function persistSeniorModePreference(enabled) {
+    try {
+        localStorage.setItem(
+            KIOSK_SENIOR_MODE_STORAGE_KEY,
+            enabled ? '1' : '0'
+        );
+    } catch (_error) {
+        // ignore storage failures
     }
-    function l(e, n = 'info') {
-        const t = c('kioskSeniorHint');
-        if (!(t instanceof HTMLElement)) return;
-        const i = ['info', 'warn', 'success'].includes(
-            String(n || '').toLowerCase()
-        )
-            ? String(n || '').toLowerCase()
-            : 'info';
-        ((t.dataset.tone = i),
-            (t.textContent =
-                String(e || '').trim() ||
-                'Si necesitas letra mas grande, usa "Modo lectura grande".'));
+}
+
+function syncSeniorModeButton() {
+    const seniorToggle = getById('kioskSeniorToggle');
+    if (!(seniorToggle instanceof HTMLButtonElement)) return;
+    const enabled = Boolean(state.seniorMode);
+    seniorToggle.dataset.active = enabled ? 'true' : 'false';
+    seniorToggle.setAttribute('aria-pressed', String(enabled));
+    seniorToggle.textContent = `Modo lectura grande: ${enabled ? 'On' : 'Off'}`;
+}
+
+function setSeniorModeEnabled(
+    nextEnabled,
+    { persist = true, source = 'ui' } = {}
+) {
+    const enabled = Boolean(nextEnabled);
+    state.seniorMode = enabled;
+    document.body.dataset.kioskSenior = enabled ? 'on' : 'off';
+    syncSeniorModeButton();
+    if (persist) {
+        persistSeniorModePreference(enabled);
     }
-    function d(n, { persist: t = !0, source: i = 'ui' } = {}) {
-        const o = Boolean(n);
-        ((a.seniorMode = o),
-            (document.body.dataset.kioskSenior = o ? 'on' : 'off'),
-            (function () {
-                const e = c('kioskSeniorToggle');
-                if (!(e instanceof HTMLButtonElement)) return;
-                const n = Boolean(a.seniorMode);
-                ((e.dataset.active = n ? 'true' : 'false'),
-                    e.setAttribute('aria-pressed', String(n)),
-                    (e.textContent =
-                        'Modo lectura grande: ' + (n ? 'On' : 'Off')));
-            })(),
-            t &&
-                (function (n) {
-                    try {
-                        localStorage.setItem(e, n ? '1' : '0');
-                    } catch (e) {}
-                })(o),
-            l(
-                o
-                    ? 'Modo lectura grande activo. Botones y textos ampliados.'
-                    : 'Modo lectura grande desactivado.',
-                o ? 'success' : 'info'
-            ),
-            r('senior_mode_changed', { enabled: o, source: i }));
+    setKioskSeniorHint(
+        enabled
+            ? 'Modo lectura grande activo. Botones y textos ampliados.'
+            : 'Modo lectura grande desactivado.',
+        enabled ? 'success' : 'info'
+    );
+    emitQueueOpsEvent('senior_mode_changed', {
+        enabled,
+        source,
+    });
+}
+
+function toggleSeniorMode({ source = 'ui' } = {}) {
+    setSeniorModeEnabled(!state.seniorMode, { persist: true, source });
+}
+
+function supportsVoiceGuide() {
+    return (
+        typeof window !== 'undefined' &&
+        'speechSynthesis' in window &&
+        typeof window.speechSynthesis?.speak === 'function' &&
+        typeof window.SpeechSynthesisUtterance === 'function'
+    );
+}
+
+function syncVoiceGuideButton() {
+    const voiceBtn = getById('kioskVoiceGuideBtn');
+    if (!(voiceBtn instanceof HTMLButtonElement)) return;
+
+    const supported = Boolean(state.voiceGuideSupported);
+    const busy = Boolean(state.voiceGuideBusy);
+    voiceBtn.disabled = !supported && !busy;
+    voiceBtn.textContent = !supported
+        ? 'Voz guia no disponible'
+        : busy
+          ? 'Leyendo instrucciones...'
+          : 'Leer instrucciones';
+}
+
+function stopVoiceGuide({ source = 'manual' } = {}) {
+    if (!supportsVoiceGuide()) {
+        state.voiceGuideBusy = false;
+        state.voiceGuideUtterance = null;
+        syncVoiceGuideButton();
+        return;
     }
-    function f({ source: e = 'ui' } = {}) {
-        d(!a.seniorMode, { persist: !0, source: e });
+    try {
+        window.speechSynthesis.cancel();
+    } catch (_error) {
+        // ignore platform errors
     }
-    function p() {
-        return (
-            'undefined' != typeof window &&
-            'speechSynthesis' in window &&
-            'function' == typeof window.speechSynthesis?.speak &&
-            'function' == typeof window.SpeechSynthesisUtterance
+    state.voiceGuideBusy = false;
+    state.voiceGuideUtterance = null;
+    syncVoiceGuideButton();
+    emitQueueOpsEvent('voice_guide_stopped', { source });
+}
+
+function buildVoiceGuideText() {
+    const flowHint =
+        state.selectedFlow === 'walkin'
+            ? 'Si no tienes cita, escribe iniciales y pulsa Generar turno.'
+            : 'Si tienes cita, escribe telefono, fecha y hora y pulsa Confirmar check in.';
+    return `Bienvenida al kiosco de turnos de Piel en Armonia. ${flowHint} Si necesitas ayuda, pulsa Necesito apoyo y recepcion te asistira. Conserva tu ticket y espera el llamado en la pantalla de sala.`;
+}
+
+function runVoiceGuide({ source = 'button' } = {}) {
+    if (!state.voiceGuideSupported) {
+        setKioskStatus(
+            'Guia por voz no disponible en este navegador. Usa ayuda rapida en pantalla.',
+            'info'
+        );
+        setKioskSeniorHint(
+            'Sin voz guia en este equipo. Usa ayuda rapida o pide apoyo.',
+            'warn'
+        );
+        emitQueueOpsEvent('voice_guide_unavailable', { source });
+        return;
+    }
+
+    stopVoiceGuide({ source: 'restart' });
+    const text = buildVoiceGuideText();
+    let utterance;
+    try {
+        utterance = new window.SpeechSynthesisUtterance(text);
+    } catch (_error) {
+        setKioskStatus(
+            'No se pudo iniciar guia por voz en este equipo.',
+            'error'
+        );
+        emitQueueOpsEvent('voice_guide_error', {
+            source,
+            reason: 'utterance_create_failed',
+        });
+        return;
+    }
+
+    utterance.lang = KIOSK_VOICE_GUIDE_LANG;
+    utterance.rate = 0.92;
+    utterance.pitch = 1.0;
+    utterance.onstart = () => {
+        state.voiceGuideBusy = true;
+        syncVoiceGuideButton();
+    };
+    utterance.onend = () => {
+        state.voiceGuideBusy = false;
+        state.voiceGuideUtterance = null;
+        syncVoiceGuideButton();
+        emitQueueOpsEvent('voice_guide_finished', { source });
+    };
+    utterance.onerror = () => {
+        state.voiceGuideBusy = false;
+        state.voiceGuideUtterance = null;
+        syncVoiceGuideButton();
+        setKioskStatus(
+            'La guia por voz se interrumpio. Puedes intentar nuevamente.',
+            'error'
+        );
+        emitQueueOpsEvent('voice_guide_error', {
+            source,
+            reason: 'speech_error',
+        });
+    };
+
+    try {
+        state.voiceGuideUtterance = utterance;
+        state.voiceGuideBusy = true;
+        syncVoiceGuideButton();
+        window.speechSynthesis.speak(utterance);
+        setKioskStatus('Guia por voz iniciada.', 'info');
+        setKioskSeniorHint(
+            'Escuchando guia por voz. Puedes seguir los pasos en pantalla.',
+            'success'
+        );
+        emitQueueOpsEvent('voice_guide_started', { source });
+    } catch (_error) {
+        state.voiceGuideBusy = false;
+        state.voiceGuideUtterance = null;
+        syncVoiceGuideButton();
+        setKioskStatus('No se pudo reproducir guia por voz.', 'error');
+        emitQueueOpsEvent('voice_guide_error', {
+            source,
+            reason: 'speech_start_failed',
+        });
+    }
+}
+
+function requestReceptionSupport({ source = 'button' } = {}) {
+    const supportMessage =
+        'Recepcion te ayudara enseguida. Mantente frente al kiosco o acude al mostrador.';
+    setKioskStatus(supportMessage, 'info');
+    setKioskProgressHint(
+        'Apoyo solicitado: recepcion te asistira para completar el turno.',
+        'warn'
+    );
+    appendAssistantMessage('bot', supportMessage);
+    emitQueueOpsEvent('reception_support_requested', { source });
+}
+
+function setKioskHelpPanelOpen(nextOpen, { source = 'ui' } = {}) {
+    const panel = getById('kioskQuickHelpPanel');
+    const toggle = getById('kioskHelpToggle');
+    if (
+        !(panel instanceof HTMLElement) ||
+        !(toggle instanceof HTMLButtonElement)
+    ) {
+        return;
+    }
+
+    const open = Boolean(nextOpen);
+    state.quickHelpOpen = open;
+    panel.hidden = !open;
+    toggle.dataset.open = open ? 'true' : 'false';
+    toggle.setAttribute('aria-expanded', String(open));
+    emitQueueOpsEvent('quick_help_toggled', {
+        open,
+        source,
+    });
+    if (open) {
+        setKioskProgressHint(
+            'Guia abierta: elige opcion, completa datos y confirma ticket.',
+            'info'
+        );
+    } else {
+        setKioskProgressHint(
+            'Paso 1 de 2: selecciona una opcion para comenzar.',
+            'info'
         );
     }
-    function m() {
-        const e = c('kioskVoiceGuideBtn');
-        if (!(e instanceof HTMLButtonElement)) return;
-        const n = Boolean(a.voiceGuideSupported),
-            t = Boolean(a.voiceGuideBusy);
-        ((e.disabled = !n && !t),
-            (e.textContent = n
-                ? t
-                    ? 'Leyendo instrucciones...'
-                    : 'Leer instrucciones'
-                : 'Voz guia no disponible'));
+}
+
+function focusFlowTarget(target, { announce = true } = {}) {
+    const normalized =
+        String(target || '').toLowerCase() === 'walkin' ? 'walkin' : 'checkin';
+    state.selectedFlow = normalized;
+
+    const checkinForm = getById('checkinForm');
+    const walkinForm = getById('walkinForm');
+    if (checkinForm instanceof HTMLElement) {
+        checkinForm.classList.toggle(
+            'is-flow-active',
+            normalized === 'checkin'
+        );
     }
-    function g({ source: e = 'manual' } = {}) {
-        if (!p())
-            return (
-                (a.voiceGuideBusy = !1),
-                (a.voiceGuideUtterance = null),
-                void m()
-            );
-        try {
-            window.speechSynthesis.cancel();
-        } catch (e) {}
-        ((a.voiceGuideBusy = !1),
-            (a.voiceGuideUtterance = null),
-            m(),
-            r('voice_guide_stopped', { source: e }));
+    if (walkinForm instanceof HTMLElement) {
+        walkinForm.classList.toggle('is-flow-active', normalized === 'walkin');
     }
-    function k({ source: e = 'button' } = {}) {
-        if (!a.voiceGuideSupported)
-            return (
-                T(
-                    'Guia por voz no disponible en este navegador. Usa ayuda rapida en pantalla.',
-                    'info'
-                ),
-                l(
-                    'Sin voz guia en este equipo. Usa ayuda rapida o pide apoyo.',
-                    'warn'
-                ),
-                void r('voice_guide_unavailable', { source: e })
-            );
-        g({ source: 'restart' });
-        const n = `Bienvenida al kiosco de turnos de Piel en Armonia. ${'walkin' === a.selectedFlow ? 'Si no tienes cita, escribe iniciales y pulsa Generar turno.' : 'Si tienes cita, escribe telefono, fecha y hora y pulsa Confirmar check in.'} Si necesitas ayuda, pulsa Necesito apoyo y recepcion te asistira. Conserva tu ticket y espera el llamado en la pantalla de sala.`;
-        let t;
-        try {
-            t = new window.SpeechSynthesisUtterance(n);
-        } catch (n) {
-            return (
-                T('No se pudo iniciar guia por voz en este equipo.', 'error'),
-                void r('voice_guide_error', {
-                    source: e,
-                    reason: 'utterance_create_failed',
-                })
-            );
-        }
-        ((t.lang = 'es-EC'),
-            (t.rate = 0.92),
-            (t.pitch = 1),
-            (t.onstart = () => {
-                ((a.voiceGuideBusy = !0), m());
-            }),
-            (t.onend = () => {
-                ((a.voiceGuideBusy = !1),
-                    (a.voiceGuideUtterance = null),
-                    m(),
-                    r('voice_guide_finished', { source: e }));
-            }),
-            (t.onerror = () => {
-                ((a.voiceGuideBusy = !1),
-                    (a.voiceGuideUtterance = null),
-                    m(),
-                    T(
-                        'La guia por voz se interrumpio. Puedes intentar nuevamente.',
-                        'error'
-                    ),
-                    r('voice_guide_error', {
-                        source: e,
-                        reason: 'speech_error',
-                    }));
-            }));
-        try {
-            ((a.voiceGuideUtterance = t),
-                (a.voiceGuideBusy = !0),
-                m(),
-                window.speechSynthesis.speak(t),
-                T('Guia por voz iniciada.', 'info'),
-                l(
-                    'Escuchando guia por voz. Puedes seguir los pasos en pantalla.',
-                    'success'
-                ),
-                r('voice_guide_started', { source: e }));
-        } catch (n) {
-            ((a.voiceGuideBusy = !1),
-                (a.voiceGuideUtterance = null),
-                m(),
-                T('No se pudo reproducir guia por voz.', 'error'),
-                r('voice_guide_error', {
-                    source: e,
-                    reason: 'speech_start_failed',
-                }));
-        }
+
+    const quickCheckin = getById('kioskQuickCheckin');
+    const quickWalkin = getById('kioskQuickWalkin');
+    if (quickCheckin instanceof HTMLButtonElement) {
+        const active = normalized === 'checkin';
+        quickCheckin.dataset.active = active ? 'true' : 'false';
+        quickCheckin.setAttribute('aria-pressed', String(active));
     }
-    function b({ source: e = 'button' } = {}) {
-        const n =
-            'Recepcion te ayudara enseguida. Mantente frente al kiosco o acude al mostrador.';
-        (T(n, 'info'),
-            u(
-                'Apoyo solicitado: recepcion te asistira para completar el turno.',
-                'warn'
-            ),
-            ce('bot', n),
-            r('reception_support_requested', { source: e }));
+    if (quickWalkin instanceof HTMLButtonElement) {
+        const active = normalized === 'walkin';
+        quickWalkin.dataset.active = active ? 'true' : 'false';
+        quickWalkin.setAttribute('aria-pressed', String(active));
     }
-    function h(e, { source: n = 'ui' } = {}) {
-        const t = c('kioskQuickHelpPanel'),
-            i = c('kioskHelpToggle');
-        if (!(t instanceof HTMLElement && i instanceof HTMLButtonElement))
-            return;
-        const o = Boolean(e);
-        ((a.quickHelpOpen = o),
-            (t.hidden = !o),
-            (i.dataset.open = o ? 'true' : 'false'),
-            i.setAttribute('aria-expanded', String(o)),
-            r('quick_help_toggled', { open: o, source: n }),
-            u(
-                o
-                    ? 'Guia abierta: elige opcion, completa datos y confirma ticket.'
-                    : 'Paso 1 de 2: selecciona una opcion para comenzar.',
-                'info'
-            ));
+
+    const targetInputId =
+        normalized === 'walkin' ? 'walkinInitials' : 'checkinPhone';
+    const targetInput = getById(targetInputId);
+    if (targetInput instanceof HTMLInputElement) {
+        targetInput.focus({ preventScroll: false });
     }
-    function y(e, { announce: n = !0 } = {}) {
-        const t =
-            'walkin' === String(e || '').toLowerCase() ? 'walkin' : 'checkin';
-        a.selectedFlow = t;
-        const i = c('checkinForm'),
-            o = c('walkinForm');
-        (i instanceof HTMLElement &&
-            i.classList.toggle('is-flow-active', 'checkin' === t),
-            o instanceof HTMLElement &&
-                o.classList.toggle('is-flow-active', 'walkin' === t));
-        const s = c('kioskQuickCheckin'),
-            l = c('kioskQuickWalkin');
-        if (s instanceof HTMLButtonElement) {
-            const e = 'checkin' === t;
-            ((s.dataset.active = e ? 'true' : 'false'),
-                s.setAttribute('aria-pressed', String(e)));
-        }
-        if (l instanceof HTMLButtonElement) {
-            const e = 'walkin' === t;
-            ((l.dataset.active = e ? 'true' : 'false'),
-                l.setAttribute('aria-pressed', String(e)));
-        }
-        const d = c('walkin' === t ? 'walkinInitials' : 'checkinPhone');
-        (d instanceof HTMLInputElement && d.focus({ preventScroll: !1 }),
-            n &&
-                u(
-                    'walkin' === t
-                        ? 'Paso 2: escribe iniciales y pulsa "Generar turno".'
-                        : 'Paso 2: escribe telefono, fecha y hora para check-in.',
-                    'info'
-                ),
-            r('flow_focus', { target: t }));
+
+    if (announce) {
+        setKioskProgressHint(
+            normalized === 'walkin'
+                ? 'Paso 2: escribe iniciales y pulsa "Generar turno".'
+                : 'Paso 2: escribe telefono, fecha y hora para check-in.',
+            'info'
+        );
     }
-    function v(e, n) {
-        if (!e || 'object' != typeof e || !Array.isArray(n)) return [];
-        for (const t of n) if (t && Array.isArray(e[t])) return e[t];
+    emitQueueOpsEvent('flow_focus', {
+        target: normalized,
+    });
+}
+
+function getQueueStateArray(source, keys) {
+    if (!source || typeof source !== 'object' || !Array.isArray(keys)) {
         return [];
     }
-    function S(e, n) {
-        if (!e || 'object' != typeof e || !Array.isArray(n)) return null;
-        for (const t of n) {
-            if (!t) continue;
-            const n = e[t];
-            if (n && 'object' == typeof n && !Array.isArray(n)) return n;
+    for (const key of keys) {
+        if (!key) continue;
+        if (Array.isArray(source[key])) {
+            return source[key];
         }
+    }
+    return [];
+}
+
+function getQueueStateObject(source, keys) {
+    if (!source || typeof source !== 'object' || !Array.isArray(keys)) {
         return null;
     }
-    function w(e, n, t = 0) {
-        if (!e || 'object' != typeof e || !Array.isArray(n))
-            return Number(t || 0);
-        for (const t of n) {
-            if (!t) continue;
-            const n = Number(e[t]);
-            if (Number.isFinite(n)) return n;
+    for (const key of keys) {
+        if (!key) continue;
+        const value = source[key];
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+            return value;
         }
-        return Number(t || 0);
     }
-    function x(e) {
-        const n = e && 'object' == typeof e ? e : {},
-            t = S(n, ['counts']) || {},
-            i = w(n, ['waitingCount', 'waiting_count'], Number.NaN),
-            o = w(n, ['calledCount', 'called_count'], Number.NaN);
-        let a = v(n, [
-            'callingNow',
-            'calling_now',
-            'calledTickets',
-            'called_tickets',
+    return null;
+}
+
+function getQueueStateNumber(source, keys, fallback = 0) {
+    if (!source || typeof source !== 'object' || !Array.isArray(keys)) {
+        return Number(fallback || 0);
+    }
+    for (const key of keys) {
+        if (!key) continue;
+        const value = Number(source[key]);
+        if (Number.isFinite(value)) {
+            return value;
+        }
+    }
+    return Number(fallback || 0);
+}
+
+function normalizeQueueStatePayload(rawState) {
+    const state = rawState && typeof rawState === 'object' ? rawState : {};
+    const counts = getQueueStateObject(state, ['counts']) || {};
+    const waitingCountRaw = getQueueStateNumber(
+        state,
+        ['waitingCount', 'waiting_count'],
+        Number.NaN
+    );
+    const calledCountRaw = getQueueStateNumber(
+        state,
+        ['calledCount', 'called_count'],
+        Number.NaN
+    );
+
+    let callingNow = getQueueStateArray(state, [
+        'callingNow',
+        'calling_now',
+        'calledTickets',
+        'called_tickets',
+    ]);
+    if (callingNow.length === 0) {
+        const byConsultorio = getQueueStateObject(state, [
+            'callingNowByConsultorio',
+            'calling_now_by_consultorio',
         ]);
-        if (0 === a.length) {
-            const e = S(n, [
-                'callingNowByConsultorio',
-                'calling_now_by_consultorio',
-            ]);
-            e && (a = Object.values(e).filter(Boolean));
-        }
-        const r = v(n, [
-                'nextTickets',
-                'next_tickets',
-                'waitingTickets',
-                'waiting_tickets',
-            ]),
-            s = Number.isFinite(i)
-                ? i
-                : w(t, ['waiting', 'waiting_count'], r.length),
-            c = Number.isFinite(o)
-                ? o
-                : w(t, ['called', 'called_count'], a.length);
-        return {
-            updatedAt:
-                String(n.updatedAt || n.updated_at || '').trim() ||
-                new Date().toISOString(),
-            waitingCount: Math.max(0, Number(s || 0)),
-            calledCount: Math.max(0, Number(c || 0)),
-            callingNow: Array.isArray(a)
-                ? a.map((e) => ({
-                      ...e,
-                      id: Number(e?.id || e?.ticket_id || 0) || 0,
-                      ticketCode: String(
-                          e?.ticketCode || e?.ticket_code || '--'
-                      ),
-                      patientInitials: String(
-                          e?.patientInitials || e?.patient_initials || '--'
-                      ),
-                      assignedConsultorio:
-                          Number(
-                              e?.assignedConsultorio ??
-                                  e?.assigned_consultorio ??
-                                  0
-                          ) || null,
-                      calledAt: String(e?.calledAt || e?.called_at || ''),
-                  }))
-                : [],
-            nextTickets: Array.isArray(r)
-                ? r.map((e, n) => ({
-                      ...e,
-                      id: Number(e?.id || e?.ticket_id || 0) || 0,
-                      ticketCode: String(
-                          e?.ticketCode || e?.ticket_code || '--'
-                      ),
-                      patientInitials: String(
-                          e?.patientInitials || e?.patient_initials || '--'
-                      ),
-                      queueType: String(
-                          e?.queueType || e?.queue_type || 'walk_in'
-                      ),
-                      priorityClass: String(
-                          e?.priorityClass || e?.priority_class || 'walk_in'
-                      ),
-                      position:
-                          Number(e?.position || 0) > 0
-                              ? Number(e.position)
-                              : n + 1,
-                  }))
-                : [],
-        };
-    }
-    async function q(e, { method: n = 'GET', body: t } = {}) {
-        const i = new URLSearchParams();
-        (i.set('resource', e), i.set('t', String(Date.now())));
-        const o = await fetch(`/api.php?${i.toString()}`, {
-                method: n,
-                credentials: 'same-origin',
-                headers: {
-                    Accept: 'application/json',
-                    ...(void 0 !== t
-                        ? { 'Content-Type': 'application/json' }
-                        : {}),
-                },
-                body: void 0 !== t ? JSON.stringify(t) : void 0,
-            }),
-            a = await o.text();
-        let r;
-        try {
-            r = a ? JSON.parse(a) : {};
-        } catch (e) {
-            throw new Error('Respuesta invalida del servidor');
-        }
-        if (!o.ok || !1 === r.ok)
-            throw new Error(r.error || `HTTP ${o.status}`);
-        return r;
-    }
-    function T(e, n = 'info') {
-        const t = c('kioskStatus');
-        if (!t) return;
-        const i = String(e || '').trim() || 'Estado operativo',
-            o = String(n || 'info').toLowerCase(),
-            a =
-                i !== String(t.textContent || '').trim() ||
-                o !== String(t.dataset.status || '').toLowerCase();
-        ((t.textContent = i),
-            (t.dataset.status = o),
-            a && r('kiosk_status', { status: o, message: i }));
-    }
-    function L(e, n) {
-        const t = c('queueConnectionState');
-        if (!t) return;
-        const i = String(e || 'live').toLowerCase(),
-            o = {
-                live: 'Cola conectada',
-                reconnecting: 'Reintentando conexion',
-                offline: 'Sin conexion al backend',
-                paused: 'Cola en pausa',
-            },
-            s = String(n || '').trim() || o[i] || o.live,
-            u = i !== a.lastConnectionState || s !== a.lastConnectionMessage;
-        ((a.lastConnectionState = i),
-            (a.lastConnectionMessage = s),
-            (t.dataset.state = i),
-            (t.textContent = s),
-            u && r('connection_state', { state: i, message: s }));
-    }
-    function M() {
-        const e = c('kioskSessionCountdown');
-        if (!(e instanceof HTMLElement)) return;
-        if (!a.idleDeadlineTs)
-            return (
-                (e.textContent = 'Privacidad auto: --:--'),
-                void (e.dataset.state = 'normal')
-            );
-        const n = Math.max(0, a.idleDeadlineTs - Date.now());
-        e.textContent = `Privacidad auto: ${(function (e) {
-            const n = Math.max(0, Number(e || 0)),
-                t = Math.ceil(n / 1e3);
-            return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
-        })(n)}`;
-        const t = n <= 2e4;
-        e.dataset.state = t ? 'warning' : 'normal';
-    }
-    function E() {
-        const e = c('ticketResult');
-        e &&
-            (e.innerHTML =
-                '<p class="ticket-empty">Todavia no se ha generado ningun ticket.</p>');
-    }
-    function C() {
-        const e = c('assistantMessages');
-        (e && (e.innerHTML = ''),
-            (a.chatHistory = []),
-            ce(
-                'bot',
-                'Hola. Soy el asistente de sala. Puedo ayudarte con check-in, turnos y ubicacion de consultorios.'
-            ));
-        const n = c('assistantInput');
-        n instanceof HTMLInputElement && (n.value = '');
-    }
-    function H({ durationMs: e = null } = {}) {
-        const t = Math.min(
-            n,
-            Math.max(
-                5e3,
-                Math.round(
-                    Number.isFinite(Number(e)) ? Number(e) : a.idleResetMs
-                )
-            )
-        );
-        (a.idleTimerId &&
-            (window.clearTimeout(a.idleTimerId), (a.idleTimerId = 0)),
-            a.idleTickId &&
-                (window.clearInterval(a.idleTickId), (a.idleTickId = 0)),
-            (a.idleDeadlineTs = Date.now() + t),
-            M(),
-            (a.idleTickId = window.setInterval(() => {
-                M();
-            }, 1e3)),
-            (a.idleTimerId = window.setTimeout(() => {
-                if (a.assistantBusy || a.queueManualRefreshBusy)
-                    return (
-                        T(
-                            'Sesion activa. Reprogramando limpieza automatica.',
-                            'info'
-                        ),
-                        void H({ durationMs: 15e3 })
-                    );
-                B({ reason: 'idle_timeout' });
-            }, t)));
-    }
-    function O() {
-        (le({ reason: 'activity' }), H());
-    }
-    function B({ reason: e = 'manual' } = {}) {
-        (g({ source: 'session_reset' }),
-            (function () {
-                const e = c('checkinForm'),
-                    n = c('walkinForm');
-                (e instanceof HTMLFormElement && e.reset(),
-                    n instanceof HTMLFormElement && n.reset(),
-                    de());
-            })(),
-            C(),
-            E(),
-            h(!1, { source: 'session_reset' }),
-            y('checkin', { announce: !1 }),
-            T(
-                'idle_timeout' === e
-                    ? 'Sesion reiniciada por inactividad para proteger privacidad.'
-                    : 'Pantalla limpiada. Lista para el siguiente paciente.',
-                'info'
-            ),
-            u('Paso 1 de 2: selecciona una opcion para comenzar.', 'info'),
-            j(),
-            H());
-    }
-    function _() {
-        let e = c('queueOpsHint');
-        if (e) return e;
-        const n = document.querySelector('.kiosk-side .kiosk-card'),
-            t = c('queueUpdatedAt');
-        return n && t
-            ? ((e = document.createElement('p')),
-              (e.id = 'queueOpsHint'),
-              (e.className = 'queue-updated-at'),
-              (e.textContent = 'Estado operativo: inicializando...'),
-              t.insertAdjacentElement('afterend', e),
-              e)
-            : null;
-    }
-    function I(e) {
-        const n = _();
-        n && (n.textContent = String(e || '').trim() || 'Estado operativo');
-    }
-    function A() {
-        let e = c('queueOutboxHint');
-        if (e) return e;
-        const n = _();
-        return n?.parentElement
-            ? ((e = document.createElement('p')),
-              (e.id = 'queueOutboxHint'),
-              (e.className = 'queue-updated-at'),
-              (e.textContent = 'Pendientes offline: 0'),
-              n.insertAdjacentElement('afterend', e),
-              e)
-            : null;
-    }
-    function N(e) {
-        const n = A();
-        n &&
-            (n.textContent = String(e || '').trim() || 'Pendientes offline: 0');
-    }
-    function $() {
-        let e = c('queuePrinterHint');
-        if (e) return e;
-        const n = A();
-        return n?.parentElement
-            ? ((e = document.createElement('p')),
-              (e.id = 'queuePrinterHint'),
-              (e.className = 'queue-updated-at'),
-              (e.textContent = 'Impresora: estado pendiente.'),
-              n.insertAdjacentElement('afterend', e),
-              e)
-            : null;
-    }
-    function D() {
-        const e = $();
-        if (!e) return;
-        const n = a.printerState;
-        if (!n) return void (e.textContent = 'Impresora: estado pendiente.');
-        const t = n.printed ? 'impresion OK' : n.errorCode || 'sin impresion',
-            i = n.message ? ` (${n.message})` : '',
-            o = Z(n.at);
-        e.textContent = `Impresora: ${t}${i} · ${o}`;
-    }
-    function z() {
-        let e = c('queueOutboxConsole');
-        if (e instanceof HTMLElement) return e;
-        const n = A();
-        return n?.parentElement
-            ? ((e = document.createElement('section')),
-              (e.id = 'queueOutboxConsole'),
-              (e.className = 'queue-outbox-console'),
-              (e.innerHTML =
-                  '\n        <p id="queueOutboxSummary" class="queue-updated-at">Outbox: 0 pendientes</p>\n        <div class="queue-outbox-actions">\n            <button id="queueOutboxRetryBtn" type="button" class="queue-outbox-btn">Sincronizar pendientes</button>\n            <button id="queueOutboxDropOldestBtn" type="button" class="queue-outbox-btn">Descartar mas antiguo</button>\n            <button id="queueOutboxClearBtn" type="button" class="queue-outbox-btn">Limpiar pendientes</button>\n        </div>\n        <ol id="queueOutboxList" class="queue-outbox-list">\n            <li class="queue-empty">Sin pendientes offline.</li>\n        </ol>\n        <p class="queue-updated-at queue-outbox-shortcuts">Atajos: Alt+Shift+Y sincroniza pendientes, Alt+Shift+K limpia pendientes.</p>\n    '),
-              n.insertAdjacentElement('afterend', e),
-              e)
-            : null;
-    }
-    function P(e) {
-        const n = c('queueOutboxRetryBtn'),
-            t = c('queueOutboxClearBtn'),
-            i = c('queueOutboxDropOldestBtn');
-        (n instanceof HTMLButtonElement &&
-            ((n.disabled = Boolean(e) || !a.offlineOutbox.length),
-            (n.textContent = e
-                ? 'Sincronizando...'
-                : 'Sincronizar pendientes')),
-            t instanceof HTMLButtonElement &&
-                (t.disabled = Boolean(e) || !a.offlineOutbox.length),
-            i instanceof HTMLButtonElement &&
-                (i.disabled = Boolean(e) || a.offlineOutbox.length <= 0));
-    }
-    function F() {
-        z();
-        const e = c('queueOutboxSummary'),
-            n = c('queueOutboxList'),
-            t = a.offlineOutbox.length;
-        (e instanceof HTMLElement &&
-            (e.textContent =
-                t <= 0 ? 'Outbox: 0 pendientes' : `Outbox: ${t} pendiente(s)`),
-            n instanceof HTMLElement &&
-                (n.innerHTML =
-                    t <= 0
-                        ? '<li class="queue-empty">Sin pendientes offline.</li>'
-                        : a.offlineOutbox
-                              .slice(0, 6)
-                              .map((e, n) => {
-                                  const t = Z(e.queuedAt),
-                                      i = Number(e.attempts || 0);
-                                  return `<li><strong>${s(e.originLabel)}</strong> · ${s(e.patientInitials || '--')} · ${s(e.queueType || '--')} · ${s(t)} · intento ${n + 1}/${Math.max(1, i + 1)}</li>`;
-                              })
-                              .join('')),
-            P(!1));
-    }
-    function R({ reason: e = 'manual' } = {}) {
-        ((a.offlineOutbox = []),
-            G(),
-            j(),
-            F(),
-            'manual' === e &&
-                T('Pendientes offline limpiados manualmente.', 'info'));
-    }
-    function G() {
-        try {
-            localStorage.setItem(t, JSON.stringify(a.offlineOutbox));
-        } catch (e) {}
-    }
-    function j() {
-        const e = a.offlineOutbox.length;
-        if (e <= 0)
-            return (N('Pendientes offline: 0 (sin pendientes).'), void F());
-        const n = Date.parse(String(a.offlineOutbox[0]?.queuedAt || ''));
-        (N(
-            `Pendientes offline: ${e} - sincronizacion automatica al reconectar${Number.isFinite(n) ? ` - mas antiguo ${J(Date.now() - n)}` : ''}`
-        ),
-            F());
-    }
-    function U() {
-        let e = c('queueManualRefreshBtn');
-        if (e instanceof HTMLButtonElement) return e;
-        const n = c('queueUpdatedAt');
-        return n?.parentElement
-            ? ((e = document.createElement('button')),
-              (e.id = 'queueManualRefreshBtn'),
-              (e.type = 'button'),
-              (e.className = 'queue-manual-refresh-btn'),
-              (e.textContent = 'Reintentar sincronizacion'),
-              n.insertAdjacentElement('afterend', e),
-              e)
-            : null;
-    }
-    function K(e) {
-        const n = U();
-        n instanceof HTMLButtonElement &&
-            ((n.disabled = Boolean(e)),
-            (n.textContent = e
-                ? 'Actualizando cola...'
-                : 'Reintentar sincronizacion'));
-    }
-    function J(e) {
-        const n = Math.max(0, Number(e || 0)),
-            t = Math.round(n / 1e3);
-        if (t < 60) return `${t}s`;
-        const i = Math.floor(t / 60),
-            o = t % 60;
-        return o <= 0 ? `${i}m` : `${i}m ${o}s`;
-    }
-    function Q() {
-        return a.queueLastHealthySyncAt
-            ? `hace ${J(Date.now() - a.queueLastHealthySyncAt)}`
-            : 'sin sincronizacion confirmada';
-    }
-    function W(e) {
-        const n = c('queueUpdatedAt');
-        if (!n) return;
-        const t = x({ updatedAt: e }),
-            i = Date.parse(String(t.updatedAt || ''));
-        Number.isFinite(i)
-            ? (n.textContent = `Actualizado ${new Date(i).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`)
-            : (n.textContent = 'Actualizacion pendiente');
-    }
-    function V() {
-        const e = Math.max(0, Number(a.queueFailureStreak || 0)),
-            n = 2500 * Math.pow(2, Math.min(e, 3));
-        return Math.min(15e3, n);
-    }
-    function Y() {
-        a.queueTimerId &&
-            (window.clearTimeout(a.queueTimerId), (a.queueTimerId = 0));
-    }
-    function Z(e) {
-        const n = Date.parse(String(e || ''));
-        return Number.isFinite(n)
-            ? new Date(n).toLocaleString('es-EC', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  day: '2-digit',
-                  month: '2-digit',
-              })
-            : '--';
-    }
-    async function X() {
-        if (a.queueRefreshBusy) return { ok: !1, stale: !1, reason: 'busy' };
-        a.queueRefreshBusy = !0;
-        try {
-            const e = await q('queue-state');
-            ((a.queueState = x(e.data || {})),
-                (function (e) {
-                    const n = x(e),
-                        t = c('queueWaitingCount'),
-                        i = c('queueCalledCount'),
-                        o = c('queueCallingNow'),
-                        a = c('queueNextList');
-                    if (
-                        (t && (t.textContent = String(n.waitingCount || 0)),
-                        i && (i.textContent = String(n.calledCount || 0)),
-                        o)
-                    ) {
-                        const e = Array.isArray(n.callingNow)
-                            ? n.callingNow
-                            : [];
-                        0 === e.length
-                            ? (o.innerHTML =
-                                  '<p class="queue-empty">Sin llamados activos.</p>')
-                            : (o.innerHTML = e
-                                  .map(
-                                      (e) =>
-                                          `\n                        <article class="queue-called-card">\n                            <header>Consultorio ${s(e.assignedConsultorio)}</header>\n                            <strong>${s(e.ticketCode || '--')}</strong>\n                            <span>${s(e.patientInitials || '--')}</span>\n                        </article>\n                    `
-                                  )
-                                  .join(''));
-                    }
-                    if (a) {
-                        const e = Array.isArray(n.nextTickets)
-                            ? n.nextTickets
-                            : [];
-                        0 === e.length
-                            ? (a.innerHTML =
-                                  '<li class="queue-empty">No hay turnos en espera.</li>')
-                            : (a.innerHTML = e
-                                  .map(
-                                      (e) =>
-                                          `\n                        <li>\n                            <span class="ticket-code">${s(e.ticketCode || '--')}</span>\n                            <span class="ticket-meta">${s(e.patientInitials || '--')}</span>\n                            <span class="ticket-position">#${s(e.position || '-')}</span>\n                        </li>\n                    `
-                                  )
-                                  .join(''));
-                    }
-                })(a.queueState),
-                W(a.queueState?.updatedAt));
-            const n = (function (e) {
-                const n = x(e),
-                    t = Date.parse(String(n.updatedAt || ''));
-                if (!Number.isFinite(t))
-                    return { stale: !1, missingTimestamp: !0, ageMs: null };
-                const i = Math.max(0, Date.now() - t);
-                return { stale: i >= 3e4, missingTimestamp: !1, ageMs: i };
-            })(a.queueState);
-            return {
-                ok: !0,
-                stale: Boolean(n.stale),
-                missingTimestamp: Boolean(n.missingTimestamp),
-                ageMs: n.ageMs,
-            };
-        } catch (e) {
-            return {
-                ok: !1,
-                stale: !1,
-                reason: 'fetch_error',
-                errorMessage: e.message,
-            };
-        } finally {
-            a.queueRefreshBusy = !1;
+        if (byConsultorio) {
+            callingNow = Object.values(byConsultorio).filter(Boolean);
         }
     }
-    function ee(e, n) {
-        const t = c('ticketResult');
-        if (!t) return;
-        const o = e?.data || {},
-            u = {
-                ...o,
-                id: Number(o?.id || o?.ticket_id || 0) || 0,
-                ticketCode: String(o?.ticketCode || o?.ticket_code || '--'),
-                patientInitials: String(
-                    o?.patientInitials || o?.patient_initials || '--'
-                ),
-                queueType: String(o?.queueType || o?.queue_type || 'walk_in'),
-                createdAt: String(
-                    o?.createdAt || o?.created_at || new Date().toISOString()
-                ),
-            },
-            l = e?.print || {};
-        !(function (e, { origin: n = 'ticket' } = {}) {
-            const t = e?.print || {};
-            ((a.printerState = {
-                ok: Boolean(t.ok),
-                printed: Boolean(e?.printed),
-                errorCode: String(t.errorCode || ''),
-                message: String(t.message || ''),
-                at: new Date().toISOString(),
-            }),
-                (function () {
-                    try {
-                        localStorage.setItem(i, JSON.stringify(a.printerState));
-                    } catch (e) {}
-                })(),
-                D(),
-                r('printer_result', {
-                    origin: n,
-                    ok: a.printerState.ok,
-                    printed: a.printerState.printed,
-                    errorCode: a.printerState.errorCode,
-                }));
-        })(e, { origin: n });
-        const d = Array.isArray(a.queueState?.nextTickets)
-                ? a.queueState.nextTickets
-                : [],
-            f = d.find((e) => Number(e.id) === Number(u.id))?.position || '-',
-            p = e?.printed
-                ? 'Impresion enviada a termica'
-                : `Ticket generado sin impresion (${s(l.message || 'sin detalle')})`;
-        t.innerHTML = `\n        <article class="ticket-result-card">\n            <h3>Turno generado</h3>\n            <p class="ticket-result-origin">${s(n)}</p>\n            <div class="ticket-result-main">\n                <strong>${s(u.ticketCode || '--')}</strong>\n                <span>${s(u.patientInitials || '--')}</span>\n            </div>\n            <dl>\n                <div><dt>Posicion</dt><dd>#${s(f)}</dd></div>\n                <div><dt>Tipo</dt><dd>${s(u.queueType || '--')}</dd></div>\n                <div><dt>Creado</dt><dd>${s(Z(u.createdAt))}</dd></div>\n            </dl>\n            <p class="ticket-result-print">${p}</p>\n        </article>\n    `;
-    }
-    function ne({
-        originLabel: e,
-        patientInitials: n,
-        queueType: t,
-        queuedAt: i,
-    }) {
-        const o = c('ticketResult');
-        o &&
-            (o.innerHTML = `\n        <article class="ticket-result-card">\n            <h3>Solicitud guardada offline</h3>\n            <p class="ticket-result-origin">${s(e)}</p>\n            <div class="ticket-result-main">\n                <strong>${s(`PEND-${String(a.offlineOutbox.length).padStart(2, '0')}`)}</strong>\n                <span>${s(n || '--')}</span>\n            </div>\n            <dl>\n                <div><dt>Posicion</dt><dd>Pendiente sync</dd></div>\n                <div><dt>Tipo</dt><dd>${s(t || '--')}</dd></div>\n                <div><dt>Guardado</dt><dd>${s(Z(i))}</dd></div>\n            </dl>\n            <p class="ticket-result-print">Se sincronizara automaticamente al recuperar conexion.</p>\n        </article>\n    `);
-    }
-    function te(e) {
-        if (!1 === navigator.onLine) return !0;
-        const n = String(e?.message || '').toLowerCase();
-        return (
-            !!n &&
-            (n.includes('failed to fetch') ||
-                n.includes('networkerror') ||
-                n.includes('network request failed') ||
-                n.includes('load failed') ||
-                n.includes('network'))
-        );
-    }
-    function ie(e, n) {
-        const t = String(e || '').toLowerCase(),
-            i = (function (e) {
-                const n = e && 'object' == typeof e ? e : {};
-                return Object.keys(n)
-                    .sort()
-                    .reduce((e, t) => ((e[t] = n[t]), e), {});
-            })(n);
-        return `${t}:${JSON.stringify(i)}`;
-    }
-    function oe({
-        resource: e,
-        body: n,
-        originLabel: t,
-        patientInitials: i,
-        queueType: o,
-    }) {
-        const s = String(e || '');
-        if ('queue-ticket' !== s && 'queue-checkin' !== s) return null;
-        const c = ie(s, n),
-            u = Date.now(),
-            l = a.offlineOutbox.find((e) => {
-                if (String(e?.fingerprint || '') !== c) return !1;
-                const n = Date.parse(String(e?.queuedAt || ''));
-                return !!Number.isFinite(n) && u - n <= 9e4;
-            });
-        if (l)
-            return (
-                r('offline_queued_duplicate', { resource: s, fingerprint: c }),
-                { ...l, deduped: !0 }
-            );
-        const d = {
-            id: `offline_${Date.now()}_${Math.floor(1e5 * Math.random())}`,
-            resource: s,
-            body: n && 'object' == typeof n ? n : {},
-            originLabel: String(t || 'Solicitud offline'),
-            patientInitials: String(i || '--'),
-            queueType: String(o || '--'),
-            queuedAt: new Date().toISOString(),
-            attempts: 0,
-            lastError: '',
-            fingerprint: c,
-        };
-        return (
-            (a.offlineOutbox = [d, ...a.offlineOutbox].slice(0, 25)),
-            G(),
-            j(),
-            r('offline_queued', {
-                resource: s,
-                queueSize: a.offlineOutbox.length,
-            }),
-            d
-        );
-    }
-    async function ae({
-        source: e = 'auto',
-        force: n = !1,
-        maxItems: t = 4,
-    } = {}) {
-        if (a.offlineOutboxFlushBusy) return;
-        if (!a.offlineOutbox.length) return;
-        if (!n && !1 === navigator.onLine) return;
-        ((a.offlineOutboxFlushBusy = !0), P(!0));
-        let i = 0;
-        try {
-            for (
-                ;
-                a.offlineOutbox.length && i < Math.max(1, Number(t || 1));
-            ) {
-                const e = a.offlineOutbox[0];
-                try {
-                    const n = await q(e.resource, {
-                        method: 'POST',
-                        body: e.body,
-                    });
-                    (a.offlineOutbox.shift(),
-                        G(),
-                        j(),
-                        ee(n, `${e.originLabel} (sincronizado)`),
-                        T(
-                            `Pendiente sincronizado (${e.originLabel})`,
-                            'success'
-                        ),
-                        r('offline_synced_item', {
-                            resource: e.resource,
-                            originLabel: e.originLabel,
-                            pendingAfter: a.offlineOutbox.length,
-                        }),
-                        (i += 1));
-                } catch (n) {
-                    ((e.attempts = Number(e.attempts || 0) + 1),
-                        (e.lastError = String(n?.message || '').slice(0, 180)),
-                        (e.lastAttemptAt = new Date().toISOString()),
-                        G(),
-                        j());
-                    const t = te(n);
-                    (T(
-                        t
-                            ? 'Sincronizacion offline pendiente: esperando reconexion.'
-                            : `Pendiente con error: ${n.message}`,
-                        t ? 'info' : 'error'
-                    ),
-                        r('offline_sync_error', {
-                            resource: e.resource,
-                            retryingOffline: t,
-                            error: String(n?.message || ''),
-                        }));
-                    break;
-                }
-            }
-            i > 0 &&
-                ((a.queueFailureStreak = 0),
-                (await X()).ok &&
-                    ((a.queueLastHealthySyncAt = Date.now()),
-                    L('live', 'Cola conectada'),
-                    I(`Outbox sincronizado desde ${e}. (${Q()})`),
-                    r('offline_synced_batch', {
-                        source: e,
-                        processed: i,
-                        pendingAfter: a.offlineOutbox.length,
-                    })));
-        } finally {
-            ((a.offlineOutboxFlushBusy = !1), F());
-        }
-    }
-    async function re(e) {
-        if (
-            (e.preventDefault(),
-            O(),
-            le({ reason: 'form_submit' }),
-            !(e.currentTarget instanceof HTMLFormElement))
-        )
-            return;
-        const n = c('checkinPhone'),
-            t = c('checkinTime'),
-            i = c('checkinDate'),
-            o = c('checkinInitials'),
-            r = c('checkinSubmit'),
-            s = n instanceof HTMLInputElement ? n.value.trim() : '',
-            l = t instanceof HTMLInputElement ? t.value.trim() : '',
-            d = i instanceof HTMLInputElement ? i.value.trim() : '',
-            f = o instanceof HTMLInputElement ? o.value.trim() : '';
-        if (!s || !l || !d)
-            return (
-                T(
-                    'Telefono, fecha y hora son obligatorios para check-in',
-                    'error'
-                ),
-                void u(
-                    'Completa telefono, fecha y hora para continuar.',
-                    'warn'
-                )
-            );
-        r instanceof HTMLButtonElement && (r.disabled = !0);
-        try {
-            const e = { telefono: s, hora: l, fecha: d, patientInitials: f },
-                n = await q('queue-checkin', { method: 'POST', body: e });
-            (T('Check-in registrado correctamente', 'success'),
-                u(
-                    'Check-in completado. Conserva tu ticket y espera llamado.',
-                    'success'
-                ),
-                ee(n, n.replay ? 'Check-in ya existente' : 'Check-in de cita'),
-                (a.queueFailureStreak = 0),
-                (await X()).ok ||
-                    L(
-                        'reconnecting',
-                        'Check-in registrado; pendiente sincronizar cola'
-                    ));
-        } catch (e) {
-            if (te(e)) {
-                const e = oe({
-                    resource: 'queue-checkin',
-                    body: {
-                        telefono: s,
-                        hora: l,
-                        fecha: d,
-                        patientInitials: f,
-                    },
-                    originLabel: 'Check-in de cita',
-                    patientInitials: f || s.slice(-2),
-                    queueType: 'appointment',
-                });
-                if (e)
-                    return (
-                        L('offline', 'Sin conexion al backend'),
-                        I(
-                            'Modo offline: check-ins/turnos se guardan localmente hasta reconectar.'
-                        ),
-                        ne({
-                            originLabel: e.originLabel,
-                            patientInitials: e.patientInitials,
-                            queueType: e.queueType,
-                            queuedAt: e.queuedAt,
-                        }),
-                        T(
-                            e.deduped
-                                ? 'Check-in ya pendiente offline. Se sincronizara automaticamente.'
-                                : 'Check-in guardado offline. Se sincronizara automaticamente.',
-                            'info'
-                        ),
-                        void u(
-                            'Check-in guardado offline. Recepcion confirmara al reconectar.',
-                            'warn'
-                        )
-                    );
-            }
-            (T(`No se pudo registrar el check-in: ${e.message}`, 'error'),
-                u(
-                    'No se pudo confirmar check-in. Intenta de nuevo o pide apoyo.',
-                    'warn'
-                ));
-        } finally {
-            r instanceof HTMLButtonElement && (r.disabled = !1);
-        }
-    }
-    async function se(e) {
-        (e.preventDefault(), O(), le({ reason: 'form_submit' }));
-        const n = c('walkinName'),
-            t = c('walkinInitials'),
-            i = c('walkinPhone'),
-            o = c('walkinSubmit'),
-            r = n instanceof HTMLInputElement ? n.value.trim() : '',
-            s =
-                (t instanceof HTMLInputElement ? t.value.trim() : '') ||
-                (function (e) {
-                    const n = String(e || '').trim();
-                    if (!n) return '';
-                    const t = n
-                        .toUpperCase()
-                        .split(/\s+/)
-                        .map((e) => e.replace(/[^A-Z]/g, ''))
-                        .filter(Boolean);
-                    if (0 === t.length) return '';
-                    let i = '';
-                    for (const e of t)
-                        if (((i += e.slice(0, 1)), i.length >= 3)) break;
-                    return i.slice(0, 4);
-                })(r),
-            l = i instanceof HTMLInputElement ? i.value.trim() : '';
-        if (!s)
-            return (
-                T('Ingresa iniciales o nombre para generar el turno', 'error'),
-                void u('Escribe iniciales para generar tu turno.', 'warn')
-            );
-        o instanceof HTMLButtonElement && (o.disabled = !0);
-        try {
-            const e = { patientInitials: s, name: r, phone: l },
-                n = await q('queue-ticket', { method: 'POST', body: e });
-            (T('Turno walk-in registrado correctamente', 'success'),
-                u(
-                    'Turno generado. Conserva tu ticket y espera llamado.',
-                    'success'
-                ),
-                ee(n, 'Turno sin cita'),
-                (a.queueFailureStreak = 0),
-                (await X()).ok ||
-                    L(
-                        'reconnecting',
-                        'Turno creado; pendiente sincronizar cola'
-                    ));
-        } catch (e) {
-            if (te(e)) {
-                const e = oe({
-                    resource: 'queue-ticket',
-                    body: { patientInitials: s, name: r, phone: l },
-                    originLabel: 'Turno sin cita',
-                    patientInitials: s,
-                    queueType: 'walk_in',
-                });
-                if (e)
-                    return (
-                        L('offline', 'Sin conexion al backend'),
-                        I(
-                            'Modo offline: check-ins/turnos se guardan localmente hasta reconectar.'
-                        ),
-                        ne({
-                            originLabel: e.originLabel,
-                            patientInitials: e.patientInitials,
-                            queueType: e.queueType,
-                            queuedAt: e.queuedAt,
-                        }),
-                        T(
-                            e.deduped
-                                ? 'Turno ya pendiente offline. Se sincronizara automaticamente.'
-                                : 'Turno guardado offline. Se sincronizara automaticamente.',
-                            'info'
-                        ),
-                        void u(
-                            'Turno guardado offline. Recepcion lo sincronizara al reconectar.',
-                            'warn'
-                        )
-                    );
-            }
-            (T(`No se pudo crear el turno: ${e.message}`, 'error'),
-                u(
-                    'No se pudo generar turno. Intenta de nuevo o pide apoyo.',
-                    'warn'
-                ));
-        } finally {
-            o instanceof HTMLButtonElement && (o.disabled = !1);
-        }
-    }
-    function ce(e, n) {
-        const t = c('assistantMessages');
-        if (!t) return;
-        const i = document.createElement('article');
-        ((i.className = `assistant-message assistant-message-${e}`),
-            (i.innerHTML = `<p>${s(n)}</p>`),
-            t.appendChild(i),
-            (t.scrollTop = t.scrollHeight));
-    }
-    async function ue(e) {
-        if ((e.preventDefault(), O(), a.assistantBusy)) return;
-        const n = c('assistantInput'),
-            t = c('assistantSend');
-        if (!(n instanceof HTMLInputElement)) return;
-        const i = n.value.trim();
-        if (i) {
-            (ce('user', i),
-                (n.value = ''),
-                (a.assistantBusy = !0),
-                t instanceof HTMLButtonElement && (t.disabled = !0));
-            try {
-                const e = [
-                        {
-                            role: 'system',
-                            content:
-                                'Modo kiosco de sala de espera. Solo orientar sobre turnos, check-in, consultorios y recepcion. No dar consejo clinico.',
-                        },
-                        ...a.chatHistory.slice(-6),
-                        { role: 'user', content: i },
-                    ],
-                    n = await fetch(`/figo-chat.php?t=${Date.now()}`, {
-                        method: 'POST',
-                        credentials: 'same-origin',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Accept: 'application/json',
-                        },
-                        body: JSON.stringify({
-                            model: 'figo-assistant',
-                            source: 'kiosk_waiting_room',
-                            messages: e,
-                            max_tokens: 180,
-                            temperature: 0.2,
-                        }),
-                    }),
-                    t = await n.json(),
-                    o = (function (e) {
-                        const n = String(e || '')
-                            .toLowerCase()
-                            .normalize('NFD')
-                            .replace(/[\u0300-\u036f]/g, '');
-                        if (
-                            /(diagnost|medicacion|tratamiento medico|receta|dosis|enfermedad)/.test(
-                                n
-                            )
-                        )
-                            return 'En este kiosco solo puedo ayudarte con turnos y orientacion de sala. Para consulta medica, acude a recepcion.';
-                        return (
-                            String(e || '').trim() ||
-                            'Puedo ayudarte con turnos, check-in y ubicacion de consultorios.'
-                        );
-                    })(String(t?.choices?.[0]?.message?.content || '').trim());
-                (ce('bot', o),
-                    (a.chatHistory = [
-                        ...a.chatHistory,
-                        { role: 'user', content: i },
-                        { role: 'assistant', content: o },
-                    ].slice(-8)));
-            } catch (e) {
-                ce(
-                    'bot',
-                    'No pude conectar con el asistente. Te ayudo en recepcion para continuar con tu turno.'
-                );
-            } finally {
-                ((a.assistantBusy = !1),
-                    t instanceof HTMLButtonElement && (t.disabled = !1));
-            }
-        }
-    }
-    function le({ reason: e = 'auto' } = {}) {
-        if (a.welcomeDismissed) return;
-        a.welcomeDismissed = !0;
-        const n = c('kioskWelcomeScreen');
-        n instanceof HTMLElement &&
-            (n.classList.add('is-hidden'),
-            window.setTimeout(() => {
-                n.parentElement && n.remove();
-            }, 700),
-            r('welcome_dismissed', { reason: e }));
-    }
-    function de() {
-        const e = c('checkinDate');
-        e instanceof HTMLInputElement &&
-            !e.value &&
-            (e.value = new Date().toISOString().slice(0, 10));
-    }
-    function fe({ immediate: e = !1 } = {}) {
-        if ((Y(), !a.queuePollingEnabled)) return;
-        const n = e ? 0 : V();
-        a.queueTimerId = window.setTimeout(() => {
-            pe();
-        }, n);
-    }
-    async function pe() {
-        if (!a.queuePollingEnabled) return;
-        if (document.hidden)
-            return (
-                L('paused', 'Cola en pausa (pestana oculta)'),
-                I('Pestana oculta. Turnero en pausa temporal.'),
-                void fe()
-            );
-        if (!1 === navigator.onLine)
-            return (
-                (a.queueFailureStreak += 1),
-                L('offline', 'Sin conexion al backend'),
-                I(
-                    'Sin internet. Deriva check-in/turnos a recepcion mientras se recupera conexion.'
-                ),
-                j(),
-                void fe()
-            );
-        await ae({ source: 'poll' });
-        const e = await X();
-        if (e.ok && !e.stale)
-            ((a.queueFailureStreak = 0),
-                (a.queueLastHealthySyncAt = Date.now()),
-                L('live', 'Cola conectada'),
-                I(
-                    `Operacion estable (${Q()}). Kiosco disponible para turnos.`
-                ));
-        else if (e.ok && e.stale) {
-            a.queueFailureStreak += 1;
-            const n = J(e.ageMs || 0);
-            (L('reconnecting', `Watchdog: cola estancada ${n}`),
-                I(
-                    `Cola degradada: sin cambios en ${n}. Usa "Reintentar sincronizacion" o apoyo de recepcion.`
-                ));
-        } else {
-            a.queueFailureStreak += 1;
-            const e = Math.max(1, Math.ceil(V() / 1e3));
-            (L('reconnecting', `Reintentando en ${e}s`),
-                I(`Conexion inestable. Reintento automatico en ${e}s.`));
-        }
-        (j(), fe());
-    }
-    async function me() {
-        if (!a.queueManualRefreshBusy) {
-            (O(),
-                (a.queueManualRefreshBusy = !0),
-                K(!0),
-                L('reconnecting', 'Refrescando manualmente...'));
-            try {
-                await ae({ source: 'manual' });
-                const e = await X();
-                if (e.ok && !e.stale)
-                    return (
-                        (a.queueFailureStreak = 0),
-                        (a.queueLastHealthySyncAt = Date.now()),
-                        L('live', 'Cola conectada'),
-                        void I(`Sincronizacion manual exitosa (${Q()}).`)
-                    );
-                if (e.ok && e.stale) {
-                    const n = J(e.ageMs || 0);
-                    return (
-                        L('reconnecting', `Watchdog: cola estancada ${n}`),
-                        void I(
-                            `Persisten datos estancados (${n}). Verifica backend o recepcion.`
-                        )
-                    );
-                }
-                const n = Math.max(1, Math.ceil(V() / 1e3));
-                (L(
-                    !1 === navigator.onLine ? 'offline' : 'reconnecting',
-                    !1 === navigator.onLine
-                        ? 'Sin conexion al backend'
-                        : `Reintentando en ${n}s`
-                ),
-                    I(
-                        !1 === navigator.onLine
-                            ? 'Sin internet. Opera manualmente en recepcion.'
-                            : `Refresh manual sin exito. Reintento automatico en ${n}s.`
-                    ));
-            } finally {
-                (j(), (a.queueManualRefreshBusy = !1), K(!1));
-            }
-        }
-    }
-    function ge({ immediate: e = !0 } = {}) {
-        if (((a.queuePollingEnabled = !0), e))
-            return (L('live', 'Sincronizando cola...'), void pe());
-        fe();
-    }
-    function ke({ reason: e = 'paused' } = {}) {
-        ((a.queuePollingEnabled = !1), (a.queueFailureStreak = 0), Y());
-        const n = String(e || 'paused').toLowerCase();
-        return 'offline' === n
-            ? (L('offline', 'Sin conexion al backend'),
-              I('Sin conexion. Esperando reconexion para reanudar cola.'),
-              void j())
-            : 'hidden' === n
-              ? (L('paused', 'Cola en pausa (pestana oculta)'),
-                void I('Pestana oculta. Reanudando al volver a primer plano.'))
-              : (L('paused', 'Cola en pausa'),
-                I('Sincronizacion pausada por navegacion.'),
-                void j());
-    }
-    document.addEventListener('DOMContentLoaded', function () {
-        ((document.body.dataset.kioskMode = 'star'),
-            (function () {
-                if (document.getElementById(o)) return;
-                const e = document.createElement('style');
-                ((e.id = o),
-                    (e.textContent =
-                        "\n        body[data-kiosk-mode='star'] .kiosk-header {\n            border-bottom-color: color-mix(in srgb, var(--primary) 18%, var(--border));\n            box-shadow: 0 10px 28px rgb(15 31 54 / 10%);\n        }\n        .kiosk-header-tools {\n            display: grid;\n            gap: 0.35rem;\n            justify-items: end;\n        }\n        .kiosk-header-controls {\n            display: grid;\n            grid-template-columns: repeat(3, minmax(0, 1fr));\n            gap: 0.45rem;\n            width: 100%;\n            max-width: 620px;\n        }\n        .kiosk-header-help-btn {\n            border: 1px solid var(--border);\n            border-radius: 999px;\n            padding: 0.34rem 0.72rem;\n            background: var(--surface-soft);\n            color: var(--text);\n            font-size: 0.86rem;\n            font-weight: 600;\n            cursor: pointer;\n            min-height: 44px;\n        }\n        .kiosk-header-help-btn[data-variant='warning'] {\n            border-color: color-mix(in srgb, #b45309 32%, #fff 68%);\n            background: color-mix(in srgb, #fef3c7 88%, #fff 12%);\n            color: #92400e;\n        }\n        .kiosk-header-help-btn[data-open='true'] {\n            border-color: color-mix(in srgb, var(--primary) 38%, #fff 62%);\n            background: color-mix(in srgb, var(--surface-strong) 84%, #fff 16%);\n            color: var(--primary-strong);\n        }\n        .kiosk-header-help-btn[data-active='true'] {\n            border-color: color-mix(in srgb, var(--primary) 42%, #fff 58%);\n            background: color-mix(in srgb, var(--surface-strong) 84%, #fff 16%);\n            color: var(--primary-strong);\n            box-shadow: 0 10px 24px rgb(15 107 220 / 15%);\n        }\n        .kiosk-header-help-btn[disabled] {\n            opacity: 0.65;\n            cursor: not-allowed;\n            box-shadow: none;\n        }\n        .kiosk-quick-actions {\n            display: grid;\n            grid-template-columns: repeat(2, minmax(0, 1fr));\n            gap: 0.65rem;\n            margin: 0.45rem 0 0.6rem;\n        }\n        .kiosk-quick-action {\n            border: 1px solid var(--border);\n            border-radius: 16px;\n            padding: 0.8rem 0.92rem;\n            background: var(--surface-soft);\n            color: var(--text);\n            font-size: 1rem;\n            font-weight: 700;\n            letter-spacing: 0.01em;\n            cursor: pointer;\n            min-height: 64px;\n            text-align: left;\n        }\n        .kiosk-quick-action[data-active='true'] {\n            border-color: color-mix(in srgb, var(--primary) 42%, #fff 58%);\n            background: color-mix(in srgb, var(--surface-strong) 86%, #fff 14%);\n            color: var(--primary-strong);\n            box-shadow: 0 12px 26px rgb(15 107 220 / 14%);\n        }\n        .kiosk-progress-hint {\n            margin: 0 0 0.72rem;\n            color: var(--muted);\n            font-size: 0.95rem;\n            font-weight: 600;\n        }\n        .kiosk-progress-hint[data-tone='success'] {\n            color: var(--success);\n        }\n        .kiosk-progress-hint[data-tone='warn'] {\n            color: #9a6700;\n        }\n        .kiosk-quick-help-panel {\n            margin: 0 0 0.9rem;\n            border: 1px solid color-mix(in srgb, var(--primary) 24%, #fff 76%);\n            border-radius: 16px;\n            padding: 0.88rem 0.95rem;\n            background: color-mix(in srgb, var(--surface-strong) 86%, #fff 14%);\n        }\n        .kiosk-quick-help-panel h2 {\n            margin: 0 0 0.46rem;\n            font-size: 1.08rem;\n        }\n        .kiosk-quick-help-panel ol {\n            margin: 0 0 0.56rem;\n            padding-left: 1.12rem;\n            color: var(--text);\n            line-height: 1.45;\n        }\n        .kiosk-quick-help-panel p {\n            margin: 0 0 0.6rem;\n            color: var(--muted);\n            font-size: 0.9rem;\n        }\n        .kiosk-quick-help-panel button {\n            border: 1px solid var(--border);\n            border-radius: 12px;\n            padding: 0.46rem 0.74rem;\n            background: #fff;\n            color: var(--text);\n            font-weight: 600;\n            cursor: pointer;\n            min-height: 44px;\n        }\n        .kiosk-form.is-flow-active {\n            border-color: color-mix(in srgb, var(--primary) 32%, var(--border) 68%);\n            box-shadow: 0 14px 28px rgb(15 107 220 / 11%);\n        }\n        body[data-kiosk-senior='on'] {\n            font-size: 18px;\n        }\n        body[data-kiosk-senior='on'] .kiosk-layout {\n            gap: 1.2rem;\n        }\n        body[data-kiosk-senior='on'] h1 {\n            font-size: clamp(2rem, 3vw, 2.55rem);\n            line-height: 1.15;\n        }\n        body[data-kiosk-senior='on'] .kiosk-form label,\n        body[data-kiosk-senior='on'] .kiosk-progress-hint,\n        body[data-kiosk-senior='on'] .kiosk-status {\n            font-size: 1.08rem;\n        }\n        body[data-kiosk-senior='on'] .kiosk-form input,\n        body[data-kiosk-senior='on'] .assistant-form input {\n            min-height: 64px;\n            font-size: 1.18rem;\n        }\n        body[data-kiosk-senior='on'] .kiosk-form button,\n        body[data-kiosk-senior='on'] .assistant-form button {\n            min-height: 68px;\n            font-size: 1.16rem;\n        }\n        body[data-kiosk-senior='on'] .kiosk-quick-action {\n            min-height: 76px;\n            font-size: 1.13rem;\n        }\n        body[data-kiosk-senior='on'] .kiosk-header-help-btn {\n            min-height: 52px;\n            font-size: 0.97rem;\n            padding: 0.45rem 0.84rem;\n        }\n        body[data-kiosk-senior='on'] .queue-kpi-row article strong {\n            font-size: 2.3rem;\n        }\n        body[data-kiosk-senior='on'] .ticket-result-main strong {\n            font-size: 2.6rem;\n        }\n        body[data-kiosk-senior='on'] #kioskSeniorHint {\n            color: color-mix(in srgb, var(--primary) 72%, #1f2937 28%);\n        }\n        .kiosk-quick-action:focus-visible,\n        .kiosk-header-help-btn:focus-visible,\n        .kiosk-quick-help-panel button:focus-visible {\n            outline: 3px solid color-mix(in srgb, var(--primary) 62%, #fff 38%);\n            outline-offset: 2px;\n        }\n        @media (max-width: 760px) {\n            .kiosk-header-tools {\n                justify-items: start;\n            }\n            .kiosk-header-controls {\n                grid-template-columns: 1fr;\n            }\n            .kiosk-quick-actions {\n                grid-template-columns: 1fr;\n            }\n        }\n        @media (prefers-reduced-motion: reduce) {\n            .kiosk-quick-action,\n            .kiosk-header-help-btn,\n            .kiosk-form {\n                transition: none !important;\n            }\n        }\n    "),
-                    document.head.appendChild(e));
-            })(),
-            (a.idleResetMs = (function () {
-                const e = Number(window.__PIEL_QUEUE_KIOSK_IDLE_RESET_MS),
-                    t = Number.isFinite(e) ? e : 9e4;
-                return Math.min(n, Math.max(5e3, Math.round(t)));
-            })()),
-            (a.voiceGuideSupported = p()),
-            (function () {
-                const e = 'light';
-                var n;
-                (localStorage.setItem('kioskThemeMode', e),
-                    (n = e),
-                    (a.themeMode = n),
-                    (document.documentElement.dataset.theme = 'light'),
-                    document
-                        .querySelectorAll('[data-theme-mode]')
-                        .forEach((e) => {
-                            const t = e.getAttribute('data-theme-mode');
-                            (e.classList.toggle('is-active', t === n),
-                                e.setAttribute(
-                                    'aria-pressed',
-                                    String(t === n)
-                                ));
-                        }));
-            })(),
-            d(
-                (function () {
-                    try {
-                        return '1' === localStorage.getItem(e);
-                    } catch (e) {
-                        return !1;
-                    }
-                })(),
-                { persist: !1, source: 'init' }
-            ),
-            m(),
-            (function () {
-                const e = c('kioskWelcomeScreen');
-                e instanceof HTMLElement &&
-                    (e.classList.add('is-visible'),
-                    u(
-                        'Bienvenida: en segundos podras elegir tu tipo de atencion.',
-                        'info'
-                    ),
-                    window.setTimeout(() => {
-                        le({ reason: 'auto' });
-                    }, 1800),
-                    window.setTimeout(() => {
-                        le({ reason: 'safety_timeout' });
-                    }, 2600));
-            })(),
-            de());
-        const r = c('checkinForm'),
-            s = c('walkinForm'),
-            l = c('assistantForm');
-        (r instanceof HTMLFormElement && r.addEventListener('submit', re),
-            s instanceof HTMLFormElement && s.addEventListener('submit', se),
-            l instanceof HTMLFormElement && l.addEventListener('submit', ue),
-            (function () {
-                const e = c('kioskQuickCheckin'),
-                    n = c('kioskQuickWalkin'),
-                    t = c('kioskHelpToggle'),
-                    i = c('kioskHelpClose'),
-                    o = c('kioskSeniorToggle'),
-                    r = c('kioskVoiceGuideBtn'),
-                    s = c('kioskReceptionHelpBtn');
-                (e instanceof HTMLButtonElement &&
-                    e.addEventListener('click', () => {
-                        (O(), y('checkin'));
-                    }),
-                    n instanceof HTMLButtonElement &&
-                        n.addEventListener('click', () => {
-                            (O(), y('walkin'));
-                        }),
-                    t instanceof HTMLButtonElement &&
-                        t.addEventListener('click', () => {
-                            (O(), h(!a.quickHelpOpen, { source: 'toggle' }));
-                        }),
-                    i instanceof HTMLButtonElement &&
-                        i.addEventListener('click', () => {
-                            (O(), h(!1, { source: 'close_button' }));
-                        }),
-                    o instanceof HTMLButtonElement &&
-                        o.addEventListener('click', () => {
-                            (O(), f({ source: 'button' }));
-                        }),
-                    r instanceof HTMLButtonElement &&
-                        r.addEventListener('click', () => {
-                            (O(), k({ source: 'button' }));
-                        }),
-                    s instanceof HTMLButtonElement &&
-                        ((s.dataset.variant = 'warning'),
-                        s.addEventListener('click', () => {
-                            (O(), b({ source: 'button' }));
-                        })));
-            })(),
-            h(!1, { source: 'init' }),
-            (function () {
-                let e = c('kioskSessionGuard');
-                if (e instanceof HTMLElement) return e;
-                const n = c('kioskStatus');
-                if (!(n instanceof HTMLElement)) return null;
-                ((e = document.createElement('div')),
-                    (e.id = 'kioskSessionGuard'),
-                    (e.className = 'kiosk-session-guard'));
-                const t = document.createElement('span');
-                ((t.id = 'kioskSessionCountdown'),
-                    (t.className = 'kiosk-session-countdown'),
-                    (t.textContent = 'Privacidad auto: --:--'));
-                const i = document.createElement('button');
-                ((i.id = 'kioskSessionResetBtn'),
-                    (i.type = 'button'),
-                    (i.className = 'kiosk-session-reset'),
-                    (i.textContent = 'Nueva persona / limpiar pantalla'),
-                    e.appendChild(t),
-                    e.appendChild(i),
-                    n.insertAdjacentElement('afterend', e));
-            })());
-        const v = c('kioskSessionResetBtn');
-        (v instanceof HTMLButtonElement &&
-            v.addEventListener('click', () => {
-                B({ reason: 'manual' });
-            }),
-            C(),
-            E(),
-            y('checkin', { announce: !1 }),
-            u('Paso 1 de 2: selecciona una opcion para comenzar.', 'info'),
-            ['pointerdown', 'keydown', 'input', 'touchstart'].forEach((e) => {
-                document.addEventListener(
-                    e,
-                    () => {
-                        O();
-                    },
-                    !0
-                );
-            }),
-            H(),
-            _(),
-            A(),
-            $(),
-            z(),
-            (function () {
-                try {
-                    const e = localStorage.getItem(t);
-                    if (!e) return void (a.offlineOutbox = []);
-                    const n = JSON.parse(e);
-                    if (!Array.isArray(n)) return void (a.offlineOutbox = []);
-                    a.offlineOutbox = n
-                        .map((e) => ({
-                            id: String(e?.id || ''),
-                            resource: String(e?.resource || ''),
-                            body:
-                                e && 'object' == typeof e.body && e.body
-                                    ? e.body
-                                    : {},
-                            originLabel: String(
-                                e?.originLabel || 'Solicitud offline'
-                            ),
-                            patientInitials: String(e?.patientInitials || '--'),
-                            queueType: String(e?.queueType || '--'),
-                            queuedAt: String(
-                                e?.queuedAt || new Date().toISOString()
-                            ),
-                            attempts: Number(e?.attempts || 0),
-                            lastError: String(e?.lastError || ''),
-                            fingerprint: String(e?.fingerprint || ''),
-                        }))
-                        .filter(
-                            (e) =>
-                                e.id &&
-                                ('queue-ticket' === e.resource ||
-                                    'queue-checkin' === e.resource)
-                        )
-                        .map((e) => ({
-                            ...e,
-                            fingerprint:
-                                e.fingerprint || ie(e.resource, e.body),
-                        }))
-                        .slice(0, 25);
-                } catch (e) {
-                    a.offlineOutbox = [];
-                }
-            })(),
-            (function () {
-                try {
-                    const e = localStorage.getItem(i);
-                    if (!e) return void (a.printerState = null);
-                    const n = JSON.parse(e);
-                    if (!n || 'object' != typeof n)
-                        return void (a.printerState = null);
-                    a.printerState = {
-                        ok: Boolean(n.ok),
-                        printed: Boolean(n.printed),
-                        errorCode: String(n.errorCode || ''),
-                        message: String(n.message || ''),
-                        at: String(n.at || new Date().toISOString()),
-                    };
-                } catch (e) {
-                    a.printerState = null;
-                }
-            })(),
-            D(),
-            j());
-        const S = U();
-        S instanceof HTMLButtonElement &&
-            S.addEventListener('click', () => {
-                me();
-            });
-        const w = c('queueOutboxRetryBtn');
-        w instanceof HTMLButtonElement &&
-            w.addEventListener('click', () => {
-                ae({ source: 'operator', force: !0, maxItems: 25 });
-            });
-        const x = c('queueOutboxDropOldestBtn');
-        x instanceof HTMLButtonElement &&
-            x.addEventListener('click', () => {
-                !(function () {
-                    if (!a.offlineOutbox.length) return;
-                    const e = a.offlineOutbox[a.offlineOutbox.length - 1];
-                    (a.offlineOutbox.pop(),
-                        G(),
-                        j(),
-                        F(),
-                        T(
-                            `Descartado pendiente antiguo (${e?.originLabel || 'sin detalle'}).`,
-                            'info'
-                        ));
-                })();
-            });
-        const q = c('queueOutboxClearBtn');
-        (q instanceof HTMLButtonElement &&
-            q.addEventListener('click', () => {
-                R({ reason: 'manual' });
-            }),
-            L('paused', 'Sincronizacion lista'),
-            I('Esperando primera sincronizacion de cola...'),
-            W(''),
-            !1 !== navigator.onLine && ae({ source: 'startup', force: !0 }),
-            ge({ immediate: !0 }),
-            document.addEventListener('visibilitychange', () => {
-                document.hidden
-                    ? ke({ reason: 'hidden' })
-                    : ge({ immediate: !0 });
-            }),
-            window.addEventListener('online', () => {
-                (ae({ source: 'online', force: !0 }), ge({ immediate: !0 }));
-            }),
-            window.addEventListener('offline', () => {
-                (ke({ reason: 'offline' }), j());
-            }),
-            window.addEventListener('beforeunload', () => {
-                (g({ source: 'beforeunload' }), ke({ reason: 'paused' }));
-            }),
-            window.addEventListener('keydown', (e) => {
-                if (!e.altKey || !e.shiftKey) return;
-                const n = String(e.code || '').toLowerCase();
-                return 'keyr' === n
-                    ? (e.preventDefault(), void me())
-                    : 'keyh' === n
-                      ? (e.preventDefault(),
-                        void h(!a.quickHelpOpen, { source: 'shortcut' }))
-                      : 'digit1' === n
-                        ? (e.preventDefault(), void y('checkin'))
-                        : 'digit2' === n
-                          ? (e.preventDefault(), void y('walkin'))
-                          : 'keys' === n
-                            ? (e.preventDefault(),
-                              void f({ source: 'shortcut' }))
-                            : 'keyv' === n
-                              ? (e.preventDefault(),
-                                void k({ source: 'shortcut' }))
-                              : 'keya' === n
-                                ? (e.preventDefault(),
-                                  void b({ source: 'shortcut' }))
-                                : 'keyl' === n
-                                  ? (e.preventDefault(),
-                                    void B({ reason: 'manual' }))
-                                  : 'keyy' === n
-                                    ? (e.preventDefault(),
-                                      void ae({
-                                          source: 'shortcut',
-                                          force: !0,
-                                          maxItems: 25,
-                                      }))
-                                    : void (
-                                          'keyk' === n &&
-                                          (e.preventDefault(),
-                                          R({ reason: 'manual' }))
-                                      );
-            }));
+
+    const nextTickets = getQueueStateArray(state, [
+        'nextTickets',
+        'next_tickets',
+        'waitingTickets',
+        'waiting_tickets',
+    ]);
+
+    const waitingCount = Number.isFinite(waitingCountRaw)
+        ? waitingCountRaw
+        : getQueueStateNumber(
+              counts,
+              ['waiting', 'waiting_count'],
+              nextTickets.length
+          );
+    const calledCount = Number.isFinite(calledCountRaw)
+        ? calledCountRaw
+        : getQueueStateNumber(
+              counts,
+              ['called', 'called_count'],
+              callingNow.length
+          );
+
+    return {
+        updatedAt:
+            String(state.updatedAt || state.updated_at || '').trim() ||
+            new Date().toISOString(),
+        waitingCount: Math.max(0, Number(waitingCount || 0)),
+        calledCount: Math.max(0, Number(calledCount || 0)),
+        callingNow: Array.isArray(callingNow)
+            ? callingNow.map((ticket) => ({
+                  ...ticket,
+                  id: Number(ticket?.id || ticket?.ticket_id || 0) || 0,
+                  ticketCode: String(
+                      ticket?.ticketCode || ticket?.ticket_code || '--'
+                  ),
+                  patientInitials: String(
+                      ticket?.patientInitials ||
+                          ticket?.patient_initials ||
+                          '--'
+                  ),
+                  assignedConsultorio:
+                      Number(
+                          ticket?.assignedConsultorio ??
+                              ticket?.assigned_consultorio ??
+                              0
+                      ) || null,
+                  calledAt: String(ticket?.calledAt || ticket?.called_at || ''),
+              }))
+            : [],
+        nextTickets: Array.isArray(nextTickets)
+            ? nextTickets.map((ticket, index) => ({
+                  ...ticket,
+                  id: Number(ticket?.id || ticket?.ticket_id || 0) || 0,
+                  ticketCode: String(
+                      ticket?.ticketCode || ticket?.ticket_code || '--'
+                  ),
+                  patientInitials: String(
+                      ticket?.patientInitials ||
+                          ticket?.patient_initials ||
+                          '--'
+                  ),
+                  queueType: String(
+                      ticket?.queueType || ticket?.queue_type || 'walk_in'
+                  ),
+                  priorityClass: String(
+                      ticket?.priorityClass ||
+                          ticket?.priority_class ||
+                          'walk_in'
+                  ),
+                  position:
+                      Number(ticket?.position || 0) > 0
+                          ? Number(ticket.position)
+                          : index + 1,
+              }))
+            : [],
+    };
+}
+
+async function apiRequest(resource, { method = 'GET', body } = {}) {
+    const params = new URLSearchParams();
+    params.set('resource', resource);
+    params.set('t', String(Date.now()));
+    const response = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
+        method,
+        credentials: 'same-origin',
+        headers: {
+            Accept: 'application/json',
+            ...(body !== undefined
+                ? { 'Content-Type': 'application/json' }
+                : {}),
+        },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
     });
-})();
+
+    const responseText = await response.text();
+    let payload;
+    try {
+        payload = responseText ? JSON.parse(responseText) : {};
+    } catch (_error) {
+        throw new Error('Respuesta invalida del servidor');
+    }
+
+    if (!response.ok || payload.ok === false) {
+        throw new Error(payload.error || `HTTP ${response.status}`);
+    }
+
+    return payload;
+}
+
+function deriveInitials(rawName) {
+    const name = String(rawName || '').trim();
+    if (!name) return '';
+
+    const words = name
+        .toUpperCase()
+        .split(/\s+/)
+        .map((word) => word.replace(/[^A-Z]/g, ''))
+        .filter(Boolean);
+
+    if (words.length === 0) return '';
+
+    let initials = '';
+    for (const word of words) {
+        initials += word.slice(0, 1);
+        if (initials.length >= 3) break;
+    }
+    return initials.slice(0, 4);
+}
+
+function setKioskStatus(message, type = 'info') {
+    const el = getById('kioskStatus');
+    if (!el) return;
+    const nextMessage = String(message || '').trim() || 'Estado operativo';
+    const nextType = String(type || 'info').toLowerCase();
+    const changed =
+        nextMessage !== String(el.textContent || '').trim() ||
+        nextType !== String(el.dataset.status || '').toLowerCase();
+    el.textContent = nextMessage;
+    el.dataset.status = nextType;
+    if (changed) {
+        emitQueueOpsEvent('kiosk_status', {
+            status: nextType,
+            message: nextMessage,
+        });
+    }
+}
+
+function setQueueConnectionStatus(stateLabel, message) {
+    const el = getById('queueConnectionState');
+    if (!el) return;
+
+    const normalized = String(stateLabel || 'live').toLowerCase();
+    const fallbackByState = {
+        live: 'Cola conectada',
+        reconnecting: 'Reintentando conexion',
+        offline: 'Sin conexion al backend',
+        paused: 'Cola en pausa',
+    };
+
+    const normalizedMessage =
+        String(message || '').trim() ||
+        fallbackByState[normalized] ||
+        fallbackByState.live;
+
+    const changed =
+        normalized !== state.lastConnectionState ||
+        normalizedMessage !== state.lastConnectionMessage;
+
+    state.lastConnectionState = normalized;
+    state.lastConnectionMessage = normalizedMessage;
+
+    el.dataset.state = normalized;
+    el.textContent = normalizedMessage;
+
+    if (changed) {
+        emitQueueOpsEvent('connection_state', {
+            state: normalized,
+            message: normalizedMessage,
+        });
+    }
+    renderKioskSetupStatus();
+}
+
+function resolveIdleResetMs() {
+    const overrideMs = Number(window.__PIEL_QUEUE_KIOSK_IDLE_RESET_MS);
+    const rawMs = Number.isFinite(overrideMs)
+        ? overrideMs
+        : KIOSK_IDLE_RESET_DEFAULT_MS;
+    return Math.min(
+        KIOSK_IDLE_RESET_MAX_MS,
+        Math.max(KIOSK_IDLE_RESET_MIN_MS, Math.round(rawMs))
+    );
+}
+
+function formatCountdownMs(ms) {
+    const safeMs = Math.max(0, Number(ms || 0));
+    const totalSeconds = Math.ceil(safeMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const paddedSeconds = String(seconds).padStart(2, '0');
+    return `${minutes}:${paddedSeconds}`;
+}
+
+function ensureSessionGuard() {
+    let guard = getById('kioskSessionGuard');
+    if (guard instanceof HTMLElement) {
+        return guard;
+    }
+
+    const statusEl = getById('kioskStatus');
+    if (!(statusEl instanceof HTMLElement)) return null;
+
+    guard = document.createElement('div');
+    guard.id = 'kioskSessionGuard';
+    guard.className = 'kiosk-session-guard';
+
+    const countdown = document.createElement('span');
+    countdown.id = 'kioskSessionCountdown';
+    countdown.className = 'kiosk-session-countdown';
+    countdown.textContent = 'Privacidad auto: --:--';
+
+    const resetButton = document.createElement('button');
+    resetButton.id = 'kioskSessionResetBtn';
+    resetButton.type = 'button';
+    resetButton.className = 'kiosk-session-reset';
+    resetButton.textContent = 'Nueva persona / limpiar pantalla';
+
+    guard.appendChild(countdown);
+    guard.appendChild(resetButton);
+    statusEl.insertAdjacentElement('afterend', guard);
+    return guard;
+}
+
+function renderIdleCountdown() {
+    const countdown = getById('kioskSessionCountdown');
+    if (!(countdown instanceof HTMLElement)) return;
+
+    if (!state.idleDeadlineTs) {
+        countdown.textContent = 'Privacidad auto: --:--';
+        countdown.dataset.state = 'normal';
+        return;
+    }
+
+    const remainingMs = Math.max(0, state.idleDeadlineTs - Date.now());
+    countdown.textContent = `Privacidad auto: ${formatCountdownMs(remainingMs)}`;
+    const warning = remainingMs <= KIOSK_IDLE_WARNING_MS;
+    countdown.dataset.state = warning ? 'warning' : 'normal';
+}
+
+function clearIdleTimers() {
+    if (state.idleTimerId) {
+        window.clearTimeout(state.idleTimerId);
+        state.idleTimerId = 0;
+    }
+    if (state.idleTickId) {
+        window.clearInterval(state.idleTickId);
+        state.idleTickId = 0;
+    }
+}
+
+function renderTicketEmptyState() {
+    const container = getById('ticketResult');
+    if (!container) return;
+    container.innerHTML =
+        '<p class="ticket-empty">Todavia no se ha generado ningun ticket.</p>';
+}
+
+function resetAssistantConversation() {
+    const assistantMessages = getById('assistantMessages');
+    if (assistantMessages) {
+        assistantMessages.innerHTML = '';
+    }
+    state.chatHistory = [];
+    appendAssistantMessage('bot', ASSISTANT_WELCOME_TEXT);
+
+    const assistantInput = getById('assistantInput');
+    if (assistantInput instanceof HTMLInputElement) {
+        assistantInput.value = '';
+    }
+}
+
+function resetKioskForms() {
+    const checkinForm = getById('checkinForm');
+    const walkinForm = getById('walkinForm');
+    if (checkinForm instanceof HTMLFormElement) {
+        checkinForm.reset();
+    }
+    if (walkinForm instanceof HTMLFormElement) {
+        walkinForm.reset();
+    }
+    initDefaultDate();
+}
+
+function beginIdleSessionGuard({ durationMs = null } = {}) {
+    const resolvedDuration = Math.min(
+        KIOSK_IDLE_RESET_MAX_MS,
+        Math.max(
+            KIOSK_IDLE_RESET_MIN_MS,
+            Math.round(
+                Number.isFinite(Number(durationMs))
+                    ? Number(durationMs)
+                    : state.idleResetMs
+            )
+        )
+    );
+
+    clearIdleTimers();
+    state.idleDeadlineTs = Date.now() + resolvedDuration;
+    renderIdleCountdown();
+
+    state.idleTickId = window.setInterval(() => {
+        renderIdleCountdown();
+    }, KIOSK_IDLE_TICK_MS);
+
+    state.idleTimerId = window.setTimeout(() => {
+        const busyNow = state.assistantBusy || state.queueManualRefreshBusy;
+        if (busyNow) {
+            setKioskStatus(
+                'Sesion activa. Reprogramando limpieza automatica.',
+                'info'
+            );
+            beginIdleSessionGuard({ durationMs: KIOSK_IDLE_POSTPONE_MS });
+            return;
+        }
+        resetKioskSession({ reason: 'idle_timeout' });
+    }, resolvedDuration);
+}
+
+function registerKioskActivity() {
+    dismissWelcomeScreen({ reason: 'activity' });
+    beginIdleSessionGuard();
+}
+
+function resetKioskSession({ reason = 'manual' } = {}) {
+    stopVoiceGuide({ source: 'session_reset' });
+    resetKioskForms();
+    resetAssistantConversation();
+    renderTicketEmptyState();
+    setKioskHelpPanelOpen(false, { source: 'session_reset' });
+    focusFlowTarget('checkin', { announce: false });
+
+    const reasonText =
+        reason === 'idle_timeout'
+            ? 'Sesion reiniciada por inactividad para proteger privacidad.'
+            : 'Pantalla limpiada. Lista para el siguiente paciente.';
+    setKioskStatus(reasonText, 'info');
+    setKioskProgressHint(
+        'Paso 1 de 2: selecciona una opcion para comenzar.',
+        'info'
+    );
+    renderOfflineOutboxHint();
+    beginIdleSessionGuard();
+}
+
+function ensureQueueOpsHintEl() {
+    let el = getById('queueOpsHint');
+    if (el) return el;
+
+    const queueCard = document.querySelector('.kiosk-side .kiosk-card');
+    const queueUpdatedAt = getById('queueUpdatedAt');
+    if (!queueCard || !queueUpdatedAt) return null;
+
+    el = document.createElement('p');
+    el.id = 'queueOpsHint';
+    el.className = 'queue-updated-at';
+    el.textContent = 'Estado operativo: inicializando...';
+    queueUpdatedAt.insertAdjacentElement('afterend', el);
+    return el;
+}
+
+function setQueueOpsHint(message) {
+    const el = ensureQueueOpsHintEl();
+    if (!el) return;
+    el.textContent = String(message || '').trim() || 'Estado operativo';
+}
+
+function renderKioskSetupStatus() {
+    const titleEl = getById('kioskSetupTitle');
+    const summaryEl = getById('kioskSetupSummary');
+    const checksEl = getById('kioskSetupChecks');
+    if (
+        !(titleEl instanceof HTMLElement) ||
+        !(summaryEl instanceof HTMLElement) ||
+        !(checksEl instanceof HTMLElement)
+    ) {
+        return;
+    }
+
+    const connectionState = String(state.lastConnectionState || 'paused');
+    const connectionMessage = String(
+        state.lastConnectionMessage || 'Sincronizacion pendiente'
+    );
+    const pendingCount = Number(state.offlineOutbox.length || 0);
+    const printer = state.printerState;
+    const printerReady = Boolean(printer?.printed);
+    const printerBlocked = Boolean(printer && !printer.printed);
+    const hasHealthySync = Boolean(state.queueLastHealthySyncAt);
+    const oldestQueuedAt = Date.parse(String(state.offlineOutbox[0]?.queuedAt || ''));
+    const oldestPendingAge = Number.isFinite(oldestQueuedAt)
+        ? formatElapsedAge(Date.now() - oldestQueuedAt)
+        : '';
+
+    const checks = [
+        {
+            label: 'Conexion con cola',
+            state:
+                connectionState === 'live'
+                    ? hasHealthySync
+                        ? 'ready'
+                        : 'warning'
+                    : connectionState === 'offline'
+                      ? 'danger'
+                      : 'warning',
+            detail:
+                connectionState === 'live'
+                    ? hasHealthySync
+                        ? `Backend en vivo (${formatLastHealthySyncAge()}).`
+                        : 'Conectado, pero esperando la primera sincronizacion saludable.'
+                    : connectionMessage,
+        },
+        {
+            label: 'Impresora termica',
+            state: !printer ? 'warning' : printerReady ? 'ready' : 'danger',
+            detail: !printer
+                ? 'Sin ticket de prueba todavia. Genera uno para validar papel y USB.'
+                : printerReady
+                  ? `Impresion OK · ${formatIsoDateTime(printer.at)}`
+                  : `Sin impresion (${printer.errorCode || printer.message || 'sin detalle'}) · ${formatIsoDateTime(printer.at)}`,
+        },
+        {
+            label: 'Pendientes offline',
+            state:
+                pendingCount <= 0
+                    ? 'ready'
+                    : connectionState === 'offline'
+                      ? 'danger'
+                      : 'warning',
+            detail:
+                pendingCount <= 0
+                    ? 'Sin pendientes locales.'
+                    : `Hay ${pendingCount} pendiente(s) por subir${oldestPendingAge ? ` · mas antiguo ${oldestPendingAge}` : ''}.`,
+        },
+        {
+            label: 'Operacion guiada',
+            state: hasHealthySync ? 'ready' : 'warning',
+            detail: hasHealthySync
+                ? 'La cola ya respondio en este arranque. Puedes abrir el kiosco al publico.'
+                : 'Mantiene el flujo abierto, pero falta una sincronizacion completa desde este arranque.',
+        },
+    ];
+
+    let title = 'Finaliza la puesta en marcha';
+    let summary =
+        'Revisa backend, termica y pendientes antes de dejar el kiosco en autoservicio.';
+    if (connectionState === 'offline') {
+        title = 'Kiosco en contingencia';
+        summary =
+            'El kiosco puede seguir capturando datos, pero el backend no responde. Si la fila crece, deriva a recepcion.';
+    } else if (pendingCount > 0) {
+        title = 'Kiosco con pendientes por sincronizar';
+        summary =
+            'Hay solicitudes guardadas offline. Manten el equipo abierto hasta que el outbox vuelva a cero.';
+    } else if (printerBlocked) {
+        title = 'Revisa la impresora termica';
+        summary =
+            'El ultimo ticket no confirmo impresion. Verifica energia, papel y cable USB, y repite una prueba.';
+    } else if (!printerReady) {
+        title = 'Falta probar ticket termico';
+        summary =
+            'Genera un turno de prueba y confirma "Impresion OK" antes de operar con pacientes.';
+    } else if (connectionState === 'live' && hasHealthySync) {
+        title = 'Kiosco listo para operar';
+        summary =
+            'La cola esta en vivo, no hay pendientes offline y la termica ya respondio correctamente.';
+    }
+
+    titleEl.textContent = title;
+    summaryEl.textContent = summary;
+    checksEl.innerHTML = checks
+        .map(
+            (check) => `
+                <article class="kiosk-setup-check" data-state="${escapeHtml(check.state)}" role="listitem">
+                    <strong>${escapeHtml(check.label)}</strong>
+                    <span>${escapeHtml(check.detail)}</span>
+                </article>
+            `
+        )
+        .join('');
+}
+
+function ensureQueueOutboxHintEl() {
+    let el = getById('queueOutboxHint');
+    if (el) return el;
+
+    const queueOpsHint = ensureQueueOpsHintEl();
+    if (!queueOpsHint?.parentElement) return null;
+
+    el = document.createElement('p');
+    el.id = 'queueOutboxHint';
+    el.className = 'queue-updated-at';
+    el.textContent = 'Pendientes offline: 0';
+    queueOpsHint.insertAdjacentElement('afterend', el);
+    return el;
+}
+
+function setQueueOutboxHint(message) {
+    const el = ensureQueueOutboxHintEl();
+    if (!el) return;
+    el.textContent = String(message || '').trim() || 'Pendientes offline: 0';
+}
+
+function ensureQueuePrinterHintEl() {
+    let el = getById('queuePrinterHint');
+    if (el) return el;
+
+    const outboxHint = ensureQueueOutboxHintEl();
+    if (!outboxHint?.parentElement) return null;
+
+    el = document.createElement('p');
+    el.id = 'queuePrinterHint';
+    el.className = 'queue-updated-at';
+    el.textContent = 'Impresora: estado pendiente.';
+    outboxHint.insertAdjacentElement('afterend', el);
+    return el;
+}
+
+function savePrinterState() {
+    try {
+        localStorage.setItem(
+            KIOSK_PRINTER_STATE_STORAGE_KEY,
+            JSON.stringify(state.printerState)
+        );
+    } catch (_error) {
+        // ignore storage write failures
+    }
+}
+
+function loadPrinterState() {
+    try {
+        const raw = localStorage.getItem(KIOSK_PRINTER_STATE_STORAGE_KEY);
+        if (!raw) {
+            state.printerState = null;
+            return;
+        }
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') {
+            state.printerState = null;
+            return;
+        }
+        state.printerState = {
+            ok: Boolean(parsed.ok),
+            printed: Boolean(parsed.printed),
+            errorCode: String(parsed.errorCode || ''),
+            message: String(parsed.message || ''),
+            at: String(parsed.at || new Date().toISOString()),
+        };
+    } catch (_error) {
+        state.printerState = null;
+    }
+}
+
+function renderPrinterHint() {
+    const el = ensureQueuePrinterHintEl();
+    if (!el) return;
+
+    const current = state.printerState;
+    if (!current) {
+        el.textContent = 'Impresora: estado pendiente.';
+        renderKioskSetupStatus();
+        return;
+    }
+
+    const statusLabel = current.printed
+        ? 'impresion OK'
+        : current.errorCode || 'sin impresion';
+    const message = current.message ? ` (${current.message})` : '';
+    const atLabel = formatIsoDateTime(current.at);
+    el.textContent = `Impresora: ${statusLabel}${message} · ${atLabel}`;
+    renderKioskSetupStatus();
+}
+
+function updatePrinterStateFromPayload(payload, { origin = 'ticket' } = {}) {
+    const print = payload?.print || {};
+    state.printerState = {
+        ok: Boolean(print.ok),
+        printed: Boolean(payload?.printed),
+        errorCode: String(print.errorCode || ''),
+        message: String(print.message || ''),
+        at: new Date().toISOString(),
+    };
+    savePrinterState();
+    renderPrinterHint();
+    emitQueueOpsEvent('printer_result', {
+        origin,
+        ok: state.printerState.ok,
+        printed: state.printerState.printed,
+        errorCode: state.printerState.errorCode,
+    });
+}
+
+function ensureQueueOutboxConsoleEl() {
+    let panel = getById('queueOutboxConsole');
+    if (panel instanceof HTMLElement) {
+        return panel;
+    }
+
+    const outboxHint = ensureQueueOutboxHintEl();
+    if (!outboxHint?.parentElement) return null;
+
+    panel = document.createElement('section');
+    panel.id = 'queueOutboxConsole';
+    panel.className = 'queue-outbox-console';
+    panel.innerHTML = `
+        <p id="queueOutboxSummary" class="queue-updated-at">Outbox: 0 pendientes</p>
+        <div class="queue-outbox-actions">
+            <button id="queueOutboxRetryBtn" type="button" class="queue-outbox-btn">Sincronizar pendientes</button>
+            <button id="queueOutboxDropOldestBtn" type="button" class="queue-outbox-btn">Descartar mas antiguo</button>
+            <button id="queueOutboxClearBtn" type="button" class="queue-outbox-btn">Limpiar pendientes</button>
+        </div>
+        <ol id="queueOutboxList" class="queue-outbox-list">
+            <li class="queue-empty">Sin pendientes offline.</li>
+        </ol>
+        <p class="queue-updated-at queue-outbox-shortcuts">Atajos: Alt+Shift+Y sincroniza pendientes, Alt+Shift+K limpia pendientes.</p>
+    `;
+    outboxHint.insertAdjacentElement('afterend', panel);
+    return panel;
+}
+
+function setQueueOutboxActionLoading(isLoading) {
+    const retryBtn = getById('queueOutboxRetryBtn');
+    const clearBtn = getById('queueOutboxClearBtn');
+    const dropOldestBtn = getById('queueOutboxDropOldestBtn');
+
+    if (retryBtn instanceof HTMLButtonElement) {
+        retryBtn.disabled = Boolean(isLoading) || !state.offlineOutbox.length;
+        retryBtn.textContent = isLoading
+            ? 'Sincronizando...'
+            : 'Sincronizar pendientes';
+    }
+    if (clearBtn instanceof HTMLButtonElement) {
+        clearBtn.disabled = Boolean(isLoading) || !state.offlineOutbox.length;
+    }
+    if (dropOldestBtn instanceof HTMLButtonElement) {
+        dropOldestBtn.disabled =
+            Boolean(isLoading) || state.offlineOutbox.length <= 0;
+    }
+}
+
+function renderOutboxConsole() {
+    ensureQueueOutboxConsoleEl();
+    const summary = getById('queueOutboxSummary');
+    const list = getById('queueOutboxList');
+    const pendingCount = state.offlineOutbox.length;
+
+    if (summary instanceof HTMLElement) {
+        summary.textContent =
+            pendingCount <= 0
+                ? 'Outbox: 0 pendientes'
+                : `Outbox: ${pendingCount} pendiente(s)`;
+    }
+
+    if (list instanceof HTMLElement) {
+        if (pendingCount <= 0) {
+            list.innerHTML =
+                '<li class="queue-empty">Sin pendientes offline.</li>';
+        } else {
+            list.innerHTML = state.offlineOutbox
+                .slice(0, KIOSK_OFFLINE_OUTBOX_RENDER_LIMIT)
+                .map((item, index) => {
+                    const queuedAt = formatIsoDateTime(item.queuedAt);
+                    const attempts = Number(item.attempts || 0);
+                    return `<li><strong>${escapeHtml(item.originLabel)}</strong> · ${escapeHtml(item.patientInitials || '--')} · ${escapeHtml(item.queueType || '--')} · ${escapeHtml(queuedAt)} · intento ${index + 1}/${Math.max(1, attempts + 1)}</li>`;
+                })
+                .join('');
+        }
+    }
+
+    setQueueOutboxActionLoading(false);
+}
+
+function clearOfflineOutbox({ reason = 'manual' } = {}) {
+    state.offlineOutbox = [];
+    saveOfflineOutbox();
+    renderOfflineOutboxHint();
+    renderOutboxConsole();
+    if (reason === 'manual') {
+        setKioskStatus('Pendientes offline limpiados manualmente.', 'info');
+    }
+}
+
+function discardOldestOutboxItem() {
+    if (!state.offlineOutbox.length) return;
+    const oldest = state.offlineOutbox[state.offlineOutbox.length - 1];
+    state.offlineOutbox.pop();
+    saveOfflineOutbox();
+    renderOfflineOutboxHint();
+    renderOutboxConsole();
+    setKioskStatus(
+        `Descartado pendiente antiguo (${oldest?.originLabel || 'sin detalle'}).`,
+        'info'
+    );
+}
+
+function saveOfflineOutbox() {
+    try {
+        localStorage.setItem(
+            KIOSK_OFFLINE_OUTBOX_STORAGE_KEY,
+            JSON.stringify(state.offlineOutbox)
+        );
+    } catch (_error) {
+        // Ignore localStorage write failures.
+    }
+}
+
+function loadOfflineOutbox() {
+    try {
+        const raw = localStorage.getItem(KIOSK_OFFLINE_OUTBOX_STORAGE_KEY);
+        if (!raw) {
+            state.offlineOutbox = [];
+            return;
+        }
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) {
+            state.offlineOutbox = [];
+            return;
+        }
+        state.offlineOutbox = parsed
+            .map((item) => ({
+                id: String(item?.id || ''),
+                resource: String(item?.resource || ''),
+                body:
+                    item && typeof item.body === 'object' && item.body
+                        ? item.body
+                        : {},
+                originLabel: String(item?.originLabel || 'Solicitud offline'),
+                patientInitials: String(item?.patientInitials || '--'),
+                queueType: String(item?.queueType || '--'),
+                queuedAt: String(item?.queuedAt || new Date().toISOString()),
+                attempts: Number(item?.attempts || 0),
+                lastError: String(item?.lastError || ''),
+                fingerprint: String(item?.fingerprint || ''),
+            }))
+            .filter(
+                (item) =>
+                    item.id &&
+                    (item.resource === 'queue-ticket' ||
+                        item.resource === 'queue-checkin')
+            )
+            .map((item) => ({
+                ...item,
+                fingerprint:
+                    item.fingerprint ||
+                    buildOutboxFingerprint(item.resource, item.body),
+            }))
+            .slice(0, KIOSK_OFFLINE_OUTBOX_MAX_ITEMS);
+    } catch (_error) {
+        state.offlineOutbox = [];
+    }
+}
+
+function renderOfflineOutboxHint() {
+    const pendingCount = state.offlineOutbox.length;
+    if (pendingCount <= 0) {
+        setQueueOutboxHint('Pendientes offline: 0 (sin pendientes).');
+        renderOutboxConsole();
+        renderKioskSetupStatus();
+        return;
+    }
+
+    const firstQueuedAt = Date.parse(
+        String(state.offlineOutbox[0]?.queuedAt || '')
+    );
+    const ageLabel = Number.isFinite(firstQueuedAt)
+        ? ` - mas antiguo ${formatElapsedAge(Date.now() - firstQueuedAt)}`
+        : '';
+    setQueueOutboxHint(
+        `Pendientes offline: ${pendingCount} - sincronizacion automatica al reconectar${ageLabel}`
+    );
+    renderOutboxConsole();
+    renderKioskSetupStatus();
+}
+
+function buildPendingLocalCode() {
+    return `PEND-${String(state.offlineOutbox.length).padStart(2, '0')}`;
+}
+
+function ensureQueueManualRefreshButton() {
+    let button = getById('queueManualRefreshBtn');
+    if (button instanceof HTMLButtonElement) {
+        return button;
+    }
+
+    const queueUpdatedAt = getById('queueUpdatedAt');
+    if (!queueUpdatedAt?.parentElement) return null;
+
+    button = document.createElement('button');
+    button.id = 'queueManualRefreshBtn';
+    button.type = 'button';
+    button.className = 'queue-manual-refresh-btn';
+    button.textContent = 'Reintentar sincronizacion';
+    queueUpdatedAt.insertAdjacentElement('afterend', button);
+    return button;
+}
+
+function setQueueManualRefreshLoading(isLoading) {
+    const button = ensureQueueManualRefreshButton();
+    if (!(button instanceof HTMLButtonElement)) return;
+    button.disabled = Boolean(isLoading);
+    button.textContent = isLoading
+        ? 'Actualizando cola...'
+        : 'Reintentar sincronizacion';
+}
+
+function formatElapsedAge(ms) {
+    const safeMs = Math.max(0, Number(ms || 0));
+    const seconds = Math.round(safeMs / 1000);
+    if (seconds < 60) {
+        return `${seconds}s`;
+    }
+    const minutes = Math.floor(seconds / 60);
+    const remSeconds = seconds % 60;
+    if (remSeconds <= 0) {
+        return `${minutes}m`;
+    }
+    return `${minutes}m ${remSeconds}s`;
+}
+
+function formatLastHealthySyncAge() {
+    if (!state.queueLastHealthySyncAt) {
+        return 'sin sincronizacion confirmada';
+    }
+    return `hace ${formatElapsedAge(Date.now() - state.queueLastHealthySyncAt)}`;
+}
+
+function evaluateQueueFreshness(queueState) {
+    const normalizedState = normalizeQueueStatePayload(queueState);
+    const updatedAtTs = Date.parse(String(normalizedState.updatedAt || ''));
+    if (!Number.isFinite(updatedAtTs)) {
+        return {
+            stale: false,
+            missingTimestamp: true,
+            ageMs: null,
+        };
+    }
+
+    const ageMs = Math.max(0, Date.now() - updatedAtTs);
+    return {
+        stale: ageMs >= QUEUE_STALE_THRESHOLD_MS,
+        missingTimestamp: false,
+        ageMs,
+    };
+}
+
+function renderQueueUpdatedAt(updatedAt) {
+    const el = getById('queueUpdatedAt');
+    if (!el) return;
+    const normalizedState = normalizeQueueStatePayload({ updatedAt });
+    const ts = Date.parse(String(normalizedState.updatedAt || ''));
+    if (!Number.isFinite(ts)) {
+        el.textContent = 'Actualizacion pendiente';
+        return;
+    }
+    el.textContent = `Actualizado ${new Date(ts).toLocaleTimeString('es-EC', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    })}`;
+}
+
+function getQueuePollDelayMs() {
+    const attempts = Math.max(0, Number(state.queueFailureStreak || 0));
+    const delay = QUEUE_POLL_MS * Math.pow(2, Math.min(attempts, 3));
+    return Math.min(QUEUE_POLL_MAX_MS, delay);
+}
+
+function clearQueuePollTimer() {
+    if (!state.queueTimerId) return;
+    window.clearTimeout(state.queueTimerId);
+    state.queueTimerId = 0;
+}
+
+function formatIsoDateTime(iso) {
+    const ts = Date.parse(String(iso || ''));
+    if (!Number.isFinite(ts)) {
+        return '--';
+    }
+    return new Date(ts).toLocaleString('es-EC', {
+        hour: '2-digit',
+        minute: '2-digit',
+        day: '2-digit',
+        month: '2-digit',
+    });
+}
+
+function renderQueuePanel(queueState) {
+    const normalizedState = normalizeQueueStatePayload(queueState);
+    const waitingCountEl = getById('queueWaitingCount');
+    const calledCountEl = getById('queueCalledCount');
+    const callingNowEl = getById('queueCallingNow');
+    const nextListEl = getById('queueNextList');
+
+    if (waitingCountEl) {
+        waitingCountEl.textContent = String(normalizedState.waitingCount || 0);
+    }
+    if (calledCountEl) {
+        calledCountEl.textContent = String(normalizedState.calledCount || 0);
+    }
+
+    if (callingNowEl) {
+        const callingNow = Array.isArray(normalizedState.callingNow)
+            ? normalizedState.callingNow
+            : [];
+        if (callingNow.length === 0) {
+            callingNowEl.innerHTML =
+                '<p class="queue-empty">Sin llamados activos.</p>';
+        } else {
+            callingNowEl.innerHTML = callingNow
+                .map(
+                    (ticket) => `
+                        <article class="queue-called-card">
+                            <header>Consultorio ${escapeHtml(ticket.assignedConsultorio)}</header>
+                            <strong>${escapeHtml(ticket.ticketCode || '--')}</strong>
+                            <span>${escapeHtml(ticket.patientInitials || '--')}</span>
+                        </article>
+                    `
+                )
+                .join('');
+        }
+    }
+
+    if (nextListEl) {
+        const nextTickets = Array.isArray(normalizedState.nextTickets)
+            ? normalizedState.nextTickets
+            : [];
+        if (nextTickets.length === 0) {
+            nextListEl.innerHTML =
+                '<li class="queue-empty">No hay turnos en espera.</li>';
+        } else {
+            nextListEl.innerHTML = nextTickets
+                .map(
+                    (ticket) => `
+                        <li>
+                            <span class="ticket-code">${escapeHtml(ticket.ticketCode || '--')}</span>
+                            <span class="ticket-meta">${escapeHtml(ticket.patientInitials || '--')}</span>
+                            <span class="ticket-position">#${escapeHtml(ticket.position || '-')}</span>
+                        </li>
+                    `
+                )
+                .join('');
+        }
+    }
+}
+
+async function refreshQueueState() {
+    if (state.queueRefreshBusy) {
+        return { ok: false, stale: false, reason: 'busy' };
+    }
+    state.queueRefreshBusy = true;
+    try {
+        const payload = await apiRequest('queue-state');
+        state.queueState = normalizeQueueStatePayload(payload.data || {});
+        renderQueuePanel(state.queueState);
+        renderQueueUpdatedAt(state.queueState?.updatedAt);
+        const freshness = evaluateQueueFreshness(state.queueState);
+        return {
+            ok: true,
+            stale: Boolean(freshness.stale),
+            missingTimestamp: Boolean(freshness.missingTimestamp),
+            ageMs: freshness.ageMs,
+        };
+    } catch (error) {
+        return {
+            ok: false,
+            stale: false,
+            reason: 'fetch_error',
+            errorMessage: error.message,
+        };
+    } finally {
+        state.queueRefreshBusy = false;
+    }
+}
+
+function renderTicketResult(payload, originLabel) {
+    const container = getById('ticketResult');
+    if (!container) return;
+
+    const rawTicket = payload?.data || {};
+    const ticket = {
+        ...rawTicket,
+        id: Number(rawTicket?.id || rawTicket?.ticket_id || 0) || 0,
+        ticketCode: String(
+            rawTicket?.ticketCode || rawTicket?.ticket_code || '--'
+        ),
+        patientInitials: String(
+            rawTicket?.patientInitials || rawTicket?.patient_initials || '--'
+        ),
+        queueType: String(
+            rawTicket?.queueType || rawTicket?.queue_type || 'walk_in'
+        ),
+        createdAt: String(
+            rawTicket?.createdAt ||
+                rawTicket?.created_at ||
+                new Date().toISOString()
+        ),
+    };
+    const print = payload?.print || {};
+    updatePrinterStateFromPayload(payload, { origin: originLabel });
+    const nextTickets = Array.isArray(state.queueState?.nextTickets)
+        ? state.queueState.nextTickets
+        : [];
+    const currentPosition =
+        nextTickets.find((item) => Number(item.id) === Number(ticket.id))
+            ?.position || '-';
+
+    const printState = payload?.printed
+        ? 'Impresion enviada a termica'
+        : `Ticket generado sin impresion (${escapeHtml(print.message || 'sin detalle')})`;
+
+    container.innerHTML = `
+        <article class="ticket-result-card">
+            <h3>Turno generado</h3>
+            <p class="ticket-result-origin">${escapeHtml(originLabel)}</p>
+            <div class="ticket-result-main">
+                <strong>${escapeHtml(ticket.ticketCode || '--')}</strong>
+                <span>${escapeHtml(ticket.patientInitials || '--')}</span>
+            </div>
+            <dl>
+                <div><dt>Posicion</dt><dd>#${escapeHtml(currentPosition)}</dd></div>
+                <div><dt>Tipo</dt><dd>${escapeHtml(ticket.queueType || '--')}</dd></div>
+                <div><dt>Creado</dt><dd>${escapeHtml(formatIsoDateTime(ticket.createdAt))}</dd></div>
+            </dl>
+            <p class="ticket-result-print">${printState}</p>
+        </article>
+    `;
+}
+
+function renderPendingTicketResult({
+    originLabel,
+    patientInitials,
+    queueType,
+    queuedAt,
+}) {
+    const container = getById('ticketResult');
+    if (!container) return;
+
+    container.innerHTML = `
+        <article class="ticket-result-card">
+            <h3>Solicitud guardada offline</h3>
+            <p class="ticket-result-origin">${escapeHtml(originLabel)}</p>
+            <div class="ticket-result-main">
+                <strong>${escapeHtml(buildPendingLocalCode())}</strong>
+                <span>${escapeHtml(patientInitials || '--')}</span>
+            </div>
+            <dl>
+                <div><dt>Posicion</dt><dd>Pendiente sync</dd></div>
+                <div><dt>Tipo</dt><dd>${escapeHtml(queueType || '--')}</dd></div>
+                <div><dt>Guardado</dt><dd>${escapeHtml(formatIsoDateTime(queuedAt))}</dd></div>
+            </dl>
+            <p class="ticket-result-print">Se sincronizara automaticamente al recuperar conexion.</p>
+        </article>
+    `;
+}
+
+function isRecoverableTransportError(error) {
+    if (navigator.onLine === false) {
+        return true;
+    }
+    const message = String(error?.message || '').toLowerCase();
+    if (!message) return false;
+    return (
+        message.includes('failed to fetch') ||
+        message.includes('networkerror') ||
+        message.includes('network request failed') ||
+        message.includes('load failed') ||
+        message.includes('network')
+    );
+}
+
+function normalizeOutboxBody(body) {
+    const source = body && typeof body === 'object' ? body : {};
+    return Object.keys(source)
+        .sort()
+        .reduce((acc, key) => {
+            acc[key] = source[key];
+            return acc;
+        }, {});
+}
+
+function buildOutboxFingerprint(resource, body) {
+    const normalizedResource = String(resource || '').toLowerCase();
+    const normalizedBody = normalizeOutboxBody(body);
+    return `${normalizedResource}:${JSON.stringify(normalizedBody)}`;
+}
+
+function queueOfflineRequest({
+    resource,
+    body,
+    originLabel,
+    patientInitials,
+    queueType,
+}) {
+    const safeResource = String(resource || '');
+    if (safeResource !== 'queue-ticket' && safeResource !== 'queue-checkin') {
+        return null;
+    }
+
+    const fingerprint = buildOutboxFingerprint(safeResource, body);
+    const nowTs = Date.now();
+    const duplicate = state.offlineOutbox.find((item) => {
+        const sameFingerprint = String(item?.fingerprint || '') === fingerprint;
+        if (!sameFingerprint) return false;
+        const queuedAtTs = Date.parse(String(item?.queuedAt || ''));
+        if (!Number.isFinite(queuedAtTs)) return false;
+        return nowTs - queuedAtTs <= KIOSK_OFFLINE_OUTBOX_DEDUPE_MS;
+    });
+    if (duplicate) {
+        emitQueueOpsEvent('offline_queued_duplicate', {
+            resource: safeResource,
+            fingerprint,
+        });
+        return { ...duplicate, deduped: true };
+    }
+
+    const item = {
+        id: `offline_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
+        resource: safeResource,
+        body: body && typeof body === 'object' ? body : {},
+        originLabel: String(originLabel || 'Solicitud offline'),
+        patientInitials: String(patientInitials || '--'),
+        queueType: String(queueType || '--'),
+        queuedAt: new Date().toISOString(),
+        attempts: 0,
+        lastError: '',
+        fingerprint,
+    };
+
+    state.offlineOutbox = [item, ...state.offlineOutbox].slice(
+        0,
+        KIOSK_OFFLINE_OUTBOX_MAX_ITEMS
+    );
+    saveOfflineOutbox();
+    renderOfflineOutboxHint();
+    emitQueueOpsEvent('offline_queued', {
+        resource: safeResource,
+        queueSize: state.offlineOutbox.length,
+    });
+    return item;
+}
+
+async function flushOfflineOutbox({
+    source = 'auto',
+    force = false,
+    maxItems = KIOSK_OFFLINE_OUTBOX_FLUSH_BATCH,
+} = {}) {
+    if (state.offlineOutboxFlushBusy) return;
+    if (!state.offlineOutbox.length) return;
+    if (!force && navigator.onLine === false) return;
+
+    state.offlineOutboxFlushBusy = true;
+    setQueueOutboxActionLoading(true);
+    let processed = 0;
+    try {
+        while (
+            state.offlineOutbox.length &&
+            processed < Math.max(1, Number(maxItems || 1))
+        ) {
+            const item = state.offlineOutbox[0];
+            try {
+                const payload = await apiRequest(item.resource, {
+                    method: 'POST',
+                    body: item.body,
+                });
+
+                state.offlineOutbox.shift();
+                saveOfflineOutbox();
+                renderOfflineOutboxHint();
+
+                renderTicketResult(
+                    payload,
+                    `${item.originLabel} (sincronizado)`
+                );
+                setKioskStatus(
+                    `Pendiente sincronizado (${item.originLabel})`,
+                    'success'
+                );
+                emitQueueOpsEvent('offline_synced_item', {
+                    resource: item.resource,
+                    originLabel: item.originLabel,
+                    pendingAfter: state.offlineOutbox.length,
+                });
+                processed += 1;
+            } catch (error) {
+                item.attempts = Number(item.attempts || 0) + 1;
+                item.lastError = String(error?.message || '').slice(0, 180);
+                item.lastAttemptAt = new Date().toISOString();
+                saveOfflineOutbox();
+                renderOfflineOutboxHint();
+
+                const retryingOffline = isRecoverableTransportError(error);
+                setKioskStatus(
+                    retryingOffline
+                        ? 'Sincronizacion offline pendiente: esperando reconexion.'
+                        : `Pendiente con error: ${error.message}`,
+                    retryingOffline ? 'info' : 'error'
+                );
+                emitQueueOpsEvent('offline_sync_error', {
+                    resource: item.resource,
+                    retryingOffline,
+                    error: String(error?.message || ''),
+                });
+                break;
+            }
+        }
+
+        if (processed > 0) {
+            state.queueFailureStreak = 0;
+            const refreshResult = await refreshQueueState();
+            if (refreshResult.ok) {
+                state.queueLastHealthySyncAt = Date.now();
+                setQueueConnectionStatus('live', 'Cola conectada');
+                setQueueOpsHint(
+                    `Outbox sincronizado desde ${source}. (${formatLastHealthySyncAge()})`
+                );
+                emitQueueOpsEvent('offline_synced_batch', {
+                    source,
+                    processed,
+                    pendingAfter: state.offlineOutbox.length,
+                });
+            }
+        }
+    } finally {
+        state.offlineOutboxFlushBusy = false;
+        renderOutboxConsole();
+    }
+}
+
+async function submitCheckin(event) {
+    event.preventDefault();
+    registerKioskActivity();
+    dismissWelcomeScreen({ reason: 'form_submit' });
+    const form = event.currentTarget;
+    if (!(form instanceof HTMLFormElement)) return;
+
+    const phoneInput = getById('checkinPhone');
+    const timeInput = getById('checkinTime');
+    const dateInput = getById('checkinDate');
+    const initialsInput = getById('checkinInitials');
+    const submitBtn = getById('checkinSubmit');
+
+    const phone =
+        phoneInput instanceof HTMLInputElement ? phoneInput.value.trim() : '';
+    const time =
+        timeInput instanceof HTMLInputElement ? timeInput.value.trim() : '';
+    const date =
+        dateInput instanceof HTMLInputElement ? dateInput.value.trim() : '';
+    const patientInitials =
+        initialsInput instanceof HTMLInputElement
+            ? initialsInput.value.trim()
+            : '';
+
+    if (!phone || !time || !date) {
+        setKioskStatus(
+            'Telefono, fecha y hora son obligatorios para check-in',
+            'error'
+        );
+        setKioskProgressHint(
+            'Completa telefono, fecha y hora para continuar.',
+            'warn'
+        );
+        return;
+    }
+
+    if (submitBtn instanceof HTMLButtonElement) {
+        submitBtn.disabled = true;
+    }
+
+    try {
+        const body = {
+            telefono: phone,
+            hora: time,
+            fecha: date,
+            patientInitials,
+        };
+        const payload = await apiRequest('queue-checkin', {
+            method: 'POST',
+            body,
+        });
+        setKioskStatus('Check-in registrado correctamente', 'success');
+        setKioskProgressHint(
+            'Check-in completado. Conserva tu ticket y espera llamado.',
+            'success'
+        );
+        renderTicketResult(
+            payload,
+            payload.replay ? 'Check-in ya existente' : 'Check-in de cita'
+        );
+        state.queueFailureStreak = 0;
+        const refreshResult = await refreshQueueState();
+        if (!refreshResult.ok) {
+            setQueueConnectionStatus(
+                'reconnecting',
+                'Check-in registrado; pendiente sincronizar cola'
+            );
+        }
+    } catch (error) {
+        if (isRecoverableTransportError(error)) {
+            const queued = queueOfflineRequest({
+                resource: 'queue-checkin',
+                body: {
+                    telefono: phone,
+                    hora: time,
+                    fecha: date,
+                    patientInitials,
+                },
+                originLabel: 'Check-in de cita',
+                patientInitials: patientInitials || phone.slice(-2),
+                queueType: 'appointment',
+            });
+            if (queued) {
+                setQueueConnectionStatus('offline', 'Sin conexion al backend');
+                setQueueOpsHint(
+                    'Modo offline: check-ins/turnos se guardan localmente hasta reconectar.'
+                );
+                renderPendingTicketResult({
+                    originLabel: queued.originLabel,
+                    patientInitials: queued.patientInitials,
+                    queueType: queued.queueType,
+                    queuedAt: queued.queuedAt,
+                });
+                setKioskStatus(
+                    queued.deduped
+                        ? 'Check-in ya pendiente offline. Se sincronizara automaticamente.'
+                        : 'Check-in guardado offline. Se sincronizara automaticamente.',
+                    'info'
+                );
+                setKioskProgressHint(
+                    'Check-in guardado offline. Recepcion confirmara al reconectar.',
+                    'warn'
+                );
+                return;
+            }
+        }
+        setKioskStatus(
+            `No se pudo registrar el check-in: ${error.message}`,
+            'error'
+        );
+        setKioskProgressHint(
+            'No se pudo confirmar check-in. Intenta de nuevo o pide apoyo.',
+            'warn'
+        );
+    } finally {
+        if (submitBtn instanceof HTMLButtonElement) {
+            submitBtn.disabled = false;
+        }
+    }
+}
+
+async function submitWalkIn(event) {
+    event.preventDefault();
+    registerKioskActivity();
+    dismissWelcomeScreen({ reason: 'form_submit' });
+    const nameInput = getById('walkinName');
+    const initialsInput = getById('walkinInitials');
+    const phoneInput = getById('walkinPhone');
+    const submitBtn = getById('walkinSubmit');
+
+    const name =
+        nameInput instanceof HTMLInputElement ? nameInput.value.trim() : '';
+    const initialsRaw =
+        initialsInput instanceof HTMLInputElement
+            ? initialsInput.value.trim()
+            : '';
+    const patientInitials = initialsRaw || deriveInitials(name);
+    const phone =
+        phoneInput instanceof HTMLInputElement ? phoneInput.value.trim() : '';
+
+    if (!patientInitials) {
+        setKioskStatus(
+            'Ingresa iniciales o nombre para generar el turno',
+            'error'
+        );
+        setKioskProgressHint(
+            'Escribe iniciales para generar tu turno.',
+            'warn'
+        );
+        return;
+    }
+
+    if (submitBtn instanceof HTMLButtonElement) {
+        submitBtn.disabled = true;
+    }
+
+    try {
+        const body = {
+            patientInitials,
+            name,
+            phone,
+        };
+        const payload = await apiRequest('queue-ticket', {
+            method: 'POST',
+            body,
+        });
+        setKioskStatus('Turno walk-in registrado correctamente', 'success');
+        setKioskProgressHint(
+            'Turno generado. Conserva tu ticket y espera llamado.',
+            'success'
+        );
+        renderTicketResult(payload, 'Turno sin cita');
+        state.queueFailureStreak = 0;
+        const refreshResult = await refreshQueueState();
+        if (!refreshResult.ok) {
+            setQueueConnectionStatus(
+                'reconnecting',
+                'Turno creado; pendiente sincronizar cola'
+            );
+        }
+    } catch (error) {
+        if (isRecoverableTransportError(error)) {
+            const queued = queueOfflineRequest({
+                resource: 'queue-ticket',
+                body: {
+                    patientInitials,
+                    name,
+                    phone,
+                },
+                originLabel: 'Turno sin cita',
+                patientInitials,
+                queueType: 'walk_in',
+            });
+            if (queued) {
+                setQueueConnectionStatus('offline', 'Sin conexion al backend');
+                setQueueOpsHint(
+                    'Modo offline: check-ins/turnos se guardan localmente hasta reconectar.'
+                );
+                renderPendingTicketResult({
+                    originLabel: queued.originLabel,
+                    patientInitials: queued.patientInitials,
+                    queueType: queued.queueType,
+                    queuedAt: queued.queuedAt,
+                });
+                setKioskStatus(
+                    queued.deduped
+                        ? 'Turno ya pendiente offline. Se sincronizara automaticamente.'
+                        : 'Turno guardado offline. Se sincronizara automaticamente.',
+                    'info'
+                );
+                setKioskProgressHint(
+                    'Turno guardado offline. Recepcion lo sincronizara al reconectar.',
+                    'warn'
+                );
+                return;
+            }
+        }
+        setKioskStatus(`No se pudo crear el turno: ${error.message}`, 'error');
+        setKioskProgressHint(
+            'No se pudo generar turno. Intenta de nuevo o pide apoyo.',
+            'warn'
+        );
+    } finally {
+        if (submitBtn instanceof HTMLButtonElement) {
+            submitBtn.disabled = false;
+        }
+    }
+}
+
+function assistantGuard(text) {
+    const normalized = String(text || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+    if (
+        /(diagnost|medicacion|tratamiento medico|receta|dosis|enfermedad)/.test(
+            normalized
+        )
+    ) {
+        return 'En este kiosco solo puedo ayudarte con turnos y orientacion de sala. Para consulta medica, acude a recepcion.';
+    }
+
+    const trimmed = String(text || '').trim();
+    if (!trimmed) {
+        return 'Puedo ayudarte con turnos, check-in y ubicacion de consultorios.';
+    }
+
+    return trimmed;
+}
+
+function appendAssistantMessage(role, content) {
+    const list = getById('assistantMessages');
+    if (!list) return;
+    const item = document.createElement('article');
+    item.className = `assistant-message assistant-message-${role}`;
+    item.innerHTML = `<p>${escapeHtml(content)}</p>`;
+    list.appendChild(item);
+    list.scrollTop = list.scrollHeight;
+}
+
+async function submitAssistant(event) {
+    event.preventDefault();
+    registerKioskActivity();
+    if (state.assistantBusy) return;
+
+    const input = getById('assistantInput');
+    const sendBtn = getById('assistantSend');
+    if (!(input instanceof HTMLInputElement)) return;
+
+    const text = input.value.trim();
+    if (!text) return;
+
+    appendAssistantMessage('user', text);
+    input.value = '';
+    state.assistantBusy = true;
+    if (sendBtn instanceof HTMLButtonElement) {
+        sendBtn.disabled = true;
+    }
+
+    try {
+        const messages = [
+            {
+                role: 'system',
+                content:
+                    'Modo kiosco de sala de espera. Solo orientar sobre turnos, check-in, consultorios y recepcion. No dar consejo clinico.',
+            },
+            ...state.chatHistory.slice(-6),
+            { role: 'user', content: text },
+        ];
+
+        const response = await fetch(`${CHAT_ENDPOINT}?t=${Date.now()}`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+            },
+            body: JSON.stringify({
+                model: 'figo-assistant',
+                source: 'kiosk_waiting_room',
+                messages,
+                max_tokens: 180,
+                temperature: 0.2,
+            }),
+        });
+
+        const payload = await response.json();
+        const aiText = String(
+            payload?.choices?.[0]?.message?.content || ''
+        ).trim();
+        const answer = assistantGuard(aiText);
+        appendAssistantMessage('bot', answer);
+
+        state.chatHistory = [
+            ...state.chatHistory,
+            { role: 'user', content: text },
+            { role: 'assistant', content: answer },
+        ].slice(-8);
+    } catch (_error) {
+        appendAssistantMessage(
+            'bot',
+            'No pude conectar con el asistente. Te ayudo en recepcion para continuar con tu turno.'
+        );
+    } finally {
+        state.assistantBusy = false;
+        if (sendBtn instanceof HTMLButtonElement) {
+            sendBtn.disabled = false;
+        }
+    }
+}
+
+function bindKioskActivitySignals() {
+    const activityEvents = ['pointerdown', 'keydown', 'input', 'touchstart'];
+    activityEvents.forEach((eventName) => {
+        document.addEventListener(
+            eventName,
+            () => {
+                registerKioskActivity();
+            },
+            true
+        );
+    });
+}
+
+function applyTheme(mode) {
+    state.themeMode = mode;
+    const root = document.documentElement;
+    const activeMode = 'light';
+    root.dataset.theme = activeMode;
+
+    document.querySelectorAll('[data-theme-mode]').forEach((button) => {
+        const buttonMode = button.getAttribute('data-theme-mode');
+        button.classList.toggle('is-active', buttonMode === mode);
+        button.setAttribute('aria-pressed', String(buttonMode === mode));
+    });
+}
+
+function setTheme(_mode) {
+    const normalized = 'light';
+    localStorage.setItem(THEME_STORAGE_KEY, normalized);
+    applyTheme(normalized);
+}
+
+function initTheme() {
+    setTheme('light');
+}
+
+function dismissWelcomeScreen({ reason = 'auto' } = {}) {
+    if (state.welcomeDismissed) return;
+    state.welcomeDismissed = true;
+    const welcomeScreen = getById('kioskWelcomeScreen');
+    if (!(welcomeScreen instanceof HTMLElement)) return;
+    welcomeScreen.classList.add('is-hidden');
+    window.setTimeout(() => {
+        if (welcomeScreen.parentElement) {
+            welcomeScreen.remove();
+        }
+    }, 700);
+    emitQueueOpsEvent('welcome_dismissed', { reason });
+}
+
+function runWelcomeSequence() {
+    const welcomeScreen = getById('kioskWelcomeScreen');
+    if (!(welcomeScreen instanceof HTMLElement)) return;
+
+    welcomeScreen.classList.add('is-visible');
+    setKioskProgressHint(
+        'Bienvenida: en segundos podras elegir tu tipo de atencion.',
+        'info'
+    );
+    window.setTimeout(() => {
+        dismissWelcomeScreen({ reason: 'auto' });
+    }, KIOSK_WELCOME_HIDE_MS);
+    window.setTimeout(() => {
+        dismissWelcomeScreen({ reason: 'safety_timeout' });
+    }, KIOSK_WELCOME_REMOVE_MS);
+}
+
+function bindKioskStarControls() {
+    const quickCheckin = getById('kioskQuickCheckin');
+    const quickWalkin = getById('kioskQuickWalkin');
+    const helpToggle = getById('kioskHelpToggle');
+    const helpClose = getById('kioskHelpClose');
+    const seniorToggle = getById('kioskSeniorToggle');
+    const voiceGuideBtn = getById('kioskVoiceGuideBtn');
+    const receptionHelpBtn = getById('kioskReceptionHelpBtn');
+
+    if (quickCheckin instanceof HTMLButtonElement) {
+        quickCheckin.addEventListener('click', () => {
+            registerKioskActivity();
+            focusFlowTarget('checkin');
+        });
+    }
+    if (quickWalkin instanceof HTMLButtonElement) {
+        quickWalkin.addEventListener('click', () => {
+            registerKioskActivity();
+            focusFlowTarget('walkin');
+        });
+    }
+    if (helpToggle instanceof HTMLButtonElement) {
+        helpToggle.addEventListener('click', () => {
+            registerKioskActivity();
+            setKioskHelpPanelOpen(!state.quickHelpOpen, { source: 'toggle' });
+        });
+    }
+    if (helpClose instanceof HTMLButtonElement) {
+        helpClose.addEventListener('click', () => {
+            registerKioskActivity();
+            setKioskHelpPanelOpen(false, { source: 'close_button' });
+        });
+    }
+    if (seniorToggle instanceof HTMLButtonElement) {
+        seniorToggle.addEventListener('click', () => {
+            registerKioskActivity();
+            toggleSeniorMode({ source: 'button' });
+        });
+    }
+    if (voiceGuideBtn instanceof HTMLButtonElement) {
+        voiceGuideBtn.addEventListener('click', () => {
+            registerKioskActivity();
+            runVoiceGuide({ source: 'button' });
+        });
+    }
+    if (receptionHelpBtn instanceof HTMLButtonElement) {
+        receptionHelpBtn.dataset.variant = 'warning';
+        receptionHelpBtn.addEventListener('click', () => {
+            registerKioskActivity();
+            requestReceptionSupport({ source: 'button' });
+        });
+    }
+}
+
+function initDefaultDate() {
+    const dateInput = getById('checkinDate');
+    if (dateInput instanceof HTMLInputElement && !dateInput.value) {
+        dateInput.value = new Date().toISOString().slice(0, 10);
+    }
+}
+
+function scheduleQueuePolling({ immediate = false } = {}) {
+    clearQueuePollTimer();
+    if (!state.queuePollingEnabled) return;
+    const delay = immediate ? 0 : getQueuePollDelayMs();
+    state.queueTimerId = window.setTimeout(() => {
+        void runQueuePollingTick();
+    }, delay);
+}
+
+async function runQueuePollingTick() {
+    if (!state.queuePollingEnabled) return;
+
+    if (document.hidden) {
+        setQueueConnectionStatus('paused', 'Cola en pausa (pestana oculta)');
+        setQueueOpsHint('Pestana oculta. Turnero en pausa temporal.');
+        scheduleQueuePolling();
+        return;
+    }
+
+    if (navigator.onLine === false) {
+        state.queueFailureStreak += 1;
+        setQueueConnectionStatus('offline', 'Sin conexion al backend');
+        setQueueOpsHint(
+            'Sin internet. Deriva check-in/turnos a recepcion mientras se recupera conexion.'
+        );
+        renderOfflineOutboxHint();
+        scheduleQueuePolling();
+        return;
+    }
+
+    await flushOfflineOutbox({ source: 'poll' });
+
+    const refreshResult = await refreshQueueState();
+    if (refreshResult.ok && !refreshResult.stale) {
+        state.queueFailureStreak = 0;
+        state.queueLastHealthySyncAt = Date.now();
+        setQueueConnectionStatus('live', 'Cola conectada');
+        setQueueOpsHint(
+            `Operacion estable (${formatLastHealthySyncAge()}). Kiosco disponible para turnos.`
+        );
+    } else if (refreshResult.ok && refreshResult.stale) {
+        state.queueFailureStreak += 1;
+        const staleAge = formatElapsedAge(refreshResult.ageMs || 0);
+        setQueueConnectionStatus(
+            'reconnecting',
+            `Watchdog: cola estancada ${staleAge}`
+        );
+        setQueueOpsHint(
+            `Cola degradada: sin cambios en ${staleAge}. Usa "Reintentar sincronizacion" o apoyo de recepcion.`
+        );
+    } else {
+        state.queueFailureStreak += 1;
+        const retrySeconds = Math.max(
+            1,
+            Math.ceil(getQueuePollDelayMs() / 1000)
+        );
+        setQueueConnectionStatus(
+            'reconnecting',
+            `Reintentando en ${retrySeconds}s`
+        );
+        setQueueOpsHint(
+            `Conexion inestable. Reintento automatico en ${retrySeconds}s.`
+        );
+    }
+    renderOfflineOutboxHint();
+    scheduleQueuePolling();
+}
+
+async function runQueueManualRefresh() {
+    if (state.queueManualRefreshBusy) return;
+    registerKioskActivity();
+    state.queueManualRefreshBusy = true;
+    setQueueManualRefreshLoading(true);
+    setQueueConnectionStatus('reconnecting', 'Refrescando manualmente...');
+
+    try {
+        await flushOfflineOutbox({ source: 'manual' });
+        const refreshResult = await refreshQueueState();
+        if (refreshResult.ok && !refreshResult.stale) {
+            state.queueFailureStreak = 0;
+            state.queueLastHealthySyncAt = Date.now();
+            setQueueConnectionStatus('live', 'Cola conectada');
+            setQueueOpsHint(
+                `Sincronizacion manual exitosa (${formatLastHealthySyncAge()}).`
+            );
+            return;
+        }
+        if (refreshResult.ok && refreshResult.stale) {
+            const staleAge = formatElapsedAge(refreshResult.ageMs || 0);
+            setQueueConnectionStatus(
+                'reconnecting',
+                `Watchdog: cola estancada ${staleAge}`
+            );
+            setQueueOpsHint(
+                `Persisten datos estancados (${staleAge}). Verifica backend o recepcion.`
+            );
+            return;
+        }
+        const retrySeconds = Math.max(
+            1,
+            Math.ceil(getQueuePollDelayMs() / 1000)
+        );
+        setQueueConnectionStatus(
+            navigator.onLine === false ? 'offline' : 'reconnecting',
+            navigator.onLine === false
+                ? 'Sin conexion al backend'
+                : `Reintentando en ${retrySeconds}s`
+        );
+        setQueueOpsHint(
+            navigator.onLine === false
+                ? 'Sin internet. Opera manualmente en recepcion.'
+                : `Refresh manual sin exito. Reintento automatico en ${retrySeconds}s.`
+        );
+    } finally {
+        renderOfflineOutboxHint();
+        state.queueManualRefreshBusy = false;
+        setQueueManualRefreshLoading(false);
+    }
+}
+
+function startQueuePolling({ immediate = true } = {}) {
+    state.queuePollingEnabled = true;
+    if (immediate) {
+        setQueueConnectionStatus('live', 'Sincronizando cola...');
+        void runQueuePollingTick();
+        return;
+    }
+    scheduleQueuePolling();
+}
+
+function stopQueuePolling({ reason = 'paused' } = {}) {
+    state.queuePollingEnabled = false;
+    state.queueFailureStreak = 0;
+    clearQueuePollTimer();
+
+    const normalizedReason = String(reason || 'paused').toLowerCase();
+    if (normalizedReason === 'offline') {
+        setQueueConnectionStatus('offline', 'Sin conexion al backend');
+        setQueueOpsHint(
+            'Sin conexion. Esperando reconexion para reanudar cola.'
+        );
+        renderOfflineOutboxHint();
+        return;
+    }
+    if (normalizedReason === 'hidden') {
+        setQueueConnectionStatus('paused', 'Cola en pausa (pestana oculta)');
+        setQueueOpsHint('Pestana oculta. Reanudando al volver a primer plano.');
+        return;
+    }
+    setQueueConnectionStatus('paused', 'Cola en pausa');
+    setQueueOpsHint('Sincronizacion pausada por navegacion.');
+    renderOfflineOutboxHint();
+}
+
+function initKiosk() {
+    document.body.dataset.kioskMode = 'star';
+    ensureKioskStarStyles();
+    state.idleResetMs = resolveIdleResetMs();
+    state.voiceGuideSupported = supportsVoiceGuide();
+    initTheme();
+    setSeniorModeEnabled(readSeniorModePreference(), {
+        persist: false,
+        source: 'init',
+    });
+    syncVoiceGuideButton();
+    runWelcomeSequence();
+    initDefaultDate();
+
+    const checkinForm = getById('checkinForm');
+    const walkinForm = getById('walkinForm');
+    const assistantForm = getById('assistantForm');
+
+    if (checkinForm instanceof HTMLFormElement) {
+        checkinForm.addEventListener('submit', submitCheckin);
+    }
+    if (walkinForm instanceof HTMLFormElement) {
+        walkinForm.addEventListener('submit', submitWalkIn);
+    }
+    if (assistantForm instanceof HTMLFormElement) {
+        assistantForm.addEventListener('submit', submitAssistant);
+    }
+    bindKioskStarControls();
+    setKioskHelpPanelOpen(false, { source: 'init' });
+
+    ensureSessionGuard();
+    const resetSessionBtn = getById('kioskSessionResetBtn');
+    if (resetSessionBtn instanceof HTMLButtonElement) {
+        resetSessionBtn.addEventListener('click', () => {
+            resetKioskSession({ reason: 'manual' });
+        });
+    }
+
+    resetAssistantConversation();
+    renderTicketEmptyState();
+    focusFlowTarget('checkin', { announce: false });
+    setKioskProgressHint(
+        'Paso 1 de 2: selecciona una opcion para comenzar.',
+        'info'
+    );
+    bindKioskActivitySignals();
+    beginIdleSessionGuard();
+
+    ensureQueueOpsHintEl();
+    ensureQueueOutboxHintEl();
+    ensureQueuePrinterHintEl();
+    ensureQueueOutboxConsoleEl();
+    loadOfflineOutbox();
+    loadPrinterState();
+    renderPrinterHint();
+    renderOfflineOutboxHint();
+    const manualRefreshButton = ensureQueueManualRefreshButton();
+    if (manualRefreshButton instanceof HTMLButtonElement) {
+        manualRefreshButton.addEventListener('click', () => {
+            void runQueueManualRefresh();
+        });
+    }
+    const outboxRetryButton = getById('queueOutboxRetryBtn');
+    if (outboxRetryButton instanceof HTMLButtonElement) {
+        outboxRetryButton.addEventListener('click', () => {
+            void flushOfflineOutbox({
+                source: 'operator',
+                force: true,
+                maxItems: KIOSK_OFFLINE_OUTBOX_MAX_ITEMS,
+            });
+        });
+    }
+    const outboxDropOldestButton = getById('queueOutboxDropOldestBtn');
+    if (outboxDropOldestButton instanceof HTMLButtonElement) {
+        outboxDropOldestButton.addEventListener('click', () => {
+            discardOldestOutboxItem();
+        });
+    }
+    const outboxClearButton = getById('queueOutboxClearBtn');
+    if (outboxClearButton instanceof HTMLButtonElement) {
+        outboxClearButton.addEventListener('click', () => {
+            clearOfflineOutbox({ reason: 'manual' });
+        });
+    }
+
+    setQueueConnectionStatus('paused', 'Sincronizacion lista');
+    setQueueOpsHint('Esperando primera sincronizacion de cola...');
+    renderQueueUpdatedAt('');
+    if (navigator.onLine !== false) {
+        void flushOfflineOutbox({ source: 'startup', force: true });
+    }
+    startQueuePolling({ immediate: true });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            stopQueuePolling({ reason: 'hidden' });
+            return;
+        }
+        startQueuePolling({ immediate: true });
+    });
+
+    window.addEventListener('online', () => {
+        void flushOfflineOutbox({ source: 'online', force: true });
+        startQueuePolling({ immediate: true });
+    });
+
+    window.addEventListener('offline', () => {
+        stopQueuePolling({ reason: 'offline' });
+        renderOfflineOutboxHint();
+    });
+
+    window.addEventListener('beforeunload', () => {
+        stopVoiceGuide({ source: 'beforeunload' });
+        stopQueuePolling({ reason: 'paused' });
+    });
+
+    window.addEventListener('keydown', (event) => {
+        if (!event.altKey || !event.shiftKey) return;
+        const keyCode = String(event.code || '').toLowerCase();
+        if (keyCode === 'keyr') {
+            event.preventDefault();
+            void runQueueManualRefresh();
+            return;
+        }
+        if (keyCode === 'keyh') {
+            event.preventDefault();
+            setKioskHelpPanelOpen(!state.quickHelpOpen, {
+                source: 'shortcut',
+            });
+            return;
+        }
+        if (keyCode === 'digit1') {
+            event.preventDefault();
+            focusFlowTarget('checkin');
+            return;
+        }
+        if (keyCode === 'digit2') {
+            event.preventDefault();
+            focusFlowTarget('walkin');
+            return;
+        }
+        if (keyCode === 'keys') {
+            event.preventDefault();
+            toggleSeniorMode({ source: 'shortcut' });
+            return;
+        }
+        if (keyCode === 'keyv') {
+            event.preventDefault();
+            runVoiceGuide({ source: 'shortcut' });
+            return;
+        }
+        if (keyCode === 'keya') {
+            event.preventDefault();
+            requestReceptionSupport({ source: 'shortcut' });
+            return;
+        }
+        if (keyCode === 'keyl') {
+            event.preventDefault();
+            resetKioskSession({ reason: 'manual' });
+            return;
+        }
+        if (keyCode === 'keyy') {
+            event.preventDefault();
+            void flushOfflineOutbox({
+                source: 'shortcut',
+                force: true,
+                maxItems: KIOSK_OFFLINE_OUTBOX_MAX_ITEMS,
+            });
+            return;
+        }
+        if (keyCode === 'keyk') {
+            event.preventDefault();
+            clearOfflineOutbox({ reason: 'manual' });
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initKiosk);

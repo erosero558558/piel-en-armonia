@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { build, Platform, Arch } from 'electron-builder';
 import {
     createBuildConfig,
+    buildUpdateFeedUrl,
     getSurfaceMeta,
 } from '../src/config/contracts.mjs';
 
@@ -30,12 +31,12 @@ function parseArgs(argv) {
 
 function resolveTargets(platform) {
     if (platform === 'mac') {
-        return Platform.MAC.createTarget(['dmg'], Arch.universal);
+        return Platform.MAC.createTarget(['dmg', 'zip'], Arch.universal);
     }
     if (platform === 'all') {
         return [
             Platform.WINDOWS.createTarget(['nsis'], Arch.x64),
-            Platform.MAC.createTarget(['dmg'], Arch.universal),
+            Platform.MAC.createTarget(['dmg', 'zip'], Arch.universal),
         ];
     }
     return Platform.WINDOWS.createTarget(['nsis'], Arch.x64);
@@ -43,6 +44,7 @@ function resolveTargets(platform) {
 
 function createBuilderConfig(surface, platform, config) {
     const meta = getSurfaceMeta(surface);
+    const updatePlatform = platform === 'mac' ? 'darwin' : 'win32';
     return {
         appId: meta.appId,
         productName: meta.productName,
@@ -54,6 +56,7 @@ function createBuilderConfig(surface, platform, config) {
         },
         files: ['src/**/*', 'package.json', 'README.md'],
         extraMetadata: {
+            version: config.releaseVersion,
             turneroDesktop: config,
         },
         win: {
@@ -68,11 +71,20 @@ function createBuilderConfig(surface, platform, config) {
             uninstallDisplayName: meta.productName,
         },
         mac: {
-            target: [{ target: 'dmg', arch: ['universal'] }],
+            target: [
+                { target: 'dmg', arch: ['universal'] },
+                { target: 'zip', arch: ['universal'] },
+            ],
             artifactName: `${meta.artifactBase}.\${ext}`,
             category: 'public.app-category.medical',
         },
-        publish: null,
+        publish: [
+            {
+                provider: 'generic',
+                url: buildUpdateFeedUrl(config, updatePlatform),
+                channel: config.updateChannel,
+            },
+        ],
     };
 }
 
@@ -89,6 +101,9 @@ const buildConfig = createBuildConfig({
             : process.env.TURNERO_AUTO_START,
     updateBaseUrl: args.updateBaseUrl || process.env.TURNERO_UPDATE_BASE_URL,
 });
+buildConfig.releaseVersion = String(
+    args.version || process.env.TURNERO_RELEASE_VERSION || '0.1.0'
+).trim();
 
 await build({
     targets: resolveTargets(platform),

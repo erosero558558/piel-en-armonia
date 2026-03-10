@@ -8,7 +8,7 @@
             content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'self';"
         />
         <title>Sala de Espera | Turnero</title>
-        <link rel="stylesheet" href="queue-display.css?v=queue-20260303-sony-rigor3" />
+        <link rel="stylesheet" href="queue-display.css?v=queue-20260310-setup1" />
     </head>
     <body>
         <header class="display-header">
@@ -57,8 +57,27 @@
                     Por privacidad, solo se muestra ticket e iniciales.
                 </p>
             </section>
+
+            <section class="display-panel display-setup-panel" aria-live="polite">
+                <div class="display-setup-card__header">
+                    <span>Puesta en marcha TCL C655</span>
+                    <strong id="displaySetupTitle">Falta probar la campanilla</strong>
+                </div>
+                <p id="displaySetupSummary" class="display-setup-summary">
+                    Deja la TV por Ethernet y ejecuta una prueba sonora antes de abrir sala.
+                </p>
+                <div
+                    id="displaySetupChecks"
+                    class="display-setup-checks"
+                    role="list"
+                    aria-label="Checklist de puesta en marcha de la TV"
+                ></div>
+                <p class="display-setup-note">
+                    Usa "Probar campanilla" una vez para desbloquear audio y confirma volumen fijo en la TV.
+                </p>
+            </section>
         </main>
 
-        <script src="js/queue-display.js?v=queue-20260227-star1" defer></script>
+        <script src="js/queue-display.js?v=queue-20260310-setup1" defer></script>
     </body>
 </html>

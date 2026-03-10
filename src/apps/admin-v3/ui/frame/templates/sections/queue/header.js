@@ -33,6 +33,7 @@ export function renderQueueAppsHub() {
                 </span>
             </div>
             <div id="queueAppDownloadsCards" class="queue-apps-grid"></div>
+            <div id="queueInstallConfigurator" class="queue-install-configurator"></div>
         </div>
     `;
 }

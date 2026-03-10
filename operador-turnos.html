@@ -15,7 +15,7 @@
         />
         <link
             rel="stylesheet"
-            href="queue-ops.css?v=queue-ops-20260310-apps1"
+            href="queue-ops.css?v=queue-ops-20260310-apps2"
         />
     </head>
     <body
@@ -106,6 +106,13 @@
                 <div class="queue-operator-topbar__actions">
                     <button
                         type="button"
+                        class="queue-operator-secondary-btn is-hidden"
+                        id="operatorAppSettingsBtn"
+                    >
+                        Configurar app
+                    </button>
+                    <button
+                        type="button"
                         class="queue-operator-secondary-btn"
                         data-action="queue-refresh-state"
                     >
@@ -136,6 +143,56 @@
                     <span>Equipo</span>
                     <strong>Genius Numpad 1000</strong>
                     <small>Conecta el receptor USB al PC del operador.</small>
+                </article>
+            </section>
+
+            <section class="queue-operator-guide-grid">
+                <article class="queue-operator-guide-card">
+                    <p class="queue-operator-kicker">Siguiente paso</p>
+                    <h3 id="operatorActionTitle">Listo para llamar</h3>
+                    <p id="operatorActionSummary">
+                        Pulsa <code>Numpad Enter</code> para llamar el siguiente
+                        ticket del consultorio activo.
+                    </p>
+                </article>
+                <article class="queue-operator-guide-card">
+                    <p class="queue-operator-kicker">Mapa rápido</p>
+                    <div class="queue-operator-keymap">
+                        <span><code>Enter</code> llamar</span>
+                        <span><code>+</code> re-llamar</span>
+                        <span><code>.</code> completar</span>
+                        <span><code>-</code> no show</span>
+                        <span><code>1</code> C1</span>
+                        <span><code>2</code> C2</span>
+                    </div>
+                </article>
+            </section>
+
+            <section class="queue-operator-readiness-grid">
+                <article class="queue-operator-guide-card queue-operator-readiness-card">
+                    <p class="queue-operator-kicker">Equipo listo</p>
+                    <h3 id="operatorReadinessTitle">Falta probar el numpad</h3>
+                    <p id="operatorReadinessSummary">
+                        Presiona una tecla del Genius Numpad 1000 para validar el receptor USB antes del primer llamado real.
+                    </p>
+                    <div class="queue-operator-readiness-checks">
+                        <article class="queue-operator-readiness-check" data-state="ready">
+                            <span>Ruta preparada</span>
+                            <strong id="operatorReadyRoute">C1 libre · 1 tecla OFF</strong>
+                        </article>
+                        <article class="queue-operator-readiness-check" data-state="warning">
+                            <span>Red y sesión</span>
+                            <strong id="operatorReadyNetwork">Esperando conexión</strong>
+                        </article>
+                        <article class="queue-operator-readiness-check" data-state="warning">
+                            <span>Shell</span>
+                            <strong id="operatorReadyShell">Fallback web</strong>
+                        </article>
+                        <article class="queue-operator-readiness-check" data-state="warning">
+                            <span>Numpad</span>
+                            <strong id="operatorReadyNumpad">Prueba pendiente</strong>
+                        </article>
+                    </div>
                 </article>
             </section>
 

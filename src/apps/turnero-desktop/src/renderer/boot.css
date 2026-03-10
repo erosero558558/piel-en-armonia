@@ -80,7 +80,8 @@ body {
     margin-top: 20px;
 }
 
-.boot-actions button {
+.boot-actions button,
+.boot-config__actions button {
     min-height: 44px;
     padding: 0 16px;
     border: 1px solid rgba(230, 179, 107, 0.4);
@@ -95,6 +96,207 @@ body {
     color: #aab9cb;
 }
 
+.boot-config {
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.boot-config__header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.boot-config__header h2,
+.boot-config__mode {
+    margin: 0;
+}
+
+.boot-config__mode {
+    padding: 8px 12px;
+    border: 1px solid rgba(230, 179, 107, 0.18);
+    background: rgba(230, 179, 107, 0.08);
+    color: #f6cf96;
+}
+
+.boot-config__form {
+    display: grid;
+    gap: 14px;
+    margin-top: 18px;
+}
+
+.boot-config__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.boot-field {
+    display: grid;
+    gap: 8px;
+}
+
+.boot-field span {
+    color: #f0c889;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.boot-field input,
+.boot-field select {
+    min-height: 46px;
+    padding: 0 14px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    color: #eef4fb;
+    font: inherit;
+}
+
+.boot-checkbox {
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
+    min-height: 46px;
+    padding: 0 14px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    color: #eef4fb;
+}
+
+.boot-checkbox input {
+    margin: 0;
+}
+
+.boot-config__preview {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.boot-config__preview span {
+    color: #f0c889;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.boot-config__preview code,
+.boot-config__hint code {
+    display: inline-flex;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(230, 179, 107, 0.16);
+    color: #f6cf96;
+    word-break: break-word;
+}
+
+.boot-preflight {
+    display: grid;
+    gap: 0.85rem;
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.boot-preflight__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.boot-preflight__header h3 {
+    margin: 4px 0 0;
+    font-size: 18px;
+}
+
+.boot-preflight__summary {
+    padding: 12px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    color: #d5dfeb;
+}
+
+.boot-preflight__summary[data-state='ready'] {
+    border-color: rgba(34, 197, 94, 0.36);
+    background: rgba(34, 197, 94, 0.12);
+}
+
+.boot-preflight__summary[data-state='warning'] {
+    border-color: rgba(230, 179, 107, 0.36);
+    background: rgba(230, 179, 107, 0.12);
+}
+
+.boot-preflight__summary[data-state='danger'] {
+    border-color: rgba(248, 113, 113, 0.36);
+    background: rgba(248, 113, 113, 0.12);
+}
+
+.boot-preflight__checks {
+    display: grid;
+    gap: 10px;
+}
+
+.boot-preflight__check {
+    display: grid;
+    gap: 6px;
+    padding: 12px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.boot-preflight__check strong {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.boot-preflight__check strong::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #f0c889;
+    box-shadow: 0 0 0 4px rgba(240, 200, 137, 0.16);
+}
+
+.boot-preflight__check[data-state='ready'] strong::before {
+    background: #22c55e;
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.16);
+}
+
+.boot-preflight__check[data-state='danger'] strong::before {
+    background: #f87171;
+    box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.16);
+}
+
+.boot-preflight__check span {
+    color: #d5dfeb;
+    line-height: 1.45;
+}
+
+.boot-config__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.boot-btn-secondary {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #eef4fb !important;
+}
+
+.boot-config__hint {
+    margin: 14px 0 0;
+    color: #aab9cb;
+}
+
 @media (max-width: 720px) {
     .boot-shell {
         padding: 16px;
@@ -106,5 +308,11 @@ body {
 
     .boot-meta {
         grid-template-columns: 1fr;
+    }
+
+    .boot-config__grid,
+    .boot-config__actions {
+        grid-template-columns: 1fr;
+        display: grid;
     }
 }

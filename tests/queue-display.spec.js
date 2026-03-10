@@ -249,6 +249,86 @@ test.describe('Sala turnos display', () => {
         await expect(page.locator('#displayBellToggleBtn')).toContainText('On');
     });
 
+    test('guia puesta en marcha de TV y valida campanilla manual', async ({
+        page,
+    }) => {
+        await page.addInitScript(() => {
+            class FakeAudioContext {
+                constructor() {
+                    this.state = 'running';
+                    this.currentTime = 0;
+                    this.destination = {};
+                }
+
+                async resume() {
+                    this.state = 'running';
+                }
+
+                createOscillator() {
+                    return {
+                        type: 'sine',
+                        frequency: { setValueAtTime() {} },
+                        connect() {},
+                        start() {},
+                        stop() {},
+                    };
+                }
+
+                createGain() {
+                    return {
+                        gain: {
+                            setValueAtTime() {},
+                            exponentialRampToValueAtTime() {},
+                        },
+                        connect() {},
+                    };
+                }
+            }
+
+            window.AudioContext = FakeAudioContext;
+            window.webkitAudioContext = FakeAudioContext;
+        });
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const url = new URL(route.request().url());
+            const resource = url.searchParams.get('resource') || '';
+            if (resource !== 'queue-state') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            return json(route, {
+                ok: true,
+                data: {
+                    updatedAt: new Date().toISOString(),
+                    waitingCount: 1,
+                    calledCount: 0,
+                    callingNow: [],
+                    nextTickets: [
+                        {
+                            id: 91,
+                            ticketCode: 'A-091',
+                            patientInitials: 'TV',
+                            position: 1,
+                        },
+                    ],
+                },
+            });
+        });
+
+        await page.goto('/sala-turnos.html');
+
+        await expect(page.locator('#displaySetupTitle')).toContainText(
+            'Falta probar la campanilla'
+        );
+        await page.locator('#displayBellTestBtn').click();
+        await expect(page.locator('#displaySetupTitle')).toContainText(
+            'Sala TV lista para llamados'
+        );
+        await expect(page.locator('#displaySetupChecks')).toContainText(
+            'Prueba sonora confirmada'
+        );
+    });
+
     test('usa snapshot local cuando backend no responde', async ({ page }) => {
         await page.addInitScript(() => {
             localStorage.setItem(

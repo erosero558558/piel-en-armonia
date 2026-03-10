@@ -843,6 +843,7 @@ function setQueueConnectionStatus(stateLabel, message) {
             message: normalizedMessage,
         });
     }
+    renderKioskSetupStatus();
 }
 
 function resolveIdleResetMs() {
@@ -1038,6 +1039,120 @@ function setQueueOpsHint(message) {
     el.textContent = String(message || '').trim() || 'Estado operativo';
 }
 
+function renderKioskSetupStatus() {
+    const titleEl = getById('kioskSetupTitle');
+    const summaryEl = getById('kioskSetupSummary');
+    const checksEl = getById('kioskSetupChecks');
+    if (
+        !(titleEl instanceof HTMLElement) ||
+        !(summaryEl instanceof HTMLElement) ||
+        !(checksEl instanceof HTMLElement)
+    ) {
+        return;
+    }
+
+    const connectionState = String(state.lastConnectionState || 'paused');
+    const connectionMessage = String(
+        state.lastConnectionMessage || 'Sincronizacion pendiente'
+    );
+    const pendingCount = Number(state.offlineOutbox.length || 0);
+    const printer = state.printerState;
+    const printerReady = Boolean(printer?.printed);
+    const printerBlocked = Boolean(printer && !printer.printed);
+    const hasHealthySync = Boolean(state.queueLastHealthySyncAt);
+    const oldestQueuedAt = Date.parse(String(state.offlineOutbox[0]?.queuedAt || ''));
+    const oldestPendingAge = Number.isFinite(oldestQueuedAt)
+        ? formatElapsedAge(Date.now() - oldestQueuedAt)
+        : '';
+
+    const checks = [
+        {
+            label: 'Conexion con cola',
+            state:
+                connectionState === 'live'
+                    ? hasHealthySync
+                        ? 'ready'
+                        : 'warning'
+                    : connectionState === 'offline'
+                      ? 'danger'
+                      : 'warning',
+            detail:
+                connectionState === 'live'
+                    ? hasHealthySync
+                        ? `Backend en vivo (${formatLastHealthySyncAge()}).`
+                        : 'Conectado, pero esperando la primera sincronizacion saludable.'
+                    : connectionMessage,
+        },
+        {
+            label: 'Impresora termica',
+            state: !printer ? 'warning' : printerReady ? 'ready' : 'danger',
+            detail: !printer
+                ? 'Sin ticket de prueba todavia. Genera uno para validar papel y USB.'
+                : printerReady
+                  ? `Impresion OK · ${formatIsoDateTime(printer.at)}`
+                  : `Sin impresion (${printer.errorCode || printer.message || 'sin detalle'}) · ${formatIsoDateTime(printer.at)}`,
+        },
+        {
+            label: 'Pendientes offline',
+            state:
+                pendingCount <= 0
+                    ? 'ready'
+                    : connectionState === 'offline'
+                      ? 'danger'
+                      : 'warning',
+            detail:
+                pendingCount <= 0
+                    ? 'Sin pendientes locales.'
+                    : `Hay ${pendingCount} pendiente(s) por subir${oldestPendingAge ? ` · mas antiguo ${oldestPendingAge}` : ''}.`,
+        },
+        {
+            label: 'Operacion guiada',
+            state: hasHealthySync ? 'ready' : 'warning',
+            detail: hasHealthySync
+                ? 'La cola ya respondio en este arranque. Puedes abrir el kiosco al publico.'
+                : 'Mantiene el flujo abierto, pero falta una sincronizacion completa desde este arranque.',
+        },
+    ];
+
+    let title = 'Finaliza la puesta en marcha';
+    let summary =
+        'Revisa backend, termica y pendientes antes de dejar el kiosco en autoservicio.';
+    if (connectionState === 'offline') {
+        title = 'Kiosco en contingencia';
+        summary =
+            'El kiosco puede seguir capturando datos, pero el backend no responde. Si la fila crece, deriva a recepcion.';
+    } else if (pendingCount > 0) {
+        title = 'Kiosco con pendientes por sincronizar';
+        summary =
+            'Hay solicitudes guardadas offline. Manten el equipo abierto hasta que el outbox vuelva a cero.';
+    } else if (printerBlocked) {
+        title = 'Revisa la impresora termica';
+        summary =
+            'El ultimo ticket no confirmo impresion. Verifica energia, papel y cable USB, y repite una prueba.';
+    } else if (!printerReady) {
+        title = 'Falta probar ticket termico';
+        summary =
+            'Genera un turno de prueba y confirma "Impresion OK" antes de operar con pacientes.';
+    } else if (connectionState === 'live' && hasHealthySync) {
+        title = 'Kiosco listo para operar';
+        summary =
+            'La cola esta en vivo, no hay pendientes offline y la termica ya respondio correctamente.';
+    }
+
+    titleEl.textContent = title;
+    summaryEl.textContent = summary;
+    checksEl.innerHTML = checks
+        .map(
+            (check) => `
+                <article class="kiosk-setup-check" data-state="${escapeHtml(check.state)}" role="listitem">
+                    <strong>${escapeHtml(check.label)}</strong>
+                    <span>${escapeHtml(check.detail)}</span>
+                </article>
+            `
+        )
+        .join('');
+}
+
 function ensureQueueOutboxHintEl() {
     let el = getById('queueOutboxHint');
     if (el) return el;
@@ -1116,6 +1231,7 @@ function renderPrinterHint() {
     const current = state.printerState;
     if (!current) {
         el.textContent = 'Impresora: estado pendiente.';
+        renderKioskSetupStatus();
         return;
     }
 
@@ -1125,6 +1241,7 @@ function renderPrinterHint() {
     const message = current.message ? ` (${current.message})` : '';
     const atLabel = formatIsoDateTime(current.at);
     el.textContent = `Impresora: ${statusLabel}${message} · ${atLabel}`;
+    renderKioskSetupStatus();
 }
 
 function updatePrinterStateFromPayload(payload, { origin = 'ticket' } = {}) {
@@ -1311,6 +1428,7 @@ function renderOfflineOutboxHint() {
     if (pendingCount <= 0) {
         setQueueOutboxHint('Pendientes offline: 0 (sin pendientes).');
         renderOutboxConsole();
+        renderKioskSetupStatus();
         return;
     }
 
@@ -1324,6 +1442,7 @@ function renderOfflineOutboxHint() {
         `Pendientes offline: ${pendingCount} - sincronizacion automatica al reconectar${ageLabel}`
     );
     renderOutboxConsole();
+    renderKioskSetupStatus();
 }
 
 function buildPendingLocalCode() {

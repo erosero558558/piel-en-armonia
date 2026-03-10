@@ -121,6 +121,12 @@ test.describe('Kiosco turnos', () => {
         await page.click('#walkinSubmit');
 
         await expect(page.locator('#ticketResult')).toContainText('A-101');
+        await expect(page.locator('#kioskSetupTitle')).toContainText(
+            'Revisa la impresora termica'
+        );
+        await expect(page.locator('#kioskSetupChecks')).toContainText(
+            'printer_disabled'
+        );
         await expect(page.locator('#queueWaitingCount')).toHaveText('2');
         await expect(page.locator('#queueConnectionState')).toContainText(
             'Cola conectada'
@@ -133,6 +139,55 @@ test.describe('Kiosco turnos', () => {
         await page.click('#assistantSend');
         await expect(page.locator('#assistantMessages')).toContainText(
             'Tengo cita'
+        );
+    });
+
+    test('muestra kiosco listo cuando hay impresion valida y backend sano', async ({
+        page,
+    }) => {
+        await page.addInitScript(() => {
+            localStorage.setItem(
+                'queueKioskPrinterState',
+                JSON.stringify({
+                    ok: true,
+                    printed: true,
+                    errorCode: '',
+                    message: 'ok',
+                    at: new Date().toISOString(),
+                })
+            );
+        });
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const url = new URL(route.request().url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource !== 'queue-state') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            return json(route, {
+                ok: true,
+                data: {
+                    updatedAt: new Date().toISOString(),
+                    waitingCount: 0,
+                    calledCount: 0,
+                    callingNow: [],
+                    nextTickets: [],
+                },
+            });
+        });
+
+        await page.goto('/kiosco-turnos.html');
+
+        await expect(page.locator('#kioskSetupTitle')).toContainText(
+            'Kiosco listo para operar'
+        );
+        await expect(page.locator('#kioskSetupChecks')).toContainText(
+            'Impresion OK'
+        );
+        await expect(page.locator('#kioskSetupChecks')).toContainText(
+            'Sin pendientes locales'
         );
     });
 

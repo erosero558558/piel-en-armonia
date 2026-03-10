@@ -3707,5 +3707,42 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueAppDownloadsCards')).toContainText(
             'Descargar APK'
         );
+        await expect(page.locator('#queueInstallConfigurator')).toContainText(
+            'Asistente de instalación'
+        );
+        await expect(page.locator('#queueInstallConfigurator')).toContainText(
+            'Operador'
+        );
+        await expect(page.locator('#queueInstallConfigurator')).toContainText(
+            'station=c1'
+        );
+
+        await page
+            .locator('#queueInstallProfileSelect')
+            .selectOption('c2_locked');
+        await page.locator('#queueInstallOneTapInput').check();
+
+        await expect(page.locator('#queueInstallConfigurator')).toContainText(
+            'Operador C2 fijo'
+        );
+        await expect(page.locator('#queueInstallConfigurator')).toContainText(
+            'station=c2'
+        );
+        await expect(page.locator('#queueInstallConfigurator')).toContainText(
+            'one_tap=1'
+        );
+
+        await page
+            .locator('#queueInstallSurfaceSelect')
+            .selectOption('sala_tv');
+        await expect(page.locator('#queueInstallConfigurator')).toContainText(
+            'Sala TV lista para TCL C655'
+        );
+        await expect(page.locator('#queueInstallConfigurator')).toContainText(
+            'Android TV APK'
+        );
+        await expect(page.locator('#queueInstallConfigurator')).toContainText(
+            'Abrir centro público'
+        );
     });
 });

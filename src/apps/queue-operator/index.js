@@ -17,6 +17,10 @@ import {
     setQueueSearch,
 } from '../admin-v3/shared/modules/queue.js';
 import {
+    getActiveCalledTicketForStation,
+    getWaitingForConsultorio,
+} from '../admin-v3/shared/modules/queue/selectors.js';
+import {
     dismissQueueSensitiveDialog,
     handleQueueAction,
 } from '../admin-v3/core/boot/listeners/action-groups/queue.js';
@@ -24,6 +28,12 @@ import {
 const QUEUE_REFRESH_MS = 8000;
 
 let refreshIntervalId = 0;
+const operatorRuntime = {
+    online: typeof navigator !== 'undefined' ? navigator.onLine : true,
+    numpadSeen: false,
+    lastNumpadCode: '',
+    lastNumpadAt: '',
+};
 
 function getById(id) {
     return document.getElementById(id);
@@ -98,6 +108,149 @@ function humanizeCallKeyLabel(value) {
         .replace(/^NumpadSubtract$/i, 'Numpad Subtract');
 }
 
+function setReadinessCheck(id, state, detail) {
+    const node = getById(id);
+    if (!(node instanceof HTMLElement)) {
+        return;
+    }
+
+    const card = node.closest('.queue-operator-readiness-check');
+    if (card instanceof HTMLElement) {
+        card.setAttribute('data-state', state);
+    }
+    node.textContent = detail;
+}
+
+function updateOperatorReadiness() {
+    const state = getState();
+    const stationLabel = `C${Number(state.queue.stationConsultorio || 1)} ${
+        state.queue.stationMode === 'locked' ? 'fijo' : 'libre'
+    }`;
+    const routeSummary = `${stationLabel} · ${
+        state.queue.oneTap ? '1 tecla ON' : '1 tecla OFF'
+    }`;
+    const networkSummary = operatorRuntime.online
+        ? 'Sesión activa y red en línea'
+        : 'Equipo sin red; no conviene operar así';
+    const shellSummary =
+        typeof window.turneroDesktop === 'object' &&
+        window.turneroDesktop !== null &&
+        typeof window.turneroDesktop.openSettings === 'function'
+            ? 'App desktop instalada'
+            : 'Fallback web activo';
+    const numpadSummary = operatorRuntime.numpadSeen
+        ? `Detectado ${humanizeCallKeyLabel(operatorRuntime.lastNumpadCode)}`
+        : 'Presiona una tecla del bloque numérico';
+
+    setReadinessCheck('operatorReadyRoute', 'ready', routeSummary);
+    setReadinessCheck(
+        'operatorReadyNetwork',
+        operatorRuntime.online ? 'ready' : 'danger',
+        networkSummary
+    );
+    setReadinessCheck(
+        'operatorReadyShell',
+        typeof window.turneroDesktop === 'object' &&
+            window.turneroDesktop !== null &&
+            typeof window.turneroDesktop.openSettings === 'function'
+            ? 'ready'
+            : 'warning',
+        shellSummary
+    );
+    setReadinessCheck(
+        'operatorReadyNumpad',
+        operatorRuntime.numpadSeen ? 'ready' : 'warning',
+        numpadSummary
+    );
+
+    const readinessTitle = getById('operatorReadinessTitle');
+    const readinessSummary = getById('operatorReadinessSummary');
+    const hasDanger = !operatorRuntime.online;
+    const readyForLiveUse = operatorRuntime.online && operatorRuntime.numpadSeen;
+
+    if (readinessTitle) {
+        readinessTitle.textContent = hasDanger
+            ? 'Conexión pendiente'
+            : readyForLiveUse
+              ? 'Equipo listo para operar'
+              : 'Falta probar el numpad';
+    }
+
+    if (readinessSummary) {
+        readinessSummary.textContent = hasDanger
+            ? 'Recupera la conexión antes de llamar o completar tickets.'
+            : readyForLiveUse
+              ? 'La ruta, la sesión y el numpad ya respondieron. Puedes pasar al primer llamado real.'
+              : 'Presiona una tecla del Genius Numpad 1000 para validar el receptor USB antes del primer llamado real.';
+    }
+}
+
+function noteNumpadActivity(event) {
+    const code = String(event?.code || '').trim();
+    if (!code.startsWith('Numpad')) {
+        return;
+    }
+
+    operatorRuntime.numpadSeen = true;
+    operatorRuntime.lastNumpadCode = code;
+    operatorRuntime.lastNumpadAt = new Date().toISOString();
+}
+
+function updateOperatorActionGuide() {
+    const state = getState();
+    const activeTicket = getActiveCalledTicketForStation();
+    const waitingTicket = getWaitingForConsultorio(
+        Number(state.queue.stationConsultorio || 1)
+    );
+    const pendingAction = state.queue.pendingSensitiveAction;
+
+    let title = 'Listo para llamar';
+    let summary =
+        'Pulsa Numpad Enter para llamar el siguiente ticket del consultorio activo.';
+
+    if (pendingAction && pendingAction.action) {
+        const actionLabel =
+            pendingAction.action === 'completed'
+                ? 'completar'
+                : pendingAction.action === 'no_show'
+                  ? 'marcar no show'
+                  : pendingAction.action;
+        title = `Confirmar ${actionLabel}`;
+        summary =
+            'Revisa el diálogo sensible y confirma o cancela antes de seguir con otro ticket.';
+    } else if (activeTicket && activeTicket.ticketCode) {
+        title = `Ticket ${activeTicket.ticketCode} en curso`;
+        summary =
+            'Usa + para re-llamar, . para preparar completar y - para preparar no show.';
+    } else if (waitingTicket && waitingTicket.ticketCode) {
+        title = `Siguiente: ${waitingTicket.ticketCode}`;
+        summary = `Pulsa Numpad Enter para llamar ${waitingTicket.ticketCode} en C${Number(
+            state.queue.stationConsultorio || 1
+        )}.`;
+    } else {
+        title = 'Sin tickets en espera';
+        summary =
+            'Mantén el equipo listo y usa Refrescar si esperas nuevos turnos o check-ins.';
+    }
+
+    setText('#operatorActionTitle', title);
+    setText('#operatorActionSummary', summary);
+}
+
+function syncShellSettingsButton() {
+    const button = getById('operatorAppSettingsBtn');
+    if (!(button instanceof HTMLButtonElement)) {
+        return;
+    }
+
+    const canOpenSettings =
+        typeof window.turneroDesktop === 'object' &&
+        window.turneroDesktop !== null &&
+        typeof window.turneroDesktop.openSettings === 'function';
+
+    button.classList.toggle('is-hidden', !canOpenSettings);
+}
+
 function updateOperatorChrome() {
     const state = getState();
     const stationLabel = `C${Number(state.queue.stationConsultorio || 1)} ${
@@ -112,6 +265,8 @@ function updateOperatorChrome() {
     setText('#operatorOneTapSummary', `${oneTapLabel} · ${refreshStatusLabel()}`);
     setText('#operatorCallKeySummary', humanizeCallKeyLabel(callKey));
     renderQueueSection();
+    updateOperatorActionGuide();
+    updateOperatorReadiness();
 }
 
 function mountAuthenticatedView() {
@@ -227,7 +382,9 @@ function resetTwoFactorStage() {
 async function handleDocumentClick(event) {
     const actionNode =
         event.target instanceof Element
-            ? event.target.closest('[data-action], #operatorLogoutBtn, #operatorReset2FABtn')
+            ? event.target.closest(
+                  '[data-action], #operatorLogoutBtn, #operatorReset2FABtn, #operatorAppSettingsBtn'
+              )
             : null;
 
     if (!actionNode) {
@@ -248,6 +405,18 @@ async function handleDocumentClick(event) {
         );
         createToast('Sesión cerrada', 'info');
         focusLoginField('password');
+        return;
+    }
+
+    if (actionNode.id === 'operatorAppSettingsBtn') {
+        event.preventDefault();
+        if (
+            typeof window.turneroDesktop === 'object' &&
+            window.turneroDesktop !== null &&
+            typeof window.turneroDesktop.openSettings === 'function'
+        ) {
+            await window.turneroDesktop.openSettings();
+        }
         return;
     }
 
@@ -316,6 +485,7 @@ function attachKeyboardBridge() {
             return;
         }
 
+        noteNumpadActivity(event);
         await queueNumpadAction({
             key: event.key,
             code: event.code,
@@ -333,14 +503,23 @@ function attachVisibilityRefresh() {
     });
 
     window.addEventListener('online', () => {
+        operatorRuntime.online = true;
         if (getState().auth.authenticated) {
             void refreshQueueState().then(() => updateOperatorChrome());
+        }
+    });
+
+    window.addEventListener('offline', () => {
+        operatorRuntime.online = false;
+        if (getState().auth.authenticated) {
+            updateOperatorChrome();
         }
     });
 }
 
 async function boot() {
     applyQueueRuntimeDefaults();
+    syncShellSettingsButton();
     subscribe(() => {
         if (getState().auth.authenticated) {
             updateOperatorChrome();

@@ -32,6 +32,8 @@ const state = {
     lastBellAt: 0,
     lastBellBlockedHintAt: 0,
     bellPrimed: false,
+    lastBellSource: '',
+    lastBellOutcome: 'idle',
 };
 
 function emitQueueOpsEvent(eventName, detail = {}) {
@@ -311,6 +313,7 @@ function setConnectionStatus(stateLabel, message) {
             message: normalizedMessage,
         });
     }
+    renderDisplaySetupStatus();
 }
 
 function ensureDisplayOpsHintEl() {
@@ -598,6 +601,121 @@ function setDisplayOpsHint(message) {
     el.textContent = String(message || '').trim() || 'Estado operativo';
 }
 
+function renderDisplaySetupStatus() {
+    const titleEl = getById('displaySetupTitle');
+    const summaryEl = getById('displaySetupSummary');
+    const checksEl = getById('displaySetupChecks');
+    if (
+        !(titleEl instanceof HTMLElement) ||
+        !(summaryEl instanceof HTMLElement) ||
+        !(checksEl instanceof HTMLElement)
+    ) {
+        return;
+    }
+
+    const connectionState = String(state.connectionState || 'paused');
+    const connectionMessage = String(
+        state.lastConnectionMessage || 'Sincronizacion pendiente'
+    );
+    const bellTestAge =
+        state.lastBellAt > 0
+            ? formatElapsedAge(Date.now() - state.lastBellAt)
+            : '';
+    const snapshotSavedAt = Date.parse(String(state.lastSnapshot?.savedAt || ''));
+    const snapshotAge = Number.isFinite(snapshotSavedAt)
+        ? formatElapsedAge(Date.now() - snapshotSavedAt)
+        : '';
+
+    const checks = [
+        {
+            label: 'Conexion y cola',
+            state:
+                connectionState === 'live'
+                    ? state.lastHealthySyncAt
+                        ? 'ready'
+                        : 'warning'
+                    : connectionState === 'offline'
+                      ? 'danger'
+                      : 'warning',
+            detail:
+                connectionState === 'live'
+                    ? state.lastHealthySyncAt
+                        ? `Panel en vivo (${formatLastHealthySyncAge()}).`
+                        : 'Conectado, pero esperando una sincronizacion saludable.'
+                    : connectionMessage,
+        },
+        {
+            label: 'Audio del TV',
+            state: state.bellPrimed ? 'ready' : 'warning',
+            detail: state.bellPrimed
+                ? 'Audio desbloqueado para WebView/navegador.'
+                : 'Toca "Probar campanilla" una vez para habilitar audio en la TCL C655.',
+        },
+        {
+            label: 'Campanilla',
+            state: state.bellMuted
+                ? 'warning'
+                : state.lastBellOutcome === 'played'
+                  ? 'ready'
+                  : state.lastBellOutcome === 'blocked'
+                    ? 'danger'
+                    : 'warning',
+            detail: state.bellMuted
+                ? 'Esta en silencio. Reactivala antes de operar la sala.'
+                : state.lastBellOutcome === 'played'
+                  ? `Prueba sonora confirmada${bellTestAge ? ` · hace ${bellTestAge}` : ''}.`
+                  : state.lastBellOutcome === 'blocked'
+                    ? 'El audio fue bloqueado. Repite la prueba sonora en la TV.'
+                    : 'Todavia no hay prueba sonora confirmada.',
+        },
+        {
+            label: 'Respaldo local',
+            state: Number.isFinite(snapshotSavedAt) ? 'ready' : 'warning',
+            detail: Number.isFinite(snapshotSavedAt)
+                ? `Ultimo respaldo local ${snapshotAge} de antiguedad.`
+                : 'Aun sin snapshot local para contingencia.',
+        },
+    ];
+
+    let title = 'Finaliza la puesta en marcha';
+    let summary =
+        'Confirma conexion, audio y campanilla antes de dejar la TV en operacion continua.';
+    if (connectionState === 'offline') {
+        title = 'Sala TV en contingencia';
+        summary =
+            'La TV puede seguir mostrando respaldo local, pero el enlace con la cola no esta disponible.';
+    } else if (state.bellMuted) {
+        title = 'Campanilla en silencio';
+        summary =
+            'La campanilla esta apagada. Reactivala antes de iniciar llamados reales.';
+    } else if (state.lastBellOutcome === 'blocked' || !state.bellPrimed) {
+        title = 'Falta habilitar audio';
+        summary =
+            'Haz una prueba sonora en la TCL C655 para desbloquear audio y confirmar volumen.';
+    } else if (state.lastBellOutcome !== 'played' || state.lastBellAt <= 0) {
+        title = 'Falta probar la campanilla';
+        summary =
+            'Ejecuta "Probar campanilla" y confirma sonido en sala antes de abrir pacientes.';
+    } else if (connectionState === 'live' && state.lastHealthySyncAt) {
+        title = 'Sala TV lista para llamados';
+        summary =
+            'La cola esta en vivo, la campanilla ya respondio y la TV tiene respaldo local para contingencia.';
+    }
+
+    titleEl.textContent = title;
+    summaryEl.textContent = summary;
+    checksEl.innerHTML = checks
+        .map(
+            (check) => `
+                <article class="display-setup-check" data-state="${escapeHtml(check.state)}" role="listitem">
+                    <strong>${escapeHtml(check.label)}</strong>
+                    <span>${escapeHtml(check.detail)}</span>
+                </article>
+            `
+        )
+        .join('');
+}
+
 function ensureDisplayMetricsEl() {
     let el = getById('displayMetrics');
     if (el instanceof HTMLElement) {
@@ -733,6 +851,7 @@ function renderBellToggle() {
     button.title = state.bellMuted
         ? 'Campanilla en silencio'
         : 'Campanilla activa';
+    renderDisplaySetupStatus();
 }
 
 function persistBellPreference() {
@@ -884,15 +1003,18 @@ function renderSnapshotHint() {
 
     if (!state.lastSnapshot?.savedAt) {
         hint.textContent = 'Respaldo: sin datos locales';
+        renderDisplaySetupStatus();
         return;
     }
 
     const savedAtTs = Date.parse(String(state.lastSnapshot.savedAt || ''));
     if (!Number.isFinite(savedAtTs)) {
         hint.textContent = 'Respaldo: sin datos locales';
+        renderDisplaySetupStatus();
         return;
     }
     hint.textContent = `Respaldo: ${formatElapsedAge(Date.now() - savedAtTs)} de antiguedad`;
+    renderDisplaySetupStatus();
 }
 
 function ensureDisplaySnapshotClearButton() {
@@ -1123,6 +1245,7 @@ async function primeBellAudio({ source = 'unknown' } = {}) {
             source,
             running: state.bellPrimed,
         });
+        renderDisplaySetupStatus();
         return state.bellPrimed;
     } catch (_error) {
         state.bellPrimed = false;
@@ -1130,6 +1253,7 @@ async function primeBellAudio({ source = 'unknown' } = {}) {
             source,
             running: false,
         });
+        renderDisplaySetupStatus();
         return false;
     }
 }
@@ -1144,6 +1268,8 @@ function showBellBlockedHintIfDue() {
         return;
     }
     state.lastBellBlockedHintAt = now;
+    state.lastBellOutcome = 'blocked';
+    renderDisplaySetupStatus();
     setDisplayOpsHint(
         'Audio bloqueado por navegador. Toca "Probar campanilla" una vez para habilitar sonido.'
     );
@@ -1167,6 +1293,7 @@ async function playBell({ source = 'new_call', force = false } = {}) {
     try {
         const canPlay = await primeBellAudio({ source });
         if (!canPlay) {
+            state.lastBellSource = source;
             showBellBlockedHintIfDue();
             return;
         }
@@ -1187,11 +1314,15 @@ async function playBell({ source = 'new_call', force = false } = {}) {
         oscillator.start(now);
         oscillator.stop(now + 0.24);
         state.lastBellAt = Date.now();
+        state.lastBellSource = source;
+        state.lastBellOutcome = 'played';
+        renderDisplaySetupStatus();
         emitQueueOpsEvent('bell_played', {
             source,
             muted: state.bellMuted,
         });
     } catch (_error) {
+        state.lastBellSource = source;
         showBellBlockedHintIfDue();
     }
 }
@@ -1558,6 +1689,7 @@ function initDisplay() {
     }
     renderBellToggle();
     renderSnapshotHint();
+    renderDisplaySetupStatus();
 
     setConnectionStatus('paused', 'Sincronizacion lista');
     if (!renderFromSnapshot(state.lastSnapshot, { mode: 'startup' })) {

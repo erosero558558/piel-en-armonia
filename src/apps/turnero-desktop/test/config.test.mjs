@@ -12,7 +12,10 @@ test('operator defaults point to production operator route', () => {
     const config = createBuildConfig({ surface: 'operator' });
     assert.equal(config.surface, 'operator');
     assert.equal(getSurfaceRoute(config.surface), '/operador-turnos.html');
-    assert.equal(createSurfaceUrl(config), 'https://pielarmonia.com/operador-turnos.html');
+    assert.equal(
+        createSurfaceUrl(config),
+        'https://pielarmonia.com/operador-turnos.html?station=c1&lock=0&one_tap=0'
+    );
 });
 
 test('runtime config keeps build surface fixed', () => {
@@ -26,7 +29,27 @@ test('runtime config keeps build surface fixed', () => {
     assert.equal(merged.surface, 'operator');
     assert.equal(merged.baseUrl, 'https://example.test');
     assert.equal(merged.launchMode, 'windowed');
+    assert.equal(merged.stationMode, 'free');
+    assert.equal(merged.stationConsultorio, 1);
+    assert.equal(merged.oneTap, false);
     assert.equal(merged.autoStart, false);
+});
+
+test('operator runtime config can lock consultorio and one tap for fixed stations', () => {
+    const buildConfig = createBuildConfig({ surface: 'operator' });
+    const merged = mergeRuntimeConfig(buildConfig, {
+        stationMode: 'locked',
+        stationConsultorio: 2,
+        oneTap: true,
+    });
+
+    assert.equal(merged.stationMode, 'locked');
+    assert.equal(merged.stationConsultorio, 2);
+    assert.equal(merged.oneTap, true);
+    assert.equal(
+        createSurfaceUrl(merged),
+        'https://pielarmonia.com/operador-turnos.html?station=c2&lock=1&one_tap=1'
+    );
 });
 
 test('update feed url resolves stable channel by surface and platform', () => {

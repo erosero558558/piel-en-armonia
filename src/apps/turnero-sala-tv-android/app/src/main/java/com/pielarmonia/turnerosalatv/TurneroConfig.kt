@@ -6,12 +6,12 @@ object TurneroConfig {
     const val BASE_URL = "https://pielarmonia.com"
     const val SURFACE_PATH = "/sala-turnos.html"
     const val RECONNECT_DELAY_MS = 5000L
-    const val USER_AGENT_SUFFIX = "TurneroSalaTV/0.1.0"
 
     private val baseUri: Uri = Uri.parse(BASE_URL)
     private val surfaceUri: Uri = Uri.parse("${BASE_URL.trimEnd('/')}$SURFACE_PATH")
 
     fun surfaceUrl(): String = surfaceUri.toString()
+    fun userAgentSuffix(): String = "TurneroSalaTV/${BuildConfig.VERSION_NAME}"
 
     fun isAllowedUrl(candidate: String?): Boolean {
         if (candidate.isNullOrBlank()) {

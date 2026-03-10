@@ -154,12 +154,30 @@ test.describe('Turnero Operador', () => {
         await expect(page.locator('#operatorOneTapSummary')).toContainText(
             '1 tecla ON'
         );
+        await expect(page.locator('#operatorActionTitle')).toContainText(
+            'Siguiente: A-1201'
+        );
+        await expect(page.locator('#operatorReadinessTitle')).toContainText(
+            'Falta probar el numpad'
+        );
+        await expect(page.locator('#operatorReadyNumpad')).toContainText(
+            'Prueba pendiente'
+        );
         await expect(page.locator('#queueTableBody')).toContainText('A-1201');
         await expect(page.locator('#queueTableBody')).not.toContainText(
             'Cancelar'
         );
 
         await page.keyboard.press('NumpadEnter');
+        await expect(page.locator('#operatorActionTitle')).toContainText(
+            'Ticket A-1201 en curso'
+        );
+        await expect(page.locator('#operatorReadinessTitle')).toContainText(
+            'Equipo listo para operar'
+        );
+        await expect(page.locator('#operatorReadyNumpad')).toContainText(
+            'Numpad Enter'
+        );
         await expect(page.locator('#queueC2Now')).toContainText('A-1201');
         await expect(page.locator('#queueWaitingCountAdmin')).toHaveText('0');
         await expect(page.locator('#queueCalledCountAdmin')).toHaveText('1');

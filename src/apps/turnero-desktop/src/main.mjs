@@ -7,8 +7,13 @@ import {
     ipcMain,
     powerSaveBlocker,
 } from 'electron';
-import { ensureRuntimeConfig } from './config/store.mjs';
+import {
+    ensureRuntimeConfig,
+    persistRuntimeConfig,
+} from './config/store.mjs';
+import { mergeRuntimeConfig } from './config/contracts.mjs';
 import { createNavigationPolicy } from './runtime/navigation.mjs';
+import { runPreflightChecks } from './runtime/preflight.mjs';
 import {
     getBrowserWindowOptions,
     shouldPreventDisplaySleep,
@@ -22,12 +27,15 @@ const bootHtmlPath = path.join(__dirname, 'renderer', 'boot.html');
 const RETRY_DELAYS_MS = [3000, 5000, 10000, 15000];
 
 let mainWindow = null;
+let currentRuntime = null;
 let currentConfig = null;
 let navigationPolicy = null;
 let retryCount = 0;
 let retryTimer = null;
 let displaySleepBlockerId = null;
 let updater = null;
+let settingsMode = false;
+let firstRunPending = false;
 let lastBootStatus = {
     level: 'info',
     phase: 'boot',
@@ -57,6 +65,7 @@ async function loadBootPage() {
     if (!mainWindow || mainWindow.isDestroyed()) {
         return;
     }
+    settingsMode = true;
     await mainWindow.loadFile(bootHtmlPath);
     setBootStatus(lastBootStatus);
 }
@@ -70,6 +79,7 @@ function clearRetryTimer() {
 
 function scheduleReload(reason) {
     clearRetryTimer();
+    settingsMode = false;
     const delay = RETRY_DELAYS_MS[Math.min(retryCount, RETRY_DELAYS_MS.length - 1)];
     retryCount += 1;
     setBootStatus({
@@ -88,6 +98,7 @@ async function loadSurface(source = 'launch') {
     }
 
     clearRetryTimer();
+    settingsMode = false;
     setBootStatus({
         level: 'info',
         phase: 'loading',
@@ -101,6 +112,17 @@ async function loadSurface(source = 'launch') {
         await loadBootPage();
         scheduleReload(`No se pudo abrir la superficie ${currentConfig.surface}`);
     }
+}
+
+async function openSettings(reason = 'manual') {
+    await loadBootPage();
+    setBootStatus({
+        level: 'info',
+        phase: 'settings',
+        message: firstRunPending
+            ? `Configura ${currentConfig.surface} antes del primer arranque.`
+            : `Configuracion del equipo abierta (${reason}).`,
+    });
 }
 
 function attachNavigationGuards(windowRef) {
@@ -120,6 +142,22 @@ function attachNavigationGuards(windowRef) {
     contents.setWindowOpenHandler(() => ({
         action: 'deny',
     }));
+
+    contents.on('before-input-event', (event, input) => {
+        if (String(input.type || '').toLowerCase() !== 'keydown') {
+            return;
+        }
+
+        const key = String(input.key || '').toLowerCase();
+        const openSettingsShortcut =
+            key === 'f10' || ((input.control || input.meta) && key === ',');
+        if (!openSettingsShortcut) {
+            return;
+        }
+
+        event.preventDefault();
+        void openSettings('shortcut');
+    });
 
     contents.on('render-process-gone', async (_event, details) => {
         log('warn', `render-process-gone: ${details.reason}`);
@@ -159,6 +197,7 @@ function attachNavigationGuards(windowRef) {
         }
 
         retryCount = 0;
+        firstRunPending = false;
         setBootStatus({
             level: 'info',
             phase: 'ready',
@@ -195,8 +234,10 @@ function applyDisplaySleepPolicy(config) {
 
 async function createMainWindow() {
     const runtime = ensureRuntimeConfig(app);
+    currentRuntime = runtime;
     currentConfig = runtime.runtimeConfig;
     navigationPolicy = createNavigationPolicy(currentConfig);
+    firstRunPending = Boolean(runtime.firstRun);
 
     mainWindow = new BrowserWindow(
         getBrowserWindowOptions(currentConfig, preloadPath, {
@@ -214,9 +255,16 @@ async function createMainWindow() {
     setBootStatus({
         level: 'info',
         phase: 'boot',
-        message: `${currentConfig.surface} listo para conectar.`,
+        message: firstRunPending
+            ? `${currentConfig.surface} listo para configuracion inicial.`
+            : `${currentConfig.surface} listo para conectar.`,
         configPath: runtime.configPath,
     });
+    if (firstRunPending) {
+        await openSettings('first-run');
+        return;
+    }
+
     await loadSurface('boot');
 }
 
@@ -253,11 +301,80 @@ ipcMain.handle('turnero:get-runtime-snapshot', () => ({
     packaged: app.isPackaged,
     version: app.getVersion(),
     name: app.getName(),
+    firstRun: firstRunPending,
+    settingsMode,
 }));
+
+ipcMain.handle('turnero:run-preflight', async (_event, payload = {}) => {
+    if (!currentRuntime) {
+        throw new Error('Runtime config no inicializado');
+    }
+
+    const nextConfig = mergeRuntimeConfig(
+        currentRuntime.buildConfig,
+        payload && typeof payload === 'object'
+            ? {
+                  ...currentConfig,
+                  ...payload,
+              }
+            : currentConfig
+    );
+
+    return runPreflightChecks(nextConfig, {
+        packaged: app.isPackaged,
+    });
+});
 
 ipcMain.handle('turnero:retry-load', async () => {
     await loadBootPage();
     await loadSurface('manual-retry');
+    return true;
+});
+
+ipcMain.handle('turnero:save-runtime-config', async (_event, payload = {}) => {
+    if (!currentRuntime) {
+        throw new Error('Runtime config no inicializado');
+    }
+
+    const nextConfig = persistRuntimeConfig(
+        currentRuntime.configPath,
+        currentRuntime.buildConfig,
+        payload && typeof payload === 'object' ? payload : {}
+    );
+
+    currentRuntime = {
+        ...currentRuntime,
+        runtimeConfig: nextConfig,
+        firstRun: false,
+    };
+    currentConfig = nextConfig;
+    navigationPolicy = createNavigationPolicy(currentConfig);
+    firstRunPending = false;
+
+    applyAutoStart(currentConfig);
+    applyDisplaySleepPolicy(currentConfig);
+
+    setBootStatus({
+        level: 'info',
+        phase: 'settings',
+        message: `Configuracion guardada para ${currentConfig.surface}.`,
+    });
+
+    return {
+        config: currentConfig,
+        surfaceUrl: navigationPolicy.surfaceUrl,
+        firstRun: firstRunPending,
+        settingsMode,
+    };
+});
+
+ipcMain.handle('turnero:open-surface', async () => {
+    await loadSurface(settingsMode ? 'settings-open' : 'manual-open');
+    return true;
+});
+
+ipcMain.handle('turnero:open-settings', async () => {
+    await openSettings('renderer');
     return true;
 });
 

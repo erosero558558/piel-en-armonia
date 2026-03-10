@@ -8,7 +8,7 @@
             content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'self';"
         />
         <title>Kiosco de Turnos | Piel en Armonia</title>
-        <link rel="stylesheet" href="queue-kiosk.css?v=queue-20260303-sony-rigor3" />
+        <link rel="stylesheet" href="queue-kiosk.css?v=queue-20260310-setup1" />
     </head>
     <body>
         <div
@@ -231,6 +231,25 @@
             </section>
 
             <aside class="kiosk-side">
+                <section class="kiosk-card kiosk-setup-card" aria-live="polite">
+                    <div class="kiosk-setup-card__header">
+                        <span>Puesta en marcha</span>
+                        <strong id="kioskSetupTitle">Falta probar ticket termico</strong>
+                    </div>
+                    <p id="kioskSetupSummary" class="kiosk-setup-summary">
+                        Genera un ticket de prueba y confirma impresion antes de abrir el kiosco al publico.
+                    </p>
+                    <div
+                        id="kioskSetupChecks"
+                        class="kiosk-setup-checks"
+                        role="list"
+                        aria-label="Checklist de puesta en marcha del kiosco"
+                    ></div>
+                    <p class="kiosk-setup-note">
+                        Si la termica no imprime, revisa energia, papel y cable USB, luego crea un turno de prueba.
+                    </p>
+                </section>
+
                 <section class="kiosk-card">
                     <h2>Estado de la cola</h2>
                     <p
@@ -298,6 +317,6 @@
             </aside>
         </main>
 
-        <script src="js/queue-kiosk.js?v=queue-20260227-star1" defer></script>
+        <script src="js/queue-kiosk.js?v=queue-20260310-setup1" defer></script>
     </body>
 </html>

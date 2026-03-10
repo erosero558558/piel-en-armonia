@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/QueueService.php';
+require_once __DIR__ . '/../lib/AppDownloadsCatalog.php';
 require_once __DIR__ . '/../lib/telemedicine/TelemedicineOpsSnapshot.php';
 
 class AdminDataController
@@ -216,50 +217,6 @@ class AdminDataController
 
     private static function buildAppDownloads(): array
     {
-        $updatedAt = local_date('c');
-
-        return [
-            'operator' => [
-                'version' => '0.1.0',
-                'updatedAt' => $updatedAt,
-                'webFallbackUrl' => '/operador-turnos.html',
-                'targets' => [
-                    'win' => [
-                        'url' => '/app-downloads/stable/operator/win/TurneroOperadorSetup.exe',
-                        'label' => 'Windows',
-                    ],
-                    'mac' => [
-                        'url' => '/app-downloads/stable/operator/mac/TurneroOperador.dmg',
-                        'label' => 'macOS',
-                    ],
-                ],
-            ],
-            'kiosk' => [
-                'version' => '0.1.0',
-                'updatedAt' => $updatedAt,
-                'webFallbackUrl' => '/kiosco-turnos.html',
-                'targets' => [
-                    'win' => [
-                        'url' => '/app-downloads/stable/kiosk/win/TurneroKioscoSetup.exe',
-                        'label' => 'Windows',
-                    ],
-                    'mac' => [
-                        'url' => '/app-downloads/stable/kiosk/mac/TurneroKiosco.dmg',
-                        'label' => 'macOS',
-                    ],
-                ],
-            ],
-            'sala_tv' => [
-                'version' => '0.1.0',
-                'updatedAt' => $updatedAt,
-                'webFallbackUrl' => '/sala-turnos.html',
-                'targets' => [
-                    'android_tv' => [
-                        'url' => '/app-downloads/stable/sala-tv/android/TurneroSalaTV.apk',
-                        'label' => 'Android TV APK',
-                    ],
-                ],
-            ],
-        ];
+        return read_app_downloads_catalog();
     }
 }

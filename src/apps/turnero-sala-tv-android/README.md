@@ -29,7 +29,13 @@ Para release real:
 
 1. Configura firma de Android.
 2. Genera `assembleRelease`.
-3. Publica la APK final como `TurneroSalaTV.apk` bajo `/app-downloads/stable/sala-tv/android/`.
+3. Renombra la APK final como `TurneroSalaTV.apk`.
+4. Publica la APK bajo `/app-downloads/stable/sala-tv/android/`.
+
+Tambien puedes usar el workflow central:
+
+- [.github/workflows/release-turnero-apps.yml](/home/deck/Documents/GitHub/piel-en-armonia/.github/workflows/release-turnero-apps.yml)
+- [docs/RUNBOOK_TURNERO_APPS_RELEASE.md](/home/deck/Documents/GitHub/piel-en-armonia/docs/RUNBOOK_TURNERO_APPS_RELEASE.md)
 
 ## Instalación en TCL C655
 
@@ -54,6 +60,11 @@ La URL base vive en [TurneroConfig.kt](/home/deck/Documents/GitHub/piel-en-armon
 - `BASE_URL`
 - `SURFACE_PATH`
 - `RECONNECT_DELAY_MS`
+
+La version de release ahora puede inyectarse con Gradle:
+
+- `-PturneroVersionName=0.1.0`
+- `-PturneroVersionCode=100`
 
 ## Notas operativas
 
