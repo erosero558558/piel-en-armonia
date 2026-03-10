@@ -4761,9 +4761,7 @@ function fa(t) {
 }
 const ha = 'themeMode',
     ya = new Set(['light', 'dark', 'system']);
-const va = 'adminLastSection',
-    ka = 'adminSidebarCollapsed';
-function wa(t, { persist: e = !1 } = {}) {
+function va(t, { persist: e = !1 } = {}) {
     const n = (function (t) {
         const e = (function (t) {
             return 'light' === t || 'dark' === t
@@ -4793,14 +4791,12 @@ function wa(t, { persist: e = !1 } = {}) {
                 e.setAttribute('aria-pressed', String(n)));
         }));
 }
+const ka = 'adminLastSection',
+    wa = 'adminSidebarCollapsed';
 function Sa() {
-    const t = b();
-    (Ge(va, t.ui.activeSection), Ge(ka, t.ui.sidebarCollapsed ? '1' : '0'));
-}
-function Ca() {
     return window.matchMedia('(max-width: 1024px)').matches;
 }
-function qa(t) {
+function Ca(t) {
     return (
         t instanceof HTMLElement &&
         !t.hidden &&
@@ -4809,9 +4805,9 @@ function qa(t) {
         t.getClientRects().length > 0
     );
 }
-function Aa() {
+function qa() {
     const t = b(),
-        n = Ca(),
+        n = Sa(),
         a = e('#adminSidebar'),
         i = a instanceof HTMLElement && a.classList.contains('is-open');
     (!(function ({ open: t, collapsed: n }) {
@@ -4846,6 +4842,10 @@ function Aa() {
                     });
             })());
 }
+function Aa() {
+    const t = b();
+    (Ge(ka, t.ui.activeSection), Ge(wa, t.ui.sidebarCollapsed ? '1' : '0'));
+}
 async function Ta(t, e = {}) {
     const n = ga(t, 'dashboard'),
         { force: a = !1 } = e,
@@ -4870,7 +4870,7 @@ async function Ta(t, e = {}) {
                 P(e),
                 j(b()),
                 fa(e),
-                Sa());
+                Aa());
         })(n),
         'queue' === n &&
             'queue' !== i &&
@@ -4893,14 +4893,14 @@ function $a() {
         sidebarCollapsed: !t.sidebarCollapsed,
         sidebarOpen: t.sidebarOpen,
     })),
-        Aa(),
-        Sa());
+        qa(),
+        Aa());
 }
 function Ma() {
-    (_a((t) => ({ sidebarOpen: !t.sidebarOpen })), Aa());
+    (_a((t) => ({ sidebarOpen: !t.sidebarOpen })), qa());
 }
 function La({ restoreFocus: t = !1 } = {}) {
-    if ((_a(() => ({ sidebarOpen: !1 })), Aa(), x(), t)) {
+    if ((_a(() => ({ sidebarOpen: !1 })), qa(), x(), t)) {
         const t = e('#adminMenuToggle');
         t instanceof HTMLElement && t.focus();
     }
@@ -5238,7 +5238,7 @@ async function Ha(t, e) {
             return (e.closest('.toast')?.remove(), !0);
         case 'set-admin-theme':
             return (
-                wa(String(e.dataset.themeMode || 'system'), { persist: !0 }),
+                va(String(e.dataset.themeMode || 'system'), { persist: !0 }),
                 !0
             );
         case 'toggle-sidebar-collapse':
@@ -5355,7 +5355,7 @@ async function Oa() {
             const i = await Ta(
                 String(e.getAttribute('data-section') || 'dashboard')
             );
-            Ca() && !1 !== i && La();
+            Sa() && !1 !== i && La();
         }),
         document.addEventListener('click', (t) => {
             const e =
@@ -5423,8 +5423,8 @@ async function Oa() {
             }));
         })(),
         (function () {
-            const t = ga(We(va, 'dashboard')),
-                e = '1' === We(ka, '0');
+            const t = ga(We(ka, 'dashboard')),
+                e = '1' === We(wa, '0');
             (g((n) => ({
                 ...n,
                 ui: {
@@ -5436,7 +5436,7 @@ async function Oa() {
             })),
                 P(t),
                 fa(t),
-                Aa());
+                qa());
         })(),
         (function () {
             const t = {
@@ -5466,7 +5466,7 @@ async function Oa() {
             })),
                 cn(b()));
         })(),
-        wa(
+        va(
             (function () {
                 const t = String(We(ha, 'system') || 'system')
                     .trim()
@@ -5530,15 +5530,15 @@ async function Oa() {
                 n = e('#adminMenuClose'),
                 a = e('#adminSidebarBackdrop');
             (t?.addEventListener('click', () => {
-                Ca() ? Ma() : $a();
+                Sa() ? Ma() : $a();
             }),
                 n?.addEventListener('click', () => La({ restoreFocus: !0 })),
                 a?.addEventListener('click', () => La({ restoreFocus: !0 })),
                 window.addEventListener('resize', () => {
-                    Ca() ? Aa() : La();
+                    Sa() ? qa() : La();
                 }),
                 document.addEventListener('keydown', (t) => {
-                    if (!Ca() || !b().ui.sidebarOpen) return;
+                    if (!Sa() || !b().ui.sidebarOpen) return;
                     if ('Escape' === t.key)
                         return (
                             t.preventDefault(),
@@ -5556,7 +5556,7 @@ async function Oa() {
                                 t.querySelectorAll('.nav-item[data-section]')
                             ).filter((t) => t !== a),
                             o = t.querySelector('.logout-btn');
-                        return [n, a, ...i, o].filter(qa);
+                        return [n, a, ...i, o].filter(Ca);
                     })();
                     if (!n.length) return;
                     const a = n.indexOf(document.activeElement);
@@ -5579,7 +5579,7 @@ async function Oa() {
                     await Ta(t, { force: !0 });
                 }),
                 window.addEventListener('storage', (t) => {
-                    'themeMode' === t.key && wa(String(t.newValue || 'system'));
+                    'themeMode' === t.key && va(String(t.newValue || 'system'));
                 }));
         })(),
         window.addEventListener('beforeunload', (t) => {
@@ -5595,7 +5595,7 @@ async function Oa() {
             runQuickAction: Ba,
             closeSidebar: () => La({ restoreFocus: !0 }),
             toggleMenu: () => {
-                Ca() ? Ma() : $a();
+                Sa() ? Ma() : $a();
             },
             dismissQueueSensitiveDialog: qn,
             toggleQueueHelp: () => Tn(),
