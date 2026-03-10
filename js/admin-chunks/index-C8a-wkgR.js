@@ -9,10 +9,10 @@ function t(t) {
 function e(t, e = document) {
     return e.querySelector(t);
 }
-function a(t, e = document) {
+function n(t, e = document) {
     return Array.from(e.querySelectorAll(t));
 }
-function n(t) {
+function a(t) {
     const e = new Date(t || '');
     return Number.isNaN(e.getTime())
         ? String(t || '')
@@ -38,25 +38,25 @@ function o(t) {
     const e = Number(t || 0);
     return Number.isFinite(e) ? Math.round(e).toLocaleString('es-EC') : '0';
 }
-function s(a, n = 'info') {
+function s(n, a = 'info') {
     const i = e('#toastContainer');
     if (!(i instanceof HTMLElement)) return;
     const o = document.createElement('div');
-    ((o.className = `toast ${n}`),
-        o.setAttribute('role', 'error' === n ? 'alert' : 'status'),
-        (o.innerHTML = `\n        <div class="toast-body">${t(a)}</div>\n        <button type="button" data-action="close-toast" class="toast-close" aria-label="Cerrar">x</button>\n    `),
+    ((o.className = `toast ${a}`),
+        o.setAttribute('role', 'error' === a ? 'alert' : 'status'),
+        (o.innerHTML = `\n        <div class="toast-body">${t(n)}</div>\n        <button type="button" data-action="close-toast" class="toast-close" aria-label="Cerrar">x</button>\n    `),
         i.appendChild(o),
         window.setTimeout(() => {
             o.parentElement && o.remove();
         }, 4500));
 }
-function r(t, a) {
-    const n = e(t);
-    n && (n.textContent = String(a ?? ''));
+function r(t, n) {
+    const a = e(t);
+    a && (a.textContent = String(n ?? ''));
 }
-function c(t, a) {
-    const n = e(t);
-    n && (n.innerHTML = a);
+function c(t, n) {
+    const a = e(t);
+    a && (a.innerHTML = n);
 }
 function l() {
     const t = document.activeElement;
@@ -165,17 +165,17 @@ const f = {
 };
 let h = '';
 async function y(t, e = {}) {
-    const a = String(e.method || 'GET').toUpperCase(),
-        n = {
-            method: a,
+    const n = String(e.method || 'GET').toUpperCase(),
+        a = {
+            method: n,
             credentials: 'same-origin',
             headers: { Accept: 'application/json', ...(e.headers || {}) },
         };
-    ('GET' !== a && h && (n.headers['X-CSRF-Token'] = h),
+    ('GET' !== n && h && (a.headers['X-CSRF-Token'] = h),
         void 0 !== e.body &&
-            ((n.headers['Content-Type'] = 'application/json'),
-            (n.body = JSON.stringify(e.body))));
-    const i = await fetch(t, n),
+            ((a.headers['Content-Type'] = 'application/json'),
+            (a.body = JSON.stringify(e.body))));
+    const i = await fetch(t, a),
         o = await i.text();
     let s;
     try {
@@ -224,16 +224,16 @@ function C(t) {
 function q(t) {
     return `\n        <div class="sony-theme-switcher ${t}" role="group" aria-label="Tema">\n            <button type="button" class="admin-theme-btn" data-action="set-admin-theme" data-theme-mode="light">${C('sun')}</button>\n            <button type="button" class="admin-theme-btn" data-action="set-admin-theme" data-theme-mode="dark">${C('moon')}</button>\n            <button type="button" class="admin-theme-btn" data-action="set-admin-theme" data-theme-mode="system">${C('system')}</button>\n        </div>\n    `;
 }
-function A(t, e, a, n = !1) {
-    return `\n        <a\n            href="#${t}"\n            class="nav-item${n ? ' active' : ''}"\n            data-section="${t}"\n            ${n ? 'aria-current="page"' : ''}\n        >\n            ${C(a)}\n            <span>${e}</span>\n            <span class="badge" id="${t}Badge">0</span>\n        </a>\n    `;
+function A(t, e, n, a = !1) {
+    return `\n        <a\n            href="#${t}"\n            class="nav-item${a ? ' active' : ''}"\n            data-section="${t}"\n            ${a ? 'aria-current="page"' : ''}\n        >\n            ${C(n)}\n            <span>${e}</span>\n            <span class="badge" id="${t}Badge">0</span>\n        </a>\n    `;
 }
 function M() {
     const t = e('#loginScreen'),
-        a = e('#adminDashboard');
-    if (!(t instanceof HTMLElement && a instanceof HTMLElement))
+        n = e('#adminDashboard');
+    if (!(t instanceof HTMLElement && n instanceof HTMLElement))
         throw new Error('Contenedores admin no encontrados');
     ((t.innerHTML = `\n        <div class="admin-v3-login">\n            <section class="admin-v3-login__hero">\n                <div class="admin-v3-login__brand">\n                    <p class="sony-kicker">Piel en Armonia</p>\n                    <h1>Centro operativo claro y protegido</h1>\n                    <p>\n                        Acceso editorial para agenda, callbacks y disponibilidad con\n                        jerarquia simple y lectura rapida.\n                    </p>\n                </div>\n                <div class="admin-v3-login__facts">\n                    <article class="admin-v3-login__fact">\n                        <span>Sesion</span>\n                        <strong>Acceso administrativo aislado</strong>\n                        <small>Entrada dedicada para operacion diaria.</small>\n                    </article>\n                    <article class="admin-v3-login__fact">\n                        <span>Proteccion</span>\n                        <strong>Clave y 2FA en la misma tarjeta</strong>\n                        <small>El segundo paso aparece solo cuando el backend lo exige.</small>\n                    </article>\n                    <article class="admin-v3-login__fact">\n                        <span>Entorno</span>\n                        <strong>Activos self-hosted y CSP activa</strong>\n                        <small>Sin dependencias remotas para estilos ni fuentes.</small>\n                    </article>\n                </div>\n            </section>\n\n            <section class="admin-v3-login__panel">\n                <div class="admin-v3-login__panel-head">\n                    <p class="sony-kicker" id="adminLoginStepEyebrow">Ingreso protegido</p>\n                    <h2 id="adminLoginStepTitle">Acceso de administrador</h2>\n                    <p id="adminLoginStepSummary">\n                        Usa tu clave para abrir el workbench operativo.\n                    </p>\n                </div>\n\n                <div id="adminLoginStatusCard" class="admin-login-status-card" data-state="neutral">\n                    <strong id="adminLoginStatusTitle">Proteccion activa</strong>\n                    <p id="adminLoginStatusMessage">\n                        El panel usa autenticacion endurecida y activos self-hosted.\n                    </p>\n                </div>\n\n                <form id="loginForm" class="sony-login-form" novalidate>\n                    <label id="adminPasswordField" class="admin-login-field" for="adminPassword">\n                        <span>Contrasena</span>\n                        <input id="adminPassword" type="password" required placeholder="Ingresa tu clave" autocomplete="current-password" />\n                    </label>\n                    <div id="group2FA" class="is-hidden">\n                        <label id="admin2FAField" class="admin-login-field" for="admin2FACode">\n                            <span>Codigo 2FA</span>\n                            <input id="admin2FACode" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="123456" />\n                        </label>\n                    </div>\n                    <div class="admin-login-actions">\n                        <button id="loginBtn" type="submit">Ingresar</button>\n                        <button\n                            id="loginReset2FABtn"\n                            type="button"\n                            class="sony-login-reset is-hidden"\n                            data-action="reset-login-2fa"\n                        >\n                            Volver\n                        </button>\n                    </div>\n                    <p id="adminLoginSupportCopy" class="admin-login-support-copy">\n                        Si el backend solicita un segundo paso, el flujo sigue en esta misma tarjeta.\n                    </p>\n                </form>\n\n                ${q('login-theme-bar')}\n            </section>\n        </div>\n    `),
-        (a.innerHTML = `\n        <div class="admin-v3-shell">\n            <aside class="admin-sidebar admin-v3-sidebar" id="adminSidebar" tabindex="-1">\n                <header class="sidebar-header">\n                    <div class="admin-v3-sidebar__brand">\n                        <strong>Piel en Armonia</strong>\n                        <small>Admin sony_v3</small>\n                    </div>\n                    <div class="toolbar-group">\n                        <button type="button" id="adminSidebarCollapse" data-action="toggle-sidebar-collapse" aria-pressed="false">${C('menu')}</button>\n                        <button type="button" id="adminMenuClose">Cerrar</button>\n                    </div>\n                </header>\n                <nav class="sidebar-nav" id="adminSidebarNav">\n                    \n        ${A('dashboard', 'Dashboard', 'dashboard', !0)}\n        ${A('appointments', 'Citas', 'appointments')}\n        ${A('callbacks', 'Callbacks', 'callbacks')}\n        ${A('reviews', 'Resenas', 'reviews')}\n        ${A('availability', 'Disponibilidad', 'availability')}\n        ${A('queue', 'Turnero Sala', 'queue')}\n    \n                </nav>\n                <footer class="sidebar-footer">\n                    <button type="button" class="logout-btn" data-action="logout">${C('logout')}<span>Cerrar sesion</span></button>\n                </footer>\n            </aside>\n            <button type="button" id="adminSidebarBackdrop" class="admin-sidebar-backdrop is-hidden" aria-hidden="true" tabindex="-1"></button>\n\n            <main class="admin-main admin-v3-main" id="adminMainContent" tabindex="-1" data-admin-frame="sony_v3">\n                <header class="admin-v3-topbar">\n                    <div class="admin-v3-topbar__copy">\n                        <p class="sony-kicker">Sony V3</p>\n                        <h2 id="pageTitle">Dashboard</h2>\n                    </div>\n                    <div class="admin-v3-topbar__actions">\n                        <button type="button" id="adminMenuToggle" class="admin-v3-topbar__menu" aria-controls="adminSidebar" aria-expanded="false">${C('menu')}<span>Menu</span></button>\n                        <button type="button" class="admin-v3-command-btn" data-action="open-command-palette">Ctrl+K</button>\n                        <button type="button" id="refreshAdminDataBtn" data-action="refresh-admin-data">Actualizar</button>\n                        ${q('admin-theme-switcher-header')}\n                    </div>\n                </header>\n\n                <section class="admin-v3-context-strip" id="adminProductivityStrip">\n                    <div class="admin-v3-context-copy" data-admin-section-hero>\n                        <p class="sony-kicker" id="adminSectionEyebrow">Resumen Diario</p>\n                        <h3 id="adminContextTitle">Que requiere atencion ahora</h3>\n                        <p id="adminContextSummary">Lee agenda, callbacks y disponibilidad desde un frente claro y sin ruido.</p>\n                        <div id="adminContextActions" class="sony-context-actions"></div>\n                    </div>\n                    <div class="admin-v3-status-rail" data-admin-priority-rail>\n                        <article class="sony-status-tile">\n                            <span>Push</span>\n                            <strong id="pushStatusIndicator">Inicializando</strong>\n                            <small id="pushStatusMeta">Comprobando permisos del navegador</small>\n                        </article>\n                        <article class="sony-status-tile" id="adminSessionTile" data-state="neutral">\n                            <span>Sesion</span>\n                            <strong id="adminSessionState">No autenticada</strong>\n                            <small id="adminSessionMeta">Autenticate para operar el panel</small>\n                        </article>\n                        <article class="sony-status-tile">\n                            <span>Sincronizacion</span>\n                            <strong id="adminRefreshStatus">Datos: sin sincronizar</strong>\n                            <small id="adminSyncState">Listo para primera sincronizacion</small>\n                        </article>\n                    </div>\n                </section>\n\n                \n        \n        <section id="dashboard" class="admin-section active" tabindex="-1">\n            <div class="dashboard-stage">\n                <article class="sony-panel dashboard-hero-panel">\n                    <div class="dashboard-hero-copy">\n                        <p class="sony-kicker">Resumen diario</p>\n                        <h3>Prioridades de hoy</h3>\n                        <p id="dashboardHeroSummary">\n                            Agenda, callbacks y disponibilidad con una lectura mas clara y directa.\n                        </p>\n                    </div>\n                    <div class="dashboard-hero-actions">\n                        <button type="button" data-action="context-open-appointments-transfer">Ver transferencias</button>\n                        <button type="button" data-action="context-open-callbacks-pending">Ir a callbacks</button>\n                        <button type="button" data-action="refresh-admin-data">Actualizar tablero</button>\n                    </div>\n                    <div class="dashboard-hero-metrics">\n                        <div class="dashboard-hero-metric">\n                            <span>Rating</span>\n                            <strong id="dashboardHeroRating">0.0</strong>\n                        </div>\n                        <div class="dashboard-hero-metric">\n                            <span>Resenas 30d</span>\n                            <strong id="dashboardHeroRecentReviews">0</strong>\n                        </div>\n                        <div class="dashboard-hero-metric">\n                            <span>Urgentes SLA</span>\n                            <strong id="dashboardHeroUrgentCallbacks">0</strong>\n                        </div>\n                        <div class="dashboard-hero-metric">\n                            <span>Transferencias</span>\n                            <strong id="dashboardHeroPendingTransfers">0</strong>\n                        </div>\n                    </div>\n                </article>\n\n                <article class="sony-panel dashboard-signal-panel">\n                    <header>\n                        <div>\n                            <h3>Señal operativa</h3>\n                            <small id="operationRefreshSignal">Tiempo real</small>\n                        </div>\n                        <span class="dashboard-signal-chip" id="dashboardLiveStatus">Estable</span>\n                    </header>\n                    <p id="dashboardLiveMeta">\n                        Sin alertas criticas en la operacion actual.\n                    </p>\n                    <div class="dashboard-signal-stack">\n                        <article class="dashboard-signal-card">\n                            <span>Push</span>\n                            <strong id="dashboardPushStatus">Sin validar</strong>\n                            <small id="dashboardPushMeta">Permisos del navegador</small>\n                        </article>\n                        <article class="dashboard-signal-card">\n                            <span>Atencion</span>\n                            <strong id="dashboardQueueHealth">Cola: estable</strong>\n                            <small id="dashboardFlowStatus">Sin cuellos de botella</small>\n                        </article>\n                    </div>\n                    <ul id="dashboardAttentionList" class="sony-list dashboard-attention-list"></ul>\n                </article>\n            </div>\n\n            <div class="sony-grid sony-grid-kpi">\n                <article class="sony-kpi"><h3>Citas hoy</h3><strong id="todayAppointments">0</strong></article>\n                <article class="sony-kpi"><h3>Total citas</h3><strong id="totalAppointments">0</strong></article>\n                <article class="sony-kpi"><h3>Callbacks pendientes</h3><strong id="pendingCallbacks">0</strong></article>\n                <article class="sony-kpi"><h3>Resenas</h3><strong id="totalReviewsCount">0</strong></article>\n                <article class="sony-kpi"><h3>No show</h3><strong id="totalNoShows">0</strong></article>\n                <article class="sony-kpi"><h3>Rating</h3><strong id="avgRating">0.0</strong></article>\n            </div>\n\n            <div class="sony-grid sony-grid-two">\n                <article class="sony-panel dashboard-card-operations">\n                    <header>\n                        <h3>Centro operativo</h3>\n                        <small id="operationDeckMeta">Prioridades y acciones</small>\n                    </header>\n                    <div class="sony-panel-stats">\n                        <div><span>Transferencias</span><strong id="operationPendingReviewCount">0</strong></div>\n                        <div><span>Callbacks</span><strong id="operationPendingCallbacksCount">0</strong></div>\n                        <div><span>Carga hoy</span><strong id="operationTodayLoadCount">0</strong></div>\n                    </div>\n                    <p id="operationQueueHealth">Cola: estable</p>\n                    <div id="operationActionList" class="operations-action-list"></div>\n                </article>\n\n                <article class="sony-panel" id="funnelSummary">\n                    <header><h3>Embudo</h3></header>\n                    <div class="sony-panel-stats">\n                        <div><span>View Booking</span><strong id="funnelViewBooking">0</strong></div>\n                        <div><span>Start Checkout</span><strong id="funnelStartCheckout">0</strong></div>\n                        <div><span>Booking Confirmed</span><strong id="funnelBookingConfirmed">0</strong></div>\n                        <div><span>Abandono</span><strong id="funnelAbandonRate">0%</strong></div>\n                    </div>\n                </article>\n            </div>\n\n            <div class="sony-grid sony-grid-three">\n                <article class="sony-panel"><h4>Entry</h4><ul id="funnelEntryList" class="sony-list"></ul></article>\n                <article class="sony-panel"><h4>Source</h4><ul id="funnelSourceList" class="sony-list"></ul></article>\n                <article class="sony-panel"><h4>Payment</h4><ul id="funnelPaymentMethodList" class="sony-list"></ul></article>\n                <article class="sony-panel"><h4>Abandono</h4><ul id="funnelAbandonList" class="sony-list"></ul></article>\n                <article class="sony-panel"><h4>Motivo</h4><ul id="funnelAbandonReasonList" class="sony-list"></ul></article>\n                <article class="sony-panel"><h4>Paso</h4><ul id="funnelStepList" class="sony-list"></ul></article>\n                <article class="sony-panel"><h4>Error</h4><ul id="funnelErrorCodeList" class="sony-list"></ul></article>\n            </div>\n            <div class="sr-only" id="adminAvgRating"></div>\n        </section>\n    \n        \n        <section id="appointments" class="admin-section" tabindex="-1">\n            <div class="appointments-stage">\n                <article class="sony-panel appointments-command-deck">\n                    <header class="section-header appointments-command-head">\n                        <div>\n                            <p class="sony-kicker">Agenda clinica</p>\n                            <h3>Citas</h3>\n                            <p id="appointmentsDeckSummary">Sin citas cargadas.</p>\n                        </div>\n                        <span class="appointments-deck-chip" id="appointmentsDeckChip">Agenda estable</span>\n                    </header>\n                    <div class="appointments-ops-grid">\n                        <article class="appointments-ops-card tone-warning">\n                            <span>Transferencias</span>\n                            <strong id="appointmentsOpsPendingTransfer">0</strong>\n                            <small id="appointmentsOpsPendingTransferMeta">Nada por validar</small>\n                        </article>\n                        <article class="appointments-ops-card tone-neutral">\n                            <span>Proximas 48h</span>\n                            <strong id="appointmentsOpsUpcomingCount">0</strong>\n                            <small id="appointmentsOpsUpcomingMeta">Sin presion inmediata</small>\n                        </article>\n                        <article class="appointments-ops-card tone-danger">\n                            <span>No show</span>\n                            <strong id="appointmentsOpsNoShowCount">0</strong>\n                            <small id="appointmentsOpsNoShowMeta">Sin incidencias</small>\n                        </article>\n                        <article class="appointments-ops-card tone-success">\n                            <span>Hoy</span>\n                            <strong id="appointmentsOpsTodayCount">0</strong>\n                            <small id="appointmentsOpsTodayMeta">Carga diaria limpia</small>\n                        </article>\n                    </div>\n                    <div class="appointments-command-actions">\n                        <button type="button" data-action="context-open-appointments-transfer">Priorizar transferencias</button>\n                        <button type="button" data-action="context-open-callbacks-pending">Cruzar callbacks</button>\n                        <button type="button" id="appointmentsExportBtn" data-action="export-csv">Exportar CSV</button>\n                    </div>\n                </article>\n\n                <article class="sony-panel appointments-focus-panel">\n                    <header class="section-header">\n                        <div>\n                            <p class="sony-kicker" id="appointmentsFocusLabel">Sin foco activo</p>\n                            <h3 id="appointmentsFocusPatient">Sin citas activas</h3>\n                            <p id="appointmentsFocusMeta">Cuando entren citas accionables apareceran aqui.</p>\n                        </div>\n                    </header>\n                    <div class="appointments-focus-grid">\n                        <div class="appointments-focus-stat">\n                            <span>Siguiente ventana</span>\n                            <strong id="appointmentsFocusWindow">-</strong>\n                        </div>\n                        <div class="appointments-focus-stat">\n                            <span>Pago</span>\n                            <strong id="appointmentsFocusPayment">-</strong>\n                        </div>\n                        <div class="appointments-focus-stat">\n                            <span>Estado</span>\n                            <strong id="appointmentsFocusStatus">-</strong>\n                        </div>\n                        <div class="appointments-focus-stat">\n                            <span>Contacto</span>\n                            <strong id="appointmentsFocusContact">-</strong>\n                        </div>\n                    </div>\n                    <div id="appointmentsFocusTags" class="appointments-focus-tags"></div>\n                    <p id="appointmentsFocusHint" class="appointments-focus-hint">Sin bloqueos operativos.</p>\n                </article>\n            </div>\n\n            <div class="sony-panel appointments-workbench">\n                <header class="section-header appointments-workbench-head">\n                    <div>\n                        <h3>Workbench</h3>\n                        <p id="appointmentsWorkbenchHint">Filtros, orden y tabla en un workbench unico.</p>\n                    </div>\n                    <div class="toolbar-group" id="appointmentsDensityToggle">\n                        <button type="button" data-action="appointment-density" data-density="comfortable" class="is-active">Comodo</button>\n                        <button type="button" data-action="appointment-density" data-density="compact">Compacto</button>\n                    </div>\n                </header>\n                <div class="toolbar-row">\n                    <div class="toolbar-group">\n                        <button type="button" class="appointment-quick-filter-btn is-active" data-action="appointment-quick-filter" data-filter-value="all">Todas</button>\n                        <button type="button" class="appointment-quick-filter-btn" data-action="appointment-quick-filter" data-filter-value="pending_transfer">Transferencias</button>\n                        <button type="button" class="appointment-quick-filter-btn" data-action="appointment-quick-filter" data-filter-value="upcoming_48h">48h</button>\n                        <button type="button" class="appointment-quick-filter-btn" data-action="appointment-quick-filter" data-filter-value="no_show">No show</button>\n                        <button type="button" class="appointment-quick-filter-btn" data-action="appointment-quick-filter" data-filter-value="triage_attention">Triage</button>\n                    </div>\n                </div>\n                <div class="toolbar-row appointments-toolbar">\n                    <label>\n                        <span class="sr-only">Filtro</span>\n                        <select id="appointmentFilter">\n                            <option value="all">Todas</option>\n                            <option value="pending_transfer">Transferencias por validar</option>\n                            <option value="upcoming_48h">Proximas 48h</option>\n                            <option value="no_show">No show</option>\n                            <option value="triage_attention">Triage accionable</option>\n                        </select>\n                    </label>\n                    <label>\n                        <span class="sr-only">Orden</span>\n                        <select id="appointmentSort">\n                            <option value="datetime_desc">Fecha reciente</option>\n                            <option value="datetime_asc">Fecha ascendente</option>\n                            <option value="patient_az">Paciente (A-Z)</option>\n                        </select>\n                    </label>\n                    <input type="search" id="searchAppointments" placeholder="Buscar paciente" />\n                    <button type="button" id="clearAppointmentsFiltersBtn" data-action="clear-appointment-filters" class="is-hidden">Limpiar</button>\n                </div>\n                <div class="toolbar-row slim">\n                    <p id="appointmentsToolbarMeta">Mostrando 0</p>\n                    <p id="appointmentsToolbarState">Sin filtros activos</p>\n                </div>\n\n                <div class="table-scroll appointments-table-shell">\n                    <table id="appointmentsTable" class="sony-table">\n                        <thead>\n                            <tr>\n                                <th>Paciente</th>\n                                <th>Servicio</th>\n                                <th>Fecha</th>\n                                <th>Pago</th>\n                                <th>Estado</th>\n                                <th>Acciones</th>\n                            </tr>\n                        </thead>\n                        <tbody id="appointmentsTableBody"></tbody>\n                    </table>\n                </div>\n            </div>\n        </section>\n    \n        \n        <section id="callbacks" class="admin-section" tabindex="-1">\n            <div class="callbacks-stage">\n                <article class="sony-panel callbacks-command-deck">\n                    <header class="section-header callbacks-command-head">\n                        <div>\n                            <p class="sony-kicker">SLA telefonico</p>\n                            <h3>Callbacks</h3>\n                            <p id="callbacksDeckSummary">Sin callbacks pendientes.</p>\n                        </div>\n                        <span class="callbacks-queue-chip" id="callbacksQueueChip">Cola estable</span>\n                    </header>\n                    <div id="callbacksOpsPanel" class="callbacks-ops-grid">\n                        <article class="callbacks-ops-card"><span>Pendientes</span><strong id="callbacksOpsPendingCount">0</strong></article>\n                        <article class="callbacks-ops-card"><span>Urgentes</span><strong id="callbacksOpsUrgentCount">0</strong></article>\n                        <article class="callbacks-ops-card"><span>Hoy</span><strong id="callbacksOpsTodayCount">0</strong></article>\n                        <article class="callbacks-ops-card wide"><span>Estado</span><strong id="callbacksOpsQueueHealth">Cola: estable</strong></article>\n                    </div>\n                    <div class="callbacks-command-actions">\n                        <button type="button" id="callbacksOpsNextBtn" data-action="callbacks-triage-next">Siguiente llamada</button>\n                        <button type="button" id="callbacksBulkSelectVisibleBtn">Seleccionar visibles</button>\n                        <button type="button" id="callbacksBulkClearBtn">Limpiar seleccion</button>\n                        <button type="button" id="callbacksBulkMarkBtn">Marcar contactados</button>\n                    </div>\n                </article>\n\n                <article class="sony-panel callbacks-next-panel">\n                    <header class="section-header">\n                        <div>\n                            <p class="sony-kicker" id="callbacksNextEyebrow">Siguiente contacto</p>\n                            <h3 id="callbacksOpsNext">Sin telefono</h3>\n                            <p id="callbacksNextSummary">La siguiente llamada prioritaria aparecera aqui.</p>\n                        </div>\n                        <span id="callbacksSelectionChip" class="is-hidden">Seleccionados: <strong id="callbacksSelectedCount">0</strong></span>\n                    </header>\n                    <div class="callbacks-next-grid">\n                        <div class="callbacks-next-stat">\n                            <span>Espera</span>\n                            <strong id="callbacksNextWait">0 min</strong>\n                        </div>\n                        <div class="callbacks-next-stat">\n                            <span>Preferencia</span>\n                            <strong id="callbacksNextPreference">-</strong>\n                        </div>\n                        <div class="callbacks-next-stat">\n                            <span>Estado</span>\n                            <strong id="callbacksNextState">Pendiente</strong>\n                        </div>\n                        <div class="callbacks-next-stat">\n                            <span>Ultimo corte</span>\n                            <strong id="callbacksDeckHint">Sin bloqueos</strong>\n                        </div>\n                    </div>\n                </article>\n            </div>\n            <div class="sony-panel callbacks-workbench">\n                <header class="section-header callbacks-workbench-head">\n                    <div>\n                        <h3>Workbench</h3>\n                        <p>Ordena por espera, filtra por SLA y drena la cola con acciones masivas.</p>\n                    </div>\n                </header>\n                <div class="toolbar-row">\n                    <div class="toolbar-group">\n                        <button type="button" class="callback-quick-filter-btn is-active" data-action="callback-quick-filter" data-filter-value="all">Todos</button>\n                        <button type="button" class="callback-quick-filter-btn" data-action="callback-quick-filter" data-filter-value="pending">Pendientes</button>\n                        <button type="button" class="callback-quick-filter-btn" data-action="callback-quick-filter" data-filter-value="contacted">Contactados</button>\n                        <button type="button" class="callback-quick-filter-btn" data-action="callback-quick-filter" data-filter-value="today">Hoy</button>\n                        <button type="button" class="callback-quick-filter-btn" data-action="callback-quick-filter" data-filter-value="sla_urgent">Urgentes SLA</button>\n                    </div>\n                </div>\n                <div class="toolbar-row callbacks-toolbar">\n                    <label>\n                        <span class="sr-only">Filtro callbacks</span>\n                        <select id="callbackFilter">\n                            <option value="all">Todos</option>\n                            <option value="pending">Pendientes</option>\n                            <option value="contacted">Contactados</option>\n                            <option value="today">Hoy</option>\n                            <option value="sla_urgent">Urgentes SLA</option>\n                        </select>\n                    </label>\n                    <label>\n                        <span class="sr-only">Orden callbacks</span>\n                        <select id="callbackSort">\n                            <option value="recent_desc">Mas recientes</option>\n                            <option value="waiting_desc">Mayor espera (SLA)</option>\n                        </select>\n                    </label>\n                    <input type="search" id="searchCallbacks" placeholder="Buscar telefono" />\n                    <button type="button" id="clearCallbacksFiltersBtn" data-action="clear-callback-filters">Limpiar</button>\n                </div>\n                <div class="toolbar-row slim">\n                    <p id="callbacksToolbarMeta">Mostrando 0</p>\n                    <p id="callbacksToolbarState">Sin filtros activos</p>\n                </div>\n                <div id="callbacksGrid" class="callbacks-grid"></div>\n            </div>\n        </section>\n    \n        \n        <section id="reviews" class="admin-section" tabindex="-1">\n            <div class="reviews-stage">\n                <article class="sony-panel reviews-summary-panel">\n                    <header class="section-header">\n                        <div>\n                            <h3>Resenas</h3>\n                            <p id="reviewsSentimentLabel">Sin senal suficiente</p>\n                        </div>\n                        <span class="reviews-score-pill" id="reviewsAverageRating">0.0</span>\n                    </header>\n                    <div class="reviews-summary-grid">\n                        <div class="reviews-summary-stat">\n                            <span>5 estrellas</span>\n                            <strong id="reviewsFiveStarCount">0</strong>\n                        </div>\n                        <div class="reviews-summary-stat">\n                            <span>Ultimos 30 dias</span>\n                            <strong id="reviewsRecentCount">0</strong>\n                        </div>\n                        <div class="reviews-summary-stat">\n                            <span>Total</span>\n                            <strong id="reviewsTotalCount">0</strong>\n                        </div>\n                    </div>\n                    <div id="reviewsSummaryRail" class="reviews-summary-rail"></div>\n                </article>\n\n                <article class="sony-panel reviews-spotlight-panel">\n                    <header class="section-header"><h3>Spotlight</h3></header>\n                    <div id="reviewsSpotlight" class="reviews-spotlight"></div>\n                </article>\n            </div>\n            <div class="sony-panel">\n                <div id="reviewsGrid" class="reviews-grid"></div>\n            </div>\n        </section>\n    \n        \n        <section id="availability" class="admin-section" tabindex="-1">\n            <div class="sony-panel availability-container">\n                <header class="section-header availability-header">\n                    <div class="availability-calendar">\n                        <h3 id="availabilityHeading">Configurar Horarios Disponibles</h3>\n                        <div class="availability-badges">\n                            <span id="availabilitySourceBadge" class="availability-badge">Fuente: Local</span>\n                            <span id="availabilityModeBadge" class="availability-badge">Modo: Editable</span>\n                            <span id="availabilityTimezoneBadge" class="availability-badge">TZ: -</span>\n                        </div>\n                    </div>\n                    <div class="toolbar-group calendar-header">\n                        <button type="button" data-action="change-month" data-delta="-1">Prev</button>\n                        <strong id="calendarMonth"></strong>\n                        <button type="button" data-action="change-month" data-delta="1">Next</button>\n                        <button type="button" data-action="availability-today">Hoy</button>\n                        <button type="button" data-action="availability-prev-with-slots">Anterior con slots</button>\n                        <button type="button" data-action="availability-next-with-slots">Siguiente con slots</button>\n                    </div>\n                </header>\n\n                <div class="toolbar-row slim">\n                    <p id="availabilitySelectionSummary">Selecciona una fecha</p>\n                    <p id="availabilityDraftStatus">Sin cambios pendientes</p>\n                    <p id="availabilitySyncStatus">Sincronizado</p>\n                </div>\n\n                <div id="availabilityCalendar" class="availability-calendar-grid"></div>\n\n                <div id="availabilityDetailGrid" class="availability-detail-grid">\n                    <article class="sony-panel soft">\n                        <h4 id="selectedDate">-</h4>\n                        <div id="timeSlotsList" class="time-slots-list"></div>\n                    </article>\n\n                    <article class="sony-panel soft">\n                        <div id="availabilityQuickSlotPresets" class="slot-presets">\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="09:00">09:00</button>\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="09:30">09:30</button>\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="10:00">10:00</button>\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="16:00">16:00</button>\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="16:30">16:30</button>\n                        </div>\n                        <div id="addSlotForm" class="add-slot-form">\n                            <input type="time" id="newSlotTime" />\n                            <button type="button" data-action="add-time-slot">Agregar</button>\n                        </div>\n                        <div id="availabilityDayActions" class="toolbar-group wrap">\n                            <button type="button" data-action="copy-availability-day">Copiar dia</button>\n                            <button type="button" data-action="paste-availability-day">Pegar dia</button>\n                            <button type="button" data-action="duplicate-availability-day-next">Duplicar +1</button>\n                            <button type="button" data-action="duplicate-availability-next-week">Duplicar +7</button>\n                            <button type="button" data-action="clear-availability-day">Limpiar dia</button>\n                            <button type="button" data-action="clear-availability-week">Limpiar semana</button>\n                        </div>\n                        <p id="availabilityDayActionsStatus">Sin acciones pendientes</p>\n                        <div class="toolbar-group">\n                            <button type="button" id="availabilitySaveDraftBtn" data-action="save-availability-draft" disabled>Guardar</button>\n                            <button type="button" id="availabilityDiscardDraftBtn" data-action="discard-availability-draft" disabled>Descartar</button>\n                        </div>\n                    </article>\n                </div>\n            </div>\n        </section>\n    \n        \n        <section id="queue" class="admin-section" tabindex="-1">\n            <div class="sony-panel">\n                <header class="section-header">\n                    <h3>Turnero Sala</h3>\n                    <div class="queue-admin-header-actions">\n                        <button type="button" data-action="queue-call-next" data-queue-consultorio="1">Llamar C1</button>\n                        <button type="button" data-action="queue-call-next" data-queue-consultorio="2">Llamar C2</button>\n                        <button type="button" data-action="queue-refresh-state">Refrescar</button>\n                    </div>\n                </header>\n\n                <div class="sony-grid sony-grid-kpi slim">\n                    <article class="sony-kpi"><h4>Espera</h4><strong id="queueWaitingCountAdmin">0</strong></article>\n                    <article class="sony-kpi"><h4>Llamados</h4><strong id="queueCalledCountAdmin">0</strong></article>\n                    <article class="sony-kpi"><h4>C1</h4><strong id="queueC1Now">Sin llamado</strong></article>\n                    <article class="sony-kpi"><h4>C2</h4><strong id="queueC2Now">Sin llamado</strong></article>\n                    <article class="sony-kpi"><h4>Sync</h4><strong id="queueSyncStatus" data-state="live">vivo</strong></article>\n                </div>\n\n                <div id="queueStationControl" class="toolbar-row">\n                    <span id="queueStationBadge">Estacion: libre</span>\n                    <span id="queueStationModeBadge">Modo: free</span>\n                    <span id="queuePracticeModeBadge" hidden>Practice ON</span>\n                    <button type="button" data-action="queue-lock-station" data-queue-consultorio="1">Lock C1</button>\n                    <button type="button" data-action="queue-lock-station" data-queue-consultorio="2">Lock C2</button>\n                    <button type="button" data-action="queue-set-station-mode" data-queue-mode="free">Modo libre</button>\n                    <button type="button" data-action="queue-toggle-one-tap" aria-pressed="false">1 tecla</button>\n                    <button type="button" data-action="queue-toggle-shortcuts">Atajos</button>\n                    <button type="button" data-action="queue-capture-call-key">Calibrar tecla</button>\n                    <button type="button" data-action="queue-clear-call-key" hidden>Quitar tecla</button>\n                    <button type="button" data-action="queue-start-practice">Iniciar practica</button>\n                    <button type="button" data-action="queue-stop-practice">Salir practica</button>\n                    <button type="button" id="queueReleaseC1" data-action="queue-release-station" data-queue-consultorio="1" hidden>Release C1</button>\n                    <button type="button" id="queueReleaseC2" data-action="queue-release-station" data-queue-consultorio="2" hidden>Release C2</button>\n                </div>\n\n                <div id="queueShortcutPanel" hidden>\n                    <p>Numpad Enter llama siguiente.</p>\n                    <p>Numpad Decimal prepara completar.</p>\n                    <p>Numpad Subtract prepara no_show.</p>\n                </div>\n\n                <div id="queueTriageToolbar" class="toolbar-row">\n                    <button type="button" data-queue-filter="all">Todo</button>\n                    <button type="button" data-queue-filter="called">Llamados</button>\n                    <button type="button" data-queue-filter="sla_risk">Riesgo SLA</button>\n                    <input type="search" id="queueSearchInput" placeholder="Buscar ticket" />\n                    <button type="button" data-action="queue-clear-search">Limpiar</button>\n                    <button type="button" id="queueSelectVisibleBtn" data-action="queue-select-visible">Seleccionar visibles</button>\n                    <button type="button" id="queueClearSelectionBtn" data-action="queue-clear-selection">Limpiar seleccion</button>\n                    <button type="button" data-action="queue-bulk-action" data-queue-action="completar">Bulk completar</button>\n                    <button type="button" data-action="queue-bulk-action" data-queue-action="no_show">Bulk no_show</button>\n                    <button type="button" data-action="queue-bulk-reprint">Bulk reprint</button>\n                </div>\n\n                <div class="toolbar-row slim">\n                    <p id="queueTriageSummary">Sin riesgo</p>\n                    <span id="queueSelectionChip" class="is-hidden">Seleccionados: <strong id="queueSelectedCount">0</strong></span>\n                </div>\n\n                <ul id="queueNextAdminList" class="sony-list"></ul>\n\n                <div class="table-scroll">\n                    <table class="sony-table queue-admin-table">\n                        <thead>\n                            <tr>\n                                <th>Sel</th>\n                                <th>Ticket</th>\n                                <th>Tipo</th>\n                                <th>Estado</th>\n                                <th>Consultorio</th>\n                                <th>Espera</th>\n                                <th>Acciones</th>\n                            </tr>\n                        </thead>\n                        <tbody id="queueTableBody"></tbody>\n                    </table>\n                </div>\n\n                <div id="queueActivityPanel" class="sony-panel soft">\n                    <h4>Actividad</h4>\n                    <ul id="queueActivityList" class="sony-list"></ul>\n                </div>\n            </div>\n\n            <dialog id="queueSensitiveConfirmDialog" class="queue-sensitive-confirm-dialog">\n                <form method="dialog">\n                    <p id="queueSensitiveConfirmMessage">Confirmar accion sensible</p>\n                    <div class="toolbar-group">\n                        <button type="button" data-action="queue-sensitive-cancel">Cancelar</button>\n                        <button type="button" data-action="queue-sensitive-confirm">Confirmar</button>\n                    </div>\n                </form>\n            </dialog>\n        </section>\n    \n    \n            </main>\n\n            <div id="adminCommandPalette" class="admin-command-palette is-hidden" aria-hidden="true">\n                <button type="button" class="admin-command-palette__backdrop" data-action="close-command-palette" aria-label="Cerrar paleta"></button>\n                <div class="admin-command-dialog" role="dialog" aria-modal="true" aria-labelledby="adminCommandPaletteTitle">\n                    <div class="admin-command-dialog__head">\n                        <div>\n                            <p class="sony-kicker">Command Palette</p>\n                            <h3 id="adminCommandPaletteTitle">Accion rapida</h3>\n                        </div>\n                        <button type="button" class="admin-command-dialog__close" data-action="close-command-palette">Cerrar</button>\n                    </div>\n                    <div class="admin-command-box">\n                        <input id="adminQuickCommand" type="text" placeholder="Ej. callbacks urgentes, citas transferencias, queue riesgo SLA" />\n                        <button id="adminRunQuickCommandBtn" data-action="run-admin-command">Ejecutar</button>\n                    </div>\n                    <div class="admin-command-dialog__hints">\n                        <span>Ctrl+K abre esta paleta</span>\n                        <span>/ enfoca la busqueda de la seccion activa</span>\n                    </div>\n                </div>\n            </div>\n        </div>\n    `));
+        (n.innerHTML = `\n        <div class="admin-v3-shell">\n            <aside class="admin-sidebar admin-v3-sidebar" id="adminSidebar" tabindex="-1">\n                <header class="sidebar-header">\n                    <div class="admin-v3-sidebar__brand">\n                        <strong>Piel en Armonia</strong>\n                        <small>Admin sony_v3</small>\n                    </div>\n                    <div class="toolbar-group">\n                        <button type="button" id="adminSidebarCollapse" data-action="toggle-sidebar-collapse" aria-pressed="false">${C('menu')}</button>\n                        <button type="button" id="adminMenuClose">Cerrar</button>\n                    </div>\n                </header>\n                <nav class="sidebar-nav" id="adminSidebarNav">\n                    \n        ${A('dashboard', 'Dashboard', 'dashboard', !0)}\n        ${A('appointments', 'Citas', 'appointments')}\n        ${A('callbacks', 'Callbacks', 'callbacks')}\n        ${A('reviews', 'Resenas', 'reviews')}\n        ${A('availability', 'Disponibilidad', 'availability')}\n        ${A('queue', 'Turnero Sala', 'queue')}\n    \n                </nav>\n                <footer class="sidebar-footer">\n                    <button type="button" class="logout-btn" data-action="logout">${C('logout')}<span>Cerrar sesion</span></button>\n                </footer>\n            </aside>\n            <button type="button" id="adminSidebarBackdrop" class="admin-sidebar-backdrop is-hidden" aria-hidden="true" tabindex="-1"></button>\n\n            <main class="admin-main admin-v3-main" id="adminMainContent" tabindex="-1" data-admin-frame="sony_v3">\n                <header class="admin-v3-topbar">\n                    <div class="admin-v3-topbar__copy">\n                        <p class="sony-kicker">Sony V3</p>\n                        <h2 id="pageTitle">Dashboard</h2>\n                    </div>\n                    <div class="admin-v3-topbar__actions">\n                        <button type="button" id="adminMenuToggle" class="admin-v3-topbar__menu" aria-controls="adminSidebar" aria-expanded="false">${C('menu')}<span>Menu</span></button>\n                        <button type="button" class="admin-v3-command-btn" data-action="open-command-palette">Ctrl+K</button>\n                        <button type="button" id="refreshAdminDataBtn" data-action="refresh-admin-data">Actualizar</button>\n                        ${q('admin-theme-switcher-header')}\n                    </div>\n                </header>\n\n                <section class="admin-v3-context-strip" id="adminProductivityStrip">\n                    <div class="admin-v3-context-copy" data-admin-section-hero>\n                        <p class="sony-kicker" id="adminSectionEyebrow">Resumen Diario</p>\n                        <h3 id="adminContextTitle">Que requiere atencion ahora</h3>\n                        <p id="adminContextSummary">Lee agenda, callbacks y disponibilidad desde un frente claro y sin ruido.</p>\n                        <div id="adminContextActions" class="sony-context-actions"></div>\n                    </div>\n                    <div class="admin-v3-status-rail" data-admin-priority-rail>\n                        <article class="sony-status-tile">\n                            <span>Push</span>\n                            <strong id="pushStatusIndicator">Inicializando</strong>\n                            <small id="pushStatusMeta">Comprobando permisos del navegador</small>\n                        </article>\n                        <article class="sony-status-tile" id="adminSessionTile" data-state="neutral">\n                            <span>Sesion</span>\n                            <strong id="adminSessionState">No autenticada</strong>\n                            <small id="adminSessionMeta">Autenticate para operar el panel</small>\n                        </article>\n                        <article class="sony-status-tile">\n                            <span>Sincronizacion</span>\n                            <strong id="adminRefreshStatus">Datos: sin sincronizar</strong>\n                            <small id="adminSyncState">Listo para primera sincronizacion</small>\n                        </article>\n                    </div>\n                </section>\n\n                \n        \n        <section id="dashboard" class="admin-section active" tabindex="-1">\n            <div class="dashboard-stage">\n                <article class="sony-panel dashboard-hero-panel">\n                    <div class="dashboard-hero-copy">\n                        <p class="sony-kicker">Resumen diario</p>\n                        <h3>Prioridades de hoy</h3>\n                        <p id="dashboardHeroSummary">\n                            Agenda, callbacks y disponibilidad con una lectura mas clara y directa.\n                        </p>\n                    </div>\n                    <div class="dashboard-hero-actions">\n                        <button type="button" data-action="context-open-appointments-transfer">Ver transferencias</button>\n                        <button type="button" data-action="context-open-callbacks-pending">Ir a callbacks</button>\n                        <button type="button" data-action="refresh-admin-data">Actualizar tablero</button>\n                    </div>\n                    <div class="dashboard-hero-metrics">\n                        <div class="dashboard-hero-metric">\n                            <span>Rating</span>\n                            <strong id="dashboardHeroRating">0.0</strong>\n                        </div>\n                        <div class="dashboard-hero-metric">\n                            <span>Resenas 30d</span>\n                            <strong id="dashboardHeroRecentReviews">0</strong>\n                        </div>\n                        <div class="dashboard-hero-metric">\n                            <span>Urgentes SLA</span>\n                            <strong id="dashboardHeroUrgentCallbacks">0</strong>\n                        </div>\n                        <div class="dashboard-hero-metric">\n                            <span>Transferencias</span>\n                            <strong id="dashboardHeroPendingTransfers">0</strong>\n                        </div>\n                    </div>\n                </article>\n\n                <article class="sony-panel dashboard-signal-panel">\n                    <header>\n                        <div>\n                            <h3>Señal operativa</h3>\n                            <small id="operationRefreshSignal">Tiempo real</small>\n                        </div>\n                        <span class="dashboard-signal-chip" id="dashboardLiveStatus">Estable</span>\n                    </header>\n                    <p id="dashboardLiveMeta">\n                        Sin alertas criticas en la operacion actual.\n                    </p>\n                    <div class="dashboard-signal-stack">\n                        <article class="dashboard-signal-card">\n                            <span>Push</span>\n                            <strong id="dashboardPushStatus">Sin validar</strong>\n                            <small id="dashboardPushMeta">Permisos del navegador</small>\n                        </article>\n                        <article class="dashboard-signal-card">\n                            <span>Atencion</span>\n                            <strong id="dashboardQueueHealth">Cola: estable</strong>\n                            <small id="dashboardFlowStatus">Sin cuellos de botella</small>\n                        </article>\n                    </div>\n                    <ul id="dashboardAttentionList" class="sony-list dashboard-attention-list"></ul>\n                </article>\n            </div>\n\n            <div class="sony-grid sony-grid-kpi">\n                <article class="sony-kpi"><h3>Citas hoy</h3><strong id="todayAppointments">0</strong></article>\n                <article class="sony-kpi"><h3>Total citas</h3><strong id="totalAppointments">0</strong></article>\n                <article class="sony-kpi"><h3>Callbacks pendientes</h3><strong id="pendingCallbacks">0</strong></article>\n                <article class="sony-kpi"><h3>Resenas</h3><strong id="totalReviewsCount">0</strong></article>\n                <article class="sony-kpi"><h3>No show</h3><strong id="totalNoShows">0</strong></article>\n                <article class="sony-kpi"><h3>Rating</h3><strong id="avgRating">0.0</strong></article>\n            </div>\n\n            <div class="sony-grid sony-grid-two">\n                <article class="sony-panel dashboard-card-operations">\n                    <header>\n                        <h3>Centro operativo</h3>\n                        <small id="operationDeckMeta">Prioridades y acciones</small>\n                    </header>\n                    <div class="sony-panel-stats">\n                        <div><span>Transferencias</span><strong id="operationPendingReviewCount">0</strong></div>\n                        <div><span>Callbacks</span><strong id="operationPendingCallbacksCount">0</strong></div>\n                        <div><span>Carga hoy</span><strong id="operationTodayLoadCount">0</strong></div>\n                    </div>\n                    <p id="operationQueueHealth">Cola: estable</p>\n                    <div id="operationActionList" class="operations-action-list"></div>\n                </article>\n\n                <article class="sony-panel" id="funnelSummary">\n                    <header><h3>Embudo</h3></header>\n                    <div class="sony-panel-stats">\n                        <div><span>View Booking</span><strong id="funnelViewBooking">0</strong></div>\n                        <div><span>Start Checkout</span><strong id="funnelStartCheckout">0</strong></div>\n                        <div><span>Booking Confirmed</span><strong id="funnelBookingConfirmed">0</strong></div>\n                        <div><span>Abandono</span><strong id="funnelAbandonRate">0%</strong></div>\n                    </div>\n                </article>\n            </div>\n\n            <div class="sony-grid sony-grid-three">\n                <article class="sony-panel"><h4>Entry</h4><ul id="funnelEntryList" class="sony-list"></ul></article>\n                <article class="sony-panel"><h4>Source</h4><ul id="funnelSourceList" class="sony-list"></ul></article>\n                <article class="sony-panel"><h4>Payment</h4><ul id="funnelPaymentMethodList" class="sony-list"></ul></article>\n                <article class="sony-panel"><h4>Abandono</h4><ul id="funnelAbandonList" class="sony-list"></ul></article>\n                <article class="sony-panel"><h4>Motivo</h4><ul id="funnelAbandonReasonList" class="sony-list"></ul></article>\n                <article class="sony-panel"><h4>Paso</h4><ul id="funnelStepList" class="sony-list"></ul></article>\n                <article class="sony-panel"><h4>Error</h4><ul id="funnelErrorCodeList" class="sony-list"></ul></article>\n            </div>\n            <div class="sr-only" id="adminAvgRating"></div>\n        </section>\n    \n        \n        <section id="appointments" class="admin-section" tabindex="-1">\n            <div class="appointments-stage">\n                <article class="sony-panel appointments-command-deck">\n                    <header class="section-header appointments-command-head">\n                        <div>\n                            <p class="sony-kicker">Agenda clinica</p>\n                            <h3>Citas</h3>\n                            <p id="appointmentsDeckSummary">Sin citas cargadas.</p>\n                        </div>\n                        <span class="appointments-deck-chip" id="appointmentsDeckChip">Agenda estable</span>\n                    </header>\n                    <div class="appointments-ops-grid">\n                        <article class="appointments-ops-card tone-warning">\n                            <span>Transferencias</span>\n                            <strong id="appointmentsOpsPendingTransfer">0</strong>\n                            <small id="appointmentsOpsPendingTransferMeta">Nada por validar</small>\n                        </article>\n                        <article class="appointments-ops-card tone-neutral">\n                            <span>Proximas 48h</span>\n                            <strong id="appointmentsOpsUpcomingCount">0</strong>\n                            <small id="appointmentsOpsUpcomingMeta">Sin presion inmediata</small>\n                        </article>\n                        <article class="appointments-ops-card tone-danger">\n                            <span>No show</span>\n                            <strong id="appointmentsOpsNoShowCount">0</strong>\n                            <small id="appointmentsOpsNoShowMeta">Sin incidencias</small>\n                        </article>\n                        <article class="appointments-ops-card tone-success">\n                            <span>Hoy</span>\n                            <strong id="appointmentsOpsTodayCount">0</strong>\n                            <small id="appointmentsOpsTodayMeta">Carga diaria limpia</small>\n                        </article>\n                    </div>\n                    <div class="appointments-command-actions">\n                        <button type="button" data-action="context-open-appointments-transfer">Priorizar transferencias</button>\n                        <button type="button" data-action="context-open-callbacks-pending">Cruzar callbacks</button>\n                        <button type="button" id="appointmentsExportBtn" data-action="export-csv">Exportar CSV</button>\n                    </div>\n                </article>\n\n                <article class="sony-panel appointments-focus-panel">\n                    <header class="section-header">\n                        <div>\n                            <p class="sony-kicker" id="appointmentsFocusLabel">Sin foco activo</p>\n                            <h3 id="appointmentsFocusPatient">Sin citas activas</h3>\n                            <p id="appointmentsFocusMeta">Cuando entren citas accionables apareceran aqui.</p>\n                        </div>\n                    </header>\n                    <div class="appointments-focus-grid">\n                        <div class="appointments-focus-stat">\n                            <span>Siguiente ventana</span>\n                            <strong id="appointmentsFocusWindow">-</strong>\n                        </div>\n                        <div class="appointments-focus-stat">\n                            <span>Pago</span>\n                            <strong id="appointmentsFocusPayment">-</strong>\n                        </div>\n                        <div class="appointments-focus-stat">\n                            <span>Estado</span>\n                            <strong id="appointmentsFocusStatus">-</strong>\n                        </div>\n                        <div class="appointments-focus-stat">\n                            <span>Contacto</span>\n                            <strong id="appointmentsFocusContact">-</strong>\n                        </div>\n                    </div>\n                    <div id="appointmentsFocusTags" class="appointments-focus-tags"></div>\n                    <p id="appointmentsFocusHint" class="appointments-focus-hint">Sin bloqueos operativos.</p>\n                </article>\n            </div>\n\n            <div class="sony-panel appointments-workbench">\n                <header class="section-header appointments-workbench-head">\n                    <div>\n                        <h3>Workbench</h3>\n                        <p id="appointmentsWorkbenchHint">Filtros, orden y tabla en un workbench unico.</p>\n                    </div>\n                    <div class="toolbar-group" id="appointmentsDensityToggle">\n                        <button type="button" data-action="appointment-density" data-density="comfortable" class="is-active">Comodo</button>\n                        <button type="button" data-action="appointment-density" data-density="compact">Compacto</button>\n                    </div>\n                </header>\n                <div class="toolbar-row">\n                    <div class="toolbar-group">\n                        <button type="button" class="appointment-quick-filter-btn is-active" data-action="appointment-quick-filter" data-filter-value="all">Todas</button>\n                        <button type="button" class="appointment-quick-filter-btn" data-action="appointment-quick-filter" data-filter-value="pending_transfer">Transferencias</button>\n                        <button type="button" class="appointment-quick-filter-btn" data-action="appointment-quick-filter" data-filter-value="upcoming_48h">48h</button>\n                        <button type="button" class="appointment-quick-filter-btn" data-action="appointment-quick-filter" data-filter-value="no_show">No show</button>\n                        <button type="button" class="appointment-quick-filter-btn" data-action="appointment-quick-filter" data-filter-value="triage_attention">Triage</button>\n                    </div>\n                </div>\n                <div class="toolbar-row appointments-toolbar">\n                    <label>\n                        <span class="sr-only">Filtro</span>\n                        <select id="appointmentFilter">\n                            <option value="all">Todas</option>\n                            <option value="pending_transfer">Transferencias por validar</option>\n                            <option value="upcoming_48h">Proximas 48h</option>\n                            <option value="no_show">No show</option>\n                            <option value="triage_attention">Triage accionable</option>\n                        </select>\n                    </label>\n                    <label>\n                        <span class="sr-only">Orden</span>\n                        <select id="appointmentSort">\n                            <option value="datetime_desc">Fecha reciente</option>\n                            <option value="datetime_asc">Fecha ascendente</option>\n                            <option value="patient_az">Paciente (A-Z)</option>\n                        </select>\n                    </label>\n                    <input type="search" id="searchAppointments" placeholder="Buscar paciente" />\n                    <button type="button" id="clearAppointmentsFiltersBtn" data-action="clear-appointment-filters" class="is-hidden">Limpiar</button>\n                </div>\n                <div class="toolbar-row slim">\n                    <p id="appointmentsToolbarMeta">Mostrando 0</p>\n                    <p id="appointmentsToolbarState">Sin filtros activos</p>\n                </div>\n\n                <div class="table-scroll appointments-table-shell">\n                    <table id="appointmentsTable" class="sony-table">\n                        <thead>\n                            <tr>\n                                <th>Paciente</th>\n                                <th>Servicio</th>\n                                <th>Fecha</th>\n                                <th>Pago</th>\n                                <th>Estado</th>\n                                <th>Acciones</th>\n                            </tr>\n                        </thead>\n                        <tbody id="appointmentsTableBody"></tbody>\n                    </table>\n                </div>\n            </div>\n        </section>\n    \n        \n        <section id="callbacks" class="admin-section" tabindex="-1">\n            <div class="callbacks-stage">\n                <article class="sony-panel callbacks-command-deck">\n                    <header class="section-header callbacks-command-head">\n                        <div>\n                            <p class="sony-kicker">SLA telefonico</p>\n                            <h3>Callbacks</h3>\n                            <p id="callbacksDeckSummary">Sin callbacks pendientes.</p>\n                        </div>\n                        <span class="callbacks-queue-chip" id="callbacksQueueChip">Cola estable</span>\n                    </header>\n                    <div id="callbacksOpsPanel" class="callbacks-ops-grid">\n                        <article class="callbacks-ops-card"><span>Pendientes</span><strong id="callbacksOpsPendingCount">0</strong></article>\n                        <article class="callbacks-ops-card"><span>Urgentes</span><strong id="callbacksOpsUrgentCount">0</strong></article>\n                        <article class="callbacks-ops-card"><span>Hoy</span><strong id="callbacksOpsTodayCount">0</strong></article>\n                        <article class="callbacks-ops-card wide"><span>Estado</span><strong id="callbacksOpsQueueHealth">Cola: estable</strong></article>\n                    </div>\n                    <div class="callbacks-command-actions">\n                        <button type="button" id="callbacksOpsNextBtn" data-action="callbacks-triage-next">Siguiente llamada</button>\n                        <button type="button" id="callbacksBulkSelectVisibleBtn">Seleccionar visibles</button>\n                        <button type="button" id="callbacksBulkClearBtn">Limpiar seleccion</button>\n                        <button type="button" id="callbacksBulkMarkBtn">Marcar contactados</button>\n                    </div>\n                </article>\n\n                <article class="sony-panel callbacks-next-panel">\n                    <header class="section-header">\n                        <div>\n                            <p class="sony-kicker" id="callbacksNextEyebrow">Siguiente contacto</p>\n                            <h3 id="callbacksOpsNext">Sin telefono</h3>\n                            <p id="callbacksNextSummary">La siguiente llamada prioritaria aparecera aqui.</p>\n                        </div>\n                        <span id="callbacksSelectionChip" class="is-hidden">Seleccionados: <strong id="callbacksSelectedCount">0</strong></span>\n                    </header>\n                    <div class="callbacks-next-grid">\n                        <div class="callbacks-next-stat">\n                            <span>Espera</span>\n                            <strong id="callbacksNextWait">0 min</strong>\n                        </div>\n                        <div class="callbacks-next-stat">\n                            <span>Preferencia</span>\n                            <strong id="callbacksNextPreference">-</strong>\n                        </div>\n                        <div class="callbacks-next-stat">\n                            <span>Estado</span>\n                            <strong id="callbacksNextState">Pendiente</strong>\n                        </div>\n                        <div class="callbacks-next-stat">\n                            <span>Ultimo corte</span>\n                            <strong id="callbacksDeckHint">Sin bloqueos</strong>\n                        </div>\n                    </div>\n                </article>\n            </div>\n            <div class="sony-panel callbacks-workbench">\n                <header class="section-header callbacks-workbench-head">\n                    <div>\n                        <h3>Workbench</h3>\n                        <p>Ordena por espera, filtra por SLA y drena la cola con acciones masivas.</p>\n                    </div>\n                </header>\n                <div class="toolbar-row">\n                    <div class="toolbar-group">\n                        <button type="button" class="callback-quick-filter-btn is-active" data-action="callback-quick-filter" data-filter-value="all">Todos</button>\n                        <button type="button" class="callback-quick-filter-btn" data-action="callback-quick-filter" data-filter-value="pending">Pendientes</button>\n                        <button type="button" class="callback-quick-filter-btn" data-action="callback-quick-filter" data-filter-value="contacted">Contactados</button>\n                        <button type="button" class="callback-quick-filter-btn" data-action="callback-quick-filter" data-filter-value="today">Hoy</button>\n                        <button type="button" class="callback-quick-filter-btn" data-action="callback-quick-filter" data-filter-value="sla_urgent">Urgentes SLA</button>\n                    </div>\n                </div>\n                <div class="toolbar-row callbacks-toolbar">\n                    <label>\n                        <span class="sr-only">Filtro callbacks</span>\n                        <select id="callbackFilter">\n                            <option value="all">Todos</option>\n                            <option value="pending">Pendientes</option>\n                            <option value="contacted">Contactados</option>\n                            <option value="today">Hoy</option>\n                            <option value="sla_urgent">Urgentes SLA</option>\n                        </select>\n                    </label>\n                    <label>\n                        <span class="sr-only">Orden callbacks</span>\n                        <select id="callbackSort">\n                            <option value="recent_desc">Mas recientes</option>\n                            <option value="waiting_desc">Mayor espera (SLA)</option>\n                        </select>\n                    </label>\n                    <input type="search" id="searchCallbacks" placeholder="Buscar telefono" />\n                    <button type="button" id="clearCallbacksFiltersBtn" data-action="clear-callback-filters">Limpiar</button>\n                </div>\n                <div class="toolbar-row slim">\n                    <p id="callbacksToolbarMeta">Mostrando 0</p>\n                    <p id="callbacksToolbarState">Sin filtros activos</p>\n                </div>\n                <div id="callbacksGrid" class="callbacks-grid"></div>\n            </div>\n        </section>\n    \n        \n        <section id="reviews" class="admin-section" tabindex="-1">\n            <div class="reviews-stage">\n                <article class="sony-panel reviews-summary-panel">\n                    <header class="section-header">\n                        <div>\n                            <h3>Resenas</h3>\n                            <p id="reviewsSentimentLabel">Sin senal suficiente</p>\n                        </div>\n                        <span class="reviews-score-pill" id="reviewsAverageRating">0.0</span>\n                    </header>\n                    <div class="reviews-summary-grid">\n                        <div class="reviews-summary-stat">\n                            <span>5 estrellas</span>\n                            <strong id="reviewsFiveStarCount">0</strong>\n                        </div>\n                        <div class="reviews-summary-stat">\n                            <span>Ultimos 30 dias</span>\n                            <strong id="reviewsRecentCount">0</strong>\n                        </div>\n                        <div class="reviews-summary-stat">\n                            <span>Total</span>\n                            <strong id="reviewsTotalCount">0</strong>\n                        </div>\n                    </div>\n                    <div id="reviewsSummaryRail" class="reviews-summary-rail"></div>\n                </article>\n\n                <article class="sony-panel reviews-spotlight-panel">\n                    <header class="section-header"><h3>Spotlight</h3></header>\n                    <div id="reviewsSpotlight" class="reviews-spotlight"></div>\n                </article>\n            </div>\n            <div class="sony-panel">\n                <div id="reviewsGrid" class="reviews-grid"></div>\n            </div>\n        </section>\n    \n        \n        <section id="availability" class="admin-section" tabindex="-1">\n            <div class="sony-panel availability-container">\n                <header class="section-header availability-header">\n                    <div class="availability-calendar">\n                        <h3 id="availabilityHeading">Configurar Horarios Disponibles</h3>\n                        <div class="availability-badges">\n                            <span id="availabilitySourceBadge" class="availability-badge">Fuente: Local</span>\n                            <span id="availabilityModeBadge" class="availability-badge">Modo: Editable</span>\n                            <span id="availabilityTimezoneBadge" class="availability-badge">TZ: -</span>\n                        </div>\n                    </div>\n                    <div class="toolbar-group calendar-header">\n                        <button type="button" data-action="change-month" data-delta="-1">Prev</button>\n                        <strong id="calendarMonth"></strong>\n                        <button type="button" data-action="change-month" data-delta="1">Next</button>\n                        <button type="button" data-action="availability-today">Hoy</button>\n                        <button type="button" data-action="availability-prev-with-slots">Anterior con slots</button>\n                        <button type="button" data-action="availability-next-with-slots">Siguiente con slots</button>\n                    </div>\n                </header>\n\n                <div class="toolbar-row slim">\n                    <p id="availabilitySelectionSummary">Selecciona una fecha</p>\n                    <p id="availabilityDraftStatus">Sin cambios pendientes</p>\n                    <p id="availabilitySyncStatus">Sincronizado</p>\n                </div>\n\n                <div id="availabilityCalendar" class="availability-calendar-grid"></div>\n\n                <div id="availabilityDetailGrid" class="availability-detail-grid">\n                    <article class="sony-panel soft">\n                        <h4 id="selectedDate">-</h4>\n                        <div id="timeSlotsList" class="time-slots-list"></div>\n                    </article>\n\n                    <article class="sony-panel soft">\n                        <div id="availabilityQuickSlotPresets" class="slot-presets">\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="09:00">09:00</button>\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="09:30">09:30</button>\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="10:00">10:00</button>\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="16:00">16:00</button>\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="16:30">16:30</button>\n                        </div>\n                        <div id="addSlotForm" class="add-slot-form">\n                            <input type="time" id="newSlotTime" />\n                            <button type="button" data-action="add-time-slot">Agregar</button>\n                        </div>\n                        <div id="availabilityDayActions" class="toolbar-group wrap">\n                            <button type="button" data-action="copy-availability-day">Copiar dia</button>\n                            <button type="button" data-action="paste-availability-day">Pegar dia</button>\n                            <button type="button" data-action="duplicate-availability-day-next">Duplicar +1</button>\n                            <button type="button" data-action="duplicate-availability-next-week">Duplicar +7</button>\n                            <button type="button" data-action="clear-availability-day">Limpiar dia</button>\n                            <button type="button" data-action="clear-availability-week">Limpiar semana</button>\n                        </div>\n                        <p id="availabilityDayActionsStatus">Sin acciones pendientes</p>\n                        <div class="toolbar-group">\n                            <button type="button" id="availabilitySaveDraftBtn" data-action="save-availability-draft" disabled>Guardar</button>\n                            <button type="button" id="availabilityDiscardDraftBtn" data-action="discard-availability-draft" disabled>Descartar</button>\n                        </div>\n                    </article>\n                </div>\n            </div>\n        </section>\n    \n        \n        <section id="queue" class="admin-section" tabindex="-1">\n            <div class="sony-panel">\n                <header class="section-header">\n                    <h3>Turnero Sala</h3>\n                    <div class="queue-admin-header-actions">\n                        <button type="button" data-action="queue-call-next" data-queue-consultorio="1">Llamar C1</button>\n                        <button type="button" data-action="queue-call-next" data-queue-consultorio="2">Llamar C2</button>\n                        <button type="button" data-action="queue-refresh-state">Refrescar</button>\n                    </div>\n                </header>\n\n                <div class="sony-grid sony-grid-kpi slim">\n                    <article class="sony-kpi"><h4>Espera</h4><strong id="queueWaitingCountAdmin">0</strong></article>\n                    <article class="sony-kpi"><h4>Llamados</h4><strong id="queueCalledCountAdmin">0</strong></article>\n                    <article class="sony-kpi"><h4>C1</h4><strong id="queueC1Now">Sin llamado</strong></article>\n                    <article class="sony-kpi"><h4>C2</h4><strong id="queueC2Now">Sin llamado</strong></article>\n                    <article class="sony-kpi"><h4>Sync</h4><strong id="queueSyncStatus" data-state="live">vivo</strong></article>\n                </div>\n\n                <div id="queueStationControl" class="toolbar-row">\n                    <span id="queueStationBadge">Estacion: libre</span>\n                    <span id="queueStationModeBadge">Modo: free</span>\n                    <span id="queuePracticeModeBadge" hidden>Practice ON</span>\n                    <button type="button" data-action="queue-lock-station" data-queue-consultorio="1">Lock C1</button>\n                    <button type="button" data-action="queue-lock-station" data-queue-consultorio="2">Lock C2</button>\n                    <button type="button" data-action="queue-set-station-mode" data-queue-mode="free">Modo libre</button>\n                    <button type="button" data-action="queue-toggle-one-tap" aria-pressed="false">1 tecla</button>\n                    <button type="button" data-action="queue-toggle-shortcuts">Atajos</button>\n                    <button type="button" data-action="queue-capture-call-key">Calibrar tecla</button>\n                    <button type="button" data-action="queue-clear-call-key" hidden>Quitar tecla</button>\n                    <button type="button" data-action="queue-start-practice">Iniciar practica</button>\n                    <button type="button" data-action="queue-stop-practice">Salir practica</button>\n                    <button type="button" id="queueReleaseC1" data-action="queue-release-station" data-queue-consultorio="1" hidden>Release C1</button>\n                    <button type="button" id="queueReleaseC2" data-action="queue-release-station" data-queue-consultorio="2" hidden>Release C2</button>\n                </div>\n\n                <div id="queueShortcutPanel" hidden>\n                    <p>Numpad Enter llama siguiente.</p>\n                    <p>Numpad Decimal prepara completar.</p>\n                    <p>Numpad Subtract prepara no_show.</p>\n                </div>\n\n                <div id="queueTriageToolbar" class="toolbar-row">\n                    <button type="button" data-queue-filter="all">Todo</button>\n                    <button type="button" data-queue-filter="called">Llamados</button>\n                    <button type="button" data-queue-filter="sla_risk">Riesgo SLA</button>\n                    <input type="search" id="queueSearchInput" placeholder="Buscar ticket" />\n                    <button type="button" data-action="queue-clear-search">Limpiar</button>\n                    <button type="button" id="queueSelectVisibleBtn" data-action="queue-select-visible">Seleccionar visibles</button>\n                    <button type="button" id="queueClearSelectionBtn" data-action="queue-clear-selection">Limpiar seleccion</button>\n                    <button type="button" data-action="queue-bulk-action" data-queue-action="completar">Bulk completar</button>\n                    <button type="button" data-action="queue-bulk-action" data-queue-action="no_show">Bulk no_show</button>\n                    <button type="button" data-action="queue-bulk-reprint">Bulk reprint</button>\n                </div>\n\n                <div class="toolbar-row slim">\n                    <p id="queueTriageSummary">Sin riesgo</p>\n                    <span id="queueSelectionChip" class="is-hidden">Seleccionados: <strong id="queueSelectedCount">0</strong></span>\n                </div>\n\n                <ul id="queueNextAdminList" class="sony-list"></ul>\n\n                <div class="table-scroll">\n                    <table class="sony-table queue-admin-table">\n                        <thead>\n                            <tr>\n                                <th>Sel</th>\n                                <th>Ticket</th>\n                                <th>Tipo</th>\n                                <th>Estado</th>\n                                <th>Consultorio</th>\n                                <th>Espera</th>\n                                <th>Acciones</th>\n                            </tr>\n                        </thead>\n                        <tbody id="queueTableBody"></tbody>\n                    </table>\n                </div>\n\n                <div id="queueActivityPanel" class="sony-panel soft">\n                    <h4>Actividad</h4>\n                    <ul id="queueActivityList" class="sony-list"></ul>\n                </div>\n            </div>\n\n            <dialog id="queueSensitiveConfirmDialog" class="queue-sensitive-confirm-dialog">\n                <form method="dialog">\n                    <p id="queueSensitiveConfirmMessage">Confirmar accion sensible</p>\n                    <div class="toolbar-group">\n                        <button type="button" data-action="queue-sensitive-cancel">Cancelar</button>\n                        <button type="button" data-action="queue-sensitive-confirm">Confirmar</button>\n                    </div>\n                </form>\n            </dialog>\n        </section>\n    \n    \n            </main>\n\n            <div id="adminCommandPalette" class="admin-command-palette is-hidden" aria-hidden="true">\n                <button type="button" class="admin-command-palette__backdrop" data-action="close-command-palette" aria-label="Cerrar paleta"></button>\n                <div class="admin-command-dialog" role="dialog" aria-modal="true" aria-labelledby="adminCommandPaletteTitle">\n                    <div class="admin-command-dialog__head">\n                        <div>\n                            <p class="sony-kicker">Command Palette</p>\n                            <h3 id="adminCommandPaletteTitle">Accion rapida</h3>\n                        </div>\n                        <button type="button" class="admin-command-dialog__close" data-action="close-command-palette">Cerrar</button>\n                    </div>\n                    <div class="admin-command-box">\n                        <input id="adminQuickCommand" type="text" placeholder="Ej. callbacks urgentes, citas transferencias, queue riesgo SLA" />\n                        <button id="adminRunQuickCommandBtn" data-action="run-admin-command">Ejecutar</button>\n                    </div>\n                    <div class="admin-command-dialog__hints">\n                        <span>Ctrl+K abre esta paleta</span>\n                        <span>/ enfoca la busqueda de la seccion activa</span>\n                    </div>\n                </div>\n            </div>\n        </div>\n    `));
 }
 const T = {
         dashboard: 'Dashboard',
@@ -405,13 +405,13 @@ const T = {
     };
 function _() {
     const t = e('#loginScreen'),
-        a = e('#adminDashboard');
-    (t && t.classList.remove('is-hidden'), a && a.classList.add('is-hidden'));
+        n = e('#adminDashboard');
+    (t && t.classList.remove('is-hidden'), n && n.classList.add('is-hidden'));
 }
 function L() {
     const t = e('#loginScreen'),
-        a = e('#adminDashboard');
-    (t && t.classList.add('is-hidden'), a && a.classList.remove('is-hidden'));
+        n = e('#adminDashboard');
+    (t && t.classList.add('is-hidden'), n && n.classList.remove('is-hidden'));
 }
 function E() {
     const t = e('#adminCommandPalette');
@@ -428,35 +428,35 @@ function N() {
         document.body.classList.remove('admin-command-open'));
 }
 function D(t) {
-    (a('.admin-section').forEach((e) => {
+    (n('.admin-section').forEach((e) => {
         e.classList.toggle('active', e.id === t);
     }),
-        a('.nav-item[data-section]').forEach((e) => {
-            const a = e.dataset.section === t;
-            (e.classList.toggle('active', a),
-                a
+        n('.nav-item[data-section]').forEach((e) => {
+            const n = e.dataset.section === t;
+            (e.classList.toggle('active', n),
+                n
                     ? e.setAttribute('aria-current', 'page')
                     : e.removeAttribute('aria-current'));
         }),
-        a('.admin-quick-nav-item[data-section]').forEach((e) => {
-            const a = e.dataset.section === t;
-            (e.classList.toggle('active', a),
-                e.setAttribute('aria-pressed', String(a)));
+        n('.admin-quick-nav-item[data-section]').forEach((e) => {
+            const n = e.dataset.section === t;
+            (e.classList.toggle('active', n),
+                e.setAttribute('aria-pressed', String(n)));
         }));
-    const n = T[t] || 'Dashboard',
+    const a = T[t] || 'Dashboard',
         i = e('#pageTitle');
-    i && (i.textContent = n);
+    i && (i.textContent = a);
 }
 function B(t) {
-    const a = e('#group2FA'),
-        n = e('#adminLoginStepSummary'),
+    const n = e('#group2FA'),
+        a = e('#adminLoginStepSummary'),
         i = e('#adminLoginStepEyebrow'),
         o = e('#adminLoginStepTitle'),
         s = e('#adminLoginSupportCopy'),
         r = e('#loginReset2FABtn'),
         c = e('#loginForm');
-    a &&
-        (a.classList.toggle('is-hidden', !t),
+    n &&
+        (n.classList.toggle('is-hidden', !t),
         c?.classList.toggle('is-2fa-stage', Boolean(t)),
         r?.classList.toggle('is-hidden', !t),
         i &&
@@ -467,8 +467,8 @@ function B(t) {
             (o.textContent = t
                 ? 'Confirma el codigo 2FA'
                 : 'Acceso de administrador'),
-        n &&
-            (n.textContent = t
+        a &&
+            (a.textContent = t
                 ? 'Ingresa el codigo de seis digitos para terminar la autenticacion.'
                 : 'Usa tu clave para entrar al centro operativo.'),
         s &&
@@ -479,67 +479,67 @@ function B(t) {
 }
 function x({
     tone: t = 'neutral',
-    title: a = 'Proteccion activa',
-    message: n = 'El panel usa autenticacion endurecida y activos self-hosted.',
+    title: n = 'Proteccion activa',
+    message: a = 'El panel usa autenticacion endurecida y activos self-hosted.',
 } = {}) {
     const i = e('#adminLoginStatusCard'),
         o = e('#adminLoginStatusTitle'),
         s = e('#adminLoginStatusMessage');
     (i?.setAttribute('data-state', t),
-        o && (o.textContent = a),
-        s && (s.textContent = n));
+        o && (o.textContent = n),
+        s && (s.textContent = a));
 }
 function P(t) {
-    const a = e('#loginBtn'),
-        n = e('#loginReset2FABtn'),
+    const n = e('#loginBtn'),
+        a = e('#loginReset2FABtn'),
         i = e('#adminPassword'),
         o = e('#admin2FACode'),
         s = e('#group2FA'),
         r = Boolean(s && !s.classList.contains('is-hidden'));
     (i instanceof HTMLInputElement && (i.disabled = Boolean(t) || r),
         o instanceof HTMLInputElement && (o.disabled = Boolean(t) || !r),
-        a instanceof HTMLButtonElement &&
-            ((a.disabled = Boolean(t)),
-            (a.textContent = t
+        n instanceof HTMLButtonElement &&
+            ((n.disabled = Boolean(t)),
+            (n.textContent = t
                 ? r
                     ? 'Verificando...'
                     : 'Ingresando...'
                 : r
                   ? 'Verificar y entrar'
                   : 'Ingresar')),
-        n instanceof HTMLButtonElement && (n.disabled = Boolean(t)));
+        a instanceof HTMLButtonElement && (a.disabled = Boolean(t)));
 }
 function I({ clearPassword: t = !1 } = {}) {
-    const a = e('#adminPassword'),
-        n = e('#admin2FACode');
-    (a instanceof HTMLInputElement && t && (a.value = ''),
-        n instanceof HTMLInputElement && (n.value = ''));
+    const n = e('#adminPassword'),
+        a = e('#admin2FACode');
+    (n instanceof HTMLInputElement && t && (n.value = ''),
+        a instanceof HTMLInputElement && (a.value = ''));
 }
 function H(t = 'password') {
-    const a = e('2fa' === t ? '#admin2FACode' : '#adminPassword');
-    a instanceof HTMLInputElement && (a.focus(), a.select?.());
+    const n = e('2fa' === t ? '#admin2FACode' : '#adminPassword');
+    n instanceof HTMLInputElement && (n.focus(), n.select?.());
 }
-function F(a) {
-    const n = $[a?.ui?.activeSection || 'dashboard'] || $.dashboard,
-        i = a?.auth && 'object' == typeof a.auth ? a.auth : {},
-        o = Array.isArray(a?.data?.appointments) ? a.data.appointments : [],
-        s = Array.isArray(a?.data?.callbacks) ? a.data.callbacks : [],
-        l = Array.isArray(a?.data?.reviews) ? a.data.reviews : [],
+function F(n) {
+    const a = $[n?.ui?.activeSection || 'dashboard'] || $.dashboard,
+        i = n?.auth && 'object' == typeof n.auth ? n.auth : {},
+        o = Array.isArray(n?.data?.appointments) ? n.data.appointments : [],
+        s = Array.isArray(n?.data?.callbacks) ? n.data.callbacks : [],
+        l = Array.isArray(n?.data?.reviews) ? n.data.reviews : [],
         u =
-            a?.data?.availability && 'object' == typeof a.data.availability
-                ? a.data.availability
+            n?.data?.availability && 'object' == typeof n.data.availability
+                ? n.data.availability
                 : {},
-        d = Array.isArray(a?.data?.queueTickets) ? a.data.queueTickets : [],
+        d = Array.isArray(n?.data?.queueTickets) ? n.data.queueTickets : [],
         p =
-            a?.data?.queueMeta && 'object' == typeof a.data.queueMeta
-                ? a.data.queueMeta
+            n?.data?.queueMeta && 'object' == typeof n.data.queueMeta
+                ? n.data.queueMeta
                 : null;
-    (r('#adminSectionEyebrow', n.eyebrow),
-        r('#adminContextTitle', n.title),
-        r('#adminContextSummary', n.summary),
+    (r('#adminSectionEyebrow', a.eyebrow),
+        r('#adminContextTitle', a.title),
+        r('#adminContextSummary', a.summary),
         c(
             '#adminContextActions',
-            n.actions
+            a.actions
                 .map((e) =>
                     (function (e) {
                         return `\n        <button type="button" class="sony-context-action" ${[`data-action="${t(e.action)}"`, e.queueConsultorio ? `data-queue-consultorio="${t(e.queueConsultorio)}"` : '', e.filterValue ? `data-filter-value="${t(e.filterValue)}"` : ''].filter(Boolean).join(' ')}>\n            <span class="sony-context-action-copy">\n                <strong>${t(e.label)}</strong>\n                <small>${t(e.meta)}</small>\n            </span>\n            <span class="sony-context-action-key">${t(e.shortcut || '')}</span>\n        </button>\n    `;
@@ -554,7 +554,7 @@ function F(a) {
                 return e
                     ? `Ultima carga ${new Date(e).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}`
                     : 'Listo para primera sincronizacion';
-            })(a?.ui?.lastRefreshAt || 0)
+            })(n?.ui?.lastRefreshAt || 0)
         ));
     const m = (function (t) {
             return t.filter((t) => {
@@ -612,9 +612,9 @@ function F(a) {
                                 password: 'clave validada',
                                 '2fa': '2FA validado',
                             }[String(e.authMethod || '')] || 'acceso validado',
-                        a = Number(e.lastAuthAt || 0);
-                    return a
-                        ? `Protegida por ${t}. ${new Date(a).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}`
+                        n = Number(e.lastAuthAt || 0);
+                    return n
+                        ? `Protegida por ${t}. ${new Date(n).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}`
                         : `Protegida por ${t}.`;
                 }
                 return e.requires2FA
@@ -623,7 +623,7 @@ function F(a) {
             })(i)
         ));
 }
-const O = {
+const R = {
     dashboard: {
         hero: '.dashboard-hero-panel',
         priority: '.dashboard-signal-panel',
@@ -657,12 +657,12 @@ const O = {
         detail: '#queueActivityPanel',
     },
 };
-function R(t, a, n) {
-    if (!a) return;
+function O(t, n, a) {
+    if (!n) return;
     const i = e(`#${t}`);
     if (!(i instanceof HTMLElement)) return;
-    const o = i.querySelector(a);
-    o instanceof HTMLElement && o.setAttribute(n, 'true');
+    const o = i.querySelector(n);
+    o instanceof HTMLElement && o.setAttribute(a, 'true');
 }
 const j = 'admin-appointments-sort',
     z = 'admin-appointments-density',
@@ -686,11 +686,11 @@ function W(t) {
     return K(t);
 }
 function J(t, e = '-') {
-    const a = String(t || '')
+    const n = String(t || '')
         .replace(/[_-]+/g, ' ')
         .trim();
-    return a
-        ? a
+    return n
+        ? n
               .split(/\s+/)
               .map((t) => t.charAt(0).toUpperCase() + t.slice(1))
               .join(' ')
@@ -722,12 +722,12 @@ function Z(t) {
 function X(t) {
     if (!t) return 'Sin fecha';
     const e = Math.round((t - Date.now()) / 6e4),
-        a = Math.abs(e);
+        n = Math.abs(e);
     return e < 0
-        ? a < 60
-            ? `Hace ${a} min`
-            : a < 1440
-              ? `Hace ${Math.round(a / 60)} h`
+        ? n < 60
+            ? `Hace ${n} min`
+            : n < 1440
+              ? `Hace ${Math.round(n / 60)} h`
               : 'Ya ocurrio'
         : e < 60
           ? `En ${Math.max(e, 0)} min`
@@ -738,64 +738,64 @@ function X(t) {
 function tt(t) {
     const e = Q(t);
     if (!e) return !1;
-    const a = new Date(e),
-        n = new Date();
+    const n = new Date(e),
+        a = new Date();
     return (
-        a.getFullYear() === n.getFullYear() &&
-        a.getMonth() === n.getMonth() &&
-        a.getDate() === n.getDate()
+        n.getFullYear() === a.getFullYear() &&
+        n.getMonth() === a.getMonth() &&
+        n.getDate() === a.getDate()
     );
 }
 function et(t) {
     const e = Q(t);
     if (!e) return !1;
-    const a = e - Date.now();
-    return a >= 0 && a <= 1728e5;
+    const n = e - Date.now();
+    return n >= 0 && n <= 1728e5;
 }
-function at(t) {
+function nt(t) {
     const e = G(t),
-        a = W(t.status);
+        n = W(t.status);
     return (
         'pending_transfer_review' === e ||
         'pending_transfer' === e ||
-        'no_show' === a ||
-        'cancelled' === a
+        'no_show' === n ||
+        'cancelled' === n
     );
 }
-function nt(t, e) {
-    const a = K(e);
-    return 'pending_transfer' === a
+function at(t, e) {
+    const n = K(e);
+    return 'pending_transfer' === n
         ? t.filter((t) => {
               const e = G(t);
               return (
                   'pending_transfer_review' === e || 'pending_transfer' === e
               );
           })
-        : 'upcoming_48h' === a
+        : 'upcoming_48h' === n
           ? t.filter(et)
-          : 'no_show' === a
+          : 'no_show' === n
             ? t.filter((t) => 'no_show' === W(t.status))
-            : 'triage_attention' === a
-              ? t.filter(at)
+            : 'triage_attention' === n
+              ? t.filter(nt)
               : t;
 }
 function it(t) {
     const e = G(t),
-        a = W(t.status),
-        n = Q(t);
+        n = W(t.status),
+        a = Q(t);
     return 'pending_transfer_review' === e || 'pending_transfer' === e
         ? {
               label: 'Transferencia',
               tone: 'warning',
               note: 'No liberar hasta validar pago.',
           }
-        : 'no_show' === a
+        : 'no_show' === n
           ? {
                 label: 'No show',
                 tone: 'danger',
                 note: 'Requiere seguimiento o cierre.',
             }
-          : 'cancelled' === a
+          : 'cancelled' === n
             ? {
                   label: 'Cancelada',
                   tone: 'danger',
@@ -805,7 +805,7 @@ function it(t) {
               ? {
                     label: 'Hoy',
                     tone: 'success',
-                    note: n ? X(n) : 'Agenda del dia',
+                    note: a ? X(a) : 'Agenda del dia',
                 }
               : et(t)
                 ? {
@@ -823,21 +823,21 @@ function ot(t) {
     const e = t
             .map((t) => ({ item: t, stamp: Q(t) }))
             .sort((t, e) => t.stamp - e.stamp),
-        a = e.find(({ item: t }) => {
+        n = e.find(({ item: t }) => {
             const e = G(t);
             return 'pending_transfer_review' === e || 'pending_transfer' === e;
         });
-    if (a)
+    if (n)
         return {
-            item: a.item,
+            item: n.item,
             label: 'Transferencia prioritaria',
             hint: 'Valida pago y confirma al paciente antes del check-in.',
             tags: ['Pago por validar', 'Liberar agenda'],
         };
-    const n = e.find(({ item: t }) => 'no_show' === W(t.status));
-    if (n)
+    const a = e.find(({ item: t }) => 'no_show' === W(t.status));
+    if (a)
         return {
-            item: n.item,
+            item: a.item,
             label: 'Seguimiento abierto',
             hint: 'Define si se reprograma o se cierra la incidencia.',
             tags: ['No show', 'Seguimiento'],
@@ -861,13 +861,13 @@ function st(e) {
     return e.length
         ? e
               .map((e) => {
-                  const a = Q(e),
+                  const n = Q(e),
                       i = it(e);
-                  return `\n                <tr class="appointment-row" data-appointment-id="${Number(e.id || 0)}">\n                    <td data-label="Paciente">\n                        <div class="appointment-person">\n                            <strong>${t(e.name || 'Sin nombre')}</strong>\n                            <span>${t(e.email || 'Sin email')}</span>\n                            <small>${t(e.phone || 'Sin telefono')}</small>\n                        </div>\n                    </td>\n                    <td data-label="Servicio">\n                        <div class="appointment-service">\n                            <strong>${t(J(e.service, 'Servicio pendiente'))}</strong>\n                            <span>Especialista: ${t(J(e.doctor, 'Sin asignar'))}</span>\n                            <small>${t(i.label)} | ${t(i.note)}</small>\n                        </div>\n                    </td>\n                    <td data-label="Fecha">\n                        <div class="appointment-date-stack">\n                            <strong>${t(n(e.date))}</strong>\n                            <span>${t(e.time || '--:--')}</span>\n                            <small>${t(X(a))}</small>\n                        </div>\n                    </td>\n                    <td data-label="Pago">${(function (
+                  return `\n                <tr class="appointment-row" data-appointment-id="${Number(e.id || 0)}">\n                    <td data-label="Paciente">\n                        <div class="appointment-person">\n                            <strong>${t(e.name || 'Sin nombre')}</strong>\n                            <span>${t(e.email || 'Sin email')}</span>\n                            <small>${t(e.phone || 'Sin telefono')}</small>\n                        </div>\n                    </td>\n                    <td data-label="Servicio">\n                        <div class="appointment-service">\n                            <strong>${t(J(e.service, 'Servicio pendiente'))}</strong>\n                            <span>Especialista: ${t(J(e.doctor, 'Sin asignar'))}</span>\n                            <small>${t(i.label)} | ${t(i.note)}</small>\n                        </div>\n                    </td>\n                    <td data-label="Fecha">\n                        <div class="appointment-date-stack">\n                            <strong>${t(a(e.date))}</strong>\n                            <span>${t(e.time || '--:--')}</span>\n                            <small>${t(X(n))}</small>\n                        </div>\n                    </td>\n                    <td data-label="Pago">${(function (
                       e
                   ) {
-                      const a = e.paymentStatus || e.payment_status || '',
-                          n = String(
+                      const n = e.paymentStatus || e.payment_status || '',
+                          a = String(
                               e.transferProofUrl ||
                                   e.transferProofURL ||
                                   e.transfer_proof_url ||
@@ -883,23 +883,23 @@ function st(e) {
                                     : 'pending_cash' === e
                                       ? 'neutral'
                                       : 'warning';
-                          })(a)
-                      )}">${t(Y(a))}</span>\n            <small>Metodo: ${t(((i = e.paymentMethod || e.payment_method || ''), { transfer: 'Transferencia', cash: 'Consultorio', card: 'Tarjeta', gateway: 'Pasarela' }[K(i)] || J(i, 'Metodo pendiente')))}</small>\n            ${n ? `<a href="${t(n)}" target="_blank" rel="noopener">Ver comprobante</a>` : '<small>Sin comprobante adjunto</small>'}\n        </div>\n    `;
+                          })(n)
+                      )}">${t(Y(n))}</span>\n            <small>Metodo: ${t(((i = e.paymentMethod || e.payment_method || ''), { transfer: 'Transferencia', cash: 'Consultorio', card: 'Tarjeta', gateway: 'Pasarela' }[K(i)] || J(i, 'Metodo pendiente')))}</small>\n            ${a ? `<a href="${t(a)}" target="_blank" rel="noopener">Ver comprobante</a>` : '<small>Sin comprobante adjunto</small>'}\n        </div>\n    `;
                       var i;
                   })(
                       e
                   )}</td>\n                    <td data-label="Estado">${(function (
                       e
                   ) {
-                      const a = W(e.status),
-                          n = G(e),
+                      const n = W(e.status),
+                          a = G(e),
                           i = it(e),
                           o = [];
                       return (
-                          'pending_transfer_review' === n &&
+                          'pending_transfer_review' === a &&
                               o.push('Transferencia por validar'),
-                          'no_show' === a && o.push('Paciente ausente'),
-                          'cancelled' === a && o.push('Cita cerrada'),
+                          'no_show' === n && o.push('Paciente ausente'),
+                          'cancelled' === n && o.push('Cita cerrada'),
                           `\n        <div class="appointment-status-stack">\n            <span class="appointment-pill" data-tone="${t(
                               (function (t) {
                                   const e = K(t);
@@ -910,16 +910,16 @@ function st(e) {
                                         : 'pending' === e
                                           ? 'warning'
                                           : 'neutral';
-                              })(a)
-                          )}">${t(Z(a))}</span>\n            <small>${t(o[0] || i.note)}</small>\n        </div>\n    `
+                              })(n)
+                          )}">${t(Z(n))}</span>\n            <small>${t(o[0] || i.note)}</small>\n        </div>\n    `
                       );
                   })(
                       e
                   )}</td>\n                    <td data-label="Acciones">${(function (
                       e
                   ) {
-                      const a = Number(e.id || 0),
-                          n = G(e),
+                      const n = Number(e.id || 0),
+                          a = G(e),
                           i = (function (t) {
                               const e = String(t || '').replace(/\D+/g, '');
                               return e ? `https://wa.me/${e}` : '';
@@ -930,19 +930,19 @@ function st(e) {
                               o.push(
                                   `<a href="${t(i)}" target="_blank" rel="noopener" aria-label="WhatsApp de ${t(e.name || 'Paciente')}" title="WhatsApp para seguimiento">WhatsApp</a>`
                               ),
-                          ('pending_transfer_review' !== n &&
-                              'pending_transfer' !== n) ||
+                          ('pending_transfer_review' !== a &&
+                              'pending_transfer' !== a) ||
                               (o.push(
-                                  `<button type="button" data-action="approve-transfer" data-id="${a}">Aprobar</button>`
+                                  `<button type="button" data-action="approve-transfer" data-id="${n}">Aprobar</button>`
                               ),
                               o.push(
-                                  `<button type="button" data-action="reject-transfer" data-id="${a}">Rechazar</button>`
+                                  `<button type="button" data-action="reject-transfer" data-id="${n}">Rechazar</button>`
                               )),
                           o.push(
-                              `<button type="button" data-action="mark-no-show" data-id="${a}">No show</button>`
+                              `<button type="button" data-action="mark-no-show" data-id="${n}">No show</button>`
                           ),
                           o.push(
-                              `<button type="button" data-action="cancel-appointment" data-id="${a}">Cancelar</button>`
+                              `<button type="button" data-action="cancel-appointment" data-id="${n}">Cancelar</button>`
                           ),
                           `<div class="table-actions">${o.join('')}</div>`
                       );
@@ -953,7 +953,7 @@ function st(e) {
 }
 function rt() {
     const e = b(),
-        a = Array.isArray(e?.data?.appointments) ? e.data.appointments : [],
+        n = Array.isArray(e?.data?.appointments) ? e.data.appointments : [],
         i = e?.appointments || {
             filter: 'all',
             search: '',
@@ -961,18 +961,18 @@ function rt() {
             density: 'comfortable',
         },
         o = (function (t, e) {
-            const a = K(e),
-                n = [...t];
-            return 'patient_az' === a
-                ? (n.sort((t, e) => K(t.name).localeCompare(K(e.name), 'es')),
-                  n)
-                : 'datetime_asc' === a
-                  ? (n.sort((t, e) => Q(t) - Q(e)), n)
-                  : (n.sort((t, e) => Q(e) - Q(t)), n);
+            const n = K(e),
+                a = [...t];
+            return 'patient_az' === n
+                ? (a.sort((t, e) => K(t.name).localeCompare(K(e.name), 'es')),
+                  a)
+                : 'datetime_asc' === n
+                  ? (a.sort((t, e) => Q(t) - Q(e)), a)
+                  : (a.sort((t, e) => Q(e) - Q(t)), a);
         })(
             (function (t, e) {
-                const a = K(e);
-                return a
+                const n = K(e);
+                return n
                     ? t.filter((t) =>
                           [
                               t.name,
@@ -983,19 +983,19 @@ function rt() {
                               t.paymentStatus,
                               t.payment_status,
                               t.status,
-                          ].some((t) => K(t).includes(a))
+                          ].some((t) => K(t).includes(n))
                       )
                     : t;
-            })(nt(a, i.filter), i.search),
+            })(at(n, i.filter), i.search),
             i.sort
         );
     (c('#appointmentsTableBody', st(o)),
-        (function (t, e, a) {
-            (r('#appointmentsToolbarMeta', `Mostrando ${e} de ${a}`),
+        (function (t, e, n) {
+            (r('#appointmentsToolbarMeta', `Mostrando ${e} de ${n}`),
                 r(
                     '#appointmentsToolbarState',
                     (function (t, e) {
-                        const a = [];
+                        const n = [];
                         if ('all' !== K(t.filter)) {
                             const e = {
                                 pending_transfer: 'Transferencias por validar',
@@ -1003,24 +1003,24 @@ function rt() {
                                 upcoming_48h: 'Proximas 48h',
                                 no_show: 'No show',
                             };
-                            a.push(e[K(t.filter)] || t.filter);
+                            n.push(e[K(t.filter)] || t.filter);
                         }
                         return (
-                            K(t.search) && a.push(`Busqueda: ${t.search}`),
+                            K(t.search) && n.push(`Busqueda: ${t.search}`),
                             'patient_az' === K(t.sort)
-                                ? a.push('Paciente (A-Z)')
+                                ? n.push('Paciente (A-Z)')
                                 : 'datetime_asc' === K(t.sort)
-                                  ? a.push('Fecha ascendente')
-                                  : a.push('Fecha reciente'),
-                            0 === e && a.push('Resultados: 0'),
-                            a
+                                  ? n.push('Fecha ascendente')
+                                  : n.push('Fecha reciente'),
+                            0 === e && n.push('Resultados: 0'),
+                            n
                         );
                     })(t, e).join(' | ')
                 ));
-            const n = document.getElementById('clearAppointmentsFiltersBtn');
-            if (n) {
+            const a = document.getElementById('clearAppointmentsFiltersBtn');
+            if (a) {
                 const e = 'all' !== K(t.filter) || '' !== K(t.search);
-                n.classList.toggle('is-hidden', !e);
+                a.classList.toggle('is-hidden', !e);
             }
             const i = document.getElementById('appointmentFilter');
             i instanceof HTMLSelectElement && (i.value = t.filter);
@@ -1041,8 +1041,8 @@ function rt() {
                         '[data-action="appointment-density"][data-density]'
                     )
                     .forEach((e) => {
-                        const a = K(e.dataset.density) === K(t.density);
-                        e.classList.toggle('is-active', a);
+                        const n = K(e.dataset.density) === K(t.density);
+                        e.classList.toggle('is-active', n);
                     }),
                 (function (t) {
                     const e = K(t);
@@ -1051,8 +1051,8 @@ function rt() {
                             '.appointment-quick-filter-btn[data-filter-value]'
                         )
                         .forEach((t) => {
-                            const a = K(t.dataset.filterValue) === e;
-                            t.classList.toggle('is-active', a);
+                            const n = K(t.dataset.filterValue) === e;
+                            t.classList.toggle('is-active', n);
                         });
                 })(t.filter),
                 (function (t) {
@@ -1061,8 +1061,8 @@ function rt() {
                             localStorage.setItem(z, JSON.stringify(t.density)));
                     } catch (t) {}
                 })(t));
-        })(i, o.length, a.length),
-        (function (e, a, i) {
+        })(i, o.length, n.length),
+        (function (e, n, i) {
             (r('#appointmentsOpsPendingTransfer', e.pendingTransferCount),
                 r(
                     '#appointmentsOpsPendingTransferMeta',
@@ -1094,7 +1094,7 @@ function rt() {
                 r(
                     '#appointmentsDeckSummary',
                     i > 0
-                        ? `${e.pendingTransferCount} transferencia(s), ${e.triageCount} frente(s) accionables y ${a} cita(s) visibles.`
+                        ? `${e.pendingTransferCount} transferencia(s), ${e.triageCount} frente(s) accionables y ${n} cita(s) visibles.`
                         : 'Sin citas cargadas.'
                 ),
                 r(
@@ -1134,7 +1134,7 @@ function rt() {
             (r('#appointmentsFocusPatient', l.name || 'Sin nombre'),
                 r(
                     '#appointmentsFocusMeta',
-                    `${J(l.service, 'Servicio pendiente')} | ${n(l.date)} ${l.time || '--:--'}`
+                    `${J(l.service, 'Servicio pendiente')} | ${a(l.date)} ${l.time || '--:--'}`
                 ),
                 r('#appointmentsFocusWindow', X(Q(l))),
                 r(
@@ -1155,22 +1155,22 @@ function rt() {
                 r('#appointmentsFocusHint', s.hint));
         })(
             (function (t) {
-                const e = nt(t, 'pending_transfer'),
-                    a = nt(t, 'upcoming_48h'),
-                    n = nt(t, 'no_show'),
-                    i = nt(t, 'triage_attention'),
+                const e = at(t, 'pending_transfer'),
+                    n = at(t, 'upcoming_48h'),
+                    a = at(t, 'no_show'),
+                    i = at(t, 'triage_attention'),
                     o = t.filter(tt);
                 return {
                     pendingTransferCount: e.length,
-                    upcomingCount: a.length,
-                    noShowCount: n.length,
+                    upcomingCount: n.length,
+                    noShowCount: a.length,
                     todayCount: o.length,
                     triageCount: i.length,
                     focus: ot(t),
                 };
-            })(a),
+            })(n),
             o.length,
-            a.length
+            n.length
         ));
 }
 function ct(t) {
@@ -1183,13 +1183,13 @@ function ut(t) {
     ct({ search: String(t || '') });
 }
 function dt(t, e) {
-    const a = Number(t || 0);
+    const n = Number(t || 0);
     (g((t) => ({
         ...t,
         data: {
             ...t.data,
             appointments: (t.data.appointments || []).map((t) =>
-                Number(t.id || 0) === a ? { ...t, ...e } : t
+                Number(t.id || 0) === n ? { ...t, ...e } : t
             ),
         },
     })),
@@ -1247,11 +1247,11 @@ function Ct(t) {
 function qt(t) {
     const e = new Date(t || '');
     if (Number.isNaN(e.getTime())) return !1;
-    const a = new Date();
+    const n = new Date();
     return (
-        e.getFullYear() === a.getFullYear() &&
-        e.getMonth() === a.getMonth() &&
-        e.getDate() === a.getDate()
+        e.getFullYear() === n.getFullYear() &&
+        e.getMonth() === n.getMonth() &&
+        e.getDate() === n.getDate()
     );
 }
 function At(t) {
@@ -1280,46 +1280,46 @@ function Tt(t) {
 }
 function $t() {
     const e = b(),
-        a = Array.isArray(e?.data?.callbacks) ? e.data.callbacks : [],
-        n = (function (t, e) {
-            const a = ht(e);
-            return a
+        n = Array.isArray(e?.data?.callbacks) ? e.data.callbacks : [],
+        a = (function (t, e) {
+            const n = ht(e);
+            return n
                 ? t.filter((t) =>
                       [t.telefono, t.phone, t.preferencia, t.status].some((t) =>
-                          ht(t).includes(a)
+                          ht(t).includes(n)
                       )
                   )
                 : t;
         })(
             (function (t, e) {
-                const a = yt(e);
-                return 'pending' === a || 'contacted' === a
-                    ? t.filter((t) => kt(t.status) === a)
-                    : 'today' === a
+                const n = yt(e);
+                return 'pending' === n || 'contacted' === n
+                    ? t.filter((t) => kt(t.status) === n)
+                    : 'today' === n
                       ? t.filter((t) => qt(t.fecha || t.createdAt))
-                      : 'sla_urgent' === a
+                      : 'sla_urgent' === n
                         ? t.filter(
                               (t) => 'pending' === kt(t.status) && St(t) >= 120
                           )
                         : t;
-            })(a, e.callbacks.filter),
+            })(n, e.callbacks.filter),
             e.callbacks.search
         ),
         o = (function (t, e) {
-            const a = [...t];
+            const n = [...t];
             return 'waiting_desc' === vt(e)
-                ? (a.sort((t, e) => wt(t) - wt(e)), a)
-                : (a.sort((t, e) => wt(e) - wt(t)), a);
-        })(n, e.callbacks.sort),
+                ? (n.sort((t, e) => wt(t) - wt(e)), n)
+                : (n.sort((t, e) => wt(e) - wt(t)), n);
+        })(a, e.callbacks.sort),
         s = new Set((e.callbacks.selected || []).map((t) => Number(t || 0)));
     (c(
         '#callbacksGrid',
         o.length
             ? o
-                  .map((e, a) =>
+                  .map((e, n) =>
                       (function (
                           e,
-                          { selected: a = !1, position: n = null } = {}
+                          { selected: n = !1, position: a = null } = {}
                       ) {
                           const o = kt(e.status),
                               s =
@@ -1334,20 +1334,20 @@ function $t() {
                               p = e.preferencia || 'Sin preferencia',
                               m =
                                   'pending' === o
-                                      ? 1 === n
+                                      ? 1 === a
                                           ? 'Siguiente contacto recomendado'
                                           : 'Caso pendiente en cola'
                                       : 'Caso ya resuelto';
-                          return `\n        <article class="${s}${a ? ' is-selected' : ''}" data-callback-id="${c}" data-callback-status="${r}">\n            <header>\n                <div class="callback-card-heading">\n                    <span class="callback-status-pill" data-tone="${t('pending' === o ? d.tone : 'success')}">${t('pending' === o ? 'Pendiente' : 'Contactado')}</span>\n                    <h4>${t(l)}</h4>\n                </div>\n                <span class="callback-card-wait" data-tone="${t('pending' === o ? d.tone : 'success')}">${t('pending' === o ? d.label : 'Cerrado')}</span>\n            </header>\n            <div class="callback-card-grid">\n                <p><span>Preferencia</span><strong>${t(p)}</strong></p>\n                <p><span>Fecha</span><strong>${t(i(e.fecha || e.createdAt || ''))}</strong></p>\n                <p><span>Espera</span><strong>${t(Mt(u))}</strong></p>\n                <p><span>Lectura</span><strong>${t(m)}</strong></p>\n            </div>\n            <p class="callback-card-note">${t('pending' === o ? d.note : 'Registro ya marcado como contactado.')}</p>\n            <div class="callback-actions">\n                <button type="button" data-action="mark-contacted" data-callback-id="${c}" data-callback-date="${t(e.fecha || '')}" ${'pending' !== o ? 'disabled' : ''}>${'pending' === o ? 'Marcar contactado' : 'Contactado'}</button>\n            </div>\n        </article>\n    `;
+                          return `\n        <article class="${s}${n ? ' is-selected' : ''}" data-callback-id="${c}" data-callback-status="${r}">\n            <header>\n                <div class="callback-card-heading">\n                    <span class="callback-status-pill" data-tone="${t('pending' === o ? d.tone : 'success')}">${t('pending' === o ? 'Pendiente' : 'Contactado')}</span>\n                    <h4>${t(l)}</h4>\n                </div>\n                <span class="callback-card-wait" data-tone="${t('pending' === o ? d.tone : 'success')}">${t('pending' === o ? d.label : 'Cerrado')}</span>\n            </header>\n            <div class="callback-card-grid">\n                <p><span>Preferencia</span><strong>${t(p)}</strong></p>\n                <p><span>Fecha</span><strong>${t(i(e.fecha || e.createdAt || ''))}</strong></p>\n                <p><span>Espera</span><strong>${t(Mt(u))}</strong></p>\n                <p><span>Lectura</span><strong>${t(m)}</strong></p>\n            </div>\n            <p class="callback-card-note">${t('pending' === o ? d.note : 'Registro ya marcado como contactado.')}</p>\n            <div class="callback-actions">\n                <button type="button" data-action="mark-contacted" data-callback-id="${c}" data-callback-date="${t(e.fecha || '')}" ${'pending' !== o ? 'disabled' : ''}>${'pending' === o ? 'Marcar contactado' : 'Contactado'}</button>\n            </div>\n        </article>\n    `;
                       })(e, {
                           selected: s.has(Number(e.id || 0)),
-                          position: a + 1,
+                          position: n + 1,
                       })
                   )
                   .join('')
             : '<p class="callbacks-grid-empty" data-admin-empty-state="callbacks">No hay callbacks para el filtro actual.</p>'
     ),
-        r('#callbacksToolbarMeta', `Mostrando ${o.length} de ${a.length}`));
+        r('#callbacksToolbarMeta', `Mostrando ${o.length} de ${n.length}`));
     const l = [];
     ('all' !== yt(e.callbacks.filter) &&
         l.push(
@@ -1379,29 +1379,29 @@ function $t() {
                     '.callback-quick-filter-btn[data-filter-value]'
                 )
                 .forEach((t) => {
-                    const a = ht(t.dataset.filterValue) === e;
-                    t.classList.toggle('is-active', a);
+                    const n = ht(t.dataset.filterValue) === e;
+                    t.classList.toggle('is-active', n);
                 });
         })(e.callbacks.filter));
     const m = (function (t) {
         const e = t.filter((t) => 'pending' === kt(t.status)),
-            a = e.filter((t) => St(t) >= 120),
-            n = e.slice().sort((t, e) => wt(t) - wt(e))[0];
+            n = e.filter((t) => St(t) >= 120),
+            a = e.slice().sort((t, e) => wt(t) - wt(e))[0];
         return {
             pendingCount: e.length,
-            urgentCount: a.length,
+            urgentCount: n.length,
             todayCount: t.filter((t) => qt(t.fecha || t.createdAt)).length,
-            next: n,
+            next: a,
             queueHealth:
-                a.length > 0
+                n.length > 0
                     ? 'Cola: prioridad alta'
                     : e.length > 0
                       ? 'Cola: atencion requerida'
                       : 'Cola: estable',
             queueState:
-                a.length > 0 ? 'danger' : e.length > 0 ? 'warning' : 'success',
+                n.length > 0 ? 'danger' : e.length > 0 ? 'warning' : 'success',
         };
-    })(a);
+    })(n);
     (r('#callbacksOpsPendingCount', m.pendingCount),
         r('#callbacksOpsUrgentCount', m.urgentCount),
         r('#callbacksOpsTodayCount', m.todayCount),
@@ -1412,10 +1412,10 @@ function $t() {
     f instanceof HTMLButtonElement && (f.disabled = 0 === s.size);
     const h = document.getElementById('callbacksBulkMarkBtn');
     (h instanceof HTMLButtonElement && (h.disabled = 0 === s.size),
-        (function (t, e, a, n) {
+        (function (t, e, n, a) {
             (r(
                 '#callbacksDeckSummary',
-                a > 0
+                n > 0
                     ? `${t.pendingCount} pendiente(s), ${t.urgentCount} fuera de SLA y ${e} visibles.`
                     : 'Sin callbacks pendientes.'
             ),
@@ -1450,9 +1450,9 @@ function $t() {
                 r('#callbacksNextPreference', (s && s.preferencia) || '-'),
                 r('#callbacksNextState', s ? At(St(s)).label : 'Pendiente'));
             const c = document.getElementById('callbacksSelectionChip');
-            (c && c.classList.toggle('is-hidden', 0 === n),
-                r('#callbacksSelectedCount', n));
-        })(m, o.length, a.length, s.size),
+            (c && c.classList.toggle('is-hidden', 0 === a),
+                r('#callbacksSelectedCount', a));
+        })(m, o.length, n.length, s.size),
         Tt(b().callbacks));
 }
 function _t(t, { persist: e = !0 } = {}) {
@@ -1464,11 +1464,11 @@ function Lt(t) {
     _t({ filter: yt(t), selected: [] });
 }
 async function Et(t, e = '') {
-    const a = Number(t || 0);
-    a <= 0 ||
+    const n = Number(t || 0);
+    n <= 0 ||
         (await k('callbacks', {
             method: 'PATCH',
-            body: { id: a, status: 'contacted', fecha: e },
+            body: { id: n, status: 'contacted', fecha: e },
         }),
         (function (t) {
             const e = Number(t || 0);
@@ -1490,7 +1490,7 @@ async function Et(t, e = '') {
                 },
             })),
                 $t());
-        })(a));
+        })(n));
 }
 const Nt = 'admin-availability-selected-date',
     Dt = 'admin-availability-month-anchor';
@@ -1506,25 +1506,25 @@ function xt(t) {
 function Pt(t) {
     const e = String(t || '').trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(e)) return '';
-    const a = new Date(`${e}T12:00:00`);
-    return Number.isNaN(a.getTime()) ? '' : u(a) === e ? e : '';
+    const n = new Date(`${e}T12:00:00`);
+    return Number.isNaN(n.getTime()) ? '' : u(n) === e ? e : '';
 }
 function It(t) {
     const e = Pt(t);
     if (!e) return null;
-    const a = new Date(`${e}T12:00:00`);
-    return Number.isNaN(a.getTime()) ? null : a;
+    const n = new Date(`${e}T12:00:00`);
+    return Number.isNaN(n.getTime()) ? null : n;
 }
 function Ht(t) {
     const e = {};
     return (
         Object.keys(t || {})
             .sort()
-            .forEach((a) => {
-                const n = Pt(a);
-                if (!n) return;
-                const i = xt(Array.isArray(t[a]) ? t[a] : []);
-                i.length && (e[n] = i);
+            .forEach((n) => {
+                const a = Pt(n);
+                if (!a) return;
+                const i = xt(Array.isArray(t[n]) ? t[n] : []);
+                i.length && (e[a] = i);
             }),
         e
     );
@@ -1532,28 +1532,28 @@ function Ht(t) {
 function Ft(t) {
     return Ht(t || {});
 }
-function Ot(t) {
+function Rt(t) {
     return JSON.stringify(Ht(t || {}));
 }
-function Rt(t, e = '') {
-    let a = null;
-    if (t instanceof Date && !Number.isNaN(t.getTime())) a = new Date(t);
+function Ot(t, e = '') {
+    let n = null;
+    if (t instanceof Date && !Number.isNaN(t.getTime())) n = new Date(t);
     else {
         const e = Pt(t);
-        e && (a = new Date(`${e}T12:00:00`));
+        e && (n = new Date(`${e}T12:00:00`));
     }
-    if (!a) {
+    if (!n) {
         const t = It(e);
-        a = t ? new Date(t) : new Date();
+        n = t ? new Date(t) : new Date();
     }
-    return (a.setDate(1), a.setHours(12, 0, 0, 0), a);
+    return (n.setDate(1), n.setHours(12, 0, 0, 0), n);
 }
 function jt(t, e) {
-    const a = Pt(t);
-    if (a) return a;
-    const n = Object.keys(e || {})[0];
-    if (n) {
-        const t = Pt(n);
+    const n = Pt(t);
+    if (n) return n;
+    const a = Object.keys(e || {})[0];
+    if (a) {
+        const t = Pt(a);
         if (t) return t;
     }
     return u(new Date());
@@ -1561,15 +1561,15 @@ function jt(t, e) {
 function zt() {
     const t = b(),
         e = Pt(t.availability.selectedDate),
-        a = Rt(t.availability.monthAnchor, e);
+        n = Ot(t.availability.monthAnchor, e);
     try {
         (e ? localStorage.setItem(Nt, e) : localStorage.removeItem(Nt),
-            localStorage.setItem(Dt, u(a)));
+            localStorage.setItem(Dt, u(n)));
     } catch (t) {}
 }
 function Vt(t) {
     const e = Ft(b().data.availability || {});
-    return Ot(t) !== Ot(e);
+    return Rt(t) !== Rt(e);
 }
 function Ut() {
     return Ft(b().availability.draft || {});
@@ -1582,8 +1582,8 @@ function Qt() {
     const t = b(),
         e = Pt(t.availability.selectedDate);
     if (e) return e;
-    const a = Ft(t.availability.draft || {});
-    return Object.keys(a)[0] || u(new Date());
+    const n = Ft(t.availability.draft || {});
+    return Object.keys(n)[0] || u(new Date());
 }
 function Gt(t, e) {
     return t.length
@@ -1599,21 +1599,21 @@ function Gt(t, e) {
 }
 function Wt(t = 1) {
     const e = Ut(),
-        a = Object.keys(e).filter((t) => e[t]?.length > 0);
-    if (!a.length) return '';
-    const n = Pt(b().availability.selectedDate) || u(new Date());
+        n = Object.keys(e).filter((t) => e[t]?.length > 0);
+    if (!n.length) return '';
+    const a = Pt(b().availability.selectedDate) || u(new Date());
     return (
-        (t >= 0 ? a.sort() : a.sort().reverse()).find((e) =>
-            t >= 0 ? e >= n : e <= n
+        (t >= 0 ? n.sort() : n.sort().reverse()).find((e) =>
+            t >= 0 ? e >= a : e <= a
         ) || ''
     );
 }
 function Jt() {
     ((function () {
         const t = b(),
-            e = Rt(t.availability.monthAnchor, t.availability.selectedDate),
-            a = Qt(),
-            n = e.getMonth(),
+            e = Ot(t.availability.monthAnchor, t.availability.selectedDate),
+            n = Qt(),
+            a = e.getMonth(),
             i = Ft(t.availability.draft),
             o = u(new Date());
         var s;
@@ -1629,27 +1629,27 @@ function Jt() {
             '#availabilityCalendar',
             (function (t) {
                 const e = new Date(t.getFullYear(), t.getMonth(), 1),
-                    a = (e.getDay() + 6) % 7;
-                e.setDate(e.getDate() - a);
-                const n = [];
+                    n = (e.getDay() + 6) % 7;
+                e.setDate(e.getDate() - n);
+                const a = [];
                 for (let t = 0; t < 42; t += 1) {
-                    const a = new Date(e);
-                    (a.setDate(e.getDate() + t), n.push(a));
+                    const n = new Date(e);
+                    (n.setDate(e.getDate() + t), a.push(n));
                 }
-                return n;
+                return a;
             })(e)
                 .map((t) => {
                     const e = u(t),
                         s = Array.isArray(i[e]) ? i[e] : [],
                         r = s.length > 0,
-                        c = t.getMonth() === n;
-                    return `\n                <button type="button" class="${['calendar-day', c ? '' : 'other-month', r ? 'has-slots' : '', e === a ? 'is-selected' : '', e === o ? 'is-today' : ''].filter(Boolean).join(' ')}" data-action="select-availability-day" data-date="${e}">\n                    <span>${t.getDate()}</span>\n                    <small>${r ? `${s.length} slot${1 === s.length ? '' : 's'}` : c ? 'Sin slots' : ''}</small>\n                </button>\n            `;
+                        c = t.getMonth() === a;
+                    return `\n                <button type="button" class="${['calendar-day', c ? '' : 'other-month', r ? 'has-slots' : '', e === n ? 'is-selected' : '', e === o ? 'is-today' : ''].filter(Boolean).join(' ')}" data-action="select-availability-day" data-date="${e}">\n                    <span>${t.getDate()}</span>\n                    <small>${r ? `${s.length} slot${1 === s.length ? '' : 's'}` : c ? 'Sin slots' : ''}</small>\n                </button>\n            `;
                 })
                 .join('')
         );
     })(),
         (function () {
-            const { selectedDate: e, slots: a } = (function () {
+            const { selectedDate: e, slots: n } = (function () {
                     const t = b(),
                         e = Qt();
                     return {
@@ -1657,28 +1657,28 @@ function Jt() {
                         slots: xt(Ft(t.availability.draft)[e] || []),
                     };
                 })(),
-                n = Kt();
+                a = Kt();
             (r('#selectedDate', e || '-'),
-                a.length
+                n.length
                     ? c(
                           '#timeSlotsList',
-                          a
+                          n
                               .map(
-                                  (a) =>
-                                      `\n            <div class="time-slot-item">\n                <div>\n                    <strong>${t(a)}</strong>\n                    <small>${t(n ? 'Slot publicado' : 'Disponible para consulta')}</small>\n                </div>\n                <button type="button" data-action="remove-time-slot" data-date="${encodeURIComponent(e)}" data-time="${encodeURIComponent(a)}" ${n ? 'disabled' : ''}>Quitar</button>\n            </div>\n        `
+                                  (n) =>
+                                      `\n            <div class="time-slot-item">\n                <div>\n                    <strong>${t(n)}</strong>\n                    <small>${t(a ? 'Slot publicado' : 'Disponible para consulta')}</small>\n                </div>\n                <button type="button" data-action="remove-time-slot" data-date="${encodeURIComponent(e)}" data-time="${encodeURIComponent(n)}" ${a ? 'disabled' : ''}>Quitar</button>\n            </div>\n        `
                               )
                               .join('')
                       )
                     : c(
                           '#timeSlotsList',
-                          `<p class="empty-message" data-admin-empty-state="availability-slots">${t(Gt([], n))}</p>`
+                          `<p class="empty-message" data-admin-empty-state="availability-slots">${t(Gt([], a))}</p>`
                       ));
         })(),
         (function () {
             const t = b(),
-                a = Qt(),
-                n = Ft(t.availability.draft),
-                i = Array.isArray(n[a]) ? xt(n[a]) : [],
+                n = Qt(),
+                a = Ft(t.availability.draft),
+                i = Array.isArray(a[n]) ? xt(a[n]) : [],
                 o = Kt(),
                 {
                     sourceText: s,
@@ -1709,7 +1709,7 @@ function Jt() {
                 r('#availabilityTimezoneBadge', `TZ: ${l}`),
                 r(
                     '#availabilitySelectionSummary',
-                    `Fecha: ${a} | ${(function (t) {
+                    `Fecha: ${n} | ${(function (t) {
                         const e = It(t);
                         return e
                             ? new Intl.DateTimeFormat('es-EC', {
@@ -1718,7 +1718,7 @@ function Jt() {
                                   month: 'short',
                               }).format(e)
                             : t || '-';
-                    })(a)} | Fuente: ${s} | Modo: ${c} | Slots: ${i.length}`
+                    })(n)} | Fuente: ${s} | Modo: ${c} | Slots: ${i.length}`
                 ),
                 r(
                     '#availabilityDraftStatus',
@@ -1771,14 +1771,14 @@ function Yt(t, { render: e = !1 } = {}) {
         e ? Jt() : zt());
 }
 function Zt(t, e = {}) {
-    const a = Ft(t),
-        n = jt(e.selectedDate || b().availability.selectedDate, a);
+    const n = Ft(t),
+        a = jt(e.selectedDate || b().availability.selectedDate, n);
     Yt(
         {
-            draft: a,
-            selectedDate: n,
-            monthAnchor: Rt(e.monthAnchor || b().availability.monthAnchor, n),
-            draftDirty: Vt(a),
+            draft: n,
+            selectedDate: a,
+            monthAnchor: Ot(e.monthAnchor || b().availability.monthAnchor, a),
+            draftDirty: Vt(n),
             ...e,
         },
         { render: !0 }
@@ -1787,37 +1787,37 @@ function Zt(t, e = {}) {
 function Xt(t) {
     Yt({ lastAction: String(t || '') }, { render: !0 });
 }
-function te(t, e, a = '') {
-    const n = Pt(t) || Qt();
-    if (!n) return;
+function te(t, e, n = '') {
+    const a = Pt(t) || Qt();
+    if (!a) return;
     const i = Ut(),
         o = xt(Array.isArray(e) ? e : []);
-    (o.length ? (i[n] = o) : delete i[n],
-        Zt(i, { selectedDate: n, monthAnchor: n, lastAction: a }));
+    (o.length ? (i[a] = o) : delete i[a],
+        Zt(i, { selectedDate: a, monthAnchor: a, lastAction: n }));
 }
 function ee(t, e) {
-    const a = Pt(t);
-    a &&
+    const n = Pt(t);
+    n &&
         Yt(
-            { selectedDate: a, monthAnchor: Rt(a, a), lastAction: e || '' },
+            { selectedDate: n, monthAnchor: Ot(n, n), lastAction: e || '' },
             { render: !0 }
         );
 }
-function ae() {
+function ne() {
     return Boolean(b().availability.draftDirty);
 }
-function ne(t) {
+function ae(t) {
     if (Kt()) return;
     const e = b(),
-        a = Pt(e.availability.selectedDate) || Qt(),
-        n = Array.isArray(e.availability.draft[a])
-            ? e.availability.draft[a]
+        n = Pt(e.availability.selectedDate) || Qt(),
+        a = Array.isArray(e.availability.draft[n])
+            ? e.availability.draft[n]
             : [],
-        i = It(a);
+        i = It(n);
     if (!i) return;
     i.setDate(i.getDate() + Number(t || 0));
     const o = u(i);
-    te(o, n, `Duplicado ${n.length} slots en ${o}`);
+    te(o, a, `Duplicado ${a.length} slots en ${o}`);
 }
 function ie(t) {
     return String(t || '')
@@ -1870,8 +1870,8 @@ function re(t) {
     return Array.isArray(t) ? t : [];
 }
 function ce(t, e = 0) {
-    const a = Number(t);
-    return Number.isFinite(a) ? a : e;
+    const n = Number(t);
+    return Number.isFinite(n) ? n : e;
 }
 function le(t) {
     const e = new Date(t || '');
@@ -1885,10 +1885,10 @@ function ue(...t) {
     return '';
 }
 function de(t, e = 0) {
-    const a = Number(t?.id || t?.ticket_id || e + 1);
+    const n = Number(t?.id || t?.ticket_id || e + 1);
     return {
-        id: a,
-        ticketCode: String(t?.ticketCode || t?.ticket_code || `A-${a}`),
+        id: n,
+        ticketCode: String(t?.ticketCode || t?.ticket_code || `A-${n}`),
         queueType: String(t?.queueType || t?.queue_type || 'walk_in'),
         patientInitials: String(
             t?.patientInitials || t?.patient_initials || '--'
@@ -1913,36 +1913,36 @@ function de(t, e = 0) {
         completedAt: String(t?.completedAt || t?.completed_at || ''),
     };
 }
-function pe(t, e = 0, a = {}) {
-    const n = t && 'object' == typeof t ? t : {},
-        i = de({ ...n, ...a }, e);
+function pe(t, e = 0, n = {}) {
+    const a = t && 'object' == typeof t ? t : {},
+        i = de({ ...a, ...n }, e);
     return (
-        ue(n.createdAt, n.created_at) || (i.createdAt = ''),
-        ue(n.priorityClass, n.priority_class) || (i.priorityClass = ''),
-        ue(n.queueType, n.queue_type) || (i.queueType = ''),
-        ue(n.patientInitials, n.patient_initials) || (i.patientInitials = ''),
+        ue(a.createdAt, a.created_at) || (i.createdAt = ''),
+        ue(a.priorityClass, a.priority_class) || (i.priorityClass = ''),
+        ue(a.queueType, a.queue_type) || (i.queueType = ''),
+        ue(a.patientInitials, a.patient_initials) || (i.patientInitials = ''),
         i
     );
 }
 function me(t) {
     const e = t.filter((t) => 'waiting' === t.status),
-        a = t.filter((t) => 'called' === t.status),
-        n = {
-            1: a.find((t) => 1 === t.assignedConsultorio) || null,
-            2: a.find((t) => 2 === t.assignedConsultorio) || null,
+        n = t.filter((t) => 'called' === t.status),
+        a = {
+            1: n.find((t) => 1 === t.assignedConsultorio) || null,
+            2: n.find((t) => 2 === t.assignedConsultorio) || null,
         };
     return {
         updatedAt: new Date().toISOString(),
         waitingCount: e.length,
-        calledCount: a.length,
+        calledCount: n.length,
         counts: {
             waiting: e.length,
-            called: a.length,
+            called: n.length,
             completed: t.filter((t) => 'completed' === t.status).length,
             no_show: t.filter((t) => 'no_show' === t.status).length,
             cancelled: t.filter((t) => 'cancelled' === t.status).length,
         },
-        callingNowByConsultorio: n,
+        callingNowByConsultorio: a,
         nextTickets: e
             .slice(0, 5)
             .map((t, e) => ({
@@ -1954,17 +1954,17 @@ function me(t) {
     };
 }
 function be(t, e = []) {
-    const a = t && 'object' == typeof t ? t : {},
-        n = a.counts && 'object' == typeof a.counts ? a.counts : {},
+    const n = t && 'object' == typeof t ? t : {},
+        a = n.counts && 'object' == typeof n.counts ? n.counts : {},
         i =
-            a.callingNowByConsultorio &&
-            'object' == typeof a.callingNowByConsultorio
-                ? a.callingNowByConsultorio
-                : a.calling_now_by_consultorio &&
-                    'object' == typeof a.calling_now_by_consultorio
-                  ? a.calling_now_by_consultorio
+            n.callingNowByConsultorio &&
+            'object' == typeof n.callingNowByConsultorio
+                ? n.callingNowByConsultorio
+                : n.calling_now_by_consultorio &&
+                    'object' == typeof n.calling_now_by_consultorio
+                  ? n.calling_now_by_consultorio
                   : {},
-        o = re(a.callingNow).concat(re(a.calling_now)),
+        o = re(n.callingNow).concat(re(n.calling_now)),
         s = re(e).map((t, e) => de(t, e)),
         r =
             i[1] ||
@@ -1990,8 +1990,8 @@ function be(t, e = []) {
             null,
         l = r ? pe(r, 0, { status: 'called', assignedConsultorio: 1 }) : null,
         u = c ? pe(c, 1, { status: 'called', assignedConsultorio: 2 }) : null,
-        d = re(a.nextTickets)
-            .concat(re(a.next_tickets))
+        d = re(n.nextTickets)
+            .concat(re(n.next_tickets))
             .map((t, e) =>
                 pe(
                     {
@@ -2006,36 +2006,36 @@ function be(t, e = []) {
         m = s.filter((t) => 'called' === t.status).length,
         b = Math.max(Number(Boolean(l)) + Number(Boolean(u)), m),
         g = ce(
-            a.waitingCount ?? a.waiting_count ?? n.waiting ?? d.length ?? p,
+            n.waitingCount ?? n.waiting_count ?? a.waiting ?? d.length ?? p,
             0
         ),
-        f = ce(a.calledCount ?? a.called_count ?? n.called ?? b, 0),
+        f = ce(n.calledCount ?? n.called_count ?? a.called ?? b, 0),
         h = ce(
-            n.completed ??
-                a.completedCount ??
-                a.completed_count ??
+            a.completed ??
+                n.completedCount ??
+                n.completed_count ??
                 s.filter((t) => 'completed' === t.status).length,
             0
         ),
         y = ce(
-            n.no_show ??
-                n.noShow ??
-                a.noShowCount ??
-                a.no_show_count ??
+            a.no_show ??
+                a.noShow ??
+                n.noShowCount ??
+                n.no_show_count ??
                 s.filter((t) => 'no_show' === t.status).length,
             0
         ),
         v = ce(
-            n.cancelled ??
-                n.canceled ??
-                a.cancelledCount ??
-                a.cancelled_count ??
+            a.cancelled ??
+                a.canceled ??
+                n.cancelledCount ??
+                n.cancelled_count ??
                 s.filter((t) => 'cancelled' === t.status).length,
             0
         );
     return {
         updatedAt: String(
-            a.updatedAt || a.updated_at || new Date().toISOString()
+            n.updatedAt || n.updated_at || new Date().toISOString()
         ),
         waitingCount: g,
         calledCount: f,
@@ -2056,15 +2056,15 @@ function ge(t) {
 }
 function fe(t) {
     const e = be(t),
-        a = new Map(),
-        n = (t) => {
+        n = new Map(),
+        a = (t) => {
             if (!t) return;
-            const e = de(t, a.size);
+            const e = de(t, n.size);
             (ue(t?.createdAt, t?.created_at) || (e.createdAt = ''),
                 ue(t?.priorityClass, t?.priority_class) ||
                     (e.priorityClass = ''),
                 ue(t?.queueType, t?.queue_type) || (e.queueType = ''),
-                a.set(ge(e), e));
+                n.set(ge(e), e));
         },
         i =
             e.callingNowByConsultorio?.[1] ||
@@ -2074,19 +2074,19 @@ function fe(t) {
             e.callingNowByConsultorio?.[2] ||
             e.callingNowByConsultorio?.[2] ||
             null;
-    (i && n({ ...i, status: 'called', assignedConsultorio: 1 }),
-        o && n({ ...o, status: 'called', assignedConsultorio: 2 }));
+    (i && a({ ...i, status: 'called', assignedConsultorio: 1 }),
+        o && a({ ...o, status: 'called', assignedConsultorio: 2 }));
     for (const t of re(e.nextTickets))
-        n({ ...t, status: 'waiting', assignedConsultorio: null });
-    return Array.from(a.values());
+        a({ ...t, status: 'waiting', assignedConsultorio: null });
+    return Array.from(n.values());
 }
 function he(t, e) {
     return Object.prototype.hasOwnProperty.call(t || {}, e);
 }
 function ye(t, e = '') {
     try {
-        const a = localStorage.getItem(t);
-        return null === a ? e : a;
+        const n = localStorage.getItem(t);
+        return null === n ? e : n;
     } catch (t) {
         return e;
     }
@@ -2098,8 +2098,8 @@ function ve(t, e) {
 }
 function ke(t, e) {
     try {
-        const a = localStorage.getItem(t);
-        return a ? JSON.parse(a) : e;
+        const n = localStorage.getItem(t);
+        return n ? JSON.parse(n) : e;
     } catch (t) {
         return e;
     }
@@ -2162,24 +2162,24 @@ function De() {
     const t = b(),
         { queueTickets: e } = Ne();
     return (function (t, e) {
-        const a = ie(e);
-        return a
+        const n = ie(e);
+        return n
             ? t.filter((t) =>
                   [t.ticketCode, t.patientInitials, t.status, t.queueType].some(
-                      (t) => ie(t).includes(a)
+                      (t) => ie(t).includes(n)
                   )
               )
             : t;
     })(
         (function (t, e) {
-            const a = ie(e);
-            return 'waiting' === a
+            const n = ie(e);
+            return 'waiting' === n
                 ? t.filter((t) => 'waiting' === t.status)
-                : 'called' === a
+                : 'called' === n
                   ? t.filter((t) => 'called' === t.status)
-                  : 'no_show' === a
+                  : 'no_show' === n
                     ? t.filter((t) => 'no_show' === t.status)
-                    : 'sla_risk' === a
+                    : 'sla_risk' === n
                       ? t.filter(
                             (t) =>
                                 'waiting' === t.status &&
@@ -2197,10 +2197,10 @@ function De() {
     );
 }
 function Be(t, e = null) {
-    const a = Array.isArray(e) ? e : Ne().queueTickets,
-        n = new Set(a.map((t) => Number(t.id || 0)).filter((t) => t > 0));
+    const n = Array.isArray(e) ? e : Ne().queueTickets,
+        a = new Set(n.map((t) => Number(t.id || 0)).filter((t) => t > 0));
     return [...new Set(re(t).map((t) => Number(t || 0)))]
-        .filter((t) => t > 0 && n.has(t))
+        .filter((t) => t > 0 && a.has(t))
         .sort((t, e) => t - e);
 }
 function xe() {
@@ -2250,11 +2250,11 @@ function Fe() {
             : '<li><span>-</span><strong>Sin actividad</strong></li>'
     );
 }
-function Oe(t) {
+function Re(t) {
     const e = document.getElementById('queueSensitiveConfirmDialog'),
-        a = document.getElementById('queueSensitiveConfirmMessage');
+        n = document.getElementById('queueSensitiveConfirmMessage');
     if (
-        (a && (a.textContent = `Confirmar accion sensible: ${t.action}`),
+        (n && (n.textContent = `Confirmar accion sensible: ${t.action}`),
         g((e) => ({ ...e, queue: { ...e.queue, pendingSensitiveAction: t } })),
         e instanceof HTMLDialogElement && 'function' == typeof e.showModal)
     ) {
@@ -2268,7 +2268,7 @@ function Oe(t) {
         e instanceof HTMLElement &&
             (e.setAttribute('open', ''), (e.hidden = !1));
 }
-function Re() {
+function Oe() {
     const t = document.getElementById('queueSensitiveConfirmDialog');
     (t instanceof HTMLDialogElement && t.open && t.close(),
         t instanceof HTMLElement &&
@@ -2280,8 +2280,8 @@ function Re() {
 }
 let je = '';
 function ze(e) {
-    const a = e.assignedConsultorio ? `C${e.assignedConsultorio}` : '-',
-        n = Math.max(0, Math.round((Date.now() - le(e.createdAt)) / 6e4)),
+    const n = e.assignedConsultorio ? `C${e.assignedConsultorio}` : '-',
+        a = Math.max(0, Math.round((Date.now() - le(e.createdAt)) / 6e4)),
         i = Number(e.id || 0),
         o = new Set(xe()).has(i),
         s = 'called' === e.status,
@@ -2304,19 +2304,19 @@ function ze(e) {
                     return String(t || '--');
             }
         })(e.status)
-    )}</td>\n            <td>${a}</td>\n            <td>${n} min</td>\n            <td>\n                <div class="table-actions">\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="reasignar" data-queue-consultorio="1">Reasignar C1</button>\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="reasignar" data-queue-consultorio="2">Reasignar C2</button>\n                    ${c ? `<button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="re-llamar" data-queue-consultorio="${2 === Number(e.assignedConsultorio || 1) ? 2 : 1}">Re-llamar</button>` : ''}\n                    ${r ? `<button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="liberar">Liberar</button>` : ''}\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="completar">Completar</button>\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="no_show">No show</button>\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="cancelar">Cancelar</button>\n                    <button type="button" data-action="queue-reprint-ticket" data-queue-id="${i}">Reimprimir</button>\n                </div>\n            </td>\n        </tr>\n    `;
+    )}</td>\n            <td>${n}</td>\n            <td>${a} min</td>\n            <td>\n                <div class="table-actions">\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="reasignar" data-queue-consultorio="1">Reasignar C1</button>\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="reasignar" data-queue-consultorio="2">Reasignar C2</button>\n                    ${c ? `<button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="re-llamar" data-queue-consultorio="${2 === Number(e.assignedConsultorio || 1) ? 2 : 1}">Re-llamar</button>` : ''}\n                    ${r ? `<button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="liberar">Liberar</button>` : ''}\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="completar">Completar</button>\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="no_show">No show</button>\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="cancelar">Cancelar</button>\n                    <button type="button" data-action="queue-reprint-ticket" data-queue-id="${i}">Reimprimir</button>\n                </div>\n            </td>\n        </tr>\n    `;
 }
 function Ve(e = () => {}) {
-    const a = b(),
-        { queueMeta: n } = Ne(),
+    const n = b(),
+        { queueMeta: a } = Ne(),
         i = De(),
         o = xe().length,
         s = Pe(),
-        l = re(n.nextTickets),
-        u = Number(n.waitingCount || n.counts?.waiting || 0);
+        l = re(a.nextTickets),
+        u = Number(a.waitingCount || a.counts?.waiting || 0);
     (!(function (t, e) {
-        const a = b(),
-            n =
+        const n = b(),
+            a =
                 t.callingNowByConsultorio?.[1] ||
                 t.callingNowByConsultorio?.[1] ||
                 null,
@@ -2324,8 +2324,8 @@ function Ve(e = () => {}) {
                 t.callingNowByConsultorio?.[2] ||
                 t.callingNowByConsultorio?.[2] ||
                 null,
-            o = n
-                ? String(n.ticketCode || n.ticket_code || 'A-000')
+            o = a
+                ? String(a.ticketCode || a.ticket_code || 'A-000')
                 : 'Sin llamado',
             s = i
                 ? String(i.ticketCode || i.ticket_code || 'A-000')
@@ -2342,10 +2342,10 @@ function Ve(e = () => {}) {
             r('#queueC2Now', s));
         const c = document.getElementById('queueReleaseC1');
         c instanceof HTMLButtonElement &&
-            ((c.hidden = !n),
-            (c.textContent = n ? `Liberar C1 · ${o}` : 'Release C1'),
-            n
-                ? c.setAttribute('data-queue-id', String(Number(n.id || 0)))
+            ((c.hidden = !a),
+            (c.textContent = a ? `Liberar C1 · ${o}` : 'Release C1'),
+            a
+                ? c.setAttribute('data-queue-id', String(Number(a.id || 0)))
                 : c.removeAttribute('data-queue-id'));
         const l = document.getElementById('queueReleaseC2');
         l instanceof HTMLButtonElement &&
@@ -2355,7 +2355,7 @@ function Ve(e = () => {}) {
                 ? l.setAttribute('data-queue-id', String(Number(i.id || 0)))
                 : l.removeAttribute('data-queue-id'));
         const u = document.getElementById('queueSyncStatus');
-        if ('fallback' === ie(a.queue.syncMode))
+        if ('fallback' === ie(n.queue.syncMode))
             return (
                 r('#queueSyncStatus', 'fallback'),
                 void (u && u.setAttribute('data-state', 'fallback'))
@@ -2376,7 +2376,7 @@ function Ve(e = () => {}) {
             );
         }
         je = 'live';
-    })(n, e),
+    })(a, e),
         c(
             '#queueTableBody',
             i.length
@@ -2384,7 +2384,7 @@ function Ve(e = () => {}) {
                 : '<tr><td colspan="7">No hay tickets para filtro</td></tr>'
         ));
     const d =
-        a.queue.fallbackPartial && l.length && u > l.length
+        n.queue.fallbackPartial && l.length && u > l.length
             ? `<li><span>-</span><strong>Mostrando primeros ${l.length} de ${u} en espera</strong></li>`
             : '';
     c(
@@ -2404,7 +2404,7 @@ function Ve(e = () => {}) {
         ).length,
         m = [p > 0 ? `riesgo: ${p}` : 'sin riesgo'];
     (o > 0 && m.push(`seleccion: ${o}`),
-        a.queue.fallbackPartial && m.push('fallback parcial'),
+        n.queue.fallbackPartial && m.push('fallback parcial'),
         r('#queueTriageSummary', m.join(' | ')),
         r('#queueSelectedCount', o));
     const g = document.getElementById('queueSelectionChip');
@@ -2420,21 +2420,21 @@ function Ve(e = () => {}) {
             .forEach((t) => {
                 t instanceof HTMLButtonElement && (t.disabled = 0 === s.length);
             }),
-        r('#queueStationBadge', `Estación C${a.queue.stationConsultorio}`),
+        r('#queueStationBadge', `Estación C${n.queue.stationConsultorio}`),
         r(
             '#queueStationModeBadge',
-            'locked' === a.queue.stationMode ? 'Bloqueado' : 'Libre'
+            'locked' === n.queue.stationMode ? 'Bloqueado' : 'Libre'
         ));
     const y = document.getElementById('queuePracticeModeBadge');
-    y instanceof HTMLElement && (y.hidden = !a.queue.practiceMode);
+    y instanceof HTMLElement && (y.hidden = !n.queue.practiceMode);
     const v = document.getElementById('queueShortcutPanel');
-    v instanceof HTMLElement && (v.hidden = !a.queue.helpOpen);
+    v instanceof HTMLElement && (v.hidden = !n.queue.helpOpen);
     const k = document.querySelector('[data-action="queue-clear-call-key"]');
-    k instanceof HTMLElement && (k.hidden = !a.queue.customCallKey);
+    k instanceof HTMLElement && (k.hidden = !n.queue.customCallKey);
     const w = document.querySelector('[data-action="queue-toggle-one-tap"]');
     (w instanceof HTMLElement &&
-        (w.setAttribute('aria-pressed', String(Boolean(a.queue.oneTap))),
-        (w.textContent = a.queue.oneTap ? '1 tecla ON' : '1 tecla OFF')),
+        (w.setAttribute('aria-pressed', String(Boolean(n.queue.oneTap))),
+        (w.textContent = n.queue.oneTap ? '1 tecla ON' : '1 tecla OFF')),
         document
             .querySelectorAll(
                 '[data-action="queue-call-next"][data-queue-consultorio]'
@@ -2443,10 +2443,10 @@ function Ve(e = () => {}) {
                 if (!(t instanceof HTMLButtonElement)) return;
                 const e = 2 === Number(t.dataset.queueConsultorio || 1) ? 2 : 1;
                 t.disabled =
-                    'locked' === a.queue.stationMode &&
-                    e !== Number(a.queue.stationConsultorio || 1);
+                    'locked' === n.queue.stationMode &&
+                    e !== Number(n.queue.stationConsultorio || 1);
             }));
-    const S = Ie(a.queue.stationConsultorio);
+    const S = Ie(n.queue.stationConsultorio);
     (document
         .querySelectorAll(
             '[data-action="queue-release-station"][data-queue-consultorio]'
@@ -2454,26 +2454,26 @@ function Ve(e = () => {}) {
         .forEach((t) => {
             if (!(t instanceof HTMLButtonElement)) return;
             const e = 2 === Number(t.dataset.queueConsultorio || 1) ? 2 : 1,
-                n = Ie(e);
-            ((t.disabled = !n),
-                'locked' === a.queue.stationMode &&
-                    e !== Number(a.queue.stationConsultorio || 1) &&
+                a = Ie(e);
+            ((t.disabled = !a),
+                'locked' === n.queue.stationMode &&
+                    e !== Number(n.queue.stationConsultorio || 1) &&
                     (t.disabled = !0));
         }),
         S &&
             (m.push(
-                `activo: ${S.ticketCode} en C${a.queue.stationConsultorio}`
+                `activo: ${S.ticketCode} en C${n.queue.stationConsultorio}`
             ),
             r('#queueTriageSummary', m.join(' | '))),
         Fe());
 }
 function Ue(t) {
     g((e) => {
-        const a = [
+        const n = [
             { at: new Date().toISOString(), message: String(t || '') },
             ...(e.queue.activity || []),
         ].slice(0, 30);
-        return { ...e, queue: { ...e.queue, activity: a } };
+        return { ...e, queue: { ...e.queue, activity: n } };
     });
     try {
         Fe();
@@ -2489,28 +2489,28 @@ function Ke(t, { render: e = !0 } = {}) {
 function Qe() {
     Ke([]);
 }
-function Ge(t, e = null, a = {}) {
-    const n = (Array.isArray(t) ? t : []).map((t, e) => de(t, e)),
-        i = be(e && 'object' == typeof e ? e : me(n), n),
-        o = n.filter((t) => 'waiting' === t.status).length,
+function Ge(t, e = null, n = {}) {
+    const a = (Array.isArray(t) ? t : []).map((t, e) => de(t, e)),
+        i = be(e && 'object' == typeof e ? e : me(a), a),
+        o = a.filter((t) => 'waiting' === t.status).length,
         s =
-            'boolean' == typeof a.fallbackPartial
-                ? a.fallbackPartial
+            'boolean' == typeof n.fallbackPartial
+                ? n.fallbackPartial
                 : Number(i.waitingCount || 0) > o,
         r =
-            'fallback' === ie(a.syncMode)
+            'fallback' === ie(n.syncMode)
                 ? 'fallback'
                 : s
-                  ? 'live' === ie(a.syncMode)
+                  ? 'live' === ie(n.syncMode)
                       ? 'live'
                       : 'fallback'
                   : 'live';
     (g((t) => ({
         ...t,
-        data: { ...t.data, queueTickets: n, queueMeta: i },
+        data: { ...t.data, queueTickets: a, queueMeta: i },
         queue: {
             ...t.queue,
-            selected: Be(t.queue.selected || [], n),
+            selected: Be(t.queue.selected || [], a),
             fallbackPartial: s,
             syncMode: r,
         },
@@ -2519,14 +2519,14 @@ function Ge(t, e = null, a = {}) {
         Ve(Ue));
 }
 function We(t, e) {
-    const a = Number(t || 0),
-        n = (b().data.queueTickets || []).map((t, n) => {
-            const i = de(t, n);
-            return i.id !== a
+    const n = Number(t || 0),
+        a = (b().data.queueTickets || []).map((t, a) => {
+            const i = de(t, a);
+            return i.id !== n
                 ? i
-                : de('function' == typeof e ? e(i) : { ...i }, n);
+                : de('function' == typeof e ? e(i) : { ...i }, a);
         });
-    Ge(n, me(n), { fallbackPartial: !1, syncMode: 'live' });
+    Ge(a, me(a), { fallbackPartial: !1, syncMode: 'live' });
 }
 function Je(t) {
     (g((e) => ({ ...e, queue: { ...e.queue, ...t } })), Ee(b()), Ve(Ue));
@@ -2535,14 +2535,14 @@ function Ye(t) {
     Je({ filter: ie(t) || 'all', selected: [] });
 }
 function Ze(t, e = {}) {
-    const a =
+    const n =
         t?.data?.queueState ||
         t?.data?.queue_state ||
         t?.data?.queueMeta ||
         t?.data ||
         null;
-    if (!a || 'object' != typeof a) return;
-    const n = (function (t) {
+    if (!n || 'object' != typeof n) return;
+    const a = (function (t) {
             return t && 'object' == typeof t
                 ? Array.isArray(t.queue_tickets)
                     ? t.queue_tickets
@@ -2552,10 +2552,10 @@ function Ze(t, e = {}) {
                         ? t.tickets
                         : []
                 : [];
-        })(a),
+        })(n),
         i = t?.data?.ticket || null;
     if (
-        !(function (t, e, a) {
+        !(function (t, e, n) {
             if (e.length > 0) return !0;
             if (
                 he(t, 'queue_tickets') ||
@@ -2563,7 +2563,7 @@ function Ze(t, e = {}) {
                 he(t, 'tickets')
             )
                 return !0;
-            if (a && 'object' == typeof a) return !0;
+            if (n && 'object' == typeof n) return !0;
             if (
                 he(t, 'waitingCount') ||
                 he(t, 'waiting_count') ||
@@ -2577,17 +2577,17 @@ function Ze(t, e = {}) {
                 he(t, 'cancelled_count')
             )
                 return !0;
-            const n =
+            const a =
                 t?.counts && 'object' == typeof t.counts ? t.counts : null;
             if (
-                n &&
-                (he(n, 'waiting') ||
-                    he(n, 'called') ||
-                    he(n, 'completed') ||
-                    he(n, 'no_show') ||
-                    he(n, 'noShow') ||
-                    he(n, 'cancelled') ||
-                    he(n, 'canceled'))
+                a &&
+                (he(a, 'waiting') ||
+                    he(a, 'called') ||
+                    he(a, 'completed') ||
+                    he(a, 'no_show') ||
+                    he(a, 'noShow') ||
+                    he(a, 'cancelled') ||
+                    he(a, 'canceled'))
             )
                 return !0;
             if (he(t, 'nextTickets') || he(t, 'next_tickets')) return !0;
@@ -2610,20 +2610,20 @@ function Ze(t, e = {}) {
                     )
                 ) || re(t?.callingNow).concat(re(t?.calling_now)).some(Boolean)
             );
-        })(a, n, i)
+        })(n, a, i)
     )
         return;
     const o = 'fallback' === ie(e.syncMode) ? 'fallback' : 'live',
         s = (b().data.queueTickets || []).map((t, e) => de(t, e)),
-        r = be(a, s),
+        r = be(n, s),
         c = (function (t) {
             const e =
                     t?.counts && 'object' == typeof t.counts ? t.counts : null,
-                a =
+                n =
                     he(t, 'waitingCount') ||
                     he(t, 'waiting_count') ||
                     Boolean(e && he(e, 'waiting')),
-                n =
+                a =
                     he(t, 'calledCount') ||
                     he(t, 'called_count') ||
                     Boolean(e && he(e, 'called')),
@@ -2633,33 +2633,33 @@ function Ze(t, e = {}) {
                     he(t, 'calling_now_by_consultorio') ||
                     he(t, 'callingNow') ||
                     he(t, 'calling_now');
-            return { waiting: a || i, called: n || o };
-        })(a),
+            return { waiting: n || i, called: a || o };
+        })(n),
         l = fe(r),
         u = Boolean(i && 'object' == typeof i);
-    if (!(n.length || l.length || u || c.waiting || c.called)) return;
+    if (!(a.length || l.length || u || c.waiting || c.called)) return;
     const d =
             Number(r.waitingCount || 0) >
             l.filter((t) => 'waiting' === t.status).length,
         p = new Map(s.map((t) => [ge(t), t]));
-    if (n.length) Ge(n, r, { fallbackPartial: !1, syncMode: o });
+    if (a.length) Ge(a, r, { fallbackPartial: !1, syncMode: o });
     else {
-        !(function (t, e, a) {
-            const n = e.callingNowByConsultorio || {},
+        !(function (t, e, n) {
+            const a = e.callingNowByConsultorio || {},
                 i = Number(e.calledCount || e.counts?.called || 0),
                 o = Number(e.waitingCount || e.counts?.waiting || 0),
                 s = re(e.nextTickets),
                 r = new Set(),
-                c = n[1] || n[1] || null,
-                l = n[2] || n[2] || null;
+                c = a[1] || a[1] || null,
+                l = a[2] || a[2] || null;
             (c && r.add(ge(c)), l && r.add(ge(l)));
             const u = new Set(s.map((t) => ge(t))),
                 d = r.size > 0 || 0 === i,
                 p = u.size > 0 || 0 === o,
                 m = u.size > 0 && o > u.size;
-            for (const [e, n] of t.entries()) {
-                const i = de(n, 0);
-                a.called && d && 'called' === i.status && !r.has(e)
+            for (const [e, a] of t.entries()) {
+                const i = de(a, 0);
+                n.called && d && 'called' === i.status && !r.has(e)
                     ? t.set(
                           e,
                           de(
@@ -2673,7 +2673,7 @@ function Ze(t, e = {}) {
                               0
                           )
                       )
-                    : a.waiting &&
+                    : n.waiting &&
                       p &&
                       'waiting' === i.status &&
                       (o <= 0 ? t.delete(e) : m || u.has(e) || t.delete(e));
@@ -2681,38 +2681,38 @@ function Ze(t, e = {}) {
         })(p, r, c);
         for (const t of l) {
             const e = ge(t),
-                a = p.get(e) || null,
-                n = ue(t.createdAt, t.created_at, a?.createdAt, a?.created_at),
+                n = p.get(e) || null,
+                a = ue(t.createdAt, t.created_at, n?.createdAt, n?.created_at),
                 i = ue(
                     t.priorityClass,
                     t.priority_class,
-                    a?.priorityClass,
-                    a?.priority_class,
+                    n?.priorityClass,
+                    n?.priority_class,
                     'walk_in'
                 ),
                 o = ue(
                     t.queueType,
                     t.queue_type,
-                    a?.queueType,
-                    a?.queue_type,
+                    n?.queueType,
+                    n?.queue_type,
                     'walk_in'
                 ),
                 s = ue(
                     t.patientInitials,
                     t.patient_initials,
-                    a?.patientInitials,
-                    a?.patient_initials,
+                    n?.patientInitials,
+                    n?.patient_initials,
                     '--'
                 );
             p.set(
                 e,
                 de(
                     {
-                        ...(a || {}),
+                        ...(n || {}),
                         ...t,
                         status: t.status,
                         assignedConsultorio: t.assignedConsultorio,
-                        createdAt: n || new Date().toISOString(),
+                        createdAt: a || new Date().toISOString(),
                         priorityClass: i,
                         queueType: o,
                         patientInitials: s,
@@ -2724,8 +2724,8 @@ function Ze(t, e = {}) {
         if (u) {
             const t = de(i, p.size),
                 e = ge(t),
-                a = p.get(e) || null;
-            p.set(e, de({ ...(a || {}), ...t }, p.size));
+                n = p.get(e) || null;
+            p.set(e, de({ ...(n || {}), ...t }, p.size));
         }
         Ge(Array.from(p.values()), r, { fallbackPartial: d, syncMode: o });
     }
@@ -2744,11 +2744,11 @@ async function Xe() {
             });
     }
 }
-function ta(t, e, a = void 0) {
+function tn(t, e, n = void 0) {
     We(t, (t) => ({
         ...t,
         status: e,
-        assignedConsultorio: void 0 === a ? t.assignedConsultorio : a,
+        assignedConsultorio: void 0 === n ? t.assignedConsultorio : n,
         calledAt:
             'called' === e
                 ? new Date().toISOString()
@@ -2761,43 +2761,43 @@ function ta(t, e, a = void 0) {
                 : '',
     }));
 }
-async function ea({ ticketId: t, action: e, consultorio: a }) {
-    const n = Number(t || 0),
+async function en({ ticketId: t, action: e, consultorio: n }) {
+    const a = Number(t || 0),
         i = se(e);
-    if (n && i)
+    if (a && i)
         return b().queue.practiceMode
             ? ('reasignar' === i || 're-llamar' === i
-                  ? ta(n, 'called', 2 === Number(a || 1) ? 2 : 1)
+                  ? tn(a, 'called', 2 === Number(n || 1) ? 2 : 1)
                   : 'liberar' === i
-                    ? ta(n, 'waiting', null)
+                    ? tn(a, 'waiting', null)
                     : 'completar' === i
-                      ? ta(n, 'completed')
+                      ? tn(a, 'completed')
                       : 'no_show' === i
-                        ? ta(n, 'no_show')
-                        : 'cancelar' === i && ta(n, 'cancelled'),
-              void Ue(`Practica: accion ${i} en ticket ${n}`))
+                        ? tn(a, 'no_show')
+                        : 'cancelar' === i && tn(a, 'cancelled'),
+              void Ue(`Practica: accion ${i} en ticket ${a}`))
             : (Ze(
                   await k('queue-ticket', {
                       method: 'PATCH',
-                      body: { id: n, action: i, consultorio: Number(a || 0) },
+                      body: { id: a, action: i, consultorio: Number(n || 0) },
                   }),
                   { syncMode: 'live' }
               ),
-              void Ue(`Accion ${i} ticket ${n}`));
+              void Ue(`Accion ${i} ticket ${a}`));
 }
-async function aa(t) {
+async function nn(t) {
     const e = 2 === Number(t || 0) ? 2 : 1,
-        a = b();
+        n = b();
     if (!_e.get(e)) {
         if (
-            'locked' === a.queue.stationMode &&
-            a.queue.stationConsultorio !== e
+            'locked' === n.queue.stationMode &&
+            n.queue.stationConsultorio !== e
         )
             return (
                 Ue(`Llamado bloqueado para C${e} por lock de estacion`),
                 void s('Modo bloqueado: consultorio no permitido', 'warning')
             );
-        if (a.queue.practiceMode) {
+        if (n.queue.practiceMode) {
             const t = (function (t) {
                 return Ne().queueTickets.find(
                     (e) =>
@@ -2835,11 +2835,11 @@ async function aa(t) {
         }
     }
 }
-async function na(t, e, a = 0) {
-    const n = {
+async function an(t, e, n = 0) {
+    const a = {
             ticketId: Number(t || 0),
             action: se(e),
-            consultorio: Number(a || 0),
+            consultorio: Number(n || 0),
         },
         i = b(),
         o = (function (t) {
@@ -2848,32 +2848,32 @@ async function na(t, e, a = 0) {
                 (e && Ne().queueTickets.find((t) => Number(t.id || 0) === e)) ||
                 null
             );
-        })(n.ticketId);
+        })(a.ticketId);
     if (
         !i.queue.practiceMode &&
-        Le.has(n.action) &&
+        Le.has(a.action) &&
         (function (t, e) {
-            const a = se(t);
+            const n = se(t);
             return (
-                'cancelar' === a ||
-                ('no_show' === a &&
+                'cancelar' === n ||
+                ('no_show' === n &&
                     (!e ||
                         'called' === oe(e.status) ||
                         Number(e.assignedConsultorio || 0) > 0))
             );
-        })(n.action, o)
+        })(a.action, o)
     )
-        return (Oe(n), void Ue(`Accion ${n.action} pendiente de confirmacion`));
-    await ea(n);
+        return (Re(a), void Ue(`Accion ${a.action} pendiente de confirmacion`));
+    await en(a);
 }
-async function ia() {
+async function on() {
     const t = b().queue.pendingSensitiveAction;
-    t ? (Re(), await ea(t)) : Re();
+    t ? (Oe(), await en(t)) : Oe();
 }
-function oa() {
-    (Re(), Ue('Accion sensible cancelada'));
+function sn() {
+    (Oe(), Ue('Accion sensible cancelada'));
 }
-function sa() {
+function rn() {
     const t = document.getElementById('queueSensitiveConfirmDialog'),
         e = b().queue.pendingSensitiveAction;
     return !(
@@ -2882,10 +2882,10 @@ function sa() {
                 ? t.open
                 : t instanceof HTMLElement &&
                   (!t.hidden || t.hasAttribute('open')))) ||
-        (oa(), 0)
+        (sn(), 0)
     );
 }
-async function ra(t) {
+async function cn(t) {
     const e = Number(t || 0);
     e &&
         (b().queue.practiceMode
@@ -2893,15 +2893,15 @@ async function ra(t) {
             : (await k('queue-reprint', { method: 'POST', body: { id: e } }),
               Ue(`Reimpresion ticket ${e}`)));
 }
-function ca() {
+function ln() {
     Je({ helpOpen: !b().queue.helpOpen });
 }
-function la(t) {
+function un(t) {
     const e = Boolean(t);
     (Je({ practiceMode: e, pendingSensitiveAction: null }),
         Ue(e ? 'Modo practica activo' : 'Modo practica desactivado'));
 }
-async function ua(t) {
+async function dn(t) {
     const e = b();
     if (e.queue.captureCallKeyMode) {
         const e = {
@@ -2925,23 +2925,23 @@ async function ua(t) {
             );
         })(t, e.queue.customCallKey)
     )
-        return void (await aa(e.queue.stationConsultorio));
-    const a = ie(t.code),
-        n = ie(t.key),
+        return void (await nn(e.queue.stationConsultorio));
+    const n = ie(t.code),
+        a = ie(t.key),
         i =
-            'numpadenter' === a ||
-            'kpenter' === a ||
-            ('enter' === n && 3 === Number(t.location || 0));
-    if (i && e.queue.pendingSensitiveAction) await ia();
+            'numpadenter' === n ||
+            'kpenter' === n ||
+            ('enter' === a && 3 === Number(t.location || 0));
+    if (i && e.queue.pendingSensitiveAction) await on();
     else {
-        if ('numpad2' === a || '2' === n)
+        if ('numpad2' === n || '2' === a)
             return 'locked' === e.queue.stationMode &&
                 2 !== e.queue.stationConsultorio
                 ? (s('Cambio bloqueado por modo estación', 'warning'),
                   void Ue('Cambio de estación bloqueado por lock'))
                 : (Je({ stationConsultorio: 2 }),
                   void Ue('Numpad: estacion C2'));
-        if ('numpad1' === a || '1' === n)
+        if ('numpad1' === n || '1' === a)
             return 'locked' === e.queue.stationMode &&
                 1 !== e.queue.stationConsultorio
                 ? (s('Cambio bloqueado por modo estación', 'warning'),
@@ -2952,69 +2952,69 @@ async function ua(t) {
             if (e.queue.oneTap) {
                 const t = He();
                 t &&
-                    (Oe({
+                    (Re({
                         ticketId: t.id,
                         action: 'completar',
                         consultorio: e.queue.stationConsultorio,
                     }),
-                    await ia());
+                    await on());
             }
-            await aa(e.queue.stationConsultorio);
+            await nn(e.queue.stationConsultorio);
         } else {
             if (
-                'numpaddecimal' === a ||
-                'kpdecimal' === a ||
-                'decimal' === n ||
-                ',' === n ||
-                '.' === n
+                'numpaddecimal' === n ||
+                'kpdecimal' === n ||
+                'decimal' === a ||
+                ',' === a ||
+                '.' === a
             ) {
                 const t = He();
                 return void (
                     t &&
-                    Oe({
+                    Re({
                         ticketId: t.id,
                         action: 'completar',
                         consultorio: e.queue.stationConsultorio,
                     })
                 );
             }
-            if ('numpadsubtract' === a || 'kpsubtract' === a || '-' === n) {
+            if ('numpadsubtract' === n || 'kpsubtract' === n || '-' === a) {
                 const t = He();
                 return void (
                     t &&
-                    Oe({
+                    Re({
                         ticketId: t.id,
                         action: 'no_show',
                         consultorio: e.queue.stationConsultorio,
                     })
                 );
             }
-            if ('numpadadd' === a || 'kpadd' === a || '+' === n) {
+            if ('numpadadd' === n || 'kpadd' === n || '+' === a) {
                 const t = He();
                 t &&
-                    (await na(t.id, 're-llamar', e.queue.stationConsultorio),
+                    (await an(t.id, 're-llamar', e.queue.stationConsultorio),
                     Ue(`Re-llamar ${t.ticketCode}`),
                     s(`Re-llamar ${t.ticketCode}`, 'info'));
             }
         }
     }
 }
-const da = 'appointments',
-    pa = 'callbacks',
-    ma = 'reviews',
-    ba = 'availability',
-    ga = 'availability-meta',
-    fa = 'queue-tickets',
-    ha = 'queue-meta',
-    ya = 'health-status';
-function va(t) {
+const pn = 'appointments',
+    mn = 'callbacks',
+    bn = 'reviews',
+    gn = 'availability',
+    fn = 'availability-meta',
+    hn = 'queue-tickets',
+    yn = 'queue-meta',
+    vn = 'health-status';
+function kn(t) {
     return Array.isArray(t.queue_tickets)
         ? t.queue_tickets
         : Array.isArray(t.queueTickets)
           ? t.queueTickets
           : [];
 }
-function ka(t) {
+function wn(t) {
     g((e) => {
         return {
             ...e,
@@ -3022,8 +3022,8 @@ function ka(t) {
                 ...e.data,
                 appointments: t.appointments || [],
                 callbacks:
-                    ((a = t.callbacks || []),
-                    (Array.isArray(a) ? a : []).map((t) => ({
+                    ((n = t.callbacks || []),
+                    (Array.isArray(n) ? n : []).map((t) => ({
                         ...t,
                         status: String(t.status || '')
                             .toLowerCase()
@@ -3041,30 +3041,30 @@ function ka(t) {
             },
             ui: { ...e.ui, lastRefreshAt: Date.now() },
         };
-        var a;
+        var n;
     });
 }
-function wa(t) {
+function Sn(t) {
     return String(t || '')
         .toLowerCase()
         .trim();
 }
-function Sa(t) {
+function Cn(t) {
     const e = new Date(t || '');
     return Number.isNaN(e.getTime()) ? 0 : e.getTime();
 }
-function Ca(t) {
-    return Sa(`${t?.date || ''}T${t?.time || '00:00'}:00`);
+function qn(t) {
+    return Cn(`${t?.date || ''}T${t?.time || '00:00'}:00`);
 }
-function qa(t) {
+function An(t) {
     if (!t) return 'Sin fecha';
     const e = Math.round((t - Date.now()) / 6e4),
-        a = Math.abs(e);
+        n = Math.abs(e);
     return e < 0
-        ? a < 60
-            ? `Hace ${a} min`
-            : a < 1440
-              ? `Hace ${Math.round(a / 60)} h`
+        ? n < 60
+            ? `Hace ${n} min`
+            : n < 1440
+              ? `Hace ${Math.round(n / 60)} h`
               : 'Ya ocurrio'
         : e < 60
           ? `En ${Math.max(e, 0)} min`
@@ -3072,274 +3072,392 @@ function qa(t) {
             ? `En ${Math.round(e / 60)} h`
             : `En ${Math.round(e / 1440)} d`;
 }
-function Aa(e, a, n) {
+function Mn(e, n, a) {
     return Array.isArray(e) && 0 !== e.length
         ? e
               .slice(0, 5)
               .map((e) => {
-                  const i = String(e[a] || e.label || '-'),
-                      o = String(e[n] ?? e.count ?? 0);
+                  const i = String(e[n] || e.label || '-'),
+                      o = String(e[a] ?? e.count ?? 0);
                   return `<li><span>${t(i)}</span><strong>${t(o)}</strong></li>`;
               })
               .join('')
         : '<li><span>Sin datos</span><strong>0</strong></li>';
 }
-function Ma(e, a, n, i = 'neutral') {
-    return `\n        <li class="dashboard-attention-item" data-tone="${t(i)}">\n            <div>\n                <span>${t(e)}</span>\n                <small>${t(n)}</small>\n            </div>\n            <strong>${t(String(a))}</strong>\n        </li>\n    `;
+function Tn(e, n, a, i = 'neutral') {
+    return `\n        <li class="dashboard-attention-item" data-tone="${t(i)}">\n            <div>\n                <span>${t(e)}</span>\n                <small>${t(a)}</small>\n            </div>\n            <strong>${t(String(n))}</strong>\n        </li>\n    `;
 }
-function Ta(e, a, n) {
-    return `\n        <button type="button" class="operations-action-item" data-action="${t(e)}">\n            <span>${t(a)}</span>\n            <small>${t(n)}</small>\n        </button>\n    `;
+function $n(e, n, a) {
+    return `\n        <button type="button" class="operations-action-item" data-action="${t(e)}">\n            <span>${t(n)}</span>\n            <small>${t(a)}</small>\n        </button>\n    `;
 }
-function $a(t) {
-    const e = Array.isArray(t?.data?.appointments) ? t.data.appointments : [],
-        a = Array.isArray(t?.data?.callbacks) ? t.data.callbacks : [],
-        i = Array.isArray(t?.data?.reviews) ? t.data.reviews : [],
-        s =
-            t?.data?.availability && 'object' == typeof t.data.availability
-                ? t.data.availability
-                : {},
-        l = t?.data?.funnelMetrics || {},
-        u = (function (t) {
+function _n(t) {
+    const {
+            appointments: e,
+            availability: n,
+            callbacks: a,
+            funnel: i,
+            reviews: o,
+        } = (function (t) {
+            return {
+                appointments: Array.isArray(t?.data?.appointments)
+                    ? t.data.appointments
+                    : [],
+                callbacks: Array.isArray(t?.data?.callbacks)
+                    ? t.data.callbacks
+                    : [],
+                reviews: Array.isArray(t?.data?.reviews) ? t.data.reviews : [],
+                availability:
+                    t?.data?.availability &&
+                    'object' == typeof t.data.availability
+                        ? t.data.availability
+                        : {},
+                funnel: t?.data?.funnelMetrics || {},
+            };
+        })(t),
+        s = (function (t) {
             return t.filter((t) =>
                 (function (t) {
                     if (!t) return !1;
                     const e = new Date(t),
-                        a = new Date();
+                        n = new Date();
                     return (
-                        e.getFullYear() === a.getFullYear() &&
-                        e.getMonth() === a.getMonth() &&
-                        e.getDate() === a.getDate()
+                        e.getFullYear() === n.getFullYear() &&
+                        e.getMonth() === n.getMonth() &&
+                        e.getDate() === n.getDate()
                     );
-                })(Ca(t))
+                })(qn(t))
             ).length;
         })(e),
-        d = (function (t) {
+        r = (function (t) {
             return t.filter((t) => {
-                const e = wa(t.paymentStatus || t.payment_status);
+                const e = Sn(t.paymentStatus || t.payment_status);
                 return (
                     'pending_transfer_review' === e || 'pending_transfer' === e
                 );
             }).length;
         })(e),
-        p = (function (t) {
-            return t.filter((t) => 'pending' === wa(t.status)).length;
+        c = (function (t) {
+            return t.filter((t) => 'pending' === Sn(t.status)).length;
         })(a),
-        m = (function (t) {
+        l = (function (t) {
             return t.filter((t) => {
-                if ('pending' !== wa(t.status)) return !1;
+                if ('pending' !== Sn(t.status)) return !1;
                 const e = (function (t) {
-                    return Sa(t?.fecha || t?.createdAt || '');
+                    return Cn(t?.fecha || t?.createdAt || '');
                 })(t);
                 return !!e && Math.round((Date.now() - e) / 6e4) >= 120;
             }).length;
         })(a),
-        b = (function (t) {
-            return t.filter((t) => 'no_show' === wa(t.status)).length;
+        u = (function (t) {
+            return t.filter((t) => 'no_show' === Sn(t.status)).length;
         })(e),
-        g = (function (t) {
+        d = (function (t) {
             return t.length
                 ? (
                       t.reduce((t, e) => t + Number(e.rating || 0), 0) /
                       t.length
                   ).toFixed(1)
                 : '0.0';
-        })(i),
-        f = (function (t, e = 30) {
-            const a = Date.now();
+        })(o),
+        p = (function (t, e = 30) {
+            const n = Date.now();
             return t.filter((t) => {
-                const n = Sa(t.date || t.createdAt || '');
-                return !!n && a - n <= 24 * e * 60 * 60 * 1e3;
+                const a = Cn(t.date || t.createdAt || '');
+                return a && n - a <= 24 * e * 60 * 60 * 1e3;
             }).length;
-        })(i),
-        h = (function (t) {
+        })(o),
+        m = (function (t) {
             return Object.values(t || {}).filter(
                 (t) => Array.isArray(t) && t.length > 0
             ).length;
-        })(s),
-        y = (function (t) {
+        })(n),
+        b = (function (t) {
             return t
-                .map((t) => ({ item: t, stamp: Ca(t) }))
+                .map((t) => ({ item: t, stamp: qn(t) }))
                 .filter((t) => t.stamp > 0 && t.stamp >= Date.now())
                 .sort((t, e) => t.stamp - e.stamp)[0];
         })(e);
-    (r('#todayAppointments', u),
-        r('#totalAppointments', e.length),
-        r('#pendingCallbacks', p),
-        r('#totalReviewsCount', i.length),
-        r('#totalNoShows', b),
-        r('#avgRating', g),
-        r('#adminAvgRating', g),
-        r('#dashboardHeroRating', g),
-        r('#dashboardHeroRecentReviews', f),
-        r('#dashboardHeroUrgentCallbacks', m),
-        r('#dashboardHeroPendingTransfers', d),
-        r(
-            '#dashboardHeroSummary',
-            (function ({
-                pendingTransfers: t,
-                urgentCallbacks: e,
-                noShows: a,
+    return {
+        appointments: e,
+        availabilityDays: m,
+        avgRating: d,
+        callbacks: a,
+        funnel: i,
+        nextAppointment: b,
+        noShows: u,
+        pendingCallbacks: c,
+        pendingTransfers: r,
+        recentReviews: p,
+        reviews: o,
+        todayAppointments: s,
+        urgentCallbacks: l,
+    };
+}
+function Ln(t) {
+    const e = _n(t);
+    ((function (t) {
+        const {
+            appointments: e,
+            avgRating: n,
+            nextAppointment: a,
+            noShows: i,
+            pendingCallbacks: o,
+            pendingTransfers: s,
+            recentReviews: c,
+            reviews: l,
+            todayAppointments: u,
+            urgentCallbacks: d,
+        } = t;
+        (r('#todayAppointments', u),
+            r('#totalAppointments', e.length),
+            r('#pendingCallbacks', o),
+            r('#totalReviewsCount', l.length),
+            r('#totalNoShows', i),
+            r('#avgRating', n),
+            r('#adminAvgRating', n),
+            r('#dashboardHeroRating', n),
+            r('#dashboardHeroRecentReviews', c),
+            r('#dashboardHeroUrgentCallbacks', d),
+            r('#dashboardHeroPendingTransfers', s),
+            r(
+                '#dashboardHeroSummary',
+                (function ({
+                    pendingTransfers: t,
+                    urgentCallbacks: e,
+                    noShows: n,
+                    nextAppointment: a,
+                }) {
+                    return t > 0
+                        ? `Primero valida ${t} transferencia(s) antes de liberar mas agenda.`
+                        : e > 0
+                          ? `Hay ${e} callback(s) fuera de SLA; el siguiente paso es drenar esa cola.`
+                          : n > 0
+                            ? `Revisa ${n} no show del corte actual para cerrar seguimiento.`
+                            : a?.item
+                              ? `La siguiente cita es ${a.item.name || 'sin nombre'} ${An(a.stamp).toLowerCase()}.`
+                              : 'Agenda, callbacks y disponibilidad con una lectura clara y una sola prioridad por pantalla.';
+                })({
+                    pendingTransfers: s,
+                    urgentCallbacks: d,
+                    noShows: i,
+                    nextAppointment: a,
+                })
+            ));
+    })(e),
+        (function (t) {
+            const {
+                    nextAppointment: e,
+                    pendingTransfers: n,
+                    todayAppointments: i,
+                    urgentCallbacks: o,
+                } = t,
+                s = n > 0 || o > 0 ? 'warning' : i > 0 ? 'neutral' : 'success';
+            (r(
+                '#dashboardLiveStatus',
+                n > 0 || o > 0 ? 'Atencion' : i > 0 ? 'Activo' : 'Estable'
+            ),
+                document
+                    .getElementById('dashboardLiveStatus')
+                    ?.setAttribute('data-state', s),
+                r(
+                    '#dashboardLiveMeta',
+                    (function ({
+                        pendingTransfers: t,
+                        urgentCallbacks: e,
+                        nextAppointment: n,
+                    }) {
+                        return t > 0
+                            ? 'Transferencias detenidas hasta validar comprobante.'
+                            : e > 0
+                              ? 'Callbacks fuera de SLA requieren llamada inmediata.'
+                              : n?.item
+                                ? `Siguiente ingreso: ${n.item.name || 'Paciente'} el ${a(n.item.date)} a las ${n.item.time || '--:--'}.`
+                                : 'Sin alertas criticas en la operacion actual.';
+                    })({
+                        pendingTransfers: n,
+                        urgentCallbacks: o,
+                        nextAppointment: e,
+                    })
+                ));
+        })(e),
+        (function (t) {
+            const {
+                availabilityDays: e,
                 nextAppointment: n,
-            }) {
-                return t > 0
-                    ? `Primero valida ${t} transferencia(s) antes de liberar mas agenda.`
-                    : e > 0
-                      ? `Hay ${e} callback(s) fuera de SLA; el siguiente paso es drenar esa cola.`
-                      : a > 0
-                        ? `Revisa ${a} no show del corte actual para cerrar seguimiento.`
+                pendingCallbacks: a,
+                pendingTransfers: i,
+                todayAppointments: o,
+                urgentCallbacks: s,
+            } = t;
+            (r(
+                '#dashboardQueueHealth',
+                s > 0
+                    ? 'Cola: SLA comprometido'
+                    : a > 0
+                      ? 'Cola: pendiente por drenar'
+                      : 'Cola: estable'
+            ),
+                r(
+                    '#dashboardFlowStatus',
+                    n?.item
+                        ? `${An(n.stamp)} | ${n.item.name || 'Paciente'}`
+                        : e > 0
+                          ? `${e} dia(s) con slots publicados`
+                          : 'Sin citas inmediatas'
+                ),
+                r('#operationPendingReviewCount', i),
+                r('#operationPendingCallbacksCount', a),
+                r('#operationTodayLoadCount', o),
+                r(
+                    '#operationDeckMeta',
+                    i > 0 || s > 0
+                        ? 'La prioridad ya esta definida'
                         : n?.item
-                          ? `La siguiente cita es ${n.item.name || 'sin nombre'} ${qa(n.stamp).toLowerCase()}.`
-                          : 'Agenda, callbacks y disponibilidad con una lectura clara y una sola prioridad por pantalla.';
-            })({
-                pendingTransfers: d,
-                urgentCallbacks: m,
-                noShows: b,
-                nextAppointment: y,
-            })
-        ));
-    const v = d > 0 || m > 0 ? 'Atencion' : u > 0 ? 'Activo' : 'Estable',
-        k = d > 0 || m > 0 ? 'warning' : u > 0 ? 'neutral' : 'success',
-        w =
-            d > 0
-                ? 'Transferencias detenidas hasta validar comprobante.'
-                : m > 0
-                  ? 'Callbacks fuera de SLA requieren llamada inmediata.'
-                  : y?.item
-                    ? `Siguiente ingreso: ${y.item.name || 'Paciente'} el ${n(y.item.date)} a las ${y.item.time || '--:--'}.`
-                    : 'Sin alertas criticas en la operacion actual.';
-    (r('#dashboardLiveStatus', v),
-        document
-            .getElementById('dashboardLiveStatus')
-            ?.setAttribute('data-state', k),
-        r('#dashboardLiveMeta', w),
-        r(
-            '#dashboardQueueHealth',
-            m > 0
-                ? 'Cola: SLA comprometido'
-                : p > 0
-                  ? 'Cola: pendiente por drenar'
-                  : 'Cola: estable'
-        ),
-        r(
-            '#dashboardFlowStatus',
-            y?.item
-                ? `${qa(y.stamp)} | ${y.item.name || 'Paciente'}`
-                : h > 0
-                  ? `${h} dia(s) con slots publicados`
-                  : 'Sin citas inmediatas'
-        ),
-        r('#operationPendingReviewCount', d),
-        r('#operationPendingCallbacksCount', p),
-        r('#operationTodayLoadCount', u),
-        r(
-            '#operationDeckMeta',
-            d > 0 || m > 0
-                ? 'La prioridad ya esta definida'
-                : y?.item
-                  ? 'Siguiente accion lista'
-                  : 'Operacion sin frentes urgentes'
-        ),
-        r(
-            '#operationQueueHealth',
-            y?.item
-                ? `Siguiente hito: ${y.item.name || 'Paciente'} ${qa(y.stamp).toLowerCase()}`
-                : 'Sin citas inmediatas en cola'
-        ),
+                          ? 'Siguiente accion lista'
+                          : 'Operacion sin frentes urgentes'
+                ),
+                r(
+                    '#operationQueueHealth',
+                    n?.item
+                        ? `Siguiente hito: ${n.item.name || 'Paciente'} ${An(n.stamp).toLowerCase()}`
+                        : 'Sin citas inmediatas en cola'
+                ));
+        })(e),
         c(
             '#operationActionList',
-            [
-                Ta(
-                    'context-open-appointments-transfer',
-                    d > 0 ? 'Validar transferencias' : 'Abrir agenda clinica',
-                    d > 0
-                        ? `${d} comprobante(s) por revisar`
-                        : `${e.length} cita(s) en el corte`
-                ),
-                Ta(
-                    'context-open-callbacks-pending',
-                    m > 0 ? 'Resolver callbacks urgentes' : 'Abrir callbacks',
-                    m > 0
-                        ? `${m} caso(s) fuera de SLA`
-                        : `${p} callback(s) pendientes`
-                ),
-                Ta(
-                    'refresh-admin-data',
-                    'Actualizar tablero',
-                    y?.item
-                        ? `Proxima cita ${qa(y.stamp).toLowerCase()}`
-                        : 'Sincronizar agenda y funnel'
-                ),
-            ].join('')
+            (function (t) {
+                const {
+                        pendingTransfers: e,
+                        urgentCallbacks: n,
+                        pendingCallbacks: a,
+                    } = t,
+                    { appointments: i, nextAppointment: o } = t;
+                return [
+                    $n(
+                        'context-open-appointments-transfer',
+                        e > 0
+                            ? 'Validar transferencias'
+                            : 'Abrir agenda clinica',
+                        e > 0
+                            ? `${e} comprobante(s) por revisar`
+                            : `${i.length} cita(s) en el corte`
+                    ),
+                    $n(
+                        'context-open-callbacks-pending',
+                        n > 0
+                            ? 'Resolver callbacks urgentes'
+                            : 'Abrir callbacks',
+                        n > 0
+                            ? `${n} caso(s) fuera de SLA`
+                            : `${a} callback(s) pendientes`
+                    ),
+                    $n(
+                        'refresh-admin-data',
+                        'Actualizar tablero',
+                        o?.item
+                            ? `Proxima cita ${An(o.stamp).toLowerCase()}`
+                            : 'Sincronizar agenda y funnel'
+                    ),
+                ].join('');
+            })(e)
         ),
         c(
             '#dashboardAttentionList',
-            [
-                Ma(
-                    'Transferencias',
-                    d,
-                    d > 0
-                        ? 'Pago detenido antes de confirmar.'
-                        : 'Sin comprobantes pendientes.',
-                    d > 0 ? 'warning' : 'success'
-                ),
-                Ma(
-                    'Callbacks urgentes',
-                    m,
-                    m > 0
-                        ? 'Mas de 120 min en espera.'
-                        : 'SLA dentro de rango.',
-                    m > 0 ? 'danger' : 'success'
-                ),
-                Ma(
-                    'Agenda de hoy',
-                    u,
-                    u > 0
-                        ? `${u} ingreso(s) en la jornada.`
-                        : 'No hay citas hoy.',
-                    u > 6 ? 'warning' : 'neutral'
-                ),
-                Ma(
-                    'Disponibilidad',
-                    h,
-                    h > 0
-                        ? 'Dias con slots listos para publicar.'
-                        : 'Sin slots cargados en el calendario.',
-                    h > 0 ? 'success' : 'warning'
-                ),
-            ].join('')
-        ));
-    const S = l.summary || {};
-    (r('#funnelViewBooking', o(S.viewBooking || 0)),
-        r('#funnelStartCheckout', o(S.startCheckout || 0)),
-        r('#funnelBookingConfirmed', o(S.bookingConfirmed || 0)),
-        r('#funnelAbandonRate', `${Number(S.abandonRatePct || 0).toFixed(1)}%`),
-        c('#funnelEntryList', Aa(l.checkoutEntryBreakdown, 'entry', 'count')),
-        c('#funnelSourceList', Aa(l.sourceBreakdown, 'source', 'count')),
-        c(
-            '#funnelPaymentMethodList',
-            Aa(l.paymentMethodBreakdown, 'method', 'count')
+            (function (t) {
+                const {
+                    availabilityDays: e,
+                    pendingTransfers: n,
+                    todayAppointments: a,
+                    urgentCallbacks: i,
+                } = t;
+                return [
+                    Tn(
+                        'Transferencias',
+                        n,
+                        n > 0
+                            ? 'Pago detenido antes de confirmar.'
+                            : 'Sin comprobantes pendientes.',
+                        n > 0 ? 'warning' : 'success'
+                    ),
+                    Tn(
+                        'Callbacks urgentes',
+                        i,
+                        i > 0
+                            ? 'Mas de 120 min en espera.'
+                            : 'SLA dentro de rango.',
+                        i > 0 ? 'danger' : 'success'
+                    ),
+                    Tn(
+                        'Agenda de hoy',
+                        a,
+                        a > 0
+                            ? `${a} ingreso(s) en la jornada.`
+                            : 'No hay citas hoy.',
+                        a > 6 ? 'warning' : 'neutral'
+                    ),
+                    Tn(
+                        'Disponibilidad',
+                        e,
+                        e > 0
+                            ? 'Dias con slots listos para publicar.'
+                            : 'Sin slots cargados en el calendario.',
+                        e > 0 ? 'success' : 'warning'
+                    ),
+                ].join('');
+            })(e)
         ),
-        c('#funnelAbandonList', Aa(l.checkoutAbandonByStep, 'step', 'count')),
-        c(
-            '#funnelAbandonReasonList',
-            Aa(l.abandonReasonBreakdown, 'reason', 'count')
-        ),
-        c('#funnelStepList', Aa(l.bookingStepBreakdown, 'step', 'count')),
-        c('#funnelErrorCodeList', Aa(l.errorCodeBreakdown, 'code', 'count')));
+        (function (t) {
+            const e = t.summary || {};
+            (r('#funnelViewBooking', o(e.viewBooking || 0)),
+                r('#funnelStartCheckout', o(e.startCheckout || 0)),
+                r('#funnelBookingConfirmed', o(e.bookingConfirmed || 0)),
+                r(
+                    '#funnelAbandonRate',
+                    `${Number(e.abandonRatePct || 0).toFixed(1)}%`
+                ),
+                c(
+                    '#funnelEntryList',
+                    Mn(t.checkoutEntryBreakdown, 'entry', 'count')
+                ),
+                c(
+                    '#funnelSourceList',
+                    Mn(t.sourceBreakdown, 'source', 'count')
+                ),
+                c(
+                    '#funnelPaymentMethodList',
+                    Mn(t.paymentMethodBreakdown, 'method', 'count')
+                ),
+                c(
+                    '#funnelAbandonList',
+                    Mn(t.checkoutAbandonByStep, 'step', 'count')
+                ),
+                c(
+                    '#funnelAbandonReasonList',
+                    Mn(t.abandonReasonBreakdown, 'reason', 'count')
+                ),
+                c(
+                    '#funnelStepList',
+                    Mn(t.bookingStepBreakdown, 'step', 'count')
+                ),
+                c(
+                    '#funnelErrorCodeList',
+                    Mn(t.errorCodeBreakdown, 'code', 'count')
+                ));
+        })(e.funnel));
 }
-function _a(t) {
+function En(t) {
     return String(t || '')
         .toLowerCase()
         .trim();
 }
-function La(t) {
+function Nn(t) {
     const e = new Date(t?.date || t?.createdAt || '');
     return Number.isNaN(e.getTime()) ? 0 : e.getTime();
 }
-function Ea(t) {
+function Dn(t) {
     return `${Math.max(0, Math.min(5, Math.round(Number(t || 0))))}/5`;
 }
-function Na(t) {
+function Bn(t) {
     const e = String(t || 'Anonimo')
         .trim()
         .split(/\s+/)
@@ -3347,23 +3465,23 @@ function Na(t) {
         .slice(0, 2);
     return e.length ? e.map((t) => t.charAt(0).toUpperCase()).join('') : 'AN';
 }
-function Da(t, e = 220) {
-    const a = String(t || '').trim();
-    return a
-        ? a.length <= e
-            ? a
-            : `${a.slice(0, e - 1).trim()}...`
+function xn(t, e = 220) {
+    const n = String(t || '').trim();
+    return n
+        ? n.length <= e
+            ? n
+            : `${n.slice(0, e - 1).trim()}...`
         : 'Sin comentario escrito.';
 }
-function Ba() {
+function Pn() {
     const t = (function () {
         const t = b(),
             e = Number(t.ui.lastRefreshAt || 0);
         if (!e) return 'Datos: sin sincronizar';
-        const a = Math.max(0, Math.round((Date.now() - e) / 1e3));
-        return a < 60
-            ? `Datos: hace ${a}s`
-            : `Datos: hace ${Math.round(a / 60)}m`;
+        const n = Math.max(0, Math.round((Date.now() - e) / 1e3));
+        return n < 60
+            ? `Datos: hace ${n}s`
+            : `Datos: hace ${Math.round(n / 60)}m`;
     })();
     (r('#adminRefreshStatus', t),
         r(
@@ -3373,68 +3491,68 @@ function Ba() {
                 : t.replace('Datos: ', 'Estado: ')
         ));
 }
-async function xa(e = !1) {
-    const a = await (async function () {
+async function In(e = !1) {
+    const n = await (async function () {
         try {
             const [t, e] = await Promise.all([
                     k('data'),
                     k('health').catch(() => null),
                 ]),
-                a = t.data || {};
-            let n = a.funnelMetrics || null;
-            if (!n) {
+                n = t.data || {};
+            let a = n.funnelMetrics || null;
+            if (!a) {
                 const t = await k('funnel-metrics').catch(() => null);
-                n = t?.data || null;
+                a = t?.data || null;
             }
             const i = {
-                appointments: Array.isArray(a.appointments)
-                    ? a.appointments
+                appointments: Array.isArray(n.appointments)
+                    ? n.appointments
                     : [],
-                callbacks: Array.isArray(a.callbacks) ? a.callbacks : [],
-                reviews: Array.isArray(a.reviews) ? a.reviews : [],
+                callbacks: Array.isArray(n.callbacks) ? n.callbacks : [],
+                reviews: Array.isArray(n.reviews) ? n.reviews : [],
                 availability:
-                    a.availability && 'object' == typeof a.availability
-                        ? a.availability
+                    n.availability && 'object' == typeof n.availability
+                        ? n.availability
                         : {},
                 availabilityMeta:
-                    a.availabilityMeta && 'object' == typeof a.availabilityMeta
-                        ? a.availabilityMeta
+                    n.availabilityMeta && 'object' == typeof n.availabilityMeta
+                        ? n.availabilityMeta
                         : {},
-                queueTickets: va(a),
+                queueTickets: kn(n),
                 queueMeta:
-                    a.queueMeta && 'object' == typeof a.queueMeta
-                        ? a.queueMeta
-                        : a.queue_state && 'object' == typeof a.queue_state
-                          ? a.queue_state
+                    n.queueMeta && 'object' == typeof n.queueMeta
+                        ? n.queueMeta
+                        : n.queue_state && 'object' == typeof n.queue_state
+                          ? n.queue_state
                           : null,
-                funnelMetrics: n,
+                funnelMetrics: a,
                 health: e && e.ok ? e : null,
             };
             return (
-                ka(i),
+                wn(i),
                 (function (t) {
-                    (we(da, t.appointments || []),
-                        we(pa, t.callbacks || []),
-                        we(ma, t.reviews || []),
-                        we(ba, t.availability || {}),
-                        we(ga, t.availabilityMeta || {}),
-                        we(fa, t.queueTickets || []),
-                        we(ha, t.queueMeta || null),
-                        we(ya, t.health || null));
+                    (we(pn, t.appointments || []),
+                        we(mn, t.callbacks || []),
+                        we(bn, t.reviews || []),
+                        we(gn, t.availability || {}),
+                        we(fn, t.availabilityMeta || {}),
+                        we(hn, t.queueTickets || []),
+                        we(yn, t.queueMeta || null),
+                        we(vn, t.health || null));
                 })(i),
                 !0
             );
         } catch (t) {
             return (
-                ka({
-                    appointments: ke(da, []),
-                    callbacks: ke(pa, []),
-                    reviews: ke(ma, []),
-                    availability: ke(ba, {}),
-                    availabilityMeta: ke(ga, {}),
-                    queueTickets: ke(fa, []),
-                    queueMeta: ke(ha, null),
-                    health: ke(ya, null),
+                wn({
+                    appointments: ke(pn, []),
+                    callbacks: ke(mn, []),
+                    reviews: ke(bn, []),
+                    availability: ke(gn, {}),
+                    availabilityMeta: ke(fn, {}),
+                    queueTickets: ke(hn, []),
+                    queueMeta: ke(yn, null),
+                    health: ke(vn, null),
                     funnelMetrics: {
                         summary: {
                             viewBooking: 0,
@@ -3462,11 +3580,11 @@ async function xa(e = !1) {
         (function () {
             const t = b(),
                 e = Ft(t.data.availability || {}),
-                a = jt(t.availability.selectedDate, e);
+                n = jt(t.availability.selectedDate, e);
             (Yt({
                 draft: e,
-                selectedDate: a,
-                monthAnchor: Rt(t.availability.monthAnchor, a),
+                selectedDate: n,
+                monthAnchor: Ot(t.availability.monthAnchor, n),
                 draftDirty: !1,
                 lastAction: '',
             }),
@@ -3477,19 +3595,19 @@ async function xa(e = !1) {
                 e = Array.isArray(t.data.queueTickets)
                     ? t.data.queueTickets.map((t, e) => de(t, e))
                     : [],
-                a =
+                n =
                     t.data.queueMeta && 'object' == typeof t.data.queueMeta
                         ? be(t.data.queueMeta, e)
                         : null;
             if (e.length)
-                return void Ge(e, a || null, {
+                return void Ge(e, n || null, {
                     fallbackPartial: !1,
                     syncMode: 'live',
                 });
-            const n = a ? fe(a) : [];
-            if (n.length)
+            const a = n ? fe(n) : [];
+            if (a.length)
                 return (
-                    Ge(n, a, { fallbackPartial: !0, syncMode: 'fallback' }),
+                    Ge(a, n, { fallbackPartial: !0, syncMode: 'fallback' }),
                     void Ue('Queue fallback parcial desde metadata')
                 );
             if ((await Xe(), (b().data.queueTickets || []).length)) return;
@@ -3505,32 +3623,32 @@ async function xa(e = !1) {
             Ge([], null, { fallbackPartial: !1, syncMode: 'live' });
         })(),
         F(b()),
-        $a(b()),
+        Ln(b()),
         rt(),
         $t(),
         (function () {
             const e = b(),
-                a = Array.isArray(e?.data?.reviews) ? e.data.reviews : [],
-                n = (function (t) {
-                    return t.slice().sort((t, e) => La(e) - La(t));
-                })(a),
+                n = Array.isArray(e?.data?.reviews) ? e.data.reviews : [],
+                a = (function (t) {
+                    return t.slice().sort((t, e) => Nn(e) - Nn(t));
+                })(n),
                 o = (function (t) {
                     return t.length
                         ? t.reduce((t, e) => t + Number(e.rating || 0), 0) /
                               t.length
                         : 0;
-                })(a),
-                s = a.filter((t) => Number(t.rating || 0) >= 5).length,
+                })(n),
+                s = n.filter((t) => Number(t.rating || 0) >= 5).length,
                 l = (function (t, e = 30) {
-                    const a = Date.now();
+                    const n = Date.now();
                     return t.filter((t) => {
-                        const n = La(t);
-                        return !!n && a - n <= 24 * e * 60 * 60 * 1e3;
+                        const a = Nn(t);
+                        return !!a && n - a <= 24 * e * 60 * 60 * 1e3;
                     }).length;
-                })(a),
+                })(n),
                 u = (function (t) {
                     return t.filter((t) => Number(t.rating || 0) <= 3).length;
-                })(a),
+                })(n),
                 d = (function (t) {
                     const e = t.find((t) => Number(t.rating || 0) <= 3);
                     if (e)
@@ -3540,10 +3658,10 @@ async function xa(e = !1) {
                             summary:
                                 'Empieza por la resena mas fragil para entender si hay friccion operativa real.',
                         };
-                    const a = t.find((t) => Number(t.rating || 0) >= 5);
-                    return a
+                    const n = t.find((t) => Number(t.rating || 0) >= 5);
+                    return n
                         ? {
-                              item: a,
+                              item: n,
                               eyebrow: 'Senal a repetir',
                               summary:
                                   'Usa este comentario como referencia del recorrido que conviene proteger.',
@@ -3561,17 +3679,17 @@ async function xa(e = !1) {
                                 summary:
                                     'Cuando entren resenas apareceran aqui con lectura prioritaria.',
                             };
-                })(n);
+                })(a);
             if (
                 (r('#reviewsAverageRating', o.toFixed(1)),
                 r('#reviewsFiveStarCount', s),
                 r('#reviewsRecentCount', l),
-                r('#reviewsTotalCount', a.length),
+                r('#reviewsTotalCount', n.length),
                 r(
                     '#reviewsSentimentLabel',
-                    (function (t, e, a) {
+                    (function (t, e, n) {
                         return e
-                            ? a > 0 && t < 4
+                            ? n > 0 && t < 4
                                 ? 'Atencion requerida'
                                 : t >= 4.7
                                   ? 'Confianza alta'
@@ -3581,17 +3699,17 @@ async function xa(e = !1) {
                                       ? 'Lectura mixta'
                                       : 'Atencion requerida'
                             : 'Sin senal suficiente';
-                    })(o, a.length, u)
+                    })(o, n.length, u)
                 ),
                 c(
                     '#reviewsSummaryRail',
-                    (function (e, a, n) {
+                    (function (e, n, a) {
                         const o = e[0],
                             s = o ? i(o.date || o.createdAt || '') : '-';
-                        return `\n        <article class="reviews-rail-card">\n            <span>Ultima resena</span>\n            <strong>${t(o ? String(o.name || 'Anonimo') : 'Sin datos')}</strong>\n            <small>${t(s)}</small>\n        </article>\n        <article class="reviews-rail-card">\n            <span>Cadencia</span>\n            <strong>${t(String(a))} en 30 dias</strong>\n            <small>Volumen reciente de feedback.</small>\n        </article>\n        <article class="reviews-rail-card">\n            <span>Riesgo</span>\n            <strong>${t(n > 0 ? `${n} por revisar` : 'Sin alertas')}</strong>\n            <small>${t(n > 0 ? 'Hay comentarios que requieren lectura completa.' : 'La conversacion reciente esta estable.')}</small>\n        </article>\n    `;
-                    })(n, l, u)
+                        return `\n        <article class="reviews-rail-card">\n            <span>Ultima resena</span>\n            <strong>${t(o ? String(o.name || 'Anonimo') : 'Sin datos')}</strong>\n            <small>${t(s)}</small>\n        </article>\n        <article class="reviews-rail-card">\n            <span>Cadencia</span>\n            <strong>${t(String(n))} en 30 dias</strong>\n            <small>Volumen reciente de feedback.</small>\n        </article>\n        <article class="reviews-rail-card">\n            <span>Riesgo</span>\n            <strong>${t(a > 0 ? `${a} por revisar` : 'Sin alertas')}</strong>\n            <small>${t(a > 0 ? 'Hay comentarios que requieren lectura completa.' : 'La conversacion reciente esta estable.')}</small>\n        </article>\n    `;
+                    })(a, l, u)
                 ),
-                !a.length)
+                !n.length)
             )
                 return (
                     c(
@@ -3607,7 +3725,7 @@ async function xa(e = !1) {
                 const e = d.item;
                 c(
                     '#reviewsSpotlight',
-                    `\n                <article class="reviews-spotlight-card">\n                    <div class="reviews-spotlight-top">\n                        <span class="review-avatar">${t(Na(e.name || 'Anonimo'))}</span>\n                        <div>\n                            <small>${t(d.eyebrow)}</small>\n                            <strong>${t(e.name || 'Anonimo')}</strong>\n                            <small>${t(i(e.date || e.createdAt || ''))}</small>\n                        </div>\n                    </div>\n                    <p class="reviews-spotlight-stars">${t(Ea(e.rating))}</p>\n                    <p>${t(Da(e.comment || e.review || '', 320))}</p>\n                    <small>${t(d.summary)}</small>\n                </article>\n            `
+                    `\n                <article class="reviews-spotlight-card">\n                    <div class="reviews-spotlight-top">\n                        <span class="review-avatar">${t(Bn(e.name || 'Anonimo'))}</span>\n                        <div>\n                            <small>${t(d.eyebrow)}</small>\n                            <strong>${t(e.name || 'Anonimo')}</strong>\n                            <small>${t(i(e.date || e.createdAt || ''))}</small>\n                        </div>\n                    </div>\n                    <p class="reviews-spotlight-stars">${t(Dn(e.rating))}</p>\n                    <p>${t(xn(e.comment || e.review || '', 320))}</p>\n                    <small>${t(d.summary)}</small>\n                </article>\n            `
                 );
             } else
                 c(
@@ -3616,28 +3734,28 @@ async function xa(e = !1) {
                 );
             c(
                 '#reviewsGrid',
-                n
+                a
                     .map((e) =>
-                        (function (e, { featured: a = !1 } = {}) {
-                            const n = Number(e.rating || 0),
+                        (function (e, { featured: n = !1 } = {}) {
+                            const a = Number(e.rating || 0),
                                 o =
-                                    n >= 5
+                                    a >= 5
                                         ? 'success'
-                                        : n <= 3
+                                        : a <= 3
                                           ? 'danger'
                                           : 'neutral',
                                 s =
-                                    n >= 5
+                                    a >= 5
                                         ? 'Resena de alta confianza'
-                                        : n <= 3
+                                        : a <= 3
                                           ? 'Revisar posible friccion'
                                           : 'Resena util para contexto';
-                            return `\n        <article class="review-card${a ? ' is-featured' : ''}" data-rating="${t(String(n))}">\n            <header>\n                <div class="review-card-heading">\n                    <span class="review-avatar">${t(Na(e.name || 'Anonimo'))}</span>\n                    <div>\n                        <strong>${t(e.name || 'Anonimo')}</strong>\n                        <small>${t(i(e.date || e.createdAt || ''))}</small>\n                    </div>\n                </div>\n                <span class="review-rating-badge" data-tone="${t(o)}">${t(Ea(n))}</span>\n            </header>\n            <p>${t(Da(e.comment || e.review || ''))}</p>\n            <small>${t(s)}</small>\n        </article>\n    `;
+                            return `\n        <article class="review-card${n ? ' is-featured' : ''}" data-rating="${t(String(a))}">\n            <header>\n                <div class="review-card-heading">\n                    <span class="review-avatar">${t(Bn(e.name || 'Anonimo'))}</span>\n                    <div>\n                        <strong>${t(e.name || 'Anonimo')}</strong>\n                        <small>${t(i(e.date || e.createdAt || ''))}</small>\n                    </div>\n                </div>\n                <span class="review-rating-badge" data-tone="${t(o)}">${t(Dn(a))}</span>\n            </header>\n            <p>${t(xn(e.comment || e.review || ''))}</p>\n            <small>${t(s)}</small>\n        </article>\n    `;
                         })(e, {
                             featured:
                                 d.item &&
-                                _a(e.name) === _a(d.item.name) &&
-                                La(e) === La(d.item),
+                                En(e.name) === En(d.item.name) &&
+                                Nn(e) === Nn(d.item),
                         })
                     )
                     .join('')
@@ -3645,16 +3763,16 @@ async function xa(e = !1) {
         })(),
         Jt(),
         Ve(),
-        Ba(),
+        Pn(),
         e &&
             s(
-                a ? 'Datos actualizados' : 'Datos cargados desde cache local',
-                a ? 'success' : 'warning'
+                n ? 'Datos actualizados' : 'Datos cargados desde cache local',
+                n ? 'success' : 'warning'
             ),
-        a
+        n
     );
 }
-function Pa() {
+function Hn() {
     (B(!1),
         I(),
         P(!1),
@@ -3665,12 +3783,12 @@ function Pa() {
                 'Usa tu clave de administrador para acceder al centro operativo.',
         }));
 }
-async function Ia(t) {
+async function Fn(t) {
     t.preventDefault();
     const e = document.getElementById('adminPassword'),
-        a = document.getElementById('admin2FACode'),
-        n = e instanceof HTMLInputElement ? e.value : '',
-        i = a instanceof HTMLInputElement ? a.value : '';
+        n = document.getElementById('admin2FACode'),
+        a = e instanceof HTMLInputElement ? e.value : '',
+        i = n instanceof HTMLInputElement ? n.value : '';
     try {
         P(!0);
         const t = b();
@@ -3689,19 +3807,19 @@ async function Ia(t) {
             await (async function (t) {
                 const e = String(t || '').trim();
                 if (!e) throw new Error('Codigo 2FA requerido');
-                const a = await w('login-2fa', {
+                const n = await w('login-2fa', {
                         method: 'POST',
                         body: { code: e },
                     }),
-                    n = String(a.csrfToken || '');
+                    a = String(n.csrfToken || '');
                 return (
-                    v(n),
+                    v(a),
                     g((t) => ({
                         ...t,
                         auth: {
                             ...t.auth,
                             authenticated: !0,
-                            csrfToken: n,
+                            csrfToken: a,
                             requires2FA: !1,
                             lastAuthAt: Date.now(),
                             authMethod: '2fa',
@@ -3714,11 +3832,11 @@ async function Ia(t) {
             const t = await (async function (t) {
                 const e = String(t || '').trim();
                 if (!e) throw new Error('Contrasena requerida');
-                const a = await w('login', {
+                const n = await w('login', {
                     method: 'POST',
                     body: { password: e },
                 });
-                if (!0 === a.twoFactorRequired)
+                if (!0 === n.twoFactorRequired)
                     return (
                         g((t) => ({
                             ...t,
@@ -3730,15 +3848,15 @@ async function Ia(t) {
                         })),
                         { authenticated: !1, requires2FA: !0 }
                     );
-                const n = String(a.csrfToken || '');
+                const a = String(n.csrfToken || '');
                 return (
-                    v(n),
+                    v(a),
                     g((t) => ({
                         ...t,
                         auth: {
                             ...t.auth,
                             authenticated: !0,
-                            csrfToken: n,
+                            csrfToken: a,
                             requires2FA: !1,
                             lastAuthAt: Date.now(),
                             authMethod: 'password',
@@ -3746,7 +3864,7 @@ async function Ia(t) {
                     })),
                     { authenticated: !0, requires2FA: !1 }
                 );
-            })(n);
+            })(a);
             if (t.requires2FA)
                 return (
                     B(!0),
@@ -3768,7 +3886,7 @@ async function Ia(t) {
             N(),
             B(!1),
             I({ clearPassword: !0 }),
-            await xa(!1),
+            await In(!1),
             s('Sesion iniciada', 'success'));
     } catch (t) {
         (x({
@@ -3784,7 +3902,7 @@ async function Ia(t) {
         P(!1);
     }
 }
-async function Ha(t, e) {
+async function Rn(t, e) {
     switch (t) {
         case 'appointment-quick-filter':
             return (lt(String(e.dataset.filterValue || 'all')), !0);
@@ -3870,14 +3988,14 @@ async function Ha(t, e) {
                             )
                             .join('\n'),
                         e = new Blob([t], { type: 'text/csv;charset=utf-8' }),
-                        a = URL.createObjectURL(e),
-                        n = document.createElement('a');
-                    ((n.href = a),
-                        (n.download = `appointments-${new Date().toISOString().split('T')[0]}.csv`),
-                        document.body.appendChild(n),
-                        n.click(),
-                        n.remove(),
-                        URL.revokeObjectURL(a));
+                        n = URL.createObjectURL(e),
+                        a = document.createElement('a');
+                    ((a.href = n),
+                        (a.download = `appointments-${new Date().toISOString().split('T')[0]}.csv`),
+                        document.body.appendChild(a),
+                        a.click(),
+                        a.remove(),
+                        URL.revokeObjectURL(n));
                 })(),
                 !0
             );
@@ -3885,20 +4003,20 @@ async function Ha(t, e) {
             return !1;
     }
 }
-async function Fa(t, a) {
+async function On(t, n) {
     switch (t) {
         case 'change-month':
             return (
                 (function (t) {
                     const e = Number(t || 0);
                     if (!Number.isFinite(e) || 0 === e) return;
-                    const a = Rt(
+                    const n = Ot(
                         b().availability.monthAnchor,
                         b().availability.selectedDate
                     );
-                    (a.setMonth(a.getMonth() + e),
-                        Yt({ monthAnchor: a, lastAction: '' }, { render: !0 }));
-                })(Number(a.dataset.delta || 0)),
+                    (n.setMonth(n.getMonth() + e),
+                        Yt({ monthAnchor: n, lastAction: '' }, { render: !0 }));
+                })(Number(n.dataset.delta || 0)),
                 !0
             );
         case 'availability-today':
@@ -3933,22 +4051,22 @@ async function Fa(t, a) {
                         Yt(
                             {
                                 selectedDate: e,
-                                monthAnchor: Rt(e, e),
+                                monthAnchor: Ot(e, e),
                                 lastAction: '',
                             },
                             { render: !0 }
                         );
-                })(String(a.dataset.date || '')),
+                })(String(n.dataset.date || '')),
                 !0
             );
         case 'prefill-time-slot':
             return (
                 (function (t) {
                     if (Kt()) return;
-                    const a = e('#newSlotTime');
-                    a instanceof HTMLInputElement &&
-                        ((a.value = Bt(t)), a.focus());
-                })(String(a.dataset.time || '')),
+                    const n = e('#newSlotTime');
+                    n instanceof HTMLInputElement &&
+                        ((n.value = Bt(t)), n.focus());
+                })(String(n.dataset.time || '')),
                 !0
             );
         case 'add-time-slot':
@@ -3957,20 +4075,20 @@ async function Fa(t, a) {
                     if (Kt()) return;
                     const t = e('#newSlotTime');
                     if (!(t instanceof HTMLInputElement)) return;
-                    const a = Bt(t.value);
-                    if (!a) return;
-                    const n = b(),
-                        i = Pt(n.availability.selectedDate) || Qt();
+                    const n = Bt(t.value);
+                    if (!n) return;
+                    const a = b(),
+                        i = Pt(a.availability.selectedDate) || Qt();
                     i &&
                         (te(
                             i,
                             [
-                                ...(Array.isArray(n.availability.draft[i])
-                                    ? n.availability.draft[i]
+                                ...(Array.isArray(a.availability.draft[i])
+                                    ? a.availability.draft[i]
                                     : []),
-                                a,
+                                n,
                             ],
-                            `Slot ${a} agregado en ${i}`
+                            `Slot ${n} agregado en ${i}`
                         ),
                         (t.value = ''));
                 })(),
@@ -3980,21 +4098,21 @@ async function Fa(t, a) {
             return (
                 (function (t, e) {
                     if (Kt()) return;
-                    const a = Pt(t);
-                    if (!a) return;
-                    const n = b(),
-                        i = Array.isArray(n.availability.draft[a])
-                            ? n.availability.draft[a]
+                    const n = Pt(t);
+                    if (!n) return;
+                    const a = b(),
+                        i = Array.isArray(a.availability.draft[n])
+                            ? a.availability.draft[n]
                             : [],
                         o = Bt(e);
                     te(
-                        a,
+                        n,
                         i.filter((t) => Bt(t) !== o),
-                        `Slot ${o || '-'} removido en ${a}`
+                        `Slot ${o || '-'} removido en ${n}`
                     );
                 })(
-                    decodeURIComponent(String(a.dataset.date || '')),
-                    decodeURIComponent(String(a.dataset.time || ''))
+                    decodeURIComponent(String(n.dataset.date || '')),
+                    decodeURIComponent(String(n.dataset.time || ''))
                 ),
                 !0
             );
@@ -4005,15 +4123,15 @@ async function Fa(t, a) {
                     if (Kt()) return;
                     const t = b(),
                         e = Pt(t.availability.selectedDate) || Qt(),
-                        a = Array.isArray(t.availability.draft[e])
+                        n = Array.isArray(t.availability.draft[e])
                             ? xt(t.availability.draft[e])
                             : [];
                     Yt(
                         {
-                            clipboard: a,
+                            clipboard: n,
                             clipboardDate: e,
-                            lastAction: a.length
-                                ? `Portapapeles: ${a.length} slots (${e})`
+                            lastAction: n.length
+                                ? `Portapapeles: ${n.length} slots (${e})`
                                 : 'Portapapeles vacio',
                         },
                         { render: !0 }
@@ -4030,15 +4148,15 @@ async function Fa(t, a) {
                             ? xt(t.availability.clipboard)
                             : [];
                     if (!e.length) return void Xt('Portapapeles vacio');
-                    const a = Pt(t.availability.selectedDate) || Qt();
-                    te(a, e, `Pegado ${e.length} slots en ${a}`);
+                    const n = Pt(t.availability.selectedDate) || Qt();
+                    te(n, e, `Pegado ${e.length} slots en ${n}`);
                 })(),
                 !0
             );
         case 'duplicate-availability-day-next':
-            return (ne(1), !0);
+            return (ae(1), !0);
         case 'duplicate-availability-next-week':
-            return (ne(7), !0);
+            return (ae(7), !0);
         case 'clear-availability-day':
             return (
                 (function () {
@@ -4061,32 +4179,32 @@ async function Fa(t, a) {
                     const e = (function (t) {
                         const e = It(t);
                         if (!e) return null;
-                        const a = (e.getDay() + 6) % 7,
-                            n = new Date(e);
-                        n.setDate(e.getDate() - a);
-                        const i = new Date(n);
+                        const n = (e.getDay() + 6) % 7,
+                            a = new Date(e);
+                        a.setDate(e.getDate() - n);
+                        const i = new Date(a);
                         return (
-                            i.setDate(n.getDate() + 6),
-                            { start: n, end: i }
+                            i.setDate(a.getDate() + 6),
+                            { start: a, end: i }
                         );
                     })(t);
                     if (!e) return;
-                    const a = u(e.start),
-                        n = u(e.end);
+                    const n = u(e.start),
+                        a = u(e.end);
                     if (
                         !window.confirm(
-                            `Se eliminaran los slots de la semana ${a} a ${n}. Continuar?`
+                            `Se eliminaran los slots de la semana ${n} a ${a}. Continuar?`
                         )
                     )
                         return;
                     const i = Ut();
                     for (let t = 0; t < 7; t += 1) {
-                        const a = new Date(e.start);
-                        (a.setDate(e.start.getDate() + t), delete i[u(a)]);
+                        const n = new Date(e.start);
+                        (n.setDate(e.start.getDate() + t), delete i[u(n)]);
                     }
                     Zt(i, {
                         selectedDate: t,
-                        lastAction: `Semana limpiada (${a} - ${n})`,
+                        lastAction: `Semana limpiada (${n} - ${a})`,
                     });
                 })(),
                 !0
@@ -4100,11 +4218,11 @@ async function Fa(t, a) {
                             method: 'POST',
                             body: { availability: t },
                         }),
-                        a =
+                        n =
                             e?.data && 'object' == typeof e.data
                                 ? Ft(e.data)
                                 : t,
-                        n =
+                        a =
                             e?.meta && 'object' == typeof e.meta
                                 ? e.meta
                                 : null;
@@ -4112,14 +4230,14 @@ async function Fa(t, a) {
                         ...t,
                         data: {
                             ...t.data,
-                            availability: a,
-                            availabilityMeta: n
-                                ? { ...t.data.availabilityMeta, ...n }
+                            availability: n,
+                            availabilityMeta: a
+                                ? { ...t.data.availabilityMeta, ...a }
                                 : t.data.availabilityMeta,
                         },
                         availability: {
                             ...t.availability,
-                            draft: a,
+                            draft: n,
                             draftDirty: !1,
                             lastAction: `Cambios guardados ${new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: !1 })}`,
                         },
@@ -4142,12 +4260,12 @@ async function Fa(t, a) {
                     )
                         return;
                     const e = Ft(t.data.availability || {}),
-                        a = jt(t.availability.selectedDate, e);
+                        n = jt(t.availability.selectedDate, e);
                     Yt(
                         {
                             draft: e,
-                            selectedDate: a,
-                            monthAnchor: Rt(t.availability.monthAnchor, a),
+                            selectedDate: n,
+                            monthAnchor: Ot(t.availability.monthAnchor, n),
                             draftDirty: !1,
                             lastAction: 'Borrador descartado',
                         },
@@ -4161,7 +4279,7 @@ async function Fa(t, a) {
             return !1;
     }
 }
-const Oa = new Set([
+const jn = new Set([
     'dashboard',
     'appointments',
     'callbacks',
@@ -4169,30 +4287,30 @@ const Oa = new Set([
     'availability',
     'queue',
 ]);
-function Ra(t, e = 'dashboard') {
-    const a = String(t || '')
+function zn(t, e = 'dashboard') {
+    const n = String(t || '')
         .trim()
         .toLowerCase();
-    return Oa.has(a) ? a : e;
+    return jn.has(n) ? n : e;
 }
-function ja(t) {
+function Vn(t) {
     !(function (t) {
         const e = String(t || '').replace(/^#/, ''),
-            a = e ? `#${e}` : '';
-        window.location.hash !== a &&
+            n = e ? `#${e}` : '';
+        window.location.hash !== n &&
             window.history.replaceState(
                 null,
                 '',
-                `${window.location.pathname}${window.location.search}${a}`
+                `${window.location.pathname}${window.location.search}${n}`
             );
-    })(Ra(t));
+    })(zn(t));
 }
-const za = 'themeMode',
-    Va = new Set(['light', 'dark', 'system']);
-const Ua = 'adminLastSection',
-    Ka = 'adminSidebarCollapsed';
-function Qa(t, { persist: e = !1 } = {}) {
-    const a = (function (t) {
+const Un = 'themeMode',
+    Kn = new Set(['light', 'dark', 'system']);
+const Qn = 'adminLastSection',
+    Gn = 'adminSidebarCollapsed';
+function Wn(t, { persist: e = !1 } = {}) {
+    const n = (function (t) {
         const e = (function (t) {
             return 'light' === t || 'dark' === t
                 ? t
@@ -4207,28 +4325,28 @@ function Qa(t, { persist: e = !1 } = {}) {
             e
         );
     })(t);
-    (g((e) => ({ ...e, ui: { ...e.ui, themeMode: t, theme: a } })),
+    (g((e) => ({ ...e, ui: { ...e.ui, themeMode: t, theme: n } })),
         e &&
             (function (t) {
-                const e = Va.has(t) ? t : 'system';
-                ve(za, e);
+                const e = Kn.has(t) ? t : 'system';
+                ve(Un, e);
             })(t),
         Array.from(
             document.querySelectorAll('.admin-theme-btn[data-theme-mode]')
         ).forEach((e) => {
-            const a = e.dataset.themeMode === t;
-            (e.classList.toggle('is-active', a),
-                e.setAttribute('aria-pressed', String(a)));
+            const n = e.dataset.themeMode === t;
+            (e.classList.toggle('is-active', n),
+                e.setAttribute('aria-pressed', String(n)));
         }));
 }
-function Ga() {
+function Jn() {
     const t = b();
-    (ve(Ua, t.ui.activeSection), ve(Ka, t.ui.sidebarCollapsed ? '1' : '0'));
+    (ve(Qn, t.ui.activeSection), ve(Gn, t.ui.sidebarCollapsed ? '1' : '0'));
 }
-function Wa() {
+function Yn() {
     return window.matchMedia('(max-width: 1024px)').matches;
 }
-function Ja(t) {
+function Zn(t) {
     return (
         t instanceof HTMLElement &&
         !t.hidden &&
@@ -4237,30 +4355,30 @@ function Ja(t) {
         t.getClientRects().length > 0
     );
 }
-function Ya() {
+function Xn() {
     const t = b(),
-        a = Wa(),
-        n = e('#adminSidebar'),
-        i = n instanceof HTMLElement && n.classList.contains('is-open');
-    (!(function ({ open: t, collapsed: a }) {
-        const n = e('#adminSidebar'),
+        n = Yn(),
+        a = e('#adminSidebar'),
+        i = a instanceof HTMLElement && a.classList.contains('is-open');
+    (!(function ({ open: t, collapsed: n }) {
+        const a = e('#adminSidebar'),
             i = e('#adminSidebarBackdrop'),
             o = e('#adminMenuToggle');
-        (n && n.classList.toggle('is-open', Boolean(t)),
+        (a && a.classList.toggle('is-open', Boolean(t)),
             i && i.classList.toggle('is-hidden', !t),
             o && o.setAttribute('aria-expanded', String(Boolean(t))),
             document.body.classList.toggle('admin-sidebar-open', Boolean(t)),
             document.body.classList.toggle(
                 'admin-sidebar-collapsed',
-                Boolean(a)
+                Boolean(n)
             ));
         const s = e('#adminSidebarCollapse');
-        s && s.setAttribute('aria-pressed', String(Boolean(a)));
+        s && s.setAttribute('aria-pressed', String(Boolean(n)));
     })({
-        open: !!a && t.ui.sidebarOpen,
-        collapsed: !a && t.ui.sidebarCollapsed,
+        open: !!n && t.ui.sidebarOpen,
+        collapsed: !n && t.ui.sidebarCollapsed,
     }),
-        a &&
+        n &&
             t.ui.sidebarOpen &&
             !i &&
             (function () {
@@ -4274,29 +4392,29 @@ function Ya() {
                     });
             })());
 }
-async function Za(t, e = {}) {
-    const a = Ra(t, 'dashboard'),
-        { force: n = !1 } = e,
+async function ta(t, e = {}) {
+    const n = zn(t, 'dashboard'),
+        { force: a = !1 } = e,
         i = b().ui.activeSection;
     return (
         !(
-            !n &&
+            !a &&
             'availability' === b().ui.activeSection &&
-            'availability' !== a &&
-            ae() &&
+            'availability' !== n &&
+            ne() &&
             !window.confirm(
                 'Hay cambios pendientes en disponibilidad. ¿Deseas salir sin guardar?'
             )
         ) &&
         ((function (t) {
-            const e = Ra(t, 'dashboard');
+            const e = zn(t, 'dashboard');
             (g((t) => ({ ...t, ui: { ...t.ui, activeSection: e } })),
                 D(e),
                 F(b()),
-                ja(e),
-                Ga());
-        })(a),
-        'queue' === a &&
+                Vn(e),
+                Jn());
+        })(n),
+        'queue' === n &&
             'queue' !== i &&
             (function () {
                 const t = b();
@@ -4309,7 +4427,7 @@ async function Za(t, e = {}) {
         !0)
     );
 }
-function Xa() {
+function ea() {
     (g((t) => ({
         ...t,
         ui: {
@@ -4318,27 +4436,27 @@ function Xa() {
             sidebarOpen: t.ui.sidebarOpen,
         },
     })),
-        Ya(),
-        Ga());
+        Xn(),
+        Jn());
 }
-function tn() {
+function na() {
     (g((t) => ({ ...t, ui: { ...t.ui, sidebarOpen: !t.ui.sidebarOpen } })),
-        Ya());
+        Xn());
 }
-function en({ restoreFocus: t = !1 } = {}) {
+function aa({ restoreFocus: t = !1 } = {}) {
     if (
-        (g((t) => ({ ...t, ui: { ...t.ui, sidebarOpen: !1 } })), Ya(), N(), t)
+        (g((t) => ({ ...t, ui: { ...t.ui, sidebarOpen: !1 } })), Xn(), N(), t)
     ) {
         const t = e('#adminMenuToggle');
         t instanceof HTMLElement && t.focus();
     }
 }
-function an() {
+function ia() {
     E();
     const t = document.getElementById('adminQuickCommand');
     t instanceof HTMLInputElement && t.focus();
 }
-function nn() {
+function oa() {
     const t = b().ui.activeSection;
     if ('appointments' === t) {
         const t = document.getElementById('searchAppointments');
@@ -4353,46 +4471,46 @@ function nn() {
         t instanceof HTMLInputElement && t.focus();
     }
 }
-async function on(t) {
+async function sa(t) {
     switch (t) {
         case 'appointments_pending_transfer':
-            (await Za('appointments'), lt('pending_transfer'), ut(''));
+            (await ta('appointments'), lt('pending_transfer'), ut(''));
             break;
         case 'appointments_all':
-            (await Za('appointments'), lt('all'), ut(''));
+            (await ta('appointments'), lt('all'), ut(''));
             break;
         case 'appointments_no_show':
-            (await Za('appointments'), lt('no_show'), ut(''));
+            (await ta('appointments'), lt('no_show'), ut(''));
             break;
         case 'callbacks_pending':
-            (await Za('callbacks'), Lt('pending'));
+            (await ta('callbacks'), Lt('pending'));
             break;
         case 'callbacks_contacted':
-            (await Za('callbacks'), Lt('contacted'));
+            (await ta('callbacks'), Lt('contacted'));
             break;
         case 'callbacks_sla_urgent':
-            (await Za('callbacks'), Lt('sla_urgent'));
+            (await ta('callbacks'), Lt('sla_urgent'));
             break;
         case 'queue_sla_risk':
-            (await Za('queue'), Ye('sla_risk'));
+            (await ta('queue'), Ye('sla_risk'));
             break;
         case 'queue_waiting':
-            (await Za('queue'), Ye('waiting'));
+            (await ta('queue'), Ye('waiting'));
             break;
         case 'queue_called':
-            (await Za('queue'), Ye('called'));
+            (await ta('queue'), Ye('called'));
             break;
         case 'queue_no_show':
-            (await Za('queue'), Ye('no_show'));
+            (await ta('queue'), Ye('no_show'));
             break;
         case 'queue_all':
-            (await Za('queue'), Ye('all'));
+            (await ta('queue'), Ye('all'));
             break;
         case 'queue_call_next':
-            (await Za('queue'), await aa(b().queue.stationConsultorio));
+            (await ta('queue'), await nn(b().queue.stationConsultorio));
     }
 }
-function sn(t) {
+function ra(t) {
     const e = String(t || '')
         .trim()
         .toLowerCase();
@@ -4410,7 +4528,7 @@ function sn(t) {
                     : null
         : null;
 }
-async function rn(t, e) {
+async function ca(t, e) {
     switch (t) {
         case 'callback-quick-filter':
             return (Lt(String(e.dataset.filterValue || 'all')), !0);
@@ -4427,7 +4545,7 @@ async function rn(t, e) {
         case 'callbacks-triage-next':
         case 'context-open-callbacks-next':
             return (
-                await Za('callbacks'),
+                await ta('callbacks'),
                 Lt('pending'),
                 (function () {
                     const t = document.querySelector(
@@ -4480,34 +4598,34 @@ async function rn(t, e) {
                 !0
             );
         case 'context-open-callbacks-pending':
-            return (await Za('callbacks'), Lt('pending'), !0);
+            return (await ta('callbacks'), Lt('pending'), !0);
         default:
             return !1;
     }
 }
-async function cn(t) {
+async function la(t) {
     switch (t) {
         case 'context-open-appointments-transfer':
-            return (await Za('appointments'), lt('pending_transfer'), !0);
+            return (await ta('appointments'), lt('pending_transfer'), !0);
         case 'context-open-dashboard':
-            return (await Za('dashboard'), !0);
+            return (await ta('dashboard'), !0);
         default:
             return !1;
     }
 }
-async function ln(t, e) {
+async function ua(t, e) {
     switch (t) {
         case 'queue-refresh-state':
             return (await Xe(), !0);
         case 'queue-call-next':
-            return (await aa(Number(e.dataset.queueConsultorio || 0)), !0);
+            return (await nn(Number(e.dataset.queueConsultorio || 0)), !0);
         case 'queue-release-station':
             return (
                 await (async function (t) {
                     const e = 2 === Number(t || 0) ? 2 : 1,
-                        a = Ie(e);
-                    a
-                        ? await na(a.id, 'liberar', e)
+                        n = Ie(e);
+                    n
+                        ? await an(n.id, 'liberar', e)
                         : Ue(`Sin ticket activo para liberar en C${e}`);
                 })(Number(e.dataset.queueConsultorio || 0)),
                 !0
@@ -4517,8 +4635,8 @@ async function ln(t, e) {
                 (function (t) {
                     const e = Number(t || 0);
                     if (!e) return;
-                    const a = Be(b().queue.selected || []);
-                    Ke(a.includes(e) ? a.filter((t) => t !== e) : [...a, e]);
+                    const n = Be(b().queue.selected || []);
+                    Ke(n.includes(e) ? n.filter((t) => t !== e) : [...n, e]);
                 })(Number(e.dataset.queueId || 0)),
                 !0
             );
@@ -4528,7 +4646,7 @@ async function ln(t, e) {
             return (Qe(), !0);
         case 'queue-ticket-action':
             return (
-                await na(
+                await an(
                     Number(e.dataset.queueId || 0),
                     String(e.dataset.queueAction || ''),
                     Number(e.dataset.queueConsultorio || 0)
@@ -4536,18 +4654,18 @@ async function ln(t, e) {
                 !0
             );
         case 'queue-reprint-ticket':
-            return (await ra(Number(e.dataset.queueId || 0)), !0);
+            return (await cn(Number(e.dataset.queueId || 0)), !0);
         case 'queue-bulk-action':
             return (
                 await (async function (t) {
                     const e = Pe(),
-                        a = se(t);
+                        n = se(t);
                     if (e.length) {
-                        if (Le.has(a)) {
+                        if (Le.has(n)) {
                             const t =
-                                'no_show' === a
+                                'no_show' === n
                                     ? 'No show'
-                                    : 'completar' === a || 'completed' === a
+                                    : 'completar' === n || 'completed' === n
                                       ? 'Completar'
                                       : 'Cancelar';
                             if (
@@ -4557,15 +4675,15 @@ async function ln(t, e) {
                         }
                         for (const t of e)
                             try {
-                                await ea({
+                                await en({
                                     ticketId: t.id,
-                                    action: a,
+                                    action: n,
                                     consultorio:
                                         t.assignedConsultorio ||
                                         b().queue.stationConsultorio,
                                 });
                             } catch (t) {}
-                        (Qe(), Ue(`Bulk ${a} sobre ${e.length} tickets`));
+                        (Qe(), Ue(`Bulk ${n} sobre ${e.length} tickets`));
                     }
                 })(String(e.dataset.queueAction || 'no_show')),
                 !0
@@ -4576,7 +4694,7 @@ async function ln(t, e) {
                     const t = Pe();
                     for (const e of t)
                         try {
-                            await ra(e.id);
+                            await cn(e.id);
                         } catch (t) {}
                     (Qe(), Ue(`Bulk reimpresion ${t.length}`));
                 })(),
@@ -4592,13 +4710,13 @@ async function ln(t, e) {
                 !0
             );
         case 'queue-toggle-shortcuts':
-            return (ca(), !0);
+            return (ln(), !0);
         case 'queue-toggle-one-tap':
             return (Je({ oneTap: !b().queue.oneTap }), !0);
         case 'queue-start-practice':
-            return (la(!0), !0);
+            return (un(!0), !0);
         case 'queue-stop-practice':
-            return (la(!1), !0);
+            return (un(!1), !0);
         case 'queue-lock-station':
             return (
                 (function (t) {
@@ -4621,9 +4739,9 @@ async function ln(t, e) {
                 !0
             );
         case 'queue-sensitive-confirm':
-            return (await ia(), !0);
+            return (await on(), !0);
         case 'queue-sensitive-cancel':
-            return (oa(), !0);
+            return (sn(), !0);
         case 'queue-capture-call-key':
             return (
                 Je({ captureCallKeyMode: !0 }),
@@ -4641,29 +4759,29 @@ async function ln(t, e) {
             return !1;
     }
 }
-async function un(t, e) {
+async function da(t, e) {
     switch (t) {
         case 'close-toast':
             return (e.closest('.toast')?.remove(), !0);
         case 'set-admin-theme':
             return (
-                Qa(String(e.dataset.themeMode || 'system'), { persist: !0 }),
+                Wn(String(e.dataset.themeMode || 'system'), { persist: !0 }),
                 !0
             );
         case 'toggle-sidebar-collapse':
-            return (Xa(), !0);
+            return (ea(), !0);
         case 'refresh-admin-data':
-            return (await xa(!0), !0);
+            return (await In(!0), !0);
         case 'run-admin-command': {
             const t = document.getElementById('adminQuickCommand');
             if (t instanceof HTMLInputElement) {
-                const e = sn(t.value);
-                e && (await on(e), (t.value = ''), N());
+                const e = ra(t.value);
+                e && (await sa(e), (t.value = ''), N());
             }
             return !0;
         }
         case 'open-command-palette':
-            return (E(), an(), !0);
+            return (E(), ia(), !0);
         case 'close-command-palette':
             return (N(), !0);
         case 'logout':
@@ -4687,7 +4805,7 @@ async function un(t, e) {
                 })(),
                 _(),
                 N(),
-                Pa(),
+                Hn(),
                 s('Sesion cerrada', 'info'),
                 !0
             );
@@ -4709,17 +4827,17 @@ async function un(t, e) {
             return !1;
     }
 }
-async function dn() {
+async function pa() {
     (M(),
         (function () {
             const t = e('#adminMainContent');
             (t instanceof HTMLElement &&
                 t.setAttribute('data-admin-frame', 'sony_v3'),
-                Object.entries(O).forEach(([t, e]) => {
-                    (R(t, e.hero, 'data-admin-section-hero'),
-                        R(t, e.priority, 'data-admin-priority-rail'),
-                        R(t, e.workbench, 'data-admin-workbench'),
-                        R(t, e.detail, 'data-admin-detail-rail'));
+                Object.entries(R).forEach(([t, e]) => {
+                    (O(t, e.hero, 'data-admin-section-hero'),
+                        O(t, e.priority, 'data-admin-priority-rail'),
+                        O(t, e.workbench, 'data-admin-workbench'),
+                        O(t, e.detail, 'data-admin-detail-rail'));
                 }));
         })(),
         document.body.classList.add('admin-v3-mode'),
@@ -4730,15 +4848,15 @@ async function dn() {
                     ? t.target.closest('[data-action]')
                     : null;
             if (!e) return;
-            const a = String(e.getAttribute('data-action') || '');
-            if (a) {
+            const n = String(e.getAttribute('data-action') || '');
+            if (n) {
                 t.preventDefault();
                 try {
                     await (async function (t, e) {
-                        const a = [un, Ha, rn, Fa, ln, cn];
-                        for (const n of a) if (await n(t, e)) return !0;
+                        const n = [da, Rn, ca, On, ua, la];
+                        for (const a of n) if (await a(t, e)) return !0;
                         return !1;
-                    })(a, e);
+                    })(n, e);
                 } catch (t) {
                     s(t?.message || 'Error ejecutando accion', 'error');
                 }
@@ -4750,14 +4868,14 @@ async function dn() {
                     ? t.target.closest('[data-section]')
                     : null;
             if (!e) return;
-            const a = e.classList.contains('admin-quick-nav-item'),
-                n = e.classList.contains('nav-item');
-            if (!a && !n) return;
+            const n = e.classList.contains('admin-quick-nav-item'),
+                a = e.classList.contains('nav-item');
+            if (!n && !a) return;
             t.preventDefault();
-            const i = await Za(
+            const i = await ta(
                 String(e.getAttribute('data-section') || 'dashboard')
             );
-            Wa() && !1 !== i && en();
+            Yn() && !1 !== i && aa();
         }),
         document.addEventListener('click', (t) => {
             const e =
@@ -4773,8 +4891,8 @@ async function dn() {
             t && t.setAttribute('data-action', 'callbacks-bulk-select-visible');
             const e = document.getElementById('callbacksBulkClearBtn');
             e && e.setAttribute('data-action', 'callbacks-bulk-clear');
-            const a = document.getElementById('callbacksBulkMarkBtn');
-            a && a.setAttribute('data-action', 'callbacks-bulk-mark');
+            const n = document.getElementById('callbacksBulkMarkBtn');
+            n && n.setAttribute('data-action', 'callbacks-bulk-mark');
         })(),
         (function () {
             let t = V,
@@ -4783,10 +4901,10 @@ async function dn() {
                 ((t = JSON.parse(localStorage.getItem(j) || `"${V}"`)),
                     (e = JSON.parse(localStorage.getItem(z) || `"${U}"`)));
             } catch (t) {}
-            g((a) => ({
-                ...a,
+            g((n) => ({
+                ...n,
                 appointments: {
-                    ...a.appointments,
+                    ...n.appointments,
                     sort: 'string' == typeof t ? t : V,
                     density: 'string' == typeof e ? e : U,
                 },
@@ -4801,9 +4919,9 @@ async function dn() {
                         localStorage.getItem(mt) || '"recent_desc"'
                     )));
             } catch (t) {}
-            g((a) => ({
-                ...a,
-                callbacks: { ...a.callbacks, filter: yt(t), sort: vt(e) },
+            g((n) => ({
+                ...n,
+                callbacks: { ...n.callbacks, filter: yt(t), sort: vt(e) },
             }));
         })(),
         (function () {
@@ -4813,32 +4931,32 @@ async function dn() {
                 ((t = String(localStorage.getItem(Nt) || '')),
                     (e = String(localStorage.getItem(Dt) || '')));
             } catch (t) {}
-            const a = Pt(t),
-                n = Rt(e, a);
+            const n = Pt(t),
+                a = Ot(e, n);
             g((t) => ({
                 ...t,
                 availability: {
                     ...t.availability,
-                    ...(a ? { selectedDate: a } : {}),
-                    monthAnchor: n,
+                    ...(n ? { selectedDate: n } : {}),
+                    monthAnchor: a,
                 },
             }));
         })(),
         (function () {
-            const t = Ra(ye(Ua, 'dashboard')),
-                e = '1' === ye(Ka, '0');
-            (g((a) => ({
-                ...a,
+            const t = zn(ye(Qn, 'dashboard')),
+                e = '1' === ye(Gn, '0');
+            (g((n) => ({
+                ...n,
                 ui: {
-                    ...a.ui,
+                    ...n.ui,
                     activeSection: t,
                     sidebarCollapsed: e,
                     sidebarOpen: !1,
                 },
             })),
                 D(t),
-                ja(t),
-                Ya());
+                Vn(t),
+                Xn());
         })(),
         (function () {
             const t = {
@@ -4850,19 +4968,19 @@ async function dn() {
                     customCallKey: ke(Me, null),
                 },
                 e = ie(Se('station')),
-                a = ie(Se('lock')),
-                n = ie(Se('one_tap')),
+                n = ie(Se('lock')),
+                a = ie(Se('one_tap')),
                 i =
                     'c2' === e || '2' === e
                         ? 2
                         : 'c1' === e || '1' === e
                           ? 1
                           : t.stationConsultorio,
-                o = '1' === a || 'true' === a ? 'locked' : t.stationMode,
+                o = '1' === n || 'true' === n ? 'locked' : t.stationMode,
                 s =
-                    '1' === n ||
-                    'true' === n ||
-                    ('0' !== n && 'false' !== n && t.oneTap);
+                    '1' === a ||
+                    'true' === a ||
+                    ('0' !== a && 'false' !== a && t.oneTap);
             (g((e) => ({
                 ...e,
                 queue: {
@@ -4879,15 +4997,15 @@ async function dn() {
             })),
                 Ee(b()));
         })(),
-        Qa(
+        Wn(
             (function () {
-                const t = String(ye(za, 'system') || 'system')
+                const t = String(ye(Un, 'system') || 'system')
                     .trim()
                     .toLowerCase();
-                return Va.has(t) ? t : 'system';
+                return Kn.has(t) ? t : 'system';
             })()
         ),
-        Pa(),
+        Hn(),
         (function () {
             const t = document.getElementById('appointmentFilter');
             t instanceof HTMLSelectElement &&
@@ -4899,15 +5017,15 @@ async function dn() {
                 e.addEventListener('change', () => {
                     ct({ sort: K(e.value) || V });
                 });
-            const a = document.getElementById('searchAppointments');
-            a instanceof HTMLInputElement &&
-                a.addEventListener('input', () => {
-                    ut(a.value);
+            const n = document.getElementById('searchAppointments');
+            n instanceof HTMLInputElement &&
+                n.addEventListener('input', () => {
+                    ut(n.value);
                 });
-            const n = document.getElementById('callbackFilter');
-            n instanceof HTMLSelectElement &&
-                n.addEventListener('change', () => {
-                    Lt(n.value);
+            const a = document.getElementById('callbackFilter');
+            a instanceof HTMLSelectElement &&
+                a.addEventListener('change', () => {
+                    Lt(a.value);
                 });
             const i = document.getElementById('callbackSort');
             i instanceof HTMLSelectElement &&
@@ -4934,54 +5052,54 @@ async function dn() {
                 (c = r).addEventListener('keydown', async (t) => {
                     if ('Enter' !== t.key) return;
                     t.preventDefault();
-                    const e = sn(c.value);
-                    e && (await on(e));
+                    const e = ra(c.value);
+                    e && (await sa(e));
                 });
         })(),
         (function () {
             const t = e('#adminMenuToggle'),
-                a = e('#adminMenuClose'),
-                n = e('#adminSidebarBackdrop');
+                n = e('#adminMenuClose'),
+                a = e('#adminSidebarBackdrop');
             (t?.addEventListener('click', () => {
-                Wa() ? tn() : Xa();
+                Yn() ? na() : ea();
             }),
-                a?.addEventListener('click', () => en({ restoreFocus: !0 })),
-                n?.addEventListener('click', () => en({ restoreFocus: !0 })),
+                n?.addEventListener('click', () => aa({ restoreFocus: !0 })),
+                a?.addEventListener('click', () => aa({ restoreFocus: !0 })),
                 window.addEventListener('resize', () => {
-                    Wa() ? Ya() : en();
+                    Yn() ? Xn() : aa();
                 }),
                 document.addEventListener('keydown', (t) => {
-                    if (!Wa() || !b().ui.sidebarOpen) return;
+                    if (!Yn() || !b().ui.sidebarOpen) return;
                     if ('Escape' === t.key)
                         return (
                             t.preventDefault(),
-                            void en({ restoreFocus: !0 })
+                            void aa({ restoreFocus: !0 })
                         );
                     if ('Tab' !== t.key) return;
-                    const a = (function () {
+                    const n = (function () {
                         const t = e('#adminSidebar');
                         if (!(t instanceof HTMLElement)) return [];
-                        const a = e('#adminMenuClose'),
-                            n = t.querySelector(
+                        const n = e('#adminMenuClose'),
+                            a = t.querySelector(
                                 '.nav-item.active[data-section]'
                             ),
                             i = Array.from(
                                 t.querySelectorAll('.nav-item[data-section]')
-                            ).filter((t) => t !== n),
+                            ).filter((t) => t !== a),
                             o = t.querySelector('.logout-btn');
-                        return [a, n, ...i, o].filter(Ja);
+                        return [n, a, ...i, o].filter(Zn);
                     })();
-                    if (!a.length) return;
-                    const n = a.indexOf(document.activeElement);
+                    if (!n.length) return;
+                    const a = n.indexOf(document.activeElement);
                     t.shiftKey
-                        ? 0 === n &&
-                          (t.preventDefault(), a[a.length - 1].focus())
-                        : (-1 !== n && n !== a.length - 1) ||
-                          (t.preventDefault(), a[0].focus());
+                        ? 0 === a &&
+                          (t.preventDefault(), n[n.length - 1].focus())
+                        : (-1 !== a && a !== n.length - 1) ||
+                          (t.preventDefault(), n[0].focus());
                 }),
                 window.addEventListener('hashchange', async () => {
                     const t = (function (t = 'dashboard') {
-                        return Ra(
+                        return zn(
                             String(window.location.hash || '').replace(
                                 /^#/,
                                 ''
@@ -4989,22 +5107,22 @@ async function dn() {
                             t
                         );
                     })(b().ui.activeSection);
-                    await Za(t, { force: !0 });
+                    await ta(t, { force: !0 });
                 }),
                 window.addEventListener('storage', (t) => {
-                    'themeMode' === t.key && Qa(String(t.newValue || 'system'));
+                    'themeMode' === t.key && Wn(String(t.newValue || 'system'));
                 }));
         })(),
         window.addEventListener('beforeunload', (t) => {
-            ae() && (t.preventDefault(), (t.returnValue = ''));
+            ne() && (t.preventDefault(), (t.returnValue = ''));
         }));
     const t = document.getElementById('loginForm');
-    (t instanceof HTMLFormElement && t.addEventListener('submit', Ia),
+    (t instanceof HTMLFormElement && t.addEventListener('submit', Fn),
         (function (t) {
             const {
                 navigateToSection: e,
-                focusQuickCommand: a,
-                focusCurrentSearch: n,
+                focusQuickCommand: n,
+                focusCurrentSearch: a,
                 runQuickAction: i,
                 closeSidebar: o,
                 toggleMenu: s,
@@ -5020,18 +5138,18 @@ async function dn() {
                     return void o();
                 }
                 if (t.ctrlKey && !t.shiftKey && !t.altKey && 'k' === d)
-                    return (t.preventDefault(), void a());
-                if (!t.ctrlKey && !t.metaKey && !t.altKey && '/' === d)
                     return (t.preventDefault(), void n());
+                if (!t.ctrlKey && !t.metaKey && !t.altKey && '/' === d)
+                    return (t.preventDefault(), void a());
                 if (t.altKey && t.shiftKey && !t.ctrlKey && !t.metaKey) {
-                    const a = p || d;
-                    if ('keym' === a) return (t.preventDefault(), void s());
-                    if ('digit0' === a) return (t.preventDefault(), void c());
-                    if (f[a]) {
+                    const n = p || d;
+                    if ('keym' === n) return (t.preventDefault(), void s());
+                    if ('digit0' === n) return (t.preventDefault(), void c());
+                    if (f[n]) {
                         if (l()) return;
-                        return (t.preventDefault(), void e(f[a]));
+                        return (t.preventDefault(), void e(f[n]));
                     }
-                    const n = {
+                    const a = {
                         keyt: 'appointments_pending_transfer',
                         keya: 'appointments_all',
                         keyn: 'appointments_no_show',
@@ -5043,17 +5161,17 @@ async function dn() {
                     };
                     if (
                         ('queue' === b().ui.activeSection &&
-                            Object.assign(n, {
+                            Object.assign(a, {
                                 keyw: 'queue_waiting',
                                 keyc: 'queue_called',
                                 keya: 'queue_all',
                                 keyo: 'queue_all',
                                 keyl: 'queue_sla_risk',
                             }),
-                        n[a])
+                        a[n])
                     ) {
                         if (l()) return;
-                        return (t.preventDefault(), void i(n[a]));
+                        return (t.preventDefault(), void i(a[n]));
                     }
                 }
                 const m = b().queue,
@@ -5081,31 +5199,31 @@ async function dn() {
                 }
             });
         })({
-            navigateToSection: Za,
-            focusQuickCommand: an,
-            focusCurrentSearch: nn,
-            runQuickAction: on,
-            closeSidebar: () => en({ restoreFocus: !0 }),
+            navigateToSection: ta,
+            focusQuickCommand: ia,
+            focusCurrentSearch: oa,
+            runQuickAction: sa,
+            closeSidebar: () => aa({ restoreFocus: !0 }),
             toggleMenu: () => {
-                Wa() ? tn() : Xa();
+                Yn() ? na() : ea();
             },
-            dismissQueueSensitiveDialog: sa,
-            toggleQueueHelp: () => ca(),
-            queueNumpadAction: ua,
+            dismissQueueSensitiveDialog: rn,
+            toggleQueueHelp: () => ln(),
+            queueNumpadAction: dn,
         }));
-    const a = await (async function () {
+    const n = await (async function () {
         try {
             const t = await w('status'),
                 e = !0 === t.authenticated,
-                a = e ? String(t.csrfToken || '') : '';
+                n = e ? String(t.csrfToken || '') : '';
             return (
-                v(a),
+                v(n),
                 g((t) => ({
                     ...t,
                     auth: {
                         ...t.auth,
                         authenticated: e,
-                        csrfToken: a,
+                        csrfToken: n,
                         requires2FA: !1,
                         lastAuthAt: e ? Date.now() : 0,
                         authMethod: e ? 'session' : '',
@@ -5117,34 +5235,34 @@ async function dn() {
             return !1;
         }
     })();
-    (a
+    (n
         ? (await (async function () {
-              (L(), N(), await xa(!1));
+              (L(), N(), await In(!1));
           })(),
           D(b().ui.activeSection))
-        : (_(), N(), Pa()),
+        : (_(), N(), Hn()),
         (async function () {
             const t = (function () {
                 const t = 'Notification' in window,
                     e = 'serviceWorker' in navigator,
-                    a = 'PushManager' in window;
+                    n = 'PushManager' in window;
                 if (!t)
                     return {
                         tone: 'neutral',
                         label: 'Push no disponible',
                         meta: 'Este navegador no soporta notificaciones.',
                     };
-                const n = String(Notification.permission || 'default');
-                return 'granted' === n
+                const a = String(Notification.permission || 'default');
+                return 'granted' === a
                     ? {
                           tone: 'success',
-                          label: e && a ? 'Push listo' : 'Push parcial',
+                          label: e && n ? 'Push listo' : 'Push parcial',
                           meta:
-                              e && a
+                              e && n
                                   ? 'Permisos concedidos y APIs disponibles.'
                                   : 'Permiso otorgado, pero faltan APIs del navegador.',
                       }
-                    : 'denied' === n
+                    : 'denied' === a
                       ? {
                             tone: 'danger',
                             label: 'Push bloqueado',
@@ -5157,31 +5275,31 @@ async function dn() {
                         };
             })();
             (['pushStatusIndicator', 'dashboardPushStatus'].forEach((e) => {
-                const a = document.getElementById(e);
-                a &&
-                    (a.setAttribute('data-state', t.tone), r(`#${e}`, t.label));
+                const n = document.getElementById(e);
+                n &&
+                    (n.setAttribute('data-state', t.tone), r(`#${e}`, t.label));
             }),
                 ['pushStatusMeta', 'dashboardPushMeta'].forEach((e) => {
                     document.getElementById(e) && r(`#${e}`, t.meta);
                 }));
         })(),
         window.setInterval(() => {
-            Ba();
+            Pn();
         }, 3e4));
 }
-const pn = (
+const ma = (
     'loading' === document.readyState
         ? new Promise((t, e) => {
               document.addEventListener(
                   'DOMContentLoaded',
                   () => {
-                      dn().then(t).catch(e);
+                      pa().then(t).catch(e);
                   },
                   { once: !0 }
               );
           })
-        : dn()
+        : pa()
 ).catch((t) => {
     throw (console.error('admin-v3 boot failed', t), t);
 });
-export { pn as default };
+export { ma as default };
