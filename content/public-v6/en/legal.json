@@ -1,6 +1,6 @@
 {
     "title": "Legal | Piel en Armonia",
-    "description": "Clear legal framework for website use, privacy, cookies, and the limits of digital medical guidance.",
+    "description": "A clear legal framework for website use, privacy, cookies, and the limits of digital medical guidance.",
     "index": [
         {
             "slug": "terms",
@@ -35,8 +35,8 @@
         },
         "thesis": {
             "eyebrow": "Legal architecture",
-            "title": "Clear rules for responsible medical and digital decisions",
-            "body": "Each policy states rights, limits, and responsibilities so patients know what applies in every channel."
+            "title": "Clear rules for responsible digital and medical decisions",
+            "body": "Each policy explains what it protects, what it limits, and which responsibility applies in each channel."
         },
         "statement": {
             "eyebrow": "Legal direction",
@@ -46,7 +46,7 @@
             "alt": "Legal direction at Piel en Armonia"
         },
         "internalMessage": {
-            "description": "This framework protects consent, privacy, and responsible use across every public care channel."
+            "description": "This framework organizes consent, privacy, and responsible use across digital care channels."
         },
         "sectionLabel": "Section",
         "blockLabel": "Block",
@@ -55,92 +55,92 @@
     "pages": {
         "terms": {
             "heading": "Terms and conditions",
-            "summary": "Usage conditions for public content, remote guidance, and official communication channels.",
+            "summary": "Conditions for using public content, remote guidance, and official contact channels.",
             "heroImage": "/images/optimized/showcase-hero.webp",
             "sections": [
                 {
                     "title": "Website usage",
                     "items": [
-                        "Public information supports orientation but does not replace personalized medical consultation.",
-                        "You agree to provide accurate data in forms and official channels.",
-                        "Misuse of the platform may limit access to protect service integrity."
+                        "Public information guides decisions, but it does not replace personalized medical consultation.",
+                        "You agree to provide accurate information when using forms or official channels.",
+                        "Misuse of the platform may limit access in order to protect the service and other users."
                     ]
                 },
                 {
                     "title": "Intellectual property",
                     "items": [
-                        "Text, design, and imagery belong to Piel en Armonia or authorized rights holders.",
-                        "Full reproduction is not permitted without written authorization.",
-                        "Third-party marks are referenced only for informational or comparative purposes."
+                        "Text, design, and imagery belong to Piel en Armonia or rights holders with valid authorization.",
+                        "Full or partial commercial reproduction is not allowed without written permission.",
+                        "Third-party marks are referenced only for informational, comparative, or contextual purposes."
                     ]
                 }
             ]
         },
         "privacy": {
             "heading": "Privacy policy",
-            "summary": "Responsible personal data handling under a minimum-exposure principle.",
+            "summary": "Responsible personal data handling built on the principle of using only what is necessary.",
             "heroImage": "/images/optimized/showcase-clinic.webp",
             "sections": [
                 {
                     "title": "Data collected",
                     "items": [
-                        "Contact details shared through official channels.",
-                        "Technical metadata used for security and service improvement.",
-                        "Clinical information only when provided for medical orientation."
+                        "Contact details you share through official channels.",
+                        "Technical metadata used for security, stability, and service improvement.",
+                        "Clinical information only when you provide it for orientation or continuity of care."
                     ]
                 },
                 {
                     "title": "Usage and protection",
                     "items": [
-                        "Data supports continuity of care and operational assistance.",
-                        "Technical and organizational safeguards limit unauthorized access.",
-                        "Data correction or deletion requests may be submitted under applicable regulation."
+                        "Data is used for continuity of care, operational support, and necessary communications.",
+                        "Technical and organizational safeguards are applied to limit unauthorized access.",
+                        "You may request correction or deletion under applicable regulation."
                     ]
                 }
             ]
         },
         "cookies": {
             "heading": "Cookie policy",
-            "summary": "Cookie use for technical functions, aggregate analytics, and experience preferences.",
+            "summary": "Cookie use for technical functions, aggregate measurement, and browsing preferences.",
             "heroImage": "/images/optimized/showcase-diagnostic.webp",
             "sections": [
                 {
                     "title": "Cookie categories",
                     "items": [
-                        "Essential: required for navigation and site stability.",
-                        "Analytics: used for aggregate route measurement and improvement.",
-                        "Preferences: remember interface configuration."
+                        "Essential: support navigation, security, and site stability.",
+                        "Analytics: measure aggregate use to improve content, pathways, and performance.",
+                        "Preferences: remember interface and language settings."
                     ]
                 },
                 {
                     "title": "Consent management",
                     "items": [
-                        "Non-essential cookies may be accepted or rejected.",
-                        "Preferences can be updated through browser controls.",
-                        "Rejecting optional cookies does not block core website access."
+                        "You may accept or reject non-essential cookies.",
+                        "Preferences can be updated through your browser or system tools.",
+                        "Rejecting optional cookies does not block access to the main site content."
                     ]
                 }
             ]
         },
         "medical-disclaimer": {
             "heading": "Medical disclaimer",
-            "summary": "Public content informs but does not replace diagnosis or personalized treatment direction.",
+            "summary": "Public content informs, but it does not replace personalized diagnosis or treatment direction.",
             "heroImage": "/images/optimized/service-consulta.webp",
             "sections": [
                 {
                     "title": "Limits of digital guidance",
                     "items": [
-                        "Public text is not a medical prescription.",
-                        "Treatment decisions require individualized evaluation by qualified clinicians.",
-                        "Warning signs should be addressed immediately in urgent care services."
+                        "Public text is not a prescription, a final indication, or a promise of outcome.",
+                        "Any treatment decision requires individualized evaluation by qualified health professionals.",
+                        "Warning signs should be addressed immediately through urgent care when appropriate."
                     ]
                 },
                 {
                     "title": "Shared responsibility",
                     "items": [
-                        "Patients should report history and symptoms accurately.",
-                        "Clinical direction is defined by evidence and medical evaluation.",
-                        "Adherence to the plan directly influences case progression."
+                        "You should report history and symptoms with reasonable accuracy.",
+                        "Clinical direction is defined through evidence, history, and medical examination.",
+                        "Adherence to the plan directly influences how a case progresses."
                     ]
                 }
             ]

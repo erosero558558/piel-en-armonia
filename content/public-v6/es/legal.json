@@ -1,6 +1,6 @@
 {
     "title": "Legal | Piel en Armonia",
-    "description": "Marco legal claro para uso del sitio, privacidad, cookies y limites de orientacion medica digital.",
+    "description": "Marco legal claro para el uso del sitio, la privacidad, las cookies y los limites de la orientacion medica digital.",
     "index": [
         {
             "slug": "terminos",
@@ -35,8 +35,8 @@
         },
         "thesis": {
             "eyebrow": "Arquitectura legal",
-            "title": "Reglas claras para decisiones medicas y digitales responsables",
-            "body": "Cada politica explica derechos, limites y responsabilidades para que usted sepa que aplica en cada canal."
+            "title": "Reglas claras para decisiones digitales y medicas responsables",
+            "body": "Cada politica explica que protege, que limita y que responsabilidad corresponde en cada canal."
         },
         "statement": {
             "eyebrow": "Direccion legal",
@@ -46,7 +46,7 @@
             "alt": "Direccion legal de Piel en Armonia"
         },
         "internalMessage": {
-            "description": "Este marco protege su consentimiento, su privacidad y el uso responsable de cada canal de atencion."
+            "description": "Este marco ordena consentimiento, privacidad y uso responsable de los canales digitales de atencion."
         },
         "sectionLabel": "Seccion",
         "blockLabel": "Bloque",
@@ -55,44 +55,44 @@
     "pages": {
         "terminos": {
             "heading": "Terminos y condiciones",
-            "summary": "Condiciones de uso para contenido publico, orientacion remota y canales oficiales de contacto.",
+            "summary": "Condiciones para usar el contenido publico, la orientacion remota y los canales oficiales de contacto.",
             "heroImage": "/images/optimized/showcase-hero.webp",
             "sections": [
                 {
                     "title": "Uso del sitio",
                     "items": [
                         "La informacion publica orienta, pero no reemplaza una consulta medica personalizada.",
-                        "Usted se compromete a entregar datos reales en formularios y canales oficiales.",
-                        "El uso indebido de la plataforma puede limitar acceso para proteger el servicio."
+                        "Usted se compromete a entregar datos reales cuando use formularios o canales oficiales.",
+                        "El uso indebido de la plataforma puede limitar acceso para proteger el servicio y a terceros."
                     ]
                 },
                 {
                     "title": "Propiedad intelectual",
                     "items": [
-                        "Los textos, disenos e imagenes pertenecen a Piel en Armonia o a sus titulares autorizados.",
-                        "No se permite reproduccion total sin autorizacion escrita.",
-                        "Las marcas de terceros se citan solo con fines informativos o comparativos."
+                        "Los textos, disenos e imagenes pertenecen a Piel en Armonia o a titulares con autorizacion vigente.",
+                        "No se permite reproduccion total ni parcial con fines comerciales sin autorizacion escrita.",
+                        "Las marcas de terceros se citan solo con fines informativos, comparativos o de referencia."
                     ]
                 }
             ]
         },
         "privacidad": {
             "heading": "Politica de privacidad",
-            "summary": "Tratamiento responsable de datos personales bajo un principio de minima exposicion.",
+            "summary": "Tratamiento responsable de datos personales con el principio de usar solo lo necesario.",
             "heroImage": "/images/optimized/showcase-clinic.webp",
             "sections": [
                 {
                     "title": "Datos que se recopilan",
                     "items": [
                         "Datos de contacto que usted comparte por canales oficiales.",
-                        "Metadatos tecnicos para seguridad y mejora del servicio.",
-                        "Informacion clinica solo cuando usted la entrega para orientacion medica."
+                        "Metadatos tecnicos usados para seguridad, estabilidad y mejora del servicio.",
+                        "Informacion clinica solo cuando usted la entrega para orientacion o continuidad de atencion."
                     ]
                 },
                 {
                     "title": "Uso y proteccion",
                     "items": [
-                        "Los datos se usan para continuidad de atencion y soporte operativo.",
+                        "Los datos se usan para continuidad de atencion, soporte operativo y comunicaciones necesarias.",
                         "Se aplican controles tecnicos y organizativos para limitar accesos no autorizados.",
                         "Usted puede solicitar rectificacion o eliminacion conforme a la normativa aplicable."
                     ]
@@ -101,45 +101,45 @@
         },
         "cookies": {
             "heading": "Politica de cookies",
-            "summary": "Uso de cookies para funciones tecnicas, analitica agregada y preferencias de navegacion.",
+            "summary": "Uso de cookies para funciones tecnicas, medicion agregada y preferencias de navegacion.",
             "heroImage": "/images/optimized/showcase-diagnostic.webp",
             "sections": [
                 {
                     "title": "Categorias de cookies",
                     "items": [
-                        "Esenciales: permiten navegacion y estabilidad del sitio.",
-                        "Analiticas: miden uso agregado para mejorar contenido y rutas.",
-                        "Preferencias: recuerdan configuraciones de interfaz."
+                        "Esenciales: sostienen navegacion, seguridad y estabilidad del sitio.",
+                        "Analiticas: miden uso agregado para mejorar contenido, rutas y rendimiento.",
+                        "Preferencias: recuerdan configuraciones de interfaz y idioma."
                     ]
                 },
                 {
                     "title": "Gestion de consentimiento",
                     "items": [
                         "Usted puede aceptar o rechazar cookies no esenciales.",
-                        "La configuracion puede actualizarse desde su navegador.",
-                        "Rechazar cookies opcionales no bloquea el contenido principal del sitio."
+                        "La configuracion puede actualizarse desde su navegador o herramientas del sistema.",
+                        "Rechazar cookies opcionales no bloquea el acceso al contenido principal del sitio."
                     ]
                 }
             ]
         },
         "aviso-medico": {
             "heading": "Aviso medico",
-            "summary": "El contenido publico orienta, pero no reemplaza diagnostico ni tratamiento personalizado.",
+            "summary": "El contenido publico orienta, pero no sustituye diagnostico ni tratamiento personalizados.",
             "heroImage": "/images/optimized/service-consulta.webp",
             "sections": [
                 {
                     "title": "Limites de la orientacion digital",
                     "items": [
-                        "Los textos publicos no constituyen receta medica.",
+                        "Los textos publicos no constituyen receta, indicacion definitiva ni promesa de resultado.",
                         "Toda decision terapeutica exige evaluacion individual por profesionales de salud.",
-                        "Senales de alarma deben atenderse de inmediato en servicios de urgencia."
+                        "Las senales de alarma deben atenderse de inmediato en servicios de urgencia cuando corresponda."
                     ]
                 },
                 {
                     "title": "Responsabilidad compartida",
                     "items": [
-                        "Usted debe informar antecedentes y sintomas con precision.",
-                        "El equipo clinico define conducta segun evidencia y examen medico.",
+                        "Usted debe informar antecedentes y sintomas con precision razonable.",
+                        "El equipo clinico define conducta segun evidencia, historia y examen medico.",
                         "La adherencia al plan influye de forma directa en la evolucion del caso."
                     ]
                 }

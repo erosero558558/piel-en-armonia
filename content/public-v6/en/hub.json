@@ -1,6 +1,6 @@
 {
     "title": "Dermatology services | Piel en Armonia",
-    "description": "Dermatology services in Quito with clear medical direction, indicated technology, and continuous follow-up.",
+    "description": "Dermatology services in Quito with clear diagnosis, indicated technology, and follow-up you can actually understand.",
     "breadcrumb": [
         {
             "label": "Home",
@@ -17,8 +17,8 @@
         "srcset": "/images/optimized/showcase-hero-640.webp 640w, /images/optimized/showcase-hero-1024.webp 1024w, /images/optimized/showcase-hero-1400.webp 1400w",
         "alt": "Dermatology team and clinical technology"
     },
-    "introTitle": "Choose the route that best describes your concern today",
-    "introDeck": "Each service explains goals, process, and control timing so you can decide with confidence before treatment starts.",
+    "introTitle": "Find the route that best matches what your skin needs today",
+    "introDeck": "Each service outlines judgment, timing, and follow-up so you can understand the plan before taking the next step.",
     "ui": {
         "menu": {
             "featured": "Featured programs",
@@ -26,7 +26,7 @@
         },
         "featured": {
             "eyebrow": "Recommended route",
-            "title": "Entry services"
+            "title": "Starting routes"
         },
         "sectionLabelPrefix": "Section",
         "routeLabel": "routes",
@@ -41,21 +41,21 @@
         {
             "category": "Diagnosis",
             "title": "Comprehensive diagnosis unit",
-            "copy": "A complete first evaluation that orders clinical priorities and defines an understandable plan from the first visit.",
+            "copy": "A complete first reading that sets priorities and leaves you with a clear plan from the first visit.",
             "image": "/images/optimized/service-consulta.webp",
             "href": "/en/services/diagnostico-integral/"
         },
         {
             "category": "Technology",
             "title": "Case-indicated dermatology laser",
-            "copy": "Laser is indicated by phototype and objective, with medical settings reviewed at every control point.",
+            "copy": "Technology chosen by phototype, goal, and recovery window, with settings reviewed at every control point.",
             "image": "/images/optimized/service-laser.webp",
             "href": "/en/services/laser-dermatologico/"
         },
         {
             "category": "Continuity",
             "title": "Telemedicine with responsible escalation",
-            "copy": "Remote care guides your next step and accelerates in-clinic consultation when direct examination is required.",
+            "copy": "Remote care clarifies the next step and speeds in-clinic review when direct examination changes the decision.",
             "image": "/images/optimized/service-telemedicina.webp",
             "href": "/en/telemedicine/"
         }
@@ -64,13 +64,13 @@
         {
             "id": "clinical-core",
             "title": "Clinical foundation",
-            "deck": "Routes for deep diagnosis and control of frequent conditions through staged follow-up.",
+            "deck": "Routes built to clarify diagnosis and sustain control of common conditions through staged follow-up.",
             "cards": [
                 {
                     "slug": "diagnostico-integral",
                     "category": "Diagnosis",
                     "title": "Comprehensive diagnosis",
-                    "copy": "An initial map of risk, priorities, and treatment direction for a precise clinical start.",
+                    "copy": "An initial reading that orders risk, priorities, and treatment direction before anything else begins.",
                     "image": "/images/optimized/service-consulta.webp",
                     "href": "/en/services/diagnostico-integral/"
                 },
@@ -78,7 +78,7 @@
                     "slug": "acne-rosacea",
                     "category": "Inflammation",
                     "title": "Acne and rosacea",
-                    "copy": "Flares and sensitivity are managed through adjustments based on your measured skin response.",
+                    "copy": "Flares and sensitivity are managed through medical adjustments based on your actual skin response.",
                     "image": "/images/optimized/service-acne.webp",
                     "href": "/en/services/acne-rosacea/"
                 },
@@ -86,7 +86,7 @@
                     "slug": "cancer-piel",
                     "category": "Screening",
                     "title": "Skin cancer",
-                    "copy": "Early lesion assessment with warning criteria and an active monitoring plan.",
+                    "copy": "Early lesion assessment with warning criteria and a monitoring plan that is not left for later.",
                     "image": "/images/optimized/service-cancer.webp",
                     "href": "/en/services/cancer-piel/"
                 }
@@ -95,13 +95,13 @@
         {
             "id": "procedures",
             "title": "Medical treatments",
-            "deck": "Procedures are indicated only when they add clear clinical value and safe monitoring.",
+            "deck": "Procedures and technology are indicated only when they add clinical value and can be monitored safely.",
             "cards": [
                 {
                     "slug": "laser-dermatologico",
                     "category": "Technology",
                     "title": "Dermatology laser",
-                    "copy": "Traceable settings for lesions and scars, with medical control before and after each session.",
+                    "copy": "Traceable settings for lesions, pigment, or scars, with medical control before and after every session.",
                     "image": "/images/optimized/service-laser.webp",
                     "href": "/en/services/laser-dermatologico/"
                 },
@@ -109,7 +109,7 @@
                     "slug": "peeling-quimico",
                     "category": "Renewal",
                     "title": "Chemical peel",
-                    "copy": "Skin renewal formulas are selected by phototype, sensitivity, and therapeutic goal.",
+                    "copy": "Skin renewal calibrated by phototype, sensitivity, and therapeutic goal.",
                     "image": "/images/optimized/showcase-treatment.webp",
                     "href": "/en/services/peeling-quimico/"
                 },
@@ -117,7 +117,7 @@
                     "slug": "bioestimuladores-colageno",
                     "category": "Rejuvenation",
                     "title": "Collagen biostimulators",
-                    "copy": "Progressive firmness support with responsible indication and area-based follow-up.",
+                    "copy": "Progressive support for firmness and skin quality, indicated responsibly and reviewed by zone.",
                     "image": "/images/optimized/service-rejuvenecimiento.webp",
                     "href": "/en/services/bioestimuladores-colageno/"
                 }
@@ -126,13 +126,13 @@
         {
             "id": "extended",
             "title": "Continuity and family",
-            "deck": "Programs for long-term follow-up, mixed presentations, and family guidance.",
+            "deck": "Programs for longer follow-up, mixed presentations, and family decisions that need structure.",
             "cards": [
                 {
                     "slug": "dermatologia-pediatrica",
                     "category": "Pediatric",
                     "title": "Pediatric dermatology",
-                    "copy": "Pediatric care with clear recommendations for caregivers and daily routines.",
+                    "copy": "Pediatric care with clear guidance for caregivers, school routines, and daily life.",
                     "image": "/images/optimized/showcase-clinic.webp",
                     "href": "/en/services/dermatologia-pediatrica/"
                 },
@@ -140,7 +140,7 @@
                     "slug": "piel-cabello-unas",
                     "category": "Integral",
                     "title": "Skin, hair and nails",
-                    "copy": "A cross-route approach for combined symptoms requiring coordinated clinical interpretation.",
+                    "copy": "An integrated route for combined symptoms that need coordinated clinical reading.",
                     "image": "/images/optimized/showcase-diagnostic.webp",
                     "href": "/en/services/piel-cabello-unas/"
                 },
@@ -148,7 +148,7 @@
                     "slug": "telemedicine",
                     "category": "Telemedicine",
                     "title": "Telemedicine",
-                    "copy": "Remote guidance clarifies whether online continuity is enough or in-clinic review is needed.",
+                    "copy": "Remote guidance helps decide whether online continuity is enough or clinic review is the better next step.",
                     "image": "/images/optimized/service-telemedicina.webp",
                     "href": "/en/telemedicine/"
                 }
@@ -159,56 +159,56 @@
         {
             "category": "Follow-up",
             "title": "Clinical photo registry",
-            "copy": "Images are compared under equivalent conditions to measure change with better precision.",
+            "copy": "Images are compared under equivalent conditions to read change with greater precision.",
             "image": "/images/optimized/showcase-diagnostic.webp",
             "href": "/en/services/diagnostico-integral/"
         },
         {
             "category": "Inflammation",
             "title": "Active flare pathway",
-            "copy": "Early adjustments are triggered when lesions return or skin sensitivity rises.",
+            "copy": "We adjust early when lesions return or the skin becomes more reactive.",
             "image": "/images/optimized/service-acne.webp",
             "href": "/en/services/acne-rosacea/"
         },
         {
             "category": "Pediatric",
             "title": "Guided family decisions",
-            "copy": "A practical home plan with warning signs and concrete next steps.",
+            "copy": "A clear home plan with warning signs and steps a family can actually follow.",
             "image": "/images/optimized/showcase-clinic.webp",
             "href": "/en/services/dermatologia-pediatrica/"
         },
         {
             "category": "Screening",
             "title": "Pigmented lesion route",
-            "copy": "Consultation is prioritized when a mole or spot has changed recently.",
+            "copy": "Consultation is prioritized when a mole or spot has changed in a recent way.",
             "image": "/images/optimized/service-cancer.webp",
             "href": "/en/services/cancer-piel/"
         },
         {
             "category": "Technology",
             "title": "Phototype calibration",
-            "copy": "Energy and frequency are tuned to your measured skin response.",
+            "copy": "Energy, frequency, and recovery are tuned to your skin's measured response.",
             "image": "/images/optimized/service-laser.webp",
             "href": "/en/services/laser-dermatologico/"
         },
         {
             "category": "Rejuvenation",
             "title": "Skin support sequence",
-            "copy": "Session combinations improve texture and firmness with realistic expectations.",
+            "copy": "Sessions are combined with honest expectations to improve texture, firmness, and continuity.",
             "image": "/images/optimized/service-rejuvenecimiento.webp",
             "href": "/en/services/bioestimuladores-colageno/"
         },
         {
             "category": "Legal",
             "title": "Consent in plain language",
-            "copy": "Rights and responsibilities are explained without unnecessary legal complexity.",
+            "copy": "Rights and responsibilities are explained clearly, without unnecessary legal weight.",
             "image": "/images/optimized/showcase-hero.webp",
             "href": "/en/legal/terms/"
         },
         {
             "category": "Telemedicine",
             "title": "Responsible remote escalation",
-            "copy": "Remote care remains active with clear thresholds for in-clinic transition.",
+            "copy": "Remote care keeps clear thresholds for moving into clinic at the right time.",
             "image": "/images/optimized/service-telemedicina.webp",
             "href": "/en/telemedicine/"
         }
@@ -216,7 +216,7 @@
     "bookingStatus": {
         "eyebrow": "Schedule status",
         "title": "Online booking under maintenance",
-        "description": "While web scheduling is updated, you can start through telemedicine or review active clinical service routes.",
+        "description": "While web scheduling is being refreshed, you can begin with telemedicine or review the clinical route that best fits your case.",
         "ctaLabel": "Open telemedicine",
         "ctaHref": "/en/telemedicine/"
     }
