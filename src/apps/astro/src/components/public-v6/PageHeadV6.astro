@@ -10,84 +10,112 @@ const {
     copy = {},
 } = Astro.props;
 
+const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
+const normalizeText = (value) => (hasText(value) ? value.trim() : '');
+const normalizeHref = (value) => {
+    const raw = normalizeText(value);
+    return raw && raw !== '#' ? raw : '';
+};
+const normalizeLink = (item) => {
+    const label = normalizeText(item?.label);
+    const href = normalizeHref(item?.href);
+    return label && href ? { label, href } : null;
+};
+
 const crumbs = Array.isArray(breadcrumb) ? breadcrumb : [];
-const safeCrumbs = crumbs.filter((item) => item && item.href && item.label);
+const safeCrumbs = crumbs.map(normalizeLink).filter(Boolean);
 const activeLang = locale === 'en' ? 'EN' : 'ES';
 const safeMenuItems = Array.isArray(menuItems)
-    ? menuItems.filter((item) => item && item.href && item.label)
+    ? menuItems.map(normalizeLink).filter(Boolean)
     : [];
 const menuPanelId = 'v6-page-menu-panel';
-const breadcrumbAria = copy.breadcrumbAria || '';
-const languageSwitchAria = copy.languageSwitchAria || '';
-const pageNavigationLabel = copy.pageNavigationLabel || '';
-const pageNavigationTitle = copy.pageNavigationTitle || '';
-const noSections = copy.noSections || '';
-const hasSwitch = Boolean(switchLabel && switchHref);
+const breadcrumbAria = normalizeText(copy.breadcrumbAria);
+const languageSwitchAria = normalizeText(copy.languageSwitchAria);
+const pageNavigationLabel = normalizeText(copy.pageNavigationLabel);
+const pageNavigationTitle = normalizeText(copy.pageNavigationTitle);
+const noSections = normalizeText(copy.noSections);
+const headingText = normalizeText(heading);
+const switchLabelText = normalizeText(switchLabel);
+const switchHrefValue = normalizeHref(switchHref);
+const menuLabelText = normalizeText(menuLabel);
+const hasSwitch = Boolean(switchLabelText && switchHrefValue);
+const hasMenu = Boolean(menuLabelText && (safeMenuItems.length || noSections));
 ---
 
 <section class="v6-corp-head" data-v6-page-head>
     <div class="v6-corp-head__inner">
         <div class="v6-corp-head__top">
-            <nav class="v6-corp-head__crumbs" aria-label={breadcrumbAria}>
-                {
-                    safeCrumbs.map((item, index) => (
-                        <>
-                            <a href={item.href}>{item.label}</a>
-                            {index < safeCrumbs.length - 1 ? <span aria-hidden="true">></span> : null}
-                        </>
-                    ))
-                }
-            </nav>
+            {
+                safeCrumbs.length ? (
+                    <nav class="v6-corp-head__crumbs" aria-label={breadcrumbAria || undefined}>
+                        {
+                            safeCrumbs.map((item, index) => (
+                                <>
+                                    <a href={item.href}>{item.label}</a>
+                                    {index < safeCrumbs.length - 1 ? <span aria-hidden="true">></span> : null}
+                                </>
+                            ))
+                        }
+                    </nav>
+                ) : null
+            }
             <div class="v6-corp-head__tools" data-v6-page-tools>
-                <div class="v6-corp-head__lang" aria-label={languageSwitchAria}>
+                <div class="v6-corp-head__lang" aria-label={languageSwitchAria || undefined}>
                     {hasSwitch ? (
-                        <a class="v6-corp-head__lang-option" href={switchHref}>
-                            {switchLabel}
+                        <a class="v6-corp-head__lang-option" href={switchHrefValue}>
+                            {switchLabelText}
                         </a>
                     ) : null}
                     {hasSwitch ? <span aria-hidden="true">/</span> : null}
                     <strong class="v6-corp-head__lang-option is-active">{activeLang}</strong>
                 </div>
-                <button
-                    class="v6-corp-head__menu"
-                    type="button"
-                    data-v6-page-menu
-                    aria-expanded="false"
-                    aria-haspopup="true"
-                    aria-controls={menuPanelId}
-                >
-                    {menuLabel}
-                    <span class="v6-corp-head__menu-icon" aria-hidden="true">v</span>
-                </button>
-                <div
-                    id={menuPanelId}
-                    class="v6-corp-head__menu-panel"
-                    data-v6-page-menu-panel
-                    data-v6-section-nav="page-menu"
-                    aria-label={pageNavigationLabel}
-                    hidden
-                >
-                    {pageNavigationTitle ? <p>{pageNavigationTitle}</p> : null}
-                    {
-                        safeMenuItems.length ? (
-                            <ul>
+                {
+                    hasMenu ? (
+                        <>
+                            <button
+                                class="v6-corp-head__menu"
+                                type="button"
+                                data-v6-page-menu
+                                aria-expanded="false"
+                                aria-haspopup="true"
+                                aria-controls={menuPanelId}
+                            >
+                                {menuLabelText}
+                                <span class="v6-corp-head__menu-icon" aria-hidden="true">v</span>
+                            </button>
+                            <div
+                                id={menuPanelId}
+                                class="v6-corp-head__menu-panel"
+                                data-v6-page-menu-panel
+                                data-v6-section-nav="page-menu"
+                                aria-label={pageNavigationLabel || undefined}
+                                hidden
+                            >
+                                {pageNavigationTitle ? <p>{pageNavigationTitle}</p> : null}
                                 {
-                                    safeMenuItems.map((item) => (
-                                        <li>
-                                            <a data-v6-page-menu-link data-v6-section-link href={item.href}>{item.label}</a>
-                                        </li>
-                                    ))
+                                    safeMenuItems.length ? (
+                                        <ul>
+                                            {
+                                                safeMenuItems.map((item) => (
+                                                    <li>
+                                                        <a data-v6-page-menu-link data-v6-section-link href={item.href}>{item.label}</a>
+                                                    </li>
+                                                ))
+                                            }
+                                        </ul>
+                                    ) : noSections ? (
+                                        <p class="v6-corp-head__menu-empty">
+                                            {noSections}
+                                        </p>
+                                    ) : null
                                 }
-                            </ul>
-                        ) : noSections ? (
-                            <p class="v6-corp-head__menu-empty">
-                                {noSections}
-                            </p>
-                        ) : null
-                    }
-                </div>
+                            </div>
+                        </>
+                    ) : null
+                }
             </div>
         </div>
-        <h1>{heading}</h1>
+        {headingText ? <h1>{headingText}</h1> : null}
     </div>
 </section>
+

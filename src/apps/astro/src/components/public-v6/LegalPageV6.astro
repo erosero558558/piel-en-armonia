@@ -18,22 +18,48 @@ const thesisUi = ui?.thesis && typeof ui.thesis === 'object' ? ui.thesis : {};
 const statementUi = ui?.statement && typeof ui.statement === 'object' ? ui.statement : {};
 const internalMessageUi = ui?.internalMessage && typeof ui.internalMessage === 'object' ? ui.internalMessage : {};
 const breadcrumbUi = ui?.breadcrumb && typeof ui.breadcrumb === 'object' ? ui.breadcrumb : {};
-const sectionLabel = ui.sectionLabel || '';
-const blockLabel = ui.blockLabel || '';
-const clausesLabel = ui.clausesLabel || '';
 const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
+const normalizeText = (value) => (hasText(value) ? value.trim() : '');
+const normalizeHref = (value) => {
+    const raw = normalizeText(value);
+    return raw && raw !== '#' ? raw : '';
+};
+const sectionLabel = normalizeText(ui.sectionLabel);
+const blockLabel = normalizeText(ui.blockLabel);
+const clausesLabel = normalizeText(ui.clausesLabel);
 const makeMenuItem = (label, href) => (hasText(label) ? { label: label.trim(), href } : null);
 
-const switchLabel = navModel?.header?.switchLabel || '';
-const switchHref = navModel?.header?.switchHref || '#';
-const menuLabel = navModel?.header?.menuLabel || '';
+const switchLabel = normalizeText(navModel?.header?.switchLabel);
+const switchHref = normalizeHref(navModel?.header?.switchHref);
+const menuLabel = normalizeText(navModel?.header?.menuLabel);
 const sections = Array.isArray(page.sections) ? page.sections : [];
 const safeLegalPages = legalPages && typeof legalPages === 'object' ? legalPages : {};
-const sectionHighlights = sections.slice(0, 3).map((section) => ({
+const safeIndexItems = (Array.isArray(indexItems) ? indexItems : [])
+    .map((item) => {
+        const slug = normalizeText(item?.slug);
+        const title = normalizeText(item?.title);
+        const href = normalizeHref(item?.href);
+        return slug && title && href ? { slug, title, href } : null;
+    })
+    .filter(Boolean);
+const sectionModels = sections
+    .map((section, index) => {
+        const title = normalizeText(section?.title);
+        const items = Array.isArray(section?.items) ? section.items.map(normalizeText).filter(Boolean) : [];
+        return title && items.length
+            ? {
+                title,
+                items,
+                anchorId: `v6-legal-section-${index + 1}`,
+            }
+            : null;
+    })
+    .filter(Boolean);
+const sectionHighlights = sectionModels.slice(0, 3).map((section) => ({
     title: section.title,
-    count: Array.isArray(section.items) ? section.items.length : 0,
+    count: section.items.length,
 }));
-const indexCards = indexItems.map((item, index) => {
+const indexCards = safeIndexItems.map((item, index) => {
     const source = safeLegalPages[item.slug] && typeof safeLegalPages[item.slug] === 'object'
         ? safeLegalPages[item.slug]
         : {};
@@ -47,17 +73,12 @@ const indexCards = indexItems.map((item, index) => {
         slug: item.slug,
         title: item.title,
         href: item.href,
-        summary: source.summary || '',
-        image: source.heroImage || '',
+        summary: normalizeText(source.summary),
+        image: normalizeText(source.heroImage),
         sectionLabel: `${sectionLabel} ${String(index + 1).padStart(2, '0')}`.trim(),
         clauses,
     };
-});
-const sectionModels = sections.map((section, index) => ({
-    ...section,
-    items: Array.isArray(section.items) ? section.items : [],
-    anchorId: `v6-legal-section-${index + 1}`,
-}));
+}).filter((item) => item.title && item.href && item.image);
 const pageMenuItems = [
     makeMenuItem(menuUi.legalIndex || '', '#v6-legal-tabs'),
 ].filter(Boolean);
@@ -84,25 +105,29 @@ sectionModels.forEach((section) => {
 });
 
 const breadcrumb = [
-    { label: breadcrumbUi.home || '', href: locale === 'en' ? '/en/' : '/es/' },
-    { label: breadcrumbUi.legal || '', href: locale === 'en' ? '/en/legal/terms/' : '/es/legal/terminos/' },
+    { label: normalizeText(breadcrumbUi.home), href: locale === 'en' ? '/en/' : '/es/' },
+    { label: normalizeText(breadcrumbUi.legal), href: locale === 'en' ? '/en/legal/terms/' : '/es/legal/terminos/' },
 ];
-const thesisEyebrow = thesisUi.eyebrow || '';
-const thesisTitle = thesisUi.title || '';
-const thesisBody = thesisUi.body || '';
+const thesisEyebrow = normalizeText(thesisUi.eyebrow);
+const thesisTitle = normalizeText(thesisUi.title);
+const thesisBody = normalizeText(thesisUi.body);
 const statement = {
-    eyebrow: statementUi.eyebrow || '',
-    title: statementUi.title || '',
-    body: page.summary || '',
-    signature: statementUi.signature || '',
-    image: statementUi.image || '',
-    alt: statementUi.alt || '',
+    eyebrow: normalizeText(statementUi.eyebrow),
+    title: normalizeText(statementUi.title),
+    body: normalizeText(page.summary),
+    signature: normalizeText(statementUi.signature),
+    image: normalizeText(statementUi.image),
+    alt: normalizeText(statementUi.alt),
 };
+const heroImage = normalizeText(page.heroImage);
+const heading = normalizeText(page.heading);
+const summary = normalizeText(page.summary);
+const internalDescription = normalizeText(internalMessageUi.description);
 ---
 
 <PageHeadV6
     breadcrumb={breadcrumb}
-    heading={page.heading}
+    heading={heading}
     locale={locale}
     switchLabel={switchLabel}
     switchHref={switchHref}
@@ -111,30 +136,46 @@ const statement = {
     copy={pageHeadUi}
 />
 
-<section class="v6-page-hero-media is-internal" data-v6-internal-hero>
-    <img src={page.heroImage} alt={page.heading} loading="eager" fetchpriority="high" />
-</section>
+{
+    heroImage ? (
+        <section class="v6-page-hero-media is-internal" data-v6-internal-hero>
+            <img src={heroImage} alt={heading} loading="eager" fetchpriority="high" />
+        </section>
+    ) : null
+}
 
-<nav id="v6-legal-tabs" class="v6-legal-tabs" aria-label={menuUi.legalIndex || ''}>
-    {
-        indexItems.map((item) => (
-            <a class:list={[item.slug === currentSlug && 'is-active']} href={item.href} aria-current={item.slug === currentSlug ? 'page' : undefined}>{item.title}</a>
-        ))
-    }
-</nav>
+{
+    safeIndexItems.length ? (
+        <nav id="v6-legal-tabs" class="v6-legal-tabs" aria-label={normalizeText(menuUi.legalIndex) || undefined}>
+            {
+                safeIndexItems.map((item) => (
+                    <a class:list={[item.slug === currentSlug && 'is-active']} href={item.href} aria-current={item.slug === currentSlug ? 'page' : undefined}>{item.title}</a>
+                ))
+            }
+        </nav>
+    ) : null
+}
 
-<section class="v6-internal-message" data-v6-internal-message>
-    <h2>{page.summary}</h2>
-    {internalMessageUi.description ? <p>{internalMessageUi.description}</p> : null}
-</section>
+{
+    summary || internalDescription ? (
+        <section class="v6-internal-message" data-v6-internal-message>
+            {summary ? <h2>{summary}</h2> : null}
+            {internalDescription ? <p>{internalDescription}</p> : null}
+        </section>
+    ) : null
+}
 
 <InternalStatementBandV6 statement={statement} variant="legal" />
 
-<section class="v6-internal-thesis" data-v6-internal-thesis>
-    <p>{thesisEyebrow}</p>
-    <h2>{thesisTitle}</h2>
-    <p>{thesisBody}</p>
-</section>
+{
+    thesisEyebrow || thesisTitle || thesisBody ? (
+        <section class="v6-internal-thesis" data-v6-internal-thesis>
+            {thesisEyebrow ? <p>{thesisEyebrow}</p> : null}
+            {thesisTitle ? <h2>{thesisTitle}</h2> : null}
+            {thesisBody ? <p>{thesisBody}</p> : null}
+        </section>
+    ) : null
+}
 
 {
     indexCards.length ? (
@@ -146,12 +187,10 @@ const statement = {
                             <img src={item.image} alt={item.title} loading="lazy" decoding="async" />
                         </figure>
                         <div>
-                            <p>{item.sectionLabel}</p>
+                            {item.sectionLabel ? <p>{item.sectionLabel}</p> : null}
                             <h3>{item.title}</h3>
-                            <p>{item.summary}</p>
-                            <strong>
-                                {`${item.clauses} ${clausesLabel}`.trim()}
-                            </strong>
+                            {item.summary ? <p>{item.summary}</p> : null}
+                            {clausesLabel ? <strong>{`${item.clauses} ${clausesLabel}`.trim()}</strong> : null}
                         </div>
                     </a>
                 ))
@@ -166,10 +205,10 @@ const statement = {
             {
                 sectionHighlights.map((item, index) => (
                     <article>
-                        <p>{sectionLabel}</p>
+                        {sectionLabel ? <p>{sectionLabel}</p> : null}
                         <h3>{item.title}</h3>
-                        <small>{`${blockLabel} ${String(index + 1).padStart(2, '0')}`.trim()}</small>
-                        <strong>{`${item.count} ${clausesLabel}`.trim()}</strong>
+                        {blockLabel ? <small>{`${blockLabel} ${String(index + 1).padStart(2, '0')}`.trim()}</small> : null}
+                        {clausesLabel ? <strong>{`${item.count} ${clausesLabel}`.trim()}</strong> : null}
                     </article>
                 ))
             }
@@ -182,9 +221,9 @@ const statement = {
         sectionModels.map((section, sectionIndex) => (
             <article id={section.anchorId} data-v6-legal-block>
                 <header>
-                    <p>{`${sectionLabel} ${String(sectionIndex + 1).padStart(2, '0')}`.trim()}</p>
+                    {sectionLabel ? <p>{`${sectionLabel} ${String(sectionIndex + 1).padStart(2, '0')}`.trim()}</p> : null}
                     <h3>{section.title}</h3>
-                    <strong>{`${section.items.length} ${clausesLabel}`.trim()}</strong>
+                    {clausesLabel ? <strong>{`${section.items.length} ${clausesLabel}`.trim()}</strong> : null}
                 </header>
                 <ol>
                     {section.items.map((item, itemIndex) => (

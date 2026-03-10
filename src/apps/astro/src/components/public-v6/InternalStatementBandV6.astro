@@ -5,26 +5,43 @@ const {
 } = Astro.props;
 
 const safeStatement = statement && typeof statement === 'object' ? statement : {};
-const eyebrow = safeStatement.eyebrow || '';
-const title = safeStatement.title || '';
-const body = safeStatement.body || '';
-const signature = safeStatement.signature || '';
-const image = safeStatement.image || '';
-const alt = safeStatement.alt || '';
+const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
+const normalizeText = (value) => (hasText(value) ? value.trim() : '');
+const eyebrow = normalizeText(safeStatement.eyebrow);
+const title = normalizeText(safeStatement.title);
+const body = normalizeText(safeStatement.body);
+const signature = normalizeText(safeStatement.signature);
+const image = normalizeText(safeStatement.image);
+const alt = normalizeText(safeStatement.alt);
+const hasMedia = Boolean(image);
+const hasContent = Boolean(eyebrow || title || body || signature);
+const hasStatement = hasMedia || hasContent;
 ---
 
-<section
-    class:list={['v6-statement-band', `is-${variant}`]}
-    data-v6-statement-band
-    data-v6-statement-band-variant={variant}
->
-    <figure class="v6-statement-band__media">
-        <img src={image} alt={alt} loading="lazy" decoding="async" />
-    </figure>
-    <div class="v6-statement-band__content">
-        <p>{eyebrow}</p>
-        <h2>{title}</h2>
-        <p>{body}</p>
-        <strong>{signature}</strong>
-    </div>
-</section>
+{
+    hasStatement ? (
+        <section
+            class:list={['v6-statement-band', `is-${variant}`]}
+            data-v6-statement-band
+            data-v6-statement-band-variant={variant}
+        >
+            {
+                hasMedia ? (
+                    <figure class="v6-statement-band__media">
+                        <img src={image} alt={alt} loading="lazy" decoding="async" />
+                    </figure>
+                ) : null
+            }
+            {
+                hasContent ? (
+                    <div class="v6-statement-band__content">
+                        {eyebrow ? <p>{eyebrow}</p> : null}
+                        {title ? <h2>{title}</h2> : null}
+                        {body ? <p>{body}</p> : null}
+                        {signature ? <strong>{signature}</strong> : null}
+                    </div>
+                ) : null
+            }
+        </section>
+    ) : null
+}

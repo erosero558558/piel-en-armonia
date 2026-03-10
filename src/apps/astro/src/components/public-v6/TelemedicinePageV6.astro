@@ -14,35 +14,44 @@ const railUi = ui?.rail && typeof ui.rail === 'object' ? ui.rail : {};
 const kpiUi = ui?.kpis && typeof ui.kpis === 'object' ? ui.kpis : {};
 const initiativesUi = ui?.initiatives && typeof ui.initiatives === 'object' ? ui.initiatives : {};
 
-const switchLabel = navModel?.header?.switchLabel || '';
-const switchHref = navModel?.header?.switchHref || '#';
-const menuLabel = navModel?.header?.menuLabel || '';
 const breadcrumb = Array.isArray(page.breadcrumb) ? page.breadcrumb : [];
 const blocks = Array.isArray(page.blocks) ? page.blocks : [];
 const initiativesRaw = Array.isArray(page.initiatives) ? page.initiatives : [];
 const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
+const normalizeText = (value) => (hasText(value) ? value.trim() : '');
+const normalizeHref = (value) => {
+    const raw = normalizeText(value);
+    return raw && raw !== '#' ? raw : '';
+};
 const makeMenuItem = (label, href) => (hasText(label) ? { label: label.trim(), href } : null);
-const blockModels = blocks.map((block, index) => {
-    const items = Array.isArray(block.items) ? block.items : [];
-    return {
-        ...block,
-        items,
-        mediaSrc: block.image || '',
-        anchorId: `v6-tele-block-${index + 1}`,
-    };
-});
+const switchLabel = normalizeText(navModel?.header?.switchLabel);
+const switchHref = normalizeHref(navModel?.header?.switchHref);
+const menuLabel = normalizeText(navModel?.header?.menuLabel);
+const blockModels = blocks
+    .map((block, index) => {
+        const title = normalizeText(block?.title);
+        const mediaSrc = normalizeText(block?.image);
+        const items = Array.isArray(block?.items) ? block.items.map(normalizeText).filter(Boolean) : [];
+        return {
+            title,
+            items,
+            mediaSrc,
+            anchorId: `v6-tele-block-${index + 1}`,
+        };
+    })
+    .filter((block) => block.title && block.items.length);
 const totalCriteria = blockModels.reduce((total, block) => total + block.items.length, 0);
 const initiatives = initiativesRaw
     .map((item) => ({
-        title: item.title || '',
-        copy: item.copy || '',
-        image: item.image || '',
-        href: item.href || '',
+        title: normalizeText(item?.title),
+        copy: normalizeText(item?.copy),
+        image: normalizeText(item?.image),
+        href: normalizeHref(item?.href),
     }))
     .filter((item) => hasText(item.title) && hasText(item.copy) && hasText(item.image) && hasText(item.href));
 
 const pageMenuItems = blockModels
-    .map((block) => makeMenuItem(block.title || '', `#${block.anchorId}`))
+    .map((block) => makeMenuItem(block.title, `#${block.anchorId}`))
     .filter(Boolean);
 if (initiatives.length) {
     const initiativesItem = makeMenuItem(menuUi.initiatives || '', '#v6-tele-initiatives');
@@ -50,21 +59,45 @@ if (initiatives.length) {
         pageMenuItems.unshift(initiativesItem);
     }
 }
-const bookingItem = makeMenuItem(menuUi.bookingStatus || '', '#v6-booking-status');
+const bookingStatus = page?.bookingStatus && typeof page.bookingStatus === 'object' ? page.bookingStatus : {};
+const hasBookingStatus = Boolean(
+    normalizeText(bookingStatus.eyebrow) ||
+    normalizeText(bookingStatus.title) ||
+    normalizeText(bookingStatus.description) ||
+    (normalizeText(bookingStatus.ctaLabel) && normalizeHref(bookingStatus.ctaHref))
+);
+const bookingItem = hasBookingStatus ? makeMenuItem(menuUi.bookingStatus || '', '#v6-booking-status') : null;
 if (bookingItem) {
     pageMenuItems.push(bookingItem);
 }
-const thesisEyebrow = thesisUi.eyebrow || '';
-const thesisTitle = thesisUi.title || '';
-const thesisBody = thesisUi.body || '';
+const thesisEyebrow = normalizeText(thesisUi.eyebrow);
+const thesisTitle = normalizeText(thesisUi.title);
+const thesisBody = normalizeText(thesisUi.body);
 const statement = {
-    eyebrow: statementUi.eyebrow || '',
-    title: statementUi.title || '',
-    body: page.lead || '',
-    signature: statementUi.signature || '',
-    image: statementUi.image || '',
-    alt: statementUi.alt || '',
+    eyebrow: normalizeText(statementUi.eyebrow),
+    title: normalizeText(statementUi.title),
+    body: normalizeText(page.lead),
+    signature: normalizeText(statementUi.signature),
+    image: normalizeText(statementUi.image),
+    alt: normalizeText(statementUi.alt),
 };
+const lead = normalizeText(page.lead);
+const internalDescription = normalizeText(internalMessageUi.description);
+const heroImageSrc = normalizeText(page?.heroImage?.src);
+const heroImageSrcSet = normalizeText(page?.heroImage?.srcset);
+const heroImageAlt = normalizeText(page?.heroImage?.alt) || normalizeText(page.heading);
+const railTitle = normalizeText(railUi.title);
+const railAria = normalizeText(railUi.aria);
+const kpiCards = [
+    normalizeText(kpiUi.blocks) ? { label: normalizeText(kpiUi.blocks), value: String(blockModels.length).padStart(2, '0') } : null,
+    normalizeText(kpiUi.criteria) ? { label: normalizeText(kpiUi.criteria), value: String(totalCriteria).padStart(2, '0') } : null,
+    normalizeText(kpiUi.model) && normalizeText(kpiUi.modelValue)
+        ? { label: normalizeText(kpiUi.model), value: normalizeText(kpiUi.modelValue) }
+        : null,
+].filter(Boolean);
+const blockCtaLabel = normalizeText(ui.blockCtaLabel);
+const initiativesCtaLabel = normalizeText(initiativesUi.ctaLabel);
+const initiativesAria = normalizeText(initiativesUi.aria);
 ---
 
 <PageHeadV6
@@ -78,71 +111,91 @@ const statement = {
     copy={pageHeadUi}
 />
 
-<section class="v6-page-hero-media is-internal" data-v6-internal-hero>
-    <img src={page?.heroImage?.src} srcset={page?.heroImage?.srcset || undefined} alt={page?.heroImage?.alt || page.heading} sizes="100vw" loading="eager" fetchpriority="high" />
-</section>
+{
+    heroImageSrc ? (
+        <section class="v6-page-hero-media is-internal" data-v6-internal-hero>
+            <img src={heroImageSrc} srcset={heroImageSrcSet || undefined} alt={heroImageAlt} sizes="100vw" loading="eager" fetchpriority="high" />
+        </section>
+    ) : null
+}
 
-<section class="v6-internal-message" data-v6-internal-message>
-    <h2>{page.lead}</h2>
-    {internalMessageUi.description ? <p>{internalMessageUi.description}</p> : null}
-</section>
+{
+    lead || internalDescription ? (
+        <section class="v6-internal-message" data-v6-internal-message>
+            {lead ? <h2>{lead}</h2> : null}
+            {internalDescription ? <p>{internalDescription}</p> : null}
+        </section>
+    ) : null
+}
 
 <InternalStatementBandV6 statement={statement} variant="tele" />
 
-<section class="v6-internal-thesis" data-v6-internal-thesis>
-    <p>{thesisEyebrow}</p>
-    <h2>{thesisTitle}</h2>
-    <p>{thesisBody}</p>
-</section>
+{
+    thesisEyebrow || thesisTitle || thesisBody ? (
+        <section class="v6-internal-thesis" data-v6-internal-thesis>
+            {thesisEyebrow ? <p>{thesisEyebrow}</p> : null}
+            {thesisTitle ? <h2>{thesisTitle}</h2> : null}
+            {thesisBody ? <p>{thesisBody}</p> : null}
+        </section>
+    ) : null
+}
 
 <div class="v6-internal-shell" data-v6-internal-shell>
-    <aside class="v6-internal-rail" data-v6-internal-rail>
-        {railUi.title ? <p>{railUi.title}</p> : null}
-        <nav data-v6-section-nav="internal" aria-label={railUi.aria || ''}>
-            {
-                pageMenuItems.map((item) => (
-                    <a data-v6-section-link href={item.href}>{item.label}</a>
-                ))
-            }
-        </nav>
-    </aside>
+    {
+        pageMenuItems.length || railTitle ? (
+            <aside class="v6-internal-rail" data-v6-internal-rail>
+                {railTitle ? <p>{railTitle}</p> : null}
+                {
+                    pageMenuItems.length ? (
+                        <nav data-v6-section-nav="internal" aria-label={railAria || undefined}>
+                            {
+                                pageMenuItems.map((item) => (
+                                    <a data-v6-section-link href={item.href}>{item.label}</a>
+                                ))
+                            }
+                        </nav>
+                    ) : null
+                }
+            </aside>
+        ) : null
+    }
 
     <div class="v6-internal-shell__body">
-        <section class="v6-tele-kpis v6-tele-kpis--shell" aria-label={kpiUi.aria || ''}>
-            <article>
-                <p>{kpiUi.blocks || ''}</p>
-                <h3>{String(blockModels.length).padStart(2, '0')}</h3>
-            </article>
-            <article>
-                <p>{kpiUi.criteria || ''}</p>
-                <h3>{String(totalCriteria).padStart(2, '0')}</h3>
-            </article>
-            <article>
-                <p>{kpiUi.model || ''}</p>
-                <h3>{kpiUi.modelValue || ''}</h3>
-            </article>
-        </section>
+        {
+            kpiCards.length ? (
+                <section class="v6-tele-kpis v6-tele-kpis--shell" aria-label={normalizeText(kpiUi.aria) || undefined}>
+                    {
+                        kpiCards.map((item) => (
+                            <article>
+                                <p>{item.label}</p>
+                                <h3>{item.value}</h3>
+                            </article>
+                        ))
+                    }
+                </section>
+            ) : null
+        }
 
         {
             initiatives.length ? (
-                <section id="v6-tele-initiatives" class="v6-tele-initiatives v6-tele-initiatives--shell" aria-label={initiativesUi.aria || ''}>
+                <section id="v6-tele-initiatives" class="v6-tele-initiatives v6-tele-initiatives--shell" aria-label={initiativesAria || undefined}>
                     {
-                    initiatives.map((item) => (
-                        <a href={item.href} data-v6-tele-initiative>
-                            <figure>
-                                <img src={item.image} alt={item.title} loading="lazy" decoding="async" />
-                            </figure>
-                            <div>
-                                <h3>{item.title}</h3>
-                                <p>{item.copy}</p>
-                                {initiativesUi.ctaLabel ? (
-                                    <strong>
-                                        {initiativesUi.ctaLabel}
-                                        <span aria-hidden="true">></span>
-                                    </strong>
-                                ) : null}
-                            </div>
-                        </a>
+                        initiatives.map((item) => (
+                            <a href={item.href} data-v6-tele-initiative>
+                                <figure>
+                                    <img src={item.image} alt={item.title} loading="lazy" decoding="async" />
+                                </figure>
+                                <div>
+                                    <h3>{item.title}</h3>
+                                    <p>{item.copy}</p>
+                                    {initiativesCtaLabel ? (
+                                        <strong>
+                                            {initiativesCtaLabel}
+                                            <span aria-hidden="true">></span>
+                                        </strong>
+                                    ) : null}
+                                </div>
+                            </a>
                         ))
                     }
                 </section>
@@ -153,18 +206,22 @@ const statement = {
             {
                 blockModels.map((block, index) => (
                     <article id={block.anchorId} class:list={[index === 0 && 'is-lead']} data-v6-tele-block>
-                        <figure class="v6-tele-grid__media">
-                            <img src={block.mediaSrc} alt={block.title} loading="lazy" decoding="async" />
-                        </figure>
+                        {
+                            block.mediaSrc ? (
+                                <figure class="v6-tele-grid__media">
+                                    <img src={block.mediaSrc} alt={block.title} loading="lazy" decoding="async" />
+                                </figure>
+                            ) : null
+                        }
                         <div class="v6-tele-grid__body">
                             <p class="v6-tele-grid__index">{String(index + 1).padStart(2, '0')}</p>
                             <h3>{block.title}</h3>
                             <ul>
                                 {block.items.map((item) => <li>{item}</li>)}
                             </ul>
-                            {ui.blockCtaLabel ? (
+                            {blockCtaLabel && hasBookingStatus ? (
                                 <a href="#v6-booking-status">
-                                    {ui.blockCtaLabel}
+                                    {blockCtaLabel}
                                     <span aria-hidden="true">></span>
                                 </a>
                             ) : null}
@@ -177,3 +234,4 @@ const statement = {
 </div>
 
 <BookingStatusV6 status={page.bookingStatus} sectionId="v6-booking-status" />
+

@@ -26,64 +26,123 @@ const bookingStatusUi =
         ? ui.bookingStatus
         : {};
 
-const switchLabel = navModel?.header?.switchLabel || '';
-const switchHref = navModel?.header?.switchHref || '#';
-const menuLabel = navModel?.header?.menuLabel || '';
-const checkpoints = Array.isArray(service.bullets) ? service.bullets : [];
-const processSteps = Array.isArray(service.process) ? service.process : [];
+const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
+const normalizeText = (value) => (hasText(value) ? value.trim() : '');
+const normalizeHref = (value) => {
+    const raw = normalizeText(value);
+    return raw && raw !== '#' ? raw : '';
+};
+const makeMenuItem = (label, href) => (hasText(label) ? { label: label.trim(), href } : null);
+const switchLabel = normalizeText(navModel?.header?.switchLabel);
+const switchHref = normalizeHref(navModel?.header?.switchHref);
+const menuLabel = normalizeText(navModel?.header?.menuLabel);
+const serviceTitle = normalizeText(service.title);
+const serviceCategory = normalizeText(service.category);
+const serviceSummary = normalizeText(service.summary);
+const serviceLead = normalizeText(service.lead);
+const serviceHeroImage = normalizeText(service.heroImage);
+const serviceHeroAlt = normalizeText(service.heroAlt) || serviceTitle;
+const checkpoints = Array.isArray(service.bullets) ? service.bullets.map(normalizeText).filter(Boolean) : [];
+const processSteps = Array.isArray(service.process) ? service.process.map(normalizeText).filter(Boolean) : [];
 const faqItems = Array.isArray(service.faq) ? service.faq : [];
 const faqAnswers = Array.isArray(service.faqAnswers) ? service.faqAnswers : [];
-const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
-const makeMenuItem = (label, href) => (hasText(label) ? { label: label.trim(), href } : null);
 const faqModels = faqItems
     .map((question, index) => ({
-        question,
-        answer: faqAnswers[index],
+        question: normalizeText(question),
+        answer: normalizeText(faqAnswers[index]),
     }))
     .filter((item) => hasText(item.question) && hasText(item.answer));
-const sectionMenuItems = [
-    makeMenuItem(menuUi.glance || '', '#v6-service-glance'),
-    makeMenuItem(menuUi.checkpoints || '', '#v6-service-checkpoints'),
-    makeMenuItem(menuUi.process || '', '#v6-service-process'),
-    makeMenuItem(menuUi.faq || '', '#v6-service-faq'),
-].filter(Boolean);
-
-if (related.length) {
+const safeRelated = (Array.isArray(related) ? related : [])
+    .map((item) => {
+        const title = normalizeText(item?.title);
+        const href = normalizeHref(item?.href);
+        const heroImage = normalizeText(item?.heroImage);
+        const category = normalizeText(item?.category);
+        const summary = normalizeText(item?.summary);
+        return title && href && heroImage ? { title, href, heroImage, category, summary } : null;
+    })
+    .filter(Boolean);
+const hasGlance = Boolean(serviceCategory || checkpoints.length || processSteps.length);
+const sectionMenuItems = [];
+if (hasGlance) {
+    const glanceItem = makeMenuItem(menuUi.glance || '', '#v6-service-glance');
+    if (glanceItem) {
+        sectionMenuItems.push(glanceItem);
+    }
+}
+if (checkpoints.length) {
+    const checkpointsItem = makeMenuItem(menuUi.checkpoints || '', '#v6-service-checkpoints');
+    if (checkpointsItem) {
+        sectionMenuItems.push(checkpointsItem);
+    }
+}
+if (processSteps.length) {
+    const processItem = makeMenuItem(menuUi.process || '', '#v6-service-process');
+    if (processItem) {
+        sectionMenuItems.push(processItem);
+    }
+}
+if (faqModels.length) {
+    const faqItem = makeMenuItem(menuUi.faq || '', '#v6-service-faq');
+    if (faqItem) {
+        sectionMenuItems.push(faqItem);
+    }
+}
+if (safeRelated.length) {
     const relatedItem = makeMenuItem(menuUi.related || '', '#v6-service-related');
     if (relatedItem) {
         sectionMenuItems.push(relatedItem);
     }
 }
-
-const bookingMenuItem = makeMenuItem(menuUi.booking || '', '#v6-booking-status');
+const bookingStatus = {
+    eyebrow: normalizeText(bookingStatusUi.eyebrow),
+    title: normalizeText(bookingStatusUi.title),
+    description: normalizeText(bookingStatusUi.description),
+    ctaLabel: normalizeText(bookingStatusUi.ctaLabel),
+    ctaHref: normalizeHref(bookingStatusUi.ctaHref),
+};
+const hasBookingStatus = Boolean(
+    bookingStatus.eyebrow ||
+    bookingStatus.title ||
+    bookingStatus.description ||
+    (bookingStatus.ctaLabel && bookingStatus.ctaHref)
+);
+const bookingMenuItem = hasBookingStatus ? makeMenuItem(menuUi.booking || '', '#v6-booking-status') : null;
 if (bookingMenuItem) {
     sectionMenuItems.push(bookingMenuItem);
 }
 
 const breadcrumb = [
-    { label: breadcrumbUi.home || '', href: locale === 'en' ? '/en/' : '/es/' },
-    { label: breadcrumbUi.hub || '', href: hubPath },
-    { label: service.title || '', href: servicePath },
+    { label: normalizeText(breadcrumbUi.home), href: locale === 'en' ? '/en/' : '/es/' },
+    { label: normalizeText(breadcrumbUi.hub), href: normalizeHref(hubPath) },
+    { label: serviceTitle, href: normalizeHref(servicePath) },
 ];
-const thesisEyebrow = thesisUi.eyebrow || '';
-const thesisTitle = `${service.title || ''} ${thesisUi.titleSuffix || ''}`.trim();
-const thesisBody = thesisUi.body || '';
-const statementTitleTemplate = statementUi.titleTemplate || '{service}';
+const thesisEyebrow = normalizeText(thesisUi.eyebrow);
+const thesisTitle = `${serviceTitle} ${normalizeText(thesisUi.titleSuffix)}`.trim();
+const thesisBody = normalizeText(thesisUi.body);
+const statementTitleTemplate = normalizeText(statementUi.titleTemplate) || '{service}';
 const statement = {
-    eyebrow: statementUi.eyebrow || '',
-    title: statementTitleTemplate.replace('{service}', service.title || ''),
-    body: service.lead,
-    signature: statementUi.signature || '',
-    image: statementUi.image || '',
-    alt: statementUi.alt || '',
+    eyebrow: normalizeText(statementUi.eyebrow),
+    title: statementTitleTemplate.replace('{service}', serviceTitle),
+    body: serviceLead,
+    signature: normalizeText(statementUi.signature),
+    image: normalizeText(statementUi.image),
+    alt: normalizeText(statementUi.alt),
 };
-const relatedCta = ui.relatedCta || '';
-const faqPrefix = ui.faqPrefix || '';
+const relatedCta = normalizeText(ui.relatedCta);
+const faqPrefix = normalizeText(ui.faqPrefix);
+const railTitle = normalizeText(railUi.title);
+const railAria = normalizeText(railUi.aria);
+const glanceCards = [
+    normalizeText(glanceUi.routeType) && serviceCategory ? { label: normalizeText(glanceUi.routeType), value: serviceCategory } : null,
+    normalizeText(glanceUi.checkpoints) ? { label: normalizeText(glanceUi.checkpoints), value: String(checkpoints.length) } : null,
+    normalizeText(glanceUi.processStages) ? { label: normalizeText(glanceUi.processStages), value: String(processSteps.length) } : null,
+].filter(Boolean);
 ---
 
 <PageHeadV6
     breadcrumb={breadcrumb}
-    heading={service.title}
+    heading={serviceTitle}
     locale={locale}
     switchLabel={switchLabel}
     switchHref={switchHref}
@@ -92,103 +151,135 @@ const faqPrefix = ui.faqPrefix || '';
     copy={pageHeadUi}
 />
 
-<section class="v6-page-hero-media is-internal" data-v6-internal-hero>
-    <img src={service.heroImage} alt={service.heroAlt || service.title} loading="eager" fetchpriority="high" />
-</section>
+{
+    serviceHeroImage ? (
+        <section class="v6-page-hero-media is-internal" data-v6-internal-hero>
+            <img src={serviceHeroImage} alt={serviceHeroAlt} loading="eager" fetchpriority="high" />
+        </section>
+    ) : null
+}
 
-<section class="v6-internal-message" data-v6-internal-message>
-    <h2>{service.summary}</h2>
-    {service.lead ? <p>{service.lead}</p> : null}
-</section>
+{
+    serviceSummary || serviceLead ? (
+        <section class="v6-internal-message" data-v6-internal-message>
+            {serviceSummary ? <h2>{serviceSummary}</h2> : null}
+            {serviceLead ? <p>{serviceLead}</p> : null}
+        </section>
+    ) : null
+}
 
 <InternalStatementBandV6 statement={statement} variant="service" />
 
-<section class="v6-internal-thesis" data-v6-internal-thesis>
-    <p>{thesisEyebrow}</p>
-    <h2>{thesisTitle}</h2>
-    <p>{thesisBody}</p>
-</section>
+{
+    thesisEyebrow || thesisTitle || thesisBody ? (
+        <section class="v6-internal-thesis" data-v6-internal-thesis>
+            {thesisEyebrow ? <p>{thesisEyebrow}</p> : null}
+            {thesisTitle ? <h2>{thesisTitle}</h2> : null}
+            {thesisBody ? <p>{thesisBody}</p> : null}
+        </section>
+    ) : null
+}
 
 <div class="v6-internal-shell" data-v6-internal-shell>
-    <aside class="v6-internal-rail" data-v6-internal-rail>
-        {railUi.title ? <p>{railUi.title}</p> : null}
-        <nav data-v6-section-nav="internal" aria-label={railUi.aria || ''}>
-            {
-                sectionMenuItems.map((item) => (
-                    <a data-v6-section-link href={item.href}>{item.label}</a>
-                ))
-            }
-        </nav>
-    </aside>
+    {
+        sectionMenuItems.length || railTitle ? (
+            <aside class="v6-internal-rail" data-v6-internal-rail>
+                {railTitle ? <p>{railTitle}</p> : null}
+                {
+                    sectionMenuItems.length ? (
+                        <nav data-v6-section-nav="internal" aria-label={railAria || undefined}>
+                            {
+                                sectionMenuItems.map((item) => (
+                                    <a data-v6-section-link href={item.href}>{item.label}</a>
+                                ))
+                            }
+                        </nav>
+                    ) : null
+                }
+            </aside>
+        ) : null
+    }
 
     <div class="v6-internal-shell__body">
-        <section id="v6-service-glance" class="v6-service-glance v6-service-glance--shell">
-            <article>
-                <p>{glanceUi.routeType || ''}</p>
-                <h3>{service.category || ''}</h3>
-            </article>
-            <article>
-                <p>{glanceUi.checkpoints || ''}</p>
-                <h3>{checkpoints.length}</h3>
-            </article>
-            <article>
-                <p>{glanceUi.processStages || ''}</p>
-                <h3>{processSteps.length}</h3>
-            </article>
-        </section>
-
-        <section class="v6-service-detail v6-service-detail--shell">
-            <article id="v6-service-checkpoints" class="v6-service-detail__column">
-                <h3>{sectionsUi.checkpointsTitle || ''}</h3>
-                <ul class="v6-service-checklist">
+        {
+            glanceCards.length ? (
+                <section id="v6-service-glance" class="v6-service-glance v6-service-glance--shell">
                     {
-                        checkpoints.map((item) => (
-                            <li>
-                                <span class="v6-service-checklist__dot" aria-hidden="true"></span>
-                                <p>{item}</p>
-                            </li>
-                        ))
-                    }
-                </ul>
-            </article>
-
-            <article id="v6-service-process" class="v6-service-detail__column">
-                <h3>{sectionsUi.processTitle || ''}</h3>
-                <ol class="v6-service-process">
-                    {
-                        processSteps.map((item, index) => (
-                            <li>
-                                <span>{String(index + 1).padStart(2, '0')}</span>
-                                <p>{item}</p>
-                            </li>
-                        ))
-                    }
-                </ol>
-            </article>
-
-            <article id="v6-service-faq" class="v6-service-detail__column v6-service-detail__full">
-                <h3>{sectionsUi.faqTitle || ''}</h3>
-                <div class="v6-service-faq-grid">
-                    {
-                        faqModels.map((item, index) => (
+                        glanceCards.map((item) => (
                             <article>
-                                <p>{`${faqPrefix}${index + 1}`}</p>
-                                <h4>{item.question}</h4>
-                                <small>{item.answer}</small>
+                                <p>{item.label}</p>
+                                <h3>{item.value}</h3>
                             </article>
                         ))
                     }
-                </div>
-            </article>
+                </section>
+            ) : null
+        }
+
+        <section class="v6-service-detail v6-service-detail--shell">
+            {
+                checkpoints.length ? (
+                    <article id="v6-service-checkpoints" class="v6-service-detail__column">
+                        {sectionsUi.checkpointsTitle ? <h3>{sectionsUi.checkpointsTitle}</h3> : null}
+                        <ul class="v6-service-checklist">
+                            {
+                                checkpoints.map((item) => (
+                                    <li>
+                                        <span class="v6-service-checklist__dot" aria-hidden="true"></span>
+                                        <p>{item}</p>
+                                    </li>
+                                ))
+                            }
+                        </ul>
+                    </article>
+                ) : null
+            }
+
+            {
+                processSteps.length ? (
+                    <article id="v6-service-process" class="v6-service-detail__column">
+                        {sectionsUi.processTitle ? <h3>{sectionsUi.processTitle}</h3> : null}
+                        <ol class="v6-service-process">
+                            {
+                                processSteps.map((item, index) => (
+                                    <li>
+                                        <span>{String(index + 1).padStart(2, '0')}</span>
+                                        <p>{item}</p>
+                                    </li>
+                                ))
+                            }
+                        </ol>
+                    </article>
+                ) : null
+            }
+
+            {
+                faqModels.length ? (
+                    <article id="v6-service-faq" class="v6-service-detail__column v6-service-detail__full">
+                        {sectionsUi.faqTitle ? <h3>{sectionsUi.faqTitle}</h3> : null}
+                        <div class="v6-service-faq-grid">
+                            {
+                                faqModels.map((item, index) => (
+                                    <article>
+                                        {faqPrefix ? <p>{`${faqPrefix}${index + 1}`}</p> : null}
+                                        <h4>{item.question}</h4>
+                                        <small>{item.answer}</small>
+                                    </article>
+                                ))
+                            }
+                        </div>
+                    </article>
+                ) : null
+            }
         </section>
 
         {
-            related.length ? (
+            safeRelated.length ? (
                 <section id="v6-service-related" class="v6-related-grid v6-related-grid--shell">
-                    <h2>{sectionsUi.relatedTitle || ''}</h2>
+                    {sectionsUi.relatedTitle ? <h2>{sectionsUi.relatedTitle}</h2> : null}
                     <div>
                         {
-                            related.map((item) => (
+                            safeRelated.map((item) => (
                                 <a href={item.href}>
                                     <img src={item.heroImage} alt={item.title} loading="lazy" decoding="async" />
                                     {item.category ? <p>{item.category}</p> : null}
@@ -206,12 +297,7 @@ const faqPrefix = ui.faqPrefix || '';
 </div>
 
 <BookingStatusV6
-    status={{
-        eyebrow: bookingStatusUi.eyebrow || '',
-        title: bookingStatusUi.title || '',
-        description: bookingStatusUi.description || '',
-        ctaLabel: bookingStatusUi.ctaLabel || '',
-        ctaHref: bookingStatusUi.ctaHref || '#',
-    }}
+    status={bookingStatus}
     sectionId="v6-booking-status"
 />
+
