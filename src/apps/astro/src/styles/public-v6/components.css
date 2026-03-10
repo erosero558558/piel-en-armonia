@@ -2319,13 +2319,41 @@
     line-height: 1.48;
 }
 
+.v6-suite-rail-shell {
+    position: sticky;
+    top: 92px;
+    z-index: 18;
+    margin-top: 22px;
+}
+
+.v6-suite-rail-shell::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-top: 1px solid rgba(22, 33, 45, 0.08);
+    border-bottom: 1px solid rgba(22, 33, 45, 0.08);
+    background: rgba(247, 249, 252, 0.9);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+.v6-suite-rail-shell > .v6-suite-shell {
+    position: relative;
+}
+
 .v6-suite-rail {
     max-width: 1320px;
-    margin: 22px auto 0;
-    padding: 0 24px;
+    margin: 0 auto;
+    padding: 12px 24px;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.v6-suite-rail::-webkit-scrollbar {
+    display: none;
 }
 
 .v6-suite-rail a,
@@ -2339,6 +2367,7 @@
     color: #334153;
     font-size: 13px;
     background: #f7f9fb;
+    white-space: nowrap;
 }
 
 .v6-suite-rail a:hover,
@@ -2721,17 +2750,23 @@
 .v6-suite-surface-shell {
     margin-top: 28px;
     display: grid;
-    grid-template-columns: 240px minmax(0, 1fr);
-    gap: 24px;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 28px;
     align-items: start;
 }
 
 .v6-suite-surface-rail {
     position: sticky;
-    top: 108px;
+    top: 124px;
     border: 1px solid rgba(27, 37, 49, 0.08);
-    background: #f7f8fb;
-    padding: 14px;
+    border-radius: 24px;
+    background: rgba(247, 248, 251, 0.95);
+    box-shadow: 0 24px 52px rgba(18, 30, 42, 0.08);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    padding: 16px;
+    max-height: calc(100vh - 148px);
+    overflow-y: auto;
 }
 
 .v6-suite-surface-rail p {
@@ -2750,14 +2785,14 @@
 
 .v6-suite-surface-shell__body {
     display: grid;
-    gap: 20px;
+    gap: 24px;
     padding-bottom: 58px;
 }
 
 .v6-suite-showcase {
     display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(260px, 0.7fr);
-    gap: 18px;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.78fr);
+    gap: 22px;
     align-items: center;
 }
 
@@ -2866,9 +2901,16 @@
         grid-template-columns: 1fr;
     }
 
+    .v6-suite-rail-shell {
+        position: static;
+        top: auto;
+    }
+
     .v6-suite-surface-rail {
         position: static;
         top: auto;
+        max-height: none;
+        overflow: visible;
     }
 }
 
@@ -3165,7 +3207,7 @@
     }
 
     .v6-suite-rail {
-        display: grid;
+        display: flex;
         margin-top: 18px;
     }
 

@@ -153,11 +153,15 @@ const actionClass = (variant = 'secondary') => [
 
 {
     menuItems.length ? (
-        <nav class="v6-suite-rail" data-v6-section-nav="software" aria-label={pageHeadUi.pageNavigationLabel || ''}>
-            {menuItems.map((item) => (
-                <a data-v6-section-link href={item.href}>{item.label}</a>
-            ))}
-        </nav>
+        <div class="v6-suite-rail-shell" data-v6-suite-rail="landing">
+            <div class="v6-suite-shell">
+                <nav class="v6-suite-rail" data-v6-section-nav="software" aria-label={pageHeadUi.pageNavigationLabel || ''}>
+                    {menuItems.map((item) => (
+                        <a data-v6-section-link href={item.href}>{item.label}</a>
+                    ))}
+                </nav>
+            </div>
+        </div>
     ) : null
 }
 

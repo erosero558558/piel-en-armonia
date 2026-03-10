@@ -81,6 +81,88 @@ test.describe('Public V6 software suite', () => {
         await expect(page.locator('[data-v6-page-head]').first()).toBeVisible();
     });
 
+    test('software landing page menu and rail stay in sync with section anchors', async ({
+        page,
+    }) => {
+        await gotoPublicRoute(page, '/es/software/turnero-clinicas/');
+
+        const menuButton = page.locator('[data-v6-page-menu]').first();
+        const panel = page.locator('[data-v6-page-menu-panel]').first();
+        const menuLinks = panel.locator('[data-v6-page-menu-link]');
+        const railLink = page.locator('[data-v6-section-nav="software"] [href="#v6-suite-pricing"]').first();
+
+        await menuButton.click();
+        await expect(panel).toBeVisible();
+        await expect(menuLinks).toHaveCount(7);
+
+        await menuLinks.nth(4).click();
+        await expect(page).toHaveURL(/#v6-suite-pricing$/);
+        await expect(panel).toBeHidden();
+        await expect(menuLinks.nth(4)).toHaveAttribute('aria-current', 'location');
+        await expect(railLink).toHaveAttribute('aria-current', 'location');
+    });
+
+    test('software rails use sticky desktop geometry and collapse on mobile', async ({
+        page,
+    }) => {
+        await page.setViewportSize({ width: 1440, height: 1200 });
+        await gotoPublicRoute(page, '/en/software/clinic-flow-suite/');
+
+        const landingDesktopStyles = await page.evaluate(() => {
+            const landingRail = document.querySelector('[data-v6-suite-rail="landing"]');
+            return {
+                landingPosition: landingRail ? window.getComputedStyle(landingRail).position : '',
+            };
+        });
+
+        expect(landingDesktopStyles.landingPosition).toBe('sticky');
+
+        await gotoPublicRoute(page, '/en/software/clinic-flow-suite/dashboard/');
+
+        const surfaceDesktopStyles = await page.evaluate(() => {
+            const surfaceRail = document.querySelector('[data-v6-suite-rail="surface"]');
+            const surfaceShell = document.querySelector('.v6-suite-surface-shell');
+            return {
+                surfacePosition: surfaceRail ? window.getComputedStyle(surfaceRail).position : '',
+                surfaceColumns: surfaceShell
+                    ? window.getComputedStyle(surfaceShell).gridTemplateColumns
+                    : '',
+            };
+        });
+
+        expect(surfaceDesktopStyles.surfacePosition).toBe('sticky');
+        expect(surfaceDesktopStyles.surfaceColumns.trim().split(/\s+/).length).toBeGreaterThan(1);
+
+        await page.setViewportSize({ width: 390, height: 844 });
+        await gotoPublicRoute(page, '/en/software/clinic-flow-suite/');
+        await expect(page.locator('[data-v6-page-head]').first()).toBeVisible();
+
+        const landingMobileStyles = await page.evaluate(() => {
+            const landingRail = document.querySelector('[data-v6-suite-rail="landing"]');
+            return {
+                landingPosition: landingRail ? window.getComputedStyle(landingRail).position : '',
+            };
+        });
+
+        expect(landingMobileStyles.landingPosition).toBe('static');
+
+        await gotoPublicRoute(page, '/en/software/clinic-flow-suite/dashboard/');
+
+        const surfaceMobileStyles = await page.evaluate(() => {
+            const surfaceRail = document.querySelector('[data-v6-suite-rail="surface"]');
+            const surfaceShell = document.querySelector('.v6-suite-surface-shell');
+            return {
+                surfacePosition: surfaceRail ? window.getComputedStyle(surfaceRail).position : '',
+                surfaceColumns: surfaceShell
+                    ? window.getComputedStyle(surfaceShell).gridTemplateColumns
+                    : '',
+            };
+        });
+
+        expect(surfaceMobileStyles.surfacePosition).toBe('static');
+        expect(surfaceMobileStyles.surfaceColumns.trim().split(/\s+/).length).toBe(1);
+    });
+
     test('software header search indexes software routes on software pages', async ({
         page,
     }) => {

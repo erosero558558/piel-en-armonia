@@ -117,7 +117,7 @@ const actionClass = (variant = 'secondary') => [
 <div class="v6-suite-shell v6-suite-surface-shell">
     {
         menuItems.length ? (
-            <aside class="v6-suite-surface-rail">
+            <aside class="v6-suite-surface-rail" data-v6-suite-rail="surface">
                 <p>{page.heading || ''}</p>
                 <nav data-v6-section-nav="software-surface" aria-label={pageHeadUi.pageNavigationLabel || ''}>
                     {menuItems.map((item) => (
