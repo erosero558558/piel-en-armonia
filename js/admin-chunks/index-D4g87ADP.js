@@ -2773,15 +2773,17 @@ async function an({ ticketId: t, action: e, consultorio: n }) {
         i = ce(e);
     if (a && i)
         return b().queue.practiceMode
-            ? ('reasignar' === i || 're-llamar' === i
-                  ? nn(a, 'called', 2 === Number(n || 1) ? 2 : 1)
-                  : 'liberar' === i
-                    ? nn(a, 'waiting', null)
-                    : 'completar' === i
-                      ? nn(a, 'completed')
-                      : 'no_show' === i
-                        ? nn(a, 'no_show')
-                        : 'cancelar' === i && nn(a, 'cancelled'),
+            ? ((function (t, e, n) {
+                  'reasignar' !== e && 're-llamar' !== e
+                      ? 'liberar' !== e
+                          ? 'completar' !== e
+                              ? 'no_show' !== e
+                                  ? 'cancelar' === e && nn(t, 'cancelled')
+                                  : nn(t, 'no_show')
+                              : nn(t, 'completed')
+                          : nn(t, 'waiting', null)
+                      : nn(t, 'called', 2 === Number(n || 1) ? 2 : 1);
+              })(a, i, n),
               void Qe(`Practica: accion ${i} en ticket ${a}`))
             : (tn(
                   await k('queue-ticket', {
@@ -4670,16 +4672,16 @@ async function pa(t, e) {
                         n = ce(t);
                     if (e.length) {
                         if (Ne.has(n)) {
-                            const t =
-                                'no_show' === n
-                                    ? 'No show'
-                                    : 'completar' === n || 'completed' === n
-                                      ? 'Completar'
-                                      : 'Cancelar';
-                            if (
-                                !window.confirm(`${t}: confirmar acción masiva`)
-                            )
-                                return;
+                            const t = window.confirm(
+                                `${(function (t) {
+                                    return 'no_show' === t
+                                        ? 'No show'
+                                        : 'completar' === t || 'completed' === t
+                                          ? 'Completar'
+                                          : 'Cancelar';
+                                })(n)}: confirmar acción masiva`
+                            );
+                            if (!t) return;
                         }
                         for (const t of e)
                             try {
