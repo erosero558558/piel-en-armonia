@@ -742,6 +742,210 @@ function buildSoftwareSuiteStory(locale, pageKey = 'landing', suiteRoutes = []) 
     };
 }
 
+function failSoftwareContract(message) {
+    throw new Error(`[public-v6 software] ${message}`);
+}
+
+function buildSoftwareSuiteRouteMap(locale, suiteRoutes = []) {
+    const safeLocale = normalizeLocale(locale);
+    const routeMap = new Map();
+    for (const route of suiteRoutes) {
+        if (!route?.pageKey || routeMap.has(route.pageKey)) {
+            continue;
+        }
+        routeMap.set(route.pageKey, route);
+    }
+
+    const missingKeys = SOFTWARE_PAGE_KEYS.filter((pageKey) => !routeMap.has(pageKey));
+    if (missingKeys.length) {
+        failSoftwareContract(
+            `${safeLocale}.suiteRoutes missing keys: ${missingKeys.join(', ')}`
+        );
+    }
+
+    if (suiteRoutes.length !== SOFTWARE_PAGE_KEYS.length) {
+        failSoftwareContract(
+            `${safeLocale}.suiteRoutes expected ${SOFTWARE_PAGE_KEYS.length} canonical routes, received ${suiteRoutes.length}`
+        );
+    }
+
+    for (const pageKey of SOFTWARE_PAGE_KEYS) {
+        const route = routeMap.get(pageKey);
+        const expectedHref = normalizePath(SOFTWARE_ROUTE_MAP[safeLocale]?.[pageKey]);
+        if (!route?.href || route.href !== expectedHref) {
+            failSoftwareContract(
+                `${safeLocale}.${pageKey}.suiteRoute href mismatch: expected ${expectedHref || 'n/a'}`
+            );
+        }
+        if (!route.label || !route.eyebrow || !route.deck || !route.index) {
+            failSoftwareContract(
+                `${safeLocale}.${pageKey}.suiteRoute missing label, eyebrow, deck, or index`
+            );
+        }
+    }
+
+    return routeMap;
+}
+
+function softwareActionLinksTo(actions = [], href = '') {
+    const targetHref = normalizePath(href);
+    if (!targetHref) {
+        return false;
+    }
+    return actions.some((action) => normalizePath(action?.href) === targetHref);
+}
+
+function assertSoftwareLandingContract(locale, page = {}, routeMap = new Map()) {
+    const safeLocale = normalizeLocale(locale);
+    const expectedSurfaceKeys = SOFTWARE_PAGE_KEYS.filter((pageKey) => pageKey !== 'landing');
+    const surfacePageKeys = new Set(
+        Array.isArray(page?.surfaces?.cards)
+            ? page.surfaces.cards.map((card) => normalizeSoftwarePageKey(card?.pageKey))
+            : []
+    );
+
+    if (!page.heading || !page.hero?.title || !page.hero?.deck) {
+        failSoftwareContract(`${safeLocale}.landing missing heading or hero copy`);
+    }
+    if (!Array.isArray(page?.hero?.actions) || page.hero.actions.length < 2) {
+        failSoftwareContract(`${safeLocale}.landing.hero requires at least 2 actions`);
+    }
+    if (!Array.isArray(page?.modules?.cards) || page.modules.cards.length < 3) {
+        failSoftwareContract(`${safeLocale}.landing.modules requires at least 3 cards`);
+    }
+    if (!Array.isArray(page?.journeys?.lanes) || page.journeys.lanes.length < 2) {
+        failSoftwareContract(`${safeLocale}.landing.journeys requires at least 2 lanes`);
+    }
+    if (!Array.isArray(page?.pricing?.plans) || page.pricing.plans.length < 2) {
+        failSoftwareContract(`${safeLocale}.landing.pricing requires at least 2 plans`);
+    }
+    if (!Array.isArray(page?.faq?.items) || page.faq.items.length < 3) {
+        failSoftwareContract(`${safeLocale}.landing.faq requires at least 3 items`);
+    }
+    if (
+        !page?.suiteStory?.current ||
+        page.suiteStory.current.pageKey !== 'landing' ||
+        page.suiteStory.currentIndex !== 1 ||
+        page.suiteStory.total !== SOFTWARE_PAGE_KEYS.length
+    ) {
+        failSoftwareContract(`${safeLocale}.landing.suiteStory current stage mismatch`);
+    }
+    if (page?.suiteStory?.next?.pageKey !== 'demo') {
+        failSoftwareContract(`${safeLocale}.landing.suiteStory next stage must be demo`);
+    }
+    if (
+        !Array.isArray(page?.surfaces?.cards) ||
+        page.surfaces.cards.length !== expectedSurfaceKeys.length
+    ) {
+        failSoftwareContract(
+            `${safeLocale}.landing.surfaces requires ${expectedSurfaceKeys.length} canonical cards`
+        );
+    }
+
+    for (const pageKey of expectedSurfaceKeys) {
+        if (!surfacePageKeys.has(pageKey)) {
+            failSoftwareContract(
+                `${safeLocale}.landing.surfaces missing canonical card for ${pageKey}`
+            );
+        }
+    }
+
+    if (
+        !Array.isArray(page?.finalCta?.actions) ||
+        !page.finalCta.actions.length ||
+        !softwareActionLinksTo(page.finalCta.actions, routeMap.get('demo')?.href)
+    ) {
+        failSoftwareContract(
+            `${safeLocale}.landing.finalCta must include an internal action to demo`
+        );
+    }
+}
+
+function assertSoftwareSurfaceContract(locale, page = {}, pageKey = 'landing', routeMap = new Map()) {
+    const safeLocale = normalizeLocale(locale);
+    const safePageKey = normalizeSoftwarePageKey(pageKey);
+    const currentIndex = SOFTWARE_PAGE_KEYS.indexOf(safePageKey);
+    const previousPageKey = currentIndex > 0 ? SOFTWARE_PAGE_KEYS[currentIndex - 1] : null;
+    const nextPageKey =
+        currentIndex >= 0 && currentIndex < SOFTWARE_PAGE_KEYS.length - 1
+            ? SOFTWARE_PAGE_KEYS[currentIndex + 1]
+            : null;
+
+    if (!page.heading || !page.hero?.title || !page.hero?.deck) {
+        failSoftwareContract(`${safeLocale}.${safePageKey} missing heading or hero copy`);
+    }
+    if (!Array.isArray(page?.hero?.actions) || page.hero.actions.length < 2) {
+        failSoftwareContract(`${safeLocale}.${safePageKey}.hero requires at least 2 actions`);
+    }
+    if (!page?.mockup?.title || !Array.isArray(page?.mockup?.rows) || page.mockup.rows.length < 2) {
+        failSoftwareContract(
+            `${safeLocale}.${safePageKey}.mockup requires title and at least 2 rows`
+        );
+    }
+    if (!Array.isArray(page?.steps?.items) || page.steps.items.length < 3) {
+        failSoftwareContract(`${safeLocale}.${safePageKey}.steps requires at least 3 items`);
+    }
+    if (!Array.isArray(page?.advantages?.cards) || page.advantages.cards.length < 2) {
+        failSoftwareContract(
+            `${safeLocale}.${safePageKey}.advantages requires at least 2 cards`
+        );
+    }
+    if (!Array.isArray(page?.connections?.items) || page.connections.items.length < 2) {
+        failSoftwareContract(
+            `${safeLocale}.${safePageKey}.connections requires at least 2 items`
+        );
+    }
+    if (
+        !page?.suiteRoute ||
+        page.suiteRoute.pageKey !== safePageKey ||
+        normalizePath(page.suiteRoute.href) !== normalizePath(routeMap.get(safePageKey)?.href)
+    ) {
+        failSoftwareContract(`${safeLocale}.${safePageKey}.suiteRoute mismatch`);
+    }
+    if (
+        !page?.suiteStory?.current ||
+        page.suiteStory.current.pageKey !== safePageKey ||
+        page.suiteStory.currentIndex !== currentIndex + 1 ||
+        page.suiteStory.total !== SOFTWARE_PAGE_KEYS.length
+    ) {
+        failSoftwareContract(`${safeLocale}.${safePageKey}.suiteStory current stage mismatch`);
+    }
+    if (previousPageKey && page?.suiteStory?.previous?.pageKey !== previousPageKey) {
+        failSoftwareContract(
+            `${safeLocale}.${safePageKey}.suiteStory previous stage must be ${previousPageKey}`
+        );
+    }
+    if (nextPageKey && page?.suiteStory?.next?.pageKey !== nextPageKey) {
+        failSoftwareContract(
+            `${safeLocale}.${safePageKey}.suiteStory next stage must be ${nextPageKey}`
+        );
+    }
+    if (
+        !Array.isArray(page?.finalCta?.actions) ||
+        !page.finalCta.actions.length
+    ) {
+        failSoftwareContract(`${safeLocale}.${safePageKey}.finalCta requires actions`);
+    }
+    if (
+        nextPageKey &&
+        !softwareActionLinksTo(page.finalCta.actions, routeMap.get(nextPageKey)?.href)
+    ) {
+        failSoftwareContract(
+            `${safeLocale}.${safePageKey}.finalCta must link to next stage ${nextPageKey}`
+        );
+    }
+    if (
+        !nextPageKey &&
+        !page.finalCta.actions.some(
+            (action) => normalizePath(action?.href) !== normalizePath(routeMap.get(safePageKey)?.href)
+        )
+    ) {
+        failSoftwareContract(
+            `${safeLocale}.${safePageKey}.finalCta requires at least one exit action beyond the current page`
+        );
+    }
+}
+
 function sanitizeSoftwareHero(hero) {
     const source = isObject(hero) ? hero : {};
     return {
@@ -944,6 +1148,35 @@ function sanitizeSoftwareData(locale, payload) {
         dashboard: sanitizeSoftwareSurfacePage(pages.dashboard),
     };
     const suiteRoutes = buildSoftwareSuiteRoutes(locale, sanitizedNav, sanitizedPages);
+    const routeMap = buildSoftwareSuiteRouteMap(locale, suiteRoutes);
+    const finalLanding = finalizeSoftwareLandingPage(
+        locale,
+        sanitizedPages.landing,
+        suiteRoutes
+    );
+    const finalDemo = finalizeSoftwareSurfacePage(
+        locale,
+        sanitizedPages.demo,
+        'demo',
+        suiteRoutes
+    );
+    const finalStatus = finalizeSoftwareSurfacePage(
+        locale,
+        sanitizedPages.status,
+        'status',
+        suiteRoutes
+    );
+    const finalDashboard = finalizeSoftwareSurfacePage(
+        locale,
+        sanitizedPages.dashboard,
+        'dashboard',
+        suiteRoutes
+    );
+
+    assertSoftwareLandingContract(locale, finalLanding, routeMap);
+    assertSoftwareSurfaceContract(locale, finalDemo, 'demo', routeMap);
+    assertSoftwareSurfaceContract(locale, finalStatus, 'status', routeMap);
+    assertSoftwareSurfaceContract(locale, finalDashboard, 'dashboard', routeMap);
 
     return {
         nav: {
@@ -953,29 +1186,10 @@ function sanitizeSoftwareData(locale, payload) {
             },
         },
         pages: {
-            landing: finalizeSoftwareLandingPage(
-                locale,
-                sanitizedPages.landing,
-                suiteRoutes
-            ),
-            demo: finalizeSoftwareSurfacePage(
-                locale,
-                sanitizedPages.demo,
-                'demo',
-                suiteRoutes
-            ),
-            status: finalizeSoftwareSurfacePage(
-                locale,
-                sanitizedPages.status,
-                'status',
-                suiteRoutes
-            ),
-            dashboard: finalizeSoftwareSurfacePage(
-                locale,
-                sanitizedPages.dashboard,
-                'dashboard',
-                suiteRoutes
-            ),
+            landing: finalLanding,
+            demo: finalDemo,
+            status: finalStatus,
+            dashboard: finalDashboard,
         },
     };
 }

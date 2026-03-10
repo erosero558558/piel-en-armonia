@@ -207,7 +207,11 @@ const actionClass = (variant = 'secondary') => [
                 >
                     {
                         suiteStoryPrevious ? (
-                            <a class="v6-suite-progress__nav is-previous" href={suiteStoryPrevious.href}>
+                            <a
+                                class="v6-suite-progress__nav is-previous"
+                                href={suiteStoryPrevious.href}
+                                data-v6-suite-progress-nav="previous"
+                            >
                                 {suiteStoryLabels.previous ? <p>{suiteStoryLabels.previous}</p> : null}
                                 <strong>{suiteStoryPrevious.label}</strong>
                                 {suiteStoryPrevious.deck ? <span>{suiteStoryPrevious.deck}</span> : null}
@@ -215,7 +219,11 @@ const actionClass = (variant = 'secondary') => [
                         ) : null
                     }
 
-                    <article class="v6-suite-progress__current">
+                    <article
+                        class="v6-suite-progress__current"
+                        data-v6-suite-progress-current
+                        data-v6-suite-page-key={page.pageKey || ''}
+                    >
                         {suiteStoryLabels.progress ? (
                             <p class="v6-suite-progress__eyebrow">{suiteStoryLabels.progress}</p>
                         ) : null}
@@ -229,7 +237,11 @@ const actionClass = (variant = 'secondary') => [
 
                     {
                         suiteStoryNext ? (
-                            <a class="v6-suite-progress__nav is-next" href={suiteStoryNext.href}>
+                            <a
+                                class="v6-suite-progress__nav is-next"
+                                href={suiteStoryNext.href}
+                                data-v6-suite-progress-nav="next"
+                            >
                                 {suiteStoryLabels.next ? <p>{suiteStoryLabels.next}</p> : null}
                                 <strong>{suiteStoryNext.label}</strong>
                                 {suiteStoryNext.deck ? <span>{suiteStoryNext.deck}</span> : null}

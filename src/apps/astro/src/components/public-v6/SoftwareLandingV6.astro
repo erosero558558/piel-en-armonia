@@ -237,7 +237,11 @@ const actionClass = (variant = 'secondary') => [
                         suiteStoryNext && 'has-next',
                     ]}
                 >
-                    <article class="v6-suite-progress__current">
+                    <article
+                        class="v6-suite-progress__current"
+                        data-v6-suite-progress-current
+                        data-v6-suite-page-key="landing"
+                    >
                         {suiteStoryLabels.progress ? (
                             <p class="v6-suite-progress__eyebrow">{suiteStoryLabels.progress}</p>
                         ) : null}
@@ -251,7 +255,11 @@ const actionClass = (variant = 'secondary') => [
 
                     {
                         suiteStoryNext ? (
-                            <a class="v6-suite-progress__nav is-next" href={suiteStoryNext.href}>
+                            <a
+                                class="v6-suite-progress__nav is-next"
+                                href={suiteStoryNext.href}
+                                data-v6-suite-progress-nav="next"
+                            >
                                 {suiteStoryLabels.next ? <p>{suiteStoryLabels.next}</p> : null}
                                 <strong>{suiteStoryNext.label}</strong>
                                 {suiteStoryNext.deck ? <span>{suiteStoryNext.deck}</span> : null}
