@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 421
+  revision: 422
   updated_at: 2026-03-09
 
 tasks:
@@ -6201,5 +6201,43 @@ tasks:
     evidence_ref: "verification/agent-runs/AG-155.md"
     depends_on: ["AG-154"]
     prompt: "FE-V6-R10: activar affordances muertos de V6 en header y news strip, manteniendo contratos data-v6 y cobertura Playwright."
+    created_at: 2026-03-09
+    updated_at: 2026-03-09
+
+  - id: AG-156
+    title: "FE-V6-R11 harden canonical V6 build runner"
+    owner: ernes
+    executor: codex
+    status: done
+    status_since_at: "2026-03-09T20:10:00-05:00"
+    risk: medium
+    scope: frontend-public
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    files: ["bin/build-public-v6.js", "bin/assert-public-v6-single-source.js", "package.json", "tests-node/public-v6-build-contract.test.js", "docs/public-v6-canonical-source.md", "docs/DEPLOYMENT.md", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "verification/agent-runs/AG-156.md", "verification/public-v6-canonical/artifact-drift.json"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-09T20:10:00-05:00"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "build:public:v6 is a dedicated Node runner that validates, builds, syncs, checks drift, and is covered by a Node contract test."
+    acceptance_ref: "verification/agent-runs/AG-156.md"
+    evidence_ref: "verification/agent-runs/AG-156.md"
+    depends_on: ["AG-155"]
+    prompt: "FE-V6-R11: endurecer build canonico V6 para que validate, build, sync y drift-check corran bajo un runner unico y no por shell chaining."
     created_at: 2026-03-09
     updated_at: 2026-03-09

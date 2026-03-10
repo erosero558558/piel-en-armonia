@@ -10,10 +10,11 @@ Primary publish path:
 
 1. Edit the V6 source.
 2. Run `npm run build:public:v6`.
-3. Run `npm run check:public:v6:artifacts`.
-4. Commit generated `es/**`, `en/**` and `_astro/**`.
-5. Push to `main`.
-6. The production cron git-sync updates `/var/www/figo`.
+3. Review `verification/public-v6-canonical/build-report.json`.
+4. Run `npm run check:public:v6:artifacts` if you need an explicit second drift check.
+5. Commit generated `es/**`, `en/**` and `_astro/**`.
+6. Push to `main`.
+7. The production cron git-sync updates `/var/www/figo`.
 
 GitHub Actions validate the release and can be used as a transport fallback, but they do not replace `main` as the source of truth.
 
@@ -96,6 +97,13 @@ Run:
 npm run build:public:v6
 npm run check:public:v6:artifacts
 ```
+
+`npm run build:public:v6` is the canonical runner and already performs:
+
+1. content validation
+2. Astro static build
+3. root artifact sync
+4. artifact drift verification without rebuilding twice
 
 ### Public quality gate
 

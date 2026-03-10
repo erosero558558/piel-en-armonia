@@ -24,6 +24,8 @@ npm run check:public:v6:artifacts
 npm run gate:public:v6:canonical-publish
 ```
 
+`build:public:v6` is the canonical public runner. It validates V6 content, builds Astro, syncs root artifacts, and writes `verification/public-v6-canonical/build-report.json`.
+
 2. Push the verified commit to `main`.
 
 3. If you need to force the host sync:

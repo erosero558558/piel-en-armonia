@@ -30,6 +30,17 @@ Generation flow:
 2. `npm run check:public:v6:artifacts`
 3. Commit artifacts to `main`
 
+`build:public:v6` is the canonical runner. It executes, in order:
+
+1. `content:public-v6:validate`
+2. `astro:build`
+3. `astro:sync`
+4. `check:public:v6:artifacts --skip-build`
+
+It also writes:
+
+- `verification/public-v6-canonical/build-report.json`
+
 ## Redirect-only legacy routes
 
 These legacy entrypoints remain public, but only as redirects:

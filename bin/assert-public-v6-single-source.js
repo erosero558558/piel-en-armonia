@@ -54,6 +54,11 @@ function main() {
 
     const buildScript = String(scripts.build || '');
     const buildPublicScript = String(scripts['build:public:v6'] || '');
+    if (buildPublicScript !== 'node bin/build-public-v6.js') {
+        issues.push(
+            'package.json build:public:v6 must point to node bin/build-public-v6.js'
+        );
+    }
     for (const snippet of ['build:html', 'services:build']) {
         if (buildScript.includes(snippet)) {
             issues.push(`package.json build still calls ${snippet}`);
