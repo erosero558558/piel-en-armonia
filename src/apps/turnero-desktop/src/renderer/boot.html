@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;"
+        />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Turnero Desktop</title>
+        <link rel="stylesheet" href="./boot.css" />
+    </head>
+    <body>
+        <main class="boot-shell">
+            <section class="boot-card">
+                <p class="boot-eyebrow">Turnero Desktop</p>
+                <h1 id="bootTitle">Inicializando shell operativo</h1>
+                <p id="bootMessage">
+                    Cargando la superficie y comprobando conectividad.
+                </p>
+                <dl class="boot-meta">
+                    <div>
+                        <dt>Superficie</dt>
+                        <dd id="bootSurface">-</dd>
+                    </div>
+                    <div>
+                        <dt>Servidor</dt>
+                        <dd id="bootBaseUrl">-</dd>
+                    </div>
+                    <div>
+                        <dt>Estado</dt>
+                        <dd id="bootPhase">boot</dd>
+                    </div>
+                </dl>
+                <div class="boot-actions">
+                    <button id="bootRetryBtn" type="button">Reintentar</button>
+                </div>
+                <p class="boot-hint">
+                    Si esta pantalla persiste, revisa internet, servidor y canal
+                    de actualizacion.
+                </p>
+            </section>
+        </main>
+        <script src="./boot.js"></script>
+    </body>
+</html>

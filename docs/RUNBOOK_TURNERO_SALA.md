@@ -1,13 +1,14 @@
-# Runbook Turnero Sala (Kiosco + Admin + TV)
+# Runbook Turnero Sala (Operador + Kiosco + Admin + TV)
 
 ## Objetivo
 
-Operacion estable del turnero de sala para 2 consultorios con cola unica, llamado manual desde admin y visualizacion en TV.
+Operacion estable del turnero de sala para 2 consultorios con cola unica, llamado desde operador/admin y visualizacion en TV.
 
 ## Superficies operativas
 
 - `kiosco-turnos.html`: check-in/captura de turno y asistente de sala.
-- `admin.html#queue`: llamado C1/C2, acciones de ticket y reimpresion.
+- `operador-turnos.html`: flujo diario con numpad, lock por estación y acciones rápidas.
+- `admin.html#queue`: hub de descargas, configuracion y operación de respaldo.
 - `sala-turnos.html`: panel de llamados en vivo para pacientes.
 
 ## Politica de privacidad
@@ -17,7 +18,7 @@ Operacion estable del turnero de sala para 2 consultorios con cola unica, llamad
 
 ## Modo normal
 
-1. Operador abre `admin.html` y valida:
+1. Operador abre `operador-turnos.html` o `admin.html#queue` y valida:
     - `#queueSyncStatus` en `live` o `reconnecting`.
     - KPIs de espera/llamados coherentes.
     - Panel `Control de estación` visible con `Estación C1` o `Estación C2`.
@@ -49,16 +50,16 @@ Importante:
     - mantener desactivado por defecto para minimizar errores en horarios de alto flujo.
 - Si tu numpad inalambrico no dispara `Numpad Enter`, usa `Calibrar tecla externa` y presiona la tecla real del dispositivo (ej. Enter externo). Se guarda por estación.
 
-## Provisionamiento por estación (2 PCs)
+## Provisionamiento por estación (2 PCs + TV)
 
 Configurar cada computadora una sola vez en navegador estable (no incógnito):
 
 1. PC consultorio 1:
-    - abrir `admin.html?station=c1&lock=1`
+    - abrir `operador-turnos.html?station=c1&lock=1`
 2. PC consultorio 2:
-    - abrir `admin.html?station=c2&lock=1`
+    - abrir `operador-turnos.html?station=c2&lock=1`
 3. Opcional (flujo en una sola pulsación por estación):
-    - usar `admin.html?station=c1&lock=1&one_tap=1` o `admin.html?station=c2&lock=1&one_tap=1`
+    - usar `operador-turnos.html?station=c1&lock=1&one_tap=1` o `operador-turnos.html?station=c2&lock=1&one_tap=1`
     - recomendado solo para personal entrenado; por defecto mantener `one_tap` apagado.
 4. El sistema guarda localmente:
     - `queueStationMode=locked`
@@ -66,6 +67,10 @@ Configurar cada computadora una sola vez en navegador estable (no incógnito):
     - `queueOneTapAdvance=1|0`
     - `queueCallKeyBindingV1={code,key,location}` (solo si calibras tecla externa)
 5. Después del primer arranque, la URL se limpia automáticamente (`history.replaceState`) y la estación queda persistida en `localStorage`.
+6. TV de sala (`TCL C655`):
+    - instalar `Turnero Sala TV.apk`
+    - configurar conexión por `Ethernet` si está disponible
+    - validar audio/campanilla desde la app Android TV
 
 Recuperación rápida (si borran caché o cambian navegador):
 
@@ -100,7 +105,7 @@ Recuperación rápida (si borran caché o cambian navegador):
 
 ## Atajos operativos
 
-### Admin (seccion queue)
+### Operador / Admin (seccion queue)
 
 - `Alt+Shift+J`: llamar C1
 - `Alt+Shift+K`: llamar C2
@@ -148,15 +153,16 @@ Reglas operativas de estación:
 ## Smoke QA recomendado
 
 1. `npx playwright test tests/admin-queue.spec.js`
-2. `npx playwright test tests/queue-kiosk.spec.js`
-3. `npx playwright test tests/queue-display.spec.js`
-4. `npx playwright test tests/queue-integrated-flow.spec.js`
+2. `npx playwright test tests/queue-operator.spec.js`
+3. `npx playwright test tests/queue-kiosk.spec.js`
+4. `npx playwright test tests/queue-display.spec.js`
+5. `npx playwright test tests/queue-integrated-flow.spec.js`
 
 ## Señales de observabilidad funcional (frontend)
 
 Se emiten eventos `CustomEvent('piel:queue-ops')` para telemetria UI (best effort):
 
-- `surface=admin|kiosk|display`
+- `surface=admin|operator|kiosk|display`
 - estado de conexion/recovery
 - resultados de reimpresion
 - sincronizacion offline/snapshot
@@ -164,7 +170,37 @@ Se emiten eventos `CustomEvent('piel:queue-ops')` para telemetria UI (best effor
 
 ## Criterio de salida operativa
 
-- Admin/kiosco/TV sin error critico bloqueante.
+- Operador/admin/kiosco/TV sin error critico bloqueante.
 - Reimpresion individual o en bloque disponible.
 - Outbox offline funcional con dedupe.
 - QA de turnero en verde en CI.
+
+## Apps operativas
+
+Para separar operación por equipo:
+
+- `Turnero Operador` empaqueta `operador-turnos.html` como app Electron para Windows (`.exe`) y macOS (`.dmg`).
+- `Turnero Kiosco` empaqueta `kiosco-turnos.html` como app Electron para Windows (`.exe`) y macOS (`.dmg`).
+- `Turnero Sala TV` vive como app Android TV nativa en `src/apps/turnero-sala-tv-android/` y carga `sala-turnos.html` dentro de un WebView controlado.
+- `admin.html#queue` queda como hub de descargas, configuración y fallback operativo.
+
+Comandos base:
+
+```bash
+cd src/apps/turnero-desktop
+npm install
+npm run dev:operator
+npm run dev:kiosk
+npm run build:operator:win
+npm run build:operator:mac
+npm run build:kiosk:win
+npm run build:kiosk:mac
+```
+
+Antes de publicar instaladores, validar manualmente:
+
+- llamado/completar con el `Genius Numpad 1000`,
+- ticket/check-in real desde kiosco,
+- campanilla y legibilidad en TV TCL C655,
+- reconexion tras corte de internet,
+- autostart en el equipo destino.

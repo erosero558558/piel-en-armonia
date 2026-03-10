@@ -3619,4 +3619,93 @@ test.describe('Admin turnero sala', () => {
             'Bulk reimpresion'
         );
     });
+
+    test('queue muestra hub de apps operativas con desktop y Android TV', async ({
+        page,
+    }) => {
+        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
+            json(route, {
+                ok: true,
+                authenticated: true,
+                csrfToken: 'csrf_queue_apps_hub',
+            })
+        );
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const url = new URL(route.request().url());
+            const resource = url.searchParams.get('resource') || '';
+            if (resource === 'features') {
+                return json(route, {
+                    ok: true,
+                    data: { admin_sony_ui: ADMIN_UI_VARIANT === 'sony_v2' },
+                });
+            }
+
+            if (resource === 'data') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        appointments: [],
+                        callbacks: [],
+                        reviews: [],
+                        availability: {},
+                        availabilityMeta: {
+                            source: 'store',
+                            mode: 'live',
+                            timezone: 'America/Guayaquil',
+                            calendarConfigured: true,
+                            calendarReachable: true,
+                            generatedAt: new Date().toISOString(),
+                        },
+                        queue_tickets: [],
+                        queueMeta: buildQueueMetaFromState({
+                            updatedAt: new Date().toISOString(),
+                            waitingCount: 0,
+                            calledCount: 0,
+                            counts: {
+                                waiting: 0,
+                                called: 0,
+                                completed: 0,
+                                no_show: 0,
+                                cancelled: 0,
+                            },
+                            callingNow: [],
+                            nextTickets: [],
+                        }),
+                    },
+                });
+            }
+
+            if (resource === 'health') {
+                return json(route, { ok: true, status: 'ok' });
+            }
+
+            if (resource === 'funnel-metrics') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto(adminUrl());
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await expect(page.locator('#queueAppsHub')).toBeVisible();
+        await expect(page.locator('#queueAppDownloadsCards')).toContainText(
+            'Operador'
+        );
+        await expect(page.locator('#queueAppDownloadsCards')).toContainText(
+            'Kiosco'
+        );
+        await expect(page.locator('#queueAppDownloadsCards')).toContainText(
+            'Sala TV'
+        );
+        await expect(page.locator('#queueAppDownloadsCards')).toContainText(
+            'Mostrar QR de instalación'
+        );
+        await expect(page.locator('#queueAppDownloadsCards')).toContainText(
+            'Descargar APK'
+        );
+    });
 });

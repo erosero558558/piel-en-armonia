@@ -130,10 +130,10 @@ export const SECTION_CONTEXT = {
         ],
     },
     queue: {
-        eyebrow: 'Fase 2',
-        title: 'Turnero sala',
+        eyebrow: 'Apps Operativas',
+        title: 'Operacion simple de recepcion y sala',
         summary:
-            'Esta superficie se mantiene compatible, pero su rediseño completo queda fuera de esta primera ola.',
+            'Centraliza instaladores, flujo de operador con numpad y cola en vivo sin mezclar cada equipo en una sola pantalla.',
         actions: [
             {
                 action: 'queue-call-next',

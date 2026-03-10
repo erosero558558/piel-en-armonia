@@ -24,6 +24,7 @@ const initialState = {
         availabilityMeta: {},
         queueTickets: [],
         queueMeta: null,
+        appDownloads: null,
         funnelMetrics: null,
         health: null,
     },

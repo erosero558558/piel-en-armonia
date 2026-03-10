@@ -2,6 +2,8 @@
 
 Operational runbook to verify that a commit pushed to `main` becomes visible on the live public site.
 
+Routine GitHub uploads should use a dedicated branch and the workflow documented in `docs/GITHUB_PUSH_WORKFLOW.md`. This runbook applies only when you intentionally promote a verified commit to `main` for live publication.
+
 ## Source of truth
 
 - current public source: V6 Astro + `content/public-v6/**`

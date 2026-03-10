@@ -35,6 +35,10 @@ export function normalizeAdminDataPayload(data, healthPayload, fallbackState) {
                 : data.queue_state && typeof data.queue_state === 'object'
                   ? data.queue_state
                   : null,
+        appDownloads:
+            data.appDownloads && typeof data.appDownloads === 'object'
+                ? data.appDownloads
+                : fallbackState?.appDownloads || null,
         funnelMetrics: data.funnelMetrics || fallbackState?.funnelMetrics || null,
         health: healthPayload && healthPayload.ok ? healthPayload : null,
     };
@@ -49,6 +53,7 @@ export function normalizeAdminStorePayload(payload, currentFunnelMetrics) {
         availabilityMeta: payload.availabilityMeta || {},
         queueTickets: payload.queueTickets || [],
         queueMeta: payload.queueMeta || null,
+        appDownloads: payload.appDownloads || null,
         funnelMetrics: payload.funnelMetrics || currentFunnelMetrics,
         health: payload.health || null,
     };

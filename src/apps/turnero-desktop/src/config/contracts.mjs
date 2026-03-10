@@ -1,0 +1,145 @@
+const SURFACE_META = Object.freeze({
+    operator: {
+        appId: 'com.pielarmonia.turnero.operator',
+        productName: 'Turnero Operador',
+        executableName: 'TurneroOperador',
+        artifactBase: 'TurneroOperador',
+        route: '/operador-turnos.html',
+    },
+    kiosk: {
+        appId: 'com.pielarmonia.turnero.kiosk',
+        productName: 'Turnero Kiosco',
+        executableName: 'TurneroKiosco',
+        artifactBase: 'TurneroKiosco',
+        route: '/kiosco-turnos.html',
+    },
+});
+
+const DEFAULT_BASE_URL = 'https://pielarmonia.com';
+const DEFAULT_UPDATE_BASE_URL = 'https://pielarmonia.com/desktop-updates/';
+
+export function normalizeSurface(value) {
+    return String(value || '').trim().toLowerCase() === 'kiosk'
+        ? 'kiosk'
+        : 'operator';
+}
+
+export function normalizeLaunchMode(value) {
+    return String(value || '').trim().toLowerCase() === 'windowed'
+        ? 'windowed'
+        : 'fullscreen';
+}
+
+export function normalizeAutoStart(value, fallback = true) {
+    if (typeof value === 'boolean') {
+        return value;
+    }
+
+    const normalized = String(value || '').trim().toLowerCase();
+    if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+        return true;
+    }
+    if (['0', 'false', 'no', 'off'].includes(normalized)) {
+        return false;
+    }
+    return Boolean(fallback);
+}
+
+export function normalizeUpdateChannel() {
+    return 'stable';
+}
+
+export function sanitizeBaseUrl(value, fallback = DEFAULT_BASE_URL) {
+    try {
+        const url = new URL(String(value || fallback).trim() || fallback);
+        if (!['http:', 'https:'].includes(url.protocol)) {
+            return fallback;
+        }
+        url.pathname = '/';
+        url.search = '';
+        url.hash = '';
+        return url.toString().replace(/\/$/, '');
+    } catch (_error) {
+        return fallback;
+    }
+}
+
+export function sanitizeUpdateBaseUrl(value, baseUrl = DEFAULT_BASE_URL) {
+    const fallback = new URL('/desktop-updates/', `${sanitizeBaseUrl(baseUrl)}/`);
+    try {
+        const url = new URL(String(value || fallback.toString()).trim() || fallback);
+        if (!['http:', 'https:'].includes(url.protocol)) {
+            return fallback.toString();
+        }
+        if (!url.pathname.endsWith('/')) {
+            url.pathname = `${url.pathname}/`;
+        }
+        url.search = '';
+        url.hash = '';
+        return url.toString();
+    } catch (_error) {
+        return fallback.toString();
+    }
+}
+
+export function getSurfaceMeta(surface) {
+    return SURFACE_META[normalizeSurface(surface)];
+}
+
+export function getSurfaceRoute(surface) {
+    return getSurfaceMeta(surface).route;
+}
+
+export function createBuildConfig(partial = {}) {
+    const surface = normalizeSurface(partial.surface);
+    const baseUrl = sanitizeBaseUrl(partial.baseUrl, DEFAULT_BASE_URL);
+    return {
+        surface,
+        baseUrl,
+        launchMode: normalizeLaunchMode(partial.launchMode),
+        autoStart: normalizeAutoStart(partial.autoStart, true),
+        updateChannel: normalizeUpdateChannel(partial.updateChannel),
+        updateBaseUrl: sanitizeUpdateBaseUrl(partial.updateBaseUrl, baseUrl),
+    };
+}
+
+export function mergeRuntimeConfig(buildConfig, persisted = {}) {
+    return {
+        surface: normalizeSurface(buildConfig.surface),
+        baseUrl: sanitizeBaseUrl(persisted.baseUrl, buildConfig.baseUrl),
+        launchMode: normalizeLaunchMode(persisted.launchMode || buildConfig.launchMode),
+        autoStart: normalizeAutoStart(persisted.autoStart, buildConfig.autoStart),
+        updateChannel: normalizeUpdateChannel(
+            persisted.updateChannel || buildConfig.updateChannel
+        ),
+        updateBaseUrl: sanitizeUpdateBaseUrl(
+            persisted.updateBaseUrl || buildConfig.updateBaseUrl,
+            persisted.baseUrl || buildConfig.baseUrl
+        ),
+    };
+}
+
+export function createSurfaceUrl(config) {
+    return new URL(
+        getSurfaceRoute(config.surface),
+        `${sanitizeBaseUrl(config.baseUrl)}/`
+    ).toString();
+}
+
+export function buildUpdateFeedUrl(config, platform = process.platform) {
+    const platformSegment = platform === 'darwin' ? 'mac' : 'win';
+    return new URL(
+        `${normalizeUpdateChannel(config.updateChannel)}/${normalizeSurface(
+            config.surface
+        )}/${platformSegment}/`,
+        sanitizeUpdateBaseUrl(config.updateBaseUrl, config.baseUrl)
+    ).toString();
+}
+
+export function getDefaultBaseUrl() {
+    return DEFAULT_BASE_URL;
+}
+
+export function getDefaultUpdateBaseUrl() {
+    return DEFAULT_UPDATE_BASE_URL;
+}

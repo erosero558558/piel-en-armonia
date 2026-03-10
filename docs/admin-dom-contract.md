@@ -7,6 +7,7 @@ This document freezes the active admin frontend contract after the total cutover
 ## Route Contract
 
 - `GET /admin.html`
+- `GET /operador-turnos.html`
 - The admin always boots in `sony_v3`.
 - Legacy compatibility inputs are ignored and cleaned from the URL:
     - `admin_ui=legacy|sony_v2|sony_v3`
@@ -63,6 +64,7 @@ This document freezes the active admin frontend contract after the total cutover
 - `#availability`, `#availabilityHeading`, `#availabilitySourceBadge`, `#availabilityModeBadge`, `#availabilityTimezoneBadge`, `#calendarMonth`, `#availabilityCalendar`, `#selectedDate`, `#timeSlotsList`, `#newSlotTime`, `#addSlotForm`, `#availabilityQuickSlotPresets`, `#availabilityDetailGrid`
 - `#availabilitySelectionSummary`, `#availabilityDraftStatus`, `#availabilitySyncStatus`, `#availabilityDayActions`, `#availabilityDayActionsStatus`, `#availabilitySaveDraftBtn`, `#availabilityDiscardDraftBtn`
 - `#queue`, `#queueWaitingCountAdmin`, `#queueCalledCountAdmin`, `#queueC1Now`, `#queueC2Now`, `#queueSyncStatus`, `#queueNextAdminList`, `#queueTriageToolbar`, `#queueTriageSummary`, `#queueTableBody`, `#queueActivityPanel`, `#queueActivityList`
+- `#queueAppsHub`, `#queueAppsPlatformChip`, `#queueAppDownloadsCards`
 - `#queueStationBadge`, `#queueStationModeBadge`, `#queuePracticeModeBadge`, `#queueShortcutPanel`, `#queueSensitiveConfirmDialog`, `#queueReleaseC1`, `#queueSelectVisibleBtn`, `#queueClearSelectionBtn`, `#queueSelectionChip`, `#queueSelectedCount`
 - `#toastContainer`
 
@@ -72,7 +74,7 @@ This document freezes the active admin frontend contract after the total cutover
 - Appointments: `appointment-quick-filter`, `clear-appointment-filters`, `appointment-density`, `approve-transfer`, `reject-transfer`, `mark-no-show`, `cancel-appointment`, `export-csv`
 - Callbacks: `callback-quick-filter`, `clear-callback-filters`, `callbacks-triage-next`, `mark-contacted`, `callbacks-bulk-select-visible`, `callbacks-bulk-clear`, `callbacks-bulk-mark`
 - Availability: `change-month`, `availability-today`, `availability-prev-with-slots`, `availability-next-with-slots`, `select-availability-day`, `prefill-time-slot`, `add-time-slot`, `remove-time-slot`, `copy-availability-day`, `paste-availability-day`, `duplicate-availability-day-next`, `duplicate-availability-next-week`, `clear-availability-day`, `clear-availability-week`, `save-availability-draft`, `discard-availability-draft`
-- Queue: `queue-refresh-state`, `queue-call-next`, `queue-release-station`, `queue-toggle-ticket-select`, `queue-select-visible`, `queue-clear-selection`, `queue-ticket-action`, `queue-reprint-ticket`, `queue-bulk-action`, `queue-bulk-reprint`, `queue-clear-search`, `queue-toggle-shortcuts`, `queue-toggle-one-tap`, `queue-start-practice`, `queue-stop-practice`, `queue-lock-station`, `queue-set-station-mode`, `queue-sensitive-confirm`, `queue-sensitive-cancel`, `queue-capture-call-key`, `queue-clear-call-key`
+- Queue: `queue-refresh-state`, `queue-call-next`, `queue-release-station`, `queue-toggle-ticket-select`, `queue-select-visible`, `queue-clear-selection`, `queue-ticket-action`, `queue-reprint-ticket`, `queue-bulk-action`, `queue-bulk-reprint`, `queue-clear-search`, `queue-toggle-shortcuts`, `queue-toggle-one-tap`, `queue-start-practice`, `queue-stop-practice`, `queue-lock-station`, `queue-set-station-mode`, `queue-sensitive-confirm`, `queue-sensitive-cancel`, `queue-capture-call-key`, `queue-clear-call-key`, `queue-copy-install-link`
 
 ## Required Filters
 
@@ -111,6 +113,7 @@ This document freezes the active admin frontend contract after the total cutover
 
 - Active:
     - `/admin.html?station=c1|c2&lock=1|0&one_tap=1|0`
+    - `/operador-turnos.html?station=c1|c2&lock=1|0&one_tap=1|0`
 - Retired compatibility params:
     - `/admin.html?admin_ui=sony_v3|sony_v2|legacy`
     - `/admin.html?admin_ui_reset=1`
@@ -127,5 +130,6 @@ This document freezes the active admin frontend contract after the total cutover
 ## Notes
 
 - `sony_v3` is the only supported admin runtime.
+- `GET /api.php?resource=data` now includes `data.appDownloads` for `operator`, `kiosk` and `sala_tv`.
 - Rollback is operational (`revert + deploy`), not a runtime variant switch.
 - Any DOM contract break requires explicit test migration in active admin suites.

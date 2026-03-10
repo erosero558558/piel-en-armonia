@@ -1,0 +1,963 @@
+{
+    "nav": {
+        "brand": {
+            "tag": "Software para clinicas pequenas y medianas"
+        },
+        "ui": {
+            "header": {
+                "search": {
+                    "dialogAria": "Buscador del software para clinicas",
+                    "eyebrow": "Suite de operacion",
+                    "inputLabel": "Escriba un modulo o flujo",
+                    "placeholder": "kiosco, WhatsApp, dashboard, sala, QR...",
+                    "hint": "Busque por modulo, canal o perfil operativo. Le mostramos demos y superficies del producto.",
+                    "resultsAria": "Resultados del software",
+                    "emptyTitle": "No encontramos ese modulo todavia",
+                    "emptyBody": "Pruebe con kiosco, agenda web, dashboard o estado del turno.",
+                    "closeLabel": "Cerrar buscador",
+                    "resultsLimit": 8
+                }
+            }
+        },
+        "header": {
+            "contactLabel": "Agendar demo",
+            "contactHref": "https://wa.me/593982453672?text=Hola%2C%20quiero%20ver%20una%20demo%20del%20turnero%20para%20clinicas",
+            "searchLabel": "Buscar modulos",
+            "links": [
+                {
+                    "id": "home",
+                    "label": "Inicio",
+                    "href": "/es/",
+                    "kind": "standard"
+                },
+                {
+                    "id": "software",
+                    "label": "Software",
+                    "href": "/es/software/turnero-clinicas/",
+                    "kind": "standard"
+                },
+                {
+                    "id": "demo",
+                    "label": "Check-in movil",
+                    "href": "/es/software/turnero-clinicas/demo/",
+                    "kind": "standard"
+                },
+                {
+                    "id": "status",
+                    "label": "Estado del turno",
+                    "href": "/es/software/turnero-clinicas/estado-turno/",
+                    "kind": "standard"
+                },
+                {
+                    "id": "dashboard",
+                    "label": "Dashboard",
+                    "href": "/es/software/turnero-clinicas/dashboard/",
+                    "kind": "standard"
+                },
+                {
+                    "id": "legal",
+                    "label": "Legal",
+                    "href": "/es/legal/terminos/",
+                    "kind": "standard"
+                }
+            ],
+            "searchEntries": [
+                {
+                    "label": "Turnero para clinicas",
+                    "href": "/es/software/turnero-clinicas/",
+                    "eyebrow": "Suite base",
+                    "deck": "Kiosco, TV sala, recepcion y agenda web sobre un mismo estado operativo."
+                },
+                {
+                    "label": "Check-in movil",
+                    "href": "/es/software/turnero-clinicas/demo/",
+                    "eyebrow": "Paciente",
+                    "deck": "QR o enlace directo para confirmar cita y entrar a la cola sin depender del mostrador."
+                },
+                {
+                    "label": "Estado del turno",
+                    "href": "/es/software/turnero-clinicas/estado-turno/",
+                    "eyebrow": "Seguimiento",
+                    "deck": "Vista simple del llamado actual, siguientes turnos y tiempo estimado desde el celular."
+                },
+                {
+                    "label": "Dashboard de sede",
+                    "href": "/es/software/turnero-clinicas/dashboard/",
+                    "eyebrow": "Gerencia",
+                    "deck": "KPIs de espera, no-show, tickets atendidos y carga por consultorio o sede."
+                }
+            ]
+        },
+        "footer": {
+            "headline": "Operacion de sala simple para clinicas que necesitan orden hoy",
+            "deck": "La suite conecta kiosco, TV sala, recepcion, agenda web y seguimiento movil sin pedir hardware especial ni procesos enterprise.",
+            "columns": [
+                {
+                    "title": "Suite",
+                    "links": [
+                        {
+                            "label": "Turnero para clinicas",
+                            "href": "/es/software/turnero-clinicas/"
+                        },
+                        {
+                            "label": "Ver precios",
+                            "href": "/es/software/turnero-clinicas/#v6-suite-pricing"
+                        },
+                        {
+                            "label": "Agendar demo",
+                            "href": "https://wa.me/593982453672?text=Hola%2C%20quiero%20ver%20una%20demo%20del%20turnero%20para%20clinicas"
+                        }
+                    ]
+                },
+                {
+                    "title": "Superficies",
+                    "links": [
+                        {
+                            "label": "Check-in movil",
+                            "href": "/es/software/turnero-clinicas/demo/"
+                        },
+                        {
+                            "label": "Estado del turno",
+                            "href": "/es/software/turnero-clinicas/estado-turno/"
+                        },
+                        {
+                            "label": "Dashboard de sede",
+                            "href": "/es/software/turnero-clinicas/dashboard/"
+                        }
+                    ]
+                },
+                {
+                    "title": "Integraciones",
+                    "lines": [
+                        "WhatsApp o SMS para recordatorios",
+                        "QR, impresora termica y TV por navegador",
+                        "Agenda online, webhooks y API de cola"
+                    ]
+                },
+                {
+                    "title": "Contacto",
+                    "lines": [
+                        "Implementacion inicial en 90 minutos",
+                        "LatAm · 1 a 5 sedes",
+                        "+593 98 245 3672"
+                    ]
+                }
+            ]
+        }
+    },
+    "pages": {
+        "landing": {
+            "title": "Turnero para clinicas | Kiosco + TV + web",
+            "description": "Software para clinicas pequenas y medianas con kiosco, TV de sala, recepcion y agenda web conectadas en una sola suite.",
+            "breadcrumb": [
+                {
+                    "label": "Inicio",
+                    "href": "/es/"
+                },
+                {
+                    "label": "Software",
+                    "href": "/es/software/turnero-clinicas/"
+                }
+            ],
+            "heading": "Turnero para clinicas con kiosco, TV, recepcion y agenda web",
+            "hero": {
+                "eyebrow": "Software para clinicas",
+                "title": "Reduce espera, llamadas manuales y no-show sin hardware especial.",
+                "deck": "Una suite pensada para clinicas pequenas y medianas: kiosco en sala, TV de llamados, panel de recepcion y agenda web conectadas al mismo flujo.",
+                "pills": [
+                    "1 a 5 sedes",
+                    "QR + WhatsApp + SMS",
+                    "Kiosco + TV + web",
+                    "Sin hardware propietario"
+                ],
+                "actions": [
+                    {
+                        "label": "Agendar demo",
+                        "href": "https://wa.me/593982453672?text=Hola%2C%20quiero%20agendar%20una%20demo%20del%20turnero%20para%20clinicas",
+                        "variant": "primary"
+                    },
+                    {
+                        "label": "Ver precios",
+                        "href": "#v6-suite-pricing",
+                        "variant": "secondary"
+                    },
+                    {
+                        "label": "Probar flujo paciente",
+                        "href": "/es/software/turnero-clinicas/demo/",
+                        "variant": "ghost"
+                    },
+                    {
+                        "label": "Ver operacion recepcion",
+                        "href": "#v6-suite-modules",
+                        "variant": "ghost"
+                    }
+                ],
+                "metrics": [
+                    {
+                        "value": "4",
+                        "label": "modulos conectados",
+                        "detail": "Kiosco, TV sala, recepcion y agenda web sobre el mismo estado."
+                    },
+                    {
+                        "value": "90 min",
+                        "label": "arranque inicial",
+                        "detail": "Provisionamiento ligero para una sede piloto sin hardware especial."
+                    },
+                    {
+                        "value": "1-5",
+                        "label": "sedes ideales",
+                        "detail": "Pensado para clinicas con operacion mediana, no para hospital enterprise."
+                    }
+                ],
+                "panels": [
+                    {
+                        "eyebrow": "Kiosco",
+                        "title": "Check-in con cita o walk-in",
+                        "copy": "Paciente elige flujo, imprime ticket o sigue desde QR."
+                    },
+                    {
+                        "eyebrow": "TV sala",
+                        "title": "Llamado con privacidad visible",
+                        "copy": "Pantalla clara con ticket, iniciales y consultorio."
+                    },
+                    {
+                        "eyebrow": "Recepcion",
+                        "title": "Llamar, reimprimir, cerrar, medir",
+                        "copy": "Operacion por estacion y atajos seguros para consultorio."
+                    },
+                    {
+                        "eyebrow": "Agenda web",
+                        "title": "Reservas y recordatorios conectados",
+                        "copy": "Web, QR, WhatsApp y estado del turno bajo la misma cola."
+                    }
+                ]
+            },
+            "modules": {
+                "eyebrow": "Modulos visibles",
+                "title": "La oferta deja de verse como un kiosco suelto y se vende como una suite completa.",
+                "deck": "Cada modulo resuelve una parte del flujo, pero todos comparten el mismo estado operativo para que recepcion, paciente y gerencia lean lo mismo.",
+                "cards": [
+                    {
+                        "eyebrow": "Kiosco",
+                        "title": "Check-in guiado en sala",
+                        "copy": "Para pacientes con cita y sin cita, con ayuda rapida, lectura grande y soporte de recepcion en un clic.",
+                        "bullets": [
+                            "Flujo Tengo cita / No tengo cita",
+                            "Modo senior-first con voz guia",
+                            "Impresion termica y respaldo offline"
+                        ]
+                    },
+                    {
+                        "eyebrow": "TV Sala",
+                        "title": "Pantalla de llamados con privacidad",
+                        "copy": "Muestra ticket, iniciales y consultorio en vivo para que la sala entienda que esta pasando sin exponer datos sensibles.",
+                        "bullets": [
+                            "Campanilla configurable",
+                            "Llamado actual y siguientes turnos",
+                            "Snapshot local para continuidad"
+                        ]
+                    },
+                    {
+                        "eyebrow": "Recepcion / Admin",
+                        "title": "Operacion de cola para consultorios reales",
+                        "copy": "Llamar, reimprimir, completar, marcar no-show y controlar estaciones desde un panel pensado para recepcion activa.",
+                        "bullets": [
+                            "Bloqueo por consultorio o estacion",
+                            "Atajos numpad y bulk actions",
+                            "Trazabilidad y estado de sincronizacion"
+                        ]
+                    },
+                    {
+                        "eyebrow": "Agenda web",
+                        "title": "Reservas y recordatorios conectados al turnero",
+                        "copy": "La web deja de ser una pagina aparte y pasa a ser la entrada digital del mismo flujo operativo.",
+                        "bullets": [
+                            "Reserva online y check-in movil",
+                            "Recordatorios por WhatsApp o SMS",
+                            "Estado del turno desde el celular"
+                        ]
+                    }
+                ]
+            },
+            "journeys": {
+                "eyebrow": "Como fluye",
+                "title": "Un mismo estado operativo para paciente, recepcion y gerencia",
+                "deck": "La suite esta pensada para que el paciente avance sin preguntar tanto, recepcion opere con menos llamadas manuales y gerencia vea resultados concretos.",
+                "lanes": [
+                    {
+                        "eyebrow": "Paciente con cita",
+                        "title": "Confirma por QR o movil y entra directo a la cola",
+                        "steps": [
+                            "Recibe recordatorio por WhatsApp o SMS.",
+                            "Abre su enlace, confirma asistencia y ve tiempo estimado.",
+                            "Si llega a sala, el kiosco reconoce el mismo flujo."
+                        ]
+                    },
+                    {
+                        "eyebrow": "Paciente sin cita",
+                        "title": "Walk-in ordenado sin llenar recepcion de preguntas repetidas",
+                        "steps": [
+                            "El kiosco genera turno rapido con iniciales y soporte visible.",
+                            "La TV informa quien esta siendo llamado sin exponer telefono ni nombre completo.",
+                            "Recepcion puede reimprimir o ajustar el ticket sin rehacer el caso."
+                        ]
+                    },
+                    {
+                        "eyebrow": "Gerencia",
+                        "title": "Lee tiempos de espera, no-show y carga por consultorio",
+                        "steps": [
+                            "Un dashboard resume tickets atendidos, SLA y no-show.",
+                            "La sede identifica horas pico y cuellos de botella.",
+                            "La operacion mejora sin perseguir un EMR enterprise."
+                        ]
+                    }
+                ]
+            },
+            "surfaces": {
+                "eyebrow": "Superficies nuevas",
+                "title": "Tres experiencias publicas que convierten la suite en un producto completo",
+                "deck": "Estas superficies muestran lo que hoy normalmente gana una venta: omnicanalidad, visibilidad para el paciente y reportes para quien paga la herramienta.",
+                "cards": [
+                    {
+                        "eyebrow": "Check-in movil",
+                        "title": "Paciente confirma desde QR o enlace",
+                        "copy": "Un flujo simple para confirmar cita, elegir llegada y pasar al estado del turno sin depender del mostrador.",
+                        "href": "/es/software/turnero-clinicas/demo/",
+                        "ctaLabel": "Probar flujo paciente",
+                        "mockup": {
+                            "kind": "phone",
+                            "eyebrow": "Paciente",
+                            "title": "Check-in listo",
+                            "chips": ["QR", "WhatsApp", "SMS"],
+                            "rows": [
+                                {
+                                    "label": "Tengo cita",
+                                    "value": "Confirmar llegada",
+                                    "meta": "Telefono + hora + consultorio"
+                                },
+                                {
+                                    "label": "Sin cita",
+                                    "value": "Tomar turno",
+                                    "meta": "Walk-in con iniciales"
+                                },
+                                {
+                                    "label": "Espera estimada",
+                                    "value": "06 min",
+                                    "meta": "Actualizado en vivo"
+                                }
+                            ],
+                            "footer": "La misma cola continua en sala y en recepcion."
+                        }
+                    },
+                    {
+                        "eyebrow": "Estado del turno",
+                        "title": "El paciente sigue su avance desde el celular",
+                        "copy": "No solo mira una TV. Tambien puede abrir una vista privada con el llamado actual, siguientes tickets y tiempo estimado.",
+                        "href": "/es/software/turnero-clinicas/estado-turno/",
+                        "ctaLabel": "Ver estado del turno",
+                        "mockup": {
+                            "kind": "status",
+                            "eyebrow": "Vista privada",
+                            "title": "Cola de sede",
+                            "chips": ["Sala A", "Privacidad", "Live"],
+                            "rows": [
+                                {
+                                    "label": "Llamando ahora",
+                                    "value": "A-041",
+                                    "meta": "Consultorio 2 · Iniciales EP"
+                                },
+                                {
+                                    "label": "Siguiente",
+                                    "value": "A-042",
+                                    "meta": "Tiempo estimado 5 min"
+                                },
+                                {
+                                    "label": "Estado",
+                                    "value": "Recepcion conectada",
+                                    "meta": "Ultima actualizacion hace 12 s"
+                                }
+                            ],
+                            "footer": "Ideal para QR en cita, lobby o WhatsApp."
+                        }
+                    },
+                    {
+                        "eyebrow": "Dashboard",
+                        "title": "KPIs de sede para quien decide renovar",
+                        "copy": "La compra no se queda en la recepcion. Muestra a gerencia cuanto se atiende, donde se atasca la cola y cuantas citas se recuperan.",
+                        "href": "/es/software/turnero-clinicas/dashboard/",
+                        "ctaLabel": "Ver dashboard de sede",
+                        "mockup": {
+                            "kind": "dashboard",
+                            "eyebrow": "Gerencia",
+                            "title": "Resumen diario",
+                            "chips": ["Sede Quito Norte", "Hoy", "3 consultorios"],
+                            "rows": [
+                                {
+                                    "label": "Espera media",
+                                    "value": "08 min",
+                                    "meta": "-18% vs semana pasada"
+                                },
+                                {
+                                    "label": "No-show",
+                                    "value": "6.2%",
+                                    "meta": "-2.1 pts con recordatorios"
+                                },
+                                {
+                                    "label": "Tickets atendidos",
+                                    "value": "124",
+                                    "meta": "Pico 11:00 - 13:00"
+                                }
+                            ],
+                            "footer": "Una vista para sede y otra para cadena pequena."
+                        }
+                    }
+                ]
+            },
+            "integrations": {
+                "eyebrow": "Integraciones",
+                "title": "La historia de integracion debe ser tan clara como la historia comercial",
+                "deck": "La clinica necesita saber con que funciona, como se conecta y que queda dentro o fuera del piloto inicial.",
+                "groups": [
+                    {
+                        "title": "Canales",
+                        "items": [
+                            "Recordatorios y confirmaciones por WhatsApp o SMS",
+                            "QR en cita, mostrador, puerta o ticket impreso",
+                            "Agenda web conectada a la misma cola"
+                        ]
+                    },
+                    {
+                        "title": "Hardware compatible",
+                        "items": [
+                            "TV o monitor via navegador",
+                            "Impresora termica estandar",
+                            "PC o tablet para kiosco sin hardware propietario"
+                        ]
+                    },
+                    {
+                        "title": "Datos y operacion",
+                        "items": [
+                            "API y webhooks para cola y check-in",
+                            "Roles basicos, branding y sedes lite",
+                            "Dashboard de espera, tickets y no-show"
+                        ]
+                    }
+                ]
+            },
+            "pricing": {
+                "eyebrow": "Planes",
+                "title": "Empaque simple para vender sin friccion",
+                "deck": "Precios orientativos para ordenar la conversacion comercial. Lo importante es que el comprador entienda rapido que modulo entra en cada etapa.",
+                "plans": [
+                    {
+                        "name": "Sala Base",
+                        "price": "USD 149/mes",
+                        "note": "1 sede · hasta 2 consultorios",
+                        "fit": "Consultorios y centros pequenos que quieren ordenar recepcion y sala.",
+                        "features": [
+                            "Kiosco + TV sala",
+                            "Panel de recepcion",
+                            "Impresion termica y privacidad visible",
+                            "Soporte de puesta en marcha"
+                        ],
+                        "ctaLabel": "Agendar demo",
+                        "ctaHref": "https://wa.me/593982453672?text=Hola%2C%20quiero%20ver%20Sala%20Base"
+                    },
+                    {
+                        "name": "Flujo Plus",
+                        "price": "USD 249/mes",
+                        "note": "1 sede · hasta 5 consultorios",
+                        "fit": "Clinicas con agenda activa, recordatorios y necesidad de seguimiento movil.",
+                        "highlight": true,
+                        "features": [
+                            "Todo en Sala Base",
+                            "Check-in movil por QR o enlace",
+                            "Estado del turno en celular",
+                            "Recordatorios por WhatsApp o SMS"
+                        ],
+                        "ctaLabel": "Ver demo",
+                        "ctaHref": "/es/software/turnero-clinicas/demo/"
+                    },
+                    {
+                        "name": "Multi-sede Lite",
+                        "price": "USD 399/mes",
+                        "note": "Hasta 5 sedes",
+                        "fit": "Cadenas pequenas que necesitan branding, roles y KPIs por sede sin entrar a enterprise.",
+                        "features": [
+                            "Todo en Flujo Plus",
+                            "Branding por cliente",
+                            "Roles y accesos basicos",
+                            "Dashboard consolidado por sede"
+                        ],
+                        "ctaLabel": "Ver dashboard",
+                        "ctaHref": "/es/software/turnero-clinicas/dashboard/"
+                    }
+                ]
+            },
+            "security": {
+                "eyebrow": "Privacidad y operacion",
+                "title": "Privacidad visible, operacion segura y continuidad util",
+                "deck": "Esto no se vende como promesa abstracta. Se muestra como reglas visibles en sala y protecciones concretas en la operacion diaria.",
+                "cards": [
+                    {
+                        "title": "Pantalla con privacidad activa",
+                        "items": [
+                            "TV muestra ticket, iniciales y consultorio",
+                            "No expone telefono completo ni nombre completo",
+                            "Estado claro para recepcion, paciente y sala"
+                        ]
+                    },
+                    {
+                        "title": "Roles, branding y sedes lite",
+                        "items": [
+                            "Recepcion, administrador y gerencia con accesos separados",
+                            "Branding basico por clinica o cadena pequena",
+                            "Preparado para 1 a 5 sedes sin complejidad enterprise"
+                        ]
+                    },
+                    {
+                        "title": "Continuidad operacional",
+                        "items": [
+                            "Kiosco con outbox offline",
+                            "TV con snapshot local y reconexion visible",
+                            "Recepcion puede reimprimir y seguir operando"
+                        ]
+                    }
+                ]
+            },
+            "faq": {
+                "eyebrow": "FAQ",
+                "title": "Lo que una clinica pregunta antes de comprar",
+                "items": [
+                    {
+                        "question": "Necesitamos hardware propietario para arrancar?",
+                        "answer": "No. El piloto esta pensado para trabajar con navegador, una TV o monitor, una PC o tablet y una impresora termica compatible."
+                    },
+                    {
+                        "question": "Esto reemplaza el software medico completo de la clinica?",
+                        "answer": "No en esta etapa. La suite compite como operacion de sala + agenda + recordatorios + reporting, no como EMR completo."
+                    },
+                    {
+                        "question": "Se puede empezar por una sola sede?",
+                        "answer": "Si. El modelo inicial esta pensado para una sede piloto y luego activar branding, sedes lite y dashboard consolidado si el flujo funciona."
+                    },
+                    {
+                        "question": "Como bajan el no-show si el paciente no usa kiosco?",
+                        "answer": "La mejora no depende solo del kiosco. Entra por recordatorios, check-in movil, vista de turno y una recepcion que ve la misma informacion."
+                    }
+                ]
+            },
+            "finalCta": {
+                "title": "Pruébalo como lo compraria una clinica",
+                "deck": "Empieza por la landing, sigue con el flujo paciente y termina en el dashboard. Esa es la historia comercial que hoy te falta hacer visible.",
+                "actions": [
+                    {
+                        "label": "Agendar demo",
+                        "href": "https://wa.me/593982453672?text=Hola%2C%20quiero%20agendar%20una%20demo%20de%20la%20suite%20para%20clinicas",
+                        "variant": "primary"
+                    },
+                    {
+                        "label": "Ver flujo paciente",
+                        "href": "/es/software/turnero-clinicas/demo/",
+                        "variant": "secondary"
+                    }
+                ]
+            }
+        },
+        "demo": {
+            "title": "Check-in movil para clinicas | Demo",
+            "description": "Vista demo del check-in movil por QR o enlace para pacientes con cita o sin cita.",
+            "breadcrumb": [
+                {
+                    "label": "Inicio",
+                    "href": "/es/"
+                },
+                {
+                    "label": "Software",
+                    "href": "/es/software/turnero-clinicas/"
+                },
+                {
+                    "label": "Check-in movil",
+                    "href": "/es/software/turnero-clinicas/demo/"
+                }
+            ],
+            "heading": "Check-in movil por QR o enlace",
+            "hero": {
+                "eyebrow": "Superficie paciente",
+                "title": "El paciente confirma llegada antes de tocar recepcion.",
+                "deck": "Este flujo aterriza la omnicanalidad que la competencia comunica mejor: QR en sala, recordatorio por WhatsApp o SMS y el mismo estado de cola para quien ya va en camino.",
+                "actions": [
+                    {
+                        "label": "Volver a la suite",
+                        "href": "/es/software/turnero-clinicas/",
+                        "variant": "secondary"
+                    },
+                    {
+                        "label": "Ver estado del turno",
+                        "href": "/es/software/turnero-clinicas/estado-turno/",
+                        "variant": "ghost"
+                    }
+                ],
+                "metrics": [
+                    {
+                        "value": "QR",
+                        "label": "en cita, puerta o ticket",
+                        "detail": "El mismo flujo funciona en lobby, recordatorio o mensaje."
+                    },
+                    {
+                        "value": "2",
+                        "label": "rutas base",
+                        "detail": "Tengo cita y No tengo cita, sin callejones de UX."
+                    },
+                    {
+                        "value": "<1 min",
+                        "label": "para entrar a cola",
+                        "detail": "Pensado para no frenar el ingreso ni depender del mostrador."
+                    }
+                ]
+            },
+            "mockup": {
+                "kind": "phone",
+                "eyebrow": "Demo movil",
+                "title": "Llegada confirmada",
+                "chips": ["QR", "WhatsApp", "SMS"],
+                "rows": [
+                    {
+                        "label": "Flujo",
+                        "value": "Tengo cita",
+                        "meta": "Telefono + fecha + hora"
+                    },
+                    {
+                        "label": "Turno",
+                        "value": "A-041",
+                        "meta": "Ya vinculado a la cola de sala"
+                    },
+                    {
+                        "label": "Tiempo estimado",
+                        "value": "06 min",
+                        "meta": "Se actualiza si la sala cambia"
+                    }
+                ],
+                "footer": "Tambien puede pasar a walk-in sin salir del flujo."
+            },
+            "steps": {
+                "eyebrow": "Como opera",
+                "title": "Tres pasos para bajar friccion antes del mostrador",
+                "items": [
+                    "El paciente abre el enlace desde recordatorio, QR o ticket.",
+                    "Confirma si viene con cita o sin cita y recibe su turno.",
+                    "La recepcion ve el mismo estado y la TV ya puede mostrar el llamado."
+                ]
+            },
+            "advantages": {
+                "eyebrow": "Lo que resuelve",
+                "title": "No es una pagina bonita. Es menos friccion operativa.",
+                "cards": [
+                    {
+                        "title": "Menos fila manual",
+                        "copy": "Recepcion no repite las mismas preguntas cuando el paciente ya confirmo llegada desde su celular."
+                    },
+                    {
+                        "title": "Menos no-show ciego",
+                        "copy": "El recordatorio deja de ser pasivo porque termina en confirmacion y visibilidad de turno."
+                    },
+                    {
+                        "title": "Mismo flujo para agenda y sala",
+                        "copy": "La agenda web y el kiosco ya no viven como dos productos distintos."
+                    }
+                ]
+            },
+            "connections": {
+                "eyebrow": "Se conecta con",
+                "title": "Este flujo abre la puerta al resto de la suite",
+                "items": [
+                    "WhatsApp o SMS para recordatorios",
+                    "Estado del turno desde el celular",
+                    "TV de sala y recepcion sobre la misma cola",
+                    "Agenda web y webhooks de check-in"
+                ]
+            },
+            "finalCta": {
+                "title": "Despues del check-in, el paciente necesita visibilidad",
+                "deck": "La siguiente superficie importante es el estado del turno. Ahí es donde la experiencia deja de depender solo de mirar una TV.",
+                "actions": [
+                    {
+                        "label": "Ver estado del turno",
+                        "href": "/es/software/turnero-clinicas/estado-turno/",
+                        "variant": "primary"
+                    },
+                    {
+                        "label": "Agendar demo",
+                        "href": "https://wa.me/593982453672?text=Hola%2C%20quiero%20ver%20la%20demo%20del%20check-in%20movil",
+                        "variant": "secondary"
+                    }
+                ]
+            }
+        },
+        "status": {
+            "title": "Estado del turno | Demo paciente",
+            "description": "Vista demo del estado del turno desde celular con llamado actual, siguientes tickets y tiempo estimado.",
+            "breadcrumb": [
+                {
+                    "label": "Inicio",
+                    "href": "/es/"
+                },
+                {
+                    "label": "Software",
+                    "href": "/es/software/turnero-clinicas/"
+                },
+                {
+                    "label": "Estado del turno",
+                    "href": "/es/software/turnero-clinicas/estado-turno/"
+                }
+            ],
+            "heading": "Vista de estado del turno para paciente",
+            "hero": {
+                "eyebrow": "Superficie paciente",
+                "title": "La TV informa a la sala. El celular informa a la persona correcta.",
+                "deck": "Una vista privada reduce ansiedad, preguntas repetidas y acercamientos innecesarios al mostrador. El paciente ve llamado actual, siguientes turnos y actualizacion real.",
+                "actions": [
+                    {
+                        "label": "Volver a la suite",
+                        "href": "/es/software/turnero-clinicas/",
+                        "variant": "secondary"
+                    },
+                    {
+                        "label": "Ver dashboard",
+                        "href": "/es/software/turnero-clinicas/dashboard/",
+                        "variant": "ghost"
+                    }
+                ],
+                "metrics": [
+                    {
+                        "value": "Live",
+                        "label": "sin exponer datos sensibles",
+                        "detail": "Ticket, iniciales y consultorio como regla visible de privacidad."
+                    },
+                    {
+                        "value": "3",
+                        "label": "estados utiles",
+                        "detail": "Llamando ahora, siguientes turnos y conexion."
+                    },
+                    {
+                        "value": "12 s",
+                        "label": "ultima actualizacion",
+                        "detail": "El paciente sabe si la cola sigue conectada."
+                    }
+                ]
+            },
+            "mockup": {
+                "kind": "status",
+                "eyebrow": "Cola de sala",
+                "title": "Turno vinculado",
+                "chips": ["Privacidad activa", "Sala A", "Live"],
+                "rows": [
+                    {
+                        "label": "Llamando ahora",
+                        "value": "A-041",
+                        "meta": "Consultorio 2 · Iniciales EP"
+                    },
+                    {
+                        "label": "Siguiente",
+                        "value": "A-042",
+                        "meta": "Tiempo estimado 5 min"
+                    },
+                    {
+                        "label": "Conexion",
+                        "value": "Recepcion conectada",
+                        "meta": "Snapshot disponible si la red cae"
+                    }
+                ],
+                "footer": "La misma cola alimenta TV, recepcion y vista movil."
+            },
+            "steps": {
+                "eyebrow": "Lectura rapida",
+                "title": "Que debe entender el paciente sin pedir ayuda",
+                "items": [
+                    "Si ya esta siendo llamado o aun faltan turnos adelante.",
+                    "Si la cola sigue conectada o esta en reconexion visible.",
+                    "A que consultorio debe dirigirse cuando llegue su turno."
+                ]
+            },
+            "advantages": {
+                "eyebrow": "Impacto operativo",
+                "title": "La vista movil baja ruido en la recepcion",
+                "cards": [
+                    {
+                        "title": "Menos preguntas repetidas",
+                        "copy": "El paciente deja de preguntar cada pocos minutos si ya le toca o donde debe mirar."
+                    },
+                    {
+                        "title": "Mas claridad en horas pico",
+                        "copy": "La sala no depende solo de la TV cuando hay movilidad, ruido o pacientes acompanados."
+                    },
+                    {
+                        "title": "Continuidad visible",
+                        "copy": "Si la red cae, la vista puede comunicar estado y ultimo snapshot en lugar de quedarse muda."
+                    }
+                ]
+            },
+            "connections": {
+                "eyebrow": "Se conecta con",
+                "title": "Esta vista hace sentido cuando el flujo anterior ya existe",
+                "items": [
+                    "Recordatorio con enlace o QR",
+                    "Check-in movil o kiosco",
+                    "TV de sala con privacidad visible",
+                    "Recepcion y dashboard sobre el mismo estado"
+                ]
+            },
+            "finalCta": {
+                "title": "Cuando el paciente ya ve su estado, el comprador quiere medir",
+                "deck": "La siguiente objecion comercial suele ser gerencial: tiempos de espera, no-show y capacidad por consultorio. Ahí entra el dashboard.",
+                "actions": [
+                    {
+                        "label": "Ver dashboard de sede",
+                        "href": "/es/software/turnero-clinicas/dashboard/",
+                        "variant": "primary"
+                    },
+                    {
+                        "label": "Agendar demo",
+                        "href": "https://wa.me/593982453672?text=Hola%2C%20quiero%20ver%20la%20demo%20del%20estado%20del%20turno",
+                        "variant": "secondary"
+                    }
+                ]
+            }
+        },
+        "dashboard": {
+            "title": "Dashboard de sede | KPIs de turnero",
+            "description": "Tablero demo para gerencia con tiempo medio de espera, no-show, tickets atendidos y carga por consultorio o sede.",
+            "breadcrumb": [
+                {
+                    "label": "Inicio",
+                    "href": "/es/"
+                },
+                {
+                    "label": "Software",
+                    "href": "/es/software/turnero-clinicas/"
+                },
+                {
+                    "label": "Dashboard",
+                    "href": "/es/software/turnero-clinicas/dashboard/"
+                }
+            ],
+            "heading": "Dashboard de sede para dueños y gerencia",
+            "hero": {
+                "eyebrow": "Superficie gerencial",
+                "title": "La renovacion se vende con KPIs, no solo con una TV bonita.",
+                "deck": "Este tablero resume espera media, no-show, tickets atendidos y carga por consultorio para que la compra tenga dueña, no solo usuario operativo.",
+                "actions": [
+                    {
+                        "label": "Volver a la suite",
+                        "href": "/es/software/turnero-clinicas/",
+                        "variant": "secondary"
+                    },
+                    {
+                        "label": "Agendar demo",
+                        "href": "https://wa.me/593982453672?text=Hola%2C%20quiero%20ver%20el%20dashboard%20de%20sede",
+                        "variant": "ghost"
+                    }
+                ],
+                "metrics": [
+                    {
+                        "value": "08 min",
+                        "label": "espera media",
+                        "detail": "Comparado contra objetivo diario y semana previa."
+                    },
+                    {
+                        "value": "6.2%",
+                        "label": "no-show",
+                        "detail": "Ya conectado con recordatorios y check-in movil."
+                    },
+                    {
+                        "value": "124",
+                        "label": "tickets atendidos hoy",
+                        "detail": "Lectura por sede, consultorio y bloque horario."
+                    }
+                ]
+            },
+            "mockup": {
+                "kind": "dashboard",
+                "eyebrow": "Sede Quito Norte",
+                "title": "Resumen diario",
+                "chips": ["Hoy", "3 consultorios", "1 sede piloto"],
+                "rows": [
+                    {
+                        "label": "Espera media",
+                        "value": "08 min",
+                        "meta": "-18% vs semana pasada"
+                    },
+                    {
+                        "label": "No-show",
+                        "value": "6.2%",
+                        "meta": "-2.1 pts con confirmacion previa"
+                    },
+                    {
+                        "label": "Tickets atendidos",
+                        "value": "124",
+                        "meta": "Pico 11:00 - 13:00"
+                    },
+                    {
+                        "label": "Carga C2",
+                        "value": "41%",
+                        "meta": "Consultorio mas exigido del dia"
+                    }
+                ],
+                "footer": "Una vista para recepcion y otra para dueno o gerente."
+            },
+            "steps": {
+                "eyebrow": "Que debe responder",
+                "title": "Preguntas de negocio que una sede mediana quiere ver rapido",
+                "items": [
+                    "Cuanto esperan hoy los pacientes y donde se esta atorando la operacion.",
+                    "Cuanto no-show se recupera con recordatorios y check-in previo.",
+                    "Que consultorio o franja necesita refuerzo operativo."
+                ]
+            },
+            "advantages": {
+                "eyebrow": "Valor comercial",
+                "title": "El dashboard cambia el tipo de comprador",
+                "cards": [
+                    {
+                        "title": "La recepcion ya no compra sola",
+                        "copy": "La gerencia ve reduccion de espera, no-show y carga antes de decidir ampliar la suite."
+                    },
+                    {
+                        "title": "Multi-sede lite con sentido",
+                        "copy": "No hace falta ir a enterprise. Basta comparar 1 a 5 sedes con el mismo tablero base."
+                    },
+                    {
+                        "title": "Roadmap claro",
+                        "copy": "Branding, roles y sedes aparecen como siguiente paso natural, no como promesa abstracta."
+                    }
+                ]
+            },
+            "connections": {
+                "eyebrow": "Se alimenta de",
+                "title": "El dashboard existe porque el flujo operativo ya deja datos utiles",
+                "items": [
+                    "Kiosco y check-in movil",
+                    "Panel de recepcion y cierres de ticket",
+                    "TV de sala y tiempos de llamado",
+                    "Agenda web y confirmaciones previas"
+                ]
+            },
+            "finalCta": {
+                "title": "La suite ya tiene historia comercial completa",
+                "deck": "Landing, flujo paciente, estado del turno y tablero de sede. Eso te acerca mucho mas a lo que hoy vende mejor la competencia en LatAm.",
+                "actions": [
+                    {
+                        "label": "Volver a la suite",
+                        "href": "/es/software/turnero-clinicas/",
+                        "variant": "primary"
+                    },
+                    {
+                        "label": "Agendar demo",
+                        "href": "https://wa.me/593982453672?text=Hola%2C%20quiero%20una%20demo%20completa%20de%20la%20suite",
+                        "variant": "secondary"
+                    }
+                ]
+            }
+        }
+    }
+}

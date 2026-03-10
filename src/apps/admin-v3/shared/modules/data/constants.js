@@ -6,6 +6,7 @@ export const LOCAL_DATA_KEYS = {
     availabilityMeta: 'availability-meta',
     queueTickets: 'queue-tickets',
     queueMeta: 'queue-meta',
+    appDownloads: 'app-downloads',
     health: 'health-status',
 };
 

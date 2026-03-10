@@ -1,0 +1,40 @@
+---
+const { mockup = {}, compact = false } = Astro.props;
+
+const kind = ['phone', 'status', 'dashboard'].includes(mockup?.kind)
+    ? mockup.kind
+    : 'status';
+const eyebrow = mockup?.eyebrow || '';
+const title = mockup?.title || '';
+const chips = Array.isArray(mockup?.chips) ? mockup.chips : [];
+const rows = Array.isArray(mockup?.rows) ? mockup.rows : [];
+const footer = mockup?.footer || '';
+---
+
+<article class:list={['v6-suite-mockup', `is-${kind}`, compact && 'is-compact']}>
+    <header class="v6-suite-mockup__head">
+        <div>
+            {eyebrow ? <p>{eyebrow}</p> : null}
+            <h3>{title}</h3>
+        </div>
+        {
+            chips.length ? (
+                <ul class="v6-suite-mockup__chips" aria-label={title}>
+                    {chips.map((chip) => <li>{chip}</li>)}
+                </ul>
+            ) : null
+        }
+    </header>
+
+    <div class="v6-suite-mockup__body">
+        {rows.map((row, index) => (
+            <article class:list={['v6-suite-mockup__row', index === 0 && 'is-primary']}>
+                <p>{row.label || ''}</p>
+                <strong>{row.value || ''}</strong>
+                {row.meta ? <span>{row.meta}</span> : null}
+            </article>
+        ))}
+    </div>
+
+    {footer ? <footer class="v6-suite-mockup__footer">{footer}</footer> : null}
+</article>

@@ -1,0 +1,963 @@
+{
+    "nav": {
+        "brand": {
+            "tag": "Clinic operations software for growing teams"
+        },
+        "ui": {
+            "header": {
+                "search": {
+                    "dialogAria": "Clinic software search",
+                    "eyebrow": "Operations suite",
+                    "inputLabel": "Type a module or flow",
+                    "placeholder": "kiosk, WhatsApp, dashboard, queue, QR...",
+                    "hint": "Search by module, channel, or operator profile. We show product surfaces and demos.",
+                    "resultsAria": "Software results",
+                    "emptyTitle": "We could not find that module yet",
+                    "emptyBody": "Try kiosk, dashboard, queue status, or web booking.",
+                    "closeLabel": "Close search",
+                    "resultsLimit": 8
+                }
+            }
+        },
+        "header": {
+            "contactLabel": "Book demo",
+            "contactHref": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20see%20the%20clinic%20flow%20suite",
+            "searchLabel": "Search modules",
+            "links": [
+                {
+                    "id": "home",
+                    "label": "Home",
+                    "href": "/en/",
+                    "kind": "standard"
+                },
+                {
+                    "id": "software",
+                    "label": "Software",
+                    "href": "/en/software/clinic-flow-suite/",
+                    "kind": "standard"
+                },
+                {
+                    "id": "demo",
+                    "label": "Mobile check-in",
+                    "href": "/en/software/clinic-flow-suite/demo/",
+                    "kind": "standard"
+                },
+                {
+                    "id": "status",
+                    "label": "Queue status",
+                    "href": "/en/software/clinic-flow-suite/queue-status/",
+                    "kind": "standard"
+                },
+                {
+                    "id": "dashboard",
+                    "label": "Dashboard",
+                    "href": "/en/software/clinic-flow-suite/dashboard/",
+                    "kind": "standard"
+                },
+                {
+                    "id": "legal",
+                    "label": "Legal",
+                    "href": "/en/legal/terms/",
+                    "kind": "standard"
+                }
+            ],
+            "searchEntries": [
+                {
+                    "label": "Clinic flow suite",
+                    "href": "/en/software/clinic-flow-suite/",
+                    "eyebrow": "Core suite",
+                    "deck": "Kiosk, waiting room display, reception console, and web booking on the same operational state."
+                },
+                {
+                    "label": "Mobile check-in",
+                    "href": "/en/software/clinic-flow-suite/demo/",
+                    "eyebrow": "Patient flow",
+                    "deck": "QR or direct link check-in for scheduled and walk-in patients."
+                },
+                {
+                    "label": "Queue status",
+                    "href": "/en/software/clinic-flow-suite/queue-status/",
+                    "eyebrow": "Patient visibility",
+                    "deck": "Current call, next tickets, and estimated wait time on the phone."
+                },
+                {
+                    "label": "Site dashboard",
+                    "href": "/en/software/clinic-flow-suite/dashboard/",
+                    "eyebrow": "Management",
+                    "deck": "Wait time, no-show, served tickets, and consult room load in one dashboard."
+                }
+            ]
+        },
+        "footer": {
+            "headline": "A simpler waiting-room stack for clinics that need order now",
+            "deck": "The suite connects kiosk, waiting room display, reception, web booking, and mobile follow-up without demanding enterprise overhead.",
+            "columns": [
+                {
+                    "title": "Suite",
+                    "links": [
+                        {
+                            "label": "Clinic flow suite",
+                            "href": "/en/software/clinic-flow-suite/"
+                        },
+                        {
+                            "label": "View pricing",
+                            "href": "/en/software/clinic-flow-suite/#v6-suite-pricing"
+                        },
+                        {
+                            "label": "Book demo",
+                            "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20book%20a%20clinic%20flow%20demo"
+                        }
+                    ]
+                },
+                {
+                    "title": "Surfaces",
+                    "links": [
+                        {
+                            "label": "Mobile check-in",
+                            "href": "/en/software/clinic-flow-suite/demo/"
+                        },
+                        {
+                            "label": "Queue status",
+                            "href": "/en/software/clinic-flow-suite/queue-status/"
+                        },
+                        {
+                            "label": "Site dashboard",
+                            "href": "/en/software/clinic-flow-suite/dashboard/"
+                        }
+                    ]
+                },
+                {
+                    "title": "Integrations",
+                    "lines": [
+                        "WhatsApp or SMS reminders",
+                        "QR, thermal printer, and browser-based TV display",
+                        "Web booking, webhooks, and queue API"
+                    ]
+                },
+                {
+                    "title": "Contact",
+                    "lines": [
+                        "Initial setup in 90 minutes",
+                        "LatAm · 1 to 5 sites",
+                        "+593 98 245 3672"
+                    ]
+                }
+            ]
+        }
+    },
+    "pages": {
+        "landing": {
+            "title": "Clinic flow suite | kiosk + display + web",
+            "description": "Operations software for small and medium clinics with kiosk, waiting room display, reception console, and web booking connected together.",
+            "breadcrumb": [
+                {
+                    "label": "Home",
+                    "href": "/en/"
+                },
+                {
+                    "label": "Software",
+                    "href": "/en/software/clinic-flow-suite/"
+                }
+            ],
+            "heading": "Clinic flow suite with kiosk, waiting room display, reception, and web booking",
+            "hero": {
+                "eyebrow": "Clinic software",
+                "title": "Reduce waiting time, manual calls, and no-show without proprietary hardware.",
+                "deck": "A suite for small and medium clinics: in-room kiosk, live TV display, reception console, and web booking on the same operational flow.",
+                "pills": [
+                    "1 to 5 sites",
+                    "QR + WhatsApp + SMS",
+                    "Kiosk + display + web",
+                    "No proprietary hardware"
+                ],
+                "actions": [
+                    {
+                        "label": "Book demo",
+                        "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20book%20a%20demo%20of%20the%20clinic%20flow%20suite",
+                        "variant": "primary"
+                    },
+                    {
+                        "label": "View pricing",
+                        "href": "#v6-suite-pricing",
+                        "variant": "secondary"
+                    },
+                    {
+                        "label": "Try patient flow",
+                        "href": "/en/software/clinic-flow-suite/demo/",
+                        "variant": "ghost"
+                    },
+                    {
+                        "label": "See reception operations",
+                        "href": "#v6-suite-modules",
+                        "variant": "ghost"
+                    }
+                ],
+                "metrics": [
+                    {
+                        "value": "4",
+                        "label": "connected modules",
+                        "detail": "Kiosk, waiting room display, reception, and web booking on one state model."
+                    },
+                    {
+                        "value": "90 min",
+                        "label": "initial rollout",
+                        "detail": "A light pilot setup for one site without enterprise-grade overhead."
+                    },
+                    {
+                        "value": "1-5",
+                        "label": "ideal sites",
+                        "detail": "Built for growing clinics, not for hospital-scale enterprise complexity."
+                    }
+                ],
+                "panels": [
+                    {
+                        "eyebrow": "Kiosk",
+                        "title": "Scheduled and walk-in check-in",
+                        "copy": "Patients enter the same queue whether they arrive from web, QR, or front desk."
+                    },
+                    {
+                        "eyebrow": "Waiting room display",
+                        "title": "Privacy-aware live calls",
+                        "copy": "Large display with ticket code, initials, and consult room."
+                    },
+                    {
+                        "eyebrow": "Reception",
+                        "title": "Call, reprint, close, measure",
+                        "copy": "Station-safe operations for real consult rooms and active staff."
+                    },
+                    {
+                        "eyebrow": "Web booking",
+                        "title": "Booking and reminders tied to queue state",
+                        "copy": "Web, QR, WhatsApp, and queue status under one operational story."
+                    }
+                ]
+            },
+            "modules": {
+                "eyebrow": "Visible modules",
+                "title": "The offer stops looking like a lonely kiosk and starts reading like a full clinic suite.",
+                "deck": "Each module solves a specific part of the flow, but all of them share the same operational state so patient, reception, and management read the same truth.",
+                "cards": [
+                    {
+                        "eyebrow": "Kiosk",
+                        "title": "Guided in-room check-in",
+                        "copy": "For scheduled and walk-in patients, with quick help, large text mode, and one-tap receptionist support.",
+                        "bullets": [
+                            "Scheduled vs walk-in split",
+                            "Senior-first flow with voice guide",
+                            "Thermal printing and offline safety"
+                        ]
+                    },
+                    {
+                        "eyebrow": "Waiting room display",
+                        "title": "Privacy-aware live calling",
+                        "copy": "The screen shows ticket, initials, and consult room so the room understands what is happening without exposing sensitive data.",
+                        "bullets": [
+                            "Configurable bell",
+                            "Current call and next tickets",
+                            "Local snapshot for continuity"
+                        ]
+                    },
+                    {
+                        "eyebrow": "Reception / Admin",
+                        "title": "Queue operations for real consult rooms",
+                        "copy": "Call, reprint, complete, flag no-show, and control stations from a console built for active front desk teams.",
+                        "bullets": [
+                            "Station or consult room lock",
+                            "Numpad shortcuts and bulk actions",
+                            "Traceable sync state and activity"
+                        ]
+                    },
+                    {
+                        "eyebrow": "Web booking",
+                        "title": "Web booking and reminders connected to the queue",
+                        "copy": "The website stops being a separate brochure and becomes the digital entry point of the same clinic flow.",
+                        "bullets": [
+                            "Online booking and mobile check-in",
+                            "WhatsApp or SMS reminders",
+                            "Phone-based queue status"
+                        ]
+                    }
+                ]
+            },
+            "journeys": {
+                "eyebrow": "How it flows",
+                "title": "One operating state for patient, reception, and management",
+                "deck": "The suite is designed so patients ask less, reception calls less manually, and management sees measurable results.",
+                "lanes": [
+                    {
+                        "eyebrow": "Scheduled patient",
+                        "title": "Confirms from QR or phone and enters the queue early",
+                        "steps": [
+                            "Receives a WhatsApp or SMS reminder.",
+                            "Opens the link, confirms arrival, and sees estimated wait time.",
+                            "If they still use the kiosk on arrival, the same queue state is already there."
+                        ]
+                    },
+                    {
+                        "eyebrow": "Walk-in patient",
+                        "title": "Ordered intake without flooding front desk with repeated questions",
+                        "steps": [
+                            "The kiosk creates a quick ticket with initials and visible help options.",
+                            "The TV shows who is being called without exposing the full name or phone number.",
+                            "Reception can reprint or adjust the ticket without rebuilding the case."
+                        ]
+                    },
+                    {
+                        "eyebrow": "Management",
+                        "title": "Reads wait time, no-show, and consult room load",
+                        "steps": [
+                            "A dashboard summarizes served tickets, SLA, and no-show.",
+                            "The site sees peak windows and queue bottlenecks.",
+                            "Operations improve without pretending to replace a full EMR."
+                        ]
+                    }
+                ]
+            },
+            "surfaces": {
+                "eyebrow": "New public surfaces",
+                "title": "Three product experiences that make the suite feel complete",
+                "deck": "These surfaces close the gap that often wins the sale: omnichannel entry, patient visibility, and management reporting.",
+                "cards": [
+                    {
+                        "eyebrow": "Mobile check-in",
+                        "title": "Patients confirm from QR or direct link",
+                        "copy": "A simple flow for arrival confirmation, scheduled vs walk-in intake, and fast handoff to queue status.",
+                        "href": "/en/software/clinic-flow-suite/demo/",
+                        "ctaLabel": "Try patient flow",
+                        "mockup": {
+                            "kind": "phone",
+                            "eyebrow": "Patient",
+                            "title": "Check-in ready",
+                            "chips": ["QR", "WhatsApp", "SMS"],
+                            "rows": [
+                                {
+                                    "label": "Scheduled",
+                                    "value": "Confirm arrival",
+                                    "meta": "Phone + time + consult room"
+                                },
+                                {
+                                    "label": "Walk-in",
+                                    "value": "Take ticket",
+                                    "meta": "Initials-based quick intake"
+                                },
+                                {
+                                    "label": "Estimated wait",
+                                    "value": "06 min",
+                                    "meta": "Live queue state"
+                                }
+                            ],
+                            "footer": "The same queue continues in-room and at reception."
+                        }
+                    },
+                    {
+                        "eyebrow": "Queue status",
+                        "title": "Patients can follow progress from the phone",
+                        "copy": "The waiting room display is useful for the room. The phone view is useful for the person who is actually waiting.",
+                        "href": "/en/software/clinic-flow-suite/queue-status/",
+                        "ctaLabel": "See queue status",
+                        "mockup": {
+                            "kind": "status",
+                            "eyebrow": "Private view",
+                            "title": "Site queue",
+                            "chips": ["Room A", "Privacy", "Live"],
+                            "rows": [
+                                {
+                                    "label": "Calling now",
+                                    "value": "A-041",
+                                    "meta": "Consult room 2 · Initials EP"
+                                },
+                                {
+                                    "label": "Next",
+                                    "value": "A-042",
+                                    "meta": "Estimated 5 min"
+                                },
+                                {
+                                    "label": "Status",
+                                    "value": "Reception connected",
+                                    "meta": "Last update 12 s ago"
+                                }
+                            ],
+                            "footer": "Ideal for QR on reminders, lobby, or printed ticket."
+                        }
+                    },
+                    {
+                        "eyebrow": "Dashboard",
+                        "title": "The owner sees the KPI story behind renewal",
+                        "copy": "The deal no longer lives only at front desk level. Management can see wait time, no-show, served volume, and consult room load.",
+                        "href": "/en/software/clinic-flow-suite/dashboard/",
+                        "ctaLabel": "See site dashboard",
+                        "mockup": {
+                            "kind": "dashboard",
+                            "eyebrow": "Management",
+                            "title": "Daily summary",
+                            "chips": ["Quito North", "Today", "3 rooms"],
+                            "rows": [
+                                {
+                                    "label": "Average wait",
+                                    "value": "08 min",
+                                    "meta": "-18% vs last week"
+                                },
+                                {
+                                    "label": "No-show",
+                                    "value": "6.2%",
+                                    "meta": "-2.1 pts with reminders"
+                                },
+                                {
+                                    "label": "Served tickets",
+                                    "value": "124",
+                                    "meta": "Peak 11:00 - 13:00"
+                                }
+                            ],
+                            "footer": "A site view first, a small-chain view next."
+                        }
+                    }
+                ]
+            },
+            "integrations": {
+                "eyebrow": "Integrations",
+                "title": "The integration story should be as clear as the sales story",
+                "deck": "Clinics need to know what it works with, how it connects, and what is included in the first rollout.",
+                "groups": [
+                    {
+                        "title": "Channels",
+                        "items": [
+                            "WhatsApp or SMS reminders and confirmations",
+                            "QR on reminder, front desk, door, or printed ticket",
+                            "Web booking connected to the same queue"
+                        ]
+                    },
+                    {
+                        "title": "Compatible hardware",
+                        "items": [
+                            "TV or monitor through any browser",
+                            "Standard thermal printer",
+                            "PC or tablet kiosk without proprietary hardware"
+                        ]
+                    },
+                    {
+                        "title": "Data and operations",
+                        "items": [
+                            "Queue and check-in API plus webhooks",
+                            "Basic roles, branding, and lite multi-site",
+                            "Wait time, served volume, and no-show reporting"
+                        ]
+                    }
+                ]
+            },
+            "pricing": {
+                "eyebrow": "Plans",
+                "title": "A simple commercial package for a clearer sale",
+                "deck": "Indicative pricing only. The point is to make the buyer understand quickly what enters each stage.",
+                "plans": [
+                    {
+                        "name": "Room Base",
+                        "price": "USD 149/mo",
+                        "note": "1 site · up to 2 consult rooms",
+                        "fit": "Small practices that need waiting room order and front desk relief.",
+                        "features": [
+                            "Kiosk + waiting room display",
+                            "Reception console",
+                            "Thermal printing and privacy-safe display",
+                            "Launch support"
+                        ],
+                        "ctaLabel": "Book demo",
+                        "ctaHref": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20see%20Room%20Base"
+                    },
+                    {
+                        "name": "Flow Plus",
+                        "price": "USD 249/mo",
+                        "note": "1 site · up to 5 consult rooms",
+                        "fit": "Clinics with active booking, reminders, and a need for patient visibility.",
+                        "highlight": true,
+                        "features": [
+                            "Everything in Room Base",
+                            "Mobile check-in by QR or direct link",
+                            "Phone-based queue status",
+                            "WhatsApp or SMS reminders"
+                        ],
+                        "ctaLabel": "See demo",
+                        "ctaHref": "/en/software/clinic-flow-suite/demo/"
+                    },
+                    {
+                        "name": "Lite Multi-site",
+                        "price": "USD 399/mo",
+                        "note": "Up to 5 sites",
+                        "fit": "Growing small chains that need branding, roles, and site KPI visibility.",
+                        "features": [
+                            "Everything in Flow Plus",
+                            "Client branding",
+                            "Basic roles and permissions",
+                            "Consolidated site dashboard"
+                        ],
+                        "ctaLabel": "See dashboard",
+                        "ctaHref": "/en/software/clinic-flow-suite/dashboard/"
+                    }
+                ]
+            },
+            "security": {
+                "eyebrow": "Privacy and operations",
+                "title": "Visible privacy, safer operations, and practical continuity",
+                "deck": "This is not sold as abstract security. It is sold as visible waiting room rules and concrete daily protections.",
+                "cards": [
+                    {
+                        "title": "Privacy-safe display",
+                        "items": [
+                            "TV shows ticket, initials, and consult room",
+                            "No full phone number or full patient name outside admin",
+                            "Clear state for staff, patient, and room"
+                        ]
+                    },
+                    {
+                        "title": "Lite roles, branding, and sites",
+                        "items": [
+                            "Reception, admin, and management with separate access",
+                            "Basic branding per clinic or small chain",
+                            "Prepared for 1 to 5 sites without enterprise overhead"
+                        ]
+                    },
+                    {
+                        "title": "Operational continuity",
+                        "items": [
+                            "Offline outbox in kiosk",
+                            "TV snapshot and visible reconnection state",
+                            "Reception can keep operating and reprint tickets"
+                        ]
+                    }
+                ]
+            },
+            "faq": {
+                "eyebrow": "FAQ",
+                "title": "What clinics ask before buying",
+                "items": [
+                    {
+                        "question": "Do we need proprietary hardware to launch?",
+                        "answer": "No. The pilot is designed to work with a browser, a TV or monitor, a PC or tablet, and a compatible thermal printer."
+                    },
+                    {
+                        "question": "Does this replace the clinic's full medical software?",
+                        "answer": "Not at this stage. The suite competes as waiting room operations + booking + reminders + reporting, not as a full EMR."
+                    },
+                    {
+                        "question": "Can we start with a single site?",
+                        "answer": "Yes. The first model is built for a pilot site, then expands to branding, lite multi-site, and dashboard layers only if the flow proves itself."
+                    },
+                    {
+                        "question": "How do you reduce no-show if patients never touch the kiosk?",
+                        "answer": "The improvement does not depend on the kiosk alone. It comes from reminders, mobile check-in, queue visibility, and a front desk that sees the same state."
+                    }
+                ]
+            },
+            "finalCta": {
+                "title": "Try it the way a clinic would buy it",
+                "deck": "Start at the suite page, move into patient flow, and close on the dashboard. That is the sales story the current site was missing.",
+                "actions": [
+                    {
+                        "label": "Book demo",
+                        "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20book%20a%20demo%20of%20the%20suite",
+                        "variant": "primary"
+                    },
+                    {
+                        "label": "See patient flow",
+                        "href": "/en/software/clinic-flow-suite/demo/",
+                        "variant": "secondary"
+                    }
+                ]
+            }
+        },
+        "demo": {
+            "title": "Mobile check-in for clinics | Demo",
+            "description": "Demo view for patient mobile check-in by QR or direct link.",
+            "breadcrumb": [
+                {
+                    "label": "Home",
+                    "href": "/en/"
+                },
+                {
+                    "label": "Software",
+                    "href": "/en/software/clinic-flow-suite/"
+                },
+                {
+                    "label": "Mobile check-in",
+                    "href": "/en/software/clinic-flow-suite/demo/"
+                }
+            ],
+            "heading": "Mobile check-in by QR or direct link",
+            "hero": {
+                "eyebrow": "Patient surface",
+                "title": "Patients confirm arrival before they touch the front desk.",
+                "deck": "This is the omnichannel layer competitors communicate well: QR on site, reminder via WhatsApp or SMS, and one queue state for patients already on their way.",
+                "actions": [
+                    {
+                        "label": "Back to suite",
+                        "href": "/en/software/clinic-flow-suite/",
+                        "variant": "secondary"
+                    },
+                    {
+                        "label": "See queue status",
+                        "href": "/en/software/clinic-flow-suite/queue-status/",
+                        "variant": "ghost"
+                    }
+                ],
+                "metrics": [
+                    {
+                        "value": "QR",
+                        "label": "on reminder, ticket, or door",
+                        "detail": "The same flow works from lobby, reminder, or printed surface."
+                    },
+                    {
+                        "value": "2",
+                        "label": "base routes",
+                        "detail": "Scheduled and walk-in without UX dead ends."
+                    },
+                    {
+                        "value": "<1 min",
+                        "label": "to enter queue",
+                        "detail": "Built to reduce friction before reception."
+                    }
+                ]
+            },
+            "mockup": {
+                "kind": "phone",
+                "eyebrow": "Mobile demo",
+                "title": "Arrival confirmed",
+                "chips": ["QR", "WhatsApp", "SMS"],
+                "rows": [
+                    {
+                        "label": "Flow",
+                        "value": "Scheduled",
+                        "meta": "Phone + date + time"
+                    },
+                    {
+                        "label": "Ticket",
+                        "value": "A-041",
+                        "meta": "Already attached to the waiting room queue"
+                    },
+                    {
+                        "label": "Estimated wait",
+                        "value": "06 min",
+                        "meta": "Updates as the queue moves"
+                    }
+                ],
+                "footer": "Patients can still switch to walk-in without leaving the flow."
+            },
+            "steps": {
+                "eyebrow": "How it works",
+                "title": "Three steps to remove pressure from front desk",
+                "items": [
+                    "The patient opens a reminder, QR, or direct arrival link.",
+                    "They confirm scheduled or walk-in entry and receive a queue-ready ticket.",
+                    "Reception sees the same state and the waiting room display is already aligned."
+                ]
+            },
+            "advantages": {
+                "eyebrow": "What it solves",
+                "title": "This is not a pretty page. It is less operational friction.",
+                "cards": [
+                    {
+                        "title": "Less manual queueing",
+                        "copy": "Front desk stops repeating the same intake questions when the patient already confirmed arrival from the phone."
+                    },
+                    {
+                        "title": "Less blind no-show",
+                        "copy": "The reminder stops being passive because it ends in confirmation and queue visibility."
+                    },
+                    {
+                        "title": "One story from booking to room",
+                        "copy": "Web booking and room intake stop behaving like different products."
+                    }
+                ]
+            },
+            "connections": {
+                "eyebrow": "Connects to",
+                "title": "This flow opens the door to the rest of the suite",
+                "items": [
+                    "WhatsApp or SMS reminders",
+                    "Phone-based queue status",
+                    "Waiting room display and reception on the same queue",
+                    "Web booking and check-in webhooks"
+                ]
+            },
+            "finalCta": {
+                "title": "After check-in, patients need visibility",
+                "deck": "The next valuable surface is queue status. That is where the waiting room experience stops relying only on a TV.",
+                "actions": [
+                    {
+                        "label": "See queue status",
+                        "href": "/en/software/clinic-flow-suite/queue-status/",
+                        "variant": "primary"
+                    },
+                    {
+                        "label": "Book demo",
+                        "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20see%20the%20mobile%20check-in%20demo",
+                        "variant": "secondary"
+                    }
+                ]
+            }
+        },
+        "status": {
+            "title": "Queue status | Patient demo",
+            "description": "Demo view for private queue status with current call, next tickets, and estimated wait time.",
+            "breadcrumb": [
+                {
+                    "label": "Home",
+                    "href": "/en/"
+                },
+                {
+                    "label": "Software",
+                    "href": "/en/software/clinic-flow-suite/"
+                },
+                {
+                    "label": "Queue status",
+                    "href": "/en/software/clinic-flow-suite/queue-status/"
+                }
+            ],
+            "heading": "Private queue status for patients",
+            "hero": {
+                "eyebrow": "Patient surface",
+                "title": "The waiting room display informs the room. The phone informs the right person.",
+                "deck": "A private queue view reduces anxiety, repeated questions, and unnecessary front-desk interruptions. Patients see the current call, next tickets, and live updates.",
+                "actions": [
+                    {
+                        "label": "Back to suite",
+                        "href": "/en/software/clinic-flow-suite/",
+                        "variant": "secondary"
+                    },
+                    {
+                        "label": "See dashboard",
+                        "href": "/en/software/clinic-flow-suite/dashboard/",
+                        "variant": "ghost"
+                    }
+                ],
+                "metrics": [
+                    {
+                        "value": "Live",
+                        "label": "without exposing sensitive data",
+                        "detail": "Ticket code, initials, and consult room as a visible privacy rule."
+                    },
+                    {
+                        "value": "3",
+                        "label": "useful states",
+                        "detail": "Calling now, next tickets, and connection health."
+                    },
+                    {
+                        "value": "12 s",
+                        "label": "last update",
+                        "detail": "Patients can tell whether the queue is still connected."
+                    }
+                ]
+            },
+            "mockup": {
+                "kind": "status",
+                "eyebrow": "Site queue",
+                "title": "Ticket linked",
+                "chips": ["Privacy active", "Room A", "Live"],
+                "rows": [
+                    {
+                        "label": "Calling now",
+                        "value": "A-041",
+                        "meta": "Consult room 2 · Initials EP"
+                    },
+                    {
+                        "label": "Next",
+                        "value": "A-042",
+                        "meta": "Estimated 5 min"
+                    },
+                    {
+                        "label": "Connection",
+                        "value": "Reception connected",
+                        "meta": "Snapshot available if network drops"
+                    }
+                ],
+                "footer": "The same queue powers display, reception, and phone view."
+            },
+            "steps": {
+                "eyebrow": "Quick reading",
+                "title": "What patients should understand without asking for help",
+                "items": [
+                    "Whether they are being called now or still have people ahead of them.",
+                    "Whether the queue is live or visibly reconnecting.",
+                    "Which consult room to approach when their turn arrives."
+                ]
+            },
+            "advantages": {
+                "eyebrow": "Operational impact",
+                "title": "Phone-based visibility lowers front-desk noise",
+                "cards": [
+                    {
+                        "title": "Fewer repeated questions",
+                        "copy": "Patients stop asking every few minutes whether it is already their turn or where they should watch."
+                    },
+                    {
+                        "title": "More clarity at peak times",
+                        "copy": "The room does not depend only on the TV when there is movement, noise, or accompanying family members."
+                    },
+                    {
+                        "title": "Visible continuity",
+                        "copy": "If the network drops, the surface can still communicate status and last known state instead of going blank."
+                    }
+                ]
+            },
+            "connections": {
+                "eyebrow": "Connects to",
+                "title": "This surface makes sense when the previous flow already exists",
+                "items": [
+                    "Reminder links or QR",
+                    "Mobile check-in or kiosk",
+                    "Privacy-safe waiting room display",
+                    "Reception and dashboard on the same queue"
+                ]
+            },
+            "finalCta": {
+                "title": "Once patients can see progress, buyers want proof",
+                "deck": "The next management question is about wait time, no-show, and capacity by consult room. That is where the dashboard matters.",
+                "actions": [
+                    {
+                        "label": "See site dashboard",
+                        "href": "/en/software/clinic-flow-suite/dashboard/",
+                        "variant": "primary"
+                    },
+                    {
+                        "label": "Book demo",
+                        "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20see%20the%20queue%20status%20demo",
+                        "variant": "secondary"
+                    }
+                ]
+            }
+        },
+        "dashboard": {
+            "title": "Site dashboard | queue KPI demo",
+            "description": "Management dashboard demo with average wait time, no-show, served tickets, and consult room load.",
+            "breadcrumb": [
+                {
+                    "label": "Home",
+                    "href": "/en/"
+                },
+                {
+                    "label": "Software",
+                    "href": "/en/software/clinic-flow-suite/"
+                },
+                {
+                    "label": "Dashboard",
+                    "href": "/en/software/clinic-flow-suite/dashboard/"
+                }
+            ],
+            "heading": "Site dashboard for owners and managers",
+            "hero": {
+                "eyebrow": "Management surface",
+                "title": "Renewal gets sold with KPIs, not just with a nice display.",
+                "deck": "This dashboard summarizes average wait time, no-show, served tickets, and consult room load so the deal has an owner beyond the front desk.",
+                "actions": [
+                    {
+                        "label": "Back to suite",
+                        "href": "/en/software/clinic-flow-suite/",
+                        "variant": "secondary"
+                    },
+                    {
+                        "label": "Book demo",
+                        "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20see%20the%20site%20dashboard",
+                        "variant": "ghost"
+                    }
+                ],
+                "metrics": [
+                    {
+                        "value": "08 min",
+                        "label": "average wait",
+                        "detail": "Compared against daily target and previous week."
+                    },
+                    {
+                        "value": "6.2%",
+                        "label": "no-show",
+                        "detail": "Already tied to reminders and pre-arrival confirmation."
+                    },
+                    {
+                        "value": "124",
+                        "label": "served tickets today",
+                        "detail": "Broken down by site, room, and time block."
+                    }
+                ]
+            },
+            "mockup": {
+                "kind": "dashboard",
+                "eyebrow": "Quito North site",
+                "title": "Daily summary",
+                "chips": ["Today", "3 rooms", "1 pilot site"],
+                "rows": [
+                    {
+                        "label": "Average wait",
+                        "value": "08 min",
+                        "meta": "-18% vs last week"
+                    },
+                    {
+                        "label": "No-show",
+                        "value": "6.2%",
+                        "meta": "-2.1 pts with pre-arrival confirmation"
+                    },
+                    {
+                        "label": "Served tickets",
+                        "value": "124",
+                        "meta": "Peak 11:00 - 13:00"
+                    },
+                    {
+                        "label": "Room 2 load",
+                        "value": "41%",
+                        "meta": "Highest load of the day"
+                    }
+                ],
+                "footer": "One view for the operator, one view for the owner."
+            },
+            "steps": {
+                "eyebrow": "What it answers",
+                "title": "Business questions a medium clinic wants answered quickly",
+                "items": [
+                    "How long patients wait today and where the queue is getting stuck.",
+                    "How much no-show is recovered through reminders and pre-arrival check-in.",
+                    "Which consult room or time block needs operational support."
+                ]
+            },
+            "advantages": {
+                "eyebrow": "Commercial value",
+                "title": "The dashboard changes who owns the buying decision",
+                "cards": [
+                    {
+                        "title": "Front desk no longer buys alone",
+                        "copy": "Management can see wait-time reduction, no-show improvement, and room load before deciding to expand the suite."
+                    },
+                    {
+                        "title": "Lite multi-site with purpose",
+                        "copy": "There is no need to jump into enterprise. Comparing 1 to 5 sites on the same base dashboard is enough."
+                    },
+                    {
+                        "title": "A cleaner roadmap",
+                        "copy": "Branding, roles, and site layers appear as the next natural step instead of as vague promises."
+                    }
+                ]
+            },
+            "connections": {
+                "eyebrow": "Fed by",
+                "title": "The dashboard only exists because the operating flow already leaves useful data",
+                "items": [
+                    "Kiosk and mobile check-in",
+                    "Reception ticket actions and completion states",
+                    "Waiting room display call timing",
+                    "Web booking and pre-arrival confirmations"
+                ]
+            },
+            "finalCta": {
+                "title": "The suite now has a complete product story",
+                "deck": "Landing page, patient flow, queue status, and site dashboard. That closes much more of the gap versus what LatAm competitors already package well.",
+                "actions": [
+                    {
+                        "label": "Back to suite",
+                        "href": "/en/software/clinic-flow-suite/",
+                        "variant": "primary"
+                    },
+                    {
+                        "label": "Book demo",
+                        "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20see%20the%20full%20clinic%20flow%20demo",
+                        "variant": "secondary"
+                    }
+                ]
+            }
+        }
+    }
+}

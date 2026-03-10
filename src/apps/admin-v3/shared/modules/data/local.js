@@ -12,6 +12,7 @@ export function persistLocalAdminData(data) {
     );
     setStorageJson(LOCAL_DATA_KEYS.queueTickets, data.queueTickets || []);
     setStorageJson(LOCAL_DATA_KEYS.queueMeta, data.queueMeta || null);
+    setStorageJson(LOCAL_DATA_KEYS.appDownloads, data.appDownloads || null);
     setStorageJson(LOCAL_DATA_KEYS.health, data.health || null);
 }
 
@@ -24,6 +25,7 @@ export function loadLocalAdminFallback() {
         availabilityMeta: getStorageJson(LOCAL_DATA_KEYS.availabilityMeta, {}),
         queueTickets: getStorageJson(LOCAL_DATA_KEYS.queueTickets, []),
         queueMeta: getStorageJson(LOCAL_DATA_KEYS.queueMeta, null),
+        appDownloads: getStorageJson(LOCAL_DATA_KEYS.appDownloads, null),
         health: getStorageJson(LOCAL_DATA_KEYS.health, null),
         funnelMetrics: EMPTY_FUNNEL_METRICS,
     };

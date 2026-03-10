@@ -1,5 +1,9 @@
 import { renderQueueSensitiveDialog } from './dialog.js';
-import { renderQueueHeader, renderQueueKpiGrid } from './header.js';
+import {
+    renderQueueAppsHub,
+    renderQueueHeader,
+    renderQueueKpiGrid,
+} from './header.js';
 import {
     renderQueueStationControls,
     renderQueueShortcutPanel,
@@ -12,6 +16,7 @@ export function renderQueueSection() {
         <section id="queue" class="admin-section" tabindex="-1">
             <div class="sony-panel">
                 ${renderQueueHeader()}
+                ${renderQueueAppsHub()}
                 ${renderQueueKpiGrid()}
                 ${renderQueueStationControls()}
                 ${renderQueueShortcutPanel()}

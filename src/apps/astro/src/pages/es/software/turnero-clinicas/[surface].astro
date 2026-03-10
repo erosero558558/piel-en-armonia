@@ -1,0 +1,48 @@
+---
+import PublicShellV6 from '../../../../../layouts/PublicShellV6.astro';
+import SoftwareSurfacePageV6 from '../../../../../components/public-v6/SoftwareSurfacePageV6.astro';
+import {
+    getV6NavigationModel,
+    getV6SoftwareNavOverrides,
+    getV6SoftwarePage,
+    mergeV6NavModel,
+    v6SoftwarePath,
+} from '../../../../../lib/public-v6.js';
+
+const SURFACE_PAGE_MAP = {
+    demo: 'demo',
+    'estado-turno': 'status',
+    dashboard: 'dashboard',
+};
+
+export async function getStaticPaths() {
+    return Object.keys(SURFACE_PAGE_MAP).map((surface) => ({
+        params: { surface },
+    }));
+}
+
+const locale = 'es';
+const { surface } = Astro.params;
+const pageKey = SURFACE_PAGE_MAP[surface];
+if (!pageKey) throw new Error(`Ruta de software no valida en V6: ${surface}`);
+const pathname = v6SoftwarePath(locale, pageKey);
+const page = getV6SoftwarePage(locale, pageKey);
+if (!page) throw new Error(`Pagina de software no encontrada en V6: ${pageKey}`);
+const navModel = mergeV6NavModel(
+    getV6NavigationModel(locale, pathname),
+    getV6SoftwareNavOverrides(locale)
+);
+---
+
+<PublicShellV6
+    title={page.title}
+    description={page.description}
+    locale={locale}
+    canonicalPath={pathname}
+    alternatePath={v6SoftwarePath('en', pageKey)}
+    pathname={pathname}
+    navModel={navModel}
+    templateId="software_surface_v6"
+>
+    <SoftwareSurfacePageV6 page={page} locale={locale} navModel={navModel} />
+</PublicShellV6>

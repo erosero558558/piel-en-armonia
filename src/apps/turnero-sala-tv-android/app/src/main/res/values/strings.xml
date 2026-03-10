@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Turnero Sala TV</string>
+    <string name="offline_title">Conexion degradada</string>
+    <string name="offline_body">La TV reintentara abrir la sala automaticamente y seguira visible en el inicio de Google TV.</string>
+    <string name="retry_now">Reintentar ahora</string>
+    <string name="state_connected">Sala conectada</string>
+    <string name="state_retrying">Sin conexion con el panel de sala. Reintentando automaticamente.</string>
+    <string name="state_loading">Conectando a %1$s (%2$s)</string>
+    <string name="state_http_error">La sala devolvio HTTP %1$d. Reintentando.</string>
+    <string name="state_renderer_recovering">El proceso visual se reiniciara automaticamente.</string>
+</resources>

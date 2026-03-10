@@ -1,13 +1,39 @@
 export function renderQueueHeader() {
     return `
         <header class="section-header">
-            <h3>Turnero Sala</h3>
+            <div>
+                <h3>Turnero Sala</h3>
+                <p>
+                    Apps operativas, cola en vivo y flujo simple para recepción,
+                    kiosco y TV.
+                </p>
+            </div>
             <div class="queue-admin-header-actions">
                 <button type="button" data-action="queue-call-next" data-queue-consultorio="1">Llamar C1</button>
                 <button type="button" data-action="queue-call-next" data-queue-consultorio="2">Llamar C2</button>
                 <button type="button" data-action="queue-refresh-state">Refrescar</button>
             </div>
         </header>
+    `;
+}
+
+export function renderQueueAppsHub() {
+    return `
+        <div id="queueAppsHub" class="queue-apps-hub sony-panel soft">
+            <div class="queue-apps-hub__header">
+                <div>
+                    <h4>Apps operativas</h4>
+                    <p>
+                        Instala Operador, Kiosco y Sala TV desde el mismo centro de
+                        control para separar cada equipo por uso.
+                    </p>
+                </div>
+                <span id="queueAppsPlatformChip" class="queue-apps-platform-chip">
+                    Plataforma detectada
+                </span>
+            </div>
+            <div id="queueAppDownloadsCards" class="queue-apps-grid"></div>
+        </div>
     `;
 }
 

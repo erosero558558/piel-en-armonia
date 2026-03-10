@@ -1,13 +1,17 @@
-const CACHE_NAME = 'pielarmonia-v13-queuefix-20260227-1';
+const CACHE_NAME = 'pielarmonia-v14-operator-apps-20260310-1';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/telemedicina.html',
     '/admin.html',
+    '/operador-turnos.html',
     '/kiosco-turnos.html',
     '/sala-turnos.html',
     '/admin.css?v=admin-20260227-queuefix1',
     '/admin.js?v=admin-20260227-queuefix1',
+    '/queue-ops.css?v=queue-ops-20260310-apps1',
+    '/js/admin-runtime.js?v=admin-runtime-20260310-src1',
+    '/js/queue-operator.js?v=queue-operator-20260310-src1',
     '/queue-kiosk.css?v=queue-20260227-fix1',
     '/js/queue-kiosk.js?v=queue-20260227-fix1',
     '/queue-display.css?v=queue-20260227-fix1',

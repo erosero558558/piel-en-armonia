@@ -12,6 +12,7 @@ import {
     renderQueueNextAdminList,
     renderQueueTableBody,
 } from './section/content.js';
+import { renderQueueInstallHub } from './section/install-hub.js';
 import {
     syncQueueSelectionControls,
     syncQueueStationControls,
@@ -29,6 +30,7 @@ export function renderQueueSection(appendActivity = () => {}) {
         state.queue.stationConsultorio
     );
 
+    renderQueueInstallHub();
     setQueueNowMeta(queueMeta, appendActivity);
     renderQueueTableBody(visible);
     renderQueueNextAdminList(queueMeta, state.queue.fallbackPartial);

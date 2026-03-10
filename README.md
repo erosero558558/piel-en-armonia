@@ -108,9 +108,27 @@ El proyecto utiliza Playwright para pruebas de extremo a extremo (E2E).
     npm run test:ui
     ```
 
+## Subida a GitHub
+
+Flujo diario recomendado para subir cambios sin desplegar:
+
+1. `bash ./bin/git-branch-publish.sh start feature/mi-cambio`
+2. hacer los cambios y crear los commits
+3. `bash ./bin/git-branch-publish.sh publish`
+4. revisar o integrar la rama publicada en GitHub
+
+Este flujo no hace deploy y evita `push` directo a `main` como comportamiento por defecto.
+
+Documentacion operativa:
+
+- [docs/GITHUB_PUSH_WORKFLOW.md](docs/GITHUB_PUSH_WORKFLOW.md)
+- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
+
 ## Despliegue
 
 La web publica canónica se genera desde Astro V6 y `content/public-v6/**`.
+
+El `push` a `main` queda reservado para publicaciones live intencionales y controladas. No es el flujo diario para subir trabajo a GitHub.
 
 Flujo oficial:
 
@@ -221,7 +239,7 @@ Referencia operativa: `docs/RUNBOOKS.md` seccion `1.6 Weekly KPI thresholds`.
 
 Ejecucion:
 
-- `git push` a `main` para deploy automatico.
+- `git push` a `main` para deploy automatico cuando quieras publicar live de forma explicita.
 - O `Actions -> Deploy Hosting (FTP/FTPS) -> Run workflow`.
 - Usa `dry_run = true` para validar sin subir.
 - Si falla `Timeout (control socket)`, prueba `protocol=ftp`, `server_port=21`.

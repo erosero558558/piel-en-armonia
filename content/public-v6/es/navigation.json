@@ -11,18 +11,18 @@
         },
         "header": {
             "primaryNavAria": "Navegacion principal",
-            "megaCategoryTabsAria": "Categorias del menu",
-            "openCategoryLabel": "Ver mas",
+            "megaCategoryTabsAria": "Categorias del mega menu",
+            "openCategoryLabel": "Explorar categoria",
             "mobileNavAria": "Navegacion movil",
             "search": {
-                "dialogAria": "Buscador de servicios dermatologicos",
+                "dialogAria": "Buscador de rutas dermatologicas",
                 "eyebrow": "Busqueda rapida",
-                "inputLabel": "Escriba un servicio o motivo de consulta",
-                "placeholder": "Acne, manchas, lunares, telemedicina...",
-                "hint": "Use palabras simples. Le mostramos opciones activas y el siguiente paso mas claro.",
+                "inputLabel": "Escriba un servicio o tema",
+                "placeholder": "Acne, laser, telemedicina, cicatrices...",
+                "hint": "Use palabras simples. Le mostramos rutas clinicas activas y el siguiente paso mas util.",
                 "resultsAria": "Resultados de busqueda",
-                "emptyTitle": "No encontramos una opcion activa con esa busqueda",
-                "emptyBody": "Pruebe con diagnostico, acne, laser o telemedicina para abrir una consulta vigente.",
+                "emptyTitle": "No encontramos una ruta activa con esa busqueda",
+                "emptyBody": "Pruebe con diagnostico, acne, laser o telemedicina para abrir una ruta vigente.",
                 "closeLabel": "Cerrar buscador",
                 "resultsLimit": 8
             }
@@ -41,7 +41,7 @@
     "header": {
         "contactLabel": "Contacto",
         "contactHref": "https://wa.me/593982453672",
-        "searchLabel": "Buscar",
+        "searchLabel": "Buscar rutas",
         "menuLabel": "Menu",
         "closeMenuLabel": "Cerrar menu",
         "switchLabel": "EN",
@@ -78,9 +78,9 @@
                 "kind": "standard"
             },
             {
-                "id": "team",
-                "label": "Especialidades",
-                "href": "/es/servicios/piel-cabello-unas/",
+                "id": "software",
+                "label": "Software",
+                "href": "/es/software/turnero-clinicas/",
                 "kind": "standard"
             },
             {
@@ -92,88 +92,94 @@
         ],
         "searchEntries": [
             {
-                "label": "Consulta de diagnostico integral",
+                "label": "Diagnostico integral",
                 "href": "/es/servicios/diagnostico-integral/",
-                "eyebrow": "Primera consulta",
-                "deck": "Una evaluacion amplia para entender lo importante y decidir con calma el primer paso."
+                "eyebrow": "Consulta inicial",
+                "deck": "Primera lectura completa para definir prioridad, riesgo y siguiente paso con claridad."
             },
             {
                 "label": "Acne y rosacea",
                 "href": "/es/servicios/acne-rosacea/",
-                "eyebrow": "Brotes",
-                "deck": "Tratamiento medico para bajar inflamacion y sostener mejor la piel entre controles."
+                "eyebrow": "Inflamacion",
+                "deck": "Control de brotes con ajustes medicos y seguimiento sostenido."
             },
             {
                 "label": "Laser dermatologico",
                 "href": "/es/servicios/laser-dermatologico/",
-                "eyebrow": "Procedimientos",
-                "deck": "Tecnologia explicada antes de indicarla, con tiempos y cuidados que se entienden."
+                "eyebrow": "Tratamientos medicos",
+                "deck": "Tecnologia indicada por fototipo, lesion y seguridad de evolucion."
             },
             {
                 "label": "Peeling quimico",
                 "href": "/es/servicios/peeling-quimico/",
-                "eyebrow": "Renovacion",
-                "deck": "Una opcion para textura o manchas cuando la piel esta lista para hacerlo con seguridad."
+                "eyebrow": "Tratamientos medicos",
+                "deck": "Protocolos calibrados por textura, pigmento y tolerancia de la piel."
             },
             {
                 "label": "Bioestimuladores de colageno",
                 "href": "/es/servicios/bioestimuladores-colageno/",
-                "eyebrow": "Rejuvenecimiento",
-                "deck": "Soporte progresivo para firmeza, con expectativas honestas y seguimiento cercano."
+                "eyebrow": "Rejuvenecimiento medico",
+                "deck": "Soporte de firmeza con control medico y tiempos realistas."
             },
             {
                 "label": "Botox medico",
                 "href": "/es/servicios/botox/",
-                "eyebrow": "Rejuvenecimiento",
-                "deck": "Suaviza lineas de expresion sin perder naturalidad ni explicaciones claras."
+                "eyebrow": "Tratamientos medicos",
+                "deck": "Indicacion precisa para armonia facial con seguimiento clinico."
             },
             {
                 "label": "Mesoterapia",
                 "href": "/es/servicios/mesoterapia/",
-                "eyebrow": "Cuidado de piel",
-                "deck": "Sesiones breves para apoyar hidratacion y calidad de piel cuando el caso lo amerita."
+                "eyebrow": "Tratamientos medicos",
+                "deck": "Refuerzo dermico localizado cuando el caso lo necesita."
             },
             {
                 "label": "Piel, cabello y unas",
                 "href": "/es/servicios/piel-cabello-unas/",
                 "eyebrow": "Consulta integral",
-                "deck": "Una sola consulta cuando los sintomas se mezclan y conviene mirar el cuadro completo."
+                "deck": "Ruta integral para sintomas, cambios visibles y continuidad."
             },
             {
                 "label": "Cancer de piel",
                 "href": "/es/servicios/cancer-piel/",
-                "eyebrow": "Revision temprana",
-                "deck": "Valoracion de lesiones que cambian, sangran o dejan dudas y merecen verse pronto."
+                "eyebrow": "Tamizaje",
+                "deck": "Lectura temprana de lesiones que cambian, sangran o no cicatrizan."
             },
             {
                 "label": "Dermatologia pediatrica",
                 "href": "/es/servicios/dermatologia-pediatrica/",
-                "eyebrow": "Familia",
-                "deck": "Explicaciones claras para ninos, cuidadores, escuela y controles posteriores."
+                "eyebrow": "Pediatria",
+                "deck": "Indicaciones claras para familias, escuela y control en casa."
             },
             {
                 "label": "Cicatrices",
                 "href": "/es/servicios/cicatrices/",
-                "eyebrow": "Recuperacion",
-                "deck": "Plan por etapas para mejorar relieve, color y textura sin prometer resultados irreales."
+                "eyebrow": "Secuelas cutaneas",
+                "deck": "Ruta para textura, relieve y combinacion de tratamientos."
             },
             {
                 "label": "Granitos en brazos y piernas",
                 "href": "/es/servicios/granitos-brazos-piernas/",
-                "eyebrow": "Textura",
-                "deck": "Consulta para textura aspera, foliculos notorios y brotes pequenos persistentes."
+                "eyebrow": "Consulta integral",
+                "deck": "Valoracion de lesiones pequenas y persistentes con criterio dermatologico."
             },
             {
                 "label": "Telemedicina",
                 "href": "/es/telemedicina/",
-                "eyebrow": "Atencion a distancia",
-                "deck": "Ayuda a empezar pronto cuando el caso puede orientarse sin perder criterio medico."
+                "eyebrow": "Continuidad",
+                "deck": "Orientacion remota cuando acelera decisiones sin perder criterio medico."
             },
             {
-                "label": "Terminos y privacidad",
+                "label": "Legal y consentimiento",
                 "href": "/es/legal/terminos/",
-                "eyebrow": "Informacion legal",
-                "deck": "Reglas claras para usar el sitio, compartir datos y entender los limites de la orientacion digital."
+                "eyebrow": "Marco legal",
+                "deck": "Terminos, privacidad y bases de consentimiento para la atencion."
+            },
+            {
+                "label": "Software para clinicas",
+                "href": "/es/software/turnero-clinicas/",
+                "eyebrow": "Suite B2B",
+                "deck": "Kiosco, TV sala, recepcion y agenda web para clinicas pequenas y medianas."
             }
         ]
     },
@@ -183,16 +189,16 @@
         "columns": [
             {
                 "id": "entry-routes",
-                "heading": "Primera consulta",
+                "heading": "Consulta inicial",
                 "context": {
-                    "eyebrow": "Para empezar",
-                    "title": "Empiece por la consulta que mejor ordena lo que hoy le preocupa",
-                    "deck": "La primera cita ayuda a separar urgencias, dudas frecuentes y el seguimiento que conviene desde el inicio.",
+                    "eyebrow": "Primera evaluacion",
+                    "title": "Empiece por la ruta que mejor ordena su caso",
+                    "deck": "La primera consulta define prioridad, riesgo y seguimiento para que usted avance con criterio desde el inicio.",
                     "href": "/es/servicios/diagnostico-integral/"
                 },
                 "items": [
                     {
-                        "label": "Consulta de diagnostico integral",
+                        "label": "Diagnostico integral",
                         "href": "/es/servicios/diagnostico-integral/",
                         "children": [
                             {
@@ -224,11 +230,11 @@
                         "href": "/es/servicios/dermatologia-pediatrica/",
                         "children": [
                             {
-                                "label": "Consulta familiar",
+                                "label": "Ruta familiar",
                                 "href": "/es/servicios/dermatologia-pediatrica/"
                             },
                             {
-                                "label": "Ver todos los servicios",
+                                "label": "Rutas activas",
                                 "href": "/es/servicios/"
                             }
                         ]
@@ -237,11 +243,11 @@
             },
             {
                 "id": "procedures",
-                "heading": "Tratamientos",
+                "heading": "Tratamientos medicos",
                 "context": {
-                    "eyebrow": "Cuando hace falta intervenir",
-                    "title": "Procedimientos bien indicados, explicados antes de empezar",
-                    "deck": "Solo proponemos tecnologia o procedimientos cuando ayudan de verdad y se pueden seguir con seguridad.",
+                    "eyebrow": "Intervencion indicada",
+                    "title": "Tratamientos y tecnologia con criterio dermatologico",
+                    "deck": "Indicamos cada tratamiento por fototipo, tolerancia y objetivo clinico, con control posterior definido.",
                     "href": "/es/servicios/laser-dermatologico/"
                 },
                 "items": [
@@ -254,7 +260,7 @@
                                 "href": "/es/servicios/cicatrices/"
                             },
                             {
-                                "label": "Revision de lesiones",
+                                "label": "Tamizaje de lesiones",
                                 "href": "/es/servicios/cancer-piel/"
                             }
                         ]
@@ -278,11 +284,11 @@
                         "href": "/es/servicios/bioestimuladores-colageno/",
                         "children": [
                             {
-                                "label": "Rejuvenecimiento progresivo",
+                                "label": "Soporte de firmeza",
                                 "href": "/es/servicios/bioestimuladores-colageno/"
                             },
                             {
-                                "label": "Mas procedimientos",
+                                "label": "Ver todas las rutas",
                                 "href": "/es/servicios/"
                             }
                         ]
@@ -291,11 +297,11 @@
             },
             {
                 "id": "extended-care",
-                "heading": "Telemedicina y seguimiento",
+                "heading": "Continuidad y claridad",
                 "context": {
-                    "eyebrow": "Atencion a distancia",
-                    "title": "Telemedicina para orientar bien el inicio y cuidar el despues",
-                    "deck": "Aqui se explica cuando la consulta remota ayuda, cuando conviene verle en persona y como se organiza el seguimiento.",
+                    "eyebrow": "Continuidad",
+                    "title": "Telemedicina, consentimiento y siguientes pasos claros",
+                    "deck": "Esta capa une orientacion remota, consentimiento entendible y acciones concretas para continuar.",
                     "href": "/es/telemedicina/"
                 },
                 "items": [
@@ -308,13 +314,13 @@
                                 "href": "/es/telemedicina/"
                             },
                             {
-                                "label": "Cuando pasar a consulta",
+                                "label": "Criterios de escalamiento",
                                 "href": "/es/telemedicina/"
                             }
                         ]
                     },
                     {
-                        "label": "Terminos y privacidad",
+                        "label": "Legal y consentimiento",
                         "href": "/es/legal/terminos/",
                         "children": [
                             {
@@ -328,16 +334,16 @@
                         ]
                     },
                     {
-                        "label": "Reserva online en mantenimiento",
-                        "href": "/es/servicios/",
+                        "label": "Software para clinicas",
+                        "href": "/es/software/turnero-clinicas/",
                         "children": [
                             {
-                                "label": "Abrir servicios",
-                                "href": "/es/servicios/"
+                                "label": "Ver suite",
+                                "href": "/es/software/turnero-clinicas/"
                             },
                             {
-                                "label": "Escribir por WhatsApp",
-                                "href": "https://wa.me/593982453672"
+                                "label": "Agendar demo",
+                                "href": "https://wa.me/593982453672?text=Hola%2C%20quiero%20ver%20una%20demo%20del%20software%20para%20clinicas"
                             }
                         ]
                     }
@@ -345,18 +351,18 @@
             }
         ],
         "featured": {
-            "eyebrow": "Como trabajamos",
-            "title": "Dermatologia seria, explicada sin enredarla",
-            "deck": "La idea es simple: revisar bien, hablar claro y dejar a cada persona con un plan entendible.",
+            "eyebrow": "Direccion medica",
+            "title": "Cada ruta explica que observar, como decidir y cuando escalar",
+            "deck": "La promesa de la casa es simple: criterio medico, lenguaje humano y seguimiento comprensible.",
             "href": "/es/servicios/"
         }
     },
     "footer": {
-        "headline": "Dermatologia medica con explicaciones claras",
-        "deck": "Consulta, tratamientos y seguimiento pensados para que usted entienda lo importante desde el principio.",
+        "headline": "Dermatologia medica clara para Quito",
+        "deck": "Cuidado clinico contemporaneo con decisiones explicadas, trato humano y continuidad real.",
         "columns": [
             {
-                "title": "Servicios activos",
+                "title": "Rutas activas",
                 "links": [
                     {
                         "label": "Servicios",
@@ -373,7 +379,7 @@
                 ]
             },
             {
-                "title": "Informacion util",
+                "title": "Politicas y consentimiento",
                 "links": [
                     {
                         "label": "Terminos",
@@ -400,6 +406,23 @@
                     "Lunes a viernes 09:00 - 18:00",
                     "+593 98 786 6885"
                 ]
+            },
+            {
+                "title": "Software",
+                "links": [
+                    {
+                        "label": "Turnero para clinicas",
+                        "href": "/es/software/turnero-clinicas/"
+                    },
+                    {
+                        "label": "Check-in movil",
+                        "href": "/es/software/turnero-clinicas/demo/"
+                    },
+                    {
+                        "label": "Dashboard de sede",
+                        "href": "/es/software/turnero-clinicas/dashboard/"
+                    }
+                ]
             }
         ],
         "policies": [
@@ -416,11 +439,11 @@
                 "href": "/es/legal/cookies/"
             },
             {
-                "label": "Accesibilidad del sitio",
+                "label": "Accesibilidad web",
                 "href": "/es/legal/aviso-medico/"
             },
             {
-                "label": "Sobre este sitio",
+                "label": "Acerca del sitio",
                 "href": "/es/legal/terminos/"
             },
             {

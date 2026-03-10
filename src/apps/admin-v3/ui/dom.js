@@ -29,7 +29,7 @@ const SECTION_HOOKS = {
         detail: '#availabilityDetailGrid',
     },
     queue: {
-        hero: '#queueStationControl',
+        hero: '#queueAppsHub',
         workbench: '.queue-admin-table',
         detail: '#queueActivityPanel',
     },

@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'self';"
+        />
+        <title>Turnero Operador - Piel en Armonia</title>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link
+            rel="stylesheet"
+            href="admin-v3.css?v=admin-v3-20260309-v3-only"
+        />
+        <link
+            rel="stylesheet"
+            href="queue-ops.css?v=queue-ops-20260310-apps1"
+        />
+    </head>
+    <body
+        class="admin-v3-mode queue-operator-body"
+        data-queue-surface="operator"
+    >
+        <div id="operatorLoginView" class="queue-operator-login-shell">
+            <section class="queue-operator-login-card">
+                <div class="queue-operator-login-copy">
+                    <p class="queue-operator-kicker">Turnero Operador</p>
+                    <h1>Operación simple para recepción y consultorio</h1>
+                    <p>
+                        Usa el numpad Genius 1000 para llamar, completar y
+                        re-llamar turnos sin abrir todo el panel administrativo.
+                    </p>
+                </div>
+
+                <div
+                    id="operatorLoginStatus"
+                    class="queue-operator-status-card"
+                    data-state="neutral"
+                >
+                    <strong id="operatorLoginStatusTitle">
+                        Acceso protegido
+                    </strong>
+                    <p id="operatorLoginStatusMessage">
+                        Inicia sesión para abrir la consola operativa del
+                        turnero.
+                    </p>
+                </div>
+
+                <form id="operatorLoginForm" class="sony-login-form" novalidate>
+                    <label class="admin-login-field" for="operatorPassword">
+                        <span>Contraseña</span>
+                        <input
+                            id="operatorPassword"
+                            type="password"
+                            required
+                            placeholder="Ingresa tu clave"
+                            autocomplete="current-password"
+                        />
+                    </label>
+
+                    <div id="operator2FAGroup" class="is-hidden">
+                        <label class="admin-login-field" for="operator2FACode">
+                            <span>Código 2FA</span>
+                            <input
+                                id="operator2FACode"
+                                type="text"
+                                inputmode="numeric"
+                                maxlength="6"
+                                autocomplete="one-time-code"
+                                placeholder="123456"
+                            />
+                        </label>
+                    </div>
+
+                    <div class="admin-login-actions">
+                        <button id="operatorLoginBtn" type="submit">
+                            Ingresar
+                        </button>
+                        <button
+                            id="operatorReset2FABtn"
+                            type="button"
+                            class="sony-login-reset is-hidden"
+                        >
+                            Volver
+                        </button>
+                    </div>
+                </form>
+            </section>
+        </div>
+
+        <main id="operatorApp" class="queue-operator-app is-hidden">
+            <header class="queue-operator-topbar">
+                <div class="queue-operator-topbar__copy">
+                    <p class="queue-operator-kicker">Turnero Operador</p>
+                    <h2>Flujo diario con numpad y acciones claras</h2>
+                    <p>
+                        Genius Numpad 1000 conectado al equipo operador.
+                        <code>Numpad Enter</code> llama,
+                        <code>.</code> prepara completar,
+                        <code>-</code> prepara no show y
+                        <code>+</code> re-llama.
+                    </p>
+                </div>
+
+                <div class="queue-operator-topbar__actions">
+                    <button
+                        type="button"
+                        class="queue-operator-secondary-btn"
+                        data-action="queue-refresh-state"
+                    >
+                        Refrescar
+                    </button>
+                    <button
+                        type="button"
+                        class="queue-operator-secondary-btn"
+                        id="operatorLogoutBtn"
+                    >
+                        Cerrar sesión
+                    </button>
+                </div>
+            </header>
+
+            <section class="queue-operator-signal-grid">
+                <article class="queue-operator-signal-card">
+                    <span>Estación</span>
+                    <strong id="operatorStationSummary">C1 libre</strong>
+                    <small id="operatorOneTapSummary">1 tecla OFF</small>
+                </article>
+                <article class="queue-operator-signal-card">
+                    <span>Llamado rápido</span>
+                    <strong id="operatorCallKeySummary">Numpad Enter</strong>
+                    <small>Calibra otra tecla si el hardware la reporta distinto.</small>
+                </article>
+                <article class="queue-operator-signal-card">
+                    <span>Equipo</span>
+                    <strong>Genius Numpad 1000</strong>
+                    <small>Conecta el receptor USB al PC del operador.</small>
+                </article>
+            </section>
+
+            <section class="queue-operator-workbench">
+                <div class="sony-panel queue-operator-panel">
+                    <div class="queue-operator-panel__hero">
+                        <div>
+                            <p class="queue-operator-kicker">
+                                Operación activa
+                            </p>
+                            <h3>Cola en vivo y llamadas por consultorio</h3>
+                            <p>
+                                Usa los botones grandes para override manual. El
+                                flujo rápido recomendado sigue siendo
+                                <code>completar</code> y luego
+                                <code>llamar siguiente</code>.
+                            </p>
+                        </div>
+                        <div class="queue-admin-header-actions">
+                            <button
+                                type="button"
+                                data-action="queue-call-next"
+                                data-queue-consultorio="1"
+                            >
+                                Llamar C1
+                            </button>
+                            <button
+                                type="button"
+                                data-action="queue-call-next"
+                                data-queue-consultorio="2"
+                            >
+                                Llamar C2
+                            </button>
+                            <button
+                                type="button"
+                                data-action="queue-toggle-one-tap"
+                                aria-pressed="false"
+                            >
+                                1 tecla OFF
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="sony-grid sony-grid-kpi slim">
+                        <article class="sony-kpi">
+                            <h4>Espera</h4>
+                            <strong id="queueWaitingCountAdmin">0</strong>
+                        </article>
+                        <article class="sony-kpi">
+                            <h4>Llamados</h4>
+                            <strong id="queueCalledCountAdmin">0</strong>
+                        </article>
+                        <article class="sony-kpi">
+                            <h4>C1</h4>
+                            <strong id="queueC1Now">Sin llamado</strong>
+                        </article>
+                        <article class="sony-kpi">
+                            <h4>C2</h4>
+                            <strong id="queueC2Now">Sin llamado</strong>
+                        </article>
+                        <article class="sony-kpi">
+                            <h4>Sync</h4>
+                            <strong id="queueSyncStatus" data-state="live">
+                                vivo
+                            </strong>
+                        </article>
+                    </div>
+
+                    <div id="queueStationControl" class="toolbar-row">
+                        <span id="queueStationBadge">Estación C1</span>
+                        <span id="queueStationModeBadge">Libre</span>
+                        <span id="queuePracticeModeBadge" hidden>
+                            Practice ON
+                        </span>
+                        <button
+                            type="button"
+                            data-action="queue-lock-station"
+                            data-queue-consultorio="1"
+                        >
+                            Lock C1
+                        </button>
+                        <button
+                            type="button"
+                            data-action="queue-lock-station"
+                            data-queue-consultorio="2"
+                        >
+                            Lock C2
+                        </button>
+                        <button
+                            type="button"
+                            data-action="queue-set-station-mode"
+                            data-queue-mode="free"
+                        >
+                            Modo libre
+                        </button>
+                        <button type="button" data-action="queue-toggle-shortcuts">
+                            Ver atajos
+                        </button>
+                        <button type="button" data-action="queue-capture-call-key">
+                            Calibrar tecla
+                        </button>
+                        <button
+                            type="button"
+                            data-action="queue-clear-call-key"
+                            hidden
+                        >
+                            Quitar tecla
+                        </button>
+                        <button
+                            type="button"
+                            id="queueReleaseC1"
+                            data-action="queue-release-station"
+                            data-queue-consultorio="1"
+                            hidden
+                        >
+                            Release C1
+                        </button>
+                        <button
+                            type="button"
+                            id="queueReleaseC2"
+                            data-action="queue-release-station"
+                            data-queue-consultorio="2"
+                            hidden
+                        >
+                            Release C2
+                        </button>
+                    </div>
+
+                    <div id="queueShortcutPanel" hidden>
+                        <p>Numpad Enter llama siguiente.</p>
+                        <p>Numpad Decimal prepara completar.</p>
+                        <p>Numpad Subtract prepara no_show.</p>
+                        <p>Numpad Add re-llama el ticket activo.</p>
+                    </div>
+
+                    <div id="queueTriageToolbar" class="toolbar-row">
+                        <button type="button" data-queue-filter="all">Todo</button>
+                        <button type="button" data-queue-filter="called">
+                            Llamados
+                        </button>
+                        <button type="button" data-queue-filter="sla_risk">
+                            Riesgo SLA
+                        </button>
+                        <input
+                            type="search"
+                            id="queueSearchInput"
+                            placeholder="Buscar ticket"
+                        />
+                        <button type="button" data-action="queue-clear-search">
+                            Limpiar
+                        </button>
+                    </div>
+
+                    <div class="toolbar-row slim">
+                        <p id="queueTriageSummary">Sin riesgo</p>
+                        <span id="queueSelectionChip" class="is-hidden">
+                            Seleccionados:
+                            <strong id="queueSelectedCount">0</strong>
+                        </span>
+                    </div>
+
+                    <ul id="queueNextAdminList" class="sony-list"></ul>
+
+                    <div class="table-scroll">
+                        <table
+                            class="sony-table queue-admin-table queue-operator-table"
+                        >
+                            <thead>
+                                <tr>
+                                    <th>Estado</th>
+                                    <th>Ticket</th>
+                                    <th>Tipo</th>
+                                    <th>Status</th>
+                                    <th>Consultorio</th>
+                                    <th>Espera</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="queueTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <aside id="queueActivityPanel" class="sony-panel soft">
+                    <h4>Actividad y ayuda</h4>
+                    <p class="queue-operator-aside-copy">
+                        Si el numpad no dispara Enter, usa “Calibrar tecla” y
+                        presiona la tecla física del Genius Numpad 1000.
+                    </p>
+                    <ul id="queueActivityList" class="sony-list"></ul>
+                </aside>
+            </section>
+        </main>
+
+        <div
+            id="toastContainer"
+            class="toast-container"
+            aria-live="polite"
+            aria-relevant="additions"
+        ></div>
+
+        <dialog
+            id="queueSensitiveConfirmDialog"
+            class="queue-sensitive-confirm-dialog"
+        >
+            <form method="dialog">
+                <p id="queueSensitiveConfirmMessage">
+                    Confirmar acción sensible
+                </p>
+                <div class="toolbar-group">
+                    <button type="button" data-action="queue-sensitive-cancel">
+                        Cancelar
+                    </button>
+                    <button type="button" data-action="queue-sensitive-confirm">
+                        Confirmar
+                    </button>
+                </div>
+            </form>
+        </dialog>
+
+        <script
+            src="js/queue-operator.js?v=queue-operator-20260310-src1"
+            type="module"
+        ></script>
+    </body>
+</html>

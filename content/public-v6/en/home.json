@@ -1,6 +1,6 @@
 {
     "title": "Piel en Armonia | Medical dermatology in Quito",
-    "description": "Medical dermatology in Quito with careful diagnosis, well-chosen treatment, and follow-up that makes sense from the first consultation.",
+    "description": "Medical dermatology in Quito with clear diagnosis, indicated treatment, and follow-up you can actually understand.",
     "hero": {
         "autoplayMs": 7000,
         "labels": {
@@ -8,7 +8,7 @@
             "next": "Next",
             "pause": "Pause",
             "play": "Play",
-            "openRoute": "Open service",
+            "openRoute": "Open route",
             "indicators": "Carousel indicators",
             "indicatorItemPrefix": "Go to panel"
         },
@@ -16,8 +16,8 @@
             {
                 "id": "s1",
                 "category": "Diagnosis",
-                "title": "A clear diagnosis changes everything that follows.",
-                "description": "We listen carefully, examine the skin, and explain what needs attention first.",
+                "title": "A strong diagnosis at the start changes the whole course.",
+                "description": "We listen first, examine skin, hair, and nails, then shape a plan you can understand from the first consultation.",
                 "image": "/images/optimized/showcase-diagnostic.webp",
                 "srcset": "/images/optimized/showcase-diagnostic-640.webp 640w, /images/optimized/showcase-diagnostic-800.webp 800w, /images/optimized/showcase-diagnostic.webp 1200w",
                 "alt": "Comprehensive dermatology assessment",
@@ -26,8 +26,8 @@
             {
                 "id": "s2",
                 "category": "Treatments",
-                "title": "Treatment starts only when it truly helps.",
-                "description": "Laser, peels, and injectables are chosen for safety, skin type, and goals you can sustain.",
+                "title": "Technology enters only when it improves the decision and the outcome.",
+                "description": "Laser, peels, and biostimulation are chosen by phototype, clinical objective, and follow-up safety, never by impulse.",
                 "image": "/images/optimized/showcase-treatment.webp",
                 "srcset": "/images/optimized/showcase-treatment-640.webp 640w, /images/optimized/showcase-treatment-900.webp 900w, /images/optimized/showcase-treatment.webp 1200w",
                 "alt": "Clinically guided dermatology procedure",
@@ -36,8 +36,8 @@
             {
                 "id": "s3",
                 "category": "Telemedicine",
-                "title": "Telemedicine helps you start without losing time.",
-                "description": "When the case allows it, first guidance can happen remotely and clinic review follows only if needed.",
+                "title": "Telemedicine to move early, without deciding blind.",
+                "description": "We resolve first guidance remotely and move into clinic in Quito when the case demands direct examination.",
                 "image": "/images/optimized/service-telemedicina.webp",
                 "srcset": "/images/optimized/service-telemedicina-400.webp 400w, /images/optimized/service-telemedicina.webp 900w",
                 "alt": "Remote dermatology consultation",
@@ -46,8 +46,8 @@
             {
                 "id": "s4",
                 "category": "Follow-up",
-                "title": "Follow-up protects the progress you have made.",
-                "description": "Each review checks visible change and adjusts the plan before small issues grow again.",
+                "title": "Follow-up turns early improvement into real stability.",
+                "description": "Every review compares progression, adjusts recommendations, and keeps medical decisions traceable over time.",
                 "image": "/images/optimized/showcase-clinic.webp",
                 "srcset": "/images/optimized/showcase-clinic-640.webp 640w, /images/optimized/showcase-clinic-800.webp 800w, /images/optimized/showcase-clinic.webp 1200w",
                 "alt": "In-clinic dermatology follow-up",
@@ -56,8 +56,8 @@
             {
                 "id": "s5",
                 "category": "Team",
-                "title": "A serious team can still feel close.",
-                "description": "You get careful explanations, honest timing, and decisions that never hide behind jargon.",
+                "title": "A team that explains each decision without fog.",
+                "description": "You receive current dermatology judgment, close guidance, and a plan that stays understandable at every stage.",
                 "image": "/images/optimized/team-rosero.webp",
                 "srcset": "/images/optimized/team-rosero-500.webp 500w, /images/optimized/team-rosero.webp 900w",
                 "alt": "Piel en Armonia dermatology team",
@@ -66,28 +66,28 @@
         ]
     },
     "newsStrip": {
-        "label": "Web booking",
-        "headline": "Online booking is paused for now; services and telemedicine remain open so care can keep moving.",
-        "href": "/en/services/",
+        "label": "First step",
+        "headline": "Telemedicine and active clinical routes are ready today without relying on a traditional booking page.",
+        "href": "/en/telemedicine/",
         "expandLabel": "Expand",
         "collapseLabel": "Collapse",
-        "detail": "While online booking returns, you can start with telemedicine or open the consultation path that best organizes your case today.",
-        "ctaLabel": "Open services",
+        "detail": "You can begin with telemedicine, message on WhatsApp, or open the clinical route that organizes your case from the first consultation.",
+        "ctaLabel": "Open telemedicine",
         "localeAria": "Language switch"
     },
     "editorial": {
-        "eyebrow": "Dermatology without fog",
-        "title": "What matters is understanding the next step clearly.",
-        "deck": "Each block sums up what we usually see, how we approach it, and what follow-up often makes sense.",
-        "ctaLabel": "View service",
+        "eyebrow": "Dermatology direction",
+        "title": "Clear medical judgment for the next step.",
+        "deck": "Each block sums up what we see, what we recommend, and how we continue so every decision feels grounded.",
+        "ctaLabel": "Open route",
         "cards": [
             {
                 "id": "c1",
                 "type": "video",
                 "size": "tall",
                 "category": "First consultation",
-                "title": "The first visit brings the picture together",
-                "copy": "When something changes in the skin, we begin with a full evaluation and a plan that feels understandable.",
+                "title": "From first consultation to a full plan",
+                "copy": "When the skin changes in a recent way, we begin with comprehensive diagnosis and stage-based goals that can actually be followed.",
                 "href": "/en/services/diagnostico-integral/",
                 "image": "/images/optimized/service-consulta.webp",
                 "alt": "Comprehensive dermatology consultation"
@@ -96,20 +96,20 @@
                 "id": "c2",
                 "type": "info",
                 "size": "wide",
-                "category": "Flares",
-                "title": "Acne and rosacea without the noise",
-                "copy": "The goal is calmer skin, fewer relapses, and timely adjustments based on how your skin responds.",
+                "category": "Inflammation",
+                "title": "Acne and rosacea with steady control",
+                "copy": "Active inflammation is controlled and relapse is reduced through timely adjustments based on your skin response.",
                 "href": "/en/services/acne-rosacea/",
                 "image": "/images/optimized/service-acne.webp",
-                "alt": "Acne and rosacea clinical care"
+                "alt": "Acne and rosacea clinical route"
             },
             {
                 "id": "c3",
                 "type": "video",
                 "size": "standard",
-                "category": "Procedures",
-                "title": "Laser explained before it is offered",
-                "copy": "Before technology enters, we review skin type, goal, and recovery so the decision stays grounded.",
+                "category": "Technology",
+                "title": "Laser with medical settings that can be explained",
+                "copy": "Energy and frequency are defined by phototype, lesion profile, and tolerance to protect skin through the whole process.",
                 "href": "/en/services/laser-dermatologico/",
                 "image": "/images/optimized/service-laser.webp",
                 "alt": "Dermatology laser platform"
@@ -119,8 +119,8 @@
                 "type": "info",
                 "size": "tall",
                 "category": "Telemedicine",
-                "title": "Telemedicine when it truly speeds care",
-                "copy": "It works well for early guidance and for deciding whether clinic review should happen soon.",
+                "title": "Telemedicine when timing matters",
+                "copy": "You receive early guidance and, when direct examination is needed, rapid escalation into clinic.",
                 "href": "/en/telemedicine/",
                 "image": "/images/optimized/service-telemedicina.webp",
                 "alt": "Dermatology telemedicine"
@@ -129,9 +129,9 @@
                 "id": "c5",
                 "type": "info",
                 "size": "standard",
-                "category": "Family care",
-                "title": "Pediatrics that also supports the family",
-                "copy": "Instructions are translated into simple steps for home, school, and follow-up routines.",
+                "category": "Pediatric",
+                "title": "Pediatric care families can understand",
+                "copy": "Medical instructions are translated into practical steps for home routines, school days, and caregiver follow-through.",
                 "href": "/en/services/dermatologia-pediatrica/",
                 "image": "/images/optimized/showcase-clinic.webp",
                 "alt": "Pediatric dermatology care"
@@ -140,53 +140,53 @@
                 "id": "c6",
                 "type": "video",
                 "size": "wide",
-                "category": "Check-ins",
-                "title": "Follow-up you can see from visit to visit",
-                "copy": "We compare symptoms, images, and tolerance so treatment changes stay thoughtful, not improvised.",
+                "category": "Medical direction",
+                "title": "Follow-up that proves real progress",
+                "copy": "Symptoms, images, and tolerance are compared between visits to keep treatment accurate and durable.",
                 "href": "/en/services/piel-cabello-unas/",
                 "image": "/images/optimized/team-narvaez.webp",
-                "alt": "Medical direction in dermatology"
+                "alt": "Dermatology medical direction"
             }
         ]
     },
     "corporateMatrix": {
-        "eyebrow": "Common concerns",
-        "title": "Care built around the questions people actually bring",
-        "deck": "Each card explains who a service may help, what is reviewed, and what the next useful step tends to be.",
-        "ctaLabel": "View service",
+        "eyebrow": "Clinical programs",
+        "title": "Clinical units built for real cases",
+        "deck": "Each card explains who the route fits, how care works, and which next step is most useful.",
+        "ctaLabel": "Open route",
         "cards": [
             {
                 "id": "m1",
                 "category": "Diagnosis",
-                "title": "The consultation that brings order",
-                "copy": "A first evaluation designed to leave you with clear priorities and a realistic plan.",
+                "title": "Comprehensive diagnosis unit",
+                "copy": "A complete first reading that defines priorities, risk, and control timing without wasting time.",
                 "href": "/en/services/diagnostico-integral/",
                 "image": "/images/optimized/service-consulta.webp",
-                "alt": "Comprehensive diagnosis consultation"
+                "alt": "Comprehensive diagnosis unit"
             },
             {
                 "id": "m2",
-                "category": "Flares",
-                "title": "A plan for acne and rosacea",
-                "copy": "Medical care to calm flares, protect the skin, and hold onto improvement.",
+                "category": "Inflammation",
+                "title": "Acne and rosacea program",
+                "copy": "Phase-based care to reduce flares, stabilize sensitivity, and lower visible relapse.",
                 "href": "/en/services/acne-rosacea/",
                 "image": "/images/optimized/service-acne.webp",
                 "alt": "Acne and rosacea program"
             },
             {
                 "id": "m3",
-                "category": "Procedures",
-                "title": "Laser with thoughtful settings",
-                "copy": "Parameters are reviewed carefully before every session, with clear aftercare afterwards.",
+                "category": "Technology",
+                "title": "Dermatology laser platform",
+                "copy": "Laser platforms are indicated by phototype and objective, with medical tuning at every session.",
                 "href": "/en/services/laser-dermatologico/",
                 "image": "/images/optimized/service-laser.webp",
                 "alt": "Laser platform"
             },
             {
                 "id": "m4",
-                "category": "Review",
-                "title": "Lesions worth checking soon",
-                "copy": "For moles or spots that change and should be looked at without waiting too long.",
+                "category": "Screening",
+                "title": "Early lesion assessment",
+                "copy": "Changing lesions are reviewed early so decisions stay timely, documented, and clinically grounded.",
                 "href": "/en/services/cancer-piel/",
                 "image": "/images/optimized/service-cancer.webp",
                 "alt": "Lesion screening"
@@ -194,8 +194,8 @@
             {
                 "id": "m5",
                 "category": "Telemedicine",
-                "title": "Remote first guidance",
-                "copy": "A useful way to begin and decide whether remote care is enough or clinic review is better.",
+                "title": "Remote triage and continuity",
+                "copy": "Remote orientation defines when online continuity is enough and when a Quito clinic visit should happen.",
                 "href": "/en/telemedicine/",
                 "image": "/images/optimized/service-telemedicina.webp",
                 "alt": "Remote triage"
@@ -203,8 +203,8 @@
             {
                 "id": "m6",
                 "category": "Rejuvenation",
-                "title": "Support for texture and firmness",
-                "copy": "Medical options built around gradual, natural changes that are easy to explain honestly.",
+                "title": "Medical dermoaesthetic support",
+                "copy": "Medical protocols for texture and firmness with realistic timelines and supervised control.",
                 "href": "/en/services/bioestimuladores-colageno/",
                 "image": "/images/optimized/service-rejuvenecimiento.webp",
                 "alt": "Dermoaesthetic support"
@@ -212,11 +212,10 @@
         ]
     },
     "bookingStatus": {
-        "eyebrow": "Booking status",
-        "title": "Online booking under maintenance",
-        "description": "While web booking returns, you can start through services or ask for first guidance through telemedicine.",
-        "ctaLabel": "View services",
-        "ctaHref": "/en/services/"
+        "eyebrow": "Digital access",
+        "title": "Start today through telemedicine or the right clinical route",
+        "description": "If you need to move forward without calling first, open telemedicine or choose the route that best organizes your case today.",
+        "ctaLabel": "Open telemedicine",
+        "ctaHref": "/en/telemedicine/"
     }
 }
-

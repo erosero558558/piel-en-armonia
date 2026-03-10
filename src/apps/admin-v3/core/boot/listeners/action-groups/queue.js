@@ -21,6 +21,22 @@ import {
     toggleQueueOneTap,
     toggleQueueTicketSelection,
 } from '../../../../shared/modules/queue.js';
+import { createToast } from '../../../../shared/ui/render.js';
+
+async function copyInstallLink(url) {
+    const resolved = String(url || '').trim();
+    if (!resolved) {
+        createToast('No hay enlace de instalación disponible', 'warning');
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(resolved);
+        createToast('Enlace copiado', 'success');
+    } catch (_error) {
+        createToast('No se pudo copiar el enlace', 'error');
+    }
+}
 
 export async function handleQueueAction(action, element) {
     switch (action) {
@@ -96,6 +112,9 @@ export async function handleQueueAction(action, element) {
             return true;
         case 'queue-clear-call-key':
             clearQueueCallKeyBinding();
+            return true;
+        case 'queue-copy-install-link':
+            await copyInstallLink(String(element.dataset.queueInstallUrl || ''));
             return true;
         default:
             return false;

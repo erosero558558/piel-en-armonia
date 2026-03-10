@@ -25,6 +25,7 @@ export function renderQueueShortcutPanel() {
             <p>Numpad Enter llama siguiente.</p>
             <p>Numpad Decimal prepara completar.</p>
             <p>Numpad Subtract prepara no_show.</p>
+            <p>Numpad Add re-llama el ticket activo.</p>
         </div>
     `;
 }

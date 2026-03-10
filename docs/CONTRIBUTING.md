@@ -80,10 +80,24 @@ npm run test:ui
 
 ## 4. Proceso de Pull Request (PR)
 
-1.  **Branching:** Crea una rama descriptiva desde `main`:
+1.  **Branching:** Crea una rama descriptiva desde `origin/main`:
     - `feature/nueva-funcionalidad`
     - `bugfix/arreglo-critico`
     - `docs/actualizacion-guia`
+
+    Flujo recomendado:
+
+    ```bash
+    bash ./bin/git-branch-publish.sh start feature/nueva-funcionalidad
+    ```
+
+    Cuando el branch ya tenga commits listos para subir:
+
+    ```bash
+    bash ./bin/git-branch-publish.sh publish
+    ```
+
+    El comando `publish` exige `git status` limpio, bloquea `push` directo a `main` y, si detecta cambios de gobernanza/orquestación, ejecuta `npm run agent:conflicts`, `npm run agent:handoffs:lint` y `npm run agent:codex-check` antes del `push`.
 
 2.  **Commits:** Usa mensajes claros y en imperativo.
     - Bien: `Add appointment validation logic`
