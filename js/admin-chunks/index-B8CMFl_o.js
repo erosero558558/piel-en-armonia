@@ -861,92 +861,101 @@ function st(e) {
     return e.length
         ? e
               .map((e) => {
-                  const n = Q(e),
-                      i = it(e);
-                  return `\n                <tr class="appointment-row" data-appointment-id="${Number(e.id || 0)}">\n                    <td data-label="Paciente">\n                        <div class="appointment-person">\n                            <strong>${t(e.name || 'Sin nombre')}</strong>\n                            <span>${t(e.email || 'Sin email')}</span>\n                            <small>${t(e.phone || 'Sin telefono')}</small>\n                        </div>\n                    </td>\n                    <td data-label="Servicio">\n                        <div class="appointment-service">\n                            <strong>${t(J(e.service, 'Servicio pendiente'))}</strong>\n                            <span>Especialista: ${t(J(e.doctor, 'Sin asignar'))}</span>\n                            <small>${t(i.label)} | ${t(i.note)}</small>\n                        </div>\n                    </td>\n                    <td data-label="Fecha">\n                        <div class="appointment-date-stack">\n                            <strong>${t(a(e.date))}</strong>\n                            <span>${t(e.time || '--:--')}</span>\n                            <small>${t(X(n))}</small>\n                        </div>\n                    </td>\n                    <td data-label="Pago">${(function (
-                      e
-                  ) {
-                      const n = e.paymentStatus || e.payment_status || '',
-                          a = String(
-                              e.transferProofUrl ||
-                                  e.transferProofURL ||
-                                  e.transfer_proof_url ||
-                                  ''
-                          ).trim();
-                      return `\n        <div class="appointment-payment-stack">\n            <span class="appointment-pill" data-tone="${t(
-                          (function (t) {
-                              const e = K(t);
-                              return 'paid' === e
-                                  ? 'success'
-                                  : 'failed' === e
-                                    ? 'danger'
-                                    : 'pending_cash' === e
-                                      ? 'neutral'
-                                      : 'warning';
-                          })(n)
-                      )}">${t(Y(n))}</span>\n            <small>Metodo: ${t(((i = e.paymentMethod || e.payment_method || ''), { transfer: 'Transferencia', cash: 'Consultorio', card: 'Tarjeta', gateway: 'Pasarela' }[K(i)] || J(i, 'Metodo pendiente')))}</small>\n            ${a ? `<a href="${t(a)}" target="_blank" rel="noopener">Ver comprobante</a>` : '<small>Sin comprobante adjunto</small>'}\n        </div>\n    `;
-                      var i;
-                  })(
-                      e
-                  )}</td>\n                    <td data-label="Estado">${(function (
-                      e
-                  ) {
-                      const n = W(e.status),
-                          a = G(e),
-                          i = it(e),
-                          o = [];
-                      return (
-                          'pending_transfer_review' === a &&
-                              o.push('Transferencia por validar'),
-                          'no_show' === n && o.push('Paciente ausente'),
-                          'cancelled' === n && o.push('Cita cerrada'),
-                          `\n        <div class="appointment-status-stack">\n            <span class="appointment-pill" data-tone="${t(
+                  const n = Q(e);
+                  return (
+                      it(e),
+                      `\n                <tr class="appointment-row" data-appointment-id="${Number(e.id || 0)}">\n                    <td data-label="Paciente">\n                        <div class="appointment-person">\n                            <strong>${t(e.name || 'Sin nombre')}</strong>\n                            <span>${t(e.email || 'Sin email')}</span>\n                            <small>${t(e.phone || 'Sin telefono')}</small>\n                        </div>\n                    </td>\n                    <td data-label="Servicio">${(function (
+                          e
+                      ) {
+                          const n = it(e);
+                          return `\n        <div class="appointment-service">\n            <strong>${t(J(e.service, 'Servicio pendiente'))}</strong>\n            <span>Especialista: ${t(J(e.doctor, 'Sin asignar'))}</span>\n            <small>${t(n.label)} | ${t(n.note)}</small>\n        </div>\n    `;
+                      })(
+                          e
+                      )}</td>\n                    <td data-label="Fecha">\n                        <div class="appointment-date-stack">\n                            <strong>${t(a(e.date))}</strong>\n                            <span>${t(e.time || '--:--')}</span>\n                            <small>${t(X(n))}</small>\n                        </div>\n                    </td>\n                    <td data-label="Pago">${(function (
+                          e
+                      ) {
+                          const n = e.paymentStatus || e.payment_status || '',
+                              a = String(
+                                  e.transferProofUrl ||
+                                      e.transferProofURL ||
+                                      e.transfer_proof_url ||
+                                      ''
+                              ).trim();
+                          return `\n        <div class="appointment-payment-stack">\n            <span class="appointment-pill" data-tone="${t(
                               (function (t) {
                                   const e = K(t);
-                                  return 'completed' === e
+                                  return 'paid' === e
                                       ? 'success'
-                                      : 'cancelled' === e || 'no_show' === e
+                                      : 'failed' === e
                                         ? 'danger'
-                                        : 'pending' === e
-                                          ? 'warning'
-                                          : 'neutral';
+                                        : 'pending_cash' === e
+                                          ? 'neutral'
+                                          : 'warning';
                               })(n)
-                          )}">${t(Z(n))}</span>\n            <small>${t(o[0] || i.note)}</small>\n        </div>\n    `
-                      );
-                  })(
-                      e
-                  )}</td>\n                    <td data-label="Acciones">${(function (
-                      e
-                  ) {
-                      const n = Number(e.id || 0),
-                          a = G(e),
-                          i = (function (t) {
-                              const e = String(t || '').replace(/\D+/g, '');
-                              return e ? `https://wa.me/${e}` : '';
-                          })(e.phone || ''),
-                          o = [];
-                      return (
-                          i &&
+                          )}">${t(Y(n))}</span>\n            <small>Metodo: ${t(((i = e.paymentMethod || e.payment_method || ''), { transfer: 'Transferencia', cash: 'Consultorio', card: 'Tarjeta', gateway: 'Pasarela' }[K(i)] || J(i, 'Metodo pendiente')))}</small>\n            ${a ? `<a href="${t(a)}" target="_blank" rel="noopener">Ver comprobante</a>` : '<small>Sin comprobante adjunto</small>'}\n        </div>\n    `;
+                          var i;
+                      })(
+                          e
+                      )}</td>\n                    <td data-label="Estado">${(function (
+                          e
+                      ) {
+                          const n = W(e.status),
+                              a = G(e),
+                              i = it(e),
+                              o = [];
+                          return (
+                              'pending_transfer_review' === a &&
+                                  o.push('Transferencia por validar'),
+                              'no_show' === n && o.push('Paciente ausente'),
+                              'cancelled' === n && o.push('Cita cerrada'),
+                              `\n        <div class="appointment-status-stack">\n            <span class="appointment-pill" data-tone="${t(
+                                  (function (t) {
+                                      const e = K(t);
+                                      return 'completed' === e
+                                          ? 'success'
+                                          : 'cancelled' === e || 'no_show' === e
+                                            ? 'danger'
+                                            : 'pending' === e
+                                              ? 'warning'
+                                              : 'neutral';
+                                  })(n)
+                              )}">${t(Z(n))}</span>\n            <small>${t(o[0] || i.note)}</small>\n        </div>\n    `
+                          );
+                      })(
+                          e
+                      )}</td>\n                    <td data-label="Acciones">${(function (
+                          e
+                      ) {
+                          const n = Number(e.id || 0),
+                              a = G(e),
+                              i = (function (t) {
+                                  const e = String(t || '').replace(/\D+/g, '');
+                                  return e ? `https://wa.me/${e}` : '';
+                              })(e.phone || ''),
+                              o = [];
+                          return (
+                              i &&
+                                  o.push(
+                                      `<a href="${t(i)}" target="_blank" rel="noopener" aria-label="WhatsApp de ${t(e.name || 'Paciente')}" title="WhatsApp para seguimiento">WhatsApp</a>`
+                                  ),
+                              ('pending_transfer_review' !== a &&
+                                  'pending_transfer' !== a) ||
+                                  (o.push(
+                                      `<button type="button" data-action="approve-transfer" data-id="${n}">Aprobar</button>`
+                                  ),
+                                  o.push(
+                                      `<button type="button" data-action="reject-transfer" data-id="${n}">Rechazar</button>`
+                                  )),
                               o.push(
-                                  `<a href="${t(i)}" target="_blank" rel="noopener" aria-label="WhatsApp de ${t(e.name || 'Paciente')}" title="WhatsApp para seguimiento">WhatsApp</a>`
-                              ),
-                          ('pending_transfer_review' !== a &&
-                              'pending_transfer' !== a) ||
-                              (o.push(
-                                  `<button type="button" data-action="approve-transfer" data-id="${n}">Aprobar</button>`
+                                  `<button type="button" data-action="mark-no-show" data-id="${n}">No show</button>`
                               ),
                               o.push(
-                                  `<button type="button" data-action="reject-transfer" data-id="${n}">Rechazar</button>`
-                              )),
-                          o.push(
-                              `<button type="button" data-action="mark-no-show" data-id="${n}">No show</button>`
-                          ),
-                          o.push(
-                              `<button type="button" data-action="cancel-appointment" data-id="${n}">Cancelar</button>`
-                          ),
-                          `<div class="table-actions">${o.join('')}</div>`
-                      );
-                  })(e)}</td>\n                </tr>\n            `;
+                                  `<button type="button" data-action="cancel-appointment" data-id="${n}">Cancelar</button>`
+                              ),
+                              `<div class="table-actions">${o.join('')}</div>`
+                          );
+                      })(e)}</td>\n                </tr>\n            `
+                  );
               })
               .join('')
         : `<tr class="table-empty-row"><td colspan="6">${t('No hay citas para el filtro actual.')}</td></tr>`;
