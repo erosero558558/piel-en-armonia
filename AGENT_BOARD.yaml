@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 440
+  revision: 443
   updated_at: 2026-03-10
 
 tasks:
@@ -6467,5 +6467,43 @@ tasks:
     evidence_ref: "verification/agent-runs/AG-162.md"
     depends_on: []
     prompt: "Harden shell V6 widget render contracts"
+    created_at: 2026-03-10
+    updated_at: 2026-03-10
+
+  - id: AG-163
+    title: "Harden V6 header render contracts"
+    owner: ernes
+    executor: codex
+    status: done
+    status_since_at: "2026-03-10T04:42:09.025Z"
+    risk: low
+    scope: frontend-public
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    files: ["src/apps/astro/src/components/public-v6/PublicHeaderV6.astro"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-10T04:42:09.025Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Harden V6 header render contracts"
+    acceptance_ref: "verification/agent-runs/AG-163.md"
+    evidence_ref: "verification/agent-runs/AG-163.md"
+    depends_on: []
+    prompt: "Harden V6 header render contracts"
     created_at: 2026-03-10
     updated_at: 2026-03-10

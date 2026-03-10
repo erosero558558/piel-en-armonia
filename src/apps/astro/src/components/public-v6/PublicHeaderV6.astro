@@ -1,12 +1,20 @@
 ---
 const { navModel = {} } = Astro.props;
 
+const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
 const locale = navModel?.locale === 'en' ? 'en' : 'es';
 const header = navModel?.header && typeof navModel.header === 'object' ? navModel.header : {};
 const mega = navModel?.mega && typeof navModel.mega === 'object' ? navModel.mega : {};
 const brand = navModel?.brand && typeof navModel.brand === 'object' ? navModel.brand : {};
 const headerUi = navModel?.ui?.header && typeof navModel.ui.header === 'object' ? navModel.ui.header : {};
-const links = Array.isArray(header.links) ? header.links : [];
+const links = (Array.isArray(header.links) ? header.links : [])
+    .map((item) => ({
+        id: hasText(item?.id) ? item.id.trim() : '',
+        label: hasText(item?.label) ? item.label.trim() : '',
+        href: hasText(item?.href) ? item.href.trim() : '',
+        kind: item?.kind === 'mega' ? 'mega' : 'standard',
+    }))
+    .filter((item) => item.label && item.href);
 
 const normalizePath = (value) => {
     const raw = String(value || '').trim();
@@ -17,6 +25,8 @@ const normalizePath = (value) => {
 
 const currentPath = normalizePath(navModel?.pathname || '/');
 const homeHref = locale === 'en' ? '/en/' : '/es/';
+const brandLogo = hasText(brand.logo) ? brand.logo.trim() : '';
+const brandTag = hasText(brand.tag) ? brand.tag.trim() : '';
 
 const isActive = (href) => {
     const target = normalizePath(href);
@@ -28,26 +38,82 @@ const isActive = (href) => {
 
 const megaLink = links.find((item) => item.kind === 'mega') || null;
 const standardLinks = links.filter((item) => item.kind !== 'mega');
-const megaColumns = Array.isArray(mega.columns) ? mega.columns : [];
+const megaColumns = (Array.isArray(mega.columns) ? mega.columns : [])
+    .map((column, index) => {
+        const context = column?.context && typeof column.context === 'object' ? column.context : {};
+        const items = (Array.isArray(column?.items) ? column.items : [])
+            .map((item) => ({
+                label: hasText(item?.label) ? item.label.trim() : '',
+                href: hasText(item?.href) ? item.href.trim() : '',
+                children: (Array.isArray(item?.children) ? item.children : [])
+                    .map((child) => ({
+                        label: hasText(child?.label) ? child.label.trim() : '',
+                        href: hasText(child?.href) ? child.href.trim() : '',
+                    }))
+                    .filter((child) => child.label && child.href),
+            }))
+            .filter((item) => item.label && item.href);
+        return {
+            id: hasText(column?.id) ? column.id.trim() : `v6-mega-column-${index + 1}`,
+            heading: hasText(column?.heading) ? column.heading.trim() : '',
+            context: {
+                eyebrow: hasText(context?.eyebrow) ? context.eyebrow.trim() : '',
+                title: hasText(context?.title) ? context.title.trim() : '',
+                deck: hasText(context?.deck) ? context.deck.trim() : '',
+                href: hasText(context?.href) ? context.href.trim() : '',
+            },
+            items,
+        };
+    })
+    .filter(
+        (column) =>
+            column.heading &&
+            column.context.eyebrow &&
+            column.context.title &&
+            column.context.href &&
+            column.items.length
+    );
 const megaPanelId = 'v6-mega-panel';
 const searchPanelId = 'v6-search-panel';
-const megaLabel = mega.title || '';
-const megaRootHref = megaLink?.href || homeHref;
-const menuLabel = header.menuLabel || '';
+const megaLabel = hasText(mega.title) ? mega.title.trim() : '';
+const megaCloseLabel = hasText(mega.closeLabel) ? mega.closeLabel.trim() : '';
+const megaRootHref = megaLink?.href || '';
+const menuLabel = hasText(header.menuLabel) ? header.menuLabel.trim() : '';
+const closeMenuLabel = hasText(header.closeMenuLabel) ? header.closeMenuLabel.trim() : '';
+const searchLabel = hasText(header.searchLabel) ? header.searchLabel.trim() : '';
+const contactLabel = hasText(header.contactLabel) ? header.contactLabel.trim() : '';
+const contactHref = hasText(header.contactHref) ? header.contactHref.trim() : '';
+const switchLabel = hasText(header.switchLabel) ? header.switchLabel.trim() : '';
+const switchHref = hasText(header.switchHref) ? header.switchHref.trim() : '';
+const primaryNavAria = hasText(headerUi.primaryNavAria) ? headerUi.primaryNavAria.trim() : '';
+const megaCategoryTabsAria = hasText(headerUi.megaCategoryTabsAria) ? headerUi.megaCategoryTabsAria.trim() : '';
+const openCategoryLabel = hasText(headerUi.openCategoryLabel) ? headerUi.openCategoryLabel.trim() : '';
+const mobileNavAria = hasText(headerUi.mobileNavAria) ? headerUi.mobileNavAria.trim() : '';
 const searchUi =
     headerUi?.search && typeof headerUi.search === 'object'
         ? headerUi.search
         : {};
-
-const getColumnContext = (column) => (column?.context && typeof column.context === 'object' ? column.context : null);
+const searchDialogAria = hasText(searchUi.dialogAria) ? searchUi.dialogAria.trim() : '';
+const searchEyebrow = hasText(searchUi.eyebrow) ? searchUi.eyebrow.trim() : '';
+const searchInputLabel = hasText(searchUi.inputLabel) ? searchUi.inputLabel.trim() : '';
+const searchPlaceholder = hasText(searchUi.placeholder) ? searchUi.placeholder.trim() : '';
+const searchHint = hasText(searchUi.hint) ? searchUi.hint.trim() : '';
+const searchResultsAria = hasText(searchUi.resultsAria) ? searchUi.resultsAria.trim() : '';
+const searchEmptyTitle = hasText(searchUi.emptyTitle) ? searchUi.emptyTitle.trim() : '';
+const searchEmptyBody = hasText(searchUi.emptyBody) ? searchUi.emptyBody.trim() : '';
+const searchCloseLabel = hasText(searchUi.closeLabel) ? searchUi.closeLabel.trim() : '';
+const searchResultsLimit =
+    Number.isFinite(Number(searchUi.resultsLimit)) && Number(searchUi.resultsLimit) > 0
+        ? String(Math.max(1, Math.trunc(Number(searchUi.resultsLimit))))
+        : '8';
 const customSearchEntries = Array.isArray(header.searchEntries) ? header.searchEntries : [];
 const searchEntries = [];
 const searchKeys = new Set();
 
-const addSearchEntry = (entry, eyebrowFallback = '') => {
+const addSearchEntry = (entry) => {
     if (!entry || typeof entry !== 'object') return;
-    const label = String(entry.label || '').trim();
-    const href = String(entry.href || '').trim();
+    const label = hasText(entry.label) ? entry.label.trim() : '';
+    const href = hasText(entry.href) ? entry.href.trim() : '';
     if (!label || !href) return;
     const key = href;
     if (searchKeys.has(key)) return;
@@ -55,42 +121,47 @@ const addSearchEntry = (entry, eyebrowFallback = '') => {
     searchEntries.push({
         label,
         href,
-        eyebrow: String(entry.eyebrow || eyebrowFallback || '').trim(),
-        deck: String(entry.deck || '').trim(),
+        eyebrow: hasText(entry.eyebrow) ? entry.eyebrow.trim() : '',
+        deck: hasText(entry.deck) ? entry.deck.trim() : '',
     });
 };
 
-if (customSearchEntries.length) {
-    customSearchEntries.forEach((entry) => addSearchEntry(entry));
-} else {
-    links.forEach((link) => addSearchEntry(link));
-    megaColumns.forEach((column) => {
-        const eyebrow = String(column?.heading || '').trim();
-        (column.items || []).forEach((item) => {
-            addSearchEntry(item, eyebrow);
-            (item.children || []).forEach((child) => addSearchEntry(child, eyebrow));
-        });
-    });
-}
+customSearchEntries.forEach((entry) => addSearchEntry(entry));
 
 const searchIndexJson = JSON.stringify(searchEntries);
+const hasMega = Boolean(megaLink && megaLabel && megaCloseLabel && megaRootHref && megaColumns.length);
+const hasSearch =
+    Boolean(
+        searchEntries.length &&
+            searchLabel &&
+            searchDialogAria &&
+            searchInputLabel &&
+            searchPlaceholder &&
+            searchResultsAria &&
+            searchEmptyTitle &&
+            searchEmptyBody &&
+            searchCloseLabel
+    );
+const hasContact = Boolean(contactLabel && contactHref);
+const hasSwitch = Boolean(switchLabel && switchHref);
+const hasDrawer = Boolean(menuLabel && (links.length || hasMega || hasSwitch || hasContact));
 ---
 
 <header class="v6-header" data-v6-header>
     <div class="v6-header__bar">
         <a class="v6-header__logo" href={homeHref}>
-            <span class="v6-header__logo-mark">{brand.logo || ''}</span>
-            <small class="v6-header__logo-tag">{brand.tag || ''}</small>
+            {brandLogo ? <span class="v6-header__logo-mark">{brandLogo}</span> : null}
+            {brandTag ? <small class="v6-header__logo-tag">{brandTag}</small> : null}
         </a>
 
-        <nav class="v6-header__nav" aria-label={headerUi.primaryNavAria || ''}>
+        <nav class="v6-header__nav" aria-label={primaryNavAria}>
             {
                 standardLinks.slice(0, 1).map((link) => (
                     <a class:list={['v6-header__link', isActive(link.href) && 'is-active']} href={link.href}>{link.label}</a>
                 ))
             }
             {
-                megaLink ? (
+                hasMega ? (
                     <button
                         class:list={['v6-header__link', isActive(megaLink.href) && 'is-active']}
                         type="button"
@@ -111,22 +182,28 @@ const searchIndexJson = JSON.stringify(searchEntries);
         </nav>
 
         <div class="v6-header__actions">
-            <a class="v6-header__contact" href={header.contactHref || '#'} target="_blank" rel="noopener noreferrer">{header.contactLabel || ''}</a>
-            <button
-                class="v6-header__search"
-                type="button"
-                data-v6-search-open
-                aria-label={header.searchLabel || ''}
-                aria-haspopup="dialog"
-                aria-expanded="false"
-                aria-controls={searchPanelId}
-            >
-                <span aria-hidden="true">&#9906;</span>
-            </button>
-            <button class="v6-header__menu" type="button" data-v6-drawer-open aria-label={menuLabel}>{menuLabel}</button>
+            {hasContact ? <a class="v6-header__contact" href={contactHref} target="_blank" rel="noopener noreferrer">{contactLabel}</a> : null}
+            {
+                hasSearch ? (
+                    <button
+                        class="v6-header__search"
+                        type="button"
+                        data-v6-search-open
+                        aria-label={searchLabel}
+                        aria-haspopup="dialog"
+                        aria-expanded="false"
+                        aria-controls={searchPanelId}
+                    >
+                        <span aria-hidden="true">&#9906;</span>
+                    </button>
+                ) : null
+            }
+            {hasDrawer ? <button class="v6-header__menu" type="button" data-v6-drawer-open aria-label={menuLabel}>{menuLabel}</button> : null}
         </div>
     </div>
 
+    {
+        hasMega ? (
     <div id={megaPanelId} class="v6-mega" data-v6-mega hidden>
         <div class="v6-mega__shell">
             <div class="v6-mega__head">
@@ -134,14 +211,14 @@ const searchIndexJson = JSON.stringify(searchEntries);
                     <span>{megaLabel}</span>
                     <span class="v6-mega__arrow" aria-hidden="true">&gt;</span>
                 </a>
-                <button type="button" data-v6-mega-close aria-label={mega.closeLabel || ''}>&times;</button>
+                <button type="button" data-v6-mega-close aria-label={megaCloseLabel}>&times;</button>
             </div>
 
             <div class="v6-mega__menu" data-v6-mega-layout>
                 <nav
                     class="v6-mega__categories"
                     data-v6-mega-categories
-                    aria-label={headerUi.megaCategoryTabsAria || ''}
+                    aria-label={megaCategoryTabsAria}
                 >
                     {
                         megaColumns.map((column, index) => {
@@ -167,8 +244,8 @@ const searchIndexJson = JSON.stringify(searchEntries);
                 <div class="v6-mega__details" data-v6-mega-details>
                     {
                         megaColumns.map((column, index) => {
-                            const context = getColumnContext(column);
-                            const sectionHref = context?.href || megaRootHref;
+                            const context = column.context;
+                            const sectionHref = context.href;
                             const detailPanelId = `v6-mega-detail-${index + 1}`;
                             return (
                                 <section
@@ -180,13 +257,17 @@ const searchIndexJson = JSON.stringify(searchEntries);
                                     hidden={index !== 0}
                                 >
                                     <a class="v6-mega__context" href={sectionHref} data-v6-mega-focusable>
-                                        <p>{context?.eyebrow || ''}</p>
-                                        <h3>{context?.title || column.heading}</h3>
-                                        {context?.deck ? <p>{context.deck}</p> : null}
-                                        <strong>
-                                            {headerUi.openCategoryLabel || ''}
-                                            <span aria-hidden="true">&gt;</span>
-                                        </strong>
+                                        <p>{context.eyebrow}</p>
+                                        <h3>{context.title}</h3>
+                                        {context.deck ? <p>{context.deck}</p> : null}
+                                        {
+                                            openCategoryLabel ? (
+                                                <strong>
+                                                    {openCategoryLabel}
+                                                    <span aria-hidden="true">&gt;</span>
+                                                </strong>
+                                            ) : null
+                                        }
                                     </a>
 
                                     <ul class="v6-mega__items">
@@ -222,13 +303,17 @@ const searchIndexJson = JSON.stringify(searchEntries);
         </div>
     </div>
     <div class="v6-mega-backdrop" data-v6-mega-backdrop hidden></div>
+        ) : null
+    }
 
+    {
+        hasDrawer ? (
     <div class="v6-drawer" data-v6-drawer hidden>
         <div class="v6-drawer__scrim" data-v6-drawer-close></div>
-        <aside class="v6-drawer__panel" aria-label={headerUi.mobileNavAria || ''}>
+        <aside class="v6-drawer__panel" aria-label={mobileNavAria}>
             <header>
-                <strong>{brand.logo || ''}</strong>
-                <button type="button" data-v6-drawer-close>{header.closeMenuLabel || ''}</button>
+                {brandLogo ? <strong>{brandLogo}</strong> : null}
+                {closeMenuLabel ? <button type="button" data-v6-drawer-close>{closeMenuLabel}</button> : null}
             </header>
             <nav>
                 {
@@ -240,6 +325,8 @@ const searchIndexJson = JSON.stringify(searchEntries);
                     ))
                 }
             </nav>
+            {
+                hasMega ? (
             <section class="v6-drawer__mega">
                 <h3>{megaLabel}</h3>
                 {
@@ -279,47 +366,55 @@ const searchIndexJson = JSON.stringify(searchEntries);
                     ))
                 }
             </section>
+                ) : null
+            }
             <footer>
-                <a href={header.switchHref || '#'}>{header.switchLabel || ''}</a>
-                <a href={header.contactHref || '#'} target="_blank" rel="noopener noreferrer">{header.contactLabel || ''}</a>
+                {hasSwitch ? <a href={switchHref}>{switchLabel}</a> : null}
+                {hasContact ? <a href={contactHref} target="_blank" rel="noopener noreferrer">{contactLabel}</a> : null}
             </footer>
         </aside>
     </div>
+        ) : null
+    }
 
+    {
+        hasSearch ? (
     <div
         id={searchPanelId}
         class="v6-search"
         data-v6-search
         data-v6-search-index={searchIndexJson}
-        data-v6-search-empty-title={searchUi.emptyTitle || ''}
-        data-v6-search-empty-body={searchUi.emptyBody || ''}
-        data-v6-search-results-limit={String(searchUi.resultsLimit || 8)}
+        data-v6-search-empty-title={searchEmptyTitle}
+        data-v6-search-empty-body={searchEmptyBody}
+        data-v6-search-results-limit={searchResultsLimit}
         hidden
     >
         <div class="v6-search__scrim" data-v6-search-close></div>
-        <section class="v6-search__dialog" role="dialog" aria-modal="true" aria-label={searchUi.dialogAria || header.searchLabel || ''}>
+        <section class="v6-search__dialog" role="dialog" aria-modal="true" aria-label={searchDialogAria}>
             <div class="v6-search__head">
                 <div class="v6-search__intro">
-                    <p>{searchUi.eyebrow || ''}</p>
-                    <h2>{header.searchLabel || ''}</h2>
+                    {searchEyebrow ? <p>{searchEyebrow}</p> : null}
+                    <h2>{searchLabel}</h2>
                 </div>
-                <button type="button" data-v6-search-close aria-label={searchUi.closeLabel || ''}>&times;</button>
+                <button type="button" data-v6-search-close aria-label={searchCloseLabel}>&times;</button>
             </div>
 
             <label class="v6-search__field">
-                <span>{searchUi.inputLabel || ''}</span>
+                <span>{searchInputLabel}</span>
                 <input
                     type="search"
                     data-v6-search-input
-                    placeholder={searchUi.placeholder || ''}
+                    placeholder={searchPlaceholder}
                     autocomplete="off"
                     spellcheck="false"
                 />
             </label>
 
-            {searchUi.hint ? <p class="v6-search__hint">{searchUi.hint}</p> : null}
+            {searchHint ? <p class="v6-search__hint">{searchHint}</p> : null}
 
-            <ul class="v6-search__results" data-v6-search-results aria-label={searchUi.resultsAria || ''}></ul>
+            <ul class="v6-search__results" data-v6-search-results aria-label={searchResultsAria}></ul>
         </section>
     </div>
+        ) : null
+    }
 </header>
