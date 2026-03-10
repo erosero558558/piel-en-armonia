@@ -43,44 +43,6 @@ const pricingPlans = Array.isArray(pricing.plans) ? pricing.plans : [];
 const securityCards = Array.isArray(security.cards) ? security.cards : [];
 const faqItems = Array.isArray(faq.items) ? faq.items : [];
 const finalActions = Array.isArray(finalCta.actions) ? finalCta.actions : [];
-const suiteRouteMeta =
-    locale === 'en'
-        ? {
-              software: {
-                  eyebrow: 'Core suite',
-                  deck: 'Kiosk, waiting room display, reception, and web booking.',
-              },
-              demo: {
-                  eyebrow: 'Patient entry',
-                  deck: 'Mobile arrival confirmation by QR or direct link.',
-              },
-              status: {
-                  eyebrow: 'Patient visibility',
-                  deck: 'Private queue progress after check-in.',
-              },
-              dashboard: {
-                  eyebrow: 'Management',
-                  deck: 'Wait time, no-show, and room load in one view.',
-              },
-          }
-        : {
-              software: {
-                  eyebrow: 'Suite base',
-                  deck: 'Kiosco, TV sala, recepcion y agenda web conectadas.',
-              },
-              demo: {
-                  eyebrow: 'Entrada paciente',
-                  deck: 'Confirmacion de llegada por QR o enlace directo.',
-              },
-              status: {
-                  eyebrow: 'Visibilidad paciente',
-                  deck: 'Seguimiento privado despues del check-in.',
-              },
-              dashboard: {
-                  eyebrow: 'Gerencia',
-                  deck: 'Espera, no-show y carga por consultorio en una vista.',
-              },
-          };
 
 const hasModules = Boolean(modules.title && moduleCards.length);
 const hasJourneys = Boolean(journeys.title && journeyLanes.length);
@@ -118,28 +80,22 @@ const normalizePath = (value) => {
     if (!raw) return '';
     return raw.endsWith('/') ? raw : `${raw}/`;
 };
-const currentPath = normalizePath(breadcrumb.at(-1)?.href);
-const suiteMapItems = Array.isArray(navModel?.header?.links)
-    ? navModel.header.links
-          .map((item, index) => {
-              const id = normalizeText(item?.id);
-              const href = normalizeHref(item?.href);
+const suiteMapItems = Array.isArray(page?.suiteMap)
+    ? page.suiteMap
+          .map((item) => {
+              const href = normalizePath(item?.href);
               const label = normalizeText(item?.label);
-              if (
-                  !['software', 'demo', 'status', 'dashboard'].includes(id) ||
-                  !href ||
-                  !label
-              ) {
+              const pageKey = normalizeText(item?.pageKey);
+              if (!href || !label || !pageKey) {
                   return null;
               }
-              const meta = suiteRouteMeta[id] || {};
               return {
                   href,
                   label,
-                  eyebrow: normalizeText(meta.eyebrow),
-                  deck: normalizeText(meta.deck),
-                  index: String(index + 1).padStart(2, '0'),
-                  isActive: normalizePath(href) === currentPath,
+                  eyebrow: normalizeText(item?.eyebrow),
+                  deck: normalizeText(item?.deck),
+                  index: normalizeText(item?.index),
+                  isActive: pageKey === 'landing',
               };
           })
           .filter(Boolean)

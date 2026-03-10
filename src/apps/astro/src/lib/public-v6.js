@@ -42,6 +42,22 @@ const SOFTWARE_ROUTE_MAP = {
     },
 };
 
+const SOFTWARE_PAGE_KEYS = ['landing', 'demo', 'status', 'dashboard'];
+
+const SOFTWARE_NAV_ID_BY_PAGE_KEY = {
+    landing: 'software',
+    demo: 'demo',
+    status: 'status',
+    dashboard: 'dashboard',
+};
+
+const SOFTWARE_PAGE_KEY_BY_NAV_ID = {
+    software: 'landing',
+    demo: 'demo',
+    status: 'status',
+    dashboard: 'dashboard',
+};
+
 function hasText(value) {
     return typeof value === 'string' && value.trim().length > 0;
 }
@@ -61,6 +77,29 @@ function isObject(value) {
 
 function normalizeLocale(locale) {
     return locale === 'en' ? 'en' : 'es';
+}
+
+function normalizeSoftwarePageKey(pageKey) {
+    return SOFTWARE_PAGE_KEYS.includes(pageKey) ? pageKey : 'landing';
+}
+
+function getSoftwareNavId(pageKey) {
+    const safePageKey = normalizeSoftwarePageKey(pageKey);
+    return SOFTWARE_NAV_ID_BY_PAGE_KEY[safePageKey] || 'software';
+}
+
+function resolveSoftwarePageKey(locale, candidateId = '', candidateHref = '') {
+    const safeLocale = normalizeLocale(locale);
+    const safeId = normalizeText(candidateId);
+    if (SOFTWARE_PAGE_KEY_BY_NAV_ID[safeId]) {
+        return SOFTWARE_PAGE_KEY_BY_NAV_ID[safeId];
+    }
+
+    const safeHref = normalizePath(candidateHref);
+    const routeEntry = Object.entries(SOFTWARE_ROUTE_MAP[safeLocale]).find(
+        ([, route]) => normalizePath(route) === safeHref
+    );
+    return routeEntry ? routeEntry[0] : '';
 }
 
 function readJson(relativePath) {
@@ -617,6 +656,55 @@ function sanitizeSoftwareNav(nav) {
     };
 }
 
+function buildSoftwareSuiteRoutes(locale, nav = {}, pages = {}) {
+    const safeLocale = normalizeLocale(locale);
+    const header = isObject(nav.header) ? nav.header : {};
+    const links = Array.isArray(header.links) ? header.links : [];
+    const searchEntries = Array.isArray(header.searchEntries)
+        ? header.searchEntries
+        : [];
+
+    const linkByPageKey = new Map();
+    for (const link of links) {
+        const pageKey = resolveSoftwarePageKey(safeLocale, link?.id, link?.href);
+        if (!pageKey || linkByPageKey.has(pageKey)) {
+            continue;
+        }
+        linkByPageKey.set(pageKey, link);
+    }
+
+    const searchByPageKey = new Map();
+    for (const entry of searchEntries) {
+        const pageKey = resolveSoftwarePageKey(safeLocale, '', entry?.href);
+        if (!pageKey || searchByPageKey.has(pageKey)) {
+            continue;
+        }
+        searchByPageKey.set(pageKey, entry);
+    }
+
+    return SOFTWARE_PAGE_KEYS.map((pageKey, index) => {
+        const route = SOFTWARE_ROUTE_MAP[safeLocale]?.[pageKey];
+        const page = isObject(pages[pageKey]) ? pages[pageKey] : {};
+        const link = linkByPageKey.get(pageKey);
+        const searchEntry = searchByPageKey.get(pageKey);
+        const href = normalizePath(link?.href || route);
+        const label = normalizeText(link?.label);
+        const heading = normalizeText(page.heading || page.title);
+        if (!href || !label || !heading) {
+            return null;
+        }
+        return {
+            pageKey,
+            navId: getSoftwareNavId(pageKey),
+            href,
+            label,
+            eyebrow: normalizeText(searchEntry?.eyebrow),
+            deck: normalizeText(searchEntry?.deck),
+            index: String(index + 1).padStart(2, '0'),
+        };
+    }).filter(Boolean);
+}
+
 function sanitizeSoftwareHero(hero) {
     const source = isObject(hero) ? hero : {};
     return {
@@ -756,16 +844,91 @@ function sanitizeSoftwareSurfacePage(page) {
     };
 }
 
-function sanitizeSoftwareData(payload) {
+function finalizeSoftwareLandingPage(locale, page = {}, suiteRoutes = []) {
+    const safeLocale = normalizeLocale(locale);
+    const surfaceCards = Array.isArray(page?.surfaces?.cards)
+        ? page.surfaces.cards
+              .map((card) => {
+                  const pageKey = resolveSoftwarePageKey(safeLocale, '', card?.href);
+                  const suiteRoute = suiteRoutes.find(
+                      (route) => route.pageKey === pageKey
+                  );
+                  if (!pageKey || pageKey === 'landing' || !suiteRoute) {
+                      return null;
+                  }
+                  return {
+                      ...card,
+                      pageKey,
+                      navId: suiteRoute.navId,
+                  };
+              })
+              .filter(Boolean)
+        : [];
+
+    return {
+        ...page,
+        pageKey: 'landing',
+        suiteRoute:
+            suiteRoutes.find((route) => route.pageKey === 'landing') || null,
+        suiteMap: suiteRoutes,
+        surfaces: {
+            ...(isObject(page?.surfaces) ? page.surfaces : {}),
+            cards: surfaceCards,
+        },
+    };
+}
+
+function finalizeSoftwareSurfacePage(page = {}, pageKey = 'landing', suiteRoutes = []) {
+    const safePageKey = normalizeSoftwarePageKey(pageKey);
+    return {
+        ...page,
+        pageKey: safePageKey,
+        suiteRoute:
+            suiteRoutes.find((route) => route.pageKey === safePageKey) || null,
+        suiteMap: suiteRoutes,
+    };
+}
+
+function sanitizeSoftwareData(locale, payload) {
     const source = isObject(payload) ? payload : {};
     const pages = isObject(source.pages) ? source.pages : {};
+    const sanitizedNav = sanitizeSoftwareNav(source.nav);
+    const sanitizedPages = {
+        landing: sanitizeSoftwareLandingPage(pages.landing),
+        demo: sanitizeSoftwareSurfacePage(pages.demo),
+        status: sanitizeSoftwareSurfacePage(pages.status),
+        dashboard: sanitizeSoftwareSurfacePage(pages.dashboard),
+    };
+    const suiteRoutes = buildSoftwareSuiteRoutes(locale, sanitizedNav, sanitizedPages);
+
     return {
-        nav: sanitizeSoftwareNav(source.nav),
+        nav: {
+            ...sanitizedNav,
+            softwareSuite: {
+                routes: suiteRoutes,
+            },
+        },
         pages: {
-            landing: sanitizeSoftwareLandingPage(pages.landing),
-            demo: sanitizeSoftwareSurfacePage(pages.demo),
-            status: sanitizeSoftwareSurfacePage(pages.status),
-            dashboard: sanitizeSoftwareSurfacePage(pages.dashboard),
+            landing: finalizeSoftwareLandingPage(
+                locale,
+                sanitizedPages.landing,
+                suiteRoutes
+            ),
+            demo: finalizeSoftwareSurfacePage(
+                sanitizedPages.demo,
+                'demo',
+                suiteRoutes
+            ),
+            status: finalizeSoftwareSurfacePage(
+                sanitizedPages.status,
+                'status',
+                suiteRoutes
+            ),
+            dashboard: finalizeSoftwareSurfacePage(
+                sanitizedPages.dashboard,
+                'dashboard',
+                suiteRoutes
+            ),
         },
     };
 }
@@ -926,7 +1089,10 @@ export function getV6ServiceData(locale) {
 }
 
 export function getV6SoftwareData(locale) {
-    return sanitizeSoftwareData(readLocaleJson(normalizeLocale(locale), 'software.json'));
+    return sanitizeSoftwareData(
+        normalizeLocale(locale),
+        readLocaleJson(normalizeLocale(locale), 'software.json')
+    );
 }
 
 export function getV6SoftwarePage(locale, pageKey = 'landing') {
