@@ -1287,137 +1287,162 @@ function Tt(t) {
 function $t() {
     const e = b(),
         n = Array.isArray(e?.data?.callbacks) ? e.data.callbacks : [],
-        a = (function (t, e) {
-            const n = ht(e);
-            return n
-                ? t.filter((t) =>
-                      [t.telefono, t.phone, t.preferencia, t.status].some((t) =>
-                          ht(t).includes(n)
-                      )
-                  )
-                : t;
-        })(
-            (function (t, e) {
-                const n = yt(e);
-                return 'pending' === n || 'contacted' === n
-                    ? t.filter((t) => kt(t.status) === n)
-                    : 'today' === n
-                      ? t.filter((t) => qt(t.fecha || t.createdAt))
-                      : 'sla_urgent' === n
-                        ? t.filter(
-                              (t) => 'pending' === kt(t.status) && St(t) >= 120
-                          )
-                        : t;
-            })(n, e.callbacks.filter),
-            e.callbacks.search
-        ),
+        a = e.callbacks,
         o = (function (t, e) {
             const n = [...t];
             return 'waiting_desc' === vt(e)
                 ? (n.sort((t, e) => wt(t) - wt(e)), n)
                 : (n.sort((t, e) => wt(e) - wt(t)), n);
-        })(a, e.callbacks.sort),
-        s = new Set((e.callbacks.selected || []).map((t) => Number(t || 0)));
+        })(
+            (function (t, e) {
+                const n = ht(e);
+                return n
+                    ? t.filter((t) =>
+                          [t.telefono, t.phone, t.preferencia, t.status].some(
+                              (t) => ht(t).includes(n)
+                          )
+                      )
+                    : t;
+            })(
+                (function (t, e) {
+                    const n = yt(e);
+                    return 'pending' === n || 'contacted' === n
+                        ? t.filter((t) => kt(t.status) === n)
+                        : 'today' === n
+                          ? t.filter((t) => qt(t.fecha || t.createdAt))
+                          : 'sla_urgent' === n
+                            ? t.filter(
+                                  (t) =>
+                                      'pending' === kt(t.status) && St(t) >= 120
+                              )
+                            : t;
+                })(n, a.filter),
+                a.search
+            ),
+            a.sort
+        ),
+        s = new Set((a.selected || []).map((t) => Number(t || 0))),
+        l = (function (t) {
+            const e = t.filter((t) => 'pending' === kt(t.status)),
+                n = e.filter((t) => St(t) >= 120),
+                a = e.slice().sort((t, e) => wt(t) - wt(e))[0];
+            return {
+                pendingCount: e.length,
+                urgentCount: n.length,
+                todayCount: t.filter((t) => qt(t.fecha || t.createdAt)).length,
+                next: a,
+                queueHealth:
+                    n.length > 0
+                        ? 'Cola: prioridad alta'
+                        : e.length > 0
+                          ? 'Cola: atencion requerida'
+                          : 'Cola: estable',
+                queueState:
+                    n.length > 0
+                        ? 'danger'
+                        : e.length > 0
+                          ? 'warning'
+                          : 'success',
+            };
+        })(n);
     (c(
         '#callbacksGrid',
-        o.length
-            ? o
-                  .map((e, n) =>
-                      (function (
-                          e,
-                          { selected: n = !1, position: a = null } = {}
-                      ) {
-                          const o = kt(e.status),
-                              s =
-                                  'pending' === o
-                                      ? 'callback-card pendiente'
-                                      : 'callback-card contactado',
-                              r = 'pending' === o ? 'pendiente' : 'contactado',
-                              c = Number(e.id || 0),
-                              l = Ct(e),
-                              u = St(e),
-                              d = At(u),
-                              p = e.preferencia || 'Sin preferencia',
-                              m =
-                                  'pending' === o
-                                      ? 1 === a
-                                          ? 'Siguiente contacto recomendado'
-                                          : 'Caso pendiente en cola'
-                                      : 'Caso ya resuelto';
-                          return `\n        <article class="${s}${n ? ' is-selected' : ''}" data-callback-id="${c}" data-callback-status="${r}">\n            <header>\n                <div class="callback-card-heading">\n                    <span class="callback-status-pill" data-tone="${t('pending' === o ? d.tone : 'success')}">${t('pending' === o ? 'Pendiente' : 'Contactado')}</span>\n                    <h4>${t(l)}</h4>\n                </div>\n                <span class="callback-card-wait" data-tone="${t('pending' === o ? d.tone : 'success')}">${t('pending' === o ? d.label : 'Cerrado')}</span>\n            </header>\n            <div class="callback-card-grid">\n                <p><span>Preferencia</span><strong>${t(p)}</strong></p>\n                <p><span>Fecha</span><strong>${t(i(e.fecha || e.createdAt || ''))}</strong></p>\n                <p><span>Espera</span><strong>${t(Mt(u))}</strong></p>\n                <p><span>Lectura</span><strong>${t(m)}</strong></p>\n            </div>\n            <p class="callback-card-note">${t('pending' === o ? d.note : 'Registro ya marcado como contactado.')}</p>\n            <div class="callback-actions">\n                <button type="button" data-action="mark-contacted" data-callback-id="${c}" data-callback-date="${t(e.fecha || '')}" ${'pending' !== o ? 'disabled' : ''}>${'pending' === o ? 'Marcar contactado' : 'Contactado'}</button>\n            </div>\n        </article>\n    `;
-                      })(e, {
-                          selected: s.has(Number(e.id || 0)),
-                          position: n + 1,
-                      })
-                  )
-                  .join('')
-            : '<p class="callbacks-grid-empty" data-admin-empty-state="callbacks">No hay callbacks para el filtro actual.</p>'
+        (function (e, n) {
+            return e.length
+                ? e
+                      .map((e, a) =>
+                          (function (
+                              e,
+                              { selected: n = !1, position: a = null } = {}
+                          ) {
+                              const o = kt(e.status),
+                                  s =
+                                      'pending' === o
+                                          ? 'callback-card pendiente'
+                                          : 'callback-card contactado',
+                                  r =
+                                      'pending' === o
+                                          ? 'pendiente'
+                                          : 'contactado',
+                                  c = Number(e.id || 0),
+                                  l = Ct(e),
+                                  u = St(e),
+                                  d = At(u),
+                                  p = e.preferencia || 'Sin preferencia',
+                                  m =
+                                      'pending' === o
+                                          ? 1 === a
+                                              ? 'Siguiente contacto recomendado'
+                                              : 'Caso pendiente en cola'
+                                          : 'Caso ya resuelto';
+                              return `\n        <article class="${s}${n ? ' is-selected' : ''}" data-callback-id="${c}" data-callback-status="${r}">\n            <header>\n                <div class="callback-card-heading">\n                    <span class="callback-status-pill" data-tone="${t('pending' === o ? d.tone : 'success')}">${t('pending' === o ? 'Pendiente' : 'Contactado')}</span>\n                    <h4>${t(l)}</h4>\n                </div>\n                <span class="callback-card-wait" data-tone="${t('pending' === o ? d.tone : 'success')}">${t('pending' === o ? d.label : 'Cerrado')}</span>\n            </header>\n            <div class="callback-card-grid">\n                <p><span>Preferencia</span><strong>${t(p)}</strong></p>\n                <p><span>Fecha</span><strong>${t(i(e.fecha || e.createdAt || ''))}</strong></p>\n                <p><span>Espera</span><strong>${t(Mt(u))}</strong></p>\n                <p><span>Lectura</span><strong>${t(m)}</strong></p>\n            </div>\n            <p class="callback-card-note">${t('pending' === o ? d.note : 'Registro ya marcado como contactado.')}</p>\n            <div class="callback-actions">\n                <button type="button" data-action="mark-contacted" data-callback-id="${c}" data-callback-date="${t(e.fecha || '')}" ${'pending' !== o ? 'disabled' : ''}>${'pending' === o ? 'Marcar contactado' : 'Contactado'}</button>\n            </div>\n        </article>\n    `;
+                          })(e, {
+                              selected: n.has(Number(e.id || 0)),
+                              position: a + 1,
+                          })
+                      )
+                      .join('')
+                : '<p class="callbacks-grid-empty" data-admin-empty-state="callbacks">No hay callbacks para el filtro actual.</p>';
+        })(o, s)
     ),
-        r('#callbacksToolbarMeta', `Mostrando ${o.length} de ${n.length}`));
-    const l = [];
-    ('all' !== yt(e.callbacks.filter) &&
-        l.push(
-            'pending' === yt(e.callbacks.filter)
-                ? 'Pendientes'
-                : 'contacted' === yt(e.callbacks.filter)
-                  ? 'Contactados'
-                  : 'today' === yt(e.callbacks.filter)
-                    ? 'Hoy'
-                    : 'Urgentes SLA'
-        ),
-        ht(e.callbacks.search) && l.push(`Busqueda: ${e.callbacks.search}`),
-        'waiting_desc' === vt(e.callbacks.sort)
-            ? l.push('Orden: Mayor espera (SLA)')
-            : l.push('Orden: Mas recientes'),
-        r('#callbacksToolbarState', l.join(' | ')));
-    const u = document.getElementById('callbackFilter');
-    u instanceof HTMLSelectElement && (u.value = yt(e.callbacks.filter));
-    const d = document.getElementById('callbackSort');
-    d instanceof HTMLSelectElement && (d.value = vt(e.callbacks.sort));
-    const p = document.getElementById('searchCallbacks');
-    (p instanceof HTMLInputElement &&
-        p.value !== e.callbacks.search &&
-        (p.value = e.callbacks.search),
-        (function (t) {
-            const e = ht(t);
-            document
-                .querySelectorAll(
-                    '.callback-quick-filter-btn[data-filter-value]'
-                )
-                .forEach((t) => {
-                    const n = ht(t.dataset.filterValue) === e;
-                    t.classList.toggle('is-active', n);
-                });
-        })(e.callbacks.filter));
-    const m = (function (t) {
-        const e = t.filter((t) => 'pending' === kt(t.status)),
-            n = e.filter((t) => St(t) >= 120),
-            a = e.slice().sort((t, e) => wt(t) - wt(e))[0];
-        return {
-            pendingCount: e.length,
-            urgentCount: n.length,
-            todayCount: t.filter((t) => qt(t.fecha || t.createdAt)).length,
-            next: a,
-            queueHealth:
-                n.length > 0
-                    ? 'Cola: prioridad alta'
-                    : e.length > 0
-                      ? 'Cola: atencion requerida'
-                      : 'Cola: estable',
-            queueState:
-                n.length > 0 ? 'danger' : e.length > 0 ? 'warning' : 'success',
-        };
-    })(n);
-    (r('#callbacksOpsPendingCount', m.pendingCount),
-        r('#callbacksOpsUrgentCount', m.urgentCount),
-        r('#callbacksOpsTodayCount', m.todayCount),
-        r('#callbacksOpsQueueHealth', m.queueHealth));
-    const g = document.getElementById('callbacksBulkSelectVisibleBtn');
-    g instanceof HTMLButtonElement && (g.disabled = 0 === o.length);
-    const f = document.getElementById('callbacksBulkClearBtn');
-    f instanceof HTMLButtonElement && (f.disabled = 0 === s.size);
-    const h = document.getElementById('callbacksBulkMarkBtn');
-    (h instanceof HTMLButtonElement && (h.disabled = 0 === s.size),
+        (function (t, e, n) {
+            (r('#callbacksToolbarMeta', `Mostrando ${e} de ${n}`),
+                r(
+                    '#callbacksToolbarState',
+                    (function (t) {
+                        const e = [];
+                        return (
+                            'all' !== yt(t.filter) &&
+                                e.push(
+                                    'pending' === yt(t.filter)
+                                        ? 'Pendientes'
+                                        : 'contacted' === yt(t.filter)
+                                          ? 'Contactados'
+                                          : 'today' === yt(t.filter)
+                                            ? 'Hoy'
+                                            : 'Urgentes SLA'
+                                ),
+                            ht(t.search) && e.push(`Busqueda: ${t.search}`),
+                            'waiting_desc' === vt(t.sort)
+                                ? e.push('Orden: Mayor espera (SLA)')
+                                : e.push('Orden: Mas recientes'),
+                            e
+                        );
+                    })(t).join(' | ')
+                ));
+            const a = document.getElementById('callbackFilter');
+            a instanceof HTMLSelectElement && (a.value = yt(t.filter));
+            const i = document.getElementById('callbackSort');
+            i instanceof HTMLSelectElement && (i.value = vt(t.sort));
+            const o = document.getElementById('searchCallbacks');
+            (o instanceof HTMLInputElement &&
+                o.value !== t.search &&
+                (o.value = t.search),
+                (function (t) {
+                    const e = ht(t);
+                    document
+                        .querySelectorAll(
+                            '.callback-quick-filter-btn[data-filter-value]'
+                        )
+                        .forEach((t) => {
+                            const n = ht(t.dataset.filterValue) === e;
+                            t.classList.toggle('is-active', n);
+                        });
+                })(t.filter),
+                Tt(t));
+        })(a, o.length, n.length),
+        r('#callbacksOpsPendingCount', l.pendingCount),
+        r('#callbacksOpsUrgentCount', l.urgentCount),
+        r('#callbacksOpsTodayCount', l.todayCount),
+        r('#callbacksOpsQueueHealth', l.queueHealth),
+        (function (t, e) {
+            const n = document.getElementById('callbacksBulkSelectVisibleBtn');
+            n instanceof HTMLButtonElement && (n.disabled = 0 === t);
+            const a = document.getElementById('callbacksBulkClearBtn');
+            a instanceof HTMLButtonElement && (a.disabled = 0 === e);
+            const i = document.getElementById('callbacksBulkMarkBtn');
+            i instanceof HTMLButtonElement && (i.disabled = 0 === e);
+        })(o.length, s.size),
         (function (t, e, n, a) {
             (r(
                 '#callbacksDeckSummary',
@@ -1458,8 +1483,7 @@ function $t() {
             const c = document.getElementById('callbacksSelectionChip');
             (c && c.classList.toggle('is-hidden', 0 === a),
                 r('#callbacksSelectedCount', a));
-        })(m, o.length, n.length, s.size),
-        Tt(b().callbacks));
+        })(l, o.length, n.length, s.size));
 }
 function _t(t, { persist: e = !0 } = {}) {
     (g((e) => ({ ...e, callbacks: { ...e.callbacks, ...t } })),
