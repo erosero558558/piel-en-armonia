@@ -723,17 +723,17 @@ function V(e, a, n) {
 const U = 'admin-appointments-sort',
     K = 'admin-appointments-density',
     Q = 'datetime_desc',
-    G = 'comfortable';
-function W(e) {
+    W = 'comfortable';
+function G(e) {
     return String(e || '')
         .toLowerCase()
         .trim();
 }
 function J(e) {
-    return W(e.paymentStatus || e.payment_status || '');
+    return G(e.paymentStatus || e.payment_status || '');
 }
 function Y(e) {
-    return W(e);
+    return G(e);
 }
 function Z(e, t = '-') {
     const a = String(e || '')
@@ -794,7 +794,7 @@ function ne(e) {
             pending_gateway: 'Pago en proceso',
             paid: 'Pagado',
             failed: 'Fallido',
-        }[W(e)] || Z(e, 'Pendiente')
+        }[G(e)] || Z(e, 'Pendiente')
     );
 }
 function ie(e) {
@@ -805,7 +805,7 @@ function ie(e) {
             completed: 'Completada',
             cancelled: 'Cancelada',
             no_show: 'No show',
-        }[W(e)] || Z(e, 'Pendiente')
+        }[G(e)] || Z(e, 'Pendiente')
     );
 }
 function oe(e) {
@@ -819,7 +819,7 @@ function oe(e) {
     );
 }
 function se(e, t) {
-    const a = W(t);
+    const a = G(t);
     return 'pending_transfer' === a
         ? e.filter((e) => {
               const t = J(e);
@@ -937,7 +937,7 @@ function ce(t) {
                           ).trim();
                       return `\n        <div class="appointment-payment-stack">\n            <span class="appointment-pill" data-tone="${e(
                           (function (e) {
-                              const t = W(e);
+                              const t = G(e);
                               return 'paid' === t
                                   ? 'success'
                                   : 'failed' === t
@@ -946,7 +946,7 @@ function ce(t) {
                                       ? 'neutral'
                                       : 'warning';
                           })(a)
-                      )}">${e(ne(a))}</span>\n            <small>Metodo: ${e(((i = t.paymentMethod || t.payment_method || ''), { transfer: 'Transferencia', cash: 'Consultorio', card: 'Tarjeta', gateway: 'Pasarela' }[W(i)] || Z(i, 'Metodo pendiente')))}</small>\n            ${n ? `<a href="${e(n)}" target="_blank" rel="noopener">Ver comprobante</a>` : '<small>Sin comprobante adjunto</small>'}\n        </div>\n    `;
+                      )}">${e(ne(a))}</span>\n            <small>Metodo: ${e(((i = t.paymentMethod || t.payment_method || ''), { transfer: 'Transferencia', cash: 'Consultorio', card: 'Tarjeta', gateway: 'Pasarela' }[G(i)] || Z(i, 'Metodo pendiente')))}</small>\n            ${n ? `<a href="${e(n)}" target="_blank" rel="noopener">Ver comprobante</a>` : '<small>Sin comprobante adjunto</small>'}\n        </div>\n    `;
                       var i;
                   })(
                       t
@@ -964,7 +964,7 @@ function ce(t) {
                           'cancelled' === a && o.push('Cita cerrada'),
                           `\n        <div class="appointment-status-stack">\n            <span class="appointment-pill" data-tone="${e(
                               (function (e) {
-                                  const t = W(e);
+                                  const t = G(e);
                                   return 'completed' === t
                                       ? 'success'
                                       : 'cancelled' === t || 'no_show' === t
@@ -1023,17 +1023,17 @@ function ue() {
             density: 'comfortable',
         },
         o = (function (e, t) {
-            const a = W(t),
+            const a = G(t),
                 n = [...e];
             return 'patient_az' === a
-                ? (n.sort((e, t) => W(e.name).localeCompare(W(t.name), 'es')),
+                ? (n.sort((e, t) => G(e.name).localeCompare(G(t.name), 'es')),
                   n)
                 : 'datetime_asc' === a
                   ? (n.sort((e, t) => X(e) - X(t)), n)
                   : (n.sort((e, t) => X(t) - X(e)), n);
         })(
             (function (e, t) {
-                const a = W(t);
+                const a = G(t);
                 return a
                     ? e.filter((e) =>
                           [
@@ -1045,7 +1045,7 @@ function ue() {
                               e.paymentStatus,
                               e.payment_status,
                               e.status,
-                          ].some((e) => W(e).includes(a))
+                          ].some((e) => G(e).includes(a))
                       )
                     : e;
             })(se(a, i.filter), i.search),
@@ -1058,20 +1058,20 @@ function ue() {
                     '#appointmentsToolbarState',
                     (function (e, t) {
                         const a = [];
-                        if ('all' !== W(e.filter)) {
+                        if ('all' !== G(e.filter)) {
                             const t = {
                                 pending_transfer: 'Transferencias por validar',
                                 triage_attention: 'Triage accionable',
                                 upcoming_48h: 'Proximas 48h',
                                 no_show: 'No show',
                             };
-                            a.push(t[W(e.filter)] || e.filter);
+                            a.push(t[G(e.filter)] || e.filter);
                         }
                         return (
-                            W(e.search) && a.push(`Busqueda: ${e.search}`),
-                            'patient_az' === W(e.sort)
+                            G(e.search) && a.push(`Busqueda: ${e.search}`),
+                            'patient_az' === G(e.sort)
                                 ? a.push('Paciente (A-Z)')
-                                : 'datetime_asc' === W(e.sort)
+                                : 'datetime_asc' === G(e.sort)
                                   ? a.push('Fecha ascendente')
                                   : a.push('Fecha reciente'),
                             0 === t && a.push('Resultados: 0'),
@@ -1081,7 +1081,7 @@ function ue() {
                 ));
             const n = document.getElementById('clearAppointmentsFiltersBtn');
             if (n) {
-                const t = 'all' !== W(e.filter) || '' !== W(e.search);
+                const t = 'all' !== G(e.filter) || '' !== G(e.search);
                 n.classList.toggle('is-hidden', !t);
             }
             const i = document.getElementById('appointmentFilter');
@@ -1096,24 +1096,24 @@ function ue() {
             (l &&
                 l.classList.toggle(
                     'appointments-density-compact',
-                    'compact' === W(e.density)
+                    'compact' === G(e.density)
                 ),
                 document
                     .querySelectorAll(
                         '[data-action="appointment-density"][data-density]'
                     )
                     .forEach((t) => {
-                        const a = W(t.dataset.density) === W(e.density);
+                        const a = G(t.dataset.density) === G(e.density);
                         t.classList.toggle('is-active', a);
                     }),
                 (function (e) {
-                    const t = W(e);
+                    const t = G(e);
                     document
                         .querySelectorAll(
                             '.appointment-quick-filter-btn[data-filter-value]'
                         )
                         .forEach((e) => {
-                            const a = W(e.dataset.filterValue) === t;
+                            const a = G(e.dataset.filterValue) === t;
                             e.classList.toggle('is-active', a);
                         });
                 })(e.filter),
@@ -1239,7 +1239,7 @@ function de(e) {
     (g((t) => ({ ...t, appointments: { ...t.appointments, ...e } })), ue());
 }
 function pe(e) {
-    de({ filter: W(e) || 'all' });
+    de({ filter: G(e) || 'all' });
 }
 function me(e) {
     de({ search: String(e || '') });
@@ -1682,14 +1682,14 @@ function Ke(e) {
 function Qe(e) {
     return [...new Set(e.map(Ke).filter(Boolean))].sort();
 }
-function Ge(e) {
+function We(e) {
     const t = String(e || '').trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) return '';
     const a = new Date(`${t}T12:00:00`);
     return Number.isNaN(a.getTime()) ? '' : u(a) === t ? t : '';
 }
-function We(e) {
-    const t = Ge(e);
+function Ge(e) {
+    const t = We(e);
     if (!t) return null;
     const a = new Date(`${t}T12:00:00`);
     return Number.isNaN(a.getTime()) ? null : a;
@@ -1700,7 +1700,7 @@ function Je(e) {
         Object.keys(e || {})
             .sort()
             .forEach((a) => {
-                const n = Ge(a);
+                const n = We(a);
                 if (!n) return;
                 const i = Qe(Array.isArray(e[a]) ? e[a] : []);
                 i.length && (t[n] = i);
@@ -1718,28 +1718,28 @@ function Xe(e, t = '') {
     let a = null;
     if (e instanceof Date && !Number.isNaN(e.getTime())) a = new Date(e);
     else {
-        const t = Ge(e);
+        const t = We(e);
         t && (a = new Date(`${t}T12:00:00`));
     }
     if (!a) {
-        const e = We(t);
+        const e = Ge(t);
         a = e ? new Date(e) : new Date();
     }
     return (a.setDate(1), a.setHours(12, 0, 0, 0), a);
 }
 function et(e, t) {
-    const a = Ge(e);
+    const a = We(e);
     if (a) return a;
     const n = Object.keys(t || {})[0];
     if (n) {
-        const e = Ge(n);
+        const e = We(n);
         if (e) return e;
     }
     return u(new Date());
 }
 function tt() {
     const e = b(),
-        t = Ge(e.availability.selectedDate),
+        t = We(e.availability.selectedDate),
         a = Xe(e.availability.monthAnchor, t);
     try {
         (t ? localStorage.setItem(Ve, t) : localStorage.removeItem(Ve),
@@ -1759,7 +1759,7 @@ function it() {
 }
 function ot() {
     const e = b(),
-        t = Ge(e.availability.selectedDate);
+        t = We(e.availability.selectedDate);
     if (t) return t;
     const a = Ye(e.availability.draft || {});
     return Object.keys(a)[0] || u(new Date());
@@ -1780,7 +1780,7 @@ function rt(e = 1) {
     const t = nt(),
         a = Object.keys(t).filter((e) => t[e]?.length > 0);
     if (!a.length) return '';
-    const n = Ge(b().availability.selectedDate) || u(new Date());
+    const n = We(b().availability.selectedDate) || u(new Date());
     return (
         (e >= 0 ? a.sort() : a.sort().reverse()).find((t) =>
             e >= 0 ? t >= n : t <= n
@@ -1889,7 +1889,7 @@ function lt() {
                 r(
                     '#availabilitySelectionSummary',
                     `Fecha: ${a} | ${(function (e) {
-                        const t = We(e);
+                        const t = Ge(e);
                         return t
                             ? new Intl.DateTimeFormat('es-EC', {
                                   weekday: 'short',
@@ -1971,7 +1971,7 @@ function dt(e) {
     ct({ lastAction: String(e || '') }, { render: !0 });
 }
 function pt(e, t, a = '') {
-    const n = Ge(e) || ot();
+    const n = We(e) || ot();
     if (!n) return;
     const i = nt(),
         o = Qe(Array.isArray(t) ? t : []);
@@ -1979,7 +1979,7 @@ function pt(e, t, a = '') {
         ut(i, { selectedDate: n, monthAnchor: n, lastAction: a }));
 }
 function mt(e, t) {
-    const a = Ge(e);
+    const a = We(e);
     a &&
         ct(
             { selectedDate: a, monthAnchor: Xe(a, a), lastAction: t || '' },
@@ -1987,7 +1987,7 @@ function mt(e, t) {
         );
 }
 function bt() {
-    return Ge(b().availability.selectedDate) || ot();
+    return We(b().availability.selectedDate) || ot();
 }
 function gt(e) {
     return Ke(e);
@@ -2001,7 +2001,7 @@ function ft(e) {
             ? t.availability.draft[a]
             : [],
         i = (function (e, t) {
-            const a = We(e);
+            const a = Ge(e);
             return a ? (a.setDate(a.getDate() + Number(t || 0)), u(a)) : '';
         })(a, e);
     i && pt(i, n, `Duplicado ${n.length} slots en ${i}`);
@@ -2155,12 +2155,14 @@ function Nt(e) {
             cancelled: e.filter((e) => 'cancelled' === e.status).length,
         },
         callingNowByConsultorio: n,
-        nextTickets: t.slice(0, 5).map((e, t) => ({
-            id: e.id,
-            ticketCode: e.ticketCode,
-            patientInitials: e.patientInitials,
-            position: t + 1,
-        })),
+        nextTickets: t
+            .slice(0, 5)
+            .map((e, t) => ({
+                id: e.id,
+                ticketCode: e.ticketCode,
+                patientInitials: e.patientInitials,
+                position: t + 1,
+            })),
     };
 }
 function Dt(e, t = 0) {
@@ -2434,7 +2436,7 @@ function Qt() {
     })();
     return e.length ? e : Vt();
 }
-function Gt(e) {
+function Wt(e) {
     const t = 2 === Number(e || 0) ? 2 : 1;
     return (
         zt().queueTickets.find(
@@ -2444,7 +2446,7 @@ function Gt(e) {
         ) || null
     );
 }
-function Wt() {
+function Gt() {
     const e = b(),
         t = Number(e.queue.stationConsultorio || 1);
     return (
@@ -2757,7 +2759,36 @@ function fa(e) {
 function ha(e, t) {
     return ((la = { ...fa(t), ...(e || {}) }), la);
 }
-function ya(t, a, n) {
+function ya(e) {
+    return 'sala_tv' === e.surface
+        ? 'Sala TV lista para TCL C655'
+        : 'kiosk' === e.surface
+          ? 'Kiosco listo para mostrador'
+          : e.lock
+            ? `Operador ${'c2' === e.station ? 'C2' : 'C1'} fijo`
+            : 'Operador en modo libre';
+}
+function va(e) {
+    if ('sala_tv' === e.surface)
+        return [
+            'Abre el QR desde otra pantalla o descarga la APK directamente.',
+            'Instala la app en la TCL C655 y prioriza Ethernet sobre Wi-Fi.',
+            'Valida audio, reconexión y que la sala refleje llamados reales.',
+        ];
+    if ('kiosk' === e.surface)
+        return [
+            'Instala la app en el mini PC o PC del kiosco.',
+            'Deja la impresora térmica conectada y la app en fullscreen.',
+            'Usa la versión web como respaldo inmediato si el equipo se reinicia.',
+        ];
+    const t = 'c2' === e.station ? 'C2' : 'C1';
+    return [
+        `Instala Turnero Operador en el PC de ${t} y conecta el receptor USB del Genius Numpad 1000.`,
+        `En el primer arranque deja el equipo como ${e.lock ? `${t} fijo` : 'modo libre'}${e.oneTap ? ' con 1 tecla' : ''}.`,
+        'Si el numpad no reporta Enter como se espera, calibra la tecla externa dentro de la app.',
+    ];
+}
+function ka(t, a, n) {
     const o = Zt[t],
         s = fa(n),
         r = na(a, n),
@@ -2776,7 +2807,7 @@ function ya(t, a, n) {
             .join('');
     return `\n        <article class="queue-app-card">\n            <div>\n                <p class="queue-app-card__eyebrow">${e(o.eyebrow)}</p>\n                <h5 class="queue-app-card__title">${e(o.title)}</h5>\n                <p class="queue-app-card__description">${e(o.description)}</p>\n            </div>\n            <p class="queue-app-card__meta">\n                v${e(a.version || '0.1.0')} · ${e(i(a.updatedAt || ''))}\n            </p>\n            <span class="queue-app-card__tag">Ideal para ${e(o.recommendedFor)}</span>\n            <div class="queue-app-card__actions">\n                ${r && r.url ? `<a href="${e(r.url)}" class="queue-app-card__cta-primary" download>Descargar para ${e(l)}</a>` : ''}\n            </div>\n            <div class="queue-app-card__targets">${c}</div>\n            <div class="queue-app-card__links">\n                <a href="${e(a.webFallbackUrl || '/')}">Abrir versión web</a>\n                <a href="${e(aa(t, s, a))}">Centro de instalación</a>\n                <button\n                    type="button"\n                    data-action="queue-copy-install-link"\n                    data-queue-install-url="${e(sa((r && r.url) || ''))}"\n                >\n                    Copiar enlace\n                </button>\n            </div>\n            <ul class="queue-app-card__notes">\n                ${o.notes.map((t) => `<li>${e(t)}</li>`).join('')}\n            </ul>\n        </article>\n    `;
 }
-function va(t) {
+function wa(t) {
     const a = Zt.sala_tv,
         n = fa(oa()),
         o = t.targets.android_tv || {},
@@ -2784,7 +2815,7 @@ function va(t) {
         r = ra(s);
     return `\n        <article class="queue-app-card">\n            <div>\n                <p class="queue-app-card__eyebrow">${e(a.eyebrow)}</p>\n                <h5 class="queue-app-card__title">${e(a.title)}</h5>\n                <p class="queue-app-card__description">${e(a.description)}</p>\n            </div>\n            <p class="queue-app-card__meta">\n                v${e(t.version || '0.1.0')} · ${e(i(t.updatedAt || ''))}\n            </p>\n            <span class="queue-app-card__tag">Ideal para ${e(a.recommendedFor)}</span>\n            <div class="queue-app-card__actions">\n                <a\n                    href="${e(r)}"\n                    class="queue-app-card__cta-primary"\n                    target="_blank"\n                    rel="noopener"\n                >\n                    Mostrar QR de instalación\n                </a>\n                <a href="${e(s)}" download>Descargar APK</a>\n            </div>\n            <div class="queue-app-card__links">\n                <a href="${e(t.webFallbackUrl || '/sala-turnos.html')}">\n                    Abrir fallback web\n                </a>\n                <a href="${e(aa('sala_tv', n, t))}">\n                    Centro de instalación\n                </a>\n                <button\n                    type="button"\n                    data-action="queue-copy-install-link"\n                    data-queue-install-url="${e(sa(s))}"\n                >\n                    Copiar enlace\n                </button>\n            </div>\n            <ul class="queue-app-card__notes">\n                ${a.notes.map((t) => `<li>${e(t)}</li>`).join('')}\n            </ul>\n        </article>\n    `;
 }
-function ka(e) {
+function Sa(e) {
     const t = Number(e);
     if (!Number.isFinite(t) || t < 0) return 'sin señal';
     if (t < 60) return `${t}s`;
@@ -2797,7 +2828,7 @@ function ka(e) {
     }
     return n > 0 ? `${a}m ${n}s` : `${a}m`;
 }
-function wa(e) {
+function qa(e) {
     const t = (function () {
         const e = b().data.queueSurfaceStatus;
         return e && 'object' == typeof e ? e : {};
@@ -2813,7 +2844,7 @@ function wa(e) {
               instances: [],
           };
 }
-function Sa(e, t) {
+function Ca(e, t) {
     if (!t || 'object' != typeof t) return ['Sin señal'];
     const a = t.details && 'object' == typeof t.details ? t.details : {},
         n = [],
@@ -2852,58 +2883,7 @@ function Sa(e, t) {
               ));
     return n.slice(0, 4);
 }
-function qa() {
-    const e = b(),
-        { queueMeta: t } = zt(),
-        a = String(e.queue?.syncMode || 'live')
-            .trim()
-            .toLowerCase(),
-        n = Boolean(e.queue?.fallbackPartial),
-        i = String(t?.updatedAt || '').trim(),
-        o = i ? Date.parse(i) : NaN,
-        s = Number.isFinite(o)
-            ? Math.max(0, Math.round((Date.now() - o) / 1e3))
-            : null;
-    return 'fallback' === a || n
-        ? {
-              state: 'alert',
-              badge: 'Atender ahora',
-              title: 'Cola en fallback',
-              summary:
-                  'El admin ya está usando respaldo parcial. Refresca la cola y mantén Operador, Kiosco y Sala TV en sus rutas web preparadas hasta que vuelva el realtime.',
-              steps: [
-                  'Presiona Refrescar y confirma que el sync vuelva a vivo antes de cerrar la apertura.',
-                  'Mantén un solo operador activo por estación para evitar confusión mientras dura el respaldo.',
-                  'Si la TV sigue mostrando llamados, no la cierres; prioriza estabilidad sobre reinstalar.',
-              ],
-          }
-        : Number.isFinite(s) && s >= 60
-          ? {
-                state: 'warning',
-                badge: `Watchdog ${s}s`,
-                title: 'Realtime lento o en reconexión',
-                summary:
-                    'La cola no parece caída, pero el watchdog ya detecta retraso. Conviene refrescar desde admin antes de que el equipo operador se quede desfasado.',
-                steps: [
-                    'Refresca la cola y confirma que Sync vuelva a "vivo".',
-                    'Si Operador ya estaba abierto, valida un llamado de prueba antes de seguir atendiendo.',
-                    'Si el retraso persiste, opera desde las rutas web preparadas mientras revisas red local.',
-                ],
-            }
-          : {
-                state: 'ready',
-                badge: 'Sin incidentes',
-                title: 'Cola sincronizada',
-                summary:
-                    'No hay incidentes visibles de realtime. Usa esta sección como ruta rápida si falla numpad, térmica o audio durante el día.',
-                steps: [
-                    'Mantén este panel abierto como tablero de rescate para operador, kiosco y sala.',
-                    'Si notas un retraso mayor a un minuto, refresca antes de tocar instalación o hardware.',
-                    'En una caída puntual, prioriza abrir la ruta preparada del equipo antes de reiniciar dispositivos.',
-                ],
-            };
-}
-function Ca(t, a) {
+function _a(t, a) {
     if (
         !(
             document.getElementById('queueSurfaceTelemetry') instanceof
@@ -2933,7 +2913,7 @@ function Ca(t, a) {
                     actionLabel: 'Abrir sala TV',
                 },
             ].map((e) => {
-                const t = wa(e.key),
+                const t = qa(e.key),
                     n =
                         t.latest && 'object' == typeof t.latest
                             ? t.latest
@@ -2967,9 +2947,9 @@ function Ca(t, a) {
                     summary: o,
                     ageLabel:
                         n && void 0 !== n.ageSec && null !== n.ageSec
-                            ? `Heartbeat hace ${ka(n.ageSec)}`
+                            ? `Heartbeat hace ${Sa(n.ageSec)}`
                             : 'Sin heartbeat todavía',
-                    chips: Sa(e.key, n),
+                    chips: Ca(e.key, n),
                     route: s,
                     actionLabel: e.actionLabel,
                 };
@@ -3002,7 +2982,7 @@ function Ca(t, a) {
                         : `cada ${Math.round(a / 60)}m`;
                 })(e.intervalMs),
                 n = e.lastSuccessAt
-                    ? `ultimo ciclo hace ${ka(Math.max(0, Math.round((Date.now() - Number(e.lastSuccessAt || 0)) / 1e3)))}`
+                    ? `ultimo ciclo hace ${Sa(Math.max(0, Math.round((Date.now() - Number(e.lastSuccessAt || 0)) / 1e3)))}`
                     : 'sin ciclo exitoso todavía';
             return 'refreshing' === t || Boolean(e.inFlight)
                 ? {
@@ -3053,64 +3033,71 @@ function Ca(t, a) {
         `\n        <section class="queue-surface-telemetry__shell">\n            <div class="queue-surface-telemetry__header">\n                <div>\n                    <p class="queue-app-card__eyebrow">Equipos en vivo</p>\n                    <h5 id="queueSurfaceTelemetryTitle" class="queue-app-card__title">${e(o ? 'Equipos con atención urgente' : s ? 'Equipos con señal parcial' : 'Equipos en vivo')}</h5>\n                    <p id="queueSurfaceTelemetrySummary" class="queue-surface-telemetry__summary">${e(r)}</p>\n                    <div id="queueSurfaceTelemetryAutoMeta" class="queue-surface-telemetry__auto-meta">\n                        <span id="queueSurfaceTelemetryAutoState" class="queue-surface-telemetry__auto-state" data-state="${e(i.state)}">${e(i.label)}</span>\n                        <span class="queue-surface-telemetry__auto-copy">${e(i.meta)}</span>\n                    </div>\n                </div>\n                <span id="queueSurfaceTelemetryStatus" class="queue-surface-telemetry__status" data-state="${e(u)}">${e(c)}</span>\n            </div>\n            <div id="queueSurfaceTelemetryCards" class="queue-surface-telemetry__grid" role="list" aria-label="Estado vivo por equipo">\n                ${n.map((t) => `\n                    <article class="queue-surface-card" data-state="${e(t.state)}" role="listitem">\n                        <div class="queue-surface-card__header">\n                            <div>\n                                <strong>${e(t.title)}</strong>\n                                <p class="queue-surface-card__meta">${e(t.deviceLabel)}</p>\n                            </div>\n                            <span class="queue-surface-card__badge">${e(t.badge)}</span>\n                        </div>\n                        <p class="queue-surface-card__summary">${e(t.summary)}</p>\n                        <p class="queue-surface-card__age">${e(t.ageLabel)}</p>\n                        <div class="queue-surface-card__chips">${t.chips.map((t) => `<span class="queue-surface-card__chip">${e(t)}</span>`).join('')}</div>\n                        <div class="queue-surface-card__actions">\n                            <a href="${e(t.route)}" target="_blank" rel="noopener" class="queue-surface-card__action queue-surface-card__action--primary">${e(t.actionLabel)}</a>\n                            <button type="button" class="queue-surface-card__action" data-action="queue-copy-install-link" data-queue-install-url="${e(t.route)}">Copiar ruta</button>\n                            <button type="button" class="queue-surface-card__action" data-action="refresh-admin-data">Actualizar estado</button>\n                        </div>\n                    </article>\n                `).join('')}\n            </div>\n        </section>\n    `
     );
 }
-function _a(e, t) {
-    const a = fa(t),
-        n = e.operator || Yt.operator,
-        i = e.kiosk || Yt.kiosk,
-        o = e.sala_tv || Yt.sala_tv,
-        s = ia('operator', n, { ...a }),
-        r = ia('kiosk', i, { ...a }),
-        l = ia('sala_tv', o, { ...a }),
-        c = 'c2' === a.station ? 'C2' : 'C1';
-    return [
-        {
-            id: 'operator_ready',
-            title: 'Operador + Genius Numpad 1000',
-            detail: `Abre Operador en ${a.lock ? `${c} fijo` : 'modo libre'}${a.oneTap ? ' con 1 tecla' : ''} y confirma Numpad Enter, Decimal y Subtract.`,
-            hint: 'El receptor USB 2.4 GHz del numpad debe quedar conectado en el PC operador.',
-            href: s,
-            actionLabel: 'Abrir operador',
-        },
-        {
-            id: 'kiosk_ready',
-            title: 'Kiosco + ticket térmico',
-            detail: 'Abre el kiosco, genera un ticket de prueba y confirma que el panel muestre "Impresion OK".',
-            hint: 'Revisa papel, energía y USB de la térmica antes de dejar autoservicio abierto.',
-            href: r,
-            actionLabel: 'Abrir kiosco',
-        },
-        {
-            id: 'sala_ready',
-            title: 'Sala TV + audio en TCL C655',
-            detail: 'Abre la sala, ejecuta "Probar campanilla" y confirma audio activo con la TV conectada por Ethernet.',
-            hint: 'La TCL C655 debe quedar con volumen fijo y sin mute antes del primer llamado real.',
-            href: l,
-            actionLabel: 'Abrir sala TV',
-        },
-        {
-            id: 'smoke_ready',
-            title: 'Smoke final de apertura',
-            detail: 'Haz un llamado real o de prueba desde Operador y verifica que recepción, kiosco y sala entiendan el flujo completo.',
-            hint: 'Marca este paso solo cuando el llamado salga end-to-end y sea visible en la TV.',
-            href: '/admin.html#queue',
-            actionLabel: 'Abrir cola admin',
-        },
-    ];
+function Aa() {
+    const e = b(),
+        { queueMeta: t } = zt(),
+        a = String(e.queue?.syncMode || 'live')
+            .trim()
+            .toLowerCase(),
+        n = Boolean(e.queue?.fallbackPartial),
+        i = String(t?.updatedAt || '').trim(),
+        o = i ? Date.parse(i) : Number.NaN,
+        s = Number.isFinite(o)
+            ? Math.max(0, Math.round((Date.now() - o) / 1e3))
+            : null;
+    return 'fallback' === a || n
+        ? {
+              state: 'alert',
+              badge: 'Atender ahora',
+              title: 'Cola en fallback',
+              summary:
+                  'El admin ya está usando respaldo parcial. Refresca la cola y mantén Operador, Kiosco y Sala TV en sus rutas web preparadas hasta que vuelva el realtime.',
+              steps: [
+                  'Presiona Refrescar y confirma que el sync vuelva a vivo antes de cerrar la apertura.',
+                  'Mantén un solo operador activo por estación para evitar confusión mientras dura el respaldo.',
+                  'Si la TV sigue mostrando llamados, no la cierres; prioriza estabilidad sobre reinstalar.',
+              ],
+          }
+        : Number.isFinite(s) && s >= 60
+          ? {
+                state: 'warning',
+                badge: `Watchdog ${s}s`,
+                title: 'Realtime lento o en reconexión',
+                summary:
+                    'La cola no parece caída, pero el watchdog ya detecta retraso. Conviene refrescar desde admin antes de que el equipo operador se quede desfasado.',
+                steps: [
+                    'Refresca la cola y confirma que Sync vuelva a "vivo".',
+                    'Si Operador ya estaba abierto, valida un llamado de prueba antes de seguir atendiendo.',
+                    'Si el retraso persiste, opera desde las rutas web preparadas mientras revisas red local.',
+                ],
+            }
+          : {
+                state: 'ready',
+                badge: 'Sin incidentes',
+                title: 'Cola sincronizada',
+                summary:
+                    'No hay incidentes visibles de realtime. Usa esta sección como ruta rápida si falla numpad, térmica o audio durante el día.',
+                steps: [
+                    'Mantén este panel abierto como tablero de rescate para operador, kiosco y sala.',
+                    'Si notas un retraso mayor a un minuto, refresca antes de tocar instalación o hardware.',
+                    'En una caída puntual, prioriza abrir la ruta preparada del equipo antes de reiniciar dispositivos.',
+                ],
+            };
 }
-function Aa(e) {
-    const t = wa(e),
+function $a(e) {
+    const t = qa(e),
         a = t.latest && 'object' == typeof t.latest ? t.latest : null;
     return {
         group: t,
         details: a?.details && 'object' == typeof a.details ? a.details : {},
     };
 }
-function $a(e) {
+function Ta(e) {
     const t = fa(e),
         a = 'c2' === t.station ? 'c2' : 'c1',
-        n = Aa('operator'),
-        i = Aa('kiosk'),
-        o = Aa('display'),
+        n = $a('operator'),
+        i = $a('kiosk'),
+        o = $a('display'),
         s = String(n.details.station || '').toLowerCase(),
         r = String(n.details.connection || 'live').toLowerCase(),
         l = !t.lock || !s || s === a,
@@ -3205,7 +3192,51 @@ function $a(e) {
             .map(([e]) => e);
     return { suggestedIds: h, suggestions: f, suggestedCount: h.length };
 }
-function Ta(t, a = 'secondary') {
+function Ma(e, t) {
+    const a = fa(t),
+        n = e.operator || Yt.operator,
+        i = e.kiosk || Yt.kiosk,
+        o = e.sala_tv || Yt.sala_tv,
+        s = ia('operator', n, { ...a }),
+        r = ia('kiosk', i, { ...a }),
+        l = ia('sala_tv', o, { ...a }),
+        c = 'c2' === a.station ? 'C2' : 'C1';
+    return [
+        {
+            id: 'operator_ready',
+            title: 'Operador + Genius Numpad 1000',
+            detail: `Abre Operador en ${a.lock ? `${c} fijo` : 'modo libre'}${a.oneTap ? ' con 1 tecla' : ''} y confirma Numpad Enter, Decimal y Subtract.`,
+            hint: 'El receptor USB 2.4 GHz del numpad debe quedar conectado en el PC operador.',
+            href: s,
+            actionLabel: 'Abrir operador',
+        },
+        {
+            id: 'kiosk_ready',
+            title: 'Kiosco + ticket térmico',
+            detail: 'Abre el kiosco, genera un ticket de prueba y confirma que el panel muestre "Impresion OK".',
+            hint: 'Revisa papel, energía y USB de la térmica antes de dejar autoservicio abierto.',
+            href: r,
+            actionLabel: 'Abrir kiosco',
+        },
+        {
+            id: 'sala_ready',
+            title: 'Sala TV + audio en TCL C655',
+            detail: 'Abre la sala, ejecuta "Probar campanilla" y confirma audio activo con la TV conectada por Ethernet.',
+            hint: 'La TCL C655 debe quedar con volumen fijo y sin mute antes del primer llamado real.',
+            href: l,
+            actionLabel: 'Abrir sala TV',
+        },
+        {
+            id: 'smoke_ready',
+            title: 'Smoke final de apertura',
+            detail: 'Haz un llamado real o de prueba desde Operador y verifica que recepción, kiosco y sala entiendan el flujo completo.',
+            hint: 'Marca este paso solo cuando el llamado salga end-to-end y sea visible en la TV.',
+            href: '/admin.html#queue',
+            actionLabel: 'Abrir cola admin',
+        },
+    ];
+}
+function La(t, a = 'secondary') {
     if (!t) return '';
     const n =
         'primary' === a
@@ -3215,7 +3246,158 @@ function Ta(t, a = 'secondary') {
         ? `\n            <button ${t.id ? `id="${e(t.id)}"` : ''} type="button" class="${n}" ${t.action ? `data-action="${e(t.action)}"` : ''}>\n                ${e(t.label || 'Continuar')}\n            </button>\n        `
         : `\n        <a ${t.id ? `id="${e(t.id)}"` : ''} href="${e(t.href || '/')}" class="${n}" target="_blank" rel="noopener">\n            ${e(t.label || 'Continuar')}\n        </a>\n    `;
 }
-function Ma() {
+function Ea(t, a, n) {
+    const i = document.getElementById('queueInstallConfigurator');
+    if (!(i instanceof HTMLElement)) return;
+    const o = (function (e, t) {
+        const a = fa(t),
+            n = (function (e) {
+                return 'kiosk' === e.surface || 'sala_tv' === e.surface
+                    ? e.surface
+                    : 'operator';
+            })(a),
+            i = e[n];
+        if (!i) return null;
+        const o =
+                (i.targets &&
+                    i.targets[
+                        (function (e, t) {
+                            return 'sala_tv' === e
+                                ? 'android_tv'
+                                : 'mac' === t.platform
+                                  ? 'mac'
+                                  : 'win';
+                        })(n, a)
+                    ]) ||
+                na(i, t) ||
+                null,
+            s = ia(n, i, a);
+        return {
+            preset: a,
+            surfaceKey: n,
+            appConfig: i,
+            downloadTarget: o,
+            preparedWebUrl: s,
+            qrUrl: ra(('sala_tv' === n && o && o.url) || s),
+            guideUrl: aa(n, a, i),
+            summaryTitle: ya(a),
+            setupSteps: va(a),
+        };
+    })(t, a);
+    o
+        ? ((function (t) {
+              const {
+                  preset: a,
+                  surfaceKey: n,
+                  downloadTarget: i,
+                  preparedWebUrl: o,
+                  summaryTitle: s,
+                  setupSteps: r,
+              } = t;
+              var c;
+              l(
+                  '#queueInstallConfigurator',
+                  `\n        <div class="queue-install-configurator__grid">\n            <section class="queue-install-configurator__panel">\n                <div>\n                    <p class="queue-app-card__eyebrow">Preparar equipo</p>\n                    <h5 class="queue-app-card__title">Asistente de instalación</h5>\n                    <p class="queue-app-card__description">Genera el perfil recomendado para cada equipo y copia la ruta exacta antes de instalar.</p>\n                </div>\n                <div class="queue-install-configurator__fields">\n                    <label class="queue-install-field" for="queueInstallSurfaceSelect">\n                        <span>Equipo</span>\n                        <select id="queueInstallSurfaceSelect">\n                            <option value="operator"${'operator' === n ? ' selected' : ''}>Operador</option>\n                            <option value="kiosk"${'kiosk' === n ? ' selected' : ''}>Kiosco</option>\n                            <option value="sala_tv"${'sala_tv' === n ? ' selected' : ''}>Sala TV</option>\n                        </select>\n                    </label>\n                    ${(function (
+                      e,
+                      t
+                  ) {
+                      return 'operator' !== t
+                          ? ''
+                          : `\n        <label class="queue-install-field" for="queueInstallProfileSelect">\n            <span>Perfil operador</span>\n            <select id="queueInstallProfileSelect">\n                <option value="c1_locked"${e.lock && 'c1' === e.station ? ' selected' : ''}>C1 fijo</option>\n                <option value="c2_locked"${e.lock && 'c2' === e.station ? ' selected' : ''}>C2 fijo</option>\n                <option value="free"${e.lock ? '' : ' selected'}>Modo libre</option>\n            </select>\n        </label>`;
+                  })(a, n)}\n                    ${(function (e, t) {
+                      return 'sala_tv' === t
+                          ? ''
+                          : `\n        <label class="queue-install-field" for="queueInstallPlatformSelect">\n            <span>Plataforma</span>\n            <select id="queueInstallPlatformSelect">\n                <option value="win"${'win' === e.platform ? ' selected' : ''}>Windows</option>\n                <option value="mac"${'mac' === e.platform ? ' selected' : ''}>macOS</option>\n            </select>\n        </label>`;
+                  })(a, n)}\n                    ${(function (e, t) {
+                      return 'operator' !== t
+                          ? ''
+                          : `\n        <label class="queue-install-toggle">\n            <input id="queueInstallOneTapInput" type="checkbox"${e.oneTap ? ' checked' : ''} />\n            <span>Activar 1 tecla para este operador</span>\n        </label>`;
+                  })(
+                      a,
+                      n
+                  )}\n                </div>\n            </section>\n            <section class="queue-install-configurator__panel queue-install-configurator__result">\n                <div>\n                    <p class="queue-app-card__eyebrow">Resultado listo</p>\n                    <h5 class="queue-app-card__title">${e(s)}</h5>\n                    <p class="queue-app-card__description">${'sala_tv' === n ? 'Usa el APK para la TV y mantén el fallback web como respaldo.' : 'Descarga la app correcta y usa la ruta preparada como validación o respaldo.'}</p>\n                </div>\n                <div class="queue-install-result__chips">\n                    ${(function (
+                      t
+                  ) {
+                      const { downloadTarget: a, preset: n, surfaceKey: i } = t,
+                          o =
+                              'operator' === i
+                                  ? `<span class="queue-app-card__tag">${n.lock ? ('c2' === n.station ? 'C2 bloqueado' : 'C1 bloqueado') : 'Modo libre'}</span>`
+                                  : '';
+                      return `\n        <span class="queue-app-card__tag">${e(a && a.label ? a.label : 'Perfil listo')}</span>\n        ${o}`;
+                  })(
+                      t
+                  )}\n                </div>\n                <div class="queue-install-result__meta"><span>Descarga recomendada</span><strong>${e((i && i.url) || 'Sin artefacto')}</strong></div>\n                <div class="queue-install-result__meta"><span>Ruta web preparada</span><strong>${e(o)}</strong></div>\n                <div class="queue-install-configurator__actions">\n                    ${(function (
+                      t
+                  ) {
+                      const {
+                              downloadTarget: a,
+                              preparedWebUrl: n,
+                              qrUrl: i,
+                              guideUrl: o,
+                          } = t,
+                          s = (a && a.url) || '';
+                      return `\n        ${s ? `<a href="${e(s)}" class="queue-app-card__cta-primary" download>Descargar artefacto</a>` : ''}\n        <button type="button" data-action="queue-copy-install-link" data-queue-install-url="${e(s)}">Copiar descarga</button>\n        <a href="${e(n)}" target="_blank" rel="noopener">Abrir ruta preparada</a>\n        <button type="button" data-action="queue-copy-install-link" data-queue-install-url="${e(n)}">Copiar ruta preparada</button>\n        <a href="${e(i)}" target="_blank" rel="noopener">Mostrar QR</a>\n        <a href="${e(o)}" target="_blank" rel="noopener">Abrir centro público</a>`;
+                  })(
+                      t
+                  )}\n                </div>\n                <ul class="queue-app-card__notes">${((c = r), c.map((t) => `<li>${e(t)}</li>`).join(''))}</ul>\n            </section>\n        </div>\n    `
+              );
+          })(o),
+          (function (e, t) {
+              (!(function (e, t) {
+                  const a = document.getElementById(
+                      'queueInstallSurfaceSelect'
+                  );
+                  a instanceof HTMLSelectElement &&
+                      (a.onchange = () => {
+                          (ha({ surface: a.value }, e), t());
+                      });
+              })(e, t),
+                  (function (e, t) {
+                      const a = document.getElementById(
+                          'queueInstallProfileSelect'
+                      );
+                      a instanceof HTMLSelectElement &&
+                          (a.onchange = () => {
+                              (ha(
+                                  {
+                                      station:
+                                          'c2_locked' === a.value ? 'c2' : 'c1',
+                                      lock: 'free' !== a.value,
+                                  },
+                                  e
+                              ),
+                                  t());
+                          });
+                  })(e, t),
+                  (function (e, t) {
+                      const a = document.getElementById(
+                          'queueInstallPlatformSelect'
+                      );
+                      a instanceof HTMLSelectElement &&
+                          (a.onchange = () => {
+                              (ha(
+                                  {
+                                      platform:
+                                          'mac' === a.value ? 'mac' : 'win',
+                                  },
+                                  e
+                              ),
+                                  t());
+                          });
+                  })(e, t),
+                  (function (e, t) {
+                      const a = document.getElementById(
+                          'queueInstallOneTapInput'
+                      );
+                      a instanceof HTMLInputElement &&
+                          (a.onchange = () => {
+                              (ha({ oneTap: a.checked }, e), t());
+                          });
+                  })(e, t));
+          })(a, n))
+        : (i.innerHTML = '');
+}
+function Na() {
     if (
         !(
             document.getElementById('queueAppDownloadsCards') instanceof
@@ -3268,9 +3450,9 @@ function Ma() {
     l(
         '#queueAppDownloadsCards',
         [
-            ya('operator', n.operator, t),
-            ya('kiosk', n.kiosk, t),
-            va(n.sala_tv),
+            ka('operator', n.operator, t),
+            ka('kiosk', n.kiosk, t),
+            wa(n.sala_tv),
         ].join('')
     );
     const i = () => {
@@ -3284,9 +3466,9 @@ function Ma() {
                 return;
             const i = (function (e, t) {
                 const a = ba(),
-                    n = _a(e, t),
-                    i = $a(t),
-                    o = qa(),
+                    n = Ma(e, t),
+                    i = Ta(t),
+                    o = Aa(),
                     s = n.filter((e) => a.steps[e.id]).length,
                     r = i.suggestedCount,
                     l = n
@@ -3426,16 +3608,16 @@ function Ma() {
             })(t, a);
             l(
                 '#queueOpsPilot',
-                `\n        <section class="queue-ops-pilot__shell" data-state="${e(i.tone)}">\n            <div class="queue-ops-pilot__layout">\n                <div class="queue-ops-pilot__copy">\n                    <p class="queue-app-card__eyebrow">${e(i.eyebrow)}</p>\n                    <h5 id="queueOpsPilotTitle" class="queue-app-card__title">${e(i.title)}</h5>\n                    <p id="queueOpsPilotSummary" class="queue-ops-pilot__summary">${e(i.summary)}</p>\n                    <p class="queue-ops-pilot__support">${e(i.supportCopy)}</p>\n                    <div class="queue-ops-pilot__actions">\n                        ${Ta(i.primaryAction, 'primary')}\n                        ${Ta(i.secondaryAction, 'secondary')}\n                    </div>\n                </div>\n                <div class="queue-ops-pilot__status">\n                    <div class="queue-ops-pilot__progress">\n                        <div class="queue-ops-pilot__progress-head">\n                            <span>Apertura confirmada</span>\n                            <strong id="queueOpsPilotProgressValue">${e(`${i.confirmedCount}/${i.totalSteps}`)}</strong>\n                        </div>\n                        <div class="queue-ops-pilot__bar" aria-hidden="true">\n                            <span style="width:${e(String(i.progressPct))}%"></span>\n                        </div>\n                    </div>\n                    <div class="queue-ops-pilot__chips">\n                        <span id="queueOpsPilotChipConfirmed" class="queue-ops-pilot__chip">Confirmados ${e(String(i.confirmedCount))}</span>\n                        <span id="queueOpsPilotChipSuggested" class="queue-ops-pilot__chip">Sugeridos ${e(String(i.suggestedCount))}</span>\n                        <span id="queueOpsPilotChipEquipment" class="queue-ops-pilot__chip">Equipos listos ${e(String(i.readyEquipmentCount))}/3</span>\n                        <span id="queueOpsPilotChipIssues" class="queue-ops-pilot__chip">Incidencias ${e(String(i.issueCount))}</span>\n                    </div>\n                </div>\n            </div>\n        </section>\n    `
+                `\n        <section class="queue-ops-pilot__shell" data-state="${e(i.tone)}">\n            <div class="queue-ops-pilot__layout">\n                <div class="queue-ops-pilot__copy">\n                    <p class="queue-app-card__eyebrow">${e(i.eyebrow)}</p>\n                    <h5 id="queueOpsPilotTitle" class="queue-app-card__title">${e(i.title)}</h5>\n                    <p id="queueOpsPilotSummary" class="queue-ops-pilot__summary">${e(i.summary)}</p>\n                    <p class="queue-ops-pilot__support">${e(i.supportCopy)}</p>\n                    <div class="queue-ops-pilot__actions">\n                        ${La(i.primaryAction, 'primary')}\n                        ${La(i.secondaryAction, 'secondary')}\n                    </div>\n                </div>\n                <div class="queue-ops-pilot__status">\n                    <div class="queue-ops-pilot__progress">\n                        <div class="queue-ops-pilot__progress-head">\n                            <span>Apertura confirmada</span>\n                            <strong id="queueOpsPilotProgressValue">${e(`${i.confirmedCount}/${i.totalSteps}`)}</strong>\n                        </div>\n                        <div class="queue-ops-pilot__bar" aria-hidden="true">\n                            <span style="width:${e(String(i.progressPct))}%"></span>\n                        </div>\n                    </div>\n                    <div class="queue-ops-pilot__chips">\n                        <span id="queueOpsPilotChipConfirmed" class="queue-ops-pilot__chip">Confirmados ${e(String(i.confirmedCount))}</span>\n                        <span id="queueOpsPilotChipSuggested" class="queue-ops-pilot__chip">Sugeridos ${e(String(i.suggestedCount))}</span>\n                        <span id="queueOpsPilotChipEquipment" class="queue-ops-pilot__chip">Equipos listos ${e(String(i.readyEquipmentCount))}/3</span>\n                        <span id="queueOpsPilotChipIssues" class="queue-ops-pilot__chip">Incidencias ${e(String(i.issueCount))}</span>\n                    </div>\n                </div>\n            </div>\n        </section>\n    `
             );
             const o = document.getElementById('queueOpsPilotApplyBtn');
             o instanceof HTMLButtonElement &&
                 (o.onclick = () => {
-                    const e = $a(a);
+                    const e = Ta(a);
                     e.suggestedIds.length && (ga(e.suggestedIds), n());
                 });
         })(n, t, i),
-            Ca(n, t),
+            _a(n, t),
             (function (t, a) {
                 if (
                     !(
@@ -3450,7 +3632,7 @@ function Ma() {
                             n = e.operator || Yt.operator,
                             i = e.kiosk || Yt.kiosk,
                             o = e.sala_tv || Yt.sala_tv,
-                            s = qa(),
+                            s = Aa(),
                             r = 'c2' === a.station ? 'C2' : 'C1',
                             l = a.lock ? `${r} fijo` : 'modo libre',
                             c = ia('operator', n, { ...a }),
@@ -3627,183 +3809,112 @@ function Ma() {
                 const i = document.getElementById('queueOpeningChecklist');
                 if (!(i instanceof HTMLElement)) return;
                 const o = ba(),
-                    s = _a(t, a),
-                    r = $a(a),
-                    c = s.filter((e) => o.steps[e.id]).length,
-                    u = s.filter(
-                        (e) =>
-                            !o.steps[e.id] &&
-                            Boolean(r.suggestions[e.id]?.suggested)
-                    ).length,
-                    d = s.length - c,
-                    p =
-                        d <= 0
-                            ? 'Operador, kiosco y sala TV ya quedaron probados en este navegador admin para hoy.'
-                            : u > 0
-                              ? `${u} paso(s) ya aparecen listos por telemetría o actividad reciente. Confírmalos en bloque y deja solo las validaciones pendientes.`
-                              : 'Sigue cada paso desde esta vista y marca listo solo después de validar el equipo real. El avance se guarda en este navegador.';
+                    s = Ma(t, a),
+                    r = Ta(a);
                 (l(
                     '#queueOpeningChecklist',
-                    `\n        <section class="queue-opening-checklist__shell">\n            <div class="queue-opening-checklist__header">\n                <div>\n                    <p class="queue-app-card__eyebrow">Apertura diaria</p>\n                    <h5 id="queueOpeningChecklistTitle" class="queue-app-card__title">${e(d <= 0 ? 'Apertura diaria lista' : u > 0 ? 'Apertura diaria asistida' : c <= 0 ? 'Apertura diaria pendiente' : `Apertura diaria: faltan ${d} paso(s)`)}</h5>\n                    <p id="queueOpeningChecklistSummary" class="queue-opening-checklist__summary">${e(p)}</p>\n                </div>\n                <div class="queue-opening-checklist__meta">\n                    <span id="queueOpeningChecklistAssistChip" class="queue-opening-checklist__assist" data-state="${u > 0 ? 'suggested' : d <= 0 ? 'ready' : 'idle'}">${e(u > 0 ? `Sugeridos ${u}` : d <= 0 ? 'Checklist completo' : `Confirmados ${c}/${s.length}`)}</span>\n                    <button id="queueOpeningChecklistApplyBtn" type="button" class="queue-opening-checklist__apply" ${u > 0 ? '' : 'disabled'}>${u > 0 ? `Confirmar sugeridos (${u})` : 'Sin sugeridos todavía'}</button>\n                    <button id="queueOpeningChecklistResetBtn" type="button" class="queue-opening-checklist__reset">Reiniciar apertura de hoy</button>\n                    <span id="queueOpeningChecklistDate" class="queue-opening-checklist__date">${e(
-                        (function (e) {
-                            const t = String(e || '').trim(),
-                                a = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t);
-                            return a ? `${a[3]}/${a[2]}/${a[1]}` : t || '--';
-                        })(o.date)
-                    )}</span>\n                </div>\n            </div>\n            <div id="queueOpeningChecklistSteps" class="queue-opening-checklist__steps" role="list" aria-label="Checklist de apertura diaria">\n                ${s
-                        .map((t) => {
-                            const a = Boolean(o.steps[t.id]),
-                                n =
-                                    !a &&
-                                    Boolean(r.suggestions[t.id]?.suggested),
-                                i = a ? 'ready' : n ? 'suggested' : 'pending',
-                                s = a
-                                    ? 'Confirmado'
-                                    : n
-                                      ? 'Sugerido'
-                                      : 'Pendiente',
-                                l = String(
-                                    r.suggestions[t.id]?.reason || t.hint
-                                );
-                            return `\n                        <article class="queue-opening-step" data-state="${i}" role="listitem">\n                            <div class="queue-opening-step__header">\n                                <div>\n                                    <strong>${e(t.title)}</strong>\n                                    <p class="queue-opening-step__detail">${e(t.detail)}</p>\n                                </div>\n                                <span class="queue-opening-step__state">${e(s)}</span>\n                            </div>\n                            <p class="queue-opening-step__hint">${e(t.hint)}</p>\n                            <p class="queue-opening-step__evidence">${e(l)}</p>\n                            <div class="queue-opening-step__actions">\n                                <a href="${e(t.href)}" target="_blank" rel="noopener" class="queue-opening-step__primary">${e(t.actionLabel)}</a>\n                                <button id="queueOpeningToggle_${e(t.id)}" type="button" class="queue-opening-step__toggle" data-queue-opening-step="${e(t.id)}" data-state="${i}">${a ? 'Marcar pendiente' : n ? 'Confirmar sugerido' : 'Marcar listo'}</button>\n                            </div>\n                        </article>\n                    `;
-                        })
-                        .join(
-                            ''
-                        )}\n            </div>\n        </section>\n    `
-                ),
-                    i
-                        .querySelectorAll('[data-queue-opening-step]')
-                        .forEach((e) => {
-                            e instanceof HTMLButtonElement &&
-                                (e.onclick = () => {
-                                    const t = String(
-                                        e.dataset.queueOpeningStep || ''
+                    (function (t, a, n) {
+                        const i = t.filter((e) => a.steps[e.id]).length,
+                            o = t.filter(
+                                (e) =>
+                                    !a.steps[e.id] &&
+                                    Boolean(n.suggestions[e.id]?.suggested)
+                            ).length,
+                            s = t.length - i,
+                            r =
+                                s <= 0
+                                    ? 'Operador, kiosco y sala TV ya quedaron probados en este navegador admin para hoy.'
+                                    : o > 0
+                                      ? `${o} paso(s) ya aparecen listos por telemetría o actividad reciente. Confírmalos en bloque y deja solo las validaciones pendientes.`
+                                      : 'Sigue cada paso desde esta vista y marca listo solo después de validar el equipo real. El avance se guarda en este navegador.';
+                        return `\n        <section class="queue-opening-checklist__shell">\n            <div class="queue-opening-checklist__header">\n                <div>\n                    <p class="queue-app-card__eyebrow">Apertura diaria</p>\n                    <h5 id="queueOpeningChecklistTitle" class="queue-app-card__title">${e(s <= 0 ? 'Apertura diaria lista' : o > 0 ? 'Apertura diaria asistida' : i <= 0 ? 'Apertura diaria pendiente' : `Apertura diaria: faltan ${s} paso(s)`)}</h5>\n                    <p id="queueOpeningChecklistSummary" class="queue-opening-checklist__summary">${e(r)}</p>\n                </div>\n                <div class="queue-opening-checklist__meta">\n                    <span id="queueOpeningChecklistAssistChip" class="queue-opening-checklist__assist" data-state="${o > 0 ? 'suggested' : s <= 0 ? 'ready' : 'idle'}">${e(o > 0 ? `Sugeridos ${o}` : s <= 0 ? 'Checklist completo' : `Confirmados ${i}/${t.length}`)}</span>\n                    <button id="queueOpeningChecklistApplyBtn" type="button" class="queue-opening-checklist__apply" ${o > 0 ? '' : 'disabled'}>${o > 0 ? `Confirmar sugeridos (${o})` : 'Sin sugeridos todavía'}</button>\n                    <button id="queueOpeningChecklistResetBtn" type="button" class="queue-opening-checklist__reset">Reiniciar apertura de hoy</button>\n                    <span id="queueOpeningChecklistDate" class="queue-opening-checklist__date">${e(
+                            (function (e) {
+                                const t = String(e || '').trim(),
+                                    a = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t);
+                                return a
+                                    ? `${a[3]}/${a[2]}/${a[1]}`
+                                    : t || '--';
+                            })(a.date)
+                        )}</span>\n                </div>\n            </div>\n            <div id="queueOpeningChecklistSteps" class="queue-opening-checklist__steps" role="list" aria-label="Checklist de apertura diaria">\n                ${t
+                            .map((t) => {
+                                const i = Boolean(a.steps[t.id]),
+                                    o =
+                                        !i &&
+                                        Boolean(n.suggestions[t.id]?.suggested),
+                                    s = i
+                                        ? 'ready'
+                                        : o
+                                          ? 'suggested'
+                                          : 'pending',
+                                    r = i
+                                        ? 'Confirmado'
+                                        : o
+                                          ? 'Sugerido'
+                                          : 'Pendiente',
+                                    l = String(
+                                        n.suggestions[t.id]?.reason || t.hint
                                     );
-                                    (!(function (e, t) {
-                                        const a = ba();
-                                        ta.includes(e) &&
-                                            ma({
-                                                ...a,
-                                                steps: {
-                                                    ...a.steps,
-                                                    [e]: Boolean(t),
-                                                },
-                                            });
-                                    })(t, !ba().steps[t]),
-                                        n());
-                                });
-                        }));
-                const m = document.getElementById(
-                    'queueOpeningChecklistApplyBtn'
-                );
-                m instanceof HTMLButtonElement &&
-                    (m.onclick = () => {
-                        r.suggestedIds.length && (ga(r.suggestedIds), n());
-                    });
-                const b = document.getElementById(
-                    'queueOpeningChecklistResetBtn'
-                );
-                b instanceof HTMLButtonElement &&
-                    (b.onclick = () => {
-                        (ma(da(ua())), n());
-                    });
+                                return `\n                        <article class="queue-opening-step" data-state="${s}" role="listitem">\n                            <div class="queue-opening-step__header">\n                                <div>\n                                    <strong>${e(t.title)}</strong>\n                                    <p class="queue-opening-step__detail">${e(t.detail)}</p>\n                                </div>\n                                <span class="queue-opening-step__state">${e(r)}</span>\n                            </div>\n                            <p class="queue-opening-step__hint">${e(t.hint)}</p>\n                            <p class="queue-opening-step__evidence">${e(l)}</p>\n                            <div class="queue-opening-step__actions">\n                                <a href="${e(t.href)}" target="_blank" rel="noopener" class="queue-opening-step__primary">${e(t.actionLabel)}</a>\n                                <button id="queueOpeningToggle_${e(t.id)}" type="button" class="queue-opening-step__toggle" data-queue-opening-step="${e(t.id)}" data-state="${s}">${i ? 'Marcar pendiente' : o ? 'Confirmar sugerido' : 'Marcar listo'}</button>\n                            </div>\n                        </article>\n                    `;
+                            })
+                            .join(
+                                ''
+                            )}\n            </div>\n        </section>\n    `;
+                    })(s, o, r)
+                ),
+                    (function (e, t) {
+                        e.querySelectorAll('[data-queue-opening-step]').forEach(
+                            (e) => {
+                                e instanceof HTMLButtonElement &&
+                                    (e.onclick = () => {
+                                        const a = String(
+                                            e.dataset.queueOpeningStep || ''
+                                        );
+                                        (!(function (e, t) {
+                                            const a = ba();
+                                            ta.includes(e) &&
+                                                ma({
+                                                    ...a,
+                                                    steps: {
+                                                        ...a.steps,
+                                                        [e]: Boolean(t),
+                                                    },
+                                                });
+                                        })(a, !ba().steps[a]),
+                                            t());
+                                    });
+                            }
+                        );
+                    })(i, n),
+                    (function (e, t) {
+                        const a = document.getElementById(
+                            'queueOpeningChecklistApplyBtn'
+                        );
+                        a instanceof HTMLButtonElement &&
+                            (a.onclick = () => {
+                                e.suggestedIds.length &&
+                                    (ga(e.suggestedIds), t());
+                            });
+                        const n = document.getElementById(
+                            'queueOpeningChecklistResetBtn'
+                        );
+                        n instanceof HTMLButtonElement &&
+                            (n.onclick = () => {
+                                (ma(da(ua())), t());
+                            });
+                    })(r, n));
             })(n, t, i),
-            (function (t, a, n) {
-                const i = document.getElementById('queueInstallConfigurator');
-                if (!(i instanceof HTMLElement)) return;
-                const o = fa(a),
-                    s =
-                        'kiosk' === o.surface || 'sala_tv' === o.surface
-                            ? o.surface
-                            : 'operator',
-                    r = t[s];
-                if (!r) return void (i.innerHTML = '');
-                const c =
-                        'sala_tv' === s
-                            ? 'android_tv'
-                            : 'mac' === o.platform
-                              ? 'mac'
-                              : 'win',
-                    u = (r.targets && r.targets[c]) || na(r, a) || null,
-                    d = ia(s, r, o),
-                    p = ra(('sala_tv' === s && u && u.url) || d),
-                    m = aa(s, o, r),
-                    b = (function (e) {
-                        if ('sala_tv' === e.surface)
-                            return [
-                                'Abre el QR desde otra pantalla o descarga la APK directamente.',
-                                'Instala la app en la TCL C655 y prioriza Ethernet sobre Wi-Fi.',
-                                'Valida audio, reconexión y que la sala refleje llamados reales.',
-                            ];
-                        if ('kiosk' === e.surface)
-                            return [
-                                'Instala la app en el mini PC o PC del kiosco.',
-                                'Deja la impresora térmica conectada y la app en fullscreen.',
-                                'Usa la versión web como respaldo inmediato si el equipo se reinicia.',
-                            ];
-                        const t = 'c2' === e.station ? 'C2' : 'C1';
-                        return [
-                            `Instala Turnero Operador en el PC de ${t} y conecta el receptor USB del Genius Numpad 1000.`,
-                            `En el primer arranque deja el equipo como ${e.lock ? `${t} fijo` : 'modo libre'}${e.oneTap ? ' con 1 tecla' : ''}.`,
-                            'Si el numpad no reporta Enter como se espera, calibra la tecla externa dentro de la app.',
-                        ];
-                    })(o)
-                        .map((t) => `<li>${e(t)}</li>`)
-                        .join('');
-                l(
-                    '#queueInstallConfigurator',
-                    `\n        <div class="queue-install-configurator__grid">\n            <section class="queue-install-configurator__panel">\n                <div>\n                    <p class="queue-app-card__eyebrow">Preparar equipo</p>\n                    <h5 class="queue-app-card__title">Asistente de instalación</h5>\n                    <p class="queue-app-card__description">Genera el perfil recomendado para cada equipo y copia la ruta exacta antes de instalar.</p>\n                </div>\n                <div class="queue-install-configurator__fields">\n                    <label class="queue-install-field" for="queueInstallSurfaceSelect">\n                        <span>Equipo</span>\n                        <select id="queueInstallSurfaceSelect">\n                            <option value="operator"${'operator' === s ? ' selected' : ''}>Operador</option>\n                            <option value="kiosk"${'kiosk' === s ? ' selected' : ''}>Kiosco</option>\n                            <option value="sala_tv"${'sala_tv' === s ? ' selected' : ''}>Sala TV</option>\n                        </select>\n                    </label>\n                    ${'operator' === s ? `\n                        <label class="queue-install-field" for="queueInstallProfileSelect">\n                            <span>Perfil operador</span>\n                            <select id="queueInstallProfileSelect">\n                                <option value="c1_locked"${o.lock && 'c1' === o.station ? ' selected' : ''}>C1 fijo</option>\n                                <option value="c2_locked"${o.lock && 'c2' === o.station ? ' selected' : ''}>C2 fijo</option>\n                                <option value="free"${o.lock ? '' : ' selected'}>Modo libre</option>\n                            </select>\n                        </label>` : ''}\n                    ${'sala_tv' !== s ? `\n                        <label class="queue-install-field" for="queueInstallPlatformSelect">\n                            <span>Plataforma</span>\n                            <select id="queueInstallPlatformSelect">\n                                <option value="win"${'win' === o.platform ? ' selected' : ''}>Windows</option>\n                                <option value="mac"${'mac' === o.platform ? ' selected' : ''}>macOS</option>\n                            </select>\n                        </label>` : ''}\n                    ${'operator' === s ? `\n                        <label class="queue-install-toggle">\n                            <input id="queueInstallOneTapInput" type="checkbox"${o.oneTap ? ' checked' : ''} />\n                            <span>Activar 1 tecla para este operador</span>\n                        </label>` : ''}\n                </div>\n            </section>\n            <section class="queue-install-configurator__panel queue-install-configurator__result">\n                <div>\n                    <p class="queue-app-card__eyebrow">Resultado listo</p>\n                    <h5 class="queue-app-card__title">${e(
-                        (function (e) {
-                            return 'sala_tv' === e.surface
-                                ? 'Sala TV lista para TCL C655'
-                                : 'kiosk' === e.surface
-                                  ? 'Kiosco listo para mostrador'
-                                  : e.lock
-                                    ? `Operador ${'c2' === e.station ? 'C2' : 'C1'} fijo`
-                                    : 'Operador en modo libre';
-                        })(o)
-                    )}</h5>\n                    <p class="queue-app-card__description">${'sala_tv' === s ? 'Usa el APK para la TV y mantén el fallback web como respaldo.' : 'Descarga la app correcta y usa la ruta preparada como validación o respaldo.'}</p>\n                </div>\n                <div class="queue-install-result__chips">\n                    <span class="queue-app-card__tag">${e(u && u.label ? u.label : 'Perfil listo')}</span>\n                    ${'operator' === s ? `<span class="queue-app-card__tag">${o.lock ? ('c2' === o.station ? 'C2 bloqueado' : 'C1 bloqueado') : 'Modo libre'}</span>` : ''}\n                </div>\n                <div class="queue-install-result__meta"><span>Descarga recomendada</span><strong>${e((u && u.url) || 'Sin artefacto')}</strong></div>\n                <div class="queue-install-result__meta"><span>Ruta web preparada</span><strong>${e(d)}</strong></div>\n                <div class="queue-install-configurator__actions">\n                    ${u && u.url ? `<a href="${e(u.url)}" class="queue-app-card__cta-primary" download>Descargar artefacto</a>` : ''}\n                    <button type="button" data-action="queue-copy-install-link" data-queue-install-url="${e((u && u.url) || '')}">Copiar descarga</button>\n                    <a href="${e(d)}" target="_blank" rel="noopener">Abrir ruta preparada</a>\n                    <button type="button" data-action="queue-copy-install-link" data-queue-install-url="${e(d)}">Copiar ruta preparada</button>\n                    <a href="${e(p)}" target="_blank" rel="noopener">Mostrar QR</a>\n                    <a href="${e(m)}" target="_blank" rel="noopener">Abrir centro público</a>\n                </div>\n                <ul class="queue-app-card__notes">${b}</ul>\n            </section>\n        </div>\n    `
-                );
-                const g = document.getElementById('queueInstallSurfaceSelect');
-                g instanceof HTMLSelectElement &&
-                    (g.onchange = () => {
-                        (ha({ surface: g.value }, a), n());
-                    });
-                const f = document.getElementById('queueInstallProfileSelect');
-                f instanceof HTMLSelectElement &&
-                    (f.onchange = () => {
-                        (ha(
-                            {
-                                station: 'c2_locked' === f.value ? 'c2' : 'c1',
-                                lock: 'free' !== f.value,
-                            },
-                            a
-                        ),
-                            n());
-                    });
-                const h = document.getElementById('queueInstallPlatformSelect');
-                h instanceof HTMLSelectElement &&
-                    (h.onchange = () => {
-                        (ha({ platform: 'mac' === h.value ? 'mac' : 'win' }, a),
-                            n());
-                    });
-                const y = document.getElementById('queueInstallOneTapInput');
-                y instanceof HTMLInputElement &&
-                    (y.onchange = () => {
-                        (ha({ oneTap: y.checked }, a), n());
-                    });
-            })(n, t, i));
+            Ea(n, t, i));
     };
     i();
 }
-function La(t = () => {}) {
+function Da(t = () => {}) {
     const a = b(),
         { queueMeta: n } = zt(),
         i = Vt(),
         o = Kt(),
         s = Qt(),
-        c = Gt(a.queue.stationConsultorio);
-    (Ma(),
+        c = Wt(a.queue.stationConsultorio);
+    (Na(),
         (function (e, t) {
             const a = b();
             (!(function (e) {
@@ -3969,7 +4080,7 @@ function La(t = () => {}) {
                             i =
                                 n === Number(e.queue.stationConsultorio || 1)
                                     ? t
-                                    : Gt(n);
+                                    : Wt(n);
                         ((a.disabled = !i),
                             'locked' === e.queue.stationMode &&
                                 n !== Number(e.queue.stationConsultorio || 1) &&
@@ -3999,7 +4110,7 @@ function La(t = () => {}) {
         })(a),
         yt());
 }
-function Ea(e) {
+function Ba(e) {
     g((t) => {
         const a = [
             { at: new Date().toISOString(), message: String(e || '') },
@@ -4011,17 +4122,17 @@ function Ea(e) {
         yt();
     } catch (e) {}
 }
-function Na(e, { render: t = !0 } = {}) {
+function Pa(e, { render: t = !0 } = {}) {
     (g((t) => ({
         ...t,
         queue: { ...t.queue, selected: Ut(e, t.data.queueTickets || []) },
     })),
-        t && La(Ea));
+        t && Da(Ba));
 }
-function Da() {
-    Na([]);
+function Ia() {
+    Pa([]);
 }
-function Ba(e, t = '') {
+function xa(e, t = '') {
     try {
         const a = localStorage.getItem(e);
         return null === a ? t : a;
@@ -4029,12 +4140,12 @@ function Ba(e, t = '') {
         return t;
     }
 }
-function Pa(e, t) {
+function Oa(e, t) {
     try {
         localStorage.setItem(e, String(t));
     } catch (e) {}
 }
-function Ia(e, t) {
+function Fa(e, t) {
     try {
         const a = localStorage.getItem(e);
         return a ? JSON.parse(a) : t;
@@ -4042,48 +4153,48 @@ function Ia(e, t) {
         return t;
     }
 }
-function xa(e, t) {
+function Ha(e, t) {
     try {
         localStorage.setItem(e, JSON.stringify(t));
     } catch (e) {}
 }
-function Oa(e) {
+function ja(e) {
     try {
         return new URL(window.location.href).searchParams.get(e) || '';
     } catch (e) {
         return '';
     }
 }
-const Fa = 'queueStationMode',
-    Ha = 'queueStationConsultorio',
-    ja = 'queueOneTapAdvance',
-    Ra = 'queueCallKeyBindingV1',
-    za = 'queueNumpadHelpOpen',
-    Va = 'queueAdminLastSnapshot',
-    Ua = new Map([
+const Ra = 'queueStationMode',
+    za = 'queueStationConsultorio',
+    Va = 'queueOneTapAdvance',
+    Ua = 'queueCallKeyBindingV1',
+    Ka = 'queueNumpadHelpOpen',
+    Qa = 'queueAdminLastSnapshot',
+    Wa = new Map([
         [1, !1],
         [2, !1],
     ]),
-    Ka = new Set(['no_show', 'cancelar']);
-function Qa(e) {
-    (Pa(Fa, e.queue.stationMode || 'free'),
-        Pa(Ha, e.queue.stationConsultorio || 1),
-        Pa(ja, e.queue.oneTap ? '1' : '0'),
-        Pa(za, e.queue.helpOpen ? '1' : '0'),
+    Ga = new Set(['no_show', 'cancelar']);
+function Ja(e) {
+    (Oa(Ra, e.queue.stationMode || 'free'),
+        Oa(za, e.queue.stationConsultorio || 1),
+        Oa(Va, e.queue.oneTap ? '1' : '0'),
+        Oa(Ka, e.queue.helpOpen ? '1' : '0'),
         e.queue.customCallKey
-            ? xa(Ra, e.queue.customCallKey)
+            ? Ha(Ua, e.queue.customCallKey)
             : (function (e) {
                   try {
                       localStorage.removeItem(e);
                   } catch (e) {}
-              })(Ra),
-        xa(Va, {
+              })(Ua),
+        Ha(Qa, {
             queueMeta: e.data.queueMeta,
             queueTickets: e.data.queueTickets,
             updatedAt: new Date().toISOString(),
         }));
 }
-function Ga(e, t = null, a = {}) {
+function Ya(e, t = null, a = {}) {
     const n = (Array.isArray(e) ? e : []).map((e, t) => Dt(e, t)),
         i = xt(t && 'object' == typeof t ? t : Nt(n), n),
         o = n.filter((e) => 'waiting' === e.status).length,
@@ -4109,10 +4220,10 @@ function Ga(e, t = null, a = {}) {
             syncMode: r,
         },
     })),
-        Qa(b()),
-        La(Ea));
+        Ja(b()),
+        Da(Ba));
 }
-function Wa(e, t) {
+function Za(e, t) {
     const a = Number(e || 0),
         n = (b().data.queueTickets || []).map((e, n) => {
             const i = Dt(e, n);
@@ -4120,15 +4231,15 @@ function Wa(e, t) {
                 ? i
                 : Dt('function' == typeof t ? t(i) : { ...i }, n);
         });
-    Ga(n, Nt(n), { fallbackPartial: !1, syncMode: 'live' });
+    Ya(n, Nt(n), { fallbackPartial: !1, syncMode: 'live' });
 }
-function Ja(e) {
-    (g((t) => ({ ...t, queue: { ...t.queue, ...e } })), Qa(b()), La(Ea));
+function Xa(e) {
+    (g((t) => ({ ...t, queue: { ...t.queue, ...e } })), Ja(b()), Da(Ba));
 }
-function Ya(e) {
-    Ja({ filter: Ct(e) || 'all', selected: [] });
+function en(e) {
+    Xa({ filter: Ct(e) || 'all', selected: [] });
 }
-function Za(e, t) {
+function tn(e, t) {
     const a = Lt(t.createdAt, t.created_at, e?.createdAt, e?.created_at),
         n = Lt(
             t.priorityClass,
@@ -4162,7 +4273,7 @@ function Za(e, t) {
         patientInitials: o,
     };
 }
-function Xa(e, t = {}) {
+function an(e, t = {}) {
     const { queueState: a, payloadTicket: n } = (function (e) {
         const t =
                 e?.data?.queueState ||
@@ -4286,7 +4397,7 @@ function Xa(e, t = {}) {
     const d =
         Number(r.waitingCount || 0) >
         c.filter((e) => 'waiting' === e.status).length;
-    if (o.length) return void Ga(o, r, { fallbackPartial: !1, syncMode: s });
+    if (o.length) return void Ya(o, r, { fallbackPartial: !1, syncMode: s });
     const p = new Map(i.map((e) => [Ht(e), e]));
     ((function (e, t, a) {
         const n = t.callingNowByConsultorio || {},
@@ -4325,12 +4436,12 @@ function Xa(e, t = {}) {
                   (o <= 0 ? e.delete(t) : d || l.has(t) || e.delete(t));
         }
     })(p, r, l),
-        Ga(
+        Ya(
             (function (e, t, a) {
                 for (const a of t) {
                     const t = Ht(a),
                         n = e.get(t) || null;
-                    e.set(t, Dt(Za(n, a), e.size));
+                    e.set(t, Dt(tn(n, a), e.size));
                 }
                 if (a && 'object' == typeof a) {
                     const t = Ht(Dt(a, e.size)),
@@ -4351,29 +4462,29 @@ function Xa(e, t = {}) {
             { fallbackPartial: d, syncMode: s }
         ));
 }
-function en() {
-    return Ia(Va, null);
+function nn() {
+    return Fa(Qa, null);
 }
-function tn(e, t = '') {
+function on(e, t = '') {
     return (
         !!e?.queueTickets?.length &&
-        (Ga(e.queueTickets, e.queueMeta || null, {
+        (Ya(e.queueTickets, e.queueMeta || null, {
             fallbackPartial: !0,
             syncMode: 'fallback',
         }),
-        t && Ea(t),
+        t && Ba(t),
         !0)
     );
 }
-async function an() {
+async function sn() {
     try {
-        (Xa(await q('queue-state'), { syncMode: 'live' }),
-            Ea('Queue refresh realizado'));
+        (an(await q('queue-state'), { syncMode: 'live' }),
+            Ba('Queue refresh realizado'));
     } catch (e) {
-        (Ea('Queue refresh con error'), tn(en()));
+        (Ba('Queue refresh con error'), on(nn()));
     }
 }
-async function nn() {
+async function rn() {
     const e = Array.isArray(b().data.queueTickets)
             ? b().data.queueTickets.map((e, t) => Dt(e, t))
             : [],
@@ -4383,33 +4494,33 @@ async function nn() {
                 : null;
         })(e);
     e.length
-        ? Ga(e, t || null, { fallbackPartial: !1, syncMode: 'live' })
+        ? Ya(e, t || null, { fallbackPartial: !1, syncMode: 'live' })
         : (function (e) {
               const t = e ? Rt(e) : [];
               return (
                   !!t.length &&
-                  (Ga(t, e, { fallbackPartial: !0, syncMode: 'fallback' }),
-                  Ea('Queue fallback parcial desde metadata'),
+                  (Ya(t, e, { fallbackPartial: !0, syncMode: 'fallback' }),
+                  Ba('Queue fallback parcial desde metadata'),
                   !0)
               );
           })(t) ||
-          (await an(),
+          (await sn(),
           (b().data.queueTickets || []).length ||
-              tn(en(), 'Queue fallback desde snapshot local') ||
-              Ga([], null, { fallbackPartial: !1, syncMode: 'live' }));
+              on(nn(), 'Queue fallback desde snapshot local') ||
+              Ya([], null, { fallbackPartial: !1, syncMode: 'live' }));
 }
-const on = 'appointments',
-    sn = 'callbacks',
-    rn = 'reviews',
-    ln = 'availability',
-    cn = 'availability-meta',
-    un = 'queue-tickets',
-    dn = 'queue-meta',
-    pn = 'leadops-meta',
-    mn = 'queue-surface-status',
-    bn = 'app-downloads',
-    gn = 'health-status',
-    fn = {
+const ln = 'appointments',
+    cn = 'callbacks',
+    un = 'reviews',
+    dn = 'availability',
+    pn = 'availability-meta',
+    mn = 'queue-tickets',
+    bn = 'queue-meta',
+    gn = 'leadops-meta',
+    fn = 'queue-surface-status',
+    hn = 'app-downloads',
+    yn = 'health-status',
+    vn = {
         summary: {
             viewBooking: 0,
             startCheckout: 0,
@@ -4427,30 +4538,30 @@ const on = 'appointments',
         abandonReasonBreakdown: [],
         errorCodeBreakdown: [],
     };
-function hn() {
+function kn() {
     return {
-        appointments: Ia(on, []),
-        callbacks: Ia(sn, []),
-        reviews: Ia(rn, []),
-        availability: Ia(ln, {}),
-        availabilityMeta: Ia(cn, {}),
-        queueTickets: Ia(un, []),
-        queueMeta: Ia(dn, null),
-        leadOpsMeta: Ia(pn, null),
-        queueSurfaceStatus: Ia(mn, null),
-        appDownloads: Ia(bn, null),
-        health: Ia(gn, null),
-        funnelMetrics: fn,
+        appointments: Fa(ln, []),
+        callbacks: Fa(cn, []),
+        reviews: Fa(un, []),
+        availability: Fa(dn, {}),
+        availabilityMeta: Fa(pn, {}),
+        queueTickets: Fa(mn, []),
+        queueMeta: Fa(bn, null),
+        leadOpsMeta: Fa(gn, null),
+        queueSurfaceStatus: Fa(fn, null),
+        appDownloads: Fa(hn, null),
+        health: Fa(yn, null),
+        funnelMetrics: vn,
     };
 }
-function yn(e) {
+function wn(e) {
     return Array.isArray(e.queue_tickets)
         ? e.queue_tickets
         : Array.isArray(e.queueTickets)
           ? e.queueTickets
           : [];
 }
-function vn(e) {
+function Sn(e) {
     g((t) => {
         const a = (function (e, t) {
             return {
@@ -4489,26 +4600,26 @@ function vn(e) {
         };
     });
 }
-function kn() {
+function qn() {
     const e = b(),
         t = Number(e.ui.lastRefreshAt || 0);
     if (!t) return 'Datos: sin sincronizar';
     const a = Math.max(0, Math.round((Date.now() - t) / 1e3));
     return a < 60 ? `Datos: hace ${a}s` : `Datos: hace ${Math.round(a / 60)}m`;
 }
-async function wn(e) {
+async function Cn(e) {
     if (e.funnelMetrics) return e.funnelMetrics;
     const t = await q('funnel-metrics').catch(() => null);
     return t?.data || null;
 }
-async function Sn() {
+async function _n() {
     try {
         const [e, t] = await Promise.all([
                 q('data'),
                 q('health').catch(() => null),
             ]),
             a = e.data || {},
-            n = hn(),
+            n = kn(),
             i = (function (e, t, a) {
                 return {
                     appointments: Array.isArray(e.appointments)
@@ -4525,7 +4636,7 @@ async function Sn() {
                         'object' == typeof e.availabilityMeta
                             ? e.availabilityMeta
                             : {},
-                    queueTickets: yn(e),
+                    queueTickets: wn(e),
                     queueMeta:
                         e.queueMeta && 'object' == typeof e.queueMeta
                             ? e.queueMeta
@@ -4551,38 +4662,38 @@ async function Sn() {
                     funnelMetrics: e.funnelMetrics || a?.funnelMetrics || null,
                     health: t && t.ok ? t : null,
                 };
-            })({ ...a, funnelMetrics: await wn(a) }, t, n);
+            })({ ...a, funnelMetrics: await Cn(a) }, t, n);
         return (
-            vn(i),
+            Sn(i),
             (function (e) {
-                (xa(on, e.appointments || []),
-                    xa(sn, e.callbacks || []),
-                    xa(rn, e.reviews || []),
-                    xa(ln, e.availability || {}),
-                    xa(cn, e.availabilityMeta || {}),
-                    xa(un, e.queueTickets || []),
-                    xa(dn, e.queueMeta || null),
-                    xa(pn, e.leadOpsMeta || null),
-                    xa(mn, e.queueSurfaceStatus || null),
-                    xa(bn, e.appDownloads || null),
-                    xa(gn, e.health || null));
+                (Ha(ln, e.appointments || []),
+                    Ha(cn, e.callbacks || []),
+                    Ha(un, e.reviews || []),
+                    Ha(dn, e.availability || {}),
+                    Ha(pn, e.availabilityMeta || {}),
+                    Ha(mn, e.queueTickets || []),
+                    Ha(bn, e.queueMeta || null),
+                    Ha(gn, e.leadOpsMeta || null),
+                    Ha(fn, e.queueSurfaceStatus || null),
+                    Ha(hn, e.appDownloads || null),
+                    Ha(yn, e.health || null));
             })(i),
             !0
         );
     } catch (e) {
-        return (vn(hn()), !1);
+        return (Sn(kn()), !1);
     }
 }
-let qn = !1,
-    Cn = !1;
-function _n() {
+let An = !1,
+    $n = !1;
+function Tn() {
     if ('undefined' != typeof window) {
         const e = Number(window.__QUEUE_AUTO_REFRESH_INTERVAL_MS__);
         if (Number.isFinite(e) && e > 0) return Math.max(50, Math.round(e));
     }
     return 45e3;
 }
-function An(e) {
+function Mn(e) {
     g((t) => ({
         ...t,
         ui: {
@@ -4590,7 +4701,7 @@ function An(e) {
             queueAutoRefresh: {
                 state: 'idle',
                 reason: 'Abre Turnero Sala para activar el monitoreo continuo.',
-                intervalMs: _n(),
+                intervalMs: Tn(),
                 lastAttemptAt: 0,
                 lastSuccessAt: 0,
                 lastError: '',
@@ -4601,7 +4712,7 @@ function An(e) {
         },
     }));
 }
-function $n() {
+function Ln() {
     const e = b();
     return e.auth?.authenticated
         ? 'queue' !== e.ui?.activeSection
@@ -4628,12 +4739,12 @@ function $n() {
               reason: 'Inicia sesión para monitorear los equipos.',
           };
 }
-async function Tn(e = 'timer') {
-    const t = $n(),
-        a = _n();
+async function En(e = 'timer') {
+    const t = Ln(),
+        a = Tn();
     if (!t.active)
         return (
-            An({
+            Mn({
                 state: t.state,
                 reason: t.reason,
                 intervalMs: a,
@@ -4641,9 +4752,9 @@ async function Tn(e = 'timer') {
             }),
             !1
         );
-    if (Cn) return !1;
-    ((Cn = !0),
-        An({
+    if ($n) return !1;
+    (($n = !0),
+        Mn({
             state: 'refreshing',
             reason:
                 'visibility' === e || 'focus' === e || 'online' === e
@@ -4655,10 +4766,10 @@ async function Tn(e = 'timer') {
             lastError: '',
         }));
     try {
-        const e = await Sn();
+        const e = await _n();
         return (
-            await nn(),
-            An({
+            await rn(),
+            Mn({
                 state: e ? 'active' : 'warning',
                 reason: e
                     ? 'Auto-refresh activo en esta sección.'
@@ -4668,9 +4779,9 @@ async function Tn(e = 'timer') {
                 inFlight: !1,
                 lastError: e ? '' : 'cache_local',
             }),
-            La(),
+            Da(),
             (function () {
-                const e = kn();
+                const e = qn();
                 (r('#adminRefreshStatus', e),
                     r(
                         '#adminSyncState',
@@ -4683,42 +4794,42 @@ async function Tn(e = 'timer') {
         );
     } catch (e) {
         return (
-            An({
+            Mn({
                 state: 'warning',
                 reason: 'No se pudo refrescar Equipos en vivo. Revisa red local o fuerza una actualización manual.',
                 intervalMs: a,
                 inFlight: !1,
                 lastError: e?.message || 'refresh_failed',
             }),
-            'queue' === b().ui?.activeSection && La(),
+            'queue' === b().ui?.activeSection && Da(),
             !1
         );
     } finally {
-        Cn = !1;
+        $n = !1;
     }
 }
-function Mn(e = {}) {
+function Nn(e = {}) {
     const { immediate: t = !1, reason: a = 'sync' } = e,
-        n = $n(),
-        i = _n();
+        n = Ln(),
+        i = Tn();
     return (
-        An({ state: n.state, reason: n.reason, intervalMs: i, inFlight: Cn }),
-        'queue' === b().ui?.activeSection && La(),
-        t && n.active ? (Tn(a), !0) : n.active
+        Mn({ state: n.state, reason: n.reason, intervalMs: i, inFlight: $n }),
+        'queue' === b().ui?.activeSection && Da(),
+        t && n.active ? (En(a), !0) : n.active
     );
 }
-function Ln() {
-    'visible' !== document.visibilityState ? Mn() : Tn('visibility');
+function Dn() {
+    'visible' !== document.visibilityState ? Nn() : En('visibility');
 }
-function En() {
+function Bn() {
     ('undefined' != typeof document && 'hidden' === document.visibilityState) ||
-        ('queue' === b().ui?.activeSection && Tn('focus'));
+        ('queue' === b().ui?.activeSection && En('focus'));
 }
-function Nn() {
-    'queue' === b().ui?.activeSection && Tn('online');
+function Pn() {
+    'queue' === b().ui?.activeSection && En('online');
 }
-function Dn(e, t, a = void 0) {
-    Wa(e, (e) => ({
+function In(e, t, a = void 0) {
+    Za(e, (e) => ({
         ...e,
         status: t,
         assignedConsultorio: void 0 === a ? e.assignedConsultorio : a,
@@ -4734,7 +4845,7 @@ function Dn(e, t, a = void 0) {
                 : '',
     }));
 }
-async function Bn({ ticketId: e, action: t, consultorio: a }) {
+async function xn({ ticketId: e, action: t, consultorio: a }) {
     const n = Number(e || 0),
         i = At(t);
     if (n && i)
@@ -4744,32 +4855,32 @@ async function Bn({ ticketId: e, action: t, consultorio: a }) {
                       ? 'liberar' !== t
                           ? 'completar' !== t
                               ? 'no_show' !== t
-                                  ? 'cancelar' === t && Dn(e, 'cancelled')
-                                  : Dn(e, 'no_show')
-                              : Dn(e, 'completed')
-                          : Dn(e, 'waiting', null)
-                      : Dn(e, 'called', 2 === Number(a || 1) ? 2 : 1);
+                                  ? 'cancelar' === t && In(e, 'cancelled')
+                                  : In(e, 'no_show')
+                              : In(e, 'completed')
+                          : In(e, 'waiting', null)
+                      : In(e, 'called', 2 === Number(a || 1) ? 2 : 1);
               })(n, i, a),
-              void Ea(`Practica: accion ${i} en ticket ${n}`))
-            : (Xa(
+              void Ba(`Practica: accion ${i} en ticket ${n}`))
+            : (an(
                   await q('queue-ticket', {
                       method: 'PATCH',
                       body: { id: n, action: i, consultorio: Number(a || 0) },
                   }),
                   { syncMode: 'live' }
               ),
-              void Ea(`Accion ${i} ticket ${n}`));
+              void Ba(`Accion ${i} ticket ${n}`));
 }
-async function Pn(e) {
+async function On(e) {
     const t = 2 === Number(e || 0) ? 2 : 1,
         a = b();
-    if (!Ua.get(t)) {
+    if (!Wa.get(t)) {
         if (
             'locked' === a.queue.stationMode &&
             a.queue.stationConsultorio !== t
         )
             return (
-                Ea(`Llamado bloqueado para C${t} por lock de estacion`),
+                Ba(`Llamado bloqueado para C${t} por lock de estacion`),
                 void s('Modo bloqueado: consultorio no permitido', 'warning')
             );
         if (a.queue.practiceMode) {
@@ -4785,35 +4896,35 @@ async function Pn(e) {
             })(t);
             return e
                 ? ((function (e, t) {
-                      Wa(e, (e) => ({
+                      Za(e, (e) => ({
                           ...e,
                           status: 'called',
                           assignedConsultorio: t,
                           calledAt: new Date().toISOString(),
                       }));
                   })(e.id, t),
-                  void Ea(`Practica: llamado ${e.ticketCode} en C${t}`))
-                : void Ea('Practica: sin tickets en espera');
+                  void Ba(`Practica: llamado ${e.ticketCode} en C${t}`))
+                : void Ba('Practica: sin tickets en espera');
         }
-        Ua.set(t, !0);
+        Wa.set(t, !0);
         try {
-            (Xa(
+            (an(
                 await q('queue-call-next', {
                     method: 'POST',
                     body: { consultorio: t },
                 }),
                 { syncMode: 'live' }
             ),
-                Ea(`Llamado C${t} ejecutado`));
+                Ba(`Llamado C${t} ejecutado`));
         } catch (e) {
-            (Ea(`Error llamando siguiente en C${t}`),
+            (Ba(`Error llamando siguiente en C${t}`),
                 s(`Error llamando siguiente en C${t}`, 'error'));
         } finally {
-            Ua.set(t, !1);
+            Wa.set(t, !1);
         }
     }
 }
-async function In(e, t, a = 0) {
+async function Fn(e, t, a = 0) {
     const n = {
             ticketId: Number(e || 0),
             action: At(t),
@@ -4829,7 +4940,7 @@ async function In(e, t, a = 0) {
         })(n.ticketId);
     if (
         !i.queue.practiceMode &&
-        Ka.has(n.action) &&
+        Ga.has(n.action) &&
         (function (e, t) {
             const a = At(e);
             return (
@@ -4841,17 +4952,17 @@ async function In(e, t, a = 0) {
             );
         })(n.action, o)
     )
-        return (vt(n), void Ea(`Accion ${n.action} pendiente de confirmacion`));
-    await Bn(n);
+        return (vt(n), void Ba(`Accion ${n.action} pendiente de confirmacion`));
+    await xn(n);
 }
-async function xn() {
+async function Hn() {
     const e = b().queue.pendingSensitiveAction;
-    e ? (kt(), await Bn(e)) : kt();
+    e ? (kt(), await xn(e)) : kt();
 }
-function On() {
-    (kt(), Ea('Accion sensible cancelada'));
+function jn() {
+    (kt(), Ba('Accion sensible cancelada'));
 }
-function Fn() {
+function Rn() {
     const e = document.getElementById('queueSensitiveConfirmDialog'),
         t = b().queue.pendingSensitiveAction;
     return !(
@@ -4860,27 +4971,27 @@ function Fn() {
                 ? e.open
                 : e instanceof HTMLElement &&
                   (!e.hidden || e.hasAttribute('open')))) ||
-        (On(), 0)
+        (jn(), 0)
     );
 }
-async function Hn(e) {
+async function zn(e) {
     const t = Number(e || 0);
     t &&
         (b().queue.practiceMode
-            ? Ea(`Practica: reprint ticket ${t}`)
+            ? Ba(`Practica: reprint ticket ${t}`)
             : (await q('queue-reprint', { method: 'POST', body: { id: t } }),
-              Ea(`Reimpresion ticket ${t}`)));
+              Ba(`Reimpresion ticket ${t}`)));
 }
-function jn() {
-    Ja({ helpOpen: !b().queue.helpOpen });
+function Vn() {
+    Xa({ helpOpen: !b().queue.helpOpen });
 }
-function Rn(e) {
+function Un(e) {
     const t = Boolean(e);
-    (Ja({ practiceMode: t, pendingSensitiveAction: null }),
-        Ea(t ? 'Modo practica activo' : 'Modo practica desactivado'));
+    (Xa({ practiceMode: t, pendingSensitiveAction: null }),
+        Ba(t ? 'Modo practica activo' : 'Modo practica desactivado'));
 }
-function zn(e) {
-    const t = Wt();
+function Kn(e) {
+    const t = Gt();
     return (
         !!t &&
         (vt({
@@ -4891,7 +5002,7 @@ function zn(e) {
         !0)
     );
 }
-async function Vn(e) {
+async function Qn(e) {
     const t = b();
     if (t.queue.captureCallKeyMode)
         return void (function (e) {
@@ -4900,9 +5011,9 @@ async function Vn(e) {
                 code: String(e.code || ''),
                 location: Number(e.location || 0),
             };
-            (Ja({ customCallKey: t, captureCallKeyMode: !1 }),
+            (Xa({ customCallKey: t, captureCallKeyMode: !1 }),
                 s('Tecla externa guardada', 'success'),
-                Ea(`Tecla externa calibrada: ${t.code}`));
+                Ba(`Tecla externa calibrada: ${t.code}`));
         })(e);
     if (
         (function (e, t) {
@@ -4914,7 +5025,7 @@ async function Vn(e) {
             );
         })(e, t.queue.customCallKey)
     )
-        return void (await Pn(t.queue.stationConsultorio));
+        return void (await On(t.queue.stationConsultorio));
     const a = Ct(e.code),
         n = Ct(e.key),
         i = (function (e, t, a) {
@@ -4924,7 +5035,7 @@ async function Vn(e) {
                 ('enter' === a && 3 === Number(e.location || 0))
             );
         })(e, a, n);
-    if (i && t.queue.pendingSensitiveAction) return void (await xn());
+    if (i && t.queue.pendingSensitiveAction) return void (await Hn());
     const o = (function (e, t) {
         return 'numpad2' === e || '2' === t
             ? 2
@@ -4934,8 +5045,8 @@ async function Vn(e) {
     })(a, n);
     if (!o)
         return i
-            ? (t.queue.oneTap && zn(t) && (await xn()),
-              void (await Pn(t.queue.stationConsultorio)))
+            ? (t.queue.oneTap && Kn(t) && (await Hn()),
+              void (await On(t.queue.stationConsultorio)))
             : void ((function (e, t) {
                   return (
                       'numpaddecimal' === e ||
@@ -4945,7 +5056,7 @@ async function Vn(e) {
                       '.' === t
                   );
               })(a, n)
-                  ? zn(t)
+                  ? Kn(t)
                   : (function (e, t) {
                           return (
                               'numpadsubtract' === e ||
@@ -4954,7 +5065,7 @@ async function Vn(e) {
                           );
                       })(a, n)
                     ? (function (e) {
-                          const t = Wt();
+                          const t = Gt();
                           t &&
                               vt({
                                   ticketId: t.id,
@@ -4968,14 +5079,14 @@ async function Vn(e) {
                           );
                       })(a, n) &&
                       (await (async function (e) {
-                          const t = Wt();
+                          const t = Gt();
                           t &&
-                              (await In(
+                              (await Fn(
                                   t.id,
                                   're-llamar',
                                   e.queue.stationConsultorio
                               ),
-                              Ea(`Re-llamar ${t.ticketCode}`),
+                              Ba(`Re-llamar ${t.ticketCode}`),
                               s(`Re-llamar ${t.ticketCode}`, 'info'));
                       })(t)));
     !(function (e, t) {
@@ -4986,20 +5097,20 @@ async function Vn(e) {
             );
         })(e, t)
             ? (s('Cambio bloqueado por modo estación', 'warning'),
-              Ea('Cambio de estación bloqueado por lock'))
-            : (Ja({ stationConsultorio: e }), Ea(`Numpad: estacion C${e}`));
+              Ba('Cambio de estación bloqueado por lock'))
+            : (Xa({ stationConsultorio: e }), Ba(`Numpad: estacion C${e}`));
     })(o, t);
 }
-function Un(e, t) {
+function Wn(e, t) {
     return 'c2' === e || '2' === e ? 2 : 'c1' === e || '1' === e ? 1 : t;
 }
-function Kn(e, t) {
+function Gn(e, t) {
     return '1' === e || 'true' === e ? 'locked' : t;
 }
-function Qn(e, t) {
+function Jn(e, t) {
     return '1' === e || 'true' === e || ('0' !== e && 'false' !== e && t);
 }
-function Gn(t, a, n) {
+function Yn(t, a, n) {
     return Array.isArray(t) && 0 !== t.length
         ? t
               .slice(0, 5)
@@ -5011,22 +5122,22 @@ function Gn(t, a, n) {
               .join('')
         : '<li><span>Sin datos</span><strong>0</strong></li>';
 }
-function Wn(t, a, n, i = 'neutral') {
+function Zn(t, a, n, i = 'neutral') {
     return `\n        <li class="dashboard-attention-item" data-tone="${e(i)}">\n            <div>\n                <span>${e(t)}</span>\n                <small>${e(n)}</small>\n            </div>\n            <strong>${e(String(a))}</strong>\n        </li>\n    `;
 }
-function Jn(e) {
+function Xn(e) {
     return String(e || '')
         .toLowerCase()
         .trim();
 }
-function Yn(e) {
+function ei(e) {
     const t = new Date(e || '');
     return Number.isNaN(t.getTime()) ? 0 : t.getTime();
 }
-function Zn(e) {
-    return Yn(`${e?.date || ''}T${e?.time || '00:00'}:00`);
+function ti(e) {
+    return ei(`${e?.date || ''}T${e?.time || '00:00'}:00`);
 }
-function Xn(e) {
+function ai(e) {
     if (!e) return 'Sin fecha';
     const t = Math.round((e - Date.now()) / 6e4),
         a = Math.abs(t);
@@ -5042,10 +5153,10 @@ function Xn(e) {
             ? `En ${Math.round(t / 60)} h`
             : `En ${Math.round(t / 1440)} d`;
 }
-function ei(t, a, n) {
+function ni(t, a, n) {
     return `\n        <button type="button" class="operations-action-item" data-action="${e(t)}">\n            <span>${e(a)}</span>\n            <small>${e(n)}</small>\n        </button>\n    `;
 }
-function ti(e) {
+function ii(e) {
     const {
             appointments: t,
             availability: a,
@@ -5080,31 +5191,31 @@ function ti(e) {
                         t.getMonth() === a.getMonth() &&
                         t.getDate() === a.getDate()
                     );
-                })(Zn(e))
+                })(ti(e))
             ).length;
         })(t),
         r = (function (e) {
             return e.filter((e) => {
-                const t = Jn(e.paymentStatus || e.payment_status);
+                const t = Xn(e.paymentStatus || e.payment_status);
                 return (
                     'pending_transfer_review' === t || 'pending_transfer' === t
                 );
             }).length;
         })(t),
         l = (function (e) {
-            return e.filter((e) => 'pending' === Jn(e.status)).length;
+            return e.filter((e) => 'pending' === Xn(e.status)).length;
         })(n),
         c = (function (e) {
             return e.filter((e) => {
-                if ('pending' !== Jn(e.status)) return !1;
+                if ('pending' !== Xn(e.status)) return !1;
                 const t = (function (e) {
-                    return Yn(e?.fecha || e?.createdAt || '');
+                    return ei(e?.fecha || e?.createdAt || '');
                 })(e);
                 return !!t && Math.round((Date.now() - t) / 6e4) >= 120;
             }).length;
         })(n),
         u = (function (e) {
-            return e.filter((e) => 'no_show' === Jn(e.status)).length;
+            return e.filter((e) => 'no_show' === Xn(e.status)).length;
         })(t),
         d = (function (e) {
             return e.length
@@ -5117,7 +5228,7 @@ function ti(e) {
         p = (function (e, t = 30) {
             const a = Date.now();
             return e.filter((e) => {
-                const n = Yn(e.date || e.createdAt || '');
+                const n = ei(e.date || e.createdAt || '');
                 return n && a - n <= 24 * t * 60 * 60 * 1e3;
             }).length;
         })(o),
@@ -5128,7 +5239,7 @@ function ti(e) {
         })(a),
         b = (function (e) {
             return e
-                .map((e) => ({ item: e, stamp: Zn(e) }))
+                .map((e) => ({ item: e, stamp: ti(e) }))
                 .filter((e) => e.stamp > 0 && e.stamp >= Date.now())
                 .sort((e, t) => e.stamp - t.stamp)[0];
         })(t);
@@ -5148,8 +5259,8 @@ function ti(e) {
         urgentCallbacks: c,
     };
 }
-function ai(e) {
-    const t = ti(e);
+function oi(e) {
+    const t = ii(e);
     ((function (e) {
         const {
             appointments: t,
@@ -5189,7 +5300,7 @@ function ai(e) {
                           : a > 0
                             ? `Revisa ${a} no show del corte actual para cerrar seguimiento.`
                             : n?.item
-                              ? `La siguiente cita es ${n.item.name || 'sin nombre'} ${Xn(n.stamp).toLowerCase()}.`
+                              ? `La siguiente cita es ${n.item.name || 'sin nombre'} ${ai(n.stamp).toLowerCase()}.`
                               : 'Agenda, callbacks y disponibilidad con una lectura clara y una sola prioridad por pantalla.';
                 })({
                     pendingTransfers: s,
@@ -5255,7 +5366,7 @@ function ai(e) {
                 r(
                     '#dashboardFlowStatus',
                     a?.item
-                        ? `${Xn(a.stamp)} | ${a.item.name || 'Paciente'}`
+                        ? `${ai(a.stamp)} | ${a.item.name || 'Paciente'}`
                         : t > 0
                           ? `${t} dia(s) con slots publicados`
                           : 'Sin citas inmediatas'
@@ -5274,7 +5385,7 @@ function ai(e) {
                 r(
                     '#operationQueueHealth',
                     a?.item
-                        ? `Siguiente hito: ${a.item.name || 'Paciente'} ${Xn(a.stamp).toLowerCase()}`
+                        ? `Siguiente hito: ${a.item.name || 'Paciente'} ${ai(a.stamp).toLowerCase()}`
                         : 'Sin citas inmediatas en cola'
                 ));
         })(t),
@@ -5288,7 +5399,7 @@ function ai(e) {
                     } = e,
                     { appointments: i, nextAppointment: o } = e;
                 return [
-                    ei(
+                    ni(
                         'context-open-appointments-transfer',
                         t > 0
                             ? 'Validar transferencias'
@@ -5297,7 +5408,7 @@ function ai(e) {
                             ? `${t} comprobante(s) por revisar`
                             : `${i.length} cita(s) en el corte`
                     ),
-                    ei(
+                    ni(
                         'context-open-callbacks-pending',
                         a > 0
                             ? 'Resolver callbacks urgentes'
@@ -5306,11 +5417,11 @@ function ai(e) {
                             ? `${a} caso(s) fuera de SLA`
                             : `${n} callback(s) pendientes`
                     ),
-                    ei(
+                    ni(
                         'refresh-admin-data',
                         'Actualizar tablero',
                         o?.item
-                            ? `Proxima cita ${Xn(o.stamp).toLowerCase()}`
+                            ? `Proxima cita ${ai(o.stamp).toLowerCase()}`
                             : 'Sincronizar agenda y funnel'
                     ),
                 ].join('');
@@ -5326,7 +5437,7 @@ function ai(e) {
                     urgentCallbacks: i,
                 } = e;
                 return [
-                    Wn(
+                    Zn(
                         'Transferencias',
                         a,
                         a > 0
@@ -5334,7 +5445,7 @@ function ai(e) {
                             : 'Sin comprobantes pendientes.',
                         a > 0 ? 'warning' : 'success'
                     ),
-                    Wn(
+                    Zn(
                         'Callbacks urgentes',
                         i,
                         i > 0
@@ -5342,7 +5453,7 @@ function ai(e) {
                             : 'SLA dentro de rango.',
                         i > 0 ? 'danger' : 'success'
                     ),
-                    Wn(
+                    Zn(
                         'Agenda de hoy',
                         n,
                         n > 0
@@ -5350,7 +5461,7 @@ function ai(e) {
                             : 'No hay citas hoy.',
                         n > 6 ? 'warning' : 'neutral'
                     ),
-                    Wn(
+                    Zn(
                         'Disponibilidad',
                         t,
                         t > 0
@@ -5372,47 +5483,47 @@ function ai(e) {
                 ),
                 l(
                     '#funnelEntryList',
-                    Gn(e.checkoutEntryBreakdown, 'entry', 'count')
+                    Yn(e.checkoutEntryBreakdown, 'entry', 'count')
                 ),
                 l(
                     '#funnelSourceList',
-                    Gn(e.sourceBreakdown, 'source', 'count')
+                    Yn(e.sourceBreakdown, 'source', 'count')
                 ),
                 l(
                     '#funnelPaymentMethodList',
-                    Gn(e.paymentMethodBreakdown, 'method', 'count')
+                    Yn(e.paymentMethodBreakdown, 'method', 'count')
                 ),
                 l(
                     '#funnelAbandonList',
-                    Gn(e.checkoutAbandonByStep, 'step', 'count')
+                    Yn(e.checkoutAbandonByStep, 'step', 'count')
                 ),
                 l(
                     '#funnelAbandonReasonList',
-                    Gn(e.abandonReasonBreakdown, 'reason', 'count')
+                    Yn(e.abandonReasonBreakdown, 'reason', 'count')
                 ),
                 l(
                     '#funnelStepList',
-                    Gn(e.bookingStepBreakdown, 'step', 'count')
+                    Yn(e.bookingStepBreakdown, 'step', 'count')
                 ),
                 l(
                     '#funnelErrorCodeList',
-                    Gn(e.errorCodeBreakdown, 'code', 'count')
+                    Yn(e.errorCodeBreakdown, 'code', 'count')
                 ));
         })(t.funnel));
 }
-function ni(e) {
+function si(e) {
     return String(e || '')
         .toLowerCase()
         .trim();
 }
-function ii(e) {
+function ri(e) {
     const t = new Date(e?.date || e?.createdAt || '');
     return Number.isNaN(t.getTime()) ? 0 : t.getTime();
 }
-function oi(e) {
+function li(e) {
     return `${Math.max(0, Math.min(5, Math.round(Number(e || 0))))}/5`;
 }
-function si(e) {
+function ci(e) {
     const t = String(e || 'Anonimo')
         .trim()
         .split(/\s+/)
@@ -5420,7 +5531,7 @@ function si(e) {
         .slice(0, 2);
     return t.length ? t.map((e) => e.charAt(0).toUpperCase()).join('') : 'AN';
 }
-function ri(e, t = 220) {
+function ui(e, t = 220) {
     const a = String(e || '').trim();
     return a
         ? a.length <= t
@@ -5428,11 +5539,11 @@ function ri(e, t = 220) {
             : `${a.slice(0, t - 1).trim()}...`
         : 'Sin comentario escrito.';
 }
-function li() {
+function di() {
     const t = b(),
         a = Array.isArray(t?.data?.reviews) ? t.data.reviews : [],
         n = (function (e) {
-            return e.slice().sort((e, t) => ii(t) - ii(e));
+            return e.slice().sort((e, t) => ri(t) - ri(e));
         })(a),
         o = (function (e) {
             return e.length
@@ -5442,7 +5553,7 @@ function li() {
         s = (function (e, t = 30) {
             const a = Date.now();
             return e.filter((e) => {
-                const n = ii(e);
+                const n = ri(e);
                 return !!n && a - n <= 24 * t * 60 * 60 * 1e3;
             }).length;
         })(a),
@@ -5546,7 +5657,7 @@ function li() {
               '#reviewsSpotlight',
               (function (t) {
                   const a = t.item;
-                  return `\n        <article class="reviews-spotlight-card">\n            <div class="reviews-spotlight-top">\n                <span class="review-avatar">${e(si(a.name || 'Anonimo'))}</span>\n                <div>\n                    <small>${e(t.eyebrow)}</small>\n                    <strong>${e(a.name || 'Anonimo')}</strong>\n                    <small>${e(i(a.date || a.createdAt || ''))}</small>\n                </div>\n            </div>\n            <p class="reviews-spotlight-stars">${e(oi(a.rating))}</p>\n            <p>${e(ri(a.comment || a.review || '', 320))}</p>\n            <small>${e(t.summary)}</small>\n        </article>\n    `;
+                  return `\n        <article class="reviews-spotlight-card">\n            <div class="reviews-spotlight-top">\n                <span class="review-avatar">${e(ci(a.name || 'Anonimo'))}</span>\n                <div>\n                    <small>${e(t.eyebrow)}</small>\n                    <strong>${e(a.name || 'Anonimo')}</strong>\n                    <small>${e(i(a.date || a.createdAt || ''))}</small>\n                </div>\n            </div>\n            <p class="reviews-spotlight-stars">${e(li(a.rating))}</p>\n            <p>${e(ui(a.comment || a.review || '', 320))}</p>\n            <small>${e(t.summary)}</small>\n        </article>\n    `;
               })(u)
           )
         : l(
@@ -5572,20 +5683,20 @@ function li() {
                                         : n <= 3
                                           ? 'Revisar posible friccion'
                                           : 'Resena util para contexto';
-                            return `\n        <article class="review-card${a ? ' is-featured' : ''}" data-rating="${e(String(n))}">\n            <header>\n                <div class="review-card-heading">\n                    <span class="review-avatar">${e(si(t.name || 'Anonimo'))}</span>\n                    <div>\n                        <strong>${e(t.name || 'Anonimo')}</strong>\n                        <small>${e(i(t.date || t.createdAt || ''))}</small>\n                    </div>\n                </div>\n                <span class="review-rating-badge" data-tone="${e(o)}">${e(oi(n))}</span>\n            </header>\n            <p>${e(ri(t.comment || t.review || ''))}</p>\n            <small>${e(s)}</small>\n        </article>\n    `;
+                            return `\n        <article class="review-card${a ? ' is-featured' : ''}" data-rating="${e(String(n))}">\n            <header>\n                <div class="review-card-heading">\n                    <span class="review-avatar">${e(ci(t.name || 'Anonimo'))}</span>\n                    <div>\n                        <strong>${e(t.name || 'Anonimo')}</strong>\n                        <small>${e(i(t.date || t.createdAt || ''))}</small>\n                    </div>\n                </div>\n                <span class="review-rating-badge" data-tone="${e(o)}">${e(li(n))}</span>\n            </header>\n            <p>${e(ui(t.comment || t.review || ''))}</p>\n            <small>${e(s)}</small>\n        </article>\n    `;
                         })(t, {
                             featured:
                                 a.item &&
-                                ni(t.name) === ni(a.item.name) &&
-                                ii(t) === ii(a.item),
+                                si(t.name) === si(a.item.name) &&
+                                ri(t) === ri(a.item),
                         })
                     )
                     .join('');
             })(n, u)
         ));
 }
-function ci() {
-    const e = kn();
+function pi() {
+    const e = qn();
     (r('#adminRefreshStatus', e),
         r(
             '#adminSyncState',
@@ -5594,8 +5705,8 @@ function ci() {
                 : e.replace('Datos: ', 'Estado: ')
         ));
 }
-async function ui(e = !1) {
-    const t = await Sn();
+async function mi(e = !1) {
+    const t = await _n();
     return (
         (function () {
             const e = b(),
@@ -5610,15 +5721,15 @@ async function ui(e = !1) {
             }),
                 lt());
         })(),
-        await nn(),
+        await rn(),
         R(b()),
-        ai(b()),
+        oi(b()),
         ue(),
         Oe(),
-        li(),
+        di(),
         lt(),
-        La(),
-        ci(),
+        Da(),
+        pi(),
         e &&
             s(
                 t ? 'Datos actualizados' : 'Datos cargados desde cache local',
@@ -5627,7 +5738,7 @@ async function ui(e = !1) {
         t
     );
 }
-function di() {
+function bi() {
     (x(!1),
         H(),
         F(!1),
@@ -5638,7 +5749,7 @@ function di() {
                 'Usa tu clave de administrador para acceder al centro operativo.',
         }));
 }
-async function pi(e) {
+async function gi(e) {
     e.preventDefault();
     const t = document.getElementById('adminPassword'),
         a = document.getElementById('admin2FACode'),
@@ -5741,8 +5852,8 @@ async function pi(e) {
             P(),
             x(!1),
             H({ clearPassword: !0 }),
-            await ui(!1),
-            Mn({
+            await mi(!1),
+            Nn({
                 immediate: 'queue' === b().ui.activeSection,
                 reason: 'login',
             }),
@@ -5761,7 +5872,7 @@ async function pi(e) {
         F(!1);
     }
 }
-async function mi(e, t) {
+async function fi(e, t) {
     switch (e) {
         case 'appointment-quick-filter':
             return (pe(String(t.dataset.filterValue || 'all')), !0);
@@ -5772,9 +5883,9 @@ async function mi(e, t) {
                 de({
                     density:
                         'compact' ===
-                        W(String(t.dataset.density || 'comfortable'))
+                        G(String(t.dataset.density || 'comfortable'))
                             ? 'compact'
-                            : G,
+                            : W,
                 }),
                 !0
             );
@@ -5862,7 +5973,7 @@ async function mi(e, t) {
             return !1;
     }
 }
-async function bi(e, a) {
+async function hi(e, a) {
     switch (e) {
         case 'change-month':
             return (
@@ -5905,7 +6016,7 @@ async function bi(e, a) {
         case 'select-availability-day':
             return (
                 (function (e) {
-                    const t = Ge(e);
+                    const t = We(e);
                     t &&
                         ct(
                             {
@@ -5957,7 +6068,7 @@ async function bi(e, a) {
             return (
                 (function (e, t) {
                     if (it()) return;
-                    const a = Ge(e);
+                    const a = We(e);
                     if (!a) return;
                     const n = b(),
                         i = Array.isArray(n.availability.draft[a])
@@ -6037,7 +6148,7 @@ async function bi(e, a) {
                     const e = bt();
                     if (!e) return;
                     const t = (function (e) {
-                        const t = We(e);
+                        const t = Ge(e);
                         if (!t) return null;
                         const a = (t.getDay() + 6) % 7,
                             n = new Date(t);
@@ -6139,7 +6250,7 @@ async function bi(e, a) {
             return !1;
     }
 }
-const gi = new Set([
+const yi = new Set([
     'dashboard',
     'appointments',
     'callbacks',
@@ -6147,13 +6258,13 @@ const gi = new Set([
     'availability',
     'queue',
 ]);
-function fi(e, t = 'dashboard') {
+function vi(e, t = 'dashboard') {
     const a = String(e || '')
         .trim()
         .toLowerCase();
-    return gi.has(a) ? a : t;
+    return yi.has(a) ? a : t;
 }
-function hi(e) {
+function ki(e) {
     !(function (e) {
         const t = String(e || '').replace(/^#/, ''),
             a = t ? `#${t}` : '';
@@ -6163,11 +6274,11 @@ function hi(e) {
                 '',
                 `${window.location.pathname}${window.location.search}${a}`
             );
-    })(fi(e));
+    })(vi(e));
 }
-const yi = 'themeMode',
-    vi = new Set(['light', 'dark', 'system']);
-function ki(e, { persist: t = !1 } = {}) {
+const wi = 'themeMode',
+    Si = new Set(['light', 'dark', 'system']);
+function qi(e, { persist: t = !1 } = {}) {
     const a = (function (e) {
         const t = (function (e) {
             return 'light' === e || 'dark' === e
@@ -6186,8 +6297,8 @@ function ki(e, { persist: t = !1 } = {}) {
     (g((t) => ({ ...t, ui: { ...t.ui, themeMode: e, theme: a } })),
         t &&
             (function (e) {
-                const t = vi.has(e) ? e : 'system';
-                Pa(yi, t);
+                const t = Si.has(e) ? e : 'system';
+                Oa(wi, t);
             })(e),
         Array.from(
             document.querySelectorAll('.admin-theme-btn[data-theme-mode]')
@@ -6197,12 +6308,12 @@ function ki(e, { persist: t = !1 } = {}) {
                 t.setAttribute('aria-pressed', String(a)));
         }));
 }
-const wi = 'adminLastSection',
-    Si = 'adminSidebarCollapsed';
-function qi() {
+const Ci = 'adminLastSection',
+    _i = 'adminSidebarCollapsed';
+function Ai() {
     return window.matchMedia('(max-width: 1024px)').matches;
 }
-function Ci(e) {
+function $i(e) {
     return (
         e instanceof HTMLElement &&
         !e.hidden &&
@@ -6211,9 +6322,9 @@ function Ci(e) {
         e.getClientRects().length > 0
     );
 }
-function _i() {
+function Ti() {
     const e = b(),
-        a = qi(),
+        a = Ai(),
         n = t('#adminSidebar'),
         i = n instanceof HTMLElement && n.classList.contains('is-open');
     (!(function ({ open: e, collapsed: a }) {
@@ -6248,12 +6359,12 @@ function _i() {
                     });
             })());
 }
-function Ai() {
+function Mi() {
     const e = b();
-    (Pa(wi, e.ui.activeSection), Pa(Si, e.ui.sidebarCollapsed ? '1' : '0'));
+    (Oa(Ci, e.ui.activeSection), Oa(_i, e.ui.sidebarCollapsed ? '1' : '0'));
 }
-async function $i(e, t = {}) {
-    const a = fi(e, 'dashboard'),
+async function Li(e, t = {}) {
+    const a = vi(e, 'dashboard'),
         { force: n = !1 } = t,
         i = b().ui.activeSection;
     return (
@@ -6271,14 +6382,14 @@ async function $i(e, t = {}) {
             )
         ) &&
         ((function (e) {
-            const t = fi(e, 'dashboard');
+            const t = vi(e, 'dashboard');
             (g((e) => ({ ...e, ui: { ...e.ui, activeSection: t } })),
                 I(t),
                 R(b()),
-                hi(t),
-                Ai());
+                ki(t),
+                Mi());
         })(a),
-        Mn({
+        Nn({
             immediate: 'queue' === a,
             reason: 'queue' === a ? 'section-enter' : 'section-exit',
         }),
@@ -6291,36 +6402,36 @@ async function $i(e, t = {}) {
                     !Boolean(e.queue.fallbackPartial)
                 );
             })() &&
-            (await an()),
+            (await sn()),
         !0)
     );
 }
-function Ti(e) {
+function Ei(e) {
     g((t) => ({ ...t, ui: { ...t.ui, ...e(t.ui) } }));
 }
-function Mi() {
-    (Ti((e) => ({
+function Ni() {
+    (Ei((e) => ({
         sidebarCollapsed: !e.sidebarCollapsed,
         sidebarOpen: e.sidebarOpen,
     })),
-        _i(),
-        Ai());
+        Ti(),
+        Mi());
 }
-function Li() {
-    (Ti((e) => ({ sidebarOpen: !e.sidebarOpen })), _i());
+function Di() {
+    (Ei((e) => ({ sidebarOpen: !e.sidebarOpen })), Ti());
 }
-function Ei({ restoreFocus: e = !1 } = {}) {
-    if ((Ti(() => ({ sidebarOpen: !1 })), _i(), P(), e)) {
+function Bi({ restoreFocus: e = !1 } = {}) {
+    if ((Ei(() => ({ sidebarOpen: !1 })), Ti(), P(), e)) {
         const e = t('#adminMenuToggle');
         e instanceof HTMLElement && e.focus();
     }
 }
-function Ni() {
+function Pi() {
     B();
     const e = document.getElementById('adminQuickCommand');
     e instanceof HTMLInputElement && e.focus();
 }
-function Di() {
+function Ii() {
     const e = b().ui.activeSection;
     if ('appointments' === e) {
         const e = document.getElementById('searchAppointments');
@@ -6335,49 +6446,49 @@ function Di() {
         e instanceof HTMLInputElement && e.focus();
     }
 }
-const Bi = {
+const xi = {
     appointments_pending_transfer: async () => {
-        (await $i('appointments'), pe('pending_transfer'), me(''));
+        (await Li('appointments'), pe('pending_transfer'), me(''));
     },
     appointments_all: async () => {
-        (await $i('appointments'), pe('all'), me(''));
+        (await Li('appointments'), pe('all'), me(''));
     },
     appointments_no_show: async () => {
-        (await $i('appointments'), pe('no_show'), me(''));
+        (await Li('appointments'), pe('no_show'), me(''));
     },
     callbacks_pending: async () => {
-        (await $i('callbacks'), He('pending'));
+        (await Li('callbacks'), He('pending'));
     },
     callbacks_contacted: async () => {
-        (await $i('callbacks'), He('contacted'));
+        (await Li('callbacks'), He('contacted'));
     },
     callbacks_sla_urgent: async () => {
-        (await $i('callbacks'), He('sla_urgent'));
+        (await Li('callbacks'), He('sla_urgent'));
     },
     queue_sla_risk: async () => {
-        (await $i('queue'), Ya('sla_risk'));
+        (await Li('queue'), en('sla_risk'));
     },
     queue_waiting: async () => {
-        (await $i('queue'), Ya('waiting'));
+        (await Li('queue'), en('waiting'));
     },
     queue_called: async () => {
-        (await $i('queue'), Ya('called'));
+        (await Li('queue'), en('called'));
     },
     queue_no_show: async () => {
-        (await $i('queue'), Ya('no_show'));
+        (await Li('queue'), en('no_show'));
     },
     queue_all: async () => {
-        (await $i('queue'), Ya('all'));
+        (await Li('queue'), en('all'));
     },
     queue_call_next: async () => {
-        (await $i('queue'), await Pn(b().queue.stationConsultorio));
+        (await Li('queue'), await On(b().queue.stationConsultorio));
     },
 };
-async function Pi(e) {
-    const t = Bi[e];
+async function Oi(e) {
+    const t = xi[e];
     'function' == typeof t && (await t());
 }
-function Ii(e) {
+function Fi(e) {
     const t = String(e || '')
         .trim()
         .toLowerCase();
@@ -6395,7 +6506,7 @@ function Ii(e) {
                     : null
         : null;
 }
-async function xi(e, t) {
+async function Hi(e, t) {
     switch (e) {
         case 'callback-quick-filter':
             return (He(String(t.dataset.filterValue || 'all')), !0);
@@ -6412,7 +6523,7 @@ async function xi(e, t) {
         case 'callbacks-triage-next':
         case 'context-open-callbacks-next':
             return (
-                await $i('callbacks'),
+                await Li('callbacks'),
                 He('pending'),
                 (function () {
                     const e = document.querySelector(
@@ -6517,22 +6628,22 @@ async function xi(e, t) {
                 !0
             );
         case 'context-open-callbacks-pending':
-            return (await $i('callbacks'), He('pending'), !0);
+            return (await Li('callbacks'), He('pending'), !0);
         default:
             return !1;
     }
 }
-async function Oi(e) {
+async function ji(e) {
     switch (e) {
         case 'context-open-appointments-transfer':
-            return (await $i('appointments'), pe('pending_transfer'), !0);
+            return (await Li('appointments'), pe('pending_transfer'), !0);
         case 'context-open-dashboard':
-            return (await $i('dashboard'), !0);
+            return (await Li('dashboard'), !0);
         default:
             return !1;
     }
 }
-async function Fi(e, t) {
+async function Ri(e, t) {
     switch (e) {
         case 'queue-bulk-action':
             return (
@@ -6540,7 +6651,7 @@ async function Fi(e, t) {
                     const t = Qt(),
                         a = At(e);
                     if (t.length) {
-                        if (Ka.has(a)) {
+                        if (Ga.has(a)) {
                             const e = window.confirm(
                                 `${(function (e) {
                                     return 'no_show' === e
@@ -6554,7 +6665,7 @@ async function Fi(e, t) {
                         }
                         for (const e of t)
                             try {
-                                await Bn({
+                                await xn({
                                     ticketId: e.id,
                                     action: a,
                                     consultorio:
@@ -6562,7 +6673,7 @@ async function Fi(e, t) {
                                         b().queue.stationConsultorio,
                                 });
                             } catch (e) {}
-                        (Da(), Ea(`Bulk ${a} sobre ${t.length} tickets`));
+                        (Ia(), Ba(`Bulk ${a} sobre ${t.length} tickets`));
                     }
                 })(String(t.dataset.queueAction || 'no_show')),
                 !0
@@ -6573,9 +6684,9 @@ async function Fi(e, t) {
                     const e = Qt();
                     for (const t of e)
                         try {
-                            await Hn(t.id);
+                            await zn(t.id);
                         } catch (e) {}
-                    (Da(), Ea(`Bulk reimpresion ${e.length}`));
+                    (Ia(), Ba(`Bulk reimpresion ${e.length}`));
                 })(),
                 !0
             );
@@ -6583,7 +6694,7 @@ async function Fi(e, t) {
             return !1;
     }
 }
-async function Hi(e, t) {
+async function zi(e, t) {
     return (
         'queue-copy-install-link' === e &&
         (await (async function (e) {
@@ -6600,54 +6711,54 @@ async function Hi(e, t) {
         !0)
     );
 }
-async function ji(e) {
+async function Vi(e) {
     switch (e) {
         case 'queue-sensitive-confirm':
-            return (await xn(), !0);
+            return (await Hn(), !0);
         case 'queue-sensitive-cancel':
-            return (On(), !0);
+            return (jn(), !0);
         default:
             return !1;
     }
 }
-function Ri(e, t = 0) {
+function Ui(e, t = 0) {
     return Number(e?.dataset?.queueConsultorio || t);
 }
-function zi(e, t = 0) {
+function Ki(e, t = 0) {
     return Number(e?.dataset?.queueId || t);
 }
-async function Vi(e, t) {
+async function Qi(e, t) {
     switch (e) {
         case 'queue-refresh-state':
-            return (await an(), !0);
+            return (await sn(), !0);
         case 'queue-call-next':
-            return (await Pn(Ri(t)), !0);
+            return (await On(Ui(t)), !0);
         case 'queue-release-station':
             return (
                 await (async function (e) {
                     const t = 2 === Number(e || 0) ? 2 : 1,
-                        a = Gt(t);
+                        a = Wt(t);
                     a
-                        ? await In(a.id, 'liberar', t)
-                        : Ea(`Sin ticket activo para liberar en C${t}`);
-                })(Ri(t)),
+                        ? await Fn(a.id, 'liberar', t)
+                        : Ba(`Sin ticket activo para liberar en C${t}`);
+                })(Ui(t)),
                 !0
             );
         case 'queue-toggle-shortcuts':
-            return (jn(), !0);
+            return (Vn(), !0);
         case 'queue-toggle-one-tap':
-            return (Ja({ oneTap: !b().queue.oneTap }), !0);
+            return (Xa({ oneTap: !b().queue.oneTap }), !0);
         case 'queue-start-practice':
-            return (Rn(!0), !0);
+            return (Un(!0), !0);
         case 'queue-stop-practice':
-            return (Rn(!1), !0);
+            return (Un(!1), !0);
         case 'queue-lock-station':
             return (
                 (function (e) {
                     const t = 2 === Number(e || 0) ? 2 : 1;
-                    (Ja({ stationMode: 'locked', stationConsultorio: t }),
-                        Ea(`Estacion bloqueada en C${t}`));
-                })(Ri(t, 1)),
+                    (Xa({ stationMode: 'locked', stationConsultorio: t }),
+                        Ba(`Estacion bloqueada en C${t}`));
+                })(Ui(t, 1)),
                 !0
             );
         case 'queue-set-station-mode':
@@ -6655,23 +6766,23 @@ async function Vi(e, t) {
                 (function (e) {
                     if ('free' === Ct(e))
                         return (
-                            Ja({ stationMode: 'free' }),
-                            void Ea('Estacion en modo libre')
+                            Xa({ stationMode: 'free' }),
+                            void Ba('Estacion en modo libre')
                         );
-                    Ja({ stationMode: 'locked' });
+                    Xa({ stationMode: 'locked' });
                 })(String(t.dataset.queueMode || 'free')),
                 !0
             );
         case 'queue-capture-call-key':
             return (
-                Ja({ captureCallKeyMode: !0 }),
+                Xa({ captureCallKeyMode: !0 }),
                 s('Calibración activa: presiona la tecla externa', 'info'),
                 !0
             );
         case 'queue-clear-call-key':
             return (
                 window.confirm('¿Quitar tecla externa calibrada?') &&
-                    (Ja({ customCallKey: null, captureCallKeyMode: !1 }),
+                    (Xa({ customCallKey: null, captureCallKeyMode: !1 }),
                     s('Tecla externa eliminada', 'success')),
                 !0
             );
@@ -6679,7 +6790,7 @@ async function Vi(e, t) {
             return !1;
     }
 }
-async function Ui(e, t) {
+async function Wi(e, t) {
     switch (e) {
         case 'queue-toggle-ticket-select':
             return (
@@ -6687,31 +6798,31 @@ async function Ui(e, t) {
                     const t = Number(e || 0);
                     if (!t) return;
                     const a = Ut(b().queue.selected || []);
-                    Na(a.includes(t) ? a.filter((e) => e !== t) : [...a, t]);
-                })(zi(t)),
+                    Pa(a.includes(t) ? a.filter((e) => e !== t) : [...a, t]);
+                })(Ki(t)),
                 !0
             );
         case 'queue-select-visible':
-            return (Na(Vt().map((e) => Number(e.id || 0))), !0);
+            return (Pa(Vt().map((e) => Number(e.id || 0))), !0);
         case 'queue-clear-selection':
-            return (Da(), !0);
+            return (Ia(), !0);
         case 'queue-ticket-action':
             return (
-                await In(
-                    zi(t),
+                await Fn(
+                    Ki(t),
                     (function (e, t = '') {
                         return String(e?.dataset?.queueAction || t);
                     })(t),
-                    Ri(t)
+                    Ui(t)
                 ),
                 !0
             );
         case 'queue-reprint-ticket':
-            return (await Hn(zi(t)), !0);
+            return (await zn(Ki(t)), !0);
         case 'queue-clear-search':
             return (
                 (function () {
-                    Ja({ search: '', selected: [] });
+                    Xa({ search: '', selected: [] });
                     const e = document.getElementById('queueSearchInput');
                     e instanceof HTMLInputElement && (e.value = '');
                 })(),
@@ -6721,34 +6832,34 @@ async function Ui(e, t) {
             return !1;
     }
 }
-async function Ki(e, t) {
-    const a = [Vi, Ui, Fi, ji, Hi];
+async function Gi(e, t) {
+    const a = [Qi, Wi, Ri, Vi, zi];
     for (const n of a) if (await n(e, t)) return !0;
     return !1;
 }
-async function Qi(e, t) {
+async function Ji(e, t) {
     switch (e) {
         case 'close-toast':
             return (t.closest('.toast')?.remove(), !0);
         case 'set-admin-theme':
             return (
-                ki(String(t.dataset.themeMode || 'system'), { persist: !0 }),
+                qi(String(t.dataset.themeMode || 'system'), { persist: !0 }),
                 !0
             );
         case 'toggle-sidebar-collapse':
-            return (Mi(), !0);
+            return (Ni(), !0);
         case 'refresh-admin-data':
-            return (await ui(!0), !0);
+            return (await mi(!0), !0);
         case 'run-admin-command': {
             const e = document.getElementById('adminQuickCommand');
             if (e instanceof HTMLInputElement) {
-                const t = Ii(e.value);
-                t && (await Pi(t), (e.value = ''), P());
+                const t = Fi(e.value);
+                t && (await Oi(t), (e.value = ''), P());
             }
             return !0;
         }
         case 'open-command-palette':
-            return (B(), Ni(), !0);
+            return (B(), Pi(), !0);
         case 'close-command-palette':
             return (P(), !0);
         case 'logout':
@@ -6770,10 +6881,10 @@ async function Qi(e, t) {
                             },
                         })));
                 })(),
-                Mn({ immediate: !1, reason: 'logout' }),
+                Nn({ immediate: !1, reason: 'logout' }),
                 N(),
                 P(),
-                di(),
+                bi(),
                 s('Sesion cerrada', 'info'),
                 !0
             );
@@ -6795,7 +6906,7 @@ async function Qi(e, t) {
             return !1;
     }
 }
-async function Gi() {
+async function Yi() {
     ((function () {
         const e = t('#loginScreen'),
             a = t('#adminDashboard');
@@ -6828,7 +6939,7 @@ async function Gi() {
                 e.preventDefault();
                 try {
                     await (async function (e, t) {
-                        const a = [Qi, mi, xi, bi, Ki, Oi];
+                        const a = [Ji, fi, Hi, hi, Gi, ji];
                         for (const n of a) if (await n(e, t)) return !0;
                         return !1;
                     })(a, t);
@@ -6847,10 +6958,10 @@ async function Gi() {
                 n = t.classList.contains('nav-item');
             if (!a && !n) return;
             e.preventDefault();
-            const i = await $i(
+            const i = await Li(
                 String(t.getAttribute('data-section') || 'dashboard')
             );
-            qi() && !1 !== i && Ei();
+            Ai() && !1 !== i && Bi();
         }),
         document.addEventListener('click', (e) => {
             const t =
@@ -6859,7 +6970,7 @@ async function Gi() {
                     : null;
             t &&
                 (e.preventDefault(),
-                Ya(String(t.getAttribute('data-queue-filter') || 'all')));
+                en(String(t.getAttribute('data-queue-filter') || 'all')));
         }),
         (function () {
             const e = document.getElementById('callbacksBulkSelectVisibleBtn');
@@ -6871,17 +6982,17 @@ async function Gi() {
         })(),
         (function () {
             let e = Q,
-                t = G;
+                t = W;
             try {
                 ((e = JSON.parse(localStorage.getItem(U) || `"${Q}"`)),
-                    (t = JSON.parse(localStorage.getItem(K) || `"${G}"`)));
+                    (t = JSON.parse(localStorage.getItem(K) || `"${W}"`)));
             } catch (e) {}
             g((a) => ({
                 ...a,
                 appointments: {
                     ...a.appointments,
                     sort: 'string' == typeof e ? e : Q,
-                    density: 'string' == typeof t ? t : G,
+                    density: 'string' == typeof t ? t : W,
                 },
             }));
         })(),
@@ -6906,7 +7017,7 @@ async function Gi() {
                 ((e = String(localStorage.getItem(Ve) || '')),
                     (t = String(localStorage.getItem(Ue) || '')));
             } catch (e) {}
-            const a = Ge(e),
+            const a = We(e),
                 n = Xe(t, a);
             g((e) => ({
                 ...e,
@@ -6918,8 +7029,8 @@ async function Gi() {
             }));
         })(),
         (function () {
-            const e = fi(Ba(wi, 'dashboard')),
-                t = '1' === Ba(Si, '0');
+            const e = vi(xa(Ci, 'dashboard')),
+                t = '1' === xa(_i, '0');
             (g((a) => ({
                 ...a,
                 ui: {
@@ -6930,28 +7041,28 @@ async function Gi() {
                 },
             })),
                 I(e),
-                hi(e),
-                _i());
+                ki(e),
+                Ti());
         })(),
         (function () {
             const e = {
                     stationMode:
-                        'locked' === Ct(Ba(Fa, 'free')) ? 'locked' : 'free',
-                    stationConsultorio: 2 === Number(Ba(Ha, '1')) ? 2 : 1,
-                    oneTap: '1' === Ba(ja, '0'),
-                    helpOpen: '1' === Ba(za, '0'),
-                    customCallKey: Ia(Ra, null),
+                        'locked' === Ct(xa(Ra, 'free')) ? 'locked' : 'free',
+                    stationConsultorio: 2 === Number(xa(za, '1')) ? 2 : 1,
+                    oneTap: '1' === xa(Va, '0'),
+                    helpOpen: '1' === xa(Ka, '0'),
+                    customCallKey: Fa(Ua, null),
                 },
-                t = Ct(Oa('station')),
-                a = Ct(Oa('lock')),
-                n = Ct(Oa('one_tap'));
+                t = Ct(ja('station')),
+                a = Ct(ja('lock')),
+                n = Ct(ja('one_tap'));
             (g((i) => ({
                 ...i,
                 queue: {
                     ...i.queue,
-                    stationMode: Kn(a, e.stationMode),
-                    stationConsultorio: Un(t, e.stationConsultorio),
-                    oneTap: Qn(n, e.oneTap),
+                    stationMode: Gn(a, e.stationMode),
+                    stationConsultorio: Wn(t, e.stationConsultorio),
+                    oneTap: Jn(n, e.oneTap),
                     helpOpen: e.helpOpen,
                     customCallKey:
                         e.customCallKey && 'object' == typeof e.customCallKey
@@ -6959,17 +7070,17 @@ async function Gi() {
                             : null,
                 },
             })),
-                Qa(b()));
+                Ja(b()));
         })(),
-        ki(
+        qi(
             (function () {
-                const e = String(Ba(yi, 'system') || 'system')
+                const e = String(xa(wi, 'system') || 'system')
                     .trim()
                     .toLowerCase();
-                return vi.has(e) ? e : 'system';
+                return Si.has(e) ? e : 'system';
             })()
         ),
-        di(),
+        bi(),
         (function () {
             const e = document.getElementById('appointmentFilter');
             e instanceof HTMLSelectElement &&
@@ -6979,7 +7090,7 @@ async function Gi() {
             const t = document.getElementById('appointmentSort');
             t instanceof HTMLSelectElement &&
                 t.addEventListener('change', () => {
-                    de({ sort: W(t.value) || Q });
+                    de({ sort: G(t.value) || Q });
                 });
             const a = document.getElementById('searchAppointments');
             a instanceof HTMLInputElement &&
@@ -7008,7 +7119,7 @@ async function Gi() {
                 s.addEventListener('input', () => {
                     var e;
                     ((e = s.value),
-                        Ja({ search: String(e || ''), selected: [] }));
+                        Xa({ search: String(e || ''), selected: [] }));
                 });
             const r = document.getElementById('adminQuickCommand');
             var l;
@@ -7016,8 +7127,8 @@ async function Gi() {
                 (l = r).addEventListener('keydown', async (e) => {
                     if ('Enter' !== e.key) return;
                     e.preventDefault();
-                    const t = Ii(l.value);
-                    t && (await Pi(t));
+                    const t = Fi(l.value);
+                    t && (await Oi(t));
                 });
         })(),
         (function () {
@@ -7025,19 +7136,19 @@ async function Gi() {
                 a = t('#adminMenuClose'),
                 n = t('#adminSidebarBackdrop');
             (e?.addEventListener('click', () => {
-                qi() ? Li() : Mi();
+                Ai() ? Di() : Ni();
             }),
-                a?.addEventListener('click', () => Ei({ restoreFocus: !0 })),
-                n?.addEventListener('click', () => Ei({ restoreFocus: !0 })),
+                a?.addEventListener('click', () => Bi({ restoreFocus: !0 })),
+                n?.addEventListener('click', () => Bi({ restoreFocus: !0 })),
                 window.addEventListener('resize', () => {
-                    qi() ? _i() : Ei();
+                    Ai() ? Ti() : Bi();
                 }),
                 document.addEventListener('keydown', (e) => {
-                    if (!qi() || !b().ui.sidebarOpen) return;
+                    if (!Ai() || !b().ui.sidebarOpen) return;
                     if ('Escape' === e.key)
                         return (
                             e.preventDefault(),
-                            void Ei({ restoreFocus: !0 })
+                            void Bi({ restoreFocus: !0 })
                         );
                     if ('Tab' !== e.key) return;
                     const a = (function () {
@@ -7051,7 +7162,7 @@ async function Gi() {
                                 e.querySelectorAll('.nav-item[data-section]')
                             ).filter((e) => e !== n),
                             o = e.querySelector('.logout-btn');
-                        return [a, n, ...i, o].filter(Ci);
+                        return [a, n, ...i, o].filter($i);
                     })();
                     if (!a.length) return;
                     const n = a.indexOf(document.activeElement);
@@ -7063,7 +7174,7 @@ async function Gi() {
                 }),
                 window.addEventListener('hashchange', async () => {
                     const e = (function (e = 'dashboard') {
-                        return fi(
+                        return vi(
                             String(window.location.hash || '').replace(
                                 /^#/,
                                 ''
@@ -7071,10 +7182,10 @@ async function Gi() {
                             e
                         );
                     })(b().ui.activeSection);
-                    await $i(e, { force: !0 });
+                    await Li(e, { force: !0 });
                 }),
                 window.addEventListener('storage', (e) => {
-                    'themeMode' === e.key && ki(String(e.newValue || 'system'));
+                    'themeMode' === e.key && qi(String(e.newValue || 'system'));
                 }));
         })(),
         window.addEventListener('beforeunload', (e) => {
@@ -7082,19 +7193,19 @@ async function Gi() {
         }));
     const e = document.getElementById('loginForm');
     var a;
-    (e instanceof HTMLFormElement && e.addEventListener('submit', pi),
+    (e instanceof HTMLFormElement && e.addEventListener('submit', gi),
         (a = {
-            navigateToSection: $i,
-            focusQuickCommand: Ni,
-            focusCurrentSearch: Di,
-            runQuickAction: Pi,
-            closeSidebar: () => Ei({ restoreFocus: !0 }),
+            navigateToSection: Li,
+            focusQuickCommand: Pi,
+            focusCurrentSearch: Ii,
+            runQuickAction: Oi,
+            closeSidebar: () => Bi({ restoreFocus: !0 }),
             toggleMenu: () => {
-                qi() ? Li() : Mi();
+                Ai() ? Di() : Ni();
             },
-            dismissQueueSensitiveDialog: Fn,
-            toggleQueueHelp: () => jn(),
-            queueNumpadAction: Vn,
+            dismissQueueSensitiveDialog: Rn,
+            toggleQueueHelp: () => Vn(),
+            queueNumpadAction: Qn,
         }),
         window.addEventListener('keydown', (e) => {
             (function (e, t) {
@@ -7203,20 +7314,20 @@ async function Gi() {
     })();
     (n
         ? (await (async function () {
-              (D(), P(), await ui(!1));
+              (D(), P(), await mi(!1));
           })(),
           I(b().ui.activeSection))
-        : (N(), P(), di()),
-        qn ||
+        : (N(), P(), bi()),
+        An ||
             'undefined' == typeof window ||
-            ((qn = !0),
+            ((An = !0),
             window.setInterval(() => {
-                Tn('timer');
-            }, _n()),
-            document.addEventListener('visibilitychange', Ln),
-            window.addEventListener('focus', En),
-            window.addEventListener('online', Nn),
-            Mn({
+                En('timer');
+            }, Tn()),
+            document.addEventListener('visibilitychange', Dn),
+            window.addEventListener('focus', Bn),
+            window.addEventListener('online', Pn),
+            Nn({
                 immediate:
                     b().auth?.authenticated &&
                     'queue' === b().ui?.activeSection,
@@ -7265,22 +7376,22 @@ async function Gi() {
                 }));
         })(),
         window.setInterval(() => {
-            ci();
+            pi();
         }, 3e4));
 }
-const Wi = (
+const Zi = (
     'loading' === document.readyState
         ? new Promise((e, t) => {
               document.addEventListener(
                   'DOMContentLoaded',
                   () => {
-                      Gi().then(e).catch(t);
+                      Yi().then(e).catch(t);
                   },
                   { once: !0 }
               );
           })
-        : Gi()
+        : Yi()
 ).catch((e) => {
     throw (console.error('admin-v3 boot failed', e), e);
 });
-export { Wi as default };
+export { Zi as default };
