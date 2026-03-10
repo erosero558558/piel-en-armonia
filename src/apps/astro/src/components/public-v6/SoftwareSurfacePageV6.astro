@@ -132,6 +132,10 @@ const suiteMapItems = Array.isArray(navModel?.header?.links)
           })
           .filter(Boolean)
     : [];
+const showcaseKind =
+    ['phone', 'status', 'dashboard'].includes(normalizeText(mockup?.kind))
+        ? normalizeText(mockup?.kind)
+        : 'status';
 
 const actionClass = (variant = 'secondary') => [
     'v6-suite-action',
@@ -230,9 +234,14 @@ const actionClass = (variant = 'secondary') => [
     <div class="v6-suite-surface-shell__body">
         {
             hasShowcase ? (
-                <section id="v6-suite-surface-demo" class="v6-suite-showcase">
+                <section
+                    id="v6-suite-surface-demo"
+                    class:list={['v6-suite-showcase', `is-${showcaseKind}`]}
+                    data-v6-suite-showcase
+                    data-v6-suite-surface-kind={showcaseKind}
+                >
                     <SoftwareMockupV6 mockup={mockup} />
-                    <article class="v6-suite-card v6-suite-card--copy">
+                    <article class:list={['v6-suite-card', 'v6-suite-card--copy', `is-${showcaseKind}`]}>
                         {mockup.eyebrow ? <p>{mockup.eyebrow}</p> : null}
                         <h3>{mockup.title || page.heading}</h3>
                         {mockup.footer ? <span>{mockup.footer}</span> : null}

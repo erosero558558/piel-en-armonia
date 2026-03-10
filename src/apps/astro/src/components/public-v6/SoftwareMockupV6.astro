@@ -31,7 +31,16 @@ const footer = normalizeText(mockup?.footer);
 const hasHeader = Boolean(eyebrow || title);
 ---
 
-<article class:list={['v6-suite-mockup', `is-${kind}`, compact && 'is-compact']}>
+<article
+    class:list={['v6-suite-mockup', `is-${kind}`, compact && 'is-compact']}
+    data-v6-suite-mockup
+    data-v6-suite-mockup-kind={kind}
+>
+    <div class="v6-suite-mockup__chrome" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
     {
         hasHeader || chips.length ? (
             <header class="v6-suite-mockup__head">
@@ -53,9 +62,11 @@ const hasHeader = Boolean(eyebrow || title);
     <div class="v6-suite-mockup__body">
         {rows.map((row, index) => (
             <article class:list={['v6-suite-mockup__row', index === 0 && 'is-primary']}>
-                <p>{row.label}</p>
+                <div class="v6-suite-mockup__row-head">
+                    <p>{row.label}</p>
+                    {row.meta ? <span>{row.meta}</span> : null}
+                </div>
                 <strong>{row.value}</strong>
-                {row.meta ? <span>{row.meta}</span> : null}
             </article>
         ))}
     </div>

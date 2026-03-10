@@ -2613,11 +2613,33 @@
     grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
     gap: 18px;
     align-items: center;
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+}
+
+.v6-suite-surface-card.is-phone {
+    background:
+        radial-gradient(circle at top right, rgba(214, 151, 68, 0.18), transparent 34%),
+        linear-gradient(180deg, #fbf6ee 0%, #fbfcfe 100%);
+}
+
+.v6-suite-surface-card.is-status {
+    background:
+        radial-gradient(circle at top right, rgba(79, 121, 166, 0.16), transparent 36%),
+        linear-gradient(180deg, #f4f8fc 0%, #fbfcfe 100%);
+}
+
+.v6-suite-surface-card.is-dashboard {
+    background:
+        radial-gradient(circle at top right, rgba(51, 90, 103, 0.18), transparent 34%),
+        linear-gradient(180deg, #f1f6f7 0%, #fbfcfe 100%);
 }
 
 .v6-suite-surface-card__copy {
     display: grid;
     gap: 12px;
+    align-content: start;
 }
 
 .v6-suite-surface-card__copy p,
@@ -2729,6 +2751,16 @@
     color: #edf3fb;
     box-shadow: 0 24px 46px rgba(11, 18, 31, 0.28);
     overflow: hidden;
+    border-radius: 22px;
+}
+
+.v6-suite-mockup::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 110px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, transparent 100%);
+    pointer-events: none;
 }
 
 .v6-suite-mockup.is-phone {
@@ -2747,6 +2779,27 @@
     border-radius: 18px;
 }
 
+.v6-suite-mockup__chrome {
+    padding: 14px 18px 0;
+    display: flex;
+    gap: 6px;
+}
+
+.v6-suite-mockup__chrome span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.v6-suite-mockup__chrome span:first-child {
+    background: rgba(214, 151, 68, 0.9);
+}
+
+.v6-suite-mockup__chrome span:nth-child(2) {
+    background: rgba(135, 160, 191, 0.55);
+}
+
 .v6-suite-mockup__head,
 .v6-suite-mockup__body {
     padding: 18px;
@@ -2756,6 +2809,7 @@
     display: grid;
     gap: 14px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 14px;
 }
 
 .v6-suite-mockup__head p,
@@ -2809,12 +2863,19 @@
     background: rgba(255, 255, 255, 0.03);
     padding: 14px;
     display: grid;
-    gap: 4px;
+    gap: 8px;
 }
 
 .v6-suite-mockup__row.is-primary {
     background: linear-gradient(180deg, rgba(214, 151, 68, 0.18) 0%, rgba(214, 151, 68, 0.04) 100%);
     border-color: rgba(214, 151, 68, 0.28);
+}
+
+.v6-suite-mockup__row-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
 }
 
 .v6-suite-mockup__row p,
@@ -2895,6 +2956,29 @@
     grid-template-columns: minmax(0, 1fr) minmax(320px, 0.78fr);
     gap: 22px;
     align-items: center;
+    padding: 20px;
+    border: 1px solid rgba(27, 37, 49, 0.08);
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(247, 249, 252, 0.98) 0%, rgba(242, 246, 249, 0.94) 100%);
+    box-shadow: 0 18px 36px rgba(16, 28, 40, 0.05);
+}
+
+.v6-suite-showcase.is-phone {
+    background:
+        radial-gradient(circle at top right, rgba(214, 151, 68, 0.14), transparent 34%),
+        linear-gradient(180deg, #fbf6ee 0%, #f7fafc 100%);
+}
+
+.v6-suite-showcase.is-status {
+    background:
+        radial-gradient(circle at top right, rgba(79, 121, 166, 0.14), transparent 36%),
+        linear-gradient(180deg, #f2f7fb 0%, #f7fafc 100%);
+}
+
+.v6-suite-showcase.is-dashboard {
+    background:
+        radial-gradient(circle at top right, rgba(51, 90, 103, 0.14), transparent 34%),
+        linear-gradient(180deg, #eff6f7 0%, #f7fafc 100%);
 }
 
 .v6-suite-card--copy {
@@ -2902,6 +2986,19 @@
     gap: 10px;
     min-height: 100%;
     align-content: center;
+    border-radius: 20px;
+}
+
+.v6-suite-card--copy.is-phone {
+    background: linear-gradient(180deg, rgba(255, 249, 240, 0.94) 0%, #fbfcfe 100%);
+}
+
+.v6-suite-card--copy.is-status {
+    background: linear-gradient(180deg, rgba(244, 249, 255, 0.94) 0%, #fbfcfe 100%);
+}
+
+.v6-suite-card--copy.is-dashboard {
+    background: linear-gradient(180deg, rgba(242, 249, 247, 0.94) 0%, #fbfcfe 100%);
 }
 
 .v6-suite-step p,

@@ -144,6 +144,10 @@ const suiteMapItems = Array.isArray(navModel?.header?.links)
           })
           .filter(Boolean)
     : [];
+const resolveMockupKind = (mockup) => {
+    const kind = normalizeText(mockup?.kind);
+    return ['phone', 'status', 'dashboard'].includes(kind) ? kind : 'status';
+};
 
 const actionClass = (variant = 'secondary') => [
     'v6-suite-action',
@@ -336,7 +340,14 @@ const actionClass = (variant = 'secondary') => [
 
                 <div class="v6-suite-surface-grid">
                     {surfaceCards.map((card) => (
-                        <article class="v6-suite-surface-card">
+                        <article
+                            class:list={[
+                                'v6-suite-surface-card',
+                                `is-${resolveMockupKind(card.mockup)}`,
+                            ]}
+                            data-v6-suite-surface-card
+                            data-v6-suite-surface-kind={resolveMockupKind(card.mockup)}
+                        >
                             <div class="v6-suite-surface-card__copy">
                                 {card.eyebrow ? <p>{card.eyebrow}</p> : null}
                                 <h3>{card.title}</h3>
