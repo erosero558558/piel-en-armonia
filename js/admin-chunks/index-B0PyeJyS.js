@@ -2854,58 +2854,7 @@ function Sa(e, t) {
               ));
     return n.slice(0, 4);
 }
-function qa() {
-    const e = b(),
-        { queueMeta: t } = zt(),
-        a = String(e.queue?.syncMode || 'live')
-            .trim()
-            .toLowerCase(),
-        n = Boolean(e.queue?.fallbackPartial),
-        i = String(t?.updatedAt || '').trim(),
-        o = i ? Date.parse(i) : NaN,
-        s = Number.isFinite(o)
-            ? Math.max(0, Math.round((Date.now() - o) / 1e3))
-            : null;
-    return 'fallback' === a || n
-        ? {
-              state: 'alert',
-              badge: 'Atender ahora',
-              title: 'Cola en fallback',
-              summary:
-                  'El admin ya está usando respaldo parcial. Refresca la cola y mantén Operador, Kiosco y Sala TV en sus rutas web preparadas hasta que vuelva el realtime.',
-              steps: [
-                  'Presiona Refrescar y confirma que el sync vuelva a vivo antes de cerrar la apertura.',
-                  'Mantén un solo operador activo por estación para evitar confusión mientras dura el respaldo.',
-                  'Si la TV sigue mostrando llamados, no la cierres; prioriza estabilidad sobre reinstalar.',
-              ],
-          }
-        : Number.isFinite(s) && s >= 60
-          ? {
-                state: 'warning',
-                badge: `Watchdog ${s}s`,
-                title: 'Realtime lento o en reconexión',
-                summary:
-                    'La cola no parece caída, pero el watchdog ya detecta retraso. Conviene refrescar desde admin antes de que el equipo operador se quede desfasado.',
-                steps: [
-                    'Refresca la cola y confirma que Sync vuelva a "vivo".',
-                    'Si Operador ya estaba abierto, valida un llamado de prueba antes de seguir atendiendo.',
-                    'Si el retraso persiste, opera desde las rutas web preparadas mientras revisas red local.',
-                ],
-            }
-          : {
-                state: 'ready',
-                badge: 'Sin incidentes',
-                title: 'Cola sincronizada',
-                summary:
-                    'No hay incidentes visibles de realtime. Usa esta sección como ruta rápida si falla numpad, térmica o audio durante el día.',
-                steps: [
-                    'Mantén este panel abierto como tablero de rescate para operador, kiosco y sala.',
-                    'Si notas un retraso mayor a un minuto, refresca antes de tocar instalación o hardware.',
-                    'En una caída puntual, prioriza abrir la ruta preparada del equipo antes de reiniciar dispositivos.',
-                ],
-            };
-}
-function Ca(t, a) {
+function qa(t, a) {
     if (
         !(
             document.getElementById('queueSurfaceTelemetry') instanceof
@@ -3054,6 +3003,57 @@ function Ca(t, a) {
         '#queueSurfaceTelemetry',
         `\n        <section class="queue-surface-telemetry__shell">\n            <div class="queue-surface-telemetry__header">\n                <div>\n                    <p class="queue-app-card__eyebrow">Equipos en vivo</p>\n                    <h5 id="queueSurfaceTelemetryTitle" class="queue-app-card__title">${e(o ? 'Equipos con atención urgente' : s ? 'Equipos con señal parcial' : 'Equipos en vivo')}</h5>\n                    <p id="queueSurfaceTelemetrySummary" class="queue-surface-telemetry__summary">${e(r)}</p>\n                    <div id="queueSurfaceTelemetryAutoMeta" class="queue-surface-telemetry__auto-meta">\n                        <span id="queueSurfaceTelemetryAutoState" class="queue-surface-telemetry__auto-state" data-state="${e(i.state)}">${e(i.label)}</span>\n                        <span class="queue-surface-telemetry__auto-copy">${e(i.meta)}</span>\n                    </div>\n                </div>\n                <span id="queueSurfaceTelemetryStatus" class="queue-surface-telemetry__status" data-state="${e(u)}">${e(c)}</span>\n            </div>\n            <div id="queueSurfaceTelemetryCards" class="queue-surface-telemetry__grid" role="list" aria-label="Estado vivo por equipo">\n                ${n.map((t) => `\n                    <article class="queue-surface-card" data-state="${e(t.state)}" role="listitem">\n                        <div class="queue-surface-card__header">\n                            <div>\n                                <strong>${e(t.title)}</strong>\n                                <p class="queue-surface-card__meta">${e(t.deviceLabel)}</p>\n                            </div>\n                            <span class="queue-surface-card__badge">${e(t.badge)}</span>\n                        </div>\n                        <p class="queue-surface-card__summary">${e(t.summary)}</p>\n                        <p class="queue-surface-card__age">${e(t.ageLabel)}</p>\n                        <div class="queue-surface-card__chips">${t.chips.map((t) => `<span class="queue-surface-card__chip">${e(t)}</span>`).join('')}</div>\n                        <div class="queue-surface-card__actions">\n                            <a href="${e(t.route)}" target="_blank" rel="noopener" class="queue-surface-card__action queue-surface-card__action--primary">${e(t.actionLabel)}</a>\n                            <button type="button" class="queue-surface-card__action" data-action="queue-copy-install-link" data-queue-install-url="${e(t.route)}">Copiar ruta</button>\n                            <button type="button" class="queue-surface-card__action" data-action="refresh-admin-data">Actualizar estado</button>\n                        </div>\n                    </article>\n                `).join('')}\n            </div>\n        </section>\n    `
     );
+}
+function Ca() {
+    const e = b(),
+        { queueMeta: t } = zt(),
+        a = String(e.queue?.syncMode || 'live')
+            .trim()
+            .toLowerCase(),
+        n = Boolean(e.queue?.fallbackPartial),
+        i = String(t?.updatedAt || '').trim(),
+        o = i ? Date.parse(i) : Number.NaN,
+        s = Number.isFinite(o)
+            ? Math.max(0, Math.round((Date.now() - o) / 1e3))
+            : null;
+    return 'fallback' === a || n
+        ? {
+              state: 'alert',
+              badge: 'Atender ahora',
+              title: 'Cola en fallback',
+              summary:
+                  'El admin ya está usando respaldo parcial. Refresca la cola y mantén Operador, Kiosco y Sala TV en sus rutas web preparadas hasta que vuelva el realtime.',
+              steps: [
+                  'Presiona Refrescar y confirma que el sync vuelva a vivo antes de cerrar la apertura.',
+                  'Mantén un solo operador activo por estación para evitar confusión mientras dura el respaldo.',
+                  'Si la TV sigue mostrando llamados, no la cierres; prioriza estabilidad sobre reinstalar.',
+              ],
+          }
+        : Number.isFinite(s) && s >= 60
+          ? {
+                state: 'warning',
+                badge: `Watchdog ${s}s`,
+                title: 'Realtime lento o en reconexión',
+                summary:
+                    'La cola no parece caída, pero el watchdog ya detecta retraso. Conviene refrescar desde admin antes de que el equipo operador se quede desfasado.',
+                steps: [
+                    'Refresca la cola y confirma que Sync vuelva a "vivo".',
+                    'Si Operador ya estaba abierto, valida un llamado de prueba antes de seguir atendiendo.',
+                    'Si el retraso persiste, opera desde las rutas web preparadas mientras revisas red local.',
+                ],
+            }
+          : {
+                state: 'ready',
+                badge: 'Sin incidentes',
+                title: 'Cola sincronizada',
+                summary:
+                    'No hay incidentes visibles de realtime. Usa esta sección como ruta rápida si falla numpad, térmica o audio durante el día.',
+                steps: [
+                    'Mantén este panel abierto como tablero de rescate para operador, kiosco y sala.',
+                    'Si notas un retraso mayor a un minuto, refresca antes de tocar instalación o hardware.',
+                    'En una caída puntual, prioriza abrir la ruta preparada del equipo antes de reiniciar dispositivos.',
+                ],
+            };
 }
 function _a(e) {
     const t = wa(e),
@@ -3288,7 +3288,7 @@ function Ma() {
                 const a = ba(),
                     n = $a(e, t),
                     i = Aa(t),
-                    o = qa(),
+                    o = Ca(),
                     s = n.filter((e) => a.steps[e.id]).length,
                     r = i.suggestedCount,
                     l = n
@@ -3441,7 +3441,7 @@ function Ma() {
                     e.suggestedIds.length && (ga(e.suggestedIds), n());
                 });
         })(n, t, i),
-            Ca(n, t),
+            qa(n, t),
             (function (t, a) {
                 if (
                     !(
@@ -3456,7 +3456,7 @@ function Ma() {
                             n = e.operator || Yt.operator,
                             i = e.kiosk || Yt.kiosk,
                             o = e.sala_tv || Yt.sala_tv,
-                            s = qa(),
+                            s = Ca(),
                             r = 'c2' === a.station ? 'C2' : 'C1',
                             l = a.lock ? `${r} fijo` : 'modo libre',
                             c = ia('operator', n, { ...a }),
