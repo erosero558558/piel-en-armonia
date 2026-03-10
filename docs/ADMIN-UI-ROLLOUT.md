@@ -16,6 +16,7 @@ El admin opera en modo `sony_v3 only`.
 - Runtime canonico: `admin.js` generado desde `src/apps/admin/index.js`
 - UI activa: `sony_v3`
 - Stylesheet canonico: `admin-v3.css`
+- `js/admin-runtime.js` queda solo como alias de compatibilidad hacia `admin.js`
 
 ## Compatibilidad heredada
 
@@ -79,3 +80,4 @@ npm run build
 
 - `sony_v2` y `legacy` pueden seguir existiendo como codigo muerto temporal en el repo.
 - No pueden seguir siendo parte del runtime, del gate ni de la operacion diaria.
+- `admin.html` debe cargar `admin.js` directamente; el bridge heredado no forma parte del shell canonico.

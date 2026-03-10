@@ -23,6 +23,8 @@ $report = [ordered]@{
     }
     assets = [ordered]@{
         has_admin_v3_css = $false
+        uses_canonical_runtime = $false
+        references_runtime_bridge = $false
         references_legacy_styles = $false
     }
     csp = [ordered]@{
@@ -138,6 +140,8 @@ if (-not $pageResult.Ok) {
 
 $rawHtml = [string]$pageResult.Body
 $report.assets.has_admin_v3_css = $rawHtml.Contains('admin-v3.css')
+$report.assets.uses_canonical_runtime = $rawHtml.Contains('src="admin.js')
+$report.assets.references_runtime_bridge = $rawHtml.Contains('js/admin-runtime.js')
 $report.assets.references_legacy_styles = (
     $rawHtml.Contains('styles.min.css') -or
     $rawHtml.Contains('admin.min.css') -or
@@ -149,6 +153,20 @@ if ($report.assets.has_admin_v3_css) {
     Write-Host "[OK]  shell referencia admin-v3.css"
 } else {
     Write-Host "[FAIL] shell no referencia admin-v3.css"
+    $failures += 1
+}
+
+if ($report.assets.uses_canonical_runtime) {
+    Write-Host "[OK]  shell referencia admin.js canonico"
+} else {
+    Write-Host "[FAIL] shell no referencia admin.js canonico"
+    $failures += 1
+}
+
+if (-not $report.assets.references_runtime_bridge) {
+    Write-Host "[OK]  shell no referencia runtime bridge heredado"
+} else {
+    Write-Host "[FAIL] shell mantiene referencia a js/admin-runtime.js"
     $failures += 1
 }
 
