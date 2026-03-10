@@ -2155,14 +2155,12 @@ function Nt(e) {
             cancelled: e.filter((e) => 'cancelled' === e.status).length,
         },
         callingNowByConsultorio: n,
-        nextTickets: t
-            .slice(0, 5)
-            .map((e, t) => ({
-                id: e.id,
-                ticketCode: e.ticketCode,
-                patientInitials: e.patientInitials,
-                position: t + 1,
-            })),
+        nextTickets: t.slice(0, 5).map((e, t) => ({
+            id: e.id,
+            ticketCode: e.ticketCode,
+            patientInitials: e.patientInitials,
+            position: t + 1,
+        })),
     };
 }
 function Dt(e, t = 0) {
@@ -2854,9 +2852,6 @@ function Sa(e, t) {
               ));
     return n.slice(0, 4);
 }
-<<<<<<<< HEAD:js/admin-chunks/index-B0PyeJyS.js
-function qa(t, a) {
-========
 function qa() {
     const e = b(),
         { queueMeta: t } = zt(),
@@ -2909,7 +2904,6 @@ function qa() {
             };
 }
 function Ca(t, a) {
->>>>>>>> 4339e417 (chore(qa): canonicalize local hosts and portable runtime tooling):js/admin-chunks/index-BUGELiwR.js
     if (
         !(
             document.getElementById('queueSurfaceTelemetry') instanceof
@@ -3059,58 +3053,51 @@ function Ca(t, a) {
         `\n        <section class="queue-surface-telemetry__shell">\n            <div class="queue-surface-telemetry__header">\n                <div>\n                    <p class="queue-app-card__eyebrow">Equipos en vivo</p>\n                    <h5 id="queueSurfaceTelemetryTitle" class="queue-app-card__title">${e(o ? 'Equipos con atención urgente' : s ? 'Equipos con señal parcial' : 'Equipos en vivo')}</h5>\n                    <p id="queueSurfaceTelemetrySummary" class="queue-surface-telemetry__summary">${e(r)}</p>\n                    <div id="queueSurfaceTelemetryAutoMeta" class="queue-surface-telemetry__auto-meta">\n                        <span id="queueSurfaceTelemetryAutoState" class="queue-surface-telemetry__auto-state" data-state="${e(i.state)}">${e(i.label)}</span>\n                        <span class="queue-surface-telemetry__auto-copy">${e(i.meta)}</span>\n                    </div>\n                </div>\n                <span id="queueSurfaceTelemetryStatus" class="queue-surface-telemetry__status" data-state="${e(u)}">${e(c)}</span>\n            </div>\n            <div id="queueSurfaceTelemetryCards" class="queue-surface-telemetry__grid" role="list" aria-label="Estado vivo por equipo">\n                ${n.map((t) => `\n                    <article class="queue-surface-card" data-state="${e(t.state)}" role="listitem">\n                        <div class="queue-surface-card__header">\n                            <div>\n                                <strong>${e(t.title)}</strong>\n                                <p class="queue-surface-card__meta">${e(t.deviceLabel)}</p>\n                            </div>\n                            <span class="queue-surface-card__badge">${e(t.badge)}</span>\n                        </div>\n                        <p class="queue-surface-card__summary">${e(t.summary)}</p>\n                        <p class="queue-surface-card__age">${e(t.ageLabel)}</p>\n                        <div class="queue-surface-card__chips">${t.chips.map((t) => `<span class="queue-surface-card__chip">${e(t)}</span>`).join('')}</div>\n                        <div class="queue-surface-card__actions">\n                            <a href="${e(t.route)}" target="_blank" rel="noopener" class="queue-surface-card__action queue-surface-card__action--primary">${e(t.actionLabel)}</a>\n                            <button type="button" class="queue-surface-card__action" data-action="queue-copy-install-link" data-queue-install-url="${e(t.route)}">Copiar ruta</button>\n                            <button type="button" class="queue-surface-card__action" data-action="refresh-admin-data">Actualizar estado</button>\n                        </div>\n                    </article>\n                `).join('')}\n            </div>\n        </section>\n    `
     );
 }
-function Ca() {
-    const e = b(),
-        { queueMeta: t } = zt(),
-        a = String(e.queue?.syncMode || 'live')
-            .trim()
-            .toLowerCase(),
-        n = Boolean(e.queue?.fallbackPartial),
-        i = String(t?.updatedAt || '').trim(),
-        o = i ? Date.parse(i) : Number.NaN,
-        s = Number.isFinite(o)
-            ? Math.max(0, Math.round((Date.now() - o) / 1e3))
-            : null;
-    return 'fallback' === a || n
-        ? {
-              state: 'alert',
-              badge: 'Atender ahora',
-              title: 'Cola en fallback',
-              summary:
-                  'El admin ya está usando respaldo parcial. Refresca la cola y mantén Operador, Kiosco y Sala TV en sus rutas web preparadas hasta que vuelva el realtime.',
-              steps: [
-                  'Presiona Refrescar y confirma que el sync vuelva a vivo antes de cerrar la apertura.',
-                  'Mantén un solo operador activo por estación para evitar confusión mientras dura el respaldo.',
-                  'Si la TV sigue mostrando llamados, no la cierres; prioriza estabilidad sobre reinstalar.',
-              ],
-          }
-        : Number.isFinite(s) && s >= 60
-          ? {
-                state: 'warning',
-                badge: `Watchdog ${s}s`,
-                title: 'Realtime lento o en reconexión',
-                summary:
-                    'La cola no parece caída, pero el watchdog ya detecta retraso. Conviene refrescar desde admin antes de que el equipo operador se quede desfasado.',
-                steps: [
-                    'Refresca la cola y confirma que Sync vuelva a "vivo".',
-                    'Si Operador ya estaba abierto, valida un llamado de prueba antes de seguir atendiendo.',
-                    'Si el retraso persiste, opera desde las rutas web preparadas mientras revisas red local.',
-                ],
-            }
-          : {
-                state: 'ready',
-                badge: 'Sin incidentes',
-                title: 'Cola sincronizada',
-                summary:
-                    'No hay incidentes visibles de realtime. Usa esta sección como ruta rápida si falla numpad, térmica o audio durante el día.',
-                steps: [
-                    'Mantén este panel abierto como tablero de rescate para operador, kiosco y sala.',
-                    'Si notas un retraso mayor a un minuto, refresca antes de tocar instalación o hardware.',
-                    'En una caída puntual, prioriza abrir la ruta preparada del equipo antes de reiniciar dispositivos.',
-                ],
-            };
+function _a(e, t) {
+    const a = fa(t),
+        n = e.operator || Yt.operator,
+        i = e.kiosk || Yt.kiosk,
+        o = e.sala_tv || Yt.sala_tv,
+        s = ia('operator', n, { ...a }),
+        r = ia('kiosk', i, { ...a }),
+        l = ia('sala_tv', o, { ...a }),
+        c = 'c2' === a.station ? 'C2' : 'C1';
+    return [
+        {
+            id: 'operator_ready',
+            title: 'Operador + Genius Numpad 1000',
+            detail: `Abre Operador en ${a.lock ? `${c} fijo` : 'modo libre'}${a.oneTap ? ' con 1 tecla' : ''} y confirma Numpad Enter, Decimal y Subtract.`,
+            hint: 'El receptor USB 2.4 GHz del numpad debe quedar conectado en el PC operador.',
+            href: s,
+            actionLabel: 'Abrir operador',
+        },
+        {
+            id: 'kiosk_ready',
+            title: 'Kiosco + ticket térmico',
+            detail: 'Abre el kiosco, genera un ticket de prueba y confirma que el panel muestre "Impresion OK".',
+            hint: 'Revisa papel, energía y USB de la térmica antes de dejar autoservicio abierto.',
+            href: r,
+            actionLabel: 'Abrir kiosco',
+        },
+        {
+            id: 'sala_ready',
+            title: 'Sala TV + audio en TCL C655',
+            detail: 'Abre la sala, ejecuta "Probar campanilla" y confirma audio activo con la TV conectada por Ethernet.',
+            hint: 'La TCL C655 debe quedar con volumen fijo y sin mute antes del primer llamado real.',
+            href: l,
+            actionLabel: 'Abrir sala TV',
+        },
+        {
+            id: 'smoke_ready',
+            title: 'Smoke final de apertura',
+            detail: 'Haz un llamado real o de prueba desde Operador y verifica que recepción, kiosco y sala entiendan el flujo completo.',
+            hint: 'Marca este paso solo cuando el llamado salga end-to-end y sea visible en la TV.',
+            href: '/admin.html#queue',
+            actionLabel: 'Abrir cola admin',
+        },
+    ];
 }
-function _a(e) {
+function Aa(e) {
     const t = wa(e),
         a = t.latest && 'object' == typeof t.latest ? t.latest : null;
     return {
@@ -3118,12 +3105,12 @@ function _a(e) {
         details: a?.details && 'object' == typeof a.details ? a.details : {},
     };
 }
-function Aa(e) {
+function $a(e) {
     const t = fa(e),
         a = 'c2' === t.station ? 'c2' : 'c1',
-        n = _a('operator'),
-        i = _a('kiosk'),
-        o = _a('display'),
+        n = Aa('operator'),
+        i = Aa('kiosk'),
+        o = Aa('display'),
         s = String(n.details.station || '').toLowerCase(),
         r = String(n.details.connection || 'live').toLowerCase(),
         l = !t.lock || !s || s === a,
@@ -3218,50 +3205,6 @@ function Aa(e) {
             .map(([e]) => e);
     return { suggestedIds: h, suggestions: f, suggestedCount: h.length };
 }
-function $a(e, t) {
-    const a = fa(t),
-        n = e.operator || Yt.operator,
-        i = e.kiosk || Yt.kiosk,
-        o = e.sala_tv || Yt.sala_tv,
-        s = ia('operator', n, { ...a }),
-        r = ia('kiosk', i, { ...a }),
-        l = ia('sala_tv', o, { ...a }),
-        c = 'c2' === a.station ? 'C2' : 'C1';
-    return [
-        {
-            id: 'operator_ready',
-            title: 'Operador + Genius Numpad 1000',
-            detail: `Abre Operador en ${a.lock ? `${c} fijo` : 'modo libre'}${a.oneTap ? ' con 1 tecla' : ''} y confirma Numpad Enter, Decimal y Subtract.`,
-            hint: 'El receptor USB 2.4 GHz del numpad debe quedar conectado en el PC operador.',
-            href: s,
-            actionLabel: 'Abrir operador',
-        },
-        {
-            id: 'kiosk_ready',
-            title: 'Kiosco + ticket térmico',
-            detail: 'Abre el kiosco, genera un ticket de prueba y confirma que el panel muestre "Impresion OK".',
-            hint: 'Revisa papel, energía y USB de la térmica antes de dejar autoservicio abierto.',
-            href: r,
-            actionLabel: 'Abrir kiosco',
-        },
-        {
-            id: 'sala_ready',
-            title: 'Sala TV + audio en TCL C655',
-            detail: 'Abre la sala, ejecuta "Probar campanilla" y confirma audio activo con la TV conectada por Ethernet.',
-            hint: 'La TCL C655 debe quedar con volumen fijo y sin mute antes del primer llamado real.',
-            href: l,
-            actionLabel: 'Abrir sala TV',
-        },
-        {
-            id: 'smoke_ready',
-            title: 'Smoke final de apertura',
-            detail: 'Haz un llamado real o de prueba desde Operador y verifica que recepción, kiosco y sala entiendan el flujo completo.',
-            hint: 'Marca este paso solo cuando el llamado salga end-to-end y sea visible en la TV.',
-            href: '/admin.html#queue',
-            actionLabel: 'Abrir cola admin',
-        },
-    ];
-}
 function Ta(t, a = 'secondary') {
     if (!t) return '';
     const n =
@@ -3341,15 +3284,9 @@ function Ma() {
                 return;
             const i = (function (e, t) {
                 const a = ba(),
-<<<<<<<< HEAD:js/admin-chunks/index-B0PyeJyS.js
-                    n = $a(e, t),
-                    i = Aa(t),
-                    o = Ca(),
-========
                     n = _a(e, t),
                     i = $a(t),
                     o = qa(),
->>>>>>>> 4339e417 (chore(qa): canonicalize local hosts and portable runtime tooling):js/admin-chunks/index-BUGELiwR.js
                     s = n.filter((e) => a.steps[e.id]).length,
                     r = i.suggestedCount,
                     l = n
@@ -3498,11 +3435,11 @@ function Ma() {
             const o = document.getElementById('queueOpsPilotApplyBtn');
             o instanceof HTMLButtonElement &&
                 (o.onclick = () => {
-                    const e = Aa(a);
+                    const e = $a(a);
                     e.suggestedIds.length && (ga(e.suggestedIds), n());
                 });
         })(n, t, i),
-            qa(n, t),
+            Ca(n, t),
             (function (t, a) {
                 if (
                     !(
@@ -3517,11 +3454,7 @@ function Ma() {
                             n = e.operator || Yt.operator,
                             i = e.kiosk || Yt.kiosk,
                             o = e.sala_tv || Yt.sala_tv,
-<<<<<<<< HEAD:js/admin-chunks/index-B0PyeJyS.js
-                            s = Ca(),
-========
                             s = qa(),
->>>>>>>> 4339e417 (chore(qa): canonicalize local hosts and portable runtime tooling):js/admin-chunks/index-BUGELiwR.js
                             r = 'c2' === a.station ? 'C2' : 'C1',
                             l = a.lock ? `${r} fijo` : 'modo libre',
                             c = ia('operator', n, { ...a }),
@@ -3698,99 +3631,86 @@ function Ma() {
                 const i = document.getElementById('queueOpeningChecklist');
                 if (!(i instanceof HTMLElement)) return;
                 const o = ba(),
-                    s = $a(t, a),
-                    r = Aa(a);
+                    s = _a(t, a),
+                    r = $a(a),
+                    c = s.filter((e) => o.steps[e.id]).length,
+                    u = s.filter(
+                        (e) =>
+                            !o.steps[e.id] &&
+                            Boolean(r.suggestions[e.id]?.suggested)
+                    ).length,
+                    d = s.length - c,
+                    p =
+                        d <= 0
+                            ? 'Operador, kiosco y sala TV ya quedaron probados en este navegador admin para hoy.'
+                            : u > 0
+                              ? `${u} paso(s) ya aparecen listos por telemetría o actividad reciente. Confírmalos en bloque y deja solo las validaciones pendientes.`
+                              : 'Sigue cada paso desde esta vista y marca listo solo después de validar el equipo real. El avance se guarda en este navegador.';
                 (l(
                     '#queueOpeningChecklist',
-                    (function (t, a, n) {
-                        const i = t.filter((e) => a.steps[e.id]).length,
-                            o = t.filter(
-                                (e) =>
-                                    !a.steps[e.id] &&
-                                    Boolean(n.suggestions[e.id]?.suggested)
-                            ).length,
-                            s = t.length - i,
-                            r =
-                                s <= 0
-                                    ? 'Operador, kiosco y sala TV ya quedaron probados en este navegador admin para hoy.'
-                                    : o > 0
-                                      ? `${o} paso(s) ya aparecen listos por telemetría o actividad reciente. Confírmalos en bloque y deja solo las validaciones pendientes.`
-                                      : 'Sigue cada paso desde esta vista y marca listo solo después de validar el equipo real. El avance se guarda en este navegador.';
-                        return `\n        <section class="queue-opening-checklist__shell">\n            <div class="queue-opening-checklist__header">\n                <div>\n                    <p class="queue-app-card__eyebrow">Apertura diaria</p>\n                    <h5 id="queueOpeningChecklistTitle" class="queue-app-card__title">${e(s <= 0 ? 'Apertura diaria lista' : o > 0 ? 'Apertura diaria asistida' : i <= 0 ? 'Apertura diaria pendiente' : `Apertura diaria: faltan ${s} paso(s)`)}</h5>\n                    <p id="queueOpeningChecklistSummary" class="queue-opening-checklist__summary">${e(r)}</p>\n                </div>\n                <div class="queue-opening-checklist__meta">\n                    <span id="queueOpeningChecklistAssistChip" class="queue-opening-checklist__assist" data-state="${o > 0 ? 'suggested' : s <= 0 ? 'ready' : 'idle'}">${e(o > 0 ? `Sugeridos ${o}` : s <= 0 ? 'Checklist completo' : `Confirmados ${i}/${t.length}`)}</span>\n                    <button id="queueOpeningChecklistApplyBtn" type="button" class="queue-opening-checklist__apply" ${o > 0 ? '' : 'disabled'}>${o > 0 ? `Confirmar sugeridos (${o})` : 'Sin sugeridos todavía'}</button>\n                    <button id="queueOpeningChecklistResetBtn" type="button" class="queue-opening-checklist__reset">Reiniciar apertura de hoy</button>\n                    <span id="queueOpeningChecklistDate" class="queue-opening-checklist__date">${e(
-                            (function (e) {
-                                const t = String(e || '').trim(),
-                                    a = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t);
-                                return a
-                                    ? `${a[3]}/${a[2]}/${a[1]}`
-                                    : t || '--';
-                            })(a.date)
-                        )}</span>\n                </div>\n            </div>\n            <div id="queueOpeningChecklistSteps" class="queue-opening-checklist__steps" role="list" aria-label="Checklist de apertura diaria">\n                ${t
-                            .map((t) => {
-                                const i = Boolean(a.steps[t.id]),
-                                    o =
-                                        !i &&
-                                        Boolean(n.suggestions[t.id]?.suggested),
-                                    s = i
-                                        ? 'ready'
-                                        : o
-                                          ? 'suggested'
-                                          : 'pending',
-                                    r = i
-                                        ? 'Confirmado'
-                                        : o
-                                          ? 'Sugerido'
-                                          : 'Pendiente',
-                                    l = String(
-                                        n.suggestions[t.id]?.reason || t.hint
-                                    );
-                                return `\n                        <article class="queue-opening-step" data-state="${s}" role="listitem">\n                            <div class="queue-opening-step__header">\n                                <div>\n                                    <strong>${e(t.title)}</strong>\n                                    <p class="queue-opening-step__detail">${e(t.detail)}</p>\n                                </div>\n                                <span class="queue-opening-step__state">${e(r)}</span>\n                            </div>\n                            <p class="queue-opening-step__hint">${e(t.hint)}</p>\n                            <p class="queue-opening-step__evidence">${e(l)}</p>\n                            <div class="queue-opening-step__actions">\n                                <a href="${e(t.href)}" target="_blank" rel="noopener" class="queue-opening-step__primary">${e(t.actionLabel)}</a>\n                                <button id="queueOpeningToggle_${e(t.id)}" type="button" class="queue-opening-step__toggle" data-queue-opening-step="${e(t.id)}" data-state="${s}">${i ? 'Marcar pendiente' : o ? 'Confirmar sugerido' : 'Marcar listo'}</button>\n                            </div>\n                        </article>\n                    `;
-                            })
-                            .join(
-                                ''
-                            )}\n            </div>\n        </section>\n    `;
-                    })(s, o, r)
+                    `\n        <section class="queue-opening-checklist__shell">\n            <div class="queue-opening-checklist__header">\n                <div>\n                    <p class="queue-app-card__eyebrow">Apertura diaria</p>\n                    <h5 id="queueOpeningChecklistTitle" class="queue-app-card__title">${e(d <= 0 ? 'Apertura diaria lista' : u > 0 ? 'Apertura diaria asistida' : c <= 0 ? 'Apertura diaria pendiente' : `Apertura diaria: faltan ${d} paso(s)`)}</h5>\n                    <p id="queueOpeningChecklistSummary" class="queue-opening-checklist__summary">${e(p)}</p>\n                </div>\n                <div class="queue-opening-checklist__meta">\n                    <span id="queueOpeningChecklistAssistChip" class="queue-opening-checklist__assist" data-state="${u > 0 ? 'suggested' : d <= 0 ? 'ready' : 'idle'}">${e(u > 0 ? `Sugeridos ${u}` : d <= 0 ? 'Checklist completo' : `Confirmados ${c}/${s.length}`)}</span>\n                    <button id="queueOpeningChecklistApplyBtn" type="button" class="queue-opening-checklist__apply" ${u > 0 ? '' : 'disabled'}>${u > 0 ? `Confirmar sugeridos (${u})` : 'Sin sugeridos todavía'}</button>\n                    <button id="queueOpeningChecklistResetBtn" type="button" class="queue-opening-checklist__reset">Reiniciar apertura de hoy</button>\n                    <span id="queueOpeningChecklistDate" class="queue-opening-checklist__date">${e(
+                        (function (e) {
+                            const t = String(e || '').trim(),
+                                a = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t);
+                            return a ? `${a[3]}/${a[2]}/${a[1]}` : t || '--';
+                        })(o.date)
+                    )}</span>\n                </div>\n            </div>\n            <div id="queueOpeningChecklistSteps" class="queue-opening-checklist__steps" role="list" aria-label="Checklist de apertura diaria">\n                ${s
+                        .map((t) => {
+                            const a = Boolean(o.steps[t.id]),
+                                n =
+                                    !a &&
+                                    Boolean(r.suggestions[t.id]?.suggested),
+                                i = a ? 'ready' : n ? 'suggested' : 'pending',
+                                s = a
+                                    ? 'Confirmado'
+                                    : n
+                                      ? 'Sugerido'
+                                      : 'Pendiente',
+                                l = String(
+                                    r.suggestions[t.id]?.reason || t.hint
+                                );
+                            return `\n                        <article class="queue-opening-step" data-state="${i}" role="listitem">\n                            <div class="queue-opening-step__header">\n                                <div>\n                                    <strong>${e(t.title)}</strong>\n                                    <p class="queue-opening-step__detail">${e(t.detail)}</p>\n                                </div>\n                                <span class="queue-opening-step__state">${e(s)}</span>\n                            </div>\n                            <p class="queue-opening-step__hint">${e(t.hint)}</p>\n                            <p class="queue-opening-step__evidence">${e(l)}</p>\n                            <div class="queue-opening-step__actions">\n                                <a href="${e(t.href)}" target="_blank" rel="noopener" class="queue-opening-step__primary">${e(t.actionLabel)}</a>\n                                <button id="queueOpeningToggle_${e(t.id)}" type="button" class="queue-opening-step__toggle" data-queue-opening-step="${e(t.id)}" data-state="${i}">${a ? 'Marcar pendiente' : n ? 'Confirmar sugerido' : 'Marcar listo'}</button>\n                            </div>\n                        </article>\n                    `;
+                        })
+                        .join(
+                            ''
+                        )}\n            </div>\n        </section>\n    `
                 ),
-                    (function (e, t) {
-                        e.querySelectorAll('[data-queue-opening-step]').forEach(
-                            (e) => {
-                                e instanceof HTMLButtonElement &&
-                                    (e.onclick = () => {
-                                        const a = String(
-                                            e.dataset.queueOpeningStep || ''
-                                        );
-                                        (!(function (e, t) {
-                                            const a = ba();
-                                            ta.includes(e) &&
-                                                ma({
-                                                    ...a,
-                                                    steps: {
-                                                        ...a.steps,
-                                                        [e]: Boolean(t),
-                                                    },
-                                                });
-                                        })(a, !ba().steps[a]),
-                                            t());
-                                    });
-                            }
-                        );
-                    })(i, n),
-                    (function (e, t) {
-                        const a = document.getElementById(
-                            'queueOpeningChecklistApplyBtn'
-                        );
-                        a instanceof HTMLButtonElement &&
-                            (a.onclick = () => {
-                                e.suggestedIds.length &&
-                                    (ga(e.suggestedIds), t());
-                            });
-                        const n = document.getElementById(
-                            'queueOpeningChecklistResetBtn'
-                        );
-                        n instanceof HTMLButtonElement &&
-                            (n.onclick = () => {
-                                (ma(da(ua())), t());
-                            });
-                    })(r, n));
+                    i
+                        .querySelectorAll('[data-queue-opening-step]')
+                        .forEach((e) => {
+                            e instanceof HTMLButtonElement &&
+                                (e.onclick = () => {
+                                    const t = String(
+                                        e.dataset.queueOpeningStep || ''
+                                    );
+                                    (!(function (e, t) {
+                                        const a = ba();
+                                        ta.includes(e) &&
+                                            ma({
+                                                ...a,
+                                                steps: {
+                                                    ...a.steps,
+                                                    [e]: Boolean(t),
+                                                },
+                                            });
+                                    })(t, !ba().steps[t]),
+                                        n());
+                                });
+                        }));
+                const m = document.getElementById(
+                    'queueOpeningChecklistApplyBtn'
+                );
+                m instanceof HTMLButtonElement &&
+                    (m.onclick = () => {
+                        r.suggestedIds.length && (ga(r.suggestedIds), n());
+                    });
+                const b = document.getElementById(
+                    'queueOpeningChecklistResetBtn'
+                );
+                b instanceof HTMLButtonElement &&
+                    (b.onclick = () => {
+                        (ma(da(ua())), n());
+                    });
             })(n, t, i),
             (function (t, a, n) {
                 const i = document.getElementById('queueInstallConfigurator');
