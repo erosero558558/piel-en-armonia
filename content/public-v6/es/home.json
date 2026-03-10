@@ -69,6 +69,9 @@
         "headline": "La reserva web entra en mantenimiento temporal; telemedicina y rutas clinicas siguen activas para que usted avance sin pausas.",
         "href": "/es/servicios/",
         "expandLabel": "Expandir",
+        "collapseLabel": "Contraer",
+        "detail": "Mientras vuelve la agenda web, usted puede revisar rutas clinicas activas, iniciar por telemedicina o abrir la consulta que mejor ordene su caso hoy.",
+        "ctaLabel": "Ver rutas activas",
         "localeAria": "Selector de idioma"
     },
     "editorial": {

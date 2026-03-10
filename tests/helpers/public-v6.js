@@ -42,10 +42,13 @@ async function waitForHomeV6Runtime(page) {
                 page.evaluate(() => {
                     const header = document.querySelector('[data-v6-header]');
                     const hero = document.querySelector('[data-v6-hero]');
+                    const strip = document.querySelector('[data-v6-news-strip]');
                     return {
                         mega: header?.dataset.v6MegaReady || '',
                         drawer: header?.dataset.v6DrawerReady || '',
+                        search: header?.dataset.v6SearchReady || '',
                         hero: hero?.dataset.v6HeroReady || '',
+                        news: strip?.dataset.v6NewsReady || '',
                     };
                 }),
             { timeout: 15000 }
@@ -53,7 +56,9 @@ async function waitForHomeV6Runtime(page) {
         .toEqual({
             mega: 'true',
             drawer: 'true',
+            search: 'true',
             hero: 'true',
+            news: 'true',
         });
 }
 

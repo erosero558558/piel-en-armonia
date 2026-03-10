@@ -9,7 +9,19 @@
             "primaryNavAria": "Navegacion principal",
             "megaCategoryTabsAria": "Categorias del mega menu",
             "openCategoryLabel": "Explorar categoria",
-            "mobileNavAria": "Navegacion movil"
+            "mobileNavAria": "Navegacion movil",
+            "search": {
+                "dialogAria": "Buscador de rutas dermatologicas",
+                "eyebrow": "Busqueda rapida",
+                "inputLabel": "Escriba un servicio o tema",
+                "placeholder": "Acne, laser, telemedicina, cicatrices...",
+                "hint": "Use palabras simples. Filtramos por rutas clinicas activas en Piel en Armonia.",
+                "resultsAria": "Resultados de busqueda",
+                "emptyTitle": "No encontramos una ruta con esa busqueda",
+                "emptyBody": "Pruebe con acne, laser, telemedicina o diagnostico para abrir una ruta activa.",
+                "closeLabel": "Cerrar buscador",
+                "resultsLimit": 8
+            }
         },
         "footer": {
             "policyAria": "Politicas"
@@ -72,6 +84,92 @@
                 "label": "Legal",
                 "href": "/es/legal/terminos/",
                 "kind": "standard"
+            }
+        ],
+        "searchEntries": [
+            {
+                "label": "Diagnostico integral",
+                "href": "/es/servicios/diagnostico-integral/",
+                "eyebrow": "Consulta inicial",
+                "deck": "Primera lectura completa para definir prioridad, riesgo y siguiente paso."
+            },
+            {
+                "label": "Acne y rosacea",
+                "href": "/es/servicios/acne-rosacea/",
+                "eyebrow": "Inflamacion",
+                "deck": "Control de brotes con ajustes medicos y seguimiento sostenido."
+            },
+            {
+                "label": "Laser dermatologico",
+                "href": "/es/servicios/laser-dermatologico/",
+                "eyebrow": "Tratamientos medicos",
+                "deck": "Tecnologia indicada por fototipo, lesion y seguridad de evolucion."
+            },
+            {
+                "label": "Peeling quimico",
+                "href": "/es/servicios/peeling-quimico/",
+                "eyebrow": "Tratamientos medicos",
+                "deck": "Protocolos por textura, pigmento y tolerancia de la piel."
+            },
+            {
+                "label": "Bioestimuladores de colageno",
+                "href": "/es/servicios/bioestimuladores-colageno/",
+                "eyebrow": "Rejuvenecimiento medico",
+                "deck": "Soporte de firmeza con control medico y tiempos realistas."
+            },
+            {
+                "label": "Botox medico",
+                "href": "/es/servicios/botox/",
+                "eyebrow": "Tratamientos medicos",
+                "deck": "Indicacion precisa para armonia facial y seguimiento clinico."
+            },
+            {
+                "label": "Mesoterapia",
+                "href": "/es/servicios/mesoterapia/",
+                "eyebrow": "Tratamientos medicos",
+                "deck": "Ruta de soporte dermico cuando el caso necesita refuerzo localizado."
+            },
+            {
+                "label": "Piel, cabello y unas",
+                "href": "/es/servicios/piel-cabello-unas/",
+                "eyebrow": "Consulta integral",
+                "deck": "Ruta transversal para sintomas, cambios y control evolutivo."
+            },
+            {
+                "label": "Cancer de piel",
+                "href": "/es/servicios/cancer-piel/",
+                "eyebrow": "Tamizaje",
+                "deck": "Lectura temprana de lesiones que cambian, sangran o no cicatrizan."
+            },
+            {
+                "label": "Dermatologia pediatrica",
+                "href": "/es/servicios/dermatologia-pediatrica/",
+                "eyebrow": "Pediatria",
+                "deck": "Indicaciones claras para familias, escuela y control domiciliario."
+            },
+            {
+                "label": "Cicatrices",
+                "href": "/es/servicios/cicatrices/",
+                "eyebrow": "Secuelas cutaneas",
+                "deck": "Ruta para textura, relieve y combinacion de tratamientos."
+            },
+            {
+                "label": "Granitos en brazos y piernas",
+                "href": "/es/servicios/granitos-brazos-piernas/",
+                "eyebrow": "Consulta integral",
+                "deck": "Valoracion de lesiones pequenas y persistentes con criterio dermatologico."
+            },
+            {
+                "label": "Telemedicina",
+                "href": "/es/telemedicina/",
+                "eyebrow": "Continuidad",
+                "deck": "Orientacion remota cuando acelera decisiones sin perder criterio medico."
+            },
+            {
+                "label": "Legal y consentimiento",
+                "href": "/es/legal/terminos/",
+                "eyebrow": "Marco legal",
+                "deck": "Condiciones, privacidad y bases de consentimiento para la atencion."
             }
         ]
     },

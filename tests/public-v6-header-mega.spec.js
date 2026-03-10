@@ -1,6 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
-const { gotoPublicRoute } = require('./helpers/public-v6');
+const { gotoPublicRoute, waitForHomeV6Runtime } = require('./helpers/public-v6');
 
 test.describe('Public V6 header and mega menu', () => {
     test('desktop header mounts sony-like hierarchy and mega panel', async ({
@@ -79,6 +79,34 @@ test.describe('Public V6 header and mega menu', () => {
         await page.mouse.click(outsidePoint.x, outsidePoint.y);
         await expect(mega).toBeHidden();
         await expect(backdrop).toBeHidden();
+    });
+
+    test('desktop search opens, filters routes, and closes with Escape', async ({
+        page,
+    }) => {
+        await gotoPublicRoute(page, '/es/');
+        await waitForHomeV6Runtime(page);
+
+        const header = page.locator('[data-v6-header]').first();
+        const openButton = header.locator('[data-v6-search-open]').first();
+        const overlay = header.locator('[data-v6-search]').first();
+        const input = overlay.locator('[data-v6-search-input]').first();
+
+        await openButton.click();
+        await expect(overlay).toBeVisible();
+        await expect(input).toBeFocused();
+        await expect
+            .poll(() => page.evaluate(() => document.body.style.overflow))
+            .toBe('hidden');
+
+        await input.fill('telemedicina');
+        const result = overlay.locator('[data-v6-search-result] a[href="/es/telemedicina/"]').first();
+        await expect(result).toBeVisible();
+        await expect(result).toContainText('Telemedicina');
+
+        await page.keyboard.press('Escape');
+        await expect(overlay).toBeHidden();
+        await expect(openButton).toHaveAttribute('aria-expanded', 'false');
     });
 
     test('mobile drawer opens and closes with scroll lock', async ({

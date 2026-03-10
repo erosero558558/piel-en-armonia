@@ -3,12 +3,25 @@ const { item = {}, navModel = {}, locale = 'es' } = Astro.props;
 const switchLabel = navModel?.header?.switchLabel || '';
 const switchHref = navModel?.header?.switchHref || '#';
 const activeLang = locale === 'en' ? 'EN' : 'ES';
+const panelId = 'v6-news-strip-panel';
 ---
 
-<section class="v6-news-strip" data-v6-news-strip>
+<section
+    class="v6-news-strip"
+    data-v6-news-strip
+    data-v6-expand-label={item.expandLabel || ''}
+    data-v6-collapse-label={item.collapseLabel || item.expandLabel || ''}
+    data-v6-expanded="false"
+>
     <div class="v6-news-strip__left">
         <span>{item.label || ''}</span>
-        <button type="button" aria-label={item.expandLabel || ''}>
+        <button
+            type="button"
+            data-v6-news-toggle
+            aria-label={item.expandLabel || ''}
+            aria-expanded="false"
+            aria-controls={panelId}
+        >
             <span aria-hidden="true">v</span>
         </button>
     </div>
@@ -18,6 +31,13 @@ const activeLang = locale === 'en' ? 'EN' : 'ES';
             <strong>{activeLang}</strong>
             <span aria-hidden="true">/</span>
             <a class="v6-news-strip__lang" href={switchHref}>{switchLabel}</a>
+        </div>
+    </div>
+    <div id={panelId} class="v6-news-strip__panel" data-v6-news-panel hidden>
+        <div class="v6-news-strip__panel-spacer" aria-hidden="true"></div>
+        <div class="v6-news-strip__panel-copy">
+            <p>{item.detail || item.headline || ''}</p>
+            <a href={item.href || '#'}>{item.ctaLabel || item.label || ''}</a>
         </div>
     </div>
 </section>

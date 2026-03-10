@@ -30,11 +30,50 @@ const megaLink = links.find((item) => item.kind === 'mega') || null;
 const standardLinks = links.filter((item) => item.kind !== 'mega');
 const megaColumns = Array.isArray(mega.columns) ? mega.columns : [];
 const megaPanelId = 'v6-mega-panel';
+const searchPanelId = 'v6-search-panel';
 const megaLabel = mega.title || '';
 const megaRootHref = megaLink?.href || homeHref;
 const menuLabel = header.menuLabel || '';
+const searchUi =
+    headerUi?.search && typeof headerUi.search === 'object'
+        ? headerUi.search
+        : {};
 
 const getColumnContext = (column) => (column?.context && typeof column.context === 'object' ? column.context : null);
+const customSearchEntries = Array.isArray(header.searchEntries) ? header.searchEntries : [];
+const searchEntries = [];
+const searchKeys = new Set();
+
+const addSearchEntry = (entry, eyebrowFallback = '') => {
+    if (!entry || typeof entry !== 'object') return;
+    const label = String(entry.label || '').trim();
+    const href = String(entry.href || '').trim();
+    if (!label || !href) return;
+    const key = href;
+    if (searchKeys.has(key)) return;
+    searchKeys.add(key);
+    searchEntries.push({
+        label,
+        href,
+        eyebrow: String(entry.eyebrow || eyebrowFallback || '').trim(),
+        deck: String(entry.deck || '').trim(),
+    });
+};
+
+if (customSearchEntries.length) {
+    customSearchEntries.forEach((entry) => addSearchEntry(entry));
+} else {
+    links.forEach((link) => addSearchEntry(link));
+    megaColumns.forEach((column) => {
+        const eyebrow = String(column?.heading || '').trim();
+        (column.items || []).forEach((item) => {
+            addSearchEntry(item, eyebrow);
+            (item.children || []).forEach((child) => addSearchEntry(child, eyebrow));
+        });
+    });
+}
+
+const searchIndexJson = JSON.stringify(searchEntries);
 ---
 
 <header class="v6-header" data-v6-header>
@@ -73,7 +112,15 @@ const getColumnContext = (column) => (column?.context && typeof column.context =
 
         <div class="v6-header__actions">
             <a class="v6-header__contact" href={header.contactHref || '#'} target="_blank" rel="noopener noreferrer">{header.contactLabel || ''}</a>
-            <button class="v6-header__search" type="button" aria-label={header.searchLabel || ''}>
+            <button
+                class="v6-header__search"
+                type="button"
+                data-v6-search-open
+                aria-label={header.searchLabel || ''}
+                aria-haspopup="dialog"
+                aria-expanded="false"
+                aria-controls={searchPanelId}
+            >
                 <span aria-hidden="true">&#9906;</span>
             </button>
             <button class="v6-header__menu" type="button" data-v6-drawer-open aria-label={menuLabel}>{menuLabel}</button>
@@ -237,5 +284,42 @@ const getColumnContext = (column) => (column?.context && typeof column.context =
                 <a href={header.contactHref || '#'} target="_blank" rel="noopener noreferrer">{header.contactLabel || ''}</a>
             </footer>
         </aside>
+    </div>
+
+    <div
+        id={searchPanelId}
+        class="v6-search"
+        data-v6-search
+        data-v6-search-index={searchIndexJson}
+        data-v6-search-empty-title={searchUi.emptyTitle || ''}
+        data-v6-search-empty-body={searchUi.emptyBody || ''}
+        data-v6-search-results-limit={String(searchUi.resultsLimit || 8)}
+        hidden
+    >
+        <div class="v6-search__scrim" data-v6-search-close></div>
+        <section class="v6-search__dialog" role="dialog" aria-modal="true" aria-label={searchUi.dialogAria || header.searchLabel || ''}>
+            <div class="v6-search__head">
+                <div class="v6-search__intro">
+                    <p>{searchUi.eyebrow || ''}</p>
+                    <h2>{header.searchLabel || ''}</h2>
+                </div>
+                <button type="button" data-v6-search-close aria-label={searchUi.closeLabel || ''}>&times;</button>
+            </div>
+
+            <label class="v6-search__field">
+                <span>{searchUi.inputLabel || ''}</span>
+                <input
+                    type="search"
+                    data-v6-search-input
+                    placeholder={searchUi.placeholder || ''}
+                    autocomplete="off"
+                    spellcheck="false"
+                />
+            </label>
+
+            {searchUi.hint ? <p class="v6-search__hint">{searchUi.hint}</p> : null}
+
+            <ul class="v6-search__results" data-v6-search-results aria-label={searchUi.resultsAria || ''}></ul>
+        </section>
     </div>
 </header>

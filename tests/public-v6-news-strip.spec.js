@@ -1,12 +1,13 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
-const { gotoPublicRoute } = require('./helpers/public-v6');
+const { gotoPublicRoute, waitForHomeV6Runtime } = require('./helpers/public-v6');
 
 test.describe('Public V6 news strip', () => {
     test('news strip appears below hero with left-right hierarchy', async ({
         page,
     }) => {
         await gotoPublicRoute(page, '/es/');
+        await waitForHomeV6Runtime(page);
 
         const hero = page.locator('[data-v6-hero]').first();
         const strip = page.locator('[data-v6-news-strip]').first();
@@ -23,8 +24,35 @@ test.describe('Public V6 news strip', () => {
         expect(stripBox.y).toBeGreaterThan(heroBox.y);
     });
 
+    test('news strip expands detail copy and collapses back into the row', async ({
+        page,
+    }) => {
+        await gotoPublicRoute(page, '/es/');
+        await waitForHomeV6Runtime(page);
+
+        const strip = page.locator('[data-v6-news-strip]').first();
+        const toggle = strip.locator('[data-v6-news-toggle]').first();
+        const panel = strip.locator('[data-v6-news-panel]').first();
+
+        await expect(panel).toBeHidden();
+        await toggle.click();
+        await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        await expect(strip).toHaveAttribute('data-v6-expanded', 'true');
+        await expect(panel).toBeVisible();
+        await expect(panel).toContainText(
+            'telemedicina o abrir la consulta'
+        );
+        await expect(panel.locator('a[href="/es/servicios/"]')).toBeVisible();
+
+        await toggle.click();
+        await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        await expect(strip).toHaveAttribute('data-v6-expanded', 'false');
+        await expect(panel).toBeHidden();
+    });
+
     test('language switch is routed for opposite locale', async ({ page }) => {
         await gotoPublicRoute(page, '/en/');
+        await waitForHomeV6Runtime(page);
 
         const link = page
             .locator('[data-v6-news-strip] .v6-news-strip__lang')
