@@ -71,7 +71,7 @@
         "href": "/en/services/",
         "expandLabel": "Expand",
         "collapseLabel": "Collapse",
-        "detail": "While the web schedule returns, you can review services, start with telemedicine, or message us on WhatsApp.",
+        "detail": "While online booking returns, you can start with telemedicine or open the consultation path that best organizes your case today.",
         "ctaLabel": "Open services",
         "localeAria": "Language switch"
     },
@@ -219,3 +219,4 @@
         "ctaHref": "/en/services/"
     }
 }
+

@@ -71,7 +71,7 @@
         "href": "/es/servicios/",
         "expandLabel": "Expandir",
         "collapseLabel": "Contraer",
-        "detail": "Mientras vuelve la reserva online, usted puede revisar servicios, empezar por telemedicina o escribirnos por WhatsApp.",
+        "detail": "Mientras vuelve la reserva online, usted puede empezar por telemedicina o abrir la consulta que mejor ordene su caso hoy.",
         "ctaLabel": "Abrir servicios",
         "localeAria": "Selector de idioma"
     },
@@ -219,3 +219,4 @@
         "ctaHref": "/es/servicios/"
     }
 }
+
