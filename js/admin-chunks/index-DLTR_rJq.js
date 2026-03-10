@@ -2225,8 +2225,50 @@ function Pe() {
         ) || null
     );
 }
-let Ie = '';
-function He(e) {
+function Ie() {
+    const e = b().queue.activity || [];
+    c(
+        '#queueActivityList',
+        e.length
+            ? e
+                  .map(
+                      (e) =>
+                          `<li><span>${t(i(e.at))}</span><strong>${t(e.message)}</strong></li>`
+                  )
+                  .join('')
+            : '<li><span>-</span><strong>Sin actividad</strong></li>'
+    );
+}
+function He(t) {
+    const e = document.getElementById('queueSensitiveConfirmDialog'),
+        a = document.getElementById('queueSensitiveConfirmMessage');
+    if (
+        (a && (a.textContent = `Confirmar accion sensible: ${t.action}`),
+        g((e) => ({ ...e, queue: { ...e.queue, pendingSensitiveAction: t } })),
+        e instanceof HTMLDialogElement && 'function' == typeof e.showModal)
+    ) {
+        if (((e.hidden = !1), e.removeAttribute('hidden'), !e.open))
+            try {
+                e.showModal();
+            } catch (t) {
+                e.setAttribute('open', '');
+            }
+    } else
+        e instanceof HTMLElement &&
+            (e.setAttribute('open', ''), (e.hidden = !1));
+}
+function Fe() {
+    const t = document.getElementById('queueSensitiveConfirmDialog');
+    (t instanceof HTMLDialogElement && t.open && t.close(),
+        t instanceof HTMLElement &&
+            (t.removeAttribute('open'), (t.hidden = !0)),
+        g((t) => ({
+            ...t,
+            queue: { ...t.queue, pendingSensitiveAction: null },
+        })));
+}
+let Oe = '';
+function Re(e) {
     const a = e.assignedConsultorio ? `C${e.assignedConsultorio}` : '-',
         n = Math.max(0, Math.round((Date.now() - re(e.createdAt)) / 6e4)),
         i = Number(e.id || 0),
@@ -2252,48 +2294,6 @@ function He(e) {
             }
         })(e.status)
     )}</td>\n            <td>${a}</td>\n            <td>${n} min</td>\n            <td>\n                <div class="table-actions">\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="reasignar" data-queue-consultorio="1">Reasignar C1</button>\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="reasignar" data-queue-consultorio="2">Reasignar C2</button>\n                    ${c ? `<button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="re-llamar" data-queue-consultorio="${2 === Number(e.assignedConsultorio || 1) ? 2 : 1}">Re-llamar</button>` : ''}\n                    ${r ? `<button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="liberar">Liberar</button>` : ''}\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="completar">Completar</button>\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="no_show">No show</button>\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="cancelar">Cancelar</button>\n                    <button type="button" data-action="queue-reprint-ticket" data-queue-id="${i}">Reimprimir</button>\n                </div>\n            </td>\n        </tr>\n    `;
-}
-function Fe(t) {
-    const e = document.getElementById('queueSensitiveConfirmDialog'),
-        a = document.getElementById('queueSensitiveConfirmMessage');
-    if (
-        (a && (a.textContent = `Confirmar accion sensible: ${t.action}`),
-        g((e) => ({ ...e, queue: { ...e.queue, pendingSensitiveAction: t } })),
-        e instanceof HTMLDialogElement && 'function' == typeof e.showModal)
-    ) {
-        if (((e.hidden = !1), e.removeAttribute('hidden'), !e.open))
-            try {
-                e.showModal();
-            } catch (t) {
-                e.setAttribute('open', '');
-            }
-    } else
-        e instanceof HTMLElement &&
-            (e.setAttribute('open', ''), (e.hidden = !1));
-}
-function Oe() {
-    const t = document.getElementById('queueSensitiveConfirmDialog');
-    (t instanceof HTMLDialogElement && t.open && t.close(),
-        t instanceof HTMLElement &&
-            (t.removeAttribute('open'), (t.hidden = !0)),
-        g((t) => ({
-            ...t,
-            queue: { ...t.queue, pendingSensitiveAction: null },
-        })));
-}
-function Re() {
-    const e = b().queue.activity || [];
-    c(
-        '#queueActivityList',
-        e.length
-            ? e
-                  .map(
-                      (e) =>
-                          `<li><span>${t(i(e.at))}</span><strong>${t(e.message)}</strong></li>`
-                  )
-                  .join('')
-            : '<li><span>-</span><strong>Sin actividad</strong></li>'
-    );
 }
 function je(e = () => {}) {
     const a = b(),
@@ -2360,16 +2360,16 @@ function je(e = () => {}) {
         ) {
             const t = `stale-${Math.floor(p / 15)}`;
             return void (
-                t !== Ie &&
-                ((Ie = t), e('Watchdog de cola: realtime en reconnecting'))
+                t !== Oe &&
+                ((Oe = t), e('Watchdog de cola: realtime en reconnecting'))
             );
         }
-        Ie = 'live';
+        Oe = 'live';
     })(n, e),
         c(
             '#queueTableBody',
             i.length
-                ? i.map(He).join('')
+                ? i.map(Re).join('')
                 : '<tr><td colspan="7">No hay tickets para filtro</td></tr>'
         ));
     const d =
@@ -2454,7 +2454,7 @@ function je(e = () => {}) {
                 `activo: ${S.ticketCode} en C${a.queue.stationConsultorio}`
             ),
             r('#queueTriageSummary', m.join(' | '))),
-        Re());
+        Ie());
 }
 function ze(t) {
     g((e) => {
@@ -2465,7 +2465,7 @@ function ze(t) {
         return { ...e, queue: { ...e.queue, activity: a } };
     });
     try {
-        Re();
+        Ie();
     } catch (t) {}
 }
 function Ve(t, { render: e = !0 } = {}) {
@@ -2852,15 +2852,15 @@ async function ea(t, e, a = 0) {
             );
         })(n.action, o)
     )
-        return (Fe(n), void ze(`Accion ${n.action} pendiente de confirmacion`));
+        return (He(n), void ze(`Accion ${n.action} pendiente de confirmacion`));
     await Xe(n);
 }
 async function aa() {
     const t = b().queue.pendingSensitiveAction;
-    t ? (Oe(), await Xe(t)) : Oe();
+    t ? (Fe(), await Xe(t)) : Fe();
 }
 function na() {
-    (Oe(), ze('Accion sensible cancelada'));
+    (Fe(), ze('Accion sensible cancelada'));
 }
 function ia() {
     const t = document.getElementById('queueSensitiveConfirmDialog'),
@@ -2941,7 +2941,7 @@ async function ca(t) {
             if (e.queue.oneTap) {
                 const t = Pe();
                 t &&
-                    (Fe({
+                    (He({
                         ticketId: t.id,
                         action: 'completar',
                         consultorio: e.queue.stationConsultorio,
@@ -2960,7 +2960,7 @@ async function ca(t) {
                 const t = Pe();
                 return void (
                     t &&
-                    Fe({
+                    He({
                         ticketId: t.id,
                         action: 'completar',
                         consultorio: e.queue.stationConsultorio,
@@ -2971,7 +2971,7 @@ async function ca(t) {
                 const t = Pe();
                 return void (
                     t &&
-                    Fe({
+                    He({
                         ticketId: t.id,
                         action: 'no_show',
                         consultorio: e.queue.stationConsultorio,
