@@ -162,8 +162,8 @@
             "heading": "Clinic flow suite with kiosk, waiting room display, reception, and web booking",
             "hero": {
                 "eyebrow": "Clinic software",
-                "title": "Reduce waiting time, manual calls, and no-show without proprietary hardware.",
-                "deck": "A suite for small and medium clinics: in-room kiosk, live TV display, reception console, and web booking on the same operational flow.",
+                "title": "Bring order to the waiting room and clarity to the whole visit.",
+                "deck": "The suite joins kiosk, calling display, reception console, and web booking into one operational reading. Patients know where to enter, staff know what comes next, and management finally gets something measurable.",
                 "pills": [
                     "1 to 5 sites",
                     "QR + WhatsApp + SMS",
@@ -234,8 +234,8 @@
             },
             "modules": {
                 "eyebrow": "Visible modules",
-                "title": "The offer stops looking like a lonely kiosk and starts reading like a full clinic suite.",
-                "deck": "Each module solves a specific part of the flow, but all of them share the same operational state so patient, reception, and management read the same truth.",
+                "title": "This is not a standalone kiosk. It is a lightweight operating layer for the whole waiting-room experience.",
+                "deck": "Each module has a clear role, but all of them share the same state so patient, reception, and leadership work from the same truth.",
                 "cards": [
                     {
                         "eyebrow": "Kiosk",
@@ -281,8 +281,8 @@
             },
             "journeys": {
                 "eyebrow": "How it flows",
-                "title": "One operating state for patient, reception, and management",
-                "deck": "The suite is designed so patients ask less, reception calls less manually, and management sees measurable results.",
+                "title": "Different audiences enter at different moments, but the system never splits.",
+                "deck": "Patients, reception, and management read different stages of the same flow. That continuity is what makes the suite feel like a real product.",
                 "lanes": [
                     {
                         "eyebrow": "Scheduled patient",
@@ -315,8 +315,8 @@
             },
             "surfaces": {
                 "eyebrow": "New public surfaces",
-                "title": "Three product experiences that make the suite feel complete",
-                "deck": "These surfaces close the gap that often wins the sale: omnichannel entry, patient visibility, and management reporting.",
+                "title": "Four moments, one product story",
+                "deck": "The landing frames the promise. Mobile check-in makes it tangible. Queue status removes friction. The dashboard gives the budget owner a reason to sign.",
                 "cards": [
                     {
                         "eyebrow": "Mobile check-in",
@@ -328,7 +328,11 @@
                             "kind": "phone",
                             "eyebrow": "Patient",
                             "title": "Check-in ready",
-                            "chips": ["QR", "WhatsApp", "SMS"],
+                            "chips": [
+                                "QR",
+                                "WhatsApp",
+                                "SMS"
+                            ],
                             "rows": [
                                 {
                                     "label": "Scheduled",
@@ -359,7 +363,11 @@
                             "kind": "status",
                             "eyebrow": "Private view",
                             "title": "Site queue",
-                            "chips": ["Room A", "Privacy", "Live"],
+                            "chips": [
+                                "Room A",
+                                "Privacy",
+                                "Live"
+                            ],
                             "rows": [
                                 {
                                     "label": "Calling now",
@@ -390,7 +398,11 @@
                             "kind": "dashboard",
                             "eyebrow": "Management",
                             "title": "Daily summary",
-                            "chips": ["Quito North", "Today", "3 rooms"],
+                            "chips": [
+                                "Quito North",
+                                "Today",
+                                "3 rooms"
+                            ],
                             "rows": [
                                 {
                                     "label": "Average wait",
@@ -415,8 +427,8 @@
             },
             "integrations": {
                 "eyebrow": "Integrations",
-                "title": "The integration story should be as clear as the sales story",
-                "deck": "Clinics need to know what it works with, how it connects, and what is included in the first rollout.",
+                "title": "The integration story should read just as clearly",
+                "deck": "Buyers need to understand in minutes what enters the pilot, what connects on day one, and what can scale later without rebuilding the base.",
                 "groups": [
                     {
                         "title": "Channels",
@@ -446,8 +458,8 @@
             },
             "pricing": {
                 "eyebrow": "Plans",
-                "title": "A simple commercial package for a clearer sale",
-                "deck": "Indicative pricing only. The point is to make the buyer understand quickly what enters each stage.",
+                "title": "Clear packages that sell value before complexity",
+                "deck": "The decision should feel simple: start with waiting-room order, add patient visibility, and close with management insight.",
                 "plans": [
                     {
                         "name": "Room Base",
@@ -496,8 +508,8 @@
             },
             "security": {
                 "eyebrow": "Privacy and operations",
-                "title": "Visible privacy, safer operations, and practical continuity",
-                "deck": "This is not sold as abstract security. It is sold as visible waiting room rules and concrete daily protections.",
+                "title": "Visible privacy and dependable operations from day one",
+                "deck": "Trust does not come from an abstract technical promise. It comes from better screens, clearer roles, and continuity when the room is under pressure.",
                 "cards": [
                     {
                         "title": "Privacy-safe display",
@@ -548,8 +560,8 @@
                 ]
             },
             "finalCta": {
-                "title": "Try it the way a clinic would buy it",
-                "deck": "Start at the suite page, move into patient flow, and close on the dashboard. That is the sales story the current site was missing.",
+                "title": "Walk the suite in the same order a buyer would",
+                "deck": "First the promise is clear. Then the check-in becomes real. Then queue status lowers uncertainty. Finally the dashboard justifies budget and renewal.",
                 "actions": [
                     {
                         "label": "Book demo",
@@ -584,8 +596,8 @@
             "heading": "Mobile check-in by QR or direct link",
             "hero": {
                 "eyebrow": "Patient surface",
-                "title": "Patients confirm arrival before they touch the front desk.",
-                "deck": "This is the omnichannel layer competitors communicate well: QR on site, reminder via WhatsApp or SMS, and one queue state for patients already on their way.",
+                "title": "Arrival should not start at the front desk.",
+                "deck": "This is where the suite becomes tangible: a patient confirms from QR, reminder, or link, enters the right flow, and removes one of the biggest pressure points from reception.",
                 "actions": [
                     {
                         "label": "Back to suite",
@@ -620,7 +632,11 @@
                 "kind": "phone",
                 "eyebrow": "Mobile demo",
                 "title": "Arrival confirmed",
-                "chips": ["QR", "WhatsApp", "SMS"],
+                "chips": [
+                    "QR",
+                    "WhatsApp",
+                    "SMS"
+                ],
                 "rows": [
                     {
                         "label": "Flow",
@@ -642,7 +658,7 @@
             },
             "steps": {
                 "eyebrow": "How it works",
-                "title": "Three steps to remove pressure from front desk",
+                "title": "Three steps that let arrival come in already resolved",
                 "items": [
                     "The patient opens a reminder, QR, or direct arrival link.",
                     "They confirm scheduled or walk-in entry and receive a queue-ready ticket.",
@@ -651,7 +667,7 @@
             },
             "advantages": {
                 "eyebrow": "What it solves",
-                "title": "This is not a pretty page. It is less operational friction.",
+                "title": "It feels simple to the patient because the operating layer underneath is already aligned",
                 "cards": [
                     {
                         "title": "Less manual queueing",
@@ -669,7 +685,7 @@
             },
             "connections": {
                 "eyebrow": "Connects to",
-                "title": "This flow opens the door to the rest of the suite",
+                "title": "From here, the story keeps moving without a reset",
                 "items": [
                     "WhatsApp or SMS reminders",
                     "Phone-based queue status",
@@ -678,8 +694,8 @@
                 ]
             },
             "finalCta": {
-                "title": "After check-in, patients need visibility",
-                "deck": "The next valuable surface is queue status. That is where the waiting room experience stops relying only on a TV.",
+                "title": "Once arrival is resolved, patients need orientation",
+                "deck": "The next step is not another form. It is queue visibility: whether the call is close, how long it may take, and where to go.",
                 "actions": [
                     {
                         "label": "See queue status",
@@ -714,8 +730,8 @@
             "heading": "Private queue status for patients",
             "hero": {
                 "eyebrow": "Patient surface",
-                "title": "The waiting room display informs the room. The phone informs the right person.",
-                "deck": "A private queue view reduces anxiety, repeated questions, and unnecessary front-desk interruptions. Patients see the current call, next tickets, and live updates.",
+                "title": "Waiting stops feeling opaque.",
+                "deck": "The room display informs the room. The private phone view informs the person who is actually waiting. That shift lowers anxiety, cuts repeated questions, and makes the experience feel cared for.",
                 "actions": [
                     {
                         "label": "Back to suite",
@@ -750,7 +766,11 @@
                 "kind": "status",
                 "eyebrow": "Site queue",
                 "title": "Ticket linked",
-                "chips": ["Privacy active", "Room A", "Live"],
+                "chips": [
+                    "Privacy active",
+                    "Room A",
+                    "Live"
+                ],
                 "rows": [
                     {
                         "label": "Calling now",
@@ -772,7 +792,7 @@
             },
             "steps": {
                 "eyebrow": "Quick reading",
-                "title": "What patients should understand without asking for help",
+                "title": "The essentials should be clear in seconds",
                 "items": [
                     "Whether they are being called now or still have people ahead of them.",
                     "Whether the queue is live or visibly reconnecting.",
@@ -781,7 +801,7 @@
             },
             "advantages": {
                 "eyebrow": "Operational impact",
-                "title": "Phone-based visibility lowers front-desk noise",
+                "title": "Private visibility for a quieter front desk",
                 "cards": [
                     {
                         "title": "Fewer repeated questions",
@@ -799,7 +819,7 @@
             },
             "connections": {
                 "eyebrow": "Connects to",
-                "title": "This surface makes sense when the previous flow already exists",
+                "title": "This surface matters because the earlier steps are already connected",
                 "items": [
                     "Reminder links or QR",
                     "Mobile check-in or kiosk",
@@ -808,8 +828,8 @@
                 ]
             },
             "finalCta": {
-                "title": "Once patients can see progress, buyers want proof",
-                "deck": "The next management question is about wait time, no-show, and capacity by consult room. That is where the dashboard matters.",
+                "title": "Once patients can see progress, leadership wants numbers",
+                "deck": "The next step is management visibility: average wait, no-show, and consult room load.",
                 "actions": [
                     {
                         "label": "See site dashboard",
@@ -844,8 +864,8 @@
             "heading": "Site dashboard for owners and managers",
             "hero": {
                 "eyebrow": "Management surface",
-                "title": "Renewal gets sold with KPIs, not just with a nice display.",
-                "deck": "This dashboard summarizes average wait time, no-show, served tickets, and consult room load so the deal has an owner beyond the front desk.",
+                "title": "This is where operations turn into a buying argument.",
+                "deck": "The dashboard turns what happened in the room into a decision: wait time, no-show, consult room demand, and a clearer case for renewal or expansion.",
                 "actions": [
                     {
                         "label": "Back to suite",
@@ -880,7 +900,11 @@
                 "kind": "dashboard",
                 "eyebrow": "Quito North site",
                 "title": "Daily summary",
-                "chips": ["Today", "3 rooms", "1 pilot site"],
+                "chips": [
+                    "Today",
+                    "3 rooms",
+                    "1 pilot site"
+                ],
                 "rows": [
                     {
                         "label": "Average wait",
@@ -907,7 +931,7 @@
             },
             "steps": {
                 "eyebrow": "What it answers",
-                "title": "Business questions a medium clinic wants answered quickly",
+                "title": "Questions leadership wants answered without asking for another report",
                 "items": [
                     "How long patients wait today and where the queue is getting stuck.",
                     "How much no-show is recovered through reminders and pre-arrival check-in.",
@@ -916,7 +940,7 @@
             },
             "advantages": {
                 "eyebrow": "Commercial value",
-                "title": "The dashboard changes who owns the buying decision",
+                "title": "The dashboard shifts the conversation from daily use to investment",
                 "cards": [
                     {
                         "title": "Front desk no longer buys alone",
@@ -934,7 +958,7 @@
             },
             "connections": {
                 "eyebrow": "Fed by",
-                "title": "The dashboard only exists because the operating flow already leaves useful data",
+                "title": "These indicators exist because the earlier flow already leaves usable trace data",
                 "items": [
                     "Kiosk and mobile check-in",
                     "Reception ticket actions and completion states",
@@ -943,8 +967,8 @@
                 ]
             },
             "finalCta": {
-                "title": "The suite now has a complete product story",
-                "deck": "Landing page, patient flow, queue status, and site dashboard. That closes much more of the gap versus what LatAm competitors already package well.",
+                "title": "Now the suite reads like a complete product",
+                "deck": "A clear promise, a smoother arrival, visible waiting, and management insight. That continuity is what closes more of the gap.",
                 "actions": [
                     {
                         "label": "Back to suite",

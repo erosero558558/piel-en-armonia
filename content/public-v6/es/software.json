@@ -162,8 +162,8 @@
             "heading": "Turnero para clinicas con kiosco, TV, recepcion y agenda web",
             "hero": {
                 "eyebrow": "Software para clinicas",
-                "title": "Reduce espera, llamadas manuales y no-show sin hardware especial.",
-                "deck": "Una suite pensada para clinicas pequenas y medianas: kiosco en sala, TV de llamados, panel de recepcion y agenda web conectadas al mismo flujo.",
+                "title": "Ordena la sala, libera recepcion y haga visible el flujo completo.",
+                "deck": "La suite une kiosco, pantalla de llamados, panel de recepcion y agenda web bajo una misma lectura operativa. El paciente entiende por donde entrar, el equipo sabe que hacer y gerencia por fin puede medir.",
                 "pills": [
                     "1 a 5 sedes",
                     "QR + WhatsApp + SMS",
@@ -234,8 +234,8 @@
             },
             "modules": {
                 "eyebrow": "Modulos visibles",
-                "title": "La oferta deja de verse como un kiosco suelto y se vende como una suite completa.",
-                "deck": "Cada modulo resuelve una parte del flujo, pero todos comparten el mismo estado operativo para que recepcion, paciente y gerencia lean lo mismo.",
+                "title": "No es un kiosco aislado: es una capa operativa ligera para toda la experiencia de sala.",
+                "deck": "Cada modulo cumple un papel claro, pero todos comparten el mismo estado para que paciente, recepcion y direccion trabajen sobre la misma verdad.",
                 "cards": [
                     {
                         "eyebrow": "Kiosco",
@@ -281,8 +281,8 @@
             },
             "journeys": {
                 "eyebrow": "Como fluye",
-                "title": "Un mismo estado operativo para paciente, recepcion y gerencia",
-                "deck": "La suite esta pensada para que el paciente avance sin preguntar tanto, recepcion opere con menos llamadas manuales y gerencia vea resultados concretos.",
+                "title": "La historia cambia segun quien entra, pero el sistema nunca se divide.",
+                "deck": "Paciente, recepcion y gerencia leen etapas distintas del mismo flujo. Esa continuidad es la que convierte una herramienta operativa en un producto serio.",
                 "lanes": [
                     {
                         "eyebrow": "Paciente con cita",
@@ -315,8 +315,8 @@
             },
             "surfaces": {
                 "eyebrow": "Superficies nuevas",
-                "title": "Tres experiencias publicas que convierten la suite en un producto completo",
-                "deck": "Estas superficies muestran lo que hoy normalmente gana una venta: omnicanalidad, visibilidad para el paciente y reportes para quien paga la herramienta.",
+                "title": "Cuatro momentos, una sola venta bien contada",
+                "deck": "La landing presenta la promesa. El check-in la vuelve tangible. El estado del turno reduce friccion. El dashboard le da duenio presupuestario.",
                 "cards": [
                     {
                         "eyebrow": "Check-in movil",
@@ -328,7 +328,11 @@
                             "kind": "phone",
                             "eyebrow": "Paciente",
                             "title": "Check-in listo",
-                            "chips": ["QR", "WhatsApp", "SMS"],
+                            "chips": [
+                                "QR",
+                                "WhatsApp",
+                                "SMS"
+                            ],
                             "rows": [
                                 {
                                     "label": "Tengo cita",
@@ -359,7 +363,11 @@
                             "kind": "status",
                             "eyebrow": "Vista privada",
                             "title": "Cola de sede",
-                            "chips": ["Sala A", "Privacidad", "Live"],
+                            "chips": [
+                                "Sala A",
+                                "Privacidad",
+                                "Live"
+                            ],
                             "rows": [
                                 {
                                     "label": "Llamando ahora",
@@ -390,7 +398,11 @@
                             "kind": "dashboard",
                             "eyebrow": "Gerencia",
                             "title": "Resumen diario",
-                            "chips": ["Sede Quito Norte", "Hoy", "3 consultorios"],
+                            "chips": [
+                                "Sede Quito Norte",
+                                "Hoy",
+                                "3 consultorios"
+                            ],
                             "rows": [
                                 {
                                     "label": "Espera media",
@@ -415,8 +427,8 @@
             },
             "integrations": {
                 "eyebrow": "Integraciones",
-                "title": "La historia de integracion debe ser tan clara como la historia comercial",
-                "deck": "La clinica necesita saber con que funciona, como se conecta y que queda dentro o fuera del piloto inicial.",
+                "title": "La integracion tambien debe leerse sin esfuerzo",
+                "deck": "El comprador necesita entender en minutos que entra en el piloto, que se conecta desde el primer dia y que puede crecer despues sin rehacer la base.",
                 "groups": [
                     {
                         "title": "Canales",
@@ -446,8 +458,8 @@
             },
             "pricing": {
                 "eyebrow": "Planes",
-                "title": "Empaque simple para vender sin friccion",
-                "deck": "Precios orientativos para ordenar la conversacion comercial. Lo importante es que el comprador entienda rapido que modulo entra en cada etapa.",
+                "title": "Paquetes claros para vender valor antes que complejidad",
+                "deck": "La decision debe sentirse simple: empezar por orden de sala, pasar a visibilidad del paciente y cerrar con lectura gerencial.",
                 "plans": [
                     {
                         "name": "Sala Base",
@@ -496,8 +508,8 @@
             },
             "security": {
                 "eyebrow": "Privacidad y operacion",
-                "title": "Privacidad visible, operacion segura y continuidad util",
-                "deck": "Esto no se vende como promesa abstracta. Se muestra como reglas visibles en sala y protecciones concretas en la operacion diaria.",
+                "title": "Privacidad visible y operacion confiable desde el primer dia",
+                "deck": "La confianza no sale de una promesa tecnica. Sale de pantallas bien resueltas, roles claros y continuidad cuando la sala esta bajo presion.",
                 "cards": [
                     {
                         "title": "Pantalla con privacidad activa",
@@ -548,8 +560,8 @@
                 ]
             },
             "finalCta": {
-                "title": "Pruébalo como lo compraria una clinica",
-                "deck": "Empieza por la landing, sigue con el flujo paciente y termina en el dashboard. Esa es la historia comercial que hoy te falta hacer visible.",
+                "title": "Recorra la suite en el orden en que se gana la venta",
+                "deck": "Primero ve la promesa completa. Luego vive el check-in. Despues entiende la espera desde el celular. Al final aparece el dashboard que justifica presupuesto y renovacion.",
                 "actions": [
                     {
                         "label": "Agendar demo",
@@ -584,8 +596,8 @@
             "heading": "Check-in movil por QR o enlace",
             "hero": {
                 "eyebrow": "Superficie paciente",
-                "title": "El paciente confirma llegada antes de tocar recepcion.",
-                "deck": "Este flujo aterriza la omnicanalidad que la competencia comunica mejor: QR en sala, recordatorio por WhatsApp o SMS y el mismo estado de cola para quien ya va en camino.",
+                "title": "La llegada deja de empezar en el mostrador.",
+                "deck": "Aqui la suite se vuelve concreta: el paciente confirma por QR, mensaje o enlace, entra al flujo correcto y reduce una de las fricciones que mas castiga a la recepcion.",
                 "actions": [
                     {
                         "label": "Volver a la suite",
@@ -620,7 +632,11 @@
                 "kind": "phone",
                 "eyebrow": "Demo movil",
                 "title": "Llegada confirmada",
-                "chips": ["QR", "WhatsApp", "SMS"],
+                "chips": [
+                    "QR",
+                    "WhatsApp",
+                    "SMS"
+                ],
                 "rows": [
                     {
                         "label": "Flujo",
@@ -642,7 +658,7 @@
             },
             "steps": {
                 "eyebrow": "Como opera",
-                "title": "Tres pasos para bajar friccion antes del mostrador",
+                "title": "Tres pasos para que la llegada ya venga resuelta",
                 "items": [
                     "El paciente abre el enlace desde recordatorio, QR o ticket.",
                     "Confirma si viene con cita o sin cita y recibe su turno.",
@@ -651,7 +667,7 @@
             },
             "advantages": {
                 "eyebrow": "Lo que resuelve",
-                "title": "No es una pagina bonita. Es menos friccion operativa.",
+                "title": "La experiencia se siente simple porque la operacion debajo ya esta ordenada",
                 "cards": [
                     {
                         "title": "Menos fila manual",
@@ -669,7 +685,7 @@
             },
             "connections": {
                 "eyebrow": "Se conecta con",
-                "title": "Este flujo abre la puerta al resto de la suite",
+                "title": "Desde aqui la historia sigue sin saltos",
                 "items": [
                     "WhatsApp o SMS para recordatorios",
                     "Estado del turno desde el celular",
@@ -678,8 +694,8 @@
                 ]
             },
             "finalCta": {
-                "title": "Despues del check-in, el paciente necesita visibilidad",
-                "deck": "La siguiente superficie importante es el estado del turno. Ahí es donde la experiencia deja de depender solo de mirar una TV.",
+                "title": "Cuando la llegada ya esta resuelta, el paciente necesita orientacion",
+                "deck": "El siguiente paso no es otro formulario. Es visibilidad de turno: saber si ya toca, cuanto falta y a que consultorio ir.",
                 "actions": [
                     {
                         "label": "Ver estado del turno",
@@ -714,8 +730,8 @@
             "heading": "Vista de estado del turno para paciente",
             "hero": {
                 "eyebrow": "Superficie paciente",
-                "title": "La TV informa a la sala. El celular informa a la persona correcta.",
-                "deck": "Una vista privada reduce ansiedad, preguntas repetidas y acercamientos innecesarios al mostrador. El paciente ve llamado actual, siguientes turnos y actualizacion real.",
+                "title": "La espera deja de sentirse opaca.",
+                "deck": "La pantalla informa a la sala. La vista privada informa a la persona correcta. Ese cambio reduce ansiedad, baja preguntas repetidas y hace que el flujo se sienta cuidado.",
                 "actions": [
                     {
                         "label": "Volver a la suite",
@@ -750,7 +766,11 @@
                 "kind": "status",
                 "eyebrow": "Cola de sala",
                 "title": "Turno vinculado",
-                "chips": ["Privacidad activa", "Sala A", "Live"],
+                "chips": [
+                    "Privacidad activa",
+                    "Sala A",
+                    "Live"
+                ],
                 "rows": [
                     {
                         "label": "Llamando ahora",
@@ -772,7 +792,7 @@
             },
             "steps": {
                 "eyebrow": "Lectura rapida",
-                "title": "Que debe entender el paciente sin pedir ayuda",
+                "title": "Lo esencial debe entenderse en segundos",
                 "items": [
                     "Si ya esta siendo llamado o aun faltan turnos adelante.",
                     "Si la cola sigue conectada o esta en reconexion visible.",
@@ -781,7 +801,7 @@
             },
             "advantages": {
                 "eyebrow": "Impacto operativo",
-                "title": "La vista movil baja ruido en la recepcion",
+                "title": "Visibilidad privada para una sala menos ruidosa",
                 "cards": [
                     {
                         "title": "Menos preguntas repetidas",
@@ -799,7 +819,7 @@
             },
             "connections": {
                 "eyebrow": "Se conecta con",
-                "title": "Esta vista hace sentido cuando el flujo anterior ya existe",
+                "title": "Esta vista tiene valor porque todo lo anterior ya esta conectado",
                 "items": [
                     "Recordatorio con enlace o QR",
                     "Check-in movil o kiosco",
@@ -808,8 +828,8 @@
                 ]
             },
             "finalCta": {
-                "title": "Cuando el paciente ya ve su estado, el comprador quiere medir",
-                "deck": "La siguiente objecion comercial suele ser gerencial: tiempos de espera, no-show y capacidad por consultorio. Ahí entra el dashboard.",
+                "title": "Cuando el paciente ya ve progreso, la direccion pide numeros",
+                "deck": "El paso siguiente es convertir esa experiencia en lectura gerencial: espera media, no-show y carga por consultorio.",
                 "actions": [
                     {
                         "label": "Ver dashboard de sede",
@@ -844,8 +864,8 @@
             "heading": "Dashboard de sede para dueños y gerencia",
             "hero": {
                 "eyebrow": "Superficie gerencial",
-                "title": "La renovacion se vende con KPIs, no solo con una TV bonita.",
-                "deck": "Este tablero resume espera media, no-show, tickets atendidos y carga por consultorio para que la compra tenga dueña, no solo usuario operativo.",
+                "title": "Aqui la operacion se convierte en argumento de compra.",
+                "deck": "El dashboard toma lo que ocurrio en sala y lo vuelve decision: tiempos de espera, no-show, demanda por consultorio y una base clara para renovar o expandir.",
                 "actions": [
                     {
                         "label": "Volver a la suite",
@@ -880,7 +900,11 @@
                 "kind": "dashboard",
                 "eyebrow": "Sede Quito Norte",
                 "title": "Resumen diario",
-                "chips": ["Hoy", "3 consultorios", "1 sede piloto"],
+                "chips": [
+                    "Hoy",
+                    "3 consultorios",
+                    "1 sede piloto"
+                ],
                 "rows": [
                     {
                         "label": "Espera media",
@@ -907,7 +931,7 @@
             },
             "steps": {
                 "eyebrow": "Que debe responder",
-                "title": "Preguntas de negocio que una sede mediana quiere ver rapido",
+                "title": "Las preguntas que una direccion quiere responder sin pedir otro reporte",
                 "items": [
                     "Cuanto esperan hoy los pacientes y donde se esta atorando la operacion.",
                     "Cuanto no-show se recupera con recordatorios y check-in previo.",
@@ -916,7 +940,7 @@
             },
             "advantages": {
                 "eyebrow": "Valor comercial",
-                "title": "El dashboard cambia el tipo de comprador",
+                "title": "El dashboard mueve la conversacion del uso diario a la inversion",
                 "cards": [
                     {
                         "title": "La recepcion ya no compra sola",
@@ -934,7 +958,7 @@
             },
             "connections": {
                 "eyebrow": "Se alimenta de",
-                "title": "El dashboard existe porque el flujo operativo ya deja datos utiles",
+                "title": "Estos indicadores existen porque el flujo anterior ya dejo trazabilidad util",
                 "items": [
                     "Kiosco y check-in movil",
                     "Panel de recepcion y cierres de ticket",
@@ -943,8 +967,8 @@
                 ]
             },
             "finalCta": {
-                "title": "La suite ya tiene historia comercial completa",
-                "deck": "Landing, flujo paciente, estado del turno y tablero de sede. Eso te acerca mucho mas a lo que hoy vende mejor la competencia en LatAm.",
+                "title": "Ahora la suite ya se lee como producto completo",
+                "deck": "Promesa clara, llegada fluida, espera visible y lectura gerencial. Esa continuidad es la que faltaba para competir con mas solidez.",
                 "actions": [
                     {
                         "label": "Volver a la suite",
