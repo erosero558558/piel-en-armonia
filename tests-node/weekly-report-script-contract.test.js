@@ -6,11 +6,38 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('fs');
 const { resolve } = require('path');
 
-const SCRIPT_PATH = resolve(__dirname, '..', 'REPORTE-SEMANAL-PRODUCCION.ps1');
+const WRAPPER_PATH = resolve(__dirname, '..', 'REPORTE-SEMANAL-PRODUCCION.ps1');
+const SCRIPT_PATH = resolve(
+    __dirname,
+    '..',
+    'scripts',
+    'ops',
+    'prod',
+    'REPORTE-SEMANAL-PRODUCCION.ps1'
+);
 
 function loadScript() {
     return readFileSync(SCRIPT_PATH, 'utf8');
 }
+
+function loadWrapper() {
+    return readFileSync(WRAPPER_PATH, 'utf8');
+}
+
+test('weekly report root wrapper delega a la implementacion canonica de prod ops', () => {
+    const raw = loadWrapper();
+
+    assert.equal(
+        raw.includes('scripts/ops/prod/REPORTE-SEMANAL-PRODUCCION.ps1'),
+        true,
+        'wrapper root debe apuntar a scripts/ops/prod/REPORTE-SEMANAL-PRODUCCION.ps1'
+    );
+    assert.equal(
+        raw.includes('Push-Location $PSScriptRoot'),
+        true,
+        'wrapper root debe fijar cwd al repo root'
+    );
+});
 
 test('weekly report script expone parametros de ciclo semanal', () => {
     const raw = loadScript();

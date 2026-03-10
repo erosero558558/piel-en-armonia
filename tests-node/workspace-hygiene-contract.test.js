@@ -206,3 +206,55 @@ test('historicos de raiz y one-offs archivados salen del front door del repo', (
         'falta aclaracion de scripts legacy en scripts/archive/README.md'
     );
 });
+
+test('scripts activos de prod delegan a implementaciones canonicas fuera de la raiz', () => {
+    const wrappers = {
+        'BENCH-API-PRODUCCION.ps1': 'scripts/ops/prod/BENCH-API-PRODUCCION.ps1',
+        'GATE-POSTDEPLOY.ps1': 'scripts/ops/prod/GATE-POSTDEPLOY.ps1',
+        'MONITOR-PRODUCCION.ps1': 'scripts/ops/prod/MONITOR-PRODUCCION.ps1',
+        'REPORTE-SEMANAL-PRODUCCION.ps1':
+            'scripts/ops/prod/REPORTE-SEMANAL-PRODUCCION.ps1',
+        'SMOKE-PRODUCCION.ps1': 'scripts/ops/prod/SMOKE-PRODUCCION.ps1',
+        'VERIFICAR-DESPLIEGUE.ps1': 'scripts/ops/prod/VERIFICAR-DESPLIEGUE.ps1',
+        'ADMIN-UI-CONTINGENCIA.ps1':
+            'scripts/ops/admin/ADMIN-UI-CONTINGENCIA.ps1',
+        'GATE-ADMIN-ROLLOUT.ps1': 'scripts/ops/admin/GATE-ADMIN-ROLLOUT.ps1',
+        'PREPARAR-PAQUETE-DESPLIEGUE.ps1':
+            'scripts/ops/deploy/PREPARAR-PAQUETE-DESPLIEGUE.ps1',
+        'CONFIGURAR-BACKUP-OFFSITE.ps1':
+            'scripts/ops/setup/CONFIGURAR-BACKUP-OFFSITE.ps1',
+        'CONFIGURAR-TELEGRAM-WEBHOOK.ps1':
+            'scripts/ops/setup/CONFIGURAR-TELEGRAM-WEBHOOK.ps1',
+    };
+
+    for (const [file, target] of Object.entries(wrappers)) {
+        const wrapper = readRepoFile(file);
+        assert.equal(
+            wrapper.includes(target),
+            true,
+            `wrapper root debe apuntar a ${target}`
+        );
+        assert.equal(
+            existsSync(resolve(REPO_ROOT, target)),
+            true,
+            `falta implementacion canonica de ops: ${file}`
+        );
+    }
+
+    const opsIndex = readRepoFile('scripts/ops/README.md');
+    const opsReadme = readRepoFile('scripts/ops/prod/README.md');
+    assert.equal(
+        opsIndex.includes(
+            'Los archivos de raiz se mantienen como wrappers compatibles'
+        ),
+        true,
+        'falta aclaracion de wrappers compatibles en scripts/ops/README.md'
+    );
+    assert.equal(
+        opsReadme.includes(
+            'Los archivos de raiz se mantienen como wrappers compatibles'
+        ),
+        true,
+        'falta aclaracion de wrappers compatibles en scripts/ops/prod/README.md'
+    );
+});

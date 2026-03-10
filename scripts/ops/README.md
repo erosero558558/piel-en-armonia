@@ -1,0 +1,13 @@
+# Active Ops Scripts
+
+Arbol canonico de implementaciones PowerShell activas del repositorio.
+
+Subcarpetas:
+
+- `admin/`: gates y contingencia del runtime admin.
+- `deploy/`: empaquetado y soporte de despliegue.
+- `prod/`: verificaciones, smoke, monitoreo y reportes de produccion.
+- `setup/`: scripts de configuracion puntual para integraciones operativas.
+
+Los `.ps1` de la raiz se mantienen como wrappers compatibles para no romper
+`package.json`, workflows ni runbooks existentes.

@@ -50,6 +50,7 @@ $env:PIELARMONIA_ADMIN_PASSWORD = "admin123"
 - `npm run gate:admin:rollout`
 - `npm run chunks:admin:prune`
 - `node bin/clean-admin-chunks.js --dry-run`
+- Implementacion PowerShell canonica: `scripts/ops/admin/**` (wrappers compatibles en raiz)
 
 ### LeadOps IA interna
 
@@ -71,6 +72,7 @@ $env:PIELARMONIA_ADMIN_PASSWORD = "admin123"
 - `npm run gate:prod:strict`
 - `npm run nightly:stability`
 - `npm run monitor:prod`
+- Implementacion canonica ops: `scripts/ops/**` (wrappers compatibles en raiz)
 - `npm run report:weekly:prod`
 
 ### Gobernanza de agentes
@@ -89,6 +91,7 @@ $env:PIELARMONIA_ADMIN_PASSWORD = "admin123"
 - `admin.html`: shell admin servido
 - `admin.js`: bundle admin generado
 - `controllers/**`, `lib/**`: backend y servicios
+- `scripts/ops/**`: scripts operativos canónicos
 - `verification/**`: reportes, auditorias y evidencia
 
 ## Reglas practicas

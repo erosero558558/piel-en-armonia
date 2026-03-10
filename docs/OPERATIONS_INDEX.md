@@ -4,6 +4,8 @@ Guia corta para encontrar el flujo correcto sin navegar todo `package.json`.
 
 El material historico y los one-offs desplazados desde la raiz viven en
 `docs/archive/root-history/` y `scripts/archive/`.
+Los scripts operativos activos viven en `scripts/ops/**`; los `.ps1` de raiz
+se conservan como wrappers compatibles.
 
 ## Fuentes de verdad
 
@@ -53,6 +55,7 @@ Notas:
 
 - `js/admin-runtime.js` existe solo como alias de compatibilidad.
 - `legacy` y `sony_v2` no forman parte del runtime operativo.
+- Implementacion operativa canonica: `scripts/ops/admin/**`
 
 ### 3. Validar dominios criticos
 
@@ -76,6 +79,11 @@ Comandos:
 - `npm run gate:prod:strict`
 - `npm run nightly:stability`
 - `npm run monitor:prod`
+
+Implementacion canonica:
+
+- `scripts/ops/**`
+- Los `.ps1` de raiz siguen existiendo como wrappers compatibles.
 - `npm run report:weekly:prod`
 
 ### 5. Operar LeadOps interno con OpenClaw
