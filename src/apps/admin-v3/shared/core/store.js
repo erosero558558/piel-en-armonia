@@ -24,6 +24,7 @@ const initialState = {
         availabilityMeta: {},
         queueTickets: [],
         queueMeta: null,
+        leadOpsMeta: null,
         appDownloads: null,
         funnelMetrics: null,
         health: null,
@@ -36,7 +37,7 @@ const initialState = {
     },
     callbacks: {
         filter: 'all',
-        sort: 'recent_desc',
+        sort: 'priority_desc',
         search: '',
         selected: [],
     },

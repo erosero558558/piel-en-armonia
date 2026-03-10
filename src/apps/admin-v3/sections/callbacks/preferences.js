@@ -22,14 +22,14 @@ export function persistPreferences(callbacksState) {
 
 export function hydrateCallbacksPreferences() {
     let filter = 'all';
-    let sort = 'recent_desc';
+    let sort = 'priority_desc';
 
     try {
         filter = JSON.parse(
             localStorage.getItem(CALLBACK_FILTER_STORAGE_KEY) || '"all"'
         );
         sort = JSON.parse(
-            localStorage.getItem(CALLBACK_SORT_STORAGE_KEY) || '"recent_desc"'
+            localStorage.getItem(CALLBACK_SORT_STORAGE_KEY) || '"priority_desc"'
         );
     } catch (_error) {
         // no-op

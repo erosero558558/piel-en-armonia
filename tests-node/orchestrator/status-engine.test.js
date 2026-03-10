@@ -62,6 +62,13 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
                 },
             ],
         },
+        evidenceSummary: {
+            terminal_tasks: 2,
+            aligned_count: 1,
+            missing_expected_count: 1,
+            debt_count: 1,
+            sample_task_ids: ['AG-152'],
+        },
         byStatus: { in_progress: 1 },
         byExecutor: { codex: 1 },
         redExplanation: {
@@ -75,6 +82,7 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
     assert.equal(data.conflicts, 1);
     assert.equal(data.conflicts_breakdown.blocking, 1);
     assert.equal(data.totals.byExecutor.codex, 1);
+    assert.equal(data.evidence_summary.debt_count, 1);
 
     const output = statusEngine.renderStatusText(data, {
         wantsExplainRed: true,
@@ -85,6 +93,7 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
     assert.match(output, /Agent Orchestrator Status/);
     assert.match(output, /Semaforo por dominio/);
     assert.match(output, /Aporte \(ranking por completado ponderado\)/);
+    assert.match(output, /Evidence terminal:/);
     assert.match(output, /Explain RED \(status\)/);
     assert.match(output, /\[GREEN\] #1 codex/);
 });

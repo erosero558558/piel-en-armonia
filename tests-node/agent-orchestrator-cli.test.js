@@ -557,6 +557,7 @@ test('task claim/start/finish actualiza board y evidencia sin editar YAML manual
         board,
         /acceptance_ref: "verification\/agent-runs\/AG-010\.md"/
     );
+    assert.match(board, /evidence_ref: "verification\/agent-runs\/AG-010\.md"/);
 
     // `task` ops should also keep derived queues in sync for non-codex executors.
     assert.match(
@@ -1884,6 +1885,13 @@ test('close soporta --json y devuelve task + evidence_path', (t) => {
     assert.equal(json.task.id, 'AG-010');
     assert.equal(json.task.status, 'done');
     assert.equal(json.evidence_path, 'verification/agent-runs/AG-010.md');
+
+    const board = readBoard(dir);
+    assert.match(
+        board,
+        /acceptance_ref: "verification\/agent-runs\/AG-010\.md"/
+    );
+    assert.match(board, /evidence_ref: "verification\/agent-runs\/AG-010\.md"/);
 });
 
 test('metrics soporta --json, escribe archivo y expone delta/baseline handoff', (t) => {

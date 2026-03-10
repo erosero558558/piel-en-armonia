@@ -1,36 +1,45 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const {
+    expectNoLegacyPublicShell,
+    gotoPublicRoute,
+    waitForBookingStatus,
+} = require('./helpers/public-v6');
 const { skipIfPhpRuntimeMissing } = require('./helpers/php-backend');
 
 test.describe('Reprogramacion de citas', () => {
-    test('token invalido muestra error', async ({ page }) => {
-        await page.goto('/?reschedule=token_invalido_123');
-        await page.waitForTimeout(2000);
-
-        const toast = page
-            .locator('.toast, [class*="toast"], [role="alert"]')
-            .first();
-        if (await toast.isVisible()) {
-            await expect(toast).toContainText(/invalido|no encontrada|error/i);
-        }
-    });
-
-    test('modal de reprogramacion tiene los campos necesarios', async ({
+    test('querystring invalido no rompe la home publica V6', async ({
         page,
     }) => {
-        await page.goto('/');
+        await gotoPublicRoute(page, '/es/?reschedule=token_invalido_123');
+        await waitForBookingStatus(page, 'Reserva online en mantenimiento');
+        await expect(page.locator('[data-v6-header]')).toBeVisible();
+        await expectNoLegacyPublicShell(page);
 
-        const modal = page.locator('#rescheduleModal');
-        await expect(modal).toBeAttached();
+        await expect(
+            page.locator(
+                '#rescheduleModal, #rescheduleDate, #rescheduleTime, #rescheduleSubmitBtn'
+            )
+        ).toHaveCount(0);
+    });
 
-        const dateInput = page.locator('#rescheduleDate');
-        await expect(dateInput).toBeAttached();
+    test('superficie publica no expone modal legacy de reprogramacion', async ({
+        page,
+    }) => {
+        await gotoPublicRoute(page, '/es/');
+        await waitForBookingStatus(page, 'Reserva online en mantenimiento');
+        await expect(page.locator('[data-v6-booking-status]')).toBeVisible();
 
-        const timeSelect = page.locator('#rescheduleTime');
-        await expect(timeSelect).toBeAttached();
+        const legacyFields = [
+            '#rescheduleModal',
+            '#rescheduleDate',
+            '#rescheduleTime',
+            '#rescheduleSubmitBtn',
+        ];
 
-        const submitBtn = page.locator('#rescheduleSubmitBtn');
-        await expect(submitBtn).toBeAttached();
+        for (const selector of legacyFields) {
+            await expect(page.locator(selector)).toHaveCount(0);
+        }
     });
 
     test.describe('API reprogramacion (requiere PHP)', () => {

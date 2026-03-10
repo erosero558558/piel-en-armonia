@@ -1,5 +1,7 @@
 'use strict';
 
+const terminalEvidence = require('../domain/evidence');
+
 function parseExpectedRevisionFromFlags(
     flags = {},
     parseExpectedBoardRevisionFlag,
@@ -99,7 +101,10 @@ function handleCloseCommand(ctx) {
 
     task.status = 'done';
     task.updated_at = currentDate();
-    task.acceptance_ref = toRelativeRepoPath(evidencePath);
+    terminalEvidence.applyCanonicalEvidenceRefs(
+        task,
+        toRelativeRepoPath(evidencePath)
+    );
     board.policy.updated_at = currentDate();
     if (typeof writeBoardAndSync === 'function') {
         const expectRevision = parseExpectedRevisionFromFlags(

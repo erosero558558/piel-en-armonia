@@ -67,6 +67,7 @@ class HealthController
         $telemedicineSnapshot = class_exists('TelemedicineOpsSnapshot')
             ? TelemedicineOpsSnapshot::build($store)
             : ['configured' => false];
+        $leadOpsSnapshot = LeadOpsService::buildHealthSnapshot($store);
         $appointments = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
         $confirmedAppointments = 0;
         foreach ($appointments as $appointment) {
@@ -165,6 +166,9 @@ class HealthController
             'telemedicineReviewQueueCount' => (int) ($telemedicineSnapshot['reviewQueue']['count'] ?? 0),
             'telemedicineUnlinkedIntakesCount' => (int) ($telemedicineSnapshot['integrity']['unlinkedIntakesCount'] ?? 0),
             'telemedicineStagedLegacyUploadsCount' => (int) ($telemedicineSnapshot['integrity']['stagedLegacyUploadsCount'] ?? 0),
+            'leadOpsMode' => (string) ($leadOpsSnapshot['mode'] ?? 'disabled'),
+            'leadOpsPendingCallbacks' => (int) ($leadOpsSnapshot['pendingCallbacks'] ?? 0),
+            'leadOpsWorkerDegraded' => (bool) ($leadOpsSnapshot['degraded'] ?? true),
             'publicSyncConfigured' => (bool) ($publicSyncCheck['configured'] ?? false),
             'publicSyncHealthy' => (bool) ($publicSyncCheck['healthy'] ?? false),
             'publicSyncState' => (string) ($publicSyncCheck['state'] ?? 'unknown'),
@@ -242,6 +246,7 @@ class HealthController
                 'telemedicine' => class_exists('TelemedicineOpsSnapshot')
                     ? TelemedicineOpsSnapshot::forHealth($telemedicineSnapshot)
                     : ['configured' => false],
+                'leadOps' => $leadOpsSnapshot,
                 'backup' => $backupCheck,
                 'publicSync' => $publicSyncCheck,
                 'storeCounts' => $storeCounts

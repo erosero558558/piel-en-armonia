@@ -1,5 +1,10 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const {
+    expectNoLegacyPublicShell,
+    gotoPublicRoute,
+    waitForBookingStatus,
+} = require('./helpers/public-v6');
 const { skipIfPhpRuntimeMissing } = require('./helpers/php-backend');
 
 test.use({ serviceWorkers: 'block' });
@@ -141,6 +146,7 @@ function jsonResponse(route, payload, status = 200) {
 async function mockParityApi(page, dateKey) {
     const availabilitySlots = ['11:30', '10:00', '10:30', '09:00'];
     const bookedSlots = ['10:30'];
+    const hits = [];
 
     await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
         const request = route.request();
@@ -149,6 +155,11 @@ async function mockParityApi(page, dateKey) {
         const doctor = String(url.searchParams.get('doctor') || 'indiferente');
         const service = String(url.searchParams.get('service') || 'consulta');
         const durationMin = service === 'laser' ? 60 : 30;
+
+        hits.push({
+            method: request.method(),
+            resource,
+        });
 
         if (resource === 'availability') {
             return jsonResponse(route, {
@@ -217,6 +228,7 @@ async function mockParityApi(page, dateKey) {
         expectedSlots: availabilitySlots.filter(
             (slot) => !bookedSlots.includes(slot)
         ),
+        hits,
     };
 }
 
@@ -359,11 +371,11 @@ test.describe('Fase 2: consistencia calendario', () => {
         }
     });
 
-    test('web y chat muestran la misma oferta de slots para misma fecha/servicio', async ({
+    test('las rutas V6 mantienen booking desactivado sin pedir slots ni crear citas', async ({
         page,
     }) => {
         const dateKey = nextDateKey(6);
-        const { expectedSlots } = await mockParityApi(page, dateKey);
+        const { hits } = await mockParityApi(page, dateKey);
 
         await page.addInitScript(() => {
             localStorage.setItem(
@@ -375,115 +387,23 @@ test.describe('Fase 2: consistencia calendario', () => {
             );
         });
 
-        await page.goto('/');
-        await page.waitForFunction(() => window.PielBookingUiReady === true);
+        for (const route of ['/es/', '/es/servicios/acne-rosacea/']) {
+            await gotoPublicRoute(page, route);
+            await waitForBookingStatus(page, 'Reserva online en mantenimiento');
+            await expectNoLegacyPublicShell(page);
+        }
 
-        const serviceSelect = page
-            .locator('#serviceSelect, [name="service"]')
-            .first();
-        await expect(serviceSelect).toBeVisible();
-        await serviceSelect.selectOption('consulta');
-
-        const doctorSelect = page
-            .locator('#doctorSelect, [name="doctor"]')
-            .first();
-        await expect(doctorSelect).toBeVisible();
-        await doctorSelect.selectOption('rosero');
-
-        const dateInput = page
-            .locator('#dateInput, [name="date"], input[type="date"]')
-            .first();
-        await expect(dateInput).toBeVisible();
-        await dateInput.fill(dateKey);
-        await dateInput.dispatchEvent('change');
-
-        const timeSelect = page.locator('#timeSelect, [name="time"]').first();
-        await expect(timeSelect).toBeVisible();
-        const sortedExpected = Array.from(new Set(expectedSlots)).sort();
-        await expect
-            .poll(async () => {
-                return await timeSelect.evaluate((select) =>
-                    Array.from(
-                        new Set(
-                            Array.from(select.options)
-                                .map((option) => option.value)
-                                .filter((value) => /^\d{2}:\d{2}$/.test(value))
-                        )
-                    ).sort()
-                );
-            })
-            .toEqual(sortedExpected);
-
-        const webSlots = await timeSelect.evaluate((select) =>
-            Array.from(select.options)
-                .map((option) => option.value)
-                .filter((value) => /^\d{2}:\d{2}$/.test(value))
-        );
-
-        await page.locator('#chatbotWidget .chatbot-toggle').click();
-        await expect(page.locator('#chatbotContainer')).toHaveClass(/active/);
-        await page
-            .locator(
-                '#quickOptions [data-action="quick-message"][data-value="appointment"]'
+        const runtimeResources = hits
+            .filter((hit) =>
+                ['availability', 'booked-slots', 'appointments'].includes(
+                    String(hit.resource)
+                )
             )
-            .click();
+            .map((hit) => `${hit.method}:${hit.resource}`);
 
-        await page
-            .locator(
-                '#chatMessages button[data-action="chat-booking"][data-value="consulta"]'
-            )
-            .last()
-            .click();
-        await page
-            .locator(
-                '#chatMessages button[data-action="chat-booking"][data-value="rosero"]'
-            )
-            .last()
-            .click();
-
-        const chatDateInput = page
-            .locator('#chatMessages #chatDateInput')
-            .last();
-        await expect(chatDateInput).toBeVisible();
-        await chatDateInput.evaluate((input, value) => {
-            input.value = String(value);
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-        }, dateKey);
-
-        await expect
-            .poll(async () => {
-                return await page.$$eval(
-                    '#chatMessages button[data-action="chat-booking"]',
-                    (buttons) =>
-                        Array.from(
-                            new Set(
-                                buttons
-                                    .map(
-                                        (button) =>
-                                            button.getAttribute('data-value') ||
-                                            ''
-                                    )
-                                    .filter((value) =>
-                                        /^\d{2}:\d{2}$/.test(value)
-                                    )
-                            )
-                        ).sort()
-                );
-            })
-            .toEqual(sortedExpected);
-
-        const chatSlots = await page.$$eval(
-            '#chatMessages button[data-action="chat-booking"]',
-            (buttons) =>
-                buttons
-                    .map((button) => button.getAttribute('data-value') || '')
-                    .filter((value) => /^\d{2}:\d{2}$/.test(value))
-        );
-
-        const sortedWeb = Array.from(new Set(webSlots)).sort();
-        const sortedChat = Array.from(new Set(chatSlots)).sort();
-        expect(sortedWeb).toEqual(sortedExpected);
-        expect(sortedChat).toEqual(sortedExpected);
-        expect(sortedWeb).toEqual(sortedChat);
+        expect(
+            runtimeResources,
+            `La superficie V6 no deberia consultar slots ni crear citas cuando booking esta desactivado (dateKey=${dateKey})`
+        ).toEqual([]);
     });
 });

@@ -71,6 +71,13 @@ function Get-WarningSeverity {
         'conversion_rate_',
         'start_checkout_rate_',
         'service_funnel_',
+        'leadops_worker_',
+        'leadops_pending_queue_alta_',
+        'leadops_hot_queue_alta_',
+        'leadops_ai_backlog_',
+        'leadops_first_contact_promedio_alto_',
+        'leadops_close_rate_baja_',
+        'leadops_ai_acceptance_baja_',
         'telemedicine_diagnostics_warning_',
         'telemedicine_review_queue_alta_',
         'telemedicine_staged_legacy_uploads_',
@@ -120,6 +127,9 @@ function Get-WarningImpact {
     if ($WarningCode.StartsWith('telemedicine_')) {
         return 'telemedicine'
     }
+    if ($WarningCode.StartsWith('leadops_')) {
+        return 'leadops'
+    }
     if ($WarningCode.StartsWith('sentry_')) {
         return 'observability'
     }
@@ -147,6 +157,9 @@ function Get-WarningRunbookRef {
     }
     if ($WarningCode.StartsWith('telemedicine_')) {
         return 'docs/API.md#observabilidad-operativa-de-telemedicina'
+    }
+    if ($WarningCode.StartsWith('leadops_')) {
+        return 'docs/RUNBOOKS.md#31-monitoreo-diario'
     }
     if (
         $WarningCode.StartsWith('conversion_rate_') -or
@@ -666,6 +679,44 @@ $serviceFunnelTopRowsBlock
 - telemedicine_staged_uploads_warn_threshold: $TelemedicineStagedUploadsWarnCount
 - telemedicine_unlinked_intakes_warn_threshold: $TelemedicineUnlinkedIntakesWarnCount
 
+## LeadOps
+
+- leadops_configured: $leadOpsConfigured
+- leadops_mode: $leadOpsMode
+- leadops_degraded: $leadOpsDegraded
+- leadops_callbacks_total: $leadOpsCallbacksTotal
+- leadops_pending_callbacks: $leadOpsPendingCallbacks
+- leadops_contacted_count: $leadOpsContactedCount
+- leadops_priority_hot: $leadOpsPriorityHot
+- leadops_priority_warm: $leadOpsPriorityWarm
+- leadops_priority_hot_pending: $leadOpsPriorityHotPending
+- leadops_priority_warm_pending: $leadOpsPriorityWarmPending
+- leadops_ai_requested: $leadOpsAiRequested
+- leadops_ai_completed: $leadOpsAiCompleted
+- leadops_ai_accepted: $leadOpsAiAccepted
+- leadops_outcome_closed_won: $leadOpsOutcomeClosedWon
+- leadops_outcome_no_response: $leadOpsOutcomeNoResponse
+- leadops_outcome_discarded: $leadOpsOutcomeDiscarded
+- leadops_first_contact_samples: $leadOpsFirstContactSamples
+- leadops_first_contact_avg_minutes: $leadOpsFirstContactAvgMinutes
+- leadops_first_contact_p95_minutes: $leadOpsFirstContactP95Minutes
+- leadops_ai_acceptance_rate_pct: $leadOpsAiAcceptanceRatePct
+- leadops_close_rate_pct: $leadOpsCloseRatePct
+- leadops_close_from_contacted_rate_pct: $leadOpsCloseFromContactedRatePct
+- leadops_worker_last_seen_at: $leadOpsWorkerLastSeenAt
+- leadops_worker_last_error_at: $leadOpsWorkerLastErrorAt
+- leadops_pending_warn_threshold: $LeadOpsPendingWarnCount
+- leadops_hot_warn_threshold: $LeadOpsHotWarnCount
+- leadops_first_contact_warn_min_samples: $LeadOpsFirstContactWarnMinSamples
+- leadops_first_contact_avg_warn_minutes: $LeadOpsFirstContactAvgWarnMinutes
+- leadops_first_contact_sample_sufficient: $leadOpsFirstContactSampleSufficient
+- leadops_close_rate_warn_min_samples: $LeadOpsCloseRateWarnMinSamples
+- leadops_close_rate_min_warn_pct: $LeadOpsCloseRateMinWarnPct
+- leadops_close_rate_sample_sufficient: $leadOpsCloseRateSampleSufficient
+- leadops_ai_acceptance_warn_min_samples: $LeadOpsAiAcceptanceWarnMinSamples
+- leadops_ai_acceptance_min_warn_pct: $LeadOpsAiAcceptanceMinWarnPct
+- leadops_ai_acceptance_sample_sufficient: $leadOpsAiAcceptanceSampleSufficient
+
 ## Retention
 
 - appointments_total: $retentionAppointmentsTotal
@@ -906,6 +957,51 @@ function New-WeeklyReportPayload {
                 reviewQueueWarnCount = $TelemedicineReviewQueueWarnCount
                 stagedUploadsWarnCount = $TelemedicineStagedUploadsWarnCount
                 unlinkedIntakesWarnCount = $TelemedicineUnlinkedIntakesWarnCount
+            }
+        }
+        leadOps = [ordered]@{
+            configured = [bool]$leadOpsConfigured
+            mode = $leadOpsMode
+            degraded = [bool]$leadOpsDegraded
+            callbacksTotal = $leadOpsCallbacksTotal
+            pendingCallbacks = $leadOpsPendingCallbacks
+            contactedCount = $leadOpsContactedCount
+            priorityHot = $leadOpsPriorityHot
+            priorityWarm = $leadOpsPriorityWarm
+            priorityHotPending = $leadOpsPriorityHotPending
+            priorityWarmPending = $leadOpsPriorityWarmPending
+            aiRequested = $leadOpsAiRequested
+            aiCompleted = $leadOpsAiCompleted
+            aiAccepted = $leadOpsAiAccepted
+            outcomes = [ordered]@{
+                closedWon = $leadOpsOutcomeClosedWon
+                noResponse = $leadOpsOutcomeNoResponse
+                discarded = $leadOpsOutcomeDiscarded
+            }
+            firstContact = [ordered]@{
+                samples = $leadOpsFirstContactSamples
+                avgMinutes = [Math]::Round([double]$leadOpsFirstContactAvgMinutes, 2)
+                p95Minutes = [Math]::Round([double]$leadOpsFirstContactP95Minutes, 2)
+                sampleSufficient = [bool]$leadOpsFirstContactSampleSufficient
+            }
+            rates = [ordered]@{
+                aiAcceptancePct = [Math]::Round([double]$leadOpsAiAcceptanceRatePct, 2)
+                closedPct = [Math]::Round([double]$leadOpsCloseRatePct, 2)
+                closedFromContactedPct = [Math]::Round([double]$leadOpsCloseFromContactedRatePct, 2)
+                closeRateSampleSufficient = [bool]$leadOpsCloseRateSampleSufficient
+                aiAcceptanceSampleSufficient = [bool]$leadOpsAiAcceptanceSampleSufficient
+            }
+            workerLastSeenAt = $leadOpsWorkerLastSeenAt
+            workerLastErrorAt = $leadOpsWorkerLastErrorAt
+            thresholds = [ordered]@{
+                pendingWarnCount = $LeadOpsPendingWarnCount
+                hotWarnCount = $LeadOpsHotWarnCount
+                firstContactWarnMinSamples = $LeadOpsFirstContactWarnMinSamples
+                firstContactAvgWarnMinutes = $LeadOpsFirstContactAvgWarnMinutes
+                closeRateWarnMinSamples = $LeadOpsCloseRateWarnMinSamples
+                closeRateMinWarnPct = [Math]::Round([double]$LeadOpsCloseRateMinWarnPct, 2)
+                aiAcceptanceWarnMinSamples = $LeadOpsAiAcceptanceWarnMinSamples
+                aiAcceptanceMinWarnPct = [Math]::Round([double]$LeadOpsAiAcceptanceMinWarnPct, 2)
             }
         }
         retention = $retentionPayload

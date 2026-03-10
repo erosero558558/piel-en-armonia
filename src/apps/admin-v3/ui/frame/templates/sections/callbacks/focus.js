@@ -15,15 +15,15 @@ export function renderCallbacksFocusPanel() {
                     <strong id="callbacksNextWait">0 min</strong>
                 </div>
                 <div class="callbacks-next-stat">
-                    <span>Preferencia</span>
+                    <span>Servicio</span>
                     <strong id="callbacksNextPreference">-</strong>
                 </div>
                 <div class="callbacks-next-stat">
-                    <span>Estado</span>
+                    <span>Accion</span>
                     <strong id="callbacksNextState">Pendiente</strong>
                 </div>
                 <div class="callbacks-next-stat">
-                    <span>Ultimo corte</span>
+                    <span>Estado IA</span>
                     <strong id="callbacksDeckHint">Sin bloqueos</strong>
                 </div>
             </div>

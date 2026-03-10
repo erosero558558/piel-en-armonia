@@ -8,4 +8,8 @@ export const CALLBACK_FILTER_OPTIONS = new Set([
     'today',
     'sla_urgent',
 ]);
-export const CALLBACK_SORT_OPTIONS = new Set(['recent_desc', 'waiting_desc']);
+export const CALLBACK_SORT_OPTIONS = new Set([
+    'priority_desc',
+    'recent_desc',
+    'waiting_desc',
+]);

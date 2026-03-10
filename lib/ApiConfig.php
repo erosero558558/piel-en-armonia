@@ -25,6 +25,7 @@ class ApiConfig
             'metrics:GET' => [60, 60],
             'funnel-metrics:GET' => [60, 60],
             'retention-report:GET' => [30, 60],
+            'lead-ai-queue:GET' => [60, 60],
 
             // Public POST - Actionable, lower volume to prevent spam
             'payment-intent:POST' => [10, 60],
@@ -36,6 +37,7 @@ class ApiConfig
             'funnel-event:POST' => [120, 60],
             'queue-checkin:POST' => [20, 60],
             'queue-ticket:POST' => [20, 60],
+            'lead-ai-result:POST' => [60, 60],
 
             // Webhooks
             'stripe-webhook:POST' => [60, 60],
@@ -84,6 +86,8 @@ class ApiConfig
             ['method' => 'POST', 'resource' => 'funnel-event'],
             ['method' => 'POST', 'resource' => 'queue-checkin'],
             ['method' => 'POST', 'resource' => 'queue-ticket'],
+            ['method' => 'GET', 'resource' => 'lead-ai-queue'],
+            ['method' => 'POST', 'resource' => 'lead-ai-result'],
             ['method' => 'GET', 'resource' => 'reschedule'],
             ['method' => 'PATCH', 'resource' => 'reschedule'],
             ['method' => 'GET', 'resource' => 'content'],

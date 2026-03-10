@@ -4,7 +4,7 @@ export function renderCallbacksWorkbench() {
             <header class="section-header callbacks-workbench-head">
                 <div>
                     <h3>Workbench</h3>
-                    <p>Ordena por espera, filtra por SLA y drena la cola con acciones masivas.</p>
+                    <p>Ordena por prioridad comercial, genera borradores IA y registra el outcome sin salir del panel.</p>
                 </div>
             </header>
             <div class="toolbar-row">
@@ -30,11 +30,12 @@ export function renderCallbacksWorkbench() {
                 <label>
                     <span class="sr-only">Orden callbacks</span>
                     <select id="callbackSort">
+                        <option value="priority_desc">Prioridad comercial</option>
                         <option value="recent_desc">Mas recientes</option>
                         <option value="waiting_desc">Mayor espera (SLA)</option>
                     </select>
                 </label>
-                <input type="search" id="searchCallbacks" placeholder="Buscar telefono" />
+                <input type="search" id="searchCallbacks" placeholder="Buscar telefono o servicio" />
                 <button type="button" id="clearCallbacksFiltersBtn" data-action="clear-callback-filters">Limpiar</button>
             </div>
             <div class="toolbar-row slim">

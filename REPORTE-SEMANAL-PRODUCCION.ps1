@@ -24,6 +24,14 @@ param(
     [int]$TelemedicineReviewQueueWarnCount = 12,
     [int]$TelemedicineStagedUploadsWarnCount = 1,
     [int]$TelemedicineUnlinkedIntakesWarnCount = 5,
+    [int]$LeadOpsPendingWarnCount = 20,
+    [int]$LeadOpsHotWarnCount = 8,
+    [int]$LeadOpsFirstContactWarnMinSamples = 3,
+    [int]$LeadOpsFirstContactAvgWarnMinutes = 60,
+    [int]$LeadOpsCloseRateWarnMinSamples = 5,
+    [double]$LeadOpsCloseRateMinWarnPct = 15,
+    [int]$LeadOpsAiAcceptanceWarnMinSamples = 3,
+    [double]$LeadOpsAiAcceptanceMinWarnPct = 25,
     [switch]$FailOnWarnings,
     [switch]$FailOnCriticalWarnings,
     [int]$CriticalFreeCycleTarget = 2,
@@ -437,6 +445,34 @@ $telemedicineDanglingLinksCount = [int](Get-ObjectValueOrDefault -Object $teleme
 $telemedicineCasePhotosMissingPrivatePathCount = [int](Get-ObjectValueOrDefault -Object $telemedicineIntegrityObj -Property 'casePhotosWithoutPrivatePathCount' -DefaultValue 0)
 $telemedicineOrphanedClinicalUploadsCount = [int](Get-ObjectValueOrDefault -Object $telemedicineIntegrityObj -Property 'orphanedClinicalUploadsCount' -DefaultValue 0)
 $telemedicineAppointmentsWithoutIntakeCount = [int](Get-ObjectValueOrDefault -Object $telemedicineIntegrityObj -Property 'telemedAppointmentsWithoutIntakeCount' -DefaultValue 0)
+$leadOpsCheck = Get-ObjectValueOrDefault -Object $healthChecks -Property 'leadOps' -DefaultValue $null
+$leadOpsConfigured = [bool](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'configured' -DefaultValue $false)
+$leadOpsMode = [string](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'mode' -DefaultValue 'disabled')
+$leadOpsDegraded = [bool](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'degraded' -DefaultValue $true)
+$leadOpsCallbacksTotal = [int](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'callbacksTotal' -DefaultValue 0)
+$leadOpsPendingCallbacks = [int](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'pendingCallbacks' -DefaultValue 0)
+$leadOpsContactedCount = [int](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'contactedCount' -DefaultValue 0)
+$leadOpsPriorityHot = [int](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'priorityHot' -DefaultValue 0)
+$leadOpsPriorityWarm = [int](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'priorityWarm' -DefaultValue 0)
+$leadOpsPriorityHotPending = [int](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'priorityHotPending' -DefaultValue 0)
+$leadOpsPriorityWarmPending = [int](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'priorityWarmPending' -DefaultValue 0)
+$leadOpsAiRequested = [int](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'aiRequested' -DefaultValue 0)
+$leadOpsAiCompleted = [int](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'aiCompleted' -DefaultValue 0)
+$leadOpsAiAccepted = [int](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'aiAccepted' -DefaultValue 0)
+$leadOpsOutcomeClosedWon = [int](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'outcomeClosedWon' -DefaultValue 0)
+$leadOpsOutcomeNoResponse = [int](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'outcomeNoResponse' -DefaultValue 0)
+$leadOpsOutcomeDiscarded = [int](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'outcomeDiscarded' -DefaultValue 0)
+$leadOpsFirstContactSamples = [int](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'firstContactSamples' -DefaultValue 0)
+$leadOpsFirstContactAvgMinutes = [double](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'firstContactAvgMinutes' -DefaultValue 0)
+$leadOpsFirstContactP95Minutes = [double](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'firstContactP95Minutes' -DefaultValue 0)
+$leadOpsAiAcceptanceRatePct = [double](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'aiAcceptanceRatePct' -DefaultValue 0)
+$leadOpsCloseRatePct = [double](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'closeRatePct' -DefaultValue 0)
+$leadOpsCloseFromContactedRatePct = [double](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'closeFromContactedRatePct' -DefaultValue 0)
+$leadOpsWorkerLastSeenAt = [string](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'workerLastSeenAt' -DefaultValue '')
+$leadOpsWorkerLastErrorAt = [string](Get-ObjectValueOrDefault -Object $leadOpsCheck -Property 'workerLastErrorAt' -DefaultValue '')
+$leadOpsFirstContactSampleSufficient = $leadOpsFirstContactSamples -ge $LeadOpsFirstContactWarnMinSamples
+$leadOpsCloseRateSampleSufficient = $leadOpsContactedCount -ge $LeadOpsCloseRateWarnMinSamples
+$leadOpsAiAcceptanceSampleSufficient = $leadOpsAiCompleted -ge $LeadOpsAiAcceptanceWarnMinSamples
 $servicePrioritiesSource = 'unreachable'
 $servicePrioritiesCatalogSource = 'unknown'
 $servicePrioritiesCatalogVersion = 'unknown'
@@ -711,6 +747,27 @@ if ($telemedicineDanglingLinksCount -gt 0) {
 if ($telemedicineCasePhotosMissingPrivatePathCount -gt 0) {
     $warnings.Add("telemedicine_case_photos_missing_private_path_${telemedicineCasePhotosMissingPrivatePathCount}")
 }
+if ($leadOpsMode -ne 'online') {
+    $warnings.Add("leadops_worker_${leadOpsMode}")
+}
+if ($leadOpsPendingCallbacks -ge $LeadOpsPendingWarnCount) {
+    $warnings.Add("leadops_pending_queue_alta_${leadOpsPendingCallbacks}")
+}
+if ($leadOpsPriorityHot -ge $LeadOpsHotWarnCount) {
+    $warnings.Add("leadops_hot_queue_alta_${leadOpsPriorityHot}")
+}
+if ($leadOpsAiRequested -gt 0 -and $leadOpsDegraded) {
+    $warnings.Add("leadops_ai_backlog_${leadOpsAiRequested}")
+}
+if ($leadOpsFirstContactSampleSufficient -and $leadOpsFirstContactAvgMinutes -gt $LeadOpsFirstContactAvgWarnMinutes) {
+    $warnings.Add("leadops_first_contact_promedio_alto_${leadOpsFirstContactAvgMinutes}min")
+}
+if ($leadOpsCloseRateSampleSufficient -and $leadOpsCloseFromContactedRatePct -lt $LeadOpsCloseRateMinWarnPct) {
+    $warnings.Add("leadops_close_rate_baja_${leadOpsCloseFromContactedRatePct}pct")
+}
+if ($leadOpsAiAcceptanceSampleSufficient -and $leadOpsAiAcceptanceRatePct -lt $LeadOpsAiAcceptanceMinWarnPct) {
+    $warnings.Add("leadops_ai_acceptance_baja_${leadOpsAiAcceptanceRatePct}pct")
+}
 $idempotencySampleSufficient = $idempotencyRequestsWithKey -ge 10
 if ($idempotencySampleSufficient -and $idempotencyConflictRatePct -ge $IdempotencyConflictRateWarnPct) {
     $warnings.Add("idempotency_conflict_rate_alta_${idempotencyConflictRatePct}pct")
@@ -958,6 +1015,8 @@ Write-Host "service_funnel_source=$serviceFunnelSource service_funnel_rows=$serv
 Write-Host "services_catalog_source=$servicesCatalogSource services_catalog_version=$servicesCatalogVersion services_catalog_count=$servicesCatalogCount services_catalog_configured=$servicesCatalogConfigured"
 Write-Host "service_priorities_source=$servicePrioritiesSource service_priorities_catalog_source=$servicePrioritiesCatalogSource service_priorities_services_count=$servicePrioritiesServiceCount service_priorities_categories_count=$servicePrioritiesCategoryCount service_priorities_featured_count=$servicePrioritiesFeaturedCount"
 Write-Host "telemedicine_configured=$telemedicineConfigured telemedicine_intakes_total=$telemedicineIntakesTotal telemedicine_review_queue_count=$telemedicineReviewQueueCount telemedicine_diagnostics_status=$telemedicineDiagnosticsStatus telemedicine_diagnostics_critical_count=$telemedicineDiagnosticsCriticalCount telemedicine_diagnostics_warning_count=$telemedicineDiagnosticsWarningCount"
+Write-Host "leadops_configured=$leadOpsConfigured leadops_mode=$leadOpsMode leadops_callbacks_total=$leadOpsCallbacksTotal leadops_pending_callbacks=$leadOpsPendingCallbacks leadops_contacted_count=$leadOpsContactedCount leadops_priority_hot=$leadOpsPriorityHot leadops_priority_hot_pending=$leadOpsPriorityHotPending leadops_ai_requested=$leadOpsAiRequested leadops_ai_completed=$leadOpsAiCompleted leadops_ai_accepted=$leadOpsAiAccepted"
+Write-Host "leadops_first_contact_avg_minutes=$leadOpsFirstContactAvgMinutes leadops_first_contact_p95_minutes=$leadOpsFirstContactP95Minutes leadops_close_rate_pct=$leadOpsCloseRatePct leadops_close_from_contacted_rate_pct=$leadOpsCloseFromContactedRatePct leadops_ai_acceptance_rate_pct=$leadOpsAiAcceptanceRatePct"
 Write-Host "release_decision=$releaseDecision release_reason=$releaseReason"
 Write-Host "weekly_cycle_target=$weeklyCycleTarget weekly_cycle_consecutive_no_critical=$weeklyCycleConsecutiveNoCritical weekly_cycle_ready=$weeklyCycleReady weekly_cycle_status=$weeklyCycleStatus weekly_cycle_reason=$weeklyCycleReason"
 if ($warnings.Count -gt 0) {

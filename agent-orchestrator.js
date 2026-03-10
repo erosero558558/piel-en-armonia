@@ -1145,6 +1145,7 @@ async function cmdStatus(args) {
         formatPpDelta,
         summarizeDiagnostics: domainDiagnostics.summarizeDiagnostics,
         buildWarnFirstDiagnostics,
+        getGovernancePolicy,
         loadJobsSnapshot,
         summarizeJobsSnapshot,
     });

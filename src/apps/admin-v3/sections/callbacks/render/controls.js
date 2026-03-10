@@ -18,7 +18,9 @@ function toolbarStateParts(callbacksState) {
     if (normalize(callbacksState.search)) {
         stateParts.push(`Busqueda: ${callbacksState.search}`);
     }
-    if (normalizeSort(callbacksState.sort) === 'waiting_desc') {
+    if (normalizeSort(callbacksState.sort) === 'priority_desc') {
+        stateParts.push('Orden: Prioridad comercial');
+    } else if (normalizeSort(callbacksState.sort) === 'waiting_desc') {
         stateParts.push('Orden: Mayor espera (SLA)');
     } else {
         stateParts.push('Orden: Mas recientes');

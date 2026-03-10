@@ -838,6 +838,11 @@ function toMarkdown(report) {
                 : 'n/a'
         }`
     );
+    if (status.evidence_summary) {
+        lines.push(
+            `- Terminal evidence: aligned=\`${status.evidence_summary.aligned_count ?? 'n/a'}\`/\`${status.evidence_summary.terminal_tasks ?? 'n/a'}\`, missing_expected=\`${status.evidence_summary.missing_expected_count ?? 'n/a'}\`, debt=\`${status.evidence_summary.debt_count ?? 'n/a'}\`, sample=${Array.isArray(status.evidence_summary.sample_task_ids) && status.evidence_summary.sample_task_ids.length > 0 ? status.evidence_summary.sample_task_ids.map((id) => `\`${id}\``).join(', ') : 'none'}`
+        );
+    }
     lines.push('');
 
     lines.push('### Gates');
@@ -866,6 +871,11 @@ function toMarkdown(report) {
         lines.push(
             `- Tasks: \`${boardDoctor.summary?.total_tasks ?? 'n/a'}\` | Checks: \`${boardDoctor.summary?.checks ?? 'n/a'}\` | Findings: \`${boardDoctor.summary?.findings ?? 'n/a'}\` | Lease tracked: \`${boardDoctor.summary?.lease_tracked_tasks ?? 'n/a'}\``
         );
+        if (boardDoctor.evidence_summary) {
+            lines.push(
+                `- Evidence: aligned=\`${boardDoctor.evidence_summary.aligned_count ?? 'n/a'}\`/\`${boardDoctor.evidence_summary.terminal_tasks ?? 'n/a'}\`, missing_expected=\`${boardDoctor.evidence_summary.missing_expected_count ?? 'n/a'}\`, debt=\`${boardDoctor.evidence_summary.debt_count ?? 'n/a'}\`, sample=${Array.isArray(boardDoctor.evidence_summary.sample_task_ids) && boardDoctor.evidence_summary.sample_task_ids.length > 0 ? boardDoctor.evidence_summary.sample_task_ids.map((id) => `\`${id}\``).join(', ') : 'none'}`
+            );
+        }
         if (boardDoctor.leases?.summary) {
             lines.push(
                 `- Leases: tracked=\`${boardDoctor.leases.summary.active_tracked ?? boardDoctor.leases.summary.lease_tracked_tasks ?? 'n/a'}\`, missing_required=\`${boardDoctor.leases.summary.active_required_missing ?? 'n/a'}\`, expired=\`${boardDoctor.leases.summary.active_expired ?? 'n/a'}\``

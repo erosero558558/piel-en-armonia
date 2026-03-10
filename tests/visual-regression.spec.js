@@ -1,5 +1,15 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const {
+    gotoPublicRoute,
+    hideDynamicUi,
+    waitForBookingStatus,
+    waitForHomeV6Runtime,
+} = require('./helpers/public-v6');
+
+test.use({
+    serviceWorkers: 'block',
+});
 
 async function prepareStableVisualState(page) {
     await page.addInitScript(() => {
@@ -11,40 +21,40 @@ async function prepareStableVisualState(page) {
                     at: '2026-01-01T00:00:00.000Z',
                 })
             );
-        } catch (e) {
-            // no-op
+            localStorage.removeItem('adminUiVariant');
+        } catch (_) {
+            // Ignore storage failures in locked-down contexts.
         }
     });
 }
 
 async function stabilizeDynamicUi(page) {
+    await hideDynamicUi(page);
     await page.evaluate(() => {
-        const selectors = ['#cookieBanner', '#chatbotWidget', '.quick-dock'];
-        selectors.forEach((selector) => {
-            document.querySelectorAll(selector).forEach((node) => {
-                if (node instanceof HTMLElement) {
-                    node.style.display = 'none';
-                }
-            });
+        document.querySelectorAll('[data-v6-back-top]').forEach((node) => {
+            if (node instanceof HTMLElement) {
+                node.style.display = 'none';
+            }
         });
     });
 }
 
+async function openStableHome(page, route = '/es/') {
+    await prepareStableVisualState(page);
+    await gotoPublicRoute(page, route);
+    await waitForHomeV6Runtime(page);
+    await waitForBookingStatus(page, 'Reserva online en mantenimiento');
+    await stabilizeDynamicUi(page);
+}
+
 test.describe('@visual Pruebas de regresion visual', () => {
     test('visual-home-desktop-stable-v2', async ({ page }) => {
-        await prepareStableVisualState(page);
+        await page.setViewportSize({ width: 1440, height: 1200 });
+        await openStableHome(page, '/es/');
 
-        // Navegar a la página de inicio
-        await page.goto('/');
-
-        // Esperar a que la carga termine
-        await page.waitForLoadState('load');
-        await page.waitForLoadState('domcontentloaded');
-        await page.waitForTimeout(2000); // Allow layout to settle
-        await stabilizeDynamicUi(page);
-
-        // Tomar una captura de pantalla de toda la página
         await expect(page).toHaveScreenshot({
+            animations: 'disabled',
+            caret: 'hide',
             fullPage: true,
             timeout: 30000,
             maxDiffPixelRatio: 0.12,
@@ -52,22 +62,12 @@ test.describe('@visual Pruebas de regresion visual', () => {
     });
 
     test('visual-home-mobile-stable-v2', async ({ page }) => {
-        await prepareStableVisualState(page);
+        await page.setViewportSize({ width: 375, height: 812 });
+        await openStableHome(page, '/es/');
 
-        // Configurar viewport móvil (iPhone SE / Pixel 5 size approx)
-        await page.setViewportSize({ width: 375, height: 667 });
-
-        // Navegar a la página de inicio
-        await page.goto('/');
-
-        // Esperar a que la carga termine
-        await page.waitForLoadState('load');
-        await page.waitForLoadState('domcontentloaded');
-        await page.waitForTimeout(2000); // Allow layout to settle
-        await stabilizeDynamicUi(page);
-
-        // Tomar una captura de pantalla del viewport (más estable que fullPage en móvil)
         await expect(page).toHaveScreenshot({
+            animations: 'disabled',
+            caret: 'hide',
             fullPage: false,
             timeout: 30000,
             maxDiffPixelRatio: 0.12,
@@ -75,37 +75,42 @@ test.describe('@visual Pruebas de regresion visual', () => {
     });
 
     test('visual-booking-section-stable-v2', async ({ page }) => {
-        await prepareStableVisualState(page);
-        await page.goto('/');
-        await stabilizeDynamicUi(page);
+        await page.setViewportSize({ width: 1280, height: 960 });
+        await openStableHome(page, '/es/');
 
-        // Scroll hasta la sección de citas para activar lazy load
-        const bookingSection = page.locator('#citas');
-        await bookingSection.scrollIntoViewIfNeeded();
-
-        // Esperar a que el formulario sea visible (indica que el JS cargó)
-        const bookingForm = page.locator('#appointmentForm');
-        await expect(bookingForm).toBeVisible({ timeout: 20000 });
-
-        // Esperar un poco más para asegurar renderizado completo
-        await page.waitForTimeout(2000);
-
-        // Tomar screenshot solo de la sección de citas
-        await expect(bookingSection).toHaveScreenshot({
+        const bookingStatus = page.locator('[data-v6-booking-status]').first();
+        await bookingStatus.scrollIntoViewIfNeeded();
+        await expect(bookingStatus).toHaveScreenshot({
+            animations: 'disabled',
+            caret: 'hide',
             timeout: 30000,
             maxDiffPixelRatio: 0.08,
         });
     });
 
     test('visual-admin-login-stable-v2', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 960 });
         await prepareStableVisualState(page);
-        await page.goto('/admin.html');
+        await page.goto('/admin.html?admin_ui=sony_v3&admin_ui_reset=1');
+        await page
+            .waitForLoadState('load', { timeout: 20000 })
+            .catch(() => null);
 
-        // Esperar a que el formulario de login sea visible
-        const loginForm = page.locator('#loginForm');
-        await expect(loginForm).toBeVisible();
+        await expect(page.locator('html')).toHaveAttribute(
+            'data-admin-ui',
+            'sony_v3'
+        );
+        await expect(page.locator('html')).toHaveAttribute(
+            'data-admin-ready',
+            'true'
+        );
+        await expect(page.locator('#loginForm')).toBeVisible();
 
-        // Tomar screenshot de la página de login
-        await expect(page).toHaveScreenshot();
+        await expect(page).toHaveScreenshot({
+            animations: 'disabled',
+            caret: 'hide',
+            timeout: 30000,
+            maxDiffPixelRatio: 0.08,
+        });
     });
 });

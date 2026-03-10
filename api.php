@@ -34,6 +34,7 @@ require_once __DIR__ . '/controllers/ConfigController.php';
 require_once __DIR__ . '/controllers/PushController.php';
 require_once __DIR__ . '/controllers/AnalyticsController.php';
 require_once __DIR__ . '/controllers/QueueController.php';
+require_once __DIR__ . '/controllers/LeadAiController.php';
 
 // Instantiate and Handle
 $kernel = new ApiKernel();

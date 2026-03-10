@@ -220,6 +220,7 @@ class SystemController
         echo TelemedicineOpsSnapshot::renderPrometheusMetrics(
             TelemedicineOpsSnapshot::build($store)
         );
+        echo LeadOpsService::renderPrometheusMetrics($store);
 
         // Lead Time (Last 30 days)
         $leadTimes = [];

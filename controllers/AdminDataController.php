@@ -83,6 +83,17 @@ class AdminDataController
             }
         }
 
+        $store['callbacks'] = LeadOpsService::enrichCallbacks(
+            isset($store['callbacks']) && is_array($store['callbacks']) ? $store['callbacks'] : [],
+            $store,
+            isset($store['funnelMetrics']) && is_array($store['funnelMetrics']) ? $store['funnelMetrics'] : null
+        );
+        $store['leadOpsMeta'] = LeadOpsService::buildMeta(
+            $store['callbacks'],
+            $store,
+            isset($store['funnelMetrics']) && is_array($store['funnelMetrics']) ? $store['funnelMetrics'] : null
+        );
+
         try {
             $queueService = new QueueService();
             $store['queueMeta'] = $queueService->buildAdminSummary($store);

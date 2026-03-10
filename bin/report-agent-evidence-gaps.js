@@ -4,6 +4,7 @@
 const { existsSync, mkdirSync, readFileSync, writeFileSync } = require('fs');
 const { dirname, relative, resolve } = require('path');
 const coreParsers = require('../tools/agent-orchestrator/core/parsers');
+const terminalEvidence = require('../tools/agent-orchestrator/domain/evidence');
 
 const ROOT_DIR = resolve(__dirname, '..');
 const DEFAULT_BOARD_PATH = resolve(ROOT_DIR, 'AGENT_BOARD.yaml');
@@ -90,8 +91,10 @@ function expectedEvidenceRef(
     evidenceDir = DEFAULT_EVIDENCE_DIR,
     rootDir = ROOT_DIR
 ) {
-    const relDir = normalizeRelativePath(relative(rootDir, evidenceDir));
-    return `${relDir}/${taskId}.md`;
+    return terminalEvidence.expectedEvidenceRef(taskId, {
+        rootDir,
+        evidenceDir,
+    });
 }
 
 function bucketReference(ref, expectedRef, refExists) {
@@ -120,24 +123,23 @@ function buildRow(task, options, deps) {
     const rootDir = options.rootDir || ROOT_DIR;
     const evidenceDir = options.evidenceDir || DEFAULT_EVIDENCE_DIR;
     const fileExists = deps.existsSync || existsSync;
-    const taskId = String(task.id || '').trim();
-    const expectedRef = expectedEvidenceRef(taskId, evidenceDir, rootDir);
-    const expectedEvidencePath = resolve(rootDir, expectedRef);
-    const expectedEvidenceExists = fileExists(expectedEvidencePath);
-
-    const evidenceRef = String(task.evidence_ref || '').trim();
-    const acceptanceRef = String(task.acceptance_ref || '').trim();
-    const evidenceRefPath = evidenceRef ? resolve(rootDir, evidenceRef) : '';
-    const acceptanceRefPath = acceptanceRef
-        ? resolve(rootDir, acceptanceRef)
-        : '';
-
-    const evidenceRefExists = evidenceRefPath
-        ? fileExists(evidenceRefPath)
-        : false;
-    const acceptanceRefExists = acceptanceRefPath
-        ? fileExists(acceptanceRefPath)
-        : false;
+    const evidenceAnalysis = terminalEvidence.analyzeTerminalTaskEvidence(
+        task,
+        {
+            rootDir,
+            evidenceDir,
+        },
+        {
+            existsSync: fileExists,
+        }
+    );
+    const taskId = evidenceAnalysis.id;
+    const expectedRef = evidenceAnalysis.expected_ref;
+    const expectedEvidenceExists = evidenceAnalysis.expected_exists;
+    const evidenceRef = evidenceAnalysis.evidence_ref;
+    const acceptanceRef = evidenceAnalysis.acceptance_ref;
+    const evidenceRefExists = evidenceAnalysis.evidence_ref_exists;
+    const acceptanceRefExists = evidenceAnalysis.acceptance_ref_exists;
 
     const evidenceBucket = bucketReference(
         evidenceRef,

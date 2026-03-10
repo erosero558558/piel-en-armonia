@@ -44,6 +44,9 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'callbacks', [CallbackController::class, 'store']);
     $router->add('PATCH', 'callbacks', [CallbackController::class, 'update']);
     $router->add('PUT', 'callbacks', [CallbackController::class, 'update']);
+    $router->add('POST', 'lead-ai-request', [LeadAiController::class, 'request']);
+    $router->add('GET', 'lead-ai-queue', [LeadAiController::class, 'queue']);
+    $router->add('POST', 'lead-ai-result', [LeadAiController::class, 'result']);
 
     $router->add('GET', 'reviews', [ReviewController::class, 'index']);
     $router->add('POST', 'reviews', [ReviewController::class, 'store']);

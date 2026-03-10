@@ -100,6 +100,7 @@ const d = new Set(),
             availabilityMeta: {},
             queueTickets: [],
             queueMeta: null,
+            leadOpsMeta: null,
             appDownloads: null,
             funnelMetrics: null,
             health: null,
@@ -112,7 +113,7 @@ const d = new Set(),
         },
         callbacks: {
             filter: 'all',
-            sort: 'recent_desc',
+            sort: 'priority_desc',
             search: '',
             selected: [],
         },
@@ -252,7 +253,11 @@ function T(t, e, n, a = !1) {
     return `\n        <a\n            href="#${t}"\n            class="nav-item${a ? ' active' : ''}"\n            data-section="${t}"\n            ${a ? 'aria-current="page"' : ''}\n        >\n            ${_(n)}\n            <span>${e}</span>\n            <span class="badge" id="${t}Badge">0</span>\n        </a>\n    `;
 }
 function M() {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
     return `\n        <div class="admin-v3-shell">\n            \n        <aside class="admin-sidebar admin-v3-sidebar" id="adminSidebar" tabindex="-1">\n            <header class="sidebar-header">\n                <div class="admin-v3-sidebar__brand">\n                    <strong>Piel en Armonia</strong>\n                    <small>Admin sony_v3</small>\n                </div>\n                <div class="toolbar-group">\n                    <button type="button" id="adminSidebarCollapse" data-action="toggle-sidebar-collapse" aria-pressed="false">${_('menu')}</button>\n                    <button type="button" id="adminMenuClose">Cerrar</button>\n                </div>\n            </header>\n            <nav class="sidebar-nav" id="adminSidebarNav">\n                \n        ${T('dashboard', 'Dashboard', 'dashboard', !0)}\n        ${T('appointments', 'Citas', 'appointments')}\n        ${T('callbacks', 'Callbacks', 'callbacks')}\n        ${T('reviews', 'Resenas', 'reviews')}\n        ${T('availability', 'Disponibilidad', 'availability')}\n        ${T('queue', 'Turnero Sala', 'queue')}\n    \n            </nav>\n            <footer class="sidebar-footer">\n                <button type="button" class="logout-btn" data-action="logout">${_('logout')}<span>Cerrar sesion</span></button>\n            </footer>\n        </aside>\n        <button type="button" id="adminSidebarBackdrop" class="admin-sidebar-backdrop is-hidden" aria-hidden="true" tabindex="-1"></button>\n    \n            \n        <main class="admin-main admin-v3-main" id="adminMainContent" tabindex="-1" data-admin-frame="sony_v3">\n            \n        <header class="admin-v3-topbar">\n            <div class="admin-v3-topbar__copy">\n                <p class="sony-kicker">Sony V3</p>\n                <h2 id="pageTitle">Dashboard</h2>\n            </div>\n            <div class="admin-v3-topbar__actions">\n                <button type="button" id="adminMenuToggle" class="admin-v3-topbar__menu" aria-controls="adminSidebar" aria-expanded="false">${_('menu')}<span>Menu</span></button>\n                <button type="button" class="admin-v3-command-btn" data-action="open-command-palette">Ctrl+K</button>\n                <button type="button" id="refreshAdminDataBtn" data-action="refresh-admin-data">Actualizar</button>\n                ${$('admin-theme-switcher-header')}\n            </div>\n        </header>\n    \n            \n        <section class="admin-v3-context-strip" id="adminProductivityStrip">\n            <div class="admin-v3-context-copy" data-admin-section-hero>\n                <p class="sony-kicker" id="adminSectionEyebrow">Resumen Diario</p>\n                <h3 id="adminContextTitle">Que requiere atencion ahora</h3>\n                <p id="adminContextSummary">Lee agenda, callbacks y disponibilidad desde un frente claro y sin ruido.</p>\n                <div id="adminContextActions" class="sony-context-actions"></div>\n            </div>\n            <div class="admin-v3-status-rail" data-admin-priority-rail>\n                <article class="sony-status-tile">\n                    <span>Push</span>\n                    <strong id="pushStatusIndicator">Inicializando</strong>\n                    <small id="pushStatusMeta">Comprobando permisos del navegador</small>\n                </article>\n                <article class="sony-status-tile" id="adminSessionTile" data-state="neutral">\n                    <span>Sesion</span>\n                    <strong id="adminSessionState">No autenticada</strong>\n                    <small id="adminSessionMeta">Autenticate para operar el panel</small>\n                </article>\n                <article class="sony-status-tile">\n                    <span>Sincronizacion</span>\n                    <strong id="adminRefreshStatus">Datos: sin sincronizar</strong>\n                    <small id="adminSyncState">Listo para primera sincronizacion</small>\n                </article>\n            </div>\n        </section>\n    \n            \n        \n        <section id="dashboard" class="admin-section active" tabindex="-1">\n            <div class="dashboard-stage">\n                \n        <article class="sony-panel dashboard-hero-panel">\n            <div class="dashboard-hero-copy">\n                <p class="sony-kicker">Resumen diario</p>\n                <h3>Prioridades de hoy</h3>\n                <p id="dashboardHeroSummary">\n                    Agenda, callbacks y disponibilidad con una lectura mas clara y directa.\n                </p>\n            </div>\n            <div class="dashboard-hero-actions">\n                <button type="button" data-action="context-open-appointments-transfer">Ver transferencias</button>\n                <button type="button" data-action="context-open-callbacks-pending">Ir a callbacks</button>\n                <button type="button" data-action="refresh-admin-data">Actualizar tablero</button>\n            </div>\n            <div class="dashboard-hero-metrics">\n                <div class="dashboard-hero-metric">\n                    <span>Rating</span>\n                    <strong id="dashboardHeroRating">0.0</strong>\n                </div>\n                <div class="dashboard-hero-metric">\n                    <span>Reseñas 30d</span>\n                    <strong id="dashboardHeroRecentReviews">0</strong>\n                </div>\n                <div class="dashboard-hero-metric">\n                    <span>Urgentes SLA</span>\n                    <strong id="dashboardHeroUrgentCallbacks">0</strong>\n                </div>\n                <div class="dashboard-hero-metric">\n                    <span>Transferencias</span>\n                    <strong id="dashboardHeroPendingTransfers">0</strong>\n                </div>\n            </div>\n        </article>\n    \n                \n        <article class="sony-panel dashboard-signal-panel">\n            <header>\n                <div>\n                    <h3>Señal operativa</h3>\n                    <small id="operationRefreshSignal">Tiempo real</small>\n                </div>\n                <span class="dashboard-signal-chip" id="dashboardLiveStatus">Estable</span>\n            </header>\n            <p id="dashboardLiveMeta">\n                Sin alertas criticas en la operacion actual.\n            </p>\n            <div class="dashboard-signal-stack">\n                <article class="dashboard-signal-card">\n                    <span>Push</span>\n                    <strong id="dashboardPushStatus">Sin validar</strong>\n                    <small id="dashboardPushMeta">Permisos del navegador</small>\n                </article>\n                <article class="dashboard-signal-card">\n                    <span>Atencion</span>\n                    <strong id="dashboardQueueHealth">Cola: estable</strong>\n                    <small id="dashboardFlowStatus">Sin cuellos de botella</small>\n                </article>\n            </div>\n            <ul id="dashboardAttentionList" class="sony-list dashboard-attention-list"></ul>\n        </article>\n    \n            </div>\n\n            \n        <div class="sony-grid sony-grid-kpi">\n            <article class="sony-kpi"><h3>Citas hoy</h3><strong id="todayAppointments">0</strong></article>\n            <article class="sony-kpi"><h3>Total citas</h3><strong id="totalAppointments">0</strong></article>\n            <article class="sony-kpi"><h3>Callbacks pendientes</h3><strong id="pendingCallbacks">0</strong></article>\n            <article class="sony-kpi"><h3>Reseñas</h3><strong id="totalReviewsCount">0</strong></article>\n            <article class="sony-kpi"><h3>No show</h3><strong id="totalNoShows">0</strong></article>\n            <article class="sony-kpi"><h3>Rating</h3><strong id="avgRating">0.0</strong></article>\n        </div>\n    \n            \n        <div class="sony-grid sony-grid-two">\n            <article class="sony-panel dashboard-card-operations">\n                <header>\n                    <h3>Centro operativo</h3>\n                    <small id="operationDeckMeta">Prioridades y acciones</small>\n                </header>\n                <div class="sony-panel-stats">\n                    <div><span>Transferencias</span><strong id="operationPendingReviewCount">0</strong></div>\n                    <div><span>Callbacks</span><strong id="operationPendingCallbacksCount">0</strong></div>\n                    <div><span>Carga hoy</span><strong id="operationTodayLoadCount">0</strong></div>\n                </div>\n                <p id="operationQueueHealth">Cola: estable</p>\n                <div id="operationActionList" class="operations-action-list"></div>\n            </article>\n\n            <article class="sony-panel" id="funnelSummary">\n                <header><h3>Embudo</h3></header>\n                <div class="sony-panel-stats">\n                    <div><span>View Booking</span><strong id="funnelViewBooking">0</strong></div>\n                    <div><span>Start Checkout</span><strong id="funnelStartCheckout">0</strong></div>\n                    <div><span>Booking Confirmed</span><strong id="funnelBookingConfirmed">0</strong></div>\n                    <div><span>Abandono</span><strong id="funnelAbandonRate">0%</strong></div>\n                </div>\n            </article>\n        </div>\n    \n            \n        <div class="sony-grid sony-grid-three">\n            <article class="sony-panel"><h4>Entry</h4><ul id="funnelEntryList" class="sony-list"></ul></article>\n            <article class="sony-panel"><h4>Source</h4><ul id="funnelSourceList" class="sony-list"></ul></article>\n            <article class="sony-panel"><h4>Payment</h4><ul id="funnelPaymentMethodList" class="sony-list"></ul></article>\n            <article class="sony-panel"><h4>Abandono</h4><ul id="funnelAbandonList" class="sony-list"></ul></article>\n            <article class="sony-panel"><h4>Motivo</h4><ul id="funnelAbandonReasonList" class="sony-list"></ul></article>\n            <article class="sony-panel"><h4>Paso</h4><ul id="funnelStepList" class="sony-list"></ul></article>\n            <article class="sony-panel"><h4>Error</h4><ul id="funnelErrorCodeList" class="sony-list"></ul></article>\n        </div>\n    \n            <div class="sr-only" id="adminAvgRating"></div>\n        </section>\n    \n        \n        <section id="appointments" class="admin-section" tabindex="-1">\n            <div class="appointments-stage">\n                \n        <article class="sony-panel appointments-command-deck">\n            <header class="section-header appointments-command-head">\n                <div>\n                    <p class="sony-kicker">Agenda clinica</p>\n                    <h3>Citas</h3>\n                    <p id="appointmentsDeckSummary">Sin citas cargadas.</p>\n                </div>\n                <span class="appointments-deck-chip" id="appointmentsDeckChip">Agenda estable</span>\n            </header>\n            <div class="appointments-ops-grid">\n                <article class="appointments-ops-card tone-warning">\n                    <span>Transferencias</span>\n                    <strong id="appointmentsOpsPendingTransfer">0</strong>\n                    <small id="appointmentsOpsPendingTransferMeta">Nada por validar</small>\n                </article>\n                <article class="appointments-ops-card tone-neutral">\n                    <span>Proximas 48h</span>\n                    <strong id="appointmentsOpsUpcomingCount">0</strong>\n                    <small id="appointmentsOpsUpcomingMeta">Sin presion inmediata</small>\n                </article>\n                <article class="appointments-ops-card tone-danger">\n                    <span>No show</span>\n                    <strong id="appointmentsOpsNoShowCount">0</strong>\n                    <small id="appointmentsOpsNoShowMeta">Sin incidencias</small>\n                </article>\n                <article class="appointments-ops-card tone-success">\n                    <span>Hoy</span>\n                    <strong id="appointmentsOpsTodayCount">0</strong>\n                    <small id="appointmentsOpsTodayMeta">Carga diaria limpia</small>\n                </article>\n            </div>\n            <div class="appointments-command-actions">\n                <button type="button" data-action="context-open-appointments-transfer">Priorizar transferencias</button>\n                <button type="button" data-action="context-open-callbacks-pending">Cruzar callbacks</button>\n                <button type="button" id="appointmentsExportBtn" data-action="export-csv">Exportar CSV</button>\n            </div>\n        </article>\n    \n                \n        <article class="sony-panel appointments-focus-panel">\n            <header class="section-header">\n                <div>\n                    <p class="sony-kicker" id="appointmentsFocusLabel">Sin foco activo</p>\n                    <h3 id="appointmentsFocusPatient">Sin citas activas</h3>\n                    <p id="appointmentsFocusMeta">Cuando entren citas accionables apareceran aqui.</p>\n                </div>\n            </header>\n            <div class="appointments-focus-grid">\n                <div class="appointments-focus-stat">\n                    <span>Siguiente ventana</span>\n                    <strong id="appointmentsFocusWindow">-</strong>\n                </div>\n                <div class="appointments-focus-stat">\n                    <span>Pago</span>\n                    <strong id="appointmentsFocusPayment">-</strong>\n                </div>\n                <div class="appointments-focus-stat">\n                    <span>Estado</span>\n                    <strong id="appointmentsFocusStatus">-</strong>\n                </div>\n                <div class="appointments-focus-stat">\n                    <span>Contacto</span>\n                    <strong id="appointmentsFocusContact">-</strong>\n                </div>\n            </div>\n            <div id="appointmentsFocusTags" class="appointments-focus-tags"></div>\n            <p id="appointmentsFocusHint" class="appointments-focus-hint">Sin bloqueos operativos.</p>\n        </article>\n    \n            </div>\n\n            \n        <div class="sony-panel appointments-workbench">\n            <header class="section-header appointments-workbench-head">\n                <div>\n                    <h3>Workbench</h3>\n                    <p id="appointmentsWorkbenchHint">Filtros, orden y tabla en un workbench unico.</p>\n                </div>\n                <div class="toolbar-group" id="appointmentsDensityToggle">\n                    <button type="button" data-action="appointment-density" data-density="comfortable" class="is-active">Comodo</button>\n                    <button type="button" data-action="appointment-density" data-density="compact">Compacto</button>\n                </div>\n            </header>\n            <div class="toolbar-row">\n                <div class="toolbar-group">\n                    <button type="button" class="appointment-quick-filter-btn is-active" data-action="appointment-quick-filter" data-filter-value="all">Todas</button>\n                    <button type="button" class="appointment-quick-filter-btn" data-action="appointment-quick-filter" data-filter-value="pending_transfer">Transferencias</button>\n                    <button type="button" class="appointment-quick-filter-btn" data-action="appointment-quick-filter" data-filter-value="upcoming_48h">48h</button>\n                    <button type="button" class="appointment-quick-filter-btn" data-action="appointment-quick-filter" data-filter-value="no_show">No show</button>\n                    <button type="button" class="appointment-quick-filter-btn" data-action="appointment-quick-filter" data-filter-value="triage_attention">Triage</button>\n                </div>\n            </div>\n            <div class="toolbar-row appointments-toolbar">\n                <label>\n                    <span class="sr-only">Filtro</span>\n                    <select id="appointmentFilter">\n                        <option value="all">Todas</option>\n                        <option value="pending_transfer">Transferencias por validar</option>\n                        <option value="upcoming_48h">Proximas 48h</option>\n                        <option value="no_show">No show</option>\n                        <option value="triage_attention">Triage accionable</option>\n                    </select>\n                </label>\n                <label>\n                    <span class="sr-only">Orden</span>\n                    <select id="appointmentSort">\n                        <option value="datetime_desc">Fecha reciente</option>\n                        <option value="datetime_asc">Fecha ascendente</option>\n                        <option value="patient_az">Paciente (A-Z)</option>\n                    </select>\n                </label>\n                <input type="search" id="searchAppointments" placeholder="Buscar paciente" />\n                <button type="button" id="clearAppointmentsFiltersBtn" data-action="clear-appointment-filters" class="is-hidden">Limpiar</button>\n            </div>\n            <div class="toolbar-row slim">\n                <p id="appointmentsToolbarMeta">Mostrando 0</p>\n                <p id="appointmentsToolbarState">Sin filtros activos</p>\n            </div>\n\n            <div class="table-scroll appointments-table-shell">\n                <table id="appointmentsTable" class="sony-table">\n                    <thead>\n                        <tr>\n                            <th>Paciente</th>\n                            <th>Servicio</th>\n                            <th>Fecha</th>\n                            <th>Pago</th>\n                            <th>Estado</th>\n                            <th>Acciones</th>\n                        </tr>\n                    </thead>\n                    <tbody id="appointmentsTableBody"></tbody>\n                </table>\n            </div>\n        </div>\n    \n        </section>\n    \n        \n        <section id="callbacks" class="admin-section" tabindex="-1">\n            <div class="callbacks-stage">\n                \n        <article class="sony-panel callbacks-command-deck">\n            <header class="section-header callbacks-command-head">\n                <div>\n                    <p class="sony-kicker">SLA telefonico</p>\n                    <h3>Callbacks</h3>\n                    <p id="callbacksDeckSummary">Sin callbacks pendientes.</p>\n                </div>\n                <span class="callbacks-queue-chip" id="callbacksQueueChip">Cola estable</span>\n            </header>\n            <div id="callbacksOpsPanel" class="callbacks-ops-grid">\n                <article class="callbacks-ops-card"><span>Pendientes</span><strong id="callbacksOpsPendingCount">0</strong></article>\n                <article class="callbacks-ops-card"><span>Urgentes</span><strong id="callbacksOpsUrgentCount">0</strong></article>\n                <article class="callbacks-ops-card"><span>Hoy</span><strong id="callbacksOpsTodayCount">0</strong></article>\n                <article class="callbacks-ops-card wide"><span>Estado</span><strong id="callbacksOpsQueueHealth">Cola: estable</strong></article>\n            </div>\n            <div class="callbacks-command-actions">\n                <button type="button" id="callbacksOpsNextBtn" data-action="callbacks-triage-next">Siguiente llamada</button>\n                <button type="button" id="callbacksBulkSelectVisibleBtn">Seleccionar visibles</button>\n                <button type="button" id="callbacksBulkClearBtn">Limpiar seleccion</button>\n                <button type="button" id="callbacksBulkMarkBtn">Marcar contactados</button>\n            </div>\n        </article>\n    \n                \n        <article class="sony-panel callbacks-next-panel">\n            <header class="section-header">\n                <div>\n                    <p class="sony-kicker" id="callbacksNextEyebrow">Siguiente contacto</p>\n                    <h3 id="callbacksOpsNext">Sin telefono</h3>\n                    <p id="callbacksNextSummary">La siguiente llamada prioritaria aparecera aqui.</p>\n                </div>\n                <span id="callbacksSelectionChip" class="is-hidden">Seleccionados: <strong id="callbacksSelectedCount">0</strong></span>\n            </header>\n            <div class="callbacks-next-grid">\n                <div class="callbacks-next-stat">\n                    <span>Espera</span>\n                    <strong id="callbacksNextWait">0 min</strong>\n                </div>\n                <div class="callbacks-next-stat">\n                    <span>Preferencia</span>\n                    <strong id="callbacksNextPreference">-</strong>\n                </div>\n                <div class="callbacks-next-stat">\n                    <span>Estado</span>\n                    <strong id="callbacksNextState">Pendiente</strong>\n                </div>\n                <div class="callbacks-next-stat">\n                    <span>Ultimo corte</span>\n                    <strong id="callbacksDeckHint">Sin bloqueos</strong>\n                </div>\n            </div>\n        </article>\n    \n            </div>\n\n            \n        <div class="sony-panel callbacks-workbench">\n            <header class="section-header callbacks-workbench-head">\n                <div>\n                    <h3>Workbench</h3>\n                    <p>Ordena por espera, filtra por SLA y drena la cola con acciones masivas.</p>\n                </div>\n            </header>\n            <div class="toolbar-row">\n                <div class="toolbar-group">\n                    <button type="button" class="callback-quick-filter-btn is-active" data-action="callback-quick-filter" data-filter-value="all">Todos</button>\n                    <button type="button" class="callback-quick-filter-btn" data-action="callback-quick-filter" data-filter-value="pending">Pendientes</button>\n                    <button type="button" class="callback-quick-filter-btn" data-action="callback-quick-filter" data-filter-value="contacted">Contactados</button>\n                    <button type="button" class="callback-quick-filter-btn" data-action="callback-quick-filter" data-filter-value="today">Hoy</button>\n                    <button type="button" class="callback-quick-filter-btn" data-action="callback-quick-filter" data-filter-value="sla_urgent">Urgentes SLA</button>\n                </div>\n            </div>\n            <div class="toolbar-row callbacks-toolbar">\n                <label>\n                    <span class="sr-only">Filtro callbacks</span>\n                    <select id="callbackFilter">\n                        <option value="all">Todos</option>\n                        <option value="pending">Pendientes</option>\n                        <option value="contacted">Contactados</option>\n                        <option value="today">Hoy</option>\n                        <option value="sla_urgent">Urgentes SLA</option>\n                    </select>\n                </label>\n                <label>\n                    <span class="sr-only">Orden callbacks</span>\n                    <select id="callbackSort">\n                        <option value="recent_desc">Mas recientes</option>\n                        <option value="waiting_desc">Mayor espera (SLA)</option>\n                    </select>\n                </label>\n                <input type="search" id="searchCallbacks" placeholder="Buscar telefono" />\n                <button type="button" id="clearCallbacksFiltersBtn" data-action="clear-callback-filters">Limpiar</button>\n            </div>\n            <div class="toolbar-row slim">\n                <p id="callbacksToolbarMeta">Mostrando 0</p>\n                <p id="callbacksToolbarState">Sin filtros activos</p>\n            </div>\n            <div id="callbacksGrid" class="callbacks-grid"></div>\n        </div>\n    \n        </section>\n    \n        \n        <section id="reviews" class="admin-section" tabindex="-1">\n            <div class="reviews-stage">\n                <article class="sony-panel reviews-summary-panel">\n                    <header class="section-header">\n                        <div>\n                            <h3>Resenas</h3>\n                            <p id="reviewsSentimentLabel">Sin senal suficiente</p>\n                        </div>\n                        <span class="reviews-score-pill" id="reviewsAverageRating">0.0</span>\n                    </header>\n                    <div class="reviews-summary-grid">\n                        <div class="reviews-summary-stat">\n                            <span>5 estrellas</span>\n                            <strong id="reviewsFiveStarCount">0</strong>\n                        </div>\n                        <div class="reviews-summary-stat">\n                            <span>Ultimos 30 dias</span>\n                            <strong id="reviewsRecentCount">0</strong>\n                        </div>\n                        <div class="reviews-summary-stat">\n                            <span>Total</span>\n                            <strong id="reviewsTotalCount">0</strong>\n                        </div>\n                    </div>\n                    <div id="reviewsSummaryRail" class="reviews-summary-rail"></div>\n                </article>\n\n                <article class="sony-panel reviews-spotlight-panel">\n                    <header class="section-header"><h3>Spotlight</h3></header>\n                    <div id="reviewsSpotlight" class="reviews-spotlight"></div>\n                </article>\n            </div>\n            <div class="sony-panel">\n                <div id="reviewsGrid" class="reviews-grid"></div>\n            </div>\n        </section>\n    \n        \n        <section id="availability" class="admin-section" tabindex="-1">\n            <div class="sony-panel availability-container">\n                <header class="section-header availability-header">\n                    <div class="availability-calendar">\n                        <h3 id="availabilityHeading">Configurar Horarios Disponibles</h3>\n                        <div class="availability-badges">\n                            <span id="availabilitySourceBadge" class="availability-badge">Fuente: Local</span>\n                            <span id="availabilityModeBadge" class="availability-badge">Modo: Editable</span>\n                            <span id="availabilityTimezoneBadge" class="availability-badge">TZ: -</span>\n                        </div>\n                    </div>\n                    <div class="toolbar-group calendar-header">\n                        <button type="button" data-action="change-month" data-delta="-1">Prev</button>\n                        <strong id="calendarMonth"></strong>\n                        <button type="button" data-action="change-month" data-delta="1">Next</button>\n                        <button type="button" data-action="availability-today">Hoy</button>\n                        <button type="button" data-action="availability-prev-with-slots">Anterior con slots</button>\n                        <button type="button" data-action="availability-next-with-slots">Siguiente con slots</button>\n                    </div>\n                </header>\n\n                <div class="toolbar-row slim">\n                    <p id="availabilitySelectionSummary">Selecciona una fecha</p>\n                    <p id="availabilityDraftStatus">Sin cambios pendientes</p>\n                    <p id="availabilitySyncStatus">Sincronizado</p>\n                </div>\n\n                <div id="availabilityCalendar" class="availability-calendar-grid"></div>\n\n                <div id="availabilityDetailGrid" class="availability-detail-grid">\n                    <article class="sony-panel soft">\n                        <h4 id="selectedDate">-</h4>\n                        <div id="timeSlotsList" class="time-slots-list"></div>\n                    </article>\n\n                    <article class="sony-panel soft">\n                        <div id="availabilityQuickSlotPresets" class="slot-presets">\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="09:00">09:00</button>\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="09:30">09:30</button>\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="10:00">10:00</button>\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="16:00">16:00</button>\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="16:30">16:30</button>\n                        </div>\n                        <div id="addSlotForm" class="add-slot-form">\n                            <input type="time" id="newSlotTime" />\n                            <button type="button" data-action="add-time-slot">Agregar</button>\n                        </div>\n                        <div id="availabilityDayActions" class="toolbar-group wrap">\n                            <button type="button" data-action="copy-availability-day">Copiar dia</button>\n                            <button type="button" data-action="paste-availability-day">Pegar dia</button>\n                            <button type="button" data-action="duplicate-availability-day-next">Duplicar +1</button>\n                            <button type="button" data-action="duplicate-availability-next-week">Duplicar +7</button>\n                            <button type="button" data-action="clear-availability-day">Limpiar dia</button>\n                            <button type="button" data-action="clear-availability-week">Limpiar semana</button>\n                        </div>\n                        <p id="availabilityDayActionsStatus">Sin acciones pendientes</p>\n                        <div class="toolbar-group">\n                            <button type="button" id="availabilitySaveDraftBtn" data-action="save-availability-draft" disabled>Guardar</button>\n                            <button type="button" id="availabilityDiscardDraftBtn" data-action="discard-availability-draft" disabled>Descartar</button>\n                        </div>\n                    </article>\n                </div>\n            </div>\n        </section>\n    \n        \n        <section id="queue" class="admin-section" tabindex="-1">\n            <div class="sony-panel">\n                \n        <header class="section-header">\n            <div>\n                <h3>Turnero Sala</h3>\n                <p>\n                    Apps operativas, cola en vivo y flujo simple para recepción,\n                    kiosco y TV.\n                </p>\n            </div>\n            <div class="queue-admin-header-actions">\n                <button type="button" data-action="queue-call-next" data-queue-consultorio="1">Llamar C1</button>\n                <button type="button" data-action="queue-call-next" data-queue-consultorio="2">Llamar C2</button>\n                <button type="button" data-action="queue-refresh-state">Refrescar</button>\n            </div>\n        </header>\n    \n                \n        <div id="queueAppsHub" class="queue-apps-hub sony-panel soft">\n            <div class="queue-apps-hub__header">\n                <div>\n                    <h4>Apps operativas</h4>\n                    <p>\n                        Instala Operador, Kiosco y Sala TV desde el mismo centro de\n                        control para separar cada equipo por uso.\n                    </p>\n                </div>\n                <span id="queueAppsPlatformChip" class="queue-apps-platform-chip">\n                    Plataforma detectada\n                </span>\n            </div>\n            <div id="queueAppDownloadsCards" class="queue-apps-grid"></div>\n            <div id="queueInstallConfigurator" class="queue-install-configurator"></div>\n        </div>\n    \n                \n        <div class="sony-grid sony-grid-kpi slim">\n            <article class="sony-kpi"><h4>Espera</h4><strong id="queueWaitingCountAdmin">0</strong></article>\n            <article class="sony-kpi"><h4>Llamados</h4><strong id="queueCalledCountAdmin">0</strong></article>\n            <article class="sony-kpi"><h4>C1</h4><strong id="queueC1Now">Sin llamado</strong></article>\n            <article class="sony-kpi"><h4>C2</h4><strong id="queueC2Now">Sin llamado</strong></article>\n            <article class="sony-kpi"><h4>Sync</h4><strong id="queueSyncStatus" data-state="live">vivo</strong></article>\n        </div>\n    \n                \n        <div id="queueStationControl" class="toolbar-row">\n            <span id="queueStationBadge">Estacion: libre</span>\n            <span id="queueStationModeBadge">Modo: free</span>\n            <span id="queuePracticeModeBadge" hidden>Practice ON</span>\n            <button type="button" data-action="queue-lock-station" data-queue-consultorio="1">Lock C1</button>\n            <button type="button" data-action="queue-lock-station" data-queue-consultorio="2">Lock C2</button>\n            <button type="button" data-action="queue-set-station-mode" data-queue-mode="free">Modo libre</button>\n            <button type="button" data-action="queue-toggle-one-tap" aria-pressed="false">1 tecla</button>\n            <button type="button" data-action="queue-toggle-shortcuts">Atajos</button>\n            <button type="button" data-action="queue-capture-call-key">Calibrar tecla</button>\n            <button type="button" data-action="queue-clear-call-key" hidden>Quitar tecla</button>\n            <button type="button" data-action="queue-start-practice">Iniciar practica</button>\n            <button type="button" data-action="queue-stop-practice">Salir practica</button>\n            <button type="button" id="queueReleaseC1" data-action="queue-release-station" data-queue-consultorio="1" hidden>Release C1</button>\n            <button type="button" id="queueReleaseC2" data-action="queue-release-station" data-queue-consultorio="2" hidden>Release C2</button>\n        </div>\n    \n                \n        <div id="queueShortcutPanel" hidden>\n            <p>Numpad Enter llama siguiente.</p>\n            <p>Numpad Decimal prepara completar.</p>\n            <p>Numpad Subtract prepara no_show.</p>\n            <p>Numpad Add re-llama el ticket activo.</p>\n        </div>\n    \n                \n        <div id="queueTriageToolbar" class="toolbar-row">\n            <button type="button" data-queue-filter="all">Todo</button>\n            <button type="button" data-queue-filter="called">Llamados</button>\n            <button type="button" data-queue-filter="sla_risk">Riesgo SLA</button>\n            <input type="search" id="queueSearchInput" placeholder="Buscar ticket" />\n            <button type="button" data-action="queue-clear-search">Limpiar</button>\n            <button type="button" id="queueSelectVisibleBtn" data-action="queue-select-visible">Seleccionar visibles</button>\n            <button type="button" id="queueClearSelectionBtn" data-action="queue-clear-selection">Limpiar seleccion</button>\n            <button type="button" data-action="queue-bulk-action" data-queue-action="completar">Bulk completar</button>\n            <button type="button" data-action="queue-bulk-action" data-queue-action="no_show">Bulk no_show</button>\n            <button type="button" data-action="queue-bulk-reprint">Bulk reprint</button>\n        </div>\n    \n                \n        <div class="toolbar-row slim">\n            <p id="queueTriageSummary">Sin riesgo</p>\n            <span id="queueSelectionChip" class="is-hidden">Seleccionados: <strong id="queueSelectedCount">0</strong></span>\n        </div>\n    \n                \n        <ul id="queueNextAdminList" class="sony-list"></ul>\n\n        <div class="table-scroll">\n            <table class="sony-table queue-admin-table">\n                <thead>\n                    <tr>\n                        <th>Sel</th>\n                        <th>Ticket</th>\n                        <th>Tipo</th>\n                        <th>Estado</th>\n                        <th>Consultorio</th>\n                        <th>Espera</th>\n                        <th>Acciones</th>\n                    </tr>\n                </thead>\n                <tbody id="queueTableBody"></tbody>\n            </table>\n        </div>\n\n        <div id="queueActivityPanel" class="sony-panel soft">\n            <h4>Actividad</h4>\n            <ul id="queueActivityList" class="sony-list"></ul>\n        </div>\n    \n            </div>\n\n            \n        <dialog id="queueSensitiveConfirmDialog" class="queue-sensitive-confirm-dialog">\n            <form method="dialog">\n                <p id="queueSensitiveConfirmMessage">Confirmar accion sensible</p>\n                <div class="toolbar-group">\n                    <button type="button" data-action="queue-sensitive-cancel">Cancelar</button>\n                    <button type="button" data-action="queue-sensitive-confirm">Confirmar</button>\n                </div>\n            </form>\n        </dialog>\n    \n        </section>\n    \n    \n        </main>\n    \n            \n        <div id="adminCommandPalette" class="admin-command-palette is-hidden" aria-hidden="true">\n            <button type="button" class="admin-command-palette__backdrop" data-action="close-command-palette" aria-label="Cerrar paleta"></button>\n            <div class="admin-command-dialog" role="dialog" aria-modal="true" aria-labelledby="adminCommandPaletteTitle">\n                <div class="admin-command-dialog__head">\n                    <div>\n                        <p class="sony-kicker">Command Palette</p>\n                        <h3 id="adminCommandPaletteTitle">Accion rapida</h3>\n                    </div>\n                    <button type="button" class="admin-command-dialog__close" data-action="close-command-palette">Cerrar</button>\n                </div>\n                <div class="admin-command-box">\n                    <input id="adminQuickCommand" type="text" placeholder="Ej. callbacks urgentes, citas transferencias, queue riesgo SLA" />\n                    <button id="adminRunQuickCommandBtn" data-action="run-admin-command">Ejecutar</button>\n                </div>\n                <div class="admin-command-dialog__hints">\n                    <span>Ctrl+K abre esta paleta</span>\n                    <span>/ enfoca la busqueda de la seccion activa</span>\n                </div>\n            </div>\n        </div>\n    \n        </div>\n    `;
+========
+    return `\n        <div class="admin-v3-shell">\n            \n        <aside class="admin-sidebar admin-v3-sidebar" id="adminSidebar" tabindex="-1">\n            <header class="sidebar-header">\n                <div class="admin-v3-sidebar__brand">\n                    <strong>Piel en Armonia</strong>\n                    <small>Admin sony_v3</small>\n                </div>\n                <div class="toolbar-group">\n                    <button type="button" id="adminSidebarCollapse" data-action="toggle-sidebar-collapse" aria-pressed="false">${_('menu')}</button>\n                    <button type="button" id="adminMenuClose">Cerrar</button>\n                </div>\n            </header>\n            <nav class="sidebar-nav" id="adminSidebarNav">\n                \n        ${T('dashboard', 'Dashboard', 'dashboard', !0)}\n        ${T('appointments', 'Citas', 'appointments')}\n        ${T('callbacks', 'Callbacks', 'callbacks')}\n        ${T('reviews', 'Resenas', 'reviews')}\n        ${T('availability', 'Disponibilidad', 'availability')}\n        ${T('queue', 'Turnero Sala', 'queue')}\n    \n            </nav>\n            <footer class="sidebar-footer">\n                <button type="button" class="logout-btn" data-action="logout">${_('logout')}<span>Cerrar sesion</span></button>\n            </footer>\n        </aside>\n        <button type="button" id="adminSidebarBackdrop" class="admin-sidebar-backdrop is-hidden" aria-hidden="true" tabindex="-1"></button>\n    \n            \n        <main class="admin-main admin-v3-main" id="adminMainContent" tabindex="-1" data-admin-frame="sony_v3">\n            \n        <header class="admin-v3-topbar">\n            <div class="admin-v3-topbar__copy">\n                <p class="sony-kicker">Sony V3</p>\n                <h2 id="pageTitle">Dashboard</h2>\n            </div>\n            <div class="admin-v3-topbar__actions">\n                <button type="button" id="adminMenuToggle" class="admin-v3-topbar__menu" aria-controls="adminSidebar" aria-expanded="false">${_('menu')}<span>Menu</span></button>\n                <button type="button" class="admin-v3-command-btn" data-action="open-command-palette">Ctrl+K</button>\n                <button type="button" id="refreshAdminDataBtn" data-action="refresh-admin-data">Actualizar</button>\n                ${$('admin-theme-switcher-header')}\n            </div>\n        </header>\n    \n            \n        <section class="admin-v3-context-strip" id="adminProductivityStrip">\n            <div class="admin-v3-context-copy" data-admin-section-hero>\n                <p class="sony-kicker" id="adminSectionEyebrow">Resumen Diario</p>\n                <h3 id="adminContextTitle">Que requiere atencion ahora</h3>\n                <p id="adminContextSummary">Lee agenda, callbacks y disponibilidad desde un frente claro y sin ruido.</p>\n                <div id="adminContextActions" class="sony-context-actions"></div>\n            </div>\n            <div class="admin-v3-status-rail" data-admin-priority-rail>\n                <article class="sony-status-tile">\n                    <span>Push</span>\n                    <strong id="pushStatusIndicator">Inicializando</strong>\n                    <small id="pushStatusMeta">Comprobando permisos del navegador</small>\n                </article>\n                <article class="sony-status-tile" id="adminSessionTile" data-state="neutral">\n                    <span>Sesion</span>\n                    <strong id="adminSessionState">No autenticada</strong>\n                    <small id="adminSessionMeta">Autenticate para operar el panel</small>\n                </article>\n                <article class="sony-status-tile">\n                    <span>Sincronizacion</span>\n                    <strong id="adminRefreshStatus">Datos: sin sincronizar</strong>\n                    <small id="adminSyncState">Listo para primera sincronizacion</small>\n                </article>\n            </div>\n        </section>\n    \n            \n        \n        <section id="dashboard" class="admin-section active" tabindex="-1">\n            <div class="dashboard-stage">\n                \n        <article class="sony-panel dashboard-hero-panel">\n            <div class="dashboard-hero-copy">\n                <p class="sony-kicker">Resumen diario</p>\n                <h3>Prioridades de hoy</h3>\n                <p id="dashboardHeroSummary">\n                    Agenda, callbacks y disponibilidad con una lectura mas clara y directa.\n                </p>\n            </div>\n            <div class="dashboard-hero-actions">\n                <button type="button" data-action="context-open-appointments-transfer">Ver transferencias</button>\n                <button type="button" data-action="context-open-callbacks-pending">Ir a callbacks</button>\n                <button type="button" data-action="refresh-admin-data">Actualizar tablero</button>\n            </div>\n            <div class="dashboard-hero-metrics">\n                <div class="dashboard-hero-metric">\n                    <span>Rating</span>\n                    <strong id="dashboardHeroRating">0.0</strong>\n                </div>\n                <div class="dashboard-hero-metric">\n                    <span>Reseñas 30d</span>\n                    <strong id="dashboardHeroRecentReviews">0</strong>\n                </div>\n                <div class="dashboard-hero-metric">\n                    <span>Urgentes SLA</span>\n                    <strong id="dashboardHeroUrgentCallbacks">0</strong>\n                </div>\n                <div class="dashboard-hero-metric">\n                    <span>Transferencias</span>\n                    <strong id="dashboardHeroPendingTransfers">0</strong>\n                </div>\n            </div>\n        </article>\n    \n                \n        <article class="sony-panel dashboard-signal-panel">\n            <header>\n                <div>\n                    <h3>Señal operativa</h3>\n                    <small id="operationRefreshSignal">Tiempo real</small>\n                </div>\n                <span class="dashboard-signal-chip" id="dashboardLiveStatus">Estable</span>\n            </header>\n            <p id="dashboardLiveMeta">\n                Sin alertas criticas en la operacion actual.\n            </p>\n            <div class="dashboard-signal-stack">\n                <article class="dashboard-signal-card">\n                    <span>Push</span>\n                    <strong id="dashboardPushStatus">Sin validar</strong>\n                    <small id="dashboardPushMeta">Permisos del navegador</small>\n                </article>\n                <article class="dashboard-signal-card">\n                    <span>Atencion</span>\n                    <strong id="dashboardQueueHealth">Cola: estable</strong>\n                    <small id="dashboardFlowStatus">Sin cuellos de botella</small>\n                </article>\n            </div>\n            <ul id="dashboardAttentionList" class="sony-list dashboard-attention-list"></ul>\n        </article>\n    \n            </div>\n\n            \n        <div class="sony-grid sony-grid-kpi">\n            <article class="sony-kpi"><h3>Citas hoy</h3><strong id="todayAppointments">0</strong></article>\n            <article class="sony-kpi"><h3>Total citas</h3><strong id="totalAppointments">0</strong></article>\n            <article class="sony-kpi"><h3>Callbacks pendientes</h3><strong id="pendingCallbacks">0</strong></article>\n            <article class="sony-kpi"><h3>Reseñas</h3><strong id="totalReviewsCount">0</strong></article>\n            <article class="sony-kpi"><h3>No show</h3><strong id="totalNoShows">0</strong></article>\n            <article class="sony-kpi"><h3>Rating</h3><strong id="avgRating">0.0</strong></article>\n        </div>\n    \n            \n        <div class="sony-grid sony-grid-two">\n            <article class="sony-panel dashboard-card-operations">\n                <header>\n                    <h3>Centro operativo</h3>\n                    <small id="operationDeckMeta">Prioridades y acciones</small>\n                </header>\n                <div class="sony-panel-stats">\n                    <div><span>Transferencias</span><strong id="operationPendingReviewCount">0</strong></div>\n                    <div><span>Callbacks</span><strong id="operationPendingCallbacksCount">0</strong></div>\n                    <div><span>Carga hoy</span><strong id="operationTodayLoadCount">0</strong></div>\n                </div>\n                <p id="operationQueueHealth">Cola: estable</p>\n                <div id="operationActionList" class="operations-action-list"></div>\n            </article>\n\n            <article class="sony-panel" id="funnelSummary">\n                <header><h3>Embudo</h3></header>\n                <div class="sony-panel-stats">\n                    <div><span>View Booking</span><strong id="funnelViewBooking">0</strong></div>\n                    <div><span>Start Checkout</span><strong id="funnelStartCheckout">0</strong></div>\n                    <div><span>Booking Confirmed</span><strong id="funnelBookingConfirmed">0</strong></div>\n                    <div><span>Abandono</span><strong id="funnelAbandonRate">0%</strong></div>\n                </div>\n            </article>\n        </div>\n    \n            \n        <div class="sony-grid sony-grid-three">\n            <article class="sony-panel"><h4>Entry</h4><ul id="funnelEntryList" class="sony-list"></ul></article>\n            <article class="sony-panel"><h4>Source</h4><ul id="funnelSourceList" class="sony-list"></ul></article>\n            <article class="sony-panel"><h4>Payment</h4><ul id="funnelPaymentMethodList" class="sony-list"></ul></article>\n            <article class="sony-panel"><h4>Abandono</h4><ul id="funnelAbandonList" class="sony-list"></ul></article>\n            <article class="sony-panel"><h4>Motivo</h4><ul id="funnelAbandonReasonList" class="sony-list"></ul></article>\n            <article class="sony-panel"><h4>Paso</h4><ul id="funnelStepList" class="sony-list"></ul></article>\n            <article class="sony-panel"><h4>Error</h4><ul id="funnelErrorCodeList" class="sony-list"></ul></article>\n        </div>\n    \n            <div class="sr-only" id="adminAvgRating"></div>\n        </section>\n    \n        \n        <section id="appointments" class="admin-section" tabindex="-1">\n            <div class="appointments-stage">\n                \n        <article class="sony-panel appointments-command-deck">\n            <header class="section-header appointments-command-head">\n                <div>\n                    <p class="sony-kicker">Agenda clinica</p>\n                    <h3>Citas</h3>\n                    <p id="appointmentsDeckSummary">Sin citas cargadas.</p>\n                </div>\n                <span class="appointments-deck-chip" id="appointmentsDeckChip">Agenda estable</span>\n            </header>\n            <div class="appointments-ops-grid">\n                <article class="appointments-ops-card tone-warning">\n                    <span>Transferencias</span>\n                    <strong id="appointmentsOpsPendingTransfer">0</strong>\n                    <small id="appointmentsOpsPendingTransferMeta">Nada por validar</small>\n                </article>\n                <article class="appointments-ops-card tone-neutral">\n                    <span>Proximas 48h</span>\n                    <strong id="appointmentsOpsUpcomingCount">0</strong>\n                    <small id="appointmentsOpsUpcomingMeta">Sin presion inmediata</small>\n                </article>\n                <article class="appointments-ops-card tone-danger">\n                    <span>No show</span>\n                    <strong id="appointmentsOpsNoShowCount">0</strong>\n                    <small id="appointmentsOpsNoShowMeta">Sin incidencias</small>\n                </article>\n                <article class="appointments-ops-card tone-success">\n                    <span>Hoy</span>\n                    <strong id="appointmentsOpsTodayCount">0</strong>\n                    <small id="appointmentsOpsTodayMeta">Carga diaria limpia</small>\n                </article>\n            </div>\n            <div class="appointments-command-actions">\n                <button type="button" data-action="context-open-appointments-transfer">Priorizar transferencias</button>\n                <button type="button" data-action="context-open-callbacks-pending">Cruzar callbacks</button>\n                <button type="button" id="appointmentsExportBtn" data-action="export-csv">Exportar CSV</button>\n            </div>\n        </article>\n    \n                \n        <article class="sony-panel appointments-focus-panel">\n            <header class="section-header">\n                <div>\n                    <p class="sony-kicker" id="appointmentsFocusLabel">Sin foco activo</p>\n                    <h3 id="appointmentsFocusPatient">Sin citas activas</h3>\n                    <p id="appointmentsFocusMeta">Cuando entren citas accionables apareceran aqui.</p>\n                </div>\n            </header>\n            <div class="appointments-focus-grid">\n                <div class="appointments-focus-stat">\n                    <span>Siguiente ventana</span>\n                    <strong id="appointmentsFocusWindow">-</strong>\n                </div>\n                <div class="appointments-focus-stat">\n                    <span>Pago</span>\n                    <strong id="appointmentsFocusPayment">-</strong>\n                </div>\n                <div class="appointments-focus-stat">\n                    <span>Estado</span>\n                    <strong id="appointmentsFocusStatus">-</strong>\n                </div>\n                <div class="appointments-focus-stat">\n                    <span>Contacto</span>\n                    <strong id="appointmentsFocusContact">-</strong>\n                </div>\n            </div>\n            <div id="appointmentsFocusTags" class="appointments-focus-tags"></div>\n            <p id="appointmentsFocusHint" class="appointments-focus-hint">Sin bloqueos operativos.</p>\n        </article>\n    \n            </div>\n\n            \n        <div class="sony-panel appointments-workbench">\n            <header class="section-header appointments-workbench-head">\n                <div>\n                    <h3>Workbench</h3>\n                    <p id="appointmentsWorkbenchHint">Filtros, orden y tabla en un workbench unico.</p>\n                </div>\n                <div class="toolbar-group" id="appointmentsDensityToggle">\n                    <button type="button" data-action="appointment-density" data-density="comfortable" class="is-active">Comodo</button>\n                    <button type="button" data-action="appointment-density" data-density="compact">Compacto</button>\n                </div>\n            </header>\n            <div class="toolbar-row">\n                <div class="toolbar-group">\n                    <button type="button" class="appointment-quick-filter-btn is-active" data-action="appointment-quick-filter" data-filter-value="all">Todas</button>\n                    <button type="button" class="appointment-quick-filter-btn" data-action="appointment-quick-filter" data-filter-value="pending_transfer">Transferencias</button>\n                    <button type="button" class="appointment-quick-filter-btn" data-action="appointment-quick-filter" data-filter-value="upcoming_48h">48h</button>\n                    <button type="button" class="appointment-quick-filter-btn" data-action="appointment-quick-filter" data-filter-value="no_show">No show</button>\n                    <button type="button" class="appointment-quick-filter-btn" data-action="appointment-quick-filter" data-filter-value="triage_attention">Triage</button>\n                </div>\n            </div>\n            <div class="toolbar-row appointments-toolbar">\n                <label>\n                    <span class="sr-only">Filtro</span>\n                    <select id="appointmentFilter">\n                        <option value="all">Todas</option>\n                        <option value="pending_transfer">Transferencias por validar</option>\n                        <option value="upcoming_48h">Proximas 48h</option>\n                        <option value="no_show">No show</option>\n                        <option value="triage_attention">Triage accionable</option>\n                    </select>\n                </label>\n                <label>\n                    <span class="sr-only">Orden</span>\n                    <select id="appointmentSort">\n                        <option value="datetime_desc">Fecha reciente</option>\n                        <option value="datetime_asc">Fecha ascendente</option>\n                        <option value="patient_az">Paciente (A-Z)</option>\n                    </select>\n                </label>\n                <input type="search" id="searchAppointments" placeholder="Buscar paciente" />\n                <button type="button" id="clearAppointmentsFiltersBtn" data-action="clear-appointment-filters" class="is-hidden">Limpiar</button>\n            </div>\n            <div class="toolbar-row slim">\n                <p id="appointmentsToolbarMeta">Mostrando 0</p>\n                <p id="appointmentsToolbarState">Sin filtros activos</p>\n            </div>\n\n            <div class="table-scroll appointments-table-shell">\n                <table id="appointmentsTable" class="sony-table">\n                    <thead>\n                        <tr>\n                            <th>Paciente</th>\n                            <th>Servicio</th>\n                            <th>Fecha</th>\n                            <th>Pago</th>\n                            <th>Estado</th>\n                            <th>Acciones</th>\n                        </tr>\n                    </thead>\n                    <tbody id="appointmentsTableBody"></tbody>\n                </table>\n            </div>\n        </div>\n    \n        </section>\n    \n        \n        <section id="callbacks" class="admin-section" tabindex="-1">\n            <div class="callbacks-stage">\n                \n        <article class="sony-panel callbacks-command-deck">\n            <header class="section-header callbacks-command-head">\n                <div>\n                    <p class="sony-kicker">SLA telefonico</p>\n                    <h3>Callbacks</h3>\n                    <p id="callbacksDeckSummary">Sin callbacks pendientes.</p>\n                </div>\n                <span class="callbacks-queue-chip" id="callbacksQueueChip">Cola estable</span>\n            </header>\n            <div id="callbacksOpsPanel" class="callbacks-ops-grid">\n                <article class="callbacks-ops-card"><span>Pendientes</span><strong id="callbacksOpsPendingCount">0</strong></article>\n                <article class="callbacks-ops-card"><span>Hot</span><strong id="callbacksOpsUrgentCount">0</strong></article>\n                <article class="callbacks-ops-card"><span>Hoy</span><strong id="callbacksOpsTodayCount">0</strong></article>\n                <article class="callbacks-ops-card wide"><span>Estado</span><strong id="callbacksOpsQueueHealth">Cola: estable</strong></article>\n            </div>\n            <div class="callbacks-command-actions">\n                <button type="button" id="callbacksOpsNextBtn" data-action="callbacks-triage-next">Siguiente llamada</button>\n                <button type="button" id="callbacksBulkSelectVisibleBtn">Seleccionar visibles</button>\n                <button type="button" id="callbacksBulkClearBtn">Limpiar seleccion</button>\n                <button type="button" id="callbacksBulkMarkBtn">Marcar contactados</button>\n            </div>\n        </article>\n    \n                \n        <article class="sony-panel callbacks-next-panel">\n            <header class="section-header">\n                <div>\n                    <p class="sony-kicker" id="callbacksNextEyebrow">Siguiente contacto</p>\n                    <h3 id="callbacksOpsNext">Sin telefono</h3>\n                    <p id="callbacksNextSummary">La siguiente llamada prioritaria aparecera aqui.</p>\n                </div>\n                <span id="callbacksSelectionChip" class="is-hidden">Seleccionados: <strong id="callbacksSelectedCount">0</strong></span>\n            </header>\n            <div class="callbacks-next-grid">\n                <div class="callbacks-next-stat">\n                    <span>Espera</span>\n                    <strong id="callbacksNextWait">0 min</strong>\n                </div>\n                <div class="callbacks-next-stat">\n                    <span>Servicio</span>\n                    <strong id="callbacksNextPreference">-</strong>\n                </div>\n                <div class="callbacks-next-stat">\n                    <span>Accion</span>\n                    <strong id="callbacksNextState">Pendiente</strong>\n                </div>\n                <div class="callbacks-next-stat">\n                    <span>Estado IA</span>\n                    <strong id="callbacksDeckHint">Sin bloqueos</strong>\n                </div>\n            </div>\n        </article>\n    \n            </div>\n\n            \n        <div class="sony-panel callbacks-workbench">\n            <header class="section-header callbacks-workbench-head">\n                <div>\n                    <h3>Workbench</h3>\n                    <p>Ordena por prioridad comercial, genera borradores IA y registra el outcome sin salir del panel.</p>\n                </div>\n            </header>\n            <div class="toolbar-row">\n                <div class="toolbar-group">\n                    <button type="button" class="callback-quick-filter-btn is-active" data-action="callback-quick-filter" data-filter-value="all">Todos</button>\n                    <button type="button" class="callback-quick-filter-btn" data-action="callback-quick-filter" data-filter-value="pending">Pendientes</button>\n                    <button type="button" class="callback-quick-filter-btn" data-action="callback-quick-filter" data-filter-value="contacted">Contactados</button>\n                    <button type="button" class="callback-quick-filter-btn" data-action="callback-quick-filter" data-filter-value="today">Hoy</button>\n                    <button type="button" class="callback-quick-filter-btn" data-action="callback-quick-filter" data-filter-value="sla_urgent">Urgentes SLA</button>\n                </div>\n            </div>\n            <div class="toolbar-row callbacks-toolbar">\n                <label>\n                    <span class="sr-only">Filtro callbacks</span>\n                    <select id="callbackFilter">\n                        <option value="all">Todos</option>\n                        <option value="pending">Pendientes</option>\n                        <option value="contacted">Contactados</option>\n                        <option value="today">Hoy</option>\n                        <option value="sla_urgent">Urgentes SLA</option>\n                    </select>\n                </label>\n                <label>\n                    <span class="sr-only">Orden callbacks</span>\n                    <select id="callbackSort">\n                        <option value="priority_desc">Prioridad comercial</option>\n                        <option value="recent_desc">Mas recientes</option>\n                        <option value="waiting_desc">Mayor espera (SLA)</option>\n                    </select>\n                </label>\n                <input type="search" id="searchCallbacks" placeholder="Buscar telefono o servicio" />\n                <button type="button" id="clearCallbacksFiltersBtn" data-action="clear-callback-filters">Limpiar</button>\n            </div>\n            <div class="toolbar-row slim">\n                <p id="callbacksToolbarMeta">Mostrando 0</p>\n                <p id="callbacksToolbarState">Sin filtros activos</p>\n            </div>\n            <div id="callbacksGrid" class="callbacks-grid"></div>\n        </div>\n    \n        </section>\n    \n        \n        <section id="reviews" class="admin-section" tabindex="-1">\n            <div class="reviews-stage">\n                <article class="sony-panel reviews-summary-panel">\n                    <header class="section-header">\n                        <div>\n                            <h3>Resenas</h3>\n                            <p id="reviewsSentimentLabel">Sin senal suficiente</p>\n                        </div>\n                        <span class="reviews-score-pill" id="reviewsAverageRating">0.0</span>\n                    </header>\n                    <div class="reviews-summary-grid">\n                        <div class="reviews-summary-stat">\n                            <span>5 estrellas</span>\n                            <strong id="reviewsFiveStarCount">0</strong>\n                        </div>\n                        <div class="reviews-summary-stat">\n                            <span>Ultimos 30 dias</span>\n                            <strong id="reviewsRecentCount">0</strong>\n                        </div>\n                        <div class="reviews-summary-stat">\n                            <span>Total</span>\n                            <strong id="reviewsTotalCount">0</strong>\n                        </div>\n                    </div>\n                    <div id="reviewsSummaryRail" class="reviews-summary-rail"></div>\n                </article>\n\n                <article class="sony-panel reviews-spotlight-panel">\n                    <header class="section-header"><h3>Spotlight</h3></header>\n                    <div id="reviewsSpotlight" class="reviews-spotlight"></div>\n                </article>\n            </div>\n            <div class="sony-panel">\n                <div id="reviewsGrid" class="reviews-grid"></div>\n            </div>\n        </section>\n    \n        \n        <section id="availability" class="admin-section" tabindex="-1">\n            <div class="sony-panel availability-container">\n                <header class="section-header availability-header">\n                    <div class="availability-calendar">\n                        <h3 id="availabilityHeading">Configurar Horarios Disponibles</h3>\n                        <div class="availability-badges">\n                            <span id="availabilitySourceBadge" class="availability-badge">Fuente: Local</span>\n                            <span id="availabilityModeBadge" class="availability-badge">Modo: Editable</span>\n                            <span id="availabilityTimezoneBadge" class="availability-badge">TZ: -</span>\n                        </div>\n                    </div>\n                    <div class="toolbar-group calendar-header">\n                        <button type="button" data-action="change-month" data-delta="-1">Prev</button>\n                        <strong id="calendarMonth"></strong>\n                        <button type="button" data-action="change-month" data-delta="1">Next</button>\n                        <button type="button" data-action="availability-today">Hoy</button>\n                        <button type="button" data-action="availability-prev-with-slots">Anterior con slots</button>\n                        <button type="button" data-action="availability-next-with-slots">Siguiente con slots</button>\n                    </div>\n                </header>\n\n                <div class="toolbar-row slim">\n                    <p id="availabilitySelectionSummary">Selecciona una fecha</p>\n                    <p id="availabilityDraftStatus">Sin cambios pendientes</p>\n                    <p id="availabilitySyncStatus">Sincronizado</p>\n                </div>\n\n                <div id="availabilityCalendar" class="availability-calendar-grid"></div>\n\n                <div id="availabilityDetailGrid" class="availability-detail-grid">\n                    <article class="sony-panel soft">\n                        <h4 id="selectedDate">-</h4>\n                        <div id="timeSlotsList" class="time-slots-list"></div>\n                    </article>\n\n                    <article class="sony-panel soft">\n                        <div id="availabilityQuickSlotPresets" class="slot-presets">\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="09:00">09:00</button>\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="09:30">09:30</button>\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="10:00">10:00</button>\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="16:00">16:00</button>\n                            <button type="button" class="slot-preset-btn" data-action="prefill-time-slot" data-time="16:30">16:30</button>\n                        </div>\n                        <div id="addSlotForm" class="add-slot-form">\n                            <input type="time" id="newSlotTime" />\n                            <button type="button" data-action="add-time-slot">Agregar</button>\n                        </div>\n                        <div id="availabilityDayActions" class="toolbar-group wrap">\n                            <button type="button" data-action="copy-availability-day">Copiar dia</button>\n                            <button type="button" data-action="paste-availability-day">Pegar dia</button>\n                            <button type="button" data-action="duplicate-availability-day-next">Duplicar +1</button>\n                            <button type="button" data-action="duplicate-availability-next-week">Duplicar +7</button>\n                            <button type="button" data-action="clear-availability-day">Limpiar dia</button>\n                            <button type="button" data-action="clear-availability-week">Limpiar semana</button>\n                        </div>\n                        <p id="availabilityDayActionsStatus">Sin acciones pendientes</p>\n                        <div class="toolbar-group">\n                            <button type="button" id="availabilitySaveDraftBtn" data-action="save-availability-draft" disabled>Guardar</button>\n                            <button type="button" id="availabilityDiscardDraftBtn" data-action="discard-availability-draft" disabled>Descartar</button>\n                        </div>\n                    </article>\n                </div>\n            </div>\n        </section>\n    \n        \n        <section id="queue" class="admin-section" tabindex="-1">\n            <div class="sony-panel">\n                \n        <header class="section-header">\n            <div>\n                <h3>Turnero Sala</h3>\n                <p>\n                    Apps operativas, cola en vivo y flujo simple para recepción,\n                    kiosco y TV.\n                </p>\n            </div>\n            <div class="queue-admin-header-actions">\n                <button type="button" data-action="queue-call-next" data-queue-consultorio="1">Llamar C1</button>\n                <button type="button" data-action="queue-call-next" data-queue-consultorio="2">Llamar C2</button>\n                <button type="button" data-action="queue-refresh-state">Refrescar</button>\n            </div>\n        </header>\n    \n                \n        <div id="queueAppsHub" class="queue-apps-hub sony-panel soft">\n            <div class="queue-apps-hub__header">\n                <div>\n                    <h4>Apps operativas</h4>\n                    <p>\n                        Instala Operador, Kiosco y Sala TV desde el mismo centro de\n                        control para separar cada equipo por uso.\n                    </p>\n                </div>\n                <span id="queueAppsPlatformChip" class="queue-apps-platform-chip">\n                    Plataforma detectada\n                </span>\n            </div>\n            <div id="queueAppDownloadsCards" class="queue-apps-grid"></div>\n        </div>\n    \n                \n        <div class="sony-grid sony-grid-kpi slim">\n            <article class="sony-kpi"><h4>Espera</h4><strong id="queueWaitingCountAdmin">0</strong></article>\n            <article class="sony-kpi"><h4>Llamados</h4><strong id="queueCalledCountAdmin">0</strong></article>\n            <article class="sony-kpi"><h4>C1</h4><strong id="queueC1Now">Sin llamado</strong></article>\n            <article class="sony-kpi"><h4>C2</h4><strong id="queueC2Now">Sin llamado</strong></article>\n            <article class="sony-kpi"><h4>Sync</h4><strong id="queueSyncStatus" data-state="live">vivo</strong></article>\n        </div>\n    \n                \n        <div id="queueStationControl" class="toolbar-row">\n            <span id="queueStationBadge">Estacion: libre</span>\n            <span id="queueStationModeBadge">Modo: free</span>\n            <span id="queuePracticeModeBadge" hidden>Practice ON</span>\n            <button type="button" data-action="queue-lock-station" data-queue-consultorio="1">Lock C1</button>\n            <button type="button" data-action="queue-lock-station" data-queue-consultorio="2">Lock C2</button>\n            <button type="button" data-action="queue-set-station-mode" data-queue-mode="free">Modo libre</button>\n            <button type="button" data-action="queue-toggle-one-tap" aria-pressed="false">1 tecla</button>\n            <button type="button" data-action="queue-toggle-shortcuts">Atajos</button>\n            <button type="button" data-action="queue-capture-call-key">Calibrar tecla</button>\n            <button type="button" data-action="queue-clear-call-key" hidden>Quitar tecla</button>\n            <button type="button" data-action="queue-start-practice">Iniciar practica</button>\n            <button type="button" data-action="queue-stop-practice">Salir practica</button>\n            <button type="button" id="queueReleaseC1" data-action="queue-release-station" data-queue-consultorio="1" hidden>Release C1</button>\n            <button type="button" id="queueReleaseC2" data-action="queue-release-station" data-queue-consultorio="2" hidden>Release C2</button>\n        </div>\n    \n                \n        <div id="queueShortcutPanel" hidden>\n            <p>Numpad Enter llama siguiente.</p>\n            <p>Numpad Decimal prepara completar.</p>\n            <p>Numpad Subtract prepara no_show.</p>\n            <p>Numpad Add re-llama el ticket activo.</p>\n        </div>\n    \n                \n        <div id="queueTriageToolbar" class="toolbar-row">\n            <button type="button" data-queue-filter="all">Todo</button>\n            <button type="button" data-queue-filter="called">Llamados</button>\n            <button type="button" data-queue-filter="sla_risk">Riesgo SLA</button>\n            <input type="search" id="queueSearchInput" placeholder="Buscar ticket" />\n            <button type="button" data-action="queue-clear-search">Limpiar</button>\n            <button type="button" id="queueSelectVisibleBtn" data-action="queue-select-visible">Seleccionar visibles</button>\n            <button type="button" id="queueClearSelectionBtn" data-action="queue-clear-selection">Limpiar seleccion</button>\n            <button type="button" data-action="queue-bulk-action" data-queue-action="completar">Bulk completar</button>\n            <button type="button" data-action="queue-bulk-action" data-queue-action="no_show">Bulk no_show</button>\n            <button type="button" data-action="queue-bulk-reprint">Bulk reprint</button>\n        </div>\n    \n                \n        <div class="toolbar-row slim">\n            <p id="queueTriageSummary">Sin riesgo</p>\n            <span id="queueSelectionChip" class="is-hidden">Seleccionados: <strong id="queueSelectedCount">0</strong></span>\n        </div>\n    \n                \n        <ul id="queueNextAdminList" class="sony-list"></ul>\n\n        <div class="table-scroll">\n            <table class="sony-table queue-admin-table">\n                <thead>\n                    <tr>\n                        <th>Sel</th>\n                        <th>Ticket</th>\n                        <th>Tipo</th>\n                        <th>Estado</th>\n                        <th>Consultorio</th>\n                        <th>Espera</th>\n                        <th>Acciones</th>\n                    </tr>\n                </thead>\n                <tbody id="queueTableBody"></tbody>\n            </table>\n        </div>\n\n        <div id="queueActivityPanel" class="sony-panel soft">\n            <h4>Actividad</h4>\n            <ul id="queueActivityList" class="sony-list"></ul>\n        </div>\n    \n            </div>\n\n            \n        <dialog id="queueSensitiveConfirmDialog" class="queue-sensitive-confirm-dialog">\n            <form method="dialog">\n                <p id="queueSensitiveConfirmMessage">Confirmar accion sensible</p>\n                <div class="toolbar-group">\n                    <button type="button" data-action="queue-sensitive-cancel">Cancelar</button>\n                    <button type="button" data-action="queue-sensitive-confirm">Confirmar</button>\n                </div>\n            </form>\n        </dialog>\n    \n        </section>\n    \n    \n        </main>\n    \n            \n        <div id="adminCommandPalette" class="admin-command-palette is-hidden" aria-hidden="true">\n            <button type="button" class="admin-command-palette__backdrop" data-action="close-command-palette" aria-label="Cerrar paleta"></button>\n            <div class="admin-command-dialog" role="dialog" aria-modal="true" aria-labelledby="adminCommandPaletteTitle">\n                <div class="admin-command-dialog__head">\n                    <div>\n                        <p class="sony-kicker">Command Palette</p>\n                        <h3 id="adminCommandPaletteTitle">Accion rapida</h3>\n                    </div>\n                    <button type="button" class="admin-command-dialog__close" data-action="close-command-palette">Cerrar</button>\n                </div>\n                <div class="admin-command-box">\n                    <input id="adminQuickCommand" type="text" placeholder="Ej. callbacks urgentes, citas transferencias, queue riesgo SLA" />\n                    <button id="adminRunQuickCommandBtn" data-action="run-admin-command">Ejecutar</button>\n                </div>\n                <div class="admin-command-dialog__hints">\n                    <span>Ctrl+K abre esta paleta</span>\n                    <span>/ enfoca la busqueda de la seccion activa</span>\n                </div>\n            </div>\n        </div>\n    \n        </div>\n    `;
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
 }
 const L = {
         dashboard: {
@@ -1255,7 +1260,7 @@ async function gt(t, e) {
 const ft = 'admin-callbacks-sort',
     ht = 'admin-callbacks-filter',
     yt = new Set(['all', 'pending', 'contacted', 'today', 'sla_urgent']),
-    vt = new Set(['recent_desc', 'waiting_desc']);
+    vt = new Set(['priority_desc', 'recent_desc', 'waiting_desc']);
 function kt(t) {
     return String(t || '')
         .toLowerCase()
@@ -1267,20 +1272,15 @@ function wt(t) {
 }
 function St(t) {
     const e = kt(t);
-    return vt.has(e) ? e : 'recent_desc';
+    return vt.has(e) ? e : 'priority_desc';
 }
 function qt(t) {
     const e = kt(t);
-    return 'contacted' === e ||
-        'contactado' === e ||
-        'completed' === e ||
-        'done' === e ||
-        'resolved' === e ||
-        'called' === e ||
-        'atendido' === e
+    return e.includes('contact') || 'resolved' === e || 'atendido' === e
         ? 'contacted'
         : 'pending';
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function Ct(t) {
     const e = new Date(t?.fecha || t?.createdAt || '');
     return Number.isNaN(e.getTime()) ? 0 : e.getTime();
@@ -1290,12 +1290,77 @@ function At(t) {
     return e ? Math.max(0, Math.round((Date.now() - e) / 6e4)) : 0;
 }
 function _t(t) {
+========
+function qt(t) {
+    return t?.leadOps && 'object' == typeof t.leadOps ? t.leadOps : {};
+}
+function At(t) {
+    const e = new Date(t?.fecha || t?.createdAt || '');
+    return Number.isNaN(e.getTime()) ? 0 : e.getTime();
+}
+function _t(t) {
+    const e = At(t);
+    return e ? Math.max(0, Math.round((Date.now() - e) / 6e4)) : 0;
+}
+function $t(t) {
+    return t < 60
+        ? `${t} min`
+        : t < 1440
+          ? `${Math.round(t / 60)} h`
+          : `${Math.round(t / 1440)} d`;
+}
+function Tt(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     return (
         String(t?.telefono || t?.phone || 'Sin telefono').trim() ||
         'Sin telefono'
     );
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function $t(t) {
+========
+function Mt(t) {
+    const e = kt(qt(t).priorityBand);
+    return 'hot' === e || 'warm' === e ? e : 'cold';
+}
+function Lt(t) {
+    const e = Mt(t);
+    return 'hot' === e ? 3 : 'warm' === e ? 2 : 1;
+}
+function Et(t) {
+    const e = Array.isArray(qt(t).serviceHints) ? qt(t).serviceHints : [];
+    return String(e[0] || '').trim() || 'Sin sugerencia';
+}
+function Nt(t) {
+    return (
+        String(qt(t).nextAction || '').trim() || 'Mantener visible en la cola'
+    );
+}
+function Dt(t, e = '') {
+    const n = kt(qt(t).aiStatus);
+    return 'requested' === n
+        ? 'online' === e
+            ? 'IA pendiente'
+            : 'IA no disponible'
+        : 'completed' === n
+          ? 'Borrador listo'
+          : 'accepted' === n
+            ? 'Borrador usado'
+            : 'failed' === n
+              ? 'IA fallida'
+              : 'disabled' === e
+                ? 'IA apagada'
+                : 'Sin IA';
+}
+function Bt(t) {
+    return String(qt(t).aiDraft || '').trim();
+}
+function xt(t) {
+    const e = Number(qt(t).heuristicScore || 0);
+    return Number.isFinite(e) ? e : 0;
+}
+function Pt(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const e = new Date(t || '');
     if (Number.isNaN(e.getTime())) return !1;
     const n = new Date();
@@ -1305,6 +1370,7 @@ function $t(t) {
         e.getDate() === n.getDate()
     );
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function Tt(t) {
     return t >= 120
         ? { label: 'Critico SLA', tone: 'danger', note: 'Escala inmediata' }
@@ -1324,29 +1390,67 @@ function Mt(t) {
     return t < 60 ? `${t} min` : `${Math.round(t / 60)} h`;
 }
 function Lt(t) {
+========
+function It(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     try {
         (localStorage.setItem(ht, JSON.stringify(wt(t.filter))),
             localStorage.setItem(ft, JSON.stringify(St(t.sort))));
     } catch (t) {}
 }
-function Et() {
+function Ft() {
     const e = b(),
         n = Array.isArray(e?.data?.callbacks) ? e.data.callbacks : [],
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
         a = e.callbacks,
         o = (function (t, e) {
             const n = [...t];
             return 'waiting_desc' === St(e)
                 ? (n.sort((t, e) => Ct(t) - Ct(e)), n)
                 : (n.sort((t, e) => Ct(e) - Ct(t)), n);
+========
+        a =
+            e?.data?.leadOpsMeta && 'object' == typeof e.data.leadOpsMeta
+                ? e.data.leadOpsMeta
+                : null,
+        o = e.callbacks,
+        s = (function (t, e) {
+            const n = St(e),
+                a = [...t];
+            return 'waiting_desc' === n
+                ? (a.sort((t, e) => At(t) - At(e)), a)
+                : 'recent_desc' === n
+                  ? (a.sort((t, e) => At(e) - At(t)), a)
+                  : (a.sort((t, e) => {
+                        const n = Lt(e) - Lt(t);
+                        if (0 !== n) return n;
+                        const a = xt(e) - xt(t);
+                        return 0 !== a ? a : At(t) - At(e);
+                    }),
+                    a);
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         })(
-            (function (t, e) {
-                const n = kt(e);
-                return n
-                    ? t.filter((t) =>
-                          [t.telefono, t.phone, t.preferencia, t.status].some(
-                              (t) => kt(t).includes(n)
-                          )
-                      )
+            (function (t, e, n = '') {
+                const a = kt(e);
+                return a
+                    ? t.filter((t) => {
+                          const e = qt(t);
+                          return [
+                              t.telefono,
+                              t.phone,
+                              t.preferencia,
+                              t.status,
+                              Et(t),
+                              Nt(t),
+                              Dt(t, n),
+                              ...(Array.isArray(e.reasonCodes)
+                                  ? e.reasonCodes
+                                  : []),
+                              ...(Array.isArray(e.serviceHints)
+                                  ? e.serviceHints
+                                  : []),
+                          ].some((t) => kt(t).includes(a));
+                      })
                     : t;
             })(
                 (function (t, e) {
@@ -1354,18 +1458,28 @@ function Et() {
                     return 'pending' === n || 'contacted' === n
                         ? t.filter((t) => qt(t.status) === n)
                         : 'today' === n
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                           ? t.filter((t) => $t(t.fecha || t.createdAt))
                           : 'sla_urgent' === n
                             ? t.filter(
                                   (t) =>
                                       'pending' === qt(t.status) && At(t) >= 120
+========
+                          ? t.filter((t) => Pt(t.fecha || t.createdAt))
+                          : 'sla_urgent' === n
+                            ? t.filter(
+                                  (t) =>
+                                      'pending' === Ct(t.status) && _t(t) >= 120
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                               )
                             : t;
-                })(n, a.filter),
-                a.search
+                })(n, o.filter),
+                o.search,
+                String(a?.worker?.mode || '')
             ),
-            a.sort
+            o.sort
         ),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
         s = new Set((a.selected || []).map((t) => Number(t || 0))),
         l = (function (t) {
             const e = t.filter((t) => 'pending' === qt(t.status)),
@@ -1376,30 +1490,93 @@ function Et() {
                 urgentCount: n.length,
                 todayCount: t.filter((t) => $t(t.fecha || t.createdAt)).length,
                 next: a,
+========
+        l = new Set((o.selected || []).map((t) => Number(t || 0))),
+        u = (function (t, e = null) {
+            const n = t.filter((t) => 'pending' === Ct(t.status)),
+                a = n.filter((t) => _t(t) >= 120),
+                i = n.filter((t) => 3 === Lt(t)),
+                o = n.slice().sort((t, e) => {
+                    const n = Lt(e) - Lt(t);
+                    return 0 !== n ? n : At(t) - At(e);
+                })[0],
+                s = kt(e?.worker?.mode || '');
+            return {
+                pendingCount: n.length,
+                urgentCount: a.length,
+                hotCount: i.length,
+                todayCount: t.filter((t) => Pt(t.fecha || t.createdAt)).length,
+                next: o,
+                workerMode: s,
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 queueHealth:
-                    n.length > 0
-                        ? 'Cola: prioridad alta'
-                        : e.length > 0
-                          ? 'Cola: atencion requerida'
-                          : 'Cola: estable',
+                    'offline' === s || 'degraded' === s
+                        ? 'Cola estable, IA degradada'
+                        : i.length > 0
+                          ? 'Cola: prioridad comercial alta'
+                          : a.length > 0
+                            ? 'Cola: atencion requerida'
+                            : n.length > 0
+                              ? 'Cola: operativa'
+                              : 'Cola: estable',
                 queueState:
-                    n.length > 0
+                    i.length > 0
                         ? 'danger'
-                        : e.length > 0
+                        : a.length > 0
                           ? 'warning'
                           : 'success',
             };
-        })(n);
+        })(n, a);
     (c(
         '#callbacksGrid',
-        (function (e, n) {
-            return e.length
-                ? e
-                      .map((e, a) =>
-                          (function (
+        s.length
+            ? s
+                  .map((e, n) =>
+                      (function (
+                          e,
+                          {
+                              selected: n = !1,
+                              position: a = null,
+                              workerMode: o = '',
+                          } = {}
+                      ) {
+                          const s = String(e.status || '')
+                                  .toLowerCase()
+                                  .includes('contact')
+                                  ? 'contacted'
+                                  : 'pending',
+                              r = Number(e.id || 0),
+                              c = Tt(e),
+                              l = _t(e),
+                              u = Mt(e),
+                              d = Bt(e);
+                          return `\n        <article class="callback-card ${t(u)} ${'pending' === s ? 'pendiente' : 'contactado'}${n ? ' is-selected' : ''}" data-callback-id="${r}" data-callback-status="${'pending' === s ? 'pendiente' : 'contactado'}">\n            <header>\n                <div class="callback-card-heading">\n                    <div class="callback-card-badges">\n                        <span class="callback-status-pill" data-tone="${t(u)}">${t(
+                              (function (t) {
+                                  const e = Mt(t);
+                                  return 'hot' === e
+                                      ? 'Hot'
+                                      : 'warm' === e
+                                        ? 'Warm'
+                                        : 'Cold';
+                              })(e)
+                          )}</span>\n                        <span class="callback-status-pill subtle">${t(Dt(e, o))}</span>\n                    </div>\n                    <h4>${t(c)}</h4>\n                    <p class="callback-card-subtitle">${t(1 === a ? 'Siguiente lead sugerido' : 'Lead interno')}${xt(e) ? ` · Score ${t(String(xt(e)))}` : ''}</p>\n                </div>\n                <span class="callback-card-wait" data-tone="${t('pending' === s ? u : 'success')}">${t($t(l))}</span>\n            </header>\n            <div class="callback-card-grid">\n                <p><span>Servicio</span><strong>${t(Et(e))}</strong></p>\n                <p><span>Fecha</span><strong>${t(i(e.fecha || e.createdAt || ''))}</strong></p>\n                <p><span>Siguiente accion</span><strong>${t(Nt(e))}</strong></p>\n                <p><span>Outcome</span><strong>${t(
+                              (function (t) {
+                                  const e = kt(qt(t).outcome);
+                                  return 'cita_cerrada' === e
+                                      ? 'Cita cerrada'
+                                      : 'sin_respuesta' === e
+                                        ? 'Sin respuesta'
+                                        : 'descartado' === e
+                                          ? 'Descartado'
+                                          : 'contactado' === e
+                                            ? 'Contactado'
+                                            : 'Pendiente';
+                              })(e)
+                          )}</strong></p>\n            </div>\n            <p class="callback-card-note">${t(e.preferencia || 'Sin preferencia registrada')}</p>\n            ${d ? `<div class="callback-card-draft"><span>Borrador IA</span><p>${t(d)}</p></div>` : ''}\n            ${(function (
                               e,
-                              { selected: n = !1, position: a = null } = {}
+                              n
                           ) {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                               const o = qt(e.status),
                                   s =
                                       'pending' === o
@@ -1429,6 +1606,20 @@ function Et() {
                       .join('')
                 : '<p class="callbacks-grid-empty" data-admin-empty-state="callbacks">No hay callbacks para el filtro actual.</p>';
         })(o, s)
+========
+                              const a = Number(e.id || 0),
+                                  i = Bt(e);
+                              return `\n        <div class="callback-actions">\n            <button type="button" data-action="mark-contacted" data-callback-id="${a}" data-callback-date="${t(e.fecha || '')}" ${'pending' !== n ? 'disabled' : ''}>${'pending' === n ? 'Marcar contactado' : 'Contactado'}</button>\n            <button type="button" class="ghost" data-action="lead-ai-request" data-callback-id="${a}" data-objective="whatsapp_draft">Generar borrador IA</button>\n            <button type="button" class="ghost" data-action="callback-outcome" data-callback-id="${a}" data-outcome="cita_cerrada">Cita cerrada</button>\n            <button type="button" class="ghost" data-action="callback-outcome" data-callback-id="${a}" data-outcome="sin_respuesta">Sin respuesta</button>\n            <button type="button" class="ghost" data-action="callback-outcome" data-callback-id="${a}" data-outcome="descartado">Descartar</button>\n            ${i ? `<button type="button" class="ghost" data-action="callback-copy-ai" data-callback-id="${a}">Copiar borrador</button>` : ''}\n        </div>\n    `;
+                          })(e, s)}\n        </article>\n    `;
+                      })(e, {
+                          selected: l.has(Number(e.id || 0)),
+                          position: n + 1,
+                          workerMode: String(a?.worker?.mode || ''),
+                      })
+                  )
+                  .join('')
+            : '<p class="callbacks-grid-empty" data-admin-empty-state="callbacks">No hay callbacks para el filtro actual.</p>'
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     ),
         (function (t, e, n) {
             (r('#callbacksToolbarMeta', `Mostrando ${e} de ${n}`),
@@ -1448,9 +1639,11 @@ function Et() {
                                             : 'Urgentes SLA'
                                 ),
                             kt(t.search) && e.push(`Busqueda: ${t.search}`),
-                            'waiting_desc' === St(t.sort)
-                                ? e.push('Orden: Mayor espera (SLA)')
-                                : e.push('Orden: Mas recientes'),
+                            'priority_desc' === St(t.sort)
+                                ? e.push('Orden: Prioridad comercial')
+                                : 'waiting_desc' === St(t.sort)
+                                  ? e.push('Orden: Mayor espera (SLA)')
+                                  : e.push('Orden: Mas recientes'),
                             e
                         );
                     })(t).join(' | ')
@@ -1474,12 +1667,12 @@ function Et() {
                             t.classList.toggle('is-active', n);
                         });
                 })(t.filter),
-                Lt(t));
-        })(a, o.length, n.length),
-        r('#callbacksOpsPendingCount', l.pendingCount),
-        r('#callbacksOpsUrgentCount', l.urgentCount),
-        r('#callbacksOpsTodayCount', l.todayCount),
-        r('#callbacksOpsQueueHealth', l.queueHealth),
+                It(t));
+        })(o, s.length, n.length),
+        r('#callbacksOpsPendingCount', u.pendingCount),
+        r('#callbacksOpsUrgentCount', u.hotCount),
+        r('#callbacksOpsTodayCount', u.todayCount),
+        r('#callbacksOpsQueueHealth', u.queueHealth),
         (function (t, e) {
             const n = document.getElementById('callbacksBulkSelectVisibleBtn');
             n instanceof HTMLButtonElement && (n.disabled = 0 === t);
@@ -1487,27 +1680,19 @@ function Et() {
             a instanceof HTMLButtonElement && (a.disabled = 0 === e);
             const i = document.getElementById('callbacksBulkMarkBtn');
             i instanceof HTMLButtonElement && (i.disabled = 0 === e);
-        })(o.length, s.size),
+        })(s.length, l.size),
         (function (t, e, n, a) {
-            (r(
+            r(
                 '#callbacksDeckSummary',
                 n > 0
-                    ? `${t.pendingCount} pendiente(s), ${t.urgentCount} fuera de SLA y ${e} visibles.`
+                    ? `${t.pendingCount} pendiente(s), ${t.hotCount} hot y ${e} visibles.`
                     : 'Sin callbacks pendientes.'
-            ),
-                r(
-                    '#callbacksDeckHint',
-                    t.urgentCount > 0
-                        ? 'Escala primero los casos criticos.'
-                        : t.pendingCount > 0
-                          ? 'La cola se puede drenar en esta misma vista.'
-                          : 'Sin bloqueos'
-                ));
+            );
             const i = document.getElementById('callbacksQueueChip');
             i &&
                 ((i.textContent =
                     'danger' === t.queueState
-                        ? 'SLA comprometido'
+                        ? 'Prioridad alta'
                         : 'warning' === t.queueState
                           ? 'Cola activa'
                           : 'Cola estable'),
@@ -1522,24 +1707,63 @@ function Et() {
                         ? `Prioriza ${_t(s)} antes de seguir con la cola.`
                         : 'La siguiente llamada prioritaria aparecera aqui.'
                 ),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 r('#callbacksNextWait', s ? Mt(At(s)) : '0 min'),
                 r('#callbacksNextPreference', (s && s.preferencia) || '-'),
                 r('#callbacksNextState', s ? Tt(At(s)).label : 'Pendiente'));
+========
+                r('#callbacksNextWait', s ? $t(_t(s)) : '0 min'),
+                r('#callbacksNextPreference', s ? Et(s) : '-'),
+                r('#callbacksNextState', s ? Nt(s) : 'Pendiente'),
+                r(
+                    '#callbacksDeckHint',
+                    s ? Dt(s, t.workerMode) : 'Sin bloqueos'
+                ));
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
             const c = document.getElementById('callbacksSelectionChip');
             (c && c.classList.toggle('is-hidden', 0 === a),
                 r('#callbacksSelectedCount', a));
-        })(l, o.length, n.length, s.size));
+        })(u, s.length, n.length, l.size));
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function Dt(t, { persist: e = !0 } = {}) {
+========
+function Ht(t, { persist: e = !0 } = {}) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     (g((e) => ({ ...e, callbacks: { ...e.callbacks, ...t } })),
-        e && Lt(b().callbacks),
-        Et());
+        e && It(b().callbacks),
+        Ft());
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function Nt(t) {
     Dt({ filter: wt(t), selected: [] });
+========
+function Ot(t) {
+    Ht({ filter: wt(t), selected: [] });
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
 }
-async function Bt(t, e = '') {
+function Rt(t) {
+    const e = Number(t?.id || 0);
+    (g((n) => ({
+        ...n,
+        data: {
+            ...n.data,
+            callbacks: (n.data.callbacks || []).map((n) =>
+                Number(n.id || 0) === e ? { ...n, ...t } : n
+            ),
+        },
+        callbacks: {
+            ...n.callbacks,
+            selected: (n.callbacks.selected || []).filter(
+                (t) => Number(t || 0) !== e
+            ),
+        },
+    })),
+        Ft());
+}
+async function jt(t, e) {
     const n = Number(t || 0);
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
     n <= 0 ||
         (await q('callbacks', {
             method: 'PATCH',
@@ -1570,97 +1794,124 @@ async function Bt(t, e = '') {
 const Pt = 'admin-availability-selected-date',
     xt = 'admin-availability-month-anchor';
 function It(t) {
+========
+    if (n <= 0) return null;
+    const a = await C('callbacks', { method: 'PATCH', body: { id: n, ...e } });
+    return a?.data || null;
+}
+async function zt(t, e = '') {
+    const n = await jt(t, {
+        status: 'contacted',
+        fecha: e,
+        leadOps: { outcome: 'contactado' },
+    });
+    return n
+        ? (Rt(n), n)
+        : ((function (t) {
+              Rt({ id: t, status: 'contacted' });
+          })(t),
+          null);
+}
+const Vt = 'admin-availability-selected-date',
+    Ut = 'admin-availability-month-anchor';
+function Kt(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const e = String(t || '')
         .trim()
         .match(/^(\d{2}):(\d{2})$/);
     return e ? `${e[1]}:${e[2]}` : '';
 }
-function Ft(t) {
-    return [...new Set(t.map(It).filter(Boolean))].sort();
+function Qt(t) {
+    return [...new Set(t.map(Kt).filter(Boolean))].sort();
 }
-function Ht(t) {
+function Wt(t) {
     const e = String(t || '').trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(e)) return '';
     const n = new Date(`${e}T12:00:00`);
     return Number.isNaN(n.getTime()) ? '' : u(n) === e ? e : '';
 }
-function Ot(t) {
-    const e = Ht(t);
+function Gt(t) {
+    const e = Wt(t);
     if (!e) return null;
     const n = new Date(`${e}T12:00:00`);
     return Number.isNaN(n.getTime()) ? null : n;
 }
-function Rt(t) {
+function Jt(t) {
     const e = {};
     return (
         Object.keys(t || {})
             .sort()
             .forEach((n) => {
-                const a = Ht(n);
+                const a = Wt(n);
                 if (!a) return;
-                const i = Ft(Array.isArray(t[n]) ? t[n] : []);
+                const i = Qt(Array.isArray(t[n]) ? t[n] : []);
                 i.length && (e[a] = i);
             }),
         e
     );
 }
-function jt(t) {
-    return Rt(t || {});
+function Yt(t) {
+    return Jt(t || {});
 }
-function zt(t) {
-    return JSON.stringify(Rt(t || {}));
+function Zt(t) {
+    return JSON.stringify(Jt(t || {}));
 }
-function Vt(t, e = '') {
+function Xt(t, e = '') {
     let n = null;
     if (t instanceof Date && !Number.isNaN(t.getTime())) n = new Date(t);
     else {
-        const e = Ht(t);
+        const e = Wt(t);
         e && (n = new Date(`${e}T12:00:00`));
     }
     if (!n) {
-        const t = Ot(e);
+        const t = Gt(e);
         n = t ? new Date(t) : new Date();
     }
     return (n.setDate(1), n.setHours(12, 0, 0, 0), n);
 }
-function Ut(t, e) {
-    const n = Ht(t);
+function te(t, e) {
+    const n = Wt(t);
     if (n) return n;
     const a = Object.keys(e || {})[0];
     if (a) {
-        const t = Ht(a);
+        const t = Wt(a);
         if (t) return t;
     }
     return u(new Date());
 }
-function Kt() {
+function ee() {
     const t = b(),
-        e = Ht(t.availability.selectedDate),
-        n = Vt(t.availability.monthAnchor, e);
+        e = Wt(t.availability.selectedDate),
+        n = Xt(t.availability.monthAnchor, e);
     try {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
         (e ? localStorage.setItem(Pt, e) : localStorage.removeItem(Pt),
             localStorage.setItem(xt, u(n)));
+========
+        (e ? localStorage.setItem(Vt, e) : localStorage.removeItem(Vt),
+            localStorage.setItem(Ut, u(n)));
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     } catch (t) {}
 }
-function Qt(t) {
-    const e = jt(b().data.availability || {});
-    return zt(t) !== zt(e);
+function ne(t) {
+    const e = Yt(b().data.availability || {});
+    return Zt(t) !== Zt(e);
 }
-function Wt() {
-    return jt(b().availability.draft || {});
+function ae() {
+    return Yt(b().availability.draft || {});
 }
-function Gt() {
+function ie() {
     const t = b().data.availabilityMeta || {};
     return 'google' === String(t.source || '').toLowerCase();
 }
-function Jt() {
+function oe() {
     const t = b(),
-        e = Ht(t.availability.selectedDate);
+        e = Wt(t.availability.selectedDate);
     if (e) return e;
-    const n = jt(t.availability.draft || {});
+    const n = Yt(t.availability.draft || {});
     return Object.keys(n)[0] || u(new Date());
 }
-function Yt(t, e) {
+function se(t, e) {
     return t.length
         ? 1 === t.length
             ? '1 slot publicado. ' +
@@ -1672,24 +1923,24 @@ function Yt(t, e) {
           ? 'No hay slots publicados en este dia.'
           : 'Agrega slots o copia una jornada existente.';
 }
-function Zt(t = 1) {
-    const e = Wt(),
+function re(t = 1) {
+    const e = ae(),
         n = Object.keys(e).filter((t) => e[t]?.length > 0);
     if (!n.length) return '';
-    const a = Ht(b().availability.selectedDate) || u(new Date());
+    const a = Wt(b().availability.selectedDate) || u(new Date());
     return (
         (t >= 0 ? n.sort() : n.sort().reverse()).find((e) =>
             t >= 0 ? e >= a : e <= a
         ) || ''
     );
 }
-function Xt() {
+function ce() {
     ((function () {
         const t = b(),
-            e = Vt(t.availability.monthAnchor, t.availability.selectedDate),
-            n = Jt(),
+            e = Xt(t.availability.monthAnchor, t.availability.selectedDate),
+            n = oe(),
             a = e.getMonth(),
-            i = jt(t.availability.draft),
+            i = Yt(t.availability.draft),
             o = u(new Date());
         var s;
         r(
@@ -1726,13 +1977,13 @@ function Xt() {
         (function () {
             const { selectedDate: e, slots: n } = (function () {
                     const t = b(),
-                        e = Jt();
+                        e = oe();
                     return {
                         selectedDate: e,
-                        slots: Ft(jt(t.availability.draft)[e] || []),
+                        slots: Qt(Yt(t.availability.draft)[e] || []),
                     };
                 })(),
-                a = Gt();
+                a = ie();
             (r('#selectedDate', e || '-'),
                 n.length
                     ? c(
@@ -1746,22 +1997,22 @@ function Xt() {
                       )
                     : c(
                           '#timeSlotsList',
-                          `<p class="empty-message" data-admin-empty-state="availability-slots">${t(Yt([], a))}</p>`
+                          `<p class="empty-message" data-admin-empty-state="availability-slots">${t(se([], a))}</p>`
                       ));
         })(),
         (function () {
             const t = b(),
-                n = Jt(),
-                a = jt(t.availability.draft),
-                i = Array.isArray(a[n]) ? Ft(a[n]) : [],
-                o = Gt(),
+                n = oe(),
+                a = Yt(t.availability.draft),
+                i = Array.isArray(a[n]) ? Qt(a[n]) : [],
+                o = ie(),
                 {
                     sourceText: s,
                     modeText: c,
                     timezone: l,
                 } = (function () {
                     const t = b().data.availabilityMeta || {},
-                        e = Gt();
+                        e = ie();
                     return {
                         sourceText: e ? 'Google Calendar' : 'Local',
                         modeText: e ? 'Solo lectura' : 'Editable',
@@ -1785,7 +2036,7 @@ function Xt() {
                 r(
                     '#availabilitySelectionSummary',
                     `Fecha: ${n} | ${(function (t) {
-                        const e = Ot(t);
+                        const e = Gt(t);
                         return e
                             ? new Intl.DateTimeFormat('es-EC', {
                                   weekday: 'short',
@@ -1818,7 +2069,7 @@ function Xt() {
             const u = Array.isArray(t.availability.clipboard)
                 ? t.availability.clipboard.length
                 : 0;
-            let d = Yt(i, o);
+            let d = se(i, o);
             (o
                 ? (d = 'Edicion bloqueada por proveedor Google')
                 : t.availability.lastAction
@@ -1843,69 +2094,69 @@ function Xt() {
                         });
                 })(t, o, u));
         })(),
-        Kt());
+        ee());
 }
-function te(t, { render: e = !1 } = {}) {
+function le(t, { render: e = !1 } = {}) {
     (g((e) => ({ ...e, availability: { ...e.availability, ...t } })),
-        e ? Xt() : Kt());
+        e ? ce() : ee());
 }
-function ee(t, e = {}) {
-    const n = jt(t),
-        a = Ut(e.selectedDate || b().availability.selectedDate, n);
-    te(
+function ue(t, e = {}) {
+    const n = Yt(t),
+        a = te(e.selectedDate || b().availability.selectedDate, n);
+    le(
         {
             draft: n,
             selectedDate: a,
-            monthAnchor: Vt(e.monthAnchor || b().availability.monthAnchor, a),
-            draftDirty: Qt(n),
+            monthAnchor: Xt(e.monthAnchor || b().availability.monthAnchor, a),
+            draftDirty: ne(n),
             ...e,
         },
         { render: !0 }
     );
 }
-function ne(t) {
-    te({ lastAction: String(t || '') }, { render: !0 });
+function de(t) {
+    le({ lastAction: String(t || '') }, { render: !0 });
 }
-function ae(t, e, n = '') {
-    const a = Ht(t) || Jt();
+function pe(t, e, n = '') {
+    const a = Wt(t) || oe();
     if (!a) return;
-    const i = Wt(),
-        o = Ft(Array.isArray(e) ? e : []);
+    const i = ae(),
+        o = Qt(Array.isArray(e) ? e : []);
     (o.length ? (i[a] = o) : delete i[a],
-        ee(i, { selectedDate: a, monthAnchor: a, lastAction: n }));
+        ue(i, { selectedDate: a, monthAnchor: a, lastAction: n }));
 }
-function ie(t, e) {
-    const n = Ht(t);
+function me(t, e) {
+    const n = Wt(t);
     n &&
-        te(
-            { selectedDate: n, monthAnchor: Vt(n, n), lastAction: e || '' },
+        le(
+            { selectedDate: n, monthAnchor: Xt(n, n), lastAction: e || '' },
             { render: !0 }
         );
 }
-function oe() {
-    return Ht(b().availability.selectedDate) || Jt();
+function be() {
+    return Wt(b().availability.selectedDate) || oe();
 }
-function se(t) {
-    return It(t);
+function ge(t) {
+    return Kt(t);
 }
-function re(t) {
-    if (Gt()) return;
+function fe(t) {
+    if (ie()) return;
     const e = b(),
-        n = oe();
+        n = be();
     if (!n) return;
     const a = Array.isArray(e.availability.draft[n])
             ? e.availability.draft[n]
             : [],
         i = (function (t, e) {
-            const n = Ot(t);
+            const n = Gt(t);
             return n ? (n.setDate(n.getDate() + Number(e || 0)), u(n)) : '';
         })(n, t);
-    i && ae(i, a, `Duplicado ${a.length} slots en ${i}`);
+    i && pe(i, a, `Duplicado ${a.length} slots en ${i}`);
 }
-function ce() {
+function he() {
     return Boolean(b().availability.draftDirty);
 }
-function le() {
+function ye() {
     const e = b().queue.activity || [];
     c(
         '#queueActivityList',
@@ -1919,7 +2170,7 @@ function le() {
             : '<li><span>-</span><strong>Sin actividad</strong></li>'
     );
 }
-function ue(t) {
+function ve(t) {
     const e = document.getElementById('queueSensitiveConfirmDialog'),
         n = document.getElementById('queueSensitiveConfirmMessage');
     if (
@@ -1937,7 +2188,7 @@ function ue(t) {
         e instanceof HTMLElement &&
             (e.setAttribute('open', ''), (e.hidden = !1));
 }
-function de() {
+function ke() {
     const t = document.getElementById('queueSensitiveConfirmDialog');
     (t instanceof HTMLDialogElement && t.open && t.close(),
         t instanceof HTMLElement &&
@@ -1947,13 +2198,13 @@ function de() {
             queue: { ...t.queue, pendingSensitiveAction: null },
         })));
 }
-function pe(t) {
+function we(t) {
     return String(t || '')
         .toLowerCase()
         .trim();
 }
-function me(t) {
-    const e = pe(t);
+function Se(t) {
+    const e = we(t);
     return ['waiting', 'wait', 'en_espera', 'espera'].includes(e)
         ? 'waiting'
         : ['called', 'calling', 'llamado'].includes(e)
@@ -1972,8 +2223,8 @@ function me(t) {
                 ? 'cancelled'
                 : e || 'waiting';
 }
-function be(t) {
-    const e = pe(t);
+function Ce(t) {
+    const e = we(t);
     return ['complete', 'completed', 'completar'].includes(e)
         ? 'completar'
         : ['no_show', 'noshow', 'no-show', 'no show'].includes(e)
@@ -1994,26 +2245,26 @@ function be(t) {
                   ? 'liberar'
                   : e;
 }
-function ge(t) {
+function qe(t) {
     return Array.isArray(t) ? t : [];
 }
-function fe(t, e = 0) {
+function Ae(t, e = 0) {
     const n = Number(t);
     return Number.isFinite(n) ? n : e;
 }
-function he(t) {
+function _e(t) {
     const e = new Date(t || '');
     return Number.isNaN(e.getTime()) ? 0 : e.getTime();
 }
-function ye(...t) {
+function $e(...t) {
     for (const e of t) {
         const t = String(e ?? '').trim();
         if (t) return t;
     }
     return '';
 }
-let ve = '';
-function ke(t) {
+let Te = '';
+function Me(t) {
     const e = t.filter((t) => 'waiting' === t.status),
         n = t.filter((t) => 'called' === t.status),
         a = {
@@ -2042,7 +2293,7 @@ function ke(t) {
             })),
     };
 }
-function we(t, e = 0) {
+function Le(t, e = 0) {
     const n = Number(t?.id || t?.ticket_id || e + 1);
     return {
         id: n,
@@ -2054,7 +2305,7 @@ function we(t, e = 0) {
         priorityClass: String(
             t?.priorityClass || t?.priority_class || 'walk_in'
         ),
-        status: me(t?.status || 'waiting'),
+        status: Se(t?.status || 'waiting'),
         assignedConsultorio:
             2 === Number(t?.assignedConsultorio || t?.assigned_consultorio || 0)
                 ? 2
@@ -2071,18 +2322,22 @@ function we(t, e = 0) {
         completedAt: String(t?.completedAt || t?.completed_at || ''),
     };
 }
-function Se(t, e = 0, n = {}) {
+function Ee(t, e = 0, n = {}) {
     const a = t && 'object' == typeof t ? t : {},
-        i = we({ ...a, ...n }, e);
+        i = Le({ ...a, ...n }, e);
     return (
-        ye(a.createdAt, a.created_at) || (i.createdAt = ''),
-        ye(a.priorityClass, a.priority_class) || (i.priorityClass = ''),
-        ye(a.queueType, a.queue_type) || (i.queueType = ''),
-        ye(a.patientInitials, a.patient_initials) || (i.patientInitials = ''),
+        $e(a.createdAt, a.created_at) || (i.createdAt = ''),
+        $e(a.priorityClass, a.priority_class) || (i.priorityClass = ''),
+        $e(a.queueType, a.queue_type) || (i.queueType = ''),
+        $e(a.patientInitials, a.patient_initials) || (i.patientInitials = ''),
         i
     );
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function qe(t, e, n) {
+========
+function Ne(t, e, n) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     return (
         t[String(n)] ||
         t[n] ||
@@ -2095,10 +2350,15 @@ function qe(t, e, n) {
         null
     );
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function Ce(t, e, n) {
     return t ? Se(t, e, { status: 'called', assignedConsultorio: n }) : null;
+========
+function De(t, e, n) {
+    return t ? Ee(t, e, { status: 'called', assignedConsultorio: n }) : null;
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
 }
-function Ae(t, e = []) {
+function Be(t, e = []) {
     const n = t && 'object' == typeof t ? t : {},
         a = (function (t) {
             return t.counts && 'object' == typeof t.counts ? t.counts : {};
@@ -2113,10 +2373,10 @@ function Ae(t, e = []) {
                   : {};
         })(n),
         o = (function (t) {
-            return ge(t.callingNow).concat(ge(t.calling_now));
+            return qe(t.callingNow).concat(qe(t.calling_now));
         })(n),
         s = (function (t) {
-            const e = ge(t).map((t, e) => we(t, e));
+            const e = qe(t).map((t, e) => Le(t, e));
             return {
                 normalizedTickets: e,
                 waitingFromTickets: e.filter((t) => 'waiting' === t.status)
@@ -2132,13 +2392,17 @@ function Ae(t, e = []) {
             };
         })(e),
         { c1: r, c2: c } = (function (t, e) {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
             return { c1: Ce(qe(t, e, 1), 0, 1), c2: Ce(qe(t, e, 2), 1, 2) };
+========
+            return { c1: De(Ne(t, e, 1), 0, 1), c2: De(Ne(t, e, 2), 1, 2) };
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         })(i, o),
         l = (function (t) {
-            return ge(t.nextTickets)
-                .concat(ge(t.next_tickets))
+            return qe(t.nextTickets)
+                .concat(qe(t.next_tickets))
                 .map((t, e) =>
-                    Se(
+                    Ee(
                         {
                             ...t,
                             status: t?.status || 'waiting',
@@ -2154,7 +2418,7 @@ function Ae(t, e = []) {
                 a.calledFromTickets
             );
             return {
-                waitingCount: fe(
+                waitingCount: Ae(
                     t.waitingCount ??
                         t.waiting_count ??
                         e.waiting ??
@@ -2162,18 +2426,18 @@ function Ae(t, e = []) {
                         a.waitingFromTickets,
                     0
                 ),
-                calledCount: fe(
+                calledCount: Ae(
                     t.calledCount ?? t.called_count ?? e.called ?? o,
                     0
                 ),
-                completedCount: fe(
+                completedCount: Ae(
                     e.completed ??
                         t.completedCount ??
                         t.completed_count ??
                         a.completedFromTickets,
                     0
                 ),
-                noShowCount: fe(
+                noShowCount: Ae(
                     e.no_show ??
                         e.noShow ??
                         t.noShowCount ??
@@ -2181,7 +2445,7 @@ function Ae(t, e = []) {
                         a.noShowFromTickets,
                     0
                 ),
-                cancelledCount: fe(
+                cancelledCount: Ae(
                     e.cancelled ??
                         e.canceled ??
                         t.cancelledCount ??
@@ -2208,6 +2472,7 @@ function Ae(t, e = []) {
         nextTickets: l,
     };
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function _e(t, e) {
     return Object.prototype.hasOwnProperty.call(t || {}, e);
 }
@@ -2217,17 +2482,36 @@ function $e(t) {
 function Te(t) {
     const e = we(t, 0);
     return e.id > 0 ? `id:${e.id}` : `code:${pe(e.ticketCode || '')}`;
+========
+function xe(t, e) {
+    return Object.prototype.hasOwnProperty.call(t || {}, e);
 }
-function Me(t, e) {
+function Pe(t) {
+    return t?.counts && 'object' == typeof t.counts ? t.counts : null;
+}
+function Ie(t) {
+    const e = Le(t, 0);
+    return e.id > 0 ? `id:${e.id}` : `code:${we(e.ticketCode || '')}`;
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
+}
+function Fe(t, e) {
     if (!e) return;
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
     const n = we(e, t.size);
     (ye(e?.createdAt, e?.created_at) || (n.createdAt = ''),
         ye(e?.priorityClass, e?.priority_class) || (n.priorityClass = ''),
         ye(e?.queueType, e?.queue_type) || (n.queueType = ''),
         t.set(Te(n), n));
+========
+    const n = Le(e, t.size);
+    ($e(e?.createdAt, e?.created_at) || (n.createdAt = ''),
+        $e(e?.priorityClass, e?.priority_class) || (n.priorityClass = ''),
+        $e(e?.queueType, e?.queue_type) || (n.queueType = ''),
+        t.set(Ie(n), n));
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
 }
-function Le(t) {
-    const e = Ae(t),
+function He(t) {
+    const e = Be(t),
         n = new Map(),
         a =
             e.callingNowByConsultorio?.[1] ||
@@ -2237,40 +2521,44 @@ function Le(t) {
             e.callingNowByConsultorio?.[2] ||
             e.callingNowByConsultorio?.[2] ||
             null;
-    (a && Me(n, { ...a, status: 'called', assignedConsultorio: 1 }),
-        i && Me(n, { ...i, status: 'called', assignedConsultorio: 2 }));
-    for (const t of ge(e.nextTickets))
-        Me(n, { ...t, status: 'waiting', assignedConsultorio: null });
+    (a && Fe(n, { ...a, status: 'called', assignedConsultorio: 1 }),
+        i && Fe(n, { ...i, status: 'called', assignedConsultorio: 2 }));
+    for (const t of qe(e.nextTickets))
+        Fe(n, { ...t, status: 'waiting', assignedConsultorio: null });
     return Array.from(n.values());
 }
-function Ee() {
+function Oe() {
     const t = b(),
         e = Array.isArray(t.data.queueTickets)
-            ? t.data.queueTickets.map((t, e) => we(t, e))
+            ? t.data.queueTickets.map((t, e) => Le(t, e))
             : [];
     return {
         queueTickets: e,
         queueMeta:
             t.data.queueMeta && 'object' == typeof t.data.queueMeta
-                ? Ae(t.data.queueMeta, e)
-                : ke(e),
+                ? Be(t.data.queueMeta, e)
+                : Me(e),
     };
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function De() {
+========
+function Re() {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const t = b(),
-        { queueTickets: e } = Ee();
+        { queueTickets: e } = Oe();
     return (function (t, e) {
-        const n = pe(e);
+        const n = we(e);
         return n
             ? t.filter((t) =>
                   [t.ticketCode, t.patientInitials, t.status, t.queueType].some(
-                      (t) => pe(t).includes(n)
+                      (t) => we(t).includes(n)
                   )
               )
             : t;
     })(
         (function (t, e) {
-            const n = pe(e);
+            const n = we(e);
             return 'waiting' === n
                 ? t.filter((t) => 'waiting' === t.status)
                 : 'called' === n
@@ -2284,61 +2572,79 @@ function De() {
                                 (Math.max(
                                     0,
                                     Math.round(
-                                        (Date.now() - he(t.createdAt)) / 6e4
+                                        (Date.now() - _e(t.createdAt)) / 6e4
                                     )
                                 ) >= 20 ||
-                                    'appt_overdue' === pe(t.priorityClass))
+                                    'appt_overdue' === we(t.priorityClass))
                         )
                       : t;
         })(e, t.queue.filter),
         t.queue.search
     );
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function Ne(t, e = null) {
     const n = Array.isArray(e) ? e : Ee().queueTickets,
+========
+function je(t, e = null) {
+    const n = Array.isArray(e) ? e : Oe().queueTickets,
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         a = new Set(n.map((t) => Number(t.id || 0)).filter((t) => t > 0));
-    return [...new Set(ge(t).map((t) => Number(t || 0)))]
+    return [...new Set(qe(t).map((t) => Number(t || 0)))]
         .filter((t) => t > 0 && a.has(t))
         .sort((t, e) => t - e);
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function Be() {
     return Ne(b().queue.selected || []);
 }
 function Pe() {
+========
+function ze() {
+    return je(b().queue.selected || []);
+}
+function Ve() {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const t = (function () {
-        const t = new Set(Be());
+        const t = new Set(ze());
         return t.size
-            ? Ee().queueTickets.filter((e) => t.has(Number(e.id || 0)))
+            ? Oe().queueTickets.filter((e) => t.has(Number(e.id || 0)))
             : [];
     })();
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
     return t.length ? t : De();
 }
 function xe(t) {
+========
+    return t.length ? t : Re();
+}
+function Ue(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const e = 2 === Number(t || 0) ? 2 : 1;
     return (
-        Ee().queueTickets.find(
+        Oe().queueTickets.find(
             (t) =>
                 'called' === t.status &&
                 Number(t.assignedConsultorio || 0) === e
         ) || null
     );
 }
-function Ie() {
+function Ke() {
     const t = b(),
         e = Number(t.queue.stationConsultorio || 1);
     return (
-        Ee().queueTickets.find(
+        Oe().queueTickets.find(
             (t) =>
                 'called' === t.status &&
                 Number(t.assignedConsultorio || 0) === e
         ) || null
     );
 }
-function Fe(e) {
+function Qe(e) {
     const n = e.assignedConsultorio ? `C${e.assignedConsultorio}` : '-',
-        a = Math.max(0, Math.round((Date.now() - he(e.createdAt)) / 6e4)),
+        a = Math.max(0, Math.round((Date.now() - _e(e.createdAt)) / 6e4)),
         i = Number(e.id || 0),
-        o = new Set(Be()).has(i),
+        o = new Set(ze()).has(i),
         s = 'called' === e.status,
         r = s && e.assignedConsultorio,
         c = s,
@@ -2351,7 +2657,7 @@ function Fe(e) {
             : `\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="reasignar" data-queue-consultorio="1">Reasignar C1</button>\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="reasignar" data-queue-consultorio="2">Reasignar C2</button>\n                    ${c ? `<button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="re-llamar" data-queue-consultorio="${2 === Number(e.assignedConsultorio || 1) ? 2 : 1}">Re-llamar</button>` : ''}\n                    ${r ? `<button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="liberar">Liberar</button>` : ''}\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="completar">Completar</button>\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="no_show">No show</button>\n                    <button type="button" data-action="queue-ticket-action" data-queue-id="${i}" data-queue-action="cancelar">Cancelar</button>\n                    <button type="button" data-action="queue-reprint-ticket" data-queue-id="${i}">Reimprimir</button>\n                `;
     return `\n        <tr data-queue-id="${i}" class="${o ? 'is-selected' : ''}">\n            <td>\n                ${u}\n            </td>\n            <td>${t(e.ticketCode)}</td>\n            <td>${t(e.queueType)}</td>\n            <td>${t(
         (function (t) {
-            switch (me(t)) {
+            switch (Se(t)) {
                 case 'waiting':
                     return 'En espera';
                 case 'called':
@@ -2368,7 +2674,7 @@ function Fe(e) {
         })(e.status)
     )}</td>\n            <td>${n}</td>\n            <td>${a} min</td>\n            <td>\n                <div class="table-actions">\n                    ${d}\n                </div>\n            </td>\n        </tr>\n    `;
 }
-const He = Object.freeze({
+const We = Object.freeze({
         operator: {
             version: '0.1.0',
             updatedAt: '2026-03-10T00:00:00Z',
@@ -2414,7 +2720,7 @@ const He = Object.freeze({
             },
         },
     }),
-    Oe = Object.freeze({
+    Ge = Object.freeze({
         operator: {
             eyebrow: 'Recepción + consultorio',
             title: 'Operador',
@@ -2449,18 +2755,23 @@ const He = Object.freeze({
             ],
         },
     });
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 let Re = null;
 function je() {
     const t = `${navigator.userAgent} ${navigator.platform}`.toLowerCase();
     return t.includes('mac') ? 'mac' : t.includes('win') ? 'win' : 'other';
 }
 function ze(t) {
+========
+function Je(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     try {
         return new URL(String(t || ''), window.location.origin).toString();
     } catch (e) {
         return String(t || '');
     }
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function Ve(t) {
     return `https://api.qrserver.com/v1/create-qr-code/?size=360x360&data=${encodeURIComponent(ze(t))}`;
 }
@@ -2516,6 +2827,17 @@ function We(e, n, a) {
         s = Ke(a),
         r = Qe(n, a),
         c =
+========
+function Ye(e, n, a) {
+    const o = Ge[e],
+        s =
+            'mac' === a
+                ? n.targets.mac
+                : 'win' === a
+                  ? n.targets.win
+                  : n.targets.win || n.targets.mac,
+        r =
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
             'mac' === a
                 ? 'macOS'
                 : 'win' === a
@@ -2528,6 +2850,7 @@ function We(e, n, a) {
                     `\n                <a\n                    href="${t(n.url)}"\n                    class="${e === a ? 'queue-app-card__recommended' : ''}"\n                    download\n                >\n                    ${t(n.label || e)}\n                </a>\n            `
             )
             .join('');
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
     return `\n        <article class="queue-app-card">\n            <div>\n                <p class="queue-app-card__eyebrow">${t(o.eyebrow)}</p>\n                <h5 class="queue-app-card__title">${t(o.title)}</h5>\n                <p class="queue-app-card__description">${t(o.description)}</p>\n            </div>\n            <p class="queue-app-card__meta">\n                v${t(n.version || '0.1.0')} · ${t(i(n.updatedAt || ''))}\n            </p>\n            <span class="queue-app-card__tag">Ideal para ${t(o.recommendedFor)}</span>\n            <div class="queue-app-card__actions">\n                ${r && r.url ? `<a href="${t(r.url)}" class="queue-app-card__cta-primary" download>Descargar para ${t(c)}</a>` : ''}\n            </div>\n            <div class="queue-app-card__targets">${l}</div>\n            <div class="queue-app-card__links">\n                <a href="${t(n.webFallbackUrl || '/')}">Abrir versión web</a>\n                <a href="${t(Ue(e, s, n))}">Centro de instalación</a>\n                <button\n                    type="button"\n                    data-action="queue-copy-install-link"\n                    data-queue-install-url="${t(ze((r && r.url) || ''))}"\n                >\n                    Copiar enlace\n                </button>\n            </div>\n            <ul class="queue-app-card__notes">\n                ${o.notes.map((e) => `<li>${t(e)}</li>`).join('')}\n            </ul>\n        </article>\n    `;
 }
 function Ge(e) {
@@ -2704,6 +3027,91 @@ function Ze(e = () => {}) {
         s = Pe(),
         l = xe(n.queue.stationConsultorio);
     (Ye(),
+========
+    return `\n        <article class="queue-app-card">\n            <div>\n                <p class="queue-app-card__eyebrow">${t(o.eyebrow)}</p>\n                <h5 class="queue-app-card__title">${t(o.title)}</h5>\n                <p class="queue-app-card__description">${t(o.description)}</p>\n            </div>\n            <p class="queue-app-card__meta">\n                v${t(n.version || '0.1.0')} · ${t(i(n.updatedAt || ''))}\n            </p>\n            <span class="queue-app-card__tag">Ideal para ${t(o.recommendedFor)}</span>\n            <div class="queue-app-card__actions">\n                ${s && s.url ? `<a href="${t(s.url)}" class="queue-app-card__cta-primary" download>Descargar para ${t(r)}</a>` : ''}\n            </div>\n            <div class="queue-app-card__targets">${c}</div>\n            <div class="queue-app-card__links">\n                <a href="${t(n.webFallbackUrl || '/')}">Abrir versión web</a>\n                <button\n                    type="button"\n                    data-action="queue-copy-install-link"\n                    data-queue-install-url="${t(Je((s && s.url) || ''))}"\n                >\n                    Copiar enlace\n                </button>\n            </div>\n            <ul class="queue-app-card__notes">\n                ${o.notes.map((e) => `<li>${t(e)}</li>`).join('')}\n            </ul>\n        </article>\n    `;
+}
+function Ze(e) {
+    const n = Ge.sala_tv,
+        a = e.targets.android_tv || {},
+        o = String(a.url || ''),
+        s = `https://api.qrserver.com/v1/create-qr-code/?size=360x360&data=${encodeURIComponent(Je(o))}`;
+    return `\n        <article class="queue-app-card">\n            <div>\n                <p class="queue-app-card__eyebrow">${t(n.eyebrow)}</p>\n                <h5 class="queue-app-card__title">${t(n.title)}</h5>\n                <p class="queue-app-card__description">${t(n.description)}</p>\n            </div>\n            <p class="queue-app-card__meta">\n                v${t(e.version || '0.1.0')} · ${t(i(e.updatedAt || ''))}\n            </p>\n            <span class="queue-app-card__tag">Ideal para ${t(n.recommendedFor)}</span>\n            <div class="queue-app-card__actions">\n                <a\n                    href="${t(s)}"\n                    class="queue-app-card__cta-primary"\n                    target="_blank"\n                    rel="noopener"\n                >\n                    Mostrar QR de instalación\n                </a>\n                <a href="${t(o)}" download>Descargar APK</a>\n            </div>\n            <div class="queue-app-card__links">\n                <a href="${t(e.webFallbackUrl || '/sala-turnos.html')}">\n                    Abrir fallback web\n                </a>\n                <button\n                    type="button"\n                    data-action="queue-copy-install-link"\n                    data-queue-install-url="${t(Je(o))}"\n                >\n                    Copiar enlace\n                </button>\n            </div>\n            <ul class="queue-app-card__notes">\n                ${n.notes.map((e) => `<li>${t(e)}</li>`).join('')}\n            </ul>\n        </article>\n    `;
+}
+function Xe(e = () => {}) {
+    const n = b(),
+        { queueMeta: a } = Oe(),
+        i = Re(),
+        o = ze(),
+        s = Ve(),
+        l = Ue(n.queue.stationConsultorio);
+    ((function () {
+        if (
+            !(
+                document.getElementById('queueAppDownloadsCards') instanceof
+                HTMLElement
+            )
+        )
+            return;
+        const t = (function () {
+                const t =
+                    `${navigator.userAgent} ${navigator.platform}`.toLowerCase();
+                return t.includes('mac')
+                    ? 'mac'
+                    : t.includes('win')
+                      ? 'win'
+                      : 'other';
+            })(),
+            e = document.getElementById('queueAppsPlatformChip');
+        (r(
+            '#queueAppsPlatformChip',
+            'mac' === t
+                ? 'macOS detectado'
+                : 'win' === t
+                  ? 'Windows detectado'
+                  : 'Selecciona la plataforma del equipo'
+        ),
+            e instanceof HTMLElement && e.setAttribute('data-platform', t));
+        const n = (function () {
+            const t = b().data.appDownloads;
+            return t && 'object' == typeof t
+                ? {
+                      operator: {
+                          ...We.operator,
+                          ...(t.operator || {}),
+                          targets: {
+                              ...We.operator.targets,
+                              ...((t.operator && t.operator.targets) || {}),
+                          },
+                      },
+                      kiosk: {
+                          ...We.kiosk,
+                          ...(t.kiosk || {}),
+                          targets: {
+                              ...We.kiosk.targets,
+                              ...((t.kiosk && t.kiosk.targets) || {}),
+                          },
+                      },
+                      sala_tv: {
+                          ...We.sala_tv,
+                          ...(t.sala_tv || {}),
+                          targets: {
+                              ...We.sala_tv.targets,
+                              ...((t.sala_tv && t.sala_tv.targets) || {}),
+                          },
+                      },
+                  }
+                : We;
+        })();
+        c(
+            '#queueAppDownloadsCards',
+            [
+                Ye('operator', n.operator, t),
+                Ye('kiosk', n.kiosk, t),
+                Ze(n.sala_tv),
+            ].join('')
+        );
+    })(),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         (function (t, e) {
             const n = b(),
                 a =
@@ -2745,14 +3153,14 @@ function Ze(e = () => {}) {
                     ? l.setAttribute('data-queue-id', String(Number(i.id || 0)))
                     : l.removeAttribute('data-queue-id'));
             const u = document.getElementById('queueSyncStatus');
-            if ('fallback' === pe(n.queue.syncMode))
+            if ('fallback' === we(n.queue.syncMode))
                 return (
                     r('#queueSyncStatus', 'fallback'),
                     void (u && u.setAttribute('data-state', 'fallback'))
                 );
             const d = String(t.updatedAt || '').trim();
             if (!d) return;
-            const p = Math.max(0, Math.round((Date.now() - he(d)) / 1e3)),
+            const p = Math.max(0, Math.round((Date.now() - _e(d)) / 1e3)),
                 m = p >= 60;
             if (
                 (r('#queueSyncStatus', m ? `Watchdog (${p}s)` : 'vivo'),
@@ -2761,22 +3169,22 @@ function Ze(e = () => {}) {
             ) {
                 const t = `stale-${Math.floor(p / 15)}`;
                 return void (
-                    t !== ve &&
-                    ((ve = t), e('Watchdog de cola: realtime en reconnecting'))
+                    t !== Te &&
+                    ((Te = t), e('Watchdog de cola: realtime en reconnecting'))
                 );
             }
-            ve = 'live';
+            Te = 'live';
         })(a, e),
         (function (t) {
             c(
                 '#queueTableBody',
                 t.length
-                    ? t.map(Fe).join('')
+                    ? t.map(Qe).join('')
                     : '<tr><td colspan="7">No hay tickets para filtro</td></tr>'
             );
         })(i),
         (function (e, n) {
-            const a = ge(e.nextTickets),
+            const a = qe(e.nextTickets),
                 i = Number(e.waitingCount || e.counts?.waiting || 0),
                 o =
                     n && a.length && i > a.length
@@ -2801,9 +3209,9 @@ function Ze(e = () => {}) {
                             'waiting' === t.status &&
                             (Math.max(
                                 0,
-                                Math.round((Date.now() - he(t.createdAt)) / 6e4)
+                                Math.round((Date.now() - _e(t.createdAt)) / 6e4)
                             ) >= 20 ||
-                                'appt_overdue' === pe(t.priorityClass))
+                                'appt_overdue' === we(t.priorityClass))
                     ).length;
                 })(e),
                 o = [i > 0 ? `riesgo: ${i}` : 'sin riesgo'];
@@ -2875,7 +3283,11 @@ function Ze(e = () => {}) {
                             i =
                                 a === Number(t.queue.stationConsultorio || 1)
                                     ? e
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                                     : xe(a);
+========
+                                    : Ue(a);
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                         ((n.disabled = !i),
                             'locked' === t.queue.stationMode &&
                                 a !== Number(t.queue.stationConsultorio || 1) &&
@@ -2903,9 +3315,13 @@ function Ze(e = () => {}) {
                     ? '1 tecla ON'
                     : '1 tecla OFF'));
         })(n),
-        le());
+        ye());
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function Xe(t) {
+========
+function tn(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     g((e) => {
         const n = [
             { at: new Date().toISOString(), message: String(t || '') },
@@ -2914,9 +3330,10 @@ function Xe(t) {
         return { ...e, queue: { ...e.queue, activity: n } };
     });
     try {
-        le();
+        ye();
     } catch (t) {}
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function tn(t, { render: e = !0 } = {}) {
     (g((e) => ({
         ...e,
@@ -2928,6 +3345,19 @@ function en() {
     tn([]);
 }
 function nn(t, e = '') {
+========
+function en(t, { render: e = !0 } = {}) {
+    (g((e) => ({
+        ...e,
+        queue: { ...e.queue, selected: je(t, e.data.queueTickets || []) },
+    })),
+        e && Xe(tn));
+}
+function nn() {
+    en([]);
+}
+function an(t, e = '') {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     try {
         const n = localStorage.getItem(t);
         return null === n ? e : n;
@@ -2935,12 +3365,20 @@ function nn(t, e = '') {
         return e;
     }
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function an(t, e) {
+========
+function on(t, e) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     try {
         localStorage.setItem(t, String(e));
     } catch (t) {}
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function on(t, e) {
+========
+function sn(t, e) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     try {
         const n = localStorage.getItem(t);
         return n ? JSON.parse(n) : e;
@@ -2948,18 +3386,27 @@ function on(t, e) {
         return e;
     }
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function sn(t, e) {
+========
+function rn(t, e) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     try {
         localStorage.setItem(t, JSON.stringify(e));
     } catch (t) {}
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function rn(t) {
+========
+function cn(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     try {
         return new URL(window.location.href).searchParams.get(t) || '';
     } catch (t) {
         return '';
     }
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 const cn = 'queueStationMode',
     ln = 'queueStationConsultorio',
     un = 'queueOneTapAdvance',
@@ -2978,30 +3425,61 @@ function fn(t) {
         an(pn, t.queue.helpOpen ? '1' : '0'),
         t.queue.customCallKey
             ? sn(dn, t.queue.customCallKey)
+========
+const ln = 'queueStationMode',
+    un = 'queueStationConsultorio',
+    dn = 'queueOneTapAdvance',
+    pn = 'queueCallKeyBindingV1',
+    mn = 'queueNumpadHelpOpen',
+    bn = 'queueAdminLastSnapshot',
+    gn = new Map([
+        [1, !1],
+        [2, !1],
+    ]),
+    fn = new Set(['no_show', 'cancelar']);
+function hn(t) {
+    (on(ln, t.queue.stationMode || 'free'),
+        on(un, t.queue.stationConsultorio || 1),
+        on(dn, t.queue.oneTap ? '1' : '0'),
+        on(mn, t.queue.helpOpen ? '1' : '0'),
+        t.queue.customCallKey
+            ? rn(pn, t.queue.customCallKey)
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
             : (function (t) {
                   try {
                       localStorage.removeItem(t);
                   } catch (t) {}
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
               })(dn),
         sn(mn, {
+========
+              })(pn),
+        rn(bn, {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
             queueMeta: t.data.queueMeta,
             queueTickets: t.data.queueTickets,
             updatedAt: new Date().toISOString(),
         }));
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function hn(t, e = null, n = {}) {
     const a = (Array.isArray(t) ? t : []).map((t, e) => we(t, e)),
         i = Ae(e && 'object' == typeof e ? e : ke(a), a),
+========
+function yn(t, e = null, n = {}) {
+    const a = (Array.isArray(t) ? t : []).map((t, e) => Le(t, e)),
+        i = Be(e && 'object' == typeof e ? e : Me(a), a),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         o = a.filter((t) => 'waiting' === t.status).length,
         s =
             'boolean' == typeof n.fallbackPartial
                 ? n.fallbackPartial
                 : Number(i.waitingCount || 0) > o,
         r =
-            'fallback' === pe(n.syncMode)
+            'fallback' === we(n.syncMode)
                 ? 'fallback'
                 : s
-                  ? 'live' === pe(n.syncMode)
+                  ? 'live' === we(n.syncMode)
                       ? 'live'
                       : 'fallback'
                   : 'live';
@@ -3010,22 +3488,34 @@ function hn(t, e = null, n = {}) {
         data: { ...t.data, queueTickets: a, queueMeta: i },
         queue: {
             ...t.queue,
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
             selected: Ne(t.queue.selected || [], a),
+========
+            selected: je(t.queue.selected || [], a),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
             fallbackPartial: s,
             syncMode: r,
         },
     })),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
         fn(b()),
         Ze(Xe));
 }
 function yn(t, e) {
+========
+        hn(b()),
+        Xe(tn));
+}
+function vn(t, e) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const n = Number(t || 0),
         a = (b().data.queueTickets || []).map((t, a) => {
-            const i = we(t, a);
+            const i = Le(t, a);
             return i.id !== n
                 ? i
-                : we('function' == typeof e ? e(i) : { ...i }, a);
+                : Le('function' == typeof e ? e(i) : { ...i }, a);
         });
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
     hn(a, ke(a), { fallbackPartial: !1, syncMode: 'live' });
 }
 function vn(t) {
@@ -3037,20 +3527,33 @@ function kn(t) {
 function wn(t, e) {
     const n = ye(e.createdAt, e.created_at, t?.createdAt, t?.created_at),
         a = ye(
+========
+    yn(a, Me(a), { fallbackPartial: !1, syncMode: 'live' });
+}
+function kn(t) {
+    (g((e) => ({ ...e, queue: { ...e.queue, ...t } })), hn(b()), Xe(tn));
+}
+function wn(t) {
+    kn({ filter: we(t) || 'all', selected: [] });
+}
+function Sn(t, e) {
+    const n = $e(e.createdAt, e.created_at, t?.createdAt, t?.created_at),
+        a = $e(
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
             e.priorityClass,
             e.priority_class,
             t?.priorityClass,
             t?.priority_class,
             'walk_in'
         ),
-        i = ye(
+        i = $e(
             e.queueType,
             e.queue_type,
             t?.queueType,
             t?.queue_type,
             'walk_in'
         ),
-        o = ye(
+        o = $e(
             e.patientInitials,
             e.patient_initials,
             t?.patientInitials,
@@ -3068,7 +3571,11 @@ function wn(t, e) {
         patientInitials: o,
     };
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function Sn(t, e = {}) {
+========
+function Cn(t, e = {}) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const { queueState: n, payloadTicket: a } = (function (t) {
         const e =
                 t?.data?.queueState ||
@@ -3097,20 +3604,27 @@ function Sn(t, e = {}) {
         };
     })(t);
     if (!n || 'object' != typeof n) return;
-    const i = (b().data.queueTickets || []).map((t, e) => we(t, e)),
+    const i = (b().data.queueTickets || []).map((t, e) => Le(t, e)),
         o = n.__fullTickets || [];
     if (
         !(function (t, e, n) {
             return (
                 e.length > 0 ||
                 !!(
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     _e(t, 'queue_tickets') ||
                     _e(t, 'queueTickets') ||
                     _e(t, 'tickets')
+========
+                    xe(t, 'queue_tickets') ||
+                    xe(t, 'queueTickets') ||
+                    xe(t, 'tickets')
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 ) ||
                 !(!n || 'object' != typeof n) ||
                 !!(function (t) {
                     return (
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                         _e(t, 'waitingCount') ||
                         _e(t, 'waiting_count') ||
                         _e(t, 'calledCount') ||
@@ -3137,6 +3651,34 @@ function Sn(t, e = {}) {
                     );
                 })(t) ||
                 !(!_e(t, 'nextTickets') && !_e(t, 'next_tickets')) ||
+========
+                        xe(t, 'waitingCount') ||
+                        xe(t, 'waiting_count') ||
+                        xe(t, 'calledCount') ||
+                        xe(t, 'called_count') ||
+                        xe(t, 'completedCount') ||
+                        xe(t, 'completed_count') ||
+                        xe(t, 'noShowCount') ||
+                        xe(t, 'no_show_count') ||
+                        xe(t, 'cancelledCount') ||
+                        xe(t, 'cancelled_count')
+                    );
+                })(t) ||
+                !!(function (t) {
+                    const e = Pe(t);
+                    return Boolean(
+                        e &&
+                        (xe(e, 'waiting') ||
+                            xe(e, 'called') ||
+                            xe(e, 'completed') ||
+                            xe(e, 'no_show') ||
+                            xe(e, 'noShow') ||
+                            xe(e, 'cancelled') ||
+                            xe(e, 'canceled'))
+                    );
+                })(t) ||
+                !(!xe(t, 'nextTickets') && !xe(t, 'next_tickets')) ||
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 (function (t) {
                     const e = (function (t) {
                         return t?.callingNowByConsultorio &&
@@ -3157,8 +3699,8 @@ function Sn(t, e = {}) {
                                 Boolean(e[2])
                             )
                         ) ||
-                        ge(t?.callingNow)
-                            .concat(ge(t?.calling_now))
+                        qe(t?.callingNow)
+                            .concat(qe(t?.calling_now))
                             .some(Boolean)
                     );
                 })(t)
@@ -3166,9 +3708,10 @@ function Sn(t, e = {}) {
         })(n, o, a)
     )
         return;
-    const s = 'fallback' === pe(e.syncMode) ? 'fallback' : 'live',
-        r = Ae(n, i),
+    const s = 'fallback' === we(e.syncMode) ? 'fallback' : 'live',
+        r = Be(n, i),
         c = (function (t) {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
             const e = $e(t),
                 n =
                     _e(t, 'waitingCount') ||
@@ -3184,37 +3727,65 @@ function Sn(t, e = {}) {
                     _e(t, 'calling_now_by_consultorio') ||
                     _e(t, 'callingNow') ||
                     _e(t, 'calling_now');
+========
+            const e = Pe(t),
+                n =
+                    xe(t, 'waitingCount') ||
+                    xe(t, 'waiting_count') ||
+                    Boolean(e && xe(e, 'waiting')),
+                a =
+                    xe(t, 'calledCount') ||
+                    xe(t, 'called_count') ||
+                    Boolean(e && xe(e, 'called')),
+                i = xe(t, 'nextTickets') || xe(t, 'next_tickets'),
+                o =
+                    xe(t, 'callingNowByConsultorio') ||
+                    xe(t, 'calling_now_by_consultorio') ||
+                    xe(t, 'callingNow') ||
+                    xe(t, 'calling_now');
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
             return { waiting: n || i, called: a || o };
         })(n),
-        l = Le(r),
+        l = He(r),
         u = Boolean(a && 'object' == typeof a);
     if (!(o.length || l.length || u || c.waiting || c.called)) return;
     const d =
         Number(r.waitingCount || 0) >
         l.filter((t) => 'waiting' === t.status).length;
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
     if (o.length) return void hn(o, r, { fallbackPartial: !1, syncMode: s });
     const p = new Map(i.map((t) => [Te(t), t]));
+========
+    if (o.length) return void yn(o, r, { fallbackPartial: !1, syncMode: s });
+    const p = new Map(i.map((t) => [Ie(t), t]));
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     ((function (t, e, n) {
         const a = e.callingNowByConsultorio || {},
             i = Number(e.calledCount || e.counts?.called || 0),
             o = Number(e.waitingCount || e.counts?.waiting || 0),
-            s = ge(e.nextTickets),
+            s = qe(e.nextTickets),
             r = (function (t) {
                 const e = new Set(),
                     n = t[1] || t[1] || null,
                     a = t[2] || t[2] || null;
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 return (n && e.add(Te(n)), a && e.add(Te(a)), e);
             })(a),
             c = new Set(s.map((t) => Te(t))),
+========
+                return (n && e.add(Ie(n)), a && e.add(Ie(a)), e);
+            })(a),
+            c = new Set(s.map((t) => Ie(t))),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
             l = r.size > 0 || 0 === i,
             u = c.size > 0 || 0 === o,
             d = c.size > 0 && o > c.size;
         for (const [e, a] of t.entries()) {
-            const i = we(a, 0);
+            const i = Le(a, 0);
             n.called && l && 'called' === i.status && !r.has(e)
                 ? t.set(
                       e,
-                      we(
+                      Le(
                           {
                               ...i,
                               status: 'completed',
@@ -3231,6 +3802,7 @@ function Sn(t, e = {}) {
                   (o <= 0 ? t.delete(e) : d || c.has(e) || t.delete(e));
         }
     })(p, r, c),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
         hn(
             (function (t, e, n) {
                 for (const n of e) {
@@ -3240,12 +3812,23 @@ function Sn(t, e = {}) {
                 }
                 if (n && 'object' == typeof n) {
                     const e = Te(we(n, t.size)),
+========
+        yn(
+            (function (t, e, n) {
+                for (const n of e) {
+                    const e = Ie(n),
+                        a = t.get(e) || null;
+                    t.set(e, Le(Sn(a, n), t.size));
+                }
+                if (n && 'object' == typeof n) {
+                    const e = Ie(Le(n, t.size)),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                         a = t.get(e) || null;
                     t.set(
                         e,
-                        we(
+                        Le(
                             (function (t, e) {
-                                return { ...(t || {}), ...we(e, 0) };
+                                return { ...(t || {}), ...Le(e, 0) };
                             })(a, n),
                             t.size
                         )
@@ -3258,6 +3841,7 @@ function Sn(t, e = {}) {
         ));
 }
 function qn() {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
     return on(mn, null);
 }
 function Cn(t, e = '') {
@@ -3281,6 +3865,31 @@ async function An() {
 }
 function _n(t, e, n = void 0) {
     yn(t, (t) => ({
+========
+    return sn(bn, null);
+}
+function An(t, e = '') {
+    return (
+        !!t?.queueTickets?.length &&
+        (yn(t.queueTickets, t.queueMeta || null, {
+            fallbackPartial: !0,
+            syncMode: 'fallback',
+        }),
+        e && tn(e),
+        !0)
+    );
+}
+async function _n() {
+    try {
+        (Cn(await C('queue-state'), { syncMode: 'live' }),
+            tn('Queue refresh realizado'));
+    } catch (t) {
+        (tn('Queue refresh con error'), An(qn()));
+    }
+}
+function $n(t, e, n = void 0) {
+    vn(t, (t) => ({
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         ...t,
         status: e,
         assignedConsultorio: void 0 === n ? t.assignedConsultorio : n,
@@ -3296,9 +3905,13 @@ function _n(t, e, n = void 0) {
                 : '',
     }));
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 async function $n({ ticketId: t, action: e, consultorio: n }) {
+========
+async function Tn({ ticketId: t, action: e, consultorio: n }) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const a = Number(t || 0),
-        i = be(e);
+        i = Ce(e);
     if (a && i)
         return b().queue.practiceMode
             ? ((function (t, e, n) {
@@ -3306,6 +3919,7 @@ async function $n({ ticketId: t, action: e, consultorio: n }) {
                       ? 'liberar' !== e
                           ? 'completar' !== e
                               ? 'no_show' !== e
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                                   ? 'cancelar' === e && _n(t, 'cancelled')
                                   : _n(t, 'no_show')
                               : _n(t, 'completed')
@@ -3315,29 +3929,53 @@ async function $n({ ticketId: t, action: e, consultorio: n }) {
               void Xe(`Practica: accion ${i} en ticket ${a}`))
             : (Sn(
                   await q('queue-ticket', {
+========
+                                  ? 'cancelar' === e && $n(t, 'cancelled')
+                                  : $n(t, 'no_show')
+                              : $n(t, 'completed')
+                          : $n(t, 'waiting', null)
+                      : $n(t, 'called', 2 === Number(n || 1) ? 2 : 1);
+              })(a, i, n),
+              void tn(`Practica: accion ${i} en ticket ${a}`))
+            : (Cn(
+                  await C('queue-ticket', {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                       method: 'PATCH',
                       body: { id: a, action: i, consultorio: Number(n || 0) },
                   }),
                   { syncMode: 'live' }
               ),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
               void Xe(`Accion ${i} ticket ${a}`));
 }
 async function Tn(t) {
     const e = 2 === Number(t || 0) ? 2 : 1,
         n = b();
     if (!bn.get(e)) {
+========
+              void tn(`Accion ${i} ticket ${a}`));
+}
+async function Mn(t) {
+    const e = 2 === Number(t || 0) ? 2 : 1,
+        n = b();
+    if (!gn.get(e)) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         if (
             'locked' === n.queue.stationMode &&
             n.queue.stationConsultorio !== e
         )
             return (
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 Xe(`Llamado bloqueado para C${e} por lock de estacion`),
+========
+                tn(`Llamado bloqueado para C${e} por lock de estacion`),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 void s('Modo bloqueado: consultorio no permitido', 'warning')
             );
         if (n.queue.practiceMode) {
             const t = (function (t) {
                 return (
-                    Ee().queueTickets.find(
+                    Oe().queueTickets.find(
                         (e) =>
                             'waiting' === e.status &&
                             (!e.assignedConsultorio ||
@@ -3347,13 +3985,18 @@ async function Tn(t) {
             })(e);
             return t
                 ? ((function (t, e) {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                       yn(t, (t) => ({
+========
+                      vn(t, (t) => ({
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                           ...t,
                           status: 'called',
                           assignedConsultorio: e,
                           calledAt: new Date().toISOString(),
                       }));
                   })(t.id, e),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                   void Xe(`Practica: llamado ${t.ticketCode} en C${e}`))
                 : void Xe('Practica: sin tickets en espera');
         }
@@ -3361,11 +4004,21 @@ async function Tn(t) {
         try {
             (Sn(
                 await q('queue-call-next', {
+========
+                  void tn(`Practica: llamado ${t.ticketCode} en C${e}`))
+                : void tn('Practica: sin tickets en espera');
+        }
+        gn.set(e, !0);
+        try {
+            (Cn(
+                await C('queue-call-next', {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                     method: 'POST',
                     body: { consultorio: e },
                 }),
                 { syncMode: 'live' }
             ),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 Xe(`Llamado C${e} ejecutado`));
         } catch (t) {
             (Xe(`Error llamando siguiente en C${e}`),
@@ -3376,33 +4029,50 @@ async function Tn(t) {
     }
 }
 async function Mn(t, e, n = 0) {
+========
+                tn(`Llamado C${e} ejecutado`));
+        } catch (t) {
+            (tn(`Error llamando siguiente en C${e}`),
+                s(`Error llamando siguiente en C${e}`, 'error'));
+        } finally {
+            gn.set(e, !1);
+        }
+    }
+}
+async function Ln(t, e, n = 0) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const a = {
             ticketId: Number(t || 0),
-            action: be(e),
+            action: Ce(e),
             consultorio: Number(n || 0),
         },
         i = b(),
         o = (function (t) {
             const e = Number(t || 0);
             return (
-                (e && Ee().queueTickets.find((t) => Number(t.id || 0) === e)) ||
+                (e && Oe().queueTickets.find((t) => Number(t.id || 0) === e)) ||
                 null
             );
         })(a.ticketId);
     if (
         !i.queue.practiceMode &&
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
         gn.has(a.action) &&
+========
+        fn.has(a.action) &&
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         (function (t, e) {
-            const n = be(t);
+            const n = Ce(t);
             return (
                 'cancelar' === n ||
                 ('no_show' === n &&
                     (!e ||
-                        'called' === me(e.status) ||
+                        'called' === Se(e.status) ||
                         Number(e.assignedConsultorio || 0) > 0))
             );
         })(a.action, o)
     )
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
         return (ue(a), void Xe(`Accion ${a.action} pendiente de confirmacion`));
     await $n(a);
 }
@@ -3412,6 +4082,17 @@ async function Ln() {
 }
 function En() {
     (de(), Xe('Accion sensible cancelada'));
+========
+        return (ve(a), void tn(`Accion ${a.action} pendiente de confirmacion`));
+    await Tn(a);
+}
+async function En() {
+    const t = b().queue.pendingSensitiveAction;
+    t ? (ke(), await Tn(t)) : ke();
+}
+function Nn() {
+    (ke(), tn('Accion sensible cancelada'));
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
 }
 function Dn() {
     const t = document.getElementById('queueSensitiveConfirmDialog'),
@@ -3422,6 +4103,7 @@ function Dn() {
                 ? t.open
                 : t instanceof HTMLElement &&
                   (!t.hidden || t.hasAttribute('open')))) ||
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
         (En(), 0)
     );
 }
@@ -3443,9 +4125,32 @@ function Pn(t) {
 }
 function xn(t) {
     const e = Ie();
+========
+        (Nn(), 0)
+    );
+}
+async function Bn(t) {
+    const e = Number(t || 0);
+    e &&
+        (b().queue.practiceMode
+            ? tn(`Practica: reprint ticket ${e}`)
+            : (await C('queue-reprint', { method: 'POST', body: { id: e } }),
+              tn(`Reimpresion ticket ${e}`)));
+}
+function xn() {
+    kn({ helpOpen: !b().queue.helpOpen });
+}
+function Pn(t) {
+    const e = Boolean(t);
+    (kn({ practiceMode: e, pendingSensitiveAction: null }),
+        tn(e ? 'Modo practica activo' : 'Modo practica desactivado'));
+}
+function In(t) {
+    const e = Ke();
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     return (
         !!e &&
-        (ue({
+        (ve({
             ticketId: e.id,
             action: 'completar',
             consultorio: t.queue.stationConsultorio,
@@ -3453,7 +4158,11 @@ function xn(t) {
         !0)
     );
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 async function In(t) {
+========
+async function Fn(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const e = b();
     if (e.queue.captureCallKeyMode)
         return void (function (t) {
@@ -3462,23 +4171,35 @@ async function In(t) {
                 code: String(t.code || ''),
                 location: Number(t.location || 0),
             };
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
             (vn({ customCallKey: e, captureCallKeyMode: !1 }),
                 s('Tecla externa guardada', 'success'),
                 Xe(`Tecla externa calibrada: ${e.code}`));
+========
+            (kn({ customCallKey: e, captureCallKeyMode: !1 }),
+                s('Tecla externa guardada', 'success'),
+                tn(`Tecla externa calibrada: ${e.code}`));
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         })(t);
     if (
         (function (t, e) {
             return (
                 !(!e || 'object' != typeof e) &&
-                pe(e.code) === pe(t.code) &&
+                we(e.code) === we(t.code) &&
                 String(e.key || '') === String(t.key || '') &&
                 Number(e.location || 0) === Number(t.location || 0)
             );
         })(t, e.queue.customCallKey)
     )
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
         return void (await Tn(e.queue.stationConsultorio));
     const n = pe(t.code),
         a = pe(t.key),
+========
+        return void (await Mn(e.queue.stationConsultorio));
+    const n = we(t.code),
+        a = we(t.key),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         i = (function (t, e, n) {
             return (
                 'numpadenter' === e ||
@@ -3486,7 +4207,11 @@ async function In(t) {
                 ('enter' === n && 3 === Number(t.location || 0))
             );
         })(t, n, a);
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
     if (i && e.queue.pendingSensitiveAction) return void (await Ln());
+========
+    if (i && e.queue.pendingSensitiveAction) return void (await En());
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const o = (function (t, e) {
         return 'numpad2' === t || '2' === e
             ? 2
@@ -3496,8 +4221,13 @@ async function In(t) {
     })(n, a);
     if (!o)
         return i
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
             ? (e.queue.oneTap && xn(e) && (await Ln()),
               void (await Tn(e.queue.stationConsultorio)))
+========
+            ? (e.queue.oneTap && In(e) && (await En()),
+              void (await Mn(e.queue.stationConsultorio)))
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
             : void ((function (t, e) {
                   return (
                       'numpaddecimal' === t ||
@@ -3507,7 +4237,11 @@ async function In(t) {
                       '.' === e
                   );
               })(n, a)
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                   ? xn(e)
+========
+                  ? In(e)
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                   : (function (t, e) {
                           return (
                               'numpadsubtract' === t ||
@@ -3516,9 +4250,9 @@ async function In(t) {
                           );
                       })(n, a)
                     ? (function (t) {
-                          const e = Ie();
+                          const e = Ke();
                           e &&
-                              ue({
+                              ve({
                                   ticketId: e.id,
                                   action: 'no_show',
                                   consultorio: t.queue.stationConsultorio,
@@ -3530,14 +4264,22 @@ async function In(t) {
                           );
                       })(n, a) &&
                       (await (async function (t) {
-                          const e = Ie();
+                          const e = Ke();
                           e &&
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                               (await Mn(
+========
+                              (await Ln(
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                                   e.id,
                                   're-llamar',
                                   t.queue.stationConsultorio
                               ),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                               Xe(`Re-llamar ${e.ticketCode}`),
+========
+                              tn(`Re-llamar ${e.ticketCode}`),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                               s(`Re-llamar ${e.ticketCode}`, 'info'));
                       })(e)));
     !(function (t, e) {
@@ -3548,6 +4290,7 @@ async function In(t) {
             );
         })(t, e)
             ? (s('Cambio bloqueado por modo estación', 'warning'),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
               Xe('Cambio de estación bloqueado por lock'))
             : (vn({ stationConsultorio: t }), Xe(`Numpad: estacion C${t}`));
     })(o, e);
@@ -3571,6 +4314,32 @@ const Rn = 'appointments',
     Wn = 'app-downloads',
     Gn = 'health-status',
     Jn = {
+========
+              tn('Cambio de estación bloqueado por lock'))
+            : (kn({ stationConsultorio: t }), tn(`Numpad: estacion C${t}`));
+    })(o, e);
+}
+function Hn(t, e) {
+    return 'c2' === t || '2' === t ? 2 : 'c1' === t || '1' === t ? 1 : e;
+}
+function On(t, e) {
+    return '1' === t || 'true' === t ? 'locked' : e;
+}
+function Rn(t, e) {
+    return '1' === t || 'true' === t || ('0' !== t && 'false' !== t && e);
+}
+const jn = 'appointments',
+    zn = 'callbacks',
+    Vn = 'reviews',
+    Un = 'availability',
+    Kn = 'availability-meta',
+    Qn = 'queue-tickets',
+    Wn = 'queue-meta',
+    Gn = 'leadops-meta',
+    Jn = 'app-downloads',
+    Yn = 'health-status',
+    Zn = {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         summary: {
             viewBooking: 0,
             startCheckout: 0,
@@ -3588,6 +4357,7 @@ const Rn = 'appointments',
         abandonReasonBreakdown: [],
         errorCodeBreakdown: [],
     };
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function Yn() {
     return {
         appointments: on(Rn, []),
@@ -3603,13 +4373,35 @@ function Yn() {
     };
 }
 function Zn(t) {
+========
+function Xn() {
+    return {
+        appointments: sn(jn, []),
+        callbacks: sn(zn, []),
+        reviews: sn(Vn, []),
+        availability: sn(Un, {}),
+        availabilityMeta: sn(Kn, {}),
+        queueTickets: sn(Qn, []),
+        queueMeta: sn(Wn, null),
+        leadOpsMeta: sn(Gn, null),
+        appDownloads: sn(Jn, null),
+        health: sn(Yn, null),
+        funnelMetrics: Zn,
+    };
+}
+function ta(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     return Array.isArray(t.queue_tickets)
         ? t.queue_tickets
         : Array.isArray(t.queueTickets)
           ? t.queueTickets
           : [];
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function Xn(t) {
+========
+function ea(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     g((e) => {
         const n = (function (t, e) {
             return {
@@ -3623,12 +4415,17 @@ function Xn(t) {
                             .includes('contact')
                             ? 'contacted'
                             : 'pending',
+                        leadOps:
+                            t.leadOps && 'object' == typeof t.leadOps
+                                ? t.leadOps
+                                : {},
                     }))),
                 reviews: t.reviews || [],
                 availability: t.availability || {},
                 availabilityMeta: t.availabilityMeta || {},
                 queueTickets: t.queueTickets || [],
                 queueMeta: t.queueMeta || null,
+                leadOpsMeta: t.leadOpsMeta || null,
                 appDownloads: t.appDownloads || null,
                 funnelMetrics: t.funnelMetrics || e,
                 health: t.health || null,
@@ -3642,16 +4439,25 @@ function Xn(t) {
         };
     });
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 async function ta(t) {
+========
+async function na(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     if (t.funnelMetrics) return t.funnelMetrics;
     const e = await q('funnel-metrics').catch(() => null);
     return e?.data || null;
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function ea(t) {
+========
+function aa(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     return String(t || '')
         .toLowerCase()
         .trim();
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function na(t) {
     const e = new Date(t || '');
     return Number.isNaN(e.getTime()) ? 0 : e.getTime();
@@ -3660,6 +4466,16 @@ function aa(t) {
     return na(`${t?.date || ''}T${t?.time || '00:00'}:00`);
 }
 function ia(t) {
+========
+function ia(t) {
+    const e = new Date(t || '');
+    return Number.isNaN(e.getTime()) ? 0 : e.getTime();
+}
+function oa(t) {
+    return ia(`${t?.date || ''}T${t?.time || '00:00'}:00`);
+}
+function sa(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     if (!t) return 'Sin fecha';
     const e = Math.round((t - Date.now()) / 6e4),
         n = Math.abs(e);
@@ -3675,7 +4491,11 @@ function ia(t) {
             ? `En ${Math.round(e / 60)} h`
             : `En ${Math.round(e / 1440)} d`;
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function oa(e, n, a) {
+========
+function ra(e, n, a) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     return Array.isArray(e) && 0 !== e.length
         ? e
               .slice(0, 5)
@@ -3687,6 +4507,7 @@ function oa(e, n, a) {
               .join('')
         : '<li><span>Sin datos</span><strong>0</strong></li>';
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function sa(e, n, a, i = 'neutral') {
     return `\n        <li class="dashboard-attention-item" data-tone="${t(i)}">\n            <div>\n                <span>${t(e)}</span>\n                <small>${t(a)}</small>\n            </div>\n            <strong>${t(String(n))}</strong>\n        </li>\n    `;
 }
@@ -3694,6 +4515,15 @@ function ra(e, n, a) {
     return `\n        <button type="button" class="operations-action-item" data-action="${t(e)}">\n            <span>${t(n)}</span>\n            <small>${t(a)}</small>\n        </button>\n    `;
 }
 function ca(t) {
+========
+function ca(e, n, a, i = 'neutral') {
+    return `\n        <li class="dashboard-attention-item" data-tone="${t(i)}">\n            <div>\n                <span>${t(e)}</span>\n                <small>${t(a)}</small>\n            </div>\n            <strong>${t(String(n))}</strong>\n        </li>\n    `;
+}
+function la(e, n, a) {
+    return `\n        <button type="button" class="operations-action-item" data-action="${t(e)}">\n            <span>${t(n)}</span>\n            <small>${t(a)}</small>\n        </button>\n    `;
+}
+function ua(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const {
             appointments: e,
             availability: n,
@@ -3728,18 +4558,27 @@ function ca(t) {
                         e.getMonth() === n.getMonth() &&
                         e.getDate() === n.getDate()
                     );
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 })(aa(t))
+========
+                })(oa(t))
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
             ).length;
         })(e),
         r = (function (t) {
             return t.filter((t) => {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 const e = ea(t.paymentStatus || t.payment_status);
+========
+                const e = aa(t.paymentStatus || t.payment_status);
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 return (
                     'pending_transfer_review' === e || 'pending_transfer' === e
                 );
             }).length;
         })(e),
         c = (function (t) {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
             return t.filter((t) => 'pending' === ea(t.status)).length;
         })(a),
         l = (function (t) {
@@ -3747,12 +4586,25 @@ function ca(t) {
                 if ('pending' !== ea(t.status)) return !1;
                 const e = (function (t) {
                     return na(t?.fecha || t?.createdAt || '');
+========
+            return t.filter((t) => 'pending' === aa(t.status)).length;
+        })(a),
+        l = (function (t) {
+            return t.filter((t) => {
+                if ('pending' !== aa(t.status)) return !1;
+                const e = (function (t) {
+                    return ia(t?.fecha || t?.createdAt || '');
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 })(t);
                 return !!e && Math.round((Date.now() - e) / 6e4) >= 120;
             }).length;
         })(a),
         u = (function (t) {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
             return t.filter((t) => 'no_show' === ea(t.status)).length;
+========
+            return t.filter((t) => 'no_show' === aa(t.status)).length;
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         })(e),
         d = (function (t) {
             return t.length
@@ -3765,7 +4617,11 @@ function ca(t) {
         p = (function (t, e = 30) {
             const n = Date.now();
             return t.filter((t) => {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 const a = na(t.date || t.createdAt || '');
+========
+                const a = ia(t.date || t.createdAt || '');
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 return a && n - a <= 24 * e * 60 * 60 * 1e3;
             }).length;
         })(o),
@@ -3776,7 +4632,11 @@ function ca(t) {
         })(n),
         b = (function (t) {
             return t
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 .map((t) => ({ item: t, stamp: aa(t) }))
+========
+                .map((t) => ({ item: t, stamp: oa(t) }))
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 .filter((t) => t.stamp > 0 && t.stamp >= Date.now())
                 .sort((t, e) => t.stamp - e.stamp)[0];
         })(e);
@@ -3796,8 +4656,13 @@ function ca(t) {
         urgentCallbacks: l,
     };
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function la(t) {
     const e = ca(t);
+========
+function da(t) {
+    const e = ua(t);
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     ((function (t) {
         const {
             appointments: e,
@@ -3837,7 +4702,11 @@ function la(t) {
                           : n > 0
                             ? `Revisa ${n} no show del corte actual para cerrar seguimiento.`
                             : a?.item
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                               ? `La siguiente cita es ${a.item.name || 'sin nombre'} ${ia(a.stamp).toLowerCase()}.`
+========
+                              ? `La siguiente cita es ${a.item.name || 'sin nombre'} ${sa(a.stamp).toLowerCase()}.`
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                               : 'Agenda, callbacks y disponibilidad con una lectura clara y una sola prioridad por pantalla.';
                 })({
                     pendingTransfers: s,
@@ -3903,7 +4772,11 @@ function la(t) {
                 r(
                     '#dashboardFlowStatus',
                     n?.item
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                         ? `${ia(n.stamp)} | ${n.item.name || 'Paciente'}`
+========
+                        ? `${sa(n.stamp)} | ${n.item.name || 'Paciente'}`
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                         : e > 0
                           ? `${e} dia(s) con slots publicados`
                           : 'Sin citas inmediatas'
@@ -3922,7 +4795,11 @@ function la(t) {
                 r(
                     '#operationQueueHealth',
                     n?.item
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                         ? `Siguiente hito: ${n.item.name || 'Paciente'} ${ia(n.stamp).toLowerCase()}`
+========
+                        ? `Siguiente hito: ${n.item.name || 'Paciente'} ${sa(n.stamp).toLowerCase()}`
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                         : 'Sin citas inmediatas en cola'
                 ));
         })(e),
@@ -3936,7 +4813,11 @@ function la(t) {
                     } = t,
                     { appointments: i, nextAppointment: o } = t;
                 return [
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     ra(
+========
+                    la(
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                         'context-open-appointments-transfer',
                         e > 0
                             ? 'Validar transferencias'
@@ -3945,7 +4826,11 @@ function la(t) {
                             ? `${e} comprobante(s) por revisar`
                             : `${i.length} cita(s) en el corte`
                     ),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     ra(
+========
+                    la(
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                         'context-open-callbacks-pending',
                         n > 0
                             ? 'Resolver callbacks urgentes'
@@ -3954,11 +4839,19 @@ function la(t) {
                             ? `${n} caso(s) fuera de SLA`
                             : `${a} callback(s) pendientes`
                     ),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     ra(
                         'refresh-admin-data',
                         'Actualizar tablero',
                         o?.item
                             ? `Proxima cita ${ia(o.stamp).toLowerCase()}`
+========
+                    la(
+                        'refresh-admin-data',
+                        'Actualizar tablero',
+                        o?.item
+                            ? `Proxima cita ${sa(o.stamp).toLowerCase()}`
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                             : 'Sincronizar agenda y funnel'
                     ),
                 ].join('');
@@ -3974,7 +4867,11 @@ function la(t) {
                     urgentCallbacks: i,
                 } = t;
                 return [
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     sa(
+========
+                    ca(
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                         'Transferencias',
                         n,
                         n > 0
@@ -3982,7 +4879,11 @@ function la(t) {
                             : 'Sin comprobantes pendientes.',
                         n > 0 ? 'warning' : 'success'
                     ),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     sa(
+========
+                    ca(
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                         'Callbacks urgentes',
                         i,
                         i > 0
@@ -3990,7 +4891,11 @@ function la(t) {
                             : 'SLA dentro de rango.',
                         i > 0 ? 'danger' : 'success'
                     ),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     sa(
+========
+                    ca(
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                         'Agenda de hoy',
                         a,
                         a > 0
@@ -3998,7 +4903,11 @@ function la(t) {
                             : 'No hay citas hoy.',
                         a > 6 ? 'warning' : 'neutral'
                     ),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     sa(
+========
+                    ca(
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                         'Disponibilidad',
                         e,
                         e > 0
@@ -4020,6 +4929,7 @@ function la(t) {
                 ),
                 c(
                     '#funnelEntryList',
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     oa(t.checkoutEntryBreakdown, 'entry', 'count')
                 ),
                 c(
@@ -4049,10 +4959,42 @@ function la(t) {
         })(e.funnel));
 }
 function ua(t) {
+========
+                    ra(t.checkoutEntryBreakdown, 'entry', 'count')
+                ),
+                c(
+                    '#funnelSourceList',
+                    ra(t.sourceBreakdown, 'source', 'count')
+                ),
+                c(
+                    '#funnelPaymentMethodList',
+                    ra(t.paymentMethodBreakdown, 'method', 'count')
+                ),
+                c(
+                    '#funnelAbandonList',
+                    ra(t.checkoutAbandonByStep, 'step', 'count')
+                ),
+                c(
+                    '#funnelAbandonReasonList',
+                    ra(t.abandonReasonBreakdown, 'reason', 'count')
+                ),
+                c(
+                    '#funnelStepList',
+                    ra(t.bookingStepBreakdown, 'step', 'count')
+                ),
+                c(
+                    '#funnelErrorCodeList',
+                    ra(t.errorCodeBreakdown, 'code', 'count')
+                ));
+        })(e.funnel));
+}
+function pa(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     return String(t || '')
         .toLowerCase()
         .trim();
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function da(t) {
     const e = new Date(t?.date || t?.createdAt || '');
     return Number.isNaN(e.getTime()) ? 0 : e.getTime();
@@ -4061,6 +5003,16 @@ function pa(t) {
     return `${Math.max(0, Math.min(5, Math.round(Number(t || 0))))}/5`;
 }
 function ma(t) {
+========
+function ma(t) {
+    const e = new Date(t?.date || t?.createdAt || '');
+    return Number.isNaN(e.getTime()) ? 0 : e.getTime();
+}
+function ba(t) {
+    return `${Math.max(0, Math.min(5, Math.round(Number(t || 0))))}/5`;
+}
+function ga(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const e = String(t || 'Anonimo')
         .trim()
         .split(/\s+/)
@@ -4068,7 +5020,11 @@ function ma(t) {
         .slice(0, 2);
     return e.length ? e.map((t) => t.charAt(0).toUpperCase()).join('') : 'AN';
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function ba(t, e = 220) {
+========
+function fa(t, e = 220) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const n = String(t || '').trim();
     return n
         ? n.length <= e
@@ -4076,11 +5032,19 @@ function ba(t, e = 220) {
             : `${n.slice(0, e - 1).trim()}...`
         : 'Sin comentario escrito.';
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function ga() {
     const e = b(),
         n = Array.isArray(e?.data?.reviews) ? e.data.reviews : [],
         a = (function (t) {
             return t.slice().sort((t, e) => da(e) - da(t));
+========
+function ha() {
+    const e = b(),
+        n = Array.isArray(e?.data?.reviews) ? e.data.reviews : [],
+        a = (function (t) {
+            return t.slice().sort((t, e) => ma(e) - ma(t));
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         })(n),
         o = (function (t) {
             return t.length
@@ -4090,7 +5054,11 @@ function ga() {
         s = (function (t, e = 30) {
             const n = Date.now();
             return t.filter((t) => {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 const a = da(t);
+========
+                const a = ma(t);
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 return !!a && n - a <= 24 * e * 60 * 60 * 1e3;
             }).length;
         })(n),
@@ -4194,7 +5162,11 @@ function ga() {
               '#reviewsSpotlight',
               (function (e) {
                   const n = e.item;
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                   return `\n        <article class="reviews-spotlight-card">\n            <div class="reviews-spotlight-top">\n                <span class="review-avatar">${t(ma(n.name || 'Anonimo'))}</span>\n                <div>\n                    <small>${t(e.eyebrow)}</small>\n                    <strong>${t(n.name || 'Anonimo')}</strong>\n                    <small>${t(i(n.date || n.createdAt || ''))}</small>\n                </div>\n            </div>\n            <p class="reviews-spotlight-stars">${t(pa(n.rating))}</p>\n            <p>${t(ba(n.comment || n.review || '', 320))}</p>\n            <small>${t(e.summary)}</small>\n        </article>\n    `;
+========
+                  return `\n        <article class="reviews-spotlight-card">\n            <div class="reviews-spotlight-top">\n                <span class="review-avatar">${t(ga(n.name || 'Anonimo'))}</span>\n                <div>\n                    <small>${t(e.eyebrow)}</small>\n                    <strong>${t(n.name || 'Anonimo')}</strong>\n                    <small>${t(i(n.date || n.createdAt || ''))}</small>\n                </div>\n            </div>\n            <p class="reviews-spotlight-stars">${t(ba(n.rating))}</p>\n            <p>${t(fa(n.comment || n.review || '', 320))}</p>\n            <small>${t(e.summary)}</small>\n        </article>\n    `;
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
               })(u)
           )
         : c(
@@ -4220,19 +5192,32 @@ function ga() {
                                         : a <= 3
                                           ? 'Revisar posible friccion'
                                           : 'Resena util para contexto';
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                             return `\n        <article class="review-card${n ? ' is-featured' : ''}" data-rating="${t(String(a))}">\n            <header>\n                <div class="review-card-heading">\n                    <span class="review-avatar">${t(ma(e.name || 'Anonimo'))}</span>\n                    <div>\n                        <strong>${t(e.name || 'Anonimo')}</strong>\n                        <small>${t(i(e.date || e.createdAt || ''))}</small>\n                    </div>\n                </div>\n                <span class="review-rating-badge" data-tone="${t(o)}">${t(pa(a))}</span>\n            </header>\n            <p>${t(ba(e.comment || e.review || ''))}</p>\n            <small>${t(s)}</small>\n        </article>\n    `;
                         })(e, {
                             featured:
                                 n.item &&
                                 ua(e.name) === ua(n.item.name) &&
                                 da(e) === da(n.item),
+========
+                            return `\n        <article class="review-card${n ? ' is-featured' : ''}" data-rating="${t(String(a))}">\n            <header>\n                <div class="review-card-heading">\n                    <span class="review-avatar">${t(ga(e.name || 'Anonimo'))}</span>\n                    <div>\n                        <strong>${t(e.name || 'Anonimo')}</strong>\n                        <small>${t(i(e.date || e.createdAt || ''))}</small>\n                    </div>\n                </div>\n                <span class="review-rating-badge" data-tone="${t(o)}">${t(ba(a))}</span>\n            </header>\n            <p>${t(fa(e.comment || e.review || ''))}</p>\n            <small>${t(s)}</small>\n        </article>\n    `;
+                        })(e, {
+                            featured:
+                                n.item &&
+                                pa(e.name) === pa(n.item.name) &&
+                                ma(e) === ma(n.item),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                         })
                     )
                     .join('');
             })(a, u)
         ));
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function fa() {
+========
+function ya() {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const t = (function () {
         const t = b(),
             e = Number(t.ui.lastRefreshAt || 0);
@@ -4250,7 +5235,11 @@ function fa() {
                 : t.replace('Datos: ', 'Estado: ')
         ));
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 async function ha(t = !1) {
+========
+async function va(t = !1) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const e = await (async function () {
         try {
             const [t, e] = await Promise.all([
@@ -4258,7 +5247,11 @@ async function ha(t = !1) {
                     q('health').catch(() => null),
                 ]),
                 n = t.data || {},
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 a = Yn(),
+========
+                a = Xn(),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 i = (function (t, e, n) {
                     return {
                         appointments: Array.isArray(t.appointments)
@@ -4277,7 +5270,11 @@ async function ha(t = !1) {
                             'object' == typeof t.availabilityMeta
                                 ? t.availabilityMeta
                                 : {},
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                         queueTickets: Zn(t),
+========
+                        queueTickets: ta(t),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                         queueMeta:
                             t.queueMeta && 'object' == typeof t.queueMeta
                                 ? t.queueMeta
@@ -4285,6 +5282,10 @@ async function ha(t = !1) {
                                     'object' == typeof t.queue_state
                                   ? t.queue_state
                                   : null,
+                        leadOpsMeta:
+                            t.leadOpsMeta && 'object' == typeof t.leadOpsMeta
+                                ? t.leadOpsMeta
+                                : n?.leadOpsMeta || null,
                         appDownloads:
                             t.appDownloads && 'object' == typeof t.appDownloads
                                 ? t.appDownloads
@@ -4293,6 +5294,7 @@ async function ha(t = !1) {
                             t.funnelMetrics || n?.funnelMetrics || null,
                         health: e && e.ok ? e : null,
                     };
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 })({ ...n, funnelMetrics: await ta(n) }, e, a);
             return (
                 Xn(i),
@@ -4306,43 +5308,68 @@ async function ha(t = !1) {
                         sn(Qn, t.queueMeta || null),
                         sn(Wn, t.appDownloads || null),
                         sn(Gn, t.health || null));
+========
+                })({ ...n, funnelMetrics: await na(n) }, e, a);
+            return (
+                ea(i),
+                (function (t) {
+                    (rn(jn, t.appointments || []),
+                        rn(zn, t.callbacks || []),
+                        rn(Vn, t.reviews || []),
+                        rn(Un, t.availability || {}),
+                        rn(Kn, t.availabilityMeta || {}),
+                        rn(Qn, t.queueTickets || []),
+                        rn(Wn, t.queueMeta || null),
+                        rn(Gn, t.leadOpsMeta || null),
+                        rn(Jn, t.appDownloads || null),
+                        rn(Yn, t.health || null));
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 })(i),
                 !0
             );
         } catch (t) {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
             return (Xn(Yn()), !1);
+========
+            return (ea(Xn()), !1);
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         }
     })();
     return (
         (function () {
             const t = b(),
-                e = jt(t.data.availability || {}),
-                n = Ut(t.availability.selectedDate, e);
-            (te({
+                e = Yt(t.data.availability || {}),
+                n = te(t.availability.selectedDate, e);
+            (le({
                 draft: e,
                 selectedDate: n,
-                monthAnchor: Vt(t.availability.monthAnchor, n),
+                monthAnchor: Xt(t.availability.monthAnchor, n),
                 draftDirty: !1,
                 lastAction: '',
             }),
-                Xt());
+                ce());
         })(),
         await (async function () {
             const t = Array.isArray(b().data.queueTickets)
-                    ? b().data.queueTickets.map((t, e) => we(t, e))
+                    ? b().data.queueTickets.map((t, e) => Le(t, e))
                     : [],
                 e = (function (t) {
                     return b().data.queueMeta &&
                         'object' == typeof b().data.queueMeta
-                        ? Ae(b().data.queueMeta, t)
+                        ? Be(b().data.queueMeta, t)
                         : null;
                 })(t);
             t.length
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 ? hn(t, e || null, { fallbackPartial: !1, syncMode: 'live' })
+========
+                ? yn(t, e || null, { fallbackPartial: !1, syncMode: 'live' })
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 : (function (t) {
-                      const e = t ? Le(t) : [];
+                      const e = t ? He(t) : [];
                       return (
                           !!e.length &&
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                           (hn(e, t, {
                               fallbackPartial: !0,
                               syncMode: 'fallback',
@@ -4364,6 +5391,29 @@ async function ha(t = !1) {
         Xt(),
         Ze(),
         fa(),
+========
+                          (yn(e, t, {
+                              fallbackPartial: !0,
+                              syncMode: 'fallback',
+                          }),
+                          tn('Queue fallback parcial desde metadata'),
+                          !0)
+                      );
+                  })(e) ||
+                  (await _n(),
+                  (b().data.queueTickets || []).length ||
+                      An(qn(), 'Queue fallback desde snapshot local') ||
+                      yn([], null, { fallbackPartial: !1, syncMode: 'live' }));
+        })(),
+        j(b()),
+        da(b()),
+        ut(),
+        Ft(),
+        ha(),
+        ce(),
+        Xe(),
+        ya(),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         t &&
             s(
                 e ? 'Datos actualizados' : 'Datos cargados desde cache local',
@@ -4372,7 +5422,11 @@ async function ha(t = !1) {
         e
     );
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function ya() {
+========
+function ka() {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     (I(!1),
         O(),
         H(!1),
@@ -4383,7 +5437,11 @@ function ya() {
                 'Usa tu clave de administrador para acceder al centro operativo.',
         }));
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 async function va(t) {
+========
+async function wa(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     t.preventDefault();
     const e = document.getElementById('adminPassword'),
         n = document.getElementById('admin2FACode'),
@@ -4486,7 +5544,11 @@ async function va(t) {
             P(),
             I(!1),
             O({ clearPassword: !0 }),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
             await ha(!1),
+========
+            await va(!1),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
             s('Sesion iniciada', 'success'));
     } catch (t) {
         (F({
@@ -4502,7 +5564,11 @@ async function va(t) {
         H(!1);
     }
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 async function ka(t, e) {
+========
+async function Sa(t, e) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     switch (t) {
         case 'appointment-quick-filter':
             return (pt(String(e.dataset.filterValue || 'all')), !0);
@@ -4603,32 +5669,36 @@ async function ka(t, e) {
             return !1;
     }
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 async function wa(t, n) {
+========
+async function Ca(t, n) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     switch (t) {
         case 'change-month':
             return (
                 (function (t) {
                     const e = Number(t || 0);
                     if (!Number.isFinite(e) || 0 === e) return;
-                    const n = Vt(
+                    const n = Xt(
                         b().availability.monthAnchor,
                         b().availability.selectedDate
                     );
                     (n.setMonth(n.getMonth() + e),
-                        te({ monthAnchor: n, lastAction: '' }, { render: !0 }));
+                        le({ monthAnchor: n, lastAction: '' }, { render: !0 }));
                 })(Number(n.dataset.delta || 0)),
                 !0
             );
         case 'availability-today':
         case 'context-availability-today':
-            return (ie(u(new Date()), 'Hoy'), !0);
+            return (me(u(new Date()), 'Hoy'), !0);
         case 'availability-prev-with-slots':
             return (
                 (function () {
-                    const t = Zt(-1);
+                    const t = re(-1);
                     t
-                        ? ie(t, `Fecha previa con slots: ${t}`)
-                        : ne('No hay fechas anteriores con slots');
+                        ? me(t, `Fecha previa con slots: ${t}`)
+                        : de('No hay fechas anteriores con slots');
                 })(),
                 !0
             );
@@ -4636,22 +5706,22 @@ async function wa(t, n) {
         case 'context-availability-next':
             return (
                 (function () {
-                    const t = Zt(1);
+                    const t = re(1);
                     t
-                        ? ie(t, `Siguiente fecha con slots: ${t}`)
-                        : ne('No hay fechas siguientes con slots');
+                        ? me(t, `Siguiente fecha con slots: ${t}`)
+                        : de('No hay fechas siguientes con slots');
                 })(),
                 !0
             );
         case 'select-availability-day':
             return (
                 (function (t) {
-                    const e = Ht(t);
+                    const e = Wt(t);
                     e &&
-                        te(
+                        le(
                             {
                                 selectedDate: e,
-                                monthAnchor: Vt(e, e),
+                                monthAnchor: Xt(e, e),
                                 lastAction: '',
                             },
                             { render: !0 }
@@ -4662,25 +5732,25 @@ async function wa(t, n) {
         case 'prefill-time-slot':
             return (
                 (function (t) {
-                    if (Gt()) return;
+                    if (ie()) return;
                     const n = e('#newSlotTime');
                     n instanceof HTMLInputElement &&
-                        ((n.value = se(t)), n.focus());
+                        ((n.value = ge(t)), n.focus());
                 })(String(n.dataset.time || '')),
                 !0
             );
         case 'add-time-slot':
             return (
                 (function () {
-                    if (Gt()) return;
+                    if (ie()) return;
                     const t = e('#newSlotTime');
                     if (!(t instanceof HTMLInputElement)) return;
-                    const n = se(t.value);
+                    const n = ge(t.value);
                     if (!n) return;
                     const a = b(),
-                        i = oe();
+                        i = be();
                     i &&
-                        (ae(
+                        (pe(
                             i,
                             [
                                 ...(Array.isArray(a.availability.draft[i])
@@ -4697,17 +5767,17 @@ async function wa(t, n) {
         case 'remove-time-slot':
             return (
                 (function (t, e) {
-                    if (Gt()) return;
-                    const n = Ht(t);
+                    if (ie()) return;
+                    const n = Wt(t);
                     if (!n) return;
                     const a = b(),
                         i = Array.isArray(a.availability.draft[n])
                             ? a.availability.draft[n]
                             : [],
-                        o = se(e);
-                    ae(
+                        o = ge(e);
+                    pe(
                         n,
-                        i.filter((t) => se(t) !== o),
+                        i.filter((t) => ge(t) !== o),
                         `Slot ${o || '-'} removido en ${n}`
                     );
                 })(
@@ -4720,14 +5790,14 @@ async function wa(t, n) {
         case 'context-copy-availability-day':
             return (
                 (function () {
-                    if (Gt()) return;
+                    if (ie()) return;
                     const t = b(),
-                        e = oe();
+                        e = be();
                     if (!e) return;
                     const n = Array.isArray(t.availability.draft[e])
-                        ? Ft(t.availability.draft[e])
+                        ? Qt(t.availability.draft[e])
                         : [];
-                    te(
+                    le(
                         {
                             clipboard: n,
                             clipboardDate: e,
@@ -4743,42 +5813,42 @@ async function wa(t, n) {
         case 'paste-availability-day':
             return (
                 (function () {
-                    if (Gt()) return;
+                    if (ie()) return;
                     const t = b(),
                         e = Array.isArray(t.availability.clipboard)
-                            ? Ft(t.availability.clipboard)
+                            ? Qt(t.availability.clipboard)
                             : [];
-                    if (!e.length) return void ne('Portapapeles vacio');
-                    const n = oe();
-                    n && ae(n, e, `Pegado ${e.length} slots en ${n}`);
+                    if (!e.length) return void de('Portapapeles vacio');
+                    const n = be();
+                    n && pe(n, e, `Pegado ${e.length} slots en ${n}`);
                 })(),
                 !0
             );
         case 'duplicate-availability-day-next':
-            return (re(1), !0);
+            return (fe(1), !0);
         case 'duplicate-availability-next-week':
-            return (re(7), !0);
+            return (fe(7), !0);
         case 'clear-availability-day':
             return (
                 (function () {
-                    if (Gt()) return;
-                    const t = oe();
+                    if (ie()) return;
+                    const t = be();
                     t &&
                         window.confirm(
                             `Se eliminaran los slots del dia ${t}. Continuar?`
                         ) &&
-                        ae(t, [], `Dia ${t} limpiado`);
+                        pe(t, [], `Dia ${t} limpiado`);
                 })(),
                 !0
             );
         case 'clear-availability-week':
             return (
                 (function () {
-                    if (Gt()) return;
-                    const t = oe();
+                    if (ie()) return;
+                    const t = be();
                     if (!t) return;
                     const e = (function (t) {
-                        const e = Ot(t);
+                        const e = Gt(t);
                         if (!e) return null;
                         const n = (e.getDay() + 6) % 7,
                             a = new Date(e);
@@ -4798,12 +5868,12 @@ async function wa(t, n) {
                         )
                     )
                         return;
-                    const i = Wt();
+                    const i = ae();
                     for (let t = 0; t < 7; t += 1) {
                         const n = new Date(e.start);
                         (n.setDate(e.start.getDate() + t), delete i[u(n)]);
                     }
-                    ee(i, {
+                    ue(i, {
                         selectedDate: t,
                         lastAction: `Semana limpiada (${n} - ${a})`,
                     });
@@ -4813,15 +5883,21 @@ async function wa(t, n) {
         case 'save-availability-draft':
             return (
                 await (async function () {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     if (Gt()) return;
                     const t = Wt(),
                         e = await q('availability', {
+========
+                    if (ie()) return;
+                    const t = ae(),
+                        e = await C('availability', {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                             method: 'POST',
                             body: { availability: t },
                         }),
                         n =
                             e?.data && 'object' == typeof e.data
-                                ? jt(e.data)
+                                ? Yt(e.data)
                                 : t,
                         a =
                             e?.meta && 'object' == typeof e.meta
@@ -4843,7 +5919,7 @@ async function wa(t, n) {
                             lastAction: `Cambios guardados ${new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: !1 })}`,
                         },
                     })),
-                        Xt());
+                        ce());
                 })(),
                 s('Disponibilidad guardada', 'success'),
                 !0
@@ -4851,7 +5927,7 @@ async function wa(t, n) {
         case 'discard-availability-draft':
             return (
                 (function () {
-                    if (Gt()) return;
+                    if (ie()) return;
                     const t = b();
                     if (
                         t.availability.draftDirty &&
@@ -4860,13 +5936,13 @@ async function wa(t, n) {
                         )
                     )
                         return;
-                    const e = jt(t.data.availability || {}),
-                        n = Ut(t.availability.selectedDate, e);
-                    te(
+                    const e = Yt(t.data.availability || {}),
+                        n = te(t.availability.selectedDate, e);
+                    le(
                         {
                             draft: e,
                             selectedDate: n,
-                            monthAnchor: Vt(t.availability.monthAnchor, n),
+                            monthAnchor: Xt(t.availability.monthAnchor, n),
                             draftDirty: !1,
                             lastAction: 'Borrador descartado',
                         },
@@ -4880,7 +5956,11 @@ async function wa(t, n) {
             return !1;
     }
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 const Sa = new Set([
+========
+const qa = new Set([
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     'dashboard',
     'appointments',
     'callbacks',
@@ -4888,6 +5968,7 @@ const Sa = new Set([
     'availability',
     'queue',
 ]);
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function qa(t, e = 'dashboard') {
     const n = String(t || '')
         .trim()
@@ -4895,6 +5976,15 @@ function qa(t, e = 'dashboard') {
     return Sa.has(n) ? n : e;
 }
 function Ca(t) {
+========
+function Aa(t, e = 'dashboard') {
+    const n = String(t || '')
+        .trim()
+        .toLowerCase();
+    return qa.has(n) ? n : e;
+}
+function _a(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     !(function (t) {
         const e = String(t || '').replace(/^#/, ''),
             n = e ? `#${e}` : '';
@@ -4904,11 +5994,21 @@ function Ca(t) {
                 '',
                 `${window.location.pathname}${window.location.search}${n}`
             );
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
     })(qa(t));
 }
 const Aa = 'themeMode',
     _a = new Set(['light', 'dark', 'system']);
 function $a(t, { persist: e = !1 } = {}) {
+========
+    })(Aa(t));
+}
+const $a = 'themeMode',
+    Ta = new Set(['light', 'dark', 'system']);
+const Ma = 'adminLastSection',
+    La = 'adminSidebarCollapsed';
+function Ea(t, { persist: e = !1 } = {}) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const n = (function (t) {
         const e = (function (t) {
             return 'light' === t || 'dark' === t
@@ -4927,8 +6027,13 @@ function $a(t, { persist: e = !1 } = {}) {
     (g((e) => ({ ...e, ui: { ...e.ui, themeMode: t, theme: n } })),
         e &&
             (function (t) {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 const e = _a.has(t) ? t : 'system';
                 an(Aa, e);
+========
+                const e = Ta.has(t) ? t : 'system';
+                on($a, e);
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
             })(t),
         Array.from(
             document.querySelectorAll('.admin-theme-btn[data-theme-mode]')
@@ -4938,12 +6043,23 @@ function $a(t, { persist: e = !1 } = {}) {
                 e.setAttribute('aria-pressed', String(n)));
         }));
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 const Ta = 'adminLastSection',
     Ma = 'adminSidebarCollapsed';
 function La() {
     return window.matchMedia('(max-width: 1024px)').matches;
 }
 function Ea(t) {
+========
+function Na() {
+    const t = b();
+    (on(Ma, t.ui.activeSection), on(La, t.ui.sidebarCollapsed ? '1' : '0'));
+}
+function Da() {
+    return window.matchMedia('(max-width: 1024px)').matches;
+}
+function Ba(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     return (
         t instanceof HTMLElement &&
         !t.hidden &&
@@ -4952,9 +6068,15 @@ function Ea(t) {
         t.getClientRects().length > 0
     );
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function Da() {
     const t = b(),
         n = La(),
+========
+function xa() {
+    const t = b(),
+        n = Da(),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         a = e('#adminSidebar'),
         i = a instanceof HTMLElement && a.classList.contains('is-open');
     (!(function ({ open: t, collapsed: n }) {
@@ -4989,12 +6111,17 @@ function Da() {
                     });
             })());
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function Na() {
     const t = b();
     (an(Ta, t.ui.activeSection), an(Ma, t.ui.sidebarCollapsed ? '1' : '0'));
 }
 async function Ba(t, e = {}) {
     const n = qa(t, 'dashboard'),
+========
+async function Pa(t, e = {}) {
+    const n = Aa(t, 'dashboard'),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         { force: a = !1 } = e,
         i = b().ui.activeSection;
     return (
@@ -5004,7 +6131,7 @@ async function Ba(t, e = {}) {
                     !e &&
                     'availability' === b().ui.activeSection &&
                     'availability' !== t &&
-                    ce()
+                    he()
                 );
             })(n, a) &&
             !window.confirm(
@@ -5012,11 +6139,19 @@ async function Ba(t, e = {}) {
             )
         ) &&
         ((function (t) {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
             const e = qa(t, 'dashboard');
+========
+            const e = Aa(t, 'dashboard');
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
             (g((t) => ({ ...t, ui: { ...t.ui, activeSection: e } })),
                 x(e),
                 j(b()),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 Ca(e),
+========
+                _a(e),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 Na());
         })(n),
         'queue' === n &&
@@ -5024,10 +6159,11 @@ async function Ba(t, e = {}) {
             (function () {
                 const t = b();
                 return (
-                    'fallback' !== pe(t.queue.syncMode) &&
+                    'fallback' !== we(t.queue.syncMode) &&
                     !Boolean(t.queue.fallbackPartial)
                 );
             })() &&
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
             (await An()),
         !0)
     );
@@ -5048,16 +6184,46 @@ function Ia() {
 }
 function Fa({ restoreFocus: t = !1 } = {}) {
     if ((Pa(() => ({ sidebarOpen: !1 })), Da(), P(), t)) {
+========
+            (await _n()),
+        !0)
+    );
+}
+function Ia(t) {
+    g((e) => ({ ...e, ui: { ...e.ui, ...t(e.ui) } }));
+}
+function Fa() {
+    (Ia((t) => ({
+        sidebarCollapsed: !t.sidebarCollapsed,
+        sidebarOpen: t.sidebarOpen,
+    })),
+        xa(),
+        Na());
+}
+function Ha() {
+    (Ia((t) => ({ sidebarOpen: !t.sidebarOpen })), xa());
+}
+function Oa({ restoreFocus: t = !1 } = {}) {
+    if ((Ia(() => ({ sidebarOpen: !1 })), xa(), x(), t)) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         const t = e('#adminMenuToggle');
         t instanceof HTMLElement && t.focus();
     }
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function Ha() {
+========
+function Ra() {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     B();
     const t = document.getElementById('adminQuickCommand');
     t instanceof HTMLInputElement && t.focus();
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 function Oa() {
+========
+function ja() {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const t = b().ui.activeSection;
     if ('appointments' === t) {
         const t = document.getElementById('searchAppointments');
@@ -5072,6 +6238,7 @@ function Oa() {
         t instanceof HTMLInputElement && t.focus();
     }
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 const Ra = {
     appointments_pending_transfer: async () => {
         (await Ba('appointments'), pt('pending_transfer'), mt(''));
@@ -5115,6 +6282,51 @@ async function ja(t) {
     'function' == typeof e && (await e());
 }
 function za(t) {
+========
+const za = {
+    appointments_pending_transfer: async () => {
+        (await Pa('appointments'), pt('pending_transfer'), mt(''));
+    },
+    appointments_all: async () => {
+        (await Pa('appointments'), pt('all'), mt(''));
+    },
+    appointments_no_show: async () => {
+        (await Pa('appointments'), pt('no_show'), mt(''));
+    },
+    callbacks_pending: async () => {
+        (await Pa('callbacks'), Ot('pending'));
+    },
+    callbacks_contacted: async () => {
+        (await Pa('callbacks'), Ot('contacted'));
+    },
+    callbacks_sla_urgent: async () => {
+        (await Pa('callbacks'), Ot('sla_urgent'));
+    },
+    queue_sla_risk: async () => {
+        (await Pa('queue'), wn('sla_risk'));
+    },
+    queue_waiting: async () => {
+        (await Pa('queue'), wn('waiting'));
+    },
+    queue_called: async () => {
+        (await Pa('queue'), wn('called'));
+    },
+    queue_no_show: async () => {
+        (await Pa('queue'), wn('no_show'));
+    },
+    queue_all: async () => {
+        (await Pa('queue'), wn('all'));
+    },
+    queue_call_next: async () => {
+        (await Pa('queue'), await Mn(b().queue.stationConsultorio));
+    },
+};
+async function Va(t) {
+    const e = za[t];
+    'function' == typeof e && (await e());
+}
+function Ua(t) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     const e = String(t || '')
         .trim()
         .toLowerCase();
@@ -5132,6 +6344,7 @@ function za(t) {
                     : null
         : null;
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 async function Va(t, e) {
     switch (t) {
         case 'callback-quick-filter':
@@ -5139,8 +6352,17 @@ async function Va(t, e) {
         case 'clear-callback-filters':
             return (
                 Dt({
+========
+async function Ka(t, e) {
+    switch (t) {
+        case 'callback-quick-filter':
+            return (Ot(String(e.dataset.filterValue || 'all')), !0);
+        case 'clear-callback-filters':
+            return (
+                Ht({
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                     filter: 'all',
-                    sort: 'recent_desc',
+                    sort: 'priority_desc',
                     search: '',
                     selected: [],
                 }),
@@ -5149,8 +6371,13 @@ async function Va(t, e) {
         case 'callbacks-triage-next':
         case 'context-open-callbacks-next':
             return (
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 await Ba('callbacks'),
                 Nt('pending'),
+========
+                await Pa('callbacks'),
+                Ot('pending'),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 (function () {
                     const t = document.querySelector(
                         '#callbacksGrid .callback-card.pendiente button[data-action="mark-contacted"]'
@@ -5161,16 +6388,72 @@ async function Va(t, e) {
             );
         case 'mark-contacted':
             return (
-                await Bt(
+                await zt(
                     Number(e.dataset.callbackId || 0),
                     String(e.dataset.callbackDate || '')
                 ),
                 s('Callback actualizado', 'success'),
                 !0
             );
+        case 'lead-ai-request':
+            return (
+                await (async function (t, e = 'whatsapp_draft') {
+                    const n = Number(t || 0);
+                    if (n <= 0) return null;
+                    const a = await C('lead-ai-request', {
+                        method: 'POST',
+                        body: { callbackId: n, objective: e },
+                    });
+                    return a?.data ? (Rt(a.data), a.data) : null;
+                })(
+                    Number(e.dataset.callbackId || 0),
+                    String(e.dataset.objective || 'whatsapp_draft')
+                ),
+                s('Solicitud IA encolada', 'success'),
+                !0
+            );
+        case 'callback-outcome':
+            return (
+                await (async function (t, e) {
+                    const n = await jt(t, {
+                        status: 'contacted',
+                        leadOps: { outcome: e },
+                    });
+                    return (n && Rt(n), n);
+                })(
+                    Number(e.dataset.callbackId || 0),
+                    String(e.dataset.outcome || '')
+                ),
+                s('Outcome actualizado', 'success'),
+                !0
+            );
+        case 'callback-copy-ai': {
+            const t = Number(e.dataset.callbackId || 0),
+                n = (b().data.callbacks || []).find(
+                    (e) => Number(e.id || 0) === t
+                ),
+                a = String(n?.leadOps?.aiDraft || '').trim();
+            return a
+                ? navigator?.clipboard?.writeText
+                    ? (await navigator.clipboard.writeText(a),
+                      await (async function (t) {
+                          const e = await jt(t, {
+                              leadOps: { aiStatus: 'accepted' },
+                          });
+                          return (e && Rt(e), e);
+                      })(t),
+                      s('Borrador copiado', 'success'),
+                      !0)
+                    : (s('Clipboard no disponible', 'error'), !0)
+                : (s('Aun no hay borrador IA', 'error'), !0);
+        }
         case 'callbacks-bulk-select-visible':
             return (
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 Dt(
+========
+                Ht(
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                     {
                         selected: Array.from(
                             document.querySelectorAll(
@@ -5187,7 +6470,11 @@ async function Va(t, e) {
                 !0
             );
         case 'callbacks-bulk-clear':
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
             return (Dt({ selected: [] }, { persist: !1 }), !0);
+========
+            return (Ht({ selected: [] }, { persist: !1 }), !0);
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         case 'callbacks-bulk-mark':
             return (
                 await (async function () {
@@ -5196,27 +6483,41 @@ async function Va(t, e) {
                         .filter((t) => t > 0);
                     for (const e of t)
                         try {
-                            await Bt(e);
+                            await zt(e);
                         } catch (t) {}
                 })(),
                 !0
             );
         case 'context-open-callbacks-pending':
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
             return (await Ba('callbacks'), Nt('pending'), !0);
+========
+            return (await Pa('callbacks'), Ot('pending'), !0);
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         default:
             return !1;
     }
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 async function Ua(t) {
     switch (t) {
         case 'context-open-appointments-transfer':
             return (await Ba('appointments'), pt('pending_transfer'), !0);
         case 'context-open-dashboard':
             return (await Ba('dashboard'), !0);
+========
+async function Qa(t) {
+    switch (t) {
+        case 'context-open-appointments-transfer':
+            return (await Pa('appointments'), pt('pending_transfer'), !0);
+        case 'context-open-dashboard':
+            return (await Pa('dashboard'), !0);
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         default:
             return !1;
     }
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 async function Ka(t, e) {
     switch (t) {
         case 'queue-bulk-action':
@@ -5226,6 +6527,57 @@ async function Ka(t, e) {
                         n = be(t);
                     if (e.length) {
                         if (gn.has(n)) {
+========
+async function Wa(t, e) {
+    switch (t) {
+        case 'queue-refresh-state':
+            return (await _n(), !0);
+        case 'queue-call-next':
+            return (await Mn(Number(e.dataset.queueConsultorio || 0)), !0);
+        case 'queue-release-station':
+            return (
+                await (async function (t) {
+                    const e = 2 === Number(t || 0) ? 2 : 1,
+                        n = Ue(e);
+                    n
+                        ? await Ln(n.id, 'liberar', e)
+                        : tn(`Sin ticket activo para liberar en C${e}`);
+                })(Number(e.dataset.queueConsultorio || 0)),
+                !0
+            );
+        case 'queue-toggle-ticket-select':
+            return (
+                (function (t) {
+                    const e = Number(t || 0);
+                    if (!e) return;
+                    const n = je(b().queue.selected || []);
+                    en(n.includes(e) ? n.filter((t) => t !== e) : [...n, e]);
+                })(Number(e.dataset.queueId || 0)),
+                !0
+            );
+        case 'queue-select-visible':
+            return (en(Re().map((t) => Number(t.id || 0))), !0);
+        case 'queue-clear-selection':
+            return (nn(), !0);
+        case 'queue-ticket-action':
+            return (
+                await Ln(
+                    Number(e.dataset.queueId || 0),
+                    String(e.dataset.queueAction || ''),
+                    Number(e.dataset.queueConsultorio || 0)
+                ),
+                !0
+            );
+        case 'queue-reprint-ticket':
+            return (await Bn(Number(e.dataset.queueId || 0)), !0);
+        case 'queue-bulk-action':
+            return (
+                await (async function (t) {
+                    const e = Ve(),
+                        n = Ce(t);
+                    if (e.length) {
+                        if (fn.has(n)) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                             const t = window.confirm(
                                 `${(function (t) {
                                     return 'no_show' === t
@@ -5239,7 +6591,11 @@ async function Ka(t, e) {
                         }
                         for (const t of e)
                             try {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                                 await $n({
+========
+                                await Tn({
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                                     ticketId: t.id,
                                     action: n,
                                     consultorio:
@@ -5247,7 +6603,11 @@ async function Ka(t, e) {
                                         b().queue.stationConsultorio,
                                 });
                             } catch (t) {}
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                         (en(), Xe(`Bulk ${n} sobre ${e.length} tickets`));
+========
+                        (nn(), tn(`Bulk ${n} sobre ${e.length} tickets`));
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                     }
                 })(String(e.dataset.queueAction || 'no_show')),
                 !0
@@ -5255,12 +6615,21 @@ async function Ka(t, e) {
         case 'queue-bulk-reprint':
             return (
                 await (async function () {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     const t = Pe();
                     for (const e of t)
                         try {
                             await Nn(e.id);
                         } catch (t) {}
                     (en(), Xe(`Bulk reimpresion ${t.length}`));
+========
+                    const t = Ve();
+                    for (const e of t)
+                        try {
+                            await Bn(e.id);
+                        } catch (t) {}
+                    (nn(), tn(`Bulk reimpresion ${t.length}`));
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 })(),
                 !0
             );
@@ -5309,6 +6678,7 @@ async function Ya(t, e) {
             return (await Tn(Ga(e)), !0);
         case 'queue-release-station':
             return (
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 await (async function (t) {
                     const e = 2 === Number(t || 0) ? 2 : 1,
                         n = xe(e);
@@ -5322,6 +6692,19 @@ async function Ya(t, e) {
             return (Bn(), !0);
         case 'queue-toggle-one-tap':
             return (vn({ oneTap: !b().queue.oneTap }), !0);
+========
+                (function () {
+                    kn({ search: '', selected: [] });
+                    const t = document.getElementById('queueSearchInput');
+                    t instanceof HTMLInputElement && (t.value = '');
+                })(),
+                !0
+            );
+        case 'queue-toggle-shortcuts':
+            return (xn(), !0);
+        case 'queue-toggle-one-tap':
+            return (kn({ oneTap: !b().queue.oneTap }), !0);
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         case 'queue-start-practice':
             return (Pn(!0), !0);
         case 'queue-stop-practice':
@@ -5330,16 +6713,23 @@ async function Ya(t, e) {
             return (
                 (function (t) {
                     const e = 2 === Number(t || 0) ? 2 : 1;
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     (vn({ stationMode: 'locked', stationConsultorio: e }),
                         Xe(`Estacion bloqueada en C${e}`));
                 })(Ga(e, 1)),
+========
+                    (kn({ stationMode: 'locked', stationConsultorio: e }),
+                        tn(`Estacion bloqueada en C${e}`));
+                })(Number(e.dataset.queueConsultorio || 1)),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 !0
             );
         case 'queue-set-station-mode':
             return (
                 (function (t) {
-                    if ('free' === pe(t))
+                    if ('free' === we(t))
                         return (
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                             vn({ stationMode: 'free' }),
                             void Xe('Estacion en modo libre')
                         );
@@ -5350,13 +6740,33 @@ async function Ya(t, e) {
         case 'queue-capture-call-key':
             return (
                 vn({ captureCallKeyMode: !0 }),
+========
+                            kn({ stationMode: 'free' }),
+                            void tn('Estacion en modo libre')
+                        );
+                    kn({ stationMode: 'locked' });
+                })(String(e.dataset.queueMode || 'free')),
+                !0
+            );
+        case 'queue-sensitive-confirm':
+            return (await En(), !0);
+        case 'queue-sensitive-cancel':
+            return (Nn(), !0);
+        case 'queue-capture-call-key':
+            return (
+                kn({ captureCallKeyMode: !0 }),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 s('Calibración activa: presiona la tecla externa', 'info'),
                 !0
             );
         case 'queue-clear-call-key':
             return (
                 window.confirm('¿Quitar tecla externa calibrada?') &&
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     (vn({ customCallKey: null, captureCallKeyMode: !1 }),
+========
+                    (kn({ customCallKey: null, captureCallKeyMode: !1 }),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                     s('Tecla externa eliminada', 'success')),
                 !0
             );
@@ -5364,6 +6774,7 @@ async function Ya(t, e) {
             return !1;
     }
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 async function Za(t, e) {
     switch (t) {
         case 'queue-toggle-ticket-select':
@@ -5412,11 +6823,15 @@ async function Xa(t, e) {
     return !1;
 }
 async function ti(t, e) {
+========
+async function Ga(t, e) {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     switch (t) {
         case 'close-toast':
             return (e.closest('.toast')?.remove(), !0);
         case 'set-admin-theme':
             return (
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 $a(String(e.dataset.themeMode || 'system'), { persist: !0 }),
                 !0
             );
@@ -5429,11 +6844,29 @@ async function ti(t, e) {
             if (t instanceof HTMLInputElement) {
                 const e = za(t.value);
                 e && (await ja(e), (t.value = ''), P());
+========
+                Ea(String(e.dataset.themeMode || 'system'), { persist: !0 }),
+                !0
+            );
+        case 'toggle-sidebar-collapse':
+            return (Fa(), !0);
+        case 'refresh-admin-data':
+            return (await va(!0), !0);
+        case 'run-admin-command': {
+            const t = document.getElementById('adminQuickCommand');
+            if (t instanceof HTMLInputElement) {
+                const e = Ua(t.value);
+                e && (await Va(e), (t.value = ''), x());
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
             }
             return !0;
         }
         case 'open-command-palette':
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
             return (B(), Ha(), !0);
+========
+            return (B(), Ra(), !0);
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         case 'close-command-palette':
             return (P(), !0);
         case 'logout':
@@ -5455,9 +6888,15 @@ async function ti(t, e) {
                             },
                         })));
                 })(),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 D(),
                 P(),
                 ya(),
+========
+                N(),
+                x(),
+                ka(),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 s('Sesion cerrada', 'info'),
                 !0
             );
@@ -5479,7 +6918,11 @@ async function ti(t, e) {
             return !1;
     }
 }
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
 async function ei() {
+========
+async function Ja() {
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     ((function () {
         const t = e('#loginScreen'),
             n = e('#adminDashboard');
@@ -5512,7 +6955,11 @@ async function ei() {
                 t.preventDefault();
                 try {
                     await (async function (t, e) {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                         const n = [ti, ka, Va, wa, Xa, Ua];
+========
+                        const n = [Ga, Sa, Ka, Ca, Wa, Qa];
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                         for (const a of n) if (await a(t, e)) return !0;
                         return !1;
                     })(n, e);
@@ -5531,10 +6978,17 @@ async function ei() {
                 a = e.classList.contains('nav-item');
             if (!n && !a) return;
             t.preventDefault();
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
             const i = await Ba(
                 String(e.getAttribute('data-section') || 'dashboard')
             );
             La() && !1 !== i && Fa();
+========
+            const i = await Pa(
+                String(e.getAttribute('data-section') || 'dashboard')
+            );
+            Da() && !1 !== i && Oa();
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         }),
         document.addEventListener('click', (t) => {
             const e =
@@ -5543,7 +6997,11 @@ async function ei() {
                     : null;
             e &&
                 (t.preventDefault(),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 kn(String(e.getAttribute('data-queue-filter') || 'all')));
+========
+                wn(String(e.getAttribute('data-queue-filter') || 'all')));
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         }),
         (function () {
             const t = document.getElementById('callbacksBulkSelectVisibleBtn');
@@ -5571,11 +7029,11 @@ async function ei() {
         })(),
         (function () {
             let t = 'all',
-                e = 'recent_desc';
+                e = 'priority_desc';
             try {
                 ((t = JSON.parse(localStorage.getItem(ht) || '"all"')),
                     (e = JSON.parse(
-                        localStorage.getItem(ft) || '"recent_desc"'
+                        localStorage.getItem(ft) || '"priority_desc"'
                     )));
             } catch (t) {}
             g((n) => ({
@@ -5587,11 +7045,16 @@ async function ei() {
             let t = '',
                 e = '';
             try {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 ((t = String(localStorage.getItem(Pt) || '')),
                     (e = String(localStorage.getItem(xt) || '')));
+========
+                ((t = String(localStorage.getItem(Vt) || '')),
+                    (e = String(localStorage.getItem(Ut) || '')));
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
             } catch (t) {}
-            const n = Ht(t),
-                a = Vt(e, n);
+            const n = Wt(t),
+                a = Xt(e, n);
             g((t) => ({
                 ...t,
                 availability: {
@@ -5602,8 +7065,13 @@ async function ei() {
             }));
         })(),
         (function () {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
             const t = qa(nn(Ta, 'dashboard')),
                 e = '1' === nn(Ma, '0');
+========
+            const t = Aa(an(Ma, 'dashboard')),
+                e = '1' === an(La, '0');
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
             (g((n) => ({
                 ...n,
                 ui: {
@@ -5613,13 +7081,20 @@ async function ei() {
                     sidebarOpen: !1,
                 },
             })),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 x(t),
                 Ca(t),
                 Da());
+========
+                P(t),
+                _a(t),
+                xa());
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         })(),
         (function () {
             const t = {
                     stationMode:
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                         'locked' === pe(nn(cn, 'free')) ? 'locked' : 'free',
                     stationConsultorio: 2 === Number(nn(ln, '1')) ? 2 : 1,
                     oneTap: '1' === nn(un, '0'),
@@ -5629,13 +7104,30 @@ async function ei() {
                 e = pe(rn('station')),
                 n = pe(rn('lock')),
                 a = pe(rn('one_tap'));
+========
+                        'locked' === we(an(ln, 'free')) ? 'locked' : 'free',
+                    stationConsultorio: 2 === Number(an(un, '1')) ? 2 : 1,
+                    oneTap: '1' === an(dn, '0'),
+                    helpOpen: '1' === an(mn, '0'),
+                    customCallKey: sn(pn, null),
+                },
+                e = we(cn('station')),
+                n = we(cn('lock')),
+                a = we(cn('one_tap'));
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
             (g((i) => ({
                 ...i,
                 queue: {
                     ...i.queue,
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     stationMode: Hn(n, t.stationMode),
                     stationConsultorio: Fn(e, t.stationConsultorio),
                     oneTap: On(a, t.oneTap),
+========
+                    stationMode: On(n, t.stationMode),
+                    stationConsultorio: Hn(e, t.stationConsultorio),
+                    oneTap: Rn(a, t.oneTap),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                     helpOpen: t.helpOpen,
                     customCallKey:
                         t.customCallKey && 'object' == typeof t.customCallKey
@@ -5643,6 +7135,7 @@ async function ei() {
                             : null,
                 },
             })),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 fn(b()));
         })(),
         $a(
@@ -5654,6 +7147,19 @@ async function ei() {
             })()
         ),
         ya(),
+========
+                hn(b()));
+        })(),
+        Ea(
+            (function () {
+                const t = String(an($a, 'system') || 'system')
+                    .trim()
+                    .toLowerCase();
+                return Ta.has(t) ? t : 'system';
+            })()
+        ),
+        ka(),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         (function () {
             const t = document.getElementById('appointmentFilter');
             t instanceof HTMLSelectElement &&
@@ -5673,26 +7179,42 @@ async function ei() {
             const a = document.getElementById('callbackFilter');
             a instanceof HTMLSelectElement &&
                 a.addEventListener('change', () => {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     Nt(a.value);
+========
+                    Ot(a.value);
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 });
             const i = document.getElementById('callbackSort');
             i instanceof HTMLSelectElement &&
                 i.addEventListener('change', () => {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     Dt({ sort: St(i.value), selected: [] });
+========
+                    Ht({ sort: St(i.value), selected: [] });
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 });
             const o = document.getElementById('searchCallbacks');
             o instanceof HTMLInputElement &&
                 o.addEventListener('input', () => {
                     var t;
                     ((t = o.value),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                         Dt({ search: String(t || ''), selected: [] }));
+========
+                        Ht({ search: String(t || ''), selected: [] }));
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 });
             const s = document.getElementById('queueSearchInput');
             s instanceof HTMLInputElement &&
                 s.addEventListener('input', () => {
                     var t;
                     ((t = s.value),
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                         vn({ search: String(t || ''), selected: [] }));
+========
+                        kn({ search: String(t || ''), selected: [] }));
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 });
             const r = document.getElementById('adminQuickCommand');
             var c;
@@ -5700,8 +7222,13 @@ async function ei() {
                 (c = r).addEventListener('keydown', async (t) => {
                     if ('Enter' !== t.key) return;
                     t.preventDefault();
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     const e = za(c.value);
                     e && (await ja(e));
+========
+                    const e = Ua(c.value);
+                    e && (await Va(e));
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 });
         })(),
         (function () {
@@ -5709,6 +7236,7 @@ async function ei() {
                 n = e('#adminMenuClose'),
                 a = e('#adminSidebarBackdrop');
             (t?.addEventListener('click', () => {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                 La() ? Ia() : xa();
             }),
                 n?.addEventListener('click', () => Fa({ restoreFocus: !0 })),
@@ -5722,6 +7250,21 @@ async function ei() {
                         return (
                             t.preventDefault(),
                             void Fa({ restoreFocus: !0 })
+========
+                Da() ? Ha() : Fa();
+            }),
+                n?.addEventListener('click', () => Oa({ restoreFocus: !0 })),
+                a?.addEventListener('click', () => Oa({ restoreFocus: !0 })),
+                window.addEventListener('resize', () => {
+                    Da() ? xa() : Oa();
+                }),
+                document.addEventListener('keydown', (t) => {
+                    if (!Da() || !b().ui.sidebarOpen) return;
+                    if ('Escape' === t.key)
+                        return (
+                            t.preventDefault(),
+                            void Oa({ restoreFocus: !0 })
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                         );
                     if ('Tab' !== t.key) return;
                     const n = (function () {
@@ -5735,7 +7278,11 @@ async function ei() {
                                 t.querySelectorAll('.nav-item[data-section]')
                             ).filter((t) => t !== a),
                             o = t.querySelector('.logout-btn');
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                         return [n, a, ...i, o].filter(Ea);
+========
+                        return [n, a, ...i, o].filter(Ba);
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                     })();
                     if (!n.length) return;
                     const a = n.indexOf(document.activeElement);
@@ -5747,7 +7294,11 @@ async function ei() {
                 }),
                 window.addEventListener('hashchange', async () => {
                     const t = (function (t = 'dashboard') {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                         return qa(
+========
+                        return Aa(
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                             String(window.location.hash || '').replace(
                                 /^#/,
                                 ''
@@ -5755,17 +7306,25 @@ async function ei() {
                             t
                         );
                     })(b().ui.activeSection);
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                     await Ba(t, { force: !0 });
                 }),
                 window.addEventListener('storage', (t) => {
                     'themeMode' === t.key && $a(String(t.newValue || 'system'));
+========
+                    await Pa(t, { force: !0 });
+                }),
+                window.addEventListener('storage', (t) => {
+                    'themeMode' === t.key && Ea(String(t.newValue || 'system'));
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                 }));
         })(),
         window.addEventListener('beforeunload', (t) => {
-            ce() && (t.preventDefault(), (t.returnValue = ''));
+            he() && (t.preventDefault(), (t.returnValue = ''));
         }));
     const t = document.getElementById('loginForm');
     var n;
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
     (t instanceof HTMLFormElement && t.addEventListener('submit', va),
         (n = {
             navigateToSection: Ba,
@@ -5779,6 +7338,21 @@ async function ei() {
             dismissQueueSensitiveDialog: Dn,
             toggleQueueHelp: () => Bn(),
             queueNumpadAction: In,
+========
+    (t instanceof HTMLFormElement && t.addEventListener('submit', wa),
+        (n = {
+            navigateToSection: Pa,
+            focusQuickCommand: Ra,
+            focusCurrentSearch: ja,
+            runQuickAction: Va,
+            closeSidebar: () => Oa({ restoreFocus: !0 }),
+            toggleMenu: () => {
+                Da() ? Ha() : Fa();
+            },
+            dismissQueueSensitiveDialog: Dn,
+            toggleQueueHelp: () => xn(),
+            queueNumpadAction: Fn,
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         }),
         window.addEventListener('keydown', (t) => {
             (function (t, e) {
@@ -5887,10 +7461,17 @@ async function ei() {
     })();
     (a
         ? (await (async function () {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
               (N(), P(), await ha(!1));
           })(),
           x(b().ui.activeSection))
         : (D(), P(), ya()),
+========
+              (D(), x(), await va(!1));
+          })(),
+          P(b().ui.activeSection))
+        : (N(), x(), ka()),
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
         (async function () {
             const t = (function () {
                 const t = 'Notification' in window,
@@ -5934,22 +7515,41 @@ async function ei() {
                 }));
         })(),
         window.setInterval(() => {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
             fa();
         }, 3e4));
 }
 const ni = (
+========
+            ya();
+        }, 3e4));
+}
+const Ya = (
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
     'loading' === document.readyState
         ? new Promise((t, e) => {
               document.addEventListener(
                   'DOMContentLoaded',
                   () => {
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
                       ei().then(t).catch(e);
+========
+                      Ja().then(t).catch(e);
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js
                   },
                   { once: !0 }
               );
           })
+<<<<<<<< HEAD:js/admin-chunks/index-BtW8YfNN.js
         : ei()
 ).catch((t) => {
     throw (console.error('admin-v3 boot failed', t), t);
 });
 export { ni as default };
+========
+        : Ja()
+).catch((t) => {
+    throw (console.error('admin-v3 boot failed', t), t);
+});
+export { Ya as default };
+>>>>>>>> 4dc0b028 (feat: ship lead ops pilot and critical gates):js/admin-chunks/index-F1-gON7c.js

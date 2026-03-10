@@ -40,6 +40,11 @@ jobs:
               with:
                   fetch-depth: 2
 
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.2'
+
             - name: Setup Node
               uses: actions/setup-node@v4
               with:
@@ -68,6 +73,11 @@ jobs:
               id: funnel_critical
               shell: pwsh
               run: npm run test:critical:funnel
+
+            - name: Suite critica pagos
+              id: payments_critical
+              shell: pwsh
+              run: npm run test:critical:payments
 
             - name: Evaluar estado telemedicina nightly
               id: telemedicine_nightly
@@ -131,10 +141,11 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Nightly Stability"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Dominio: ``$env:TARGET_DOMAIN``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Hora objetivo: ``23:00 America/Guayaquil``"
-                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Flujo: ``gate:prod`` + ``test:critical:agenda`` + ``test:critical:funnel``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Flujo: ``gate:prod`` + ``test:critical:agenda`` + ``test:critical:funnel`` + ``test:critical:payments``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Semaforo platform: ``${{ steps.gate_full.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Semaforo agenda: ``${{ steps.agenda_critical.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Semaforo funnel: ``${{ steps.funnel_critical.outcome }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Semaforo pagos: ``${{ steps.payments_critical.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine nightly status: ``$env:TELEMEDICINE_NIGHTLY_STATUS``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine nightly reason: ``$env:TELEMEDICINE_NIGHTLY_REASON``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine nightly failures: ``$env:TELEMEDICINE_NIGHTLY_FAILURES``"
@@ -149,6 +160,7 @@ jobs:
                   GATE_FULL_OUTCOME: ${{ steps.gate_full.outcome }}
                   AGENDA_CRITICAL_OUTCOME: ${{ steps.agenda_critical.outcome }}
                   FUNNEL_CRITICAL_OUTCOME: ${{ steps.funnel_critical.outcome }}
+                  PAYMENTS_CRITICAL_OUTCOME: ${{ steps.payments_critical.outcome }}
                   TELEMEDICINE_NIGHTLY_STATUS: ${{ env.TELEMEDICINE_NIGHTLY_STATUS }}
                   TELEMEDICINE_NIGHTLY_REASON: ${{ env.TELEMEDICINE_NIGHTLY_REASON }}
                   TELEMEDICINE_NIGHTLY_FAILURES: ${{ env.TELEMEDICINE_NIGHTLY_FAILURES }}
@@ -172,6 +184,7 @@ jobs:
                         `- gate_full_outcome: ${process.env.GATE_FULL_OUTCOME || 'n/a'}`,
                         `- agenda_critical_outcome: ${process.env.AGENDA_CRITICAL_OUTCOME || 'n/a'}`,
                         `- funnel_critical_outcome: ${process.env.FUNNEL_CRITICAL_OUTCOME || 'n/a'}`,
+                        `- payments_critical_outcome: ${process.env.PAYMENTS_CRITICAL_OUTCOME || 'n/a'}`,
                         `- telemedicine_nightly_status: ${process.env.TELEMEDICINE_NIGHTLY_STATUS || 'n/a'}`,
                         `- telemedicine_nightly_reason: ${process.env.TELEMEDICINE_NIGHTLY_REASON || 'n/a'}`,
                         `- telemedicine_nightly_failures: ${process.env.TELEMEDICINE_NIGHTLY_FAILURES || '0'}`,

@@ -75,6 +75,7 @@ Si tu hosting hace `git pull` automatico, ahora se usa esquema de 2 carriles:
     - gate completo (`verify + smoke + benchmark`)
     - `test:critical:agenda`
     - `test:critical:funnel`
+    - `test:critical:payments`
 - Full regression/manual: `Actions` -> `Post-Deploy Gate (Full Regression)`
 
 El modo estricto de hardening se mantiene (`RequireStableDataDir`, `RequireBackupHealthy`, `RequireBackupReceiverReady`, `RequireCronReady`).

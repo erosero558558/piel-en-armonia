@@ -1,7 +1,9 @@
 import { setText } from '../../../shared/ui/render.js';
 import {
+    aiStatusLabel,
+    nextActionLabel,
     phoneLabel,
-    waitBand,
+    serviceHint,
     waitingLabel,
     waitingMinutes,
 } from '../utils.js';
@@ -15,23 +17,14 @@ export function renderCallbackDeck(
     setText(
         '#callbacksDeckSummary',
         totalCount > 0
-            ? `${ops.pendingCount} pendiente(s), ${ops.urgentCount} fuera de SLA y ${visibleCount} visibles.`
+            ? `${ops.pendingCount} pendiente(s), ${ops.hotCount} hot y ${visibleCount} visibles.`
             : 'Sin callbacks pendientes.'
     );
-    setText(
-        '#callbacksDeckHint',
-        ops.urgentCount > 0
-            ? 'Escala primero los casos criticos.'
-            : ops.pendingCount > 0
-              ? 'La cola se puede drenar en esta misma vista.'
-              : 'Sin bloqueos'
-    );
-
     const queueChip = document.getElementById('callbacksQueueChip');
     if (queueChip) {
         queueChip.textContent =
             ops.queueState === 'danger'
-                ? 'SLA comprometido'
+                ? 'Prioridad alta'
                 : ops.queueState === 'warning'
                   ? 'Cola activa'
                   : 'Cola estable';
@@ -55,10 +48,11 @@ export function renderCallbackDeck(
         '#callbacksNextWait',
         next ? waitingLabel(waitingMinutes(next)) : '0 min'
     );
-    setText('#callbacksNextPreference', next ? next.preferencia || '-' : '-');
+    setText('#callbacksNextPreference', next ? serviceHint(next) : '-');
+    setText('#callbacksNextState', next ? nextActionLabel(next) : 'Pendiente');
     setText(
-        '#callbacksNextState',
-        next ? waitBand(waitingMinutes(next)).label : 'Pendiente'
+        '#callbacksDeckHint',
+        next ? aiStatusLabel(next, ops.workerMode) : 'Sin bloqueos'
     );
 
     const selectionChip = document.getElementById('callbacksSelectionChip');

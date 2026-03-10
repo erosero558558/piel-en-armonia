@@ -1,5 +1,7 @@
 'use strict';
 
+const terminalEvidence = require('./evidence');
+
 function parseDateMs(value) {
     const ms = Date.parse(String(value || ''));
     return Number.isFinite(ms) ? ms : null;
@@ -86,6 +88,13 @@ function buildBoardDoctorReport(input = {}, deps = {}) {
     const wipCfg = normalizeWipPolicy(policy);
     const warnPolicyMap = getWarnPolicyMap(policy);
     const tasks = Array.isArray(board?.tasks) ? board.tasks : [];
+    const evidenceReport = terminalEvidence.buildTerminalEvidenceReport(tasks, {
+        rootDir: input.rootDir,
+        evidenceDir: input.evidenceDir,
+    });
+    const evidenceRows = new Map(
+        evidenceReport.rows.map((row) => [String(row.id || ''), row])
+    );
     const diagnostics = [];
     const checks = [];
 
@@ -223,14 +232,24 @@ function buildBoardDoctorReport(input = {}, deps = {}) {
             warnPolicyEnabled(warnPolicyMap, 'done_without_evidence') &&
             ['done', 'failed'].includes(status)
         ) {
-            const hasEvidence = Boolean(
-                String(task.evidence_ref || task.acceptance_ref || '').trim()
-            );
+            const evidenceRow =
+                evidenceRows.get(taskId) ||
+                terminalEvidence.analyzeTerminalTaskEvidence(task, {
+                    rootDir: input.rootDir,
+                    evidenceDir: input.evidenceDir,
+                });
             addCheck(
                 'warn.board.done_without_evidence',
-                hasEvidence,
-                `Task ${taskId} ${status} sin evidencia`,
-                { task_ids: [taskId] }
+                evidenceRow.debt !== true,
+                terminalEvidence.buildTerminalEvidenceMessage(evidenceRow, {
+                    includeRefs: evidenceRow.debt === true,
+                }),
+                {
+                    task_ids: [taskId],
+                    meta: terminalEvidence.buildTerminalEvidenceMeta(
+                        evidenceRow
+                    ),
+                }
             );
         }
 
@@ -380,6 +399,7 @@ function buildBoardDoctorReport(input = {}, deps = {}) {
             active_expired_handoffs: activeExpiredHandoffs,
             lease_tracked_tasks: leaseRows.length,
         },
+        evidence_summary: evidenceReport.summary,
         checks,
         diagnostics,
     };

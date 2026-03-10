@@ -18,8 +18,8 @@ tasks:
     status_since_at: "2026-02-24"
     risk: high
     scope: platform
-    codex_instance: codex_frontend
-    domain_lane: frontend_content
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
     lane_lock: strict
     cross_domain: false
     files: ["backup-receiver.php", "verify-backup.php", "lib/backup.php", "tests/BackupReceiverTest.php", "env.example.php", "docs/RUNBOOKS.md"]
@@ -46,7 +46,7 @@ tasks:
     depends_on: []
     prompt: "Implementar checksum SHA-256 por header, cifrado AES-256-CBC y prueba de integridad con test."
     created_at: 2026-02-24
-    updated_at: 2026-02-25
+    updated_at: 2026-03-10
 
   - id: AG-002
     title: "PHP rate-limiter sliding window and per-user limits"
@@ -56,8 +56,8 @@ tasks:
     status_since_at: "2026-02-24"
     risk: medium
     scope: backend
-    codex_instance: codex_frontend
-    domain_lane: frontend_content
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
     lane_lock: strict
     cross_domain: false
     files: ["lib/ratelimit.php", "tests/RateLimiterTest.php", "tests/Security/RateLimiterTest.php", "tests/Unit/Security/RateLimiterTest.php", "env.example.php"]
@@ -84,7 +84,7 @@ tasks:
     depends_on: []
     prompt: "Actualizar rate-limiter a sliding window, incluir limite por user token y pruebas de regresion."
     created_at: 2026-02-24
-    updated_at: 2026-02-25
+    updated_at: 2026-03-10
 
   - id: AG-003
     title: "OpenAPI 3.1 specification for public API resources"
@@ -6060,10 +6060,10 @@ tasks:
     status_since_at: "2026-03-09T22:50:08.273Z"
     risk: medium
     scope: frontend-public
-    codex_instance: codex_frontend
-    domain_lane: frontend_content
-    lane_lock: strict
-    cross_domain: false
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: handoff_allowed
+    cross_domain: true
     files: ["package.json", ".htaccess", "nginx-pielarmonia.conf", "bin/check-public-conversion-smoke.js", "bin/check-public-routing-smoke.js", "bin/check-public-v6-artifacts.js", "bin/assert-public-v6-single-source.js", "bin/lib/public-v6-local-server.js", "bin/run-staging-acceptance-gate.js", "docs/DEPLOYMENT.md", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "docs/PUBLIC_V2_MANUAL_DEPLOY.md", "docs/PUBLIC_V3_CRON_INSTALL.md", "docs/PUBLIC_V3_MANUAL_DEPLOY.md", "docs/public-v6-canonical-source.md", "README.md", "src/apps/astro/scripts/sync-dist.mjs", "tests-node/public-conversion-smoke.test.js", "tests-node/publish-checkpoint-command.test.js", "tools/agent-orchestrator/commands/publish.js", "verification/public-v6-canonical/summary.md", "verification/public-v6-canonical/routes.json", "verification/public-v6-canonical/publish-contract.json"]
     source_signal: manual
     source_ref: ""
@@ -6083,12 +6083,12 @@ tasks:
     runtime_impact: low
     critical_zone: false
     acceptance: "FE-V6-R7 canonical public source"
-    acceptance_ref: "verification/public-v6-canonical/summary.md"
-    evidence_ref: "verification/public-v6-canonical/summary.md"
-    depends_on: []
+    acceptance_ref: "verification/agent-runs/AG-152.md"
+    evidence_ref: "verification/agent-runs/AG-152.md"
+    depends_on: ["CDX-001"]
     prompt: "FE-V6-R7 canonical public source"
     created_at: 2026-03-09
-    updated_at: 2026-03-09
+    updated_at: 2026-03-10
 
   - id: AG-153
     title: "FE-V6-R8 normalize V6 test helpers and naming"
@@ -6098,8 +6098,8 @@ tasks:
     status_since_at: "2026-03-09T23:38:00.000Z"
     risk: medium
     scope: frontend-public
-    codex_instance: codex_frontend
-    domain_lane: frontend_content
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
     lane_lock: strict
     cross_domain: false
     files: ["package.json", "AGENT_BOARD.yaml", "tests/helpers/public-v3.js", "tests/helpers/public-v6.js", "tests/public-v6-header-mega.spec.js", "tests/public-v6-hero-stage.spec.js", "tests/public-v6-news-strip.spec.js", "tests/public-v6-editorial-grid.spec.js", "tests/public-v6-copy.spec.js", "tests/public-v6-page-menu.spec.js", "tests/public-v6-hub-featured.spec.js", "tests/public-v6-hub-initiatives.spec.js", "tests/public-v6-internal-geometry.spec.js", "tests/public-v6-internal-rail.spec.js", "tests/public-v6-internal-surfaces.spec.js", "tests/public-v6-mega-two-panel.spec.js", "tests/public-v6-statement-band.spec.js", "tests-node/public-v6-test-helper-contract.test.js", "verification/agent-runs/AG-153.md"]
@@ -6126,7 +6126,7 @@ tasks:
     depends_on: ["AG-152"]
     prompt: "FE-V6-R8: normalizar helpers y naming de tests V6 para que la superficie publica deje de colgar de public-v3 en la capa QA."
     created_at: 2026-03-09
-    updated_at: 2026-03-09
+    updated_at: 2026-03-10
 
   - id: AG-154
     title: "FE-V6-R9 align public smoke suites with V6 surface contracts"
@@ -6136,10 +6136,10 @@ tasks:
     status_since_at: "2026-03-09T23:55:00.000Z"
     risk: medium
     scope: frontend-public
-    codex_instance: codex_frontend
-    domain_lane: frontend_content
-    lane_lock: strict
-    cross_domain: false
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: handoff_allowed
+    cross_domain: true
     files: ["AGENT_BOARD.yaml", "src/apps/astro/src/lib/public-v6.js", "tests/helpers/public-v6.js", "tests/homepage.spec.js", "tests/telemedicina-conversion-qa.spec.js", "tests/service-pages-qa.spec.js", "tests/service-pages-premium-new.spec.js", "tests/legal.spec.js", "tests/language-route-equivalence.spec.js", "tests/mobile-overflow-regression.spec.js", "tests/premium-navigation-ia.spec.js", "tests/staging-acceptance-gate.spec.js", "tests/deferred-content-fallback.spec.js", "tests/home-deferred-hydration.spec.js", "tests/public-v3-entry-surface-taxonomy.spec.js", "tests/service-booking-hints-parity.spec.js", "verification/agent-runs/AG-154.md"]
     source_signal: manual
     source_ref: ""
@@ -6161,10 +6161,10 @@ tasks:
     acceptance: "Las suites smoke publicas activas verifican superficie V6 real y dejan de exigir booking hooks legacy."
     acceptance_ref: "verification/agent-runs/AG-154.md"
     evidence_ref: "verification/agent-runs/AG-154.md"
-    depends_on: ["AG-153"]
+    depends_on: ["AG-153", "CDX-001"]
     prompt: "FE-V6-R9: reescribir smokes publicos activos para home, service, tele, legal, fallback e idioma sobre contrato V6, sin anclas #citas ni hooks appointmentForm/serviceSelect."
     created_at: 2026-03-09
-    updated_at: 2026-03-09
+    updated_at: 2026-03-10
 
   - id: AG-155
     title: "FE-V6-R10 activate V6 header search and news strip interactions"
@@ -6174,10 +6174,10 @@ tasks:
     status_since_at: "2026-03-09T19:49:00-05:00"
     risk: medium
     scope: frontend-public
-    codex_instance: codex_frontend
-    domain_lane: frontend_content
-    lane_lock: strict
-    cross_domain: false
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: handoff_allowed
+    cross_domain: true
     files: ["src/apps/astro/src/components/public-v6/PublicHeaderV6.astro", "src/apps/astro/src/components/public-v6/NewsStripV6.astro", "src/apps/astro/src/styles/public-v6/layout.css", "src/apps/astro/src/styles/public-v6/components.css", "js/public-v6-shell.js", "content/public-v6/es/navigation.json", "content/public-v6/en/navigation.json", "content/public-v6/es/home.json", "content/public-v6/en/home.json", "tests/helpers/public-v6.js", "tests/public-v6-header-mega.spec.js", "tests/public-v6-news-strip.spec.js", "verification/agent-runs/AG-155.md"]
     source_signal: manual
     source_ref: ""
@@ -6199,10 +6199,10 @@ tasks:
     acceptance: "Header search and news strip affordances are interactive, covered by V6 tests, and artifacts are synced to root."
     acceptance_ref: "verification/agent-runs/AG-155.md"
     evidence_ref: "verification/agent-runs/AG-155.md"
-    depends_on: ["AG-154"]
+    depends_on: ["AG-154", "CDX-001"]
     prompt: "FE-V6-R10: activar affordances muertos de V6 en header y news strip, manteniendo contratos data-v6 y cobertura Playwright."
     created_at: 2026-03-09
-    updated_at: 2026-03-09
+    updated_at: 2026-03-10
 
   - id: AG-156
     title: "FE-V6-R11 harden canonical V6 build runner"
@@ -6212,8 +6212,8 @@ tasks:
     status_since_at: "2026-03-09T20:10:00-05:00"
     risk: medium
     scope: frontend-public
-    codex_instance: codex_frontend
-    domain_lane: frontend_content
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
     lane_lock: strict
     cross_domain: false
     files: ["bin/build-public-v6.js", "bin/assert-public-v6-single-source.js", "package.json", "tests-node/public-v6-build-contract.test.js", "docs/public-v6-canonical-source.md", "docs/DEPLOYMENT.md", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "verification/agent-runs/AG-156.md", "verification/public-v6-canonical/artifact-drift.json"]
@@ -6240,7 +6240,7 @@ tasks:
     depends_on: ["AG-155"]
     prompt: "FE-V6-R11: endurecer build canonico V6 para que validate, build, sync y drift-check corran bajo un runner unico y no por shell chaining."
     created_at: 2026-03-09
-    updated_at: 2026-03-09
+    updated_at: 2026-03-10
 
   - id: AG-157
     title: "Close public V6 internal navigation state sync"

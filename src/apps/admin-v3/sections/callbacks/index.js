@@ -3,13 +3,17 @@ export { renderCallbacksSection } from './render.js';
 export {
     clearCallbacksFilters,
     clearCallbacksSelection,
+    mutateCallbackRecord,
     selectVisibleCallbacks,
     setCallbacksFilter,
     setCallbacksSearch,
     setCallbacksSort,
 } from './state.js';
 export {
+    acceptCallbackAiDraft,
     focusNextPendingCallback,
     markCallbackContacted,
     markSelectedCallbacksContacted,
+    requestCallbackAiDraft,
+    setCallbackOutcome,
 } from './actions.js';

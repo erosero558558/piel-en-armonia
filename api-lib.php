@@ -35,6 +35,7 @@ require_once __DIR__ . '/lib/features.php';
 require_once __DIR__ . '/lib/validation.php';
 require_once __DIR__ . '/lib/http.php';
 require_once __DIR__ . '/lib/security.php';
+require_once __DIR__ . '/lib/LeadOpsService.php';
 require_once __DIR__ . '/lib/models.php';
 require_once __DIR__ . '/lib/business.php';
 require_once __DIR__ . '/lib/storage.php';
@@ -65,7 +66,7 @@ if (!$eventSetupLoaded && !function_exists('get_event_dispatcher')) {
     {
         static $nullDispatcher = null;
         if (!is_object($nullDispatcher)) {
-            $nullDispatcher = new class {
+            $nullDispatcher = new class () {
                 public function addListener(string $eventName, callable $listener): void
                 {
                 }

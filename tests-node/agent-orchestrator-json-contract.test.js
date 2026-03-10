@@ -238,9 +238,12 @@ test('JSON contract minimo estable para status/conflicts/handoffs/codex-check/le
         assert.equal(typeof status.contribution, 'object');
         assert.equal(typeof status.domain_health, 'object');
         assert.equal(typeof status.conflicts, 'number');
+        assert.equal(typeof status.evidence_summary, 'object');
+        assert.equal(typeof status.evidence_summary.terminal_tasks, 'number');
         assert.equal(Array.isArray(status.diagnostics), true);
         assert.equal(typeof status.warnings_count, 'number');
         assert.equal(typeof status.errors_count, 'number');
+        assert.equal(status.warnings_count >= 1, true);
 
         const conflicts = runJson(dir, ['conflicts', '--strict']);
         assertVersionLike(conflicts.version);
@@ -283,10 +286,16 @@ test('JSON contract minimo estable para status/conflicts/handoffs/codex-check/le
         assert.equal(typeof boardDoctor.command, 'string');
         assert.equal(boardDoctor.command, 'board doctor');
         assert.equal(typeof boardDoctor.summary, 'object');
+        assert.equal(typeof boardDoctor.evidence_summary, 'object');
+        assert.equal(
+            typeof boardDoctor.evidence_summary.terminal_tasks,
+            'number'
+        );
         assert.equal(Array.isArray(boardDoctor.checks), true);
         assert.equal(Array.isArray(boardDoctor.diagnostics), true);
         assert.equal(typeof boardDoctor.warnings_count, 'number');
         assert.equal(typeof boardDoctor.errors_count, 'number');
+        assert.equal(boardDoctor.warnings_count >= 1, true);
     } finally {
         cleanupFixtureDir(dir);
     }

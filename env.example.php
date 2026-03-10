@@ -74,12 +74,12 @@
 // -- OpenClaw Queue (modo recomendado sin Trinity) ----------------------------
 // Activa el modo cola OpenClaw en figo-chat.php
 // putenv('FIGO_PROVIDER_MODE=openclaw_queue');
-// Endpoint OpenAI-compatible de tu gateway OpenClaw
-// putenv('OPENCLAW_GATEWAY_ENDPOINT=https://tu-gateway-openclaw.example/v1/chat/completions');
+// Endpoint OpenResponses HTTP API de tu gateway OpenClaw local
+// putenv('OPENCLAW_GATEWAY_ENDPOINT=http://127.0.0.1:4141/v1/responses');
 // API key del gateway
 // putenv('OPENCLAW_GATEWAY_API_KEY=REEMPLAZAR_TOKEN_OPENCLAW');
-// Modelo por defecto
-// putenv('OPENCLAW_GATEWAY_MODEL=figo-openclaw');
+// Agente/modelo por defecto (OpenClaw recomienda openclaw:<agentId>)
+// putenv('OPENCLAW_GATEWAY_MODEL=openclaw:main');
 // Header/prefijo para auth (por defecto Authorization + Bearer)
 // putenv('OPENCLAW_GATEWAY_KEY_HEADER=Authorization');
 // putenv('OPENCLAW_GATEWAY_KEY_PREFIX=Bearer');
@@ -96,6 +96,16 @@
 // putenv('OPENCLAW_POLL_AFTER_MS=800');
 // Tiempo maximo (segundos) que cada poll puede usar para procesar el job
 // putenv('OPENCLAW_POLL_PROCESS_TIMEOUT_SEC=8');
+// Worker pull-based para LeadOps interno (server nunca empuja al laptop)
+// URL base del servidor de Pielarmonia que expone lead-ai-queue / lead-ai-result
+// putenv('PIELARMONIA_LEADOPS_SERVER_BASE_URL=https://pielarmonia.com');
+// putenv('PIELARMONIA_LEADOPS_MACHINE_TOKEN=REEMPLAZAR_TOKEN_MAQUINA');
+// putenv('PIELARMONIA_LEADOPS_MACHINE_TOKEN_HEADER=Authorization');
+// putenv('PIELARMONIA_LEADOPS_MACHINE_TOKEN_PREFIX=Bearer');
+// Intervalo de polling del worker local en milisegundos
+// putenv('PIELARMONIA_LEADOPS_WORKER_INTERVAL_MS=5000');
+// Segundos antes de declarar worker degradado/offline en health y admin
+// putenv('PIELARMONIA_LEADOPS_WORKER_STALE_AFTER_SECONDS=900');
 // Trigger local al encolar (opcional)
 // putenv('OPENCLAW_TRIGGER_MAX_JOBS=1');
 // putenv('OPENCLAW_TRIGGER_TIME_BUDGET_MS=900');

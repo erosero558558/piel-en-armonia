@@ -1,21 +1,87 @@
 import { apiRequest } from '../../shared/core/api-client.js';
 import { getState } from '../../shared/core/store.js';
-import { mutateCallbackStatus } from './state.js';
+import { mutateCallbackRecord, mutateCallbackStatus } from './state.js';
 
-export async function markCallbackContacted(id, callbackDate = '') {
+async function patchCallback(id, body) {
     const callbackId = Number(id || 0);
-    if (callbackId <= 0) return;
+    if (callbackId <= 0) return null;
 
-    await apiRequest('callbacks', {
+    const response = await apiRequest('callbacks', {
         method: 'PATCH',
         body: {
             id: callbackId,
-            status: 'contacted',
-            fecha: callbackDate,
+            ...body,
         },
     });
 
-    mutateCallbackStatus(callbackId, 'contacted');
+    return response?.data || null;
+}
+
+export async function markCallbackContacted(id, callbackDate = '') {
+    const updated = await patchCallback(id, {
+        status: 'contacted',
+        fecha: callbackDate,
+        leadOps: {
+            outcome: 'contactado',
+        },
+    });
+
+    if (updated) {
+        mutateCallbackRecord(updated);
+        return updated;
+    }
+
+    mutateCallbackStatus(id, 'contacted');
+    return null;
+}
+
+export async function setCallbackOutcome(id, outcome) {
+    const updated = await patchCallback(id, {
+        status: 'contacted',
+        leadOps: {
+            outcome,
+        },
+    });
+
+    if (updated) {
+        mutateCallbackRecord(updated);
+    }
+
+    return updated;
+}
+
+export async function requestCallbackAiDraft(id, objective = 'whatsapp_draft') {
+    const callbackId = Number(id || 0);
+    if (callbackId <= 0) return null;
+
+    const response = await apiRequest('lead-ai-request', {
+        method: 'POST',
+        body: {
+            callbackId,
+            objective,
+        },
+    });
+
+    if (response?.data) {
+        mutateCallbackRecord(response.data);
+        return response.data;
+    }
+
+    return null;
+}
+
+export async function acceptCallbackAiDraft(id) {
+    const updated = await patchCallback(id, {
+        leadOps: {
+            aiStatus: 'accepted',
+        },
+    });
+
+    if (updated) {
+        mutateCallbackRecord(updated);
+    }
+
+    return updated;
 }
 
 export async function markSelectedCallbacksContacted() {

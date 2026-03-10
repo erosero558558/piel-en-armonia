@@ -252,6 +252,12 @@ jobs:
               env:
                   TEST_LOCAL_SERVER: php
                   PIELARMONIA_ADMIN_PASSWORD: admin123
+            - name: Run Critical Payments Gate
+              if: steps.changes.outputs.e2e == 'true'
+              run: npm run test:critical:payments
+              env:
+                  TEST_LOCAL_SERVER: php
+                  PIELARMONIA_ADMIN_PASSWORD: admin123
             - name: Run Playwright Tests (non-critical)
               if: steps.changes.outputs.e2e == 'true'
               shell: bash
@@ -262,7 +268,8 @@ jobs:
                     ! -name "phase2-calendar-consistency.spec.js" \
                     ! -name "funnel-event-api.spec.js" \
                     ! -name "funnel-retention-admin.spec.js" \
-                    ! -name "funnel-tracking.spec.js" | sort)
+                    ! -name "funnel-tracking.spec.js" \
+                    ! -name "payments-card-booking.spec.js" | sort)
 
                   if [ "${#spec_files[@]}" -eq 0 ]; then
                     echo "::error::No se encontraron specs no criticos para Playwright."

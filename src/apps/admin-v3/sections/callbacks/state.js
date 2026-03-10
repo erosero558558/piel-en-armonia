@@ -43,7 +43,7 @@ export function setCallbacksSearch(search) {
 export function clearCallbacksFilters() {
     updateCallbacksState({
         filter: 'all',
-        sort: 'recent_desc',
+        sort: 'priority_desc',
         search: '',
         selected: [],
     });
@@ -67,7 +67,14 @@ export function selectVisibleCallbacks() {
 }
 
 export function mutateCallbackStatus(id, status) {
-    const targetId = Number(id || 0);
+    mutateCallbackRecord({
+        id,
+        status,
+    });
+}
+
+export function mutateCallbackRecord(nextCallback) {
+    const targetId = Number(nextCallback?.id || 0);
 
     updateState((state) => ({
         ...state,
@@ -77,7 +84,7 @@ export function mutateCallbackStatus(id, status) {
                 Number(item.id || 0) === targetId
                     ? {
                           ...item,
-                          status,
+                          ...nextCallback,
                       }
                     : item
             ),

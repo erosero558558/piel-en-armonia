@@ -10,7 +10,7 @@ class CallbackController
         $store = $context['store'];
         json_response([
             'ok' => true,
-            'data' => $store['callbacks']
+            'data' => LeadOpsService::enrichCallbacks($store['callbacks'] ?? [], $store)
         ]);
     }
 
@@ -38,6 +38,7 @@ class CallbackController
             ], 400);
         }
 
+        $callback = LeadOpsService::enrichCallback($callback, $store);
         $store['callbacks'][] = $callback;
         write_store($store);
         maybe_send_callback_admin_notification($callback);
@@ -60,6 +61,7 @@ class CallbackController
             ], 400);
         }
         $found = false;
+        $updated = null;
         foreach ($store['callbacks'] as &$callback) {
             if ((int) ($callback['id'] ?? 0) !== $id) {
                 continue;
@@ -68,6 +70,23 @@ class CallbackController
             if (isset($payload['status'])) {
                 $callback['status'] = map_callback_status((string) $payload['status']);
             }
+            if (isset($payload['fecha']) && trim((string) $payload['fecha']) !== '') {
+                $callback['fecha'] = (string) $payload['fecha'];
+            }
+
+            $leadOpsPayload = isset($payload['leadOps']) && is_array($payload['leadOps'])
+                ? $payload['leadOps']
+                : [];
+
+            if (!empty($leadOpsPayload) || isset($payload['status'])) {
+                $callback['leadOps'] = LeadOpsService::mergeLeadOps($callback, $leadOpsPayload, $store);
+            }
+
+            if (isset($leadOpsPayload['outcome']) && trim((string) $leadOpsPayload['outcome']) !== '') {
+                $callback['status'] = 'contactado';
+            }
+
+            $updated = LeadOpsService::enrichCallback($callback, $store);
         }
         unset($callback);
         if (!$found) {
@@ -78,7 +97,8 @@ class CallbackController
         }
         write_store($store);
         json_response([
-            'ok' => true
+            'ok' => true,
+            'data' => $updated
         ]);
     }
 }

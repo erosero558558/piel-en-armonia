@@ -26,6 +26,7 @@ Ejecuta:
 - `npm run gate:prod` (full regression)
 - `npm run test:critical:agenda`
 - `npm run test:critical:funnel`
+- `npm run test:critical:payments`
 
 ## Baseline tiempos (2026-02-25)
 

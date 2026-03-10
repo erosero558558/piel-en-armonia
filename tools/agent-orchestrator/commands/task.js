@@ -1,5 +1,7 @@
 'use strict';
 
+const terminalEvidence = require('../domain/evidence');
+
 async function handleTaskCommand(ctx) {
     const {
         args,
@@ -858,8 +860,10 @@ function handleTaskFinish(ctx) {
         if (!existsSync(evidencePath)) {
             throw new Error(`No existe evidencia requerida: ${evidencePath}`);
         }
-        task.acceptance_ref = toRelativeRepoPath(evidencePath);
-        task.evidence_ref = task.acceptance_ref;
+        terminalEvidence.applyCanonicalEvidenceRefs(
+            task,
+            toRelativeRepoPath(evidencePath)
+        );
     }
 
     task.status = nextStatus;

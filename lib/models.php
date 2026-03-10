@@ -96,13 +96,19 @@ function normalize_review(array $review): array
 
 function normalize_callback(array $callback): array
 {
-    return [
+    $normalized = [
         'id' => isset($callback['id']) ? (int) $callback['id'] : (int) round(microtime(true) * 1000),
         'telefono' => truncate_field(sanitize_phone((string) ($callback['telefono'] ?? '')), 20),
         'preferencia' => truncate_field(sanitize_xss((string) ($callback['preferencia'] ?? '')), 200),
         'fecha' => isset($callback['fecha']) ? (string) $callback['fecha'] : local_date('c'),
         'status' => map_callback_status((string) ($callback['status'] ?? 'pendiente'))
     ];
+
+    if (isset($callback['leadOps']) && is_array($callback['leadOps'])) {
+        $normalized['leadOps'] = LeadOpsService::normalizeLeadOps($callback['leadOps']);
+    }
+
+    return $normalized;
 }
 
 function normalize_appointment(array $appointment): array

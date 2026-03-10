@@ -7,6 +7,7 @@ function buildStatusReport(input = {}) {
         contribution,
         contributionTrend,
         domainHealth,
+        evidenceSummary = null,
         redExplanation = null,
     } = input;
     const tasks = Array.isArray(board?.tasks) ? board.tasks : [];
@@ -52,6 +53,7 @@ function buildStatusReport(input = {}) {
             handoff: Number(conflictAnalysis?.handoffCovered?.length || 0),
             total_pairs: Number(conflictAnalysis?.all?.length || 0),
         },
+        evidence_summary: evidenceSummary || null,
     };
     if (redExplanation) {
         data.red_explanation = redExplanation;
@@ -76,6 +78,11 @@ function renderStatusText(data, options = {}) {
     if (data?.jobs) {
         lines.push(
             `Jobs: tracked=${data.jobs.tracked ?? 0}, healthy=${data.jobs.healthy ?? 0}, failing=${data.jobs.failing ?? 0}`
+        );
+    }
+    if (data?.evidence_summary) {
+        lines.push(
+            `Evidence terminal: aligned=${data.evidence_summary.aligned_count ?? 0}/${data.evidence_summary.terminal_tasks ?? 0}, missing_expected=${data.evidence_summary.missing_expected_count ?? 0}, debt=${data.evidence_summary.debt_count ?? 0}`
         );
     }
     if (data?.legacy_terminal_executor_tasks) {

@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
+class ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d
 {
     public static $files = array (
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
@@ -385,8 +385,12 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         'EventDispatcher' => __DIR__ . '/../..' . '/lib/events/EventDispatcher.php',
         'FeatureFlags' => __DIR__ . '/../..' . '/lib/features.php',
         'FunnelMetricsService' => __DIR__ . '/../..' . '/lib/analytics/FunnelMetricsService.php',
+        'GatewayClient' => __DIR__ . '/../..' . '/lib/figo_queue/GatewayClient.php',
         'GoogleCalendarClient' => __DIR__ . '/../..' . '/lib/calendar/GoogleCalendarClient.php',
         'GoogleTokenProvider' => __DIR__ . '/../..' . '/lib/calendar/GoogleTokenProvider.php',
+        'JobProcessor' => __DIR__ . '/../..' . '/lib/figo_queue/JobProcessor.php',
+        'JobRepository' => __DIR__ . '/../..' . '/lib/figo_queue/JobRepository.php',
+        'LeadOpsService' => __DIR__ . '/../..' . '/lib/LeadOpsService.php',
         'LegacyTelemedicineBridge' => __DIR__ . '/../..' . '/lib/telemedicine/LegacyTelemedicineBridge.php',
         'Metrics' => __DIR__ . '/../..' . '/lib/metrics.php',
         'NoShowPredictor' => __DIR__ . '/../..' . '/lib/prediction.php',
@@ -1359,7 +1363,9 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         'PhpToken' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/PhpToken.php',
         'PrometheusCounterParser' => __DIR__ . '/../..' . '/lib/analytics/PrometheusCounterParser.php',
         'PushService' => __DIR__ . '/../..' . '/lib/PushService.php',
+        'QueueConfig' => __DIR__ . '/../..' . '/lib/figo_queue/QueueConfig.php',
         'QueueService' => __DIR__ . '/../..' . '/lib/QueueService.php',
+        'QueueSummaryBuilder' => __DIR__ . '/../..' . '/lib/queue/QueueSummaryBuilder.php',
         'ReflectionConstant' => __DIR__ . '/..' . '/symfony/polyfill-php84/Resources/stubs/ReflectionConstant.php',
         'RetentionCsvExporter' => __DIR__ . '/../..' . '/lib/analytics/RetentionCsvExporter.php',
         'RetentionReportService' => __DIR__ . '/../..' . '/lib/analytics/RetentionReportService.php',
@@ -1578,7 +1584,10 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         'TelemedicineChannelMapper' => __DIR__ . '/../..' . '/lib/telemedicine/TelemedicineChannelMapper.php',
         'TelemedicineConsentSnapshot' => __DIR__ . '/../..' . '/lib/telemedicine/TelemedicineConsentSnapshot.php',
         'TelemedicineEncounterPlanner' => __DIR__ . '/../..' . '/lib/telemedicine/TelemedicineEncounterPlanner.php',
+        'TelemedicineEnforcementPolicy' => __DIR__ . '/../..' . '/lib/telemedicine/TelemedicineEnforcementPolicy.php',
         'TelemedicineIntakeService' => __DIR__ . '/../..' . '/lib/telemedicine/TelemedicineIntakeService.php',
+        'TelemedicineOpsDiagnostics' => __DIR__ . '/../..' . '/lib/telemedicine/TelemedicineOpsDiagnostics.php',
+        'TelemedicineOpsSnapshot' => __DIR__ . '/../..' . '/lib/telemedicine/TelemedicineOpsSnapshot.php',
         'TelemedicineRepository' => __DIR__ . '/../..' . '/lib/telemedicine/TelemedicineRepository.php',
         'TelemedicineSuitabilityEvaluator' => __DIR__ . '/../..' . '/lib/telemedicine/TelemedicineSuitabilityEvaluator.php',
         'TestingExitException' => __DIR__ . '/../..' . '/lib/http.php',
@@ -1590,7 +1599,9 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         'TheSeer\\Tokenizer\\TokenCollectionException' => __DIR__ . '/..' . '/theseer/tokenizer/src/TokenCollectionException.php',
         'TheSeer\\Tokenizer\\Tokenizer' => __DIR__ . '/..' . '/theseer/tokenizer/src/Tokenizer.php',
         'TheSeer\\Tokenizer\\XMLSerializer' => __DIR__ . '/..' . '/theseer/tokenizer/src/XMLSerializer.php',
+        'TicketFactory' => __DIR__ . '/../..' . '/lib/queue/TicketFactory.php',
         'TicketPrinter' => __DIR__ . '/../..' . '/lib/TicketPrinter.php',
+        'TicketPriorityPolicy' => __DIR__ . '/../..' . '/lib/queue/TicketPriorityPolicy.php',
         'UnhandledMatchError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/UnhandledMatchError.php',
         'ValueError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/ValueError.php',
     );
@@ -1598,10 +1609,10 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$prefixDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$prefixesPsr0;
-            $loader->classMap = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d::$prefixesPsr0;
+            $loader->classMap = ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d::$classMap;
 
         }, null, ClassLoader::class);
     }

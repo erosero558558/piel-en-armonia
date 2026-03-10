@@ -6,6 +6,8 @@ function normalizeCallbacks(list) {
             .includes('contact')
             ? 'contacted'
             : 'pending',
+        leadOps:
+            item.leadOps && typeof item.leadOps === 'object' ? item.leadOps : {},
     }));
 }
 
@@ -35,6 +37,10 @@ export function normalizeAdminDataPayload(data, healthPayload, fallbackState) {
                 : data.queue_state && typeof data.queue_state === 'object'
                   ? data.queue_state
                   : null,
+        leadOpsMeta:
+            data.leadOpsMeta && typeof data.leadOpsMeta === 'object'
+                ? data.leadOpsMeta
+                : fallbackState?.leadOpsMeta || null,
         appDownloads:
             data.appDownloads && typeof data.appDownloads === 'object'
                 ? data.appDownloads
@@ -53,6 +59,7 @@ export function normalizeAdminStorePayload(payload, currentFunnelMetrics) {
         availabilityMeta: payload.availabilityMeta || {},
         queueTickets: payload.queueTickets || [],
         queueMeta: payload.queueMeta || null,
+        leadOpsMeta: payload.leadOpsMeta || null,
         appDownloads: payload.appDownloads || null,
         funnelMetrics: payload.funnelMetrics || currentFunnelMetrics,
         health: payload.health || null,

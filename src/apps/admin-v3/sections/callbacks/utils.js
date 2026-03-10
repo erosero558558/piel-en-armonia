@@ -17,36 +17,22 @@ export function normalizeFilter(value) {
 
 export function normalizeSort(value) {
     const normalized = normalize(value);
-    return CALLBACK_SORT_OPTIONS.has(normalized) ? normalized : 'recent_desc';
+    return CALLBACK_SORT_OPTIONS.has(normalized) ? normalized : 'priority_desc';
 }
 
 export function normalizeStatus(status) {
     const value = normalize(status);
-
-    if (
-        value === 'contacted' ||
-        value === 'contactado' ||
-        value === 'completed' ||
-        value === 'done' ||
+    return value.includes('contact') ||
         value === 'resolved' ||
-        value === 'called' ||
         value === 'atendido'
-    ) {
-        return 'contacted';
-    }
+        ? 'contacted'
+        : 'pending';
+}
 
-    if (
-        value === 'pending' ||
-        value === 'pendiente' ||
-        value === 'waiting' ||
-        value === 'open' ||
-        value === 'new' ||
-        value === 'nuevo'
-    ) {
-        return 'pending';
-    }
-
-    return 'pending';
+export function leadOps(item) {
+    return item?.leadOps && typeof item.leadOps === 'object'
+        ? item.leadOps
+        : {};
 }
 
 export function createdAtMs(item) {
@@ -60,11 +46,75 @@ export function waitingMinutes(item) {
     return Math.max(0, Math.round((Date.now() - stamp) / 60000));
 }
 
+export function waitingLabel(minutes) {
+    if (minutes < 60) return `${minutes} min`;
+    if (minutes < 1440) return `${Math.round(minutes / 60)} h`;
+    return `${Math.round(minutes / 1440)} d`;
+}
+
 export function phoneLabel(item) {
     return (
         String(item?.telefono || item?.phone || 'Sin telefono').trim() ||
         'Sin telefono'
     );
+}
+
+export function priorityBand(item) {
+    const value = normalize(leadOps(item).priorityBand);
+    return value === 'hot' || value === 'warm' ? value : 'cold';
+}
+
+export function priorityRank(item) {
+    const band = priorityBand(item);
+    return band === 'hot' ? 3 : band === 'warm' ? 2 : 1;
+}
+
+export function priorityLabel(item) {
+    const band = priorityBand(item);
+    return band === 'hot' ? 'Hot' : band === 'warm' ? 'Warm' : 'Cold';
+}
+
+export function serviceHint(item) {
+    const hints = Array.isArray(leadOps(item).serviceHints)
+        ? leadOps(item).serviceHints
+        : [];
+    return String(hints[0] || '').trim() || 'Sin sugerencia';
+}
+
+export function nextActionLabel(item) {
+    return (
+        String(leadOps(item).nextAction || '').trim() ||
+        'Mantener visible en la cola'
+    );
+}
+
+export function outcomeLabel(item) {
+    const value = normalize(leadOps(item).outcome);
+    if (value === 'cita_cerrada') return 'Cita cerrada';
+    if (value === 'sin_respuesta') return 'Sin respuesta';
+    if (value === 'descartado') return 'Descartado';
+    if (value === 'contactado') return 'Contactado';
+    return 'Pendiente';
+}
+
+export function aiStatusLabel(item, workerMode = '') {
+    const value = normalize(leadOps(item).aiStatus);
+    if (value === 'requested') {
+        return workerMode === 'online' ? 'IA pendiente' : 'IA no disponible';
+    }
+    if (value === 'completed') return 'Borrador listo';
+    if (value === 'accepted') return 'Borrador usado';
+    if (value === 'failed') return 'IA fallida';
+    return workerMode === 'disabled' ? 'IA apagada' : 'Sin IA';
+}
+
+export function aiDraftText(item) {
+    return String(leadOps(item).aiDraft || '').trim();
+}
+
+export function heuristicScore(item) {
+    const score = Number(leadOps(item).heuristicScore || 0);
+    return Number.isFinite(score) ? score : 0;
 }
 
 export function inToday(value) {
@@ -100,10 +150,4 @@ export function waitBand(minutes) {
         tone: 'neutral',
         note: 'Todavia dentro de margen',
     };
-}
-
-export function waitingLabel(minutes) {
-    if (minutes < 60) return `${minutes} min`;
-    const hours = Math.round(minutes / 60);
-    return `${hours} h`;
 }
