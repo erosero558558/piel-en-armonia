@@ -1,15 +1,13 @@
 import { escapeHtml, formatDateTime } from '../../../../../ui/render.js';
 import { APP_COPY } from './constants.js';
+import { buildGuideUrl, getDesktopTarget } from './manifest.js';
 import { absoluteUrl } from './platform.js';
+import { ensureInstallPreset } from './state.js';
 
 export function renderDesktopCard(key, appConfig, platform) {
     const copy = APP_COPY[key];
-    const detectedTarget =
-        platform === 'mac'
-            ? appConfig.targets.mac
-            : platform === 'win'
-              ? appConfig.targets.win
-              : appConfig.targets.win || appConfig.targets.mac;
+    const preset = ensureInstallPreset(platform);
+    const detectedTarget = getDesktopTarget(appConfig, platform);
     const detectedLabel =
         platform === 'mac'
             ? 'macOS'
@@ -58,6 +56,7 @@ export function renderDesktopCard(key, appConfig, platform) {
             <div class="queue-app-card__targets">${alternateTargets}</div>
             <div class="queue-app-card__links">
                 <a href="${escapeHtml(appConfig.webFallbackUrl || '/')}">Abrir versión web</a>
+                <a href="${escapeHtml(buildGuideUrl(key, preset, appConfig))}">Centro de instalación</a>
                 <button
                     type="button"
                     data-action="queue-copy-install-link"
@@ -71,9 +70,7 @@ export function renderDesktopCard(key, appConfig, platform) {
                 </button>
             </div>
             <ul class="queue-app-card__notes">
-                ${copy.notes
-                    .map((note) => `<li>${escapeHtml(note)}</li>`)
-                    .join('')}
+                ${copy.notes.map((note) => `<li>${escapeHtml(note)}</li>`).join('')}
             </ul>
         </article>
     `;

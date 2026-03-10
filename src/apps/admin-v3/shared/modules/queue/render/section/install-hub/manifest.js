@@ -35,3 +35,54 @@ export function mergeManifest() {
         },
     };
 }
+
+export function buildGuideUrl(surfaceKey, preset, appConfig) {
+    const base = new URL(
+        String(appConfig.guideUrl || `/app-downloads/?surface=${surfaceKey}`),
+        `${window.location.origin}/`
+    );
+    base.searchParams.set('surface', surfaceKey);
+    if (surfaceKey === 'sala_tv') {
+        base.searchParams.set('platform', 'android_tv');
+    } else {
+        base.searchParams.set(
+            'platform',
+            preset.platform === 'mac' ? 'mac' : 'win'
+        );
+    }
+    if (surfaceKey === 'operator') {
+        base.searchParams.set('station', preset.station === 'c2' ? 'c2' : 'c1');
+        base.searchParams.set('lock', preset.lock ? '1' : '0');
+        base.searchParams.set('one_tap', preset.oneTap ? '1' : '0');
+    } else {
+        base.searchParams.delete('station');
+        base.searchParams.delete('lock');
+        base.searchParams.delete('one_tap');
+    }
+    return `${base.pathname}${base.search}`;
+}
+
+export function getDesktopTarget(appConfig, platform) {
+    if (platform === 'mac' && appConfig.targets.mac) {
+        return appConfig.targets.mac;
+    }
+    if (platform === 'win' && appConfig.targets.win) {
+        return appConfig.targets.win;
+    }
+    return appConfig.targets.win || appConfig.targets.mac || null;
+}
+
+export function buildPreparedSurfaceUrl(surfaceKey, appConfig, preset) {
+    const url = new URL(
+        String(appConfig.webFallbackUrl || '/'),
+        `${window.location.origin}/`
+    );
+
+    if (surfaceKey === 'operator') {
+        url.searchParams.set('station', preset.station === 'c2' ? 'c2' : 'c1');
+        url.searchParams.set('lock', preset.lock ? '1' : '0');
+        url.searchParams.set('one_tap', preset.oneTap ? '1' : '0');
+    }
+
+    return url.toString();
+}

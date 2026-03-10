@@ -3,6 +3,7 @@ export const DEFAULT_APP_DOWNLOADS = Object.freeze({
         version: '0.1.0',
         updatedAt: '2026-03-10T00:00:00Z',
         webFallbackUrl: '/operador-turnos.html',
+        guideUrl: '/app-downloads/?surface=operator',
         targets: {
             win: {
                 url: '/app-downloads/stable/operator/win/TurneroOperadorSetup.exe',
@@ -18,6 +19,7 @@ export const DEFAULT_APP_DOWNLOADS = Object.freeze({
         version: '0.1.0',
         updatedAt: '2026-03-10T00:00:00Z',
         webFallbackUrl: '/kiosco-turnos.html',
+        guideUrl: '/app-downloads/?surface=kiosk',
         targets: {
             win: {
                 url: '/app-downloads/stable/kiosk/win/TurneroKioscoSetup.exe',
@@ -33,6 +35,7 @@ export const DEFAULT_APP_DOWNLOADS = Object.freeze({
         version: '0.1.0',
         updatedAt: '2026-03-10T00:00:00Z',
         webFallbackUrl: '/sala-turnos.html',
+        guideUrl: '/app-downloads/?surface=sala_tv',
         targets: {
             android_tv: {
                 url: '/app-downloads/stable/sala-tv/android/TurneroSalaTV.apk',
@@ -51,7 +54,7 @@ export const APP_COPY = Object.freeze({
         recommendedFor: 'PC operador',
         notes: [
             'Conecta aquí el receptor USB 2.4 GHz del numpad.',
-            'Usa station=c1|c2, lock=1 y one_tap si el equipo queda fijo por consultorio.',
+            'La app desktop ahora puede quedar configurada como C1, C2 o modo libre desde el primer arranque.',
         ],
     },
     kiosk: {
@@ -77,3 +80,29 @@ export const APP_COPY = Object.freeze({
         ],
     },
 });
+
+export const SURFACE_TELEMETRY_COPY = Object.freeze({
+    operator: {
+        title: 'Operador',
+        emptySummary:
+            'Todavía no hay señal del equipo operador. Abre la app o el fallback web para registrar heartbeat.',
+    },
+    kiosk: {
+        title: 'Kiosco',
+        emptySummary:
+            'Todavía no hay señal del kiosco. Abre el equipo o el fallback web antes de dejar autoservicio.',
+    },
+    display: {
+        title: 'Sala TV',
+        emptySummary:
+            'Todavía no hay señal de la TV de sala. Abre la app Android TV o el fallback web para registrar estado.',
+    },
+});
+
+export const QUEUE_OPENING_CHECKLIST_STORAGE_KEY = 'queueOpeningChecklistV1';
+export const OPENING_CHECKLIST_STEP_IDS = Object.freeze([
+    'operator_ready',
+    'kiosk_ready',
+    'sala_ready',
+    'smoke_ready',
+]);

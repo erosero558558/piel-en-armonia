@@ -1,8 +1,13 @@
 import { setHtml, setText } from '../../../../../ui/render.js';
 import { renderDesktopCard } from './desktop-card.js';
+import { renderTvCard } from './tv-card.js';
 import { mergeManifest } from './manifest.js';
 import { detectPlatform } from './platform.js';
-import { renderTvCard } from './tv-card.js';
+import { renderQueueOpsPilot } from './pilot.js';
+import { renderSurfaceTelemetry } from './telemetry.js';
+import { renderContingencyDeck } from './contingency.js';
+import { renderOpeningChecklist } from './checklist.js';
+import { renderInstallConfigurator } from './configurator.js';
 
 export function renderQueueInstallHub() {
     const cardsRoot = document.getElementById('queueAppDownloadsCards');
@@ -32,4 +37,14 @@ export function renderQueueInstallHub() {
             renderTvCard(manifest.sala_tv),
         ].join('')
     );
+
+    const rerenderAll = () => {
+        renderQueueOpsPilot(manifest, platform, rerenderAll);
+        renderSurfaceTelemetry(manifest, platform);
+        renderContingencyDeck(manifest, platform);
+        renderOpeningChecklist(manifest, platform, rerenderAll);
+        renderInstallConfigurator(manifest, platform, rerenderAll);
+    };
+
+    rerenderAll();
 }

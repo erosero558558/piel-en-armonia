@@ -1,9 +1,12 @@
 import { escapeHtml, formatDateTime } from '../../../../../ui/render.js';
 import { APP_COPY } from './constants.js';
-import { absoluteUrl, buildQrUrl } from './platform.js';
+import { buildGuideUrl } from './manifest.js';
+import { absoluteUrl, buildQrUrl, detectPlatform } from './platform.js';
+import { ensureInstallPreset } from './state.js';
 
 export function renderTvCard(appConfig) {
     const copy = APP_COPY.sala_tv;
+    const preset = ensureInstallPreset(detectPlatform());
     const target = appConfig.targets.android_tv || {};
     const apkUrl = String(target.url || '');
     const qrUrl = buildQrUrl(apkUrl);
@@ -36,6 +39,9 @@ export function renderTvCard(appConfig) {
                 <a href="${escapeHtml(appConfig.webFallbackUrl || '/sala-turnos.html')}">
                     Abrir fallback web
                 </a>
+                <a href="${escapeHtml(buildGuideUrl('sala_tv', preset, appConfig))}">
+                    Centro de instalación
+                </a>
                 <button
                     type="button"
                     data-action="queue-copy-install-link"
@@ -45,9 +51,7 @@ export function renderTvCard(appConfig) {
                 </button>
             </div>
             <ul class="queue-app-card__notes">
-                ${copy.notes
-                    .map((note) => `<li>${escapeHtml(note)}</li>`)
-                    .join('')}
+                ${copy.notes.map((note) => `<li>${escapeHtml(note)}</li>`).join('')}
             </ul>
         </article>
     `;
