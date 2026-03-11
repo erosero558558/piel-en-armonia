@@ -3919,26 +3919,31 @@ function Da() {
                                     : t || '--';
                             })(a.date)
                         )}</span>\n                </div>\n            </div>\n            <div id="queueOpeningChecklistSteps" class="queue-opening-checklist__steps" role="list" aria-label="Checklist de apertura diaria">\n                ${t
-                            .map((t) => {
-                                const i = Boolean(a.steps[t.id]),
-                                    o =
-                                        !i &&
-                                        Boolean(n.suggestions[t.id]?.suggested),
-                                    s = i
-                                        ? 'ready'
-                                        : o
-                                          ? 'suggested'
-                                          : 'pending',
-                                    r = i
-                                        ? 'Confirmado'
-                                        : o
-                                          ? 'Sugerido'
-                                          : 'Pendiente',
-                                    l = String(
-                                        n.suggestions[t.id]?.reason || t.hint
-                                    );
-                                return `\n                        <article class="queue-opening-step" data-state="${s}" role="listitem">\n                            <div class="queue-opening-step__header">\n                                <div>\n                                    <strong>${e(t.title)}</strong>\n                                    <p class="queue-opening-step__detail">${e(t.detail)}</p>\n                                </div>\n                                <span class="queue-opening-step__state">${e(r)}</span>\n                            </div>\n                            <p class="queue-opening-step__hint">${e(t.hint)}</p>\n                            <p class="queue-opening-step__evidence">${e(l)}</p>\n                            <div class="queue-opening-step__actions">\n                                <a href="${e(t.href)}" target="_blank" rel="noopener" class="queue-opening-step__primary">${e(t.actionLabel)}</a>\n                                <button id="queueOpeningToggle_${e(t.id)}" type="button" class="queue-opening-step__toggle" data-queue-opening-step="${e(t.id)}" data-state="${s}">${i ? 'Marcar pendiente' : o ? 'Confirmar sugerido' : 'Marcar listo'}</button>\n                            </div>\n                        </article>\n                    `;
-                            })
+                            .map((t) =>
+                                (function (t, a, n) {
+                                    const i = Boolean(a.steps[t.id]),
+                                        o =
+                                            !i &&
+                                            Boolean(
+                                                n.suggestions[t.id]?.suggested
+                                            ),
+                                        s = i
+                                            ? 'ready'
+                                            : o
+                                              ? 'suggested'
+                                              : 'pending',
+                                        r = i
+                                            ? 'Confirmado'
+                                            : o
+                                              ? 'Sugerido'
+                                              : 'Pendiente',
+                                        l = String(
+                                            n.suggestions[t.id]?.reason ||
+                                                t.hint
+                                        );
+                                    return `\n        <article class="queue-opening-step" data-state="${s}" role="listitem">\n            <div class="queue-opening-step__header">\n                <div>\n                    <strong>${e(t.title)}</strong>\n                    <p class="queue-opening-step__detail">${e(t.detail)}</p>\n                </div>\n                <span class="queue-opening-step__state">${e(r)}</span>\n            </div>\n            <p class="queue-opening-step__hint">${e(t.hint)}</p>\n            <p class="queue-opening-step__evidence">${e(l)}</p>\n            <div class="queue-opening-step__actions">\n                <a href="${e(t.href)}" target="_blank" rel="noopener" class="queue-opening-step__primary">${e(t.actionLabel)}</a>\n                <button id="queueOpeningToggle_${e(t.id)}" type="button" class="queue-opening-step__toggle" data-queue-opening-step="${e(t.id)}" data-state="${s}">${i ? 'Marcar pendiente' : o ? 'Confirmar sugerido' : 'Marcar listo'}</button>\n            </div>\n        </article>\n    `;
+                                })(t, a, n)
+                            )
                             .join(
                                 ''
                             )}\n            </div>\n        </section>\n    `;
