@@ -376,15 +376,23 @@ const actionClass = (variant = 'secondary') => [
 
         {
             hasSteps ? (
-                <section id="v6-suite-surface-steps" class="v6-suite-section is-tight">
+                <section
+                    id="v6-suite-surface-steps"
+                    class:list={[
+                        'v6-suite-section',
+                        'is-tight',
+                        'is-surface-steps',
+                        `is-page-${surfacePageKey}`,
+                    ]}
+                >
                     <header class="v6-suite-section__head">
                         {steps.eyebrow ? <p>{steps.eyebrow}</p> : null}
                         <h2>{steps.title}</h2>
                     </header>
 
-                    <div class="v6-suite-steps">
+                    <div class:list={['v6-suite-steps', `is-page-${surfacePageKey}`]}>
                         {stepItems.map((item, index) => (
-                            <article class="v6-suite-step">
+                            <article class:list={['v6-suite-step', `is-page-${surfacePageKey}`]}>
                                 <strong>{String(index + 1).padStart(2, '0')}</strong>
                                 <p>{item}</p>
                             </article>
@@ -396,15 +404,36 @@ const actionClass = (variant = 'secondary') => [
 
         {
             hasAdvantages ? (
-                <section id="v6-suite-surface-advantages" class="v6-suite-section is-tight">
+                <section
+                    id="v6-suite-surface-advantages"
+                    class:list={[
+                        'v6-suite-section',
+                        'is-tight',
+                        'is-surface-advantages',
+                        `is-page-${surfacePageKey}`,
+                    ]}
+                >
                     <header class="v6-suite-section__head">
                         {advantages.eyebrow ? <p>{advantages.eyebrow}</p> : null}
                         <h2>{advantages.title}</h2>
                     </header>
 
-                    <div class="v6-suite-grid v6-suite-grid--three">
+                    <div
+                        class:list={[
+                            'v6-suite-grid',
+                            'v6-suite-grid--three',
+                            'is-surface-advantages-grid',
+                            `is-page-${surfacePageKey}`,
+                        ]}
+                    >
                         {advantageCards.map((card) => (
-                            <article class="v6-suite-card">
+                            <article
+                                class:list={[
+                                    'v6-suite-card',
+                                    'v6-suite-surface-advantage',
+                                    `is-page-${surfacePageKey}`,
+                                ]}
+                            >
                                 <h3>{card.title}</h3>
                                 {card.copy ? <span>{card.copy}</span> : null}
                             </article>
@@ -416,15 +445,36 @@ const actionClass = (variant = 'secondary') => [
 
         {
             hasConnections ? (
-                <section id="v6-suite-surface-connections" class="v6-suite-section is-tight is-slate">
+                <section
+                    id="v6-suite-surface-connections"
+                    class:list={[
+                        'v6-suite-section',
+                        'is-tight',
+                        'is-slate',
+                        'is-surface-connections',
+                        `is-page-${surfacePageKey}`,
+                    ]}
+                >
                     <header class="v6-suite-section__head">
                         {connections.eyebrow ? <p>{connections.eyebrow}</p> : null}
                         <h2>{connections.title}</h2>
                     </header>
 
-                    <div class="v6-suite-list-grid">
+                    <div
+                        class:list={[
+                            'v6-suite-list-grid',
+                            'is-surface-connections-grid',
+                            `is-page-${surfacePageKey}`,
+                        ]}
+                    >
                         {connectionItems.map((item) => (
-                            <article class="v6-suite-list-item">
+                            <article
+                                class:list={[
+                                    'v6-suite-list-item',
+                                    'v6-suite-surface-connection',
+                                    `is-page-${surfacePageKey}`,
+                                ]}
+                            >
                                 <strong>+</strong>
                                 <p>{item}</p>
                             </article>
@@ -436,8 +486,16 @@ const actionClass = (variant = 'secondary') => [
 
         {
             hasFinalCta ? (
-                <section id="v6-suite-surface-final" class="v6-suite-final is-inline">
-                    <div class="v6-suite-final__shell">
+                <section
+                    id="v6-suite-surface-final"
+                    class:list={[
+                        'v6-suite-final',
+                        'is-inline',
+                        'is-surface-final',
+                        `is-page-${surfacePageKey}`,
+                    ]}
+                >
+                    <div class:list={['v6-suite-final__shell', `is-page-${surfacePageKey}`]}>
                         <div>
                             {finalCta.title ? <h2>{finalCta.title}</h2> : null}
                             {finalCta.deck ? <p>{finalCta.deck}</p> : null}
