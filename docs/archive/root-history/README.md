@@ -1,7 +1,7 @@
 # Root History Archive
 
-Este directorio preserva reportes, planes y handoffs historicos que ya no son
-parte del front door operativo del repo.
+Este directorio preserva reportes, planes, snapshots generados y handoffs
+historicos que ya no son parte del front door operativo del repo.
 
 Reglas:
 
@@ -19,3 +19,10 @@ Documentos archivados destacados:
 - `TEST_COVERAGE_REPORT.md`
 - `CHANGELOG.md`
 - `ISSUES.md`
+
+Reportes y snapshots generados archivados:
+
+- `.tmp-calendar-write-report.json`
+- `build_analysis.txt`
+- `conflict_branches.txt`
+- `stats.html`

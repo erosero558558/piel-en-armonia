@@ -10,6 +10,7 @@ const pageHeadUi =
         : {};
 const breadcrumb = Array.isArray(page?.breadcrumb) ? page.breadcrumb : [];
 const hero = page?.hero && typeof page.hero === 'object' ? page.hero : {};
+const focus = page?.focus && typeof page.focus === 'object' ? page.focus : {};
 const modules = page?.modules && typeof page.modules === 'object' ? page.modules : {};
 const journeys =
     page?.journeys && typeof page.journeys === 'object' ? page.journeys : {};
@@ -33,6 +34,7 @@ const menuLabel = navModel?.header?.menuLabel || '';
 const heroActions = Array.isArray(hero.actions) ? hero.actions : [];
 const heroMetrics = Array.isArray(hero.metrics) ? hero.metrics : [];
 const heroPanels = Array.isArray(hero.panels) ? hero.panels : [];
+const focusCards = Array.isArray(focus.cards) ? focus.cards : [];
 const moduleCards = Array.isArray(modules.cards) ? modules.cards : [];
 const journeyLanes = Array.isArray(journeys.lanes) ? journeys.lanes : [];
 const surfaceCards = Array.isArray(surfaces.cards) ? surfaces.cards : [];
@@ -69,6 +71,12 @@ const hasPricing = Boolean(pricing.title && pricingPlans.length);
 const hasSecurity = Boolean(security.title && securityCards.length);
 const hasFaq = Boolean(faq.title && faqItems.length);
 const hasFinalCta = Boolean(finalCta.title || finalCta.deck || finalActions.length);
+const hasFocus = Boolean((focus.title || focus.deck) && focusCards.length);
+
+const leadModuleCard = moduleCards.find((card) => card?.featured) || moduleCards[0] || null;
+const supportModuleCards = leadModuleCard
+    ? moduleCards.filter((card) => card !== leadModuleCard)
+    : [];
 
 const sectionDefs = [
     hasModules ? { id: 'v6-suite-modules', label: modules.title } : null,
@@ -121,6 +129,7 @@ const resolveMockupKind = (mockup) => {
     const kind = normalizeText(mockup?.kind);
     return ['phone', 'status', 'dashboard'].includes(kind) ? kind : 'status';
 };
+const formatOrder = (value) => String(value).padStart(2, '0');
 
 const actionClass = (variant = 'secondary') => [
     'v6-suite-action',
@@ -275,6 +284,50 @@ const actionClass = (variant = 'secondary') => [
 }
 
 {
+    hasFocus ? (
+        <section class="v6-suite-focus-band" data-v6-suite-focus="landing">
+            <div class="v6-suite-shell">
+                <div class="v6-suite-focus">
+                    <header class="v6-suite-section__head v6-suite-focus__head">
+                        {focus.eyebrow ? <p>{focus.eyebrow}</p> : null}
+                        {focus.title ? <h2>{focus.title}</h2> : null}
+                        {focus.deck ? <span>{focus.deck}</span> : null}
+                    </header>
+
+                    <div class="v6-suite-focus__grid">
+                        {focusCards.map((card, index) => (
+                            <article
+                                class:list={[
+                                    'v6-suite-focus-card',
+                                    card.highlight && 'is-highlight',
+                                ]}
+                                data-v6-suite-focus-card
+                                data-v6-suite-focus-card-order={formatOrder(index + 1)}
+                            >
+                                {card.eyebrow ? <p>{card.eyebrow}</p> : null}
+                                <h3>{card.title}</h3>
+                                {card.copy ? <span>{card.copy}</span> : null}
+                                {Array.isArray(card.items) && card.items.length ? (
+                                    <ul>
+                                        {card.items.map((item) => <li>{item}</li>)}
+                                    </ul>
+                                ) : null}
+                                {card.href && card.ctaLabel ? (
+                                    <a class="v6-suite-inline-link" href={card.href}>
+                                        {card.ctaLabel}
+                                        <span aria-hidden="true">></span>
+                                    </a>
+                                ) : null}
+                            </article>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </section>
+    ) : null
+}
+
+{
     menuItems.length ? (
         <div class="v6-suite-rail-shell" data-v6-suite-rail="landing">
             <div class="v6-suite-shell">
@@ -290,27 +343,65 @@ const actionClass = (variant = 'secondary') => [
 
 {
     hasModules ? (
-        <section id="v6-suite-modules" class="v6-suite-section">
+        <section
+            id="v6-suite-modules"
+            class="v6-suite-section is-operations"
+            data-v6-suite-landing-section="operations"
+            data-v6-suite-landing-section-order="01"
+        >
             <div class="v6-suite-shell">
                 <header class="v6-suite-section__head">
+                    <div class="v6-suite-landing-tag" data-v6-suite-landing-tag>
+                        <span>01</span>
+                    </div>
                     {modules.eyebrow ? <p>{modules.eyebrow}</p> : null}
                     <h2>{modules.title}</h2>
                     {modules.deck ? <span>{modules.deck}</span> : null}
                 </header>
 
-                <div class="v6-suite-grid v6-suite-grid--four">
-                    {moduleCards.map((card) => (
-                        <article class="v6-suite-card">
-                            {card.eyebrow ? <p>{card.eyebrow}</p> : null}
-                            <h3>{card.title}</h3>
-                            {card.copy ? <span>{card.copy}</span> : null}
-                            {card.bullets.length ? (
-                                <ul>
-                                    {card.bullets.map((bullet) => <li>{bullet}</li>)}
-                                </ul>
-                            ) : null}
-                        </article>
-                    ))}
+                <div class="v6-suite-ops-layout">
+                    {
+                        leadModuleCard ? (
+                            <article
+                                class:list={['v6-suite-card', 'v6-suite-module-feature']}
+                                data-v6-suite-module-card
+                                data-v6-suite-module-role="lead"
+                                data-v6-suite-module-card-order="01"
+                            >
+                                {leadModuleCard.eyebrow ? <p>{leadModuleCard.eyebrow}</p> : null}
+                                <h3>{leadModuleCard.title}</h3>
+                                {leadModuleCard.copy ? <span>{leadModuleCard.copy}</span> : null}
+                                {Array.isArray(leadModuleCard.bullets) &&
+                                leadModuleCard.bullets.length ? (
+                                    <ul>
+                                        {leadModuleCard.bullets.map((bullet) => (
+                                            <li>{bullet}</li>
+                                        ))}
+                                    </ul>
+                                ) : null}
+                            </article>
+                        ) : null
+                    }
+
+                    <div class="v6-suite-module-support">
+                        {supportModuleCards.map((card, index) => (
+                            <article
+                                class:list={['v6-suite-card', 'v6-suite-card--support']}
+                                data-v6-suite-module-card
+                                data-v6-suite-module-role="support"
+                                data-v6-suite-module-card-order={formatOrder(index + 2)}
+                            >
+                                {card.eyebrow ? <p>{card.eyebrow}</p> : null}
+                                <h3>{card.title}</h3>
+                                {card.copy ? <span>{card.copy}</span> : null}
+                                {Array.isArray(card.bullets) && card.bullets.length ? (
+                                    <ul>
+                                        {card.bullets.map((bullet) => <li>{bullet}</li>)}
+                                    </ul>
+                                ) : null}
+                            </article>
+                        ))}
+                    </div>
                 </div>
             </div>
         </section>
@@ -319,23 +410,36 @@ const actionClass = (variant = 'secondary') => [
 
 {
     hasJourneys ? (
-        <section id="v6-suite-journeys" class="v6-suite-section is-muted">
+        <section
+            id="v6-suite-journeys"
+            class="v6-suite-section is-muted"
+            data-v6-suite-landing-section="audiences"
+            data-v6-suite-landing-section-order="02"
+        >
             <div class="v6-suite-shell">
                 <header class="v6-suite-section__head">
+                    <div class="v6-suite-landing-tag" data-v6-suite-landing-tag>
+                        <span>02</span>
+                    </div>
                     {journeys.eyebrow ? <p>{journeys.eyebrow}</p> : null}
                     <h2>{journeys.title}</h2>
                     {journeys.deck ? <span>{journeys.deck}</span> : null}
                 </header>
 
                 <div class="v6-suite-grid v6-suite-grid--three">
-                    {journeyLanes.map((lane) => (
-                        <article class="v6-suite-lane">
+                    {journeyLanes.map((lane, index) => (
+                        <article
+                            class:list={['v6-suite-lane', index === 0 && 'is-priority']}
+                            data-v6-suite-journey-lane
+                            data-v6-suite-journey-order={formatOrder(index + 1)}
+                        >
+                            <div class="v6-suite-lane__tag">{formatOrder(index + 1)}</div>
                             {lane.eyebrow ? <p>{lane.eyebrow}</p> : null}
                             <h3>{lane.title}</h3>
                             <ol>
-                                {lane.steps.map((step, index) => (
+                                {lane.steps.map((step, stepIndex) => (
                                     <li>
-                                        <span>{String(index + 1).padStart(2, '0')}</span>
+                                        <span>{formatOrder(stepIndex + 1)}</span>
                                         <p>{step}</p>
                                     </li>
                                 ))}
@@ -350,9 +454,17 @@ const actionClass = (variant = 'secondary') => [
 
 {
     hasSurfaces ? (
-        <section id="v6-suite-surfaces" class="v6-suite-section">
+        <section
+            id="v6-suite-surfaces"
+            class="v6-suite-section"
+            data-v6-suite-landing-section="surfaces"
+            data-v6-suite-landing-section-order="03"
+        >
             <div class="v6-suite-shell">
                 <header class="v6-suite-section__head">
+                    <div class="v6-suite-landing-tag" data-v6-suite-landing-tag>
+                        <span>03</span>
+                    </div>
                     {surfaces.eyebrow ? <p>{surfaces.eyebrow}</p> : null}
                     <h2>{surfaces.title}</h2>
                     {surfaces.deck ? <span>{surfaces.deck}</span> : null}
@@ -370,6 +482,9 @@ const actionClass = (variant = 'secondary') => [
                             data-v6-suite-card-index={index + 1}
                         >
                             <div class="v6-suite-surface-card__copy">
+                                <div class="v6-suite-surface-card__tag">
+                                    <span>{formatOrder(index + 1)}</span>
+                                </div>
                                 {card.eyebrow ? <p>{card.eyebrow}</p> : null}
                                 <h3>{card.title}</h3>
                                 {card.copy ? <span>{card.copy}</span> : null}
@@ -498,7 +613,7 @@ const actionClass = (variant = 'secondary') => [
 
 {
     hasFinalCta ? (
-        <section class="v6-suite-final">
+        <section class="v6-suite-final is-commercial" data-v6-suite-landing-final="cta">
             <div class="v6-suite-shell v6-suite-final__shell">
                 <div>
                     {finalCta.title ? <h2>{finalCta.title}</h2> : null}

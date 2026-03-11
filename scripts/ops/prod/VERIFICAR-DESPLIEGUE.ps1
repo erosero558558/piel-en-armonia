@@ -332,7 +332,7 @@ $modalUxEngineRemoteUrl = [string]$assetMap.ModalUxEngineRemoteUrl
 if (-not $hasTranslationsEnAsset) {
     Write-Host '[INFO] translations-en.js no se detecta en local; se omite verificacion de hash.'
 }
-if ([string]::IsNullOrWhiteSpace($rescheduleEngineRemoteUrl) -and -not (Test-Path 'reschedule-engine.js') -and -not (Test-Path 'js/engines/reschedule-engine.js')) {
+if ([string]::IsNullOrWhiteSpace($rescheduleEngineRemoteUrl) -and -not (Test-Path 'js/engines/reschedule-engine.js')) {
     Write-Host '[INFO] reschedule-engine.js no se detecta en local; se omite verificacion de hash.'
 }
 $results += @(Test-AssetCacheHeaders -Checks $assetMap.SecondaryAssetHeaderChecks -FailureAsset 'cache-header:assets-secondary' -Base $base -FailureMessage '[FAIL] No se pudieron validar headers de cache de assets secundarios')
@@ -576,19 +576,19 @@ if ($SkipAssetHashChecks) {
         [PSCustomObject]@{
             Name = 'chat-widget-engine.js'
             LocalPath = 'js/engines/chat-widget-engine.js'
-            LocalCandidates = @('chat-widget-engine.js')
+            LocalCandidates = @()
             RemoteUrl = $chatWidgetEngineRemoteUrl
         },
         [PSCustomObject]@{
             Name = 'chat-engine.js'
             LocalPath = 'js/engines/chat-engine.js'
-            LocalCandidates = @('chat-engine.js')
+            LocalCandidates = @()
             RemoteUrl = $chatEngineRemoteUrl
         },
         [PSCustomObject]@{
             Name = 'chat-ui-engine.js'
             LocalPath = 'js/engines/chat-ui-engine.js'
-            LocalCandidates = @('chat-ui-engine.js')
+            LocalCandidates = @()
             RemoteUrl = $chatUiEngineRemoteUrl
         },
         [PSCustomObject]@{
@@ -600,49 +600,49 @@ if ($SkipAssetHashChecks) {
         [PSCustomObject]@{
             Name = 'booking-engine.js'
             LocalPath = 'js/engines/booking-engine.js'
-            LocalCandidates = @('booking-engine.js')
+            LocalCandidates = @()
             RemoteUrl = $bookingEngineRemoteUrl
         },
         [PSCustomObject]@{
             Name = 'ui-effects.js'
             LocalPath = 'js/engines/ui-effects.js'
-            LocalCandidates = @('ui-effects.js')
+            LocalCandidates = @()
             RemoteUrl = $uiEffectsRemoteUrl
         },
         [PSCustomObject]@{
             Name = 'gallery-interactions.js'
             LocalPath = 'js/engines/gallery-interactions.js'
-            LocalCandidates = @('gallery-interactions.js')
+            LocalCandidates = @()
             RemoteUrl = $galleryInteractionsRemoteUrl
         },
         [PSCustomObject]@{
             Name = 'booking-ui.js'
             LocalPath = 'js/engines/booking-ui.js'
-            LocalCandidates = @('booking-ui.js')
+            LocalCandidates = @()
             RemoteUrl = $bookingUiRemoteUrl
         },
         [PSCustomObject]@{
             Name = 'chat-booking-engine.js'
             LocalPath = 'js/engines/chat-booking-engine.js'
-            LocalCandidates = @('chat-booking-engine.js')
+            LocalCandidates = @()
             RemoteUrl = $chatBookingEngineRemoteUrl
         },
         [PSCustomObject]@{
             Name = 'success-modal-engine.js'
             LocalPath = 'js/engines/success-modal-engine.js'
-            LocalCandidates = @('success-modal-engine.js')
+            LocalCandidates = @()
             RemoteUrl = $successModalEngineRemoteUrl
         },
         [PSCustomObject]@{
             Name = 'engagement-forms-engine.js'
             LocalPath = 'js/engines/engagement-forms-engine.js'
-            LocalCandidates = @('engagement-forms-engine.js')
+            LocalCandidates = @()
             RemoteUrl = $engagementFormsEngineRemoteUrl
         },
         [PSCustomObject]@{
             Name = 'modal-ux-engine.js'
             LocalPath = 'js/engines/modal-ux-engine.js'
-            LocalCandidates = @('modal-ux-engine.js')
+            LocalCandidates = @()
             RemoteUrl = $modalUxEngineRemoteUrl
         }
     )
@@ -654,11 +654,11 @@ if ($SkipAssetHashChecks) {
             RemoteUrl = $translationsEnRemoteUrl
         }
     }
-    if (($rescheduleEngineRemoteUrl -ne '') -or (Test-Path 'reschedule-engine.js') -or (Test-Path 'js/engines/reschedule-engine.js')) {
+    if (($rescheduleEngineRemoteUrl -ne '') -or (Test-Path 'js/engines/reschedule-engine.js')) {
         $checks += [PSCustomObject]@{
             Name = 'reschedule-engine.js'
             LocalPath = 'js/engines/reschedule-engine.js'
-            LocalCandidates = @('reschedule-engine.js')
+            LocalCandidates = @()
             RemoteUrl = $rescheduleEngineRemoteUrl
         }
     } else {

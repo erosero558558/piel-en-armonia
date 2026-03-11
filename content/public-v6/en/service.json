@@ -24,7 +24,7 @@
             "eyebrow": "Medical direction",
             "titleTemplate": "{service} is decided with judgment before any intervention",
             "signature": "Clinical direction, Quito",
-            "image": "/images/optimized/team-rosero.webp",
+            "image": "/images/optimized/v6-clinic-doctor-rosero.webp",
             "alt": "Clinical direction at Piel en Armonia"
         },
         "internalMessageFallback": "Your final plan is confirmed in consultation, with clear medical explanation and no shortcuts.",
@@ -60,7 +60,7 @@
             "category": "Diagnosis",
             "title": "Comprehensive diagnosis",
             "summary": "A full reading of skin, hair, and nails to set priorities from the first consultation.",
-            "heroImage": "/images/optimized/service-consulta.webp",
+            "heroImage": "/images/optimized/v6-clinic-diagnostico-integral.webp",
             "heroAlt": "Comprehensive dermatology consultation",
             "lead": "The first consultation creates order: what needs attention now, what can wait, and how progress should be measured.",
             "bullets": [
@@ -95,7 +95,7 @@
             "category": "Inflammation",
             "title": "Acne and rosacea",
             "summary": "Control of inflammatory flares and sensitivity with realistic, sustainable medical goals.",
-            "heroImage": "/images/optimized/service-acne.webp",
+            "heroImage": "/images/optimized/v6-clinic-acne-rosacea.webp",
             "heroAlt": "Medical acne and rosacea control",
             "lead": "We aim for calmer skin, fewer flares, and fewer marks through timely adjustments rather than abrupt changes.",
             "bullets": [
@@ -130,7 +130,7 @@
             "category": "Procedures",
             "title": "Warts",
             "summary": "Management of common, plantar, and periungual warts by type, site, and recurrence pattern.",
-            "heroImage": "/images/optimized/showcase-treatment.webp",
+            "heroImage": "/images/optimized/v6-clinic-verrugas.webp",
             "heroAlt": "Dermatology wart procedure",
             "lead": "Technique is chosen by wart type and location so treatment resolves the lesion without punishing healthy skin.",
             "bullets": [
@@ -165,7 +165,7 @@
             "category": "Texture",
             "title": "Bumps on arms and legs",
             "summary": "Route for rough texture and persistent follicular changes.",
-            "heroImage": "/images/optimized/showcase-clinic.webp",
+            "heroImage": "/images/optimized/v6-clinic-granitos-brazos-piernas.webp",
             "heroAlt": "Clinical skin texture care",
             "lead": "Barrier repair and follicular control are combined to improve texture steadily, without overtreating the skin.",
             "bullets": [
@@ -200,7 +200,7 @@
             "category": "Repair",
             "title": "Scars",
             "summary": "Combined strategy to improve contour, tone, and texture by scar type.",
-            "heroImage": "/images/optimized/service-laser.webp",
+            "heroImage": "/images/optimized/v6-clinic-cicatrices.webp",
             "heroAlt": "Dermatology scar treatment",
             "lead": "Meaningful scar improvement is layered: contour, tone, and texture are treated in a deliberate clinical sequence.",
             "bullets": [
@@ -235,7 +235,7 @@
             "category": "Screening",
             "title": "Skin cancer",
             "summary": "Suspicious lesion assessment to detect risk early and decide without delay.",
-            "heroImage": "/images/optimized/service-cancer.webp",
+            "heroImage": "/images/optimized/v6-clinic-cancer-piel.webp",
             "heroAlt": "Early skin cancer screening",
             "lead": "Warning signs are prioritized early so we can decide quickly between surveillance and referral.",
             "bullets": [
@@ -270,7 +270,7 @@
             "category": "Procedures",
             "title": "Chemical peel",
             "summary": "Skin renewal for tone, texture, and selected pigmentation concerns with precise indication.",
-            "heroImage": "/images/optimized/showcase-treatment.webp",
+            "heroImage": "/images/optimized/v6-clinic-peeling-quimico.webp",
             "heroAlt": "Dermatology chemical peel",
             "lead": "Intensity is calibrated to renew the skin safely while respecting phototype and daily rhythm.",
             "bullets": [
@@ -305,7 +305,7 @@
             "category": "Rejuvenation",
             "title": "Mesotherapy",
             "summary": "Micro-interventions for deeper hydration and better skin quality.",
-            "heroImage": "/images/optimized/service-rejuvenecimiento.webp",
+            "heroImage": "/images/optimized/v6-clinic-mesoterapia.webp",
             "heroAlt": "Dermatology mesotherapy",
             "lead": "Short sessions and close follow-up work together to improve hydration, radiance, and overall skin quality.",
             "bullets": [
@@ -340,7 +340,7 @@
             "category": "Technology",
             "title": "Dermatology laser",
             "summary": "Laser treatments with traceable clinical settings and follow-up after every session.",
-            "heroImage": "/images/optimized/service-laser.webp",
+            "heroImage": "/images/optimized/v6-clinic-laser-dermatologico.webp",
             "heroAlt": "Medical dermatology laser",
             "lead": "Every laser parameter is chosen by clinical objective and skin response, never by generic templates.",
             "bullets": [
@@ -375,7 +375,7 @@
             "category": "Rejuvenation",
             "title": "Medical botox",
             "summary": "Expression-line management with natural look and responsible dosing.",
-            "heroImage": "/images/optimized/service-rejuvenecimiento.webp",
+            "heroImage": "/images/optimized/v6-clinic-botox.webp",
             "heroAlt": "Medical botox application",
             "lead": "The goal is to soften expression without erasing movement or facial identity.",
             "bullets": [
@@ -410,7 +410,7 @@
             "category": "Rejuvenation",
             "title": "Collagen biostimulators",
             "summary": "Progressive stimulation for support and firmness when the skin has begun to lose structure.",
-            "heroImage": "/images/optimized/service-rejuvenecimiento.webp",
+            "heroImage": "/images/optimized/v6-clinic-bioestimuladores-colageno.webp",
             "heroAlt": "Collagen biostimulation",
             "lead": "Zone-by-zone planning supports gradual collagen stimulation and keeps outcomes coherent over time.",
             "bullets": [
@@ -445,7 +445,7 @@
             "category": "Integral",
             "title": "Skin, hair and nails",
             "summary": "Cross-route care for combined, chronic, or variable progression symptoms.",
-            "heroImage": "/images/optimized/showcase-diagnostic.webp",
+            "heroImage": "/images/optimized/v6-clinic-piel-cabello-unas.webp",
             "heroAlt": "Integrated dermatology",
             "lead": "When several symptoms coexist, we build one integrated reading instead of treating disconnected pieces.",
             "bullets": [
@@ -480,7 +480,7 @@
             "category": "Pediatric",
             "title": "Pediatric dermatology",
             "summary": "Dermatology care for children and adolescents with communication a family can actually use.",
-            "heroImage": "/images/optimized/showcase-clinic.webp",
+            "heroImage": "/images/optimized/v6-clinic-dermatologia-pediatrica.webp",
             "heroAlt": "Pediatric dermatology consultation",
             "lead": "Medical decisions are translated into simple steps for home, school, and daily routine.",
             "bullets": [

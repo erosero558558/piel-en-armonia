@@ -42,6 +42,10 @@ test.describe('Public V6 software suite', () => {
             page.locator('.v6-suite-hero .v6-suite-actions a')
         ).toHaveCount(4);
         await expect(
+            page.locator('[data-v6-suite-focus="landing"] [data-v6-suite-focus-card]')
+        ).toHaveCount(3);
+        await expect(page.locator('[data-v6-suite-module-role="lead"]').first()).toBeVisible();
+        await expect(
             page.locator('[data-v6-section-nav="software"] [data-v6-section-link]')
         ).toHaveCount(7);
         await expect(
@@ -51,6 +55,22 @@ test.describe('Public V6 software suite', () => {
             page.locator('.v6-suite-surface-grid .v6-suite-surface-card__stage')
         ).toHaveCount(3);
         await expect(page.locator('.v6-suite-faq__item')).toHaveCount(4);
+
+        const landingSections = await page
+            .locator('[data-v6-suite-landing-section]')
+            .evaluateAll((nodes) =>
+                nodes.map((node) => ({
+                    key: node.getAttribute('data-v6-suite-landing-section') || '',
+                    order:
+                        node.getAttribute('data-v6-suite-landing-section-order') || '',
+                }))
+            );
+
+        expect(landingSections).toEqual([
+            { key: 'operations', order: '01' },
+            { key: 'audiences', order: '02' },
+            { key: 'surfaces', order: '03' },
+        ]);
 
         await expectNoPlaceholderLinks(
             page,
@@ -77,10 +97,28 @@ test.describe('Public V6 software suite', () => {
         await expect(
             page.locator('[data-v6-section-nav="software-surface"] [data-v6-section-link]')
         ).toHaveCount(5);
+        await expect(page.locator('[data-v6-suite-surface-section]')).toHaveCount(5);
+        await expect(page.locator('[data-v6-suite-surface-section-tag]')).toHaveCount(5);
         await expect(page.locator('.v6-suite-surface-hero .v6-suite-actions a')).toHaveCount(2);
         await expect(page.locator('.v6-suite-showcase__stage').first()).toBeVisible();
         await expect(page.locator('.v6-suite-showcase .v6-suite-mockup__row')).toHaveCount(3);
         await expect(page.locator('.v6-suite-list-grid .v6-suite-list-item')).toHaveCount(4);
+
+        const surfaceSections = await page.locator('[data-v6-suite-surface-section]').evaluateAll((nodes) =>
+            nodes.map((node) => ({
+                key: node.getAttribute('data-v6-suite-surface-section') || '',
+                order:
+                    node.getAttribute('data-v6-suite-surface-section-order') || '',
+            }))
+        );
+
+        expect(surfaceSections).toEqual([
+            { key: 'showcase', order: '01' },
+            { key: 'steps', order: '02' },
+            { key: 'advantages', order: '03' },
+            { key: 'connections', order: '04' },
+            { key: 'final', order: '05' },
+        ]);
 
         await expectNoPlaceholderLinks(
             page,

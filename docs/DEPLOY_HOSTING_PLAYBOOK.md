@@ -41,9 +41,14 @@ que genera `npm run bundle:deploy`. El set minimo actual debe contener:
 
 - `index.php`
 - `.htaccess`
+- `styles.css`
+- `styles-deferred.css`
 - `es/`
 - `en/`
 - `_astro/`
+- `script.js`
+- `js/chunks/`
+- `js/engines/`
 - `js/public-v6-shell.js`
 - `fonts/`
 - `images/optimized/`
@@ -98,14 +103,24 @@ Notas:
 - La home publica ya no depende de `index.html` en raiz. El gateway entra por
   `index.php` y la shell publica V6 vive en `es/**`, `en/**`, `_astro/**` y
   `js/public-v6-shell.js`.
+- `styles.css` y `styles-deferred.css` forman parte de la capa de soporte del
+  gateway publico raiz. `script.js` y `js/chunks/**` forman el runtime
+  versionado principal, y `js/engines/**` contiene los engines cargados en
+  diferido por ese gateway.
+- `script.js` y `js/chunks/**` forman parte del runtime versionado del gateway
+  publico raiz. Deben publicarse si `/` depende de ese gateway y se validan con
+  `npm run check:public:runtime:artifacts`.
+- `js/engines/**` tambien debe publicarse si `/` depende del gateway publico;
+  el bundle canonico ya no depende de `*-engine.js` legacy en raiz.
+- Los residuos root `booking-engine.js` y `utils.js` quedaron archivados en
+  `js/archive/root-legacy/**`; verify/smoke ya no deben usarlos como fallback.
 - El admin canonico despliega `admin-v3.css` + `queue-ops.css` junto con
   `admin.js`, `js/admin-chunks/**` y `js/admin-preboot-shortcuts.js`;
   `admin.css` queda archivado como legacy.
 - El turnero publicado depende de `operador-turnos.html`,
   `kiosco-turnos.html`, `sala-turnos.html` y sus assets `queue-*`.
-- `styles.css`, `styles-deferred.css`, `script.js` y las rutas HTML legacy en
-  raiz quedan solo como compatibilidad si siguen publicadas; no son la shell
-  V6 canonica.
+- Las rutas HTML legacy en raiz pueden seguir publicadas por compatibilidad,
+  pero no sustituyen ni definen la shell V6 canonica.
 - El frontend consume `figo-chat.php` para el chatbot IA.
 - `.htaccess` ahora aplica Brotli/gzip y politicas de cache: estaticos con `max-age`, API critica con `no-store`.
 - `index.php` ahora entrega la home con cabeceras de seguridad (incluye CSP) cuando el servidor enruta `/` a PHP.

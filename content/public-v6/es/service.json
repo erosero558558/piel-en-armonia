@@ -24,7 +24,7 @@
             "eyebrow": "Direccion medica",
             "titleTemplate": "{service} se decide con criterio antes de cualquier intervencion",
             "signature": "Direccion clinica, Quito",
-            "image": "/images/optimized/team-rosero.webp",
+            "image": "/images/optimized/v6-clinic-doctor-rosero.webp",
             "alt": "Direccion clinica de Piel en Armonia"
         },
         "internalMessageFallback": "La decision final se confirma en consulta, con explicacion medica clara y sin atajos.",
@@ -60,7 +60,7 @@
             "category": "Diagnostico",
             "title": "Diagnostico integral",
             "summary": "Lectura completa de piel, cabello y unas para ordenar prioridades desde la primera consulta.",
-            "heroImage": "/images/optimized/service-consulta.webp",
+            "heroImage": "/images/optimized/v6-clinic-diagnostico-integral.webp",
             "heroAlt": "Consulta dermatologica integral",
             "lead": "La primera consulta pone orden: que atender ahora, que vigilar despues y como medir avance sin perder tiempo.",
             "bullets": [
@@ -95,7 +95,7 @@
             "category": "Inflamacion",
             "title": "Acne y rosacea",
             "summary": "Control de brotes inflamatorios y sensibilidad con objetivos clinicos realistas y sostenibles.",
-            "heroImage": "/images/optimized/service-acne.webp",
+            "heroImage": "/images/optimized/v6-clinic-acne-rosacea.webp",
             "heroAlt": "Control medico de acne y rosacea",
             "lead": "Buscamos una piel mas estable, menos brotes y menos marcas con ajustes oportunos, no con cambios bruscos.",
             "bullets": [
@@ -130,7 +130,7 @@
             "category": "Procedimientos",
             "title": "Verrugas",
             "summary": "Manejo de verrugas comunes, plantares y periungueales segun tipo, zona y recurrencia.",
-            "heroImage": "/images/optimized/showcase-treatment.webp",
+            "heroImage": "/images/optimized/v6-clinic-verrugas.webp",
             "heroAlt": "Procedimiento dermatologico para verrugas",
             "lead": "La tecnica se elige por tipo de verruga y localizacion para resolver sin castigar piel sana.",
             "bullets": [
@@ -165,7 +165,7 @@
             "category": "Textura",
             "title": "Granitos en brazos y piernas",
             "summary": "Ruta para textura aspera y cambios foliculares persistentes.",
-            "heroImage": "/images/optimized/showcase-clinic.webp",
+            "heroImage": "/images/optimized/v6-clinic-granitos-brazos-piernas.webp",
             "heroAlt": "Manejo clinico de textura cutanea",
             "lead": "Combinamos reparacion de barrera y control folicular para mejorar textura con constancia y sin sobretratar.",
             "bullets": [
@@ -200,7 +200,7 @@
             "category": "Reparacion",
             "title": "Cicatrices",
             "summary": "Plan combinado para mejorar relieve, tono y textura segun tipo de cicatriz.",
-            "heroImage": "/images/optimized/service-laser.webp",
+            "heroImage": "/images/optimized/v6-clinic-cicatrices.webp",
             "heroAlt": "Tratamiento dermatologico de cicatrices",
             "lead": "La mejoria real llega por capas: tratamos relieve, tono y textura en una secuencia medica clara.",
             "bullets": [
@@ -235,7 +235,7 @@
             "category": "Tamizaje",
             "title": "Cancer de piel",
             "summary": "Evaluacion de lesiones sospechosas para detectar riesgo a tiempo y decidir sin demora.",
-            "heroImage": "/images/optimized/service-cancer.webp",
+            "heroImage": "/images/optimized/v6-clinic-cancer-piel.webp",
             "heroAlt": "Tamizaje temprano de cancer de piel",
             "lead": "Priorizamos senales de alarma para actuar temprano y definir si basta vigilancia o hace falta derivacion.",
             "bullets": [
@@ -270,7 +270,7 @@
             "category": "Procedimientos",
             "title": "Peeling quimico",
             "summary": "Renovacion cutanea para tono, textura y manchas seleccionadas con indicacion precisa.",
-            "heroImage": "/images/optimized/showcase-treatment.webp",
+            "heroImage": "/images/optimized/v6-clinic-peeling-quimico.webp",
             "heroAlt": "Peeling quimico dermatologico",
             "lead": "La intensidad se calibra para renovar piel con seguridad, respetando su fototipo y su ritmo de vida.",
             "bullets": [
@@ -305,7 +305,7 @@
             "category": "Rejuvenecimiento",
             "title": "Mesoterapia",
             "summary": "Microintervenciones para hidratacion profunda y mejor calidad cutanea.",
-            "heroImage": "/images/optimized/service-rejuvenecimiento.webp",
+            "heroImage": "/images/optimized/v6-clinic-mesoterapia.webp",
             "heroAlt": "Mesoterapia dermatologica",
             "lead": "Integramos sesiones breves y seguimiento cercano para mejorar hidratacion, luz y calidad de piel.",
             "bullets": [
@@ -340,7 +340,7 @@
             "category": "Tecnologia",
             "title": "Laser dermatologico",
             "summary": "Tratamientos laser con parametros clinicos trazables y seguimiento despues de cada sesion.",
-            "heroImage": "/images/optimized/service-laser.webp",
+            "heroImage": "/images/optimized/v6-clinic-laser-dermatologico.webp",
             "heroAlt": "Laser dermatologico medico",
             "lead": "Cada parametro se define por objetivo clinico y respuesta de su piel, no por plantillas generales.",
             "bullets": [
@@ -375,7 +375,7 @@
             "category": "Rejuvenecimiento",
             "title": "Botox medico",
             "summary": "Manejo de lineas de expresion con enfoque natural y dosis responsable.",
-            "heroImage": "/images/optimized/service-rejuvenecimiento.webp",
+            "heroImage": "/images/optimized/v6-clinic-botox.webp",
             "heroAlt": "Aplicacion medica de botox",
             "lead": "Buscamos suavizar la expresion sin borrar gesto, identidad facial ni naturalidad cotidiana.",
             "bullets": [
@@ -410,7 +410,7 @@
             "category": "Rejuvenecimiento",
             "title": "Bioestimuladores de colageno",
             "summary": "Estimulo progresivo para soporte y firmeza cuando la piel ha perdido estructura.",
-            "heroImage": "/images/optimized/service-rejuvenecimiento.webp",
+            "heroImage": "/images/optimized/v6-clinic-bioestimuladores-colageno.webp",
             "heroAlt": "Bioestimulacion de colageno",
             "lead": "Planificamos por zonas para estimular colageno de forma progresiva y sostener resultados coherentes en el tiempo.",
             "bullets": [
@@ -445,7 +445,7 @@
             "category": "Integral",
             "title": "Piel, cabello y unas",
             "summary": "Ruta transversal para sintomas combinados, cronicos o de evolucion variable.",
-            "heroImage": "/images/optimized/showcase-diagnostic.webp",
+            "heroImage": "/images/optimized/v6-clinic-piel-cabello-unas.webp",
             "heroAlt": "Dermatologia integral",
             "lead": "Cuando varios sintomas conviven, coordinamos una sola lectura clinica para no tratar piezas sueltas.",
             "bullets": [
@@ -480,7 +480,7 @@
             "category": "Pediatria",
             "title": "Dermatologia pediatrica",
             "summary": "Atencion dermatologica para ninos y adolescentes con comunicacion clara para la familia.",
-            "heroImage": "/images/optimized/showcase-clinic.webp",
+            "heroImage": "/images/optimized/v6-clinic-dermatologia-pediatrica.webp",
             "heroAlt": "Consulta pediatrica dermatologica",
             "lead": "Traducimos la decision medica a pasos simples para casa, escuela y rutina diaria.",
             "bullets": [

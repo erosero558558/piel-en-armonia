@@ -13,8 +13,8 @@
     ],
     "heading": "Dermatology telemedicine in Quito",
     "heroImage": {
-        "src": "/images/optimized/service-telemedicina.webp",
-        "srcset": "/images/optimized/service-telemedicina-400.webp 400w, /images/optimized/service-telemedicina.webp 900w",
+        "src": "/images/optimized/v6-clinic-consent-trust.webp",
+        "srcset": "/images/optimized/v6-clinic-consent-trust-400.webp 400w, /images/optimized/v6-clinic-consent-trust.webp 900w",
         "alt": "Remote dermatology consultation"
     },
     "lead": "Telemedicine matters when it saves time without thinning out diagnosis, medical judgment, or continuity.",
@@ -32,7 +32,7 @@
             "eyebrow": "Remote clinical direction",
             "title": "Useful telemedicine, without losing medical judgment",
             "signature": "Hybrid model, Quito",
-            "image": "/images/optimized/team-narvaez.webp",
+            "image": "/images/optimized/v6-clinic-doctor-narvaez.webp",
             "alt": "Telemedicine clinical direction"
         },
         "internalMessage": {
@@ -87,25 +87,25 @@
         {
             "title": "Visual triage",
             "copy": "A first reading through clinical images that helps prioritize risk and response timing.",
-            "image": "/images/optimized/showcase-diagnostic.webp",
+            "image": "/images/optimized/v6-clinic-diagnostico-integral.webp",
             "href": "#v6-tele-block-1"
         },
         {
             "title": "Flare control",
             "copy": "Remote adjustments that contain flares between reviews and avoid lost days.",
-            "image": "/images/optimized/service-acne.webp",
+            "image": "/images/optimized/v6-clinic-acne-rosacea.webp",
             "href": "#v6-tele-block-2"
         },
         {
             "title": "In-clinic escalation",
             "copy": "Referral into clinic when lesion behavior calls for direct examination.",
-            "image": "/images/optimized/showcase-clinic.webp",
+            "image": "/images/optimized/v6-clinic-clinic-environment.webp",
             "href": "#v6-tele-block-3"
         },
         {
             "title": "Quito continuity",
             "copy": "A hybrid route shaped for Quito, with remote follow-up and timely clinic control.",
-            "image": "/images/optimized/service-telemedicina.webp",
+            "image": "/images/optimized/v6-clinic-consent-trust.webp",
             "href": "#v6-booking-status"
         }
     ],

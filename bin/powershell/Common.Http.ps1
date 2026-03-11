@@ -930,9 +930,9 @@ function Resolve-DeployAssetMap {
     )
 
     $map = [ordered]@{}
-    $map.ChatEngineRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'chat-engine.js' -FallbackPaths @('chat-engine.js', 'js/engines/chat-engine.js')
-    $map.ChatUiEngineRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'chat-ui-engine.js' -FallbackPaths @('chat-ui-engine.js', 'js/engines/chat-ui-engine.js')
-    $map.ChatWidgetEngineRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'chat-widget-engine.js' -FallbackPaths @('chat-widget-engine.js', 'js/engines/chat-widget-engine.js')
+    $map.ChatEngineRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'chat-engine.js' -FallbackPaths @('js/engines/chat-engine.js')
+    $map.ChatUiEngineRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'chat-ui-engine.js' -FallbackPaths @('js/engines/chat-ui-engine.js')
+    $map.ChatWidgetEngineRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'chat-widget-engine.js' -FallbackPaths @('js/engines/chat-widget-engine.js')
 
     $deferredStylesRef = Get-ScriptVersionedRef -ScriptText $LocalScriptText -FileName 'styles-deferred.css'
     $map.DeferredStylesRemoteUrl = if ($IndexDeferredStylesRemoteUrl -ne '') {
@@ -965,10 +965,10 @@ function Resolve-DeployAssetMap {
         ''
     }
 
-    $map.BookingEngineRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'booking-engine.js' -FallbackPaths @('booking-engine.js', 'js/engines/booking-engine.js')
+    $map.BookingEngineRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'booking-engine.js' -FallbackPaths @('js/engines/booking-engine.js')
     $map.AnalyticsEngineRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'analytics-engine.js' -FallbackPaths @('js/engines/analytics-engine.js')
-    $map.UiEffectsRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'ui-effects.js' -FallbackPaths @('ui-effects.js', 'js/engines/ui-effects.js')
-    $map.GalleryInteractionsRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'gallery-interactions.js' -FallbackPaths @('gallery-interactions.js', 'js/engines/gallery-interactions.js')
+    $map.UiEffectsRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'ui-effects.js' -FallbackPaths @('js/engines/ui-effects.js')
+    $map.GalleryInteractionsRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'gallery-interactions.js' -FallbackPaths @('js/engines/gallery-interactions.js')
 
     $rescheduleEngineRef = Get-ScriptVersionedRef -ScriptText $LocalRescheduleGatewayText -FileName 'reschedule-engine.js'
     if ($rescheduleEngineRef -eq '') {
@@ -976,17 +976,17 @@ function Resolve-DeployAssetMap {
     }
     $map.RescheduleEngineRemoteUrl = if ($rescheduleEngineRef -ne '') {
         Get-Url -Base $Base -Ref $rescheduleEngineRef
-    } elseif ((Test-Path 'reschedule-engine.js') -or (Test-Path 'js/engines/reschedule-engine.js')) {
-        "$Base/reschedule-engine.js"
+    } elseif (Test-Path 'js/engines/reschedule-engine.js') {
+        "$Base/js/engines/reschedule-engine.js"
     } else {
         ''
     }
 
-    $map.BookingUiRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'booking-ui.js' -FallbackPaths @('booking-ui.js', 'js/engines/booking-ui.js')
-    $map.ChatBookingEngineRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'chat-booking-engine.js' -FallbackPaths @('chat-booking-engine.js', 'js/engines/chat-booking-engine.js')
-    $map.SuccessModalEngineRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'success-modal-engine.js' -FallbackPaths @('success-modal-engine.js', 'js/engines/success-modal-engine.js')
-    $map.EngagementFormsEngineRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'engagement-forms-engine.js' -FallbackPaths @('engagement-forms-engine.js', 'js/engines/engagement-forms-engine.js')
-    $map.ModalUxEngineRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'modal-ux-engine.js' -FallbackPaths @('modal-ux-engine.js', 'js/engines/modal-ux-engine.js')
+    $map.BookingUiRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'booking-ui.js' -FallbackPaths @('js/engines/booking-ui.js')
+    $map.ChatBookingEngineRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'chat-booking-engine.js' -FallbackPaths @('js/engines/chat-booking-engine.js')
+    $map.SuccessModalEngineRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'success-modal-engine.js' -FallbackPaths @('js/engines/success-modal-engine.js')
+    $map.EngagementFormsEngineRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'engagement-forms-engine.js' -FallbackPaths @('js/engines/engagement-forms-engine.js')
+    $map.ModalUxEngineRemoteUrl = Resolve-VersionedAssetRemoteUrl -Base $Base -SourceText $LocalScriptText -FileName 'modal-ux-engine.js' -FallbackPaths @('js/engines/modal-ux-engine.js')
 
     $map.SecondaryAssetHeaderChecks = @(
         @{ Name = 'chat-widget-engine'; Url = $map.ChatWidgetEngineRemoteUrl },
@@ -1006,24 +1006,24 @@ function Resolve-DeployAssetMap {
     )
 
     $map.HashChecks = @(
-        [pscustomobject]@{ Name = 'chat-widget-engine.js'; LocalPath = 'js/engines/chat-widget-engine.js'; LocalCandidates = @('chat-widget-engine.js'); RemoteUrl = $map.ChatWidgetEngineRemoteUrl },
-        [pscustomobject]@{ Name = 'chat-engine.js'; LocalPath = 'js/engines/chat-engine.js'; LocalCandidates = @('chat-engine.js'); RemoteUrl = $map.ChatEngineRemoteUrl },
-        [pscustomobject]@{ Name = 'chat-ui-engine.js'; LocalPath = 'js/engines/chat-ui-engine.js'; LocalCandidates = @('chat-ui-engine.js'); RemoteUrl = $map.ChatUiEngineRemoteUrl },
+        [pscustomobject]@{ Name = 'chat-widget-engine.js'; LocalPath = 'js/engines/chat-widget-engine.js'; LocalCandidates = @(); RemoteUrl = $map.ChatWidgetEngineRemoteUrl },
+        [pscustomobject]@{ Name = 'chat-engine.js'; LocalPath = 'js/engines/chat-engine.js'; LocalCandidates = @(); RemoteUrl = $map.ChatEngineRemoteUrl },
+        [pscustomobject]@{ Name = 'chat-ui-engine.js'; LocalPath = 'js/engines/chat-ui-engine.js'; LocalCandidates = @(); RemoteUrl = $map.ChatUiEngineRemoteUrl },
         [pscustomobject]@{ Name = 'styles-deferred.css'; LocalPath = 'styles-deferred.css'; LocalCandidates = @(); RemoteUrl = $map.DeferredStylesRemoteUrl },
-        [pscustomobject]@{ Name = 'booking-engine.js'; LocalPath = 'js/engines/booking-engine.js'; LocalCandidates = @('booking-engine.js'); RemoteUrl = $map.BookingEngineRemoteUrl },
-        [pscustomobject]@{ Name = 'ui-effects.js'; LocalPath = 'js/engines/ui-effects.js'; LocalCandidates = @('ui-effects.js'); RemoteUrl = $map.UiEffectsRemoteUrl },
-        [pscustomobject]@{ Name = 'gallery-interactions.js'; LocalPath = 'js/engines/gallery-interactions.js'; LocalCandidates = @('gallery-interactions.js'); RemoteUrl = $map.GalleryInteractionsRemoteUrl },
-        [pscustomobject]@{ Name = 'booking-ui.js'; LocalPath = 'js/engines/booking-ui.js'; LocalCandidates = @('booking-ui.js'); RemoteUrl = $map.BookingUiRemoteUrl },
-        [pscustomobject]@{ Name = 'chat-booking-engine.js'; LocalPath = 'js/engines/chat-booking-engine.js'; LocalCandidates = @('chat-booking-engine.js'); RemoteUrl = $map.ChatBookingEngineRemoteUrl },
-        [pscustomobject]@{ Name = 'success-modal-engine.js'; LocalPath = 'js/engines/success-modal-engine.js'; LocalCandidates = @('success-modal-engine.js'); RemoteUrl = $map.SuccessModalEngineRemoteUrl },
-        [pscustomobject]@{ Name = 'engagement-forms-engine.js'; LocalPath = 'js/engines/engagement-forms-engine.js'; LocalCandidates = @('engagement-forms-engine.js'); RemoteUrl = $map.EngagementFormsEngineRemoteUrl },
-        [pscustomobject]@{ Name = 'modal-ux-engine.js'; LocalPath = 'js/engines/modal-ux-engine.js'; LocalCandidates = @('modal-ux-engine.js'); RemoteUrl = $map.ModalUxEngineRemoteUrl }
+        [pscustomobject]@{ Name = 'booking-engine.js'; LocalPath = 'js/engines/booking-engine.js'; LocalCandidates = @(); RemoteUrl = $map.BookingEngineRemoteUrl },
+        [pscustomobject]@{ Name = 'ui-effects.js'; LocalPath = 'js/engines/ui-effects.js'; LocalCandidates = @(); RemoteUrl = $map.UiEffectsRemoteUrl },
+        [pscustomobject]@{ Name = 'gallery-interactions.js'; LocalPath = 'js/engines/gallery-interactions.js'; LocalCandidates = @(); RemoteUrl = $map.GalleryInteractionsRemoteUrl },
+        [pscustomobject]@{ Name = 'booking-ui.js'; LocalPath = 'js/engines/booking-ui.js'; LocalCandidates = @(); RemoteUrl = $map.BookingUiRemoteUrl },
+        [pscustomobject]@{ Name = 'chat-booking-engine.js'; LocalPath = 'js/engines/chat-booking-engine.js'; LocalCandidates = @(); RemoteUrl = $map.ChatBookingEngineRemoteUrl },
+        [pscustomobject]@{ Name = 'success-modal-engine.js'; LocalPath = 'js/engines/success-modal-engine.js'; LocalCandidates = @(); RemoteUrl = $map.SuccessModalEngineRemoteUrl },
+        [pscustomobject]@{ Name = 'engagement-forms-engine.js'; LocalPath = 'js/engines/engagement-forms-engine.js'; LocalCandidates = @(); RemoteUrl = $map.EngagementFormsEngineRemoteUrl },
+        [pscustomobject]@{ Name = 'modal-ux-engine.js'; LocalPath = 'js/engines/modal-ux-engine.js'; LocalCandidates = @(); RemoteUrl = $map.ModalUxEngineRemoteUrl }
     )
     if ($map.HasTranslationsEnAsset) {
         $map.HashChecks += [pscustomobject]@{ Name = 'translations-en.js'; LocalPath = 'translations-en.js'; LocalCandidates = @('js/translations-en.js'); RemoteUrl = $map.TranslationsEnRemoteUrl }
     }
-    if (($map.RescheduleEngineRemoteUrl -ne '') -or (Test-Path 'reschedule-engine.js') -or (Test-Path 'js/engines/reschedule-engine.js')) {
-        $map.HashChecks += [pscustomobject]@{ Name = 'reschedule-engine.js'; LocalPath = 'js/engines/reschedule-engine.js'; LocalCandidates = @('reschedule-engine.js'); RemoteUrl = $map.RescheduleEngineRemoteUrl }
+    if (($map.RescheduleEngineRemoteUrl -ne '') -or (Test-Path 'js/engines/reschedule-engine.js')) {
+        $map.HashChecks += [pscustomobject]@{ Name = 'reschedule-engine.js'; LocalPath = 'js/engines/reschedule-engine.js'; LocalCandidates = @(); RemoteUrl = $map.RescheduleEngineRemoteUrl }
     }
 
     return [pscustomobject]$map

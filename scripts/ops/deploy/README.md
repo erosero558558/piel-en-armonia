@@ -16,8 +16,10 @@ La documentacion operativa incluida en el bundle viaja desde
 `docs/PRODUCTION_TEST_CHECKLIST.md`; no depende de los shims markdown de
 raiz.
 El bundle canonico de produccion tambien incluye la shell publica V6
-(`es/**`, `en/**`, `_astro/**`, `js/public-v6-shell.js`), el runtime admin V3
-(`admin.js`, `js/admin-chunks/**`, `js/admin-preboot-shortcuts.js`) y las
-superficies de turnero publicadas.
+(`es/**`, `en/**`, `_astro/**`, `js/public-v6-shell.js`), la capa de soporte
+del gateway publico (`styles.css`, `styles-deferred.css`), el runtime
+versionado del gateway (`script.js`, `js/chunks/**`, `js/engines/**`), el
+runtime admin V3 (`admin.js`, `js/admin-chunks/**`,
+`js/admin-preboot-shortcuts.js`) y las superficies de turnero publicadas.
 
 El archivo de raiz se mantiene como wrapper compatible.

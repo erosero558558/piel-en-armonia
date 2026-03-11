@@ -15,6 +15,23 @@ const LOCAL_ARTIFACT_TARGETS = [
     { path: '.php-cs-fixer.cache', label: '.php-cs-fixer.cache' },
     { path: '.phpunit.cache', label: '.phpunit.cache/' },
     { path: 'coverage.xml', label: 'coverage.xml' },
+    {
+        path: '.tmp-calendar-write-report.json',
+        label: '.tmp-calendar-write-report.json',
+    },
+    { path: 'build_analysis.txt', label: 'build_analysis.txt' },
+    { path: 'conflict_branches.txt', label: 'conflict_branches.txt' },
+    { path: 'stats.html', label: 'stats.html' },
+    { path: 'styles.min.css', label: 'styles.min.css' },
+    { path: 'styles.optimized.css', label: 'styles.optimized.css' },
+    {
+        path: 'styles-critical.min.css',
+        label: 'styles-critical.min.css',
+    },
+    {
+        path: 'styles-deferred.min.css',
+        label: 'styles-deferred.min.css',
+    },
 ];
 
 function parseCliArgs(argv) {

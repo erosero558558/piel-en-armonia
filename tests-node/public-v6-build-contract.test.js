@@ -100,9 +100,12 @@ test('build:public:v6 uses the dedicated Node runner instead of shell chaining',
     );
 });
 
-test('canonical build wires public chunk pruning after rollup', () => {
+test('canonical build wires public runtime validation after rollup', () => {
     const packageJson = JSON.parse(read('package.json'));
     const buildScript = String(packageJson.scripts.build || '');
+    const publishGate = String(
+        packageJson.scripts['gate:public:v6:canonical-publish'] || ''
+    );
 
     assert.equal(
         packageJson.scripts['chunks:public:check'],
@@ -113,6 +116,11 @@ test('canonical build wires public chunk pruning after rollup', () => {
         packageJson.scripts['chunks:public:prune'],
         'node bin/clean-public-chunks.js',
         'package.json debe exponer chunks:public:prune'
+    );
+    assert.equal(
+        packageJson.scripts['check:public:runtime:artifacts'],
+        'node bin/check-public-runtime-artifacts.js',
+        'package.json debe exponer check:public:runtime:artifacts'
     );
     assert.match(
         buildScript,
@@ -126,8 +134,74 @@ test('canonical build wires public chunk pruning after rollup', () => {
     );
     assert.match(
         buildScript,
+        /npm run check:public:runtime:artifacts/u,
+        'build debe validar el runtime publico versionado despues de podar chunks'
+    );
+    assert.match(
+        buildScript,
         /npm run chunks:admin:prune/u,
         'build debe seguir podando chunks admin huerfanos'
+    );
+    assert.match(
+        publishGate,
+        /npm run check:public:runtime:artifacts/u,
+        'gate:public:v6:canonical-publish debe validar script.js y js/chunks'
+    );
+});
+
+test('public runtime checker writes canonical report for script.js and js/chunks', () => {
+    const checker = read(path.join('bin', 'check-public-runtime-artifacts.js'));
+    const helper = read(path.join('bin', 'lib', 'public-runtime-artifacts.js'));
+
+    assert.match(
+        checker,
+        /runtime-artifacts-report\.json/u,
+        'checker debe escribir el reporte runtime-artifacts-report.json'
+    );
+    assert.match(
+        checker,
+        /inspectPublicRuntimeArtifacts/u,
+        'checker debe reutilizar el helper canonico del runtime publico'
+    );
+    assert.match(
+        helper,
+        /active_shell_count_mismatch/u,
+        'helper debe diagnosticar drift de shell activo'
+    );
+    assert.match(
+        helper,
+        /stale_chunks_detected/u,
+        'helper debe diagnosticar chunks huerfanos'
+    );
+    assert.match(
+        helper,
+        /merge_conflicts_detected/u,
+        'helper debe diagnosticar marcadores de merge en assets activos'
+    );
+    assert.match(
+        helper,
+        /missing_support_assets/u,
+        'helper debe diagnosticar support assets faltantes del gateway publico'
+    );
+    assert.match(
+        helper,
+        /missing_referenced_engine_files/u,
+        'helper debe diagnosticar engines faltantes referenciados por script.js'
+    );
+});
+
+test('script.js references the canonical engine directory and deferred stylesheet support', () => {
+    const scriptBundle = read('script.js');
+
+    assert.match(
+        scriptBundle,
+        /\/js\/engines\/[a-z0-9-]+\.js/u,
+        'script.js debe seguir referenciando js/engines/** para el gateway publico'
+    );
+    assert.match(
+        scriptBundle,
+        /styles-deferred\.css/u,
+        'script.js debe seguir cargando styles-deferred.css como soporte del gateway'
     );
 });
 
