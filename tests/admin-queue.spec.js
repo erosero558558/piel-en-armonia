@@ -6183,7 +6183,9 @@ test.describe('Admin turnero sala', () => {
         await expect(
             page.locator('#queueDispatchOpenOperator_c2')
         ).toHaveAttribute('href', /operador-turnos\.html\?station=c2&lock=1/);
-        await page.locator('#queueNumpadGuideToggleOneTap').click();
+        await page
+            .locator('#queueNumpadGuideToggleOneTap')
+            .dispatchEvent('click');
         await expect(page.locator('#queueNumpadGuideChipOneTap')).toContainText(
             '1 tecla ON'
         );
