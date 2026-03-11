@@ -57,10 +57,7 @@ echo "Test 2: Actor Logic (Public)... ";
 
 // Reset session to simulate logged out
 $_SESSION = [];
-// Note: We keep the session active (PHP_SESSION_ACTIVE) but empty,
-// OR we can destroy it. api-lib checks:
-// (session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['admin_logged_in']))
-// So empty $_SESSION should result in 'public'.
+// Note: We keep the session active but empty so the actor remains public.
 
 audit_log_event('public_event');
 
@@ -79,8 +76,14 @@ echo "PASSED\n";
 // --- Test 3: Actor Logic (Admin) ---
 echo "Test 3: Actor Logic (Admin)... ";
 
-// Set admin logged in
-$_SESSION['admin_logged_in'] = true;
+// Set operator auth session
+$_SESSION['operator_auth'] = [
+    'email' => 'operator@example.com',
+    'profileId' => 'openai-codex:test-profile',
+    'source' => 'openclaw_chatgpt',
+    'authenticatedAt' => date('c'),
+    'expiresAt' => date('c', time() + 300),
+];
 
 audit_log_event('admin_event');
 

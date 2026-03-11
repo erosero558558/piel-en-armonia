@@ -26,6 +26,7 @@ class ApiConfig
             'funnel-metrics:GET' => [60, 60],
             'retention-report:GET' => [30, 60],
             'lead-ai-queue:GET' => [60, 60],
+            'operator-auth-status:GET' => [90, 60],
 
             // Public POST - Actionable, lower volume to prevent spam
             'payment-intent:POST' => [10, 60],
@@ -40,6 +41,9 @@ class ApiConfig
             'queue-help-request:POST' => [20, 60],
             'lead-ai-result:POST' => [60, 60],
             'queue-surface-heartbeat:POST' => [240, 60],
+            'operator-auth-start:POST' => [12, 300],
+            'operator-auth-complete:POST' => [60, 60],
+            'operator-auth-logout:POST' => [30, 60],
 
             // Webhooks
             'stripe-webhook:POST' => [60, 60],
@@ -93,6 +97,10 @@ class ApiConfig
             ['method' => 'GET', 'resource' => 'lead-ai-queue'],
             ['method' => 'POST', 'resource' => 'lead-ai-result'],
             ['method' => 'POST', 'resource' => 'queue-surface-heartbeat'],
+            ['method' => 'POST', 'resource' => 'operator-auth-start'],
+            ['method' => 'GET', 'resource' => 'operator-auth-status'],
+            ['method' => 'POST', 'resource' => 'operator-auth-complete'],
+            ['method' => 'POST', 'resource' => 'operator-auth-logout'],
             ['method' => 'GET', 'resource' => 'reschedule'],
             ['method' => 'PATCH', 'resource' => 'reschedule'],
             ['method' => 'GET', 'resource' => 'content'],

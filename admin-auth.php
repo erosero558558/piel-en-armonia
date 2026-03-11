@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/api-lib.php';
+require_once __DIR__ . '/controllers/OperatorAuthController.php';
 
 apply_security_headers(false);
 api_apply_cors(['GET', 'POST', 'OPTIONS'], ['Content-Type', 'X-CSRF-Token'], true);
@@ -10,12 +11,21 @@ api_apply_cors(['GET', 'POST', 'OPTIONS'], ['Content-Type', 'X-CSRF-Token'], tru
 start_secure_session();
 
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
-$action = isset($_GET['action']) ? (string) $_GET['action'] : '';
+$action = strtolower(trim((string) ($_GET['action'] ?? 'status')));
 const ADMIN_LOGIN_ACTION = 'admin-login';
 const ADMIN_LOGIN_FAIL_ACTION = 'admin-login-failed';
 
 if ($method === 'GET' && $action === 'status') {
-    $isAuth = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
+    if (operator_auth_is_enabled()) {
+        $isAuth = operator_auth_is_authenticated();
+        audit_log_event('admin.status', [
+            'authenticated' => $isAuth,
+            'mode' => operator_auth_mode(),
+        ]);
+        OperatorAuthController::status();
+    }
+
+    $isAuth = legacy_admin_is_authenticated();
     audit_log_event('admin.status', [
         'authenticated' => $isAuth
     ]);
@@ -26,7 +36,23 @@ if ($method === 'GET' && $action === 'status') {
     json_response($resp);
 }
 
+if ($method === 'POST' && $action === 'start') {
+    require_rate_limit('operator-auth-start', 12, 300);
+    OperatorAuthController::start();
+}
+
 if ($method === 'POST' && $action === 'login') {
+    if (operator_auth_is_enabled()) {
+        audit_log_event('admin.login_legacy_disabled', [
+            'action' => $action,
+            'mode' => operator_auth_mode(),
+        ]);
+        json_response([
+            'ok' => false,
+            'error' => 'El acceso por clave ya no esta disponible. Usa ChatGPT/OpenClaw desde el panel.'
+        ], 401);
+    }
+
     // Limite de intentos globales por IP para el endpoint de login.
     require_rate_limit(ADMIN_LOGIN_ACTION, 12, 300);
 
@@ -92,6 +118,17 @@ if ($method === 'POST' && $action === 'login') {
 }
 
 if ($method === 'POST' && $action === 'login-2fa') {
+    if (operator_auth_is_enabled()) {
+        audit_log_event('admin.login_legacy_disabled', [
+            'action' => $action,
+            'mode' => operator_auth_mode(),
+        ]);
+        json_response([
+            'ok' => false,
+            'error' => 'El acceso por clave ya no esta disponible. Usa ChatGPT/OpenClaw desde el panel.'
+        ], 401);
+    }
+
     require_rate_limit('admin-login-2fa', 6, 300);
 
     if (!isset($_SESSION['admin_partial_login']) || ($_SESSION['admin_partial_login'] !== true)) {
@@ -138,6 +175,10 @@ if ($method === 'POST' && $action === 'login-2fa') {
 }
 
 if ($method === 'POST' && $action === 'logout') {
+    if (operator_auth_is_enabled()) {
+        OperatorAuthController::logout();
+    }
+
     audit_log_event('admin.logout', [
         'authenticated' => false
     ]);

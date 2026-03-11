@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 483
+  revision: 484
   updated_at: 2026-03-11
 
 tasks:
@@ -7120,8 +7120,8 @@ tasks:
     title: "Operator auth backend with OpenClaw ChatGPT"
     owner: ernes
     executor: codex
-    status: in_progress
-    status_since_at: "2026-03-11T05:39:50.512Z"
+    status: done
+    status_since_at: "2026-03-11T06:23:54.034Z"
     risk: high
     scope: auth
     codex_instance: codex_backend_ops
@@ -7136,19 +7136,19 @@ tasks:
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
-    lease_id: "lease_AG-183_20260311053950512_e0b9cc"
-    lease_owner: "ernes"
-    lease_created_at: "2026-03-11T05:39:50.512Z"
-    heartbeat_at: "2026-03-11T05:39:50.512Z"
-    lease_expires_at: "2026-03-11T09:39:50.512Z"
-    lease_reason: "board_write"
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-11T06:23:54.034Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
     acceptance: "Operator auth backend with OpenClaw ChatGPT"
-    acceptance_ref: ""
-    evidence_ref: ""
+    acceptance_ref: "verification/agent-runs/AG-183.md"
+    evidence_ref: "verification/agent-runs/AG-183.md"
     depends_on: []
     prompt: "Operator auth backend with OpenClaw ChatGPT"
     created_at: 2026-03-11

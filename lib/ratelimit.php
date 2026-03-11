@@ -147,11 +147,25 @@ function rate_limit_user_identifier(): string
     }
 
     if (session_status() === PHP_SESSION_ACTIVE) {
+        $operatorSession = function_exists('operator_auth_current_identity')
+            ? operator_auth_current_identity(false)
+            : null;
         $sessionCandidates = [
             $_SESSION['user_id'] ?? null,
             $_SESSION['patient_id'] ?? null,
+            is_array($operatorSession) ? ('operator:' . trim((string) ($operatorSession['email'] ?? ''))) : null,
             $_SESSION['admin_logged_in'] ?? null
         ];
+
+        if (function_exists('operator_auth_current_identity')) {
+            $operator = operator_auth_current_identity(false);
+            if (is_array($operator)) {
+                $email = strtolower(trim((string) ($operator['email'] ?? '')));
+                if ($email !== '') {
+                    $sessionCandidates[] = 'operator:' . $email;
+                }
+            }
+        }
 
         foreach ($sessionCandidates as $candidate) {
             if (is_bool($candidate)) {

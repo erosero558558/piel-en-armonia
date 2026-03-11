@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/test_framework.php';
+require_once __DIR__ . '/operator_auth_test_helper.php';
 
 $dataDir = sys_get_temp_dir() . '/pielarmonia-test-critical-' . uniqid();
 $cookieFile = sys_get_temp_dir() . '/cookie-' . uniqid() . '.txt';
@@ -36,11 +37,11 @@ $server = start_test_php_server([
         'PIELARMONIA_DATA_DIR' => $dataDir,
         'PIELARMONIA_ADMIN_PASSWORD' => 'secret',
         'PIELARMONIA_AVAILABILITY_SOURCE' => 'store',
-    ],
+    ] + operator_auth_test_env(),
     'startup_timeout_ms' => 12000,
 ]);
 $baseUrl = $server['base_url'] . '/api.php';
-$adminUrl = $server['base_url'] . '/admin-auth.php';
+$serverBaseUrl = $server['base_url'];
 
 echo "Starting server on {$server['base_url']} with data dir $dataDir...\n";
 
@@ -162,7 +163,7 @@ try {
     });
 
     // 3. Admin Cancellation
-    run_test('E2E: Admin Cancellation', function () use ($baseUrl, $adminUrl, $cookieFile, $cancelDate) {
+    run_test('E2E: Admin Cancellation', function () use ($baseUrl, $serverBaseUrl, $cookieFile, $cancelDate) {
         $date = $cancelDate;
         $time = '10:00';
 
@@ -186,17 +187,10 @@ try {
         $resSlot = http_request('GET', "$baseUrl?resource=booked-slots&date=$date");
         assert_contains($time, json_encode($resSlot['body']['data']));
 
-        // Login Admin
-        $loginPayload = ['password' => 'secret'];
-        $resLogin = http_request('POST', "$adminUrl?action=login", $loginPayload, $cookieFile);
+        $login = operator_auth_test_login($serverBaseUrl, $cookieFile);
+        assert_true($login['ok'], 'Operator auth login failed: ' . ($login['reason'] ?? 'unknown'));
 
-        if ($resLogin['code'] !== 200) {
-            echo "Login Failed: " . json_encode($resLogin['body']) . "\n";
-        }
-        assert_equals(200, $resLogin['code'], 'Admin login failed');
-        assert_true($resLogin['body']['ok'], 'Admin login not ok');
-
-        $csrfToken = $resLogin['body']['csrfToken'] ?? '';
+        $csrfToken = $login['csrfToken'] ?? '';
         assert_true(!empty($csrfToken), 'CSRF token missing');
 
         // Cancel Appointment (Admin)

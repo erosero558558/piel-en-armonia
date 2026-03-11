@@ -17,6 +17,7 @@ class AuthSessionTest extends TestCase
         putenv('PIELARMONIA_ADMIN_PASSWORD');
         putenv('PIELARMONIA_ADMIN_PASSWORD_HASH');
         putenv('PIELARMONIA_ADMIN_2FA_SECRET');
+        putenv('PIELARMONIA_OPERATOR_AUTH_MODE');
     }
 
     protected function tearDown(): void
@@ -25,6 +26,7 @@ class AuthSessionTest extends TestCase
         putenv('PIELARMONIA_ADMIN_PASSWORD');
         putenv('PIELARMONIA_ADMIN_PASSWORD_HASH');
         putenv('PIELARMONIA_ADMIN_2FA_SECRET');
+        putenv('PIELARMONIA_OPERATOR_AUTH_MODE');
     }
 
     public function testVerifyAdminPasswordDefault(): void
@@ -64,5 +66,11 @@ class AuthSessionTest extends TestCase
 
         putenv('PIELARMONIA_ADMIN_2FA_SECRET=');
         $this->assertFalse(verify_2fa_code('123456'));
+    }
+
+    public function testOperatorAuthModeDefaultsToDisabled(): void
+    {
+        $this->assertSame('disabled', operator_auth_mode());
+        $this->assertFalse(operator_auth_is_enabled());
     }
 }

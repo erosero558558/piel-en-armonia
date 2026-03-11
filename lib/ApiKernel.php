@@ -137,7 +137,7 @@ class ApiKernel
         $isAdmin = false;
         if (!$isPublic) {
             start_secure_session();
-            $isAdmin = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
+            $isAdmin = legacy_admin_is_authenticated() || operator_auth_is_authenticated();
             if (!$isAdmin) {
                 audit_log_event('api.unauthorized', [
                     'method' => $method,

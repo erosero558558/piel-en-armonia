@@ -17,11 +17,20 @@ require_once __DIR__ . '/storage.php';
  */
 function audit_log_event(string $event, array $details = []): void
 {
+    $actor = 'public';
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        if (function_exists('operator_auth_is_authenticated') && operator_auth_is_authenticated()) {
+            $actor = 'admin';
+        } elseif (!empty($_SESSION['admin_logged_in'])) {
+            $actor = 'admin';
+        }
+    }
+
     $line = [
         'ts' => local_date('c'),
         'event' => $event,
         'ip' => (string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown'),
-        'actor' => (session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['admin_logged_in'])) ? 'admin' : 'public',
+        'actor' => $actor,
         'path' => (string) ($_SERVER['REQUEST_URI'] ?? ''),
         'details' => $details
     ];

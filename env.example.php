@@ -22,6 +22,8 @@
 
 // ── Admin ─────────────────────────────────────────────
 // putenv('PIELARMONIA_ADMIN_PASSWORD=tu_clave_admin');
+// Legacy/test only:
+// putenv('PIELARMONIA_ADMIN_PASSWORD_HASH=$2y$...');
 
 // ── Stripe ────────────────────────────────────────────
 // putenv('PIELARMONIA_STRIPE_SECRET_KEY=sk_live_...');
@@ -111,6 +113,27 @@
 // putenv('OPENCLAW_TRIGGER_TIME_BUDGET_MS=900');
 // En produccion, recomendado desactivar fallback local silencioso
 // putenv('FIGO_ALLOW_LOCAL_FALLBACK=false');
+
+// -- Operator auth (OpenClaw + ChatGPT/OpenAI OAuth) --------------------------
+// Habilita el flujo canonico de autenticacion del operador.
+// putenv('PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt');
+// Lista blanca de correos permitidos para operar el admin.
+// putenv('PIELARMONIA_OPERATOR_AUTH_ALLOWLIST=operador@pielarmonia.com,otra.persona@pielarmonia.com');
+// Token compartido entre el bridge local y el servidor.
+// putenv('PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN=token_bridge_largo_rotado');
+// Secreto HMAC opcional; si no se define se reutiliza el token del bridge.
+// putenv('PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET=secret_hmac_rotado');
+// Header/prefijo usados por el bridge local hacia /api.php?resource=operator-auth-complete
+// putenv('PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN_HEADER=Authorization');
+// putenv('PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN_PREFIX=Bearer');
+// URL publica del servidor usada para construir helper links y validar el bridge local.
+// putenv('PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL=https://pielarmonia.com');
+// URL base del helper local que corre en el laptop del operador.
+// putenv('PIELARMONIA_OPERATOR_AUTH_HELPER_BASE_URL=http://127.0.0.1:4173');
+// TTL del challenge, sesion interna y tolerancia del timestamp firmado.
+// putenv('PIELARMONIA_OPERATOR_AUTH_CHALLENGE_TTL_SECONDS=300');
+// putenv('PIELARMONIA_OPERATOR_AUTH_SESSION_TTL_SECONDS=1800');
+// putenv('PIELARMONIA_OPERATOR_AUTH_BRIDGE_MAX_SKEW_SECONDS=300');
 
 // ── Cron (recordatorios automáticos) ────────────────
 // putenv('PIELARMONIA_CRON_SECRET=un_token_secreto_largo');

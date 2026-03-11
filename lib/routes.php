@@ -10,6 +10,10 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'public-runtime-config', [SystemController::class, 'publicRuntimeConfig']);
     $router->add('GET', 'metrics', [SystemController::class, 'metrics']);
     $router->add('GET', 'predictions', [SystemController::class, 'predictions']);
+    $router->add('POST', 'operator-auth-start', [OperatorAuthController::class, 'start']);
+    $router->add('GET', 'operator-auth-status', [OperatorAuthController::class, 'status']);
+    $router->add('POST', 'operator-auth-complete', [OperatorAuthController::class, 'complete']);
+    $router->add('POST', 'operator-auth-logout', [OperatorAuthController::class, 'logout']);
 
     $router->add('GET', 'figo-config', [ConfigController::class, 'getFigoConfig']);
     $router->add('POST', 'figo-config', [ConfigController::class, 'updateFigoConfig']);
