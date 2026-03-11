@@ -410,6 +410,10 @@ body.admin-v3-mode .admin-v3-shell {
     min-height: 100vh;
 }
 
+body.admin-v3-mode .admin-v3-shell.has-agent-panel {
+    grid-template-columns: 280px minmax(0, 1fr) minmax(360px, 420px);
+}
+
 body.admin-v3-mode .admin-sidebar {
     position: sticky;
     top: 0;
@@ -430,6 +434,10 @@ body.admin-v3-mode.admin-sidebar-collapsed .admin-sidebar {
 
 body.admin-v3-mode.admin-sidebar-collapsed .admin-v3-shell {
     grid-template-columns: 96px minmax(0, 1fr);
+}
+
+body.admin-v3-mode.admin-sidebar-collapsed .admin-v3-shell.has-agent-panel {
+    grid-template-columns: 96px minmax(0, 1fr) minmax(360px, 420px);
 }
 
 body.admin-v3-mode.admin-sidebar-collapsed .admin-v3-sidebar__brand small,
@@ -577,11 +585,17 @@ body.admin-v3-mode .admin-theme-btn {
 }
 
 body.admin-v3-mode .admin-v3-command-btn,
+body.admin-v3-mode .admin-v3-agent-btn,
 body.admin-v3-mode #refreshAdminDataBtn,
 body.admin-v3-mode #loginBtn {
     background: var(--admin3-stage);
     color: #fff;
     border-color: var(--admin3-stage);
+}
+
+body.admin-v3-mode .admin-v3-agent-btn {
+    background: linear-gradient(135deg, #8b3b22 0%, #cf6a3d 100%);
+    border-color: #cf6a3d;
 }
 
 body.admin-v3-mode .admin-v3-context-strip {
@@ -1380,6 +1394,143 @@ body.admin-v3-mode .toast.error {
     border-color: rgba(163, 53, 43, 0.24);
 }
 
+body.admin-v3-mode .admin-agent-panel {
+    border-left: 1px solid var(--admin3-line);
+    background:
+        radial-gradient(circle at top, rgba(207, 106, 61, 0.12), transparent 34%),
+        linear-gradient(180deg, #f8f3ee 0%, #f3ece5 100%);
+    min-height: 100vh;
+    position: sticky;
+    top: 0;
+}
+
+body.admin-v3-mode .admin-agent-panel.is-hidden {
+    display: none;
+}
+
+body.admin-v3-mode .admin-agent-panel__shell {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    padding: 22px 18px;
+    display: grid;
+    gap: 14px;
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto auto auto;
+    overflow-y: auto;
+}
+
+body.admin-v3-mode .admin-agent-panel__header,
+body.admin-v3-mode .admin-agent-surface,
+body.admin-v3-mode .admin-agent-panel__composer {
+    border-radius: 24px;
+    border: 1px solid rgba(26, 31, 36, 0.08);
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: 0 16px 36px rgba(17, 20, 24, 0.08);
+}
+
+body.admin-v3-mode .admin-agent-panel__header {
+    padding: 18px;
+    display: grid;
+    gap: 12px;
+}
+
+body.admin-v3-mode .admin-agent-panel__header-actions,
+body.admin-v3-mode .admin-agent-list__line,
+body.admin-v3-mode .admin-agent-panel__composer-actions,
+body.admin-v3-mode .admin-agent-panel__label,
+body.admin-v3-mode .admin-agent-log__meta,
+body.admin-v3-mode .admin-agent-surface__head,
+body.admin-v3-mode .admin-agent-panel__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+body.admin-v3-mode .admin-agent-panel__meta {
+    align-items: stretch;
+}
+
+body.admin-v3-mode .admin-agent-panel__meta .admin-agent-surface {
+    flex: 1;
+}
+
+body.admin-v3-mode .admin-agent-surface,
+body.admin-v3-mode .admin-agent-panel__composer {
+    padding: 16px;
+    display: grid;
+    gap: 10px;
+}
+
+body.admin-v3-mode .admin-agent-surface__head {
+    align-items: flex-start;
+}
+
+body.admin-v3-mode .admin-agent-log,
+body.admin-v3-mode .admin-agent-list {
+    display: grid;
+    gap: 10px;
+    min-height: 0;
+    overflow: auto;
+    padding-right: 4px;
+}
+
+body.admin-v3-mode .admin-agent-log__item,
+body.admin-v3-mode .admin-agent-list__item {
+    border-radius: 18px;
+    border: 1px solid rgba(26, 31, 36, 0.08);
+    background: rgba(244, 238, 233, 0.64);
+    padding: 12px 14px;
+    display: grid;
+    gap: 8px;
+}
+
+body.admin-v3-mode .admin-agent-log__item[data-role='user'] {
+    background: rgba(207, 106, 61, 0.12);
+}
+
+body.admin-v3-mode .admin-agent-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: rgba(17, 20, 24, 0.08);
+    color: var(--admin3-ink);
+    font-size: 0.76rem;
+    text-transform: lowercase;
+}
+
+body.admin-v3-mode .admin-agent-badge[data-state='completed'],
+body.admin-v3-mode .admin-agent-badge[data-state='online'] {
+    background: rgba(31, 122, 79, 0.14);
+    color: #1f7a4f;
+}
+
+body.admin-v3-mode .admin-agent-badge[data-state='waiting_approval'],
+body.admin-v3-mode .admin-agent-badge[data-state='degraded'] {
+    background: rgba(157, 106, 16, 0.14);
+    color: #8a5b12;
+}
+
+body.admin-v3-mode .admin-agent-badge[data-state='blocked'],
+body.admin-v3-mode .admin-agent-badge[data-state='cancelled'],
+body.admin-v3-mode .admin-agent-badge[data-state='offline'] {
+    background: rgba(163, 53, 43, 0.14);
+    color: #9b342b;
+}
+
+body.admin-v3-mode .admin-agent-panel__composer textarea {
+    min-height: 108px;
+    resize: vertical;
+}
+
+body.admin-v3-mode .admin-agent-empty {
+    margin: 0;
+    color: var(--admin3-muted);
+}
+
 body.admin-v3-mode .toast-body {
     flex: 1;
 }
@@ -1743,6 +1894,19 @@ body.admin-v3-mode .clinical-history-followup-input {
         padding: 18px;
     }
 
+    body.admin-v3-mode .admin-agent-panel {
+        position: fixed;
+        right: 0;
+        top: 0;
+        width: min(92vw, 420px);
+        z-index: 34;
+        box-shadow: -12px 0 40px rgba(15, 18, 21, 0.22);
+    }
+
+    body.admin-v3-mode .admin-agent-panel__shell {
+        height: 100vh;
+    }
+
     body.admin-v3-mode .admin-v3-context-strip,
     body.admin-v3-mode .dashboard-stage,
     body.admin-v3-mode .appointments-stage,
@@ -1815,6 +1979,14 @@ body.admin-v3-mode .clinical-history-followup-input {
     body.admin-v3-mode .admin-v3-topbar__actions {
         width: 100%;
         justify-content: flex-start;
+    }
+
+    body.admin-v3-mode .admin-agent-panel {
+        width: 100vw;
+    }
+
+    body.admin-v3-mode .admin-agent-panel__meta {
+        flex-direction: column;
     }
 
     body.admin-v3-mode .sony-table {

@@ -330,6 +330,7 @@ async function setupSonyV3Mocks(page) {
     const calls = {
         lastClinicalPatch: null,
     };
+    const agentSessionId = 'ags_test_shell';
 
     await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
         jsonResponse(route, {
@@ -413,6 +414,225 @@ async function setupSonyV3Mocks(page) {
             });
         }
 
+        if (resource === 'admin-agent-status') {
+            return jsonResponse(route, {
+                ok: true,
+                data: {
+                    session: null,
+                    health: {
+                        relay: {
+                            mode: 'online',
+                        },
+                    },
+                    tools: [],
+                },
+            });
+        }
+
+        if (resource === 'admin-agent-session-start') {
+            return jsonResponse(route, {
+                ok: true,
+                data: {
+                    session: {
+                        sessionId: agentSessionId,
+                        status: 'active',
+                        riskMode: 'autopilot_partial',
+                    },
+                    context: {
+                        section: 'dashboard',
+                    },
+                    messages: [],
+                    turns: [],
+                    toolCalls: [],
+                    approvals: [],
+                    events: [],
+                    health: {
+                        relay: {
+                            mode: 'online',
+                        },
+                    },
+                    tools: [],
+                },
+            });
+        }
+
+        if (resource === 'admin-agent-turn') {
+            let prompt = '';
+            try {
+                const body = route.request().postDataJSON();
+                prompt = String(body?.message || '').toLowerCase();
+            } catch (_error) {
+                prompt = '';
+            }
+
+            if (prompt.includes('horarios')) {
+                const selectedDate = Object.keys(state.availability)[0] || '';
+                return jsonResponse(route, {
+                    ok: true,
+                    data: {
+                        session: {
+                            session: {
+                                sessionId: agentSessionId,
+                                status: 'completed',
+                                riskMode: 'autopilot_partial',
+                            },
+                            context: {
+                                section: 'availability',
+                            },
+                            messages: [
+                                {
+                                    role: 'user',
+                                    content: `Revisa horarios del ${selectedDate}`,
+                                    createdAt: new Date().toISOString(),
+                                },
+                                {
+                                    role: 'assistant',
+                                    content: `Disponibilidad ${selectedDate}: 2 slot(s).`,
+                                    createdAt: new Date().toISOString(),
+                                },
+                            ],
+                            turns: [
+                                {
+                                    turnId: 'agt_test_shell_availability',
+                                    status: 'completed',
+                                    finalAnswer: `Disponibilidad ${selectedDate}: 2 slot(s).`,
+                                },
+                            ],
+                            toolCalls: [
+                                {
+                                    toolCallId: 'atc_test_shell_date',
+                                    tool: 'ui.select_availability_date',
+                                    status: 'completed',
+                                    reason: 'Sincronizar la fecha consultada en la UI',
+                                },
+                                {
+                                    toolCallId: 'atc_test_shell_day',
+                                    tool: 'availability.day_summary',
+                                    status: 'completed',
+                                    reason: 'Leer la disponibilidad del dia activo',
+                                },
+                            ],
+                            approvals: [],
+                            events: [
+                                {
+                                    event: 'agent.turn_processed',
+                                    status: 'completed',
+                                    createdAt: new Date().toISOString(),
+                                },
+                            ],
+                            health: {
+                                relay: {
+                                    mode: 'online',
+                                },
+                            },
+                            tools: [],
+                        },
+                        turn: {
+                            turnId: 'agt_test_shell_availability',
+                            status: 'completed',
+                            toolPlan: [
+                                {
+                                    tool: 'ui.select_availability_date',
+                                    status: 'completed',
+                                },
+                                {
+                                    tool: 'availability.day_summary',
+                                    status: 'completed',
+                                },
+                            ],
+                            finalAnswer: `Disponibilidad ${selectedDate}: 2 slot(s).`,
+                        },
+                        clientActions: [
+                            {
+                                tool: 'ui.select_availability_date',
+                                args: {
+                                    date: selectedDate,
+                                },
+                            },
+                        ],
+                        refreshRecommended: false,
+                    },
+                });
+            }
+
+            return jsonResponse(route, {
+                ok: true,
+                data: {
+                    session: {
+                        session: {
+                            sessionId: agentSessionId,
+                            status: 'completed',
+                            riskMode: 'autopilot_partial',
+                        },
+                        context: {
+                            section: 'callbacks',
+                        },
+                        messages: [
+                            {
+                                role: 'user',
+                                content: 'Resume los callbacks pendientes',
+                                createdAt: new Date().toISOString(),
+                            },
+                            {
+                                role: 'assistant',
+                                content: 'Callbacks consultados: 2.',
+                                createdAt: new Date().toISOString(),
+                            },
+                        ],
+                        turns: [
+                            {
+                                turnId: 'agt_test_shell',
+                                status: 'completed',
+                                finalAnswer: 'Callbacks consultados: 2.',
+                            },
+                        ],
+                        toolCalls: [
+                            {
+                                toolCallId: 'atc_test_shell',
+                                tool: 'callbacks.list',
+                                status: 'completed',
+                                reason: 'Leer los callbacks relevantes',
+                            },
+                        ],
+                        approvals: [],
+                        events: [
+                            {
+                                event: 'agent.turn_processed',
+                                status: 'completed',
+                                createdAt: new Date().toISOString(),
+                            },
+                        ],
+                        health: {
+                            relay: {
+                                mode: 'online',
+                            },
+                        },
+                        tools: [],
+                    },
+                    turn: {
+                        turnId: 'agt_test_shell',
+                        status: 'completed',
+                        toolPlan: [
+                            {
+                                tool: 'callbacks.list',
+                                status: 'completed',
+                            },
+                        ],
+                        finalAnswer: 'Callbacks consultados: 2.',
+                    },
+                    clientActions: [
+                        {
+                            tool: 'ui.navigate',
+                            args: {
+                                section: 'callbacks',
+                            },
+                        },
+                    ],
+                    refreshRecommended: false,
+                },
+            });
+        }
+
         return jsonResponse(route, { ok: true, data: {} });
     });
 
@@ -436,7 +656,7 @@ async function openAdminSonyV3(page) {
 }
 
 test.describe('Admin sony_v3 shell', () => {
-    test('renderiza shell editorial y abre command palette sin estilos legacy', async ({
+    test('renderiza shell editorial y abre el copiloto sin estilos legacy', async ({
         page,
     }) => {
         await openAdminSonyV3(page);
@@ -476,13 +696,21 @@ test.describe('Admin sony_v3 shell', () => {
         expect(styles.v3Count).toBe(1);
 
         await page.keyboard.press('Control+K');
-        await expect(page.locator('#adminCommandPalette')).not.toHaveClass(
+        await expect(page.locator('#adminAgentPanel')).not.toHaveClass(
             /is-hidden/
         );
-        await page.locator('#adminQuickCommand').fill('callbacks sla');
-        await page.keyboard.press('Enter');
+        await expect(page.locator('#adminAgentPrompt')).toBeFocused();
+        await page
+            .locator('#adminAgentPrompt')
+            .fill('Resume los callbacks pendientes');
+        await page.locator('#adminAgentSubmitBtn').click();
         await expect(page.locator('#callbacks')).toHaveClass(/active/);
-        await expect(page.locator('#callbackFilter')).toHaveValue('sla_urgent');
+        await expect(page.locator('#adminAgentToolPlan')).toContainText(
+            'callbacks.list'
+        );
+        await expect(page.locator('#adminAgentEventTimeline')).toContainText(
+            'agent.turn_processed'
+        );
     });
 
     test('conserva navegacion por atajos y workbench de citas', async ({
@@ -539,5 +767,29 @@ test.describe('Admin sony_v3 shell', () => {
         await expect(
             page.locator('#clinicalHistoryDraftMeta')
         ).not.toContainText('Cambios sin guardar');
+    });
+
+    test('aplica seleccion de fecha de availability desde el copiloto', async ({
+        page,
+    }) => {
+        const fixture = await openAdminSonyV3(page);
+        const selectedDate = Object.keys(fixture.state.availability)[0];
+
+        await page.keyboard.press('Alt+Shift+Digit5');
+        await expect(page.locator('#availability')).toHaveClass(/active/);
+
+        await page.keyboard.press('Control+K');
+        await page
+            .locator('#adminAgentPrompt')
+            .fill(`Revisa horarios del ${selectedDate}`);
+        await page.locator('#adminAgentSubmitBtn').click();
+
+        await expect(page.locator('#selectedDate')).toHaveText(selectedDate);
+        await expect(page.locator('#adminAgentToolPlan')).toContainText(
+            'ui.select_availability_date'
+        );
+        await expect(page.locator('#adminAgentToolPlan')).toContainText(
+            'availability.day_summary'
+        );
     });
 });

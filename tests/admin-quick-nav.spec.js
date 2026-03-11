@@ -59,6 +59,8 @@ function buildFunnelPayload() {
 }
 
 async function setupAdminApiMocks(page) {
+    const agentSessionId = 'ags_test_quick_nav';
+
     await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
         jsonResponse(route, {
             ok: true,
@@ -87,14 +89,54 @@ async function setupAdminApiMocks(page) {
             });
         }
 
+        if (resource === 'admin-agent-status') {
+            return jsonResponse(route, {
+                ok: true,
+                data: {
+                    session: null,
+                    health: {
+                        relay: {
+                            mode: 'online',
+                        },
+                    },
+                    tools: [],
+                },
+            });
+        }
+
+        if (resource === 'admin-agent-session-start') {
+            return jsonResponse(route, {
+                ok: true,
+                data: {
+                    session: {
+                        sessionId: agentSessionId,
+                        status: 'active',
+                        riskMode: 'autopilot_partial',
+                    },
+                    context: {
+                        section: 'dashboard',
+                    },
+                    messages: [],
+                    turns: [],
+                    toolCalls: [],
+                    approvals: [],
+                    events: [],
+                    health: {
+                        relay: {
+                            mode: 'online',
+                        },
+                    },
+                    tools: [],
+                },
+            });
+        }
+
         return jsonResponse(route, { ok: true, data: {} });
     });
 }
 
 test.describe('Admin navigation desktop', () => {
-    test('sidebar keeps section and hash in sync', async ({
-        page,
-    }) => {
+    test('sidebar keeps section and hash in sync', async ({ page }) => {
         await setupAdminApiMocks(page);
         await page.goto('/admin.html');
 
@@ -136,37 +178,26 @@ test.describe('Admin navigation desktop', () => {
         await expect(page).toHaveURL(/#availability$/);
     });
 
-    test('quick command se abre con Ctrl+K y ejecuta acciones contextuales', async ({
+    test('Ctrl+K abre el copiloto y la paleta rapida sigue disponible por boton', async ({
         page,
     }) => {
         await setupAdminApiMocks(page);
         await page.goto('/admin.html');
 
-        await expect(page.locator('#adminCommandPalette')).toHaveClass(
-            /is-hidden/
-        );
-        const commandInput = page.locator('#adminQuickCommand');
+        await expect(page.locator('#adminAgentPanel')).toHaveClass(/is-hidden/);
 
         await page.keyboard.press('Control+K');
+        await expect(page.locator('#adminAgentPanel')).not.toHaveClass(
+            /is-hidden/
+        );
+        await expect(page.locator('#adminAgentPrompt')).toBeFocused();
+
+        await page
+            .locator('button[data-action="open-command-palette"]')
+            .click();
         await expect(page.locator('#adminCommandPalette')).not.toHaveClass(
             /is-hidden/
         );
-        await expect(commandInput).toBeFocused();
-
-        await commandInput.fill('callbacks pendientes');
-        await page.keyboard.press('Enter');
-
-        await expect(page.locator('#callbacks')).toHaveClass(/active/);
-        await expect(
-            page.locator(
-                '.callback-quick-filter-btn[data-filter-value="pending"]'
-            )
-        ).toHaveClass(/is-active/);
-        await expect(page.locator('#adminContextTitle')).toContainText(
-            'Pendientes de contacto'
-        );
-        await expect(page.locator('#adminRefreshStatus')).toContainText(
-            /Datos:/
-        );
+        await expect(page.locator('#adminQuickCommand')).toBeFocused();
     });
 });

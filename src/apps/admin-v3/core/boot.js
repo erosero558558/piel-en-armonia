@@ -1,6 +1,7 @@
 import { attachKeyboardShortcuts } from '../shared/core/keyboard.js';
 import { getState } from '../shared/core/store.js';
 import { checkAuthStatus } from '../shared/modules/auth.js';
+import { focusAgentPrompt, renderAgentPanel } from '../shared/modules/agent.js';
 import {
     hideCommandPalette,
     renderV3Frame,
@@ -75,6 +76,7 @@ export async function bootAdminV3() {
     attachKeyboardShortcuts({
         navigateToSection,
         focusQuickCommand,
+        focusAgentPrompt,
         focusCurrentSearch,
         runQuickAction,
         closeSidebar: () => closeSidebar({ restoreFocus: true }),
@@ -99,6 +101,8 @@ export async function bootAdminV3() {
         hideCommandPalette();
         primeLoginSurface(auth);
     }
+
+    renderAgentPanel();
 
     initQueueAutoRefresh();
     initPushModule();

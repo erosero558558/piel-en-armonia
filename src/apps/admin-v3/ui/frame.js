@@ -4,6 +4,8 @@ export {
     showDashboardView,
     showCommandPalette,
     hideCommandPalette,
+    showAgentPanel,
+    hideAgentPanel,
     setActiveSection,
     setSidebarState,
     getSectionTitle,

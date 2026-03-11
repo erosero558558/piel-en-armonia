@@ -1,4 +1,5 @@
 import { getState, updateState } from '../../shared/core/store.js';
+import { hydrateAgentSession } from '../../shared/modules/agent.js';
 import { createToast } from '../../shared/ui/render.js';
 import {
     isOperatorAuthMode,
@@ -117,6 +118,7 @@ async function finalizeInteractiveLogin(toastMessage = 'Sesion iniciada') {
     setLogin2FAVisibility(false);
     resetLoginForm({ clearPassword: true });
     await refreshDataAndRender(false);
+    await hydrateAgentSession();
     syncQueueAutoRefresh({
         immediate: getState().ui.activeSection === 'queue',
         reason: 'login',
@@ -314,4 +316,5 @@ export async function bootAuthenticatedUi() {
     showDashboardView();
     hideCommandPalette();
     await refreshDataAndRender(false);
+    await hydrateAgentSession();
 }

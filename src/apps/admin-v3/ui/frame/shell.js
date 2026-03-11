@@ -31,6 +31,26 @@ export function hideCommandPalette() {
     document.body.classList.remove('admin-command-open');
 }
 
+export function showAgentPanel() {
+    const panel = qs('#adminAgentPanel');
+    const shell = qs('.admin-v3-shell');
+    if (!(panel instanceof HTMLElement)) return;
+    panel.classList.remove('is-hidden');
+    panel.setAttribute('aria-hidden', 'false');
+    shell?.classList.add('has-agent-panel');
+    document.body.classList.add('admin-agent-open');
+}
+
+export function hideAgentPanel() {
+    const panel = qs('#adminAgentPanel');
+    const shell = qs('.admin-v3-shell');
+    if (!(panel instanceof HTMLElement)) return;
+    panel.classList.add('is-hidden');
+    panel.setAttribute('aria-hidden', 'true');
+    shell?.classList.remove('has-agent-panel');
+    document.body.classList.remove('admin-agent-open');
+}
+
 export function setActiveSection(section) {
     qsa('.admin-section').forEach((node) => {
         node.classList.toggle('active', node.id === section);

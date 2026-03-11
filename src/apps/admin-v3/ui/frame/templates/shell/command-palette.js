@@ -15,7 +15,7 @@ export function renderShellCommandPalette() {
                     <button id="adminRunQuickCommandBtn" data-action="run-admin-command">Ejecutar</button>
                 </div>
                 <div class="admin-command-dialog__hints">
-                    <span>Ctrl+K abre esta paleta</span>
+                    <span>Ctrl+K abre el copiloto</span>
                     <span>/ enfoca la busqueda de la seccion activa</span>
                 </div>
             </div>

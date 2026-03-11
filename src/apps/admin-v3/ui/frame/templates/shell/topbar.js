@@ -10,6 +10,7 @@ export function renderShellTopbar() {
             </div>
             <div class="admin-v3-topbar__actions">
                 <button type="button" id="adminMenuToggle" class="admin-v3-topbar__menu" aria-controls="adminSidebar" aria-expanded="false">${icon('menu')}<span>Menu</span></button>
+                <button type="button" class="admin-v3-agent-btn" data-action="open-agent-panel">Copiloto</button>
                 <button type="button" class="admin-v3-command-btn" data-action="open-command-palette">Acciones</button>
                 <button type="button" id="refreshAdminDataBtn" data-action="refresh-admin-data">Actualizar</button>
                 ${renderHeaderThemeSwitcher()}

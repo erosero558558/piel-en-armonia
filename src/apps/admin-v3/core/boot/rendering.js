@@ -1,4 +1,5 @@
 import { getState } from '../../shared/core/store.js';
+import { renderAgentPanel } from '../../shared/modules/agent.js';
 import { createToast, setText } from '../../shared/ui/render.js';
 import {
     refreshAdminData,
@@ -40,6 +41,7 @@ export function renderAllSections() {
     renderAvailabilitySection();
     renderQueueSection();
     refreshHeaderStatus();
+    renderAgentPanel();
 }
 
 export async function refreshDataAndRender(showToast = false) {

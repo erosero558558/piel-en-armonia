@@ -71,6 +71,12 @@ class ApiConfig
             'queue-ticket:PATCH' => [60, 60],
             'queue-help-request:PATCH' => [60, 60],
             'queue-reprint:POST' => [30, 60],
+            'admin-agent-status:GET' => [90, 60],
+            'admin-agent-events:GET' => [90, 60],
+            'admin-agent-session-start:POST' => [30, 60],
+            'admin-agent-turn:POST' => [60, 60],
+            'admin-agent-approve:POST' => [30, 60],
+            'admin-agent-cancel:POST' => [30, 60],
 
             // Predictions
             'predictions:GET' => [20, 60],

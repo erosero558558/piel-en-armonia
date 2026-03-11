@@ -40,6 +40,7 @@ require_once __DIR__ . '/controllers/QueueController.php';
 require_once __DIR__ . '/controllers/ClinicalHistoryController.php';
 require_once __DIR__ . '/controllers/LeadAiController.php';
 require_once __DIR__ . '/controllers/WhatsappOpenclawController.php';
+require_once __DIR__ . '/controllers/AdminAgentController.php';
 
 // Instantiate and Handle
 $kernel = new ApiKernel();

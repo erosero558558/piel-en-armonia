@@ -1,5 +1,13 @@
 import { createToast } from '../../../../shared/ui/render.js';
 import {
+    approveAgentAction,
+    cancelAgentSession,
+    clearAgentState,
+    closeAgentPanelExperience,
+    openAgentPanelExperience,
+    submitAgentPrompt,
+} from '../../../../shared/modules/agent.js';
+import {
     hideCommandPalette,
     showCommandPalette,
     showLoginView,
@@ -66,6 +74,39 @@ export async function handleShellAction(action, element) {
             showCommandPalette();
             focusQuickCommand();
             return true;
+        case 'open-agent-panel':
+            await openAgentPanelExperience({ focus: true });
+            return true;
+        case 'close-agent-panel':
+            closeAgentPanelExperience();
+            return true;
+        case 'admin-agent-submit': {
+            const input = document.getElementById('adminAgentPrompt');
+            const prompt =
+                input instanceof HTMLTextAreaElement ? input.value : '';
+            const result = await submitAgentPrompt(prompt);
+            if (input instanceof HTMLTextAreaElement) {
+                input.value = '';
+            }
+            if (result?.refreshRecommended) {
+                await refreshDataAndRender(false);
+            }
+            createToast('Turno del agente procesado', 'success');
+            return true;
+        }
+        case 'admin-agent-approve': {
+            const approvalId = String(element.dataset.approvalId || '');
+            const result = await approveAgentAction(approvalId);
+            if (result?.refreshRecommended) {
+                await refreshDataAndRender(false);
+            }
+            createToast('Accion aprobada', 'success');
+            return true;
+        }
+        case 'admin-agent-cancel':
+            await cancelAgentSession();
+            createToast('Sesion del agente cancelada', 'info');
+            return true;
         case 'open-operator-app':
             window.location.assign(buildOperatorAppUrl());
             return true;
@@ -77,6 +118,7 @@ export async function handleShellAction(action, element) {
             syncQueueAutoRefresh({ immediate: false, reason: 'logout' });
             showLoginView();
             hideCommandPalette();
+            clearAgentState();
             primeLoginSurface();
             createToast('Sesion cerrada', 'info');
             return true;

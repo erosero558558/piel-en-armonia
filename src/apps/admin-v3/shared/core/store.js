@@ -95,6 +95,22 @@ const initialState = {
         draftForm: null,
         followUpQuestion: '',
     },
+    agent: {
+        open: false,
+        bootstrapped: false,
+        starting: false,
+        submitting: false,
+        session: null,
+        context: null,
+        messages: [],
+        turns: [],
+        toolCalls: [],
+        approvals: [],
+        events: [],
+        health: null,
+        tools: [],
+        lastError: '',
+    },
 };
 
 let state = structuredClone(initialState);

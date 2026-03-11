@@ -1,6 +1,10 @@
 import { getState, updateState } from '../../../shared/core/store.js';
 import { qs } from '../../../shared/ui/render.js';
-import { hideCommandPalette, showCommandPalette } from '../../../ui/frame.js';
+import {
+    hideAgentPanel,
+    hideCommandPalette,
+    showCommandPalette,
+} from '../../../ui/frame.js';
 import {
     isCompactViewport,
     persistUiPrefs,
@@ -36,12 +40,21 @@ export function toggleSidebarOpen() {
 }
 
 export function closeSidebar({ restoreFocus = false } = {}) {
-    updateUiState(() => ({
-        sidebarOpen: false,
+    updateState((state) => ({
+        ...state,
+        ui: {
+            ...state.ui,
+            sidebarOpen: false,
+        },
+        agent: {
+            ...state.agent,
+            open: false,
+        },
     }));
 
     renderSidebarState();
     hideCommandPalette();
+    hideAgentPanel();
 
     if (restoreFocus) {
         const toggle = qs('#adminMenuToggle');

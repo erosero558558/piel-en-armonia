@@ -70,6 +70,12 @@ function register_api_routes(Router $router): void
 
     $router->add('GET', 'availability', [AvailabilityController::class, 'index']);
     $router->add('POST', 'availability', [AvailabilityController::class, 'update']);
+    $router->add('POST', 'admin-agent-session-start', [AdminAgentController::class, 'start']);
+    $router->add('POST', 'admin-agent-turn', [AdminAgentController::class, 'turn']);
+    $router->add('GET', 'admin-agent-status', [AdminAgentController::class, 'status']);
+    $router->add('GET', 'admin-agent-events', [AdminAgentController::class, 'events']);
+    $router->add('POST', 'admin-agent-approve', [AdminAgentController::class, 'approve']);
+    $router->add('POST', 'admin-agent-cancel', [AdminAgentController::class, 'cancel']);
 
     $router->add('GET', 'booked-slots', [AppointmentController::class, 'bookedSlots']);
     $router->add('POST', 'funnel-event', [AnalyticsController::class, 'recordEvent']);

@@ -57,7 +57,11 @@ require_once __DIR__ . '/lib/security.php';
 
 $eventSetupLoaded = false;
 $eventSetupFile = __DIR__ . '/lib/event_setup.php';
-if (is_file($eventSetupFile) && PHP_VERSION_ID >= 70400) {
+if (
+    (!defined('TESTING_ENV') || TESTING_ENV !== true) &&
+    is_file($eventSetupFile) &&
+    PHP_VERSION_ID >= 70400
+) {
     try {
         require_once $eventSetupFile;
         $eventSetupLoaded = function_exists('get_event_dispatcher');

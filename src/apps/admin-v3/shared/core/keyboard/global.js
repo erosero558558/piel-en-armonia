@@ -15,6 +15,7 @@ export function handleGlobalKeyboardShortcut(event, options) {
     const {
         navigateToSection,
         focusQuickCommand,
+        focusAgentPrompt,
         focusCurrentSearch,
         runQuickAction,
         closeSidebar,
@@ -38,7 +39,7 @@ export function handleGlobalKeyboardShortcut(event, options) {
 
     if (event.ctrlKey && !event.shiftKey && !event.altKey && key === 'k') {
         event.preventDefault();
-        focusQuickCommand();
+        focusAgentPrompt();
         return true;
     }
 

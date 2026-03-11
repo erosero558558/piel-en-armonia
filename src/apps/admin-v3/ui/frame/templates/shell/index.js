@@ -1,3 +1,4 @@
+import { renderAdminAgentPanel } from './agent-panel.js';
 import { renderShellCommandPalette } from './command-palette.js';
 import { renderShellMain } from './main.js';
 import { renderShellSidebar } from './sidebar.js';
@@ -7,6 +8,7 @@ export function renderDashboardTemplate() {
         <div class="admin-v3-shell">
             ${renderShellSidebar()}
             ${renderShellMain()}
+            ${renderAdminAgentPanel()}
             ${renderShellCommandPalette()}
         </div>
     `;
